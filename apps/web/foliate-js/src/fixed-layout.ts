@@ -1,33 +1,7 @@
-const parseViewport = str => str
-    ?.split(/[,;\s]/) // NOTE: technically, only the comma is valid
-    ?.filter(x => x)
-    ?.map(x => x.split('=').map(x => x.trim()))
-
-const getViewport = (doc, viewport) => {
-    // use `viewBox` for SVG
-    if (doc.documentElement.localName === 'svg') {
-        const [, , width, height] = doc.documentElement
-            .getAttribute('viewBox')?.split(/\s/) ?? []
-        return { width, height }
-    }
-
-    // get `viewport` `meta` element
-    const meta = parseViewport(doc.querySelector('meta[name="viewport"]')
-        ?.getAttribute('content'))
-    if (meta) return Object.fromEntries(meta)
-
-    // fallback to book's viewport
-    if (typeof viewport === 'string') return parseViewport(viewport)
-    if (viewport?.width && viewport.height) return viewport
-
-    // if no viewport (possibly with image directly in spine), get image size
-    const img = doc.querySelector('img')
-    if (img) return { width: img.naturalWidth, height: img.naturalHeight }
-
-    // just show *something*, i guess...
-    console.warn(new Error('Missing viewport properties'))
-    return { width: 1000, height: 2000 }
-}
+import type { Book, BookSection, MaybePromise, PageColors, PageSource, Rendition, ResolvedNavigation } from './book.js'
+import type { Overlayer } from './overlayer.js'
+import type { Content, RelocateReason } from './renderer.js'
+import { getViewport, parseViewport, type Dimensions } from './viewport.js'
 
 // READAWARE: rendering budgets, canvas-memory driven. A PDF page rastered at
 // fit-width on a Retina display runs ~12–17 MB of RGBA; a dozen live pages
@@ -51,18 +25,13 @@ const STACK_BEHIND_VIEWPORTS = 1.5
 const STACK_KEEP_AHEAD_VIEWPORTS = 5
 const STACK_KEEP_BEHIND_VIEWPORTS = 3
 
-type FixedFrame = {
-    blank?: boolean
+type FrameBase = {
     hidden: boolean
     element: HTMLDivElement
     iframe: HTMLIFrameElement
     overlay: HTMLDivElement
     index: number
-    doc?: Document | null
-    width?: number
-    height?: number
-    onZoom?: ((options: any) => Promise<void>) | null
-    overlayer?: any
+    overlayer?: Overlayer
     renderedScale?: number | null
     renderingScale?: number | null
     failedScale?: number | null
@@ -70,8 +39,22 @@ type FixedFrame = {
     renderAbort?: AbortController | null
     renderPromise?: Promise<void>
 }
-
-type FixedSpread = { left?: any; right?: any; center?: any }
+type FixedFrame = FrameBase & ({
+    blank: true
+    doc?: never
+    width?: never
+    height?: never
+    onZoom?: never
+} | {
+    blank?: false
+    doc: Document
+    width: number
+    height: number
+    onZoom?: PageSource['onZoom'] | null
+})
+type Side = 'left' | 'right' | 'center'
+type FixedSpread = Partial<Record<Side, BookSection>>
+type SpreadFrames = Partial<Record<Side, FixedFrame>>
 
 type StackEntry = {
     slot: HTMLDivElement
@@ -79,41 +62,42 @@ type StackEntry = {
     framePromise: Promise<FixedFrame | null> | null
     width: number
     height: number
-    pixelHeight?: number
-    top?: number
+    pixelHeight: number
+    top: number
 }
 
 export class FixedLayout extends HTMLElement {
-    declare book: any;
-    declare rtl: boolean;
+    book: Book | undefined
+    rtl = false
 
     static observedAttributes = ['zoom', 'flow', 'max-column-count']
     #root = this.attachShadow({ mode: 'closed' })
     #observer = new ResizeObserver(() => this.#onResize())
     #spreads: FixedSpread[] = []
     #index = -1
-    defaultViewport
-    spread
+    defaultViewport: Rendition['viewport']
+    spread: string | undefined
     #portrait = false
-    #left
-    #right
-    #center
-    #side
-    #zoom
-    #flow
-    #maxColumnCount
+    #left: FixedFrame | null = null
+    #right: FixedFrame | null = null
+    #center: FixedFrame | null = null
+    #side: Side | undefined
+    #zoom: number | 'fit-width' | 'fit-page' | undefined
+    #flow: string | null = null
+    #maxColumnCount: number | undefined
     // READAWARE: `{ background, foreground? }`, or null to render as authored.
     // Page colors are baked in at render time rather than filtered afterwards,
     // so changing them has to redraw every live frame — see setPageColors.
-    #pageColors = null
+    #pageColors: PageColors = null
     // READAWARE: paged-flow spread cache. `#framePromises` holds in-flight and
     // settled creations (a preload and a navigation racing on the same spread
     // share one set of iframes); `#liveFrames` holds settled ones — what
     // rendering, page colors, and eviction iterate. `#lru` orders spread
     // indexes by recency for eviction.
-    #framePromises = new Map()
-    #liveFrames = new Map()
-    #lru = []
+    #framePromises = new Map<number, Promise<SpreadFrames>>()
+    #liveFrames = new Map<number, SpreadFrames>()
+    #lru: number[] = []
+    #frameGeneration = 0
     #preloadToken = 0
     // READAWARE: scrolled-flow page stack. One sized slot per spread keeps the
     // scrollbar honest for the whole document; a slot holds a live frame only
@@ -126,7 +110,7 @@ export class FixedLayout extends HTMLElement {
     #stackDraining = false
     #stackScrollTimer: ReturnType<typeof setTimeout> | 0 = 0
     #stackReportTimer: ReturnType<typeof setTimeout> | 0 = 0
-    #stackDefaultDims = null
+    #stackDefaultDims: Dimensions | null = null
     // READAWARE: trailing setTimeout throttle, deliberately not rAF — WKWebView
     // suspends animation frames entirely while the window is occluded, and the
     // window logic must not silently die with them.
@@ -160,11 +144,11 @@ export class FixedLayout extends HTMLElement {
         this.#observer.observe(this)
         this.addEventListener('scroll', this.#onStackScroll, { passive: true })
     }
-    attributeChangedCallback(name, _, value) {
+    attributeChangedCallback(name: string, _: string | null, value: string | null) {
         switch (name) {
             case 'zoom':
                 this.#zoom = value !== 'fit-width' && value !== 'fit-page'
-                    ? parseFloat(value) : value
+                    ? parseFloat(value ?? '') : value
                 this.#onResize()
                 break
             case 'flow':
@@ -174,7 +158,7 @@ export class FixedLayout extends HTMLElement {
                 break
             case 'max-column-count':
                 {
-                    const maxColumnCount = parseInt(value)
+                    const maxColumnCount = parseInt(value ?? '')
                     if (maxColumnCount === this.#maxColumnCount) break
                     this.#maxColumnCount = maxColumnCount
                     this.#rebuildSpreads()
@@ -185,7 +169,7 @@ export class FixedLayout extends HTMLElement {
     // READAWARE: `parent` — paged frames mount on the shadow root, scrolled
     // frames mount inside their page's slot.
     async #createFrame(
-        { index, src: srcOption },
+        { index, src: srcOption }: { index: number; src?: string | PageSource },
         parent: ShadowRoot | HTMLDivElement = this.#root,
     ): Promise<FixedFrame> {
         const srcOptionIsString = typeof srcOption === 'string'
@@ -228,9 +212,12 @@ export class FixedLayout extends HTMLElement {
         iframe.setAttribute('part', 'filter')
         parent.append(element)
         if (!src) return { blank: true, hidden: true, element, iframe, overlay, index }
-        return new Promise<FixedFrame>(resolve => {
+        return new Promise<FixedFrame>((resolve, reject) => {
+            const fail = (error: Error) => { element.remove(); reject(error) }
+            iframe.addEventListener('error', () => fail(new Error('Could not load fixed-layout page')), { once: true })
             iframe.addEventListener('load', () => {
                 const doc = iframe.contentDocument
+                if (!doc) return fail(new Error('Fixed-layout page document is inaccessible'))
                 doc.addEventListener('wheel', event => {
                     if (!this.scrolled) return
                     event.preventDefault()
@@ -246,8 +233,8 @@ export class FixedLayout extends HTMLElement {
                 const frame = {
                     element, iframe, overlay, index, doc,
                     hidden: true,
-                    width: parseFloat(width),
-                    height: parseFloat(height),
+                    width,
+                    height,
                     onZoom,
                 }
                 // READAWARE: a lazily rendered page (PDF) has no text layer at
@@ -262,13 +249,13 @@ export class FixedLayout extends HTMLElement {
     // READAWARE: hand the view a fresh overlayer for this frame and mount its
     // element. Re-callable: a re-rendered page needs its annotations rebuilt
     // from their CFIs, because the ranges pointed into the discarded DOM.
-    #createOverlayer(frame) {
+    #createOverlayer(frame: FixedFrame) {
         if (!frame?.doc) return
         this.dispatchEvent(new CustomEvent('create-overlayer', {
             detail: {
                 doc: frame.doc,
                 index: frame.index,
-                attach: overlayer => {
+                attach: (overlayer: Overlayer) => {
                     frame.overlayer = overlayer
                     frame.overlay.replaceChildren(overlayer.element)
                     frame.overlay.style.display = 'block'
@@ -284,7 +271,7 @@ export class FixedLayout extends HTMLElement {
     // permanently blank page. Renders are cancellable through the signal the
     // PDF layer honors; a stale in-flight render (scale or palette changed)
     // is cancelled rather than raced.
-    #renderFrameAt(frame, scale) {
+    #renderFrameAt(frame: FixedFrame | null | undefined, scale: number) {
         if (!frame?.onZoom) return
         if (frame.renderedScale === scale || frame.renderingScale === scale) return
         // Two strikes at one scale and the page stops hammering a render that
@@ -295,7 +282,7 @@ export class FixedLayout extends HTMLElement {
         frame.renderAbort = controller
         frame.renderingScale = scale
         frame.renderPromise = frame.onZoom({
-            doc: frame.iframe.contentDocument,
+            doc: frame.doc,
             scale,
             pageColors: this.#pageColors,
             signal: controller.signal,
@@ -309,8 +296,8 @@ export class FixedLayout extends HTMLElement {
                 // ranges are detached — start it over.
                 this.#createOverlayer(frame)
             })
-            .catch(error => {
-                if (error?.name === 'RenderCancelledError') return
+            .catch((error: unknown) => {
+                if (error instanceof Error && error.name === 'RenderCancelledError') return
                 if (frame.failedScale === scale) frame.failCount = (frame.failCount ?? 0) + 1
                 else { frame.failedScale = scale; frame.failCount = 1 }
                 console.error(error)
@@ -325,7 +312,8 @@ export class FixedLayout extends HTMLElement {
     /** Cancel a frame's in-flight render (no-op when idle). Synchronous
      *  bookkeeping, so a follow-up `#renderFrameAt` never dedupes against a
      *  corpse. */
-    #cancelFrameRender(frame) {
+    #cancelFrameRender(frame: FixedFrame | null | undefined) {
+        if (!frame) return
         const controller = frame?.renderAbort
         if (!controller) return
         frame.renderAbort = null
@@ -336,7 +324,7 @@ export class FixedLayout extends HTMLElement {
     // participates in layout and paints. `visibility` (not `display`) so the
     // compositor keeps the hidden page's layers — revealing is then a
     // property flip, never a repaint flash.
-    #setFrameHidden(frame, hidden) {
+    #setFrameHidden(frame: FixedFrame, hidden: boolean) {
         frame.hidden = hidden
         Object.assign(frame.element.style, hidden
             ? { visibility: 'hidden', position: 'absolute', top: '0', left: '0', pointerEvents: 'none' }
@@ -345,9 +333,10 @@ export class FixedLayout extends HTMLElement {
     // ─── Paged flows (single page / spreads) ─────────────────────────────────
     // READAWARE: the scale a spread renders at, extracted from `#render` so
     // background prerendering computes the same answer for a hidden spread.
-    #scaleFor(left, right, center, side) {
-        const l = left ?? {}
-        const r = center ?? right ?? {}
+    #scaleFor(left: FixedFrame | null | undefined, right: FixedFrame | null | undefined,
+        center: FixedFrame | null | undefined, side: Side) {
+        const l: Partial<FixedFrame> = left ?? {}
+        const r: Partial<FixedFrame> = center ?? right ?? {}
         const target = side === 'left' ? l : r
         const { width, height } = this.getBoundingClientRect()
         const portrait = !this.scrolled
@@ -379,13 +368,14 @@ export class FixedLayout extends HTMLElement {
     #render(side = this.#side) {
         if (this.scrolled) return this.#layoutStack()
         if (!side) return
-        const left = this.#left ?? {}
-        const right = this.#center ?? this.#right ?? {}
+        const left = this.#left
+        const right = this.#center ?? this.#right
         const { scale, portrait, target, blankWidth, blankHeight } =
             this.#scaleFor(this.#left, this.#right, this.#center, side)
         this.#portrait = portrait
 
-        const transform = frame => {
+        const transform = (frame: FixedFrame | null) => {
+            if (!frame) return
             let { element, iframe, overlay, width, height, blank, onZoom } = frame
             if (!iframe) return
             // READAWARE: re-render only when the scale actually changed. A
@@ -394,8 +384,8 @@ export class FixedLayout extends HTMLElement {
             this.#renderFrameAt(frame, scale)
             const iframeScale = onZoom ? scale : 1
             Object.assign(iframe.style, {
-                width: `${width * iframeScale}px`,
-                height: `${height * iframeScale}px`,
+                width: `${(width ?? blankWidth) * iframeScale}px`,
+                height: `${(height ?? blankHeight) * iframeScale}px`,
                 transform: onZoom ? 'none' : `scale(${scale})`,
                 transformOrigin: 'top left',
                 display: blank ? 'none' : 'block',
@@ -433,26 +423,34 @@ export class FixedLayout extends HTMLElement {
     // READAWARE: create (or reuse) the frames of one spread. Creations are
     // memoized by promise so a background preload and a user navigation
     // arriving at the same spread share one set of iframes.
-    #framesFor(spreadIndex) {
+    #framesFor(spreadIndex: number): Promise<SpreadFrames> {
         const pending = this.#framePromises.get(spreadIndex)
         if (pending) return pending
         const spread = this.#spreads[spreadIndex]
-        let promise
-        promise = (async () => {
-            let frames
+        const book = this.book
+        if (!book || !spread) return Promise.reject(new Error('Fixed-layout spread does not exist'))
+        const generation = this.#frameGeneration
+        const promise: Promise<SpreadFrames> = Promise.resolve().then(async () => {
+            let frames: SpreadFrames
             if (spread.center) {
-                const index = this.book.sections.indexOf(spread.center)
+                const index = book.sections.indexOf(spread.center)
                 const src = await spread.center?.load?.()
                 frames = { center: await this.#createFrame({ index, src }) }
             } else {
-                const indexL = this.book.sections.indexOf(spread.left)
-                const indexR = this.book.sections.indexOf(spread.right)
+                const indexL = spread.left ? book.sections.indexOf(spread.left) : -1
+                const indexR = spread.right ? book.sections.indexOf(spread.right) : -1
                 const srcL = await spread.left?.load?.()
                 const srcR = await spread.right?.load?.()
                 frames = {
                     left: await this.#createFrame({ index: indexL, src: srcL }),
                     right: await this.#createFrame({ index: indexR, src: srcR }),
                 }
+            }
+            // Closing the renderer or switching layouts invalidates in-flight
+            // creations, not just the frames already present in the cache.
+            if (generation !== this.#frameGeneration) {
+                this.#eachFrame(frames, frame => frame.element.remove())
+                throw new DOMException('Fixed-layout page load was cancelled', 'AbortError')
             }
             // An evict may have raced this creation (dropping the map rows
             // while the iframes loaded). The frames are real and the caller
@@ -464,20 +462,22 @@ export class FixedLayout extends HTMLElement {
             // reader never visits must still be evictable.
             this.#touchLRU(spreadIndex)
             return frames
-        })()
+        })
         this.#framePromises.set(spreadIndex, promise)
         promise.catch(() => {
             // A failed creation must not poison the spread forever.
-            this.#framePromises.delete(spreadIndex)
-            this.#liveFrames.delete(spreadIndex)
+            if (this.#framePromises.get(spreadIndex) === promise) {
+                this.#framePromises.delete(spreadIndex)
+                this.#liveFrames.delete(spreadIndex)
+            }
         })
         return promise
     }
-    #eachFrame(frames, fn) {
+    #eachFrame(frames: SpreadFrames | undefined, fn: (frame: FixedFrame) => void) {
         for (const frame of [frames?.left, frames?.right, frames?.center])
             if (frame) fn(frame)
     }
-    #showFrames(frames, side) {
+    #showFrames(frames: SpreadFrames, side: Side) {
         const next = new Set([frames.left, frames.right, frames.center])
         for (const frame of [this.#left, this.#right, this.#center])
             if (frame && !next.has(frame)) this.#setFrameHidden(frame, true)
@@ -499,7 +499,7 @@ export class FixedLayout extends HTMLElement {
         })
         this.#render()
     }
-    #touchLRU(spreadIndex) {
+    #touchLRU(spreadIndex: number) {
         const at = this.#lru.indexOf(spreadIndex)
         if (at >= 0) this.#lru.splice(at, 1)
         this.#lru.push(spreadIndex)
@@ -583,21 +583,18 @@ export class FixedLayout extends HTMLElement {
     // a correctly-sized slot (so the scrollbar and jump targets are honest
     // for the whole document), and only slots near the viewport hold live,
     // rendered frames. Far pages tear back down to their placeholders.
-    #stackDims(entry) {
+    #stackDims(entry: StackEntry): Dimensions {
         if (entry.width && entry.height) return entry
         if (this.#stackDefaultDims) return this.#stackDefaultDims
-        const viewport = typeof this.defaultViewport === 'object'
-            ? this.defaultViewport : null
-        if (viewport?.width && viewport.height) return {
-            width: parseFloat(viewport.width), height: parseFloat(viewport.height),
-        }
+        const viewport = parseViewport(this.defaultViewport)
+        if (viewport) return viewport
         return { width: 1000, height: 1414 }
     }
     // READAWARE: `width` may be passed by batch callers — reading
     // `clientWidth` forces a synchronous reflow, and doing that once per slot
     // while appending thousands of slots is O(n²) layout (9 s of the open
     // time of a 3,246-page book, measured).
-    #stackScale(entry, width = this.clientWidth) {
+    #stackScale(entry: StackEntry, width = this.clientWidth) {
         const dims = this.#stackDims(entry)
         return (width / dims.width) || 1
     }
@@ -610,6 +607,8 @@ export class FixedLayout extends HTMLElement {
             framePromise: null,
             width: 0,
             height: 0,
+            pixelHeight: 0,
+            top: 0,
         }))
         // One width read and one DOM insertion for the whole stack.
         const width = this.clientWidth
@@ -626,7 +625,7 @@ export class FixedLayout extends HTMLElement {
         this.#root.append(fragment)
         this.#restackTops()
     }
-    #sizeSlot(entry, width = this.clientWidth) {
+    #sizeSlot(entry: StackEntry, width = this.clientWidth) {
         const dims = this.#stackDims(entry)
         const scale = this.#stackScale(entry, width)
         entry.pixelHeight = dims.height * scale
@@ -641,7 +640,7 @@ export class FixedLayout extends HTMLElement {
     // scroll frame would thrash anyway.
     #restackTops() {
         let top = 0
-        for (const entry of this.#stack) {
+        for (const entry of this.#stack ?? []) {
             entry.top = top
             top += entry.pixelHeight
         }
@@ -656,7 +655,7 @@ export class FixedLayout extends HTMLElement {
         if (this.#stackReportTimer) clearTimeout(this.#stackReportTimer)
     }
     /** The stack entry whose slot contains the viewport's center line. */
-    #stackIndexAt(scrollCenter) {
+    #stackIndexAt(scrollCenter: number) {
         if (!this.#stack?.length) return 0
         let lo = 0, hi = this.#stack.length - 1
         while (lo < hi) {
@@ -667,16 +666,15 @@ export class FixedLayout extends HTMLElement {
         }
         return lo
     }
-    async #ensureStackFrame(entryIndex) {
+    async #ensureStackFrame(entryIndex: number): Promise<FixedFrame | null> {
         const entry = this.#stack?.[entryIndex]
-        if (!entry) return null
+        if (!entry || !this.book) return null
         if (entry.framePromise) return entry.framePromise
         this.#stackLive.add(entryIndex)
         const spread = this.#spreads[entryIndex]
-        const sectionIndex = this.book.sections.indexOf(
-            spread.center ?? spread.left ?? spread.right)
-        let promise
-        promise = (async () => {
+        const section = spread.center ?? spread.left ?? spread.right
+        const sectionIndex = section ? this.book.sections.indexOf(section) : -1
+        const promise: Promise<FixedFrame | null> = Promise.resolve().then(async () => {
             const section = spread.center ?? spread.left ?? spread.right
             const src = await section?.load?.()
             const frame = await this.#createFrame(
@@ -720,7 +718,7 @@ export class FixedLayout extends HTMLElement {
             }))
             this.#layoutStackFrame(entry)
             return frame
-        })()
+        })
         entry.framePromise = promise
         promise.catch(() => {
             if (this.#stack?.[entryIndex] === entry) {
@@ -731,7 +729,7 @@ export class FixedLayout extends HTMLElement {
         })
         return promise
     }
-    #layoutStackFrame(entry) {
+    #layoutStackFrame(entry: StackEntry) {
         const frame = entry.frame
         if (!frame || frame.blank) return
         const scale = this.#stackScale(entry)
@@ -751,7 +749,7 @@ export class FixedLayout extends HTMLElement {
         })
         if (!frame.onZoom) frame.overlayer?.redraw()
     }
-    #demoteStackFrame(entryIndex) {
+    #demoteStackFrame(entryIndex: number) {
         const entry = this.#stack?.[entryIndex]
         if (!entry || (!entry.frame && !entry.framePromise)) return
         const frame = entry.frame
@@ -779,7 +777,7 @@ export class FixedLayout extends HTMLElement {
     // recomputes the wanted window (binary search over slot offsets, never a
     // full sweep of thousands of entries), demotes what fell out of the keep
     // range, and kicks the drain loop that does the actual work.
-    #updateStackWindow(reason) {
+    #updateStackWindow(reason: RelocateReason | 'layout') {
         if (!this.#stack?.length) return
         const height = this.clientHeight
         const top = this.scrollTop
@@ -846,9 +844,10 @@ export class FixedLayout extends HTMLElement {
                     // for one to settle and re-check rather than exiting with
                     // work outstanding.
                     const inflight = [...this.#stackWanted]
-                        .map(i => this.#stack[i]?.frame)
-                        .filter(frame => frame?.renderingScale != null)
-                        .map(frame => frame.renderPromise)
+                        .flatMap(i => {
+                            const frame = this.#stack?.[i]?.frame
+                            return frame?.renderingScale != null && frame.renderPromise ? [frame.renderPromise] : []
+                        })
                     if (inflight.length === 0) return
                     await Promise.race(inflight)
                     continue
@@ -872,7 +871,7 @@ export class FixedLayout extends HTMLElement {
     /** Needs creating, or needs (re)rendering at the current scale and hasn't
      *  struck out. Mirrors `#renderFrameAt`'s own guards so the drain loop
      *  cannot spin on a page it would refuse to render. */
-    #stackEntryNeedsWork(entry) {
+    #stackEntryNeedsWork(entry: StackEntry) {
         const frame = entry.frame
         // No frame yet: creating (or waiting to create) — the drain awaits
         // the shared creation promise and then kicks the render.
@@ -883,8 +882,8 @@ export class FixedLayout extends HTMLElement {
         if (frame.failedScale === scale && (frame.failCount ?? 0) >= 2) return false
         return true
     }
-    async #goToStack(index, reason) {
-        if (!this.#stack) return
+    async #goToStack(index: number, reason?: RelocateReason) {
+        if (!this.#stack?.length) return
         const clamped = Math.max(0, Math.min(index, this.#stack.length - 1))
         const entry = this.#stack[clamped]
         this.#stackCurrent = clamped
@@ -908,6 +907,7 @@ export class FixedLayout extends HTMLElement {
         this.#render()
     }
     #clearFrameCache() {
+        this.#frameGeneration++
         this.#preloadToken++
         for (const frames of this.#liveFrames.values())
             this.#eachFrame(frames, frame => {
@@ -942,7 +942,7 @@ export class FixedLayout extends HTMLElement {
             return true
         }
     }
-    open(book) {
+    open(book: Book) {
         this.book = book
         const { rendition } = book
         this.defaultViewport = rendition?.viewport
@@ -957,7 +957,7 @@ export class FixedLayout extends HTMLElement {
         if (!this.book) return
         const { rendition } = this.book
         const maxColumnCount = this.#maxColumnCount
-            ?? parseInt(this.getAttribute('max-column-count'))
+            ?? parseInt(this.getAttribute('max-column-count') ?? '')
         const singlePage = this.scrolled || maxColumnCount === 1
             || !maxColumnCount && rendition?.spread === 'none'
         this.spread = singlePage ? 'none'
@@ -968,7 +968,7 @@ export class FixedLayout extends HTMLElement {
 
         if (singlePage)
             this.#spreads = this.book.sections.map(section => ({ center: section }))
-        else this.#spreads = this.book.sections.reduce((arr, section, i) => {
+        else this.#spreads = this.book.sections.reduce<FixedSpread[]>((arr, section, i) => {
             const last = arr[arr.length - 1]
             const { pageSpread } = section
             const newSpread = () => {
@@ -999,7 +999,7 @@ export class FixedLayout extends HTMLElement {
                 else last.right = section
             }
             return arr
-        }, [{} as FixedSpread])
+        }, [{}])
     }
     #rebuildSpreads() {
         if (!this.book) return
@@ -1018,7 +1018,7 @@ export class FixedLayout extends HTMLElement {
     // invalidates every live frame's cached scale to force a redraw — cached
     // hidden spreads included, or turning a page after a palette change would
     // flash the old colors.
-    setPageColors(pageColors) {
+    setPageColors(pageColors: PageColors) {
         const next = pageColors?.background ? pageColors : null
         if (next?.background === this.#pageColors?.background
             && next?.foreground === this.#pageColors?.foreground) return
@@ -1042,7 +1042,7 @@ export class FixedLayout extends HTMLElement {
         // Repaint the warm window in the new colors behind the visible page.
         if (!this.scrolled) this.#schedulePreload()
     }
-    setLayout(flow, maxColumnCount) {
+    setLayout(flow: string, maxColumnCount: number) {
         this.#flow = flow
         this.#maxColumnCount = maxColumnCount
         this.setAttribute('flow', flow)
@@ -1066,13 +1066,13 @@ export class FixedLayout extends HTMLElement {
         if (!spread) return -1
         const section = spread.center ?? (this.#side === 'left'
             ? spread.left ?? spread.right : spread.right ?? spread.left)
-        return this.book.sections.indexOf(section)
+        return section && this.book ? this.book.sections.indexOf(section) : -1
     }
-    #reportLocation(reason) {
+    #reportLocation(reason: RelocateReason) {
         this.dispatchEvent(new CustomEvent('relocate', { detail:
             { reason, range: null, index: this.index, fraction: 0, size: 1 } }))
     }
-    getSpreadOf(section) {
+    getSpreadOf(section: BookSection): { index: number; side: Side } | undefined {
         const spreads = this.#spreads
         for (let index = 0; index < spreads.length; index++) {
             const { left, right, center } = spreads[index]
@@ -1081,7 +1081,7 @@ export class FixedLayout extends HTMLElement {
             if (center === section) return { index, side: 'center' }
         }
     }
-    async goToSpread(index, side, reason = 'navigation') {
+    async goToSpread(index: number, side: Side, reason: RelocateReason = 'navigation') {
         if (index < 0 || index > this.#spreads.length - 1) return
         if (this.scrolled) return this.#goToStack(index, reason)
         if (index === this.#index) {
@@ -1099,16 +1099,19 @@ export class FixedLayout extends HTMLElement {
         this.#evict()
         this.#schedulePreload()
     }
-    async select(target) {
+    async select(target: MaybePromise<ResolvedNavigation | null | undefined>) {
         await this.goTo(target)
         // TODO
     }
-    async goTo(target) {
+    async goTo(target: MaybePromise<ResolvedNavigation | null | undefined>) {
         const { book } = this
         const resolved = await target
+        if (!book || !resolved) return
         const section = book.sections[resolved.index]
         if (!section) return
-        const { index, side } = this.getSpreadOf(section)
+        const spread = this.getSpreadOf(section)
+        if (!spread) return
+        const { index, side } = spread
         await this.goToSpread(index, side)
     }
     async next() {
@@ -1128,29 +1131,25 @@ export class FixedLayout extends HTMLElement {
     // The page being read comes first — `getContents()[0]` is "the current
     // page" to consumers — followed by the other live frames, so annotation
     // edits reach warm cached pages too.
-    getContents() {
+    getContents(): Content[] {
         if (this.scrolled && this.#stack) {
             const current = this.#stackCurrent
             return this.#stack
-                .map((entry, i) => ({ entry, distance: Math.abs(i - current) }))
-                .filter(({ entry }) => entry.frame?.doc)
+                .flatMap((entry, i) => entry.frame?.doc
+                    ? [{ doc: entry.frame.doc, index: entry.frame.index, overlayer: entry.frame.overlayer, distance: Math.abs(i - current) }] : [])
                 .sort((a, b) => a.distance - b.distance)
-                .map(({ entry }) => ({
-                    doc: entry.frame.doc,
-                    index: entry.frame.index,
-                    overlayer: entry.frame.overlayer,
-                }))
+                .map(({ doc, index, overlayer }) => ({ doc, index, overlayer }))
         }
         const current = [this.#left, this.#right, this.#center]
-            .filter(frame => frame?.doc)
+            .filter((frame): frame is FixedFrame => !!frame?.doc)
         const seen = new Set(current)
-        const cached = []
+        const cached: FixedFrame[] = []
         for (const frames of this.#liveFrames.values())
             this.#eachFrame(frames, frame => {
                 if (frame.doc && !seen.has(frame)) cached.push(frame)
             })
         return [...current, ...cached]
-            .map(({ doc, index, overlayer }) => ({ doc, index, overlayer }))
+            .flatMap(({ doc, index, overlayer }) => doc ? [{ doc, index, overlayer }] : [])
     }
     destroy() {
         this.#observer.unobserve(this)

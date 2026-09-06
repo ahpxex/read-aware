@@ -1,32 +1,4 @@
-const parseViewport = str => str
-    ?.split(/[,;\s]/) // NOTE: technically, only the comma is valid
-    ?.filter(x => x)
-    ?.map(x => x.split('=').map(x => x.trim()));
-const getViewport = (doc, viewport) => {
-    // use `viewBox` for SVG
-    if (doc.documentElement.localName === 'svg') {
-        const [, , width, height] = doc.documentElement
-            .getAttribute('viewBox')?.split(/\s/) ?? [];
-        return { width, height };
-    }
-    // get `viewport` `meta` element
-    const meta = parseViewport(doc.querySelector('meta[name="viewport"]')
-        ?.getAttribute('content'));
-    if (meta)
-        return Object.fromEntries(meta);
-    // fallback to book's viewport
-    if (typeof viewport === 'string')
-        return parseViewport(viewport);
-    if (viewport?.width && viewport.height)
-        return viewport;
-    // if no viewport (possibly with image directly in spine), get image size
-    const img = doc.querySelector('img');
-    if (img)
-        return { width: img.naturalWidth, height: img.naturalHeight };
-    // just show *something*, i guess...
-    console.warn(new Error('Missing viewport properties'));
-    return { width: 1000, height: 2000 };
-};
+import { getViewport, parseViewport } from './viewport.js';
 // READAWARE: rendering budgets, canvas-memory driven. A PDF page rastered at
 // fit-width on a Retina display runs ~12–17 MB of RGBA; a dozen live pages
 // ≈ 150–200 MB, which WKWebView tolerates — rastering a whole 200-page scan
@@ -47,6 +19,8 @@ const STACK_BEHIND_VIEWPORTS = 1.5;
 const STACK_KEEP_AHEAD_VIEWPORTS = 5;
 const STACK_KEEP_BEHIND_VIEWPORTS = 3;
 export class FixedLayout extends HTMLElement {
+    book;
+    rtl = false;
     static observedAttributes = ['zoom', 'flow', 'max-column-count'];
     #root = this.attachShadow({ mode: 'closed' });
     #observer = new ResizeObserver(() => this.#onResize());
@@ -55,12 +29,12 @@ export class FixedLayout extends HTMLElement {
     defaultViewport;
     spread;
     #portrait = false;
-    #left;
-    #right;
-    #center;
+    #left = null;
+    #right = null;
+    #center = null;
     #side;
     #zoom;
-    #flow;
+    #flow = null;
     #maxColumnCount;
     // READAWARE: `{ background, foreground? }`, or null to render as authored.
     // Page colors are baked in at render time rather than filtered afterwards,
@@ -74,6 +48,7 @@ export class FixedLayout extends HTMLElement {
     #framePromises = new Map();
     #liveFrames = new Map();
     #lru = [];
+    #frameGeneration = 0;
     #preloadToken = 0;
     // READAWARE: scrolled-flow page stack. One sized slot per spread keeps the
     // scrollbar honest for the whole document; a slot holds a live frame only
@@ -123,7 +98,7 @@ export class FixedLayout extends HTMLElement {
         switch (name) {
             case 'zoom':
                 this.#zoom = value !== 'fit-width' && value !== 'fit-page'
-                    ? parseFloat(value) : value;
+                    ? parseFloat(value ?? '') : value;
                 this.#onResize();
                 break;
             case 'flow':
@@ -134,7 +109,7 @@ export class FixedLayout extends HTMLElement {
                 break;
             case 'max-column-count':
                 {
-                    const maxColumnCount = parseInt(value);
+                    const maxColumnCount = parseInt(value ?? '');
                     if (maxColumnCount === this.#maxColumnCount)
                         break;
                     this.#maxColumnCount = maxColumnCount;
@@ -187,9 +162,13 @@ export class FixedLayout extends HTMLElement {
         parent.append(element);
         if (!src)
             return { blank: true, hidden: true, element, iframe, overlay, index };
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
+            const fail = (error) => { element.remove(); reject(error); };
+            iframe.addEventListener('error', () => fail(new Error('Could not load fixed-layout page')), { once: true });
             iframe.addEventListener('load', () => {
                 const doc = iframe.contentDocument;
+                if (!doc)
+                    return fail(new Error('Fixed-layout page document is inaccessible'));
                 doc.addEventListener('wheel', event => {
                     if (!this.scrolled)
                         return;
@@ -206,8 +185,8 @@ export class FixedLayout extends HTMLElement {
                 const frame = {
                     element, iframe, overlay, index, doc,
                     hidden: true,
-                    width: parseFloat(width),
-                    height: parseFloat(height),
+                    width,
+                    height,
                     onZoom,
                 };
                 // READAWARE: a lazily rendered page (PDF) has no text layer at
@@ -230,7 +209,7 @@ export class FixedLayout extends HTMLElement {
             detail: {
                 doc: frame.doc,
                 index: frame.index,
-                attach: overlayer => {
+                attach: (overlayer) => {
                     frame.overlayer = overlayer;
                     frame.overlay.replaceChildren(overlayer.element);
                     frame.overlay.style.display = 'block';
@@ -260,7 +239,7 @@ export class FixedLayout extends HTMLElement {
         frame.renderAbort = controller;
         frame.renderingScale = scale;
         frame.renderPromise = frame.onZoom({
-            doc: frame.iframe.contentDocument,
+            doc: frame.doc,
             scale,
             pageColors: this.#pageColors,
             signal: controller.signal,
@@ -274,8 +253,8 @@ export class FixedLayout extends HTMLElement {
             // ranges are detached — start it over.
             this.#createOverlayer(frame);
         })
-            .catch(error => {
-            if (error?.name === 'RenderCancelledError')
+            .catch((error) => {
+            if (error instanceof Error && error.name === 'RenderCancelledError')
                 return;
             if (frame.failedScale === scale)
                 frame.failCount = (frame.failCount ?? 0) + 1;
@@ -296,6 +275,8 @@ export class FixedLayout extends HTMLElement {
      *  bookkeeping, so a follow-up `#renderFrameAt` never dedupes against a
      *  corpse. */
     #cancelFrameRender(frame) {
+        if (!frame)
+            return;
         const controller = frame?.renderAbort;
         if (!controller)
             return;
@@ -344,11 +325,13 @@ export class FixedLayout extends HTMLElement {
             return this.#layoutStack();
         if (!side)
             return;
-        const left = this.#left ?? {};
-        const right = this.#center ?? this.#right ?? {};
+        const left = this.#left;
+        const right = this.#center ?? this.#right;
         const { scale, portrait, target, blankWidth, blankHeight } = this.#scaleFor(this.#left, this.#right, this.#center, side);
         this.#portrait = portrait;
-        const transform = frame => {
+        const transform = (frame) => {
+            if (!frame)
+                return;
             let { element, iframe, overlay, width, height, blank, onZoom } = frame;
             if (!iframe)
                 return;
@@ -358,8 +341,8 @@ export class FixedLayout extends HTMLElement {
             this.#renderFrameAt(frame, scale);
             const iframeScale = onZoom ? scale : 1;
             Object.assign(iframe.style, {
-                width: `${width * iframeScale}px`,
-                height: `${height * iframeScale}px`,
+                width: `${(width ?? blankWidth) * iframeScale}px`,
+                height: `${(height ?? blankHeight) * iframeScale}px`,
                 transform: onZoom ? 'none' : `scale(${scale})`,
                 transformOrigin: 'top left',
                 display: blank ? 'none' : 'block',
@@ -404,23 +387,32 @@ export class FixedLayout extends HTMLElement {
         if (pending)
             return pending;
         const spread = this.#spreads[spreadIndex];
-        let promise;
-        promise = (async () => {
+        const book = this.book;
+        if (!book || !spread)
+            return Promise.reject(new Error('Fixed-layout spread does not exist'));
+        const generation = this.#frameGeneration;
+        const promise = Promise.resolve().then(async () => {
             let frames;
             if (spread.center) {
-                const index = this.book.sections.indexOf(spread.center);
+                const index = book.sections.indexOf(spread.center);
                 const src = await spread.center?.load?.();
                 frames = { center: await this.#createFrame({ index, src }) };
             }
             else {
-                const indexL = this.book.sections.indexOf(spread.left);
-                const indexR = this.book.sections.indexOf(spread.right);
+                const indexL = spread.left ? book.sections.indexOf(spread.left) : -1;
+                const indexR = spread.right ? book.sections.indexOf(spread.right) : -1;
                 const srcL = await spread.left?.load?.();
                 const srcR = await spread.right?.load?.();
                 frames = {
                     left: await this.#createFrame({ index: indexL, src: srcL }),
                     right: await this.#createFrame({ index: indexR, src: srcR }),
                 };
+            }
+            // Closing the renderer or switching layouts invalidates in-flight
+            // creations, not just the frames already present in the cache.
+            if (generation !== this.#frameGeneration) {
+                this.#eachFrame(frames, frame => frame.element.remove());
+                throw new DOMException('Fixed-layout page load was cancelled', 'AbortError');
             }
             // An evict may have raced this creation (dropping the map rows
             // while the iframes loaded). The frames are real and the caller
@@ -432,12 +424,14 @@ export class FixedLayout extends HTMLElement {
             // reader never visits must still be evictable.
             this.#touchLRU(spreadIndex);
             return frames;
-        })();
+        });
         this.#framePromises.set(spreadIndex, promise);
         promise.catch(() => {
             // A failed creation must not poison the spread forever.
-            this.#framePromises.delete(spreadIndex);
-            this.#liveFrames.delete(spreadIndex);
+            if (this.#framePromises.get(spreadIndex) === promise) {
+                this.#framePromises.delete(spreadIndex);
+                this.#liveFrames.delete(spreadIndex);
+            }
         });
         return promise;
     }
@@ -573,12 +567,9 @@ export class FixedLayout extends HTMLElement {
             return entry;
         if (this.#stackDefaultDims)
             return this.#stackDefaultDims;
-        const viewport = typeof this.defaultViewport === 'object'
-            ? this.defaultViewport : null;
-        if (viewport?.width && viewport.height)
-            return {
-                width: parseFloat(viewport.width), height: parseFloat(viewport.height),
-            };
+        const viewport = parseViewport(this.defaultViewport);
+        if (viewport)
+            return viewport;
         return { width: 1000, height: 1414 };
     }
     // READAWARE: `width` may be passed by batch callers — reading
@@ -598,6 +589,8 @@ export class FixedLayout extends HTMLElement {
             framePromise: null,
             width: 0,
             height: 0,
+            pixelHeight: 0,
+            top: 0,
         }));
         // One width read and one DOM insertion for the whole stack.
         const width = this.clientWidth;
@@ -629,7 +622,7 @@ export class FixedLayout extends HTMLElement {
     // scroll frame would thrash anyway.
     #restackTops() {
         let top = 0;
-        for (const entry of this.#stack) {
+        for (const entry of this.#stack ?? []) {
             entry.top = top;
             top += entry.pixelHeight;
         }
@@ -664,15 +657,15 @@ export class FixedLayout extends HTMLElement {
     }
     async #ensureStackFrame(entryIndex) {
         const entry = this.#stack?.[entryIndex];
-        if (!entry)
+        if (!entry || !this.book)
             return null;
         if (entry.framePromise)
             return entry.framePromise;
         this.#stackLive.add(entryIndex);
         const spread = this.#spreads[entryIndex];
-        const sectionIndex = this.book.sections.indexOf(spread.center ?? spread.left ?? spread.right);
-        let promise;
-        promise = (async () => {
+        const section = spread.center ?? spread.left ?? spread.right;
+        const sectionIndex = section ? this.book.sections.indexOf(section) : -1;
+        const promise = Promise.resolve().then(async () => {
             const section = spread.center ?? spread.left ?? spread.right;
             const src = await section?.load?.();
             const frame = await this.#createFrame({ index: sectionIndex, src }, entry.slot);
@@ -717,7 +710,7 @@ export class FixedLayout extends HTMLElement {
                 }));
             this.#layoutStackFrame(entry);
             return frame;
-        })();
+        });
         entry.framePromise = promise;
         promise.catch(() => {
             if (this.#stack?.[entryIndex] === entry) {
@@ -858,9 +851,10 @@ export class FixedLayout extends HTMLElement {
                     // for one to settle and re-check rather than exiting with
                     // work outstanding.
                     const inflight = [...this.#stackWanted]
-                        .map(i => this.#stack[i]?.frame)
-                        .filter(frame => frame?.renderingScale != null)
-                        .map(frame => frame.renderPromise);
+                        .flatMap(i => {
+                        const frame = this.#stack?.[i]?.frame;
+                        return frame?.renderingScale != null && frame.renderPromise ? [frame.renderPromise] : [];
+                    });
                     if (inflight.length === 0)
                         return;
                     await Promise.race(inflight);
@@ -904,7 +898,7 @@ export class FixedLayout extends HTMLElement {
         return true;
     }
     async #goToStack(index, reason) {
-        if (!this.#stack)
+        if (!this.#stack?.length)
             return;
         const clamped = Math.max(0, Math.min(index, this.#stack.length - 1));
         const entry = this.#stack[clamped];
@@ -930,6 +924,7 @@ export class FixedLayout extends HTMLElement {
         this.#render();
     }
     #clearFrameCache() {
+        this.#frameGeneration++;
         this.#preloadToken++;
         for (const frames of this.#liveFrames.values())
             this.#eachFrame(frames, frame => {
@@ -981,7 +976,7 @@ export class FixedLayout extends HTMLElement {
             return;
         const { rendition } = this.book;
         const maxColumnCount = this.#maxColumnCount
-            ?? parseInt(this.getAttribute('max-column-count'));
+            ?? parseInt(this.getAttribute('max-column-count') ?? '');
         const singlePage = this.scrolled || maxColumnCount === 1
             || !maxColumnCount && rendition?.spread === 'none';
         this.spread = singlePage ? 'none'
@@ -1101,7 +1096,7 @@ export class FixedLayout extends HTMLElement {
             return -1;
         const section = spread.center ?? (this.#side === 'left'
             ? spread.left ?? spread.right : spread.right ?? spread.left);
-        return this.book.sections.indexOf(section);
+        return section && this.book ? this.book.sections.indexOf(section) : -1;
     }
     #reportLocation(reason) {
         this.dispatchEvent(new CustomEvent('relocate', { detail: { reason, range: null, index: this.index, fraction: 0, size: 1 } }));
@@ -1146,10 +1141,15 @@ export class FixedLayout extends HTMLElement {
     async goTo(target) {
         const { book } = this;
         const resolved = await target;
+        if (!book || !resolved)
+            return;
         const section = book.sections[resolved.index];
         if (!section)
             return;
-        const { index, side } = this.getSpreadOf(section);
+        const spread = this.getSpreadOf(section);
+        if (!spread)
+            return;
+        const { index, side } = spread;
         await this.goToSpread(index, side);
     }
     async next() {
@@ -1175,17 +1175,13 @@ export class FixedLayout extends HTMLElement {
         if (this.scrolled && this.#stack) {
             const current = this.#stackCurrent;
             return this.#stack
-                .map((entry, i) => ({ entry, distance: Math.abs(i - current) }))
-                .filter(({ entry }) => entry.frame?.doc)
+                .flatMap((entry, i) => entry.frame?.doc
+                ? [{ doc: entry.frame.doc, index: entry.frame.index, overlayer: entry.frame.overlayer, distance: Math.abs(i - current) }] : [])
                 .sort((a, b) => a.distance - b.distance)
-                .map(({ entry }) => ({
-                doc: entry.frame.doc,
-                index: entry.frame.index,
-                overlayer: entry.frame.overlayer,
-            }));
+                .map(({ doc, index, overlayer }) => ({ doc, index, overlayer }));
         }
         const current = [this.#left, this.#right, this.#center]
-            .filter(frame => frame?.doc);
+            .filter((frame) => !!frame?.doc);
         const seen = new Set(current);
         const cached = [];
         for (const frames of this.#liveFrames.values())
@@ -1194,7 +1190,7 @@ export class FixedLayout extends HTMLElement {
                     cached.push(frame);
             });
         return [...current, ...cached]
-            .map(({ doc, index, overlayer }) => ({ doc, index, overlayer }));
+            .flatMap(({ doc, index, overlayer }) => doc ? [{ doc, index, overlayer }] : []);
     }
     destroy() {
         this.#observer.unobserve(this);

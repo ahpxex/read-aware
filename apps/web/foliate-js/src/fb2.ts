@@ -1,8 +1,10 @@
-const normalizeWhitespace = str => str ? str
+import type { Book, BookFile, BookMetadata, TOCFragment } from './book.js'
+
+const normalizeWhitespace = (str: string | null | undefined): string => str ? str
     .replace(/[\t\n\f\r ]+/g, ' ')
     .replace(/^[\t\n\f\r ]+/, '')
     .replace(/[\t\n\f\r ]+$/, '') : ''
-const getElementText = el => normalizeWhitespace(el?.textContent)
+const getElementText = (el: Element | null | undefined): string => normalizeWhitespace(el?.textContent)
 
 const NS = {
     XHTML: 'http://www.w3.org/1999/xhtml',
@@ -15,7 +17,11 @@ const MIME = {
     XHTML: 'application/xhtml+xml',
 } as const
 
-const STYLE = {
+type Conversion = [name: string, children?: ConversionTable | 'self', attributes?: string[]]
+    | 'anchor' | 'image' | 'stanza'
+type ConversionTable = { [name: string]: Conversion }
+
+const STYLE: ConversionTable = {
     'strong': ['strong', 'self'],
     'emphasis': ['em', 'self'],
     'style': ['span', 'self'],
@@ -27,14 +33,14 @@ const STYLE = {
     'image': 'image',
 }
 
-const TABLE = {
+const TABLE: ConversionTable = {
     'tr': ['tr', {
         'th': ['th', STYLE, ['colspan', 'rowspan', 'align', 'valign']],
         'td': ['td', STYLE, ['colspan', 'rowspan', 'align', 'valign']],
     }, ['align']],
 }
 
-const POEM: any = {
+const POEM: ConversionTable = {
     'epigraph': ['blockquote'],
     'subtitle': ['h2', STYLE],
     'text-author': ['p', STYLE],
@@ -42,7 +48,7 @@ const POEM: any = {
     'stanza': 'stanza',
 }
 
-const SECTION = {
+const SECTION: ConversionTable = {
     'title': ['header', {
         'p': ['h1', STYLE],
         'empty-line': ['br'],
@@ -59,9 +65,9 @@ const SECTION = {
     'table': ['table', TABLE],
     'text-author': ['p', STYLE],
 }
-POEM['epigraph'].push(SECTION)
+POEM.epigraph = ['blockquote', SECTION]
 
-const BODY = {
+const BODY: ConversionTable = {
     'image': 'image',
     'title': ['section', {
         'p': ['h1', STYLE],
@@ -72,11 +78,11 @@ const BODY = {
 }
 
 class FB2Converter {
-    declare fb2: XMLDocument;
-    declare doc: XMLDocument;
-    declare bins: Map<any, any>;
+    readonly fb2: XMLDocument
+    readonly doc: XMLDocument
+    readonly bins: Map<string, Element>
 
-    constructor(fb2) {
+    constructor(fb2: XMLDocument) {
         this.fb2 = fb2
         this.doc = document.implementation.createDocument(NS.XHTML, 'html')
         // use this instead of `getElementById` to allow images like
@@ -84,7 +90,7 @@ class FB2Converter {
         this.bins = new Map(Array.from(this.fb2.getElementsByTagName('binary'),
             el => [el.id, el]))
     }
-    getImageSrc(el) {
+    getImageSrc(el: Element): string {
         const href = el.getAttributeNS(NS.XLINK, 'href')
         if (!href) return 'data:,'
         const [, id] = href.split('#')
@@ -94,22 +100,24 @@ class FB2Converter {
             ? `data:${bin.getAttribute('content-type')};base64,${bin.textContent}`
             : href
     }
-    image(node) {
-        const el = this.doc.createElement('img')
-        el.alt = node.getAttribute('alt')
-        el.title = node.getAttribute('title')
+    image(node: Element): Element {
+        const el = this.doc.createElementNS(NS.XHTML, 'img')
+        for (const attr of ['alt', 'title']) {
+            const value = node.getAttribute(attr)
+            if (value !== null) el.setAttribute(attr, value)
+        }
         el.setAttribute('src', this.getImageSrc(node))
         return el
     }
-    anchor(node) {
-        const el = this.convert(node, { 'a': ['a', STYLE] })
-        el.setAttribute('href', node.getAttributeNS(NS.XLINK, 'href'))
+    anchor(node: Element): Element {
+        const el = this.convertElement(node, { 'a': ['a', STYLE] })
+        el.setAttribute('href', node.getAttributeNS(NS.XLINK, 'href') ?? '')
         if (node.getAttribute('type') === 'note')
             el.setAttributeNS(NS.EPUB, 'epub:type', 'noteref')
         return el
     }
-    stanza(node) {
-        const el = this.convert(node, {
+    stanza(node: Element): Element {
+        const el = this.convertElement(node, {
             'stanza': ['p', {
                 'title': ['header', {
                     'p': ['strong', STYLE],
@@ -119,31 +127,38 @@ class FB2Converter {
             }],
         })
         for (const child of node.children) if (child.nodeName === 'v') {
-            el.append(this.doc.createTextNode(child.textContent))
+            el.append(this.doc.createTextNode(child.textContent ?? ''))
             el.append(this.doc.createElement('br'))
         }
         return el
     }
-    convert(node, def) {
+    convertElement(node: Element, def: ConversionTable): Element {
+        const converted = this.convert(node, def)
+        if (!converted || converted.nodeType !== 1) throw new Error(`Cannot convert FB2 element: ${node.nodeName}`)
+        return converted as Element
+    }
+    convert(node: Node, def?: ConversionTable): Node | null {
         // not an element; return text content
-        if (node.nodeType === 3) return this.doc.createTextNode(node.textContent)
-        if (node.nodeType === 4) return this.doc.createCDATASection(node.textContent)
-        if (node.nodeType === 8) return this.doc.createComment(node.textContent)
+        if (node.nodeType === 3) return this.doc.createTextNode(node.textContent ?? '')
+        if (node.nodeType === 4) return this.doc.createCDATASection(node.textContent ?? '')
+        if (node.nodeType === 8) return this.doc.createComment(node.textContent ?? '')
+        if (node.nodeType !== 1) return null
+        const source = node as Element
 
         const d = def?.[node.nodeName]
         if (!d) return null
-        if (typeof d === 'string') return this[d](node)
+        if (typeof d === 'string') return this[d](source)
 
         const [name, opts, attrs] = d
-        const el = this.doc.createElement(name)
+        const el = this.doc.createElementNS(NS.XHTML, name)
 
         // copy the ID, and set class name from original element name
-        if (node.id) el.id = node.id
+        if (source.id) el.id = source.id
         el.classList.add(node.nodeName)
 
         // copy attributes
         if (Array.isArray(attrs)) for (const attr of attrs) {
-            const value = node.getAttribute(attr)
+            const value = source.getAttribute(attr)
             if (value) el.setAttribute(attr, value)
         }
 
@@ -159,7 +174,7 @@ class FB2Converter {
     }
 }
 
-const parseXML = async blob => {
+const parseXML = async (blob: Pick<BookFile, 'arrayBuffer'>): Promise<XMLDocument> => {
     const buffer = await blob.arrayBuffer()
     const str = new TextDecoder('utf-8').decode(buffer)
     const parser = new DOMParser()
@@ -225,7 +240,7 @@ body:not(.notesBodyType) > .title, body:not(.notesBodyType) > .epigraph {
 }
 `], { type: 'text/css' }))
 
-const template = html => `<?xml version="1.0" encoding="utf-8"?>
+const template = (html: string) => `<?xml version="1.0" encoding="utf-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml">
     <head><link href="${style}" rel="stylesheet" type="text/css"/></head>
     <body>${html}</body>
@@ -234,14 +249,15 @@ const template = html => `<?xml version="1.0" encoding="utf-8"?>
 // name of custom ID attribute for TOC items
 const dataID = 'data-foliate-id'
 
-export const makeFB2 = async blob => {
-    const book: any = {}
+export const makeFB2 = async (blob: Pick<BookFile, 'arrayBuffer'>) => {
     const doc = await parseXML(blob)
+    if (doc.querySelector('parsererror') || doc.documentElement.localName !== 'FictionBook')
+        throw new Error('Invalid FictionBook document')
     const converter = new FB2Converter(doc)
 
-    const $ = x => doc.querySelector(x)
-    const $$ = x => [...doc.querySelectorAll(x)]
-    const getPerson = el => {
+    const $ = (x: string) => doc.querySelector(x)
+    const $$ = (x: string) => [...doc.querySelectorAll(x)]
+    const getPerson = (el: Element) => {
         const nick = getElementText(el.querySelector('nickname'))
         if (nick) return nick
         const first = getElementText(el.querySelector('first-name'))
@@ -253,9 +269,9 @@ export const makeFB2 = async blob => {
             : null
         return { name, sortAs }
     }
-    const getDate = el => el?.getAttribute('value') ?? getElementText(el)
+    const getDate = (el: Element | null) => el?.getAttribute('value') ?? getElementText(el)
     const annotation = $('title-info annotation')
-    book.metadata = {
+    const metadata: BookMetadata = {
         title: getElementText($('title-info book-title')),
         identifier: getElementText($('document-info id')),
         language: getElementText($('title-info lang')),
@@ -270,18 +286,19 @@ export const makeFB2 = async blob => {
         publisher: getElementText($('publish-info publisher')),
         published: getDate($('title-info date')),
         modified: getDate($('document-info date')),
-        description: annotation ? converter.convert(annotation,
+        description: annotation ? converter.convertElement(annotation,
             { annotation: ['div', SECTION] }).innerHTML : null,
         subject: $$('title-info genre').map(getElementText),
     }
-    if ($('coverpage image')) {
-        const src = converter.getImageSrc($('coverpage image'))
-        book.getCover = () => fetch(src).then(res => res.blob())
-    } else book.getCover = () => null
+    const cover = $('coverpage image')
+    const coverSrc = cover ? converter.getImageSrc(cover) : null
+    const getCover = () => coverSrc ? fetch(coverSrc).then(res => res.blob()) : null
 
     // get convert each body
-    const bodyData: any[] = Array.from(doc.querySelectorAll('body'), body => {
-        const converted = converter.convert(body, { body: ['body', BODY] }) as HTMLElement
+    type SectionElement = { el: Element; ids: string[] }
+    type SectionData = SectionElement & { titles?: Array<{ title: string; index: number }>; linear?: string }
+    const bodyData = Array.from(doc.querySelectorAll('body'), (body): [SectionElement[], Element] => {
+        const converted = converter.convertElement(body, { body: ['body', BODY] })
         return [Array.from(converted.children, el => {
             // get list of IDs in the section
             const ids = [el, ...el.querySelectorAll('[id]')].map(el => el.id)
@@ -289,10 +306,11 @@ export const makeFB2 = async blob => {
         }), converted]
     })
 
-    const urls = []
+    if (!bodyData.length) throw new Error('FictionBook document has no body')
+    const urls: string[] = []
     const sectionData = bodyData[0][0]
         // make a separate section for each section in the first body
-        .map(({ el, ids }) => {
+        .map(({ el, ids }): SectionData => {
             // set up titles for TOC
             const titles = Array.from(
                 el.querySelectorAll(':scope > section > .title'),
@@ -303,7 +321,7 @@ export const makeFB2 = async blob => {
             return { ids, titles, el }
         })
         // for additional bodies, only make one section for each body
-        .concat(bodyData.slice(1).map(([sections, body]) => {
+        .concat(bodyData.slice(1).map(([sections, body]): SectionData => {
             const ids = sections.map(s => s.ids).flat()
             body.classList.add('notesBodyType')
             return { ids, el: body, linear: 'no' }
@@ -327,14 +345,14 @@ export const makeFB2 = async blob => {
             }
         })
 
-    const idMap = new Map()
-    book.sections = sectionData.map((section, index) => {
+    const idMap = new Map<string, number>()
+    const sections = sectionData.map((section, index) => {
         const { ids, load, createDocument, size, linear } = section
         for (const id of ids) if (id) idMap.set(id, index)
         return { id: index, load, createDocument, size, linear }
     })
 
-    book.toc = sectionData.map(({ title, titles }, index) => {
+    const toc = sectionData.map(({ title, titles }, index) => {
         const id = index.toString()
         return {
             label: title,
@@ -346,20 +364,25 @@ export const makeFB2 = async blob => {
         }
     }).filter(item => item)
 
-    book.resolveHref = href => {
+    const resolveHref = (href: string) => {
         const [a, b] = href.split('#')
+        const index = a ? Number(a) : idMap.get(b)
+        if (index === undefined || !Number.isInteger(index) || !sections[index]) return
         return a
             // the link is from the TOC
-            ? { index: Number(a), anchor: doc => doc.querySelector(`[${dataID}="${b}"]`) }
+            ? { index, anchor: (doc: Document) => doc.querySelector(`[${dataID}="${b}"]`) }
             // link from within the page
-            : { index: idMap.get(b), anchor: doc => doc.getElementById(b) }
+            : { index, anchor: (doc: Document) => doc.getElementById(b) }
     }
-    book.splitTOCHref = href => href?.split('#')?.map(x => Number(x)) ?? []
-    book.getTOCFragment = (doc, id) => doc.querySelector(`[${dataID}="${id}"]`)
-    book.isExternal = uri => /^\w+:/i.test(uri)
-
-    book.destroy = () => {
-        for (const url of urls) URL.revokeObjectURL(url)
-    }
-    return book
+    return {
+        metadata, sections, toc, getCover, resolveHref,
+        splitTOCHref: (href: string): [number, number?] => {
+            const [index, fragment] = href.split('#')
+            return fragment === undefined ? [Number(index)] : [Number(index), Number(fragment)]
+        },
+        getTOCFragment: (doc: Document, id: TOCFragment | undefined) =>
+            typeof id === 'number' ? doc.querySelector(`[${dataID}="${id}"]`) : null,
+        isExternal: (uri: string) => /^\w+:/i.test(uri),
+        destroy: () => { for (const url of urls) URL.revokeObjectURL(url) },
+    } satisfies Book
 }

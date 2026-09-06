@@ -1,8 +1,8 @@
-const normalizeWhitespace = str => str ? str
+const normalizeWhitespace = (str) => str ? str
     .replace(/[\t\n\f\r ]+/g, ' ')
     .replace(/^[\t\n\f\r ]+/, '')
     .replace(/[\t\n\f\r ]+$/, '') : '';
-const getElementText = el => normalizeWhitespace(el?.textContent);
+const getElementText = (el) => normalizeWhitespace(el?.textContent);
 const NS = {
     XHTML: 'http://www.w3.org/1999/xhtml',
     XLINK: 'http://www.w3.org/1999/xlink',
@@ -53,7 +53,7 @@ const SECTION = {
     'table': ['table', TABLE],
     'text-author': ['p', STYLE],
 };
-POEM['epigraph'].push(SECTION);
+POEM.epigraph = ['blockquote', SECTION];
 const BODY = {
     'image': 'image',
     'title': ['section', {
@@ -64,6 +64,9 @@ const BODY = {
     'section': ['section', SECTION],
 };
 class FB2Converter {
+    fb2;
+    doc;
+    bins;
     constructor(fb2) {
         this.fb2 = fb2;
         this.doc = document.implementation.createDocument(NS.XHTML, 'html');
@@ -84,21 +87,24 @@ class FB2Converter {
             : href;
     }
     image(node) {
-        const el = this.doc.createElement('img');
-        el.alt = node.getAttribute('alt');
-        el.title = node.getAttribute('title');
+        const el = this.doc.createElementNS(NS.XHTML, 'img');
+        for (const attr of ['alt', 'title']) {
+            const value = node.getAttribute(attr);
+            if (value !== null)
+                el.setAttribute(attr, value);
+        }
         el.setAttribute('src', this.getImageSrc(node));
         return el;
     }
     anchor(node) {
-        const el = this.convert(node, { 'a': ['a', STYLE] });
-        el.setAttribute('href', node.getAttributeNS(NS.XLINK, 'href'));
+        const el = this.convertElement(node, { 'a': ['a', STYLE] });
+        el.setAttribute('href', node.getAttributeNS(NS.XLINK, 'href') ?? '');
         if (node.getAttribute('type') === 'note')
             el.setAttributeNS(NS.EPUB, 'epub:type', 'noteref');
         return el;
     }
     stanza(node) {
-        const el = this.convert(node, {
+        const el = this.convertElement(node, {
             'stanza': ['p', {
                     'title': ['header', {
                             'p': ['strong', STYLE],
@@ -109,34 +115,43 @@ class FB2Converter {
         });
         for (const child of node.children)
             if (child.nodeName === 'v') {
-                el.append(this.doc.createTextNode(child.textContent));
+                el.append(this.doc.createTextNode(child.textContent ?? ''));
                 el.append(this.doc.createElement('br'));
             }
         return el;
     }
+    convertElement(node, def) {
+        const converted = this.convert(node, def);
+        if (!converted || converted.nodeType !== 1)
+            throw new Error(`Cannot convert FB2 element: ${node.nodeName}`);
+        return converted;
+    }
     convert(node, def) {
         // not an element; return text content
         if (node.nodeType === 3)
-            return this.doc.createTextNode(node.textContent);
+            return this.doc.createTextNode(node.textContent ?? '');
         if (node.nodeType === 4)
-            return this.doc.createCDATASection(node.textContent);
+            return this.doc.createCDATASection(node.textContent ?? '');
         if (node.nodeType === 8)
-            return this.doc.createComment(node.textContent);
+            return this.doc.createComment(node.textContent ?? '');
+        if (node.nodeType !== 1)
+            return null;
+        const source = node;
         const d = def?.[node.nodeName];
         if (!d)
             return null;
         if (typeof d === 'string')
-            return this[d](node);
+            return this[d](source);
         const [name, opts, attrs] = d;
-        const el = this.doc.createElement(name);
+        const el = this.doc.createElementNS(NS.XHTML, name);
         // copy the ID, and set class name from original element name
-        if (node.id)
-            el.id = node.id;
+        if (source.id)
+            el.id = source.id;
         el.classList.add(node.nodeName);
         // copy attributes
         if (Array.isArray(attrs))
             for (const attr of attrs) {
-                const value = node.getAttribute(attr);
+                const value = source.getAttribute(attr);
                 if (value)
                     el.setAttribute(attr, value);
             }
@@ -216,7 +231,7 @@ body:not(.notesBodyType) > .title, body:not(.notesBodyType) > .epigraph {
     margin: 3em 0;
 }
 `], { type: 'text/css' }));
-const template = html => `<?xml version="1.0" encoding="utf-8"?>
+const template = (html) => `<?xml version="1.0" encoding="utf-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml">
     <head><link href="${style}" rel="stylesheet" type="text/css"/></head>
     <body>${html}</body>
@@ -224,12 +239,13 @@ const template = html => `<?xml version="1.0" encoding="utf-8"?>
 // name of custom ID attribute for TOC items
 const dataID = 'data-foliate-id';
 export const makeFB2 = async (blob) => {
-    const book = {};
     const doc = await parseXML(blob);
+    if (doc.querySelector('parsererror') || doc.documentElement.localName !== 'FictionBook')
+        throw new Error('Invalid FictionBook document');
     const converter = new FB2Converter(doc);
-    const $ = x => doc.querySelector(x);
-    const $$ = x => [...doc.querySelectorAll(x)];
-    const getPerson = el => {
+    const $ = (x) => doc.querySelector(x);
+    const $$ = (x) => [...doc.querySelectorAll(x)];
+    const getPerson = (el) => {
         const nick = getElementText(el.querySelector('nickname'));
         if (nick)
             return nick;
@@ -242,9 +258,9 @@ export const makeFB2 = async (blob) => {
             : null;
         return { name, sortAs };
     };
-    const getDate = el => el?.getAttribute('value') ?? getElementText(el);
+    const getDate = (el) => el?.getAttribute('value') ?? getElementText(el);
     const annotation = $('title-info annotation');
-    book.metadata = {
+    const metadata = {
         title: getElementText($('title-info book-title')),
         identifier: getElementText($('document-info id')),
         language: getElementText($('title-info lang')),
@@ -258,24 +274,22 @@ export const makeFB2 = async (blob) => {
         publisher: getElementText($('publish-info publisher')),
         published: getDate($('title-info date')),
         modified: getDate($('document-info date')),
-        description: annotation ? converter.convert(annotation, { annotation: ['div', SECTION] }).innerHTML : null,
+        description: annotation ? converter.convertElement(annotation, { annotation: ['div', SECTION] }).innerHTML : null,
         subject: $$('title-info genre').map(getElementText),
     };
-    if ($('coverpage image')) {
-        const src = converter.getImageSrc($('coverpage image'));
-        book.getCover = () => fetch(src).then(res => res.blob());
-    }
-    else
-        book.getCover = () => null;
-    // get convert each body
-    const bodyData = Array.from(doc.querySelectorAll('body'), body => {
-        const converted = converter.convert(body, { body: ['body', BODY] });
+    const cover = $('coverpage image');
+    const coverSrc = cover ? converter.getImageSrc(cover) : null;
+    const getCover = () => coverSrc ? fetch(coverSrc).then(res => res.blob()) : null;
+    const bodyData = Array.from(doc.querySelectorAll('body'), (body) => {
+        const converted = converter.convertElement(body, { body: ['body', BODY] });
         return [Array.from(converted.children, el => {
                 // get list of IDs in the section
                 const ids = [el, ...el.querySelectorAll('[id]')].map(el => el.id);
                 return { el, ids };
             }), converted];
     });
+    if (!bodyData.length)
+        throw new Error('FictionBook document has no body');
     const urls = [];
     const sectionData = bodyData[0][0]
         // make a separate section for each section in the first body
@@ -310,14 +324,14 @@ export const makeFB2 = async (blob) => {
         };
     });
     const idMap = new Map();
-    book.sections = sectionData.map((section, index) => {
+    const sections = sectionData.map((section, index) => {
         const { ids, load, createDocument, size, linear } = section;
         for (const id of ids)
             if (id)
                 idMap.set(id, index);
         return { id: index, load, createDocument, size, linear };
     });
-    book.toc = sectionData.map(({ title, titles }, index) => {
+    const toc = sectionData.map(({ title, titles }, index) => {
         const id = index.toString();
         return {
             label: title,
@@ -328,20 +342,26 @@ export const makeFB2 = async (blob) => {
             })) : null,
         };
     }).filter(item => item);
-    book.resolveHref = href => {
+    const resolveHref = (href) => {
         const [a, b] = href.split('#');
+        const index = a ? Number(a) : idMap.get(b);
+        if (index === undefined || !Number.isInteger(index) || !sections[index])
+            return;
         return a
             // the link is from the TOC
-            ? { index: Number(a), anchor: doc => doc.querySelector(`[${dataID}="${b}"]`) }
+            ? { index, anchor: (doc) => doc.querySelector(`[${dataID}="${b}"]`) }
             // link from within the page
-            : { index: idMap.get(b), anchor: doc => doc.getElementById(b) };
+            : { index, anchor: (doc) => doc.getElementById(b) };
     };
-    book.splitTOCHref = href => href?.split('#')?.map(x => Number(x)) ?? [];
-    book.getTOCFragment = (doc, id) => doc.querySelector(`[${dataID}="${id}"]`);
-    book.isExternal = uri => /^\w+:/i.test(uri);
-    book.destroy = () => {
-        for (const url of urls)
-            URL.revokeObjectURL(url);
+    return {
+        metadata, sections, toc, getCover, resolveHref,
+        splitTOCHref: (href) => {
+            const [index, fragment] = href.split('#');
+            return fragment === undefined ? [Number(index)] : [Number(index), Number(fragment)];
+        },
+        getTOCFragment: (doc, id) => typeof id === 'number' ? doc.querySelector(`[${dataID}="${id}"]`) : null,
+        isExternal: (uri) => /^\w+:/i.test(uri),
+        destroy: () => { for (const url of urls)
+            URL.revokeObjectURL(url); },
     };
-    return book;
 };

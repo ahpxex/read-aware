@@ -1,10 +1,5 @@
-export type TOCItem = {
-    id?: number
-    label?: string
-    href: string
-    subitems?: TOCItem[] | null
-    type?: string[]
-}
+import type { TOCItem } from './book.js'
+export type { TOCItem } from './book.js'
 export type ProgressSection = { size?: number; linear?: string | null }
 type TOCGroup<Fragment> = {
     prev?: TOCItem

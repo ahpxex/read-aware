@@ -272,7 +272,8 @@
         <p class="text-[12px]" style="color: var(--fg-muted)">2026-09-07 · Tauri 桌面产品 · 目标契约待实现、待验收</p>
         <h1 class="mt-2 text-[26px] font-semibold">ReadAware 插件能力完备基线</h1>
         <p class="mt-3 max-w-xl">新插件应该组合公共能力，而不是继续给宿主补接口。当前缺的不只是操作入口，还有跨 Worker 的协议保真、数据一致性、取消与资源释放。</p>
-        <div class="callout"><b style="color: var(--fg)">裁决：</b>18 组、129 个能力验收项。审计完成不等于能力补齐；全部实现并通过真实工作流后，才能承诺基线范围内的新插件不改宿主。</div>
+        <div class="callout"><b style="color: var(--fg)">裁决：</b>18 组、129 个能力验收项。两轮插件契约审计已记录，目标契约待实现、待验收；不是全部宿主能力都已覆盖。</div>
+        <p class="mt-3 max-w-xl"><a class="underline" href="./host-capability-matrix.html">第三轮：宿主 × Agent × 插件大表</a>分别标记 212 行能力，反查 521 个注册库存条目，关联全部 129 个验收项。新发现包括 10 个只保存值、未找到效果消费者的设置，以及备份范围、画像和工具接线差异。<a class="underline" href="./host-capability-matrix.md">完整事实与库存</a>。</p>
 
         <h2 id="verdict">承诺与现状</h2>
         <div class="grid grid-cols-2 gap-5 border-y py-5 sm:grid-cols-4" style="border-color:var(--line)">

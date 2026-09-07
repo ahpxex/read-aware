@@ -24,7 +24,8 @@ on:
 
 concurrency:
   group: landing-deploy
-  cancel-in-progress: true
+  # Do not cancel between deployment and changed-URL notification.
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -41,9 +42,32 @@ jobs:
       - name: Verify static navigation, downloads, and screenshots
         working-directory: apps/landing
         run: bun run test:static
+      - name: Restore last acknowledged IndexNow manifest
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/readaware-search-ack.json
+          key: readaware-indexnow-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: readaware-indexnow-
+      - name: Snapshot currently published search pages
+        working-directory: apps/landing
+        run: bun scripts/indexnow.mjs snapshot "$RUNNER_TEMP/readaware-search-before.json" "$RUNNER_TEMP/readaware-search-ack.json"
+      - name: Keep notification snapshot for recovery
+        uses: actions/upload-artifact@v4
+        with:
+          name: indexnow-before-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/readaware-search-before.json
+          retention-days: 30
       - name: Deploy to Cloudflare Workers
         working-directory: apps/landing
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: a657a3e85e3a60cc228b04ba1966c656
         run: bunx wrangler deploy
+      - name: Verify production and notify IndexNow of changed URLs
+        working-directory: apps/landing
+        run: bun scripts/indexnow.mjs submit "$RUNNER_TEMP/readaware-search-before.json" "$RUNNER_TEMP/readaware-search-ack.json"
+      - name: Save acknowledged IndexNow manifest
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/readaware-search-ack.json
+          key: readaware-indexnow-${{ github.run_id }}-${{ github.run_attempt }}

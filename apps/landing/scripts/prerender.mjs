@@ -15,6 +15,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { contentHash, validateManifest } from "./search-manifest.mjs";
 
 const appDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = join(appDir, "dist");
@@ -257,6 +258,7 @@ function blogPostingJsonLd(routePath, title, description, post) {
   });
 }
 
+const searchPages = [];
 for (const routePath of paths) {
   let body = await render(routePath);
 
@@ -313,6 +315,7 @@ for (const routePath of paths) {
       : join(distDir, routePath.slice(1), "index.html");
   await mkdir(dirname(outFile), { recursive: true });
   await writeFile(outFile, html);
+  searchPages.push({ url: canonicalUrl(routePath), hash: await contentHash(html) });
   console.log(`prerendered ${routePath} -> ${relative(appDir, outFile)}`);
 }
 
@@ -346,6 +349,7 @@ const sitemap = [
 ].join("\n");
 await writeFile(join(distDir, "sitemap.xml"), sitemap);
 console.log(`wrote sitemap.xml (${paths.length} URLs)`);
+await writeFile(join(distDir, "search-manifest.json"), JSON.stringify(validateManifest({ version: 1, pages: searchPages })));
 
 // Workers Static Assets' automatic directory redirect is temporary (307),
 // while the Pages deployment this replaces used a permanent 308. Keep that

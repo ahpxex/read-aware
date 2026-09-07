@@ -1,0 +1,447 @@
+<!doctype html>
+<!--
+  ReadAware paired-document decision view, adapted from the shared template.
+
+  Fact mirror: plugin-capability-baseline.md.
+  铁律：本页给「人」看——结论先行、条目折叠、一屏一主题；
+        全部事实密度放同目录 <slug>.md（agent 看），两文件互链。
+        HTML 不引入 md 里没有的事实。目标体量 ≤ 600 行。
+
+  可复用构件（本模板全部示范一次）：
+    · 范围裁决框（.callout）       · mermaid 图（含降级文案）
+    · 条目折叠行（details.ep）     · 方法徽章（get/post/patch/delete/ws）
+    · 状态芯片（.p0 核心 / .later 延后）
+    · 搜索（data-search-section）  · 侧栏 scrollspy / 抽屉 / 主题切换
+-->
+<html lang="zh-CN" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="ReadAware 插件能力完备基线：18 组、129 个能力验收项，明确现状、缺口、边界和不改宿主的验收条件。" />
+    <meta name="color-scheme" content="dark light" />
+    <title>ReadAware 插件能力完备基线</title>
+    <script>
+      // 首屏防主题闪烁：读 localStorage 再决定 html.dark
+      (function () {
+        try {
+          var stored = localStorage.getItem("readaware-capability-docs-theme");
+          document.documentElement.classList.toggle("dark", stored !== "light");
+        } catch (error) {
+          document.documentElement.classList.add("dark");
+        }
+      })();
+    </script>
+    <!-- 固定 CDN 版本 + SRI；离线场景需自行 vendor -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@fontsource-variable/geist@5.2.9/index.css"
+      integrity="sha384-if8MdL2mPpInuz+gfwSqWsp0oVymAAWrxIgU35SlqXZzzjvGAQmx91Y+mMGGibpp"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@fontsource-variable/geist-mono@5.3.0/index.css"
+      integrity="sha384-NST9F93++1eck4FnDE0yqyWiwNNfBoWDI9qHmFymatO15xmb9YIy6A3BP1wUJs2A"
+      crossorigin="anonymous"
+    />
+    <script
+      src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1"
+      integrity="sha384-OT3qnPBOZ0Z1BVC2R6WSI4cjBlIoSMeeZAUY8gZqaP1TgAJHbuo2gIM6KzQ8/viI"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/lucide@0.561.0/dist/umd/lucide.min.js"
+      integrity="sha384-YS1lRbKthC7/Oeyl8nPDTO0vZvejeFLnQJuye5QwYDdJD/2toIxMci9LbHst3SGQ"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/mermaid@11.16.0/dist/mermaid.min.js"
+      integrity="sha384-T/0lMUdJpd2S1ZHtRiofG3htU3xPCrFVeAQ1UUE2TJwlEJSV5NUwn30kP28n238E"
+      crossorigin="anonymous"
+    ></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --font-sans:
+          "Geist Variable", "PingFang SC", "Microsoft YaHei", sans-serif;
+        --font-mono:
+          "Geist Mono Variable", ui-monospace, SFMono-Regular, monospace;
+      }
+      @layer base {
+        :root {
+          --bg: #ffffff;
+          --bg-subtle: #fafafa;
+          --fg: #171717;
+          --fg-muted: #666666;
+          --fg-faint: #8f8f8f;
+          --line: #eaeaea;
+          --line-strong: #d4d4d4;
+        }
+        .dark {
+          --bg: #0a0a0a;
+          --bg-subtle: #111111;
+          --fg: #ededed;
+          --fg-muted: #a1a1a1;
+          --fg-faint: #6e6e6e;
+          --line: #242424;
+          --line-strong: #3a3a3a;
+        }
+        html {
+          scroll-behavior: smooth;
+          scroll-padding-top: 4.5rem;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          html {
+            scroll-behavior: auto;
+          }
+        }
+        body {
+          background: var(--bg);
+          color: var(--fg);
+        }
+        * { letter-spacing: 0 !important; }
+        button, input, a { min-width: 0; }
+        button { flex-shrink: 0; }
+        main { overflow-wrap: anywhere; }
+        [hidden] { display: none !important; }
+        :focus-visible { outline: 2px solid #2f81f7; outline-offset: 3px; }
+        ::selection {
+          background: var(--fg);
+          color: var(--bg);
+        }
+      }
+      @layer components {
+        .badge {
+          @apply inline-flex w-14 shrink-0 items-center justify-center rounded-[4px] border px-1.5 py-0.5 font-mono text-[11px] font-medium;
+        }
+        .badge-get { color: #2f81f7; border-color: color-mix(in srgb, #2f81f7 40%, transparent); }
+        .badge-post { color: #2ea043; border-color: color-mix(in srgb, #2ea043 40%, transparent); }
+        .badge-patch { color: #d29922; border-color: color-mix(in srgb, #d29922 45%, transparent); }
+        .badge-delete { color: #f85149; border-color: color-mix(in srgb, #f85149 40%, transparent); }
+        .badge-ws { color: var(--fg-muted); border-color: var(--line-strong); }
+        .p0 {
+          @apply inline-flex shrink-0 items-center rounded-[4px] border px-1.5 py-0.5 font-mono text-[11px] whitespace-nowrap;
+          color: #2ea043; border-color: color-mix(in srgb, #2ea043 40%, transparent);
+        }
+        .later {
+          @apply inline-flex shrink-0 items-center rounded-[4px] border px-1.5 py-0.5 font-mono text-[11px] whitespace-nowrap;
+          color: var(--fg-faint); border-color: var(--line);
+        }
+        .navlink {
+          @apply block rounded-[6px] px-2.5 py-1.5 text-[13px];
+          color: var(--fg-muted);
+        }
+        .navlink:hover { color: var(--fg); background: var(--bg-subtle); }
+        .navlink.active { color: var(--fg); background: var(--bg-subtle); font-weight: 500; }
+        h2 { @apply mt-12 mb-4 scroll-mt-20 text-[20px] font-semibold; }
+        h3 { @apply mt-7 mb-1 text-[14px] font-semibold; }
+        main p { @apply text-[14px] leading-7; color: var(--fg-muted); }
+        main code {
+          @apply rounded-[4px] px-1 py-0.5 font-mono text-[12.5px];
+          background: var(--bg-subtle);
+          color: var(--fg);
+        }
+        .callout {
+          @apply my-4 max-w-xl rounded-[6px] border px-4 py-3 text-[13px] leading-6;
+          border-color: var(--line-strong); background: var(--bg-subtle);
+        }
+        .endpoint-row {
+          @apply flex flex-wrap items-center gap-x-3 gap-y-1 border-b py-2.5;
+          border-color: var(--line);
+        }
+        .endpoint-row .desc { @apply text-[13px]; color: var(--fg-muted); }
+        .endpoint-row .tool {
+          @apply ml-auto rounded-[4px] border px-1.5 py-0.5 font-mono text-[11px] whitespace-nowrap;
+          border-color: var(--line);
+          color: var(--fg-faint);
+        }
+        details.ep {
+          @apply border-b;
+          border-color: var(--line);
+        }
+        details.ep > summary {
+          @apply flex cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 py-2.5;
+          list-style: none;
+        }
+        details.ep > summary::-webkit-details-marker { display: none; }
+        details.ep > summary::before {
+          content: "▸";
+          @apply w-3 shrink-0 text-[11px];
+          color: var(--fg-faint);
+        }
+        details.ep[open] > summary::before { content: "▾"; }
+        .ep-body {
+          @apply space-y-1.5 pb-4 pl-6;
+        }
+        .ep-body p { @apply text-[13px] leading-6; color: var(--fg-muted); }
+        .ep-body b { @apply mr-1 font-medium; color: var(--fg); }
+      }
+    </style>
+  </head>
+  <body class="font-sans antialiased">
+    <header
+      class="sticky top-0 z-40 border-b backdrop-blur"
+      style="border-color: var(--line); background: color-mix(in srgb, var(--bg) 85%, transparent)"
+    >
+      <div class="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4 sm:px-6">
+        <button
+          id="drawer-open"
+          class="inline-flex size-9 items-center justify-center rounded-[6px] border md:hidden"
+          style="border-color: var(--line)"
+          aria-label="打开目录"
+          aria-controls="sidenav"
+          aria-expanded="false"
+          title="打开目录"
+        >
+          <i data-lucide="menu" class="size-4"></i>
+        </button>
+        <a href="#top" class="flex shrink-0 items-baseline gap-2 whitespace-nowrap">
+          <span class="text-[15px] font-semibold">ReadAware</span>
+          <span class="hidden text-[13px] sm:inline" style="color: var(--fg-muted)">/ 插件能力基线</span>
+        </a>
+        <div class="relative ml-auto w-full max-w-[220px]">
+          <i
+            data-lucide="search"
+            class="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2"
+            style="color: var(--fg-faint)"
+          ></i>
+          <input
+            id="search"
+            type="search"
+            aria-label="筛选能力"
+            placeholder="筛选条目…"
+            class="h-9 w-full rounded-[6px] border pr-2 pl-8 text-[13px] outline-none focus:border-[var(--line-strong)]"
+            style="border-color: var(--line); background: var(--bg-subtle); color: var(--fg)"
+          />
+        </div>
+        <a
+          href="./plugin-capability-baseline.md"
+          class="hidden h-9 items-center gap-1.5 rounded-[6px] border px-3 text-[13px] sm:inline-flex"
+          style="border-color: var(--line); color: var(--fg-muted)"
+          title="契约细节的事实镜像，给 agent 看"
+        >
+          <i data-lucide="file-text" class="size-3.5"></i>细节版
+        </a>
+        <button
+          id="theme-toggle"
+          class="inline-flex size-9 items-center justify-center rounded-[6px] border"
+          style="border-color: var(--line)"
+          aria-label="切换主题"
+          title="切换主题"
+        >
+          <i data-lucide="sun" class="size-4 dark:hidden"></i>
+          <i data-lucide="moon" class="hidden size-4 dark:inline"></i>
+        </button>
+      </div>
+    </header>
+
+    <div id="top" class="mx-auto flex max-w-5xl px-4 sm:px-6">
+      <nav
+        id="sidenav"
+        class="fixed inset-y-0 left-0 z-50 w-64 -translate-x-full overflow-y-auto border-r p-4 pt-5 transition-transform md:sticky md:top-14 md:z-auto md:h-[calc(100vh-3.5rem)] md:w-48 md:translate-x-0 md:border-r-0 md:pl-0"
+        style="border-color: var(--line); background: var(--bg)"
+        aria-label="目录"
+      >
+        <div class="mb-3 flex items-center justify-between md:hidden">
+          <span class="text-[13px] font-medium">目录</span>
+          <button
+            id="drawer-close"
+            class="inline-flex size-9 items-center justify-center rounded-[6px] border"
+            style="border-color: var(--line)"
+            aria-label="关闭目录"
+          >
+            <i data-lucide="x" class="size-4"></i>
+          </button>
+        </div>
+        <p class="px-2.5 pb-1 text-[11px]" style="color: var(--fg-muted)">能力完备基线</p>
+        <div id="nav" class="space-y-0.5 pb-4">
+          <!-- href 与 main 里 h2 的 id 一一对应；scrollspy 会点亮 -->
+          <a class="navlink" href="#verdict">承诺与现状</a>
+          <a class="navlink" href="#reading">阅读与数据</a>
+          <a class="navlink" href="#experience">界面与智能</a>
+          <a class="navlink" href="#platform">资源与运行</a>
+          <a class="navlink" href="#boundary">边界</a>
+          <a class="navlink" href="#acceptance">验收与下一步</a>
+        </div>
+      </nav>
+      <div id="drawer-backdrop" class="fixed inset-0 z-40 hidden bg-black/50 md:hidden"></div>
+
+      <main class="min-w-0 flex-1 pt-8 pb-24 md:pl-10">
+        <p class="text-[12px]" style="color: var(--fg-muted)">2026-09-07 · Tauri 桌面产品 · 目标契约待实现、待验收</p>
+        <h1 class="mt-2 text-[26px] font-semibold">ReadAware 插件能力完备基线</h1>
+        <p class="mt-3 max-w-xl">新插件应该组合公共能力，而不是继续给宿主补接口。这份基线包含当前宿主行为和开放这些行为必需的基础设施；不把新产品能力混进“已支持”。</p>
+        <div class="callout"><b style="color: var(--fg)">裁决：</b>18 组、129 个能力验收项。审计完成不等于能力补齐；全部实现并通过真实工作流后，才能承诺基线范围内的新插件不改宿主。</div>
+
+        <h2 id="verdict">承诺与现状</h2>
+        <div class="grid grid-cols-2 gap-5 border-y py-5 sm:grid-cols-4" style="border-color:var(--line)">
+          <div><strong class="block text-[25px]">21</strong><p>E · 已有公共入口</p></div>
+          <div><strong class="block text-[25px]">33</strong><p>P · 开放不完整</p></div>
+          <div><strong class="block text-[25px]">33</strong><p>M · 宿主有，未开放</p></div>
+          <div><strong class="block text-[25px]">42</strong><p>B · 基础设施待建</p></div>
+        </div>
+        <p class="mt-3">这是验收项数量，不是缺失函数数量。21 项已有入口也需要回归；其余 108 项不能用“再导出几个方法”概括。每项操作、现状与源码在<a class="underline" href="./plugin-capability-baseline.md">完整清单</a>。</p>
+        <div class="my-5 overflow-x-auto" aria-label="目标架构图">
+          <div id="diagram-capabilities" class="min-w-[500px]">图加载中；失败时以下方文字为准。</div>
+          <pre class="mermaid-source hidden" data-target="diagram-capabilities">
+flowchart TB
+    U["内置 UI"] --> C["共享产品能力与操作契约"]
+    A["核心 Agent"] --> C
+    P["插件 Worker"] --> G["授权与生命周期检查"]
+    G --> C
+    C --> D["SQLite 与领域事件"]
+    C --> R["阅读会话与 Foliate"]
+    C --> S["宿主组件与平台服务"]</pre>
+        </div>
+        <p>目标不是给插件原生权限，而是让内置 UI、Agent 和插件使用同一套产品操作。位置、结果、事件与生命周期必须接得起来。</p>
+
+        <h2 id="reading">阅读与数据</h2>
+        <details class="ep" data-search-section="A object location identity 对象 定位 发现 revision"><summary><span class="badge badge-patch">A</span><span>对象身份、位置与能力发现</span></summary><div class="ep-body"><p><b>必须有</b>统一的书、章、范围、会话和资源引用；能力与可用性查询；操作回执和无丢失状态观察。</p><p><b>缺口</b>目录索引不能直接交给定位接口；失效、版本与完成语义未统一。</p></div></details>
+        <details class="ep" data-search-section="B library collection import file cover 书库 集合 导入 封面"><summary><span class="badge badge-patch">B</span><span>书库、集合与生命周期</span></summary><div class="ep-body"><p><b>已有</b>书籍/集合读取、常用增删改和字节导入。</p><p><b>补齐</b>批量结果、封面与原文件资源、可用性、导入进度/取消、去重合并流程和虚拟书刷新。</p></div></details>
+        <details class="ep" data-search-section="C search toc content 正文 搜索 目录 脚注 图片"><summary><span class="badge badge-patch">C</span><span>正文、目录、搜索与资源</span></summary><div class="ep-body"><p><b>已有</b>抽取章节目录和字符串正文。</p><p><b>补齐</b>完整导航目录、精确搜索位置、跨书检索、抽取状态、分批/取消、附近文本、书内资源。</p></div></details>
+        <details class="ep" data-search-section="D jumper navigation history session 跳转 历史 前进 后退 页码"><summary><span class="badge badge-delete">D</span><span>阅读会话与统一导航历史</span></summary><div class="ep-body"><p><b>必须有</b>当前会话、开关书与 ready、跳转回执、翻页/换章/进度、历史、沉浸与面板、格式支持的缩放。</p><p><b>缺口</b>引擎已有搜索和历史，插件拿不到；现有打开/跳转只是发请求，缺最终反馈。</p></div></details>
+        <details class="ep" data-search-section="E selection overlay highlight 选区 临时 强调 范围"><summary><span class="badge badge-patch">E</span><span>选区与临时书内呈现</span></summary><div class="ep-body"><p><b>补齐</b>读取/监听/设置选区、临时范围强调、片段/脚注/图片预览及释放。</p><p><b>底线</b>临时搜索标记不冒充用户高亮，关视图或禁用插件就释放所属资源。</p></div></details>
+        <details class="ep" data-search-section="F annotation note ask 标注 笔记 问题 导出"><summary><span class="badge badge-patch">F</span><span>高亮、笔记与问题轨迹</span></summary><div class="ep-body"><p><b>已有</b>列表/搜索、高亮创建改色删除、笔记创建编辑删除。</p><p><b>补齐</b>ID 读取、稳定分页/批量结果、任意合法范围互通、用户批准删除 ask、完整事件观察。</p></div></details>
+        <details class="ep" data-search-section="G statistics reading time sessionRecorded 统计 阅读时间 会话"><summary><span class="badge badge-patch">G</span><span>阅读统计与会话记录</span></summary><div class="ep-body"><p><b>已有</b>单书/全库/总览统计、读完状态修改。</p><p><b>补齐</b>日期窗口、待结算时间和真实会话事件。宿主已有 book.sessionRecorded，插件公开类型尚未跟进。</p></div></details>
+        <details class="ep" data-search-section="H settings appearance textAlign fixedLayoutColor 设置 对齐 原色 快捷键"><summary><span class="badge badge-patch">H</span><span>全量用户设置</span></summary><div class="ep-body"><p><b>已有</b>精确路径授权、查询/批量修改、主题与声明式插件设置。</p><p><b>补齐</b>文本对齐、固定版式原色、书架视图、快捷键、默认值与覆盖来源；凭据留在安全流程。</p></div></details>
+
+        <h2 id="experience">界面与智能</h2>
+        <details class="ep" data-search-section="I command menu surface sidebar header 导航 命令 菜单 侧面板"><summary><span class="badge badge-patch">I</span><span>应用导航、命令与挂载点</span></summary><div class="ep-body"><p><b>已有</b>书架/阅读 header、选区/标注动作、命令与快捷键。</p><p><b>补齐</b>现有产品页面/面板的语义导航、上下文槽位、侧面板、状态与可用性、类型化命令调用。</p></div></details>
+        <details class="ep" data-search-section="J UI schema view search form list tree table reactive 界面 表单 列表 树 表格"><summary><span class="badge badge-delete">J</span><span>可组合的声明式交互</span></summary><div class="ep-body"><p><b>已有</b>列表、表单、详情和组合块，不是整个组件库的能力都已开放。</p><p><b>补齐</b>异步搜索、稳定状态刷新、禁用/忙碌动作、多选/树/表格、通用 tabs、媒体、取消与视图生命周期。</p></div></details>
+        <details class="ep" data-search-section="K mode speech tts audio 阅读模式 朗读 语音"><summary><span class="badge badge-patch">K</span><span>阅读模式与朗读控制</span></summary><div class="ep-body"><p><b>已有</b>文本分段模式贡献、语音供应商和合成字节。</p><p><b>补齐</b>模式启停、单元移动、朗读开始/停止与状态、声源选择、迟到结果和资源占用处理。</p></div></details>
+        <details class="ep" data-search-section="L AI inference conversation tools prompt 推理 聊天 工具 草稿"><summary><span class="badge badge-patch">L</span><span>推理与真实对话流程</span></summary><div class="ep-body"><p><b>已有</b>一次性 LLM、结构化输出、文本增量、对话只读与 Agent 扩展贡献。</p><p><b>补齐</b>取消/用量/限制、线程操作、草稿与问题交接、所属请求状态；不允许伪造消息或 system 提示。</p></div></details>
+        <details class="ep" data-search-section="M memory digest profile bundle 记忆 画像 摘要 人物 概念 上下文"><summary><span class="badge badge-delete">M</span><span>记忆、章节摘要与画像</span></summary><div class="ep-body"><p><b>缺口</b>Agent 可访问有效记忆和章节摘要，插件没有对应领域读接口。</p><p><b>补齐</b>授权读取、章节边界、候选处理回执、批准修订/遗忘、现有画像摘要和有来源的上下文导出。</p></div></details>
+        <details class="ep" data-search-section="N provider theme font content sync transport 插件组合 提供者 主题 字体 内容 同步"><summary><span class="badge badge-patch">N</span><span>可替换提供者与内容来源</span></summary><div class="ep-body"><p><b>已有</b>主题/字体、内容、语音、模式、Agent 扩展和密文同步传输。</p><p><b>补齐</b>发现、依赖状态、修订刷新、可取消调用、健康和升级切换；跨插件不能借权。</p></div></details>
+
+        <h2 id="platform">资源与运行</h2>
+        <details class="ep" data-search-section="O storage secret blob document migration 私有数据 存储 密钥 文件"><summary><span class="badge badge-patch">O</span><span>插件私有数据与资源</span></summary><div class="ep-body"><p><b>已有</b>KV、文档集合、自有密钥、schema 迁移。</p><p><b>补齐</b>真实提交回执、事务/冲突、二进制资源、配额、保留与备份策略；不暗示已经自动跨设备同步。</p></div></details>
+        <details class="ep" data-search-section="P network HTTP SSE file clipboard export 网络 文件 剪贴板 外部系统"><summary><span class="badge badge-patch">P</span><span>文件、网络与外部系统</span></summary><div class="ep-body"><p><b>已有</b>HTTP fetch、文本/二进制保存、剪贴板写。</p><p><b>补齐</b>受控文件选择/分块读写、真正取消与 HTTP 流、受手势约束的剪贴板读/外部打开、敏感外发授权。</p></div></details>
+        <details class="ep" data-search-section="Q events jobs scheduler automation 事件 任务 定时 自动化"><summary><span class="badge badge-patch">Q</span><span>事件、自动化与后台任务</span></summary><div class="ep-body"><p><b>已有</b>实时订阅、最低 15 分钟的 App 内周期调度。</p><p><b>补齐</b>快照补读、当前会话短计时、任务进度/取消/并发、幂等和防自触发；关闭 App 不承诺运行。</p></div></details>
+        <details class="ep" data-search-section="R lifecycle security diagnostics sync update 权限 生命周期 同步 诊断 更新 验收"><summary><span class="badge badge-patch">R</span><span>生命周期、安全与宿主管理</span></summary><div class="ep-body"><p><b>已有</b>版本协商、激活屏障、资源注销、迁移与更新回滚。</p><p><b>补齐</b>操作级授权与撤销、同步状态/正常同步请求、宿主管理确认流程、自有诊断，以及阻止公共能力再次遗漏的 CI。</p></div></details>
+        <p id="search-empty" class="mt-4" role="status" hidden>没有匹配的能力条目。</p>
+
+        <h2 id="boundary">不能把边界隐藏起来</h2>
+        <p><b style="color:var(--fg)">X · 禁止直接开放的权力：</b>任意 SQL/原生调用/文件路径、他人密钥、DOM 与脚本注入、静默购买/擦除/安装、伪造用户数据、跨插件借权、后台劫持交互和绕过 DRM。需要相应能力时走受控操作或宿主确认流程。</p>
+        <p class="mt-3"><b style="color:var(--fg)">F · 当前宿主没有的能力：</b>新解码器/引擎、通用 OCR/本地推理、自由画布/新图形原语、WebSocket/TCP、退出后守护任务、新原生设备权限、新共享数据模型、尚未完成的记忆管线、任意插件状态自动协同同步。</p>
+        <p class="mt-3">X 和 F 各有 9 项，完整清单逐项写明替代路径。插件的新算法、HTTP 服务、导出格式和私有书签，不算新增宿主能力。发现基线内接口缺失，应判为基线缺陷，不再换一个名字叫“新需求”。</p>
+
+        <h2 id="acceptance">什么情况下才算完成</h2>
+        <div class="callout"><b style="color:var(--fg)">完成条件：</b>129 项逐项有实现和证据；代表性插件只改插件目录，完成端到端流程。注册表、类型检查和 mock 测试通过，不能代替真实 Tauri 验收。</div>
+        <p>22 个场景覆盖 Jumper、书签、生词出处、跨书搜索、笔记导出、阅读报表、主题自动化、RSS、朗读、选段翻译、记忆回顾、同步源、跨插件组合，以及升级撤权和并发失败。</p>
+        <p class="mt-3">先统一对象与操作契约，再完整接入数据和阅读行为，随后补交互、AI/记忆、资源与任务。内置 UI 和 Agent 同步迁移，并加“产品操作不得绕过公共层”的门禁。</p>
+        <p class="mt-3">当前状态：目标契约待实现、待验收；未实施 Jumper 或宿主重构。当前审计验证源码入口和组合边界，没有验证所有格式、网络供应商或产品运行质量。</p>
+        <p class="mt-5"><a class="underline" href="./plugin-capability-baseline.md">查看全部 129 项、现行接口、源码证据和验收矩阵</a></p>
+      </main>
+    </div>
+
+    <footer class="border-t py-8 text-center text-[12px]" style="border-color: var(--line); color: var(--fg-faint)">
+      ReadAware · 插件能力完备基线 · 2026-09-07<br />
+      文档界面依赖固定版本 CDN；离线请读 Markdown。文档浏览器验证不等于产品验证。
+    </footer>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        if (window.lucide) lucide.createIcons();
+
+        // mermaid: strict、随主题重渲；源码存在 .mermaid-source 里防破坏
+        var renderSeq = 0;
+        function renderDiagrams() {
+          if (!window.mermaid) return;
+          var dark = document.documentElement.classList.contains("dark");
+          mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: "strict",
+            theme: dark ? "dark" : "neutral",
+            fontFamily: '"Geist Variable", sans-serif',
+          });
+          document.querySelectorAll(".mermaid-source").forEach(function (src) {
+            var target = document.getElementById(src.getAttribute("data-target"));
+            if (!target) return;
+            mermaid
+              .render("mmd-" + renderSeq++, src.textContent)
+              .then(function (out) { target.innerHTML = out.svg; })
+              .catch(function () {
+                target.textContent = "图渲染失败——以下方文字为准。";
+              });
+          });
+        }
+        renderDiagrams();
+
+        document.getElementById("theme-toggle").addEventListener("click", function () {
+          var dark = document.documentElement.classList.toggle("dark");
+          try {
+            localStorage.setItem("readaware-capability-docs-theme", dark ? "dark" : "light");
+          } catch (e) { /* File-origin storage may be unavailable; the current theme still applies. */ }
+          renderDiagrams();
+        });
+
+        var nav = document.getElementById("sidenav");
+        var backdrop = document.getElementById("drawer-backdrop");
+        var desktop = window.matchMedia("(min-width: 768px)");
+        var drawerOpen = false;
+        function setDrawer(open) {
+          var wasOpen = drawerOpen;
+          drawerOpen = open && !desktop.matches;
+          nav.classList.toggle("-translate-x-full", !open);
+          backdrop.classList.toggle("hidden", !drawerOpen);
+          nav.inert = !desktop.matches && !drawerOpen;
+          document.querySelector("header").inert = drawerOpen;
+          document.querySelector("main").inert = drawerOpen;
+          document.querySelector("footer").inert = drawerOpen;
+          document.getElementById("drawer-open").setAttribute("aria-expanded", String(drawerOpen));
+          if (drawerOpen) document.getElementById("drawer-close").focus();
+          else if (wasOpen && !desktop.matches) document.getElementById("drawer-open").focus();
+        }
+        desktop.addEventListener("change", function () { setDrawer(false); });
+        setDrawer(false);
+        document.getElementById("drawer-open").addEventListener("click", function () { setDrawer(true); });
+        document.getElementById("drawer-close").addEventListener("click", function () { setDrawer(false); });
+        backdrop.addEventListener("click", function () { setDrawer(false); });
+
+        // scrollspy
+        var links = Array.prototype.slice.call(document.querySelectorAll("#nav .navlink"));
+        links.forEach(function (link) { link.addEventListener("click", function () { setDrawer(false); }); });
+        var observer = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) {
+                links.forEach(function (l) {
+                  l.classList.toggle("active", l.getAttribute("href") === "#" + entry.target.id);
+                });
+              }
+            });
+          },
+          { rootMargin: "-20% 0px -70% 0px" }
+        );
+        document.querySelectorAll("main h2").forEach(function (h) { observer.observe(h); });
+
+        // 搜索：按条目文本 + data-search-section 关键词过滤
+        var search = document.getElementById("search");
+        var rows = Array.prototype.slice.call(document.querySelectorAll("details.ep"));
+        search.addEventListener("input", function () {
+          var q = search.value.trim().toLowerCase();
+          rows.forEach(function (row) {
+            var hay = (row.textContent + " " + (row.getAttribute("data-search-section") || "")).toLowerCase();
+            row.style.display = !q || hay.indexOf(q) !== -1 ? "" : "none";
+          });
+          document.getElementById("search-empty").hidden = rows.some(function (row) { return row.style.display !== "none"; });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Tab" && drawerOpen) {
+            var focusable = Array.prototype.slice.call(nav.querySelectorAll("button, a[href]"));
+            var first = focusable[0], last = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+          }
+          if (e.key === "Escape") {
+            if (search.value) {
+              search.value = "";
+              search.dispatchEvent(new Event("input"));
+            }
+            setDrawer(false);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

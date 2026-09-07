@@ -51,19 +51,31 @@ const prop = (value: ParsedMetadata, name: string) => one(value.props[name])
 const oneOrMany = <T>(values?: T[]): T | T[] | undefined =>
     !values?.length ? undefined : values.length === 1 ? values[0] : values
 
+// Older Android WebViews lack Object.groupBy and Map.groupBy.
+const groupBy = <T, K>(items: T[], getKey: (item: T) => K): Map<K, T[]> => {
+    const groups = new Map<K, T[]>()
+    for (const item of items) {
+        const key = getKey(item)
+        const group = groups.get(key)
+        if (group) group.push(item)
+        else groups.set(key, [item])
+    }
+    return groups
+}
+
 export const getMetadata = (opf: Document): {
     metadata: BookMetadata; rendition: Rendition; media: MediaMetadata
 } => {
     const { $ } = childGetter(opf, NS.OPF)
     const element = $(opf.documentElement, 'metadata')
     if (!element) throw new Error('EPUB package has no metadata element')
-    const children = Object.groupBy(Array.from(element.children), el =>
+    const children = groupBy(Array.from(element.children), el =>
         el.namespaceURI === NS.DC ? 'dc'
         : el.localName === 'meta' ? el.hasAttribute('name') ? 'legacy' : 'meta' : '')
     const baseLang = element.getAttribute('xml:lang')
         ?? opf.documentElement.getAttribute('xml:lang') ?? 'und'
     const prefixes = getPrefixes(opf)
-    const refines = Map.groupBy(children.meta ?? [], el => el.getAttribute('refines'))
+    const refines = groupBy(children.get('meta') ?? [], el => el.getAttribute('refines'))
     const getProperties = (parent?: Element, ancestors = new Set<Element>()): Properties => {
         const id = parent?.getAttribute('id')
         if (parent && !id) return {}
@@ -92,9 +104,9 @@ export const getMetadata = (opf: Document): {
         }
     }
     const dc: Properties = {}
-    for (const el of children.dc ?? []) (dc[el.localName] ??= []).push(parse(el))
+    for (const el of children.get('dc') ?? []) (dc[el.localName] ??= []).push(parse(el))
     const properties = getProperties()
-    const legacy = new Map((children.legacy ?? []).map(el =>
+    const legacy = new Map((children.get('legacy') ?? []).map(el =>
         [el.getAttribute('name'), el.getAttribute('content')]))
 
     const localized = (value?: ParsedMetadata): LocalizedText | undefined => {
@@ -139,11 +151,11 @@ export const getMetadata = (opf: Document): {
         const namespace = type.scheme === PREFIX.onix + 'codelist5' ? ONIX5[type.value] : undefined
         return namespace ? `urn:${namespace}:${value}` : value
     }
-    const collections = Object.groupBy(properties['belongs-to-collection'] ?? [],
+    const collections = groupBy(properties['belongs-to-collection'] ?? [],
         item => prop(item, 'collection-type') === 'series' ? 'series' : 'collection')
     const legacySeries = legacy.get('calibre:series')
     const legacyPosition = Number.parseFloat(legacy.get('calibre:series_index') ?? '')
-    const series = oneOrMany(collections.series?.map(collection))
+    const series = oneOrMany(collections.get('series')?.map(collection))
         ?? (legacySeries ? { name: legacySeries,
             ...(Number.isFinite(legacyPosition) ? { position: legacyPosition } : {}) } : undefined)
     const mainTitle = dc.title?.find(item => prop(item, 'title-type') === 'main') ?? dc.title?.[0]
@@ -158,8 +170,8 @@ export const getMetadata = (opf: Document): {
         modified: one(properties[PREFIX.dcterms + 'modified'])
             ?? dc.date?.find(item => item.attrs.event === 'modification')?.value,
         subject: oneOrMany(dc.subject?.map(contributor)),
-        belongsTo: series || collections.collection?.length
-            ? { collection: oneOrMany(collections.collection?.map(collection)), series } : undefined,
+        belongsTo: series || collections.get('collection')?.length
+            ? { collection: oneOrMany(collections.get('collection')?.map(collection)), series } : undefined,
         altIdentifier: oneOrMany(dc.identifier?.map(identifier)),
         source: oneOrMany(dc.source?.map(identifier)), rights: one(dc.rights),
         pageBreakSource: one(properties.pageBreakSource),

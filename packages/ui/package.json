@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@floating-ui/react": "^0.27.20",
     "@phosphor-icons/react": "^2.1.10",
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.5.0"

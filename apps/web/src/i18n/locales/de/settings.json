@@ -281,6 +281,11 @@
       "max": "Maximum"
     },
     "modelPicker": {
+      "loading": "Modelle werden aktualisiert…",
+      "refresh": "Modelle aktualisieren",
+      "updated": "Aktualisiert: {{time}}",
+      "notLoaded": "Modellkatalog nicht geladen",
+      "loadFailed": "Der Modellkatalog konnte nicht aktualisiert werden.",
       "search": "Modelle durchsuchen…",
       "recommended": "Empfohlen",
       "useCustom": "„{{id}}“ als Modell-ID verwenden",

@@ -316,9 +316,25 @@ resolveModel(role): PiAiModel             // 从账户配置解析
 | `smart` | 慢、聪明、贵 | 聊天轮次（两种 scope）、onboarding 访谈、跨书综合、少数巩固冲突消解 |
 | `fast` | 便宜、快 | 逐轮记忆提炼、滚动摘要、去重初筛、衰减打分、标题/标签 |
 
-每个 provider 有默认映射（如 Anthropic → Claude Fable / Claude Haiku 档）；
-两者都可在 Settings → AI 覆盖。记忆提炼**默认开启**，使用 `fast`，Settings
+BYOK 不预选或内置模型清单：用户在 Settings → AI 选择主模型，`fast` 默认
+跟随主模型，也可以单独选择。记忆提炼**默认开启**，使用 `fast`，Settings
 里有开关。
+
+### 远端模型目录
+
+- 产品从 Pi 官方公共目录 `https://pi.dev/api/models/providers/{provider}`
+  获取模型 ID、上下文限制、价格和协议能力；Ollama Cloud 使用其 `/v1/models`。
+  这是目录发现，不是用户账号的权限查询。Custom 继续接受手填 ID；ReadAware
+  订阅保留 relay 契约规定的模型白名单。
+- 启动、回到前台、恢复网络时检查，运行中每分钟检查一次；成功目录有效期
+  4 小时，过期才请求，支持 ETag 和手动刷新。失败至少退避 5 分钟。
+- 缓存是 SQLite local KV 内的设备本地快照，不属于用户配置或同步数据。
+  先持久化，再发布；失败保留旧目录并显示错误，首次离线不伪造内置清单。
+- 刷新不写用户的 Provider、主模型或 Fast 模型选择。远端移除已选模型时，
+  保留该 ID 和已知能力供推理使用，但不再作为新推荐；仍允许输入自定义 ID。
+- 目录只提供元数据，不能覆盖可信 Provider 地址或注入请求头；目录请求
+  不携带 API key 或阅读数据。设置选择器与推理共用同一目录，现有聊天在
+  下一轮采用更新后的能力信息。eval / spike 的 SDK 内置目录独立于产品打包。
 
 ### LLM 账户（LlmAccount）
 

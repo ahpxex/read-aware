@@ -9,7 +9,8 @@
 import { Agent, type AgentTool } from "@earendil-works/pi-agent-core";
 import { Type, type Api, type Model } from "@earendil-works/pi-ai";
 import { streamSimple } from "@earendil-works/pi-ai/compat";
-import { buildProviderRegistry, type KnownProviderId, type ProviderRegistry } from "./models/registry";
+import type { KnownProviderId, ProviderRegistry } from "./models/registry";
+import { buildBuiltinProviderRegistry } from "./evals/builtin-registry";
 
 export interface SpikeConfig {
   provider: KnownProviderId;
@@ -54,7 +55,7 @@ export async function runPiSpike(
   config: SpikeConfig,
   log: (line: string) => void = (line) => console.log(line),
 ): Promise<SpikeReport> {
-  const models = buildProviderRegistry();
+  const models = buildBuiltinProviderRegistry();
   const model = resolveSpikeModel(models, config);
   log(`[spike] model resolved: ${model.provider}/${model.id}`);
 

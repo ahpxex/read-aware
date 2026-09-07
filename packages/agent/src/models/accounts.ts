@@ -1,6 +1,7 @@
-import type { Api, Model } from "@earendil-works/pi-ai";
 import { buildProviderRegistry, type KnownProviderId, type ProviderRegistry } from "./registry";
-import type { ModelRole, ResolveModel } from "./roles";
+import type { ResolveModel } from "./roles";
+import { PROVIDER_DEFINITIONS } from "./provider-definitions";
+import { AppError, ERR_AI_NOT_CONFIGURED } from "@read-aware/core";
 import {
   CUSTOM_OPENAI_PROVIDER_ID,
   registerCustomOpenAIProvider,
@@ -72,8 +73,7 @@ export interface RoleModels {
 
 /**
  * 把「档位 → 具体模型」的解析收在一处。
- * 配置的 model id 不在 pi 的静态目录里时，克隆同 provider 的任一模型并覆盖 id
- * （目录滞后于 provider 上新是常态，不该挡住用户）。
+ * Unknown IDs retain their identity and provider route, never another model's capabilities.
  */
 export function createModelResolver(
   account: LlmAccount,
@@ -103,18 +103,19 @@ export function createModelResolver(
   }
   const providerId =
     account.kind === "readaware" ? CUSTOM_OPENAI_PROVIDER_ID : account.provider;
-  const cache = new Map<ModelRole, Model<Api>>();
   return (role) => {
-    const cached = cache.get(role);
-    if (cached) return cached;
     const id = roles[role];
+    if (!id.trim()) throw new AppError(ERR_AI_NOT_CONFIGURED, "No model selected");
     let model = registry.getModel(providerId, id);
     if (!model) {
-      const fallback = registry.getModels(providerId)[0];
-      if (!fallback) throw new Error(`no models registered for provider ${providerId}`);
-      model = { ...fallback, id };
+      if (providerId === CUSTOM_OPENAI_PROVIDER_ID) throw new AppError(ERR_AI_NOT_CONFIGURED, "Custom model not registered");
+      const definition = PROVIDER_DEFINITIONS[providerId];
+      model = {
+        id, name: id, provider: providerId, api: definition.api, baseUrl: definition.baseUrl,
+        reasoning: false, input: ["text"], contextWindow: 128_000, maxTokens: 8_192,
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      };
     }
-    cache.set(role, model);
     return model;
   };
 }

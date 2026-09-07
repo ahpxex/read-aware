@@ -281,6 +281,11 @@
       "max": "最高"
     },
     "modelPicker": {
+      "loading": "正在更新模型…",
+      "refresh": "重新整理模型",
+      "updated": "更新於 {{time}}",
+      "notLoaded": "尚未載入模型目錄",
+      "loadFailed": "無法更新模型目錄。",
       "search": "搜尋模型…",
       "recommended": "推薦",
       "useCustom": "把「{{id}}」用作模型 ID",

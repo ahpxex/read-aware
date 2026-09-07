@@ -37,16 +37,17 @@ import {
   clearAIConfig,
   DEFAULT_MODELS,
   DEFAULT_THINKING_LEVEL,
-  PROVIDER_MODELS,
+  SUBSCRIPTION_MODELS,
   PROVIDER_LABELS,
   PROVIDER_KEY_URLS,
-  SUGGESTED_FAST_MODELS,
   THINKING_LEVELS,
   type AIConfig,
   type AIProvider,
   type ThinkingLevel,
 } from "../../ai/lib/ai-config";
 import { ModelPicker } from "./ModelPicker";
+import { useModelCatalog } from "../hooks/useModelCatalog";
+import { isCatalogProvider } from "../../ai/lib/model-catalog";
 
 type ModelOption = { label: string; value: string };
 
@@ -296,8 +297,10 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
     label,
   }));
 
-  const modelOptions = PROVIDER_MODELS[provider] || [];
-  const hasModelCatalog = modelOptions.length > 0;
+  const catalog = useModelCatalog(provider);
+  const modelOptions = provider === "readaware" ? SUBSCRIPTION_MODELS :
+    catalog.models.map((entry) => ({ label: entry.name, value: entry.id }));
+  const hasModelCatalog = provider === "readaware" || isCatalogProvider(provider);
   const primaryModelOptions = includeSelectedModel(modelOptions, model);
   const fastModelOptions = includeSelectedModel(modelOptions, fastModel);
   const thinkingOptions = THINKING_LEVELS.map((level) => ({
@@ -331,7 +334,6 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
   const handleSeparateFastModelChange = (enabled: boolean) => {
     setUseSeparateFastModel(enabled);
     const distinctFastModel = [
-      SUGGESTED_FAST_MODELS[provider],
       fastModel,
       ...modelOptions.map((option) => option.value),
     ].find((candidate) => candidate && candidate !== model);
@@ -459,13 +461,12 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
 
         {/* The simple setup has one model. Fast follows it unless the advanced
             override is enabled below. */}
-        {hasModelCatalog && provider !== "readaware" && provider !== "custom" ? (
+        {isCatalogProvider(provider) ? (
           <ModelPicker
             label={t("aiConfig.model")}
             value={model}
             onChange={handleModelChange}
-            provider={provider}
-            recommended={modelOptions}
+            catalog={catalog}
             helperText={t("aiConfig.modelHelper")}
           />
         ) : hasModelCatalog ? (
@@ -482,7 +483,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
             value={model}
             onChange={(event) => handleModelChange(event.target.value)}
             onBlur={flushConfig}
-            placeholder={DEFAULT_MODELS.openai}
+            placeholder={t("aiConfig.model")}
             helperText={t("aiConfig.modelHelper")}
           />
         )}
@@ -563,7 +564,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
                 />
 
                 {useSeparateFastModel &&
-                  (hasModelCatalog && provider !== "readaware" && provider !== "custom" ? (
+                  (isCatalogProvider(provider) ? (
                     <ModelPicker
                       label={t("aiConfig.fastModel")}
                       value={fastModel}
@@ -571,8 +572,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
                         setFastModel(value);
                         markConfigChanged();
                       }}
-                      provider={provider}
-                      recommended={modelOptions}
+                      catalog={catalog}
                       helperText={t("aiConfig.fastModelHelper")}
                     />
                   ) : hasModelCatalog ? (
@@ -595,7 +595,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
                         markConfigChanged();
                       }}
                       onBlur={flushConfig}
-                      placeholder={SUGGESTED_FAST_MODELS.openai}
+                      placeholder={t("aiConfig.model")}
                       helperText={t("aiConfig.fastModelHelper")}
                     />
                   ))}

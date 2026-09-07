@@ -21,6 +21,7 @@ import { getAIConfig, type OpenRouterRoutingConfig } from "../lib/ai-config";
 import { accountFromConfig } from "./account";
 import { buildRuntimeDeps } from "./ports";
 import { clearStoredConversationInsights } from "./ports/conversation-port";
+import "../lib/model-catalog";
 
 let cached: { key: string; runtime: AgentRuntime } | null = null;
 
@@ -54,7 +55,7 @@ function routingTransform(routing: OpenRouterRoutingConfig | undefined) {
 
 export function getAgentRuntime(): AgentRuntime | null {
   const config = getAIConfig();
-  if (!config?.apiKey) return null;
+  if (!config?.apiKey || !config.model.trim()) return null;
 
   const { account, models, thinking } = accountFromConfig(config);
   const routing = config.provider === "openrouter" ? config.openRouterRouting : undefined;

@@ -15,26 +15,15 @@ import {
   DEFAULT_CUSTOM_OPENAI_API,
   LEGACY_CUSTOM_OPENAI_API,
   READAWARE_MODEL_IDS,
-  getProviderModelCatalog,
-  type KnownProviderId,
 } from "@read-aware/agent";
 import {
   DEFAULT_MODELS,
   DEFAULT_THINKING_LEVEL,
   getStoredProviderSettings,
-  PROVIDER_MODELS,
+  SUBSCRIPTION_MODELS,
   saveAIConfig,
-  SUGGESTED_FAST_MODELS,
-  type AIProvider,
 } from "./ai-config";
 import { hydrateSecrets } from "../../../platform/secret-store";
-
-// "custom" has no catalog at all; "readaware" is cataloged by the relay
-// proxy, not pi-ai — it gets its own assertion below.
-const catalogProviders = Object.keys(PROVIDER_MODELS).filter(
-  (provider): provider is KnownProviderId & keyof typeof PROVIDER_MODELS =>
-    provider !== "custom" && provider !== "readaware",
-);
 
 beforeAll(() => hydrateSecrets());
 beforeEach(() => storage.clear());
@@ -105,14 +94,14 @@ describe("AI provider defaults", () => {
       provider: "openai",
       apiKey: "",
       model: DEFAULT_MODELS.openai,
-      fastModel: SUGGESTED_FAST_MODELS.openai,
+      fastModel: "chosen-fast-model",
       thinkingLevel: "high",
       fastThinkingLevel: "low",
     });
 
     expect(getStoredProviderSettings("openai")).toMatchObject({
       model: DEFAULT_MODELS.openai,
-      fastModel: SUGGESTED_FAST_MODELS.openai,
+      fastModel: "chosen-fast-model",
       thinkingLevel: "high",
       fastThinkingLevel: "low",
     });
@@ -186,24 +175,23 @@ describe("AI provider defaults", () => {
   });
 });
 
-describe("recommended model options", () => {
-  test("are current entries from pi-ai's provider catalog", () => {
-    for (const provider of catalogProviders) {
-      const sdkIds = new Set(getProviderModelCatalog(provider).map((model) => model.id));
-      const optionIds = PROVIDER_MODELS[provider].map((option) => option.value);
-
-      expect(optionIds.length).toBeGreaterThan(0);
-      expect(optionIds.every((id) => sdkIds.has(id))).toBe(true);
-      expect(optionIds).toContain(DEFAULT_MODELS[provider as AIProvider]);
-      expect(optionIds).toContain(SUGGESTED_FAST_MODELS[provider as AIProvider]);
+describe("model selection contracts", () => {
+  test("does not preselect BYO models from a bundled inventory", () => {
+    for (const [provider, model] of Object.entries(DEFAULT_MODELS)) {
+      if (provider !== "readaware") expect(model).toBe("");
     }
   });
 
-  test("the readaware options mirror the agent's subscription catalog", () => {
-    const optionIds = PROVIDER_MODELS.readaware.map((option) => option.value);
-    expect(optionIds).toEqual([...READAWARE_MODEL_IDS]);
-    expect(optionIds).toContain(DEFAULT_MODELS.readaware);
-    expect(optionIds).toContain(SUGGESTED_FAST_MODELS.readaware);
+  test("the readaware options mirror the subscription service contract", () => {
+    expect(SUBSCRIPTION_MODELS.map((option) => option.value)).toEqual([...READAWARE_MODEL_IDS]);
+  });
+
+  test("keeps each provider's selected primary and fast model when switching", () => {
+    saveAIConfig({ provider: "zai-coding-cn", apiKey: "", model: "glm-my-choice", fastModel: "glm-my-fast-choice" });
+    saveAIConfig({ provider: "openai", apiKey: "", model: "my-openai-choice" });
+    expect(getStoredProviderSettings("zai-coding-cn")).toMatchObject({
+      model: "glm-my-choice", fastModel: "glm-my-fast-choice",
+    });
   });
 });
 

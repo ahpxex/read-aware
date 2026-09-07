@@ -295,7 +295,11 @@ export class AgentThread {
    * 书线程不水化 —— 章节会话首轮由 sendTurn 重置为"一轮尾巴"基线。
    */
   private async ensureAgent(): Promise<Agent> {
-    if (this.agent) return this.agent;
+    if (this.agent) {
+      // Apply refreshed metadata only between turns; never replace the user's model ID.
+      this.agent.state.model = this.resolveModel("smart");
+      return this.agent;
+    }
     const model = this.resolveModel("smart");
     const records =
       this.scope.kind === "book" ? [] : await this.deps.conversations.load(this.key);

@@ -281,6 +281,11 @@
       "max": "最大"
     },
     "modelPicker": {
+      "loading": "モデルを更新中…",
+      "refresh": "モデルを更新",
+      "updated": "更新日時：{{time}}",
+      "notLoaded": "モデル一覧は未読み込みです",
+      "loadFailed": "モデル一覧を更新できませんでした。",
       "search": "モデルを検索…",
       "recommended": "おすすめ",
       "useCustom": "「{{id}}」をモデル ID として使用",

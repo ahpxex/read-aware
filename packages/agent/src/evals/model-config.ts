@@ -5,11 +5,11 @@ import { createCompleteFn } from "../models/complete";
 import { isCustomOpenAIApi } from "../models/custom-openai";
 import {
   KNOWN_PROVIDERS,
-  buildProviderRegistry,
   type KnownProviderId,
   type ProviderRegistry,
 } from "../models/registry";
 import { PiCliCredentialStore } from "./pi-cli-credentials";
+import { buildBuiltinProviderRegistry } from "./builtin-registry";
 
 /**
  * eval/dev 链路的 registry：挂上 pi CLI 的凭证仓，OAuth 订阅 provider
@@ -17,7 +17,7 @@ import { PiCliCredentialStore } from "./pi-cli-credentials";
  * 显式 apiKey override 优先级更高，行为不变。
  */
 export function evalProviderRegistry(): ProviderRegistry {
-  return buildProviderRegistry({ credentials: new PiCliCredentialStore() });
+  return buildBuiltinProviderRegistry({ credentials: new PiCliCredentialStore() });
 }
 
 /** 走 pi-ai 凭证仓解析（无 auth.apiKey 声明）的订阅式 provider。 */

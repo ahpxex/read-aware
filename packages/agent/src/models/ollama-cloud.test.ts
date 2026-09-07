@@ -4,11 +4,11 @@ import {
   OLLAMA_CLOUD_MODELS,
   OLLAMA_CLOUD_PROVIDER_ID,
 } from "./ollama-cloud";
-import { buildProviderRegistry } from "./registry";
+import { buildBuiltinProviderRegistry } from "../evals/builtin-registry";
 
 describe("Ollama Cloud provider", () => {
   test("registers its curated models under its own provider id", () => {
-    const registry = buildProviderRegistry();
+    const registry = buildBuiltinProviderRegistry();
     expect(registry.getModels(OLLAMA_CLOUD_PROVIDER_ID).map((model) => model.id)).toEqual([
       ...OLLAMA_CLOUD_MODELS,
     ]);

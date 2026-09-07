@@ -11,6 +11,7 @@ import { ScrollArea, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { scheduleIdleWarmup } from "./app-warmup";
 import { dismissBootSplash } from "./boot-splash";
+import { createLogger } from "./platform/logger";
 import { DropImportOverlay } from "./features/library/components/DropImportOverlay";
 import { LibraryWorkspace } from "./features/library/components/LibraryWorkspace";
 import { useDropBookImport } from "./features/library/hooks/useDropBookImport";
@@ -124,6 +125,12 @@ function App() {
     // an idle slot and no-ops until AI is configured.
     let disposed = false;
     let stopAgentMaintenance: (() => void) | undefined;
+    let stopModelCatalog: (() => void) | undefined;
+    void import("./features/ai/lib/model-catalog").then(({ startModelCatalogRefresh }) => {
+      if (!disposed) stopModelCatalog = startModelCatalogRefresh();
+    }).catch((error) => {
+      createLogger("model-catalog").error("Initialization failed", error);
+    });
     const maintenanceStart = window.setTimeout(() => {
       void import("./features/ai/agent/maintenance").then(
         ({ startAgentMaintenance }) => {
@@ -137,6 +144,7 @@ function App() {
       window.clearTimeout(updateCheck);
       window.clearTimeout(maintenanceStart);
       stopAgentMaintenance?.();
+      stopModelCatalog?.();
       stopSync();
     };
   }, []);

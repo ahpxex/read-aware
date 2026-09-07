@@ -6,11 +6,10 @@ import {
   DEFAULT_CUSTOM_OPENAI_API,
   DEFAULT_READAWARE_MODEL,
   LEGACY_CUSTOM_OPENAI_API,
-  getProviderModelCatalog,
+  READAWARE_MODEL_IDS,
   isCustomOpenAIApi,
   normalizeCustomOpenAIBaseUrl,
   type CustomOpenAIApi,
-  type KnownProviderId,
   type ThinkingLevel,
 } from "@read-aware/agent";
 
@@ -19,7 +18,6 @@ import {
  * 条目（openai-codex 走 pi CLI 的 OAuth 登录，产品没有对应登录流，
  * 只服务 eval/dev 链路）。
  */
-type ByoProviderId = Exclude<KnownProviderId, "openai-codex">;
 
 export type AIProvider =
   | "readaware"
@@ -335,165 +333,24 @@ export function clearAIConfig(): void {
   }
 }
 
-// Default "smart" model for each provider (chat, onboarding, synthesis).
+// A new BYO setup stays unselected until the user chooses a remote model.
 export const DEFAULT_MODELS: Record<AIProvider, string> = {
   readaware: DEFAULT_READAWARE_MODEL,
-  openai: "gpt-5.5",
-  anthropic: "claude-opus-5",
-  openrouter: "~anthropic/claude-opus-latest",
-  zai: "glm-5.2",
-  "zai-coding-cn": "glm-5.2",
-  google: "gemini-3.1-pro-preview",
-  deepseek: "deepseek-v4-pro",
-  xai: "grok-4.5",
-  groq: "openai/gpt-oss-120b",
-  mistral: "mistral-large-latest",
-  moonshotai: "kimi-k3",
-  "ollama-cloud": "deepseek-v4-flash:0731",
-  custom: "",
-};
-
-// Suggested model when an advanced user opts into a separate cheap/quick tier.
-// The default path does not use this table: Fast follows the primary model.
-export const SUGGESTED_FAST_MODELS: Record<AIProvider, string> = {
-  readaware: DEFAULT_READAWARE_MODEL,
-  openai: "gpt-5.4-mini",
-  anthropic: "claude-haiku-4-5",
-  openrouter: "~openai/gpt-mini-latest",
-  zai: "glm-5-turbo",
-  "zai-coding-cn": "glm-5-turbo",
-  google: "gemini-flash-latest",
-  deepseek: "deepseek-v4-flash",
-  xai: "grok-4.3",
-  groq: "openai/gpt-oss-20b",
-  mistral: "mistral-small-latest",
-  moonshotai: "kimi-k2.7-code-highspeed",
-  "ollama-cloud": "gpt-oss:20b",
-  custom: "",
+  openai: "", anthropic: "", openrouter: "", zai: "", "zai-coding-cn": "",
+  google: "", deepseek: "", xai: "", groq: "", mistral: "", moonshotai: "",
+  "ollama-cloud": "", custom: "",
 };
 
 export type { ThinkingLevel };
 
-// Thinking-effort choices, in escalation order (shared by both effort dropdowns).
-// pi maps them per provider; models without thinking support ignore them.
 export const THINKING_LEVELS: ThinkingLevel[] = [
-  "off",
-  "minimal",
-  "low",
-  "medium",
-  "high",
-  "xhigh",
-  "max",
+  "off", "minimal", "low", "medium", "high", "xhigh", "max",
 ];
 
-// A short, reading-relevant subset of pi-ai's current catalog. pi-ai remains
-// the source of truth for model IDs and display names; this list only keeps the
-// picker focused instead of exposing every dated snapshot and legacy family.
-const RECOMMENDED_MODEL_IDS = {
-  openai: [
-    "gpt-5.6-sol",
-    "gpt-5.6-terra",
-    "gpt-5.6-luna",
-    "gpt-5.5",
-    "gpt-5.5-pro",
-    "gpt-5.4",
-    "gpt-5.4-pro",
-    "gpt-5.4-mini",
-  ],
-  anthropic: [
-    "claude-opus-5",
-    "claude-sonnet-5",
-    "claude-fable-5",
-    "claude-opus-4-8",
-    "claude-haiku-4-5",
-  ],
-  openrouter: [
-    "auto",
-    "~anthropic/claude-opus-latest",
-    "~anthropic/claude-sonnet-latest",
-    "~anthropic/claude-fable-latest",
-    "~anthropic/claude-haiku-latest",
-    "~openai/gpt-latest",
-    "~openai/gpt-mini-latest",
-    "~google/gemini-pro-latest",
-    "~google/gemini-flash-latest",
-    "~moonshotai/kimi-latest",
-    "~x-ai/grok-latest",
-  ],
-  zai: ["glm-5.2", "glm-5.1", "glm-5-turbo"],
-  "zai-coding-cn": ["glm-5.2", "glm-5.1", "glm-5-turbo"],
-  google: [
-    "gemini-3.1-pro-preview",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    "gemini-flash-latest",
-    "gemini-flash-lite-latest",
-  ],
-  deepseek: ["deepseek-v4-pro", "deepseek-v4-flash"],
-  xai: ["grok-4.5", "grok-4.3"],
-  groq: [
-    "openai/gpt-oss-120b",
-    "openai/gpt-oss-20b",
-    "qwen/qwen3-32b",
-    "meta-llama/llama-4-scout-17b-16e-instruct",
-  ],
-  mistral: [
-    "mistral-large-latest",
-    "mistral-medium-latest",
-    "mistral-small-latest",
-    "magistral-medium-latest",
-    "ministral-8b-latest",
-  ],
-  moonshotai: [
-    "kimi-k3",
-    "kimi-k2.7-code-highspeed",
-    "kimi-k2.7-code",
-    "kimi-k2.6",
-  ],
-  "ollama-cloud": [
-    "deepseek-v4-flash:0731",
-    "gpt-oss:120b",
-    "gpt-oss:20b",
-    "minimax-m3",
-    "kimi-k2.6",
-    "qwen3.5:397b",
-  ],
-} as const satisfies Record<ByoProviderId, readonly string[]>;
-
-function recommendedModelOptions(provider: ByoProviderId) {
-  const catalog = new Map(
-    getProviderModelCatalog(provider).map((entry) => [entry.id, entry]),
-  );
-  return RECOMMENDED_MODEL_IDS[provider].flatMap((id) => {
-    const entry = catalog.get(id);
-    return entry ? [{ label: entry.name, value: entry.id }] : [];
-  });
-}
-
-export const PROVIDER_MODELS: Record<
-  AIProvider,
-  { label: string; value: string }[]
-> = {
-  // The subscription catalog — keep in lockstep with the relay's aiModels
-  // (apps/relay/src/ai-proxy.ts); the proxy refuses anything else anyway.
-  readaware: [
-    { label: "DeepSeek V4 Flash", value: "deepseek-v4-flash" },
-    { label: "DeepSeek V4 Pro", value: "deepseek-v4-pro" },
-  ],
-  openai: recommendedModelOptions("openai"),
-  anthropic: recommendedModelOptions("anthropic"),
-  openrouter: recommendedModelOptions("openrouter"),
-  zai: recommendedModelOptions("zai"),
-  "zai-coding-cn": recommendedModelOptions("zai-coding-cn"),
-  google: recommendedModelOptions("google"),
-  deepseek: recommendedModelOptions("deepseek"),
-  xai: recommendedModelOptions("xai"),
-  groq: recommendedModelOptions("groq"),
-  mistral: recommendedModelOptions("mistral"),
-  moonshotai: recommendedModelOptions("moonshotai"),
-  "ollama-cloud": recommendedModelOptions("ollama-cloud"),
-  custom: [],
-};
+// A first-party service contract, not a BYO discovery list.
+export const SUBSCRIPTION_MODELS = READAWARE_MODEL_IDS.map((id) => ({
+  label: id, value: id,
+}));
 
 export const PROVIDER_LABELS: Record<AIProvider, string> = {
   readaware: "ReadAware AI",

@@ -135,6 +135,31 @@ describe("AgentThread", () => {
     expect(captured?.reasoning).toBe("high");
   });
 
+  test("refreshes model metadata between turns without replacing the selected ID", async () => {
+    const { faux, model } = makeFaux();
+    faux.setResponses([fauxAssistantMessage("first"), fauxAssistantMessage("second")]);
+    let current = { ...model, maxTokens: 8_192 };
+    const sent: Model<Api>[] = [];
+    const { deps, turns } = makeDeps();
+    const thread = new AgentThread({
+      scope: { kind: "book", bookId: "b1" as Id },
+      deps,
+      resolveModel: () => current,
+      getApiKey: () => "test-key",
+      completeFn: noopComplete,
+      streamFn: (selected, context, options) => {
+        sent.push(selected);
+        return streamSimple(selected, context, options);
+      },
+    });
+    await collect(thread.sendTurn({ text: "first turn" }));
+    current = { ...current, maxTokens: 16_384 };
+    await collect(thread.sendTurn({ text: "second turn" }));
+    expect(sent.map((entry) => entry.id)).toEqual([model.id, model.id]);
+    expect(sent.map((entry) => entry.maxTokens)).toEqual([8_192, 16_384]);
+    expect(turns.get("book:b1")).toHaveLength(4);
+  });
+
   test("default thinking effort sends no reasoning parameter", async () => {
     const { faux, model } = makeFaux();
     let captured: { reasoning?: string } | undefined;

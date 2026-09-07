@@ -16,6 +16,8 @@ mod plugins;
 mod secrets;
 mod storage;
 mod storefront;
+#[cfg(desktop)]
+mod window_state;
 
 use std::sync::Mutex;
 
@@ -895,6 +897,11 @@ pub fn run() {
                 .clone();
             let mut builder =
                 tauri::WebviewWindowBuilder::from_config(app.handle(), &window_config)?;
+            #[cfg(desktop)]
+            {
+                // Restore placement before the first visible frame.
+                builder = builder.visible(false);
+            }
             // Windows/Linux: no native frame — the web layer draws its own
             // caption controls in the header's top-right (WindowCaptionControls)
             // and, on Linux, edge resize zones (WindowResizeEdges). Windows
@@ -932,6 +939,9 @@ pub fn run() {
             if boot_theme.is_none() && matches!(window.theme(), Ok(tauri::Theme::Dark)) {
                 let _ = window.set_background_color(Some(paper_color(true)));
             }
+
+            #[cfg(desktop)]
+            window_state::restore_and_track(&window)?;
 
             Ok(())
         })
@@ -1065,6 +1075,9 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building ReadAware desktop application");
     app.run(|_app_handle, _event| {
+        #[cfg(desktop)]
+        window_state::on_app_event(_app_handle, &_event);
+
         // macOS file associations deliver documents as Apple Events (cold and
         // warm start alike), never as argv — park them like every other path.
         #[cfg(target_os = "macos")]

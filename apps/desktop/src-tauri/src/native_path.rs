@@ -5,11 +5,18 @@
 //! resolver, but invisible to `std::fs`. Commands that need a real path (the
 //! metadata extractors, the blob copy) call [`materialize`]: plain paths and
 //! `file://` URLs pass through untouched; URI-backed picks are drained into a
-//! temp file that lives exactly as long as the returned guard.
+//! temp file in the app's private cache that lives exactly as long as the
+//! returned guard.
 
-use std::path::PathBuf;
-use tauri::AppHandle;
+use std::io::Read;
+use std::path::{Path, PathBuf};
+use tauri::{AppHandle, Manager};
 use tauri_plugin_fs::{FilePath, FsExt, OpenOptions};
+
+use crate::error::CommandError;
+
+#[cfg(test)]
+mod tests;
 
 pub(crate) struct MaterializedPath {
     pub path: PathBuf,
@@ -17,10 +24,10 @@ pub(crate) struct MaterializedPath {
     _staged: Option<tempfile::NamedTempFile>,
 }
 
-pub(crate) fn materialize(app: &AppHandle, raw: &str) -> Result<MaterializedPath, String> {
+pub(crate) fn materialize(app: &AppHandle, raw: &str) -> Result<MaterializedPath, CommandError> {
     let parsed = raw
         .parse::<FilePath>()
-        .map_err(|error| format!("Invalid file path {raw}: {error}"))?;
+        .map_err(|error| CommandError::internal(format!("Invalid file path: {error}")))?;
     let url = match parsed {
         FilePath::Path(path) => {
             return Ok(MaterializedPath {
@@ -41,14 +48,27 @@ pub(crate) fn materialize(app: &AppHandle, raw: &str) -> Result<MaterializedPath
 
     let mut options = OpenOptions::new();
     options.read(true);
-    let mut source = app
+    let source = app
         .fs()
         .open(FilePath::Url(url), options)
-        .map_err(|error| format!("Failed to open {raw}: {error}"))?;
-    let mut staged = tempfile::NamedTempFile::new()
-        .map_err(|error| format!("Failed to create a staging file for {raw}: {error}"))?;
+        .map_err(|error| CommandError::context("Failed to open selected book", error))?;
+    // Before Android 13, the default temp directory is /data/local/tmp,
+    // which ordinary apps cannot write. Always resolve our private cache.
+    let cache_dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|error| CommandError::context("Failed to locate the import cache", error))?
+        .join("book-imports");
+    stage_reader(source, &cache_dir)
+}
+
+fn stage_reader(mut source: impl Read, cache_dir: &Path) -> Result<MaterializedPath, CommandError> {
+    std::fs::create_dir_all(cache_dir)
+        .map_err(|error| CommandError::context("Failed to create the import cache", error))?;
+    let mut staged = tempfile::NamedTempFile::new_in(cache_dir)
+        .map_err(|error| CommandError::context("Failed to create an import staging file", error))?;
     std::io::copy(&mut source, staged.as_file_mut())
-        .map_err(|error| format!("Failed to stage {raw}: {error}"))?;
+        .map_err(|error| CommandError::context("Failed to stage selected book", error))?;
     Ok(MaterializedPath {
         path: staged.path().to_path_buf(),
         _staged: Some(staged),

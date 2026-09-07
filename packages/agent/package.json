@@ -26,8 +26,8 @@
     "eval:ui": "vite --config eval-viewer/vite.config.ts --port 5199"
   },
   "dependencies": {
-    "@earendil-works/pi-agent-core": "^0.83.0",
-    "@earendil-works/pi-ai": "^0.83.0",
+    "@earendil-works/pi-agent-core": "^0.85.1",
+    "@earendil-works/pi-ai": "^0.85.1",
     "@read-aware/core": "workspace:*"
   },
   "devDependencies": {

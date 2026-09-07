@@ -683,3 +683,21 @@ describe("a relay that predates the verification/snapshot endpoints", () => {
     expect(full.snapshots.size).toBe(0);
   });
 });
+
+
+describe("checkpoint publish pacing", () => {
+  test("a cycle that pushed does not publish; the next pull-only cycle does", async () => {
+    const relay = fakeRelay();
+    const device = fakeDevice();
+    for (let i = 1; i <= 3; i += 1) device.commitLocal(plain(`e${i}`, 2_000 + i, "device-a", `第${i}条`));
+    const engine = engineFor(device, relay, undefined, { checkpointPublish: { minEvents: 1, retryMs: 60_000 } });
+    const first = await engine.syncOnce();
+    expect(first.pushed).toBe(3);
+    expect(relay.snapshots.size).toBe(0);
+    // Nothing to push now: the pull settles the cursor and the publish lands,
+    // even though the retry window has not elapsed (no attempt was made).
+    const second = await engine.syncOnce();
+    expect(second.pushed).toBe(0);
+    expect(relay.snapshots.get(1)?.frontierSeq).toBe(3);
+  });
+});

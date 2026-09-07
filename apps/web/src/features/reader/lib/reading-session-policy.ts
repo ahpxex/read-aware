@@ -30,6 +30,15 @@ export const IDLE_LIMIT_MS = 8 * 60_000;
 export const PAUSE_MS = 2 * 60_000;
 /** Cap a single tick so a sleep/wake gap can't be counted as reading. */
 export const MAX_TICK_MS = TICK_MS * 2;
+/** Below this a "tick" is a remount artefact (cleanup firing a millisecond
+ *  after the clocks reset), not reading; it never opens a bucket. */
+export const MIN_TICK_MS = 1_000;
+/**
+ * A reader unmount closes the session only if nothing remounts for the same
+ * book within this window — the workspace remounts on open, and closing the
+ * bucket the first relocate just opened would mint an empty session per open.
+ */
+export const UNMOUNT_CLOSE_DELAY_MS = 1_500;
 
 export type BucketKey = { bookId: string; localDay: string; localHour: number };
 
@@ -56,7 +65,8 @@ export function tickDelta(input: {
   const { now, lastTickAt, lastActivityAt, active, foreground } = input;
   if (!active || !foreground) return 0;
   if (now - lastActivityAt > IDLE_LIMIT_MS) return 0;
-  return Math.max(0, Math.min(now - lastTickAt, MAX_TICK_MS));
+  const delta = Math.min(now - lastTickAt, MAX_TICK_MS);
+  return delta < MIN_TICK_MS ? 0 : delta;
 }
 
 /** A pause long enough to close the open session. */

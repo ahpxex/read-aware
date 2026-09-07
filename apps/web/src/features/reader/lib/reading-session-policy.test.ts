@@ -3,6 +3,7 @@ import {
   bucketKeyAt,
   IDLE_LIMIT_MS,
   MAX_TICK_MS,
+  MIN_TICK_MS,
   PAUSE_MS,
   pausedLongEnough,
   sameBucket,
@@ -27,6 +28,9 @@ describe("reading session policy", () => {
     expect(tickDelta({ ...base, lastActivityAt: base.now - IDLE_LIMIT_MS - 1 })).toBe(0);
     expect(tickDelta({ ...base, lastTickAt: base.now - 10 * 60_000 })).toBe(MAX_TICK_MS);
     expect(tickDelta({ ...base, lastTickAt: base.now + 5 })).toBe(0);
+    // A remount fires cleanup a millisecond after the clocks reset: not reading.
+    expect(tickDelta({ ...base, lastTickAt: base.now - 1 })).toBe(0);
+    expect(tickDelta({ ...base, lastTickAt: base.now - MIN_TICK_MS })).toBe(MIN_TICK_MS);
   });
 
   test("a pause closes the session before the idle limit stops counting", () => {

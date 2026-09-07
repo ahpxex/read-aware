@@ -233,6 +233,9 @@ export type DomainEvent =
         localDay: string;
         localHour: number;
         progress?: {
+          /** When this position was observed — a page turn's time, never a
+           *  tick's. Defaults to `endedAt` when absent. */
+          observedAt?: number;
           locator: string;
           chapterHref?: string;
           currentLocation?: number;

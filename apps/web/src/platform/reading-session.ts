@@ -27,6 +27,8 @@ const log = createLogger("reading-session");
 
 /** The position a session carries — the reader's progress in event shape. */
 export type SessionPosition = {
+  /** When the position was observed; filled in by the flush from the bucket. */
+  observedAt?: number;
   locator: string;
   chapterHref?: string;
   currentLocation?: number;
@@ -45,6 +47,8 @@ export type ReadingSessionBucket = {
   lastAt: number;
   /** The latest position seen, or null when only time accrued. */
   progress: SessionPosition | null;
+  /** When that position was observed (page turns only, never ticks). */
+  positionAt: number | null;
 };
 
 /** Local calendar day key (`YYYY-MM-DD`) for an epoch timestamp. */
@@ -116,7 +120,9 @@ function draftFor(bucket: ReadingSessionBucket): DomainEventDraft {
       endedAt: bucket.lastAt,
       localDay: bucket.localDay,
       localHour: bucket.localHour,
-      ...(bucket.progress ? { progress: bucket.progress } : {}),
+      ...(bucket.progress
+        ? { progress: { ...bucket.progress, observedAt: bucket.positionAt ?? bucket.lastAt } }
+        : {}),
     },
   };
 }

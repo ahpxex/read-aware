@@ -682,12 +682,23 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
          ALTER TABLE books ADD COLUMN progress_observed_at INTEGER;
          ALTER TABLE local_device ADD COLUMN reading_time_genesis_at TEXT;",
     ),
+    (
+        28,
+        "reading_session_position_at",
+        // A position's own clock. `last_at` moves with every tick, so a
+        // session left open on a focused device would report an ever-newer
+        // `endedAt` and its stale page would win over a position another
+        // device observed later. `position_at` moves only when a page turn
+        // notes a position; the event carries it as `progress.observedAt`,
+        // and that is what last-observed-wins compares.
+        "ALTER TABLE reading_sessions_pending ADD COLUMN position_at INTEGER;",
+    ),
 ];
 
 /// The schema version a projection checkpoint is stamped with. Restoring one
 /// is only sound when the derived tables' shapes match exactly, so a
 /// checkpoint from a different version is ignored in favour of the log.
-pub(crate) const SCHEMA_VERSION: i64 = 27;
+pub(crate) const SCHEMA_VERSION: i64 = 28;
 
 /// The migration after which `materialize_legacy_covers` must run: the cover
 /// projection columns exist, the inline data-URL column still does.

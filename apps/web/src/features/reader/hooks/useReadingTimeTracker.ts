@@ -13,11 +13,22 @@ import {
   sameBucket,
   TICK_MS,
   tickDelta,
+  UNMOUNT_CLOSE_DELAY_MS,
   type BucketKey,
 } from "../lib/reading-session-policy";
 import { createLogger } from "../../../platform/logger";
 
 const log = createLogger("reading-session");
+
+/**
+ * An unmount's close, deferred: the reader workspace remounts when a book
+ * opens, and the new instance for the SAME book cancels the close its
+ * predecessor scheduled — otherwise every open would mint an empty session
+ * from the bucket the first relocate had just opened. A real close (nothing
+ * remounts) fires it after the delay. Module-level so it survives the
+ * instance that scheduled it.
+ */
+let deferredClose: { bookId: string | null; timer: number } | null = null;
 
 /**
  * Track the reading session for the open book: active time AND position.
@@ -152,6 +163,11 @@ export function useReadingTimeTracker(bookId: string | null, active: boolean) {
   // mint an empty session at every open.
   useEffect(() => {
     const now = Date.now();
+    if (deferredClose && deferredClose.bookId === bookId && active) {
+      // A remount for the same book: the previous instance's session goes on.
+      window.clearTimeout(deferredClose.timer);
+      deferredClose = null;
+    }
     closeOpen(bookId && active ? bucketKeyAt(bookId, now) : undefined);
     lastTickRef.current = now;
     lastActivityRef.current = now;
@@ -189,7 +205,15 @@ export function useReadingTimeTracker(bookId: string | null, active: boolean) {
 
     return () => {
       commit(); // accrue the partial tick…
-      closeOpen(); // …and close the session before tearing down
+      // …and close the session — unless this is a remount (see deferredClose).
+      if (deferredClose) window.clearTimeout(deferredClose.timer);
+      deferredClose = {
+        bookId: bookIdRef.current,
+        timer: window.setTimeout(() => {
+          deferredClose = null;
+          closeOpen();
+        }, UNMOUNT_CLOSE_DELAY_MS),
+      };
       window.clearInterval(interval);
       window.removeEventListener("pointerdown", onActivity);
       window.removeEventListener("pointermove", onActivity);

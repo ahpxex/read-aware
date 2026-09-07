@@ -2717,6 +2717,11 @@ fn session_event(id: &str, wall: i64, book: &str, ms: i64, started: i64, ended: 
     ev(id, wall, "book.sessionRecorded", payload)
 }
 
+fn observed(mut progress: serde_json::Value, at: i64) -> serde_json::Value {
+    progress["observedAt"] = serde_json::json!(at);
+    progress
+}
+
 fn position(percent: i64, href: &str) -> serde_json::Value {
     serde_json::json!({
         "locator": format!("cfi-{percent}"), "chapterHref": href,
@@ -2755,20 +2760,25 @@ fn a_reading_session_accrues_time_and_position_and_flushes_exactly_once() {
     // The racing tick and the newer page turn survive in the bucket.
     let pending = reading_sessions_pending_inner(&conn).unwrap();
     assert_eq!(pending.len(), 1);
-    assert_eq!((pending[0].ms, pending[0].last_at), (20_000, 1_041_000));
+    assert_eq!((pending[0].ms, pending[0].last_at, pending[0].position_at), (20_000, 1_041_000, Some(1_041_000)));
     assert_eq!(pending[0].progress["progressPercent"], 13);
+    // A tick moves `last_at` but never the position's clock.
+    reading_session_accrue_inner(&conn, "b1", "2026-09-07", 15, 20_000, 1_060_000).unwrap();
+    let pending = reading_sessions_pending_inner(&conn).unwrap();
+    assert_eq!((pending[0].last_at, pending[0].position_at), (1_060_000, Some(1_041_000)));
     // Redelivering the same flush is a no-op.
     let again = reading_session_flush_inner(&mut conn, std::slice::from_ref(&flush)).unwrap();
     assert_eq!(again.appended, 0);
-    assert_eq!(reading_sessions_pending_inner(&conn).unwrap()[0].ms, 20_000);
+    assert_eq!(reading_sessions_pending_inner(&conn).unwrap()[0].ms, 40_000);
     assert_eq!(scalar::<i64>(&conn, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 20_000);
     // The event is in the outbox like any local write.
     assert!(sync_outbox_events_inner(&conn, 10).unwrap().iter().any(|e| e.id == "s1"));
-    // Closing the remainder empties the bucket.
-    let rest = session_event("s2", 2_001, "b1", 20_000, 1_040_000, 1_041_000, 15, Some(position(13, "ch1.html")));
+    // Closing the remainder (40s now, position observed at 1_041_000)
+    // empties the bucket.
+    let rest = session_event("s2", 2_001, "b1", 40_000, 1_040_000, 1_060_000, 15, Some(observed(position(13, "ch1.html"), 1_041_000)));
     reading_session_flush_inner(&mut conn, &[rest]).unwrap();
     assert!(reading_sessions_pending_inner(&conn).unwrap().is_empty());
-    assert_eq!(scalar::<i64>(&conn, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 40_000);
+    assert_eq!(scalar::<i64>(&conn, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 60_000);
     assert_eq!(scalar::<f64>(&conn, "SELECT progress_percent FROM books WHERE id='b1'"), 13.0);
 }
 
@@ -2802,6 +2812,17 @@ fn a_session_that_closes_late_never_overwrites_a_newer_position() {
     let legacy = ev("legacy", 4_500, "book.progressed", serde_json::json!({ "bookId": "b1", "locator": "cfi-50", "progressPercent": 50, "status": "reading" }));
     super::events::apply_remote_events_inner(&mut b, &dir_b, &[legacy], None).unwrap();
     assert_eq!(scalar::<f64>(&b, "SELECT progress_percent FROM books WHERE id='b1'"), 60.0);
+
+    // The laptop stayed FOCUSED while paused: its ticks kept the session's
+    // `endedAt` moving past the phone's close, but its page was observed
+    // long before — `progress.observedAt` is the clock that decides.
+    let ticking_laptop = session_event(
+        "laptop-ticking", 7_000, "b1", 900_000, 2_000, 9_000, 10,
+        Some(observed(position(45, "ch2.html"), 3_000)),
+    );
+    super::events::apply_remote_events_inner(&mut b, &dir_b, &[ticking_laptop], None).unwrap();
+    assert_eq!(scalar::<f64>(&b, "SELECT progress_percent FROM books WHERE id='b1'"), 60.0, "a later endedAt with an older observation loses");
+    assert_eq!(scalar::<i64>(&b, "SELECT last_read_at FROM reading_time_totals WHERE book_id='b1'"), 9_000, "the time side still counts the whole session");
 }
 
 #[test]

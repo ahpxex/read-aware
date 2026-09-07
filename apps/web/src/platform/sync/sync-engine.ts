@@ -313,8 +313,9 @@ export type SyncEngine = {
   bootstrapOnce(): Promise<"restored" | "skipped">;
   /** Backfill up to `maxPages` pre-frontier pages. Returns events appended. */
   backfillOnce(maxPages?: number): Promise<{ appended: number; remaining: number }>;
-  /** Cut/prune local checkpoints; publish one when the account's is stale. */
-  checkpointOnce(): Promise<{ cut: boolean; published: boolean }>;
+  /** Cut/prune local checkpoints; publish one when the account's is stale
+   *  (skipped, unthrottled, in a cycle that pushed — the cursor lags). */
+  checkpointOnce(options?: { pushedThisCycle?: number }): Promise<{ cut: boolean; published: boolean }>;
   /** One full cycle: verify → bootstrap (if fresh) → pull → push → blobs →
    *  backfill slice → checkpoints. */
   syncOnce(): Promise<SyncCycleOutcome>;
@@ -634,11 +635,21 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     return { appended, remaining };
   }
 
-  async function checkpointOnce(): Promise<{ cut: boolean; published: boolean }> {
+  async function checkpointOnce(options: { pushedThisCycle?: number } = {}): Promise<{ cut: boolean; published: boolean }> {
     report({ phase: "checkpoint" });
     const cut = (await store.maintainCheckpoint()) !== null;
     let published = false;
-    if (relay.latestSnapshot && relay.publishSnapshot && Date.now() - lastPublishAttemptAt >= publishRetryMs) {
+    // A push this cycle assigned seqs past the cursor, so the log is not
+    // mailbox-exact until the next pull hands them back — the relay's
+    // doorbell rings for our own append, and that cycle publishes. Not an
+    // attempt, so it is not throttled.
+    const pushedThisCycle = options.pushedThisCycle ?? 0;
+    if (
+      pushedThisCycle === 0 &&
+      relay.latestSnapshot &&
+      relay.publishSnapshot &&
+      Date.now() - lastPublishAttemptAt >= publishRetryMs
+    ) {
       published = await publishIfDue();
     }
     return { cut, published };
@@ -670,17 +681,20 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
       ? cursor - existing.frontierSeq >= publishEveryEvents
       : cursor >= publishMinEvents;
     if (!due) return false;
-    lastPublishAttemptAt = Date.now();
     let info: CheckpointInfo;
     try {
       info = await store.preparePublishCheckpoint();
     } catch (error) {
       if (errorCode(error) === ERR_SYNC_CHECKPOINT_PRECONDITION) {
+        // Cheap checks only, nothing was cut: try again next cycle.
         log.info("checkpoint publish skipped: the log is not mailbox-exact right now");
         return false;
       }
       throw error;
     }
+    // A file was cut and is about to be uploaded: this is the attempt the
+    // throttle paces.
+    lastPublishAttemptAt = Date.now();
     if (info.remoteSeq === null) return false;
     const bytes = await store.readBlob(info.blobKey);
     if (!bytes) {
@@ -825,7 +839,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
       const pushed = await pushOnce();
       const blobs = await syncBlobsOnce();
       const backfill = await backfillOnce();
-      await checkpointOnce();
+      await checkpointOnce({ pushedThisCycle: pushed });
       return {
         pushed,
         pulled,

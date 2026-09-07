@@ -474,6 +474,9 @@ pub struct ReadingSessionBucket {
     /// The latest position seen (the `book.progressed`-shaped payload the
     /// reader reports), or null when only time accrued.
     pub progress: Value,
+    /// When that position was observed — moves with page turns only, never
+    /// with ticks. The clock last-observed-wins compares.
+    pub position_at: Option<i64>,
 }
 
 fn row_to_session(row: &rusqlite::Row) -> rusqlite::Result<ReadingSessionBucket> {
@@ -488,11 +491,12 @@ fn row_to_session(row: &rusqlite::Row) -> rusqlite::Result<ReadingSessionBucket>
         progress: progress
             .and_then(|json| serde_json::from_str(&json).ok())
             .unwrap_or(Value::Null),
+        position_at: row.get(7)?,
     })
 }
 
 const SESSION_COLUMNS: &str =
-    "book_id, local_day, local_hour, ms, started_at, last_at, progress_json";
+    "book_id, local_day, local_hour, ms, started_at, last_at, progress_json, position_at";
 
 fn read_session(
     conn: &Connection,
@@ -551,12 +555,13 @@ pub(crate) fn reading_session_position_inner(
     }
     conn.execute(
         "INSERT INTO reading_sessions_pending
-            (book_id, local_day, local_hour, ms, started_at, last_at, progress_json)
-         VALUES (?1, ?2, ?3, 0, ?4, ?4, ?5)
+            (book_id, local_day, local_hour, ms, started_at, last_at, progress_json, position_at)
+         VALUES (?1, ?2, ?3, 0, ?4, ?4, ?5, ?4)
          ON CONFLICT(book_id, local_day, local_hour) DO UPDATE SET
             last_at = MAX(last_at, excluded.last_at),
-            progress_json = CASE WHEN excluded.last_at >= last_at THEN excluded.progress_json
-                                 ELSE progress_json END",
+            progress_json = CASE WHEN position_at IS NULL OR excluded.position_at >= position_at
+                                 THEN excluded.progress_json ELSE progress_json END,
+            position_at = MAX(COALESCE(position_at, 0), excluded.position_at)",
         params![book_id, local_day, local_hour, at_epoch_ms, progress.to_string()],
     )?;
     read_session(conn, book_id, local_day, local_hour)
@@ -607,6 +612,12 @@ pub(crate) fn reading_session_flush_inner(
         let ms = ev.payload.get("ms").and_then(|v| v.as_i64()).unwrap_or(0);
         let ended_at = ev.payload.get("endedAt").and_then(|v| v.as_i64()).unwrap_or(0);
         let has_position = ev.payload.get("progress").is_some_and(|v| v.is_object());
+        let observed_at = ev
+            .payload
+            .get("progress")
+            .and_then(|p| p.get("observedAt"))
+            .and_then(|v| v.as_i64())
+            .unwrap_or(ended_at);
         if ms <= 0 && !has_position {
             continue;
         }
@@ -625,12 +636,14 @@ pub(crate) fn reading_session_flush_inner(
             params![book_id, local_day, local_hour, ms],
         )?;
         // Retired when nothing newer than the event remains: no unflushed
-        // time, and no position observed after the event's `endedAt`.
+        // time, nothing after the event's `endedAt`, and no position observed
+        // after the one the event carries.
         tx.execute(
             "DELETE FROM reading_sessions_pending
               WHERE book_id = ?1 AND local_day = ?2 AND local_hour = ?3
-                AND ms <= 0 AND last_at <= ?4",
-            params![book_id, local_day, local_hour, ended_at],
+                AND ms <= 0 AND last_at <= ?4
+                AND (position_at IS NULL OR position_at <= ?5)",
+            params![book_id, local_day, local_hour, ended_at, observed_at],
         )?;
     }
     tx.commit()?;

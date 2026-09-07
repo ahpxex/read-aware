@@ -462,7 +462,10 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandE
             let started_at = i64_of(p, "startedAt").unwrap_or(ended_at);
             apply_reading_time(tx, &id, ms, started_at, ended_at, str_of(p, "localDay"), i64_of(p, "localHour"))?;
             if let Some(progress) = p.get("progress").filter(|v| v.is_object()) {
-                apply_position(tx, &id, progress, ended_at, &iso_from_millis(ended_at))?;
+                // The position's own clock: a page turn's time, not the
+                // session's last tick (see `position_at` in reading_time.rs).
+                let observed_at = i64_of(progress, "observedAt").unwrap_or(ended_at);
+                apply_position(tx, &id, progress, observed_at, &iso_from_millis(ended_at))?;
             }
         }
 

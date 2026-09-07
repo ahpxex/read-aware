@@ -1,8 +1,11 @@
 # ReadAware
 
-> ReadAware is a free, open-source (AGPL-3.0), local-first, AI-native ebook reader for macOS, Windows, Linux, and Android. One engine reads EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF with the same highlights, notes, and progress; the built-in assistant builds durable memory from your books, highlights, and conversations, and answers from your own shelf. Your library and memory stay on your device — you bring your own API key, and the cloud is only used to sync between machines.
+> ReadAware is a free, open-source (AGPL-3.0), local-first ebook reader for macOS, Windows, Linux, and Android. It reads DRM-free EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF directly. Offline reading, highlights, and notes need no account. Optional AI builds reading memory and sends relevant text to your selected remote model provider: BYOK requires no ReadAware AI subscription, but provider charges may apply. Optional sync is end-to-end encrypted; free accounts include 50 MB, paid plans expand storage, and Pro/Max include built-in AI. Local storage does not mean AI inference is offline.
 
 ## Docs
+
+- [Plans and pricing](https://readaware.app/pricing/): free reader, 50 MB free sync, paid storage and built-in AI
+- [Privacy](https://readaware.app/privacy/): local storage, encrypted sync, remote AI processing, and website measurement
 
 - [Overview](https://readaware.app/docs/): what ReadAware is and how the pieces fit together
 - [Download & install](https://readaware.app/docs/install/): installers for macOS, Windows, Linux, and Android
@@ -18,6 +21,9 @@
 - [Plugins: the reader, extended](https://readaware.app/blog/plugins-v1/): the sandboxed plugin system, v1
 
 ## Optional
+
+- [安卓 EPUB 阅读器](https://readaware.app/zh/epub-reader-for-android/): 官方 APK、设备要求、真实截图与同步额度
+- [Windows EPUB 阅读器](https://readaware.app/zh/epub-reader-for-windows/): EXE、MSI、便携版与签名状态
 
 - [Open-source ebook reader](https://readaware.app/open-source-ebook-reader/): the open-source story — AGPL-3.0, local-first, DRM-free
 - [EPUB reader for Windows](https://readaware.app/epub-reader-for-windows/): reading EPUB (and more) on Windows

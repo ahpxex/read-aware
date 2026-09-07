@@ -30,6 +30,8 @@ import { Route as DeIndexRouteImport } from './routes/de/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as ZhPrivacyRouteImport } from './routes/zh/privacy'
 import { Route as ZhPricingRouteImport } from './routes/zh/pricing'
+import { Route as ZhEpubReaderForWindowsRouteImport } from './routes/zh/epub-reader-for-windows'
+import { Route as ZhEpubReaderForAndroidRouteImport } from './routes/zh/epub-reader-for-android'
 import { Route as ZhDocsRouteImport } from './routes/zh/docs'
 import { Route as ZhChangelogRouteImport } from './routes/zh/changelog'
 import { Route as ZhBlogRouteImport } from './routes/zh/blog'
@@ -239,6 +241,16 @@ const ZhPrivacyRoute = ZhPrivacyRouteImport.update({
 const ZhPricingRoute = ZhPricingRouteImport.update({
   id: '/zh/pricing',
   path: '/zh/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhEpubReaderForWindowsRoute = ZhEpubReaderForWindowsRouteImport.update({
+  id: '/zh/epub-reader-for-windows',
+  path: '/zh/epub-reader-for-windows',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhEpubReaderForAndroidRoute = ZhEpubReaderForAndroidRouteImport.update({
+  id: '/zh/epub-reader-for-android',
+  path: '/zh/epub-reader-for-android',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ZhDocsRoute = ZhDocsRouteImport.update({
@@ -825,6 +837,8 @@ export interface FileRoutesByFullPath {
   '/zh/blog': typeof ZhBlogRouteWithChildren
   '/zh/changelog': typeof ZhChangelogRoute
   '/zh/docs': typeof ZhDocsRouteWithChildren
+  '/zh/epub-reader-for-android': typeof ZhEpubReaderForAndroidRoute
+  '/zh/epub-reader-for-windows': typeof ZhEpubReaderForWindowsRoute
   '/zh/pricing': typeof ZhPricingRoute
   '/zh/privacy': typeof ZhPrivacyRoute
   '/blog/': typeof BlogIndexRoute
@@ -942,6 +956,8 @@ export interface FileRoutesByTo {
   '/zh-hant/pricing': typeof ZhHantPricingRoute
   '/zh-hant/privacy': typeof ZhHantPrivacyRoute
   '/zh/changelog': typeof ZhChangelogRoute
+  '/zh/epub-reader-for-android': typeof ZhEpubReaderForAndroidRoute
+  '/zh/epub-reader-for-windows': typeof ZhEpubReaderForWindowsRoute
   '/zh/pricing': typeof ZhPricingRoute
   '/zh/privacy': typeof ZhPrivacyRoute
   '/blog': typeof BlogIndexRoute
@@ -1071,6 +1087,8 @@ export interface FileRoutesById {
   '/zh/blog': typeof ZhBlogRouteWithChildren
   '/zh/changelog': typeof ZhChangelogRoute
   '/zh/docs': typeof ZhDocsRouteWithChildren
+  '/zh/epub-reader-for-android': typeof ZhEpubReaderForAndroidRoute
+  '/zh/epub-reader-for-windows': typeof ZhEpubReaderForWindowsRoute
   '/zh/pricing': typeof ZhPricingRoute
   '/zh/privacy': typeof ZhPrivacyRoute
   '/blog/': typeof BlogIndexRoute
@@ -1201,6 +1219,8 @@ export interface FileRouteTypes {
     | '/zh/blog'
     | '/zh/changelog'
     | '/zh/docs'
+    | '/zh/epub-reader-for-android'
+    | '/zh/epub-reader-for-windows'
     | '/zh/pricing'
     | '/zh/privacy'
     | '/blog/'
@@ -1318,6 +1338,8 @@ export interface FileRouteTypes {
     | '/zh-hant/pricing'
     | '/zh-hant/privacy'
     | '/zh/changelog'
+    | '/zh/epub-reader-for-android'
+    | '/zh/epub-reader-for-windows'
     | '/zh/pricing'
     | '/zh/privacy'
     | '/blog'
@@ -1446,6 +1468,8 @@ export interface FileRouteTypes {
     | '/zh/blog'
     | '/zh/changelog'
     | '/zh/docs'
+    | '/zh/epub-reader-for-android'
+    | '/zh/epub-reader-for-windows'
     | '/zh/pricing'
     | '/zh/privacy'
     | '/blog/'
@@ -1569,6 +1593,8 @@ export interface RootRouteChildren {
   ZhBlogRoute: typeof ZhBlogRouteWithChildren
   ZhChangelogRoute: typeof ZhChangelogRoute
   ZhDocsRoute: typeof ZhDocsRouteWithChildren
+  ZhEpubReaderForAndroidRoute: typeof ZhEpubReaderForAndroidRoute
+  ZhEpubReaderForWindowsRoute: typeof ZhEpubReaderForWindowsRoute
   ZhPricingRoute: typeof ZhPricingRoute
   ZhPrivacyRoute: typeof ZhPrivacyRoute
   DeIndexRoute: typeof DeIndexRoute
@@ -1727,6 +1753,20 @@ declare module '@tanstack/react-router' {
       path: '/zh/pricing'
       fullPath: '/zh/pricing'
       preLoaderRoute: typeof ZhPricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh/epub-reader-for-windows': {
+      id: '/zh/epub-reader-for-windows'
+      path: '/zh/epub-reader-for-windows'
+      fullPath: '/zh/epub-reader-for-windows'
+      preLoaderRoute: typeof ZhEpubReaderForWindowsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh/epub-reader-for-android': {
+      id: '/zh/epub-reader-for-android'
+      path: '/zh/epub-reader-for-android'
+      fullPath: '/zh/epub-reader-for-android'
+      preLoaderRoute: typeof ZhEpubReaderForAndroidRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/zh/docs': {
@@ -2762,6 +2802,8 @@ const rootRouteChildren: RootRouteChildren = {
   ZhBlogRoute: ZhBlogRouteWithChildren,
   ZhChangelogRoute: ZhChangelogRoute,
   ZhDocsRoute: ZhDocsRouteWithChildren,
+  ZhEpubReaderForAndroidRoute: ZhEpubReaderForAndroidRoute,
+  ZhEpubReaderForWindowsRoute: ZhEpubReaderForWindowsRoute,
   ZhPricingRoute: ZhPricingRoute,
   ZhPrivacyRoute: ZhPrivacyRoute,
   DeIndexRoute: DeIndexRoute,

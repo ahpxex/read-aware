@@ -40,8 +40,8 @@
   "home": {
     "metaTitle": "ReadAware — Free, Open-Source Ebook Reader That's Aware of You",
     "metaDescription": "A free, open-source ebook reader for Windows, macOS, Linux, and Android. One reader for EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF that builds memory from your reading, grows through plugins, and syncs end-to-end encrypted — local-first and private.",
-    "heroTitle": "An ebook reader that's aware of you — and yours to extend",
-    "heroLead": "Ask about any passage — ReadAware already knows what you've highlighted, wondered about, and read, across every book on your shelf. That awareness lives on your device, grows through plugins, and follows you — encrypted — to every machine.",
+    "heroTitle": "ReadAware",
+    "heroLead": "A free, open-source ebook reader. Read your own files offline, then add context-aware AI and encrypted sync when you need them.",
     "shelfAlt": "The ReadAware library — a grid of book covers across many languages and formats.",
     "shelfCaption": "Your library — every format in one place.",
     "readerTitle": "A calm place to read anything",
@@ -57,7 +57,7 @@
     "pluginAlt": "The ReadAware plugin panel — dictionary, themes, and RSS reader installed, each in its own sandbox, some handing the assistant new tools.",
     "pluginCaption": "Voices, dictionaries, themes, feeds — and tools the assistant picks up.",
     "syncTitle": "Your reading follows you",
-    "syncBody": "Open ReadAware on another machine and everything is already there — your books, your highlights, your place in each of them, and the memory built from all of it. Sync is end-to-end encrypted: the relay only ever stores ciphertext, so nobody in the middle can read what you read. Desktop and Android today; iOS is on the way.",
+    "syncBody": "Optional end-to-end encrypted sync carries books, highlights, notes, reading position, and memory between devices. Free accounts include 50 MB; paid plans expand storage. The sync relay stores ciphertext. Desktop and Android today; iOS is on the way.",
     "inShortTitle": "In short",
     "notes": [
       {
@@ -74,28 +74,28 @@
       },
       {
         "title": "Open source, local-first, encrypted sync",
-        "body": "The code is public under AGPL-3.0, and everything lives on your device. Bring your own API key; the cloud is only an encrypted relay between your machines."
+        "body": "The code is public under AGPL-3.0. Your library and memory are stored locally; optional sync is end-to-end encrypted. AI sends relevant context to your chosen model provider."
       }
     ],
     "freeLine": "Free, open source, local-first.",
     "freeLineWithTag": "Free, open source, local-first. {{tag}}.",
     "download": {
       "title": "Get ReadAware",
-      "intro": "Free, open source, and local-first. Bring your own API key; your library and memory stay on your device.",
+      "intro": "Free offline reading, highlights, and notes. Optional plans expand sync and add built-in AI; your own API key works without a ReadAware AI subscription, with provider charges separate.",
       "yourPlatform": "— your platform",
       "comingSoon": "Coming soon",
       "download": "Download",
       "choosePlatform": "Choose a platform",
-      "signingNote": "Desktop builds aren't code-signed yet; macOS and Windows may ask you to confirm the app on first launch.",
+      "signingNote": "macOS builds are signed and notarized. Windows builds are not yet code-signed and may show a SmartScreen warning. Download only from the official release.",
       "latest": " The latest release is {{tag}}.",
       "downloadFor": "Download for {{name}}"
     }
   },
   "pricing": {
     "metaTitle": "Pricing — ReadAware",
-    "metaDescription": "The app is free and complete; paid plans add encrypted sync and built-in AI. Sync $5, Pro $20, Max $50 a month.",
+    "metaDescription": "The reader is free, including local books, annotations, and BYOK AI. Free accounts include 50 MB of encrypted sync. Paid plans expand storage; Pro and Max also include built-in AI.",
     "title": "Pricing",
-    "lead": "The app is free and complete on its own — every reader feature, your own AI key, your data on your disk. Paid plans add encrypted sync and built-in AI, priced so a subscription is never the thing between you and your library.",
+    "lead": "The reader is free, including local books, annotations, and BYOK AI. Free accounts include 50 MB of encrypted sync. Paid plans expand storage; Pro and Max also include built-in AI.",
     "perMonth": "/month",
     "recommended": "Recommended",
     "ctaFree": "Download",
@@ -108,7 +108,7 @@
     "finePrintTitle": "The fine print, in plain words",
     "finePrint": [
       "AI credits: 1 credit = $0.001 of model usage at list price. A typical question costs 2–4 credits, so 5,000 credits is roughly a thousand conversations. Credits reset monthly.",
-      "Bring-your-own-key AI is free forever, on every plan — the subscription is a convenience, not a wall.",
+      "ReadAware charges no AI subscription fee for using your own key on any plan. Your model provider may charge for API usage.",
       "Synced data is end-to-end encrypted. The server stores ciphertext it cannot read; the passphrase never leaves your devices.",
       "Built-in AI requests pass through our relay to the model provider over TLS and are never logged or stored — only token counts are metered. If that trade-off isn't for you, use your own key.",
       "Downgrading never deletes anything. Over-quota accounts keep reading and downloading their data; only new uploads pause."

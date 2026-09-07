@@ -40,8 +40,8 @@
   "home": {
     "metaTitle": "ReadAware — Lecteur d'ebooks gratuit et open source qui vous connaît",
     "metaDescription": "Un lecteur d'ebooks gratuit et open source pour Windows, macOS, Linux et Android. Un seul lecteur pour EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML et PDF, qui construit une mémoire à partir de vos lectures, grandit par les plugins et se synchronise chiffré de bout en bout — local d'abord et privé.",
-    "heroTitle": "Un lecteur d'ebooks qui vous connaît — et que vous étendez",
-    "heroLead": "Interrogez n'importe quel passage — ReadAware sait déjà ce que vous avez surligné, questionné et lu, à travers tous les livres de votre bibliothèque. Cette connaissance vit sur votre appareil, grandit par les plugins et vous suit, chiffrée, sur chaque machine.",
+    "heroTitle": "ReadAware",
+    "heroLead": "Un lecteur gratuit et open source. Lisez vos ebooks hors ligne, avec une IA contextuelle et une synchronisation chiffrée en option.",
     "shelfAlt": "La bibliothèque ReadAware — une grille de couvertures de livres dans de nombreuses langues et formats.",
     "shelfCaption": "Votre bibliothèque — tous les formats au même endroit.",
     "readerTitle": "Un endroit calme pour lire n'importe quoi",
@@ -57,7 +57,7 @@
     "pluginAlt": "Le panneau de plugins de ReadAware — dictionnaire, thèmes et lecteur RSS, chacun dans son bac à sable, certains confiant de nouveaux outils à l'assistant.",
     "pluginCaption": "Voix, dictionnaires, thèmes, flux — et des outils que l'assistant adopte.",
     "syncTitle": "Votre lecture vous suit",
-    "syncBody": "Ouvrez ReadAware sur une autre machine et tout est déjà là — vos livres, vos surlignages, votre position dans chacun d'eux, et la mémoire construite à partir de tout cela. La synchronisation est chiffrée de bout en bout : le relais ne stocke que du chiffré, personne en chemin ne peut lire ce que vous lisez. Bureau et Android aujourd'hui ; iOS arrive.",
+    "syncBody": "La synchronisation optionnelle, chiffrée de bout en bout, transporte livres, surlignages, notes, position de lecture et mémoire entre appareils. Les comptes gratuits incluent 50 Mo ; les formules payantes augmentent la capacité. Le relais de synchronisation ne stocke que du contenu chiffré. Disponible sur ordinateur et Android ; iOS est en préparation.",
     "inShortTitle": "En bref",
     "notes": [
       {
@@ -74,28 +74,28 @@
       },
       {
         "title": "Open source, local d'abord, synchronisation chiffrée",
-        "body": "Le code est public sous licence AGPL-3.0, et tout vit sur votre appareil. Apportez votre clé API ; le cloud n'est qu'un relais chiffré entre vos machines."
+        "body": "Le code est public sous AGPL-3.0. Bibliothèque et mémoire sont stockées localement ; la synchronisation optionnelle est chiffrée de bout en bout. L'IA envoie le contexte pertinent au fournisseur de modèle choisi."
       }
     ],
     "freeLine": "Gratuit, open source et local d'abord.",
     "freeLineWithTag": "Gratuit, open source et local d'abord. La dernière version est {{tag}}.",
     "download": {
       "title": "Obtenir ReadAware",
-      "intro": "Gratuit, open source et local d'abord. Apportez votre propre clé API ; votre bibliothèque et votre mémoire restent sur votre appareil.",
+      "intro": "Lecture hors ligne, surlignages et notes gratuits. Les formules payantes augmentent le stockage synchronisé et proposent une IA intégrée. Votre propre clé ne nécessite aucun abonnement IA ReadAware ; les frais du fournisseur restent distincts.",
       "yourPlatform": "— votre plateforme",
       "comingSoon": "Bientôt disponible",
       "download": "Télécharger",
       "choosePlatform": "Choisissez une plateforme",
-      "signingNote": "Les builds de bureau ne sont pas encore signés ; macOS et Windows peuvent vous demander de confirmer l'application au premier lancement.",
+      "signingNote": "Les versions macOS sont signées et notariées. Les versions Windows ne sont pas encore signées et peuvent déclencher SmartScreen. Téléchargez uniquement depuis la publication officielle.",
       "latest": "La dernière version est {{tag}}.",
       "downloadFor": "Télécharger pour {{name}}"
     }
   },
   "pricing": {
     "metaTitle": "Tarifs — ReadAware",
-    "metaDescription": "L'application est gratuite et complète ; les offres payantes ajoutent la synchronisation chiffrée et l'IA intégrée. Sync 5 $, Pro 20 $, Max 50 $ par mois.",
+    "metaDescription": "Le lecteur est gratuit : bibliothèque locale, annotations et IA avec votre clé. Les comptes gratuits incluent 50 Mo de synchronisation chiffrée. Les formules payantes augmentent le stockage ; Pro et Max incluent aussi une IA intégrée.",
     "title": "Tarifs",
-    "lead": "L'application est gratuite et complète en elle-même — toutes les fonctions de lecture, votre propre clé d'IA, vos données sur votre disque. Les offres payantes ajoutent la synchronisation chiffrée et l'IA intégrée, avec un principe : l'abonnement ne doit jamais se dresser entre vous et votre bibliothèque.",
+    "lead": "Le lecteur est gratuit : bibliothèque locale, annotations et IA avec votre clé. Les comptes gratuits incluent 50 Mo de synchronisation chiffrée. Les formules payantes augmentent le stockage ; Pro et Max incluent aussi une IA intégrée.",
     "perMonth": "/mois",
     "recommended": "Recommandée",
     "ctaFree": "Télécharger",
@@ -108,7 +108,7 @@
     "finePrintTitle": "Les petites lignes, en clair",
     "finePrint": [
       "Crédits IA : 1 crédit = 0,001 $ d'usage du modèle au tarif public. Une question typique coûte 2 à 4 crédits ; 5 000 crédits représentent environ mille conversations. Remise à zéro chaque mois.",
-      "L'IA avec votre propre clé reste gratuite pour toujours, sur chaque offre — l'abonnement est un confort, pas un mur.",
+      "Aucun abonnement IA ReadAware n'est requis pour utiliser votre propre clé, quel que soit le plan. Le fournisseur du modèle peut facturer les appels API.",
       "Les données synchronisées sont chiffrées de bout en bout. Le serveur ne stocke qu'un chiffrement illisible ; la phrase secrète ne quitte jamais vos appareils.",
       "Les requêtes de l'IA intégrée transitent par notre relais vers le fournisseur du modèle en TLS et ne sont jamais journalisées ni stockées — seuls les décomptes de tokens sont mesurés. Si ce compromis ne vous convient pas, utilisez votre propre clé.",
       "Rétrograder ne supprime jamais rien. Un compte au-dessus du quota continue de lire et de télécharger ses données ; seuls les nouveaux envois sont suspendus."

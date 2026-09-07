@@ -40,8 +40,8 @@
   "home": {
     "metaTitle": "ReadAware — 懂你的免费开源电子书阅读器",
     "metaDescription": "免费开源的电子书阅读器，支持 Windows、macOS、Linux 和 Android。一个阅读器读遍 EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML、PDF，从你的阅读中长出记忆，靠插件生长，端到端加密同步——本地优先，数据归你。",
-    "heroTitle": "懂你的电子书阅读器，由你扩展",
-    "heroLead": "问任何一段文字——ReadAware 早已知道你在整个书架上划过什么、问过什么、读过什么。这份「懂」留在你的设备上，靠插件生长，也会加密着跟你到每一台机器。",
+    "heroTitle": "ReadAware",
+    "heroLead": "免费开源的电子书阅读器。离线阅读自己的书，需要时再连接懂上下文的 AI 和加密同步。",
     "shelfAlt": "ReadAware 书架——多语言、多格式的书籍封面网格。",
     "shelfCaption": "你的书架——所有格式都在一处。",
     "readerTitle": "安静地读任何书",
@@ -57,7 +57,7 @@
     "pluginAlt": "ReadAware 插件面板——词典、主题、RSS 阅读器各自装在沙箱里，有的还给智能助理带来新工具。",
     "pluginCaption": "声音、词典、主题、订阅源——还有交到助理手里的新工具。",
     "syncTitle": "你的阅读跟着你走",
-    "syncBody": "在另一台机器上打开 ReadAware，一切已经就位——你的书、划线、每本书读到的位置，以及由此长出的记忆。同步是端到端加密的：中继服务器只存密文，路上没有任何人能看到你读了什么。桌面和 Android 现已可用；iOS 在路上。",
+    "syncBody": "可选端到端加密同步在设备间传递书籍、划线、笔记、阅读位置和记忆。免费账户包含 50 MB 额度，付费方案扩容。同步中继只存储密文。目前支持桌面和 Android，iOS 正在推进。",
     "inShortTitle": "简而言之",
     "notes": [
       {
@@ -74,28 +74,28 @@
       },
       {
         "title": "开源、本地优先，加密同步",
-        "body": "代码以 AGPL-3.0 公开，一切都在你的设备上。API key 由你自己带；云端只是设备之间的一条加密中继。"
+        "body": "代码以 AGPL-3.0 开源。书库与记忆保存在本地，可选同步采用端到端加密。AI 功能会把相关上下文发送给你选择的模型服务商。"
       }
     ],
     "freeLine": "免费开源、本地优先。",
     "freeLineWithTag": "免费开源、本地优先，当前版本 {{tag}}。",
     "download": {
       "title": "获取 ReadAware",
-      "intro": "免费开源、本地优先。自带 API key；书架和记忆都留在你的设备上。",
+      "intro": "离线阅读、划线和笔记免费。可选付费方案扩容同步并提供内置 AI；自带 API Key 无需 ReadAware AI 订阅，服务商调用费用另计。",
       "yourPlatform": "——你的平台",
       "comingSoon": "即将推出",
       "download": "下载",
       "choosePlatform": "选择平台",
-      "signingNote": "桌面构建暂未代码签名；macOS 和 Windows 首次启动时可能需要你确认。",
+      "signingNote": "macOS 构建已签名并公证。Windows 构建尚未代码签名，可能出现 SmartScreen 提示。请只从官方发行页面下载。",
       "latest": "当前版本 {{tag}}。",
       "downloadFor": "下载 {{name}} 版"
     }
   },
   "pricing": {
-    "metaTitle": "定价 — ReadAware",
-    "metaDescription": "应用免费且完整;付费方案加的是加密同步和内置 AI。Sync $5、Pro $20、Max $50 每月。",
+    "metaTitle": "ReadAware 价格：免费阅读器、加密同步与内置 AI 方案",
+    "metaDescription": "阅读器免费，包含本地书库、批注和自带 Key 的 AI。免费账户提供 50 MB 加密同步；付费方案扩容，Pro 和 Max 还包含内置 AI。",
     "title": "定价",
-    "lead": "应用本身免费且完整——全部阅读功能、自带 AI key、数据在你自己的磁盘上。付费方案加的是加密同步和内置 AI,定价的原则是:订阅永远不该挡在你和你的书之间。",
+    "lead": "阅读器免费，包含本地书库、批注和自带 Key 的 AI。免费账户提供 50 MB 加密同步；付费方案扩容，Pro 和 Max 还包含内置 AI。",
     "perMonth": "/月",
     "recommended": "推荐",
     "ctaFree": "下载",
@@ -108,7 +108,7 @@
     "finePrintTitle": "细则,说人话",
     "finePrint": [
       "AI credits:1 credit = $0.001 的模型用量(按牌价)。一次典型提问花 2–4 credits,5,000 credits 约等于一千次对话。每月重置。",
-      "自带 key 的 AI 永远免费、每个方案都可用——订阅是省事,不是围墙。",
+      "所有方案均可自带 Key，无需向 ReadAware 支付 AI 订阅费；模型服务商可能收取 API 调用费用。",
       "同步数据端到端加密。服务器只存它读不懂的密文;口令永远不离开你的设备。",
       "内置 AI 的请求经我们的中继转发给模型服务商(TLS 加密),永不记录、永不存储——只计量 token 数。不接受这个取舍,就用自己的 key。",
       "降级永远不删数据。超出配额的账号照常阅读、照常下载,只是暂停新的上传。"

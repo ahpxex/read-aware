@@ -73,7 +73,7 @@ const FAQS: TopicFaq[] = [
   {
     question: "Is the Windows version free?",
     answer:
-      "Yes. Reading, highlights, notes, plugins, and the assistant with your own API key are free and complete. Optional paid plans add end-to-end encrypted sync and built-in AI.",
+      "Yes. Reading, highlights, notes, plugins, and the assistant with your own API key are free and complete. Free accounts include 50 MB of encrypted sync. Paid plans expand storage and can include built-in AI; BYOK provider charges are separate.",
   },
   {
     question: "Windows warned me about an unrecognized app — is that expected?",

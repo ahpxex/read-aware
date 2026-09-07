@@ -40,8 +40,8 @@
   "home": {
     "metaTitle": "ReadAware — 懂你的免費開源電子書閱讀器",
     "metaDescription": "免費開源的電子書閱讀器，支援 Windows、macOS、Linux 和 Android。一個閱讀器讀遍 EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML 和 PDF，從你的閱讀中長出記憶，靠外掛生長，端對端加密同步——本地優先且注重隱私。",
-    "heroTitle": "懂你的電子書閱讀器，由你擴充",
-    "heroLead": "問任何一段文字——ReadAware 早已知道你在整個書架上劃過什麼、問過什麼、讀過什麼。這份「懂」留在你的裝置上，靠外掛生長，也會加密著跟你到每一台機器。",
+    "heroTitle": "ReadAware",
+    "heroLead": "免費開源的電子書閱讀器。離線閱讀自己的書，需要時再連接理解上下文的 AI 和加密同步。",
     "shelfAlt": "ReadAware 書架——一個包含多種語言和格式的書籍封面格線。",
     "shelfCaption": "你的書架——所有格式，一個地方。",
     "readerTitle": "一個平靜的地方，讀任何東西",
@@ -57,7 +57,7 @@
     "pluginAlt": "ReadAware 外掛面板——字典、主題、RSS 閱讀器各自裝在沙盒裡，有的還給智慧助理帶來新工具。",
     "pluginCaption": "語音、字典、主題、訂閱源——還有交到助理手裡的新工具。",
     "syncTitle": "你的閱讀跟著你走",
-    "syncBody": "在另一台機器上打開 ReadAware，一切已經就位——你的書、劃線、每本書讀到的位置，以及由此長出的記憶。同步是端對端加密的：中繼伺服器只存密文，路上沒有任何人能看到你讀了什麼。桌面與 Android 現已可用；iOS 即將到來。",
+    "syncBody": "可選端對端加密同步在裝置間傳遞書籍、劃線、筆記、閱讀位置和記憶。免費帳號包含 50 MB 額度，付費方案擴充容量。同步中繼只儲存密文。目前支援桌面和 Android，iOS 正在推進。",
     "inShortTitle": "簡單來說",
     "notes": [
       {
@@ -74,28 +74,28 @@
       },
       {
         "title": "開源、本地優先，加密同步",
-        "body": "程式碼以 AGPL-3.0 公開，一切都在你的裝置上。API 金鑰由你自備；雲端只是裝置之間的一條加密中繼。"
+        "body": "程式碼以 AGPL-3.0 開源。書庫與記憶儲存在本機，可選同步採用端對端加密。AI 功能會把相關上下文傳送給你選擇的模型服務商。"
       }
     ],
     "freeLine": "免費開源且本地優先。",
     "freeLineWithTag": "免費開源且本地優先。最新版本是 {{tag}}。",
     "download": {
       "title": "取得 ReadAware",
-      "intro": "免費開源且本地優先。自備 API 金鑰；你的書架和記憶都留在你的裝置上。",
+      "intro": "離線閱讀、劃線和筆記免費。可選付費方案擴充同步並提供內建 AI；自備 API Key 無需 ReadAware AI 訂閱，服務商使用費另計。",
       "yourPlatform": "— 你的平台",
       "comingSoon": "即將推出",
       "download": "下載",
       "choosePlatform": "選擇平台",
-      "signingNote": "桌面版尚未代碼簽名；macOS 和 Windows 可能會在首次啟動時要求你確認此應用程式。",
+      "signingNote": "macOS 版本已簽名並公證。Windows 版本尚未程式碼簽名，可能出現 SmartScreen 提示。請只從官方發行頁面下載。",
       "latest": "最新版本是 {{tag}}。",
       "downloadFor": "下載 {{name}} 版"
     }
   },
   "pricing": {
     "metaTitle": "定價 — ReadAware",
-    "metaDescription": "應用免費且完整;付費方案加的是加密同步和內建 AI。Sync $5、Pro $20、Max $50 每月。",
+    "metaDescription": "閱讀器免費，包含本機書庫、註記和自備 Key 的 AI。免費帳號提供 50 MB 加密同步；付費方案擴充容量，Pro 和 Max 還包含內建 AI。",
     "title": "定價",
-    "lead": "應用本身免費且完整——全部閱讀功能、自帶 AI key、資料在你自己的磁碟上。付費方案加的是加密同步和內建 AI,定價的原則是:訂閱永遠不該擋在你和你的書之間。",
+    "lead": "閱讀器免費，包含本機書庫、註記和自備 Key 的 AI。免費帳號提供 50 MB 加密同步；付費方案擴充容量，Pro 和 Max 還包含內建 AI。",
     "perMonth": "/月",
     "recommended": "推薦",
     "ctaFree": "下載",
@@ -108,7 +108,7 @@
     "finePrintTitle": "細則,說白話",
     "finePrint": [
       "AI credits:1 credit = $0.001 的模型用量(按牌價)。一次典型提問花 2–4 credits,5,000 credits 約等於一千次對話。每月重置。",
-      "自帶 key 的 AI 永遠免費、每個方案都可用——訂閱是省事,不是圍牆。",
+      "所有方案均可自備 Key，無需向 ReadAware 支付 AI 訂閱費；模型服務商可能收取 API 使用費。",
       "同步資料端到端加密。伺服器只存它讀不懂的密文;通行短語永遠不離開你的裝置。",
       "內建 AI 的請求經我們的中繼轉發給模型服務商(TLS 加密),永不記錄、永不儲存——只計量 token 數。不接受這個取捨,就用自己的 key。",
       "降級永遠不刪資料。超出配額的帳號照常閱讀、照常下載,只是暫停新的上傳。"

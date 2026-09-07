@@ -40,8 +40,8 @@
   "home": {
     "metaTitle": "ReadAware — Kostenloser Open-Source-E-Book-Reader, der dich kennt",
     "metaDescription": "Ein kostenloser Open-Source-E-Book-Reader für Windows, macOS, Linux und Android. Ein Reader für EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML und PDF, der aus deinem Lesen Erinnerung aufbaut, durch Plugins wächst und Ende-zu-Ende-verschlüsselt synchronisiert — Local-First und privat.",
-    "heroTitle": "Ein E-Book-Reader, der dich kennt — und den du erweiterst",
-    "heroLead": "Frag nach irgendeiner Passage — ReadAware weiß bereits, was du markiert, gefragt und gelesen hast, über jedes Buch in deinem Regal hinweg. Dieses Wissen lebt auf deinem Gerät, wächst durch Plugins und folgt dir — verschlüsselt — auf jede Maschine.",
+    "heroTitle": "ReadAware",
+    "heroLead": "Ein kostenloser Open-Source-E-Book-Reader. Lies eigene Bücher offline, mit kontextbezogener KI und verschlüsseltem Sync nach Bedarf.",
     "shelfAlt": "Die ReadAware-Bibliothek — ein Raster aus Buchcovern in vielen Sprachen und Formaten.",
     "shelfCaption": "Deine Bibliothek — alle Formate an einem Ort.",
     "readerTitle": "Ein ruhiger Ort, um alles zu lesen",
@@ -57,7 +57,7 @@
     "pluginAlt": "Das Plugin-Panel von ReadAware — Wörterbuch, Themes und RSS-Reader, jedes in seiner Sandbox, manche geben dem Assistenten neue Werkzeuge.",
     "pluginCaption": "Stimmen, Wörterbücher, Themes, Feeds — und Werkzeuge für den Assistenten.",
     "syncTitle": "Dein Lesen folgt dir",
-    "syncBody": "Öffne ReadAware auf einer anderen Maschine, und alles ist schon da — deine Bücher, deine Markierungen, deine Stelle in jedem von ihnen und die daraus gewachsene Erinnerung. Die Synchronisierung ist Ende-zu-Ende-verschlüsselt: Das Relay speichert ausschließlich Chiffretext, niemand dazwischen kann lesen, was du liest. Desktop und Android heute; iOS ist unterwegs.",
+    "syncBody": "Optionaler Ende-zu-Ende-verschlüsselter Sync überträgt Bücher, Markierungen, Notizen, Leseposition und Gedächtnis zwischen Geräten. Kostenlose Konten enthalten 50 MB; bezahlte Tarife erweitern den Speicher. Das Sync-Relay speichert nur Chiffretext. Verfügbar für Desktop und Android; iOS ist in Vorbereitung.",
     "inShortTitle": "Kurz gesagt",
     "notes": [
       {
@@ -74,28 +74,28 @@
       },
       {
         "title": "Open Source, Local-First, verschlüsselte Synchronisierung",
-        "body": "Der Code ist unter AGPL-3.0 öffentlich, und alles lebt auf deinem Gerät. Bring deinen eigenen API-Schlüssel mit; die Cloud ist nur ein verschlüsseltes Relay zwischen deinen Maschinen."
+        "body": "Der Code ist unter AGPL-3.0 öffentlich. Bibliothek und Gedächtnis werden lokal gespeichert; optionaler Sync ist Ende-zu-Ende-verschlüsselt. KI sendet relevanten Kontext an deinen gewählten Modellanbieter."
       }
     ],
     "freeLine": "Kostenlos, Open Source und Local-First.",
     "freeLineWithTag": "Kostenlos, Open Source und Local-First. Die neueste Version ist {{tag}}.",
     "download": {
       "title": "ReadAware herunterladen",
-      "intro": "Kostenlos, Open Source und Local-First. Bring deinen eigenen API-Schlüssel mit; deine Bibliothek und Erinnerung bleiben auf deinem Gerät.",
+      "intro": "Offline lesen, markieren und Notizen schreiben ist kostenlos. Optionale Tarife erweitern den Sync-Speicher und bieten integrierte KI. Für deinen eigenen API-Schlüssel brauchst du kein ReadAware-KI-Abo; Anbietergebühren fallen separat an.",
       "yourPlatform": "— deine Plattform",
       "comingSoon": "Bald verfügbar",
       "download": "Download",
       "choosePlatform": "Plattform wählen",
-      "signingNote": "Desktop-Builds sind noch nicht code-signiert; macOS und Windows bitten dich beim ersten Start möglicherweise, die App zu bestätigen.",
+      "signingNote": "macOS-Versionen sind signiert und notarisiert. Windows-Versionen sind noch nicht signiert und können SmartScreen-Warnungen auslösen. Lade nur aus der offiziellen Veröffentlichung herunter.",
       "latest": "Die neueste Version ist {{tag}}.",
       "downloadFor": "Download für {{name}}"
     }
   },
   "pricing": {
     "metaTitle": "Preise — ReadAware",
-    "metaDescription": "Die App ist kostenlos und vollständig; Bezahltarife fügen verschlüsselte Synchronisation und integrierte KI hinzu. Sync 5 $, Pro 20 $, Max 50 $ im Monat.",
+    "metaDescription": "Der Reader ist kostenlos, einschließlich lokaler Bibliothek, Anmerkungen und KI mit eigenem Schlüssel. Kostenlose Konten enthalten 50 MB verschlüsselten Sync. Bezahlte Tarife erweitern den Speicher; Pro und Max bieten auch integrierte KI.",
     "title": "Preise",
-    "lead": "Die App ist kostenlos und für sich vollständig — alle Lesefunktionen, dein eigener KI-Schlüssel, deine Daten auf deiner Festplatte. Bezahlte Tarife fügen verschlüsselte Synchronisation und integrierte KI hinzu, nach einem Prinzip: Ein Abo darf nie zwischen dir und deiner Bibliothek stehen.",
+    "lead": "Der Reader ist kostenlos, einschließlich lokaler Bibliothek, Anmerkungen und KI mit eigenem Schlüssel. Kostenlose Konten enthalten 50 MB verschlüsselten Sync. Bezahlte Tarife erweitern den Speicher; Pro und Max bieten auch integrierte KI.",
     "perMonth": "/Monat",
     "recommended": "Empfohlen",
     "ctaFree": "Herunterladen",
@@ -108,7 +108,7 @@
     "finePrintTitle": "Das Kleingedruckte, klar gesagt",
     "finePrint": [
       "KI-Credits: 1 Credit = 0,001 $ Modellnutzung zum Listenpreis. Eine typische Frage kostet 2–4 Credits; 5.000 Credits sind rund tausend Gespräche. Monatlicher Reset.",
-      "KI mit eigenem Schlüssel bleibt für immer kostenlos, in jedem Tarif — das Abo ist Bequemlichkeit, keine Mauer.",
+      "Mit deinem eigenen Schlüssel brauchst du in keinem Tarif ein ReadAware-KI-Abo. Dein Modellanbieter kann API-Nutzung berechnen.",
       "Synchronisierte Daten sind Ende-zu-Ende-verschlüsselt. Der Server speichert nur unlesbaren Geheimtext; die Passphrase verlässt deine Geräte nie.",
       "Anfragen der integrierten KI laufen über unser Relay per TLS zum Modellanbieter und werden nie protokolliert oder gespeichert — gemessen werden nur Token-Zahlen. Wenn dir dieser Kompromiss nicht passt, nimm deinen eigenen Schlüssel.",
       "Ein Downgrade löscht niemals etwas. Konten über dem Kontingent lesen und laden weiter; nur neue Uploads pausieren."

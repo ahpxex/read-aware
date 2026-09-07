@@ -40,8 +40,8 @@
   "home": {
     "metaTitle": "ReadAware — Lector de ebooks gratuito y de código abierto que te conoce",
     "metaDescription": "Un lector de ebooks gratuito y de código abierto para Windows, macOS, Linux y Android. Un solo lector para EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML y PDF que construye memoria a partir de tu lectura, crece con plugins y sincroniza cifrado de extremo a extremo: local primero (local-first) y privado.",
-    "heroTitle": "Un lector de ebooks que te conoce — y que tú extiendes",
-    "heroLead": "Pregunta por cualquier pasaje: ReadAware ya sabe qué subrayaste, qué preguntaste y qué leíste, en todos los libros de tu estantería. Ese conocimiento vive en tu dispositivo, crece con los plugins y te sigue —cifrado— a cada máquina.",
+    "heroTitle": "ReadAware",
+    "heroLead": "Un lector gratuito y de código abierto. Lee tus ebooks sin conexión, con IA contextual y sincronización cifrada opcionales.",
     "shelfAlt": "La biblioteca de ReadAware: una cuadrícula de portadas de libros en varios idiomas y formatos.",
     "shelfCaption": "Tu biblioteca: todos los formatos en un solo lugar.",
     "readerTitle": "Un lugar tranquilo para leer cualquier cosa",
@@ -57,7 +57,7 @@
     "pluginAlt": "El panel de plugins de ReadAware: diccionario, temas y lector RSS, cada uno en su sandbox; algunos ponen nuevas herramientas en manos del asistente.",
     "pluginCaption": "Voces, diccionarios, temas, fuentes — y herramientas que el asistente adopta.",
     "syncTitle": "Tu lectura te sigue",
-    "syncBody": "Abre ReadAware en otra máquina y todo está ya ahí: tus libros, tus subrayados, tu posición en cada uno y la memoria construida a partir de todo ello. La sincronización está cifrada de extremo a extremo: el relay solo guarda texto cifrado, y nadie en el camino puede leer lo que lees. Escritorio y Android hoy; iOS está en camino.",
+    "syncBody": "La sincronización opcional con cifrado de extremo a extremo lleva libros, subrayados, notas, posición de lectura y memoria entre dispositivos. Las cuentas gratuitas incluyen 50 MB; los planes de pago amplían el almacenamiento. El relay de sincronización solo guarda texto cifrado. Disponible en escritorio y Android; iOS está en preparación.",
     "inShortTitle": "En resumen",
     "notes": [
       {
@@ -74,28 +74,28 @@
       },
       {
         "title": "Código abierto, local primero, sincronización cifrada",
-        "body": "El código es público bajo AGPL-3.0, y todo vive en tu dispositivo. Aporta tu propia clave API; la nube es solo un relay cifrado entre tus máquinas."
+        "body": "El código es público bajo AGPL-3.0. La biblioteca y la memoria se almacenan localmente; la sincronización opcional está cifrada de extremo a extremo. La IA envía el contexto pertinente al proveedor de modelos elegido."
       }
     ],
     "freeLine": "Gratis, de código abierto y local primero (local-first).",
     "freeLineWithTag": "Gratis, de código abierto y local primero (local-first). La última versión es {{tag}}.",
     "download": {
       "title": "Obtén ReadAware",
-      "intro": "Gratis, de código abierto y local primero (local-first). Aporta tu propia clave API; tu biblioteca y tu memoria permanecen en tu dispositivo.",
+      "intro": "Lectura sin conexión, subrayados y notas gratis. Los planes opcionales amplían la sincronización y ofrecen IA integrada. Tu propia clave no requiere una suscripción de IA de ReadAware; los cargos del proveedor son independientes.",
       "yourPlatform": "— tu plataforma",
       "comingSoon": "Próximamente",
       "download": "Descargar",
       "choosePlatform": "Elige una plataforma",
-      "signingNote": "Las versiones de escritorio aún no están firmadas con código; macOS y Windows pueden pedirte que confirmes la app al primer inicio.",
+      "signingNote": "Las versiones de macOS están firmadas y notarizadas. Las de Windows aún no están firmadas y pueden mostrar una advertencia de SmartScreen. Descarga solo desde la publicación oficial.",
       "latest": "La última versión es {{tag}}.",
       "downloadFor": "Descargar para {{name}}"
     }
   },
   "pricing": {
     "metaTitle": "Precios — ReadAware",
-    "metaDescription": "La aplicación es gratuita y completa; los planes de pago añaden sincronización cifrada e IA integrada. Sync $5, Pro $20, Max $50 al mes.",
+    "metaDescription": "El lector es gratuito e incluye biblioteca local, anotaciones e IA con tu clave. Las cuentas gratuitas tienen 50 MB de sincronización cifrada. Los planes de pago amplían el almacenamiento; Pro y Max también incluyen IA integrada.",
     "title": "Precios",
-    "lead": "La aplicación es gratuita y completa por sí sola: todas las funciones de lectura, tu propia clave de IA, tus datos en tu disco. Los planes de pago añaden sincronización cifrada e IA integrada, con un principio: la suscripción nunca debe interponerse entre tú y tu biblioteca.",
+    "lead": "El lector es gratuito e incluye biblioteca local, anotaciones e IA con tu clave. Las cuentas gratuitas tienen 50 MB de sincronización cifrada. Los planes de pago amplían el almacenamiento; Pro y Max también incluyen IA integrada.",
     "perMonth": "/mes",
     "recommended": "Recomendado",
     "ctaFree": "Descargar",
@@ -108,7 +108,7 @@
     "finePrintTitle": "La letra pequeña, en claro",
     "finePrint": [
       "Créditos de IA: 1 crédito = $0.001 de uso del modelo a precio de lista. Una pregunta típica cuesta 2–4 créditos; 5.000 créditos son alrededor de mil conversaciones. Se restablecen cada mes.",
-      "La IA con tu propia clave es gratis para siempre, en todos los planes: la suscripción es una comodidad, no un muro.",
+      "Usar tu propia clave no requiere una suscripción de IA de ReadAware en ningún plan. El proveedor del modelo puede cobrar por las llamadas API.",
       "Los datos sincronizados van cifrados de extremo a extremo. El servidor solo guarda texto cifrado que no puede leer; la frase de contraseña nunca sale de tus dispositivos.",
       "Las peticiones de la IA integrada pasan por nuestro relé hacia el proveedor del modelo por TLS y nunca se registran ni se almacenan: solo se miden los recuentos de tokens. Si ese equilibrio no te convence, usa tu propia clave.",
       "Bajar de plan nunca borra nada. Las cuentas por encima de la cuota siguen leyendo y descargando sus datos; solo se pausan las subidas nuevas."

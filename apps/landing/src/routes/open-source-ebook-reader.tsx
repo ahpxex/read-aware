@@ -87,7 +87,7 @@ const FAQS: TopicFaq[] = [
   {
     question: "Is ReadAware really free?",
     answer:
-      "Yes. The app is free and complete — reading, highlights, notes, plugins, and the assistant with your own API key. Optional paid plans add end-to-end encrypted sync and built-in AI, but nothing about reading is behind them.",
+      "Yes. The app is free and complete — reading, highlights, notes, plugins, and the assistant with your own API key. Free accounts include 50 MB of encrypted sync. Paid plans expand storage and can include built-in AI; BYOK provider charges are separate, but nothing about reading is behind them.",
   },
   {
     question: "What license is the code under?",

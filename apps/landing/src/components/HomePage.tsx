@@ -31,7 +31,7 @@ function useBrowserLocaleRedirect(locale: Locale) {
         ? (choice as Locale)
         : null;
     const target = stored ? (stored === "en" ? null : stored) : detectBrowserLocale();
-    if (target) window.location.replace(`/${target}/`);
+    if (target) window.location.replace(`/${target}/${window.location.search}${window.location.hash}`);
   }, [locale]);
 }
 
@@ -77,8 +77,8 @@ export function HomePage({ locale }: { locale: Locale }) {
 
         <main id="top">
           {/* Title */}
-          <section className="max-w-[36rem] pt-12 sm:pt-16">
-            <h1 className="text-[clamp(2.1rem,4.8vw,3rem)] font-normal leading-[1.12] tracking-[-0.01em]">
+          <section className="max-w-[36rem] pt-8 sm:pt-16">
+            <h1 className="text-[2.5rem] font-normal leading-[1.12] tracking-normal sm:text-[3rem]">
               {content.heroTitle}
             </h1>
             <p className="mt-6 text-[1.1875rem] leading-[1.75] text-fg">
@@ -97,7 +97,7 @@ export function HomePage({ locale }: { locale: Locale }) {
           </section>
 
           {/* Plate: the shelf */}
-          <div className="mt-14 sm:mt-16">
+          <div className="mt-8 sm:mt-16">
             <Plate
               base="shelf"
               alt={content.shelfAlt}

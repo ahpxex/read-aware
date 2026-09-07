@@ -4,6 +4,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { createLandingI18n } from "./i18n";
 import { localeFromPathname } from "./lib/i18n";
 import { createAppRouter } from "./router";
+import { startSiteAnalytics } from "./lib/site-analytics";
 import "./index.css";
 
 // The prerendered head carries static copies of tags the router's
@@ -23,6 +24,7 @@ async function start(root: HTMLElement) {
   const locale = localeFromPathname(window.location.pathname);
   const i18n = await createLandingI18n(locale);
   const router = createAppRouter({ i18n });
+  startSiteAnalytics(Object.keys(router.routesByPath));
 
   createRoot(root).render(
     <StrictMode>

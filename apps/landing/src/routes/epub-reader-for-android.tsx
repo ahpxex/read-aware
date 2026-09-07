@@ -43,7 +43,7 @@ export const Route = createFileRoute("/epub-reader-for-android")({
 
       <h2>Pick up on your phone where your desktop left off</h2>
       <p>
-        With the optional sync plan, the book you were reading at your desk is
+        With optional sync, the book you were reading at your desk is
         open at the same paragraph on your phone — books, highlights, notes,
         reading position, and the memory the assistant builds from all of it.
         Sync is end-to-end encrypted: the relay only stores ciphertext, so
@@ -82,12 +82,12 @@ const FAQS: TopicFaq[] = [
   {
     question: "Is the Android app free?",
     answer:
-      "Yes. Reading, highlights, notes, and the assistant with your own API key are free and complete on Android, just like on desktop. Optional paid plans add end-to-end encrypted sync and built-in AI.",
+      "Yes. Reading, highlights, notes, and the assistant with your own API key are free and complete on Android, just like on desktop. Free accounts include 50 MB of encrypted sync. Paid plans expand storage and can include built-in AI; BYOK provider charges are separate.",
   },
   {
     question: "Does sync cost anything?",
     answer:
-      "Multi-device sync is part of the paid Sync plan; the reader itself stays free. Sync is end-to-end encrypted — the server only ever stores ciphertext.",
+      "Free accounts include 50 MB of encrypted sync. The paid Sync plan increases storage, while Pro and Max also include built-in AI. The reader itself stays free; BYOK provider charges are separate.",
   },
   {
     question: "Which devices does the APK support?",

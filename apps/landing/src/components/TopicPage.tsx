@@ -8,7 +8,8 @@ import { SiteHeader } from "./SiteHeader";
 import { useDocumentLang } from "../hooks/useDocumentLang";
 import { useLatestRelease } from "../hooks/useLatestRelease";
 import { useSiteCopy } from "../i18n/use-site-copy";
-import { TOPIC_PAGES } from "../lib/topic-pages";
+import { topicPagesForLocale } from "../lib/topic-pages";
+import { localizePath } from "../lib/i18n";
 import type { PlatformId } from "../lib/releases";
 
 export type TopicFaq = { question: string; answer: string };
@@ -27,14 +28,16 @@ export function TopicPage({
   faqs,
   children,
   platform,
+  locale = "en",
 }: {
   title: string;
   lead: string;
   faqs: TopicFaq[];
   children: ReactNode;
   platform?: PlatformId;
+  locale?: "en" | "zh";
 }) {
-  useDocumentLang("en");
+  useDocumentLang(locale);
   const { t } = useTranslation("site");
   const release = useLatestRelease();
   const content = useSiteCopy("home");
@@ -48,20 +51,24 @@ export function TopicPage({
     : t("home.freeLine");
   const pathname = useLocation({ select: (location) => location.pathname });
   const currentPath = pathname.replace(/\/$/, "") || "/";
-  const siblings = TOPIC_PAGES.filter((page) => page.path !== currentPath);
+  const siblings = topicPagesForLocale(locale).filter(
+    (page) => page.path !== currentPath,
+  );
 
   return (
     <div className="min-h-screen bg-paper text-fg">
       <div className="mx-auto max-w-3xl px-6">
-        <SiteHeader locale="en" />
+        <SiteHeader locale={locale} />
 
         <main className="max-w-[40rem] pb-12 pt-6 sm:pt-8">
           <article>
             <header>
-              <h1 className="text-[2rem] font-normal leading-[1.15] tracking-normal sm:text-[2.6rem]">
+              <h1 className="text-balance text-[2rem] font-normal leading-[1.15] tracking-normal sm:text-[2.6rem]">
                 {title}
               </h1>
-              <p className="mt-5 text-[1.125rem] leading-[1.75] text-fg">{lead}</p>
+              <p className="mt-5 text-[1.125rem] leading-[1.75] text-fg">
+                {lead}
+              </p>
               <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
                 <DownloadMenu
                   downloads={release.downloads}
@@ -77,14 +84,16 @@ export function TopicPage({
             <div className="doc-prose mt-10">{children}</div>
 
             <section className="mt-14">
-              <h2 className="text-[1.375rem] font-medium leading-[1.25] tracking-[-0.01em]">
-                Questions
+              <h2 className="text-[1.375rem] font-medium leading-[1.25] tracking-normal">
+                {locale === "zh" ? "常见问题" : "Questions"}
               </h2>
               <dl className="mt-4">
                 {faqs.map(({ question, answer }, index) => (
                   <div
                     key={question}
-                    className={index === 0 ? "py-4" : "border-t border-border py-4"}
+                    className={
+                      index === 0 ? "py-4" : "border-t border-border py-4"
+                    }
                   >
                     <dt className="text-[1.0625rem] font-medium">{question}</dt>
                     <dd className="mt-1.5 text-[1.0625rem] leading-[1.7] text-fg-muted">
@@ -97,7 +106,9 @@ export function TopicPage({
             </section>
 
             <p className="mt-12 text-[0.9375rem] leading-[1.9] text-fg-muted">
-              More about ReadAware:{" "}
+              {locale === "zh"
+                ? "进一步了解 ReadAware："
+                : "More about ReadAware: "}
               {siblings.map((page, index) => (
                 <span key={page.path}>
                   {index > 0 && " · "}
@@ -111,7 +122,7 @@ export function TopicPage({
               ))}
               {" · "}
               <Link
-                to="/"
+                to={localizePath("/", locale) as never}
                 className="underline underline-offset-4 transition-colors hover:text-fg"
               >
                 ReadAware
@@ -127,7 +138,7 @@ export function TopicPage({
           />
         </main>
 
-        <SiteFooter locale="en" />
+        <SiteFooter locale={locale} />
       </div>
     </div>
   );

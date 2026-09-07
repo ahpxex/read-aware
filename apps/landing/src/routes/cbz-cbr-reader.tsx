@@ -75,7 +75,7 @@ const FAQS: TopicFaq[] = [
   {
     question: "Is it free?",
     answer:
-      "Yes. Reading comics — and everything else ReadAware does with your library — is free, and the code is open source under AGPL-3.0. Optional paid plans add end-to-end encrypted sync and built-in AI.",
+      "Yes. Reading comics — and everything else ReadAware does with your library — is free, and the code is open source under AGPL-3.0. Free accounts include 50 MB of encrypted sync. Paid plans expand storage and can include built-in AI; BYOK provider charges are separate.",
   },
   {
     question: "Does my reading progress sync between devices?",

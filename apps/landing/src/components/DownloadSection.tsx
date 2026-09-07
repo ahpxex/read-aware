@@ -14,13 +14,13 @@ export type DownloadSectionStrings = {
 const DEFAULT_STRINGS: DownloadSectionStrings = {
   title: "Get ReadAware",
   intro:
-    "Free, open source, and local-first. Bring your own API key; your library and memory stay on your device.",
+    "Free offline reading, highlights, and notes. Optional plans expand sync and add built-in AI; BYOK provider charges are separate.",
   latest: (tag) => ` The latest release is ${tag}.`,
   yourPlatform: "— your platform",
   comingSoon: "Coming soon",
   download: "Download",
   signingNote:
-    "Desktop builds aren't code-signed yet; macOS and Windows may ask you to confirm the app on first launch.",
+    "macOS builds are signed and notarized. Windows builds are not yet code-signed and may show a SmartScreen warning. Download only from the official release.",
 };
 
 type DownloadSectionProps = {

@@ -100,12 +100,13 @@ export function localizePath(pathname: string, locale: Locale): string {
 
 /** The locales this page actually exists in (drives the switcher and hreflang). */
 export function availableLocales(pathname: string): readonly Locale[] {
-  const base = localizePath(pathname, "en");
-  if (base === "/" || base.startsWith("/changelog") || base.startsWith("/pricing")) {
+  const base = localizePath(pathname, "en").replace(/\/$/, "") || "/";
+  if (base === "/" || base === "/privacy" || base.startsWith("/changelog") || base.startsWith("/pricing")) {
     return LOCALES;
   }
   if (base.startsWith("/docs")) return DOCS_LOCALES;
   if (base.startsWith("/blog")) return BLOG_LOCALES;
+  if (base === "/epub-reader-for-android" || base === "/epub-reader-for-windows") return ["en", "zh"];
   return [];
 }
 

@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useSiteCopy } from "../i18n/use-site-copy";
 import { isBlogLocale, localizePath, type Locale } from "../lib/i18n";
 import { CONTACT_EMAIL, HEADER_ICON_URL } from "../lib/site";
-import { TOPIC_PAGES } from "../lib/topic-pages";
+import { topicPagesForLocale } from "../lib/topic-pages";
 
 /**
  * The shared site footer; placed inside each page's width container.
@@ -25,9 +25,9 @@ export function SiteFooter({ locale = "en" }: { locale?: Locale }) {
         </Link>
         <Link to={localizePath("/changelog", locale) as never}>{strings.changelog}</Link>
       </nav>
-      {locale === "en" && (
+      {topicPagesForLocale(locale).length > 0 && (
         <p className="mb-6 flex flex-wrap gap-x-5 gap-y-1 text-[0.875rem] text-fg-subtle">
-          {TOPIC_PAGES.map((page) => (
+          {topicPagesForLocale(locale).map((page) => (
             <Link
               key={page.path}
               to={page.path}

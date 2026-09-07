@@ -4,7 +4,7 @@ import { Check, CircleNotch } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { useSiteCopy } from "../i18n/use-site-copy";
 import { useDocumentLang } from "../hooks/useDocumentLang";
-import type { Locale } from "../lib/i18n";
+import { localizePath, type Locale } from "../lib/i18n";
 import { CONTACT_EMAIL, RELAY_URL } from "../lib/site";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
@@ -142,7 +142,7 @@ export function PricingPage({ locale }: { locale: Locale }) {
                 <div className="self-end pt-5">
                   {plan.id === "free" ? (
                     <Link
-                      to="/"
+                      to={localizePath("/", locale) as never}
                       hash="download"
                       className="block w-full rounded-md border border-border-strong px-4 py-2 text-center text-[0.9375rem] text-fg transition-colors hover:bg-fill"
                     >

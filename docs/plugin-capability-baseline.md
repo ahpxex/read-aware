@@ -4,7 +4,7 @@
 
 - 状态：**审计完成；目标契约待实现、待验收。不是“插件能力已经补齐”。**
 - 最后核验日期：2026-09-07。
-- 审计基准：HEAD `fe87e379338faa76e3e39b3460e128d66df38263` 及当时工作区；工作区另有阅读计时和同步修改，本次不修改、不提交这些修改。
+- 审计基准：首轮为 `fe87e379338faa76e3e39b3460e128d66df38263`；首轮文档已提交为 `cd0bd5cc`。第二轮在该提交及当前工作区深入核验；并行阅读计时和同步修改不属于本次提交，也不视为已发布事实。
 - 讨论范围：当前 ReadAware Tauri 桌面产品已有的产品行为，以及使这些行为可供插件组合所必需的公共接口基础设施。不是所有可能的软件、所有操作系统能力或未来阅读引擎。
 - 标记：**[代码]** 当前源码可证；**[设计]** 本文提出的目标，不是当前 API；**[环境]** 必须在真实运行环境另行验收。
 - 本次交付：能力清单、边界、操作语义、验收标准。没有实施宿主重构，没有实施 Jumper，没有宣称通过产品端到端验收。
@@ -34,6 +34,21 @@
 所有 E/P/M 状态是**[代码]**判断，所有“基线必须具备”的内容是**[设计]**。一行有多个操作时，以最弱的一环判定，不用一个已存在的方法代表整行完成。
 
 本版共有 **18 组、129 个能力验收项**：E 21、P 33、M 33、B 42。另列 X 9 项、F 9 项。这里数的是验收项，不是函数数量；一个验收项可以包含多个紧密关联的操作。108 个非 E 项不等于 108 个“原来已经有、只是忘记导出的方法”。
+
+**第二轮补充：18 个深入缺口 GAP01-GAP18，全部未关闭；代表性验收扩展为 32 个场景。** GAP 是上述能力的跨层缺陷/缺少的契约，不重复增加 129 的计数。其中包含代码可证的行为、隔离探针支持的失败窗口，以及仍需决策或桌面验证的安全边界，不能统称为 18 个已复现漏洞。尤其 O01/R01 的 E 只表示入口存在；GAP01-GAP03 说明其数据安全与持久性仍不能算通过。
+
+### 1.2 为什么上一版仍然不够
+
+首轮主要回答“要开放哪些操作”。第二轮补上“**这些操作在跨进程、并发、失败、更新、同步和撤权后，还是否保持同一含义**”。一个函数在类型中存在，经过 Worker 还能调用，不代表它满足原契约。当前还缺少下面六类贯穿能力：
+
+1. **一致性切换**：更新前停止旧写入、等待落盘、取一致快照；回滚不覆盖更新期间的合法数据。
+2. **真实完成与故障收敛**：提交确认、取消传播、超时、进程失联、迟到写入的最终处置。
+3. **资源所有权**：回调、视图、订阅、网络、provider 会话都能按所属 generation 释放，而非只能重启插件。
+4. **协议保真**：请求体/头/方法、二进制、业务 JSON、错误、回调在两端保持相同语义。
+5. **完整观察**：本地操作、另一设备同步、回滚、恢复、对象失效都能刷新插件读到的状态。
+6. **可证明的边界**：权限不只校验注册时；输入、资源预算、外发、会话观察和平台沙箱有独立证据。
+
+因此，不能用“多列了一些方法”解决问题，也不能用“类型由 shape 自动生成”证明整个系统不会漂移。后者只消除**方法树**的一种手抄漂移，不消除参数、回调、持久化、事件来源和消费者行为漂移。深入缺口与关闭标准见第 13 节。
 
 ## 2. 根本规则
 
@@ -90,6 +105,11 @@ flowchart TB
 | S24 | [backup](../apps/web/src/features/settings/lib/backup-io.ts)、[diagnostics](../apps/web/src/features/settings/lib/diagnostics.ts)、[delete all](../apps/web/src/features/settings/lib/delete-all-data.ts)、[update feature](../apps/web/src/features/update)：高风险宿主流程 |
 | S25 | [Rust entry](../apps/desktop/src-tauri/src/lib.rs)、[storage](../apps/desktop/src-tauri/src/storage)、[errors](../packages/core/src/errors.ts)：底层能力与不可直接公开的权力 |
 | S26 | [registry tests](../apps/web/src/domain/registry.test.ts)、[worker tests](../apps/web/src/features/plugins/runtime/plugin-worker-host.test.ts)、[capability tests](../apps/web/src/features/plugins/runtime/plugin-capabilities.test.ts)：当前验证覆盖边界 |
+| S27 | [plugin host](../apps/web/src/features/plugins/runtime/plugin-host.ts)、[update tests](../apps/web/src/features/plugins/runtime/plugin-update-transaction.test.ts)：快照时机、旧实例停写、恢复分支 |
+| S28 | [local store](../apps/web/src/platform/local-store.ts)、[plugin settings](../apps/web/src/features/plugins/lib/plugin-settings.ts)：KV 乐观镜像、落盘失败和插件通知 |
+| S29 | [domain broadcast](../apps/web/src/platform/domain-events.ts)、[sync store](../apps/web/src/platform/sync/sync-store.ts)、[sync scheduler](../apps/web/src/platform/sync/sync-scheduler.ts)：本地广播与远端投影刷新是不同通路 |
+| S30 | [transport registry](../apps/web/src/platform/sync/transport-registry.ts)、[transport feed](../apps/web/src/platform/sync/transport-feed.ts)：动态传输会话和注销 |
+| S31 | [Tauri configuration](../apps/desktop/src-tauri/tauri.conf.json)、[capabilities](../apps/desktop/src-tauri/capabilities)：沙箱之外还必须核验的实际平台边界 |
 
 ## 4. 完整能力清单
 
@@ -505,6 +525,16 @@ F 项不是永久禁止；产品决定新增时更新宿主能力及本基线。
 | W20 | 升级/撤权/销毁 | O/Q/R | 迁移失败回滚；关窗/禁用/换书释放资源；不能在旧 generation 继续写 |
 | W21 | 数据管理助手 | I/R | 只打开备份/诊断/更新/账户设置确认流程；取消不会仍执行危险动作 |
 | W22 | 组合压力测试 | 全表 | 输入更新、导航、网络和文档写并发；断网/锁库/关闭/重开仍有真实结果，无假成功 |
+| W23 | 更新时仍有合法写入 | O/R；GAP01-GAP03 | 旧实例写入与候选检查交错；候选在停旧版之前/之后失败均不丢合法写入；迁移完成必须落盘 |
+| W24 | 网络参数符合性 | P；GAP04/GAP05 | string/URL/Request 与 init 覆盖语义一致；POST/头/字节不丢；调用前已取消不得发到宿主 |
+| W25 | 长期打开与关闭视图 | J/N/Q/R；GAP06/GAP14 | 重复创建回调、订阅和 provider 会话后释放；句柄/任务数量回落到基线，不靠禁用整个插件 |
+| W26 | 卡死、崩溃、撤权 | Q/R；GAP07/GAP08 | 永不 resolve、Worker 失联、停用时已有宿主请求，各有终态；旧代不能继续影响新代 |
+| W27 | 另一设备更改数据 | A/F/Q；GAP09 | 同步/检查点恢复后的插件列表与查询一致；刷新不会被误当本地动作重新外发 |
+| W28 | 视图请求乱序 | J/Q；GAP10 | 先发慢请求、再返回/换根视图/发快请求；旧响应不覆盖新视图、不关闭新窗口、不发过期 toast |
+| W29 | 订阅回调异步失败 | Q/R；GAP11 | ignoreSelf 开/关和 storage.onChange 的 async handler 拒绝均记录且隔离；无 unhandled rejection |
+| W30 | RPC 数据与预算 | J/P/R；GAP12/GAP13 | 带 __fn 的合法业务数据不变成函数；错误消息形状、超大/深层/循环对象和并发洪水被有界拒绝 |
+| W31 | 最小权限与平台绕行 | A/P/R；GAP15/GAP16 | 无阅读权限插件的观察范围明确；打包 Tauri 中检查直接消息、子 Worker、动态模块、网络和平台入口 |
+| W32 | 稳定错误与证据门禁 | 全表；GAP17/GAP18 | 同类错误在宿主/Worker/UI 保持 code；能力升级必须有语义和消费者证据，不只修改版本常量 |
 
 当前 `BookFormat` 枚举为 epub/mobi/azw3/fb2/cbz/cbr/txt/html/pdf/virtual。基线格式验收必须覆盖每种实际支持格式，另含可重排/固定版式、无目录/多级目录、有文字/扫描 PDF 和虚拟书修订样本。枚举存在不证明任意文件可读；DRM、损坏文件及缺失资源分别测失败路径。对不适用能力明确 unsupported，不要求所有格式都凭空具备文本/页标签。
 
@@ -518,7 +548,7 @@ F 项不是永久禁止；产品决定新增时更新宿主能力及本基线。
 2. 逐项追踪当前 UI 命令/快捷键/设置/运行时行为。业务操作必须归属公共层，或有 X/F 的显式理由；没有归属不能合并。
 3. Domain event roster 与插件可见事件按权限从同源定义派生；禁止手抄 union 再漏掉 sessionRecorded。
 4. 内置 UI 和 Agent 不得用 feature-local 公共以外的路径完成基线承诺的业务操作；基础设施内部低层调用仍可保持私有。
-5. 所有 P/M/B 逐项关闭；E 项做回归。完成状态只能附证据修改，不能整章一次标“全部完成”。
+5. 所有 P/M/B 与 GAP01-GAP18 逐项关闭；E 项做回归。E 项关联的 GAP 未关闭，同样阻止基线通过；不能整章一次标“全部完成”。
 6. 整条输入输出链的 contract tests 和真实 Tauri 工作流同时过；只跑单元测试不能声明产品闭环。
 7. UI 语法在宿主 normalizer 与 renderer 同时实现；不新增任何插件专属类型/插件 ID switch。
 8. 第一方插件协调升级，不保留没有实际需求的旧 API 兼容层；市场 d.ts/能力版本与应用发版有共同 gate。
@@ -539,7 +569,7 @@ F 项不是永久禁止；产品决定新增时更新宿主能力及本基线。
 
 ## 12. 验证与不确定边界
 
-**[代码]** 本次检查了公开类型、宿主 context、领域层、阅读引擎、设置目录、UI schema/renderer、Agent ports、存储/网络桥接、生命周期与相关宿主管理入口。结论是接口存在性与可组合性审计，不是每个实现内部的安全审计或正确性证明。
+**[代码]** 两轮检查覆盖公开类型、宿主 context、领域层、阅读引擎、设置目录、UI schema/renderer、Agent ports、存储/网络桥接、生命周期与相关宿主管理入口。第二轮进一步追踪快照与停写顺序、KV 失败回滚、双向 RPC、视图请求代次、远端变化通知。仍不是每个实现内部的全面安全审计或正确性证明。
 
 **[环境]** 未在此任务中执行表 9 的产品 Tauri 场景、安装/更新/同步/网络服务的实际验收，也没有验证所有格式的渲染/定位质量。现有 capabilities/registry/Worker 测试只能覆盖已声明入口，不能证明本基线完整。工作区中的并行阅读计时/同步修改不作为已发布事实。
 
@@ -550,7 +580,134 @@ HTML 使用模板固定版本的 Geist、Tailwind CSS、Lucide、Mermaid CDN，�
 ### 12.1 本次文档交付验证
 
 - 配对校验器通过：互链、标题、源码路径、HTML 锚点、图数量与 CDN SRI 一致性。
-- 能力项计数/唯一性核对：A-R 共 129 项，21 E / 33 P / 33 M / 42 B；X 9、FUT 9；W01-W22 是待实施的产品场景，不是本次通过的测试。
+- 能力项计数/唯一性核对：A-R 共 129 项，21 E / 33 P / 33 M / 42 B；X 9、FUT 9；GAP01-GAP18 全部未关闭；W01-W32 是待实施的产品场景，不是本次通过的测试。
 - 文档浏览器：1440x1000、1024x768、390x844 无页面横向溢出；检查了截图、图非空、图标与字体加载。
 - 文档交互：中英文搜索、Escape 清空、移动抽屉与焦点循环、主题切换及刷新保持、键盘展开条目；console/errors 未见报错。
 - 没有因此把任何 P/M/B 改成 E。真实 Tauri、网络服务与持久化行为仍按上节列为未验证。
+
+### 12.2 第二轮代码探针与测试边界
+
+- 执行 `bun test`，参数为 S26 的三个测试文件以及 `plugin-update-transaction.test.ts`、`plugin-lifecycle.test.ts`：**14 pass / 0 fail / 56 expect**。这证明现有断言通过，不证明下节 GAP 已关闭；其中 Worker 测试只验证方法树描述，更新测试只验证步骤顺序。
+- 隔离探针使用 Bun 将原 `plugin-sandbox.worker.ts` 转译后放入 `node:vm`；注入 Request/Response 等构造器，并用假的 self.postMessage 收集 RPC、立即返回空响应。没有启动 Tauri，也没有真实网络请求。Request 输入为 POST、`x-audit: present` 头和 `payload` 正文，实际发出的 RPC args 是 `["https://example.invalid/", {}]`。这是 GAP04 的协议层复现，不是外部服务验收。
+- 同一探针传入调用前已 abort 的 signal：插件等待被拒绝，但记录到 **1 次**发往宿主的 call，支持 GAP05 的先派发后检查判断；并未声称实际 HTTP 在测试中发出。
+- 直接调用原 `runPluginUpdateTransaction`，以变量模拟私有数据：快照后让旧运行时写入，再让 verifyCandidate 抛错；restoreData 将变量恢复旧快照，且 quiesced=false。验证了 GAP01 的恢复顺序窗口，不等于已复现 SQLite 磁盘数据损失。
+- 其余 GAP 按各条标记区分源码证据、推导风险与待验证边界。本次只更新文档，不偷偷修运行时代码，也不让当前通过的单元测试替代未来 W23-W32。
+
+## 13. 第二轮深入缺口账本
+
+**全部状态：未关闭。** “高”优先阻断数据正确性或长期资源/执行安全；“中”阻断组合语义或可恢复性；“边界待证”不是已证实漏洞。每条必须关联公开契约和验收，修函数但没补闭环测试不算关闭。下列是原 129 项中隐藏的子条件，不是额外 18 个互不相干的新功能。
+
+### GAP01 · 高 · 更新回滚缺一致性快照与停写屏障
+
+**[代码]** S27 `applyCandidate` 在停止旧插件之前调用 `snapshotPluginData`，旧插件在候选启动/核验期间仍可写；S21 `runPluginUpdateTransaction` 即使在 quiesce 之前失败，也无条件 restoreData。于是恢复旧快照可能覆盖候选检查期间的合法写入。12.2 的隔离探针验证了这个顺序。KV 与 docs 的快照也不是同一事务时间点。
+
+**[设计]** O02/O05/R01 必须具备：旧代停接新写、在途写 drain、KV/docs/schemaVersion 一致快照、按实际修改阶段决定是否恢复；恢复只覆盖属于候选事务的变化。候选可先做无副作用检查，但不能据此使用过期快照。验收 W23，另测恢复失败与崩溃重启；不能只给顺序函数加一个 mock。
+
+### GAP02 · 高 · 迁移完成不等于私有数据已落盘
+
+**[代码]** S18 Worker 的 KV set/remove 走单独 storage 消息，不进入 inFlightHostCalls；`drainActivationCalls` 因而不等待这些写入。S28 `localKV.setItem/removeItem` 是 void + 异步 IPC，S27 的 schemaVersion 更新也是这种写。migrated/更新接受不构成 KV 和版本的持久确认。docs 有异步返回，不应把两种存储语义混称为事务。
+
+**[设计]** O01/O02/O05/R01 要区分内存可见、宿主接受、持久提交；迁移等待 durability barrier 后才发布版本。写失败应使迁移失败而不是“成功后日志里报错”。验收 W23：延迟/拒绝 set_kv、立即退出并重启、docs 成功而 KV 失败、schemaVersion 最后提交。
+
+### GAP03 · 高 · KV 失败回滚没有闭合到 Worker 镜像
+
+**[代码]** S28 持久化失败回滚宿主快照并发 local-write-failed/onLocalKVWrite；S18 Worker 镜像同步只监听 plugin-storage-changed，S03 插件直接 KV 写不会发该通知。这条失败通路没有将更正值和失败关联回发给调用者。另外，localKV 的失败回调恢复 previous，没有验证该 key 是否已被较新的写覆盖，存在旧失败覆盖新镜像的竞态。
+
+**[设计]** O02/Q02 要有写序号/revision、失败确认、镜像更正和按版本回滚；不能靠 UI 的通用 toast 假设 Worker 已恢复。验收 W23：同键连续两写、第一写晚失败、第二写成功，宿主/Worker/重启后读值一致。这里未对真实 SQLite 注入失败。
+
+### GAP04 · 高 · 声称支持 Request，但跨桥丢失其请求语义
+
+**[代码]** S01 network.fetch 接受 string/URL/Request；S18 `buildContext` 遇到 Request 只取 input.url，method/headers/body 等只从第二参数 init 读取。隔离探针已证实 POST Request 到 host 变为 URL 加空 init。不是“还没支持 HTTP”，而是现有公开类型比真实行为更强。
+
+**[设计]** P03/J12 要有 Request 与 init 的统一规范化、覆盖优先级、请求体已消费/不可复制时的明确错误；支持范围在类型和 discovery 中一致。验收 W24，覆盖文本/二进制/空 body/headers/redirect；任何不支持的 BodyInit 显式拒绝，不静默降级。
+
+### GAP05 · 高 · 取消缺少派发前检查和宿主传播
+
+**[代码]** S18 先创建并执行 call，再判断 signal.aborted；调用前已经取消仍向宿主派发一次。调用后取消只拒绝 Worker 等待，宿主 fetch/flattenResponse 继续。前者由隔离探针验证；后者由两端协议可见没有 cancel 消息支持。
+
+**[设计]** P03/P04/Q06 要有 requestId、派发前取消检查、host AbortController 与结束确认；对外部已提交动作明确“无法撤销/结果未知”，不能将中止等待说成回滚。验收 W24/W26；取消、超时、停用都通过同一所属请求管理。
+
+### GAP06 · 高 · 回调句柄只有整插件清空，没有局部释放
+
+**[代码]** S18 `retain` 每遇函数都分配 handlers 项；Worker 的 handlers 仅在 deactivate 中 clear。dispose 消息只注销 host disposable，不删除 Worker handler；view 更新/关闭也没有 release-handles 协议。host heldDisposables 与 lifecycle.staged/disposables 还分别持有登记记录。不能把“注册已注销”当成“回调闭包已释放”。
+
+**[设计]** E04/J10/N05/Q06/R03 要有视图/注册/会话所属 callback scope、幂等释放、旧句柄拒绝和可观察配额。验收 W25：反复打开带 onChange 的视图、注册再注销、刷新供应商会话后，保留数回到稳定基线；引用被有意复用时不能提前释放。
+
+### GAP07 · 高 · 普通回调缺少截止时间和失联收敛
+
+**[代码]** S18 激活有 10 秒、health 有 2 秒、migration 有 30 秒超时；普通 invokeHandle 没有 deadline。已激活后 worker.onerror 只 fail health/migrations，不 fail pendingInvokes，且代码选择保留运行时。health 回答说明消息循环可回应，不说明一个永不完成的 provider/action 会结束。
+
+**[设计]** N05/Q04/R06 要定义逐操作 deadline、显式心跳含义、崩溃/失联状态和所有 pending 的唯一终态；允许不同操作不同预算，不用统一短超时伤害合法长任务。验收 W26：永不 resolve、无限计算、非致命异常和真实终止分别测。
+
+### GAP08 · 高 · 禁用不能自动终止已经进入宿主的工作
+
+**[代码]** S03 assertActive 在调用入口检查；S18 terminate suspend 后等待 50ms 再终止 Worker。它没有按插件追踪/取消已经开始的 host method；终止 Worker 不等于取消其已发出的网络、推理、导入或文档写。是否真正产生迟到副作用取决于具体服务，不能一概断言都已停止或都能撤回。
+
+**[设计]** Q06/R03/L02/P03 要区分可取消工作和已提交事实：提交前重新验证 generation，停用时关闭接入并 drain/abort，已完成写不伪装撤销，结果未知显式报告。验收 W26；更新候选不能接收旧代的迟到结果。
+
+### GAP09 · 中 · 领域订阅看不到另一设备的完整变化通路
+
+**[代码]** S29 domain broadcast 在本地 commitDomainEvents 路径产生，且不含持久 event ID/revision；远端 applyRemote/finalizeStaged 直走 Rust。同步 scheduler 用 library-changed/conversations-changed 等 App 事件唤醒内置 UI；这些不是 S03 公开的领域事件或四种 session 事件。插件仅订阅领域事件无法据此同步自己的列表。不能简单重播全部历史，造成自动化重触发。
+
+**[设计]** A06/F06/Q01/Q02 要定义 local-write/remote-merge/restore/rebuild 等变化原因及授权后的 invalidate/resnapshot 通知；语义触发与投影失效分开。验收 W27，覆盖检查点 bootstrap、批量 replay、对象合并与拒绝重放历史副作用。
+
+### GAP10 · 中 · 旧动作结果可能落到新视图
+
+**[代码]** S13 PluginViewRenderer 只对 detail dialog 使用 requestId；普通 handleResult 在 await 后直接 setStack/showToast/onClose。根 view 更新会重置 stack/busy，却不使普通请求失效；返回按钮也不以请求代次约束旧响应。因此旧动作返回的新 view/close/toast 可作用于已经改变的界面。
+
+**[设计]** J04/J10/J12/Q06 要有 root viewId/generation、动作所属页面和最新请求裁决，过期结果连副作用呈现一起丢弃；已成功业务写可经新的状态通知显示。验收 W28，不用“loading 遮罩通常阻止点击”替代代次保证。
+
+### GAP11 · 中 · async 订阅失败隔离并非每条路径都成立
+
+**[代码]** S03 trackedOn 在 ignoreSelf=true 的包装函数内调用 handler 但不 return；S20 domainSubscribe 只能捕获返回的 Promise，于是 async rejection 丢出隔离链。storage.onChange 也只 try/catch 同步调用。相对地，session/settings 的实现已有 Promise.catch，不能笼统说所有事件都缺处理。
+
+**[设计]** Q01/Q05/R06 要统一观察者适配器，捕获同步和异步错误、记录所属插件/订阅/事件；失败不影响其他订阅者。验收 W29：ignoreSelf 两种分支、own/other origin、拒绝 Promise 与同步 throw 都覆盖。
+
+### GAP12 · 中 · 业务 JSON 与 RPC 控制标记没有分离
+
+**[代码]** S18 host isFnRef 将任何对象中字符串 __fn 认作函数引用，decode 在所有普通对象中递归转换。合法插件文档/外部 JSON 若恰含同名字段，作为参数过桥时会被误解成回调；不是仅仅“JSON 可结构化克隆”就安全。__disposable 也是协议保留标记，需与业务值分别说明。
+
+**[设计]** O01/P03/J12 要分离数据通道与回调元数据，或使用基于 schema 的明确标记/转义；不能静默禁止任意业务字段。验收 W30：嵌套 __fn 数据、真实回调、数组、字节、空值、不可克隆对象及循环对象，双向往返有确定结果。
+
+### GAP13 · 中 · 缺少在解码之前生效的统一消息预算
+
+**[代码]** S18 onmessage 用 TypeScript MessageEvent 类型断言，不先校验完整运行时 envelope；resolveMethod 拒绝原型链访问是已有防线，但不能验证消息 ID、args、递归深度、函数句柄数和字节量。S13 的视图 limits 也不覆盖 RPC 接收、KV、HTTP 全量缓冲或回调队列。
+
+**[设计]** J12/P04/O04/R02 要有 envelope schema、允许的方法表、深度/字节/数量/并发预算和背压，在递归 decode 或昂贵操作前检查；超限有稳定错误和所属任务诊断。验收 W30。这里没有在真实 App 中发动内存压力或恶意插件攻击。
+
+### GAP14 · 中 · provider 注册可注销，会话却没有结束协议
+
+**[代码]** S01 PluginSyncTransportSession 声称可重复/并发调用，但没有 close/dispose；S30 注册注销只从 transports map 移除当前 entry，不释放 open 返回的会话回调。不同 provider 还分别缺少输入预算、取消与结果失效的统一生命周期。不能假设所有提供者都是无状态纯函数。
+
+**[设计]** N04/N05/Q06 需要显式 session owner、能力/并发声明、关闭/失效、替换后旧会话的拒绝规则；无需资源的 provider 可声明无状态，不强制创建空连接。验收 W25/W26：切账户、更新 provider、禁用、重复 open 与并发关闭。
+
+### GAP15 · 边界待定 · 会话观察和用户意图的授权粒度未定
+
+**[代码]** S03 services.session 无独立权限条件，book-opened 可携带书名/作者，chapter/progress 也可订阅；其他 domain/network 则按 manifest 授权。当前事实是默认可观察，不应直接宣称它违反一个已经存在的 read grant，也不能称全书读取被绕过。
+
+**[设计]** A01/A07/R02/P06 要明确哪些元数据默认公开、哪些需要 reading observe 权限；菜单回调临时获得的选区上下文是否限本次、组合 provider 是否继承调用者约束，都需写入 authority contract。验收 W31；授权说明与运行时形状必须一致，不能只在文档写“尊重隐私”。
+
+### GAP16 · 边界待证 · Worker 不等于完整沙箱证明
+
+**[代码]** S18 屏蔽 fetch/WebSocket/EventSource/XMLHttpRequest/BroadcastChannel/indexedDB/caches，并使用 own-property 方法解析；这些是真实保护。但同文件对“唯一出口就是 postMessage”的注释不是证明：动态模块加载、子 Worker、平台剩余全局对象还依赖 S31 的实际 CSP/协议/Tauri 配置。
+
+**[环境][设计]** R02/R03/P06 需要打包桌面的对抗性验证：逐条证明没有越过授权的网络/数据/原生调用通路，并验证自造 postMessage 仍被 schema、参数和操作授权拦住。没有在本轮复现沙箱逃逸，不把待验证项目写成确定漏洞；也不为追求能力完备开放任意 IPC。
+
+### GAP17 · 中 · 稳定错误只在部分跨桥失败中保留
+
+**[代码]** S18 普通 call/result 会带 errorCode，但 activation failed、migration failed、不可用方法、多个 lifecycle 拒绝仍构造裸 Error；S19 plugins.rs 多个安装命令返回 String。S13 action catch 用通用插件失败 toast，不能根据稳定业务 code 选择修复动作。已有通用失败提示不等于“无错误处理”，但不可恢复/未授权/不存在/锁库仍不能可靠区分。
+
+**[设计]** A05/J09/R06 要有跨全部阶段的稳定错误、来源/operationId、retryable 和受控修复入口；插件代码的 raw message 留日志，不抛进正文或模态框。验收 W32；不能新增一套脱离 AppError/CommandError 的错误体系。
+
+### GAP18 · 中 · 能力协商缺少可运行的语义证明
+
+**[代码]** S02/S26 现有 catalog/semver/discovery 与 shape 测试验证分类、授权和函数树，没有证明参数与返回保真、失败一致、消费者使用公共入口、更新事务真实保数据。14 项测试全绿与 GAP01/GAP04/GAP05 的隔离失败可以同时成立。
+
+**[设计]** R07/R08 要让每个能力版本关联 operation schema、宿主实现、UI/Agent/插件消费者和正反例工作流；同一组符合性用例分别跑直连共享层与真实 Worker 两条路径，桌面测试再验证原生行为。验收 W32，新增版本常量本身不构成能力交付。
+
+### 13.1 深入缺口的关闭规则
+
+- 先处理 GAP01-GAP08 的数据/执行/资源问题，再补 GAP09-GAP14 的观察与协议闭环；GAP15/GAP16 的授权决策与桌面安全证明并行推进，不能留到发布后。
+- GAP17/GAP18 随每项修复落实，不能最后补一篇“已全部覆盖”的总结代替证据。
+- 每条关闭记录至少写 `GAP ID | owner | affected capability IDs | current evidence | contract decision | implementation | regression cases | Tauri evidence | remaining limits`。
+- 本轮结论不是“又发现 18 个新接口”。它是：**原先把 API 数量当完备性的办法不成立；完备性必须覆盖每个操作的全生命周期与组合后的不变量。** 再发现同类未覆盖路径，先归为基线缺陷，不许改口说插件需求太新。

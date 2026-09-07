@@ -258,6 +258,7 @@
         <div id="nav" class="space-y-0.5 pb-4">
           <!-- href 与 main 里 h2 的 id 一一对应；scrollspy 会点亮 -->
           <a class="navlink" href="#verdict">承诺与现状</a>
+          <a class="navlink" href="#deep-gaps">深入缺口 · 18 项</a>
           <a class="navlink" href="#reading">阅读与数据</a>
           <a class="navlink" href="#experience">界面与智能</a>
           <a class="navlink" href="#platform">资源与运行</a>
@@ -270,7 +271,7 @@
       <main class="min-w-0 flex-1 pt-8 pb-24 md:pl-10">
         <p class="text-[12px]" style="color: var(--fg-muted)">2026-09-07 · Tauri 桌面产品 · 目标契约待实现、待验收</p>
         <h1 class="mt-2 text-[26px] font-semibold">ReadAware 插件能力完备基线</h1>
-        <p class="mt-3 max-w-xl">新插件应该组合公共能力，而不是继续给宿主补接口。这份基线包含当前宿主行为和开放这些行为必需的基础设施；不把新产品能力混进“已支持”。</p>
+        <p class="mt-3 max-w-xl">新插件应该组合公共能力，而不是继续给宿主补接口。当前缺的不只是操作入口，还有跨 Worker 的协议保真、数据一致性、取消与资源释放。</p>
         <div class="callout"><b style="color: var(--fg)">裁决：</b>18 组、129 个能力验收项。审计完成不等于能力补齐；全部实现并通过真实工作流后，才能承诺基线范围内的新插件不改宿主。</div>
 
         <h2 id="verdict">承诺与现状</h2>
@@ -280,7 +281,7 @@
           <div><strong class="block text-[25px]">33</strong><p>M · 宿主有，未开放</p></div>
           <div><strong class="block text-[25px]">42</strong><p>B · 基础设施待建</p></div>
         </div>
-        <p class="mt-3">这是验收项数量，不是缺失函数数量。21 项已有入口也需要回归；其余 108 项不能用“再导出几个方法”概括。每项操作、现状与源码在<a class="underline" href="./plugin-capability-baseline.md">完整清单</a>。</p>
+        <p class="mt-3">这是验收项数量，不是缺失函数数量。另有 18 个深入缺口全部未关闭，属于这些能力的跨层子条件，不重复计数。“已有入口”不等于可可靠使用，尤其存储和更新仍有高优先级问题。</p>
         <div class="my-5 overflow-x-auto" aria-label="目标架构图">
           <div id="diagram-capabilities" class="min-w-[500px]">图加载中；失败时以下方文字为准。</div>
           <pre class="mermaid-source hidden" data-target="diagram-capabilities">
@@ -294,6 +295,27 @@ flowchart TB
     C --> S["宿主组件与平台服务"]</pre>
         </div>
         <p>目标不是给插件原生权限，而是让内置 UI、Agent 和插件使用同一套产品操作。位置、结果、事件与生命周期必须接得起来。</p>
+
+        <h2 id="deep-gaps">入口有了，仍然可能不能用</h2>
+        <p>以下 18 项全部未关闭。“高”优先阻断数据与执行正确性；“中”阻断组合和恢复；“待定 / 待证”不是已复现漏洞。每项源码、影响范围与关闭条件见细节版第 13 节。</p>
+        <details class="ep" data-search-section="GAP01 rollback snapshot update 回滚 更新 快照 数据丢失"><summary><span class="badge badge-delete">高</span><span>GAP01 · 更新回滚可能覆盖旧版的合法新写入</span></summary><div class="ep-body"><p>快照在旧版停写前取得；候选检查失败也会恢复快照。隔离探针确认了这个顺序窗口，未复现真实磁盘损失。</p><p><b>缺少</b>停写、排空、一致快照和按阶段恢复；归属 O02/O05/R01。</p></div></details>
+        <details class="ep" data-search-section="GAP02 durability migration KV 迁移 落盘 提交"><summary><span class="badge badge-delete">高</span><span>GAP02 · 迁移完成没有等待 KV 真正落盘</span></summary><div class="ep-body"><p>Worker 的 KV 写不在迁移等待队列里，宿主写与 schemaVersion 又是异步提交。</p><p><b>缺少</b>持久确认屏障，写失败必须阻止迁移成功；归属 O01/O02/O05/R01。</p></div></details>
+        <details class="ep" data-search-section="GAP03 rollback mirror revision 回滚 镜像 存储 失败"><summary><span class="badge badge-delete">高</span><span>GAP03 · 写失败更正没有闭合到 Worker 镜像</span></summary><div class="ep-body"><p>宿主回滚通知和 Worker 同步不是同一路；旧写的晚失败还可能覆盖较新镜像。</p><p><b>缺少</b>写序号、失败确认、按版本更正；归属 O02/Q02。真实锁库故障尚未注入。</p></div></details>
+        <details class="ep" data-search-section="GAP04 Request HTTP POST headers body 请求 网络 参数"><summary><span class="badge badge-delete">高</span><span>GAP04 · Request 的方法、头和正文跨桥丢失</span></summary><div class="ep-body"><p>公开类型接受 Request，桥接却只取它的 URL。隔离探针中 POST、头和正文变成了空 init。</p><p><b>缺少</b>参数规范化与双向协议符合性；归属 P03/J12。未访问真实外部服务。</p></div></details>
+        <details class="ep" data-search-section="GAP05 abort cancel network 取消 网络 派发"><summary><span class="badge badge-delete">高</span><span>GAP05 · 调用前已取消，仍会向宿主派发</span></summary><div class="ep-body"><p>探针记录到一次派发；调用后取消也只是停止等待，宿主请求继续。</p><p><b>缺少</b>派发前检查、取消传播、终态回执；归属 P03/P04/Q06。取消不承诺撤回已提交的外部动作。</p></div></details>
+        <details class="ep" data-search-section="GAP06 callback handle release leak 回调 句柄 释放 内存"><summary><span class="badge badge-delete">高</span><span>GAP06 · 关视图没有释放 Worker 回调的协议</span></summary><div class="ep-body"><p>函数不断保留，handlers 仅在整个插件 deactivate 时清空；注销注册不等于释放闭包。</p><p><b>缺少</b>按视图、注册和会话释放句柄；归属 E04/J10/N05/Q06/R03。</p></div></details>
+        <details class="ep" data-search-section="GAP07 timeout crash pending 超时 崩溃 卡死"><summary><span class="badge badge-delete">高</span><span>GAP07 · 普通回调卡住时没有统一终态</span></summary><div class="ep-body"><p>激活、健康检查和迁移有超时，普通 invoke 没有；运行时异常也未统一拒绝 pendingInvokes。</p><p><b>缺少</b>逐操作截止时间、失联收敛与诊断；归属 N05/Q04/R06。</p></div></details>
+        <details class="ep" data-search-section="GAP08 generation revoke disable in-flight 撤权 禁用 迟到"><summary><span class="badge badge-delete">高</span><span>GAP08 · 禁用 Worker 不会自动停止宿主在途工作</span></summary><div class="ep-body"><p>权限屏障在入口检查，已开始的网络、推理或写入没有统一的所属任务取消管理。</p><p><b>缺少</b>generation 校验、排空/中止与不可撤销结果；归属 Q06/R03/L02/P03。</p></div></details>
+        <details class="ep" data-search-section="GAP09 sync remote invalidate 远端 同步 事件 刷新"><summary><span class="badge badge-patch">中</span><span>GAP09 · 另一设备的变化不走插件领域订阅</span></summary><div class="ep-body"><p>远端合并通过另一组 App 通知刷新内置 UI，插件没有对应的完整失效通路。</p><p><b>缺少</b>带原因的失效通知和重取快照，不能重播历史触发自动化；归属 A06/F06/Q01/Q02。</p></div></details>
+        <details class="ep" data-search-section="GAP10 stale view generation race 视图 乱序 迟到"><summary><span class="badge badge-patch">中</span><span>GAP10 · 旧动作结果可能覆盖或关闭新视图</span></summary><div class="ep-body"><p>detail dialog 有请求编号，普通动作没有同等代次保护；换根视图后旧结果仍可处理。</p><p><b>缺少</b>视图身份、结果作废和过期 toast 抑制；归属 J04/J10/J12/Q06。</p></div></details>
+        <details class="ep" data-search-section="GAP11 async ignoreSelf rejection 订阅 异步 失败"><summary><span class="badge badge-patch">中</span><span>GAP11 · 部分 async 订阅失败逃出隔离链</span></summary><div class="ep-body"><p>ignoreSelf 包装未返回 Promise，storage.onChange 只捕获同步异常；session/settings 已有异步处理。</p><p><b>缺少</b>一致的观察者错误适配器；归属 Q01/Q05/R06。</p></div></details>
+        <details class="ep" data-search-section="GAP12 JSON __fn protocol 序列化 数据 协议"><summary><span class="badge badge-patch">中</span><span>GAP12 · 业务 JSON 可能被误认成回调</span></summary><div class="ep-body"><p>含字符串 __fn 的普通对象会被 decode 当作函数引用，控制标记与业务字段未隔离。</p><p><b>缺少</b>数据/回调分离和无损往返；归属 O01/P03/J12。</p></div></details>
+        <details class="ep" data-search-section="GAP13 quota schema RPC backpressure 预算 校验 背压"><summary><span class="badge badge-patch">中</span><span>GAP13 · 消息解码前缺统一 schema 和资源预算</span></summary><div class="ep-body"><p>方法解析已有原型链防线，但类型断言不是消息校验；视图 limits 不覆盖 RPC、HTTP 缓冲与回调队列。</p><p><b>缺少</b>字节、深度、数量、并发和背压约束；归属 J12/P04/O04/R02。未实施真实压力攻击。</p></div></details>
+        <details class="ep" data-search-section="GAP14 provider session close dispose 供应商 会话 关闭"><summary><span class="badge badge-patch">中</span><span>GAP14 · provider 能注销，连接会话却无结束协议</span></summary><div class="ep-body"><p>同步传输 session 没有 close/dispose；移除注册不等于关闭已 open 的会话。</p><p><b>缺少</b>会话归属、并发、替换和释放规则；归属 N04/N05/Q06。</p></div></details>
+        <details class="ep" data-search-section="GAP15 authority permission session privacy 权限 观察 隐私"><summary><span class="badge badge-ws">待定</span><span>GAP15 · 阅读元数据默认观察范围需要明确决策</span></summary><div class="ep-body"><p>session 当前不需独立权限，可订阅开书标题/作者和进度。这是现有默认授权，不是已证实的越权读取全书。</p><p><b>缺少</b>默认公开范围、临时上下文与组合调用授权规则；归属 A01/A07/R02/P06。</p></div></details>
+        <details class="ep" data-search-section="GAP16 sandbox CSP Worker security 沙箱 安全 桌面"><summary><span class="badge badge-ws">待证</span><span>GAP16 · Worker 隔离仍需打包桌面的安全证明</span></summary><div class="ep-body"><p>屏蔽若干全局 API 不证明所有出口均受控；动态模块、子 Worker 和剩余平台入口依赖实际配置。</p><p><b>缺少</b>打包 Tauri 对抗验证；归属 R02/R03/P06。本轮没有复现沙箱逃逸。</p></div></details>
+        <details class="ep" data-search-section="GAP17 error code retry 错误 稳定码 重试"><summary><span class="badge badge-patch">中</span><span>GAP17 · 稳定错误码尚未贯穿所有生命周期</span></summary><div class="ep-body"><p>普通 RPC 已保留 code，但激活、迁移及多个拒绝路径仍是裸 Error；通用 toast 无法区分修复方式。</p><p><b>缺少</b>全阶段错误、关联 ID 和可恢复动作；归属 A05/J09/R06，复用现有错误体系。</p></div></details>
+        <details class="ep" data-search-section="GAP18 semantic conformance CI evidence 语义 证据 门禁"><summary><span class="badge badge-patch">中</span><span>GAP18 · 版本和方法树检查不证明真实语义</span></summary><div class="ep-body"><p>当前 14 项相关单测全绿，仍能同时观察到协议和更新失败窗口。</p><p><b>缺少</b>同一符合性用例贯穿共享层、Worker 和真实桌面；归属 R07/R08。</p></div></details>
 
         <h2 id="reading">阅读与数据</h2>
         <details class="ep" data-search-section="A object location identity 对象 定位 发现 revision"><summary><span class="badge badge-patch">A</span><span>对象身份、位置与能力发现</span></summary><div class="ep-body"><p><b>必须有</b>统一的书、章、范围、会话和资源引用；能力与可用性查询；操作回执和无丢失状态观察。</p><p><b>缺口</b>目录索引不能直接交给定位接口；失效、版本与完成语义未统一。</p></div></details>
@@ -326,11 +348,11 @@ flowchart TB
         <p class="mt-3">X 和 F 各有 9 项，完整清单逐项写明替代路径。插件的新算法、HTTP 服务、导出格式和私有书签，不算新增宿主能力。发现基线内接口缺失，应判为基线缺陷，不再换一个名字叫“新需求”。</p>
 
         <h2 id="acceptance">什么情况下才算完成</h2>
-        <div class="callout"><b style="color:var(--fg)">完成条件：</b>129 项逐项有实现和证据；代表性插件只改插件目录，完成端到端流程。注册表、类型检查和 mock 测试通过，不能代替真实 Tauri 验收。</div>
-        <p>22 个场景覆盖 Jumper、书签、生词出处、跨书搜索、笔记导出、阅读报表、主题自动化、RSS、朗读、选段翻译、记忆回顾、同步源、跨插件组合，以及升级撤权和并发失败。</p>
+        <div class="callout"><b style="color:var(--fg)">完成条件：</b>129 项逐项有实现和证据，18 个深入缺口全部关闭，32 个工作流验收通过。“已开放”项目关联的缺口同样阻止完成。注册表、类型检查和 mock 测试不能代替真实 Tauri 验收。</div>
+        <p>32 个场景覆盖 Jumper、搜索、导出、RSS、朗读、记忆和插件组合，也覆盖更新时并发写入、Request 保真、长期资源释放、卡死撤权、远端变化、乱序视图、消息预算与沙箱边界。</p>
         <p class="mt-3">先统一对象与操作契约，再完整接入数据和阅读行为，随后补交互、AI/记忆、资源与任务。内置 UI 和 Agent 同步迁移，并加“产品操作不得绕过公共层”的门禁。</p>
-        <p class="mt-3">当前状态：目标契约待实现、待验收；未实施 Jumper 或宿主重构。当前审计验证源码入口和组合边界，没有验证所有格式、网络供应商或产品运行质量。</p>
-        <p class="mt-5"><a class="underline" href="./plugin-capability-baseline.md">查看全部 129 项、现行接口、源码证据和验收矩阵</a></p>
+        <p class="mt-3">当前状态：目标契约待实现、待验收；未实施 Jumper 或宿主重构。14 项现有单测通过，三个隔离探针支持部分失败判断；未执行这 32 个 Tauri 产品场景，也未证明磁盘损失或沙箱逃逸。</p>
+        <p class="mt-5"><a class="underline" href="./plugin-capability-baseline.md">查看 129 项能力、18 个深入缺口、源码证据和 32 个验收场景</a></p>
       </main>
     </div>
 

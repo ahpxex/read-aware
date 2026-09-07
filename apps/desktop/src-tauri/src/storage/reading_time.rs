@@ -130,6 +130,34 @@ fn read_reading_time_shape(conn: &Connection) -> Result<ReadingTimeShape, Comman
 pub(crate) fn reading_time_genesis_inner(conn: &mut Connection) -> Result<usize, CommandError> {
     let device_id = ensure_local_device(conn)?;
 
+    // Once per device: the pass below replays every time-bearing event to
+    // measure what the log already covers — O(log) work that must not run at
+    // every boot on a large log. The tables can only drift from the log
+    // through `reading_time_import`, which clears this stamp.
+    let already: Option<String> = conn
+        .query_row(
+            "SELECT reading_time_genesis_at FROM local_device WHERE id = 1",
+            [],
+            |row| row.get(0),
+        )
+        .or_else(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => Ok(None),
+            other => Err(CommandError::from(other)),
+        })?;
+    if already.is_some() {
+        return Ok(0);
+    }
+    let synthesized = reading_time_genesis_pass(conn, &device_id)?;
+    conn.execute(
+        "UPDATE local_device SET reading_time_genesis_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+          WHERE id = 1",
+        [],
+    )?;
+    Ok(synthesized)
+}
+
+fn reading_time_genesis_pass(conn: &mut Connection, device_id: &str) -> Result<usize, CommandError> {
+    let device_id = device_id.to_string();
     // What the tables hold today — the truth to preserve.
     let (target_daily, target_hourly, bounds) = read_reading_time_shape(conn)?;
     if target_daily.is_empty() {
@@ -153,8 +181,9 @@ pub(crate) fn reading_time_genesis_inner(conn: &mut Connection) -> Result<usize,
         let logged: Vec<EventRow> = {
             let mut stmt = tx
                 .prepare(
-                    "SELECT * FROM domain_events WHERE type = 'book.timeRecorded'
-                     ORDER BY hlc_wall_ms, hlc_counter, hlc_device",
+                    "SELECT * FROM domain_events
+                      WHERE type IN ('book.timeRecorded', 'book.sessionRecorded')
+                      ORDER BY hlc_wall_ms, hlc_counter, hlc_device",
                 )
                 ?;
             let iter = stmt.query_map([], row_to_event)?;
@@ -420,41 +449,81 @@ pub fn reading_time_load(db: State<'_, Db>) -> Result<ReadingTimeWire, CommandEr
     Ok(ReadingTimeWire { totals, daily, hourly })
 }
 
-// ── Pending accrual (the tracker's crash-safe buffer) ────────────────────────
+// ── Reading sessions: the tracker's crash-safe scratch pad ───────────────────
 //
-// The tracker used to mint a `book.timeRecorded` event every five minutes as
-// a safety flush — ~12 events per reading hour saying what one could. Now a
-// tick ACCRUES into a (book, local day, local hour) bucket here, the event is
-// minted only when the bucket CLOSES (hour rolls over, the book or the app
-// closes), and the flush deletes the bucket in the same transaction as the
-// commit. A crash loses nothing: the next boot flushes whatever is buffered.
+// Reading is modelled as sessions, not as ticks and page turns. A tick ACCRUES
+// time into a (book, local day, local hour) bucket here and every page turn
+// OVERWRITES the bucket's position; the single `book.sessionRecorded` event
+// for the bucket — time read plus position reached — is minted only when the
+// bucket CLOSES (hour rolls over, the book or the app closes, reading pauses),
+// and the flush retires the bucket in the same transaction as the commit.
+// A crash loses nothing: the next boot closes whatever is still open.
 // [device-local] — never synced, never derived, never in a checkpoint.
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ReadingTimeBucket {
+pub struct ReadingSessionBucket {
     pub book_id: String,
     pub local_day: String,
     pub local_hour: i64,
+    /// Active reading milliseconds accrued so far.
     pub ms: i64,
-    /// Epoch ms of the first and latest tick in the bucket.
+    /// Epoch ms of the first and latest tick/page turn in the bucket.
     pub started_at: i64,
     pub last_at: i64,
+    /// The latest position seen (the `book.progressed`-shaped payload the
+    /// reader reports), or null when only time accrued.
+    pub progress: Value,
 }
 
-pub(crate) fn reading_time_accrue_inner(
+fn row_to_session(row: &rusqlite::Row) -> rusqlite::Result<ReadingSessionBucket> {
+    let progress: Option<String> = row.get(6)?;
+    Ok(ReadingSessionBucket {
+        book_id: row.get(0)?,
+        local_day: row.get(1)?,
+        local_hour: row.get(2)?,
+        ms: row.get(3)?,
+        started_at: row.get(4)?,
+        last_at: row.get(5)?,
+        progress: progress
+            .and_then(|json| serde_json::from_str(&json).ok())
+            .unwrap_or(Value::Null),
+    })
+}
+
+const SESSION_COLUMNS: &str =
+    "book_id, local_day, local_hour, ms, started_at, last_at, progress_json";
+
+fn read_session(
+    conn: &Connection,
+    book_id: &str,
+    local_day: &str,
+    local_hour: i64,
+) -> Result<ReadingSessionBucket, CommandError> {
+    conn.query_row(
+        &format!(
+            "SELECT {SESSION_COLUMNS} FROM reading_sessions_pending
+              WHERE book_id = ?1 AND local_day = ?2 AND local_hour = ?3"
+        ),
+        params![book_id, local_day, local_hour],
+        row_to_session,
+    )
+    .map_err(CommandError::from)
+}
+
+pub(crate) fn reading_session_accrue_inner(
     conn: &Connection,
     book_id: &str,
     local_day: &str,
     local_hour: i64,
     delta_ms: i64,
     at_epoch_ms: i64,
-) -> Result<ReadingTimeBucket, CommandError> {
+) -> Result<ReadingSessionBucket, CommandError> {
     if delta_ms <= 0 {
-        return Err(CommandError::internal("reading_time_accrue: delta must be positive"));
+        return Err(CommandError::internal("reading_session_accrue: delta must be positive"));
     }
     conn.execute(
-        "INSERT INTO reading_time_pending
+        "INSERT INTO reading_sessions_pending
             (book_id, local_day, local_hour, ms, started_at, last_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?5)
          ON CONFLICT(book_id, local_day, local_hour) DO UPDATE SET
@@ -462,46 +531,55 @@ pub(crate) fn reading_time_accrue_inner(
             last_at = MAX(last_at, excluded.last_at)",
         params![book_id, local_day, local_hour, delta_ms, at_epoch_ms],
     )?;
-    conn.query_row(
-        "SELECT book_id, local_day, local_hour, ms, started_at, last_at
-           FROM reading_time_pending
-          WHERE book_id = ?1 AND local_day = ?2 AND local_hour = ?3",
-        params![book_id, local_day, local_hour],
-        row_to_bucket,
-    )
-    .map_err(CommandError::from)
+    read_session(conn, book_id, local_day, local_hour)
 }
 
-fn row_to_bucket(row: &rusqlite::Row) -> rusqlite::Result<ReadingTimeBucket> {
-    Ok(ReadingTimeBucket {
-        book_id: row.get(0)?,
-        local_day: row.get(1)?,
-        local_hour: row.get(2)?,
-        ms: row.get(3)?,
-        started_at: row.get(4)?,
-        last_at: row.get(5)?,
-    })
-}
-
-pub(crate) fn reading_time_pending_inner(conn: &Connection) -> Result<Vec<ReadingTimeBucket>, CommandError> {
-    let mut stmt = conn.prepare(
-        "SELECT book_id, local_day, local_hour, ms, started_at, last_at
-           FROM reading_time_pending
-          ORDER BY started_at",
+/// A page turn: overwrite the bucket's position (creating the bucket with no
+/// time yet if the first tick has not fired). `at_epoch_ms` is when the
+/// position was observed — it becomes the session's `endedAt`, the clock the
+/// projection's last-observed-wins rule compares.
+pub(crate) fn reading_session_position_inner(
+    conn: &Connection,
+    book_id: &str,
+    local_day: &str,
+    local_hour: i64,
+    at_epoch_ms: i64,
+    progress: &Value,
+) -> Result<ReadingSessionBucket, CommandError> {
+    if !progress.is_object() {
+        return Err(CommandError::internal("reading_session_position: progress must be an object"));
+    }
+    conn.execute(
+        "INSERT INTO reading_sessions_pending
+            (book_id, local_day, local_hour, ms, started_at, last_at, progress_json)
+         VALUES (?1, ?2, ?3, 0, ?4, ?4, ?5)
+         ON CONFLICT(book_id, local_day, local_hour) DO UPDATE SET
+            last_at = MAX(last_at, excluded.last_at),
+            progress_json = CASE WHEN excluded.last_at >= last_at THEN excluded.progress_json
+                                 ELSE progress_json END",
+        params![book_id, local_day, local_hour, at_epoch_ms, progress.to_string()],
     )?;
+    read_session(conn, book_id, local_day, local_hour)
+}
+
+pub(crate) fn reading_sessions_pending_inner(conn: &Connection) -> Result<Vec<ReadingSessionBucket>, CommandError> {
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {SESSION_COLUMNS} FROM reading_sessions_pending ORDER BY started_at"
+    ))?;
     let rows = stmt
-        .query_map([], row_to_bucket)?
+        .query_map([], row_to_session)?
         .collect::<Result<Vec<_>, _>>()?;
     Ok(rows)
 }
 
-/// Close buckets: commit the caller-minted `book.timeRecorded` events through
-/// the ordinary write path and retire exactly the milliseconds they carry, in
-/// ONE transaction. Each event's payload names its bucket (`bookId`,
-/// `localDay`, `localHour`, `ms`); a bucket that accrued more since the
-/// caller read it keeps the remainder, so a tick racing a flush is never
-/// lost or double-counted. Returns the commit report.
-pub(crate) fn reading_time_flush_inner(
+/// Close buckets: commit the caller-minted `book.sessionRecorded` events
+/// through the ordinary write path and retire what they carry, in ONE
+/// transaction. Each event's payload names its bucket (`bookId`, `localDay`,
+/// `localHour`) and what it took from it (`ms`, `endedAt`): time accrued
+/// since the caller read the bucket stays, and a position observed after
+/// `endedAt` keeps the bucket open — a tick or page turn racing a flush is
+/// never lost or double-counted. Returns the commit report.
+pub(crate) fn reading_session_flush_inner(
     conn: &mut Connection,
     events_in: &[EventRow],
 ) -> Result<CommitReport, CommandError> {
@@ -511,23 +589,25 @@ pub(crate) fn reading_time_flush_inner(
         applied: 0,
     };
     for ev in events_in {
-        if ev.event_type != "book.timeRecorded" {
+        if ev.event_type != "book.sessionRecorded" {
             return Err(CommandError::internal(format!(
-                "reading_time_flush: refusing to flush a `{}` event",
+                "reading_session_flush: refusing to flush a `{}` event",
                 ev.event_type
             )));
         }
         let book_id = ev.payload.get("bookId").and_then(|v| v.as_str()).ok_or_else(|| {
-            CommandError::internal("reading_time_flush: payload lacks bookId")
+            CommandError::internal("reading_session_flush: payload lacks bookId")
         })?;
         let local_day = ev.payload.get("localDay").and_then(|v| v.as_str()).ok_or_else(|| {
-            CommandError::internal("reading_time_flush: payload lacks localDay")
+            CommandError::internal("reading_session_flush: payload lacks localDay")
         })?;
         let local_hour = ev.payload.get("localHour").and_then(|v| v.as_i64()).ok_or_else(|| {
-            CommandError::internal("reading_time_flush: payload lacks localHour")
+            CommandError::internal("reading_session_flush: payload lacks localHour")
         })?;
         let ms = ev.payload.get("ms").and_then(|v| v.as_i64()).unwrap_or(0);
-        if ms <= 0 {
+        let ended_at = ev.payload.get("endedAt").and_then(|v| v.as_i64()).unwrap_or(0);
+        let has_position = ev.payload.get("progress").is_some_and(|v| v.is_object());
+        if ms <= 0 && !has_position {
             continue;
         }
         if !events::insert_event_row(&tx, ev, events::EventSource::Local)? {
@@ -540,14 +620,17 @@ pub(crate) fn reading_time_flush_inner(
             report.applied += 1;
         }
         tx.execute(
-            "UPDATE reading_time_pending SET ms = ms - ?4
+            "UPDATE reading_sessions_pending SET ms = MAX(0, ms - ?4)
               WHERE book_id = ?1 AND local_day = ?2 AND local_hour = ?3",
             params![book_id, local_day, local_hour, ms],
         )?;
+        // Retired when nothing newer than the event remains: no unflushed
+        // time, and no position observed after the event's `endedAt`.
         tx.execute(
-            "DELETE FROM reading_time_pending
-              WHERE book_id = ?1 AND local_day = ?2 AND local_hour = ?3 AND ms <= 0",
-            params![book_id, local_day, local_hour],
+            "DELETE FROM reading_sessions_pending
+              WHERE book_id = ?1 AND local_day = ?2 AND local_hour = ?3
+                AND ms <= 0 AND last_at <= ?4",
+            params![book_id, local_day, local_hour, ended_at],
         )?;
     }
     tx.commit()?;
@@ -555,37 +638,54 @@ pub(crate) fn reading_time_flush_inner(
 }
 
 /// One tracker tick: add `deltaMs` of active reading to its hour bucket.
-/// Returns the bucket as it stands, so the caller can decide to close it.
 #[tauri::command]
-pub fn reading_time_accrue(
+pub fn reading_session_accrue(
     book_id: String,
     local_day: String,
     local_hour: i64,
     delta_ms: i64,
     at_epoch_ms: i64,
     db: State<'_, Db>,
-) -> Result<ReadingTimeBucket, CommandError> {
+) -> Result<ReadingSessionBucket, CommandError> {
     let conn = db.0.lock()?;
-    reading_time_accrue_inner(&conn, &book_id, &local_day, local_hour, delta_ms, at_epoch_ms)
+    reading_session_accrue_inner(&conn, &book_id, &local_day, local_hour, delta_ms, at_epoch_ms)
 }
 
-/// Every open bucket (boot recovery reads these to close what a crash left).
+/// One page turn: the bucket's position becomes `progress`.
 #[tauri::command]
-pub fn reading_time_pending(db: State<'_, Db>) -> Result<Vec<ReadingTimeBucket>, CommandError> {
+pub fn reading_session_position(
+    book_id: String,
+    local_day: String,
+    local_hour: i64,
+    at_epoch_ms: i64,
+    progress: Value,
+    db: State<'_, Db>,
+) -> Result<ReadingSessionBucket, CommandError> {
     let conn = db.0.lock()?;
-    reading_time_pending_inner(&conn)
+    reading_session_position_inner(&conn, &book_id, &local_day, local_hour, at_epoch_ms, &progress)
+}
+
+/// Every open bucket (boot recovery closes what a crash left).
+#[tauri::command]
+pub fn reading_sessions_pending(db: State<'_, Db>) -> Result<Vec<ReadingSessionBucket>, CommandError> {
+    let conn = db.0.lock()?;
+    reading_sessions_pending_inner(&conn)
 }
 
 #[tauri::command]
-pub fn reading_time_flush(events: Vec<EventRow>, db: State<'_, Db>) -> Result<CommitReport, CommandError> {
+pub fn reading_session_flush(events: Vec<EventRow>, db: State<'_, Db>) -> Result<CommitReport, CommandError> {
     let mut conn = db.0.lock()?;
-    reading_time_flush_inner(&mut conn, &events)
+    reading_session_flush_inner(&mut conn, &events)
 }
 
 /// Bulk replace (one-time app_kv migration; the stats demo seed).
 #[tauri::command]
 pub fn reading_time_import(wire: ReadingTimeWire, db: State<'_, Db>) -> Result<(), CommandError> {
     let mut conn = db.0.lock()?;
+    reading_time_import_inner(&mut conn, &wire)
+}
+
+pub(crate) fn reading_time_import_inner(conn: &mut Connection, wire: &ReadingTimeWire) -> Result<(), CommandError> {
     let tx = conn.transaction()?;
     tx.execute_batch(
         "DELETE FROM reading_time_totals;
@@ -615,6 +715,9 @@ pub fn reading_time_import(wire: ReadingTimeWire, db: State<'_, Db>) -> Result<(
         )
         ?;
     }
+    // The tables no longer equal the log's replay: let the genesis pass
+    // re-measure at next boot.
+    tx.execute("UPDATE local_device SET reading_time_genesis_at = NULL WHERE id = 1", [])?;
     tx.commit()?;
     Ok(())
 }

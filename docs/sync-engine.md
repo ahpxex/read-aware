@@ -572,16 +572,33 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
 串过账号的 `synced` 标记。断开状态的旧库仍在下次连接时按换账号处理——
 现在也只是几次索引往返。
 
-### 13.2 阅读时长：按小时桶关闭才出事件
+### 13.2 阅读会话：位置和时长各是状态，一场阅读才是事件
 
-`reading_time_pending`（[device-local]，v26）是追踪器的累加缓冲：每 20 秒
-一个 tick 累加进 (book, localDay, localHour) 桶（`reading_time_accrue`），
-**桶关闭**（跨小时、换书、停止阅读、应用隐藏、reader 卸载）才铸一条
-`book.timeRecorded`，`reading_time_flush` 在同一事务里提交事件并从桶里
-减去事件携带的毫秒数——tick 与 flush 竞争时多出来的部分留在桶里，既不
-丢也不重。崩溃遗留的桶由下次启动（`hydrateInterimProjections` 读投影之前）
-关闭。每阅读小时从约 12 条事件降到 1 条；`reading_time_record` 直写投影
-的旧命令随之退役（投影唯一写入者仍是 `apply.rs`）。
+从第一性原理看，事件日志只该装两样东西：用户的意图（划线、提问、导入）
+和算出来的内容（对话、纪要）。"读到第几页"和"还在读"都是持续变化的
+**状态**，任何时刻只有当前值有意义——把状态每 30 秒拍一张塞进日志，就是
+日志曾经 88% 是遥测的根源。阅读里真正的事件是**一次阅读会话**。
+
+- `book.sessionRecorded`：一个关闭的 (book, localDay, localHour) 桶——
+  读了多久（`ms`、`startedAt`/`endedAt`）加读到哪（`progress`），取代
+  `book.progressed` 与 `book.timeRecorded` 两种事件（两者仍可重放）。
+- `reading_sessions_pending`（[device-local]，v27）是草稿：每 20 秒一个
+  tick 累加时长（`reading_session_accrue`），每次翻页覆盖位置
+  （`reading_session_position`）；**桶关闭**才铸事件（跨小时、换书、停顿
+  ≥ 2 分钟、应用隐藏、reader 卸载），`reading_session_flush` 同事务提交
+  事件并从桶里减掉事件携带的部分——tick/翻页与 flush 竞争时多出来的留在
+  桶里，既不丢也不重。崩溃遗留的桶由下次启动关闭。会话最长一小时（按
+  整点切段），切段对投影无损：位置取最后一段终点，时长各段相加。
+- **晚关闭不覆盖新位置**：电脑上书开着停在 40%，手机接着读到 60% 并
+  关书，电脑的暂停判定随后才关闭会话——事件晚写，但观察更早。投影按
+  `endedAt` 与 `books.progress_observed_at` 比大小（last-observed-wins），
+  不按事件到达顺序；旧的 `book.progressed` 以其 HLC wall 为观察时间参与
+  同一规则。合并顺序无关、全量重放同结果（tests.rs 有双向用例）。
+- 结果：重度用户每天从四五百条降到一百多条，剩下的每一条都是事实。
+  `reading_time_record` 直写投影的旧命令退役（投影唯一写入者仍是
+  `apply.rs`）；`reading_time_genesis` 改为每设备只跑一次（`local_device.
+  reading_time_genesis_at`，`reading_time_import` 会清掉重跑），不再每次
+  启动 O(日志) 地重放时长事件。
 
 ### 13.3 投影检查点：重放和引导都只走尾巴
 

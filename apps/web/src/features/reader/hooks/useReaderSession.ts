@@ -7,11 +7,11 @@ import { readerPanelIntentAtom } from "../state/panel-intent";
 import {
   markLibraryBookOpened,
   resolveStoredBookFile,
-  updateLibraryBookProgress,
   type BookFileMissingReason,
 } from "../../library/lib/library-db";
+import { noteReadingPosition } from "../../../platform/reading-session";
 import { createLogger } from "../../../platform/logger";
-import { createProgressPatch } from "../../library/lib/library-progress";
+import { createProgressPatch, getReadingStatus } from "../../library/lib/library-progress";
 import type {
   BookFormat,
   BookProgress,
@@ -19,7 +19,6 @@ import type {
   ReaderProgress,
 } from "../../library/lib/library-types";
 import type { LoadedBook, TocEntry } from "../lib/reader-types";
-import { createProgressThrottle } from "../lib/progress-throttle";
 import { getVirtualBookBinding } from "../../plugins/lib/virtual-books";
 
 type ReaderSource =
@@ -77,29 +76,6 @@ export function useReaderSession({
   // header's progress bar.
   const [readerFraction, setReaderFraction] = useLocalAtom<number | null>(null);
   const readerLoadRequestIdRef = useRef(0);
-  // Commit-side throttle for book.progressed: chapter changes commit promptly,
-  // intra-chapter page turns coalesce (see progress-throttle.ts). Created once;
-  // the commit callback reads the latest handlers through a ref so the
-  // throttle's per-book pacing state survives re-renders.
-  const latestProgressHandlersRef = useRef({ replaceBookInState, reportError });
-  const progressThrottleRef = useRef(
-    createProgressThrottle((bookId, progress) => {
-      const { replaceBookInState: replaceBook, reportError: report } =
-        latestProgressHandlersRef.current;
-      void updateLibraryBookProgress(bookId, progress)
-        .then((nextBook) => {
-          if (!nextBook) return;
-          setSelectedBook((currentBook) =>
-            currentBook?.id === nextBook.id ? nextBook : currentBook,
-          );
-          replaceBook(nextBook);
-        })
-        .catch((error) => {
-          report(error);
-        });
-    }),
-  );
-
   // "Ask AI about this" should reveal the reader shell even when the chrome is
   // dismissed (immersive reading), so the chat panel it opens is actually shown.
   const askAiRequest = useAtomValue(askAiRequestAtom);
@@ -122,15 +98,6 @@ export function useReaderSession({
     setShellVisible(true);
   }, [panelIntent, selectedBook?.id, setShellVisible]);
 
-  useEffect(() => {
-    const throttle = progressThrottleRef.current;
-    return () => {
-      // Flush, don't drop: a pending position on unmount is the user's last
-      // reading position — losing it means reopening the book somewhere else.
-      throttle.dispose();
-    };
-  }, []);
-
   const resetReaderState = useCallback(() => {
     setReaderSource(null);
     setReaderLoadError(null);
@@ -152,10 +119,30 @@ export function useReaderSession({
     setReaderToc,
   ]);
 
-  const queueProgressSave = useCallback((bookId: string, progress: BookProgress) => {
-    latestProgressHandlersRef.current = { replaceBookInState, reportError };
-    progressThrottleRef.current.queue(bookId, progress);
-  }, [replaceBookInState, reportError]);
+  // A position is STATE, not an event: it goes to the reading session's
+  // scratch bucket (overwritten by every turn) and reaches the log once, as
+  // part of the `book.sessionRecorded` event minted when the session closes
+  // — see useReadingTimeTracker / reading-session-policy.ts. The optimistic
+  // patch keeps the shelf and header current meanwhile.
+  const noteProgress = useCallback((bookId: string, progress: BookProgress) => {
+    if (!progress) return;
+    const progressPercent = Math.max(0, Math.min(100, Math.round(progress.progressPercent)));
+    void noteReadingPosition(
+      bookId,
+      {
+        locator: progress.cfi ?? progress.href ?? "",
+        chapterHref: progress.href ?? undefined,
+        currentLocation: progress.currentLocation,
+        totalLocations: progress.totalLocations,
+        progressPercent,
+        status: getReadingStatus(progressPercent),
+      },
+      Date.now(),
+    ).catch((error: unknown) => {
+      // The next turn (or the tick) carries the position; nothing to show.
+      log.warn("could not note the reading position", error);
+    });
+  }, []);
 
   const applyReaderProgress = useCallback((bookId: string, progress: BookProgress) => {
     applyOptimisticProgress(bookId, progress);
@@ -164,8 +151,8 @@ export function useReaderSession({
         ? createProgressPatch(currentBook, progress)
         : currentBook
     ));
-    queueProgressSave(bookId, progress);
-  }, [applyOptimisticProgress, queueProgressSave]);
+    noteProgress(bookId, progress);
+  }, [applyOptimisticProgress, noteProgress]);
 
   const openReader = useCallback((book: LibraryBook) => {
     const requestId = readerLoadRequestIdRef.current + 1;

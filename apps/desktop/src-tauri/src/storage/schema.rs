@@ -648,12 +648,46 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
             created_at     TEXT NOT NULL
          );",
     ),
+    (
+        27,
+        "reading_sessions",
+        // Reading is modelled as SESSIONS (docs/sync-engine.md §13.2): one
+        // `book.sessionRecorded` event per closed (book, day, hour) bucket
+        // carries both the time read and the position reached. The
+        // device-local scratch pad `reading_sessions_pending` replaces
+        // `reading_time_pending` (same buckets, plus the latest position);
+        // page turns overwrite it, the event is minted when the bucket
+        // closes. `books.progress_observed_at` is the position's own clock:
+        // a session that closes late (a laptop left open while the phone read
+        // on) carries an OLDER observation and must not overwrite a newer
+        // position, whatever order the events reach the log in.
+        // `local_device.reading_time_genesis_at` records that the one-time
+        // reading-time backfill ran, so boot no longer replays every
+        // time-bearing event to re-derive that the tables match the log.
+        "CREATE TABLE IF NOT EXISTS reading_sessions_pending (
+            book_id       TEXT NOT NULL,
+            local_day     TEXT NOT NULL,
+            local_hour    INTEGER NOT NULL,
+            ms            INTEGER NOT NULL DEFAULT 0,
+            started_at    INTEGER NOT NULL,
+            last_at       INTEGER NOT NULL,
+            progress_json TEXT,
+            PRIMARY KEY (book_id, local_day, local_hour)
+         );
+         INSERT OR IGNORE INTO reading_sessions_pending
+            (book_id, local_day, local_hour, ms, started_at, last_at)
+            SELECT book_id, local_day, local_hour, ms, started_at, last_at
+              FROM reading_time_pending;
+         DROP TABLE IF EXISTS reading_time_pending;
+         ALTER TABLE books ADD COLUMN progress_observed_at INTEGER;
+         ALTER TABLE local_device ADD COLUMN reading_time_genesis_at TEXT;",
+    ),
 ];
 
 /// The schema version a projection checkpoint is stamped with. Restoring one
 /// is only sound when the derived tables' shapes match exactly, so a
 /// checkpoint from a different version is ignored in favour of the log.
-pub(crate) const SCHEMA_VERSION: i64 = 26;
+pub(crate) const SCHEMA_VERSION: i64 = 27;
 
 /// The migration after which `materialize_legacy_covers` must run: the cover
 /// projection columns exist, the inline data-URL column still does.

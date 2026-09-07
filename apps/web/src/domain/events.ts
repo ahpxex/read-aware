@@ -35,6 +35,7 @@ export const READING_EVENTS = [
   "book.finished",
   "book.progressed",
   "book.timeRecorded",
+  "book.sessionRecorded",
 ] as const;
 
 export const ANNOTATION_EVENTS = [

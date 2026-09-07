@@ -441,81 +441,28 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandE
 
         // ── Reading ─────────────────────────────────────────────────────────
         "book.progressed" => {
+            // Legacy (pre-session) position event: observed when it was
+            // stamped. Same last-observed-wins rule as a session's position.
             let id = require(p, "bookId", t)?;
-            let locator = str_of(p, "locator").unwrap_or_default();
-            let chapter_href = str_of(p, "chapterHref");
-            // The projection stores ReaderProgress verbatim as JSON; `cfi` and
-            // `href` are the two anchor shapes the reader understands.
-            let progress = serde_json::json!({
-                "currentLocation": i64_of(p, "currentLocation").unwrap_or(0),
-                "totalLocations": i64_of(p, "totalLocations").unwrap_or(0),
-                "progressPercent": json_number(f64_of(p, "progressPercent").unwrap_or(0.0)),
-                "cfi": if locator.is_empty() { Value::Null } else { Value::String(locator) },
-                "href": chapter_href.clone().map_or(Value::Null, Value::String),
-            });
-            // last_opened_at moves with progress too: the shelf orders by it,
-            // and making progress IS reading the book. `book.opened` covers the
-            // case where a book is opened without any progress landing.
-            // `reading_status` here is DERIVED from the percentage, so it must
-            // not overwrite a reader who declared the book finished — turning
-            // one more page is not un-finishing it. Only `book.finished(false)`
-            // clears that verdict.
-            tx.execute(
-                "UPDATE books
-                    SET progress_json = ?2,
-                        progress_percent = COALESCE(?3, progress_percent),
-                        reading_status = CASE WHEN reading_status = 'finished' THEN 'finished'
-                                              ELSE COALESCE(?4, reading_status) END,
-                        last_opened_at = ?5,
-                        updated_at = ?5
-                  WHERE id = ?1",
-                params![
-                    id,
-                    progress.to_string(),
-                    f64_of(p, "progressPercent"),
-                    str_of(p, "status"),
-                    at,
-                ],
-            )
-            ?;
+            apply_position(tx, &id, p, ev.hlc.wall_ms, &at)?;
         }
         "book.timeRecorded" => {
+            // Legacy (pre-session) time event: a bucket's worth of reading.
             let id = require(p, "bookId", t)?;
             let ms = i64_of(p, "ms").unwrap_or(0);
             let at_epoch = i64_of(p, "atEpochMs").unwrap_or(ev.hlc.wall_ms);
-            // Accumulating projection. Safe because `commit_events` applies only
-            // events the log accepted as NEW, and rebuild starts from empty
-            // tables — the same event can never be added twice.
-            tx.execute(
-                "INSERT INTO reading_time_totals (book_id, total_ms, first_started_at, last_read_at)
-                 VALUES (?1, ?2, ?3, ?3)
-                 ON CONFLICT(book_id) DO UPDATE SET
-                    total_ms = total_ms + excluded.total_ms,
-                    first_started_at = MIN(COALESCE(first_started_at, excluded.first_started_at),
-                                           excluded.first_started_at),
-                    last_read_at = MAX(COALESCE(last_read_at, excluded.last_read_at),
-                                       excluded.last_read_at)",
-                params![id, ms, at_epoch],
-            )
-            ?;
-            // localDay / localHour are stamped by the RECORDING device; deriving
-            // them here would shift history when a rebuild runs in another
-            // timezone (see the event contract in @read-aware/core).
-            if let Some(day) = str_of(p, "localDay") {
-                tx.execute(
-                    "INSERT INTO reading_time_daily (book_id, local_day, ms) VALUES (?1, ?2, ?3)
-                     ON CONFLICT(book_id, local_day) DO UPDATE SET ms = ms + excluded.ms",
-                    params![id, day, ms],
-                )
-                ?;
-            }
-            if let Some(hour) = i64_of(p, "localHour") {
-                tx.execute(
-                    "INSERT INTO reading_time_hourly (book_id, local_hour, ms) VALUES (?1, ?2, ?3)
-                     ON CONFLICT(book_id, local_hour) DO UPDATE SET ms = ms + excluded.ms",
-                    params![id, hour, ms],
-                )
-                ?;
+            apply_reading_time(tx, &id, ms, at_epoch, at_epoch, str_of(p, "localDay"), i64_of(p, "localHour"))?;
+        }
+        "book.sessionRecorded" => {
+            // One closed reading bucket: the time read AND the position
+            // reached, observed at `endedAt`.
+            let id = require(p, "bookId", t)?;
+            let ms = i64_of(p, "ms").unwrap_or(0);
+            let ended_at = i64_of(p, "endedAt").unwrap_or(ev.hlc.wall_ms);
+            let started_at = i64_of(p, "startedAt").unwrap_or(ended_at);
+            apply_reading_time(tx, &id, ms, started_at, ended_at, str_of(p, "localDay"), i64_of(p, "localHour"))?;
+            if let Some(progress) = p.get("progress").filter(|v| v.is_object()) {
+                apply_position(tx, &id, progress, ended_at, &iso_from_millis(ended_at))?;
             }
         }
 
@@ -885,6 +832,102 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandE
     }
 
     Ok(true)
+}
+
+/// A reading position as observed at `observed_at` (epoch ms). The projection
+/// keeps the LATEST OBSERVATION, not the latest event: a session that closes
+/// late — a laptop left open while the phone read on — carries an older
+/// observation and must not overwrite the phone's newer one, whatever order
+/// the two events reach the log in. `books.progress_observed_at` is that
+/// clock; a row without one (pre-v27) accepts the first observation.
+fn apply_position(
+    tx: &Transaction<'_>,
+    book_id: &str,
+    p: &Value,
+    observed_at: i64,
+    at: &str,
+) -> Result<(), CommandError> {
+    let locator = str_of(p, "locator").unwrap_or_default();
+    let chapter_href = str_of(p, "chapterHref");
+    // The projection stores ReaderProgress verbatim as JSON; `cfi` and
+    // `href` are the two anchor shapes the reader understands.
+    let progress = serde_json::json!({
+        "currentLocation": i64_of(p, "currentLocation").unwrap_or(0),
+        "totalLocations": i64_of(p, "totalLocations").unwrap_or(0),
+        "progressPercent": json_number(f64_of(p, "progressPercent").unwrap_or(0.0)),
+        "cfi": if locator.is_empty() { Value::Null } else { Value::String(locator) },
+        "href": chapter_href.map_or(Value::Null, Value::String),
+    });
+    // last_opened_at moves with progress too: the shelf orders by it, and
+    // making progress IS reading the book. `book.opened` covers the case
+    // where a book is opened without any progress landing. `reading_status`
+    // here is DERIVED from the percentage, so it must not overwrite a reader
+    // who declared the book finished — turning one more page is not
+    // un-finishing it. Only `book.finished(false)` clears that verdict.
+    tx.execute(
+        "UPDATE books
+            SET progress_json = ?2,
+                progress_percent = COALESCE(?3, progress_percent),
+                reading_status = CASE WHEN reading_status = 'finished' THEN 'finished'
+                                      ELSE COALESCE(?4, reading_status) END,
+                last_opened_at = ?5,
+                updated_at = ?5,
+                progress_observed_at = ?6
+          WHERE id = ?1
+            AND (progress_observed_at IS NULL OR progress_observed_at <= ?6)",
+        params![
+            book_id,
+            progress.to_string(),
+            f64_of(p, "progressPercent"),
+            str_of(p, "status"),
+            at,
+            observed_at,
+        ],
+    )?;
+    Ok(())
+}
+
+/// Accumulating reading-time projection. Safe because `commit_events` applies
+/// only events the log accepted as NEW, and rebuild starts from empty tables —
+/// the same event can never be added twice. `localDay` / `localHour` are
+/// stamped by the RECORDING device; deriving them here would shift history
+/// when a rebuild runs in another timezone (see the event contract in
+/// @read-aware/core).
+fn apply_reading_time(
+    tx: &Transaction<'_>,
+    book_id: &str,
+    ms: i64,
+    started_at: i64,
+    ended_at: i64,
+    local_day: Option<String>,
+    local_hour: Option<i64>,
+) -> Result<(), CommandError> {
+    tx.execute(
+        "INSERT INTO reading_time_totals (book_id, total_ms, first_started_at, last_read_at)
+         VALUES (?1, ?2, ?3, ?4)
+         ON CONFLICT(book_id) DO UPDATE SET
+            total_ms = total_ms + excluded.total_ms,
+            first_started_at = MIN(COALESCE(first_started_at, excluded.first_started_at),
+                                   excluded.first_started_at),
+            last_read_at = MAX(COALESCE(last_read_at, excluded.last_read_at),
+                               excluded.last_read_at)",
+        params![book_id, ms, started_at, ended_at],
+    )?;
+    if let Some(day) = local_day {
+        tx.execute(
+            "INSERT INTO reading_time_daily (book_id, local_day, ms) VALUES (?1, ?2, ?3)
+             ON CONFLICT(book_id, local_day) DO UPDATE SET ms = ms + excluded.ms",
+            params![book_id, day, ms],
+        )?;
+    }
+    if let Some(hour) = local_hour {
+        tx.execute(
+            "INSERT INTO reading_time_hourly (book_id, local_hour, ms) VALUES (?1, ?2, ?3)
+             ON CONFLICT(book_id, local_hour) DO UPDATE SET ms = ms + excluded.ms",
+            params![book_id, hour, ms],
+        )?;
+    }
+    Ok(())
 }
 
 /// Blob bootstrap contract (docs/data-model.md §9): an event that references a

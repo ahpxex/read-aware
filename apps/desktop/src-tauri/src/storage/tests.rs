@@ -2706,52 +2706,123 @@ fn rebuild_and_verify_refuse_an_incomplete_log() {
     assert!(backfill_status(&b).unwrap().is_none());
 }
 
+fn session_event(id: &str, wall: i64, book: &str, ms: i64, started: i64, ended: i64, hour: i64, progress: Option<serde_json::Value>) -> EventRow {
+    let mut payload = serde_json::json!({
+        "bookId": book, "ms": ms, "startedAt": started, "endedAt": ended,
+        "localDay": "2026-09-07", "localHour": hour,
+    });
+    if let Some(p) = progress {
+        payload["progress"] = p;
+    }
+    ev(id, wall, "book.sessionRecorded", payload)
+}
+
+fn position(percent: i64, href: &str) -> serde_json::Value {
+    serde_json::json!({
+        "locator": format!("cfi-{percent}"), "chapterHref": href,
+        "currentLocation": percent, "totalLocations": 100,
+        "progressPercent": percent, "status": "reading",
+    })
+}
+
 #[test]
-fn pending_reading_time_accrues_and_flushes_exactly_once() {
+fn a_reading_session_accrues_time_and_position_and_flushes_exactly_once() {
     let mut conn = migrated_conn();
     commit_events_inner(&mut conn, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
-    let b = reading_time_accrue_inner(&conn, "b1", "2026-09-07", 15, 20_000, 1_000_000).unwrap();
-    assert_eq!((b.ms, b.started_at, b.last_at), (20_000, 1_000_000, 1_000_000));
-    let b = reading_time_accrue_inner(&conn, "b1", "2026-09-07", 15, 20_000, 1_020_000).unwrap();
-    assert_eq!((b.ms, b.started_at, b.last_at), (40_000, 1_000_000, 1_020_000));
-    // Nothing reached the projections yet.
+    // A page turn before the first tick opens the bucket with no time.
+    let b = reading_session_position_inner(&conn, "b1", "2026-09-07", 15, 1_000_000, &position(10, "ch1.html")).unwrap();
+    assert_eq!((b.ms, b.started_at, b.last_at), (0, 1_000_000, 1_000_000));
+    let b = reading_session_accrue_inner(&conn, "b1", "2026-09-07", 15, 20_000, 1_020_000).unwrap();
+    assert_eq!((b.ms, b.last_at), (20_000, 1_020_000));
+    let b = reading_session_position_inner(&conn, "b1", "2026-09-07", 15, 1_030_000, &position(12, "ch1.html")).unwrap();
+    assert_eq!(b.progress["progressPercent"], 12);
+    // Nothing reached the projections yet: still the import's blank position.
     assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM reading_time_totals"), 0);
-    assert_eq!(reading_time_pending_inner(&conn).unwrap().len(), 1);
+    assert_eq!(scalar::<f64>(&conn, "SELECT progress_percent FROM books WHERE id='b1'"), 0.0);
 
-    // The caller mints the event for what it read (40s); a tick races in
-    // (another 20s) before the flush lands.
-    reading_time_accrue_inner(&conn, "b1", "2026-09-07", 15, 20_000, 1_040_000).unwrap();
-    let flush = ev(
-        "t1",
-        2_000,
-        "book.timeRecorded",
-        serde_json::json!({ "bookId": "b1", "ms": 40000, "atEpochMs": 1020000, "localDay": "2026-09-07", "localHour": 15 }),
-    );
-    let report = reading_time_flush_inner(&mut conn, std::slice::from_ref(&flush)).unwrap();
+    // The caller closes the bucket as read (20s, position at 12%); a tick
+    // and a page turn race in before the flush lands.
+    reading_session_accrue_inner(&conn, "b1", "2026-09-07", 15, 20_000, 1_040_000).unwrap();
+    reading_session_position_inner(&conn, "b1", "2026-09-07", 15, 1_041_000, &position(13, "ch1.html")).unwrap();
+    let flush = session_event("s1", 2_000, "b1", 20_000, 1_000_000, 1_030_000, 15, Some(position(12, "ch1.html")));
+    let report = reading_session_flush_inner(&mut conn, std::slice::from_ref(&flush)).unwrap();
     assert_eq!((report.appended, report.applied), (1, 1));
-    assert_eq!(scalar::<i64>(&conn, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 40_000);
-    assert_eq!(scalar::<i64>(&conn, "SELECT ms FROM reading_time_daily WHERE book_id='b1' AND local_day='2026-09-07'"), 40_000);
-    // The racing tick survives in the bucket.
-    let pending = reading_time_pending_inner(&conn).unwrap();
+    assert_eq!(scalar::<i64>(&conn, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 20_000);
+    assert_eq!(scalar::<i64>(&conn, "SELECT first_started_at FROM reading_time_totals WHERE book_id='b1'"), 1_000_000);
+    assert_eq!(scalar::<i64>(&conn, "SELECT last_read_at FROM reading_time_totals WHERE book_id='b1'"), 1_030_000);
+    assert_eq!(scalar::<f64>(&conn, "SELECT progress_percent FROM books WHERE id='b1'"), 12.0);
+    assert_eq!(scalar::<i64>(&conn, "SELECT progress_observed_at FROM books WHERE id='b1'"), 1_030_000);
+    // The racing tick and the newer page turn survive in the bucket.
+    let pending = reading_sessions_pending_inner(&conn).unwrap();
     assert_eq!(pending.len(), 1);
-    assert_eq!(pending[0].ms, 20_000);
-    // Redelivering the same flush (a retry after a lost ack) is a no-op.
-    let again = reading_time_flush_inner(&mut conn, std::slice::from_ref(&flush)).unwrap();
+    assert_eq!((pending[0].ms, pending[0].last_at), (20_000, 1_041_000));
+    assert_eq!(pending[0].progress["progressPercent"], 13);
+    // Redelivering the same flush is a no-op.
+    let again = reading_session_flush_inner(&mut conn, std::slice::from_ref(&flush)).unwrap();
     assert_eq!(again.appended, 0);
-    assert_eq!(reading_time_pending_inner(&conn).unwrap()[0].ms, 20_000);
-    assert_eq!(scalar::<i64>(&conn, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 40_000);
+    assert_eq!(reading_sessions_pending_inner(&conn).unwrap()[0].ms, 20_000);
+    assert_eq!(scalar::<i64>(&conn, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 20_000);
     // The event is in the outbox like any local write.
-    assert_eq!(sync_outbox_events_inner(&conn, 10).unwrap().iter().filter(|e| e.id == "t1").count(), 1);
+    assert!(sync_outbox_events_inner(&conn, 10).unwrap().iter().any(|e| e.id == "s1"));
     // Closing the remainder empties the bucket.
-    let rest = ev(
-        "t2",
-        2_001,
-        "book.timeRecorded",
-        serde_json::json!({ "bookId": "b1", "ms": 20000, "atEpochMs": 1040000, "localDay": "2026-09-07", "localHour": 15 }),
-    );
-    reading_time_flush_inner(&mut conn, &[rest]).unwrap();
-    assert!(reading_time_pending_inner(&conn).unwrap().is_empty());
-    assert_eq!(scalar::<i64>(&conn, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 60_000);
+    let rest = session_event("s2", 2_001, "b1", 20_000, 1_040_000, 1_041_000, 15, Some(position(13, "ch1.html")));
+    reading_session_flush_inner(&mut conn, &[rest]).unwrap();
+    assert!(reading_sessions_pending_inner(&conn).unwrap().is_empty());
+    assert_eq!(scalar::<i64>(&conn, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 40_000);
+    assert_eq!(scalar::<f64>(&conn, "SELECT progress_percent FROM books WHERE id='b1'"), 13.0);
+}
+
+#[test]
+fn a_session_that_closes_late_never_overwrites_a_newer_position() {
+    // Laptop: book open, paused at 40%. Phone: reads on to 60% and closes.
+    // The laptop's idle timer then closes its session — LATER in the log,
+    // but observed EARLIER. Whatever order the events merge in, 60% stands.
+    let (mut a, dir) = conn_with_dir();
+    commit_events_inner(&mut a, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    let phone = session_event("phone", 5_000, "b1", 600_000, 4_000, 5_000, 10, Some(position(60, "ch3.html")));
+    let laptop = session_event("laptop", 6_000, "b1", 300_000, 2_000, 3_000, 10, Some(position(40, "ch2.html")));
+    commit_events_inner(&mut a, std::slice::from_ref(&phone)).unwrap();
+    super::events::apply_remote_events_inner(&mut a, &dir, std::slice::from_ref(&laptop), None).unwrap();
+    assert_eq!(scalar::<f64>(&a, "SELECT progress_percent FROM books WHERE id='b1'"), 60.0);
+    assert_eq!(scalar::<i64>(&a, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 900_000);
+    // The other device merges them the other way round and agrees.
+    let (mut b, dir_b) = conn_with_dir();
+    commit_events_inner(&mut b, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    commit_events_inner(&mut b, std::slice::from_ref(&laptop)).unwrap();
+    super::events::apply_remote_events_inner(&mut b, &dir_b, std::slice::from_ref(&phone), None).unwrap();
+    assert_eq!(scalar::<f64>(&b, "SELECT progress_percent FROM books WHERE id='b1'"), 60.0);
+    // And a full replay lands on the same answer.
+    let tx = b.transaction().unwrap();
+    replay_into(&tx).unwrap();
+    tx.commit().unwrap();
+    assert_eq!(scalar::<f64>(&b, "SELECT progress_percent FROM books WHERE id='b1'"), 60.0);
+    assert_eq!(scalar::<i64>(&b, "SELECT progress_observed_at FROM books WHERE id='b1'"), 5_000);
+    // Legacy `book.progressed` events take part in the same rule (observed
+    // at their stamp): an older one cannot clobber the phone's position.
+    let legacy = ev("legacy", 4_500, "book.progressed", serde_json::json!({ "bookId": "b1", "locator": "cfi-50", "progressPercent": 50, "status": "reading" }));
+    super::events::apply_remote_events_inner(&mut b, &dir_b, &[legacy], None).unwrap();
+    assert_eq!(scalar::<f64>(&b, "SELECT progress_percent FROM books WHERE id='b1'"), 60.0);
+}
+
+#[test]
+fn reading_time_genesis_runs_once_per_device_until_an_import_reopens_it() {
+    let mut conn = migrated_conn();
+    commit_events_inner(&mut conn, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    conn.execute("INSERT INTO reading_time_daily (book_id, local_day, ms) VALUES ('b1', '2026-07-01', 60000)", []).unwrap();
+    conn.execute("INSERT INTO reading_time_totals (book_id, total_ms, first_started_at, last_read_at) VALUES ('b1', 60000, 1, 2)", []).unwrap();
+    assert_eq!(reading_time_genesis_inner(&mut conn).unwrap(), 1);
+    // Direct table edits are no longer a supported write path; even so, the
+    // stamped pass does not re-measure at every boot.
+    conn.execute("UPDATE reading_time_daily SET ms = 120000", []).unwrap();
+    assert_eq!(reading_time_genesis_inner(&mut conn).unwrap(), 0);
+    // An import (the one legitimate table write) reopens it.
+    reading_time_import_inner(&mut conn, &ReadingTimeWire {
+        totals: vec![ReadingTimeTotalRow { book_id: "b1".into(), total_ms: 180_000, first_started_at: Some(1), last_read_at: Some(2) }],
+        daily: vec![ReadingTimeDailyRow { book_id: "b1".into(), local_day: "2026-07-01".into(), ms: 180_000 }],
+        hourly: vec![],
+    }).unwrap();
+    assert_eq!(reading_time_genesis_inner(&mut conn).unwrap(), 1, "the 120s deficit becomes one event");
+    assert_eq!(reading_time_genesis_inner(&mut conn).unwrap(), 0);
 }
 
 #[test]

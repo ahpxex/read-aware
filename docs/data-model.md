@@ -158,9 +158,10 @@ Rules:
   checkpoints are an accelerator, never a substitute for the log.
 - **`event_sync_state.push_state = 'unverified'`** means "the mailbox may or
   may not hold this" — settled by asking the relay by id, never by re-pushing.
-- **`reading_time_pending`** [device-local] buffers the tracker's accrual per
-  (book, local day, local hour); the `book.timeRecorded` event is minted when
-  the bucket closes, and the flush retires the bucket in the same transaction.
+- **`reading_sessions_pending`** [device-local] is the reading-session scratch
+  pad per (book, local day, local hour): ticks accrue time, page turns
+  overwrite the position; the `book.sessionRecorded` event is minted when the
+  session closes, and the flush retires the bucket in the same transaction.
 
 Every column a projection marks `NOT NULL` must be derivable from some event
 payload (or the envelope's HLC wall time). The event payloads in `events.ts`
@@ -190,7 +191,8 @@ row's historical timestamp while their HLC is stamped at synthesis time.
 | `book.narrativityClassified` | `{ bookId, narrativity, model? }` — LLM classifies book as `narrative` or `expository`; drives digest flavor (character graph vs. concept graph) |
 | `book.chapterDigested` | `{ bookId, chapterIndex, chapterHref?, summary, characters[], digestVersion, model? }` — 章节读毕提炼（book_memory 投影原料）。LLM 产物不可确定性重算，所以像 `coverExtracted` 一样记录成事件；`chapter_digests` 投影可从日志整体重建，同章新事件整行覆盖 |
 | `book.progressed` | `{ bookId, locator, chapterHref?, currentLocation?, totalLocations?, progressPercent?, status? }` |
-| `book.timeRecorded` | `{ bookId, ms, atEpochMs, localDay, localHour }` — day/hour buckets are stamped at **record** time in the recording device's timezone; deriving them at replay time would shift history across timezones |
+| `book.timeRecorded` | *(legacy, replayable)* `{ bookId, ms, atEpochMs, localDay, localHour }` — day/hour buckets are stamped at **record** time in the recording device's timezone; deriving them at replay time would shift history across timezones |
+| `book.sessionRecorded` | `{ bookId, ms, startedAt, endedAt, localDay, localHour, progress? }` — one closed reading session bucket (per book per local hour): the time read and the position reached, observed at `endedAt`. Positions project by **latest observation**, not latest event (`books.progress_observed_at`), so a session that closes late never overwrites a newer position. Supersedes `book.progressed` + `book.timeRecorded` |
 | `highlight.created` | `{ highlightId, bookId, anchor?, chapterHref?, text, color?, style? }` |
 | `highlight.recolored` | `{ highlightId, color, style? }` |
 | `highlight.removed` | `{ highlightId }` |

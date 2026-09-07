@@ -9,11 +9,9 @@ import {
 import { commitDomainEvents } from "../../../platform/domain-events";
 import { fetchRemoteBlob } from "../../../platform/sync/sync-scheduler";
 import type {
-  BookProgress,
   Collection,
   LibraryBook,
   LibraryBookRow,
-  ReadingStatus,
 } from "./library-types";
 import { withCoverUrl } from "./book-cover-url";
 import { isTauri } from "../../../platform/environment";
@@ -84,17 +82,6 @@ async function putCollectionRecord(collection: Collection): Promise<void> {
 }
 
 // --- Pure helpers (backend-agnostic) ----------------------------------------
-
-function clampProgressPercent(value: number) {
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(0, Math.min(100, Math.round(value)));
-}
-
-function getReadingStatus(progressPercent: number): ReadingStatus {
-  if (progressPercent >= 100) return "finished";
-  if (progressPercent > 0) return "reading";
-  return "unread";
-}
 
 export function sortBooks(books: LibraryBook[]) {
   return [...books].sort((left, right) => {
@@ -281,25 +268,6 @@ export async function getStoredBookFile(
   return resolved.status === "ok" ? resolved.file : null;
 }
 
-export async function updateLibraryBookProgress(bookId: string, progress: BookProgress) {
-  const existingBook = await getBookRecord(bookId);
-  if (!existingBook) return null;
-
-  const progressPercent = progress ? clampProgressPercent(progress.progressPercent) : existingBook.progressPercent;
-  await commitDomainEvents({
-    type: "book.progressed",
-    payload: {
-      bookId,
-      locator: progress?.cfi ?? progress?.href ?? "",
-      chapterHref: progress?.href ?? undefined,
-      currentLocation: progress?.currentLocation,
-      totalLocations: progress?.totalLocations,
-      progressPercent,
-      status: getReadingStatus(progressPercent),
-    },
-  });
-  return getBookRecord(bookId);
-}
 
 /**
  * Update user-editable metadata (title/author). Empty input keeps the current
@@ -342,7 +310,7 @@ export async function updateBookMetadata(
 /**
  * Record the reader's own verdict on whether the book is finished.
  *
- * Distinct from the status `updateLibraryBookProgress` derives from the
+ * Distinct from the status a reading session derives from the
  * percentage: this one is sticky, so reading on afterwards does not undo it
  * (see `book.finished` in storage/apply.rs).
  */

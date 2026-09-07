@@ -232,8 +232,9 @@ onAppEvent("library-changed", () => {
 /**
  * Per-book reading-time stats, seeded from the SQLite projection at boot.
  * Memory-only here: persistence is explicit at the intent sites — the
- * tracker accrues each tick into its crash-safe buffer and closes buckets
- * into `book.timeRecorded` events (`platform/reading-time.ts`), the stats
+ * tracker accrues each tick into the reading-session scratch pad and closes
+ * sessions into `book.sessionRecorded` events (`platform/reading-session.ts`),
+ * the stats
  * demo seed bulk-replaces (`replaceReadingStatsStore`). Accepts a value or
  * an updater so the tracker can increment without subscribing.
  */

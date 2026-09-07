@@ -69,6 +69,7 @@ const AGGREGATE_ROUTES: Record<DomainEventType, { type: string; idKey: string } 
   "book.removedFromCollection": { type: "book", idKey: "bookId" },
   "book.progressed": { type: "book", idKey: "bookId" },
   "book.timeRecorded": { type: "book", idKey: "bookId" },
+  "book.sessionRecorded": { type: "book", idKey: "bookId" },
   "highlight.created": { type: "highlight", idKey: "highlightId" },
   "highlight.recolored": { type: "highlight", idKey: "highlightId" },
   "highlight.removed": { type: "highlight", idKey: "highlightId" },

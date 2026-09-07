@@ -36,8 +36,10 @@
 >   `seqs` acknowledge pushes — a re-login never re-uploads), projection
 >   checkpoints (replay = newest valid checkpoint + tail; a published
 >   `snapshot:` blob bootstraps a new device in one download, the log
->   backfills behind it), and reading time accrues in `reading_time_pending`
->   with one `book.timeRecorded` per closed hour bucket.
+>   backfills behind it), and reading is modelled as SESSIONS: ticks and page
+>   turns land in the `reading_sessions_pending` scratch pad, one
+>   `book.sessionRecorded` (time + position, last-observed-wins) per closed
+>   hour bucket — `book.progressed` / `book.timeRecorded` are legacy.
 > - Not built yet: the consolidation pipeline behind profile/entity events
 >   (they are logged but project to nothing).
 > - **Book memory v1 is live**: `book.chapterDigested` events project to

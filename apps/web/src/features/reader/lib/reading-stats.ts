@@ -6,8 +6,9 @@
  * `reading_time_daily` / `reading_time_hourly` tables, derived from
  * `book.timeRecorded` events. Boot reads the tables into the platform snapshot
  * (interim-projections); after boot the live figures accumulate in the
- * readingStatsAtom, while durability runs through the tracker's accrual
- * buffer (`platform/reading-time.ts`) — never a direct projection write. The
+ * readingStatsAtom, while durability runs through the reading-session
+ * scratch pad (`platform/reading-session.ts`) — never a direct projection
+ * write. The
  * browser shell keeps no durable stats (pure UI shell).
  *
  * All durations are milliseconds of *active* reading time. Day buckets are keyed
@@ -21,7 +22,7 @@ import {
   loadReadingTime,
   type ReadingTimeWire,
 } from "../../../platform/interim-projections";
-import { localDayKey, localHour } from "../../../platform/reading-time";
+import { localDayKey, localHour } from "../../../platform/reading-session";
 export { localDayKey, localHour };
 
 /** Milliseconds of reading keyed by local day, e.g. `{ "2026-06-25": 840000 }`. */

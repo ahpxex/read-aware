@@ -11,7 +11,7 @@
 import { invoke } from "./ipc";
 import { isTauri } from "./environment";
 import { createLogger } from "./logger";
-import { flushPendingReadingTime } from "./reading-time";
+import { flushPendingReadingSessions } from "./reading-session";
 
 const log = createLogger("interim-projections");
 
@@ -147,9 +147,9 @@ export async function hydrateInterimProjections(kv: LegacyKvAccess): Promise<voi
   } catch (err) {
     log.error("vocabulary handoff failed; will retry next launch", err);
   }
-  // Buckets a crash left open become their events BEFORE the projection is
-  // read, so the boot snapshot already includes that time.
-  await flushPendingReadingTime();
+  // Sessions a crash left open become their events BEFORE the projections
+  // are read, so the boot snapshot already includes that time and position.
+  await flushPendingReadingSessions();
   try {
     readingTime = await invoke<ReadingTimeWire>("reading_time_load");
   } catch (err) {

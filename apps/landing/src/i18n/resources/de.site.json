@@ -171,6 +171,40 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.5.4",
+        "date": "2026-09-07",
+        "codename": "Lake Baikal",
+        "summary": "ReadAware merkt sich dein Desktop-Fenster, importiert Bücher auf Android zuverlässiger und bringt dich beim Weiterlesen zurück zur richtigen Stelle.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Dein Fenster bleibt deins",
+                "body": "Die Desktop-App merkt sich beim Schließen Größe, Position und ob sie maximiert oder im Vollbild lief. Nach dem Aufheben der Maximierung kehren die vorherige Fenstergröße und -position zurück, und ein getrennter Monitor lässt das Fenster nicht mehr außer Reichweite liegen. Diese Einstellungen bleiben auf dem jeweiligen Gerät."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Zuverlässigere Importe auf Android",
+                "body": "Bücher aus der Android-Dateiauswahl laufen jetzt durch den privaten Cache der App und umgehen so Importfehler durch nicht verfügbare oder nicht beschreibbare externe Cache-Ordner."
+              },
+              {
+                "title": "EPUBs auf älteren Android-WebViews",
+                "body": "EPUB-Metadaten verlassen sich nicht mehr auf neuere Browserfunktionen, die manche Android-WebViews nicht mitbringen — Import und Öffnen von Büchern schlagen auf diesen Geräten deshalb nicht mehr fehl."
+              },
+              {
+                "title": "Zurück zur richtigen Stelle",
+                "body": "Gespeicherte Lesepositionen und Links auf Textstellen zeigen im Scroll-Modus wieder den gemeinten Textausschnitt an. Die Vor- und Zurück-Navigation bewegt sich außerdem um die sichtbare Höhe des Readers statt um ein einzelnes Pixel."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.5.2",
         "date": "2026-09-05",
         "codename": "Lake Baikal",

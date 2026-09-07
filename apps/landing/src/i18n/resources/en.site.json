@@ -171,6 +171,40 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.5.4",
+        "date": "2026-09-07",
+        "codename": "Lake Baikal",
+        "summary": "ReadAware remembers your desktop window, imports books more reliably on Android, and brings you back to the right passage when you resume reading.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Your window stays yours",
+                "body": "The desktop app remembers its size, position, and maximized or fullscreen state when you close it. Returning from maximized keeps your previous window size and position, and disconnecting a monitor no longer leaves the window out of reach. These settings stay on each device."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "More reliable Android imports",
+                "body": "Books picked through Android's file picker now pass through the app's private cache, avoiding import failures caused by unavailable or unwritable external cache folders."
+              },
+              {
+                "title": "EPUBs on older Android WebViews",
+                "body": "EPUB metadata no longer depends on newer browser functions that some Android WebViews lack, fixing failures when importing or opening books on those devices."
+              },
+              {
+                "title": "Return to the right passage",
+                "body": "Saved reading positions and passage links return you to the intended passage in scroll mode. Forward and backward navigation also moves by the reader's visible height instead of a single pixel."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.5.2",
         "date": "2026-09-05",
         "codename": "Lake Baikal",

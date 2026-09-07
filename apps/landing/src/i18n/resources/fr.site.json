@@ -171,6 +171,40 @@
     "leadIn": " : ",
     "entries": [
       {
+        "version": "0.5.4",
+        "date": "2026-09-07",
+        "codename": "Lake Baikal",
+        "summary": "ReadAware mémorise votre fenêtre sur ordinateur, importe les livres de manière plus fiable sur Android et vous ramène au bon passage quand vous reprenez la lecture.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Votre fenêtre reste la vôtre",
+                "body": "L'application de bureau mémorise sa taille, sa position et son état maximisé ou plein écran lorsque vous la fermez. Sortir du mode maximisé conserve la taille et la position précédentes de votre fenêtre, et débrancher un écran ne laisse plus la fenêtre hors de portée. Ces réglages restent propres à chaque appareil."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Des importations plus fiables sur Android",
+                "body": "Les livres choisis via le sélecteur de fichiers d'Android transitent désormais par le cache privé de l'app, ce qui évite les échecs d'importation causés par des dossiers de cache externes indisponibles ou en lecture seule."
+              },
+              {
+                "title": "Les EPUB sur les anciens WebView d'Android",
+                "body": "Les métadonnées EPUB ne dépendent plus de fonctions de navigateur récentes absentes de certains WebView Android, ce qui corrige les échecs à l'importation ou à l'ouverture des livres sur ces appareils."
+              },
+              {
+                "title": "Retour au bon passage",
+                "body": "Les positions de lecture enregistrées et les liens vers des passages ramènent au passage attendu en mode défilement. La navigation en avant et en arrière avance désormais de la hauteur visible du lecteur, au lieu d'un seul pixel."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.5.2",
         "date": "2026-09-05",
         "codename": "Lake Baikal",

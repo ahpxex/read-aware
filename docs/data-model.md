@@ -150,8 +150,17 @@ Rules:
   push/retry never mutates the immutable log.
 - **`readEventsSince(after?: HlcStamp)`** reads `WHERE (hlc_wall_ms, hlc_counter,
   hlc_device) > after` in HLC order.
-- **`projection_checkpoints`** records how far each projection has consumed the
-  log, so projections update incrementally and can be rebuilt from zero.
+- **`projection_checkpoints`** registers checkpoint files — every derived table
+  at an HLC/seq frontier, stored as a `snapshot:` blob — so a rebuild restores
+  the newest valid checkpoint and replays only the tail, and a new device
+  bootstraps from the account's published checkpoint instead of replaying the
+  whole mailbox (docs/sync-engine.md §13). The empty base is always available:
+  checkpoints are an accelerator, never a substitute for the log.
+- **`event_sync_state.push_state = 'unverified'`** means "the mailbox may or
+  may not hold this" — settled by asking the relay by id, never by re-pushing.
+- **`reading_time_pending`** [device-local] buffers the tracker's accrual per
+  (book, local day, local hour); the `book.timeRecorded` event is minted when
+  the bucket closes, and the flush retires the bucket in the same transaction.
 
 Every column a projection marks `NOT NULL` must be derivable from some event
 payload (or the envelope's HLC wall time). The event payloads in `events.ts`

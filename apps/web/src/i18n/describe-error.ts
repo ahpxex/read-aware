@@ -27,6 +27,9 @@ import {
   ERR_SYNC_RATE_LIMITED,
   ERR_SYNC_SERVER,
   ERR_SYNC_TRANSPORT_MISMATCH,
+  ERR_SYNC_LOG_INCOMPLETE,
+  ERR_SYNC_CHECKPOINT_MISMATCH,
+  ERR_SYNC_CHECKPOINT_PRECONDITION,
   ERR_SYNC_TRANSPORT_UNAVAILABLE,
   ERR_SYNC_UNAUTHORIZED,
   ERR_AI_AUTH,
@@ -86,6 +89,9 @@ const CODE_COPY: Record<string, CopyEntry> = {
   [ERR_SYNC_QUOTA]: { key: "syncQuota", retryable: false },
   [ERR_SYNC_TRANSPORT_UNAVAILABLE]: { key: "syncTransportUnavailable", retryable: false },
   [ERR_SYNC_TRANSPORT_MISMATCH]: { key: "syncTransportMismatch", retryable: false },
+  [ERR_SYNC_LOG_INCOMPLETE]: { key: "syncLogIncomplete", retryable: true },
+  [ERR_SYNC_CHECKPOINT_MISMATCH]: { key: "syncCheckpointMismatch", retryable: false },
+  [ERR_SYNC_CHECKPOINT_PRECONDITION]: { key: "syncCheckpointPrecondition", retryable: true },
   [ERR_AI_NOT_CONFIGURED]: { key: "aiNotConfigured", retryable: false, action: AI_SETTINGS },
   // Legacy alias: chat rows persisted before the shared code vocabulary carry
   // the old spelling in their errorCode column. Never remove.

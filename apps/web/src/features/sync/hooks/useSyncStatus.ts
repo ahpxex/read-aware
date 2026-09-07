@@ -62,7 +62,8 @@ export type SyncBookBacklogRow = {
   bookId: string;
   title: string;
   byteSize: number | null;
-  pushState: "pending" | "failed" | "rejected";
+  /** `unverified`: the relay may already hold it — the verify phase decides. */
+  pushState: "pending" | "failed" | "rejected" | "unverified";
   lastError: string | null;
   /** false = a manifest-only ghost: some OTHER device owes this upload. */
   localBytes: boolean;

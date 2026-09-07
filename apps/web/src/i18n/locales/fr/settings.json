@@ -467,7 +467,12 @@
       "bookUp": "Envoi de « {{title}} »",
       "bookDown": "Téléchargement de « {{title}} »",
       "bookUpParts": "Envoi de « {{title}} » ({{done}}/{{total}})",
-      "bookDownParts": "Téléchargement de « {{title}} » ({{done}}/{{total}})"
+      "bookDownParts": "Téléchargement de « {{title}} » ({{done}}/{{total}})",
+      "bootstrap": "Restauration de la bibliothèque depuis l’instantané du compte…",
+      "verifying": "Vérification de ce que le serveur possède déjà… {{count}} confirmés",
+      "backfill": "Récupération de l’historique… {{done}}/{{total}}",
+      "checkpoint": "Enregistrement d’un point de contrôle…",
+      "backfillRemaining": "Historique en cours de récupération : {{count}} modifications restantes"
     },
     "indicator": {
       "label": "État de la synchronisation",
@@ -487,6 +492,7 @@
     "books": {
       "title": "Fichiers de livres",
       "pending": "En attente d'envoi",
+      "unverified": "Vérification auprès du serveur",
       "failed": "Échec de l'envoi — nouvelle tentative à venir",
       "rejectedQuota": "Le stockage cloud est plein — passez à un forfait supérieur pour plus d'espace, ou supprimez des livres.",
       "rejected": "Le serveur de synchronisation a refusé ce fichier. Les détails sont dans le journal.",

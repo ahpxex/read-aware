@@ -554,7 +554,106 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
         "ALTER TABLE books DROP COLUMN cover_url;
          ALTER TABLE books DROP COLUMN cover_checked;",
     ),
+    (
+        26,
+        "sync_verification_checkpoints_pending_time",
+        // Four things land together because they are one story: making the
+        // sync bookkeeping EXACT instead of pessimistic.
+        //
+        // 1. `push_state = 'unverified'` — "we do not know whether THIS
+        //    mailbox holds it". An account adoption (or a bookkeeping
+        //    migration) no longer blanket-marks the log `pending` (which
+        //    re-uploaded everything); rows go `unverified` and the engine
+        //    asks the relay by id / by HEAD, so only what is truly absent
+        //    gets pushed. Partial indexes keep the two verification scans
+        //    O(unverified).
+        // 2. Bookkeeping backfill. v14 added `bookkeeping_account_id`
+        //    without filling it, so a connection that predates v14 reset
+        //    wholesale on its next reconnect (measured: 47k events + 250 MB
+        //    of blobs re-uploaded for a same-account re-login). A profile
+        //    that is connected right now has a cursor that belongs to
+        //    `remote_account_id` by construction (the pull loop only ever
+        //    runs against the current connection), so adopt that account —
+        //    and hand the marks to verification rather than trusting them:
+        //    a pre-v14 account switch could have left `synced` marks earned
+        //    against another mailbox.
+        // 3. `reading_time_pending` [device-local]: the tracker's accrual
+        //    buffer. A tick adds to a (book, day, hour) bucket here; the
+        //    `book.timeRecorded` event is minted only when the bucket closes
+        //    (hour rolls over, book closes, app hides), and the flush deletes
+        //    the bucket in the same transaction. A crash loses nothing (the
+        //    bucket is flushed at next boot) and the dominant event type
+        //    drops from ~12 to ~1 per reading hour.
+        // 4. `projection_checkpoints` [device-local]: the replay accelerator
+        //    and the bootstrap unit. A checkpoint is a `snapshot:` blob (a
+        //    SQLite file of every derived table at an HLC/seq frontier);
+        //    replay restores the newest checkpoint older than the events
+        //    being merged and applies only the tail, and a new device
+        //    restores the account's published checkpoint instead of
+        //    replaying the whole mailbox. `log_complete = 0` marks a device
+        //    still backfilling the pre-frontier log behind such a restore.
+        "CREATE INDEX IF NOT EXISTS ix_event_sync_state_unverified
+            ON event_sync_state (updated_at) WHERE push_state = 'unverified';
+         CREATE INDEX IF NOT EXISTS ix_blob_sync_state_unverified
+            ON blob_sync_state (updated_at) WHERE push_state = 'unverified';
+         INSERT OR IGNORE INTO event_sync_state (event_id, updated_at)
+             SELECT id, strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM domain_events
+              WHERE EXISTS (SELECT 1 FROM sync_profile
+                             WHERE id = 1 AND bookkeeping_account_id IS NULL
+                               AND remote_account_id IS NOT NULL AND sync_enabled = 1);
+         UPDATE event_sync_state
+            SET push_state = 'unverified', remote_id = NULL, pushed_at = NULL,
+                last_error = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+          WHERE EXISTS (SELECT 1 FROM sync_profile
+                         WHERE id = 1 AND bookkeeping_account_id IS NULL
+                           AND remote_account_id IS NOT NULL AND sync_enabled = 1);
+         INSERT OR IGNORE INTO blob_sync_state (blob_key, updated_at)
+             SELECT key, strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM blob_objects
+              WHERE sync_required = 1 AND deleted_at IS NULL
+                AND EXISTS (SELECT 1 FROM sync_profile
+                             WHERE id = 1 AND bookkeeping_account_id IS NULL
+                               AND remote_account_id IS NOT NULL AND sync_enabled = 1);
+         UPDATE blob_sync_state
+            SET push_state = 'unverified', remote_uri = NULL, pushed_at = NULL,
+                last_error = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+          WHERE EXISTS (SELECT 1 FROM sync_profile
+                         WHERE id = 1 AND bookkeeping_account_id IS NULL
+                           AND remote_account_id IS NOT NULL AND sync_enabled = 1);
+         UPDATE sync_profile SET bookkeeping_account_id = remote_account_id
+          WHERE id = 1 AND bookkeeping_account_id IS NULL
+            AND remote_account_id IS NOT NULL AND sync_enabled = 1;
+         ALTER TABLE sync_profile ADD COLUMN log_complete INTEGER NOT NULL DEFAULT 1;
+         ALTER TABLE sync_profile ADD COLUMN backfill_frontier_seq INTEGER;
+         CREATE TABLE IF NOT EXISTS reading_time_pending (
+            book_id    TEXT NOT NULL,
+            local_day  TEXT NOT NULL,
+            local_hour INTEGER NOT NULL,
+            ms         INTEGER NOT NULL,
+            started_at INTEGER NOT NULL,
+            last_at    INTEGER NOT NULL,
+            PRIMARY KEY (book_id, local_day, local_hour)
+         );
+         CREATE TABLE IF NOT EXISTS projection_checkpoints (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            blob_key       TEXT NOT NULL UNIQUE,
+            schema_version INTEGER NOT NULL,
+            hlc_wall_ms    INTEGER NOT NULL,
+            hlc_counter    INTEGER NOT NULL,
+            hlc_device     TEXT NOT NULL,
+            remote_seq     INTEGER,
+            event_count    INTEGER NOT NULL,
+            byte_size      INTEGER NOT NULL,
+            origin         TEXT NOT NULL,
+            published      INTEGER NOT NULL DEFAULT 0,
+            created_at     TEXT NOT NULL
+         );",
+    ),
 ];
+
+/// The schema version a projection checkpoint is stamped with. Restoring one
+/// is only sound when the derived tables' shapes match exactly, so a
+/// checkpoint from a different version is ignored in favour of the log.
+pub(crate) const SCHEMA_VERSION: i64 = 26;
 
 /// The migration after which `materialize_legacy_covers` must run: the cover
 /// projection columns exist, the inline data-URL column still does.

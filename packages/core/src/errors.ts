@@ -48,6 +48,14 @@ export const ERR_SYNC_TRANSPORT_UNAVAILABLE = "sync/transport-unavailable";
  *  settings changed since connect) — the user must reconnect. */
 export const ERR_SYNC_TRANSPORT_MISMATCH = "sync/transport-mismatch";
 
+/** The device is still backfilling the pre-checkpoint log behind a snapshot
+ *  bootstrap; full-log operations (rebuild, verify) wait for it. */
+export const ERR_SYNC_LOG_INCOMPLETE = "sync/log-incomplete";
+/** A projection checkpoint from another schema/format — ignored, never trusted. */
+export const ERR_SYNC_CHECKPOINT_MISMATCH = "sync/checkpoint-mismatch";
+/** A checkpoint operation's precondition failed (unconfirmed events, non-empty
+ *  log, no cursor); the caller retries later, nothing is broken. */
+export const ERR_SYNC_CHECKPOINT_PRECONDITION = "sync/checkpoint-precondition";
 /** AI provider failure codes (classified in @read-aware/agent). */
 export const ERR_AI_NOT_CONFIGURED = "ai/not-configured";
 export const ERR_AI_AUTH = "ai/auth";

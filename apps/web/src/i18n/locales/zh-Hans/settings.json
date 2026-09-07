@@ -459,7 +459,12 @@
       "bookUp": "正在上传《{{title}}》",
       "bookDown": "正在下载《{{title}}》",
       "bookUpParts": "正在上传《{{title}}》（{{done}}/{{total}}）",
-      "bookDownParts": "正在下载《{{title}}》（{{done}}/{{total}}）"
+      "bookDownParts": "正在下载《{{title}}》（{{done}}/{{total}}）",
+      "bootstrap": "正在从账号快照恢复书库…",
+      "verifying": "正在核对服务器已有内容… 已确认 {{count}} 项",
+      "backfill": "正在补齐历史… {{done}}/{{total}}",
+      "checkpoint": "正在保存检查点…",
+      "backfillRemaining": "历史仍在补齐：剩余 {{count}} 条变更"
     },
     "indicator": {
       "label": "同步状态",
@@ -479,6 +484,7 @@
     "books": {
       "title": "书籍文件",
       "pending": "等待上传",
+      "unverified": "正在与服务器核对",
       "failed": "上传失败，稍后重试",
       "rejectedQuota": "云端空间已满——升级方案可获得更多空间，或删除一些书。",
       "rejected": "同步服务器拒绝了这个文件，详情已写入应用日志。",

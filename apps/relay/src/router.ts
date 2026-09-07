@@ -8,7 +8,14 @@
  * `type` — it checks shapes and sizes, assigns numbers, and hands ciphertext
  * back. Client schema evolution must never require touching this file.
  */
-import type { HlcStamp, SealedEventWire, SyncKeyMaterial } from "@read-aware/core";
+import {
+  BLOB_HEAD_BYTES_HEADER,
+  BLOB_HEAD_PARTS_HEADER,
+  type HlcStamp,
+  type SealedEventWire,
+  type SnapshotMeta,
+  type SyncKeyMaterial,
+} from "@read-aware/core";
 import {
   costMicroUsd,
   creditsFromMicroUsd,
@@ -110,7 +117,8 @@ function billingReturnPage(lang: RelayLang): Response {
  */
 const CORS_HEADERS = {
   "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "access-control-allow-methods": "GET, HEAD, POST, PUT, DELETE, OPTIONS",
+  "access-control-expose-headers": `${BLOB_HEAD_BYTES_HEADER}, ${BLOB_HEAD_PARTS_HEADER}`,
   "access-control-allow-headers": "authorization, content-type",
   "access-control-max-age": "86400",
 };
@@ -498,6 +506,104 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     return json(200, page);
   }
 
+  /**
+   * "Which of these ids do you hold?" — the exact answer to a client's
+   * `unverified` bookkeeping (a re-login, an account switch, a bookkeeping
+   * migration). Ids only cross the wire, never ciphertext: verifying a whole
+   * library costs a few round-trips instead of re-uploading it.
+   */
+  async function handleHaveEvents(account: Account, req: Request): Promise<Response> {
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return failure(400, "invalid JSON body");
+    }
+    const ids =
+      typeof body === "object" && body !== null
+        ? (body as Record<string, unknown>).ids
+        : undefined;
+    if (!Array.isArray(ids)) return failure(400, "ids array is required");
+    if (ids.length > config.maxHaveIds) {
+      return failure(413, `batch exceeds ${config.maxHaveIds} ids`);
+    }
+    for (const id of ids) {
+      if (!isString(id) || id.length === 0 || id.length > 128) return failure(400, "malformed event id");
+    }
+    const seqs = await ports.mailboxFor(account.id).lookup(ids as string[]);
+    return json(200, { seqs });
+  }
+
+  // ── Snapshots (published projection checkpoints) ──────────────────────────
+  //
+  // A device that has pulled everything and pushed everything cuts a
+  // checkpoint of its projections (a SQLite file, sealed like any blob) and
+  // registers it here with the mailbox frontier it covers. A bootstrapping
+  // device downloads that one blob instead of replaying the mailbox, then
+  // pulls only the tail. The relay stores integers and a key — it can verify
+  // the blob exists and the frontier is not in the future, nothing more.
+
+  function isSnapshotBody(v: unknown): v is Omit<SnapshotMeta, "createdAt"> {
+    if (typeof v !== "object" || v === null) return false;
+    const m = v as Record<string, unknown>;
+    return (
+      isString(m.blobKey) &&
+      BLOB_KEY_SHAPE.test(m.blobKey) &&
+      m.blobKey.startsWith("snapshot:") &&
+      Number.isInteger(m.frontierSeq) &&
+      (m.frontierSeq as number) >= 0 &&
+      Number.isInteger(m.schemaVersion) &&
+      (m.schemaVersion as number) > 0 &&
+      Number.isInteger(m.byteSize) &&
+      (m.byteSize as number) >= 0 &&
+      isString(m.deviceId) &&
+      m.deviceId.length > 0 &&
+      m.deviceId.length <= 128
+    );
+  }
+
+  async function handleGetSnapshot(account: Account, url: URL): Promise<Response> {
+    const schema = Number(url.searchParams.get("schema"));
+    if (!Number.isInteger(schema) || schema <= 0) return failure(400, "schema must be a positive integer");
+    const snapshot = await accounts.getSnapshot(account.id, schema);
+    return json(200, { snapshot });
+  }
+
+  async function handlePublishSnapshot(account: Account, req: Request): Promise<Response> {
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return failure(400, "invalid JSON body");
+    }
+    if (!isSnapshotBody(body)) return failure(400, "malformed snapshot metadata");
+    // The blob must already be on the shelf, and the frontier cannot claim
+    // events the mailbox has not assigned yet.
+    if ((await blobs.head(account.id, body.blobKey)) === null) {
+      return failure(409, "snapshot blob is not uploaded");
+    }
+    const mailbox = ports.mailboxFor(account.id);
+    if (body.frontierSeq > (await mailbox.maxSeq())) {
+      return failure(409, "snapshot frontier is past the mailbox");
+    }
+    const existing = await accounts.getSnapshot(account.id, body.schemaVersion);
+    if (existing && existing.frontierSeq >= body.frontierSeq && existing.blobKey !== body.blobKey) {
+      // Another device already published something at least as fresh; the
+      // caller's upload is redundant and its blob should go.
+      return failure(409, "a snapshot at least as recent already exists");
+    }
+    const meta: SnapshotMeta = { ...body, createdAt: nowIso() };
+    const previous = await accounts.putSnapshot(account.id, meta);
+    if (previous && previous.blobKey !== meta.blobKey) {
+      // Reclaim the superseded file's quota; the row already points at the new one.
+      const freed =
+        (await blobs.delete(account.id, previous.blobKey)) +
+        (await sweepParts(account.id, previous.blobKey, 0));
+      if (freed > 0) await accounts.adjustBlobBytes(account.id, -freed);
+    }
+    return json(200, { snapshot: meta });
+  }
+
   // ── Chunked blobs ──────────────────────────────────────────────────────────
   //
   // A whole blob in one request caps a book at whatever one Worker request may
@@ -541,6 +647,37 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     const part = partParam === null ? null : Number(partParam);
     if (part !== null && (!Number.isInteger(part) || part < 0 || part >= MAX_BLOB_PARTS)) {
       return failure(400, "malformed part index");
+    }
+
+    if (req.method === "HEAD" && part === null) {
+      // "Do you already hold this?" without moving it: total sealed bytes and
+      // the part count, so the client can compare against what its own
+      // bytes would seal to. A v2 descriptor is 5 bytes; its parts are
+      // summed so a half-staged upload never reads as complete.
+      const mainSize = await blobs.head(account.id, key);
+      if (mainSize === null) return new Response(null, { status: 404, headers: CORS_HEADERS });
+      let totalBytes = mainSize;
+      let parts = 0;
+      if (mainSize === 5) {
+        const descriptor = await blobs.get(account.id, key);
+        if (descriptor && descriptor[0] === 2) {
+          parts = new DataView(descriptor.buffer, descriptor.byteOffset).getUint32(1, false);
+          totalBytes = 0;
+          for (let index = 0; index < parts; index += 1) {
+            const size = await blobs.head(account.id, partKey(key, index));
+            if (size === null) return new Response(null, { status: 404, headers: CORS_HEADERS });
+            totalBytes += size;
+          }
+        }
+      }
+      return new Response(null, {
+        status: 200,
+        headers: {
+          ...CORS_HEADERS,
+          [BLOB_HEAD_BYTES_HEADER]: String(totalBytes),
+          [BLOB_HEAD_PARTS_HEADER]: String(parts),
+        },
+      });
     }
 
     if (req.method === "GET") {
@@ -989,6 +1126,15 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     if (path === "/v1/events") {
       if (req.method === "POST") return handlePushEvents(account, req);
       if (req.method === "GET") return handlePullEvents(account, url);
+      return failure(405, "method not allowed");
+    }
+    if (path === "/v1/events/have") {
+      if (req.method === "POST") return handleHaveEvents(account, req);
+      return failure(405, "method not allowed");
+    }
+    if (path === "/v1/snapshots") {
+      if (req.method === "GET") return handleGetSnapshot(account, url);
+      if (req.method === "PUT") return handlePublishSnapshot(account, req);
       return failure(405, "method not allowed");
     }
     if (path.startsWith("/v1/blobs/")) {

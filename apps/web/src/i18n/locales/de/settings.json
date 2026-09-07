@@ -463,7 +463,12 @@
       "bookUp": "„{{title}}“ wird hochgeladen",
       "bookDown": "„{{title}}“ wird heruntergeladen",
       "bookUpParts": "„{{title}}“ wird hochgeladen ({{done}}/{{total}})",
-      "bookDownParts": "„{{title}}“ wird heruntergeladen ({{done}}/{{total}})"
+      "bookDownParts": "„{{title}}“ wird heruntergeladen ({{done}}/{{total}})",
+      "bootstrap": "Bibliothek wird aus dem Konto-Snapshot wiederhergestellt…",
+      "verifying": "Abgleich mit dem Server… {{count}} bestätigt",
+      "backfill": "Verlauf wird nachgeladen… {{done}}/{{total}}",
+      "checkpoint": "Prüfpunkt wird gespeichert…",
+      "backfillRemaining": "Verlauf wird noch nachgeladen: {{count}} Änderungen ausstehend"
     },
     "indicator": {
       "label": "Synchronisierungsstatus",
@@ -483,6 +488,7 @@
     "books": {
       "title": "Buchdateien",
       "pending": "Wartet auf Upload",
+      "unverified": "Abgleich mit dem Server",
       "failed": "Upload fehlgeschlagen — wird erneut versucht",
       "rejectedQuota": "Der Cloud-Speicher ist voll — mit einem Upgrade gibt es mehr Platz, oder entferne einige Bücher.",
       "rejected": "Der Sync-Server hat diese Datei abgelehnt. Details stehen im App-Protokoll.",

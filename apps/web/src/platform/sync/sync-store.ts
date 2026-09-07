@@ -6,10 +6,18 @@
  * but names.
  */
 import { invoke } from "../ipc";
+import { localDeviceId } from "../domain-events";
 import type { HlcStamp } from "@read-aware/core";
 import { getDesktopBlob, openDesktopBlobWriter, putDesktopBlob } from "../blob-store";
 import type { PlainEvent } from "../sync-envelope";
-import type { MergeReport, SyncLocalStore } from "./sync-engine";
+import type {
+  BackfillReport,
+  BackfillStatus,
+  CheckpointInfo,
+  MergeReport,
+  SyncLocalStore,
+  SyncOutboxCounts,
+} from "./sync-engine";
 
 export const EVENTS_FEED = "events";
 
@@ -19,11 +27,32 @@ export function createIpcSyncStore(): SyncLocalStore {
     markEventsPushed: (assigned) => invoke("sync_mark_events_pushed", { assigned }),
     markEventsFailed: (eventIds, error) =>
       invoke("sync_mark_events_failed", { eventIds, error }),
-    applyRemote: (events) => invoke<MergeReport>("apply_remote_events", { events }),
-    stageRemote: (events) => invoke<number>("stage_remote_events", { events }),
+    applyRemote: (events, seqs) =>
+      invoke<MergeReport>("apply_remote_events", { events, seqs: seqs ?? null }),
+    stageRemote: (events, seqs) =>
+      invoke<number>("stage_remote_events", { events, seqs: seqs ?? null }),
     finalizeStaged: async () => {
       await invoke("finalize_staged_events");
     },
+    outboxCounts: () => invoke<SyncOutboxCounts>("sync_outbox_counts"),
+    unverifiedEvents: (limit) => invoke<string[]>("sync_unverified_events", { limit }),
+    resolveEvents: (known, missing) => invoke("sync_resolve_events", { known, missing }),
+    assumeEventsMissing: () => invoke<number>("sync_assume_events_missing"),
+    unverifiedBlobs: (limit) =>
+      invoke<Array<{ key: string; byteSize: number | null }>>("sync_unverified_blobs", { limit }),
+    resolveBlobs: (present, absent) => invoke("sync_resolve_blobs", { present, absent }),
+    assumeBlobsMissing: () => invoke<number>("sync_assume_blobs_missing"),
+    schemaVersion: () => invoke<number>("checkpoint_schema_version"),
+    maintainCheckpoint: () => invoke<CheckpointInfo | null>("checkpoint_maintain"),
+    preparePublishCheckpoint: () => invoke<CheckpointInfo>("checkpoint_prepare_publish"),
+    markCheckpointPublished: (id) => invoke("checkpoint_mark_published", { id }),
+    restoreBootstrapCheckpoint: (blobKey) =>
+      invoke<CheckpointInfo>("checkpoint_restore_bootstrap", { blobKey }),
+    backfillStatus: () => invoke<BackfillStatus | null>("sync_backfill_status"),
+    backfillEvents: (events, seqs) =>
+      invoke<BackfillReport>("sync_backfill_events", { events, seqs }),
+    settleBackfill: () => invoke<BackfillStatus | null>("sync_backfill_settle"),
+    deviceId: () => localDeviceId(),
     async eventsCursor() {
       const cursor = await invoke<{ remoteCursor: string | null } | null>("sync_cursor_get", {
         feed: EVENTS_FEED,

@@ -11,6 +11,7 @@
 import { invoke } from "./ipc";
 import { isTauri } from "./environment";
 import { createLogger } from "./logger";
+import { flushPendingReadingTime } from "./reading-time";
 
 const log = createLogger("interim-projections");
 
@@ -146,6 +147,9 @@ export async function hydrateInterimProjections(kv: LegacyKvAccess): Promise<voi
   } catch (err) {
     log.error("vocabulary handoff failed; will retry next launch", err);
   }
+  // Buckets a crash left open become their events BEFORE the projection is
+  // read, so the boot snapshot already includes that time.
+  await flushPendingReadingTime();
   try {
     readingTime = await invoke<ReadingTimeWire>("reading_time_load");
   } catch (err) {
@@ -153,25 +157,11 @@ export async function hydrateInterimProjections(kv: LegacyKvAccess): Promise<voi
   }
 }
 
-// ─── Reading-time (boot snapshot + write-through deltas) ─────────────────────
+// ─── Reading-time (boot snapshot) ────────────────────────────────────────────
 
 /** The boot snapshot — live truth after boot is the readingStatsAtom. */
 export function getReadingTimeSnapshot(): ReadingTimeWire {
   return readingTime;
-}
-
-export function recordReadingTimeDelta(
-  bookId: string,
-  ms: number,
-  atEpochMs: number,
-  localDay: string,
-  localHour: number,
-): void {
-  void invoke("reading_time_record", { bookId, ms, atEpochMs, localDay, localHour }).catch(
-    (err) => {
-      log.error("reading_time_record failed", err);
-    },
-  );
 }
 
 export function importReadingTime(wire: ReadingTimeWire): void {

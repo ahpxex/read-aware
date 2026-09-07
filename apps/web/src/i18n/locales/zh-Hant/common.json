@@ -37,6 +37,9 @@
     "syncQuota": "同步空間已滿。",
     "syncTransportUnavailable": "提供此同步連線的外掛目前不可用。請啟用該外掛後重試。",
     "syncTransportMismatch": "同步外掛的伺服器設定在連線後已變更。請重新連線以採用新伺服器。",
+    "syncLogIncomplete": "這台裝置仍在從伺服器補齊帳號歷史，請等同步追平後再試。",
+    "syncCheckpointMismatch": "帳號快照由另一個版本的 ReadAware 產生，已被忽略；同步將改為從完整歷史重建。",
+    "syncCheckpointPrecondition": "尚有變更等待同步，暫時無法儲存檢查點，稍後會自動重試。",
     "localSaveFailedTitle": "變更未儲存",
     "localSaveFailed": "這次變更沒能寫入本機儲存空間，重新啟動後可能遺失。"
   },

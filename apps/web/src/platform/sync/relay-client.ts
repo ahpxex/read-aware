@@ -3,16 +3,22 @@
  * A thin fetch wrapper: no retries, no state beyond the injected session
  * provider — pacing and failure policy belong to the engine and scheduler.
  */
-import type {
-  AccountResponse,
-  AuthRequestResponse,
-  AuthVerifyResponse,
-  BillingPlanId,
-  BillingSessionResponse,
-  PullEventsResponse,
-  PushEventsResponse,
-  SealedEventWire,
-  SyncKeyMaterial,
+import {
+  BLOB_HEAD_BYTES_HEADER,
+  BLOB_HEAD_PARTS_HEADER,
+  type AccountResponse,
+  type AuthRequestResponse,
+  type AuthVerifyResponse,
+  type BillingPlanId,
+  type BillingSessionResponse,
+  type HaveEventsResponse,
+  type PublishSnapshotBody,
+  type PullEventsResponse,
+  type PushEventsResponse,
+  type SealedEventWire,
+  type SnapshotMeta,
+  type SnapshotResponse,
+  type SyncKeyMaterial,
 } from "@read-aware/core";
 
 export class RelayError extends Error {
@@ -161,6 +167,45 @@ export function createRelayClient(options: RelayClientOptions) {
     async pullEvents(after: number, limit: number): Promise<PullEventsResponse> {
       const res = await json("GET", `/v1/events?after=${after}&limit=${limit}`);
       return (await res.json()) as PullEventsResponse;
+    },
+    /** Which of `ids` the mailbox holds, with their seqs (absent = unknown). */
+    async haveEvents(ids: string[]): Promise<Record<string, number>> {
+      const res = await json("POST", "/v1/events/have", { ids });
+      return ((await res.json()) as HaveEventsResponse).seqs;
+    },
+    /** Sealed bytes + part count the relay holds for `key`; null when absent. */
+    async headBlob(key: string): Promise<{ bytes: number; parts: number } | null> {
+      try {
+        const res = await request(
+          "HEAD",
+          `/v1/blobs/${encodeURIComponent(key)}`,
+          undefined,
+          undefined,
+          "none",
+        );
+        return {
+          bytes: Number(res.headers.get(BLOB_HEAD_BYTES_HEADER) ?? "0"),
+          parts: Number(res.headers.get(BLOB_HEAD_PARTS_HEADER) ?? "0"),
+        };
+      } catch (error) {
+        if (error instanceof RelayError && error.status === 404) return null;
+        throw error;
+      }
+    },
+    async latestSnapshot(schemaVersion: number): Promise<SnapshotMeta | null> {
+      const res = await json("GET", `/v1/snapshots?schema=${schemaVersion}`);
+      return ((await res.json()) as SnapshotResponse).snapshot;
+    },
+    /** "conflict" = a snapshot at least as fresh already exists; the caller
+     *  deletes its redundant upload. */
+    async publishSnapshot(meta: PublishSnapshotBody): Promise<"published" | "conflict"> {
+      try {
+        await json("PUT", "/v1/snapshots", meta);
+        return "published";
+      } catch (error) {
+        if (error instanceof RelayError && error.status === 409) return "conflict";
+        throw error;
+      }
     },
     async putBlob(key: string, bytes: Uint8Array): Promise<void> {
       await request("PUT", `/v1/blobs/${encodeURIComponent(key)}`, bytes as unknown as BodyInit);

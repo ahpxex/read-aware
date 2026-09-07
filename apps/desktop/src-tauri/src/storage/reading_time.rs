@@ -420,51 +420,166 @@ pub fn reading_time_load(db: State<'_, Db>) -> Result<ReadingTimeWire, CommandEr
     Ok(ReadingTimeWire { totals, daily, hourly })
 }
 
-pub(crate) fn reading_time_record_inner(
-    conn: &Connection,
-    book_id: &str,
-    ms: i64,
-    at_epoch_ms: i64,
-    local_day: &str,
-    local_hour: i64,
-) -> Result<(), CommandError> {
-    conn.execute(
-        "INSERT INTO reading_time_totals (book_id, total_ms, first_started_at, last_read_at)
-         VALUES (?1, ?2, ?3, ?3)
-         ON CONFLICT(book_id) DO UPDATE SET
-            total_ms = total_ms + excluded.total_ms,
-            first_started_at = COALESCE(first_started_at, excluded.first_started_at),
-            last_read_at = MAX(COALESCE(last_read_at, 0), excluded.last_read_at)",
-        params![book_id, ms, at_epoch_ms],
-    )
-    ?;
-    conn.execute(
-        "INSERT INTO reading_time_daily (book_id, local_day, ms) VALUES (?1, ?2, ?3)
-         ON CONFLICT(book_id, local_day) DO UPDATE SET ms = ms + excluded.ms",
-        params![book_id, local_day, ms],
-    )
-    ?;
-    conn.execute(
-        "INSERT INTO reading_time_hourly (book_id, local_hour, ms) VALUES (?1, ?2, ?3)
-         ON CONFLICT(book_id, local_hour) DO UPDATE SET ms = ms + excluded.ms",
-        params![book_id, local_hour, ms],
-    )
-    ?;
-    Ok(())
+// ── Pending accrual (the tracker's crash-safe buffer) ────────────────────────
+//
+// The tracker used to mint a `book.timeRecorded` event every five minutes as
+// a safety flush — ~12 events per reading hour saying what one could. Now a
+// tick ACCRUES into a (book, local day, local hour) bucket here, the event is
+// minted only when the bucket CLOSES (hour rolls over, the book or the app
+// closes), and the flush deletes the bucket in the same transaction as the
+// commit. A crash loses nothing: the next boot flushes whatever is buffered.
+// [device-local] — never synced, never derived, never in a checkpoint.
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadingTimeBucket {
+    pub book_id: String,
+    pub local_day: String,
+    pub local_hour: i64,
+    pub ms: i64,
+    /// Epoch ms of the first and latest tick in the bucket.
+    pub started_at: i64,
+    pub last_at: i64,
 }
 
-/// One active-reading delta (the tracker's tick), bucketed at record time.
-#[tauri::command]
-pub fn reading_time_record(
-    book_id: String,
-    ms: i64,
+pub(crate) fn reading_time_accrue_inner(
+    conn: &Connection,
+    book_id: &str,
+    local_day: &str,
+    local_hour: i64,
+    delta_ms: i64,
     at_epoch_ms: i64,
+) -> Result<ReadingTimeBucket, CommandError> {
+    if delta_ms <= 0 {
+        return Err(CommandError::internal("reading_time_accrue: delta must be positive"));
+    }
+    conn.execute(
+        "INSERT INTO reading_time_pending
+            (book_id, local_day, local_hour, ms, started_at, last_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?5)
+         ON CONFLICT(book_id, local_day, local_hour) DO UPDATE SET
+            ms = ms + excluded.ms,
+            last_at = MAX(last_at, excluded.last_at)",
+        params![book_id, local_day, local_hour, delta_ms, at_epoch_ms],
+    )?;
+    conn.query_row(
+        "SELECT book_id, local_day, local_hour, ms, started_at, last_at
+           FROM reading_time_pending
+          WHERE book_id = ?1 AND local_day = ?2 AND local_hour = ?3",
+        params![book_id, local_day, local_hour],
+        row_to_bucket,
+    )
+    .map_err(CommandError::from)
+}
+
+fn row_to_bucket(row: &rusqlite::Row) -> rusqlite::Result<ReadingTimeBucket> {
+    Ok(ReadingTimeBucket {
+        book_id: row.get(0)?,
+        local_day: row.get(1)?,
+        local_hour: row.get(2)?,
+        ms: row.get(3)?,
+        started_at: row.get(4)?,
+        last_at: row.get(5)?,
+    })
+}
+
+pub(crate) fn reading_time_pending_inner(conn: &Connection) -> Result<Vec<ReadingTimeBucket>, CommandError> {
+    let mut stmt = conn.prepare(
+        "SELECT book_id, local_day, local_hour, ms, started_at, last_at
+           FROM reading_time_pending
+          ORDER BY started_at",
+    )?;
+    let rows = stmt
+        .query_map([], row_to_bucket)?
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(rows)
+}
+
+/// Close buckets: commit the caller-minted `book.timeRecorded` events through
+/// the ordinary write path and retire exactly the milliseconds they carry, in
+/// ONE transaction. Each event's payload names its bucket (`bookId`,
+/// `localDay`, `localHour`, `ms`); a bucket that accrued more since the
+/// caller read it keeps the remainder, so a tick racing a flush is never
+/// lost or double-counted. Returns the commit report.
+pub(crate) fn reading_time_flush_inner(
+    conn: &mut Connection,
+    events_in: &[EventRow],
+) -> Result<CommitReport, CommandError> {
+    let tx = conn.transaction()?;
+    let mut report = CommitReport {
+        appended: 0,
+        applied: 0,
+    };
+    for ev in events_in {
+        if ev.event_type != "book.timeRecorded" {
+            return Err(CommandError::internal(format!(
+                "reading_time_flush: refusing to flush a `{}` event",
+                ev.event_type
+            )));
+        }
+        let book_id = ev.payload.get("bookId").and_then(|v| v.as_str()).ok_or_else(|| {
+            CommandError::internal("reading_time_flush: payload lacks bookId")
+        })?;
+        let local_day = ev.payload.get("localDay").and_then(|v| v.as_str()).ok_or_else(|| {
+            CommandError::internal("reading_time_flush: payload lacks localDay")
+        })?;
+        let local_hour = ev.payload.get("localHour").and_then(|v| v.as_i64()).ok_or_else(|| {
+            CommandError::internal("reading_time_flush: payload lacks localHour")
+        })?;
+        let ms = ev.payload.get("ms").and_then(|v| v.as_i64()).unwrap_or(0);
+        if ms <= 0 {
+            continue;
+        }
+        if !events::insert_event_row(&tx, ev, events::EventSource::Local)? {
+            // Redelivery of an already-logged flush: the bucket was retired
+            // with it the first time.
+            continue;
+        }
+        report.appended += 1;
+        if apply::apply_event(&tx, ev)? {
+            report.applied += 1;
+        }
+        tx.execute(
+            "UPDATE reading_time_pending SET ms = ms - ?4
+              WHERE book_id = ?1 AND local_day = ?2 AND local_hour = ?3",
+            params![book_id, local_day, local_hour, ms],
+        )?;
+        tx.execute(
+            "DELETE FROM reading_time_pending
+              WHERE book_id = ?1 AND local_day = ?2 AND local_hour = ?3 AND ms <= 0",
+            params![book_id, local_day, local_hour],
+        )?;
+    }
+    tx.commit()?;
+    Ok(report)
+}
+
+/// One tracker tick: add `deltaMs` of active reading to its hour bucket.
+/// Returns the bucket as it stands, so the caller can decide to close it.
+#[tauri::command]
+pub fn reading_time_accrue(
+    book_id: String,
     local_day: String,
     local_hour: i64,
+    delta_ms: i64,
+    at_epoch_ms: i64,
     db: State<'_, Db>,
-) -> Result<(), CommandError> {
+) -> Result<ReadingTimeBucket, CommandError> {
     let conn = db.0.lock()?;
-    reading_time_record_inner(&conn, &book_id, ms, at_epoch_ms, &local_day, local_hour)
+    reading_time_accrue_inner(&conn, &book_id, &local_day, local_hour, delta_ms, at_epoch_ms)
+}
+
+/// Every open bucket (boot recovery reads these to close what a crash left).
+#[tauri::command]
+pub fn reading_time_pending(db: State<'_, Db>) -> Result<Vec<ReadingTimeBucket>, CommandError> {
+    let conn = db.0.lock()?;
+    reading_time_pending_inner(&conn)
+}
+
+#[tauri::command]
+pub fn reading_time_flush(events: Vec<EventRow>, db: State<'_, Db>) -> Result<CommitReport, CommandError> {
+    let mut conn = db.0.lock()?;
+    reading_time_flush_inner(&mut conn, &events)
 }
 
 /// Bulk replace (one-time app_kv migration; the stats demo seed).

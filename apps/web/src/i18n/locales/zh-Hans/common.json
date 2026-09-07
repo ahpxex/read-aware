@@ -37,6 +37,9 @@
     "syncQuota": "同步空间已满。",
     "syncTransportUnavailable": "提供此同步连接的插件当前不可用。请启用该插件后重试。",
     "syncTransportMismatch": "同步插件的服务器设置在连接后发生了变化。请重新连接以采用新服务器。",
+    "syncLogIncomplete": "这台设备仍在从服务器补齐账号历史，请等同步追平后再试。",
+    "syncCheckpointMismatch": "账号快照由另一个版本的 ReadAware 生成，已被忽略；同步将改为从完整历史重建。",
+    "syncCheckpointPrecondition": "尚有变更等待同步，暂时无法保存检查点，稍后会自动重试。",
     "localSaveFailedTitle": "更改未保存",
     "localSaveFailed": "这次更改没能写入本地存储，重启后可能丢失。"
   },

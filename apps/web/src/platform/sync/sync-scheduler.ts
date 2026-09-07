@@ -27,6 +27,7 @@ import { createRelayClient, RelayError, RelayMisdirectedError, type RelayClient 
 import {
   createSyncEngine,
   nextSyncDelayMs,
+  type SyncCycleOutcome,
   type SyncCycleProgress,
   type SyncEngine,
 } from "./sync-engine";
@@ -145,7 +146,10 @@ export type SyncStatusSnapshot = {
    */
   cycleTotals: { events: number; blobs: number } | null;
   /** What the last completed cycle moved (for the detail surfaces). */
-  lastCycle: { pulled: number; pushed: number; blobs: number } | null;
+  lastCycle: { pulled: number; pushed: number; blobs: number; backfilled?: number } | null;
+  /** Pre-frontier events still to backfill behind a snapshot bootstrap;
+   *  0 once the log is complete (also 0 when no bootstrap happened). */
+  backfillRemaining: number;
 };
 
 let status: SyncStatusSnapshot = {
@@ -158,6 +162,7 @@ let status: SyncStatusSnapshot = {
   progress: null,
   cycleTotals: null,
   lastCycle: null,
+  backfillRemaining: 0,
 };
 const statusListeners = new Set<() => void>();
 
@@ -283,8 +288,11 @@ const isAuthRejection = (error: unknown): boolean =>
 
 let running = false;
 
-async function runCycle(): Promise<void> {
-  if (running) return;
+/** How soon the next cycle runs while a bootstrap's backfill is still owed. */
+const BACKFILL_FOLLOW_UP_MS = 1_500;
+
+async function runCycle(): Promise<SyncCycleOutcome | null> {
+  if (running) return null;
   running = true;
   // Denominators first: what the outbox holds now is what this cycle's push
   // and blob phases will work through. Best-effort — without them the ring
@@ -301,6 +309,10 @@ async function runCycle(): Promise<void> {
       phase: "pull",
       pulled: 0,
       pushed: 0,
+      verified: 0,
+      backfilled: 0,
+      backfillFrontier: 0,
+      backfillCursor: 0,
       blobsDone: 0,
       blobsTotal: 0,
       blobKey: null,
@@ -311,8 +323,9 @@ async function runCycle(): Promise<void> {
     cycleTotals,
   });
   try {
-    const { pulled, pushed, blobs } = await (await resolveEngine()).syncOnce();
-    if (pulled > 0) {
+    const outcome = await (await resolveEngine()).syncOnce();
+    const { pulled, pushed, blobs, bootstrapped } = outcome;
+    if (pulled > 0 || bootstrapped) {
       // Another device may have imported content this shelf already holds —
       // collapse same-sha records BEFORE announcing, so the reload that
       // follows paints the merged shelf, not a momentary duplicate.
@@ -334,12 +347,14 @@ async function runCycle(): Promise<void> {
       lastErrorCode: null,
       progress: null,
       cycleTotals: null,
-      lastCycle: { pulled, pushed, blobs },
+      lastCycle: { pulled, pushed, blobs, backfilled: outcome.backfilled },
+      backfillRemaining: outcome.backfillRemaining,
     });
     // Covers other devices extracted: fetch whatever the shelf still lacks.
     // Runs after EVERY cycle (not just pulls) because the peer's cover upload
     // produces no event to pull — only its bytes appearing on the relay.
-    void hydrateMissingCovers(fetchRemoteBlob, { reset: pulled > 0 });
+    void hydrateMissingCovers(fetchRemoteBlob, { reset: pulled > 0 || bootstrapped });
+    return outcome;
   } finally {
     running = false;
   }
@@ -442,6 +457,7 @@ export function startSyncScheduler(): () => void {
     progress: null,
     cycleTotals: null,
     lastCycle: null,
+    backfillRemaining: 0,
   });
   if (!isTauri()) return () => {};
 
@@ -484,9 +500,11 @@ export function startSyncScheduler(): () => void {
   const tick = () => {
     if (sessionRejected) return;
     void runCycle()
-      .then(() => {
+      .then((outcome) => {
         failures = 0;
-        schedule(PULL_INTERVAL_MS);
+        // A bootstrapped device owes the pre-frontier log: keep cycling
+        // briskly (each cycle backfills a bounded slice) until it is whole.
+        schedule(outcome && outcome.backfillRemaining > 0 ? BACKFILL_FOLLOW_UP_MS : PULL_INTERVAL_MS);
       })
       .catch((error) => {
         if (isAuthRejection(error)) {
@@ -556,12 +574,10 @@ export function startSyncScheduler(): () => void {
     socket.onerror = () => socket.close();
   };
 
-  const offBroadcast = onDomainEventBroadcast(() => {
-    // A local write: push soon, but let a burst (import, batch edit) settle.
-    if (disposed) return;
-    if (pushDebounce !== null) window.clearTimeout(pushDebounce);
-    pushDebounce = window.setTimeout(tick, PUSH_DEBOUNCE_MS);
-  });
+  // Registered only once the connection is confirmed below: a local write on
+  // a disconnected device (a preference at boot, anything after sign-out)
+  // must not wake a cycle that can only fail with "no master key".
+  let offBroadcast: (() => void) | null = null;
   const onFocus = () => tick();
   // Mobile lifecycle: a backgrounded webview pauses timers, so a scheduled
   // retry can sleep indefinitely. Coming back to the foreground resumes the
@@ -586,6 +602,12 @@ export function startSyncScheduler(): () => void {
     }
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisible);
+    offBroadcast = onDomainEventBroadcast(() => {
+      // A local write: push soon, but let a burst (import, batch edit) settle.
+      if (disposed) return;
+      if (pushDebounce !== null) window.clearTimeout(pushDebounce);
+      pushDebounce = window.setTimeout(tick, PUSH_DEBOUNCE_MS);
+    });
     setStatus({
       state: "idle",
       accountConnected: true,
@@ -621,7 +643,7 @@ export function startSyncScheduler(): () => void {
     if (doorbellDebounce !== null) window.clearTimeout(doorbellDebounce);
     watchSocket?.close();
     watchSocket = null;
-    offBroadcast();
+    offBroadcast?.();
     offTransports?.();
     stopCoverHydration();
     window.removeEventListener("focus", onFocus);

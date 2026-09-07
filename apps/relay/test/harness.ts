@@ -62,6 +62,8 @@ function coreMailbox(core: MailboxCore, nowIso: () => string): Mailbox {
     append: async (events, maxEvents) => core.append(events, nowIso(), maxEvents),
     count: async () => core.count(),
     listAfter: async (after, limit) => core.listAfter(after, limit),
+    lookup: async (ids) => core.lookup(ids),
+    maxSeq: async () => core.maxSeq(),
     wipe: async () => core.wipe(),
   };
 }
@@ -179,6 +181,21 @@ export function putBytes(path: string, bytes: Uint8Array, session: string): Requ
     method: "PUT",
     body: bytes,
     headers: { authorization: `Bearer ${session}` },
+  });
+}
+
+export function head(path: string, session: string): Request {
+  return new Request(`${BASE}${path}`, {
+    method: "HEAD",
+    headers: { authorization: `Bearer ${session}` },
+  });
+}
+
+export function put(path: string, body: unknown, session: string): Request {
+  return new Request(`${BASE}${path}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+    headers: { authorization: `Bearer ${session}`, "content-type": "application/json" },
   });
 }
 

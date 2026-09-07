@@ -36,6 +36,8 @@ mod reading_time;
 pub use reading_time::*;
 mod preferences;
 pub use preferences::*;
+mod checkpoints;
+pub use checkpoints::*;
 
 use crate::error::CommandError;
 use std::io::{Read, Seek, SeekFrom};
@@ -145,9 +147,16 @@ pub struct LocalDeviceInfo {
 pub fn local_device_get(db: State<'_, Db>) -> Result<LocalDeviceInfo, CommandError> {
     let conn = db.0.lock()?;
     let device_id = ensure_local_device(&conn)?;
+    // The log's newest stamp — OR a restored checkpoint's frontier, which is
+    // newer than anything a still-backfilling log holds: the projections
+    // already reflect events up to it, so local stamps must sort after it.
     let last = conn
         .query_row(
-            "SELECT hlc_wall_ms, hlc_counter FROM domain_events
+            "SELECT hlc_wall_ms, hlc_counter FROM (
+                SELECT hlc_wall_ms, hlc_counter FROM domain_events
+                UNION ALL
+                SELECT hlc_wall_ms, hlc_counter FROM projection_checkpoints
+             )
              ORDER BY hlc_wall_ms DESC, hlc_counter DESC LIMIT 1",
             [],
             |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),

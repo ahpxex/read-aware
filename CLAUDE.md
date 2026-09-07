@@ -30,8 +30,16 @@
 > - **Known gap:** rows written before that landed still carry mutations the
 >   log never recorded (a recolor, a memory reinforcement). `verify_projections`
 >   reports them; they cannot be recovered, only outgrown.
-> - Not built yet: the sync engine, and the consolidation pipeline behind
->   profile/entity events (they are logged but project to nothing).
+> - **Sync engine is live** (relay = Cloudflare Worker + DO mailbox + R2,
+>   E2E-sealed; docs/sync-engine.md). Since 2026-09-07: exact bookkeeping
+>   (`unverified` rows settle via `/v1/events/have` + blob HEAD, and a pull's
+>   `seqs` acknowledge pushes — a re-login never re-uploads), projection
+>   checkpoints (replay = newest valid checkpoint + tail; a published
+>   `snapshot:` blob bootstraps a new device in one download, the log
+>   backfills behind it), and reading time accrues in `reading_time_pending`
+>   with one `book.timeRecorded` per closed hour bucket.
+> - Not built yet: the consolidation pipeline behind profile/entity events
+>   (they are logged but project to nothing).
 > - **Book memory v1 is live**: `book.chapterDigested` events project to
 >   `chapter_digests` (per-finished-chapter summary + entity registry,
 >   names spelled as THIS edition spells them), filled by an idle pipeline

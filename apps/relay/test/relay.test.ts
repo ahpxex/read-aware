@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { del, get, login, makeRelay, post, putBytes, sealed } from "./harness";
+import { del, get, head, login, makeRelay, post, put, putBytes, sealed } from "./harness";
 import { foldClientIp } from "../src/rate-limit-store";
 
 const KEYS = {
@@ -507,5 +507,127 @@ describe("unauthenticated throttles (docs/sync-engine.md §4)", () => {
     expect(rotated[0]).toBe("2001:0db8:85a3:1234:/64");
     // A different /64 stays a different subject.
     expect(foldClientIp("2001:db8:85a3:9999::1")).not.toBe(rotated[0]);
+  });
+});
+
+
+describe("verification without re-upload (the `unverified` bookkeeping)", () => {
+  test("a pull page carries every event's seq, parallel to the events", async () => {
+    const { handle } = makeRelay();
+    const { session } = await login(handle, "reader@example.com");
+    await handle(post("/v1/events", { events: [sealed("e1"), sealed("e2"), sealed("e3")] }, session));
+    const page = await handle(get("/v1/events?after=1&limit=5", session));
+    const body = (await page.json()) as { events: { id: string }[]; next: number; seqs: number[] };
+    expect(body.events.map((e) => e.id)).toEqual(["e2", "e3"]);
+    expect(body.seqs).toEqual([2, 3]);
+    expect(body.next).toBe(3);
+  });
+
+  test("/v1/events/have answers with seqs for known ids only", async () => {
+    const { handle } = makeRelay({ maxHaveIds: 3 });
+    const { session } = await login(handle, "reader@example.com");
+    await handle(post("/v1/events", { events: [sealed("e1"), sealed("e2")] }, session));
+    const answer = await handle(post("/v1/events/have", { ids: ["e2", "nope", "e1"] }, session));
+    expect(answer.status).toBe(200);
+    expect(await answer.json()).toEqual({ seqs: { e1: 1, e2: 2 } });
+    // Shape and size limits, and account isolation.
+    expect((await handle(post("/v1/events/have", { ids: "e1" }, session))).status).toBe(400);
+    expect((await handle(post("/v1/events/have", { ids: [""] }, session))).status).toBe(400);
+    expect((await handle(post("/v1/events/have", { ids: ["a", "b", "c", "d"] }, session))).status).toBe(413);
+    const other = await login(handle, "other@example.com");
+    const foreign = await handle(post("/v1/events/have", { ids: ["e1"] }, other.session));
+    expect(await foreign.json()).toEqual({ seqs: {} });
+  });
+
+  test("HEAD reports sealed bytes and part count for whole and chunked blobs", async () => {
+    const { handle } = makeRelay();
+    const { session } = await login(handle, "reader@example.com");
+    expect((await handle(head("/v1/blobs/bookfile%3Ab1", session))).status).toBe(404);
+    await handle(putBytes("/v1/blobs/bookfile%3Ab1", new Uint8Array(1_000), session));
+    const whole = await handle(head("/v1/blobs/bookfile%3Ab1", session));
+    expect(whole.status).toBe(200);
+    expect(whole.headers.get("x-ra-blob-bytes")).toBe("1000");
+    expect(whole.headers.get("x-ra-blob-parts")).toBe("0");
+
+    // Chunked: two staged parts + commit → bytes = sum of parts, parts = 2.
+    await handle(putBytes("/v1/blobs/bookfile%3Ab2?part=0&parts=2", new Uint8Array(300), session));
+    // Half-staged: no descriptor yet → absent.
+    expect((await handle(head("/v1/blobs/bookfile%3Ab2", session))).status).toBe(404);
+    await handle(putBytes("/v1/blobs/bookfile%3Ab2?part=1&parts=2", new Uint8Array(200), session));
+    await handle(putBytes("/v1/blobs/bookfile%3Ab2?commit=1&parts=2", new Uint8Array(0), session));
+    const chunked = await handle(head("/v1/blobs/bookfile%3Ab2", session));
+    expect(chunked.status).toBe(200);
+    expect(chunked.headers.get("x-ra-blob-bytes")).toBe("500");
+    expect(chunked.headers.get("x-ra-blob-parts")).toBe("2");
+    // Never crosses accounts.
+    const other = await login(handle, "other@example.com");
+    expect((await handle(head("/v1/blobs/bookfile%3Ab1", other.session))).status).toBe(404);
+  });
+});
+
+describe("snapshots (published projection checkpoints)", () => {
+  const meta = (blobKey: string, frontierSeq: number, schemaVersion = 26) => ({
+    blobKey,
+    frontierSeq,
+    schemaVersion,
+    byteSize: 4096,
+    deviceId: "device-a",
+  });
+
+  test("publish requires the blob on the shelf and a frontier the mailbox reached", async () => {
+    const { handle } = makeRelay();
+    const { session } = await login(handle, "reader@example.com");
+    expect(((await (await handle(get("/v1/snapshots?schema=26", session))).json()) as { snapshot: unknown }).snapshot).toBeNull();
+    await handle(post("/v1/events", { events: [sealed("e1"), sealed("e2")] }, session));
+    // Blob not uploaded yet.
+    expect((await handle(put("/v1/snapshots", meta("snapshot:v26:device-a:1", 2), session))).status).toBe(409);
+    await handle(putBytes("/v1/blobs/snapshot%3Av26%3Adevice-a%3A1", new Uint8Array(64), session));
+    // Frontier past the mailbox.
+    expect((await handle(put("/v1/snapshots", meta("snapshot:v26:device-a:1", 3), session))).status).toBe(409);
+    // Not a snapshot key.
+    expect((await handle(put("/v1/snapshots", meta("bookfile:b1", 2), session))).status).toBe(400);
+    const published = await handle(put("/v1/snapshots", meta("snapshot:v26:device-a:1", 2), session));
+    expect(published.status).toBe(200);
+    const fetched = await handle(get("/v1/snapshots?schema=26", session));
+    const { snapshot } = (await fetched.json()) as { snapshot: Record<string, unknown> };
+    expect(snapshot).toMatchObject({ blobKey: "snapshot:v26:device-a:1", frontierSeq: 2, schemaVersion: 26 });
+    expect(typeof snapshot.createdAt).toBe("string");
+    // Another schema version is a separate slot.
+    expect(((await (await handle(get("/v1/snapshots?schema=27", session))).json()) as { snapshot: unknown }).snapshot).toBeNull();
+  });
+
+  test("a fresher publish replaces the row and reclaims the old blob's quota; a staler one is refused", async () => {
+    const { handle } = makeRelay();
+    const { session } = await login(handle, "reader@example.com");
+    await handle(post("/v1/events", { events: [sealed("e1"), sealed("e2"), sealed("e3")] }, session));
+    await handle(putBytes("/v1/blobs/snapshot%3Av26%3Adevice-a%3A1", new Uint8Array(100), session));
+    await handle(put("/v1/snapshots", meta("snapshot:v26:device-a:1", 1), session));
+    const before = (await (await handle(get("/v1/account", session))).json()) as { blobBytesUsed: number };
+    expect(before.blobBytesUsed).toBe(100);
+
+    await handle(putBytes("/v1/blobs/snapshot%3Av26%3Adevice-b%3A3", new Uint8Array(150), session));
+    // Staler than what is published (frontier 1 ≥ ... no: 3 > 1, so accepted); first try a stale one.
+    await handle(putBytes("/v1/blobs/snapshot%3Av26%3Adevice-c%3A0", new Uint8Array(10), session));
+    expect((await handle(put("/v1/snapshots", { ...meta("snapshot:v26:device-c:0", 1), deviceId: "device-c" }, session))).status).toBe(409);
+    const fresher = await handle(put("/v1/snapshots", { ...meta("snapshot:v26:device-b:3", 3), deviceId: "device-b" }, session));
+    expect(fresher.status).toBe(200);
+    // The superseded blob is gone and its bytes refunded.
+    expect((await handle(head("/v1/blobs/snapshot%3Av26%3Adevice-a%3A1", session))).status).toBe(404);
+    const after = (await (await handle(get("/v1/account", session))).json()) as { blobBytesUsed: number };
+    expect(after.blobBytesUsed).toBe(150 + 10);
+    const { snapshot } = (await (await handle(get("/v1/snapshots?schema=26", session))).json()) as { snapshot: { blobKey: string } };
+    expect(snapshot.blobKey).toBe("snapshot:v26:device-b:3");
+  });
+
+  test("account deletion drops the snapshot row with everything else", async () => {
+    const { handle } = makeRelay();
+    const first = await login(handle, "reader@example.com");
+    await handle(post("/v1/events", { events: [sealed("e1")] }, first.session));
+    await handle(putBytes("/v1/blobs/snapshot%3Av26%3Adevice-a%3A1", new Uint8Array(8), first.session));
+    await handle(put("/v1/snapshots", meta("snapshot:v26:device-a:1", 1), first.session));
+    expect((await handle(del("/v1/account", first.session))).status).toBe(204);
+    const rejoined = await login(handle, "reader@example.com");
+    const { snapshot } = (await (await handle(get("/v1/snapshots?schema=26", rejoined.session))).json()) as { snapshot: unknown };
+    expect(snapshot).toBeNull();
   });
 });

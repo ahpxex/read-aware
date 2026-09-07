@@ -467,7 +467,12 @@
       "bookUp": "Subiendo «{{title}}»",
       "bookDown": "Descargando «{{title}}»",
       "bookUpParts": "Subiendo «{{title}}» ({{done}}/{{total}})",
-      "bookDownParts": "Descargando «{{title}}» ({{done}}/{{total}})"
+      "bookDownParts": "Descargando «{{title}}» ({{done}}/{{total}})",
+      "bootstrap": "Restaurando la biblioteca desde la instantánea de la cuenta…",
+      "verifying": "Comprobando lo que el servidor ya tiene… {{count}} confirmados",
+      "backfill": "Completando el historial… {{done}}/{{total}}",
+      "checkpoint": "Guardando un punto de control…",
+      "backfillRemaining": "El historial sigue completándose: quedan {{count}} cambios"
     },
     "indicator": {
       "label": "Estado de sincronización",
@@ -487,6 +492,7 @@
     "books": {
       "title": "Archivos de libros",
       "pending": "Pendiente de subir",
+      "unverified": "Comprobando con el servidor",
       "failed": "Error al subir — se reintentará",
       "rejectedQuota": "El almacenamiento en la nube está lleno: mejora tu plan para más espacio o elimina algunos libros.",
       "rejected": "El servidor de sincronización rechazó este archivo. Los detalles están en el registro.",

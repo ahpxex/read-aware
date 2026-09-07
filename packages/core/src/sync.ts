@@ -144,7 +144,58 @@ export type PullEventsResponse = {
    * back shorter than the requested limit, the feed is drained.
    */
   next: number;
+  /**
+   * `events[i]`'s server_seq, parallel to `events`. A pulled envelope proves
+   * the mailbox holds that id, so the client settles its push bookkeeping
+   * from the pull itself; the array is optional only for older relays.
+   */
+  seqs?: number[];
 };
+
+/**
+ * POST /v1/events/have — "which of these ids do you hold?" The exact answer
+ * to an `unverified` bookkeeping row: a re-login, an account switch, or a
+ * bookkeeping migration no longer re-uploads the library to find out.
+ */
+export type HaveEventsBody = { ids: string[] };
+/** Only the KNOWN ids appear; an absent id owes a push. */
+export type HaveEventsResponse = { seqs: Record<string, number> };
+
+// ── /v1/blobs (HEAD) ─────────────────────────────────────────────────────────
+
+/**
+ * `HEAD /v1/blobs/<key>` answers 404 or 200 with these headers: the total
+ * sealed bytes the relay holds for the key (v1: the whole object; v2: the
+ * sum of every staged part) and the part count (0 for a v1 whole blob). The
+ * client compares against what ITS bytes would seal to, so a HEAD settles
+ * "already uploaded?" without moving the blob.
+ */
+export const BLOB_HEAD_BYTES_HEADER = "x-ra-blob-bytes";
+export const BLOB_HEAD_PARTS_HEADER = "x-ra-blob-parts";
+
+// ── /v1/snapshots ────────────────────────────────────────────────────────────
+
+/**
+ * A published projection checkpoint (docs/sync-engine.md §13): a `snapshot:`
+ * blob the account's devices cut from a mailbox-exact log, plus the numbers a
+ * bootstrapping device needs to trust it. One per (account, schemaVersion);
+ * the relay understands none of the file — it stores ciphertext and
+ * integers.
+ */
+export type SnapshotMeta = {
+  blobKey: string;
+  /** Every mailbox event with server_seq <= frontierSeq is reflected. */
+  frontierSeq: number;
+  /** The client schema the tables inside were cut under; must match exactly. */
+  schemaVersion: number;
+  /** Plaintext file size (the sealed blob is a little larger). */
+  byteSize: number;
+  /** Which device cut it (diagnostics only). */
+  deviceId: string;
+  createdAt: string;
+};
+export type PublishSnapshotBody = Omit<SnapshotMeta, "createdAt">;
+export type SnapshotResponse = { snapshot: SnapshotMeta | null };
 
 /** Uniform error body for every non-2xx response. */
 export type RelayErrorResponse = { error: string };

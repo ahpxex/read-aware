@@ -294,6 +294,7 @@ export function SyncAccountGroupView({
   const bookStateLabel = (row: SyncBookBacklogRow): { text: string; tone?: "error" } => {
     if (!row.localBytes) return { text: t("dataSync.books.awaitingOtherDevice") };
     if (row.pushState === "pending") return { text: t("dataSync.books.pending") };
+    if (row.pushState === "unverified") return { text: t("dataSync.books.unverified") };
     if (row.pushState === "failed") return { text: t("dataSync.books.failed") };
     const code = rejectionCode(row);
     if (code === ERR_SYNC_QUOTA) {

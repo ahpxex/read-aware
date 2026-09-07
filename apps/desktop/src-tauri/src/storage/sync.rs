@@ -412,14 +412,25 @@ pub fn sync_mark_blobs_failed(
 pub struct SyncOutboxCounts {
     pub events: i64,
     pub blobs: i64,
+    /// Rows whose mailbox status is unknown (after an account adoption); the
+    /// engine's verify phase settles them into `synced` or `pending`.
+    #[serde(default)]
+    pub unverified_events: i64,
+    #[serde(default)]
+    pub unverified_blobs: i64,
 }
 
-#[tauri::command]
-pub fn sync_outbox_counts(db: State<'_, Db>) -> Result<SyncOutboxCounts, CommandError> {
-    let conn = db.0.lock()?;
+pub(crate) fn sync_outbox_counts_inner(conn: &Connection) -> Result<SyncOutboxCounts, CommandError> {
     let events: i64 = conn
         .query_row(
             "SELECT COUNT(*) FROM event_sync_state WHERE push_state IN ('pending','failed')",
+            [],
+            |row| row.get(0),
+        )
+        ?;
+    let unverified_events: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM event_sync_state WHERE push_state = 'unverified'",
             [],
             |row| row.get(0),
         )
@@ -436,7 +447,197 @@ pub fn sync_outbox_counts(db: State<'_, Db>) -> Result<SyncOutboxCounts, Command
             |row| row.get(0),
         )
         ?;
-    Ok(SyncOutboxCounts { events, blobs })
+    let unverified_blobs: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM blob_objects bo
+             JOIN blob_sync_state bs ON bs.blob_key = bo.key
+             WHERE bs.push_state = 'unverified'
+               AND bo.sync_required = 1
+               AND bo.deleted_at IS NULL
+               AND bo.storage_uri IS NOT NULL",
+            [],
+            |row| row.get(0),
+        )
+        ?;
+    Ok(SyncOutboxCounts {
+        events,
+        blobs,
+        unverified_events,
+        unverified_blobs,
+    })
+}
+
+#[tauri::command]
+pub fn sync_outbox_counts(db: State<'_, Db>) -> Result<SyncOutboxCounts, CommandError> {
+    let conn = db.0.lock()?;
+    sync_outbox_counts_inner(&conn)
+}
+
+// ── Verification (the `unverified` state) ────────────────────────────────────
+
+/// Event ids whose mailbox status is unknown, oldest bookkeeping first.
+pub(crate) fn sync_unverified_events_inner(conn: &Connection, limit: i64) -> Result<Vec<String>, CommandError> {
+    let mut stmt = conn.prepare(
+        "SELECT event_id FROM event_sync_state
+          WHERE push_state = 'unverified'
+          ORDER BY updated_at, event_id
+          LIMIT ?1",
+    )?;
+    let ids = stmt
+        .query_map(params![limit], |row| row.get(0))?
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(ids)
+}
+
+#[tauri::command]
+pub fn sync_unverified_events(limit: i64, db: State<'_, Db>) -> Result<Vec<String>, CommandError> {
+    let conn = db.0.lock()?;
+    sync_unverified_events_inner(&conn, limit)
+}
+
+/// The relay's answer for a batch of unverified ids: `known` ones are settled
+/// as synced at their seq; `missing` ones owe a push and go `pending`. One
+/// transaction, so a crash between the two halves cannot leave a batch half
+/// settled against a stale answer.
+pub(crate) fn sync_resolve_events_inner(
+    conn: &mut Connection,
+    known: &[(String, i64)],
+    missing: &[String],
+) -> Result<(), CommandError> {
+    let tx = conn.transaction()?;
+    for (event_id, seq) in known {
+        tx.execute(
+            "UPDATE event_sync_state
+                SET push_state = 'synced', remote_id = ?2, last_error = NULL,
+                    pushed_at = COALESCE(pushed_at, strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+                    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+              WHERE event_id = ?1 AND push_state = 'unverified'",
+            params![event_id, seq.to_string()],
+        )?;
+    }
+    for event_id in missing {
+        tx.execute(
+            "UPDATE event_sync_state
+                SET push_state = 'pending', remote_id = NULL, pushed_at = NULL,
+                    last_error = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+              WHERE event_id = ?1 AND push_state = 'unverified'",
+            params![event_id],
+        )?;
+    }
+    tx.commit()?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn sync_resolve_events(
+    known: Vec<(String, i64)>,
+    missing: Vec<String>,
+    db: State<'_, Db>,
+) -> Result<(), CommandError> {
+    let mut conn = db.0.lock()?;
+    sync_resolve_events_inner(&mut conn, &known, &missing)
+}
+
+/// A transport that cannot answer "do you have these ids?" gets the
+/// pessimistic settlement: everything unverified owes a push.
+#[tauri::command]
+pub fn sync_assume_events_missing(db: State<'_, Db>) -> Result<i64, CommandError> {
+    let conn = db.0.lock()?;
+    let n = conn.execute(
+        "UPDATE event_sync_state
+            SET push_state = 'pending', updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+          WHERE push_state = 'unverified'",
+        [],
+    )?;
+    Ok(n as i64)
+}
+
+/// Blobs whose mailbox status is unknown and that this device could push
+/// (bytes present, user data). Same shape as the outbox so the engine can
+/// HEAD them with the byte size in hand.
+pub(crate) fn sync_unverified_blobs_inner(conn: &Connection, limit: i64) -> Result<Vec<SyncBlobTask>, CommandError> {
+    let mut stmt = conn.prepare(
+        "SELECT bo.key, bo.byte_size, bo.mime_type FROM blob_objects bo
+           JOIN blob_sync_state bs ON bs.blob_key = bo.key
+          WHERE bs.push_state = 'unverified'
+            AND bo.sync_required = 1
+            AND bo.deleted_at IS NULL
+            AND bo.storage_uri IS NOT NULL
+          ORDER BY bs.updated_at, bo.key
+          LIMIT ?1",
+    )?;
+    let rows = stmt
+        .query_map(params![limit], |row| {
+            Ok(SyncBlobTask {
+                key: row.get(0)?,
+                byte_size: row.get(1)?,
+                mime_type: row.get(2)?,
+            })
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(rows)
+}
+
+#[tauri::command]
+pub fn sync_unverified_blobs(limit: i64, db: State<'_, Db>) -> Result<Vec<SyncBlobTask>, CommandError> {
+    let conn = db.0.lock()?;
+    sync_unverified_blobs_inner(&conn, limit)
+}
+
+/// Settle unverified blobs: `present` (the relay holds matching bytes) become
+/// synced, `absent` go pending. Manifest-only rows (no local bytes) that turn
+/// out absent stay out of the outbox regardless — there is nothing to push.
+pub(crate) fn sync_resolve_blobs_inner(
+    conn: &mut Connection,
+    present: &[String],
+    absent: &[String],
+) -> Result<(), CommandError> {
+    let tx = conn.transaction()?;
+    for key in present {
+        tx.execute(
+            "UPDATE blob_sync_state
+                SET push_state = 'synced', last_error = NULL,
+                    pushed_at = COALESCE(pushed_at, strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+                    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+              WHERE blob_key = ?1 AND push_state = 'unverified'",
+            params![key],
+        )?;
+    }
+    for key in absent {
+        tx.execute(
+            "UPDATE blob_sync_state
+                SET push_state = 'pending', pushed_at = NULL, last_error = NULL,
+                    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+              WHERE blob_key = ?1 AND push_state = 'unverified'",
+            params![key],
+        )?;
+    }
+    tx.commit()?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn sync_resolve_blobs(
+    present: Vec<String>,
+    absent: Vec<String>,
+    db: State<'_, Db>,
+) -> Result<(), CommandError> {
+    let mut conn = db.0.lock()?;
+    sync_resolve_blobs_inner(&mut conn, &present, &absent)
+}
+
+/// Pessimistic settlement for a transport without HEAD: every unverified
+/// blob owes a push.
+#[tauri::command]
+pub fn sync_assume_blobs_missing(db: State<'_, Db>) -> Result<i64, CommandError> {
+    let conn = db.0.lock()?;
+    let n = conn.execute(
+        "UPDATE blob_sync_state
+            SET push_state = 'pending', updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+          WHERE push_state = 'unverified'",
+        [],
+    )?;
+    Ok(n as i64)
 }
 
 /// One book whose file the relay doesn't (yet) hold, for the Data & Sync
@@ -474,7 +675,7 @@ pub fn sync_book_backlog(db: State<'_, Db>) -> Result<Vec<SyncBookBacklogRow>, C
                JOIN books b ON b.id = substr(bo.key, length('bookfile:') + 1)
               WHERE bo.key LIKE 'bookfile:%'
                 AND bo.deleted_at IS NULL
-                AND bs.push_state IN ('pending', 'failed', 'rejected')
+                AND bs.push_state IN ('pending', 'failed', 'rejected', 'unverified')
               ORDER BY CASE bs.push_state
                          WHEN 'rejected' THEN 0
                          WHEN 'failed' THEN 1
@@ -503,15 +704,20 @@ pub fn sync_book_backlog(db: State<'_, Db>) -> Result<Vec<SyncBookBacklogRow>, C
 // ── Account adoption (the bookkeeping ↔ account binding) ─────────────────────
 
 /// Bind the local sync bookkeeping to `account_id`, resetting it first if it
-/// belongs to a different account (or to none — a pre-v14 database).
+/// belongs to a different account (or to none — a pre-v14 database that was
+/// not connected when v26 backfilled the column).
 ///
 /// Everything in `event_sync_state` / `blob_sync_state` / `sync_cursors` is
 /// per-mailbox state: "what THIS account's relay has confirmed". A different
-/// account's mailbox has confirmed nothing, so on a mismatch every event the
-/// log holds — locally authored AND merged from other devices under the old
-/// account — enters the push outbox, every syncable blob re-queues, and the
-/// pull cursor rewinds to zero. One transaction: a crash mid-reset must not
-/// leave half the log marked pushed against the wrong account.
+/// account's mailbox has confirmed nothing we know of, so on a mismatch every
+/// event the log holds — locally authored AND merged from other devices under
+/// the old account — and every syncable blob become `unverified`, and the
+/// pull cursor rewinds to zero. `unverified` is not `pending`: the engine asks
+/// the relay which ids / keys it already holds (`/v1/events/have`, blob HEAD)
+/// and only what is genuinely absent is pushed — so a reconnect costs a few
+/// index round-trips, never a re-upload of the library. One transaction: a
+/// crash mid-reset must not leave half the log marked pushed against the
+/// wrong account.
 ///
 /// Returns whether a reset ran (same-account reconnects are a no-op).
 pub(crate) fn sync_adopt_account_inner(
@@ -536,13 +742,13 @@ pub(crate) fn sync_adopt_account_inner(
         "INSERT OR IGNORE INTO event_sync_state (event_id, updated_at)
              SELECT id, strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM domain_events;
          UPDATE event_sync_state
-            SET push_state = 'pending', remote_id = NULL, pushed_at = NULL,
+            SET push_state = 'unverified', remote_id = NULL, pushed_at = NULL,
                 last_error = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now');
          INSERT OR IGNORE INTO blob_sync_state (blob_key, updated_at)
              SELECT key, strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM blob_objects
               WHERE sync_required = 1 AND deleted_at IS NULL;
          UPDATE blob_sync_state
-            SET push_state = 'pending', remote_uri = NULL, pushed_at = NULL,
+            SET push_state = 'unverified', remote_uri = NULL, pushed_at = NULL,
                 last_error = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now');
          DELETE FROM sync_cursors;",
     )

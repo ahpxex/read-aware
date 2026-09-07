@@ -79,7 +79,7 @@ export class MailboxCore {
     return seqs;
   }
 
-  listAfter(after: number, limit: number): { events: SealedEventWire[]; next: number } {
+  listAfter(after: number, limit: number): { events: SealedEventWire[]; next: number; seqs: number[] } {
     const rows = this.sql
       .exec(
         `SELECT seq, envelope_json FROM events WHERE seq > ?1 ORDER BY seq LIMIT ?2`,
@@ -88,8 +88,20 @@ export class MailboxCore {
       )
       .toArray();
     const events = rows.map((row) => JSON.parse(String(row.envelope_json)) as SealedEventWire);
-    const next = rows.length > 0 ? Number(rows[rows.length - 1].seq) : after;
-    return { events, next };
+    const seqs = rows.map((row) => Number(row.seq));
+    const next = rows.length > 0 ? seqs[seqs.length - 1] : after;
+    return { events, next, seqs };
+  }
+
+  /** Known ids → seq. One indexed lookup per id (event_id is UNIQUE); the
+   *  DO's single-threaded execution keeps the batch consistent. */
+  lookup(ids: string[]): Record<string, number> {
+    const seqs: Record<string, number> = {};
+    for (const id of ids) {
+      const row = this.sql.exec(`SELECT seq FROM events WHERE event_id = ?1`, id).toArray()[0];
+      if (row) seqs[id] = Number(row.seq);
+    }
+    return seqs;
   }
 
   count(): number {

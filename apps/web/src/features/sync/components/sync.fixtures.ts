@@ -21,10 +21,15 @@ const base: SyncStatusSnapshot = {
   progress: null,
   cycleTotals: null,
   lastCycle: { pulled: 12, pushed: 4, blobs: 1 },
+  backfillRemaining: 0,
 };
 
 const emptyProgress: SyncCycleProgress = {
   phase: "pull",
+  verified: 0,
+  backfilled: 0,
+  backfillFrontier: 0,
+  backfillCursor: 0,
   pulled: 0,
   pushed: 0,
   blobsDone: 0,
@@ -128,6 +133,7 @@ export const disabled = snapshot({
   transportRef: null,
   lastSyncAt: null,
   lastCycle: null,
+  backfillRemaining: 0,
 });
 
 /** Work still owed to the relay, as the popover polls it. */

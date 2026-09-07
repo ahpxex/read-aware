@@ -77,6 +77,13 @@ export class AccountMailbox {
       const limit = Number(url.searchParams.get("limit") ?? "500");
       return Response.json(this.core.listAfter(after, limit));
     }
+    if (req.method === "POST" && url.pathname === "/lookup") {
+      const { ids } = (await req.json()) as { ids: string[] };
+      return Response.json({ seqs: this.core.lookup(ids) });
+    }
+    if (req.method === "GET" && url.pathname === "/max-seq") {
+      return Response.json({ seq: this.core.maxSeq() });
+    }
     if (req.method === "POST" && url.pathname === "/wipe") {
       this.core.wipe();
       return new Response(null, { status: 204 });
@@ -106,7 +113,19 @@ export function stubMailbox(stub: MailboxStub): Mailbox {
     },
     async listAfter(after, limit) {
       const res = await stub.fetch(`https://mailbox/list?after=${after}&limit=${limit}`);
-      return (await res.json()) as { events: SealedEventWire[]; next: number };
+      return (await res.json()) as { events: SealedEventWire[]; next: number; seqs: number[] };
+    },
+    async lookup(ids) {
+      const res = await stub.fetch("https://mailbox/lookup", {
+        method: "POST",
+        body: JSON.stringify({ ids }),
+        headers: { "content-type": "application/json" },
+      });
+      return ((await res.json()) as { seqs: Record<string, number> }).seqs;
+    },
+    async maxSeq() {
+      const res = await stub.fetch("https://mailbox/max-seq");
+      return ((await res.json()) as { seq: number }).seq;
     },
     async wipe() {
       await stub.fetch("https://mailbox/wipe", { method: "POST" });

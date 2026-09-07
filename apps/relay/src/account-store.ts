@@ -7,7 +7,7 @@
  * Magic-link and session tokens are stored as SHA-256 hashes: a leaked
  * database yields nothing replayable.
  */
-import type { SyncKeyMaterial, SyncTier } from "@read-aware/core";
+import type { SnapshotMeta, SyncKeyMaterial, SyncTier } from "@read-aware/core";
 import { isAccountTier, type Account, type AccountStore } from "./ports";
 
 export type D1Like = {
@@ -32,6 +32,26 @@ type AccountRow = {
   stripe_customer_id: string | null;
   created_at: string;
 };
+
+type SnapshotRow = {
+  blob_key: string;
+  frontier_seq: number;
+  schema_version: number;
+  byte_size: number;
+  device_id: string;
+  created_at: string;
+};
+
+function rowToSnapshot(row: SnapshotRow): SnapshotMeta {
+  return {
+    blobKey: row.blob_key,
+    frontierSeq: Number(row.frontier_seq),
+    schemaVersion: Number(row.schema_version),
+    byteSize: Number(row.byte_size),
+    deviceId: row.device_id,
+    createdAt: row.created_at,
+  };
+}
 
 function rowToAccount(row: AccountRow): Account {
   const keys: SyncKeyMaterial | null =
@@ -264,7 +284,46 @@ export class SqlAccountStore implements AccountStore {
 
   async deleteAccount(id: string): Promise<void> {
     await this.db.prepare(`DELETE FROM sessions WHERE account_id = ?1`).bind(id).run();
+    await this.db.prepare(`DELETE FROM account_snapshots WHERE account_id = ?1`).bind(id).run();
     await this.db.prepare(`DELETE FROM accounts WHERE id = ?1`).bind(id).run();
+  }
+
+  async getSnapshot(accountId: string, schemaVersion: number): Promise<SnapshotMeta | null> {
+    const row = await this.db
+      .prepare(
+        `SELECT blob_key, frontier_seq, schema_version, byte_size, device_id, created_at
+           FROM account_snapshots WHERE account_id = ?1 AND schema_version = ?2`,
+      )
+      .bind(accountId, schemaVersion)
+      .first<SnapshotRow>();
+    return row ? rowToSnapshot(row) : null;
+  }
+
+  async putSnapshot(accountId: string, meta: SnapshotMeta): Promise<SnapshotMeta | null> {
+    const previous = await this.getSnapshot(accountId, meta.schemaVersion);
+    await this.db
+      .prepare(
+        `INSERT INTO account_snapshots
+            (account_id, schema_version, blob_key, frontier_seq, byte_size, device_id, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+         ON CONFLICT(account_id, schema_version) DO UPDATE SET
+            blob_key = excluded.blob_key,
+            frontier_seq = excluded.frontier_seq,
+            byte_size = excluded.byte_size,
+            device_id = excluded.device_id,
+            created_at = excluded.created_at`,
+      )
+      .bind(
+        accountId,
+        meta.schemaVersion,
+        meta.blobKey,
+        meta.frontierSeq,
+        meta.byteSize,
+        meta.deviceId,
+        meta.createdAt,
+      )
+      .run();
+    return previous;
   }
 
   async cleanupExpired(nowMs: number): Promise<void> {

@@ -413,3 +413,273 @@ describe("retry pacing", () => {
     expect(nextSyncDelayMs(1, { baseMs: 1_000, maxMs: 3_000 })).toBe(2_000);
   });
 });
+
+
+describe("verification (the `unverified` bookkeeping) — never re-upload to find out", () => {
+  test("a pull settles push bookkeeping from the seqs it carries", async () => {
+    const relay = fakeRelay();
+    const device = fakeDevice();
+    const event = plain("e1", 2_001, "device-a", "一条");
+    device.commitLocal(event);
+    await engineFor(device, relay).pushOnce();
+    expect(device.outbox).toEqual([]);
+    // The ack was lost: the row is back in the outbox. The next pull hands
+    // the event back WITH its seq — settled, nothing to push.
+    device.outbox.push(event);
+    await engineFor(device, relay).pullOnce();
+    expect(device.outbox).toEqual([]);
+    expect(device.remoteIds.get("e1")).toBe(1);
+    expect(relay.count()).toBe(1);
+  });
+
+  test("an account adoption verifies by id and HEAD; only what is truly absent is pushed", async () => {
+    const relay = fakeRelay();
+    const device = fakeDevice();
+    for (let i = 1; i <= 5; i += 1) device.commitLocal(plain(`e${i}`, 2_000 + i, "device-a", `第${i}条`));
+    device.putLocalBlob("bookfile:b1", new Uint8Array(100));
+    device.putLocalBlob("bookfile:b2", new Uint8Array(3_000)); // > chunk: v2
+    const engine = engineFor(device, relay, undefined, { blobChunkBytes: 1_000 });
+    await engine.pushOnce();
+    await engine.syncBlobsOnce();
+    expect(relay.count()).toBe(5);
+    // Something the relay never got, and a blob whose remote copy is torn.
+    device.commitLocal(plain("e6", 2_006, "device-a", "第6条"));
+    device.putLocalBlob("bookfile:b3", new Uint8Array(10));
+    relay.shelf.set("bookfile:b1", new Uint8Array(7));
+
+    device.adoptOtherAccount();
+    expect(device.unverified.size).toBe(6);
+    expect(device.unverifiedBlobs.size).toBe(3);
+
+    const settled = await engine.verifyOnce();
+    expect(settled).toBe(9);
+    expect(relay.calls.have).toBe(1);
+    expect(relay.calls.head).toBe(3);
+    expect(device.unverified.size).toBe(0);
+    expect(device.unverifiedBlobs.size).toBe(0);
+    // Exactly e6 owes a push; b1 (size mismatch) and b3 (absent) owe an
+    // upload; b2's staged parts add up and stay synced.
+    expect(device.outbox.map((e) => e.id)).toEqual(["e6"]);
+    expect([...device.blobOutbox].sort()).toEqual(["bookfile:b1", "bookfile:b3"]);
+    expect(device.blobStates.get("bookfile:b2")).toBe("synced");
+    for (let i = 1; i <= 5; i += 1) expect(device.remoteIds.get(`e${i}`)).toBe(i);
+
+    await engine.pushOnce();
+    expect(relay.count()).toBe(6);
+  });
+
+  test("a backend without have/HEAD settles pessimistically: everything unverified is pushed", async () => {
+    const full = fakeRelay();
+    const { haveEvents: _h, headBlob: _b, ...relay } = full;
+    const device = fakeDevice();
+    device.commitLocal(plain("e1", 2_001, "device-a", "一条"));
+    device.putLocalBlob("bookfile:b1", new Uint8Array(4));
+    const engine = engineFor(device, relay);
+    await engine.pushOnce();
+    await engine.syncBlobsOnce();
+    device.adoptOtherAccount();
+    await engine.verifyOnce();
+    expect(device.outbox.map((e) => e.id)).toEqual(["e1"]);
+    expect([...device.blobOutbox]).toEqual(["bookfile:b1"]);
+    expect(full.calls.have + full.calls.head).toBe(0);
+  });
+
+  test("the cycle verifies before anything else moves", async () => {
+    const relay = fakeRelay();
+    const device = fakeDevice();
+    device.commitLocal(plain("e1", 2_001, "device-a", "一条"));
+    const engine = engineFor(device, relay);
+    await engine.pushOnce();
+    device.adoptOtherAccount();
+    const phases: SyncCycleProgress["phase"][] = [];
+    const seen = createSyncEngine({
+      store: device.store,
+      relay,
+      masterKey: () => key,
+      observe: () => {},
+      onProgress: (p) => {
+        if (phases[phases.length - 1] !== p.phase) phases.push(p.phase);
+      },
+      checkpointPublish: { minEvents: 1_000_000 },
+    });
+    const outcome = await seen.syncOnce();
+    // (push reports only when a batch actually leaves — nothing did here.)
+    expect(phases).toEqual(["verify", "pull", "blobs", "checkpoint"]);
+    // Verify learned the relay holds e1; nothing was pushed again.
+    expect(outcome.verified).toBe(1);
+    expect(outcome.pushed).toBe(0);
+    expect(relay.count()).toBe(1);
+  });
+});
+
+describe("checkpoints: bootstrap from a snapshot, then backfill", () => {
+  async function publisher(relay: ReturnType<typeof fakeRelay>, n = 7) {
+    const device = fakeDevice();
+    for (let i = 1; i <= n; i += 1) device.commitLocal(plain(`e${i}`, 2_000 + i, "device-p", `第${i}条`));
+    const engine = engineFor(device, relay, undefined, {
+      checkpointPublish: { minEvents: 1, retryMs: 0 },
+    });
+    // push, then a pull settles the cursor at the mailbox end → mailbox-exact.
+    await engine.pushOnce();
+    await engine.pullOnce();
+    const cut = await engine.checkpointOnce();
+    return { device, engine, cut };
+  }
+
+  test("publishing requires a mailbox-exact log and lands the blob + metadata", async () => {
+    const relay = fakeRelay();
+    const { device, cut } = await publisher(relay);
+    expect(cut.published).toBe(true);
+    const meta = relay.snapshots.get(1);
+    expect(meta).toMatchObject({ frontierSeq: 7, schemaVersion: 1, deviceId: "device-fake" });
+    expect(relay.shelf.has(meta!.blobKey)).toBe(true);
+    expect(device.checkpoints.find((c) => c.origin === "publish")?.published).toBe(true);
+
+    // Nothing new since: not due again.
+    const again = await engineFor(device, relay, undefined, {
+      checkpointPublish: { minEvents: 1, everyEvents: 5, retryMs: 0 },
+    }).checkpointOnce();
+    expect(again.published).toBe(false);
+    // With unpushed local events the store refuses to cut — no lie is published.
+    device.commitLocal(plain("e8", 2_008, "device-p", "第8条"));
+    for (let i = 9; i <= 13; i += 1) device.commitLocal(plain(`e${i}`, 2_000 + i, "device-p", `第${i}条`));
+    const refused = await engineFor(device, relay, undefined, {
+      checkpointPublish: { minEvents: 1, everyEvents: 1, retryMs: 0 },
+    }).checkpointOnce();
+    expect(refused.published).toBe(false);
+    expect(relay.snapshots.get(1)?.frontierSeq).toBe(7);
+  });
+
+  test("a fresh device restores the snapshot, syncs the tail, and backfills the log", async () => {
+    const relay = fakeRelay();
+    const { device: p, engine: pEngine } = await publisher(relay);
+    // The tail: one more event after the snapshot was cut.
+    p.commitLocal(plain("e8", 2_008, "device-p", "第8条"));
+    await pEngine.pushOnce();
+
+    const fresh = fakeDevice();
+    const engine = engineFor(fresh, relay);
+    const pullsBefore = relay.calls.pull;
+    const outcome = await engine.syncOnce();
+    expect(outcome.bootstrapped).toBe(true);
+    // The shelf was complete after the restore; the tail came through the
+    // ordinary pull; the clock observed the frontier.
+    expect(fresh.applied.map((e) => e.id)).toEqual(["e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8"]);
+    expect(fresh.observed.some((s) => s.wallMs === 2_007)).toBe(true);
+    expect(fresh.cursorValue()).toBe(8);
+    // Backfill: 5 pages × batch 2 covers the 7 pre-frontier events in one cycle.
+    expect(outcome.backfillRemaining).toBe(0);
+    expect(outcome.backfilled).toBe(7);
+    expect(fresh.backfillState()?.complete).toBe(true);
+    for (let i = 1; i <= 8; i += 1) expect(fresh.remoteIds.get(`e${i}`)).toBe(i);
+    // The tail pull from the frontier + backfill pages: never the whole
+    // mailbox through the merge path.
+    expect(relay.calls.pull - pullsBefore).toBeLessThanOrEqual(6);
+  });
+
+  test("backfill is sliced per cycle and resumes from its cursor", async () => {
+    const relay = fakeRelay();
+    await publisher(relay, 9);
+    const fresh = fakeDevice();
+    const engine = engineFor(fresh, relay);
+    expect(await engine.bootstrapOnce()).toBe("restored");
+    const first = await engine.backfillOnce(2); // 2 pages × 2 = 4 events
+    expect(first).toEqual({ appended: 4, remaining: 5 });
+    const second = await engine.backfillOnce(2);
+    expect(second).toEqual({ appended: 4, remaining: 1 });
+    const third = await engine.backfillOnce(2);
+    expect(third).toEqual({ appended: 1, remaining: 0 });
+    expect(fresh.knownIds.size).toBe(9);
+    expect(await engine.backfillOnce()).toEqual({ appended: 0, remaining: 0 });
+  });
+
+  test("unconfirmed local writes ride on top of the snapshot; confirmed history skips it", async () => {
+    const relay = fakeRelay();
+    await publisher(relay);
+    // A fresh device that already changed a preference before connecting.
+    const fresh = fakeDevice();
+    fresh.commitLocal(plain("local-1", 9_000, "device-x", "本机新事件"));
+    const outcome = await engineFor(fresh, relay).syncOnce();
+    expect(outcome.bootstrapped).toBe(true);
+    expect(fresh.applied.map((e) => e.id)).toEqual(["e1", "e2", "e3", "e4", "e5", "e6", "e7", "local-1"]);
+    expect(relay.count()).toBe(8);
+    expect(outcome.backfillRemaining).toBe(0);
+
+    // A device whose log was confirmed by SOME mailbox replays instead.
+    const veteran = fakeDevice();
+    veteran.commitLocal(plain("old-1", 1_500, "device-y", "本机旧事件"));
+    veteran.remoteIds.set("old-1", 3);
+    veteran.outbox.length = 0;
+    const engine = engineFor(veteran, relay);
+    expect(await engine.bootstrapOnce()).toBe("skipped");
+    const replayed = await engine.syncOnce();
+    expect(replayed.bootstrapped).toBe(false);
+    expect(replayed.pulled).toBe(8);
+    expect(veteran.backfillState()).toBeNull();
+  });
+
+  test("a publish that loses the race to a fresher snapshot deletes its redundant upload", async () => {
+    const relay = fakeRelay();
+    const { device } = await publisher(relay);
+    device.commitLocal(plain("e8", 2_008, "device-p", "第8条"));
+    // The race: our "is it due?" read sees a stale snapshot, but by the time
+    // the PUT lands another device has published further ahead.
+    relay.snapshots.set(1, {
+      blobKey: "snapshot:v1:device-other:99",
+      frontierSeq: 99,
+      schemaVersion: 1,
+      byteSize: 1,
+      deviceId: "device-other",
+      createdAt: "x",
+    });
+    const racy = {
+      ...relay,
+      latestSnapshot: async () => ({ ...relay.snapshots.get(1)!, frontierSeq: 0 }),
+    };
+    const e = engineFor(device, racy, undefined, {
+      checkpointPublish: { minEvents: 1, everyEvents: 1, retryMs: 0 },
+    });
+    await e.pushOnce();
+    await e.pullOnce();
+    const attempt = await e.checkpointOnce();
+    expect(attempt.published).toBe(false);
+    const ours = device.checkpoints.filter((c) => c.origin === "publish").pop()!;
+    expect(ours.published).toBe(false);
+    expect(relay.shelf.has(ours.blobKey)).toBe(false);
+    expect(relay.snapshots.get(1)?.frontierSeq).toBe(99);
+  });
+});
+
+
+describe("a relay that predates the verification/snapshot endpoints", () => {
+  test("404/405 answers degrade to the pessimistic path instead of failing the cycle", async () => {
+    const full = fakeRelay();
+    const older: SyncRelayApi = {
+      ...full,
+      async haveEvents() {
+        throw Object.assign(new Error("relay 404: no such route"), { status: 404 });
+      },
+      async headBlob() {
+        throw Object.assign(new Error("relay 405: method not allowed"), { status: 405 });
+      },
+      async latestSnapshot() {
+        throw Object.assign(new Error("relay 404: no such route"), { status: 404 });
+      },
+    };
+    const device = fakeDevice();
+    device.commitLocal(plain("e1", 2_001, "device-a", "一条"));
+    device.putLocalBlob("bookfile:b1", new Uint8Array(4));
+    const engine = engineFor(device, older, undefined, { checkpointPublish: { minEvents: 1, retryMs: 0 } });
+    await engine.pushOnce();
+    await engine.syncBlobsOnce();
+    device.adoptOtherAccount();
+    const outcome = await engine.syncOnce();
+    // Everything unverified was assumed missing and pushed again (the relay
+    // dedups by id), the blob re-uploaded, no bootstrap, no publish, no error.
+    expect(outcome.verified).toBe(2);
+    expect(outcome.bootstrapped).toBe(false);
+    expect(device.unverified.size + device.unverifiedBlobs.size).toBe(0);
+    expect(full.count()).toBe(1);
+    expect(full.snapshots.size).toBe(0);
+  });
+});

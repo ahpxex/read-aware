@@ -68,14 +68,25 @@ export function SyncProgressDetail({
       <span className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
         {syncing && progress ? (
           <Item icon={<ProgressRing value={fraction} size={14} />}>
-            {progress.phase === "pull"
-              ? t("dataSync.progress.pulling", { count: progress.pulled })
-              : progress.phase === "push"
-                ? t("dataSync.progress.pushing", { count: progress.pushed })
-                : t("dataSync.progress.blobs", {
-                    done: progress.blobsDone,
-                    total: progress.blobsTotal,
-                  })}
+            {progress.phase === "bootstrap"
+              ? t("dataSync.progress.bootstrap")
+              : progress.phase === "pull"
+                ? t("dataSync.progress.pulling", { count: progress.pulled })
+                : progress.phase === "verify"
+                  ? t("dataSync.progress.verifying", { count: progress.verified })
+                  : progress.phase === "push"
+                    ? t("dataSync.progress.pushing", { count: progress.pushed })
+                    : progress.phase === "backfill"
+                      ? t("dataSync.progress.backfill", {
+                          done: progress.backfillCursor,
+                          total: progress.backfillFrontier,
+                        })
+                      : progress.phase === "checkpoint"
+                        ? t("dataSync.progress.checkpoint")
+                        : t("dataSync.progress.blobs", {
+                            done: progress.blobsDone,
+                            total: progress.blobsTotal,
+                          })}
           </Item>
         ) : status.state === "unauthenticated" ? (
           <Item tone="error" icon={<WarningCircle {...ICON} />}>
@@ -126,6 +137,11 @@ export function SyncProgressDetail({
         {hasBacklog && (
           <Item icon={<UploadSimple {...ICON} />}>
             {t("dataSync.progress.pending", { events: backlog.events, blobs: backlog.blobs })}
+          </Item>
+        )}
+        {!syncing && status.backfillRemaining > 0 && (
+          <Item icon={<ArrowsClockwise {...ICON} />}>
+            {t("dataSync.progress.backfillRemaining", { count: status.backfillRemaining })}
           </Item>
         )}
         {hasLastCycle && (

@@ -866,11 +866,12 @@ pub fn run() {
                 let handle = app.handle().clone();
                 tauri::async_runtime::spawn_blocking(move || {
                     let db = handle.state::<storage::Db>();
+                    let data_dir = handle.state::<storage::DataDir>();
                     let result = db
                         .0
                         .lock()
                         .map_err(error::CommandError::from)
-                        .and_then(|mut conn| storage::finalize_staged_events_inner(&mut conn));
+                        .and_then(|mut conn| storage::finalize_staged_events_inner(&mut conn, &data_dir.0));
                     match result {
                         Ok(Some(report)) => log::info!(
                             "recovered staged sync events: replayed {} event(s)",
@@ -964,6 +965,21 @@ pub fn run() {
             storage::sync_profile_touch,
             storage::sync_adopt_account,
             storage::sync_outbox_counts,
+            storage::sync_unverified_events,
+            storage::sync_resolve_events,
+            storage::sync_assume_events_missing,
+            storage::sync_unverified_blobs,
+            storage::sync_resolve_blobs,
+            storage::sync_assume_blobs_missing,
+            storage::checkpoint_schema_version,
+            storage::checkpoint_list,
+            storage::checkpoint_maintain,
+            storage::checkpoint_prepare_publish,
+            storage::checkpoint_mark_published,
+            storage::checkpoint_restore_bootstrap,
+            storage::sync_backfill_status,
+            storage::sync_backfill_events,
+            storage::sync_backfill_settle,
             storage::sync_book_backlog,
             storage::preferences_load_all,
             storage::wipe_all_data,
@@ -1028,7 +1044,9 @@ pub fn run() {
             storage::vocabulary_migrate_to_plugin_documents,
             storage::reading_time_genesis,
             storage::reading_time_load,
-            storage::reading_time_record,
+            storage::reading_time_accrue,
+            storage::reading_time_pending,
+            storage::reading_time_flush,
             storage::reading_time_import,
             external_open::external_open_take,
             diagnostics::diagnostics_read_logs,

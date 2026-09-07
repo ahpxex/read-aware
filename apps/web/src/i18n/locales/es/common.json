@@ -37,6 +37,9 @@
     "syncQuota": "Tu almacenamiento de sincronización está lleno.",
     "syncTransportUnavailable": "El plugin que proporciona esta conexión de sincronización no está disponible. Activa el plugin y vuelve a intentarlo.",
     "syncTransportMismatch": "La configuración del servidor del plugin de sincronización cambió después de conectar. Vuelve a conectarte para adoptar el nuevo servidor.",
+    "syncLogIncomplete": "Este dispositivo todavía está completando el historial de la cuenta desde el servidor. Inténtalo de nuevo cuando la sincronización se haya puesto al día.",
+    "syncCheckpointMismatch": "La instantánea de la cuenta fue creada por otra versión de ReadAware y se ha ignorado. La sincronización reconstruirá a partir del historial completo.",
+    "syncCheckpointPrecondition": "No se pudo guardar un punto de control ahora porque hay cambios pendientes de sincronizar. Se reintentará automáticamente.",
     "localSaveFailedTitle": "Cambio no guardado",
     "localSaveFailed": "Este cambio no se pudo escribir en el almacenamiento local y podría perderse tras reiniciar."
   },

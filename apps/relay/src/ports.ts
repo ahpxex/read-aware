@@ -6,6 +6,7 @@
  */
 import type {
   SealedEventWire,
+  SnapshotMeta,
   SyncKeyMaterial,
   SyncTier,
   SyncTierLimits,
@@ -163,6 +164,10 @@ export interface AccountStore {
   setStripeCustomer(id: string, customerId: string): Promise<void>;
   findByStripeCustomer(customerId: string): Promise<Account | null>;
   deleteAccount(id: string): Promise<void>;
+  /** The published checkpoint for a client schema version, if any. */
+  getSnapshot(accountId: string, schemaVersion: number): Promise<SnapshotMeta | null>;
+  /** Replace the (account, schemaVersion) row; returns the row it displaced. */
+  putSnapshot(accountId: string, meta: SnapshotMeta): Promise<SnapshotMeta | null>;
   /** Drop expired magic tokens, OAuth states, and watch tickets. Rows past
    *  their expiry were already unusable — the relay's hourly Cron Trigger
    *  calls this only to reclaim space. */
@@ -179,7 +184,16 @@ export interface Mailbox {
   append(events: SealedEventWire[], maxEvents: number): Promise<Record<string, number> | "full">;
   /** Stored events — the usage half of the quota (`/v1/account` reporting). */
   count(): Promise<number>;
-  listAfter(after: number, limit: number): Promise<{ events: SealedEventWire[]; next: number }>;
+  /** A page in seq order; `seqs[i]` is `events[i]`'s server_seq. */
+  listAfter(
+    after: number,
+    limit: number,
+  ): Promise<{ events: SealedEventWire[]; next: number; seqs: number[] }>;
+  /** Which of these ids the mailbox holds, with their seqs (unknown ids are
+   *  simply absent from the answer). */
+  lookup(ids: string[]): Promise<Record<string, number>>;
+  /** The highest seq assigned so far (0 on an empty mailbox). */
+  maxSeq(): Promise<number>;
   wipe(): Promise<void>;
   /**
    * Accept a WebSocket Upgrade — the change doorbell (`{type:"changed",seq}`
@@ -263,6 +277,8 @@ export type RelayConfig = {
   maxBatch: number;
   /** Events per pull page (also the default). */
   maxPullLimit: number;
+  /** Ids per `/v1/events/have` request. */
+  maxHaveIds: number;
   /** Per single blob — the FREE-tier baseline (paid tiers: `quotasForTier`). */
   maxBlobBytes: number;
   /** Per free-tier account, total. THE bill guard — an open-source client base
@@ -308,6 +324,7 @@ export const DEFAULT_CONFIG: RelayConfig = {
   maxEventBytes: 64 * 1024,
   maxBatch: 500,
   maxPullLimit: 500,
+  maxHaveIds: 2_000,
   maxBlobBytes: 50 * 1024 * 1024,
   // Free-tier defaults, deliberately tight: 50 MB of books and 50k events per
   // account. 1000 free accounts at the cap ≈ 50 GB R2 ≈ $0.60/month — the

@@ -17,6 +17,11 @@ export function syncCycleFraction(status: SyncStatusSnapshot): number | null {
     if (!cycleTotals || cycleTotals.events <= 0) return null;
     return Math.min(1, progress.pushed / cycleTotals.events);
   }
+  if (progress.phase === "backfill") {
+    // The frontier is a known finish line: cursor over frontier is honest.
+    if (progress.backfillFrontier <= 0) return null;
+    return Math.min(1, progress.backfillCursor / progress.backfillFrontier);
+  }
   if (progress.phase === "blobs") {
     // A blob in flight contributes its part fraction, so one big chunked book
     // moves the bar per part instead of freezing until the whole file lands.

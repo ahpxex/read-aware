@@ -36,6 +36,10 @@ pub(crate) fn blob_kind(key: &str) -> (&'static str, bool) {
         Some("font") => ("font_face", false),
         // Extracted text cache — derivable from the book file, never synced.
         Some("booktext") => ("book_text", false),
+        // Projection checkpoints (storage/checkpoints.rs): device-local by
+        // default; the ONE cut for publishing is uploaded explicitly by the
+        // engine, never through the outbox.
+        Some("snapshot") => ("checkpoint", false),
         _ => ("unknown", true),
     }
 }

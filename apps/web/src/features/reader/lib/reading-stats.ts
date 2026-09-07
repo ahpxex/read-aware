@@ -3,12 +3,12 @@
  *
  * This is the storage boundary the rest of the app talks to for "how long has
  * this book been read." The projection is the SQLite `reading_time_totals` /
- * `reading_time_daily` / `reading_time_hourly` tables (migration v9); the
- * `book.timeRecorded` events already dual-write in the tracker. Boot reads
- * the tables into the platform snapshot (interim-projections); after boot the
- * live figures accumulate in the readingStatsAtom, and each tracker tick
- * write-throughs its delta with `recordReadingTime`. The browser shell keeps
- * no durable stats (pure UI shell).
+ * `reading_time_daily` / `reading_time_hourly` tables, derived from
+ * `book.timeRecorded` events. Boot reads the tables into the platform snapshot
+ * (interim-projections); after boot the live figures accumulate in the
+ * readingStatsAtom, while durability runs through the tracker's accrual
+ * buffer (`platform/reading-time.ts`) — never a direct projection write. The
+ * browser shell keeps no durable stats (pure UI shell).
  *
  * All durations are milliseconds of *active* reading time. Day buckets are keyed
  * by local calendar day so the weekly chart matches the reader's wall clock.
@@ -19,9 +19,10 @@ import {
   getReadingTimeSnapshot,
   importReadingTime,
   loadReadingTime,
-  recordReadingTimeDelta,
   type ReadingTimeWire,
 } from "../../../platform/interim-projections";
+import { localDayKey, localHour } from "../../../platform/reading-time";
+export { localDayKey, localHour };
 
 /** Milliseconds of reading keyed by local day, e.g. `{ "2026-06-25": 840000 }`. */
 export type DailyReadingMap = Record<string, number>;
@@ -61,19 +62,6 @@ export function emptyBookStats(bookId: string): BookReadingStats {
   };
 }
 
-/** Local calendar day key (`YYYY-MM-DD`) for an epoch timestamp. */
-export function localDayKey(epochMs: number): string {
-  const d = new Date(epochMs);
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${month}-${day}`;
-}
-
-/** Local hour-of-day (0–23) for an epoch timestamp. */
-export function localHour(epochMs: number): number {
-  return new Date(epochMs).getHours();
-}
-
 /** Assemble the typed store from the three-table wire shape. */
 export function storeFromWire(wire: ReadingTimeWire): ReadingStatsStore {
   const result: ReadingStatsStore = {};
@@ -101,12 +89,6 @@ export function getReadingStatsStore(): ReadingStatsStore {
 /** Fresh async read of the SQLite projection (the reading domain's `getTime`). */
 export async function loadReadingStatsStore(): Promise<ReadingStatsStore> {
   return storeFromWire(await loadReadingTime());
-}
-
-/** Write-through one tracker tick (the event dual-write stays in the tracker). */
-export function recordReadingTime(bookId: string, ms: number, atEpochMs: number): void {
-  if (!isTauri()) return;
-  recordReadingTimeDelta(bookId, ms, atEpochMs, localDayKey(atEpochMs), localHour(atEpochMs));
 }
 
 /** Bulk replace (the stats demo seed). */

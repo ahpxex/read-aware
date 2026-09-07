@@ -129,6 +129,16 @@ export async function localDeviceId(): Promise<string> {
 
 const nextHlc = (deviceId: string): HlcStamp => clock.next(deviceId);
 
+/**
+ * Mint log rows (id + HLC stamp) for drafts without committing them — for the
+ * one write path that is not `commit_events`: the reading-time flush, which
+ * commits its events and retires their buckets in a single store call.
+ */
+export async function mintEventRows(drafts: DomainEventDraft[]): Promise<EventRowWire[]> {
+  const { deviceId } = await getDeviceInfo();
+  return drafts.map((draft) => toEventRow(draft, deviceId));
+}
+
 function toEventRow(draft: DomainEventDraft, deviceId: string): EventRowWire {
   const route = AGGREGATE_ROUTES[draft.type];
   const aggregateId = route
@@ -174,6 +184,12 @@ export function onDomainEventBroadcast(
   return () => {
     domainListeners.delete(listener);
   };
+}
+
+/** Notify in-app observers of events a store call outside `commitDomainEvents`
+ *  has already persisted (the reading-time flush). */
+export function broadcastDomainEventDrafts(drafts: DomainEventDraft[]): void {
+  broadcastDomainEvents(drafts);
 }
 
 function broadcastDomainEvents(drafts: DomainEventDraft[]): void {

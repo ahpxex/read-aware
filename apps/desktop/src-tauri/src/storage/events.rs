@@ -51,6 +51,22 @@ pub(crate) fn insert_event_row(
     ev: &EventRow,
     source: EventSource,
 ) -> Result<bool, CommandError> {
+    insert_event_row_with_seq(tx, ev, source, None)
+}
+
+/// `insert_event_row`, plus the relay's word: when a pulled envelope arrives
+/// with its `server_seq`, the mailbox demonstrably holds this id — so the
+/// bookkeeping row is settled as `synced` at that seq whether the event was
+/// new here or already logged (a local event whose push ack was lost, an
+/// `unverified` row after an account adoption). This is what makes a pull
+/// double as verification: nothing the relay just handed back ever needs to
+/// be pushed again.
+pub(crate) fn insert_event_row_with_seq(
+    tx: &Transaction<'_>,
+    ev: &EventRow,
+    source: EventSource,
+    remote_seq: Option<i64>,
+) -> Result<bool, CommandError> {
     let payload = serde_json::to_string(&ev.payload)?;
     // `?4` (HLC wall ms) is reused to derive created_at when the caller
     // didn't stamp one.
@@ -86,6 +102,22 @@ pub(crate) fn insert_event_row(
             "INSERT OR IGNORE INTO event_sync_state (event_id, updated_at)
              VALUES (?1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))",
             params![ev.id],
+        )
+        ?;
+    }
+    if let Some(seq) = remote_seq {
+        tx.execute(
+            "INSERT INTO event_sync_state
+                (event_id, push_state, remote_id, pushed_at, last_error, updated_at)
+             VALUES (?1, 'synced', ?2, strftime('%Y-%m-%dT%H:%M:%fZ','now'), NULL,
+                     strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+             ON CONFLICT(event_id) DO UPDATE SET
+                push_state = 'synced',
+                remote_id = excluded.remote_id,
+                pushed_at = COALESCE(event_sync_state.pushed_at, excluded.pushed_at),
+                last_error = NULL,
+                updated_at = excluded.updated_at",
+            params![ev.id, seq.to_string()],
         )
         ?;
     }
@@ -171,9 +203,15 @@ pub struct MergeReport {
     /// Projection rows changed by the incremental path; 0 when `replayed`.
     pub applied: usize,
     /// True when merged events landed BEHIND existing log entries in HLC order,
-    /// so the projections were rebuilt by full replay instead of incremental
-    /// apply.
+    /// so the projections were rebuilt by replay (from the newest still-valid
+    /// checkpoint, or from empty) instead of incremental apply.
     pub replayed: bool,
+    /// True when such a replay could NOT run yet: the log is still backfilling
+    /// behind a bootstrap checkpoint that the merged events just invalidated.
+    /// The events are in the log and the projections are marked stale; the
+    /// backfill's completion replays them.
+    #[serde(default)]
+    pub deferred: bool,
 }
 
 /// The log's newest HLC stamp, as an ordering key. None on an empty log.
@@ -195,16 +233,33 @@ fn hlc_key(ev: &EventRow) -> (i64, i64, String) {
     (ev.hlc.wall_ms, ev.hlc.counter, ev.hlc.device_id.clone())
 }
 
+/// Pair every event with its relay seq when the caller has them (a pull page
+/// carries a parallel `seqs` array; transports without positions pass none).
+fn seq_of(seqs: Option<&[i64]>, index: usize) -> Option<i64> {
+    seqs.and_then(|s| s.get(index).copied())
+}
+
 pub(crate) fn apply_remote_events_inner(
     conn: &mut Connection,
+    data_dir: &Path,
     events: &[EventRow],
+    seqs: Option<&[i64]>,
 ) -> Result<MergeReport, CommandError> {
+    if let Some(s) = seqs {
+        if s.len() != events.len() {
+            return Err(CommandError::internal("apply_remote_events: events and seqs differ in length"));
+        }
+    }
     let tx = conn.transaction()?;
     let horizon = max_hlc_key(&tx)?;
 
     let mut fresh: Vec<&EventRow> = Vec::new();
-    for ev in events {
-        if insert_event_row(&tx, ev, EventSource::Remote)? {
+    for (index, ev) in events.iter().enumerate() {
+        let seq = seq_of(seqs, index);
+        if insert_event_row_with_seq(&tx, ev, EventSource::Remote, seq)? {
+            // A checkpoint whose frontier is past this stamp was cut without
+            // it — it can no longer serve as a replay base.
+            checkpoints::invalidate_checkpoints_behind(&tx, data_dir, &hlc_key(ev), seq)?;
             fresh.push(ev);
         }
     }
@@ -212,6 +267,7 @@ pub(crate) fn apply_remote_events_inner(
         appended: fresh.len(),
         applied: 0,
         replayed: false,
+        deferred: false,
     };
     if fresh.is_empty() {
         tx.commit()?;
@@ -227,8 +283,9 @@ pub(crate) fn apply_remote_events_inner(
     // frontier: projections reflect the log AS ORDERED, so an event slotting in
     // behind existing entries (both devices wrote while apart) can't just be
     // applied last — a stale `book.metadataEdited` would overwrite a newer
-    // title. In that case rebuild from the log, which replays everything in
-    // HLC order and lands both devices on identical projections.
+    // title. In that case replay: restore the newest checkpoint that still
+    // predates the merged events and apply the tail in HLC order — every
+    // device lands on identical projections either way.
     let extends_frontier = match &horizon {
         None => true,
         Some(h) => hlc_key(fresh[0]) > *h,
@@ -239,9 +296,13 @@ pub(crate) fn apply_remote_events_inner(
                 report.applied += 1;
             }
         }
-    } else {
-        replay_into(&tx)?;
+    } else if replay_projections(&tx, data_dir)?.is_some() {
         report.replayed = true;
+    } else {
+        // No valid base and the log is incomplete: leave the projections as
+        // they are (stale but coherent) and let the backfill finish the job.
+        set_projections_stale(&tx, true)?;
+        report.deferred = true;
     }
     tx.commit()?;
     Ok(report)
@@ -251,7 +312,11 @@ pub(crate) fn apply_remote_events_inner(
 
 /// Read the deferred-replay marker (missing sync_profile row = not stale).
 fn projections_stale(tx: &Transaction<'_>) -> Result<bool, CommandError> {
-    tx.query_row(
+    projections_stale_conn(tx)
+}
+
+pub(crate) fn projections_stale_conn(conn: &Connection) -> Result<bool, CommandError> {
+    conn.query_row(
         "SELECT projections_stale FROM sync_profile WHERE id = 1",
         [],
         |row| row.get::<_, i64>(0),
@@ -264,7 +329,11 @@ fn projections_stale(tx: &Transaction<'_>) -> Result<bool, CommandError> {
 }
 
 fn set_projections_stale(tx: &Transaction<'_>, stale: bool) -> Result<(), CommandError> {
-    tx.execute(
+    set_projections_stale_conn(tx, stale)
+}
+
+pub(crate) fn set_projections_stale_conn(conn: &Connection, stale: bool) -> Result<(), CommandError> {
+    conn.execute(
         "INSERT INTO sync_profile (id, projections_stale, updated_at)
          VALUES (1, ?1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
          ON CONFLICT(id) DO UPDATE SET
@@ -289,12 +358,21 @@ fn set_projections_stale(tx: &Transaction<'_>, stale: bool) -> Result<(), Comman
 /// start of every pull) finalizes whatever a previous session left behind.
 pub(crate) fn stage_remote_events_inner(
     conn: &mut Connection,
+    data_dir: &Path,
     events: &[EventRow],
+    seqs: Option<&[i64]>,
 ) -> Result<usize, CommandError> {
+    if let Some(s) = seqs {
+        if s.len() != events.len() {
+            return Err(CommandError::internal("stage_remote_events: events and seqs differ in length"));
+        }
+    }
     let tx = conn.transaction()?;
     let mut appended = 0usize;
-    for ev in events {
-        if insert_event_row(&tx, ev, EventSource::Remote)? {
+    for (index, ev) in events.iter().enumerate() {
+        let seq = seq_of(seqs, index);
+        if insert_event_row_with_seq(&tx, ev, EventSource::Remote, seq)? {
+            checkpoints::invalidate_checkpoints_behind(&tx, data_dir, &hlc_key(ev), seq)?;
             appended += 1;
         }
     }
@@ -306,11 +384,16 @@ pub(crate) fn stage_remote_events_inner(
 }
 
 #[tauri::command]
-pub async fn stage_remote_events(events: Vec<EventRow>, app: AppHandle) -> Result<usize, CommandError> {
+pub async fn stage_remote_events(
+    events: Vec<EventRow>,
+    seqs: Option<Vec<i64>>,
+    app: AppHandle,
+) -> Result<usize, CommandError> {
     tauri::async_runtime::spawn_blocking(move || {
         let db = app.state::<Db>();
+        let data_dir = app.state::<DataDir>();
         let mut conn = db.0.lock()?;
-        stage_remote_events_inner(&mut conn, &events)
+        stage_remote_events_inner(&mut conn, &data_dir.0, &events, seqs.as_deref())
     })
     .await
     .map_err(|e| format!("stage_remote_events task failed: {e}"))?
@@ -322,12 +405,17 @@ pub async fn stage_remote_events(events: Vec<EventRow>, app: AppHandle) -> Resul
 /// which makes it safe to call defensively.
 pub(crate) fn finalize_staged_events_inner(
     conn: &mut Connection,
+    data_dir: &Path,
 ) -> Result<Option<RebuildReport>, CommandError> {
     let tx = conn.transaction()?;
     if !projections_stale(&tx)? {
         return Ok(None);
     }
-    let report = replay_into(&tx)?;
+    // None here means "no valid base and the log is incomplete": the marker
+    // stays set and the backfill's completion finalizes instead.
+    let Some(report) = replay_projections(&tx, data_dir)? else {
+        return Ok(None);
+    };
     set_projections_stale(&tx, false)?;
     tx.commit()?;
     Ok(Some(report))
@@ -337,8 +425,9 @@ pub(crate) fn finalize_staged_events_inner(
 pub async fn finalize_staged_events(app: AppHandle) -> Result<Option<RebuildReport>, CommandError> {
     tauri::async_runtime::spawn_blocking(move || {
         let db = app.state::<Db>();
+        let data_dir = app.state::<DataDir>();
         let mut conn = db.0.lock()?;
-        finalize_staged_events_inner(&mut conn)
+        finalize_staged_events_inner(&mut conn, &data_dir.0)
     })
     .await
     .map_err(|e| format!("finalize_staged_events task failed: {e}"))?
@@ -354,13 +443,18 @@ pub async fn finalize_staged_events(app: AppHandle) -> Result<Option<RebuildRepo
 /// (the pull loop) is responsible for `hlc.observe()`-ing every stamp BEFORE
 /// invoking this, and for advancing `sync_cursors` after it returns.
 #[tauri::command]
-pub async fn apply_remote_events(events: Vec<EventRow>, app: AppHandle) -> Result<MergeReport, CommandError> {
+pub async fn apply_remote_events(
+    events: Vec<EventRow>,
+    seqs: Option<Vec<i64>>,
+    app: AppHandle,
+) -> Result<MergeReport, CommandError> {
     // Same threading note as `rebuild_projections`: the replay fallback is
     // unbounded work and must stay off the main thread.
     tauri::async_runtime::spawn_blocking(move || {
         let db = app.state::<Db>();
+        let data_dir = app.state::<DataDir>();
         let mut conn = db.0.lock()?;
-        apply_remote_events_inner(&mut conn, &events)
+        apply_remote_events_inner(&mut conn, &data_dir.0, &events, seqs.as_deref())
     })
     .await
     .map_err(|e| format!("apply_remote_events task failed: {e}"))?
@@ -440,43 +534,69 @@ pub fn list_event_aggregate_ids(
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RebuildReport {
+    /// Events applied by this replay — the whole log from an empty base, or
+    /// only the tail past `checkpoint`.
     pub events_replayed: usize,
     pub events_applied: usize,
     pub rows: std::collections::BTreeMap<String, i64>,
+    /// The checkpoint the replay started from (its registry id), if any.
+    #[serde(default)]
+    pub checkpoint: Option<i64>,
 }
 
-/// Replay the whole log into the derived tables, inside `tx`. Every column of
-/// every derived table comes back from the log — covers included, since
-/// `book.coverExtracted` projects them; the bytes they point at live in the
-/// device-local blob registry, which the wipe never touches.
-pub(crate) fn replay_into(tx: &Transaction<'_>) -> Result<RebuildReport, CommandError> {
-    for table in apply::DERIVED_TABLES {
-        tx.execute(&format!("DELETE FROM {table}"), [])
-            ?;
-    }
-
-    // Collected up front so the statement's borrow of `tx` ends before
-    // `apply_event` needs it. Event logs for a reading app stay in the
-    // thousands; if that ever changes this becomes a chunked cursor.
-    let events: Vec<EventRow> = {
-        let mut stmt = tx
-            .prepare(
-                "SELECT * FROM domain_events
-                 ORDER BY hlc_wall_ms, hlc_counter, hlc_device",
-            )
-            ?;
-        let iter = stmt.query_map([], row_to_event)?;
-        iter.collect::<rusqlite::Result<Vec<_>>>()
-            ?
-    };
-
-    let mut applied = 0usize;
-    for ev in &events {
-        if apply::apply_event(tx, ev)? {
-            applied += 1;
+/// Walk the log in HLC order from just past `after` (None = from the start),
+/// one bounded page at a time, so a replay's memory does not scale with the
+/// log. Returns how many events the callback saw.
+pub(crate) fn for_each_event_after<F>(
+    tx: &Transaction<'_>,
+    after: Option<&checkpoints::HlcKey>,
+    mut f: F,
+) -> Result<usize, CommandError>
+where
+    F: FnMut(&EventRow) -> Result<(), CommandError>,
+{
+    let page = checkpoints::REPLAY_PAGE;
+    let mut cursor: Option<checkpoints::HlcKey> = after.cloned();
+    let mut total = 0usize;
+    loop {
+        let batch: Vec<EventRow> = match &cursor {
+            Some((wall, counter, device)) => {
+                let mut stmt = tx.prepare_cached(
+                    "SELECT * FROM domain_events
+                      WHERE (hlc_wall_ms, hlc_counter, hlc_device) > (?1, ?2, ?3)
+                      ORDER BY hlc_wall_ms, hlc_counter, hlc_device
+                      LIMIT ?4",
+                )?;
+                let iter = stmt.query_map(params![wall, counter, device, page as i64], row_to_event)?;
+                iter.collect::<rusqlite::Result<Vec<_>>>()?
+            }
+            None => {
+                let mut stmt = tx.prepare_cached(
+                    "SELECT * FROM domain_events
+                      ORDER BY hlc_wall_ms, hlc_counter, hlc_device
+                      LIMIT ?1",
+                )?;
+                let iter = stmt.query_map(params![page as i64], row_to_event)?;
+                iter.collect::<rusqlite::Result<Vec<_>>>()?
+            }
+        };
+        if batch.is_empty() {
+            break;
+        }
+        for ev in &batch {
+            f(ev)?;
+        }
+        total += batch.len();
+        let last = batch.last().expect("non-empty batch");
+        cursor = Some(hlc_key(last));
+        if batch.len() < page {
+            break;
         }
     }
+    Ok(total)
+}
 
+fn derived_row_counts(tx: &Transaction<'_>) -> Result<std::collections::BTreeMap<String, i64>, CommandError> {
     let mut rows = std::collections::BTreeMap::new();
     for table in apply::DERIVED_TABLES {
         let count: i64 = tx
@@ -484,12 +604,84 @@ pub(crate) fn replay_into(tx: &Transaction<'_>) -> Result<RebuildReport, Command
             ?;
         rows.insert((*table).to_string(), count);
     }
+    Ok(rows)
+}
 
+/// Replay the WHOLE log into the derived tables from an empty base, inside
+/// `tx`. Every column of every derived table comes back from the log — covers
+/// included, since `book.coverExtracted` projects them; the bytes they point
+/// at live in the device-local blob registry, which the wipe never touches.
+/// This is the ground truth `verify_projections` diffs against; ordinary
+/// merges go through `replay_projections`, which starts from a checkpoint.
+pub(crate) fn replay_into(tx: &Transaction<'_>) -> Result<RebuildReport, CommandError> {
+    for table in apply::DERIVED_TABLES {
+        tx.execute(&format!("DELETE FROM {table}"), [])
+            ?;
+    }
+    let mut applied = 0usize;
+    let replayed = for_each_event_after(tx, None, |ev| {
+        if apply::apply_event(tx, ev)? {
+            applied += 1;
+        }
+        Ok(())
+    })?;
     Ok(RebuildReport {
-        events_replayed: events.len(),
+        events_replayed: replayed,
         events_applied: applied,
-        rows,
+        rows: derived_row_counts(tx)?,
+        checkpoint: None,
     })
+}
+
+/// Bring the projections to `f(log)` the cheap way: restore the newest valid
+/// checkpoint and apply only the events past its frontier. Invalidation
+/// (`checkpoints::invalidate_checkpoints_behind`) runs at every insertion, so
+/// whatever checkpoint is newest here is sound by construction. A checkpoint
+/// whose file turns out unreadable is dropped and the next older one tried.
+///
+/// Returns None when NO base is usable and the log is incomplete (a device
+/// mid-backfill whose bootstrap checkpoint a straggler just invalidated):
+/// replaying a partial log would produce wrong tables, so the caller leaves
+/// the projections stale until the backfill completes.
+pub(crate) fn replay_projections(
+    tx: &Transaction<'_>,
+    data_dir: &Path,
+) -> Result<Option<RebuildReport>, CommandError> {
+    loop {
+        let Some(base) = checkpoints::newest_checkpoint(tx)? else {
+            break;
+        };
+        match checkpoints::restore_checkpoint(tx, data_dir, &base) {
+            Ok(()) => {
+                let after = checkpoints::hlc_key_of(&base.hlc);
+                let mut applied = 0usize;
+                let replayed = for_each_event_after(tx, Some(&after), |ev| {
+                    if apply::apply_event(tx, ev)? {
+                        applied += 1;
+                    }
+                    Ok(())
+                })?;
+                return Ok(Some(RebuildReport {
+                    events_replayed: replayed,
+                    events_applied: applied,
+                    rows: derived_row_counts(tx)?,
+                    checkpoint: Some(base.id),
+                }));
+            }
+            Err(error) => {
+                log::warn!(
+                    "checkpoint {} unusable ({}); dropping it and falling back",
+                    base.blob_key,
+                    error
+                );
+                checkpoints::delete_checkpoint(tx, data_dir, base.id, &base.blob_key)?;
+            }
+        }
+    }
+    if !checkpoints::log_complete(tx)? {
+        return Ok(None);
+    }
+    Ok(Some(replay_into(tx)?))
 }
 
 /// Discard the derived tables and rebuild them from the event log.
@@ -505,8 +697,10 @@ pub async fn rebuild_projections(app: AppHandle) -> Result<RebuildReport, Comman
     tauri::async_runtime::spawn_blocking(move || {
         let db = app.state::<Db>();
         let mut conn = db.0.lock()?;
+        require_complete_log(&conn)?;
         let tx = conn.transaction()?;
         let report = replay_into(&tx)?;
+        set_projections_stale(&tx, false)?;
         tx.commit()?;
         Ok(report)
     })
@@ -595,9 +789,23 @@ pub async fn verify_projections(app: AppHandle) -> Result<VerifyReport, CommandE
         .map_err(|e| format!("verify_projections task failed: {e}"))?
 }
 
+/// Full-log operations (rebuild from empty, verify) are meaningless while the
+/// pre-frontier log is still backfilling behind a bootstrap checkpoint.
+fn require_complete_log(conn: &Connection) -> Result<(), CommandError> {
+    if checkpoints::log_complete(conn)? {
+        Ok(())
+    } else {
+        Err(CommandError::new(
+            checkpoints::CODE_SYNC_LOG_INCOMPLETE,
+            "the event log is still being backfilled from the relay",
+        ))
+    }
+}
+
 pub(crate) fn verify_inner(app: &AppHandle) -> Result<VerifyReport, CommandError> {
     let db = app.state::<Db>();
     let mut conn = db.0.lock()?;
+    require_complete_log(&conn)?;
     let tx = conn.transaction()?;
 
     let mut live = std::collections::BTreeMap::new();

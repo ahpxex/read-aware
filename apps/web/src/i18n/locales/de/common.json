@@ -37,6 +37,9 @@
     "syncQuota": "Der Sync-Speicher ist voll.",
     "syncTransportUnavailable": "Das Plugin für diese Sync-Verbindung ist nicht verfügbar. Bitte das Plugin aktivieren und erneut versuchen.",
     "syncTransportMismatch": "Die Servereinstellungen des Sync-Plugins haben sich nach dem Verbinden geändert. Bitte neu verbinden, um den neuen Server zu übernehmen.",
+    "syncLogIncomplete": "Dieses Gerät lädt den Kontoverlauf noch vom Server nach. Bitte erneut versuchen, sobald die Synchronisierung aufgeholt hat.",
+    "syncCheckpointMismatch": "Der Konto-Snapshot stammt aus einer anderen ReadAware-Version und wurde ignoriert. Die Synchronisierung baut stattdessen aus dem vollständigen Verlauf neu auf.",
+    "syncCheckpointPrecondition": "Ein Prüfpunkt konnte gerade nicht gespeichert werden, weil noch Änderungen auf die Synchronisierung warten. Es wird automatisch erneut versucht.",
     "localSaveFailedTitle": "Änderung nicht gespeichert",
     "localSaveFailed": "Diese Änderung konnte nicht lokal gespeichert werden und geht nach einem Neustart möglicherweise verloren."
   },

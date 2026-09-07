@@ -463,7 +463,12 @@
       "bookUp": "Uploading “{{title}}”",
       "bookDown": "Downloading “{{title}}”",
       "bookUpParts": "Uploading “{{title}}” ({{done}}/{{total}})",
-      "bookDownParts": "Downloading “{{title}}” ({{done}}/{{total}})"
+      "bookDownParts": "Downloading “{{title}}” ({{done}}/{{total}})",
+      "bootstrap": "Restoring the library from the account snapshot…",
+      "verifying": "Checking what the server already has… {{count}} confirmed",
+      "backfill": "Filling in history… {{done}}/{{total}}",
+      "checkpoint": "Saving a checkpoint…",
+      "backfillRemaining": "History still filling in: {{count}} changes to go"
     },
     "indicator": {
       "label": "Sync status",
@@ -483,6 +488,7 @@
     "books": {
       "title": "Book files",
       "pending": "Waiting to upload",
+      "unverified": "Checking with the server",
       "failed": "Upload failed — will retry",
       "rejectedQuota": "Cloud storage is full — upgrade your plan for more space, or remove some books.",
       "rejected": "The sync server declined this file. Details are in the app log.",

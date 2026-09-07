@@ -37,6 +37,9 @@
     "syncQuota": "Your sync storage is full.",
     "syncTransportUnavailable": "The plugin providing this sync connection isn't available. Enable the plugin, then try again.",
     "syncTransportMismatch": "The sync plugin's server settings changed after connecting. Reconnect to adopt the new server.",
+    "syncLogIncomplete": "This device is still filling in the account's history from the server. Try again once sync has caught up.",
+    "syncCheckpointMismatch": "The account snapshot was made by a different version of ReadAware and was ignored. Sync will rebuild from the full history instead.",
+    "syncCheckpointPrecondition": "A checkpoint could not be saved right now because some changes are still waiting to sync. It will be retried automatically.",
     "localSaveFailedTitle": "Change not saved",
     "localSaveFailed": "This change couldn't be written to local storage and may be lost after a restart."
   },

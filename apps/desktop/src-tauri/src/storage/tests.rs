@@ -15,6 +15,28 @@ fn migrated_conn() -> Connection {
     conn
 }
 
+/// A throwaway data dir for paths that touch checkpoint/blob files. Leaked on
+/// purpose (tests are short-lived processes); each call is unique.
+fn scratch() -> PathBuf {
+    let dir = std::env::temp_dir().join(format!("read-aware-test-{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(&dir).expect("scratch dir");
+    dir
+}
+
+// The merge entry points grew a data dir (checkpoint files) and per-event
+// relay seqs. The pre-existing suite exercises the log/projection semantics
+// alone, so these shadows keep it readable; checkpoint tests call the real
+// signatures.
+fn apply_remote_events_inner(conn: &mut Connection, events: &[EventRow]) -> Result<MergeReport, CommandError> {
+    super::events::apply_remote_events_inner(conn, &scratch(), events, None)
+}
+fn stage_remote_events_inner(conn: &mut Connection, events: &[EventRow]) -> Result<usize, CommandError> {
+    super::events::stage_remote_events_inner(conn, &scratch(), events, None)
+}
+fn finalize_staged_events_inner(conn: &mut Connection) -> Result<Option<RebuildReport>, CommandError> {
+    super::events::finalize_staged_events_inner(conn, &scratch())
+}
+
 fn table_exists(conn: &Connection, name: &str) -> bool {
     conn.query_row(
         "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1)",
@@ -1344,8 +1366,7 @@ fn projection_snapshots(
 #[test]
 fn merged_remote_events_apply_but_never_enter_the_outbox() {
     let mut conn = migrated_conn();
-    let report = apply_remote_events_inner(
-        &mut conn,
+    let report = apply_remote_events_inner(&mut conn,
         &[
             imported("r1", 1_000, "b1", "沙丘"),
             ev_on(
@@ -1393,8 +1414,7 @@ fn a_stale_save_neither_deletes_merged_peer_messages_nor_keeps_dead_error_stubs(
     )
     .unwrap();
     // 对端消息经同步合并写入投影——本 webview 的内存转录不知道它。
-    apply_remote_events_inner(
-        &mut conn,
+    apply_remote_events_inner(&mut conn,
         &[ev_on(
             "device-b",
             "r1",
@@ -1481,8 +1501,7 @@ fn same_book_thread_from_two_devices_merges_despite_colliding_seq() {
     .unwrap();
 
     // 对端的 seq 0/1 撞本机的 seq 0/1;其戳位于本机 frontier 之后 → 增量路径。
-    let incremental = apply_remote_events_inner(
-        &mut conn,
+    let incremental = apply_remote_events_inner(&mut conn,
         &[
             appended("device-b", "r1", 1_004, "m-b1", 0, "对端第一条"),
             appended("device-b", "r2", 1_005, "m-b2", 1, "对端第二条"),
@@ -1493,8 +1512,7 @@ fn same_book_thread_from_two_devices_merges_despite_colliding_seq() {
     assert!(!incremental.replayed);
 
     // 再来一条落在 frontier 之前的 → 重放兜底,同样要能吞下 seq 冲突。
-    let replayed = apply_remote_events_inner(
-        &mut conn,
+    let replayed = apply_remote_events_inner(&mut conn,
         &[appended("device-b", "r3", 1_002, "m-b0", 0, "对端更早一条")],
     )
     .unwrap();
@@ -1557,8 +1575,7 @@ fn an_event_behind_the_frontier_replays_instead_of_clobbering() {
 
     // A peer edited the same book while apart — its stamp sorts BEFORE ours.
     // Applying it incrementally would overwrite the newer title with the older.
-    let report = apply_remote_events_inner(
-        &mut conn,
+    let report = apply_remote_events_inner(&mut conn,
         &[ev_on(
             "device-b",
             "r1",
@@ -1686,8 +1703,7 @@ fn replaying_an_import_materializes_the_blob_manifest() {
     // leave `blob_objects` rows behind for every referenced blob, or the shelf
     // renders books whose bytes can never be fetched.
     let mut conn = migrated_conn();
-    apply_remote_events_inner(
-        &mut conn,
+    apply_remote_events_inner(&mut conn,
         &[
             ev_on(
                 "device-b",
@@ -1922,8 +1938,7 @@ fn merging_books_folds_history_and_reroutes_late_events() {
     );
 
     // A late event still addressed to the dead id reroutes to the keeper.
-    apply_remote_events_inner(
-        &mut conn,
+    apply_remote_events_inner(&mut conn,
         &[ev(
             "late",
             3_000,
@@ -1944,8 +1959,7 @@ fn merging_books_folds_history_and_reroutes_late_events() {
     );
 
     // Redelivered merge (the other device detected the same pair): a no-op.
-    apply_remote_events_inner(
-        &mut conn,
+    apply_remote_events_inner(&mut conn,
         &[ev(
             "m2",
             3_500,
@@ -2037,8 +2051,7 @@ fn preference_changes_apply_last_writer_wins() {
     // An OLDER change arriving later (remote merge behind the frontier) must
     // not win: the replay re-applies in HLC order, so the upsert lands the
     // newer value last again.
-    apply_remote_events_inner(
-        &mut conn,
+    apply_remote_events_inner(&mut conn,
         &[ev(
             "p1",
             1_000,
@@ -2096,16 +2109,18 @@ fn adopting_a_different_account_resets_the_bookkeeping() {
     assert!(same_account_profile.last_push_at.is_some());
     assert!(same_account_profile.last_pull_at.is_some());
 
-    // A DIFFERENT account has confirmed nothing. The whole log re-enters the
-    // outbox — including r1, which never had an outbox row — the blob
-    // re-queues, and the cursor rewinds.
+    // A DIFFERENT account has confirmed nothing we know of. The whole log —
+    // including r1, which never had an outbox row — and the blob become
+    // `unverified`: not yet in the outbox, awaiting the relay's answer. The
+    // cursor rewinds.
     assert!(sync_adopt_account_inner(&mut conn, "acc-b").unwrap());
-    let outbox = sync_outbox_events_inner(&conn, 100).unwrap();
-    assert_eq!(
-        outbox.iter().map(|e| e.id.as_str()).collect::<Vec<_>>(),
-        vec!["e1", "r1"],
-        "local and remote-merged events alike owe the new mailbox a push"
-    );
+    assert!(sync_outbox_events_inner(&conn, 100).unwrap().is_empty());
+    assert!(sync_outbox_blobs_inner(&conn, 100).unwrap().is_empty());
+    let mut unverified = sync_unverified_events_inner(&conn, 100).unwrap();
+    unverified.sort();
+    assert_eq!(unverified, vec!["e1".to_string(), "r1".to_string()]);
+    let counts = sync_outbox_counts_inner(&conn).unwrap();
+    assert_eq!((counts.events, counts.unverified_events, counts.blobs, counts.unverified_blobs), (0, 2, 0, 1));
     let stale_seq: Option<String> = conn
         .query_row(
             "SELECT remote_id FROM event_sync_state WHERE event_id = 'e1'",
@@ -2114,10 +2129,23 @@ fn adopting_a_different_account_resets_the_bookkeeping() {
         )
         .unwrap();
     assert!(stale_seq.is_none(), "the old account's server_seq must not survive");
-    let blobs = sync_outbox_blobs_inner(&conn, 100).unwrap();
+    let blobs = sync_unverified_blobs_inner(&conn, 100).unwrap();
     assert_eq!(blobs.len(), 1);
     assert_eq!(blobs[0].key, "bookfile:b1");
     assert!(sync_cursor_get_inner(&conn, "events").unwrap().is_none());
+
+    // The relay answers: it already holds r1 (at seq 3) but not e1; the blob
+    // is absent. Only what is genuinely missing enters the outbox.
+    sync_resolve_events_inner(&mut conn, &[("r1".to_string(), 3)], &["e1".to_string()]).unwrap();
+    sync_resolve_blobs_inner(&mut conn, &[], &["bookfile:b1".to_string()]).unwrap();
+    let outbox = sync_outbox_events_inner(&conn, 100).unwrap();
+    assert_eq!(outbox.iter().map(|e| e.id.as_str()).collect::<Vec<_>>(), vec!["e1"]);
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT remote_id FROM event_sync_state WHERE event_id = 'r1'"),
+        "3"
+    );
+    assert_eq!(sync_outbox_blobs_inner(&conn, 100).unwrap().len(), 1);
+    assert!(sync_unverified_events_inner(&conn, 100).unwrap().is_empty());
     assert_eq!(
         scalar::<String>(&conn, "SELECT bookkeeping_account_id FROM sync_profile"),
         "acc-b"
@@ -2324,4 +2352,500 @@ fn namespaced_kv_restore_replaces_only_the_target_namespace() {
     assert_eq!(old_count, 0);
     assert_eq!(restored, "restored");
     assert_eq!(untouched, "keep");
+}
+
+
+// ─── Verification, checkpoints, backfill, pending reading time ───────────────
+
+/// The checkpoint suite needs a data dir the blob store can write to.
+fn conn_with_dir() -> (Connection, PathBuf) {
+    (migrated_conn(), scratch())
+}
+
+fn book_titles(conn: &Connection) -> Vec<(String, String)> {
+    let mut stmt = conn.prepare("SELECT id, title FROM books ORDER BY id").unwrap();
+    stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+        .unwrap()
+        .map(|r| r.unwrap())
+        .collect()
+}
+
+fn edited(id: &str, wall: i64, device: &str, book: &str, title: &str) -> EventRow {
+    let mut e = ev(id, wall, "book.metadataEdited", serde_json::json!({ "bookId": book, "title": title }));
+    e.hlc.device_id = device.to_string();
+    e
+}
+
+#[test]
+fn a_pull_with_seqs_settles_bookkeeping_for_known_and_new_events_alike() {
+    let (mut conn, dir) = conn_with_dir();
+    // A local event whose push ack was lost stays `pending`...
+    commit_events_inner(&mut conn, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    assert_eq!(sync_outbox_events_inner(&conn, 10).unwrap().len(), 1);
+    // ...until the relay hands it back with its seq: nothing to push anymore.
+    let report = super::events::apply_remote_events_inner(
+        &mut conn,
+        &dir,
+        &[imported("e1", 1_000, "b1", "沙丘"), imported("r1", 1_001, "b2", "基地")],
+        Some(&[7, 8]),
+    )
+    .unwrap();
+    assert_eq!(report.appended, 1, "e1 was already logged; only r1 is new");
+    assert!(sync_outbox_events_inner(&conn, 10).unwrap().is_empty());
+    assert_eq!(scalar::<String>(&conn, "SELECT remote_id FROM event_sync_state WHERE event_id='e1'"), "7");
+    assert_eq!(scalar::<String>(&conn, "SELECT push_state FROM event_sync_state WHERE event_id='r1'"), "synced");
+    assert_eq!(scalar::<String>(&conn, "SELECT remote_id FROM event_sync_state WHERE event_id='r1'"), "8");
+}
+
+#[test]
+fn migration_26_backfills_bookkeeping_and_hands_marks_to_verification() {
+    // A v25 database, connected to an account, with marks from the old era.
+    let mut conn = test_conn();
+    run_migrations_up_to(&mut conn, 25).unwrap();
+    commit_events_inner(&mut conn, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    sync_mark_events_pushed_inner(&mut conn, &[("e1".to_string(), 5)]).unwrap();
+    // A remote-merged event without any bookkeeping row (pre-ack era).
+    conn.execute(
+        "INSERT INTO domain_events (id, type, hlc_wall_ms, hlc_counter, hlc_device, payload_json, created_at)
+         VALUES ('r1', 'book.starred', 1001, 0, 'device-b', '{}', '2026-01-01T00:00:00.000Z')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO sync_profile (id, sync_enabled, remote_account_id, updated_at)
+         VALUES (1, 1, 'acc-a', '2026-01-01T00:00:00.000Z')",
+        [],
+    )
+    .unwrap();
+    run_migrations(&mut conn).unwrap();
+
+    assert_eq!(scalar::<String>(&conn, "SELECT bookkeeping_account_id FROM sync_profile"), "acc-a");
+    let mut unverified = sync_unverified_events_inner(&conn, 10).unwrap();
+    unverified.sort();
+    assert_eq!(unverified, vec!["e1".to_string(), "r1".to_string()]);
+    // Same account reconnects: NO wholesale reset on top of the backfill.
+    assert!(!sync_adopt_account_inner(&mut conn, "acc-a").unwrap());
+    assert_eq!(scalar::<i64>(&conn, "SELECT log_complete FROM sync_profile"), 1);
+}
+
+#[test]
+fn migration_26_leaves_a_disconnected_profile_alone() {
+    let mut conn = test_conn();
+    run_migrations_up_to(&mut conn, 25).unwrap();
+    commit_events_inner(&mut conn, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    sync_mark_events_pushed_inner(&mut conn, &[("e1".to_string(), 5)]).unwrap();
+    // Disconnected (remote_account_id NULL): the marks stay, bookkeeping stays
+    // unknown, and the next connect does the full (cheap) verification reset.
+    run_migrations(&mut conn).unwrap();
+    assert!(sync_unverified_events_inner(&conn, 10).unwrap().is_empty());
+    assert_eq!(
+        scalar::<i64>(&conn, "SELECT COUNT(*) FROM sync_profile WHERE bookkeeping_account_id IS NOT NULL"),
+        0
+    );
+    assert!(sync_adopt_account_inner(&mut conn, "acc-a").unwrap());
+    assert_eq!(sync_unverified_events_inner(&conn, 10).unwrap(), vec!["e1".to_string()]);
+}
+
+#[test]
+fn a_checkpoint_restores_the_tables_and_replay_only_walks_the_tail() {
+    let (mut conn, dir) = conn_with_dir();
+    commit_events_inner(&mut conn, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    commit_events_inner(&mut conn, &[imported("e2", 1_001, "b2", "基地")]).unwrap();
+    let info = create_checkpoint(&mut conn, &dir, "local", None).unwrap();
+    assert_eq!(info.event_count, 2);
+    assert_eq!((info.hlc.wall_ms, info.hlc.counter), (1_001, 0));
+    assert_eq!(info.schema_version, SCHEMA_VERSION);
+    // It is a registered blob, device-local (never in the push outbox).
+    assert_eq!(
+        scalar::<i64>(&conn, "SELECT sync_required FROM blob_objects WHERE key = ?1".replace("?1", &format!("'{}'", info.blob_key)).as_str()),
+        0
+    );
+    assert!(sync_outbox_blobs_inner(&conn, 10).unwrap().is_empty());
+
+    // Two more events after the checkpoint, then a straggler behind the
+    // frontier of the LOG (but after the checkpoint): replay must start from
+    // the checkpoint and walk only the tail.
+    commit_events_inner(&mut conn, &[imported("e3", 1_010, "b3", "神经漫游者")]).unwrap();
+    commit_events_inner(&mut conn, &[edited("e4", 1_020, "device-a", "b1", "沙丘（修订）")]).unwrap();
+    let report = super::events::apply_remote_events_inner(
+        &mut conn,
+        &dir,
+        &[edited("r1", 1_015, "device-b", "b1", "沙丘（对端）")],
+        Some(&[40]),
+    )
+    .unwrap();
+    assert!(report.replayed);
+    assert!(!report.deferred);
+    assert_eq!(
+        book_titles(&conn),
+        vec![
+            ("b1".into(), "沙丘（修订）".into()),
+            ("b2".into(), "基地".into()),
+            ("b3".into(), "神经漫游者".into())
+        ],
+        "HLC order decides: the later local edit wins over the straggler"
+    );
+    // The checkpoint (frontier 1_001) survived: the straggler sorted after it.
+    assert_eq!(list_checkpoints(&conn).unwrap().len(), 1);
+
+    // A straggler BEHIND the checkpoint's frontier invalidates it; replay falls
+    // back to the empty base and still lands on the right tables.
+    let report = super::events::apply_remote_events_inner(
+        &mut conn,
+        &dir,
+        &[edited("r2", 1_000, "device-b", "b2", "基地（早）")],
+        Some(&[41]),
+    )
+    .unwrap();
+    assert!(report.replayed);
+    assert!(list_checkpoints(&conn).unwrap().is_empty(), "invalidated: cut without r2");
+    assert!(
+        !dir.join("blobs").join(blob_file_name(&info.blob_key)).exists(),
+        "the file goes with the row"
+    );
+    assert_eq!(book_titles(&conn)[1], ("b2".into(), "基地".into()), "e2 (1_001) still wins over r2 (1_000)");
+}
+
+#[test]
+fn checkpoint_maintenance_cuts_on_cadence_and_prunes_to_the_kept_count() {
+    let (mut conn, dir) = conn_with_dir();
+    let batch = |from: i64, n: i64| -> Vec<EventRow> {
+        (from..from + n)
+            .map(|i| ev(&format!("s{i}"), 1_000 + i, "book.starred", serde_json::json!({ "bookId": "b1", "starred": true })))
+            .collect()
+    };
+    commit_events_inner(&mut conn, &[imported("e1", 999, "b1", "沙丘")]).unwrap();
+    assert!(maintain_checkpoints(&mut conn, &dir).unwrap().is_none(), "too little to checkpoint");
+    commit_events_inner(&mut conn, &batch(0, CHECKPOINT_EVERY_EVENTS)).unwrap();
+    assert!(maintain_checkpoints(&mut conn, &dir).unwrap().is_some());
+    assert!(maintain_checkpoints(&mut conn, &dir).unwrap().is_none(), "nothing new since");
+    for round in 1..=(CHECKPOINTS_KEPT + 1) {
+        commit_events_inner(&mut conn, &batch(round * CHECKPOINT_EVERY_EVENTS, CHECKPOINT_EVERY_EVENTS)).unwrap();
+        assert!(maintain_checkpoints(&mut conn, &dir).unwrap().is_some());
+    }
+    let kept = list_checkpoints(&conn).unwrap();
+    assert_eq!(kept.len() as i64, CHECKPOINTS_KEPT);
+    let files = std::fs::read_dir(dir.join("blobs")).unwrap().count();
+    assert_eq!(files as i64, CHECKPOINTS_KEPT, "pruned checkpoints leave no files behind");
+}
+
+#[test]
+fn publishing_demands_a_mailbox_exact_log() {
+    let (mut conn, dir) = conn_with_dir();
+    sync_adopt_account_inner(&mut conn, "acc-a").unwrap();
+    commit_events_inner(&mut conn, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    // Unconfirmed local event → refused.
+    let err = create_publish_checkpoint(&mut conn, &dir).unwrap_err();
+    assert_eq!(err.code, CODE_SYNC_CHECKPOINT_PRECONDITION);
+    sync_mark_events_pushed_inner(&mut conn, &[("e1".to_string(), 9)]).unwrap();
+    // Confirmed, but pushed AFTER the last pull (seq 9 > cursor 8) → refused.
+    sync_cursor_set_inner(&conn, &SyncCursor { feed_name: "events".into(), remote_cursor: Some("8".into()), hlc: None }).unwrap();
+    assert_eq!(create_publish_checkpoint(&mut conn, &dir).unwrap_err().code, CODE_SYNC_CHECKPOINT_PRECONDITION);
+    // A pull that reached seq 9 → the log equals mailbox[1..=9]; publishable.
+    sync_cursor_set_inner(&conn, &SyncCursor { feed_name: "events".into(), remote_cursor: Some("9".into()), hlc: None }).unwrap();
+    let info = create_publish_checkpoint(&mut conn, &dir).unwrap();
+    assert_eq!(info.remote_seq, Some(9));
+    assert_eq!(info.origin, "publish");
+    mark_checkpoint_published(&conn, info.id).unwrap();
+    assert!(list_checkpoints(&conn).unwrap()[0].published);
+}
+
+#[test]
+fn a_bootstrap_restore_paints_the_shelf_then_the_backfill_completes_the_log() {
+    // Device A: the publisher.
+    let (mut a, dir_a) = conn_with_dir();
+    sync_adopt_account_inner(&mut a, "acc").unwrap();
+    commit_events_inner(&mut a, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    commit_events_inner(&mut a, &[imported("e2", 1_001, "b2", "基地")]).unwrap();
+    commit_events_inner(
+        &mut a,
+        &[ev("t1", 1_002, "book.timeRecorded", serde_json::json!({ "bookId": "b1", "ms": 60000, "atEpochMs": 1002, "localDay": "2026-09-07", "localHour": 10 }))],
+    )
+    .unwrap();
+    sync_mark_events_pushed_inner(&mut a, &[("e1".into(), 1), ("e2".into(), 2), ("t1".into(), 3)]).unwrap();
+    sync_cursor_set_inner(&a, &SyncCursor { feed_name: "events".into(), remote_cursor: Some("3".into()), hlc: None }).unwrap();
+    let published = create_publish_checkpoint(&mut a, &dir_a).unwrap();
+    let bytes = get_blob_inner(&a, &dir_a, &published.blob_key).unwrap();
+    assert!(!bytes.is_empty());
+
+    // Device B: fresh, downloads the snapshot blob (the engine's fetchBlob
+    // lands it through put_blob) and restores it.
+    let (mut b, dir_b) = conn_with_dir();
+    sync_adopt_account_inner(&mut b, "acc").unwrap();
+    put_blob_inner(&b, &dir_b, &published.blob_key, Some("application/vnd.sqlite3"), &bytes).unwrap();
+    let restored = restore_bootstrap_checkpoint(&mut b, &dir_b, &published.blob_key).unwrap();
+    assert_eq!(restored.origin, "bootstrap");
+    assert_eq!(restored.remote_seq, Some(3));
+    assert_eq!(book_titles(&b), vec![("b1".into(), "沙丘".into()), ("b2".into(), "基地".into())]);
+    assert_eq!(scalar::<i64>(&b, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 60_000);
+    // Manifest rows: B knows the book files exist remotely, holds no bytes.
+    assert_eq!(scalar::<i64>(&b, "SELECT COUNT(*) FROM blob_objects WHERE key LIKE 'bookfile:%' AND storage_uri IS NULL"), 2);
+    // Pull cursor sits at the frontier; the log is empty and flagged incomplete.
+    assert_eq!(sync_cursor_get_inner(&b, "events").unwrap().unwrap().remote_cursor, Some("3".into()));
+    assert_eq!(scalar::<i64>(&b, "SELECT COUNT(*) FROM domain_events"), 0);
+    assert!(!log_complete(&b).unwrap());
+    let status = backfill_status(&b).unwrap().unwrap();
+    assert_eq!((status.frontier_seq, status.cursor, status.complete), (3, 0, false));
+
+    // The tail arrives (seq 4, after the frontier): incremental apply.
+    let tail = super::events::apply_remote_events_inner(
+        &mut b,
+        &dir_b,
+        &[imported("e3", 1_010, "b3", "神经漫游者")],
+        Some(&[4]),
+    )
+    .unwrap();
+    assert!(!tail.replayed && !tail.deferred);
+    assert_eq!(book_titles(&b).len(), 3);
+
+    // A straggler behind the frontier (seq 5, HLC 1_000_5 < 1_002) invalidates
+    // the bootstrap checkpoint; with the log incomplete the replay is DEFERRED,
+    // projections stay coherent-but-stale.
+    let straggler = super::events::apply_remote_events_inner(
+        &mut b,
+        &dir_b,
+        &[edited("r9", 1_000, "device-c", "b1", "沙丘（早）")],
+        Some(&[5]),
+    )
+    .unwrap();
+    assert!(straggler.deferred && !straggler.replayed);
+    assert!(list_checkpoints(&b).unwrap().is_empty());
+    assert_eq!(book_titles(&b)[0].1, "沙丘", "stale but untouched until the log is complete");
+
+    // Backfill the pre-frontier events; time counts ONCE (they are already in
+    // the tables), and completion replays the deferred straggler.
+    let report = backfill_remote_events(
+        &mut b,
+        &dir_b,
+        &[imported("e1", 1_000, "b1", "沙丘"), imported("e2", 1_001, "b2", "基地")],
+        &[1, 2],
+    )
+    .unwrap();
+    assert_eq!((report.appended, report.cursor, report.complete, report.replayed), (2, 2, false, false));
+    assert_eq!(scalar::<i64>(&b, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 60_000);
+    let report = backfill_remote_events(
+        &mut b,
+        &dir_b,
+        &[ev("t1", 1_002, "book.timeRecorded", serde_json::json!({ "bookId": "b1", "ms": 60000, "atEpochMs": 1002, "localDay": "2026-09-07", "localHour": 10 }))],
+        &[3],
+    )
+    .unwrap();
+    assert!(report.complete && report.replayed);
+    assert!(log_complete(&b).unwrap());
+    assert_eq!(scalar::<i64>(&b, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 60_000, "replay from empty counts the minute once");
+    assert_eq!(
+        book_titles(&b)[0].1,
+        "沙丘（早）",
+        "the deferred replay ran: r9 (1_000, device-c) sorts after e1 (1_000, device-a), so its edit wins"
+    );
+}
+
+#[test]
+fn hlc_seed_includes_a_restored_checkpoint_frontier() {
+    let (mut a, dir_a) = conn_with_dir();
+    sync_adopt_account_inner(&mut a, "acc").unwrap();
+    commit_events_inner(&mut a, &[imported("e1", 5_000, "b1", "沙丘")]).unwrap();
+    sync_mark_events_pushed_inner(&mut a, &[("e1".into(), 1)]).unwrap();
+    sync_cursor_set_inner(&a, &SyncCursor { feed_name: "events".into(), remote_cursor: Some("1".into()), hlc: None }).unwrap();
+    let published = create_publish_checkpoint(&mut a, &dir_a).unwrap();
+    let bytes = get_blob_inner(&a, &dir_a, &published.blob_key).unwrap();
+    let (mut b, dir_b) = conn_with_dir();
+    put_blob_inner(&b, &dir_b, &published.blob_key, None, &bytes).unwrap();
+    restore_bootstrap_checkpoint(&mut b, &dir_b, &published.blob_key).unwrap();
+    let seed: (i64, i64) = b
+        .query_row(
+            "SELECT hlc_wall_ms, hlc_counter FROM (
+                SELECT hlc_wall_ms, hlc_counter FROM domain_events
+                UNION ALL
+                SELECT hlc_wall_ms, hlc_counter FROM projection_checkpoints
+             ) ORDER BY hlc_wall_ms DESC, hlc_counter DESC LIMIT 1",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(seed, (5_000, 0), "an empty log must not let local stamps sort before the snapshot");
+}
+
+#[test]
+fn a_checkpoint_from_another_schema_is_ignored_not_trusted() {
+    let (mut conn, dir) = conn_with_dir();
+    commit_events_inner(&mut conn, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    let info = create_checkpoint(&mut conn, &dir, "local", None).unwrap();
+    conn.execute("UPDATE projection_checkpoints SET schema_version = schema_version - 1 WHERE id = ?1", params![info.id]).unwrap();
+    assert!(newest_checkpoint(&conn).unwrap().is_none());
+    // Replay still works — from the empty base.
+    let report = super::events::apply_remote_events_inner(
+        &mut conn,
+        &dir,
+        &[edited("r1", 999, "device-b", "b1", "早")],
+        None,
+    )
+    .unwrap();
+    assert!(report.replayed);
+    assert_eq!(book_titles(&conn)[0].1, "沙丘");
+}
+
+#[test]
+fn rebuild_and_verify_refuse_an_incomplete_log() {
+    let (mut a, dir_a) = conn_with_dir();
+    sync_adopt_account_inner(&mut a, "acc").unwrap();
+    commit_events_inner(&mut a, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    sync_mark_events_pushed_inner(&mut a, &[("e1".into(), 1)]).unwrap();
+    sync_cursor_set_inner(&a, &SyncCursor { feed_name: "events".into(), remote_cursor: Some("1".into()), hlc: None }).unwrap();
+    let published = create_publish_checkpoint(&mut a, &dir_a).unwrap();
+    let bytes = get_blob_inner(&a, &dir_a, &published.blob_key).unwrap();
+    let (mut b, dir_b) = conn_with_dir();
+    put_blob_inner(&b, &dir_b, &published.blob_key, None, &bytes).unwrap();
+    restore_bootstrap_checkpoint(&mut b, &dir_b, &published.blob_key).unwrap();
+    // A publish from B would be a lie (its log is incomplete); refused.
+    assert_eq!(create_publish_checkpoint(&mut b, &dir_b).unwrap_err().code, CODE_SYNC_CHECKPOINT_PRECONDITION);
+    // Settling without backfill progress changes nothing.
+    assert!(!settle_backfill(&mut b, &dir_b).unwrap().unwrap().complete);
+    backfill_remote_events(&mut b, &dir_b, &[imported("e1", 1_000, "b1", "沙丘")], &[1]).unwrap();
+    assert!(log_complete(&b).unwrap());
+    assert!(backfill_status(&b).unwrap().is_none());
+}
+
+#[test]
+fn pending_reading_time_accrues_and_flushes_exactly_once() {
+    let mut conn = migrated_conn();
+    commit_events_inner(&mut conn, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    let b = reading_time_accrue_inner(&conn, "b1", "2026-09-07", 15, 20_000, 1_000_000).unwrap();
+    assert_eq!((b.ms, b.started_at, b.last_at), (20_000, 1_000_000, 1_000_000));
+    let b = reading_time_accrue_inner(&conn, "b1", "2026-09-07", 15, 20_000, 1_020_000).unwrap();
+    assert_eq!((b.ms, b.started_at, b.last_at), (40_000, 1_000_000, 1_020_000));
+    // Nothing reached the projections yet.
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM reading_time_totals"), 0);
+    assert_eq!(reading_time_pending_inner(&conn).unwrap().len(), 1);
+
+    // The caller mints the event for what it read (40s); a tick races in
+    // (another 20s) before the flush lands.
+    reading_time_accrue_inner(&conn, "b1", "2026-09-07", 15, 20_000, 1_040_000).unwrap();
+    let flush = ev(
+        "t1",
+        2_000,
+        "book.timeRecorded",
+        serde_json::json!({ "bookId": "b1", "ms": 40000, "atEpochMs": 1020000, "localDay": "2026-09-07", "localHour": 15 }),
+    );
+    let report = reading_time_flush_inner(&mut conn, std::slice::from_ref(&flush)).unwrap();
+    assert_eq!((report.appended, report.applied), (1, 1));
+    assert_eq!(scalar::<i64>(&conn, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 40_000);
+    assert_eq!(scalar::<i64>(&conn, "SELECT ms FROM reading_time_daily WHERE book_id='b1' AND local_day='2026-09-07'"), 40_000);
+    // The racing tick survives in the bucket.
+    let pending = reading_time_pending_inner(&conn).unwrap();
+    assert_eq!(pending.len(), 1);
+    assert_eq!(pending[0].ms, 20_000);
+    // Redelivering the same flush (a retry after a lost ack) is a no-op.
+    let again = reading_time_flush_inner(&mut conn, std::slice::from_ref(&flush)).unwrap();
+    assert_eq!(again.appended, 0);
+    assert_eq!(reading_time_pending_inner(&conn).unwrap()[0].ms, 20_000);
+    assert_eq!(scalar::<i64>(&conn, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 40_000);
+    // The event is in the outbox like any local write.
+    assert_eq!(sync_outbox_events_inner(&conn, 10).unwrap().iter().filter(|e| e.id == "t1").count(), 1);
+    // Closing the remainder empties the bucket.
+    let rest = ev(
+        "t2",
+        2_001,
+        "book.timeRecorded",
+        serde_json::json!({ "bookId": "b1", "ms": 20000, "atEpochMs": 1040000, "localDay": "2026-09-07", "localHour": 15 }),
+    );
+    reading_time_flush_inner(&mut conn, &[rest]).unwrap();
+    assert!(reading_time_pending_inner(&conn).unwrap().is_empty());
+    assert_eq!(scalar::<i64>(&conn, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 60_000);
+}
+
+#[test]
+fn wipe_all_data_removes_checkpoints_with_everything_else() {
+    let (mut conn, dir) = conn_with_dir();
+    commit_events_inner(&mut conn, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    create_checkpoint(&mut conn, &dir, "local", None).unwrap();
+    wipe_all_data_inner(&mut conn, &dir).unwrap();
+    assert!(list_checkpoints(&conn).unwrap().is_empty());
+    assert!(!dir.join("blobs").exists());
+}
+
+
+#[test]
+fn a_bootstrap_keeps_unconfirmed_local_events_and_refuses_confirmed_history() {
+    let (mut a, dir_a) = conn_with_dir();
+    sync_adopt_account_inner(&mut a, "acc").unwrap();
+    commit_events_inner(&mut a, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    commit_events_inner(
+        &mut a,
+        &[ev("t1", 1_001, "book.timeRecorded", serde_json::json!({ "bookId": "b1", "ms": 1000, "atEpochMs": 1001, "localDay": "2026-09-07", "localHour": 10 }))],
+    )
+    .unwrap();
+    sync_mark_events_pushed_inner(&mut a, &[("e1".into(), 1), ("t1".into(), 2)]).unwrap();
+    sync_cursor_set_inner(&a, &SyncCursor { feed_name: "events".into(), remote_cursor: Some("2".into()), hlc: None }).unwrap();
+    let published = create_publish_checkpoint(&mut a, &dir_a).unwrap();
+    let bytes = get_blob_inner(&a, &dir_a, &published.blob_key).unwrap();
+
+    // A fresh device that already wrote a preference and starred a book
+    // before connecting (both unconfirmed, both after the frontier).
+    let (mut b, dir_b) = conn_with_dir();
+    commit_events_inner(
+        &mut b,
+        &[ev("p1", 5_000, "preference.changed", serde_json::json!({ "key": "theme", "value": "dark" }))],
+    )
+    .unwrap();
+    let mut star = ev("s1", 5_001, "book.starred", serde_json::json!({ "bookId": "b1", "starred": true }));
+    star.hlc.device_id = "device-b".into();
+    commit_events_inner(&mut b, &[star]).unwrap();
+    put_blob_inner(&b, &dir_b, &published.blob_key, None, &bytes).unwrap();
+    let info = restore_bootstrap_checkpoint(&mut b, &dir_b, &published.blob_key).unwrap();
+    assert_eq!(info.origin, "bootstrap");
+    assert_eq!(book_titles(&b), vec![("b1".into(), "沙丘".into())]);
+    assert_eq!(scalar::<i64>(&b, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 1_000);
+    assert_eq!(scalar::<i64>(&b, "SELECT starred FROM books WHERE id='b1'"), 1, "the local star applied on top");
+    assert_eq!(scalar::<i64>(&b, "SELECT COUNT(*) FROM domain_events"), 2, "local events stay in the log");
+    assert_eq!(sync_outbox_events_inner(&b, 10).unwrap().len(), 2, "and still owe their push");
+    // Backfill brings the snapshot's events; nothing double-applies.
+    backfill_remote_events(
+        &mut b,
+        &dir_b,
+        &[
+            imported("e1", 1_000, "b1", "沙丘"),
+            ev("t1", 1_001, "book.timeRecorded", serde_json::json!({ "bookId": "b1", "ms": 1000, "atEpochMs": 1001, "localDay": "2026-09-07", "localHour": 10 })),
+        ],
+        &[1, 2],
+    )
+    .unwrap();
+    assert!(log_complete(&b).unwrap());
+    assert_eq!(scalar::<i64>(&b, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 1_000);
+
+    // A device whose local history is CONFIRMED (or unverified) may overlap
+    // the checkpoint: refused, it replays the mailbox.
+    let (mut c, dir_c) = conn_with_dir();
+    commit_events_inner(&mut c, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    sync_mark_events_pushed_inner(&mut c, &[("e1".into(), 1)]).unwrap();
+    put_blob_inner(&c, &dir_c, &published.blob_key, None, &bytes).unwrap();
+    assert_eq!(
+        restore_bootstrap_checkpoint(&mut c, &dir_c, &published.blob_key).unwrap_err().code,
+        CODE_SYNC_CHECKPOINT_PRECONDITION
+    );
+
+    // A lagging local clock (an unconfirmed event BEHIND the frontier)
+    // invalidates the checkpoint: tables stay, marked stale, until backfill.
+    let (mut d, dir_d) = conn_with_dir();
+    commit_events_inner(
+        &mut d,
+        &[ev("p0", 900, "preference.changed", serde_json::json!({ "key": "theme", "value": "dark" }))],
+    )
+    .unwrap();
+    put_blob_inner(&d, &dir_d, &published.blob_key, None, &bytes).unwrap();
+    restore_bootstrap_checkpoint(&mut d, &dir_d, &published.blob_key).unwrap();
+    assert!(list_checkpoints(&d).unwrap().is_empty());
+    assert!(events::projections_stale_conn(&d).unwrap());
+    let report = backfill_remote_events(
+        &mut d,
+        &dir_d,
+        &[
+            imported("e1", 1_000, "b1", "沙丘"),
+            ev("t1", 1_001, "book.timeRecorded", serde_json::json!({ "bookId": "b1", "ms": 1000, "atEpochMs": 1001, "localDay": "2026-09-07", "localHour": 10 })),
+        ],
+        &[1, 2],
+    )
+    .unwrap();
+    assert!(report.complete && report.replayed);
+    assert_eq!(scalar::<i64>(&d, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 1_000);
 }

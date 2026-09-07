@@ -459,7 +459,12 @@
       "bookUp": "「{{title}}」をアップロード中",
       "bookDown": "「{{title}}」をダウンロード中",
       "bookUpParts": "「{{title}}」をアップロード中（{{done}}/{{total}}）",
-      "bookDownParts": "「{{title}}」をダウンロード中（{{done}}/{{total}}）"
+      "bookDownParts": "「{{title}}」をダウンロード中（{{done}}/{{total}}）",
+      "bootstrap": "アカウントのスナップショットからライブラリを復元中…",
+      "verifying": "サーバー側の保有状況を確認中… {{count}} 件確認済み",
+      "backfill": "履歴を補完中… {{done}}/{{total}}",
+      "checkpoint": "チェックポイントを保存中…",
+      "backfillRemaining": "履歴を補完中：残り {{count}} 件"
     },
     "indicator": {
       "label": "同期の状態",
@@ -479,6 +484,7 @@
     "books": {
       "title": "書籍ファイル",
       "pending": "アップロード待ち",
+      "unverified": "サーバーと照合中",
       "failed": "アップロード失敗 — 再試行します",
       "rejectedQuota": "クラウドの容量が満杯です。プランをアップグレードするか、一部の本を削除してください。",
       "rejected": "同期サーバーがこのファイルを拒否しました。詳細はアプリのログに記録されています。",

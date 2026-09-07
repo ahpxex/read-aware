@@ -93,7 +93,10 @@ events(account_id, server_seq, event_id, hlc_device, ciphertext, byte_size, rece
   返回 `{ event_id → server_seq }`。重复推送返回既有 seq，不报错。
 - **`GET /v1/events?after=<seq>&limit=<n>`** — 按 `server_seq` 拉增量，
   返回 `{ events: [...], next: <seq> }`。分页游标就是整数 seq。
-- **`PUT / GET /v1/blobs/<key>`** — 加密 blob 上下行（§8）。
+- **`PUT / GET / HEAD /v1/blobs/<key>`** — 加密 blob 上下行（§8）；HEAD 回
+  密文大小与片数，供记账验证（§13.1）。
+- **`POST /v1/events/have`** — id → seq 的存在性查询（§13.1）。
+- **`GET / PUT /v1/snapshots`** — 已发布的投影检查点（§13.3）。
 
 ### 为什么拉取游标用 server_seq 而不是 HLC
 
@@ -535,3 +538,106 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
 
 **发版前验收**：两台设备（或两份 app data 目录）连同一账号，双向写入 →
 收敛，新设备 bootstrap → 书架完整、书可打开。
+
+## 13. 百万级：精确记账、检查点与快照引导（2026-09-07 落地）
+
+动机是一次实测：正式版退出账号再登录，因为 v14 加的记账归属列从未回填，
+被当作"换账号"整体重置——47k 事件重推、250 MB 书文件排队重传、邮筒从 0
+重拉。日志本身 88% 是一次性的阅读时长回填事件。三件事一起改，目标是让
+"重置"和"引导"都变成 O(尾巴)，而不是 O(日志)：
+
+### 13.1 `unverified`：记账不再悲观
+
+`event_sync_state` / `blob_sync_state` 新增状态 `unverified`（schema v26，
+两张部分索引）："不知道这个邮筒有没有"。账号采用（`sync_adopt_account`）
+把整份日志和 blob 打成 `unverified` 而非 `pending`；引擎的 **verify 阶段**
+（每轮最先跑，早于引导与拉取）向中继求证：
+
+- 事件：`POST /v1/events/have {ids}` → `{seqs}`，每批 1,000 个 id，只传
+  id 不传密文；命中的标 `synced` 并记 seq，缺失的才进 `pending` 推送。
+- blob：`HEAD /v1/blobs/<key>` 回 `x-ra-blob-bytes`（v1 整块大小；v2 各
+  片之和）与 `x-ra-blob-parts`；客户端按本地明文大小算出**应有的密文
+  大小**（v1 = S + 41；v2 = S + 41 × 片数）对比，完全相等才算已有，半截
+  上传或大小不符的重传。
+- 拉取即确认：`GET /v1/events` 响应新增与 `events` 平行的 `seqs`，
+  `apply_remote_events` / `stage_remote_events` 收到 seq 就把该 id 的记账
+  写成 `synced`——不管它是新合并的还是本机早已有的（丢了 ack 的推送、
+  `unverified` 行）。拉过的就不再推。
+- 没有 have/HEAD 的后端（插件传输）走悲观路径：`unverified → pending`，
+  即旧行为。
+
+迁移 v26 同时**回填**记账归属：当前处于连接状态的 profile，其游标按
+构造属于 `remote_account_id`（拉取循环只对当前连接跑），所以直接采用该
+账号；但所有标记交给 verify（打成 `unverified`），不信任 v14 之前可能
+串过账号的 `synced` 标记。断开状态的旧库仍在下次连接时按换账号处理——
+现在也只是几次索引往返。
+
+### 13.2 阅读时长：按小时桶关闭才出事件
+
+`reading_time_pending`（[device-local]，v26）是追踪器的累加缓冲：每 20 秒
+一个 tick 累加进 (book, localDay, localHour) 桶（`reading_time_accrue`），
+**桶关闭**（跨小时、换书、停止阅读、应用隐藏、reader 卸载）才铸一条
+`book.timeRecorded`，`reading_time_flush` 在同一事务里提交事件并从桶里
+减去事件携带的毫秒数——tick 与 flush 竞争时多出来的部分留在桶里，既不
+丢也不重。崩溃遗留的桶由下次启动（`hydrateInterimProjections` 读投影之前）
+关闭。每阅读小时从约 12 条事件降到 1 条；`reading_time_record` 直写投影
+的旧命令随之退役（投影唯一写入者仍是 `apply.rs`）。
+
+### 13.3 投影检查点：重放和引导都只走尾巴
+
+`projection_checkpoints`（[device-local]，v26）登记检查点：**每张派生表
+在某个 HLC frontier 的完整拷贝**，写成独立 SQLite 文件、以 `snapshot:` 前缀
+注册进 blob 登记表（kind `checkpoint`，`sync_required = 0`，永不自动
+推送）。文件内容 = `DERIVED_TABLES` 逐表复制 + `blob_manifest`（引用到的
+同步 blob key，恢复时补成 `storage_uri = NULL` 的清单行）+ `checkpoint_meta`
+（format、schema_version、frontier HLC、`remote_seq`、事件数、设备、时间）。
+
+- **重放**（`replay_projections`）：恢复最新有效检查点，再按 HLC 序只应用
+  frontier 之后的事件；日志分页读（`for_each_event_after`，每页 2,000），
+  内存不随日志增长。`replay_into`（从空基底全量重放）保留给
+  `verify_projections` 与用户触发的 rebuild 作为地面真值。
+- **作废规则**：任何插入日志的事件，其 HLC 若早于某检查点的 frontier，
+  该检查点就是"漏了一条"的错误状态，立即删除（行 + 文件）——除非事件的
+  `server_seq ≤ 检查点的 remote_seq`（证明切检查点时它已在日志里，回填
+  路径正是这种情况）。链条依次回退到更旧的检查点，最终到空基底。
+- **切点**：每应用 2,000 条事件切一个本地检查点，保留最新 3 个；投影
+  stale 期间不切。`remote_seq` = 切点时的拉取游标（"seq ≤ 它的邮筒事件都
+  已在日志里"）。
+- **发布**：`checkpoint_prepare_publish` 只在**日志与邮筒完全相等**时才
+  切：日志完整、无 staged、所有记账行 `synced`、最大已确认 seq ≤ 游标
+  （否则本机刚推的事件会被引导设备在尾巴里再应用一次——累加投影就会
+  重复计数）。引擎按策略发起（账号无快照且邮筒 ≥ 200 条，或已发布快照
+  落后 ≥ 5,000 条；同进程 30 分钟内不重试前置失败），走普通密封 blob 上传，
+  然后 `PUT /v1/snapshots {blobKey, frontierSeq, schemaVersion, byteSize,
+  deviceId}`；中继校验 blob 已在架上、frontier 不超过邮筒 max seq，按
+  (account, schemaVersion) 单行替换并回收被替换 blob 的配额；输了竞争
+  （409）就删掉自己多余的上传。
+- **引导**：空日志设备（新设备、Delete all data 之后）在游标为 0 时
+  `GET /v1/snapshots?schema=<本机 SCHEMA_VERSION>`，下载快照 blob 并
+  `checkpoint_restore_bootstrap`：恢复各表、补清单行、把 events 游标设到
+  frontier、登记 `origin = bootstrap` 的检查点、`log_complete = 0`、
+  `backfill_frontier_seq = frontier`；然后正常拉尾巴。书架在一次下载后
+  完整可用。**前提是本地日志里只有未确认的本机事件**（`pending`/`failed`，
+  从未被任何邮筒确认——新设备连接前总会写下几条偏好之类的事件）：它们
+  必然不在快照里，恢复后按 HLC 序叠加在表上即可；若本地有已确认或
+  `unverified` 的历史，就可能与快照重叠（累加投影会重复计数），退回
+  全量拉取。本机时钟落后导致某条本地事件排在 frontier 之前时，按迟到
+  规则作废检查点，表保持 stale 直到回填完成。schema 不等的快照直接忽略，
+  日志永远是兜底。
+- **回填**：每轮同步末尾拉 5 页 frontier 之前的事件
+  （`sync_backfill_events`：只入日志、不应用、不作废检查点、记 synced），
+  调度器在未完成时 1.5 秒后续跑；到达 frontier 即 `log_complete = 1`。
+  回填期间若来了 frontier 之前的迟到事件（stragglers），它会作废引导
+  检查点，而日志又不完整——无法正确重放，于是**延迟**（`deferred`：事件
+  入日志、投影标 stale 但保持自洽），回填完成时统一从空基底重放。
+  `rebuild_projections` / `verify_projections` 在日志不完整时拒绝
+  （`sync/log-incomplete`）。HLC 种子（`local_device_get`）同时看检查点
+  frontier，空日志设备的本地事件不会排到快照之前。
+
+**中继仍然不做 compaction**：邮筒保留全部事件，任何设备随时能成为完整副本，
+`verify_projections` 的地面真值不变。快照是加速器，不是历史的替代品。
+下一道天花板是单个 DO 的 10 GB SQLite（约 1,600 万条密文事件/账号），
+到那时按 seq 区间分片邮筒，协议不变。
+
+**发版前验收**追加：A 发布快照 → 全新 B 连接后书架秒级完整、回填在后台
+跑完、`verify_projections` 一致；A 退出再登录零重传。

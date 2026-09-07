@@ -27,7 +27,10 @@ export function SiteHeader({ locale = "en" }: { locale?: Locale }) {
 
   return (
     <header className="flex flex-wrap items-center justify-between gap-y-2 py-7">
-      <Link to="/" className="flex items-center gap-2.5">
+      <Link
+        to={localizePath("/", locale) as never}
+        className="flex items-center gap-2.5"
+      >
         <img
           src={HEADER_ICON_URL}
           alt=""
@@ -47,7 +50,11 @@ export function SiteHeader({ locale = "en" }: { locale?: Locale }) {
         >
           {strings.docs}
         </Link>
-        <Link to="/" hash="download" className="transition-colors hover:text-fg">
+        <Link
+          to={localizePath("/", locale) as never}
+          hash="download"
+          className="transition-colors hover:text-fg"
+        >
           {strings.download}
         </Link>
         <a

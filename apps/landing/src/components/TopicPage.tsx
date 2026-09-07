@@ -9,6 +9,7 @@ import { useDocumentLang } from "../hooks/useDocumentLang";
 import { useLatestRelease } from "../hooks/useLatestRelease";
 import { useSiteCopy } from "../i18n/use-site-copy";
 import { TOPIC_PAGES } from "../lib/topic-pages";
+import type { PlatformId } from "../lib/releases";
 
 export type TopicFaq = { question: string; answer: string };
 
@@ -25,11 +26,13 @@ export function TopicPage({
   lead,
   faqs,
   children,
+  platform,
 }: {
   title: string;
   lead: string;
   faqs: TopicFaq[];
   children: ReactNode;
+  platform?: PlatformId;
 }) {
   useDocumentLang("en");
   const { t } = useTranslation("site");
@@ -55,14 +58,14 @@ export function TopicPage({
         <main className="max-w-[40rem] pb-12 pt-6 sm:pt-8">
           <article>
             <header>
-              <h1 className="text-[clamp(1.9rem,4.2vw,2.6rem)] font-normal leading-[1.15] tracking-[-0.01em]">
+              <h1 className="text-[2rem] font-normal leading-[1.15] tracking-normal sm:text-[2.6rem]">
                 {title}
               </h1>
               <p className="mt-5 text-[1.125rem] leading-[1.75] text-fg">{lead}</p>
               <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
                 <DownloadMenu
                   downloads={release.downloads}
-                  platform={release.platform}
+                  platform={platform ?? release.platform}
                   strings={downloadStrings}
                 />
                 <span className="text-[0.9375rem] text-fg-muted">

@@ -38,6 +38,9 @@ jobs:
       - name: Build (vite + SSR prerender + typecheck)
         working-directory: apps/landing
         run: bun run build
+      - name: Verify static navigation, downloads, and screenshots
+        working-directory: apps/landing
+        run: bun run test:static
       - name: Deploy to Cloudflare Workers
         working-directory: apps/landing
         env:

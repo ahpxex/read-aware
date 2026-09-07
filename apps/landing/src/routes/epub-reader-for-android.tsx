@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { AndroidReaderPlate } from "../components/AndroidReaderPlate";
 import { TopicPage, type TopicFaq } from "../components/TopicPage";
-import { REPO_URL } from "../lib/releases";
+import { RELEASES_URL } from "../lib/releases";
 
 export const Route = createFileRoute("/epub-reader-for-android")({
   head: () => ({
@@ -15,7 +16,8 @@ export const Route = createFileRoute("/epub-reader-for-android")({
   }),
   component: () => (
     <TopicPage
-      title="An EPUB reader for Android that syncs with your desktop"
+      platform="android"
+      title="ReadAware EPUB reader for Android"
       lead="ReadAware on Android is the same reader as on your desktop: your books, your highlights, your place in each of them — free, open source, fully offline, and end-to-end encrypted when it syncs."
       faqs={FAQS}
     >
@@ -28,6 +30,8 @@ export const Route = createFileRoute("/epub-reader-for-android")({
         and no catalog pushing you anywhere — your library is the books you
         put in it.
       </p>
+
+      <AndroidReaderPlate />
 
       <h2>Every format in your pocket</h2>
       <p>
@@ -50,13 +54,20 @@ export const Route = createFileRoute("/epub-reader-for-android")({
       <h2>Installing the APK</h2>
       <p>
         The Android build ships as a direct APK from the{" "}
-        <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
+        <a href={RELEASES_URL} target="_blank" rel="noopener noreferrer">
           GitHub releases page
         </a>{" "}
         — download it on your phone, open it, and confirm the install when
         Android asks about apps from outside the Play Store. Because the
-        source is open (AGPL-3.0), what you install is exactly what's in the
-        repository.
+        source is open (AGPL-3.0), you can inspect the code and the public
+        release workflow. Download the signed APK from the official release.
+      </p>
+      <p>
+        See the <Link to="/docs/install">installation guide</Link> for setup
+        details and <Link to="/pricing">plans and pricing</Link> for optional
+        sync and built-in AI. Offline reading does not require a subscription.
+        AI requests need an internet connection and send the relevant context
+        to your selected provider; see the <Link to="/privacy">privacy policy</Link>.
       </p>
     </TopicPage>
   ),
@@ -81,7 +92,7 @@ const FAQS: TopicFaq[] = [
   {
     question: "Which devices does the APK support?",
     answer:
-      "The APK targets 64-bit ARM (arm64), which covers virtually every Android phone and tablet from the last several years.",
+      "The APK requires Android 7.0 (API 24) or later and a 64-bit ARM (arm64) device. Older Android versions may also need an updated Android System WebView. There is no 32-bit ARM or x86 APK.",
   },
   {
     question: "Does it work offline?",

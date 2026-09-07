@@ -9,7 +9,8 @@
     "deploy": "bun run build && wrangler deploy",
     "preview": "vite preview",
     "preview:worker": "bun run build && wrangler dev",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:static": "bun test tests"
   },
   "dependencies": {
     "@codemirror/lang-json": "^6.0.2",

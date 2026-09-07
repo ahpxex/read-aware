@@ -15,6 +15,7 @@ export const Route = createFileRoute("/epub-reader-for-windows")({
   }),
   component: () => (
     <TopicPage
+      platform="windows"
       title="A free EPUB reader for Windows"
       lead="ReadAware reads EPUB on Windows the way a book deserves — a calm, paper-toned page, highlights and notes that stay with the text, and an assistant that knows your whole library. Free, open source, and yours offline."
       faqs={FAQS}
@@ -77,7 +78,7 @@ const FAQS: TopicFaq[] = [
   {
     question: "Windows warned me about an unrecognized app — is that expected?",
     answer:
-      "Yes, for now. Desktop builds aren't code-signed yet, so SmartScreen may ask you to confirm the app on first launch. The source is open (AGPL-3.0) and every build comes from the public GitHub releases page, so you can verify exactly what you're running.",
+      "Yes, for now. Windows builds are not code-signed yet, so SmartScreen may ask you to confirm the app on first launch. Download only from the official GitHub releases page. macOS builds are separately signed and notarized by Apple.",
   },
   {
     question: "Can it read Kindle files (MOBI, AZW3)?",

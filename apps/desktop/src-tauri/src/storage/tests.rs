@@ -2941,3 +2941,180 @@ fn a_bootstrap_keeps_unconfirmed_local_events_and_refuses_confirmed_history() {
     assert!(report.complete && report.replayed);
     assert_eq!(scalar::<i64>(&d, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"), 1_000);
 }
+
+
+#[test]
+fn re_registering_identical_bytes_never_re_enqueues_an_upload() {
+    let (mut conn, dir) = conn_with_dir();
+    // A manifest row from a peer's import (sha known, no bytes) ...
+    commit_events_inner(
+        &mut conn,
+        &[ev("e1", 1_000, "book.imported", serde_json::json!({
+            "bookId": "b1", "title": "沙丘", "author": "作者", "format": "epub",
+            "fileName": "b.epub", "fileSize": 5, "sourceBlobKey": "bookfile:b1",
+            "sourceSha256": format!("{:x}", Sha256::digest(b"bytes")),
+        }))],
+    )
+    .unwrap();
+    assert!(sync_outbox_blobs_inner(&conn, 10).unwrap().is_empty(), "nothing to push without bytes");
+    // ... that a local import then supplies: the relay very likely has it.
+    put_blob_inner(&conn, &dir, "bookfile:b1", None, b"bytes").unwrap();
+    assert!(sync_outbox_blobs_inner(&conn, 10).unwrap().is_empty());
+    assert_eq!(sync_unverified_blobs_inner(&conn, 10).unwrap().len(), 1, "HEAD decides, not a re-upload");
+    sync_resolve_blobs_inner(&mut conn, &["bookfile:b1".to_string()], &[]).unwrap();
+    // A re-put of the SAME bytes on a confirmed row changes nothing.
+    put_blob_inner(&conn, &dir, "bookfile:b1", None, b"bytes").unwrap();
+    assert_eq!(scalar::<String>(&conn, "SELECT push_state FROM blob_sync_state WHERE blob_key='bookfile:b1'"), "synced");
+    // Different bytes owe a push.
+    put_blob_inner(&conn, &dir, "bookfile:b1", None, b"other").unwrap();
+    assert_eq!(sync_outbox_blobs_inner(&conn, 10).unwrap().len(), 1);
+    // A brand-new key owes a push too.
+    put_blob_inner(&conn, &dir, "bookfile:b2", None, b"new").unwrap();
+    assert_eq!(sync_outbox_blobs_inner(&conn, 10).unwrap().len(), 2);
+}
+
+
+/// Stress: a million-event log on disk. Ignored by default — run with
+/// `RA_STRESS_EVENTS=1000000 cargo test --lib stress_ -- --ignored --nocapture`.
+/// Prints wall-clock for the paths that scale with the log, so the numbers
+/// docs/sync-engine.md §13 quotes can be re-measured.
+#[test]
+#[ignore]
+fn stress_million_event_log() {
+    use std::time::Instant;
+    let n: usize = std::env::var("RA_STRESS_EVENTS").ok().and_then(|v| v.parse().ok()).unwrap_or(200_000);
+    let dir = scratch();
+    let mut conn = Connection::open(dir.join("stress.db")).unwrap();
+    apply_connection_pragmas(&conn).unwrap();
+    register_sql_functions(&conn).unwrap();
+    run_migrations(&mut conn).unwrap();
+    sync_adopt_account_inner(&mut conn, "acc").unwrap();
+
+    let books = 200usize;
+    let mut wall = 1_000_000_000_000i64;
+    let mut next = |wall: &mut i64| { *wall += 1; *wall };
+    let mut batch: Vec<EventRow> = Vec::new();
+    for b in 0..books {
+        batch.push(imported(&format!("imp-{b}"), next(&mut wall), &format!("b{b}"), &format!("书 {b}")));
+    }
+    commit_events_inner(&mut conn, &batch).unwrap();
+
+    // Event mix per the measured heavy-user profile: sessions dominate,
+    // highlights and stars in between.
+    let t = Instant::now();
+    let mut committed = books;
+    let mut i = 0usize;
+    while committed < n {
+        batch.clear();
+        while batch.len() < 1_000 && committed + batch.len() < n {
+            let b = i % books;
+            let w = next(&mut wall);
+            let ev_row = match i % 10 {
+                0..=6 => session_event(&format!("s-{i}"), w, &format!("b{b}"), 600_000, w - 600_000, w, ((i / 7) % 24) as i64,
+                    Some(position(((i / 7) % 100) as i64, "ch.html"))),
+                7..=8 => ev(&format!("h-{i}"), w, "highlight.created", serde_json::json!({
+                    "highlightId": format!("h-{i}"), "bookId": format!("b{b}"), "text": "一句话", "cfiRange": "epubcfi(/6/2!/4/2,/1:0,/1:5)", "color": "yellow" })),
+                _ => ev(&format!("st-{i}"), w, "book.starred", serde_json::json!({ "bookId": format!("b{b}"), "starred": i % 2 == 0 })),
+            };
+            batch.push(ev_row);
+            i += 1;
+        }
+        committed += batch.len();
+        commit_events_inner(&mut conn, &batch).unwrap();
+    }
+    let commit_secs = t.elapsed().as_secs_f64();
+    let db_bytes = std::fs::metadata(dir.join("stress.db")).unwrap().len() + std::fs::metadata(dir.join("stress.db-wal")).map(|m| m.len()).unwrap_or(0);
+    println!("STRESS events={n} commit={commit_secs:.1}s ({:.0}/s) db={:.0}MB", n as f64 / commit_secs, db_bytes as f64 / 1e6);
+
+    // Full replay from empty (verify's ground truth).
+    let t = Instant::now();
+    {
+        let tx = conn.transaction().unwrap();
+        let report = replay_into(&tx).unwrap();
+        tx.commit().unwrap();
+        assert_eq!(report.events_replayed, n);
+    }
+    println!("STRESS full_replay={:.1}s", t.elapsed().as_secs_f64());
+
+    // Checkpoint cut + size.
+    let t = Instant::now();
+    let ckpt = create_checkpoint(&mut conn, &dir, "local", None).unwrap();
+    println!("STRESS checkpoint_cut={:.2}s size={:.1}MB", t.elapsed().as_secs_f64(), ckpt.byte_size as f64 / 1e6);
+
+    // 2,000 more events, then a straggler behind the LOG frontier but after
+    // the checkpoint: replay = restore + 2,000-event tail.
+    batch.clear();
+    for k in 0..2_000 {
+        let w = next(&mut wall);
+        batch.push(ev(&format!("tail-{k}"), w, "book.starred", serde_json::json!({ "bookId": "b1", "starred": k % 2 == 0 })));
+    }
+    commit_events_inner(&mut conn, &batch).unwrap();
+    let straggler = edited("late", wall - 1_000, "device-z", "b2", "迟到的标题");
+    let t = Instant::now();
+    let report = super::events::apply_remote_events_inner(&mut conn, &dir, &[straggler], Some(&[n as i64 + 5_000])).unwrap();
+    assert!(report.replayed && !report.deferred);
+    println!("STRESS straggler_replay_from_checkpoint={:.2}s (tail 2001)", t.elapsed().as_secs_f64());
+
+    // An account switch: the whole log goes `unverified` (one transaction),
+    // then the verify phase pages the ids out and settles them.
+    let t = Instant::now();
+    assert!(sync_adopt_account_inner(&mut conn, "acc-2").unwrap());
+    println!("STRESS adopt_reset={:.1}s", t.elapsed().as_secs_f64());
+    let t = Instant::now();
+    let mut seen = 0usize;
+    loop {
+        let ids = sync_unverified_events_inner(&conn, 1_000).unwrap();
+        if ids.is_empty() { break; }
+        seen += ids.len();
+        sync_resolve_events_inner(&mut conn, &ids.iter().map(|id| (id.clone(), 1)).collect::<Vec<_>>(), &[]).unwrap();
+    }
+    println!("STRESS verify_settle={} rows in {:.1}s", seen, t.elapsed().as_secs_f64());
+
+    // Incremental merge stays O(1) in the log: one event past the frontier.
+    let w = next(&mut wall);
+    let t = Instant::now();
+    let report = super::events::apply_remote_events_inner(&mut conn, &dir, &[ev("fresh", w, "book.starred", serde_json::json!({ "bookId": "b3", "starred": true }))], Some(&[n as i64 + 6_000])).unwrap();
+    assert!(!report.replayed);
+    println!("STRESS incremental_merge={:.1}ms", t.elapsed().as_secs_f64() * 1000.0);
+}
+
+
+#[test]
+fn annotation_fts_follows_rowids_through_replay_and_vacuum() {
+    let dir = scratch();
+    let mut conn = Connection::open(dir.join("fts.db")).unwrap();
+    apply_connection_pragmas(&conn).unwrap();
+    register_sql_functions(&conn).unwrap();
+    run_migrations(&mut conn).unwrap();
+    commit_events_inner(&mut conn, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    commit_events_inner(
+        &mut conn,
+        &[ev("h1", 1_001, "highlight.created", serde_json::json!({
+            "highlightId": "h1", "bookId": "b1", "text": "养成好习惯", "cfiRange": "epubcfi(/6/2!/4/2,/1:0,/1:5)", "color": "yellow" }))],
+    )
+    .unwrap();
+    let hits = |c: &Connection| -> i64 {
+        c.query_row(
+            "SELECT COUNT(*) FROM annotations_fts JOIN annotations a ON a.rowid = annotations_fts.rowid
+              WHERE annotations_fts MATCH ?1",
+            params![fts_match_expr("习惯").unwrap()],
+            |r| r.get(0),
+        )
+        .unwrap()
+    };
+    assert_eq!(hits(&conn), 1);
+    // A full replay deletes and re-inserts the row (new rowid): still one hit,
+    // no stale FTS row left behind.
+    let tx = conn.transaction().unwrap();
+    replay_into(&tx).unwrap();
+    tx.commit().unwrap();
+    assert_eq!(hits(&conn), 1);
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM annotations_fts"), 1);
+    // A VACUUM followed by the rebuild keeps rowids and FTS aligned.
+    conn.execute_batch("VACUUM;").unwrap();
+    rebuild_annotations_fts(&conn).unwrap();
+    assert_eq!(hits(&conn), 1);
+    // Removal drops the FTS row by rowid.
+    commit_events_inner(&mut conn, &[ev("h1x", 1_002, "highlight.removed", serde_json::json!({ "highlightId": "h1", "bookId": "b1" }))]).unwrap();
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM annotations_fts"), 0);
+}

@@ -693,12 +693,62 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
         // and that is what last-observed-wins compares.
         "ALTER TABLE reading_sessions_pending ADD COLUMN position_at INTEGER;",
     ),
+    (
+        29,
+        "annotations_fts_by_rowid",
+        // The v4 triggers deleted FTS rows `WHERE id = old.id` — an UNINDEXED
+        // fts5 column, so every delete/update scanned the whole FTS table.
+        // Fine at hundreds of annotations, quadratic at hundreds of thousands
+        // (a full replay wipes and re-inserts every annotation: measured as
+        // "never finishes" at 200k). The FTS row now shares the annotation
+        // row's rowid, so a delete is an O(log n) rowid lookup. `annotations`
+        // has a TEXT primary key, so its rowids are implicit and a VACUUM may
+        // renumber them: every VACUUM of the main database is followed by
+        // `rebuild_annotations_fts` (the same DELETE + INSERT as below).
+        "DROP TRIGGER IF EXISTS trg_annotations_fts_insert;
+         DROP TRIGGER IF EXISTS trg_annotations_fts_update;
+         DROP TRIGGER IF EXISTS trg_annotations_fts_delete;
+         CREATE TRIGGER IF NOT EXISTS trg_annotations_fts_insert
+         AFTER INSERT ON annotations BEGIN
+            INSERT INTO annotations_fts (rowid, id, book_id, type, text, content)
+            VALUES (new.rowid, new.id, new.book_id, new.type,
+                    ra_fts_segment(new.text), ra_fts_segment(COALESCE(new.content, '')));
+         END;
+         CREATE TRIGGER IF NOT EXISTS trg_annotations_fts_update
+         AFTER UPDATE ON annotations BEGIN
+            DELETE FROM annotations_fts WHERE rowid = old.rowid;
+            INSERT INTO annotations_fts (rowid, id, book_id, type, text, content)
+            VALUES (new.rowid, new.id, new.book_id, new.type,
+                    ra_fts_segment(new.text), ra_fts_segment(COALESCE(new.content, '')));
+         END;
+         CREATE TRIGGER IF NOT EXISTS trg_annotations_fts_delete
+         AFTER DELETE ON annotations BEGIN
+            DELETE FROM annotations_fts WHERE rowid = old.rowid;
+         END;
+         DELETE FROM annotations_fts;
+         INSERT INTO annotations_fts (rowid, id, book_id, type, text, content)
+            SELECT rowid, id, book_id, type, ra_fts_segment(text), ra_fts_segment(COALESCE(content, ''))
+            FROM annotations;",
+    ),
 ];
+
+/// Rebuild the annotation FTS index from the table. Required after any VACUUM
+/// of the main database (implicit rowids may be renumbered, and the FTS rows
+/// are keyed by rowid since v29); also the repair recipe for a corrupt index.
+pub(crate) fn rebuild_annotations_fts(conn: &Connection) -> Result<(), CommandError> {
+    conn.execute_batch(
+        "DELETE FROM annotations_fts;
+         INSERT INTO annotations_fts (rowid, id, book_id, type, text, content)
+            SELECT rowid, id, book_id, type, ra_fts_segment(text), ra_fts_segment(COALESCE(content, ''))
+            FROM annotations;",
+    )?;
+    Ok(())
+}
 
 /// The schema version a projection checkpoint is stamped with. Restoring one
 /// is only sound when the derived tables' shapes match exactly, so a
 /// checkpoint from a different version is ignored in favour of the log.
-pub(crate) const SCHEMA_VERSION: i64 = 28;
+pub(crate) const SCHEMA_VERSION: i64 = 29;
 
 /// The migration after which `materialize_legacy_covers` must run: the cover
 /// projection columns exist, the inline data-URL column still does.

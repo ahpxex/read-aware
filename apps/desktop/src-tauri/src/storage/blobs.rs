@@ -104,6 +104,36 @@ pub(crate) fn register_blob_inner(
 ) -> Result<BlobPutResult, CommandError> {
     let (kind, sync_required) = blob_kind(key);
     let storage_uri = format!("blobs/{file_name}");
+    // What the registry already says about this key — the bytes may not be
+    // new to the RELAY even when they are new to this device: a manifest row
+    // (replayed from another device's import, sha known, no bytes) that a
+    // local import just supplied, or a re-put of identical content. Those
+    // must not re-upload the file; the verify phase's HEAD settles them.
+    let prior: Option<(Option<String>, Option<String>)> = conn
+        .query_row(
+            "SELECT sha256, push_state FROM blob_objects bo
+               LEFT JOIN blob_sync_state bs ON bs.blob_key = bo.key
+              WHERE bo.key = ?1 AND bo.deleted_at IS NULL",
+            params![key],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map(Some)
+        .or_else(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => Ok(None),
+            other => Err(CommandError::from(other)),
+        })?;
+    let same_content = prior
+        .as_ref()
+        .and_then(|(prior_sha, _)| prior_sha.as_deref())
+        .is_some_and(|prior_sha| prior_sha == sha256.as_str());
+    let next_state = match &prior {
+        // Identical bytes: whatever the relay knew stays true. A confirmed
+        // row stays confirmed; anything else asks the relay before pushing.
+        Some((_, Some(state))) if same_content && state == "synced" => "synced",
+        Some(_) if same_content => "unverified",
+        // Changed content, or a key the registry never saw: owes a push.
+        _ => "pending",
+    };
     conn.execute(
         "INSERT INTO blob_objects
             (key, kind, mime_type, byte_size, sha256, storage_uri, sync_required, created_at)
@@ -128,15 +158,17 @@ pub(crate) fn register_blob_inner(
     )
     ?;
     if sync_required {
-        // (Re)writes reset the outbox: changed content must push again.
+        // (Re)writes decide the outbox by CONTENT: changed bytes push again,
+        // identical bytes never do.
         conn.execute(
-            "INSERT INTO blob_sync_state (blob_key, updated_at)
-             VALUES (?1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+            "INSERT INTO blob_sync_state (blob_key, push_state, updated_at)
+             VALUES (?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
              ON CONFLICT(blob_key) DO UPDATE SET
-                push_state = 'pending',
-                pushed_at = NULL,
+                push_state = excluded.push_state,
+                pushed_at = CASE WHEN excluded.push_state = 'synced' THEN pushed_at ELSE NULL END,
+                last_error = NULL,
                 updated_at = excluded.updated_at",
-            params![key],
+            params![key, next_state],
         )
         ?;
     }
@@ -333,6 +365,9 @@ pub(crate) fn externalize_inline_blobs(conn: &Connection, data_dir: &Path) -> Re
     // library's book bytes leaving the database this is the one reclaim that is
     // actually worth a VACUUM.
     conn.execute_batch("VACUUM;")?;
+    // VACUUM may renumber the implicit rowids the annotation FTS index is
+    // keyed by (schema v29).
+    rebuild_annotations_fts(conn)?;
     Ok(())
 }
 

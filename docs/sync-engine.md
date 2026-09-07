@@ -651,6 +651,37 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
   （`sync/log-incomplete`）。HLC 种子（`local_device_get`）同时看检查点
   frontier，空日志设备的本地事件不会排到快照之前。
 
+### 13.4 压测基线（2026-09-07，M 系列 Mac，release 构建，磁盘库）
+
+`RA_STRESS_EVENTS=1000000 cargo test --release --lib stress_million -- --ignored --nocapture`
+（`storage/tests.rs`）与 `RELAY_STRESS=1000000 bun test test/stress.test.ts`
+（`apps/relay`）。事件构成按重度用户画像：70% 阅读会话、20% 高亮、10% 星标，
+200 本书。
+
+| 路径 | 10 万条 | 100 万条 |
+|---|---|---|
+| 本地提交（含投影应用） | 2.6 万条/秒 | 2.7 万条/秒，库文件 594 MB |
+| 从空基底全量重放（verify / rebuild） | 2.2 s | 32 s |
+| 切检查点 | 0.05 s / 2.2 MB | 1.8 s / 20.7 MB |
+| 迟到事件：恢复检查点 + 尾巴重放 | 0.6 s | 9.7 s（几乎全是 20 万条高亮重建 FTS） |
+| 换账号重置（整份日志打成 unverified） | — | 7 s |
+| verify 阶段分页结算 100 万条记账 | — | 7.4 s（本地；远程再加每千条一次往返） |
+| 增量合并一条事件 | 0.2 ms | 2–4 ms |
+| 中继邮筒追加 / 整库分页 / 100 万 id 查询 | — | 4.5 s / 0.4 s / 0.7 s |
+
+压测顺手抓到一处平方级瓶颈并已修（v29）：批注 FTS 的触发器按 `id`
+（UNINDEXED 列）删行，每删一条全表扫；全量重放先清表，20 万条批注就是
+20 万 × 20 万，实测"跑不完"。现在 FTS 行与批注共用 rowid，删除是 O(log n)；
+主库 VACUUM 之后必须 `rebuild_annotations_fts`（rowid 可能重编）。
+另一处：verify 的分页查询 `ORDER BY updated_at, event_id` 在重置后全部行
+同一时间戳，每页都要给整个积压排序（100 万条 115 s）；去掉 tie-breaker
+按索引序走，降到 7.4 s。
+
+**blob 不会重复搬运**：下载是惰性且一次性的（`storage_uri` 落地后不再拉）；
+上传只发生在内容变化——`register_blob_inner` 按 sha256 判断，同内容重
+放入（本地导入补齐对端已同步的书、封面重抽同图）只标 `unverified`，由一次
+HEAD 确认，不重传；换账号也是先 HEAD 后推。
+
 **中继仍然不做 compaction**：邮筒保留全部事件，任何设备随时能成为完整副本，
 `verify_projections` 的地面真值不变。快照是加速器，不是历史的替代品。
 下一道天花板是单个 DO 的 10 GB SQLite（约 1,600 万条密文事件/账号），

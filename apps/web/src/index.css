@@ -201,6 +201,14 @@ html[data-tauri="true"] {
    content and the whole app pans with rubber-band scrollbars. Pin the body
    to the visual viewport so that surplus can never exist; the app shell is
    fixed-viewport by design and every surface scrolls internally. */
+html[data-tauri="true"][data-os="ios"] {
+  /* A fixed body contributes no document height. With viewport-fit=cover,
+     WebKit can then resolve the visual/dynamic viewport to the safe rectangle
+     (subtracting BOTH insets), despite its native view filling the screen.
+     Give the root a full-screen layout floor independently of that viewport,
+     without adding the safe-area insets to the app's height a second time. */
+  min-height: 100svh;
+}
 html[data-tauri="true"][data-os="ios"] body {
   position: fixed;
   inset: 0;

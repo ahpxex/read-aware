@@ -1,8 +1,8 @@
 /** Host renderer for the declarative plugin component vocabulary. */
 import { CaretLeft } from "@phosphor-icons/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import {
-  Alert,
+  InlineError,
   Body,
   Button,
   Dialog,
@@ -15,26 +15,20 @@ import {
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { Markdown } from "../../ai/components/Markdown";
-import {
-  navigatePluginViewStack,
-  normalizePluginView,
-  PluginViewError,
-} from "../lib/plugin-view";
-import { showPluginFailureToast, showPluginToast } from "../lib/plugin-toast";
-import { createLogger } from "../../../platform/logger";
-import type { PluginView, PluginViewResult } from "../lib/plugin-types";
+import type { PluginView } from "../lib/plugin-types";
+import type { PluginViewSession } from "../lib/plugin-view-session";
+import { usePluginViewSession } from "../hooks/usePluginViewSession";
 import { PluginBlocks } from "./PluginBlockRenderer";
 import { PluginActionGroup } from "./PluginActionGroup";
 import { PluginDetailViewBody } from "./PluginDetailViewBody";
 import { PluginFormViewBody } from "./PluginFormViewBody";
 import { PluginListViewBody } from "./PluginListViewBody";
-import type { PluginResultOptions, PluginResultRunner } from "./plugin-view-types";
-
-const log = createLogger("plugins");
 
 type PluginViewRendererProps = {
   /** The root view, or null while the container is still fetching it. */
-  view: PluginView | null;
+  view?: PluginView | null;
+  /** Nested dialogs borrow a session owned by their parent's navigation. */
+  session?: PluginViewSession;
   /** Handles `{ close: true }` results (dismiss the hosting container). */
   onClose?: () => void;
   /** Reports host-owned navigation depth so page chrome can follow the view. */
@@ -55,25 +49,9 @@ type PluginViewRendererProps = {
   className?: string;
 };
 
-type DetailDialogState = {
-  requestId: number;
-  title: string;
-  view: PluginView | null;
-};
-
-function normalizeSafely(view: PluginView | null): { view: PluginView | null; error: boolean } {
-  if (!view) return { view: null, error: false };
-  try {
-    return { view: normalizePluginView(view), error: false };
-  } catch (error) {
-    // The validation detail is for the plugin developer — log file, not UI.
-    log.error("plugin view failed validation", error);
-    return { view: null, error: true };
-  }
-}
-
 export function PluginViewRenderer({
-  view,
+  view = null,
+  session: provided,
   onClose,
   onDepthChange,
   onRequestRefresh,
@@ -83,21 +61,7 @@ export function PluginViewRenderer({
   className,
 }: PluginViewRendererProps) {
   const { t } = useTranslation(["plugins", "common"]);
-  const initial = normalizeSafely(view);
-  const [stack, setStack] = useState<PluginView[]>(initial.view ? [initial.view] : []);
-  const [viewError, setViewError] = useState(initial.error);
-  const [busy, setBusy] = useState(false);
-  const [detailDialog, setDetailDialog] = useState<DetailDialogState | null>(null);
-  const dialogRequestIdRef = useRef(0);
-
-  useEffect(() => {
-    dialogRequestIdRef.current += 1;
-    const next = normalizeSafely(view);
-    setStack(next.view ? [next.view] : []);
-    setViewError(next.error);
-    setBusy(false);
-    setDetailDialog(null);
-  }, [view]);
+  const { session, stack, error: viewError, busy, dialog: detailDialog } = usePluginViewSession(view, provided, onClose, onRequestRefresh);
 
   useEffect(() => {
     onDepthChange?.(stack.length);
@@ -105,84 +69,12 @@ export function PluginViewRenderer({
 
   const current = stack.length > 0 ? stack[stack.length - 1] : null;
 
-  const closeDetailDialog = () => {
-    dialogRequestIdRef.current += 1;
-    setDetailDialog(null);
-    onRequestRefresh?.();
-  };
-
-  const handleResult: PluginResultRunner = async (
-    run,
-    options?: PluginResultOptions,
-  ) => {
-    const opensDialog = options?.presentation === "dialog";
-    const runsInBackground = options?.background === true;
-    const requestId = opensDialog ? ++dialogRequestIdRef.current : 0;
-    if (opensDialog) {
-      setDetailDialog({
-        requestId,
-        title: options?.dialogTitle ?? t("viewer.detail"),
-        view: null,
-      });
-    } else if (!runsInBackground) {
-      setBusy(true);
-    }
-
-    try {
-      const result = await run();
-      if (result == null) {
-        if (opensDialog) {
-          setDetailDialog((current) => current?.requestId === requestId ? null : current);
-        }
-        return result;
-      }
-      if (typeof result !== "object" || Array.isArray(result)) {
-        throw new PluginViewError("plugin action results must be objects");
-      }
-      if (result.toast) showPluginToast(String(result.toast));
-      if (!result.fieldErrors) {
-        if (result.view) {
-          const next = normalizePluginView(result.view);
-          if (opensDialog) {
-            setDetailDialog((dialog) =>
-              dialog?.requestId === requestId ? { ...dialog, view: next } : dialog,
-            );
-          } else {
-            setStack((previous) => navigatePluginViewStack(previous, next, result.navigation));
-          }
-        } else if (result.navigation) {
-          throw new PluginViewError("plugin navigation requires a view");
-        } else if (result.close) {
-          if (opensDialog) {
-            setDetailDialog((dialog) =>
-              dialog?.requestId === requestId ? null : dialog,
-            );
-          }
-          else onClose?.();
-        } else if (opensDialog) {
-          setDetailDialog((current) => current?.requestId === requestId ? null : current);
-        }
-      } else if (opensDialog) {
-        throw new PluginViewError("dialog list items cannot return form field errors");
-      }
-      return result as PluginViewResult;
-    } catch (error) {
-      if (opensDialog) {
-        setDetailDialog((current) => current?.requestId === requestId ? null : current);
-      }
-      log.error("plugin action failed", error);
-      showPluginFailureToast();
-      return null;
-    } finally {
-      if (!opensDialog && !runsInBackground) setBusy(false);
-    }
-  };
+  const closeDetailDialog = () => session.closeDialog(true);
+  const handleResult = session.run;
 
   if (viewError) {
     return (
-      <Alert variant="destructive" title={t("viewer.invalidView")} className={className}>
-        {t("common:errors.generic")}
-      </Alert>
+      <InlineError className={className}>{t("viewer.invalidView")}</InlineError>
     );
   }
 
@@ -257,7 +149,7 @@ export function PluginViewRenderer({
               <IconButton
                 label={t("viewer.back")}
                 size="sm"
-                onClick={() => setStack((previous) => previous.slice(0, -1))}
+                onClick={session.back}
                 className="text-fg-muted hover:text-fg"
                 icon={<CaretLeft size={16} weight="regular" aria-hidden="true" />}
               />
@@ -301,7 +193,7 @@ export function PluginViewRenderer({
                 variant="outline"
                 size="sm"
                 disabled={busy}
-                onClick={onClose}
+                onClick={session.close}
               >
                 {t("viewer.close")}
               </Button>
@@ -313,12 +205,13 @@ export function PluginViewRenderer({
       <Dialog
         open={detailDialog !== null}
         onClose={closeDetailDialog}
-        aria-label={detailDialog?.title ?? t("viewer.detail")}
+        aria-label={detailDialog?.title || t("viewer.detail")}
         className="max-h-[85vh] w-[min(90vw,36rem)]"
       >
         {detailDialog && (
           <PluginViewRenderer
-            view={detailDialog.view}
+            key={detailDialog.requestId}
+            session={detailDialog.session}
             onClose={closeDetailDialog}
             dialogFooter
             className="max-h-[calc(85vh-4rem)]"

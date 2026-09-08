@@ -54,6 +54,7 @@ export function PluginDialogHost() {
       ) : (
         request && (
           <PluginViewRenderer
+            key={request.requestId}
             view={request.view}
             onClose={close}
             dialogFooter

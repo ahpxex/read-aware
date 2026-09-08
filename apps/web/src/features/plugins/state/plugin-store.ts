@@ -6,8 +6,10 @@
  * contributions imperatively; surfaces subscribe with `useAtomValue` and update
  * reactively, which is what makes enable/disable instant.
  */
-import { atom, getDefaultStore } from "jotai";
+import { atom, getDefaultStore, type Getter, type Setter } from "jotai";
 import { localKV } from "../../../platform/local-store";
+import { observePluginCallbackOwners, releasePluginCallbacks } from "../runtime/plugin-callback-wire";
+import { createLogger } from "../../../platform/logger";
 import type { VirtualBookContent } from "../../reader/lib/virtual-book";
 import type {
   ContributionKey,
@@ -351,6 +353,8 @@ export type PluginDialogRequest = {
   pluginName: string;
   /** Null while the contribution is still resolving its host-rendered view. */
   view: PluginView | null;
+  /** Original registered callback, not the host closure wrapping its inputs. */
+  owner?: unknown;
   /**
    * The contribution failed: the dialog renders an in-place error state
    * (localized via the failure's stable `code` when it carries one) with a
@@ -360,7 +364,33 @@ export type PluginDialogRequest = {
   failure?: { code?: string; retry?: () => void };
 };
 
-export const pluginDialogAtom = atom<PluginDialogRequest | null>(null);
+const pluginDialogStateAtom = atom<PluginDialogRequest | null>(null);
+const dialogOwnerWatches = new WeakMap<PluginDialogRequest, () => void>();
+const viewLog = createLogger("plugin-views");
+function updatePluginDialog(get: Getter, set: Setter, update: PluginDialogRequest | null | ((previous: PluginDialogRequest | null) => PluginDialogRequest | null)): void {
+    const previous = get(pluginDialogStateAtom);
+    let next = typeof update === "function" ? update(previous) : update;
+    if (next === previous) return;
+    if (next) {
+      const request = next;
+      try {
+        dialogOwnerWatches.set(request, observePluginCallbackOwners([request.owner, request.view], () => {
+          if (get(pluginDialogStateAtom)?.requestId === request.requestId) updatePluginDialog(get, set, null);
+        }));
+      } catch (error) {
+        viewLog.warn("Dialog owner is unavailable", error);
+        try { releasePluginCallbacks(request.view); } catch (cleanupError) { viewLog.warn("Unavailable dialog cleanup failed", cleanupError); }
+        next = null;
+      }
+    }
+    set(pluginDialogStateAtom, next);
+    if (previous) { dialogOwnerWatches.get(previous)?.(); dialogOwnerWatches.delete(previous); }
+    if (previous?.view !== next?.view) {
+      try { releasePluginCallbacks(previous?.view, next?.view); }
+      catch (error) { viewLog.warn("Retired dialog cleanup failed", error); }
+    }
+}
+export const pluginDialogAtom = atom(get => get(pluginDialogStateAtom), updatePluginDialog);
 
 export function openPluginDialog(
   request: Omit<PluginDialogRequest, "requestId">,
@@ -373,7 +403,10 @@ export function openPluginDialog(
 /** Fill a pending Dialog only if it still belongs to this request. */
 export function resolvePluginDialog(requestId: string, view: PluginView): boolean {
   const current = store.get(pluginDialogAtom);
-  if (current?.requestId !== requestId) return false;
+  if (current?.requestId !== requestId) {
+    releasePluginCallbacks(view);
+    return false;
+  }
   store.set(pluginDialogAtom, { ...current, view, failure: undefined });
   return true;
 }

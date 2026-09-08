@@ -157,3 +157,25 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [环境] 全仓 test 17 个任务、typecheck 20 个任务通过；真实桌面 callback 探针再次通过 20 轮注册/释放，cleanup owner 保持 1。两对文档生成器与 pair validator、7 个建模门禁测试通过；库存增加 close 一个入口，为 215 行 / 548 映射。两份 HTML 在 1440/1024/390 宽度无横向溢出、无重复 id，中英文搜索、抽屉/Escape、主题切换和刷新保持通过，截图 `/tmp/readaware-transport-{matrix,model}{,-mobile}.png` 已检查。文档使用既有字体/图标 CDN，不包含 Mermaid 图，不把文档浏览器证据当产品验收。隔离应用、5184/9224/18884 服务与本次文档浏览器均已停止。
 
 仍未完成：Agent/普通插件受控同步状态与连接入口；连接 UI/真实跨设备、packaged CSP、真实 WebKit close 超时故障注入、同 ID 升级失败回滚、其他 provider 会话、视图 lease、普通任务/资源配额，以及完整 W01–W32 实用组合插件验收。此夹具不算新增实用插件；只推进 C5/Q2，完整目标继续保持未完成。
+
+## 2026-09-09：V1 / Q2 视图实例与回调所有权
+
+[代码] 视图栈改由独立 `PluginViewSession` 管理，React renderer 只订阅并呈现。每个已规范化 frame 持有自己的回调 lease；push 保留父 frame，back/replace/reset/关闭释放离栈 frame，嵌套对话框独立持有和释放。共享 callback 别名直到最后一个 owner 释放才失效；未被规范化保留的字段、非法视图及迟到结果不留下句柄。
+
+- Worker 解码的声明和回调携带宿主侧 owner 信号，未向插件泄露信号或 DOM。Worker 退休时关闭所属视图，含纯 markdown 和尚未返回 view 的 pending dialog；旧 generation 不误关新实例。注册函数仍由注册 scope 拥有，不与返回视图的局部 lease 混同。
+- 页面与 header popup 统一使用根视图加载 hook，按 source 身份和书籍上下文刷新。同 key 的新注册会重载；失效源、刷新竞态、关闭后迟到的成功或失败不会替换当前视图或弹通知。
+- 动作结果按源 frame、epoch 和 request 校验；旧 finally 不清除新请求的 busy；关闭/返回/替换立即拒绝迟到结果。这里取消的是 UI 接受资格，不撤销动作已发起的持久写或 HTTP 副作用，也不是普通任务的端到端取消协议。
+- React StrictMode 清理立即使在途结果失效，实际 lease 延至下一 microtask 释放；同步重复 setup 可复用，真实 unmount 会释放。渲染期间不创建带回调资源的 frame。
+- 对话框请求层也拥有尚未挂载的原始结果；关闭、替换、失败和旧 request resolve 都释放未消费回调。selection action 包装调用显式保留原始注册函数的 owner，不能仅跟踪宿主闭包。
+
+[环境] 新增 14 个测试，连同既有 contribution 测试共 16 个通过：覆盖图别名、非法/未知字段、1,000 次 replace 后回调有界、模态框竞态、Worker 退休、无 callback 声明、非模态迟到失败提示，以及真实 React DOM StrictMode 的同 key 换源/刷新/卸载。全仓 test 17 个任务、typecheck 20 个任务通过。故障用例预期日志保留，不把注入异常误报为测试失败。
+
+[环境] 隔离 Tauri `com.readaware.app.capability-e2e` 中，真实 WebKit Worker 和宿主 DialogHost/Renderer 完成 push/back、嵌套对话框、replace、reset、动作迟到关闭、10 轮开关释放及 terminate 关闭 pending dialog；保存的离栈 callback 均拒绝为 `plugin/unavailable`，cleanup owner 为 1。[结构化证据](./evidence/plugin-view-lifetime-2026-09-09.json)。夹具使用 SDK 声明，但不是 W01–W32 的实用组合插件。
+
+[环境] 真正内置 Jumper 的章节不存在不移动、Beta paragraph 17 精确搜索、后退/前进恢复相同 CFI，以及实际 Agent 端口搜索/导航 Gamma paragraph 23 和 stale 版本拒绝再次通过；没有远端 LLM 调用。另在宿主真实表单派发 input/click：99999 显示字段错误；Book text 查询显示命中列表，点击后关闭对话框并导航。应用此轮为 `visible / focused`，1200×800 逻辑视口的根表单与结果页截图 `/tmp/readaware-view-jumper{,-results}.png` 已检查，布局未重叠；不外推到全部窗口尺寸/原生键盘/焦点恢复/PDF。MCP DOM snapshot 因当前 bridge 缺少 `resolveAll` 不可用，未升级或注入补丁绕过，以上事件由 execute_js 派发，不称为真实物理键鼠测试。
+
+[环境] fixture 首次依赖优化和一次开发源修改触发 Vite 重载，旧句柄消失；日志确认重载后重跑，最终保留完整成功结果。两对生成器/pair validator 和 7 个建模门禁通过，215 行 / 548 库存不变。矩阵更新 EXT03/CON03，统一模型 Markdown 的现状映射随源更新，人读模型的目标表述无变化。两份 HTML 的 1440/1024/390 宽度、搜索中英文、抽屉/Escape、主题刷新保持、重复 id/锚点和截图检查通过，无浏览器错误；依赖既有字体/图标 CDN，无 Mermaid。文档浏览器已关闭。
+
+[环境] 本轮隔离 Tauri 已正常退出，5184/9224 不再监听；未触碰原应用与原用户数据。
+
+仍未完成：全消息 schema/字节和累计存活额度、任意任务取消、同 ID 升级失败回滚、其他 provider 会话、全部页面/popup/表单辅助回调的实机矩阵、packaged CSP、完整双端能力与 W01–W32 实用插件验收。本轮只关闭上述视图局部所有权路径，不关闭整个 GAP06/10 或完整目标。

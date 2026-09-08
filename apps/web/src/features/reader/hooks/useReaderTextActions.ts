@@ -204,7 +204,7 @@ export function useReaderTextActions({
         lookupAction.pluginId,
         lookupAction.pluginName,
         () => lookupAction.run(input),
-        { presentation: lookupAction.presentation },
+        { presentation: lookupAction.presentation, owner: lookupAction.run },
       );
     },
     [lookupAction],

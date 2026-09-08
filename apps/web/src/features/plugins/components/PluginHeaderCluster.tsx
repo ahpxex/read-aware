@@ -7,7 +7,7 @@
  * the Dialog host. Renders nothing when no plugin contributes to this surface.
  */
 import { PuzzlePiece } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAtomValue } from "jotai";
 import { DropdownMenu, IconButton, Popover, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
@@ -18,7 +18,6 @@ import { showPluginFailureToast } from "../lib/plugin-toast";
 import type {
   HeaderActionInput,
   PluginHeaderSurface,
-  PluginView,
   RegisteredHeaderAction,
 } from "../lib/plugin-types";
 import {
@@ -28,9 +27,7 @@ import {
 } from "../state/plugin-store";
 import { PluginViewRenderer } from "./PluginViewRenderer";
 import { contributionText } from "../lib/plugin-i18n";
-import { createLogger } from "../../../platform/logger";
-
-const log = createLogger("plugins");
+import { usePluginViewSource } from "../hooks/usePluginViewSource";
 
 type PluginHeaderClusterProps = {
   surface: PluginHeaderSurface;
@@ -164,29 +161,8 @@ function PluginHeaderPopupButton({
   buttonClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [view, setView] = useState<PluginView | null>(null);
-
-  useEffect(() => {
-    if (!open) {
-      setView(null);
-      return;
-    }
-    let cancelled = false;
-    Promise.resolve(action.view(input))
-      .then((next) => {
-        if (!cancelled) setView(next);
-      })
-      .catch((error) => {
-        log.error(`header action "${action.key}" failed`, error);
-        showPluginFailureToast(action.pluginName);
-        if (!cancelled) setOpen(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-    // The view is fetched fresh each open; `input` identity churn is irrelevant.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, action]);
+  const { view } = usePluginViewSource(action, open, () => action.view(input),
+    () => { showPluginFailureToast(action.pluginName); setOpen(false); }, input.book?.id);
 
   return (
     <Popover

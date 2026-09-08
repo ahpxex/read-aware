@@ -65,7 +65,7 @@ export function PluginSelectionCluster({
       action.pluginId,
       action.pluginName,
       () => action.run(input),
-      { presentation: action.presentation },
+      { presentation: action.presentation, owner: action.run },
     );
   };
 

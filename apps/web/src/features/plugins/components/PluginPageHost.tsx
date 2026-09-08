@@ -5,18 +5,15 @@
  * affordance, and renders its view vocabulary in a centered column. If the
  * plugin vanishes (disabled/uninstalled) the page exits to the shelf.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAtomValue } from "jotai";
 import { Caption, Heading, Stack } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { showPluginFailureToast } from "../lib/plugin-toast";
-import type { PluginView } from "../lib/plugin-types";
 import { headerActionsAtom } from "../state/plugin-store";
 import { PluginViewRenderer } from "./PluginViewRenderer";
 import { contributionText } from "../lib/plugin-i18n";
-import { createLogger } from "../../../platform/logger";
-
-const log = createLogger("plugins");
+import { usePluginViewSource } from "../hooks/usePluginViewSource";
 
 export const PLUGIN_NAV_PREFIX = "plugin:";
 
@@ -32,46 +29,15 @@ export function PluginPageHost({ navKey, onExit }: PluginPageHostProps) {
     : navKey;
   const actions = useAtomValue(headerActionsAtom);
   const action = actions.find((entry) => entry.key === key && entry.surface === "shelf") ?? null;
-  const [view, setView] = useState<PluginView | null>(null);
   const [viewDepth, setViewDepth] = useState(0);
-  const loadRequestIdRef = useRef(0);
+  const { view, refresh: refreshView } = usePluginViewSource(action, action !== null,
+    () => action!.view({}),
+    () => { showPluginFailureToast(action?.pluginName); onExit(); },
+  );
 
   useEffect(() => {
-    if (!action) {
-      onExit();
-      return;
-    }
-    const requestId = ++loadRequestIdRef.current;
-    setView(null);
-    setViewDepth(0);
-    Promise.resolve(action.view({}))
-      .then((next) => {
-        if (loadRequestIdRef.current === requestId) setView(next);
-      })
-      .catch((error) => {
-        log.error(`page "${key}" failed`, error);
-        showPluginFailureToast(action.pluginName);
-        if (loadRequestIdRef.current === requestId) onExit();
-      });
-    return () => {
-      if (loadRequestIdRef.current === requestId) loadRequestIdRef.current += 1;
-    };
-    // Refetch only when the target action changes, not on unrelated re-renders.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [action?.key]);
-
-  const refreshView = () => {
-    if (!action) return;
-    const requestId = ++loadRequestIdRef.current;
-    Promise.resolve(action.view({}))
-      .then((next) => {
-        if (loadRequestIdRef.current === requestId) setView(next);
-      })
-      .catch((error) => {
-        log.error(`page "${key}" refresh failed`, error);
-        showPluginFailureToast(action.pluginName);
-      });
-  };
+    if (!action) onExit();
+  }, [action, onExit]);
 
   if (!action) return null;
   const title = contributionText(action.title);

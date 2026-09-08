@@ -221,7 +221,7 @@ export function ReaderSelectionMenu({
               action.pluginId,
               action.pluginName,
               () => action.run(pluginInput),
-              { presentation: action.presentation },
+              { presentation: action.presentation, owner: action.run },
             ),
         };
       }
@@ -268,7 +268,7 @@ export function ReaderSelectionMenu({
                         action.pluginId,
                         action.pluginName,
                         () => action.run(pluginInput),
-                        { presentation: action.presentation },
+                        { presentation: action.presentation, owner: action.run },
                       )
                     }
                     className={actionButtonClass}

@@ -22,6 +22,7 @@ export async function openHeaderActionDialog(
     pluginId: action.pluginId,
     pluginName: action.pluginName,
     view: null,
+    owner: action.view,
   });
   try {
     const view = await action.view(input);

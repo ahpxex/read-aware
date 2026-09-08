@@ -18,6 +18,9 @@ export const sources: Record<string, string> = {
   WIRE: "apps/web/src/features/plugins/runtime/plugin-worker-host.ts",
   WORKER: "apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts",
   CALLBACKWIRE: "apps/web/src/features/plugins/runtime/plugin-callback-wire.ts",
+  VIEWSESSION: "apps/web/src/features/plugins/lib/plugin-view-session.ts",
+  VIEWSOURCE: "apps/web/src/features/plugins/hooks/usePluginViewSource.ts",
+  VIEWPROBE: "apps/web/src/features/plugins/runtime/fixtures/desktop-view-probe.ts",
   LIFECYCLE: "apps/web/src/features/plugins/runtime/plugin-lifecycle.ts",
   CATALOG: "packages/core/src/capabilities.ts",
   DOM: "apps/web/src/domain/registry.ts",
@@ -288,7 +291,7 @@ groups.push(
   { name: "插件界面、贡献与实际消费者", rows: [
     cap("EXT01", "选择菜单动作/lookup/标注入口", "实装", actor("部分", "选择附件可触发 Agent；非调用任意 action", "语义动作意图"), actor("接通", "selectionActions.register", "声明式动作贡献"), ["API","CTX","DICT","TEXTACTIONS"], "Dictionary lookup-save", "menu contribution 是入口位置，不提供跳转/搜索本体能力"),
     cap("EXT02", "书架与阅读 header menu 入口", "实装", absent("命令工具而不是菜单 DOM 操作"), actor("接通", "headerActions.register(surface=shelf/reader)", "声明式 header 动作"), ["API","CTX","MENU","RSS","DICT"], "Dictionary/RSS 书架入口；Jumper 阅读入口可用", "Jumper 缺口不是 header 插槽，而是 TXT/D/任务语义"),
-    cap("EXT03", "插件页面/对话框/视图结果与栈导航", "实装", actor("未接", "模型不渲染 PluginView 树", "通过工具结构化输出，由宿主呈现"), actor("部分", "PluginViewResult push/pop/replace/close", "宿主声明式视图"), ["API","VIEWS","RENDER","WIRE"], "Dictionary/RSS", "当前可用，但 GAP06/10 的 callback 生命周期和过期结果未闭合"),
+    cap("EXT03", "插件页面/对话框/视图结果与栈导航", "实装", actor("未接", "模型不渲染 PluginView 树", "通过工具结构化输出，由宿主呈现"), actor("部分", "视图栈/嵌套对话框 lease；根加载与动作迟到淘汰", "宿主声明式视图"), ["API","VIEWS","RENDER","WIRE","VIEWSESSION","VIEWSOURCE","VIEWPROBE"], "Dictionary/RSS/Jumper；隔离桌面视图探针", "push/back 保留父回调，replace/reset/关闭释放离栈回调；Worker 退休关闭所属视图，含无 callback 的声明及待加载对话框。StrictMode/根刷新/同 key 换源已测；真实桌面 DOM 事件通过，不等于页面/弹出层全部视觉与焦点验收。迟到 UI 淘汰不取消已发起的业务副作用，GAP06/10 未整体关闭"),
     cap("EXT04", "列表、搜索、详情、Markdown、blocks 组合", "实装", absent("工具结果呈现，不注册任意组件"), actor("接通", "PluginView list/detail/markdown/blocks", "声明式内容视图"), ["API","RENDER","DICTVIEWS","RSSVIEWS"], "Dictionary/RSS", "宿主组件有 Table/Tree 不等于插件 schema 有；复杂数据视图另列"),
     cap("EXT05", "表单输入、动态选项、验证与提交", "实装", actor("部分", "ask_user 固定 question 交互", "结构化交互 schema"), actor("接通", "PluginFormView.onSubmit + submitMode=explicit/change", "声明式表单"), ["API","RENDER","DICTVIEWS","RSSVIEWS"], "RSS 订阅/OPML粘贴；Dictionary", "OPML 是文本粘贴而非通用选择文件服务"),
     cap("EXT06", "大列表分页/虚拟化、Tree/Table/编辑器/图像资源", "部分", absent("有界工具结果/资源引用"), actor("部分", "list 已用 PluginVirtualRows；无通用分页/Tree/Table", "按原语补全 schema"), ["API","RENDER"], "宿主 UI 库比 PluginView schema 更丰富", "虚拟行已实现，不与分页混为一谈；不能开放 React/HTML/DOM 逃生口；表格/树等需 schema 与键盘契约"),
@@ -335,7 +338,7 @@ groups.push(
   { name: "跨能力协议与明确边界", rows: [
     cap("CON01", "能力发现/版本/权限/依赖与安装同意", "实装", actor("部分", "registry 按 scope 产工具；无完整 host 能力目录工具", "语义工具目录"), actor("接通", "ctx.capabilities + manifest requires/permissions", "版本化能力目录"), ["CATALOG","API","HOST","REGISTRY"], "插件安装校验；工具构建", "catalog 当前只列已公开 API，不自动覆盖 host UI/engine/native；新增宿主行为必须更新此表"),
     cap("CON02", "对象级授权/用户批准/来源与审计", "部分", actor("部分", "book scope + destructive approval", "最小授权工具"), actor("部分", "domain permissions/settings path grants/plugin namespace", "对象级授权/审批票据"), ["CTX","CATALOG","ANNTOOLS","SHELFTOOLS"], "Agent 写工具；插件 manifest", "域权限不是每个对象的授权；session metadata 默认开放需明确政策 GAP15"),
-    cap("CON03", "生命周期 staging/activate/deactivate 与资源释放", "部分", actor("自动", "runtime invalidation/flush background", "任务/贡献消费生命周期"), actor("部分", "注册 scope 回收；回调与 transport session 释放；异步 cleanup 排空", "全来源 structured cancellation"), ["HOST","CTX","WIRE","CALLBACKWIRE","LIFECYCLE","THREAD","SYNCSESSION"], "插件启停/升级；Agent 运行时重建", "停用先退休 transport 会话，再排空异步关闭和持久写，最后终止 Worker；关闭失败仍释放句柄并报告。GAP06/08/14 的视图栈 lease、通用同 ID 换代回滚、其他在途 effect 和真实连接全链路仍未闭合"),
+    cap("CON03", "生命周期 staging/activate/deactivate 与资源释放", "部分", actor("自动", "runtime invalidation/flush background", "任务/贡献消费生命周期"), actor("部分", "注册 scope、视图/transport session 回调 lease 与异步 cleanup 排空", "全来源 structured cancellation"), ["HOST","CTX","WIRE","CALLBACKWIRE","LIFECYCLE","THREAD","SYNCSESSION","VIEWSESSION","VIEWSOURCE"], "插件启停/升级；Agent 运行时重建", "视图移除或失效时释放局部回调，未消费/非法/迟到结果释放，旧 Worker 不关闭新实例对话框；停用退休 transport 后排空异步关闭及持久写。仍缺通用同 ID 换代失败回滚、其他 provider session/在途 effect 和真实连接全链路；GAP06/08/14 未整体关闭"),
     cap("CON04", "跨 Worker RPC 的类型、错误与资源额度", "部分", actor("扩展", "插件 tool 也经过同一 worker bridge", "工具任务不被悬挂"), actor("部分", "describeContext + 无业务字段碰撞的 callback metadata + 有界图遍历", "有界可取消版本化 RPC"), ["WORKER","WIRE","CALLBACKWIRE","API","ERRORS"], "所有 Worker 插件及其 Agent 工具", "__fn/__disposable 保持普通数据；编码/clone 失败回滚句柄；图深度/条目/单消息 callback 有界；GAP07/12/13/17 的全消息 schema/字节与存活资源总量、取消、错误码/崩溃路径仍需统一验收"),
     cap("CON05", "稳定错误码/安全文案/可重试与降级状态", "部分", actor("部分", "工具错误包装与产品错误表面", "可机器判定回执"), actor("部分", "桥会保留 code；非所有生命周期路径", "统一错误 envelope"), ["ERRORS","WIRE","HOST","CTX"], "宿主 AppError；插件 UI toast", "错误字符串/空列表 fallback 不能算成功；消费者需明确 empty 与 failed"),
     cap("CON06", "长任务进度、取消、超时、并发与幂等", "部分", actor("部分", "局部 thread abort/工具 sequential", "统一任务原语"), actor("部分", "局部请求 id/回调，无通用 TaskRef", "统一任务服务"), ["THREAD","WIRE","HOST","API"], "搜索/导入/LLM/同步等各自实现", "重复业务实现的原因之一；只新增函数名不补任务契约仍会反复缺能力"),

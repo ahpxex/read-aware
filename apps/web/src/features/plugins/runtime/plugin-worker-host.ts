@@ -449,7 +449,7 @@ export function startPluginWorker(
             }
             const method = resolveMethod(ctx, message.method);
             if (!method) throw new AppError("plugin/unavailable", `"${message.method}" is not granted to plugin "${manifest.id}"`);
-            const args = decodePluginCallbacks(message.args, invokeHandle);
+            const args = decodePluginCallbacks(message.args, invokeHandle, undefined, runtime.lifecycle.signal);
             if (!Array.isArray(args)) throw new AppError("plugin/invalid-input", "Plugin call arguments must be an array");
             if (message.method === "services.network.fetch") {
               // Validate the body limit on the authoritative side too: a plugin
@@ -524,7 +524,7 @@ export function startPluginWorker(
               }
               const value = decodePluginCallbacks(message.value, invokeHandle, handles => {
                 if (!terminated) worker.postMessage({ t: "release", handles });
-              });
+              }, runtime.lifecycle.signal);
               pendingInvokes.settle(message.id, true, value);
             } catch (error) {
               releaseCallbacks(message.value);

@@ -1,0 +1,21 @@
+{
+  "date": "2026-09-08",
+  "appIdentifier": "com.readaware.app.capability-e2e",
+  "frontendPort": 5184,
+  "mcpPort": 9224,
+  "runtime": "Tauri debug, native WebKit + module Worker + tauri-plugin-http + SQLite",
+  "probe": "apps/web/src/features/plugins/runtime/fixtures/desktop-wire-probe.ts",
+  "scenarios": {
+    "request-storage": { "method": "PUT", "header": { "x-token": "test" }, "body": [0, 255], "resultReadBackFromSqlite": true },
+    "pre-abort": { "result": "already stopped", "extraServerRequests": 0 },
+    "live-abort": { "result": "stopped", "serverAborted": true, "serverCompleted": false },
+    "stop": { "errorCode": "plugin/cancelled", "serverAborted": true, "serverCompleted": false }
+  },
+  "serverRequests": [
+    { "path": "/echo", "method": "PUT", "token": "test", "body": [0, 255], "aborted": false, "completed": true },
+    { "path": "/slow", "method": "GET", "token": null, "body": [], "aborted": true, "completed": false },
+    { "path": "/slow", "method": "GET", "token": null, "body": [], "aborted": true, "completed": false }
+  ],
+  "contributionsAfterProbeCleanup": 0,
+  "notVerified": ["packaged CSP", "installation/update UI", "all domain consumers", "Agent model turn", "useful composition plugins"]
+}

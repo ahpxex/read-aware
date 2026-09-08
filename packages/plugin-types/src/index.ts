@@ -1572,6 +1572,9 @@ export type PluginHostServices = {
     ): PluginDisposable;
   };
   network?: {
+    /** Native HTTP; Request/init semantics and cancellation survive the Worker bridge.
+     * Bodies are buffered up to 64 MiB per direction. Calls have a 120s deadline;
+     * an abort does not undo a remote side effect already committed by the server. */
     fetch(input: string | URL | Request, init?: RequestInit): Promise<Response>;
   };
   llm?: {

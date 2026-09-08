@@ -128,6 +128,16 @@ typed context. Ambient Worker network and persistence APIs (`fetch`, WebSocket,
 IndexedDB, Cache Storage, BroadcastChannel, and related escape routes) are
 disabled; network and durable state must use granted host services.
 
+RPC calls now have a 120-second deadline and a 256-pending-call limit per
+direction. Clone failures settle their pending call, and runtime errors reject
+waiting contribution invocations. Network v1.1 preserves Request inheritance,
+headers and binary bodies, forwards cancellation to native HTTP, and buffers at
+most 64 MiB per body in each direction. Stopping a realm cancels its native HTTP
+requests. Cancellation does not undo server-side effects or already committed
+domain writes. General callback ownership, cancellation of other host tasks,
+wire-envelope validation and packaged CSP remain separate acceptance work; see
+[implementation and desktop evidence](./host-capability-delivery.md).
+
 ## 5. Domains
 
 A domain owns read models, queries, commands, events, validation, business

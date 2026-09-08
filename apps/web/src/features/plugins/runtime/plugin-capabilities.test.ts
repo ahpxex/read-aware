@@ -23,7 +23,7 @@ describe("plugin capability negotiation", () => {
     );
 
     expect(visible.domains).toEqual({ library: "1.0.0", settings: "1.0.0" });
-    expect(visible.services.network).toBe("1.0.0");
+    expect(visible.services.network).toBe("1.1.0");
     expect(visible.services.llm).toBeUndefined();
     expect(visible.contributions.themes).toBe("1.0.0");
     expect(visible.contributions.agentTools).toBeUndefined();

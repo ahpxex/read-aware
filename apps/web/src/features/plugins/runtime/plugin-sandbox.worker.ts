@@ -30,6 +30,8 @@ import type {
   PluginModule,
 } from "@read-aware/plugin-types";
 import { PluginStorageMirror } from "./plugin-storage-mirror";
+import { flattenPluginRequest, restorePluginResponse, type PluginNetworkResponse } from "./plugin-network-wire";
+import { PluginRpcPending } from "./plugin-rpc-pending";
 
 // ─── Wire protocol ───────────────────────────────────────────────────────────
 
@@ -66,6 +68,7 @@ type WorkerMessage =
   | { t: "failed"; error: string }
   | { t: "dispose"; handle: string }
   | { t: "call"; id: number; method: string; args: unknown[] }
+  | { t: "cancel"; id: number }
   | { t: "result"; id: number; ok: true; value: unknown }
   | { t: "result"; id: number; ok: false; error: string; code?: string }
   | { t: "healthy"; id: number }
@@ -118,11 +121,7 @@ for (const name of [
 
 // ─── Host calls (plugin → host, async) ───────────────────────────────────────
 
-let nextCallId = 1;
-const pendingCalls = new Map<
-  number,
-  { resolve: (value: unknown) => void; reject: (error: Error) => void }
->();
+const pendingCalls = new PluginRpcPending();
 const inFlightHostCalls = new Set<Promise<unknown>>();
 const lifecycleCallErrors: unknown[] = [];
 
@@ -174,18 +173,16 @@ function encode(value: unknown): unknown {
  */
 type CallResult = Promise<unknown> & { dispose: () => void };
 
-function callHost(method: string, args: unknown[]): CallResult {
-  const id = nextCallId++;
-  const promise = new Promise<unknown>((resolve, reject) => {
-    pendingCalls.set(id, { resolve, reject });
+function callHost(method: string, args: unknown[], signal?: AbortSignal): CallResult {
+  const promise = pendingCalls.call(id => {
     post({ t: "call", id, method, args: encode(args) as unknown[] });
-  });
+  }, { signal, cancel: id => post({ t: "cancel", id }) });
   inFlightHostCalls.add(promise);
   void promise.then(
     () => inFlightHostCalls.delete(promise),
     (error) => {
       inFlightHostCalls.delete(promise);
-      if (lifecyclePhase !== "active") lifecycleCallErrors.push(error);
+      if (lifecyclePhase !== "active" && codeOf(error) !== "plugin/cancelled") lifecycleCallErrors.push(error);
     },
   );
   const result = promise as CallResult;
@@ -238,7 +235,7 @@ async function drainActivationCalls(): Promise<void> {
     const failed = results.find(
       (result): result is PromiseRejectedResult => result.status === "rejected",
     );
-    if (failed) throw failed.reason;
+    if (failed && codeOf(failed.reason) !== "plugin/cancelled") throw failed.reason;
   }
   const failed = lifecycleCallErrors.shift();
   lifecycleCallErrors.length = 0;
@@ -339,67 +336,10 @@ function buildContext(
   // binary payloads survive) and is rebuilt into a real Response.
   const network = services.network as Record<string, unknown> | undefined;
   if (network && typeof network.fetch === "function") {
-    // Statuses the Response constructor refuses to pair with a body.
-    const NULL_BODY_STATUSES = new Set([101, 204, 205, 304]);
-    network.fetch = async (input: unknown, init?: unknown) => {
-      const url =
-        typeof input === "string"
-          ? input
-          : input instanceof URL
-            ? input.href
-            : input instanceof Request
-              ? input.url
-              : String(input);
-      const { signal, headers, ...rest } =
-        (init && typeof init === "object" ? init : {}) as RequestInit;
-      const plainInit: Record<string, unknown> = { ...rest };
-      // Headers in any accepted form become one plain record.
-      if (headers) {
-        plainInit.headers = Object.fromEntries(new Headers(headers).entries());
-      }
-
-      const call = (async () => {
-        // The context path, verbatim: the capability moved from `ctx.network`
-        // to `ctx.services.network` in the v2 contract, and this hardcoded
-        // string silently refused every plugin fetch until it followed.
-        const result = (await callHost("services.network.fetch", [url, plainInit])) as {
-          status: number;
-          statusText: string;
-          url: string;
-          headers: Record<string, string>;
-          body: ArrayBuffer;
-        };
-        const response = new Response(
-          NULL_BODY_STATUSES.has(result.status) ? null : result.body,
-          {
-            status: result.status,
-            statusText: result.statusText,
-            headers: result.headers,
-          },
-        );
-        // The constructor cannot set `url`; shadow the prototype getter so
-        // redirect-following plugins still learn the final address.
-        Object.defineProperty(response, "url", { value: result.url });
-        return response;
-      })();
-
-      // An AbortSignal cannot cross the realm; honor it HERE instead — the
-      // plugin's await rejects on abort/timeout as fetch semantics promise,
-      // while the host-side request simply runs to completion unobserved.
-      if (!(signal instanceof AbortSignal)) return call;
-      if (signal.aborted) {
-        throw signal.reason ?? new DOMException("The operation was aborted.", "AbortError");
-      }
-      return new Promise<Response>((resolve, reject) => {
-        const onAbort = () =>
-          reject(
-            signal.reason ?? new DOMException("The operation was aborted.", "AbortError"),
-          );
-        signal.addEventListener("abort", onAbort, { once: true });
-        call
-          .then(resolve, reject)
-          .finally(() => signal.removeEventListener("abort", onAbort));
-      });
+    network.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const request = await flattenPluginRequest(input, init);
+      const result = await callHost("services.network.fetch", [request.url, request.init], request.signal);
+      return restorePluginResponse(result as PluginNetworkResponse);
     };
   }
 
@@ -484,11 +424,7 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
     }
 
     case "result": {
-      const pending = pendingCalls.get(message.id);
-      if (!pending) return;
-      pendingCalls.delete(message.id);
-      if (message.ok) pending.resolve(message.value);
-      else pending.reject(codedError(message.error, message.code));
+      pendingCalls.settle(message.id, message.ok, message.ok ? message.value : codedError(message.error, message.code));
       return;
     }
 
@@ -542,6 +478,7 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
     }
 
     case "deactivate": {
+      pendingCalls.close(codedError("Plugin runtime stopped", "plugin/unavailable"));
       try {
         await plugin?.deactivate?.();
       } catch (error) {

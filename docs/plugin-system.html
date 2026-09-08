@@ -305,6 +305,7 @@
         <div class="wrap">
           <h2>始终不开放</h2>
           <p class="intro">插件运行在 Worker 中，界面由宿主声明式渲染。</p>
+          <p>RPC 已有 120 秒截止与每方向 256 个等待调用上限；Network v1.1 保留 Request 参数和二进制，每方向正文最多 64 MiB，取消与停用会传播到原生 HTTP。取消不撤销远端已发生的副作用。其他任务取消、回调所有权和生产 CSP 仍待验收，见 <a href="./host-capability-delivery.md">实现与桌面证据</a>。</p>
           <ul>
             <li>任意 React、HTML、CSS、DOM、iframe 或 WebView 注入</li>
             <li>原始文件系统路径、SQLite、Tauri 命令与进程执行</li>

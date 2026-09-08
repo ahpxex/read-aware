@@ -28,6 +28,8 @@ import { onAppEvent } from "../../../platform/app-events";
 import { localKV, onLocalKVChange } from "../../../platform/local-store";
 import { createLogger } from "../../../platform/logger";
 import { updateInstalledPlugin } from "../state/plugin-store";
+import { flattenPluginRequest, flattenPluginResponse } from "./plugin-network-wire";
+import { PluginRpcPending } from "./plugin-rpc-pending";
 
 const log = createLogger("plugins");
 
@@ -36,6 +38,7 @@ type WorkerMessage =
   | { t: "failed"; error: string }
   | { t: "dispose"; handle: string }
   | { t: "call"; id: number; method: string; args: unknown[] }
+  | { t: "cancel"; id: number }
   | { t: "result"; id: number; ok: true; value: unknown }
   | { t: "result"; id: number; ok: false; error: string; code?: string }
   | { t: "healthy"; id: number }
@@ -191,27 +194,6 @@ export function describeContext(ctx: PluginContext): ContextShape {
   return shape;
 }
 
-/**
- * `fetch` returns a Response, which cannot be cloned — flatten it. The body
- * crosses as an ArrayBuffer so binary payloads (cover images, book files an
- * RSS-style plugin hands to `books.write.import`) survive; the worker-side
- * Response decodes text lazily for callers that want `.text()`/`.json()`.
- */
-async function flattenResponse(response: Response): Promise<unknown> {
-  const headers: Record<string, string> = {};
-  response.headers.forEach((value, key) => {
-    headers[key] = value;
-  });
-  return {
-    ok: response.ok,
-    status: response.status,
-    statusText: response.statusText,
-    url: response.url,
-    headers,
-    body: await response.arrayBuffer(),
-  };
-}
-
 export function startPluginWorker(
   manifest: PluginManifest,
   appVersion: string,
@@ -228,14 +210,15 @@ export function startPluginWorker(
   const runtime = buildPluginContext(manifest, appVersion, disposables);
   const ctx = runtime.context;
   let terminated = false;
+  let quiescing = false;
   let termination: Promise<void> | undefined;
   let acknowledgeQuiescence: ((error?: string) => void) | undefined;
 
-  let nextInvokeId = 1;
-  const pendingInvokes = new Map<
-    number,
-    { resolve: (value: unknown) => void; reject: (error: Error) => void }
-  >();
+  const pendingInvokes = new PluginRpcPending();
+  const incomingCalls = new Map<number, AbortController>();
+  const abortIncomingCalls = () => {
+    for (const controller of incomingCalls.values()) controller.abort(new AppError("plugin/cancelled", "Plugin runtime stopped"));
+  };
   let nextHealthId = 1;
   const pendingHealth = new Map<
     number,
@@ -248,8 +231,7 @@ export function startPluginWorker(
   >();
   /** A dead worker answers nothing — fail its in-flight calls, don't strand them. */
   const failAllInvokes = (reason: string) => {
-    for (const pending of pendingInvokes.values()) pending.reject(new Error(reason));
-    pendingInvokes.clear();
+    pendingInvokes.failAll(new AppError("plugin/unavailable", reason));
   };
   const failAllHealthChecks = (reason: string) => {
     for (const pending of pendingHealth.values()) {
@@ -267,9 +249,7 @@ export function startPluginWorker(
   };
   /** Call a function the plugin kept inside the Worker. */
   const invokeHandle = (handle: string, args: unknown[]): Promise<unknown> => {
-    const id = nextInvokeId++;
-    return new Promise((resolve, reject) => {
-      pendingInvokes.set(id, { resolve, reject });
+    return pendingInvokes.call(id => {
       worker.postMessage({ t: "invoke", id, handle, args });
     });
   };
@@ -324,6 +304,7 @@ export function startPluginWorker(
         // settings panel shows it.
         const message = event.message || "plugin crashed at runtime";
         log.error(`runtime error in "${manifest.id}"`, message);
+        failAllInvokes(message);
         failAllHealthChecks(message);
         failAllMigrations(message);
         if (options.onRuntimeError) options.onRuntimeError(message);
@@ -394,6 +375,8 @@ export function startPluginWorker(
               },
               terminate() {
                 return termination ??= (async () => {
+                  quiescing = true;
+                  abortIncomingCalls();
                   // This message barrier lets already-issued Worker writes reach
                   // the host before it closes the gate and drains native writes.
                   const quiescenceError = await new Promise<string | undefined>(done => {
@@ -413,6 +396,7 @@ export function startPluginWorker(
                     worker.postMessage({ t: "deactivate" });
                     await new Promise(done => setTimeout(done, 50));
                     terminated = true;
+                    pendingInvokes.close(new AppError("plugin/unavailable", "Plugin runtime stopped"));
                     const live = liveWorkers.get(instanceId);
                     if (live?.worker === worker) liveWorkers.delete(instanceId);
                     worker.terminate();
@@ -453,20 +437,36 @@ export function startPluginWorker(
           acknowledgeQuiescence?.(message.error);
           return;
 
+        case "cancel":
+          incomingCalls.get(message.id)?.abort(new AppError("plugin/cancelled", "Plugin call cancelled"));
+          return;
+
         case "call": {
-          const method = resolveMethod(ctx, message.method);
-          if (!method) {
-            worker.postMessage({
-              t: "result",
-              id: message.id,
-              ok: false,
-              error: `"${message.method}" is not available to plugin "${manifest.id}" (check its manifest permissions)`,
-            });
+          if (incomingCalls.has(message.id)) return;
+          if (incomingCalls.size >= 256) {
+            worker.postMessage({ t: "result", id: message.id, ok: false, code: "plugin/busy", error: "Too many pending plugin calls" });
             return;
           }
+          const controller = new AbortController();
+          incomingCalls.set(message.id, controller);
+          const timeout = setTimeout(() => controller.abort(new AppError("plugin/timeout", "Plugin call timed out")), 120_000);
+          controller.signal.addEventListener("abort", () => clearTimeout(timeout), { once: true });
           try {
-            let value = await method(...(message.args.map(decode) as unknown[]));
-            if (value instanceof Response) value = await flattenResponse(value);
+            if (quiescing && !message.method.startsWith("services.storage.")) {
+              throw new AppError("plugin/cancelled", "Plugin runtime is stopping");
+            }
+            const method = resolveMethod(ctx, message.method);
+            if (!method) throw new AppError("plugin/unavailable", `"${message.method}" is not granted to plugin "${manifest.id}"`);
+            const args = message.args.map(decode);
+            if (message.method === "services.network.fetch") {
+              // Validate the body limit on the authoritative side too: a plugin
+              // can send messages directly rather than use its friendly proxy.
+              const request = await flattenPluginRequest(args[0] as RequestInfo | URL, { ...(args[1] as RequestInit | undefined), signal: controller.signal });
+              args[0] = request.url;
+              args[1] = { ...request.init, signal: controller.signal };
+            }
+            let value = await method(...args);
+            if (value instanceof Response) value = await flattenPluginResponse(value, controller.signal);
             // A registration answers with a disposable, which cannot be cloned:
             // hold it and send back the handle the Worker releases it by.
             if (
@@ -474,6 +474,10 @@ export function startPluginWorker(
               typeof value === "object" &&
               typeof (value as PluginDisposable).dispose === "function"
             ) {
+              if (terminated || controller.signal.aborted) {
+                (value as PluginDisposable).dispose();
+                throw controller.signal.reason ?? new AppError("plugin/unavailable", "Plugin runtime stopped");
+              }
               const handle = `d${nextDisposableId++}`;
               heldDisposables.set(handle, value as PluginDisposable);
               worker.postMessage({
@@ -486,30 +490,31 @@ export function startPluginWorker(
             }
             worker.postMessage({ t: "result", id: message.id, ok: true, value: value ?? null });
           } catch (error) {
+            const failure = controller.signal.aborted ? controller.signal.reason : error;
             worker.postMessage({
               t: "result",
               id: message.id,
               ok: false,
-              error: error instanceof Error ? error.message : String(error),
+              error: failure instanceof Error ? failure.message : String(failure),
               // Stable codes (AppError) survive the boundary as data — the
               // worker rebuilds an Error carrying `code`, so a plugin rethrow
               // keeps it and the host can render code-specific copy.
-              code: errorCode(error),
+              code: errorCode(failure),
             });
+          } finally {
+            clearTimeout(timeout);
+            incomingCalls.delete(message.id);
           }
           return;
         }
 
         case "result": {
-          const pending = pendingInvokes.get(message.id);
-          if (!pending) return;
-          pendingInvokes.delete(message.id);
           // Decode the result, not only call arguments: what a contribution
           // returns carries functions of its own (a view's control `onChange`),
           // and they arrive as handles that have to become callable here.
-          if (message.ok) pending.resolve(decode(message.value));
+          if (message.ok) pendingInvokes.settle(message.id, true, decode(message.value));
           else
-            pending.reject(
+            pendingInvokes.settle(message.id, false,
               message.code
                 ? new AppError(message.code, message.error)
                 : new Error(message.error),

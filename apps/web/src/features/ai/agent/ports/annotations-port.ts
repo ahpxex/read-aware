@@ -5,23 +5,27 @@
  * the origin stamp and the list invalidation.
  */
 import type { AnnotationsPort } from "@read-aware/agent";
+import { AppError } from "@read-aware/core";
 import { createDomainApi } from "../../../../domain";
 
 export function createAnnotationsPort(): AnnotationsPort {
   const annotations = createDomainApi("agent").annotations;
   return {
+    getAnnotation: (id) => annotations.queries.get(id),
     listAnnotations: async (filter) =>
       annotations.queries.list({
         bookId: filter?.bookId ? String(filter.bookId) : undefined,
         query: filter?.query,
+        kind: filter?.kind,
       }),
-    createHighlight: async ({ bookId, text, anchor, chapter, color }) =>
+    createHighlight: async ({ bookId, text, anchor, chapter, color, style }) =>
       annotations.commands.createHighlight({
         bookId: String(bookId),
         text,
         anchor: anchor ?? null,
         chapterHref: chapter ?? null,
         color,
+        style,
       }),
     recolorHighlight: (highlightId, color) =>
       annotations.commands.recolorHighlight(String(highlightId), color),
@@ -36,10 +40,8 @@ export function createAnnotationsPort(): AnnotationsPort {
     updateNote: (noteId, body) =>
       annotations.commands.updateNote(String(noteId), body),
     removeAnnotation: async (annotationId) => {
-      const target = (await annotations.queries.list()).find(
-        (annotation) => annotation.id === String(annotationId),
-      );
-      if (!target) throw new Error(`annotation not found: ${annotationId}`);
+      const target = await annotations.queries.get(annotationId);
+      if (!target) throw new AppError("annotations/not-found", `annotation not found: ${annotationId}`);
       if (target.kind === "highlight") {
         await annotations.commands.removeHighlight(String(annotationId));
       } else if (target.kind === "note") {

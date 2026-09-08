@@ -6,6 +6,7 @@
  * so only the "agent" origin may record them.
  */
 import { getDefaultStore } from "jotai";
+import { AppError } from "@read-aware/core";
 import type {
   AnnotationItem,
   AskItem,
@@ -77,6 +78,8 @@ function bumpAnnotationsRevision(): void {
 }
 
 export type AnnotationQueries = {
+  /** Missing IDs return null; storage failures remain failures. */
+  get(annotationId: string): Promise<AnnotationItem | null>;
   list(filter?: {
     bookId?: string;
     kind?: "highlight" | "note" | "ask";
@@ -113,7 +116,7 @@ export type AnnotationCommands = {
   }): Promise<AskItem>;
   /**
    * Remove an ask trace. Any actor may erase (the user owns their traces);
-   * only the agent may record. Not part of the plugin surface today.
+   * only the agent may record.
    */
   removeAsk(askId: string): Promise<void>;
 };
@@ -127,22 +130,30 @@ export type AnnotationsDomain = {
 };
 
 export function createAnnotationsDomain(origin: EventOrigin): AnnotationsDomain {
+  const annotationId = (id: string) => {
+    if (typeof id !== "string" || !id.trim()) throw new AppError("annotations/invalid-input", "A non-empty annotation ID is required");
+    return id;
+  };
   const requireHighlight = async (id: string) => {
-    const existing = await getAnnotation(String(id));
+    const existing = await getAnnotation(annotationId(id));
     if (!existing || existing.type !== "highlight") {
-      throw new Error(`highlight not found: ${id}`);
+      throw new AppError("annotations/not-found", `highlight not found: ${id}`);
     }
     return existing;
   };
   const requireNote = async (id: string) => {
-    const existing = await getAnnotation(String(id));
+    const existing = await getAnnotation(annotationId(id));
     if (!existing || existing.type !== "note") {
-      throw new Error(`note not found: ${id}`);
+      throw new AppError("annotations/not-found", `note not found: ${id}`);
     }
     return existing;
   };
 
   const queries: AnnotationQueries = {
+    get: async (id) => {
+      const annotation = await getAnnotation(annotationId(id));
+      return annotation ? toAnnotationItem(annotation) : null;
+    },
     list: async (filter) =>
       (
         await listAnnotations({
@@ -155,6 +166,9 @@ export function createAnnotationsDomain(origin: EventOrigin): AnnotationsDomain 
 
   const commands: AnnotationCommands = {
     createHighlight: async (input) => {
+      if (input.style !== undefined && input.style !== "highlight" && input.style !== "underline") {
+        throw new AppError("annotations/invalid-input", "Unknown highlight style");
+      }
       const highlight = await createHighlight(
         String(input.bookId),
         input.anchor ?? null,
@@ -201,7 +215,7 @@ export function createAnnotationsDomain(origin: EventOrigin): AnnotationsDomain 
     },
     createAsk: async (input) => {
       if (origin !== "agent") {
-        throw new Error("ask.recorded is an agent-only verb");
+        throw new AppError("annotations/forbidden", "ask.recorded is an agent-only verb");
       }
       const ask = await createAsk(
         String(input.bookId),
@@ -213,9 +227,9 @@ export function createAnnotationsDomain(origin: EventOrigin): AnnotationsDomain 
       return toAnnotationItem(ask) as AskItem;
     },
     removeAsk: async (askId) => {
-      const existing = await getAnnotation(String(askId));
+      const existing = await getAnnotation(annotationId(askId));
       if (!existing || existing.type !== "ask") {
-        throw new Error(`ask not found: ${askId}`);
+        throw new AppError("annotations/not-found", `ask not found: ${askId}`);
       }
       await deleteAnnotation(String(askId), origin);
       bumpAnnotationsRevision();

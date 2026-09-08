@@ -179,3 +179,23 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [环境] 本轮隔离 Tauri 已正常退出，5184/9224 不再监听；未触碰原应用与原用户数据。
 
 仍未完成：全消息 schema/字节和累计存活额度、任意任务取消、同 ID 升级失败回滚、其他 provider 会话、全部页面/popup/表单辅助回调的实机矩阵、packaged CSP、完整双端能力与 W01–W32 实用插件验收。本轮只关闭上述视图局部所有权路径，不关闭整个 GAP06/10 或完整目标。
+
+## 2026-09-09：D3 标注参数与精确查询双端接线
+
+[代码] `domains.annotations` 升为 1.1.0，新增 `queries.get(annotationId)` 与面向写权限的 `commands.removeAsk(askId)`。get 直接使用原生 `annotation_get`，未找到返回 null，存储异常继续抛出；不再为了取一条标注加载全部列表。空或非字符串 ID 返回 `annotations/invalid-input`。
+
+- Agent `create_annotation` 增加 `style=highlight|underline`，AnnotationsPort 与宿主 adapter 原样传递，默认仍为 highlight。域层拒绝非法 style，不让非 TypeScript 插件绕过 enum。未新增“下划线专用”模型工具。
+- Agent `get_annotations` 增加 annotationId 和 kind；精确 ID 查询仍返回零/一元素数组，保持原列表结果形状。annotationId 与全文 query 互斥；kind 与书籍过滤仍生效。书内默认本书，但沿用现有显式跨书检索能力，未把 ThreadScope 虚构成新的全局权限隔离。
+- `edit_annotation`、`delete_annotation`、按标注 `open_book` 及宿主删除 adapter 全部改用 get。导航仍核对标注 bookId 等于请求目标，不让别书 anchor 被当作当前书的位置。
+- 插件 read 只获得 queries/events，write 才有 removeAsk；插件不能调用 createAsk。removeAsk 校验 kind，缺失或错误类型返回 `annotations/not-found`；非 Agent 调用宿主 createAsk 返回 `annotations/forbidden`。三个错误码均加入 8 语言错误呈现，原始错误仍仅用于日志。
+- Agent 删除批准未弱化：依旧先请求 `delete-annotation` 批准，再调用删除端口。此处未解决批准等待期间的版本变化，后续 CAS/批次协议仍需覆盖。
+
+[环境] 新增 12 个定向测试（Agent 标注 6、宿主域/adapter/权限 5、导航目标书籍 1）；覆盖下划线默认与显式参数、kind、无列表扫描的精确查询/编辑/删除、缺失/失败区分、书籍过滤、只读/停用写拒绝、禁止伪造 ask、批准与拒绝。全仓 test 17 个任务、typecheck 20 个任务通过。
+
+[环境] 隔离 Tauri 中运行真实 Agent 工具、共享域、原生 SQLite 和 WebKit Worker：Agent 创建蓝色 underline；read-only 插件按 ID 回读完整样式且无 commands；write 插件查询并删除 ask、收到带 plugin origin 的 ask.removed，缺失和错误类型回调携带稳定错误码。Agent 真实交互端口先 decline 保留，再 approve 删除。批准由测试代码经实际交互端口回答，没有远端模型或聊天批准 UI，不外推为模型决策/完整批准界面验收。[结构化证据](./evidence/annotation-capability-2026-09-09.json)。测试标注原生回读均为 null，插件测试 KV 已删除，贡献已注销。
+
+[环境] 首次完整结果取得后 WebView 再次 boot，旧窗口句柄消失；日志核对 boot 后重跑并取得结果与原生清理证据，没有仅因观察超时重启进程。该重载的触发原因本轮未确定。隔离 app 已正常退出，5184/9224 不再监听；未触碰原 app、真实书库或密钥。
+
+[环境] 能力矩阵 ANN01/03/06/08 和生成模型映射更新，215 行 / 550 库存，129 旧验收项不变；ANN03 的 Agent 接线和 ANN06 的插件接线改为接通，ANN08 仍为部分。两对生成器/pair validator、7 个建模门禁通过。矩阵 HTML 的 1440/1024/390 宽度无页面横向溢出，中英文搜索、抽屉/Escape、主题刷新保持、重复 id/锚点、截图检查通过，无浏览器错误；截图 `/tmp/readaware-annotations-matrix{,-mobile}.png`。模型 HTML 目标描述未变，仅更新 Markdown 的现状映射。文档依赖既有字体/图标 CDN，无 Mermaid；不把文档截图当产品验收。
+
+仍未完成：标注有界分页/稳定游标、批次结果与原生事务内版本条件、Range/内容版本校验、远端变更失效、实际锚定下划线的跨格式视觉与聊天批准 UI、标注整理/导出的实用组合插件，以及其他领域/服务与完整 W01–W32。此探针不计为实用插件，不关闭 D3 整组或完整目标。

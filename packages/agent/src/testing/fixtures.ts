@@ -426,13 +426,15 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       },
     },
     annotations: {
+      getAnnotation: async (id) => annotations.find(annotation => annotation.id === id) ?? null,
       listAnnotations: async (filter) =>
         annotations.filter(
           (a) =>
             (!filter?.bookId || a.bookId === filter.bookId) &&
+            (!filter?.kind || a.kind === filter.kind) &&
             (!filter?.query || annotationText(a).includes(filter.query)),
         ),
-      createHighlight: async ({ bookId, text, anchor, chapter, color }) => {
+      createHighlight: async ({ bookId, text, anchor, chapter, color, style }) => {
         const now = new Date().toISOString();
         const highlight: AnnotationItem = {
           kind: "highlight",
@@ -442,7 +444,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
           anchor,
           chapterHref: chapter,
           color: color ?? "yellow",
-          style: "highlight",
+          style: style ?? "highlight",
           createdAt: now,
           updatedAt: now,
         };

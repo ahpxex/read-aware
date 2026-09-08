@@ -1,6 +1,6 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
-import type { HighlightColor, Id } from "@read-aware/core";
+import type { HighlightColor, HighlightStyle, Id } from "@read-aware/core";
 import type { AnnotationItem, RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { threadScopeKey } from "../thread-scope";
@@ -41,18 +41,22 @@ export function buildAnnotationTools(scope: ThreadScope, deps: RuntimeDeps): Age
         Type.String({ description: "Book text the note refers to (kind=note)" }),
       ),
       color: Type.Optional(highlightColorSchema),
+      style: Type.Optional(Type.Union([Type.Literal("highlight"), Type.Literal("underline")], {
+        description: "Mark style (kind=highlight); defaults to highlight. Use underline when the user requests underlining.",
+      })),
       bookId: Type.Optional(Type.String()),
       anchor: Type.Optional(Type.String()),
       chapterHref: Type.Optional(Type.String()),
     }),
     executionMode: "sequential",
     execute: async (_id, params) => {
-      const { kind, body, text, quotedText, color, bookId, anchor, chapterHref } = params as {
+      const { kind, body, text, quotedText, color, style, bookId, anchor, chapterHref } = params as {
         kind: "note" | "highlight";
         body?: string;
         text?: string;
         quotedText?: string;
         color?: HighlightColor;
+        style?: HighlightStyle;
         bookId?: string;
         anchor?: string;
         chapterHref?: string;
@@ -79,6 +83,7 @@ export function buildAnnotationTools(scope: ThreadScope, deps: RuntimeDeps): Age
           anchor,
           chapter: chapterHref,
           color,
+          style,
         }),
       );
     },
@@ -104,9 +109,7 @@ export function buildAnnotationTools(scope: ThreadScope, deps: RuntimeDeps): Age
       if (body === undefined && color === undefined) {
         throw new Error("pass body (note) or color (highlight)");
       }
-      const annotation = (await deps.annotations.listAnnotations()).find(
-        (entry) => entry.id === annotationId,
-      );
+      const annotation = await deps.annotations.getAnnotation(annotationId as Id);
       if (!annotation) throw new Error(`annotation not found: ${annotationId}`);
       if (annotation.kind === "note") {
         if (!body?.trim()) throw new Error(`${annotationId} is a note; pass a non-empty body`);
@@ -131,9 +134,7 @@ export function buildAnnotationTools(scope: ThreadScope, deps: RuntimeDeps): Age
     executionMode: "sequential",
     execute: async (toolCallId, params, signal, onUpdate) => {
       const { annotationId } = params as { annotationId: string };
-      const annotation = (await deps.annotations.listAnnotations()).find(
-        (entry) => entry.id === annotationId,
-      );
+      const annotation = await deps.annotations.getAnnotation(annotationId as Id);
       if (!annotation) throw new Error(`annotation not found: ${annotationId}`);
       const { answer, details } = await requestUserInteraction({
         deps,

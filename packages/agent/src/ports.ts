@@ -12,6 +12,7 @@ import type {
   CollectionSummary,
   HighlightColor,
   HighlightItem,
+  HighlightStyle,
   Id,
   NoteItem,
   ReadingStatus,
@@ -102,9 +103,11 @@ export interface LibraryPort {
 }
 
 export interface AnnotationsPort {
+  getAnnotation(annotationId: Id): Promise<AnnotationItem | null>;
   listAnnotations(filter?: {
     bookId?: Id;
     query?: string;
+    kind?: AnnotationKind;
   }): Promise<AnnotationItem[]>;
   createHighlight(input: {
     bookId: Id;
@@ -112,6 +115,7 @@ export interface AnnotationsPort {
     anchor?: string;
     chapter?: string;
     color?: HighlightColor;
+    style?: HighlightStyle;
   }): Promise<HighlightItem>;
   recolorHighlight(highlightId: Id, color: HighlightColor): Promise<void>;
   createNote(input: {

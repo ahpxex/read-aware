@@ -1,0 +1,148 @@
+{
+  "date": "2026-09-09",
+  "app": "com.readaware.app.capability-e2e",
+  "scope": "Real Agent tool/port, WebKit Worker, native SQLite and interaction-port gating; no model, chat UI, rendered underline or packaged CSP verification.",
+  "approvalDriver": "actual interaction port answered programmatically, not chat UI or LLM",
+  "cleanup": {
+    "pluginKvKeys": [],
+    "remaining": [
+      null,
+      null,
+      null
+    ]
+  },
+  "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+  "results": {
+    "agentCreated": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "color": "blue",
+      "createdAt": "2026-09-08T17:30:52.822Z",
+      "id": "387e309f-d3c8-454f-a92a-d5f0d9bc86a6",
+      "kind": "highlight",
+      "style": "underline",
+      "text": "Annotation capability probe",
+      "updatedAt": "2026-09-08T17:30:52.822Z"
+    },
+    "agentExact": [
+      {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "color": "blue",
+        "createdAt": "2026-09-08T17:30:52.822Z",
+        "id": "387e309f-d3c8-454f-a92a-d5f0d9bc86a6",
+        "kind": "highlight",
+        "style": "underline",
+        "text": "Annotation capability probe",
+        "updatedAt": "2026-09-08T17:30:52.822Z"
+      }
+    ],
+    "approve": {
+      "interactions": [
+        {
+          "action": "delete-annotation",
+          "id": "book:07ef226e-1ebc-47b6-8dc9-d09109448d22:delete-approve",
+          "kind": "permission",
+          "subject": "Synthetic Agent deletion probe",
+          "threadKey": "book:07ef226e-1ebc-47b6-8dc9-d09109448d22"
+        }
+      ],
+      "remaining": null,
+      "result": {
+        "content": [
+          {
+            "text": "{\"deleted\":true,\"annotationId\":\"7f9bef14-f010-4cd5-9f3f-e717b4d35ad1\",\"annotationKind\":\"ask\"}",
+            "type": "text"
+          }
+        ],
+        "details": {
+          "answer": {
+            "optionId": "approve"
+          },
+          "id": "book:07ef226e-1ebc-47b6-8dc9-d09109448d22:delete-approve",
+          "phase": "response",
+          "type": "user-interaction"
+        }
+      }
+    },
+    "decline": {
+      "interactions": [
+        {
+          "action": "delete-annotation",
+          "id": "book:07ef226e-1ebc-47b6-8dc9-d09109448d22:delete-decline",
+          "kind": "permission",
+          "subject": "Synthetic Agent deletion probe",
+          "threadKey": "book:07ef226e-1ebc-47b6-8dc9-d09109448d22"
+        }
+      ],
+      "remaining": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "createdAt": "2026-09-08T17:30:53.028Z",
+        "id": "7f9bef14-f010-4cd5-9f3f-e717b4d35ad1",
+        "kind": "ask",
+        "text": "Synthetic Agent deletion probe"
+      },
+      "result": {
+        "content": [
+          {
+            "text": "{\"deleted\":false,\"reason\":\"User declined.\"}",
+            "type": "text"
+          }
+        ],
+        "details": {
+          "answer": {
+            "optionId": "decline"
+          },
+          "id": "book:07ef226e-1ebc-47b6-8dc9-d09109448d22:delete-decline",
+          "phase": "response",
+          "type": "user-interaction"
+        }
+      }
+    },
+    "reader": {
+      "commandsAvailable": false,
+      "highlight": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "color": "blue",
+        "createdAt": "2026-09-08T17:30:52.822Z",
+        "id": "387e309f-d3c8-454f-a92a-d5f0d9bc86a6",
+        "kind": "highlight",
+        "style": "underline",
+        "text": "Annotation capability probe",
+        "updatedAt": "2026-09-08T17:30:52.822Z"
+      }
+    },
+    "writer": {
+      "ask": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "createdAt": "2026-09-08T17:30:52.842Z",
+        "id": "a0c9b80c-4abb-4d32-8a4c-c6107008ff0c",
+        "kind": "ask",
+        "text": "Synthetic capability probe question"
+      },
+      "events": [
+        {
+          "createdAt": "2026-09-08T17:30:52.968Z",
+          "origin": "plugin:capability-annotations-write",
+          "payload": {
+            "askId": "a0c9b80c-4abb-4d32-8a4c-c6107008ff0c"
+          },
+          "type": "ask.removed"
+        }
+      ],
+      "failures": {
+        "missing": "annotations/not-found",
+        "wrongKind": "annotations/not-found"
+      },
+      "highlight": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "color": "blue",
+        "createdAt": "2026-09-08T17:30:52.822Z",
+        "id": "387e309f-d3c8-454f-a92a-d5f0d9bc86a6",
+        "kind": "highlight",
+        "style": "underline",
+        "text": "Annotation capability probe",
+        "updatedAt": "2026-09-08T17:30:52.822Z"
+      },
+      "removed": true
+    }
+  }
+}

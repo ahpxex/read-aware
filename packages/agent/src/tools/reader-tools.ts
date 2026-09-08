@@ -47,10 +47,8 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
       let targetAnchor = anchor;
       let targetHref = chapterHref;
       if (annotationId) {
-        const annotation = (await deps.annotations.listAnnotations({ bookId: target })).find(
-          (entry) => entry.id === annotationId,
-        );
-        if (!annotation) throw new Error(`annotation not found in ${target}: ${annotationId}`);
+        const annotation = await deps.annotations.getAnnotation(annotationId);
+        if (!annotation || annotation.bookId !== target) throw new Error(`annotation not found in ${target}: ${annotationId}`);
         targetAnchor = annotation.anchor;
         targetHref = annotation.chapterHref;
         if (!targetAnchor && !targetHref) throw new Error("This annotation has no navigable location");

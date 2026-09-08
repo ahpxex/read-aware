@@ -5,7 +5,7 @@
  */
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
-import type { Id } from "@read-aware/core";
+import { AppError, type Id } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { normalizeBookIdParam } from "./current-book";
@@ -54,9 +54,11 @@ export function buildThreadTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
     name: "get_annotations",
     label: "Annotations",
     description:
-      "List the user's highlights and notes. bookId defaults to the current book. Call it WITHOUT query to see everything — only pass query when hunting for one specific phrase.",
+      "List the user's highlights, notes, and recorded questions. bookId defaults to the current book. Pass annotationId for one exact ID (still returns a list with zero or one item); do not combine it with query. kind optionally filters the annotation type. Omit query to list all annotations.",
     parameters: Type.Object({
       bookId: Type.Optional(Type.String({ description: "Book id; defaults to the current book" })),
+      annotationId: Type.Optional(Type.String({ description: "Exact annotation ID; does not scan the annotation list" })),
+      kind: Type.Optional(Type.Union([Type.Literal("highlight"), Type.Literal("note"), Type.Literal("ask")])),
       query: Type.Optional(
         Type.String({
           description:
@@ -65,9 +67,16 @@ export function buildThreadTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
       ),
     }),
     execute: async (_id, params) => {
-      const { bookId, query } = params as { bookId?: string; query?: string };
+      const { bookId, query, annotationId, kind } = params as {
+        bookId?: string; query?: string; annotationId?: string; kind?: "highlight" | "note" | "ask";
+      };
       const target = (normalizeBookIdParam(bookId) ?? defaultBookId) as Id | undefined;
-      const annotations = await deps.annotations.listAnnotations({ bookId: target, query });
+      if (annotationId !== undefined) {
+        if (query !== undefined) throw new AppError("annotations/invalid-input", "annotationId and query are mutually exclusive");
+        const annotation = await deps.annotations.getAnnotation(annotationId as Id);
+        return textResult(annotation && (!target || annotation.bookId === target) && (!kind || annotation.kind === kind) ? [annotation] : []);
+      }
+      const annotations = await deps.annotations.listAnnotations({ bookId: target, query, kind });
       return textResult(annotations);
     },
   };

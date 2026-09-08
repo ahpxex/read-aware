@@ -56,6 +56,7 @@ const pluginMap = pairs([
   ["domains.reading.commands.back domains.reading.commands.forward", "READ06"],
   ["domains.reading.commands.step", "READ04"], ["domains.reading.commands.close", "READ02"],
   ["domains.annotations.queries.list", "ANN01"], ["domains.annotations.commands.createHighlight", "ANN02 ANN03"],
+  ["domains.annotations.queries.get", "ANN08"], ["domains.annotations.commands.removeAsk", "ANN06"],
   ["domains.annotations.commands.recolorHighlight domains.annotations.commands.removeHighlight", "ANN04"],
   ["domains.annotations.commands.createNote domains.annotations.commands.updateNote domains.annotations.commands.removeNote", "ANN05"],
   ["domains.conversations.queries.getBookThread domains.conversations.queries.listThreads domains.conversations.queries.getThread", "AI01"],

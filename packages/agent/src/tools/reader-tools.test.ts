@@ -69,7 +69,14 @@ test("another book's viewport is neither exposed nor controlled by a book-scoped
 
 test("an annotation without a location does not silently succeed as an open-book action", async () => {
   const { deps, stores, tool } = fixture();
-  deps.annotations.listAnnotations = async () => [{ kind: "note", id: "note" as Id, bookId, body: "Unanchored", createdAt: "2026-09-08T00:00:00Z", updatedAt: "2026-09-08T00:00:00Z" }];
+  deps.annotations.getAnnotation = async () => ({ kind: "note", id: "note" as Id, bookId, body: "Unanchored", createdAt: "2026-09-08T00:00:00Z", updatedAt: "2026-09-08T00:00:00Z" });
   await expect(tool("open_book").execute("test", { annotationId: "note" })).rejects.toThrow("no navigable location");
+  expect(stores.readerRequests).toHaveLength(0);
+});
+
+test("an exact annotation lookup cannot navigate a different target book", async () => {
+  const { deps, stores, tool } = fixture();
+  deps.annotations.getAnnotation = async () => ({ kind: "note", id: "note" as Id, bookId: "other" as Id, body: "Other book", anchor: "other-anchor", createdAt: "2026-09-08T00:00:00Z", updatedAt: "2026-09-08T00:00:00Z" });
+  await expect(tool("open_book").execute("test", { annotationId: "note" })).rejects.toThrow("annotation not found");
   expect(stores.readerRequests).toHaveLength(0);
 });

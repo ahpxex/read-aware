@@ -12,6 +12,9 @@
     "copied": "Copié"
   },
   "errors": {
+    "annotationNotFound": "Cette annotation n'existe plus ou est d'un autre type.",
+    "annotationInvalidInput": "La demande d'annotation contient une valeur incorrecte.",
+    "annotationForbidden": "Seul l'assistant de lecture peut enregistrer une question.",
     "bookEncryption": "Ce livre est chiffré ou protégé par DRM et ne peut pas être ouvert. Utilisez une copie non protégée.",
     "generic": "Un problème est survenu. Les détails sont dans le journal de l'application.",
     "fsNotFound": "Un fichier nécessaire à ReadAware est introuvable.",

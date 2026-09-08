@@ -1232,11 +1232,13 @@ export type PluginReadingDomain = {
 };
 
 /**
- * Annotations — highlights, notes, and asks. Asks are read-only: they are the
- * agent runtime's passive traces, not a plugin-writable kind.
+ * Annotations — highlights, notes, and asks. Ask creation belongs to the
+ * agent runtime; authorized writers may erase the user's existing traces.
  */
 export type PluginAnnotationsDomain = {
   queries: {
+    /** annotations >=1.1.0. Missing IDs return null; read failures reject. */
+    get(annotationId: string): Promise<PluginAnnotation | null>;
     list(filter?: {
       bookId?: string;
       kind?: "highlight" | "note" | "ask";
@@ -1263,6 +1265,8 @@ export type PluginAnnotationsDomain = {
     }): Promise<PluginNote>;
     updateNote(noteId: string, body: string): Promise<void>;
     removeNote(noteId: string): Promise<void>;
+    /** annotations >=1.1.0. Delete an existing ask; never creates a trace. */
+    removeAsk(askId: string): Promise<void>;
   };
   events: { subscribe: DomainSubscribe<AnnotationDomainEventType> };
 };

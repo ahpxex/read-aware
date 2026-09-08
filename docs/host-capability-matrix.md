@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 164、部分 44、待建 3、引擎 1、占位 2、非桌面 1。
-- Agent：接通 71、部分 44、未接 59、扩展 14、自动 21、内部 6。
-- 插件：接通 84、部分 76、未接 55。
+- Agent：接通 72、部分 44、未接 58、扩展 14、自动 21、内部 6。
+- 插件：接通 85、部分 75、未接 55。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -127,14 +127,14 @@
 
 | ID | 宿主能力 | 宿主现状 | Agent 当前与目标 | 插件当前与目标 | 实际消费者 | 缺口/边界 | 来源 | 旧基线 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="ANN01"></a>ANN01 | 列出/按书按词按类型检索标注 | 实装 | **接通**：get_annotations；类型在工具层过滤<br>[设计] 查询工具 | **接通**：annotations.queries.list<br>[设计] 只读领域 | 阅读注释；全局 Agent 注释；Agent | 列表已接通，分页/稳定游标另列 | [ANNOT](../apps/web/src/domain/annotations.ts) [ANNDB](../apps/web/src/features/annotations/lib/annotation-db.ts) [LIBTOOLS](../packages/agent/src/tools/library-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | F01 |
+| <a id="ANN01"></a>ANN01 | 列出/按书按词按类型检索标注 | 实装 | **接通**：get_annotations(kind) → port/domain 类型过滤<br>[设计] 查询工具 | **接通**：annotations.queries.list<br>[设计] 只读领域 | 阅读注释；全局 Agent 注释；Agent | 列表已接通；书内默认当前书、显式其他书沿用现有检索规则。分页/稳定游标另列 | [ANNOT](../apps/web/src/domain/annotations.ts) [ANNDB](../apps/web/src/features/annotations/lib/annotation-db.ts) [LIBTOOLS](../packages/agent/src/tools/library-tools.ts) [ANNPORT](../apps/web/src/features/ai/agent/ports/annotations-port.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | F01 |
 | <a id="ANN02"></a>ANN02 | 创建高亮 | 实装 | **接通**：create_annotation(kind=highlight)<br>[设计] 写工具 | **接通**：annotations.commands.createHighlight<br>[设计] 写领域 | 选择菜单；Agent | 来源与 Range 校验仍受 TXT13 限制 | [ANNOT](../apps/web/src/domain/annotations.ts) [ANNTOOLS](../packages/agent/src/tools/annotation-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) | F02, F04 |
-| <a id="ANN03"></a>ANN03 | 创建下划线样式 | 实装 | **未接**：create_annotation 未传 style<br>[设计] 标注样式参数 | **接通**：createHighlight(style=underline)<br>[设计] 写领域 | 选择菜单 | 同一 host 命令支持 style，但 Agent adapter/tool 丢了该参数 | [ANNOT](../apps/web/src/domain/annotations.ts) [ANNTOOLS](../packages/agent/src/tools/annotation-tools.ts) [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) [API](../packages/plugin-types/src/index.ts) | F02 |
+| <a id="ANN03"></a>ANN03 | 创建下划线样式 | 实装 | **接通**：create_annotation(style=underline) → 共享命令<br>[设计] 标注样式参数 | **接通**：createHighlight(style=underline)<br>[设计] 写领域 | 选择菜单；Agent；桌面 Worker 探针 | style 经 tool/port/事件持久化及 Worker 查询保真；默认 highlight，非法 style 拒绝。实机已验收落盘和回读，不代表锚定下划线的全部格式视觉验收 | [ANNOT](../apps/web/src/domain/annotations.ts) [ANNTOOLS](../packages/agent/src/tools/annotation-tools.ts) [ANNPORT](../apps/web/src/features/ai/agent/ports/annotations-port.ts) [ANNPROBE](../apps/web/src/features/plugins/runtime/fixtures/desktop-annotation-probe.ts) [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) [API](../packages/plugin-types/src/index.ts) | F02 |
 | <a id="ANN04"></a>ANN04 | 高亮改色/删除 | 实装 | **接通**：edit_annotation / delete_annotation+批准<br>[设计] 受控写工具 | **接通**：recolorHighlight/removeHighlight<br>[设计] 写领域 | 标注菜单；Agent | 修改高亮文本/改样式不是当前命令的已支持语义 | [ANNOT](../apps/web/src/domain/annotations.ts) [ANNTOOLS](../packages/agent/src/tools/annotation-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | F02 |
 | <a id="ANN05"></a>ANN05 | 创建/编辑/删除笔记 | 实装 | **接通**：create/edit/delete_annotation<br>[设计] 受控写工具 | **接通**：createNote/updateNote/removeNote<br>[设计] 写领域 | NoteEditor；Agent | 可无位置笔记；删除 Agent 批准和插件授权不是同一种策略 | [ANNOT](../apps/web/src/domain/annotations.ts) [ANNTOOLS](../packages/agent/src/tools/annotation-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | F02 |
-| <a id="ANN06"></a>ANN06 | 读取/删除 ask 问题轨迹 | 实装 | **接通**：get_annotations / delete_annotation+批准<br>[设计] 查询/受控删除 | **部分**：可 list ask，未导出 removeAsk<br>[设计] 查询/受控删除 | Agent；注释视图 | 同一领域 removeAsk 有实现但 plugin-context 省略 | [ANNOT](../apps/web/src/domain/annotations.ts) [ANNTOOLS](../packages/agent/src/tools/annotation-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | F05 |
+| <a id="ANN06"></a>ANN06 | 读取/删除 ask 问题轨迹 | 实装 | **接通**：get_annotations / delete_annotation+批准<br>[设计] 查询/受控删除 | **接通**：annotations v1.1 queries.get/list + commands.removeAsk<br>[设计] 查询/受控删除 | Agent；注释视图；隔离桌面 Worker | 写权限包含受控删除，read 不导出 commands，createAsk 仍不开放。缺失/错误类型返回 annotations/not-found；实际 Agent 批准端口拒绝保留、批准删除已测，未代替聊天批准 UI 验收 | [ANNOT](../apps/web/src/domain/annotations.ts) [ANNTOOLS](../packages/agent/src/tools/annotation-tools.ts) [ANNPORT](../apps/web/src/features/ai/agent/ports/annotations-port.ts) [ANNPROBE](../apps/web/src/features/plugins/runtime/fixtures/desktop-annotation-probe.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | F05 |
 | <a id="ANN07"></a>ANN07 | 自动记录书内问题轨迹 | 实装 | **自动**：thread 轮末 recordAsk → createAsk<br>[设计] 保留自动管线 | **未接**：createAsk 为 agent-only<br>[设计] 不开放：禁止伪造问题历史 | 书内 Agent | 自动行为不算模型可以任意调用的写工具 | [ANNOT](../apps/web/src/domain/annotations.ts) [THREAD](../packages/agent/src/runtime/thread.ts) [PORTS](../apps/web/src/features/ai/agent/ports/index.ts) | F05 |
-| <a id="ANN08"></a>ANN08 | 按 ID 读取、分页、批量/版本冲突标注操作 | 部分 | **部分**：全量 list 后找 ID；可循环单项<br>[设计] 有界查询/批量工具 | **部分**：list+单项命令，无 ID getter/游标/CAS<br>[设计] 有界领域操作 | 现有列表与单项动作 | 底层 annotation_get 已有；整个行要求的批次/版本协议未有 | [ANNDB](../apps/web/src/features/annotations/lib/annotation-db.ts) [ANNOT](../apps/web/src/domain/annotations.ts) [ANNTOOLS](../packages/agent/src/tools/annotation-tools.ts) [API](../packages/plugin-types/src/index.ts) | A06, F03 |
+| <a id="ANN08"></a>ANN08 | 按 ID 读取、分页、批量/版本冲突标注操作 | 部分 | **部分**：get_annotations(annotationId)；edit/delete/open_book 精确查 ID<br>[设计] 有界查询/批量工具 | **部分**：annotations v1.1 queries.get + 单项命令<br>[设计] 有界领域操作 | Agent 查询/编辑/删除/按标注导航；插件 | get 不再全量扫描，缺失返回 null（模型工具保持零/一元素数组），存储失败保留异常；查询 ID 与 query 互斥，保留书籍/类型过滤。分页/稳定游标/批次/CAS 仍未实现 | [ANNDB](../apps/web/src/features/annotations/lib/annotation-db.ts) [ANNOT](../apps/web/src/domain/annotations.ts) [ANNTOOLS](../packages/agent/src/tools/annotation-tools.ts) [LIBTOOLS](../packages/agent/src/tools/library-tools.ts) [ANNPORT](../apps/web/src/features/ai/agent/ports/annotations-port.ts) [ANNPROBE](../apps/web/src/features/plugins/runtime/fixtures/desktop-annotation-probe.ts) [API](../packages/plugin-types/src/index.ts) | A06, F03 |
 | <a id="ANN09"></a>ANN09 | 标注变化与远端失效观察 | 部分 | **自动**：每轮读快照，不订阅工具<br>[设计] 自动刷新/按需查询 | **部分**：annotations.events.subscribe<br>[设计] 完整授权 change feed | 宿主注释 revision | GAP09/GAP11；同步投影变化不等同本地领域广播 | [EVENTROSTER](../apps/web/src/domain/events.ts) [EVENTS](../apps/web/src/platform/domain-events.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [SYNC](../apps/web/src/platform/sync/sync-scheduler.ts) | F06 |
 | <a id="STAT01"></a>STAT01 | 单书/全库/总览已结算阅读统计 | 实装 | **接通**：get_reading_stats<br>[设计] 查询工具 | **接通**：reading.queries.stats.forBook/list/overview<br>[设计] 统计查询 | StatsWorkspace；Agent | 已结算持久数据与当前会话 scratch 必须区分 | [READING](../apps/web/src/domain/reading.ts) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | G01 |
 | <a id="STAT02"></a>STAT02 | 周月年/连续阅读/热图/时段/成就派生 | 实装 | **部分**：get_reading_stats 格式化时长/活跃天等<br>[设计] 有界统计查询/工具侧计算 | **部分**：daily 可派生；BookStats 无小时分布<br>[设计] 原始统计口径+插件计算 | 统计页 | 不是每一种图表都要新 host API；小时分布不是 daily 可以还原的数据 | [STATS](../apps/web/src/features/stats/lib/reading-insights.ts) [STATUI](../apps/web/src/features/stats/components/StatsWorkspace.tsx) [READING](../apps/web/src/domain/reading.ts) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) | G03 |
@@ -383,7 +383,7 @@
 
 - Agent global：30 个。
 - Agent book：24 个。
-- Plugin ctx：76 个。
+- Plugin ctx：78 个。
 - Plugin returned interface：17 个。
 - Capability domains：5 个。
 - Capability contributions：14 个。
@@ -407,7 +407,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 76 个顶层可调用路径；返回的 collection/session 方法单列。Settings 46 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 78 个顶层可调用路径；返回的 collection/session 方法单列。Settings 46 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -513,6 +513,7 @@
 | `domains.reading.commands.forward` | [READ06](#READ06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.commands.step` | [READ04](#READ04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.commands.close` | [READ02](#READ02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.annotations.queries.get` | [ANN08](#ANN08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.annotations.queries.list` | [ANN01](#ANN01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.annotations.events.subscribe` | [ANN09](#ANN09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.annotations.commands.createHighlight` | [ANN02](#ANN02) [ANN03](#ANN03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -521,6 +522,7 @@
 | `domains.annotations.commands.createNote` | [ANN05](#ANN05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.annotations.commands.updateNote` | [ANN05](#ANN05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.annotations.commands.removeNote` | [ANN05](#ANN05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.annotations.commands.removeAsk` | [ANN06](#ANN06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.conversations.queries.getBookThread` | [AI01](#AI01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.conversations.queries.listThreads` | [AI01](#AI01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.conversations.queries.getThread` | [AI01](#AI01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

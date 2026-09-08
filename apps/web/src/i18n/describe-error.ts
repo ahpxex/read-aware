@@ -73,6 +73,9 @@ type CopyEntry = {
 const AI_SETTINGS: ErrorAction = "open-ai-settings";
 
 const CODE_COPY: Record<string, CopyEntry> = {
+  "annotations/not-found": { key: "annotationNotFound", retryable: false },
+  "annotations/invalid-input": { key: "annotationInvalidInput", retryable: false },
+  "annotations/forbidden": { key: "annotationForbidden", retryable: false },
   "book/unsupported-encryption": { key: "bookEncryption", retryable: false },
   [ERR_FS_NOT_FOUND]: { key: "fsNotFound", retryable: false },
   [ERR_FS_PERMISSION]: { key: "fsPermission", retryable: false },

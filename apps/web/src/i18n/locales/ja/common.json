@@ -12,6 +12,9 @@
     "copied": "コピーしました"
   },
   "errors": {
+    "annotationConflict": "この注釈は変更されています。再度読み込んでから変更内容を確認してください。",
+    "annotationUnavailable": "この環境では注釈ストレージを利用できません。",
+    "annotationCancelled": "注釈の変更は送信前にキャンセルされました。",
     "annotationNotFound": "この注釈は存在しないか、操作に対応する種類ではありません。",
     "annotationInvalidInput": "注釈のリクエストに無効な値が含まれています。",
     "annotationForbidden": "質問の記録を作成できるのは読書アシスタントだけです。",

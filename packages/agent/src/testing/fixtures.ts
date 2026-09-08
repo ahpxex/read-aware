@@ -4,6 +4,8 @@
  * 检索按 pinned/importance/recency 排序。
  */
 import { annotationPageFixture } from "./annotation-pages";
+import { createAnnotationMutationFixture } from "./annotation-mutations";
+import { AppError } from "@read-aware/core";
 import type {
   BookStats,
   CollectionSummary,
@@ -317,6 +319,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   // 浅拷贝会让同一 seed 的多次 createInMemoryDeps（eval repetitions）互相污染
   const books = structuredClone(seed.books ?? []);
   const annotations = structuredClone(seed.annotations ?? []);
+  const annotationMutations = createAnnotationMutationFixture(annotations);
   const collections = structuredClone(seed.collections ?? []);
   const bookStats = structuredClone(seed.bookStats ?? []);
   const stores: InMemoryStores = {
@@ -427,6 +430,11 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       },
     },
     annotations: {
+      inspectAnnotation: async (id) => annotationMutations.inspect(id),
+      applyChanges: async (changes, signal) => {
+        if (signal?.aborted) throw new AppError("annotations/cancelled", "Cancelled before annotation commit");
+        return annotationMutations.apply(changes);
+      },
       pageAnnotations: async (input) => annotationPageFixture(annotations, input),
       getAnnotation: async (id) => annotations.find(annotation => annotation.id === id) ?? null,
       listAnnotations: async (filter) =>
@@ -451,6 +459,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
           updatedAt: now,
         };
         annotations.push(highlight);
+        annotationMutations.touch(highlight.id);
         return highlight;
       },
       recolorHighlight: async (highlightId, color: HighlightColor) => {
@@ -460,6 +469,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         }
         highlight.color = color;
         highlight.updatedAt = new Date().toISOString();
+        annotationMutations.touch(highlightId);
       },
       createNote: async ({ bookId, body, quotedText, anchor, chapter }) => {
         const now = new Date().toISOString();
@@ -475,6 +485,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
           updatedAt: now,
         };
         annotations.push(note);
+        annotationMutations.touch(note.id);
         return note;
       },
       updateNote: async (noteId, body) => {
@@ -483,6 +494,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
           throw new Error(`note not found: ${noteId}`);
         note.body = body;
         note.updatedAt = new Date().toISOString();
+        annotationMutations.touch(noteId);
       },
       removeAnnotation: async (annotationId) => {
         const index = annotations.findIndex(
@@ -490,6 +502,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         );
         if (index < 0) throw new Error(`annotation not found: ${annotationId}`);
         annotations.splice(index, 1);
+        annotationMutations.touch(annotationId);
       },
       recordAsk: async (input) => {
         stores.asks.push(input);

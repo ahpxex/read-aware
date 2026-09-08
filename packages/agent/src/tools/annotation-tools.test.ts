@@ -61,7 +61,8 @@ test("Agent annotation browsing is paginated and cursor filters cannot be change
 test("edit and approved ask deletion use exact lookup, retaining the approval boundary", async () => {
   const { deps, stores, tool } = fixture();
   deps.annotations.listAnnotations = async () => { throw new Error("Unexpected full list"); };
-  await tool("edit_annotation").execute("edit", { annotationId: "note", body: "Revised" });
+  const expectedRevision = (await deps.annotations.inspectAnnotation("note"))!.revision;
+  await tool("edit_annotation").execute("edit", { annotationId: "note", body: "Revised", expectedRevision });
   expect(await deps.annotations.getAnnotation(note.id)).toMatchObject({ body: "Revised" });
   const result = parsed(await tool("delete_annotation").execute("delete", { annotationId: "ask" }));
   expect(result).toMatchObject({ deleted: true, annotationKind: "ask" });
@@ -78,6 +79,66 @@ test("declined ask deletion preserves the trace", async () => {
 
 test("exact read storage errors are not reported as absent annotations", async () => {
   const { deps, tool } = fixture();
-  deps.annotations.getAnnotation = async () => { throw new AppError("db/locked", "Locked"); };
+  deps.annotations.inspectAnnotation = async () => { throw new AppError("db/locked", "Locked"); };
   await expect(tool("get_annotations").execute("get", { annotationId: "note" })).rejects.toMatchObject({ code: "db/locked" });
+});
+
+test("editing requires the observed revision and never overwrites a newer note", async () => {
+  const { deps, tool } = fixture();
+  const observed = parsed(await tool("get_annotations").execute("read", { annotationId: "note" }));
+  expect(observed.revision).toMatch(/^ann1:[a-f0-9]{64}$/);
+  await deps.annotations.updateNote("note", "Changed by another actor");
+  await expect(tool("edit_annotation").execute("edit", { annotationId: "note", body: "Lost edit", expectedRevision: observed.revision })).rejects.toMatchObject({ code: "annotations/conflict" });
+  expect(await deps.annotations.getAnnotation("note")).toMatchObject({ body: "Changed by another actor" });
+  await expect(tool("edit_annotation").execute("edit", { annotationId: "note", body: "No token" })).rejects.toMatchObject({ code: "annotations/invalid-input" });
+});
+
+test("a change during deletion approval invalidates that approval's target version", async () => {
+  const { deps, tool } = fixture();
+  deps.interactions.request = async () => {
+    await deps.annotations.updateNote("note", "Changed while approval was open");
+    return { optionId: "approve" };
+  };
+  await expect(tool("delete_annotation").execute("delete", { annotationId: "note" })).rejects.toMatchObject({ code: "annotations/conflict" });
+  expect(await deps.annotations.getAnnotation("note")).toMatchObject({ body: "Changed while approval was open" });
+});
+
+test("mixed batches honor decline and do not apply any accompanying edits", async () => {
+  const { deps, tool } = fixture();
+  const changes = [
+    { op: "updateNote", annotationId: "note", body: "New", expectedRevision: (await deps.annotations.inspectAnnotation("note"))!.revision },
+    { op: "remove", kind: "ask", annotationId: "ask", expectedRevision: (await deps.annotations.inspectAnnotation("ask"))!.revision },
+  ];
+  deps.interactions.request = async () => ({ optionId: "decline" });
+  expect(parsed(await tool("apply_annotation_changes").execute("batch", { changes }))).toMatchObject({ committed: false });
+  expect(await deps.annotations.getAnnotation("note")).toEqual(note);
+  expect(await deps.annotations.getAnnotation("ask")).toEqual(ask);
+  deps.interactions.request = async () => ({ optionId: "approve" });
+  const result = parsed(await tool("apply_annotation_changes").execute("batch", { changes }));
+  expect(result).toMatchObject({ atomic: true, changes: [{ annotationId: "note" }, { annotationId: "ask", revision: null }] });
+  expect(await deps.annotations.getAnnotation("note")).toMatchObject({ body: "New" });
+  expect(await deps.annotations.getAnnotation("ask")).toBeNull();
+});
+
+test("batch checks every version again after approval, without partial changes", async () => {
+  const { deps, tool } = fixture();
+  const changes = [
+    { op: "updateNote", annotationId: "note", body: "Lost edit", expectedRevision: (await deps.annotations.inspectAnnotation("note"))!.revision },
+    { op: "remove", kind: "ask", annotationId: "ask", expectedRevision: (await deps.annotations.inspectAnnotation("ask"))!.revision },
+  ];
+  deps.interactions.request = async () => {
+    await deps.annotations.updateNote("note", "Newer version");
+    return { optionId: "approve" };
+  };
+  await expect(tool("apply_annotation_changes").execute("batch", { changes })).rejects.toMatchObject({ code: "annotations/conflict" });
+  expect(await deps.annotations.getAnnotation("ask")).toEqual(ask);
+  expect(await deps.annotations.getAnnotation("note")).toMatchObject({ body: "Newer version" });
+});
+
+test("cancellation before dispatch does not commit a conditional batch", async () => {
+  const { deps, tool } = fixture();
+  const changes = [{ op: "updateNote", annotationId: "note", body: "Cancelled", expectedRevision: (await deps.annotations.inspectAnnotation("note"))!.revision }];
+  const controller = new AbortController(); controller.abort();
+  await expect(tool("apply_annotation_changes").execute("batch", { changes }, controller.signal)).rejects.toMatchObject({ code: "annotations/cancelled" });
+  expect(await deps.annotations.getAnnotation("note")).toEqual(note);
 });

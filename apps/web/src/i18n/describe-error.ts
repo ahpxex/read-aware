@@ -73,6 +73,9 @@ type CopyEntry = {
 const AI_SETTINGS: ErrorAction = "open-ai-settings";
 
 const CODE_COPY: Record<string, CopyEntry> = {
+  "annotations/conflict": { key: "annotationConflict", retryable: false },
+  "annotations/unavailable": { key: "annotationUnavailable", retryable: false },
+  "annotations/cancelled": { key: "annotationCancelled", retryable: false },
   "annotations/not-found": { key: "annotationNotFound", retryable: false },
   "annotations/invalid-input": { key: "annotationInvalidInput", retryable: false },
   "annotations/invalid-cursor": { key: "annotationInvalidInput", retryable: false },

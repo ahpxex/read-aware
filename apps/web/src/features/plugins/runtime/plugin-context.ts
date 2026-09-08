@@ -725,6 +725,7 @@ export function buildPluginContext(
       ctx.domains.annotations.commands = guardMutationTree(
         {
         createHighlight: annotations.commands.createHighlight,
+        applyChanges: (changes: import("@read-aware/core").AnnotationMutation[]) => annotations.commands!.applyChanges(changes, lifecycle.signal),
         recolorHighlight: annotations.commands.recolorHighlight,
         removeHighlight: annotations.commands.removeHighlight,
         createNote: annotations.commands.createNote,

@@ -9,6 +9,9 @@ import { getDefaultStore } from "jotai";
 import { AppError } from "@read-aware/core";
 import type {
   AnnotationItem,
+  AnnotationSnapshot,
+  AnnotationMutation,
+  AnnotationCommitResult,
   AnnotationPage,
   AnnotationPageQuery,
   AskItem,
@@ -30,6 +33,7 @@ import {
   updateNote,
 } from "../features/annotations/lib/annotation-db";
 import type { Annotation } from "../features/annotations/lib/annotation-types";
+import { inspectAnnotation, commitAnnotationMutations } from "../features/annotations/lib/annotation-mutations";
 import { annotationsRevisionAtom } from "../features/annotations/state/annotations-revision";
 import { ANNOTATION_EVENTS, domainSubscribe, type DomainEventSubscribe } from "./events";
 
@@ -81,6 +85,7 @@ function bumpAnnotationsRevision(): void {
 }
 
 export type AnnotationQueries = {
+  inspect(annotationId: string): Promise<AnnotationSnapshot | null>;
   page(input?: AnnotationPageQuery): Promise<AnnotationPage>;
   /** Missing IDs return null; storage failures remain failures. */
   get(annotationId: string): Promise<AnnotationItem | null>;
@@ -92,6 +97,7 @@ export type AnnotationQueries = {
 };
 
 export type AnnotationCommands = {
+  applyChanges(changes: AnnotationMutation[], signal?: AbortSignal): Promise<AnnotationCommitResult>;
   createHighlight(input: {
     bookId: string;
     text: string;
@@ -154,6 +160,10 @@ export function createAnnotationsDomain(origin: EventOrigin): AnnotationsDomain 
   };
 
   const queries: AnnotationQueries = {
+    inspect: async (id) => {
+      const snapshot = await inspectAnnotation(id);
+      return snapshot ? { ...snapshot, annotation: toAnnotationItem(snapshot.annotation) } : null;
+    },
     page: async (input) => {
       const page = await pageAnnotations(input);
       return { ...page, items: page.items.map(toAnnotationItem) };
@@ -173,6 +183,11 @@ export function createAnnotationsDomain(origin: EventOrigin): AnnotationsDomain 
   };
 
   const commands: AnnotationCommands = {
+    applyChanges: async (changes, signal) => {
+      const result = await commitAnnotationMutations(changes, origin, signal);
+      bumpAnnotationsRevision();
+      return result;
+    },
     createHighlight: async (input) => {
       if (input.style !== undefined && input.style !== "highlight" && input.style !== "underline") {
         throw new AppError("annotations/invalid-input", "Unknown highlight style");

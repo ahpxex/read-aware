@@ -11,6 +11,8 @@ import { createDomainApi } from "../../../../domain";
 export function createAnnotationsPort(): AnnotationsPort {
   const annotations = createDomainApi("agent").annotations;
   return {
+    inspectAnnotation: (id) => annotations.queries.inspect(id),
+    applyChanges: (changes, signal) => annotations.commands.applyChanges(changes, signal),
     pageAnnotations: (input) => annotations.queries.page(input),
     getAnnotation: (id) => annotations.queries.get(id),
     listAnnotations: async (filter) =>

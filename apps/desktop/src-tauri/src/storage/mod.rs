@@ -20,6 +20,8 @@ mod annotations;
 pub use annotations::*;
 mod annotation_pages;
 pub use annotation_pages::*;
+mod annotation_mutations;
+pub use annotation_mutations::*;
 mod memories;
 pub use memories::*;
 mod chat;

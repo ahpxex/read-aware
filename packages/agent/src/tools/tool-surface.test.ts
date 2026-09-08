@@ -79,6 +79,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   delete_collection: { collectionId: "col-1" },
   create_annotation: { kind: "note", bookId: BOOK_ID, body: "A stray thought." },
   edit_annotation: { annotationId: "note-1", body: "Revised thought." },
+  apply_annotation_changes: { changes: [{ op: "updateNote", annotationId: "note-1", body: "Batch revised thought." }] },
   delete_annotation: { annotationId: "hl-1" },
   search_memory: {},
   remember: { content: "The reader enjoys locked-room mysteries.", scope: "user", kind: "preference" },
@@ -143,10 +144,14 @@ describe("tool surface contract", () => {
     test(`${scope.kind} scope tools emit legible, bounded text`, async () => {
       const names = toolNames(scope);
       for (const name of names) {
-        const params = SURFACE_CASES[name];
+        const params = structuredClone(SURFACE_CASES[name]);
         if (!params) continue; // 完备性由上面的用例把守
         // 每个工具独立的 fixture：破坏性工具（fixture 自动批准权限）不得污染后续用例
         const { deps } = createInMemoryDeps(seed());
+        if (name === "edit_annotation") params.expectedRevision = (await deps.annotations.inspectAnnotation(String(params.annotationId)))!.revision;
+        if (name === "apply_annotation_changes") {
+          for (const change of params.changes as Record<string, unknown>[]) change.expectedRevision = (await deps.annotations.inspectAnnotation(String(change.annotationId)))!.revision;
+        }
         const tool = buildAgentTools(scope, deps).find(
           (candidate: AgentTool) => candidate.name === name,
         );

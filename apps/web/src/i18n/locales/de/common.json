@@ -12,6 +12,9 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "annotationConflict": "Diese Anmerkung wurde geändert. Lies sie erneut, bevor du Änderungen übernimmst.",
+    "annotationUnavailable": "Der Anmerkungsspeicher ist in dieser Umgebung nicht verfügbar.",
+    "annotationCancelled": "Die Änderung wurde vor dem Absenden abgebrochen.",
     "annotationNotFound": "Diese Anmerkung existiert nicht mehr oder hat einen anderen Typ.",
     "annotationInvalidInput": "Die Anfrage zur Anmerkung enthält einen ungültigen Wert.",
     "annotationForbidden": "Nur der Leseassistent kann eine Frage aufzeichnen.",

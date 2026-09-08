@@ -12,6 +12,9 @@
     "copied": "已复制"
   },
   "errors": {
+    "annotationConflict": "这条标注已被修改。请重新读取后再决定如何修改。",
+    "annotationUnavailable": "当前环境无法访问标注存储。",
+    "annotationCancelled": "标注修改已在提交前取消。",
     "annotationNotFound": "这条标注已不存在，或类型与操作不符。",
     "annotationInvalidInput": "标注请求包含无效的值。",
     "annotationForbidden": "只有阅读助手可以记录提问轨迹。",

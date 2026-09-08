@@ -161,6 +161,15 @@ pub(crate) fn commit_events_inner(
     events: &[EventRow],
 ) -> Result<CommitReport, CommandError> {
     let tx = conn.transaction()?;
+    let report = commit_events_in_transaction(&tx, events)?;
+    tx.commit()?;
+    Ok(report)
+}
+
+pub(crate) fn commit_events_in_transaction(
+    tx: &Transaction<'_>,
+    events: &[EventRow],
+) -> Result<CommitReport, CommandError> {
     let mut report = CommitReport {
         appended: 0,
         applied: 0,
@@ -169,15 +178,14 @@ pub(crate) fn commit_events_inner(
         // Redelivery: the log already holds it, so the projection already
         // reflects it. Skipping keeps accumulating projections (reading_time)
         // from double-counting.
-        if !insert_event_row(&tx, ev, EventSource::Local)? {
+        if !insert_event_row(tx, ev, EventSource::Local)? {
             continue;
         }
         report.appended += 1;
-        if apply::apply_event(&tx, ev)? {
+        if apply::apply_event(tx, ev)? {
             report.applied += 1;
         }
     }
-    tx.commit()?;
     Ok(report)
 }
 
@@ -865,4 +873,3 @@ pub(crate) fn verify_inner(app: &AppHandle) -> Result<VerifyReport, CommandError
         drift,
     })
 }
-

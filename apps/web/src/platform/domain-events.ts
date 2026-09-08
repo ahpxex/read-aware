@@ -132,8 +132,9 @@ const nextHlc = (deviceId: string): HlcStamp => clock.next(deviceId);
 
 /**
  * Mint log rows (id + HLC stamp) for drafts without committing them — for the
- * one write path that is not `commit_events`: the reading-time flush, which
- * commits its events and retires their buckets in a single store call.
+ * specialized transactional write paths: reading-time flush retires buckets
+ * alongside its events; conditional annotations validate versions before
+ * using the same event append/apply implementation in their transaction.
  */
 export async function mintEventRows(drafts: DomainEventDraft[]): Promise<EventRowWire[]> {
   const { deviceId } = await getDeviceInfo();
@@ -187,8 +188,8 @@ export function onDomainEventBroadcast(
   };
 }
 
-/** Notify in-app observers of events a store call outside `commitDomainEvents`
- *  has already persisted (the reading-time flush). */
+/** Notify observers after a specialized transaction (reading-time flush or
+ *  conditional annotation batch) has persisted its events. */
 export function broadcastDomainEventDrafts(drafts: DomainEventDraft[]): void {
   broadcastDomainEvents(drafts);
 }

@@ -1025,6 +1025,8 @@ pub fn run() {
             storage::annotations_list,
             storage::annotations_search,
             storage::annotations_page,
+            storage::annotation_inspect,
+            storage::annotations_commit,
             storage::annotation_get,
             storage::annotation_put,
             storage::annotation_delete,

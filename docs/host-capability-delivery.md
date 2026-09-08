@@ -217,3 +217,25 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [环境] 矩阵 ANN01/ANN08 与生成映射更新为 215 行 / 552 库存，129 验收项不变；ANN08 仍为部分。两对生成器、pair validator 与 7 个模型门禁通过；矩阵 HTML 在 1440/1024/390 宽度无页面横向溢出，中英文搜索、抽屉/Escape、主题刷新保持、重复 ID/锚点与截图检查通过；无浏览器错误，既有 CDN 资源成功加载。截图 `/tmp/readaware-annotation-pages-matrix{,-mobile}.png`。模型 HTML 未改，目标契约未变，仅 Markdown 当前映射更新。文档仍依赖 CDN，无 Mermaid 图；文档检查不作为产品验收。测试桌面进程和文档浏览器均已关闭。
 
 仍未完成：单条超长标注的文本/字节预算（行数限制不等于消息体限制）、原子批次/逐项结果、事务内 CAS 及批准等待期间版本保护、Range/内容版本校验、远端变更观察、全格式视觉和聊天批准 UI、实用标注整理/导出插件，以及其余 D/C/S/V/Q 能力和完整 W01–W32。此提交只接通分页，不关闭 D3 或完整目标。
+
+## 2026-09-09 标注条件写与原子批次
+
+[代码] `domains.annotations` 升为 1.3.0。新增 `queries.inspect(id)` 返回 `{annotation,revision}` 或 null；`commands.applyChanges(changes)` 对不同现有标注执行原子条件修改。Agent 与插件共用此领域入口，插件必须有 annotations:write，read 只有查询/事件，仍不能伪造 ask 或传入原始事件。
+
+- revision 是 `ann1:` 加 64 位十六进制 SHA-256 的不透明本机观察令牌，不是 updatedAt，也不是跨设备全局版本。原生在同一读事务读取完整标注行与该标注最后本地追加事件的 ID，组合计算指纹。包含事件身份是为避免同一毫秒内 A→B→A 或删后按同 ID 重建时旧批准仍有效；旧无事件行由行状态参与指纹。令牌不作为权限，日志替换/回填可能使令牌保守失效，调用者必须重新读取。未把未记录的历史变更假装恢复出来。
+- mutations 支持 `updateNote`（body）、`recolorHighlight`（color 与可选 style）、`remove`（显式 kind=note/highlight/ask）。每项必须带 annotationId 和 expectedRevision；批次 1–100 项、同 ID 不可重复，ID 最多 512 UTF-16 单元，body 最多 100000 UTF-16 单元，输入 JSON 与原生事件 JSON 分别不得超过 1 MiB。事件封装有开销，原生最终大小校验仍可能拒绝接近边界的输入。创建、任意高亮文本改写和其他领域事件不属于这个现有对象批次。
+- 宿主把语义操作变成带 origin 的既有 DomainEvent 草稿，经 mintEventRows 填入事件 ID/HLC，再交给 `annotations_commit`。插件无法指定日志 envelope。原生校验事件种类/字段/目标与条件一一匹配，用 SQLite IMMEDIATE 事务先校验整批存在性、类型和版本，再调用从原 commit_events 提取的同一个 `commit_events_in_transaction`，事件、投影和同步 outbox 同生共死。未创建第二套投影写入路径、未改远端事件重放规则。
+- 成功返回 `{atomic:true,changes:[{annotationId,revision}]}`，删除后的 revision 为 null；回执在事务内读取结果、提交后返回。`annotations/conflict` 表示观察后发生改变，not-found 表示目标消失或类型不符，invalid-input 表示非法批次；任一条件/事务失败不写入整批。**传输断开或回执丢失不证明事务未提交**，本轮没有耐久请求回执查询/幂等重试协议；工具说明要求先检查状态，不能自动用新令牌重试覆盖。
+- Agent `get_annotations(annotationId)` 的精确页附 revision，类型/书籍过滤不匹配时 revision=null；普通分页仍不附版本。`edit_annotation` 新增必填 expectedRevision，模型应先精确读取再修改。`delete_annotation` 在发起批准前 inspect，批准后提交同一个 revision，不在批准后偷偷读取新版本。`apply_annotation_changes` 暴露批次；含删除时批准整个批次，拒绝时连带编辑也不发生。工具注册现为书内 25、全局 31，注册/输出测试随之更新。
+- Worker 使用自己的 lifecycle signal，Agent 使用回合 signal；本轮保证事件 mint 之前和 IPC 发出前取消不提交。IPC 发出后进入不可撤销的短事务，不宣称后续 cancel 会回滚。提交成功后才广播事件、提升标注 UI revision；冲突与取消不广播伪成功。
+- 新增 conflict/unavailable/cancelled 三个稳定码及 8 语言文案，全部不可盲目 retry；原始错误不用于界面文案。旧插件单项命令、旧 UI 编辑路径尚未迁移到调用者版本条件，不能将新增原子入口冒充所有旧路径都已安全。
+
+[环境] 6 项原生测试：成功混合改笔记/改高亮颜色样式/删 ask 与 origin；后项版本冲突整批与 outbox 不变；同毫秒 ABA/删后重建；执行后项时触发数据库错误，前项事件和投影回滚；不存在/类型不符/重复 ID/非标注事件拒绝；两个真实 SQLite 连接持同一版本并发写，恰有一方成功、一方 conflict。原生全量 124 通过、1 项既有百万事件压力测试 ignored；原有 objc cfg/dead-code/block future-incompatibility 警告保留。
+
+[环境] 新增 10 项 TS 测试覆盖输入与配额、Agent 过期版本/批准中变化/混合批次批准拒绝/取消、原生拒绝不广播、mint 期间撤销不发 IPC、双端 origin 与权限/生命周期信号。全仓测试 17 个任务和 typecheck 20 个任务通过。测试用内存 adapter 使用同步检查/写入与观察代次，只模拟原子契约；原生并发/回滚结论来自 SQLite 测试而非 mock。
+
+[环境] 隔离 Tauri 中，read-only Worker 能 inspect 但无写命令；writer 接收来自 Agent 精确查询的旧 revision，混合批次 conflict 时高亮和事件均不变；用新 revision 成功更新笔记与 underline，高亮/笔记持久状态与回执 revision 一致，广播 origin 为 plugin。Agent 条件编辑成功；实际批准端口等待期间宿主修改目标，批准后删除 conflict 且新内容保留；混合批次先 decline 两项均保留，再 approve 同时编辑/删除成功。[结构化证据](./evidence/annotation-mutations-2026-09-09.json)。批准由测试代码回答实际交互端口，不代表聊天 UI 或远端模型判断已验收。首次调用后 WebView 重载、结果句柄消失；确认重载后清理一条残留测试高亮并原生验证 null，再完整重跑成功，未把首次不完整调用计为通过；重载原因未确认。最终测试标注均为 null，测试 KV 为空，贡献已清理。
+
+[环境] 矩阵 ANN04/ANN08 和生成映射更新为 215 行 / 558 库存，129 旧验收项不变，ANN08 仍为部分。两对生成器与 pair validator、7 项建模门禁通过；矩阵 HTML 1440/1024/390 无页面横向溢出，中英文搜索、Escape/抽屉、主题刷新保持、锚点/重复 ID、截图检查通过；无浏览器错误，CDN 成功。截图 `/tmp/readaware-annotation-mutations-matrix{,-mobile}.png`；模型 HTML 未改，Markdown 现状映射更新。文档浏览器与隔离 Tauri 已关闭，文档依赖既有 CDN，未画 Mermaid 图；文档验收不代表产品验收。
+
+仍未完成：旧单项写/UI 调用者版本迁移、跨设备离线并发的产品冲突处理（此 CAS 只限制本机提交，远端仍走既有合并）、回执丢失后的耐久请求查询、超长读结果预算、Range/内容版本校验和远端观察、实用整理/导出插件，以及全部 D/C/S/V/Q 和 W01–W32 的剩余工作。此提交不把 ANN08、D3 或完整目标标成完成。

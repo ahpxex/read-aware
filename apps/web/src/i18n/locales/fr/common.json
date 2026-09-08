@@ -12,6 +12,9 @@
     "copied": "Copié"
   },
   "errors": {
+    "annotationConflict": "Cette annotation a changé. Relisez-la avant d'appliquer vos modifications.",
+    "annotationUnavailable": "Le stockage des annotations n'est pas disponible dans cet environnement.",
+    "annotationCancelled": "La modification a été annulée avant son envoi.",
     "annotationNotFound": "Cette annotation n'existe plus ou est d'un autre type.",
     "annotationInvalidInput": "La demande d'annotation contient une valeur incorrecte.",
     "annotationForbidden": "Seul l'assistant de lecture peut enregistrer une question.",

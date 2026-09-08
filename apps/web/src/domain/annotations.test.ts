@@ -2,6 +2,7 @@ import { afterEach, expect, spyOn, test } from "bun:test";
 import { AppError } from "@read-aware/core";
 import type { PluginDisposable, PluginPermission } from "@read-aware/plugin-types";
 import * as db from "../features/annotations/lib/annotation-db";
+import * as mutations from "../features/annotations/lib/annotation-mutations";
 import type { Ask, Highlight } from "../features/annotations/lib/annotation-types";
 import { createAnnotationsPort } from "../features/ai/agent/ports/annotations-port";
 import { buildPluginContext } from "../features/plugins/runtime/plugin-context";
@@ -96,4 +97,25 @@ test("Agent ask deletion uses the same exact lookup and removal verb", async () 
   await createAnnotationsPort().removeAnnotation("ask");
   expect(remove).toHaveBeenCalledWith("ask", "agent");
   expect(list).not.toHaveBeenCalled();
+});
+
+test("conditional writes share actor origin, require write permission, and carry retirement signal", async () => {
+  own(spyOn(mutations, "inspectAnnotation").mockResolvedValue({ annotation: ask, revision: `ann1:${"a".repeat(64)}` }));
+  const apply = own(spyOn(mutations, "commitAnnotationMutations").mockResolvedValue({ atomic: true, changes: [{ annotationId: "ask", revision: null }] }));
+  const reader = plugin("annotations:read").context.domains.annotations!;
+  expect(await reader.queries.inspect("ask")).toMatchObject({ annotation: { kind: "ask" } });
+  expect(reader.commands).toBeUndefined();
+  const writer = plugin("annotations:write");
+  const changes = [{ op: "remove" as const, kind: "ask" as const, annotationId: "ask", expectedRevision: `ann1:${"a".repeat(64)}` }];
+  const command = writer.context.domains.annotations!.commands!.applyChanges;
+  await command(changes);
+  expect(apply.mock.calls[0][1]).toBe("plugin:annotation-test");
+  const signal = apply.mock.calls[0][2]!;
+  expect(signal.aborted).toBe(false);
+  writer.lifecycle.stop();
+  expect(signal.aborted).toBe(true);
+  expect(() => command(changes)).toThrow();
+  const controller = new AbortController();
+  await createAnnotationsPort().applyChanges(changes, controller.signal);
+  expect(apply).toHaveBeenLastCalledWith(changes, "agent", controller.signal);
 });

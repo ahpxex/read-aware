@@ -1,0 +1,177 @@
+{
+  "date": "2026-09-09",
+  "app": "com.readaware.app.capability-e2e",
+  "created": [
+    "780d2339-6673-414b-a055-81b878764a91",
+    "76c6cd55-4f74-4830-9905-1530cef28134"
+  ],
+  "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+  "results": {
+    "agentEdit": {
+      "annotationId": "780d2339-6673-414b-a055-81b878764a91",
+      "body": "Agent conditional edit",
+      "updated": true
+    },
+    "approvalConflict": {
+      "code": "annotations/conflict",
+      "remaining": {
+        "body": "Changed while approval was open",
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "createdAt": "2026-09-08T18:09:14.144Z",
+        "id": "780d2339-6673-414b-a055-81b878764a91",
+        "kind": "note",
+        "updatedAt": "2026-09-08T18:09:14.355Z"
+      }
+    },
+    "approve": {
+      "note": {
+        "body": "Agent batch final",
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "createdAt": "2026-09-08T18:09:14.144Z",
+        "id": "780d2339-6673-414b-a055-81b878764a91",
+        "kind": "note",
+        "updatedAt": "2026-09-08T18:09:14.361Z"
+      },
+      "remaining": null,
+      "result": {
+        "content": [
+          {
+            "text": "{\"atomic\":true,\"changes\":[{\"annotationId\":\"780d2339-6673-414b-a055-81b878764a91\",\"revision\":\"ann1:5a82b9fd906968b0e87aef5cb8d575ff447134203f9e28683def81f3aefbf44a\"},{\"annotationId\":\"76c6cd55-4f74-4830-9905-1530cef28134\",\"revision\":null}]}",
+            "type": "text"
+          }
+        ],
+        "details": {
+          "answer": {
+            "optionId": "approve"
+          },
+          "id": "book:07ef226e-1ebc-47b6-8dc9-d09109448d22:batch-approve",
+          "phase": "response",
+          "type": "user-interaction"
+        }
+      }
+    },
+    "decline": {
+      "note": {
+        "body": "Changed while approval was open",
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "createdAt": "2026-09-08T18:09:14.144Z",
+        "id": "780d2339-6673-414b-a055-81b878764a91",
+        "kind": "note",
+        "updatedAt": "2026-09-08T18:09:14.355Z"
+      },
+      "remaining": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "color": "blue",
+        "createdAt": "2026-09-08T18:09:14.148Z",
+        "id": "76c6cd55-4f74-4830-9905-1530cef28134",
+        "kind": "highlight",
+        "style": "underline",
+        "text": "Mutation probe quotation",
+        "updatedAt": "2026-09-08T18:09:14.273Z"
+      },
+      "result": {
+        "content": [
+          {
+            "text": "{\"committed\":false,\"reason\":\"User declined.\"}",
+            "type": "text"
+          }
+        ],
+        "details": {
+          "answer": {
+            "optionId": "decline"
+          },
+          "id": "book:07ef226e-1ebc-47b6-8dc9-d09109448d22:batch-decline",
+          "phase": "response",
+          "type": "user-interaction"
+        }
+      }
+    },
+    "reader": {
+      "commandsAvailable": false,
+      "highlight": {
+        "annotation": {
+          "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+          "color": "yellow",
+          "createdAt": "2026-09-08T18:09:14.148Z",
+          "id": "76c6cd55-4f74-4830-9905-1530cef28134",
+          "kind": "highlight",
+          "style": "highlight",
+          "text": "Mutation probe quotation",
+          "updatedAt": "2026-09-08T18:09:14.148Z"
+        },
+        "revision": "ann1:d1311d8baa704cfb04f7615b965186b5fc9f9a25acbf42c84eb96ea9b764d4f4"
+      }
+    },
+    "writer": {
+      "conflict": "annotations/conflict",
+      "events": [
+        {
+          "createdAt": "2026-09-08T18:09:14.275Z",
+          "origin": "plugin:capability-annotation-mutations-write",
+          "payload": {
+            "body": "Worker batch note",
+            "noteId": "780d2339-6673-414b-a055-81b878764a91"
+          },
+          "type": "note.updated"
+        },
+        {
+          "createdAt": "2026-09-08T18:09:14.275Z",
+          "origin": "plugin:capability-annotation-mutations-write",
+          "payload": {
+            "color": "blue",
+            "highlightId": "76c6cd55-4f74-4830-9905-1530cef28134",
+            "style": "underline"
+          },
+          "type": "highlight.recolored"
+        }
+      ],
+      "highlightAfter": {
+        "annotation": {
+          "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+          "color": "blue",
+          "createdAt": "2026-09-08T18:09:14.148Z",
+          "id": "76c6cd55-4f74-4830-9905-1530cef28134",
+          "kind": "highlight",
+          "style": "underline",
+          "text": "Mutation probe quotation",
+          "updatedAt": "2026-09-08T18:09:14.273Z"
+        },
+        "revision": "ann1:103a7a00c38e4c46a373f37b9b4ebe4139f91f2404da0fdd1799da38a60f2db1"
+      },
+      "noteAfter": {
+        "annotation": {
+          "body": "Worker batch note",
+          "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+          "createdAt": "2026-09-08T18:09:14.144Z",
+          "id": "780d2339-6673-414b-a055-81b878764a91",
+          "kind": "note",
+          "updatedAt": "2026-09-08T18:09:14.273Z"
+        },
+        "revision": "ann1:7d5542761c0dd63e274dfecdd41b587862208aa195b22e0bbf207140d37aa11e"
+      },
+      "receipt": {
+        "atomic": true,
+        "changes": [
+          {
+            "annotationId": "780d2339-6673-414b-a055-81b878764a91",
+            "revision": "ann1:7d5542761c0dd63e274dfecdd41b587862208aa195b22e0bbf207140d37aa11e"
+          },
+          {
+            "annotationId": "76c6cd55-4f74-4830-9905-1530cef28134",
+            "revision": "ann1:103a7a00c38e4c46a373f37b9b4ebe4139f91f2404da0fdd1799da38a60f2db1"
+          }
+        ]
+      },
+      "rejectedBatchUnchanged": true
+    }
+  },
+  "verification": "Actual Agent tools/interaction port, SQLite and WebKit Worker. Approval responses are programmatic, not LLM/chat UI.",
+  "cleanup": {
+    "pluginKvKeys": [],
+    "remaining": [
+      null,
+      null
+    ]
+  },
+  "priorAttempt": "WebView reloaded after the first invocation; its result handle was lost. One surviving synthetic highlight was explicitly removed and verified absent before this complete run. Cause of reload not established."
+}

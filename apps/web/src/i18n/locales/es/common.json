@@ -12,6 +12,9 @@
     "copied": "Copiado"
   },
   "errors": {
+    "annotationConflict": "Esta anotación ha cambiado. Vuelve a leerla antes de aplicar tus cambios.",
+    "annotationUnavailable": "El almacenamiento de anotaciones no está disponible en este entorno.",
+    "annotationCancelled": "El cambio se canceló antes de enviarse.",
     "annotationNotFound": "Esta anotación ya no existe o es de otro tipo.",
     "annotationInvalidInput": "La solicitud de anotación contiene un valor no válido.",
     "annotationForbidden": "Solo el asistente de lectura puede registrar una pregunta.",

@@ -7,5 +7,6 @@ export * from "./read-models";
 export * from "./reading-session";
 export * from "./book-navigation";
 export * from "./annotation-query";
+export * from "./annotation-mutations";
 export * from "./settings";
 export * from "./sync";

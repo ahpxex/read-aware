@@ -103,6 +103,8 @@ export interface LibraryPort {
 }
 
 export interface AnnotationsPort {
+  inspectAnnotation(annotationId: Id): Promise<import("@read-aware/core").AnnotationSnapshot | null>;
+  applyChanges(changes: import("@read-aware/core").AnnotationMutation[], signal?: AbortSignal): Promise<import("@read-aware/core").AnnotationCommitResult>;
   pageAnnotations(input?: import("@read-aware/core").AnnotationPageQuery): Promise<import("@read-aware/core").AnnotationPage>;
   getAnnotation(annotationId: Id): Promise<AnnotationItem | null>;
   listAnnotations(filter?: {

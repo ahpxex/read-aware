@@ -12,6 +12,9 @@
     "copied": "已複製"
   },
   "errors": {
+    "annotationConflict": "這則標註已被修改。請重新讀取後再決定如何修改。",
+    "annotationUnavailable": "目前環境無法存取標註儲存空間。",
+    "annotationCancelled": "標註修改已在提交前取消。",
     "annotationNotFound": "這則標註已不存在，或類型與操作不符。",
     "annotationInvalidInput": "標註請求包含無效的值。",
     "annotationForbidden": "只有閱讀助理可以記錄提問軌跡。",

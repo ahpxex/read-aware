@@ -54,7 +54,7 @@ export function buildThreadTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
     name: "get_annotations",
     label: "Annotations",
     description:
-      "Read a page of the user's highlights, notes, and recorded questions: {items,nextCursor,consistency}. bookId defaults to the current book. Follow nextCursor with the SAME bookId/kind/query to continue. Newest first; live pages are not a frozen export snapshot. Pass annotationId for one exact ID (zero or one items); do not combine it with query/cursor. kind filters the annotation type. Omit query to browse without a text filter.",
+      "Read a page of the user's highlights, notes, and recorded questions: {items,nextCursor,consistency}. bookId defaults to the current book. Follow nextCursor with the SAME bookId/kind/query to continue. Newest first; live pages are not a frozen export snapshot. Pass annotationId for one exact ID (zero or one items) plus its revision token, required for editing/batch changes; do not combine it with query/cursor. kind filters the annotation type. Omit query to browse without a text filter.",
     parameters: Type.Object({
       bookId: Type.Optional(Type.String({ description: "Book id; defaults to the current book" })),
       annotationId: Type.Optional(Type.String({ description: "Exact annotation ID; does not scan the annotation list" })),
@@ -75,8 +75,10 @@ export function buildThreadTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
       const target = (normalizeBookIdParam(bookId) ?? defaultBookId) as Id | undefined;
       if (annotationId !== undefined) {
         if (query !== undefined || cursor !== undefined) throw new AppError("annotations/invalid-input", "annotationId cannot be combined with query or cursor");
-        const annotation = await deps.annotations.getAnnotation(annotationId as Id);
-        return textResult({ items: annotation && (!target || annotation.bookId === target) && (!kind || annotation.kind === kind) ? [annotation] : [], nextCursor: null, consistency: "live" });
+        const snapshot = await deps.annotations.inspectAnnotation(annotationId as Id);
+        const annotation = snapshot?.annotation;
+        const matches = annotation && (!target || annotation.bookId === target) && (!kind || annotation.kind === kind);
+        return textResult({ items: matches ? [annotation] : [], revision: matches ? snapshot!.revision : null, nextCursor: null, consistency: "live" });
       }
       return textResult(await deps.annotations.pageAnnotations({ bookId: target, query, kind, limit, cursor }));
     },

@@ -12,6 +12,9 @@
     "copied": "Copied"
   },
   "errors": {
+    "annotationConflict": "This annotation changed. Read it again before applying your changes.",
+    "annotationUnavailable": "Annotation storage is not available in this environment.",
+    "annotationCancelled": "The annotation change was cancelled before it was submitted.",
     "annotationNotFound": "This annotation no longer exists or is a different type.",
     "annotationInvalidInput": "The annotation request contains an invalid value.",
     "annotationForbidden": "Only the reading assistant can record a question trace.",

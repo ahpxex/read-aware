@@ -48,4 +48,24 @@ describe("plugin lifecycle barrier", () => {
     expect(live).toBe(0);
     expect(lifecycle.phase).toBe("activating");
   });
+
+  test("stopping rejects new work but drains already accepted durable writes", async () => {
+    const lifecycle = new PluginLifecycleController([]); lifecycle.promote();
+    let finish!: () => void;
+    const write = lifecycle.storageWrite("set", () => new Promise<void>(resolve => { finish = resolve; }));
+    lifecycle.stop();
+    expect(() => lifecycle.storageWrite("set", async () => {})).toThrow("stopped");
+    expect(() => lifecycle.stage(() => ({ dispose() {} }))).toThrow("stopped");
+    expect(() => lifecycle.promote()).toThrow("stopped");
+    let drained = false;
+    const drain = lifecycle.drainStorageWrites().then(() => { drained = true; });
+    await Promise.resolve(); expect(drained).toBe(false);
+    finish(); await write; await drain; expect(drained).toBe(true);
+  });
+
+  test("migration can be stopped without reopening its write gate", () => {
+    const lifecycle = new PluginLifecycleController([]); lifecycle.beginMigration(); lifecycle.stop();
+    expect(() => lifecycle.finishMigration()).toThrow("stopped");
+    expect(() => lifecycle.assertStorageWrite("set")).toThrow("stopped");
+  });
 });

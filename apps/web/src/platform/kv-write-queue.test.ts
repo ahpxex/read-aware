@@ -1,0 +1,116 @@
+import { describe, expect, test } from "bun:test";
+import { KVWriteQueue } from "./kv-write-queue";
+
+function fixture() {
+  const mirror = new Map<string, string>([["plugin.key", "original"]]);
+  const disk = new Map(mirror);
+  const pending: { key: string; value: string | null; resolve(): void; reject(error: Error): void }[] = [];
+  const committed: unknown[] = [], origins: string[] = [], failures: unknown[] = [];
+  const queue = new KVWriteQueue({
+    read: key => mirror.get(key) ?? null,
+    mirror: (key, value) => { if (value === null) mirror.delete(key); else mirror.set(key, value); },
+    persist: (key, value) => new Promise<void>((resolve, reject) => pending.push({ key, value, reject, resolve: () => {
+      if (value === null) disk.delete(key); else disk.set(key, value); resolve();
+    } })),
+    committed: (key, value, origin) => { committed.push([key, value]); origins.push(origin); },
+    failed: (key, error) => { failures.push([key, error]); },
+  });
+  return { queue, mirror, disk, pending, committed, origins, failures };
+}
+const tick = () => new Promise(resolve => setTimeout(resolve, 0));
+
+describe("durable KV write queue", () => {
+  test("keeps synchronous reads optimistic but only publishes committed writes", async () => {
+    const f = fixture(); const write = f.queue.write("plugin.key", "next");
+    expect(f.mirror.get("plugin.key")).toBe("next");
+    expect(f.committed).toEqual([]);
+    await tick(); f.pending[0].resolve(); await write;
+    expect(f.disk.get("plugin.key")).toBe("next");
+    expect(f.committed).toEqual([["plugin.key", "next"]]);
+  });
+  test("an old failure cannot erase a newer optimistic write", async () => {
+    const f = fixture(); const first = f.queue.write("plugin.key", "first"); const second = f.queue.write("plugin.key", "second");
+    await tick(); expect(f.pending).toHaveLength(1);
+    f.pending[0].reject(new Error("locked")); await expect(first).rejects.toThrow("locked");
+    expect(f.mirror.get("plugin.key")).toBe("second");
+    await tick(); f.pending[1].resolve(); await second;
+    expect(f.disk.get("plugin.key")).toBe("second");
+  });
+  test("two failures restore the durable value, not the first failed value", async () => {
+    const f = fixture(); const first = f.queue.write("plugin.key", "first"); const second = f.queue.write("plugin.key", "second");
+    const flushed = f.queue.flush("plugin.").catch(error => error);
+    await tick(); f.pending[0].reject(new Error("first failed")); await expect(first).rejects.toThrow();
+    await tick(); f.pending[1].reject(new Error("second failed")); await expect(second).rejects.toThrow();
+    expect((await flushed).message).toBe("first failed");
+    expect(f.mirror.get("plugin.key")).toBe("original"); expect(f.committed).toEqual([]);
+  });
+  test("pending removes stay removed when an older write settles", async () => {
+    const f = fixture(); const first = f.queue.write("plugin.key", "first"); const remove = f.queue.write("plugin.key", null);
+    await tick(); f.pending[0].resolve(); await first;
+    expect(f.mirror.has("plugin.key")).toBe(false);
+    await tick(); f.pending[1].reject(new Error("remove failed")); await expect(remove).rejects.toThrow();
+    expect(f.mirror.get("plugin.key")).toBe("first");
+  });
+  test("flush waits for durable completion and includes writes accepted while draining", async () => {
+    const f = fixture(); const first = f.queue.write("plugin.key", "first");
+    let complete = false; const flush = f.queue.flush("plugin.").then(() => { complete = true; });
+    await tick(); expect(complete).toBe(false);
+    const second = f.queue.write("plugin.other", "second"); f.pending[0].resolve(); await first;
+    await tick(); expect(complete).toBe(false); f.pending[1].resolve(); await second; await flush;
+    expect(f.disk.get("plugin.other")).toBe("second");
+  });
+  test("a namespace barrier does not wait for unrelated writes", async () => {
+    const f = fixture(); const unrelated = f.queue.write("other.key", "value");
+    await f.queue.flush("plugin."); await tick(); f.pending[0].resolve(); await unrelated;
+  });
+  test("remote origin survives asynchronous persistence between local writes", async () => {
+    const f = fixture();
+    const remote = f.queue.write("plugin.key", "remote", "remote");
+    const local = f.queue.write("plugin.key", "local");
+    await tick(); f.pending[0].resolve(); await remote;
+    await tick(); f.pending[1].resolve(); await local;
+    expect(f.origins).toEqual(["remote", "local"]);
+  });
+  test("atomic restoration is ordered before new writes and does not republish edits", async () => {
+    const f = fixture();
+    let finish!: () => void;
+    const replacement = f.queue.replace(new Map([["plugin.key", "restored"]]), () => new Promise<void>(resolve => {
+      finish = () => { f.disk.set("plugin.key", "restored"); resolve(); };
+    }));
+    const newer = f.queue.write("plugin.key", "newer");
+    await tick(); expect(f.pending).toHaveLength(0);
+    finish(); await replacement;
+    expect(f.mirror.get("plugin.key")).toBe("newer");
+    expect(f.committed).toEqual([]);
+    await tick(); f.pending[0].reject(new Error("newer failed")); await expect(newer).rejects.toThrow();
+    expect(f.mirror.get("plugin.key")).toBe("restored");
+  });
+  test("failed batch restores every durable key without erasing a later write", async () => {
+    const f = fixture();
+    const replacement = f.queue.replace(new Map([["plugin.key", null], ["plugin.other", "restored"]]), async () => {
+      throw new Error("restore failed");
+    });
+    const newer = f.queue.write("plugin.other", "newer");
+    await expect(replacement).rejects.toThrow("restore failed");
+    expect(f.mirror.get("plugin.key")).toBe("original");
+    expect(f.mirror.get("plugin.other")).toBe("newer");
+    await tick(); f.pending[0].resolve(); await newer;
+    expect(f.disk.get("plugin.other")).toBe("newer");
+  });
+  test("a synchronous batch observer cannot overwrite a newer mutation on another batch key", async () => {
+    const mirror = new Map<string, string>();
+    let newer: Promise<void> | undefined;
+    const queue = new KVWriteQueue({
+      read: key => mirror.get(key) ?? null,
+      mirror: (key, value) => {
+        if (value === null) mirror.delete(key); else mirror.set(key, value);
+        if (key === "first" && !newer) newer = queue.write("second", "newer");
+      },
+      persist: async () => {}, committed: () => {}, failed: () => {},
+    });
+    const batch = queue.replace(new Map([["first", "batch"], ["second", "batch"]]), async () => {});
+    expect(mirror.get("second")).toBe("newer");
+    await batch; await newer;
+    expect(mirror.get("second")).toBe("newer");
+  });
+});

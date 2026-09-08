@@ -20,7 +20,7 @@ import {
 import { DEFAULT_LOCALE, i18n, isAppLocale } from "../../../i18n";
 import { onAppEvent } from "../../../platform/app-events";
 import { exportTextFile } from "../../../platform/export-file";
-import { localKV } from "../../../platform/local-store";
+import { flushLocalKV, localKV } from "../../../platform/local-store";
 import { createLogger } from "../../../platform/logger";
 import {
   deletePluginSecret,
@@ -212,7 +212,7 @@ export function buildPluginContext(
       const wrapped =
         options?.ignoreSelf === true
           ? (broadcast: { origin?: string }) => {
-              if (broadcast.origin !== selfOrigin) handler(broadcast);
+              if (broadcast.origin !== selfOrigin) return handler(broadcast);
             }
           : handler;
       return track(() => ({ dispose: on(event, wrapped as never) }));
@@ -460,19 +460,24 @@ export function buildPluginContext(
           }
         },
         set: (key, value) => {
-          lifecycle.assertStorageWrite("services.storage.set");
-          localKV.setItem(storagePrefix + key, JSON.stringify(value ?? null));
+          return lifecycle.storageWrite("services.storage.set", () =>
+            localKV.setItemAsync(storagePrefix + key, JSON.stringify(value ?? null)));
         },
         remove: (key) => {
-          lifecycle.assertStorageWrite("services.storage.remove");
-          localKV.removeItem(storagePrefix + key);
+          return lifecycle.storageWrite("services.storage.remove", () => localKV.removeItemAsync(storagePrefix + key));
+        },
+        flush: async () => {
+          await lifecycle.drainStorageWrites();
+          await flushLocalKV(storagePrefix);
         },
         onChange: (handler) =>
           track(() => ({
             dispose: onAppEvent("plugin-storage-changed", ({ pluginId }) => {
               if (pluginId !== manifest.id) return;
               try {
-                handler();
+                void Promise.resolve(handler()).catch(error => {
+                  log.error(`storage.onChange handler from "${manifest.id}" failed`, error);
+                });
               } catch (error) {
                 log.error(`storage.onChange handler from "${manifest.id}" failed`, error);
               }
@@ -485,22 +490,20 @@ export function buildPluginContext(
           }
           return {
             put: (id, data, options) => {
-              lifecycle.assertStorageWrite("services.storage.collection.put");
-              return pluginDocsPut(
+              return lifecycle.storageWrite("services.storage.collection.put", () => pluginDocsPut(
                 manifest.id,
                 collection,
                 String(id),
                 JSON.stringify(data ?? null),
                 { bookId: options?.bookId, anchor: options?.anchor },
-              );
+              ));
             },
             get: async (id) => {
               const row = await pluginDocsGet(manifest.id, collection, String(id));
               return (row ? toPluginDocument(row) : null) as never;
             },
             delete: (id) => {
-              lifecycle.assertStorageWrite("services.storage.collection.delete");
-              return pluginDocsDelete(manifest.id, collection, String(id));
+              return lifecycle.storageWrite("services.storage.collection.delete", () => pluginDocsDelete(manifest.id, collection, String(id)));
             },
             list: async (filter) =>
               (

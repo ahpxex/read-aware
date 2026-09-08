@@ -20,6 +20,8 @@ type StagedRegistration = {
 export class PluginLifecycleController {
   private current: PluginLifecyclePhase = "activating";
   private readonly staged: StagedRegistration[] = [];
+  private readonly storageWrites = new Set<Promise<unknown>>();
+  private stopped = false;
 
   constructor(private readonly disposables: PluginDisposable[]) {}
 
@@ -28,6 +30,7 @@ export class PluginLifecycleController {
   }
 
   stage(factory: () => PluginDisposable): PluginDisposable {
+    this.assertNotStopped();
     if (this.current === "migrating") {
       throw new Error("plugin registrations are unavailable during data migration");
     }
@@ -47,6 +50,7 @@ export class PluginLifecycleController {
   }
 
   promote(): void {
+    this.assertNotStopped();
     if (this.current !== "activating") {
       throw new Error(`cannot promote plugin from ${this.current} phase`);
     }
@@ -72,6 +76,7 @@ export class PluginLifecycleController {
   }
 
   beginMigration(): void {
+    this.assertNotStopped();
     if (this.current !== "activating") {
       throw new Error(`cannot migrate plugin from ${this.current} phase`);
     }
@@ -79,6 +84,7 @@ export class PluginLifecycleController {
   }
 
   finishMigration(): void {
+    this.assertNotStopped();
     if (this.current !== "migrating") {
       throw new Error(`plugin is not migrating (current phase: ${this.current})`);
     }
@@ -93,14 +99,42 @@ export class PluginLifecycleController {
   }
 
   assertActive(operation: string): void {
+    this.assertNotStopped();
     if (this.current !== "active") {
       throw new Error(`${operation} is unavailable while plugin is ${this.current}`);
     }
   }
 
   assertStorageWrite(operation: string): void {
+    this.assertNotStopped();
     if (this.current !== "active" && this.current !== "migrating") {
       throw new Error(`${operation} is unavailable while plugin is ${this.current}`);
     }
+  }
+
+  stop(): void {
+    this.stopped = true;
+    this.current = "activating";
+  }
+
+  private assertNotStopped(): void {
+    if (this.stopped) throw new Error("plugin runtime has stopped");
+  }
+
+  storageWrite<T>(operation: string, write: () => Promise<T>): Promise<T> {
+    this.assertStorageWrite(operation);
+    const pending = write();
+    this.storageWrites.add(pending);
+    void pending.then(() => this.storageWrites.delete(pending), () => this.storageWrites.delete(pending));
+    return pending;
+  }
+
+  async drainStorageWrites(): Promise<void> {
+    const errors: unknown[] = [];
+    while (this.storageWrites.size) {
+      const results = await Promise.allSettled([...this.storageWrites]);
+      for (const result of results) if (result.status === "rejected") errors.push(result.reason);
+    }
+    if (errors.length) throw errors[0];
   }
 }

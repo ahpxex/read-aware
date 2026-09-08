@@ -10,7 +10,7 @@
       "voiceProviders": "^1.0.0"
     },
     "services": {
-      "storage": "^1.0.0",
+      "storage": "^2.0.0",
       "secrets": "^1.0.0",
       "network": "^1.0.0"
     },

@@ -20,9 +20,9 @@
 
 ## 计数与口径
 
-- 宿主：实装 163、部分 42、引擎 3、待建 4、占位 2、非桌面 1。
+- 宿主：实装 164、部分 41、引擎 3、待建 4、占位 2、非桌面 1。
 - Agent：接通 66、部分 42、未接 64、扩展 14、自动 23、内部 6。
-- 插件：接通 78、部分 76、未接 61。
+- 插件：接通 79、部分 75、未接 61。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -272,9 +272,9 @@
 
 | ID | 宿主能力 | 宿主现状 | Agent 当前与目标 | 插件当前与目标 | 实际消费者 | 缺口/边界 | 来源 | 旧基线 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="SYS01"></a>SYS01 | 插件隔离 KV 同步读写镜像 | 部分 | **扩展**：通过插件工具间接使用，无 KV 工具<br>[设计] 不得读任意私有 KV | **部分**：storage.get/set/remove/onChange<br>[设计] 带 durable ack 的隔离 KV | 全部有设置/状态插件 | GAP02/03：void 写和 worker mirror 不能证明持久成功 | [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [WORKER](../apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts) [KV](../apps/web/src/platform/local-store.ts) [DICT](../plugins/dictionary/src/index.ts) | O01, O02 |
+| <a id="SYS01"></a>SYS01 | 插件隔离 KV 同步读与异步持久写 | 实装 | **扩展**：通过插件工具间接使用，无 KV 工具<br>[设计] 不得读任意私有 KV | **接通**：storage v2 get/set/remove/flush/onChange；set/remove 返回持久 Promise<br>[设计] 带 durable ack 的隔离 KV | 全部有设置/状态插件；RSS 迁移等待 remove | 已接顺序持久写、flush、镜像失败重基和 remote origin；相关故障单元测试通过，真实 Worker/Tauri 持久化与全生命周期 E2E 尚待验收，不据此关闭全部 GAP02/03 | [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [WORKER](../apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts) [KV](../apps/web/src/platform/local-store.ts) [DICT](../plugins/dictionary/src/index.ts) | O01, O02 |
 | <a id="SYS02"></a>SYS02 | 插件私有文档 collection CRUD/限量查询 | 实装 | **扩展**：Dictionary/RSS 工具通过插件访问<br>[设计] 插件工具封装其自有数据 | **接通**：storage.collection put/get/delete/list<br>[设计] 隔离文档服务 | Dictionary words；RSS feeds | 无游标/CAS/事务/全字段搜索；bookId/anchor 是索引不是自动删除所有权 | [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [DOCS](../apps/web/src/features/plugins/runtime/plugin-backend.ts) [API](../packages/plugin-types/src/index.ts) [DICT](../plugins/dictionary/src/index.ts) [RSS](../plugins/rss-reader/src/index.ts) | O01, O02 |
-| <a id="SYS03"></a>SYS03 | 插件 schema 迁移/快照/更新回滚 | 部分 | **未接**：宿主管理安装生命周期<br>[设计] 不开放：模型操作迁移存储 | **部分**：migrate storage-only；host snapshot/restore<br>[设计] quiescent + durable migration | RSS legacy feeds 迁移；插件更新 | GAP01/02：快照时序与写持久屏障不完整 | [HOST](../apps/web/src/features/plugins/runtime/plugin-host.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) [WORKER](../apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | O05, R01 |
+| <a id="SYS03"></a>SYS03 | 插件 schema 迁移/快照/更新回滚 | 部分 | **未接**：宿主管理安装生命周期<br>[设计] 不开放：模型操作迁移存储 | **部分**：migrate storage-only；quiesce/drain 后 snapshot；schemaVersion 等待持久<br>[设计] quiescent + durable migration | RSS legacy feeds 迁移；插件更新 | 已修复健康检查失败误恢复与旧实例晚写丢失的时序；全局外部设置并发、KV/docs 联合恢复和真实 Tauri 更新故障 E2E 仍待验收，GAP01/02 不整体关闭 | [HOST](../apps/web/src/features/plugins/runtime/plugin-host.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) [WORKER](../apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | O05, R01 |
 | <a id="SYS04"></a>SYS04 | 插件自有 secret get/set/remove | 实装 | **未接**：不提供密钥读取工具<br>[设计] 不开放：密钥进模型上下文 | **接通**：services.secrets namespace<br>[设计] 隔离凭据服务 | TTS；WebDAV | 私有 secret 不等于可读宿主 AI key/同步解密 key | [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [SECRETS](../apps/web/src/platform/secret-store.ts) [TTS](../plugins/tts/src/index.ts) [WEBDAV](../plugins/webdav-sync/src/index.ts) | O03 |
 | <a id="SYS05"></a>SYS05 | 插件数据导入导出/配额/同步策略 | 部分 | **扩展**：仅插件自定义工具<br>[设计] 插件拥有的数据操作 | **部分**：exportFile + 私有 CRUD；无通用配额/同步状态<br>[设计] 隔离数据生命周期 | Dictionary CSV；RSS OPML | KV、plugin_docs、secrets、blob 的漫游/备份边界不同，不能统一宣称可同步 | [API](../packages/plugin-types/src/index.ts) [DOCS](../apps/web/src/features/plugins/runtime/plugin-backend.ts) [ROAM](../apps/web/src/platform/roaming-preferences.ts) [BACKUP](../apps/web/src/features/settings/lib/backup-io.ts) | O06 |
 | <a id="SYS06"></a>SYS06 | 原生网络 HTTP 请求与响应 | 实装 | **内部**：推理端口/插件工具，无通用 fetch 工具<br>[设计] 有用途/域名约束网络工具 | **部分**：services.network.fetch<br>[设计] 完整有界 HTTP 服务 | RSS/TTS/WebDAV | GAP04/05：Request 语义丢失、AbortSignal 不端到端；headers/二进制也需契约测试 | [HTTP](../apps/web/src/platform/http-client.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) [WORKER](../apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts) [RSS](../plugins/rss-reader/src/index.ts) [TTS](../plugins/tts/src/index.ts) | P03 |
@@ -382,14 +382,14 @@
 
 - Agent global：26 个。
 - Agent book：20 个。
-- Plugin ctx：67 个。
+- Plugin ctx：68 个。
 - Plugin returned interface：16 个。
 - Capability domains：5 个。
 - Capability contributions：14 个。
 - Capability services：8 个。
 - Capability schemas：3 个。
 - Settings path：46 个。
-- Native command：129 个。
+- Native command：131 个。
 - Native plugin：11 个。
 - Menu placement：16 个。
 - Shortcut：19 个。
@@ -511,6 +511,7 @@
 | `services.storage.get` | [SYS01](#SYS01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.storage.set` | [SYS01](#SYS01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.storage.remove` | [SYS01](#SYS01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.storage.flush` | [SYS01](#SYS01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.storage.onChange` | [CFG10](#CFG10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.storage.collection` | [SYS02](#SYS02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.secrets.get` | [SYS04](#SYS04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -707,6 +708,8 @@
 | `storage::sync_mark_blobs_pushed` | [OPS02](#OPS02) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `storage::sync_mark_blobs_failed` | [OPS02](#OPS02) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `storage::sync_mark_blobs_rejected` | [OPS02](#OPS02) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
+| `storage::sync_quota_rejected_blobs` | [OPS01](#OPS01) [OPS02](#OPS02) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
+| `storage::sync_requeue_blobs` | [OPS01](#OPS01) [OPS02](#OPS02) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `storage::put_blob` | [SYS13](#SYS13) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `storage::get_blob` | [SYS13](#SYS13) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `storage::get_blob_info` | [SYS13](#SYS13) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |

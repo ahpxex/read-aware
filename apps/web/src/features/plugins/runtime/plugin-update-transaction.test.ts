@@ -15,6 +15,7 @@ function transaction(log: string[], fail?: string) {
     commitFiles: () => step("commit"),
     verifyCommit: () => step("verify-commit"),
     quiescePrevious: () => step("quiesce"),
+    snapshotData: () => step("snapshot"),
     migrateCandidate: () => step("migrate"),
     promoteCandidate: () => step("promote"),
     accept: () => step("accept"),
@@ -35,9 +36,10 @@ describe("plugin update transaction", () => {
     expect(log).toEqual([
       "start",
       "verify-candidate",
+      "quiesce",
+      "snapshot",
       "commit",
       "verify-commit",
-      "quiesce",
       "migrate",
       "promote",
       "accept",
@@ -45,7 +47,7 @@ describe("plugin update transaction", () => {
     ]);
   });
 
-  test("a failed health check leaves disk untouched and restores recoverable data", async () => {
+  test("a failed health check leaves the live runtime and its data untouched", async () => {
     const log: string[] = [];
 
     await expect(
@@ -55,8 +57,6 @@ describe("plugin update transaction", () => {
       "start",
       "verify-candidate",
       "cleanup",
-      "restore-data",
-      "restart-previous",
     ]);
   });
 
@@ -74,11 +74,12 @@ describe("plugin update transaction", () => {
     expect(log).toEqual([
       "start",
       "verify-candidate",
+      "quiesce",
+      "snapshot",
       "commit",
       "verify-commit",
       "cleanup",
       "rollback-files",
-      "restore-data",
       "restart-previous",
     ]);
   });
@@ -92,14 +93,51 @@ describe("plugin update transaction", () => {
     expect(log).toEqual([
       "start",
       "verify-candidate",
+      "quiesce",
+      "snapshot",
       "commit",
       "verify-commit",
-      "quiesce",
       "migrate",
       "cleanup",
       "rollback-files",
       "restore-data",
       "restart-previous",
     ]);
+  });
+
+  test("rollback preserves legitimate old-runtime writes made during candidate checks", async () => {
+    const value = transaction([]);
+    let data = "before";
+    let snapshot: string | undefined;
+    value.verifyCandidate = async () => { data = "saved-by-old-runtime"; };
+    value.snapshotData = async () => { snapshot = data; };
+    value.migrateCandidate = async () => { data = "candidate-schema"; throw new Error("migration failed"); };
+    value.restoreData = async () => { data = snapshot!; };
+    await expect(runPluginUpdateTransaction(value)).rejects.toThrow("migration failed");
+    expect(data).toBe("saved-by-old-runtime");
+  });
+
+  test("failed snapshot restarts the old runtime without restoring nonexistent data", async () => {
+    const log: string[] = [];
+    await expect(runPluginUpdateTransaction(transaction(log, "snapshot"))).rejects.toThrow("snapshot failed");
+    expect(log).toEqual(["start", "verify-candidate", "quiesce", "snapshot", "cleanup", "restart-previous"]);
+  });
+
+  test("partially failed quiescence still attempts runtime recovery", async () => {
+    const log: string[] = [];
+    await expect(runPluginUpdateTransaction(transaction(log, "quiesce"))).rejects.toThrow("quiesce failed");
+    expect(log).toEqual(["start", "verify-candidate", "quiesce", "cleanup", "restart-previous"]);
+  });
+
+  test("snapshot cannot begin until accepted old writes are drained", async () => {
+    const log: string[] = [];
+    const value = transaction(log);
+    let release!: () => void;
+    value.quiescePrevious = () => new Promise<void>(resolve => { log.push("quiesce-pending"); release = resolve; });
+    const update = runPluginUpdateTransaction(value);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(log).toEqual(["start", "verify-candidate", "quiesce-pending"]);
+    release(); await update;
+    expect(log.indexOf("snapshot")).toBeGreaterThan(log.indexOf("quiesce-pending"));
   });
 });

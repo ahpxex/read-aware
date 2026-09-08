@@ -3550,7 +3550,7 @@ async function migrateLegacyFeeds(ctx) {
     if (!existing)
       await upsertFeed(ctx, feed);
   }
-  ctx.services.storage.remove("feeds");
+  await ctx.services.storage.remove("feeds");
 }
 
 // src/feed.ts

@@ -5,6 +5,8 @@ export type PluginUpdateTransaction<TCandidate> = {
   verifyCommit(candidate: TCandidate): void | Promise<void>;
   /** Stop the old runtime before shared plugin data can change. */
   quiescePrevious(): void | Promise<void>;
+  /** Take the rollback baseline only after the old runtime's writes are durable. */
+  snapshotData(): void | Promise<void>;
   migrateCandidate(candidate: TCandidate): void | Promise<void>;
   /** Explicit side-effect boundary: candidate contributions become live here. */
   promoteCandidate(candidate: TCandidate): void | Promise<void>;
@@ -41,13 +43,18 @@ export async function runPluginUpdateTransaction<TCandidate>(
 ): Promise<TCandidate> {
   let candidate: TCandidate | undefined;
   let committed = false;
+  let quiescenceAttempted = false;
+  let dataMayHaveChanged = false;
   try {
     candidate = await transaction.startCandidate();
     await transaction.verifyCandidate(candidate);
+    quiescenceAttempted = true;
+    await transaction.quiescePrevious();
+    await transaction.snapshotData();
     await transaction.commitFiles();
     committed = true;
     await transaction.verifyCommit(candidate);
-    await transaction.quiescePrevious();
+    dataMayHaveChanged = true;
     await transaction.migrateCandidate(candidate);
     await transaction.promoteCandidate(candidate);
     await transaction.accept(candidate);
@@ -65,8 +72,8 @@ export async function runPluginUpdateTransaction<TCandidate>(
 
     await recover(() => transaction.cleanupCandidate(candidate));
     if (committed) await recover(transaction.rollbackFiles);
-    await recover(transaction.restoreData);
-    await recover(transaction.restartPrevious);
+    if (dataMayHaveChanged) await recover(transaction.restoreData);
+    if (quiescenceAttempted) await recover(transaction.restartPrevious);
     throw new PluginUpdateError(cause, recoveryErrors);
   }
 }

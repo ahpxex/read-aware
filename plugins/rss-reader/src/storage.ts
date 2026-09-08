@@ -92,5 +92,5 @@ export async function migrateLegacyFeeds(ctx: StorageCtx): Promise<void> {
     const existing = await getFeed(ctx, feed.url);
     if (!existing) await upsertFeed(ctx, feed);
   }
-  ctx.services.storage.remove("feeds");
+  await ctx.services.storage.remove("feeds");
 }

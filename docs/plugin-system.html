@@ -242,7 +242,7 @@
           <div>
             <h2>Services</h2>
             <ul class="compact">
-              <li>Storage / Secrets</li>
+              <li>Storage v2：同步读、set/remove 持久 Promise、flush / Secrets</li>
               <li>UI export / Toast</li>
               <li>Schedules / Session Events</li>
               <li>Network / LLM / Clipboard</li>
@@ -293,10 +293,10 @@
           <div class="flow">
             <div class="step"><div><strong>独立暂存</strong><span>候选版本不会覆盖当前插件。</span></div></div>
             <div class="step"><div><strong>只读候选</strong><span>activate 只能读取和声明；挂载点先暂存，写数据、密钥、网络和业务命令都被阻止。</span></div></div>
-            <div class="step"><div><strong>提交与迁移</strong><span>文件核对后暂停上一版，以 storage-only 权限执行 schema 升级或降级。</span></div></div>
+            <div class="step"><div><strong>停写与快照</strong><span>先暂停并排空上一版，再取 KV、文档和 schema 快照；随后提交文件，刷新候选镜像并执行 storage-only 迁移。</span></div></div>
             <div class="step"><div><strong>显式提升</strong><span>健康与迁移都成功后，候选贡献才一次性进入全局 Registry。</span></div></div>
-            <div class="step"><div><strong>自动恢复</strong><span>失败时恢复上一版文件、KV、文档、schema 元数据和运行实例。</span></div></div>
-            <div class="step"><div><strong>彻底释放</strong><span>订阅、贡献、任务、Provider 和 Worker 按代际安全销毁。</span></div></div>
+            <div class="step"><div><strong>按阶段恢复</strong><span>只有文件提交后才回滚文件、迁移可能写入后才恢复数据；健康检查失败不覆盖仍在运行的旧实例。恢复前停止并排空候选。</span></div></div>
+            <div class="step"><div><strong>持久确认</strong><span>Worker 写与 schemaVersion 等待落盘；旧失败不抹掉新写，远端 origin 随持久写传递。跨界并发和真实桌面升级故障仍待验收，不宣称所有资源已安全释放。</span></div></div>
           </div>
         </div>
       </section>

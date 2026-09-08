@@ -11,7 +11,7 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { getDefaultStore } from "jotai";
 import { isTauri } from "../../../platform/environment";
-import { localKV, replaceLocalKVPrefix } from "../../../platform/local-store";
+import { flushLocalKV, localKV, replaceLocalKVPrefix } from "../../../platform/local-store";
 import { createLogger } from "../../../platform/logger";
 import { PluginManifestError, parseManifestJson, versionSatisfies } from "../lib/manifest";
 import type {
@@ -211,6 +211,9 @@ async function startPluginInstance(
         await migratePluginInstance(instance, storedSchema);
         promotePluginInstance(instance);
       } catch (error) {
+        await sandbox.terminate().catch(terminateError => {
+          log.error(`failed migration teardown for "${manifest.id}"`, terminateError);
+        });
         if (snapshot) await restorePluginData(manifest.id, snapshot);
         throw error;
       }
@@ -290,22 +293,21 @@ async function deactivatePlugin(id: string): Promise<void> {
 
 async function stopPluginInstance(entry: ActivePlugin): Promise<void> {
   const id = entry.manifest.id;
-  for (const disposable of [...entry.disposables].reverse()) {
-    try {
-      disposable.dispose();
-    } catch (error) {
-      log.error(`dispose from "${id}" failed`, error);
-    }
-  }
   try {
     await entry.sandbox.terminate();
-  } catch (error) {
-    log.error(`terminating "${id}" failed`, error);
-  }
-  if (entry.candidateToken) {
-    await discardPluginCandidate(entry.candidateToken).catch((error) => {
-      log.warn(`candidate cleanup for "${id}" failed`, error);
-    });
+  } finally {
+    for (const disposable of [...entry.disposables].reverse()) {
+      try {
+        disposable.dispose();
+      } catch (error) {
+        log.error(`dispose from "${id}" failed`, error);
+      }
+    }
+    if (entry.candidateToken) {
+      await discardPluginCandidate(entry.candidateToken).catch((error) => {
+        log.warn(`candidate cleanup for "${id}" failed`, error);
+      });
+    }
   }
 }
 
@@ -344,10 +346,10 @@ function getPluginDataSchemaVersion(id: string): number | null {
   return Number.isSafeInteger(parsed) && parsed >= 1 ? parsed : null;
 }
 
-function setPluginDataSchemaVersion(id: string, version: number | null): void {
+async function setPluginDataSchemaVersion(id: string, version: number | null): Promise<void> {
   const key = PLUGIN_SCHEMA_KEY_PREFIX + id;
-  if (version == null) localKV.removeItem(key);
-  else localKV.setItem(key, String(version));
+  if (version == null) await localKV.removeItemAsync(key);
+  else await localKV.setItemAsync(key, String(version));
 }
 
 async function migratePluginInstance(
@@ -361,10 +363,12 @@ async function migratePluginInstance(
     hasMigration: instance.sandbox.hasMigration,
   });
   if (migration) await instance.sandbox.migrate(migration);
-  setPluginDataSchemaVersion(instance.manifest.id, target);
+  await setPluginDataSchemaVersion(instance.manifest.id, target);
 }
 
 async function snapshotPluginData(id: string): Promise<PluginDataSnapshot> {
+  await flushLocalKV(`read-aware-plugin.${id}.`);
+  await flushLocalKV(PLUGIN_SCHEMA_KEY_PREFIX + id);
   return {
     kv: localKV.entries(`read-aware-plugin.${id}.`),
     documents: await pluginDocsSnapshot(id),
@@ -378,7 +382,7 @@ async function restorePluginData(id: string, snapshot: PluginDataSnapshot): Prom
     replaceLocalKVPrefix(prefix, snapshot.kv),
     pluginDocsRestore(id, snapshot.documents),
   ]);
-  setPluginDataSchemaVersion(id, snapshot.schemaVersion);
+  await setPluginDataSchemaVersion(id, snapshot.schemaVersion);
 }
 
 async function restartPreviousInstance(previous: ActivePlugin): Promise<void> {
@@ -407,10 +411,7 @@ async function applyCandidate(entry: PluginCandidateDiskEntry): Promise<Installe
   }
 
   const previous = active.get(manifest.id);
-  const dataSnapshot = await snapshotPluginData(manifest.id).catch(async (error) => {
-    await discardPluginCandidate(entry.token).catch(() => {});
-    throw error;
-  });
+  let dataSnapshot: PluginDataSnapshot | undefined;
   let accepted = false;
   let candidateRuntimeError: string | undefined;
   let committed: Awaited<ReturnType<typeof commitPluginCandidate>> | undefined;
@@ -448,11 +449,15 @@ async function applyCandidate(entry: PluginCandidateDiskEntry): Promise<Installe
     },
     quiescePrevious: async () => {
       if (!previous) return;
-      await stopPluginInstance(previous);
       previousQuiesced = true;
       if (active.get(manifest.id) === previous) active.delete(manifest.id);
+      await stopPluginInstance(previous);
     },
-    migrateCandidate: (next) => migratePluginInstance(next, dataSnapshot.schemaVersion),
+    snapshotData: async () => { dataSnapshot = await snapshotPluginData(manifest.id); },
+    migrateCandidate: (next) => {
+      if (!dataSnapshot) throw new Error("plugin update has no rollback baseline");
+      return migratePluginInstance(next, dataSnapshot.schemaVersion);
+    },
     promoteCandidate: (next) => promotePluginInstance(next),
     accept: (next) => {
       active.set(manifest.id, next);
@@ -475,7 +480,10 @@ async function applyCandidate(entry: PluginCandidateDiskEntry): Promise<Installe
       if (existing) await rollbackPluginFiles(manifest.id);
       else await uninstallPluginFiles(manifest.id);
     },
-    restoreData: () => restorePluginData(manifest.id, dataSnapshot),
+    restoreData: () => {
+      if (!dataSnapshot) throw new Error("plugin update has no rollback baseline");
+      return restorePluginData(manifest.id, dataSnapshot);
+    },
     restartPrevious: async () => {
       if (previous && previousQuiesced) await restartPreviousInstance(previous);
     },

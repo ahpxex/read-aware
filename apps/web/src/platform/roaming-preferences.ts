@@ -205,13 +205,11 @@ export function publishRoamingPreference(key: RoamingPreferenceKey, value: unkno
 // write flows through localKV, the listener below matches it against the
 // roaming policies, and a matching write becomes its preference.changed
 // event automatically. Save functions know nothing about sync. The overlay
-// mutes the listener while it writes remote values back into KV — without
+// tags writes with their origin before persistence — without
 // that, every pull would echo its own contents straight back into the log.
 
-let overlayMuted = false;
-
-onLocalKVWrite((key, raw) => {
-  if (overlayMuted || !isTauri()) return;
+onLocalKVWrite((key, raw, origin) => {
+  if (origin === "remote" || !isTauri()) return;
   if (!roamingPolicyFor(key)) return;
   if (raw === null) {
     publishRoamingPreference(key, null);
@@ -272,33 +270,28 @@ function canonical(json: string | null): string | null {
 /** Projection → KV (and sealed rows → the secret store). Returns moved keys. */
 function overlayRows(rows: PreferenceRow[]): string[] {
   const changed: string[] = [];
-  overlayMuted = true;
-  try {
-    for (const row of rows) {
-      if (row.key.startsWith(SECRET_EVENT_PREFIX)) {
-        if (overlaySecret(row.key.slice(SECRET_EVENT_PREFIX.length), row.valueJson)) {
-          changed.push(row.key);
-        }
-        continue;
+  for (const row of rows) {
+    if (row.key.startsWith(SECRET_EVENT_PREFIX)) {
+      if (overlaySecret(row.key.slice(SECRET_EVENT_PREFIX.length), row.valueJson)) {
+        changed.push(row.key);
       }
-      const policy = roamingPolicyFor(row.key);
-      if (!policy) continue;
-      // A roamed deletion (value null) clears the local cache.
-      if (row.valueJson === "null") {
-        if (localKV.getItem(row.key) !== null) {
-          localKV.removeItem(row.key);
-          changed.push(row.key);
-        }
-        continue;
-      }
-      const current = localKV.getItem(row.key);
-      const next = mergeForDevice(row.valueJson, current, policy.deviceLocalFields);
-      if (next === null || canonical(next) === canonical(current)) continue;
-      localKV.setItem(row.key, next);
-      changed.push(row.key);
+      continue;
     }
-  } finally {
-    overlayMuted = false;
+    const policy = roamingPolicyFor(row.key);
+    if (!policy) continue;
+    // A roamed deletion (value null) clears the local cache.
+    if (row.valueJson === "null") {
+      if (localKV.getItem(row.key) !== null) {
+        localKV.removeItem(row.key, "remote");
+        changed.push(row.key);
+      }
+      continue;
+    }
+    const current = localKV.getItem(row.key);
+    const next = mergeForDevice(row.valueJson, current, policy.deviceLocalFields);
+    if (next === null || canonical(next) === canonical(current)) continue;
+    localKV.setItem(row.key, next, "remote");
+    changed.push(row.key);
   }
   return changed;
 }

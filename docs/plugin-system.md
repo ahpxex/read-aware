@@ -434,21 +434,34 @@ candidate flow. Staging is inert and does not replace the active plugin.
 For an update, the host:
 
 1. stages the candidate under a separate token;
-2. snapshots plugin KV, document data, and committed data-schema metadata;
-3. starts the candidate in read-only `activating` phase and health-checks it
+2. starts the candidate in read-only `activating` phase and health-checks it
    while the previous version remains available;
+3. quiesces and drains the previous runtime, then snapshots plugin KV,
+   document data, and committed data-schema metadata;
 4. commits the candidate to the active on-disk slot;
 5. verifies the committed manifest and version;
-6. quiesces the previous runtime so it cannot race shared-data migration;
+6. refreshes the candidate's KV mirror from the post-quiescence host state;
 7. runs upgrade/downgrade migration with storage-only authority;
 8. promotes the candidate's staged contributions;
 9. switches runtime ownership.
 
-On failure it stops the candidate, restores the previous files, restores KV,
-documents and schema metadata, and restarts the previous runtime only when it
-had been quiesced. Desktop startup also repairs an interrupted file switch when
+On failure it stops and drains the candidate. Files are rolled back only after
+their commit, and data is restored only once migration could have changed it.
+A health-check failure does not restore a stale snapshot over the still-live
+previous runtime. The previous runtime is restarted only if quiescence was
+attempted. Desktop startup also repairs an interrupted file switch when
 possible. Domain events and secret mutations are not rollback storage; the
 activation barrier makes them impossible before the promotion boundary.
+
+Storage service v2 keeps `get()` synchronous but makes `set()` and `remove()`
+awaitable durable writes; `flush()` waits for pending namespace writes. Worker
+writes use ordinary RPC acknowledgements and participate in migration drain.
+Committed schema metadata also waits for persistence. Host snapshots and Worker
+pending overlays are separate, so an older failure cannot erase a newer write.
+Roamed writes carry their origin through persistence instead of relying on a
+synchronous mute flag. These changes have source/unit evidence; actual desktop
+upgrade failure tests and cross-surface concurrent writes remain in the delivery
+ledger, not declared fully verified here.
 
 ### Uninstall
 

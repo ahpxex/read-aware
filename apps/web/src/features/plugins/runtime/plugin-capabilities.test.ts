@@ -41,8 +41,12 @@ describe("plugin capability negotiation", () => {
   test("rejects an incompatible host capability version", () => {
     expect(() =>
       assertPluginCapabilityRequirements(
-        manifest({ requires: { services: { storage: "^2.0.0" } } }),
+        manifest({ requires: { services: { storage: "^1.0.0" } } }),
       ),
-    ).toThrow(/host provides 1.0.0/);
+    ).toThrow(/host provides 2.0.0/);
+  });
+
+  test("accepts the awaited storage contract", () => {
+    expect(() => assertPluginCapabilityRequirements(manifest({ requires: { services: { storage: "^2.0.0" } } }))).not.toThrow();
   });
 });

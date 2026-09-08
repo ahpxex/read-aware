@@ -29,6 +29,7 @@ import type {
   PluginMigrationContext,
   PluginModule,
 } from "@read-aware/plugin-types";
+import { PluginStorageMirror } from "./plugin-storage-mirror";
 
 // ─── Wire protocol ───────────────────────────────────────────────────────────
 
@@ -57,6 +58,7 @@ type HostMessage =
   | { t: "result"; id: number; ok: false; error: string; code?: string }
   | { t: "health"; id: number }
   | { t: "migrate"; id: number; migration: PluginMigration }
+  | { t: "quiesce" }
   | { t: "deactivate" };
 
 type WorkerMessage =
@@ -64,12 +66,12 @@ type WorkerMessage =
   | { t: "failed"; error: string }
   | { t: "dispose"; handle: string }
   | { t: "call"; id: number; method: string; args: unknown[] }
-  | { t: "storage"; op: "set" | "remove"; key: string; value?: string }
   | { t: "result"; id: number; ok: true; value: unknown }
   | { t: "result"; id: number; ok: false; error: string; code?: string }
   | { t: "healthy"; id: number }
   | { t: "migrated"; id: number; ok: true }
-  | { t: "migrated"; id: number; ok: false; error: string };
+  | { t: "migrated"; id: number; ok: false; error: string }
+  | { t: "quiesced"; error?: string };
 
 const post = (message: WorkerMessage) => self.postMessage(message);
 
@@ -220,7 +222,7 @@ function remoteNamespace(path: string, shape: ContextShape): Record<string, unkn
 
 // ─── Locally-mirrored state (keeps the sync API sync) ────────────────────────
 
-const storageSnapshot = new Map<string, string>();
+const storageSnapshot = new PluginStorageMirror();
 let appLocale = "";
 let lifecyclePhase: PluginContext["lifecycle"]["phase"] = "activating";
 
@@ -281,17 +283,22 @@ function buildContext(
         return null;
       }
     },
-    set(key: string, value: unknown): void {
+    set(key: string, value: unknown): Promise<void> {
       assertLocalStorageWrite();
       const raw = JSON.stringify(value ?? null);
-      storageSnapshot.set(key, raw);
-      post({ t: "storage", op: "set", key, value: raw });
+      const id = storageSnapshot.begin(key, raw);
+      const call = callHost("services.storage.set", [key, value]);
+      void call.then(() => storageSnapshot.settle(id), () => storageSnapshot.settle(id));
+      return call as Promise<void>;
     },
-    remove(key: string): void {
+    remove(key: string): Promise<void> {
       assertLocalStorageWrite();
-      storageSnapshot.delete(key);
-      post({ t: "storage", op: "remove", key });
+      const id = storageSnapshot.begin(key, null);
+      const call = callHost("services.storage.remove", [key]);
+      void call.then(() => storageSnapshot.settle(id), () => storageSnapshot.settle(id));
+      return call as Promise<void>;
     },
+    flush: () => callHost("services.storage.flush", []),
     // Host-side writes (settings page, agent) arrive as a `sync` patch and
     // then as this notification — in that order, so the mirror the handler
     // reads from is already fresh. The plugin's own writes do not echo.
@@ -410,9 +417,7 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
   switch (message.t) {
     case "boot": {
       try {
-        for (const [key, value] of Object.entries(message.storage)) {
-          storageSnapshot.set(key, value);
-        }
+        storageSnapshot.replace(message.storage);
         appLocale = message.locale;
         lifecyclePhase = message.phase;
         const loaded = (await import(/* @vite-ignore */ message.url)) as {
@@ -471,10 +476,7 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
 
     case "sync": {
       if (message.patch.storage) {
-        storageSnapshot.clear();
-        for (const [key, value] of Object.entries(message.patch.storage)) {
-          storageSnapshot.set(key, value);
-        }
+        storageSnapshot.replace(message.patch.storage);
       }
       if (message.patch.locale !== undefined) appLocale = message.patch.locale;
       if (message.patch.phase !== undefined) lifecyclePhase = message.patch.phase;
@@ -495,6 +497,17 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
       return;
     }
 
+    case "quiesce": {
+      lifecyclePhase = "activating";
+      try {
+        await drainActivationCalls();
+        post({ t: "quiesced" });
+      } catch (error) {
+        post({ t: "quiesced", error: error instanceof Error ? error.message : String(error) });
+      }
+      return;
+    }
+
     case "migrate": {
       try {
         if (lifecyclePhase !== "migrating" || !pluginContext) {
@@ -510,6 +523,7 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
             get: pluginContext.services.storage.get,
             set: pluginContext.services.storage.set,
             remove: pluginContext.services.storage.remove,
+            flush: pluginContext.services.storage.flush,
             collection: pluginContext.services.storage.collection,
           },
         };

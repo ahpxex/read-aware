@@ -1297,8 +1297,11 @@ export type PluginDomains = {
 
 export type PluginStorage = {
   get<T = unknown>(key: string): T | null;
-  set(key: string, value: unknown): void;
-  remove(key: string): void;
+  /** Reads update optimistically; resolve only after the write is durable. */
+  set(key: string, value: unknown): Promise<void>;
+  remove(key: string): Promise<void>;
+  /** Wait for outstanding writes in this plugin's namespace. */
+  flush(): Promise<void>;
   /**
    * A named document collection — structured plugin-private data one tier
    * above the KV (queryable, per-document, optionally book-anchored). Backed

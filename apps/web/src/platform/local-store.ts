@@ -11,8 +11,9 @@
  *   No native runtime, fully synchronous, unchanged from before.
  * - **Desktop (Tauri):** an in-memory snapshot hydrated once at boot from the
  *   SQLite `app_kv` table (`load_kv_all`), read synchronously; writes update the
- *   snapshot immediately and persist to SQLite fire-and-forget (`set_kv` /
- *   `delete_kv`) — same write-through feel as `localStorage` had.
+ *   snapshot immediately and persist through an ordered write-through queue.
+ *   Async setters and flushLocalKV await durability; legacy synchronous
+ *   setters report failures through the logger and local-write-failed event.
  *
  * `hydrateLocalStore()` MUST be awaited before the app module graph (which seeds
  * atoms synchronously) is imported — see main.tsx. Until it resolves under
@@ -31,6 +32,7 @@ import { reconcileGenesisEvents } from "./event-genesis";
 import { hydrateInterimProjections } from "./interim-projections";
 import { createLogger } from "./logger";
 import { hydrateSecrets } from "./secret-store";
+import { KVWriteQueue, type KVWriteOrigin } from "./kv-write-queue";
 
 const log = createLogger("local-store");
 
@@ -47,14 +49,48 @@ let hydrated = false;
  * be pure policy instead of a publish call hand-planted in every save
  * function. Listeners must never write KV synchronously (recursion).
  */
-type KVWriteListener = (key: string, value: string | null) => void;
+type KVWriteListener = (key: string, value: string | null, origin: KVWriteOrigin) => void;
 const writeListeners = new Set<KVWriteListener>();
 export function onLocalKVWrite(listener: KVWriteListener): () => void {
   writeListeners.add(listener);
   return () => writeListeners.delete(listener);
 }
-function notifyWrite(key: string, value: string | null): void {
-  for (const listener of [...writeListeners]) listener(key, value);
+function notifyWrite(key: string, value: string | null, origin: KVWriteOrigin): void {
+  for (const listener of [...writeListeners]) {
+    try { listener(key, value, origin); } catch (error) { log.error("KV commit observer failed", error); }
+  }
+}
+
+const changeListeners = new Set<(key: string, value: string | null) => void>();
+/** Optimistic changes and rollbacks, for UI and Worker mirrors; not a durable-write feed. */
+export function onLocalKVChange(listener: (key: string, value: string | null) => void): () => void {
+  changeListeners.add(listener);
+  return () => changeListeners.delete(listener);
+}
+function notifyChange(key: string, value: string | null): void {
+  for (const listener of [...changeListeners]) {
+    try { listener(key, value); } catch (error) { log.error("KV mirror observer failed", error); }
+  }
+}
+const writes = new KVWriteQueue({
+  read: key => snapshot?.get(key) ?? null,
+  mirror: (key, value) => {
+    const previous = snapshot?.get(key) ?? null;
+    if (value === null) snapshot?.delete(key);
+    else (snapshot ??= new Map()).set(key, value);
+    if (value !== previous) notifyChange(key, value);
+  },
+  persist: (key, value) => value === null ? invoke<void>("delete_kv", { key }) : invoke<void>("set_kv", { key, value }),
+  committed: notifyWrite,
+  failed: (key, error) => {
+    log.error(`KV write failed for "${key}"`, error);
+    emitAppEvent("local-write-failed", { kind: "kv", code: errorCode(error) });
+  },
+});
+
+/** A durability barrier for writes already accepted by this process. */
+export async function flushLocalKV(prefix = ""): Promise<void> {
+  if (isTauri()) await writes.flush(prefix);
 }
 
 async function loadKvSnapshot(): Promise<Map<string, string>> {
@@ -69,41 +105,35 @@ export const localKV = {
     return snapshot?.get(key) ?? null;
   },
 
-  setItem(key: string, value: string): void {
+  setItem(key: string, value: string, origin: KVWriteOrigin = "local"): void {
     if (!isTauri()) {
       localStorage.setItem(key, value);
+      notifyChange(key, value);
       return;
     }
-    const previous = snapshot?.get(key) ?? null;
-    (snapshot ??= new Map()).set(key, value);
-    void invoke("set_kv", { key, value }).catch((err) => {
-      // Roll the snapshot back so the UI stops claiming a save that will not
-      // survive a restart, and let the app layer tell the user.
-      log.error(`set_kv failed for "${key}"`, err);
-      if (previous === null) snapshot?.delete(key);
-      else snapshot?.set(key, previous);
-      notifyWrite(key, previous);
-      emitAppEvent("local-write-failed", { kind: "kv", code: errorCode(err) });
-    });
-    notifyWrite(key, value);
+    void writes.write(key, value, origin);
   },
 
-  removeItem(key: string): void {
+  removeItem(key: string, origin: KVWriteOrigin = "local"): void {
     if (!isTauri()) {
       localStorage.removeItem(key);
+      notifyChange(key, null);
       return;
     }
-    const previous = snapshot?.get(key) ?? null;
-    snapshot?.delete(key);
-    void invoke("delete_kv", { key }).catch((err) => {
-      log.error(`delete_kv failed for "${key}"`, err);
-      if (previous !== null) {
-        snapshot?.set(key, previous);
-        notifyWrite(key, previous);
-      }
-      emitAppEvent("local-write-failed", { kind: "kv", code: errorCode(err) });
-    });
-    notifyWrite(key, null);
+    void writes.write(key, null, origin);
+  },
+
+  setItemAsync(key: string, value: string): Promise<void> {
+    if (isTauri()) return writes.write(key, value);
+    localStorage.setItem(key, value);
+    notifyChange(key, value);
+    return Promise.resolve();
+  },
+  removeItemAsync(key: string): Promise<void> {
+    if (isTauri()) return writes.write(key, null);
+    localStorage.removeItem(key);
+    notifyChange(key, null);
+    return Promise.resolve();
   },
 
   /**
@@ -208,6 +238,7 @@ export async function hydrateLocalStore(): Promise<void> {
 
 /** Snapshot every device-local `read-aware-*` value (for a full-backup export). */
 export async function dumpLocalKV(): Promise<Record<string, string>> {
+  await flushLocalKV();
   if (isTauri()) return invoke<Record<string, string>>("load_kv_all");
   const out: Record<string, string> = {};
   for (let i = 0; i < localStorage.length; i += 1) {
@@ -224,15 +255,14 @@ export async function dumpLocalKV(): Promise<Record<string, string>> {
 export async function restoreLocalKV(entries: Record<string, string>): Promise<void> {
   if (isTauri()) {
     for (const [key, value] of Object.entries(entries)) {
-      (snapshot ??= new Map()).set(key, value);
-      await invoke("set_kv", { key, value });
+      await localKV.setItemAsync(key, value);
     }
     return;
   }
   for (const [key, value] of Object.entries(entries)) localStorage.setItem(key, value);
 }
 
-/** Atomically replace one namespaced KV snapshot and then mirror it in memory. */
+/** Atomically replace a namespace, ordered with all accepted KV writes. */
 export async function replaceLocalKVPrefix(
   prefix: string,
   entries: Record<string, string>,
@@ -247,11 +277,8 @@ export async function replaceLocalKVPrefix(
     return;
   }
 
-  await invoke("replace_kv_prefix", { prefix, entries });
-  for (const key of [...(snapshot ?? new Map()).keys()]) {
-    if (key.startsWith(prefix)) snapshot?.delete(key);
-  }
-  for (const [suffix, value] of Object.entries(entries)) {
-    (snapshot ??= new Map()).set(prefix + suffix, value);
-  }
+  const previous = localKV.entries(prefix);
+  const values = new Map([...new Set([...Object.keys(previous), ...Object.keys(entries)])]
+    .map(suffix => [prefix + suffix, entries[suffix] ?? null] as const));
+  await writes.replace(values, () => invoke("replace_kv_prefix", { prefix, entries }));
 }

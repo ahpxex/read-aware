@@ -25,7 +25,7 @@ import { buildPluginContext, currentAppLocale, pluginStoragePrefix } from "./plu
 import { pluginModuleUrl } from "./plugin-backend";
 import { i18n } from "../../../i18n";
 import { onAppEvent } from "../../../platform/app-events";
-import { localKV } from "../../../platform/local-store";
+import { localKV, onLocalKVChange } from "../../../platform/local-store";
 import { createLogger } from "../../../platform/logger";
 import { updateInstalledPlugin } from "../state/plugin-store";
 
@@ -36,12 +36,12 @@ type WorkerMessage =
   | { t: "failed"; error: string }
   | { t: "dispose"; handle: string }
   | { t: "call"; id: number; method: string; args: unknown[] }
-  | { t: "storage"; op: "set" | "remove"; key: string; value?: string }
   | { t: "result"; id: number; ok: true; value: unknown }
   | { t: "result"; id: number; ok: false; error: string; code?: string }
   | { t: "healthy"; id: number }
   | { t: "migrated"; id: number; ok: true }
-  | { t: "migrated"; id: number; ok: false; error: string };
+  | { t: "migrated"; id: number; ok: false; error: string }
+  | { t: "quiesced"; error?: string };
 
 /** A `{ __fn: handle }` marker the Worker put where a function used to be. */
 type FnRef = { __fn: string };
@@ -80,6 +80,12 @@ let syncWired = false;
 function wireHostSync(): void {
   if (syncWired) return;
   syncWired = true;
+  onLocalKVChange((key) => {
+    for (const { pluginId, worker } of liveWorkers.values()) {
+      const prefix = pluginStoragePrefix(pluginId);
+      if (key.startsWith(prefix)) worker.postMessage({ t: "sync", patch: { storage: localKV.entries(prefix) } });
+    }
+  });
   onAppEvent("plugin-storage-changed", ({ pluginId }) => {
     for (const live of liveWorkers.values()) {
       if (live.pluginId !== pluginId) continue;
@@ -221,6 +227,9 @@ export function startPluginWorker(
   liveWorkers.set(instanceId, { pluginId: manifest.id, worker });
   const runtime = buildPluginContext(manifest, appVersion, disposables);
   const ctx = runtime.context;
+  let terminated = false;
+  let termination: Promise<void> | undefined;
+  let acknowledgeQuiescence: ((error?: string) => void) | undefined;
 
   let nextInvokeId = 1;
   const pendingInvokes = new Map<
@@ -330,6 +339,7 @@ export function startPluginWorker(
     };
 
     worker.onmessage = async (event: MessageEvent<WorkerMessage>) => {
+      if (terminated) return;
       const message = event.data;
       switch (message.t) {
         case "ready":
@@ -356,7 +366,7 @@ export function startPluginWorker(
               },
               migrate(migration) {
                 runtime.lifecycle.beginMigration();
-                worker.postMessage({ t: "sync", patch: { phase: "migrating" } });
+                worker.postMessage({ t: "sync", patch: { phase: "migrating", storage: localKV.entries(pluginStoragePrefix(manifest.id)) } });
                 const id = nextMigrationId++;
                 return new Promise<void>((migrationResolve, migrationReject) => {
                   const timeout = setTimeout(() => {
@@ -382,20 +392,36 @@ export function startPluginWorker(
                   throw error;
                 }
               },
-              async terminate() {
-                const live = liveWorkers.get(instanceId);
-                if (live?.worker === worker) liveWorkers.delete(instanceId);
-                runtime.lifecycle.suspend();
-                worker.postMessage({ t: "sync", patch: { phase: "activating" } });
-                worker.postMessage({ t: "deactivate" });
-                // Give deactivate() a moment to run its own cleanup, then take
-                // the realm down regardless — a plugin must not be able to
-                // outlive its uninstall by stalling here.
-                await new Promise((done) => setTimeout(done, 50));
-                worker.terminate();
-                failAllInvokes(`plugin "${manifest.id}" was deactivated`);
-                failAllHealthChecks(`plugin "${manifest.id}" was deactivated`);
-                failAllMigrations(`plugin "${manifest.id}" was deactivated`);
+              terminate() {
+                return termination ??= (async () => {
+                  // This message barrier lets already-issued Worker writes reach
+                  // the host before it closes the gate and drains native writes.
+                  const quiescenceError = await new Promise<string | undefined>(done => {
+                    const timeout = setTimeout(() => done("plugin quiescence timed out"), 2_000);
+                    acknowledgeQuiescence = error => { clearTimeout(timeout); done(error); };
+                    worker.postMessage({ t: "quiesce" });
+                  });
+                  acknowledgeQuiescence = undefined;
+                  // Retire migration timers/results before closing the lifecycle:
+                  // a late response must not reopen (or throw from) a stopped realm.
+                  failAllMigrations(`plugin "${manifest.id}" was deactivated`);
+                  runtime.lifecycle.stop();
+                  try {
+                    await runtime.lifecycle.drainStorageWrites();
+                    if (quiescenceError) throw new Error(quiescenceError);
+                  } finally {
+                    worker.postMessage({ t: "deactivate" });
+                    await new Promise(done => setTimeout(done, 50));
+                    terminated = true;
+                    const live = liveWorkers.get(instanceId);
+                    if (live?.worker === worker) liveWorkers.delete(instanceId);
+                    worker.terminate();
+                    heldDisposables.clear();
+                    failAllInvokes(`plugin "${manifest.id}" was deactivated`);
+                    failAllHealthChecks(`plugin "${manifest.id}" was deactivated`);
+                    failAllMigrations(`plugin "${manifest.id}" was deactivated`);
+                  }
+                })();
               },
             });
           }
@@ -423,18 +449,8 @@ export function startPluginWorker(
           return;
         }
 
-        case "storage":
-          try {
-            if (message.op === "set" && message.value !== undefined) {
-              ctx.services.storage.set(message.key, JSON.parse(message.value));
-            } else if (message.op === "remove") {
-              ctx.services.storage.remove(message.key);
-            }
-          } catch (error) {
-            const detail = error instanceof Error ? error.message : String(error);
-            log.error(`storage write from "${manifest.id}" rejected`, detail);
-            options.onRuntimeError?.(detail);
-          }
+        case "quiesced":
+          acknowledgeQuiescence?.(message.error);
           return;
 
         case "call": {

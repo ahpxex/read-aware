@@ -30,7 +30,7 @@ export type ContributionPermission = Exclude<
 
 /** Bounded host facilities. Core local services need no additional consent. */
 export const HOST_SERVICE_CATALOG = {
-  storage: { version: "1.0.0", permission: null },
+  storage: { version: "2.0.0", permission: null },
   secrets: { version: "1.0.0", permission: null },
   ui: { version: "1.0.0", permission: null },
   schedules: { version: "1.0.0", permission: null },

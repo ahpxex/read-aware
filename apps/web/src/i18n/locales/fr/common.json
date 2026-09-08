@@ -12,6 +12,7 @@
     "copied": "Copié"
   },
   "errors": {
+    "readerPlaybackFailed": "La lecture à voix haute s'est arrêtée car l'audio n'a pas pu être lu. Réessayez ou choisissez une autre voix.",
     "annotationConflict": "Cette annotation a changé. Relisez-la avant d'appliquer vos modifications.",
     "annotationUnavailable": "Le stockage des annotations n'est pas disponible dans cet environnement.",
     "annotationCancelled": "La modification a été annulée avant son envoi.",

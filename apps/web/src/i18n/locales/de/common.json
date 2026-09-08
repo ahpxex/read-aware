@@ -12,6 +12,7 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "readerPlaybackFailed": "Das Vorlesen wurde wegen eines Audioproblems gestoppt. Versuche es erneut oder wähle eine andere Stimme.",
     "annotationConflict": "Diese Anmerkung wurde geändert. Lies sie erneut, bevor du Änderungen übernimmst.",
     "annotationUnavailable": "Der Anmerkungsspeicher ist in dieser Umgebung nicht verfügbar.",
     "annotationCancelled": "Die Änderung wurde vor dem Absenden abgebrochen.",

@@ -96,6 +96,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   open_book: { bookId: BOOK_ID },
   get_reading_session: {},
   navigate_reading: { action: "next" },
+  control_read_aloud: { action: "stop" },
   ask_user: {
     question: "Which direction?",
     options: [

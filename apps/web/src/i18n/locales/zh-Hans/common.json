@@ -12,6 +12,7 @@
     "copied": "已复制"
   },
   "errors": {
+    "readerPlaybackFailed": "音频无法播放，朗读已停止。请重试或更换声音。",
     "annotationConflict": "这条标注已被修改。请重新读取后再决定如何修改。",
     "annotationUnavailable": "当前环境无法访问标注存储。",
     "annotationCancelled": "标注修改已在提交前取消。",

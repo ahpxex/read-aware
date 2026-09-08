@@ -102,5 +102,19 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
       return textResult(result);
     },
   };
-  return [openBook, session, control];
+  const playback: AgentTool = {
+    name: "control_read_aloud", label: "Control read aloud",
+    description: "Start or stop read aloud in the active text-unit reading mode. Inspect get_reading_session.playback first; an inactive mode or missing unit/voice is unavailable. Start completes only when audio starts, not when synthesis is requested. Does not grant access to passage text. Stop does not rewind the reading position.",
+    parameters: Type.Object({ action: Type.Union([Type.Literal("start"), Type.Literal("stop")]) }),
+    executionMode: "sequential",
+    execute: async (_id, params, signal) => {
+      const current = await deps.reader.getSession();
+      if (!current.sessionId || scope.kind === "book" && current.bookId !== scope.bookId) throw new Error("This book is not the active reader");
+      const { action } = params as { action: "start" | "stop" };
+      return textResult(await deps.reader.controlPlayback(action, signal, {
+        sessionId: current.sessionId, ...(scope.kind === "book" ? { bookId: scope.bookId } : {}),
+      }));
+    },
+  };
+  return [openBook, session, control, playback];
 }

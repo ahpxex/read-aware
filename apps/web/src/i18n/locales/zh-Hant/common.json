@@ -12,6 +12,7 @@
     "copied": "已複製"
   },
   "errors": {
+    "readerPlaybackFailed": "音訊無法播放，朗讀已停止。請重試或更換聲音。",
     "annotationConflict": "這則標註已被修改。請重新讀取後再決定如何修改。",
     "annotationUnavailable": "目前環境無法存取標註儲存空間。",
     "annotationCancelled": "標註修改已在提交前取消。",

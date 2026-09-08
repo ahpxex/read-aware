@@ -293,3 +293,26 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [环境] 两个诊断包经设置的二次确认卸载，正式目录不存在；应用与本机测试服务已停止。它们位于 scripts/fixtures，有可复现操作说明，不计为用户要求的实用组合插件。矩阵 CON09 与总验证边界更新，模型 Markdown 现状映射同步；仍是 215 行 / 559 库存 / 129 旧验收项、30 单元 / 32 场景。两对生成器/pair validator、7 项建模门禁通过。矩阵 HTML 的 1440×1000、1024×768、390×844 无横向溢出，中英文筛选、Escape、抽屉、主题刷新保持、锚点和截图检查通过，无浏览器错误，既有 CDN 返回 200；模型 HTML 目标未改，不新增图。文档浏览器不是产品验证。
 
 仍未完成：Windows WebView2/Linux WebKitGTK 实机策略验证、其他全局对象/存储/平台绕行、直接消息的全 schema/参数边界、执行中撤权和资源耗尽、全部 provider 生命周期，以及剩余双端能力与 W01–W32 实用组合。此次关闭的是三条已复现的联网路径，不把修复它们称作完整沙箱认证或整体目标完成。
+
+## 2026-09-09 共享朗读控制与 Listening Desk
+
+[代码] reading 2.1 将 READ18 的启停和播放状态接到两端：Agent `control_read_aloud`，插件 `reading.commands.controlPlayback`，共同读取 `session.playback` 并通过既有 session observation 获得变化。实际工具栏、Agent 和插件使用同一个 ReadAloudController，不再各自维护播放真相。启动回执等到 Web Audio resume/source.start 或系统语音 onstart；合成请求已发出不算开始。快照含状态、unavailableReason、backend、fallback、owner 和单元 CFI，不额外暴露正文。播放不是逐字时间定位，不含暂停恢复。
+
+- 开始、停止和自动续读有代次隔离；换单元、换 voice、停用发起插件、换书和关闭会话取消当前音频，迟到合成/回调/预取不得启动旧音频或污染新缓存。发起插件生命周期信号在初次回执后继续拥有该次播放；用户接管后旧信号不能停止用户的播放。底层 provider 合成尚不支持通用中止，不能将隔离迟到结果声称为取消了远端工作或费用。
+- start 最多等 30 秒；自动续读跨章节的临时无单元状态最多等 6 秒，没有新单元返回 reader/timeout，而不是擅自认定全书读完。读不到模式/单元/声音时明确 unavailable。系统 voiceschanged 更新可用性，不能只以 speechSynthesis 对象存在认为声音可用。后台降级记录日志，失败走稳定码和八语言 toast。
+- Agent 使用当前 book/session guard，插件写权限与 lifecycle gate 保留；read-only Worker 可查状态但没有 commands。会话替换解绑旧控制器，旧 disposer 不得清除新绑定。最后复核另补每个自动单元都必须收到 onStart、重复 onEnd 不重复步进两项回归；这两项异常回调的最终增量由单元测试验证，未再次作为原生语音故障注入。
+
+[代码] 新增可选实用插件 `plugins/listening-desk`，组合已公开的朗读、会话和导航历史，带阅读 header 弹窗及命令入口、8 种语言和打包产物。开始/停止、前进/后退按捕获的会话执行；缺当前段落时不显示虚假的 Start。它展示按需加载的状态快照，操作后或显式 Refresh 才重读，不声称实时刷新外部操作。最终桌面截图核对已去除重复内部标题并显示 Play/Stop 图标。开发 RepoDist 会发现它，release 的 BUNDLED 表没有增加它，不宣称发布版已内置。
+
+[代码/环境] 实际桌面测试暴露并先独立提交两项基础修复：
+
+1. `880bd4a3`：开发 Vite 向 Worker 注入 @vite/client，与刚加固的独立 CSP 冲突，导致插件启动失败。开发入口改为直接提供独立打包的 Worker，不带 HMR/WebSocket；仍用同一响应 CSP，没有放宽 connect-src/worker-src。HTTP 中间件测试检查策略以及未注入客户端，真实 Tauri 插件恢复启动。生产策略逻辑不变。
+2. `6bac2b17`：声音列表的不可变更新替换了登记对象，旧 identity disposer 因而漏删停用后的 voice。注册表改以登记 token 维护所有权，快照更新不改变 owner，旧 disposer 不影响同 ID 新登记；禁止更新 ID/pluginId。回归测试与真实清理的 remainingVoices=0 验证修复。
+
+[环境] [结构化桌面证据](./evidence/reading-playback-2026-09-09.json)：隔离 macOS Tauri debug / WebKit Worker，用实际产品 Agent 工具和 Listening Desk 互相启停；两秒 PCM 测试声音结束后自动推进到不同 CFI；provider 故意拒绝后实际系统声音启动并报告 fallback=true；发起插件停用后贡献为空、播放停止；延迟合成期间停用返回 plugin/cancelled，等待迟到结果后仍停止；合成期间关闭阅读返回 reader/superseded，随后会话 idle/no-session。原生 header 弹窗、Start/Stop 和工具栏状态已截图核对。这证明真实播放 API 启动，不是麦克风录音证明物理扬声器可听，也不是远端模型决策或远端 TTS 验收。
+
+[环境] 测试过程的失败没有省略：Vite 优化/HMR 导致页面重载与 hook-order 错误；一次直接动态导入 plugin-host 的诊断用了不一致模块图，没有正确停用命令，不能作为通过；之后冷启动并由夹具静态导入同一宿主实例重跑。一次探针首次启动失败，显式重试后成功。最终探针命令/声音均为 0，TTS 启用状态已恢复，阅读已关闭；隔离应用及文档浏览器已停止，5184/9224 无监听。正式用户应用、数据和 9223 进程未修改。
+
+[环境] 最终强制全仓测试 19 个任务通过（无缓存；web 643 项），typecheck 22 个任务通过，生产 web 构建通过，保留既有 chunk/dynamic-import/Node DEP0205 警告。原生代码未改，本轮没有重跑 release 音频验收。两个文档生成器、7 项建模门禁、两对 pair validator 通过；重扫为 215 行 / 563 库存映射 / 129 旧验收项、30 责任单元 / 32 场景。两份 HTML 在 1440/1024/390 宽度、搜索、Escape/抽屉、主题刷新保持、锚点和截图检查通过；最终矩阵结论文案修正后另复检三个宽度与中英文筛选，截图为 `/tmp/readaware-playback-matrix-final-{1440,390}.png`。无浏览器错误、既有 CDN 返回 200；未增加图，文档仍依赖 CDN，文档浏览器不作为产品证据。
+
+仍未完成：READ16 模式启停/步进/恢复双端入口、完整 provider 取消与所有权策略、跨平台/release/真实远端 TTS/全部格式音频回归、动态插件视图，以及其余双端能力与 W01–W32 组合消费者。READ18 当前限定的控制已接通，不把本轮改动当作 D2、Q2 或完整目标完成。

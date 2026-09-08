@@ -12,14 +12,14 @@
 let activeUtterance: SpeechSynthesisUtterance | null = null;
 
 export function speechAvailable(): boolean {
-  return typeof window !== "undefined" && "speechSynthesis" in window;
+  return typeof window !== "undefined" && "speechSynthesis" in window && window.speechSynthesis.getVoices().length > 0;
 }
 
 export type SpeakHandle = { cancel: () => void };
 
 export function speakText(
   text: string,
-  callbacks: { onEnd: () => void; onError: (error: string) => void },
+  callbacks: { onStart: () => void; onEnd: () => void; onError: (error: unknown) => void },
 ): SpeakHandle {
   const synth = window.speechSynthesis;
   synth.cancel();
@@ -32,6 +32,9 @@ export function speakText(
     settled = true;
     activeUtterance = null;
     fire();
+  };
+  utterance.onstart = () => {
+    if (!settled && activeUtterance === utterance) callbacks.onStart();
   };
   utterance.onend = () => settle(callbacks.onEnd);
   utterance.onerror = (event) => {

@@ -1,3 +1,5 @@
+import type { EventOrigin } from "./entities";
+
 /** Serializable reading state shared by the host, plugins and the product Agent. */
 export type ReadingTextQuote = { exact: string; prefix?: string; suffix?: string };
 
@@ -36,6 +38,24 @@ export type ReadingSessionSnapshot = {
   visibleText: string;
   errorCode?: string;
   history: { canGoBack: boolean; canGoForward: boolean };
+  playback: ReadingPlaybackSnapshot;
+};
+
+/** Text is deliberately omitted: playback control grants no additional reading access. */
+export type ReadingPlaybackSnapshot = {
+  status: "unavailable" | "stopped" | "preparing" | "playing" | "advancing" | "error";
+  unavailableReason: "no-session" | "mode-inactive" | "no-voice" | "no-unit" | null;
+  backend: "plugin" | "system" | null;
+  fallback: boolean;
+  owner: EventOrigin | null;
+  cfiRange: string | null;
+  errorCode?: string;
+};
+
+export type ReadingPlaybackReceipt = {
+  status: "completed";
+  sessionId: string;
+  playback: ReadingPlaybackSnapshot;
 };
 
 export type ReadingNavigationReceipt = {

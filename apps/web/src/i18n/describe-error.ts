@@ -73,6 +73,7 @@ type CopyEntry = {
 const AI_SETTINGS: ErrorAction = "open-ai-settings";
 
 const CODE_COPY: Record<string, CopyEntry> = {
+  "reader/playback-failed": { key: "readerPlaybackFailed", retryable: true },
   "annotations/conflict": { key: "annotationConflict", retryable: false },
   "annotations/unavailable": { key: "annotationUnavailable", retryable: false },
   "annotations/cancelled": { key: "annotationCancelled", retryable: false },

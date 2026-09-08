@@ -144,6 +144,7 @@ export interface AnnotationsPort {
 }
 
 export interface ReaderPort {
+  controlPlayback(action: "start" | "stop", signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingPlaybackReceipt>;
   getSession(): Promise<import("@read-aware/core").ReadingSessionSnapshot>;
   /** Resolves only after the desktop renderer reports its actual location. */
   openBook(bookId: Id, signal?: AbortSignal): Promise<import("@read-aware/core").ReadingNavigationReceipt>;

@@ -12,6 +12,7 @@
     "copied": "Copiado"
   },
   "errors": {
+    "readerPlaybackFailed": "La lectura en voz alta se detuvo porque no se pudo reproducir el audio. Inténtalo de nuevo o elige otra voz.",
     "annotationConflict": "Esta anotación ha cambiado. Vuelve a leerla antes de aplicar tus cambios.",
     "annotationUnavailable": "El almacenamiento de anotaciones no está disponible en este entorno.",
     "annotationCancelled": "El cambio se canceló antes de enviarse.",

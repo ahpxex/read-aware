@@ -1,4 +1,14 @@
-import { AppError, errorCode, type ReadingLocation, type ReadingNavigationReceipt, type ReadingSessionSnapshot, type ReadingSessionGuard, type ReadingTarget } from "@read-aware/core";
+import { AppError, errorCode, type EventOrigin, type ReadingPlaybackSnapshot, type ReadingPlaybackReceipt, type ReadingLocation, type ReadingNavigationReceipt, type ReadingSessionSnapshot, type ReadingSessionGuard, type ReadingTarget } from "@read-aware/core";
+
+export type ReadingPlaybackAdapter = {
+  snapshot(): ReadingPlaybackSnapshot;
+  observe(listener: () => void): () => void;
+  start(owner: EventOrigin, signal?: AbortSignal): Promise<void>;
+  stop(): void;
+};
+export const unavailablePlayback = (): ReadingPlaybackSnapshot => ({
+  status: "unavailable", unavailableReason: "no-session", backend: null, fallback: false, owner: null, cfiRange: null,
+});
 
 export type ReadingEngineAdapter = {
   navigate(target: ReadingTarget): Promise<ReadingLocation>;
@@ -11,6 +21,7 @@ type Shell = { open(bookId: string, intent: number): void | Promise<void>; close
 export class ReadingSessionController {
   private session: Session | undefined;
   private shell: Shell | undefined;
+  private playbackAdapter: { id: string; adapter: ReadingPlaybackAdapter; dispose(): void } | undefined;
   private readonly listeners = new Set<(snapshot: ReadingSessionSnapshot) => unknown>();
   private readonly changes = new Set<() => void>();
   private history: ReadingLocation[] = [];
@@ -21,6 +32,7 @@ export class ReadingSessionController {
   private state: ReadingSessionSnapshot = {
     revision: 0, sessionId: null, bookId: null, status: "idle", location: null, visibleText: "",
     history: { canGoBack: false, canGoForward: false },
+    playback: unavailablePlayback(),
   };
 
   constructor(private readonly report: (error: unknown) => void = () => {}, private readonly deadlineMs = 30_000) {}
@@ -41,10 +53,11 @@ export class ReadingSessionController {
   begin(bookId: string, intent?: number): string {
     if (intent !== undefined && intent !== this.intent) throw new AppError("reader/superseded", "Book opening was replaced");
     if (intent === undefined) this.intent++;
+    this.detachPlayback();
     const id = crypto.randomUUID();
     this.userOpening = intent === undefined ? { id, before: this.state.location } : undefined;
     this.session = { id, bookId };
-    this.publish({ sessionId: id, bookId, status: "loading", location: null, visibleText: "", errorCode: undefined });
+    this.publish({ sessionId: id, bookId, status: "loading", location: null, visibleText: "", errorCode: undefined, playback: unavailablePlayback() });
     return id;
   }
 
@@ -71,14 +84,52 @@ export class ReadingSessionController {
   fail(id: string, error: unknown): void {
     if (this.session?.id !== id) return;
     this.session.error = error;
-    this.publish({ status: "error", errorCode: errorCode(error) ?? "reader/load-failed" });
+    this.detachPlayback();
+    this.publish({ status: "error", errorCode: errorCode(error) ?? "reader/load-failed", playback: unavailablePlayback() });
   }
 
   closed(): void {
     if (this.state.location && this.cursor >= 0) this.history[this.cursor] = this.state.location;
     this.intent++;
+    this.detachPlayback();
     this.session = undefined;
-    this.publish({ status: "idle", sessionId: null, bookId: null, location: null, visibleText: "", errorCode: undefined });
+    this.publish({ status: "idle", sessionId: null, bookId: null, location: null, visibleText: "", errorCode: undefined, playback: unavailablePlayback() });
+  }
+
+  bindPlayback(id: string, adapter: ReadingPlaybackAdapter): () => void {
+    if (this.session?.id !== id) return () => {};
+    this.detachPlayback();
+    const binding = { id, adapter, dispose: () => {} };
+    this.playbackAdapter = binding;
+    binding.dispose = adapter.observe(() => {
+      if (this.playbackAdapter === binding && this.session?.id === id) this.publish({ playback: adapter.snapshot() });
+    });
+    this.publish({ playback: adapter.snapshot() });
+    return () => {
+      if (this.playbackAdapter !== binding) return;
+      this.detachPlayback();
+      this.publish({ playback: unavailablePlayback() });
+    };
+  }
+
+  async controlPlayback(action: "start" | "stop", owner: EventOrigin, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingPlaybackReceipt> {
+    if (signal?.aborted) throw signal.reason;
+    this.checkGuard(guard);
+    if (action !== "start" && action !== "stop") throw new AppError("reader/invalid-target", "Invalid playback action");
+    const binding = this.playbackAdapter;
+    if (!binding || this.session?.id !== binding.id || this.state.status !== "ready") throw new AppError("reader/unavailable", "Read aloud is not attached to a ready reader");
+    if (action === "start") await binding.adapter.start(owner, signal);
+    else binding.adapter.stop();
+    this.checkGuard(guard);
+    if (this.playbackAdapter !== binding) throw new AppError("reader/superseded", "Playback session was replaced");
+    return { status: "completed", sessionId: binding.id, playback: structuredClone(binding.adapter.snapshot()) };
+  }
+
+  private detachPlayback(): void {
+    const binding = this.playbackAdapter;
+    this.playbackAdapter = undefined;
+    binding?.dispose();
+    binding?.adapter.stop();
   }
 
   close(signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<void> {

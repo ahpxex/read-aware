@@ -1,0 +1,92 @@
+// src/strings.ts
+var locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
+var labels = {
+  title: ["Listening Desk", "朗读台", "朗讀台", "読み上げ", "Чтение вслух", "Lecture audio", "Vorlesen", "Lectura en voz alta"],
+  start: ["Start", "开始", "開始", "開始", "Начать", "Démarrer", "Starten", "Iniciar"],
+  stop: ["Stop", "停止", "停止", "停止", "Остановить", "Arrêter", "Stoppen", "Detener"],
+  refresh: ["Refresh", "刷新", "重新整理", "更新", "Обновить", "Actualiser", "Aktualisieren", "Actualizar"],
+  back: ["Back", "后退", "返回", "戻る", "Назад", "Retour", "Zurück", "Atrás"],
+  forward: ["Forward", "前进", "前進", "進む", "Вперёд", "Suivant", "Vorwärts", "Adelante"],
+  unavailable: ["Unavailable", "不可用", "無法使用", "利用不可", "Недоступно", "Indisponible", "Nicht verfügbar", "No disponible"],
+  stopped: ["Stopped", "已停止", "已停止", "停止中", "Остановлено", "Arrêtée", "Gestoppt", "Detenida"],
+  preparing: ["Preparing audio", "正在准备音频", "正在準備音訊", "音声を準備中", "Подготовка звука", "Préparation audio", "Audio wird vorbereitet", "Preparando audio"],
+  playing: ["Playing", "正在朗读", "正在朗讀", "読み上げ中", "Воспроизведение", "En cours", "Wiedergabe", "Reproduciendo"],
+  advancing: ["Next passage", "下一段", "下一段", "次の文章", "Следующий отрывок", "Passage suivant", "Nächster Abschnitt", "Siguiente pasaje"],
+  error: ["Playback failed", "朗读失败", "朗讀失敗", "読み上げ失敗", "Ошибка воспроизведения", "Échec audio", "Wiedergabe fehlgeschlagen", "Error de reproducción"],
+  system: ["System voice", "系统声音", "系統聲音", "システム音声", "Системный голос", "Voix système", "Systemstimme", "Voz del sistema"],
+  plugin: ["Plugin voice", "插件声音", "外掛聲音", "プラグイン音声", "Голос плагина", "Voix du plugin", "Plugin-Stimme", "Voz del complemento"],
+  fallback: ["System fallback", "系统声音回退", "系統聲音備援", "システム音声に切替", "Резервный системный голос", "Repli sur la voix système", "Systemstimme als Ersatz", "Voz del sistema de respaldo"],
+  "no-session": ["No open book", "尚未打开书籍", "尚未開啟書籍", "本が開いていません", "Книга не открыта", "Aucun livre ouvert", "Kein Buch geöffnet", "Ningún libro abierto"],
+  "mode-inactive": ["Text-unit mode is inactive", "句段阅读模式未开启", "句段閱讀模式未開啟", "文章単位モードは無効", "Режим отрывков выключен", "Mode par passage inactif", "Abschnittsmodus ist inaktiv", "Modo por pasajes inactivo"],
+  "no-voice": ["No voice available", "没有可用声音", "沒有可用聲音", "音声を利用できません", "Нет доступного голоса", "Aucune voix disponible", "Keine Stimme verfügbar", "No hay voz disponible"],
+  "no-unit": ["No current passage", "当前没有段落", "目前沒有段落", "現在の文章なし", "Нет текущего отрывка", "Aucun passage actuel", "Kein aktueller Abschnitt", "Sin pasaje actual"]
+};
+function tr(locale, key) {
+  return labels[key][Math.max(0, locales.indexOf(locale))];
+}
+
+// src/views.ts
+async function listeningView(ctx) {
+  const reading = ctx.domains.reading;
+  if (!reading?.commands)
+    throw new Error("Listening Desk requires reading:write");
+  const state = await reading.queries.session();
+  const playback = state.playback;
+  const guard = { sessionId: state.sessionId ?? undefined, bookId: state.bookId ?? undefined };
+  const refresh = async () => ({ view: await listeningView(ctx), navigation: "replace" });
+  const actions = [];
+  if (state.status === "ready" && state.sessionId) {
+    if (["preparing", "playing", "advancing"].includes(playback.status)) {
+      actions.push({ id: "stop", label: tr(ctx.locale, "stop"), icon: "stop", run: async () => {
+        await reading.commands.controlPlayback("stop", guard);
+        return refresh();
+      } });
+    } else if (!playback.unavailableReason) {
+      actions.push({ id: "start", label: tr(ctx.locale, "start"), icon: "play", run: async () => {
+        await reading.commands.controlPlayback("start", guard);
+        return refresh();
+      } });
+    }
+    for (const direction of ["back", "forward"]) {
+      if (!(direction === "back" ? state.history.canGoBack : state.history.canGoForward))
+        continue;
+      actions.push({ id: direction, label: tr(ctx.locale, direction), icon: direction === "back" ? "arrow-left" : "arrow-right", run: async () => {
+        await reading.commands[direction](guard);
+        return refresh();
+      } });
+    }
+  }
+  actions.push({ id: "refresh", label: tr(ctx.locale, "refresh"), icon: "arrows-clockwise", run: refresh });
+  return { kind: "blocks", blocks: [
+    { kind: "text", text: tr(ctx.locale, playback.status) },
+    ...playback.unavailableReason ? [{ kind: "text", text: tr(ctx.locale, playback.unavailableReason) }] : [],
+    ...playback.backend ? [{ kind: "text", text: tr(ctx.locale, playback.fallback ? "fallback" : playback.backend) }] : [],
+    { kind: "actions", actions }
+  ] };
+}
+
+// src/index.ts
+var src_default = {
+  activate(ctx) {
+    if (!ctx.domains.reading?.commands)
+      throw new Error("Listening Desk requires reading:write");
+    const title = tr(ctx.locale, "title");
+    ctx.contributions.headerActions.register({ id: "reader", title, icon: "speaker", surface: "reader", presentation: "popup", view: () => listeningView(ctx) });
+    ctx.contributions.commands.register({ id: "open", title, icon: "speaker", run: async () => ({ view: await listeningView(ctx) }) });
+    for (const action of ["start", "stop"])
+      ctx.contributions.commands.register({
+        id: action,
+        title: `${title}: ${tr(ctx.locale, action)}`,
+        icon: action === "start" ? "play" : "stop",
+        run: async () => {
+          const session = await ctx.domains.reading.queries.session();
+          if (!session.sessionId)
+            throw new Error("No active reading session");
+          await ctx.domains.reading.commands.controlPlayback(action, { sessionId: session.sessionId });
+        }
+      });
+  }
+};
+export {
+  src_default as default
+};

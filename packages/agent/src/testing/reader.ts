@@ -1,10 +1,11 @@
-import type { ReadingLocation, ReadingNavigationReceipt } from "@read-aware/core";
+import type { ReadingLocation, ReadingNavigationReceipt, ReadingPlaybackSnapshot } from "@read-aware/core";
 import type { ReaderPort } from "../ports";
 
 export type ReaderRequest = { type: "open" | "goTo" | "back" | "forward" | "step" | "close"; bookId?: string; anchor?: string; chapterHref?: string; direction?: string };
 
 /** Port fixture only; physical renderer behavior is tested in the host controller suite. */
 export function createMemoryReader(initialBookId: string | undefined, requests: ReaderRequest[]): ReaderPort {
+  const playback: ReadingPlaybackSnapshot = { status: "unavailable", unavailableReason: "no-voice", backend: null, fallback: false, owner: null, cfiRange: null };
   let revision = 0;
   let location: ReadingLocation | null = initialBookId ? { bookId: initialBookId, contentVersion: "fixture", fraction: 0 } : null;
   const receipt = (): ReadingNavigationReceipt => {
@@ -13,7 +14,11 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
     return { status: "completed", sessionId: "fixture", location: { ...location } };
   };
   return {
-    getSession: async () => ({ revision, sessionId: location ? "fixture" : null, bookId: location?.bookId ?? null, status: location ? "ready" : "idle", location, visibleText: "", history: { canGoBack: false, canGoForward: false } }),
+    getSession: async () => ({ revision, sessionId: location ? "fixture" : null, bookId: location?.bookId ?? null, status: location ? "ready" : "idle", location, visibleText: "", history: { canGoBack: false, canGoForward: false }, playback }),
+    controlPlayback: async action => {
+      if (action === "start") throw new Error("Fixture has no audio backend");
+      return { status: "completed", sessionId: "fixture", playback };
+    },
     openBook: async bookId => { requests.push({ type: "open", bookId }); location = { bookId, contentVersion: "fixture", fraction: 0 }; return receipt(); },
     goTo: async target => {
       requests.push({ type: "goTo", bookId: target.bookId, anchor: target.cfi, chapterHref: target.href });

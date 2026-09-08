@@ -8,9 +8,6 @@ let sharedContext: AudioContext | null = null;
 
 function audioContext(): AudioContext {
   sharedContext ??= new AudioContext();
-  // A context created outside a user gesture starts suspended on some
-  // engines; resume is idempotent and cheap.
-  void sharedContext.resume().catch(() => {});
   return sharedContext;
 }
 
@@ -18,7 +15,7 @@ export type AudioHandle = { cancel: () => void };
 
 export function playAudioBytes(
   bytes: ArrayBuffer,
-  callbacks: { onEnd: () => void; onError: (error: string) => void },
+  callbacks: { onStart: () => void; onEnd: () => void; onError: (error: unknown) => void },
 ): AudioHandle {
   let cancelled = false;
   let source: AudioBufferSourceNode | null = null;
@@ -28,21 +25,24 @@ export function playAudioBytes(
     // decodeAudioData detaches its input; callers must hand over a copy if
     // they intend to reuse the bytes (the prefetch cache does).
     .decodeAudioData(bytes)
-    .then((buffer) => {
+    .then(async (buffer) => {
       if (cancelled) return;
+      await context.resume();
+      if (cancelled) return;
+      if (context.state !== "running") throw new Error("Audio context did not resume");
       source = context.createBufferSource();
       source.buffer = buffer;
       source.connect(context.destination);
       source.onended = () => {
+        source?.disconnect();
         if (!cancelled) callbacks.onEnd();
       };
       source.start();
+      callbacks.onStart();
     })
     .catch((error) => {
       if (!cancelled) {
-        callbacks.onError(
-          error instanceof Error ? error.message : "audio decode failed",
-        );
+        callbacks.onError(error);
       }
     });
 

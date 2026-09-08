@@ -1,0 +1,228 @@
+{
+  "date": "2026-09-09",
+  "environment": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+    "platform": "macOS aarch64",
+    "tauri": "2.11.2",
+    "debug": true,
+    "frontend": "http://localhost:5184",
+    "mcp": 9224,
+    "remoteInference": false,
+    "userDataAccess": false
+  },
+  "scope": "READ18: actual host audio from a diagnostic Worker provider and system fallback; actual product Agent tool/port and Listening Desk Worker, not a remote model turn.",
+  "implementation": {
+    "domain": "reading@2.1.0",
+    "agent": "control_read_aloud",
+    "plugin": "reading.commands.controlPlayback",
+    "query": "reading.queries.session().playback",
+    "observation": "reading.events.observeSession",
+    "devWorkerFix": "880bd4a3",
+    "registrationOwnerFix": "6bac2b17"
+  },
+  "priorFailures": {
+    "devCsp": "All eight original plugins failed at startup: Vite injected @vite/client into the sandbox Worker. Dev middleware now serves a bundled Worker under unchanged response CSP; no injected HMR/WebSocket.",
+    "staleProvider": "Before registration owner fix, disabling TTS left tts:voices and probe cleanup returned remainingVoices=1. Immutable voice-list replacement changed object identity; disposal now checks registration token.",
+    "invalidDiagnostic": "An initial direct dynamic import of plugin-host after HMR did not remove Listening Desk commands. That result is NOT a disable pass. Reloaded the module graph and reran through the fixture's shared static import; commands=[] and stopped were then verified.",
+    "developmentReloads": "Hook signature edits caused a Fast Refresh hook-order error; dependency optimization and explicit reloads also replaced the WebView during development. Final functional probes ran after a fresh boot. One first probe startup failed then succeeded on explicit retry; not treated as a playback success."
+  },
+  "agentStart": {
+    "status": "completed",
+    "sessionId": "694c19ac-e960-4dc3-8bf6-14b75604bed0",
+    "playback": {
+      "status": "playing",
+      "unavailableReason": null,
+      "backend": "plugin",
+      "fallback": false,
+      "owner": "agent",
+      "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/20,/1:19,/1:112)"
+    }
+  },
+  "pluginStop": {
+    "backend": null,
+    "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/20,/1:19,/1:112)",
+    "fallback": false,
+    "owner": null,
+    "status": "stopped",
+    "unavailableReason": null
+  },
+  "pluginStart": {
+    "backend": "plugin",
+    "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/20,/1:19,/1:112)",
+    "fallback": false,
+    "owner": "plugin:listening-desk",
+    "status": "playing",
+    "unavailableReason": null
+  },
+  "agentStop": {
+    "status": "completed",
+    "sessionId": "694c19ac-e960-4dc3-8bf6-14b75604bed0",
+    "playback": {
+      "status": "stopped",
+      "unavailableReason": null,
+      "backend": null,
+      "fallback": false,
+      "owner": null,
+      "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/20,/1:19,/1:112)"
+    }
+  },
+  "autoplay": {
+    "next": {
+      "backend": "plugin",
+      "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/20,/1:113,/1:172)",
+      "fallback": false,
+      "owner": "plugin:listening-desk",
+      "status": "playing",
+      "unavailableReason": null
+    },
+    "start": {
+      "backend": "plugin",
+      "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/20,/1:19,/1:112)",
+      "fallback": false,
+      "owner": "plugin:listening-desk",
+      "status": "playing",
+      "unavailableReason": null
+    }
+  },
+  "fallback": {
+    "status": "completed",
+    "sessionId": "694c19ac-e960-4dc3-8bf6-14b75604bed0",
+    "playback": {
+      "status": "playing",
+      "unavailableReason": null,
+      "backend": "system",
+      "fallback": true,
+      "owner": "agent",
+      "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/20,/1:113,/1:172)"
+    }
+  },
+  "ownerDisabled": {
+    "commands": [],
+    "playback": {
+      "backend": null,
+      "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/24,/1:0,/1:19)",
+      "fallback": false,
+      "owner": null,
+      "status": "stopped",
+      "unavailableReason": null
+    }
+  },
+  "inFlight": {
+    "during": {
+      "backend": "plugin",
+      "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/24,/1:0,/1:19)",
+      "fallback": false,
+      "owner": "plugin:listening-desk",
+      "status": "preparing",
+      "unavailableReason": null
+    },
+    "cancelled": {
+      "commands": [],
+      "playback": {
+        "backend": null,
+        "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/24,/1:0,/1:19)",
+        "fallback": false,
+        "owner": null,
+        "status": "stopped",
+        "unavailableReason": null
+      }
+    },
+    "result": {
+      "code": "plugin/cancelled",
+      "message": "Plugin runtime stopped"
+    },
+    "afterLateSynthesis": {
+      "backend": null,
+      "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/24,/1:0,/1:19)",
+      "fallback": false,
+      "owner": null,
+      "status": "stopped",
+      "unavailableReason": null
+    }
+  },
+  "closedDuringSynthesis": {
+    "result": {
+      "code": "reader/superseded",
+      "message": "Playback was stopped or replaced"
+    },
+    "after": {
+      "bookId": null,
+      "history": {
+        "canGoBack": false,
+        "canGoForward": false
+      },
+      "location": null,
+      "playback": {
+        "backend": null,
+        "cfiRange": null,
+        "fallback": false,
+        "owner": null,
+        "status": "unavailable",
+        "unavailableReason": "no-session"
+      },
+      "revision": 21,
+      "sessionId": null,
+      "status": "idle",
+      "visibleText": ""
+    }
+  },
+  "readOnly": {
+    "commandsAvailable": false,
+    "playback": {
+      "backend": null,
+      "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/42,/1:20,/1:113)",
+      "fallback": false,
+      "owner": null,
+      "status": "stopped",
+      "unavailableReason": null
+    }
+  },
+  "ui": {
+    "path": "Reader header > More > Listening Desk",
+    "unavailableView": "No current passage, no Start action",
+    "playingView": "Start -> Playing / Plugin voice / Stop; native toolbar also shows Stop reading aloud",
+    "stopped": {
+      "backend": null,
+      "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/42,/1:20,/1:113)",
+      "fallback": false,
+      "owner": null,
+      "status": "stopped",
+      "unavailableReason": null
+    },
+    "screenshotInspected": true,
+    "cosmeticFollowup": "Removed duplicate inner title and added actual Play/Stop icons after the first screenshot; final UI recheck recorded in delivery ledger."
+  },
+  "cleanup": {
+    "remainingCommands": 0,
+    "remainingVoices": 0
+  },
+  "validation": {
+    "testTasks": 19,
+    "webTests": 641,
+    "typecheckTasks": 22
+  },
+  "finalVerification": {
+    "testTasks": 19,
+    "cachedTestTasks": 0,
+    "webTests": 643,
+    "typecheckTasks": 22,
+    "webProductionBuild": "passed",
+    "additionalUnitRegressions": [
+      "Every automatic audio unit must start before its end is accepted.",
+      "Duplicate start/end callbacks cannot skip units while navigation is pending."
+    ],
+    "additionalNativeFaultInjection": false,
+    "remainingIsolatedListeners": [],
+    "closedDocumentationBrowser": "playback-docs"
+  },
+  "limitations": [
+    "READ16 mode start/stop/step control is still not exposed to both actors; native toolbar set the mode for this test.",
+    "Listening Desk displays a fetched snapshot and refreshes after actions or explicit Refresh; it does not claim live external-state UI updates.",
+    "Start proves Web Audio running/source.start or speechSynthesis onstart, not a microphone recording of physical audibility.",
+    "No release build playback E2E, Windows/Linux, remote TTS provider/key, all-format navigation or complete W01-W32 verification in this evidence.",
+    "No word-level audio time offset, pause/resume, or durable playback session is claimed. Unit CFI is the position.",
+    "Post-synthesis underlying provider work is not forcibly aborted; generation fencing prevents late playback/cache writes.",
+    "No next-unit event within six seconds reports reader/timeout, not a proven end-of-book."
+  ]
+}

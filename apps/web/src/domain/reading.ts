@@ -42,6 +42,7 @@ export type ReadingQueries = {
 };
 
 export type ReadingCommands = {
+  controlPlayback(action: "start" | "stop", signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<import("@read-aware/core").ReadingPlaybackReceipt>;
   setFinished(bookId: string, finished: boolean): Promise<void>;
   openBook(bookId: string, signal?: AbortSignal): Promise<ReadingNavigationReceipt>;
   goTo(target: ReadingTarget, signal?: AbortSignal): Promise<ReadingNavigationReceipt>;
@@ -114,6 +115,7 @@ export function createReadingDomain(origin: EventOrigin): ReadingDomain {
   };
 
   const commands: ReadingCommands = {
+    controlPlayback: (action, signal, guard) => readingRuntime.controlPlayback(action, origin, signal, guard),
     openBook: (bookId, signal) => readingRuntime.navigate({ bookId }, signal),
     goTo: (target, signal) => readingRuntime.navigate(target, signal),
     back: (signal, guard) => readingRuntime.back(signal, guard),

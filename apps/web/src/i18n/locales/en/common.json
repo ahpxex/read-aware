@@ -12,6 +12,7 @@
     "copied": "Copied"
   },
   "errors": {
+    "readerPlaybackFailed": "Read aloud stopped because audio could not be played. Try again or choose another voice.",
     "annotationConflict": "This annotation changed. Read it again before applying your changes.",
     "annotationUnavailable": "Annotation storage is not available in this environment.",
     "annotationCancelled": "The annotation change was cancelled before it was submitted.",

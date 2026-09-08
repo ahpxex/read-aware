@@ -939,6 +939,7 @@ export function FoliateReaderView({
     veilColor: readerPalette.bg,
   });
   const readAloud = useReadAloud({
+    bookId: selectedBook?.id ?? null,
     enabled: textUnitModeEngineActive,
     current: textUnitNavigator.current,
     next: textUnitNavigator.next,

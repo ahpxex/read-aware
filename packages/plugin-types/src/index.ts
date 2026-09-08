@@ -82,7 +82,7 @@ import type {
 // Re-exported so plugin authors can name the underlying vocabulary without
 // depending on @read-aware/core directly.
 export type { AnnotationSnapshot, AnnotationMutation, AnnotationCommitResult, AnnotationPage, AnnotationPageQuery, BookTocEntry, BookNavigationToc, BookLocationSearch, BookLocationSearchPage, BookLocationHit,
-  ReadingLocation, ReadingTarget, ReadingSessionSnapshot, ReadingSessionGuard, ReadingNavigationReceipt } from "@read-aware/core";
+  ReadingLocation, ReadingTarget, ReadingSessionSnapshot, ReadingSessionGuard, ReadingNavigationReceipt, ReadingPlaybackSnapshot, ReadingPlaybackReceipt } from "@read-aware/core";
 export type {
   BookFormat,
   DictionaryEntrySnapshot,
@@ -1224,6 +1224,8 @@ export type PluginReadingDomain = {
     forward(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
     step(direction: "next" | "previous", guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
     close(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<void>;
+    /** Start resolves on actual audio start. Stop is idempotent; disabling the initiating plugin stops its playback. */
+    controlPlayback(action: "start" | "stop", guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingPlaybackReceipt>;
   };
   events: {
     subscribe: DomainSubscribe<ReadingDomainEventType>;

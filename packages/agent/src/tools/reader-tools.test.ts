@@ -64,7 +64,28 @@ test("another book's viewport is neither exposed nor controlled by a book-scoped
   if (result.content[0]?.type !== "text") throw new Error("Expected text");
   expect(JSON.parse(result.content[0].text)).toEqual({ status: "not-active", bookId });
   await expect(tool("navigate_reading").execute("test", { action: "next" })).rejects.toThrow("not the active reader");
+  await expect(tool("control_read_aloud").execute("test", { action: "stop" })).rejects.toThrow("not the active reader");
   expect(stores.readerRequests).toHaveLength(count);
+});
+
+test("read-aloud forwards session scope and cancellation and waits for backend completion", async () => {
+  const { deps, tool } = fixture(); const abort = new AbortController();
+  const session = await deps.reader.getSession();
+  let observed: unknown;
+  let done!: () => void;
+  deps.reader.controlPlayback = async (action, signal, guard) => {
+    observed = { action, signal, guard };
+    await new Promise<void>(resolve => { done = resolve; });
+    return { status: "completed", sessionId: "fixture", playback: { ...session.playback, status: "playing", owner: "agent" } };
+  };
+  let settled = false;
+  const pending = tool("control_read_aloud").execute("test", { action: "start" }, abort.signal).then(result => { settled = true; return result; });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(settled).toBe(false);
+  expect(observed).toEqual({ action: "start", signal: abort.signal, guard: { sessionId: "fixture", bookId } });
+  done();
+  const result = await pending;
+  expect(result.content[0]).toMatchObject({ type: "text" });
 });
 
 test("an annotation without a location does not silently succeed as an open-book action", async () => {

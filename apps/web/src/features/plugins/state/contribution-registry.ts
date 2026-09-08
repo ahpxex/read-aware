@@ -49,11 +49,14 @@ export function createContributionRegistry<T extends ContributionIdentity>(
   }
   const entriesAtom = atom<T[]>([]);
   const store = getDefaultStore();
+  const owners = new Map<ContributionKey, symbol>();
   const registry: ContributionRegistry<T> = {
     point,
     atom: entriesAtom,
     register(item) {
       validateIdentity(item);
+      const owner = Symbol(item.key);
+      owners.set(item.key, owner);
       store.set(entriesAtom, [
         ...store.get(entriesAtom).filter((entry) => entry.key !== item.key),
         item,
@@ -63,11 +66,13 @@ export function createContributionRegistry<T extends ContributionIdentity>(
         dispose: () => {
           if (disposed) return;
           disposed = true;
+          if (owners.get(item.key) !== owner) return;
+          owners.delete(item.key);
           store.set(
             entriesAtom,
             store
               .get(entriesAtom)
-              .filter((entry) => entry.key !== item.key || entry !== item),
+              .filter((entry) => entry.key !== item.key),
           );
         },
       };
@@ -83,6 +88,9 @@ export function createContributionRegistry<T extends ContributionIdentity>(
           .map((entry) => {
             if (entry.key !== key) return entry;
             updated = update(entry);
+            if (updated.key !== entry.key || updated.pluginId !== entry.pluginId) {
+              throw new Error("Contribution updates cannot transfer registration ownership");
+            }
             return updated;
           }),
       );

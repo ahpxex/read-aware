@@ -239,3 +239,25 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [环境] 矩阵 ANN04/ANN08 和生成映射更新为 215 行 / 558 库存，129 旧验收项不变，ANN08 仍为部分。两对生成器与 pair validator、7 项建模门禁通过；矩阵 HTML 1440/1024/390 无页面横向溢出，中英文搜索、Escape/抽屉、主题刷新保持、锚点/重复 ID、截图检查通过；无浏览器错误，CDN 成功。截图 `/tmp/readaware-annotation-mutations-matrix{,-mobile}.png`；模型 HTML 未改，Markdown 现状映射更新。文档浏览器与隔离 Tauri 已关闭，文档依赖既有 CDN，未画 Mermaid 图；文档验收不代表产品验收。
 
 仍未完成：旧单项写/UI 调用者版本迁移、跨设备离线并发的产品冲突处理（此 CAS 只限制本机提交，远端仍走既有合并）、回执丢失后的耐久请求查询、超长读结果预算、Range/内容版本校验和远端观察、实用整理/导出插件，以及全部 D/C/S/V/Q 和 W01–W32 的剩余工作。此提交不把 ANN08、D3 或完整目标标成完成。
+
+## 2026-09-09 Annotation Desk 与真实表单组合
+
+[代码] 新增实用第一方插件 `plugins/annotation-desk`，不是测试探针。只组合已公开的 annotations 1.3 / library 1.1 / reading 2.0 / ui 1.0、headerActions、commands 和 views；未新增宿主领域方法、模型工具或权限。书架提供完整页面，阅读 header 提供当前书弹窗，命令入口跟随当前阅读会话。8 种语言文案。编译产物随包提交；开发版 RepoDist 自动发现该目录，**release 的 BUNDLED 表未增加它**，因此它是可单独安装的可选包，不宣称已随发布版内置。
+
+- 每页 20 条原生 keyset 查询，opaque cursor 原样往返；前后页历史归单个视图，不在插件全局保存。书籍、类型、正文搜索改变后重置游标；列表没有 legacy annotations.list 全扫描，失败不伪装为空。书籍选择器目前仍使用现有 books.list，不能把标注分页声称为全部读资源有界。
+- 详情先 inspect；笔记编辑和高亮颜色/样式使用捕获的 revision。checkbox 选择页内项目后重新 inspect 所选项再展示审阅；改色、下划线、删除各以一个原子批次提交。删除必须显式勾选确认，但这个 UX 勾选不是宿主 grant。任一项冲突不重读令牌自动覆盖；字段错误保留当前草稿。写入成功但重载失败时明确告知“已保存、读取失败”，只允许重读，不诱导重复写。
+- JSON/CSV 明确限定“本页”或“所选项”，不是整库冻结导出。JSON 保留原内容并标记 observed-items，包含书籍元数据、不包含本机 revision；CSV 完整引号/换行转义、UTF-8 BOM，公式或前导控制字符前加单引号，JSON 不做这种改写。exportFile 返回 false 不提示成功，失败继续交宿主错误表面。缺原始书籍/封面资源、流式输出与单次取消，W04 完整验收仍未满足。
+- 有位置的项目将既有 anchor/chapterHref 原样交给 reading.goTo；无锚点则仅打开对应书，等待宿主完成后关闭插件表面，不伪造位置。此轮桌面验证的是无锚点打开，不替代所有格式的精确锚定回归。
+
+[代码] 实用插件发现并修复两项已存在契约的宿主实现缺口，不是再为该插件发明专用 API：
+
+1. 相同栈深度的 replace/reset 原先重用 React 表单状态，导致回调/revision 已更新而旧草稿与错误仍显示。PluginViewSession 现在给显式导航分配 frame renderKey，renderer 对整个内容子树使用该 key，覆盖 blocks/detail 中的嵌套表单；busy/fieldErrors 不换 key。普通根数据刷新保持已有草稿协调语义，不把被动刷新等同用户明确重新加载。
+2. 静态 select、choice、checkbox、toggle、secret 原先漏接返回的 fieldErrors。现在逐项接通；设计系统 Checkbox/ChoiceGroup/Toggle 补 error prop、aria-invalid 与关联描述，并添加故事。真实测试确认未勾选时错误可见，过期批次错误显示在颜色选项下，而不是点击后毫无反馈。长表单首次错误的自动聚焦/滚动尚未验收，不能把错误显示完整等同焦点契约完整。
+
+[环境] 新增 15 项插件测试、1 项 frame 身份测试、2 项可访问错误组件测试；全仓 test 18 个任务、typecheck 21 个任务通过，原生未改。实际 Tauri debug / WebKit Worker / SQLite 验证 25 条夹具的 20+5 分页及返回、类型筛选、过期笔记草稿保留、显式刷新采用并发新值并清错误、新版本保存、两条高亮同时改 pink/underline、未确认不删除、确认后两项查询为 null；另一轮过期批次维持一条 blue/另一条 yellow，未部分改成 pink。通过真实设置 toggle 停用后贡献为空。1200×800、700×800 截图已查看，窄窗无页面横向溢出；阅读弹窗有当前书筛选，原书正文可见。[结构化证据](./evidence/annotation-desk-2026-09-09.json)。
+
+[环境] 首次夹具延迟 import 触发 Vite optimize/reload，6 条已提交夹具经明确 ID/内容验证后条件删除；后续开发 HMR 丢失内存句柄时，按原生查询核实的夹具 ID 恢复跟踪而不假装任务仍运行。最终 SQLite 中该书所有 Desk E2E 夹具数量为 0；隔离插件保持停用，测试应用与文档浏览器已停止。CUA 未识别 raw debug executable，osascript 无 assistive access；因此本轮没有打开原生导出对话框，不宣称保存/取消或磁盘文件验收。开发自动发现也不证明安装授权/升级 UI 或 packaged CSP。
+
+[环境] 重扫为 215 行 / 559 库存映射 / 129 旧验收项，统一模型仍为 30 个责任单元、32 个场景；已有状态不因新增消费者自动改绿。矩阵与模型生成器、7 个模型门禁和两对文档校验通过。矩阵 HTML 在 1440/1024/390 宽度、搜索、抽屉/Escape、主题刷新保持、锚点与重复 ID 检查通过，无控制台错误且既有 CDN 成功；模型 HTML 未变，Markdown 更新现状映射。文档仍依赖 CDN，未增加 Mermaid 图，文档浏览器不代替产品测试。
+
+仍未完成：W04 全资源/导出对话框验收、W05 完整只读授权与更广排序/失败场景、W28 全生命周期故障回归；其余实用组合插件与全部 D/C/S/V/Q 缺口、原生保存/安装授权/packaged CSP、精确锚定全格式与远端模型行为。本轮实现是 W04/W05 的部分真实消费者，不用“已有插件”替代这些场景的完整验收，也不关闭 ANN08、D3 或整体目标。

@@ -1,0 +1,193 @@
+{
+  "verifiedOn": "2026-09-09",
+  "environment": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "frontendPort": 5184,
+    "bridgePort": 9224,
+    "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+    "runtime": "Tauri debug, real WebKit Worker, SQLite and native event projection",
+    "interaction": "Tauri MCP DOM interactions; not external-model or physical-keyboard proof"
+  },
+  "plugin": {
+    "id": "annotation-desk",
+    "version": "0.1.0",
+    "loading": "Native debug RepoDist discovers plugins/*/dist. No change to embedded release BUNDLED table; optional package in release."
+  },
+  "results": {
+    "page": {
+      "seeded": 25,
+      "limit": 20,
+      "secondPage": 5,
+      "previousReturnedFirstPage": true
+    },
+    "afterWrite": [
+      {
+        "id": "b51021f5-83d8-4e97-84c4-3c4f7f36f735",
+        "snapshot": {
+          "annotation": {
+            "body": "Desk E2E final reviewed edit",
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "createdAt": "2026-09-08T18:32:11.220Z",
+            "id": "b51021f5-83d8-4e97-84c4-3c4f7f36f735",
+            "kind": "note",
+            "quotedText": "Reading Capability Probe",
+            "updatedAt": "2026-09-08T18:37:01.757Z"
+          },
+          "revision": "ann1:abfd1c51792ff3dda8bb7a3154c98571763ca49ba194bf72449d43eb777dcf94"
+        }
+      },
+      {
+        "id": "6623dfc6-fdb3-45ed-b62c-e7a8a11f294a",
+        "snapshot": {
+          "annotation": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "color": "pink",
+            "createdAt": "2026-09-08T18:32:11.228Z",
+            "id": "6623dfc6-fdb3-45ed-b62c-e7a8a11f294a",
+            "kind": "highlight",
+            "style": "underline",
+            "text": "Desk E2E highlight 0",
+            "updatedAt": "2026-09-08T18:37:40.370Z"
+          },
+          "revision": "ann1:760fda325fb06763cadfd00f61dbdabbed9107702147a9d0a65582b8706d825d"
+        }
+      },
+      {
+        "id": "b966098f-9be2-441c-963f-df1a36d2507f",
+        "snapshot": {
+          "annotation": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "color": "pink",
+            "createdAt": "2026-09-08T18:32:11.230Z",
+            "id": "b966098f-9be2-441c-963f-df1a36d2507f",
+            "kind": "highlight",
+            "style": "underline",
+            "text": "Desk E2E highlight 1",
+            "updatedAt": "2026-09-08T18:37:40.370Z"
+          },
+          "revision": "ann1:4e1de0376a8f8f6901185fabd14a5c5f68f8ff5742d58059ebae2e55f9ee83e5"
+        }
+      }
+    ],
+    "cleanup": {
+      "remainingOwned": 0
+    },
+    "conflict": {
+      "conflict": true,
+      "draft": "Desk E2E preserved draft after conflict",
+      "invalid": "true"
+    },
+    "deleted": [
+      {
+        "id": "6623dfc6-fdb3-45ed-b62c-e7a8a11f294a",
+        "snapshot": null
+      },
+      {
+        "id": "b966098f-9be2-441c-963f-df1a36d2507f",
+        "snapshot": null
+      }
+    ],
+    "filtered": "Back to shelf\nLibrary\n/\nAgent\n\nSearch\n\nImport\n\nReading stats\n\nSettings\nAnnotation Desk\nAll books · Highlight · 1\n\nApply filters\n\nRefresh\n\nSelect annotations\n\nExport this page (JSON)\n\nExport this page (CSV)\n\nDesk E2E highlight 1\nReading Capability Probe · Highlight\n\nDesk E2E highlight 0\nReading Capability Probe · Highlight\n",
+    "refresh": {
+      "conflict": false,
+      "draft": "Desk E2E concurrent actor change",
+      "invalid": null
+    },
+    "batchConflict": {
+      "highlights": [
+        {
+          "id": "3c7805a3-8478-42f8-9c78-4d12e02ec389",
+          "snapshot": {
+            "annotation": {
+              "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+              "color": "blue",
+              "createdAt": "2026-09-08T18:40:36.101Z",
+              "id": "3c7805a3-8478-42f8-9c78-4d12e02ec389",
+              "kind": "highlight",
+              "style": "highlight",
+              "text": "Desk E2E highlight 1",
+              "updatedAt": "2026-09-08T18:44:31.758Z"
+            },
+            "revision": "ann1:cd12492f7db82fa4e49375ff190c159d216e4f2acfedce16e266d14516e55c17"
+          }
+        },
+        {
+          "id": "e3f6325f-53fc-4520-b766-b8eabf237e70",
+          "snapshot": {
+            "annotation": {
+              "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+              "color": "yellow",
+              "createdAt": "2026-09-08T18:40:36.098Z",
+              "id": "e3f6325f-53fc-4520-b766-b8eabf237e70",
+              "kind": "highlight",
+              "style": "highlight",
+              "text": "Desk E2E highlight 0",
+              "updatedAt": "2026-09-08T18:40:36.098Z"
+            },
+            "revision": "ann1:34e5dd967f3606f8d728d2dfdaec68ec8c16085f7af88b74d795690a9c1b6754"
+          }
+        }
+      ],
+      "invalid": [
+        {
+          "description": "_r_1e_-error",
+          "tag": "FIELDSET"
+        },
+        {
+          "description": "_r_1g_-error",
+          "tag": "INPUT"
+        }
+      ],
+      "text": "Back to shelf\nLibrary\n/\nAgent\n\nSearch\n\nImport\n\nReading stats\n\nSettings\n\nReview selection (2)\nDesk E2E highlight 1\nReading Capability Probe · Highlight\nDesk E2E highlight 0\nReading Capability Probe · Highlight\nExport selection (JSON)\nExport selection (CSV)\nRefresh\nColor\nYellow\nGreen\nBlue\nPink\nAn annotation changed or was removed. Nothing was changed. Refresh before trying again.\nStyle\nHighlight\nUnderline\nApply to selected highlights\n\nConfirm deletion of these annotations\nConfirm deletion first.\nDelete selected annotations\n"
+    },
+    "selectionValidation": {
+      "zeroSelectedErrorVisible": true,
+      "checkboxAriaInvalid": true
+    },
+    "navigation": {
+      "unanchoredNoteOpenedBook": true,
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "readerHeaderDialogScopedToBook": true
+    },
+    "disable": {
+      "viaSettingsToggle": true,
+      "enabled": false,
+      "contributions": []
+    },
+    "finalCleanup": {
+      "remainingFixtureAnnotationsInSQLite": 0,
+      "ownedRuntimeStopped": true
+    }
+  },
+  "screenshots": [
+    "/tmp/readaware-annotation-desk-list.png",
+    "/tmp/readaware-annotation-desk-conflict.png",
+    "/tmp/readaware-annotation-desk-confirm.png",
+    "/tmp/readaware-annotation-desk-batch-conflict.png",
+    "/tmp/readaware-annotation-desk-narrow.png",
+    "/tmp/readaware-annotation-desk-reader.png"
+  ],
+  "rendering": {
+    "desktop": [
+      1200,
+      800
+    ],
+    "narrow": [
+      700,
+      800
+    ],
+    "narrowOverflow": false,
+    "readerDialogOverflow": false,
+    "screenshotsInspected": true
+  },
+  "interruptions": [
+    "First lazy import of @tauri-apps/api/path triggered Vite dependency optimization and a full reload after six fixture notes were committed. All six exact IDs and content were verified before conditional cleanup.",
+    "Source hot reloads invalidated in-memory fixture handles; explicitly observed test IDs were recovered, not treated as still-running tasks. Final SQLite fixture count is zero."
+  ],
+  "notVerified": [
+    "Native export save/cancel dialogs and saved files: CUA did not identify the raw debug executable; osascript lacked assistive access. No export dialog was opened.",
+    "Fresh installation/consent and packaged CSP; debug auto-discovery is not proof of either.",
+    "Full all-format anchored navigation/underline rendering, actual LLM choices, global W01-W32 completion.",
+    "Automatic focus/scroll to errors in long forms; errors now render but focus behavior remains a separate acceptance item."
+  ]
+}

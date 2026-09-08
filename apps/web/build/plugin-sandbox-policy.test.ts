@@ -49,6 +49,9 @@ test("Vite serves the same worker CSP without restricting app responses", async 
     expect(response.headers.get("content-security-policy")).toBe(policy.contentSecurityPolicy);
     const source = await response.text();
     expect(source).toContain("PluginStorageMirror");
+    expect(source).not.toContain("/@vite/client");
+    expect(source).not.toContain("__vite__injectQuery");
+    expect(source).not.toContain("import.meta.hot");
     const app = await fetch(`${base}/plugin-sandbox-policy.json`);
     expect(app.status).toBe(200);
     expect(app.headers.get("content-security-policy")).toBeNull();

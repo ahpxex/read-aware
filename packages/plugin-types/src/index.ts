@@ -82,7 +82,7 @@ import type {
 // Re-exported so plugin authors can name the underlying vocabulary without
 // depending on @read-aware/core directly.
 export type { AnnotationSnapshot, AnnotationMutation, AnnotationCommitResult, AnnotationPage, AnnotationPageQuery, BookTocEntry, BookNavigationToc, BookLocationSearch, BookLocationSearchPage, BookLocationHit,
-  ReadingLocation, ReadingTarget, ReadingSessionSnapshot, ReadingSessionGuard, ReadingNavigationReceipt, ReadingPlaybackSnapshot, ReadingPlaybackReceipt, ReadingModeConfiguration, ReadingModeSnapshot, ReadingModeReceipt, ReadingModePosition } from "@read-aware/core";
+  ReadingLocation, ReadingTarget, ReadingSessionSnapshot, ReadingSessionGuard, ReadingNavigationReceipt, ReadingPlaybackSnapshot, ReadingPlaybackReceipt, ReadingModeConfiguration, ReadingModeSnapshot, ReadingModeReceipt, ReadingModePosition, ReadingModeStepOutcome, ReadingModeStepReceipt } from "@read-aware/core";
 export type {
   BookFormat,
   DictionaryEntrySnapshot,
@@ -1234,6 +1234,8 @@ export type PluginReadingDomain = {
     configureMode(input: import("@read-aware/core").ReadingModeConfiguration, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingModeReceipt>;
     /** Return to the versioned resting unit; wait for renderer navigation and unit restoration before committing history. */
     returnToMode(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
+    /** Step one configured text unit, across sections if necessary; reports book boundaries explicitly. */
+    stepMode(direction: "next" | "previous", guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingModeStepReceipt>;
   };
   events: {
     subscribe: DomainSubscribe<ReadingDomainEventType>;

@@ -15,12 +15,41 @@ function fixture(deadline = 1000) {
     play: (_bytes, callbacks) => output("plugin", callbacks),
     report: error => errors.push(error),
   }, deadline, deadline);
-  let input: PlaybackInput = { enabled: true, unit: { text: "First passage", cfiRange: "first" }, voice: null, next() {}, peekNext: () => null };
+  let input: PlaybackInput = { enabled: true, unit: { text: "First passage", cfiRange: "first" }, voice: null, next: async () => "end-of-book", peekNext: () => null };
   const update = (patch: Partial<PlaybackInput>) => { input = { ...input, ...patch }; controller.update(input); };
   update({});
   return { controller, calls, errors, update, noSystem: () => { system = false; } };
 }
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
+
+test("the final passage stops normally without a timeout or phantom utterance", async () => {
+  const { controller, calls, errors } = fixture(10);
+  const work = controller.start("agent"); calls[0]!.callbacks.onStart(); await work;
+  calls[0]!.callbacks.onEnd(); await tick();
+  expect(controller.snapshot()).toMatchObject({ status: "stopped", owner: null, errorCode: undefined });
+  await new Promise(resolve => setTimeout(resolve, 15));
+  expect(errors).toEqual([]); expect(calls).toHaveLength(1);
+});
+
+test("stop cancels an in-flight unit advance and its late receipt cannot restart speech", async () => {
+  const { controller, calls, update } = fixture();
+  let signal!: AbortSignal; let finish!: () => void;
+  update({ next: async value => { signal = value; await new Promise<void>(resolve => { finish = resolve; }); return "moved"; } });
+  const work = controller.start("agent"); calls[0]!.callbacks.onStart(); await work;
+  calls[0]!.callbacks.onEnd(); controller.stop();
+  expect(signal.aborted).toBe(true);
+  update({ unit: { text: "Second", cfiRange: "second" } }); finish(); await tick();
+  expect(calls).toHaveLength(1); expect(controller.snapshot().status).toBe("stopped");
+});
+
+test("a failed or false-successful advance reports failure instead of repeating a passage", async () => {
+  for (const next of [async () => { throw new Error("segmentation failed"); }, async () => "moved" as const]) {
+    const { controller, calls, update, errors } = fixture(); update({ next });
+    const work = controller.start("agent"); calls[0]!.callbacks.onStart(); await work;
+    calls[0]!.callbacks.onEnd(); await tick();
+    expect(controller.snapshot().status).toBe("error"); expect(errors).toHaveLength(1); expect(calls).toHaveLength(1);
+  }
+});
 
 test("start waits for actual audio; stop cancels and cannot be revived by stale callbacks", async () => {
   const { controller, calls } = fixture();
@@ -100,12 +129,15 @@ test("hung synthesis times out, rejects, and late completion never plays", async
 
 test("auto-advance waits across a missing unit and resumes at the next actual unit", async () => {
   const { controller, calls, update } = fixture(); let steps = 0;
-  update({ next: () => { steps++; update({ unit: null }); } });
+  let finish!: () => void;
+  update({ next: async () => { steps++; update({ unit: null }); await new Promise<void>(resolve => { finish = resolve; }); return "moved"; } });
   const work = controller.start("user"); calls[0]!.callbacks.onStart(); await work;
   calls[0]!.callbacks.onEnd();
   expect(steps).toBe(1);
   expect(controller.snapshot().status).toBe("advancing");
   update({ unit: { text: "Second", cfiRange: "second" } });
+  expect(calls).toHaveLength(1);
+  finish(); await tick();
   calls[1]!.callbacks.onStart();
   expect(controller.snapshot()).toMatchObject({ status: "playing", cfiRange: "second" });
   controller.stop();
@@ -119,10 +151,11 @@ test("audio ending without a start is a failure, not a successful command", asyn
 
 test("every automatic unit must start, not only the first command's unit", async () => {
   const { controller, calls, update } = fixture();
-  update({ next: () => update({ unit: { text: "Second", cfiRange: "second" } }) });
+  update({ next: async () => { update({ unit: { text: "Second", cfiRange: "second" } }); return "moved"; } });
   const work = controller.start("agent");
   calls[0]!.callbacks.onStart(); await work;
   calls[0]!.callbacks.onEnd();
+  await tick();
   calls[1]!.callbacks.onEnd();
   expect(controller.snapshot()).toMatchObject({ status: "error", errorCode: "reader/playback-failed" });
   expect(calls).toHaveLength(2);
@@ -131,7 +164,7 @@ test("every automatic unit must start, not only the first command's unit", async
 test("duplicate audio callbacks do not skip units while navigation is pending", async () => {
   const { controller, calls, update } = fixture();
   let steps = 0;
-  update({ next: () => { steps++; } });
+  update({ next: () => { steps++; return new Promise(() => {}); } });
   const work = controller.start("agent");
   calls[0]!.callbacks.onStart(); await work;
   calls[0]!.callbacks.onEnd();

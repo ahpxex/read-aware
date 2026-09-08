@@ -74,6 +74,7 @@ export function useReadingModeControl(bookId: string, supported: boolean) {
       release?.(); release = undefined;
       if (id) release = readingRuntime.bindMode(id, { snapshot: controller.snapshot, observe: controller.observe, generation: controller.generation,
         waitForPosition: (position, signal) => controller.waitForPosition(position, signal),
+        step: (direction, signal) => controller.step(direction, signal),
         configure: (input, signal) => controller.configure(input, signal), retire });
     });
     return () => { unobserve(); release?.(); retire(); };

@@ -30,10 +30,12 @@ test("navigator handles both event orders, same-index replacements, provider fai
     } }),
     addAnnotation: async (annotation: { value: string }) => { painted.push(annotation.value); },
     deleteAnnotation: async () => {},
+    goTo: async (target: unknown) => { if (typeof target === "number") crosses++; return { index: 0 }; },
+    book: { sections: [{ id: "first" }] },
   } as unknown as FoliateView;
   const options: Parameters<typeof useTextUnitNavigator>[0] = {
     active: true, bookId: "unit-build-test", modeKey: "test-mode:reader", unitId: "sentence", segmentText: segmenter,
-    viewRef: { current: view }, readerRootRef: { current: null }, crossSection: () => { crosses++; }, veilColor: "white",
+    viewRef: { current: view }, readerRootRef: { current: null }, veilColor: "white",
   };
   let state!: TextUnitNavigator;
   const unavailableSegmenter = () => [];

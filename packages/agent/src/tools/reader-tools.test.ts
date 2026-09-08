@@ -137,3 +137,15 @@ test("an exact annotation lookup cannot navigate a different target book", async
   await expect(tool("open_book").execute("test", { annotationId: "note" })).rejects.toThrow("annotation not found");
   expect(stores.readerRequests).toHaveLength(0);
 });
+
+test("unit navigation forwards cancellation and scope and preserves boundary outcomes", async () => {
+  const { deps, tool } = fixture(); const abort = new AbortController();
+  const observed: unknown[] = [];
+  deps.reader.stepMode = async (direction, signal, guard) => {
+    observed.push({ direction, signal, guard });
+    return { status: "completed", sessionId: "fixture", outcome: "end-of-book", mode: (await deps.reader.getSession()).mode };
+  };
+  const result = await tool("navigate_reading").execute("test", { action: "next-unit" }, abort.signal);
+  expect(JSON.stringify(result)).toContain("end-of-book");
+  expect(observed).toEqual([{ direction: "next", signal: abort.signal, guard: { sessionId: "fixture", bookId } }]);
+});

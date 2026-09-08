@@ -13,7 +13,7 @@ function fixture() {
     speak: (_text, next) => { callbacks = next; return { cancel: () => { stops++; } }; },
     play: () => { throw new Error("No provider expected"); }, report: () => {},
   });
-  controller.update({ enabled: true, unit: { text: "Test unit", cfiRange: "first" }, voice: null, next() {}, peekNext: () => null });
+  controller.update({ enabled: true, unit: { text: "Test unit", cfiRange: "first" }, voice: null, next: async () => "end-of-book", peekNext: () => null });
   const unbind = runtime.bindPlayback(id, controller);
   return { runtime, id, controller, unbind, started: () => callbacks.onStart(), stops: () => stops };
 }

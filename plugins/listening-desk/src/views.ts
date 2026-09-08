@@ -1,7 +1,7 @@
 import type { PluginContext, PluginAction, PluginView, PluginFormView, PluginViewResult } from "@read-aware/plugin-types";
 import { tr } from "./strings";
 
-export async function listeningView(ctx: PluginContext): Promise<PluginView> {
+export async function listeningView(ctx: PluginContext, boundary?: "start-of-book" | "end-of-book"): Promise<PluginView> {
   const reading = ctx.domains.reading;
   if (!reading?.commands) throw new Error("Listening Desk requires reading:write");
   const state = await reading.queries.session();
@@ -25,6 +25,16 @@ export async function listeningView(ctx: PluginContext): Promise<PluginView> {
     },
   } : null;
   if (state.status === "ready" && state.sessionId) {
+    if (mode.requestedActive && ["ready", "empty"].includes(mode.status)) {
+      for (const direction of ["previous", "next"] as const) actions.push({
+        id: `${direction}-unit`, label: tr(ctx.locale, direction === "next" ? "nextUnit" : "previousUnit"),
+        icon: direction === "next" ? "arrow-right" : "arrow-left",
+        run: async () => {
+          const result = await reading.commands!.stepMode(direction, guard);
+          return { view: await listeningView(ctx, result.outcome === "moved" ? undefined : result.outcome), navigation: "replace" };
+        },
+      });
+    }
     if (mode.requestedActive && mode.position) actions.push({ id: "return-to-unit", label: tr(ctx.locale, "returnToUnit"), icon: "book-bookmark",
       run: async () => { await reading.commands!.returnToMode(guard); return refresh(); } });
     if (["preparing", "playing", "advancing"].includes(playback.status)) {
@@ -46,6 +56,7 @@ export async function listeningView(ctx: PluginContext): Promise<PluginView> {
   actions.push({ id: "refresh", label: tr(ctx.locale, "refresh"), icon: "arrows-clockwise", run: refresh });
   return { kind: "blocks", blocks: [
     ...(modeForm ? [modeForm] : []),
+    ...(boundary ? [{ kind: "text" as const, text: tr(ctx.locale, boundary) }] : []),
     { kind: "text", text: tr(ctx.locale, playback.status) },
     ...(playback.unavailableReason ? [{ kind: "text" as const, text: tr(ctx.locale, playback.unavailableReason) }] : []),
     ...(playback.backend ? [{ kind: "text" as const, text: tr(ctx.locale, playback.fallback ? "fallback" : playback.backend) }] : []),

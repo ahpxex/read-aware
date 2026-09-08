@@ -146,6 +146,7 @@ export interface AnnotationsPort {
 export interface ReaderPort {
   configureMode(input: import("@read-aware/core").ReadingModeConfiguration, signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingModeReceipt>;
   returnToMode(signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
+  stepMode(direction: "next" | "previous", signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingModeStepReceipt>;
   controlPlayback(action: "start" | "stop", signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingPlaybackReceipt>;
   getSession(): Promise<import("@read-aware/core").ReadingSessionSnapshot>;
   /** Resolves only after the desktop renderer reports its actual location. */

@@ -246,7 +246,7 @@
     },
     "plugins/listening-desk": {
       "name": "@read-aware/plugin-listening-desk",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "devDependencies": {
         "@read-aware/plugin-types": "workspace:*",
         "@read-aware/tsconfig": "workspace:*",

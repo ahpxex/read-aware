@@ -66,13 +66,27 @@ export async function pluginMode(active: boolean, unitId: string) {
 export async function closeProbeBook() {
   await isolated(); await readingRuntime.close(); return readingRuntime.snapshot();
 }
-export async function modeNavigation(action: "return-to-unit" | "away") {
+export async function modeNavigation(action: "return-to-unit" | "away" | "next-unit" | "previous-unit", fraction = 0.8) {
   await isolated();
   const bookId = readingRuntime.snapshot().bookId;
   if (!bookId) throw new Error("Open the synthetic reading probe book first");
   const tools = buildReaderTools({ kind: "book", bookId }, buildRuntimeDeps());
-  return action === "away" ? tools.find(tool => tool.name === "open_book")!.execute("mode-e2e", { fraction: 0.8 })
-    : tools.find(tool => tool.name === "navigate_reading")!.execute("mode-e2e", { action });
+  const abort = new AbortController(); modeAbort = abort;
+  try {
+    return action === "away" ? await tools.find(tool => tool.name === "open_book")!.execute("mode-e2e", { fraction }, abort.signal)
+      : await tools.find(tool => tool.name === "navigate_reading")!.execute("mode-e2e", { action }, abort.signal);
+  } finally { if (modeAbort === abort) modeAbort = undefined; }
+}
+export async function pluginUnitStep(direction: "next" | "previous") {
+  await isolated();
+  const command = getDefaultStore().get(pluginCommandsAtom).find(command => command.pluginId === "listening-desk" && command.id === "open");
+  const result = await command?.run();
+  if (result?.view?.kind !== "blocks") throw new Error("Listening Desk view unavailable");
+  const row = result.view.blocks.find(block => block.kind === "actions");
+  const action = row?.kind === "actions" ? row.actions.find(action => action.id === `${direction}-unit`) : null;
+  if (!action) throw new Error("Listening Desk step action unavailable");
+  await action.run();
+  return readingRuntime.snapshot();
 }
 export async function cleanupSegmentationProbe() {
   await isolated();

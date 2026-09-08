@@ -61,6 +61,7 @@ const pluginMap = pairs([
   ["domains.reading.commands.controlPlayback", "READ18"],
   ["domains.reading.commands.configureMode", "READ16"],
   ["domains.reading.commands.returnToMode", "READ16"],
+  ["domains.reading.commands.stepMode", "READ16"],
   ["domains.annotations.queries.list", "ANN01"], ["domains.annotations.commands.createHighlight", "ANN02 ANN03"],
   ["domains.annotations.queries.get domains.annotations.queries.page", "ANN08"], ["domains.annotations.commands.removeAsk", "ANN06"],
   ["domains.annotations.queries.inspect domains.annotations.commands.applyChanges", "ANN08"],

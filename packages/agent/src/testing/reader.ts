@@ -22,6 +22,7 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
       return { status: "completed", sessionId: "fixture", mode };
     },
     returnToMode: async () => { throw new Error("Fixture has no reader-mode position"); },
+    stepMode: async () => { throw new Error("Fixture has no reader-mode units"); },
     controlPlayback: async action => {
       if (action === "start") throw new Error("Fixture has no audio backend");
       return { status: "completed", sessionId: "fixture", playback };

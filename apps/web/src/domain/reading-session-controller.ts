@@ -1,4 +1,5 @@
 import { AppError, errorCode, type EventOrigin, type ReadingModeConfiguration, type ReadingModeSnapshot, type ReadingModeReceipt, type ReadingPlaybackSnapshot, type ReadingPlaybackReceipt, type ReadingLocation, type ReadingNavigationReceipt, type ReadingSessionSnapshot, type ReadingSessionGuard, type ReadingTarget } from "@read-aware/core";
+import type { ReadingModeStepOutcome, ReadingModeStepReceipt } from "@read-aware/core";
 
 export type ReadingModeAdapter = {
   generation(): number;
@@ -6,6 +7,7 @@ export type ReadingModeAdapter = {
   observe(listener: () => void): () => void;
   configure(input: ReadingModeConfiguration, signal?: AbortSignal): Promise<ReadingModeSnapshot>;
   waitForPosition(position: NonNullable<ReadingModeSnapshot["position"]>, signal: AbortSignal): Promise<void>;
+  step(direction: -1 | 1, signal: AbortSignal): Promise<ReadingModeStepOutcome>;
   retire(): void;
 };
 export const unavailableMode = (): ReadingModeSnapshot => ({ status: "unavailable", unavailableReason: "no-session",
@@ -145,6 +147,30 @@ export class ReadingSessionController {
     binding?.dispose(); binding?.adapter.retire();
   }
 
+  async stepMode(direction: "next" | "previous", signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingModeStepReceipt> {
+    if (signal?.aborted) throw signal.reason;
+    this.checkGuard(guard);
+    if (direction !== "next" && direction !== "previous") throw new AppError("reader/invalid-target", "Invalid unit direction");
+    const binding = this.modeAdapter;
+    const bookId = this.session?.bookId;
+    if (!binding || !bookId || !this.state.mode.requestedActive || this.state.status !== "ready") throw new AppError("reader/unavailable", "Reading mode is not active in a ready reader");
+    const generation = binding.adapter.generation();
+    const abort = new AbortController();
+    const cancel = () => abort.abort(signal?.reason);
+    signal?.addEventListener("abort", cancel, { once: true });
+    const unobserve = this.observe(() => {
+      if (this.modeAdapter !== binding || binding.adapter.generation() !== generation) abort.abort(new AppError("reader/superseded", "Reading mode changed during stepping"));
+    });
+    let outcome: ReadingModeStepOutcome | undefined;
+    try {
+      const receipt = await this.run({ bookId }, abort.signal, undefined, undefined, guard, undefined, async signal => {
+        outcome = await binding.adapter.step(direction === "next" ? 1 : -1, signal);
+      });
+      if (!outcome) throw new AppError("reader/unavailable", "Reading mode returned no step outcome");
+      return { status: "completed", sessionId: receipt.sessionId, outcome, mode: structuredClone(binding.adapter.snapshot()) };
+    } finally { unobserve(); signal?.removeEventListener("abort", cancel); }
+  }
+
   returnToMode(signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt> {
     if (signal?.aborted) return Promise.reject(signal.reason);
     try { this.checkGuard(guard); } catch (error) { return Promise.reject(error); }
@@ -270,7 +296,7 @@ export class ReadingSessionController {
   }
 
   private run(target: ReadingTarget & { bookId: string }, signal?: AbortSignal, historyIndex?: number, direction?: "next" | "previous", guard?: ReadingSessionGuard,
-    settle?: (signal: AbortSignal) => Promise<void>): Promise<ReadingNavigationReceipt> {
+    settle?: (signal: AbortSignal) => Promise<void>, moveMode?: (signal: AbortSignal) => Promise<void>): Promise<ReadingNavigationReceipt> {
     if (signal?.aborted) return Promise.reject(signal.reason);
     try {
       this.checkGuard(guard);
@@ -310,6 +336,7 @@ export class ReadingSessionController {
       const movement = (this.engineTails.get(engine) ?? Promise.resolve()).then(async () => {
         check();
         if (this.session !== session || session.engine !== engine) throw new AppError("reader/superseded", "Reader engine was replaced");
+        if (moveMode) { await moveMode(controller.signal); return this.state.location; }
         return direction ? engine.step(direction)
           : target.cfi || target.href || target.fraction !== undefined ? engine.navigate(target)
           : this.state.location;
@@ -326,7 +353,7 @@ export class ReadingSessionController {
         if (before && this.cursor >= 0) this.history[this.cursor] = before;
         this.cursor = historyIndex;
         this.history[this.cursor] = location;
-      } else if (!direction) {
+      } else if (!direction && !moveMode) {
         this.recordJump(before, location);
       }
       this.publish({ location });

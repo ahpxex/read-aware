@@ -1,4 +1,4 @@
-import { AppError, errorCode, type EventOrigin, type ReadingPlaybackSnapshot } from "@read-aware/core";
+import { AppError, errorCode, type EventOrigin, type ReadingPlaybackSnapshot, type ReadingModeStepOutcome } from "@read-aware/core";
 
 export type PlaybackHandle = { cancel(): void };
 export type PlaybackCallbacks = { onStart(): void; onEnd(): void; onError(error: unknown): void };
@@ -7,7 +7,7 @@ export type PlaybackInput = {
   enabled: boolean;
   unit: { text: string; cfiRange: string | null } | null;
   voice: PlaybackVoice | null;
-  next(): void | Promise<void>;
+  next(signal: AbortSignal): Promise<ReadingModeStepOutcome>;
   peekNext(): string | null;
 };
 type Dependencies = {
@@ -19,7 +19,7 @@ type Dependencies = {
 
 /** Owns playback, including in-flight synthesis. React and both actors use this one state machine. */
 export class ReadAloudController {
-  private input: PlaybackInput = { enabled: false, unit: null, voice: null, next() {}, peekNext: () => null };
+  private input: PlaybackInput = { enabled: false, unit: null, voice: null, next: async () => { throw new AppError("reader/unavailable", "Unit stepper is not attached"); }, peekNext: () => null };
   private state: ReadingPlaybackSnapshot = { status: "unavailable", unavailableReason: "mode-inactive", backend: null, fallback: false, owner: null, cfiRange: null };
   private listeners = new Set<() => void>();
   private generation = 0;
@@ -29,8 +29,9 @@ export class ReadAloudController {
   private releaseSignal: (() => void) | undefined;
   private pending: { resolve(): void; reject(error: unknown): void } | undefined;
   private cache: { text: string; bytes: ArrayBuffer; voice: PlaybackVoice } | undefined;
+  private advance: AbortController | undefined;
 
-  constructor(private readonly deps: Dependencies, private readonly startDeadlineMs = 30_000, private readonly advanceDeadlineMs = 6_000) {}
+  constructor(private readonly deps: Dependencies, private readonly startDeadlineMs = 30_000, private readonly advanceDeadlineMs = 35_000) {}
 
   snapshot = (): ReadingPlaybackSnapshot => this.state;
   observe = (listener: () => void): (() => void) => {
@@ -47,6 +48,9 @@ export class ReadAloudController {
     }
     const changed = old.unit?.text !== input.unit?.text || old.unit?.cfiRange !== input.unit?.cfiRange || old.voice !== input.voice;
     if (this.running && changed) {
+      // Unit feedback commits before the navigation receipt. Its own update
+      // must not cancel the step or start speech from an intermediate section.
+      if (this.advance && old.voice === input.voice) return;
       if (old.voice !== input.voice) this.cache = undefined;
       this.speakCurrent();
     } else if (!this.running) this.publish({
@@ -84,6 +88,7 @@ export class ReadAloudController {
 
   private cancelUnit(): void {
     ++this.generation;
+    this.advance?.abort(new AppError("reader/superseded", "Playback advance was replaced")); this.advance = undefined;
     clearTimeout(this.timer); this.timer = undefined;
     this.handle?.cancel(); this.handle = null;
   }
@@ -123,9 +128,20 @@ export class ReadAloudController {
         // Some speech engines omit start for empty/unsupported utterances.
         if (!started) { this.fail(new AppError("reader/playback-failed", "Audio ended without starting")); return; }
         this.publish({ status: "advancing" });
+        const advance = new AbortController(); this.advance = advance;
         this.timer = setTimeout(() => { if (active()) this.fail(new AppError("reader/timeout", "No next reading unit arrived")); }, this.advanceDeadlineMs);
-        try { void Promise.resolve(this.input.next()).catch(error => { if (active()) this.fail(error); }); }
-        catch (error) { if (active()) this.fail(error); }
+        void (async () => {
+          try {
+            const outcome = await this.input.next(advance.signal);
+            if (!active() || advance.signal.aborted) return;
+            this.advance = undefined;
+            if (outcome === "end-of-book") { this.stop(); return; }
+            if (outcome !== "moved" || !this.input.unit?.text || this.input.unit.cfiRange === unit.cfiRange) {
+              throw new AppError("reader/target-not-found", "Unit advance did not produce a new passage");
+            }
+            this.speakCurrent();
+          } catch (error) { if (active()) this.fail(error); }
+        })();
       },
       onError: error => { if (active()) this.fail(new AppError("reader/playback-failed", "Audio playback failed", { cause: error })); },
     };

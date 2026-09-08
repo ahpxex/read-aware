@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { ReadingSessionController } from "./reading-session-controller";
 import { ReadingModeController } from "../features/reader/lib/reading-mode-controller";
+import { AppError } from "@read-aware/core";
 
 function fixture() {
   const runtime = new ReadingSessionController();
@@ -20,6 +21,68 @@ function fixture() {
   });
   return { runtime, id, controller, unbind, detach, ready };
 }
+
+test("unit steps wait for committed consumers, return boundaries and never add jump history", async () => {
+  const { runtime, id, controller, ready } = fixture();
+  const configured = runtime.configureMode({ active: true }); ready(); await configured;
+  const feedback = { status: "ready" as const, progress: { ordinal: 2, total: 3 }, cfiRange: "next" };
+  let direction: number | undefined;
+  controller.bindStepper(async value => { direction = value; return { outcome: "moved", feedback }; });
+  let done = false;
+  const work = runtime.stepMode("next", undefined, { sessionId: id, bookId: "book" }).then(result => { done = true; return result; });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(direction).toBe(1); expect(done).toBe(false);
+  controller.feedback(controller.generation(), "test:mode", "sentence", feedback);
+  expect(await work).toMatchObject({ status: "completed", outcome: "moved", mode: { cfiRange: "next" } });
+  expect(runtime.snapshot().history.canGoBack).toBe(false);
+  controller.bindStepper(async () => ({ outcome: "end-of-book", feedback }));
+  expect((await runtime.stepMode("next")).outcome).toBe("end-of-book");
+  controller.bindStepper(async () => ({ outcome: "start-of-book", feedback }));
+  expect((await runtime.stepMode("previous")).outcome).toBe("start-of-book");
+  runtime.closed();
+});
+
+test("new navigation cancels unit traversal and waits for its renderer work to release", async () => {
+  const { runtime, controller, ready } = fixture();
+  const configured = runtime.configureMode({ active: true }); ready(); await configured;
+  let cancelled = false;
+  let finish!: () => void;
+  controller.bindStepper(async (_direction, signal) => {
+    await new Promise<void>(resolve => { finish = resolve; signal.addEventListener("abort", () => { cancelled = true; }, { once: true }); });
+    if (signal.aborted) throw signal.reason;
+    throw new Error("Unexpected uncancelled step");
+  });
+  const step = runtime.stepMode("next").catch(error => error);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  let moved = false;
+  const newer = runtime.navigate({ fraction: 0.8 }).then(() => { moved = true; });
+  expect(await step).toMatchObject({ code: "reader/superseded" });
+  expect(cancelled).toBe(true); expect(moved).toBe(false);
+  finish(); await newer;
+  expect(moved).toBe(true);
+  runtime.closed();
+});
+
+test("mode changes, detachment, failure and invalid scope never yield unit success", async () => {
+  const { runtime, controller, ready, unbind } = fixture();
+  const configured = runtime.configureMode({ active: true }); ready(); await configured;
+  const abort = new AbortController(); abort.abort(new Error("cancelled"));
+  await expect(runtime.stepMode("next", abort.signal)).rejects.toThrow("cancelled");
+  await expect(runtime.stepMode("next", undefined, { bookId: "other" })).rejects.toMatchObject({ code: "reader/superseded" });
+  await expect(runtime.stepMode("wrong" as "next")).rejects.toMatchObject({ code: "reader/invalid-target" });
+  controller.bindStepper(async () => { throw new AppError("reader/segmentation-failed", "failure"); });
+  await expect(runtime.stepMode("next")).rejects.toMatchObject({ code: "reader/segmentation-failed" });
+  controller.bindStepper((_direction, signal) => new Promise((_resolve, reject) => signal.addEventListener("abort", () => reject(signal.reason), { once: true })));
+  const changing = runtime.stepMode("next").catch(error => error);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  controller.choose(false);
+  expect(await changing).toMatchObject({ code: "reader/superseded" });
+  const active = runtime.configureMode({ active: true }); ready(); await active;
+  const detached = runtime.stepMode("next").catch(error => error);
+  await new Promise(resolve => setTimeout(resolve, 0)); unbind();
+  expect(await detached).toMatchObject({ code: "reader/superseded" });
+  runtime.closed();
+});
 
 test("shared mode snapshot observes real preparation/completion and is isolated from consumer mutation", async () => {
   const { runtime, id, ready } = fixture();

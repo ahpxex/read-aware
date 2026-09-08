@@ -11,6 +11,10 @@ var labels = {
   unit: ["Unit", "单位", "單位", "単位", "Единица", "Unité", "Einheit", "Unidad"],
   apply: ["Apply", "应用", "套用", "適用", "Применить", "Appliquer", "Anwenden", "Aplicar"],
   returnToUnit: ["Current passage", "回到当前段落", "回到目前段落", "現在の文章へ", "Текущий отрывок", "Passage actuel", "Aktueller Abschnitt", "Pasaje actual"],
+  nextUnit: ["Next unit", "下一单元", "下一單元", "次の単位", "Следующая единица", "Unité suivante", "Nächste Einheit", "Unidad siguiente"],
+  previousUnit: ["Previous unit", "上一单元", "上一單元", "前の単位", "Предыдущая единица", "Unité précédente", "Vorherige Einheit", "Unidad anterior"],
+  "start-of-book": ["Start of book", "已到书首", "已到書首", "本の先頭", "Начало книги", "Début du livre", "Buchanfang", "Inicio del libro"],
+  "end-of-book": ["End of book", "已到书尾", "已到書尾", "本の末尾", "Конец книги", "Fin du livre", "Buchende", "Fin del libro"],
   invalid: ["Choose a valid value", "请选择有效值", "請選擇有效值", "有効な値を選択", "Выберите допустимое значение", "Choisissez une valeur valide", "Gültigen Wert wählen", "Elige un valor válido"],
   unavailable: ["Unavailable", "不可用", "無法使用", "利用不可", "Недоступно", "Indisponible", "Nicht verfügbar", "No disponible"],
   stopped: ["Stopped", "已停止", "已停止", "停止中", "Остановлено", "Arrêtée", "Gestoppt", "Detenida"],
@@ -31,7 +35,7 @@ function tr(locale, key) {
 }
 
 // src/views.ts
-async function listeningView(ctx) {
+async function listeningView(ctx, boundary) {
   const reading = ctx.domains.reading;
   if (!reading?.commands)
     throw new Error("Listening Desk requires reading:write");
@@ -66,6 +70,18 @@ async function listeningView(ctx) {
     }
   } : null;
   if (state.status === "ready" && state.sessionId) {
+    if (mode.requestedActive && ["ready", "empty"].includes(mode.status)) {
+      for (const direction of ["previous", "next"])
+        actions.push({
+          id: `${direction}-unit`,
+          label: tr(ctx.locale, direction === "next" ? "nextUnit" : "previousUnit"),
+          icon: direction === "next" ? "arrow-right" : "arrow-left",
+          run: async () => {
+            const result = await reading.commands.stepMode(direction, guard);
+            return { view: await listeningView(ctx, result.outcome === "moved" ? undefined : result.outcome), navigation: "replace" };
+          }
+        });
+    }
     if (mode.requestedActive && mode.position)
       actions.push({
         id: "return-to-unit",
@@ -99,6 +115,7 @@ async function listeningView(ctx) {
   actions.push({ id: "refresh", label: tr(ctx.locale, "refresh"), icon: "arrows-clockwise", run: refresh });
   return { kind: "blocks", blocks: [
     ...modeForm ? [modeForm] : [],
+    ...boundary ? [{ kind: "text", text: tr(ctx.locale, boundary) }] : [],
     { kind: "text", text: tr(ctx.locale, playback.status) },
     ...playback.unavailableReason ? [{ kind: "text", text: tr(ctx.locale, playback.unavailableReason) }] : [],
     ...playback.backend ? [{ kind: "text", text: tr(ctx.locale, playback.fallback ? "fallback" : playback.backend) }] : [],

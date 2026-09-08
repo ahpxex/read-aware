@@ -14,11 +14,10 @@ import type { TextUnitTarget } from "./useTextUnitNavigator";
 const log = createLogger("read-aloud");
 
 /** Bind the real voice backend and current navigator to the shared reading domain. */
-export function useReadAloud({ bookId, enabled, current, next, peekNext }: {
+export function useReadAloud({ bookId, enabled, current, peekNext }: {
   bookId: string | null;
   enabled: boolean;
   current: TextUnitTarget | null;
-  next: () => void;
   peekNext: () => string | null;
 }) {
   const { toast } = useToast();
@@ -44,6 +43,11 @@ export function useReadAloud({ bookId, enabled, current, next, peekNext }: {
     report: error => log.warn("read aloud degraded or failed", error),
   }));
   const snapshot = useSyncExternalStore(controller.observe, controller.snapshot);
+  const next = useCallback(async (signal: AbortSignal) => {
+    const session = readingRuntime.snapshot();
+    const result = await readingRuntime.stepMode("next", signal, { bookId: bookId ?? undefined, sessionId: session.sessionId ?? undefined });
+    return result.outcome;
+  }, [bookId]);
 
   useEffect(() => {
     controller.update({ enabled, unit: current, voice, next, peekNext });

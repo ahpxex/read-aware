@@ -69,6 +69,8 @@ export type ReadingModeSnapshot = {
 
 export type ReadingModeConfiguration = { active: boolean; modeKey?: string; unitId?: string };
 export type ReadingModeReceipt = { status: "completed"; sessionId: string; mode: ReadingModeSnapshot };
+export type ReadingModeStepOutcome = "moved" | "start-of-book" | "end-of-book";
+export type ReadingModeStepReceipt = ReadingModeReceipt & { outcome: ReadingModeStepOutcome };
 
 /** Text is deliberately omitted: playback control grants no additional reading access. */
 export type ReadingPlaybackSnapshot = {

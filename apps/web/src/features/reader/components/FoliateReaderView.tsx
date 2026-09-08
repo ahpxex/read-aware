@@ -702,7 +702,6 @@ export function FoliateReaderView({
   const {
     isCrossing,
     crossTo,
-    crossSection,
     handleWheelCrossingRef,
     dismissShellOnScrollDistanceRef,
     enqueuePageTurn,
@@ -910,29 +909,6 @@ export function FoliateReaderView({
     scrollToStepRef.current = textUnitModeSettings.scrollToStep;
   }, [textUnitModeSettings.tapToAdvance, textUnitModeSettings.scrollToStep]);
 
-  // Stepping off either end of a section: scroll mode gets the cross-fade with
-  // an explicit spine target (next/prev only cross when pinned at an edge);
-  // paginated modes flip like a page turn, crossing at the section's last page.
-  const textUnitModeCrossSection = useCallback(
-    async (direction: -1 | 1, fromSectionIndex: number | null) => {
-      const view = viewRef.current;
-      if (!view) return;
-      if (readingModeRef.current === "scroll") {
-        await crossSection(
-          direction,
-          fromSectionIndex != null ? fromSectionIndex + direction : undefined,
-        );
-        return;
-      }
-      try {
-        await (direction === 1 ? view.next() : view.prev());
-      } catch {
-        // At the first/last section — stay put.
-      }
-    },
-    [crossSection],
-  );
-
   const textUnitNavigator = useTextUnitNavigator({
     configurationRevision: modeRequest?.revision,
     active: textUnitModeEngineActive,
@@ -943,10 +919,10 @@ export function FoliateReaderView({
     segmentText: textUnitMode?.segmentText ?? EMPTY_READER_SEGMENTER,
     viewRef,
     readerRootRef,
-    crossSection: textUnitModeCrossSection,
     veilColor: readerPalette.bg,
   });
   useEffect(() => modeController?.bindPositionWaiter(textUnitNavigator.waitForPosition), [modeController, textUnitNavigator.waitForPosition]);
+  useEffect(() => modeController?.bindStepper(textUnitNavigator.stepNative), [modeController, textUnitNavigator.stepNative]);
   useEffect(() => {
     modeController?.feedback(textUnitNavigator.configurationRevision, textUnitMode?.key ?? null, activeUnitId, {
       status: textUnitNavigator.status, errorCode: textUnitNavigator.errorCode,
@@ -960,7 +936,6 @@ export function FoliateReaderView({
     bookId: selectedBook?.id ?? null,
     enabled: textUnitModeEngineActive,
     current: textUnitNavigator.current,
-    next: textUnitNavigator.next,
     peekNext: textUnitNavigator.peekNext,
   });
   // The engine's mount-once effect and the stable key handler reach the

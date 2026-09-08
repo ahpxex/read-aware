@@ -6,7 +6,9 @@ import { describeError } from "../../../i18n";
 import { createLogger } from "../../../platform/logger";
 import { TextUnitBuild } from "../lib/text-unit-build";
 import { TextUnitPositionWaiter, positionUnavailable } from "../lib/text-unit-position-waiter";
-import type { ModeFeedback } from "../lib/reading-mode-controller";
+import type { ModeFeedback, ModeStepResult } from "../lib/reading-mode-controller";
+import { stepTextUnit, type TextUnitStepIndex } from "../lib/text-unit-stepper";
+import { waitForReadingPaint } from "../lib/reading-engine-adapter";
 import { resolveTextUnitPosition } from "../lib/text-unit-position";
 import { readingRuntime } from "../../../domain/reading-runtime";
 import type { RegisteredReaderMode } from "../../plugins/lib/plugin-types";
@@ -48,6 +50,7 @@ export type TextUnitNavigator = {
   current: TextUnitTarget | null;
   position: ReadingModePosition | null;
   waitForPosition(position: ReadingModePosition, signal: AbortSignal): Promise<ModeFeedback>;
+  stepNative(direction: -1 | 1, signal: AbortSignal): Promise<ModeStepResult>;
   /** Where the wash rests within the loaded section, or null while it rests
    *  elsewhere (another section, mode off, unit-less section). */
   progress: TextUnitProgress | null;
@@ -90,8 +93,6 @@ type UseTextUnitNavigatorOptions = {
   segmentText: RegisteredReaderMode["segmentText"];
   viewRef: RefObject<FoliateView | null>;
   readerRootRef: RefObject<HTMLElement | null>;
-  /** Cross into the adjacent spine section, with the mode's transition. */
-  crossSection: (direction: -1 | 1, fromSectionIndex: number | null) => Promise<void> | void;
   /** The reader's page color — the fill of the dimming veil drawn around the
    *  resting unit so the rest of the page recedes while navigating. */
   veilColor: string;
@@ -115,9 +116,8 @@ const SCROLL_COMFORT_BOTTOM_MAX_PX = 240;
  *
  * Manual moves (page turns, scrolling, chapter jumps) never displace the
  * navigator: the wash keeps its unit, off-screen if need be, and is
- * restored when its section is flipped back into view. Only stepping — or
- * stepping for the first time inside a section the wash isn't in, which
- * re-enters at the first visible unit — moves it.
+ * restored when its section is flipped back into view. Stepping continues
+ * from that resting unit, even when the viewport has moved elsewhere.
  */
 export function useTextUnitNavigator({
   configurationRevision = 0,
@@ -129,7 +129,6 @@ export function useTextUnitNavigator({
   segmentText,
   viewRef,
   readerRootRef,
-  crossSection,
   veilColor,
 }: UseTextUnitNavigatorOptions): TextUnitNavigator {
   const { toast } = useToast();
@@ -169,8 +168,6 @@ export function useTextUnitNavigator({
   // Unit to land on once the relocate that follows a section load fires
   // (layout is settled there; at `load` time the overlayer doesn't exist yet).
   const pendingAnchorRef = useRef<{ index: number; scroll: boolean } | null>(null);
-  // Direction of an in-flight section cross initiated by stepping off the end.
-  const pendingCrossRef = useRef<-1 | 1 | null>(null);
   // Where the navigator rests, by section + ordinal — remembered across
   // section unloads so flipping away and back restores the wash in place.
   // Persisted per book, so it also survives closing and reopening the book.
@@ -184,8 +181,6 @@ export function useTextUnitNavigator({
   const requestedUnitIdRef = useRef(unitId);
   requestedUnitIdRef.current = unitId;
 
-  const crossSectionRef = useRef(crossSection);
-  useEffect(() => { crossSectionRef.current = crossSection; }, [crossSection]);
   // A theme change swaps the veil color but does NOT rebuild the overlayer —
   // the drawn annotation keeps the options it was added with. Re-apply the
   // wash in place (add on an existing CFI replaces the drawing) so the veil
@@ -218,7 +213,6 @@ export function useTextUnitNavigator({
     layoutReadyRef.current = false;
     appliedCfiRef.current = null;
     pendingAnchorRef.current = null;
-    pendingCrossRef.current = null;
     clearUnit();
     // Do not restore or overwrite a saved position before the loader provides
     // the actual content identity (file hash or virtual-content version).
@@ -256,7 +250,6 @@ export function useTextUnitNavigator({
     visibleRangeRef.current = null;
     layoutReadyRef.current = false;
     pendingAnchorRef.current = null;
-    pendingCrossRef.current = null;
     contentVersionRef.current = version;
     clearUnit();
     setStatus(activeRef.current ? "building" : "inactive");
@@ -411,36 +404,96 @@ export function useTextUnitNavigator({
     return { units: result.value, isCurrent };
   }, [buildSession, clearUnit, clearWash, positionWaiter]);
 
-  const step = useCallback(
-    (direction: -1 | 1) => {
-      if (!activeRef.current) return;
+  const stepNative = useCallback(async (direction: -1 | 1, signal: AbortSignal): Promise<ModeStepResult> => {
+    const view = viewRef.current;
+    const id = bookIdRef.current;
+    const version = contentVersionRef.current;
+    const key = modeKeyRef.current;
+    const unit = unitIdRef.current;
+    const revision = configurationRef.current;
+    if (!view || !id || !version || !key) throw positionUnavailable();
+    const check = () => {
+      if (signal.aborted) throw signal.reason;
+      if (!activeRef.current || viewRef.current !== view || bookIdRef.current !== id || modeKeyRef.current !== key
+        || unitIdRef.current !== unit || configurationRef.current !== revision) throw positionUnavailable();
+      if (contentVersionRef.current !== version) throw new AppError("reader/stale-location", "Mode content changed during stepping");
+      if (positionErrorRef.current) throw positionErrorRef.current;
+    };
+    const position = (cfi: string): ReadingModePosition => ({ location: { bookId: id, contentVersion: version, cfi }, modeKey: key, unitId: unit });
+    const index = (signal: AbortSignal): Promise<TextUnitStepIndex> => positionWaiter.wait(() => {
+      check();
+      const section = sectionRef.current;
       const units = unitsRef.current;
-      // Null means indexing or failure, not a successfully empty section.
-      if (units === null) return;
-      const crossFrom = sectionRef.current?.index ?? null;
-      if (!units?.length) {
-        // A unit-less section (images, an empty page) — cross straight over.
-        pendingCrossRef.current = direction;
-        void crossSectionRef.current(direction, crossFrom);
-        return;
-      }
-      if (currentIndexRef.current < 0) {
-        // The wash rests in another section (or nowhere yet): stepping
-        // re-enters navigation here, at the first unit still in view.
-        const index = anchorTextUnitIndex(units, visibleRangeRef.current);
-        if (index >= 0) applyIndex(index, { scroll: false });
-        return;
-      }
-      const nextIndex = currentIndexRef.current + direction;
-      if (nextIndex < 0 || nextIndex >= units.length) {
-        pendingCrossRef.current = direction;
-        void crossSectionRef.current(direction, crossFrom);
-        return;
-      }
-      applyIndex(nextIndex);
-    },
-    [applyIndex],
-  );
+      if (!section || !units || !layoutReadyRef.current) return;
+      const resting = restingRef.current;
+      return { sectionIndex: section.index, count: units.length,
+        currentIndex: resting?.sectionIndex === section.index && resting.cfiRange
+          ? resolveTextUnitPosition(view, resting.cfiRange, section.doc, section.index, units) : currentIndexRef.current,
+        visibleIndex: anchorTextUnitIndex(units, visibleRangeRef.current),
+        position: ordinal => {
+          check();
+          if (sectionRef.current !== section || unitsRef.current !== units) throw positionUnavailable();
+          const range = units[ordinal];
+          if (!range) throw new AppError("reader/target-not-found", "Requested unit does not exist");
+          return position(view.getCFI(section.index, range));
+        } };
+    }, signal);
+    const outcome = await stepTextUnit({
+      resting: () => restingRef.current?.cfiRange ? position(restingRef.current.cfiRange) : null,
+      index,
+      adjacent: (section, direction) => {
+        check();
+        const sections = view.book?.sections;
+        if (!sections || section < 0 || section >= sections.length) throw positionUnavailable();
+        for (let next = section + direction; next >= 0 && next < sections.length; next += direction) {
+          if (sections[next]?.linear !== "no") return next;
+        }
+        return null;
+      },
+      navigate: async target => {
+        check();
+        const resolved = await view.goTo(typeof target === "number" ? target : target.location.cfi);
+        check();
+        if (!resolved) throw new AppError("reader/target-not-found", "Reader could not resolve the unit target");
+        await waitForReadingPaint(view);
+        check();
+      },
+      land: async target => {
+        await index(signal);
+        check();
+        const section = sectionRef.current!;
+        const ordinal = resolveTextUnitPosition(view, target.location.cfi, section.doc, section.index, unitsRef.current!);
+        applyIndex(ordinal, { scroll: false });
+        await waitForPosition(target, signal);
+      },
+    }, direction, signal);
+    const settled = await index(signal);
+    check();
+    return { outcome, feedback: { status: settled.count ? "ready" : "empty", cfiRange: appliedCfiRef.current,
+      progress: currentIndexRef.current < 0 ? null : { ordinal: currentIndexRef.current, total: settled.count },
+      position: restingRef.current?.cfiRange ? position(restingRef.current.cfiRange) : null } };
+  }, [viewRef, positionWaiter, applyIndex, waitForPosition]);
+
+  const unmanagedStepRef = useRef<AbortController | null>(null);
+  useEffect(() => () => unmanagedStepRef.current?.abort(positionUnavailable()), []);
+  const step = useCallback((direction: -1 | 1) => {
+    const session = readingRuntime.snapshot();
+    const id = bookIdRef.current;
+    let work: Promise<unknown>;
+    if (id && session.bookId === id && session.status === "ready") {
+      work = readingRuntime.stepMode(direction === 1 ? "next" : "previous", undefined, { bookId: id, sessionId: session.sessionId! });
+    } else {
+      // Component stories have no application session, but retain the same native traversal.
+      unmanagedStepRef.current?.abort(positionUnavailable());
+      const abort = new AbortController(); unmanagedStepRef.current = abort;
+      const timer = setTimeout(() => abort.abort(new AppError("reader/timeout", "Unit stepping timed out")), 30_000);
+      work = stepNative(direction, abort.signal).finally(() => clearTimeout(timer));
+    }
+    void work.catch(error => {
+      log.warn("reading mode step failed", error);
+      if (errorCode(error) !== "reader/superseded") toastRef.current({ description: describeError(error).body, variant: "destructive" });
+    });
+  }, [stepNative]);
 
   const handleSectionLoad = useCallback(
     async (doc: Document, index: number) => {
@@ -456,31 +509,23 @@ export function useTextUnitNavigator({
       clearUnit();
       if (!activeRef.current) {
         buildSession.invalidate();
-        pendingCrossRef.current = null;
         return;
       }
       const result = await buildUnits();
       if (!result?.isCurrent() || sectionRef.current !== section) return;
       const { units } = result;
-      const cross = pendingCrossRef.current;
-      pendingCrossRef.current = null;
       if (!units.length) {
         clearUnit();
         return;
       }
       // Landing position is only settled at the relocate that follows the
-      // load, so record the intent and apply it there. A cross initiated by
-      // stepping enters at the near end (and may need a scroll to reach it);
-      // returning to the section the navigator rests in re-draws the wash on
+      // load, so record the intent and apply it there. Returning to the
+      // section the navigator rests in re-draws the wash on
       // its remembered unit, in place. Any other section leaves the
       // navigator where it was — the wash simply isn't here.
       const resting = restingRef.current;
       pendingAnchorRef.current =
-        cross === -1
-          ? { index: units.length - 1, scroll: true }
-          : cross === 1
-            ? { index: 0, scroll: true }
-            : resting?.sectionIndex === index
+        resting?.sectionIndex === index
               ? { index: restoredIndex(units, doc, index), scroll: false }
               : !resting
                 ? { index: anchorTextUnitIndex(units, visibleRangeRef.current), scroll: false }
@@ -578,7 +623,6 @@ export function useTextUnitNavigator({
     if (!suspended) setResting(null);
     persistState();
     pendingAnchorRef.current = null;
-    pendingCrossRef.current = null;
     clearUnit();
   }, [active, suspended, configurationRevision, applyIndex, buildSession, buildUnits, clearWash, persistState, setResting, restoredIndex]);
 
@@ -712,6 +756,7 @@ export function useTextUnitNavigator({
     errorCode: buildErrorCode,
     configurationRevision: preparedRevision,
     waitForPosition,
+    stepNative,
     current,
     position: bookIdRef.current && contentVersionRef.current && modeKeyRef.current && restingRef.current?.cfiRange ? {
       location: { bookId: bookIdRef.current, contentVersion: contentVersionRef.current, cfi: restingRef.current.cfiRange },

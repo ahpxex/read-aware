@@ -83,3 +83,22 @@ test("resting position offers a guarded return action even when the viewport has
   await action!.run();
   expect(calls[0]).toEqual(["return", { sessionId: "session", bookId: "book" }]);
 });
+
+test("unit controls preserve guards and show terminal boundaries without reporting failures as completion", async () => {
+  const { ctx, state, calls } = fixture();
+  state.mode = { ...state.mode, status: "ready", requestedActive: true };
+  ctx.domains.reading!.commands!.stepMode = async (direction, guard) => {
+    calls.push([direction, guard]); return { status: "completed", sessionId: "session", outcome: "end-of-book", mode: state.mode };
+  };
+  const view = await listeningView(ctx);
+  if (view.kind !== "blocks") throw new Error("Expected blocks");
+  const row = view.blocks.find(block => block.kind === "actions");
+  if (row?.kind !== "actions") throw new Error("Expected actions");
+  const next = row.actions.find(action => action.id === "next-unit")!;
+  expect(next.icon).toBe("arrow-right");
+  state.sessionId = "new-session";
+  expect(JSON.stringify(await next.run())).toContain("End of book");
+  expect(calls).toEqual([["next", { sessionId: "session", bookId: "book" }]]);
+  ctx.domains.reading!.commands!.stepMode = async () => { throw new Error("segmentation failed"); };
+  await expect(next.run()).rejects.toThrow("segmentation failed");
+});

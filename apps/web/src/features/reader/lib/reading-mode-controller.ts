@@ -1,9 +1,10 @@
-import { AppError, type ReadingModeConfiguration, type ReadingModeSnapshot, type ReadingModePosition } from "@read-aware/core";
+import { AppError, type ReadingModeConfiguration, type ReadingModeSnapshot, type ReadingModePosition, type ReadingModeStepOutcome } from "@read-aware/core";
 
 export type ModeDescriptor = { key: string; label: string; units: { id: string; label: string }[]; defaultUnitId: string };
 export type ModeRequest = { revision: number; active: boolean; unitId: string | null };
 export type ModeFeedback = { status: "inactive" | "building" | "ready" | "empty" | "error"; errorCode?: string;
   progress: { ordinal: number; total: number } | null; cfiRange: string | null; position?: ReadingModePosition | null };
+export type ModeStepResult = { outcome: ReadingModeStepOutcome; feedback: ModeFeedback };
 type Pending = { revision: number; before: ModeRequest; resolve(mode: ReadingModeSnapshot): void; reject(error: unknown): void; cleanup(): void };
 
 /** Owns requested mode state and completion. The reader reports the actual indexed state. */
@@ -16,6 +17,7 @@ export class ReadingModeController {
   private pending: Pending | undefined;
   private confirmedRevision = -1;
   private positionWaiter: ((position: ReadingModePosition, signal: AbortSignal) => Promise<ModeFeedback>) | undefined;
+  private stepper: ((direction: -1 | 1, signal: AbortSignal) => Promise<ModeStepResult>) | undefined;
 
   constructor(active = false, unitId: string | null = null, private readonly deadlineMs = 35_000) {
     this.request = { revision: 0, active, unitId };
@@ -30,7 +32,24 @@ export class ReadingModeController {
 
   bindPositionWaiter(waiter: NonNullable<ReadingModeController["positionWaiter"]>): () => void {
     this.positionWaiter = waiter;
-    return () => { if (this.positionWaiter === waiter) this.positionWaiter = undefined; };
+    this.emit();
+    return () => { if (this.positionWaiter === waiter) { this.positionWaiter = undefined; this.emit(); } };
+  }
+
+  bindStepper(stepper: NonNullable<ReadingModeController["stepper"]>): () => void {
+    this.stepper = stepper;
+    this.emit();
+    return () => { if (this.stepper === stepper) { this.stepper = undefined; this.emit(); } };
+  }
+
+  async step(direction: -1 | 1, signal: AbortSignal): Promise<ReadingModeStepOutcome> {
+    if (signal.aborted) throw signal.reason;
+    const stepper = this.stepper;
+    if (!stepper || !this.request.active) throw new AppError("reader/unavailable", "Reading mode stepper is not attached");
+    const revision = this.request.revision;
+    const result = await stepper(direction, signal);
+    await this.waitForFeedback(result.feedback, signal, () => stepper === this.stepper && revision === this.request.revision);
+    return result.outcome;
   }
 
   async waitForPosition(position: ReadingModePosition, signal: AbortSignal): Promise<void> {
@@ -38,16 +57,21 @@ export class ReadingModeController {
     if (!waiter) throw new AppError("reader/unavailable", "Reading mode position is not attached");
     const revision = this.request.revision;
     const feedback = await waiter(position, signal);
+    await this.waitForFeedback(feedback, signal, () => waiter === this.positionWaiter && revision === this.request.revision);
+  }
+
+  private waitForFeedback(feedback: ModeFeedback, signal: AbortSignal, current: () => boolean): Promise<void> {
     // The native index settles before React commits the current-unit consumers
     // (including playback). Do not expose completion with their old snapshot.
-    await new Promise<void>((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       const cleanup = () => { this.listeners.delete(check); signal.removeEventListener("abort", check); };
       const check = () => {
         try {
           if (signal.aborted) throw signal.reason;
-          if (waiter !== this.positionWaiter || revision !== this.request.revision) throw new AppError("reader/superseded", "Reading mode changed during restoration");
+          if (!current()) throw new AppError("reader/superseded", "Reading mode changed during movement");
           if (this.result.status === "error") throw new AppError(this.result.errorCode ?? "reader/segmentation-failed", "Reading mode restoration failed");
-          if (this.result.status !== "ready" || this.result.cfiRange !== feedback.cfiRange) return;
+          if (this.result.status !== feedback.status || this.result.cfiRange !== feedback.cfiRange
+            || this.result.progress?.ordinal !== feedback.progress?.ordinal || this.result.progress?.total !== feedback.progress?.total) return;
           cleanup(); resolve();
         } catch (error) { cleanup(); reject(error); }
       };

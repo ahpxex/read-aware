@@ -379,3 +379,25 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [环境] 最后重新编译并冷启动隔离 debug 实例，复测最终版本的 header 插件返回；正文恢复、Stopped/Start 与 book-bookmark 图标均在 `/tmp/reading-mode-return-plugin-cold.png` 核对。曾尝试的本地覆盖安装被 RepoDist builtin 保护拒绝，不算升级成功；临时直接 import 产生的重复模块/registry 诊断也不算产品证据，已用干净进程重验。Rust 保留既有 37 项 warning 与 block future-incompat 提醒，未改 Rust 业务。最终阅读已关闭。
 
 [环境] 本轮文档浏览器与隔离 Tauri 已停止，5184/9224 均无监听；正式实例与正式数据未操作。未推送。
+
+## 2026-09-09 双端单元步进与真实书尾
+
+[代码] `reading` 2.4 新增 `commands.stepMode(next|previous, guard?)`；Agent `navigate_reading` 新增 next-unit/previous-unit。原生文本单元控件与自动朗读也调用同一会话控制器。回执包含 completed、sessionId、实际 mode 和 moved/start-of-book/end-of-book，不把页翻动或消息派发当作新单元完成。单元步进不添加显式跳转历史。
+
+[代码] 遍历从版本化 resting CFI 开始，即使 viewport 已离开该章节，也先恢复再步进。每次跨节等待引擎页面、实际分段索引和 React 已提交的模式消费者；相邻节按 spine 顺序跳过 linear=no，成功空索引继续跨节，失败不当空节。首尾返回业务结果，无法解析、内容版本变化、分段失败与取消分别拒绝。沿用全来源导航最新意图优先、同引擎串行、30 秒截止；模式更换/解绑也取消等待。引擎不能 undo 已完成的页面移动，取消保证不再提交迟到的单元成功，而不是回滚物理页面。
+
+[代码] ReadAloudController 消费步进 Promise，而不是等待六秒猜下一段。中间 section load 的空单元/旧反馈不能启动下一次音频，也不能取消自己正在等待的步进。moved 必须有不同 CFI 的实际单元；end-of-book 正常停止。停止、换声源、调用方取消会终止在途 advance；迟到结果不得复活音频。advance 的 35 秒截止覆盖阅读控制器的 30 秒截止。
+
+[代码] Listening Desk 0.4.0 增加上下单元按钮、8 种语言的书首/书尾反馈，继续组合模式表单、朗读、回当前与跳转历史；所有动作捕获会话/书籍 guard，失败不刷新成成功结果。使用宿主已有 arrow-left/right 图标，不新增渲染权力。源码、dist、manifest 与 workspace lock 版本同步；仍是按需刷新视图，未新增 release BUNDLED 条目。
+
+[环境] [运行证据](./evidence/reading-mode-step-2026-09-09.json)：隔离 macOS Tauri debug、合成 FB2；Agent 同节步进、书首、书尾，真实 Worker 从异章 viewport 回 resting 后继续，Alpha 末段到 Beta 首段再反向返回均观察实际 CFI/ordinal。冷启动下 500ms/block 的真实分段 Worker 跨节用时 3098ms，完成后才返回 moved；拒绝约 556ms 返回 reader/segmentation-failed；先观察 preparing 再取消，旧调用拒绝且未落新的 resting 单元、未增加历史。失败后的 error 快照与即时 preparing 快照属于不同提交时点，不混称同步完成。
+
+[环境] 真实 Web Audio 播放探针的两秒音频，观察到倒数第二段 playing → 最后一段 playing → stopped，后端 plugin、无 fallback、无 timeout；最后一段单独启动也正常结束。此前系统声音 fallback 的初步运行不冒充插件声音证明。原生 Previous paragraph 按钮实际回到上一段；最终真实 header 的 Listening Desk 连点 Next unit，从 40/41 到 41/41，再出现 End of book。最终箭头图标和正文落点已在 `/tmp/reading-mode-step-plugin-final.png` 核对。
+
+[环境] 首次桌面构建因磁盘不足失败，使用 `cargo clean -p read-aware-desktop --profile dev` 清理本仓库可再生编译产物后重建成功，未清理应用数据。开发 HMR 曾留下独立 plugin-host 模块，使探针停用未移除旧提供者；这段 provider 替换尝试不计证据。冷启动后明确仅剩诊断 mode/voice 再验慢分段与音频。一条长 MCP 前台脚本超出桥接器执行时限，其未完成跨节不计成功；后续用命名 stepJob 记录 running/终态后再继续。最终图标改动后再次重启，并在依赖优化 reload 后重新打开书籍完成视觉验收。
+
+[环境] 全仓 test 19 个任务、typecheck 22 个任务、生产 web 构建通过；最后图标调整另跑 Listening Desk 6 项测试。新增/扩展测试覆盖跨空节/全空书/首尾、取消/误导航、不加历史、等待真实反馈、引擎串行、Agent scope、插件 guard 与音频终态。保留既有 Node DEP0205、chunk/dynamic-import、37 项 Rust warning 和 block future-incompat 提醒。重扫 215 行、568 入口、129 旧基线、30 单元/catalog 与 W01–W32，生成检查、7 项模型门禁与两对文档 validator 通过。两份 HTML 在 1440×1000、1024×768、390×844 检查无页面横向溢出，中英文搜索、Escape、抽屉 inert、主题刷新保持、无重复 ID/浏览器错误，仍使用既有 CDN，无新增图；不将文档浏览器当产品 E2E。
+
+仍未完成：READ16 跟随、任意 provider 选择、模式偏好持久失败回执；空节/非线性及其他格式的实际桌面步进证据；完整单次插件取消契约、其余双端缺口、全部组合插件与 W01–W32、release/跨平台/远端 LLM 与 TTS 验收。READ16 保持部分，整体目标继续，不宣告能力全齐。
+
+[环境] 最终探针 commands/modes/voices 已清空并恢复原插件，阅读关闭；文档浏览器与本轮隔离实例已停止，5184/9224 无监听。正式实例/数据未操作，未推送。

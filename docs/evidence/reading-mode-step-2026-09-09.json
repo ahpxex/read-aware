@@ -1,0 +1,860 @@
+{
+  "date": "2026-09-09",
+  "scope": "Isolated macOS Tauri debug; synthetic FB2; actual Agent tools, module Workers, native renderer and Web Audio",
+  "baseCommit": "0ef73632",
+  "identifier": "com.readaware.app.capability-e2e",
+  "ports": {
+    "vite": 5184,
+    "mcp": 9224
+  },
+  "coldSession": [
+    {
+      "case": "cross-section rejected segmentation",
+      "code": "reader/segmentation-failed",
+      "ms": 556,
+      "mode": {
+        "status": "preparing",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "capability-segmentation-probe:reader",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": null,
+        "cfiRange": null,
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/2!/4/2[chapter-0]/82,/1:0,/1:173)"
+          },
+          "modeKey": "capability-segmentation-probe:reader",
+          "unitId": "paragraph"
+        }
+      },
+      "history": {
+        "canGoBack": false,
+        "canGoForward": false
+      }
+    },
+    {
+      "case": "cold same-section step with slow provider",
+      "ms": 10,
+      "before": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "capability-segmentation-probe:reader",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": {
+          "ordinal": 39,
+          "total": 41
+        },
+        "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/80,/1:0,/1:173)",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/2!/4/2[chapter-0]/80,/1:0,/1:173)"
+          },
+          "modeKey": "capability-segmentation-probe:reader",
+          "unitId": "paragraph"
+        }
+      },
+      "receipt": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"status\":\"completed\",\"sessionId\":\"6fdb0a4a-a604-4bfb-a4ae-6618f3cfe309\",\"outcome\":\"moved\",\"mode\":{\"status\":\"ready\",\"unavailableReason\":null,\"requestedActive\":true,\"modeKey\":\"capability-segmentation-probe:reader\",\"label\":\"Read by sentence or paragraph\",\"unitId\":\"paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}],\"progress\":{\"ordinal\":40,\"total\":41},\"cfiRange\":\"epubcfi(/6/2!/4/2[chapter-0]/82,/1:0,/1:173)\",\"position\":{\"location\":{\"bookId\":\"07ef226e-1ebc-47b6-8dc9-d09109448d22\",\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\",\"cfi\":\"epubcfi(/6/2!/4/2[chapter-0]/82,/1:0,/1:173)\"},\"modeKey\":\"capability-segmentation-probe:reader\",\"unitId\":\"paragraph\"}}}"
+          }
+        ]
+      },
+      "after": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "capability-segmentation-probe:reader",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": {
+          "ordinal": 40,
+          "total": 41
+        },
+        "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/82,/1:0,/1:173)",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/2!/4/2[chapter-0]/82,/1:0,/1:173)"
+          },
+          "modeKey": "capability-segmentation-probe:reader",
+          "unitId": "paragraph"
+        }
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "cfi": "epubcfi(/6/2!/4/2[chapter-0],/80/1:0,/82/1:173)",
+        "href": "0",
+        "fraction": 0.33390590305417067
+      }
+    },
+    {
+      "case": "cold slow Worker cross-section",
+      "ms": 3098,
+      "before": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "capability-segmentation-probe:reader",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": {
+          "ordinal": 40,
+          "total": 41
+        },
+        "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/82,/1:0,/1:173)",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/2!/4/2[chapter-0]/82,/1:0,/1:173)"
+          },
+          "modeKey": "capability-segmentation-probe:reader",
+          "unitId": "paragraph"
+        }
+      },
+      "receipt": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"status\":\"completed\",\"sessionId\":\"6fdb0a4a-a604-4bfb-a4ae-6618f3cfe309\",\"outcome\":\"moved\",\"mode\":{\"status\":\"ready\",\"unavailableReason\":null,\"requestedActive\":true,\"modeKey\":\"capability-segmentation-probe:reader\",\"label\":\"Read by sentence or paragraph\",\"unitId\":\"paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}],\"progress\":{\"ordinal\":0,\"total\":41},\"cfiRange\":\"epubcfi(/6/4!/4/2[chapter-1]/2/2,/1:0,/1:4)\",\"position\":{\"location\":{\"bookId\":\"07ef226e-1ebc-47b6-8dc9-d09109448d22\",\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\",\"cfi\":\"epubcfi(/6/4!/4/2[chapter-1]/2/2,/1:0,/1:4)\"},\"modeKey\":\"capability-segmentation-probe:reader\",\"unitId\":\"paragraph\"}}}"
+          }
+        ]
+      },
+      "after": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "capability-segmentation-probe:reader",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": {
+          "ordinal": 0,
+          "total": 41
+        },
+        "cfiRange": "epubcfi(/6/4!/4/2[chapter-1]/2/2,/1:0,/1:4)",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/4!/4/2[chapter-1]/2/2,/1:0,/1:4)"
+          },
+          "modeKey": "capability-segmentation-probe:reader",
+          "unitId": "paragraph"
+        }
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "cfi": "epubcfi(/6/4!/4/2[chapter-1],/2/1:0,/20/1:94)",
+        "href": "1",
+        "fraction": 0.40034354183250237
+      }
+    },
+    {
+      "case": "cancel during actual cross-section indexing",
+      "job": {
+        "status": "cancelled",
+        "message": "Mode diagnostic cancelled"
+      },
+      "mode": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "capability-segmentation-probe:reader",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": null,
+        "cfiRange": null,
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/4!/4/2[chapter-1]/2/2,/1:0,/1:4)"
+          },
+          "modeKey": "capability-segmentation-probe:reader",
+          "unitId": "paragraph"
+        }
+      },
+      "history": {
+        "canGoBack": false,
+        "canGoForward": false
+      }
+    },
+    {
+      "case": "cold actual tone start at final unit",
+      "started": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"status\":\"completed\",\"sessionId\":\"6fdb0a4a-a604-4bfb-a4ae-6618f3cfe309\",\"playback\":{\"status\":\"playing\",\"unavailableReason\":null,\"backend\":\"plugin\",\"fallback\":false,\"owner\":\"agent\",\"cfiRange\":\"epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "case": "cold actual tone final-unit completion",
+      "mode": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "sentence-reader:guided-reading",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": {
+          "ordinal": 40,
+          "total": 41
+        },
+        "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)"
+          },
+          "modeKey": "sentence-reader:guided-reading",
+          "unitId": "paragraph"
+        }
+      },
+      "playback": {
+        "status": "stopped",
+        "unavailableReason": null,
+        "backend": null,
+        "fallback": false,
+        "owner": null,
+        "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)"
+      }
+    },
+    {
+      "case": "cold automatic advance from penultimate passage",
+      "mode": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "sentence-reader:guided-reading",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": {
+          "ordinal": 40,
+          "total": 41
+        },
+        "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)"
+          },
+          "modeKey": "sentence-reader:guided-reading",
+          "unitId": "paragraph"
+        }
+      },
+      "playback": {
+        "status": "stopped",
+        "unavailableReason": null,
+        "backend": null,
+        "fallback": false,
+        "owner": null,
+        "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)"
+      }
+    },
+    {
+      "case": "automatic tone lifecycle",
+      "started": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"status\":\"completed\",\"sessionId\":\"6fdb0a4a-a604-4bfb-a4ae-6618f3cfe309\",\"playback\":{\"status\":\"playing\",\"unavailableReason\":null,\"backend\":\"plugin\",\"fallback\":false,\"owner\":\"agent\",\"cfiRange\":\"epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)\"}}"
+          }
+        ]
+      },
+      "status": "stopped",
+      "trace": [
+        {
+          "status": "playing",
+          "cfi": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+          "ordinal": 39,
+          "backend": "plugin"
+        },
+        {
+          "status": "playing",
+          "cfi": "epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)",
+          "ordinal": 40,
+          "backend": "plugin"
+        },
+        {
+          "status": "stopped",
+          "cfi": "epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)",
+          "ordinal": 40,
+          "backend": null
+        }
+      ]
+    }
+  ],
+  "initialSession": [
+    {
+      "case": "agent same-section step",
+      "ms": 15,
+      "before": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "sentence-reader:guided-reading",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": {
+          "ordinal": 19,
+          "total": 41
+        },
+        "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/40,/1:0,/1:173)",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/2!/4/2[chapter-0]/40,/1:0,/1:173)"
+          },
+          "modeKey": "sentence-reader:guided-reading",
+          "unitId": "paragraph"
+        }
+      },
+      "receipt": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"status\":\"completed\",\"sessionId\":\"435d3bdc-1a4c-4061-a004-c0f5d2aca2eb\",\"outcome\":\"moved\",\"mode\":{\"status\":\"ready\",\"unavailableReason\":null,\"requestedActive\":true,\"modeKey\":\"sentence-reader:guided-reading\",\"label\":\"Read by sentence or paragraph\",\"unitId\":\"paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}],\"progress\":{\"ordinal\":20,\"total\":41},\"cfiRange\":\"epubcfi(/6/2!/4/2[chapter-0]/42,/1:0,/1:173)\",\"position\":{\"location\":{\"bookId\":\"07ef226e-1ebc-47b6-8dc9-d09109448d22\",\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\",\"cfi\":\"epubcfi(/6/2!/4/2[chapter-0]/42,/1:0,/1:173)\"},\"modeKey\":\"sentence-reader:guided-reading\",\"unitId\":\"paragraph\"}}}"
+          }
+        ]
+      },
+      "after": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "sentence-reader:guided-reading",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": {
+          "ordinal": 20,
+          "total": 41
+        },
+        "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/42,/1:0,/1:173)",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/2!/4/2[chapter-0]/42,/1:0,/1:173)"
+          },
+          "modeKey": "sentence-reader:guided-reading",
+          "unitId": "paragraph"
+        }
+      },
+      "playback": {
+        "status": "stopped",
+        "unavailableReason": null,
+        "backend": null,
+        "fallback": false,
+        "owner": null,
+        "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/42,/1:0,/1:173)"
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "cfi": "epubcfi(/6/2!/4/2[chapter-0],/40/1:0,/58/1:173)",
+        "href": "0",
+        "fraction": 0.20034354183250241
+      }
+    },
+    {
+      "case": "Worker resumes resting unit from distant chapter",
+      "ms": 51,
+      "before": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "sentence-reader:guided-reading",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": null,
+        "cfiRange": null,
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/2!/4/2[chapter-0]/42,/1:0,/1:173)"
+          },
+          "modeKey": "sentence-reader:guided-reading",
+          "unitId": "paragraph"
+        }
+      },
+      "after": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "sentence-reader:guided-reading",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": {
+          "ordinal": 21,
+          "total": 41
+        },
+        "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/44,/1:0,/1:173)",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/2!/4/2[chapter-0]/44,/1:0,/1:173)"
+          },
+          "modeKey": "sentence-reader:guided-reading",
+          "unitId": "paragraph"
+        }
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "cfi": "epubcfi(/6/2!/4/2[chapter-0],/40/1:0,/58/1:173)",
+        "href": "0",
+        "fraction": 0.20034354183250241
+      }
+    },
+    {
+      "case": "start-of-book",
+      "receipt": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"status\":\"completed\",\"sessionId\":\"435d3bdc-1a4c-4061-a004-c0f5d2aca2eb\",\"outcome\":\"start-of-book\",\"mode\":{\"status\":\"ready\",\"unavailableReason\":null,\"requestedActive\":true,\"modeKey\":\"sentence-reader:guided-reading\",\"label\":\"Read by sentence or paragraph\",\"unitId\":\"paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}],\"progress\":{\"ordinal\":0,\"total\":41},\"cfiRange\":\"epubcfi(/6/2!/4/2[chapter-0]/2/2,/1:0,/1:5)\",\"position\":{\"location\":{\"bookId\":\"07ef226e-1ebc-47b6-8dc9-d09109448d22\",\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\",\"cfi\":\"epubcfi(/6/2!/4/2[chapter-0]/2/2,/1:0,/1:5)\"},\"modeKey\":\"sentence-reader:guided-reading\",\"unitId\":\"paragraph\"}}}"
+          }
+        ]
+      },
+      "after": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "sentence-reader:guided-reading",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": {
+          "ordinal": 0,
+          "total": 41
+        },
+        "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/2/2,/1:0,/1:5)",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/2!/4/2[chapter-0]/2/2,/1:0,/1:5)"
+          },
+          "modeKey": "sentence-reader:guided-reading",
+          "unitId": "paragraph"
+        }
+      }
+    },
+    {
+      "case": "cross-section both directions",
+      "before": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "sentence-reader:guided-reading",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": {
+          "ordinal": 40,
+          "total": 41
+        },
+        "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/82,/1:0,/1:173)",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/2!/4/2[chapter-0]/82,/1:0,/1:173)"
+          },
+          "modeKey": "sentence-reader:guided-reading",
+          "unitId": "paragraph"
+        }
+      },
+      "receipt": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"status\":\"completed\",\"sessionId\":\"435d3bdc-1a4c-4061-a004-c0f5d2aca2eb\",\"outcome\":\"moved\",\"mode\":{\"status\":\"ready\",\"unavailableReason\":null,\"requestedActive\":true,\"modeKey\":\"sentence-reader:guided-reading\",\"label\":\"Read by sentence or paragraph\",\"unitId\":\"paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}],\"progress\":{\"ordinal\":0,\"total\":41},\"cfiRange\":\"epubcfi(/6/4!/4/2[chapter-1]/2/2,/1:0,/1:4)\",\"position\":{\"location\":{\"bookId\":\"07ef226e-1ebc-47b6-8dc9-d09109448d22\",\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\",\"cfi\":\"epubcfi(/6/4!/4/2[chapter-1]/2/2,/1:0,/1:4)\"},\"modeKey\":\"sentence-reader:guided-reading\",\"unitId\":\"paragraph\"}}}"
+          }
+        ]
+      },
+      "after": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "sentence-reader:guided-reading",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": {
+          "ordinal": 0,
+          "total": 41
+        },
+        "cfiRange": "epubcfi(/6/4!/4/2[chapter-1]/2/2,/1:0,/1:4)",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/4!/4/2[chapter-1]/2/2,/1:0,/1:4)"
+          },
+          "modeKey": "sentence-reader:guided-reading",
+          "unitId": "paragraph"
+        }
+      },
+      "afterLocation": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "cfi": "epubcfi(/6/4!/4/2[chapter-1],/2/1:0,/20/1:94)",
+        "href": "1",
+        "fraction": 0.40034354183250237
+      },
+      "backwards": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "sentence-reader:guided-reading",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": {
+          "ordinal": 40,
+          "total": 41
+        },
+        "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/82,/1:0,/1:173)",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/2!/4/2[chapter-0]/82,/1:0,/1:173)"
+          },
+          "modeKey": "sentence-reader:guided-reading",
+          "unitId": "paragraph"
+        }
+      },
+      "backLocation": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "cfi": "epubcfi(/6/2!/4/2[chapter-0],/80/1:0,/82/1:173)",
+        "href": "0",
+        "fraction": 0.33390590305417067
+      }
+    },
+    {
+      "case": "end-of-book",
+      "receipt": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"status\":\"completed\",\"sessionId\":\"435d3bdc-1a4c-4061-a004-c0f5d2aca2eb\",\"outcome\":\"end-of-book\",\"mode\":{\"status\":\"ready\",\"unavailableReason\":null,\"requestedActive\":true,\"modeKey\":\"sentence-reader:guided-reading\",\"label\":\"Read by sentence or paragraph\",\"unitId\":\"paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}],\"progress\":{\"ordinal\":40,\"total\":41},\"cfiRange\":\"epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)\",\"position\":{\"location\":{\"bookId\":\"07ef226e-1ebc-47b6-8dc9-d09109448d22\",\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\",\"cfi\":\"epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)\"},\"modeKey\":\"sentence-reader:guided-reading\",\"unitId\":\"paragraph\"}}}"
+          }
+        ]
+      },
+      "after": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "sentence-reader:guided-reading",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": {
+          "ordinal": 40,
+          "total": 41
+        },
+        "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)"
+          },
+          "modeKey": "sentence-reader:guided-reading",
+          "unitId": "paragraph"
+        }
+      }
+    },
+    {
+      "case": "final passage audio started",
+      "started": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"status\":\"completed\",\"sessionId\":\"435d3bdc-1a4c-4061-a004-c0f5d2aca2eb\",\"playback\":{\"status\":\"playing\",\"unavailableReason\":null,\"backend\":\"system\",\"fallback\":true,\"owner\":\"agent\",\"cfiRange\":\"epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "case": "final audio post-end",
+      "mode": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "sentence-reader:guided-reading",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": {
+          "ordinal": 40,
+          "total": 41
+        },
+        "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)"
+          },
+          "modeKey": "sentence-reader:guided-reading",
+          "unitId": "paragraph"
+        }
+      },
+      "playback": {
+        "status": "stopped",
+        "unavailableReason": null,
+        "backend": null,
+        "fallback": false,
+        "owner": null,
+        "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)"
+      }
+    },
+    {
+      "case": "native previous paragraph",
+      "mode": {
+        "status": "ready",
+        "unavailableReason": null,
+        "requestedActive": true,
+        "modeKey": "sentence-reader:guided-reading",
+        "label": "Read by sentence or paragraph",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ],
+        "progress": {
+          "ordinal": 39,
+          "total": 41
+        },
+        "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "cfi": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)"
+          },
+          "modeKey": "sentence-reader:guided-reading",
+          "unitId": "paragraph"
+        }
+      }
+    }
+  ],
+  "ui": "- generic Reading Capability Probe [ref=e5]\n- button Previous page [ref=e8]\n- button Next page [ref=e10]\n- toolbar Read by sentence or paragraph [ref=e13]:\n  - button Previous paragraph [ref=e15]\n  - tooltip Previous paragraph [ref=e16]:\n    - text: Previous paragraph\n  - button Next paragraph [ref=e18]\n  - tooltip Next paragraph [ref=e19]:\n    - text: Next paragraph\n  - button Read aloud [ref=e21]\n  - tooltip Read aloud [ref=e22]:\n    - text: Read aloud\n  - button Back to current sentence [ref=e24]\n  - tooltip Back to current sentence [ref=e25]:\n    - text: Back to current sentence\n  - button Paragraph mode [pressed] [ref=e27]\n  - tooltip Paragraph mode [ref=e28]:\n    - text: Paragraph mode\n  - button Table of contents [ref=e30]\n  - tooltip Table of contents [ref=e31]:\n    - text: Table of contents\n  - button Notes [ref=e33]\n  - tooltip Notes [ref=e34]:\n    - text: Notes\n  - button Reading appearance [ref=e36]\n  - tooltip Reading appearance [ref=e37]:\n    - text: Reading appearance\n  - button Chat [ref=e39]\n  - tooltip Chat [ref=e40]:\n    - text: Chat\n  - button Exit reading by sentence or paragraph [ref=e42]\n  - tooltip Exit reading by sentence or paragraph [ref=e43]:\n    - text: Exit reading by sentence or paragraph\n- status [ref=e46]:\n  - generic \"Position in chapter: 41 / 41\" [ref=e47]:\n    - text: \"41 / 41\"\n  - generic \"Time this session: 0:20\" [ref=e48]:\n    - text: \"0:20\"\n- dialog Listening Desk [modal] [ref=e53]:\n  - heading Listening Desk [level=2] [ref=e54]:\n    - text: Listening Desk\n  - generic [ref=e59]:\n    - paragraph [ref=e62]:\n      - text: Enabled\n    - switch Enabled [checked] [ref=e64]\n    - group Unit [ref=e66]:\n      - generic [ref=e67]:\n        - text: Unit\n      - button By sentence [ref=e69]:\n        - text: By sentence\n      - button By paragraph [pressed] [ref=e70]:\n        - text: By paragraph\n    - button Apply [ref=e72]:\n      - text: Apply\n  - paragraph [ref=e73]:\n    - text: End of book\n  - paragraph [ref=e74]:\n    - text: Stopped\n  - button Previous unit [ref=e76]:\n    - text: Previous unit\n  - button Next unit [ref=e77]:\n    - text: Next unit\n  - button Current passage [ref=e78]:\n    - text: Current passage\n  - button Start [ref=e79]:\n    - text: Start\n  - button Back [ref=e80]:\n    - text: Back\n  - button Refresh [ref=e81]:\n    - text: Refresh\n  - separator [ref=e83]\n  - button Close [ref=e85]:\n    - text: Close\n\n# ───────────────────────────────────────\n# Generated: 2026-09-08T22:20:47.083Z\n# Elements indexed: 86\n# Use [ref=eN] with other webview tools",
+  "notes": [
+    "Initial session experienced HMR before diagnostics; its provider replacement attempts did not replace live providers and are not evidence. A fresh process confirmed actual diagnostic mode identity and exclusive tone provider.",
+    "One long foreground MCP script hit the bridge evaluation timeout; its unfinished cross-section result is excluded. Subsequent slow operations used an explicit window.stepJob handle and terminal-state polling.",
+    "The segmentation rejection snapshot captured immediately after rejection is preparing; the subsequent observed snapshot was error with reader/segmentation-failed. Rejection never returned a success receipt.",
+    "Initial UI screenshot showed fallback icons for unsupported caret names; final source uses existing arrow-left/right icons. Final visual verification is recorded in the delivery ledger."
+  ],
+  "notVerified": [
+    "Release build and production CSP for this change",
+    "Windows/Linux",
+    "Nonlinear and empty section behavior in the desktop renderer (pure traversal has empty-section tests)",
+    "Mode stepping in other book formats",
+    "Remote LLM semantic evaluation and remote TTS service"
+  ]
+}

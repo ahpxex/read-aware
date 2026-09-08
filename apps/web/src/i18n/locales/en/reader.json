@@ -1,4 +1,6 @@
 {
+  "modeProvider": "Reading mode provider",
+  "modeProviderUnavailable": "Selected provider unavailable",
   "shelf": "Shelf",
   "backToShelf": "Back to shelf",
   "contents": "Contents",

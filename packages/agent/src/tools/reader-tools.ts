@@ -120,8 +120,8 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
   };
   const mode: AgentTool = {
     name: "configure_reading_mode", label: "Configure reading mode",
-    description: "Enable or disable the current host text-unit reading mode, optionally choosing a unitId listed in get_reading_session.mode.units. Copy modeKey as a provider precondition. Completion waits for actual indexing; empty means no units, failure rejects. This does not turn pages, restore a location, select arbitrary provider code, or start audio.",
-    parameters: Type.Object({ active: Type.Boolean(), modeKey: Type.Optional(Type.String()), unitId: Type.Optional(Type.String()) }),
+    description: "Enable or disable a text-unit reading mode. Discover registered providers and their units in get_reading_session.mode.availableModes. selectModeKey chooses one of those keys; modeKey is only a precondition for the previously selected provider. Without unitId a new provider uses its saved/default unit. Selection preserves no old provider's ordinal and waits for actual indexing (or inactive cleanup); empty means no units, failure rejects. It never installs providers or starts audio.",
+    parameters: Type.Object({ active: Type.Boolean(), modeKey: Type.Optional(Type.String()), selectModeKey: Type.Optional(Type.String()), unitId: Type.Optional(Type.String()) }),
     executionMode: "sequential",
     execute: async (_id, params, signal) => {
       const current = await deps.reader.getSession();

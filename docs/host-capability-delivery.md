@@ -401,3 +401,25 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 仍未完成：READ16 跟随、任意 provider 选择、模式偏好持久失败回执；空节/非线性及其他格式的实际桌面步进证据；完整单次插件取消契约、其余双端缺口、全部组合插件与 W01–W32、release/跨平台/远端 LLM 与 TTS 验收。READ16 保持部分，整体目标继续，不宣告能力全齐。
 
 [环境] 最终探针 commands/modes/voices 已清空并恢复原插件，阅读关闭；文档浏览器与本轮隔离实例已停止，5184/9224 无监听。正式实例/数据未操作，未推送。
+
+## 2026-09-09 双端模式提供者发现与显式选择
+
+[代码] `reading` 2.5 扩展现有模式契约，不新增平行 registry。`session.mode.availableModes` 列出当前 reader 的注册 key、可区分的 label、units 与 defaultUnitId，不传递 executable provider。Agent `get_reading_session` 和插件 session/observeSession 共用该快照；无阅读会话时列表为空。`configure_reading_mode` / `commands.configureMode` 新增 `selectModeKey`，与 active、可选 unitId 一次配置；原 `modeKey` 仍为当前选择的前置条件，不改成目标参数。
+
+[代码] 目标必须已注册，unit 必须属于目标 provider；省略 unit 时使用目标自己的有效偏好，否则使用声明默认值。首次没有 provider identity 才选注册列表第一项；之后按书保留选择，包括 inactive 和 provider 暂时失效时，不偷偷换到另一个插件。失效选择返回 no-provider，availableModes 仍列出可显式选择的替代者。旧无 modeKey 的单位偏好在首次采用 provider 时仍保留，但 provider 已保存的显式单位优先；此迁移分支有新增单测，未另做旧版本真实磁盘迁移 E2E。
+
+[代码] 注册无关 provider 只更新发现快照，不取消当前请求或重建当前索引；当前实现换代、卸载或格式变化才使进行中的配置失效。取消撤回未完成请求前的 provider/active/unit，连续替换不以已被替换的中间请求作回滚基线；旧代反馈不确认新请求。完成仍等待实际 navigator 反馈，分段失败保留所选 provider 的 error 状态，不假装成功或静默换源；取消不是恢复此前物理页面或旧 resting CFI。
+
+[代码] 原生 reader header 增加提供者 Select，在多个选项或失效选择仍有替代者时显示；继续遵守用户配置的 navigator 菜单位置。选择请求由稳定的 ReaderShellOverlay 层拥有，不由短命的 picker 拥有。Listening Desk 0.5.0 增加提供者表单，组合已有配置/步进/返回/朗读/历史；两个表单分别负责 provider 与 active/unit，捕获 session/book/provider 前置条件，失败不刷新成成功视图。8 语言、本地源码、dist、manifest 与 lock 版本同步，要求 reading ^2.5；未增加 release BUNDLED 项。
+
+[环境] [结构化运行证据](./evidence/reading-mode-selection-2026-09-09.json)区分初稿与修复后的冷启动。隔离 macOS Tauri debug、合成 FB2：两个真实 Worker 提供者并存，Agent 选择 500ms/block 的诊断提供者，最终冷启动约 3073ms 才返回 ready/真实 CFI；Listening Desk Worker 能选择回 Sentence Reader。初稿实际 header 插件表单也完成选择，关闭/重开仍保留非第一项 provider 和 inactive。观察 preparing 后取消回到原 provider/unit，迟到分段没有抢回；拒绝约 535ms 返回 reader/segmentation-failed。只读 Worker 获得两个 availableModes，但 commandsAvailable=false。此为实际工具端口调用，不是远端 LLM 语义 eval。
+
+[代码/环境] 实机发现原生恢复按钮的生命周期缺陷：最后一个可用选项被选中后，picker 不再需要显示并卸载，自身 cleanup 取消了尚未完成的选择。把请求所有权移到稳定 reader 层，新增真实 React 条件控件消失回归；冷启动重新卸载当前诊断 provider，确认保留 missing key/no-provider，再用原生 Select 选择唯一剩余项，最终 inactive、modeKey=sentence-reader:guided-reading，未回滚到 missing。初稿失败快照留在证据中，不计为通过。
+
+[环境] 原生 picker 在 1200×800 和 800×600 检查，窄窗 panel 边界 x=366/right=686/bottom=138.5，页面 scrollWidth=800；截图 `/tmp/reading-mode-provider-native-final.png` 已查看。实际 Listening Desk 表单截图 `/tmp/reading-mode-provider-plugin.png` 已查看，两个表单/底部关闭可用，无观察到的遮挡。Vite 首次导入诊断路径触发依赖优化 reload；重取模块、重新打开合成书后才记录冷启动测试，没有把失效的 JS 引用算作活跃任务。
+
+[环境] 全仓 test 19 个任务、typecheck 22 个任务与生产 web 构建通过，保留既有 Node/chunk/dynamic-import/Rust warning；web 构建不等于 packaged Tauri 验证。新增 6 项控制器测试、1 项 native owner React 测试、1 项插件表单测试，并扩展 Agent 参数及 React 协调断言。同步校正文档中句读/TTS 已有通用宿主工具却仍写“无直接操作”的旧汇总。矩阵重扫 215 行、568 入口、129 旧验收项；模型 30 单元/catalog 与 32 场景；生成检查、7 项模型门禁、两对 pair validator 通过。
+
+[环境] 两份 HTML 在 1440×1000、1024×768、390×844 检查无页面横向溢出，中英文提供者查询可筛选、Escape 清空/关闭抽屉、inert 恢复、主题刷新保持；无重复 ID/浏览器错误，既有 CDN 请求 200，没有新增图。该文档浏览器检查不是产品 E2E。探针清理为 0，原插件未停用，阅读已关闭，隔离应用已停止，正式实例与正式数据未操作。
+
+仍未完成：READ16 跟随、模式偏好持久失败回执；其他格式/空节/非线性实机覆盖，通用 provider broker、其余全部双端缺口、完整 W01–W32 组合消费者、release/跨平台/远端服务验收。READ16 与整体目标保持未完成，不以本次提供者选择通过宣称宿主能力全部齐全。

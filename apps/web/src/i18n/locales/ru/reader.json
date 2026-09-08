@@ -1,4 +1,6 @@
 {
+  "modeProvider": "Поставщик режима чтения",
+  "modeProviderUnavailable": "Выбранный поставщик недоступен",
   "shelf": "Полка",
   "backToShelf": "Назад на полку",
   "contents": "Содержание",

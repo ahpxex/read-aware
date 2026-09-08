@@ -18,10 +18,10 @@ async function isolated() {
   if (!path.replace(/[/\\]$/, "").endsWith("/com.readaware.app.capability-e2e")) throw new Error("Use isolated capability-e2e data");
   return path;
 }
-export async function prepareSegmentationProbe() {
+export async function prepareSegmentationProbe(keepSentenceReader = false) {
   const dataDir = await isolated();
   if (worker) throw new Error("Clean up the existing probe first");
-  restoreSentenceReader = getDefaultStore().get(installedPluginsAtom).some(plugin => plugin.manifest.id === "sentence-reader" && plugin.enabled);
+  restoreSentenceReader = !keepSentenceReader && getDefaultStore().get(installedPluginsAtom).some(plugin => plugin.manifest.id === "sentence-reader" && plugin.enabled);
   if (restoreSentenceReader) await setPluginEnabled("sentence-reader", false);
   const manifest: PluginManifest = { id, name: "Segmentation diagnostic", version: "1.0.0", schemaVersion: 1, permissions: ["reader:modes"],
     requires: { contributions: { readerModes: "^1.1.0", commands: "^1.0.0" } } };
@@ -59,9 +59,19 @@ export async function pluginMode(active: boolean, unitId: string) {
   const command = getDefaultStore().get(pluginCommandsAtom).find(command => command.pluginId === "listening-desk" && command.id === "open");
   const result = await command?.run();
   if (!result || result.view?.kind !== "blocks") throw new Error("Listening Desk view unavailable");
-  const form = result.view.blocks.find(block => block.kind === "form");
+  const form = result.view.blocks.find(block => block.kind === "form" && block.fields.some(field => field.id === "active"));
   if (form?.kind !== "form") throw new Error("Listening Desk mode form unavailable");
   return form.onSubmit({ active, unitId });
+}
+export async function pluginSelectMode(selectModeKey: string) {
+  await isolated();
+  const command = getDefaultStore().get(pluginCommandsAtom).find(command => command.pluginId === "listening-desk" && command.id === "open");
+  const result = await command?.run();
+  if (result?.view?.kind !== "blocks") throw new Error("Listening Desk view unavailable");
+  const form = result.view.blocks.find(block => block.kind === "form" && block.fields.some(field => field.id === "selectModeKey"));
+  if (form?.kind !== "form") throw new Error("Listening Desk provider form unavailable");
+  await form.onSubmit({ selectModeKey });
+  return readingRuntime.snapshot();
 }
 export async function closeProbeBook() {
   await isolated(); await readingRuntime.close(); return readingRuntime.snapshot();

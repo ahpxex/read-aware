@@ -3,28 +3,32 @@ import { useAtomValue } from "jotai";
 import { useLocale } from "../../../i18n";
 import { textUnitModeSettingsAtom } from "../../../state/ui";
 import { readingRuntime } from "../../../domain/reading-runtime";
-import { textUnitReaderModeAtom } from "../../plugins/state/plugin-store";
+import { readerModesAtom, setActiveReaderMode, releaseActiveReaderMode } from "../../plugins/state/plugin-store";
 import { resolvePluginText } from "../../plugins/lib/plugin-i18n";
 import { ReadingModeController } from "../lib/reading-mode-controller";
 import { readTextUnitModeState, readTextUnitModeSettings, updateTextUnitModeSettings, writeTextUnitModeState, isTextUnitModeStateCompatible } from "../lib/text-unit-mode-state";
 
 /** One mode owner for native controls and both external actors. */
 export function useReadingModeControl(bookId: string, supported: boolean) {
-  const mode = useAtomValue(textUnitReaderModeAtom);
+  const modes = useAtomValue(readerModesAtom);
   const settings = useAtomValue(textUnitModeSettingsAtom);
   const locale = useLocale();
   const controller = useMemo(() => {
     const saved = readTextUnitModeState(bookId);
-    return new ReadingModeController(saved.active, settings.unitId ?? saved.unitId);
+    return new ReadingModeController(saved.active, saved.modeKey ? readTextUnitModeSettings(saved.modeKey).unitId ?? saved.unitId : saved.unitId,
+      35_000, saved.modeKey, key => readTextUnitModeSettings(key).unitId);
   }, [bookId]);
   const request = useSyncExternalStore(controller.observe, controller.requested);
-  const descriptor = useMemo(() => mode ? {
-    key: mode.key, label: resolvePluginText(mode.copy.title, locale), defaultUnitId: mode.defaultUnitId,
+  const snapshot = useSyncExternalStore(controller.observe, controller.snapshot);
+  const mode = modes.find(mode => mode.kind === "text-unit-navigator" && mode.key === request.modeKey) ?? null;
+  const descriptors = useMemo(() => modes.filter(mode => mode.kind === "text-unit-navigator").map(mode => ({
+    key: mode.key, label: `${mode.pluginName}: ${resolvePluginText(mode.copy.title, locale)}`, defaultUnitId: mode.defaultUnitId,
     units: mode.units.map(unit => ({ id: unit.id, label: resolvePluginText(unit.label, locale) })),
-  } : null, [mode, locale]);
+    implementation: mode.segmentText,
+  })), [modes, locale]);
   const retire = useCallback(() => {
-    const key = controller.snapshot().modeKey;
     if (!controller.retire()) return;
+    const key = controller.snapshot().modeKey;
     const request = controller.requested();
     const saved = readTextUnitModeState(bookId);
     // The navigator may already be unmounting. Persist cancellation here so a
@@ -34,19 +38,26 @@ export function useReadingModeControl(bookId: string, supported: boolean) {
     if (key && request.unitId && readTextUnitModeSettings(key).unitId !== request.unitId) updateTextUnitModeSettings(key, { unitId: request.unitId });
   }, [bookId, controller]);
   useEffect(() => {
-    controller.environment(descriptor, supported);
-    return retire;
-  }, [controller, descriptor, supported, retire]);
+    controller.environment(descriptors, supported);
+  }, [controller, descriptors, supported]);
+  useEffect(() => {
+    const publish = () => setActiveReaderMode(controller, controller.requested().modeKey);
+    publish();
+    const off = controller.observe(publish);
+    return () => { off(); releaseActiveReaderMode(controller); };
+  }, [controller]);
 
   const previousPreference = useRef({ key: mode?.key, unitId: settings.unitId });
   useEffect(() => {
-    const changed = previousPreference.current.key !== mode?.key || previousPreference.current.unitId !== settings.unitId;
+    // Selecting a provider already resolves its preference in the controller.
+    // An old preference must not override an explicit unit in that same intent.
+    const changed = previousPreference.current.key === mode?.key && previousPreference.current.unitId !== settings.unitId;
     previousPreference.current = { key: mode?.key, unitId: settings.unitId };
     // An earlier subscriber may already have committed a newer preference.
     const unitId = readTextUnitModeSettings(mode?.key ?? null).unitId;
-    if (changed && unitId && descriptor?.units.some(unit => unit.id === unitId)
+    if (changed && unitId && mode?.units.some(unit => unit.id === unitId)
       && controller.requested().unitId !== unitId) controller.choose(controller.requested().active, unitId);
-  }, [controller, descriptor, mode?.key, settings.unitId]);
+  }, [controller, mode, settings.unitId]);
   useEffect(() => {
     if (!mode) return;
     let persisted: ReturnType<ReadingModeController["requested"]> | undefined;
@@ -82,5 +93,5 @@ export function useReadingModeControl(bookId: string, supported: boolean) {
 
   const setActive = useCallback((active: boolean) => controller.choose(active), [controller]);
   const setUnit = useCallback((unitId: string) => controller.choose(controller.requested().active, unitId), [controller]);
-  return { controller, request, mode, setActive, setUnit };
+  return { controller, request, snapshot, mode, setActive, setUnit };
 }

@@ -38,8 +38,31 @@ test("provider replacement and external preferences converge without replaying a
     expect(state.controller.snapshot().unavailableReason).toBe("no-provider");
     updateTextUnitModeSettings("mode-owner-b:reader", { unitId: "sentence" });
     await act(async () => { off = register("mode-owner-b"); });
+    expect(state.request.modeKey).toBe("mode-owner-a:reader");
+    expect(state.snapshot.unavailableReason).toBe("no-provider");
+    expect(state.snapshot.availableModes.map(mode => mode.key)).toEqual(["mode-owner-b:reader"]);
+    let selection!: Promise<unknown>;
+    await act(async () => { selection = state.controller.configure({ active: false, selectModeKey: "mode-owner-b:reader" }); });
+    await act(async () => {
+      state.controller.feedback(state.request.revision, state.request.modeKey, state.request.unitId, { status: "inactive", progress: null, cfiRange: null });
+      await selection;
+    });
     expect(state.request.unitId).toBe("sentence");
     expect(readTextUnitModeSettings("mode-owner-b:reader").unitId).toBe("sentence");
+    let other!: ReturnType<typeof register>;
+    await act(async () => { other = register("mode-owner-c"); });
+    await act(async () => { selection = state.controller.configure({ active: false, selectModeKey: "mode-owner-c:reader", unitId: "paragraph" }); });
+    expect(state.request).toMatchObject({ modeKey: "mode-owner-c:reader", unitId: "paragraph" });
+    await act(async () => {
+      state.controller.feedback(state.request.revision, state.request.modeKey, state.request.unitId, { status: "inactive", progress: null, cfiRange: null });
+      await selection;
+      other.dispose();
+    });
+    await act(async () => { selection = state.controller.configure({ active: false, selectModeKey: "mode-owner-b:reader" }); });
+    await act(async () => {
+      state.controller.feedback(state.request.revision, state.request.modeKey, state.request.unitId, { status: "inactive", progress: null, cfiRange: null });
+      await selection;
+    });
     await act(async () => { state.setUnit("paragraph"); });
     expect(readTextUnitModeSettings("mode-owner-b:reader").unitId).toBe("paragraph");
     await act(async () => { updateTextUnitModeSettings("mode-owner-b:reader", { unitId: "sentence" }); });

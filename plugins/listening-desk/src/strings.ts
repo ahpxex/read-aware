@@ -1,5 +1,6 @@
 const locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 const labels = {
+  provider: ["Reading mode provider", "阅读模式提供者", "閱讀模式提供者", "読書モードの提供元", "Поставщик режима чтения", "Fournisseur du mode de lecture", "Lesemodus-Anbieter", "Proveedor del modo de lectura"],
   title: ["Listening Desk", "朗读台", "朗讀台", "読み上げ", "Чтение вслух", "Lecture audio", "Vorlesen", "Lectura en voz alta"],
   start: ["Start", "开始", "開始", "開始", "Начать", "Démarrer", "Starten", "Iniciar"],
   stop: ["Stop", "停止", "停止", "停止", "Остановить", "Arrêter", "Stoppen", "Detener"],

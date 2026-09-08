@@ -1,4 +1,6 @@
 {
+  "modeProvider": "Lesemodus-Anbieter",
+  "modeProviderUnavailable": "Gewählter Anbieter nicht verfügbar",
   "shelf": "Regal",
   "backToShelf": "Zurück zum Regal",
   "contents": "Inhalt",

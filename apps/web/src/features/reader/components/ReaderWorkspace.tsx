@@ -241,6 +241,7 @@ export function ReaderWorkspace({
         onSeek={onSeek}
         textUnitMode={textUnitMode}
         textUnitModeActive={textUnitModeActive}
+        modeSnapshot={modeControl.snapshot}
         onToggleTextUnitMode={toggleTextUnitMode}
         fixedLayout={isFixedLayout}
       />

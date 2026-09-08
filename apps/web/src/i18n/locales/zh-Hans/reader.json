@@ -1,4 +1,6 @@
 {
+  "modeProvider": "阅读模式提供者",
+  "modeProviderUnavailable": "所选提供者不可用",
   "shelf": "书架",
   "backToShelf": "返回书架",
   "contents": "目录",

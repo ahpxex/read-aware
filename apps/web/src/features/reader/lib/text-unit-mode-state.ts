@@ -114,7 +114,7 @@ export function writeTextUnitModeState(
   state: PersistedTextUnitModeState,
 ): void {
   try {
-    if (!state.active && !state.resting) {
+    if (!state.active && !state.resting && !state.modeKey) {
       localKV.removeItem(stateKey(bookId));
       return;
     }

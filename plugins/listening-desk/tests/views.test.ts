@@ -5,7 +5,7 @@ import { listeningView } from "../src/views";
 function fixture() {
   const state: ReadingSessionSnapshot = { revision: 1, sessionId: "session", bookId: "book", status: "ready", location: null,
     visibleText: "private text", history: { canGoBack: true, canGoForward: false },
-    mode: { status: "unavailable", unavailableReason: "no-provider", requestedActive: false, modeKey: null,
+    mode: { status: "unavailable", unavailableReason: "no-provider", requestedActive: false, modeKey: null, availableModes: [],
       label: null, unitId: null, units: [], progress: null, cfiRange: null, position: null },
     playback: { status: "stopped", unavailableReason: null, backend: null, fallback: false, owner: null, cfiRange: null } };
   const calls: unknown[] = [];
@@ -68,6 +68,23 @@ test("mode form propagates an indexing failure instead of navigating to a succes
   const form = view.blocks.find(block => block.kind === "form");
   if (form?.kind !== "form") throw new Error("Expected form");
   await expect(form.onSubmit({ active: true, unitId: "sentence" })).rejects.toThrow("indexing failed");
+});
+
+test("provider form recovers a missing selection through the shared guarded command", async () => {
+  const { ctx, state, calls } = fixture();
+  state.mode = { ...state.mode, modeKey: "missing:mode", requestedActive: true,
+    availableModes: [{ key: "available:mode", label: "Available", defaultUnitId: "block", units: [{ id: "block", label: "Block" }] }] };
+  const view = await listeningView(ctx);
+  if (view.kind !== "blocks") throw new Error("Expected blocks");
+  const form = view.blocks.find(block => block.kind === "form");
+  if (form?.kind !== "form") throw new Error("Expected provider form");
+  expect(await form.onSubmit({ selectModeKey: "not-listed:mode" })).toHaveProperty("fieldErrors.selectModeKey");
+  expect(calls).toEqual([]);
+  state.sessionId = "new-session";
+  await form.onSubmit({ selectModeKey: "available:mode" });
+  expect(calls).toEqual([["mode", { active: true, modeKey: "missing:mode", selectModeKey: "available:mode" }, { sessionId: "session", bookId: "book" }]]);
+  ctx.domains.reading!.commands!.configureMode = async () => { throw new Error("provider retired"); };
+  await expect(form.onSubmit({ selectModeKey: "available:mode" })).rejects.toThrow("provider retired");
 });
 
 test("resting position offers a guarded return action even when the viewport has left the unit", async () => {

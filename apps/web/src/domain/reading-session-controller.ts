@@ -11,7 +11,7 @@ export type ReadingModeAdapter = {
   retire(): void;
 };
 export const unavailableMode = (): ReadingModeSnapshot => ({ status: "unavailable", unavailableReason: "no-session",
-  requestedActive: false, modeKey: null, label: null, unitId: null, units: [], progress: null, cfiRange: null, position: null });
+  requestedActive: false, availableModes: [], modeKey: null, label: null, unitId: null, units: [], progress: null, cfiRange: null, position: null });
 
 export type ReadingPlaybackAdapter = {
   snapshot(): ReadingPlaybackSnapshot;

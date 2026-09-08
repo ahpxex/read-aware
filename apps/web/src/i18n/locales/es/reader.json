@@ -1,4 +1,6 @@
 {
+  "modeProvider": "Proveedor del modo de lectura",
+  "modeProviderUnavailable": "Proveedor seleccionado no disponible",
   "shelf": "Estantería",
   "backToShelf": "Volver a la estantería",
   "contents": "Contenido",

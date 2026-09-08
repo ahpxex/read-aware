@@ -238,10 +238,19 @@ export function getRegisteredMemoryCandidateProviders(): RegisteredMemoryCandida
   return memoryCandidateProvidersRegistry.list();
 }
 
-/** The single host-supported text-unit mode, or null while its plugin is off. */
-export const textUnitReaderModeAtom = atom((get) =>
-  get(readerModesAtom).find((mode) => mode.kind === "text-unit-navigator") ?? null,
-);
+/** A mounted reader owns its selection; stale cleanup must not clear a newer book. */
+const activeReaderModeAtom = atom<{ owner: object; key: string | null } | null>(null);
+export function setActiveReaderMode(owner: object, key: string | null): void {
+  const current = store.get(activeReaderModeAtom);
+  if (current?.owner !== owner || current.key !== key) store.set(activeReaderModeAtom, { owner, key });
+}
+export function releaseActiveReaderMode(owner: object): void {
+  if (store.get(activeReaderModeAtom)?.owner === owner) store.set(activeReaderModeAtom, null);
+}
+export const textUnitReaderModeAtom = atom((get) => {
+  const selection = get(activeReaderModeAtom);
+  return get(readerModesAtom).find(mode => mode.kind === "text-unit-navigator" && (!selection || mode.key === selection.key)) ?? null;
+});
 
 export function setInstalledPlugins(plugins: InstalledPlugin[]): void {
   store.set(installedPluginsAtom, plugins);

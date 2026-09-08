@@ -10,6 +10,20 @@ export async function listeningView(ctx: PluginContext, boundary?: "start-of-boo
   const refresh = async () => ({ view: await listeningView(ctx), navigation: "replace" as const });
   const actions: PluginAction[] = [];
   const mode = state.mode;
+  const providerForm: PluginFormView | null = state.status === "ready" && state.sessionId && mode.availableModes.length > 0
+    && mode.unavailableReason !== "unsupported-format"
+    && (mode.availableModes.length > 1 || !mode.availableModes.some(provider => provider.key === mode.modeKey)) ? {
+    kind: "form", submitLabel: tr(ctx.locale, "apply"), fields: [
+      { kind: "select", id: "selectModeKey", label: tr(ctx.locale, "provider"), value: mode.modeKey ?? undefined,
+        options: mode.availableModes.map(provider => ({ value: provider.key, label: provider.label })) },
+    ], onSubmit: async (values): Promise<PluginViewResult> => {
+      if (typeof values.selectModeKey !== "string" || !mode.availableModes.some(provider => provider.key === values.selectModeKey)) {
+        return { fieldErrors: { selectModeKey: tr(ctx.locale, "invalid") } };
+      }
+      await reading.commands!.configureMode({ active: mode.requestedActive, modeKey: mode.modeKey ?? undefined, selectModeKey: values.selectModeKey }, guard);
+      return refresh();
+    },
+  } : null;
   const modeForm: PluginFormView | null = state.status === "ready" && state.sessionId && mode.modeKey && !mode.unavailableReason ? {
     kind: "form", title: mode.label ?? undefined, submitLabel: tr(ctx.locale, "apply"), fields: [
       { kind: "toggle", id: "active", label: tr(ctx.locale, "enabled"), value: mode.requestedActive },
@@ -55,6 +69,7 @@ export async function listeningView(ctx: PluginContext, boundary?: "start-of-boo
   }
   actions.push({ id: "refresh", label: tr(ctx.locale, "refresh"), icon: "arrows-clockwise", run: refresh });
   return { kind: "blocks", blocks: [
+    ...(providerForm ? [providerForm] : []),
     ...(modeForm ? [modeForm] : []),
     ...(boundary ? [{ kind: "text" as const, text: tr(ctx.locale, boundary) }] : []),
     { kind: "text", text: tr(ctx.locale, playback.status) },

@@ -82,7 +82,7 @@ import type {
 // Re-exported so plugin authors can name the underlying vocabulary without
 // depending on @read-aware/core directly.
 export type { AnnotationSnapshot, AnnotationMutation, AnnotationCommitResult, AnnotationPage, AnnotationPageQuery, BookTocEntry, BookNavigationToc, BookLocationSearch, BookLocationSearchPage, BookLocationHit,
-  ReadingLocation, ReadingTarget, ReadingSessionSnapshot, ReadingSessionGuard, ReadingNavigationReceipt, ReadingPlaybackSnapshot, ReadingPlaybackReceipt, ReadingModeConfiguration, ReadingModeSnapshot, ReadingModeReceipt, ReadingModePosition, ReadingModeStepOutcome, ReadingModeStepReceipt } from "@read-aware/core";
+  ReadingLocation, ReadingTarget, ReadingSessionSnapshot, ReadingSessionGuard, ReadingNavigationReceipt, ReadingPlaybackSnapshot, ReadingPlaybackReceipt, ReadingModeConfiguration, ReadingModeDescriptor, ReadingModeSnapshot, ReadingModeReceipt, ReadingModePosition, ReadingModeStepOutcome, ReadingModeStepReceipt } from "@read-aware/core";
 export type {
   BookFormat,
   DictionaryEntrySnapshot,
@@ -1228,7 +1228,7 @@ export type PluginReadingDomain = {
     close(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<void>;
     /** Start resolves on actual audio start. Stop is idempotent; disabling the initiating plugin stops its playback. */
     controlPlayback(action: "start" | "stop", guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingPlaybackReceipt>;
-    /** Configure the current host mode; modeKey is a provider precondition, not arbitrary provider selection.
+    /** Configure the host mode; modeKey guards the current provider, selectModeKey selects from session().mode.availableModes.
      * Resolves after real indexing (ready/empty) or deactivation. Failed indexing rejects.
      * Disabling the caller cancels an unfinished change; completed mode preferences remain. */
     configureMode(input: import("@read-aware/core").ReadingModeConfiguration, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingModeReceipt>;

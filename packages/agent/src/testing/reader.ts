@@ -7,7 +7,7 @@ export type ReaderRequest = { type: "open" | "goTo" | "back" | "forward" | "step
 export function createMemoryReader(initialBookId: string | undefined, requests: ReaderRequest[]): ReaderPort {
   const playback: ReadingPlaybackSnapshot = { status: "unavailable", unavailableReason: "no-voice", backend: null, fallback: false, owner: null, cfiRange: null };
   const mode: ReadingModeSnapshot = { status: "unavailable", unavailableReason: "no-provider", requestedActive: false,
-    modeKey: null, label: null, unitId: null, units: [], progress: null, cfiRange: null, position: null };
+    modeKey: null, label: null, availableModes: [], unitId: null, units: [], progress: null, cfiRange: null, position: null };
   let revision = 0;
   let location: ReadingLocation | null = initialBookId ? { bookId: initialBookId, contentVersion: "fixture", fraction: 0 } : null;
   const receipt = (): ReadingNavigationReceipt => {

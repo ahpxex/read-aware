@@ -1,6 +1,7 @@
 // src/strings.ts
 var locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 var labels = {
+  provider: ["Reading mode provider", "阅读模式提供者", "閱讀模式提供者", "読書モードの提供元", "Поставщик режима чтения", "Fournisseur du mode de lecture", "Lesemodus-Anbieter", "Proveedor del modo de lectura"],
   title: ["Listening Desk", "朗读台", "朗讀台", "読み上げ", "Чтение вслух", "Lecture audio", "Vorlesen", "Lectura en voz alta"],
   start: ["Start", "开始", "開始", "開始", "Начать", "Démarrer", "Starten", "Iniciar"],
   stop: ["Stop", "停止", "停止", "停止", "Остановить", "Arrêter", "Stoppen", "Detener"],
@@ -45,6 +46,26 @@ async function listeningView(ctx, boundary) {
   const refresh = async () => ({ view: await listeningView(ctx), navigation: "replace" });
   const actions = [];
   const mode = state.mode;
+  const providerForm = state.status === "ready" && state.sessionId && mode.availableModes.length > 0 && mode.unavailableReason !== "unsupported-format" && (mode.availableModes.length > 1 || !mode.availableModes.some((provider) => provider.key === mode.modeKey)) ? {
+    kind: "form",
+    submitLabel: tr(ctx.locale, "apply"),
+    fields: [
+      {
+        kind: "select",
+        id: "selectModeKey",
+        label: tr(ctx.locale, "provider"),
+        value: mode.modeKey ?? undefined,
+        options: mode.availableModes.map((provider) => ({ value: provider.key, label: provider.label }))
+      }
+    ],
+    onSubmit: async (values) => {
+      if (typeof values.selectModeKey !== "string" || !mode.availableModes.some((provider) => provider.key === values.selectModeKey)) {
+        return { fieldErrors: { selectModeKey: tr(ctx.locale, "invalid") } };
+      }
+      await reading.commands.configureMode({ active: mode.requestedActive, modeKey: mode.modeKey ?? undefined, selectModeKey: values.selectModeKey }, guard);
+      return refresh();
+    }
+  } : null;
   const modeForm = state.status === "ready" && state.sessionId && mode.modeKey && !mode.unavailableReason ? {
     kind: "form",
     title: mode.label ?? undefined,
@@ -114,6 +135,7 @@ async function listeningView(ctx, boundary) {
   }
   actions.push({ id: "refresh", label: tr(ctx.locale, "refresh"), icon: "arrows-clockwise", run: refresh });
   return { kind: "blocks", blocks: [
+    ...providerForm ? [providerForm] : [],
     ...modeForm ? [modeForm] : [],
     ...boundary ? [{ kind: "text", text: tr(ctx.locale, boundary) }] : [],
     { kind: "text", text: tr(ctx.locale, playback.status) },

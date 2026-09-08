@@ -1,4 +1,6 @@
 {
+  "modeProvider": "読書モードの提供元",
+  "modeProviderUnavailable": "選択した提供元は利用できません",
   "shelf": "本棚",
   "backToShelf": "本棚に戻る",
   "contents": "目次",

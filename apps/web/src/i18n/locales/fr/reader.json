@@ -1,4 +1,6 @@
 {
+  "modeProvider": "Fournisseur du mode de lecture",
+  "modeProviderUnavailable": "Fournisseur sélectionné indisponible",
   "shelf": "Étagère",
   "backToShelf": "Retour à l’étagère",
   "contents": "Sommaire",

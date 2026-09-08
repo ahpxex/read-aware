@@ -1,0 +1,1665 @@
+{
+  "date": "2026-09-09",
+  "environment": "macOS isolated Tauri debug, com.readaware.app.capability-e2e, Vite 5184 / MCP 9224, synthetic FB2 only",
+  "scope": "Mode discovery and explicit provider selection; not overall capability completion, production CSP, or cross-platform verification",
+  "preFix": {
+    "afterCancelledLate": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "history": {
+        "canGoBack": false,
+        "canGoForward": false
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 1,
+        "href": "2"
+      },
+      "mode": {
+        "availableModes": [
+          {
+            "defaultUnitId": "sentence",
+            "key": "sentence-reader:guided-reading",
+            "label": "Sentence Reader: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          },
+          {
+            "defaultUnitId": "sentence",
+            "key": "capability-segmentation-probe:reader",
+            "label": "Segmentation diagnostic: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          }
+        ],
+        "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+        "label": "Sentence Reader: Read by sentence or paragraph",
+        "modeKey": "sentence-reader:guided-reading",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "cfi": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108"
+          },
+          "modeKey": "sentence-reader:guided-reading",
+          "unitId": "paragraph"
+        },
+        "progress": {
+          "ordinal": 39,
+          "total": 41
+        },
+        "requestedActive": true,
+        "status": "ready",
+        "unavailableReason": null,
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "playback": {
+        "backend": null,
+        "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+        "fallback": false,
+        "owner": null,
+        "status": "stopped",
+        "unavailableReason": null
+      },
+      "revision": 30,
+      "sessionId": "d9133931-329a-449d-ada0-5352a78a4434",
+      "status": "ready",
+      "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+    },
+    "agentSelect": {
+      "ms": 3083,
+      "result": {
+        "content": [
+          {
+            "text": "{\"status\":\"completed\",\"sessionId\":\"d9133931-329a-449d-ada0-5352a78a4434\",\"mode\":{\"status\":\"ready\",\"unavailableReason\":null,\"requestedActive\":true,\"modeKey\":\"capability-segmentation-probe:reader\",\"label\":\"Segmentation diagnostic: Read by sentence or paragraph\",\"availableModes\":[{\"key\":\"sentence-reader:guided-reading\",\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}],\"defaultUnitId\":\"sentence\"},{\"key\":\"capability-segmentation-probe:reader\",\"label\":\"Segmentation diagnostic: Read by sentence or paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}],\"defaultUnitId\":\"sentence\"}],\"unitId\":\"paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}],\"progress\":{\"ordinal\":39,\"total\":41},\"cfiRange\":\"epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)\",\"position\":{\"location\":{\"bookId\":\"07ef226e-1ebc-47b6-8dc9-d09109448d22\",\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\",\"cfi\":\"epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)\"},\"modeKey\":\"capability-segmentation-probe:reader\",\"unitId\":\"paragraph\"}}}",
+            "type": "text"
+          }
+        ]
+      },
+      "snapshot": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "history": {
+          "canGoBack": false,
+          "canGoForward": false
+        },
+        "location": {
+          "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+          "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+          "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+          "fraction": 1,
+          "href": "2"
+        },
+        "mode": {
+          "availableModes": [
+            {
+              "defaultUnitId": "sentence",
+              "key": "sentence-reader:guided-reading",
+              "label": "Sentence Reader: Read by sentence or paragraph",
+              "units": [
+                {
+                  "id": "sentence",
+                  "label": "By sentence"
+                },
+                {
+                  "id": "paragraph",
+                  "label": "By paragraph"
+                }
+              ]
+            },
+            {
+              "defaultUnitId": "sentence",
+              "key": "capability-segmentation-probe:reader",
+              "label": "Segmentation diagnostic: Read by sentence or paragraph",
+              "units": [
+                {
+                  "id": "sentence",
+                  "label": "By sentence"
+                },
+                {
+                  "id": "paragraph",
+                  "label": "By paragraph"
+                }
+              ]
+            }
+          ],
+          "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+          "label": "Segmentation diagnostic: Read by sentence or paragraph",
+          "modeKey": "capability-segmentation-probe:reader",
+          "position": {
+            "location": {
+              "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+              "cfi": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+              "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108"
+            },
+            "modeKey": "capability-segmentation-probe:reader",
+            "unitId": "paragraph"
+          },
+          "progress": {
+            "ordinal": 39,
+            "total": 41
+          },
+          "requestedActive": true,
+          "status": "ready",
+          "unavailableReason": null,
+          "unitId": "paragraph",
+          "units": [
+            {
+              "id": "sentence",
+              "label": "By sentence"
+            },
+            {
+              "id": "paragraph",
+              "label": "By paragraph"
+            }
+          ]
+        },
+        "playback": {
+          "backend": null,
+          "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+          "fallback": false,
+          "owner": null,
+          "status": "stopped",
+          "unavailableReason": null
+        },
+        "revision": 18,
+        "sessionId": "d9133931-329a-449d-ada0-5352a78a4434",
+        "status": "ready",
+        "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+      },
+      "status": "done"
+    },
+    "before": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "history": {
+        "canGoBack": false,
+        "canGoForward": false
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 1,
+        "href": "2"
+      },
+      "mode": {
+        "availableModes": [
+          {
+            "defaultUnitId": "sentence",
+            "key": "sentence-reader:guided-reading",
+            "label": "Sentence Reader: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          }
+        ],
+        "cfiRange": null,
+        "label": "Sentence Reader: Read by sentence or paragraph",
+        "modeKey": "sentence-reader:guided-reading",
+        "position": null,
+        "progress": null,
+        "requestedActive": true,
+        "status": "preparing",
+        "unavailableReason": null,
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "playback": {
+        "backend": null,
+        "cfiRange": null,
+        "fallback": false,
+        "owner": null,
+        "status": "unavailable",
+        "unavailableReason": "no-unit"
+      },
+      "revision": 9,
+      "sessionId": "d9133931-329a-449d-ada0-5352a78a4434",
+      "status": "ready",
+      "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+    },
+    "beforeCancel": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "history": {
+        "canGoBack": false,
+        "canGoForward": false
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 1,
+        "href": "2"
+      },
+      "mode": {
+        "availableModes": [
+          {
+            "defaultUnitId": "sentence",
+            "key": "sentence-reader:guided-reading",
+            "label": "Sentence Reader: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          },
+          {
+            "defaultUnitId": "sentence",
+            "key": "capability-segmentation-probe:reader",
+            "label": "Segmentation diagnostic: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          }
+        ],
+        "cfiRange": null,
+        "label": "Segmentation diagnostic: Read by sentence or paragraph",
+        "modeKey": "capability-segmentation-probe:reader",
+        "position": null,
+        "progress": null,
+        "requestedActive": true,
+        "status": "preparing",
+        "unavailableReason": null,
+        "unitId": "sentence",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "playback": {
+        "backend": null,
+        "cfiRange": null,
+        "fallback": false,
+        "owner": null,
+        "status": "unavailable",
+        "unavailableReason": "no-unit"
+      },
+      "revision": 26,
+      "sessionId": "d9133931-329a-449d-ada0-5352a78a4434",
+      "status": "ready",
+      "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+    },
+    "cancelledSelection": {
+      "message": "Mode diagnostic cancelled",
+      "snapshot": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "history": {
+          "canGoBack": false,
+          "canGoForward": false
+        },
+        "location": {
+          "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+          "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+          "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+          "fraction": 1,
+          "href": "2"
+        },
+        "mode": {
+          "availableModes": [
+            {
+              "defaultUnitId": "sentence",
+              "key": "sentence-reader:guided-reading",
+              "label": "Sentence Reader: Read by sentence or paragraph",
+              "units": [
+                {
+                  "id": "sentence",
+                  "label": "By sentence"
+                },
+                {
+                  "id": "paragraph",
+                  "label": "By paragraph"
+                }
+              ]
+            },
+            {
+              "defaultUnitId": "sentence",
+              "key": "capability-segmentation-probe:reader",
+              "label": "Segmentation diagnostic: Read by sentence or paragraph",
+              "units": [
+                {
+                  "id": "sentence",
+                  "label": "By sentence"
+                },
+                {
+                  "id": "paragraph",
+                  "label": "By paragraph"
+                }
+              ]
+            }
+          ],
+          "cfiRange": null,
+          "label": "Sentence Reader: Read by sentence or paragraph",
+          "modeKey": "sentence-reader:guided-reading",
+          "position": null,
+          "progress": null,
+          "requestedActive": true,
+          "status": "preparing",
+          "unavailableReason": null,
+          "unitId": "paragraph",
+          "units": [
+            {
+              "id": "sentence",
+              "label": "By sentence"
+            },
+            {
+              "id": "paragraph",
+              "label": "By paragraph"
+            }
+          ]
+        },
+        "playback": {
+          "backend": null,
+          "cfiRange": null,
+          "fallback": false,
+          "owner": null,
+          "status": "unavailable",
+          "unavailableReason": "no-unit"
+        },
+        "revision": 27,
+        "sessionId": "d9133931-329a-449d-ada0-5352a78a4434",
+        "status": "ready",
+        "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+      },
+      "status": "failed"
+    },
+    "cleanup": {
+      "remainingCommands": 0,
+      "remainingModes": 0
+    },
+    "discovered": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "history": {
+        "canGoBack": false,
+        "canGoForward": false
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 1,
+        "href": "2"
+      },
+      "mode": {
+        "availableModes": [
+          {
+            "defaultUnitId": "sentence",
+            "key": "sentence-reader:guided-reading",
+            "label": "Sentence Reader: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          },
+          {
+            "defaultUnitId": "sentence",
+            "key": "capability-segmentation-probe:reader",
+            "label": "Segmentation diagnostic: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          }
+        ],
+        "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)",
+        "label": "Sentence Reader: Read by sentence or paragraph",
+        "modeKey": "sentence-reader:guided-reading",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "cfi": "epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108"
+          },
+          "modeKey": "sentence-reader:guided-reading",
+          "unitId": "paragraph"
+        },
+        "progress": {
+          "ordinal": 40,
+          "total": 41
+        },
+        "requestedActive": true,
+        "status": "ready",
+        "unavailableReason": null,
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "playback": {
+        "backend": null,
+        "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/82,/1:0,/1:173)",
+        "fallback": false,
+        "owner": null,
+        "status": "stopped",
+        "unavailableReason": null
+      },
+      "revision": 13,
+      "sessionId": "d9133931-329a-449d-ada0-5352a78a4434",
+      "status": "ready",
+      "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+    },
+    "failedSelection": {
+      "code": "reader/segmentation-failed",
+      "message": "Reading mode failed",
+      "ms": 535,
+      "snapshot": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "history": {
+          "canGoBack": false,
+          "canGoForward": false
+        },
+        "location": {
+          "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+          "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+          "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+          "fraction": 1,
+          "href": "2"
+        },
+        "mode": {
+          "availableModes": [
+            {
+              "defaultUnitId": "sentence",
+              "key": "sentence-reader:guided-reading",
+              "label": "Sentence Reader: Read by sentence or paragraph",
+              "units": [
+                {
+                  "id": "sentence",
+                  "label": "By sentence"
+                },
+                {
+                  "id": "paragraph",
+                  "label": "By paragraph"
+                }
+              ]
+            },
+            {
+              "defaultUnitId": "sentence",
+              "key": "capability-segmentation-probe:reader",
+              "label": "Segmentation diagnostic: Read by sentence or paragraph",
+              "units": [
+                {
+                  "id": "sentence",
+                  "label": "By sentence"
+                },
+                {
+                  "id": "paragraph",
+                  "label": "By paragraph"
+                }
+              ]
+            }
+          ],
+          "cfiRange": null,
+          "errorCode": "reader/segmentation-failed",
+          "label": "Segmentation diagnostic: Read by sentence or paragraph",
+          "modeKey": "capability-segmentation-probe:reader",
+          "position": null,
+          "progress": null,
+          "requestedActive": true,
+          "status": "error",
+          "unavailableReason": null,
+          "unitId": "sentence",
+          "units": [
+            {
+              "id": "sentence",
+              "label": "By sentence"
+            },
+            {
+              "id": "paragraph",
+              "label": "By paragraph"
+            }
+          ]
+        },
+        "playback": {
+          "backend": null,
+          "cfiRange": null,
+          "fallback": false,
+          "owner": null,
+          "status": "unavailable",
+          "unavailableReason": "no-unit"
+        },
+        "revision": 34,
+        "sessionId": "d9133931-329a-449d-ada0-5352a78a4434",
+        "status": "ready",
+        "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+      },
+      "status": "failed"
+    },
+    "nativeRecovery": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "history": {
+        "canGoBack": true,
+        "canGoForward": false
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 1,
+        "href": "2"
+      },
+      "mode": {
+        "availableModes": [
+          {
+            "defaultUnitId": "sentence",
+            "key": "sentence-reader:guided-reading",
+            "label": "Sentence Reader: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          }
+        ],
+        "cfiRange": null,
+        "label": null,
+        "modeKey": "capability-segmentation-probe:reader",
+        "position": null,
+        "progress": null,
+        "requestedActive": false,
+        "status": "unavailable",
+        "unavailableReason": "no-provider",
+        "unitId": "sentence",
+        "units": []
+      },
+      "playback": {
+        "backend": null,
+        "cfiRange": null,
+        "fallback": false,
+        "owner": null,
+        "status": "unavailable",
+        "unavailableReason": "mode-inactive"
+      },
+      "revision": 64,
+      "sessionId": "04258ed9-d43e-41d4-a760-20b2771e0465",
+      "status": "ready",
+      "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+    },
+    "nativeSelect": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "history": {
+        "canGoBack": false,
+        "canGoForward": false
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 1,
+        "href": "2"
+      },
+      "mode": {
+        "availableModes": [
+          {
+            "defaultUnitId": "sentence",
+            "key": "sentence-reader:guided-reading",
+            "label": "Sentence Reader: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          },
+          {
+            "defaultUnitId": "sentence",
+            "key": "capability-segmentation-probe:reader",
+            "label": "Segmentation diagnostic: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          }
+        ],
+        "cfiRange": null,
+        "label": "Sentence Reader: Read by sentence or paragraph",
+        "modeKey": "sentence-reader:guided-reading",
+        "position": null,
+        "progress": null,
+        "requestedActive": false,
+        "status": "inactive",
+        "unavailableReason": null,
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "playback": {
+        "backend": null,
+        "cfiRange": null,
+        "fallback": false,
+        "owner": null,
+        "status": "unavailable",
+        "unavailableReason": "mode-inactive"
+      },
+      "revision": 39,
+      "sessionId": "d9133931-329a-449d-ada0-5352a78a4434",
+      "status": "ready",
+      "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+    },
+    "pluginSelect": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "history": {
+        "canGoBack": false,
+        "canGoForward": false
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 1,
+        "href": "2"
+      },
+      "mode": {
+        "availableModes": [
+          {
+            "defaultUnitId": "sentence",
+            "key": "sentence-reader:guided-reading",
+            "label": "Sentence Reader: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          },
+          {
+            "defaultUnitId": "sentence",
+            "key": "capability-segmentation-probe:reader",
+            "label": "Segmentation diagnostic: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          }
+        ],
+        "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+        "label": "Sentence Reader: Read by sentence or paragraph",
+        "modeKey": "sentence-reader:guided-reading",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "cfi": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108"
+          },
+          "modeKey": "sentence-reader:guided-reading",
+          "unitId": "paragraph"
+        },
+        "progress": {
+          "ordinal": 39,
+          "total": 41
+        },
+        "requestedActive": true,
+        "status": "ready",
+        "unavailableReason": null,
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "playback": {
+        "backend": null,
+        "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+        "fallback": false,
+        "owner": null,
+        "status": "stopped",
+        "unavailableReason": null
+      },
+      "revision": 23,
+      "sessionId": "d9133931-329a-449d-ada0-5352a78a4434",
+      "status": "ready",
+      "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+    },
+    "pluginUiSelection": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "history": {
+        "canGoBack": true,
+        "canGoForward": false
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 1,
+        "href": "2"
+      },
+      "mode": {
+        "availableModes": [
+          {
+            "defaultUnitId": "sentence",
+            "key": "sentence-reader:guided-reading",
+            "label": "Sentence Reader: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          },
+          {
+            "defaultUnitId": "sentence",
+            "key": "capability-segmentation-probe:reader",
+            "label": "Segmentation diagnostic: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          }
+        ],
+        "cfiRange": null,
+        "label": "Segmentation diagnostic: Read by sentence or paragraph",
+        "modeKey": "capability-segmentation-probe:reader",
+        "position": null,
+        "progress": null,
+        "requestedActive": false,
+        "status": "inactive",
+        "unavailableReason": null,
+        "unitId": "sentence",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "playback": {
+        "backend": null,
+        "cfiRange": null,
+        "fallback": false,
+        "owner": null,
+        "status": "unavailable",
+        "unavailableReason": "mode-inactive"
+      },
+      "revision": 51,
+      "sessionId": "35b52df7-5b97-4656-ac03-be0d3db98dea",
+      "status": "ready",
+      "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+    },
+    "prepared": {
+      "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+      "modes": [
+        "sentence-reader:guided-reading",
+        "capability-segmentation-probe:reader"
+      ],
+      "restoreSentenceReader": false
+    },
+    "reopenInactive": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "history": {
+        "canGoBack": true,
+        "canGoForward": false
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 1,
+        "href": "2"
+      },
+      "mode": {
+        "availableModes": [
+          {
+            "defaultUnitId": "sentence",
+            "key": "sentence-reader:guided-reading",
+            "label": "Sentence Reader: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          },
+          {
+            "defaultUnitId": "sentence",
+            "key": "capability-segmentation-probe:reader",
+            "label": "Segmentation diagnostic: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          }
+        ],
+        "cfiRange": null,
+        "label": "Sentence Reader: Read by sentence or paragraph",
+        "modeKey": "sentence-reader:guided-reading",
+        "position": null,
+        "progress": null,
+        "requestedActive": false,
+        "status": "inactive",
+        "unavailableReason": null,
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "playback": {
+        "backend": null,
+        "cfiRange": null,
+        "fallback": false,
+        "owner": null,
+        "status": "unavailable",
+        "unavailableReason": "mode-inactive"
+      },
+      "revision": 49,
+      "sessionId": "35b52df7-5b97-4656-ac03-be0d3db98dea",
+      "status": "ready",
+      "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+    },
+    "reopenNonDefault": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "history": {
+        "canGoBack": true,
+        "canGoForward": false
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 1,
+        "href": "2"
+      },
+      "mode": {
+        "availableModes": [
+          {
+            "defaultUnitId": "sentence",
+            "key": "sentence-reader:guided-reading",
+            "label": "Sentence Reader: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          },
+          {
+            "defaultUnitId": "sentence",
+            "key": "capability-segmentation-probe:reader",
+            "label": "Segmentation diagnostic: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          }
+        ],
+        "cfiRange": null,
+        "label": "Segmentation diagnostic: Read by sentence or paragraph",
+        "modeKey": "capability-segmentation-probe:reader",
+        "position": null,
+        "progress": null,
+        "requestedActive": false,
+        "status": "inactive",
+        "unavailableReason": null,
+        "unitId": "sentence",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "playback": {
+        "backend": null,
+        "cfiRange": null,
+        "fallback": false,
+        "owner": null,
+        "status": "unavailable",
+        "unavailableReason": "mode-inactive"
+      },
+      "revision": 61,
+      "sessionId": "04258ed9-d43e-41d4-a760-20b2771e0465",
+      "status": "ready",
+      "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+    },
+    "retainedMissing": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "history": {
+        "canGoBack": true,
+        "canGoForward": false
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 1,
+        "href": "2"
+      },
+      "mode": {
+        "availableModes": [
+          {
+            "defaultUnitId": "sentence",
+            "key": "sentence-reader:guided-reading",
+            "label": "Sentence Reader: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          }
+        ],
+        "cfiRange": null,
+        "label": null,
+        "modeKey": "capability-segmentation-probe:reader",
+        "position": null,
+        "progress": null,
+        "requestedActive": false,
+        "status": "unavailable",
+        "unavailableReason": "no-provider",
+        "unitId": "sentence",
+        "units": []
+      },
+      "playback": {
+        "backend": null,
+        "cfiRange": null,
+        "fallback": false,
+        "owner": null,
+        "status": "unavailable",
+        "unavailableReason": "mode-inactive"
+      },
+      "revision": 62,
+      "sessionId": "04258ed9-d43e-41d4-a760-20b2771e0465",
+      "status": "ready",
+      "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+    },
+    "nativeRecoveryOutcome": "Failed: picker unmounted and aborted its own selection; fixed by moving ownership to ReaderShellOverlay"
+  },
+  "finalColdRun": {
+    "agent": {
+      "ms": 3073,
+      "result": {
+        "content": [
+          {
+            "text": "{\"status\":\"completed\",\"sessionId\":\"dce909b6-3e11-448a-80be-d3aa25547a2e\",\"mode\":{\"status\":\"ready\",\"unavailableReason\":null,\"requestedActive\":true,\"modeKey\":\"capability-segmentation-probe:reader\",\"label\":\"Segmentation diagnostic: Read by sentence or paragraph\",\"availableModes\":[{\"key\":\"sentence-reader:guided-reading\",\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}],\"defaultUnitId\":\"sentence\"},{\"key\":\"capability-segmentation-probe:reader\",\"label\":\"Segmentation diagnostic: Read by sentence or paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}],\"defaultUnitId\":\"sentence\"}],\"unitId\":\"paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}],\"progress\":{\"ordinal\":39,\"total\":41},\"cfiRange\":\"epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)\",\"position\":{\"location\":{\"bookId\":\"07ef226e-1ebc-47b6-8dc9-d09109448d22\",\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\",\"cfi\":\"epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)\"},\"modeKey\":\"capability-segmentation-probe:reader\",\"unitId\":\"paragraph\"}}}",
+            "type": "text"
+          }
+        ]
+      },
+      "snapshot": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "history": {
+          "canGoBack": false,
+          "canGoForward": false
+        },
+        "location": {
+          "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+          "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+          "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+          "fraction": 1,
+          "href": "2"
+        },
+        "mode": {
+          "availableModes": [
+            {
+              "defaultUnitId": "sentence",
+              "key": "sentence-reader:guided-reading",
+              "label": "Sentence Reader: Read by sentence or paragraph",
+              "units": [
+                {
+                  "id": "sentence",
+                  "label": "By sentence"
+                },
+                {
+                  "id": "paragraph",
+                  "label": "By paragraph"
+                }
+              ]
+            },
+            {
+              "defaultUnitId": "sentence",
+              "key": "capability-segmentation-probe:reader",
+              "label": "Segmentation diagnostic: Read by sentence or paragraph",
+              "units": [
+                {
+                  "id": "sentence",
+                  "label": "By sentence"
+                },
+                {
+                  "id": "paragraph",
+                  "label": "By paragraph"
+                }
+              ]
+            }
+          ],
+          "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+          "label": "Segmentation diagnostic: Read by sentence or paragraph",
+          "modeKey": "capability-segmentation-probe:reader",
+          "position": {
+            "location": {
+              "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+              "cfi": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+              "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108"
+            },
+            "modeKey": "capability-segmentation-probe:reader",
+            "unitId": "paragraph"
+          },
+          "progress": {
+            "ordinal": 39,
+            "total": 41
+          },
+          "requestedActive": true,
+          "status": "ready",
+          "unavailableReason": null,
+          "unitId": "paragraph",
+          "units": [
+            {
+              "id": "sentence",
+              "label": "By sentence"
+            },
+            {
+              "id": "paragraph",
+              "label": "By paragraph"
+            }
+          ]
+        },
+        "playback": {
+          "backend": null,
+          "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+          "fallback": false,
+          "owner": null,
+          "status": "stopped",
+          "unavailableReason": null
+        },
+        "revision": 15,
+        "sessionId": "dce909b6-3e11-448a-80be-d3aa25547a2e",
+        "status": "ready",
+        "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+      },
+      "status": "done"
+    },
+    "cleanup": {
+      "remainingCommands": 0,
+      "remainingModes": 0
+    },
+    "discovery": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "history": {
+        "canGoBack": false,
+        "canGoForward": false
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 1,
+        "href": "2"
+      },
+      "mode": {
+        "availableModes": [
+          {
+            "defaultUnitId": "sentence",
+            "key": "sentence-reader:guided-reading",
+            "label": "Sentence Reader: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          },
+          {
+            "defaultUnitId": "sentence",
+            "key": "capability-segmentation-probe:reader",
+            "label": "Segmentation diagnostic: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          }
+        ],
+        "cfiRange": null,
+        "label": "Sentence Reader: Read by sentence or paragraph",
+        "modeKey": "sentence-reader:guided-reading",
+        "position": null,
+        "progress": null,
+        "requestedActive": false,
+        "status": "inactive",
+        "unavailableReason": null,
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "playback": {
+        "backend": null,
+        "cfiRange": null,
+        "fallback": false,
+        "owner": null,
+        "status": "unavailable",
+        "unavailableReason": "mode-inactive"
+      },
+      "revision": 10,
+      "sessionId": "dce909b6-3e11-448a-80be-d3aa25547a2e",
+      "status": "ready",
+      "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+    },
+    "finalCleanup": {
+      "remainingCommands": 0,
+      "remainingModes": 0
+    },
+    "nativeLayout": {
+      "height": 600,
+      "picker": {
+        "bottom": 138.5,
+        "right": 686,
+        "x": 366,
+        "y": 46.5
+      },
+      "scrollWidth": 800,
+      "width": 800
+    },
+    "nativeRecovery": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "history": {
+        "canGoBack": false,
+        "canGoForward": false
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 1,
+        "href": "2"
+      },
+      "mode": {
+        "availableModes": [
+          {
+            "defaultUnitId": "sentence",
+            "key": "sentence-reader:guided-reading",
+            "label": "Sentence Reader: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          }
+        ],
+        "cfiRange": null,
+        "label": "Sentence Reader: Read by sentence or paragraph",
+        "modeKey": "sentence-reader:guided-reading",
+        "position": null,
+        "progress": null,
+        "requestedActive": false,
+        "status": "inactive",
+        "unavailableReason": null,
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "playback": {
+        "backend": null,
+        "cfiRange": null,
+        "fallback": false,
+        "owner": null,
+        "status": "unavailable",
+        "unavailableReason": "mode-inactive"
+      },
+      "revision": 27,
+      "sessionId": "dce909b6-3e11-448a-80be-d3aa25547a2e",
+      "status": "ready",
+      "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+    },
+    "plugin": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "history": {
+        "canGoBack": false,
+        "canGoForward": false
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 1,
+        "href": "2"
+      },
+      "mode": {
+        "availableModes": [
+          {
+            "defaultUnitId": "sentence",
+            "key": "sentence-reader:guided-reading",
+            "label": "Sentence Reader: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          },
+          {
+            "defaultUnitId": "sentence",
+            "key": "capability-segmentation-probe:reader",
+            "label": "Segmentation diagnostic: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          }
+        ],
+        "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+        "label": "Sentence Reader: Read by sentence or paragraph",
+        "modeKey": "sentence-reader:guided-reading",
+        "position": {
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "cfi": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108"
+          },
+          "modeKey": "sentence-reader:guided-reading",
+          "unitId": "paragraph"
+        },
+        "progress": {
+          "ordinal": 39,
+          "total": 41
+        },
+        "requestedActive": true,
+        "status": "ready",
+        "unavailableReason": null,
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "playback": {
+        "backend": null,
+        "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+        "fallback": false,
+        "owner": null,
+        "status": "stopped",
+        "unavailableReason": null
+      },
+      "revision": 20,
+      "sessionId": "dce909b6-3e11-448a-80be-d3aa25547a2e",
+      "status": "ready",
+      "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+    },
+    "prepare": {
+      "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+      "modes": [
+        "sentence-reader:guided-reading",
+        "capability-segmentation-probe:reader"
+      ],
+      "restoreSentenceReader": false
+    },
+    "readOnly": {
+      "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+      "result": {
+        "commandsAvailable": false,
+        "snapshot": {
+          "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+          "history": {
+            "canGoBack": false,
+            "canGoForward": false
+          },
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "fraction": 1,
+            "href": "2"
+          },
+          "mode": {
+            "availableModes": [
+              {
+                "defaultUnitId": "sentence",
+                "key": "sentence-reader:guided-reading",
+                "label": "Sentence Reader: Read by sentence or paragraph",
+                "units": [
+                  {
+                    "id": "sentence",
+                    "label": "By sentence"
+                  },
+                  {
+                    "id": "paragraph",
+                    "label": "By paragraph"
+                  }
+                ]
+              },
+              {
+                "defaultUnitId": "sentence",
+                "key": "capability-segmentation-probe:reader",
+                "label": "Segmentation diagnostic: Read by sentence or paragraph",
+                "units": [
+                  {
+                    "id": "sentence",
+                    "label": "By sentence"
+                  },
+                  {
+                    "id": "paragraph",
+                    "label": "By paragraph"
+                  }
+                ]
+              }
+            ],
+            "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+            "label": "Sentence Reader: Read by sentence or paragraph",
+            "modeKey": "sentence-reader:guided-reading",
+            "position": {
+              "location": {
+                "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+                "cfi": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+                "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108"
+              },
+              "modeKey": "sentence-reader:guided-reading",
+              "unitId": "paragraph"
+            },
+            "progress": {
+              "ordinal": 39,
+              "total": 41
+            },
+            "requestedActive": true,
+            "status": "ready",
+            "unavailableReason": null,
+            "unitId": "paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          },
+          "playback": {
+            "backend": null,
+            "cfiRange": "epubcfi(/6/6!/4/2[chapter-2]/80,/1:0,/1:173)",
+            "fallback": false,
+            "owner": null,
+            "status": "stopped",
+            "unavailableReason": null
+          },
+          "revision": 20,
+          "sessionId": "dce909b6-3e11-448a-80be-d3aa25547a2e",
+          "status": "ready",
+          "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+        }
+      }
+    },
+    "retainedMissing": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "history": {
+        "canGoBack": false,
+        "canGoForward": false
+      },
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/6!/4/2[chapter-2],/80/1:0,/82/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 1,
+        "href": "2"
+      },
+      "mode": {
+        "availableModes": [
+          {
+            "defaultUnitId": "sentence",
+            "key": "sentence-reader:guided-reading",
+            "label": "Sentence Reader: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          }
+        ],
+        "cfiRange": null,
+        "label": null,
+        "modeKey": "capability-segmentation-probe:reader",
+        "position": null,
+        "progress": null,
+        "requestedActive": false,
+        "status": "unavailable",
+        "unavailableReason": "no-provider",
+        "unitId": "paragraph",
+        "units": []
+      },
+      "playback": {
+        "backend": null,
+        "cfiRange": null,
+        "fallback": false,
+        "owner": null,
+        "status": "unavailable",
+        "unavailableReason": "mode-inactive"
+      },
+      "revision": 25,
+      "sessionId": "dce909b6-3e11-448a-80be-d3aa25547a2e",
+      "status": "ready",
+      "visibleText": "Gamma paragraph 39. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 40. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+    }
+  },
+  "verification": {
+    "tests": "19 tasks passed",
+    "typecheck": "22 tasks passed",
+    "webBuild": "passed; not packaged Tauri",
+    "nativePickerViewports": [
+      "1200x800",
+      "800x600"
+    ],
+    "screenshots": [
+      "/tmp/reading-mode-provider-native-final.png",
+      "/tmp/reading-mode-provider-plugin.png"
+    ],
+    "unverified": [
+      "release mode selection",
+      "Windows/Linux",
+      "mode persistence failure receipts",
+      "general provider broker",
+      "full W01-W32"
+    ]
+  }
+}

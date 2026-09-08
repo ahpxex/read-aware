@@ -105,7 +105,7 @@ test("mode tool passes declared unit, provider, session scope and signal and wai
     await new Promise<void>(resolve => { finish = resolve; });
     return { status: "completed", sessionId: session.sessionId!, mode: { ...session.mode, status: "ready" } };
   };
-  const input = { active: true, modeKey: "test:mode", unitId: "paragraph" };
+  const input = { active: true, modeKey: "test:mode", selectModeKey: "selected:mode", unitId: "paragraph" };
   let settled = false;
   const pending = tool("configure_reading_mode").execute("test", input, abort.signal).then(result => { settled = true; return result; });
   await new Promise(resolve => setTimeout(resolve, 0));

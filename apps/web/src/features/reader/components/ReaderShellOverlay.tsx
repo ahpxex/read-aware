@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
+import type { ReadingModeSnapshot } from "@read-aware/core";
 import { CaretLeft, ChatCircle, ListBullets } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { usePhoneViewport } from "@read-aware/ui/media";
@@ -31,11 +32,13 @@ import { buildProgressMarks } from "../lib/reader-progress";
 import { readerPanelIntentAtom } from "../state/panel-intent";
 import { useReaderPanelLayout } from "../hooks/useReaderPanelLayout";
 import { useReaderPanelSizes } from "../hooks/useReaderPanelSizes";
+import { useReaderModeSelection } from "../hooks/useReaderModeSelection";
 import type { TocEntry } from "../lib/reader-types";
 import { ReaderNotesPopover } from "./ReaderNotesPopover";
 import { ReaderProgressScrubber } from "./ReaderProgressScrubber";
 import { ReaderResizeHandle } from "./ReaderResizeHandle";
 import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
+import { ReaderModePicker } from "./ReaderModePicker";
 import { contributionText } from "../../plugins/lib/plugin-i18n";
 
 type ReaderShellOverlayProps = {
@@ -55,6 +58,7 @@ type ReaderShellOverlayProps = {
   /** Installed text-unit mode, if a plugin contributes one. */
   textUnitMode?: RegisteredReaderMode | null;
   textUnitModeActive?: boolean;
+  modeSnapshot?: ReadingModeSnapshot;
   onToggleTextUnitMode?: () => void;
   /**
    * The open book is fixed-layout (PDF, comic, pre-paginated EPUB). Its pages
@@ -81,6 +85,7 @@ export function ReaderShellOverlay({
   onSeek,
   textUnitMode = null,
   textUnitModeActive = false,
+  modeSnapshot,
   onToggleTextUnitMode,
   fixedLayout = false,
 }: ReaderShellOverlayProps) {
@@ -88,8 +93,11 @@ export function ReaderShellOverlay({
   // A text-unit mode segments running text — there is none to segment in a
   // book whose pages are pre-typeset.
   const textUnitModeAvailable = textUnitMode !== null && !fixedLayout;
+  const canSelectMode = !fixedLayout && modeSnapshot && modeSnapshot.availableModes.length > 0
+    && (modeSnapshot.availableModes.length > 1 || !textUnitMode);
   const locale = useLocale();
   const bookId = book.id;
+  const modeSelection = useReaderModeSelection(bookId, modeSnapshot);
   const title = book.title;
   const percent =
     progress != null ? Math.min(100, Math.max(0, progress * 100)) : null;
@@ -169,7 +177,7 @@ export function ReaderShellOverlay({
     (action) => action.surface === "reader",
   );
   const readerCoreItems = CORE_MENU_DEFAULTS.readerHeader.filter(
-    (id) => id !== "core:navigator" || textUnitMode !== null,
+    (id) => id !== "core:navigator" || textUnitMode !== null || canSelectMode,
   );
   const readerLayout = resolveSurfaceLayout(menuConfig.readerHeader, [
     ...readerCoreItems,
@@ -177,28 +185,33 @@ export function ReaderShellOverlay({
   ]);
 
   const coreReaderNodes: Record<string, React.ReactNode | null> = {
-    "core:navigator": textUnitModeAvailable && textUnitMode ? (
-      <Tooltip
-        content={resolvePluginText(textUnitMode.copy.title, locale)}
-        side="bottom"
-        className="pointer-events-auto"
-      >
-        <IconButton
-          size="sm"
-          label={resolvePluginText(
-            textUnitModeActive ? textUnitMode.copy.exit : textUnitMode.copy.enable,
-            locale,
-          )}
-          aria-pressed={textUnitModeActive}
-          onClick={onToggleTextUnitMode}
-          className={cn(textUnitModeActive && "text-fg")}
-          icon={renderPluginIcon(
-            textUnitMode.icon,
-            18,
-            textUnitModeActive ? "bold" : "regular",
-          )}
-        />
-      </Tooltip>
+    "core:navigator": textUnitModeAvailable || canSelectMode ? (
+      <div className="flex items-center gap-1">
+        {textUnitModeAvailable && textUnitMode ? (
+          <Tooltip
+            content={resolvePluginText(textUnitMode.copy.title, locale)}
+            side="bottom"
+            className="pointer-events-auto"
+          >
+            <IconButton
+              size="sm"
+              label={resolvePluginText(
+                textUnitModeActive ? textUnitMode.copy.exit : textUnitMode.copy.enable,
+                locale,
+              )}
+              aria-pressed={textUnitModeActive}
+              onClick={onToggleTextUnitMode}
+              className={cn(textUnitModeActive && "text-fg")}
+              icon={renderPluginIcon(
+                textUnitMode.icon,
+                18,
+                textUnitModeActive ? "bold" : "regular",
+              )}
+            />
+          </Tooltip>
+        ) : null}
+        {canSelectMode && modeSnapshot && <ReaderModePicker key={bookId} mode={modeSnapshot} {...modeSelection} />}
+      </div>
     ) : null,
     "core:appearance": (
       <ReaderAppearanceMenu
@@ -245,12 +258,12 @@ export function ReaderShellOverlay({
       }
       const meta = coreMenuMeta("readerHeader", id);
       if (!meta) return null;
-      if (id === "core:appearance") {
+      if (id === "core:appearance" || id === "core:navigator" && canSelectMode) {
         return {
           id,
           label: String(tMenus(`menus.items.${meta.labelKey}` as never)),
           icon: <meta.Icon size={16} weight="regular" aria-hidden="true" />,
-          node: coreReaderNodes["core:appearance"],
+          node: coreReaderNodes[id],
         };
       }
       const run = coreReaderRun[id];

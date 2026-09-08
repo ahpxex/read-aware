@@ -49,12 +49,16 @@ export type ReadingModePosition = {
   unitId: string;
 };
 
-/** The current host-supported text-unit mode. No passage text or executable provider is exposed. */
+/** A registered text-unit mode. No passage text or executable provider is exposed. */
+export type ReadingModeDescriptor = { key: string; label: string; units: { id: string; label: string }[]; defaultUnitId: string };
+
 export type ReadingModeSnapshot = {
   /** Ready means the current section is indexed; it is not a navigation receipt. */
   status: "unavailable" | "inactive" | "preparing" | "ready" | "empty" | "error";
   unavailableReason: "no-session" | "unsupported-format" | "no-provider" | null;
   requestedActive: boolean;
+  /** Registered choices for this reader; selected modeKey may be temporarily absent. */
+  availableModes: ReadingModeDescriptor[];
   modeKey: string | null;
   label: string | null;
   unitId: string | null;
@@ -67,7 +71,14 @@ export type ReadingModeSnapshot = {
   errorCode?: string;
 };
 
-export type ReadingModeConfiguration = { active: boolean; modeKey?: string; unitId?: string };
+export type ReadingModeConfiguration = {
+  active: boolean;
+  /** Execution precondition; does not select a provider. */
+  modeKey?: string;
+  /** Select a registered provider, atomically with active/unitId. */
+  selectModeKey?: string;
+  unitId?: string;
+};
 export type ReadingModeReceipt = { status: "completed"; sessionId: string; mode: ReadingModeSnapshot };
 export type ReadingModeStepOutcome = "moved" | "start-of-book" | "end-of-book";
 export type ReadingModeStepReceipt = ReadingModeReceipt & { outcome: ReadingModeStepOutcome };

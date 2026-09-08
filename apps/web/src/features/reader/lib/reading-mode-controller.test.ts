@@ -102,3 +102,80 @@ test("invalid configuration has no effects and unsettled operations time out", a
   await expect(controller.configure({ active: true })).rejects.toMatchObject({ code: "reader/timeout" });
   expect(controller.requested().active).toBe(false);
 });
+
+const other = { key: "other:mode", label: "Other", defaultUnitId: "block", units: [{ id: "block", label: "Block" }] };
+const inactive: ModeFeedback = { status: "inactive", progress: null, cfiRange: null };
+
+test("provider selection validates target units and awaits the selected provider, without leaking implementations", async () => {
+  const { controller } = fixture();
+  const implementation = () => [];
+  controller.environment([descriptor, { ...other, implementation }], true);
+  expect(controller.snapshot().availableModes).toEqual([descriptor, other]);
+  await expect(controller.configure({ active: true, selectModeKey: other.key, unitId: "sentence" })).rejects.toMatchObject({ code: "reader/invalid-target" });
+  await expect(controller.configure({ active: true, selectModeKey: "absent:mode" })).rejects.toMatchObject({ code: "reader/unavailable" });
+  expect(controller.requested().modeKey).toBe(descriptor.key);
+  const work = controller.configure({ active: true, selectModeKey: other.key, modeKey: descriptor.key });
+  expect(controller.requested()).toMatchObject({ modeKey: other.key, unitId: "block" });
+  controller.feedback(controller.generation(), descriptor.key, "block", ready);
+  expect(controller.snapshot().status).toBe("preparing");
+  controller.feedback(controller.generation(), other.key, "block", ready);
+  expect(await work).toMatchObject({ modeKey: other.key, status: "ready" });
+  await expect(controller.configure({ active: false, modeKey: descriptor.key })).rejects.toMatchObject({ code: "reader/superseded" });
+});
+
+test("provider catalog churn retains selection and does not interrupt unrelated work", async () => {
+  const { controller } = fixture();
+  const work = controller.configure({ active: true });
+  const revision = controller.generation();
+  controller.environment([descriptor, other], true);
+  expect(controller.generation()).toBe(revision);
+  controller.feedback(revision, descriptor.key, "sentence", ready);
+  await work;
+  controller.environment([other], true);
+  expect(controller.snapshot()).toMatchObject({ modeKey: descriptor.key, requestedActive: true, unavailableReason: "no-provider", availableModes: [other] });
+  controller.environment([other, descriptor], true);
+  expect(controller.snapshot()).toMatchObject({ modeKey: descriptor.key, status: "preparing" });
+});
+
+test("selection cancellation restores the prior provider and unit, not a superseded intermediate choice", async () => {
+  const { controller } = fixture();
+  controller.environment([descriptor, other], true);
+  const initial = controller.configure({ active: true, selectModeKey: other.key });
+  const abort = new AbortController();
+  const next = controller.configure({ active: true, selectModeKey: descriptor.key, unitId: "paragraph" }, abort.signal);
+  await expect(initial).rejects.toMatchObject({ code: "reader/superseded" });
+  abort.abort(new Error("cancel selection"));
+  await expect(next).rejects.toThrow("cancel selection");
+  expect(controller.requested()).toMatchObject({ modeKey: descriptor.key, unitId: "sentence", active: false });
+});
+
+test("a selected provider implementation replacement invalidates in-flight feedback", async () => {
+  const { controller } = fixture();
+  const work = controller.configure({ active: true });
+  const revision = controller.generation();
+  controller.environment([{ ...descriptor, implementation: () => [] }], true);
+  await expect(work).rejects.toMatchObject({ code: "reader/superseded" });
+  controller.feedback(revision, descriptor.key, "sentence", ready);
+  expect(controller.snapshot().status).toBe("inactive");
+});
+
+test("saved provider and provider-specific unit win over registration order", async () => {
+  const controller = new ReadingModeController(false, null, 1000, descriptor.key, key => key === descriptor.key ? "paragraph" : null);
+  controller.environment([other, descriptor], true);
+  expect(controller.requested()).toMatchObject({ modeKey: descriptor.key, unitId: "paragraph" });
+  const work = controller.configure({ active: false, selectModeKey: other.key });
+  controller.feedback(controller.generation(), other.key, "block", inactive);
+  await work;
+  const back = controller.configure({ active: false, selectModeKey: descriptor.key });
+  controller.feedback(controller.generation(), descriptor.key, "paragraph", inactive);
+  expect(await back).toMatchObject({ unitId: "paragraph", modeKey: descriptor.key });
+});
+
+test("legacy unit preferences survive first-provider adoption unless that provider has an explicit preference", () => {
+  const legacy = new ReadingModeController(false, "paragraph");
+  legacy.environment(descriptor, true);
+  expect(legacy.requested().unitId).toBe("paragraph");
+  const configured = new ReadingModeController(false, "paragraph", 1000, null, () => "sentence");
+  configured.environment(descriptor, true);
+  expect(configured.requested().unitId).toBe("sentence");
+});

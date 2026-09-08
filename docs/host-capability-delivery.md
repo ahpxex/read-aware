@@ -119,3 +119,20 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 - 已停止本轮隔离 Tauri 应用及 5184/9224 服务，不触碰原应用端口或原用户数据。
 
 仍未完成：视图 push/pop/replace/关闭的自动 callback lease；provider 返回 session 的关闭；host lifecycle 中已处置登记的强引用清理；完整消息 schema、字节及累计存活资源配额；普通任务挂起/取消与撤权收敛；packaged CSP 和前台绘制验收。本轮关闭的是业务字段碰撞与上述注册/调用清理路径，不关闭整组 Q2、全部 GAP 或完整目标。
+
+## 2026-09-09：Q2 宿主注册 scope 与失败回滚
+
+[代码] `PluginLifecycleController` 现在拥有一个未处置注册集合；外部插件实例只保留一个 scope 清理句柄，不再为每次 register 永久追加记录。单项 dispose 先移除集合成员、清空 factory/live 引用，再调用实际 disposer；即使 disposer 抛错或重入，记录也不重新出现，重复释放不会重试已执行的 disposer。
+
+- activating 阶段的登记仍在 promote 前保持无外部效果；取消的登记不执行 factory。active 阶段 factory 抛错会退掉本次及其同步创建的子登记，不影响原有登记，不留到下一次 promote 重试；子 factory 的异常被上层捕获时，子调用也独立回滚。
+- promote 的事务覆盖同步重入创建的登记。失败时逆序尝试所有本轮资源的 disposer，汇总失败而不是在第一个异常处停止；失败尝试产生的新登记会丢弃，原声明保留以便重试，避免下一轮出现旧子登记和新子登记双份。回滚过程中拒绝新登记或切换迁移阶段。
+- factory 执行期间发生 dispose/stop，随后才返回的资源也会被关闭；不能把已停止实例重新激活。scope stop 先关入口和取消任务，再逆序尝试全部登记释放；即使个别失败，其余清理仍执行。
+- Worker 终止在 scope 清理失败后仍等待已接受的持久写排空，并执行 Worker/pending 清理；错误不被吞掉。外层激活失败也先 await sandbox 终止，再做兜底清理，避免提前关闭写入入口而拒绝已经从 Worker 发出的写。此机制服务于插件贡献及被 Agent 消费的插件工具，不意味着 Agent 自身全部任务生命周期已统一。
+
+[环境] 新增 10 个 lifecycle 测试与 1 个 host 故障测试：5,000 次待激活取消加 5,000 次 active 注册/释放后，集合归零，外部清理句柄保持 1；覆盖失败释放、兄弟资源继续清理、factory 重入、嵌套回滚、promotion 回滚/重试与停止竞态。host 故障测试用真实 context/注册表，注入 observer 清理失败及延迟 drain，确认排空前 Worker 不终止、排空后仍报告失败并结束 Worker；不是原生存储故障注入，真实安装/升级失败界面仍待完整验收。
+
+[环境] 隔离 Tauri 的真实 WebKit Worker 和原生文档存储完成 20 轮注册/执行/释放，外部 cleanup owner 每轮均为 1，旧 callback 均拒绝。`terminate()` 返回前贡献已清空，不再依赖 fixture 后续遍历 disposables 才撤下菜单。[结构化证据](./evidence/plugin-registration-scope-2026-09-09.json)。应用与 5184/9224 服务已停止，未触碰原用户数据。
+
+[环境] 全仓 test 17 个任务与 typecheck 20 个任务通过；两对文档生成器/pair validator 和 7 个建模门禁测试通过，215 行 / 547 库存映射不变。两份 HTML 的 1440/1024/390 宽度无横向溢出，中英文搜索、Escape、窄屏目录、主题及刷新保持通过；1440/390 截图已检查，文件为 `/tmp/readaware-registration-{matrix,model}{,-mobile}.png`。文档仍依赖字体/图标 CDN；这些截图不是产品前台视觉验收。
+
+仍未完成：同 ID 贡献替换的自动所有权转移、视图栈 lease、provider session 关闭、普通任务取消与累计资源配额、窗口重载错误、全部组合插件和 packaged/前台端到端验收。CON03 保持部分状态，本轮不关闭整组 Q2 或完整目标。

@@ -1,0 +1,127 @@
+{
+  "observedAt": "2026-09-08 16:00:10 UTC",
+  "appIdentifier": "com.readaware.app.capability-e2e",
+  "finalLifecycleRevisionReverifiedAt": "2026-09-08 16:08:38 UTC",
+  "environment": "Tauri debug app, real WebKit Worker and native plugin document storage",
+  "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-wire-probe.ts#runDesktopCallbackProbe",
+  "result": {
+    "cleanupOwners": 1,
+    "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+    "iterations": 20,
+    "ordinaryMarkerDocumentPreserved": true,
+    "results": [
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      }
+    ]
+  },
+  "verified": [
+    "Outer cleanup list stays at one registration scope after every iteration",
+    "Twenty transient registrations execute, are removed and reject stale callbacks after disposal",
+    "terminate() clears the host contributions before the caller runs outer disposables",
+    "Special business marker fields survive native document storage"
+  ],
+  "notVerified": [
+    "Whole app or Worker heap returning to baseline",
+    "Automatic view and provider-session callback release",
+    "Same-ID replacement ownership",
+    "Packaged CSP, installation/update/revocation UI and foreground visual behavior"
+  ]
+}

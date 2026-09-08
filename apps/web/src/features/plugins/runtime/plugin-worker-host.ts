@@ -366,10 +366,15 @@ export function startPluginWorker(
                   // Retire migration timers/results before closing the lifecycle:
                   // a late response must not reopen (or throw from) a stopped realm.
                   failAllMigrations(`plugin "${manifest.id}" was deactivated`);
-                  runtime.lifecycle.stop();
                   try {
-                    await runtime.lifecycle.drainStorageWrites();
-                    if (quiescenceError) throw new Error(quiescenceError);
+                    const errors: unknown[] = [];
+                    try { runtime.lifecycle.stop(); }
+                    catch (error) { errors.push(error); }
+                    try { await runtime.lifecycle.drainStorageWrites(); }
+                    catch (error) { errors.push(error); }
+                    if (quiescenceError) errors.push(new Error(quiescenceError));
+                    if (errors.length === 1) throw errors[0];
+                    if (errors.length > 1) throw new AggregateError(errors, "Plugin shutdown failed");
                   } finally {
                     worker.postMessage({ t: "deactivate" });
                     await new Promise(done => setTimeout(done, 50));

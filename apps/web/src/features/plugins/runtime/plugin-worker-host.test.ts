@@ -1,9 +1,10 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import type { PluginContext, PluginDisposable } from "../lib/plugin-types";
 import { getDefaultStore } from "jotai";
 import { pluginCommandsAtom } from "../state/plugin-store";
 import { describeContext, startPluginWorker } from "./plugin-worker-host";
 import { PluginCallbackRegistry } from "./plugin-callback-wire";
+import { PluginLifecycleController } from "./plugin-lifecycle";
 
 type WireMessage = { t: string; id?: number; handle?: string; handles?: string[]; [key: string]: unknown };
 
@@ -14,6 +15,7 @@ class FaultWorker {
   onerror: ((event: ErrorEvent) => void) | null = null;
   readonly sent: WireMessage[] = [];
   readonly callbacks = new PluginCallbackRegistry();
+  terminated = false;
   constructor() { FaultWorker.current = this; }
   postMessage(message: WireMessage) {
     this.sent.push(message);
@@ -22,7 +24,7 @@ class FaultWorker {
     if (message.t === "release") this.callbacks.release(message.handles!);
   }
   async deliver(message: WireMessage) { await this.onmessage?.({ data: message } as MessageEvent); }
-  terminate() { this.callbacks.clear(); }
+  terminate() { this.terminated = true; this.callbacks.clear(); }
 }
 
 async function hostFixture() {
@@ -126,4 +128,30 @@ test("host releases malformed and unmatched callback results and disposed regist
     expect(worker.callbacks.size).toBe(0);
     expect(getDefaultStore().get(pluginCommandsAtom).some(item => item.pluginId === "callback-host-test")).toBe(false);
   } finally { await close(); }
+});
+
+test("shutdown still drains durable writes and terminates its Worker when registration cleanup fails", async () => {
+  const { worker, close } = await hostFixture();
+  let finishDrain!: () => void;
+  let drainStarted = false;
+  const drain = spyOn(PluginLifecycleController.prototype, "drainStorageWrites").mockImplementation(() => {
+    drainStarted = true;
+    return new Promise<void>(resolve => { finishDrain = resolve; });
+  });
+  let unsubscribe: (() => void) | undefined;
+  try {
+    await worker.deliver({ t: "call", id: 1, method: "contributions.commands.register", args: worker.callbacks.encode([{ id: "test", title: "Test", run: () => null }]) });
+    unsubscribe = getDefaultStore().sub(pluginCommandsAtom, () => { throw new Error("registry observer failed"); });
+    const closing = close().catch(error => error);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(drainStarted).toBe(true);
+    expect(worker.terminated).toBe(false);
+    finishDrain();
+    expect(await closing).toBeInstanceOf(AggregateError);
+    expect(worker.terminated).toBe(true);
+    expect(getDefaultStore().get(pluginCommandsAtom).some(item => item.pluginId === "callback-host-test")).toBe(false);
+  } finally {
+    unsubscribe?.(); drain.mockRestore();
+    if (!worker.terminated) { finishDrain?.(); await close().catch(() => { /* Expected injected shutdown failure. */ }); }
+  }
 });

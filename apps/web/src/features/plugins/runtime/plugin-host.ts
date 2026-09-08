@@ -220,6 +220,11 @@ async function startPluginInstance(
     }
     return instance;
   } catch (error) {
+    // Quiesce the Worker before closing the scope's write gate: messages
+    // already issued by the plugin must reach the host's durable-write drain.
+    await sandbox?.terminate().catch((terminateError) => {
+      log.error(`activation sandbox rollback for "${manifest.id}" failed`, terminateError);
+    });
     for (const disposable of [...disposables].reverse()) {
       try {
         disposable.dispose();
@@ -227,9 +232,6 @@ async function startPluginInstance(
         log.error(`activation rollback for "${manifest.id}" failed`, disposeError);
       }
     }
-    await sandbox?.terminate().catch((terminateError) => {
-      log.error(`activation sandbox rollback for "${manifest.id}" failed`, terminateError);
-    });
     throw error;
   }
 }

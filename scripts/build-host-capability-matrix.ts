@@ -5,7 +5,7 @@ import { collectInventory } from "./host-capability-inventory";
 
 const title = "ReadAware 宿主 × Agent × 插件能力矩阵";
 const status = "代码盘点完成；能力实现与桌面验收未完成";
-const date = "2026-09-08";
+const date = "2026-09-09";
 const rows = groups.flatMap(group => group.rows);
 const inventory = collectInventory();
 const roster = Object.entries(Object.groupBy(inventory, row => row.family));

@@ -6,7 +6,7 @@ import { AppError } from "@read-aware/core";
 
 type StagedRegistration = {
   cancelled: boolean;
-  factory: () => PluginDisposable;
+  factory?: () => PluginDisposable;
   live?: PluginDisposable;
 };
 
@@ -20,7 +20,9 @@ type StagedRegistration = {
  */
 export class PluginLifecycleController {
   private current: PluginLifecyclePhase = "activating";
-  private readonly staged: StagedRegistration[] = [];
+  private readonly registrations = new Set<StagedRegistration>();
+  private activationTransaction: StagedRegistration[] | undefined;
+  private rollingBack = false;
   private readonly storageWrites = new Set<Promise<unknown>>();
   private stopped = false;
   private readonly operations = new AbortController();
@@ -28,7 +30,12 @@ export class PluginLifecycleController {
   get signal(): AbortSignal { return this.operations.signal; }
   cancelOperations(): void { this.operations.abort(new AppError("plugin/cancelled", "Plugin runtime has stopped")); }
 
-  constructor(private readonly disposables: PluginDisposable[]) {}
+  constructor(disposables: PluginDisposable[]) {
+    // The outer instance owns one scope, not a growing list of retired handles.
+    disposables.push({ dispose: () => this.stop() });
+  }
+
+  get registrationCount(): number { return this.registrations.size; }
 
   get phase(): PluginLifecyclePhase {
     return this.current;
@@ -36,52 +43,94 @@ export class PluginLifecycleController {
 
   stage(factory: () => PluginDisposable): PluginDisposable {
     this.assertNotStopped();
+    if (this.rollingBack) throw new Error("plugin registrations are unavailable during rollback");
     if (this.current === "migrating") {
       throw new Error("plugin registrations are unavailable during data migration");
     }
     const entry: StagedRegistration = { cancelled: false, factory };
     const handle: PluginDisposable = {
-      dispose: () => {
-        if (entry.cancelled) return;
-        entry.cancelled = true;
-        entry.live?.dispose();
-        entry.live = undefined;
-      },
+      dispose: () => this.disposeRegistration(entry),
     };
-    this.staged.push(entry);
-    this.disposables.push(handle);
-    if (this.current === "active") entry.live = factory();
+    this.registrations.add(entry);
+    if (this.current === "active") {
+      try { this.activateRegistrations([entry], "active"); }
+      catch (error) {
+        this.disposeRegistration(entry);
+        throw error;
+      }
+    }
     return handle;
+  }
+
+  private disposeRegistration(entry: StagedRegistration): void {
+    if (entry.cancelled) return;
+    entry.cancelled = true;
+    this.registrations.delete(entry);
+    const live = entry.live;
+    entry.live = undefined;
+    entry.factory = undefined;
+    live?.dispose();
+  }
+
+  private activateRegistration(entry: StagedRegistration): void {
+    if (entry.cancelled || entry.live || !entry.factory) return;
+    const live = entry.factory();
+    // A synchronous host observer can dispose this registration or stop its
+    // realm while the factory runs. The returned resource still needs closing.
+    if (entry.cancelled || this.stopped) {
+      live.dispose();
+      if (this.stopped) throw new AppError("plugin/cancelled", "Plugin stopped during registration");
+      return;
+    }
+    entry.live = live;
+    if (this.activationTransaction) this.activationTransaction.push(entry);
+    else entry.factory = undefined;
   }
 
   promote(): void {
     this.assertNotStopped();
-    if (this.current !== "activating") {
+    if (this.current !== "activating" || this.activationTransaction) {
       throw new Error(`cannot promote plugin from ${this.current} phase`);
     }
     this.current = "active";
+    this.activateRegistrations([...this.registrations], "activating");
+  }
+
+  private activateRegistrations(entries: StagedRegistration[], failurePhase: PluginLifecyclePhase): void {
+    const initial = new Set(this.registrations);
     const activated: StagedRegistration[] = [];
+    const parentTransaction = this.activationTransaction;
+    this.activationTransaction = activated;
     try {
-      for (const entry of this.staged) {
-        if (entry.cancelled || entry.live) continue;
-        entry.live = entry.factory();
-        activated.push(entry);
-      }
+      for (const entry of entries) this.activateRegistration(entry);
+      if (parentTransaction) for (const entry of activated) parentTransaction.push(entry);
+      else for (const entry of activated) entry.factory = undefined;
     } catch (error) {
+      if (!this.stopped) this.current = failurePhase;
+      this.rollingBack = true;
+      const failures: unknown[] = [error];
       for (const entry of activated.reverse()) {
-        try {
-          entry.live?.dispose();
-        } finally {
-          entry.live = undefined;
-        }
+        const live = entry.live;
+        entry.live = undefined;
+        try { live?.dispose(); }
+        catch (disposeError) { failures.push(disposeError); }
       }
-      this.current = "activating";
+      // Reentrant registrations were produced by this failed attempt. Keeping
+      // them for retry would register both the old child and its replacement.
+      for (const entry of this.registrations) {
+        if (!initial.has(entry)) this.disposeRegistration(entry);
+      }
+      if (failures.length > 1) throw new AggregateError(failures, "Plugin registration and rollback failed");
       throw error;
+    } finally {
+      this.activationTransaction = parentTransaction;
+      this.rollingBack = false;
     }
   }
 
   beginMigration(): void {
     this.assertNotStopped();
+    if (this.activationTransaction) throw new Error("cannot migrate during registration activation");
     if (this.current !== "activating") {
       throw new Error(`cannot migrate plugin from ${this.current} phase`);
     }
@@ -97,6 +146,8 @@ export class PluginLifecycleController {
   }
 
   suspend(): void {
+    this.assertNotStopped();
+    if (this.activationTransaction) throw new Error("cannot suspend during registration activation");
     if (this.current === "migrating") {
       throw new Error("cannot suspend a plugin while its data migration is running");
     }
@@ -118,9 +169,16 @@ export class PluginLifecycleController {
   }
 
   stop(): void {
-    this.cancelOperations();
+    if (this.stopped) return;
     this.stopped = true;
     this.current = "activating";
+    this.cancelOperations();
+    const errors: unknown[] = [];
+    for (const entry of [...this.registrations].reverse()) {
+      try { this.disposeRegistration(entry); }
+      catch (error) { errors.push(error); }
+    }
+    if (errors.length) throw new AggregateError(errors, "Plugin registration disposal failed");
   }
 
   private assertNotStopped(): void {

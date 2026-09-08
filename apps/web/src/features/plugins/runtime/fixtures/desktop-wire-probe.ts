@@ -81,11 +81,15 @@ export async function runDesktopCallbackProbe() {
       try { await temporary.run(); }
       catch (error) { staleCode = (error as { code?: string }).code ?? ""; }
       if (staleCode !== "plugin/unavailable" || commands().length !== 1) throw new Error("Disposed callback is still reachable");
+      if (disposables.length !== 1) throw new Error("Host cleanup owners accumulated retired registrations");
       results.push({ live: live.toast, released: released.toast, staleCode });
     }
-    return { dataDir, iterations: results.length, results, ordinaryMarkerDocumentPreserved: true };
+    return { dataDir, iterations: results.length, results, cleanupOwners: disposables.length, ordinaryMarkerDocumentPreserved: true };
   } finally {
-    try { await worker.terminate(); }
+    try {
+      await worker.terminate();
+      if (inspectContributions(id).length) throw new Error("Worker termination did not dispose its registration scope");
+    }
     finally { for (const disposable of disposables.reverse()) disposable.dispose(); }
     if (inspectContributions(id).length) throw new Error("Callback probe left registered contributions behind");
   }

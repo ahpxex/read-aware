@@ -33,6 +33,8 @@ type TextUnitNavigatorBarProps = {
   containerRef: RefObject<HTMLElement | null>;
   /** Whether the navigator has a resting unit to jump back to. */
   canReturn: boolean;
+  /** False while indexing or after a segmentation failure; empty sections may be crossed. */
+  canStep?: boolean;
   /** Whether a page tap steps forward. On touch screens that makes the page
    *  itself the forward affordance, so the bar keeps only the back-step;
    *  with the tap disarmed it carries both step buttons. */
@@ -52,6 +54,7 @@ type TextUnitNavigatorBarProps = {
   /** Read-aloud (hidden where the webview offers no speech synthesis). */
   readAloudAvailable: boolean;
   readAloudPlaying: boolean;
+  readAloudCanStart?: boolean;
   onToggleReadAloud: () => void;
 };
 
@@ -109,6 +112,7 @@ export function TextUnitNavigatorBar({
   mode,
   containerRef,
   canReturn,
+  canStep = true,
   tapToAdvance,
   unitId,
   onUnitChange,
@@ -119,6 +123,7 @@ export function TextUnitNavigatorBar({
   onExit,
   readAloudAvailable,
   readAloudPlaying,
+  readAloudCanStart = true,
   onToggleReadAloud,
 }: TextUnitNavigatorBarProps) {
   const { t } = useTranslation("reader");
@@ -182,6 +187,7 @@ export function TextUnitNavigatorBar({
             <>
               <BarButton
                 label={prevStepLabel}
+                disabled={!canStep}
                 onClick={onPrev}
                 className={actionButtonClass}
                 icon={<CaretLeft size={16} weight="regular" aria-hidden="true" />}
@@ -189,6 +195,7 @@ export function TextUnitNavigatorBar({
               {showNextStep && (
                 <BarButton
                   label={nextStepLabel}
+                  disabled={!canStep}
                   onClick={onNext}
                   className={actionButtonClass}
                   icon={<CaretRight size={16} weight="regular" aria-hidden="true" />}
@@ -198,6 +205,7 @@ export function TextUnitNavigatorBar({
                 <BarButton
                   label={readAloudPlaying ? t("readAloud.stop") : t("readAloud.start")}
                   pressed={readAloudPlaying}
+                  disabled={!readAloudPlaying && !readAloudCanStart}
                   onClick={onToggleReadAloud}
                   className={actionButtonClass}
                   icon={

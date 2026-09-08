@@ -13,6 +13,7 @@
   },
   "errors": {
     "readerPlaybackFailed": "Read aloud stopped because audio could not be played. Try again or choose another voice.",
+    "readerSegmentationFailed": "The reading mode could not prepare this passage. Turn the mode off and on to try again.",
     "annotationConflict": "This annotation changed. Read it again before applying your changes.",
     "annotationUnavailable": "Annotation storage is not available in this environment.",
     "annotationCancelled": "The annotation change was cancelled before it was submitted.",

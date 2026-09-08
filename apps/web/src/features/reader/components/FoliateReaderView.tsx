@@ -2264,6 +2264,7 @@ export function FoliateReaderView({
           mode={textUnitMode}
           containerRef={readerRootRef}
           canReturn={textUnitNavigator.canReturn}
+          canStep={textUnitNavigator.status === "ready" || textUnitNavigator.status === "empty"}
           tapToAdvance={textUnitModeSettings.tapToAdvance}
           unitId={activeUnitId}
           onUnitChange={(unitId) => patchTextUnitModeSettings({ unitId })}
@@ -2277,6 +2278,7 @@ export function FoliateReaderView({
           onExit={() => onExitTextUnitModeRef.current?.()}
           readAloudAvailable={readAloud.available}
           readAloudPlaying={readAloud.playing}
+          readAloudCanStart={readAloud.snapshot.unavailableReason === null}
           onToggleReadAloud={readAloud.toggle}
         />
       )}

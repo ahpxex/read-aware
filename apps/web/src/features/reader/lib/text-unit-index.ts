@@ -11,6 +11,7 @@
  * This module keeps the Foliate document and live DOM Ranges inside the host.
  */
 
+import { AppError } from "@read-aware/core";
 import type {
   PluginReaderTextSegment,
   RegisteredReaderMode,
@@ -29,7 +30,7 @@ const BLOCK_TAGS = new Set([
   "main", "math", "nav", "ol", "p", "pre", "section", "tr",
 ]);
 
-const TEXT_FILTER = NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT | NodeFilter.SHOW_CDATA_SECTION;
+const SEGMENT_CONCURRENCY = 8;
 
 /**
  * Whether an element renders at all. Units must not cover text the reader
@@ -89,7 +90,8 @@ function* blockRanges(doc: Document): Generator<Range> {
 /** The non-empty text nodes inside a block range, in document order. */
 function collectTextNodes(range: Range): Node[] {
   const root = range.commonAncestorContainer;
-  const walker = root.ownerDocument!.createTreeWalker(root, TEXT_FILTER, {
+  const walker = root.ownerDocument!.createTreeWalker(root,
+    NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT | NodeFilter.SHOW_CDATA_SECTION, {
     acceptNode: acceptTextNode,
   });
   const nodes: Node[] = [];
@@ -153,27 +155,44 @@ export async function buildTextUnitRanges(
   doc: Document,
   unitId: TextUnitId,
   segmentText: RegisteredReaderMode["segmentText"],
+  signal?: AbortSignal,
 ): Promise<Range[]> {
-  const units: Range[] = [];
+  if (signal?.aborted) throw signal.reason;
+  const results: Range[][] = [];
   const language = doc.documentElement?.lang || undefined;
-  // Blocks are segmented in parallel: the segmenter lives in the plugin's
-  // Worker, so serializing here would pay one round trip per paragraph.
-  const blocks = [...blockRanges(doc)]
-    .map((block) => {
-      const nodes = collectTextNodes(block);
-      return { nodes, text: nodes.map((node) => node.nodeValue ?? "").join("") };
-    })
-    .filter((block) => block.nodes.length > 0 && Boolean(block.text.trim()));
-  const segmented = await Promise.all(
-    blocks.map((block) =>
-      Promise.resolve(segmentText({ text: block.text, language, unitId })).catch(() => []),
-    ),
-  );
-  for (const [index, block] of blocks.entries()) {
-    const segments = normalizeReaderTextSegments(segmented[index], block.text.length);
-    units.push(...segmentsToRanges(block.nodes, segments));
+  const blocks = blockRanges(doc);
+  let ordinal = 0;
+  let failed = false;
+  // Keep Worker round trips bounded and preserve document order even when
+  // replies arrive out of order. A failure invalidates the whole section.
+  const worker = async () => {
+    while (!failed) {
+      if (signal?.aborted) throw signal.reason;
+      const block = blocks.next();
+      if (block.done) return;
+      const nodes = collectTextNodes(block.value);
+      const text = nodes.map(node => node.nodeValue ?? "").join("");
+      if (!nodes.length || !text.trim()) continue;
+      const index = ordinal++;
+      try {
+        const segmented = await segmentText({ text, language, unitId });
+        if (signal?.aborted) throw signal.reason;
+        if (failed) return;
+        results[index] = segmentsToRanges(nodes, normalizeReaderTextSegments(segmented, text.length));
+      } catch (error) {
+        failed = true;
+        if (signal?.aborted) throw signal.reason;
+        throw new AppError("reader/segmentation-failed", "Reading mode could not segment the section", { cause: error });
+      }
+    }
+  };
+  try {
+    await Promise.all(Array.from({ length: SEGMENT_CONCURRENCY }, worker));
+    return results.flat();
+  } finally {
+    failed = true;
+    blocks.return(undefined);
   }
-  return units;
 }
 
 /**

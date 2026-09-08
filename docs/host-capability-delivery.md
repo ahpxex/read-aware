@@ -316,3 +316,22 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [环境] 最终强制全仓测试 19 个任务通过（无缓存；web 643 项），typecheck 22 个任务通过，生产 web 构建通过，保留既有 chunk/dynamic-import/Node DEP0205 警告。原生代码未改，本轮没有重跑 release 音频验收。两个文档生成器、7 项建模门禁、两对 pair validator 通过；重扫为 215 行 / 563 库存映射 / 129 旧验收项、30 责任单元 / 32 场景。两份 HTML 在 1440/1024/390 宽度、搜索、Escape/抽屉、主题刷新保持、锚点和截图检查通过；最终矩阵结论文案修正后另复检三个宽度与中英文筛选，截图为 `/tmp/readaware-playback-matrix-final-{1440,390}.png`。无浏览器错误、既有 CDN 返回 200；未增加图，文档仍依赖 CDN，文档浏览器不作为产品证据。
 
 仍未完成：READ16 模式启停/步进/恢复双端入口、完整 provider 取消与所有权策略、跨平台/release/真实远端 TTS/全部格式音频回归、动态插件视图，以及其余双端能力与 W01–W32 组合消费者。READ18 当前限定的控制已接通，不把本轮改动当作 D2、Q2 或完整目标完成。
+
+## 2026-09-09 阅读模式异步分段与失败语义
+
+[代码] 开始 READ16 双端接入时确认底层尚不能给可靠完成结果：分段器拒绝被逐 block 吞成空数组，整个章节又有一层空数组 fallback；旧构建返回当前数组会让旧调用者继续做落点；load 只等待未来的 relocate，Worker 回答晚于 relocate 时可能一直没有当前单元。先修复这些真实前置问题，没有把新增模式 API 包在原有假成功行为外面。
+
+- `contributions.readerModes` 升至 1.1，公开 `segmentText` 正式允许 Promise，与已有 Worker 等待行为一致；同步第一方插件仍兼容。失败与合法 `[]` 分开，offset 非法或一个 block 失败使整章构建失败，不静默遗漏正文。错误为 reader/segmentation-failed，八语言安全文案与日志相互分离。
+- 章节分段按顺序遍历，最多 8 个在途 Worker block 请求，返回顺序可不同但最终 Range 顺序仍按原文。失败/撤销后不继续发送剩余 block，不再以整章 Promise.all 一次性提交所有请求。整章最终 Range 数组仍驻内存，本轮不是累计字节/内存配额实现。
+- 新 TextUnitBuild 管理整次构建及调用者后续落点的代次和 AbortSignal，30 秒截止；被替换的永不返回 provider 不再挂住宿主等待。底层已发出的 provider 计算不强制中断，迟到结果不再获得状态写权限。换书、停用、换单位、同 key provider 换代、同 index 新 Document 和卸载均撤销旧构建。
+- navigator 将 inactive/building/ready/empty/error 分开；分段失败或构建中不跨到下一章，界面 Previous/Next/Read aloud 保持位置但禁用。分段和 relocate 两种先后顺序均能落点；旧文档 relocate 不控制新文档。相同模式/单位停用再启用保留兼容 resting 单元；改单位/策略则重新锚定，不将旧 ordinal 直接保存为新单位的落点。
+
+[环境] 新增 11 项测试，覆盖有界并发与返回顺序、合法空结果/拒绝/非法 offset、取消后无新请求、悬挂 provider 的替换与超时、迟到失败、实际 React effect 中两种事件顺序、同 index 文档替换、失败后步进不跨章、停用后无回写以及重新启用仍停在第二个单元。全仓 test 19 个任务通过，web 654 项 / 103 文件；typecheck 22 个任务通过，实际 web 生产构建通过。保留既有 Node DEP0205、chunk 和 dynamic-import 警告。未改 Rust 业务代码，隔离 debug 原生重编译成功，不把它当作原生全量测试或 release 验收。
+
+[环境] [真实 Tauri 证据](./evidence/reading-segmentation-2026-09-09.json)：原生阅读器打开合成 FB2，诊断 Worker 的每 block 500ms 延迟后出现实际当前 CFI、句子计数和 wash；切段落且故意 reject 后记录稳定错误并显示本地化 toast，当前 CFI 为空，点击步进没有跳章。补齐按钮状态后再次验证 Previous/Next/Read aloud disabled，单位切换和退出仍可用。改回成功分段恢复段落 CFI、20/41 计数与原文 wash；延迟任务期间退出后 toolbar 消失、playback 为 mode-inactive，等待迟到结果仍不恢复。截图 `/tmp/readaware-segmentation-recovered.png` 已查看，真实正文和强调均非空。最后的兼容位置恢复防回归由 React 测试验证，未另做原生停用再启用流程。
+
+[环境] 初始连接在隔离 app 尚未启动时误连默认 9223，立即断开，没有读取或操作该 app；此后工具显式指定 9224。初次夹具缺 reader:modes，注册被正确拒绝并清理；补正式权限后重试。新增文件/契约改动触发 Vite reload 和一次 module import boot failure，重新核实 5184 已完成 boot 后才测试；toolbar HMR 后又重跑失败/禁用检查。这些失败保留在证据里，不计为成功。探针是底层验收夹具，不计实用组合插件；清理后 commands/modes 均为 0，Sentence Reader 启用状态已恢复，阅读会话关闭为 idle，隔离 app 与文档浏览器已停止，5184/9224 无监听。测试只改变隔离合成书的模式偏好，未改变正式数据。
+
+[环境] READ15/READ16 和生成文档更新，READ16 两端继续为未接。库存保持 215 行 / 563 映射 / 129 旧验收项、30 单元 / 32 场景；两个生成器、7 项建模门禁、两对 pair validator 与 diff 检查通过。矩阵 HTML 1440/1024/390 无横向溢出，segmentText/分段筛选、Escape、抽屉 inert、主题刷新保持、锚点/重复 ID 和 1440/390 截图检查通过，无浏览器错误或 CDN 失败；模型 HTML 未改，Markdown 仅同步现状行。没有新增图，仍依赖既有 CDN；文档检查不代替产品验证。
+
+仍未完成：模式发现/选择、共享 mode 快照与双端启停/步进/回当前入口、内容版本化恢复、跨节与全书末尾的确定完成回执、单次命令取消和所有其他能力/组合插件/平台验收。下一步仍是 READ16 的公共模式控制器，不把这组底层修复标成该能力或完整目标完成。

@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
+import { errorCode } from "@read-aware/core";
+import { useToast } from "@read-aware/ui";
+import { describeError } from "../../../i18n";
+import { createLogger } from "../../../platform/logger";
+import { TextUnitBuild } from "../lib/text-unit-build";
 import type { RegisteredReaderMode } from "../../plugins/lib/plugin-types";
 import {
   setVolumeKeyCapture,
@@ -33,6 +38,8 @@ export type TextUnitTarget = {
 export type TextUnitProgress = { ordinal: number; total: number };
 
 export type TextUnitNavigator = {
+  status: "inactive" | "building" | "ready" | "empty" | "error";
+  errorCode?: string;
   current: TextUnitTarget | null;
   /** Where the wash rests within the loaded section, or null while it rests
    *  elsewhere (another section, mode off, unit-less section). */
@@ -82,6 +89,7 @@ type UseTextUnitNavigatorOptions = {
 };
 
 const normalizeText = (value: string) => value.replace(/\s+/g, " ").trim();
+const log = createLogger("text-unit-navigator");
 
 // Scroll-mode comfort band: how far above the viewport bottom the resting unit
 // may sink before a step scrolls. Sized to clear the floating bar / bottom
@@ -114,6 +122,12 @@ export function useTextUnitNavigator({
   crossSection,
   veilColor,
 }: UseTextUnitNavigatorOptions): TextUnitNavigator {
+  const { toast } = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
+  const [status, setStatus] = useState<TextUnitNavigator["status"]>("inactive");
+  const [buildErrorCode, setBuildErrorCode] = useState<string>();
+  const [buildSession] = useState(() => new TextUnitBuild());
   const [current, setCurrent] = useState<TextUnitTarget | null>(null);
   const [progress, setProgress] = useState<TextUnitProgress | null>(null);
   const [canReturn, setCanReturn] = useState(false);
@@ -127,7 +141,6 @@ export function useTextUnitNavigator({
 
   const activeRef = useRef(active);
   const persistedActiveRef = useRef(active || suspended);
-  const buildTokenRef = useRef(0);
   const segmentTextRef = useRef(segmentText);
   segmentTextRef.current = segmentText;
   const sectionRef = useRef<{ doc: Document; index: number } | null>(null);
@@ -135,6 +148,7 @@ export function useTextUnitNavigator({
   const currentIndexRef = useRef(-1);
   const appliedCfiRef = useRef<string | null>(null);
   const visibleRangeRef = useRef<Range | null>(null);
+  const layoutReadyRef = useRef(false);
   // Unit to land on once the relocate that follows a section load fires
   // (layout is settled there; at `load` time the overlayer doesn't exist yet).
   const pendingAnchorRef = useRef<{ index: number; scroll: boolean } | null>(null);
@@ -180,11 +194,13 @@ export function useTextUnitNavigator({
   // document. (Runs ahead of the activation effect below — order matters when
   // a restored book comes up with the mode already on.)
   useEffect(() => {
+    buildSession.invalidate();
     bookIdRef.current = bookId;
     sectionRef.current = null;
     unitsRef.current = null;
     currentIndexRef.current = -1;
     visibleRangeRef.current = null;
+    layoutReadyRef.current = false;
     appliedCfiRef.current = null;
     pendingAnchorRef.current = null;
     pendingCrossRef.current = null;
@@ -201,7 +217,9 @@ export function useTextUnitNavigator({
         ? persisted.resting
         : null,
     );
-  }, [bookId, setResting]);
+  }, [bookId, buildSession, setResting]);
+
+  useEffect(() => () => buildSession.invalidate(), [buildSession]);
 
   const persistState = useCallback(() => {
     const id = bookIdRef.current;
@@ -296,33 +314,42 @@ export function useTextUnitNavigator({
     [clearWash, persistState, rangeComfortablyVisible, setResting, viewRef],
   );
 
-  // Segmentation crosses into the plugin's sandbox, so it is async now. Each
-  // build takes a token; a section change or mode switch bumps it and any
-  // in-flight result for the old one is dropped instead of overwriting the new
-  // index. Without that guard a slow segmenter could paint the previous
-  // section's units over the current page.
-  const buildUnits = useCallback(async (): Promise<Range[]> => {
+  // The build lease covers both the Worker result and the caller's deferred
+  // anchoring, including mode retirement and same-index document replacement.
+  const buildUnits = useCallback(async () => {
     const section = sectionRef.current;
-    if (!section) return (unitsRef.current = []);
-    const token = ++buildTokenRef.current;
-    try {
-      const ranges = await buildTextUnitRanges(
-        section.doc,
-        unitIdRef.current,
-        segmentTextRef.current,
-      );
-      if (token !== buildTokenRef.current) return unitsRef.current ?? [];
-      return (unitsRef.current = ranges);
-    } catch {
-      if (token !== buildTokenRef.current) return unitsRef.current ?? [];
-      return (unitsRef.current = []);
+    if (!section) return null;
+    const segmenter = segmentTextRef.current;
+    const unit = unitIdRef.current;
+    unitsRef.current = null;
+    currentIndexRef.current = -1;
+    clearWash();
+    clearUnit();
+    setStatus("building");
+    setBuildErrorCode(undefined);
+    const result = await buildSession.run(signal => buildTextUnitRanges(section.doc, unit, segmenter, signal));
+    const isCurrent = () => Boolean(result?.isCurrent() && activeRef.current && sectionRef.current === section
+      && unitIdRef.current === unit && segmentTextRef.current === segmenter);
+    if (!result || !isCurrent()) return null;
+    if (result.status === "failed") {
+      const code = errorCode(result.error) ?? "reader/segmentation-failed";
+      log.warn("reading mode segmentation failed", result.error);
+      setStatus("error");
+      setBuildErrorCode(code);
+      toastRef.current({ description: describeError({ code }).body, variant: "destructive" });
+      return null;
     }
-  }, []);
+    unitsRef.current = result.value;
+    setStatus(result.value.length ? "ready" : "empty");
+    return { units: result.value, isCurrent };
+  }, [buildSession, clearUnit, clearWash]);
 
   const step = useCallback(
     (direction: -1 | 1) => {
       if (!activeRef.current) return;
       const units = unitsRef.current;
+      // Null means indexing or failure, not a successfully empty section.
+      if (units === null) return;
       const crossFrom = sectionRef.current?.index ?? null;
       if (!units?.length) {
         // A unit-less section (images, an empty page) — cross straight over.
@@ -353,15 +380,21 @@ export function useTextUnitNavigator({
       // The previous section's overlay died with it — nothing to remove.
       appliedCfiRef.current = null;
       sectionRef.current = { doc, index };
+      const section = sectionRef.current;
       unitsRef.current = null;
       currentIndexRef.current = -1;
       visibleRangeRef.current = null;
+      layoutReadyRef.current = false;
+      pendingAnchorRef.current = null;
+      clearUnit();
       if (!activeRef.current) {
+        buildSession.invalidate();
         pendingCrossRef.current = null;
         return;
       }
-      const units = await buildUnits();
-      if (sectionRef.current?.index !== index) return;
+      const result = await buildUnits();
+      if (!result?.isCurrent() || sectionRef.current !== section) return;
+      const { units } = result;
       const cross = pendingCrossRef.current;
       pendingCrossRef.current = null;
       if (!units.length) {
@@ -382,17 +415,29 @@ export function useTextUnitNavigator({
             ? { index: 0, scroll: true }
             : resting?.sectionIndex === index
               ? { index: Math.min(resting.ordinal, units.length - 1), scroll: false }
-              : null;
+              : !resting
+                ? { index: anchorTextUnitIndex(units, visibleRangeRef.current), scroll: false }
+                : null;
       if (pendingAnchorRef.current == null) clearUnit();
+      // Worker segmentation can finish after relocate, not only before it.
+      const pending = pendingAnchorRef.current;
+      if (layoutReadyRef.current && pending) {
+        pendingAnchorRef.current = null;
+        applyIndex(pending.index, { scroll: pending.scroll });
+      }
     },
-    [buildUnits],
+    [applyIndex, buildSession, buildUnits, clearUnit],
   );
 
   // Manual moves never displace the navigator; relocates only feed the visible
   // range (for first-anchor and re-entry) and land a deferred section anchor.
   const handleRelocate = useCallback(
     (detail: FoliateRelocateDetail) => {
-      if (detail.range) visibleRangeRef.current = detail.range;
+      if (detail.range) {
+        if (detail.range.startContainer.ownerDocument !== sectionRef.current?.doc) return;
+        visibleRangeRef.current = detail.range;
+        layoutReadyRef.current = true;
+      }
       if (!activeRef.current || !unitsRef.current) return;
 
       const pendingAnchor = pendingAnchorRef.current;
@@ -412,6 +457,8 @@ export function useTextUnitNavigator({
   // unmount never runs this with the old book's id: the seed effect above has
   // already moved `bookIdRef` on by the time this one fires.
   useEffect(() => {
+    buildSession.invalidate();
+    setBuildErrorCode(undefined);
     const wasPersistedActive = persistedActiveRef.current;
     activeRef.current = active;
     persistedActiveRef.current = active || suspended;
@@ -422,6 +469,7 @@ export function useTextUnitNavigator({
       const requestedModeKey = requestedModeKeyRef.current;
       const requestedUnitId = requestedUnitIdRef.current;
       if (!requestedModeKey) return;
+      if (modeKeyRef.current !== requestedModeKey || unitIdRef.current !== requestedUnitId) setResting(null);
       modeKeyRef.current = requestedModeKey;
       unitIdRef.current = requestedUnitId;
       if (!restingRef.current && wasPersistedActive) {
@@ -435,9 +483,11 @@ export function useTextUnitNavigator({
         }
       }
       persistState();
-      if (!sectionRef.current) return;
+      if (!sectionRef.current) { setStatus("building"); return; }
       void (async () => {
-        const units = unitsRef.current ?? (await buildUnits());
+        const result = await buildUnits();
+        if (!result?.isCurrent()) return;
+        const { units } = result;
         const section = sectionRef.current;
         if (!activeRef.current || !section) return;
         const resting = restingRef.current;
@@ -451,6 +501,7 @@ export function useTextUnitNavigator({
       return;
     }
     clearWash();
+    setStatus("inactive");
     unitsRef.current = null;
     currentIndexRef.current = -1;
     if (!suspended) setResting(null);
@@ -458,7 +509,7 @@ export function useTextUnitNavigator({
     pendingAnchorRef.current = null;
     pendingCrossRef.current = null;
     clearUnit();
-  }, [active, suspended, applyIndex, buildUnits, clearWash, persistState, setResting]);
+  }, [active, suspended, applyIndex, buildSession, buildUnits, clearWash, persistState, setResting]);
 
   // Mode or unit switch: re-segment the loaded section under the new plugin
   // policy. Contribution identity matters even when two plugins reuse the same
@@ -466,11 +517,21 @@ export function useTextUnitNavigator({
   // A wash resting here re-anchors to the unit containing its old start.
   // A wash resting in another section is dropped instead — its ordinal was
   // computed under the old segmentation and no longer addresses anything.
+  const indexedSegmenterRef = useRef(segmentText);
+  const indexedActiveRef = useRef(active);
   useEffect(() => {
-    if (modeKeyRef.current === modeKey && unitIdRef.current === unitId) return;
+    const segmenterChanged = indexedSegmenterRef.current !== segmentText;
+    indexedSegmenterRef.current = segmentText;
+    const wasActive = indexedActiveRef.current;
+    indexedActiveRef.current = active;
+    // Activation above already rebuilds and restores a compatible retained
+    // position. A resumed provider's new callback identity must not erase it.
+    if (!wasActive && active) return;
+    if (modeKeyRef.current === modeKey && unitIdRef.current === unitId && !segmenterChanged) return;
     // Plugin unavailability must not reinterpret or overwrite retained state.
     // Activation above adopts the new unit before rebuilding the index.
     if (suspended && !active) return;
+    buildSession.invalidate();
     modeKeyRef.current = modeKey;
     unitIdRef.current = unitId;
     const previousRange =
@@ -479,20 +540,20 @@ export function useTextUnitNavigator({
         : null;
     unitsRef.current = null;
     currentIndexRef.current = -1;
-    if (!activeRef.current || !sectionRef.current || !previousRange) {
-      setResting(null);
-      persistState();
+    setResting(null);
+    persistState();
+    if (!activeRef.current || !sectionRef.current) {
       if (activeRef.current) clearUnit();
       return;
     }
     void (async () => {
-      const units = await buildUnits();
-      if (!activeRef.current) return;
-      const index = anchorTextUnitIndex(units, previousRange);
+      const result = await buildUnits();
+      if (!result?.isCurrent()) return;
+      const index = anchorTextUnitIndex(result.units, previousRange ?? visibleRangeRef.current);
       if (index >= 0) applyIndex(index, { scroll: false });
       else clearUnit();
     })();
-  }, [active, suspended, modeKey, unitId, applyIndex, buildUnits, persistState, setResting]);
+  }, [active, suspended, modeKey, unitId, segmentText, applyIndex, buildSession, buildUnits, persistState, setResting]);
 
   // Android: while the mode is on, the volume keys step units (volume
   // down = forward). The shell captures them only for the mode's duration and
@@ -567,6 +628,8 @@ export function useTextUnitNavigator({
   }, []);
 
   return {
+    status,
+    errorCode: buildErrorCode,
     current,
     progress,
     next,

@@ -13,6 +13,7 @@
   },
   "errors": {
     "readerPlaybackFailed": "音訊無法播放，朗讀已停止。請重試或更換聲音。",
+    "readerSegmentationFailed": "閱讀模式無法準備目前段落。請關閉後重新開啟此模式以重試。",
     "annotationConflict": "這則標註已被修改。請重新讀取後再決定如何修改。",
     "annotationUnavailable": "目前環境無法存取標註儲存空間。",
     "annotationCancelled": "標註修改已在提交前取消。",

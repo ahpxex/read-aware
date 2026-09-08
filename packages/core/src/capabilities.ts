@@ -12,7 +12,7 @@ export const CONTRIBUTION_CATALOG = {
   settingsOptions: { version: "1.0.0", permission: null },
   voiceProviders: { version: "1.0.0", permission: null },
   contentProviders: { version: "1.0.0", permission: null },
-  readerModes: { version: "1.0.0", permission: "reader:modes" },
+  readerModes: { version: "1.1.0", permission: "reader:modes" },
   agentTools: { version: "1.0.0", permission: "agent:tools" },
   agentContextProviders: { version: "1.0.0", permission: "agent:context" },
   agentRetrievalProviders: { version: "1.0.0", permission: "agent:retrieval" },

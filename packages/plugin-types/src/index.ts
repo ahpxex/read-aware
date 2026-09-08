@@ -953,10 +953,12 @@ export type PluginReaderMode = {
   units: PluginReaderTextUnit[];
   defaultUnitId: string;
   copy: PluginReaderModeCopy;
-  /** Segment one block. Results must be ordered, non-overlapping spans. */
+  /** Segment one block. Results must be ordered, non-overlapping spans.
+   * readerModes 1.1 permits async providers. Failure rejects the section build;
+   * returning [] deliberately declares this block has no reading units. */
   segmentText(
     input: PluginReaderTextSegmentInput,
-  ): PluginReaderTextSegment[];
+  ): PluginReaderTextSegment[] | Promise<PluginReaderTextSegment[]>;
 };
 
 /**

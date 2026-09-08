@@ -1,0 +1,204 @@
+{
+  "date": "2026-09-09",
+  "environment": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "platform": "macOS aarch64",
+    "tauri": "2.11.2 debug",
+    "frontend": "http://localhost:5184",
+    "mcp": 9224
+  },
+  "scope": "Prerequisite hardening for READ16; no Agent/plugin mode-control API is claimed.",
+  "contract": {
+    "readerModes": "1.1.0",
+    "asyncSegmentText": true,
+    "concurrentBlocks": 8,
+    "sectionDeadlineMs": 30000
+  },
+  "started": {
+    "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+    "history": {
+      "canGoBack": false,
+      "canGoForward": false
+    },
+    "location": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/2!/4/2[chapter-0],/40/1:0,/58/1:173)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.2003435418325024,
+      "href": "0"
+    },
+    "playback": {
+      "backend": null,
+      "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/40,/1:0,/1:19)",
+      "fallback": false,
+      "owner": null,
+      "status": "stopped",
+      "unavailableReason": null
+    },
+    "revision": 10,
+    "sessionId": "d00f1935-911c-4921-b19d-493daa4a8196",
+    "status": "ready"
+  },
+  "failed": {
+    "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+    "history": {
+      "canGoBack": false,
+      "canGoForward": false
+    },
+    "location": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/2!/4/2[chapter-0],/40/1:0,/58/1:173)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.2003435418325024,
+      "href": "0"
+    },
+    "playback": {
+      "backend": null,
+      "cfiRange": null,
+      "fallback": false,
+      "owner": null,
+      "status": "unavailable",
+      "unavailableReason": "no-unit"
+    },
+    "revision": 11,
+    "sessionId": "d00f1935-911c-4921-b19d-493daa4a8196",
+    "status": "ready"
+  },
+  "errorToast": {
+    "alerts": [
+      "0:50",
+      "ReadAware had a problem last timeSending a diagnostics report helps get it fixed.Review & send",
+      "The reading mode could not prepare this passage. Turn the mode off and on to try again."
+    ],
+    "playback": {
+      "backend": null,
+      "cfiRange": null,
+      "fallback": false,
+      "owner": null,
+      "status": "unavailable",
+      "unavailableReason": "no-unit"
+    }
+  },
+  "disabledControls": {
+    "alerts": [
+      "0:17",
+      "ReadAware had a problem last timeSending a diagnostics report helps get it fixed.Review & send",
+      "The reading mode could not prepare this passage. Turn the mode off and on to try again."
+    ],
+    "buttons": [
+      {
+        "disabled": true,
+        "label": "Previous paragraph"
+      },
+      {
+        "disabled": true,
+        "label": "Next paragraph"
+      },
+      {
+        "disabled": true,
+        "label": "Read aloud"
+      },
+      {
+        "disabled": true,
+        "label": "Back to current sentence"
+      },
+      {
+        "disabled": false,
+        "label": "Paragraph mode"
+      },
+      {
+        "disabled": false,
+        "label": "Table of contents"
+      },
+      {
+        "disabled": false,
+        "label": "Notes"
+      },
+      {
+        "disabled": false,
+        "label": "Reading appearance"
+      },
+      {
+        "disabled": false,
+        "label": "Chat"
+      },
+      {
+        "disabled": false,
+        "label": "Exit reading by sentence or paragraph"
+      }
+    ]
+  },
+  "recovered": {
+    "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+    "history": {
+      "canGoBack": false,
+      "canGoForward": false
+    },
+    "location": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/2!/4/2[chapter-0],/40/1:0,/58/1:173)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.2003435418325024,
+      "href": "0"
+    },
+    "playback": {
+      "backend": null,
+      "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/40,/1:0,/1:173)",
+      "fallback": false,
+      "owner": null,
+      "status": "stopped",
+      "unavailableReason": null
+    },
+    "revision": 12,
+    "sessionId": "d00f1935-911c-4921-b19d-493daa4a8196",
+    "status": "ready"
+  },
+  "exited": {
+    "playback": {
+      "backend": null,
+      "cfiRange": null,
+      "fallback": false,
+      "owner": null,
+      "status": "unavailable",
+      "unavailableReason": "mode-inactive"
+    },
+    "toolbar": false
+  },
+  "cleanup": {
+    "remainingCommands": 0,
+    "remainingModes": 0
+  },
+  "priorFailures": [
+    "An initial driver start before the isolated app was ready connected to 9223; immediately disconnected without reading or operating that app. All product inspection and mutations explicitly targeted 9224.",
+    "A fixture import raced a Vite reload and failed with CORS; retried only after confirming the current 5184 page.",
+    "Initial diagnostic manifest lacked reader:modes, so registration was correctly unavailable; cleanup restored the original plugin. Added the actual permission; did not weaken the gate.",
+    "The public type previously accepted only synchronous segmenters. readerModes 1.1 explicitly permits asynchronous returns; the real Worker already awaits results.",
+    "Source edits triggered Vite reloads and one boot module import failure, followed by a completed fresh boot. After toolbar edits HMR reset the mode timer; final failure/disabled-control check was rerun."
+  ],
+  "validation": {
+    "testTasks": 19,
+    "webTests": 654,
+    "typecheckTasks": 22,
+    "webProductionBuild": "passed",
+    "newTests": 11,
+    "regressions": [
+      "Both relocation/build orderings",
+      "Same-index document replacement",
+      "Failure versus successful empty result",
+      "Bounded concurrent requests, output order, malformed offsets",
+      "In-flight invalidation and timeout",
+      "Disable/resume keeps the second resting unit in the React lifecycle test"
+    ],
+    "nativeScreenshot": "/tmp/readaware-segmentation-recovered.png",
+    "nativeScreenshotInspected": true
+  },
+  "limits": [
+    "Diagnostic Worker is not a new useful composition plugin, nor a marketplace authorization test.",
+    "READ16 public state/commands, mode selection, operation completion, content-version restoration and cross-section end handling are still unfinished.",
+    "In-flight remote segmenter work is not forcibly cancelled; no further blocks dispatch after retirement and late results cannot change current units.",
+    "The entire completed section index is still held in memory; bounded concurrency is not a total-memory quota.",
+    "Last compatible resume guard was checked with the React regression, not a repeated native disable/re-enable test.",
+    "No release, Windows/Linux, all-format or whole-goal E2E is claimed.",
+    "Probe commands/modes removed and Sentence Reader restored; synthetic-book mode preferences may have changed in the isolated test data only."
+  ]
+}

@@ -13,6 +13,7 @@
   },
   "errors": {
     "readerPlaybackFailed": "音声を再生できないため、読み上げを停止しました。再試行するか、別の音声を選択してください。",
+    "readerSegmentationFailed": "読書モードでこの文章を準備できませんでした。モードを一度オフにしてからオンにし、再試行してください。",
     "annotationConflict": "この注釈は変更されています。再度読み込んでから変更内容を確認してください。",
     "annotationUnavailable": "この環境では注釈ストレージを利用できません。",
     "annotationCancelled": "注釈の変更は送信前にキャンセルされました。",

@@ -39,6 +39,7 @@ type FrameBase = {
     failCount?: number
     renderAbort?: AbortController | null
     renderPromise?: Promise<void>
+    renderError?: unknown
 }
 type FixedFrame = FrameBase & ({
     blank: true
@@ -282,6 +283,7 @@ export class FixedLayout extends HTMLElement {
         const controller = new AbortController()
         frame.renderAbort = controller
         frame.renderingScale = scale
+        frame.renderError = undefined
         frame.renderPromise = frame.onZoom({
             doc: frame.doc,
             scale,
@@ -289,7 +291,9 @@ export class FixedLayout extends HTMLElement {
             signal: controller.signal,
         })
             .then(() => {
+                if (frame.renderAbort !== controller) return
                 frame.renderedScale = scale
+                frame.renderError = undefined
                 frame.failedScale = null
                 frame.failCount = 0
                 this.dispatchEvent(new Event('rendered'))
@@ -298,6 +302,9 @@ export class FixedLayout extends HTMLElement {
                 this.#createOverlayer(frame)
             })
             .catch((error: unknown) => {
+                // A cancelled older render no longer owns this frame's verdict.
+                if (frame.renderAbort !== controller) return
+                frame.renderError = error
                 if (error instanceof Error && error.name === 'RenderCancelledError') return
                 if (frame.failedScale === scale) frame.failCount = (frame.failCount ?? 0) + 1
                 else { frame.failedScale = scale; frame.failCount = 1 }
@@ -1142,6 +1149,27 @@ export class FixedLayout extends HTMLElement {
             return this.#goToStack(this.#stackCurrent - 1, 'page')
         const s = this.rtl ? this.#goRight() : this.#goLeft()
         if (!s) await this.goToSpread(this.#index - 1, this.rtl ? 'left' : 'right', 'page')
+    }
+    /** Wait for the displayed page, not background preloads or the iframe load. */
+    async waitForCurrentRender(): Promise<void> {
+        const generation = this.#frameGeneration, index = this.#index
+        const frames = this.scrolled
+            ? [this.#stack?.[this.#stackCurrent]?.frame]
+            : [this.#left, this.#right, this.#center].filter(frame => frame?.element.style.display !== 'none')
+        if (!frames.some(frame => frame?.doc)) throw new Error('Reading page has no loaded frame')
+        for (const frame of frames) {
+            if (!frame?.onZoom) continue
+            for (;;) {
+                const pending = frame.renderPromise
+                await pending
+                if (generation !== this.#frameGeneration || index !== this.#index)
+                    throw new Error('Reading page was replaced before paint completed')
+                if (pending !== frame.renderPromise) continue
+                if (frame.renderError) throw frame.renderError
+                if (frame.renderedScale == null) throw new Error('Reading page has not rendered')
+                break
+            }
+        }
     }
     // READAWARE: report the frames themselves rather than raw iframes, so the
     // view can find the section index and overlayer an annotation belongs to.

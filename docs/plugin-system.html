@@ -207,6 +207,8 @@
         <div class="wrap">
           <h2>Domains</h2>
           <p class="intro">插件只看到权限允许的 actor view。所有写入都经过正式命令，并记录来源。</p>
+          <p>Reading v2 已提供当前会话快照、即时快照观察、版本化落点、有限可见文本与历史可用性。开书、跳转、前进后退、翻页返回完成回执，关闭等待真实会话释放；控制命令可带书籍/会话 guard。Agent 共用同一控制器。</p>
+          <p>文件 hash 用来识别过期位置；无稳定版本的虚拟内容使用会话版本。选区、模式、播放、搜索到 Range 尚未接通；取消等待不代表撤销引擎移动。PDF 等待栅格绘制，后台 WKWebView 暂停绘制时可能超时。</p>
           <div class="table-shell">
             <table>
               <thead><tr><th>Domain</th><th>负责什么</th><th>插件范围</th></tr></thead>

@@ -3,6 +3,15 @@ import type { PluginDisposable } from "@read-aware/plugin-types";
 import { PluginLifecycleController } from "./plugin-lifecycle";
 
 describe("plugin lifecycle barrier", () => {
+  test("stopping cancels host operations once with a stable code", () => {
+    const lifecycle = new PluginLifecycleController([]);
+    let cancellations = 0;
+    lifecycle.signal.addEventListener("abort", () => cancellations++);
+    lifecycle.cancelOperations();
+    lifecycle.stop();
+    expect(cancellations).toBe(1);
+    expect(lifecycle.signal.reason.code).toBe("plugin/cancelled");
+  });
   test("keeps registrations inert until explicit promotion", () => {
     const owned: PluginDisposable[] = [];
     const lifecycle = new PluginLifecycleController(owned);

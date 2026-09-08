@@ -87,7 +87,7 @@ flowchart TB
 | S02 | [capabilities](../packages/core/src/capabilities.ts)、[domains](../packages/core/src/domains.ts)、[registry](../apps/web/src/domain/registry.ts)：分类、版本、授权与领域工厂 |
 | S03 | [plugin-context](../apps/web/src/features/plugins/runtime/plugin-context.ts)：实际提供给 Worker 的接口及人工适配 |
 | S04 | [library domain](../apps/web/src/domain/library.ts)、[read-models](../packages/core/src/read-models.ts)：目录去掉 hrefs，书库命令与读模型 |
-| S05 | [reading domain](../apps/web/src/domain/reading.ts)、[reader session](../apps/web/src/features/reader/hooks/useReaderSession.ts)、[reader-nav](../apps/web/src/features/plugins/state/reader-nav.ts)：统计与导航分离 |
+| S05 | [reading domain](../apps/web/src/domain/reading.ts)、[reader session](../apps/web/src/features/reader/hooks/useReaderSession.ts)、[共享导航控制器](../apps/web/src/domain/reading-session-controller.ts)：v2 将真实完成与会话状态收回宿主 |
 | S06 | [FoliateReaderView](../apps/web/src/features/reader/components/FoliateReaderView.tsx)、[view](../apps/web/foliate-js/src/view.ts)、[history](../apps/web/foliate-js/src/history.ts)、[book-search](../apps/web/foliate-js/src/book-search.ts)：精确定位、搜索、选择、历史 |
 | S07 | [book-text-store](../apps/web/src/features/library/lib/book-text-store.ts)、[book-text-port](../apps/web/src/features/ai/agent/ports/book-text-port.ts)：抽取、正文状态、Agent 搜索与 hrefs |
 | S08 | [annotations domain](../apps/web/src/domain/annotations.ts)、[annotation-db](../apps/web/src/features/annotations/lib/annotation-db.ts)：标注、笔记、ask 的读写边界 |
@@ -406,7 +406,7 @@ flowchart TB
 - Domains：`library`、`reading`、`annotations` 可 read/write；`conversations` 当前只有 read；`settings` 用精确路径策略而非 `settings:write`。
 - Contributions：`selectionActions`、`headerActions`、`commands`、`settingsOptions`、`voiceProviders`、`contentProviders`、`readerModes`、`agentTools`、`agentContextProviders`、`agentRetrievalProviders`、`memoryCandidateProviders`、`themes`、`fonts`、`syncTransports`。
 - Services：`storage`、`secrets`、`ui`、`schedules`、`session`、`network`、`llm`、`clipboard`。
-- Schemas：`views`、`settings`、`themes`。当前上述目录版本均为 `1.0.0`，不能据此推断新增方法/事件已经兼容。
+- Schemas：`views`、`settings`、`themes`。2026-09-08 更新：reading 与 storage 为 `2.0.0`，network 为 `1.1.0`；其他 catalog 版本以源码为准，不能据此推断新增方法/事件已经兼容。
 - 附加权限：`reader:modes`、`ui:themes`、`agent:tools`、`agent:context`、`agent:retrieval`、`agent:memory`、`sync:transport`、`service:network`、`service:llm`、`service:clipboard`。
 - `reader:modes` 当前限 bundled first-party；themes/fonts 在 manifest 声明，不是 context 中任意 CSS 注册。
 
@@ -416,19 +416,19 @@ flowchart TB
 | --- | --- |
 | library queries | `books.list()`、`books.get(bookId)`、`books.getToc(bookId)`、`books.getChapterText(bookId,chapterIndex)`、`collections.list()`、`collections.booksIn(collectionId)` |
 | library commands | `books.importBook({fileName,data})`、`editMetadata(bookId,{title?,author?})`、`setStarred(bookId,boolean)`、`remove(bookId)`、`addVirtualBook({providerId,key,title,author?})`、`removeVirtualBook({providerId,key})`；`collections.create/rename/remove/assignBooks` |
-| reading queries | `stats.forBook(bookId)`、`stats.list()`、`stats.overview()` |
-| reading commands | `setFinished(bookId,boolean)` 返回 Promise；`openBook(bookId)`、`goTo({bookId?,cfi?,href?})` 返回 void |
+| reading queries | `session()` 返回 revision/sessionId/status/版本化位置/有限可见文本/历史；`stats.forBook(bookId)`、`stats.list()`、`stats.overview()`；`events.observeSession(handler)` 立即给快照并观察 |
+| reading commands | v2：`openBook(bookId)`、`goTo({bookId?,contentVersion?,cfi?,href?,fraction?})`、`back/forward(guard?)`、`step(next/previous,guard?)` 返回实际完成回执；`close(guard?)` 等待会话释放；`setFinished(bookId,boolean)` 返回 Promise |
 | annotations queries | `list({bookId?,kind?:highlight/note/ask,query?})` |
 | annotations commands | `createHighlight({bookId,text,anchor?,chapterHref?,color?,style?})`、`recolorHighlight`、`removeHighlight`、`createNote({bookId,body,quotedText?,anchor?,chapterHref?})`、`updateNote(noteId,body)`、`removeNote` |
 | conversations | `getBookThread(bookId)`、`listThreads()`、`getThread(threadId)`；无公共写命令 |
 | settings | `discover(query?)`、`read(path,target?)`、`update(changes[])`、`events.subscribe(handler,{ignoreSelf?})` |
-| storage KV | `get<T>(key)`、`set(key,value)`、`remove(key)`、`onChange(handler)`；前三者同步镜像语义 |
+| storage KV | v2：`get<T>(key)` 同步镜像；`set(key,value)`、`remove(key)`、`flush()` 返回持久确认 Promise；`onChange(handler)` 观察 |
 | storage collection | `collection(name).put(id,data,{bookId?,anchor?})/get(id)/delete(id)/list({bookId?,limit?,oldestFirst?})`，Promise；文档含 id/data/bookId?/anchor?/updatedAt |
 | secrets | `get/set/remove(key)`，Promise，限定插件前缀 |
 | ui | `showToast(message)`；`exportFile({filename,content,mimeType?}) -> Promise<boolean>`；content 可为 string/Uint8Array/ArrayBuffer |
 | schedules | manifest `schedules[{id,label,everyMinutes}]`，`bind(id,run)`；最低 15 分钟，App 运行时才调度 |
 | session | `subscribe(event,handler)`；无 current snapshot |
-| network | `fetch(input,init?) -> Promise<Response>`；Rust HTTP，经 Worker 序列化；响应先整体缓冲，signal 不传到宿主请求 |
+| network | v1.1：`fetch(input,init?) -> Promise<Response>`；Rust HTTP，经 Worker 序列化，保留 Request 语义；取消传到原生 HTTP；每方向 64 MiB 缓冲上限 |
 | llm | `ask({prompt,system?,model?:fast/smart,onText?}) -> string` 或 `ask({prompt,system?,model?,schema}) -> unknown` |
 | clipboard | `writeText(text)`，无 read |
 | selection action | register `{id,title,icon?,role?:lookup,presentation?:dialog,run(input)}`；input 含 text/context?/cfiRange/chapterHref/book/source |

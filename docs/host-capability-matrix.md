@@ -20,9 +20,9 @@
 
 ## 计数与口径
 
-- 宿主：实装 164、部分 41、引擎 3、待建 4、占位 2、非桌面 1。
-- Agent：接通 66、部分 42、未接 64、扩展 14、自动 23、内部 6。
-- 插件：接通 79、部分 75、未接 61。
+- 宿主：实装 164、部分 43、引擎 2、待建 3、占位 2、非桌面 1。
+- Agent：接通 69、部分 45、未接 60、扩展 14、自动 21、内部 6。
+- 插件：接通 82、部分 76、未接 57。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -92,24 +92,24 @@
 | <a id="TXT06"></a>TXT06 | 当前书及跨书多查询正文检索 | 实装 | **接通**：search_book_text，scope/剧透约束<br>[设计] 检索工具 | **未接**：无正式入口<br>[设计] 授权范围正文检索 | Agent | 结果为 snippet+章节 offset，不是精准可渲染范围；当前共享文本扫描而非通用 FTS API | [TEXT](../apps/web/src/features/library/lib/book-text-store.ts) [TEXTPORT](../apps/web/src/features/ai/agent/ports/book-text-port.ts) [TEXTTOOLS](../packages/agent/src/tools/book-text-tools.ts) | C05 |
 | <a id="TXT07"></a>TXT07 | 引擎全文精确搜索并返回 CFI | 引擎 | **未接**：无正式入口<br>[设计] 精确命中/位置工具 | **未接**：无正式入口<br>[设计] 精确搜索任务 | Foliate search 已有；未见内置全文搜索 UI 接入 | 不能把引擎已有说成产品 UI 已有；Agent 文本检索不可替代位置搜索 | [ENGINE](../apps/web/foliate-js/src/view.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) | C04 |
 | <a id="TXT08"></a>TXT08 | 搜索分页、取消、背压和过期查询淘汰 | 待建 | **未接**：无正式入口<br>[设计] 有界搜索任务 | **未接**：无正式入口<br>[设计] 有界搜索任务 | 无完整公共实现 | 引擎局部 cancel 不等于端到端插件/Agent 任务协议 | [ENGINE](../apps/web/foliate-js/src/view.ts) [API](../packages/plugin-types/src/index.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) | C06 |
-| <a id="TXT09"></a>TXT09 | 读取当前可见文本/阅读游标 | 实装 | **自动**：ReadingCursor 进入书内每轮 grounding<br>[设计] 按需读当前会话 + 自动 grounding | **部分**：选择/动作回调仅给局部上下文<br>[设计] 会话快照与范围查询 | 书内 Agent；文本单元导航 | Agent 自动上下文并无独立快照工具；插件不能随时查询视口 | [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [GROUND](../packages/agent/src/runtime/grounding-context.ts) [THREAD](../packages/agent/src/runtime/thread.ts) [API](../packages/plugin-types/src/index.ts) | C07 |
+| <a id="TXT09"></a>TXT09 | 读取当前可见文本/阅读游标 | 部分 | **部分**：get_reading_session + 原有自动 grounding<br>[设计] 按需读当前会话 + 自动 grounding | **部分**：reading.queries.session + observeSession<br>[设计] 会话快照与范围查询 | 书内 Agent；桌面 FB2 探针 | 重排正文已返回实际可见 Range 文本，限 12000 字符；PDF range 为空时 visibleText 仍为空，文本可用性分类待补 | [NAV](../apps/web/src/domain/reading-session-controller.ts) [NAVADAPTER](../apps/web/src/features/reader/lib/reading-engine-adapter.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [GROUND](../packages/agent/src/runtime/grounding-context.ts) [API](../packages/plugin-types/src/index.ts) | C07 |
 | <a id="TXT10"></a>TXT10 | 选区附近句段上下文 | 实装 | **自动**：TurnAttachment / grounding context<br>[设计] 有来源的范围读取 | **部分**：selectionActions.run(input.context)<br>[设计] 可按范围查询 | Ask AI；Dictionary | 只在特定回调拿到，不代表任意范围读取 | [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) [GROUND](../packages/agent/src/runtime/grounding-context.ts) [API](../packages/plugin-types/src/index.ts) [DICT](../plugins/dictionary/src/index.ts) | C07 |
 | <a id="TXT11"></a>TXT11 | 书内脚注/链接目标解析与预览 | 实装 | **未接**：无正式入口<br>[设计] 引用目标查询/宿主预览 | **未接**：无正式入口<br>[设计] 书内链接 ResourceRef/预览 | ReaderFootnotePopover | DOM 与样式保持宿主所有；只开放语义目标 | [ENGINE](../apps/web/foliate-js/src/view.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [API](../packages/plugin-types/src/index.ts) | C08, E05 |
 | <a id="TXT12"></a>TXT12 | 书内图片读取与灯箱缩放预览 | 实装 | **未接**：无正式入口<br>[设计] 受控图片查询/预览 | **未接**：无正式入口<br>[设计] 图片 ResourceRef/预览 | ReaderImageLightbox | 灯箱存在不等于模型已有图像输入工具 | [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [BLOB](../apps/web/src/platform/blob-store.ts) [API](../packages/plugin-types/src/index.ts) | C08, E05, J08 |
-| <a id="TXT13"></a>TXT13 | 统一位置/范围解析、校验、版本与失效 | 部分 | **部分**：open_book 接受 anchor/chapterHref/index<br>[设计] 宿主签发 Location/Range | **部分**：goTo 接受 cfi/href<br>[设计] 宿主签发 Location/Range | 目录/标注/Agent/RSS | 缺稳定跨来源引用和 content generation；插件不能靠自行造 CFI 补齐 | [ENGINE](../apps/web/foliate-js/src/view.ts) [NAV](../apps/web/src/features/plugins/state/reader-nav.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [API](../packages/plugin-types/src/index.ts) | A02, A03, A04, E06, F04 |
+| <a id="TXT13"></a>TXT13 | 统一位置/范围解析、校验、版本与失效 | 部分 | **部分**：open_book 接受 anchor/chapterHref/index<br>[设计] 宿主签发 Location/Range | **部分**：goTo 接受 cfi/href<br>[设计] 宿主签发 Location/Range | 目录/标注/Agent/RSS | 缺稳定跨来源引用和 content generation；插件不能靠自行造 CFI 补齐 | [ENGINE](../apps/web/foliate-js/src/view.ts) [NAV](../apps/web/src/domain/reading-session-controller.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [API](../packages/plugin-types/src/index.ts) | A02, A03, A04, E06, F04 |
 
 ### 阅读会话与呈现控制
 
 | ID | 宿主能力 | 宿主现状 | Agent 当前与目标 | 插件当前与目标 | 实际消费者 | 缺口/边界 | 来源 | 旧基线 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="READ01"></a>READ01 | 打开书/恢复保存位置 | 实装 | **部分**：open_book 返回 opened:true 仅表示派发<br>[设计] 等待 ready 的导航工具 | **部分**：reading.commands.openBook void<br>[设计] 导航命令 + 回执 | 书架；Agent；RSS | 两端共同缺实际开书成功回执，不只是插件缺口 | [SESSION](../apps/web/src/features/reader/hooks/useReaderSession.ts) [READERPORT](../apps/web/src/features/ai/agent/ports/reader-port.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | A05, D02 |
-| <a id="READ02"></a>READ02 | 关闭当前书并返回书架 | 实装 | **未接**：无正式入口<br>[设计] 关闭指定会话工具 | **未接**：无正式入口<br>[设计] 关闭指定会话命令 | 阅读关闭/完成页 | 开与关应成对；失效 SessionRef 不可关闭新书 | [SESSION](../apps/web/src/features/reader/hooks/useReaderSession.ts) [WORKSPACE](../apps/web/src/features/reader/components/ReaderWorkspace.tsx) [APP](../apps/web/src/App.tsx) [API](../packages/plugin-types/src/index.ts) | D02 |
-| <a id="READ03"></a>READ03 | 按章节/标注/href/CFI 跳转 | 实装 | **部分**：open_book(章节索引/标注/anchor/href)<br>[设计] 验证后导航工具 | **部分**：reading.commands.goTo(cfi/href)<br>[设计] 导航命令 + 实际落点 | 阅读目录/标注；Agent；RSS 文章 | Agent 比插件多索引解析，但共同缺 ready/completion；无位置标注可退化成仅开书 | [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [READERPORT](../apps/web/src/features/ai/agent/ports/reader-port.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [NAV](../apps/web/src/features/plugins/state/reader-nav.ts) | A05, D03 |
-| <a id="READ04"></a>READ04 | 前后翻页、章节、书首书尾 | 实装 | **未接**：无正式入口<br>[设计] 导航步骤工具 | **未接**：无正式入口<br>[设计] 导航步骤命令 | 键盘/页面按钮/滚轮 | 不得以 open_book 近似所有翻页语义 | [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [SHORTCUT](../apps/web/src/features/settings/lib/shortcuts.ts) [API](../packages/plugin-types/src/index.ts) [REGISTRY](../packages/agent/src/tools/registry.ts) | D04 |
-| <a id="READ05"></a>READ05 | 按进度/固定版式页索引定位 | 实装 | **未接**：无正式入口<br>[设计] 进度/页位置工具 | **未接**：无正式入口<br>[设计] seek 命令 | 阅读进度拖动 | 页索引/印刷页标签/重排页数必须区分 | [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [WORKSPACE](../apps/web/src/features/reader/components/ReaderWorkspace.tsx) [ENGINE](../apps/web/foliate-js/src/view.ts) [API](../packages/plugin-types/src/index.ts) | D05 |
-| <a id="READ06"></a>READ06 | 导航历史 back/forward 及可用性 | 引擎 | **未接**：无正式入口<br>[设计] 导航历史工具 | **未接**：无正式入口<br>[设计] 共享历史查询/命令 | Foliate history；未见完整共享 UI 命令接入 | 引擎指针移动不等于导航成功；公共历史所有权未建立 | [HISTORY](../apps/web/foliate-js/src/history.ts) [ENGINE](../apps/web/foliate-js/src/view.ts) [API](../packages/plugin-types/src/index.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) | D06, D07 |
-| <a id="READ07"></a>READ07 | 统一当前书/位置/加载/历史快照 | 部分 | **自动**：书内 scope+cursor 注入，非可调用查询<br>[设计] 显式会话查询工具 | **部分**：session 未来事件 + stats 持久读<br>[设计] 当前会话快照 | ReaderWorkspace；Agent 每轮上下文 | 宿主状态分散在组件/引擎，尚无统一快照；中途启用插件无法重建全部当前状态 | [SESSION](../apps/web/src/features/reader/hooks/useReaderSession.ts) [THREAD](../packages/agent/src/runtime/thread.ts) [API](../packages/plugin-types/src/index.ts) | D01, D12, Q02 |
-| <a id="READ08"></a>READ08 | 会话开关/章节/进度事件 | 实装 | **自动**：宿主向线程传递 cursor/scope<br>[设计] 有限可观察会话状态 | **部分**：services.session.subscribe 四事件<br>[设计] 含 ready/reason/origin/generation 事件 | Dictionary 缓存当前书标题 | 四事件存在，但并无 ready/精确位置/历史/模式事件 | [APPEVENTS](../apps/web/src/platform/app-events.ts) [THREAD](../packages/agent/src/runtime/thread.ts) [API](../packages/plugin-types/src/index.ts) [DICTTOOLS](../plugins/dictionary/src/agent-tools.ts) | D11 |
+| <a id="READ01"></a>READ01 | 打开书/恢复保存位置 | 实装 | **接通**：open_book 等待共享控制器实际完成<br>[设计] 等待 ready 的导航工具 | **接通**：reading v2 openBook 返回 Promise<receipt><br>[设计] 导航命令 + 回执 | 书架；Agent；RSS；桌面探针 | 源文件 hash 标识版本；无 hash 的虚拟内容为 session 版本；PDF 等待当前页绘制，后台 WebView 暂停绘制会超时，不冒充成功 | [SESSION](../apps/web/src/features/reader/hooks/useReaderSession.ts) [NAV](../apps/web/src/domain/reading-session-controller.ts) [NAVADAPTER](../apps/web/src/features/reader/lib/reading-engine-adapter.ts) [NAVPROBE](../apps/web/src/features/plugins/runtime/fixtures/desktop-reading-probe.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) | A05, D02 |
+| <a id="READ02"></a>READ02 | 关闭当前书并返回书架 | 实装 | **接通**：navigate_reading(close) 携带书籍/会话 guard<br>[设计] 关闭指定会话工具 | **接通**：reading.commands.close(guard?)<br>[设计] 关闭指定会话命令 | 阅读关闭/完成页；Agent 桌面探针 | 等待关闭动画后的真实会话释放；旧 guard 拒绝关闭新书；取消不承诺撤销已发起的关闭 | [NAV](../apps/web/src/domain/reading-session-controller.ts) [NAVTEST](../apps/web/src/domain/reading-session-controller.test.ts) [SESSION](../apps/web/src/features/reader/hooks/useReaderSession.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [API](../packages/plugin-types/src/index.ts) | D02 |
+| <a id="READ03"></a>READ03 | 按章节/标注/href/CFI 跳转 | 实装 | **部分**：open_book 解析章节/标注并等待真实落点<br>[设计] 验证后导航工具 | **部分**：reading v2 goTo(cfi/href/contentVersion)<br>[设计] 导航命令 + 实际落点 | 阅读目录/标注；Agent；RSS 文章 | 无位置标注明确失败，缺失 href 与 stale 版本有错误码；正文搜索尚不产出可导航 Range，全部 fragment/CFI 失效边界仍需扩展验证 | [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [NAVADAPTER](../apps/web/src/features/reader/lib/reading-engine-adapter.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [NAV](../apps/web/src/domain/reading-session-controller.ts) [NAVPROBE](../apps/web/src/features/plugins/runtime/fixtures/desktop-reading-probe.ts) | A05, D03 |
+| <a id="READ04"></a>READ04 | 前后翻页、章节、书首书尾 | 实装 | **部分**：navigate_reading(next/previous)<br>[设计] 导航步骤工具 | **部分**：reading.commands.step(next/previous,guard?)<br>[设计] 导航步骤命令 | 键盘/页面按钮/滚轮；桌面探针 | 已接页面步进；章节步进与印刷页定位未接，宿主旧页面按钮仍有直接引擎路径 | [NAV](../apps/web/src/domain/reading-session-controller.ts) [NAVADAPTER](../apps/web/src/features/reader/lib/reading-engine-adapter.ts) [SHORTCUT](../apps/web/src/features/settings/lib/shortcuts.ts) [API](../packages/plugin-types/src/index.ts) [REGISTRY](../packages/agent/src/tools/registry.ts) | D04 |
+| <a id="READ05"></a>READ05 | 按进度/固定版式页索引定位 | 实装 | **部分**：open_book(fraction,contentVersion?)<br>[设计] 进度/页位置工具 | **部分**：reading.commands.goTo({fraction,contentVersion?})<br>[设计] seek 命令 | 阅读进度拖动；两端桌面探针 | 0–1 进度已接并校验；固定版式页索引/印刷页标签/重排页数还需分开建模接线 | [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [NAV](../apps/web/src/domain/reading-session-controller.ts) [NAVADAPTER](../apps/web/src/features/reader/lib/reading-engine-adapter.ts) [API](../packages/plugin-types/src/index.ts) | D05 |
+| <a id="READ06"></a>READ06 | 导航历史 back/forward 及可用性 | 部分 | **部分**：navigate_reading(back/forward) + 快照可用性<br>[设计] 导航历史工具 | **部分**：reading.commands.back/forward + snapshot.history<br>[设计] 共享历史查询/命令 | 共享阅读控制器；目录/标注/进度跳转；两端 | 成功后更新，最多 100 落点；失败不入历史、back/forward 不分支、新跳转截断 forward；引擎内部链接和全部 UI 入口还未统一历史 | [NAV](../apps/web/src/domain/reading-session-controller.ts) [NAVTEST](../apps/web/src/domain/reading-session-controller.test.ts) [NAVPROBE](../apps/web/src/features/plugins/runtime/fixtures/desktop-reading-probe.ts) [API](../packages/plugin-types/src/index.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) | D06, D07 |
+| <a id="READ07"></a>READ07 | 统一当前书/位置/加载/历史快照 | 实装 | **接通**：get_reading_session（书内 scope 不泄露其他书）<br>[设计] 显式会话查询工具 | **接通**：reading.queries.session()<br>[设计] 当前会话快照 | 共享控制器；Agent；可中途启用的插件 | revision/sessionId/bookId/status/location/history 已共享；此行不代表 selection/mode/playback 已实现 | [NAV](../apps/web/src/domain/reading-session-controller.ts) [READING](../apps/web/src/domain/reading.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [API](../packages/plugin-types/src/index.ts) [NAVPROBE](../apps/web/src/features/plugins/runtime/fixtures/desktop-reading-probe.ts) | D01, D12, Q02 |
+| <a id="READ08"></a>READ08 | 会话开关/章节/进度事件 | 实装 | **自动**：宿主 cursor/scope + 按需 session 查询<br>[设计] 有限可观察会话状态 | **部分**：reading.events.observeSession 立即快照并观察；旧 session 四事件仍在<br>[设计] 含 ready/reason/origin/generation 事件 | Dictionary 旧事件；阅读 Worker 探针 | 新增快照观察覆盖 ready/精确位置/历史及 revision；模式事件、origin/reason 与旧 services.session 迁移仍未完成 | [NAV](../apps/web/src/domain/reading-session-controller.ts) [READING](../apps/web/src/domain/reading.ts) [APPEVENTS](../apps/web/src/platform/app-events.ts) [API](../packages/plugin-types/src/index.ts) [DICTTOOLS](../plugins/dictionary/src/agent-tools.ts) | D11 |
 | <a id="READ09"></a>READ09 | 阅读沉浸/显示隐藏控制层 | 实装 | **未接**：无正式入口<br>[设计] 有用户意图的呈现命令 | **未接**：无正式入口<br>[设计] 会话呈现命令 | 空格/内容点击/滚动隐藏 | 属于宿主运行态，不因不持久化而拒绝抽象 | [WORKSPACE](../apps/web/src/features/reader/components/ReaderWorkspace.tsx) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [SHORTCUT](../apps/web/src/features/settings/lib/shortcuts.ts) | D08 |
 | <a id="READ10"></a>READ10 | 目录/注释/外观/聊天面板开关 | 实装 | **未接**：无正式入口<br>[设计] 打开指定语义面板 | **未接**：无正式入口<br>[设计] 面板导航服务 | Reader header | 参数化面板操作，不是允许访问 Jotai atom | [WORKSPACE](../apps/web/src/features/reader/components/ReaderWorkspace.tsx) [UI](../apps/web/src/state/ui.ts) [MENU](../apps/web/src/features/menus/lib/menu-registry.tsx) [API](../packages/plugin-types/src/index.ts) | D08, I06 |
 | <a id="READ11"></a>READ11 | 阅读面板尺寸/布局与焦点恢复 | 实装 | **未接**：无正式入口<br>[设计] 受控面板布局/焦点意图 | **未接**：无正式入口<br>[设计] 声明式面板布局/关闭回调 | 聊天/目录 resize；阅读焦点 | 不能用插件任意 DOM 或抢焦点代替 | [WORKSPACE](../apps/web/src/features/reader/components/ReaderWorkspace.tsx) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [RENDER](../apps/web/src/features/plugins/components/PluginViewRenderer.tsx) | I06 |
@@ -121,7 +121,7 @@
 | <a id="READ17"></a>READ17 | 列声音并合成音频的提供者 | 实装 | **部分**：update_settings 可改 TTS 非敏感设置<br>[设计] 受控声源选择 | **接通**：voiceProviders.register/listVoices/synthesize<br>[设计] 语音贡献 | tts；宿主系统语音回退 | Agent 不能借设置接口声称已经触发朗读 | [TTS](../plugins/tts/src/index.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [API](../packages/plugin-types/src/index.ts) [AUDIO](../apps/web/src/features/reader/hooks/useReadAloud.ts) | K03, K05 |
 | <a id="READ18"></a>READ18 | 开始/停止朗读、播放位置与 fallback 状态 | 实装 | **未接**：无正式入口<br>[设计] 朗读控制工具 | **未接**：无正式入口<br>[设计] 朗读会话服务 | 文本单元朗读按钮 | 宿主拥有音频播放/预取/回退；两端都无直接控制 | [AUDIO](../apps/web/src/features/reader/hooks/useReadAloud.ts) [UNITS](../apps/web/src/features/reader/hooks/useTextUnitNavigator.ts) [API](../packages/plugin-types/src/index.ts) | K04, K05 |
 | <a id="READ19"></a>READ19 | 完成页、标记读完/撤销读完 | 实装 | **接通**：update_book.finished<br>[设计] 状态写工具 | **接通**：reading.commands.setFinished<br>[设计] 状态写领域 | 完成页；书架；Agent | 状态写接通；导航到完成页是另一个呈现行为 | [READING](../apps/web/src/domain/reading.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | G02 |
-| <a id="READ20"></a>READ20 | 跨书/并发导航的取消、序列化与回执 | 待建 | **部分**：open_book sequential 只约束工具调度<br>[设计] 全来源导航事务 | **部分**：requestId 派发，不是完成协议<br>[设计] 全来源导航事务 | 现有局部防重 | 用户/Agent/插件竞争、失败不推进历史仍缺统一裁决 | [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [NAV](../apps/web/src/features/plugins/state/reader-nav.ts) [APP](../apps/web/src/App.tsx) [HISTORY](../apps/web/foliate-js/src/history.ts) | D07, D10 |
+| <a id="READ20"></a>READ20 | 跨书/并发导航的取消、序列化与回执 | 部分 | **部分**：共享控制器 + Agent AbortSignal + 会话/书籍 guard<br>[设计] 全来源导航事务 | **部分**：共享控制器 + 实例停用取消 + Promise 回执<br>[设计] 全来源导航事务 | 两端 API 与部分 UI 跳转 | 新意图淘汰旧请求，同引擎串行、不同引擎互不阻塞，30s 截止；引擎本身无逐次 abort，插件尚无单次导航取消句柄；不能关闭完整 GAP | [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [NAV](../apps/web/src/domain/reading-session-controller.ts) [NAVTEST](../apps/web/src/domain/reading-session-controller.test.ts) [NAVADAPTER](../apps/web/src/features/reader/lib/reading-engine-adapter.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) | D07, D10 |
 
 ### 标注与阅读统计
 
@@ -380,9 +380,9 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：26 个。
-- Agent book：20 个。
-- Plugin ctx：68 个。
+- Agent global：28 个。
+- Agent book：22 个。
+- Plugin ctx：74 个。
 - Plugin returned interface：16 个。
 - Capability domains：5 个。
 - Capability contributions：14 个。
@@ -435,6 +435,8 @@
 | `query_book_graph` | [MEM11](#MEM11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `present_books` | [AI05](#AI05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_book` | [READ01](#READ01) [READ03](#READ03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_reading_session` | [READ07](#READ07) [TXT09](#TXT09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `navigate_reading` | [READ02](#READ02) [READ04](#READ04) [READ06](#READ06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `ask_user` | [AI04](#AI04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `update_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -460,6 +462,8 @@
 | `search_book_text` | [TXT06](#TXT06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `query_book_graph` | [MEM11](#MEM11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_book` | [READ01](#READ01) [READ03](#READ03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_reading_session` | [READ07](#READ07) [TXT09](#TXT09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `navigate_reading` | [READ02](#READ02) [READ04](#READ04) [READ06](#READ06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `ask_user` | [AI04](#AI04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `update_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -489,13 +493,19 @@
 | `domains.library.commands.collections.rename` | [LIB16](#LIB16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.commands.collections.remove` | [LIB17](#LIB17) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.commands.collections.assignBooks` | [LIB18](#LIB18) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.reading.queries.session` | [READ07](#READ07) [TXT09](#TXT09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.queries.stats.forBook` | [STAT01](#STAT01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.queries.stats.list` | [STAT01](#STAT01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.queries.stats.overview` | [STAT01](#STAT01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.events.subscribe` | [CON07](#CON07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.reading.events.observeSession` | [READ08](#READ08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.commands.setFinished` | [READ19](#READ19) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.commands.openBook` | [READ01](#READ01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.commands.goTo` | [READ03](#READ03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.reading.commands.back` | [READ06](#READ06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.reading.commands.forward` | [READ06](#READ06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.reading.commands.step` | [READ04](#READ04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.reading.commands.close` | [READ02](#READ02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.annotations.queries.list` | [ANN01](#ANN01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.annotations.events.subscribe` | [ANN09](#ANN09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.annotations.commands.createHighlight` | [ANN02](#ANN02) [ANN03](#ANN03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

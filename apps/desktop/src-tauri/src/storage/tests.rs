@@ -391,6 +391,10 @@ fn blob_range_reads_only_the_requested_bytes() {
     assert_eq!(info.byte_size, payload.len() as u64);
     assert_eq!(info.mime_type.as_deref(), Some("application/pdf"));
     assert_eq!(
+        info.sha256.as_deref(),
+        Some("9f9f5111f7b27a781f1f1ddde5ebc2dd2b796bfc7365c9c28b548e564176929f")
+    );
+    assert_eq!(
         get_blob_range_inner(&conn, dir.path(), "bookfile:range", 4, 6).unwrap(),
         b"456789"
     );

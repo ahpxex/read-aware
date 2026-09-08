@@ -1,0 +1,238 @@
+{
+  "date": "2026-09-08",
+  "runtime": "isolated Tauri debug, native SQLite, real Worker and Foliate FB2",
+  "coverage": [
+    "plugin navigation receipts and snapshot observation",
+    "back/forward/next/previous actual CFI",
+    "missing/stale/invalid target codes across Worker",
+    "read-only plugin has no reading commands",
+    "Agent tools use actual reader and await close"
+  ],
+  "notProved": [
+    "remote model tool selection",
+    "PDF paint while visible",
+    "all formats and internal reader links",
+    "per-navigation Worker cancellation",
+    "packaged CSP",
+    "full capability goal"
+  ],
+  "pdfObservation": {
+    "source": "deterministic four-page PDF imported through native storage",
+    "visibility": "hidden",
+    "outcome": "reader/timeout",
+    "canvas": "current page iframe had no canvas during observation",
+    "note": "PDF.js display rendering uses requestAnimationFrame; hidden WKWebView may suspend it. Native focus/show did not make the window visible to the document. No successful PDF paint claimed; temporary test focus grants were removed."
+  },
+  "result": {
+    "agent": {
+      "afterClose": {
+        "bookId": null,
+        "history": {
+          "canGoBack": true,
+          "canGoForward": false
+        },
+        "location": null,
+        "revision": 32,
+        "sessionId": null,
+        "status": "idle",
+        "visibleText": ""
+      },
+      "close": {
+        "closed": true,
+        "status": "completed"
+      },
+      "current": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "history": {
+          "canGoBack": true,
+          "canGoForward": false
+        },
+        "location": {
+          "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+          "cfi": "epubcfi(/6/4!/4/2[chapter-1],/20/1:94,/38/1:172)",
+          "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+          "fraction": 0.46678118061083407,
+          "href": "1"
+        },
+        "revision": 28,
+        "sessionId": "3d1b381a-f5da-43f7-afa3-a6e24d0fdfae",
+        "status": "ready",
+        "visibleText": "previous passage. This text is deterministic test content, not a user's book.Beta paragraph 10. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Beta paragraph 11. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Beta paragraph 12. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Beta paragraph 13. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Beta paragraph 14. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Beta paragraph 15. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Beta paragraph 16. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Beta paragraph 17. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Beta paragraph 18. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+      },
+      "opened": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "location": {
+          "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+          "cfi": "epubcfi(/6/4!/4/2[chapter-1],/20/1:94,/38/1:172)",
+          "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+          "fraction": 0.46678118061083407,
+          "href": "1"
+        },
+        "opened": true,
+        "sessionId": "3d1b381a-f5da-43f7-afa3-a6e24d0fdfae",
+        "status": "completed",
+        "title": "Reading Capability Probe"
+      }
+    },
+    "plugin": {
+      "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+      "result": {
+        "receipts": [
+          {
+            "location": {
+              "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+              "cfi": "epubcfi(/6/4!/4/2[chapter-1],/20/1:94,/38/1:172)",
+              "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+              "fraction": 0.46678118061083407,
+              "href": "1"
+            },
+            "sessionId": "3d1b381a-f5da-43f7-afa3-a6e24d0fdfae",
+            "status": "completed"
+          },
+          {
+            "location": {
+              "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+              "cfi": "epubcfi(/6/4!/4/2[chapter-1],/20/1:94,/38/1:172)",
+              "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+              "fraction": 0.46678118061083407,
+              "href": "1"
+            },
+            "sessionId": "3d1b381a-f5da-43f7-afa3-a6e24d0fdfae",
+            "status": "completed"
+          },
+          {
+            "location": {
+              "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+              "cfi": "epubcfi(/6/6!/4/2[chapter-2],/40/1:0,/58/1:173)",
+              "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+              "fraction": 0.8664376387783317,
+              "href": "2"
+            },
+            "sessionId": "3d1b381a-f5da-43f7-afa3-a6e24d0fdfae",
+            "status": "completed"
+          },
+          {
+            "location": {
+              "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+              "cfi": "epubcfi(/6/4!/4/2[chapter-1],/20/1:94,/38/1:172)",
+              "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+              "fraction": 0.46678118061083407,
+              "href": "1"
+            },
+            "sessionId": "3d1b381a-f5da-43f7-afa3-a6e24d0fdfae",
+            "status": "completed"
+          },
+          {
+            "location": {
+              "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+              "cfi": "epubcfi(/6/6!/4/2[chapter-2],/40/1:0,/58/1:173)",
+              "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+              "fraction": 0.8664376387783317,
+              "href": "2"
+            },
+            "sessionId": "3d1b381a-f5da-43f7-afa3-a6e24d0fdfae",
+            "status": "completed"
+          },
+          {
+            "location": {
+              "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+              "cfi": "epubcfi(/6/6!/4/2[chapter-2],/60/1:0,/78/1:173)",
+              "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+              "fraction": 0.9332188193891658,
+              "href": "2"
+            },
+            "sessionId": "3d1b381a-f5da-43f7-afa3-a6e24d0fdfae",
+            "status": "completed"
+          },
+          {
+            "location": {
+              "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+              "cfi": "epubcfi(/6/6!/4/2[chapter-2],/40/1:0,/58/1:173)",
+              "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+              "fraction": 0.8664376387783317,
+              "href": "2"
+            },
+            "sessionId": "3d1b381a-f5da-43f7-afa3-a6e24d0fdfae",
+            "status": "completed"
+          }
+        ],
+        "revisions": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26
+        ],
+        "snapshot": {
+          "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+          "history": {
+            "canGoBack": true,
+            "canGoForward": false
+          },
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "cfi": "epubcfi(/6/6!/4/2[chapter-2],/40/1:0,/58/1:173)",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "fraction": 0.8664376387783317,
+            "href": "2"
+          },
+          "revision": 26,
+          "sessionId": "3d1b381a-f5da-43f7-afa3-a6e24d0fdfae",
+          "status": "ready",
+          "visibleText": "Gamma paragraph 19. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 20. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 21. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 22. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 23. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 24. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 25. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 26. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 27. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 28. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+        },
+        "trace": {
+          "invalid": "reader/invalid-target",
+          "missing": "reader/target-not-found",
+          "stale": "reader/stale-location"
+        }
+      }
+    },
+    "readOnly": {
+      "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+      "result": {
+        "commandsAvailable": false,
+        "snapshot": {
+          "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+          "history": {
+            "canGoBack": true,
+            "canGoForward": false
+          },
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "cfi": "epubcfi(/6/6!/4/2[chapter-2],/40/1:0,/58/1:173)",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "fraction": 0.8664376387783317,
+            "href": "2"
+          },
+          "revision": 26,
+          "sessionId": "3d1b381a-f5da-43f7-afa3-a6e24d0fdfae",
+          "status": "ready",
+          "visibleText": "Gamma paragraph 19. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 20. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 21. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 22. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 23. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 24. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 25. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 26. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 27. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book.Gamma paragraph 28. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+        }
+      }
+    }
+  }
+}

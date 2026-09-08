@@ -4286,7 +4286,7 @@ function feedDetailView(ctx, feed) {
     icon: "article",
     onSelect: async () => {
       const healed = await ensureBook(ctx, feed);
-      ctx.domains.reading.commands.goTo({ bookId: healed.bookId, href: article.id });
+      await ctx.domains.reading.commands.goTo({ bookId: healed.bookId, href: article.id });
       return { close: true };
     }
   }));
@@ -4314,7 +4314,7 @@ function feedDetailView(ctx, feed) {
         icon: "book-open",
         run: async () => {
           const healed = await ensureBook(ctx, feed);
-          ctx.domains.reading.commands.openBook(healed.bookId);
+          await ctx.domains.reading.commands.openBook(healed.bookId);
           return { close: true };
         }
       },

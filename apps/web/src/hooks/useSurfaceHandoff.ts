@@ -27,7 +27,7 @@ type ReaderSessionSlice = {
   readerLoadError: ReaderLoadError | null;
   currentPage: number;
   totalPages: number;
-  openReader: (book: LibraryBook) => void;
+  openReader: (book: LibraryBook, navigationIntent?: number) => void;
   closeReader: () => void;
 };
 
@@ -55,7 +55,9 @@ export function useSurfaceHandoff(reader: ReaderSessionSlice) {
   const holdStartRef = useRef(0);
 
   const openBook = useCallback(
-    (book: LibraryBook) => {
+    (book: LibraryBook, navigationIntent?: number) => {
+      // Validate the navigation intent before changing the transition state.
+      reader.openReader(book, navigationIntent);
       // A reopen during the close fade must cancel the deferred teardown, or
       // it would tear down the freshly opened book a beat later.
       if (closeTimeoutRef.current !== null) {
@@ -67,7 +69,6 @@ export function useSurfaceHandoff(reader: ReaderSessionSlice) {
       // renders (a one-frame flash of the raw reader).
       holdStartRef.current = performance.now();
       setShelfHandoff(prefersReducedMotion() ? "idle" : "holding");
-      reader.openReader(book);
     },
     [reader.openReader],
   );

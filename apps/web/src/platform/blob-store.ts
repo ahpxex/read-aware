@@ -50,7 +50,7 @@ const DESKTOP_RAW_CHUNK_BYTES = 4 * 1024 * 1024;
 
 /** What the Rust side recorded about the stored payload. */
 export type BlobPutResult = { sha256: string; byteSize: number };
-type BlobInfo = { byteSize: number; mimeType: string | null };
+type BlobInfo = { byteSize: number; mimeType: string | null; sha256: string | null };
 
 /** Blob-compatible random-access source backed by a managed desktop file. */
 export interface DesktopBlobFile {
@@ -296,4 +296,3 @@ export async function putDesktopBlob(
     },
   });
 }
-

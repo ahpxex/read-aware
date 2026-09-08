@@ -316,18 +316,6 @@ function buildContext(
       void call(message);
     };
   }
-  const reading = (ctx.domains as Record<string, unknown> | undefined)?.reading as
-    | Record<string, unknown>
-    | undefined;
-  const reader = reading?.commands as Record<string, unknown> | undefined;
-  for (const method of ["openBook", "goTo"]) {
-    if (reader && typeof reader[method] === "function") {
-      const call = reader[method] as (...args: unknown[]) => Promise<unknown>;
-      reader[method] = (...args: unknown[]) => {
-        void call(...args);
-      };
-    }
-  }
 
   // `fetch` needs translation on BOTH sides of the crossing. The request may
   // carry platform objects postMessage cannot clone — a URL or Request as

@@ -20,6 +20,8 @@ import type {
 } from "../../library/lib/library-types";
 import type { LoadedBook, TocEntry } from "../lib/reader-types";
 import { getVirtualBookBinding } from "../../plugins/lib/virtual-books";
+import { AppError } from "@read-aware/core";
+import { readingRuntime } from "../../../domain/reading-runtime";
 
 type ReaderSource =
   | { format: BookFormat; data: LoadedBook }
@@ -154,7 +156,8 @@ export function useReaderSession({
     noteProgress(bookId, progress);
   }, [applyOptimisticProgress, noteProgress]);
 
-  const openReader = useCallback((book: LibraryBook) => {
+  const openReader = useCallback((book: LibraryBook, navigationIntent?: number) => {
+    const sessionId = readingRuntime.begin(book.id, navigationIntent);
     const requestId = readerLoadRequestIdRef.current + 1;
     readerLoadRequestIdRef.current = requestId;
 
@@ -180,6 +183,7 @@ export function useReaderSession({
         const resolved = await resolveStoredBookFile(book);
         if (readerLoadRequestIdRef.current !== requestId) return;
         if (resolved.status === "missing") {
+          readingRuntime.fail(sessionId, new AppError("fs/not-found", `Book source missing: ${resolved.reason}`));
           setReaderLoadError({ kind: "file-missing", reason: resolved.reason });
           setIsReaderLoading(false);
           return;
@@ -211,6 +215,7 @@ export function useReaderSession({
       } catch (error) {
         if (readerLoadRequestIdRef.current !== requestId) return;
         log.error("opening book failed", error);
+        readingRuntime.fail(sessionId, error);
         setReaderLoadError({
           kind: "generic",
           message: describeError(error, { fallback: t("shelf:errors.generic") }).body,
@@ -221,6 +226,7 @@ export function useReaderSession({
   }, [replaceBookInState, reportError, resetReaderState, setShellVisible, t]);
 
   const closeReader = useCallback(() => {
+    readingRuntime.closed();
     readerLoadRequestIdRef.current += 1;
     setSelectedBook(null);
     setShellVisible(false);

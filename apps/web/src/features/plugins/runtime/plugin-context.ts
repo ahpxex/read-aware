@@ -8,7 +8,6 @@
  * malice; the trust boundary is installation itself (§2). Within a domain,
  * write implies read.
  */
-import { getDefaultStore } from "jotai";
 import { fetch as corsFreeFetch } from "@tauri-apps/plugin-http";
 import {
   canUseContribution,
@@ -34,7 +33,6 @@ import {
 } from "../../../domain";
 import { getAgentRuntime } from "../../ai/agent/agent-runtime";
 import { AiNotConfiguredError } from "../../ai/lib/ai-errors";
-import { openBookRequestAtom } from "../../ai/state/chat-intent";
 import {
   bindVirtualBook,
   findVirtualBookId,
@@ -53,7 +51,6 @@ import {
   type PluginSessionEventName,
 } from "../lib/plugin-types";
 import { registerSyncTransport } from "../../../platform/sync/transport-registry";
-import { requestPluginReaderNav } from "../state/reader-nav";
 import {
   pluginDocsDelete,
   pluginDocsGet,
@@ -676,25 +673,21 @@ export function buildPluginContext(
     const reading = domain.reading;
     ctx.domains.reading = {
       queries: reading.queries,
-      events: { subscribe: trackedOn(reading.events.subscribe) },
+      events: {
+        subscribe: trackedOn(reading.events.subscribe),
+        observeSession: handler => track(() => ({ dispose: reading.events.observeSession(handler) })),
+      },
     };
     if (reading.commands) {
       ctx.domains.reading.commands = guardMutationTree(
         {
         setFinished: reading.commands.setFinished,
-        openBook: (bookId: string) => {
-          getDefaultStore().set(openBookRequestAtom, {
-            id: crypto.randomUUID(),
-            bookId: String(bookId),
-          });
-        },
-        goTo: (target: { bookId?: string; cfi?: string; href?: string }) => {
-          requestPluginReaderNav({
-            bookId: target.bookId ? String(target.bookId) : undefined,
-            cfi: target.cfi ? String(target.cfi) : undefined,
-            href: target.href ? String(target.href) : undefined,
-          });
-        },
+        openBook: (bookId: string) => reading.commands!.openBook(bookId, lifecycle.signal),
+        goTo: (target: import("@read-aware/core").ReadingTarget) => reading.commands!.goTo(target, lifecycle.signal),
+        back: (guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.back(lifecycle.signal, guard),
+        forward: (guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.forward(lifecycle.signal, guard),
+        step: (direction: "next" | "previous", guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.step(direction, lifecycle.signal, guard),
+        close: (guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.close(lifecycle.signal, guard),
         },
         (operation) => lifecycle.assertActive(operation),
         "domains.reading.commands",

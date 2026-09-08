@@ -1,23 +1,8 @@
 import type { ReaderPort } from "@read-aware/agent";
-import { getDefaultStore } from "jotai";
-import { requestPluginReaderNav } from "../../../plugins/state/reader-nav";
-import { openBookRequestAtom } from "../../state/chat-intent";
+import { createReadingDomain } from "../../../../domain/reading";
 
-/** Agent and plugin navigation share the same ambient reader dispatch path. */
+/** The model and plugins consume the same host-owned reading controller. */
 export function createReaderPort(): ReaderPort {
-  return {
-    openBook: (bookId) => {
-      getDefaultStore().set(openBookRequestAtom, {
-        id: crypto.randomUUID(),
-        bookId: String(bookId),
-      });
-    },
-    goTo: ({ bookId, anchor, chapterHref }) => {
-      requestPluginReaderNav({
-        bookId: bookId ? String(bookId) : undefined,
-        cfi: anchor,
-        href: chapterHref,
-      });
-    },
-  };
+  const reading = createReadingDomain("agent");
+  return { getSession: reading.queries.session, ...reading.commands };
 }

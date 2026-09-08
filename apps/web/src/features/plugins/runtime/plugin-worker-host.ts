@@ -376,6 +376,7 @@ export function startPluginWorker(
               terminate() {
                 return termination ??= (async () => {
                   quiescing = true;
+                  runtime.lifecycle.cancelOperations();
                   abortIncomingCalls();
                   // This message barrier lets already-issued Worker writes reach
                   // the host before it closes the gate and drains native writes.

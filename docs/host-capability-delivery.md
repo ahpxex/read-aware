@@ -45,3 +45,25 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 复现：先运行 `bun scripts/capability-network-probe-server.ts`，再运行 `CARGO_NET_OFFLINE=true bun run --filter @read-aware/desktop tauri dev --config src-tauri/tauri.capability-e2e.conf.json --no-watch`。通过该 app 的 MCP 在 WebView 中导入 `/src/features/plugins/runtime/fixtures/desktop-wire-probe.ts`，依次调用 `runDesktopWireProbe` 的 `request-storage`、`pre-abort`、`live-abort`、`stop` 场景；读取 `http://127.0.0.1:18884/evidence` 对照。探针拒绝非隔离 appDataDir。
 
 仍未完成：Agent 直接网络授权入口；全部 callback 的局部释放/JSON marker 无冲突编码；普通宿主任务与 provider session 取消；更新跨设置并发/联合恢复；真实安装升级和权限撤销 UI；生产 packaged CSP；阅读等其余双端能力和 W01–W32 组合插件。此处探针是底层验收夹具，不计作用户要求的实用组合插件；不关闭完整 Q2 或全部 GAP04–GAP08。
+
+## 2026-09-08：D2 阅读会话与真实导航回执
+
+- Reading domain v2：core 共享版本化 Location/Target、会话快照、完成回执与 book/session guard。宿主控制器拥有当前书、加载状态、实际落点、revision、有限可见文本和最多 100 个跳转历史；插件可中途读取/观察，Agent 新增 get_reading_session 与 navigate_reading。
+- openBook/goTo/back/forward/step 都等待引擎完成；close 等待动画结束后的真实会话释放。旧的 requestId/atom 派发导航已删除；RSS 协调迁移到 v2 并 await 返回值。Agent 无定位信息的标注不再退化为假成功开书。
+- 源文件 SHA-256 从原生 blob 元数据传到定位版本，重导入/旧位置可验证；无稳定版本的虚拟内容暂用 session 版本，跨会话旧定位明确 stale，不猜测有效。
+- 同一引擎的移动串行；不同引擎互不阻塞，旧引擎挂起不会阻止打开另一书。新意图淘汰旧请求，失败不入历史，back/forward 不分支，新跳转截断 forward。Agent 的书内控制带书籍/会话 guard，不沿全局历史跨书；旧会话不能关闭新书。
+- Agent 的 AbortSignal、插件实例停用会终结等待；插件取消采用稳定 plugin/cancelled 错误。仍无引擎逐次 abort 或插件单次导航取消句柄，取消不保证撤销已经发生的物理移动；旧结果不能写入成功回执/历史。
+- 固定版式增加当前页渲染屏障，区分 iframe 加载和实际栅格绘制；不等待后台预加载页面。渲染失败不回成功。
+
+验证证据：
+
+- 15 个控制器测试、6 个 Agent 工具测试、3 个渲染屏障测试；另补生命周期取消、工具注册/输出契约与 Rust blob hash 断言。全仓 test 的 15 个任务、typecheck 的 18 个任务通过；Rust 定向测试通过，仍有既存 objc cfg/dead-code 警告。
+- 在隔离 Tauri app 内原生导入确定性 FB2；真实 Worker 插件执行开书、0.45/0.8 进度跳转、back/forward、next/previous；逐次 CFI 已比对。snapshot 通过 Worker 返回真实 Gamma 文本；观察收到 revision 0–26；缺 href、stale 版本、非法进度都携带稳定错误跨桥返回。结果经 storage v2 落到 SQLite 后读回。
+- reading:read 插件没有 commands，但可读同一快照；真实 Agent 工具经产品 RuntimeDeps 导航到 Beta，close 返回后再次查询为 idle。未调用远端模型，此证据不证明模型选择工具的行为。
+- [结构化结果与验证范围](./evidence/reading-capability-2026-09-08.json)。桌面截图 `/tmp/readaware-reading-probe.png` 已人工检查：两栏 Gamma 正文确实显示，与快照位置一致，不是只有空壳 DOM。
+- PDF **尚未通过成功绘制验收**：原生导入四页测试 PDF 后，WebView 的 document.visibilityState 为 hidden，当前 iframe 存在但没有 canvas，最终得到 reader/timeout。PDF.js display rendering 使用 rAF，与后台暂停绘制现象一致；临时尝试 app.show/window.setFocus 仍未变成 visible，测试权限修改已撤回，未放宽生产配置。必须继续验证前台绘制与后台恢复，不能据此关闭所有格式的阅读验收。
+- 构建 Foliate 会触发 Vite 页面重载，导致在途 IPC/测试句柄失效；最终 FB2 测试在构建和类型检查结束后重跑通过。复现时不要把修改源码/生成静态引擎与桌面探针并发。
+
+复现入口：沿用隔离 Tauri 配置，导入 `/src/features/plugins/runtime/fixtures/desktop-reading-probe.ts`，先 `importReadingProbeBook()`，再 `runDesktopReadingProbe(bookId)`、`runDesktopReadingProbe(bookId,true)`、`runDesktopAgentReadingProbe(bookId)`；PDF 夹具为 `importReadingProbePdf()`。这些是测试夹具，不计为实用组合插件。
+
+仍需完成：精确搜索到 Range/TOC 定位及 Jumper；PDF 可见文本/可用性与真实绘制；全部 UI 链接/翻页入口统一历史；模式/播放/选区；旧 services.session 迁移及细粒度授权；导航单次取消、全部格式并发/失败测试。矩阵已更新为 215 行、539 库存映射，现状和目标仍分列，D2 与 Q2 整组未关闭。

@@ -7,7 +7,7 @@
   "requires": {
     "domains": {
       "library": "^1.0.0",
-      "reading": "^1.0.0"
+      "reading": "^2.0.0"
     },
     "contributions": {
       "headerActions": "^1.0.0",

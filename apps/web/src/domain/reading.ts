@@ -1,5 +1,6 @@
 /** Reading domain - reading lifecycle, progress projections, and time. */
-import type { BookStats, EventOrigin, StatsOverview } from "@read-aware/core";
+import type { BookStats, EventOrigin, StatsOverview, ReadingTarget, ReadingSessionSnapshot, ReadingSessionGuard, ReadingNavigationReceipt } from "@read-aware/core";
+import { readingRuntime } from "./reading-runtime";
 import { listLibraryBooks, setLibraryBookFinished } from "../features/library/lib/library-db";
 import type { LibraryBook } from "../features/library/lib/library-types";
 import {
@@ -32,6 +33,7 @@ function toBookStats(book: LibraryBook, time: BookReadingStats | undefined): Boo
 }
 
 export type ReadingQueries = {
+  session(): Promise<ReadingSessionSnapshot>;
   stats: {
     forBook(bookId: string): Promise<BookStats | null>;
     list(): Promise<BookStats[]>;
@@ -41,6 +43,12 @@ export type ReadingQueries = {
 
 export type ReadingCommands = {
   setFinished(bookId: string, finished: boolean): Promise<void>;
+  openBook(bookId: string, signal?: AbortSignal): Promise<ReadingNavigationReceipt>;
+  goTo(target: ReadingTarget, signal?: AbortSignal): Promise<ReadingNavigationReceipt>;
+  back(signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt>;
+  forward(signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt>;
+  step(direction: "next" | "previous", signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt>;
+  close(signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<void>;
 };
 
 export type ReadingDomain = {
@@ -48,11 +56,13 @@ export type ReadingDomain = {
   commands: ReadingCommands;
   events: {
     subscribe: DomainEventSubscribe<(typeof READING_EVENTS)[number]>;
+    observeSession(handler: (snapshot: ReadingSessionSnapshot) => unknown): () => void;
   };
 };
 
 export function createReadingDomain(origin: EventOrigin): ReadingDomain {
   const queries: ReadingQueries = {
+    session: async () => readingRuntime.snapshot(),
     stats: {
       forBook: async (bookId) => {
         const book = (await listLibraryBooks()).find((entry) => entry.id === String(bookId));
@@ -104,6 +114,12 @@ export function createReadingDomain(origin: EventOrigin): ReadingDomain {
   };
 
   const commands: ReadingCommands = {
+    openBook: (bookId, signal) => readingRuntime.navigate({ bookId }, signal),
+    goTo: (target, signal) => readingRuntime.navigate(target, signal),
+    back: (signal, guard) => readingRuntime.back(signal, guard),
+    forward: (signal, guard) => readingRuntime.forward(signal, guard),
+    step: (direction, signal, guard) => readingRuntime.step(direction, signal, guard),
+    close: (signal, guard) => readingRuntime.close(signal, guard),
     setFinished: async (bookId, finished) => {
       await setLibraryBookFinished(String(bookId), finished === true, origin);
       emitAppEvent("library-changed", {});
@@ -113,6 +129,6 @@ export function createReadingDomain(origin: EventOrigin): ReadingDomain {
   return {
     queries,
     commands,
-    events: { subscribe: domainSubscribe(READING_EVENTS, origin) },
+    events: { subscribe: domainSubscribe(READING_EVENTS, origin), observeSession: handler => readingRuntime.observe(handler) },
   };
 }

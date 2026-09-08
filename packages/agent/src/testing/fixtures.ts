@@ -67,10 +67,7 @@ export interface InMemoryStores {
   /** bookId → 章节读毕纪要（book_memory 投影的模拟） */
   chapterDigests: Map<string, ChapterDigest[]>;
   interactions: UserInteractionRequest[];
-  readerRequests: Array<
-    | { type: "open"; bookId: Id }
-    | { type: "goTo"; bookId?: Id; anchor?: string; chapterHref?: string }
-  >;
+  readerRequests: ReaderRequest[];
   settings: AgentSettingsSnapshot;
 }
 
@@ -493,11 +490,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         stores.asks.push(input);
       },
     },
-    reader: {
-      openBook: (bookId) =>
-        stores.readerRequests.push({ type: "open", bookId }),
-      goTo: (target) => stores.readerRequests.push({ type: "goTo", ...target }),
-    },
+    reader: createMemoryReader(books[0]?.id, stores.readerRequests),
     interactions: {
       request: async (request) => {
         stores.interactions.push(request);
@@ -669,3 +662,4 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   };
   return { deps, stores };
 }
+import { createMemoryReader, type ReaderRequest } from "./reader";

@@ -4,5 +4,6 @@ export * from "./domains";
 export * from "./capabilities";
 export * from "./events";
 export * from "./read-models";
+export * from "./reading-session";
 export * from "./settings";
 export * from "./sync";

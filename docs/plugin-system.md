@@ -160,6 +160,18 @@ a domain merely because it has a name.
 There is no `shelf` domain. Library ownership and active reading behavior are
 separate. Do not restore `shelf` as an alias.
 
+Reading v2 exposes `queries.session()` and `events.observeSession(handler)`:
+an immediate snapshot followed by revisions, with session identity, loading
+status, versioned actual location, bounded visible text, and history availability.
+`openBook`, `goTo`, `back`, `forward`, and `step` return completion receipts;
+`close` waits for the session to close. Back/forward/step/close accept an optional
+book/session guard. Source hashes reject stale locations; virtual sources without
+a durable revision use session-scoped versions. The Agent uses the same controller.
+This does not yet expose selection, modes, playback, or a search-to-Range contract.
+Engine work cannot yet be aborted per navigation; cancelling a waiter is not a
+promise that a physical move was undone. PDF completion waits for rasterization,
+which an occluded WKWebView may suspend until it is visible.
+
 Every domain write uses the same canonical command path as the product and is
 stamped with origin `plugin:<id>`. Plugins never mutate projections, feature
 stores, or SQLite directly.

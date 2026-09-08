@@ -70,6 +70,7 @@ pub struct BlobPutResult {
 pub struct BlobInfo {
     pub byte_size: u64,
     pub mime_type: Option<String>,
+    pub sha256: Option<String>,
 }
 
 pub(crate) fn put_blob_inner(
@@ -210,19 +211,19 @@ pub(crate) fn get_blob_record_inner(
     data_dir: &Path,
     key: &str,
 ) -> Result<Option<(PathBuf, BlobInfo)>, CommandError> {
-    let record: Option<(String, Option<String>)> = conn
+    let record: Option<(String, Option<String>, Option<String>)> = conn
         .query_row(
-            "SELECT storage_uri, mime_type FROM blob_objects
+            "SELECT storage_uri, mime_type, sha256 FROM blob_objects
              WHERE key = ?1 AND deleted_at IS NULL AND storage_uri IS NOT NULL",
             params![key],
-            |row| Ok((row.get(0)?, row.get(1)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         )
         .map(Some)
         .or_else(|e| match e {
             rusqlite::Error::QueryReturnedNoRows => Ok(None),
             other => Err(CommandError::from(other)),
         })?;
-    let Some((storage_uri, mime_type)) = record else {
+    let Some((storage_uri, mime_type, sha256)) = record else {
         return Ok(None);
     };
 
@@ -251,6 +252,7 @@ pub(crate) fn get_blob_record_inner(
         BlobInfo {
             byte_size: metadata.len(),
             mime_type,
+            sha256,
         },
     )))
 }
@@ -700,4 +702,3 @@ pub fn blob_write_abort(
     sessions.0.lock()?.remove(&key);
     Ok(())
 }
-

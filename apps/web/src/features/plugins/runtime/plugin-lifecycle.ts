@@ -2,6 +2,7 @@ import type {
   PluginDisposable,
   PluginLifecyclePhase,
 } from "@read-aware/plugin-types";
+import { AppError } from "@read-aware/core";
 
 type StagedRegistration = {
   cancelled: boolean;
@@ -22,6 +23,10 @@ export class PluginLifecycleController {
   private readonly staged: StagedRegistration[] = [];
   private readonly storageWrites = new Set<Promise<unknown>>();
   private stopped = false;
+  private readonly operations = new AbortController();
+
+  get signal(): AbortSignal { return this.operations.signal; }
+  cancelOperations(): void { this.operations.abort(new AppError("plugin/cancelled", "Plugin runtime has stopped")); }
 
   constructor(private readonly disposables: PluginDisposable[]) {}
 
@@ -113,6 +118,7 @@ export class PluginLifecycleController {
   }
 
   stop(): void {
+    this.cancelOperations();
     this.stopped = true;
     this.current = "activating";
   }

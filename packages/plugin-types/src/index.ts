@@ -1205,6 +1205,7 @@ export type PluginLibraryDomain = {
 
 export type PluginReadingDomain = {
   queries: {
+    session(): Promise<import("@read-aware/core").ReadingSessionSnapshot>;
     stats: {
       forBook(bookId: string): Promise<PluginBookStats | null>;
       list(): Promise<PluginBookStats[]>;
@@ -1213,10 +1214,17 @@ export type PluginReadingDomain = {
   };
   commands?: {
     setFinished(bookId: string, finished: boolean): Promise<void>;
-    openBook(bookId: string): void;
-    goTo(target: { bookId?: string; cfi?: string; href?: string }): void;
+    openBook(bookId: string): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
+    goTo(target: import("@read-aware/core").ReadingTarget): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
+    back(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
+    forward(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
+    step(direction: "next" | "previous", guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
+    close(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<void>;
   };
-  events: { subscribe: DomainSubscribe<ReadingDomainEventType> };
+  events: {
+    subscribe: DomainSubscribe<ReadingDomainEventType>;
+    observeSession(handler: (snapshot: import("@read-aware/core").ReadingSessionSnapshot) => void | Promise<void>): PluginDisposable;
+  };
 };
 
 /**

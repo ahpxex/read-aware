@@ -53,7 +53,7 @@ import { PluginToastBridge } from "./features/plugins/components/PluginToastBrid
 import { usePluginCommandItems } from "./features/plugins/hooks/usePluginCommandItems";
 import { initializePlugins } from "./features/plugins/runtime/plugin-host";
 import { checkPluginUpdates } from "./features/plugins/runtime/plugin-updates";
-import { pluginReaderNavAtom } from "./features/plugins/state/reader-nav";
+import { useReadingRuntimeShell } from "./features/reader/hooks/useReadingRuntimeShell";
 
 // The shelf is the boot-critical surface; everything below is split out of its
 // chunk and prefetched on idle (see app-warmup.ts), so cold start parses less
@@ -263,12 +263,13 @@ function App() {
     null,
   );
   const handleOpenBook = useCallback(
-    (book: LibraryBook) => {
+    (book: LibraryBook, navigationIntent?: number) => {
+      openBook(book, navigationIntent);
       setHeldShelfBooks(library.books);
-      openBook(book);
     },
     [library.books, openBook],
   );
+  useReadingRuntimeShell(handleOpenBook, closeBook);
   useEffect(() => {
     if (shelfHandoff === "idle") setHeldShelfBooks(null);
   }, [shelfHandoff]);
@@ -285,31 +286,6 @@ function App() {
     handleOpenBook,
     reader.selectedBook?.id ?? null,
   );
-
-  // Plugin goTo requests: open the target book first when needed, then hand
-  // the location to the reader session's navigation channels.
-  const pluginNav = useAtomValue(pluginReaderNavAtom);
-  const handledPluginNavRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!pluginNav || handledPluginNavRef.current === pluginNav.id) return;
-    const targetBookId = pluginNav.bookId ?? reader.selectedBook?.id;
-    if (!targetBookId) {
-      handledPluginNavRef.current = pluginNav.id;
-      return;
-    }
-    if (reader.selectedBook?.id !== targetBookId) {
-      const book = library.books.find((entry) => entry.id === targetBookId);
-      if (!book) {
-        handledPluginNavRef.current = pluginNav.id;
-        return;
-      }
-      handleOpenBook(book);
-      return; // Re-runs once the book is open, then navigates.
-    }
-    handledPluginNavRef.current = pluginNav.id;
-    if (pluginNav.cfi) reader.handleAnnotationSelect(pluginNav.cfi);
-    else if (pluginNav.href) reader.handleChapterSelect(pluginNav.href);
-  }, [pluginNav, reader, library.books, handleOpenBook]);
 
   // Spinner feedback on the clicked cover while the shelf holds.
   const openingBookId =

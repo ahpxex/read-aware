@@ -87,6 +87,9 @@ import type { ReaderSettings, ReadingMode } from "../../settings/lib/reader-sett
 import { DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
 import { buildVirtualFoliateBook } from "../lib/virtual-book";
 import { resolveContentProvider } from "../../plugins/lib/virtual-books";
+import { readingRuntime } from "../../../domain/reading-runtime";
+import { attachReadingEngine, waitForReadingPaint } from "../lib/reading-engine-adapter";
+import { getDesktopBlobInfo } from "../../../platform/blob-store";
 import type {
   RegisteredReaderMode,
 } from "../../plugins/lib/plugin-types";
@@ -799,11 +802,13 @@ export function FoliateReaderView({
     try {
       setError(null);
       clearSelection();
-      await view.goTo(href);
+      if (selectedBook && readingRuntime.snapshot().bookId === selectedBook.id) {
+        await readingRuntime.navigate({ bookId: selectedBook.id, href });
+      } else await view.goTo(href);
     } catch (nextError) {
       setError(describeReaderFailure(nextError));
     }
-  }, [clearSelection]);
+  }, [clearSelection, selectedBook?.id]);
 
   /** Jump to a position in the book by fraction — the header progress bar's
    *  scrub target. The engine maps it back through its section sizes, so the
@@ -820,13 +825,16 @@ export function FoliateReaderView({
     suppressShellDismissRef.current = true;
     await crossTo(async () => {
       try {
-        await viewRef.current?.goToFraction(Math.min(1, Math.max(0, fraction)));
+        const target = Math.min(1, Math.max(0, fraction));
+        if (selectedBook && readingRuntime.snapshot().bookId === selectedBook.id) {
+          await readingRuntime.navigate({ bookId: selectedBook.id, fraction: target });
+        } else await viewRef.current?.goToFraction(target);
       } catch (nextError) {
         setError(describeReaderFailure(nextError));
       }
     });
     suppressShellDismissRef.current = false;
-  }, [clearSelection, crossTo]);
+  }, [clearSelection, crossTo, selectedBook?.id]);
 
   const goToAdjacentChapter = useCallback(async (direction: -1 | 1) => {
     const entries = tocEntriesRef.current;
@@ -1822,6 +1830,8 @@ export function FoliateReaderView({
     let view: FoliateView | null = null;
     let releaseBook: (() => Promise<void>) | undefined;
     const cleanups: Array<() => void> = [];
+    const runtimeSession = readingRuntime.snapshot();
+    const sessionId = runtimeSession.bookId === selectedBook?.id ? runtimeSession.sessionId : null;
 
     clearSelection();
     setIsLoading(true);
@@ -1899,15 +1909,6 @@ export function FoliateReaderView({
           view.renderer?.setAttribute("flow", flow);
           view.renderer?.setAttribute("max-column-count", String(maxColumnCount));
         }
-        const firstFixedLayoutRender = fixedLayout && view.renderer
-          ? new Promise<void>((resolve) => {
-              view?.renderer?.addEventListener(
-                "rendered",
-                () => resolve(),
-                { once: true },
-              );
-            })
-          : null;
         if (fixedLayout && view.renderer) {
           // Every finished page raster keeps the busy signal fresh while the
           // stack prerenders around a scrolling reader.
@@ -2123,18 +2124,23 @@ export function FoliateReaderView({
           applyHighlights(view, highlightsRef.current);
           applyNotes(view, notesRef.current, highlightsRef.current);
         }
-        // Fixed-layout navigation resolves when its iframe loads, before PDF.js
-        // has painted the canvas. Delay non-critical metadata/cover work until
-        // that first paint so cover rendering cannot compete with the visible
-        // page on PDF.js's worker. Reflowable sections are already painted here.
-        if (book && firstFixedLayoutRender) {
-          void firstFixedLayoutRender.then(() => {
-            if (!cancelled) onBookReadyRef.current?.(book);
-          });
-        } else if (book) {
-          onBookReadyRef.current?.(book);
+        // A PDF iframe can load before its raster. Public readiness and metadata
+        // enrichment must wait for the displayed page, not a background render.
+        await waitForReadingPaint(view);
+        if (cancelled) return;
+        if (sessionId && selectedBook) {
+          let contentVersion = `session:${sessionId}`;
+          if (!initialBook.virtual) {
+            try {
+              const info = await getDesktopBlobInfo(`bookfile:${selectedBook.id}`);
+              if (info?.sha256) contentVersion = `sha256:${info.sha256}`;
+            } catch (error) { log.warn("Using a session-scoped reading location after source metadata failure", error); }
+          }
+          if (!cancelled) cleanups.push(attachReadingEngine(view, sessionId, selectedBook.id, contentVersion));
         }
+        if (book && !cancelled) onBookReadyRef.current?.(book);
       } catch (nextError) {
+        if (sessionId && !cancelled) readingRuntime.fail(sessionId, nextError);
         if (!cancelled) setError(describeReaderFailure(nextError));
         await view?.close().catch(error => log.warn('Could not close failed reader', error));
         await releaseBook?.().catch(error => log.warn('Could not close failed book', error));
@@ -2167,8 +2173,8 @@ export function FoliateReaderView({
   useEffect(() => {
     const cfiRange = annotationNavigationRequest?.cfiRange;
     if (!cfiRange) return;
-    void viewRef.current?.goTo(cfiRange).catch(error => setError(describeReaderFailure(error)));
-  }, [annotationNavigationRequest?.cfiRange, annotationNavigationRequest?.requestId]);
+    void goToChapter(cfiRange);
+  }, [annotationNavigationRequest?.cfiRange, annotationNavigationRequest?.requestId, goToChapter]);
 
   useEffect(() => {
     const fraction = fractionNavigationRequest?.fraction;

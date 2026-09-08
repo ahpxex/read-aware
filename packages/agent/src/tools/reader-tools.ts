@@ -10,22 +10,26 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
     name: "open_book",
     label: "Open book",
     description:
-      "Open a shelf book in the reader. Optionally jump to an annotation, chapter index, CFI anchor, or chapter href. bookId defaults to the current book.",
+      "Open a shelf book in the reader. Optionally jump to an annotation, chapter index, CFI anchor, chapter href, or fraction (0 to 1). Pass contentVersion when reusing a reported location. bookId defaults to the current book. Returns actual completion.",
     parameters: Type.Object({
       bookId: Type.Optional(Type.String()),
       annotationId: Type.Optional(Type.String()),
       chapterIndex: Type.Optional(Type.Number()),
       anchor: Type.Optional(Type.String()),
       chapterHref: Type.Optional(Type.String()),
+      fraction: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
+      contentVersion: Type.Optional(Type.String()),
     }),
     executionMode: "sequential",
-    execute: async (_id, params) => {
-      const { bookId, annotationId, chapterIndex, anchor, chapterHref } = params as {
+    execute: async (_id, params, signal) => {
+      const { bookId, annotationId, chapterIndex, anchor, chapterHref, fraction, contentVersion } = params as {
         bookId?: string;
         annotationId?: string;
         chapterIndex?: number;
         anchor?: string;
         chapterHref?: string;
+        fraction?: number;
+        contentVersion?: string;
       };
       const target = resolveBookId(scope, bookId);
       const book = await deps.library.getBook(target);
@@ -40,6 +44,7 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
         if (!annotation) throw new Error(`annotation not found in ${target}: ${annotationId}`);
         targetAnchor = annotation.anchor;
         targetHref = annotation.chapterHref;
+        if (!targetAnchor && !targetHref) throw new Error("This annotation has no navigable location");
       } else if (chapterIndex !== undefined) {
         const chapter = (await deps.bookText.getToc(target)).find(
           (entry) => entry.index === chapterIndex,
@@ -49,13 +54,12 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
         if (!targetHref) throw new Error(`chapter ${chapterIndex} has no navigable location`);
       }
 
-      if (targetAnchor || targetHref) {
-        deps.reader.goTo({ bookId: target, anchor: targetAnchor, chapterHref: targetHref });
-      } else {
-        deps.reader.openBook(target);
-      }
+      const receipt = targetAnchor || targetHref || fraction !== undefined || contentVersion
+        ? await deps.reader.goTo({ bookId: target, cfi: targetAnchor, href: targetHref, fraction, contentVersion }, signal)
+        : await deps.reader.openBook(target, signal);
       return textResult({
         opened: true,
+        ...receipt,
         bookId: target,
         title: book.title,
         anchor: targetAnchor,
@@ -64,5 +68,31 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
     },
   };
 
-  return [openBook];
+  const session: AgentTool = {
+    name: "get_reading_session", label: "Reading session",
+    description: "Read the actual active reader status, versioned location, visible text and navigation history availability. A book-scoped turn does not expose another book's viewport.",
+    parameters: Type.Object({}),
+    execute: async () => {
+      const snapshot = await deps.reader.getSession();
+      return textResult(scope.kind === "book" && snapshot.bookId !== scope.bookId
+        ? { status: "not-active", bookId: scope.bookId } : snapshot);
+    },
+  };
+  const control: AgentTool = {
+    name: "navigate_reading", label: "Navigate reading",
+    description: "Move back/forward through explicit reading jumps, turn to the next/previous page, or close the reader. Returns actual completion, not dispatch acknowledgement. Use open_book for a specific book or location.",
+    parameters: Type.Object({ action: Type.Union([Type.Literal("back"), Type.Literal("forward"), Type.Literal("next"), Type.Literal("previous"), Type.Literal("close")]) }),
+    executionMode: "sequential",
+    execute: async (_id, params, signal) => {
+      const current = await deps.reader.getSession();
+      if (scope.kind === "book" && current.bookId !== scope.bookId) throw new Error("This book is not the active reader");
+      const { action } = params as { action: "back" | "forward" | "next" | "previous" | "close" };
+      const guard = { sessionId: current.sessionId ?? undefined, ...(scope.kind === "book" ? { bookId: scope.bookId } : {}) };
+      if (action === "close") { await deps.reader.close(signal, guard); return textResult({ status: "completed", closed: true }); }
+      const result = action === "back" ? await deps.reader.back(signal, guard) : action === "forward"
+        ? await deps.reader.forward(signal, guard) : await deps.reader.step(action, signal, guard);
+      return textResult(result);
+    },
+  };
+  return [openBook, session, control];
 }

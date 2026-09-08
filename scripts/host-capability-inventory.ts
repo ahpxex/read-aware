@@ -32,6 +32,7 @@ const agentMap = pairs([
   ["search_conversation get_recent_turns", "AI01"], ["get_conversation_insights", "MEM12"],
   ["get_toc", "TXT01"], ["read_chapter", "TXT03"], ["search_book_text", "TXT06"],
   ["query_book_graph", "MEM11"], ["present_books", "AI05"], ["open_book", "READ01 READ03"],
+  ["get_reading_session", "READ07 TXT09"], ["navigate_reading", "READ02 READ04 READ06"],
   ["ask_user", "AI04"], ["get_settings update_settings", "CFG01"],
 ]);
 const pluginMap = pairs([
@@ -49,6 +50,9 @@ const pluginMap = pairs([
   ["domains.annotations.events.subscribe", "ANN09"],
   ["domains.reading.queries.stats.forBook domains.reading.queries.stats.list domains.reading.queries.stats.overview", "STAT01"],
   ["domains.reading.commands.setFinished", "READ19"], ["domains.reading.commands.openBook", "READ01"], ["domains.reading.commands.goTo", "READ03"],
+  ["domains.reading.queries.session", "READ07 TXT09"], ["domains.reading.events.observeSession", "READ08"],
+  ["domains.reading.commands.back domains.reading.commands.forward", "READ06"],
+  ["domains.reading.commands.step", "READ04"], ["domains.reading.commands.close", "READ02"],
   ["domains.annotations.queries.list", "ANN01"], ["domains.annotations.commands.createHighlight", "ANN02 ANN03"],
   ["domains.annotations.commands.recolorHighlight domains.annotations.commands.removeHighlight", "ANN04"],
   ["domains.annotations.commands.createNote domains.annotations.commands.updateNote domains.annotations.commands.removeNote", "ANN05"],

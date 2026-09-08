@@ -91,6 +91,8 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   query_book_graph: { bookId: BOOK_ID },
   present_books: { bookIds: [BOOK_ID] },
   open_book: { bookId: BOOK_ID },
+  get_reading_session: {},
+  navigate_reading: { action: "next" },
   ask_user: {
     question: "Which direction?",
     options: [

@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "exportedAt": "2026-09-08T19:04:27.458Z",
+  "scope": "page",
+  "consistency": "observed-items",
+  "books": [
+    {
+      "id": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "title": "Reading Capability Probe",
+      "author": "ReadAware Tests",
+      "format": "fb2",
+      "starred": false,
+      "collectionId": null,
+      "addedAt": "2026-09-08T14:21:21.622Z",
+      "updatedAt": "2026-09-08T19:00:18.699Z",
+      "lastOpenedAt": "2026-09-08T19:00:18.699Z",
+      "fileName": "reading-capability-probe.fb2",
+      "fileSize": 22220
+    }
+  ],
+  "annotations": [
+    {
+      "kind": "note",
+      "id": "fe471033-0eff-4fd2-a74c-4d08be912af2",
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "quotedText": "Beta paragraph 1.",
+      "body": "=SUM(1,2)\nPackaged Desk E2E \"quoted\", 中文",
+      "anchor": "epubcfi(/6/4!/4/2[chapter-1]/4,/1:0,/1:18)",
+      "chapterHref": "1",
+      "createdAt": "2026-09-08T19:02:29.866Z",
+      "updatedAt": "2026-09-08T19:04:14.422Z"
+    }
+  ]
+}

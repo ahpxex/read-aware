@@ -46,7 +46,7 @@ const validation = [
   "[代码] 原盘点基于 5dc7f7a2 及 2026-09-07 工作区；2026-09-08 在 1d97e2e4 后工作区补 CFG11–13 并分开源码/编译内置插件库存。后续阅读/搜索/Jumper 实现与隔离 Tauri 验收见执行账本。矩阵生成器自身只构造与枚举 ctx，不 activate/promote，不执行安装、备份、同步或写入用户数据。",
   "[代码] 生成器实际运行 Agent 工具构造器（内存 deps）、全权限 plugin ctx 构造器、settings catalog；TypeScript AST 枚举菜单、命令、事件、快捷键与插件工具声明；Rust generate_handler 名单独立反查。",
   "[代码] 129 个旧验收项全部映射到新矩阵；已注册库存未映射、失效来源、重复 ID、设置可写性漂移或生成文档不一致会使 --check 失败。目录映射只是人工审计入口，不是所有语义的形式化证明。",
-  "[环境] 尚未运行本轮所有能力的 Tauri E2E、打包 CSP、真实跨设备同步、第三方 HTTP/推理/账号交易或用户已安装插件验收。所有代码状态均不能替代这些证据。",
+  "[环境] 尚未完成所有能力的 Tauri E2E。隔离 release .app 已经由 CUA 验证 Annotation Desk 目录安装的取消/批准、生产 CSP 下运行、原生 JSON/CSV 保存/取消、重启与卸载，证据见 docs/evidence/packaged-annotation-desk-2026-09-09.json。正常插件能运行不证明 CSP 阻止恶意绕行；完整跨设备、第三方服务、真实用户安装态与全部格式仍未验收。",
   "[环境] HTML 是静态文档，Geist/Tailwind/Lucide/Mermaid 固定 CDN 资源需网络；核心表格和自带样式不依赖远端业务服务。文档浏览器检查不等于产品验证。",
   "[历史验证，2026-09-07] 相关单元/契约测试 62 通过、0 失败（17 文件，324 assertions）。库存/生成一致性与两组文档 pair validator 通过；无 Mermaid 图的矩阵得到预期提醒，旧基线图正常渲染。不是本次新模型测试结果。",
   "[历史验证，2026-09-07] 两个 HTML 均检查 1440×1000、1024×768、390×844 截图与横向溢出；矩阵搜索、状态过滤、零结果、Esc、移动目录焦点、主题刷新保留通过；浏览器无 console/page errors。此项只验证当时文档。",
@@ -91,7 +91,7 @@ ${htmlRows.join("\n")}
 </tbody></table><p id="empty" hidden>没有符合条件的能力。</p></div></section>
 <section id="priorities"><h2>缺口优先级</h2>${conclusions.slice(1).map((s,i)=>`<details><summary>${["运行态仍不闭合","10 个设置只保存值，效果未接","自动记忆与画像占位必须分开","插件能用，不代表 Agent 能操作","备份与私有数据生命周期不完整"][i]}</summary><p>${escape(s)}</p></details>`).join("")}<p class="scope">先处理隐私设置、假成功、写入持久性与失效资源；再补导航/搜索/历史、会话/朗读控制和安全管理流程。最后用操作目录与语义验收约束新行为，不再靠新插件逐个撞出缺口。</p><p><a href="./plugin-capability-baseline.html">原基线与 GAP01–GAP18 关闭标准</a></p></section>
 <section id="inventory"><h2>注册库存</h2><div class="roster">${roster.map(([family,list])=>`<span><b>${list!.length}</b> ${escape(family)}</span>`).join("")}</div><p class="scope">库存已逐项映射，具体名称在 <a href="./host-capability-matrix.md">事实与库存</a>。已映射不表示已实现；原生内部命令、移动端遗留桥和禁止开放的权力不会冒充插件能力。</p></section>
-<section id="boundaries"><h2>验证边界</h2><p class="scope">本地源码与构造器盘点，不是 Tauri 全能力端到端验收。未证明 packaged CSP、跨设备同步、外部服务、实际用户安装态；Jumper 与共享阅读/搜索域已有实现，隔离 FB2 功能证据见执行账本，前台绘制仍未通过。</p><p class="scope">只承诺当前基线允许原语的组合。新算法、编号规则、导出格式不该改宿主；新格式解码器、系统权限、数据模型或呈现原语需要宿主能力更新。</p><p class="meta">静态文档的字体与图标等固定 CDN 资源需要网络；文档浏览器验证不代表产品验证。</p></section>
+<section id="boundaries"><h2>验证边界</h2><p class="scope">不是 Tauri 全能力端到端验收。隔离 release .app 已验证 Annotation Desk 的安装授权、生产 CSP 下运行、原生导出、重启与卸载。正常插件能运行不证明沙箱能阻止绕行；完整跨设备、外部服务、真实用户安装态与全部格式仍未验收。<a href="./evidence/packaged-annotation-desk-2026-09-09.json">打包验证证据</a>。</p><p class="scope">只承诺当前基线允许原语的组合。新算法、编号规则、导出格式不该改宿主；新格式解码器、系统权限、数据模型或呈现原语需要宿主能力更新。</p><p class="meta">静态文档的字体与图标等固定 CDN 资源需要网络；文档浏览器验证不代表产品验证。</p></section>
 <p><a href="./host-capability-model.html">统一目标与边界裁决</a>：按 Domain / Contribution / Service 归属；并非本表每个建议都需要新增 API。</p>
 <p class="meta">历史验证（2026-09-07）：相关测试 62 通过、0 失败；当时两份文档通过三个尺寸和交互检查。不是本次统一模型的测试结果，也不是产品 E2E 验收。</p>
 <footer><a href="./host-capability-matrix.md">完整事实镜像</a> · <a href="./host-capability-matrix.data.ts">结构化事实源</a> · <a href="../scripts/build-host-capability-matrix.ts">可重复校验</a></footer></main></div>

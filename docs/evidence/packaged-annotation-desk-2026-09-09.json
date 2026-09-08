@@ -1,0 +1,102 @@
+{
+  "verifiedOn": "2026-09-09",
+  "sourceCommit": "7b19ebfb",
+  "environment": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "productName": "ReadAware Capability Tests",
+    "version": "0.5.4",
+    "runtime": "Optimized release macOS .app, WebKit at tauri://localhost, installed plugin Worker and native SQLite",
+    "interaction": "CUA native accessibility, keyboard, text drag and native open/save panels; no injected JavaScript or debug MCP",
+    "buildCommand": "CARGO_NET_OFFLINE=true bun run --filter @read-aware/desktop tauri build --config src-tauri/tauri.capability-e2e.conf.json --config '{\"bundle\":{\"createUpdaterArtifacts\":false,\"fileAssociations\":[]}}' --bundles app --no-sign --ci",
+    "bundle": "apps/desktop/src-tauri/target/release/bundle/macos/ReadAware Capability Tests.app",
+    "binarySha256": "79bdcbe8fe10b6a81f937db0f3aa3ad533b4bb2c6ff934c67dbb6ffd196baf5f",
+    "bridge9224Listening": false,
+    "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+    "defaultProductionCspUnmodified": true,
+    "notNotarizedOrUpdaterSigned": true
+  },
+  "plugin": {
+    "id": "annotation-desk",
+    "version": "0.1.0",
+    "source": "plugins/annotation-desk/dist",
+    "mainSha256": "f46bd392cd03c15eb6d1caae971fb8012ff71d6aceadc5ca326397d1c0d26998",
+    "manifestSha256": "fe832391c3662de71fa6b9e4ceb6999ae39bdf12a15cc07c73359207b38acac2",
+    "bundled": false,
+    "consentLabels": ["Edit annotations", "Read library", "Control reading"]
+  },
+  "results": {
+    "declinedInstall": {
+      "nativeFolderPicker": true,
+      "manifestConsentVisibleBeforeInstall": true,
+      "installedDirectoryAbsent": true,
+      "candidatesDirectoryEmptyAfterCancel": true,
+      "pluginAbsentFromInstalledList": true
+    },
+    "approvedInstall": {
+      "installedAndEnabledToast": true,
+      "nonBuiltinEntryWithUninstallButton": true,
+      "shelfPageLoaded": true,
+      "readerHeaderDialogScopedToBook": true
+    },
+    "annotations": {
+      "id": "fe471033-0eff-4fd2-a74c-4d08be912af2",
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "createdThroughReaderSelectionAndNoteEditor": true,
+      "updatedThroughInstalledPluginForm": true,
+      "expectedBody": "=SUM(1,2)\nPackaged Desk E2E \"quoted\", 中文",
+      "nativeSqliteBodyMatched": true,
+      "reloadPreservedBody": true,
+      "openInReaderShowedBetaParagraph1AndNoteUnderline": true,
+      "navigationLimit": "Target was also the last persisted location; does not independently prove navigation displaced a different reading position or cover other formats."
+    },
+    "exports": {
+      "nativeCancelReturnedToPluginWithoutSuccessToast": true,
+      "nativeSaveReportedExportSaved": true,
+      "json": "packaged-annotation-desk-2026-09-09.export.json",
+      "jsonSha256": "6d9ad7b476d5ab55cbb91bfbb3435d9d6350af783e6ad430b4f85142405ac44f",
+      "csv": "packaged-annotation-desk-2026-09-09.export.csv",
+      "csvSha256": "99f383b5d7ace0de257534e35884d77b5c4c0985b769f98194676232d4131efb",
+      "rows": 1,
+      "scope": "page",
+      "consistency": "observed-items",
+      "validation": "Ruby standard JSON and CSV parsers: body, quoted newline/comma/double quote, Unicode, ID and CFI match; CSV starts EF BB BF and body has leading apostrophe; JSON has original body and no revision."
+    },
+    "restart": {
+      "quitVerifiedByMissingOwnedProcess": true,
+      "sameBundleReopened": true,
+      "pluginMenuReappeared": true,
+      "savedNoteReadBack": true
+    },
+    "delete": {
+      "withoutCheckboxShowsConfirmDeletionFirst": true,
+      "checkedThenDeleted": true,
+      "nativeRemainingByIdOrTestBody": 0,
+      "pluginShowsNoAnnotations": true
+    },
+    "disableAndUninstall": {
+      "settingsToggleOff": true,
+      "shelfMenuContainsOnlyRssAndDictionary": true,
+      "uninstallRequiresSecondConfirmClick": true,
+      "installedEntryAndDirectoryRemoved": true,
+      "ownedAppStopped": true
+    },
+    "visual": {
+      "screenshotsInspectedInCua": true,
+      "screenshotPixels": [1152, 768],
+      "readerTextNoteUnderlineAndPluginDialogNonblank": true,
+      "noObservedDialogOverlap": true
+    }
+  },
+  "automationCaveats": [
+    "CUA typeText omitted the initial Chinese characters and macOS smart quotes changed ASCII quotes. Actual first persisted/exported data was inspected; the plugin form was then filled with paste, its exact value checked in AX and SQLite, and both final exports repeated. This is not evidence of an application Unicode loss.",
+    "Native Save As selection retained an extension while the test typed another, producing .json.json and .csv.csv in /tmp. Artifact copies above preserve file bytes. Do not silently normalize the path returned by the native save panel.",
+    "A stale CUA AX diff after navigation was refreshed by selecting the same owned app again; the new tree and screenshot showed the actual reader."
+  ],
+  "notVerified": [
+    "Adversarial packaged CSP: direct messages, child Workers, dynamic modules, network or native API bypass; positive plugin execution is not isolation proof.",
+    "In-flight permission revocation, upgrade/rollback failures, zip and marketplace installs, other provider sessions.",
+    "Binary or streaming exports, disk failures, concurrent save dialogs, all-resource or frozen-snapshot exports.",
+    "Other formats, displacement from a different location, full keyboard/long-form focus and locale matrix.",
+    "Actual remote model behavior, all remaining Agent/plugin capabilities, W01-W32 completion."
+  ]
+}

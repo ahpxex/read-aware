@@ -8,6 +8,7 @@
 import {
   AppError,
   ERR_SYNC_CHECKPOINT_PRECONDITION,
+  ERR_SYNC_QUOTA,
   type HlcStamp,
   type SnapshotMeta,
 } from "@read-aware/core";
@@ -307,6 +308,19 @@ export function fakeDevice() {
       for (const k of keys) {
         blobOutbox.delete(k);
         blobStates.set(k, `rejected: ${error}`);
+      }
+    },
+    async quotaRejectedBlobs() {
+      // Outbox order: covers first, then insertion order.
+      return [...blobStates]
+        .filter(([k, state]) => state === `rejected: ${ERR_SYNC_QUOTA}` && blobs.has(k))
+        .sort(([a], [b]) => Number(b.startsWith("cover:")) - Number(a.startsWith("cover:")))
+        .map(([k]) => ({ key: k, byteSize: blobs.get(k)!.length }));
+    },
+    async requeueBlobs(keys) {
+      for (const k of keys) {
+        blobOutbox.add(k);
+        blobStates.set(k, "pending");
       }
     },
     async readBlob(k) {

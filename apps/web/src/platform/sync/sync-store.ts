@@ -68,6 +68,9 @@ export function createIpcSyncStore(): SyncLocalStore {
     markBlobsPushed: (keys) => invoke("sync_mark_blobs_pushed", { keys }),
     markBlobsFailed: (keys, error) => invoke("sync_mark_blobs_failed", { keys, error }),
     markBlobsRejected: (keys, error) => invoke("sync_mark_blobs_rejected", { keys, error }),
+    quotaRejectedBlobs: () =>
+      invoke<Array<{ key: string; byteSize: number | null }>>("sync_quota_rejected_blobs"),
+    requeueBlobs: (keys) => invoke("sync_requeue_blobs", { keys }),
     readBlob: (key) => getDesktopBlob(key),
     async writeBlob(key, bytes) {
       await putDesktopBlob(key, bytes);

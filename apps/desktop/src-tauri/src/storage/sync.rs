@@ -8,6 +8,11 @@
 use crate::error::CommandError;
 use super::*;
 
+/// The engine's stable code for "the account is out of blob room"
+/// (`ERR_SYNC_QUOTA` in @read-aware/core) — what a quota refusal leaves in
+/// `blob_sync_state.last_error`, and what the re-queue below matches on.
+pub const CODE_SYNC_QUOTA: &str = "sync/quota";
+
 // ── sync_profile (single row) ────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -391,6 +396,58 @@ pub fn sync_mark_blobs_rejected(
 ) -> Result<(), CommandError> {
     let mut conn = db.0.lock()?;
     sync_mark_blobs_inner(&mut conn, &keys, "rejected", Some(&error))
+}
+
+/// Blobs the relay turned away for lack of ROOM (`rejected` with
+/// `sync/quota`), in outbox order — covers first, then oldest first. A quota
+/// refusal is a fact about the account at that moment, not about the blob:
+/// once the account has headroom again (a book deleted, a tier bought) the
+/// engine re-enqueues whatever now fits. Only blobs with local bytes: a
+/// manifest row has nothing to push whatever the quota says.
+pub(crate) fn sync_quota_rejected_blobs_inner(
+    conn: &Connection,
+) -> Result<Vec<SyncBlobTask>, CommandError> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT bo.key, bo.byte_size, bo.mime_type FROM blob_objects bo
+             JOIN blob_sync_state bs ON bs.blob_key = bo.key
+             WHERE bs.push_state = 'rejected'
+               AND bs.last_error = ?1
+               AND bo.sync_required = 1
+               AND bo.deleted_at IS NULL
+               AND bo.storage_uri IS NOT NULL
+             ORDER BY CASE WHEN bo.kind = 'cover_image' THEN 0 ELSE 1 END,
+                      bs.updated_at",
+        )
+        ?;
+    let iter = stmt
+        .query_map(params![CODE_SYNC_QUOTA], |row| {
+            Ok(SyncBlobTask {
+                key: row.get(0)?,
+                byte_size: row.get(1)?,
+                mime_type: row.get(2)?,
+            })
+        })
+        ?;
+    let mut out = Vec::new();
+    for row in iter {
+        out.push(row?);
+    }
+    Ok(out)
+}
+
+#[tauri::command]
+pub fn sync_quota_rejected_blobs(db: State<'_, Db>) -> Result<Vec<SyncBlobTask>, CommandError> {
+    let conn = db.0.lock()?;
+    sync_quota_rejected_blobs_inner(&conn)
+}
+
+/// Put blobs back into the outbox (`pending`, error cleared) — the engine's
+/// answer to a quota refusal that no longer applies. Idempotent.
+#[tauri::command]
+pub fn sync_requeue_blobs(keys: Vec<String>, db: State<'_, Db>) -> Result<(), CommandError> {
+    let mut conn = db.0.lock()?;
+    sync_mark_blobs_inner(&mut conn, &keys, "pending", None)
 }
 
 #[tauri::command]

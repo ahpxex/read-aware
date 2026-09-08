@@ -200,6 +200,12 @@ export type SyncLocalStore = {
   markBlobsFailed(keys: string[], error: string): Promise<void>;
   /** Permanent refusal (4xx: size cap, quota, missing bytes): leaves the outbox. */
   markBlobsRejected(keys: string[], error: string): Promise<void>;
+  /** Blobs refused for lack of ROOM (`rejected` + `sync/quota`), outbox
+   *  order, local bytes only — candidates for another try once the account
+   *  has headroom. */
+  quotaRejectedBlobs(): Promise<Array<{ key: string; byteSize: number | null }>>;
+  /** Back into the outbox as `pending` (a refusal that no longer applies). */
+  requeueBlobs(keys: string[]): Promise<void>;
   readBlob(key: string): Promise<Uint8Array | null>;
   writeBlob(key: string, bytes: Uint8Array): Promise<void>;
   /** Incremental local write for chunked downloads: decrypted parts land as
@@ -236,6 +242,9 @@ export type SyncRelayApi = {
   headBlob?(key: string): Promise<{ bytes: number; parts: number } | null>;
   latestSnapshot?(schemaVersion: number): Promise<SnapshotMeta | null>;
   publishSnapshot?(meta: PublishSnapshotBody): Promise<"published" | "conflict">;
+  /** Blob bytes used against the account's cap (null = unmetered). Without
+   *  it a quota refusal stays final until the next account adoption. */
+  blobQuota?(): Promise<{ usedBytes: number; maxBytes: number | null }>;
   deleteBlob?(key: string): Promise<void>;
 };
 
@@ -701,7 +710,17 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
       log.warn(`checkpoint ${info.blobKey} has no local bytes; not published`);
       return false;
     }
-    await uploadBlob(key, info.blobKey, bytes);
+    try {
+      await uploadBlob(key, info.blobKey, bytes);
+    } catch (error) {
+      // A checkpoint is an optimisation for the NEXT device, never a
+      // condition of this one's sync: an account out of room (413) keeps
+      // pushing events and pulling covers, and tries the upload again once
+      // the throttle lapses. Transient failures still surface as the cycle's.
+      if (!isPermanentBlobRefusal(error)) throw error;
+      log.warn(`checkpoint ${info.blobKey} not published: the relay refused the upload`, error);
+      return false;
+    }
     const outcome = await relay.publishSnapshot({
       blobKey: info.blobKey,
       frontierSeq: info.remoteSeq,
@@ -738,8 +757,37 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     await relay.commitBlob(blobKey, parts);
   }
 
+  /**
+   * A quota refusal is about the account, not the blob: when the account has
+   * room again (a book deleted, a tier bought), whatever now fits goes back
+   * into the outbox — greedily in outbox order (covers first), against the
+   * headroom the relay reports, so a pass never queues more than can land.
+   * Costs nothing while nothing is quota-rejected; one account read otherwise.
+   */
+  async function requeueQuotaRejected(): Promise<number> {
+    if (!relay.blobQuota) return 0;
+    const rejected = await store.quotaRejectedBlobs();
+    if (rejected.length === 0) return 0;
+    const quota = await relay.blobQuota();
+    let headroom = quota.maxBytes === null ? Number.POSITIVE_INFINITY : quota.maxBytes - quota.usedBytes;
+    const fits: string[] = [];
+    for (const blob of rejected) {
+      if (blob.byteSize === null) continue;
+      const sealed = expectedSeal(blob.byteSize).bytes;
+      if (sealed > headroom) continue;
+      headroom -= sealed;
+      fits.push(blob.key);
+    }
+    if (fits.length > 0) {
+      await store.requeueBlobs(fits);
+      log.info(`re-queued ${fits.length} blob(s) the account now has room for`);
+    }
+    return fits.length;
+  }
+
   async function syncBlobsOnce(): Promise<number> {
     const key = requireKey();
+    await requeueQuotaRejected();
     const tasks = await store.outboxBlobs(blobBatchSize);
     let uploaded = 0;
     report({ phase: "blobs", blobsDone: 0, blobsTotal: tasks.length });

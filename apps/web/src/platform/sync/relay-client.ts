@@ -192,6 +192,12 @@ export function createRelayClient(options: RelayClientOptions) {
         throw error;
       }
     },
+    /** The account's blob usage against its tier's cap (null = unmetered) —
+     *  what decides whether a quota-refused upload is worth another try. */
+    async blobQuota(): Promise<{ usedBytes: number; maxBytes: number | null }> {
+      const account = await this.account();
+      return { usedBytes: account.blobBytesUsed, maxBytes: account.limits.maxAccountBlobBytes };
+    },
     async latestSnapshot(schemaVersion: number): Promise<SnapshotMeta | null> {
       const res = await json("GET", `/v1/snapshots?schema=${schemaVersion}`);
       return ((await res.json()) as SnapshotResponse).snapshot;

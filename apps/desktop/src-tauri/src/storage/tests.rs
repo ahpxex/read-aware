@@ -3118,3 +3118,46 @@ fn annotation_fts_follows_rowids_through_replay_and_vacuum() {
     commit_events_inner(&mut conn, &[ev("h1x", 1_002, "highlight.removed", serde_json::json!({ "highlightId": "h1", "bookId": "b1" }))]).unwrap();
     assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM annotations_fts"), 0);
 }
+
+#[test]
+fn quota_refusals_are_listed_covers_first_and_requeue_into_the_outbox() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let mut conn = migrated_conn();
+    put_blob_inner(&conn, dir.path(), "bookfile:b1", None, &[7u8; 4096]).unwrap();
+    put_blob_inner(&conn, dir.path(), "cover:b1", None, &[7u8; 64]).unwrap();
+    put_blob_inner(&conn, dir.path(), "bookfile:b2", None, &[7u8; 2048]).unwrap();
+    // A derivable cache never crosses the wire, whatever its state says.
+    put_blob_inner(&conn, dir.path(), "booktext:b1", None, b"text").unwrap();
+    let all = [
+        "bookfile:b1".to_string(),
+        "cover:b1".to_string(),
+        "bookfile:b2".to_string(),
+        "booktext:b1".to_string(),
+    ];
+    sync_mark_blobs_inner(&mut conn, &all, "rejected", Some(CODE_SYNC_QUOTA)).unwrap();
+    // A size-cap refusal is about the blob, not the account: never re-queued.
+    sync_mark_blobs_inner(&mut conn, &["bookfile:b2".to_string()], "rejected", Some("sync/file-too-large"))
+        .unwrap();
+    assert!(sync_outbox_blobs_inner(&conn, 10).unwrap().is_empty(), "rejected rows leave the outbox");
+
+    let candidates = sync_quota_rejected_blobs_inner(&conn).unwrap();
+    assert_eq!(
+        candidates.iter().map(|t| t.key.as_str()).collect::<Vec<_>>(),
+        vec!["cover:b1", "bookfile:b1"],
+        "quota refusals only, covers first"
+    );
+    assert_eq!(candidates[0].byte_size, Some(64));
+
+    sync_mark_blobs_inner(&mut conn, &["cover:b1".to_string()], "pending", None).unwrap();
+    let outbox = sync_outbox_blobs_inner(&conn, 10).unwrap();
+    assert_eq!(outbox.iter().map(|t| t.key.as_str()).collect::<Vec<_>>(), vec!["cover:b1"]);
+    assert!(
+        scalar::<Option<String>>(&conn, "SELECT last_error FROM blob_sync_state WHERE blob_key='cover:b1'").is_none(),
+        "a re-queue clears the refusal"
+    );
+    // Still waiting for room; still listed, still out of the outbox.
+    assert_eq!(sync_quota_rejected_blobs_inner(&conn).unwrap().len(), 1);
+    // A manifest-only row (no local bytes) has nothing to push, whatever refused it.
+    conn.execute("UPDATE blob_objects SET storage_uri = NULL WHERE key = 'bookfile:b1'", []).unwrap();
+    assert!(sync_quota_rejected_blobs_inner(&conn).unwrap().is_empty());
+}

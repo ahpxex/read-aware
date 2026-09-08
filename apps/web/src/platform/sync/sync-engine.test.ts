@@ -244,6 +244,59 @@ describe("two devices through one relay", () => {
     expect(b.blobStates.get("bookfile:big")).toBeUndefined();
   });
 
+  test("a quota refusal is retried once the account has room, covers first", async () => {
+    const relay = fakeRelay();
+    // A relay with a 100-byte cap that meters what it holds, like the real one.
+    let capBytes = 100;
+    const used = () => [...relay.shelf.values()].reduce((sum, b) => sum + b.length, 0);
+    const metered: SyncRelayApi = {
+      ...relay,
+      async putBlob(key, bytes) {
+        if (used() + bytes.length > capBytes) throw new RelayError(413, "account blob quota exceeded");
+        return relay.putBlob(key, bytes);
+      },
+      async blobQuota() {
+        return { usedBytes: used(), maxBytes: capBytes };
+      },
+    };
+    const a = fakeDevice();
+    a.putLocalBlob("bookfile:b1", new Uint8Array(40)); // seals to 81
+    a.putLocalBlob("cover:b1", new Uint8Array(10)); // seals to 51
+    const engine = engineFor(a, metered);
+    // Only the first fits; the rest are refused for room and leave the outbox.
+    expect(await engine.syncBlobsOnce()).toBe(1);
+    expect(a.blobStates.get("bookfile:b1")).toBe("synced");
+    expect(a.blobStates.get("cover:b1")).toBe("rejected: sync/quota");
+    // No room yet: the refusal stands, nothing is re-uploaded into a 413.
+    expect(await engine.syncBlobsOnce()).toBe(0);
+    expect(a.blobStates.get("cover:b1")).toBe("rejected: sync/quota");
+    // The account grows (a tier bought): the cover goes back in and lands.
+    capBytes = 200;
+    expect(await engine.syncBlobsOnce()).toBe(1);
+    expect(a.blobStates.get("cover:b1")).toBe("synced");
+    expect(relay.shelf.has("cover:b1")).toBe(true);
+  });
+
+  test("re-queueing is greedy against the headroom, covers before book files", async () => {
+    const relay = fakeRelay();
+    const quota: SyncRelayApi = {
+      ...relay,
+      async blobQuota() {
+        return { usedBytes: 0, maxBytes: 120 };
+      },
+    };
+    const a = fakeDevice();
+    a.putLocalBlob("bookfile:b1", new Uint8Array(40)); // seals to 81
+    a.putLocalBlob("cover:b1", new Uint8Array(10)); // seals to 51
+    a.putLocalBlob("bookfile:b2", new Uint8Array(20)); // seals to 61
+    await a.store.markBlobsRejected(["bookfile:b1", "cover:b1", "bookfile:b2"], "sync/quota");
+    // 120 bytes of room: the cover (51) and then b2 (61) fit; b1 (81) does not.
+    expect(await engineFor(a, quota).syncBlobsOnce()).toBe(2);
+    expect(a.blobStates.get("cover:b1")).toBe("synced");
+    expect(a.blobStates.get("bookfile:b2")).toBe("synced");
+    expect(a.blobStates.get("bookfile:b1")).toBe("rejected: sync/quota");
+  });
+
   test("a 4xx refusal is terminal, a 5xx stays queued, and neither dams the queue", async () => {
     const relay = fakeRelay();
     const refusing: SyncRelayApi = {
@@ -616,6 +669,44 @@ describe("checkpoints: bootstrap from a snapshot, then backfill", () => {
     expect(replayed.bootstrapped).toBe(false);
     expect(replayed.pulled).toBe(8);
     expect(veteran.backfillState()).toBeNull();
+  });
+
+  test("a checkpoint upload the relay refuses for room does not fail the cycle", async () => {
+    const relay = fakeRelay();
+    const full: SyncRelayApi = {
+      ...relay,
+      async putBlob(key, bytes) {
+        if (key.startsWith("snapshot:")) throw new RelayError(413, "account blob quota exceeded");
+        return relay.putBlob(key, bytes);
+      },
+    };
+    const device = fakeDevice();
+    for (let i = 1; i <= 7; i += 1) device.commitLocal(plain(`e${i}`, 2_000 + i, "device-p", `第${i}条`));
+    const engine = engineFor(device, full, undefined, {
+      checkpointPublish: { minEvents: 1, retryMs: 0 },
+    });
+    await engine.pushOnce();
+    await engine.pullOnce();
+    // Refused, logged, and over — not thrown: the cycle that carries a
+    // shelf's covers and events must not die on an optional upload.
+    const cut = await engine.checkpointOnce();
+    expect(cut.published).toBe(false);
+    expect(relay.snapshots.size).toBe(0);
+    expect(device.checkpoints.find((c) => c.origin === "publish")?.published).toBe(false);
+    // A whole cycle over the same relay completes too.
+    const outcome = await engine.syncOnce();
+    expect(outcome.pushed).toBe(0);
+    // A transient failure is still the cycle's to report.
+    const flaky: SyncRelayApi = {
+      ...relay,
+      async putBlob(key, bytes) {
+        if (key.startsWith("snapshot:")) throw new RelayError(503, "relay hiccup");
+        return relay.putBlob(key, bytes);
+      },
+    };
+    await expect(
+      engineFor(device, flaky, undefined, { checkpointPublish: { minEvents: 1, retryMs: 0 } }).checkpointOnce(),
+    ).rejects.toThrow("relay 503");
   });
 
   test("a publish that loses the race to a fresher snapshot deletes its redundant upload", async () => {

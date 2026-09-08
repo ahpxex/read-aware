@@ -337,6 +337,16 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
     （per-part 12MB 只是请求级护栏）；v1 单发路径保留 `maxBlobBytes`
     检查以兜住旧客户端。
   - 曾被 413 标成 `rejected` 的行由 schema v19 迁移一次性重入队。
+  - **配额拒绝不是终局**（2026-09-08）：`rejected` + `sync/quota` 说的是
+    账号当下没地方，不是这个 blob 有问题。每轮 blob 阶段先看本地有没有
+    这类行（没有则零成本），有则读一次 `GET /v1/account` 的用量/上限，
+    按出站顺序（封面优先）贪心把"现在装得下"的重新置 `pending`
+    （`sync_quota_rejected_blobs` / `sync_requeue_blobs`）——删书、升档后
+    封面和书文件自动补传，不必重新登录。尺寸超限（`sync/file-too-large`）
+    仍是终局。
+  - **检查点上传被拒不拖垮整轮**：`snapshot:` 是给下一台设备的优化，不是
+    本机同步的前提；413/4xx 只记 warn、走发布节流，事件与封面照常。
+    （之前一个满额免费账号会让每轮都以 413 收场，封面拉取根本跑不到。）
 - **下行按首字节分流**：`GET /v1/blobs/<key>` 拿到 `1` 开头整块解密；
   `2` 开头是描述符，逐片 `GET ...?part=i`、逐片解密、经原生分段写入
   会话（`blob_write_open/chunk/commit`）直接落盘——大书永远不在

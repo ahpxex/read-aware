@@ -8,7 +8,12 @@
  * focus pulls (the other device may have moved while we were away); failures
  * back off exponentially (nextSyncDelayMs) instead of hammering the relay.
  */
-import { AppError, ERR_SYNC_TRANSPORT_MISMATCH, ERR_SYNC_TRANSPORT_UNAVAILABLE } from "@read-aware/core";
+import {
+  AppError,
+  ERR_SYNC_NETWORK,
+  ERR_SYNC_TRANSPORT_MISMATCH,
+  ERR_SYNC_TRANSPORT_UNAVAILABLE,
+} from "@read-aware/core";
 import type { PluginSyncTransportSession } from "@read-aware/plugin-types";
 import { invoke } from "../ipc";
 import { isTauri } from "../environment";
@@ -513,6 +518,12 @@ export function startSyncScheduler(): () => void {
         }
         failures += 1;
         log.error("sync cycle failed", error);
+        // The pull half may well have landed before a later stage failed —
+        // covers other devices extracted are still worth fetching. Not when
+        // the relay itself is unreachable: that pass could only fail too.
+        if (classifySyncError(error) !== ERR_SYNC_NETWORK) {
+          void hydrateMissingCovers(fetchRemoteBlob);
+        }
         setStatus({
           state: "error",
           lastErrorCode: classifySyncError(error),

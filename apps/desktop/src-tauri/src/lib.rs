@@ -992,6 +992,8 @@ pub fn run() {
             storage::sync_mark_blobs_pushed,
             storage::sync_mark_blobs_failed,
             storage::sync_mark_blobs_rejected,
+            storage::sync_quota_rejected_blobs,
+            storage::sync_requeue_blobs,
             storage::put_blob,
             storage::get_blob,
             storage::get_blob_info,

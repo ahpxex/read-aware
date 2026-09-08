@@ -13,6 +13,7 @@ mod mobi_metadata;
 mod native_path;
 mod pdf_metadata;
 mod plugins;
+mod plugin_sandbox_policy;
 mod secrets;
 mod storage;
 mod storefront;
@@ -897,7 +898,8 @@ pub fn run() {
                 .expect("main window missing from tauri.conf.json")
                 .clone();
             let mut builder =
-                tauri::WebviewWindowBuilder::from_config(app.handle(), &window_config)?;
+                tauri::WebviewWindowBuilder::from_config(app.handle(), &window_config)?
+                    .on_web_resource_request(plugin_sandbox_policy::apply);
             #[cfg(desktop)]
             {
                 // Restore placement before the first visible frame.

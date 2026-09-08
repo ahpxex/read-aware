@@ -1,0 +1,90 @@
+{
+  "verifiedOn": "2026-09-09",
+  "environment": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "version": "0.5.4",
+    "runtime": "Optimized unsigned macOS Tauri .app, WebKit tauri://localhost, real installed plugin Workers",
+    "interaction": "CUA native installation, grant approval, header action clicks and screenshots; no injected JavaScript",
+    "server": "Bun bound only to 127.0.0.1:18886; fixed test marker and no user data",
+    "buildCommand": "CARGO_NET_OFFLINE=true bun run --filter @read-aware/desktop tauri build --config src-tauri/tauri.capability-e2e.conf.json --config '{\"bundle\":{\"createUpdaterArtifacts\":false,\"fileAssociations\":[]}}' --bundles app --no-sign --ci",
+    "beforeBinarySha256": "79bdcbe8fe10b6a81f937db0f3aa3ad533b4bb2c6ff934c67dbb6ffd196baf5f",
+    "afterBinarySha256": "f451b7fc469b1d45878494103dcb4508dcab235aec3f94b00d43536a0f5e0177",
+    "policySha256": "44cc54e0e37f8cf2b622f1836760768380756a8d3dfc74a200f88ec9b3dc7f29"
+  },
+  "fixtures": {
+    "negative": {
+      "directory": "scripts/fixtures/packaged-sandbox-probe",
+      "permissions": [],
+      "mainSha256": "eebb9560e3e632705a5655ced2bab295cf4f723fd5f9b1f12904e4611c8e2b73",
+      "manifestSha256": "0556acd2fd66698dd881d00e8a531cd14dc6d52dde48ace5dbb6359f50b1fb8a"
+    },
+    "positive": {
+      "directory": "scripts/fixtures/packaged-network-probe",
+      "permissions": ["service:network"],
+      "mainSha256": "ce923f427953c6b7afd4faf7b91f2da295f1d63f3e9732a7d145acfb339377d3",
+      "manifestSha256": "79249dabf83855e2aeb149bcca9d74f1be2ef4f631b0656ce67415f6329a942d"
+    },
+    "productCompositionPlugins": false
+  },
+  "before": {
+    "consent": "No extra permissions",
+    "grantedNetworkService": "undefined",
+    "globalFetch": "Error: fetch is unavailable in the plugin sandbox; use PluginContext",
+    "prototypeFetch": "NETWORK REACHED: 200 fixed-test-marker",
+    "childBlobWorker": "NETWORK REACHED: fixed-test-marker",
+    "httpDynamicModule": "NETWORK REACHED: fixed-test-marker",
+    "serverControl": "loopback-ready",
+    "requestCountBefore": 0,
+    "requestCountAfter": 3
+  },
+  "after": {
+    "sameNegativePluginReloadedWithoutModification": true,
+    "grantedNetworkService": "undefined",
+    "globalFetch": "Error: fetch is unavailable in the plugin sandbox; use PluginContext",
+    "prototypeFetch": "TypeError: Load failed",
+    "childBlobWorker": "Error: Child worker error",
+    "httpDynamicModule": "TypeError: Importing a module script failed.",
+    "serverStillAvailable": "loopback-ready",
+    "requestCountBefore": 3,
+    "requestCountAfterNegativeChecks": 3,
+    "positiveConsent": "Network / Access the network",
+    "hostNetworkControl": "HOST NETWORK: 200 fixed-test-marker",
+    "requestCountAfterPositiveControl": 4,
+    "normalBundledPluginMenusPresent": true,
+    "negativeChecksScreenshotInspected": true
+  },
+  "serverRequests": [
+    { "path": "/probe/prototype-fetch", "origin": "tauri://localhost", "at": "2026-09-08T19:18:51.302Z" },
+    { "path": "/probe/child-worker", "origin": "tauri://localhost", "at": "2026-09-08T19:18:52.288Z" },
+    { "path": "/probe/module.js", "origin": "tauri://localhost", "at": "2026-09-08T19:18:52.294Z" },
+    { "path": "/probe/host-network", "origin": "tauri://localhost", "at": "2026-09-08T19:27:23.215Z" }
+  ],
+  "cause": "The page CSP did not constrain the worker's own execution environment. A getter on globalThis.fetch did not remove the prototype's native fetch or the authority available in newly created workers/module loads.",
+  "fix": "Vite emits the sandbox entry under a dedicated asset namespace. Tauri attaches the shared independent CSP to that worker response, with connect-src none and worker-src none; script-src permits only host/plugin assets and Wasm compilation. Dev worker responses use the same policy. Product builds reject a missing or duplicate protected worker namespace.",
+  "verification": {
+    "newViteTests": 3,
+    "newRustPolicyTests": 2,
+    "monorepoTests": { "tasks": 18, "webPassed": 626, "webFailed": 0 },
+    "monorepoTypecheckTasks": 21,
+    "nativeSuite": { "passed": 126, "failed": 0, "ignored": 1 },
+    "nodeConfigTypecheck": "TypeScript 5.8 workspace compiler passed",
+    "releaseBuild": "passed; existing chunk, dynamic-import, objc cfg, unused/dead-code and block future-compatibility warnings remain"
+  },
+  "cleanup": {
+    "bothFixturesUninstalledThroughSettings": true,
+    "installedFixtureDirectoriesAbsent": true,
+    "ownedAppStopped": true,
+    "loopbackServerStopped": true,
+    "userDataReadOrWrittenByFixtures": false
+  },
+  "caveats": [
+    "Positive fixture initially used the invalid permission name network. Installation rejected it and logged the validation error. The manifest was corrected to service:network before approval and execution; no host validation was weakened.",
+    "The tested release includes the response policy and protected asset namespace. The subsequent build gate and explanatory comment do not change worker runtime bytes; the gate also passed an actual web production build."
+  ],
+  "notVerified": [
+    "Windows WebView2 and Linux WebKitGTK runtime enforcement; native URL matching has unit coverage only for those origins.",
+    "All direct-message schema, native API, remaining global-object and storage bypasses; this is proof for three concrete network paths, not full sandbox certification.",
+    "In-flight permission revocation, malicious resource exhaustion, every dynamic provider/session, upgrade rollback and all W31/W32 cases.",
+    "All remaining Agent/plugin capability implementation and useful composition scenarios W01-W32."
+  ]
+}

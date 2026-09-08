@@ -1,0 +1,15 @@
+{
+  "id": "packaged-sandbox-probe",
+  "name": "Packaged Sandbox Probe",
+  "version": "0.1.0",
+  "schemaVersion": 1,
+  "minAppVersion": "0.3.0",
+  "description": "Isolated capability test against a fixed loopback endpoint. No user data is read.",
+  "author": "ReadAware Tests",
+  "main": "main.js",
+  "permissions": [],
+  "requires": {
+    "contributions": { "headerActions": "^1.0.0" },
+    "schemas": { "views": "^1.0.0" }
+  }
+}

@@ -2,6 +2,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import { defineConfig } from "vite";
+import { pluginSandboxPolicy, workerEntryFileName } from "./build/plugin-sandbox-policy";
 
 const isStorybook = process.argv.some((arg) => arg.includes("storybook"));
 
@@ -17,6 +18,7 @@ export default defineConfig({
     "import.meta.env.VITE_TAURI_DEV_HOST": JSON.stringify(tauriDevHost ?? ""),
   },
   plugins: [
+    pluginSandboxPolicy(!isStorybook),
     tailwindcss(),
     // Router plugin must run before the React plugin so generated routes are transformed.
     // autoCodeSplitting stays OFF: this is a single-route app, so a per-route
@@ -25,6 +27,9 @@ export default defineConfig({
     !isStorybook && tanstackRouter({ target: "react", autoCodeSplitting: false }),
     react(),
   ].filter(Boolean),
+  worker: {
+    rollupOptions: { output: { entryFileNames: workerEntryFileName } },
+  },
   server: {
     // Fixed port so the Tauri desktop shell can point its devUrl here.
     port: 5173,

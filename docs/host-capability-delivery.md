@@ -277,3 +277,19 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [代码/环境] 矩阵 SYS10/CON09 与总验证边界更新，模型 Markdown 的现状映射同步；没有把整体 CSP/安全状态改绿。库存仍为 215 行 / 559 映射 / 129 旧验收项、30 单元 / 32 场景。生成检查、7 项建模门禁和两对 pair validator 通过。矩阵 HTML 在 1440×1000、1024×768、390×844 无页面横向溢出；中英文搜索、Escape、移动抽屉、主题刷新保持、锚点/重复 ID 与截图检查通过，浏览器无错误、既有 CDN 返回 200。模型 HTML 未变；文档无新增图，仍依赖既有 CDN，文档浏览器检查不作为产品证据。
 
 仍未完成：GAP16/W31 的恶意直接消息、子 Worker、动态模块、网络/平台绕行和执行中撤权验证；升级/回滚故障、zip/marketplace 安装、二进制/磁盘失败/并发导出、全部格式异位置锚定与远端模型行为，以及全部剩余 Agent/插件能力和 W01–W32 消费者。正常插件在生产 CSP 下能运行不是隔离安全证明，本轮只补上对应正向生命周期及文本导出的实机证据。
+
+## 2026-09-09 Worker 独立 CSP 与零权限联网回归
+
+[环境] 上一轮正向验证之后，实际在同一隔离 macOS release `.app` 安装 `permissions: []` 的诊断包。安装确认明确显示 No extra permissions，插件的 network service 为 undefined，直接 fetch 被已有 getter 拦住；但原型链 native fetch、子 blob Worker 中 fetch、HTTP 动态 import 三路都拿到固定测试响应。仅绑定 `127.0.0.1:18886` 的本机服务分别收到三条请求，origin 都是 `tauri://localhost`，没有读取或发送任何用户数据。这是已复现的网络授权绕行，不再只是 GAP16 的未知项。[修复前后证据](./evidence/packaged-sandbox-network-2026-09-09.json)保存二进制/夹具哈希、UI 结果和服务器请求记录。
+
+[代码] 根因是页面 CSP 不能替代 Worker 自身响应的 CSP，且 globalThis getter 不会消除原型上的原生函数或子执行环境的权限。新增共享 `apps/web/plugin-sandbox-policy.json`：connect-src/worker-src 为 none，脚本只允许宿主/插件资产与 Wasm 编译。Vite 将插件沙箱入口输出到专属 `/assets/plugin-sandbox/` 命名空间，原生 `on_web_resource_request` 只对本地 Tauri 来源的该命名空间附加独立 CSP；不改变宿主页面、Foliate 解析器或其资源的策略。开发服务在 worker 源入口响应附加同一策略。原有 getter 保留友好拒绝信息，但注释不再宣称它是完整安全边界，也不再将不可配置属性误说成一定不可用。
+
+[代码] 产品构建缺失/重复受保护入口会直接失败，避免改打包规则后悄悄失去保护；Storybook 不要求完整产品入口。增加 3 项 Vite 测试（入口命名、缺失/重复构建失败、真实开发 HTTP 响应策略）与 2 项原生测试（macOS/Windows/Linux 来源匹配与策略内容、不改变其他资源）。新 build 模块纳入 node tsconfig，并使用工作区 TypeScript 5.8 单独检查。源码第一方插件未发现 Worker/SharedWorker/importScripts/eval/new Function 使用；此扫描不替代全部第三方插件兼容性判断。
+
+[环境] 重建优化 release 后，原样保留已安装的零权限诊断包再执行：原型 fetch 返回 Load failed，子 Worker 返回错误，HTTP 模块 import 失败；服务器仍可通过 control 访问，但三路没有新增请求。随后通过正式安装授权 `service:network` 的正向对照，`ctx.services.network.fetch` 返回 200 和固定标记，服务器只新增 host-network 一条。因此不是关掉服务器或禁掉全部合法联网造成的假通过。正向夹具初稿误用 network 权限 ID，被安装验证正确拒绝；改为正式 service:network 后才批准执行，未放宽验证。
+
+[环境] 全仓 test 18 个任务、typecheck 21 个任务通过，web 为 626 项；原生全套 126 通过、1 个既有 ignored。实际 web 生产构建和 release `.app` 构建通过；保留既有 chunk/dynamic import、objc cfg、unused/dead code 与 block future-compatibility 警告。打包测试包含独立响应策略与资产命名空间；随后增加的构建门禁和解释性注释不改 worker 运行字节，门禁另经真实 web 生产构建验证。没有发布/推送，也未启用 release MCP。
+
+[环境] 两个诊断包经设置的二次确认卸载，正式目录不存在；应用与本机测试服务已停止。它们位于 scripts/fixtures，有可复现操作说明，不计为用户要求的实用组合插件。矩阵 CON09 与总验证边界更新，模型 Markdown 现状映射同步；仍是 215 行 / 559 库存 / 129 旧验收项、30 单元 / 32 场景。两对生成器/pair validator、7 项建模门禁通过。矩阵 HTML 的 1440×1000、1024×768、390×844 无横向溢出，中英文筛选、Escape、抽屉、主题刷新保持、锚点和截图检查通过，无浏览器错误，既有 CDN 返回 200；模型 HTML 目标未改，不新增图。文档浏览器不是产品验证。
+
+仍未完成：Windows WebView2/Linux WebKitGTK 实机策略验证、其他全局对象/存储/平台绕行、直接消息的全 schema/参数边界、执行中撤权和资源耗尽、全部 provider 生命周期，以及剩余双端能力与 W01–W32 实用组合。此次关闭的是三条已复现的联网路径，不把修复它们称作完整沙箱认证或整体目标完成。

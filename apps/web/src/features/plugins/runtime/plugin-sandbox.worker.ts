@@ -8,9 +8,11 @@
  * The manifest permission list was a courtesy, not a boundary.
  *
  * In here there is no `window`, no `document`, and no `__TAURI_INTERNALS__`.
- * The ONLY way out is `postMessage` to the host, which checks the manifest
- * before it touches anything (see plugin-worker-host.ts). That check is now the
- * real boundary, because there is nothing else to reach.
+ * Host calls go through `postMessage` and manifest checks. The worker response
+ * also carries its own CSP: ambient network and child workers are forbidden,
+ * and module loading is limited to host/plugin assets. Global getters below
+ * provide friendly errors, not an isolation boundary (native methods may also
+ * exist on prototypes). See plugin-sandbox-policy.json and its native/Vite hooks.
  *
  * Two shapes have to survive the realm crossing:
  *
@@ -105,7 +107,8 @@ function denyAmbientAuthority(name: string): void {
       },
     });
   } catch {
-    // A missing/non-configurable API is already unavailable to plugin code.
+    // Some engines have non-configurable globals. The response CSP and host
+    // authorization, not this best-effort diagnostic getter, enforce access.
   }
 }
 

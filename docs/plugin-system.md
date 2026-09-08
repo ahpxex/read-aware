@@ -184,7 +184,7 @@ resolution, persistence, and change effects.
 
 Appearance is a Settings section, not a domain and not a service.
 
-Current stable sections include General, Appearance, Reading, Menus and
+Current stable sections include General, Appearance, Reading, Annotations, Menus and
 Shortcuts, AI, Sync, and Plugins. Sections organize discovery and UI; they do
 not create separate APIs.
 
@@ -223,6 +223,31 @@ not a guarantee that every setting has an effect consumer, that remote roaming
 has committed, or that secrets and operating-system changes are transactional.
 Native UI and remote edits still lack a complete versioned settings-domain
 change feed; see CFG10 in the capability matrix.
+
+Since `domains.settings` 1.2, nine previously host-only preferences are shared
+by the Agent tools and granted plugins:
+
+| Path | Values | Targets and effects |
+| --- | --- | --- |
+| `reading.textAlign` | `book`, `start`, `justify` | global/book/all-books; actual reflowed text alignment |
+| `reading.fixedLayoutColor` | `theme`, `original` | global/book/all-books; actual fixed-layout page rendering, not reflow typography |
+| `general.whatsNewDialog` | boolean | global; whether to show the existing post-update release-note notice |
+| `appearance.contentTypography.followReader` | boolean | global; follows global reading typography, not the open book's override |
+| `appearance.contentTypography.fontFamily` | catalog/plugin font, `system:<family>`, or null | global; detached content face; null restores the app sans font |
+| `appearance.contentTypography.fontSize` | `x-small`, `small`, `medium`, `large`, `x-large` | global; detached content size, separate from the reader size ladder |
+| `appearance.contentTypography.lineSpacing` | `compact`, `comfortable`, `relaxed` | global; detached content line spacing |
+| `annotations.defaultColor` | `yellow`, `green`, `blue`, `pink` | global; next native highlight/underline reads the current value; existing marks remain unchanged |
+| `general.updateChannel` | `stable`, `beta` | global, device-local; changes the next update check, without checking, installing, or restarting |
+
+Independent content font/size/spacing values apply only while `followReader`
+is false. Typography uses its existing JSON record; default color and update
+channel retain their existing raw-string KV encodings. All participate in
+the shared atomic local batch. An already mounted About panel observes
+channel changes and rollback. macOS debug Tauri evidence covers both actors,
+real FB2 alignment/highlights, PDF canvas colors, typography, permission
+rejection, and injected SQLite failure; post-update relaunch behavior,
+other desktop platforms, and packaged validation of these nine paths remain
+unverified. See [delivery evidence](./host-capability-delivery.md).
 
 Plugin access is declared in `settingsAccess` with exact paths or explicit
 `section.*` groups. `discover`, `read`, and `write` are separate grants. An app

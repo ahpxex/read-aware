@@ -5,7 +5,7 @@
 - 状态：**代码盘点完成；能力实现与桌面验收未完成**。
 - 最后核验日期：2026-09-09。
 - 范围：当前 Tauri 桌面宿主及必要组合协议；Agent 指 ReadAware 产品内的模型工具与自动管线，不是外部 Coding Agent 的电脑控制能力。
-- [代码] 215 行 / 13 组，129 个既有验收项全部有对应行。字段行是可核对设置清单，不能与功能族相加当产品功能数量。
+- [代码] 224 行 / 13 组，129 个既有验收项全部有对应行。字段行是可核对设置清单，不能与功能族相加当产品功能数量。
 - [设计] 两个目标列是建议开放方式/刻意拒绝方式，尚未实现的目标不混入当前状态。
 - 修改事实源 [host-capability-matrix.data.ts](./host-capability-matrix.data.ts)，再运行 [生成器](../scripts/build-host-capability-matrix.ts)；不要分别手改生成的 MD/HTML。
 
@@ -13,16 +13,16 @@
 
 1. 不能确认能力都已实现。此表区分宿主行为、Agent 工具/自动管线、插件 API/贡献和实际插件消费者；没有把代码存在算成端到端可用。
 2. 运行态正在接通：版本化位置、会话快照、精确搜索、导航回执/历史与朗读启停已由共享域提供给 Agent、Jumper 和 Listening Desk。模式控制、通用任务与资源释放、全部格式及跨平台验收仍未完成；持久化领域 API 无法代表全部产品能力。
-3. 10 个设置路径只有保存入口，未找到对应效果消费者；两端可改值不等于行为覆盖。对齐、固定版式颜色、更新弹窗、快捷键、书架视图仍漏目录；本轮又确认内容字体四字段、默认标注色、更新通道三个真实遗漏组。
+3. 10 个旧设置路径仍未找到对应效果消费者；两端可改值不等于行为覆盖。settings 1.2 接通对齐、固定版式颜色、更新弹窗、内容字体四字段、默认标注色与更新通道共九个真实遗漏。快捷键、书架视图等缺口仍在。
 4. Agent 自动记忆巩固与 digest 管线已经接入；画像 seed/实体事件投影并未同等接通。不要沿用旧架构说明把它们一起说成已实现或未实现。
 5. 插件 UI、贡献注册、宿主消费、模型工具是不同方向。Dictionary/RSS 提供模型工具；宿主 control_read_aloud、configure_reading_mode 与 navigate_reading 统一消费声音和模式提供者，Listening Desk 调用相同控制器。主题调度/WebDAV 连接仍无同等直接操作工具；设置可改不等于行为接通。
 6. 备份 v1 并非全部当前存储的完整快照；私有数据、聊天、记忆、密钥、日志与同步状态的生命周期必须分别建模。原基线 129 项与 GAP01–GAP18 均保留，没有借新表宣告关闭。
 
 ## 计数与口径
 
-- 宿主：实装 164、部分 44、待建 3、引擎 1、占位 2、非桌面 1。
-- Agent：接通 73、部分 45、未接 56、扩展 14、自动 21、内部 6。
-- 插件：接通 86、部分 76、未接 53。
+- 宿主：实装 173、部分 44、待建 3、引擎 1、占位 2、非桌面 1。
+- Agent：接通 88、部分 45、未接 50、扩展 14、自动 21、内部 6。
+- 插件：接通 101、部分 76、未接 47。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -154,18 +154,18 @@
 | <a id="CFG01"></a>CFG01 | 设置 discover/read/update 与动态选项 | 实装 | **接通**：get_settings/update_settings；等待本地事务提交<br>[设计] 设置工具 | **接通**：settings 1.1 discover/read/update；原子保存与授权结果<br>[设计] 路径授权设置领域 | Agent；Theme Schedule；TTS options | 单个命令跨 KV 记录原子提交；失败不发 settings.changed，下一命令基于已结算状态；结果快照按 read/write grant 过滤。事务不包含密钥、远端漫游提交或尚未接通的效果；设置 API 接通不证明值有消费者 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [KV](../apps/web/src/platform/local-store.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | H01 |
 | <a id="CFG02"></a>CFG02 | 全局/本书/全书阅读设置覆盖 | 实装 | **接通**：update_settings target<br>[设计] 显式作用域写工具 | **接通**：settings.commands.update target<br>[设计] 显式作用域写领域 | AppearancePanel；Agent | all-books 写全局并更新 overrides，不等于清除所有覆盖 | [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [OVERRIDES](../apps/web/src/features/settings/lib/reader-overrides.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) | H05 |
 | <a id="CFG03"></a>CFG03 | 清除覆盖/恢复默认/查询值来源 | 实装 | **未接**：无正式入口<br>[设计] reset + effective value/provenance | **未接**：无正式入口<br>[设计] reset + effective value/provenance | 阅读外观设置 | 当前 update 不能表达 inherit/delete override；不是写默认值可替代 | [PREFS](../apps/web/src/features/settings/lib/reader-settings.ts) [OVERRIDES](../apps/web/src/features/settings/lib/reader-overrides.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | H05 |
-| <a id="CFG04"></a>CFG04 | 阅读对齐 reading.textAlign | 实装 | **未接**：无正式入口<br>[设计] 补入设置目录 | **未接**：无正式入口<br>[设计] 补入设置目录 | 阅读设置/渲染 | 实际字段存在但 settings catalog 缺失 | [PREFS](../apps/web/src/features/settings/lib/reader-settings.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) | H02 |
-| <a id="CFG05"></a>CFG05 | 固定版式颜色 reading.fixedLayoutColor | 实装 | **未接**：无正式入口<br>[设计] 补入设置目录 | **未接**：无正式入口<br>[设计] 补入设置目录 | 固定版式外观 | 不是 reading.theme 的同义项；catalog 缺失 | [PREFS](../apps/web/src/features/settings/lib/reader-settings.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) | H02 |
-| <a id="CFG06"></a>CFG06 | 更新内容弹窗 general.whatsNewDialog | 实装 | **未接**：无正式入口<br>[设计] 补入设置目录 | **未接**：无正式入口<br>[设计] 补入设置目录 | GeneralPanel / useWhatsNewDialog | 开关实际有效，但 catalog 漏项 | [GENERAL](../apps/web/src/features/settings/lib/general-settings.ts) [WHATSNEW](../apps/web/src/features/update/hooks/useWhatsNewDialog.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | H04 |
+| <a id="CFG04"></a>CFG04 | 阅读对齐 reading.textAlign | 实装 | **接通**：get_settings/update_settings<br>[设计] 结构化设置工具 | **接通**：settings 1.2；显式 global/book/all-books<br>[设计] 路径授权设置领域 | 阅读设置/渲染 | book/start/justify；与阅读外观同一覆盖规则，不是另造 CSS 接口 | [PREFS](../apps/web/src/features/settings/lib/reader-settings.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) | H02 |
+| <a id="CFG05"></a>CFG05 | 固定版式颜色 reading.fixedLayoutColor | 实装 | **接通**：get_settings/update_settings<br>[设计] 结构化设置工具 | **接通**：settings 1.2；显式 global/book/all-books<br>[设计] 路径授权设置领域 | 固定版式外观 | theme/original；不是 reading.theme 的同义项；仅固定版式内容消费 | [PREFS](../apps/web/src/features/settings/lib/reader-settings.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) | H02 |
+| <a id="CFG06"></a>CFG06 | 更新内容弹窗 general.whatsNewDialog | 实装 | **接通**：get_settings/update_settings<br>[设计] 结构化设置工具 | **接通**：settings 1.2；全局布尔字段<br>[设计] 路径授权设置领域 | GeneralPanel / useWhatsNewDialog | 控制后续升级说明提示，不是立即打开更新弹窗或安装更新 | [GENERAL](../apps/web/src/features/settings/lib/general-settings.ts) [WHATSNEW](../apps/web/src/features/update/hooks/useWhatsNewDialog.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | H04 |
 | <a id="CFG07"></a>CFG07 | AI 提供商/端点/密钥配置 | 实装 | **部分**：只读 provider/credentialConfigured；无密钥<br>[设计] 打开宿主敏感配置流程 | **部分**：受权读非敏感存在状态；无宿主 key<br>[设计] 打开宿主敏感配置流程 | AIConfigPanel | 不开放：读取宿主密钥；不能把 readonly provider 算作可切换提供商 | [AICONFIG](../apps/web/src/features/ai/lib/ai-config.ts) [AICONFIGUI](../apps/web/src/features/settings/components/AIConfigPanel.tsx) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SECRETS](../apps/web/src/platform/secret-store.ts) | H04 |
 | <a id="CFG08"></a>CFG08 | 模型目录刷新、连接测试与模型能力 | 实装 | **部分**：设置 discover 给模型选项<br>[设计] 连接诊断/能力查询 | **部分**：settings discover 动态选项<br>[设计] 连接诊断/能力查询 | AI 配置页 | 选择已缓存模型不等于能刷新/测试连接 | [MODELCATALOG](../apps/web/src/features/ai/lib/model-catalog.ts) [AICONFIGUI](../apps/web/src/features/settings/components/AIConfigPanel.tsx) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | H04 |
 | <a id="CFG09"></a>CFG09 | 插件非敏感设置的动态路径 | 实装 | **接通**：plugins.<id>.<field> get/update_settings<br>[设计] 参数配置工具 | **接通**：自有路径默认授权；他者路径需 grant<br>[设计] 隔离设置领域 | TTS/RSS/Theme Schedule 等 | 插件启用/声明决定目录；secret/password 字段不暴露；配置不等于执行插件命令 | [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) | H06 |
 | <a id="CFG10"></a>CFG10 | 设置变化事件/外部写入刷新 | 部分 | **自动**：每次读当前目录/值；持久失败向工具拒绝<br>[设计] 运行时刷新 | **部分**：提交事件 + KV 镜像/回滚失效通知<br>[设计] 有版本/来源的观察 | Theme Schedule；插件设置视图 | 通用设置记录与菜单 base atom 跟随 KV，插件表单/模式/提供者订阅覆盖声明设置回滚；失效通知在 Worker 镜像观察之后分发。GAP03/09/11 仍缺全来源带 revision/origin 的领域广播、所有 UI 编辑草稿与异步效果验收；不是关闭完整 GAP | [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [WORKER](../apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts) [KV](../apps/web/src/platform/local-store.ts) | H01 |
-| <a id="CFG11"></a>CFG11 | 聊天/笔记内容字体：跟随阅读或独立字号/字体/行距 | 实装 | **未接**：无正式入口<br>[设计] 补入 settings，四个字段而非新样式服务 | **未接**：无正式入口<br>[设计] 补入 settings，四个字段而非新样式服务 | AppearancePanel；聊天、笔记、插件 Markdown 与 composer | followReader/fontFamily/fontSize/lineSpacing 未进 catalog；跟随全局 reader 偏好而非本书 override；fontFamily=null 是应用字体选项，不是删除覆盖 | [TYPOGRAPHY](../apps/web/src/features/settings/lib/content-typography.ts) [TYPOGRAPHYUI](../apps/web/src/features/settings/sections/AppearancePanel.tsx) [TYPOGRAPHYEFFECT](../apps/web/src/features/settings/hooks/useContentTypography.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | 新增盘点 |
-| <a id="CFG12"></a>CFG12 | 新标注默认颜色 | 实装 | **未接**：无正式入口<br>[设计] 补入 settings 的默认颜色 | **未接**：无正式入口<br>[设计] 补入 settings 的默认颜色 | 一键高亮/下划线；recolor 更新后续默认色 | createHighlight 指定当前标注颜色不等于修改下一次默认色；yellow/green/blue/pink，默认 yellow | [MARKPREFS](../apps/web/src/features/annotations/lib/annotation-prefs.ts) [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | 新增盘点 |
-| <a id="CFG13"></a>CFG13 | 软件更新通道 stable/beta | 实装 | **未接**：无正式入口<br>[设计] 补入设备本地 settings | **未接**：无正式入口<br>[设计] 补入设备本地 settings | AboutPanel；软件更新查询 | 设备本地，不漫游；修改通道不等于批准下载、安装或重启；当前 catalog 缺失 | [UPDATECHANNEL](../apps/web/src/features/update/lib/update-channel.ts) [ABOUT](../apps/web/src/features/settings/sections/AboutPanel.tsx) [UPDATE](../apps/web/src/features/update/lib/software-update.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | 新增盘点 |
+| <a id="CFG11"></a>CFG11 | 聊天/笔记内容字体：跟随阅读或独立字号/字体/行距 | 实装 | **接通**：appearance.contentTypography.*<br>[设计] 结构化设置工具 | **接通**：settings 1.2；四个全局字段<br>[设计] 路径授权设置领域 | AppearancePanel；聊天、笔记、插件 Markdown 与 composer | followReader/fontFamily/fontSize/lineSpacing；跟随全局 reader 而非本书 override；fontFamily=null 为应用字体，独立字段只在 followReader=false 生效；base atom 跟随 KV 回滚 | [TYPOGRAPHY](../apps/web/src/features/settings/lib/content-typography.ts) [TYPOGRAPHYUI](../apps/web/src/features/settings/sections/AppearancePanel.tsx) [TYPOGRAPHYEFFECT](../apps/web/src/features/settings/hooks/useContentTypography.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | 新增盘点 |
+| <a id="CFG12"></a>CFG12 | 新标注默认颜色 | 实装 | **接通**：annotations.defaultColor<br>[设计] 结构化设置工具 | **接通**：settings 1.2；annotations section<br>[设计] 路径授权设置领域 | 一键高亮/下划线；recolor 更新后续默认色 | yellow/green/blue/pink，默认 yellow；宿主动作即时读取当前偏好，不再捕获挂载时颜色；不重染已有标注 | [MARKPREFS](../apps/web/src/features/annotations/lib/annotation-prefs.ts) [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | 新增盘点 |
+| <a id="CFG13"></a>CFG13 | 软件更新通道 stable/beta | 实装 | **接通**：general.updateChannel<br>[设计] 设备本地设置工具 | **接通**：settings 1.2；全局枚举字段<br>[设计] 路径授权设置领域 | AboutPanel；软件更新查询 | 设备本地且不漫游；已打开 About 控件跟随 KV 更新/回滚；修改通道只影响后续检查，不批准下载、安装或重启 | [UPDATECHANNEL](../apps/web/src/features/update/lib/update-channel.ts) [ABOUT](../apps/web/src/features/settings/sections/AboutPanel.tsx) [UPDATE](../apps/web/src/features/update/lib/software-update.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | 新增盘点 |
 
-### 设置字段逐项覆盖（46 个具体路径）
+### 设置字段逐项覆盖（55 个具体路径）
 
 | ID | 宿主能力 | 宿主现状 | Agent 当前与目标 | 插件当前与目标 | 实际消费者 | 缺口/边界 | 来源 | 旧基线 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -215,6 +215,15 @@
 | <a id="SET44"></a>SET44 | ai.connection.custom.api | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [UI](../apps/web/src/state/ui.ts) | 新增盘点 |
 | <a id="SET45"></a>SET45 | ai.connection.custom.supportsThinking | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [UI](../apps/web/src/state/ui.ts) | 新增盘点 |
 | <a id="SET46"></a>SET46 | ai.connection.custom.maxOutputTokens | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [UI](../apps/web/src/state/ui.ts) | 新增盘点 |
+| <a id="SET47"></a>SET47 | reading.textAlign | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [PREFS](../apps/web/src/features/settings/lib/reader-settings.ts) | 新增盘点 |
+| <a id="SET48"></a>SET48 | reading.fixedLayoutColor | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [PREFS](../apps/web/src/features/settings/lib/reader-settings.ts) | 新增盘点 |
+| <a id="SET49"></a>SET49 | general.whatsNewDialog | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [GENERAL](../apps/web/src/features/settings/lib/general-settings.ts) | 新增盘点 |
+| <a id="SET50"></a>SET50 | appearance.contentTypography.followReader | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [TYPOGRAPHY](../apps/web/src/features/settings/lib/content-typography.ts) [TYPOGRAPHYEFFECT](../apps/web/src/features/settings/hooks/useContentTypography.ts) | 新增盘点 |
+| <a id="SET51"></a>SET51 | appearance.contentTypography.fontFamily | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [TYPOGRAPHY](../apps/web/src/features/settings/lib/content-typography.ts) [TYPOGRAPHYEFFECT](../apps/web/src/features/settings/hooks/useContentTypography.ts) | 新增盘点 |
+| <a id="SET52"></a>SET52 | appearance.contentTypography.fontSize | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [TYPOGRAPHY](../apps/web/src/features/settings/lib/content-typography.ts) [TYPOGRAPHYEFFECT](../apps/web/src/features/settings/hooks/useContentTypography.ts) | 新增盘点 |
+| <a id="SET53"></a>SET53 | appearance.contentTypography.lineSpacing | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [TYPOGRAPHY](../apps/web/src/features/settings/lib/content-typography.ts) [TYPOGRAPHYEFFECT](../apps/web/src/features/settings/hooks/useContentTypography.ts) | 新增盘点 |
+| <a id="SET54"></a>SET54 | annotations.defaultColor | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [MARKPREFS](../apps/web/src/features/annotations/lib/annotation-prefs.ts) [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) | 新增盘点 |
+| <a id="SET55"></a>SET55 | general.updateChannel | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [UPDATECHANNEL](../apps/web/src/features/update/lib/update-channel.ts) [ABOUT](../apps/web/src/features/settings/sections/AboutPanel.tsx) | 新增盘点 |
 
 ### 对话、Agent 交互与推理
 
@@ -391,7 +400,7 @@
 - Capability contributions：14 个。
 - Capability services：8 个。
 - Capability schemas：3 个。
-- Settings path：46 个。
+- Settings path：55 个。
 - Native command：135 个。
 - Native plugin：11 个。
 - Menu placement：16 个。
@@ -409,7 +418,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 85 个顶层可调用路径；返回的 collection/session 方法单列。Settings 46 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 85 个顶层可调用路径；返回的 collection/session 方法单列。Settings 55 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -647,16 +656,25 @@
 
 | 当前注册项 | 矩阵行 | 说明 |
 | --- | --- | --- |
+| `appearance.contentTypography.followReader` | [SET50](#SET50) | [代码] 目录可读写；实际效果见主表 |
+| `appearance.contentTypography.fontFamily` | [SET51](#SET51) | [代码] 目录可读写；实际效果见主表 |
+| `appearance.contentTypography.fontSize` | [SET52](#SET52) | [代码] 目录可读写；实际效果见主表 |
+| `appearance.contentTypography.lineSpacing` | [SET53](#SET53) | [代码] 目录可读写；实际效果见主表 |
+| `annotations.defaultColor` | [SET54](#SET54) | [代码] 目录可读写；实际效果见主表 |
+| `general.updateChannel` | [SET55](#SET55) | [代码] 目录可读写；实际效果见主表 |
 | `general.startView` | [SET01](#SET01) | [代码] 目录可读写；实际效果见主表 |
 | `general.language` | [SET02](#SET02) | [代码] 目录可读写；实际效果见主表 |
 | `general.crashPrompt` | [SET03](#SET03) | [代码] 目录可读写；实际效果见主表 |
 | `general.launchAtStartup` | [SET04](#SET04) | [代码] 目录可读写；实际效果见主表 |
 | `general.fileAssociations` | [SET05](#SET05) | [代码] 目录可读写；实际效果见主表 |
 | `general.autoUpdate` | [SET06](#SET06) | [代码] 目录可读写；实际效果见主表 |
+| `general.whatsNewDialog` | [SET49](#SET49) | [代码] 目录可读写；实际效果见主表 |
 | `appearance.theme` | [SET07](#SET07) | [代码] 目录可读写；实际效果见主表 |
 | `appearance.motion` | [SET08](#SET08) | [代码] 目录可读写；实际效果见主表 |
 | `reading.theme` | [SET09](#SET09) | [代码] 目录可读写；实际效果见主表 |
 | `reading.fontFamily` | [SET10](#SET10) | [代码] 目录可读写；实际效果见主表 |
+| `reading.textAlign` | [SET47](#SET47) | [代码] 目录可读写；实际效果见主表 |
+| `reading.fixedLayoutColor` | [SET48](#SET48) | [代码] 目录可读写；实际效果见主表 |
 | `reading.fontSize` | [SET11](#SET11) | [代码] 目录可读写；实际效果见主表 |
 | `reading.fontWeight` | [SET12](#SET12) | [代码] 目录可读写；实际效果见主表 |
 | `reading.lineSpacing` | [SET13](#SET13) | [代码] 目录可读写；实际效果见主表 |

@@ -7,9 +7,10 @@
  * the guided-reading unit), which is why they belong together: the target
  * differs, the action does not.
  *
- * The note editor's state, the default mark colour, and the annotations
+ * The note editor's state and the annotations
  * revision signal live here too — they were only ever touched by these actions,
- * so keeping them outside would have meant passing five more handles in.
+ * so keeping them outside would have meant passing more handles in.
+ * Default mark colour is read at action time from shared preferences.
  */
 import { useCallback, useRef, useState } from "react";
 import type { RefObject } from "react";
@@ -119,9 +120,6 @@ export function useReaderTextActions({
   const pluginSelectionActions = useAtomValue(selectionActionsAtom);
   const lookupAction =
     pluginSelectionActions.find((action) => action.role === "lookup") ?? null;
-
-  /** Last colour the reader chose, applied to new marks. */
-  const defaultMarkColorRef = useRef<Highlight["color"]>(getDefaultMarkColor());
 
   const [noteTarget, setNoteTarget] = useState<ActionTarget | null>(null);
   const [noteEditorOpen, setNoteEditorOpen] = useState(false);
@@ -263,7 +261,7 @@ export function useReaderTextActions({
 
   const handleHighlight = useCallback(
     async (
-      color: Highlight["color"] = defaultMarkColorRef.current,
+      color: Highlight["color"] = getDefaultMarkColor(),
       style: NonNullable<Highlight["style"]> = "highlight",
     ) => {
       if (!selection) return;
@@ -278,7 +276,7 @@ export function useReaderTextActions({
   );
 
   const handleUnderline = useCallback(() => {
-    void handleHighlight(defaultMarkColorRef.current, "underline");
+    void handleHighlight(getDefaultMarkColor(), "underline");
   }, [handleHighlight]);
 
   const handleLookUp = useCallback(() => {
@@ -327,10 +325,9 @@ export function useReaderTextActions({
   const handleRecolorAnnotation = useCallback(
     async (color: Highlight["color"]) => {
       if (!activeAnnotation) return;
-      // Remember the chosen colour as the default for new marks.
-      defaultMarkColorRef.current = color;
-      setDefaultMarkColor(color);
       try {
+        // Persist the default before recoloring; failed preferences use the same error surface.
+        await setDefaultMarkColor(color);
         const updated = await recolorHighlight(activeAnnotation.highlight, color);
         if (highlightsRef.current) {
           highlightsRef.current = highlightsRef.current.map((highlight) =>
@@ -398,7 +395,7 @@ export function useReaderTextActions({
     async (style: NonNullable<Highlight["style"]>) => {
       const target = navigatorTarget();
       if (!target) return;
-      await saveMark(target, defaultMarkColorRef.current, style);
+      await saveMark(target, getDefaultMarkColor(), style);
     },
     [navigatorTarget, saveMark],
   );

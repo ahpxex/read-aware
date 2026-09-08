@@ -26,20 +26,20 @@ async function assertIsolated() {
   if (!path.replace(/[/\\]$/, "").endsWith("/com.readaware.app.capability-e2e")) throw new Error("Settings probes require isolated capability-e2e data");
 }
 
-export async function prepareSettingsProbe() {
+export async function prepareSettingsProbe(paths = ["appearance.theme", "appearance.motion", "general.startView"]) {
   await assertIsolated();
   if (worker) throw new Error("Settings probe is already running");
   const settings = createSettingsDomain("user");
-  restore = await Promise.all(["appearance.theme", "appearance.motion", "general.startView"].map(async path => {
+  restore = await Promise.all(paths.map(async path => {
     const value = await settings.queries.read(path);
-    return { path, value: value.value };
+    return { path, value: value.value, target: value.target };
   }));
   events = [];
   unsubscribe = settings.events.subscribe(event => events.push(event));
   const manifest: PluginManifest = {
     id, name: "Settings capability probe", version: "1.0.0", schemaVersion: 1, description: "Atomic settings validation",
-    permissions: [], requires: { domains: { settings: "^1.1.0" }, services: { storage: "^2.0.0" } },
-    settingsAccess: { write: ["appearance.theme", "appearance.motion", "general.startView"] },
+    permissions: [], requires: { domains: { settings: "^1.2.0" }, services: { storage: "^2.0.0" } },
+    settingsAccess: { write: paths },
     settings: [{ id: "enabled", kind: "toggle", label: "Enabled", value: false }],
   };
   worker = await startPluginWorker(manifest, "0.5.4", disposables, { moduleUrl: new URL("./settings-probe.ts", import.meta.url).href });

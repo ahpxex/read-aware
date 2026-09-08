@@ -8,6 +8,7 @@ import { buildSettingDefinitions } from "../apps/web/src/domain/settings/catalog
 import { DEFAULT_GENERAL_SETTINGS } from "../apps/web/src/features/settings/lib/general-settings";
 import { DEFAULT_AI_PREFERENCES } from "../apps/web/src/features/settings/lib/ai-preferences";
 import { DEFAULT_READER_SETTINGS } from "../apps/web/src/features/settings/lib/reader-settings";
+import { DEFAULT_CONTENT_TYPOGRAPHY } from "../apps/web/src/features/settings/lib/content-typography";
 import { groups, staticSettingPaths, readOnlySettings } from "../docs/host-capability-matrix.data";
 
 const ts = createRequire(new URL("../apps/web/package.json", import.meta.url))("typescript") as typeof import("../apps/web/node_modules/typescript");
@@ -152,7 +153,7 @@ export function collectInventory(): Inventory[] {
   for (const method of typeMembers("packages/plugin-types/src/index.ts", "PluginSyncTransportSession")) add("Plugin returned interface", `syncTransport.open().${method}`, ["OPS04"]);
   for (const [family, catalog] of Object.entries(HOST_CAPABILITY_CATALOG)) for (const key of Object.keys(catalog)) add(`Capability ${family}`, key, catalogMap[family]?.[key]);
 
-  const snapshot = { general:DEFAULT_GENERAL_SETTINGS, appearance:{theme:"system",motion:"system"}, reading:DEFAULT_READER_SETTINGS, readerOverrides:{}, aiPreferences:DEFAULT_AI_PREFERENCES, aiConfig:{provider:"custom",model:"test",fastModel:"fast",apiKey:"stub"}, pluginThemes:[], pluginFonts:[], menus:{config:{},plugins:{}}, pluginSettings:{declared:[],values:{}} };
+  const snapshot = { general:DEFAULT_GENERAL_SETTINGS, appearance:{theme:"system",motion:"system"}, reading:DEFAULT_READER_SETTINGS, readerOverrides:{}, contentTypography:DEFAULT_CONTENT_TYPOGRAPHY, defaultMarkColor:"yellow", updateChannel:"stable", aiPreferences:DEFAULT_AI_PREFERENCES, aiConfig:{provider:"custom",model:"test",fastModel:"fast",apiKey:"stub"}, pluginThemes:[], pluginFonts:[], menus:{config:{},plugins:{}}, pluginSettings:{declared:[],values:{}} };
   const settings = buildSettingDefinitions(snapshot as never);
   if (JSON.stringify(settings.map(s => s.path).sort()) !== JSON.stringify([...staticSettingPaths].sort())) throw new Error("Static settings roster drift");
   for (const setting of settings) {

@@ -6,14 +6,18 @@
  * casing. Device-local (localKV), deliberately not roamed: opting one machine
  * into betas should not opt in every device on the account.
  */
-import { localKV } from "../../../platform/local-store";
+import { localKV, onLocalKVChange } from "../../../platform/local-store";
 
 export type UpdateChannel = "stable" | "beta";
 
-const CHANNEL_KV_KEY = "read-aware-update-channel";
+export const CHANNEL_KV_KEY = "read-aware-update-channel";
 
 export function getUpdateChannel(): UpdateChannel {
   return localKV.getItem(CHANNEL_KV_KEY) === "beta" ? "beta" : "stable";
+}
+
+export function subscribeUpdateChannel(onChange: () => void): () => void {
+  return onLocalKVChange(key => { if (key === CHANNEL_KV_KEY) onChange(); });
 }
 
 export function setUpdateChannel(channel: UpdateChannel): void {

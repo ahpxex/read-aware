@@ -276,16 +276,16 @@ groups.push(
     cap("CFG01", "设置 discover/read/update 与动态选项", "实装", actor("接通", "get_settings/update_settings；等待本地事务提交", "设置工具"), actor("接通", "settings 1.1 discover/read/update；原子保存与授权结果", "路径授权设置领域"), ["SETTINGS","SETDOMAIN","SETTOOLS","CTX","KV","RUST"], "Agent；Theme Schedule；TTS options", "单个命令跨 KV 记录原子提交；失败不发 settings.changed，下一命令基于已结算状态；结果快照按 read/write grant 过滤。事务不包含密钥、远端漫游提交或尚未接通的效果；设置 API 接通不证明值有消费者"),
     cap("CFG02", "全局/本书/全书阅读设置覆盖", "实装", actor("接通", "update_settings target", "显式作用域写工具"), actor("接通", "settings.commands.update target", "显式作用域写领域"), ["SETDOMAIN","SETTINGS","OVERRIDES","SETTOOLS"], "AppearancePanel；Agent", "all-books 写全局并更新 overrides，不等于清除所有覆盖"),
     cap("CFG03", "清除覆盖/恢复默认/查询值来源", "实装", absent("reset + effective value/provenance"), absent("reset + effective value/provenance"), ["PREFS","OVERRIDES","SETTINGS"], "阅读外观设置", "当前 update 不能表达 inherit/delete override；不是写默认值可替代"),
-    cap("CFG04", "阅读对齐 reading.textAlign", "实装", absent("补入设置目录"), absent("补入设置目录"), ["PREFS","SETTINGS","READER"], "阅读设置/渲染", "实际字段存在但 settings catalog 缺失"),
-    cap("CFG05", "固定版式颜色 reading.fixedLayoutColor", "实装", absent("补入设置目录"), absent("补入设置目录"), ["PREFS","SETTINGS","READER"], "固定版式外观", "不是 reading.theme 的同义项；catalog 缺失"),
-    cap("CFG06", "更新内容弹窗 general.whatsNewDialog", "实装", absent("补入设置目录"), absent("补入设置目录"), ["GENERAL","WHATSNEW","SETTINGS"], "GeneralPanel / useWhatsNewDialog", "开关实际有效，但 catalog 漏项"),
+    cap("CFG04", "阅读对齐 reading.textAlign", "实装", actor("接通", "get_settings/update_settings", "结构化设置工具"), actor("接通", "settings 1.2；显式 global/book/all-books", "路径授权设置领域"), ["PREFS","SETTINGS","READER"], "阅读设置/渲染", "book/start/justify；与阅读外观同一覆盖规则，不是另造 CSS 接口"),
+    cap("CFG05", "固定版式颜色 reading.fixedLayoutColor", "实装", actor("接通", "get_settings/update_settings", "结构化设置工具"), actor("接通", "settings 1.2；显式 global/book/all-books", "路径授权设置领域"), ["PREFS","SETTINGS","READER"], "固定版式外观", "theme/original；不是 reading.theme 的同义项；仅固定版式内容消费"),
+    cap("CFG06", "更新内容弹窗 general.whatsNewDialog", "实装", actor("接通", "get_settings/update_settings", "结构化设置工具"), actor("接通", "settings 1.2；全局布尔字段", "路径授权设置领域"), ["GENERAL","WHATSNEW","SETTINGS"], "GeneralPanel / useWhatsNewDialog", "控制后续升级说明提示，不是立即打开更新弹窗或安装更新"),
     cap("CFG07", "AI 提供商/端点/密钥配置", "实装", actor("部分", "只读 provider/credentialConfigured；无密钥", "打开宿主敏感配置流程"), actor("部分", "受权读非敏感存在状态；无宿主 key", "打开宿主敏感配置流程"), ["AICONFIG","AICONFIGUI","SETTINGS","SECRETS"], "AIConfigPanel", "不开放：读取宿主密钥；不能把 readonly provider 算作可切换提供商"),
     cap("CFG08", "模型目录刷新、连接测试与模型能力", "实装", actor("部分", "设置 discover 给模型选项", "连接诊断/能力查询"), actor("部分", "settings discover 动态选项", "连接诊断/能力查询"), ["MODELCATALOG","AICONFIGUI","SETTINGS"], "AI 配置页", "选择已缓存模型不等于能刷新/测试连接"),
     cap("CFG09", "插件非敏感设置的动态路径", "实装", actor("接通", "plugins.<id>.<field> get/update_settings", "参数配置工具"), actor("接通", "自有路径默认授权；他者路径需 grant", "隔离设置领域"), ["CTX","SETTINGS","SETDOMAIN"], "TTS/RSS/Theme Schedule 等", "插件启用/声明决定目录；secret/password 字段不暴露；配置不等于执行插件命令"),
     cap("CFG10", "设置变化事件/外部写入刷新", "部分", actor("自动", "每次读当前目录/值；持久失败向工具拒绝", "运行时刷新"), actor("部分", "提交事件 + KV 镜像/回滚失效通知", "有版本/来源的观察"), ["SETDOMAIN","CTX","WORKER","KV"], "Theme Schedule；插件设置视图", "通用设置记录与菜单 base atom 跟随 KV，插件表单/模式/提供者订阅覆盖声明设置回滚；失效通知在 Worker 镜像观察之后分发。GAP03/09/11 仍缺全来源带 revision/origin 的领域广播、所有 UI 编辑草稿与异步效果验收；不是关闭完整 GAP"),
-    cap("CFG11", "聊天/笔记内容字体：跟随阅读或独立字号/字体/行距", "实装", absent("补入 settings，四个字段而非新样式服务"), absent("补入 settings，四个字段而非新样式服务"), ["TYPOGRAPHY","TYPOGRAPHYUI","TYPOGRAPHYEFFECT","SETTINGS"], "AppearancePanel；聊天、笔记、插件 Markdown 与 composer", "followReader/fontFamily/fontSize/lineSpacing 未进 catalog；跟随全局 reader 偏好而非本书 override；fontFamily=null 是应用字体选项，不是删除覆盖"),
-    cap("CFG12", "新标注默认颜色", "实装", absent("补入 settings 的默认颜色"), absent("补入 settings 的默认颜色"), ["MARKPREFS","TEXTACTIONS","SETTINGS"], "一键高亮/下划线；recolor 更新后续默认色", "createHighlight 指定当前标注颜色不等于修改下一次默认色；yellow/green/blue/pink，默认 yellow"),
-    cap("CFG13", "软件更新通道 stable/beta", "实装", absent("补入设备本地 settings"), absent("补入设备本地 settings"), ["UPDATECHANNEL","ABOUT","UPDATE","SETTINGS"], "AboutPanel；软件更新查询", "设备本地，不漫游；修改通道不等于批准下载、安装或重启；当前 catalog 缺失"),
+    cap("CFG11", "聊天/笔记内容字体：跟随阅读或独立字号/字体/行距", "实装", actor("接通", "appearance.contentTypography.*", "结构化设置工具"), actor("接通", "settings 1.2；四个全局字段", "路径授权设置领域"), ["TYPOGRAPHY","TYPOGRAPHYUI","TYPOGRAPHYEFFECT","SETTINGS"], "AppearancePanel；聊天、笔记、插件 Markdown 与 composer", "followReader/fontFamily/fontSize/lineSpacing；跟随全局 reader 而非本书 override；fontFamily=null 为应用字体，独立字段只在 followReader=false 生效；base atom 跟随 KV 回滚"),
+    cap("CFG12", "新标注默认颜色", "实装", actor("接通", "annotations.defaultColor", "结构化设置工具"), actor("接通", "settings 1.2；annotations section", "路径授权设置领域"), ["MARKPREFS","TEXTACTIONS","SETTINGS"], "一键高亮/下划线；recolor 更新后续默认色", "yellow/green/blue/pink，默认 yellow；宿主动作即时读取当前偏好，不再捕获挂载时颜色；不重染已有标注"),
+    cap("CFG13", "软件更新通道 stable/beta", "实装", actor("接通", "general.updateChannel", "设备本地设置工具"), actor("接通", "settings 1.2；全局枚举字段", "路径授权设置领域"), ["UPDATECHANNEL","ABOUT","UPDATE","SETTINGS"], "AboutPanel；软件更新查询", "设备本地且不漫游；已打开 About 控件跟随 KV 更新/回滚；修改通道只影响后续检查，不批准下载、安装或重启"),
   ] },
   { name: "对话、Agent 交互与推理", rows: [
     cap("AI01", "读取书内/全局对话及搜索历史", "实装", actor("接通", "search_conversation/get_recent_turns", "有界查询工具"), actor("接通", "conversations.queries getBookThread/listThreads/getThread", "受权只读领域"), ["CHATDOMAIN","CHATPORT","CHATTOOLS","CTX"], "Agent；聊天历史", "插件拿到 transcript 不等于自动得到画像/记忆；当前查询范围和列表量需约束"),
@@ -396,6 +396,10 @@ export const staticSettingPaths = [
   "ai.connection.fastModel", "ai.connection.thinkingLevel", "ai.connection.fastThinkingLevel",
   "ai.connection.custom.endpointConfigured", "ai.connection.custom.api",
   "ai.connection.custom.supportsThinking", "ai.connection.custom.maxOutputTokens",
+  "reading.textAlign", "reading.fixedLayoutColor", "general.whatsNewDialog",
+  "appearance.contentTypography.followReader", "appearance.contentTypography.fontFamily",
+  "appearance.contentTypography.fontSize", "appearance.contentTypography.lineSpacing",
+  "annotations.defaultColor", "general.updateChannel",
 ];
 export const ineffectiveSettings = new Set([
   "general.launchAtStartup", "general.fileAssociations",
@@ -408,7 +412,7 @@ export const readOnlySettings = new Set([
   "ai.connection.configured", "ai.connection.credentialConfigured", "ai.connection.provider",
   "ai.connection.custom.endpointConfigured",
 ]);
-groups.splice(5, 0, { name: "设置字段逐项覆盖（46 个具体路径）", rows: staticSettingPaths.map((path, i) => {
+groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.length} 个具体路径）`, rows: staticSettingPaths.map((path, i) => {
   const ineffective = ineffectiveSettings.has(path);
   const readonly = readOnlySettings.has(path);
   const effect = ineffective
@@ -420,7 +424,10 @@ groups.splice(5, 0, { name: "设置字段逐项覆盖（46 个具体路径）", 
   return cap(`SET${String(i + 1).padStart(2, "0")}`, path, ineffective ? "部分" : "实装",
     actor(ineffective ? "部分" : "接通", readonly ? "get_settings" : "get_settings/update_settings", "类型化设置工具"),
     actor(ineffective ? "部分" : "接通", readonly ? "settings discover/read（需路径授权）" : "settings discover/read/update（需路径授权）", "类型化设置领域"),
-    ["SETTINGS","SETDOMAIN","SETTOOLS", path.startsWith("ai.preferences") ? "AIPREFS" : path.startsWith("general") ? "GENERAL" : path.startsWith("reading") ? "PREFS" : path.startsWith("menus") ? "MENUSTATE" : "UI"],
+    ["SETTINGS","SETDOMAIN","SETTOOLS", ...(path.startsWith("appearance.contentTypography.") ? ["TYPOGRAPHY", "TYPOGRAPHYEFFECT"]
+      : path === "annotations.defaultColor" ? ["MARKPREFS", "TEXTACTIONS"]
+        : path === "general.updateChannel" ? ["UPDATECHANNEL", "ABOUT"]
+          : [path.startsWith("ai.preferences") ? "AIPREFS" : path.startsWith("general") ? "GENERAL" : path.startsWith("reading") ? "PREFS" : path.startsWith("menus") ? "MENUSTATE" : "UI"])],
     ineffective ? "仅设置页/设置存储/目录；效果未接" : "设置页；Agent；授权插件可调用（不代表每个插件实际调用）",
     effect);
 }) });

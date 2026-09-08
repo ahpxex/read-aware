@@ -38,7 +38,7 @@ export const units: Unit[] = [
     "可填入待用户确认的草稿、请求停止指定回合；不能任意指定 role 写 system/assistant/user 历史。llm.ask 不是向产品聊天发送消息。",
     "重试/清空聊天不撤销已完成的标注、记忆或远端 HTTP 副作用；复制聊天是查询 + 剪贴板，不需要专门 Agent 工具。书内单线程与全局多线程仍保持。",
     "停止保存已产生的部分答复；清空/切线程时旧 generation 不得回写新线程；模型回合、存储提交、展示清除的完成状态分别可验证。"),
-  unit("D5", "Domain", "settings", "全部真实偏好及生效语义", "UI02 UI04-05 CFG01-13 SET01-46", "domains.settings",
+  unit("D5", "Domain", "settings", "全部真实偏好及生效语义", "UI02 UI04-05 CFG01-13 SET01-55", "domains.settings",
     "discover/read/update/reset；返回类型、可选值、可写性、scope、effective 值、值来源、持久/漫游策略；包含 reader、general、AI、menus、shortcuts、shelf、插件非敏感字段及本次新增遗漏。修改必须映射实际消费者，或明确 unavailable。",
     "沿用 get_settings/update_settings，不为主题/字体/每个布尔字段创建模型工具。敏感配置由 S3 打开宿主设置流程，不把 key 放进提示词。",
     "自有字段与跨插件路径授权分开；动态 option 来自 C1；设置选项变化不能自动执行播放、安装、连接、付款。",
@@ -152,7 +152,7 @@ export const units: Unit[] = [
     "声明数据与事件，宿主拥有 React/布局/焦点/本地化；每个 view instance/generation 有局部 callback lease。",
     "Schema 无独立权力；onSubmit 仍走 Domain/Service。当前虚拟列表已有，不冒充仍需重建；无证据的富文本编辑器/任意 canvas/iframe 不进必补清单。",
     "长中文/英文、键盘、窄窗、空数据、失效 callback、异步结果逆序验证；搜索 debounce 不等于取消和防旧结果。"),
-  unit("V2", "Schema", "settings", "字段声明而非行为授权", "CFG01-13 SET01-46", "schemas.settings",
+  unit("V2", "Schema", "settings", "字段声明而非行为授权", "CFG01-13 SET01-55", "schemas.settings",
     "类型、默认值、scope、约束、secret 标记、动态选项和条件可用性。字段存在、值能保存、效果有消费者分别验证。",
     "从受权 discover 构造工具参数，不另写全量 settings 枚举。",
     "插件设置声明自有数据，跨插件写仍需 D5 授权；隐藏字段不等于安全隔离。",
@@ -197,9 +197,9 @@ export const units: Unit[] = [
 ];
 
 export const refinements = [
-  ["R1", "补真实遗漏", "CFG11", "内容字体四字段 followReader/fontFamily/fontSize/lineSpacing，独立尺寸 x-small/small/medium/large/x-large，行距 compact/comfortable/relaxed；默认 true/null/medium/comfortable。跟随全局 reader，null 是应用 sans。目标路径建议 appearance.contentTypography.*，不是当前已注册路径。"],
-  ["R2", "补真实遗漏", "CFG12", "默认标注色 yellow/green/blue/pink，默认 yellow；recolor 影响之后的一键标注。目标 annotations.defaultColor 属于 settings 路径，不是 annotations 领域方法。"],
-  ["R3", "补真实遗漏", "CFG13", "更新通道 stable/beta，默认 stable，设备本地且不漫游。目标 general.updateChannel 属于 settings；不是批准升级/重启。"],
+  ["R1", "已接真实遗漏", "CFG11", "settings 1.2 已注册 appearance.contentTypography.* 四字段 followReader/fontFamily/fontSize/lineSpacing，独立尺寸 x-small/small/medium/large/x-large，行距 compact/comfortable/relaxed；默认 true/null/medium/comfortable。跟随全局 reader，null 为应用 sans；独立字段只在解除跟随后消费。"],
+  ["R2", "已接真实遗漏", "CFG12", "settings 1.2 已注册 annotations.defaultColor，yellow/green/blue/pink，默认 yellow；宿主下一次一键标注即时读取，recolor 仍影响后续默认。不是 annotations 领域方法，不重染已有标注。"],
+  ["R3", "已接真实遗漏", "CFG13", "settings 1.2 已注册 general.updateChannel，stable/beta，默认 stable，设备本地且不漫游。已有 About 面板跟随 KV 变化；只影响下一次检查，不批准升级/重启。"],
   ["R4", "细化现有契约", "READ16", "modeKey/unitId/content version 决定恢复是否合法；恢复时重解 CFI，不钳制旧 ordinal，无版本旧位置不恢复。模式私有位置不得由插件直接写 read-aware-navigator-state:*。mode sessionTimer 从零计时，不持久化是设计，不是 durable scheduler 缺口。"],
   ["R5", "拒绝重复 API", "AI03 SYS08", "聊天复制 = conversations 读取 + clipboard；retry/clear 不是业务撤销，不删除已完成的工具副作用。draft/发送仍需用户意图与回合 generation。"],
   ["R6", "拒绝虚构宿主能力", "LIB06", "ReaderWorkspace 的重新导入按钮当前调用 library.openImportPicker，不能据此要求/宣称已有原文件原子替换引擎。"],

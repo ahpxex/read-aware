@@ -17,7 +17,7 @@ export default {
         let result: unknown;
         try {
           const updated = await settings.commands.update(changes);
-          const allowed = new Set(["appearance.theme", "appearance.motion", "general.startView"]);
+          const allowed = new Set(ctx.manifest.settingsAccess?.write ?? []);
           if (updated.settings.settings.some(entry => !allowed.has(entry.path))) throw new Error("Settings response exceeded grant");
           result = { status: "committed", changed: updated.changed, paths: updated.settings.settings.map(entry => entry.path) };
         } catch (error) {

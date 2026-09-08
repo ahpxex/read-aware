@@ -33,6 +33,7 @@ import {
   type ReaderOverrides,
 } from "../features/settings/lib/reader-overrides";
 import {
+  CONTENT_TYPOGRAPHY_KEY,
   getContentTypography,
   saveContentTypography,
   type ContentTypographySettings,
@@ -230,6 +231,7 @@ onLocalKVChange((key) => {
   const store = getDefaultStore();
   switch (key) {
     case APP_SETTINGS_KEY: store.set(appSettingsBaseAtom, getAppSettings()); break;
+    case CONTENT_TYPOGRAPHY_KEY: store.set(contentTypographyBaseAtom, getContentTypography()); break;
     case AI_PREFERENCES_KEY: store.set(aiPreferencesBaseAtom, getAIPreferences()); break;
     case READER_PREFERENCES_KEY: store.set(readerPreferencesBaseAtom, getReaderPreferences()); break;
     case READER_OVERRIDES_KEY: store.set(readerOverridesBaseAtom, getReaderOverrides()); break;

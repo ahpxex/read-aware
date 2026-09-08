@@ -84,6 +84,9 @@ function cloneDraft(draft: SettingsDraft): SettingsDraft {
     general: { ...draft.general },
     appearance: { ...draft.appearance },
     reading: { ...draft.reading },
+    contentTypography: { ...draft.contentTypography },
+    defaultMarkColor: draft.defaultMarkColor,
+    updateChannel: draft.updateChannel,
     readerOverrides: Object.fromEntries(
       Object.entries(draft.readerOverrides).map(([bookId, override]) => [
         bookId,
@@ -126,6 +129,9 @@ function mutableFingerprint(draft: SettingsDraft): string {
     general: draft.general,
     appearance: draft.appearance,
     reading: draft.reading,
+    contentTypography: draft.contentTypography,
+    defaultMarkColor: draft.defaultMarkColor,
+    updateChannel: draft.updateChannel,
     readerOverrides: draft.readerOverrides,
     aiPreferences: draft.aiPreferences,
     aiConfig,

@@ -1,0 +1,432 @@
+{
+  "date": "2026-09-09",
+  "baselineCommit": "0eb9c269",
+  "capability": "domains.settings 1.2.0",
+  "environment": {
+    "appIdentifier": "com.readaware.app.capability-e2e",
+    "tauri": "macOS debug",
+    "frontendPort": 5184,
+    "bridgePort": 9224,
+    "officialDataTouched": false
+  },
+  "methodology": {
+    "plugin": "Real sandbox Worker, exact settingsAccess grants, storage commit barrier and host command invocation",
+    "agent": "Actual buildSettingsTools/update_settings with buildRuntimeDeps, not a remote LLM conversation",
+    "effects": "Mounted About panel, document root typography, actual Foliate FB2 content and native highlight action, PDF canvas pixels",
+    "failure": "Isolated SQLite BEFORE INSERT trigger rejecting read-aware-default-mark-color; other records rolled back"
+  },
+  "results": {
+    "pluginUpdate": {
+      "result": {
+        "changed": [
+          {
+            "path": "reading.textAlign",
+            "target": {
+              "kind": "global"
+            },
+            "value": "justify"
+          },
+          {
+            "path": "reading.fixedLayoutColor",
+            "target": {
+              "kind": "global"
+            },
+            "value": "original"
+          },
+          {
+            "path": "general.whatsNewDialog",
+            "target": {
+              "kind": "global"
+            },
+            "value": false
+          },
+          {
+            "path": "appearance.contentTypography.followReader",
+            "target": {
+              "kind": "global"
+            },
+            "value": false
+          },
+          {
+            "path": "appearance.contentTypography.fontFamily",
+            "target": {
+              "kind": "global"
+            },
+            "value": "system:Georgia"
+          },
+          {
+            "path": "appearance.contentTypography.fontSize",
+            "target": {
+              "kind": "global"
+            },
+            "value": "x-large"
+          },
+          {
+            "path": "appearance.contentTypography.lineSpacing",
+            "target": {
+              "kind": "global"
+            },
+            "value": "relaxed"
+          },
+          {
+            "path": "annotations.defaultColor",
+            "target": {
+              "kind": "global"
+            },
+            "value": "blue"
+          },
+          {
+            "path": "general.updateChannel",
+            "target": {
+              "kind": "global"
+            },
+            "value": "beta"
+          }
+        ],
+        "paths": [
+          "appearance.contentTypography.followReader",
+          "appearance.contentTypography.fontFamily",
+          "appearance.contentTypography.fontSize",
+          "appearance.contentTypography.lineSpacing",
+          "annotations.defaultColor",
+          "general.updateChannel",
+          "general.whatsNewDialog",
+          "reading.textAlign",
+          "reading.fixedLayoutColor"
+        ],
+        "status": "committed"
+      }
+    },
+    "actualRootEffect": {
+      "channel": "beta",
+      "color": "blue",
+      "css": {
+        "family": "\"Georgia\", ui-sans-serif, system-ui, sans-serif",
+        "line": "1.9",
+        "size": "1.0625rem"
+      },
+      "typography": {
+        "followReader": false,
+        "fontFamily": "system:Georgia",
+        "fontSize": "x-large",
+        "lineSpacing": "relaxed"
+      }
+    },
+    "agentFollowAndChannel": {
+      "changed": [
+        {
+          "path": "general.updateChannel",
+          "target": {
+            "kind": "global"
+          },
+          "value": "stable"
+        },
+        {
+          "path": "appearance.contentTypography.followReader",
+          "target": {
+            "kind": "global"
+          },
+          "value": true
+        }
+      ],
+      "result": "committed"
+    },
+    "mountedAboutAfterPlugin": {
+      "channel": "beta",
+      "buttons": [
+        {
+          "text": "Stable",
+          "pressed": "false"
+        },
+        {
+          "text": "Beta",
+          "pressed": "true"
+        }
+      ],
+      "family": "\"Inter\", ui-sans-serif, system-ui, sans-serif"
+    },
+    "agentMountedReader": {
+      "changed": [
+        {
+          "path": "reading.textAlign",
+          "target": {
+            "kind": "global"
+          },
+          "value": "start"
+        },
+        {
+          "path": "annotations.defaultColor",
+          "target": {
+            "kind": "global"
+          },
+          "value": "pink"
+        }
+      ],
+      "status": "committed"
+    },
+    "readerAlignment": {
+      "align": "start",
+      "rect": {
+        "bottom": 289,
+        "height": 113,
+        "left": 66,
+        "right": 464.82763671875,
+        "top": 176,
+        "width": 398.82763671875,
+        "x": 66,
+        "y": 176
+      },
+      "text": "Gamma paragraph 1. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+    },
+    "nativeAnnotation": [
+      {
+        "id": "1fe27d6a-b5ca-427e-a366-ca3d4bee03a5",
+        "color": "pink",
+        "text": "Gamma paragraph 1. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text is deterministic test content, not a user's book."
+      }
+    ],
+    "pdfOriginal": {
+      "docs": [
+        {
+          "bg": "",
+          "canvas": {
+            "h": 3200,
+            "pixel": [
+              255,
+              255,
+              255,
+              255
+            ],
+            "w": 2400
+          },
+          "index": 3
+        },
+        {
+          "bg": "",
+          "canvas": {
+            "h": 3200,
+            "pixel": [
+              255,
+              255,
+              255,
+              255
+            ],
+            "w": 2400
+          },
+          "index": 2
+        },
+        {
+          "bg": "",
+          "canvas": {
+            "h": 3200,
+            "pixel": [
+              255,
+              255,
+              255,
+              255
+            ],
+            "w": 2400
+          },
+          "index": 1
+        },
+        {
+          "bg": "",
+          "canvas": {
+            "h": 3200,
+            "pixel": [
+              255,
+              255,
+              255,
+              255
+            ],
+            "w": 2400
+          },
+          "index": 0
+        }
+      ],
+      "fixed": true
+    },
+    "pluginAtomicFailure": {
+      "channel": "beta",
+      "color": "pink",
+      "css": {
+        "family": "\"Inter\", ui-sans-serif, system-ui, sans-serif",
+        "size": "0.875rem"
+      },
+      "eventDelta": 0,
+      "result": {
+        "code": "db/error",
+        "status": "failed"
+      },
+      "typography": {
+        "followReader": true,
+        "fontFamily": "system:Georgia",
+        "fontSize": "x-large",
+        "lineSpacing": "relaxed"
+      }
+    },
+    "agentAtomicFailure": {
+      "code": "db/error",
+      "color": "pink",
+      "eventDelta": 0,
+      "result": "failed",
+      "typography": {
+        "followReader": true,
+        "fontFamily": "system:Georgia",
+        "fontSize": "x-large",
+        "lineSpacing": "relaxed"
+      }
+    },
+    "pdfTheme": {
+      "docs": [
+        {
+          "bg": "rgb(245, 241, 232)",
+          "canvas": {
+            "h": 3200,
+            "pixel": [
+              245,
+              241,
+              232,
+              255
+            ],
+            "w": 2400
+          },
+          "index": 3
+        },
+        {
+          "bg": "rgb(245, 241, 232)",
+          "canvas": {
+            "h": 3200,
+            "pixel": [
+              245,
+              241,
+              232,
+              255
+            ],
+            "w": 2400
+          },
+          "index": 2
+        },
+        {
+          "bg": "rgb(245, 241, 232)",
+          "canvas": {
+            "h": 3200,
+            "pixel": [
+              245,
+              241,
+              232,
+              255
+            ],
+            "w": 2400
+          },
+          "index": 1
+        },
+        {
+          "bg": "rgb(245, 241, 232)",
+          "canvas": {
+            "h": 3200,
+            "pixel": [
+              245,
+              241,
+              232,
+              255
+            ],
+            "w": 2400
+          },
+          "index": 0
+        }
+      ],
+      "fixed": true,
+      "renderer": "FOLIATE-FXL"
+    },
+    "deniedBatch": {
+      "color": "pink",
+      "eventDelta": 0,
+      "result": {
+        "code": null,
+        "status": "failed"
+      }
+    },
+    "nullFont": {
+      "changed": [
+        {
+          "path": "appearance.contentTypography.followReader",
+          "target": {
+            "kind": "global"
+          },
+          "value": false
+        },
+        {
+          "path": "appearance.contentTypography.fontFamily",
+          "target": {
+            "kind": "global"
+          },
+          "value": null
+        },
+        {
+          "path": "annotations.defaultColor",
+          "target": {
+            "kind": "global"
+          },
+          "value": "blue"
+        }
+      ],
+      "paths": [
+        "appearance.contentTypography.followReader",
+        "appearance.contentTypography.fontFamily",
+        "appearance.contentTypography.fontSize",
+        "appearance.contentTypography.lineSpacing",
+        "annotations.defaultColor",
+        "general.updateChannel",
+        "general.whatsNewDialog",
+        "reading.textAlign",
+        "reading.fixedLayoutColor"
+      ],
+      "status": "committed"
+    },
+    "existingAnnotationUnchanged": [
+      {
+        "id": "1fe27d6a-b5ca-427e-a366-ca3d4bee03a5",
+        "color": "pink"
+      }
+    ],
+    "nullFontEffect": {
+      "inlineFamily": "",
+      "effectiveFamily": "Inter, ui-sans-serif, system-ui, -apple-system,\n    BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+      "typography": {
+        "followReader": false,
+        "fontFamily": null,
+        "fontSize": "x-large",
+        "lineSpacing": "relaxed"
+      },
+      "color": "blue"
+    },
+    "cleanup": {
+      "channel": "stable",
+      "color": "yellow",
+      "contributions": 0,
+      "reading": 0,
+      "typography": {
+        "followReader": true,
+        "fontFamily": null,
+        "fontSize": "medium",
+        "lineSpacing": "comfortable"
+      }
+    }
+  },
+  "checks": {
+    "unitAndIntegration": "19 test tasks passed; 17 cached, changed web and Agent tasks rerun; web 695 tests passed",
+    "typecheck": "22 tasks passed; 20 cached, changed web and Agent tasks rerun",
+    "model": "224 rows; 578 inventory mappings; 129 baseline items; 30 units; 32 scenarios; 7 model gate tests passed",
+    "nativeScreenshot": "/tmp/settings-content-native-reader.png"
+  },
+  "limits": [
+    "Agent execution tests use actual tools/ports without remote inference",
+    "Nine paths were not tested in packaged Tauri or Windows/Linux",
+    "Post-update relaunch notice was not exercised",
+    "Native reader selection was created via DOM Range; highlight dispatched through the real toolbar",
+    "Probe is diagnostic composition, not a shipping user plugin",
+    "Permission failure remains code=null; stable validation/permission codes are still a gap",
+    "Full versioned all-source settings observation, reset/inherit, shortcuts, shelf preferences, remaining capabilities and W01-W32 remain incomplete"
+  ]
+}

@@ -17,6 +17,7 @@ import {
   aiPreferencesAtom,
   appSettingsAtom,
   generalSettingsAtom,
+  contentTypographyAtom,
   readerOverridesAtom,
   readerPreferencesAtom,
 } from "../../state/ui";
@@ -36,6 +37,8 @@ import {
 import { getAIConfig } from "../../features/ai/lib/ai-config";
 import { commitSettingsDraft } from "./persistence";
 import { afterLocalKVWrites } from "../../platform/local-store";
+import { getDefaultMarkColor } from "../../features/annotations/lib/annotation-prefs";
+import { getUpdateChannel } from "../../features/update/lib/update-channel";
 import {
   applySettingChangesToDraft,
   settingsSnapshotFromDraft,
@@ -87,6 +90,9 @@ function readDraft(): SettingsDraft {
     appearance: store.get(appSettingsAtom),
     reading: store.get(readerPreferencesAtom),
     readerOverrides: store.get(readerOverridesAtom),
+    contentTypography: store.get(contentTypographyAtom),
+    defaultMarkColor: getDefaultMarkColor(),
+    updateChannel: getUpdateChannel(),
     aiPreferences: store.get(aiPreferencesAtom),
     aiConfig: getAIConfig(),
     pluginThemes: store.get(pluginThemesAtom),

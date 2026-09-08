@@ -5,6 +5,7 @@ export type SettingsSection =
   | "general"
   | "appearance"
   | "reading"
+  | "annotations"
   | "ai"
   | "menus"
   | "sync"

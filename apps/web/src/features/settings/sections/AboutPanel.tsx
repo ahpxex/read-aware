@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { Button, ChoiceGroup, Spinner } from "@read-aware/ui";
 import { isAndroid, isIOS, isTauri } from "../../../platform/environment";
 import { openExternalUrl } from "../../../platform/external-link";
@@ -7,7 +7,7 @@ import { useSoftwareUpdate } from "../../update/hooks/useSoftwareUpdate";
 import {
   getUpdateChannel,
   setUpdateChannel,
-  type UpdateChannel,
+  subscribeUpdateChannel,
 } from "../../update/lib/update-channel";
 import { versionCodename } from "../../update/lib/version-codename";
 import { SettingsGroup } from "../components/SettingsGroup";
@@ -47,7 +47,7 @@ function linkValue(href: string, label: string) {
 export function AboutPanel() {
   const { t } = useTranslation("settings");
   const update = useSoftwareUpdate();
-  const [channel, setChannel] = useState<UpdateChannel>(() => getUpdateChannel());
+  const channel = useSyncExternalStore(subscribeUpdateChannel, getUpdateChannel);
   const buildLabel = !isTauri()
     ? t("about.buildWeb")
     : isAndroid()
@@ -140,7 +140,6 @@ export function AboutPanel() {
               ]}
               onChange={(next) => {
                 setUpdateChannel(next);
-                setChannel(next);
               }}
             />
           }

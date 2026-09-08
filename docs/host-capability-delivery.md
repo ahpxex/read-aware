@@ -441,3 +441,26 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [代码/环境] 重扫 215 行、569 入口映射、129 旧基线、30 单元/catalog 与 W01–W32，7 项模型门禁通过。补正摘要中遗漏的 Annotation Desk，源码九插件与编译内置六插件分开计数。矩阵、统一模型与插件架构三对文档同步；pair validator 通过，三页均检查 1440×1000、1024×768、390×844 无横向溢出，中英文搜索与 Escape 可用，现有模型/矩阵抽屉和主题保持有效；无重复 ID/浏览器错误。既有 CDN 依赖不变，无新增图。
 
 仍未完成：CFG10 全来源带 revision/origin 的设置领域广播、所有 UI 字段草稿和系统效果验收、权限/校验错误统一 code、远端漫游持久完成；READ16 模式专有持久回执不属于 settings.commands.update，本次没有关闭。其余双端缺口、完整组合插件/W01–W32、packaged/跨平台/远端服务验收继续保持未完成。探针贡献清理为 0，偏好恢复，临时 trigger 与 probe KV 清空，隔离应用和文档浏览器停止；未推送。
+
+## 2026-09-09：九项真实偏好的双端入口与效果
+
+[代码] `domains.settings` 1.2 将 CFG04/05/06/11/12/13 接入同一目录、授权、校验和 SQLite 原子批次：`reading.textAlign`、`reading.fixedLayoutColor`、`general.whatsNewDialog`、`appearance.contentTypography.followReader/fontFamily/fontSize/lineSpacing`、`annotations.defaultColor`、`general.updateChannel`。前两项支持 global/book/all-books，其余仅 global。新增 annotations section，Agent 的 get_settings schema 与工具说明同步；插件仍需精确路径或对应通配授权。原 SET01–SET46 保持 ID，新增 SET47–SET55。
+
+[代码] 内容字体跟随的是全局阅读偏好，不是本书 override；独立字体/字号/行距只在 followReader=false 生效，fontFamily=null 表示应用 sans 字体而不是删除覆盖。内容字体 base atom 跟随 KV 变化与回滚。默认标注色和更新通道保留现有原始字符串存储，不误写成带引号的 JSON。已挂载阅读器在高亮/下划线动作发生时读取默认色，不再捕获初次挂载颜色；原标注不重染。原生改色的默认偏好写入返回真实 Promise，拒绝进入原有错误表面，不产生未处理 rejection。AboutPanel 用外部存储订阅读取当前通道；设置通道既不漫游，也不会自动检查、下载、安装或重启。
+
+[环境] 隔离 macOS debug Tauri（com.readaware.app.capability-e2e，5184/9224）的证据见 [settings-content-preferences-2026-09-09.json](./evidence/settings-content-preferences-2026-09-09.json)。复用真实 Worker 探针，以九条 settingsAccess 写授权组合更新；Agent 使用真实 buildSettingsTools/update_settings 和运行时端口，未使用远端模型：
+
+- Worker 更新九字段后，根节点字体为 Georgia、字号 1.0625rem、行距 1.9；Agent 切 followReader=true 后，实际恢复 Inter/0.875rem/1.65。随后 Worker 写 fontFamily=null，根节点行内字体属性被移除，实际采用应用 sans。
+- AboutPanel 已挂载时，Agent 改 stable、Worker 改 beta，按钮 aria-pressed 随之切换，没有触发更新检查。
+- FB2 正文实际 computed text-align 从 justify 变为 start。阅读器挂载后 Agent 将默认色改 pink，通过真实高亮工具栏创建的标注落入 SQLite 为 pink，截图 `/tmp/settings-content-native-reader.png` 显示对应高亮。随后 Worker 将默认色改 blue，旧标注仍 pink。选区用 DOM Range 创建，高亮动作走真实宿主 UI，不冒充完整鼠标拖选测试。
+- PDF 固定版式四张已渲染页面均有 2400×3200 非空 canvas；theme 背景像素为 [245,241,232,255]，Agent 切 original 后为 [255,255,255,255] 且文档背景清空。此处验证真实重新绘制，不以设置回执替代效果证据。
+- 在隔离 app_kv 上用 BEFORE INSERT trigger 拒绝默认色写入。Worker 的内容字体/通道/默认色批次和 Agent 的内容字体/默认色批次均返回 db/error；字体、原始字符串 KV 与颜色回滚，成功事件增量为 0。移除 trigger 后正常写入恢复。
+- Worker 混入未授权 appearance.motion 的批次被拒绝，允许的默认色也未改变，成功事件增量为 0；拒绝 code 仍为 null，不能算稳定错误码已完成。
+
+[环境] 五项新增回归覆盖九路径发现、实际枚举/范围、按书覆盖与全书更新、独立字体与 null、缺失插件字体、标量编码、已订阅通道刷新、返回授权过滤及非法值整批拒绝。最终全仓 test 19 个任务通过（17 缓存，web 695 项及 Agent 任务重跑），typecheck 22 个任务通过（20 缓存），生产 web 构建重新执行通过。没有修改 Rust，本次未重跑 Rust 全量；web build 不算 packaged Tauri 验收。保留既有 Node/chunk/dynamic-import 与 Rust 编译警告。
+
+[代码/环境] 重扫为 224 行、578 入口映射、129 旧基线、30 责任单元/catalog、32 场景，生成检查、7 项模型门禁、三对文档 validator 通过。统一模型中仍称 CFG11–13 路径不存在及 Jumper 未实现的历史模板文案已纠正。矩阵、模型、插件架构 HTML 均检查 1440×1000、1024×768、390×844，页面无横向溢出、重复 ID 或失效页内锚点；中英文检索、Escape，以及矩阵/模型已有抽屉 inert 和主题刷新保持通过。插件架构搜索关键词补入九项路径名。截图 `/tmp/settings12-{matrix,model,plugin-system}-{1440,390}.png` 已检查。无浏览器 console/page error；现有 CDN 返回 200，不增加图，文档仍依赖网络，不能把文档浏览器算产品证据。
+
+[代码] 再查设置契约，CFG03 仍没有 reset/inherit/provenance；CFG10 仍没有全来源带 revision/origin 的领域广播。对 AI 执行目录和 packages/agent/src 再检索，buildMemory、sendHighlightedText、sendSurroundingContext、localOnly 仍仅在偏好存储/目录定义中出现，没有执行消费者。其余六个旧无效果路径仍保持部分，不因本批增加九字段而改绿。下一步优先处理这些隐私开关的真实执行约束，再补设置覆盖/观察和其他双端缺口。
+
+仍未完成：上述十个无效果设置、reset/inherit、完整观察和稳定错误、其他全部双端缺口与 W01–W32 实用组合、这九项的更新后重启/packaged/跨平台验收及远端服务验收。本批探针是诊断性组合，不冒充新增已交付的第一方实用插件。九项偏好已恢复，测试标注通过事件路径删除，贡献为 0、probe KV 与临时 trigger 清空；隔离应用与文档浏览器已停止，正式数据未触碰，未推送。

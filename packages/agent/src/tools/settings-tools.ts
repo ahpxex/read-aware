@@ -14,8 +14,9 @@ import { textResult } from "./tool-result";
 
 const sectionSchema = Type.Union([
   Type.Literal("general", { description: "General application behavior" }),
-  Type.Literal("appearance", { description: "Application shell appearance, not reader pages" }),
+  Type.Literal("appearance", { description: "Application appearance and chat/note content typography, not reader pages" }),
   Type.Literal("reading", { description: "Reader pages: theme, font, and reading mode" }),
+  Type.Literal("annotations", { description: "Preferences for new highlights and underlines" }),
   Type.Literal("ai", { description: "Non-sensitive AI behavior preferences" }),
   Type.Literal("menus", {
     description:
@@ -128,7 +129,7 @@ export function buildSettingsTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     name: "get_settings",
     label: "Read settings",
     description:
-      "Read the host's current non-sensitive settings catalog. Each entry provides an exact path, current value, value kind, valid options, writability, and supportedTargets. Reader page theme/font/mode live in section=reading; section=appearance is the application shell. Use target=book to inspect one book; inside a book agent its bookId defaults to the current book. overrides reports scoped values that shadow global defaults. API keys and Custom endpoint values are never exposed.",
+      "Read the host's current non-sensitive settings catalog. Each entry provides an exact path, current value, value kind, valid options, writability, and supportedTargets. Reader page theme/font/mode live in section=reading; section=appearance is application appearance and chat/note content typography. section=annotations includes the default color for new marks, not edits to existing annotations. Use target=book to inspect one book; inside a book agent its bookId defaults to the current book. overrides reports scoped values that shadow global defaults. API keys and Custom endpoint values are never exposed.",
     parameters: Type.Object(
       {
         section: Type.Optional(sectionSchema),

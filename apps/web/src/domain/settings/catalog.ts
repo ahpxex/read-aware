@@ -15,10 +15,6 @@ import type {
 } from "../../features/settings/lib/app-settings";
 import type { AIPreferences } from "../../features/settings/lib/ai-preferences";
 import { AI_FEATURE_KEYS } from "../../features/settings/lib/ai-preferences";
-import {
-  CURATED_FONTS,
-  getCuratedFont,
-} from "../../features/settings/lib/curated-font-catalog";
 import type { GeneralSettings } from "../../features/settings/lib/general-settings";
 import type { ReaderOverrides } from "../../features/settings/lib/reader-overrides";
 import type {
@@ -30,10 +26,7 @@ import { applyReaderThemeSelection } from "../../features/settings/lib/reader-th
 import { builtinThemesFor } from "../../features/settings/lib/appearance-control";
 import { contributionText } from "../../features/plugins/lib/plugin-i18n";
 import { isTimeOfDay } from "../../features/plugins/lib/time-of-day";
-import {
-  findRegisteredByRef,
-  toPluginRef,
-} from "../../features/plugins/lib/plugin-theme";
+import { toPluginRef } from "../../features/plugins/lib/plugin-theme";
 import type {
   RegisteredPluginFont,
   RegisteredPluginTheme,
@@ -53,6 +46,11 @@ import {
   type MenuSurface,
 } from "../../features/menus/state/menu-config";
 import type { AgentPluginSettings } from "../../features/plugins/lib/plugin-settings";
+import type { ContentTypographySettings } from "../../features/settings/lib/content-typography";
+import type { UpdateChannel } from "../../features/update/lib/update-channel";
+import type { Highlight } from "../../features/annotations/lib/annotation-types";
+import { contentPreferenceDefinitions } from "./content-preferences";
+import { cleanFontFamily, fontOptions } from "./font-options";
 import type {
   PluginFormField,
   PluginFormValues,
@@ -63,6 +61,9 @@ export type SettingsDraft = {
   appearance: AppSettings;
   reading: ReaderSettingsPreferences;
   readerOverrides: ReaderOverrides;
+  contentTypography: ContentTypographySettings;
+  defaultMarkColor: Highlight["color"];
+  updateChannel: UpdateChannel;
   aiPreferences: AIPreferences;
   aiConfig: AIConfig | null;
   pluginThemes: RegisteredPluginTheme[];
@@ -169,18 +170,6 @@ function readerThemeOptions(draft: SettingsDraft): SettingOption[] {
   return themeOptions(draft, "reader");
 }
 
-function fontOptions(draft: SettingsDraft): SettingOption[] {
-  return [
-    ...CURATED_FONTS.map((font) => option(`curated:${font.id}`, font.label)),
-    ...draft.pluginFonts.map((font) => ({
-      value: toPluginRef(font.pluginId, font.id),
-      label: font.family,
-      source: "plugin" as const,
-      pluginName: font.pluginName,
-    })),
-  ];
-}
-
 function enumValue(
   definition: SettingDefinition,
   value: SettingValue,
@@ -235,40 +224,6 @@ function cleanModel(value: SettingValue, path: string): string {
     throw new Error(`${path} must be a non-empty string`);
   }
   return value.trim();
-}
-
-function cleanFontFamily(
-  value: SettingValue,
-  draft: SettingsDraft,
-): ReaderFontFamily {
-  if (typeof value !== "string") {
-    throw new Error("reading.fontFamily must be a string");
-  }
-  const font = value.trim();
-  if (
-    font.startsWith("curated:") &&
-    getCuratedFont(font.slice("curated:".length))
-  ) {
-    return font as `curated:${string}`;
-  }
-  if (font.startsWith("plugin:")) {
-    const registered = findRegisteredByRef(font, draft.pluginFonts);
-    if (registered) return font as `plugin:${string}`;
-    throw new Error(`unknown plugin font: ${font}`);
-  }
-  if (font.startsWith("system:")) {
-    const family = font.slice("system:".length).trim();
-    if (
-      family &&
-      family.length <= 120 &&
-      !/[\u0000-\u001f\u007f]/.test(family)
-    ) {
-      return `system:${family}`;
-    }
-  }
-  throw new Error(
-    "reading.fontFamily must be a catalog option or a non-empty system:<family> value",
-  );
 }
 
 function readingPrefs(
@@ -644,6 +599,7 @@ export function buildSettingDefinitions(
   draft: SettingsDraft,
 ): SettingDefinition[] {
   const definitions: SettingDefinition[] = [
+    ...contentPreferenceDefinitions(),
     globalDefinition({
       path: "general.startView",
       section: "general",
@@ -672,6 +628,7 @@ export function buildSettingDefinitions(
         ["general.launchAtStartup", "Launch at startup", "launchAtStartup"],
         ["general.fileAssociations", "File associations", "fileAssociations"],
         ["general.autoUpdate", "Automatic updates", "autoUpdate"],
+        ["general.whatsNewDialog", "Show release notes after updating", "whatsNewDialog"],
       ] as const
     ).map(([path, label, key]) =>
       globalDefinition({
@@ -743,6 +700,8 @@ export function buildSettingDefinitions(
     }),
     ...(
       [
+        ["reading.textAlign", "Text alignment", "textAlign", ["book", "start", "justify"]],
+        ["reading.fixedLayoutColor", "Fixed-layout page colors", "fixedLayoutColor", ["theme", "original"]],
         [
           "reading.fontSize",
           "Font size",

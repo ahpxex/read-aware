@@ -203,11 +203,11 @@
         </div>
       </section>
 
-      <section data-search-section="domains 领域 library reading annotations conversations settings">
+      <section data-search-section="domains 领域 library reading annotations conversations settings contentTypography typography defaultColor updateChannel textAlign fixedLayoutColor whatsNewDialog">
         <div class="wrap">
           <h2>Domains</h2>
           <p class="intro">插件只看到权限允许的 actor view。所有写入都经过正式命令，并记录来源。</p>
-          <p>Settings 1.1 的单次更新在本地 SQLite 中全部提交或全部回滚，Agent 与插件都等待持久回执，返回快照按授权过滤。命令先等已有 UI / 远端 KV 写入结算，不能把乐观值当作保存成功；失败不发成功事件，设置表单与 Worker 镜像跟随回滚。这不代表远端同步、密钥或系统效果已经完成，也不替代完整的带版本变更流。</p>
+          <p>Settings 1.2 沿用单次更新的 SQLite 原子提交与双端持久回执，快照按授权过滤；失败回滚且不发成功事件。新增九项真实偏好：阅读对齐、固定版式配色、更新说明提示、内容字体四字段、默认标注色和更新通道。内容字体可跟随全局阅读设置或独立配置；默认色只影响新标注，更新通道只影响下次检查且不漫游。macOS debug 已验实际字体、FB2 标注、PDF 画布、已打开的更新面板与失败回滚；更新后重启、跨平台与这九项的打包验收仍未完成，完整带版本变更流也仍缺。</p>
           <p>Reading v2 已提供当前会话快照、即时快照观察、版本化落点、有限可见文本与历史可用性。开书、跳转、前进后退、翻页返回完成回执，关闭等待真实会话释放；控制命令可带书籍/会话 guard。Agent 共用同一控制器。</p>
           <p>文件 hash 用来识别过期位置；无稳定版本的虚拟内容使用会话版本。选区、模式、播放、搜索到 Range 尚未接通；取消等待不代表撤销引擎移动。PDF 等待栅格绘制，后台 WKWebView 暂停绘制时可能超时。</p>
           <div class="table-shell">

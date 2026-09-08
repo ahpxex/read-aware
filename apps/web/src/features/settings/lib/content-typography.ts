@@ -26,7 +26,8 @@ import {
   type ReaderSettingsPreferences,
 } from "./reader-settings";
 
-const STORAGE_KEY = "read-aware-content-typography";
+export const CONTENT_TYPOGRAPHY_KEY = "read-aware-content-typography";
+const STORAGE_KEY = CONTENT_TYPOGRAPHY_KEY;
 
 /**
  * A conversational size ladder, not the book's. The reader's eight steps run

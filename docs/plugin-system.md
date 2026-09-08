@@ -205,6 +205,25 @@ Settings operations are:
 - update permitted paths at supported targets;
 - subscribe to committed changes.
 
+Since `domains.settings` 1.1, one validated update commits all affected KV
+records in a single local SQLite transaction. The Agent and Worker await that
+transaction; a failure rejects and publishes no `settings.changed` event.
+Commands share an ordered queue and read after their predecessor settles, so a
+later patch cannot accidentally persist an earlier rejected change. The read
+also waits for already accepted native UI/remote KV writes and runs without a
+gap before enqueueing its transaction. An optimistic matching UI value is not
+treated as a durable no-op. Returned
+snapshots, like reads, are filtered to the actor's permitted paths.
+
+Native preference atoms and Worker mirrors can show optimistic values while
+the command runs and follow rollback if it fails. Declared plugin settings
+invalidate from that mirror, after all KV observers have run. Their form
+submission also returns the actual write promise. This is local persistence,
+not a guarantee that every setting has an effect consumer, that remote roaming
+has committed, or that secrets and operating-system changes are transactional.
+Native UI and remote edits still lack a complete versioned settings-domain
+change feed; see CFG10 in the capability matrix.
+
 Plugin access is declared in `settingsAccess` with exact paths or explicit
 `section.*` groups. `discover`, `read`, and `write` are separate grants. An app
 theme scheduler can write `appearance.theme` without gaining access to AI,

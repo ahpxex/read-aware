@@ -93,6 +93,11 @@ export async function flushLocalKV(prefix = ""): Promise<void> {
   if (isTauri()) await writes.flush(prefix);
 }
 
+/** Read and enqueue a settings patch after prior UI/remote writes have committed or rolled back. */
+export function afterLocalKVWrites<T>(operation: () => T | Promise<T>): Promise<T> {
+  return isTauri() ? writes.afterPending(operation) : Promise.resolve().then(operation);
+}
+
 async function loadKvSnapshot(): Promise<Map<string, string>> {
   const all = await invoke<Record<string, string>>("load_kv_all");
   return new Map(Object.entries(all));
@@ -160,6 +165,29 @@ export const localKV = {
     return out;
   },
 };
+
+/** Host-only multi-record settings commit; never exposes raw KV authority to actors. */
+export function setLocalKVBatch(entries: ReadonlyMap<string, string>): Promise<void> {
+  if (entries.size === 0) return Promise.resolve();
+  const values = new Map(entries);
+  if (isTauri()) {
+    return writes.batch(values, () => invoke("set_kv_batch", { entries: [...values] }));
+  }
+  // Storybook has no SQLite transaction. Restore its prior records on failure,
+  // and do not notify observers until all writes have succeeded.
+  const previous = new Map([...values.keys()].map(key => [key, localStorage.getItem(key)]));
+  try {
+    for (const [key, value] of values) localStorage.setItem(key, value);
+  } catch (error) {
+    for (const [key, value] of previous) {
+      if (value === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, value);
+    }
+    return Promise.reject(error);
+  }
+  for (const [key, value] of values) notifyChange(key, value);
+  return Promise.resolve();
+}
 
 /**
  * Load the SQLite config snapshot before any settings module reads it. No-op in

@@ -2328,6 +2328,31 @@ fn plugin_document_snapshot_restores_the_pre_update_state_atomically() {
 }
 
 #[test]
+fn kv_batch_commits_all_records_or_rolls_back() {
+    let mut conn = migrated_conn();
+    set_kv_batch_inner(&mut conn, vec![("first".into(), "original".into())]).unwrap();
+    conn.execute_batch(
+        "CREATE TRIGGER fail_settings_batch BEFORE INSERT ON app_kv
+         WHEN NEW.key = 'rejected'
+         BEGIN SELECT RAISE(ABORT, 'forced settings failure'); END;",
+    ).unwrap();
+    assert!(set_kv_batch_inner(&mut conn, vec![
+        ("first".into(), "changed".into()),
+        ("second".into(), "new".into()),
+        ("rejected".into(), "fail".into()),
+    ]).is_err());
+    let rows: Vec<(String, String)> = conn.prepare("SELECT key, value_json FROM app_kv")
+        .unwrap().query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .unwrap().collect::<Result<_, _>>().unwrap();
+    assert_eq!(rows, vec![("first".into(), "original".into())]);
+    set_kv_batch_inner(&mut conn, vec![
+        ("first".into(), "committed".into()), ("second".into(), "new".into()),
+    ]).unwrap();
+    let count: i64 = conn.query_row("SELECT count(*) FROM app_kv", [], |row| row.get(0)).unwrap();
+    assert_eq!(count, 2);
+}
+
+#[test]
 fn namespaced_kv_restore_replaces_only_the_target_namespace() {
     let mut conn = migrated_conn();
     conn.execute(

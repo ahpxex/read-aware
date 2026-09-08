@@ -42,12 +42,13 @@ describe("Settings Domain actor policy", () => {
       value: DEFAULT_APP_SETTINGS.theme,
     });
 
-    await settings.commands.update([
+    const result = await settings.commands.update([
       { path: "appearance.theme", value: "light" },
     ]);
 
     expect(getDefaultStore().get(appSettingsAtom).theme).toBe("light");
     expect(events).toEqual([["appearance.theme"]]);
+    expect(result.settings.settings.map(entry => entry.path)).toEqual(["appearance.theme"]);
     await expect(
       settings.commands.update([
         { path: "appearance.motion", value: "reduced" },

@@ -228,7 +228,8 @@ export function getStoredProviderSettings(
 // API key is a credential and goes through platform/secret-store, which keeps
 // it encrypted at rest. Neither is reachable from webview script — the key used
 // to sit in localStorage, where every plugin could read it.
-const CONFIG_KEY = "read-aware-ai-config";
+export const AI_CONFIG_KEY = "read-aware-ai-config";
+const CONFIG_KEY = AI_CONFIG_KEY;
 
 export function getAIConfig(): AIConfig | null {
   try {
@@ -260,9 +261,9 @@ export function getAIConfig(): AIConfig | null {
   }
 }
 
-export function saveAIConfig(config: AIConfig): void {
+/** Encode non-secret preferences for both native UI saves and atomic domain commands. */
+export function encodeAIConfig(config: AIConfig): string {
   const {
-    apiKey,
     provider,
     model,
     fastModel,
@@ -306,7 +307,12 @@ export function saveAIConfig(config: AIConfig): void {
         }
       : {}),
   };
-  localKV.setItem(CONFIG_KEY, JSON.stringify({ provider, models } satisfies StoredAIConfig));
+  return JSON.stringify({ provider, models } satisfies StoredAIConfig);
+}
+
+export function saveAIConfig(config: AIConfig): void {
+  const { provider, apiKey } = config;
+  localKV.setItem(CONFIG_KEY, encodeAIConfig(config));
   // Reactive settings rewrite this record as fields change. Avoid needless
   // encrypted-store IPC when the credential itself did not change.
   const slot = keySlot(provider);

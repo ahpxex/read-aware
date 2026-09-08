@@ -1,0 +1,876 @@
+{
+  "date": "2026-09-09",
+  "environment": "macOS isolated Tauri development app com.readaware.app.capability-e2e, ports 5184/9224",
+  "before": {
+    "appearance": {
+      "motion": "system",
+      "theme": "system"
+    },
+    "events": [],
+    "general": {
+      "autoUpdate": true,
+      "crashPrompt": true,
+      "fileAssociations": true,
+      "language": null,
+      "launchAtStartup": false,
+      "startView": "shelf",
+      "whatsNewDialog": true
+    }
+  },
+  "successDisk": {
+    "chunk_id": "49f603",
+    "wall_time_seconds": 0.000005375,
+    "exit_code": 0,
+    "original_token_count": 85,
+    "output": "[\n  {\n    key: \"read-aware-app-settings\",\n    value_json: \"{\\\"theme\\\":\\\"dark\\\",\\\"motion\\\":\\\"system\\\"}\",\n  }, {\n    key: \"read-aware-general-settings\",\n    value_json: \"{\\\"startView\\\":\\\"resume\\\",\\\"language\\\":null,\\\"crashPrompt\\\":true,\\\"launchAtStartup\\\":false,\\\"fileAssociations\\\":true,\\\"autoUpdate\\\":true,\\\"whatsNewDialog\\\":true}\",\n  }\n]\n"
+  },
+  "agentFailure": {
+    "code": "db/error",
+    "snapshot": {
+      "appearance": {
+        "motion": "system",
+        "theme": "dark"
+      },
+      "events": [
+        {
+          "changes": [
+            {
+              "path": "appearance.theme",
+              "target": {
+                "kind": "global"
+              },
+              "value": "dark"
+            },
+            {
+              "path": "general.startView",
+              "target": {
+                "kind": "global"
+              },
+              "value": "resume"
+            }
+          ],
+          "origin": "agent",
+          "type": "settings.changed"
+        }
+      ],
+      "general": {
+        "autoUpdate": true,
+        "crashPrompt": true,
+        "fileAssociations": true,
+        "language": null,
+        "launchAtStartup": false,
+        "startView": "resume",
+        "whatsNewDialog": true
+      }
+    },
+    "status": "failed"
+  },
+  "pluginFailure": {
+    "result": {
+      "code": "db/error",
+      "status": "failed"
+    },
+    "snapshot": {
+      "appearance": {
+        "motion": "system",
+        "theme": "dark"
+      },
+      "events": [
+        {
+          "changes": [
+            {
+              "path": "appearance.theme",
+              "target": {
+                "kind": "global"
+              },
+              "value": "dark"
+            },
+            {
+              "path": "general.startView",
+              "target": {
+                "kind": "global"
+              },
+              "value": "resume"
+            }
+          ],
+          "origin": "agent",
+          "type": "settings.changed"
+        }
+      ],
+      "general": {
+        "autoUpdate": true,
+        "crashPrompt": true,
+        "fileAssociations": true,
+        "language": null,
+        "launchAtStartup": false,
+        "startView": "resume",
+        "whatsNewDialog": true
+      }
+    }
+  },
+  "concurrent": {
+    "failed": {
+      "code": "db/error",
+      "snapshot": {
+        "appearance": {
+          "motion": "system",
+          "theme": "dark"
+        },
+        "events": [
+          {
+            "changes": [
+              {
+                "path": "appearance.theme",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "dark"
+              },
+              {
+                "path": "general.startView",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "resume"
+              }
+            ],
+            "origin": "agent",
+            "type": "settings.changed"
+          }
+        ],
+        "general": {
+          "autoUpdate": true,
+          "crashPrompt": true,
+          "fileAssociations": true,
+          "language": null,
+          "launchAtStartup": false,
+          "startView": "resume",
+          "whatsNewDialog": true
+        }
+      },
+      "status": "failed"
+    },
+    "valid": {
+      "result": {
+        "changed": [
+          {
+            "path": "appearance.motion",
+            "target": {
+              "kind": "global"
+            },
+            "value": "reduced"
+          }
+        ],
+        "paths": [
+          "general.startView",
+          "appearance.theme",
+          "appearance.motion"
+        ],
+        "status": "committed"
+      },
+      "snapshot": {
+        "appearance": {
+          "motion": "reduced",
+          "theme": "dark"
+        },
+        "events": [
+          {
+            "changes": [
+              {
+                "path": "appearance.theme",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "dark"
+              },
+              {
+                "path": "general.startView",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "resume"
+              }
+            ],
+            "origin": "agent",
+            "type": "settings.changed"
+          },
+          {
+            "changes": [
+              {
+                "path": "appearance.motion",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "reduced"
+              }
+            ],
+            "origin": "plugin:capability-settings-probe",
+            "type": "settings.changed"
+          }
+        ],
+        "general": {
+          "autoUpdate": true,
+          "crashPrompt": true,
+          "fileAssociations": true,
+          "language": null,
+          "launchAtStartup": false,
+          "startView": "resume",
+          "whatsNewDialog": true
+        }
+      }
+    }
+  },
+  "recovery": {
+    "result": {
+      "changed": [
+        {
+          "path": "appearance.theme",
+          "target": {
+            "kind": "global"
+          },
+          "value": "light"
+        },
+        {
+          "path": "general.startView",
+          "target": {
+            "kind": "global"
+          },
+          "value": "shelf"
+        }
+      ],
+      "paths": [
+        "general.startView",
+        "appearance.theme",
+        "appearance.motion"
+      ],
+      "status": "committed"
+    },
+    "snapshot": {
+      "appearance": {
+        "motion": "reduced",
+        "theme": "light"
+      },
+      "events": [
+        {
+          "changes": [
+            {
+              "path": "appearance.theme",
+              "target": {
+                "kind": "global"
+              },
+              "value": "dark"
+            },
+            {
+              "path": "general.startView",
+              "target": {
+                "kind": "global"
+              },
+              "value": "resume"
+            }
+          ],
+          "origin": "agent",
+          "type": "settings.changed"
+        },
+        {
+          "changes": [
+            {
+              "path": "appearance.motion",
+              "target": {
+                "kind": "global"
+              },
+              "value": "reduced"
+            }
+          ],
+          "origin": "plugin:capability-settings-probe",
+          "type": "settings.changed"
+        },
+        {
+          "changes": [
+            {
+              "path": "appearance.theme",
+              "target": {
+                "kind": "global"
+              },
+              "value": "light"
+            },
+            {
+              "path": "general.startView",
+              "target": {
+                "kind": "global"
+              },
+              "value": "shelf"
+            }
+          ],
+          "origin": "plugin:capability-settings-probe",
+          "type": "settings.changed"
+        }
+      ],
+      "general": {
+        "autoUpdate": true,
+        "crashPrompt": true,
+        "fileAssociations": true,
+        "language": null,
+        "launchAtStartup": false,
+        "startView": "shelf",
+        "whatsNewDialog": true
+      }
+    }
+  },
+  "denied": {
+    "result": {
+      "code": null,
+      "status": "failed"
+    },
+    "snapshot": {
+      "appearance": {
+        "motion": "reduced",
+        "theme": "light"
+      },
+      "events": [
+        {
+          "changes": [
+            {
+              "path": "appearance.theme",
+              "target": {
+                "kind": "global"
+              },
+              "value": "dark"
+            },
+            {
+              "path": "general.startView",
+              "target": {
+                "kind": "global"
+              },
+              "value": "resume"
+            }
+          ],
+          "origin": "agent",
+          "type": "settings.changed"
+        },
+        {
+          "changes": [
+            {
+              "path": "appearance.motion",
+              "target": {
+                "kind": "global"
+              },
+              "value": "reduced"
+            }
+          ],
+          "origin": "plugin:capability-settings-probe",
+          "type": "settings.changed"
+        },
+        {
+          "changes": [
+            {
+              "path": "appearance.theme",
+              "target": {
+                "kind": "global"
+              },
+              "value": "light"
+            },
+            {
+              "path": "general.startView",
+              "target": {
+                "kind": "global"
+              },
+              "value": "shelf"
+            }
+          ],
+          "origin": "plugin:capability-settings-probe",
+          "type": "settings.changed"
+        }
+      ],
+      "general": {
+        "autoUpdate": true,
+        "crashPrompt": true,
+        "fileAssociations": true,
+        "language": null,
+        "launchAtStartup": false,
+        "startView": "shelf",
+        "whatsNewDialog": true
+      }
+    }
+  },
+  "cleanup": {
+    "contributions": 0,
+    "snapshot": {
+      "appearance": {
+        "motion": "system",
+        "theme": "system"
+      },
+      "events": [
+        {
+          "changes": [
+            {
+              "path": "appearance.theme",
+              "target": {
+                "kind": "global"
+              },
+              "value": "dark"
+            },
+            {
+              "path": "general.startView",
+              "target": {
+                "kind": "global"
+              },
+              "value": "resume"
+            }
+          ],
+          "origin": "agent",
+          "type": "settings.changed"
+        },
+        {
+          "changes": [
+            {
+              "path": "appearance.motion",
+              "target": {
+                "kind": "global"
+              },
+              "value": "reduced"
+            }
+          ],
+          "origin": "plugin:capability-settings-probe",
+          "type": "settings.changed"
+        },
+        {
+          "changes": [
+            {
+              "path": "appearance.theme",
+              "target": {
+                "kind": "global"
+              },
+              "value": "light"
+            },
+            {
+              "path": "general.startView",
+              "target": {
+                "kind": "global"
+              },
+              "value": "shelf"
+            }
+          ],
+          "origin": "plugin:capability-settings-probe",
+          "type": "settings.changed"
+        }
+      ],
+      "general": {
+        "autoUpdate": true,
+        "crashPrompt": true,
+        "fileAssociations": true,
+        "language": null,
+        "launchAtStartup": false,
+        "startView": "shelf",
+        "whatsNewDialog": true
+      }
+    }
+  },
+  "finalColdSuccess": {
+    "agent": {
+      "changed": [
+        {
+          "path": "appearance.theme",
+          "target": {
+            "kind": "global"
+          },
+          "value": "dark"
+        },
+        {
+          "path": "general.startView",
+          "target": {
+            "kind": "global"
+          },
+          "value": "resume"
+        }
+      ],
+      "snapshot": {
+        "appearance": {
+          "motion": "system",
+          "theme": "dark"
+        },
+        "events": [
+          {
+            "changes": [
+              {
+                "path": "appearance.theme",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "dark"
+              },
+              {
+                "path": "general.startView",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "resume"
+              }
+            ],
+            "origin": "agent",
+            "type": "settings.changed"
+          }
+        ],
+        "general": {
+          "autoUpdate": true,
+          "crashPrompt": true,
+          "fileAssociations": true,
+          "language": null,
+          "launchAtStartup": false,
+          "startView": "resume",
+          "whatsNewDialog": true
+        }
+      },
+      "status": "committed"
+    },
+    "form": {
+      "observed": "[{\"enabled\":false}]",
+      "result": {
+        "status": "committed"
+      }
+    }
+  },
+  "finalColdFailureAndRecovery": {
+    "agent": {
+      "code": "db/error",
+      "snapshot": {
+        "appearance": {
+          "motion": "system",
+          "theme": "dark"
+        },
+        "events": [
+          {
+            "changes": [
+              {
+                "path": "appearance.theme",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "dark"
+              },
+              {
+                "path": "general.startView",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "resume"
+              }
+            ],
+            "origin": "agent",
+            "type": "settings.changed"
+          }
+        ],
+        "general": {
+          "autoUpdate": true,
+          "crashPrompt": true,
+          "fileAssociations": true,
+          "language": null,
+          "launchAtStartup": false,
+          "startView": "resume",
+          "whatsNewDialog": true
+        }
+      },
+      "status": "failed"
+    },
+    "form": {
+      "observed": "[{\"enabled\":false},{\"enabled\":true},{\"enabled\":false}]",
+      "result": {
+        "code": "db/error",
+        "status": "failed"
+      }
+    },
+    "plugin": {
+      "result": {
+        "code": "db/error",
+        "status": "failed"
+      },
+      "snapshot": {
+        "appearance": {
+          "motion": "system",
+          "theme": "dark"
+        },
+        "events": [
+          {
+            "changes": [
+              {
+                "path": "appearance.theme",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "dark"
+              },
+              {
+                "path": "general.startView",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "resume"
+              }
+            ],
+            "origin": "agent",
+            "type": "settings.changed"
+          }
+        ],
+        "general": {
+          "autoUpdate": true,
+          "crashPrompt": true,
+          "fileAssociations": true,
+          "language": null,
+          "launchAtStartup": false,
+          "startView": "resume",
+          "whatsNewDialog": true
+        }
+      }
+    },
+    "recovery": {
+      "result": {
+        "changed": [
+          {
+            "path": "appearance.motion",
+            "target": {
+              "kind": "global"
+            },
+            "value": "reduced"
+          }
+        ],
+        "paths": [
+          "general.startView",
+          "appearance.theme",
+          "appearance.motion"
+        ],
+        "status": "committed"
+      },
+      "snapshot": {
+        "appearance": {
+          "motion": "reduced",
+          "theme": "dark"
+        },
+        "events": [
+          {
+            "changes": [
+              {
+                "path": "appearance.theme",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "dark"
+              },
+              {
+                "path": "general.startView",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "resume"
+              }
+            ],
+            "origin": "agent",
+            "type": "settings.changed"
+          },
+          {
+            "changes": [
+              {
+                "path": "appearance.motion",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "reduced"
+              }
+            ],
+            "origin": "plugin:capability-settings-probe",
+            "type": "settings.changed"
+          }
+        ],
+        "general": {
+          "autoUpdate": true,
+          "crashPrompt": true,
+          "fileAssociations": true,
+          "language": null,
+          "launchAtStartup": false,
+          "startView": "resume",
+          "whatsNewDialog": true
+        }
+      }
+    }
+  },
+  "finalCleanup": {
+    "cleanup": {
+      "contributions": 0
+    },
+    "snapshot": {
+      "appearance": {
+        "motion": "system",
+        "theme": "system"
+      },
+      "events": [
+        {
+          "changes": [
+            {
+              "path": "appearance.theme",
+              "target": {
+                "kind": "global"
+              },
+              "value": "dark"
+            },
+            {
+              "path": "general.startView",
+              "target": {
+                "kind": "global"
+              },
+              "value": "resume"
+            }
+          ],
+          "origin": "agent",
+          "type": "settings.changed"
+        },
+        {
+          "changes": [
+            {
+              "path": "appearance.motion",
+              "target": {
+                "kind": "global"
+              },
+              "value": "reduced"
+            }
+          ],
+          "origin": "plugin:capability-settings-probe",
+          "type": "settings.changed"
+        }
+      ],
+      "general": {
+        "autoUpdate": true,
+        "crashPrompt": true,
+        "fileAssociations": true,
+        "language": null,
+        "launchAtStartup": false,
+        "startView": "shelf",
+        "whatsNewDialog": true
+      }
+    }
+  },
+  "afterPendingFinalColdRun": {
+    "failure": {
+      "code": "db/error",
+      "snapshot": {
+        "appearance": {
+          "motion": "system",
+          "theme": "dark"
+        },
+        "events": [
+          {
+            "changes": [
+              {
+                "path": "appearance.theme",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "dark"
+              },
+              {
+                "path": "general.startView",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "resume"
+              }
+            ],
+            "origin": "agent",
+            "type": "settings.changed"
+          }
+        ],
+        "general": {
+          "autoUpdate": true,
+          "crashPrompt": true,
+          "fileAssociations": true,
+          "language": null,
+          "launchAtStartup": false,
+          "startView": "resume",
+          "whatsNewDialog": true
+        }
+      },
+      "status": "failed"
+    },
+    "recovery": {
+      "result": {
+        "changed": [
+          {
+            "path": "appearance.motion",
+            "target": {
+              "kind": "global"
+            },
+            "value": "reduced"
+          }
+        ],
+        "paths": [
+          "general.startView",
+          "appearance.theme",
+          "appearance.motion"
+        ],
+        "status": "committed"
+      },
+      "snapshot": {
+        "appearance": {
+          "motion": "reduced",
+          "theme": "dark"
+        },
+        "events": [
+          {
+            "changes": [
+              {
+                "path": "appearance.theme",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "dark"
+              },
+              {
+                "path": "general.startView",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "resume"
+              }
+            ],
+            "origin": "agent",
+            "type": "settings.changed"
+          },
+          {
+            "changes": [
+              {
+                "path": "appearance.motion",
+                "target": {
+                  "kind": "global"
+                },
+                "value": "reduced"
+              }
+            ],
+            "origin": "plugin:capability-settings-probe",
+            "type": "settings.changed"
+          }
+        ],
+        "general": {
+          "autoUpdate": true,
+          "crashPrompt": true,
+          "fileAssociations": true,
+          "language": null,
+          "launchAtStartup": false,
+          "startView": "resume",
+          "whatsNewDialog": true
+        }
+      }
+    }
+  },
+  "afterPendingFinalCleanup": {
+    "contributions": 0
+  },
+  "scope": "Local settings 1.1 persistence, result grants and mirror rollback; not the full capability goal.",
+  "notVerified": [
+    "Remote LLM decision quality",
+    "Packaged release of this change",
+    "Windows/Linux",
+    "Remote roaming completion",
+    "All setting effect consumers and OS effects",
+    "All field editor draft reconciliation",
+    "Stable permission/validation error codes (denied probe currently has null code)",
+    "Reading-mode preference durability",
+    "All W01-W32 composition scenarios"
+  ]
+}

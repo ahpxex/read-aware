@@ -9,7 +9,8 @@ import {
 
 import { localKV } from "../../../platform/local-store";
 
-const STORAGE_KEY = "read-aware-reader-overrides";
+export const READER_OVERRIDES_KEY = "read-aware-reader-overrides";
+const STORAGE_KEY = READER_OVERRIDES_KEY;
 
 /**
  * Whether a book renders with the global reading settings (`global`) or with its

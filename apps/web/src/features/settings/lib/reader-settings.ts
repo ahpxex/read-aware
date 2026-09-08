@@ -2,7 +2,8 @@ import { hasCoarsePointer } from "../../../platform/environment";
 import { localKV } from "../../../platform/local-store";
 import { isPluginRef } from "../../plugins/lib/plugin-theme";
 
-const STORAGE_KEY = "read-aware-reader-settings";
+export const READER_PREFERENCES_KEY = "read-aware-reader-settings";
+const STORAGE_KEY = READER_PREFERENCES_KEY;
 
 /** The app's own page colors, always available. */
 export type BuiltinReaderTheme = "light" | "warm" | "dark";

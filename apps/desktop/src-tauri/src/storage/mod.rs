@@ -254,6 +254,34 @@ pub fn set_kv(key: String, value: String, db: State<'_, Db>) -> Result<(), Comma
     Ok(())
 }
 
+pub(crate) fn set_kv_batch_inner(
+    conn: &mut Connection,
+    entries: Vec<(String, String)>,
+) -> Result<(), CommandError> {
+    let tx = conn.transaction()?;
+    for (key, value) in entries {
+        tx.execute(
+            "INSERT INTO app_kv (key, value_json, updated_at)
+             VALUES (?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+             ON CONFLICT(key) DO UPDATE SET
+                value_json = excluded.value_json,
+                updated_at = excluded.updated_at",
+            params![key, value],
+        )?;
+    }
+    Ok(tx.commit()?)
+}
+
+/// A settings command can span several preference records, but commits all or none.
+#[tauri::command]
+pub fn set_kv_batch(
+    entries: Vec<(String, String)>,
+    db: State<'_, Db>,
+) -> Result<(), CommandError> {
+    let mut conn = db.0.lock()?;
+    set_kv_batch_inner(&mut conn, entries)
+}
+
 /// Delete one config key (write-through from `localKV.removeItem`).
 #[tauri::command]
 pub fn delete_kv(key: String, db: State<'_, Db>) -> Result<(), CommandError> {

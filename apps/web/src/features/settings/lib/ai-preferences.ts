@@ -1,6 +1,7 @@
 import { localKV } from "../../../platform/local-store";
 
-const STORAGE_KEY = "read-aware-ai-preferences";
+export const AI_PREFERENCES_KEY = "read-aware-ai-preferences";
+const STORAGE_KEY = AI_PREFERENCES_KEY;
 
 /** Reader-surfaced AI capabilities. Toggles gate features as they ship. */
 export type AIFeatureKey =

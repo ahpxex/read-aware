@@ -1,7 +1,7 @@
 import { useAtom } from "jotai";
 import { ChoiceGroup, Select, Toggle } from "@read-aware/ui";
 import { generalSettingsAtom } from "../../../state/ui";
-import { LOCALES, LOCALE_LABELS, setLocale, useLocale, useTranslation } from "../../../i18n";
+import { LOCALES, LOCALE_LABELS, useLocale, useTranslation } from "../../../i18n";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
@@ -99,7 +99,6 @@ export function GeneralPanel() {
             onChange={(language) => {
               const next = language as (typeof LOCALES)[number];
               setSettings({ ...settings, language: next });
-              setLocale(next);
             }}
             options={LANGUAGE_OPTIONS}
           />

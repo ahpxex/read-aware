@@ -1,21 +1,25 @@
 import { atom, getDefaultStore } from "jotai";
 import {
+  APP_SETTINGS_KEY,
   getAppSettings,
   resolveAppTheme,
   saveAppSettings,
   type AppSettings,
 } from "../features/settings/lib/app-settings";
 import {
+  GENERAL_SETTINGS_KEY,
   getGeneralSettings,
   saveGeneralSettings,
   type GeneralSettings,
 } from "../features/settings/lib/general-settings";
 import {
+  AI_PREFERENCES_KEY,
   getAIPreferences,
   saveAIPreferences,
   type AIPreferences,
 } from "../features/settings/lib/ai-preferences";
 import {
+  READER_PREFERENCES_KEY,
   getReaderPreferences,
   saveReaderPreferences,
   toEffectiveReaderSettings,
@@ -23,6 +27,7 @@ import {
   type ReaderSettingsPreferences,
 } from "../features/settings/lib/reader-settings";
 import {
+  READER_OVERRIDES_KEY,
   getReaderOverrides,
   saveReaderOverrides,
   type ReaderOverrides,
@@ -54,6 +59,9 @@ import {
   saveShortcutBindings,
 } from "../features/settings/lib/shortcut-bindings";
 import type { ShortcutBindings } from "../features/settings/lib/shortcuts";
+import { onLocalKVChange } from "../platform/local-store";
+import { i18n, setLocale } from "../i18n";
+import { detectInitialLocale } from "../i18n/detect";
 
 export const topNavs = ["shelf", "agent", "stats"] as const;
 
@@ -215,6 +223,25 @@ export const readerOverridesAtom = atom(
     saveReaderOverrides(next);
   },
 );
+
+// KV is the shared optimistic/durable overlay. Re-seed base atoms on writes,
+// remote edits and rollback without sending a second persistence command.
+onLocalKVChange((key) => {
+  const store = getDefaultStore();
+  switch (key) {
+    case APP_SETTINGS_KEY: store.set(appSettingsBaseAtom, getAppSettings()); break;
+    case AI_PREFERENCES_KEY: store.set(aiPreferencesBaseAtom, getAIPreferences()); break;
+    case READER_PREFERENCES_KEY: store.set(readerPreferencesBaseAtom, getReaderPreferences()); break;
+    case READER_OVERRIDES_KEY: store.set(readerOverridesBaseAtom, getReaderOverrides()); break;
+    case GENERAL_SETTINGS_KEY: {
+      const settings = getGeneralSettings();
+      store.set(generalSettingsBaseAtom, settings);
+      const locale = detectInitialLocale(settings.language);
+      if (i18n.isInitialized && i18n.language !== locale) setLocale(locale);
+      break;
+    }
+  }
+});
 
 const readingStatsBaseAtom = atom<ReadingStatsStore>(getReadingStatsStore());
 

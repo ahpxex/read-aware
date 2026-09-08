@@ -89,6 +89,7 @@ export interface SettingChange {
 }
 
 export interface SettingsUpdateResult {
+  /** Returned only after the entire validated settings command commits locally. */
   changed: SettingChange[];
   settings: SettingsSnapshot;
 }

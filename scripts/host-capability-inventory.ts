@@ -92,7 +92,7 @@ const nativeMap = pairs([
   ["preferences_load_all", "OPS05"], ["wipe_all_data", "OPS09"],
   ["put_blob get_blob get_blob_info get_blob_range delete_blob blob_read_open blob_read_chunk blob_read_close blob_write_open blob_write_chunk blob_write_chunk_raw blob_write_commit blob_write_abort", "SYS13"],
   ["secret_get secret_keys secret_set secret_delete", "SYS04 CFG07"],
-  ["load_kv_all set_kv delete_kv replace_kv_prefix", "SYS01 CFG01"],
+  ["load_kv_all set_kv set_kv_batch delete_kv replace_kv_prefix", "SYS01 CFG01"],
   ["library_load library_get_book library_put_book", "LIB01 LIB02 OPS11"], ["library_release_book_files", "LIB04"],
   ["library_list_collections library_put_collection", "LIB15 LIB16 LIB17 LIB18"], ["library_duplicate_book_groups", "LIB11"],
   ["annotations_list annotations_search annotations_page annotation_get annotation_put annotation_delete", "ANN01 ANN08"],

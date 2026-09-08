@@ -19,6 +19,20 @@ export class KVWriteQueue {
     return this.enqueue(new Map([[key, value]]), () => this.deps.persist(key, value), origin);
   }
 
+  /** Atomic user edits publish only after the entire native transaction commits. */
+  batch(values: ReadonlyMap<string, string>, persist: () => Promise<void>): Promise<void> {
+    return this.enqueue(values, persist, "local");
+  }
+
+  /** Invoke without a microtask gap between the settled-state check and the read/enqueue. */
+  async afterPending<T>(operation: () => T | Promise<T>): Promise<T> {
+    while (true) {
+      const predecessor = this.tail;
+      await predecessor;
+      if (predecessor === this.tail) return operation();
+    }
+  }
+
   /** A native atomic replacement shares the same ordering and optimistic overlay as single writes. */
   replace(values: ReadonlyMap<string, string | null>, persist: () => Promise<void>): Promise<void> {
     // Restoration is not a new user edit and must not republish roaming events.
@@ -38,12 +52,13 @@ export class KVWriteQueue {
       return { key, value, state, mutation };
     });
     const done = this.tail.then(async () => {
+      let failure: { error: unknown } | undefined;
       try {
         await persist();
         for (const { state, value } of entries) state.durable = value;
         if (origin) for (const { key, value } of entries) this.deps.committed(key, value, origin);
       } catch (error) {
-        this.deps.failed(entries[0]?.key ?? "replacement", error);
+        failure = { error };
         throw error;
       } finally {
         for (const { key, state } of entries) {
@@ -52,6 +67,7 @@ export class KVWriteQueue {
           this.deps.mirror(key, latest ? latest.value : state.durable);
           if (!state.mutations.length) this.keys.delete(key);
         }
+        if (failure) this.deps.failed(entries[0]?.key ?? "replacement", failure.error);
       }
     });
     for (const { mutation } of entries) mutation.done = done;

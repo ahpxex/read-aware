@@ -5,7 +5,7 @@
  * as a Dialog via the standard view pipeline.
  */
 import { emitAppEvent } from "../../../platform/app-events";
-import { localKV } from "../../../platform/local-store";
+import { localKV, onLocalKVChange } from "../../../platform/local-store";
 import {
   deletePluginSecret,
   getPluginSecret,
@@ -20,13 +20,29 @@ import type {
   PluginManifest,
 } from "./plugin-types";
 
-function storageKey(pluginId: string): string {
+export function pluginSettingsKey(pluginId: string): string {
   return `read-aware-plugin.${pluginId}.settings`;
 }
 
+// Invalidate from the actual overlay, including failed-write rollback. Defer
+// until all KV observers have run so Worker mirrors precede provider callbacks.
+const pendingInvalidations = new Set<string>();
+onLocalKVChange((key) => {
+  const prefix = "read-aware-plugin.";
+  const suffix = ".settings";
+  if (!key.startsWith(prefix) || !key.endsWith(suffix)) return;
+  const pluginId = key.slice(prefix.length, -suffix.length);
+  if (pendingInvalidations.has(pluginId)) return;
+  pendingInvalidations.add(pluginId);
+  queueMicrotask(() => {
+    pendingInvalidations.delete(pluginId);
+    emitAppEvent("plugin-storage-changed", { pluginId });
+  });
+});
+
 export function readPluginSettingsValues(pluginId: string): PluginFormValues {
   try {
-    const raw = localKV.getItem(storageKey(pluginId));
+    const raw = localKV.getItem(pluginSettingsKey(pluginId));
     if (!raw) return {};
     const parsed: unknown = JSON.parse(raw);
     return typeof parsed === "object" && parsed !== null ? (parsed as PluginFormValues) : {};
@@ -59,9 +75,7 @@ export function buildPluginSettingsView(
       }
       return { ...field, value: typeof value === "string" ? value : field.value };
     }),
-    onSubmit: (values) => {
-      writePluginSettingsValues(manifest.id, values);
-    },
+    onSubmit: (values) => writePluginSettingsValues(manifest.id, values),
     // Dynamic selects resolve through the source the plugin bound at
     // activate() (ctx.contributions.settingsOptions.register); an unbound field resolves
     // empty and renders as free text input.
@@ -80,15 +94,12 @@ export function buildPluginSettingsView(
   };
 }
 
-/** The one write path — the Plugins panel form and the agent both use it. */
+/** Declarative form writes return their exact durability receipt. */
 export function writePluginSettingsValues(
   pluginId: string,
   values: PluginFormValues,
-): void {
-  localKV.setItem(storageKey(pluginId), JSON.stringify(values));
-  // A running sandbox reads settings from its local snapshot; tell the
-  // worker host so `ctx.services.storage.get("settings")` reflects this change.
-  emitAppEvent("plugin-storage-changed", { pluginId });
+): Promise<void> {
+  return localKV.setItemAsync(pluginSettingsKey(pluginId), JSON.stringify(values));
 }
 
 export type AgentPluginSettings = {

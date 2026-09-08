@@ -11,7 +11,7 @@
  * slot in at their default position (built-ins) or the overflow (plugins).
  */
 import { atom, getDefaultStore } from "jotai";
-import { localKV } from "../../../platform/local-store";
+import { localKV, onLocalKVChange } from "../../../platform/local-store";
 
 export type MenuSurface =
   | "primaryNav"
@@ -77,7 +77,8 @@ export const SURFACE_RULES: Record<
   selection: { minVisible: 0, maxVisible: null },
 };
 
-const STORAGE_KEY = "read-aware-menu-config";
+export const MENU_CONFIG_KEY = "read-aware-menu-config";
+const STORAGE_KEY = MENU_CONFIG_KEY;
 /** The superseded plugin pin store — migrated into this config on first read. */
 const LEGACY_PLACEMENT_KEY = "read-aware-plugin-placement";
 
@@ -154,6 +155,10 @@ function migrateLegacyPlacement(base: MenuConfig): MenuConfig {
 }
 
 const menuConfigBaseAtom = atom<MenuConfig>(readStored());
+
+onLocalKVChange((key) => {
+  if (key === MENU_CONFIG_KEY) getDefaultStore().set(menuConfigBaseAtom, readStored());
+});
 
 export const menuConfigAtom = atom(
   (get) => get(menuConfigBaseAtom),

@@ -1,7 +1,8 @@
 import { localKV } from "../../../platform/local-store";
 import type { AppLocale } from "../../../i18n/config";
 
-const STORAGE_KEY = "read-aware-general-settings";
+export const GENERAL_SETTINGS_KEY = "read-aware-general-settings";
+const STORAGE_KEY = GENERAL_SETTINGS_KEY;
 
 /** What the app shows on launch. */
 export type StartView = "shelf" | "resume";

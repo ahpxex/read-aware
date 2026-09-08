@@ -423,3 +423,21 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [环境] 两份 HTML 在 1440×1000、1024×768、390×844 检查无页面横向溢出，中英文提供者查询可筛选、Escape 清空/关闭抽屉、inert 恢复、主题刷新保持；无重复 ID/浏览器错误，既有 CDN 请求 200，没有新增图。该文档浏览器检查不是产品 E2E。探针清理为 0，原插件未停用，阅读已关闭，隔离应用已停止，正式实例与正式数据未操作。
 
 仍未完成：READ16 跟随、模式偏好持久失败回执；其他格式/空节/非线性实机覆盖，通用 provider broker、其余全部双端缺口、完整 W01–W32 组合消费者、release/跨平台/远端服务验收。READ16 与整体目标保持未完成，不以本次提供者选择通过宣称宿主能力全部齐全。
+
+## 2026-09-09 双端设置原子保存与真实回执
+
+[代码] `domains.settings` 1.1：Agent `update_settings` 与插件 `settings.commands.update` 的单条已验证命令，由 `domain/settings/persistence.ts` 编码为宿主私有 KV 批次，经同一个写队列调用 Rust `set_kv_batch`。general、appearance、reading、readerOverrides、AI preferences、非敏感 AI config、menus 和已声明插件设置跨记录全部提交或全部回滚。没有向插件开放任意 KV/SQL/事务句柄；AI 配置编码与 native save 共用，不触碰秘密存储。目录未开放的设置没有因此变成已接通。
+
+[代码] 回执等待 SQLite commit，失败保留 IPC 稳定错误码并且不发 `settings.changed`。跨 actor 的领域命令先等前一命令结算；读取草稿前还等待已经接收的原生 UI/远端 KV 写入结算，无微任务空隙地读取并入队新事务。后续命令不会带入前次失败的乐观字段，也不会把尚未提交但相同的 UI 值误判成已保存的 no-op。仍不承诺无限连续写流下的公平性/期限或跨设备事务。
+
+[代码] 通用设置与菜单的 base atom 跟随 KV 乐观镜像和回滚，不经 public setter 二次写入。语言切换由同一镜像驱动；插件声明设置从实际 KV 变化合并失效通知，在所有 KV 观察者更新 Worker 镜像之后再通知表单、模式与提供者。原生插件设置 form 返回精确 write Promise，而不是立即成功；写失败通知在回滚后触发。受限插件 update 的返回快照补上与 read 相同的路径过滤，防止仅有一个设置写权限却收到全部设置。
+
+[环境] [结构化证据](./evidence/settings-durability-2026-09-09.json)：仅使用隔离 macOS Tauri debug `com.readaware.app.capability-e2e`，5184/9224，正式应用与数据未操作。调用实际产品 Agent 工具端口与 `settings-probe.ts` 的真实 Worker，不是模拟 Worker/浏览器存储；没有远端 LLM 语义评估。SQLite 临时 `settings_e2e_reject` trigger 拒绝 theme=light 或 probe enabled=true。跨 general/appearance 命令在后一条记录失败时，两端均返回 db/error，前一条 general=startView 的改动也回滚，未新增成功事件；直接读取隔离数据库确认 dark/resume 保持。失败后插件 motion=reduced 正常提交，返回值只有三个授权路径；无权限修改 crashPrompt 被拒绝且无事件，但该拒绝目前仍无稳定 code，已保留在证据边界。
+
+[环境] 原生声明表单的真实 Worker storage.onChange 观察序列为 enabled=false → true → false；表单自身返回 db/error，磁盘仍为 false。清除 trigger 后恢复成功。初稿运行、统一失效通知后的冷启动以及最终 afterPending 读屏障后的冷启动分别留存；最后再次验证 Agent 故障与 Worker 恢复，不拿旧进程结果替代最终代码。MCP 原生截图查看了实际 dark 应用，没有把文档浏览器算作产品验证。
+
+[环境] 5 项独立进程的 native-IPC 控制测试覆盖延迟回执、整批失败、两端并发、表单回滚通知、原生 UI 写入失败与 no-op；采用子进程以免 Tauri 检测和全局事件时钟污染其他套件。Rust 事务测试用真实 SQLite trigger 验证 insert/update 全部回滚及恢复；全 Rust lib 测试 127 通过、既有百万事件压力测试 1 项 ignored。全仓 test 19 个任务、typecheck 22 个任务、生产 web build 通过；保留现有 Node/chunk/dynamic-import 与 Rust warning。该 web build 不等于 packaged Tauri 验证。
+
+[代码/环境] 重扫 215 行、569 入口映射、129 旧基线、30 单元/catalog 与 W01–W32，7 项模型门禁通过。补正摘要中遗漏的 Annotation Desk，源码九插件与编译内置六插件分开计数。矩阵、统一模型与插件架构三对文档同步；pair validator 通过，三页均检查 1440×1000、1024×768、390×844 无横向溢出，中英文搜索与 Escape 可用，现有模型/矩阵抽屉和主题保持有效；无重复 ID/浏览器错误。既有 CDN 依赖不变，无新增图。
+
+仍未完成：CFG10 全来源带 revision/origin 的设置领域广播、所有 UI 字段草稿和系统效果验收、权限/校验错误统一 code、远端漫游持久完成；READ16 模式专有持久回执不属于 settings.commands.update，本次没有关闭。其余双端缺口、完整组合插件/W01–W32、packaged/跨平台/远端服务验收继续保持未完成。探针贡献清理为 0，偏好恢复，临时 trigger 与 probe KV 清空，隔离应用和文档浏览器停止；未推送。

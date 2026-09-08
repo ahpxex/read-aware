@@ -1015,6 +1015,7 @@ pub fn run() {
             secrets::secret_delete,
             storage::load_kv_all,
             storage::set_kv,
+            storage::set_kv_batch,
             storage::delete_kv,
             storage::replace_kv_prefix,
             storage::library_load,

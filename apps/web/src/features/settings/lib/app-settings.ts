@@ -2,7 +2,8 @@ import { localKV } from "../../../platform/local-store";
 import { isPluginRef } from "../../plugins/lib/plugin-theme";
 import { getAppSkinSnapshot } from "./app-skin";
 
-const STORAGE_KEY = "read-aware-app-settings";
+export const APP_SETTINGS_KEY = "read-aware-app-settings";
+const STORAGE_KEY = APP_SETTINGS_KEY;
 
 /**
  * App chrome theme. `system` follows the OS color scheme;

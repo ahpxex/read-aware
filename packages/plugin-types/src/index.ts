@@ -81,6 +81,8 @@ import type {
 
 // Re-exported so plugin authors can name the underlying vocabulary without
 // depending on @read-aware/core directly.
+export type { BookTocEntry, BookNavigationToc, BookLocationSearch, BookLocationSearchPage, BookLocationHit,
+  ReadingLocation, ReadingTarget, ReadingSessionSnapshot, ReadingSessionGuard, ReadingNavigationReceipt } from "@read-aware/core";
 export type {
   BookFormat,
   DictionaryEntrySnapshot,
@@ -1169,7 +1171,9 @@ export type PluginLibraryDomain = {
       list(): Promise<PluginBook[]>;
       get(bookId: string): Promise<PluginBook | null>;
       getToc(bookId: string): Promise<PluginChapterRef[]>;
-      getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
+    getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
+    getNavigationToc(bookId: string): Promise<import("@read-aware/core").BookNavigationToc>;
+    searchLocations(input: import("@read-aware/core").BookLocationSearch): Promise<import("@read-aware/core").BookLocationSearchPage>;
     };
     collections: {
       list(): Promise<PluginCollection[]>;

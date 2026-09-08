@@ -446,6 +446,19 @@ fn blob_file_import_uses_native_copy_and_registers_hash() {
 }
 
 #[test]
+fn blob_info_establishes_missing_legacy_content_revision() {
+    let dir = tempfile::tempdir().unwrap();
+    let conn = migrated_conn();
+    let payload = b"0123456789abcdef";
+    put_blob_inner(&conn, dir.path(), "bookfile:legacy-revision", None, payload).unwrap();
+    conn.execute("UPDATE blob_objects SET sha256 = NULL WHERE key = ?1", ["bookfile:legacy-revision"]).unwrap();
+    let (_, info) = get_blob_record_inner(&conn, dir.path(), "bookfile:legacy-revision").unwrap().unwrap();
+    assert_eq!(info.sha256.as_deref(), Some("9f9f5111f7b27a781f1f1ddde5ebc2dd2b796bfc7365c9c28b548e564176929f"));
+    let persisted: String = conn.query_row("SELECT sha256 FROM blob_objects WHERE key = ?1", ["bookfile:legacy-revision"], |row| row.get(0)).unwrap();
+    assert_eq!(Some(persisted), info.sha256);
+}
+
+#[test]
 fn append_events_fills_envelope_and_outbox_once() {
     let mut conn = migrated_conn();
     append_events_inner(&mut conn, &[event("e1", 1_700_000_000_000, 0)]).expect("append");

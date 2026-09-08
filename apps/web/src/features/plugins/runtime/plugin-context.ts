@@ -590,7 +590,14 @@ export function buildPluginContext(
   if (domain.library) {
     const library = domain.library;
     ctx.domains.library = {
-      queries: library.queries,
+      queries: {
+        ...library.queries,
+        books: {
+          ...library.queries.books,
+          getNavigationToc: (bookId) => library.queries.books.getNavigationToc(bookId, lifecycle.signal),
+          searchLocations: (input) => library.queries.books.searchLocations(input, lifecycle.signal),
+        },
+      },
       events: { subscribe: trackedOn(library.events.subscribe) },
     };
     if (library.commands) {

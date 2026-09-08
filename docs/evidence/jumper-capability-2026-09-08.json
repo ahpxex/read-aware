@@ -1,0 +1,129 @@
+{
+  "scope": "Isolated Tauri dev app, bundled Jumper Worker and actual Agent ports; not remote model behavior or packaged CSP",
+  "result": {
+    "afterBack": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/2!/4/2[chapter-0],/2/1:0,/20/1:95)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.06678118061083414,
+      "href": "0"
+    },
+    "afterForward": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/4!/4/2[chapter-1],/20/1:94,/38/1:172)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.46678118061083407,
+      "href": "1"
+    },
+    "afterMissing": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/2!/4/2[chapter-0],/2/1:0,/20/1:95)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.06678118061083414,
+      "href": "0"
+    },
+    "agentNavigation": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "location": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/6!/4/2[chapter-2],/40/1:0,/58/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 0.8664376387783317,
+        "href": "2"
+      },
+      "opened": true,
+      "sessionId": "00eac98c-9676-4ea7-8226-f992b97025ec",
+      "status": "completed",
+      "title": "Reading Capability Probe"
+    },
+    "agentSearch": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "hits": [
+        {
+          "excerpt": {
+            "match": "Gamma paragraph 23",
+            "post": ". The reader follows a precise location, checks a …",
+            "pre": ""
+          },
+          "id": "2:0",
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "cfi": "epubcfi(/6/6!/4/2[chapter-2]/48,/1:0,/1:18)",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108"
+          },
+          "sectionIndex": 2
+        }
+      ],
+      "nextCursor": null,
+      "scannedSections": 3,
+      "textStatus": "available",
+      "totalSections": 3
+    },
+    "atMatch": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/4!/4/2[chapter-1],/20/1:94,/38/1:172)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.46678118061083407,
+      "href": "1"
+    },
+    "beforeMissing": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/2!/4/2[chapter-0],/2/1:0,/20/1:95)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.06678118061083414,
+      "href": "0"
+    },
+    "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+    "match": "Beta paragraph 17. The reader follows a precise location, checks a …",
+    "missing": {
+      "fieldErrors": {
+        "query": "Chapter not found."
+      }
+    },
+    "stale": "reader/stale-location",
+    "toc": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "entries": [
+        {
+          "children": [],
+          "id": "toc:0",
+          "label": "Alpha",
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "href": "0"
+          },
+          "ordinal": 1,
+          "sectionIndex": 0
+        },
+        {
+          "children": [],
+          "id": "toc:1",
+          "label": "Beta",
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "href": "1"
+          },
+          "ordinal": 2,
+          "sectionIndex": 1
+        },
+        {
+          "children": [],
+          "id": "toc:2",
+          "label": "Gamma",
+          "location": {
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+            "href": "2"
+          },
+          "ordinal": 3,
+          "sectionIndex": 2
+        }
+      ]
+    }
+  },
+  "status": "completed"
+}

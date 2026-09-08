@@ -247,6 +247,19 @@ pub(crate) fn get_blob_record_inner(
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
         Err(e) => return Err(e.into()),
     };
+    // Older registry rows may lack a digest. Establish their immutable content
+    // revision with the same streaming hasher used during import.
+    let sha256 = match sha256 {
+        Some(value) if !value.is_empty() => Some(value),
+        _ => {
+            let (hash, _) = crate::import::hash_file(&path)?;
+            conn.execute(
+                "UPDATE blob_objects SET sha256 = ?1 WHERE key = ?2",
+                params![hash, key],
+            )?;
+            Some(hash)
+        }
+    };
     Ok(Some((
         path,
         BlobInfo {

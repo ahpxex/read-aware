@@ -1,6 +1,6 @@
 import { AppError, type ReadingLocation } from "@read-aware/core";
 import { readingRuntime } from "../../../domain/reading-runtime";
-import type { FoliateView } from "./foliate-engine";
+import { loadContentNavigation, type FoliateView } from "./foliate-engine";
 
 export async function waitForReadingPaint(view: FoliateView): Promise<void> {
   const renderer = view.renderer;
@@ -28,6 +28,15 @@ export function attachReadingEngine(view: FoliateView, sessionId: string, bookId
       const resolved = await view.goTo(target.cfi ?? target.href ?? { fraction: target.fraction! });
       if (!resolved) throw new AppError("reader/target-not-found", "Renderer could not resolve this target");
       await waitForReadingPaint(view);
+      if (target.textQuote) {
+        const content = view.renderer?.getContents().find(content => content.index === resolved.index);
+        if (!content) throw new AppError("reader/target-not-found", "Target page has no rendered text");
+        const { resolveTextQuote } = await loadContentNavigation();
+        let range: Range;
+        try { range = resolveTextQuote(content.doc, target.textQuote); }
+        catch (error) { throw new AppError("reader/target-not-found", "Search text could not be uniquely resolved", { cause: error }); }
+        if (!await view.goTo(view.getCFI(resolved.index, range))) throw new AppError("reader/target-not-found", "Search text no longer resolves");
+      }
       return location();
     },
     step: async direction => {

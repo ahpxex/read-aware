@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TFunction } from "i18next";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Body, Button, Spinner } from "@read-aware/ui";
+import { AppError } from "@read-aware/core";
 import { cn } from "@read-aware/ui/cn";
 import { describeError, useTranslation } from "../../../i18n";
 import { textUnitModeSettingsAtom, shortcutBindingsAtom } from "../../../state/ui";
@@ -89,7 +90,7 @@ import { buildVirtualFoliateBook } from "../lib/virtual-book";
 import { resolveContentProvider } from "../../plugins/lib/virtual-books";
 import { readingRuntime } from "../../../domain/reading-runtime";
 import { attachReadingEngine, waitForReadingPaint } from "../lib/reading-engine-adapter";
-import { getDesktopBlobInfo } from "../../../platform/blob-store";
+import { fileContentVersion, virtualContentVersion, registerActiveBookContent } from "../../library/lib/book-content-source";
 import type {
   RegisteredReaderMode,
 } from "../../plugins/lib/plugin-types";
@@ -1857,6 +1858,8 @@ export function FoliateReaderView({
 
         await registerHighlightDrawing(view);
         let parsedBook: FoliateBook;
+        let contentProvider: ReturnType<typeof resolveContentProvider> | undefined;
+        let contentVersion = sessionId ? `session:${sessionId}` : "unmanaged";
         if (initialBook.virtual) {
           // Plugin-provided book: resolve the content provider and build a
           // foliate-conforming object — no file, no parser.
@@ -1867,6 +1870,11 @@ export function FoliateReaderView({
             );
           }
           const content = await provider.load(initialBook.virtual.key);
+          if (resolveContentProvider(initialBook.virtual) !== provider) {
+            throw new AppError("library/content-unavailable", "Book content provider changed while loading");
+          }
+          contentProvider = provider;
+          contentVersion = await virtualContentVersion(content);
           if (cancelled) return;
           parsedBook = buildVirtualFoliateBook(content);
         } else {
@@ -1882,9 +1890,11 @@ export function FoliateReaderView({
           releaseBook = retainBook(parsedBook);
           if (cancelled) { await releaseBook(); return; }
           await ensureUsableToc(parsedBook);
+          if (selectedBook && sessionId) contentVersion = await fileContentVersion(selectedBook.id);
         }
         releaseBook ??= retainBook(parsedBook);
         if (cancelled) { await releaseBook(); return; }
+        if (selectedBook && sessionId) cleanups.push(registerActiveBookContent(selectedBook.id, parsedBook, contentVersion, contentProvider));
         await view.open(parsedBook);
         if (cancelled) return;
 
@@ -2129,13 +2139,6 @@ export function FoliateReaderView({
         await waitForReadingPaint(view);
         if (cancelled) return;
         if (sessionId && selectedBook) {
-          let contentVersion = `session:${sessionId}`;
-          if (!initialBook.virtual) {
-            try {
-              const info = await getDesktopBlobInfo(`bookfile:${selectedBook.id}`);
-              if (info?.sha256) contentVersion = `sha256:${info.sha256}`;
-            } catch (error) { log.warn("Using a session-scoped reading location after source metadata failure", error); }
-          }
           if (!cancelled) cleanups.push(attachReadingEngine(view, sessionId, selectedBook.id, contentVersion));
         }
         if (book && !cancelled) onBookReadyRef.current?.(book);

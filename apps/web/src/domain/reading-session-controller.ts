@@ -103,6 +103,17 @@ export class ReadingSessionController {
   }
 
   navigate(target: ReadingTarget, signal?: AbortSignal): Promise<ReadingNavigationReceipt> {
+    const validString = (value: unknown, max = 8192) => value === undefined || typeof value === "string" && value.length > 0 && value.length <= max;
+    if (!target || typeof target !== "object" || !validString(target.bookId) || !validString(target.cfi)
+      || !validString(target.href) || !validString(target.contentVersion, 256)) {
+      return Promise.reject(new AppError("reader/invalid-target", "Reading target fields are invalid"));
+    }
+    if (target.textQuote !== undefined && (!target.textQuote || typeof target.textQuote !== "object"
+      || !target.contentVersion || !(target.cfi || target.href) || typeof target.textQuote.exact !== "string"
+      || !target.textQuote.exact.trim() || target.textQuote.exact.length > 8192
+      || [target.textQuote.prefix, target.textQuote.suffix].some(value => value !== undefined && (typeof value !== "string" || value.length > 8192)))) {
+      return Promise.reject(new AppError("reader/invalid-target", "Text quote requires a versioned section and bounded text"));
+    }
     const bookId = target.bookId ?? this.session?.bookId;
     if (!bookId) return Promise.reject(new AppError("reader/no-session", "No active reading session"));
     if (target.fraction !== undefined && (!Number.isFinite(target.fraction) || target.fraction < 0 || target.fraction > 1)) {

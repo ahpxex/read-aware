@@ -71,6 +71,11 @@ function loadEngine(): Promise<EngineAPI> {
   return enginePromise;
 }
 
+export async function loadContentNavigation(): Promise<Pick<EngineAPI, "contentCFI" | "searchContentSection" | "resolveTextQuote">> {
+  const { contentCFI, searchContentSection, resolveTextQuote } = await loadEngine();
+  return { contentCFI, searchContentSection, resolveTextQuote };
+}
+
 /**
  * Kick off the engine's script-injection load without needing it yet — called
  * from the idle warmup so the first book open doesn't pay for fetching the

@@ -67,3 +67,33 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 复现入口：沿用隔离 Tauri 配置，导入 `/src/features/plugins/runtime/fixtures/desktop-reading-probe.ts`，先 `importReadingProbeBook()`，再 `runDesktopReadingProbe(bookId)`、`runDesktopReadingProbe(bookId,true)`、`runDesktopAgentReadingProbe(bookId)`；PDF 夹具为 `importReadingProbePdf()`。这些是测试夹具，不计为实用组合插件。
 
 仍需完成：精确搜索到 Range/TOC 定位及 Jumper；PDF 可见文本/可用性与真实绘制；全部 UI 链接/翻页入口统一历史；模式/播放/选区；旧 services.session 迁移及细粒度授权；导航单次取消、全部格式并发/失败测试。矩阵已更新为 215 行、539 库存映射，现状和目标仍分列，D2 与 Q2 整组未关闭。
+
+## 2026-09-08：D1 精确定位与 Jumper 组合插件
+
+[代码] Library v1.1 新增 `books.getNavigationToc(bookId)` 与 `books.searchLocations(input)`，Agent 新增 `get_navigation_toc` / `find_book_locations`，`open_book` 接收完整 `location`。两端共用解析源、搜索和版本契约，不调用会修改全局搜索高亮的 `View.search`。
+
+- TOC 返回嵌套 entries、稳定路径 id、深度优先 1-based ordinal、sectionIndex 和可空 Location。ordinal 不代表印刷章号，也不等于抽取正文的 chapterIndex。
+- 文件版本来自 SHA-256；原生读取遇到旧 registry 空 digest 时流式补算并持久化，不让旧书因新版本契约无法打开。虚拟书按标题/作者/语言/有序 sections 的规范内容计算 SHA-256，替代上一阶段 session-only 版本。
+- 读操作保有 parser lease，并在前后检查书籍存在、文件版本、虚拟绑定与 provider 实例身份。活跃书重用 reader parser；不活跃书解析后释放。旧 provider 的活跃解析器不会冒充新实例内容。
+- query 限 1–500 字符；limit 为 1–50，默认 20；每页最多扫描 32 个 section。cursor 绑定书籍、版本、规范查询、大小写/整词选项和允许 section 集合；不合法 cursor 为 `library/invalid-cursor`，旧版本为 `reader/stale-location`。
+- `textStatus` 区分 available/textless/unsupported/unsearched/partial。未扫完无命中不等于整书无文本；下一页继承已有文本/支持性证据，不因存在 cursor 编造 available。空允许范围不搜索全书。
+- 重排正文由引擎匹配器返回可恢复 CFI Range；PDF 先返回页 CFI + exact/prefix/suffix quote，渲染后在 text layer 唯一解析。quote 缺失或歧义失败，不随机选择。真实 PDF 绘制仍未通过，不能据 DOM 单测关闭格式验收。
+- Agent 精确搜索使用原回合的叙事章节围栏；仅宿主验证过的明确剧透授权才允许 confirmSpoiler。未授权时 `get_reading_session` 不输出跳转后的 visibleText，避免靠先跳页再读快照绕过围栏。
+
+[代码] `plugins/jumper` 是真实第一方插件，已加入 Rust bundled 与 desktop workspace。它仅申请 library:read / reading:write，用现有 headerActions/commands/views 组合，不持有宿主 DOM、私有数据库或第二套历史：
+
+- 阅读 header 的 More 菜单中打开 Jumper；命令面板也能打开。
+- 章节、目录序号、正文三个明确模式；章节模式按印刷阿拉伯/中文章号或标题匹配，目录序号单独解释。不存在返回字段错误；多候选让用户选择；不可导航目录标题明确提示。
+- 正文支持大小写/整词、逐页结果和继续搜索；单击命中等待导航成功才关闭。后退/前进复用宿主会话历史，命令默认 Alt+Left / Alt+Right，可由宿主快捷键设置重绑。
+- 8 种宿主语言文案；UI 使用宿主声明表单/列表/动作，新增两个 Phosphor 箭头名称。不重复注册已有通用 Agent 导航工具。
+
+[环境] 本轮验证：
+
+- 11 个新增引擎/分页/版本测试、7 个 Agent 围栏/定位/非拉丁分页测试、6 个 Jumper 业务/视图测试、1 个非法 quote 控制器测试；工具注册与输出样例同步更新。全仓 test 17 个任务、typecheck 20 个任务通过；Rust 旧 digest 补算定向测试通过。Rust 既存 objc cfg/dead-code 警告保留。
+- 隔离 Tauri 标识 `com.readaware.app.capability-e2e`，端口 5184/9224。`runDesktopJumperProbe(bookId)` 调用真正已内置并启用的 Jumper Worker：99999 不存在且 CFI 不动；Beta paragraph 17 唯一命中后导航；back 回 Alpha、forward 恢复同一 Beta CFI；实际 Agent 端口搜索 Gamma paragraph 23 并定位；旧版本拒绝。见[结构化证据](./evidence/jumper-capability-2026-09-08.json)。未调用远端模型。
+- MCP 实际点击阅读 More → Jumper，表单输入 99999 后出现 `Chapter not found.`；切正文搜索 Alpha paragraph 11，结果按钮点击后宿主快照包含该段落。DOM/回调/落点链路通过，不冒充视觉完成。
+- **视觉验收未通过**：测试 WebView 持续 `visibilityState=hidden` / `hasFocus=false`；正文截图可见 Gamma，但 Jumper 截图没有可靠反映当前 DOM/动画，不能证明模态框布局或关闭动画完成。针对本次 PID 的系统激活未改变状态；进一步 AX 检查被 macOS assistive-access 拒绝，未绕过权限或修改生产配置。后续需要能前台绘制的隔离打包应用验收，连同 PDF/rAF/焦点/窄窗一起关闭。
+- 首次动态导入 fixture 触发 Vite 依赖优化重载，旧句柄丢失；在明确重载完成后重跑记录成功结果。最终已停止本次应用和服务，未触碰原应用的 5173/9223。
+- 文档双份生成器与 pair validator 通过，库存为 215 行 / 547 映射 / 129 旧验收项。矩阵 HTML 在独立浏览器的 1440/1024/390 宽度下 DOM 检查无横向溢出；截图调用持续不返回，随后仅终止本次独立会话。因此本轮不宣称两份 HTML 的完整截图/交互复验通过；历史文档浏览器证据不替代本轮验收。
+
+仍需完成：超大 TOC 的模型输出窗口、超大 section 的协作预算、逐次 Worker 搜索/导航取消、异步结果局部回调释放、全部格式与 provider 删除/换代的真实并发故障、前台视觉/快捷键验收。Jumper 只覆盖相应组合场景，不代替 W01–W32 其余实用插件；整组 D1/D2/Q2 与最上方完整目标继续保持未完成。

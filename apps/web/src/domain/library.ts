@@ -10,6 +10,9 @@ import type {
   ChapterRef,
   CollectionSummary,
   EventOrigin,
+  BookNavigationToc,
+  BookLocationSearch,
+  BookLocationSearchPage,
 } from "@read-aware/core";
 import { i18n } from "../i18n";
 import { emitAppEvent } from "../platform/app-events";
@@ -28,6 +31,7 @@ import {
   updateVirtualLibraryBookTitle,
 } from "../features/library/lib/library-db";
 import { importBook } from "../features/library/lib/book-import";
+import { getBookNavigationToc, searchBookLocations } from "../features/library/lib/book-content-navigation";
 import type { LibraryBook } from "../features/library/lib/library-types";
 import {
   ensureBookTextExtracted,
@@ -85,6 +89,8 @@ export type LibraryQueries = {
     get(bookId: string): Promise<BookSummary | null>;
     getToc(bookId: string): Promise<ChapterRef[]>;
     getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
+    getNavigationToc(bookId: string, signal?: AbortSignal): Promise<BookNavigationToc>;
+    searchLocations(input: BookLocationSearch, signal?: AbortSignal): Promise<BookLocationSearchPage>;
   };
   collections: {
     list(): Promise<CollectionSummary[]>;
@@ -124,6 +130,8 @@ export type LibraryDomain = {
 export function createLibraryDomain(origin: EventOrigin): LibraryDomain {
   const queries: LibraryQueries = {
     books: {
+      getNavigationToc: getBookNavigationToc,
+      searchLocations: searchBookLocations,
       list: async () => (await listLibraryBooks()).map(toBookSummary),
       get: async (bookId) => {
         const book = (await listLibraryBooks()).find((entry) => entry.id === String(bookId));

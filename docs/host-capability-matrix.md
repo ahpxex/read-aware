@@ -12,7 +12,7 @@
 ## 结论
 
 1. 不能确认能力都已实现。此表区分宿主行为、Agent 工具/自动管线、插件 API/贡献和实际插件消费者；没有把代码存在算成端到端可用。
-2. 最大结构性缺口仍是运行态：位置、会话快照、精确搜索、导航回执/历史、朗读控制、任务与资源释放。持久化领域 API 无法代表全部产品能力。
+2. 运行态正在接通：版本化位置、会话快照、精确搜索、导航回执/历史已由共享域提供给 Jumper 和 Agent；模式/朗读控制、任务与资源释放、全部格式与前台绘制验收仍未完成。持久化领域 API 无法代表全部产品能力。
 3. 10 个设置路径只有保存入口，未找到对应效果消费者；两端可改值不等于行为覆盖。对齐、固定版式颜色、更新弹窗、快捷键、书架视图仍漏目录；本轮又确认内容字体四字段、默认标注色、更新通道三个真实遗漏组。
 4. Agent 自动记忆巩固与 digest 管线已经接入；画像 seed/实体事件投影并未同等接通。不要沿用旧架构说明把它们一起说成已实现或未实现。
 5. 插件 UI、贡献注册、宿主消费、模型工具是不同方向。Dictionary/RSS 有模型工具，TTS/句读/主题/WebDAV 没有对应的直接操作工具；设置可改不能替代播放、切模式或连接命令。
@@ -20,9 +20,9 @@
 
 ## 计数与口径
 
-- 宿主：实装 164、部分 43、引擎 2、待建 3、占位 2、非桌面 1。
-- Agent：接通 69、部分 45、未接 60、扩展 14、自动 21、内部 6。
-- 插件：接通 82、部分 76、未接 57。
+- 宿主：实装 164、部分 44、待建 3、引擎 1、占位 2、非桌面 1。
+- Agent：接通 71、部分 44、未接 59、扩展 14、自动 21、内部 6。
+- 插件：接通 84、部分 76、未接 55。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -85,18 +85,18 @@
 | ID | 宿主能力 | 宿主现状 | Agent 当前与目标 | 插件当前与目标 | 实际消费者 | 缺口/边界 | 来源 | 旧基线 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | <a id="TXT01"></a>TXT01 | 读取抽取章节目录 | 实装 | **接通**：get_toc<br>[设计] 查询工具 | **接通**：library.queries.books.getToc<br>[设计] 正文查询 | Agent；抽取正文管线 | 同叫 TOC：模型输出不带 hrefs，插件也不带；不是原书完整目录 | [TEXT](../apps/web/src/features/library/lib/book-text-store.ts) [TEXTPORT](../apps/web/src/features/ai/agent/ports/book-text-port.ts) [TEXTTOOLS](../packages/agent/src/tools/book-text-tools.ts) [LIB](../apps/web/src/domain/library.ts) | C01 |
-| <a id="TXT02"></a>TXT02 | 读取原书分层导航目录及 href | 实装 | **部分**：BookTextPort.hrefs 内部可供 open_book<br>[设计] 结构化导航目录工具 | **未接**：无正式入口<br>[设计] 分层目录 + Location | 阅读目录 | Agent 内部映射不等于完整目录工具输出；索引不等于印刷章号 | [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [WORKSPACE](../apps/web/src/features/reader/components/ReaderWorkspace.tsx) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [TEXTPORT](../apps/web/src/features/ai/agent/ports/book-text-port.ts) | A03, C01 |
+| <a id="TXT02"></a>TXT02 | 读取原书分层导航目录及 href | 实装 | **接通**：get_navigation_toc 返回分层目录/版本化 Location<br>[设计] 结构化导航目录工具 | **接通**：library v1.1 books.getNavigationToc<br>[设计] 分层目录 + Location | 宿主目录；Agent；Jumper 章节/目录序号 | ordinal 是深度优先目录序号，不是印刷章号；无位置标题返回 null；超大目录的模型输出窗口与全部格式验收仍需补齐 | [LOCATIONSEARCH](../apps/web/src/features/library/lib/book-location-search.ts) [CONTENTSOURCE](../apps/web/src/features/library/lib/book-content-source.ts) [NAVTOOLS](../packages/agent/src/tools/navigation-tools.ts) [JUMPER](../plugins/jumper/src/views.ts) | A03, C01 |
 | <a id="TXT03"></a>TXT03 | 按抽取章节读正文/分段 | 实装 | **接通**：read_chapter(part)，带剧透控制<br>[设计] 分段读取工具 | **接通**：library.queries.books.getChapterText<br>[设计] 正文查询 | Agent；章节摘要 | 插件整章字符串不含坐标/语言/版本；Agent 分段不是渲染分页 | [TEXT](../apps/web/src/features/library/lib/book-text-store.ts) [TEXTTOOLS](../packages/agent/src/tools/book-text-tools.ts) [LIB](../apps/web/src/domain/library.ts) | C02 |
 | <a id="TXT04"></a>TXT04 | 查询无文本/未抽取/就绪 | 实装 | **部分**：get_toc/read_chapter 内部 getTextStatus<br>[设计] 显式可用性查询 | **未接**：无正式入口<br>[设计] 正文任务状态查询 | Agent 正文工具 | port 只有 ok/unextracted/textless，缺处理中/部分失败的正式模型 | [TEXT](../apps/web/src/features/library/lib/book-text-store.ts) [TEXTPORT](../apps/web/src/features/ai/agent/ports/book-text-port.ts) [TEXTTOOLS](../packages/agent/src/tools/book-text-tools.ts) | C03 |
 | <a id="TXT05"></a>TXT05 | 启动、重建、暂停让路正文抽取 | 实装 | **未接**：无正式入口<br>[设计] 请求准备正文/任务状态 | **未接**：无正式入口<br>[设计] 可取消正文准备任务 | 书籍导入/阅读需求优先调度 | 任务控制仍在宿主；reader-demand-activity 非公开插件事件 | [TEXT](../apps/web/src/features/library/lib/book-text-store.ts) [APPEVENTS](../apps/web/src/platform/app-events.ts) [SESSION](../apps/web/src/features/reader/hooks/useReaderSession.ts) | C03 |
 | <a id="TXT06"></a>TXT06 | 当前书及跨书多查询正文检索 | 实装 | **接通**：search_book_text，scope/剧透约束<br>[设计] 检索工具 | **未接**：无正式入口<br>[设计] 授权范围正文检索 | Agent | 结果为 snippet+章节 offset，不是精准可渲染范围；当前共享文本扫描而非通用 FTS API | [TEXT](../apps/web/src/features/library/lib/book-text-store.ts) [TEXTPORT](../apps/web/src/features/ai/agent/ports/book-text-port.ts) [TEXTTOOLS](../packages/agent/src/tools/book-text-tools.ts) | C05 |
-| <a id="TXT07"></a>TXT07 | 引擎全文精确搜索并返回 CFI | 引擎 | **未接**：无正式入口<br>[设计] 精确命中/位置工具 | **未接**：无正式入口<br>[设计] 精确搜索任务 | Foliate search 已有；未见内置全文搜索 UI 接入 | 不能把引擎已有说成产品 UI 已有；Agent 文本检索不可替代位置搜索 | [ENGINE](../apps/web/foliate-js/src/view.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) | C04 |
+| <a id="TXT07"></a>TXT07 | 引擎全文精确搜索并返回 CFI | 部分 | **接通**：find_book_locations + open_book(location)，保留原回合章节围栏<br>[设计] 精确命中/位置工具 | **接通**：library v1.1 books.searchLocations + reading v2 goTo<br>[设计] 精确搜索任务 | Jumper 正文搜索；Agent；隔离 Tauri FB2 Worker/实际端口通过 | 每页最多 50 命中/32 个扫描 section；cursor 绑定书/版本/查询/允许范围；未扫完不宣称 textless。仍缺单次 Worker 调用取消/超大 section 协作预算；PDF quote 已有实现和 DOM 测试，但真实前台绘制尚未通过 | [LOCATIONSEARCH](../apps/web/src/features/library/lib/book-location-search.ts) [CONTENTSOURCE](../apps/web/src/features/library/lib/book-content-source.ts) [NAVTOOLS](../packages/agent/src/tools/navigation-tools.ts) [JUMPER](../plugins/jumper/src/views.ts) [NAVPROBE](../apps/web/src/features/plugins/runtime/fixtures/desktop-reading-probe.ts) | C04 |
 | <a id="TXT08"></a>TXT08 | 搜索分页、取消、背压和过期查询淘汰 | 待建 | **未接**：无正式入口<br>[设计] 有界搜索任务 | **未接**：无正式入口<br>[设计] 有界搜索任务 | 无完整公共实现 | 引擎局部 cancel 不等于端到端插件/Agent 任务协议 | [ENGINE](../apps/web/foliate-js/src/view.ts) [API](../packages/plugin-types/src/index.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) | C06 |
 | <a id="TXT09"></a>TXT09 | 读取当前可见文本/阅读游标 | 部分 | **部分**：get_reading_session + 原有自动 grounding<br>[设计] 按需读当前会话 + 自动 grounding | **部分**：reading.queries.session + observeSession<br>[设计] 会话快照与范围查询 | 书内 Agent；桌面 FB2 探针 | 重排正文已返回实际可见 Range 文本，限 12000 字符；PDF range 为空时 visibleText 仍为空，文本可用性分类待补 | [NAV](../apps/web/src/domain/reading-session-controller.ts) [NAVADAPTER](../apps/web/src/features/reader/lib/reading-engine-adapter.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [GROUND](../packages/agent/src/runtime/grounding-context.ts) [API](../packages/plugin-types/src/index.ts) | C07 |
 | <a id="TXT10"></a>TXT10 | 选区附近句段上下文 | 实装 | **自动**：TurnAttachment / grounding context<br>[设计] 有来源的范围读取 | **部分**：selectionActions.run(input.context)<br>[设计] 可按范围查询 | Ask AI；Dictionary | 只在特定回调拿到，不代表任意范围读取 | [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) [GROUND](../packages/agent/src/runtime/grounding-context.ts) [API](../packages/plugin-types/src/index.ts) [DICT](../plugins/dictionary/src/index.ts) | C07 |
 | <a id="TXT11"></a>TXT11 | 书内脚注/链接目标解析与预览 | 实装 | **未接**：无正式入口<br>[设计] 引用目标查询/宿主预览 | **未接**：无正式入口<br>[设计] 书内链接 ResourceRef/预览 | ReaderFootnotePopover | DOM 与样式保持宿主所有；只开放语义目标 | [ENGINE](../apps/web/foliate-js/src/view.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [API](../packages/plugin-types/src/index.ts) | C08, E05 |
 | <a id="TXT12"></a>TXT12 | 书内图片读取与灯箱缩放预览 | 实装 | **未接**：无正式入口<br>[设计] 受控图片查询/预览 | **未接**：无正式入口<br>[设计] 图片 ResourceRef/预览 | ReaderImageLightbox | 灯箱存在不等于模型已有图像输入工具 | [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [BLOB](../apps/web/src/platform/blob-store.ts) [API](../packages/plugin-types/src/index.ts) | C08, E05, J08 |
-| <a id="TXT13"></a>TXT13 | 统一位置/范围解析、校验、版本与失效 | 部分 | **部分**：open_book 接受 anchor/chapterHref/index<br>[设计] 宿主签发 Location/Range | **部分**：goTo 接受 cfi/href<br>[设计] 宿主签发 Location/Range | 目录/标注/Agent/RSS | 缺稳定跨来源引用和 content generation；插件不能靠自行造 CFI 补齐 | [ENGINE](../apps/web/foliate-js/src/view.ts) [NAV](../apps/web/src/domain/reading-session-controller.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [API](../packages/plugin-types/src/index.ts) | A02, A03, A04, E06, F04 |
+| <a id="TXT13"></a>TXT13 | 统一位置/范围解析、校验、版本与失效 | 部分 | **部分**：open_book(location) 接收共享版本化搜索/目录位置<br>[设计] 宿主签发 Location/Range | **部分**：getNavigationToc/searchLocations → reading.goTo(Location)<br>[设计] 宿主签发 Location/Range | Jumper/Agent/RSS；标注仍待统一 Range | 文件 SHA-256 与虚拟内容摘要作为版本；来源 lease/前后校验、provider 代际失效已实现；Range 写入/跨模式位置/全部格式和并发生命周期验收仍未完整 | [ENGINE](../apps/web/foliate-js/src/view.ts) [NAV](../apps/web/src/domain/reading-session-controller.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [API](../packages/plugin-types/src/index.ts) [CONTENTSOURCE](../apps/web/src/features/library/lib/book-content-source.ts) [NAVTOOLS](../packages/agent/src/tools/navigation-tools.ts) | A02, A03, A04, E06, F04 |
 
 ### 阅读会话与呈现控制
 
@@ -372,17 +372,18 @@
 | Sentence Reader | 分段算法、句段模式 | 无专属工具；非敏感设置可改 | 启停、上/下一单元、跟随、计时/播放控制 |
 | TTS | 多 vendor/voice 合成 | 无专属工具；非敏感设置可改 | 朗读开始/停止、实际播放状态与回退 |
 | Editorial Themes | manifest 主题/字体 | 无专属工具；通用 settings 可选择 | 不需要为了选主题再增加专属工具；新增样式仍应留插件 |
+| Jumper | 印刷章号/目录序号/标题、精确正文搜索、前进/后退 | 通用 get_navigation_toc / find_book_locations / open_book / navigate_reading | 不重复注册专属模型工具；仍需完整视觉/格式/取消验收 |
 | WebDAV Sync | 密文 transport | 无专属工具；非敏感设置可改 | 连接/断开/同步状态，必须使用宿主控制面 |
 
-[代码] 宿主已消费 agentContextProviders 和 memoryCandidateProviders，但本仓这六个插件没有注册实例；这是缺消费者，不是宿主贡献 API 缺失。Dictionary 提供检索贡献，运行时会生成一个额外 retrieve 工具。具体带命名空间的 7 个插件 Agent 入口在库存表中列出。
+[代码] 宿主已消费 agentContextProviders 和 memoryCandidateProviders，但本仓这七个插件没有注册实例；这是缺消费者，不是宿主贡献 API 缺失。Dictionary 提供检索贡献，运行时会生成一个额外 retrieve 工具。具体带命名空间的 7 个插件 Agent 入口在库存表中列出。
 
-[代码/范围补充] 邻接仓库 `readaware-plugins` 在本轮查看的提交为 `441e3c9b2403c086459b1d4611efad6e8e1ceb72`：Theme Schedule 1.0.1 已通过 settings discover/update 与 Worker clock 组合主题定时切换，没有专属 Agent 工具；WebDAV 0.1.0 是另一个分发位置。此补充不算主仓第七个插件，不证明线上 marketplace 已发布或用户已安装；生成器不依赖邻接仓库。
+[代码/范围补充] 邻接仓库 `readaware-plugins` 在本轮查看的提交为 `441e3c9b2403c086459b1d4611efad6e8e1ceb72`：Theme Schedule 1.0.1 已通过 settings discover/update 与 Worker clock 组合主题定时切换，没有专属 Agent 工具；WebDAV 0.1.0 是另一个分发位置。此补充不另计主仓插件，不证明线上 marketplace 已发布或用户已安装；生成器不依赖邻接仓库。
 
 ## 注册库存与覆盖反查
 
-- Agent global：28 个。
-- Agent book：22 个。
-- Plugin ctx：74 个。
+- Agent global：30 个。
+- Agent book：24 个。
+- Plugin ctx：76 个。
 - Plugin returned interface：16 个。
 - Capability domains：5 个。
 - Capability contributions：14 个。
@@ -401,12 +402,12 @@
 - Domain subscription ANNOTATION_EVENTS：8 个。
 - Domain subscription CONVERSATION_EVENTS：4 个。
 - Feature owner：14 个。
-- First-party source plugin：6 个。
+- First-party source plugin：7 个。
 - Plugin Agent contribution：7 个。
 - Plugin setting declaration：24 个。
-- Native bundled plugin：5 个。
+- Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 67 个顶层可调用路径；返回的 collection/session 方法单列。Settings 46 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 76 个顶层可调用路径；返回的 collection/session 方法单列。Settings 46 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -437,6 +438,8 @@
 | `open_book` | [READ01](#READ01) [READ03](#READ03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_reading_session` | [READ07](#READ07) [TXT09](#TXT09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `navigate_reading` | [READ02](#READ02) [READ04](#READ04) [READ06](#READ06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_navigation_toc` | [TXT02](#TXT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `find_book_locations` | [TXT07](#TXT07) [TXT13](#TXT13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `ask_user` | [AI04](#AI04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `update_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -464,6 +467,8 @@
 | `open_book` | [READ01](#READ01) [READ03](#READ03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_reading_session` | [READ07](#READ07) [TXT09](#TXT09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `navigate_reading` | [READ02](#READ02) [READ04](#READ04) [READ06](#READ06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_navigation_toc` | [TXT02](#TXT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `find_book_locations` | [TXT07](#TXT07) [TXT13](#TXT13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `ask_user` | [AI04](#AI04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `update_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -476,6 +481,8 @@
 | `domains.settings.queries.read` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.settings.commands.update` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.settings.events.subscribe` | [CFG10](#CFG10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.library.queries.books.getNavigationToc` | [TXT02](#TXT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.library.queries.books.searchLocations` | [TXT07](#TXT07) [TXT13](#TXT13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.list` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.get` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.getToc` | [TXT01](#TXT01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -1016,6 +1023,7 @@
 | --- | --- | --- |
 | `dictionary` | [EXT09](#EXT09) [AI12](#AI12) | [代码] 源码版本 1.1.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `editorial-themes` | [EXT08](#EXT08) | [代码] 源码版本 1.0.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `jumper` | [TXT02](#TXT02) [TXT07](#TXT07) [READ06](#READ06) [EXT02](#EXT02) | [代码] 源码版本 0.1.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `rss-reader` | [EXT10](#EXT10) | [代码] 源码版本 0.7.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `sentence-reader` | [READ15](#READ15) [READ16](#READ16) | [代码] 源码版本 1.1.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `tts` | [READ17](#READ17) [READ18](#READ18) | [代码] 源码版本 0.5.0；源码存在不等于打包、安装、启用或模型可调用 |
@@ -1071,6 +1079,7 @@
 | `rss-reader` | [EXT10](#EXT10) | [代码] Rust BUNDLED 编译内置清单；不是用户当前安装/启用状态 |
 | `sentence-reader` | [READ15](#READ15) [READ16](#READ16) | [代码] Rust BUNDLED 编译内置清单；不是用户当前安装/启用状态 |
 | `tts` | [READ17](#READ17) [READ18](#READ18) | [代码] Rust BUNDLED 编译内置清单；不是用户当前安装/启用状态 |
+| `jumper` | [TXT02](#TXT02) [TXT07](#TXT07) [READ06](#READ06) [EXT02](#EXT02) | [代码] Rust BUNDLED 编译内置清单；不是用户当前安装/启用状态 |
 
 ## 旧基线反向索引
 
@@ -1208,7 +1217,7 @@
 
 ## 验证边界
 
-- [代码] 原盘点基于 5dc7f7a2 及 2026-09-07 工作区；2026-09-08 在 1d97e2e4 后工作区补 CFG11–13 并分开源码/编译内置插件库存。没有执行安装、备份、同步、写入用户数据或调用原生命令。构建 ctx 只枚举方法，没有 activate/promote 或执行注册副作用。
+- [代码] 原盘点基于 5dc7f7a2 及 2026-09-07 工作区；2026-09-08 在 1d97e2e4 后工作区补 CFG11–13 并分开源码/编译内置插件库存。后续阅读/搜索/Jumper 实现与隔离 Tauri 验收见执行账本。矩阵生成器自身只构造与枚举 ctx，不 activate/promote，不执行安装、备份、同步或写入用户数据。
 - [代码] 生成器实际运行 Agent 工具构造器（内存 deps）、全权限 plugin ctx 构造器、settings catalog；TypeScript AST 枚举菜单、命令、事件、快捷键与插件工具声明；Rust generate_handler 名单独立反查。
 - [代码] 129 个旧验收项全部映射到新矩阵；已注册库存未映射、失效来源、重复 ID、设置可写性漂移或生成文档不一致会使 --check 失败。目录映射只是人工审计入口，不是所有语义的形式化证明。
 - [环境] 尚未运行本轮所有能力的 Tauri E2E、打包 CSP、真实跨设备同步、第三方 HTTP/推理/账号交易或用户已安装插件验收。所有代码状态均不能替代这些证据。

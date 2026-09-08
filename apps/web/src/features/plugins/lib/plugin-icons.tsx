@@ -4,6 +4,8 @@
  * tree-shakeable; extend deliberately rather than exposing the full catalog.
  */
 import {
+  ArrowLeft,
+  ArrowRight,
   ArrowSquareOut,
   ArrowsClockwise,
   Article,
@@ -54,6 +56,8 @@ import {
 import type { ReactNode } from "react";
 
 const PLUGIN_ICONS: Record<string, Icon> = {
+  "arrow-left": ArrowLeft,
+  "arrow-right": ArrowRight,
   "arrow-square-out": ArrowSquareOut,
   "arrows-clockwise": ArrowsClockwise,
   article: Article,

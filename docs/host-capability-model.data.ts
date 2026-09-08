@@ -231,7 +231,7 @@ export const evidence = [
 ];
 
 export const scenarios = [
-  ["Jumper", "D1 D2 C1 S3 V1 Q2 Q3", "已有 reader header 入口；缺有位置 TOC/精确搜索、session 快照、完成回执、统一历史和异步结果失效。编号规则/搜索匹配策略留插件。不存在章节不派发；A 查询迟到不能覆盖 B；back 失败不移动指针。"],
+  ["Jumper", "D1 D2 C1 S3 V1 Q2 Q3", "已建第一方 Jumper：reader header/命令、分层目录与版本化精确搜索、共享会话/导航回执/历史。印刷章号、目录序号、标题匹配由插件区分；不存在章节不派发，歧义给候选。隔离 Tauri FB2 Worker 与实际 Agent 端口通过；WebView hidden 导致前台绘制/截图未通过，PDF、超大查询预算与逐调用取消仍未关闭。"],
   ["Dictionary", "D1 D2 C4 S1 S6 S7 V1", "查询/保存/检索已经有工具；删词/CSV 工具缺消费者，应在插件补；当前文本上下文/存储持久屏障缺口由宿主补。复制/导出失败必须可见。"],
   ["RSS/OPML", "D1 C2 C4 S1 S4 S5 S8", "订阅/刷新工具已有，退订/OPML 工具未贡献；文件选择为宿主漏接能力，OPML 解析为插件算法。正文版本更新不能把当前会话悄悄指向旧引用。"],
   ["句读与 TTS", "D2 C2 C3 D5 Q2", "贡献分段/合成已存在，启停/步进/恢复/实际播放查询未开放；宿主补 reading 控制，不新增单独播放器域。换书和禁用 provider 后不播放迟到音频。"],

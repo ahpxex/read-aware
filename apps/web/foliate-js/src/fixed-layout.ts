@@ -1076,9 +1076,9 @@ export class FixedLayout extends HTMLElement {
             ? spread.left ?? spread.right : spread.right ?? spread.left)
         return section && this.book ? this.book.sections.indexOf(section) : -1
     }
-    #reportLocation(reason: RelocateReason) {
+    #reportLocation(reason: RelocateReason, range: Range | null = null) {
         this.dispatchEvent(new CustomEvent('relocate', { detail:
-            { reason, range: null, index: this.index, fraction: 0, size: 1 } }))
+            { reason, range, index: this.index, fraction: 0, size: 1 } }))
     }
     getSpreadOf(section: BookSection): { index: number; side: Side } | undefined {
         const spreads = this.#spreads
@@ -1137,6 +1137,7 @@ export class FixedLayout extends HTMLElement {
             if (range && selection) { selection.removeAllRanges(); selection.addRange(range) }
         }
         anchorElement(anchor)?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+        this.#reportLocation('navigation', anchorRange(doc, anchor))
     }
     async next() {
         if (this.scrolled)

@@ -1,0 +1,16 @@
+{
+  "id": "jumper",
+  "name": "Jumper",
+  "version": "0.1.0",
+  "schemaVersion": 1,
+  "minAppVersion": "0.3.0",
+  "description": "Jump to chapters, find passages, and retrace reading locations.",
+  "author": "ReadAware",
+  "main": "main.js",
+  "permissions": ["library:read", "reading:write"],
+  "requires": {
+    "domains": { "library": "^1.1.0", "reading": "^2.0.0" },
+    "contributions": { "headerActions": "^1.0.0", "commands": "^1.0.0" },
+    "schemas": { "views": "^1.0.0" }
+  }
+}

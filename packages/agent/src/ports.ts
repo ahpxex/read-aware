@@ -316,6 +316,8 @@ export interface BookTextHit {
  * 多查询扫描）；未抽取的书返回空。
  */
 export interface BookTextPort {
+  getNavigationToc(bookId: Id, signal?: AbortSignal): Promise<import("@read-aware/core").BookNavigationToc>;
+  searchLocations(input: Omit<import("@read-aware/core").BookLocationSearch, "hrefs"> & { throughChapterIndex?: number }, signal?: AbortSignal): Promise<import("@read-aware/core").BookLocationSearchPage>;
   getToc(bookId: Id): Promise<ChapterRef[]>;
   getChapterText(bookId: Id, chapterIndex: number): Promise<string | undefined>;
   /** 一次接收多个查询变体，合并去重后的命中（减少模型的换词重试往返）。 */

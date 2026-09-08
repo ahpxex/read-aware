@@ -59,6 +59,18 @@ test("a stale content version and out-of-range fraction fail before engine movem
   expect(moved).toBe(false);
 });
 
+test("malformed text quotes cannot move the engine before validation", async () => {
+  const f = fixture(); let moved = false;
+  f.engine.navigate = async () => { moved = true; return at("bad"); };
+  for (const target of [
+    { cfi: "page", textQuote: { exact: "needle" } },
+    { contentVersion: "sha256:fixture", textQuote: { exact: "needle" } },
+    { cfi: "page", contentVersion: "sha256:fixture", textQuote: { exact: " " } },
+    { cfi: "page", contentVersion: "sha256:fixture", textQuote: { exact: "needle", prefix: "x".repeat(8193) } },
+  ]) await expect(f.runtime.navigate(target)).rejects.toMatchObject({ code: "reader/invalid-target" });
+  expect(moved).toBe(false);
+});
+
 test("closing and a newer user open invalidate late results and stale engine cleanup", async () => {
   const f = fixture(); let finish!: (location: ReadingLocation) => void;
   f.engine.navigate = () => new Promise(resolve => { finish = resolve; });

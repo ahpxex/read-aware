@@ -10,6 +10,7 @@ import { buildThreadTools } from "./library-tools";
 import { buildMemoryTools } from "./memory-tools";
 import { buildPresentTools } from "./present-tools";
 import { buildReaderTools } from "./reader-tools";
+import { buildNavigationTools } from "./navigation-tools";
 import { buildSettingsTools } from "./settings-tools";
 import { buildShelfTools } from "./shelf-tools";
 import type { AgentTurnState } from "./turn-state";
@@ -32,7 +33,8 @@ export function buildAgentTools(
     ...buildBookTextTools(scope, deps, turnState),
     ...buildGraphTools(scope, deps, turnState),
     ...(scope.kind === "global" ? buildPresentTools(deps, turnState) : []),
-    ...buildReaderTools(scope, deps),
+    ...buildReaderTools(scope, deps, turnState),
+    ...buildNavigationTools(scope, deps, turnState),
     ...buildInteractionTools(scope, deps, turnState),
     ...buildSettingsTools(scope, deps),
     ...(deps.extraTools?.(scope) ?? []),

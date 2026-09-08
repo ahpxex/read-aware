@@ -4,8 +4,10 @@ import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { resolveBookId } from "./current-book";
 import { textResult } from "./tool-result";
+import type { AgentTurnState } from "./turn-state";
+import type { ReadingLocation } from "@read-aware/core";
 
-export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
+export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: AgentTurnState): AgentTool[] {
   const openBook: AgentTool = {
     name: "open_book",
     label: "Open book",
@@ -19,10 +21,14 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
       chapterHref: Type.Optional(Type.String()),
       fraction: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
       contentVersion: Type.Optional(Type.String()),
+      location: Type.Optional(Type.Object({
+        bookId: Type.String(), contentVersion: Type.String(), cfi: Type.Optional(Type.String()), href: Type.Optional(Type.String()), fraction: Type.Optional(Type.Number()),
+        textQuote: Type.Optional(Type.Object({ exact: Type.String(), prefix: Type.Optional(Type.String()), suffix: Type.Optional(Type.String()) })),
+      }, { description: "Copy the complete location returned by get_navigation_toc or find_book_locations." })),
     }),
     executionMode: "sequential",
     execute: async (_id, params, signal) => {
-      const { bookId, annotationId, chapterIndex, anchor, chapterHref, fraction, contentVersion } = params as {
+      const { bookId, annotationId, chapterIndex, anchor, chapterHref, fraction, contentVersion, location } = params as {
         bookId?: string;
         annotationId?: string;
         chapterIndex?: number;
@@ -30,8 +36,11 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
         chapterHref?: string;
         fraction?: number;
         contentVersion?: string;
+        location?: ReadingLocation;
       };
-      const target = resolveBookId(scope, bookId);
+      if (location && (annotationId || chapterIndex !== undefined || anchor || chapterHref || fraction !== undefined || contentVersion
+        || bookId && bookId !== location.bookId)) throw new Error("Use location or individual locator fields, not conflicting targets");
+      const target = resolveBookId(scope, bookId ?? location?.bookId);
       const book = await deps.library.getBook(target);
       if (!book) throw new Error(`unknown book: ${target}`);
 
@@ -54,7 +63,7 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
         if (!targetHref) throw new Error(`chapter ${chapterIndex} has no navigable location`);
       }
 
-      const receipt = targetAnchor || targetHref || fraction !== undefined || contentVersion
+      const receipt = location ? await deps.reader.goTo({ ...location, bookId: target }, signal) : targetAnchor || targetHref || fraction !== undefined || contentVersion
         ? await deps.reader.goTo({ bookId: target, cfi: targetAnchor, href: targetHref, fraction, contentVersion }, signal)
         : await deps.reader.openBook(target, signal);
       return textResult({
@@ -74,8 +83,9 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
     parameters: Type.Object({}),
     execute: async () => {
       const snapshot = await deps.reader.getSession();
-      return textResult(scope.kind === "book" && snapshot.bookId !== scope.bookId
-        ? { status: "not-active", bookId: scope.bookId } : snapshot);
+      if (scope.kind === "book" && snapshot.bookId !== scope.bookId) return textResult({ status: "not-active", bookId: scope.bookId });
+      return textResult(state?.spoilerFence && !state.spoilerPermissionGranted
+        ? { ...snapshot, visibleText: "", textAccess: "Use the turn's original reading_cursor.visible_text; navigation does not grant spoiler access." } : snapshot);
     },
   };
   const control: AgentTool = {

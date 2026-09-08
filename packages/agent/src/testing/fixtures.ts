@@ -31,6 +31,7 @@ import type {
 } from "../settings";
 import { matchesMemoryQuery } from "../memory/query-match";
 import { searchChapters, searchTurnRecords } from "../text/search";
+import { createMemoryBookNavigation } from "./book-navigation";
 
 /** 判别联合的可检索文本（fixtures 的 query 过滤用）。 */
 function annotationText(a: AnnotationItem): string {
@@ -609,6 +610,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       },
     },
     bookText: {
+      ...createMemoryBookNavigation(stores.chapters),
       getToc: async (bookId) => {
         const chapters = stores.chapters.get(bookId) ?? [];
         return chapters.map<ChapterRef>((chapter, index) => ({

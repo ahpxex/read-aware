@@ -10,9 +10,17 @@ import type { Id } from "@read-aware/core";
 import { getExtractedChapters, getPersistedChapters } from "../../../../domain";
 import { getBookTextStatus } from "../../../library/lib/book-text-store";
 import { listLibraryBooks } from "../../../library/lib/library-db";
+import { createLibraryDomain } from "../../../../domain/library";
 
 export function createBookTextPort(): BookTextPort {
+  const library = createLibraryDomain("agent").queries.books;
   return {
+    getNavigationToc: library.getNavigationToc,
+    searchLocations: async ({ throughChapterIndex, ...input }, signal) => {
+      const hrefs = throughChapterIndex === undefined ? undefined : (await getExtractedChapters(input.bookId))
+        .slice(0, Math.max(0, throughChapterIndex + 1)).flatMap(chapter => chapter.hrefs ?? []);
+      return library.searchLocations({ ...input, ...(hrefs ? { hrefs } : {}) }, signal);
+    },
     getToc: async (bookId) =>
       (await getExtractedChapters(String(bookId))).map<ChapterRef>((chapter, index) => ({
         index,

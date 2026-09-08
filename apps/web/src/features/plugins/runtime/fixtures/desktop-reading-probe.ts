@@ -8,6 +8,7 @@ import { pluginCommandsAtom } from "../../state/plugin-store";
 import { inspectContributions } from "../../state/contribution-registry";
 import { startPluginWorker } from "../plugin-worker-host";
 import { buildReaderTools } from "../../../../../../../packages/agent/src/tools/reader-tools";
+import { buildNavigationTools } from "../../../../../../../packages/agent/src/tools/navigation-tools";
 import { buildRuntimeDeps } from "../../../ai/agent/ports";
 
 async function assertIsolated(): Promise<string> {
@@ -63,6 +64,53 @@ export async function runDesktopAgentReadingProbe(bookId: string) {
   const current = await call("get_reading_session", {});
   const close = await call("navigate_reading", { action: "close" });
   return { opened, current, close, afterClose: await deps.reader.getSession() };
+}
+
+/** Calls the installed Jumper Worker, then the product Agent port against the same file. */
+export async function runDesktopJumperProbe(bookId: string) {
+  const dataDir = await assertIsolated();
+  const deps = buildRuntimeDeps();
+  const library = createLibraryDomain("user").queries.books;
+  await deps.reader.goTo({ bookId, fraction: 0 });
+  const command = getDefaultStore().get(pluginCommandsAtom).find(command => command.pluginId === "jumper" && command.id === "open");
+  if (!command) throw new Error("Installed Jumper command is unavailable");
+  const root = await command.run();
+  if (!root || root.view?.kind !== "blocks") throw new Error("Jumper did not return its root view");
+  const form = root.view.blocks.find(block => block.kind === "form");
+  if (!form || form.kind !== "form") throw new Error("Jumper search form missing");
+  const beforeMissing = await deps.reader.getSession();
+  const missing = await form.onSubmit({ mode: "ordinal", query: "99999" });
+  if (!missing?.fieldErrors?.query) throw new Error("Missing chapter did not return validation");
+  const afterMissing = await deps.reader.getSession();
+  if (beforeMissing.location?.cfi !== afterMissing.location?.cfi) throw new Error("Missing chapter moved the reader");
+  const toc = await library.getNavigationToc(bookId);
+  const search = await form.onSubmit({ mode: "text", query: "Beta paragraph 17", matchCase: true, wholeWords: false });
+  if (!search || search.view?.kind !== "list" || search.view.items.length !== 1) throw new Error("Expected one precise passage");
+  const selected = await search.view.items[0].onSelect?.();
+  if (!selected?.close) throw new Error("Jumper did not acknowledge completed navigation");
+  const atMatch = await deps.reader.getSession();
+  const back = getDefaultStore().get(pluginCommandsAtom).find(command => command.pluginId === "jumper" && command.id === "back");
+  const forward = getDefaultStore().get(pluginCommandsAtom).find(command => command.pluginId === "jumper" && command.id === "forward");
+  if (!back || !forward) throw new Error("Jumper history commands missing");
+  await back.run(); const afterBack = await deps.reader.getSession();
+  await forward.run(); const afterForward = await deps.reader.getSession();
+  if (afterBack.location?.cfi === atMatch.location?.cfi || afterForward.location?.cfi !== atMatch.location?.cfi) throw new Error("Jumper history did not retrace actual locations");
+  const tools = [...buildNavigationTools({ kind: "book", bookId }, deps), ...buildReaderTools({ kind: "book", bookId }, deps)];
+  const run = async (name: string, params: Record<string, unknown>) => {
+    const result = await tools.find(tool => tool.name === name)!.execute("jumper-e2e", params);
+    if (result.content[0]?.type !== "text") throw new Error("Expected Agent text result");
+    return JSON.parse(result.content[0].text);
+  };
+  const agentSearch = await run("find_book_locations", { query: "Gamma paragraph 23", matchCase: true });
+  if (agentSearch.hits.length !== 1) throw new Error("Agent precise search mismatch");
+  const agentNavigation = await run("open_book", { location: agentSearch.hits[0].location });
+  let stale: string | undefined;
+  try { await deps.reader.goTo({ ...agentSearch.hits[0].location, contentVersion: "sha256:old" }); }
+  catch (error) { stale = (error as { code?: string }).code; }
+  if (stale !== "reader/stale-location") throw new Error("Stale navigation was not rejected");
+  return { dataDir, toc, missing, beforeMissing: beforeMissing.location, afterMissing: afterMissing.location,
+    match: search.view.items[0].title, atMatch: atMatch.location, afterBack: afterBack.location, afterForward: afterForward.location,
+    agentSearch, agentNavigation, stale };
 }
 
 export async function importReadingProbePdf() {

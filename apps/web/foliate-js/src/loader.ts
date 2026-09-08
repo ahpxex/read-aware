@@ -10,5 +10,6 @@ import { makeBook, View } from "./view.js";
 import type { EngineAPI } from './engine-api.js';
 import { Overlayer } from "./overlayer.js";
 import { FootnoteHandler } from "./footnotes.js";
+import { contentCFI, searchContentSection, resolveTextQuote } from './content-navigation.js';
 
-globalThis.__readawareFoliate = { makeBook, View, Overlayer, FootnoteHandler } satisfies EngineAPI;
+globalThis.__readawareFoliate = { makeBook, View, Overlayer, FootnoteHandler, contentCFI, searchContentSection, resolveTextQuote } satisfies EngineAPI;

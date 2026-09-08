@@ -54,7 +54,9 @@ export function buildVirtualFoliateBook(content: VirtualBookContent): FoliateBoo
     resolveHref: (href: string) => {
       const id = href.split("#")[0];
       const index = ids.indexOf(id);
-      return { index: index < 0 ? 0 : index, anchor: () => null };
+      if (index < 0) return undefined;
+      const fragment = href.split("#")[1];
+      return { index, anchor: (doc: Document) => fragment ? doc.getElementById(decodeURIComponent(fragment)) : null };
     },
     splitTOCHref: (href: string) => [href.split("#")[0], null],
     getTOCFragment: (doc: Document) => doc.documentElement,

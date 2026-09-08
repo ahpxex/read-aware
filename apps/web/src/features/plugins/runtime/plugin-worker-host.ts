@@ -30,6 +30,7 @@ import { createLogger } from "../../../platform/logger";
 import { updateInstalledPlugin } from "../state/plugin-store";
 import { flattenPluginRequest, flattenPluginResponse } from "./plugin-network-wire";
 import { PluginRpcPending } from "./plugin-rpc-pending";
+import { decodePluginCallbacks, type PluginCallbackWire } from "./plugin-callback-wire";
 
 const log = createLogger("plugins");
 
@@ -37,19 +38,14 @@ type WorkerMessage =
   | { t: "ready"; hasMigration: boolean }
   | { t: "failed"; error: string }
   | { t: "dispose"; handle: string }
-  | { t: "call"; id: number; method: string; args: unknown[] }
+  | { t: "call"; id: number; method: string; args: PluginCallbackWire }
   | { t: "cancel"; id: number }
-  | { t: "result"; id: number; ok: true; value: unknown }
+  | { t: "result"; id: number; ok: true; value: PluginCallbackWire }
   | { t: "result"; id: number; ok: false; error: string; code?: string }
   | { t: "healthy"; id: number }
   | { t: "migrated"; id: number; ok: true }
   | { t: "migrated"; id: number; ok: false; error: string }
   | { t: "quiesced"; error?: string };
-
-/** A `{ __fn: handle }` marker the Worker put where a function used to be. */
-type FnRef = { __fn: string };
-const isFnRef = (value: unknown): value is FnRef =>
-  typeof value === "object" && value !== null && typeof (value as FnRef).__fn === "string";
 
 export type SandboxedPlugin = {
   manifest: PluginManifest;
@@ -254,29 +250,10 @@ export function startPluginWorker(
     });
   };
 
-  /**
-   * Turn every `{ __fn }` marker in a call's arguments back into a function,
-   * recursively.
-   *
-   * This is the whole of the callback plumbing. There used to be a table of
-   * contribution kinds here, mirrored by another in the Worker, naming which
-   * properties of which registrations were callable — two hand-written copies of
-   * the contracts that had to agree with them and with each other. They did not:
-   * a tool's `execute` and a header action's `view` were both missing, so the
-   * agent received tools it could not invoke. Decoding by shape needs no list.
-   */
-  const decode = (value: unknown): unknown => {
-    if (isFnRef(value)) {
-      const handle = value.__fn;
-      return (...args: unknown[]) => invokeHandle(handle, args);
-    }
-    if (Array.isArray(value)) return value.map(decode);
-    if (value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
-      return Object.fromEntries(
-        Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, decode(entry)]),
-      );
-    }
-    return value;
+  const releaseCallbacks = (wire: PluginCallbackWire) => {
+    const handles = Array.isArray(wire?.callbacks)
+      ? wire.callbacks.flatMap(entry => typeof entry?.handle === "string" ? [entry.handle] : []) : [];
+    if (!terminated && handles.length) worker.postMessage({ t: "release", handles });
   };
 
   /**
@@ -445,10 +422,12 @@ export function startPluginWorker(
         case "call": {
           if (incomingCalls.has(message.id)) return;
           if (incomingCalls.size >= 256) {
+            releaseCallbacks(message.args);
             worker.postMessage({ t: "result", id: message.id, ok: false, code: "plugin/busy", error: "Too many pending plugin calls" });
             return;
           }
           const controller = new AbortController();
+          let argumentOwner: PluginDisposable | undefined;
           incomingCalls.set(message.id, controller);
           const timeout = setTimeout(() => controller.abort(new AppError("plugin/timeout", "Plugin call timed out")), 120_000);
           controller.signal.addEventListener("abort", () => clearTimeout(timeout), { once: true });
@@ -458,7 +437,8 @@ export function startPluginWorker(
             }
             const method = resolveMethod(ctx, message.method);
             if (!method) throw new AppError("plugin/unavailable", `"${message.method}" is not granted to plugin "${manifest.id}"`);
-            const args = message.args.map(decode);
+            const args = decodePluginCallbacks(message.args, invokeHandle);
+            if (!Array.isArray(args)) throw new AppError("plugin/invalid-input", "Plugin call arguments must be an array");
             if (message.method === "services.network.fetch") {
               // Validate the body limit on the authoritative side too: a plugin
               // can send messages directly rather than use its friendly proxy.
@@ -480,13 +460,24 @@ export function startPluginWorker(
                 throw controller.signal.reason ?? new AppError("plugin/unavailable", "Plugin runtime stopped");
               }
               const handle = `d${nextDisposableId++}`;
-              heldDisposables.set(handle, value as PluginDisposable);
-              worker.postMessage({
-                t: "result",
-                id: message.id,
-                ok: true,
-                value: { __disposable: handle },
-              });
+              const registration = value as PluginDisposable;
+              let disposed = false;
+              argumentOwner = {
+                dispose() {
+                  if (disposed) return;
+                  disposed = true;
+                  try { registration.dispose(); }
+                  finally { releaseCallbacks(message.args); }
+                },
+              };
+              heldDisposables.set(handle, argumentOwner);
+              try {
+                worker.postMessage({ t: "result", id: message.id, ok: true, value: null, disposable: handle });
+              } catch (error) {
+                heldDisposables.delete(handle);
+                argumentOwner.dispose();
+                throw error;
+              }
               return;
             }
             worker.postMessage({ t: "result", id: message.id, ok: true, value: value ?? null });
@@ -503,6 +494,9 @@ export function startPluginWorker(
               code: errorCode(failure),
             });
           } finally {
+            // Streaming callbacks belong to the call; registration callbacks
+            // belong to the returned disposable, not the plugin's entire lifetime.
+            if (!argumentOwner) releaseCallbacks(message.args);
             clearTimeout(timeout);
             incomingCalls.delete(message.id);
           }
@@ -510,11 +504,19 @@ export function startPluginWorker(
         }
 
         case "result": {
-          // Decode the result, not only call arguments: what a contribution
-          // returns carries functions of its own (a view's control `onChange`),
-          // and they arrive as handles that have to become callable here.
-          if (message.ok) pendingInvokes.settle(message.id, true, decode(message.value));
-          else
+          if (message.ok) {
+            try {
+              if (!pendingInvokes.has(message.id)) {
+                releaseCallbacks(message.value);
+                return;
+              }
+              const value = decodePluginCallbacks(message.value, invokeHandle);
+              pendingInvokes.settle(message.id, true, value);
+            } catch (error) {
+              releaseCallbacks(message.value);
+              pendingInvokes.settle(message.id, false, error);
+            }
+          } else
             pendingInvokes.settle(message.id, false,
               message.code
                 ? new AppError(message.code, message.error)

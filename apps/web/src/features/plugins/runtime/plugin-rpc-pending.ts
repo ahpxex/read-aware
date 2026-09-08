@@ -16,6 +16,8 @@ export class PluginRpcPending {
 
   get size(): number { return this.pending.size; }
 
+  has(id: number): boolean { return this.pending.has(id); }
+
   call(
     send: (id: number) => void,
     options: { signal?: AbortSignal; cancel?: (id: number) => void } = {},

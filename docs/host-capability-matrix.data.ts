@@ -17,6 +17,7 @@ export const sources: Record<string, string> = {
   CTX: "apps/web/src/features/plugins/runtime/plugin-context.ts",
   WIRE: "apps/web/src/features/plugins/runtime/plugin-worker-host.ts",
   WORKER: "apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts",
+  CALLBACKWIRE: "apps/web/src/features/plugins/runtime/plugin-callback-wire.ts",
   CATALOG: "packages/core/src/capabilities.ts",
   DOM: "apps/web/src/domain/registry.ts",
   LIB: "apps/web/src/domain/library.ts",
@@ -330,8 +331,8 @@ groups.push(
   { name: "跨能力协议与明确边界", rows: [
     cap("CON01", "能力发现/版本/权限/依赖与安装同意", "实装", actor("部分", "registry 按 scope 产工具；无完整 host 能力目录工具", "语义工具目录"), actor("接通", "ctx.capabilities + manifest requires/permissions", "版本化能力目录"), ["CATALOG","API","HOST","REGISTRY"], "插件安装校验；工具构建", "catalog 当前只列已公开 API，不自动覆盖 host UI/engine/native；新增宿主行为必须更新此表"),
     cap("CON02", "对象级授权/用户批准/来源与审计", "部分", actor("部分", "book scope + destructive approval", "最小授权工具"), actor("部分", "domain permissions/settings path grants/plugin namespace", "对象级授权/审批票据"), ["CTX","CATALOG","ANNTOOLS","SHELFTOOLS"], "Agent 写工具；插件 manifest", "域权限不是每个对象的授权；session metadata 默认开放需明确政策 GAP15"),
-    cap("CON03", "生命周期 staging/activate/deactivate 与资源释放", "部分", actor("自动", "runtime invalidation/flush background", "任务/贡献消费生命周期"), actor("部分", "lifecycle staged contributions/disposables", "全来源 structured cancellation"), ["HOST","CTX","WIRE","THREAD"], "插件启停/升级；Agent 运行时重建", "GAP06/08/14：callback、已发出的 host effect、transport session 不能全被关闭"),
-    cap("CON04", "跨 Worker RPC 的类型、错误与资源额度", "部分", actor("扩展", "插件 tool 也经过同一 worker bridge", "工具任务不被悬挂"), actor("部分", "describeContext/encode/decode/invoke", "有界可取消版本化 RPC"), ["WORKER","WIRE","API","ERRORS"], "所有 Worker 插件及其 Agent 工具", "GAP07/12/13/17：超时/崩溃、__fn 碰撞、解码配额、错误码漂移"),
+    cap("CON03", "生命周期 staging/activate/deactivate 与资源释放", "部分", actor("自动", "runtime invalidation/flush background", "任务/贡献消费生命周期"), actor("部分", "staged contributions；注册 dispose/普通调用终态释放参数回调", "全来源 structured cancellation"), ["HOST","CTX","WIRE","CALLBACKWIRE","THREAD"], "插件启停/升级；Agent 运行时重建", "注册回调已局部释放，迟到/非法结果也回收；GAP06/08/14 的视图栈 lease、宿主保留的已处置登记、在途 effect 与 transport session 仍未闭合"),
+    cap("CON04", "跨 Worker RPC 的类型、错误与资源额度", "部分", actor("扩展", "插件 tool 也经过同一 worker bridge", "工具任务不被悬挂"), actor("部分", "describeContext + 无业务字段碰撞的 callback metadata + 有界图遍历", "有界可取消版本化 RPC"), ["WORKER","WIRE","CALLBACKWIRE","API","ERRORS"], "所有 Worker 插件及其 Agent 工具", "__fn/__disposable 保持普通数据；编码/clone 失败回滚句柄；图深度/条目/单消息 callback 有界；GAP07/12/13/17 的全消息 schema/字节与存活资源总量、取消、错误码/崩溃路径仍需统一验收"),
     cap("CON05", "稳定错误码/安全文案/可重试与降级状态", "部分", actor("部分", "工具错误包装与产品错误表面", "可机器判定回执"), actor("部分", "桥会保留 code；非所有生命周期路径", "统一错误 envelope"), ["ERRORS","WIRE","HOST","CTX"], "宿主 AppError；插件 UI toast", "错误字符串/空列表 fallback 不能算成功；消费者需明确 empty 与 failed"),
     cap("CON06", "长任务进度、取消、超时、并发与幂等", "部分", actor("部分", "局部 thread abort/工具 sequential", "统一任务原语"), actor("部分", "局部请求 id/回调，无通用 TaskRef", "统一任务服务"), ["THREAD","WIRE","HOST","API"], "搜索/导入/LLM/同步等各自实现", "重复业务实现的原因之一；只新增函数名不补任务契约仍会反复缺能力"),
     cap("CON07", "领域事件的本地/远端/外部变化一致性", "部分", actor("自动", "端口每轮读；runtime 配置失效", "有版本快照/读后写"), actor("部分", "domain subscribe / ignoreSelf / session", "统一 change feed"), ["EVENTROSTER","APPEVENTS","CTX","SYNC"], "本地 domain broadcasts；app invalidation", "GAP09/11 与 STAT05；事件类型、实发事件、异步错误三处要同源"),

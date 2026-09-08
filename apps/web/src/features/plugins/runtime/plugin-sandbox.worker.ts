@@ -32,6 +32,7 @@ import type {
 import { PluginStorageMirror } from "./plugin-storage-mirror";
 import { flattenPluginRequest, restorePluginResponse, type PluginNetworkResponse } from "./plugin-network-wire";
 import { PluginRpcPending } from "./plugin-rpc-pending";
+import { PluginCallbackRegistry, type PluginCallbackWire } from "./plugin-callback-wire";
 
 // ─── Wire protocol ───────────────────────────────────────────────────────────
 
@@ -56,7 +57,8 @@ type HostMessage =
         phase?: PluginContext["lifecycle"]["phase"];
       };
     }
-  | { t: "result"; id: number; ok: true; value: unknown }
+  | { t: "result"; id: number; ok: true; value: unknown; disposable?: string }
+  | { t: "release"; handles: string[] }
   | { t: "result"; id: number; ok: false; error: string; code?: string }
   | { t: "health"; id: number }
   | { t: "migrate"; id: number; migration: PluginMigration }
@@ -67,9 +69,9 @@ type WorkerMessage =
   | { t: "ready"; hasMigration: boolean }
   | { t: "failed"; error: string }
   | { t: "dispose"; handle: string }
-  | { t: "call"; id: number; method: string; args: unknown[] }
+  | { t: "call"; id: number; method: string; args: PluginCallbackWire }
   | { t: "cancel"; id: number }
-  | { t: "result"; id: number; ok: true; value: unknown }
+  | { t: "result"; id: number; ok: true; value: PluginCallbackWire }
   | { t: "result"; id: number; ok: false; error: string; code?: string }
   | { t: "healthy"; id: number }
   | { t: "migrated"; id: number; ok: true }
@@ -130,36 +132,7 @@ type ContextShape = { [key: string]: "fn" | ContextShape };
 
 // ─── Crossing the boundary with functions in tow ─────────────────────────────
 
-let nextHandle = 1;
-const handlers = new Map<string, (...args: unknown[]) => unknown>();
-
-/** Park a function here and hand the host an opaque id for it. */
-function retain(fn: (...args: unknown[]) => unknown): string {
-  const handle = `h${nextHandle++}`;
-  handlers.set(handle, fn);
-  return handle;
-}
-
-/**
- * Replace every function in an argument with a handle, recursively.
- *
- * This is why the boundary needs no list of which methods take callbacks. The
- * previous design carried one — per contribution kind, naming the callable
- * properties — and it was a second copy of the contracts that had already
- * drifted: a tool's callable is `execute`, a header action's is `view`, and both
- * were silently dropped. Encoding by SHAPE instead of by name cannot drift.
- */
-function encode(value: unknown): unknown {
-  if (typeof value === "function") {
-    return { __fn: retain(value as (...args: unknown[]) => unknown) };
-  }
-  if (Array.isArray(value)) return value.map(encode);
-  // Plain objects only: a Request/URL/Date must cross as itself.
-  if (value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
-    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, encode(entry)]));
-  }
-  return value;
-}
+const callbacks = new PluginCallbackRegistry();
 
 /**
  * A call's result, which has to satisfy two shapes at once.
@@ -174,9 +147,24 @@ function encode(value: unknown): unknown {
 type CallResult = Promise<unknown> & { dispose: () => void };
 
 function callHost(method: string, args: unknown[], signal?: AbortSignal): CallResult {
-  const promise = pendingCalls.call(id => {
-    post({ t: "call", id, method, args: encode(args) as unknown[] });
+  const receipt = pendingCalls.call(id => {
+    callbacks.send(args, wire => post({ t: "call", id, method, args: wire }));
   }, { signal, cancel: id => post({ t: "cancel", id }) });
+  let disposed = false;
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    void receipt.then(value => {
+      const { disposable } = value as { disposable?: string };
+      if (disposable) post({ t: "dispose", handle: disposable });
+    }).catch(() => {
+      // Failed calls have no registration to dispose; the host releases arguments.
+    });
+  };
+  const promise = receipt.then(value => {
+    const response = value as { value: unknown; disposable?: string };
+    return response.disposable ? { dispose } : response.value;
+  });
   inFlightHostCalls.add(promise);
   void promise.then(
     () => inFlightHostCalls.delete(promise),
@@ -186,16 +174,7 @@ function callHost(method: string, args: unknown[], signal?: AbortSignal): CallRe
     },
   );
   const result = promise as CallResult;
-  result.dispose = () => {
-    void promise
-      .then((value) => {
-        const handle = (value as { __disposable?: string } | null)?.__disposable;
-        if (handle) post({ t: "dispose", handle });
-      })
-      .catch(() => {
-        // Nothing was registered, so there is nothing to release.
-      });
-  };
+  result.dispose = dispose;
   return result;
 }
 
@@ -371,25 +350,9 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
     }
 
     case "invoke": {
-      const handler = handlers.get(message.handle);
-      if (!handler) {
-        post({ t: "result", id: message.id, ok: false, error: `stale handle ${message.handle}` });
-        return;
-      }
       try {
-        const value = await handler(...message.args);
-        // Encode the RESULT too, not just call arguments. A contribution's
-        // return value carries functions of its own — a tool's `execute`
-        // answers with a view whose controls have `onChange` — and they have to
-        // reach the host as handles it can call back.
-        //
-        // This used to be a JSON round-trip, which dropped every one of those
-        // silently: the plugin's view arrived without its callbacks and the
-        // host rejected it as invalid. Structured clone now carries what
-        // `encode` produces, and anything genuinely non-clonable throws from
-        // `post` into the catch below — visibly, as an error the plugin's
-        // author can act on.
-        post({ t: "result", id: message.id, ok: true, value: encode(value ?? null) });
+        const value = await callbacks.invoke(message.handle, message.args);
+        callbacks.send(value ?? null, wire => post({ t: "result", id: message.id, ok: true, value: wire }));
       } catch (error) {
         post({
           t: "result",
@@ -412,7 +375,15 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
     }
 
     case "result": {
-      pendingCalls.settle(message.id, message.ok, message.ok ? message.value : codedError(message.error, message.code));
+      const accepted = pendingCalls.settle(message.id, message.ok, message.ok
+        ? { value: message.value, disposable: message.disposable }
+        : codedError(message.error, message.code));
+      if (!accepted && message.ok && message.disposable) post({ t: "dispose", handle: message.disposable });
+      return;
+    }
+
+    case "release": {
+      callbacks.release(message.handles);
       return;
     }
 
@@ -474,7 +445,7 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
         // reach the logger seam — errors reach it via the host's onerror.
         console.error("[plugin-sandbox] deactivate threw", error);
       }
-      handlers.clear();
+      callbacks.clear();
       return;
     }
   }

@@ -1,0 +1,141 @@
+{
+  "observedAt": "2026-09-08 15:41:19 UTC",
+  "environment": "Isolated Tauri debug app, WebKit module Worker, native plugin document storage",
+  "appIdentifier": "com.readaware.app.capability-e2e",
+  "bridgePort": 9224,
+  "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-wire-probe.ts#runDesktopCallbackProbe",
+  "result": {
+    "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+    "iterations": 20,
+    "ordinaryMarkerDocumentPreserved": true,
+    "results": [
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      },
+      {
+        "live": "live",
+        "released": "released",
+        "staleCode": "plugin/unavailable"
+      }
+    ]
+  },
+  "verified": [
+    "Ordinary __fn/__disposable document data survives Worker -> host -> native storage -> Worker",
+    "Nested view actions returned through Worker are callable",
+    "Awaited registration returns a working idempotent disposable",
+    "Disposed registration is absent from the host registry and its former callback rejects with plugin/unavailable",
+    "20 consecutive registrations and releases complete; final fixture cleanup leaves no contributions"
+  ],
+  "jumperRegression": {
+    "fixture": "desktop-reading-probe.ts#runDesktopJumperProbe",
+    "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+    "missingChapterNoMovement": true,
+    "fieldError": "Chapter not found.",
+    "pluginMatch": "Beta paragraph 17",
+    "backHref": "0",
+    "forwardHref": "1",
+    "forwardRestoresMatchCFI": true,
+    "agentMatch": "Gamma paragraph 23",
+    "agentNavigationStatus": "completed",
+    "staleCode": "reader/stale-location",
+    "remoteModelCalled": false
+  },
+  "notVerified": [
+    "Automatic view-stack callback leases and provider-session cleanup",
+    "Total Worker or host heap returning to baseline",
+    "Real installation/update/revocation UI and packaged CSP",
+    "Foreground rendering, screenshots, PDF and keyboard interaction"
+  ]
+}

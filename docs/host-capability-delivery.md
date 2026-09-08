@@ -97,3 +97,25 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 - 文档双份生成器与 pair validator 通过，库存为 215 行 / 547 映射 / 129 旧验收项。矩阵 HTML 在独立浏览器的 1440/1024/390 宽度下 DOM 检查无横向溢出；截图调用持续不返回，随后仅终止本次独立会话。因此本轮不宣称两份 HTML 的完整截图/交互复验通过；历史文档浏览器证据不替代本轮验收。
 
 仍需完成：超大 TOC 的模型输出窗口、超大 section 的协作预算、逐次 Worker 搜索/导航取消、异步结果局部回调释放、全部格式与 provider 删除/换代的真实并发故障、前台视觉/快捷键验收。Jumper 只覆盖相应组合场景，不代替 W01–W32 其余实用插件；整组 D1/D2/Q2 与最上方完整目标继续保持未完成。
+
+## 2026-09-08：Q2 回调数据保真与注册释放
+
+[代码] Worker → host 的参数和回调结果统一使用 `plugin-callback-wire.ts`。函数通过独立 callbacks 元数据中的对象引用关联到 data，占位对象的 identity 由 structured clone 保持；不读取业务对象里的 `__fn` 等字段来决定是否执行代码。host → Worker 的 disposable 句柄也改为回执元数据，不再混进业务返回值。
+
+- 普通 `__fn` / `__disposable` / `callbacks` 字段原样保留。对象/数组/Map/Set 的循环、别名、重复函数、Map 函数键、稀疏数组和 null-prototype 输入记录可跨桥；`__proto__` 与 `constructor` 作为普通自有数据属性处理。原型与原生类型的其他行为仍遵循 structured clone，不承诺搬运自定义类方法。
+- 每次编码单独拥有回调句柄，同一函数在本次图里复用，在不同消息里独立持有。图遍历/元数据失败不提交暂存句柄；postMessage clone 失败回滚本次句柄；stale invoke 返回 `plugin/unavailable`。
+- 图遍历最多 1,000,000 次 visit、对象深度 128、每消息最多 100,000 个 callback；限制保留现有大型虚拟列表的空间，不把累计存活总数伪装成已受控。非法图/metadata 为 `plugin/invalid-input`，callback 超额为 `plugin/busy`；原生不可克隆类型仍可能返回原生 clone 错误，通用错误治理继续开放。
+- 普通 host 调用的参数回调在调用结束后释放；注册回调转交返回的 disposable，在 dispose 时释放。同步取得的 registration promise 与 await 后的 disposable 都能释放，重复 dispose 幂等；失败/不授权/非法参数/并发额度拒绝有参数清理路径。
+- host 不再解码已经超时/结算的 invoke 结果，而是释放其中句柄；非法 callback 结果也先释放再拒绝 pending。Worker 对无人等待的 registration 回执补发 dispose，避免迟到成功留下注册。
+
+[环境] 验证与范围：
+
+- 新增 8 个 codec 单测、2 个真实 Bun Worker 集成测试、2 个真实 host context + 故障传输测试；既有网络/取消/迁移、RPC 与贡献形状测试继续回归。codec 包括 5,000 次编码/释放归零、clone 失败回滚、深度/额度拒绝、重复释放和独立持有者；这不是整个 app 堆内存验收。
+- 隔离 Tauri `com.readaware.app.capability-e2e` 的真实 WebKit Worker、host 注册表与原生插件文档存储连续完成 20 轮：特殊字段文档往返不变，临时 command 可执行，返回 view 的 action 能释放它，宿主注册立即消失，保存的旧 callback 调用返回 `plugin/unavailable`。探针结束后该插件没有残余贡献。[结构化证据](./evidence/plugin-callback-wire-2026-09-08.json)。
+- 同一隔离应用回归真正内置的 Jumper：不存在章节不移动，搜索 Beta paragraph 17、返回 Alpha、前进恢复相同 CFI；实际 Agent 端口搜索并导航 Gamma paragraph 23，旧版本拒绝。没有远端模型调用，不把端口测试算作模型决策测试。
+- 首次 fixture 导入分别触发 `@tauri-apps/api/path` / `pdf-lib` 依赖优化重载；旧句柄消失且日志确认重载后才重跑。成功结果取得后，开发重载中另观察到 `useWindowMaximized.ts` 调用 Tauri unlisten 的 `listeners[eventId].handlerId` rejection；不能把全部窗口生命周期标成通过，需在后续前台/重载验收定位。此次没有用修改用户权限或生产配置掩盖它。
+- 全仓 test 17 个任务、typecheck 20 个任务通过，Vite production frontend 构建通过；现有大 chunk/混合静动态 import、Rust objc/dead-code 警告保留。frontend 构建不是 packaged Tauri/CSP 验收。
+- 更新矩阵 CON03/CON04 与两份生成文档；215 行 / 547 库存映射不变，没有把部分状态改绿。两对生成器/pair validator 与 7 个建模门禁测试通过。独立文档浏览器检查两份 HTML 的 1440/1024/390 宽度无页面横向溢出，中英文搜索、Escape、窄屏目录、主题切换及刷新保持通过；1440/390 截图已人工检查，无重复 id。文档截图 `/tmp/readaware-callback-{matrix,model}{,-mobile}.png` 不作为产品视觉证据；文档仍使用外部字体/图标 CDN。
+- 已停止本轮隔离 Tauri 应用及 5184/9224 服务，不触碰原应用端口或原用户数据。
+
+仍未完成：视图 push/pop/replace/关闭的自动 callback lease；provider 返回 session 的关闭；host lifecycle 中已处置登记的强引用清理；完整消息 schema、字节及累计存活资源配额；普通任务挂起/取消与撤权收敛；packaged CSP 和前台绘制验收。本轮关闭的是业务字段碰撞与上述注册/调用清理路径，不关闭整组 Q2、全部 GAP 或完整目标。

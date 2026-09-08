@@ -4,7 +4,9 @@ import { PluginRpcPending } from "./plugin-rpc-pending";
 test("RPC settlement and late responses are bounded", async () => {
   const rpc = new PluginRpcPending(); let id = 0;
   const call = rpc.call(value => { id = value; });
+  expect(rpc.has(id)).toBe(true);
   expect(rpc.settle(id, true, "done")).toBe(true);
+  expect(rpc.has(id)).toBe(false);
   expect(rpc.settle(id, true, "late")).toBe(false);
   expect(await call).toBe("done"); expect(rpc.size).toBe(0);
 });

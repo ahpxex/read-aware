@@ -14,7 +14,8 @@ describe("agent tool registry", () => {
 
     const tools = names(buildAgentTools(book, deps));
 
-    expect(tools).toHaveLength(26);
+    expect(tools).toHaveLength(27);
+    expect(tools).toContain("configure_reading_mode");
     expect(tools).toContain("control_read_aloud");
     expect(tools).toContain("apply_annotation_changes");
     expect(tools).toContain("get_navigation_toc");
@@ -46,7 +47,8 @@ describe("agent tool registry", () => {
 
     const tools = names(buildAgentTools(global, deps));
 
-    expect(tools).toHaveLength(32);
+    expect(tools).toHaveLength(33);
+    expect(tools).toContain("configure_reading_mode");
     expect(tools).toContain("control_read_aloud");
     expect(tools).toContain("apply_annotation_changes");
     expect(tools).toContain("get_navigation_toc");

@@ -40,6 +40,7 @@ export type TextUnitProgress = { ordinal: number; total: number };
 export type TextUnitNavigator = {
   status: "inactive" | "building" | "ready" | "empty" | "error";
   errorCode?: string;
+  configurationRevision: number;
   current: TextUnitTarget | null;
   /** Where the wash rests within the loaded section, or null while it rests
    *  elsewhere (another section, mode off, unit-less section). */
@@ -64,6 +65,7 @@ export type TextUnitNavigator = {
 };
 
 type UseTextUnitNavigatorOptions = {
+  configurationRevision?: number;
   active: boolean;
   /** Temporarily unavailable because its plugin is disabled. The engine-side
    *  affordances are removed, but the persisted resting place is retained so
@@ -111,6 +113,7 @@ const SCROLL_COMFORT_BOTTOM_MAX_PX = 240;
  * re-enters at the first visible unit — moves it.
  */
 export function useTextUnitNavigator({
+  configurationRevision = 0,
   active,
   suspended = false,
   bookId,
@@ -127,6 +130,9 @@ export function useTextUnitNavigator({
   toastRef.current = toast;
   const [status, setStatus] = useState<TextUnitNavigator["status"]>("inactive");
   const [buildErrorCode, setBuildErrorCode] = useState<string>();
+  const [preparedRevision, setPreparedRevision] = useState(-1);
+  const configurationRef = useRef(configurationRevision);
+  configurationRef.current = configurationRevision;
   const [buildSession] = useState(() => new TextUnitBuild());
   const [current, setCurrent] = useState<TextUnitTarget | null>(null);
   const [progress, setProgress] = useState<TextUnitProgress | null>(null);
@@ -321,15 +327,17 @@ export function useTextUnitNavigator({
     if (!section) return null;
     const segmenter = segmentTextRef.current;
     const unit = unitIdRef.current;
+    const revision = configurationRef.current;
     unitsRef.current = null;
     currentIndexRef.current = -1;
     clearWash();
     clearUnit();
     setStatus("building");
+    setPreparedRevision(revision);
     setBuildErrorCode(undefined);
     const result = await buildSession.run(signal => buildTextUnitRanges(section.doc, unit, segmenter, signal));
     const isCurrent = () => Boolean(result?.isCurrent() && activeRef.current && sectionRef.current === section
-      && unitIdRef.current === unit && segmentTextRef.current === segmenter);
+      && unitIdRef.current === unit && segmentTextRef.current === segmenter && configurationRef.current === revision);
     if (!result || !isCurrent()) return null;
     if (result.status === "failed") {
       const code = errorCode(result.error) ?? "reader/segmentation-failed";
@@ -469,7 +477,9 @@ export function useTextUnitNavigator({
       const requestedModeKey = requestedModeKeyRef.current;
       const requestedUnitId = requestedUnitIdRef.current;
       if (!requestedModeKey) return;
-      if (modeKeyRef.current !== requestedModeKey || unitIdRef.current !== requestedUnitId) setResting(null);
+      const changedPolicy = modeKeyRef.current !== requestedModeKey || unitIdRef.current !== requestedUnitId;
+      const reanchor = changedPolicy ? unitsRef.current?.[currentIndexRef.current] ?? null : null;
+      if (changedPolicy) setResting(null);
       modeKeyRef.current = requestedModeKey;
       unitIdRef.current = requestedUnitId;
       if (!restingRef.current && wasPersistedActive) {
@@ -494,7 +504,7 @@ export function useTextUnitNavigator({
         const index =
           resting?.sectionIndex === section.index
             ? Math.min(resting.ordinal, units.length - 1)
-            : anchorTextUnitIndex(units, visibleRangeRef.current);
+            : anchorTextUnitIndex(units, reanchor ?? visibleRangeRef.current);
         if (index >= 0) applyIndex(index, { scroll: false });
         else clearUnit();
       })();
@@ -502,6 +512,7 @@ export function useTextUnitNavigator({
     }
     clearWash();
     setStatus("inactive");
+    setPreparedRevision(configurationRevision);
     unitsRef.current = null;
     currentIndexRef.current = -1;
     if (!suspended) setResting(null);
@@ -509,7 +520,7 @@ export function useTextUnitNavigator({
     pendingAnchorRef.current = null;
     pendingCrossRef.current = null;
     clearUnit();
-  }, [active, suspended, applyIndex, buildSession, buildUnits, clearWash, persistState, setResting]);
+  }, [active, suspended, configurationRevision, applyIndex, buildSession, buildUnits, clearWash, persistState, setResting]);
 
   // Mode or unit switch: re-segment the loaded section under the new plugin
   // policy. Contribution identity matters even when two plugins reuse the same
@@ -630,6 +641,7 @@ export function useTextUnitNavigator({
   return {
     status,
     errorCode: buildErrorCode,
+    configurationRevision: preparedRevision,
     current,
     progress,
     next,

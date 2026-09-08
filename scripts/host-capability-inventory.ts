@@ -34,8 +34,9 @@ const agentMap = pairs([
   ["get_toc", "TXT01"], ["read_chapter", "TXT03"], ["search_book_text", "TXT06"],
   ["get_navigation_toc", "TXT02"], ["find_book_locations", "TXT07 TXT13"],
   ["query_book_graph", "MEM11"], ["present_books", "AI05"], ["open_book", "READ01 READ03"],
-  ["get_reading_session", "READ07 TXT09"], ["navigate_reading", "READ02 READ04 READ06"],
+  ["get_reading_session", "READ07 TXT09 READ16"], ["navigate_reading", "READ02 READ04 READ06"],
   ["control_read_aloud", "READ18"],
+  ["configure_reading_mode", "READ16"],
   ["ask_user", "AI04"], ["get_settings update_settings", "CFG01"],
 ]);
 const pluginMap = pairs([
@@ -54,10 +55,11 @@ const pluginMap = pairs([
   ["domains.annotations.events.subscribe", "ANN09"],
   ["domains.reading.queries.stats.forBook domains.reading.queries.stats.list domains.reading.queries.stats.overview", "STAT01"],
   ["domains.reading.commands.setFinished", "READ19"], ["domains.reading.commands.openBook", "READ01"], ["domains.reading.commands.goTo", "READ03"],
-  ["domains.reading.queries.session", "READ07 TXT09"], ["domains.reading.events.observeSession", "READ08"],
+  ["domains.reading.queries.session", "READ07 TXT09 READ16"], ["domains.reading.events.observeSession", "READ08"],
   ["domains.reading.commands.back domains.reading.commands.forward", "READ06"],
   ["domains.reading.commands.step", "READ04"], ["domains.reading.commands.close", "READ02"],
   ["domains.reading.commands.controlPlayback", "READ18"],
+  ["domains.reading.commands.configureMode", "READ16"],
   ["domains.annotations.queries.list", "ANN01"], ["domains.annotations.commands.createHighlight", "ANN02 ANN03"],
   ["domains.annotations.queries.get domains.annotations.queries.page", "ANN08"], ["domains.annotations.commands.removeAsk", "ANN06"],
   ["domains.annotations.queries.inspect domains.annotations.commands.applyChanges", "ANN08"],
@@ -204,7 +206,7 @@ export function collectInventory(): Inventory[] {
   }
   const featureMap = pairs([["agent ai", "AI01 AI03 MEM01"],["annotations", "ANN01"],["command", "UI03"],["library shelf", "LIB01 UI02"],["menus", "UI05"],["navigation", "UI01 SYS17"],["plugins", "EXT01 CON03"],["reader", "READ01 TXT01"],["settings", "CFG01 OPS08"],["stats", "STAT01"],["sync", "OPS01"],["update", "SYS16"]]);
   for (const directory of readdirSync("apps/web/src/features", {withFileTypes:true}).filter(d=>d.isDirectory())) add("Feature owner", directory.name, featureMap[directory.name], "[代码+人工审计] 所属功能组入口；目录覆盖不等于每个 UI 分支测试通过");
-  const expectedPlugins = pairs([["dictionary", "EXT09 AI12"],["rss-reader", "EXT10"],["editorial-themes", "EXT08"],["sentence-reader", "READ15 READ16"],["tts", "READ17 READ18"],["webdav-sync", "OPS04"],["jumper", "TXT02 TXT07 READ06 EXT02"],["annotation-desk", "ANN01 ANN04 ANN05 ANN08 EXT02 EXT05 SYS10"],["listening-desk", "READ18 READ06 EXT02"]]);
+  const expectedPlugins = pairs([["dictionary", "EXT09 AI12"],["rss-reader", "EXT10"],["editorial-themes", "EXT08"],["sentence-reader", "READ15 READ16"],["tts", "READ17 READ18"],["webdav-sync", "OPS04"],["jumper", "TXT02 TXT07 READ06 EXT02"],["annotation-desk", "ANN01 ANN04 ANN05 ANN08 EXT02 EXT05 SYS10"],["listening-desk", "READ16 READ18 READ06 EXT02"]]);
   for (const directory of readdirSync("plugins",{withFileTypes:true}).filter(d=>d.isDirectory()).sort((a,b)=>a.name.localeCompare(b.name))) {
     const manifest = JSON.parse(readFileSync(`plugins/${directory.name}/manifest.json`,"utf8"));
     add("First-party source plugin", manifest.id, expectedPlugins[directory.name], `[代码] 源码版本 ${manifest.version}；源码存在不等于打包、安装、启用或模型可调用`);

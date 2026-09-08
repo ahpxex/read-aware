@@ -1,0 +1,323 @@
+{
+  "verifiedLocalDate": "2026-09-09",
+  "environment": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "platform": "macOS",
+    "runtime": "Tauri debug / WebKit / real plugin Worker / SQLite",
+    "devPort": 5184,
+    "mcpPort": 9224,
+    "officialAppUntouched": true
+  },
+  "scope": "READ16 current-provider configuration and mode snapshot, not complete mode navigation or restoration",
+  "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+  "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+  "observed": {
+    "agentStart": {
+      "elapsedMs": 1032,
+      "status": "completed",
+      "mode": {
+        "status": "ready",
+        "unitId": "sentence",
+        "progress": {
+          "ordinal": 55,
+          "total": 121
+        },
+        "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/40,/1:0,/1:19)"
+      }
+    },
+    "pluginForm": {
+      "entry": "Native reader header More > Listening Desk",
+      "actions": [
+        "Enabled on",
+        "By paragraph",
+        "Apply",
+        "Enabled off",
+        "Apply"
+      ],
+      "start": {
+        "status": "ready",
+        "unitId": "paragraph",
+        "progress": {
+          "ordinal": 19,
+          "total": 41
+        },
+        "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/40,/1:0,/1:173)"
+      },
+      "stop": {
+        "status": "inactive",
+        "requestedActive": false,
+        "cfiRange": null
+      },
+      "screenshot": "/tmp/readaware-mode-listening-desk.png",
+      "screenshotInspected": true
+    },
+    "slowProvider": {
+      "perBlockDelayMs": 500,
+      "elapsedMs": 3066,
+      "receipt": "completed",
+      "mode": "ready",
+      "unitId": "paragraph",
+      "total": 41
+    },
+    "rejectedProvider": {
+      "elapsedMs": 531,
+      "errorCode": "reader/segmentation-failed",
+      "mode": "error",
+      "cfiRange": null
+    },
+    "agentCancellation": {
+      "during": {
+        "status": "preparing",
+        "requestedActive": true,
+        "unitId": "paragraph"
+      },
+      "result": "Mode diagnostic cancelled",
+      "after1000Ms": {
+        "status": "inactive",
+        "requestedActive": false,
+        "unitId": "sentence"
+      }
+    },
+    "userTakeover": {
+      "operation": "During Agent sentence indexing click actual native Paragraph mode button, then abort original Agent signal",
+      "agentErrorCode": "reader/superseded",
+      "after3500Ms": {
+        "status": "ready",
+        "unitId": "paragraph",
+        "progress": {
+          "ordinal": 19,
+          "total": 41
+        }
+      }
+    },
+    "closePending": {
+      "during": "sentence indexing",
+      "errorCode": "reader/superseded",
+      "after1000Ms": {
+        "sessionId": null,
+        "bookId": null,
+        "status": "idle",
+        "mode": "unavailable",
+        "reason": "no-session"
+      }
+    },
+    "readOnly": {
+      "commandsAvailable": false,
+      "mode": {
+        "cfiRange": "epubcfi(/6/2!/4/2[chapter-0]/40,/1:0,/1:173)",
+        "label": "Read by sentence or paragraph",
+        "modeKey": "sentence-reader:guided-reading",
+        "progress": {
+          "ordinal": 19,
+          "total": 41
+        },
+        "requestedActive": true,
+        "status": "ready",
+        "unavailableReason": null,
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      }
+    },
+    "pluginCancellation": {
+      "after": {
+        "cfiRange": null,
+        "label": "Read by sentence or paragraph",
+        "modeKey": "capability-segmentation-probe:reader",
+        "progress": null,
+        "requestedActive": false,
+        "status": "inactive",
+        "unavailableReason": null,
+        "unitId": "sentence",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "disable": {
+        "commands": [],
+        "playback": {
+          "backend": null,
+          "cfiRange": null,
+          "fallback": false,
+          "owner": null,
+          "status": "unavailable",
+          "unavailableReason": "mode-inactive"
+        }
+      },
+      "during": {
+        "cfiRange": null,
+        "label": "Read by sentence or paragraph",
+        "modeKey": "capability-segmentation-probe:reader",
+        "progress": null,
+        "requestedActive": true,
+        "status": "preparing",
+        "unavailableReason": null,
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "result": {
+        "code": "plugin/cancelled",
+        "message": "Plugin runtime stopped"
+      }
+    },
+    "unsupportedPdf": {
+      "bookId": "8ced004f-efe3-408f-80a8-a0ebffec84d3",
+      "mode": {
+        "cfiRange": null,
+        "label": "Read by sentence or paragraph",
+        "modeKey": "sentence-reader:guided-reading",
+        "progress": null,
+        "requestedActive": false,
+        "status": "unavailable",
+        "unavailableReason": "unsupported-format",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "errorCode": "reader/unavailable",
+      "after": {
+        "cfiRange": null,
+        "label": "Read by sentence or paragraph",
+        "modeKey": "sentence-reader:guided-reading",
+        "progress": null,
+        "requestedActive": false,
+        "status": "unavailable",
+        "unavailableReason": "unsupported-format",
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      }
+    }
+  },
+  "closeReopenRegression": {
+    "closed": {
+      "after": {
+        "cfiRange": null,
+        "label": null,
+        "modeKey": null,
+        "progress": null,
+        "requestedActive": false,
+        "status": "unavailable",
+        "unavailableReason": "no-session",
+        "unitId": null,
+        "units": []
+      },
+      "during": {
+        "cfiRange": null,
+        "label": "Read by sentence or paragraph",
+        "modeKey": "capability-segmentation-probe:reader",
+        "progress": null,
+        "requestedActive": true,
+        "status": "preparing",
+        "unavailableReason": null,
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "result": {
+        "code": "reader/superseded"
+      }
+    },
+    "reopened": {
+      "mode": {
+        "cfiRange": null,
+        "label": "Read by sentence or paragraph",
+        "modeKey": "capability-segmentation-probe:reader",
+        "progress": null,
+        "requestedActive": false,
+        "status": "inactive",
+        "unavailableReason": null,
+        "unitId": "sentence",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "status": "ready"
+    }
+  },
+  "failuresAndCorrections": [
+    "Final review found that retirement rejected pending configuration but could persist an unfinished active preference. Retirement now restores its pre-request preference before navigator teardown; real close/reopen remained inactive with the prior sentence unit. Success and provider rejection were rerun after this change.",
+    "Final cold debug boot reoptimized dependencies after the lockfile changed; diagnostic import during optimization produced a module import boot failure. Reloaded after boot mounted before testing. Shelf ordering also changed; an initial click opened the synthetic PDF, which was closed before opening the intended FB2.",
+    "First Listening Desk view used stale dist without a mode form; rebuilt dist and restarted that plugin before UI verification.",
+    "Provider replacement reproduced Maximum update depth exceeded. Stale render preference effects wrote each other's values. Replaced render-captured writes with current-request subscription and live preference reconciliation; added real React provider replacement regression and reran actual provider replacement successfully.",
+    "Changing diagnostic source triggered a Vite reload after first probe cleanup. Reimported fixtures and opened the synthetic book again before read-only, lifecycle and PDF checks.",
+    "Initial plugin disable happened before configureMode reached the host (mode still inactive, plugin/unavailable); not counted as in-flight cancellation. Reran only after observing preparing and obtained plugin/cancelled with rollback."
+  ],
+  "cleanup": {
+    "diagnosticCommands": 0,
+    "diagnosticModes": 0,
+    "sentenceReaderRestored": true,
+    "listeningDeskEnabled": true,
+    "readingClosed": true,
+    "driverStopped": true,
+    "ownedDevProcessExitCode": 0,
+    "ports5184And9224NoListeners": true
+  },
+  "notVerified": [
+    "release build mode controls",
+    "Windows/Linux",
+    "remote LLM decision quality",
+    "remote TTS",
+    "all book formats",
+    "public unit step/follow/return",
+    "content-version restoration",
+    "arbitrary provider selection",
+    "provider computation termination",
+    "disk-failure mode preference durability"
+  ]
+}

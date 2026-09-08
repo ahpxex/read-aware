@@ -709,6 +709,7 @@ export function buildPluginContext(
         step: (direction: "next" | "previous", guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.step(direction, lifecycle.signal, guard),
         close: (guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.close(lifecycle.signal, guard),
         controlPlayback: (action: "start" | "stop", guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.controlPlayback(action, lifecycle.signal, guard),
+        configureMode: (input: import("@read-aware/core").ReadingModeConfiguration, guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.configureMode(input, lifecycle.signal, guard),
         },
         (operation) => lifecycle.assertActive(operation),
         "domains.reading.commands",

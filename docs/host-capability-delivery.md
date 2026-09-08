@@ -335,3 +335,27 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [环境] READ15/READ16 和生成文档更新，READ16 两端继续为未接。库存保持 215 行 / 563 映射 / 129 旧验收项、30 单元 / 32 场景；两个生成器、7 项建模门禁、两对 pair validator 与 diff 检查通过。矩阵 HTML 1440/1024/390 无横向溢出，segmentText/分段筛选、Escape、抽屉 inert、主题刷新保持、锚点/重复 ID 和 1440/390 截图检查通过，无浏览器错误或 CDN 失败；模型 HTML 未改，Markdown 仅同步现状行。没有新增图，仍依赖既有 CDN；文档检查不代替产品验证。
 
 仍未完成：模式发现/选择、共享 mode 快照与双端启停/步进/回当前入口、内容版本化恢复、跨节与全书末尾的确定完成回执、单次命令取消和所有其他能力/组合插件/平台验收。下一步仍是 READ16 的公共模式控制器，不把这组底层修复标成该能力或完整目标完成。
+
+## 2026-09-09 当前阅读模式的双端配置与真实完成
+
+[代码] `domains.reading` 升至 2.2。公共 `ReadingModeSnapshot` 描述当前宿主选择的 text-unit mode：`status` 为 unavailable/inactive/preparing/ready/empty/error，`unavailableReason` 区分 no-session/unsupported-format/no-provider；包含 requestedActive、modeKey、label、unitId、声明的 units、章节内零基 ordinal/total 与当前 cfiRange，不额外暴露正文。`get_reading_session`、插件 `queries.session` 和 `observeSession` 共用此快照。`ready` 表示本节分段索引完成，不是页面导航/全书结束/磁盘持久成功回执。
+
+[代码] Agent `configure_reading_mode` 与插件 `commands.configureMode` 共用 ReadingModeController 和实际 navigator。输入 active、可选 unitId/modeKey；modeKey 只防止错误 provider 操作，当前产品仍取第一个受支持模式，不宣称任意 provider 选择。调用以 session/book guard 限定，读权限不包含 commands。启用等实际分段 ready/empty，失败返回稳定码；停用等实际 inactive。配置代次与分段反馈匹配，旧 ready 不能确认新配置。35 秒控制器截止覆盖下层 30 秒分段截止；不支持、未知单位、过期 provider 分别拒绝，不静默无操作。
+
+[代码] 未完成配置被调用方取消/插件停用时，只撤回该请求自己的 active/unit 偏好；被后续 actor 或用户接管时旧取消不回滚新选择，连续替换也不以旧未完成请求为回滚基线。已完成的配置是用户模式偏好，不因发起插件停用自动关闭；与持续占有音频播放的 READ18 生命周期语义不同。换书/解绑取消 pending，旧 disposer 不解除新绑定。模式私有落点的内容版本校验和持久失败回执尚未实现，不能将这组配置契约当作位置恢复完成。
+
+[代码] Listening Desk 0.2.0 的真实 header 弹窗加入开关、声明单位 ChoiceGroup 与 Apply，组合模式配置、朗读和导航历史。表单捕获 session/provider 前置条件，拒绝非法值并等待命令完成再刷新；不可用模式不显示假控制。仍为按需快照，外部改变需 Refresh，不冒充实时订阅视图。源码和 dist 同步，要求 reading ^2.2；没有增加 release BUNDLED 表项。Bun lockfile-only 未更新本地 workspace version，随后仅同步该 workspace 的版本字段。
+
+[环境] [结构化证据](./evidence/reading-mode-2026-09-09.json)：实际隔离 macOS Tauri debug 中，Agent 开启句子模式返回 56/121 与实际 CFI；原生 header 的 Listening Desk 表单启用段落后显示 20/41 和段落 wash，再关闭成功。500ms/block 的真实 Worker 成功配置约 3066ms 完成，拒绝约 531ms 返回 reader/segmentation-failed、mode=error、CFI=null。Agent 中途取消回到 inactive；索引期间点击实际原生 Paragraph mode 按钮后，旧调用 reader/superseded，旧 abort 没有撤销新段落选择；关闭阅读使 pending superseded，迟到后仍 idle/no-session。只读 Worker 收到 mode 但 commands 不存在。真实 PDF 返回 unsupported-format，开启被 reader/unavailable 拒绝且状态不变。
+
+[环境] Listening Desk 停用回归先确认宿主 mode=preparing，再停用插件，Worker 回调得到 plugin/cancelled，迟到后 mode=inactive、unit 回到旧值、插件 commands 为空。第一次按固定 100ms 停用时尚未到达配置调用，得到 plugin/unavailable，不算在途取消证明。另一次打开的是未重建 dist 的旧面板，没有表单；重建并重启该插件后才进行上述 UI 验收。
+
+[代码/环境] 实机 provider 替换暴露了本轮初稿的 Maximum update depth exceeded：两个 effect 以不同渲染快照反向同步单位偏好。改为一个 controller 请求订阅写出最新值，外部偏好协调读取实时值，移除 Foliate 重复写入；新增真实 React provider 替换、外部设置与取消回滚回归，并重新执行原生 provider 切换/成功/失败。诊断文件修改触发 Vite reload 时已有探针已清理，重新导入并打开合成书后再验只读、插件取消和 PDF，不把旧 JS 句柄算作持续任务。
+
+[环境] 新增 7 项控制器、3 项领域绑定、1 项 React 协调、1 项 Agent 完成/guard、2 项插件表单测试，并扩展其他断言。全仓 test 19 个任务、typecheck 22 个任务和生产 web 构建通过；保留既有 chunk/dynamic-import/Node DEP0205 警告。Rust 业务未改，隔离 debug 重编译成功；未跑 release 模式控制、Windows/Linux、远端 LLM/TTS 或磁盘失败验证。截图 `/tmp/readaware-mode-listening-desk.png` 已查看，正文/强调/表单可见且无观察到的重叠。
+
+[代码/环境] 最后复核补上退役时的偏好撤回：不能只拒绝 pending，而让中途开启的 active 在下次打开自动恢复。退役恢复请求前的 active/unit，由 owner 在 navigator 已卸载时仍写回撤回值，内容不兼容的 resting 不保留；新增 React 关闭断言。重新冷启动隔离 Tauri，在 preparing 时关闭再打开同一 FB2，观察 ready session、mode=inactive、unit=sentence，并重跑成功配置与 provider 拒绝。此次冷启动因 lockfile 变化重做依赖优化，过早诊断 import 引发一次 boot module failure；确认挂载后 reload 再测试。书架顺序变化导致先点开合成 PDF，已关闭并重新选择 FB2，没有对其执行模式配置。
+
+[环境] 重扫为 215 行 / 566 库存映射 / 129 旧验收项，30 个责任单元、30 个 catalog、32 个场景；READ16 两端从未接改为部分，不改绿。两个生成器、7 项模型门禁、两对 pair validator、diff 检查通过。矩阵与模型 HTML 在 1440×1000、1024×768、390×844 无页面横向溢出；中英文搜索、Escape/抽屉 inert、主题刷新保持、锚点/重复 ID 和截图检查通过，无浏览器错误，既有 CDN 返回 200。无新增图，文档仍依赖 CDN，不将文档浏览器当产品证据。诊断 commands/modes 为 0，Sentence Reader 恢复，Listening Desk 启用，阅读关闭；本轮隔离应用/文档浏览器已停止，5184/9224 无监听，正式数据未改。
+
+仍未完成：READ16 公共上下一单元/跟随/回当前、内容版本化恢复、任意 provider 选择与跨节/全书末尾真实完成，模式偏好的持久失败契约，以及其余全部双端缺口、W01–W32 组合消费者和跨平台/release 验收。本轮完成的是模式配置这一可用契约，不是 READ16、D2 或整体目标完成。

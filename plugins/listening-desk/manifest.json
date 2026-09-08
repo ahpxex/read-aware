@@ -1,14 +1,14 @@
 {
   "id": "listening-desk",
   "name": "Listening Desk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "schemaVersion": 1,
-  "description": "Read-aloud controls and reading history in one reader panel.",
+  "description": "Text-unit mode, read-aloud controls and reading history in one reader panel.",
   "author": "ReadAware",
   "main": "main.js",
   "permissions": ["reading:write"],
   "requires": {
-    "domains": { "reading": "^2.1.0" },
+    "domains": { "reading": "^2.2.0" },
     "contributions": { "headerActions": "^1.0.0", "commands": "^1.0.0" },
     "schemas": { "views": "^1.0.0" }
   }

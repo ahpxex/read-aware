@@ -1,4 +1,4 @@
-import type { ReadingLocation, ReadingNavigationReceipt, ReadingPlaybackSnapshot } from "@read-aware/core";
+import type { ReadingLocation, ReadingNavigationReceipt, ReadingPlaybackSnapshot, ReadingModeSnapshot } from "@read-aware/core";
 import type { ReaderPort } from "../ports";
 
 export type ReaderRequest = { type: "open" | "goTo" | "back" | "forward" | "step" | "close"; bookId?: string; anchor?: string; chapterHref?: string; direction?: string };
@@ -6,6 +6,8 @@ export type ReaderRequest = { type: "open" | "goTo" | "back" | "forward" | "step
 /** Port fixture only; physical renderer behavior is tested in the host controller suite. */
 export function createMemoryReader(initialBookId: string | undefined, requests: ReaderRequest[]): ReaderPort {
   const playback: ReadingPlaybackSnapshot = { status: "unavailable", unavailableReason: "no-voice", backend: null, fallback: false, owner: null, cfiRange: null };
+  const mode: ReadingModeSnapshot = { status: "unavailable", unavailableReason: "no-provider", requestedActive: false,
+    modeKey: null, label: null, unitId: null, units: [], progress: null, cfiRange: null };
   let revision = 0;
   let location: ReadingLocation | null = initialBookId ? { bookId: initialBookId, contentVersion: "fixture", fraction: 0 } : null;
   const receipt = (): ReadingNavigationReceipt => {
@@ -14,7 +16,11 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
     return { status: "completed", sessionId: "fixture", location: { ...location } };
   };
   return {
-    getSession: async () => ({ revision, sessionId: location ? "fixture" : null, bookId: location?.bookId ?? null, status: location ? "ready" : "idle", location, visibleText: "", history: { canGoBack: false, canGoForward: false }, playback }),
+    getSession: async () => ({ revision, sessionId: location ? "fixture" : null, bookId: location?.bookId ?? null, status: location ? "ready" : "idle", location, visibleText: "", history: { canGoBack: false, canGoForward: false }, playback, mode }),
+    configureMode: async input => {
+      if (input.active) throw new Error("Fixture has no reader-mode provider");
+      return { status: "completed", sessionId: "fixture", mode };
+    },
     controlPlayback: async action => {
       if (action === "start") throw new Error("Fixture has no audio backend");
       return { status: "completed", sessionId: "fixture", playback };

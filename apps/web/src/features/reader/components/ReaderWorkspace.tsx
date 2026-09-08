@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { useAtomValue } from "jotai";
 import { Body, Button, Spinner } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import type { BookFormat, LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import type { ReaderLoadError } from "../hooks/useReaderSession";
 import { useReaderPalette } from "../../settings/hooks/useReaderPalette";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
-import { readTextUnitModeState } from "../lib/text-unit-mode-state";
+import { useReadingModeControl } from "../hooks/useReadingModeControl";
 import { useImmersiveWindowControls } from "../hooks/useImmersiveWindowControls";
 import { useReaderAppearance } from "../hooks/useReaderAppearance";
 import { useReadingTimeTracker } from "../hooks/useReadingTimeTracker";
@@ -14,7 +13,6 @@ import { FoliateReaderView } from "./FoliateReaderView";
 import { ReaderShellOverlay } from "./ReaderShellOverlay";
 import type { LoadedBook, ReadingCursor, TocEntry } from "../lib/reader-types";
 import type { FoliateBook } from "../lib/foliate-engine";
-import { textUnitReaderModeAtom } from "../../plugins/state/plugin-store";
 
 type ReaderWorkspaceProps = {
   selectedBook: LibraryBook;
@@ -108,25 +106,21 @@ export function ReaderWorkspace({
   // it resumes unit-by-unit reading where it stopped (the resting
   // unit itself is restored by useTextUnitNavigator from the same store).
   // Fixed-layout books (PDF/CBZ) can't host it.
-  const textUnitMode = useAtomValue(textUnitReaderModeAtom);
-  const [textUnitModeActive, setTextUnitModeActive] = useState(
-    () => readTextUnitModeState(selectedBook.id).active,
-  );
   const [isFixedLayout, setIsFixedLayout] = useState(false);
+  const modeControl = useReadingModeControl(selectedBook.id, !isFixedLayout);
+  const textUnitMode = modeControl.mode;
+  const textUnitModeActive = modeControl.request.active;
   const [readingCursor, setReadingCursor] = useState<ReadingCursor | null>(null);
-  useEffect(() => {
-    setTextUnitModeActive(readTextUnitModeState(selectedBook.id).active);
-  }, [selectedBook.id]);
   useEffect(() => {
     setReadingCursor(null);
   }, [selectedBook.id, readerSource]);
   const toggleTextUnitMode = useCallback(() => {
-    setTextUnitModeActive((active) => !active);
+    modeControl.setActive(!textUnitModeActive);
     // Entering the mode is a "start reading" gesture — drop the chrome so the
     // wash and the floating bar take over immediately.
     if (!textUnitModeActive) onHideShell();
-  }, [textUnitModeActive, onHideShell]);
-  const exitTextUnitMode = useCallback(() => setTextUnitModeActive(false), []);
+  }, [modeControl.setActive, textUnitModeActive, onHideShell]);
+  const exitTextUnitMode = useCallback(() => modeControl.setActive(false), [modeControl.setActive]);
 
   // Track active reading time once the book is rendered. Reader relocate/page
   // callbacks bump activity so in-iframe reading isn't mistaken for idle.
@@ -175,6 +169,9 @@ export function ReaderWorkspace({
           onFixedLayoutChange={setIsFixedLayout}
           textUnitModeActive={textUnitModeActive}
           textUnitMode={textUnitMode}
+          modeController={modeControl.controller}
+          modeRequest={modeControl.request}
+          onModeUnitChange={modeControl.setUnit}
           onExitTextUnitMode={exitTextUnitMode}
           onTextUnitModeStep={onHideShell}
           initialProgress={selectedEpubProgress}

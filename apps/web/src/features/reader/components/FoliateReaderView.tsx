@@ -51,6 +51,7 @@ import { useReadAloud } from "../hooks/useReadAloud";
 import { createReaderPanelIntent, readerPanelIntentAtom } from "../state/panel-intent";
 import { useTextUnitNavigator } from "../hooks/useTextUnitNavigator";
 import { readTextUnitModeState } from "../lib/text-unit-mode-state";
+import type { ModeRequest, ReadingModeController } from "../lib/reading-mode-controller";
 import { createWheelGesture, type WheelGesture } from "../lib/wheel-gesture";
 import { resolveActivatedImage, type ActivatedImage } from "../lib/image-activation";
 import { ReaderAnnotationMenu } from "./ReaderAnnotationMenu";
@@ -131,6 +132,9 @@ type FoliateReaderViewProps = {
   textUnitModeActive?: boolean;
   /** Enabled plugin contribution supplying text segmentation policy. */
   textUnitMode?: RegisteredReaderMode | null;
+  modeController?: ReadingModeController;
+  modeRequest?: ModeRequest;
+  onModeUnitChange?: (unitId: string) => void;
   onExitTextUnitMode?: () => void;
   /** The mode's wash moved to another unit — a "resume reading"
    *  gesture; the workspace uses it to drop the shell chrome (and with it the
@@ -340,6 +344,9 @@ export function FoliateReaderView({
   onFixedLayoutChange,
   textUnitModeActive = false,
   textUnitMode = null,
+  modeController,
+  modeRequest,
+  onModeUnitChange,
   onExitTextUnitMode,
   onTextUnitModeStep,
   initialProgress = null,
@@ -885,17 +892,17 @@ export function FoliateReaderView({
     (persistedModeState.modeKey === null || persistedModeState.modeKey === textUnitMode.key)
       ? persistedModeState.unitId
       : null;
-  const preferredUnitId = prefsUnitId ?? persistedUnitId;
+  const preferredUnitId = modeRequest?.unitId ?? prefsUnitId ?? persistedUnitId;
   const resolvedModeUnit = textUnitMode
     ? resolveReaderModeUnit(textUnitMode, preferredUnitId)
     : null;
   const activeUnitId = resolvedModeUnit?.id ?? preferredUnitId ?? "mode-unavailable";
   useEffect(() => {
-    if (!textUnitMode || !resolvedModeUnit) return;
+    if (modeController || !textUnitMode || !resolvedModeUnit) return;
     if (textUnitModeSettings.unitId !== resolvedModeUnit.id) {
       patchTextUnitModeSettings({ unitId: resolvedModeUnit.id });
     }
-  }, [patchTextUnitModeSettings, resolvedModeUnit, textUnitMode, textUnitModeSettings.unitId]);
+  }, [modeController, patchTextUnitModeSettings, resolvedModeUnit, textUnitMode, textUnitModeSettings.unitId]);
   const tapToAdvanceRef = useRef(textUnitModeSettings.tapToAdvance);
   const scrollToStepRef = useRef(textUnitModeSettings.scrollToStep);
   useEffect(() => {
@@ -927,6 +934,7 @@ export function FoliateReaderView({
   );
 
   const textUnitNavigator = useTextUnitNavigator({
+    configurationRevision: modeRequest?.revision,
     active: textUnitModeEngineActive,
     suspended: textUnitModeSuspended,
     bookId: selectedBook?.id ?? null,
@@ -938,6 +946,13 @@ export function FoliateReaderView({
     crossSection: textUnitModeCrossSection,
     veilColor: readerPalette.bg,
   });
+  useEffect(() => {
+    modeController?.feedback(textUnitNavigator.configurationRevision, textUnitMode?.key ?? null, activeUnitId, {
+      status: textUnitNavigator.status, errorCode: textUnitNavigator.errorCode,
+      progress: textUnitNavigator.progress, cfiRange: textUnitNavigator.current?.cfiRange ?? null,
+    });
+  }, [modeController, textUnitMode, activeUnitId, textUnitNavigator.configurationRevision,
+    textUnitNavigator.status, textUnitNavigator.errorCode, textUnitNavigator.progress, textUnitNavigator.current]);
   const readAloud = useReadAloud({
     bookId: selectedBook?.id ?? null,
     enabled: textUnitModeEngineActive,
@@ -2267,7 +2282,7 @@ export function FoliateReaderView({
           canStep={textUnitNavigator.status === "ready" || textUnitNavigator.status === "empty"}
           tapToAdvance={textUnitModeSettings.tapToAdvance}
           unitId={activeUnitId}
-          onUnitChange={(unitId) => patchTextUnitModeSettings({ unitId })}
+          onUnitChange={(unitId) => onModeUnitChange ? onModeUnitChange(unitId) : patchTextUnitModeSettings({ unitId })}
           onOpenPanel={(panel) => {
             const id = selectedBook?.id;
             if (id) dispatchPanelIntent(createReaderPanelIntent(id, panel));

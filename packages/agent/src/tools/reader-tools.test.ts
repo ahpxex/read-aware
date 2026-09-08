@@ -65,6 +65,7 @@ test("another book's viewport is neither exposed nor controlled by a book-scoped
   expect(JSON.parse(result.content[0].text)).toEqual({ status: "not-active", bookId });
   await expect(tool("navigate_reading").execute("test", { action: "next" })).rejects.toThrow("not the active reader");
   await expect(tool("control_read_aloud").execute("test", { action: "stop" })).rejects.toThrow("not the active reader");
+  await expect(tool("configure_reading_mode").execute("test", { active: false })).rejects.toThrow("not the active reader");
   expect(stores.readerRequests).toHaveLength(count);
 });
 
@@ -93,6 +94,27 @@ test("an annotation without a location does not silently succeed as an open-book
   deps.annotations.getAnnotation = async () => ({ kind: "note", id: "note" as Id, bookId, body: "Unanchored", createdAt: "2026-09-08T00:00:00Z", updatedAt: "2026-09-08T00:00:00Z" });
   await expect(tool("open_book").execute("test", { annotationId: "note" })).rejects.toThrow("no navigable location");
   expect(stores.readerRequests).toHaveLength(0);
+});
+
+test("mode tool passes declared unit, provider, session scope and signal and waits for indexing", async () => {
+  const { deps, tool } = fixture();
+  const abort = new AbortController(); const session = await deps.reader.getSession();
+  let observed: unknown; let finish!: () => void;
+  deps.reader.configureMode = async (input, signal, guard) => {
+    observed = { input, signal, guard };
+    await new Promise<void>(resolve => { finish = resolve; });
+    return { status: "completed", sessionId: session.sessionId!, mode: { ...session.mode, status: "ready" } };
+  };
+  const input = { active: true, modeKey: "test:mode", unitId: "paragraph" };
+  let settled = false;
+  const pending = tool("configure_reading_mode").execute("test", input, abort.signal).then(result => { settled = true; return result; });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(settled).toBe(false);
+  expect(observed).toEqual({ input, signal: abort.signal, guard: { bookId, sessionId: session.sessionId } });
+  finish();
+  const result = await pending;
+  if (result.content[0]?.type !== "text") throw new Error("Expected text");
+  expect(JSON.parse(result.content[0].text)).toMatchObject({ status: "completed", mode: { status: "ready" } });
 });
 
 test("an exact annotation lookup cannot navigate a different target book", async () => {

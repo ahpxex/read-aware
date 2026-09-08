@@ -39,7 +39,27 @@ export type ReadingSessionSnapshot = {
   errorCode?: string;
   history: { canGoBack: boolean; canGoForward: boolean };
   playback: ReadingPlaybackSnapshot;
+  mode: ReadingModeSnapshot;
 };
+
+/** The current host-supported text-unit mode. No passage text or executable provider is exposed. */
+export type ReadingModeSnapshot = {
+  /** Ready means the current section is indexed; it is not a navigation receipt. */
+  status: "unavailable" | "inactive" | "preparing" | "ready" | "empty" | "error";
+  unavailableReason: "no-session" | "unsupported-format" | "no-provider" | null;
+  requestedActive: boolean;
+  modeKey: string | null;
+  label: string | null;
+  unitId: string | null;
+  units: { id: string; label: string }[];
+  /** Zero-based position in the indexed section, not the whole book. */
+  progress: { ordinal: number; total: number } | null;
+  cfiRange: string | null;
+  errorCode?: string;
+};
+
+export type ReadingModeConfiguration = { active: boolean; modeKey?: string; unitId?: string };
+export type ReadingModeReceipt = { status: "completed"; sessionId: string; mode: ReadingModeSnapshot };
 
 /** Text is deliberately omitted: playback control grants no additional reading access. */
 export type ReadingPlaybackSnapshot = {

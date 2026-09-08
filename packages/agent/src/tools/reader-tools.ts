@@ -116,5 +116,17 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
       }));
     },
   };
-  return [openBook, session, control, playback];
+  const mode: AgentTool = {
+    name: "configure_reading_mode", label: "Configure reading mode",
+    description: "Enable or disable the current host text-unit reading mode, optionally choosing a unitId listed in get_reading_session.mode.units. Copy modeKey as a provider precondition. Completion waits for actual indexing; empty means no units, failure rejects. This does not turn pages, restore a location, select arbitrary provider code, or start audio.",
+    parameters: Type.Object({ active: Type.Boolean(), modeKey: Type.Optional(Type.String()), unitId: Type.Optional(Type.String()) }),
+    executionMode: "sequential",
+    execute: async (_id, params, signal) => {
+      const current = await deps.reader.getSession();
+      if (!current.sessionId || scope.kind === "book" && current.bookId !== scope.bookId) throw new Error("This book is not the active reader");
+      return textResult(await deps.reader.configureMode(params as import("@read-aware/core").ReadingModeConfiguration, signal,
+        { sessionId: current.sessionId, ...(scope.kind === "book" ? { bookId: scope.bookId } : {}) }));
+    },
+  };
+  return [openBook, session, control, playback, mode];
 }

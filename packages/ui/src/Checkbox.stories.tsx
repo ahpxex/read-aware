@@ -15,6 +15,10 @@ export const Default: Story = {
   },
 };
 
+export const Invalid: Story = {
+  args: { label: "Confirm deletion", description: "2 selected annotations", error: "Confirm deletion first." },
+};
+
 export const Checked: Story = {
   args: {
     label: "Mark as read",

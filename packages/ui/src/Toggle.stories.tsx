@@ -10,6 +10,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+export const Invalid: Story = {
+  args: { label: "Sync", checked: false, onChange: () => {}, error: "Connection is unavailable." },
+};
+
 export const Off: Story = {
   args: { label: "Dark mode", checked: false, onChange: () => {} },
 };

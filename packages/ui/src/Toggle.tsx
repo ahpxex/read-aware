@@ -9,6 +9,7 @@ type ToggleProps = {
   checked: boolean;
   onChange: (checked: boolean) => void;
   className?: string;
+  error?: string;
 };
 
 export function Toggle({
@@ -16,6 +17,7 @@ export function Toggle({
   checked,
   onChange,
   className,
+  error,
   "aria-label": ariaLabel,
 }: ToggleProps) {
   const id = useId();
@@ -23,13 +25,15 @@ export function Toggle({
   const hasLabel = Boolean(label);
 
   return (
-    <div className={cn("flex items-center gap-3", className)}>
+    <div className={cn("flex flex-wrap items-center gap-3", className)}>
       <button
         type="button"
         role="switch"
         aria-checked={checked}
         aria-labelledby={hasLabel ? labelId : undefined}
         aria-label={hasLabel ? undefined : ariaLabel}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
         onClick={() => onChange(!checked)}
         className={cn(
           "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
@@ -52,6 +56,7 @@ export function Toggle({
           {label}
         </span>
       )}
+      {error && <p id={`${id}-error`} className="basis-full text-[11px] leading-tight text-red-700">{error}</p>}
     </div>
   );
 }

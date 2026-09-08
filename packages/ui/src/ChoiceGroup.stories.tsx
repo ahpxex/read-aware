@@ -11,6 +11,11 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+export const Invalid: Story = {
+  args: { label: "Color", value: "yellow", options: [{ value: "yellow", label: "Yellow" }, { value: "green", label: "Green" }],
+    onChange: () => {}, error: "An annotation changed. Refresh before trying again." },
+};
+
 export const Default: Story = {
   render: () => {
     const [value, setValue] = useState("warm");

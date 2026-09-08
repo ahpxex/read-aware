@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { cn } from "./lib/cn";
 
 type ChoiceOption<T extends string> = {
@@ -14,6 +14,7 @@ type ChoiceGroupProps<T extends string> = {
   options: ChoiceOption<T>[];
   onChange: (value: T) => void;
   className?: string;
+  error?: string;
 };
 
 /**
@@ -27,9 +28,11 @@ export function ChoiceGroup<T extends string>({
   options,
   onChange,
   className,
+  error,
 }: ChoiceGroupProps<T>) {
+  const id = useId();
   return (
-    <fieldset className={cn("min-w-0", className)}>
+    <fieldset className={cn("min-w-0", className)} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined}>
       {label && (
         <legend className="mb-2 font-sans text-[13px] font-medium text-fg-muted">
           {label}
@@ -62,6 +65,7 @@ export function ChoiceGroup<T extends string>({
           );
         })}
       </div>
+      {error && <p id={`${id}-error`} className="mt-1 text-[11px] leading-tight text-red-700">{error}</p>}
     </fieldset>
   );
 }

@@ -6,17 +6,19 @@ import { createLogger } from "../../../platform/logger";
 import { showPluginFailureToast, showPluginToast } from "./plugin-toast";
 
 const log = createLogger("plugin-views");
-type Frame = { view: PluginView; dispose: () => void };
+type Frame = { view: PluginView; renderKey: number; dispose: () => void };
 type Effects = { close?: () => void; refresh?: () => void; toast?: (text: string) => void; failure?: () => void };
 export type PluginViewSnapshot = {
   stack: readonly PluginView[];
+  /** Explicit navigation replaces UI state, unlike a refresh of root data. */
+  renderKey: number | null;
   busy: boolean;
   error: boolean;
   dialog: { requestId: number; title: string; session: PluginViewSession } | null;
 };
 
 /** Own the normalized callbacks, not discarded fields from a raw declaration. */
-function ownView(raw: PluginView, onRetired: () => void): Frame {
+function ownView(raw: PluginView, onRetired: () => void, renderKey: number): Frame {
   const releaseRaw = retainPluginCallbacks(raw);
   try {
     const view = normalizePluginView(raw);
@@ -24,7 +26,7 @@ function ownView(raw: PluginView, onRetired: () => void): Frame {
     let releaseView: () => void;
     try { releaseView = retainPluginCallbacks(view); }
     catch (error) { unwatch(); throw error; }
-    return { view, dispose: () => { unwatch(); releaseView(); } };
+    return { view, renderKey, dispose: () => { unwatch(); releaseView(); } };
   } finally { releaseRaw(); }
 }
 
@@ -35,10 +37,11 @@ export class PluginViewSession {
   private epoch = 0;
   private active = true;
   private nextRequest = 0;
+  private nextFrameKey = 0;
   private inlineRequest = 0;
   private readonly foreground = new Set<number>();
   private readonly listeners = new Set<() => void>();
-  private snapshot: PluginViewSnapshot = { stack: [], busy: false, error: false, dialog: null };
+  private snapshot: PluginViewSnapshot = { stack: [], renderKey: null, busy: false, error: false, dialog: null };
 
   constructor(private effects: Effects = {}) {}
   configure(effects: Effects): void { this.effects = effects; }
@@ -46,7 +49,8 @@ export class PluginViewSession {
   subscribe = (listener: () => void): (() => void) => { this.listeners.add(listener); return () => this.listeners.delete(listener); };
 
   private publish(patch: Partial<PluginViewSnapshot> = {}): void {
-    this.snapshot = { ...this.snapshot, stack: this.frames.map(frame => frame.view), busy: this.foreground.size > 0, ...patch };
+    this.snapshot = { ...this.snapshot, stack: this.frames.map(frame => frame.view), renderKey: this.frames.at(-1)?.renderKey ?? null,
+      busy: this.foreground.size > 0, ...patch };
     for (const listener of [...this.listeners]) listener();
   }
 
@@ -68,7 +72,11 @@ export class PluginViewSession {
     this.closeDialog();
     let frame: Frame | undefined;
     let error = false;
-    try { if (view) frame = ownView(view, this.close); }
+    try {
+      // Live root-data refreshes retain drafts. An explicit action returning a
+      // view below always receives a new key, even at the same stack depth.
+      if (view) frame = ownView(view, this.close, this.frames.length === 1 ? this.frames[0].renderKey : ++this.nextFrameKey);
+    }
     catch (failure) {
       error = true;
       log.error("Plugin root view failed validation", failure);
@@ -140,7 +148,7 @@ export class PluginViewSession {
       } else if (result.view) {
         if (dialog) this.snapshot.dialog!.session.setRoot(result.view);
         else {
-          const frame = ownView(result.view, this.close);
+          const frame = ownView(result.view, this.close, ++this.nextFrameKey);
           try {
             const next = navigatePluginViewStack(this.frames.map(item => item.view), frame.view, result.navigation);
             const existing = new Map(this.frames.map(item => [item.view, item]));

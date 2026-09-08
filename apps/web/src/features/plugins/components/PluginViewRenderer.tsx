@@ -1,6 +1,6 @@
 /** Host renderer for the declarative plugin component vocabulary. */
 import { CaretLeft } from "@phosphor-icons/react";
-import { useEffect } from "react";
+import { Fragment, useEffect } from "react";
 import {
   InlineError,
   Body,
@@ -61,7 +61,7 @@ export function PluginViewRenderer({
   className,
 }: PluginViewRendererProps) {
   const { t } = useTranslation(["plugins", "common"]);
-  const { session, stack, error: viewError, busy, dialog: detailDialog } = usePluginViewSession(view, provided, onClose, onRequestRefresh);
+  const { session, stack, renderKey, error: viewError, busy, dialog: detailDialog } = usePluginViewSession(view, provided, onClose, onRequestRefresh);
 
   useEffect(() => {
     onDepthChange?.(stack.length);
@@ -87,7 +87,7 @@ export function PluginViewRenderer({
   }
 
   const currentView = (
-    <>
+    <Fragment key={renderKey}>
       {current.kind === "markdown" && (
         <Markdown>{current.markdown}</Markdown>
       )}
@@ -103,7 +103,6 @@ export function PluginViewRenderer({
       )}
       {current.kind === "form" && (
         <PluginFormViewBody
-          key={stack.length}
           view={current}
           busy={busy}
           onResult={handleResult}
@@ -128,7 +127,7 @@ export function PluginViewRenderer({
           scrollBody={dialogFooter}
         />
       )}
-    </>
+    </Fragment>
   );
   const busyOverlay = busy ? (
     <Stack

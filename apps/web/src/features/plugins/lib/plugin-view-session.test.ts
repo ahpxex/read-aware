@@ -150,3 +150,30 @@ test("Worker retirement closes owned views, including declarations with no callb
     expect(closed).toBe(1);
   }
 });
+
+test("explicit same-depth navigation changes render identity while data refreshes and errors retain it", async () => {
+  const f = fixture();
+  f.session.setRoot(f.view("Root"));
+  const rootKey = f.session.getSnapshot().renderKey;
+  f.session.setRoot(f.view("Fresh root data"));
+  expect(f.session.getSnapshot().renderKey).toBe(rootKey);
+  let finish!: (value: PluginViewResult) => void;
+  const pending = f.session.run(() => new Promise(resolve => { finish = resolve; }));
+  expect(f.session.getSnapshot().renderKey).toBe(rootKey);
+  finish({ fieldErrors: { body: "Conflict" } });
+  await pending;
+  expect(f.session.getSnapshot().renderKey).toBe(rootKey);
+  await f.session.run(async () => ({ view: f.view("Explicit refresh"), navigation: "replace" }));
+  const replacement = f.session.getSnapshot().renderKey;
+  expect(replacement).not.toBe(rootKey);
+  await f.session.run(async () => ({ view: f.view("Reset"), navigation: "reset" }));
+  expect(f.session.getSnapshot().renderKey).not.toBe(replacement);
+  const parentKey = f.session.getSnapshot().renderKey;
+  await f.session.run(async () => ({ view: f.view("Child") }));
+  expect(f.session.getSnapshot().renderKey).not.toBe(parentKey);
+  f.session.back();
+  expect(f.session.getSnapshot().renderKey).toBe(parentKey);
+  f.session.dispose();
+  expect(f.session.getSnapshot().renderKey).toBeNull();
+  expect(f.registry.size).toBe(0);
+});

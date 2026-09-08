@@ -67,6 +67,7 @@ type SecretFieldProps = {
   adapter: PluginFormView["secrets"];
   /** Signals key changes so dependent state (dynamic voice lists) refreshes. */
   onChanged?: () => void;
+  error?: string;
 };
 
 /**
@@ -75,7 +76,7 @@ type SecretFieldProps = {
  * says "configured", and saving clears the draft back to that state. Blur
  * persists a non-empty draft; Clear removes the stored secret.
  */
-function PluginSecretField({ field, adapter, onChanged }: SecretFieldProps) {
+function PluginSecretField({ field, adapter, onChanged, error }: SecretFieldProps) {
   const { t } = useTranslation("plugins");
   const [configured, setConfigured] = useState(false);
   const [draft, setDraft] = useState("");
@@ -114,6 +115,7 @@ function PluginSecretField({ field, adapter, onChanged }: SecretFieldProps) {
             : field.placeholder && contributionText(field.placeholder)
         }
         helperText={field.helperText && contributionText(field.helperText)}
+        error={error}
         value={draft}
         disabled={!adapter}
         onChange={(event) => setDraft(event.target.value)}
@@ -431,6 +433,7 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
               key={field.id}
               field={field}
               adapter={view.secrets}
+              error={errors[field.id]}
               onChanged={() => setSecretsRevision((current) => current + 1)}
             />
           );
@@ -462,6 +465,7 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
                 label: contributionText(option.label),
               }))}
               value={String(values[field.id] ?? "")}
+              error={errors[field.id]}
               onChange={(value) => updateValue(field.id, value)}
             />
           );
@@ -471,6 +475,7 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
             <ChoiceGroup
               key={field.id}
               label={contributionText(field.label)}
+              error={errors[field.id]}
               options={field.options.map((option) => ({
                 value: option.value,
                 label: contributionText(option.label),
@@ -487,6 +492,7 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
               key={field.id}
               label={contributionText(field.label)}
               description={field.description && contributionText(field.description)}
+              error={errors[field.id]}
               checked={values[field.id] === true}
               onChange={(event) => updateValue(field.id, event.target.checked)}
             />
@@ -508,6 +514,7 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
             </div>
             <Toggle
               aria-label={contributionText(field.label)}
+              error={errors[field.id]}
               checked={values[field.id] === true}
               onChange={(checked) => updateValue(field.id, checked)}
               className="shrink-0 pt-0.5"

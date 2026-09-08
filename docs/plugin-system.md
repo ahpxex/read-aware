@@ -2,13 +2,22 @@
 
 > Audience: coding agents and maintainers.
 >
-> Status: implemented architecture as of 2026-08-23. This is a description of
-> the running contract, not a migration proposal.
+> Status: architecture reference from 2026-08-23, qualified by the source
+> audits linked below. API presence does not establish complete semantics,
+> durability, lifecycle safety, or desktop acceptance.
 >
 > Compatibility policy: the current ecosystem is first-party. Do not add old
 > API aliases, adapters, fallbacks, or compatibility shims.
 >
 > Concise human-facing version: [plugin-system.html](./plugin-system.html).
+
+> Audit guidance updated 2026-09-08: use the [unified capability model](./host-capability-model.md)
+> for target ownership, both actors, and explicit limits on infrastructure;
+> use the [current matrix](./host-capability-matrix.md) for actual wiring and
+> the [acceptance baseline](./plugin-capability-baseline.md) for GAP01–GAP18.
+> Those gaps remain open. This reference preserves the original three-family
+> model; broad claims below about transactional updates and retired results
+> must not be treated as evidence that every failure path is safe.
 
 ## 1. The Model
 

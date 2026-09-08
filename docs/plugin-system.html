@@ -7,7 +7,10 @@
       name="description"
       content="ReadAware 插件系统：Domains、Contributions、Services 与安全更新。"
     />
-    <title>ReadAware Plugins</title>
+    <title>ReadAware Plugins - Agent Reference</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1" integrity="sha384-OT3qnPBOZ0Z1BVC2R6WSI4cjBlIoSMeeZAUY8gZqaP1TgAJHbuo2gIM6KzQ8/viI" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/lucide@0.561.0/dist/umd/lucide.min.js" integrity="sha384-YS1lRbKthC7/Oeyl8nPDTO0vZvejeFLnQJuye5QwYDdJD/2toIxMci9LbHst3SGQ" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.16.0/dist/mermaid.min.js" integrity="sha384-T/0lMUdJpd2S1ZHtRiofG3htU3xPCrFVeAQ1UUE2TJwlEJSV5NUwn30kP28n238E" crossorigin="anonymous"></script>
     <style>
       :root {
         color-scheme: light;
@@ -138,6 +141,13 @@
       .step strong { display: block; }
       .step span { color: var(--muted); }
       footer { padding: 34px 0 52px; color: var(--muted); font-size: 14px; }
+      .search-row { display: flex; gap: 10px; align-items: center; margin-top: 20px; }
+      .search-row label { flex: 1; min-width: 0; }
+      .search-row input { display: block; width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
+      .search-row button { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); cursor: pointer; }
+      .search-row svg { width: 18px; height: 18px; }
+      [hidden] { display: none !important; }
+      @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
       @media (max-width: 760px) {
         .wrap { width: min(calc(100% - 28px), 1040px); }
@@ -165,12 +175,15 @@
           读写产品状态走 Domain，扩展产品选择走 Contribution，需要宿主代办的外部操作走 Service。
           插件动态加载，但权力边界由宿主定义。
         </p>
-        <div class="status"><strong>已实现：</strong>统一目录、Settings Domain、只读候选激活、数据迁移、Agent 扩展与可回滚更新。</div>
+        <div class="status"><strong>架构参考：</strong>保留 2026-08-23 的三类划分；入口存在不证明完整语义、持久性、生命周期安全或桌面验收。</div>
+        <p>核对指引更新于 2026-09-08：<a href="./host-capability-model.html">统一目标与双端边界</a>、<a href="./host-capability-matrix.html">实际接线矩阵</a>、<a href="./plugin-capability-baseline.html">验收与 GAP01–GAP18</a>。GAP 仍未关闭；本文对更新事务与旧结果隔离的概括不能视为所有失败路径已安全。</p>
+        <div class="search-row"><label for="search">查找架构条目<input id="search" type="search" placeholder="Domain、权限、更新…"></label><button id="search-clear" aria-label="清空搜索" title="清空搜索"><i data-lucide="x"></i></button></div>
+        <p id="search-result" aria-live="polite"></p>
       </div>
     </header>
 
     <main>
-      <section>
+      <section data-search-section="model 模型 Domain Contribution Service">
         <div class="wrap">
           <h2>统一能力模型</h2>
           <div class="families">
@@ -190,7 +203,7 @@
         </div>
       </section>
 
-      <section>
+      <section data-search-section="domains 领域 library reading annotations conversations settings">
         <div class="wrap">
           <h2>Domains</h2>
           <p class="intro">插件只看到权限允许的 actor view。所有写入都经过正式命令，并记录来源。</p>
@@ -212,7 +225,7 @@
         </div>
       </section>
 
-      <section>
+      <section data-search-section="contributions services 贡献 服务">
         <div class="wrap split">
           <div>
             <h2>Contributions</h2>
@@ -238,7 +251,7 @@
         </div>
       </section>
 
-      <section>
+      <section data-search-section="agent context retrieval memory 智能扩展">
         <div class="wrap">
           <h2>Agent 智能扩展</h2>
           <p class="intro">插件只能提供有边界的数据与候选，不能接管系统提示词或直接写长期记忆。</p>
@@ -255,7 +268,7 @@
         </div>
       </section>
 
-      <section>
+      <section data-search-section="version permission 版本 权限">
         <div class="wrap">
           <h2>版本与权限</h2>
           <p class="intro">
@@ -274,7 +287,7 @@
         </div>
       </section>
 
-      <section>
+      <section data-search-section="update lifecycle migration 更新 生命周期 迁移">
         <div class="wrap">
           <h2>安全更新</h2>
           <div class="flow">
@@ -288,7 +301,7 @@
         </div>
       </section>
 
-      <section>
+      <section data-search-section="boundary forbidden 边界 禁止">
         <div class="wrap">
           <h2>始终不开放</h2>
           <p class="intro">插件运行在 Worker 中，界面由宿主声明式渲染。</p>
@@ -305,5 +318,13 @@
     <footer>
       <div class="wrap">ReadAware Plugin System · 2026-08-23 · 详细扩展规则与验证清单见 Agent 规范。</div>
     </footer>
+    <script>
+      const search = document.getElementById('search'), sections = [...document.querySelectorAll('[data-search-section]')];
+      function filter() { const q = search.value.trim().toLowerCase(); let n = 0; for (const section of sections) { section.hidden = !(section.textContent + ' ' + section.dataset.searchSection).toLowerCase().includes(q); if (!section.hidden) n++; } document.getElementById('search-result').textContent = n ? n + ' / ' + sections.length + ' 个章节' : '没有符合条件的章节。'; }
+      function clearSearch() { search.value = ''; filter(); search.focus(); }
+      search.addEventListener('input', filter); document.getElementById('search-clear').onclick = clearSearch;
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') clearSearch(); });
+      addEventListener('DOMContentLoaded', () => { if (window.lucide) lucide.createIcons(); if (window.mermaid) mermaid.initialize({startOnLoad:false, securityLevel:'strict'}); }); filter();
+    </script>
   </body>
 </html>

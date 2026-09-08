@@ -3,9 +3,9 @@
 人读版：[可筛选大表](./host-capability-matrix.html)。原验收契约：[插件能力完备基线](./plugin-capability-baseline.md)。
 
 - 状态：**代码盘点完成；能力实现与桌面验收未完成**。
-- 最后核验日期：2026-09-07。
+- 最后核验日期：2026-09-08。
 - 范围：当前 Tauri 桌面宿主及必要组合协议；Agent 指 ReadAware 产品内的模型工具与自动管线，不是外部 Coding Agent 的电脑控制能力。
-- [代码] 212 行 / 13 组，129 个既有验收项全部有对应行。字段行是可核对设置清单，不能与功能族相加当产品功能数量。
+- [代码] 215 行 / 13 组，129 个既有验收项全部有对应行。字段行是可核对设置清单，不能与功能族相加当产品功能数量。
 - [设计] 两个目标列是建议开放方式/刻意拒绝方式，尚未实现的目标不混入当前状态。
 - 修改事实源 [host-capability-matrix.data.ts](./host-capability-matrix.data.ts)，再运行 [生成器](../scripts/build-host-capability-matrix.ts)；不要分别手改生成的 MD/HTML。
 
@@ -13,16 +13,16 @@
 
 1. 不能确认能力都已实现。此表区分宿主行为、Agent 工具/自动管线、插件 API/贡献和实际插件消费者；没有把代码存在算成端到端可用。
 2. 最大结构性缺口仍是运行态：位置、会话快照、精确搜索、导航回执/历史、朗读控制、任务与资源释放。持久化领域 API 无法代表全部产品能力。
-3. 新发现 10 个设置路径只有保存入口，未找到对应效果消费者；Agent 和插件即使都能改值，也不能算行为覆盖。另有对齐、固定版式颜色、更新弹窗、快捷键和书架视图没进设置目录。
+3. 10 个设置路径只有保存入口，未找到对应效果消费者；两端可改值不等于行为覆盖。对齐、固定版式颜色、更新弹窗、快捷键、书架视图仍漏目录；本轮又确认内容字体四字段、默认标注色、更新通道三个真实遗漏组。
 4. Agent 自动记忆巩固与 digest 管线已经接入；画像 seed/实体事件投影并未同等接通。不要沿用旧架构说明把它们一起说成已实现或未实现。
 5. 插件 UI、贡献注册、宿主消费、模型工具是不同方向。Dictionary/RSS 有模型工具，TTS/句读/主题/WebDAV 没有对应的直接操作工具；设置可改不能替代播放、切模式或连接命令。
 6. 备份 v1 并非全部当前存储的完整快照；私有数据、聊天、记忆、密钥、日志与同步状态的生命周期必须分别建模。原基线 129 项与 GAP01–GAP18 均保留，没有借新表宣告关闭。
 
 ## 计数与口径
 
-- 宿主：实装 160、部分 42、引擎 3、待建 4、占位 2、非桌面 1。
-- Agent：接通 66、部分 42、未接 61、扩展 14、自动 23、内部 6。
-- 插件：接通 78、部分 76、未接 58。
+- 宿主：实装 163、部分 42、引擎 3、待建 4、占位 2、非桌面 1。
+- Agent：接通 66、部分 42、未接 64、扩展 14、自动 23、内部 6。
+- 插件：接通 78、部分 76、未接 61。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -54,6 +54,8 @@
 ## 总矩阵
 
 每个 current 单元格为 [代码]，目标列为 [设计]。同一行的消费者只列已查到者，不暗示所有插件均使用。来源链接指向当前仓库源码，不是不可变远端快照。
+
+统一目标、责任划分与避免过度设计的裁决见 [宿主能力统一模型](./host-capability-model.md)。本表目标列为逐行建议；统一模型进一步区分必补、组合、宿主内部与未来产品，不把每个建议都当必建 API。
 
 ### 书库与内容生命周期
 
@@ -115,7 +117,7 @@
 | <a id="READ13"></a>READ13 | 读取/建立/清除文本选区 | 实装 | **部分**：自动接收附件，无设置选区工具<br>[设计] Range 查询/受控选择 | **部分**：动作输入有选区，无通用 get/set/clear<br>[设计] 选区查询/命令 | 选择菜单；Agent 附件；Dictionary | 固定版式的当前产品限制需按格式报告 | [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [ENGINE](../apps/web/foliate-js/src/view.ts) [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) [API](../packages/plugin-types/src/index.ts) | E01, E02 |
 | <a id="READ14"></a>READ14 | 临时范围强调/搜索标记及释放 | 引擎 | **未接**：无正式入口<br>[设计] 受控临时呈现 | **未接**：无正式入口<br>[设计] 插件所属 overlay | 文本单元 wash；引擎选区/overlayer | 用户高亮和临时强调分离，不能写 annotation 充当搜索标记 | [ENGINE](../apps/web/foliate-js/src/view.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [UNITS](../apps/web/src/features/reader/hooks/useTextUnitNavigator.ts) | E03, E04 |
 | <a id="READ15"></a>READ15 | 贡献句子/段落等分段模式 | 实装 | **未接**：无算法注册工具<br>[设计] 不开放：模型不注册运行代码 | **接通**：readerModes.register(text-unit-navigator)<br>[设计] 模式贡献 | sentence-reader | 只开放分段策略，不是任意渲染器/格式解码器 | [API](../packages/plugin-types/src/index.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [SENTENCE](../plugins/sentence-reader/src/index.ts) [UNITS](../apps/web/src/features/reader/hooks/useTextUnitNavigator.ts) | K01 |
-| <a id="READ16"></a>READ16 | 启停模式/上下一单元/跟随/回当前 | 实装 | **未接**：无正式入口<br>[设计] 阅读单元控制工具 | **未接**：无正式入口<br>[设计] 模式状态与控制命令 | 文本单元工具栏；快捷键 | 贡献模式不等于能通过 API 控制模式 | [UNITS](../apps/web/src/features/reader/hooks/useTextUnitNavigator.ts) [WORKSPACE](../apps/web/src/features/reader/components/ReaderWorkspace.tsx) [SHORTCUT](../apps/web/src/features/settings/lib/shortcuts.ts) | K02 |
+| <a id="READ16"></a>READ16 | 启停模式/上下一单元/跟随/回当前 | 实装 | **未接**：无正式入口<br>[设计] 阅读单元控制工具 | **未接**：无正式入口<br>[设计] 模式状态与控制命令 | 文本单元工具栏；快捷键；兼容模式位置恢复 | 贡献模式不等于能控制模式；恢复需 modeKey/unitId 匹配，旧 ordinal 不可强套新分段；短时 sessionTimer 不持久化是设计，不要求耐久调度 | [UNITS](../apps/web/src/features/reader/hooks/useTextUnitNavigator.ts) [WORKSPACE](../apps/web/src/features/reader/components/ReaderWorkspace.tsx) [SHORTCUT](../apps/web/src/features/settings/lib/shortcuts.ts) [MODESTATE](../apps/web/src/features/reader/lib/text-unit-mode-state.ts) [MODETIMER](../apps/web/src/features/reader/hooks/useSessionTimer.ts) | K02 |
 | <a id="READ17"></a>READ17 | 列声音并合成音频的提供者 | 实装 | **部分**：update_settings 可改 TTS 非敏感设置<br>[设计] 受控声源选择 | **接通**：voiceProviders.register/listVoices/synthesize<br>[设计] 语音贡献 | tts；宿主系统语音回退 | Agent 不能借设置接口声称已经触发朗读 | [TTS](../plugins/tts/src/index.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [API](../packages/plugin-types/src/index.ts) [AUDIO](../apps/web/src/features/reader/hooks/useReadAloud.ts) | K03, K05 |
 | <a id="READ18"></a>READ18 | 开始/停止朗读、播放位置与 fallback 状态 | 实装 | **未接**：无正式入口<br>[设计] 朗读控制工具 | **未接**：无正式入口<br>[设计] 朗读会话服务 | 文本单元朗读按钮 | 宿主拥有音频播放/预取/回退；两端都无直接控制 | [AUDIO](../apps/web/src/features/reader/hooks/useReadAloud.ts) [UNITS](../apps/web/src/features/reader/hooks/useTextUnitNavigator.ts) [API](../packages/plugin-types/src/index.ts) | K04, K05 |
 | <a id="READ19"></a>READ19 | 完成页、标记读完/撤销读完 | 实装 | **接通**：update_book.finished<br>[设计] 状态写工具 | **接通**：reading.commands.setFinished<br>[设计] 状态写领域 | 完成页；书架；Agent | 状态写接通；导航到完成页是另一个呈现行为 | [READING](../apps/web/src/domain/reading.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | G02 |
@@ -159,6 +161,9 @@
 | <a id="CFG08"></a>CFG08 | 模型目录刷新、连接测试与模型能力 | 实装 | **部分**：设置 discover 给模型选项<br>[设计] 连接诊断/能力查询 | **部分**：settings discover 动态选项<br>[设计] 连接诊断/能力查询 | AI 配置页 | 选择已缓存模型不等于能刷新/测试连接 | [MODELCATALOG](../apps/web/src/features/ai/lib/model-catalog.ts) [AICONFIGUI](../apps/web/src/features/settings/components/AIConfigPanel.tsx) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | H04 |
 | <a id="CFG09"></a>CFG09 | 插件非敏感设置的动态路径 | 实装 | **接通**：plugins.<id>.<field> get/update_settings<br>[设计] 参数配置工具 | **接通**：自有路径默认授权；他者路径需 grant<br>[设计] 隔离设置领域 | TTS/RSS/Theme Schedule 等 | 插件启用/声明决定目录；secret/password 字段不暴露；配置不等于执行插件命令 | [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) | H06 |
 | <a id="CFG10"></a>CFG10 | 设置变化事件/外部写入刷新 | 部分 | **自动**：每次读当前目录/值<br>[设计] 运行时刷新 | **部分**：settings events + storage.onChange<br>[设计] 有版本/来源的观察 | Theme Schedule；插件设置视图 | GAP03/09/11：失败回滚、远端写与异步 callback 仍未闭合 | [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [WORKER](../apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts) [KV](../apps/web/src/platform/local-store.ts) | H01 |
+| <a id="CFG11"></a>CFG11 | 聊天/笔记内容字体：跟随阅读或独立字号/字体/行距 | 实装 | **未接**：无正式入口<br>[设计] 补入 settings，四个字段而非新样式服务 | **未接**：无正式入口<br>[设计] 补入 settings，四个字段而非新样式服务 | AppearancePanel；聊天、笔记、插件 Markdown 与 composer | followReader/fontFamily/fontSize/lineSpacing 未进 catalog；跟随全局 reader 偏好而非本书 override；fontFamily=null 是应用字体选项，不是删除覆盖 | [TYPOGRAPHY](../apps/web/src/features/settings/lib/content-typography.ts) [TYPOGRAPHYUI](../apps/web/src/features/settings/sections/AppearancePanel.tsx) [TYPOGRAPHYEFFECT](../apps/web/src/features/settings/hooks/useContentTypography.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | 新增盘点 |
+| <a id="CFG12"></a>CFG12 | 新标注默认颜色 | 实装 | **未接**：无正式入口<br>[设计] 补入 settings 的默认颜色 | **未接**：无正式入口<br>[设计] 补入 settings 的默认颜色 | 一键高亮/下划线；recolor 更新后续默认色 | createHighlight 指定当前标注颜色不等于修改下一次默认色；yellow/green/blue/pink，默认 yellow | [MARKPREFS](../apps/web/src/features/annotations/lib/annotation-prefs.ts) [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | 新增盘点 |
+| <a id="CFG13"></a>CFG13 | 软件更新通道 stable/beta | 实装 | **未接**：无正式入口<br>[设计] 补入设备本地 settings | **未接**：无正式入口<br>[设计] 补入设备本地 settings | AboutPanel；软件更新查询 | 设备本地，不漫游；修改通道不等于批准下载、安装或重启；当前 catalog 缺失 | [UPDATECHANNEL](../apps/web/src/features/update/lib/update-channel.ts) [ABOUT](../apps/web/src/features/settings/sections/AboutPanel.tsx) [UPDATE](../apps/web/src/features/update/lib/software-update.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | 新增盘点 |
 
 ### 设置字段逐项覆盖（46 个具体路径）
 
@@ -396,9 +401,10 @@
 - Domain subscription ANNOTATION_EVENTS：8 个。
 - Domain subscription CONVERSATION_EVENTS：4 个。
 - Feature owner：14 个。
-- Bundled plugin：6 个。
+- First-party source plugin：6 个。
 - Plugin Agent contribution：7 个。
 - Plugin setting declaration：24 个。
+- Native bundled plugin：5 个。
 
 以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 67 个顶层可调用路径；返回的 collection/session 方法单列。Settings 46 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
@@ -991,16 +997,16 @@
 | `sync` | [OPS01](#OPS01) | [代码+人工审计] 所属功能组入口；目录覆盖不等于每个 UI 分支测试通过 |
 | `stats` | [STAT01](#STAT01) | [代码+人工审计] 所属功能组入口；目录覆盖不等于每个 UI 分支测试通过 |
 
-### Bundled plugin
+### First-party source plugin
 
 | 当前注册项 | 矩阵行 | 说明 |
 | --- | --- | --- |
-| `dictionary` | [EXT09](#EXT09) [AI12](#AI12) | [代码] 源码版本 1.1.0；未验证用户安装/启用状态 |
-| `editorial-themes` | [EXT08](#EXT08) | [代码] 源码版本 1.0.0；未验证用户安装/启用状态 |
-| `rss-reader` | [EXT10](#EXT10) | [代码] 源码版本 0.7.0；未验证用户安装/启用状态 |
-| `sentence-reader` | [READ15](#READ15) [READ16](#READ16) | [代码] 源码版本 1.1.0；未验证用户安装/启用状态 |
-| `tts` | [READ17](#READ17) [READ18](#READ18) | [代码] 源码版本 0.5.0；未验证用户安装/启用状态 |
-| `webdav-sync` | [OPS04](#OPS04) | [代码] 源码版本 0.1.0；未验证用户安装/启用状态 |
+| `dictionary` | [EXT09](#EXT09) [AI12](#AI12) | [代码] 源码版本 1.1.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `editorial-themes` | [EXT08](#EXT08) | [代码] 源码版本 1.0.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `rss-reader` | [EXT10](#EXT10) | [代码] 源码版本 0.7.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `sentence-reader` | [READ15](#READ15) [READ16](#READ16) | [代码] 源码版本 1.1.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `tts` | [READ17](#READ17) [READ18](#READ18) | [代码] 源码版本 0.5.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `webdav-sync` | [OPS04](#OPS04) | [代码] 源码版本 0.1.0；源码存在不等于打包、安装、启用或模型可调用 |
 
 ### Plugin Agent contribution
 
@@ -1042,6 +1048,16 @@
 | `plugins.webdav-sync.username` | [CFG09](#CFG09) | text；非敏感配置；字段存在不等于其功能有 Agent 工具 |
 | `plugins.webdav-sync.password` | [SYS04](#SYS04) | secret；不进入 Agent/普通 settings catalog |
 | `plugins.webdav-sync.basePath` | [CFG09](#CFG09) | text；非敏感配置；字段存在不等于其功能有 Agent 工具 |
+
+### Native bundled plugin
+
+| 当前注册项 | 矩阵行 | 说明 |
+| --- | --- | --- |
+| `dictionary` | [EXT09](#EXT09) [AI12](#AI12) | [代码] Rust BUNDLED 编译内置清单；不是用户当前安装/启用状态 |
+| `editorial-themes` | [EXT08](#EXT08) | [代码] Rust BUNDLED 编译内置清单；不是用户当前安装/启用状态 |
+| `rss-reader` | [EXT10](#EXT10) | [代码] Rust BUNDLED 编译内置清单；不是用户当前安装/启用状态 |
+| `sentence-reader` | [READ15](#READ15) [READ16](#READ16) | [代码] Rust BUNDLED 编译内置清单；不是用户当前安装/启用状态 |
+| `tts` | [READ17](#READ17) [READ18](#READ18) | [代码] Rust BUNDLED 编译内置清单；不是用户当前安装/启用状态 |
 
 ## 旧基线反向索引
 
@@ -1179,13 +1195,13 @@
 
 ## 验证边界
 
-- [代码] 本表源审计基于 5dc7f7a2 及 2026-09-07 工作区；没有执行安装、备份、同步、写入用户数据或调用原生命令。构建 ctx 只枚举方法，没有 activate/promote 或执行注册副作用。
+- [代码] 原盘点基于 5dc7f7a2 及 2026-09-07 工作区；2026-09-08 在 1d97e2e4 后工作区补 CFG11–13 并分开源码/编译内置插件库存。没有执行安装、备份、同步、写入用户数据或调用原生命令。构建 ctx 只枚举方法，没有 activate/promote 或执行注册副作用。
 - [代码] 生成器实际运行 Agent 工具构造器（内存 deps）、全权限 plugin ctx 构造器、settings catalog；TypeScript AST 枚举菜单、命令、事件、快捷键与插件工具声明；Rust generate_handler 名单独立反查。
 - [代码] 129 个旧验收项全部映射到新矩阵；已注册库存未映射、失效来源、重复 ID、设置可写性漂移或生成文档不一致会使 --check 失败。目录映射只是人工审计入口，不是所有语义的形式化证明。
 - [环境] 尚未运行本轮所有能力的 Tauri E2E、打包 CSP、真实跨设备同步、第三方 HTTP/推理/账号交易或用户已安装插件验收。所有代码状态均不能替代这些证据。
 - [环境] HTML 是静态文档，Geist/Tailwind/Lucide/Mermaid 固定 CDN 资源需网络；核心表格和自带样式不依赖远端业务服务。文档浏览器检查不等于产品验证。
-- [验证] 本轮相关单元/契约测试 62 通过、0 失败（17 文件，324 assertions）。库存/生成一致性与两组文档 pair validator 通过；没有 Mermaid 图的新矩阵仅得到预期提醒，旧基线图正常渲染。
-- [验证] 两个 HTML 均检查 1440×1000、1024×768、390×844 截图与横向溢出；新表中文/英文搜索、组合状态过滤、零结果、Esc、移动目录焦点循环/恢复、主题刷新保留通过；浏览器无 console/page errors。此项只验证文档。
+- [历史验证，2026-09-07] 相关单元/契约测试 62 通过、0 失败（17 文件，324 assertions）。库存/生成一致性与两组文档 pair validator 通过；无 Mermaid 图的矩阵得到预期提醒，旧基线图正常渲染。不是本次新模型测试结果。
+- [历史验证，2026-09-07] 两个 HTML 均检查 1440×1000、1024×768、390×844 截图与横向溢出；矩阵搜索、状态过滤、零结果、Esc、移动目录焦点、主题刷新保留通过；浏览器无 console/page errors。此项只验证当时文档。
 
 可重复执行：
 

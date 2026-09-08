@@ -193,7 +193,7 @@ export function collectInventory(): Inventory[] {
   const expectedPlugins = pairs([["dictionary", "EXT09 AI12"],["rss-reader", "EXT10"],["editorial-themes", "EXT08"],["sentence-reader", "READ15 READ16"],["tts", "READ17 READ18"],["webdav-sync", "OPS04"]]);
   for (const directory of readdirSync("plugins",{withFileTypes:true}).filter(d=>d.isDirectory()).sort((a,b)=>a.name.localeCompare(b.name))) {
     const manifest = JSON.parse(readFileSync(`plugins/${directory.name}/manifest.json`,"utf8"));
-    add("Bundled plugin", manifest.id, expectedPlugins[directory.name], `[代码] 源码版本 ${manifest.version}；未验证用户安装/启用状态`);
+    add("First-party source plugin", manifest.id, expectedPlugins[directory.name], `[代码] 源码版本 ${manifest.version}；源码存在不等于打包、安装、启用或模型可调用`);
     for (const field of manifest.settings ?? []) add("Plugin setting declaration", `plugins.${manifest.id}.${field.id}`, [field.kind === "secret" || field.inputMode === "password" ? "SYS04" : "CFG09"], `${field.kind}；${field.kind === "secret" || field.inputMode === "password" ? "不进入 Agent/普通 settings catalog" : "非敏感配置；字段存在不等于其功能有 Agent 工具"}`);
     for (const file of readdirSync(`plugins/${directory.name}/src`,{recursive:true}).filter(name=>/\.(ts|tsx)$/.test(String(name)) && !/\.test\./.test(String(name)))) {
       function visitRegistration(node: import("../apps/web/node_modules/typescript").Node) {
@@ -209,6 +209,11 @@ export function collectInventory(): Inventory[] {
       visitRegistration(source(`plugins/${directory.name}/src/${file}`));
     }
   }
+  const bundled = readFileSync("apps/desktop/src-tauri/src/plugins.rs", "utf8").match(/static BUNDLED:.*?=\s*&\[([\s\S]*?)\];/);
+  if (!bundled) throw new Error("Native bundled plugin table needs audit");
+  const bundledEntries = [...bundled[1].matchAll(/\("([^"]+)",\s*&([A-Z_]+)\)/g)];
+  if (!bundledEntries.length) throw new Error("Empty native bundled plugin inventory");
+  for (const [, id] of bundledEntries) add("Native bundled plugin", id, expectedPlugins[id], "[代码] Rust BUNDLED 编译内置清单；不是用户当前安装/启用状态");
   const assertRoster = (family:string, expected:string[]) => {
     const actual = new Set(inventory.filter(row=>row.family===family).map(row=>row.name.split("::").at(-1)!));
     const stale = expected.filter(name=>!actual.has(name));

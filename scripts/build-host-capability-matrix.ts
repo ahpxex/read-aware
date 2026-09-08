@@ -5,7 +5,7 @@ import { collectInventory } from "./host-capability-inventory";
 
 const title = "ReadAware 宿主 × Agent × 插件能力矩阵";
 const status = "代码盘点完成；能力实现与桌面验收未完成";
-const date = "2026-09-07";
+const date = "2026-09-08";
 const rows = groups.flatMap(group => group.rows);
 const inventory = collectInventory();
 const roster = Object.entries(Object.groupBy(inventory, row => row.family));
@@ -28,7 +28,7 @@ const stats = ["host","agent","plugin"].map(which=>`${which === "host" ? "宿主
 const conclusions = [
   "不能确认能力都已实现。此表区分宿主行为、Agent 工具/自动管线、插件 API/贡献和实际插件消费者；没有把代码存在算成端到端可用。",
   "最大结构性缺口仍是运行态：位置、会话快照、精确搜索、导航回执/历史、朗读控制、任务与资源释放。持久化领域 API 无法代表全部产品能力。",
-  "新发现 10 个设置路径只有保存入口，未找到对应效果消费者；Agent 和插件即使都能改值，也不能算行为覆盖。另有对齐、固定版式颜色、更新弹窗、快捷键和书架视图没进设置目录。",
+  "10 个设置路径只有保存入口，未找到对应效果消费者；两端可改值不等于行为覆盖。对齐、固定版式颜色、更新弹窗、快捷键、书架视图仍漏目录；本轮又确认内容字体四字段、默认标注色、更新通道三个真实遗漏组。",
   "Agent 自动记忆巩固与 digest 管线已经接入；画像 seed/实体事件投影并未同等接通。不要沿用旧架构说明把它们一起说成已实现或未实现。",
   "插件 UI、贡献注册、宿主消费、模型工具是不同方向。Dictionary/RSS 有模型工具，TTS/句读/主题/WebDAV 没有对应的直接操作工具；设置可改不能替代播放、切模式或连接命令。",
   "备份 v1 并非全部当前存储的完整快照；私有数据、聊天、记忆、密钥、日志与同步状态的生命周期必须分别建模。原基线 129 项与 GAP01–GAP18 均保留，没有借新表宣告关闭。",
@@ -43,15 +43,16 @@ const definitions = [
   ["未接", "该 actor 无正式入口。目标列为不开放的行是有意边界，不是应补权力；其余是需建模/接线缺口。"],
 ];
 const validation = [
-  "[代码] 本表源审计基于 5dc7f7a2 及 2026-09-07 工作区；没有执行安装、备份、同步、写入用户数据或调用原生命令。构建 ctx 只枚举方法，没有 activate/promote 或执行注册副作用。",
+  "[代码] 原盘点基于 5dc7f7a2 及 2026-09-07 工作区；2026-09-08 在 1d97e2e4 后工作区补 CFG11–13 并分开源码/编译内置插件库存。没有执行安装、备份、同步、写入用户数据或调用原生命令。构建 ctx 只枚举方法，没有 activate/promote 或执行注册副作用。",
   "[代码] 生成器实际运行 Agent 工具构造器（内存 deps）、全权限 plugin ctx 构造器、settings catalog；TypeScript AST 枚举菜单、命令、事件、快捷键与插件工具声明；Rust generate_handler 名单独立反查。",
   "[代码] 129 个旧验收项全部映射到新矩阵；已注册库存未映射、失效来源、重复 ID、设置可写性漂移或生成文档不一致会使 --check 失败。目录映射只是人工审计入口，不是所有语义的形式化证明。",
   "[环境] 尚未运行本轮所有能力的 Tauri E2E、打包 CSP、真实跨设备同步、第三方 HTTP/推理/账号交易或用户已安装插件验收。所有代码状态均不能替代这些证据。",
   "[环境] HTML 是静态文档，Geist/Tailwind/Lucide/Mermaid 固定 CDN 资源需网络；核心表格和自带样式不依赖远端业务服务。文档浏览器检查不等于产品验证。",
-  "[验证] 本轮相关单元/契约测试 62 通过、0 失败（17 文件，324 assertions）。库存/生成一致性与两组文档 pair validator 通过；没有 Mermaid 图的新矩阵仅得到预期提醒，旧基线图正常渲染。",
-  "[验证] 两个 HTML 均检查 1440×1000、1024×768、390×844 截图与横向溢出；新表中文/英文搜索、组合状态过滤、零结果、Esc、移动目录焦点循环/恢复、主题刷新保留通过；浏览器无 console/page errors。此项只验证文档。",
+  "[历史验证，2026-09-07] 相关单元/契约测试 62 通过、0 失败（17 文件，324 assertions）。库存/生成一致性与两组文档 pair validator 通过；无 Mermaid 图的矩阵得到预期提醒，旧基线图正常渲染。不是本次新模型测试结果。",
+  "[历史验证，2026-09-07] 两个 HTML 均检查 1440×1000、1024×768、390×844 截图与横向溢出；矩阵搜索、状态过滤、零结果、Esc、移动目录焦点、主题刷新保留通过；浏览器无 console/page errors。此项只验证当时文档。",
 ];
 let markdown = `# ${title}\n\n人读版：[可筛选大表](./host-capability-matrix.html)。原验收契约：[插件能力完备基线](./plugin-capability-baseline.md)。\n\n- 状态：**${status}**。\n- 最后核验日期：${date}。\n- 范围：当前 Tauri 桌面宿主及必要组合协议；Agent 指 ReadAware 产品内的模型工具与自动管线，不是外部 Coding Agent 的电脑控制能力。\n- [代码] ${rows.length} 行 / ${groups.length} 组，${previous.length} 个既有验收项全部有对应行。字段行是可核对设置清单，不能与功能族相加当产品功能数量。\n- [设计] 两个目标列是建议开放方式/刻意拒绝方式，尚未实现的目标不混入当前状态。\n- 修改事实源 [host-capability-matrix.data.ts](./host-capability-matrix.data.ts)，再运行 [生成器](../scripts/build-host-capability-matrix.ts)；不要分别手改生成的 MD/HTML。\n\n## 结论\n\n${conclusions.map((s,i)=>`${i+1}. ${s}`).join("\n")}\n\n## 计数与口径\n\n${stats.map(s=>`- ${s}。`).join("\n")}\n\n不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。\n\n| 标记 | 精确定义 |\n| --- | --- |\n${definitions.map(pair=>`| ${pair.join(" | ")} |`).join("\n")}\n\n## 根因与闭包\n\n[代码+推论] 反复缺能力不是“插件算法太新”，而是盘点一直从已导出的 API 往外看：数据库领域、React 闭包、阅读引擎、原生 IPC、Agent port、Worker 服务和声明式视图各有独立能力集合，当前并无单一行为注册源将它们联系起来。\n\n1. 数据域只覆盖持久化对象，不覆盖当前会话、选择、面板、播放、历史和任务。\n2. 把实现所有权误当作调用禁令。宿主必须拥有 DOM/密钥/文件，但仍应提供有权调用的语义对象和操作。\n3. 生产和消费的引用不闭合：TOC 不给 href，搜索不给可定位 Range，导航不给完成，事件不给当前快照。\n4. 接线不止一层：字段已保存、方法已导出、Worker 能调用、工具已注册、消费者实际使用、异常退出正确，六件事不能互相代替。\n5. 同一个 Agent 一词混合了模型工具与后台管线；同一个插件一词混合了 API 可用与已有插件是否贡献工具，导致覆盖度被高估。\n6. 测试多验证现有接口形状，缺少“宿主新增行为必须映射到两个 actor 或明确拒绝”的门禁。\n\n[设计] 每项能力都应有：对象/引用、读/写/导航/呈现操作、可观察状态、授权与审批、完成/失败/取消、资源所有权与释放、消费者和验收证据。不是为每个 UI 按钮复制一个 API，也不是为每个插件新增宿主业务表。\n\n[设计] “不改宿主”承诺的边界是此验收基线允许的原语与组合，且必须先真正实现并通过失败/并发/撤权场景。新插件算法、编号规则、导出格式、HTTP 来源不算新宿主能力；新格式解码器、系统权力、产品数据模型或 UI 渲染原语才算。无权限/无文本/资源失效应有明确结果，不是放弃这项承诺的借口。\n\n## 总矩阵\n\n每个 current 单元格为 [代码]，目标列为 [设计]。同一行的消费者只列已查到者，不暗示所有插件均使用。来源链接指向当前仓库源码，不是不可变远端快照。\n`;
+markdown += "\n统一目标、责任划分与避免过度设计的裁决见 [宿主能力统一模型](./host-capability-model.md)。本表目标列为逐行建议；统一模型进一步区分必补、组合、宿主内部与未来产品，不把每个建议都当必建 API。\n";
 for (const group of groups) {
   markdown += `\n### ${group.name}\n\n| ID | 宿主能力 | 宿主现状 | Agent 当前与目标 | 插件当前与目标 | 实际消费者 | 缺口/边界 | 来源 | 旧基线 |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n`;
   for (const row of group.rows) markdown += `| <a id="${row.id}"></a>${row.id} | ${md(row.name)} | ${row.host} | ${actorMd(row.agent)} | ${actorMd(row.plugin)} | ${md(row.consumers)} | ${md(row.gap)} | ${row.sources.map(key=>`[${key}](../${sources[key]})`).join(" ")} | ${row.baseline.join(", ") || "新增盘点"} |\n`;
@@ -91,7 +92,8 @@ ${htmlRows.join("\n")}
 <section id="priorities"><h2>缺口优先级</h2>${conclusions.slice(1).map((s,i)=>`<details><summary>${["运行态仍不闭合","10 个设置只保存值，效果未接","自动记忆与画像占位必须分开","插件能用，不代表 Agent 能操作","备份与私有数据生命周期不完整"][i]}</summary><p>${escape(s)}</p></details>`).join("")}<p class="scope">先处理隐私设置、假成功、写入持久性与失效资源；再补导航/搜索/历史、会话/朗读控制和安全管理流程。最后用操作目录与语义验收约束新行为，不再靠新插件逐个撞出缺口。</p><p><a href="./plugin-capability-baseline.html">原基线与 GAP01–GAP18 关闭标准</a></p></section>
 <section id="inventory"><h2>注册库存</h2><div class="roster">${roster.map(([family,list])=>`<span><b>${list!.length}</b> ${escape(family)}</span>`).join("")}</div><p class="scope">库存已逐项映射，具体名称在 <a href="./host-capability-matrix.md">事实与库存</a>。已映射不表示已实现；原生内部命令、移动端遗留桥和禁止开放的权力不会冒充插件能力。</p></section>
 <section id="boundaries"><h2>验证边界</h2><p class="scope">本地源码与构造器盘点，不是 Tauri 全能力端到端验收。未证明 packaged CSP、跨设备同步、外部服务、实际用户安装态；未实现 Jumper 或修改宿主功能。</p><p class="scope">只承诺当前基线允许原语的组合。新算法、编号规则、导出格式不该改宿主；新格式解码器、系统权限、数据模型或呈现原语需要宿主能力更新。</p><p class="meta">静态文档的字体与图标等固定 CDN 资源需要网络；文档浏览器验证不代表产品验证。</p></section>
-<p class="meta">相关测试 62 通过、0 失败；库存与文档一致性校验通过。两个文档均检查桌面/平板/窄屏三个尺寸；新表搜索、筛选、空结果、键盘目录与主题保留通过。无浏览器 console/page errors。这些均不是产品 E2E 验收。</p>
+<p><a href="./host-capability-model.html">统一目标与边界裁决</a>：按 Domain / Contribution / Service 归属；并非本表每个建议都需要新增 API。</p>
+<p class="meta">历史验证（2026-09-07）：相关测试 62 通过、0 失败；当时两份文档通过三个尺寸和交互检查。不是本次统一模型的测试结果，也不是产品 E2E 验收。</p>
 <footer><a href="./host-capability-matrix.md">完整事实镜像</a> · <a href="./host-capability-matrix.data.ts">结构化事实源</a> · <a href="../scripts/build-host-capability-matrix.ts">可重复校验</a></footer></main></div>
 <script>
 const $=id=>document.getElementById(id),filters=['group','host','agent','plugin'],allRows=Array.from(document.querySelectorAll('tbody tr')),nav=$('sidenav'),opener=$('drawer-open'),mobile=()=>matchMedia('(max-width:760px)').matches;

@@ -359,3 +359,23 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [环境] 重扫为 215 行 / 566 库存映射 / 129 旧验收项，30 个责任单元、30 个 catalog、32 个场景；READ16 两端从未接改为部分，不改绿。两个生成器、7 项模型门禁、两对 pair validator、diff 检查通过。矩阵与模型 HTML 在 1440×1000、1024×768、390×844 无页面横向溢出；中英文搜索、Escape/抽屉 inert、主题刷新保持、锚点/重复 ID 和截图检查通过，无浏览器错误，既有 CDN 返回 200。无新增图，文档仍依赖 CDN，不将文档浏览器当产品证据。诊断 commands/modes 为 0，Sentence Reader 恢复，Listening Desk 启用，阅读关闭；本轮隔离应用/文档浏览器已停止，5184/9224 无监听，正式数据未改。
 
 仍未完成：READ16 公共上下一单元/跟随/回当前、内容版本化恢复、任意 provider 选择与跨节/全书末尾真实完成，模式偏好的持久失败契约，以及其余全部双端缺口、W01–W32 组合消费者和跨平台/release 验收。本轮完成的是模式配置这一可用契约，不是 READ16、D2 或整体目标完成。
+
+## 2026-09-09 版本化模式位置与双端返回
+
+[代码] `reading` 2.3 新增 `mode.position`，由 bookId/contentVersion/CFI/modeKey/unitId 组成；跨节普通导航不丢失 resting address。Agent `navigate_reading(return-to-unit)`、插件 `reading.commands.returnToMode(guard?)` 与原生回当前按钮共用会话控制器。它们等待真实页面落点、异步分段及已提交的模式反馈，全部满足后才确认成功并记导航历史。不能把原生移动已发生后的取消解释为 undo。
+
+[代码] 私有模式状态新增内容版本；旧无版本位置不恢复，启用/单位偏好保留。当前版本来自实际文件 hash 或虚拟内容版本，加载器确认之前不写入未知版本。恢复重新调用引擎 CFI 解析并寻找包含其起点的单元，不再用旧 ordinal 钳制到新索引。内容版本变更废弃旧文档正在进行的分段；加载期间退出模式的偏好，在版本获知时完成保存，不会复活旧 active。
+
+[代码] 返回遵守书籍/会话 guard，模式变更、取消、更新导航、关闭与截止时间均可终结等待；失败不提交返回历史。等待器监听实际 navigator 状态，不轮询或猜测固定延迟。Listening Desk 0.3.0 通过正式 Worker 命令组合模式表单、朗读、导航历史和 Current passage，支持 8 种语言；离开 resting 所在章节仍提供返回入口。实际消费者未增加专属 Agent 工具，沿用共享意图工具；release BUNDLED 名单不变。
+
+[环境] [结构化证据](./evidence/reading-mode-return-2026-09-09.json)与[实际运行快照](./evidence/reading-mode-return-snapshots-2026-09-09.json)：隔离 macOS Tauri debug、合成 FB2，Agent 和实际 header 插件按钮从 Gamma 返回 Alpha 第 19 段，mode ready、CFI 与 19/41 索引匹配。最终 Agent 约 47ms；500ms/block 的真实 Worker 返回约 3102ms；拒绝约 523ms 返回 reader/segmentation-failed，随后 mode=error；中途关闭模式返回 superseded。关闭后从书架重开，自动恢复到相同版本化位置。探针清理后 commands/modes 均为 0，Sentence Reader 恢复。
+
+[代码/环境] 实机先复现两个提前完成问题：页面已返回而 mode.cfiRange 仍 null；补上分段等待后，插件刷新仍读到旧的 No current passage。最终改为同时等待 navigator 与 React 已提交的 mode 反馈，实际按钮返回后直接出现 Stopped/Start，无需额外 Refresh。API 不将一次手工 publish 当作下游播放状态已就绪的证明。图标初稿使用未注册 crosshair，改为已有 book-bookmark，不为新插件添加宿主图标权力。
+
+[环境] 全仓 test 19 个任务、typecheck 22 个任务、生产 web 构建通过；新增/扩展回归覆盖 CFI 边界、旧 Document、内容版本、分段变化、等待/取消、提交顺序与插件 guard。模型重扫为 215 行、567 入口映射、129 旧验收项、30 个责任单元/catalog 与 32 场景；两对文档生成检查、7 项模型门禁和 pair validator 通过。HTML 两份均验证 1440×1000、1024×768、390×844 无页面横向溢出，中英文搜索、Escape、移动抽屉 inert、主题刷新保持与重复 ID 检查通过，无浏览器 console/page errors。文档仍使用既有 CDN，无新图；此浏览器验证不是产品 E2E。
+
+仍未完成：READ16 公共上下一单元、跟随、跨节/全书末尾完成、任意 provider 选择和模式偏好持久失败回执；其余双端缺口、完整 W01–W32 组合插件与全部桌面/release/跨平台验证仍在目标内。READ16 保持部分，不宣告整体能力齐全。
+
+[环境] 最后重新编译并冷启动隔离 debug 实例，复测最终版本的 header 插件返回；正文恢复、Stopped/Start 与 book-bookmark 图标均在 `/tmp/reading-mode-return-plugin-cold.png` 核对。曾尝试的本地覆盖安装被 RepoDist builtin 保护拒绝，不算升级成功；临时直接 import 产生的重复模块/registry 诊断也不算产品证据，已用干净进程重验。Rust 保留既有 37 项 warning 与 block future-incompat 提醒，未改 Rust 业务。最终阅读已关闭。
+
+[环境] 本轮文档浏览器与隔离 Tauri 已停止，5184/9224 均无监听；正式实例与正式数据未操作。未推送。

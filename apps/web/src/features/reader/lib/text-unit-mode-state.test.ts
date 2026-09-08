@@ -35,6 +35,7 @@ describe("text-unit mode state migrations", () => {
       resting: { sectionIndex: 4, ordinal: 8, cfiRange: "epubcfi(/6/4)" },
       modeKey: null,
       unitId: "sentence",
+      contentVersion: null,
     });
   });
 
@@ -43,14 +44,24 @@ describe("text-unit mode state migrations", () => {
       active: true,
       modeKey: "paced-reader:guided-reading",
       unitId: "stanza",
+      contentVersion: "v1",
     });
 
     expect(
-      isTextUnitModeStateCompatible(state, "paced-reader:guided-reading", "stanza"),
+      isTextUnitModeStateCompatible(state, "paced-reader:guided-reading", "stanza", "v1"),
     ).toBe(true);
     expect(
-      isTextUnitModeStateCompatible(state, "other-reader:guided-reading", "stanza"),
+      isTextUnitModeStateCompatible(state, "other-reader:guided-reading", "stanza", "v1"),
     ).toBe(false);
+    expect(isTextUnitModeStateCompatible(state, "paced-reader:guided-reading", "stanza", "v2")).toBe(false);
+    expect(isTextUnitModeStateCompatible(state, "paced-reader:guided-reading", "stanza", null)).toBe(false);
+    expect(isTextUnitModeStateCompatible({ ...state, contentVersion: null }, "paced-reader:guided-reading", "stanza", "v1")).toBe(false);
+  });
+
+  test("invalid persisted ordinals cannot become a unit address", () => {
+    for (const ordinal of [-1, 0.5, Number.POSITIVE_INFINITY]) {
+      expect(normalizeTextUnitModeState({ resting: { ordinal, sectionIndex: 0 } }).resting).toBeNull();
+    }
   });
 });
 

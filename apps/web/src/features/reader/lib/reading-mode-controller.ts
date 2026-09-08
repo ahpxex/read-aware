@@ -1,9 +1,9 @@
-import { AppError, type ReadingModeConfiguration, type ReadingModeSnapshot } from "@read-aware/core";
+import { AppError, type ReadingModeConfiguration, type ReadingModeSnapshot, type ReadingModePosition } from "@read-aware/core";
 
 export type ModeDescriptor = { key: string; label: string; units: { id: string; label: string }[]; defaultUnitId: string };
 export type ModeRequest = { revision: number; active: boolean; unitId: string | null };
 export type ModeFeedback = { status: "inactive" | "building" | "ready" | "empty" | "error"; errorCode?: string;
-  progress: { ordinal: number; total: number } | null; cfiRange: string | null };
+  progress: { ordinal: number; total: number } | null; cfiRange: string | null; position?: ReadingModePosition | null };
 type Pending = { revision: number; before: ModeRequest; resolve(mode: ReadingModeSnapshot): void; reject(error: unknown): void; cleanup(): void };
 
 /** Owns requested mode state and completion. The reader reports the actual indexed state. */
@@ -15,16 +15,45 @@ export class ReadingModeController {
   private listeners = new Set<() => void>();
   private pending: Pending | undefined;
   private confirmedRevision = -1;
+  private positionWaiter: ((position: ReadingModePosition, signal: AbortSignal) => Promise<ModeFeedback>) | undefined;
 
   constructor(active = false, unitId: string | null = null, private readonly deadlineMs = 35_000) {
     this.request = { revision: 0, active, unitId };
     this.result = { status: "unavailable", unavailableReason: "no-provider", requestedActive: active,
-      modeKey: null, label: null, unitId, units: [], progress: null, cfiRange: null };
+      modeKey: null, label: null, unitId, units: [], progress: null, cfiRange: null, position: null };
   }
 
   requested = (): ModeRequest => this.request;
+  generation = (): number => this.request.revision;
   snapshot = (): ReadingModeSnapshot => this.result;
   observe = (listener: () => void): (() => void) => { this.listeners.add(listener); return () => this.listeners.delete(listener); };
+
+  bindPositionWaiter(waiter: NonNullable<ReadingModeController["positionWaiter"]>): () => void {
+    this.positionWaiter = waiter;
+    return () => { if (this.positionWaiter === waiter) this.positionWaiter = undefined; };
+  }
+
+  async waitForPosition(position: ReadingModePosition, signal: AbortSignal): Promise<void> {
+    const waiter = this.positionWaiter;
+    if (!waiter) throw new AppError("reader/unavailable", "Reading mode position is not attached");
+    const revision = this.request.revision;
+    const feedback = await waiter(position, signal);
+    // The native index settles before React commits the current-unit consumers
+    // (including playback). Do not expose completion with their old snapshot.
+    await new Promise<void>((resolve, reject) => {
+      const cleanup = () => { this.listeners.delete(check); signal.removeEventListener("abort", check); };
+      const check = () => {
+        try {
+          if (signal.aborted) throw signal.reason;
+          if (waiter !== this.positionWaiter || revision !== this.request.revision) throw new AppError("reader/superseded", "Reading mode changed during restoration");
+          if (this.result.status === "error") throw new AppError(this.result.errorCode ?? "reader/segmentation-failed", "Reading mode restoration failed");
+          if (this.result.status !== "ready" || this.result.cfiRange !== feedback.cfiRange) return;
+          cleanup(); resolve();
+        } catch (error) { cleanup(); reject(error); }
+      };
+      this.listeners.add(check); signal.addEventListener("abort", check, { once: true }); check();
+    });
+  }
 
   environment(descriptor: ModeDescriptor | null, supported: boolean): void {
     if (JSON.stringify(this.descriptor) === JSON.stringify(descriptor) && this.supported === supported) return;
@@ -75,7 +104,7 @@ export class ReadingModeController {
     if (this.request.active && feedback.status === "inactive" || !this.request.active && feedback.status !== "inactive") return;
     const status = feedback.status === "building" ? "preparing" : feedback.status;
     this.result = { ...this.result, status, errorCode: feedback.errorCode,
-      progress: feedback.progress, cfiRange: feedback.cfiRange };
+      progress: feedback.progress, cfiRange: feedback.cfiRange, position: feedback.position ?? null };
     if (["inactive", "ready", "empty", "error"].includes(status)) {
       this.confirmedRevision = revision;
       const pending = this.pending;
@@ -115,7 +144,7 @@ export class ReadingModeController {
     const unavailableReason = !this.supported ? "unsupported-format" : !this.descriptor ? "no-provider" : null;
     this.result = { status: unavailableReason ? "unavailable" : active ? "preparing" : "inactive", unavailableReason,
       requestedActive: active, modeKey: this.descriptor?.key ?? null, label: this.descriptor?.label ?? null,
-      unitId, units: this.descriptor?.units ?? [], progress: null, cfiRange: null };
+      unitId, units: this.descriptor?.units ?? [], progress: null, cfiRange: null, position: null };
     if (!active && unavailableReason) {
       this.confirmedRevision = this.request.revision;
       const pending = this.pending; this.pending = undefined;

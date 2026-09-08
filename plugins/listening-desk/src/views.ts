@@ -25,6 +25,8 @@ export async function listeningView(ctx: PluginContext): Promise<PluginView> {
     },
   } : null;
   if (state.status === "ready" && state.sessionId) {
+    if (mode.requestedActive && mode.position) actions.push({ id: "return-to-unit", label: tr(ctx.locale, "returnToUnit"), icon: "book-bookmark",
+      run: async () => { await reading.commands!.returnToMode(guard); return refresh(); } });
     if (["preparing", "playing", "advancing"].includes(playback.status)) {
       actions.push({ id: "stop", label: tr(ctx.locale, "stop"), icon: "stop", run: async () => {
         await reading.commands!.controlPlayback("stop", guard); return refresh();

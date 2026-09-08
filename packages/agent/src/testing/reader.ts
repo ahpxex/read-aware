@@ -7,7 +7,7 @@ export type ReaderRequest = { type: "open" | "goTo" | "back" | "forward" | "step
 export function createMemoryReader(initialBookId: string | undefined, requests: ReaderRequest[]): ReaderPort {
   const playback: ReadingPlaybackSnapshot = { status: "unavailable", unavailableReason: "no-voice", backend: null, fallback: false, owner: null, cfiRange: null };
   const mode: ReadingModeSnapshot = { status: "unavailable", unavailableReason: "no-provider", requestedActive: false,
-    modeKey: null, label: null, unitId: null, units: [], progress: null, cfiRange: null };
+    modeKey: null, label: null, unitId: null, units: [], progress: null, cfiRange: null, position: null };
   let revision = 0;
   let location: ReadingLocation | null = initialBookId ? { bookId: initialBookId, contentVersion: "fixture", fraction: 0 } : null;
   const receipt = (): ReadingNavigationReceipt => {
@@ -21,6 +21,7 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
       if (input.active) throw new Error("Fixture has no reader-mode provider");
       return { status: "completed", sessionId: "fixture", mode };
     },
+    returnToMode: async () => { throw new Error("Fixture has no reader-mode position"); },
     controlPlayback: async action => {
       if (action === "start") throw new Error("Fixture has no audio backend");
       return { status: "completed", sessionId: "fixture", playback };

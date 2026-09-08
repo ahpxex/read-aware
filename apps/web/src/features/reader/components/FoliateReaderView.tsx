@@ -946,13 +946,16 @@ export function FoliateReaderView({
     crossSection: textUnitModeCrossSection,
     veilColor: readerPalette.bg,
   });
+  useEffect(() => modeController?.bindPositionWaiter(textUnitNavigator.waitForPosition), [modeController, textUnitNavigator.waitForPosition]);
   useEffect(() => {
     modeController?.feedback(textUnitNavigator.configurationRevision, textUnitMode?.key ?? null, activeUnitId, {
       status: textUnitNavigator.status, errorCode: textUnitNavigator.errorCode,
       progress: textUnitNavigator.progress, cfiRange: textUnitNavigator.current?.cfiRange ?? null,
+      position: textUnitNavigator.position,
     });
   }, [modeController, textUnitMode, activeUnitId, textUnitNavigator.configurationRevision,
-    textUnitNavigator.status, textUnitNavigator.errorCode, textUnitNavigator.progress, textUnitNavigator.current]);
+    textUnitNavigator.status, textUnitNavigator.errorCode, textUnitNavigator.progress, textUnitNavigator.current,
+    textUnitNavigator.position?.location.cfi, textUnitNavigator.position?.location.contentVersion]);
   const readAloud = useReadAloud({
     bookId: selectedBook?.id ?? null,
     enabled: textUnitModeEngineActive,
@@ -1911,6 +1914,7 @@ export function FoliateReaderView({
         releaseBook ??= retainBook(parsedBook);
         if (cancelled) { await releaseBook(); return; }
         if (selectedBook && sessionId) cleanups.push(registerActiveBookContent(selectedBook.id, parsedBook, contentVersion, contentProvider));
+        if (selectedBook) textUnitNavigatorRef.current.handleContentVersion(selectedBook.id, contentVersion);
         await view.open(parsedBook);
         if (cancelled) return;
 

@@ -88,15 +88,16 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
   };
   const control: AgentTool = {
     name: "navigate_reading", label: "Navigate reading",
-    description: "Move back/forward through explicit reading jumps, turn to the next/previous page, or close the reader. Returns actual completion, not dispatch acknowledgement. Use open_book for a specific book or location.",
-    parameters: Type.Object({ action: Type.Union([Type.Literal("back"), Type.Literal("forward"), Type.Literal("next"), Type.Literal("previous"), Type.Literal("close")]) }),
+    description: "Move back/forward through explicit reading jumps, turn to the next/previous page, return to the text-unit mode's resting position (return-to-unit), or close the reader. Return-to-unit requires get_reading_session.mode.position and does not step to a new unit. Returns actual completion, not dispatch acknowledgement. Use open_book for a specific book or location.",
+    parameters: Type.Object({ action: Type.Union([Type.Literal("back"), Type.Literal("forward"), Type.Literal("next"), Type.Literal("previous"), Type.Literal("return-to-unit"), Type.Literal("close")]) }),
     executionMode: "sequential",
     execute: async (_id, params, signal) => {
       const current = await deps.reader.getSession();
       if (scope.kind === "book" && current.bookId !== scope.bookId) throw new Error("This book is not the active reader");
-      const { action } = params as { action: "back" | "forward" | "next" | "previous" | "close" };
+      const { action } = params as { action: "back" | "forward" | "next" | "previous" | "return-to-unit" | "close" };
       const guard = { sessionId: current.sessionId ?? undefined, ...(scope.kind === "book" ? { bookId: scope.bookId } : {}) };
       if (action === "close") { await deps.reader.close(signal, guard); return textResult({ status: "completed", closed: true }); }
+      if (action === "return-to-unit") return textResult(await deps.reader.returnToMode(signal, guard));
       const result = action === "back" ? await deps.reader.back(signal, guard) : action === "forward"
         ? await deps.reader.forward(signal, guard) : await deps.reader.step(action, signal, guard);
       return textResult(result);

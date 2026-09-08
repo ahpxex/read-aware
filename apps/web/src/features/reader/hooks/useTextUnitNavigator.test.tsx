@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { ToastProvider } from "@read-aware/ui";
 import { useTextUnitNavigator, type TextUnitNavigator } from "./useTextUnitNavigator";
 import type { FoliateRelocateDetail, FoliateView } from "../lib/foliate-engine";
+import { readTextUnitModeState, writeTextUnitModeState } from "../lib/text-unit-mode-state";
 
 test("navigator handles both event orders, same-index replacements, provider failure and retirement", async () => {
   const dom = new JSDOM("<!doctype html><div id='root'></div>", { url: "http://localhost" });
@@ -22,6 +23,11 @@ test("navigator handles both event orders, same-index replacements, provider fai
   const pending: { text: string; resolve(value: { start: number; end: number }[]): void; reject(error: unknown): void }[] = [];
   const segmenter: Parameters<typeof useTextUnitNavigator>[0]["segmentText"] = ({ text }) => new Promise((resolve, reject) => pending.push({ text, resolve, reject }));
   const view = { getCFI: (_index: number, range: Range) => range.toString(),
+    resolveCFI: (cfi: string) => ({ index: 0, anchor: (doc: Document) => {
+      const node = [...doc.querySelectorAll("p")].find(p => p.textContent === cfi)?.firstChild;
+      if (!node) throw new Error("Missing test CFI");
+      const range = doc.createRange(); range.selectNodeContents(node); return range;
+    } }),
     addAnnotation: async (annotation: { value: string }) => { painted.push(annotation.value); },
     deleteAnnotation: async () => {},
   } as unknown as FoliateView;
@@ -45,6 +51,7 @@ test("navigator handles both event orders, same-index replacements, provider fai
   const finish = (index: number) => { const item = pending[index]!; item.resolve([{ start: 0, end: item.text.length }]); };
   try {
     await act(async () => { render(); });
+    await act(async () => { state.handleContentVersion("unit-build-test", "v1"); });
     const first = doc("First.");
     await act(async () => { state.handleSectionLoad(first, 0); relocate(first); });
     expect(state.status).toBe("building");
@@ -97,6 +104,49 @@ test("navigator handles both event orders, same-index replacements, provider fai
     await act(async () => { finish(8); finish(9); });
     expect(state.current?.text).toBe("Second unit.");
     expect(state.progress?.ordinal).toBe(1);
+    expect(state.position?.location.contentVersion).toBe("v1");
+
+    const oldRevision = doc("Old revision.");
+    await act(async () => { state.handleSectionLoad(oldRevision, 0); });
+    await act(async () => { state.handleContentVersion("unit-build-test", "v2"); });
+    expect(state.canReturn).toBe(false);
+    expect(state.position).toBeNull();
+    const newRevision = doc("New revision.");
+    await act(async () => { state.handleSectionLoad(newRevision, 0); relocate(newRevision); });
+    await act(async () => { finish(10); });
+    expect(state.current).toBeNull();
+    await act(async () => { finish(11); });
+    expect(state.current?.text).toBe("New revision.");
+    expect(state.position?.location.contentVersion).toBe("v2");
+
+    const position = state.position!;
+    const returningDocument = doc("New revision.");
+    await act(async () => { state.handleSectionLoad(returningDocument, 0); relocate(returningDocument); });
+    let returned = false;
+    const returning = state.waitForPosition(position, new AbortController().signal).then(value => { returned = true; return value; });
+    await act(async () => {});
+    expect(returned).toBe(false);
+    await act(async () => { finish(12); });
+    expect((await returning).cfiRange).toBe("New revision.");
+    await expect(state.waitForPosition({ ...position, location: { ...position.location, contentVersion: "v1" } }, new AbortController().signal))
+      .rejects.toMatchObject({ code: "reader/stale-location" });
+
+    await act(async () => { state.handleSectionLoad(doc("New revision."), 0); });
+    const failedReturn = state.waitForPosition(position, new AbortController().signal).catch(error => error);
+    await act(async () => { pending[13]!.reject(new Error("provider rejected return")); });
+    expect(await failedReturn).toMatchObject({ code: "reader/segmentation-failed" });
+    await act(async () => { render(false, "paragraph"); });
+    await act(async () => { state.handleContentVersion("unit-build-test", "v2"); });
+    expect(state.position).toBeNull();
+    expect(readTextUnitModeState("unit-build-test").active).toBe(false);
+    writeTextUnitModeState("pending-version-test", { active: true, modeKey: "test-mode:reader", unitId: "paragraph", contentVersion: "v2",
+      resting: { sectionIndex: 0, ordinal: 0, cfiRange: "New revision." } });
+    options.bookId = "pending-version-test";
+    await act(async () => { render(false, "paragraph"); });
+    expect(readTextUnitModeState("pending-version-test").active).toBe(true);
+    await act(async () => { state.handleContentVersion("pending-version-test", "v2"); });
+    expect(state.position).toBeNull();
+    expect(readTextUnitModeState("pending-version-test").active).toBe(false);
   } finally {
     await act(async () => { root.unmount(); });
     dom.window.close();

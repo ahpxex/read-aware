@@ -52,7 +52,7 @@ test("provider replacement and external preferences converge without replaying a
     expect(state.request).toMatchObject({ active: false, unitId: "sentence" });
     expect(readTextUnitModeSettings("mode-owner-b:reader").unitId).toBe("sentence");
     await act(async () => { work = readingRuntime.configureMode({ active: true, unitId: "paragraph" }).catch(error => error); });
-    writeTextUnitModeState("mode-owner-test", { active: true, modeKey: "mode-owner-b:reader", unitId: "paragraph", resting: null });
+    writeTextUnitModeState("mode-owner-test", { active: true, modeKey: "mode-owner-b:reader", unitId: "paragraph", resting: null, contentVersion: "v1" });
     await act(async () => { readingRuntime.closed(); await work; });
     expect(state.request.active).toBe(false);
     expect(readTextUnitModeState("mode-owner-test").active).toBe(false);

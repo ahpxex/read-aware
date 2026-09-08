@@ -9,6 +9,7 @@ const labels = {
   enabled: ["Enabled", "启用", "啟用", "有効", "Включено", "Activé", "Aktiviert", "Activado"],
   unit: ["Unit", "单位", "單位", "単位", "Единица", "Unité", "Einheit", "Unidad"],
   apply: ["Apply", "应用", "套用", "適用", "Применить", "Appliquer", "Anwenden", "Aplicar"],
+  returnToUnit: ["Current passage", "回到当前段落", "回到目前段落", "現在の文章へ", "Текущий отрывок", "Passage actuel", "Aktueller Abschnitt", "Pasaje actual"],
   invalid: ["Choose a valid value", "请选择有效值", "請選擇有效值", "有効な値を選択", "Выберите допустимое значение", "Choisissez une valeur valide", "Gültigen Wert wählen", "Elige un valor válido"],
   unavailable: ["Unavailable", "不可用", "無法使用", "利用不可", "Недоступно", "Indisponible", "Nicht verfügbar", "No disponible"],
   stopped: ["Stopped", "已停止", "已停止", "停止中", "Остановлено", "Arrêtée", "Gestoppt", "Detenida"],

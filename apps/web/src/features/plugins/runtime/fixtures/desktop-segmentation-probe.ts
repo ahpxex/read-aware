@@ -66,6 +66,14 @@ export async function pluginMode(active: boolean, unitId: string) {
 export async function closeProbeBook() {
   await isolated(); await readingRuntime.close(); return readingRuntime.snapshot();
 }
+export async function modeNavigation(action: "return-to-unit" | "away") {
+  await isolated();
+  const bookId = readingRuntime.snapshot().bookId;
+  if (!bookId) throw new Error("Open the synthetic reading probe book first");
+  const tools = buildReaderTools({ kind: "book", bookId }, buildRuntimeDeps());
+  return action === "away" ? tools.find(tool => tool.name === "open_book")!.execute("mode-e2e", { fraction: 0.8 })
+    : tools.find(tool => tool.name === "navigate_reading")!.execute("mode-e2e", { action });
+}
 export async function cleanupSegmentationProbe() {
   await isolated();
   await worker?.terminate(); worker = undefined;

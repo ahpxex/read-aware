@@ -42,6 +42,13 @@ export type ReadingSessionSnapshot = {
   mode: ReadingModeSnapshot;
 };
 
+/** A versioned address independent of the currently visible section. */
+export type ReadingModePosition = {
+  location: ReadingLocation & { cfi: string };
+  modeKey: string;
+  unitId: string;
+};
+
 /** The current host-supported text-unit mode. No passage text or executable provider is exposed. */
 export type ReadingModeSnapshot = {
   /** Ready means the current section is indexed; it is not a navigation receipt. */
@@ -55,6 +62,8 @@ export type ReadingModeSnapshot = {
   /** Zero-based position in the indexed section, not the whole book. */
   progress: { ordinal: number; total: number } | null;
   cfiRange: string | null;
+  /** The resting unit remains addressable when ordinary navigation leaves its section. */
+  position: ReadingModePosition | null;
   errorCode?: string;
 };
 

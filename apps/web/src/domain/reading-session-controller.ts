@@ -1,13 +1,15 @@
 import { AppError, errorCode, type EventOrigin, type ReadingModeConfiguration, type ReadingModeSnapshot, type ReadingModeReceipt, type ReadingPlaybackSnapshot, type ReadingPlaybackReceipt, type ReadingLocation, type ReadingNavigationReceipt, type ReadingSessionSnapshot, type ReadingSessionGuard, type ReadingTarget } from "@read-aware/core";
 
 export type ReadingModeAdapter = {
+  generation(): number;
   snapshot(): ReadingModeSnapshot;
   observe(listener: () => void): () => void;
   configure(input: ReadingModeConfiguration, signal?: AbortSignal): Promise<ReadingModeSnapshot>;
+  waitForPosition(position: NonNullable<ReadingModeSnapshot["position"]>, signal: AbortSignal): Promise<void>;
   retire(): void;
 };
 export const unavailableMode = (): ReadingModeSnapshot => ({ status: "unavailable", unavailableReason: "no-session",
-  requestedActive: false, modeKey: null, label: null, unitId: null, units: [], progress: null, cfiRange: null });
+  requestedActive: false, modeKey: null, label: null, unitId: null, units: [], progress: null, cfiRange: null, position: null });
 
 export type ReadingPlaybackAdapter = {
   snapshot(): ReadingPlaybackSnapshot;
@@ -143,6 +145,29 @@ export class ReadingSessionController {
     binding?.dispose(); binding?.adapter.retire();
   }
 
+  returnToMode(signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt> {
+    if (signal?.aborted) return Promise.reject(signal.reason);
+    try { this.checkGuard(guard); } catch (error) { return Promise.reject(error); }
+    const mode = this.state.mode;
+    const position = mode.position;
+    const binding = this.modeAdapter;
+    if (!binding || !mode.requestedActive || !position || position.location.bookId !== this.session?.bookId
+      || position.modeKey !== mode.modeKey || position.unitId !== mode.unitId) {
+      return Promise.reject(new AppError("reader/unavailable", "There is no current mode position to return to"));
+    }
+    const generation = binding.adapter.generation();
+    const abort = new AbortController();
+    const cancel = () => abort.abort(signal?.reason);
+    signal?.addEventListener("abort", cancel, { once: true });
+    const unobserve = binding.adapter.observe(() => {
+      if (binding.adapter.generation() !== generation) abort.abort(new AppError("reader/superseded", "Reading mode changed during return"));
+    });
+    return this.run(position.location, abort.signal, undefined, undefined, guard,
+      signal => binding.adapter.waitForPosition(position, signal)).finally(() => {
+      unobserve(); signal?.removeEventListener("abort", cancel);
+    });
+  }
+
   bindPlayback(id: string, adapter: ReadingPlaybackAdapter): () => void {
     if (this.session?.id !== id) return () => {};
     this.detachPlayback();
@@ -244,7 +269,8 @@ export class ReadingSessionController {
     }
   }
 
-  private run(target: ReadingTarget & { bookId: string }, signal?: AbortSignal, historyIndex?: number, direction?: "next" | "previous", guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt> {
+  private run(target: ReadingTarget & { bookId: string }, signal?: AbortSignal, historyIndex?: number, direction?: "next" | "previous", guard?: ReadingSessionGuard,
+    settle?: (signal: AbortSignal) => Promise<void>): Promise<ReadingNavigationReceipt> {
     if (signal?.aborted) return Promise.reject(signal.reason);
     try {
       this.checkGuard(guard);
@@ -256,7 +282,7 @@ export class ReadingSessionController {
     const cancel = () => controller.abort(signal?.reason);
     signal?.addEventListener("abort", cancel, { once: true });
     const timer = setTimeout(() => controller.abort(new AppError("reader/timeout", "Reading navigation timed out")), this.deadlineMs);
-    const cleanup = () => { clearTimeout(timer); signal?.removeEventListener("abort", cancel); };
+    const cleanup = () => { clearTimeout(timer); signal?.removeEventListener("abort", cancel); this.changes.delete(superseded); };
     controller.signal.addEventListener("abort", cleanup, { once: true });
     const before = this.state.location;
     const check = () => {
@@ -293,6 +319,9 @@ export class ReadingSessionController {
       check();
       if (this.session !== session || session.engine !== engine) throw new AppError("reader/superseded", "Reader engine was replaced");
       if (!location) throw new AppError("reader/unavailable", "Reader has not reported a location");
+      if (settle) await settle(controller.signal);
+      check();
+      if (this.session !== session || session.engine !== engine) throw new AppError("reader/superseded", "Reader engine was replaced");
       if (historyIndex !== undefined) {
         if (before && this.cursor >= 0) this.history[this.cursor] = before;
         this.cursor = historyIndex;
@@ -303,7 +332,11 @@ export class ReadingSessionController {
       this.publish({ location });
       return { status: "completed", sessionId: session.id, location: structuredClone(location) };
     };
-    const work = execute();
+    const superseded = () => {
+      if (intent !== this.intent) controller.abort(new AppError("reader/superseded", "A newer reading intent replaced this navigation"));
+    };
+    this.changes.add(superseded);
+    const work = execute().finally(() => this.changes.delete(superseded));
     void work.then(cleanup, cleanup);
     return this.withCancellation(work, controller.signal);
   }

@@ -27,6 +27,8 @@ export type PersistedTextUnitModeState = {
   modeKey: string | null;
   /** Unit id under which the ordinal was computed. */
   unitId: string | null;
+  /** Unversioned legacy positions must not be reused against current content. */
+  contentVersion: string | null;
 };
 
 const LEGACY_DEFAULT_UNIT_ID = "sentence";
@@ -38,6 +40,7 @@ const INACTIVE_STATE: PersistedTextUnitModeState = {
   resting: null,
   modeKey: null,
   unitId: null,
+  contentVersion: null,
 };
 
 const stateKey = (bookId: string) => `read-aware-navigator-state:${bookId}`;
@@ -58,6 +61,7 @@ export function normalizeTextUnitModeState(value: unknown): PersistedTextUnitMod
     resting?: unknown;
     modeKey?: unknown;
     unitId?: unknown;
+    contentVersion?: unknown;
     /** Pre-plugin field retained only as a read migration. */
     granularity?: unknown;
   };
@@ -71,16 +75,17 @@ export function normalizeTextUnitModeState(value: unknown): PersistedTextUnitMod
     active: parsed.active === true,
     resting:
       resting &&
-      typeof resting.sectionIndex === "number" &&
-      typeof resting.ordinal === "number"
+        Number.isSafeInteger(resting.sectionIndex) && resting.sectionIndex! >= 0 &&
+        Number.isSafeInteger(resting.ordinal) && resting.ordinal! >= 0
         ? {
-            sectionIndex: resting.sectionIndex,
-            ordinal: resting.ordinal,
+            sectionIndex: resting.sectionIndex!,
+            ordinal: resting.ordinal!,
             cfiRange: typeof resting.cfiRange === "string" ? resting.cfiRange : null,
           }
         : null,
     modeKey: validModeKey(parsed.modeKey),
     unitId,
+    contentVersion: typeof parsed.contentVersion === "string" && parsed.contentVersion.length > 0 ? parsed.contentVersion : null,
   };
 }
 
@@ -93,14 +98,15 @@ export function readTextUnitModeState(bookId: string): PersistedTextUnitModeStat
   }
 }
 
-/** Legacy rows belong to the original built-in mode; current rows must match
- *  both the registering contribution and its opaque unit id. */
+/** Restoring an address requires the exact content, contribution and unit.
+ *  Legacy preferences survive, but unversioned positions are not reusable. */
 export function isTextUnitModeStateCompatible(
   state: PersistedTextUnitModeState,
   modeKey: string,
   unitId: string,
+  contentVersion: string | null,
 ): boolean {
-  return (state.modeKey === null || state.modeKey === modeKey) && state.unitId === unitId;
+  return Boolean(contentVersion && state.contentVersion === contentVersion && state.modeKey === modeKey && state.unitId === unitId);
 }
 
 export function writeTextUnitModeState(

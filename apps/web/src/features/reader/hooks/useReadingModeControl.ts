@@ -30,7 +30,7 @@ export function useReadingModeControl(bookId: string, supported: boolean) {
     // The navigator may already be unmounting. Persist cancellation here so a
     // rejected start cannot silently resume when this book is opened again.
     writeTextUnitModeState(bookId, { ...saved, active: request.active, modeKey: key, unitId: request.unitId,
-      resting: request.active && key && request.unitId && isTextUnitModeStateCompatible(saved, key, request.unitId) ? saved.resting : null });
+      resting: request.active && key && request.unitId && isTextUnitModeStateCompatible(saved, key, request.unitId, saved.contentVersion) ? saved.resting : null });
     if (key && request.unitId && readTextUnitModeSettings(key).unitId !== request.unitId) updateTextUnitModeSettings(key, { unitId: request.unitId });
   }, [bookId, controller]);
   useEffect(() => {
@@ -72,7 +72,8 @@ export function useReadingModeControl(bookId: string, supported: boolean) {
       if (id === sessionId) return;
       sessionId = id;
       release?.(); release = undefined;
-      if (id) release = readingRuntime.bindMode(id, { snapshot: controller.snapshot, observe: controller.observe,
+      if (id) release = readingRuntime.bindMode(id, { snapshot: controller.snapshot, observe: controller.observe, generation: controller.generation,
+        waitForPosition: (position, signal) => controller.waitForPosition(position, signal),
         configure: (input, signal) => controller.configure(input, signal), retire });
     });
     return () => { unobserve(); release?.(); retire(); };

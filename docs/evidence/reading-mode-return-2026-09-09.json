@@ -1,0 +1,91 @@
+{
+  "date": "2026-09-09",
+  "scope": "Versioned text-unit resting positions and shared Agent/plugin return operation; READ16 remains partial",
+  "finalRuntimeSnapshots": "reading-mode-return-snapshots-2026-09-09.json",
+  "environment": {
+    "platform": "macOS Tauri debug",
+    "identifier": "com.readaware.app.capability-e2e",
+    "vitePort": 5184,
+    "mcpPort": 9224,
+    "officialAppTouched": false,
+    "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+    "format": "FB2 synthetic Reading Capability Probe",
+    "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108"
+  },
+  "address": {
+    "modeKey": "sentence-reader:guided-reading",
+    "unitId": "paragraph",
+    "restingCfi": "epubcfi(/6/2!/4/2[chapter-0]/40,/1:0,/1:173)",
+    "ordinal": 19,
+    "sectionUnitCount": 41,
+    "awayHref": "2",
+    "returnHref": "0"
+  },
+  "observations": [
+    {
+      "case": "pre-fix false completion",
+      "result": "Native tool returned navigation completed while mode.cfiRange and progress were null. Renderer completion alone did not imply asynchronous unit restoration."
+    },
+    {
+      "case": "Agent return after ordinary cross-chapter navigation",
+      "result": "Actual navigate_reading(return-to-unit) through buildRuntimeDeps returned Alpha paragraph 19, ready mode, original resting CFI and ordinal 19/41.",
+      "elapsedMs": 62
+    },
+    {
+      "case": "real Worker provider with 500ms per block",
+      "result": "Return remained pending through actual segmentation and completed with the original CFI, ready mode and ordinal 19/41.",
+      "elapsedMs": 3065
+    },
+    {
+      "case": "provider rejects return segmentation",
+      "result": "Agent return rejected reader/segmentation-failed rather than claiming completion; immediate React snapshot was still preparing and cfiRange null.",
+      "elapsedMs": 528
+    },
+    {
+      "case": "disable mode during pending return",
+      "result": "Pending Agent return rejected reader/superseded; mode became inactive, requestedActive false and position null."
+    },
+    {
+      "case": "Worker cleanup",
+      "result": "Diagnostic provider removed, zero remaining commands/modes, original sentence-reader restored."
+    },
+    {
+      "case": "real Listening Desk header action",
+      "result": "Opened from reader More menu. After leaving Alpha for Gamma, Refresh exposed Current passage even with no current visible unit. Clicking the Worker-backed action returned to Alpha paragraph 19 with ready mode."
+    },
+    {
+      "case": "post-return UI snapshot race",
+      "result": "First native pass showed No current passage after returning, because manual mode feedback preceded playback effects. Completion now additionally waits for the committed mode feedback instead of publishing a synthetic ready snapshot."
+    },
+    {
+      "case": "final native regression after committed-feedback fix",
+      "result": "Listening Desk Current passage immediately refreshed to Stopped with Start available, without another Refresh. Agent returned in 47ms; slow Worker returned in 3102ms; rejected Worker failed in 523ms and later snapshot was error. Both successful receipts had matching mode/playback CFI."
+    },
+    {
+      "case": "close and reopen synthetic book",
+      "result": "Actual shelf double-click reopened with active paragraph mode, ready status and the exact pre-close versioned CFI at ordinal 19/41."
+    },
+    {
+      "case": "cold native restart with final artifact",
+      "result": "Recompiled and restarted isolated debug app, then repeated the real Listening Desk return from Gamma to Alpha after the final persistence fix. Ready mode and stopped playback shared the resting CFI; Current passage used the actual book-bookmark icon. Screenshot /tmp/reading-mode-return-plugin-cold.png inspected."
+    }
+  ],
+  "automatedCoverage": [
+    "Exact book/contentVersion/modeKey/unitId compatibility; unversioned legacy positions rejected without discarding enabled/unit preferences",
+    "Engine CFI resolution after segmentation changes; exact unit boundary; wrong section; missing/dead document/invalid CFI",
+    "Same-book new content invalidates an old document's unfinished segmentation; an exit before content identity is known persists once loading supplies that identity",
+    "Navigation completion, unit restoration and committed mode snapshot all required before success/history commit",
+    "Provider rejection, mode replacement, newer navigation and caller cancellation terminate pending return",
+    "Agent signal/session guard forwarding and Listening Desk off-section guarded return action"
+  ],
+  "limitations": [
+    "Actual Agent tool execution, not a remote LLM semantic evaluation",
+    "No release/Windows/Linux/all-format return validation in this evidence",
+    "Public next/previous unit, follow and cross-section/end-of-book completion are not implemented here",
+    "No arbitrary provider selection; modeKey remains an execution precondition",
+    "No promise of undoing a renderer movement already performed before cancellation/failure",
+    "Vite rebuild/HMR reset diagnostic window bindings; stale refs and early calls before provider attachment were discarded and retried after observing state",
+    "Ad hoc direct module imports produced a separate idle runtime / duplicate contribution registry; those diagnostic attempts were discarded. Final testing used a clean native restart and the isolated fixture's actual product imports.",
+    "Attempted local replacement of debug RepoDist Listening Desk was refused as builtin; the final artifact was loaded by cold restart, not a successful install/upgrade claim"
+  ]
+}

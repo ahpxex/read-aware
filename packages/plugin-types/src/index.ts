@@ -82,7 +82,7 @@ import type {
 // Re-exported so plugin authors can name the underlying vocabulary without
 // depending on @read-aware/core directly.
 export type { AnnotationSnapshot, AnnotationMutation, AnnotationCommitResult, AnnotationPage, AnnotationPageQuery, BookTocEntry, BookNavigationToc, BookLocationSearch, BookLocationSearchPage, BookLocationHit,
-  ReadingLocation, ReadingTarget, ReadingSessionSnapshot, ReadingSessionGuard, ReadingNavigationReceipt, ReadingPlaybackSnapshot, ReadingPlaybackReceipt, ReadingModeConfiguration, ReadingModeSnapshot, ReadingModeReceipt } from "@read-aware/core";
+  ReadingLocation, ReadingTarget, ReadingSessionSnapshot, ReadingSessionGuard, ReadingNavigationReceipt, ReadingPlaybackSnapshot, ReadingPlaybackReceipt, ReadingModeConfiguration, ReadingModeSnapshot, ReadingModeReceipt, ReadingModePosition } from "@read-aware/core";
 export type {
   BookFormat,
   DictionaryEntrySnapshot,
@@ -1232,6 +1232,8 @@ export type PluginReadingDomain = {
      * Resolves after real indexing (ready/empty) or deactivation. Failed indexing rejects.
      * Disabling the caller cancels an unfinished change; completed mode preferences remain. */
     configureMode(input: import("@read-aware/core").ReadingModeConfiguration, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingModeReceipt>;
+    /** Return to the versioned resting unit; wait for renderer navigation and unit restoration before committing history. */
+    returnToMode(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
   };
   events: {
     subscribe: DomainSubscribe<ReadingDomainEventType>;

@@ -117,6 +117,20 @@ test("mode tool passes declared unit, provider, session scope and signal and wai
   expect(JSON.parse(result.content[0].text)).toMatchObject({ status: "completed", mode: { status: "ready" } });
 });
 
+test("return-to-unit forwards the session scope and never reports dispatch as completion", async () => {
+  const { deps, tool } = fixture(); const abort = new AbortController();
+  let observed: unknown; let finish!: () => void;
+  deps.reader.returnToMode = async (signal, guard) => {
+    observed = { signal, guard }; await new Promise<void>(resolve => { finish = resolve; }); return receipt;
+  };
+  let settled = false;
+  const work = tool("navigate_reading").execute("test", { action: "return-to-unit" }, abort.signal).then(value => { settled = true; return value; });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(settled).toBe(false);
+  expect(observed).toEqual({ signal: abort.signal, guard: { sessionId: "fixture", bookId } });
+  finish(); await work;
+});
+
 test("an exact annotation lookup cannot navigate a different target book", async () => {
   const { deps, stores, tool } = fixture();
   deps.annotations.getAnnotation = async () => ({ kind: "note", id: "note" as Id, bookId: "other" as Id, body: "Other book", anchor: "other-anchor", createdAt: "2026-09-08T00:00:00Z", updatedAt: "2026-09-08T00:00:00Z" });

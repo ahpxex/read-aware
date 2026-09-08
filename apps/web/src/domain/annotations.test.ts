@@ -43,6 +43,24 @@ test("Agent adapter preserves underline style and kind filters", async () => {
   expect(list).toHaveBeenCalledWith({ bookId: "book", type: "ask", searchQuery: undefined });
 });
 
+test("Agent and authorized plugins share native pages and preserve query/storage errors", async () => {
+  const read = own(spyOn(db, "pageAnnotations").mockResolvedValue({ items: [ask], nextCursor: "opaque", consistency: "live" }));
+  const list = own(spyOn(db, "listAnnotations").mockRejectedValue(new Error("Must not scan")));
+  const input = { bookId: "book", kind: "ask" as const, limit: 5, cursor: "previous" };
+  const runtime = plugin("annotations:read");
+  const page = runtime.context.domains.annotations!.queries.page;
+  for (const query of [page, createAnnotationsPort().pageAnnotations]) {
+    expect(await query(input)).toMatchObject({ items: [{ id: "ask", kind: "ask" }], nextCursor: "opaque", consistency: "live" });
+    expect(read).toHaveBeenLastCalledWith(input);
+  }
+  expect(list).not.toHaveBeenCalled();
+  read.mockRejectedValue(new AppError("annotations/invalid-cursor", "Wrong filters"));
+  await expect(page(input)).rejects.toMatchObject({ code: "annotations/invalid-cursor" });
+  read.mockRejectedValue(new AppError("db/locked", "Locked"));
+  await expect(createAnnotationsPort().pageAnnotations(input)).rejects.toMatchObject({ code: "db/locked" });
+  expect(read).toHaveBeenCalledTimes(4);
+});
+
 test("only annotation writers receive ask deletion; no plugin receives ask creation", async () => {
   own(spyOn(db, "getAnnotation").mockResolvedValue(ask));
   const remove = own(spyOn(db, "deleteAnnotation").mockResolvedValue());

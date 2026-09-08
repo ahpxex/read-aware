@@ -730,6 +730,14 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
             SELECT rowid, id, book_id, type, ra_fts_segment(text), ra_fts_segment(COALESCE(content, ''))
             FROM annotations;",
     ),
+    (
+        30,
+        "annotation_keyset_indexes",
+        "CREATE INDEX ix_annotations_page ON annotations(created_at DESC, id DESC);
+         CREATE INDEX ix_annotations_book_page ON annotations(book_id, created_at DESC, id DESC);
+         CREATE INDEX ix_annotations_kind_page ON annotations(type, created_at DESC, id DESC);
+         CREATE INDEX ix_annotations_book_kind_page ON annotations(book_id, type, created_at DESC, id DESC);",
+    ),
 ];
 
 /// Rebuild the annotation FTS index from the table. Required after any VACUUM

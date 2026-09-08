@@ -199,3 +199,21 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [环境] 能力矩阵 ANN01/03/06/08 和生成模型映射更新，215 行 / 550 库存，129 旧验收项不变；ANN03 的 Agent 接线和 ANN06 的插件接线改为接通，ANN08 仍为部分。两对生成器/pair validator、7 个建模门禁通过。矩阵 HTML 的 1440/1024/390 宽度无页面横向溢出，中英文搜索、抽屉/Escape、主题刷新保持、重复 id/锚点、截图检查通过，无浏览器错误；截图 `/tmp/readaware-annotations-matrix{,-mobile}.png`。模型 HTML 目标描述未变，仅更新 Markdown 的现状映射。文档依赖既有字体/图标 CDN，无 Mermaid；不把文档截图当产品验收。
 
 仍未完成：标注有界分页/稳定游标、批次结果与原生事务内版本条件、Range/内容版本校验、远端变更失效、实际锚定下划线的跨格式视觉与聊天批准 UI、标注整理/导出的实用组合插件，以及其他领域/服务与完整 W01–W32。此探针不计为实用插件，不关闭 D3 整组或完整目标。
+
+## 2026-09-09 标注原生分页与双端游标
+
+[代码] `domains.annotations` 升为 1.2.0。共享 `AnnotationPageQuery` / `AnnotationPage` 经 domain、Agent port、插件 Worker 到原生 `annotations_page`，不是 JS 全量读后切片。插件保留既有 list/get，新增 page；Agent `get_annotations` 统一返回 `{items,nextCursor,consistency:"live"}`，精确 ID 也返回零/一项的同形页，不再返回裸数组。对应测试适配器与调用测试已迁移。
+
+- 查询参数：bookId、kind=highlight|note|ask、query、limit、cursor 均可省略；limit 默认 20，整数 1–100；bookId 非空且不超过 512 个 UTF-16 单元，query 不超过 500 个 UTF-16 单元，trim 后空字符串视为无过滤；cursor 非空且最多 8192 字符。非法参数返回 `annotations/invalid-input`，非法/错配游标返回 `annotations/invalid-cursor`，存储异常不转空结果。游标错误使用既有 8 语言标注输入错误文案，不显示原始错误。
+- SQLite 按 `(created_at DESC, id DESC)` 排序，用最后一项作 keyset 边界；SQL 只取 limit+1 条，用额外一条判断 nextCursor，结束为 null。FTS 使用既有 CJK 分词与英文前缀规则，按时间而非 BM25 排序。迁移 30 新增全局、书籍、类型、书籍+类型四组对应索引。
+- 游标采用版本 1 的 URL-safe Base64 JSON，绑定 bookId/kind/规范化 query 和最后 createdAt/id，不绑定 limit，不能将旧游标换书/换类型/换查询词续用。它不是签名授权票据；宿主每次仍从本次请求施加过滤和插件权限，不能靠游标获取额外权力。调用者将它当不透明值。
+- `consistency:live` 明确不是冻结导出快照。边界行已删除仍可续页；插入到边界之前的新行需重新从第一页查询，后续行的删除/内容编辑/新增会改变后续结果。不可据此宣称得到某一时刻的完整导出。正常编辑不改 createdAt/id；重导入或重建改变对象身份/排序键时应重新遍历。
+- Agent 的书内默认本书与显式跨书规则不变，annotationId 不得与 query/cursor 混用。模型工具、插件和宿主共用原生游标语义；测试用内存 adapter 只模拟分页，不作为 SQLite FTS 语义或性能证据。
+
+[环境] 5 项原生测试覆盖 253 个同时间戳行的多页不重不漏、删除边界/新增之后继续读取、中文 FTS/英文前缀/书籍/类型组合、游标过滤错配和非法限额、数据库故障保持失败，以及过滤游标查询的索引计划无需临时排序。4 项新增 TS 测试覆盖输入规范化、Agent 分页不调用 legacy list、domain/Agent/插件同形结果与错误保真。全仓测试 17 个任务和 typecheck 20 个任务通过；原生全量 118 通过、1 个百万事件压力测试仍为既有 ignored。既存 objc cfg、dead-code 与 block future-incompatibility 警告未改变。
+
+[环境] 隔离 Tauri `com.readaware.app.capability-e2e` 中执行真实 Agent 工具、SQLite 和 WebKit Worker：五条测试笔记按 2/2/1 页全部读取，混入的同词高亮由 kind 过滤；Agent 游标直接交给插件续读；无权限插件无 annotations 域，read-only 无写命令；换书/类型/词、损坏游标及 limit=101 返回预期稳定错误码。删除第一页末项并插入新笔记后，Agent 用旧游标仍得到原后三项。所有测试标注查询为空，测试 KV 为空，贡献已注销。[结构化证据](./evidence/annotation-pages-2026-09-09.json)。此探针不经过远端模型/产品列表 UI，也不验证 packaged CSP，不计作实用组合插件。
+
+[环境] 矩阵 ANN01/ANN08 与生成映射更新为 215 行 / 552 库存，129 验收项不变；ANN08 仍为部分。两对生成器、pair validator 与 7 个模型门禁通过；矩阵 HTML 在 1440/1024/390 宽度无页面横向溢出，中英文搜索、抽屉/Escape、主题刷新保持、重复 ID/锚点与截图检查通过；无浏览器错误，既有 CDN 资源成功加载。截图 `/tmp/readaware-annotation-pages-matrix{,-mobile}.png`。模型 HTML 未改，目标契约未变，仅 Markdown 当前映射更新。文档仍依赖 CDN，无 Mermaid 图；文档检查不作为产品验收。测试桌面进程和文档浏览器均已关闭。
+
+仍未完成：单条超长标注的文本/字节预算（行数限制不等于消息体限制）、原子批次/逐项结果、事务内 CAS 及批准等待期间版本保护、Range/内容版本校验、远端变更观察、全格式视觉和聊天批准 UI、实用标注整理/导出插件，以及其余 D/C/S/V/Q 能力和完整 W01–W32。此提交只接通分页，不关闭 D3 或完整目标。

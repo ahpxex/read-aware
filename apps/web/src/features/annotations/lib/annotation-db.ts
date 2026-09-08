@@ -7,7 +7,7 @@
  */
 
 import { invoke } from "../../../platform/ipc";
-import type { EventOrigin } from "@read-aware/core";
+import { normalizeAnnotationPageQuery, type AnnotationPageQuery, type EventOrigin } from "@read-aware/core";
 import type { Annotation, AnnotationFilters, Ask, Highlight, Note } from "./annotation-types";
 import { isTauri } from "../../../platform/environment";
 import { commitDomainEvents } from "../../../platform/domain-events";
@@ -55,6 +55,12 @@ export async function saveAnnotation(annotation: Annotation): Promise<Annotation
 export async function getAnnotation(id: string): Promise<Annotation | null> {
   if (!isTauri()) return null;
   return (await invoke<Annotation | null>("annotation_get", { id })) ?? null;
+}
+
+export async function pageAnnotations(input?: AnnotationPageQuery): Promise<{ items: Annotation[]; nextCursor: string | null; consistency: "live" }> {
+  const query = normalizeAnnotationPageQuery(input);
+  assertDesktop("Paging annotations");
+  return invoke("annotations_page", { input: query });
 }
 
 /** Read back a row the store just derived from an event. */

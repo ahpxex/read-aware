@@ -1024,6 +1024,7 @@ pub fn run() {
             storage::library_duplicate_book_groups,
             storage::annotations_list,
             storage::annotations_search,
+            storage::annotations_page,
             storage::annotation_get,
             storage::annotation_put,
             storage::annotation_delete,

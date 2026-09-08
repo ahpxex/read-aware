@@ -81,7 +81,7 @@ import type {
 
 // Re-exported so plugin authors can name the underlying vocabulary without
 // depending on @read-aware/core directly.
-export type { BookTocEntry, BookNavigationToc, BookLocationSearch, BookLocationSearchPage, BookLocationHit,
+export type { AnnotationPage, AnnotationPageQuery, BookTocEntry, BookNavigationToc, BookLocationSearch, BookLocationSearchPage, BookLocationHit,
   ReadingLocation, ReadingTarget, ReadingSessionSnapshot, ReadingSessionGuard, ReadingNavigationReceipt } from "@read-aware/core";
 export type {
   BookFormat,
@@ -1237,6 +1237,8 @@ export type PluginReadingDomain = {
  */
 export type PluginAnnotationsDomain = {
   queries: {
+    /** annotations >=1.2.0. Live keyset page, not a frozen snapshot across calls. */
+    page(input?: import("@read-aware/core").AnnotationPageQuery): Promise<import("@read-aware/core").AnnotationPage>;
     /** annotations >=1.1.0. Missing IDs return null; read failures reject. */
     get(annotationId: string): Promise<PluginAnnotation | null>;
     list(filter?: {

@@ -9,6 +9,8 @@ import { getDefaultStore } from "jotai";
 import { AppError } from "@read-aware/core";
 import type {
   AnnotationItem,
+  AnnotationPage,
+  AnnotationPageQuery,
   AskItem,
   EventOrigin,
   HighlightColor,
@@ -23,6 +25,7 @@ import {
   deleteAnnotation,
   getAnnotation,
   listAnnotations,
+  pageAnnotations,
   recolorHighlight,
   updateNote,
 } from "../features/annotations/lib/annotation-db";
@@ -78,6 +81,7 @@ function bumpAnnotationsRevision(): void {
 }
 
 export type AnnotationQueries = {
+  page(input?: AnnotationPageQuery): Promise<AnnotationPage>;
   /** Missing IDs return null; storage failures remain failures. */
   get(annotationId: string): Promise<AnnotationItem | null>;
   list(filter?: {
@@ -150,6 +154,10 @@ export function createAnnotationsDomain(origin: EventOrigin): AnnotationsDomain 
   };
 
   const queries: AnnotationQueries = {
+    page: async (input) => {
+      const page = await pageAnnotations(input);
+      return { ...page, items: page.items.map(toAnnotationItem) };
+    },
     get: async (id) => {
       const annotation = await getAnnotation(annotationId(id));
       return annotation ? toAnnotationItem(annotation) : null;

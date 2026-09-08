@@ -1,0 +1,169 @@
+{
+  "date": "2026-09-09",
+  "app": "com.readaware.app.capability-e2e",
+  "scope": "Actual Agent tool/port, native SQLite and WebKit Worker. No LLM, UI interaction or packaged CSP verification.",
+  "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+  "query": "pageprobe86d3a5fec5e843618ce5cea8ca17a747",
+  "results": {
+    "afterConcurrentWrites": {
+      "consistency": "live",
+      "items": [
+        {
+          "body": "pageprobe86d3a5fec5e843618ce5cea8ca17a747 note 2",
+          "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+          "createdAt": "2026-09-08T17:47:59.543Z",
+          "id": "7267bea9-554f-460c-a969-a9d7fb8552a0",
+          "kind": "note",
+          "updatedAt": "2026-09-08T17:47:59.543Z"
+        },
+        {
+          "body": "pageprobe86d3a5fec5e843618ce5cea8ca17a747 note 1",
+          "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+          "createdAt": "2026-09-08T17:47:59.532Z",
+          "id": "8d3249b9-687f-4f2c-b339-a6788c912c47",
+          "kind": "note",
+          "updatedAt": "2026-09-08T17:47:59.532Z"
+        },
+        {
+          "body": "pageprobe86d3a5fec5e843618ce5cea8ca17a747 note 0",
+          "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+          "createdAt": "2026-09-08T17:47:59.518Z",
+          "id": "e0878570-d4e8-4892-8431-a97c371086a6",
+          "kind": "note",
+          "updatedAt": "2026-09-08T17:47:59.518Z"
+        }
+      ],
+      "nextCursor": null
+    },
+    "agentFirst": {
+      "consistency": "live",
+      "items": [
+        {
+          "body": "pageprobe86d3a5fec5e843618ce5cea8ca17a747 note 4",
+          "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+          "createdAt": "2026-09-08T17:47:59.550Z",
+          "id": "3b35c614-edf3-4c4a-b748-7d1b4beb8bf3",
+          "kind": "note",
+          "updatedAt": "2026-09-08T17:47:59.550Z"
+        },
+        {
+          "body": "pageprobe86d3a5fec5e843618ce5cea8ca17a747 note 3",
+          "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+          "createdAt": "2026-09-08T17:47:59.547Z",
+          "id": "5e9265cc-3b95-4a3f-bda8-ae8bb81dc157",
+          "kind": "note",
+          "updatedAt": "2026-09-08T17:47:59.547Z"
+        }
+      ],
+      "nextCursor": "eyJ2IjoxLCJib29rSWQiOiIwN2VmMjI2ZS0xZWJjLTQ3YjYtOGRjOS1kMDkxMDk0NDhkMjIiLCJraW5kIjoibm90ZSIsInF1ZXJ5IjoicGFnZXByb2JlODZkM2E1ZmVjNWU4NDM2MThjZTVjZWE4Y2ExN2E3NDciLCJjcmVhdGVkQXQiOiIyMDI2LTA5LTA4VDE3OjQ3OjU5LjU0N1oiLCJpZCI6IjVlOTI2NWNjLTNiOTUtNGEzZi1iZGE4LWFlOGJiODFkYzE1NyJ9"
+    },
+    "denied": {
+      "authorized": false
+    },
+    "worker": {
+      "authorized": true,
+      "continued": {
+        "consistency": "live",
+        "items": [
+          {
+            "body": "pageprobe86d3a5fec5e843618ce5cea8ca17a747 note 2",
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "createdAt": "2026-09-08T17:47:59.543Z",
+            "id": "7267bea9-554f-460c-a969-a9d7fb8552a0",
+            "kind": "note",
+            "updatedAt": "2026-09-08T17:47:59.543Z"
+          },
+          {
+            "body": "pageprobe86d3a5fec5e843618ce5cea8ca17a747 note 1",
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "createdAt": "2026-09-08T17:47:59.532Z",
+            "id": "8d3249b9-687f-4f2c-b339-a6788c912c47",
+            "kind": "note",
+            "updatedAt": "2026-09-08T17:47:59.532Z"
+          },
+          {
+            "body": "pageprobe86d3a5fec5e843618ce5cea8ca17a747 note 0",
+            "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+            "createdAt": "2026-09-08T17:47:59.518Z",
+            "id": "e0878570-d4e8-4892-8431-a97c371086a6",
+            "kind": "note",
+            "updatedAt": "2026-09-08T17:47:59.518Z"
+          }
+        ],
+        "nextCursor": null
+      },
+      "failures": {
+        "book": "annotations/invalid-cursor",
+        "kind": "annotations/invalid-cursor",
+        "limit": "annotations/invalid-input",
+        "malformed": "annotations/invalid-cursor",
+        "query": "annotations/invalid-cursor"
+      },
+      "pages": [
+        {
+          "consistency": "live",
+          "items": [
+            {
+              "body": "pageprobe86d3a5fec5e843618ce5cea8ca17a747 note 4",
+              "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+              "createdAt": "2026-09-08T17:47:59.550Z",
+              "id": "3b35c614-edf3-4c4a-b748-7d1b4beb8bf3",
+              "kind": "note",
+              "updatedAt": "2026-09-08T17:47:59.550Z"
+            },
+            {
+              "body": "pageprobe86d3a5fec5e843618ce5cea8ca17a747 note 3",
+              "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+              "createdAt": "2026-09-08T17:47:59.547Z",
+              "id": "5e9265cc-3b95-4a3f-bda8-ae8bb81dc157",
+              "kind": "note",
+              "updatedAt": "2026-09-08T17:47:59.547Z"
+            }
+          ],
+          "nextCursor": "eyJ2IjoxLCJib29rSWQiOiIwN2VmMjI2ZS0xZWJjLTQ3YjYtOGRjOS1kMDkxMDk0NDhkMjIiLCJraW5kIjoibm90ZSIsInF1ZXJ5IjoicGFnZXByb2JlODZkM2E1ZmVjNWU4NDM2MThjZTVjZWE4Y2ExN2E3NDciLCJjcmVhdGVkQXQiOiIyMDI2LTA5LTA4VDE3OjQ3OjU5LjU0N1oiLCJpZCI6IjVlOTI2NWNjLTNiOTUtNGEzZi1iZGE4LWFlOGJiODFkYzE1NyJ9"
+        },
+        {
+          "consistency": "live",
+          "items": [
+            {
+              "body": "pageprobe86d3a5fec5e843618ce5cea8ca17a747 note 2",
+              "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+              "createdAt": "2026-09-08T17:47:59.543Z",
+              "id": "7267bea9-554f-460c-a969-a9d7fb8552a0",
+              "kind": "note",
+              "updatedAt": "2026-09-08T17:47:59.543Z"
+            },
+            {
+              "body": "pageprobe86d3a5fec5e843618ce5cea8ca17a747 note 1",
+              "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+              "createdAt": "2026-09-08T17:47:59.532Z",
+              "id": "8d3249b9-687f-4f2c-b339-a6788c912c47",
+              "kind": "note",
+              "updatedAt": "2026-09-08T17:47:59.532Z"
+            }
+          ],
+          "nextCursor": "eyJ2IjoxLCJib29rSWQiOiIwN2VmMjI2ZS0xZWJjLTQ3YjYtOGRjOS1kMDkxMDk0NDhkMjIiLCJraW5kIjoibm90ZSIsInF1ZXJ5IjoicGFnZXByb2JlODZkM2E1ZmVjNWU4NDM2MThjZTVjZWE4Y2ExN2E3NDciLCJjcmVhdGVkQXQiOiIyMDI2LTA5LTA4VDE3OjQ3OjU5LjUzMloiLCJpZCI6IjhkMzI0OWI5LTY4N2YtNGYyYy1iMzM5LWE2Nzg4YzkxMmM0NyJ9"
+        },
+        {
+          "consistency": "live",
+          "items": [
+            {
+              "body": "pageprobe86d3a5fec5e843618ce5cea8ca17a747 note 0",
+              "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+              "createdAt": "2026-09-08T17:47:59.518Z",
+              "id": "e0878570-d4e8-4892-8431-a97c371086a6",
+              "kind": "note",
+              "updatedAt": "2026-09-08T17:47:59.518Z"
+            }
+          ],
+          "nextCursor": null
+        }
+      ]
+    }
+  },
+  "verification": "actual Agent tool, SQLite and WebKit Worker; not LLM or UI interaction",
+  "cleanup": {
+    "pluginKvKeys": [],
+    "remaining": []
+  }
+}

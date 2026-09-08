@@ -103,6 +103,7 @@ export interface LibraryPort {
 }
 
 export interface AnnotationsPort {
+  pageAnnotations(input?: import("@read-aware/core").AnnotationPageQuery): Promise<import("@read-aware/core").AnnotationPage>;
   getAnnotation(annotationId: Id): Promise<AnnotationItem | null>;
   listAnnotations(filter?: {
     bookId?: Id;

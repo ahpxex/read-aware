@@ -31,18 +31,31 @@ test("Agent creates an underline through the canonical highlight command", async
 test("exact annotation reads preserve book/type filters without scanning the list", async () => {
   const { deps, tool } = fixture();
   deps.annotations.listAnnotations = async () => { throw new Error("Unexpected full list"); };
-  expect(parsed(await tool("get_annotations").execute("get", { annotationId: "note" }))).toEqual([note]);
-  expect(parsed(await tool("get_annotations").execute("get", { annotationId: "missing" }))).toEqual([]);
-  expect(parsed(await tool("get_annotations").execute("get", { annotationId: "note", kind: "ask" }))).toEqual([]);
-  expect(parsed(await tool("get_annotations").execute("get", { annotationId: "other-note" }))).toEqual([]);
+  expect(parsed(await tool("get_annotations").execute("get", { annotationId: "note" })).items).toEqual([note]);
+  expect(parsed(await tool("get_annotations").execute("get", { annotationId: "missing" })).items).toEqual([]);
+  expect(parsed(await tool("get_annotations").execute("get", { annotationId: "note", kind: "ask" })).items).toEqual([]);
+  expect(parsed(await tool("get_annotations").execute("get", { annotationId: "other-note" })).items).toEqual([]);
   // Existing annotation tools allow explicit cross-book retrieval; scope is a default, not a new permission.
-  expect(parsed(await tool("get_annotations").execute("get", { annotationId: "other-note", bookId: "other" }))).toHaveLength(1);
+  expect(parsed(await tool("get_annotations").execute("get", { annotationId: "other-note", bookId: "other" })).items).toHaveLength(1);
   await expect(tool("get_annotations").execute("get", { annotationId: "note", query: "Original" })).rejects.toMatchObject({ code: "annotations/invalid-input" });
 });
 
 test("type filters reach the annotations port", async () => {
   const { tool } = fixture();
-  expect(parsed(await tool("get_annotations").execute("get", { kind: "ask" }))).toEqual([ask]);
+  expect(parsed(await tool("get_annotations").execute("get", { kind: "ask" })).items).toEqual([ask]);
+});
+
+test("Agent annotation browsing is paginated and cursor filters cannot be changed", async () => {
+  const { deps, tool } = fixture();
+  deps.annotations.listAnnotations = async () => { throw new Error("Must not scan the legacy list"); };
+  const first = parsed(await tool("get_annotations").execute("get", { limit: 1 }));
+  expect(first.items).toHaveLength(1);
+  expect(first.nextCursor).toBeString();
+  const next = parsed(await tool("get_annotations").execute("get", { limit: 1, cursor: first.nextCursor }));
+  expect(next.items).toHaveLength(1);
+  expect(next.items[0].id).not.toBe(first.items[0].id);
+  expect(next.nextCursor).toBeNull();
+  await expect(tool("get_annotations").execute("get", { bookId: "other", cursor: first.nextCursor })).rejects.toMatchObject({ code: "annotations/invalid-cursor" });
 });
 
 test("edit and approved ask deletion use exact lookup, retaining the approval boundary", async () => {

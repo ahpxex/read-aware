@@ -3,6 +3,7 @@
  * 行为刻意与目标语义对齐：记忆初始低置信、强化 +证据+置信、
  * 检索按 pinned/importance/recency 排序。
  */
+import { annotationPageFixture } from "./annotation-pages";
 import type {
   BookStats,
   CollectionSummary,
@@ -426,6 +427,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       },
     },
     annotations: {
+      pageAnnotations: async (input) => annotationPageFixture(annotations, input),
       getAnnotation: async (id) => annotations.find(annotation => annotation.id === id) ?? null,
       listAnnotations: async (filter) =>
         annotations.filter(

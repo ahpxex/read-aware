@@ -12,9 +12,10 @@ const MAX_CALLBACKS = 100_000;
 const MAX_ENTRIES = 1_000_000;
 const MAX_DEPTH = 128;
 const invalid = () => new AppError("plugin/invalid-input", "Invalid plugin callback payload");
+const remoteReleases = new WeakMap<Callback, () => void>();
 
 /** Walk containers, preserving cycles, aliases, sparse arrays and inert property names. */
-function mapGraph(value: unknown, replace: (value: unknown) => unknown): unknown {
+function mapGraph(value: unknown, replace: (value: unknown) => unknown, copy = true): unknown {
   const seen = new Map<object, unknown>();
   let entries = 0;
   const visit = (input: unknown, depth: number): unknown => {
@@ -26,25 +27,27 @@ function mapGraph(value: unknown, replace: (value: unknown) => unknown): unknown
     if (seen.has(input)) return seen.get(input);
     if (depth > MAX_DEPTH) throw invalid();
     if (input instanceof Map) {
-      const result = new Map();
+      const result = copy ? new Map() : input;
       seen.set(input, result);
-      for (const [key, entry] of input) result.set(visit(key, depth + 1), visit(entry, depth + 1));
+      for (const [key, entry] of input) {
+        const nextKey = visit(key, depth + 1), next = visit(entry, depth + 1);
+        if (copy) result.set(nextKey, next);
+      }
       return result;
     }
     if (input instanceof Set) {
-      const result = new Set();
+      const result = copy ? new Set() : input;
       seen.set(input, result);
-      for (const entry of input) result.add(visit(entry, depth + 1));
+      for (const entry of input) { const next = visit(entry, depth + 1); if (copy) result.add(next); }
       return result;
     }
     const prototype = Object.getPrototypeOf(input);
     if (Array.isArray(input) || prototype === Object.prototype || prototype === null) {
-      const result = Array.isArray(input) ? new Array(input.length) : {};
+      const result = copy ? (Array.isArray(input) ? new Array(input.length) : {}) : input;
       seen.set(input, result);
       for (const [key, entry] of Object.entries(input)) {
-        Object.defineProperty(result, key, {
-          value: visit(entry, depth + 1), enumerable: true, writable: true, configurable: true,
-        });
+        const next = visit(entry, depth + 1);
+        if (copy) Object.defineProperty(result, key, { value: next, enumerable: true, writable: true, configurable: true });
       }
       return result;
     }
@@ -103,7 +106,11 @@ export class PluginCallbackRegistry {
   clear(): void { this.handlers.clear(); }
 }
 
-export function decodePluginCallbacks(wire: PluginCallbackWire, invoke: (handle: string, args: unknown[]) => unknown): unknown {
+export function decodePluginCallbacks(
+  wire: PluginCallbackWire,
+  invoke: (handle: string, args: unknown[]) => unknown,
+  release?: (handles: string[]) => void,
+): unknown {
   if (!wire || typeof wire !== "object" || !Object.hasOwn(wire, "data")
     || !Array.isArray(wire.callbacks) || wire.callbacks.length > MAX_CALLBACKS) throw invalid();
   const references = new Map<object, Callback>();
@@ -111,7 +118,16 @@ export function decodePluginCallbacks(wire: PluginCallbackWire, invoke: (handle:
   for (const entry of wire.callbacks) {
     if (!entry || !entry.ref || typeof entry.ref !== "object" || references.has(entry.ref)
       || typeof entry.handle !== "string" || !/^h[1-9][0-9]{0,15}$/.test(entry.handle)) throw invalid();
-    references.set(entry.ref, (...args) => invoke(entry.handle, args));
+    let released = false;
+    const callback: Callback = (...args) => released
+      ? Promise.reject(new AppError("plugin/unavailable", "Plugin callback has been released"))
+      : invoke(entry.handle, args);
+    if (release) remoteReleases.set(callback, () => {
+      if (released) return;
+      released = true;
+      release([entry.handle]);
+    });
+    references.set(entry.ref, callback);
   }
   const data = mapGraph(wire.data, value => {
     const callback = references.get(value as object);
@@ -121,4 +137,20 @@ export function decodePluginCallbacks(wire: PluginCallbackWire, invoke: (handle:
   });
   if (used.size !== references.size) throw invalid();
   return data;
+}
+
+/** For an exclusive owner retiring a returned view/session, never its provider. */
+export function releasePluginCallbacks(value: unknown): void {
+  const releases = new Set<() => void>();
+  mapGraph(value, entry => {
+    if (typeof entry !== "function") return entry;
+    const release = remoteReleases.get(entry as Callback);
+    if (release) releases.add(release);
+    return null;
+  }, false);
+  const errors: unknown[] = [];
+  for (const release of releases) {
+    try { release(); } catch (error) { errors.push(error); }
+  }
+  if (errors.length) throw new AggregateError(errors, "Plugin callbacks failed to release");
 }

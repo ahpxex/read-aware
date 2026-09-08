@@ -9,27 +9,36 @@
  * profile's `transport:` account ref against this registry every time it
  * needs the remote side.
  *
- * The registry is deliberately dumb state + a change signal — policy (which
- * transport the profile is bound to, what happens when it disappears) lives
- * in the scheduler.
+ * The registry owns provider generations and their returned sessions. Binding
+ * policy (which remote the profile adopts) remains in the scheduler.
  */
 import type { PluginSyncTransport, PluginSyncTransportSession, PluginText } from "@read-aware/plugin-types";
+import { AppError } from "@read-aware/core";
+import { closeTransportSessionValue, ownTransportSession } from "./transport-session";
+import { createLogger } from "../logger";
+
+const log = createLogger("sync-transports");
 
 export type RegisteredSyncTransport = {
   /** `plugin:<pluginId>:<transportId>` — stable, and what UI surfaces key on. */
   ref: string;
   pluginId: string;
   transportId: string;
+  readonly generation: number;
   /** Raw plugin text; resolve per-locale at the UI layer (plugin-i18n). */
   label: PluginText;
   open(): Promise<PluginSyncTransportSession>;
 };
 
 const transports = new Map<string, RegisteredSyncTransport>();
+const retirements = new WeakMap<RegisteredSyncTransport, () => Promise<void>>();
+const invalidations = new WeakMap<RegisteredSyncTransport, () => Promise<void>>();
 const listeners = new Set<() => void>();
 
 function notify(): void {
-  for (const listener of [...listeners]) listener();
+  for (const listener of [...listeners]) {
+    try { listener(); } catch (error) { log.warn("Transport observer failed", error); }
+  }
 }
 
 export function syncTransportRef(pluginId: string, transportId: string): string {
@@ -41,24 +50,73 @@ export function syncTransportRef(pluginId: string, transportId: string): string 
 export function registerSyncTransport(
   pluginId: string,
   transport: PluginSyncTransport,
-): () => void {
+  release: (value: unknown) => void = () => {},
+): () => Promise<void> {
+  let retired = false;
+  let generation = 0;
+  let retirement: Promise<void> | undefined;
+  const sessions = new Set<PluginSyncTransportSession>();
+  const closeSessions = async () => {
+    const results = await Promise.allSettled([...sessions].map(session => session.close()));
+    const errors = results.flatMap(result => result.status === "rejected" ? [result.reason] : []);
+    if (errors.length) throw new AggregateError(errors, "Sync transport sessions failed to close");
+  };
+  const retire = () => {
+    retired = true;
+    return retirement ??= closeSessions();
+  };
   const entry: RegisteredSyncTransport = {
     ref: syncTransportRef(pluginId, transport.id),
     pluginId,
     transportId: transport.id,
+    get generation() { return generation; },
     label: transport.label,
-    open: () => Promise.resolve(transport.open()),
+    async open() {
+      if (retired) throw new AppError("plugin/unavailable", "Sync transport is retired");
+      const openedGeneration = generation;
+      const raw = await transport.open();
+      let session: PluginSyncTransportSession;
+      try { session = ownTransportSession(raw, release, () => sessions.delete(session)); }
+      catch (error) {
+        try { await closeTransportSessionValue(raw, release); }
+        catch (cleanupError) { log.warn("Invalid transport session cleanup failed", cleanupError); }
+        throw error;
+      }
+      if (retired || generation !== openedGeneration) {
+        await session.close();
+        throw new AppError("plugin/unavailable", "Sync transport retired while opening");
+      }
+      sessions.add(session);
+      return session;
+    },
   };
+  const previous = transports.get(entry.ref);
+  retirements.set(entry, retire);
+  invalidations.set(entry, () => { generation++; return closeSessions(); });
   transports.set(entry.ref, entry);
+  if (previous) void retirements.get(previous)?.().catch(error => log.warn("Replaced transport cleanup failed", error));
   notify();
   return () => {
+    const closing = retire();
     // Only remove our own registration — a replacement (blue-green update)
     // must not be torn down by the retiring instance's disposer.
     if (transports.get(entry.ref) === entry) {
       transports.delete(entry.ref);
       notify();
     }
+    return closing;
   };
+}
+
+/** Call only after the Worker has received the new configuration snapshot. */
+export function invalidateSyncTransportSessions(pluginId: string): void {
+  let changed = false;
+  for (const entry of transports.values()) {
+    if (entry.pluginId !== pluginId) continue;
+    changed = true;
+    void invalidations.get(entry)?.().catch(error => log.warn("Transport configuration cleanup failed", error));
+  }
+  if (changed) notify();
 }
 
 export function listSyncTransports(): RegisteredSyncTransport[] {

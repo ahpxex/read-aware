@@ -59,6 +59,7 @@ export function createWebdavTransportSession(options: {
 
   return {
     endpointId,
+    close: () => client.close(),
 
     probe: () => client.probe(),
 

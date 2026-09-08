@@ -19,7 +19,7 @@ export const CONTRIBUTION_CATALOG = {
   memoryCandidateProviders: { version: "1.0.0", permission: "agent:memory" },
   themes: { version: "1.0.0", permission: "ui:themes" },
   fonts: { version: "1.0.0", permission: "ui:themes" },
-  syncTransports: { version: "1.0.0", permission: "sync:transport" },
+  syncTransports: { version: "2.0.0", permission: "sync:transport" },
 } as const;
 
 export type ContributionId = keyof typeof CONTRIBUTION_CATALOG;

@@ -41,6 +41,54 @@ const sealed = (id: string, deviceId = "dev-a"): SealedEventWire => ({
 
 const bytes = (text: string) => new TextEncoder().encode(text);
 
+test("closing a session aborts concurrent requests and rejects new work without network", async () => {
+  const signals: AbortSignal[] = [];
+  const client = createWebdavClient({
+    baseUrl: BASE, username: "reader", password: "secret",
+    fetchFn: async (_, init) => {
+      const signal = init!.signal!;
+      signals.push(signal);
+      return new Promise<Response>((_, reject) => signal.addEventListener("abort", () => reject(signal.reason), { once: true }));
+    },
+  });
+  const session = createWebdavTransportSession({ client, endpointId: "test" });
+  const first = session.getMeta("one"), second = session.getMeta("two");
+  const failures = Promise.all([first, second].map(pending => pending.catch(error => error.code)));
+  await session.close();
+  await session.close();
+  expect(await failures).toEqual(["plugin/unavailable", "plugin/unavailable"]);
+  expect(signals).toHaveLength(2);
+  expect(signals.every(signal => signal.aborted)).toBe(true);
+  expect(signals.every(signal => signal.reason.code === "plugin/cancelled")).toBe(true);
+  await expect(session.probe()).rejects.toMatchObject({ code: "plugin/unavailable" });
+  await expect(session.putMetaIfAbsent("new", bytes("data"))).rejects.toMatchObject({ code: "plugin/unavailable" });
+  expect(signals).toHaveLength(2);
+});
+
+test("close drains an abort-ignoring request and rejects its late response", async () => {
+  let finish!: (response: Response) => void;
+  const client = createWebdavClient({
+    baseUrl: BASE, username: "reader", password: "secret",
+    fetchFn: () => new Promise<Response>(resolve => { finish = resolve; }),
+  });
+  const result = client.get(["one"]).catch(error => error.code);
+  let drained = false;
+  const closing = client.close().then(() => { drained = true; });
+  await Promise.resolve();
+  expect(drained).toBe(false);
+  finish(new Response("late"));
+  await closing;
+  expect(await result).toBe("plugin/unavailable");
+  expect(drained).toBe(true);
+});
+
+test("host revocation remains cancellation before the provider receives close", async () => {
+  const cancelled = Object.assign(new Error("Host stopped"), { code: "plugin/cancelled" });
+  const client = createWebdavClient({ baseUrl: BASE, username: "reader", password: "secret", fetchFn: async () => { throw cancelled; } });
+  await expect(client.get(["one"])).rejects.toBe(cancelled);
+  await client.close();
+});
+
 describe("settings", () => {
   test("normalizes url + folder into a stable endpoint identity", () => {
     const settings = readWebdavSettings({

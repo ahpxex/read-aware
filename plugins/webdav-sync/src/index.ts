@@ -9,8 +9,8 @@
  *
  * `open()` is contractually network-free: it reads the current settings and
  * builds a session; the first actual request happens when the host probes or
- * syncs. That is what lets the host cheaply re-open per cycle and pick up
- * settings edits.
+ * syncs. The host reuses sessions until connection, settings, credentials or
+ * provider generation changes, then closes them before allowing reuse.
  */
 import type { PluginContext, PluginModule } from "@read-aware/plugin-types";
 import { createWebdavClient } from "./client";

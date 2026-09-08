@@ -9,7 +9,7 @@ const server = Bun.serve({
     if (path === "/evidence") return Response.json(evidence);
     const row = { path, method: request.method, token: request.headers.get("x-token"), body: [...new Uint8Array(await request.arrayBuffer())], aborted: false, completed: false };
     evidence.push(row);
-    if (path === "/slow") {
+    if (path === "/slow" || path.startsWith("/slow/")) {
       return new Promise<Response>(resolve => {
         const timer = setTimeout(() => { row.completed = true; resolve(new Response("late")); }, 10_000);
         request.signal.addEventListener("abort", () => {

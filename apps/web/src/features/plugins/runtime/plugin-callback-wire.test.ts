@@ -1,10 +1,32 @@
 import { expect, test } from "bun:test";
-import { decodePluginCallbacks, PluginCallbackRegistry, type PluginCallbackWire } from "./plugin-callback-wire";
+import { decodePluginCallbacks, PluginCallbackRegistry, releasePluginCallbacks, type PluginCallbackWire } from "./plugin-callback-wire";
 
 function roundtrip<T>(registry: PluginCallbackRegistry, value: T): T {
   const wire = structuredClone(registry.encode(value));
   return decodePluginCallbacks(wire, (handle, args) => registry.invoke(handle, args)) as T;
 }
+
+test("returned graph ownership releases aliases once without retiring other results", async () => {
+  const registry = new PluginCallbackRegistry();
+  const fn = () => 42;
+  const raw = { fn, map: new Map<unknown, unknown>([[fn, fn]]), self: null as unknown };
+  raw.self = raw;
+  let releases = 0;
+  const decode = () => decodePluginCallbacks(structuredClone(registry.encode(raw)),
+    (handle, args) => registry.invoke(handle, args),
+    handles => { releases += handles.length; registry.release(handles); }) as typeof raw;
+  const first = decode(), second = decode();
+  releasePluginCallbacks(first);
+  releasePluginCallbacks(first);
+  expect(releases).toBe(1);
+  expect(registry.size).toBe(1);
+  expect(first.self).toBe(first);
+  expect(first.map.get(first.fn)).toBe(first.fn);
+  await expect(first.fn()).rejects.toMatchObject({ code: "plugin/unavailable" });
+  expect(second.fn()).toBe(42);
+  releasePluginCallbacks(second);
+  expect(registry.size).toBe(0);
+});
 
 test("business objects cannot become callbacks or disposal instructions", () => {
   const registry = new PluginCallbackRegistry();

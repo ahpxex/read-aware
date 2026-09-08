@@ -86,6 +86,7 @@ const webdavTransport: RegisteredSyncTransport = {
   ref: "plugin:webdav-sync:webdav",
   pluginId: "webdav-sync",
   transportId: "webdav",
+  generation: 0,
   label: "WebDAV",
   open: () => Promise.reject(new Error("storybook stand-in")),
 };

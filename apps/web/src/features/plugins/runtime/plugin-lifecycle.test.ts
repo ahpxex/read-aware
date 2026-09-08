@@ -3,6 +3,24 @@ import type { PluginDisposable } from "@read-aware/plugin-types";
 import { PluginLifecycleController } from "./plugin-lifecycle";
 
 describe("plugin lifecycle barrier", () => {
+  test("shutdown drains asynchronous resource cleanup, including failures already settled", async () => {
+    const lifecycle = new PluginLifecycleController([]);
+    let finish!: () => void;
+    const pending = new Promise<void>(resolve => { finish = resolve; });
+    lifecycle.stage(() => ({ dispose: () => {
+      lifecycle.trackCleanup(Promise.reject(new Error("provider close failed")));
+      lifecycle.trackCleanup(pending);
+    } }));
+    lifecycle.promote(); lifecycle.stop();
+    await Promise.resolve();
+    let settled = false;
+    const draining = lifecycle.drainCleanups().then(() => "ok", error => error).finally(() => { settled = true; });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    finish();
+    expect(await draining).toBeInstanceOf(AggregateError);
+    await lifecycle.drainCleanups();
+  });
   test("stopping cancels host operations once with a stable code", () => {
     const lifecycle = new PluginLifecycleController([]);
     let cancellations = 0;

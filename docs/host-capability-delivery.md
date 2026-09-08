@@ -136,3 +136,24 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [环境] 全仓 test 17 个任务与 typecheck 20 个任务通过；两对文档生成器/pair validator 和 7 个建模门禁测试通过，215 行 / 547 库存映射不变。两份 HTML 的 1440/1024/390 宽度无横向溢出，中英文搜索、Escape、窄屏目录、主题及刷新保持通过；1440/390 截图已检查，文件为 `/tmp/readaware-registration-{matrix,model}{,-mobile}.png`。文档仍依赖字体/图标 CDN；这些截图不是产品前台视觉验收。
 
 仍未完成：同 ID 贡献替换的自动所有权转移、视图栈 lease、provider session 关闭、普通任务取消与累计资源配额、窗口重载错误、全部组合插件和 packaged/前台端到端验收。CON03 保持部分状态，本轮不关闭整组 Q2 或完整目标。
+
+## 2026-09-09：C5 / Q2 同步传输会话所有权
+
+[代码] `contributions.syncTransports` 升为 2.0.0，返回的 session 必须提供 `close(): Promise<void>`；WebDAV 升为 0.2.0 并要求 network 1.1 的取消契约，已重建内置 dist。关闭不撤销已经提交到远端的写入。
+
+- 宿主包装每个 session：关闭立即阻止新调用并拒绝在途等待者，迟到结果不能变成成功；close 幂等，最多等待 5 秒，成功、失败或超时都释放该返回对象的 Worker 回调，不误释放 provider 的 open 回调。
+- 注册表持有 session；注销、替换、配置换代关闭已有实例，迟到 open 或不完整 session 在发布前关闭并释放。旧 provider 引用不能重新 open，旧 disposer 不删除新注册。本轮没有实现通用 blue-green 失败后恢复旧贡献的事务。
+- engine 缓存按 provider 身份、配置 generation、endpointId 匹配；失配关闭会话并返回 transport-mismatch，失败不缓存。scheduler 停止/重启退休整个缓存，旧 engine 不能再次打开它；异步解析旧 engine 也拒绝发布。
+- settings KV 的变动/回滚先同步到 Worker，再让 transport generation 失效。插件密钥成功写入/删除发出不含值的 plugin-storage-changed，关闭持有旧凭据的连接；其余插件命名空间不受影响。
+- 连接检查与口令协商使用短期 session，成功或失败都关闭；连接绑定在关闭成功后持久化。操作本身失败时保留原错误，额外关闭失败记日志，不能把错误口令掩盖成清理故障。
+- lifecycle 在停止网络前退休会话，等待异步资源清理及持久写之后才终止 Worker。WebDAV 取消并排空在途请求；在途取消使用 plugin/cancelled，新调用旧会话使用 plugin/unavailable。退出清理失败记日志并向关闭调用者报告，不跳过后续清理。
+
+[环境] 新增 15 个定向测试（session/registry/cache/scope 10、callback 1、lifecycle 1、WebDAV 3），覆盖并发关闭、错误/超时、回调别名与独立所有权、非法/迟到 session、替换、配置失效、endpoint mismatch、旧 engine、短期协商清理和拒绝取消的请求。
+
+[环境] 隔离 Tauri 使用真正的内置 WebDAV 0.2.0 bundle、WebKit Worker 与原生 HTTP，依次测试手动 close、settings 改路径、密钥变更和 terminate，每组两个并发请求。8 个服务端请求全部 `aborted: true / completed: false`；新 session 使用 changed 路径，所有旧 session 均拒绝额外请求，终止后注册消失且旧 provider 不能重开。[结构化证据](./evidence/plugin-transport-session-2026-09-09.json)。未使用真实凭据或远端账号，测试密钥已删除。
+
+[环境] 首次真实测试暴露两处取消语义错误：WebDAV 把宿主取消重包为 sync/network；close 把 plugin/unavailable 用作在途 abort reason，导致 quiescence 当成退出失败。已分别保留宿主取消码、分开在途取消与失效句柄，并在修复后重跑成功；不把首次失败隐藏为测试通过。
+
+[环境] 全仓 test 17 个任务、typecheck 20 个任务通过；真实桌面 callback 探针再次通过 20 轮注册/释放，cleanup owner 保持 1。两对文档生成器与 pair validator、7 个建模门禁测试通过；库存增加 close 一个入口，为 215 行 / 548 映射。两份 HTML 在 1440/1024/390 宽度无横向溢出、无重复 id，中英文搜索、抽屉/Escape、主题切换和刷新保持通过，截图 `/tmp/readaware-transport-{matrix,model}{,-mobile}.png` 已检查。文档使用既有字体/图标 CDN，不包含 Mermaid 图，不把文档浏览器证据当产品验收。隔离应用、5184/9224/18884 服务与本次文档浏览器均已停止。
+
+仍未完成：Agent/普通插件受控同步状态与连接入口；连接 UI/真实跨设备、packaged CSP、真实 WebKit close 超时故障注入、同 ID 升级失败回滚、其他 provider 会话、视图 lease、普通任务/资源配额，以及完整 W01–W32 实用组合插件验收。此夹具不算新增实用插件；只推进 C5/Q2，完整目标继续保持未完成。

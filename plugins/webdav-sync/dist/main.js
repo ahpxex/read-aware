@@ -3522,21 +3522,45 @@ function createWebdavClient(options) {
   const dataTimeoutMs = options.dataTimeoutMs ?? options.timeoutMs ?? DEFAULT_DATA_TIMEOUT_MS;
   const auth = basicAuth(options.username, options.password);
   const ensured = new Set;
+  const requests = new Map;
+  let closed = false;
+  let closing;
+  const closedError = () => Object.assign(new Error("WebDAV session is closed"), { code: "plugin/unavailable" });
   const urlFor = (segments, directory = false) => {
     const path = segments.map((segment) => encodeURIComponent(segment)).join("/");
     return `${base}${path ? `/${path}` : ""}${directory ? "/" : ""}`;
   };
   async function request(method, url, init = {}) {
+    if (closed)
+      throw closedError();
+    const controller = new AbortController;
+    let finished;
+    requests.set(controller, new Promise((resolve) => {
+      finished = resolve;
+    }));
+    const timer = setTimeout(() => controller.abort(), init.timeoutMs ?? timeoutMs);
     try {
-      return await options.fetchFn(url, {
+      const response = await options.fetchFn(url, {
         method,
         headers: { authorization: auth, ...init.headers },
         body: init.body,
         redirect: "follow",
-        signal: AbortSignal.timeout(init.timeoutMs ?? timeoutMs)
+        signal: controller.signal
       });
+      if (closed)
+        throw closedError();
+      return response;
     } catch (cause) {
+      if (closed)
+        throw closedError();
+      const code = cause && typeof cause === "object" ? cause.code : undefined;
+      if (code === "plugin/cancelled" || code === "plugin/unavailable")
+        throw cause;
       throw networkError(method, url, cause);
+    } finally {
+      clearTimeout(timer);
+      requests.delete(controller);
+      finished();
     }
   }
   async function get(segments) {
@@ -3571,6 +3595,8 @@ function createWebdavClient(options) {
       throw webdavError(res.status, "DELETE", url);
   }
   async function ensureCollections(segments) {
+    if (closed)
+      throw closedError();
     for (let depth = 0;depth <= segments.length; depth += 1) {
       const prefix = segments.slice(0, depth);
       const key = prefix.join("/");
@@ -3640,7 +3666,18 @@ function createWebdavClient(options) {
     if (res.status !== 207 && !res.ok)
       throw webdavError(res.status, "PROPFIND", url);
   }
-  return { get, put, remove, ensureCollections, listChildren, probe };
+  function close() {
+    if (closing)
+      return closing;
+    closed = true;
+    ensured.clear();
+    const pending = [...requests.values()];
+    const cancelled = Object.assign(new Error("WebDAV session is closing"), { code: "plugin/cancelled" });
+    for (const controller of requests.keys())
+      controller.abort(cancelled);
+    return closing = Promise.all(pending).then(() => {});
+  }
+  return { get, put, remove, ensureCollections, listChildren, probe, close };
 }
 
 // src/settings.ts
@@ -3738,6 +3775,7 @@ function createWebdavTransportSession(options) {
   const { client, endpointId } = options;
   return {
     endpointId,
+    close: () => client.close(),
     probe: () => client.probe(),
     getMeta: (name) => client.get(metaPath(name)),
     async putMetaIfAbsent(name, bytes) {

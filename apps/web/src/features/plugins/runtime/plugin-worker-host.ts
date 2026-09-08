@@ -27,6 +27,7 @@ import { i18n } from "../../../i18n";
 import { onAppEvent } from "../../../platform/app-events";
 import { localKV, onLocalKVChange } from "../../../platform/local-store";
 import { createLogger } from "../../../platform/logger";
+import { invalidateSyncTransportSessions } from "../../../platform/sync/transport-registry";
 import { updateInstalledPlugin } from "../state/plugin-store";
 import { flattenPluginRequest, flattenPluginResponse } from "./plugin-network-wire";
 import { PluginRpcPending } from "./plugin-rpc-pending";
@@ -80,10 +81,13 @@ function wireHostSync(): void {
   if (syncWired) return;
   syncWired = true;
   onLocalKVChange((key) => {
+    const changed = new Set<string>();
     for (const { pluginId, worker } of liveWorkers.values()) {
       const prefix = pluginStoragePrefix(pluginId);
       if (key.startsWith(prefix)) worker.postMessage({ t: "sync", patch: { storage: localKV.entries(prefix) } });
+      if (key === `${prefix}settings`) changed.add(pluginId);
     }
+    for (const pluginId of changed) invalidateSyncTransportSessions(pluginId);
   });
   onAppEvent("plugin-storage-changed", ({ pluginId }) => {
     for (const live of liveWorkers.values()) {
@@ -93,6 +97,7 @@ function wireHostSync(): void {
         patch: { storage: localKV.entries(pluginStoragePrefix(pluginId)) },
       });
     }
+    invalidateSyncTransportSessions(pluginId);
   });
   i18n.on("languageChanged", () => {
     const locale = currentAppLocale();
@@ -370,6 +375,8 @@ export function startPluginWorker(
                     const errors: unknown[] = [];
                     try { runtime.lifecycle.stop(); }
                     catch (error) { errors.push(error); }
+                    try { await runtime.lifecycle.drainCleanups(); }
+                    catch (error) { errors.push(error); }
                     try { await runtime.lifecycle.drainStorageWrites(); }
                     catch (error) { errors.push(error); }
                     if (quiescenceError) errors.push(new Error(quiescenceError));
@@ -515,7 +522,9 @@ export function startPluginWorker(
                 releaseCallbacks(message.value);
                 return;
               }
-              const value = decodePluginCallbacks(message.value, invokeHandle);
+              const value = decodePluginCallbacks(message.value, invokeHandle, handles => {
+                if (!terminated) worker.postMessage({ t: "release", handles });
+              });
               pendingInvokes.settle(message.id, true, value);
             } catch (error) {
               releaseCallbacks(message.value);

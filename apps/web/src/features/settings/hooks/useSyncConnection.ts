@@ -22,6 +22,7 @@ import {
   SyncConnectionBusyError,
 } from "../../../platform/sync/connection-operation";
 import { createRelayClient } from "../../../platform/sync/relay-client";
+import { withTransportSession } from "../../../platform/sync/transport-session-scope";
 import {
   disconnectSync,
   getSyncStatusSnapshot,
@@ -172,9 +173,11 @@ export function useSyncConnection() {
     (ref: string): Promise<{ hasKeys: boolean }> =>
       runSyncConnectionOperation(async () => {
         const session = await openTransport(ref);
-        await session.probe();
-        const keys = await transportKeyMaterialStore(session).load();
-        return { hasKeys: keys !== null };
+        return withTransportSession(session, async () => {
+          await session.probe();
+          const keys = await transportKeyMaterialStore(session).load();
+          return { hasKeys: keys !== null };
+        });
       }),
     [],
   );
@@ -185,9 +188,8 @@ export function useSyncConnection() {
     (ref: string, passphrase: string): Promise<void> =>
       runSyncConnectionOperation(async () => {
         const session = await openTransport(ref);
-        const masterKeyBase64 = await establishEncryptionWithStore(
-          transportKeyMaterialStore(session),
-          passphrase,
+        const masterKeyBase64 = await withTransportSession(session, () =>
+          establishEncryptionWithStore(transportKeyMaterialStore(session), passphrase),
         );
         await persistTransportConnection({
           ref,

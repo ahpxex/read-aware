@@ -1,0 +1,233 @@
+{
+  "checkedAt": "2026-09-08T16:32:07Z",
+  "scope": "Isolated Tauri dev app; bundled WebDAV 0.2.0 Worker and native HTTP; no production credentials or remote sync account",
+  "callbackRegression": { "iterations": 20, "cleanupOwners": 1, "ordinaryMarkerDocumentPreserved": true, "allStaleCallbacks": "plugin/unavailable" },
+  "status": "complete",
+  "value": {
+    "cleanupOwners": 1,
+    "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+    "pluginVersion": "0.2.0",
+    "requests": [
+      {
+        "aborted": true,
+        "body": [],
+        "completed": false,
+        "method": "GET",
+        "path": "/slow/dav/meta/one",
+        "token": null
+      },
+      {
+        "aborted": true,
+        "body": [],
+        "completed": false,
+        "method": "GET",
+        "path": "/slow/dav/meta/two",
+        "token": null
+      },
+      {
+        "aborted": true,
+        "body": [],
+        "completed": false,
+        "method": "GET",
+        "path": "/slow/dav/meta/one",
+        "token": null
+      },
+      {
+        "aborted": true,
+        "body": [],
+        "completed": false,
+        "method": "GET",
+        "path": "/slow/dav/meta/two",
+        "token": null
+      },
+      {
+        "aborted": true,
+        "body": [],
+        "completed": false,
+        "method": "GET",
+        "path": "/slow/dav/meta/one",
+        "token": null
+      },
+      {
+        "aborted": true,
+        "body": [],
+        "completed": false,
+        "method": "GET",
+        "path": "/slow/dav/meta/two",
+        "token": null
+      },
+      {
+        "aborted": true,
+        "body": [],
+        "completed": false,
+        "method": "GET",
+        "path": "/slow/dav/meta/one",
+        "token": null
+      },
+      {
+        "aborted": true,
+        "body": [],
+        "completed": false,
+        "method": "GET",
+        "path": "/slow/dav/meta/two",
+        "token": null
+      }
+    ],
+    "results": [
+      {
+        "codes": [
+          "plugin/unavailable",
+          "plugin/unavailable"
+        ],
+        "mode": "close",
+        "requests": 2
+      },
+      {
+        "codes": [
+          "plugin/unavailable",
+          "plugin/unavailable"
+        ],
+        "mode": "close",
+        "requests": 2
+      },
+      {
+        "codes": [
+          "plugin/unavailable",
+          "plugin/unavailable"
+        ],
+        "mode": "close",
+        "requests": 2
+      },
+      {
+        "codes": [
+          "plugin/unavailable",
+          "plugin/unavailable"
+        ],
+        "mode": "terminate",
+        "requests": 2
+      }
+    ],
+    "retired": "plugin/unavailable"
+  },
+  "correctedFailures": [
+    "Initial termination race mapped cancellation to sync/network.",
+    "Closing passed plugin/unavailable as an abort reason, which the quiescence barrier treated as a failure; in-flight cancellation now uses plugin/cancelled."
+  ],
+  "configurationRevalidation": {
+  "checkedAt": "2026-09-08T16:37:38Z",
+  "status": "complete",
+  "value": {
+    "cleanupOwners": 1,
+    "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+    "pluginVersion": "0.2.0",
+    "requests": [
+      {
+        "aborted": true,
+        "body": [],
+        "completed": false,
+        "method": "GET",
+        "path": "/slow/dav/meta/one",
+        "token": null
+      },
+      {
+        "aborted": true,
+        "body": [],
+        "completed": false,
+        "method": "GET",
+        "path": "/slow/dav/meta/two",
+        "token": null
+      },
+      {
+        "aborted": true,
+        "body": [],
+        "completed": false,
+        "method": "GET",
+        "path": "/slow/dav/meta/one",
+        "token": null
+      },
+      {
+        "aborted": true,
+        "body": [],
+        "completed": false,
+        "method": "GET",
+        "path": "/slow/dav/meta/two",
+        "token": null
+      },
+      {
+        "aborted": true,
+        "body": [],
+        "completed": false,
+        "method": "GET",
+        "path": "/slow/changed/meta/one",
+        "token": null
+      },
+      {
+        "aborted": true,
+        "body": [],
+        "completed": false,
+        "method": "GET",
+        "path": "/slow/changed/meta/two",
+        "token": null
+      },
+      {
+        "aborted": true,
+        "body": [],
+        "completed": false,
+        "method": "GET",
+        "path": "/slow/changed/meta/one",
+        "token": null
+      },
+      {
+        "aborted": true,
+        "body": [],
+        "completed": false,
+        "method": "GET",
+        "path": "/slow/changed/meta/two",
+        "token": null
+      }
+    ],
+    "results": [
+      {
+        "codes": [
+          "plugin/unavailable",
+          "plugin/unavailable"
+        ],
+        "mode": "close",
+        "requests": 2
+      },
+      {
+        "codes": [
+          "plugin/unavailable",
+          "plugin/unavailable"
+        ],
+        "mode": "settings",
+        "requests": 2
+      },
+      {
+        "codes": [
+          "plugin/unavailable",
+          "plugin/unavailable"
+        ],
+        "mode": "secret",
+        "requests": 2
+      },
+      {
+        "codes": [
+          "plugin/unavailable",
+          "plugin/unavailable"
+        ],
+        "mode": "terminate",
+        "requests": 2
+      }
+    ],
+    "retired": "plugin/unavailable"
+  }
+},
+  "notVerified": [
+    "Packaged CSP",
+    "Real WebDAV account connection and encrypted cross-device sync",
+    "Connection settings UI flow",
+    "Provider close timeout inside real WebKit",
+    "All Agent/plugin capabilities and composition scenarios"
+  ]
+}

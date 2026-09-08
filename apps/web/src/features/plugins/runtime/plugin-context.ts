@@ -51,6 +51,7 @@ import {
   type PluginSessionEventName,
 } from "../lib/plugin-types";
 import { registerSyncTransport } from "../../../platform/sync/transport-registry";
+import { releasePluginCallbacks } from "./plugin-callback-wire";
 import {
   pluginDocsDelete,
   pluginDocsGet,
@@ -434,13 +435,25 @@ export function buildPluginContext(
               if (typeof transport.open !== "function") {
                 throw new Error("syncTransports.register requires an open() function");
               }
-              return track(() => ({
-                dispose: registerSyncTransport(manifest.id, {
+              return track(() => {
+                const unregister = registerSyncTransport(manifest.id, {
                   id: String(transport.id),
                   label: transport.label,
                   open: transport.open,
-                }),
-              }));
+                }, releasePluginCallbacks);
+                let disposed = false;
+                const dispose = () => {
+                  if (disposed) return;
+                  disposed = true;
+                  lifecycle.signal.removeEventListener("abort", dispose);
+                  lifecycle.trackCleanup(unregister());
+                };
+                // Retire session waiters before native cancellation races back
+                // through provider callbacks during the quiescence barrier.
+                lifecycle.signal.addEventListener("abort", dispose, { once: true });
+                if (lifecycle.signal.aborted) dispose();
+                return { dispose };
+              });
             },
           }
         : undefined,

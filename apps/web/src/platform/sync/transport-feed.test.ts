@@ -39,6 +39,7 @@ function fakeSession(endpointId = "reader@dav.test/base") {
 
   const session: PluginSyncTransportSession = {
     endpointId,
+    async close() {},
     async probe() {},
     async getMeta(name) {
       return metas.get(name) ?? null;

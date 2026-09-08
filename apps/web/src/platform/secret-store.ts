@@ -148,9 +148,11 @@ export async function setPluginSecret(
 ): Promise<void> {
   if (!isTauri()) throw new Error("secrets require the desktop app");
   await invoke("secret_set", { key: pluginSecretKey(pluginId, key), value });
+  emitAppEvent("plugin-storage-changed", { pluginId });
 }
 
 export async function deletePluginSecret(pluginId: string, key: string): Promise<void> {
   if (!isTauri()) throw new Error("secrets require the desktop app");
   await invoke("secret_delete", { key: pluginSecretKey(pluginId, key) });
+  emitAppEvent("plugin-storage-changed", { pluginId });
 }

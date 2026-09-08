@@ -1480,6 +1480,10 @@ export type PluginSyncTransportSession = {
    * another mailbox" and sync refuses until the user reconnects.
    */
   endpointId: string;
+  /** Idempotently stop this session, abort its work and release its resources.
+   * After close starts, no new operation may start. Already committed remote
+   * effects are not undone. The host releases callback handles after closing. */
+  close(): Promise<void>;
   /** Cheap reachability + credential check; used by the connect flow. */
   probe(): Promise<void>;
   /** Read a named meta object; null when it does not exist. */

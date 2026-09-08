@@ -11,10 +11,7 @@
 import {
   AppError,
   ERR_SYNC_NETWORK,
-  ERR_SYNC_TRANSPORT_MISMATCH,
-  ERR_SYNC_TRANSPORT_UNAVAILABLE,
 } from "@read-aware/core";
-import type { PluginSyncTransportSession } from "@read-aware/plugin-types";
 import { invoke } from "../ipc";
 import { isTauri } from "../environment";
 import { emitAppEvent } from "../app-events";
@@ -42,9 +39,9 @@ import {
   onSyncTransportsChanged,
   parseTransportAccountId,
   transportAccountId,
-  type TransportAccountRef,
 } from "./transport-registry";
 import { createTransportFeedRelay, type TransportFeedJournal } from "./transport-feed";
+import { TransportSessionCache } from "./transport-session-cache";
 import { isDevBundle } from "../app-identity";
 import { lastSuccessfulSyncAt } from "./sync-status";
 
@@ -217,61 +214,26 @@ const transportJournalStore = {
   },
 };
 
-/**
- * The live transport session, memoized across engine calls and dropped on
- * failure or on any registry change (plugin restart, update) so the next call
- * re-resolves against whatever is registered NOW. `open()` is contractually
- * network-free, so re-opening is cheap.
- */
-let transportSession: Promise<PluginSyncTransportSession> | null = null;
-onSyncTransportsChanged(() => {
-  transportSession = null;
-});
-
-function transportSessionFor(
-  connection: TransportAccountRef,
-): Promise<PluginSyncTransportSession> {
-  if (!transportSession) {
-    const opened = (async () => {
-      const transport = findSyncTransport(connection.ref);
-      if (!transport) {
-        throw new AppError(
-          ERR_SYNC_TRANSPORT_UNAVAILABLE,
-          `sync transport "${connection.ref}" is not registered (plugin disabled or failed)`,
-        );
-      }
-      const session = await transport.open();
-      if (session.endpointId !== connection.endpointId) {
-        throw new AppError(
-          ERR_SYNC_TRANSPORT_MISMATCH,
-          `sync transport "${connection.ref}" now points at a different endpoint — reconnect to adopt it`,
-        );
-      }
-      return session;
-    })();
-    transportSession = opened;
-    opened.catch(() => {
-      // Never memoize a failure; the next call re-resolves.
-      if (transportSession === opened) transportSession = null;
-    });
-  }
-  return transportSession;
-}
+const newTransportSessions = () => new TransportSessionCache(findSyncTransport, error => log.warn("Transport session cleanup failed", error));
+let transportSessions = newTransportSessions();
+onSyncTransportsChanged(() => transportSessions.refresh());
 
 let engine: SyncEngine | null = null;
 
 async function resolveEngine(): Promise<SyncEngine> {
   if (engine) return engine;
+  const sessions = transportSessions;
   const profile = await getSyncProfile();
   const connection = parseTransportAccountId(profile.remoteAccountId);
   const relay = connection
     ? createTransportFeedRelay({
-        session: () => transportSessionFor(connection),
+        session: () => sessions.get(connection),
         deviceId: await localDeviceId(),
         endpointId: connection.endpointId,
         store: transportJournalStore,
       })
     : syncRelayClient();
+  if (sessions !== transportSessions) throw new AppError("plugin/cancelled", "Sync connection changed while resolving engine");
   engine ??= createSyncEngine({
     store: createIpcSyncStore(),
     relay,
@@ -648,6 +610,9 @@ export function startSyncScheduler(): () => void {
 
   disposeScheduler = () => {
     disposed = true;
+    transportSessions.stop();
+    transportSessions = newTransportSessions();
+    engine = null;
     if (timer !== null) window.clearTimeout(timer);
     if (pushDebounce !== null) window.clearTimeout(pushDebounce);
     if (watchReconnect !== null) window.clearTimeout(watchReconnect);
@@ -667,7 +632,8 @@ export function startSyncScheduler(): () => void {
 /** After connect/disconnect: rebuild the engine (new session/key) and rerun. */
 export function restartSyncScheduler(): void {
   engine = null;
-  transportSession = null;
+  transportSessions.stop();
+  transportSessions = newTransportSessions();
   startSyncScheduler();
 }
 

@@ -3,6 +3,9 @@ import type {
   PluginLifecyclePhase,
 } from "@read-aware/plugin-types";
 import { AppError } from "@read-aware/core";
+import { createLogger } from "../../../platform/logger";
+
+const log = createLogger("plugin-lifecycle");
 
 type StagedRegistration = {
   cancelled: boolean;
@@ -24,6 +27,8 @@ export class PluginLifecycleController {
   private activationTransaction: StagedRegistration[] | undefined;
   private rollingBack = false;
   private readonly storageWrites = new Set<Promise<unknown>>();
+  private readonly cleanups = new Set<Promise<void>>();
+  private readonly cleanupErrors: unknown[] = [];
   private stopped = false;
   private readonly operations = new AbortController();
 
@@ -200,5 +205,24 @@ export class PluginLifecycleController {
       for (const result of results) if (result.status === "rejected") errors.push(result.reason);
     }
     if (errors.length) throw errors[0];
+  }
+
+  trackCleanup(pending: Promise<void>): void {
+    this.cleanups.add(pending);
+    void pending.then(
+      () => this.cleanups.delete(pending),
+      error => {
+        this.cleanups.delete(pending);
+        log.warn("Plugin asynchronous resource cleanup failed", error);
+        // Keep one failure for the shutdown caller; repeated failures are logged.
+        if (!this.cleanupErrors.length) this.cleanupErrors.push(error);
+      },
+    );
+  }
+
+  async drainCleanups(): Promise<void> {
+    while (this.cleanups.size) await Promise.allSettled([...this.cleanups]);
+    const errors = this.cleanupErrors.splice(0);
+    if (errors.length) throw new AggregateError(errors, "Plugin resource cleanup failed");
   }
 }

@@ -12,6 +12,7 @@ import type { ThreadScope } from "../thread-scope";
 import { normalizeBookIdParam, resolveBookId as resolveScopedBookId } from "./current-book";
 import { textResult } from "./tool-result";
 import type { AgentTurnState } from "./turn-state";
+import { buildBookTextTaskTools } from "./book-text-task-tools";
 
 const CHAPTER_PART_CHARS = 12000;
 
@@ -255,5 +256,5 @@ export function buildBookTextTools(
     parameters: Type.Object({ bookId: Type.Optional(Type.String()) }),
     execute: async (_id, params) => textResult(await deps.bookText.getTextState!(resolveBookId((params as { bookId?: string }).bookId))),
   };
-  return [...(deps.bookText.getTextState ? [getTextState] : []), getToc, readChapter, searchBookText];
+  return [...(deps.bookText.getTextState ? [getTextState] : []), getToc, readChapter, searchBookText, ...buildBookTextTaskTools(scope, deps)];
 }

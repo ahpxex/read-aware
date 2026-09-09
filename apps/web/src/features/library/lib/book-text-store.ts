@@ -7,6 +7,7 @@ import type { FoliateBook } from "../../reader/lib/foliate-engine";
 import { withBookContent } from "./book-content-source";
 import { getBookRecord, getStoredBookFile } from "./library-db";
 import { BookTextRepository } from "./book-text-repository";
+import { BookTextTaskOwner } from "./book-text-tasks";
 export type { ExtractedChapter } from "./book-text-record";
 
 const log = createLogger("book-text");
@@ -62,6 +63,7 @@ onAppEvent("book-removed", ({ bookId }) => {
 });
 
 export const getBookTextSnapshot = (bookId: string): Promise<BookTextSnapshot> => repository.snapshot(bookId);
+export const createBookTextTaskOwner = (lifetime?: AbortSignal) => new BookTextTaskOwner(repository, (message, error) => log.warn(message, error), lifetime);
 export const getPersistedBookText = (bookId: string) => repository.persisted(bookId);
 // Borrow the active parser with its registered version, never attach a new hash to an old parser.
 export const ensureBookTextExtracted = (bookId: string, preopened?: FoliateBook) => repository.ensure(bookId, !!preopened);

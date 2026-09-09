@@ -204,7 +204,7 @@ export const refinements = [
   ["R5", "拒绝重复 API", "AI03 SYS08", "聊天复制 = conversations 读取 + clipboard；retry/clear 不是业务撤销，不删除已完成的工具副作用。draft/发送仍需用户意图与回合 generation。"],
   ["R6", "拒绝虚构宿主能力", "LIB06", "ReaderWorkspace 的重新导入按钮当前调用 library.openImportPicker，不能据此要求/宣称已有原文件原子替换引擎。"],
   ["R7", "收回不必要的暴露", "READ11 MORE02", "面板开关/焦点与用户选择集可以语义化；toc/chat 像素宽度和浮动控制 x/y 由宿主布局管理，不要求每项成为 Agent 工具或 settings 字段。"],
-  ["R8", "校正库存口径", "EXT11", "当前源码有十二个第一方插件，Rust BUNDLED 编译清单有六个；WebDAV、Annotation Desk、Listening Desk、Reading Goals、Workspace Profiles、Text Desk 不在内置清单。Text Desk 0.1 组合 library 1.2 正文状态、列表/详情和明确开书，不提供任务控制。Workspace Profiles 通过 settings 1.3 快照/原子更新组合书架与外观预设，注册双 scope 的管理工具；0.2 通过 settings 1.4 精确路径增加自身快捷键表单，批量冲突、重置与生命周期边界见 UI04。Reading Goals 实际提供书内上下文和记忆候选，并消费 buildMemory 实时设置；这不是新增宿主域或专属模型工具。源码、编译内置与用户安装态分开枚举，以矩阵生成库存反查，不沿用旧的六源码/五内置数字。"],
+  ["R8", "校正库存口径", "EXT11", "当前源码有十二个第一方插件，Rust BUNDLED 编译清单有六个；WebDAV、Annotation Desk、Listening Desk、Reading Goals、Workspace Profiles、Text Desk 不在内置清单。Text Desk 0.2 组合 library 1.3 正文状态、准备/确认重建/请求取消、列表详情与明确开书；进度用显式刷新，任务仅属当前激活代，不宣称耐久调度或全局停止。Workspace Profiles 通过 settings 1.3 快照/原子更新组合书架与外观预设，注册双 scope 的管理工具；0.2 通过 settings 1.4 精确路径增加自身快捷键表单，批量冲突、重置与生命周期边界见 UI04。Reading Goals 实际提供书内上下文和记忆候选，并消费 buildMemory 实时设置；这不是新增宿主域或专属模型工具。源码、编译内置与用户安装态分开枚举，以矩阵生成库存反查，不沿用旧的六源码/五内置数字。"],
   ["R9", "限制基础设施规模", "CON06-08 EXT06 MORE06", "通用耐久队列、可重放事件总线、全局事务、任意跨插件 RPC、富文本编辑器都不是当前必补；选择快照+revision、有限任务、业务批次、已声明 provider、场景所需声明 UI。"],
   ["R10", "细化设置完成语义", "CFG01 CFG10", "settings 1.1 的单个已验证命令现在等待本地 SQLite KV 批次提交；失败整体回滚且不广播成功，跨 actor 命令在前序结算后读快照。结果按授权过滤；不是远端漫游、系统设置效果、密钥或 reading.configureMode 的持久完成证明。"],
 ] as const;

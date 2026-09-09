@@ -782,3 +782,21 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [清理] 两轮四个 probe/desk Worker 均退休、贡献归零、共六本自有合成书删除；SQLite 书名匹配为零。六个 booktext 不是删除 registry 行，而是按原生契约保留 tombstone：storage_uri 全空、deleted_at 全有值、sync_required 全零。事件历史不倒写。自有进程组 3560 终态 143，5184/9223/9224 均无监听，窗口恢复 1200×800；正式 app、书库及凭证未操作。
 
 [仍缺/下一单元] TXT04 限定的只读状态已双端接通，TXT05 仍未接：prepare/rebuild/cancel/observe 的显式任务契约与真实组合消费要继续实现，不能让取消一个插件请求误杀共享阅读器准备。setup/parser/write 错误尚无耐久任务历史，虚拟正文索引、短章索引政策和旧错误 digest 引用未重建；所有格式、大书性能、真实物理输入、marketplace 安装/升级、packaged 与 Windows/Linux 未验。其余部分/未接能力和 W01-W32 全组合继续，未推送、不关闭完整目标。
+
+## 2026-09-09：正文请求控制与 Text Desk 0.2
+
+[代码] Library 1.3 接入 prepareText / cancelTextTask / getTextTask / listTextTasks / observeTextTask。BookTextTaskOwner 归属插件激活代或进程内单一 Agent 所有者，句柄同时绑定书籍；查询/观察需 library:read，写需 library:write，激活期写仍被宿主生命周期拒绝。任务五态与递增 revision、ISO 时间、最后正文快照和稳定 errorCode 分开表达。上限为每所有者 16 活跃/64 保留、每任务 16 观察者；慢回调合并至最新快照，显式退订与退休释放观察，观察者失败记录日志。
+
+[代码] BookTextRepository 对每个调用维护共享作业租约：取消一个请求不取消已加入的其他 Agent/插件/宿主读取者，最后一个租约离开才中止逻辑工作，晚到结果不能发布。不能强行撤回派发中的 section read/native write/download，取消不是回滚。prepare 默认续用成功节或完整索引；rebuild 清派生索引重读，已有共享任务时以 library/text-busy 失败，不抢占阅读器。回执可以仍处于 source preflight，既不代表完成，也不代表已拿到解析租约；初始快照可能来自已有作业，原生共享测试因此等待 revision >= 2 的仓库回调后才断言只读三节一次。
+
+[代码] Agent 新增 prepare_book_text、get_book_text_tasks、cancel_book_text_task，书内/全局共用实际 library 端口；书内支持 current，跨调用保留进程级任务。列表按最新优先分页，默认 10/最多 20 条，返回 total/offset/nextOffset；64 条历史分页测试验证单次结果不超过 16000 字符。其他宿主未提供 preparation port 时不注册虚假工具。新增四个稳定任务错误的八语言文案。已有 domain registry 增加可选 lifetime，settings 工厂保留其独立访问策略参数而不误传 signal。
+
+[组合插件] Text Desk 0.2 升级到 library:write/^1.3，消费明确准备、复选确认重建、请求列表/详情、刷新与取消。请求取消文案不宣称全局停止；快照行标为 Last text state，避免将过去结果冒充当前状态。真实截图发现 list 不属于宿主图标集，改成 list-bullets 后重新编译验证。失败详情仅显示安全本地化状态/原因，不显示原始异常。没有新增专属宿主 UI，也未重复注册已有 Agent 工具；仍是 12 个源码插件、6 个 Rust 内置，Text Desk 不在内置清单。界面自动推送仍欠，显式刷新没有被称作实时订阅。
+
+[环境] [原生结构化证据](./evidence/book-text-tasks-2026-09-09.json)：隔离配置 com.readaware.app.capability-e2e，前端 5184，桥监听确认为自有 PID 18209/端口 9223/进程组 17993。真实 Worker 的空/读/写权限形状、激活期拒写、异 actor 与同 ID 重启后的旧句柄拒绝均通过。两 Worker 获得共享租约后取消 A，B 继续且三个 section 各读一次；最后请求取消后释放挂起的 section，原生 booktext 不出现。宿主 ensure 正在读取时重建被拒；活跃 Worker 退休不误停共享者，末 Worker 退休不发布晚结果，显式退订后的回调数量不再增长。挂起只注入在已注册 Foliate section getter，源版本/原生存储/实际 RPC 与生命周期不模拟。
+
+[环境] 实际 Agent 双 scope 对短 FB2 重建均为 completed/ready/available/0 章，真实普通 FB2 的 Worker rebuild 为 completed/1 章。编译 Text Desk 经 reader More 打开，重建未勾确认得到字段错误，勾选后生成请求、刷新显示 completed；挂起 section 下由界面准备/刷新/取消，晚读释放后原生索引仍缺席。1200×800 确认表单、800×650 完成与取消详情截图已查看，最终标签和列表图标再次运行/截图核对，无页面溢出。采用 MCP DOM click 和定向自有进程 OS focus，不冒充物理键鼠或模型自主选工具验收。
+
+[验证/扫描] 聚焦 31 项/232 断言通过；最终全仓 test 22/22（web 801 项/8782 断言）、typecheck 25/25，通过前端 build 与 Text Desk 编译。模型 7 项门禁与两生成器 --check、三文档对 validator 通过：243 能力行、625 入口映射、30 所有权单元/30 catalog、129 旧验收/32 场景。矩阵、统一模型、插件说明三份 HTML 均在 1440×1000、1024×768、390×844 检查无页面横向溢出/重复 ID/坏锚点/无名按钮/已观察资源错误；中英文搜索、Escape、矩阵和模型抽屉 inert/主题刷新保持通过。三份变更内容截图已查看，文档浏览器关闭；无 Mermaid 图，CDN 依赖不变。
+
+[清理/边界] 所有自有合成书已通过正式命令删除，SQLite 的 Text State Probe 计数为 0；probe/desk 贡献与观察释放，窗口恢复 1200×800，进程组终态 143，5184/9223/9224 无监听。正式 app/书库/凭证未操作。原生既有 37 warnings、初始 WebContent 终止后恢复、bridge 版本提示、IMK 警告与前端大 chunk/混合导入警告保留。TXT05 从未接推进到部分，不宣告关闭：显式 pause/resume/优先级、耐久任务历史/超时、公开 reader-demand、虚拟索引、全格式/大书、安装升级、packaged/跨平台与 MORE05 动态视图仍缺；其余双端能力和 W01-W32 完整目标继续，未推送。

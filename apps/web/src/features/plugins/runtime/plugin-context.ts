@@ -166,9 +166,11 @@ export function buildPluginContext(
 ): PluginContextRuntime {
   const permissions = new Set(manifest.permissions ?? []);
   const selfOrigin = `plugin:${manifest.id}` as const;
+  const lifecycle = new PluginLifecycleController(disposables);
   const domain = createActorDomainView(
     selfOrigin,
     domainGrantsFromPermissions(manifest.permissions ?? []),
+    lifecycle.signal,
   );
   const ownSettingsPaths = (manifest.settings ?? [])
     .filter(
@@ -185,7 +187,6 @@ export function buildPluginContext(
   };
   const settingsDomain = createSettingsDomain(selfOrigin, settingsAccess);
   const storagePrefix = pluginStoragePrefix(manifest.id);
-  const lifecycle = new PluginLifecycleController(disposables);
   const track = (factory: () => PluginDisposable): PluginDisposable =>
     lifecycle.stage(factory);
   const brand = { pluginId: manifest.id, pluginName: manifest.name };
@@ -592,11 +593,16 @@ export function buildPluginContext(
           searchLocations: (input) => library.queries.books.searchLocations(input, lifecycle.signal),
         },
       },
-      events: { subscribe: trackedOn(library.events.subscribe) },
+      events: {
+        subscribe: trackedOn(library.events.subscribe),
+        observeTextTask: (bookId, taskId, listener) => track(() => ({ dispose: library.events.observeTextTask(bookId, taskId, listener) })),
+      },
     };
     if (library.commands) {
       const commands = {
         books: {
+          prepareText: library.commands.books.prepareText,
+          cancelTextTask: library.commands.books.cancelTextTask,
           importBook: library.commands.books.importBook,
           editMetadata: library.commands.books.editMetadata,
           setStarred: library.commands.books.setStarred,

@@ -9,3 +9,17 @@ export type BookTextSnapshot = {
   progress: { total: number; completed: number; failed: number; unsupported: number } | null;
   errorCode?: string;
 };
+
+export type BookTextPrepareOptions = { rebuild?: boolean };
+/** One caller's ephemeral request, not ownership of all extraction for this book. */
+export type BookTextTaskSnapshot = {
+  taskId: string;
+  bookId: string;
+  mode: "prepare" | "rebuild";
+  revision: number;
+  status: "queued" | "running" | "completed" | "failed" | "cancelled";
+  createdAt: string;
+  updatedAt: string;
+  textState: BookTextSnapshot;
+  errorCode?: string;
+};

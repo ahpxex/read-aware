@@ -16,7 +16,7 @@ function harness(book = makeBook([async () => prose])) {
   let exists = true, saved: unknown = null, parses = 0;
   let sourceError: unknown, writeError: unknown;
   let beforeWrite = async () => {};
-  const warnings: unknown[] = [], sourceReads: boolean[] = [];
+  const warnings: unknown[] = [], sourceReads: boolean[] = [], signals: AbortSignal[] = [];
   const repo = new BookTextRepository({
     source: async (_id, fetch) => {
       sourceReads.push(fetch);
@@ -27,10 +27,10 @@ function harness(book = makeBook([async () => prose])) {
     read: async () => structuredClone(saved),
     write: async record => { await beforeWrite(); if (writeError) throw writeError; saved = structuredClone(record); },
     remove: async () => { saved = null; },
-    content: async (_id, _version, _signal, read) => { parses++; return read(book); },
+    content: async (_id, _version, signal, read) => { parses++; signals.push(signal); return read(book); },
     yieldToReader: async () => {}, warn: (_message, error) => { warnings.push(error); },
   });
-  return { repo, warnings, sourceReads, saved: () => saved, parses: () => parses,
+  return { repo, warnings, sourceReads, signals, saved: () => saved, parses: () => parses,
     source: (value: TextSource) => { source = value; }, book: (value: FoliateBook) => { book = value; },
     exists: (value: boolean) => { exists = value; }, seed: (value: unknown) => { saved = value; },
     sourceError: (value?: unknown) => { sourceError = value; }, writeError: (value?: unknown) => { writeError = value; },
@@ -47,6 +47,56 @@ test("status reads never start extraction or fetch missing source; missing is no
   expect(h.sourceReads.slice(0, 2)).toEqual([false, false]);
   h.exists(false); await expect(h.repo.snapshot("book")).rejects.toMatchObject({ code: "library/book-not-found" });
   await expect(h.repo.ensure("book")).rejects.toMatchObject({ code: "library/book-not-found" });
+});
+
+test("cancelling one explicit request preserves another explicit or cold-reader lease", async () => {
+  for (const keepReader of [false, true]) {
+    const entered = deferred(), resume = deferred<string>(), joined = deferred();
+    const h = harness(makeBook([async () => { entered.resolve(); return resume.promise; }]));
+    h.source({ format: "pdf", contentVersion: "sha256:a" });
+    const cancelled = new AbortController();
+    const first = h.repo.prepare("book", { signal: cancelled.signal }).catch(error => error);
+    await entered.promise;
+    const second = keepReader ? h.repo.ensure("book") : h.repo.prepare("book", { progress: () => joined.resolve() });
+    if (keepReader) await second; else await joined.promise;
+    cancelled.abort(new AppError("library/text-cancelled", "cancelled only first"));
+    expect(await first).toMatchObject({ code: "library/text-cancelled" });
+    expect(h.signals[0]!.aborted).toBe(false); expect(h.parses()).toBe(1);
+    resume.resolve(prose);
+    await h.repo.prepare("book");
+    if (!keepReader) expect(await second).toMatchObject({ status: "ready" });
+    expect((await h.repo.snapshot("book")).status).toBe("ready");
+  }
+});
+
+test("last consumer cancellation blocks late publication and permits a fresh request", async () => {
+  const entered = deferred(), resume = deferred<string>();
+  const h = harness(makeBook([async () => { entered.resolve(); return resume.promise; }]));
+  const controller = new AbortController();
+  const first = h.repo.prepare("book", { signal: controller.signal }).catch(error => error);
+  await entered.promise; controller.abort(new AppError("library/text-cancelled", "cancel"));
+  expect(await first).toMatchObject({ code: "library/text-cancelled" });
+  expect(h.signals[0]!.aborted).toBe(true);
+  h.book(makeBook([async () => prose + " fresh"]));
+  await h.repo.prepare("book"); resume.resolve(prose + " stale");
+  await Promise.resolve(); await Promise.resolve();
+  expect((await h.repo.persisted("book"))![0]!.text).toContain("fresh");
+});
+
+test("rebuild rereads a complete index, rejects busy work, and cancelled preflight does not parse", async () => {
+  const h = harness(); await h.repo.prepare("book");
+  h.book(makeBook([async () => prose + " rebuilt"]));
+  expect((await h.repo.ensure("book"))[0]!.text).not.toContain("rebuilt");
+  expect(await h.repo.prepare("book", { rebuild: true })).toMatchObject({ status: "ready" });
+  expect(h.parses()).toBe(2); expect((await h.repo.ensure("book"))[0]!.text).toContain("rebuilt");
+  const entered = deferred(), resume = deferred<string>();
+  h.book(makeBook([async () => { entered.resolve(); return resume.promise; }]));
+  const busy = h.repo.prepare("book", { rebuild: true }); await entered.promise;
+  await expect(h.repo.prepare("book", { rebuild: true })).rejects.toMatchObject({ code: "library/text-busy" });
+  expect(await h.repo.persisted("book")).toBeNull(); resume.resolve(prose); await busy;
+  const aborted = new AbortController(); aborted.abort(new AppError("library/text-cancelled", "cancel"));
+  await expect(h.repo.prepare("book", { rebuild: true, signal: aborted.signal })).rejects.toMatchObject({ code: "library/text-cancelled" });
+  expect(h.parses()).toBe(3);
 });
 
 test("successful empty reads alone prove textless; short text is not an image-only verdict", async () => {

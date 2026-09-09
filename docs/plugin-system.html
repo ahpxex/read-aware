@@ -207,10 +207,11 @@
         <div class="wrap">
           <h2>Domains</h2>
           <p class="intro">插件只看到权限允许的 actor view。所有写入都经过正式命令，并记录来源。</p>
-          <details class="ep"><summary>Library 1.2：正文状态双端接通，失败与无文字分开</summary><div class="ep-body">
+          <details class="ep"><summary>Library 1.3：正文状态与请求控制双端接通</summary><div class="ep-body">
             <p>Agent get_book_text_status 与插件 getTextState 共享七种准备状态、三种文本存在性和源版本。查询不启动抽取或下载；全部节成功且最终索引落盘才就绪。短正文可以有字而没有索引章节，缺文件和失败不再误报无文字。</p>
-            <p>v5 断点只复用成功节，保留失败，区分最后一节读完与最终索引保存；旧 v3/v4 惰性失效，换源和删除淘汰旧结果。Text Desk 0.1 组合书籍列表、状态详情、刷新与明确开书，不需要宿主专属分支。</p>
-            <p>macOS 隔离 debug 已验真实 Agent/权限 Worker、短 FB2/空白 PDF、注入读失败后的原生保存与重试、缺源/换版本和编译插件界面。准备/重建/取消任务尚未公开，短章索引策略和旧摘要引用未重建；持久任务错误、虚拟索引、全部格式、打包及跨平台仍缺。<a href="./plugin-system.md#derived-text-state">完整契约</a> · <a href="./evidence/book-text-state-2026-09-09.json">证据</a></p>
+            <p>v5 断点只复用成功节，保留失败，区分最后一节读完与最终索引保存；旧记录惰性失效。Agent 和插件可请求准备、重建、观察及取消自己的任务；取消只释放自身租约，其他使用者继续工作，已派发读写不回滚。任务回执不代表完成，也不代表已取得抽取租约。</p>
+            <p>Text Desk 0.2 组合列表、状态、确认重建、请求详情与取消、明确开书；界面显式刷新而非实时推送。插件任务限当前激活代，Agent 两 scope 共用进程所有者；每个所有者至多 16 活跃、64 保留请求，每任务 16 观察者，慢回调合并最新快照。</p>
+            <p>macOS 隔离 debug 已验权限 Worker、共享取消/退役、观察退订、重建冲突、真实 FB2、Agent 双 scope 与编译插件界面。暂停/优先级、耐久任务/超时、动态视图推送、虚拟索引、全部格式、打包及跨平台仍缺；TXT05 仍为部分。<a href="./plugin-system.md#derived-text-requests">完整契约</a> · <a href="./evidence/book-text-tasks-2026-09-09.json">任务证据</a> · <a href="./evidence/book-text-state-2026-09-09.json">正文事实证据</a></p>
           </div></details>
           <p>Settings 1.2 沿用单次更新的 SQLite 原子提交与双端持久回执，快照按授权过滤；失败回滚且不发成功事件。新增九项真实偏好：阅读对齐、固定版式配色、更新说明提示、内容字体四字段、默认标注色和更新通道。内容字体可跟随全局阅读设置或独立配置；默认色只影响新标注，更新通道只影响下次检查且不漫游。macOS debug 已验实际字体、FB2 标注、PDF 画布、已打开的更新面板与失败回滚；更新后重启、跨平台与这九项的打包验收仍未完成，完整带版本变更流也仍缺。</p>
           <details class="ep"><summary>Settings 1.3：书架偏好双端接通，Workspace Profiles 保存组合预设</summary><div class="ep-body">

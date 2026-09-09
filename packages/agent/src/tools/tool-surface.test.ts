@@ -89,6 +89,9 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   get_conversation_insights: { bookId: BOOK_ID },
   get_toc: { bookId: BOOK_ID },
   get_book_text_status: { bookId: BOOK_ID },
+  prepare_book_text: { bookId: BOOK_ID },
+  get_book_text_tasks: { bookId: BOOK_ID },
+  cancel_book_text_task: { bookId: BOOK_ID, taskId: "prepared-in-test" },
   get_navigation_toc: { bookId: BOOK_ID },
   find_book_locations: { bookId: BOOK_ID, query: "Victor" },
   read_chapter: { bookId: BOOK_ID, chapterIndex: 0 },
@@ -155,6 +158,7 @@ describe("tool surface contract", () => {
         if (!params) continue; // 完备性由上面的用例把守
         // 每个工具独立的 fixture：破坏性工具（fixture 自动批准权限）不得污染后续用例
         const { deps } = createInMemoryDeps(seed());
+        if (name === "cancel_book_text_task") params.taskId = (await deps.bookText.preparation!.start(BOOK_ID)).taskId;
         if (name === "edit_annotation") params.expectedRevision = (await deps.annotations.inspectAnnotation(String(params.annotationId)))!.revision;
         if (name === "apply_annotation_changes") {
           for (const change of params.changes as Record<string, unknown>[]) change.expectedRevision = (await deps.annotations.inspectAnnotation(String(change.annotationId)))!.revision;

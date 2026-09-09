@@ -13,7 +13,14 @@ export type BookTextDependencies = {
   yieldToReader(signal: AbortSignal): Promise<void>;
   warn(message: string, error: unknown): void;
 };
-type Job = { version: string; controller: AbortController; snapshot: BookTextSnapshot; promise: Promise<ExtractedChapter[]> };
+type PreparedText = { chapters: ExtractedChapter[]; state: BookTextSnapshot };
+export type TextPreparationOptions = {
+  rebuild?: boolean;
+  signal?: AbortSignal;
+  progress?(snapshot: BookTextSnapshot): void;
+};
+type Job = { version: string; controller: AbortController; snapshot: BookTextSnapshot; promise: Promise<PreparedText>;
+  settled: boolean; consumers: Map<symbol, TextPreparationOptions["progress"]> };
 
 /** Owns extraction, durable verdicts and current-source reads. No independent chapter cache. */
 export class BookTextRepository {
@@ -62,31 +69,88 @@ export class BookTextRepository {
     if (!source.contentVersion || source.format === "virtual") return null;
     const record = await this.record(bookId, source.contentVersion);
     await this.checkSource(bookId, source.contentVersion);
+    if (this.jobs.has(bookId)) return null;
     return record && textComplete(record) ? record.chapters : null;
   }
 
   async ensure(bookId: string, waitForPdf = false): Promise<ExtractedChapter[]> {
+    return (await this.request(bookId, waitForPdf, {})).chapters;
+  }
+
+  async prepare(bookId: string, options: TextPreparationOptions = {}): Promise<BookTextSnapshot> {
+    const result = await this.request(bookId, true, options);
+    if (result.state.status !== "ready") throw new AppError("library/text-unsupported", "Derived text preparation is unsupported");
+    return result.state;
+  }
+
+  private notify(job: Job): void {
+    for (const notify of job.consumers.values()) {
+      try { notify?.(structuredClone(job.snapshot)); }
+      catch (error) { this.deps.warn("Text preparation observer failed", error); }
+    }
+  }
+
+  /** A cancelled request releases its lease, not another reader's work. */
+  private join(bookId: string, job: Job, options: TextPreparationOptions): Promise<PreparedText> {
+    const token = Symbol();
+    job.consumers.set(token, options.progress);
+    return new Promise((resolve, reject) => {
+      let finished = false;
+      const release = () => {
+        options.signal?.removeEventListener("abort", abort);
+        job.consumers.delete(token);
+        if (!job.settled && !job.consumers.size) {
+          job.controller.abort(new AppError("library/text-cancelled", "No text preparation consumers remain"));
+          if (this.jobs.get(bookId) === job) this.jobs.delete(bookId);
+        }
+      };
+      const abort = () => {
+        if (finished) return;
+        finished = true; release(); reject(options.signal?.reason ?? new AppError("library/text-cancelled", "Text request cancelled"));
+      };
+      options.signal?.addEventListener("abort", abort, { once: true });
+      // Always attach to the shared promise, even if this caller already cancelled.
+      void job.promise.then(value => {
+        if (finished) return;
+        finished = true; release(); resolve(value);
+      }, error => {
+        if (finished) return;
+        finished = true; release(); reject(error);
+      });
+      if (options.signal?.aborted) abort();
+      else {
+        try { options.progress?.(structuredClone(job.snapshot)); }
+        catch (error) { this.deps.warn("Text preparation observer failed", error); }
+      }
+    });
+  }
+
+  private async request(bookId: string, waitForPdf: boolean, options: TextPreparationOptions): Promise<PreparedText> {
+    options.signal?.throwIfAborted();
     const source = await this.source(bookId, true);
-    if (source.format === "virtual") return [];
+    options.signal?.throwIfAborted();
+    if (source.format === "virtual") return { chapters: [], state: { bookId, contentVersion: null, status: "unsupported", text: "unknown", chapterCount: 0, progress: null } };
     const version = source.contentVersion;
     if (!version) throw new AppError("library/content-unavailable", "Book source is unavailable");
     const prior = await this.record(bookId, version);
     await this.checkSource(bookId, version);
-    if (prior && textComplete(prior)) {
-      this.failures.delete(bookId);
-      return prior.chapters;
-    }
+    options.signal?.throwIfAborted();
     let job = this.jobs.get(bookId);
     if (job && job.version !== version) {
       job.controller.abort(new AppError("reader/stale-location", "Text source changed"));
       job = undefined;
+    }
+    if (options.rebuild && job) throw new AppError("library/text-busy", "An extraction is already owned by active consumers");
+    if (!job && !options.rebuild && prior && textComplete(prior)) {
+      this.failures.delete(bookId);
+      return { chapters: prior.chapters, state: snapshotFromText(prior) };
     }
     if (!job) {
       // Install before asynchronous extraction, so callers share one parser.
       const controller = new AbortController();
       const next: Job = { version, controller,
         snapshot: { bookId, contentVersion: version, status: "preparing", text: "unknown", chapterCount: 0, progress: null },
-        promise: Promise.resolve([]) };
+        settled: false, consumers: new Map(), promise: Promise.resolve({ chapters: [], state: { bookId, contentVersion: version, status: "preparing", text: "unknown", chapterCount: 0, progress: null } }) };
       this.jobs.set(bookId, next); this.failures.delete(bookId);
       const signal = controller.signal;
       const current = async () => {
@@ -96,28 +160,31 @@ export class BookTextRepository {
       };
       next.promise = (async () => {
         await current();
+        if (options.rebuild) await this.queueWrite(bookId, async () => { await current(); await this.deps.remove(bookId); await current(); });
         const result = await this.deps.content(bookId, version, signal, book => extractBookText(book, {
-          bookId, contentVersion: version, prior, signal,
+          bookId, contentVersion: version, prior: options.rebuild ? null : prior, signal,
           yieldToReader: () => this.deps.yieldToReader(signal),
           save: record => this.queueWrite(bookId, async () => { await current(); await this.deps.write(record); await current(); }),
-          progress: snapshot => { if (!signal.aborted) next.snapshot = { ...snapshot, status: "preparing", chapterCount: 0 }; },
+          progress: snapshot => { if (!signal.aborted) { next.snapshot = { ...snapshot, status: "preparing", chapterCount: 0 }; this.notify(next); } },
           warn: this.deps.warn,
         }));
         await current();
         if (!textComplete(result)) throw new AppError(result.failures[0]?.code ?? (result.unsupported.length || !result.required.length ? "library/text-unsupported" : "library/text-extraction-failed"), "Book text extraction did not read every required section", { retryable: result.failures.length > 0 });
-        return result.chapters;
+        return { chapters: result.chapters, state: snapshotFromText(result) };
       })().catch(error => {
         if (this.jobs.get(bookId) === next && !signal.aborted) this.failures.set(bookId, { version, code: errorCode(error) ?? "library/text-extraction-failed" });
-        this.deps.warn("Book text extraction failed", error); throw error;
-      }).finally(() => { if (this.jobs.get(bookId) === next) this.jobs.delete(bookId); });
+        if (!signal.aborted) this.deps.warn("Book text extraction failed", error);
+        throw error;
+      }).finally(() => { next.settled = true; if (this.jobs.get(bookId) === next) this.jobs.delete(bookId); });
       job = next;
     }
+    const pending = this.join(bookId, job, options);
     if (source.format === "pdf" && !waitForPdf) {
       // The job records/logs failures; this cold query deliberately does not wait.
-      void job.promise.catch(() => {});
-      return [];
+      void pending.catch(() => {});
+      return { chapters: [], state: structuredClone(job.snapshot) };
     }
-    return job.promise;
+    return pending;
   }
 
   async remove(bookId: string): Promise<void> {

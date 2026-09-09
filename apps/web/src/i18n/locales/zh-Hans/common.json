@@ -14,6 +14,10 @@
   "errors": {
     "bookTextExtractionFailed": "部分书籍正文未能准备完成。重试可继续处理未完成的章节。",
     "bookTextUnsupported": "此书未提供可用于章节索引的受支持文本分节。",
+    "bookTextCancelled": "此正文准备请求已取消。",
+    "bookTextBusy": "正文正在准备中，请等待完成后再重建。",
+    "bookTextTaskNotFound": "此调用方已无法访问该正文请求。",
+    "bookTextTaskLimit": "正在进行的正文请求或观察者过多，请先完成或取消已有请求。",
     "settingsInvalidShortcut": "请选择有效按键和可选修饰键。Escape 保留用于关闭浮层。",
     "settingsShortcutConflict": "该快捷键已被占用。请选择其他组合，或同时修改冲突的绑定。",
     "readerPlaybackFailed": "音频无法播放，朗读已停止。请重试或更换声音。",

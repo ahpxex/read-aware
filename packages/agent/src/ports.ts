@@ -332,6 +332,12 @@ export interface BookTextHit {
  * 多查询扫描）；未抽取的书返回空。
  */
 export interface BookTextPort {
+  preparation?: {
+    start(bookId: Id, options?: import("@read-aware/core").BookTextPrepareOptions): Promise<import("@read-aware/core").BookTextTaskSnapshot>;
+    get(bookId: Id, taskId: string): Promise<import("@read-aware/core").BookTextTaskSnapshot>;
+    list(bookId: Id): Promise<import("@read-aware/core").BookTextTaskSnapshot[]>;
+    cancel(bookId: Id, taskId: string): Promise<import("@read-aware/core").BookTextTaskSnapshot>;
+  };
   getTextState?(bookId: Id): Promise<import("@read-aware/core").BookTextSnapshot>;
   getNavigationToc(bookId: Id, signal?: AbortSignal): Promise<import("@read-aware/core").BookNavigationToc>;
   searchLocations(input: Omit<import("@read-aware/core").BookLocationSearch, "hrefs"> & { throughChapterIndex?: number }, signal?: AbortSignal): Promise<import("@read-aware/core").BookLocationSearchPage>;

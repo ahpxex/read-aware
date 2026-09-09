@@ -80,6 +80,10 @@ const AI_SETTINGS: ErrorAction = "open-ai-settings";
 const CODE_COPY: Record<string, CopyEntry> = {
   "library/text-extraction-failed": { key: "bookTextExtractionFailed", retryable: true },
   "library/text-unsupported": { key: "bookTextUnsupported", retryable: false },
+  "library/text-cancelled": { key: "bookTextCancelled", retryable: false },
+  "library/text-busy": { key: "bookTextBusy", retryable: true },
+  "library/text-task-not-found": { key: "bookTextTaskNotFound", retryable: false },
+  "library/text-task-limit": { key: "bookTextTaskLimit", retryable: true },
   "settings/invalid-shortcut": { key: "settingsInvalidShortcut", retryable: false },
   "settings/shortcut-conflict": { key: "settingsShortcutConflict", retryable: false },
   "reader/playback-failed": { key: "readerPlaybackFailed", retryable: true },

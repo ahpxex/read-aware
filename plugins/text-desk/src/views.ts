@@ -1,5 +1,6 @@
 import type { PluginContext, PluginDetailView, PluginListView, PluginAction, PluginListItem } from "@read-aware/plugin-types";
 import { tr } from "./strings";
+import { rebuildForm, requestList, startRequest } from "./task-views";
 
 export async function textDetail(ctx: PluginContext, bookId: string, title: string): Promise<PluginDetailView> {
   const state = await ctx.domains.library!.queries.books.getTextState(bookId);
@@ -16,6 +17,11 @@ export async function textDetail(ctx: PluginContext, bookId: string, title: stri
     { id: "open", label: tr(ctx.locale, "open"), icon: "book-open", run: async () => {
       await ctx.domains.reading!.commands!.openBook(bookId); return { close: true };
     } },
+    { id: "requests", label: tr(ctx.locale, "requests"), icon: "list-bullets", run: async () => ({ view: await requestList(ctx, bookId, title) }) },
+    ...(state.status !== "unsupported" ? [
+      { id: "prepare", label: tr(ctx.locale, "prepare"), icon: "play", run: () => startRequest(ctx, bookId, title) },
+      { id: "rebuild", label: tr(ctx.locale, "rebuild"), icon: "arrows-clockwise", run: () => ({ view: rebuildForm(ctx, bookId, title) }) },
+    ] : []),
   ] };
 }
 

@@ -230,12 +230,12 @@ status. Setup/parser/write errors outside checkpoints are in-process state, not
 durable task history across restart. Old inaccurate digest references are not
 retroactively repaired by this change.
 
-[代码] Text Desk 0.1 composes book listing, read-only state, reader header/command
+[代码] Text Desk 0.2 composes book listing, read-only state, reader header/command
 views and explicit `reading.openBook`. Each page queries status for at most 20
 books; book listing itself is not native-paged. Failed status rows remain visible,
 detail failures propagate to the host error surface, refresh replaces the view,
 and Open closes only after navigation succeeds. It is a source plugin, not added
-to the Rust bundled list. It does not start/rebuild/cancel an extraction task.
+to the Rust bundled list. It additionally consumes the task controls below.
 
 [环境] Isolated macOS debug Tauri verified both actual Agent scopes, three real
 Worker permission views, no derived blob after status-only inspection, injected
@@ -244,9 +244,79 @@ FB2/normal FB2/blank PDF extraction, source removal/hash invalidation and the
 compiled Text Desk menu/detail/open flow. Fault injection is at the parser
 section boundary, not a native disk permission failure. Repository tests cover
 write failure, deletion/source races, concurrent PDF work and final-checkpoint
-restart. Public prepare/rebuild/cancel/observe task controls (TXT05), durable setup
-error history, virtual indexing, all formats, release and cross-platform tests
+restart. Durable setup error history, virtual indexing, all formats, release and cross-platform tests
 remain incomplete. See [evidence](./evidence/book-text-state-2026-09-09.json).
+
+### Derived Text Requests
+
+[代码] Library 1.3 exposes actor-owned preparation requests, not a generic durable
+job engine. `library:write` includes the read surface; no permission means no
+library domain. Mutations during plugin activation fail activation and roll back
+registrations. Worker quiescence aborts the activation's tasks and observers.
+
+| Entry | Permission / contract |
+| --- | --- |
+| `commands.books.prepareText(bookId, { rebuild? })` | write; validates book/options, returns a task receipt; default resumes/reuses, rebuild discards the derived index and rereads required sections |
+| `commands.books.cancelTextTask(bookId, taskId)` | write; exact actor-generation/book binding; terminal requests unchanged |
+| `queries.books.getTextTask(bookId, taskId)` | read; exact owned request snapshot, not current book status |
+| `queries.books.listTextTasks(bookId)` | read; retained requests of this actor/book in creation order; maximum 64 across the owner |
+| `events.observeTextTask(bookId, taskId, handler)` | read; immediate snapshot, increasing revision, disposer; asynchronous slow callbacks coalesce to latest including terminal state; callback errors are logged |
+
+[代码] A task snapshot contains `taskId/bookId/mode/revision/status/createdAt/updatedAt/textState`
+and optional stable `errorCode`. Mode is `prepare/rebuild`; status is
+`queued/running/completed/failed/cancelled`. Times are ISO strings. Terminal state
+is immutable; the embedded text state is the last observed operation snapshot,
+not a live book-status subscription. A receipt may still be in source preflight:
+it does not prove completion or acquisition of an extraction lease. A cancelled
+preflight cannot start extraction, but already dispatched source retrieval is not
+rolled back. Current book state is always a separate `getTextState` read.
+
+[代码] Each request leases the same repository job after source checks. Cancelling
+one releases only its lease; an already joined reader/Agent/plugin keeps the job
+alive. Removing the last lease aborts logical work and guards against late
+publication, but cannot forcibly undo a dispatched parser read, blob write or
+download. Rebuild fails with `library/text-busy` while any existing shared job owns
+that source; it does not cancel other consumers. Source change/deletion still
+invalidates old work. Limits are 16 active requests per owner, 64 retained handles
+including terminal history, and 16 observers per task. Old terminal handles are
+evicted first and their observers stopped. Explicit disposal releases observers;
+terminal observation does not automatically dispose its Worker callback lease.
+
+[代码] `library/text-cancelled`, `library/text-busy`, `library/text-task-not-found`
+and `library/text-task-limit` have localized host copy in all eight locales.
+Preflight lookup/validation failures reject before creating a task. Later failures
+become failed task snapshots; a failed diagnostic read preserves known progress
+and logs the read failure rather than inventing an empty successful result.
+
+[代码] Agent `prepare_book_text`, `get_book_text_tasks`, `cancel_book_text_task`
+are available in book and global scopes through the actual shared domain. Both
+scopes share the one process-local Agent owner; no plugin-owned tasks are exposed.
+Book scope defaults to the current book; global requires bookId. List results are
+newest-first `{ tasks, total, offset, nextOffset }`, default 10 / maximum 20 per
+page, with nonnegative integer offset. Pages are not stable across new tasks or
+eviction. Supplying taskId returns the exact snapshot instead of a page. An
+alternate host without the optional preparation port does not advertise these
+tools. This is not an LLM end-to-end test or per-conversation task isolation.
+
+[代码] Text Desk 0.2 requires library:write and reading:write. Prepare returns a
+request detail; Rebuild requires a checkbox confirmation with host field errors;
+My requests lists this activation's handles. Cancel says "this request", never
+"all extraction"; Refresh rereads the handle and replaces the view. Failures show
+safe localized labels, never raw error messages. Views are action-returned
+snapshots: live push refresh remains a separate MORE05 gap, not simulated by
+polling or DOM access. This plugin does not contribute extra Agent tools because
+the host already supplies the shared ones.
+
+[环境] Isolated macOS debug verifies actual permission-gated Workers, activation
+rejection, shared cancellation, foreign/retired handle denial, busy rebuild,
+Worker shutdown, observation disposal, real FB2 rebuild, both Agent scopes and
+compiled Text Desk menu/confirmation/refresh/cancel views. Held-section injection
+uses the registered content boundary; storage and bridges are real. Unit tests
+add source/write races, caps, slow-observer coalescing, failure propagation and
+64-task Agent pagination. Explicit pause/resume/prioritization, durable history,
+task-wide timeout, virtual indexing, all formats, marketplace installation,
+packaged/cross-platform and physical-input validation remain outstanding. TXT05
+therefore remains partial. See [task evidence](./evidence/book-text-tasks-2026-09-09.json).
 
 ### Reader Controls Visibility
 

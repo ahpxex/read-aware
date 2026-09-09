@@ -14,6 +14,10 @@
   "errors": {
     "bookTextExtractionFailed": "Une partie du texte n'a pas pu être préparée. Réessayez pour reprendre les sections incomplètes.",
     "bookTextUnsupported": "Ce livre ne fournit pas de sections de texte compatibles avec l'index des chapitres.",
+    "bookTextCancelled": "Cette demande de préparation du texte a été annulée.",
+    "bookTextBusy": "La préparation du texte est en cours. Attendez sa fin avant de reconstruire l'index.",
+    "bookTextTaskNotFound": "Cette demande de texte n'est plus accessible à cet appelant.",
+    "bookTextTaskLimit": "Trop de demandes de texte ou d'observateurs actifs. Terminez ou annulez d'abord les demandes existantes.",
     "settingsInvalidShortcut": "Choisissez une touche valide et des modificateurs facultatifs. Échap est réservé à la fermeture des fenêtres superposées.",
     "settingsShortcutConflict": "Ce raccourci est déjà attribué. Choisissez une autre combinaison ou modifiez ensemble les raccourcis en conflit.",
     "readerPlaybackFailed": "La lecture à voix haute s'est arrêtée car l'audio n'a pas pu être lu. Réessayez ou choisissez une autre voix.",

@@ -13,8 +13,10 @@ import { listLibraryBooks } from "../../../library/lib/library-db";
 import { createLibraryDomain } from "../../../../domain/library";
 
 export function createBookTextPort(): BookTextPort {
-  const library = createLibraryDomain("agent").queries.books;
+  const domain = createLibraryDomain("agent");
+  const library = domain.queries.books;
   return {
+    preparation: { start: domain.commands.books.prepareText, get: library.getTextTask, list: library.listTextTasks, cancel: domain.commands.books.cancelTextTask },
     getTextState: library.getTextState,
     getNavigationToc: library.getNavigationToc,
     searchLocations: async ({ throughChapterIndex, ...input }, signal) => {

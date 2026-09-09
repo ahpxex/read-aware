@@ -1,0 +1,700 @@
+{
+  "date": "2026-09-09",
+  "capability": "TXT05",
+  "status": "partial",
+  "environment": {
+    "app": "com.readaware.app.capability-e2e",
+    "platform": "macOS",
+    "build": "debug",
+    "pid": 18209,
+    "processGroup": 17993,
+    "frontendPort": 5184,
+    "bridgePort": 9223,
+    "formalAppTouched": false
+  },
+  "native": {
+    "activationRejected": true,
+    "agent": {
+      "book": {
+        "cancel": {
+          "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+          "createdAt": "2026-09-09T09:54:21.212Z",
+          "mode": "rebuild",
+          "revision": 6,
+          "status": "completed",
+          "taskId": "915d14ea-4a61-484a-81ad-f9a2cc361e72",
+          "textState": {
+            "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+            "chapterCount": 0,
+            "contentVersion": "sha256:18dc90a6432b5d406821e6742c8ef9a9c0756aa7fd918489651ceb2261b698c3",
+            "progress": {
+              "completed": 1,
+              "failed": 0,
+              "total": 1,
+              "unsupported": 0
+            },
+            "status": "ready",
+            "text": "available"
+          },
+          "updatedAt": "2026-09-09T09:54:21.229Z"
+        },
+        "done": {
+          "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+          "createdAt": "2026-09-09T09:54:21.212Z",
+          "mode": "rebuild",
+          "revision": 6,
+          "status": "completed",
+          "taskId": "915d14ea-4a61-484a-81ad-f9a2cc361e72",
+          "textState": {
+            "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+            "chapterCount": 0,
+            "contentVersion": "sha256:18dc90a6432b5d406821e6742c8ef9a9c0756aa7fd918489651ceb2261b698c3",
+            "progress": {
+              "completed": 1,
+              "failed": 0,
+              "total": 1,
+              "unsupported": 0
+            },
+            "status": "ready",
+            "text": "available"
+          },
+          "updatedAt": "2026-09-09T09:54:21.229Z"
+        },
+        "list": {
+          "nextOffset": null,
+          "offset": 0,
+          "tasks": [
+            {
+              "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+              "createdAt": "2026-09-09T09:54:21.212Z",
+              "mode": "rebuild",
+              "revision": 6,
+              "status": "completed",
+              "taskId": "915d14ea-4a61-484a-81ad-f9a2cc361e72",
+              "textState": {
+                "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+                "chapterCount": 0,
+                "contentVersion": "sha256:18dc90a6432b5d406821e6742c8ef9a9c0756aa7fd918489651ceb2261b698c3",
+                "progress": {
+                  "completed": 1,
+                  "failed": 0,
+                  "total": 1,
+                  "unsupported": 0
+                },
+                "status": "ready",
+                "text": "available"
+              },
+              "updatedAt": "2026-09-09T09:54:21.229Z"
+            }
+          ],
+          "total": 1
+        },
+        "receipt": {
+          "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+          "createdAt": "2026-09-09T09:54:21.212Z",
+          "mode": "rebuild",
+          "revision": 1,
+          "status": "running",
+          "taskId": "915d14ea-4a61-484a-81ad-f9a2cc361e72",
+          "textState": {
+            "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+            "chapterCount": 0,
+            "contentVersion": "sha256:18dc90a6432b5d406821e6742c8ef9a9c0756aa7fd918489651ceb2261b698c3",
+            "progress": null,
+            "status": "unprepared",
+            "text": "unknown"
+          },
+          "updatedAt": "2026-09-09T09:54:21.212Z"
+        }
+      },
+      "global": {
+        "cancel": {
+          "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+          "createdAt": "2026-09-09T09:54:21.234Z",
+          "mode": "rebuild",
+          "revision": 6,
+          "status": "completed",
+          "taskId": "ce42b818-142a-42f1-a6a8-081539d66798",
+          "textState": {
+            "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+            "chapterCount": 0,
+            "contentVersion": "sha256:18dc90a6432b5d406821e6742c8ef9a9c0756aa7fd918489651ceb2261b698c3",
+            "progress": {
+              "completed": 1,
+              "failed": 0,
+              "total": 1,
+              "unsupported": 0
+            },
+            "status": "ready",
+            "text": "available"
+          },
+          "updatedAt": "2026-09-09T09:54:21.243Z"
+        },
+        "done": {
+          "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+          "createdAt": "2026-09-09T09:54:21.234Z",
+          "mode": "rebuild",
+          "revision": 6,
+          "status": "completed",
+          "taskId": "ce42b818-142a-42f1-a6a8-081539d66798",
+          "textState": {
+            "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+            "chapterCount": 0,
+            "contentVersion": "sha256:18dc90a6432b5d406821e6742c8ef9a9c0756aa7fd918489651ceb2261b698c3",
+            "progress": {
+              "completed": 1,
+              "failed": 0,
+              "total": 1,
+              "unsupported": 0
+            },
+            "status": "ready",
+            "text": "available"
+          },
+          "updatedAt": "2026-09-09T09:54:21.243Z"
+        },
+        "list": {
+          "nextOffset": null,
+          "offset": 0,
+          "tasks": [
+            {
+              "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+              "createdAt": "2026-09-09T09:54:21.234Z",
+              "mode": "rebuild",
+              "revision": 6,
+              "status": "completed",
+              "taskId": "ce42b818-142a-42f1-a6a8-081539d66798",
+              "textState": {
+                "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+                "chapterCount": 0,
+                "contentVersion": "sha256:18dc90a6432b5d406821e6742c8ef9a9c0756aa7fd918489651ceb2261b698c3",
+                "progress": {
+                  "completed": 1,
+                  "failed": 0,
+                  "total": 1,
+                  "unsupported": 0
+                },
+                "status": "ready",
+                "text": "available"
+              },
+              "updatedAt": "2026-09-09T09:54:21.243Z"
+            },
+            {
+              "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+              "createdAt": "2026-09-09T09:54:21.212Z",
+              "mode": "rebuild",
+              "revision": 6,
+              "status": "completed",
+              "taskId": "915d14ea-4a61-484a-81ad-f9a2cc361e72",
+              "textState": {
+                "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+                "chapterCount": 0,
+                "contentVersion": "sha256:18dc90a6432b5d406821e6742c8ef9a9c0756aa7fd918489651ceb2261b698c3",
+                "progress": {
+                  "completed": 1,
+                  "failed": 0,
+                  "total": 1,
+                  "unsupported": 0
+                },
+                "status": "ready",
+                "text": "available"
+              },
+              "updatedAt": "2026-09-09T09:54:21.229Z"
+            }
+          ],
+          "total": 2
+        },
+        "receipt": {
+          "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+          "createdAt": "2026-09-09T09:54:21.234Z",
+          "mode": "rebuild",
+          "revision": 1,
+          "status": "running",
+          "taskId": "ce42b818-142a-42f1-a6a8-081539d66798",
+          "textState": {
+            "bookId": "94e699d0-f0fc-4e2b-b0a5-13779598c435",
+            "chapterCount": 0,
+            "contentVersion": "sha256:18dc90a6432b5d406821e6742c8ef9a9c0756aa7fd918489651ceb2261b698c3",
+            "progress": {
+              "completed": 1,
+              "failed": 0,
+              "total": 1,
+              "unsupported": 0
+            },
+            "status": "ready",
+            "text": "available"
+          },
+          "updatedAt": "2026-09-09T09:54:21.234Z"
+        }
+      }
+    },
+    "books": {
+      "blank": "86de92a8-d53c-4ea1-ae98-37a606416b68",
+      "normal": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+      "short": "94e699d0-f0fc-4e2b-b0a5-13779598c435"
+    },
+    "busy": {
+      "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+      "createdAt": "2026-09-09T09:54:20.908Z",
+      "errorCode": "library/text-busy",
+      "mode": "rebuild",
+      "revision": 2,
+      "status": "failed",
+      "taskId": "16b91856-a1c2-464f-b34d-de56103914db",
+      "textState": {
+        "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+        "chapterCount": 0,
+        "contentVersion": "sha256:fae1e170c1aa46c28136a8bd30bdf655ff46ad724e1c6b8e4ad16122e8390c5a",
+        "progress": {
+          "completed": 0,
+          "failed": 0,
+          "total": 3,
+          "unsupported": 0
+        },
+        "status": "preparing",
+        "text": "unknown"
+      },
+      "updatedAt": "2026-09-09T09:54:20.910Z"
+    },
+    "cancelled": {
+      "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+      "createdAt": "2026-09-09T09:54:20.656Z",
+      "errorCode": "library/text-cancelled",
+      "mode": "prepare",
+      "revision": 4,
+      "status": "cancelled",
+      "taskId": "ce05c5dc-f154-438a-bbaf-b40b72f8d451",
+      "textState": {
+        "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+        "chapterCount": 0,
+        "contentVersion": "sha256:fae1e170c1aa46c28136a8bd30bdf655ff46ad724e1c6b8e4ad16122e8390c5a",
+        "progress": {
+          "completed": 0,
+          "failed": 0,
+          "total": 3,
+          "unsupported": 0
+        },
+        "status": "preparing",
+        "text": "unknown"
+      },
+      "updatedAt": "2026-09-09T09:54:20.702Z"
+    },
+    "completed": {
+      "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+      "createdAt": "2026-09-09T09:54:20.679Z",
+      "mode": "prepare",
+      "revision": 7,
+      "status": "completed",
+      "taskId": "4ef5805a-46da-4b9e-bb47-b30d08a27263",
+      "textState": {
+        "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+        "chapterCount": 1,
+        "contentVersion": "sha256:fae1e170c1aa46c28136a8bd30bdf655ff46ad724e1c6b8e4ad16122e8390c5a",
+        "progress": {
+          "completed": 3,
+          "failed": 0,
+          "total": 3,
+          "unsupported": 0
+        },
+        "status": "ready",
+        "text": "available"
+      },
+      "updatedAt": "2026-09-09T09:54:20.707Z"
+    },
+    "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+    "events": [
+      {
+        "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+        "createdAt": "2026-09-09T09:54:20.679Z",
+        "mode": "prepare",
+        "revision": 1,
+        "status": "running",
+        "taskId": "4ef5805a-46da-4b9e-bb47-b30d08a27263",
+        "textState": {
+          "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+          "chapterCount": 0,
+          "contentVersion": "sha256:fae1e170c1aa46c28136a8bd30bdf655ff46ad724e1c6b8e4ad16122e8390c5a",
+          "progress": {
+            "completed": 0,
+            "failed": 0,
+            "total": 3,
+            "unsupported": 0
+          },
+          "status": "preparing",
+          "text": "unknown"
+        },
+        "updatedAt": "2026-09-09T09:54:20.679Z"
+      },
+      {
+        "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+        "createdAt": "2026-09-09T09:54:20.679Z",
+        "mode": "prepare",
+        "revision": 2,
+        "status": "running",
+        "taskId": "4ef5805a-46da-4b9e-bb47-b30d08a27263",
+        "textState": {
+          "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+          "chapterCount": 0,
+          "contentVersion": "sha256:fae1e170c1aa46c28136a8bd30bdf655ff46ad724e1c6b8e4ad16122e8390c5a",
+          "progress": {
+            "completed": 0,
+            "failed": 0,
+            "total": 3,
+            "unsupported": 0
+          },
+          "status": "preparing",
+          "text": "unknown"
+        },
+        "updatedAt": "2026-09-09T09:54:20.681Z"
+      },
+      {
+        "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+        "createdAt": "2026-09-09T09:54:20.679Z",
+        "mode": "prepare",
+        "revision": 3,
+        "status": "running",
+        "taskId": "4ef5805a-46da-4b9e-bb47-b30d08a27263",
+        "textState": {
+          "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+          "chapterCount": 0,
+          "contentVersion": "sha256:fae1e170c1aa46c28136a8bd30bdf655ff46ad724e1c6b8e4ad16122e8390c5a",
+          "progress": {
+            "completed": 1,
+            "failed": 0,
+            "total": 3,
+            "unsupported": 0
+          },
+          "status": "preparing",
+          "text": "available"
+        },
+        "updatedAt": "2026-09-09T09:54:20.703Z"
+      },
+      {
+        "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+        "createdAt": "2026-09-09T09:54:20.679Z",
+        "mode": "prepare",
+        "revision": 4,
+        "status": "running",
+        "taskId": "4ef5805a-46da-4b9e-bb47-b30d08a27263",
+        "textState": {
+          "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+          "chapterCount": 0,
+          "contentVersion": "sha256:fae1e170c1aa46c28136a8bd30bdf655ff46ad724e1c6b8e4ad16122e8390c5a",
+          "progress": {
+            "completed": 2,
+            "failed": 0,
+            "total": 3,
+            "unsupported": 0
+          },
+          "status": "preparing",
+          "text": "available"
+        },
+        "updatedAt": "2026-09-09T09:54:20.703Z"
+      },
+      {
+        "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+        "createdAt": "2026-09-09T09:54:20.679Z",
+        "mode": "prepare",
+        "revision": 5,
+        "status": "running",
+        "taskId": "4ef5805a-46da-4b9e-bb47-b30d08a27263",
+        "textState": {
+          "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+          "chapterCount": 0,
+          "contentVersion": "sha256:fae1e170c1aa46c28136a8bd30bdf655ff46ad724e1c6b8e4ad16122e8390c5a",
+          "progress": {
+            "completed": 3,
+            "failed": 0,
+            "total": 3,
+            "unsupported": 0
+          },
+          "status": "preparing",
+          "text": "available"
+        },
+        "updatedAt": "2026-09-09T09:54:20.704Z"
+      },
+      {
+        "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+        "createdAt": "2026-09-09T09:54:20.679Z",
+        "mode": "prepare",
+        "revision": 6,
+        "status": "running",
+        "taskId": "4ef5805a-46da-4b9e-bb47-b30d08a27263",
+        "textState": {
+          "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+          "chapterCount": 0,
+          "contentVersion": "sha256:fae1e170c1aa46c28136a8bd30bdf655ff46ad724e1c6b8e4ad16122e8390c5a",
+          "progress": {
+            "completed": 3,
+            "failed": 0,
+            "total": 3,
+            "unsupported": 0
+          },
+          "status": "preparing",
+          "text": "available"
+        },
+        "updatedAt": "2026-09-09T09:54:20.706Z"
+      },
+      {
+        "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+        "createdAt": "2026-09-09T09:54:20.679Z",
+        "mode": "prepare",
+        "revision": 7,
+        "status": "completed",
+        "taskId": "4ef5805a-46da-4b9e-bb47-b30d08a27263",
+        "textState": {
+          "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+          "chapterCount": 1,
+          "contentVersion": "sha256:fae1e170c1aa46c28136a8bd30bdf655ff46ad724e1c6b8e4ad16122e8390c5a",
+          "progress": {
+            "completed": 3,
+            "failed": 0,
+            "total": 3,
+            "unsupported": 0
+          },
+          "status": "ready",
+          "text": "available"
+        },
+        "updatedAt": "2026-09-09T09:54:20.707Z"
+      }
+    ],
+    "first": {
+      "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+      "createdAt": "2026-09-09T09:54:20.656Z",
+      "mode": "prepare",
+      "revision": 1,
+      "status": "running",
+      "taskId": "ce05c5dc-f154-438a-bbaf-b40b72f8d451",
+      "textState": {
+        "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+        "chapterCount": 0,
+        "contentVersion": "sha256:fae1e170c1aa46c28136a8bd30bdf655ff46ad724e1c6b8e4ad16122e8390c5a",
+        "progress": null,
+        "status": "unprepared",
+        "text": "unknown"
+      },
+      "updatedAt": "2026-09-09T09:54:20.656Z"
+    },
+    "foreign": {
+      "errorCode": "library/text-task-not-found"
+    },
+    "lastCancelled": {
+      "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+      "createdAt": "2026-09-09T09:54:20.862Z",
+      "errorCode": "library/text-cancelled",
+      "mode": "prepare",
+      "revision": 4,
+      "status": "cancelled",
+      "taskId": "389e45cf-b798-42d1-9d19-afbddbf01bc2",
+      "textState": {
+        "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+        "chapterCount": 0,
+        "contentVersion": "sha256:fae1e170c1aa46c28136a8bd30bdf655ff46ad724e1c6b8e4ad16122e8390c5a",
+        "progress": {
+          "completed": 0,
+          "failed": 0,
+          "total": 3,
+          "unsupported": 0
+        },
+        "status": "preparing",
+        "text": "unknown"
+      },
+      "updatedAt": "2026-09-09T09:54:20.884Z"
+    },
+    "permissions": {
+      "empty": {
+        "library": false,
+        "write": false
+      },
+      "read": {
+        "library": true,
+        "write": false
+      },
+      "write": {
+        "library": true,
+        "write": true
+      }
+    },
+    "realRebuild": {
+      "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+      "createdAt": "2026-09-09T09:54:21.258Z",
+      "mode": "rebuild",
+      "revision": 6,
+      "status": "completed",
+      "taskId": "fb1582d9-4d32-4571-8bcf-ca2aa2a2b0b8",
+      "textState": {
+        "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+        "chapterCount": 1,
+        "contentVersion": "sha256:fae1e170c1aa46c28136a8bd30bdf655ff46ad724e1c6b8e4ad16122e8390c5a",
+        "progress": {
+          "completed": 1,
+          "failed": 0,
+          "total": 1,
+          "unsupported": 0
+        },
+        "status": "ready",
+        "text": "available"
+      },
+      "updatedAt": "2026-09-09T09:54:21.268Z"
+    },
+    "retired": {
+      "errorCode": "library/text-task-not-found"
+    },
+    "second": {
+      "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+      "createdAt": "2026-09-09T09:54:20.679Z",
+      "mode": "prepare",
+      "revision": 1,
+      "status": "running",
+      "taskId": "4ef5805a-46da-4b9e-bb47-b30d08a27263",
+      "textState": {
+        "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+        "chapterCount": 0,
+        "contentVersion": "sha256:fae1e170c1aa46c28136a8bd30bdf655ff46ad724e1c6b8e4ad16122e8390c5a",
+        "progress": {
+          "completed": 0,
+          "failed": 0,
+          "total": 3,
+          "unsupported": 0
+        },
+        "status": "preparing",
+        "text": "unknown"
+      },
+      "updatedAt": "2026-09-09T09:54:20.679Z"
+    },
+    "shutdown": {
+      "lateBlob": null,
+      "stoppedReceipt": {
+        "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+        "createdAt": "2026-09-09T09:54:21.100Z",
+        "mode": "prepare",
+        "revision": 1,
+        "status": "running",
+        "taskId": "7814ed9f-dab3-46ea-a16c-d385ea9b7e95",
+        "textState": {
+          "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+          "chapterCount": 0,
+          "contentVersion": "sha256:fae1e170c1aa46c28136a8bd30bdf655ff46ad724e1c6b8e4ad16122e8390c5a",
+          "progress": null,
+          "status": "unprepared",
+          "text": "unknown"
+        },
+        "updatedAt": "2026-09-09T09:54:21.100Z"
+      },
+      "survivor": {
+        "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+        "createdAt": "2026-09-09T09:54:20.959Z",
+        "mode": "prepare",
+        "revision": 7,
+        "status": "completed",
+        "taskId": "e2c704f4-f3f0-4da5-8e5c-18b6e02d943f",
+        "textState": {
+          "bookId": "902933e3-250f-4e6d-ab5f-6bd51d27aa41",
+          "chapterCount": 1,
+          "contentVersion": "sha256:fae1e170c1aa46c28136a8bd30bdf655ff46ad724e1c6b8e4ad16122e8390c5a",
+          "progress": {
+            "completed": 3,
+            "failed": 0,
+            "total": 3,
+            "unsupported": 0
+          },
+          "status": "ready",
+          "text": "available"
+        },
+        "updatedAt": "2026-09-09T09:54:21.039Z"
+      },
+      "unsubscribed": {
+        "count": 2
+      }
+    }
+  },
+  "ui": {
+    "plugin": "text-desk",
+    "version": "0.2.0",
+    "distribution": "compiled source Worker; not bundled or marketplace-installed",
+    "paths": [
+      "reader More > Text Desk > normal book > Rebuild index > unchecked submit > field error > checkbox > submit > request detail > Refresh > completed",
+      "held registered section > Prepare text > Refresh > running > Cancel this request > request cancelled > release section > derived blob remains absent",
+      "final revised labels/icons: reader More > Text Desk > Prepare text > Refresh > completed"
+    ],
+    "viewports": [
+      {
+        "width": 1200,
+        "height": 800
+      },
+      {
+        "width": 800,
+        "height": 650
+      }
+    ],
+    "pageOverflow": false,
+    "screenshotsInspected": [
+      "/tmp/text-tasks-confirm-1200.png",
+      "/tmp/text-tasks-completed-800.png",
+      "/tmp/text-tasks-cancelled-800.png",
+      "/tmp/text-tasks-final-800.png"
+    ],
+    "revision": "First captures revealed unrecognized list icon; changed to curated list-bullets and renamed snapshot label Last text state. Final screenshot verifies both.",
+    "input": "MCP DOM clicks and OS focus of owned PID; not physical keyboard/mouse",
+    "refresh": "Action-returned snapshots, not automatic live view updates"
+  },
+  "tests": {
+    "focused": {
+      "tests": 31,
+      "assertions": 232
+    },
+    "workspaceTests": {
+      "tasks": 22,
+      "webTests": 801,
+      "webAssertions": 8782
+    },
+    "typecheck": {
+      "tasks": 25
+    },
+    "frontendBuild": "passed; not packaged"
+  },
+  "cleanup": {
+    "ownedSyntheticBooksRemaining": 0,
+    "sqliteTitleCount": 0,
+    "contributions": 0,
+    "taskWorkerContributionCounts": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "processExit": 143,
+    "listeningPortsRemaining": [],
+    "windowRestored": [
+      1200,
+      800
+    ],
+    "eventHistoryRewritten": false
+  },
+  "findings": [
+    "An activation mutation is rejected by the lifecycle ledger even if plugin code attempts to catch it; fixture now asserts activation failure and zero retained contributions.",
+    "Revision 1 is a preflight receipt that can include another job's snapshot, not proof of an acquired lease. The shared-read fixture waits for repository progress revision >=2 before cancellation; an earlier preflight cancellation can legitimately restart work.",
+    "Cancellation releases an owned request, never guarantees global extraction stop or rollback of dispatched source reads/writes/downloads.",
+    "Worker lifetime abort plus observer disposal verified against actual runtime; after retiring one shared consumer, the survivor completes and unsubscribed callback count stays fixed.",
+    "No task-level deadline or durable scheduler was introduced."
+  ],
+  "remaining": [
+    "explicit pause/resume and priority control",
+    "durable task/error history and timeout",
+    "live declarative task-view updates (MORE05)",
+    "virtual derived text index",
+    "all supported formats and large-book performance",
+    "physical input and full accessibility/localization",
+    "marketplace installation/upgrade",
+    "packaged and Windows/Linux",
+    "real LLM tool-selection run",
+    "all remaining Agent/plugin capabilities and W01-W32"
+  ],
+  "warnings": [
+    "Existing 37 Rust compile warnings and future incompatibility warning",
+    "Initial WebContent termination recovered on boot",
+    "MCP bridge version-report warning",
+    "Existing IMK warning",
+    "Existing frontend chunk-size and mixed dynamic/static import warnings"
+  ]
+}

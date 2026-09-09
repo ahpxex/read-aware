@@ -14,6 +14,10 @@
   "errors": {
     "bookTextExtractionFailed": "No se pudo preparar parte del texto del libro. Reintenta para continuar las secciones pendientes.",
     "bookTextUnsupported": "Este libro no ofrece secciones de texto compatibles con el índice de capítulos.",
+    "bookTextCancelled": "Se canceló esta solicitud de preparación del texto.",
+    "bookTextBusy": "La preparación del texto está en curso. Espere a que termine antes de reconstruir el índice.",
+    "bookTextTaskNotFound": "Esta solicitud de texto ya no está disponible para quien la invoca.",
+    "bookTextTaskLimit": "Hay demasiadas solicitudes de texto u observadores activos. Termine o cancele primero las solicitudes existentes.",
     "settingsInvalidShortcut": "Elige una tecla válida y modificadores opcionales. Escape está reservado para cerrar las ventanas superpuestas.",
     "settingsShortcutConflict": "Este atajo ya está asignado. Elige otra combinación o cambia a la vez las asignaciones en conflicto.",
     "readerPlaybackFailed": "La lectura en voz alta se detuvo porque no se pudo reproducir el audio. Inténtalo de nuevo o elige otra voz.",

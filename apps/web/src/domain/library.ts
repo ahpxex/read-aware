@@ -14,6 +14,8 @@ import type {
   BookLocationSearch,
   BookLocationSearchPage,
   BookTextSnapshot,
+  BookTextPrepareOptions,
+  BookTextTaskSnapshot,
 } from "@read-aware/core";
 import { i18n } from "../i18n";
 import { emitAppEvent } from "../platform/app-events";
@@ -38,6 +40,7 @@ import {
   ensureBookTextExtracted,
   getPersistedBookText,
   getBookTextSnapshot,
+  createBookTextTaskOwner,
   type ExtractedChapter,
 } from "../features/library/lib/book-text-store";
 import {
@@ -79,6 +82,8 @@ export type LibraryQueries = {
     get(bookId: string): Promise<BookSummary | null>;
     getToc(bookId: string): Promise<ChapterRef[]>;
     getTextState(bookId: string): Promise<BookTextSnapshot>;
+    getTextTask(bookId: string, taskId: string): Promise<BookTextTaskSnapshot>;
+    listTextTasks(bookId: string): Promise<BookTextTaskSnapshot[]>;
     getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
     getNavigationToc(bookId: string, signal?: AbortSignal): Promise<BookNavigationToc>;
     searchLocations(input: BookLocationSearch, signal?: AbortSignal): Promise<BookLocationSearchPage>;
@@ -91,6 +96,8 @@ export type LibraryQueries = {
 
 export type LibraryCommands = {
   books: {
+    prepareText(bookId: string, options?: BookTextPrepareOptions): Promise<BookTextTaskSnapshot>;
+    cancelTextTask(bookId: string, taskId: string): Promise<BookTextTaskSnapshot>;
     importBook(input: {
       fileName: string;
       data: ArrayBuffer | Uint8Array;
@@ -115,14 +122,20 @@ export type LibraryDomain = {
   commands: LibraryCommands;
   events: {
     subscribe: DomainEventSubscribe<(typeof LIBRARY_EVENTS)[number]>;
+    observeTextTask(bookId: string, taskId: string, listener: (snapshot: BookTextTaskSnapshot) => void | Promise<void>): () => void;
   };
 };
 
-export function createLibraryDomain(origin: EventOrigin): LibraryDomain {
+const agentTextTasks = createBookTextTaskOwner();
+
+export function createLibraryDomain(origin: EventOrigin, lifetime?: AbortSignal): LibraryDomain {
+  const textTasks = origin === "agent" ? agentTextTasks : createBookTextTaskOwner(lifetime);
   const queries: LibraryQueries = {
     books: {
       getNavigationToc: getBookNavigationToc,
       getTextState: getBookTextSnapshot,
+      getTextTask: async (bookId, taskId) => textTasks.get(bookId, taskId),
+      listTextTasks: async bookId => textTasks.list(bookId),
       searchLocations: searchBookLocations,
       list: async () => (await listLibraryBooks()).map(toBookSummary),
       get: async (bookId) => {
@@ -154,6 +167,8 @@ export function createLibraryDomain(origin: EventOrigin): LibraryDomain {
 
   const commands: LibraryCommands = {
     books: {
+      prepareText: (bookId, options) => textTasks.start(bookId, options),
+      cancelTextTask: async (bookId, taskId) => textTasks.cancel(bookId, taskId),
       importBook: async (input) => {
         const file = new File([input.data], String(input.fileName));
         const outcome = await importBook(
@@ -224,6 +239,6 @@ export function createLibraryDomain(origin: EventOrigin): LibraryDomain {
   return {
     queries,
     commands,
-    events: { subscribe: domainSubscribe(LIBRARY_EVENTS, origin) },
+    events: { subscribe: domainSubscribe(LIBRARY_EVENTS, origin), observeTextTask: (bookId, taskId, listener) => textTasks.observe(bookId, taskId, listener) },
   };
 }

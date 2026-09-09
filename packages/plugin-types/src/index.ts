@@ -81,7 +81,7 @@ import type {
 
 // Re-exported so plugin authors can name the underlying vocabulary without
 // depending on @read-aware/core directly.
-export type { AnnotationSnapshot, AnnotationMutation, AnnotationCommitResult, AnnotationPage, AnnotationPageQuery, BookTocEntry, BookNavigationToc, BookLocationSearch, BookLocationSearchPage, BookLocationHit,
+export type { BookTextSnapshot, BookTextTaskSnapshot, BookTextPrepareOptions, AnnotationSnapshot, AnnotationMutation, AnnotationCommitResult, AnnotationPage, AnnotationPageQuery, BookTocEntry, BookNavigationToc, BookLocationSearch, BookLocationSearchPage, BookLocationHit,
   ReadingLocation, ReadingTarget, ReadingSessionSnapshot, ReadingSessionGuard, ReadingNavigationReceipt, ReadingPlaybackSnapshot, ReadingPlaybackReceipt, ReadingModeConfiguration, ReadingModeDescriptor, ReadingModeSnapshot, ReadingModeReceipt, ReadingModePosition, ReadingModeStepOutcome, ReadingModeStepReceipt } from "@read-aware/core";
 export type {
   BookFormat,
@@ -1159,6 +1159,8 @@ export type PluginLibraryDomain = {
       getToc(bookId: string): Promise<PluginChapterRef[]>;
       /** Read-only derived-text state. Never starts parsing, fetching, or extraction. */
       getTextState(bookId: string): Promise<import("@read-aware/core").BookTextSnapshot>;
+      getTextTask(bookId: string, taskId: string): Promise<import("@read-aware/core").BookTextTaskSnapshot>;
+      listTextTasks(bookId: string): Promise<import("@read-aware/core").BookTextTaskSnapshot[]>;
     getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
     getNavigationToc(bookId: string): Promise<import("@read-aware/core").BookNavigationToc>;
     searchLocations(input: import("@read-aware/core").BookLocationSearch): Promise<import("@read-aware/core").BookLocationSearchPage>;
@@ -1170,6 +1172,10 @@ export type PluginLibraryDomain = {
   };
   commands?: {
     books: {
+      /** Starts an actor-owned background request. A receipt is not completion. */
+      prepareText(bookId: string, options?: import("@read-aware/core").BookTextPrepareOptions): Promise<import("@read-aware/core").BookTextTaskSnapshot>;
+      /** Cancels only this activation's request; shared work or dispatched writes may continue. */
+      cancelTextTask(bookId: string, taskId: string): Promise<import("@read-aware/core").BookTextTaskSnapshot>;
       importBook(input: {
         fileName: string;
         data: ArrayBuffer | Uint8Array;
@@ -1192,7 +1198,10 @@ export type PluginLibraryDomain = {
       assignBooks(bookIds: string[], collectionId: string | null): Promise<void>;
     };
   };
-  events: { subscribe: DomainSubscribe<LibraryDomainEventType> };
+  events: {
+    subscribe: DomainSubscribe<LibraryDomainEventType>;
+    observeTextTask(bookId: string, taskId: string, handler: (snapshot: import("@read-aware/core").BookTextTaskSnapshot) => void | Promise<void>): PluginDisposable;
+  };
 };
 
 export type PluginReadingDomain = {

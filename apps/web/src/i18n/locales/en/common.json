@@ -14,6 +14,10 @@
   "errors": {
     "bookTextExtractionFailed": "Some book text could not be prepared. Try again to resume unfinished sections.",
     "bookTextUnsupported": "This book does not provide supported text sections for chapter indexing.",
+    "bookTextCancelled": "This text preparation request was cancelled.",
+    "bookTextBusy": "Text preparation is already running. Wait for it to finish before rebuilding.",
+    "bookTextTaskNotFound": "This text request is no longer available to this caller.",
+    "bookTextTaskLimit": "Too many text requests or observers are active. Finish or cancel existing requests first.",
     "settingsInvalidShortcut": "Choose a valid key and optional modifiers. Escape is reserved for closing overlays.",
     "settingsShortcutConflict": "That shortcut is already assigned. Choose another combination or update the conflicting bindings together.",
     "readerPlaybackFailed": "Read aloud stopped because audio could not be played. Try again or choose another voice.",

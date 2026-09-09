@@ -96,6 +96,7 @@ export interface InMemorySeed {
 
 function defaultSettings(): AgentSettingsSnapshot {
   return {
+    revision: 0,
     target: { kind: "global" },
     overrides: [],
     settings: [
@@ -287,6 +288,7 @@ function querySettings(
 ): AgentSettingsSnapshot {
   const target = query.target ?? { kind: "global" as const };
   return {
+    revision: settings.revision,
     target,
     overrides:
       query.section && query.section !== "reading" ? [] : settings.overrides,

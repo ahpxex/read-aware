@@ -12,6 +12,8 @@
     "copied": "已复制"
   },
   "errors": {
+    "settingsObserverLimit": "设置订阅数量已达上限。",
+    "settingsUnavailable": "无法读取设置，请重试。",
     "workspaceInvalid": "导航目标或选择集无效。",
     "workspaceMissing": "该页面、集合或所选书籍已不可用。",
     "workspaceChanged": "界面状态已改变，请检查当前状态后重试。",

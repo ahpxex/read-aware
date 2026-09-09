@@ -12,6 +12,8 @@
     "copied": "Copied"
   },
   "errors": {
+    "settingsObserverLimit": "Too many settings subscriptions are active.",
+    "settingsUnavailable": "Settings could not be read. Try again.",
     "workspaceInvalid": "The navigation target or selection is invalid.",
     "workspaceMissing": "That page, collection, or selection is no longer available.",
     "workspaceChanged": "The workspace changed. Check its current state before trying again.",

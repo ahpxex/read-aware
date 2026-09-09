@@ -161,14 +161,14 @@ function overlaySecret(slot: string, valueJson: string): boolean {
     const typedSlot = slot as SecretKey;
     if (parsed === null) {
       if (!getSecret(typedSlot)) return false;
-      deleteSecret(typedSlot);
+      deleteSecret(typedSlot, "remote");
       return true;
     }
     const sealed = (parsed as { sealed?: unknown }).sealed;
     if (typeof sealed !== "string") return false;
     const value = openSecret(key, slot, sealed);
     if (getSecret(typedSlot) === value) return false;
-    setSecret(typedSlot, value);
+    setSecret(typedSlot, value, "remote");
     return true;
   } catch (error) {
     // Sealed under a different passphrase epoch, or malformed: leave this

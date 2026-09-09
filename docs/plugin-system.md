@@ -11,7 +11,7 @@
 >
 > Concise human-facing version: [plugin-system.html](./plugin-system.html).
 
-> Audit guidance updated 2026-09-09: use the [unified capability model](./host-capability-model.md)
+> Audit guidance updated 2026-09-10: use the [unified capability model](./host-capability-model.md)
 > for target ownership, both actors, and explicit limits on infrastructure;
 > use the [current matrix](./host-capability-matrix.md) for actual wiring and
 > the [acceptance baseline](./plugin-capability-baseline.md) for GAP01–GAP18.
@@ -1032,8 +1032,73 @@ invalidate from that mirror, after all KV observers have run. Their form
 submission also returns the actual write promise. This is local persistence,
 not a guarantee that every setting has an effect consumer, that remote roaming
 has committed, or that secrets and operating-system changes are transactional.
-Native UI and remote edits still lack a complete versioned settings-domain
-change feed; see CFG10 in the capability matrix.
+Settings 1.6 adds settled snapshot observation for those sources below. The older
+`events.subscribe` remains domain-command-only, not an all-source event log;
+CFG10 retains the documented provenance and UI-effect limits.
+
+### Settled settings observation
+
+[代码] Settings **1.6** adds `queries.observe(query, handler)` and a required
+numeric `revision` on `SettingsSnapshot`. Existing Agent `get_settings` and
+`update_settings` use the same revision; the model re-reads on demand rather than
+owning a background observer. Plugin observation uses the same target/section
+query and exact read grants as snapshot. Discover-only grants reveal no values.
+Snapshot, discover and field read wait for domain, KV and credential writes to
+settle. Credential waiting protects `credentialConfigured`, not access to keys.
+
+Results are `{ status: "ready", snapshot, source, origin }` or
+`{ status: "error", revision, code, source, origin }`, never raw failure text.
+Source is `initial`, `local`, `remote`, `restore`, `catalog`, or `mixed`.
+Domain and plugin-storage writes retain their declared actor. Unattributed
+legacy native writes, unknown remote actors, catalog changes and mixed actors
+use null. Coalesced source is invalidation provenance, not an edit audit trail.
+Only changed authorized projections are delivered, including options,
+availability and conflict metadata. Hidden/no-op commits can advance the clock
+without delivering another projection. Revision is process-local, not HLC,
+replay, exactly-once delivery, a frozen pagination session or a write CAS guard.
+
+[代码] One durable KV transaction notification replaces reliance on optimistic
+mirrors. All settings persistence keys and the plugin `.settings` family
+invalidate the projection. Native UI, domain/Agent/plugin writes, roaming
+overlays, backup merges and prefix replacements use that boundary. Multi-key
+commands notify once; failed persistence delivers no successful change. Backup
+KV merge now uses one native batch and keeps its previous roaming publication
+policy; prefix replacement still does not republish edits. Declared plugins,
+theme/font registries, header/selection actions, reader mode and shortcut
+environment changes invalidate catalog metadata separately.
+
+Host credentials now use ordered optimistic writes: an older failure cannot
+overwrite a newer pending value. Successful AI credential writes invalidate only
+safe metadata, not values; sync/plugin secret changes do not enter the catalog.
+Settings reads verify both queues are settled in the same JS turn. The stores
+are not one transaction, encrypted-at-rest storage is unchanged, and this does
+not prove remote credential publication waits for local durability.
+
+[代码] There are at most 64 observers globally (`settings/observer-limit`). Each
+serializes reads/callbacks and coalesces slow delivery. Invalidation during a
+read triggers another read rather than attaching an outdated cause. Handler
+errors log without poisoning future delivery. Read errors carry stable codes,
+with `settings/unavailable` as the unknown-error fallback; recovery is on the
+next invalidation or subscription, not a timer. Disposal suppresses later
+delivery but cannot undo an already-running callback. Plugin subscriptions stage
+until promotion and retire with the owner. Captured reads check cancellation
+before and after waiting; queued plugin writes check it before dispatch. Already
+dispatched persistence is not rolled back by retirement.
+
+Workspace Profiles **0.3** combines this observer with UI 1.2 live publication.
+Current workspace shows seven preset values, updates without refresh, retains
+the last sample beside a localized read error, clears errors on recovery, and
+unsubscribes on leaving. Profile CRUD and explicit shortcut editing are unchanged.
+
+[环境] [Desktop evidence](./evidence/settings-observation-2026-09-10.json)
+records no/read/write Workers, actual Appearance-page click, production Agent
+book/global tools, remote-overlay/prefix-restore sources, theme registration and
+removal, compiled plugin at 1200×800 and 800×650, SQLite rejection without a false
+observation, and disposal/cleanup. Synthetic IPC tests cover credential overlap,
+failure and dual-queue barriers; real credentials were not changed. Autonomous
+models, full backup/network sync, all settings drafts/effects, packaged builds,
+Windows/Linux and high load remain unverified. Legacy command events and unknown
+legacy actor provenance remain explicit limits.
 
 Since `domains.settings` 1.2, nine previously host-only preferences are shared
 by the Agent tools and granted plugins:

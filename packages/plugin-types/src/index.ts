@@ -44,6 +44,7 @@ export type { BookRemovalReceipt, BookFileReleaseReceipt, BookRemovalCleanupPage
 export type { ReadingTimeQuery, ReadingTimeCursor, ReadingTimeSnapshot, ReadingTimeObservation, PendingReadingTime } from "@read-aware/core";
 export type { ReadingInsights, ReadingInsightsQuery, ReadingPeriod } from "@read-aware/core";
 export type { WorkspaceTarget, WorkspaceQuery, WorkspaceSnapshot, WorkspaceReceipt, WorkspaceSettingsSection } from "@read-aware/core";
+export type { SettingsObservation, SettingsObservationCause } from "@read-aware/core";
 import type {
   AnnotationItem,
   AskItem,
@@ -1352,6 +1353,8 @@ export type PluginSettingsDomain = {
   queries: {
     /** Since settings 1.3: one host snapshot after prior queued writes settle, filtered by exact path grants. */
     snapshot(query?: SettingsQuery): Promise<import("@read-aware/core").SettingsSnapshot>;
+    /** Settled snapshots after native, domain, remote, restore and catalog changes. Coalesces slow callbacks. */
+    observe(query: SettingsQuery, handler: (observation: import("@read-aware/core").SettingsObservation) => unknown): PluginDisposable;
     discover(query?: SettingsQuery): Promise<SettingCatalogEntry[]>;
     read(path: string, target?: SettingsQueryTarget): Promise<SettingReadResult>;
   };

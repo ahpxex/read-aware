@@ -10,6 +10,7 @@ import type {
   SettingsQueryTarget,
   SettingsSnapshot,
   SettingsUpdateResult,
+  SettingsObservation,
 } from "@read-aware/core";
 import { getDefaultStore } from "jotai";
 import { createLogger } from "../../platform/logger";
@@ -38,7 +39,7 @@ import {
 } from "../../features/plugins/state/plugin-store";
 import { getAIConfig } from "../../features/ai/lib/ai-config";
 import { commitSettingsDraft } from "./persistence";
-import { afterLocalKVWrites } from "../../platform/local-store";
+import { afterSettingsWrites, initializeSettingsObservation, settingsObservation } from "./observation-sources";
 import { getDefaultMarkColor } from "../../features/annotations/lib/annotation-prefs";
 import { getUpdateChannel } from "../../features/update/lib/update-channel";
 import { shortcutEnvironmentAtom } from "../../features/settings/state/shortcut-state";
@@ -130,7 +131,7 @@ function readPluginSettingsDraft(): SettingsDraft["pluginSettings"] {
 }
 
 function settingsSnapshot(query?: SettingsQuery): SettingsSnapshot {
-  return settingsSnapshotFromDraft(readDraft(), query);
+  return { ...settingsSnapshotFromDraft(readDraft(), query), revision: settingsObservation.revision };
 }
 
 function visibleSnapshot(
@@ -162,7 +163,7 @@ async function applySettingsChanges(
 ): Promise<SettingsUpdateResult> {
   const before = readDraft();
   const result = applySettingChangesToDraft(before, changes);
-  await commitSettingsDraft(before, result.draft);
+  await commitSettingsDraft(before, result.draft, origin);
   if (result.changed.length > 0) {
     const event: SettingsChangedEvent = {
       type: "settings.changed",
@@ -179,16 +180,19 @@ async function applySettingsChanges(
   }
   return {
     changed: result.changed,
-    settings: settingsSnapshotFromDraft(result.draft),
+    settings: { ...settingsSnapshotFromDraft(result.draft), revision: settingsObservation.revision },
   };
 }
 
 // Read each patch from the settled predecessor, not from a failed optimistic
 // record. Different actors share this order, including after rejected writes.
 let updateTail: Promise<unknown> = Promise.resolve();
-function enqueueSettingsChanges(origin: EventOrigin, changes: SettingChange[]): Promise<SettingsUpdateResult> {
+function enqueueSettingsChanges(origin: EventOrigin, changes: SettingChange[], signal?: AbortSignal): Promise<SettingsUpdateResult> {
   const accepted = structuredClone(changes);
-  const result = updateTail.then(() => afterLocalKVWrites(() => applySettingsChanges(origin, accepted)));
+  const result = updateTail.then(() => afterSettingsWrites(() => {
+    signal?.throwIfAborted();
+    return applySettingsChanges(origin, accepted);
+  }));
   updateTail = result.then(() => {}, () => {});
   return result;
 }
@@ -196,11 +200,12 @@ function enqueueSettingsChanges(origin: EventOrigin, changes: SettingChange[]): 
 export type SettingsDomain = {
   queries: {
     snapshot(query?: SettingsQuery): Promise<SettingsSnapshot>;
+    observe(query: SettingsQuery, handler: (observation: SettingsObservation) => unknown): () => void;
     discover(query?: SettingsQuery): Promise<SettingCatalogEntry[]>;
     read(path: string, target?: SettingsQueryTarget): Promise<SettingReadResult>;
   };
   commands: {
-    update(changes: SettingChange[]): Promise<SettingsUpdateResult>;
+    update(changes: SettingChange[], signal?: AbortSignal): Promise<SettingsUpdateResult>;
   };
   events: {
     subscribe(handler: (event: SettingsChangedEvent) => void): () => void;
@@ -211,25 +216,35 @@ export function createSettingsDomain(
   origin: EventOrigin,
   access?: SettingsAccessPolicy,
 ): SettingsDomain {
+  initializeSettingsObservation();
   const policy = actorPolicy(origin, access);
+  const settledSnapshot = async (query?: SettingsQuery) => {
+    const accepted = query === undefined ? undefined : structuredClone(query);
+    await updateTail;
+    return afterSettingsWrites(() => visibleSnapshot(policy, accepted));
+  };
   return {
     queries: {
-      snapshot: async (query) => {
+      snapshot: settledSnapshot,
+      observe: (query, handler) => {
+        const accepted = structuredClone(query);
+        return settingsObservation.observe(() => settledSnapshot(accepted), handler);
+      },
+      discover: async (query) => {
         const accepted = query === undefined ? undefined : structuredClone(query);
         await updateTail;
-        return afterLocalKVWrites(() => visibleSnapshot(policy, accepted));
-      },
-      discover: async (query) =>
-        settingsSnapshot(query).settings
+        const snapshot = await afterSettingsWrites(() => settingsSnapshot(accepted));
+        return snapshot.settings
           .filter((setting) => canAccess(policy, "discover", setting.path))
-          .map(({ value: _value, shortcut: _shortcut, ...definition }) => ({ ...definition, writable: definition.writable && canAccess(policy, "write", definition.path) })),
+          .map(({ value: _value, shortcut: _shortcut, ...definition }) => ({ ...definition, writable: definition.writable && canAccess(policy, "write", definition.path) }));
+      },
       read: async (path, target) => {
         const normalizedPath = String(path);
         if (!canAccess(policy, "read", normalizedPath)) {
           throw new Error(`settings read is not permitted: ${normalizedPath}`);
         }
         const resolvedTarget = target ?? { kind: "global" as const };
-        const descriptor = settingsSnapshot({ target: resolvedTarget }).settings.find(
+        const descriptor = (await settledSnapshot({ target: resolvedTarget })).settings.find(
           (setting) => setting.path === normalizedPath,
         );
         if (!descriptor) throw new Error(`unknown setting: ${normalizedPath}`);
@@ -241,13 +256,14 @@ export function createSettingsDomain(
       },
     },
     commands: {
-      update: async (changes) => {
+      update: async (changes, signal) => {
+        signal?.throwIfAborted();
         for (const change of changes) {
           if (!canAccess(policy, "write", change.path)) {
             throw new Error(`settings write is not permitted: ${change.path}`);
           }
         }
-        const result = await enqueueSettingsChanges(origin, changes);
+        const result = await enqueueSettingsChanges(origin, changes, signal);
         return { ...result, settings: filterSnapshot(policy, result.settings) };
       },
     },

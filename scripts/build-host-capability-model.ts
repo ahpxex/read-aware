@@ -6,7 +6,7 @@ import { validateModel } from "./host-capability-model-check";
 const { rows, owners } = validateModel();
 const title = "ReadAware 宿主能力统一模型";
 const status = "目标模型与现状映射；不是 API 已实现声明";
-const date = "2026-09-09";
+const date = "2026-09-10";
 const esc = (s: string) => s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 const md = (s: string) => s.replaceAll("|", "\\|").replaceAll("\n", " ");
 const links = (ids: string[]) => ids.map(id => `[${id}](#${id})`).join(" · ");

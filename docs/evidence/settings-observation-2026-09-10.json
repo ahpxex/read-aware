@@ -1,0 +1,27 @@
+{
+  "date": "2026-09-10",
+  "environment": { "runtime": "Tauri macOS debug", "appIdentifier": "com.readaware.app.capability-e2e", "frontendPort": 5184, "bridgePort": 9224, "formalDataTouched": false },
+  "contract": { "domain": "settings 1.6", "plugin": "Workspace Profiles 0.3.0", "agentTools": ["get_settings", "update_settings"], "rows": ["CFG10", "UI04"] },
+  "observations": [
+    { "case": "Worker grants", "result": "No-grant observer emitted one empty initial projection only. Read-only observer returned appearance.theme/shelf.layout with writable:false; its write was denied. Granted writer returned writable:true." },
+    { "case": "Commit source and revision", "result": "Read Worker observed revisions 63 local/null light, 64 local/plugin:capability-settings-observation-write dark, 65 remote/null light, 66 restore/null system, 67 local/agent dark. Agent get_settings used the same revision clock." },
+    { "case": "Catalog lifetime", "result": "Registering an owned host theme contribution increased allowed options from 5 to 6 at catalog revision 68. Disposal reduced them to 5 at revision 72 without writing a setting." },
+    { "case": "Native user action", "result": "Clicking Dark in the actual Appearance page emitted local/null dark at revision 73. Legacy writes deliberately do not invent a user origin." },
+    { "case": "Compiled composition", "result": "Workspace Profiles > Current workspace showed seven authorized preset values. Remote-overlay light and Agent dark changed the already-open view without refresh and matched the application theme." },
+    { "case": "SQLite rejection", "result": "Owned BEFORE UPDATE trigger limited to read-aware-app-settings rejected Agent light with db/error. Read Worker count stayed 9, view stayed dark, synthetic SQL text was not visible. Dropping the trigger let Agent light succeed at revision 71." },
+    { "case": "Dispose", "result": "Read Worker stopped at 12 observations. Later native write left its count 12; ungranted Worker still had only its initial empty projection." }
+  ],
+  "screenshotsInspected": ["/tmp/settings-observation-profile-1200.png", "/tmp/settings-observation-profile-800.png"],
+  "viewportChecks": ["1200x800 live light view", "800x650 live dark view, bounded content scrolling and no page horizontal overflow"],
+  "boundaries": [
+    "Agent used production ports deterministically, not autonomous model inference.",
+    "Remote test used the real local overlay setter with remote metadata, not network relay merge or cross-device convergence.",
+    "Catalog test used the actual host registry, not marketplace/theme approval.",
+    "Credential ordering/rollback and dual-queue reads used synthetic IPC, not real encrypted files or user credentials.",
+    "Read-error recovery, coalescing, cap and queued retirement are unit tests, not native stress claims.",
+    "Legacy settings.changed stays domain-command-only. Use queries.observe for all-source projections. Unknown legacy actors stay null.",
+    "Revision is process-local, not replay, CAS, a sync clock or exactly-once delivery. Hidden/no-op changes may advance it without delivery.",
+    "Packaged/Windows/Linux, full settings drafts/effects, full backup restore and remote credential publication remain unverified."
+  ],
+  "cleanup": { "restoredOriginalPreferenceRecords": true, "backupMarkerCount": 0, "ownedTriggerCount": 0, "ownedContributions": 0, "originalBookCount": 2, "processGroup": 99677, "exitCode": 143, "unownedProcessGroupNotOperated": 89360 }
+}

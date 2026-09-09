@@ -238,14 +238,27 @@ export function buildPluginContext(
     domains: {
       settings: {
         queries: {
-          snapshot: settingsDomain.queries.snapshot,
-          discover: settingsDomain.queries.discover,
-          read: settingsDomain.queries.read,
+          snapshot: async query => {
+            lifecycle.signal.throwIfAborted();
+            const result = await settingsDomain.queries.snapshot(query);
+            lifecycle.signal.throwIfAborted(); return result;
+          },
+          observe: (query, handler) => track(() => ({ dispose: settingsDomain.queries.observe(query, handler) })),
+          discover: async query => {
+            lifecycle.signal.throwIfAborted();
+            const result = await settingsDomain.queries.discover(query);
+            lifecycle.signal.throwIfAborted(); return result;
+          },
+          read: async (path, target) => {
+            lifecycle.signal.throwIfAborted();
+            const result = await settingsDomain.queries.read(path, target);
+            lifecycle.signal.throwIfAborted(); return result;
+          },
         },
         commands: {
-          update: (...args) => {
+          update: changes => {
             lifecycle.assertActive("domains.settings.commands.update");
-            return settingsDomain.commands.update(...args);
+            return settingsDomain.commands.update(changes, lifecycle.signal);
           },
         },
         events: {
@@ -478,10 +491,10 @@ export function buildPluginContext(
         },
         set: (key, value) => {
           return lifecycle.storageWrite("services.storage.set", () =>
-            localKV.setItemAsync(storagePrefix + key, JSON.stringify(value ?? null)));
+            localKV.setItemAsync(storagePrefix + key, JSON.stringify(value ?? null), selfOrigin));
         },
         remove: (key) => {
-          return lifecycle.storageWrite("services.storage.remove", () => localKV.removeItemAsync(storagePrefix + key));
+          return lifecycle.storageWrite("services.storage.remove", () => localKV.removeItemAsync(storagePrefix + key, selfOrigin));
         },
         flush: async () => {
           await lifecycle.drainStorageWrites();

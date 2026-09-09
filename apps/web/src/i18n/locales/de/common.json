@@ -12,6 +12,8 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "settingsObserverLimit": "Zu viele aktive Einstellungsabonnements.",
+    "settingsUnavailable": "Die Einstellungen konnten nicht gelesen werden. Versuchen Sie es erneut.",
     "workspaceInvalid": "Das Navigationsziel oder die Auswahl ist ungültig.",
     "workspaceMissing": "Die Seite, Sammlung oder Auswahl ist nicht mehr verfügbar.",
     "workspaceChanged": "Der Arbeitsbereich hat sich geändert. Prüfen Sie den aktuellen Zustand.",

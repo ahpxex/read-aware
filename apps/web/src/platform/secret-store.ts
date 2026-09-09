@@ -18,6 +18,7 @@ import { errorCode } from "@read-aware/core";
 import { emitAppEvent } from "./app-events";
 import { isTauri } from "./environment";
 import { createLogger } from "./logger";
+import { KVWriteQueue, type KVWriteOrigin } from "./kv-write-queue";
 
 const log = createLogger("secrets");
 
@@ -43,6 +44,31 @@ const LEGACY_AI_KEY_STORAGE_KEY = "read-aware-ai-key";
 
 const snapshot = new Map<SecretKey, string>();
 let hydrated = false;
+const commitListeners = new Set<(key: SecretKey, source: KVWriteOrigin) => void>();
+/** Host-only invalidation; values never leave the credential boundary. */
+export function onSecretCommit(listener: (key: SecretKey, source: KVWriteOrigin) => void): () => void {
+  commitListeners.add(listener);
+  return () => commitListeners.delete(listener);
+}
+function notifyCommit(key: SecretKey, source: KVWriteOrigin): void {
+  for (const listener of [...commitListeners]) {
+    try { listener(key, source); } catch (error) { log.warn("Credential observer failed", error); }
+  }
+}
+const writes = new KVWriteQueue({
+  read: key => snapshot.get(key as SecretKey) ?? null,
+  mirror: (key, value) => { if (value === null) snapshot.delete(key as SecretKey); else snapshot.set(key as SecretKey, value); },
+  persist: (key, value) => value === null ? invoke("secret_delete", { key }) : invoke("secret_set", { key, value }),
+  committed: () => {},
+  settled: commit => { for (const { key } of commit.entries) notifyCommit(key as SecretKey, commit.source === "remote" ? "remote" : "local"); },
+  failed: (key, error) => {
+    log.error(`failed to persist "${key}"`, error);
+    emitAppEvent("local-write-failed", { kind: "secret", code: errorCode(error) });
+  },
+});
+export function afterSecretWrites<T>(operation: () => T | Promise<T>): Promise<T> {
+  return isTauri() ? writes.afterPending(operation) : Promise.resolve().then(operation);
+}
 
 /**
  * Fill the in-memory snapshot, and move any key an older build left in
@@ -90,22 +116,13 @@ export function getSecret(key: SecretKey): string {
   return snapshot.get(key) ?? "";
 }
 
-export function setSecret(key: SecretKey, value: string): void {
+export function setSecret(key: SecretKey, value: string, source: KVWriteOrigin = "local"): void {
   if (!value) {
-    deleteSecret(key);
+    deleteSecret(key, source);
     return;
   }
-  const previous = snapshot.get(key);
-  snapshot.set(key, value);
-  if (!isTauri()) return;
-  void invoke("secret_set", { key, value }).catch((error) => {
-    // Roll back so the UI can't claim a credential is stored when the next
-    // launch won't have it; the app layer toasts off this event.
-    log.error(`failed to persist "${key}"`, error);
-    if (previous === undefined) snapshot.delete(key);
-    else snapshot.set(key, previous);
-    emitAppEvent("local-write-failed", { kind: "secret", code: errorCode(error) });
-  });
+  if (isTauri()) { void writes.write(key, value, source); return; }
+  snapshot.set(key, value); notifyCommit(key, source);
 }
 
 /** Hydrated slot names under a prefix — never the values. */
@@ -113,15 +130,9 @@ export function listSecretSlots(prefix: string): SecretKey[] {
   return [...snapshot.keys()].filter((key) => key.startsWith(prefix));
 }
 
-export function deleteSecret(key: SecretKey): void {
-  const previous = snapshot.get(key);
-  snapshot.delete(key);
-  if (!isTauri()) return;
-  void invoke("secret_delete", { key }).catch((error) => {
-    log.error(`failed to delete "${key}"`, error);
-    if (previous !== undefined) snapshot.set(key, previous);
-    emitAppEvent("local-write-failed", { kind: "secret", code: errorCode(error) });
-  });
+export function deleteSecret(key: SecretKey, source: KVWriteOrigin = "local"): void {
+  if (isTauri()) { void writes.write(key, null, source); return; }
+  snapshot.delete(key); notifyCommit(key, source);
 }
 
 // ─── Plugin-scoped secrets ───────────────────────────────────────────────────

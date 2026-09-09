@@ -12,6 +12,8 @@
     "copied": "コピーしました"
   },
   "errors": {
+    "settingsObserverLimit": "設定の購読数が上限に達しました。",
+    "settingsUnavailable": "設定を読み取れませんでした。もう一度お試しください。",
     "workspaceInvalid": "移動先または選択が無効です。",
     "workspaceMissing": "ページ、コレクション、または選択した本は利用できません。",
     "workspaceChanged": "画面の状態が変わりました。現在の状態を確認して再試行してください。",

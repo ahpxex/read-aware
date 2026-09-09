@@ -61,7 +61,8 @@ var en = {
   defaultBinding: "Default",
   customBinding: "Custom",
   key: "Key",
-  shortcutSaved: "Shortcut updated"
+  shortcutSaved: "Shortcut updated",
+  current: "Current workspace"
 };
 var zh = {
   title: "工作区预设",
@@ -79,7 +80,8 @@ var zh = {
   defaultBinding: "默认",
   customBinding: "自定义",
   key: "按键",
-  shortcutSaved: "快捷键已更新"
+  shortcutSaved: "快捷键已更新",
+  current: "当前工作区"
 };
 var copy = (locale) => locale.startsWith("zh") ? zh : en;
 var labels = {
@@ -119,6 +121,28 @@ async function shortcutView(ctx) {
     await ctx.domains.settings.commands.update([{ path, value }]);
     return { toast: t.shortcutSaved, close: true };
   } };
+}
+
+// src/current.ts
+async function currentWorkspaceView(ctx) {
+  let snapshot = await ctx.domains.settings.queries.snapshot({ target: { kind: "global" } });
+  let error, revision = 0;
+  const content = () => ({ kind: "blocks", blocks: [
+    { kind: "heading", text: copy(ctx.locale).current },
+    ...error ? [{ kind: "error", code: error }] : [],
+    ...snapshot.settings.filter((setting) => PROFILE_PATHS.some((path) => path === setting.path)).map((setting) => ({
+      kind: "text",
+      text: `${settingLabel(ctx.locale, setting.path)}: ${String(setting.value)}`
+    }))
+  ] });
+  return { ...content(), live: { subscribe: (channel) => ctx.domains.settings.queries.observe({ target: { kind: "global" } }, async (state) => {
+    if (state.status === "ready") {
+      snapshot = state.snapshot;
+      error = undefined;
+    } else
+      error = state.code;
+    await ctx.services.ui.publishView(channel, { revision: ++revision, view: content() });
+  }) } };
 }
 
 // src/views.ts
@@ -164,6 +188,7 @@ async function profilesView(ctx) {
   const profiles = await listProfiles(ctx);
   return { kind: "list", title: t.title, emptyText: t.empty, actions: [
     { id: "save", label: t.save, icon: "plus", run: () => ({ view: saveView(ctx) }) },
+    { id: "current", label: t.current, icon: "rows", run: async () => ({ view: await currentWorkspaceView(ctx) }) },
     { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await profilesView(ctx), navigation: "replace" }) },
     { id: "shortcut", label: t.shortcut, icon: "rows", run: async () => ({ view: await shortcutView(ctx) }) }
   ], items: profiles.map((doc) => ({

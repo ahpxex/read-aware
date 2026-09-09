@@ -12,6 +12,8 @@
     "copied": "已複製"
   },
   "errors": {
+    "settingsObserverLimit": "設定訂閱數量已達上限。",
+    "settingsUnavailable": "無法讀取設定，請重試。",
     "workspaceInvalid": "導覽目標或選取範圍無效。",
     "workspaceMissing": "該頁面、集合或所選書籍已無法使用。",
     "workspaceChanged": "介面狀態已變更，請確認目前狀態後重試。",

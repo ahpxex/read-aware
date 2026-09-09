@@ -13,9 +13,10 @@ import { CONTENT_TYPOGRAPHY_KEY } from "../../features/settings/lib/content-typo
 import { DEFAULT_COLOR_KEY } from "../../features/annotations/lib/annotation-prefs";
 import { CHANNEL_KV_KEY } from "../../features/update/lib/update-channel";
 import type { SettingsDraft } from "./catalog-runtime";
+import type { EventOrigin } from "@read-aware/core";
 
 /** Only validated catalog edits reach this host-owned transaction. Secrets are never written here. */
-export function commitSettingsDraft(before: SettingsDraft, next: SettingsDraft): Promise<void> {
+export function commitSettingsDraft(before: SettingsDraft, next: SettingsDraft, origin: EventOrigin): Promise<void> {
   const entries = new Map<string, string>();
   const record = (key: string, previous: unknown, value: unknown) => {
     const encoded = JSON.stringify(value);
@@ -38,5 +39,5 @@ export function commitSettingsDraft(before: SettingsDraft, next: SettingsDraft):
   for (const [pluginId, values] of Object.entries(next.pluginSettings.values)) {
     record(pluginSettingsKey(pluginId), before.pluginSettings.values[pluginId], values);
   }
-  return setLocalKVBatch(entries);
+  return setLocalKVBatch(entries, origin);
 }

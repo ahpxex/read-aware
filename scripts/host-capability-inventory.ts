@@ -51,7 +51,7 @@ const agentMap = pairs([
 ]);
 const pluginMap = pairs([
   ["domains.settings.queries.snapshot domains.settings.queries.discover domains.settings.queries.read domains.settings.commands.update", "CFG01"],
-  ["domains.settings.events.subscribe services.storage.onChange", "CFG10"],
+  ["domains.settings.events.subscribe domains.settings.queries.observe services.storage.onChange", "CFG10"],
   ["domains.library.queries.books.list domains.library.queries.books.get", "LIB01"],
   ["domains.library.queries.books.getToc", "TXT01"], ["domains.library.queries.books.getChapterText", "TXT03"],
   ["domains.library.queries.books.getTextState", "TXT04"],

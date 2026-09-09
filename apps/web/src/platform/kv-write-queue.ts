@@ -1,27 +1,36 @@
+import type { EventOrigin } from "@read-aware/core";
+
 type Mutation = { value: string | null; done: Promise<void> };
 type KeyState = { durable: string | null; mutations: Mutation[] };
 export type KVWriteOrigin = "local" | "remote";
+export type KVCommit = {
+  entries: { key: string; value: string | null }[];
+  source: KVWriteOrigin | "restore";
+  actor: EventOrigin | null;
+};
 
 /** Ordered durable writes with an optimistic overlay; a failed older write cannot undo a newer one. */
 export class KVWriteQueue {
   private tail: Promise<void> = Promise.resolve();
   private readonly keys = new Map<string, KeyState>();
+  get pending(): boolean { return this.keys.size > 0; }
 
   constructor(private readonly deps: {
     read(key: string): string | null;
     mirror(key: string, value: string | null): void;
     persist(key: string, value: string | null): Promise<void>;
     committed(key: string, value: string | null, origin: KVWriteOrigin): void;
+    settled?(commit: KVCommit): void;
     failed(key: string, error: unknown): void;
   }) {}
 
-  write(key: string, value: string | null, origin: KVWriteOrigin = "local"): Promise<void> {
-    return this.enqueue(new Map([[key, value]]), () => this.deps.persist(key, value), origin);
+  write(key: string, value: string | null, origin: KVWriteOrigin = "local", actor: EventOrigin | null = null): Promise<void> {
+    return this.enqueue(new Map([[key, value]]), () => this.deps.persist(key, value), origin, actor);
   }
 
   /** Atomic user edits publish only after the entire native transaction commits. */
-  batch(values: ReadonlyMap<string, string | null>, persist: () => Promise<void>): Promise<void> {
-    return this.enqueue(values, persist, "local");
+  batch(values: ReadonlyMap<string, string | null>, persist: () => Promise<void>, actor: EventOrigin | null = null, source: "local" | "restore" = "local"): Promise<void> {
+    return this.enqueue(values, persist, "local", actor, source);
   }
 
   /** Invoke without a microtask gap between the settled-state check and the read/enqueue. */
@@ -43,6 +52,8 @@ export class KVWriteQueue {
     values: ReadonlyMap<string, string | null>,
     persist: () => Promise<void>,
     origin?: KVWriteOrigin,
+    actor: EventOrigin | null = null,
+    source: KVCommit["source"] = origin ?? "restore",
   ): Promise<void> {
     const entries = [...values].map(([key, value]) => {
       const state = this.keys.get(key) ?? { durable: this.deps.read(key), mutations: [] };
@@ -68,6 +79,7 @@ export class KVWriteQueue {
           if (!state.mutations.length) this.keys.delete(key);
         }
         if (failure) this.deps.failed(entries[0]?.key ?? "replacement", failure.error);
+        else this.deps.settled?.({ entries: entries.map(({ key, value }) => ({ key, value })), source, actor });
       }
     });
     for (const { mutation } of entries) mutation.done = done;

@@ -85,6 +85,8 @@ const CODE_COPY: Record<string, CopyEntry> = {
   "ui/timeout": { key: "workspaceTimeout", retryable: true },
   "ui/reading-permission": { key: "workspaceReadingPermission", retryable: false },
   "ui/observer-limit": { key: "workspaceObserverLimit", retryable: false },
+  "settings/observer-limit": { key: "settingsObserverLimit", retryable: false },
+  "settings/unavailable": { key: "settingsUnavailable", retryable: true },
   "reading/invalid-time-query": { key: "readingTimeInvalid", retryable: false },
   "reading/stats-stale": { key: "readingTimeStale", retryable: true },
   "reading/stats-invalid": { key: "readingTimeUnavailable", retryable: false },

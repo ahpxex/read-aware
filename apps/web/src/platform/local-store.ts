@@ -19,7 +19,7 @@
  * atoms synchronously) is imported — see main.tsx. Until it resolves under
  * Tauri, the snapshot is empty and reads fall back to defaults.
  */
-import { errorCode } from "@read-aware/core";
+import { errorCode, type EventOrigin } from "@read-aware/core";
 import { invoke } from "./ipc";
 import { emitAppEvent } from "./app-events";
 import { isTauri } from "./environment";
@@ -32,7 +32,8 @@ import { reconcileGenesisEvents } from "./event-genesis";
 import { hydrateInterimProjections } from "./interim-projections";
 import { createLogger } from "./logger";
 import { hydrateSecrets } from "./secret-store";
-import { KVWriteQueue, type KVWriteOrigin } from "./kv-write-queue";
+import { KVWriteQueue, type KVWriteOrigin, type KVCommit } from "./kv-write-queue";
+export type { KVCommit } from "./kv-write-queue";
 
 const log = createLogger("local-store");
 
@@ -61,6 +62,18 @@ function notifyWrite(key: string, value: string | null, origin: KVWriteOrigin): 
   }
 }
 
+const commitListeners = new Set<(commit: KVCommit) => void>();
+/** One notification per durable transaction, including restore; never optimistic values or failed writes. */
+export function onLocalKVCommit(listener: (commit: KVCommit) => void): () => void {
+  commitListeners.add(listener);
+  return () => commitListeners.delete(listener);
+}
+function notifyCommit(commit: KVCommit): void {
+  for (const listener of [...commitListeners]) {
+    try { listener(structuredClone(commit)); } catch (error) { log.error("KV transaction observer failed", error); }
+  }
+}
+
 const changeListeners = new Set<(key: string, value: string | null) => void>();
 /** Optimistic changes and rollbacks, for UI and Worker mirrors; not a durable-write feed. */
 export function onLocalKVChange(listener: (key: string, value: string | null) => void): () => void {
@@ -82,6 +95,7 @@ const writes = new KVWriteQueue({
   },
   persist: (key, value) => value === null ? invoke<void>("delete_kv", { key }) : invoke<void>("set_kv", { key, value }),
   committed: notifyWrite,
+  settled: notifyCommit,
   failed: (key, error) => {
     log.error(`KV write failed for "${key}"`, error);
     emitAppEvent("local-write-failed", { kind: "kv", code: errorCode(error) });
@@ -97,6 +111,7 @@ export async function flushLocalKV(prefix = ""): Promise<void> {
 export function afterLocalKVWrites<T>(operation: () => T | Promise<T>): Promise<T> {
   return isTauri() ? writes.afterPending(operation) : Promise.resolve().then(operation);
 }
+export function hasPendingLocalKVWrites(): boolean { return isTauri() && writes.pending; }
 
 async function loadKvSnapshot(): Promise<Map<string, string>> {
   const all = await invoke<Record<string, string>>("load_kv_all");
@@ -114,6 +129,7 @@ export const localKV = {
     if (!isTauri()) {
       localStorage.setItem(key, value);
       notifyChange(key, value);
+      notifyCommit({ entries: [{ key, value }], source: origin, actor: null });
       return;
     }
     void writes.write(key, value, origin);
@@ -123,21 +139,24 @@ export const localKV = {
     if (!isTauri()) {
       localStorage.removeItem(key);
       notifyChange(key, null);
+      notifyCommit({ entries: [{ key, value: null }], source: origin, actor: null });
       return;
     }
     void writes.write(key, null, origin);
   },
 
-  setItemAsync(key: string, value: string): Promise<void> {
-    if (isTauri()) return writes.write(key, value);
+  setItemAsync(key: string, value: string, actor: EventOrigin | null = null): Promise<void> {
+    if (isTauri()) return writes.write(key, value, "local", actor);
     localStorage.setItem(key, value);
     notifyChange(key, value);
+    notifyCommit({ entries: [{ key, value }], source: "local", actor });
     return Promise.resolve();
   },
-  removeItemAsync(key: string): Promise<void> {
-    if (isTauri()) return writes.write(key, null);
+  removeItemAsync(key: string, actor: EventOrigin | null = null): Promise<void> {
+    if (isTauri()) return writes.write(key, null, "local", actor);
     localStorage.removeItem(key);
     notifyChange(key, null);
+    notifyCommit({ entries: [{ key, value: null }], source: "local", actor });
     return Promise.resolve();
   },
 
@@ -167,11 +186,11 @@ export const localKV = {
 };
 
 /** Host-only multi-record settings commit; never exposes raw KV authority to actors. */
-export function setLocalKVBatch(entries: ReadonlyMap<string, string | null>): Promise<void> {
+export function setLocalKVBatch(entries: ReadonlyMap<string, string | null>, actor: EventOrigin | null = null, source: "local" | "restore" = "local"): Promise<void> {
   if (entries.size === 0) return Promise.resolve();
   const values = new Map(entries);
   if (isTauri()) {
-    return writes.batch(values, () => invoke("set_kv_batch", { entries: [...values] }));
+    return writes.batch(values, () => invoke("set_kv_batch", { entries: [...values] }), actor, source);
   }
   // Storybook has no SQLite transaction. Restore its prior records on failure,
   // and do not notify observers until all writes have succeeded.
@@ -189,6 +208,7 @@ export function setLocalKVBatch(entries: ReadonlyMap<string, string | null>): Pr
     return Promise.reject(error);
   }
   for (const [key, value] of values) notifyChange(key, value);
+  notifyCommit({ entries: [...values].map(([key, value]) => ({ key, value })), source, actor });
   return Promise.resolve();
 }
 
@@ -282,15 +302,9 @@ export async function dumpLocalKV(): Promise<Record<string, string>> {
   return out;
 }
 
-/** Merge KV entries into the device-local store, awaiting durability before reload. */
+/** Merge a backup atomically before reload, retaining the existing roaming-publication policy. */
 export async function restoreLocalKV(entries: Record<string, string>): Promise<void> {
-  if (isTauri()) {
-    for (const [key, value] of Object.entries(entries)) {
-      await localKV.setItemAsync(key, value);
-    }
-    return;
-  }
-  for (const [key, value] of Object.entries(entries)) localStorage.setItem(key, value);
+  await setLocalKVBatch(new Map(Object.entries(entries)), null, "restore");
 }
 
 /** Atomically replace a namespace, ordered with all accepted KV writes. */
@@ -299,12 +313,14 @@ export async function replaceLocalKVPrefix(
   entries: Record<string, string>,
 ): Promise<void> {
   if (!isTauri()) {
-    for (const suffix of Object.keys(localKV.entries(prefix))) {
-      localStorage.removeItem(prefix + suffix);
+    const previous = localKV.entries(prefix);
+    const values = new Map([...new Set([...Object.keys(previous), ...Object.keys(entries)])]
+      .map(suffix => [prefix + suffix, entries[suffix] ?? null] as const));
+    for (const [key, value] of values) {
+      if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value);
     }
-    for (const [suffix, value] of Object.entries(entries)) {
-      localStorage.setItem(prefix + suffix, value);
-    }
+    for (const [key, value] of values) notifyChange(key, value);
+    notifyCommit({ entries: [...values].map(([key, value]) => ({ key, value })), source: "restore", actor: null });
     return;
   }
 

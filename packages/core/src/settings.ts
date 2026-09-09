@@ -90,10 +90,22 @@ export interface SettingsQuery {
 }
 
 export interface SettingsSnapshot {
+  /** Process-local catalog/value revision. Not a sync clock or durable event sequence. */
+  revision: number;
   target: SettingsQueryTarget;
   settings: SettingDescriptor[];
   overrides: SettingsOverrideSummary[];
 }
+
+export type SettingsObservationCause = {
+  source: "initial" | "local" | "remote" | "restore" | "catalog" | "mixed";
+  /** Null for legacy writes, remote origin unknown, catalog changes, or coalesced actors. */
+  origin: EventOrigin | null;
+};
+export type SettingsObservation = SettingsObservationCause & (
+  | { status: "ready"; snapshot: SettingsSnapshot }
+  | { status: "error"; revision: number; code: string }
+);
 
 export interface SettingChange {
   path: string;

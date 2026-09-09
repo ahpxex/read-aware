@@ -12,6 +12,8 @@
     "copied": "Copiado"
   },
   "errors": {
+    "settingsObserverLimit": "Hay demasiadas suscripciones activas a los ajustes.",
+    "settingsUnavailable": "No se pudieron leer los ajustes. Inténtalo de nuevo.",
     "workspaceInvalid": "El destino o la selección no es válido.",
     "workspaceMissing": "Esta página, colección o selección ya no está disponible.",
     "workspaceChanged": "El espacio de trabajo ha cambiado. Comprueba su estado antes de reintentar.",

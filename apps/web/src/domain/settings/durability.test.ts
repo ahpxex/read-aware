@@ -9,6 +9,7 @@ import { DEFAULT_SHELF_VIEW, SHELF_VIEW_KEY } from "../../features/shelf/lib/she
 import { APP_SETTINGS_KEY, DEFAULT_APP_SETTINGS } from "../../features/settings/lib/app-settings";
 import { GENERAL_SETTINGS_KEY, DEFAULT_GENERAL_SETTINGS } from "../../features/settings/lib/general-settings";
 import { buildPluginSettingsView } from "../../features/plugins/lib/plugin-settings";
+import type { SettingsObservation } from "@read-aware/core";
 
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 const disk = new Map<string, string>();
@@ -51,6 +52,50 @@ afterEach(async () => {
 });
 
 describe("settings durable command boundary", () => {
+  test("a retired actor cannot dispatch its queued settings write after another write settles", async () => {
+    const first = createSettingsDomain("agent").commands.update([{ path: "appearance.theme", value: "dark" }]);
+    const controller = new AbortController();
+    const next = createSettingsDomain("plugin:retired", { write: ["appearance.theme"] }).commands.update([{ path: "appearance.theme", value: "light" }], controller.signal).catch(error => error);
+    await tick(); controller.abort(new DOMException("Retired", "AbortError"));
+    pending.shift()!.resolve(); await first;
+    expect((await next).name).toBe("AbortError"); expect(pending).toHaveLength(0);
+    expect(getDefaultStore().get(appSettingsAtom).theme).toBe("dark");
+  });
+  test("settled observation covers native, Agent, remote and plugin changes without publishing failed optimism", async () => {
+    const reader = createSettingsDomain("plugin:watch", { read: ["appearance.theme"] });
+    const seen: SettingsObservation[] = [];
+    subscriptions.push(reader.queries.observe({}, state => { seen.push(state); }));
+    await tick(); expect(seen).toHaveLength(1);
+    getDefaultStore().set(appSettingsAtom, { ...DEFAULT_APP_SETTINGS, theme: "dark" });
+    await tick(); expect(seen).toHaveLength(1);
+    pending.shift()!.reject({ code: "db/locked", message: "private lock" }); await tick();
+    expect(seen).toHaveLength(1);
+    getDefaultStore().set(appSettingsAtom, { ...DEFAULT_APP_SETTINGS, theme: "light" });
+    await tick(); pending.shift()!.resolve(); await tick();
+    expect(seen.at(-1)).toMatchObject({ source: "local", origin: null, snapshot: { settings: [{ path: "appearance.theme", value: "light" }] } });
+    const update = createSettingsDomain("agent").commands.update([{ path: "appearance.theme", value: "dark" }]);
+    await tick(); pending.shift()!.resolve(); await update; await tick();
+    expect(seen.at(-1)).toMatchObject({ source: "local", origin: "agent" });
+    localKV.setItem(APP_SETTINGS_KEY, JSON.stringify(DEFAULT_APP_SETTINGS), "remote");
+    await tick(); pending.shift()!.resolve(); await tick();
+    expect(seen.at(-1)).toMatchObject({ source: "remote", origin: null });
+    const plugin = createSettingsDomain("plugin:writer", { write: ["appearance.theme"] });
+    const next = plugin.commands.update([{ path: "appearance.theme", value: "light" }]);
+    await tick(); pending.shift()!.resolve(); await next; await tick();
+    expect(seen.at(-1)).toMatchObject({ source: "local", origin: "plugin:writer" });
+    const revisions = seen.flatMap(s => s.status === "ready" ? [s.snapshot.revision] : []);
+    expect(revisions.every((r, i) => i === 0 || r > revisions[i - 1])).toBe(true);
+    expect(seen).toHaveLength(5);
+  });
+
+  test("field reads wait for rejected native values just like full snapshots", async () => {
+    getDefaultStore().set(appSettingsAtom, { ...DEFAULT_APP_SETTINGS, theme: "dark" });
+    let complete = false;
+    const read = createSettingsDomain("agent").queries.read("appearance.theme").then(value => { complete = true; return value; });
+    await tick(); expect(complete).toBe(false);
+    pending.shift()!.reject({ code: "db/locked", message: "lock" });
+    expect((await read).value).toBe("system");
+  });
   test("shortcut overrides and app settings roll back together before later reads", async () => {
     const update = createSettingsDomain("agent").commands.update([
       { path: "shortcuts.search", value: ["mod", "shift", "p"] }, { path: "appearance.theme", value: "dark" },
@@ -205,6 +250,6 @@ describe("settings durable command boundary", () => {
     });
     const output = await new Response(child.stderr).text();
     expect(await child.exited, output).toBe(0);
-    expect(output).toContain("8 pass");
+    expect(output).toContain("11 pass");
   }, 30_000);
 }

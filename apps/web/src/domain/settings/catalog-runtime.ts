@@ -79,7 +79,7 @@ export function settingsSnapshotFromDraft(
           : {}),
       };
     });
-  return { target, settings, overrides: activeOverrides(draft, query.section) };
+  return { revision: 0, target, settings, overrides: activeOverrides(draft, query.section) };
 }
 
 function cloneDraft(draft: SettingsDraft): SettingsDraft {

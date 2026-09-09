@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { KVWriteQueue } from "./kv-write-queue";
+import { KVWriteQueue, type KVCommit } from "./kv-write-queue";
 
 function fixture() {
   const mirror = new Map<string, string>([["plugin.key", "original"]]);
   const disk = new Map(mirror);
   const pending: { key: string; value: string | null; resolve(): void; reject(error: Error): void }[] = [];
-  const committed: unknown[] = [], origins: string[] = [], failures: unknown[] = [];
+  const committed: unknown[] = [], origins: string[] = [], failures: unknown[] = [], transactions: KVCommit[] = [];
   const queue = new KVWriteQueue({
     read: key => mirror.get(key) ?? null,
     mirror: (key, value) => { if (value === null) mirror.delete(key); else mirror.set(key, value); },
@@ -13,13 +13,30 @@ function fixture() {
       if (value === null) disk.delete(key); else disk.set(key, value); resolve();
     } })),
     committed: (key, value, origin) => { committed.push([key, value]); origins.push(origin); },
+    settled: commit => { transactions.push(commit); },
     failed: (key, error) => { failures.push([key, error]); },
   });
-  return { queue, mirror, disk, pending, committed, origins, failures };
+  return { queue, mirror, disk, pending, committed, origins, failures, transactions };
 }
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 
 describe("durable KV write queue", () => {
+  test("transaction feed preserves actor/source, groups batch entries, includes restores and excludes failure", async () => {
+    const f = fixture();
+    const first = f.queue.batch(new Map([["plugin.key", "changed"], ["plugin.other", "second"]]), async () => {}, "agent");
+    expect(f.transactions).toEqual([]); await first;
+    expect(f.transactions).toEqual([{ source: "local", actor: "agent", entries: [{ key: "plugin.key", value: "changed" }, { key: "plugin.other", value: "second" }] }]);
+    await f.queue.replace(new Map([["plugin.key", null]]), async () => {});
+    expect(f.transactions[1]).toMatchObject({ source: "restore", actor: null });
+    const failed = f.queue.write("plugin.key", "failed", "remote");
+    await tick(); f.pending[0].reject(Error("locked")); await expect(failed).rejects.toThrow();
+    expect(f.transactions).toHaveLength(2); expect(f.mirror.has("plugin.key")).toBe(false);
+    const next = f.queue.write("plugin.key", "next", "remote"); await tick(); f.pending[1].resolve(); await next;
+    expect(f.transactions[2]).toMatchObject({ source: "remote", actor: null });
+    await f.queue.batch(new Map([["plugin.key", "backup"]]), async () => {}, null, "restore");
+    expect(f.transactions[3]).toMatchObject({ source: "restore", actor: null });
+    expect(f.origins[f.origins.length - 1]).toBe("local");
+  });
   test("keeps synchronous reads optimistic but only publishes committed writes", async () => {
     const f = fixture(); const write = f.queue.write("plugin.key", "next");
     expect(f.mirror.get("plugin.key")).toBe("next");

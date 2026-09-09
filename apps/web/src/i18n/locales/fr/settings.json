@@ -138,6 +138,7 @@
     },
     "recording": "Appuyez sur un raccourci…",
     "conflict": "Déjà utilisé par « {{label}} »",
+    "conflictInactive": "Raccourci inactif : conflit avec {{label}}.",
     "rebind": "Réaffecter {{label}}",
     "reset": "Réinitialiser {{label}}",
     "resetAll": "Tout réinitialiser aux valeurs par défaut",

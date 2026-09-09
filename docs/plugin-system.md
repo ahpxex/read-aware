@@ -391,6 +391,9 @@ atom. This is not a second command-execution API.
   write grant, and conflict references are filtered to readable paths.
   Discovery omits values and live shortcut metadata. A hidden conflicting
   binding still rejects a write without exposing that binding's path.
+  Since settings 1.5, `shortcut.conflicted` reports suspension independently
+  of the grant-filtered `conflicts` array; an empty array is not proof of no
+  conflict. `available` still describes the registered provider, not routing.
 - Validate the final batch, not intermediate edits: swapping two bindings in
   one update works. Conflicts reject with `settings/shortcut-conflict`, no
   persistence or change event. Unrelated legacy conflicts do not block other
@@ -419,8 +422,25 @@ grants. Agent/plugins may read, modify or remove that existing override. The
 native editor groups it under Unavailable commands and offers reset. After
 null removes it, the row disappears until the command registers again; unknown
 paths cannot create arbitrary dormant overrides. Registration reuses the
-existing override without duplicate rows. It can still introduce a conflict,
-which the metadata reports but dispatch does not yet uniformly arbitrate.
+existing override without duplicate rows. Registration can introduce a conflict;
+settings 1.5 suspends every matching binding until rebind or retirement removes
+the ambiguity, without mutating persisted overrides or choosing a winner.
+
+[代码] Global, plugin and Foliate reader key handlers now use one synchronous
+live catalog and dispatch decision, including forwarded iframe events. The
+settings command environment and native editor use that same provider state.
+Conflicts consume the event so vertical-page and primary-navigation fallbacks
+cannot run instead. Unique bindings owned by another surface also skip the
+reader's vertical fallback. A consumed event cannot trigger a second handler.
+Inactive reader-mode/selection actions still permit the existing vertical
+fallback; a registered mode is not necessarily the currently active mode.
+Commands are fetched at event time, so registration/disposal does not wait for
+a React effect. Typing targets keep bare-letter input; global shortcuts remain
+global but do not gain priority over a conflict. Composition and Escape do not
+dispatch configurable shortcuts. This retains the conservative settings
+conflict space, not a new focus-sensitive priority system. The native editor
+shows a localized persistent InlineError on each conflicted row and removes it
+when the shared catalog no longer reports that conflict.
 
 [代码] Workspace Profiles 0.2 adds a native-rendered shortcut form using only
 its own exact command path grant. Default/custom mode, modifier toggles and a
@@ -440,9 +460,19 @@ covers native rebind/reset/reset-all, actual keyboard dispatch, an Agent reset
 refreshing the mounted editor, Worker edits of a retired command, and persisted
 cleanup. An isolated React/native-IPC test holds and rejects writes to verify
 busy state, rollback, error presentation and actor ordering. These are not
-real SQLite-lock or full keyboard-layout tests. UI04 remains partial:
-activation conflict arbitration and full revision/origin observation are not
-implemented. These are remaining work, not exemptions.
+real SQLite-lock or full keyboard-layout tests.
+
+[环境] [Dispatch evidence](./evidence/shortcut-dispatch-2026-09-09.json) covers
+real Worker reactivation conflicting with global search, native conflict
+notices and rebind recovery, reading page conflicts on the window and actual
+Foliate document, retirement recovery, and plugin opening without a second
+page turn. Iframe key events were constructed in the actual book document;
+window chords used the native keyboard tool. Integration tests exercise both
+listener mount orders, immediate registration/disposal, two conflicting
+plugins and grant-redacted conflict metadata. No model inference, all-layout,
+all-format/selection/mode routes, packaged or cross-platform claim is made.
+UI04 remains partial: full revision/origin observation and the remaining
+keyboard-route/platform validation are open, not exemptions.
 
 [环境] The [desktop evidence](./evidence/workspace-profiles-2026-09-09.json)
 covers real product tools, the built plugin Worker, save/validation/apply/delete

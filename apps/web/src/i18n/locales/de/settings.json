@@ -138,6 +138,7 @@
     },
     "recording": "Kürzel drücken…",
     "conflict": "Bereits verwendet von „{{label}}“",
+    "conflictInactive": "Tastenkürzel inaktiv: Konflikt mit {{label}}.",
     "rebind": "{{label}} neu belegen",
     "reset": "{{label}} zurücksetzen",
     "resetAll": "Alle auf Standard zurücksetzen",

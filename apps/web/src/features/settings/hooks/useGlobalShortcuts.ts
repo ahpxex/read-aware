@@ -1,8 +1,6 @@
 import { useEffect } from "react";
-import { useAtomValue } from "jotai";
-import { shortcutBindingsAtom } from "../../../state/ui";
 import { subscribeToAppKeyDown } from "../../../platform/app-keydown";
-import { chordMatchesEvent, resolveBinding } from "../lib/shortcuts";
+import { appShortcutForEvent } from "../lib/shortcut-dispatch";
 
 type GlobalShortcutHandlers = {
   onOpenSearch: () => void;
@@ -30,30 +28,29 @@ export function useGlobalShortcuts({
   onNewConversation,
   onSelectPrimaryDestination,
 }: GlobalShortcutHandlers): void {
-  const bindings = useAtomValue(shortcutBindingsAtom);
-
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      if (event.defaultPrevented || event.isComposing) return;
+      const shortcut = appShortcutForEvent(event);
       if (event.defaultPrevented) return;
-      if (chordMatchesEvent(resolveBinding("search", bindings), event)) {
+      if (shortcut === "search") {
         event.preventDefault();
         onOpenSearch();
         return;
       }
-      if (chordMatchesEvent(resolveBinding("settings", bindings), event)) {
+      if (shortcut === "settings") {
         event.preventDefault();
         onOpenSettings();
         return;
       }
-      if (
-        chordMatchesEvent(resolveBinding("new-conversation", bindings), event)
-      ) {
+      if (shortcut === "new-conversation") {
         event.preventDefault();
         onNewConversation();
         return;
       }
       // After the rebindable chords, so a user override onto mod+digit wins.
       if (
+        shortcut === undefined &&
         (event.metaKey || event.ctrlKey) &&
         !event.altKey &&
         !event.shiftKey
@@ -71,6 +68,5 @@ export function useGlobalShortcuts({
     onOpenSettings,
     onNewConversation,
     onSelectPrimaryDestination,
-    bindings,
   ]);
 }

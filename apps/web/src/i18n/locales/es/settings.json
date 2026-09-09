@@ -138,6 +138,7 @@
     },
     "recording": "Pulsa un atajo…",
     "conflict": "Ya lo usa «{{label}}»",
+    "conflictInactive": "Atajo inactivo: conflicto con {{label}}.",
     "rebind": "Reasignar {{label}}",
     "reset": "Restablecer {{label}}",
     "resetAll": "Restablecer todo a los valores predeterminados",

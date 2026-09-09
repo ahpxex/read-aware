@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import { ArrowCounterClockwise } from "@phosphor-icons/react";
 import { useAtomValue } from "jotai";
-import { Button, IconButton, Kbd } from "@read-aware/ui";
+import { Button, IconButton, InlineError, Kbd } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { shortcutBindingsAtom } from "../../../state/ui";
 import { isAndroid } from "../../../platform/environment";
@@ -18,6 +18,8 @@ import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
 import { useShortcutRecorder } from "../hooks/useShortcutRecorder";
 import { useShortcutPreferences } from "../hooks/useShortcutPreferences";
+import { shortcutRowsAtom } from "../state/shortcut-state";
+import { shortcutConflicts } from "../lib/shortcut-catalog";
 import {
   EDITABLE_SHORTCUTS,
   INFO_SHORTCUTS,
@@ -64,6 +66,7 @@ export function ShortcutsPanel() {
   const textUnitMode = useAtomValue(textUnitReaderModeAtom);
   const selectionActions = useAtomValue(selectionActionsAtom);
   const pluginCommands = useAtomValue(pluginCommandsAtom);
+  const rows = useAtomValue(shortcutRowsAtom);
   const lookupAvailable = selectionActions.some((action) => action.role === "lookup");
   const { busy, rebind, reset, resetAll } = useShortcutPreferences();
   const { recordingId, startRecording, cancel } = useShortcutRecorder(rebind);
@@ -94,6 +97,14 @@ export function ShortcutsPanel() {
       }
     }
     return String(t(`shortcuts.actions.${id}` as never));
+  }
+
+  function conflictNotice(id: ShortcutId) {
+    const row = rows.find(row => row.id === id);
+    const conflicts = row ? shortcutConflicts(row, rows) : [];
+    return conflicts.length ? <InlineError compact>{t("shortcuts.conflictInactive", {
+      label: conflicts.map(row => shortcutLabel(row.id)).join(", "),
+    })}</InlineError> : undefined;
   }
 
   return (
@@ -147,6 +158,7 @@ export function ShortcutsPanel() {
                   key={shortcut.id}
                   borderless={index === 0}
                   title={label}
+                  description={conflictNotice(shortcut.id)}
                   control={
                     <span className="flex items-center gap-1.5">
                       <button
@@ -222,7 +234,7 @@ export function ShortcutsPanel() {
                 key={command.key}
                 borderless={index === 0}
                 title={contributionText(command.title)}
-                description={command.pluginName}
+                description={conflictNotice(id) ?? command.pluginName}
                 control={
                   <span className="flex items-center gap-1.5">
                     <button

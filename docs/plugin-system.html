@@ -213,11 +213,12 @@
             <p>Workspace Profiles 组合七项设备本地偏好、私有文档、书架菜单与双域 Agent 工具，实现保存、应用、删除。应用一次原子提交，保留本书阅读覆盖；过期主题选项失败不部分应用。没有改变隐私、凭证、当前筛选或选择集。</p>
             <p>隔离 macOS debug 已验工具、编译 Worker 与菜单/表单；并发、权限和失败写由聚焦测试覆盖。未验真实模型、安装审批、重启、打包及跨平台；开发重建曾触发模块加载失败后恢复，截图含诊断提示，不宣称启动无错误。<a href="./evidence/workspace-profiles-2026-09-09.json">验证边界</a>。</p>
           </div></details>
-          <details class="ep"><summary>Settings 1.4：Agent 与插件可查询和修改实际快捷键</summary><div class="ep-body">
+          <details class="ep"><summary>Settings 1.5：快捷键双端接通，冲突统一暂停而非抢先执行</summary><div class="ep-body">
             <p>16 项内置与当前注册插件命令使用同一有效绑定。授权决定可读、可写与冲突详情；批量交换按最终状态验证，失败整体不提交，恢复默认是删除覆盖而非禁用。</p>
             <p>Workspace Profiles 0.2 只申请自身命令的路径，通过模式、修饰键开关和按键表单重绑。冲突保留表单和原绑定，宿主显示稳定错误码对应的本地化提示，不显示原始异常。</p>
             <p>原生编辑页也已走同一设置域，重绑、单项/全部重置等待持久化。停用插件遗留绑定可按授权查询、修改和清除，原生界面归入不可用命令，不假装仍可执行。</p>
-            <p>隔离 macOS debug 已验三端更新、新键打开真实界面、原生/插件冲突、停用命令与 SQLite 清理；失败持久化由 React/IPC 测试覆盖。激活冲突裁决及全来源观察仍缺；未验真实模型、全键盘路由、打包或跨平台，UI04 保持部分。<a href="./plugin-system.md#keyboard-shortcut-settings">契约与边界</a>。</p>
+            <p>重新激活引入冲突时，全局、插件与阅读器统一暂停冲突绑定，重绑或停用后恢复。原生页标明冲突；conflicted 状态不因冲突方路径无权读取而消失，路径仍保密。不依赖监听顺序，不自动改写绑定。</p>
+            <p>隔离 macOS debug 已验三端更新、冲突恢复与 SQLite 清理；正文 iframe 合成按键已验冲突不翻页、恢复后翻页、插件打开不重复翻页。失败持久化由 React/IPC 测试覆盖；全来源观察、真实模型、全键盘路由、打包及跨平台未完成，UI04 保持部分。<a href="./plugin-system.md#keyboard-shortcut-settings">契约与边界</a>。</p>
           </div></details>
           <p>Reading v2 已提供当前会话快照、即时快照观察、版本化落点、有限可见文本与历史可用性。开书、跳转、前进后退、翻页返回完成回执，关闭等待真实会话释放；控制命令可带书籍/会话 guard。Agent 共用同一控制器。</p>
           <p>Reading 2.5 已共享模式提供者选择、启停、单元步进/返回和朗读控制，Listening Desk 与 Agent 消费同一控制器；Jumper 与 Agent 已消费版本化精确搜索落点。通用选区/Range 编辑与临时强调仍未完整开放。文件 hash 识别过期位置；取消等待不代表撤销引擎移动。PDF 等待栅格绘制，后台 WKWebView 暂停绘制时可能超时。</p>

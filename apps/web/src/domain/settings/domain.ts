@@ -32,7 +32,6 @@ import {
   headerActionsAtom,
   installedPluginsAtom,
   pluginFontsAtom,
-  pluginCommandsAtom,
   pluginThemesAtom,
   selectionActionsAtom,
   textUnitReaderModeAtom,
@@ -42,7 +41,7 @@ import { commitSettingsDraft } from "./persistence";
 import { afterLocalKVWrites } from "../../platform/local-store";
 import { getDefaultMarkColor } from "../../features/annotations/lib/annotation-prefs";
 import { getUpdateChannel } from "../../features/update/lib/update-channel";
-import { contributionText } from "../../features/plugins/lib/plugin-i18n";
+import { shortcutEnvironmentAtom } from "../../features/settings/state/shortcut-state";
 import {
   applySettingChangesToDraft,
   settingsSnapshotFromDraft,
@@ -92,11 +91,7 @@ function readDraft(): SettingsDraft {
   return {
     general: store.get(generalSettingsAtom),
     shelf: store.get(shelfViewAtom),
-    shortcuts: { bindings: store.get(shortcutBindingsAtom),
-      commands: store.get(pluginCommandsAtom).map(command => ({ key: command.key, title: contributionText(command.title), defaultShortcut: command.defaultShortcut })),
-      modeAvailable: store.get(textUnitReaderModeAtom) !== null,
-      lookupAvailable: store.get(selectionActionsAtom).some(action => action.role === "lookup"),
-    },
+    shortcuts: { bindings: store.get(shortcutBindingsAtom), ...store.get(shortcutEnvironmentAtom) },
     appearance: store.get(appSettingsAtom),
     reading: store.get(readerPreferencesAtom),
     readerOverrides: store.get(readerOverridesAtom),

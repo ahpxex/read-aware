@@ -56,6 +56,8 @@ export interface SettingDescriptor {
     defaultBinding: string[] | null;
     overridden: boolean;
     available: boolean;
+    /** Binding is suspended even when conflicting paths are hidden by grants. */
+    conflicted: boolean;
     conflicts: string[];
   };
 }

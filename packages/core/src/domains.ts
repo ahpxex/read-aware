@@ -4,7 +4,7 @@ export const DOMAIN_CATALOG = {
   reading: { version: "2.5.0", pluginAccess: ["read", "write"] },
   annotations: { version: "1.3.0", pluginAccess: ["read", "write"] },
   conversations: { version: "1.0.0", pluginAccess: ["read"] },
-  settings: { version: "1.4.0", pluginAccess: [] },
+  settings: { version: "1.5.0", pluginAccess: [] },
 } as const;
 
 export type DomainId = keyof typeof DOMAIN_CATALOG;

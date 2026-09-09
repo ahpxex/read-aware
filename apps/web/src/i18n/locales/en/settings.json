@@ -138,6 +138,7 @@
     },
     "recording": "Press a shortcut…",
     "conflict": "Already used by “{{label}}”",
+    "conflictInactive": "Shortcut inactive: conflicts with {{label}}.",
     "rebind": "Rebind {{label}}",
     "reset": "Reset {{label}}",
     "resetAll": "Reset all to defaults",

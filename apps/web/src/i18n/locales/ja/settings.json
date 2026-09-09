@@ -138,6 +138,7 @@
     },
     "recording": "ショートカットを押してください…",
     "conflict": "すでに「{{label}}」で使用されています",
+    "conflictInactive": "ショートカットは無効です：{{label}} と競合しています。",
     "rebind": "{{label}}を再設定",
     "reset": "{{label}}をリセット",
     "resetAll": "すべて既定値にリセット",

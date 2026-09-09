@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TFunction } from "i18next";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { Body, Button, Spinner } from "@read-aware/ui";
 import { AppError } from "@read-aware/core";
 import { cn } from "@read-aware/ui/cn";
 import { describeError, useTranslation } from "../../../i18n";
-import { textUnitModeSettingsAtom, shortcutBindingsAtom } from "../../../state/ui";
-import { chordMatchesEvent, resolveBinding } from "../../settings/lib/shortcuts";
+import { textUnitModeSettingsAtom } from "../../../state/ui";
+import { appShortcutForEvent, isAppSurfaceShortcut } from "../../settings/lib/shortcut-dispatch";
 import type { LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import { emitAppEvent } from "../../../platform/app-events";
 import { createLogger } from "../../../platform/logger";
@@ -525,14 +525,6 @@ export function FoliateReaderView({
   useEffect(() => {
     askAiEnabledRef.current = askAiEnabled;
   }, [askAiEnabled]);
-
-  // Live page-turn key bindings, mirrored to a ref so the stable key handler
-  // reads the latest without being re-created on every edit.
-  const shortcutBindings = useAtomValue(shortcutBindingsAtom);
-  const shortcutBindingsRef = useRef(shortcutBindings);
-  useEffect(() => {
-    shortcutBindingsRef.current = shortcutBindings;
-  }, [shortcutBindings]);
 
   // Footnote popover: the engine loads + extracts the note into an off-screen
   // staging view; we read its text and show it in the popover.
@@ -1178,6 +1170,7 @@ export function FoliateReaderView({
   }, []);
 
   const handleReaderKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.defaultPrevented || event.isComposing) return;
     // Foliate renders every section in an iframe, whose keyboard events never
     // reach app-global shortcuts. Forward them first, then leave claimed chords
     // (Command Palette, Settings, plugin commands) out of reader navigation.
@@ -1191,30 +1184,31 @@ export function FoliateReaderView({
     // Configurable reader shortcuts, checked before the modifier guard so a
     // rebinding may include modifiers. Left/right page turns are direction-aware
     // (RTL-correct).
-    const bindings = shortcutBindingsRef.current;
-    if (chordMatchesEvent(resolveBinding("next-page", bindings), event)) {
+    const shortcut = appShortcutForEvent(event);
+    if (event.defaultPrevented) return;
+    if (shortcut === "next-page") {
       event.preventDefault();
       advancePage(() => viewRef.current?.goRight?.());
       return;
     }
-    if (chordMatchesEvent(resolveBinding("prev-page", bindings), event)) {
+    if (shortcut === "prev-page") {
       event.preventDefault();
       enqueuePageTurn(() => viewRef.current?.goLeft?.());
       return;
     }
-    if (chordMatchesEvent(resolveBinding("next-chapter", bindings), event)) {
+    if (shortcut === "next-chapter") {
       event.preventDefault();
       void goToAdjacentChapter(1);
       return;
     }
-    if (chordMatchesEvent(resolveBinding("prev-chapter", bindings), event)) {
+    if (shortcut === "prev-chapter") {
       event.preventDefault();
       void goToAdjacentChapter(-1);
       return;
     }
     // Toggles the reader shell (the chrome), not the page — peeking at the
     // controls shouldn't also advance your place.
-    if (chordMatchesEvent(resolveBinding("toggle-controls", bindings), event)) {
+    if (shortcut === "toggle-controls") {
       event.preventDefault();
       onContentClickRef.current?.();
       return;
@@ -1226,43 +1220,43 @@ export function FoliateReaderView({
     // selected (a live selection keeps first claim on them, further down).
     const textUnitModeActions = textUnitModeActionsRef.current;
     if (textUnitModeActiveStateRef.current && textUnitModeActions) {
-      if (chordMatchesEvent(resolveBinding("reader-mode-next-unit", bindings), event)) {
+      if (shortcut === "reader-mode-next-unit") {
         event.preventDefault();
         textUnitModeActions.next();
         return;
       }
-      if (chordMatchesEvent(resolveBinding("reader-mode-prev-unit", bindings), event)) {
+      if (shortcut === "reader-mode-prev-unit") {
         event.preventDefault();
         textUnitModeActions.prev();
         return;
       }
       if (!selectionRef.current && textUnitModeActions.hasTarget) {
-        if (chordMatchesEvent(resolveBinding("selection-copy", bindings), event)) {
+        if (shortcut === "selection-copy") {
           event.preventDefault();
           textUnitModeActions.copy();
           return;
         }
-        if (chordMatchesEvent(resolveBinding("selection-highlight", bindings), event)) {
+        if (shortcut === "selection-highlight") {
           event.preventDefault();
           textUnitModeActions.highlight();
           return;
         }
-        if (chordMatchesEvent(resolveBinding("selection-underline", bindings), event)) {
+        if (shortcut === "selection-underline") {
           event.preventDefault();
           textUnitModeActions.underline();
           return;
         }
-        if (chordMatchesEvent(resolveBinding("selection-add-note", bindings), event)) {
+        if (shortcut === "selection-add-note") {
           event.preventDefault();
           textUnitModeActions.addNote();
           return;
         }
-        if (chordMatchesEvent(resolveBinding("selection-look-up", bindings), event)) {
+        if (shortcut === "selection-look-up") {
           event.preventDefault();
           textUnitModeActions.lookUp();
           return;
         }
-        if (askAiEnabledRef.current && chordMatchesEvent(resolveBinding("selection-ask-ai", bindings), event)) {
+        if (askAiEnabledRef.current && shortcut === "selection-ask-ai") {
           event.preventDefault();
           textUnitModeActions.askAI();
           return;
@@ -1277,39 +1271,40 @@ export function FoliateReaderView({
     // annotation can be anchored. Ask AI still needs AI configured.
     const selectionActions = selectionActionsRef.current;
     if (selectionRef.current && selectionActions) {
-      if (chordMatchesEvent(resolveBinding("selection-copy", bindings), event)) {
+      if (shortcut === "selection-copy") {
         event.preventDefault();
         selectionActions.copy();
         return;
       }
-      if (chordMatchesEvent(resolveBinding("selection-highlight", bindings), event)) {
+      if (shortcut === "selection-highlight") {
         event.preventDefault();
         selectionActions.highlight();
         return;
       }
-      if (chordMatchesEvent(resolveBinding("selection-underline", bindings), event)) {
+      if (shortcut === "selection-underline") {
         event.preventDefault();
         selectionActions.underline();
         return;
       }
-      if (chordMatchesEvent(resolveBinding("selection-add-note", bindings), event)) {
+      if (shortcut === "selection-add-note") {
         event.preventDefault();
         selectionActions.addNote();
         return;
       }
-      if (chordMatchesEvent(resolveBinding("selection-look-up", bindings), event)) {
+      if (shortcut === "selection-look-up") {
         event.preventDefault();
         selectionActions.lookUp();
         return;
       }
-      if (askAiEnabledRef.current && chordMatchesEvent(resolveBinding("selection-ask-ai", bindings), event)) {
+      if (askAiEnabledRef.current && shortcut === "selection-ask-ai") {
         event.preventDefault();
         selectionActions.askAI();
         return;
       }
     }
 
-    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    // Another surface's binding must not also trigger the vertical fallback.
+    if (isAppSurfaceShortcut(shortcut) || event.metaKey || event.ctrlKey || event.altKey) return;
 
     if (event.key === "Escape") {
       if (selectionRef.current) clearSelection();

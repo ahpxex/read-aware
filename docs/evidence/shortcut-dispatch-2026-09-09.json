@@ -1,0 +1,270 @@
+{
+  "date": "2026-09-09",
+  "baseCommit": "ee920f4b",
+  "scope": "Settings 1.5 conflict suspension across global/plugin/reader shortcut dispatch",
+  "environment": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "devPort": 5184,
+    "bridgePort": 9224,
+    "platform": "macOS debug",
+    "formalAppUntouched": true
+  },
+  "activation": [
+    {
+      "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement. Unregistered plugin overrides remain readable/resettable; their default is unknown until registration and reported as null.",
+      "kind": "key-chord",
+      "label": "search",
+      "nullable": true,
+      "path": "shortcuts.search",
+      "section": "shortcuts",
+      "shortcut": {
+        "available": true,
+        "conflicted": true,
+        "conflicts": [
+          "shortcuts.plugin.capability-workspace-profiles%3Aopen"
+        ],
+        "defaultBinding": [
+          "mod",
+          "k"
+        ],
+        "overridden": true
+      },
+      "supportedTargets": [
+        "global"
+      ],
+      "value": [
+        "mod",
+        "shift",
+        "j"
+      ],
+      "writable": true
+    },
+    {
+      "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement. Unregistered plugin overrides remain readable/resettable; their default is unknown until registration and reported as null.",
+      "kind": "key-chord",
+      "label": "Workspace Profiles",
+      "nullable": true,
+      "path": "shortcuts.plugin.capability-workspace-profiles%3Aopen",
+      "section": "shortcuts",
+      "shortcut": {
+        "available": true,
+        "conflicted": true,
+        "conflicts": [
+          "shortcuts.search"
+        ],
+        "defaultBinding": null,
+        "overridden": true
+      },
+      "supportedTargets": [
+        "global"
+      ],
+      "value": [
+        "mod",
+        "shift",
+        "j"
+      ],
+      "writable": true
+    }
+  ],
+  "nativeNotice": {
+    "notices": [
+      "Shortcut inactive: conflicts with Workspace Profiles.",
+      "Shortcut inactive: conflicts with Open search."
+    ],
+    "text": true
+  },
+  "readerWindowConflict": {
+    "after": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/2!/4/2[chapter-0],/20/1:95,/38/1:173)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.13356236122166829,
+      "href": "0"
+    },
+    "before": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/2!/4/2[chapter-0],/20/1:95,/38/1:173)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.13356236122166829,
+      "href": "0"
+    },
+    "dialogs": []
+  },
+  "readerFrameConflict": {
+    "after": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/2!/4/2[chapter-0],/20/1:95,/38/1:173)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.13356236122166829,
+      "href": "0"
+    },
+    "before": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/2!/4/2[chapter-0],/20/1:95,/38/1:173)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.13356236122166829,
+      "href": "0"
+    },
+    "prevented": true,
+    "text": "Alpha\n\nAlpha paragraph 1. The reader follows a precise location, checks a chapter, and returns to the previous passage. This text "
+  },
+  "readerFrameRecovery": {
+    "after": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/2!/4/2[chapter-0],/40/1:0,/58/1:173)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.2003435418325024,
+      "href": "0"
+    },
+    "before": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/2!/4/2[chapter-0],/20/1:95,/38/1:173)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.13356236122166829,
+      "href": "0"
+    }
+  },
+  "pluginFrame": {
+    "after": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/2!/4/2[chapter-0],/40/1:0,/58/1:173)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.2003435418325024,
+      "href": "0"
+    },
+    "before": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/2!/4/2[chapter-0],/40/1:0,/58/1:173)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.2003435418325024,
+      "href": "0"
+    },
+    "dialog": "Workspace Profiles\nWorkspace Profiles\n\nSave current workspace\n\nRefresh\n\nKeyboard shortcut\nNo saved profiles\nClose"
+  },
+  "noVerticalFallback": {
+    "after": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/2!/4/2[chapter-0],/40/1:0,/58/1:173)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.2003435418325024,
+      "href": "0"
+    },
+    "before": {
+      "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "cfi": "epubcfi(/6/2!/4/2[chapter-0],/40/1:0,/58/1:173)",
+      "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+      "fraction": 0.2003435418325024,
+      "href": "0"
+    },
+    "dialog": "Workspace Profiles\nWorkspace Profiles\n\nSave current workspace\n\nRefresh\n\nKeyboard shortcut\nNo saved profiles\nClose"
+  },
+  "cleanup": {
+    "disk": "{}",
+    "overrides": [],
+    "session": {
+      "bookId": null,
+      "history": {
+        "canGoBack": false,
+        "canGoForward": false
+      },
+      "location": null,
+      "mode": {
+        "availableModes": [],
+        "cfiRange": null,
+        "label": null,
+        "modeKey": null,
+        "position": null,
+        "progress": null,
+        "requestedActive": false,
+        "status": "unavailable",
+        "unavailableReason": "no-session",
+        "unitId": null,
+        "units": []
+      },
+      "playback": {
+        "backend": null,
+        "cfiRange": null,
+        "fallback": false,
+        "owner": null,
+        "status": "unavailable",
+        "unavailableReason": "no-session"
+      },
+      "revision": 12,
+      "sessionId": null,
+      "status": "idle",
+      "visibleText": ""
+    },
+    "settings": {
+      "contributions": 0
+    },
+    "workspace": {
+      "commands": 0,
+      "profiles": 0,
+      "tools": 0
+    }
+  },
+  "checks": {
+    "nativeKeyboard": "Dormant override did not block search; reactivation blocked both; native rebind removed both notices; plugin opened with original key.",
+    "unit": "11 focused outer tests / 54 assertions; isolated integration child additionally tests both mount orders, window/frame forwarding, immediate registration/disposal, two-plugin conflict and grant-redacted conflict metadata.",
+    "full": "21/21 tasks, web 751 tests / 8503 assertions",
+    "typecheck": "24/24 tasks",
+    "frontendBuild": "passed"
+  },
+  "screenshots": [
+    "/tmp/shortcut-activation-conflict.png"
+  ],
+  "limits": [
+    "Iframe events constructed in the actual Foliate document; not an OS-level focus/physical-key assertion.",
+    "Native app keyboard tools verified window chords; model inference, all layouts/formats, all selection/mode/native-menu routes, packaged/Windows/Linux not covered.",
+    "Conflict space is conservative provider availability, not dynamic focus or enablement.",
+    "Full settings revision/origin observation remains open.",
+    "Initial debug web content process termination recovered; bridge plugin version warning and scoped snapshot resolveAll error present. Unscoped snapshots succeeded."
+  ],
+  "processCleanup": "Owned process groups 72110 and 73357 exited 143; 5184/9224 have no listeners. Original overrides empty and native SQLite {} restored. Existing synthetic book reading progress is not rewritten.",
+  "finalReaderFallback": {
+    "inactiveMode": {
+      "afterDown": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/2!/4/2[chapter-0],/40/1:0,/58/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 0.2003435418325024,
+        "href": "0"
+      },
+      "before": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/2!/4/2[chapter-0],/20/1:95,/38/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 0.13356236122166829,
+        "href": "0"
+      },
+      "mode": "inactive",
+      "upClaimed": true
+    },
+    "uniquePlugin": {
+      "after": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/2!/4/2[chapter-0],/20/1:95,/38/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 0.13356236122166829,
+        "href": "0"
+      },
+      "before": {
+        "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "cfi": "epubcfi(/6/2!/4/2[chapter-0],/20/1:95,/38/1:173)",
+        "contentVersion": "sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108",
+        "fraction": 0.13356236122166829,
+        "href": "0"
+      },
+      "dialog": "Workspace Profiles\nWorkspace Profiles\n\nSave current workspace\n\nRefresh\n\nKeyboard shortcut\nNo saved profiles\nClose"
+    },
+    "cleanup": {
+      "cleanup": {
+        "commands": 0,
+        "profiles": 0,
+        "tools": 0
+      },
+      "disk": "{}",
+      "overrides": []
+    }
+  }
+}

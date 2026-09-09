@@ -18,6 +18,7 @@ export function shortcutPreferenceDefinitions(draft: SettingsDraft): SettingDefi
 export function shortcutMetadata(draft: SettingsDraft, path: string): SettingDescriptor["shortcut"] {
   const rows = shortcutRows(draft.shortcuts.bindings, draft.shortcuts);
   const row = rows.find(row => row.path === path);
+  const conflicts = row ? shortcutConflicts(row, rows).map(other => other.path) : [];
   return row ? { defaultBinding: shortcutTokens(row.defaultBinding), overridden: row.overridden, available: row.available,
-    conflicts: shortcutConflicts(row, rows).map(other => other.path) } : undefined;
+    conflicted: conflicts.length > 0, conflicts } : undefined;
 }

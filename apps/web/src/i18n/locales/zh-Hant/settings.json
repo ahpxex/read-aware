@@ -138,6 +138,7 @@
     },
     "recording": "請按下快捷鍵…",
     "conflict": "已被「{{label}}」使用",
+    "conflictInactive": "快捷鍵暫不可用：與 {{label}} 衝突。",
     "rebind": "重新設定 {{label}}",
     "reset": "重設 {{label}}",
     "resetAll": "全部重設為預設值",

@@ -141,7 +141,8 @@
     "rebind": "Reasignar {{label}}",
     "reset": "Restablecer {{label}}",
     "resetAll": "Restablecer todo a los valores predeterminados",
-    "notSet": "Sin asignar"
+    "notSet": "Sin asignar",
+    "unavailable": "Comandos no disponibles"
   },
   "ai": {
     "title": "IA",

@@ -1,4 +1,5 @@
 import type { KeyChord, ShortcutBindings, ShortcutId } from "./shortcuts";
+import { EDITABLE_SHORTCUTS } from "./shortcuts";
 
 import { localKV } from "../../../platform/local-store";
 
@@ -33,6 +34,7 @@ export function normalizeShortcutBindings(parsed: unknown): ShortcutBindings {
   const result: ShortcutBindings = {};
   for (const [storedId, chord] of Object.entries(parsed)) {
     const id = LEGACY_IDS[storedId] ?? (storedId as ShortcutId);
+    if (!EDITABLE_SHORTCUTS.some(shortcut => shortcut.id === id) && !(id.startsWith("plugin:") && id.length > 7)) continue;
     if (!isChord(chord)) continue;
     if (LEGACY_IDS[storedId]) {
       if (result[id] === undefined) result[id] = chord;
@@ -41,8 +43,4 @@ export function normalizeShortcutBindings(parsed: unknown): ShortcutBindings {
     }
   }
   return result;
-}
-
-export function saveShortcutBindings(bindings: ShortcutBindings): void {
-  localKV.setItem(STORAGE_KEY, JSON.stringify(bindings));
 }

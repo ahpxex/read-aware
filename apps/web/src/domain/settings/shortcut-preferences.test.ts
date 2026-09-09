@@ -49,3 +49,18 @@ test("external KV invalidation refreshes actual shortcut consumers without a mou
   await localKV.setItemAsync(SHORTCUT_BINDINGS_KEY, JSON.stringify({ search: { mod: true, key: "p" } }));
   expect(getDefaultStore().get(shortcutBindingsAtom).search).toEqual({ mod: true, key: "p" });
 });
+test("both actors can inspect and remove permitted dormant overrides without exposing others", async () => {
+  await localKV.setItemAsync(SHORTCUT_BINDINGS_KEY, JSON.stringify({
+    "plugin:absent:open.*": { mod: true, key: "k" }, "plugin:private:open": { mod: true, key: "s" },
+  }));
+  const path = "shortcuts.plugin.absent%3Aopen%2E%2A";
+  const plugin = createSettingsDomain("plugin:shortcuts", { write: [path] });
+  expect((await plugin.queries.snapshot({ section: "shortcuts" })).settings).toMatchObject([
+    { path, writable: true, value: ["mod", "k"], shortcut: { available: false, overridden: true, defaultBinding: null } },
+  ]);
+  await plugin.commands.update([{ path, value: null }]);
+  expect((await plugin.queries.snapshot({ section: "shortcuts" })).settings).toEqual([]);
+  expect(getDefaultStore().get(shortcutBindingsAtom)).toEqual({ "plugin:private:open": { mod: true, key: "s" } });
+  await createSettingsDomain("agent").commands.update([{ path: "shortcuts.plugin.private%3Aopen", value: null }]);
+  expect(getDefaultStore().get(shortcutBindingsAtom)).toEqual({});
+});

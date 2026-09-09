@@ -141,7 +141,8 @@
     "rebind": "{{label}}を再設定",
     "reset": "{{label}}をリセット",
     "resetAll": "すべて既定値にリセット",
-    "notSet": "未設定"
+    "notSet": "未設定",
+    "unavailable": "利用できないコマンド"
   },
   "ai": {
     "title": "AI",

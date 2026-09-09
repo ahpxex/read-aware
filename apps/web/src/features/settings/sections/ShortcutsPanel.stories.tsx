@@ -11,6 +11,6 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /** The shortcuts section on jotai defaults: every category with its default
-    chords, no overrides. Note: rebinding a shortcut writes through
-    `shortcutBindingsAtom` to this Storybook origin's localStorage. */
+    chords, no overrides. Rebinding uses the settings domain and this
+    Storybook origin's localStorage fallback, not the desktop database. */
 export const Default: Story = {};

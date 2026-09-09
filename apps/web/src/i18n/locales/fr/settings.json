@@ -141,7 +141,8 @@
     "rebind": "Réaffecter {{label}}",
     "reset": "Réinitialiser {{label}}",
     "resetAll": "Tout réinitialiser aux valeurs par défaut",
-    "notSet": "Non défini"
+    "notSet": "Non défini",
+    "unavailable": "Commandes indisponibles"
   },
   "ai": {
     "title": "IA",

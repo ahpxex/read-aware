@@ -59,7 +59,6 @@ import {
 import {
   getShortcutBindings,
   SHORTCUT_BINDINGS_KEY,
-  saveShortcutBindings,
 } from "../features/settings/lib/shortcut-bindings";
 import type { ShortcutBindings } from "../features/settings/lib/shortcuts";
 import { onLocalKVChange } from "../platform/local-store";
@@ -305,10 +304,4 @@ export const activeCollectionAtom = atom<string | null>(null);
 const shortcutBindingsBaseAtom = atom<ShortcutBindings>(getShortcutBindings());
 
 /** User overrides for rebindable keyboard shortcuts. See `lib/shortcuts`. */
-export const shortcutBindingsAtom = atom(
-  (get) => get(shortcutBindingsBaseAtom),
-  (_get, set, next: ShortcutBindings) => {
-    set(shortcutBindingsBaseAtom, next);
-    saveShortcutBindings(next);
-  },
-);
+export const shortcutBindingsAtom = atom((get) => get(shortcutBindingsBaseAtom));

@@ -141,7 +141,8 @@
     "rebind": "重新設定 {{label}}",
     "reset": "重設 {{label}}",
     "resetAll": "全部重設為預設值",
-    "notSet": "未設定"
+    "notSet": "未設定",
+    "unavailable": "無法使用的命令"
   },
   "ai": {
     "title": "AI",

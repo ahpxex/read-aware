@@ -662,3 +662,17 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [文档] 重扫 243 行、600 库存映射、74 静态设置路径、30 责任单元/catalog、129 原验收项、32 场景。生成器 --check、七项模型门禁、三个文档对 validator 通过。三份 HTML 在 1440×1000、1024×768、390×844 无页面横向溢出、重复 ID、坏页内锚点、无名按钮或已观察资源 HTTP 错误；中英文快捷键搜索/Escape、已有抽屉 inert 和主题刷新保持通过，console/page error 为空，移动首页截图已查看。文档仍依赖 CDN，无新增图；浏览器验证只证明文档。
 
 [清理/仍缺] 自有进程组 64569 已退出、5184/9224 无监听，文档浏览器关闭，正式 app 未操作。UI04 仍为部分：停用插件遗留覆盖未公开，激活可引入冲突，原生设置页仍走旧验证/写入路径；全来源 revision/origin、所有键盘布局/阅读及原生菜单路由、packaged/Windows/Linux 尚未闭合。初始 debug 启动曾报告 web content process terminated 后恢复，早期忙态/旧帧截图不计完成证据。其余双端缺口、六项无效果设置、W01-W32 全组合与完整桌面验收继续，未推送、未关闭总目标。
+
+## 2026-09-09：D5 / 原生快捷键统一写入与停用绑定
+
+[代码] 原生 Shortcuts 页移除独立冲突判断和整份 atom/KV 写入，重绑、单项恢复、全部恢复均使用 settings 域的 user 来源命令；等待持久提交，忙时禁用控件，失败以稳定错误本地化 toast 告知。shortcutBindingsAtom 仅提供读取，外部写入和回滚继续实时刷新 UI。reset-all 读取结算后的目录，以一个 null 批次清理内置和停用插件覆盖；这不是 CAS，也没有引入全局 revision 锁。
+
+[代码] 已保存但未注册的插件命令现在可被 Agent/按精确路径授权的插件查询、修改和清除：available=false、overridden=true、defaultBinding=null 表示注册默认未知，不是禁用命令。停用项不占用键位，清除后目录行消失，不能用未知路径任意创建。原生页增加 Unavailable commands 和单项恢复。解析器忽略未知内置 ID 与空 plugin: ID，保留非空插件遗留 ID，避免存在无法从目录清除的无名覆盖。超长 opaque ID 使用换行约束，未做极端长度原生截图验收。
+
+[环境] [证据](./evidence/shortcut-editor-2026-09-09.json)来自隔离 macOS debug Tauri 5184/9224。原生重绑 search 为 mod+shift+j 后真实键盘打开搜索；冲突拒绝保留原绑定并显示具体本地化错误。实际 Agent reset 更新已挂载原生页；原生单项 reset 恢复默认。Workspace Profiles 真实 Worker 注册后保存自有键位、停用后目录与原生页保留该项；精确授权 settings Worker 修改停用绑定，原生单项清除。最后原生 reset-all 同批清除 search 与停用项，load_kv_all 核实 read-aware-shortcuts 为 {}，仅一次 user 事件包含两项变更。没有远端模型推理或实际 SQLite 锁注入。
+
+[验证] 聚焦 16 项、52 次断言通过；独立 React/原生 IPC 子进程验证持久等待、忙态拒绝重复操作、排队的 user/plugin 写无丢失、失败回滚与不泄漏 raw error 的 toast、单批恢复全部。最终全仓 test 21/21（web 746 项、8478 次断言）、typecheck 24/24、生产前端 build 通过；保留既有体积、混合导入、Node 警告。未改 Rust 业务，debug 启动已有 37 warnings，初始 web content process terminated 后恢复；不宣称无崩溃或 packaged 验证。
+
+[文档] 243 行、600 库存、74 静态设置、30 单元/catalog、129 验收项和 32 场景保持。两份生成器检查、七项模型测试、三对文档 validator 通过。三份 HTML 在 1440×1000、1024×768、390×844 无横向溢出、重复 ID、坏锚点、无名按钮和已观察资源 HTTP 错误；中英文搜索/Escape、已有抽屉 inert 和主题刷新保持通过，截图已查看。浏览器自动化两次丢失目标标签，失败运行不计证据；重新确认 URL/DOM 后复检，部分交互通过 DOM 事件而非物理按键验证。诊断 10 项通过但未查明标签切换原因。文档依赖 CDN，不算产品验收。
+
+[清理/仍缺] 诊断命令/工具/文档归零，快捷键覆盖恢复原空状态，自有进程组 68041 停止、5184/9224 无监听，文档浏览器关闭，正式 app 未操作。UI04 仍为部分：重新激活冲突尚无统一执行裁决，全来源 revision/origin、所有按键布局/阅读及原生菜单路由、packaged/Windows/Linux 未闭合。六项无效果设置、其余双端缺口、W01-W32 全组合继续，不推送、不关闭总目标。

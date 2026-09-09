@@ -16,12 +16,18 @@ export function shortcutSettingPath(id: ShortcutId): string {
 }
 
 export function shortcutRows(bindings: ShortcutBindings, env: ShortcutEnvironment): ShortcutRow[] {
+  const registered = new Set(env.commands.map(command => pluginShortcutId(command.key)));
   return [
     ...EDITABLE_SHORTCUTS.map(shortcut => ({ id: shortcut.id, path: shortcutSettingPath(shortcut.id), label: shortcut.id,
       defaultBinding: shortcut.defaultBinding, binding: resolveBinding(shortcut.id, bindings), overridden: bindings[shortcut.id] !== undefined,
       available: (shortcut.category !== "TextUnitMode" || env.modeAvailable) && (shortcut.id !== "selection-look-up" || env.lookupAvailable) })),
     ...env.commands.map(command => { const id = pluginShortcutId(command.key); return { id, path: shortcutSettingPath(id), label: command.title,
       defaultBinding: command.defaultShortcut, binding: resolvePluginBinding(id, bindings, command.defaultShortcut), overridden: bindings[id] !== undefined, available: true }; }),
+    ...Object.entries(bindings).flatMap(([key, binding]): ShortcutRow[] => {
+      if (!key.startsWith("plugin:") || registered.has(key as `plugin:${string}`) || !binding) return [];
+      const id = key as `plugin:${string}`;
+      return [{ id, path: shortcutSettingPath(id), label: key.slice(7), binding, overridden: true, available: false }];
+    }),
   ];
 }
 

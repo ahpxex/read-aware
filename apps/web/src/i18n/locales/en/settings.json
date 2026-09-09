@@ -141,7 +141,8 @@
     "rebind": "Rebind {{label}}",
     "reset": "Reset {{label}}",
     "resetAll": "Reset all to defaults",
-    "notSet": "Not set"
+    "notSet": "Not set",
+    "unavailable": "Unavailable commands"
   },
   "ai": {
     "title": "AI",

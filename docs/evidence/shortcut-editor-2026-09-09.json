@@ -1,0 +1,417 @@
+{
+  "date": "2026-09-09",
+  "baseCommit": "0d837aac",
+  "scope": "Native shortcut editor shared settings writer and dormant plugin binding visibility; UI04 not fully closed",
+  "environment": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "port": 9224,
+    "devPort": 5184,
+    "platform": "macOS debug",
+    "viewport": [
+      1200,
+      800
+    ],
+    "formalAppUntouched": true
+  },
+  "initialOverrides": [],
+  "nativeRebind": {
+    "button": "⌘+⇧+J",
+    "events": [
+      {
+        "changes": [
+          {
+            "path": "shortcuts.search",
+            "target": {
+              "kind": "global"
+            },
+            "value": [
+              "mod",
+              "shift",
+              "j"
+            ]
+          }
+        ],
+        "origin": "user",
+        "type": "settings.changed"
+      }
+    ],
+    "settings": [
+      {
+        "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement. Unregistered plugin overrides remain readable/resettable; their default is unknown until registration and reported as null.",
+        "kind": "key-chord",
+        "label": "search",
+        "nullable": true,
+        "path": "shortcuts.search",
+        "section": "shortcuts",
+        "shortcut": {
+          "available": true,
+          "conflicts": [],
+          "defaultBinding": [
+            "mod",
+            "k"
+          ],
+          "overridden": true
+        },
+        "supportedTargets": [
+          "global"
+        ],
+        "value": [
+          "mod",
+          "shift",
+          "j"
+        ],
+        "writable": true
+      }
+    ]
+  },
+  "keyboardDispatch": true,
+  "nativeConflict": {
+    "events": [
+      {
+        "changes": [
+          {
+            "path": "shortcuts.search",
+            "target": {
+              "kind": "global"
+            },
+            "value": [
+              "mod",
+              "shift",
+              "j"
+            ]
+          }
+        ],
+        "origin": "user",
+        "type": "settings.changed"
+      }
+    ],
+    "settings": [
+      {
+        "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement. Unregistered plugin overrides remain readable/resettable; their default is unknown until registration and reported as null.",
+        "kind": "key-chord",
+        "label": "search",
+        "nullable": true,
+        "path": "shortcuts.search",
+        "section": "shortcuts",
+        "shortcut": {
+          "available": true,
+          "conflicts": [],
+          "defaultBinding": [
+            "mod",
+            "k"
+          ],
+          "overridden": true
+        },
+        "supportedTargets": [
+          "global"
+        ],
+        "value": [
+          "mod",
+          "shift",
+          "j"
+        ],
+        "writable": true
+      }
+    ],
+    "text": "Library\n/\nAgent\n\nSearch\n\nImport\n\nShelf management\n\nReading stats\n\nSettings\n\nMore\n\n\nReading Paint Probe\nUnknown author\n\n\n\n25%\n\n\nFB2\nReading Capability Probe\nReadAware Tests\nReading Capability Probe\nReadAware Tests\n\n\n\n7%\nSettings\n\nGeneral\n\nReading\n\nAI\n\nPlugins\n\nTheme\n\nCustomize\n\nShortcuts\n\nData & Sync\n\nAbout\n\nRSS Reader\n\nSentence Reader\n\nTTS Voices\n\nWebDAV Sync\n\nShortcuts\nClick a shortcut to rebind it; press Esc while recording to cancel.\nGlobal\nOpen search\n\n⌘\n+\n⇧\n+\nJ\n\nOpen settings\n\n⌘\n+\n,\nNew conversation\n\n⌘\n+\nN\nSwitch primary destination\n⌘\n+\n1–4\nReading\nNext page\n\n→\nPrevious page\n\n←\nNext chapter\n\n]\nPrevious chapter\n\n[\nToggle reader controls\n\nSpace\nRead by sentence or paragraph\nActive while reading by sentence or paragraph. The selection shortcuts also act on the current sentence or paragraph.\n\nNext sentence\n\n↓\nPrevious sentence\n\n↑\nSelection\nActive while text is selected in the reader.\n\nCopy\n\nC\nHighlight\n\nH\nUnderline\n\nU\nAdd note\n\nN\nLook up\n\nL\nAsk AI\n\nA\nOverlays\nClose dialog or overlay\nEsc\nPlugins\nAssign keys to commands contributed by plugins.\n\nWorkspace Profiles\nWorkspace Profiles\nNot set\nDictionary: saved words\nDictionary\nNot set\nReading Goals\nReading Goals\nNot set\nAnnotation Desk\nAnnotation Desk\nNot set\nListening Desk\nListening Desk\nNot set\nListening Desk: Start\nListening Desk\nNot set\nListening Desk: Stop\nListening Desk\nNot set\nJumper\nJumper\nNot set\nJumper: Go back\nJumper\n\n⌥\n"
+  },
+  "agentReset": {
+    "button": "⌘+K",
+    "reset": {
+      "changed": [
+        {
+          "path": "shortcuts.search",
+          "target": {
+            "kind": "global"
+          },
+          "value": null
+        }
+      ],
+      "snapshot": {
+        "appearance": {
+          "motion": "system",
+          "theme": "system"
+        },
+        "events": [
+          {
+            "changes": [
+              {
+                "path": "shortcuts.search",
+                "target": {
+                  "kind": "global"
+                },
+                "value": [
+                  "mod",
+                  "shift",
+                  "j"
+                ]
+              }
+            ],
+            "origin": "user",
+            "type": "settings.changed"
+          },
+          {
+            "changes": [
+              {
+                "path": "shortcuts.search",
+                "target": {
+                  "kind": "global"
+                },
+                "value": null
+              }
+            ],
+            "origin": "agent",
+            "type": "settings.changed"
+          }
+        ],
+        "general": {
+          "autoUpdate": true,
+          "crashPrompt": true,
+          "fileAssociations": true,
+          "language": null,
+          "launchAtStartup": false,
+          "startView": "shelf",
+          "whatsNewDialog": true
+        }
+      },
+      "status": "committed"
+    }
+  },
+  "nativeResetAndRetirement": {
+    "button": "⌘+K",
+    "dormant": [
+      {
+        "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement. Unregistered plugin overrides remain readable/resettable; their default is unknown until registration and reported as null.",
+        "kind": "key-chord",
+        "label": "capability-workspace-profiles:open",
+        "nullable": true,
+        "path": "shortcuts.plugin.capability-workspace-profiles%3Aopen",
+        "section": "shortcuts",
+        "shortcut": {
+          "available": false,
+          "conflicts": [],
+          "defaultBinding": null,
+          "overridden": true
+        },
+        "supportedTargets": [
+          "global"
+        ],
+        "value": [
+          "mod",
+          "shift",
+          "p"
+        ],
+        "writable": true
+      }
+    ],
+    "events": [
+      {
+        "changes": [
+          {
+            "path": "shortcuts.search",
+            "target": {
+              "kind": "global"
+            },
+            "value": [
+              "mod",
+              "shift",
+              "j"
+            ]
+          }
+        ],
+        "origin": "user",
+        "type": "settings.changed"
+      },
+      {
+        "changes": [
+          {
+            "path": "shortcuts.search",
+            "target": {
+              "kind": "global"
+            },
+            "value": null
+          }
+        ],
+        "origin": "agent",
+        "type": "settings.changed"
+      },
+      {
+        "changes": [
+          {
+            "path": "shortcuts.search",
+            "target": {
+              "kind": "global"
+            },
+            "value": [
+              "mod",
+              "shift",
+              "p"
+            ]
+          }
+        ],
+        "origin": "user",
+        "type": "settings.changed"
+      },
+      {
+        "changes": [
+          {
+            "path": "shortcuts.search",
+            "target": {
+              "kind": "global"
+            },
+            "value": null
+          }
+        ],
+        "origin": "user",
+        "type": "settings.changed"
+      }
+    ],
+    "retired": {
+      "commands": 0,
+      "profiles": 0,
+      "tools": 0
+    }
+  },
+  "dormantWorker": {
+    "cleaned": {
+      "contributions": 0
+    },
+    "snapshot": [
+      {
+        "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement. Unregistered plugin overrides remain readable/resettable; their default is unknown until registration and reported as null.",
+        "kind": "key-chord",
+        "label": "capability-workspace-profiles:open",
+        "nullable": true,
+        "path": "shortcuts.plugin.capability-workspace-profiles%3Aopen",
+        "section": "shortcuts",
+        "shortcut": {
+          "available": false,
+          "conflicts": [],
+          "defaultBinding": null,
+          "overridden": true
+        },
+        "supportedTargets": [
+          "global"
+        ],
+        "value": [
+          "mod",
+          "shift",
+          "g"
+        ],
+        "writable": true
+      }
+    ],
+    "updated": {
+      "result": {
+        "changed": [
+          {
+            "path": "shortcuts.plugin.capability-workspace-profiles%3Aopen",
+            "target": {
+              "kind": "global"
+            },
+            "value": [
+              "mod",
+              "shift",
+              "g"
+            ]
+          }
+        ],
+        "paths": [
+          "shortcuts.plugin.capability-workspace-profiles%3Aopen"
+        ],
+        "status": "committed"
+      },
+      "snapshot": {
+        "appearance": {
+          "motion": "system",
+          "theme": "system"
+        },
+        "events": [
+          {
+            "changes": [
+              {
+                "path": "shortcuts.plugin.capability-workspace-profiles%3Aopen",
+                "target": {
+                  "kind": "global"
+                },
+                "value": [
+                  "mod",
+                  "shift",
+                  "g"
+                ]
+              }
+            ],
+            "origin": "plugin:capability-settings-probe",
+            "type": "settings.changed"
+          }
+        ],
+        "general": {
+          "autoUpdate": true,
+          "crashPrompt": true,
+          "fileAssociations": true,
+          "language": null,
+          "launchAtStartup": false,
+          "startView": "shelf",
+          "whatsNewDialog": true
+        }
+      }
+    }
+  },
+  "dormantReset": {
+    "button": false,
+    "overrides": []
+  },
+  "resetAllAndCleanup": {
+    "diskBindings": "{}",
+    "events": [
+      {
+        "changes": [
+          {
+            "path": "shortcuts.search",
+            "target": {
+              "kind": "global"
+            },
+            "value": null
+          },
+          {
+            "path": "shortcuts.plugin.capability-workspace-profiles%3Aopen",
+            "target": {
+              "kind": "global"
+            },
+            "value": null
+          }
+        ],
+        "origin": "user",
+        "type": "settings.changed"
+      }
+    ],
+    "overrides": [],
+    "settingsCleanup": {
+      "contributions": 0
+    },
+    "workspaceCleanup": {
+      "commands": 0,
+      "profiles": 0,
+      "tools": 0
+    }
+  },
+  "screenshots": [
+    "/tmp/native-shortcut-editor-conflict.png",
+    "/tmp/native-shortcut-dormant.png"
+  ],
+  "unitTests": {
+    "focused": "16 outer tests, 52 assertions; separate native-IPC/React child covers held/rejected writes and actor ordering",
+    "full": "21/21 tasks, web 746 tests / 8478 assertions",
+    "typecheck": "24/24 tasks",
+    "frontendBuild": "passed"
+  },
+  "limits": [
+    "No model inference, full keyboard layouts, all reader/native-menu routes, packaged builds, Windows or Linux.",
+    "Native write lock and busy timing verified with IPC/React test, not live SQLite lock injection.",
+    "Unavailable defaults are unknown; null removes an override, not a persisted disabled command.",
+    "Registration may still introduce conflicts; complete revision/origin observation remains open.",
+    "Reset-all is snapshot plus one validated batch, not compare-and-swap.",
+    "Initial debug web content process termination recovered to mounted; not a crash-free startup claim."
+  ],
+  "cleanup": "All shortcut overrides restored to original empty state, native SQLite read-aware-shortcuts is {}; both probes have zero contributions/commands/tools/documents; owned process group 68041 stopped."
+}

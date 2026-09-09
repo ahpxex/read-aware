@@ -2,6 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { normalizeShortcutBindings } from "./shortcut-bindings";
 
 describe("shortcut binding migrations", () => {
+  test("unknown builtin records cannot leave an invisible unresettable override", () => {
+    expect(normalizeShortcutBindings({ removed: { key: "x" }, "plugin:": { key: "y" },
+      "plugin:retired:open": { mod: true, key: "p" } })).toEqual({ "plugin:retired:open": { mod: true, key: "p" } });
+  });
   test("moves historical sentence action ids to generic mode actions", () => {
     expect(normalizeShortcutBindings({
       "navigator-next-sentence": { key: "j" },

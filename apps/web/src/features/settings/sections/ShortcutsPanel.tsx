@@ -1,7 +1,7 @@
-import { Fragment, useCallback, useState } from "react";
+import { Fragment } from "react";
 import { ArrowCounterClockwise } from "@phosphor-icons/react";
-import { useAtom, useAtomValue } from "jotai";
-import { IconButton, Kbd } from "@read-aware/ui";
+import { useAtomValue } from "jotai";
+import { Button, IconButton, Kbd } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { shortcutBindingsAtom } from "../../../state/ui";
 import { isAndroid } from "../../../platform/environment";
@@ -17,16 +17,15 @@ import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
 import { useShortcutRecorder } from "../hooks/useShortcutRecorder";
+import { useShortcutPreferences } from "../hooks/useShortcutPreferences";
 import {
   EDITABLE_SHORTCUTS,
   INFO_SHORTCUTS,
   type InfoShortcut,
-  chordSignature,
   chordToTokens,
   pluginShortcutId,
   resolveBinding,
   resolvePluginBinding,
-  type KeyChord,
   type ShortcutCategory,
   type ShortcutId,
 } from "../lib/shortcuts";
@@ -61,61 +60,15 @@ function KeyTokens({ tokens }: { tokens: string[] }) {
 export function ShortcutsPanel() {
   const { t } = useTranslation("settings");
   const locale = useLocale();
-  const [bindings, setBindings] = useAtom(shortcutBindingsAtom);
+  const bindings = useAtomValue(shortcutBindingsAtom);
   const textUnitMode = useAtomValue(textUnitReaderModeAtom);
   const selectionActions = useAtomValue(selectionActionsAtom);
   const pluginCommands = useAtomValue(pluginCommandsAtom);
   const lookupAvailable = selectionActions.some((action) => action.role === "lookup");
-  const [conflict, setConflict] = useState<{ id: ShortcutId; conflictId: ShortcutId } | null>(null);
-
-  const onCapture = useCallback(
-    (id: ShortcutId, chord: KeyChord) => {
-      const signature = chordSignature(chord);
-      const clash = EDITABLE_SHORTCUTS.find(
-        (shortcut) =>
-          (shortcut.category !== "TextUnitMode" || textUnitMode !== null) &&
-          (shortcut.id !== "selection-look-up" || lookupAvailable) &&
-          shortcut.id !== id && chordSignature(resolveBinding(shortcut.id, bindings)) === signature,
-      );
-      // Plugin commands share the conflict space — their live chord may come
-      // from a user override or the command's registered default.
-      const pluginClash = clash
-        ? undefined
-        : pluginCommands.find((command) => {
-            const rowId = pluginShortcutId(command.key);
-            if (rowId === id) return false;
-            const bound = resolvePluginBinding(rowId, bindings, command.defaultShortcut);
-            return bound !== undefined && chordSignature(bound) === signature;
-          });
-      if (clash || pluginClash) {
-        setConflict({
-          id,
-          conflictId: clash ? clash.id : pluginShortcutId(pluginClash!.key),
-        });
-        return;
-      }
-      setConflict(null);
-      setBindings({ ...bindings, [id]: chord });
-    },
-    [bindings, lookupAvailable, pluginCommands, textUnitMode, setBindings],
-  );
-
-  const { recordingId, startRecording, cancel } = useShortcutRecorder(onCapture);
-
-  const reset = useCallback(
-    (id: ShortcutId) => {
-      const next = { ...bindings };
-      delete next[id];
-      setBindings(next);
-      setConflict((current) => (current?.id === id ? null : current));
-    },
-    [bindings, setBindings],
-  );
-
-  const resetAll = useCallback(() => {
-    setBindings({});
-    setConflict(null);
-  }, [setBindings]);
+  const { busy, rebind, reset, resetAll } = useShortcutPreferences();
+  const { recordingId, startRecording, cancel } = useShortcutRecorder(rebind);
+  const activePluginIds = new Set(pluginCommands.map(command => pluginShortcutId(command.key)));
+  const dormant = Object.entries(bindings).filter(([id]) => id.startsWith("plugin:") && !activePluginIds.has(id as `plugin:${string}`));
 
   const hasOverrides = Object.keys(bindings).length > 0;
   const defaultModeUnit = textUnitMode
@@ -187,7 +140,6 @@ export function ShortcutsPanel() {
               const binding = resolveBinding(shortcut.id, bindings);
               const overridden = bindings[shortcut.id] !== undefined;
               const recording = recordingId === shortcut.id;
-              const showConflict = conflict?.id === shortcut.id;
               const label = shortcutLabel(shortcut.id);
 
               return (
@@ -195,26 +147,17 @@ export function ShortcutsPanel() {
                   key={shortcut.id}
                   borderless={index === 0}
                   title={label}
-                  description={
-                    showConflict && conflict && !recording ? (
-                      <span className="text-red-600 dark:text-red-400">
-                        {t("shortcuts.conflict", {
-                          label: shortcutLabel(conflict.conflictId),
-                        })}
-                      </span>
-                    ) : undefined
-                  }
                   control={
                     <span className="flex items-center gap-1.5">
                       <button
                         type="button"
                         aria-label={t("shortcuts.rebind", { label })}
+                        disabled={busy}
                         onClick={() => {
                           if (recording) {
                             cancel();
                             return;
                           }
-                          setConflict(null);
                           startRecording(shortcut.id);
                         }}
                         className={cn(
@@ -241,6 +184,7 @@ export function ShortcutsPanel() {
                           label={t("shortcuts.reset", { label })}
                           size="sm"
                           onClick={() => reset(shortcut.id)}
+                          disabled={busy}
                           icon={<ArrowCounterClockwise size={14} aria-hidden="true" />}
                         />
                       )}
@@ -272,35 +216,24 @@ export function ShortcutsPanel() {
             const binding = resolvePluginBinding(id, bindings, command.defaultShortcut);
             const overridden = bindings[id] !== undefined;
             const recording = recordingId === id;
-            const showConflict = conflict?.id === id;
 
             return (
               <SettingsRow
                 key={command.key}
                 borderless={index === 0}
                 title={contributionText(command.title)}
-                description={
-                  showConflict && conflict && !recording ? (
-                    <span className="text-red-600 dark:text-red-400">
-                      {t("shortcuts.conflict", {
-                        label: shortcutLabel(conflict.conflictId),
-                      })}
-                    </span>
-                  ) : (
-                    command.pluginName
-                  )
-                }
+                description={command.pluginName}
                 control={
                   <span className="flex items-center gap-1.5">
                     <button
                       type="button"
                       aria-label={t("shortcuts.rebind", { label: contributionText(command.title) })}
+                      disabled={busy}
                       onClick={() => {
                         if (recording) {
                           cancel();
                           return;
                         }
-                        setConflict(null);
                         startRecording(id);
                       }}
                       className={cn(
@@ -331,6 +264,7 @@ export function ShortcutsPanel() {
                         label={t("shortcuts.reset", { label: contributionText(command.title) })}
                         size="sm"
                         onClick={() => reset(id)}
+                        disabled={busy}
                         icon={<ArrowCounterClockwise size={14} aria-hidden="true" />}
                       />
                     )}
@@ -342,14 +276,24 @@ export function ShortcutsPanel() {
         </SettingsGroup>
       )}
 
+      {dormant.length > 0 && (
+        <SettingsGroup title={t("shortcuts.unavailable")}>
+          {dormant.map(([id, binding], index) => (
+            <SettingsRow key={id} borderless={index === 0} title={<span className="[overflow-wrap:anywhere]">{id.slice(7)}</span>} control={
+              <span className="flex items-center gap-1.5">
+                {binding && <KeyTokens tokens={chordToTokens(binding)} />}
+                <IconButton label={t("shortcuts.reset", { label: id.slice(7) })} size="sm" disabled={busy}
+                  onClick={() => reset(id as ShortcutId)} icon={<ArrowCounterClockwise size={14} aria-hidden="true" />} />
+              </span>
+            } />
+          ))}
+        </SettingsGroup>
+      )}
+
       {hasOverrides && (
-        <button
-          type="button"
-          onClick={resetAll}
-          className="font-sans text-[13px] text-fg-muted underline-offset-2 transition-colors hover:text-fg hover:underline"
-        >
+        <Button variant="link" disabled={busy} onClick={resetAll}>
           {t("shortcuts.resetAll")}
-        </button>
+        </Button>
       )}
     </SettingsPage>
   );

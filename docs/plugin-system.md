@@ -362,7 +362,8 @@ It neither changes AI privacy nor accesses credentials or plugin lifecycle.
 ### Keyboard shortcut settings
 
 [代码] Settings 1.4 adds the `shortcuts` section: all 16 built-in editable
-bindings and currently registered plugin commands. Agent `get_settings` and
+bindings, currently registered plugin commands and retained overrides of
+unregistered plugin commands. Agent `get_settings` and
 `update_settings` use the same catalog, validation, atomic KV transaction and
 live binding atom as granted plugins. Existing keyboard handlers consume that
 atom. This is not a second command-execution API.
@@ -397,6 +398,30 @@ atom. This is not a second command-execution API.
   mode/lookup providers. Failed native writes roll back bindings and other
   settings in the same batch; queued snapshots see the settled state.
 
+[代码] The native Shortcuts editor now submits per-path commands through the
+same settings domain with origin `user`, rather than replacing an atom/KV map
+captured by React. Recording, single reset and reset-all await the shared
+transaction; controls stay disabled during submission. Conflicts and native
+write failures produce localized destructive toasts, not silent success.
+`shortcutBindingsAtom` is read-only; the old direct binding setter was removed.
+Reset-all captures the settled shortcut catalog and submits one batch of null
+changes for its overrides, including dormant plugin overrides. This does not
+introduce compare-and-swap or a global revision lock.
+The persisted map parser ignores unknown built-in IDs and the empty `plugin:`
+ID, while retaining nonempty dormant plugin IDs; otherwise reset-all could
+leave invisible, unaddressable entries behind.
+
+[代码] An unregistered plugin's override remains in the catalog with an opaque
+contribution-key label, `available: false`, `overridden: true`, and
+`defaultBinding: null` because no registered default is known. It is inert,
+does not reserve a chord against active commands, and still obeys exact path
+grants. Agent/plugins may read, modify or remove that existing override. The
+native editor groups it under Unavailable commands and offers reset. After
+null removes it, the row disappears until the command registers again; unknown
+paths cannot create arbitrary dormant overrides. Registration reuses the
+existing override without duplicate rows. It can still introduce a conflict,
+which the metadata reports but dispatch does not yet uniformly arbitrate.
+
 [代码] Workspace Profiles 0.2 adds a native-rendered shortcut form using only
 its own exact command path grant. Default/custom mode, modifier toggles and a
 key field submit one settings command. Its seven-field saved presets remain
@@ -410,10 +435,14 @@ covers actual Agent tools, a real Worker batch swap, native keyboard dispatch,
 the installed Workspace Profiles form, conflict toast, null reset and cleanup
 in isolated macOS debug Tauri. It does not prove model inference, packaged
 builds, Windows/Linux, all key layouts or every reader/native-menu route.
-UI04 remains partial: dormant plugin overrides are retained but not exposed
-until registration; activation can introduce conflicts; the native shortcuts
-editor still uses its previous validation/write path, and full revision/origin
-observation is not implemented. These are remaining work, not exemptions.
+Additional [native editor evidence](./evidence/shortcut-editor-2026-09-09.json)
+covers native rebind/reset/reset-all, actual keyboard dispatch, an Agent reset
+refreshing the mounted editor, Worker edits of a retired command, and persisted
+cleanup. An isolated React/native-IPC test holds and rejects writes to verify
+busy state, rollback, error presentation and actor ordering. These are not
+real SQLite-lock or full keyboard-layout tests. UI04 remains partial:
+activation conflict arbitration and full revision/origin observation are not
+implemented. These are remaining work, not exemptions.
 
 [环境] The [desktop evidence](./evidence/workspace-profiles-2026-09-09.json)
 covers real product tools, the built plugin Worker, save/validation/apply/delete

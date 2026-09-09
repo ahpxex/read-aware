@@ -20,6 +20,18 @@ test("registered plugin defaults, overrides and dormant builtins share one catal
   expect(rows.find(row => row.id === "plugin:sample:open")).toMatchObject({ overridden: true, binding: { mod: true, key: "p" }, defaultBinding: { mod: true, key: "o" } });
   expect(rows.find(row => row.id === "reader-mode-next-unit")?.available).toBe(false);
 });
+test("dormant plugin overrides stay addressable without pretending the command can run", () => {
+  const binding = { mod: true, key: "k" };
+  const rows = shortcutRows({ "plugin:absent:open": binding }, env);
+  const dormant = rows.find(row => row.id === "plugin:absent:open")!;
+  expect(dormant).toMatchObject({ path: "shortcuts.plugin.absent%3Aopen", binding, available: false, overridden: true });
+  expect(dormant.defaultBinding).toBeUndefined();
+  expect(shortcutConflicts(dormant, rows)).toEqual([]);
+  expect(() => assertShortcutChanges({ "plugin:absent:open": binding }, {}, env)).not.toThrow();
+  const active = shortcutRows({ "plugin:sample:open": binding }, env);
+  expect(active.filter(row => row.id === "plugin:sample:open")).toHaveLength(1);
+  expect(shortcutConflicts(active.find(row => row.id === "plugin:sample:open")!, active).map(row => row.id)).toEqual(["search"]);
+});
 test("validates final state rather than rejecting intermediate swaps", () => {
   expect(() => assertShortcutChanges({}, { search: { mod: true, key: "," }, settings: { mod: true, key: "k" } }, env)).not.toThrow();
   expect(() => assertShortcutChanges({}, { search: { mod: true, key: "o" } }, env)).toThrow("Shortcut conflict");

@@ -290,6 +290,23 @@ CREATE INDEX ix_books_active_recent ON books (removed_at, last_opened_at, update
 CREATE INDEX ix_books_author_title ON books (author, title); -- 书架按作者分组或排序时使用。
 CREATE INDEX ix_books_source_sha256 ON books (source_sha256); -- 导入重复检测和跨设备 blob 对账时使用。
 
+-- [current migration 31] Device-local recovery, not a projection/checkpoint.
+-- Current Rust apply hard-deletes books; the target removed_at column above
+-- does not describe that runtime path. No pre-31 orphan-file backfill.
+CREATE TABLE book_removal_cleanup (
+  book_id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  removed_at TEXT NOT NULL
+);
+CREATE TRIGGER trg_book_removal_cleanup_delete AFTER DELETE ON books BEGIN
+  INSERT INTO book_removal_cleanup (book_id, title, removed_at)
+  VALUES (old.id, old.title, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  ON CONFLICT(book_id) DO UPDATE SET title=excluded.title, removed_at=excluded.removed_at;
+END;
+CREATE TRIGGER trg_book_removal_cleanup_restore AFTER INSERT ON books BEGIN
+  DELETE FROM book_removal_cleanup WHERE book_id=new.id;
+END;
+
 CREATE TABLE collections ( -- [projection] 用户创建的书架集合；由 collection.created/renamed/removed 事件重放。当前产品是"单本书只属于一个集合"的文件夹式模型。
   id TEXT NOT NULL PRIMARY KEY, -- 集合 ID，对应当前 Collection.id；集合重命名、删除、成员关系都引用它。
   name TEXT NOT NULL, -- 集合名称，在书架顶层 CollectionTile 和 CollectionHeader 中展示。

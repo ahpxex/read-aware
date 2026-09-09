@@ -10,6 +10,7 @@
     "thought": "思考の過程",
     "tools": {
       "delete_books": "本を削除しています",
+      "list_book_removal_cleanup": "未完了のファイル削除を確認しています",
       "search_memory": "記憶を呼び出しています",
       "remember": "記憶を保存しています",
       "search_conversation": "過去の会話を検索しています",

@@ -1,5 +1,5 @@
 import { invoke } from "../../../platform/ipc";
-import { AppError, type EventOrigin } from "@read-aware/core";
+import { AppError, normalizeBookRemovalCleanupQuery, type BookRemovalCleanupPage, type BookRemovalCleanupQuery, type EventOrigin } from "@read-aware/core";
 import { removeBookBatch, releaseRemovedBookFiles } from "./book-removal";
 import { createLogger } from "../../../platform/logger";
 import {
@@ -428,6 +428,12 @@ export async function retryLibraryBookFileRelease(bookIds: string[]) {
     releaseFiles: ids => invoke("library_release_book_files", { ids }),
     warn: error => createLogger("library").warn("Removed book file release retry failed", error),
   });
+}
+
+export async function listLibraryRemovalCleanup(query?: BookRemovalCleanupQuery): Promise<BookRemovalCleanupPage> {
+  const input = normalizeBookRemovalCleanupQuery(query);
+  assertDesktop("Listing removed book file cleanup");
+  return invoke("library_list_removal_cleanup", input);
 }
 
 export async function markLibraryBookOpened(bookId: string) {

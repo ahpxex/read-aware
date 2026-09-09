@@ -1,0 +1,97 @@
+{
+  "date": "2026-09-09",
+  "scope": "Device-local book source/cover cleanup recovery, not complete data erasure",
+  "environment": {
+    "platform": "macOS debug Tauri",
+    "identifier": "com.readaware.app.capability-e2e",
+    "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+    "frontendPort": 5184,
+    "bridgePort": 9224,
+    "schemaMigration": 31,
+    "appPids": [64134, 64743, 65852, 68936, 69901],
+    "ownedProcessGroups": [63982, 64577, 65673, 68744, 69699],
+    "unownedDevGroupLeftRunning": 89360,
+    "formalDataOperated": false
+  },
+  "contracts": {
+    "domainVersion": "library 1.6.0",
+    "plugin": "Library Desk 0.2.0, compiled Worker loaded through the real runtime",
+    "query": "queries.books.listRemovalCleanup({after?,limit?})",
+    "agentQuery": "list_book_removal_cleanup (global)",
+    "agentRetry": "delete_books with cleanupOnly=true and real product approval component",
+    "queue": "AFTER DELETE ON books in the record transaction; AFTER INSERT cancels restored IDs",
+    "release": "All-ID absence and projection freshness preflight; blob metadata and intent acknowledgement transaction; physical deletion can be partial",
+    "boot": "One pass, keyset pages of 100, per-entry failure retained and logged"
+  },
+  "permissions": {
+    "noGrant": { "cleanupQuery": false, "removeMany": false, "retry": false },
+    "libraryRead": { "cleanupQuery": true, "removeMany": false, "retry": false },
+    "libraryWrite": { "cleanupQuery": true, "removeMany": true, "retry": true }
+  },
+  "failedCleanupRestart": {
+    "bookIds": ["64c80575-a1a2-49ae-ad90-004b35cc9aed", "3832d1f5-c7bc-4e4f-b250-30a32a8632f3"],
+    "fault": "Scoped SQLite trigger rejects blob_objects.deleted_at updates for these two source keys",
+    "removeReceipt": { "committed": true, "files": { "status": "pending", "errorCode": "db/error" } },
+    "queueCountBeforeRestart": 2,
+    "restartWithFault": "App boots; both intents remain and produce warning logs",
+    "freshConsumers": "Worker read grant and production Agent query rediscover the same IDs/titles/timestamps without reseeding",
+    "pagination": "Worker limit=1 returns normal then short, final cursor null",
+    "pluginUI": "More > Library Desk > Pending file cleanup > full-title detail > retry while fault remains reports pending",
+    "faultRemoved": "Plugin retry releases normal; approved Agent cleanup-only releases short",
+    "queueCountAfterRetries": 0,
+    "removalEventCountBeforeAndAfterRetries": 2
+  },
+  "virtualBindingLoss": {
+    "bookId": "4414df9e-3b5f-4a5b-ba15-ec013ded1bd1",
+    "title": "Virtual Removal Probe",
+    "fault": "Scoped trigger rejects deletion of this cleanup intent",
+    "publicRemove": { "completed": false, "errorCode": "db/error", "bookExists": false, "binding": null },
+    "agentDiscovery": "Returns deleted ID and stored title despite absent virtual binding",
+    "restartAfterRemovingFault": "Queue empty, book.removed event count remains 1",
+    "limitation": "Synthetic virtual book has no source bytes; this tests intent acknowledgement and binding loss, not virtual-file I/O"
+  },
+  "finalUiAndPhysicalRestart": {
+    "shortId": "8c3ddaa4-4bbc-40d6-9099-0242ad58bdef",
+    "normalId": "413da99c-4535-4997-b281-d17c91b2556e",
+    "blankId": "a39203b8-6c9c-47c4-9588-dd657fec4bde",
+    "initialFault": "Scoped blob metadata rejection gives committed/pending and two discoverable intents",
+    "ui": "Real menu, pending list, full-title/ID detail and failed retry; corrected unsupported file icon to file-text and re-inspected screenshots",
+    "viewports": ["800x650", "1200x800"],
+    "screenshotsInspected": ["/tmp/cleanup-backlog-fixed-800.png", "/tmp/cleanup-detail-fixed-1200.png"],
+    "overflowAt800": { "page": false, "dialog": false },
+    "restoreFault": "Test restore first reinserts short book, then blob metadata upsert hits the same fault. Row and 566-byte file survive; its cleanup intent is cancelled. Fixture cleanup under fault rejects honestly.",
+    "firstRestartAfterFaultRemoved": "Normal intent cleared, restored short book and 566-byte source preserved",
+    "recordOnlyBoundary": "After exact ID/title guard and isolated fixture guard, commitDomainEvents removes short without invoking file cleanup. Queue contains short and stat confirms source is still 566 bytes before process termination.",
+    "nextStartup": "Queue clears, source file is absent, blob storage_uri becomes null and deleted_at is set",
+    "shortRemovalEventCountBeforeAndAfterStartup": 3,
+    "freshAgentAndWorkerAfterStartup": { "items": [], "nextCursor": null },
+    "boundary": "Controlled termination after a completed record commit; not power-loss testing during SQLite commit or arbitrary filesystem syscalls"
+  },
+  "automated": {
+    "rustLib": { "passed": 137, "failed": 0, "ignored": 1 },
+    "newNativeTests": ["intent transaction rollback", "reopen and retry without record events", "restore cancels intent and batch preflight protects files", "pagination, input and stale projection guards", "105 intents with failing first item do not starve next page", "factory reset clears deletion-produced intents"],
+    "workspaceTests": "23/23 tasks; web 846 tests, 9403 assertions",
+    "workspaceTypecheck": "26/26 tasks",
+    "frontendProductionBuild": "passed",
+    "agentTests": "global registration, read-only discovery, keyset input, cancellation",
+    "pluginTests": "fresh backlog discovery, next page and retry only the chosen ID"
+  },
+  "cleanup": {
+    "ownedWorkersAndContributions": 0,
+    "ownedBooksRemaining": 0,
+    "queueRemaining": 0,
+    "faultTriggersRemaining": 0,
+    "preservedBookIds": ["07ef226e-1ebc-47b6-8dc9-d09109448d22", "8ced004f-efe3-408f-80a8-a0ebffec84d3"],
+    "ownedAppSessions": "All terminated with exit 143; driver sessions stopped only for port 9224"
+  },
+  "notProven": [
+    "Autonomous remote-model use or persisted full chat turns",
+    "Packaged CSP, Windows or Linux",
+    "Power-loss durability during commit or physical deletion",
+    "Historical pre-migration-31 orphan-file discovery",
+    "RSS private cache or failed virtual-binding persistence recovery",
+    "Late blob writers, cross-device races, 1000-item native load",
+    "General durable tasks or periodic retry"
+  ],
+  "observedWarnings": ["Existing Rust warnings and future compatibility notice", "Bridge plugin cannot report version", "WebContent initial process recovery", "Existing useWindowMaximized HMR unlisten error on an earlier launch", "Expected injected storage-failure logs", "Frontend chunk size and mixed import warnings"]
+}

@@ -738,6 +738,25 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
          CREATE INDEX ix_annotations_kind_page ON annotations(type, created_at DESC, id DESC);
          CREATE INDEX ix_annotations_book_kind_page ON annotations(book_id, type, created_at DESC, id DESC);",
     ),
+    (
+        31,
+        "book_removal_cleanup",
+        // Device-local recovery intent, not a synced projection. Deletes during
+        // replay enqueue too; reinserting surviving books cancels their intent.
+        "CREATE TABLE book_removal_cleanup (
+            book_id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            removed_at TEXT NOT NULL
+         );
+         CREATE TRIGGER trg_book_removal_cleanup_delete AFTER DELETE ON books BEGIN
+            INSERT INTO book_removal_cleanup (book_id, title, removed_at)
+            VALUES (old.id, old.title, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+            ON CONFLICT(book_id) DO UPDATE SET title=excluded.title, removed_at=excluded.removed_at;
+         END;
+         CREATE TRIGGER trg_book_removal_cleanup_restore AFTER INSERT ON books BEGIN
+            DELETE FROM book_removal_cleanup WHERE book_id=new.id;
+         END;",
+    ),
 ];
 
 /// Rebuild the annotation FTS index from the table. Required after any VACUUM
@@ -1007,7 +1026,10 @@ pub fn wipe_all_data(db: State<'_, Db>, data_dir: State<'_, DataDir>) -> Result<
 }
 
 pub(crate) fn wipe_all_data_inner(conn: &mut Connection, data_dir: &Path) -> Result<(), CommandError> {
-    let tables = wipeable_tables(conn)?;
+    let mut tables = wipeable_tables(conn)?;
+    // Deleting books produces cleanup intents; wipe those after their producer,
+    // regardless of sqlite_master enumeration order.
+    tables.sort_by_key(|table| table == "book_removal_cleanup");
     let tx = conn.transaction()?;
     // FK order problems are sidestepped wholesale: defer enforcement to commit,
     // by which point every referencing row is gone too.

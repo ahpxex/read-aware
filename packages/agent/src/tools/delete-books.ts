@@ -1,10 +1,25 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
-import { AppError, MAX_BOOK_REMOVAL_BATCH, normalizeBookRemovalIds } from "@read-aware/core";
+import { AppError, MAX_BOOK_REMOVAL_BATCH, normalizeBookRemovalIds, normalizeBookRemovalCleanupQuery, type BookRemovalCleanupQuery } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { requestUserInteraction } from "./user-interaction";
 import { textResult } from "./tool-result";
+
+export function buildListBookRemovalCleanupTool(deps: RuntimeDeps): AgentTool {
+  return {
+    name: "list_book_removal_cleanup", label: "Pending book file cleanup",
+    description: "List durable device-local file cleanup left after books were removed. Query again after a restart or lost receipt. Does not delete anything. Pass exact returned IDs to delete_books with cleanupOnly=true after user approval. Live keyset pages are not a frozen snapshot.",
+    parameters: Type.Object({ after: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })), limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })) }),
+    execute: async (_id, params, signal) => {
+      signal?.throwIfAborted();
+      const query = normalizeBookRemovalCleanupQuery(params as BookRemovalCleanupQuery);
+      const page = await deps.library.listBookRemovalCleanup({ limit: query.limit, ...(query.after ? { after: query.after } : {}) });
+      signal?.throwIfAborted();
+      return textResult(page);
+    },
+  };
+}
 
 export function buildDeleteBooksTool(scope: ThreadScope, deps: RuntimeDeps): AgentTool {
   return {

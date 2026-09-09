@@ -10,6 +10,7 @@
     "thought": "Ход размышлений",
     "tools": {
       "delete_books": "Удаление книг",
+      "list_book_removal_cleanup": "Проверка ожидающей очистки файлов",
       "search_memory": "Вспоминаю",
       "remember": "Сохраняю в память",
       "search_conversation": "Ищу в прошлых беседах",

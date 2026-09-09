@@ -15,6 +15,8 @@
     "bookRemovalInvalid": "Sélectionnez entre 1 et 1000 identifiants de livres valides.",
     "bookRemovalCleanupPending": "Les livres ont été supprimés, mais le nettoyage des fichiers locaux n’est pas terminé.",
     "bookRemovalReappeared": "Un livre est à nouveau présent. Ses fichiers n’ont pas été supprimés.",
+    "bookCleanupInvalid": "La requête de nettoyage des fichiers est invalide.",
+    "bookCleanupStale": "La bibliothèque est en cours de récupération. Réessayez le nettoyage une fois celle-ci terminée.",
     "bookSearchCancelled": "La recherche dans le texte a été annulée.",
     "bookSearchInvalid": "Vérifiez les requêtes et les limites de recherche, puis réessayez.",
     "bookNotFound": "Ce livre ne figure plus dans la bibliothèque.",

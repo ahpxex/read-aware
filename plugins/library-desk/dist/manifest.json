@@ -1,14 +1,14 @@
 {
   "id": "library-desk",
   "name": "Library Desk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "schemaVersion": 1,
   "description": "Select books, review a removal batch, and retry remaining local file cleanup.",
   "author": "ReadAware",
   "main": "main.js",
   "permissions": ["library:write"],
   "requires": {
-    "domains": { "library": "^1.5.0" },
+    "domains": { "library": "^1.6.0" },
     "contributions": { "headerActions": "^1.0.0", "commands": "^1.0.0" },
     "services": { "ui": "^1.2.0" },
     "schemas": { "views": "^1.1.0" }

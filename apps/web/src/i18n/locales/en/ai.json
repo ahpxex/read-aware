@@ -10,6 +10,7 @@
     "thought": "Thought process",
     "tools": {
       "delete_books": "Removing books",
+      "list_book_removal_cleanup": "Checking pending file cleanup",
       "search_memory": "Recalling memories",
       "remember": "Saving a memory",
       "search_conversation": "Searching past conversations",

@@ -10,6 +10,7 @@
     "thought": "思考過程",
     "tools": {
       "delete_books": "正在移除書籍",
+      "list_book_removal_cleanup": "正在查詢待清理檔案",
       "search_memory": "正在回憶",
       "remember": "正在記下這一點",
       "search_conversation": "正在檢索過往對話",

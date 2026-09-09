@@ -10,6 +10,7 @@
     "thought": "Gedankengang",
     "tools": {
       "delete_books": "Bücher werden entfernt",
+      "list_book_removal_cleanup": "Ausstehende Dateibereinigung prüfen",
       "search_memory": "Ruft Erinnerungen ab",
       "remember": "Speichert eine Erinnerung",
       "search_conversation": "Durchsucht frühere Gespräche",

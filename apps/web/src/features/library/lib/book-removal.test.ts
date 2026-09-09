@@ -1,6 +1,13 @@
 import { expect, test } from "bun:test";
-import { AppError, normalizeBookRemovalIds } from "@read-aware/core";
+import { AppError, normalizeBookRemovalIds, normalizeBookRemovalCleanupQuery } from "@read-aware/core";
 import { removeBookBatch, releaseRemovedBookFiles } from "./book-removal";
+
+test("cleanup query is bounded, defaults explicitly, and never coerces malformed input", () => {
+  expect(normalizeBookRemovalCleanupQuery()).toEqual({ after: null, limit: 50 });
+  for (const input of [null, [], "query", { limit: 0 }, { limit: 101 }, { limit: 1.1 }, { limit: "10" }, { after: 1 }, { after: " " }]) {
+    expect(() => normalizeBookRemovalCleanupQuery(input as never)).toThrow();
+  }
+});
 
 test("batch validates before side effects, copies IDs and deduplicates without coercion", async () => {
   for (const input of [[], null, "book", [false], [" "], Array(1), ["x".repeat(257)], Array(1001).fill("book")]) {

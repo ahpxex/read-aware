@@ -15,6 +15,8 @@
     "bookRemovalInvalid": "Choose 1-1000 valid book IDs.",
     "bookRemovalCleanupPending": "The books were removed, but local file cleanup did not finish.",
     "bookRemovalReappeared": "A book is present again. Its files were not released.",
+    "bookCleanupInvalid": "The file cleanup query is invalid.",
+    "bookCleanupStale": "The library is still recovering. Try file cleanup again after recovery finishes.",
     "bookSearchCancelled": "The book text search was cancelled.",
     "bookSearchInvalid": "Check the search queries and limits, then try again.",
     "bookNotFound": "This book is no longer in the library.",

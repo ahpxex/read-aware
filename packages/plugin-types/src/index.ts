@@ -40,7 +40,7 @@
  */
 
 import { PLUGIN_PERMISSIONS as CORE_PLUGIN_PERMISSIONS } from "@read-aware/core";
-export type { BookRemovalReceipt, BookFileReleaseReceipt } from "@read-aware/core";
+export type { BookRemovalReceipt, BookFileReleaseReceipt, BookRemovalCleanupPage, BookRemovalCleanupQuery } from "@read-aware/core";
 import type {
   AnnotationItem,
   AskItem,
@@ -1189,6 +1189,8 @@ export type PluginLibraryDomain = {
   queries: {
     books: {
       list(): Promise<PluginBook[]>;
+      /** Durable device-local pending file cleanup, including after view/plugin restart. Live keyset page, limit 1-100 (default 50). */
+      listRemovalCleanup(query?: import("@read-aware/core").BookRemovalCleanupQuery): Promise<import("@read-aware/core").BookRemovalCleanupPage>;
       get(bookId: string): Promise<PluginBook | null>;
       getToc(bookId: string): Promise<PluginChapterRef[]>;
       /** Read-only derived-text state. Never starts parsing, fetching, or extraction. */

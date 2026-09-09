@@ -79,6 +79,8 @@ const AI_SETTINGS: ErrorAction = "open-ai-settings";
 
 const CODE_COPY: Record<string, CopyEntry> = {
   "library/invalid-removal": { key: "bookRemovalInvalid", retryable: false },
+  "library/invalid-cleanup-query": { key: "bookCleanupInvalid", retryable: false },
+  "library/cleanup-stale": { key: "bookCleanupStale", retryable: true },
   "library/removal-cleanup-pending": { key: "bookRemovalCleanupPending", retryable: false },
   "library/book-reappeared": { key: "bookRemovalReappeared", retryable: false },
   "library/cancelled": { key: "bookSearchCancelled", retryable: false },

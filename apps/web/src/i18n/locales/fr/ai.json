@@ -10,6 +10,7 @@
     "thought": "Cheminement de pensée",
     "tools": {
       "delete_books": "Suppression des livres",
+      "list_book_removal_cleanup": "Vérification du nettoyage en attente",
       "search_memory": "Rappel des souvenirs",
       "remember": "Enregistrement d'un souvenir",
       "search_conversation": "Recherche dans les conversations passées",

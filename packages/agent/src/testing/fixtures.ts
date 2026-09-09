@@ -352,6 +352,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     environment: { snapshot: async () => ({ revision: 1, runtime: "desktop", platform: "macos", locale: "en", timeZone: "UTC", utcOffsetMinutes: 0, networkHint: "unknown" }) },
     library: {
       listBooks: async () => books,
+      listBookRemovalCleanup: async () => ({ items: [], nextCursor: null }),
       getBook: async (id) => books.find((book) => book.id === id),
       listCollections: async () => collections,
       booksInCollection: async (collectionId) =>

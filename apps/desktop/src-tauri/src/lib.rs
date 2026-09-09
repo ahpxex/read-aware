@@ -816,6 +816,10 @@ pub fn run() {
                             log::error!("staged-event recovery failed: {error}");
                         }
                     }
+                    let cleanup = storage::recover_book_removal_cleanup(&db, &data_dir.0);
+                    if let Err(error) = cleanup {
+                        log::warn!("book removal recovery deferred: {error}");
+                    }
                 });
             }
 
@@ -955,6 +959,7 @@ pub fn run() {
             storage::library_get_book,
             storage::library_put_book,
             storage::library_release_book_files,
+            storage::library_list_removal_cleanup,
             storage::library_list_collections,
             storage::library_put_collection,
             storage::library_duplicate_book_groups,

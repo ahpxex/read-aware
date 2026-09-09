@@ -19,6 +19,8 @@ import type {
   BookTextSearch,
   BookTextHit,
   BookRemovalReceipt,
+  BookRemovalCleanupQuery,
+  BookRemovalCleanupPage,
   BookFileReleaseReceipt,
 } from "@read-aware/core";
 import { i18n } from "../i18n";
@@ -32,6 +34,7 @@ import {
   removeLibraryBook,
   removeLibraryBooks,
   retryLibraryBookFileRelease,
+  listLibraryRemovalCleanup,
   renameCollection,
   setBooksCollection,
   setLibraryBookStarred,
@@ -85,6 +88,7 @@ export async function getPersistedChapters(bookId: string): Promise<ExtractedCha
 export type LibraryQueries = {
   books: {
     list(): Promise<BookSummary[]>;
+    listRemovalCleanup(query?: BookRemovalCleanupQuery): Promise<BookRemovalCleanupPage>;
     get(bookId: string): Promise<BookSummary | null>;
     getToc(bookId: string): Promise<ChapterRef[]>;
     getTextState(bookId: string): Promise<BookTextSnapshot>;
@@ -141,6 +145,7 @@ export function createLibraryDomain(origin: EventOrigin, lifetime?: AbortSignal)
   const queries: LibraryQueries = {
     books: {
       getNavigationToc: getBookNavigationToc,
+      listRemovalCleanup: listLibraryRemovalCleanup,
       getTextState: getBookTextSnapshot,
       getTextTask: async (bookId, taskId) => textTasks.get(bookId, taskId),
       listTextTasks: async bookId => textTasks.list(bookId),

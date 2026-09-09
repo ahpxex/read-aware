@@ -75,6 +75,7 @@ export interface TurnRecord {
 
 export interface LibraryPort {
   listBooks(): Promise<BookOverview[]>;
+  listBookRemovalCleanup(query?: import("@read-aware/core").BookRemovalCleanupQuery): Promise<import("@read-aware/core").BookRemovalCleanupPage>;
   getBook(bookId: Id): Promise<BookOverview | undefined>;
   listCollections(): Promise<CollectionSummary[]>;
   booksInCollection(collectionId: string): Promise<Id[]>;

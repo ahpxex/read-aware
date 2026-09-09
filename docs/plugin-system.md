@@ -496,8 +496,8 @@ abort does not undo a dispatched database transaction. Book scope deliberately
 does not expose this global administration tool. Plugin domain grants allow direct
 writes and do not imply per-operation host approval.
 
-[代码] Library Desk 0.1 composes queries, live list selection, full-title review,
-batch deletion and safe cleanup retry through public APIs. It requires library 1.5
+[代码] Library Desk 0.2 composes queries, live list selection, full-title review,
+batch deletion, durable cleanup discovery and safe retry through public APIs. It requires library 1.6
 and library:write. List refreshes keep the current search query; explicit navigation
 uses the host frame identity. Older refresh results and disposed views cannot
 publish over newer content. Its review is plugin UX, not a host authorization
@@ -511,8 +511,58 @@ and actual shelf-menu Library Desk review/delete/retry at 1200x800 and 800x650.
 Agent tests invoke the production tool/ports and real approval component in a
 fixture surface, not an autonomous model or persisted chat turn. This is not full
 data erasure: private plugin documents, chats, memories, derived indexes and remote
-blob lifecycle have separate owners. Crash recovery, 1000-item rendering/load,
+blob lifecycle have separate owners. The recovery evidence below is separate from
+this original batch test. 1000-item rendering/load,
 packaged CSP, Windows/Linux and cross-device races remain unverified.
+
+### Durable Book File Cleanup
+
+[代码] Library 1.6 adds `queries.books.listRemovalCleanup({ after?, limit? })`
+for `library:read` or `library:write`. No library grant means no library object.
+The global Agent tool `list_book_removal_cleanup` delegates to the same domain,
+checks cancellation before/after reading, and neither writes nor requests approval.
+Book-scoped Agent tools intentionally do not expose the global backlog. Discovery
+returns `{ items: [{ bookId, title, removedAt }], nextCursor: string | null }`.
+Limit is an integer 1-100 (default 50); an optional cursor is a nonblank book ID
+of at most 256 UTF-16 code units, preserved without trimming. Invalid input uses
+`library/invalid-cleanup-query`. IDs are ordered lexically; pages are live keysets,
+not a frozen snapshot. Concurrent new entries before a cursor require a fresh scan.
+
+[代码] SQLite migration 31 creates device-local `book_removal_cleanup`. An
+`AFTER DELETE ON books` trigger saves ID, last title and local deletion time in
+the same transaction that removes the record. Record rollback also rolls back
+the intent. An `AFTER INSERT ON books` trigger cancels that ID's intent when a
+book is restored. The queue is not an event projection, synced state or checkpoint
+payload; replay deletions can enqueue, and surviving reinsertions cancel them
+inside the replay transaction. Factory reset clears the queue after book deletion.
+It does not reconstruct orphan files from deletions before migration 31.
+
+[代码] `library_list_removal_cleanup` and `library_release_book_files` reject
+stale projections with `library/cleanup-stale`, rather than treating a temporarily
+missing projection as permission to erase files. Release preflights every ID under
+the database lock. Blob metadata and intent acknowledgements commit together;
+physical file deletion is not transactional. A failed batch retains all its intents
+even if some bytes are already gone; retries tolerate missing bytes. No additional
+`book.removed` event is written. The existing single-book void/error contract is
+unchanged, but its actual record deletion also creates durable recovery intent.
+
+[代码] Native startup performs one recovery pass after staged-sync recovery,
+in keyset pages of 100, releasing the mutex between entries. A failed entry logs
+and remains pending without starving later pages. Stale projections defer the pass.
+This is not a periodic scheduler or general durable task service; explicit retry
+and the next startup are the remaining recovery opportunities. Library Desk's
+Pending file cleanup action lists 50 entries per page, displays the full stored
+title and ID in detail, and retries only that ID. Its refresh action re-queries;
+discovery does not depend on the plugin retaining the original removal receipt.
+
+[环境] [Recovery evidence](./evidence/book-removal-recovery-2026-09-09.json)
+records isolated macOS debug restarts, fresh no/read/write Worker consumers,
+production Agent discovery/approved file-only retry, and real Library Desk menu
+discovery/detail/retry. Binding loss for a synthetic virtual book does not erase
+the host cleanup intent. That virtual case injects intent acknowledgement failure
+without source bytes; it is not a virtual-file I/O test. General RSS private-cache
+cleanup, binding persistence recovery, late blob writers, cross-device races,
+packaged and Windows/Linux remain outside this evidence.
 
 ### Derived Prose Search
 
@@ -583,9 +633,10 @@ committed but cleanup failed, the book remains deleted and the operation rejects
 an explicit repeat can finish pending binding cleanup. Since library 1.5, the
 book-removed notification follows the record commit even when file release fails:
 the binding may already be absent in that case. Repeating removeVirtualBook then
-does not retry files; callers retaining the removed book ID can use
-retryRemovalCleanup. Durable recovery of that ID inside the virtual-book workflow
-remains a gap. An already absent owned binding is an
+does not retry files. Since library 1.6, callers can rediscover the removed book ID
+through listRemovalCleanup and use retryRemovalCleanup; native startup also retries
+the durable host queue. This closes lost file-cleanup intent for actual deletions
+since migration 31, not RSS private data or failed binding persistence. An already absent owned binding is an
 idempotent no-op. No new permissions or raw storage APIs are exposed. RSS private
 subscription cleanup and its core-Agent approval workflow are separate concerns.
 
@@ -1524,7 +1575,7 @@ adjacent distribution repository, not a fourteenth plugin in this checkout:
 | Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |
 | Workspace Profiles | settled settings snapshots, exact path grants, atomic presets, private documents, shelf header/command views and Agent tool |
 | Text Desk | library text preparation/tasks, single/shelf multi-query search, snippets, paged status views, reader header/command and explicit book navigation |
-| Library Desk | live shelf selection, explicit batch review/removal, separate file-cleanup receipts and safe retry |
+| Library Desk | live shelf selection, explicit batch review/removal, durable pending-file discovery and safe retry |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs
 in their packages and registered capabilities.

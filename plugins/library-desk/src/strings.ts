@@ -10,3 +10,12 @@ const translations: Record<string, string[]> = {
   ru: ["Управление библиотекой", "Проверить выбор", "Удалить навсегда", "Выбранные книги и их исходные файлы будут удалены. Это действие нельзя отменить.", "Книги удалены", "Локальные файлы ещё требуют очистки", "Повторить очистку файлов", "Обновить", "Выбрано", "Выберите не более 1000 книг", "Очистка файлов завершена", "Книги"],
 };
 export function strings(locale: string) { return translations[locale] ?? translations[locale.split("-")[0]] ?? en; }
+
+const cleanup: Record<string, [string, string]> = {
+  en: ["Pending file cleanup", "Next page"],
+  "zh-Hans": ["待清理文件", "下一页"], "zh-Hant": ["待清理檔案", "下一頁"],
+  ja: ["未完了のファイル削除", "次のページ"], de: ["Ausstehende Dateibereinigung", "Nächste Seite"],
+  fr: ["Nettoyage en attente", "Page suivante"], es: ["Limpieza pendiente", "Página siguiente"],
+  ru: ["Ожидающая очистка файлов", "Следующая страница"],
+};
+export function cleanupStrings(locale: string) { return cleanup[locale] ?? cleanup[locale.split("-")[0]] ?? cleanup.en; }

@@ -39,6 +39,7 @@ export function createLibraryPort(): LibraryPort {
 
   return {
     listBooks: listOverviews,
+    listBookRemovalCleanup: query => library.queries.books.listRemovalCleanup(query),
     getBook: async (bookId) =>
       (await listOverviews()).find((book) => book.id === String(bookId)),
     listCollections: () => library.queries.collections.list(),

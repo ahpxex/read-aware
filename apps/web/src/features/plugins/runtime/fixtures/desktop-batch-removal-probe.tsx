@@ -3,7 +3,7 @@ import { getDefaultStore } from "jotai";
 import { createRoot, type Root } from "react-dom/client";
 import { errorCode } from "@read-aware/core";
 import type { PluginDisposable, PluginManifest } from "@read-aware/plugin-types";
-import { buildDeleteBooksTool } from "../../../../../../../packages/agent/src/tools/delete-books";
+import { buildDeleteBooksTool, buildListBookRemovalCleanupTool } from "../../../../../../../packages/agent/src/tools/delete-books";
 import { interactionFromToolDetails } from "../../../../../../../packages/agent/src/tools/user-interaction";
 import { buildRuntimeDeps } from "../../../ai/agent/ports";
 import { ChatInteractionPrompt } from "../../../ai/components/ChatInteractionPrompt";
@@ -41,31 +41,38 @@ export async function startBatchRemovalProbe() {
     const book = await getBookRecord(id), bytes = await getDesktopBlob(bookFileKey(id));
     if (!book || !bytes) throw Error("Missing seeded book"); originals.set(id, { book, bytes });
   }
+  const permissions = await startRemovalRecoveryConsumers();
+  return { ...seed, dataDir, ids, permissions };
+}
+export async function startRemovalRecoveryConsumers() {
+  await isolated();
+  if (workers.size) throw Error("Clean up previous batch probe first");
   const permissions: Record<string, unknown> = {};
   for (const role of ["empty", "read", "write"] as const) {
     const id = `capability-batch-${role}`;
     await start({ id, name: id, version: "1.0.0", schemaVersion: 1, description: JSON.stringify(ids),
       permissions: role === "empty" ? [] : [role === "read" ? "library:read" : "library:write"],
-      requires: { domains: { library: "^1.5.0" } } }, new URL("./batch-removal-probe.ts", import.meta.url).href);
+      requires: { domains: { library: "^1.6.0" } } }, new URL("./batch-removal-probe.ts", import.meta.url).href);
     permissions[role] = JSON.parse((await command(id, "inspect").run())!.toast!);
   }
   await start(libraryDeskManifest as PluginManifest, new URL("../../../../../../../plugins/library-desk/dist/main.js", import.meta.url).href);
-  return { ...seed, dataDir, ids, permissions };
+  return permissions;
 }
-export async function runPluginBatchRemoval(action: "remove" | "retry" | "invalid") {
+export async function runPluginBatchRemoval(action: "remove" | "retry" | "invalid" | "cleanup-list" | "cleanup-next", actor = "capability-batch-write") {
   await isolated();
-  try { return { result: JSON.parse((await command("capability-batch-write", action).run())!.toast!) }; }
+  try { return { result: JSON.parse((await command(actor, action).run())!.toast!) }; }
   catch (error) { return { code: errorCode(error) }; }
 }
-export async function beginAgentBatchRemoval(cleanupOnly = false) {
+export async function beginAgentBatchRemoval(cleanupOnly = false, cleanupIds?: string[]) {
   await isolated(); if (pending) throw Error("Agent request already pending");
+  if (cleanupIds && !cleanupOnly) throw Error("Explicit IDs are only for cleanup recovery");
   root?.unmount(); surface?.remove();
   surface = document.createElement("div"); surface.setAttribute("data-batch-approval-probe", "true");
   Object.assign(surface.style, { position: "fixed", inset: "10% 15%", zIndex: "9999", overflow: "auto", background: "var(--ra-main-surface-color)", padding: "24px" });
   document.body.append(surface); root = createRoot(surface);
   abort = new AbortController(); pending = true; agentResult = { pending: true };
   const tool = buildDeleteBooksTool({ kind: "global", threadId: "capability-batch" }, buildRuntimeDeps());
-  void tool.execute(`batch-${++sequence}`, { bookIds: [...ids], cleanupOnly }, abort.signal, update => {
+  void tool.execute(`batch-${++sequence}`, { bookIds: [...(cleanupIds ?? ids)], cleanupOnly }, abort.signal, update => {
     const details = interactionFromToolDetails(update.details);
     if (details?.phase === "request") root!.render(<ChatInteractionPrompt part={{
       type: "interaction", id: details.request.id, request: details.request, state: "pending",
@@ -76,6 +83,10 @@ export async function beginAgentBatchRemoval(cleanupOnly = false) {
 }
 export function inspectAgentBatchRemoval() { return agentResult; }
 export function cancelAgentBatchRemoval() { abort?.abort(); }
+export async function inspectAgentRemovalCleanup(query = {}) {
+  await isolated();
+  return buildListBookRemovalCleanupTool(buildRuntimeDeps()).execute("cleanup-list", query);
+}
 export async function restoreBatchProbeBook() {
   await isolated(); const first = originals.get(ids[0]); if (!first) throw Error("No saved probe book");
   await restoreLibraryBook(first.book, first.bytes); return { restored: first.book.id };

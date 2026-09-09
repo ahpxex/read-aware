@@ -1,9 +1,22 @@
 import { expect, test } from "bun:test";
 import { createInMemoryDeps } from "../testing/fixtures";
-import { buildDeleteBooksTool } from "./delete-books";
+import { buildDeleteBooksTool, buildListBookRemovalCleanupTool } from "./delete-books";
 
 const scope = { kind: "global" as const, threadId: "batch-test" };
 const seed = () => createInMemoryDeps({ books: [{ id: "a", title: "Alpha" }, { id: "b", title: "Beta" }] });
+
+test("cleanup discovery forwards bounded cursors, does not write, and cancels late reads", async () => {
+  const { deps, stores } = seed();
+  const abort = new AbortController();
+  const page = { items: [{ bookId: "removed", title: "Removed", removedAt: "2026-09-09" }], nextCursor: "removed" };
+  deps.library.listBookRemovalCleanup = async query => { expect(query).toEqual({ after: "before", limit: 1 }); return page; };
+  const tool = buildListBookRemovalCleanupTool(deps);
+  expect((await tool.execute("list", { after: "before", limit: 1 })).content[0]).toMatchObject({ text: JSON.stringify(page) });
+  expect(stores.interactions).toHaveLength(0); expect(stores.books).toHaveLength(2);
+  await expect(tool.execute("invalid", { limit: 101 })).rejects.toMatchObject({ code: "library/invalid-cleanup-query" });
+  deps.library.listBookRemovalCleanup = async () => { abort.abort(); return page; };
+  await expect(tool.execute("cancel", {}, abort.signal)).rejects.toMatchObject({ name: "AbortError" });
+});
 
 test("batch uses one approval listing all titles, snapshots IDs, and calls one batch command", async () => {
   const { deps, stores } = seed(), input = ["a", "b", "a"];

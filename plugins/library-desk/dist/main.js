@@ -13,10 +13,24 @@ var translations = {
 function strings(locale) {
   return translations[locale] ?? translations[locale.split("-")[0]] ?? en;
 }
+var cleanup = {
+  en: ["Pending file cleanup", "Next page"],
+  "zh-Hans": ["待清理文件", "下一页"],
+  "zh-Hant": ["待清理檔案", "下一頁"],
+  ja: ["未完了のファイル削除", "次のページ"],
+  de: ["Ausstehende Dateibereinigung", "Nächste Seite"],
+  fr: ["Nettoyage en attente", "Page suivante"],
+  es: ["Limpieza pendiente", "Página siguiente"],
+  ru: ["Ожидающая очистка файлов", "Следующая страница"]
+};
+function cleanupStrings(locale) {
+  return cleanup[locale] ?? cleanup[locale.split("-")[0]] ?? cleanup.en;
+}
 
 // src/views.ts
 async function libraryDesk(ctx) {
   const library = ctx.domains.library, write = library.commands.books, t = strings(ctx.locale);
+  const cleanupText = cleanupStrings(ctx.locale);
   let books = await library.queries.books.list(), channel, revision = 0, refreshGeneration = 0;
   const selected = new Set;
   const refresh = async () => {
@@ -57,6 +71,31 @@ ${book.author ?? ""}` }))
       return { view: result(receipt, true), navigation: "reset" };
     } }] };
   };
+  const pendingCleanup = async (after) => {
+    const page = await library.queries.books.listRemovalCleanup({ limit: 50, ...after ? { after } : {} });
+    return {
+      kind: "list",
+      title: cleanupText[0],
+      searchable: true,
+      items: page.items.map((item) => ({
+        id: item.bookId,
+        title: item.title,
+        subtitle: item.bookId,
+        icon: "file-text",
+        onSelect: () => ({ view: { kind: "detail", title: cleanupText[0], content: [
+          { kind: "text", text: item.title },
+          { kind: "text", text: item.bookId }
+        ], actions: [{ id: "retry", label: t[6], icon: "arrows-clockwise", run: async () => ({
+          view: result(await write.retryRemovalCleanup([item.bookId]), false),
+          navigation: "replace"
+        }) }] } })
+      })),
+      actions: [
+        { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await pendingCleanup(after), navigation: "replace" }) },
+        ...page.nextCursor ? [{ id: "next", label: cleanupText[1], icon: "arrow-right", run: async () => ({ view: await pendingCleanup(page.nextCursor) }) }] : []
+      ]
+    };
+  };
   const content = () => ({
     kind: "list",
     title: `${t[0]} (${selected.size})`,
@@ -81,6 +120,7 @@ ${book.author ?? ""}` }))
     })),
     actions: [
       { id: "refresh", label: t[7], icon: "arrows-clockwise", run: refresh },
+      { id: "cleanup", label: cleanupText[0], icon: "arrows-clockwise", run: async () => ({ view: await pendingCleanup() }) },
       ...selected.size ? [{ id: "review", label: `${t[1]} (${selected.size})`, icon: "trash", run: () => ({ view: review(books.filter((book) => selected.has(book.id))) }) }] : []
     ]
   });

@@ -8,7 +8,7 @@ import { normalizeBookIdParam, resolveBookId } from "./current-book";
 import { presentBookStats, presentStatsOverview } from "./format-stats";
 import { textResult } from "./tool-result";
 import { requestUserInteraction } from "./user-interaction";
-import { buildDeleteBooksTool } from "./delete-books";
+import { buildDeleteBooksTool, buildListBookRemovalCleanupTool } from "./delete-books";
 
 export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const listCollections: AgentTool = {
@@ -254,6 +254,7 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
     manageCollection,
     deleteBook,
     buildDeleteBooksTool(scope, deps),
+    buildListBookRemovalCleanupTool(deps),
     deleteCollection,
   ];
 }

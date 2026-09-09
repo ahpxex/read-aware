@@ -1,9 +1,10 @@
 import type { PluginContext, PluginBook, PluginDetailView, PluginListView, PluginView, PluginViewChannel } from "@read-aware/plugin-types";
 import type { BookFileReleaseReceipt } from "@read-aware/plugin-types";
-import { strings } from "./strings";
+import { strings, cleanupStrings } from "./strings";
 
 export async function libraryDesk(ctx: PluginContext): Promise<PluginView> {
   const library = ctx.domains.library!, write = library.commands!.books, t = strings(ctx.locale);
+  const cleanupText = cleanupStrings(ctx.locale);
   let books = await library.queries.books.list(), channel: PluginViewChannel | undefined, revision = 0, refreshGeneration = 0;
   const selected = new Set<string>();
   const refresh = async () => {
@@ -37,6 +38,22 @@ export async function libraryDesk(ctx: PluginContext): Promise<PluginView> {
       return { view: result(receipt, true), navigation: "reset" };
     } }] };
   };
+  const pendingCleanup = async (after?: string): Promise<PluginListView> => {
+    const page = await library.queries.books.listRemovalCleanup({ limit: 50, ...(after ? { after } : {}) });
+    return { kind: "list", title: cleanupText[0], searchable: true,
+      items: page.items.map(item => ({ id: item.bookId, title: item.title, subtitle: item.bookId, icon: "file-text",
+        onSelect: () => ({ view: { kind: "detail", title: cleanupText[0], content: [
+          { kind: "text", text: item.title }, { kind: "text", text: item.bookId },
+        ], actions: [{ id: "retry", label: t[6], icon: "arrows-clockwise", run: async () => ({
+          view: result(await write.retryRemovalCleanup([item.bookId]), false), navigation: "replace",
+        }) }] } }),
+      })),
+      actions: [
+        { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await pendingCleanup(after), navigation: "replace" }) },
+        ...(page.nextCursor ? [{ id: "next", label: cleanupText[1], icon: "arrow-right", run: async () => ({ view: await pendingCleanup(page.nextCursor!) }) }] : []),
+      ],
+    };
+  };
   const content = (): PluginListView => ({ kind: "list", title: `${t[0]} (${selected.size})`, searchable: true,
     items: books.map(book => ({ id: book.id, title: book.title, subtitle: book.author, icon: "book-open",
       accessories: selected.has(book.id) ? [{ kind: "icon", icon: "check", label: t[8] }] : [],
@@ -49,6 +66,7 @@ export async function libraryDesk(ctx: PluginContext): Promise<PluginView> {
       },
     })),
     actions: [{ id: "refresh", label: t[7], icon: "arrows-clockwise", run: refresh },
+      { id: "cleanup", label: cleanupText[0], icon: "arrows-clockwise", run: async () => ({ view: await pendingCleanup() }) },
       ...(selected.size ? [{ id: "review", label: `${t[1]} (${selected.size})`, icon: "trash", run: () => ({ view: review(books.filter(book => selected.has(book.id))) }) }] : [])],
   });
   return { ...content(), live: { subscribe: async next => {

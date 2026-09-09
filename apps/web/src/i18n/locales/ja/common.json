@@ -15,6 +15,8 @@
     "bookRemovalInvalid": "有効な書籍 ID を 1～1000 件選択してください。",
     "bookRemovalCleanupPending": "本は削除されましたが、ローカルファイルの削除は完了していません。",
     "bookRemovalReappeared": "本が再び存在するため、ファイルは削除されませんでした。",
+    "bookCleanupInvalid": "ファイル削除の検索条件が無効です。",
+    "bookCleanupStale": "ライブラリを復旧中です。完了後にファイル削除を再試行してください。",
     "bookSearchCancelled": "本文検索はキャンセルされました。",
     "bookSearchInvalid": "検索語と検索範囲を確認して、もう一度お試しください。",
     "bookNotFound": "この本はライブラリにありません。",

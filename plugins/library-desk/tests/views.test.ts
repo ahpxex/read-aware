@@ -49,3 +49,23 @@ test("late refreshes cannot replace a newer snapshot or publish after view dispo
   resource.dispose(); pending[2]([{ id: "late", title: "Late" }]); await retired;
   expect(publishes).toBe(before);
 });
+
+test("a fresh view discovers durable cleanup pages and retries only the chosen removed ID", async () => {
+  const queries: unknown[] = [], retries: string[][] = [];
+  const ctx = { locale: "en", domains: { library: {
+    queries: { books: { list: async () => [], listRemovalCleanup: async (query: { after?: string }) => {
+      queries.push(query);
+      return { items: [{ bookId: query.after ? "b" : "a", title: "Removed title", removedAt: "2026-09-09" }], nextCursor: query.after ? null : "a" };
+    } } }, commands: { books: { retryRemovalCleanup: async (ids: string[]) => {
+      retries.push(ids); return { bookIds: ids, files: { status: "released" } };
+    }, removeMany: async () => { throw Error("No record writes during cleanup"); } } },
+  } } } as unknown as PluginContext;
+  const root = await libraryDesk(ctx) as PluginListView;
+  const first = (await root.actions!.find(action => action.id === "cleanup")!.run())!.view as PluginListView;
+  const second = (await first.actions!.find(action => action.id === "next")!.run())!.view as PluginListView;
+  expect(queries).toEqual([{ limit: 50 }, { limit: 50, after: "a" }]);
+  const detail = (await second.items[0].onSelect!())!.view as PluginDetailView;
+  await detail.actions![0].run();
+  expect(retries).toEqual([["b"]]);
+  expect(second.actions!.some(action => action.id === "next")).toBe(false);
+});

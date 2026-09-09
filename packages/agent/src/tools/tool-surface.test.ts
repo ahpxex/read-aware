@@ -78,6 +78,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   manage_collection: { action: "create", name: "New shelf" },
   delete_book: { bookId: BOOK_ID },
   delete_books: { bookIds: [BOOK_ID] },
+  list_book_removal_cleanup: {},
   delete_collection: { collectionId: "col-1" },
   create_annotation: { kind: "note", bookId: BOOK_ID, body: "A stray thought." },
   edit_annotation: { annotationId: "note-1", body: "Revised thought." },

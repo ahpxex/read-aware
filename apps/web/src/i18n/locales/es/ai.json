@@ -10,6 +10,7 @@
     "thought": "Razonamiento",
     "tools": {
       "delete_books": "Eliminando libros",
+      "list_book_removal_cleanup": "Consultando la limpieza pendiente",
       "search_memory": "Recordando",
       "remember": "Guardando un recuerdo",
       "search_conversation": "Buscando en conversaciones pasadas",

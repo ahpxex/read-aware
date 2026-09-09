@@ -1,4 +1,5 @@
 import { cn } from "@read-aware/ui/cn";
+import { BookOpen } from "@phosphor-icons/react";
 import { useTranslation } from "../../../i18n";
 import type { BookFormat } from "../../library/lib/library-types";
 
@@ -7,6 +8,7 @@ type BookCoverPlaceholderProps = {
   author?: string;
   format?: BookFormat;
   className?: string;
+  compact?: boolean;
 };
 
 /**
@@ -38,9 +40,19 @@ export function BookCoverPlaceholder({
   author,
   format,
   className,
+  compact = false,
 }: BookCoverPlaceholderProps) {
   const { t } = useTranslation("shelf");
   const surface = surfaceForTitle(title || "Untitled");
+
+  // List rows already show the title beside their 44px thumbnail.
+  if (compact) return (
+    <div role="img" aria-label={t("book.cover", { title })}
+      className={cn("flex h-full w-full flex-col items-center justify-center gap-1 overflow-hidden p-1", surface.bg, surface.title, className)}>
+      <BookOpen size={20} aria-hidden="true" />
+      {format && <span className="max-w-full truncate font-sans text-[9px] font-medium uppercase">{format}</span>}
+    </div>
+  );
 
   return (
     <div

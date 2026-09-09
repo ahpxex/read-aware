@@ -85,7 +85,7 @@ export function BookRow({
             // drag would carry "Files" and read as an OS drop to the importer.
             <img src={book.coverUrl} alt="" draggable={false} className="h-full w-full object-cover" />
           ) : (
-            <BookCoverPlaceholder title={book.title} author={book.author} format={book.format} />
+            <BookCoverPlaceholder title={book.title} author={book.author} format={book.format} compact />
           )}
           {/* Opening feedback while the shelf holds over the mounting reader. */}
           {opening && (

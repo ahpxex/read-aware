@@ -464,3 +464,25 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [代码] 再查设置契约，CFG03 仍没有 reset/inherit/provenance；CFG10 仍没有全来源带 revision/origin 的领域广播。对 AI 执行目录和 packages/agent/src 再检索，buildMemory、sendHighlightedText、sendSurroundingContext、localOnly 仍仅在偏好存储/目录定义中出现，没有执行消费者。其余六个旧无效果路径仍保持部分，不因本批增加九字段而改绿。下一步优先处理这些隐私开关的真实执行约束，再补设置覆盖/观察和其他双端缺口。
 
 仍未完成：上述十个无效果设置、reset/inherit、完整观察和稳定错误、其他全部双端缺口与 W01–W32 实用组合、这九项的更新后重启/packaged/跨平台验收及远端服务验收。本批探针是诊断性组合，不冒充新增已交付的第一方实用插件。九项偏好已恢复，测试标注通过事件路径删除，贡献为 0、probe KV 与临时 trigger 清空；隔离应用与文档浏览器已停止，正式数据未触碰，未推送。
+
+## 2026-09-09：双端宿主推理的实时仅本地策略
+
+[代码] `ai.preferences.localOnly` 不再只保存值。产品唯一的 `createAgentRuntime` 接入 live InferencePolicy，smart/fast 的 complete/stream、自动管线调用以及 Worker `services.llm.ask` 普通/结构化/流式均经共享模型边界。原生连接测试也接入同一策略。缓存 runtime 不缓存偏好结果；每次调用和实际 fetch 前重查，启用后返回非 retryable 的 `ai/local-only`，在途调用取消原生 transport signal，独立终结等待并抑制迟到结果和旧请求重试。恢复只允许新调用。当前产品没有本地模型后端，Custom loopback 也拒绝，不凭 URL 猜测运行地点。
+
+[代码] SDK 会将错误压为字符串，稳定 `[ai/local-only]` 标记在模型错误分类时恢复 code；八语言 `describeError` 提供本地化提示和 AI 设置动作，原始文本不直接进入 UI。流式累计消息按已接受事件取快照，防止 provider 在取消后原地修改对象污染返回结果；调用终态释放偏好与取消监听。仅本地策略不新增模型工具、不授予插件配置凭据的权力，开关仍走原有精确路径授权。
+
+[环境] [结构化证据](./evidence/inference-local-only-2026-09-09.json)来自隔离 macOS debug Tauri `com.readaware.app.capability-e2e`（5184/9224）和受控 OpenAI-compatible SSE 服务（19843），不是浏览器代替产品，也不是远端模型语义 eval：
+
+- 五次正向调用完成：实际 Agent ask、原生连接测试、真实 Worker 的普通/结构化/流式 ask。
+- Agent 设置 localOnly=true 后，Agent ask/sendTurn、连接测试及 Worker 三种 ask 均返回 `ai/local-only`；服务请求数保持 7（其中最初两次属于失效准备尝试，不计有效正向案例）。
+- Worker 设置恢复后并发启动 Agent 与 Worker 的 HOLD 请求，服务记录 9 次；Worker 再启用仅本地后两者均终结为失败，两个连接 cancelled=true。Worker 只保留取消前的 first，release 后没有 late delta。再次恢复后两个新请求成功，旧调用仍为失败。
+- 实际设置 UI 的 Test Connection 显示本地化拒绝提示，服务请求数未增加。截图 `/tmp/inference-local-only-native-visible.png` 已查看。
+- 对隔离 `app_kv` 的 AI 偏好 UPDATE 注入 SQLite trigger 拒绝。Worker 设置返回 db/error，成功领域事件为 0，localOnly 回滚 false；之前已启动的两个 HOLD 仍被取消、不复活，随后 Agent/Worker 新调用成功。trigger 已移除。
+
+[环境/修复] 初次探针只有内存备份，Vite 优化 reload 后丢失原隔离配置备份。这次尝试不计恢复成功，只移除了精确匹配的测试配置与测试密钥；不能声称初始隔离配置原样恢复，正式应用数据未接触。探针现已在变更前将备份存入原生加密 secret store，重复准备拒绝覆盖备份；实际 prepare → WebView reload → 重导入 cleanup 验证恢复到清理后的基线并删除备份。故意 reload 还出现一次 `useWindowMaximized` 的 Tauri listener cleanup rejection，保留为未覆盖的开发生命周期问题，不称全程零错误。
+
+[环境] 最终七项策略回归覆盖 preflight、迟到结果/重试、已接受 partial 的对象隔离、调用者取消、重启新调用、loopback 连接及 per-stream fetch/SDK signal；既有五项 complete 测试保留。全仓 test 19 个任务、typecheck 22 个任务和生产 web 构建通过；八语言错误 key 校验通过。没有 Rust 业务代码改动，未重跑 Rust 全量或 packaged 构建。原生验证早于最后的 partial 对象快照加固，该加固有专门单测，不冒充再次全量原生验收。
+
+[代码/环境] 重扫仍为 224 行、578 入口、129 旧基线、30 责任单元/catalog 和 32 场景，七项模型门禁、生成检查、三对文档 validator 通过。矩阵将“无效果消费者”降为九条，但 SET27 保留部分，不改变双端状态计数。三份 HTML 在 1440×1000、1024×768、390×844 检查无页面横向溢出、重复 ID、无名按钮和失效页内锚点；中英文搜索/Escape、已有抽屉 inert 与主题刷新保持通过。新增说明的嵌套搜索标记曾让父节隐藏，已把关键词放回父节并复检可见性。截图已查看；浏览器无 console/page error，现有 CDN 200，无新增图，文档仍依赖网络。
+
+仍未完成：任意已授权插件 HTTP、TTS、同步等不在此推理策略中，不能宣称全局禁止远端处理；`buildMemory`、`sendHighlightedText`、`sendSurroundingContext` 仍仅在偏好和目录定义，无执行消费者。其他六个无效果设置、reset/inherit/观察/权限稳定错误、其余双端缺口、W01–W32 的实用组合插件与全部原生/packaged/跨平台验证继续未完成。本批 Worker 是诊断性组合，不冒充实用插件交付。最终两探针贡献为 0，配置/测试密钥/加密备份/探针 KV/trigger 清空、localOnly=false；隔离应用、受控服务和文档浏览器停止，5184/9224/19843 无监听，未推送。

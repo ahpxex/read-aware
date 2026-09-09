@@ -249,6 +249,40 @@ rejection, and injected SQLite failure; post-update relaunch behavior,
 other desktop platforms, and packaged validation of these nine paths remain
 unverified. See [delivery evidence](./host-capability-delivery.md).
 
+### Host inference privacy policy
+
+[代码] `ai.preferences.localOnly` is enforced at the shared model-call boundary,
+not only in settings UI. The cached product Agent runtime checks live preferences
+for every smart/fast completion and stream, including background model calls.
+Worker `services.llm.ask` (plain, structured, streaming) and native connection
+tests use the same policy. Enabling it rejects new calls with non-retryable
+`ai/local-only`, aborts in-flight transport signals, and suppresses late answers
+and delayed retries belonging to cancelled calls. Re-enabling permits only new
+calls. There is no product-local inference backend; a Custom loopback endpoint
+does not bypass the policy. This does not add a model-call tool to the Agent.
+
+[代码] Preference changes are observed optimistically. If persisting the change
+fails, settings roll back and no committed settings event is emitted; new calls
+may resume after rollback, but cancelled calls are not resurrected. Policy and
+caller listeners are released at the call's terminal result. The public stable
+code is localized in all eight locales; provider-flattened stream errors retain
+the `[ai/local-only]` marker for classification, not for user-facing raw prose.
+
+[环境] Isolated macOS debug Tauri tested both actors, ordinary/structured/stream
+calls, native connection UI, concurrent cancellation, late-output suppression,
+new calls after re-enable, and SQLite failure/rollback. The diagnostic fixture
+now backs up its configuration in the encrypted secret store before mutation
+and can recover after a WebView reload. The initial closure-only fixture lost
+its first backup during development reload; that attempt is not counted as a
+successful restoration. See [exact evidence](./evidence/inference-local-only-2026-09-09.json).
+
+[代码/边界] This is not a global network firewall: arbitrary granted plugin
+HTTP, TTS, sync, and other network services are not governed by this policy.
+`buildMemory`, `sendHighlightedText`, and `sendSurroundingContext` still lack
+their own execution consumers. SET27 therefore remains partial. Complete
+privacy-boundary coverage, packaged CSP and other desktop platforms are not
+verified by this change.
+
 Plugin access is declared in `settingsAccess` with exact paths or explicit
 `section.*` groups. `discover`, `read`, and `write` are separate grants. An app
 theme scheduler can write `appearance.theme` without gaining access to AI,

@@ -29,6 +29,7 @@
     "dbError": "The local database ran into a problem.",
     "secretsUnavailable": "The credential store can't be opened, so keys can't be saved or read.",
     "aiNotConfigured": "AI isn't set up yet — add an API key to start chatting.",
+    "aiLocalOnly": "Local-only mode has disabled AI requests. You can change this in AI settings.",
     "aiAuth": "The AI provider rejected the API key. Check it in Settings.",
     "aiRateLimited": "The AI provider is limiting requests right now. Wait a moment and try again.",
     "aiQuota": "Your AI account is out of credit or quota. Check your provider account.",

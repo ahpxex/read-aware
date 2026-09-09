@@ -13,6 +13,7 @@ import {
 } from "../models/accounts";
 import { createCompleteFn, createStreamFn, type CompleteFn, type StreamFn } from "../models/complete";
 import { classifyModelFailure } from "../models/failure";
+import type { InferencePolicy } from "../models/inference-policy";
 import { buildProviderRegistry } from "../models/registry";
 import type { ModelRole, RoleThinking } from "../models/roles";
 import type { AgentFetch } from "../models/transport";
@@ -30,6 +31,7 @@ export interface AgentRuntimeOptions {
   thinking?: RoleThinking;
   /** HTTP transport supplied by the desktop host (Tauri native fetch in production). */
   fetch?: AgentFetch;
+  inferencePolicy?: InferencePolicy;
   maxWindowTurns?: number;
   /**
    * 宿主对解析出的模型做最后修饰的接缝——产品用它注入用户配置的
@@ -85,12 +87,14 @@ export class AgentRuntime {
         options.account,
         this.thinking.smart,
         options.fetch,
+        options.inferencePolicy,
       ),
       fast: createCompleteFn(
         registry,
         options.account,
         this.thinking.fast,
         options.fetch,
+        options.inferencePolicy,
       ),
     };
     this.streamFns = {
@@ -99,12 +103,14 @@ export class AgentRuntime {
         options.account,
         this.thinking.smart,
         options.fetch,
+        options.inferencePolicy,
       ),
       fast: createStreamFn(
         registry,
         options.account,
         this.thinking.fast,
         options.fetch,
+        options.inferencePolicy,
       ),
     };
   }

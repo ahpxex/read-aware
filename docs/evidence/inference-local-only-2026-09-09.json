@@ -1,0 +1,504 @@
+{
+  "date": "2026-09-09",
+  "scope": "Isolated macOS Tauri debug; actual cached product AgentRuntime, registered Worker service:llm, shared Agent/Worker settings, native HTTP transport to a controlled OpenAI-compatible SSE server. Not a remote-model semantic eval or packaged CSP test.",
+  "application": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "vitePort": 5184,
+    "mcpPort": 9224,
+    "mockPort": 19843,
+    "officialAppTouched": false
+  },
+  "initialAttempt": {
+    "valid": false,
+    "reason": "Vite dependency optimization reloaded the WebView after preparation, losing the initial closure-only configuration backup; two incidental requests preceded the measured run. Removed only the exact diagnostic privacy-probe configuration and diagnostic key, then warmed modules and prepared again. Restoration of the pre-attempt isolated AI configuration is unproven; official data was not accessed."
+  },
+  "enabled": {
+    "agent": {
+      "status": "completed",
+      "text": "ok"
+    },
+    "connection": {
+      "status": "completed",
+      "text": "ok"
+    },
+    "plugin": {
+      "deltas": [],
+      "status": "completed",
+      "text": "ok"
+    },
+    "stream": {
+      "deltas": [
+        "ok"
+      ],
+      "status": "completed",
+      "text": "ok"
+    },
+    "structured": {
+      "deltas": [],
+      "status": "completed",
+      "text": {
+        "ok": true
+      }
+    }
+  },
+  "blocked": {
+    "agent": {
+      "code": "ai/local-only",
+      "status": "failed"
+    },
+    "change": "committed",
+    "connection": {
+      "code": "ai/local-only",
+      "status": "failed"
+    },
+    "plugin": {
+      "code": "ai/local-only",
+      "deltas": [],
+      "status": "failed"
+    },
+    "stream": {
+      "code": "ai/local-only",
+      "deltas": [],
+      "status": "failed"
+    },
+    "structured": {
+      "code": "ai/local-only",
+      "deltas": [],
+      "status": "failed"
+    },
+    "turn": {
+      "code": "ai/local-only",
+      "status": "failed"
+    }
+  },
+  "revoked": {
+    "held": {
+      "agent": {
+        "code": "ai/local-only",
+        "status": "failed"
+      },
+      "plugin": {
+        "code": "ai/local-only",
+        "deltas": [
+          "first"
+        ],
+        "status": "failed"
+      }
+    },
+    "setting": {
+      "changed": [
+        {
+          "path": "ai.preferences.localOnly",
+          "target": {
+            "kind": "global"
+          },
+          "value": true
+        }
+      ],
+      "paths": [
+        "ai.preferences.localOnly"
+      ],
+      "status": "committed"
+    }
+  },
+  "afterRelease": {
+    "agent": {
+      "status": "failed",
+      "code": "ai/local-only"
+    },
+    "plugin": {
+      "status": "failed",
+      "code": "ai/local-only",
+      "deltas": [
+        "first"
+      ]
+    }
+  },
+  "requestCounts": {
+    "incidentalBaseline": 2,
+    "afterFiveEnabledCalls": 7,
+    "afterBlockedCalls": 7,
+    "afterTwoConcurrentHeldCalls": 9,
+    "afterReenableTwoNewCalls": 11
+  },
+  "reenabled": {
+    "agent": {
+      "status": "completed",
+      "text": "ok"
+    },
+    "plugin": {
+      "deltas": [
+        "ok"
+      ],
+      "status": "completed",
+      "text": "ok"
+    },
+    "previous": {
+      "agent": {
+        "code": "ai/local-only",
+        "status": "failed"
+      },
+      "plugin": {
+        "code": "ai/local-only",
+        "deltas": [
+          "first"
+        ],
+        "status": "failed"
+      }
+    },
+    "setting": {
+      "changed": [
+        {
+          "path": "ai.preferences.localOnly",
+          "target": {
+            "kind": "global"
+          },
+          "value": false
+        }
+      ],
+      "snapshot": {
+        "appearance": {
+          "motion": "system",
+          "theme": "system"
+        },
+        "events": [
+          {
+            "changes": [
+              {
+                "path": "ai.preferences.localOnly",
+                "target": {
+                  "kind": "global"
+                },
+                "value": true
+              }
+            ],
+            "origin": "agent",
+            "type": "settings.changed"
+          },
+          {
+            "changes": [
+              {
+                "path": "ai.preferences.localOnly",
+                "target": {
+                  "kind": "global"
+                },
+                "value": false
+              }
+            ],
+            "origin": "plugin:capability-settings-probe",
+            "type": "settings.changed"
+          },
+          {
+            "changes": [
+              {
+                "path": "ai.preferences.localOnly",
+                "target": {
+                  "kind": "global"
+                },
+                "value": true
+              }
+            ],
+            "origin": "plugin:capability-settings-probe",
+            "type": "settings.changed"
+          },
+          {
+            "changes": [
+              {
+                "path": "ai.preferences.localOnly",
+                "target": {
+                  "kind": "global"
+                },
+                "value": false
+              }
+            ],
+            "origin": "agent",
+            "type": "settings.changed"
+          }
+        ],
+        "general": {
+          "autoUpdate": true,
+          "crashPrompt": true,
+          "fileAssociations": true,
+          "language": null,
+          "launchAtStartup": false,
+          "startView": "shelf",
+          "whatsNewDialog": true
+        }
+      },
+      "status": "committed"
+    }
+  },
+  "ui": {
+    "action": "Native Settings > AI > Test Connection",
+    "copy": "Local-only mode has disabled AI requests. You can change this in AI settings.",
+    "requestCountUnchanged": 9,
+    "screenshot": "/tmp/inference-local-only-native-visible.png",
+    "screenshotInspected": true
+  },
+  "requestsAfterReenable": [
+    {
+      "path": "/v1/chat/completions",
+      "stream": true,
+      "hold": false,
+      "structured": false,
+      "cancelled": false
+    },
+    {
+      "path": "/v1/chat/completions",
+      "stream": true,
+      "hold": false,
+      "structured": false,
+      "cancelled": false
+    },
+    {
+      "path": "/v1/chat/completions",
+      "stream": true,
+      "hold": false,
+      "structured": false,
+      "cancelled": false
+    },
+    {
+      "path": "/v1/chat/completions",
+      "stream": true,
+      "hold": false,
+      "structured": false,
+      "cancelled": false
+    },
+    {
+      "path": "/v1/chat/completions",
+      "stream": true,
+      "hold": false,
+      "structured": true,
+      "cancelled": false
+    },
+    {
+      "path": "/v1/chat/completions",
+      "stream": true,
+      "hold": false,
+      "structured": false,
+      "cancelled": false
+    },
+    {
+      "path": "/v1/chat/completions",
+      "stream": true,
+      "hold": false,
+      "structured": false,
+      "cancelled": false
+    },
+    {
+      "path": "/v1/chat/completions",
+      "stream": true,
+      "hold": true,
+      "structured": false,
+      "cancelled": true
+    },
+    {
+      "path": "/v1/chat/completions",
+      "stream": true,
+      "hold": true,
+      "structured": false,
+      "cancelled": true
+    },
+    {
+      "path": "/v1/chat/completions",
+      "stream": true,
+      "hold": false,
+      "structured": false,
+      "cancelled": false
+    },
+    {
+      "path": "/v1/chat/completions",
+      "stream": true,
+      "hold": false,
+      "structured": false,
+      "cancelled": false
+    }
+  ],
+  "persistenceFailure": {
+    "injection": "BEFORE UPDATE app_kv trigger, only read-aware-ai-preferences, RAISE(ABORT)",
+    "write": {
+      "status": "failed",
+      "code": "db/error"
+    },
+    "afterRollback": {
+      "events": [],
+      "held": {
+        "agent": {
+          "code": "ai/local-only",
+          "status": "failed"
+        },
+        "plugin": {
+          "code": "ai/local-only",
+          "deltas": [
+            "first"
+          ],
+          "status": "failed"
+        }
+      },
+      "localOnly": false,
+      "newAgent": {
+        "status": "completed",
+        "text": "ok"
+      },
+      "newPlugin": {
+        "deltas": [],
+        "status": "completed",
+        "text": "ok"
+      }
+    },
+    "requests": [
+      {
+        "path": "/v1/chat/completions",
+        "stream": true,
+        "hold": false,
+        "structured": false,
+        "cancelled": false
+      },
+      {
+        "path": "/v1/chat/completions",
+        "stream": true,
+        "hold": false,
+        "structured": false,
+        "cancelled": false
+      },
+      {
+        "path": "/v1/chat/completions",
+        "stream": true,
+        "hold": false,
+        "structured": false,
+        "cancelled": false
+      },
+      {
+        "path": "/v1/chat/completions",
+        "stream": true,
+        "hold": false,
+        "structured": false,
+        "cancelled": false
+      },
+      {
+        "path": "/v1/chat/completions",
+        "stream": true,
+        "hold": false,
+        "structured": true,
+        "cancelled": false
+      },
+      {
+        "path": "/v1/chat/completions",
+        "stream": true,
+        "hold": false,
+        "structured": false,
+        "cancelled": false
+      },
+      {
+        "path": "/v1/chat/completions",
+        "stream": true,
+        "hold": false,
+        "structured": false,
+        "cancelled": false
+      },
+      {
+        "path": "/v1/chat/completions",
+        "stream": true,
+        "hold": true,
+        "structured": false,
+        "cancelled": true
+      },
+      {
+        "path": "/v1/chat/completions",
+        "stream": true,
+        "hold": true,
+        "structured": false,
+        "cancelled": true
+      },
+      {
+        "path": "/v1/chat/completions",
+        "stream": true,
+        "hold": false,
+        "structured": false,
+        "cancelled": false
+      },
+      {
+        "path": "/v1/chat/completions",
+        "stream": true,
+        "hold": false,
+        "structured": false,
+        "cancelled": false
+      },
+      {
+        "path": "/v1/chat/completions",
+        "stream": true,
+        "hold": false,
+        "structured": false,
+        "cancelled": false
+      },
+      {
+        "path": "/v1/chat/completions",
+        "stream": true,
+        "hold": true,
+        "structured": false,
+        "cancelled": true
+      },
+      {
+        "path": "/v1/chat/completions",
+        "stream": true,
+        "hold": true,
+        "structured": false,
+        "cancelled": true
+      },
+      {
+        "path": "/v1/chat/completions",
+        "stream": true,
+        "hold": false,
+        "structured": false,
+        "cancelled": false
+      },
+      {
+        "path": "/v1/chat/completions",
+        "stream": true,
+        "hold": false,
+        "structured": false,
+        "cancelled": false
+      }
+    ],
+    "triggerRemoved": true
+  },
+  "probeReloadRecovery": {
+    "implementation": "Encrypted secret-store backup written before test configuration, recoverable after WebView reload; preparation refuses an existing backup.",
+    "result": {
+      "backupMissing": true,
+      "cleanup": {
+        "contributions": 0
+      },
+      "configMissing": true,
+      "keyMissing": true
+    }
+  },
+  "cleanup": {
+    "backupMissing": true,
+    "configMissing": true,
+    "customKeyMissing": true,
+    "localOnly": false,
+    "probeKeys": []
+  },
+  "processes": {
+    "tauriExit": 0,
+    "mockExit": 130,
+    "portsFree": [
+      5184,
+      9224,
+      19843
+    ]
+  },
+  "warnings": [
+    "MCP bridge version unavailable (server 0.13.0).",
+    "A deliberate development reload logged an unrelated useWindowMaximized Tauri listener cleanup rejection; this is not a clean packaged lifecycle pass.",
+    "Existing Rust/Node build warnings remain."
+  ],
+  "unverified": [
+    "Arbitrary granted plugin HTTP, TTS, sync and other network channels are not blocked by this policy.",
+    "No product-local inference backend; Custom loopback is also denied.",
+    "Other privacy flags are not implemented by this change.",
+    "Cross-platform and packaged desktop CSP.",
+    "Provider-specific live remote transports, model correctness, complete W01-W32 and practical plugin coverage."
+  ]
+}

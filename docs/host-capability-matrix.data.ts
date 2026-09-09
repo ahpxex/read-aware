@@ -94,6 +94,9 @@ export const sources: Record<string, string> = {
   OVERRIDES: "apps/web/src/features/settings/lib/reader-overrides.ts",
   GENERAL: "apps/web/src/features/settings/lib/general-settings.ts",
   AIPREFS: "apps/web/src/features/settings/lib/ai-preferences.ts",
+  INFERENCEPOLICY: "packages/agent/src/models/inference-policy.ts",
+  HOSTINFERENCEPOLICY: "apps/web/src/features/ai/agent/inference-policy.ts",
+  INFERENCEEVIDENCE: "docs/evidence/inference-local-only-2026-09-09.json",
   AICONFIG: "apps/web/src/features/ai/lib/ai-config.ts",
   MODELCATALOG: "apps/web/src/features/ai/lib/model-catalog.ts",
   AICONFIGUI: "apps/web/src/features/settings/components/AIConfigPanel.tsx",
@@ -406,7 +409,7 @@ export const ineffectiveSettings = new Set([
   "ai.preferences.features.explainSelection", "ai.preferences.features.defineTerm",
   "ai.preferences.features.translate", "ai.preferences.features.summarizeChapter",
   "ai.preferences.buildMemory", "ai.preferences.sendHighlightedText",
-  "ai.preferences.sendSurroundingContext", "ai.preferences.localOnly",
+  "ai.preferences.sendSurroundingContext",
 ]);
 export const readOnlySettings = new Set([
   "ai.connection.configured", "ai.connection.credentialConfigured", "ai.connection.provider",
@@ -414,17 +417,21 @@ export const readOnlySettings = new Set([
 ]);
 groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.length} 个具体路径）`, rows: staticSettingPaths.map((path, i) => {
   const ineffective = ineffectiveSettings.has(path);
+  const localOnly = path === "ai.preferences.localOnly";
+  const partial = ineffective || localOnly;
   const readonly = readOnlySettings.has(path);
   const effect = ineffective
     ? "保存值有实现；全生产源码扫描未找到对应效果消费者。不能算行为已实现或端到端覆盖。"
+    : localOnly ? "宿主模型调用已有实时执行策略：Agent smart/fast、后台补全、Worker llm.ask 普通/结构化/流式及连接测试同源拒绝 ai/local-only；进行中调用取消，迟到结果/重试被抑制，恢复只允许新调用。当前无本地模型后端，Custom loopback 也拒绝。隔离 macOS debug 双端/取消/持久失败回滚/原生连接 UI 已验；任意插件 HTTP、TTS、同步不受此策略约束，完整隐私边界与 packaged/跨平台仍未完成，保留部分。"
     : readonly ? "只读状态，不返回密钥/端点凭据；不等于配置命令。"
       : path === "general.autoUpdate" ? "实际消费者只控制自动检查，不表示无批准自动安装。"
         : path.startsWith("menus.") ? "只影响菜单排列/显示，不调用菜单动作。"
           : "目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。";
-  return cap(`SET${String(i + 1).padStart(2, "0")}`, path, ineffective ? "部分" : "实装",
-    actor(ineffective ? "部分" : "接通", readonly ? "get_settings" : "get_settings/update_settings", "类型化设置工具"),
-    actor(ineffective ? "部分" : "接通", readonly ? "settings discover/read（需路径授权）" : "settings discover/read/update（需路径授权）", "类型化设置领域"),
-    ["SETTINGS","SETDOMAIN","SETTOOLS", ...(path.startsWith("appearance.contentTypography.") ? ["TYPOGRAPHY", "TYPOGRAPHYEFFECT"]
+  return cap(`SET${String(i + 1).padStart(2, "0")}`, path, partial ? "部分" : "实装",
+    actor(partial ? "部分" : "接通", readonly ? "get_settings" : "get_settings/update_settings", "类型化设置工具"),
+    actor(partial ? "部分" : "接通", readonly ? "settings discover/read（需路径授权）" : "settings discover/read/update（需路径授权）", "类型化设置领域"),
+    ["SETTINGS","SETDOMAIN","SETTOOLS", ...(localOnly ? ["AIPREFS", "INFERENCEPOLICY", "HOSTINFERENCEPOLICY", "INFERENCEEVIDENCE"]
+      : path.startsWith("appearance.contentTypography.") ? ["TYPOGRAPHY", "TYPOGRAPHYEFFECT"]
       : path === "annotations.defaultColor" ? ["MARKPREFS", "TEXTACTIONS"]
         : path === "general.updateChannel" ? ["UPDATECHANNEL", "ABOUT"]
           : [path.startsWith("ai.preferences") ? "AIPREFS" : path.startsWith("general") ? "GENERAL" : path.startsWith("reading") ? "PREFS" : path.startsWith("menus") ? "MENUSTATE" : "UI"])],

@@ -13,6 +13,16 @@ import { sanitizeCustomOpenAIPayload } from "./custom-openai";
 import type { ProviderRegistry } from "./registry";
 import type { ThinkingLevel } from "./roles";
 import { asProviderFetch, type AgentFetch } from "./transport";
+import { guardedInferenceStream, inferenceCall, type InferenceCall, type InferencePolicy } from "./inference-policy";
+
+function callFetch(fetch: FetchFunction | undefined, call: InferenceCall | undefined): FetchFunction | undefined {
+  if (!call) return fetch;
+  const transport = fetch ?? globalThis.fetch;
+  return asProviderFetch((input, init) => {
+    call.assertAllowed();
+    return transport(input, init);
+  });
+}
 
 export type CompleteFn = (
   model: Model<Api>,
@@ -64,14 +74,23 @@ export function createCompleteFn(
   account: LlmAccount,
   thinking?: ThinkingLevel,
   fetch?: AgentFetch,
+  policy?: InferencePolicy,
 ): CompleteFn {
   const providerFetch = asProviderFetch(fetch);
-  return (model, context, options) =>
-    registry.completeSimple(
-      model,
-      context,
-      requestOptions(account, thinking, providerFetch, options),
-    );
+  return async (model, context, options) => {
+    const call = policy ? inferenceCall(policy, options?.signal) : undefined;
+    try {
+      call?.assertAllowed();
+      const result = registry.completeSimple(
+        model,
+        context,
+        requestOptions(account, thinking, callFetch(providerFetch, call), call ? { ...options, signal: call.signal } : options),
+      );
+      const message = await (call ? call.wait(result) : result);
+      call?.assertAllowed();
+      return message;
+    } finally { call?.dispose(); }
+  };
 }
 
 /** 同一 seam 的流式形态：`ask({ onText })` 消费，事件流以 result() 收束。 */
@@ -86,12 +105,16 @@ export function createStreamFn(
   account: LlmAccount,
   thinking?: ThinkingLevel,
   fetch?: AgentFetch,
+  policy?: InferencePolicy,
 ): StreamFn {
   const providerFetch = asProviderFetch(fetch);
-  return (model, context, options) =>
-    registry.streamSimple(
+  return (model, context, options) => {
+    const call = policy ? inferenceCall(policy, options?.signal) : undefined;
+    const start = () => registry.streamSimple(
       model,
       context,
-      requestOptions(account, thinking, providerFetch, options),
+      requestOptions(account, thinking, callFetch(providerFetch ?? options?.fetch, call), call ? { ...options, signal: call.signal } : options),
     );
+    return call ? guardedInferenceStream(model, call, start) : start();
+  };
 }

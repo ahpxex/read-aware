@@ -13,7 +13,7 @@
 
 1. 不能确认能力都已实现。此表区分宿主行为、Agent 工具/自动管线、插件 API/贡献和实际插件消费者；没有把代码存在算成端到端可用。
 2. 运行态正在接通：版本化位置、会话快照、精确搜索、导航回执/历史与朗读启停已由共享域提供给 Agent、Jumper 和 Listening Desk。模式控制、通用任务与资源释放、全部格式及跨平台验收仍未完成；持久化领域 API 无法代表全部产品能力。
-3. 10 个旧设置路径仍未找到对应效果消费者；两端可改值不等于行为覆盖。settings 1.2 接通对齐、固定版式颜色、更新弹窗、内容字体四字段、默认标注色与更新通道共九个真实遗漏。快捷键、书架视图等缺口仍在。
+3. 9 个旧设置路径仍未找到对应效果消费者；两端可改值不等于行为覆盖。localOnly 已接入宿主 Agent/插件 LLM 的拒绝与在途取消，但任意插件 HTTP/TTS/同步仍不受该策略约束，保留部分。settings 1.2 的九项真实偏好已接通；快捷键、书架视图等缺口仍在。
 4. Agent 自动记忆巩固与 digest 管线已经接入；画像 seed/实体事件投影并未同等接通。不要沿用旧架构说明把它们一起说成已实现或未实现。
 5. 插件 UI、贡献注册、宿主消费、模型工具是不同方向。Dictionary/RSS 提供模型工具；宿主 control_read_aloud、configure_reading_mode 与 navigate_reading 统一消费声音和模式提供者，Listening Desk 调用相同控制器。主题调度/WebDAV 连接仍无同等直接操作工具；设置可改不等于行为接通。
 6. 备份 v1 并非全部当前存储的完整快照；私有数据、聊天、记忆、密钥、日志与同步状态的生命周期必须分别建模。原基线 129 项与 GAP01–GAP18 均保留，没有借新表宣告关闭。
@@ -194,7 +194,7 @@
 | <a id="SET23"></a>SET23 | ai.preferences.buildMemory | 部分 | **部分**：get_settings/update_settings<br>[设计] 类型化设置工具 | **部分**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 仅设置页/设置存储/目录；效果未接 | 保存值有实现；全生产源码扫描未找到对应效果消费者。不能算行为已实现或端到端覆盖。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [AIPREFS](../apps/web/src/features/settings/lib/ai-preferences.ts) | 新增盘点 |
 | <a id="SET24"></a>SET24 | ai.preferences.sendHighlightedText | 部分 | **部分**：get_settings/update_settings<br>[设计] 类型化设置工具 | **部分**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 仅设置页/设置存储/目录；效果未接 | 保存值有实现；全生产源码扫描未找到对应效果消费者。不能算行为已实现或端到端覆盖。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [AIPREFS](../apps/web/src/features/settings/lib/ai-preferences.ts) | 新增盘点 |
 | <a id="SET25"></a>SET25 | ai.preferences.sendSurroundingContext | 部分 | **部分**：get_settings/update_settings<br>[设计] 类型化设置工具 | **部分**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 仅设置页/设置存储/目录；效果未接 | 保存值有实现；全生产源码扫描未找到对应效果消费者。不能算行为已实现或端到端覆盖。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [AIPREFS](../apps/web/src/features/settings/lib/ai-preferences.ts) | 新增盘点 |
-| <a id="SET26"></a>SET26 | ai.preferences.localOnly | 部分 | **部分**：get_settings/update_settings<br>[设计] 类型化设置工具 | **部分**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 仅设置页/设置存储/目录；效果未接 | 保存值有实现；全生产源码扫描未找到对应效果消费者。不能算行为已实现或端到端覆盖。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [AIPREFS](../apps/web/src/features/settings/lib/ai-preferences.ts) | 新增盘点 |
+| <a id="SET26"></a>SET26 | ai.preferences.localOnly | 部分 | **部分**：get_settings/update_settings<br>[设计] 类型化设置工具 | **部分**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 宿主模型调用已有实时执行策略：Agent smart/fast、后台补全、Worker llm.ask 普通/结构化/流式及连接测试同源拒绝 ai/local-only；进行中调用取消，迟到结果/重试被抑制，恢复只允许新调用。当前无本地模型后端，Custom loopback 也拒绝。隔离 macOS debug 双端/取消/持久失败回滚/原生连接 UI 已验；任意插件 HTTP、TTS、同步不受此策略约束，完整隐私边界与 packaged/跨平台仍未完成，保留部分。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [AIPREFS](../apps/web/src/features/settings/lib/ai-preferences.ts) [INFERENCEPOLICY](../packages/agent/src/models/inference-policy.ts) [HOSTINFERENCEPOLICY](../apps/web/src/features/ai/agent/inference-policy.ts) [INFERENCEEVIDENCE](../docs/evidence/inference-local-only-2026-09-09.json) | 新增盘点 |
 | <a id="SET27"></a>SET27 | ai.preferences.followStreaming | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [AIPREFS](../apps/web/src/features/settings/lib/ai-preferences.ts) | 新增盘点 |
 | <a id="SET28"></a>SET28 | ai.connection.configured | 实装 | **接通**：get_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 只读状态，不返回密钥/端点凭据；不等于配置命令。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [UI](../apps/web/src/state/ui.ts) | 新增盘点 |
 | <a id="SET29"></a>SET29 | ai.connection.credentialConfigured | 实装 | **接通**：get_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 只读状态，不返回密钥/端点凭据；不等于配置命令。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [UI](../apps/web/src/state/ui.ts) | 新增盘点 |
@@ -350,14 +350,14 @@
 
 | 顺序 | 行号 | 必须先解决的原因 |
 | --- | --- | --- |
-| P0 | SET04/SET05/SET18–SET21/SET23–SET26 | 10 个只保存值的设置，其中隐私/记忆开关会误导用户；需要先补效果或明确禁用，不是只补 API。 |
+| P0 | SET04/SET05/SET18–SET21/SET23–SET26 | 9 个只保存值的设置；SET27 localOnly 的宿主推理已接，插件网络边界仍缺。隐私/记忆开关需要真实效果，不是只补 API。 |
 | P0 | READ01/READ03/READ20、SYS01/SYS03、CON03–CON05 | 假成功、更新回滚覆盖合法写、持久屏障、失联/迟到 effect；原 GAP01–GAP18 没有关闭。 |
 | P1 | TXT02/TXT07/TXT13、READ06/READ07、MORE05 | Jumper 完整闭环：语义目录、精准命中、公共 Location、当前快照、统一历史、异步搜索 UI。 |
 | P1 | READ16/READ18、MEM01/MEM11、AI02/AI03、SYS11 | 已有宿主能力却没有对应端入口，不能要求新插件重写宿主。 |
 | P1 | OPS08、MEM07/MEM08 | 宿主自身的备份范围/画像写入/实体投影未闭合，不能通过开放底层权限修复。 |
 | P2 | CON01/CON06/CON07/CON10、MORE06 | 建立操作目录、任务、观察、跨贡献调用和新增行为门禁，再逐项补控制面。 |
 
-### 10 个设置效果缺口
+### 9 个尚无效果消费者的设置
 
 - `general.launchAtStartup`
 - `general.fileAssociations`
@@ -368,9 +368,8 @@
 - `ai.preferences.buildMemory`
 - `ai.preferences.sendHighlightedText`
 - `ai.preferences.sendSurroundingContext`
-- `ai.preferences.localOnly`
 
-“未找到效果消费者”来自本轮生产代码检索与调用链检查，不是运行时复现；其中 fileAssociations 对应的系统文件打开本身存在，但没有读取该 toggle。AI 隐私开关需作为真实行为缺陷处理，而不是 API 文档里的一行已开放。
+“未找到效果消费者”来自本轮生产代码检索与调用链检查，不是运行时复现；其中 fileAssociations 对应的系统文件打开本身存在，但没有读取该 toggle。buildMemory、sendHighlightedText、sendSurroundingContext 仍需作为真实行为缺陷处理。SET27 localOnly 已有宿主推理消费者与桌面证据，完整插件网络隐私边界仍未完成，不列入“无消费者”清单，也不改为全部接通。
 
 ## 已有插件的 Agent 覆盖
 

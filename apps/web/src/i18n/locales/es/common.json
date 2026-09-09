@@ -29,6 +29,7 @@
     "dbError": "La base de datos local tuvo un problema.",
     "secretsUnavailable": "No se puede abrir el almacén de credenciales, así que las claves no se pueden guardar ni leer.",
     "aiNotConfigured": "La IA aún no está configurada: añade una clave de API para empezar a conversar.",
+    "aiLocalOnly": "El modo solo local ha desactivado las solicitudes de IA. Puedes cambiarlo en los ajustes de IA.",
     "aiAuth": "El proveedor de IA rechazó la clave de API. Revísala en Ajustes.",
     "aiRateLimited": "El proveedor de IA está limitando las solicitudes. Espera un momento e inténtalo de nuevo.",
     "aiQuota": "Tu cuenta de IA se quedó sin crédito o cuota. Revisa tu cuenta del proveedor.",

@@ -20,6 +20,7 @@ import {
 import { getAIConfig, type OpenRouterRoutingConfig } from "../lib/ai-config";
 import { accountFromConfig } from "./account";
 import { buildRuntimeDeps } from "./ports";
+import { inferencePolicy } from "./inference-policy";
 import { clearStoredConversationInsights } from "./ports/conversation-port";
 import "../lib/model-catalog";
 
@@ -70,6 +71,7 @@ export function getAgentRuntime(): AgentRuntime | null {
         models,
         thinking,
         fetch: appHttpFetch,
+        inferencePolicy,
         transformModel: routingTransform(routing),
       }),
     };

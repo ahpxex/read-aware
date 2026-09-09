@@ -228,7 +228,7 @@
         </div>
       </section>
 
-      <section data-search-section="contributions services 贡献 服务">
+      <section data-search-section="contributions services 贡献 服务 localOnly local-only 隐私 仅本地 推理 取消">
         <div class="wrap split">
           <div>
             <h2>Contributions</h2>
@@ -250,6 +250,10 @@
               <li>Schedules / Session Events</li>
               <li>Network / LLM / Clipboard</li>
             </ul>
+            <details class="ep">
+              <summary>仅本地模式：宿主推理已拦截，完整网络边界仍未接通</summary>
+              <div class="ep-body"><p>Agent、插件 LLM 与连接测试共享实时策略；启用即拒绝新调用并取消在途请求，返回 ai/local-only。保存失败回滚只恢复新调用，不复活旧请求。无本地模型后端，Custom loopback 也拒绝。</p><p>任意插件 HTTP、TTS、同步不受该策略约束；另外三个隐私/记忆开关仍无效果消费者。macOS debug 双端与失败场景已有证据，packaged/跨平台仍未验证。<a href="./plugin-system.md#host-inference-privacy-policy">精确边界</a></p></div>
+            </details>
           </div>
         </div>
       </section>

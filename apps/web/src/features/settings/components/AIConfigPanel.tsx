@@ -10,6 +10,7 @@ import {
   type CustomOpenAIApi,
 } from "@read-aware/agent";
 import { appHttpFetch } from "../../../platform/http-client";
+import { inferencePolicy } from "../../ai/agent/inference-policy";
 import { createLogger } from "../../../platform/logger";
 import {
   Accordion,
@@ -266,6 +267,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
       });
       const response = await testLlmConnection(account, models.smart, {
         fetch: appHttpFetch,
+        inferencePolicy,
       });
 
       if (response) {

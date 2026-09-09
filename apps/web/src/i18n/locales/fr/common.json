@@ -29,6 +29,7 @@
     "dbError": "La base de données locale a rencontré un problème.",
     "secretsUnavailable": "Le coffre d'identifiants ne peut pas s'ouvrir ; les clés ne peuvent momentanément être ni enregistrées ni lues.",
     "aiNotConfigured": "L'IA n'est pas encore configurée — ajoutez une clé d'API pour commencer à discuter.",
+    "aiLocalOnly": "Le mode local uniquement a désactivé les requêtes IA. Vous pouvez le modifier dans les paramètres IA.",
     "aiAuth": "Le fournisseur d'IA a refusé la clé d'API. Vérifiez-la dans les réglages.",
     "aiRateLimited": "Le fournisseur d'IA limite les requêtes pour le moment. Patientez un instant puis réessayez.",
     "aiQuota": "Le crédit ou le quota de votre compte IA est épuisé. Vérifiez votre compte fournisseur.",

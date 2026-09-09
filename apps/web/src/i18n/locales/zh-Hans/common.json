@@ -29,6 +29,7 @@
     "dbError": "本地数据库出现了问题。",
     "secretsUnavailable": "无法打开凭据存储，密钥暂时无法保存或读取。",
     "aiNotConfigured": "尚未配置 AI——添加 API 密钥即可开始对话。",
+    "aiLocalOnly": "仅本地模式已禁止 AI 请求，可在 AI 设置中更改。",
     "aiAuth": "AI 服务商拒绝了这个 API 密钥，请在设置中检查。",
     "aiRateLimited": "AI 服务商正在限流，请稍等片刻再试。",
     "aiQuota": "AI 账户额度或余额已用完，请检查你的服务商账户。",

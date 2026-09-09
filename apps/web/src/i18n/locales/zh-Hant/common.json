@@ -12,6 +12,9 @@
     "copied": "已複製"
   },
   "errors": {
+    "bookSearchCancelled": "正文搜尋已取消。",
+    "bookSearchInvalid": "請檢查查詢詞和搜尋範圍後重試。",
+    "bookNotFound": "這本書已不在書庫中。",
     "pluginActionDisabled": "此插件操作目前無法使用。",
     "bookTextExtractionFailed": "部分書籍正文未能準備完成。重試可繼續處理未完成的章節。",
     "bookTextUnsupported": "此書未提供可用於章節索引的受支援文字分節。",

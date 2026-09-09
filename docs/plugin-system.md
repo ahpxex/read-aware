@@ -462,6 +462,58 @@ physical keyboard/mouse. Host built-in Agent availability, continuous load,
 marketplace install/upgrade, packaged and Windows/Linux remain outstanding;
 MORE05 is still partial.
 
+### Derived Prose Search
+
+[代码] Library 1.4 adds `queries.books.searchText(input)` under `library:read`
+or `library:write`. No library grant means no library object. The production
+Agent BookTextPort delegates to the same domain operation; pure chapter and
+conversation matchers now live in core, with existing Agent exports retained.
+
+- Input: `queries` contains 1–12 nonblank case-sensitive strings, each at most
+  1024 characters before trimming; duplicate trimmed variants collapse. Optional
+  `bookId` must be a nonblank string. Optional `throughChapterIndex` is a safe
+  integer at least -1 and requires a book. -1 returns no chapters; larger values
+  are inclusive ceilings. Optional `limit` is 1–100, default 16.
+- Invalid input rejects with `library/invalid-query` before storage reads. A
+  missing specific book rejects with `library/book-not-found`; read/preparation
+  failures propagate, never become an empty or partially successful array.
+- Specific-book search uses the shared extraction repository and may prepare
+  text. Shelf search reads only persisted, source-valid local indexes in current
+  library order, skipping absent indexes. It stops once the result limit is met;
+  it does not start bulk extraction or promise a complete shelf search.
+- Result: `{bookId, chapterIndex, chapterTitle?, offset, snippet, match}`.
+  Offset is a UTF-16 character position in extracted chapter text, NOT CFI,
+  Location, Range, or a content-version-stable anchor. `match` is `exact` or
+  `partial`. Existing matching, per-query caps and 200-character bucket dedupe
+  remain: at most three exact hits per chapter/query; token fallback only when
+  that query has no exact hit in the searched book. This is not global relevance
+  ranking or an exhaustive occurrence count. Snippets include up to 160
+  characters on each side and optional ellipses.
+- Agent retains current-book defaults and its host-verified spoiler ceiling;
+  the UI plugin does not gain access to the Agent's spoiler permission state.
+  The tool returns up to 16 hits and records snippet evidence as before.
+- The Agent forwards its abort signal; the plugin passes its activation
+  lifetime. Cancellation is checked before work and after awaited reads, reports
+  `library/cancelled`, and prevents late results. It does not undo extraction or
+  interrupt synchronous matching within a large chapter. Pagination, scan
+  budgets, task handles and cooperative cancellation remain TXT08 work.
+
+[代码] Text Desk 0.4 requires library 1.4 and composes the existing library,
+reader, form/list/detail surfaces: shelf-index search, selected-book search,
+newline-separated variants, 40-hit result limit, exact/partial labels, plain-text
+snippet detail and explicit Open book. Opening a book does not pretend to jump
+to the snippet. Empty copy refers only to the searched index. Form validation
+preserves the input; host failures propagate to the host error surface.
+
+[环境] The isolated macOS debug evidence is
+[book-text-search-2026-09-09.json](./evidence/book-text-search-2026-09-09.json).
+Real permission-gated Workers verify no-grant/read/write views, single/shelf
+matches, invalid input, missing books and -1 ceilings. Product Agent tools with
+real ports verify global hits and the current-book spoiler fence. An unprepared
+book remains unprepared after shelf searches. No autonomous model invocation,
+packaged build, Windows/Linux, sustained load or native mid-scan cancellation is
+claimed. Unit tests cover input bounds, storage failures and abort boundaries.
+
 ### Virtual Book Removal
 
 [代码] `library.commands.books.removeVirtualBook({ providerId, key })` resolves
@@ -1414,7 +1466,7 @@ adjacent distribution repository, not a thirteenth plugin in this checkout:
 | Listening Desk | reading mode/provider control, unit navigation, playback/history, environment offline hint |
 | Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |
 | Workspace Profiles | settled settings snapshots, exact path grants, atomic presets, private documents, shelf header/command views and Agent tool |
-| Text Desk | library text preparation state, paged status views, reader header/command and explicit book navigation |
+| Text Desk | library text preparation/tasks, single/shelf multi-query search, snippets, paged status views, reader header/command and explicit book navigation |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs
 in their packages and registered capabilities.

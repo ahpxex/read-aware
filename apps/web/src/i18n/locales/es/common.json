@@ -12,6 +12,9 @@
     "copied": "Copiado"
   },
   "errors": {
+    "bookSearchCancelled": "La búsqueda de texto se ha cancelado.",
+    "bookSearchInvalid": "Compruebe las consultas y los límites de búsqueda e inténtelo de nuevo.",
+    "bookNotFound": "Este libro ya no está en la biblioteca.",
     "pluginActionDisabled": "Esta acción del plugin no está disponible actualmente.",
     "bookTextExtractionFailed": "No se pudo preparar parte del texto del libro. Reintenta para continuar las secciones pendientes.",
     "bookTextUnsupported": "Este libro no ofrece secciones de texto compatibles con el índice de capítulos.",

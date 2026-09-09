@@ -1,6 +1,7 @@
 import type { PluginContext, PluginDetailView, PluginListView, PluginAction, PluginListItem } from "@read-aware/plugin-types";
 import { tr } from "./strings";
 import { rebuildForm, requestList, startRequest } from "./task-views";
+import { textSearchForm } from "./search-views";
 
 export async function textDetail(ctx: PluginContext, bookId: string, title: string): Promise<PluginDetailView> {
   const state = await ctx.domains.library!.queries.books.getTextState(bookId);
@@ -13,6 +14,7 @@ export async function textDetail(ctx: PluginContext, bookId: string, title: stri
     { label: tr(ctx.locale, "unsupportedSections"), value: String(state.progress.unsupported) },
   );
   return { kind: "detail", title, content: [{ kind: "keyValue", rows }], actions: [
+    { id: "search", label: tr(ctx.locale, "searchBook"), icon: "magnifying-glass", run: () => ({ view: textSearchForm(ctx, bookId) }) },
     { id: "refresh", label: tr(ctx.locale, "refresh"), icon: "arrows-clockwise", run: async () => ({ view: await textDetail(ctx, bookId, title), navigation: "replace" }) },
     { id: "open", label: tr(ctx.locale, "open"), icon: "book-open", run: async () => {
       await ctx.domains.reading!.commands!.openBook(bookId); return { close: true };
@@ -39,6 +41,7 @@ export async function textDesk(ctx: PluginContext, page = 0): Promise<PluginList
   }
   const actions: PluginAction[] = [{ id: "refresh", label: tr(ctx.locale, "refresh"), icon: "arrows-clockwise",
     run: async () => ({ view: await textDesk(ctx, index), navigation: "replace" }) }];
+  actions.push({ id: "search", label: tr(ctx.locale, "searchShelf"), icon: "magnifying-glass", run: () => ({ view: textSearchForm(ctx) }) });
   for (const direction of [-1, 1]) if (index + direction >= 0 && (index + direction) * 20 < books.length) actions.push({
     id: direction < 0 ? "previous" : "next", label: tr(ctx.locale, direction < 0 ? "previous" : "next"), icon: direction < 0 ? "arrow-left" : "arrow-right",
     run: async () => ({ view: await textDesk(ctx, index + direction), navigation: "replace" }),

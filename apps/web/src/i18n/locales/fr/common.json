@@ -12,6 +12,9 @@
     "copied": "Copié"
   },
   "errors": {
+    "bookSearchCancelled": "La recherche dans le texte a été annulée.",
+    "bookSearchInvalid": "Vérifiez les requêtes et les limites de recherche, puis réessayez.",
+    "bookNotFound": "Ce livre ne figure plus dans la bibliothèque.",
     "pluginActionDisabled": "Cette action du plugin n'est pas disponible actuellement.",
     "bookTextExtractionFailed": "Une partie du texte n'a pas pu être préparée. Réessayez pour reprendre les sections incomplètes.",
     "bookTextUnsupported": "Ce livre ne fournit pas de sections de texte compatibles avec l'index des chapitres.",

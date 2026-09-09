@@ -1,5 +1,14 @@
 const locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 const labels = {
+  search: ["Search", "搜索", "搜尋", "検索", "Поиск", "Rechercher", "Suchen", "Buscar"],
+  searchBook: ["Search this book", "搜索本书", "搜尋本書", "この本を検索", "Поиск в книге", "Rechercher dans ce livre", "Dieses Buch durchsuchen", "Buscar en este libro"],
+  searchShelf: ["Search indexed books", "搜索已索引书籍", "搜尋已索引書籍", "索引済みの本を検索", "Поиск в индексированных книгах", "Rechercher dans les livres indexés", "Indizierte Bücher durchsuchen", "Buscar en libros indexados"],
+  variants: ["Queries (one per line)", "查询词（每行一个）", "查詢詞（每行一個）", "検索語（1行に1つ）", "Запросы (по одному в строке)", "Requêtes (une par ligne)", "Suchanfragen (eine pro Zeile)", "Consultas (una por línea)"],
+  invalidQueries: ["Enter 1-12 queries, up to 1024 characters each", "请输入 1–12 个查询词，每个不超过 1024 字符", "請輸入 1–12 個查詢詞，每個不超過 1024 字元", "1〜12件、各1024文字以内で入力してください", "Введите 1–12 запросов, до 1024 символов каждый", "Saisissez 1 à 12 requêtes de 1024 caractères maximum", "1–12 Suchanfragen mit jeweils bis zu 1024 Zeichen eingeben", "Introduzca de 1 a 12 consultas de hasta 1024 caracteres"],
+  searchResults: ["Text matches", "正文匹配", "正文比對", "本文の一致", "Совпадения в тексте", "Correspondances", "Texttreffer", "Coincidencias de texto"],
+  noMatches: ["No matches in the searched index", "已搜索索引中没有匹配", "已搜尋索引中沒有符合項目", "検索した索引に一致なし", "В просмотренном индексе нет совпадений", "Aucune correspondance dans l'index consulté", "Keine Treffer im durchsuchten Index", "Sin coincidencias en el índice consultado"],
+  exactMatch: ["Exact", "精确匹配", "精確比對", "完全一致", "Точное", "Exacte", "Exakt", "Exacta"],
+  partialMatch: ["Partial", "词元匹配", "詞元比對", "部分一致", "Частичное", "Partielle", "Teiltreffer", "Parcial"],
   observedState: ["Last text state", "最近正文状态", "最近正文狀態", "直近の本文状態", "Последнее состояние текста", "Dernier état du texte", "Letzter Textstatus", "Último estado del texto"],
   failure: ["Failure", "失败原因", "失敗原因", "失敗理由", "Причина сбоя", "Échec", "Fehler", "Error"],
   busy: ["Another preparation is running", "已有正文准备任务正在进行", "已有正文準備工作正在進行", "別の本文準備が実行中です", "Другая подготовка текста уже идёт", "Une autre préparation est en cours", "Eine andere Textaufbereitung läuft", "Otra preparación está en curso"],

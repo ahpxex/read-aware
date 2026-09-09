@@ -35,14 +35,14 @@ test("detail refresh uses new state and opens the selected book only on explicit
   const detail = await textDetail(h.ctx, "7", "Book 7");
   expect(h.opened).toEqual([]);
   expect(detail.content[0]).toMatchObject({ kind: "keyValue", rows: expect.arrayContaining([{ label: "Failed sections", value: "1" }]) });
-  const refreshed = await detail.actions![0]!.run();
+  const refreshed = await detail.actions!.find(action => action.id === "refresh")!.run();
   expect((refreshed?.view as PluginDetailView).title).toBe("Book 7"); expect(h.calls).toEqual(["7", "7"]);
-  expect(await detail.actions![1]!.run()).toEqual({ close: true }); expect(h.opened).toEqual(["7"]);
+  expect(await detail.actions!.find(action => action.id === "open")!.run()).toEqual({ close: true }); expect(h.opened).toEqual(["7"]);
 });
 
 test("failed detail reads and navigation propagate instead of closing or rendering empty", async () => {
   const h = harness(); h.fail("7");
   await expect(textDetail(h.ctx, "7", "Book 7")).rejects.toThrow();
   h.fail(""); const detail = await textDetail(h.ctx, "7", "Book 7"); h.failOpen();
-  await expect(detail.actions![1]!.run()).rejects.toThrow("open failed"); expect(h.opened).toEqual([]);
+  await expect(detail.actions!.find(action => action.id === "open")!.run()).rejects.toThrow("open failed"); expect(h.opened).toEqual([]);
 });

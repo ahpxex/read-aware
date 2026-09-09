@@ -1,0 +1,189 @@
+{
+  "date": "2026-09-09",
+  "environment": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "pid": 44363,
+    "pgid": 44218,
+    "frontendPort": 5184,
+    "bridgePort": 9223,
+    "platform": "macOS debug Tauri"
+  },
+  "status": "completed",
+  "result": {
+    "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+    "books": {
+      "short": "6c5d79ef-78ba-4196-be14-fda0cbba490f",
+      "normal": "748df9ca-cea9-474d-95f7-38b1f18556e5",
+      "blank": "56b1cec5-f517-4e45-b2a0-cc057b39bae9"
+    },
+    "actors": {
+      "empty": {
+        "hasLibrary": false
+      },
+      "read": {
+        "hasLibrary": true,
+        "hasWrite": false,
+        "single": {
+          "completed": true,
+          "hits": [
+            {
+              "chapterIndex": 0,
+              "chapterTitle": "Text preparation probe: this section contains enough text for the chapter index.",
+              "snippet": "Text preparation probe: this section contains enough text for the chapter index.",
+              "offset": 0,
+              "match": "exact",
+              "bookId": "748df9ca-cea9-474d-95f7-38b1f18556e5"
+            }
+          ]
+        },
+        "shelf": {
+          "completed": true,
+          "hits": [
+            {
+              "chapterIndex": 0,
+              "chapterTitle": "Text preparation probe: this section contains enough text for the chapter index.",
+              "snippet": "Text preparation probe: this section contains enough text for the chapter index.",
+              "offset": 0,
+              "match": "exact",
+              "bookId": "748df9ca-cea9-474d-95f7-38b1f18556e5"
+            }
+          ]
+        },
+        "fenced": {
+          "completed": true,
+          "hits": []
+        },
+        "invalid": {
+          "completed": false,
+          "code": "library/invalid-query"
+        },
+        "missing": {
+          "completed": false,
+          "code": "library/book-not-found"
+        }
+      },
+      "write": {
+        "hasLibrary": true,
+        "hasWrite": true,
+        "single": {
+          "completed": true,
+          "hits": [
+            {
+              "chapterIndex": 0,
+              "chapterTitle": "Text preparation probe: this section contains enough text for the chapter index.",
+              "snippet": "Text preparation probe: this section contains enough text for the chapter index.",
+              "offset": 0,
+              "match": "exact",
+              "bookId": "748df9ca-cea9-474d-95f7-38b1f18556e5"
+            }
+          ]
+        },
+        "shelf": {
+          "completed": true,
+          "hits": [
+            {
+              "chapterIndex": 0,
+              "chapterTitle": "Text preparation probe: this section contains enough text for the chapter index.",
+              "snippet": "Text preparation probe: this section contains enough text for the chapter index.",
+              "offset": 0,
+              "match": "exact",
+              "bookId": "748df9ca-cea9-474d-95f7-38b1f18556e5"
+            }
+          ]
+        },
+        "fenced": {
+          "completed": true,
+          "hits": []
+        },
+        "invalid": {
+          "completed": false,
+          "code": "library/invalid-query"
+        },
+        "missing": {
+          "completed": false,
+          "code": "library/book-not-found"
+        }
+      },
+      "agent-book": {
+        "totalHits": 0,
+        "throughChapterIndex": -1,
+        "hits": []
+      },
+      "agent-global": {
+        "totalHits": 1,
+        "hits": [
+          {
+            "bookId": "748df9ca-cea9-474d-95f7-38b1f18556e5",
+            "chapterIndex": 0,
+            "chapterTitle": "Text preparation probe: this section contains enough text for the chapter index.",
+            "part": 0,
+            "match": "exact",
+            "snippet": "Text preparation probe: this section contains enough text for the chapter index."
+          }
+        ]
+      }
+    },
+    "coldBefore": {
+      "bookId": "6c5d79ef-78ba-4196-be14-fda0cbba490f",
+      "contentVersion": "sha256:02ce31b549b39cf1c66b3ca451b87ccb10429d7dd5863c8a39d295a2fcf69d27",
+      "status": "unprepared",
+      "text": "unknown",
+      "chapterCount": 0,
+      "progress": null
+    },
+    "coldAfter": {
+      "bookId": "6c5d79ef-78ba-4196-be14-fda0cbba490f",
+      "contentVersion": "sha256:02ce31b549b39cf1c66b3ca451b87ccb10429d7dd5863c8a39d295a2fcf69d27",
+      "status": "unprepared",
+      "text": "unknown",
+      "chapterCount": 0,
+      "progress": null
+    }
+  },
+  "ui": {
+    "entry": "Reader More > Text Desk > Search indexed books",
+    "verified": [
+      "Blank form gives localized validation instead of running a query",
+      "Two newline variants return one exact match",
+      "Selecting a result opens the original plain-text snippet",
+      "Search this book with Text index returns a partial hit",
+      "No-match query says No matches in the searched index",
+      "Final 800x650 result shows Partial before the truncated chapter title",
+      "1200x800 snippet and 800x650 result screenshots inspected; no page/dialog horizontal overflow"
+    ],
+    "screenshots": [
+      "/tmp/text-search-detail.png",
+      "/tmp/text-search-partial-final.png"
+    ],
+    "limits": [
+      "Open book was clicked but cleanup began before a completed-navigation verdict was captured; not claimed as native success",
+      "Back from results recreated a blank query form; cross-frame draft retention remains unverified/incomplete",
+      "An initial unscoped textarea tool call edited the synthetic book's unsent chat draft, not the plugin form; corrected by scoping to dialog. No chat was sent. Synthetic book deleted."
+    ]
+  },
+  "cleanup": {
+    "remainingBooks": 0,
+    "contributions": 0,
+    "searchContributions": 0,
+    "sqliteSyntheticBookCount": 0,
+    "processExitCode": 143,
+    "portsReleased": true
+  },
+  "warnings": [
+    "37 existing Rust warnings",
+    "Initial WebContent termination recovered",
+    "MCP bridge lacks version-report/focus support; native PID was focused through System Events",
+    "Rebuilding plugin after cleanup caused Vite reload; reimported fixture and repeated all actor checks",
+    "HMR logged listeners[eventId].handlerId rejection in existing useWindowMaximized unlisten; no claim of warning-free lifecycle"
+  ],
+  "notVerified": [
+    "Autonomous remote model",
+    "Packaged CSP/install/upgrade",
+    "Windows/Linux",
+    "Sustained large-shelf load",
+    "Native mid-scan cancellation",
+    "Global relevance ranking or exhaustive occurrence counts",
+    "Durable search tasks/pagination/scan budgets",
+    "Localized new host error copy was added after native run and verified by unit tests, not native error rendering"
+  ]
+}

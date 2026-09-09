@@ -12,6 +12,9 @@
     "copied": "Copied"
   },
   "errors": {
+    "bookSearchCancelled": "The book text search was cancelled.",
+    "bookSearchInvalid": "Check the search queries and limits, then try again.",
+    "bookNotFound": "This book is no longer in the library.",
     "pluginActionDisabled": "This plugin action is not currently available.",
     "bookTextExtractionFailed": "Some book text could not be prepared. Try again to resume unfinished sections.",
     "bookTextUnsupported": "This book does not provide supported text sections for chapter indexing.",

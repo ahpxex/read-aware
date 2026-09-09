@@ -185,7 +185,7 @@ export function buildBookTextTools(
     description:
       "Full-text search inside the books' actual prose. For who/what/relation/arc questions, query_book_graph first — it answers those directly and names the provenance chapters, turning this from a blind sweep into a targeted fetch; use THIS tool for exact wording, quotes, and anything the graph does not carry. Pass SEVERAL phrasings/synonyms in `queries` in this ONE call (results are merged and deduped) instead of retrying one query at a time — recall depends on wording and each retry costs a whole round trip. Exact matches come first; token-level fallback matches are marked \"partial\". Each hit reports the read_chapter `part` it falls in, so you can jump straight to it. throughChapterIndex is an inclusive chapter ceiling, but it cannot hide unread text later inside that same chapter. When a narrative book has cursor.visible_text and the reader did not request spoilers, NEVER search the current or later chapters, even to gather or verify clues the reader has already seen; use visible_text for the current passage and search only earlier chapters. bookId defaults to the current book; omit bookId in the global thread to search the whole shelf.",
     parameters: Type.Object({
-      queries: Type.Array(Type.String(), {
+      queries: Type.Array(Type.String({ minLength: 1, maxLength: 1024 }), {
         minItems: 1,
         description:
           "Query variants, searched together. 2-5 focused variants beat a broad sweep; anything past 12 is ignored.",
@@ -200,7 +200,7 @@ export function buildBookTextTools(
       ),
       confirmSpoiler: confirmSpoilerSchema,
     }),
-    execute: async (_id, params) => {
+    execute: async (_id, params, signal) => {
       const { queries: rawQueries, bookId, ...rest } = params as {
         queries: string[];
         bookId?: string;
@@ -229,7 +229,7 @@ export function buildBookTextTools(
         bookId: target as Id | undefined,
         throughChapterIndex,
         limit: 16,
-      });
+      }, signal);
       if (turnState) {
         turnState.evidenceTexts.push(...hits.map((hit) => hit.snippet));
         if (confirmSpoiler && target === defaultBookId) turnState.spoilerGranted = true;

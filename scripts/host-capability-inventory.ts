@@ -53,6 +53,7 @@ const pluginMap = pairs([
   ["domains.library.queries.books.getTextState", "TXT04"],
   ["domains.library.commands.books.prepareText domains.library.commands.books.cancelTextTask domains.library.queries.books.getTextTask domains.library.queries.books.listTextTasks domains.library.events.observeTextTask", "TXT05"],
   ["domains.library.queries.books.getNavigationToc", "TXT02"], ["domains.library.queries.books.searchLocations", "TXT07 TXT13"],
+  ["domains.library.queries.books.searchText", "TXT06"],
   ["domains.library.queries.collections.list domains.library.queries.collections.booksIn", "LIB15"],
   ["domains.library.commands.books.importBook", "LIB06"], ["domains.library.commands.books.editMetadata", "LIB02"],
   ["domains.library.commands.books.setStarred", "LIB03"], ["domains.library.commands.books.remove", "LIB04"],

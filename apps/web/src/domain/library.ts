@@ -16,6 +16,8 @@ import type {
   BookTextSnapshot,
   BookTextPrepareOptions,
   BookTextTaskSnapshot,
+  BookTextSearch,
+  BookTextHit,
 } from "@read-aware/core";
 import { i18n } from "../i18n";
 import { emitAppEvent } from "../platform/app-events";
@@ -34,6 +36,7 @@ import {
   updateVirtualLibraryBookTitle,
 } from "../features/library/lib/library-db";
 import { importBook } from "../features/library/lib/book-import";
+import { searchBookText } from "../features/library/lib/book-text-search";
 import { getBookNavigationToc, searchBookLocations } from "../features/library/lib/book-content-navigation";
 import type { LibraryBook } from "../features/library/lib/library-types";
 import {
@@ -87,6 +90,7 @@ export type LibraryQueries = {
     getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
     getNavigationToc(bookId: string, signal?: AbortSignal): Promise<BookNavigationToc>;
     searchLocations(input: BookLocationSearch, signal?: AbortSignal): Promise<BookLocationSearchPage>;
+    searchText(input: BookTextSearch, signal?: AbortSignal): Promise<BookTextHit[]>;
   };
   collections: {
     list(): Promise<CollectionSummary[]>;
@@ -137,6 +141,7 @@ export function createLibraryDomain(origin: EventOrigin, lifetime?: AbortSignal)
       getTextTask: async (bookId, taskId) => textTasks.get(bookId, taskId),
       listTextTasks: async bookId => textTasks.list(bookId),
       searchLocations: searchBookLocations,
+      searchText: (input, signal) => searchBookText({ list: listLibraryBooks, extract: getExtractedChapters, persisted: getPersistedChapters }, input, signal ?? lifetime),
       list: async () => (await listLibraryBooks()).map(toBookSummary),
       get: async (bookId) => {
         const book = (await listLibraryBooks()).find((entry) => entry.id === String(bookId));

@@ -606,6 +606,7 @@ export function buildPluginContext(
           ...library.queries.books,
           getNavigationToc: (bookId) => library.queries.books.getNavigationToc(bookId, lifecycle.signal),
           searchLocations: (input) => library.queries.books.searchLocations(input, lifecycle.signal),
+          searchText: (input) => library.queries.books.searchText(input, lifecycle.signal),
         },
       },
       events: {

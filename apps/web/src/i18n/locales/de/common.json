@@ -12,6 +12,9 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "bookSearchCancelled": "Die Textsuche wurde abgebrochen.",
+    "bookSearchInvalid": "Prüfen Sie Suchanfragen und Suchgrenzen und versuchen Sie es erneut.",
+    "bookNotFound": "Dieses Buch ist nicht mehr in der Bibliothek.",
     "pluginActionDisabled": "Diese Plugin-Aktion ist derzeit nicht verfügbar.",
     "bookTextExtractionFailed": "Ein Teil des Buchtexts konnte nicht vorbereitet werden. Versuche es erneut, um unvollständige Abschnitte fortzusetzen.",
     "bookTextUnsupported": "Dieses Buch enthält keine unterstützten Textabschnitte für den Kapitelindex.",

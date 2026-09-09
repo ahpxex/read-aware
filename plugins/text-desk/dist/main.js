@@ -1,6 +1,15 @@
 // src/strings.ts
 var locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 var labels = {
+  search: ["Search", "搜索", "搜尋", "検索", "Поиск", "Rechercher", "Suchen", "Buscar"],
+  searchBook: ["Search this book", "搜索本书", "搜尋本書", "この本を検索", "Поиск в книге", "Rechercher dans ce livre", "Dieses Buch durchsuchen", "Buscar en este libro"],
+  searchShelf: ["Search indexed books", "搜索已索引书籍", "搜尋已索引書籍", "索引済みの本を検索", "Поиск в индексированных книгах", "Rechercher dans les livres indexés", "Indizierte Bücher durchsuchen", "Buscar en libros indexados"],
+  variants: ["Queries (one per line)", "查询词（每行一个）", "查詢詞（每行一個）", "検索語（1行に1つ）", "Запросы (по одному в строке)", "Requêtes (une par ligne)", "Suchanfragen (eine pro Zeile)", "Consultas (una por línea)"],
+  invalidQueries: ["Enter 1-12 queries, up to 1024 characters each", "请输入 1–12 个查询词，每个不超过 1024 字符", "請輸入 1–12 個查詢詞，每個不超過 1024 字元", "1〜12件、各1024文字以内で入力してください", "Введите 1–12 запросов, до 1024 символов каждый", "Saisissez 1 à 12 requêtes de 1024 caractères maximum", "1–12 Suchanfragen mit jeweils bis zu 1024 Zeichen eingeben", "Introduzca de 1 a 12 consultas de hasta 1024 caracteres"],
+  searchResults: ["Text matches", "正文匹配", "正文比對", "本文の一致", "Совпадения в тексте", "Correspondances", "Texttreffer", "Coincidencias de texto"],
+  noMatches: ["No matches in the searched index", "已搜索索引中没有匹配", "已搜尋索引中沒有符合項目", "検索した索引に一致なし", "В просмотренном индексе нет совпадений", "Aucune correspondance dans l'index consulté", "Keine Treffer im durchsuchten Index", "Sin coincidencias en el índice consultado"],
+  exactMatch: ["Exact", "精确匹配", "精確比對", "完全一致", "Точное", "Exacte", "Exakt", "Exacta"],
+  partialMatch: ["Partial", "词元匹配", "詞元比對", "部分一致", "Частичное", "Partielle", "Teiltreffer", "Parcial"],
   observedState: ["Last text state", "最近正文状态", "最近正文狀態", "直近の本文状態", "Последнее состояние текста", "Dernier état du texte", "Letzter Textstatus", "Último estado del texto"],
   failure: ["Failure", "失败原因", "失敗原因", "失敗理由", "Причина сбоя", "Échec", "Fehler", "Error"],
   busy: ["Another preparation is running", "已有正文准备任务正在进行", "已有正文準備工作正在進行", "別の本文準備が実行中です", "Другая подготовка текста уже идёт", "Une autre préparation est en cours", "Eine andere Textaufbereitung läuft", "Otra preparación está en curso"],
@@ -115,6 +124,49 @@ async function requestList(ctx, bookId, title) {
   }] };
 }
 
+// src/search-views.ts
+function textSearchForm(ctx, bookId) {
+  return {
+    kind: "form",
+    title: tr(ctx.locale, bookId ? "searchBook" : "searchShelf"),
+    fields: [{ kind: "textarea", id: "queries", label: tr(ctx.locale, "variants"), value: "" }],
+    submitLabel: tr(ctx.locale, "search"),
+    onSubmit: async (values) => {
+      const queries = String(values.queries ?? "").split(`
+`).map((query) => query.trim()).filter(Boolean);
+      if (!queries.length || queries.length > 12 || queries.some((query) => query.length > 1024)) {
+        return { fieldErrors: { queries: tr(ctx.locale, "invalidQueries") } };
+      }
+      const hits = await ctx.domains.library.queries.books.searchText({ queries, bookId, limit: 40 });
+      return { view: await textSearchResults(ctx, hits) };
+    }
+  };
+}
+async function textSearchResults(ctx, hits) {
+  const books = new Map((await ctx.domains.library.queries.books.list()).map((book) => [book.id, book]));
+  return {
+    kind: "list",
+    title: tr(ctx.locale, "searchResults"),
+    emptyText: tr(ctx.locale, "noMatches"),
+    items: hits.map((hit) => ({
+      id: `${hit.bookId}:${hit.chapterIndex}:${hit.offset}`,
+      title: books.get(hit.bookId)?.title ?? tr(ctx.locale, "unavailable"),
+      icon: "book-open",
+      subtitle: `${tr(ctx.locale, hit.match === "exact" ? "exactMatch" : "partialMatch")} · ${hit.chapterTitle ?? String(hit.chapterIndex + 1)}`,
+      onSelect: () => ({ view: hitDetail(ctx, hit, books.get(hit.bookId)?.title ?? tr(ctx.locale, "unavailable")) })
+    }))
+  };
+}
+function hitDetail(ctx, hit, title) {
+  return { kind: "detail", title, content: [{ kind: "text", text: hit.snippet }], actions: [
+    { id: "open", label: tr(ctx.locale, "open"), icon: "book-open", run: async () => {
+      await ctx.domains.reading.commands.openBook(hit.bookId);
+      return { close: true };
+    } },
+    { id: "search-book", label: tr(ctx.locale, "searchBook"), icon: "magnifying-glass", run: () => ({ view: textSearchForm(ctx, hit.bookId) }) }
+  ] };
+}
+
 // src/views.ts
 async function textDetail(ctx, bookId, title) {
   const state = await ctx.domains.library.queries.books.getTextState(bookId);
@@ -126,6 +178,7 @@ async function textDetail(ctx, bookId, title) {
   if (state.progress)
     rows.push({ label: tr(ctx.locale, "sections"), value: `${state.progress.completed} / ${state.progress.total}` }, { label: tr(ctx.locale, "failed"), value: String(state.progress.failed) }, { label: tr(ctx.locale, "unsupportedSections"), value: String(state.progress.unsupported) });
   return { kind: "detail", title, content: [{ kind: "keyValue", rows }], actions: [
+    { id: "search", label: tr(ctx.locale, "searchBook"), icon: "magnifying-glass", run: () => ({ view: textSearchForm(ctx, bookId) }) },
     { id: "refresh", label: tr(ctx.locale, "refresh"), icon: "arrows-clockwise", run: async () => ({ view: await textDetail(ctx, bookId, title), navigation: "replace" }) },
     { id: "open", label: tr(ctx.locale, "open"), icon: "book-open", run: async () => {
       await ctx.domains.reading.commands.openBook(bookId);
@@ -163,6 +216,7 @@ async function textDesk(ctx, page = 0) {
     icon: "arrows-clockwise",
     run: async () => ({ view: await textDesk(ctx, index), navigation: "replace" })
   }];
+  actions.push({ id: "search", label: tr(ctx.locale, "searchShelf"), icon: "magnifying-glass", run: () => ({ view: textSearchForm(ctx) }) });
   for (const direction of [-1, 1])
     if (index + direction >= 0 && (index + direction) * 20 < books.length)
       actions.push({

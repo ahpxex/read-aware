@@ -22,7 +22,7 @@
 
 - 宿主：实装 193、部分 43、待建 3、引擎 1、占位 2、非桌面 1。
 - Agent：接通 111、部分 46、未接 46、扩展 14、自动 20、内部 6。
-- 插件：接通 124、部分 77、未接 42。
+- 插件：接通 125、部分 77、未接 41。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -89,7 +89,7 @@
 | <a id="TXT03"></a>TXT03 | 按抽取章节读正文/分段 | 实装 | **接通**：read_chapter(part)，带剧透控制<br>[设计] 分段读取工具 | **接通**：library.queries.books.getChapterText<br>[设计] 正文查询 | Agent；章节摘要 | 插件整章字符串不含坐标/语言/版本；Agent 分段不是渲染分页 | [TEXT](../apps/web/src/features/library/lib/book-text-store.ts) [TEXTTOOLS](../packages/agent/src/tools/book-text-tools.ts) [LIB](../apps/web/src/domain/library.ts) | C02 |
 | <a id="TXT04"></a>TXT04 | 查询本地正文准备状态与文本存在性 | 实装 | **接通**：get_book_text_status 双 scope；get_toc 空结果保留状态<br>[设计] 显式可用性查询 | **接通**：library 1.2+ queries.books.getTextState<br>[设计] 只读正文状态查询 | Agent 正文工具；Text Desk 0.3 | status 七态与 text 三态独立；查询不抽取/下载。ready 要求所有必需节成功且最终索引落盘；短正文 available 可有 0 章，不是 textless。v5 源 hash/失败集合/最终化标记；v3/v4 惰性失效，不采信旧终局。真实 macOS debug Agent/权限 Worker、FB2/空白 PDF、部分失败重试与缺源/换 hash 已验；任务控制见 TXT05，持久 setup 错误/虚拟书派生索引/全部格式与 packaged 跨平台另欠 | [TEXT](../apps/web/src/features/library/lib/book-text-store.ts) [TEXTREPO](../apps/web/src/features/library/lib/book-text-repository.ts) [TEXTRECORD](../apps/web/src/features/library/lib/book-text-record.ts) [TEXTPORT](../apps/web/src/features/ai/agent/ports/book-text-port.ts) [TEXTTOOLS](../packages/agent/src/tools/book-text-tools.ts) [TEXTDESK](../plugins/text-desk/src/views.ts) [TEXTPROOF](../docs/evidence/book-text-state-2026-09-09.json) | C03 |
 | <a id="TXT05"></a>TXT05 | 启动、重建、暂停让路正文抽取 | 实装 | **部分**：prepare_book_text / get_book_text_tasks / cancel_book_text_task 双 scope<br>[设计] 请求准备正文/完整任务控制 | **部分**：library 1.3 prepareText / cancelTextTask / getTextTask / listTextTasks / observeTextTask<br>[设计] 可取消正文准备任务与调度控制 | Text Desk 0.3；Agent；阅读需求优先调度 | 显式请求有五态/递增 revision/进度/稳定错误，prepare 复用成功断点，rebuild 清派生索引重读，忙时拒绝而不抢占。每个 actor 的请求只释放自己的共享租约，末租约取消阻止晚结果发布，已派发读写/下载不回滚。插件任务限当前激活代，Agent 两 scope 共享进程所有者；16 活跃/64 保留/每任务 16 观察者，慢回调合并最新快照。回执不等于完成或已获得解析租约。Text Desk 请求详情已组合 observeTextTask 与 UI 1.2 实时推送，关闭只退订而不取消请求；列表仍显式刷新。隔离 macOS debug 已验不点击刷新即由 0/3 Running 到 3/3 Completed 并移除取消按钮。权限/共享取消/重建和双端既有证据保留；显式 pause/resume/优先级、耐久任务历史/超时、reader-demand-activity 公共事件、虚拟索引和打包跨平台仍缺 | [TEXT](../apps/web/src/features/library/lib/book-text-store.ts) [TEXTREPO](../apps/web/src/features/library/lib/book-text-repository.ts) [TEXTEXTRACTION](../apps/web/src/features/library/lib/book-text-extraction.ts) [TEXTTASKS](../apps/web/src/features/library/lib/book-text-tasks.ts) [TEXTTASKTOOLS](../packages/agent/src/tools/book-text-task-tools.ts) [TEXTDESK](../plugins/text-desk/src/views.ts) [TEXTTASKPROOF](../docs/evidence/book-text-tasks-2026-09-09.json) [LIVEVIEWPROOF](../docs/evidence/plugin-live-views-2026-09-09.json) [APPEVENTS](../apps/web/src/platform/app-events.ts) [SESSION](../apps/web/src/features/reader/hooks/useReaderSession.ts) | C03 |
-| <a id="TXT06"></a>TXT06 | 当前书及跨书多查询正文检索 | 实装 | **接通**：search_book_text，scope/剧透约束<br>[设计] 检索工具 | **未接**：无正式入口<br>[设计] 授权范围正文检索 | Agent | 结果为 snippet+章节 offset，不是精准可渲染范围；当前共享文本扫描而非通用 FTS API | [TEXT](../apps/web/src/features/library/lib/book-text-store.ts) [TEXTPORT](../apps/web/src/features/ai/agent/ports/book-text-port.ts) [TEXTTOOLS](../packages/agent/src/tools/book-text-tools.ts) | C05 |
+| <a id="TXT06"></a>TXT06 | 当前书及跨书多查询正文检索 | 实装 | **接通**：search_book_text → library.searchText；scope/剧透约束保留<br>[设计] 检索工具 | **接通**：library 1.4 books.searchText；library:read/write<br>[设计] 授权范围正文检索 | Agent；Text Desk 0.4 多查询检索/片段查看/明确开书 | 同一共享匹配与存储流程：1–12 个非空查询，每个至多 1024 字符，结果 1–100（默认 16）；精确子串、词元回退与 200 字符桶去重沿用现状。指定书可准备正文；跨书只读本地已持久索引，不批量抽取，按书架顺序取前若干结果，不是全局相关性排序。结果含 bookId/章号/章名/offset/snippet/match，非 CFI/Range，不可直接导航。无命中不证明未索引书无内容；失败拒绝，不返回部分成功。Agent 取消与插件生命周期在异步读边界检查，不撤销抽取，不是 TXT08 分页/背压/节内协作取消。macOS debug 已验权限 Worker、缺书/非法输入、跨书不抽取与 Agent 章内 -1 围栏；完整负载、packaged/跨平台仍欠。 | [TEXT](../apps/web/src/features/library/lib/book-text-store.ts) [TEXTSEARCH](../apps/web/src/features/library/lib/book-text-search.ts) [TEXTSEARCHPROOF](../docs/evidence/book-text-search-2026-09-09.json) [TEXTPORT](../apps/web/src/features/ai/agent/ports/book-text-port.ts) [TEXTTOOLS](../packages/agent/src/tools/book-text-tools.ts) [LIB](../apps/web/src/domain/library.ts) [TEXTDESK](../plugins/text-desk/src/views.ts) [API](../packages/plugin-types/src/index.ts) | C05 |
 | <a id="TXT07"></a>TXT07 | 引擎全文精确搜索并返回 CFI | 部分 | **接通**：find_book_locations + open_book(location)，保留原回合章节围栏<br>[设计] 精确命中/位置工具 | **接通**：library v1.1 books.searchLocations + reading v2 goTo<br>[设计] 精确搜索任务 | Jumper 正文搜索；Agent；隔离 Tauri FB2 Worker/实际端口通过 | 每页最多 50 命中/32 个扫描 section；cursor 绑定书/版本/查询/允许范围；未扫完不宣称 textless。仍缺单次 Worker 调用取消/超大 section 协作预算；PDF quote 已有实现和 DOM 测试，但真实前台绘制尚未通过 | [LOCATIONSEARCH](../apps/web/src/features/library/lib/book-location-search.ts) [CONTENTSOURCE](../apps/web/src/features/library/lib/book-content-source.ts) [NAVTOOLS](../packages/agent/src/tools/navigation-tools.ts) [JUMPER](../plugins/jumper/src/views.ts) [NAVPROBE](../apps/web/src/features/plugins/runtime/fixtures/desktop-reading-probe.ts) | C04 |
 | <a id="TXT08"></a>TXT08 | 搜索分页、取消、背压和过期查询淘汰 | 待建 | **未接**：无正式入口<br>[设计] 有界搜索任务 | **未接**：无正式入口<br>[设计] 有界搜索任务 | 无完整公共实现 | 引擎局部 cancel 不等于端到端插件/Agent 任务协议 | [ENGINE](../apps/web/foliate-js/src/view.ts) [API](../packages/plugin-types/src/index.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) | C06 |
 | <a id="TXT09"></a>TXT09 | 读取当前可见文本/阅读游标 | 部分 | **部分**：get_reading_session + 原有自动 grounding<br>[设计] 按需读当前会话 + 自动 grounding | **部分**：reading.queries.session + observeSession<br>[设计] 会话快照与范围查询 | 书内 Agent；桌面 FB2 探针 | 重排正文已返回实际可见 Range 文本，限 12000 字符；PDF range 为空时 visibleText 仍为空，文本可用性分类待补 | [NAV](../apps/web/src/domain/reading-session-controller.ts) [NAVADAPTER](../apps/web/src/features/reader/lib/reading-engine-adapter.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [GROUND](../packages/agent/src/runtime/grounding-context.ts) [API](../packages/plugin-types/src/index.ts) | C07 |
@@ -411,7 +411,7 @@
 
 - Agent global：41 个。
 - Agent book：35 个。
-- Plugin ctx：98 个。
+- Plugin ctx：99 个。
 - Plugin returned interface：25 个。
 - Capability domains：5 个。
 - Capability contributions：14 个。
@@ -435,7 +435,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 98 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 99 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -537,6 +537,7 @@
 | `domains.library.queries.books.getTextTask` | [TXT05](#TXT05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.listTextTasks` | [TXT05](#TXT05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.searchLocations` | [TXT07](#TXT07) [TXT13](#TXT13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.library.queries.books.searchText` | [TXT06](#TXT06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.list` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.get` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.getToc` | [TXT01](#TXT01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -1138,7 +1139,7 @@
 | `reading-goals` | [AI11](#AI11) [MEM03](#MEM03) [SET23](#SET23) [EXT02](#EXT02) [EXT05](#EXT05) [SYS01](#SYS01) | [代码] 源码版本 0.1.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `rss-reader` | [EXT10](#EXT10) | [代码] 源码版本 0.7.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `sentence-reader` | [READ15](#READ15) [READ16](#READ16) | [代码] 源码版本 1.1.0；源码存在不等于打包、安装、启用或模型可调用 |
-| `text-desk` | [TXT04](#TXT04) [LIB01](#LIB01) [READ01](#READ01) [EXT02](#EXT02) [EXT05](#EXT05) | [代码] 源码版本 0.3.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `text-desk` | [TXT04](#TXT04) [LIB01](#LIB01) [READ01](#READ01) [EXT02](#EXT02) [EXT05](#EXT05) | [代码] 源码版本 0.4.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `tts` | [READ17](#READ17) [READ18](#READ18) | [代码] 源码版本 0.5.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `webdav-sync` | [OPS04](#OPS04) | [代码] 源码版本 0.2.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `workspace-profiles` | [UI02](#UI02) [UI04](#UI04) [CFG01](#CFG01) [CFG10](#CFG10) [EXT02](#EXT02) [EXT05](#EXT05) [SYS02](#SYS02) | [代码] 源码版本 0.2.0；源码存在不等于打包、安装、启用或模型可调用 |

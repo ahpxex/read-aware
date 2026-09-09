@@ -81,6 +81,7 @@ import type {
 
 // Re-exported so plugin authors can name the underlying vocabulary without
 // depending on @read-aware/core directly.
+export type { BookTextSearch, BookTextHit } from "@read-aware/core";
 export type { BookTextSnapshot, BookTextTaskSnapshot, BookTextPrepareOptions, AnnotationSnapshot, AnnotationMutation, AnnotationCommitResult, AnnotationPage, AnnotationPageQuery, BookTocEntry, BookNavigationToc, BookLocationSearch, BookLocationSearchPage, BookLocationHit,
   ReadingLocation, ReadingTarget, ReadingSessionSnapshot, ReadingSessionGuard, ReadingNavigationReceipt, ReadingPlaybackSnapshot, ReadingPlaybackReceipt, ReadingModeConfiguration, ReadingModeDescriptor, ReadingModeSnapshot, ReadingModeReceipt, ReadingModePosition, ReadingModeStepOutcome, ReadingModeStepReceipt } from "@read-aware/core";
 export type {
@@ -1188,6 +1189,8 @@ export type PluginLibraryDomain = {
     getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
     getNavigationToc(bookId: string): Promise<import("@read-aware/core").BookNavigationToc>;
     searchLocations(input: import("@read-aware/core").BookLocationSearch): Promise<import("@read-aware/core").BookLocationSearchPage>;
+    /** Multi-query derived prose search. Single-book may prepare text; shelf search never does. Results are not navigation locations. */
+    searchText(input: import("@read-aware/core").BookTextSearch): Promise<import("@read-aware/core").BookTextHit[]>;
     };
     collections: {
       list(): Promise<PluginCollection[]>;

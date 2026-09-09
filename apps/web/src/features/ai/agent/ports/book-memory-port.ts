@@ -6,13 +6,16 @@
  * 与其他投影读端的降级姿态一致。
  */
 import { invoke } from "../../../../platform/ipc";
-import type { BookMemoryPort } from "@read-aware/agent";
+import { BookDigestQueue, type BookMemoryPort } from "@read-aware/agent";
 import { inspectBookDigest, saveBookDigest } from "../../../../domain/book-digest";
 import { isTauri } from "../../../../platform/environment";
 import { decodeChapterDigestRows } from "./chapter-digest-row";
 
+const queue = new BookDigestQueue();
+
 export function createBookMemoryPort(): BookMemoryPort {
   return {
+    runExclusive: (bookId, work, signal) => queue.run(bookId, work, signal),
     listDigests: async (bookId) => {
       if (!isTauri()) return [];
       const rows = await invoke<unknown>("chapter_digests_list", {

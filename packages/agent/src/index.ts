@@ -44,6 +44,7 @@ export {
   mergeCharacterRegistry,
 } from "./memory/chapter-digest";
 export { digestMissingChapters, type DigestReport } from "./memory/digest-run";
+export { BookDigestQueue } from "./memory/digest-queue";
 export { PRESENT_TOOL_NAMES, MAX_PRESENTED_ITEMS } from "./tools/present-tools";
 export { INTERACTIVE_TOOL_NAMES } from "./tools/user-interaction";
 export { AgentThread, type AgentThreadOptions, type SendTurnInput, type SelectionAttachment } from "./runtime/thread";

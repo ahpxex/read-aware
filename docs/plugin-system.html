@@ -295,7 +295,7 @@
                 <tr><td>Annotations</td><td>高亮与笔记</td><td>read / write</td></tr>
                 <tr><td>Conversations</td><td>书籍与全局对话摘要</td><td>read</td></tr>
                 <tr><td>Settings</td><td>设置目录、目标、校验、解析值与变更事件</td><td>精确路径授权</td></tr>
-                <tr><td>Memory 1.1</td><td>记忆检索、受保护图谱与条件反馈</td><td>memory:read / memory:write</td></tr>
+                <tr><td>Memory 1.3</td><td>记忆检索、受保护图谱、条件反馈与分类</td><td>memory:read / memory:write</td></tr>
               </tbody>
             </table>
           </div>
@@ -363,7 +363,8 @@
           </div></details>
           <details class="ep"><summary>图谱补齐已区分失败和完成，公开任务入口仍未接</summary><div class="ep-body">
             <p>内部 DigestReport 区分已提交、空章、失败、欠账与未知边界；完整追平有限扫描一次，不再因前章失败饿死后章，重试跳过已成功章。早章重建只用更早章的实体锚，非 stop 的模型答复不落库。</p>
-            <p>bdg1 章节与分类版本在原生事务复核：同章竞争、分类改回和过旧事件时间都不能覆盖新结果，其他章节不互相冲突；失败回滚事件/投影/同步队列，成功后才广播。取消会等已派发写回执，但不等全部读/模型物理 IO。已验脚本推理、SQL 失败重试与双端图查询和 Memory Desk 显示；不是自主模型或公开任务 E2E。内容版本与跨运行协调仍缺，任务 API 未接。<a href="./plugin-system.md#digest-conditional">条件提交与验证边界</a></p>
+            <p>bdg1 章节与分类版本在原生事务复核：同章竞争、分类改回和过旧事件时间都不能覆盖新结果，其他章节不互相冲突；失败回滚事件/投影/同步队列，成功后才广播。取消会等已派发写回执，但不等全部读/模型物理 IO。已验脚本推理、SQL 失败重试与双端图查询和 Memory Desk 显示；不是自主模型或公开任务 E2E。内容版本与跨设备协调仍缺，任务 API 未接。<a href="./plugin-system.md#digest-conditional">条件提交与验证边界</a></p>
+            <p>BookDigestQueue 让同书后台生成按序执行，后一个重读已存摘要，避免重复推理；不同书独立。总容量 64，排队可取消，正在写入则等回执再让位。macOS 原生已验跨运行实例共享队列与 Memory Desk 显示；不代表耐久任务、跨设备互斥或公共任务入口已完成。<a href="./plugin-system.md#digest-scheduling">本机调度边界</a></p>
           </div></details>
           <details class="ep"><summary>分类更改需版本条件，Agent 每次批准，插件表单保留冲突草稿</summary><div class="ep-body">
             <p>classification 查询需 memory:read，classify 需 memory:write；只能改叙事/说明性，不能传自动填空标记。bcl1 版本在事务内复核。Agent classify_book 两 scope 已接，书内仅本书；Memory Desk 0.4 观察分类并要求确认边界变化。插件确认是 UX，不是新的宿主授权票据。</p>

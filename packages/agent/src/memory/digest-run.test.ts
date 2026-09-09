@@ -122,9 +122,9 @@ test("classification changing during inference rejects old-flavor output without
   expect(await deps.bookMemory.listDigests("b")).toHaveLength(0);
 });
 
-test("two concurrent runs cannot both replace the same chapter and unrelated chapter writes remain independent", async () => {
+test("two independently generated candidates cannot both replace the same chapter and unrelated writes remain independent", async () => {
   const { deps } = fixture(), started = deferred(), release = deferred(); let calls = 0;
-  const run = () => digestBookTick({ deps, bookId: "b", model, maxChapters: 1, complete: async () => { if (++calls === 2) started.resolve(); await release.promise; return reply(); } });
+  const run = () => digestMissingChapters({ ...deps, bookId: "b", beforeChapterIndex: 5, model, maxChapters: 1, complete: async () => { if (++calls === 2) started.resolve(); await release.promise; return reply(); } });
   const a = run(), b = run(); await started.promise; release.resolve();
   const results = await Promise.all([a,b]);
   expect(results.map(r => r.digested).sort()).toEqual([0,1]);

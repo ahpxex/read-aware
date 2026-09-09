@@ -84,6 +84,12 @@ async function ensureNarrativity(
 
 /** A report distinguishes completed work, remaining chapters and unknown boundaries. */
 export async function digestBookTick(input: DigestBookTickInput): Promise<DigestReport> {
+  const request = { ...input };
+  digestExecutionBudget(request);
+  return request.deps.bookMemory.runExclusive(request.bookId, () => digestBookTickExclusive(request), request.signal);
+}
+
+async function digestBookTickExclusive(input: DigestBookTickInput): Promise<DigestReport> {
   const { max } = digestExecutionBudget(input);
   const deps = input.deps;
   input.signal?.throwIfAborted();

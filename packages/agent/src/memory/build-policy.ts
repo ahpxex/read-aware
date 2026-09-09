@@ -36,7 +36,7 @@ export async function runMemoryBuild<T>(
     });
     commits.add(settled);
     void settled.then(() => { commits.delete(settled); });
-    const result = await call.wait(pending);
+    const result = await pending;
     assertAllowed();
     return result;
   };
@@ -57,9 +57,12 @@ export async function runMemoryBuild<T>(
         conversations: { ...original.conversations, putInsights: commit(original.conversations.putInsights) },
         profile: { ...original.profile, putProfileSummary: commit(original.profile.putProfileSummary) },
         bookMemory: { ...original.bookMemory,
+          listDigests: guard(original.bookMemory.listDigests),
           inspectDigest: guard((bookId, index) => original.bookMemory.inspectDigest(bookId, index, call.signal)),
           saveDigest: commit((bookId, digest, revision) => original.bookMemory.saveDigest(bookId, digest, revision, call.signal)) },
-        library: { ...original.library, classifyBookIfUnclassified: commit((bookId, flavor) => original.library.classifyBookIfUnclassified(bookId, flavor, call.signal)) },
+        library: { ...original.library, getBook: guard(original.library.getBook), getBookStats: guard(original.library.getBookStats),
+          classifyBookIfUnclassified: commit((bookId, flavor) => original.library.classifyBookIfUnclassified(bookId, flavor, call.signal)) },
+        bookText: { ...original.bookText, getToc: guard(original.bookText.getToc), getChapterText: guard(original.bookText.getChapterText) },
         extraMemoryCandidates: original.extraMemoryCandidates && guard(original.extraMemoryCandidates),
       }),
     }));

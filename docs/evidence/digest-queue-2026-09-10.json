@@ -1,0 +1,265 @@
+{
+  "date": "2026-09-10",
+  "scope": "Shared local book digest scheduling, not a public Agent/plugin task API",
+  "environment": {
+    "app": "com.readaware.app.capability-e2e",
+    "frontend": 5184,
+    "bridge": 9224,
+    "platform": "macOS Tauri debug",
+    "workers": 3,
+    "inference": "Scripted completion with independent buildRuntimeDeps instances, real shared queue and SQLite"
+  },
+  "fixture": {
+    "bookId": "5efdb19d-d87e-4ca0-8834-17a2fb8df068",
+    "chapters": [
+      {
+        "hrefs": [
+          "0"
+        ],
+        "index": 0
+      },
+      {
+        "hrefs": [
+          "1"
+        ],
+        "index": 1
+      },
+      {
+        "hrefs": [
+          "2"
+        ],
+        "index": 2
+      }
+    ],
+    "marker": "Memory Domain Probe 740c4b05-5235-4fda-80bb-c3d754f96996",
+    "memoryIds": [
+      "2f955818-b861-446e-a685-3e5883b825e3",
+      "93e6a1d3-6abe-421c-b4ac-fb9064b92f21",
+      "af60c1ae-a11e-4754-a57c-c64fcb98e300"
+    ],
+    "path": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e"
+  },
+  "followers": {
+    "calls": [
+      {
+        "actor": "leader",
+        "chapter": 0
+      }
+    ],
+    "receipt": "committed",
+    "states": {
+      "cancelled": {
+        "status": "pending"
+      },
+      "follower": {
+        "status": "pending"
+      },
+      "leader": {
+        "status": "pending"
+      }
+    }
+  },
+  "cancelLeader": {
+    "calls": [
+      {
+        "actor": "leader",
+        "chapter": 0
+      }
+    ],
+    "receipt": "committed",
+    "states": {
+      "cancelled": {
+        "code": 20,
+        "status": "failed"
+      },
+      "follower": {
+        "status": "pending"
+      },
+      "leader": {
+        "status": "pending"
+      }
+    }
+  },
+  "whileWriteReceiptHeld": {
+    "calls": [
+      {
+        "actor": "leader",
+        "chapter": 0
+      }
+    ],
+    "receipt": "committed",
+    "states": {
+      "cancelled": {
+        "code": 20,
+        "status": "failed"
+      },
+      "follower": {
+        "status": "pending"
+      },
+      "leader": {
+        "status": "pending"
+      }
+    }
+  },
+  "released": {
+    "calls": [
+      {
+        "actor": "leader",
+        "chapter": 0
+      },
+      {
+        "actor": "follower",
+        "chapter": 1
+      }
+    ],
+    "receipt": "committed",
+    "states": {
+      "cancelled": {
+        "code": 20,
+        "status": "failed"
+      },
+      "follower": {
+        "report": {
+          "attempted": 1,
+          "digested": 1,
+          "eligible": 2,
+          "emptyChapters": [],
+          "failures": [],
+          "remaining": 0,
+          "status": "complete"
+        },
+        "status": "done"
+      },
+      "leader": {
+        "code": 20,
+        "status": "failed"
+      }
+    }
+  },
+  "freshRetry": {
+    "calls": [
+      {
+        "actor": "leader",
+        "chapter": 0
+      },
+      {
+        "actor": "follower",
+        "chapter": 1
+      }
+    ],
+    "receipt": "committed",
+    "states": {
+      "cancelled": {
+        "code": 20,
+        "status": "failed"
+      },
+      "follower": {
+        "report": {
+          "attempted": 1,
+          "digested": 1,
+          "eligible": 2,
+          "emptyChapters": [],
+          "failures": [],
+          "remaining": 0,
+          "status": "complete"
+        },
+        "status": "done"
+      },
+      "leader": {
+        "code": 20,
+        "status": "failed"
+      },
+      "retry": {
+        "report": {
+          "attempted": 0,
+          "digested": 0,
+          "eligible": 2,
+          "emptyChapters": [],
+          "failures": [],
+          "remaining": 0,
+          "status": "complete"
+        },
+        "status": "done"
+      }
+    }
+  },
+  "consumers": {
+    "agent": {
+      "chapterRange": [
+        0,
+        1
+      ],
+      "chaptersDigested": 2,
+      "edgeCount": 0,
+      "entities": [
+        {
+          "chapters": 1,
+          "name": "Queued0"
+        },
+        {
+          "chapters": 1,
+          "name": "Queued1"
+        }
+      ],
+      "entityCount": 2,
+      "fence": "graph clamped to chapters before the reader's position (chapter index 2)",
+      "graph": "overview",
+      "note": "Pass names for profiles with relations and provenance chapters. This is distilled memory, not verbatim source text.",
+      "truncated": false
+    },
+    "plugin": {
+      "status": "ok",
+      "value": {
+        "chapterRange": [
+          0,
+          1
+        ],
+        "chaptersDigested": 2,
+        "edgeCount": 0,
+        "entities": [
+          {
+            "chapters": 1,
+            "name": "Queued0"
+          },
+          {
+            "chapters": 1,
+            "name": "Queued1"
+          }
+        ],
+        "entityCount": 2,
+        "fence": "graph clamped to chapters before the reader's position (chapter index 2)",
+        "graph": "overview",
+        "note": "Pass names for profiles with relations and provenance chapters. This is distilled memory, not verbatim source text.",
+        "truncated": false
+      }
+    }
+  },
+  "ui": {
+    "overflow": false,
+    "text": "Memory Desk\n\nChapter graph\n\n\nRefresh\n\nSearch\n\nQueued0\nChapters: 1\n\nQueued1\nChapters: 1\nClose",
+    "viewport": [
+      900,
+      650
+    ]
+  },
+  "screenshot": {
+    "path": "/tmp/graph-queue-memory-desk.png",
+    "inspected": true
+  },
+  "cleanup": {
+    "ownedBooks": 0,
+    "contributions": 0,
+    "ownedMemories": "all three status=forgotten",
+    "driver9224": "stopped",
+    "processGroup": 88088,
+    "execExitCode": 143
+  },
+  "boundaries": [
+    "The leader's already-completed native write receipt is held by the fixture. This tests lane ownership until receipt delivery, not a stalled SQLite transaction.",
+    "The fixture's numeric code 20 is the default DOMException AbortError debug field, not a stable public AppError. The internal queue preserves caller AbortSignal reasons; no public task error envelope was added.",
+    "FIFO is per book, in one frontend process. A waiting pass rereads persisted state and does not reuse a prior pass result. Different books are independent; the total active-plus-waiting capacity is 64.",
+    "The shared production queue survives AgentRuntime configuration rebuilds because it belongs to the host port module. It is not distributed ownership, a durable scheduler or a source-content version lease.",
+    "Cancelled guarded reads and inference may have underlying IO still running, but cannot start late protected writes. Dispatched protected writes retain the book lane until their returned promises settle.",
+    "No public task IDs, progress/observation, start/cancel/retry/rebuild endpoints or task UI were connected by this unit. No autonomous model, packaged, Windows/Linux or real remote-sync validation."
+  ]
+}

@@ -348,6 +348,7 @@ export interface SettingsPort {
  * 确定性重算，所以记录成事件而非只写投影；listDigests 读物化表。
  */
 export interface BookMemoryPort {
+  runExclusive<T>(bookId: Id, work: () => Promise<T>, signal?: AbortSignal): Promise<T>;
   listDigests(bookId: Id): Promise<ChapterDigest[]>;
   inspectDigest(bookId: Id, chapterIndex: number, signal?: AbortSignal): Promise<import("@read-aware/core").BookDigestSnapshot | null>;
   saveDigest(bookId: Id, digest: ChapterDigest, expectedRevision: string, signal?: AbortSignal): Promise<void>;

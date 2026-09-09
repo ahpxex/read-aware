@@ -12,6 +12,7 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "memoryTaskLimit": "Zu viele Graphanfragen sind aktiv. Warte, bis eine Anfrage abgeschlossen ist.",
     "memoryObserverLimit": "Zu viele aktive Erinnerungsabonnements.",
     "memoryObservationFailed": "Erinnerungen konnten nicht gelesen werden. Versuche es erneut.",
     "memoryInvalidInput": "Geben Sie eine gültige Erinnerungsänderung ein.",

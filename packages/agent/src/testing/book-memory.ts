@@ -1,8 +1,10 @@
 import { AppError, type ChapterDigest } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
+import { BookDigestQueue } from "../memory/digest-queue";
 
 /** Native transactions/replay remain authoritative; this fixture also rejects competing test writes. */
 export function createBookMemoryFixture(rows: Map<string, ChapterDigest[]>, classification: RuntimeDeps["bookClassification"]): RuntimeDeps["bookMemory"] {
+  const queue = new BookDigestQueue();
   const versions = new Map<string, { fingerprint: string; revision: string }>();
   const key = (bookId: string, index: number) => JSON.stringify([bookId, index]);
   const inspect: RuntimeDeps["bookMemory"]["inspectDigest"] = async (bookId, chapterIndex, signal) => {
@@ -16,7 +18,8 @@ export function createBookMemoryFixture(rows: Map<string, ChapterDigest[]>, clas
     }
     return { bookId, chapterIndex, flavor: book.narrativity ?? "narrative", revision: entry.revision };
   };
-  return { listDigests: async bookId => structuredClone(rows.get(bookId) ?? []), inspectDigest: inspect,
+  return { runExclusive: (bookId, work, signal) => queue.run(bookId, work, signal),
+    listDigests: async bookId => structuredClone(rows.get(bookId) ?? []), inspectDigest: inspect,
     saveDigest: async (bookId, digest, revision, signal) => {
       const copy = structuredClone(digest), snapshot = await inspect(bookId, copy.chapterIndex, signal);
       if (signal?.aborted) throw new AppError("memory/cancelled", "Cancelled");

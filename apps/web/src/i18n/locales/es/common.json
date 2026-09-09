@@ -12,6 +12,7 @@
     "copied": "Copiado"
   },
   "errors": {
+    "memoryTaskLimit": "Hay demasiadas solicitudes de grafo activas. Espera a que termine una.",
     "memoryObserverLimit": "Hay demasiadas suscripciones activas a la memoria.",
     "memoryObservationFailed": "No se pudo leer la memoria. Inténtalo de nuevo.",
     "memoryInvalidInput": "Introduce un cambio de memoria válido.",

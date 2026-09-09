@@ -1252,3 +1252,19 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [文档/清理] 矩阵 MEM03/MEM10/SET23 与插件规范 MD/HTML 同步取消回执事实；模型 MD 只同步生成证据行，HTML 责任裁决未变。两页六张 1440×1000、1024×768、390×844 截图已看；无页面溢出/重复 ID/坏页内锚点/无名按钮或浏览器 errors，观察 CDN 200，无 Mermaid。矩阵 memory-policy/回执命中 1/19 行，含 MEM10；插件 buildMemory/回执命中 1/5 节，含 Agent 智能扩展；Escape 恢复 243/18 项。矩阵移动抽屉 HEADER/MAIN inert、关闭与主题刷新保持通过；插件原无抽屉/主题。文档浏览器关闭，HTML 仍依赖 CDN，不作为产品验收。三个 Worker/贡献清零，自有书 0、三记忆 status=forgotten、trigger 0；driver 9224 停止，自有 PGID 85307 / exec 84517 终态 143，5184/9224 无监听。既有 89360/9223 和正式用户数据未操作。
 
 [下一步/剩余] 接公共图谱任务时可以依赖当前条件提交和写回执排空，但仍需共享所有权/跨运行协调、启动/观察/取消/重试/重建契约，以及 Agent 批准、插件授权和真实任务视图。不能把未来任务 cancelled 等同于所有模型网络已终止；应明确任务自身写回执边界。内容/来源/实体锚版本、全能力组合、其余双端缺口及长时/撤权/打包/跨平台/真实跨设备验证仍未完成，整体目标继续，未推送。
+
+## 2026-09-10：跨运行实例共用按书图谱队列
+
+[进度/复核] a80bd261 后的队列实现已有原生证据但尚未提交；上轮建模确认只重跑了库存校验，不计新增实现。本轮复核实际工作区、既有测试终态与原生截图，补齐文档、重新执行测试/类型/构建并提交此单元。总目标仍包含所有双端应开放能力和自由组合验收，没有因内部队列完成而缩小。
+
+[代码/根因] BookMemoryPort.runExclusive 委托宿主端口模块唯一 BookDigestQueue，不随 buildRuntimeDeps/AgentRuntime 重建。所有生产 digestBookTick/CatchUp（轮后、空闲、阅读打开）共用按书 FIFO，不同书独立；排队输入冻结目标和预算，轮到时重读书籍、分类、边界、目录与已存摘要，前轮成功章节不重复推理。原 reading-open catch-up coalescing 保留。总活动加排队请求限 64，超限 memory/task-limit 可重试；排队取消释放容量且不执行回调，失败后继续下一项。直接底层 digestMissingChapters 不排队，生产只经 upkeep 调用它；独立/远端写仍需 bdg1 条件。
+
+[取消] 上轮只保证外层操作等待写回执，内层 commit 仍可能通过取消竞速提前退出并让出书籍位置。本轮 commit 自身等待原写 promise，活动取消保留队列位置直至已派发写结算；getBook/getBookStats/getToc/getChapterText/listDigests 加入读 guard，避免挂起读永久挡住后续或取消后迟到推理。取消不回滚已提交内容，不保证读/模型物理 IO、远端计费停止。队列保留调用者 AbortSignal 原因，未伪造新的公共任务错误协议；不是跨设备锁、耐久调度、来源版本租约或全局模型并发上限。
+
+[原生/组合] [digest-queue](./evidence/digest-queue-2026-09-10.json) 使用隔离 macOS Tauri debug、真实 SQLite、三个 Worker 和三个独立运行依赖实例。leader 真实提交第 0 章后由 fixture 暂扣回执；follower 和被取消的 queued 请求均未推理。取消 leader 后 follower 仍等待；释放回执才生成第 1 章，再次请求 attempted=0，无额外推理。Agent/Worker 图查询一致，编译 Memory Desk 显示 Queued0/Queued1、排除未来名字，900×650 原生截图已检查。fixture 的默认 AbortError 数字 code=20 仅是调试字段，不是稳定 AppError；暂停的是已完成写的回执交付，不是 SQLite 事务。本单元没有公开任务 UI/Agent 工具，也未使用自主模型。
+
+[验证/扫描] 全仓 test 24/24（Agent 420 项；web 912 项/160 文件/10031 断言）、typecheck 27/27、前端 production build 通过，原有大 chunk 提示保留。六项队列测试覆盖 FIFO/异书独立/异常、64 容量恢复/排队取消、持久结果复用、活动写取消、迟到读和输入突变。八语言容量错误测试在完整 suite 首次返回未初始化文案 key，独立执行正常；按现有子进程测试模式隔离语言加载生命周期后验证八语言 32 断言，完整 suite 重跑通过，未据此修改生产语言逻辑。Rust 未修改且本单元未重跑 Rust 全套。库存/模型 11 项/30 断言、两生成器 --check、三个 pair validator、git diff --check 通过。仍为 243 行/695 入口/30 单元/31 catalog/129 旧验收/32 场景、Memory 1.3、14 源码/6 内置插件；MEM10 保持 Agent 自动、插件未接。
+
+[文档/清理] 矩阵及插件规范 MD/HTML 同步队列事实，纠正 HTML 表格残留的 Memory 1.1；模型 MD 仅更新生成证据行，HTML 责任裁决未变。两页六张 1440×1000、1024×768、390×844 截图已检查，无页面横向溢出、重复 ID、坏页内锚点、无名按钮或浏览器 errors，观察 CDN 200。BookDigestQueue/排队搜索命中矩阵 1/6 行且含 MEM10、插件均命中记忆节；Escape 恢复 243/18 项。矩阵移动抽屉 HEADER/MAIN inert、关闭恢复和主题刷新保持通过；插件说明原无抽屉/主题，均无 Mermaid，HTML 仍依赖 CDN。文档浏览器已关闭。原生证据记录三 Worker/贡献归零、自有书 0、三记忆 forgotten、driver 9224 停止、自有 PGID 88088/exec 80038 终态 143；本轮确认 5184/9224 无监听。未操作既有 89360/9223 或正式数据。
+
+[下一步/剩余] 内部执行器、条件提交、写回执与本机排队已具备；接下来直接接公共图谱任务的 start/get/list/observe/cancel/retry/rebuild、Agent 逐次批准、插件 service:llm 授权与 Memory Desk 任务视图。重建不能先删旧摘要，重试必须保留失败重建目标，取消状态不能先于写回执宣称终态。其余双端部分/未接项、全部能力组合、长时/撤权/打包/跨平台/真实跨设备验收仍未完成，整体目标继续，未推送。

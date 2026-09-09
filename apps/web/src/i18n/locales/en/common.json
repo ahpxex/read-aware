@@ -12,6 +12,7 @@
     "copied": "Copied"
   },
   "errors": {
+    "memoryTaskLimit": "Too many graph requests are active. Wait for a request to finish.",
     "memoryObserverLimit": "Too many memory subscriptions are active.",
     "memoryObservationFailed": "Memory could not be read. Try again.",
     "memoryInvalidInput": "Enter a valid memory change.",

@@ -198,6 +198,7 @@ describe("digestMissingChapters", () => {
         getChapterText: async (_bookId: Id, index: number) => `第${index}章正文`,
       },
       bookMemory: {
+        runExclusive: async <T>(_bookId: Id, work: () => Promise<T>) => work(),
         inspectDigest: async (bookId: Id, chapterIndex: number) => ({ bookId, chapterIndex, flavor, revision: `bdg1:${"a".repeat(64)}` }),
         listDigests: async () => existing,
         saveDigest: async (bookId: Id, digest: ChapterDigest) => {
@@ -336,6 +337,7 @@ describe("digestMissingChapters", () => {
         getChapterText: async (_bookId: Id, index: number) => `第${index}章正文`,
       },
       bookMemory: {
+        runExclusive: async <T>(_bookId: Id, work: () => Promise<T>) => work(),
         inspectDigest: async (bookId: Id, chapterIndex: number) => ({ bookId, chapterIndex, flavor: "narrative" as const, revision: `bdg1:${"a".repeat(64)}` }),
         listDigests: async () => [...saved],
         saveDigest: async (_bookId: Id, digest: ChapterDigest) => {

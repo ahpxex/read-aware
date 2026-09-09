@@ -1131,9 +1131,9 @@ inference and before saving, stops accepting new chapters, and waits for its
 active logical workers before rejecting. An already dispatched save may commit;
 there is no rollback claim. The outer `runMemoryBuild` now drains dispatched
 protected write receipts before rejecting, but may abandon reads/inference.
-It does not prove all underlying IO or remote model work has stopped. Public task lifecycle,
-cross-run locking and content-version/source identity are not provided by this
-report. Local chapter/classification conditional commits are described below.
+It does not prove all underlying IO or remote model work has stopped. The report
+alone does not provide public task lifecycle, scheduling or content-version/source
+identity. Local scheduling and chapter/classification conditions are described below.
 
 [环境] [Digest execution evidence](./evidence/digest-run-2026-09-10.json)
 uses real SQLite ports in isolated macOS Tauri debug with scripted inference.
@@ -1185,9 +1185,9 @@ broadcast their actual outcome. Failure rolls back event, projection and outbox.
 A conflicting run does not increment digested; its sampled remaining is not a
 fresh global backlog query and may include a chapter another run has completed.
 These are local optimistic conditions, not distributed locks: legacy/general
-remote event application is unchanged. No content hash, anchor read-set version,
-cross-run inference deduplication or full physical IO drain is claimed. Protected
-write receipt draining is provided by the memory build policy below.
+remote event application is unchanged. No content hash, anchor read-set version
+or full physical IO drain is claimed. The local queue below prevents overlapping
+host passes; protected write receipts drain through the memory build policy.
 
 [环境] [Conditional digest evidence](./evidence/digest-conditional-2026-09-10.json)
 uses isolated macOS debug, a three-chapter FB2, scripted inference and six real
@@ -1201,6 +1201,51 @@ Agent/Worker graph results agreed, and compiled Memory Desk displayed Winner
 and Rebuilt1 without future Hidden names. Native screenshot inspected; owned
 records/Workers/trigger cleaned. This is not public-task or autonomous-model
 E2E, nor packaged/Windows/Linux/remote-sync validation. Memory remains 1.3.
+
+<a id="digest-scheduling"></a>
+### Shared Local Digest Scheduling
+
+[代码] `BookMemoryPort.runExclusive` delegates to one `BookDigestQueue` in the
+desktop port module, not one queue per AgentRuntime or plugin context. Production
+`digestBookTick`/`digestBookCatchUp` paths, including post-turn work, idle
+maintenance and reading-open catch-up, enter this queue. Same-book passes execute
+FIFO; different books have independent lanes. A waiting pass rereads the book,
+classification, boundary, TOC and persisted digests when its turn starts, so a
+prior successful chapter is not inferred again. Queued input copies its target,
+budget and options before waiting; caller mutation cannot redirect it to another
+book. Existing reading-open catch-up coalescing remains separate.
+
+[代码] Active plus waiting requests across the queue are limited to 64. Overflow
+returns `memory/task-limit` with retryable=true; all eight locales have matching
+copy. Queued cancellation removes the job without calling its work and frees
+capacity. Active cancellation does not prematurely release the lane: protected
+commit functions themselves await the original write promise, not only the outer
+`runMemoryBuild` finalizer. Book, stats, TOC, text and digest-list reads are guarded
+so an abandoned read cannot indefinitely retain a lane or later start inference
+or writes after cancellation. Failure releases the lane for the next pass.
+
+[代码/边界] This is local serialization and fresh-state reuse, not distributed
+ownership, a durable queue, a source-version lease or global model concurrency
+control. Already dispatched writes may commit before cancellation settles;
+abandoned read/model physical IO can still be running. Direct low-level
+`digestMissingChapters` is not queued; production calls it only from the queued
+upkeep path. Independent/remote writers still require native bdg1 conditions.
+Cancellation preserves the caller's AbortSignal reason; a default DOMException
+is not a newly defined public task error envelope. This unit adds no public task
+IDs, progress observation, start/cancel/retry/rebuild API or task view.
+
+[环境] [Digest queue evidence](./evidence/digest-queue-2026-09-10.json) uses isolated
+macOS debug and three independent runtime-dependency instances over real SQLite.
+The leader commits chapter 0 while its receipt delivery is held; a follower and
+a cancelled queued request make no model calls. Cancelling the leader leaves the
+follower waiting until the real port receipt is released. The follower then
+generates only chapter 1; a fresh pass attempts zero chapters. Agent and Worker
+graph queries agree; compiled Memory Desk shows Queued0/Queued1 and excludes future
+names. Native screenshot inspected and owned records/Workers cleaned. Unit tests
+also cover different-book progress, failures, FIFO, capacity/recovery, queued
+cancellation, late reads and request mutation. This is scripted inference and
+receipt gating, not stalled SQLite, autonomous models, public-task UI,
+packaged/Windows/Linux or real remote-sync verification.
 
 <a id="book-classification"></a>
 ### Memory 1.3: Book Classification
@@ -2273,7 +2318,8 @@ still be abandoned promptly, with late host writes blocked; their physical IO,
 remote billing and plugin-side effects are not drained or undone. A permanently
 unsettled write keeps cancellation pending rather than inventing a terminal
 receipt. This change does not create public task states, a task registry or
-cross-run inference coordination. Direct domain edits such as user classification
+public task ownership. Local inference coordination is supplied separately by
+the digest queue. Direct domain edits such as user classification
 and feedback retain their own lifetimes, outside the automatic-build policy.
 
 [环境] [Memory write-drain evidence](./evidence/memory-commit-drain-2026-09-10.json)

@@ -356,7 +356,10 @@ export class AgentThread {
         ? this.deps.bookText.getToc(this.scope.bookId).catch(() => undefined)
         : undefined,
       this.scope.kind === "book"
-        ? this.deps.bookMemory.listDigests(this.scope.bookId).catch(() => [])
+        ? this.deps.bookMemory.listDigests(this.scope.bookId).catch((error) => {
+            this.deps.log?.warn("chapter memory unavailable; omitting prompt digests", error);
+            return [];
+          })
         : [],
     ]);
     // 章节身份：href 反查优先；游标直给的 index（eval、以及 href 缺失的

@@ -1158,6 +1158,42 @@ signals have no projection effect; new correction deliberately emits revised,
 not that ineffective feedback event. Core now includes the already-implemented
 native `unpin` signal rather than using a type cast to hide the contract drift.
 
+<a id="chapter-memory-integrity"></a>
+
+### Chapter Memory Projection Integrity
+
+[代码] Agent and plugin graph reads share `createBookMemoryPort` and its
+`decodeChapterDigestRows` boundary. Native responses are `unknown` until validated:
+the top level and both JSON columns must be arrays; each row must match the
+requested book, have a unique nonnegative safe-integer chapter index, string
+summary/provenance, and positive safe-integer digest version. Entities require
+nonempty string names; aliases must be arrays of nonempty strings; optional notes
+must be strings. Relations require nonempty string from/kind/to and string notes
+when present. Unknown extra fields are not copied into the public result.
+
+[代码] Legacy missing/null flavor and provenance remain valid. An unknown explicit
+flavor is a failed read, not a narrative fallback. Malformed JSON, invalid nested
+fields or one invalid row rejects the entire read with `db/error`; no silent
+empty graph or partially filtered result. Diagnostic messages name only the
+invalid field, not persisted content. This validates structure, not factual
+accuracy, relationship endpoints across chapters, total payload budgets, or the
+association between an old digest and a replaced source file.
+
+[代码] Explicit Agent/Worker queries propagate the failure. Memory Desk 0.3's
+existing live view clears old content/actions and recovers automatically after a
+valid read. Optional prompt digest loading logs the failure and omits the whole
+digest section so chat can continue; this is not a claim that the graph is empty.
+The existing chapter-session prompt remains frozen, so recovery without a new
+session/reset and classification-change invalidation are not claimed. Prompt
+flavor filtering and the unclassified-book Agent policy still need alignment.
+
+[环境] [Native evidence](./evidence/chapter-memory-integrity-2026-09-10.json)
+covers real SQLite malformed JSON, alias type and unknown-flavor faults on an
+owned synthetic FB2, actual Agent tool and Worker calls, compiled Memory Desk
+error clearing and automatic recovery. Three native screenshots were inspected.
+AgentThread failure logging/recovery uses an in-memory port and faux provider,
+not native model inference. No packaged/cross-platform or automatic repair claim.
+
 <a id="memory-observation"></a>
 ### Memory 1.2: Query Observation
 

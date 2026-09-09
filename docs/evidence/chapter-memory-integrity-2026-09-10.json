@@ -1,0 +1,48 @@
+{
+  "date": "2026-09-10",
+  "scope": "Shared chapter memory projection decoding for Agent and plugin graph consumers",
+  "app": { "identifier": "com.readaware.app.capability-e2e", "frontendPort": 5184, "bridgePort": 9224, "ownedProcessGroup": 58985, "mode": "macOS Tauri debug" },
+  "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-memory-domain-probe.ts",
+  "owned": {
+    "bookId": "427ec054-615a-4a3d-9f58-b5d8388cb6df",
+    "memoryIds": ["0b09db57-99a3-4ffd-894e-6988ef231921", "e33c992f-e2b3-4c46-8b8e-d4774f942ab0", "b200d72e-f31b-43fe-a8ec-ed4d23dd00c1"],
+    "marker": "Memory Domain Probe 5521e19b-75a2-411d-8c37-0a28ec18cc60"
+  },
+  "before": { "worker": "overview", "agent": "overview", "chaptersDigested": 2, "entities": ["Ada", "Ben"], "hiddenAliasExcluded": true },
+  "faults": [
+    { "field": "characters_json", "value": "PRIVATE invalid JSON", "worker": "db/error", "agent": "db/error", "diagnosticField": "charactersJson" },
+    { "field": "characters_json", "value": "[{\"name\":\"Ada\",\"aliases\":\"PRIVATE malformed aliases\"}]", "worker": "db/error", "agent": "db/error", "diagnosticField": "aliases" },
+    { "field": "flavor", "value": "unsupported", "worker": "db/error", "agent": "db/error", "diagnosticField": "flavor" }
+  ],
+  "faultMethod": "sqlite3 against only the owned book's chapter_index=0 projection in the isolated database; finally restores original characters_json and flavor",
+  "compiledPlugin": {
+    "name": "Memory Desk", "version": "0.3.0", "workers": 3,
+    "navigation": "Open command, Books, owned book, Chapter graph",
+    "errorText": "The local database ran into a problem.",
+    "oldEntitiesAndActionsCleared": true, "privatePayloadInUi": false,
+    "recoveryWithoutRefresh": true, "recoveredEntities": ["Ada", "Ben"], "documentOverflow": false
+  },
+  "screenshots": ["/tmp/chapter-memory-integrity-before.png", "/tmp/chapter-memory-integrity-error.png", "/tmp/chapter-memory-integrity-recovered.png"],
+  "allScreenshotsInspected": true,
+  "unitEvidence": {
+    "decoder": "3 tests, 57 assertions: full known-field shape, legacy flavor/provenance, unknown flavor, bad JSON, nested aliases/notes/relations, cross-book or duplicate rows, unsafe indices, version, no raw persisted payload in errors",
+    "thread": "Real AgentThread with faux provider logs omitted digest failure, sends no raw error or false story section, and recovers on explicit session reset; in-memory port, not native chat inference"
+  },
+  "validation": { "testTasks": "24/24", "web": "911 tests, 10026 assertions, 159 files", "agent": "382 tests", "typecheckTasks": "27/27", "frontendProductionBuild": "passed", "rust": "unchanged; full suite not rerun" },
+  "environmentIssues": [
+    "First fixture import triggered Vite dependency optimization reload during extraction. After reload the same owned book extracted all 3 chapters; it was removed before a new fixture was created.",
+    "Tauri bridge reports old plugin version; selector snapshot failed because resolveAll is absent. Used native execute_js to inspect DOM and click observed buttons; native screenshot succeeded."
+  ],
+  "cleanup": {
+    "interruptedImportBookRemoved": "f8703de6-4ce0-41af-95f3-471b6dfd1948",
+    "projectionRestoredInFinally": true, "ownedBooks": 0, "contributions": 0,
+    "ownedMemories": "3 forgotten via events; history retained", "nativeExec": 44092, "nativeExit": 143,
+    "bridgeStopped": 9224, "ports5184And9224Closed": true, "unowned89360And9223": "untouched", "productionData": "untouched"
+  },
+  "remaining": [
+    "Prompt generation still does not filter mismatched digest flavor; chapter-session caching does not invalidate on classification changes.",
+    "Unclassified-book Agent graph/prompt policy differs from conservative plugin policy; not fixed by shape validation.",
+    "No automatic corrupt-projection repair, full byte budgets, pagination, content-versioned provenance or per-book plugin grant.",
+    "No autonomous model, packaged build, Windows/Linux, second-device or network sync verification."
+  ]
+}

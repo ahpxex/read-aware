@@ -83,6 +83,32 @@ describe("AgentThread", () => {
     faux?.unregister();
   });
 
+  test("chapter-memory failure is logged and omitted, with a fresh session recovering the projection", async () => {
+    const { faux, model } = makeFaux();
+    const prompts: string[] = [], warnings: string[] = [];
+    faux.setResponses([0, 1].map(() => (context: Context) => {
+      prompts.push(context.systemPrompt ?? ""); return fauxAssistantMessage("Ready.");
+    }));
+    const { deps } = createInMemoryDeps({ books: [{ id: "b1" as Id, title: "Projection test", status: "finished", narrativity: "narrative" }] });
+    let unavailable = true;
+    deps.bookMemory.listDigests = async () => {
+      if (unavailable) throw new Error("PRIVATE corrupt projection");
+      return [{ chapterIndex: 0, summary: "Recovered digest evidence", characters: [], relations: [], digestVersion: 2 }];
+    };
+    deps.log = { warn: message => { warnings.push(message); }, error: () => {} };
+    const thread = makeThread(deps, model);
+    try {
+      await collect(thread.sendTurn({ text: "Hello" }));
+      await thread.flushBackgroundWork();
+      expect(warnings).toContain("chapter memory unavailable; omitting prompt digests");
+      expect(prompts[0]).not.toContain("PRIVATE");
+      expect(prompts[0]).not.toContain("The story so far");
+      unavailable = false;
+      await collect(thread.sendTurn({ text: "Hello again", reset: true }));
+      expect(prompts[1]).toContain("Recovered digest evidence");
+    } finally { thread.dispose(); await thread.flushBackgroundWork(); }
+  });
+
   test("streams text and tool steps, persists both turns", async () => {
     const { faux, model } = makeFaux();
     faux.setResponses([

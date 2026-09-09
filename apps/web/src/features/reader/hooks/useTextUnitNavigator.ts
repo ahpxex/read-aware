@@ -76,6 +76,7 @@ export type TextUnitNavigator = {
 
 type UseTextUnitNavigatorOptions = {
   configurationRevision?: number;
+  onPersistence?: (revision: number, modeKey: string | null, unitId: string | null, write: () => Promise<void>) => void;
   active: boolean;
   /** Temporarily unavailable because its plugin is disabled. The engine-side
    *  affordances are removed, but the persisted resting place is retained so
@@ -121,6 +122,7 @@ const SCROLL_COMFORT_BOTTOM_MAX_PX = 240;
  */
 export function useTextUnitNavigator({
   configurationRevision = 0,
+  onPersistence,
   active,
   suspended = false,
   bookId,
@@ -131,6 +133,8 @@ export function useTextUnitNavigator({
   readerRootRef,
   veilColor,
 }: UseTextUnitNavigatorOptions): TextUnitNavigator {
+  const onPersistenceRef = useRef(onPersistence);
+  onPersistenceRef.current = onPersistence;
   const { toast } = useToast();
   const toastRef = useRef(toast);
   toastRef.current = toast;
@@ -231,13 +235,16 @@ export function useTextUnitNavigator({
     // A disabled/unavailable plugin must not overwrite its retained state with
     // an anonymous placeholder before it can register again.
     if (!id || !currentModeKey || !contentVersionRef.current) return;
-    writeTextUnitModeState(id, {
+    const state = {
       active: persistedActiveRef.current,
       resting: restingRef.current,
       modeKey: currentModeKey,
       unitId: unitIdRef.current,
       contentVersion: contentVersionRef.current,
-    });
+    };
+    const write = () => writeTextUnitModeState(id, state);
+    if (onPersistenceRef.current) onPersistenceRef.current(configurationRef.current, state.modeKey, state.unitId, write);
+    else void write();
   }, []);
 
   const handleContentVersion = useCallback((id: string, version: string) => {

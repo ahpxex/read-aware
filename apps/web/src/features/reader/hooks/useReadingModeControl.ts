@@ -3,10 +3,11 @@ import { useAtomValue } from "jotai";
 import { useLocale } from "../../../i18n";
 import { textUnitModeSettingsAtom } from "../../../state/ui";
 import { readingRuntime } from "../../../domain/reading-runtime";
+import { afterLocalKVWrites } from "../../../platform/local-store";
 import { readerModesAtom, setActiveReaderMode, releaseActiveReaderMode } from "../../plugins/state/plugin-store";
 import { resolvePluginText } from "../../plugins/lib/plugin-i18n";
 import { ReadingModeController } from "../lib/reading-mode-controller";
-import { readTextUnitModeState, readTextUnitModeSettings, updateTextUnitModeSettings, writeTextUnitModeState, isTextUnitModeStateCompatible } from "../lib/text-unit-mode-state";
+import { readTextUnitModeState, readTextUnitModeSettings, writeTextUnitModeConfiguration, isTextUnitModeStateCompatible } from "../lib/text-unit-mode-state";
 
 /** One mode owner for native controls and both external actors. */
 export function useReadingModeControl(bookId: string, supported: boolean) {
@@ -15,8 +16,10 @@ export function useReadingModeControl(bookId: string, supported: boolean) {
   const locale = useLocale();
   const controller = useMemo(() => {
     const saved = readTextUnitModeState(bookId);
-    return new ReadingModeController(saved.active, saved.modeKey ? readTextUnitModeSettings(saved.modeKey).unitId ?? saved.unitId : saved.unitId,
+    const controller = new ReadingModeController(saved.active, saved.modeKey ? readTextUnitModeSettings(saved.modeKey).unitId ?? saved.unitId : saved.unitId,
       35_000, saved.modeKey, key => readTextUnitModeSettings(key).unitId);
+    controller.requireDurability();
+    return controller;
   }, [bookId]);
   const request = useSyncExternalStore(controller.observe, controller.requested);
   const snapshot = useSyncExternalStore(controller.observe, controller.snapshot);
@@ -26,17 +29,22 @@ export function useReadingModeControl(bookId: string, supported: boolean) {
     units: mode.units.map(unit => ({ id: unit.id, label: resolvePluginText(unit.label, locale) })),
     implementation: mode.segmentText,
   })), [modes, locale]);
-  const retire = useCallback(() => {
-    if (!controller.retire()) return;
-    const key = controller.snapshot().modeKey;
-    const request = controller.requested();
-    const saved = readTextUnitModeState(bookId);
-    // The navigator may already be unmounting. Persist cancellation here so a
-    // rejected start cannot silently resume when this book is opened again.
-    writeTextUnitModeState(bookId, { ...saved, active: request.active, modeKey: key, unitId: request.unitId,
-      resting: request.active && key && request.unitId && isTextUnitModeStateCompatible(saved, key, request.unitId, saved.contentVersion) ? saved.resting : null });
-    if (key && request.unitId && readTextUnitModeSettings(key).unitId !== request.unitId) updateTextUnitModeSettings(key, { unitId: request.unitId });
+  const persistRequest = useCallback(() => {
+    const requested = controller.requested();
+    controller.trackConfiguration(requested.revision, afterLocalKVWrites(() => {
+      if (controller.requested() !== requested) return;
+      const { modeKey: key, unitId } = requested;
+      const saved = readTextUnitModeState(bookId);
+      return writeTextUnitModeConfiguration(bookId, {
+        ...saved, active: requested.active, modeKey: key, unitId,
+        resting: requested.active && key && unitId && isTextUnitModeStateCompatible(saved, key, unitId, saved.contentVersion) ? saved.resting : null,
+      }, controller.snapshot().units.some(unit => unit.id === unitId));
+    }));
   }, [bookId, controller]);
+  const retire = useCallback(() => {
+    // The navigator/subscription may already be unmounting. Retain cancellation.
+    if (controller.retire()) persistRequest();
+  }, [controller, persistRequest]);
   useEffect(() => {
     controller.environment(descriptors, supported);
   }, [controller, descriptors, supported]);
@@ -53,27 +61,20 @@ export function useReadingModeControl(bookId: string, supported: boolean) {
     // An old preference must not override an explicit unit in that same intent.
     const changed = previousPreference.current.key === mode?.key && previousPreference.current.unitId !== settings.unitId;
     previousPreference.current = { key: mode?.key, unitId: settings.unitId };
-    // An earlier subscriber may already have committed a newer preference.
-    const unitId = readTextUnitModeSettings(mode?.key ?? null).unitId;
-    if (changed && unitId && mode?.units.some(unit => unit.id === unitId)
-      && controller.requested().unitId !== unitId) controller.choose(controller.requested().active, unitId);
+    if (changed) void controller.reconcilePreference(() => readTextUnitModeSettings(mode?.key ?? null).unitId);
   }, [controller, mode, settings.unitId]);
   useEffect(() => {
-    if (!mode) return;
     let persisted: ReturnType<ReadingModeController["requested"]> | undefined;
     const persist = () => {
       const requested = controller.requested();
-      if (requested === persisted || controller.snapshot().modeKey !== mode.key) return;
+      if (requested === persisted) return;
       persisted = requested;
-      const unitId = requested.unitId;
-      if (unitId && mode.units.some(unit => unit.id === unitId) && readTextUnitModeSettings(mode.key).unitId !== unitId) {
-        updateTextUnitModeSettings(mode.key, { unitId });
-      }
+      persistRequest();
     };
     // Persist the current request, never the request captured by an older render.
     persist();
     return controller.observe(persist);
-  }, [controller, mode]);
+  }, [controller, persistRequest]);
 
   useEffect(() => {
     let sessionId: string | null = null;

@@ -235,7 +235,7 @@ export const scenarios = [
   ["Jumper", "D1 D2 C1 S3 V1 Q2 Q3", "已建第一方 Jumper：reader header/命令、分层目录与版本化精确搜索、共享会话/导航回执/历史。印刷章号、目录序号、标题匹配由插件区分；不存在章节不派发，歧义给候选。隔离 Tauri FB2 Worker 与实际 Agent 端口通过；WebView hidden 导致前台绘制/截图未通过，PDF、超大查询预算与逐调用取消仍未关闭。"],
   ["Dictionary", "D1 D2 C4 S1 S6 S7 V1", "查询/保存/检索已经有工具；删词/CSV 工具缺消费者，应在插件补；当前文本上下文/存储持久屏障缺口由宿主补。复制/导出失败必须可见。"],
   ["RSS/OPML", "D1 C2 C4 S1 S4 S5 S8", "订阅/刷新工具已有，退订/OPML 工具未贡献；文件选择为宿主漏接能力，OPML 解析为插件算法。正文版本更新不能把当前会话悄悄指向旧引用。"],
-  ["句读与 TTS", "D2 C2 C3 D5 Q2", "reading 2.5 已共享朗读、模式快照/启停/单位配置、版本化返回、单元步进与模式提供者发现/选择；Listening Desk 组合模式表单、朗读、历史、Current passage 与上下单元。步进从 resting 继续并返回 moved/start-of-book/end-of-book，等待真实页面/分段/已提交反馈，不记跳转历史；自动朗读消费同一回执，书尾正常停止。隔离 macOS Tauri 已验跨节、慢 Worker、失败、取消和书尾；空节/非线性/其他格式仍需桌面验证。模式选择通过 availableModes/selectModeKey，失效选择保留且不隐式替换，取消撤回未完成选择。READ16 跟随与偏好持久失败回执仍缺；release、其他系统、远端 TTS 未验。"],
+  ["句读与 TTS", "D2 C2 C3 D5 Q2", "reading 2.5 已共享朗读、模式快照/启停/单位配置、版本化返回、单元步进与模式提供者发现/选择；Listening Desk 组合模式表单、朗读、历史、Current passage 与上下单元。配置的书内状态/提供者偏好同批落盘，回执等待该请求精确持久结果，失败不被偏好回滚误报为 superseded；位置写在配置成功后复核 revision/key/unit。步进从 resting 继续并返回 moved/start-of-book/end-of-book，等待真实页面/分段/已提交反馈，不记跳转历史；自动朗读消费同一回执，书尾正常停止。隔离 macOS Tauri 已验跨节、慢 Worker、失败、取消、书尾及双端 SQLite 故障/恢复；空节/非线性/其他格式仍需桌面验证。模式选择通过 availableModes/selectModeKey，失效选择保留且不隐式替换，取消撤回未完成选择但不撤销所有已提交提供者偏好。READ16 跟随、后续步进/返回持久回执、旧偏好迁移故障和跨提供者取消补偿仍缺；release、其他系统、远端 TTS 未验。"],
   ["主题与定时主题", "D5 C5 S8 V3", "主题/字体可组合，已有 settings 足以切换；短 clock 不要求耐久工作流。新增主题无需宿主改动，缺字体时回退。"],
   ["WebDAV", "C5 S2 S5 S9 Q2", "密文传输 v2 已有 session.close、宿主会话所有权和原生请求取消；受控同步状态/连接面仍缺双端入口。连接 UI、真实跨设备与升级回滚仍待完整验收。"],
   ["标注批改/导出", "D3 S4 Q3", "补按 ID/分页/有需求的版本条件批次；插件组合 CSV/Markdown 格式，宿主无需对应每种导出格式。中途取消报告已完成项，不能宣称全部回滚。"],

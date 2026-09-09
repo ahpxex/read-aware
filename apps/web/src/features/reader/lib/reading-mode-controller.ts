@@ -1,4 +1,5 @@
-import { AppError, type ReadingModeConfiguration, type ReadingModeSnapshot, type ReadingModePosition, type ReadingModeStepOutcome, type ReadingModeDescriptor } from "@read-aware/core";
+import { AppError, errorCode, type ReadingModeConfiguration, type ReadingModeSnapshot, type ReadingModePosition, type ReadingModeStepOutcome, type ReadingModeDescriptor } from "@read-aware/core";
+import { ReadingModeWrites } from "./reading-mode-writes";
 
 export type ModeDescriptor = ReadingModeDescriptor & { implementation?: object };
 export type ModeRequest = { revision: number; active: boolean; unitId: string | null; modeKey: string | null };
@@ -17,6 +18,11 @@ export class ReadingModeController {
   private listeners = new Set<() => void>();
   private pending: Pending | undefined;
   private confirmedRevision = -1;
+  private readonly writes = new ReadingModeWrites((revision, error) => this.persistenceFailed(revision, error));
+  private configurationWrite: Promise<void> = Promise.resolve();
+  private rollback: ModeRequest | undefined;
+  private persistenceTracked = false;
+  private settlingRevision: number | undefined;
   private positionWaiter: ((position: ReadingModePosition, signal: AbortSignal) => Promise<ModeFeedback>) | undefined;
   private stepper: ((direction: -1 | 1, signal: AbortSignal) => Promise<ModeStepResult>) | undefined;
 
@@ -31,6 +37,36 @@ export class ReadingModeController {
   generation = (): number => this.request.revision;
   snapshot = (): ReadingModeSnapshot => this.result;
   observe = (listener: () => void): (() => void) => { this.listeners.add(listener); return () => this.listeners.delete(listener); };
+
+  requireDurability(): void { this.persistenceTracked = true; }
+  trackPersistence = (revision: number, write: Promise<void>): void => { this.writes.track(revision, write); };
+
+  trackConfiguration(revision: number, write: Promise<void>): void {
+    if (revision === this.request.revision) this.configurationWrite = write;
+    this.trackPersistence(revision, write);
+  }
+
+  /** A stale render must not dispatch a write, even if it has the latest revision ref. */
+  persistPosition = (revision: number, modeKey: string | null, unitId: string | null, write: () => Promise<void>): void => {
+    const current = () => revision === this.request.revision && modeKey === this.request.modeKey && unitId === this.request.unitId;
+    const receipt = Promise.resolve().then(async () => {
+      if (!current()) return;
+      await this.configurationWrite;
+      if (current()) await write();
+    });
+    this.trackPersistence(revision, receipt);
+  };
+
+  async reconcilePreference(readUnit: () => string | null): Promise<void> {
+    const revision = this.request.revision;
+    try { await this.writes.wait(revision); }
+    catch { return; } // The write owner reports failure; rollback is not a new user intent.
+    if (revision !== this.request.revision) return;
+    const unitId = readUnit();
+    if (unitId && this.descriptor?.units.some(unit => unit.id === unitId) && this.request.unitId !== unitId) {
+      this.choose(this.request.active, unitId);
+    }
+  }
 
   bindPositionWaiter(waiter: NonNullable<ReadingModeController["positionWaiter"]>): () => void {
     this.positionWaiter = waiter;
@@ -94,7 +130,7 @@ export class ReadingModeController {
       && oldDescriptor?.implementation === this.descriptor?.implementation && wasSupported === supported) {
       this.result = { ...this.result, availableModes: this.availableModes() }; this.emit(); return;
     }
-    const before = this.pending?.before ?? this.request;
+    const before = this.pending?.before ?? this.rollback ?? this.request;
     this.supersede();
     const modeKey = before.modeKey ?? modes[0]?.key ?? null;
     const descriptor = modes.find(mode => mode.key === modeKey);
@@ -108,8 +144,9 @@ export class ReadingModeController {
   /** Native UI and changes to the mode's declared settings supersede in-flight actor commands. */
   choose(active: boolean, unitId = this.request.unitId): void {
     this.validate({ active, ...(unitId && this.descriptor ? { unitId } : {}) });
+    const before = this.pending?.before ?? this.rollback ?? this.request;
     this.supersede();
-    this.change(active, unitId);
+    this.change(active, unitId, this.request.modeKey, before);
   }
 
   async configure(input: ReadingModeConfiguration, signal?: AbortSignal): Promise<ReadingModeSnapshot> {
@@ -120,8 +157,21 @@ export class ReadingModeController {
     const unitId = input.unitId ?? (modeKey === this.request.modeKey ? this.request.unitId : null) ?? (descriptor ? this.defaultUnit(descriptor) : null);
     if (this.confirmedRevision === this.request.revision && this.request.active === input.active && this.request.unitId === unitId
       && this.request.modeKey === modeKey
-      && ["inactive", "ready", "empty"].includes(this.result.status)) return structuredClone(this.result);
-    const before = this.pending?.before ?? this.request;
+      && ["inactive", "ready", "empty"].includes(this.result.status)) {
+      const revision = this.request.revision;
+      if (this.persistenceTracked) {
+        const owner = new AbortController();
+        const abort = () => owner.abort(signal?.reason);
+        signal?.addEventListener("abort", abort, { once: true });
+        const timer = setTimeout(() => owner.abort(new AppError("reader/timeout", "Reading mode persistence did not settle")), this.deadlineMs);
+        try { await this.writes.wait(revision, owner.signal); }
+        finally { clearTimeout(timer); signal?.removeEventListener("abort", abort); }
+      }
+      if (signal?.aborted) throw signal.reason;
+      if (revision !== this.request.revision) throw new AppError("reader/superseded", "Reading mode changed during persistence");
+      return structuredClone(this.result);
+    }
+    const before = this.pending?.before ?? this.rollback ?? this.request;
     this.supersede();
     const revision = this.request.revision + 1;
     const work = new Promise<ReadingModeSnapshot>((resolve, reject) => {
@@ -136,7 +186,7 @@ export class ReadingModeController {
       signal?.addEventListener("abort", abort, { once: true });
       this.pending = { revision, before, resolve, reject, cleanup: () => { clearTimeout(timer); signal?.removeEventListener("abort", abort); } };
     });
-    this.change(input.active, unitId, modeKey);
+    this.change(input.active, unitId, modeKey, before);
     return work;
   }
 
@@ -148,12 +198,7 @@ export class ReadingModeController {
     this.result = { ...this.result, status, errorCode: feedback.errorCode,
       progress: feedback.progress, cfiRange: feedback.cfiRange, position: feedback.position ?? null };
     if (["inactive", "ready", "empty", "error"].includes(status)) {
-      this.confirmedRevision = revision;
-      const pending = this.pending;
-      this.pending = undefined;
-      pending?.cleanup();
-      if (status === "error") pending?.reject(new AppError(feedback.errorCode ?? "reader/segmentation-failed", "Reading mode failed"));
-      else pending?.resolve(structuredClone(this.result));
+      this.finish(revision);
     }
     this.emit();
   }
@@ -184,6 +229,40 @@ export class ReadingModeController {
     pending?.cleanup(); pending?.reject(reason);
   }
 
+  private persistenceFailed(revision: number, error: unknown): void {
+    if (revision !== this.request.revision) return;
+    const before = this.rollback;
+    this.supersede(error);
+    if (before) this.change(before.active, before.unitId, before.modeKey);
+    else {
+      this.result = { ...this.result, status: "error", errorCode: errorCode(error) };
+      this.emit();
+    }
+  }
+
+  private finish(revision: number): void {
+    if (this.settlingRevision === revision) return;
+    const settle = (failure?: { error: unknown }) => {
+      if (this.settlingRevision === revision) this.settlingRevision = undefined;
+      if (this.request.revision !== revision) return;
+      if (failure) this.result = { ...this.result, status: "error", errorCode: errorCode(failure.error) };
+      if (!["inactive", "ready", "empty", "error"].includes(this.result.status)
+        && (this.request.active || this.result.status !== "unavailable")) return;
+      this.confirmedRevision = revision;
+      this.rollback = undefined;
+      const pending = this.pending;
+      this.pending = undefined;
+      pending?.cleanup();
+      if (failure) pending?.reject(failure.error);
+      else if (this.result.status === "error") pending?.reject(new AppError(this.result.errorCode ?? "reader/segmentation-failed", "Reading mode failed"));
+      else pending?.resolve(structuredClone(this.result));
+      if (failure) this.emit();
+    };
+    if (!this.persistenceTracked) { settle(); return; }
+    this.settlingRevision = revision;
+    void this.writes.wait(revision).then(() => settle(), error => settle({ error }));
+  }
+
   private defaultUnit(descriptor: ModeDescriptor): string {
     const preferred = this.preferredUnit(descriptor.key);
     return descriptor.units.some(unit => unit.id === preferred) ? preferred! : descriptor.defaultUnitId;
@@ -193,16 +272,17 @@ export class ReadingModeController {
     return this.modes.map(({ key, label, units, defaultUnitId }) => ({ key, label, units: units.map(unit => ({ ...unit })), defaultUnitId }));
   }
 
-  private change(active: boolean, unitId: string | null, modeKey = this.request.modeKey): void {
+  private change(active: boolean, unitId: string | null, modeKey = this.request.modeKey, rollback?: ModeRequest): void {
     this.request = { revision: this.request.revision + 1, active, unitId, modeKey };
+    this.rollback = rollback;
+    this.configurationWrite = Promise.resolve();
+    this.writes.start(this.request.revision);
     const unavailableReason = !this.supported ? "unsupported-format" : !this.descriptor ? "no-provider" : null;
     this.result = { status: unavailableReason ? "unavailable" : active ? "preparing" : "inactive", unavailableReason,
       requestedActive: active, modeKey, label: this.descriptor?.label ?? null, availableModes: this.availableModes(),
       unitId, units: this.descriptor?.units ?? [], progress: null, cfiRange: null, position: null };
     if (!active && unavailableReason) {
-      this.confirmedRevision = this.request.revision;
-      const pending = this.pending; this.pending = undefined;
-      pending?.cleanup(); pending?.resolve(structuredClone(this.result));
+      this.finish(this.request.revision);
     }
     this.emit();
   }

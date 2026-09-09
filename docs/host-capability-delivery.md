@@ -511,3 +511,23 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [代码/环境] 重扫为 224 行、579 个库存映射、129 个旧验收项、30 个责任单元/catalog 与 32 个场景。生成器先正确拒绝未映射的新源码插件，补上实际消费行后通过；没有通过空映射消除错误。SET23 构建开关接通，八项无效果设置仍保留；修正旧汇总误把 localOnly 写成 SET27 的编号（实际 SET26）。三对 MD/HTML、七项模型门禁与生成检查通过；HTML 在 1440×1000、1024×768、390×844 检查无页面横向溢出、重复 ID/失效页内锚点/无名按钮。中英文查询、Escape、已有抽屉 inert 和主题刷新保持已检验；CDN 200，浏览器无 console/page error，文档不增加图且仍依赖网络。文档浏览器不是产品验收。
 
 仍未完成：sendHighlightedText/sendSurroundingContext、其他六项无效果设置、插件候选公共接受/拒绝回执、目标的专属模型操作、Reading Goals 安装重启/packaged/跨平台/完整键盘验证，以及其他双端缺口和 W01–W32 全组合。不能据本批候选入库就关闭 MEM03 的全部插件契约或总体目标。三个探针贡献最终为 0，测试书、私有目标、摘要及 marker 清理；记忆用事件路径遗忘，测试配置/密钥备份恢复，buildMemory=true/localOnly=false，trigger 清空，隔离应用与服务停止，5184/9224/19843 无监听，未推送。
+
+## 2026-09-09：模式配置精确持久回执与回滚归属
+
+[代码] `configure_reading_mode` 与 `reading.commands.configureMode` 保持原 public schema，复用同一个 ReadingModeController。配置意图先等待已有 KV 写入结算，再把书内 active/modeKey/unitId 与所选提供者单位偏好编码为一批 `set_kv_batch`，任一记录拒绝则整批回滚。无提供者时仍可保存书内停用意图，但不写未注册提供者的设置。未向插件开放原始 KV、SQL 或事务权力。
+
+[代码] ReadingModeWrites 按请求 revision 保留精确写 Promise，早于索引反馈的失败不会被晚到的 flush 遗忘。配置完成需同时满足实际索引反馈、该请求配置提交及已注册首次位置保存。位置写由宿主控制器延迟派发，先等待配置成功，再核对 revision/modeKey/unitId，避免旧 React effect 把失败或取消的状态写回。保存期间取消/截止仍生效；同值配置的等待也有截止。已派发的原生写不能强行撤销，不能把取消解释为整个操作的事务回滚。
+
+[环境/修复] 初稿在真实 SQLite 故障下注入失败，实际 Agent 返回 reader/superseded 而非 db/error，requestedActive 还停留 true。原因是插件设置的乐观回滚被协调 effect 当成了新选择。修复后该 effect 等待当前写结果，再读实时偏好；持久失败直接向原操作拒绝，并恢复先前请求，未完成的原生选择也不能成为后继失败的恢复目标。并非只给工具 catch 包一层错误。
+
+[环境] [结构化证据](./evidence/reading-mode-durability-2026-09-09.json)：仅操作隔离 macOS debug Tauri `com.readaware.app.capability-e2e`（5184/9224）及已有合成 FB2。实际 Agent 工具端口与已安装 Listening Desk Worker 表单回调，分别遇到书内记录、提供者偏好记录拒绝时，均返回 db/error，模式/SQLite 保持 inactive + paragraph。移除 trigger 后 Agent 启用 sentence、Worker 切 paragraph/停用正常；落盘 resting CFI 与回执一致，关闭重开后同一位置恢复。最终代码编辑后重跑两端偏好故障与恢复，未拿旧进程结果冒充最终测试。无远端模型语义 eval。
+
+[环境] 真实慢分段 Worker 500ms/block：Agent 选择诊断提供者时先观察到 preparing 且未完成；取消并等 600ms 后仍是原 Sentence Reader、inactive、paragraph。新提供者已提交的单位偏好并未随选择取消全部撤销，已明确保留跨提供者补偿缺口，清理时恢复其备份。原生模式按钮的 MCP selector 调用触发了本地化 Change not saved / 数据库错误 toast，截图已查看；工具报告坐标 y=-24，不能算可见控件的物理指针命中或完整键盘验收。
+
+[环境] 另一 SQLite 连接持有 BEGIN IMMEDIATE 时，MCP 观察超时；释放锁后同一 app 恢复，操作返回 db/locked。没有按超时重启进程，也没有把这次锁测试记为原生 UI 响应性或延迟成功回执通过。受控 IPC + 实际 React hook 的独立进程测试另外覆盖延迟回执、两记录原子失败、回滚不是新意图、配置失败/取消不派发旧位置写。它们不等同真实 SQLite 锁时的 UI 性能测试。
+
+[环境] 全仓 test 20 个任务通过，web 710 项（另有子进程 3 项 React/IPC 场景）；typecheck 23 个任务、生产 web build 通过。新增 7 项 controller、4 项精确写屏障回归；保留既有 i18n 测试警告、Node/dynamic-import/chunk 构建 warning。无 Rust 实现改动，未重跑全 Rust 或 packaged build。最后仅将测试中的 Promise<any> 收紧为 Promise<unknown>，并重跑相应测试/类型检查。
+
+[代码/环境] 重扫仍为 224 行、579 入口、129 旧验收项、30 责任单元/catalog、W01–W32。7 项模型门禁与生成检查通过。READ16 不改为接通，细分跟随、后续步进/返回持久回执、旧偏好迁移失败及跨提供者取消补偿缺口；同时纠正 plugin-system 双版本中“模式/播放全部未接”的过时汇总。三对 MD/HTML validator 通过；三份 HTML 在 1440×1000、1024×768、390×844 无页面横向溢出/重复 ID/失效页内锚点，中英文查询与 Escape 可用，模型/矩阵已有抽屉 inert 和主题刷新保持正确，CDN 200、无浏览器 error，抽查截图已查看。无新增图，文档仍依赖网络；文档浏览器不算产品 E2E。
+
+仍未完成：上述 READ16 子项、8 个无效果设置、其他双端缺口、完整实用组合插件/W01–W32、全部格式、packaged 与跨平台验收。实际复用了 Listening Desk，本批没有新建实用插件。隔离书已关闭，测试 trigger 清空、分段探针贡献为 0，书内模式/原插件/诊断插件偏好恢复备份；已有合成书未删除，测试过程的阅读会话/进度未倒写。正式应用及书库未操作。隔离 app 与文档浏览器已停止，5184/9224 无监听；未推送。

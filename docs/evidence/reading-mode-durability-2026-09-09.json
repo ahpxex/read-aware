@@ -1,0 +1,144 @@
+{
+  "date": "2026-09-09",
+  "baseCommit": "b9e18182",
+  "source": "working tree reading mode durability changes; final Agent/Worker fault test repeated after last code edits",
+  "environment": {
+    "appId": "com.readaware.app.capability-e2e",
+    "ports": [
+      5184,
+      9224
+    ],
+    "platform": "macOS Tauri debug",
+    "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+    "format": "synthetic FB2",
+    "formalAppTouched": false,
+    "remoteModelUsed": false
+  },
+  "implementation": [
+    "Configuration book state and provider unit preference share set_kv_batch.",
+    "Controller retains exact receipts, including failures before index feedback.",
+    "Position writes wait for configuration and recheck revision/provider/unit before dispatch.",
+    "Original write errors reject actor requests; optimistic rollback cannot supersede them.",
+    "Abort and timeout remain active while saving; matching configuration also has deadline."
+  ],
+  "finalFailures": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[{\"actor\":\"agent\",\"error\":\"db/error\",\"mode\":{\"availableModes\":[{\"defaultUnitId\":\"sentence\",\"key\":\"sentence-reader:guided-reading\",\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]}],\"cfiRange\":null,\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"modeKey\":\"sentence-reader:guided-reading\",\"position\":null,\"progress\":null,\"requestedActive\":false,\"status\":\"inactive\",\"unavailableReason\":null,\"unitId\":\"paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]}},{\"actor\":\"plugin\",\"error\":\"db/error\",\"mode\":{\"availableModes\":[{\"defaultUnitId\":\"sentence\",\"key\":\"sentence-reader:guided-reading\",\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]}],\"cfiRange\":null,\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"modeKey\":\"sentence-reader:guided-reading\",\"position\":null,\"progress\":null,\"requestedActive\":false,\"status\":\"inactive\",\"unavailableReason\":null,\"unitId\":\"paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]}}]\n\n[Executed in window: main]"
+      }
+    ]
+  },
+  "finalRecovery": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"closed\":\"idle\",\"mode\":{\"availableModes\":[{\"defaultUnitId\":\"sentence\",\"key\":\"sentence-reader:guided-reading\",\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]}],\"cfiRange\":null,\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"modeKey\":\"sentence-reader:guided-reading\",\"position\":null,\"progress\":null,\"requestedActive\":false,\"status\":\"inactive\",\"unavailableReason\":null,\"unitId\":\"paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]}}\n\n[Executed in window: main]"
+      }
+    ]
+  },
+  "bookWriteFailures": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[{\"actor\":\"agent\",\"error\":\"db/error\",\"mode\":{\"availableModes\":[{\"defaultUnitId\":\"sentence\",\"key\":\"sentence-reader:guided-reading\",\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]}],\"cfiRange\":null,\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"modeKey\":\"sentence-reader:guided-reading\",\"position\":null,\"progress\":null,\"requestedActive\":false,\"status\":\"inactive\",\"unavailableReason\":null,\"unitId\":\"paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]}},{\"actor\":\"plugin\",\"error\":\"db/error\",\"mode\":{\"availableModes\":[{\"defaultUnitId\":\"sentence\",\"key\":\"sentence-reader:guided-reading\",\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]}],\"cfiRange\":null,\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"modeKey\":\"sentence-reader:guided-reading\",\"position\":null,\"progress\":null,\"requestedActive\":false,\"status\":\"inactive\",\"unavailableReason\":null,\"unitId\":\"paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]}}]\n\n[Executed in window: main]"
+      }
+    ]
+  },
+  "successfulPosition": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"agent\":{\"content\":[{\"text\":\"{\\\"status\\\":\\\"completed\\\",\\\"sessionId\\\":\\\"69dc9a01-ae39-449f-b7b2-5e651f3e4427\\\",\\\"mode\\\":{\\\"status\\\":\\\"ready\\\",\\\"unavailableReason\\\":null,\\\"requestedActive\\\":true,\\\"modeKey\\\":\\\"sentence-reader:guided-reading\\\",\\\"label\\\":\\\"Sentence Reader: Read by sentence or paragraph\\\",\\\"availableModes\\\":[{\\\"key\\\":\\\"sentence-reader:guided-reading\\\",\\\"label\\\":\\\"Sentence Reader: Read by sentence or paragraph\\\",\\\"units\\\":[{\\\"id\\\":\\\"sentence\\\",\\\"label\\\":\\\"By sentence\\\"},{\\\"id\\\":\\\"paragraph\\\",\\\"label\\\":\\\"By paragraph\\\"}],\\\"defaultUnitId\\\":\\\"sentence\\\"}],\\\"unitId\\\":\\\"sentence\\\",\\\"units\\\":[{\\\"id\\\":\\\"sentence\\\",\\\"label\\\":\\\"By sentence\\\"},{\\\"id\\\":\\\"paragraph\\\",\\\"label\\\":\\\"By paragraph\\\"}],\\\"progress\\\":{\\\"ordinal\\\":26,\\\"total\\\":121},\\\"cfiRange\\\":\\\"epubcfi(/6/2!/4/2[chapter-0]/20,/1:19,/1:112)\\\",\\\"position\\\":{\\\"location\\\":{\\\"bookId\\\":\\\"07ef226e-1ebc-47b6-8dc9-d09109448d22\\\",\\\"contentVersion\\\":\\\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\\\",\\\"cfi\\\":\\\"epubcfi(/6/2!/4/2[chapter-0]/20,/1:19,/1:112)\\\"},\\\"modeKey\\\":\\\"sentence-reader:guided-reading\\\",\\\"unitId\\\":\\\"sentence\\\"}}}\",\"type\":\"text\"}]},\"disk\":{\"active\":true,\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\",\"modeKey\":\"sentence-reader:guided-reading\",\"resting\":{\"cfiRange\":\"epubcfi(/6/2!/4/2[chapter-0]/20,/1:0,/1:172)\",\"ordinal\":9,\"sectionIndex\":0},\"unitId\":\"paragraph\"},\"pluginMode\":{\"availableModes\":[{\"defaultUnitId\":\"sentence\",\"key\":\"sentence-reader:guided-reading\",\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]}],\"cfiRange\":\"epubcfi(/6/2!/4/2[chapter-0]/20,/1:0,/1:172)\",\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"modeKey\":\"sentence-reader:guided-reading\",\"position\":{\"location\":{\"bookId\":\"07ef226e-1ebc-47b6-8dc9-d09109448d22\",\"cfi\":\"epubcfi(/6/2!/4/2[chapter-0]/20,/1:0,/1:172)\",\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\"},\"modeKey\":\"sentence-reader:guided-reading\",\"unitId\":\"paragraph\"},\"progress\":{\"ordinal\":9,\"total\":41},\"requestedActive\":true,\"status\":\"ready\",\"unavailableReason\":null,\"unitId\":\"paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]},\"prefs\":{\"unitId\":\"paragraph\"}}\n\n[Executed in window: main]"
+      }
+    ]
+  },
+  "reopen": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"after\":{\"availableModes\":[{\"defaultUnitId\":\"sentence\",\"key\":\"sentence-reader:guided-reading\",\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]},{\"defaultUnitId\":\"sentence\",\"key\":\"capability-segmentation-probe:reader\",\"label\":\"Segmentation diagnostic: Read by sentence or paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]}],\"cfiRange\":\"epubcfi(/6/2!/4/2[chapter-0]/20,/1:0,/1:172)\",\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"modeKey\":\"sentence-reader:guided-reading\",\"position\":{\"location\":{\"bookId\":\"07ef226e-1ebc-47b6-8dc9-d09109448d22\",\"cfi\":\"epubcfi(/6/2!/4/2[chapter-0]/20,/1:0,/1:172)\",\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\"},\"modeKey\":\"sentence-reader:guided-reading\",\"unitId\":\"paragraph\"},\"progress\":{\"ordinal\":9,\"total\":41},\"requestedActive\":true,\"status\":\"ready\",\"unavailableReason\":null,\"unitId\":\"paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]},\"before\":{\"availableModes\":[{\"defaultUnitId\":\"sentence\",\"key\":\"sentence-reader:guided-reading\",\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]},{\"defaultUnitId\":\"sentence\",\"key\":\"capability-segmentation-probe:reader\",\"label\":\"Segmentation diagnostic: Read by sentence or paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]}],\"cfiRange\":\"epubcfi(/6/2!/4/2[chapter-0]/20,/1:0,/1:172)\",\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"modeKey\":\"sentence-reader:guided-reading\",\"position\":{\"location\":{\"bookId\":\"07ef226e-1ebc-47b6-8dc9-d09109448d22\",\"cfi\":\"epubcfi(/6/2!/4/2[chapter-0]/20,/1:0,/1:172)\",\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\"},\"modeKey\":\"sentence-reader:guided-reading\",\"unitId\":\"paragraph\"},\"progress\":{\"ordinal\":9,\"total\":41},\"requestedActive\":true,\"status\":\"ready\",\"unavailableReason\":null,\"unitId\":\"paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]}}\n\n[Executed in window: main]"
+      }
+    ]
+  },
+  "nativeUI": {
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"mode\":{\"availableModes\":[{\"defaultUnitId\":\"sentence\",\"key\":\"sentence-reader:guided-reading\",\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]}],\"cfiRange\":null,\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"modeKey\":\"sentence-reader:guided-reading\",\"position\":null,\"progress\":null,\"requestedActive\":false,\"status\":\"inactive\",\"unavailableReason\":null,\"unitId\":\"paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}]},\"text\":\"\\nShelf\\n\\nContents\\n\\nNotes\\nReading Capability Probe\\n1 / 16 · 13%\\n\\nRead by sentence or paragraph\\n\\nReading appearance\\n\\nChat\\n\\nMore\\n\\nAlpha\\n\\nBeta\\n\\nGamma\\nAsk about this book\\nSelect a passage and choose Ask AI, or just start typing. This conversation stays with the book.\\n\\nChange not saved\\nThe local database ran into a problem.\\n\"}\n\n[Executed in window: main]"
+        }
+      ]
+    },
+    "screenshot": "/tmp/reading-mode-durability-error.png",
+    "screenshotInspected": true,
+    "limitation": "MCP selector click reported y=-24 on hidden header; this verifies handler and localized visible toast, not physical pointer accessibility."
+  },
+  "lockAttempt": {
+    "observation": {
+      "content": [
+        {
+          "type": "text",
+          "text": "Error: JavaScript execution failed: WebView execution failed: Bridge did not respond within 5000ms and a follow-up probe also timed out. The webview is wedged. Call driver_session with action \"stop\" then \"start\". A runaway loop in a previous script is the usual cause."
+        }
+      ],
+      "isError": true
+    },
+    "afterRelease": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"disk\":{\"active\":true,\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\",\"modeKey\":\"sentence-reader:guided-reading\",\"resting\":{\"cfiRange\":\"epubcfi(/6/2!/4/2[chapter-0]/20,/1:0,/1:172)\",\"ordinal\":9,\"sectionIndex\":0},\"unitId\":\"paragraph\"},\"operation\":{\"done\":true,\"error\":\"db/locked\"},\"prefs\":{\"unitId\":\"paragraph\"}}\n\n[Executed in window: main]"
+        }
+      ]
+    },
+    "classification": "MCP timed out while SQLite lock was held; same app recovered after lock release, no restart. Operation returned db/locked. Not counted as native responsive delayed-ack success."
+  },
+  "cancellation": {
+    "provider": "capability-segmentation-probe:reader",
+    "delayPerBlockMs": 500,
+    "initial": {
+      "status": "preparing",
+      "completed": false
+    },
+    "afterAbortAnd600ms": {
+      "status": "inactive",
+      "modeKey": "sentence-reader:guided-reading",
+      "unitId": "paragraph",
+      "message": "Mode diagnostic cancelled"
+    },
+    "boundary": "Previously dispatched writes are not transactionally cancelled. Newly selected provider unit preference can remain changed even after selection is restored; backup explicitly restored during cleanup."
+  },
+  "tests": {
+    "fullRepoTasks": 20,
+    "webTests": 710,
+    "typecheckTasks": 23,
+    "productionWebBuild": "passed, existing Node/dynamic-import/chunk warnings",
+    "nativeReactCases": 3,
+    "notRun": [
+      "packaged Tauri",
+      "other OS",
+      "full Rust rerun",
+      "all W01-W32 scenarios"
+    ]
+  },
+  "cleanup": {
+    "bookClosed": true,
+    "segmentationContributions": 0,
+    "temporaryTriggers": 0,
+    "restoredKeys": [
+      "read-aware-navigator-state:07ef226e-1ebc-47b6-8dc9-d09109448d22",
+      "read-aware-plugin.sentence-reader.settings",
+      "read-aware-plugin.capability-segmentation-probe.settings"
+    ],
+    "preservedExistingSyntheticBooks": true,
+    "limitation": "Synthetic book reading progress/session history was exercised, not rewound; formal library untouched."
+  },
+  "remaining": [
+    "READ16 follow control",
+    "later step/return position durability receipts",
+    "legacy preference migration failure handling",
+    "cross-provider cancellation compensation",
+    "all other dual-actor gaps and full composition/plugin end-to-end goal"
+  ]
+}

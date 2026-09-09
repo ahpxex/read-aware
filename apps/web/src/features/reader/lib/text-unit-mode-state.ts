@@ -8,11 +8,20 @@
  * lose anyone's reading place.
  */
 
-import { localKV } from "../../../platform/local-store";
+import { localKV, setLocalKVBatch } from "../../../platform/local-store";
+import { createLogger } from "../../../platform/logger";
 import {
   readPluginSettingsValues,
+  pluginSettingsKey,
   writePluginSettingsValues,
 } from "../../plugins/lib/plugin-settings";
+
+const log = createLogger("reading-mode-state");
+function observedWrite(write: Promise<void>): Promise<void> {
+  // Native UI/background callers can ignore the receipt; actor commands retain it.
+  void write.catch(error => log.warn("Reading mode state was not saved", error));
+  return write;
+}
 
 export type TextUnitResting = {
   sectionIndex: number;
@@ -112,16 +121,28 @@ export function isTextUnitModeStateCompatible(
 export function writeTextUnitModeState(
   bookId: string,
   state: PersistedTextUnitModeState,
-): void {
+): Promise<void> {
   try {
     if (!state.active && !state.resting && !state.modeKey) {
-      localKV.removeItem(stateKey(bookId));
-      return;
+      return observedWrite(localKV.removeItemAsync(stateKey(bookId)));
     }
-    localKV.setItem(stateKey(bookId), JSON.stringify(state));
-  } catch {
-    // Ignore persistence failures; in-session refs still carry the state.
+    return observedWrite(localKV.setItemAsync(stateKey(bookId), JSON.stringify(state)));
+  } catch (error) {
+    return observedWrite(Promise.reject(error));
   }
+}
+
+/** One configuration intent cannot leave the book and provider preference disagreeing. */
+export function writeTextUnitModeConfiguration(bookId: string, state: PersistedTextUnitModeState, persistUnit: boolean): Promise<void> {
+  const entries = new Map([[stateKey(bookId), JSON.stringify(state)]]);
+  if (persistUnit && state.modeKey && state.unitId) {
+    const pluginId = pluginIdOfModeKey(state.modeKey);
+    const values = readPluginSettingsValues(pluginId);
+    if (values.unitId !== state.unitId) {
+      entries.set(pluginSettingsKey(pluginId), JSON.stringify({ ...values, unitId: state.unitId }));
+    }
+  }
+  return observedWrite(setLocalKVBatch(entries));
 }
 
 /**
@@ -190,7 +211,7 @@ function migrateLegacyBehaviorPrefs(pluginId: string, modeKey: string): void {
     if (!("unitId" in merged) && (legacyModeKey === null || legacyModeKey === modeKey)) {
       merged.unitId = legacyUnitId;
     }
-    writePluginSettingsValues(pluginId, merged);
+    observedWrite(writePluginSettingsValues(pluginId, merged));
   } catch {
     // An unreadable legacy row migrates nothing but is still consumed.
   }
@@ -221,14 +242,14 @@ export function readTextUnitModeSettings(modeKey: string | null): TextUnitModeSe
 export function updateTextUnitModeSettings(
   modeKey: string,
   patch: Partial<TextUnitModeSettings>,
-): void {
+): Promise<void> {
   const pluginId = pluginIdOfModeKey(modeKey);
   const merged = { ...readPluginSettingsValues(pluginId) };
   for (const [id, value] of Object.entries(patch)) {
     if (value === null) delete merged[id];
     else if (value !== undefined) merged[id] = value;
   }
-  writePluginSettingsValues(pluginId, merged);
+  return observedWrite(writePluginSettingsValues(pluginId, merged));
 }
 
 /** Center of a floating control, as fractions of the reader viewport (0..1). */

@@ -911,6 +911,7 @@ export function FoliateReaderView({
 
   const textUnitNavigator = useTextUnitNavigator({
     configurationRevision: modeRequest?.revision,
+    onPersistence: modeController?.persistPosition,
     active: textUnitModeEngineActive,
     suspended: textUnitModeSuspended,
     bookId: selectedBook?.id ?? null,

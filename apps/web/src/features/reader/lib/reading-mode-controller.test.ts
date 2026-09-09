@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { AppError } from "@read-aware/core";
 import { ReadingModeController, type ModeFeedback } from "./reading-mode-controller";
 
 const descriptor = { key: "sentences:mode", label: "Sentences", defaultUnitId: "sentence",
@@ -11,6 +12,81 @@ function fixture(deadline = 1000) {
   feedback({ status: "inactive", progress: null, cfiRange: null });
   return { controller, feedback };
 }
+
+test("index feedback does not acknowledge configuration before its exact writes commit", async () => {
+  const { controller, feedback } = fixture(); controller.requireDurability();
+  let commit!: () => void, complete = false;
+  const work = controller.configure({ active: true }).then(value => { complete = true; return value; });
+  feedback(ready);
+  controller.trackPersistence(controller.generation(), new Promise(resolve => { commit = resolve; }));
+  await Promise.resolve(); await Promise.resolve();
+  expect(complete).toBe(false);
+  commit();
+  expect((await work).status).toBe("ready");
+});
+
+test("a failed write before indexing is retained and returned, not lost by a late flush", async () => {
+  const { controller, feedback } = fixture(); controller.requireDurability();
+  const work = controller.configure({ active: true, unitId: "paragraph" });
+  controller.trackPersistence(controller.generation(), Promise.reject(new AppError("db/error", "rejected")));
+  await Promise.resolve(); feedback(ready);
+  await expect(work).rejects.toMatchObject({ code: "db/error" });
+  expect(controller.snapshot()).toMatchObject({ status: "inactive", requestedActive: false, unitId: "sentence" });
+  const retry = controller.configure({ active: true, unitId: "paragraph" });
+  controller.trackPersistence(controller.generation(), Promise.resolve()); feedback(ready);
+  expect((await retry).status).toBe("ready");
+});
+
+test("cancellation remains active during persistence and late failure cannot corrupt a successor", async () => {
+  const { controller, feedback } = fixture(); controller.requireDurability();
+  const owner = new AbortController();
+  const work = controller.configure({ active: true, unitId: "paragraph" }, owner.signal);
+  let fail!: (error: Error) => void;
+  controller.trackPersistence(controller.generation(), new Promise((_, reject) => { fail = reject; }));
+  feedback(ready); await Promise.resolve();
+  owner.abort(new Error("cancelled while committing"));
+  await expect(work).rejects.toThrow("cancelled while committing");
+  expect(controller.requested()).toMatchObject({ active: false, unitId: "sentence" });
+  const successor = controller.configure({ active: true, unitId: "sentence" }); feedback(ready);
+  expect((await successor).status).toBe("ready");
+  fail(new AppError("db/error", "old failed write"));
+  await Promise.resolve(); await Promise.resolve();
+  expect(controller.snapshot()).toMatchObject({ status: "ready", unitId: "sentence" });
+});
+
+test("disabling an unavailable provider still waits for retained book-state persistence", async () => {
+  const { controller } = fixture(); controller.requireDurability();
+  controller.environment(null, true);
+  const work = controller.configure({ active: false });
+  controller.trackPersistence(controller.generation(), Promise.reject(new AppError("db/error", "book state rejected")));
+  await expect(work).rejects.toMatchObject({ code: "db/error" });
+});
+
+test("a matching configuration cannot wait forever on a later position write", async () => {
+  const { controller } = fixture(10); controller.requireDurability();
+  controller.trackPersistence(controller.generation(), new Promise(() => {}));
+  await expect(controller.configure({ active: false })).rejects.toMatchObject({ code: "reader/timeout" });
+});
+
+test("a successor cannot restore an unfinished native choice on persistence failure", async () => {
+  const { controller } = fixture(); controller.requireDurability();
+  controller.choose(true, "paragraph");
+  const work = controller.configure({ active: true, unitId: "sentence" });
+  controller.trackConfiguration(controller.generation(), Promise.reject(new AppError("db/locked", "rejected")));
+  await expect(work).rejects.toMatchObject({ code: "db/locked" });
+  expect(controller.requested()).toMatchObject({ active: false, unitId: "sentence" });
+});
+
+test("position writes with stale revision or unit are never dispatched", async () => {
+  const { controller, feedback } = fixture(); controller.requireDurability();
+  const oldRevision = controller.generation();
+  const work = controller.configure({ active: true, unitId: "paragraph" });
+  let writes = 0;
+  controller.persistPosition(oldRevision, descriptor.key, "sentence", async () => { writes++; });
+  controller.persistPosition(controller.generation(), descriptor.key, "sentence", async () => { writes++; });
+  feedback(ready); await work;
+  expect(writes).toBe(0);
+});
 
 test("mode configuration completes on matching actual indexing, never an old ready snapshot", async () => {
   const { controller, feedback } = fixture();

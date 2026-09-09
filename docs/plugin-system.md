@@ -167,10 +167,37 @@ status, versioned actual location, bounded visible text, and history availabilit
 `close` waits for the session to close. Back/forward/step/close accept an optional
 book/session guard. Source hashes reject stale locations; virtual sources without
 a durable revision use session-scoped versions. The Agent uses the same controller.
-This does not yet expose selection, modes, playback, or a search-to-Range contract.
+Reading 2.5 additionally exposes mode/provider discovery and configuration,
+versioned mode positions, unit stepping/return, and playback start/stop with
+shared session snapshots. Listening Desk consumes these commands; Agent tools
+use the same owners. Library precise search returns versioned navigable
+locations, used by Jumper and Agent navigation. Generic selection/Range editing
+and temporary overlays remain incomplete, rather than all mode/playback/search
+capabilities being absent.
 Engine work cannot yet be aborted per navigation; cancelling a waiter is not a
 promise that a physical move was undone. PDF completion waits for rasterization,
 which an occluded WKWebView may suspend until it is visible.
+
+[代码] Mode configuration writes the book's retained state and selected provider's
+unit preference in one SQLite batch, after earlier KV writes settle. Completion
+waits for the current generation's exact write receipts and initial position
+persistence, not just index feedback or a late queue flush. A failed write returns
+the original database code and restores the prior requested mode; optimistic
+preference rollback is not treated as a new user intent. Deferred position writes
+verify revision/provider/unit before dispatch and wait for configuration success.
+Cancellation remains live during saving, and same-configuration waits have a
+deadline. Later unit navigation durability, legacy preference migration failure,
+and compensation of every already-committed preference on cross-provider
+cancellation are not closed by this configuration receipt.
+
+[环境] Isolated macOS debug Tauri evidence covers actual Agent tools and Listening
+Desk Worker callbacks with rejected book/preference writes, successful recovery,
+retained positions on reopening, and delayed segmentation cancellation. Native
+save failure renders localized copy. A held SQLite lock also blocked MCP
+observation and ultimately returned db/locked; it is not evidence of responsive
+UI while writes are delayed. Controlled IPC/React tests separately verify delayed
+receipts and stale-write prevention. Packaged and other-platform validation remain
+open; see [mode durability evidence](./evidence/reading-mode-durability-2026-09-09.json).
 
 Every domain write uses the same canonical command path as the product and is
 stamped with origin `plugin:<id>`. Plugins never mutate projections, feature

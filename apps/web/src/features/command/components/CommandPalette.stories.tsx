@@ -80,17 +80,7 @@ const ctx: CommandContext = {
   shelfView: { layout: "grid", group: "none", sort: "recent" },
   collections,
   books,
-  openBook: noop,
-  openCollection: noop,
-  goShelf: noop,
-  goAgent: noop,
-  goStats: noop,
-  openSettings: noop,
   importBook: noop,
-  startSelection: noop,
-  setLayout: noop,
-  setSort: noop,
-  setGroup: noop,
 };
 
 const meta = {
@@ -101,6 +91,7 @@ const meta = {
     isOpen: true,
     onClose: () => {},
     ctx,
+    executeHost: async request => ({ commandId: request.id, status: "completed", completed: ["workspace"] }),
   },
 } satisfies Meta<typeof CommandPalette>;
 

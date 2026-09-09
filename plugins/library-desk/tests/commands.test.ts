@@ -36,3 +36,19 @@ test("rejected navigation remains an action failure rather than success or an em
   f.ctx.services.ui.commands!.list = async () => { throw error; };
   await expect(commandsView(f.ctx)).rejects.toBe(error);
 });
+
+test("resource commands compose library pickers and pass only the chosen semantic ID", async () => {
+  const f = fixture();
+  f.ctx.domains = { library: { queries: { books: { list: async () => [{ id: "book", title: "Book" }] },
+    collections: { list: async () => [{ id: "collection", name: "Collection" }] } } } } as never;
+  f.ctx.services.ui.commands!.list = async () => ({ version: 1, workspaceRevision: 7, commands: [
+    { id: "open-book", title: "Open book", enabled: true }, { id: "open-collection", title: "Open collection", enabled: true },
+  ] } as never);
+  const view = await commandsView(f.ctx);
+  for (const [index, id, key, value] of [[0, "open-book", "bookId", "book"], [1, "open-collection", "collectionId", "collection"]] as const) {
+    const picker = (await view.items[index].onSelect!())!.view as PluginListView;
+    expect(picker.searchable).toBe(true); expect(picker.items).toHaveLength(1);
+    await picker.items[0].onSelect!();
+    expect(f.calls[f.calls.length - 1]).toEqual({ id, args: { [key]: value }, expectedWorkspaceRevision: 7 });
+  }
+});

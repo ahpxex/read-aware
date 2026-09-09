@@ -51,6 +51,9 @@ export class ReadingSessionController {
   private cursor = -1;
   private userOpening: { id: string; before: ReadingLocation | null } | undefined;
   private intent = 0;
+  private openingIntent: number | null = null;
+
+  get hasPendingOpening(): boolean { return this.openingIntent === this.intent; }
   private readonly engineTails = new WeakMap<ReadingEngineAdapter, Promise<unknown>>();
   private state: ReadingSessionSnapshot = {
     revision: 0, sessionId: null, bookId: null, status: "idle", location: null, visibleText: "",
@@ -280,11 +283,12 @@ export class ReadingSessionController {
   close(signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<void> {
     if (signal?.aborted) return Promise.reject(signal.reason);
     try { this.checkGuard(guard); } catch (error) { return Promise.reject(error); }
-    if (!this.session) return Promise.resolve();
-    if (!this.shell) return Promise.reject(new AppError("reader/unavailable", "Reader shell is not mounted"));
+    if (!this.session && !this.hasPendingOpening) return Promise.resolve();
+    if (this.session && !this.shell) return Promise.reject(new AppError("reader/unavailable", "Reader shell is not mounted"));
     const session = this.session;
     this.intent++;
     for (const notify of [...this.changes]) notify();
+    if (!session) return Promise.resolve();
     return new Promise((resolve, reject) => {
       const finish = () => {
         if (signal?.aborted) { cleanup(); reject(signal.reason); }
@@ -356,7 +360,15 @@ export class ReadingSessionController {
     signal?.addEventListener("abort", cancel, { once: true });
     const timer = setTimeout(() => controller.abort(new AppError("reader/timeout", "Reading navigation timed out")), this.deadlineMs);
     const cleanup = () => { clearTimeout(timer); signal?.removeEventListener("abort", cancel); this.changes.delete(superseded); };
-    controller.signal.addEventListener("abort", cleanup, { once: true });
+    controller.signal.addEventListener("abort", () => {
+      // A shell lookup may ignore cancellation. Revoke its begin() token too,
+      // otherwise a rejected request could still open a book after retirement.
+      if (intent === this.intent) {
+        this.intent++;
+        for (const notify of [...this.changes]) notify();
+      }
+      cleanup();
+    }, { once: true });
     const before = this.state.location;
     const check = () => {
       if (controller.signal.aborted) throw controller.signal.reason;
@@ -367,7 +379,9 @@ export class ReadingSessionController {
       this.checkGuard(guard);
       if (this.session?.bookId !== target.bookId) {
         if (!this.shell) throw new AppError("reader/unavailable", "Reader shell is not mounted");
-        await this.shell.open(target.bookId, intent);
+        this.openingIntent = intent;
+        try { await this.shell.open(target.bookId, intent); }
+        finally { if (this.openingIntent === intent) this.openingIntent = null; }
       }
       check();
       const session = this.session;

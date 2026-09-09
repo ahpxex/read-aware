@@ -80,3 +80,21 @@ test("new imports wait for the library replica and cancellation disposes the wai
     expect(store.get(activeCollectionAtom)).toBe(cancel ? null : "new-collection");
   }
 });
+
+test("a pending book lookup already requires reader-control permission and is revoked before navigation", async () => {
+  const store = createStore(); let release!: () => void, rejected = false;
+  const hold = new Promise<void>(resolve => { release = resolve; });
+  const unbind = readingRuntime.bindShell({ open: async (bookId, intent) => {
+    await hold;
+    try { readingRuntime.begin(bookId, intent); } catch (error) { rejected = true; throw error; }
+  }, close: () => {} });
+  try {
+    const pending = readingRuntime.navigate({ bookId: "lookup-pending" }).catch(error => error);
+    expect(readingRuntime.hasPendingOpening).toBe(true);
+    await expect(applyWorkspaceTarget(store, { surface: "stats" }, signal(), false)).rejects.toMatchObject({ code: "ui/reading-permission" });
+    await applyWorkspaceTarget(store, { surface: "stats" }, signal(), true);
+    release(); await pending; await new Promise(resolve => setTimeout(resolve, 0));
+    expect(rejected).toBe(true); expect(readingRuntime.snapshot().sessionId).toBeNull();
+    expect(store.get(activeTopNavAtom)).toBe("stats");
+  } finally { release(); unbind(); }
+});

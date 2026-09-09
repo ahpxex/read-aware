@@ -13,13 +13,11 @@ import {
   type Icon,
 } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
-import { HOST_SHELF_SORTS, HOST_SHELF_GROUPS } from "@read-aware/core";
+import { HOST_SHELF_SORTS, HOST_SHELF_GROUPS, type HostCommandRequest } from "@read-aware/core";
 import type { TFunction } from "i18next";
 import type { Collection, LibraryBook } from "../../library/lib/library-types";
 import type {
-  ShelfGroup,
   ShelfLayout,
-  ShelfSort,
   ShelfView,
 } from "../../shelf/lib/shelf-view";
 import type { TopNav } from "../../../state/ui";
@@ -42,10 +40,9 @@ export type CommandItem = {
   icon: ReactNode;
   /** Cover for book items; the icon is used as a fallback. */
   coverUrl?: string | null;
-  perform: () => void;
   disabled?: boolean;
   checked?: boolean;
-};
+} & ({ hostCommand: HostCommandRequest; perform?: never } | { hostCommand?: never; perform: () => void });
 
 /** Fixed section order in the palette. */
 export const GROUP_ORDER: readonly CommandGroupKey[] = [
@@ -57,17 +54,7 @@ export const GROUP_ORDER: readonly CommandGroupKey[] = [
 ];
 
 export type CommandActions = {
-  openBook: (book: LibraryBook) => void;
-  openCollection: (id: string) => void;
-  goShelf: () => void;
-  goAgent: () => void;
-  goStats: () => void;
-  openSettings: () => void;
   importBook: () => void;
-  startSelection: () => void;
-  setLayout: (layout: ShelfLayout) => void;
-  setSort: (sort: ShelfSort) => void;
-  setGroup: (group: ShelfGroup) => void;
 };
 
 export type CommandContext = {
@@ -106,7 +93,7 @@ export function buildCommands(
       title: t("actions.goShelf.title"),
       keywords: t("actions.goShelf.keywords"),
       icon: icon(Books),
-      perform: ctx.goShelf,
+      hostCommand: { id: "go-shelf" },
     });
   }
   if (ctx.activeTopNav !== "stats") {
@@ -117,7 +104,7 @@ export function buildCommands(
       title: t("actions.goStats.title"),
       keywords: t("actions.goStats.keywords"),
       icon: icon(ChartLineUp),
-      perform: ctx.goStats,
+      hostCommand: { id: "go-stats" },
     });
   }
   if (ctx.activeTopNav !== "agent") {
@@ -128,7 +115,7 @@ export function buildCommands(
       title: t("actions.goAgent.title"),
       keywords: t("actions.goAgent.keywords"),
       icon: icon(ChatCircleDots),
-      perform: ctx.goAgent,
+      hostCommand: { id: "go-context" },
     });
   }
   items.push({
@@ -138,7 +125,7 @@ export function buildCommands(
     title: t("actions.openSettings.title"),
     keywords: t("actions.openSettings.keywords"),
     icon: icon(GearSix),
-    perform: ctx.openSettings,
+    hostCommand: { id: "open-settings" },
   });
 
   // ── Shelf ────────────────────────────────────────────────────────────────
@@ -158,7 +145,7 @@ export function buildCommands(
     title: t("actions.select.title"),
     keywords: t("actions.select.keywords"),
     icon: icon(ListChecks),
-    perform: ctx.startSelection,
+    hostCommand: { id: "select" },
   });
 
   const nextLayout: ShelfLayout =
@@ -170,7 +157,7 @@ export function buildCommands(
     title: t(`layout.${nextLayout}`),
     keywords: t("layout.keywords"),
     icon: icon(nextLayout === "grid" ? SquaresFour : Rows),
-    perform: () => ctx.setLayout(nextLayout),
+    hostCommand: { id: `layout-${nextLayout}` },
   });
 
   for (const sort of HOST_SHELF_SORTS) {
@@ -182,7 +169,7 @@ export function buildCommands(
       title: t(`sort.by.${sort}`),
       keywords: t("sort.keywords"),
       icon: icon(ArrowsDownUp),
-      perform: () => ctx.setSort(sort),
+      hostCommand: { id: `sort-${sort}` },
     });
   }
 
@@ -195,7 +182,7 @@ export function buildCommands(
       title: group === "none" ? t("group.none") : t(`group.by.${group}`),
       keywords: t("group.keywords"),
       icon: icon(Stack),
-      perform: () => ctx.setGroup(group),
+      hostCommand: { id: `group-${group}` },
     });
   }
 
@@ -209,7 +196,7 @@ export function buildCommands(
       subtitle: t("collection.subtitle"),
       keywords: t("collection.keywords"),
       icon: icon(FolderSimple),
-      perform: () => ctx.openCollection(collection.id),
+      hostCommand: { id: "open-collection", args: { collectionId: collection.id } },
     });
   }
 
@@ -227,7 +214,7 @@ export function buildCommands(
       keywords: book.format,
       icon: icon(Books),
       coverUrl: book.coverUrl,
-      perform: () => ctx.openBook(book),
+      hostCommand: { id: "open-book", args: { bookId: book.id } },
     });
   }
 

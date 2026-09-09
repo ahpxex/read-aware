@@ -1,4 +1,5 @@
 {
+  "partial": "設定已儲存，介面切換未完成",
   "search": {
     "placeholder": "搜尋書籍、收藏、指令…"
   },
@@ -17,6 +18,8 @@
     "plugins": "外掛"
   },
   "actions": {
+    "openBook": { "title": "開啟書籍" },
+    "openCollection": { "title": "開啟集合" },
     "goShelf": {
       "title": "書庫",
       "keywords": "書架 書籍 首頁 shelf books home"

@@ -1,4 +1,5 @@
 {
+  "partial": "Einstellung gespeichert; Ansicht nicht gewechselt",
   "search": {
     "placeholder": "Bücher, Sammlungen, Befehle suchen…"
   },
@@ -18,6 +19,8 @@
     "plugins": "Plugins"
   },
   "actions": {
+    "openBook": { "title": "Buch öffnen" },
+    "openCollection": { "title": "Sammlung öffnen" },
     "goShelf": {
       "title": "Bibliothek",
       "keywords": "regal bücher start"

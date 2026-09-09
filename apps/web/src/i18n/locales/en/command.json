@@ -1,4 +1,5 @@
 {
+  "partial": "Setting saved; navigation did not complete",
   "search": {
     "placeholder": "Search books, collections, commands…"
   },
@@ -18,6 +19,8 @@
     "plugins": "Plugins"
   },
   "actions": {
+    "openBook": { "title": "Open book" },
+    "openCollection": { "title": "Open collection" },
     "goShelf": {
       "title": "Library",
       "keywords": "shelf books home"

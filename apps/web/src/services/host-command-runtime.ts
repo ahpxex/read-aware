@@ -3,9 +3,11 @@ import { createSettingsDomain, type SettingsDomain } from "../domain/settings/do
 import { i18n } from "../i18n/instance";
 import { createHostCommands } from "./host-commands";
 import { workspace } from "./workspace";
+import { readingRuntime } from "../domain/reading-runtime";
 
 export function hostCommandTitle(id: HostCommandId): string {
-  const key = id === "go-shelf" ? "actions.goShelf.title" : id === "go-context" ? "actions.goAgent.title"
+  const key = id === "open-book" ? "actions.openBook.title" : id === "open-collection" ? "actions.openCollection.title"
+    : id === "go-shelf" ? "actions.goShelf.title" : id === "go-context" ? "actions.goAgent.title"
     : id === "go-stats" ? "actions.goStats.title" : id === "open-settings" ? "actions.openSettings.title"
       : id === "select" ? "actions.select.title" : id.startsWith("layout-") ? `layout.${id.slice(7)}`
         : id.startsWith("sort-") ? `sort.by.${id.slice(5)}` : id === "group-none" ? "group.none" : `group.by.${id.slice(6)}`;
@@ -13,7 +15,8 @@ export function hostCommandTitle(id: HostCommandId): string {
 }
 
 export function actorHostCommands(settings: SettingsDomain, canReadWorkspace: boolean, canNavigate: boolean, canCloseReader: boolean) {
-  return createHostCommands({ workspace, settings, canReadWorkspace, canNavigate, canCloseReader, title: hostCommandTitle });
+  return createHostCommands({ workspace, settings, canReadWorkspace, canNavigate, canCloseReader, title: hostCommandTitle,
+    openBook: (bookId, signal) => readingRuntime.navigate({ bookId }, signal) });
 }
 export function trustedHostCommands(origin: EventOrigin) {
   return actorHostCommands(createSettingsDomain(origin), true, true, true);

@@ -1,4 +1,5 @@
 {
+  "partial": "设置已保存，界面切换未完成",
   "search": {
     "placeholder": "搜索书籍、收藏集、命令…"
   },
@@ -17,6 +18,8 @@
     "plugins": "插件"
   },
   "actions": {
+    "openBook": { "title": "打开书籍" },
+    "openCollection": { "title": "打开集合" },
     "goShelf": {
       "title": "书库",
       "keywords": "shelf books home 书架 书籍 主页"

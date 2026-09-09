@@ -161,7 +161,7 @@ function App() {
   const setActiveGlobalThreadId = useSetAtom(activeGlobalThreadAtom);
   const [activeCollectionId, setActiveCollectionId] =
     useAtom(activeCollectionAtom);
-  const [shelfView, setShelfView] = useAtom(shelfViewAtom);
+  const shelfView = useAtomValue(shelfViewAtom);
   const shelfSelecting = useAtomValue(shelfSelectionAtom).active;
   const setShelfSelection = useSetAtom(shelfSelectionAtom);
   const library = useLibraryController();
@@ -388,38 +388,9 @@ function App() {
     shelfView,
     collections: library.collections,
     books: library.books,
-    openBook: handleCommandOpenBook,
-    openCollection: (id) => {
-      setActiveCollectionId(id);
-      openAppSurface("shelf");
-    },
-    goShelf: () => {
-      setActiveCollectionId(null);
-      openAppSurface("shelf");
-    },
-    goAgent: () => openAppSurface("agent"),
-    goStats: () => openAppSurface("stats"),
-    openSettings: () => setSettingsOpen(true),
     importBook: () => {
       openAppSurface("shelf");
       library.openImportPicker();
-    },
-    startSelection: () => {
-      setActiveCollectionId(null);
-      setShelfSelection({ active: true, ids: [] });
-      openAppSurface("shelf");
-    },
-    setLayout: (layout) => {
-      setShelfView({ ...shelfView, layout });
-      openAppSurface("shelf");
-    },
-    setSort: (sort) => {
-      setShelfView({ ...shelfView, sort });
-      openAppSurface("shelf");
-    },
-    setGroup: (group) => {
-      setShelfView({ ...shelfView, group });
-      openAppSurface("shelf");
     },
   };
 

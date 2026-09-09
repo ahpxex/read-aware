@@ -36,7 +36,7 @@ export async function prepareWorkspaceProbe() {
     description: JSON.stringify({ collectionId, bookIds: books }),
     permissions: role === "empty" ? [] : role === "read" ? ["library:read"] : role === "write" ? ["library:write"] : ["library:write", "reading:write"],
     ...(role === "reader" ? { settingsAccess: { read: ["shelf.*"], write: ["shelf.*"] } } : {}),
-    requires: { services: { ui: "^1.4.0" }, domains: { library: "^1.6.0", reading: "^2.0.0" } } }, new URL("./workspace-probe.ts", import.meta.url).href);
+    requires: { services: { ui: "^1.5.0" }, domains: { library: "^1.6.0", reading: "^2.0.0" } } }, new URL("./workspace-probe.ts", import.meta.url).href);
   await start({ ...manifest, id: "capability-workspace-desk" } as PluginManifest, new URL("../../../../../../../plugins/library-desk/dist/main.js", import.meta.url).href);
   return { path, collectionId, bookIds: [...books] };
 }

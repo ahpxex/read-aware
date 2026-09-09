@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { buildAgentTools } from "../packages/agent/src/tools/registry";
 import { createInMemoryDeps } from "../packages/agent/src/testing/fixtures";
 import { HOST_CAPABILITY_CATALOG, PLUGIN_PERMISSIONS } from "../packages/core/src/capabilities";
+import { HOST_COMMAND_IDS } from "../packages/core/src/host-commands";
 import { buildPluginContext } from "../apps/web/src/features/plugins/runtime/plugin-context";
 import { buildSettingDefinitions } from "../apps/web/src/domain/settings/catalog";
 import { DEFAULT_GENERAL_SETTINGS } from "../apps/web/src/features/settings/lib/general-settings";
@@ -221,8 +222,14 @@ export function collectInventory(): Inventory[] {
   for (const declaration of ["EDITABLE_SHORTCUTS","INFO_SHORTCUTS"]) for (const name of stringProperties(namedInitializer("apps/web/src/features/settings/lib/shortcuts.ts",declaration),"id")) add("Shortcut", name, shortcutMap[name]);
   const eventMap = pairs([["reader-demand-activity", "TXT05"],["book-removed library-changed book-changed", "CON07 LIB01"],["plugin-storage-changed local-write-failed", "SYS01 CFG10"],["roaming-preferences-changed", "OPS05"],["conversations-changed", "AI01 OPS05"]]);
   for (const name of typeMembers("apps/web/src/platform/app-events.ts","AppEventMap")) add("App event", name, eventMap[name]);
-  const actionMap = pairs([["openBook", "READ01"],["openCollection goShelf goAgent goStats openSettings", "UI01"],["importBook", "LIB06"],["startSelection setLayout setSort setGroup", "UI02"]]);
+  const actionMap = pairs([["importBook", "LIB06"]]);
   for (const name of typeMembers("apps/web/src/features/command/lib/build-commands.tsx","CommandActions")) add("Command action", name, actionMap[name]);
+  const hostCommandMap = pairs([
+    ["go-shelf go-context go-stats open-settings open-collection", "UI03 UI01"],
+    ["select layout-grid layout-list sort-recent sort-added sort-title sort-author sort-progress group-none group-status group-author group-format", "UI03 UI02"],
+    ["open-book", "UI03 READ01"],
+  ]);
+  for (const name of HOST_COMMAND_IDS) add("Host semantic command", name, hostCommandMap[name]);
   const domainMap = pairs([
     ["book.imported", "LIB06"],["book.metadataEdited", "LIB02"],["book.coverExtracted", "LIB09"],
     ["book.chapterDigested", "MEM10"],["book.narrativityClassified", "MEM09"],["book.merged", "LIB11"],
@@ -254,7 +261,7 @@ export function collectInventory(): Inventory[] {
   }
   const featureMap = pairs([["agent ai", "AI01 AI03 MEM01"],["annotations", "ANN01"],["command", "UI03"],["library shelf", "LIB01 UI02"],["menus", "UI05"],["navigation", "UI01 SYS17"],["plugins", "EXT01 CON03"],["reader", "READ01 TXT01"],["settings", "CFG01 OPS08"],["stats", "STAT01"],["sync", "OPS01"],["update", "SYS16"]]);
   for (const directory of readdirSync("apps/web/src/features", {withFileTypes:true}).filter(d=>d.isDirectory())) add("Feature owner", directory.name, featureMap[directory.name], "[代码+人工审计] 所属功能组入口；目录覆盖不等于每个 UI 分支测试通过");
-  const expectedPlugins = pairs([["dictionary", "EXT09 AI12 READ07 LIB01"],["rss-reader", "EXT10"],["editorial-themes", "EXT08"],["sentence-reader", "READ15 READ16"],["tts", "READ17 READ18"],["webdav-sync", "OPS04"],["jumper", "TXT02 TXT07 READ06 EXT02"],["annotation-desk", "ANN01 ANN04 ANN05 ANN08 EXT02 EXT05 SYS10"],["listening-desk", "READ16 READ18 READ06 EXT02 MORE03"],["reading-goals", "AI11 MEM03 SET23 STAT02 STAT05 STAT03 EXT07 EXT02 EXT05 SYS01"],["workspace-profiles", "UI02 UI04 CFG01 CFG10 EXT02 EXT05 SYS02"],["text-desk", "TXT04 TXT05 TXT06 LIB01 READ01 EXT02 EXT05"],["library-desk", "LIB01 LIB05 UI01 UI02 EXT02 EXT03 MORE05"]]);
+  const expectedPlugins = pairs([["dictionary", "EXT09 AI12 READ07 LIB01"],["rss-reader", "EXT10"],["editorial-themes", "EXT08"],["sentence-reader", "READ15 READ16"],["tts", "READ17 READ18"],["webdav-sync", "OPS04"],["jumper", "TXT02 TXT07 READ06 EXT02"],["annotation-desk", "ANN01 ANN04 ANN05 ANN08 EXT02 EXT05 SYS10"],["listening-desk", "READ16 READ18 READ06 EXT02 MORE03"],["reading-goals", "AI11 MEM03 SET23 STAT02 STAT05 STAT03 EXT07 EXT02 EXT05 SYS01"],["workspace-profiles", "UI02 UI04 CFG01 CFG10 EXT02 EXT05 SYS02"],["text-desk", "TXT04 TXT05 TXT06 LIB01 READ01 EXT02 EXT05"],["library-desk", "LIB01 LIB05 READ01 UI01 UI02 UI03 EXT02 EXT03 MORE05"]]);
   for (const directory of readdirSync("plugins",{withFileTypes:true}).filter(d=>d.isDirectory()).sort((a,b)=>a.name.localeCompare(b.name))) {
     const manifest = JSON.parse(readFileSync(`plugins/${directory.name}/manifest.json`,"utf8"));
     add("First-party source plugin", manifest.id, expectedPlugins[directory.name], `[代码] 源码版本 ${manifest.version}；源码存在不等于打包、安装、启用或模型可调用`);

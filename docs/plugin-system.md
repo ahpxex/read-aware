@@ -1402,53 +1402,86 @@ UI01/UI02 are connected for the explicit semantics above.
 
 ### Host command discovery and execution
 
-[代码] UI **1.4** adds `services.ui.commands.list/execute`. Both Agent scopes
+[代码] UI **1.4** introduced `services.ui.commands.list/execute`; **1.5** adds
+typed book/collection targets and shares their execution with the native palette. Both Agent scopes
 register `list_host_commands` / `execute_host_command` over the same
 `createHostCommands` service. This is a finite semantic catalog, not reflection
 over menu labels, arbitrary host callbacks or another plugin's command IDs.
 
-The 16 accepted IDs are `go-shelf`, `go-context`, `go-stats`, `open-settings`,
+The 16 parameterless IDs are `go-shelf`, `go-context`, `go-stats`, `open-settings`,
 `select`, `layout-grid`, `layout-list`, `sort-recent`, `sort-added`, `sort-title`,
 `sort-author`, `sort-progress`, `group-none`, `group-status`, `group-author`,
-`group-format`. Each descriptor has a localized host title, `enabled`, optional
+`group-format`. Two resource commands, `open-book` and `open-collection`, bring
+the total to 18. Each descriptor has a localized host title, `enabled`, optional
 `checked`, `settingsPath`, `unavailableReason` (`permission`, `workspace`,
-`reader-control`), and an empty object parameter schema with no extra properties.
+`reader-control`), and an object parameter schema with no extra properties.
+Basic commands have empty schemas; resource commands require exactly `bookId`
+or `collectionId`, respectively (nonblank string, at most 256 UTF-16 characters).
 The snapshot has `version: 1` and `workspaceRevision: number | null`.
 
 - Library read/write exposes discovery; only library write exposes execution.
   Shelf settings additionally require their own `settingsAccess.write` paths;
   hidden setting values never become `checked`. Reader exit additionally needs
-  reading write; settings can open over the reader without it.
-- Request shape is `{ id, expectedWorkspaceRevision? }`; unknown IDs, extra keys,
+  reading write, as does opening a book even from the shelf. A pending opening
+  with no session yet also requires reading control to cancel before navigation;
+  settings can open over the reader without it.
+- Request shape is `{ id, args?, expectedWorkspaceRevision? }`; resource commands
+  require the matching one-key args object, basic commands omit args. Unknown IDs, extra keys,
   fractional/negative/unsafe revisions reject `ui/invalid-target`. The accepted
-  request is copied before waiting. A stale revision rejects `ui/superseded`.
+  request including resource ID is copied before waiting. A stale revision rejects `ui/superseded`.
 - Discovery reports coarse authorization and attached-workspace conditions, not
   a reservation or a proof of target validity. Execution rechecks them and the
   workspace revision. Empty-library selection, removed collections/books, and
-  subsequent reader handoff still validate through the workspace controller.
+  subsequent reader handoff still validate through the workspace/reading controllers.
+  `open-book` rejects `reader/book-not-found` for a missing book;
+  `open-collection` rejects `ui/target-not-found` for a missing collection.
 - Layout/sort/group write one actual shelf setting, then navigate to the shelf,
   preserving the current collection and selection. More than 1000 selected IDs
   rejects `ui/unavailable` before writing; no silent truncation. `select` opens
   root selection with no selected IDs; `go-shelf` opens root and clears selection.
-  `open-settings` preserves the current section or uses general.
+  `open-settings` preserves the current section or uses general. `open-collection`
+  clears selection and opens the requested shelf collection. `open-book` awaits
+  the shared reading controller's ready receipt; it does not dismiss unrelated
+  settings/search overlays or another plugin's dialog.
 - Settings and workspace are not one atomic transaction. Before a committed
   setting, errors reject without a success receipt. After it, navigation failure
   returns `{ commandId, status: "partial", completed: ["settings"], errorCode }`.
   A successful result has `status: "completed"` and `completed: ["workspace"]`
-  or `["settings", "workspace"]`. Raw exception text is not put in receipts.
+  or `["settings", "workspace"]`; `open-book` returns `["reading"]`.
+  Raw exception text is not put in receipts.
   Cancellation after a write does not roll it back; Agent formatting preserves
   a host partial receipt rather than replacing it with a late abort exception.
 - Completion inherits the underlying settings persistence and destination
-  component-commit contracts, not animation, focus, book loading, time settlement
-  or sync. Plugin activation/retirement rejects new execution; its lifetime signal
+  component-commit contracts; open-book additionally waits actual reading ready.
+  None promises animation, focus, time settlement or sync. Plugin activation/retirement rejects new execution; its lifetime signal
   stops waiting/queued effects where the underlying operation supports it.
 
-[代码] Library Desk **0.4** adds Workspace > Host commands: searchable host titles
+[代码] The native command palette maps its 16 basic actions and dynamic book/
+collection rows to these same typed requests. Display IDs (`book-...`,
+`collection-...`) never become public command IDs. Its user executor captures
+the workspace revision before lazy runtime loading, awaits completion, disables
+repeat activation while busy and renders localized failures. Escape/backdrop
+dismissal and unmount abort the request; navigation closing its own palette does
+not cancel its destination commit. Frame ownership prevents an old completion
+from closing a reopened palette. Import and plugin-contributed rows retain their
+existing dispatch callbacks; their dispatch is not claimed to be task completion.
+Other native header/menu/shortcut entrypoints are not all migrated by this change.
+Agent execution is sequential, discovery and execution share the same service.
+
+[代码] Reading cancellation/timeout now invalidates the opening intent as well
+as rejecting its waiter, so a delayed shell lookup cannot call begin after it
+has been retired. Closing an opening before it creates a session also revokes
+that token; authorized workspace navigation accounts for this pending state.
+This does not roll back renderer/history effects that already occurred.
+
+[代码] Library Desk **0.5** extends Workspace > Host commands: searchable host titles
 and IDs, current checked values, unavailable reasons, explicit refresh, guarded
 execution, close only on full completion. Partial completion stays open with a
 saved-setting statement and host-localized error. Refresh never automatically
 repeats the write. The command page is a snapshot, not a live command observer;
-execution revalidates stale state. Its manifest requires UI ^1.4, views ^1.2 and
+execution revalidates stale state. Book/collection commands compose library
+queries with searchable resource pickers, then execute the selected real ID with
+the discovery revision. Its manifest requires UI ^1.5, views ^1.2 and
 read/write grants for exactly `shelf.layout`, `shelf.sort`, `shelf.group`.
 
 [环境] [Native evidence](./evidence/host-commands-2026-09-10.json) covers isolated
@@ -1456,11 +1489,20 @@ macOS debug: real no/read/write/full Workers, both production Agent scopes,
 preserved two-book selection, revision rejection, real FB2 reader authorization,
 SQLite write failure with no navigation, recovery, and compiled plugin search
 and list-layout execution. Deferred writes, partial receipts, retirement and
-all 16 operation mappings are additionally unit-tested. Deterministic tool calls
-are not autonomous model decisions. Native palette callbacks have not yet been
-unified with this executor; dynamic book/collection commands, import task results,
-cross-plugin command invocation, complete availability/observation and focus,
-packaged and Windows/Linux remain open. **UI03 remains partial on both ends.**
+all 16 basic operation mappings are additionally unit-tested.
+[Current routing evidence](./evidence/command-routing-2026-09-10.json) adds real
+Worker resource schemas/grants/missing targets, book/global Agent resource calls,
+native palette dynamic results and compiled Library Desk 0.5 resource pickers.
+A targeted SQLite failure kept the native palette open with no successful setting
+event; recovery produced one settings.changed with origin=user and closed it.
+The failure also exposed duplicate storage/command toasts; this presentation
+ownership gap remains recorded, not declared fixed. Delayed opening cancellation
+was reproduced in a failing unit test before the controller fix; exact delayed
+lookup, timeout/frame concurrency and partial-result windows are not all native
+E2E evidence. Deterministic tool calls are not autonomous model decisions.
+Import task results, cross-plugin command invocation, remaining native entrypoints,
+complete availability/observation and focus, packaged and Windows/Linux remain
+open. **UI03 remains partial on both ends.**
 
 ### Host inference privacy policy
 
@@ -1977,7 +2019,7 @@ adjacent distribution repository, not a fourteenth plugin in this checkout:
 | Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |
 | Workspace Profiles | settled settings snapshots, exact path grants, atomic presets, private documents, shelf header/command views and Agent tool |
 | Text Desk | library text preparation/tasks, single/shelf multi-query search, snippets, paged status views, reader header/command and explicit book navigation |
-| Library Desk | workspace/collection navigation, host-command discovery and guarded execution (0.4), command search, grouped native selection, live selection count, explicit batch review/removal, durable pending-file discovery and safe retry |
+| Library Desk | workspace/collection navigation, host-command discovery and guarded execution with typed resource pickers (0.5), command search, grouped native selection, live selection count, explicit batch review/removal, durable pending-file discovery and safe retry |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs
 in their packages and registered capabilities.

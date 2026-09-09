@@ -30,3 +30,13 @@ test("cancellation after a committed setting does not erase the host's partial r
   const tool = buildAgentTools({ kind: "global", threadId: "test" }, deps).find(t => t.name === "execute_host_command")!;
   expect(JSON.stringify(await tool.execute("test", { id: "layout-list" }, abort.signal))).toContain('partial');
 });
+
+test("typed resources are validated and forwarded without converting labels to IDs", async () => {
+  const { deps } = createInMemoryDeps(), calls: unknown[] = [];
+  deps.hostCommands.execute = async request => { calls.push(request); return { commandId: request.id, status: "completed", completed: ["reading"] }; };
+  const tool = buildAgentTools({ kind: "book", bookId: "current" }, deps).find(t => t.name === "execute_host_command")!;
+  await tool.execute("test", { id: "open-book", args: { bookId: "chosen" }, expectedWorkspaceRevision: 2 });
+  expect(calls).toEqual([{ id: "open-book", args: { bookId: "chosen" }, expectedWorkspaceRevision: 2 }]);
+  await expect(tool.execute("test", { id: "open-collection", args: { bookId: "wrong" } })).rejects.toMatchObject({ code: "ui/invalid-target" });
+  expect(calls).toHaveLength(1); expect(tool.executionMode).toBe("sequential");
+});

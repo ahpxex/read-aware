@@ -7,7 +7,7 @@ import { textResult } from "./tool-result";
 export function buildHostCommandTools(deps: RuntimeDeps): AgentTool[] {
   return [{
     name: "list_host_commands", label: "Host commands",
-    description: "Discover the finite native navigation and shelf command catalog, current availability and permitted checked values. Not arbitrary menu IDs, plugin commands, book/collection lookup or file import. Re-read availability before using a previously listed command. Commands are parameterless; workspaceRevision can guard execution.",
+    description: "Discover native navigation and shelf commands, parameter schemas, current availability and permitted checked values. open-book requires args.bookId, open-collection requires args.collectionId; obtain real IDs from library queries, not menu labels. Other commands are parameterless. Not arbitrary menu IDs, plugin commands or file import. workspaceRevision can guard execution.",
     parameters: Type.Object({}, { additionalProperties: false }),
     execute: async (_id, _input, signal) => {
       signal?.throwIfAborted(); const snapshot = await deps.hostCommands.list(signal);
@@ -15,9 +15,12 @@ export function buildHostCommandTools(deps: RuntimeDeps): AgentTool[] {
     },
   }, {
     name: "execute_host_command", label: "Run host command",
-    description: "Execute a discovered native navigation or shelf command in response to the user's intent. Shelf layout/sort/group commands save that setting then show the shelf while preserving the current collection and selection (up to 1000 IDs). A partial receipt means the setting persisted but navigation failed: do not claim full success or rollback. Completion means the existing settings and workspace contracts completed, not animation or data loading. No import, arbitrary callback, book/collection or plugin-command dispatch.",
+    description: "Execute a discovered native command in response to the user's intent. open-book requires args:{bookId}; open-collection requires args:{collectionId}; omit args for every other ID. Shelf layout/sort/group save the setting then show the shelf while preserving collection/selection (up to 1000 IDs). A partial receipt means settings persisted but navigation failed, not rollback. open-book waits for real reader completion but does not dismiss unrelated overlays; collections wait for workspace component commit. No import, arbitrary callbacks or plugin-command dispatch.",
     parameters: Type.Object({ id: Type.Union(HOST_COMMAND_IDS.map(id => Type.Literal(id))),
+      args: Type.Optional(Type.Object({ bookId: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })),
+        collectionId: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })) }, { additionalProperties: false })),
       expectedWorkspaceRevision: Type.Optional(Type.Integer({ minimum: 0 })) }, { additionalProperties: false }),
+    executionMode: "sequential",
     execute: async (_id, input, signal) => {
       signal?.throwIfAborted(); const request = normalizeHostCommandRequest(input);
       const result = await deps.hostCommands.execute(request, signal);

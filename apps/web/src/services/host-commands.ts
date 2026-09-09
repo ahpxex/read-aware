@@ -1,4 +1,4 @@
-import { AppError, errorCode, HOST_COMMAND_IDS, normalizeHostCommandRequest, type HostCommandId, type HostCommandReceipt, type HostCommandSnapshot, type WorkspaceTarget, type WorkspaceSnapshot } from "@read-aware/core";
+import { AppError, errorCode, HOST_COMMAND_IDS, hostCommandParameters, normalizeHostCommandRequest, type HostCommandId, type HostCommandRequest, type HostCommandReceipt, type HostCommandSnapshot, type WorkspaceTarget, type WorkspaceSnapshot } from "@read-aware/core";
 import type { SettingsDomain } from "../domain/settings/domain";
 import type { WorkspaceService } from "./workspace";
 
@@ -8,12 +8,15 @@ type Dependencies = {
   canReadWorkspace: boolean;
   canNavigate: boolean;
   canCloseReader: boolean;
+  openBook(bookId: string, signal?: AbortSignal): Promise<unknown>;
   title(id: HostCommandId): string;
 };
 const setting = (id: HostCommandId) => id.startsWith("layout-") ? { path: "shelf.layout", value: id.slice(7) }
   : id.startsWith("sort-") ? { path: "shelf.sort", value: id.slice(5) }
     : id.startsWith("group-") ? { path: "shelf.group", value: id.slice(6) } : undefined;
-function target(id: HostCommandId, state: WorkspaceSnapshot): WorkspaceTarget {
+function target(request: HostCommandRequest, state: WorkspaceSnapshot): WorkspaceTarget {
+  const { id } = request;
+  if (request.id === "open-collection") return { surface: "shelf", collectionId: request.args.collectionId };
   if (id === "go-context") return { surface: "agent" };
   if (id === "go-stats") return { surface: "stats" };
   if (id === "open-settings") return { surface: "settings", section: state.settings.section ?? "general" };
@@ -37,10 +40,10 @@ export function createHostCommands(deps: Dependencies) {
       const change = setting(id), descriptor = settings.settings.find(item => item.path === change?.path);
       const unavailableReason = !deps.canNavigate || (change && !descriptor?.writable) ? "permission" as const
         : !state ? "workspace" as const
-          : state.surface === "reader" && id !== "open-settings" && !deps.canCloseReader ? "reader-control" as const : undefined;
+          : (id === "open-book" || state.surface === "reader" && id !== "open-settings") && !deps.canCloseReader ? "reader-control" as const : undefined;
       return { id, title: deps.title(id), enabled: !unavailableReason, ...(unavailableReason ? { unavailableReason } : {}),
         ...(change ? { settingsPath: change.path, ...(descriptor ? { checked: descriptor.value === change.value } : {}) } : {}),
-        parameters: { type: "object" as const, properties: {}, additionalProperties: false as const } };
+        parameters: hostCommandParameters(id) };
     }) };
   };
   const execute = async (input: unknown, signal?: AbortSignal): Promise<HostCommandReceipt> => {
@@ -56,6 +59,10 @@ export function createHostCommands(deps: Dependencies) {
     const change = setting(accepted.id);
     const state = deps.workspace.snapshot({ limit: 1000 });
     if (state.revision !== snapshot.workspaceRevision) throw new AppError("ui/superseded", "Workspace changed during command validation");
+    if (accepted.id === "open-book") {
+      await deps.openBook(accepted.args.bookId, signal);
+      return { commandId: accepted.id, status: "completed", completed: ["reading"] };
+    }
     if (change && state.selection.total > state.selection.bookIds.length) throw new AppError("ui/unavailable", "Selection exceeds the workspace navigation limit");
     if (change) {
       await deps.settings.commands.update([change], signal);
@@ -63,7 +70,7 @@ export function createHostCommands(deps: Dependencies) {
     }
     try {
       signal?.throwIfAborted();
-      await deps.workspace.navigate(target(accepted.id, state), snapshot.workspaceRevision!, signal, deps.canCloseReader);
+      await deps.workspace.navigate(target(accepted, state), snapshot.workspaceRevision!, signal, deps.canCloseReader);
       completed.push("workspace");
       return { commandId: accepted.id, status: "completed", completed };
     } catch (error) {

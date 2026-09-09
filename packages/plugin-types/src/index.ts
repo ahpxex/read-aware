@@ -1648,10 +1648,10 @@ export type PluginHostServices = {
     remove(key: string): Promise<void>;
   };
   ui: {
-    /** Since UI 1.4. Finite native navigation/shelf commands, not arbitrary menu or plugin IDs. */
+    /** UI 1.4: native navigation/shelf commands. UI 1.5: typed open-book/open-collection args. Never arbitrary menu/plugin IDs. */
     commands?: {
       list(): Promise<import("@read-aware/core").HostCommandSnapshot>;
-      /** Library write plus each command's setting grant; leaving a reader needs reading:write. */
+      /** Library write plus each command's setting grant; opening/leaving a reader needs reading:write. */
       execute?(request: import("@read-aware/core").HostCommandRequest): Promise<import("@read-aware/core").HostCommandReceipt>;
     };
     /** Library read grant: current workspace, not arbitrary UI/DOM state. */

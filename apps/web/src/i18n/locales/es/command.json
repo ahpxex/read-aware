@@ -1,4 +1,5 @@
 {
+  "partial": "Ajuste guardado; navegación incompleta",
   "search": {
     "placeholder": "Busca libros, colecciones, comandos…"
   },
@@ -19,6 +20,8 @@
     "plugins": "Plugins"
   },
   "actions": {
+    "openBook": { "title": "Abrir libro" },
+    "openCollection": { "title": "Abrir colección" },
     "goShelf": {
       "title": "Biblioteca",
       "keywords": "estantería libros inicio"

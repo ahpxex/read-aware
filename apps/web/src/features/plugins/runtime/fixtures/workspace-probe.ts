@@ -16,6 +16,16 @@ export default { activate(ctx) {
   }) }) });
   if (!api?.navigate) return;
   const data = JSON.parse(ctx.manifest.description!) as { collectionId: string; bookIds: string[] };
+  if (commands?.execute) {
+    const requests = {
+      "host-open-book": { id: "open-book", args: { bookId: data.bookIds[0] } },
+      "host-open-collection": { id: "open-collection", args: { collectionId: data.collectionId } },
+      "host-missing-book": { id: "open-book", args: { bookId: "missing-command-book" } },
+      "host-missing-collection": { id: "open-collection", args: { collectionId: "missing-command-collection" } },
+    } as const;
+    for (const [id, request] of Object.entries(requests)) ctx.contributions.commands.register({ id, title: id,
+      run: async () => ({ toast: JSON.stringify(await commands.execute!(request)) }) });
+  }
   const targets: Record<string, WorkspaceTarget> = {
     shelf: { surface: "shelf" }, stats: { surface: "stats" }, agent: { surface: "agent" },
     settings: { surface: "settings", section: "reading" }, search: { surface: "search", query: "Workspace Probe" },

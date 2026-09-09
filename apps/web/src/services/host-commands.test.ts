@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { AppError, HOST_COMMAND_IDS, normalizeHostCommandRequest, type SettingsSnapshot, type WorkspaceSnapshot } from "@read-aware/core";
+import { AppError, HOST_COMMAND_IDS, PARAMETERLESS_HOST_COMMAND_IDS, normalizeHostCommandRequest, type SettingsSnapshot, type WorkspaceSnapshot } from "@read-aware/core";
 import { createHostCommands } from "./host-commands";
 
 function deferred() {
@@ -24,6 +24,7 @@ function fixture(overrides: Partial<Parameters<typeof createHostCommands>[0]> = 
     calls.push(["workspace", ...args]); return { status: "completed" as const, snapshot: state };
   } };
   const api = createHostCommands({ settings, workspace, canReadWorkspace: true, canNavigate: true, canCloseReader: false,
+    openBook: async (...args) => { calls.push(["reading", ...args]); },
     title: id => id, ...overrides });
   return { api, calls, settings, workspace, get state() { return state; }, set state(next) { state = next; } };
 }
@@ -37,12 +38,12 @@ test("command requests are a finite, parameterless vocabulary with copied revisi
   const request = { id: "go-stats", expectedWorkspaceRevision: 0 };
   const accepted = normalizeHostCommandRequest(request); request.id = "import";
   expect(accepted).toEqual({ id: "go-stats", expectedWorkspaceRevision: 0 });
-  expect(new Set(HOST_COMMAND_IDS).size).toBe(16);
+  expect(new Set(HOST_COMMAND_IDS).size).toBe(18);
 });
 
 test("discovery exposes only authorized checked values and separate navigation and reader permissions", async () => {
   const f = fixture();
-  expect((await f.api.list()).commands).toHaveLength(16);
+  expect((await f.api.list()).commands).toHaveLength(18);
   expect((await f.api.list()).commands.find(c => c.id === "layout-grid")).toMatchObject({ checked: true, enabled: true });
   f.settings.queries.snapshot = async () => ({ settings: [] } as unknown as SettingsSnapshot);
   expect((await f.api.list()).commands.find(c => c.id === "layout-grid")).toEqual({ id: "layout-grid", title: "layout-grid",
@@ -74,7 +75,7 @@ test("settings commit precedes navigation, which preserves collection and the fu
 });
 
 test("all IDs map to their existing semantic operation, never menu callbacks", async () => {
-  for (const id of HOST_COMMAND_IDS) {
+  for (const id of PARAMETERLESS_HOST_COMMAND_IDS) {
     const f = fixture({ canCloseReader: true });
     const result = await f.api.execute({ id });
     expect(result.status).toBe("completed");
@@ -125,4 +126,38 @@ test("unattached workspace is unavailable, while unexpected snapshot failures re
   expect((await f.api.list()).commands.every(c => c.unavailableReason === "workspace")).toBe(true);
   const failure = new AppError("db/error", "read failure"); f.workspace.snapshot = () => { throw failure; };
   await expect(f.api.list()).rejects.toBe(failure);
+});
+
+test("resource commands require exactly their own bounded ID and copy it before waiting", () => {
+  for (const input of [{ id: "open-book" }, { id: "open-book", args: {} },
+    { id: "open-book", args: { bookId: " " } }, { id: "open-book", args: { bookId: "a".repeat(257) } },
+    { id: "open-book", args: { collectionId: "c" } }, { id: "open-book", args: { bookId: "b", extra: true } },
+    { id: "open-collection", args: { bookId: "b" } }, { id: "go-stats", args: { bookId: "b" } }]) {
+    expect(() => normalizeHostCommandRequest(input)).toThrow();
+  }
+  const input = { id: "open-book", args: { bookId: "book" }, expectedWorkspaceRevision: 7 };
+  const accepted = normalizeHostCommandRequest(input); input.args.bookId = "changed";
+  expect(accepted).toEqual({ id: "open-book", args: { bookId: "book" }, expectedWorkspaceRevision: 7 });
+});
+
+test("typed resource commands use real reader completion and validated workspace navigation", async () => {
+  const hold = deferred(), entered = deferred(), calls: unknown[] = [];
+  const f = fixture({ canCloseReader: true, openBook: async (...args) => { calls.push(args); entered.resolve(); await hold.promise; } });
+  const list = await f.api.list();
+  expect(list.commands.find(c => c.id === "open-book")?.parameters).toEqual({ type: "object",
+    properties: { bookId: { type: "string", minLength: 1, maxLength: 256 } }, required: ["bookId"], additionalProperties: false });
+  const request = { id: "open-book", args: { bookId: "book" } }; let settled = false;
+  const pending = f.api.execute(request).then(result => { settled = true; return result; });
+  request.args.bookId = "mutated"; await entered.promise;
+  expect(settled).toBe(false); expect(calls).toEqual([["book", undefined]]); expect(f.calls).toEqual([]);
+  hold.resolve(); expect(await pending).toEqual({ commandId: "open-book", status: "completed", completed: ["reading"] });
+  await f.api.execute({ id: "open-collection", args: { collectionId: "destination" } });
+  expect(f.calls).toEqual([["workspace", { surface: "shelf", collectionId: "destination" }, 7, undefined, true]]);
+  const denied = fixture();
+  expect((await denied.api.list()).commands.find(c => c.id === "open-book")).toMatchObject({ enabled: false, unavailableReason: "reader-control" });
+  await expect(denied.api.execute({ id: "open-book", args: { bookId: "book" } })).rejects.toMatchObject({ code: "ui/unavailable" });
+  expect(denied.calls).toEqual([]);
+  const error = new AppError("reader/book-not-found", "missing");
+  const failing = fixture({ canCloseReader: true, openBook: async () => { throw error; } });
+  await expect(failing.api.execute({ id: "open-book", args: { bookId: "missing" } })).rejects.toBe(error);
 });

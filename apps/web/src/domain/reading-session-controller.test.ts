@@ -3,6 +3,23 @@ import { AppError, type ReadingLocation } from "@read-aware/core";
 import { ReadingSessionController, type ReadingEngineAdapter } from "./reading-session-controller";
 
 const at = (cfi: string, bookId = "book"): ReadingLocation => ({ bookId, contentVersion: "sha256:fixture", cfi });
+
+test("cancelled or closed pending shell lookups cannot begin a late reading session", async () => {
+  for (const cancel of ["abort", "close"] as const) {
+    const runtime = new ReadingSessionController(() => {}, 1000), abort = new AbortController();
+    let release!: () => void, lateCode: string | undefined;
+    const hold = new Promise<void>(resolve => { release = resolve; });
+    runtime.bindShell({ open: async (bookId, intent) => {
+      await hold;
+      try { runtime.begin(bookId, intent); } catch (error) { lateCode = (error as AppError).code; throw error; }
+    }, close: () => {} });
+    const pending = runtime.navigate({ bookId: "late-book" }, abort.signal).catch(error => error);
+    if (cancel === "abort") abort.abort(new AppError("plugin/cancelled", "retired"));
+    else await runtime.close();
+    release(); await pending; await new Promise(resolve => setTimeout(resolve, 0));
+    expect(lateCode).toBe("reader/superseded"); expect(runtime.snapshot().sessionId).toBeNull();
+  }
+});
 function fixture(deadline = 1000) {
   const errors: unknown[] = [];
   const runtime = new ReadingSessionController(error => errors.push(error), deadline);

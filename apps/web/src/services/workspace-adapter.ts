@@ -66,10 +66,10 @@ export async function applyWorkspaceTarget(store: Store, target: WorkspaceTarget
   signal.throwIfAborted();
   if (target.surface !== "settings" && target.surface !== "search") {
     const reading = readingRuntime.snapshot();
-    if (reading.sessionId) {
+    if (reading.sessionId || readingRuntime.hasPendingOpening) {
       if (!allowReaderClose) throw new AppError("ui/reading-permission", "Leaving the reader requires reading:write");
       const before = intentState(store);
-      await readingRuntime.close(signal, { sessionId: reading.sessionId });
+      await readingRuntime.close(signal, reading.sessionId ? { sessionId: reading.sessionId } : undefined);
       signal.throwIfAborted();
       if (before !== intentState(store)) throw new AppError("ui/superseded", "Native workspace intent changed while closing the reader");
     }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, MagnifyingGlass } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
@@ -8,6 +8,7 @@ import { availableCommandIndex, nextCommandIndex } from "../lib/command-selectio
 import { useAtom } from "jotai";
 import { commandQueryAtom } from "../../../state/ui";
 import { WorkspaceCommit } from "../../../components/WorkspaceCommit";
+import { useCommandExecution, type NativeCommandExecutor } from "../hooks/useCommandExecution";
 
 type CommandPaletteProps = {
   isOpen: boolean;
@@ -16,6 +17,7 @@ type CommandPaletteProps = {
   /** Externally contributed items (e.g. plugin actions), appended to the set. */
   extraItems?: CommandItem[];
   workspaceToken?: number;
+  executeHost?: NativeCommandExecutor;
 };
 
 /**
@@ -23,12 +25,13 @@ type CommandPaletteProps = {
  * shelf controls. The available commands are built dynamically from the current
  * context, ranked by query relevance, and grouped into sections.
  */
-export function CommandPalette({ isOpen, onClose, ctx, extraItems, workspaceToken = 0 }: CommandPaletteProps) {
+export function CommandPalette({ isOpen, onClose, ctx, extraItems, workspaceToken = 0, executeHost }: CommandPaletteProps) {
   const { t } = useTranslation("command");
   const [query, setQuery] = useAtom(commandQueryAtom);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const { run, dismiss, busy } = useCommandExecution(isOpen, onClose, executeHost);
 
   const items = useMemo(
     () => (isOpen ? [...buildCommands(ctx, t), ...(extraItems ?? [])] : []),
@@ -42,6 +45,7 @@ export function CommandPalette({ isOpen, onClose, ctx, extraItems, workspaceToke
       ctx.shelfView,
       ctx.collections,
       ctx.books,
+      ctx.importBook,
       extraItems,
       t,
     ],
@@ -60,21 +64,12 @@ export function CommandPalette({ isOpen, onClose, ctx, extraItems, workspaceToke
     setSelectedIndex((index) => availableCommandIndex(flat, index));
   }, [flat]);
 
-  const run = useCallback(
-    (item: CommandItem) => {
-      if (item.disabled) return;
-      item.perform();
-      onClose();
-    },
-    [onClose],
-  );
-
   useEffect(() => {
     if (!isOpen) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        dismiss();
       } else if (event.key === "ArrowDown") {
         event.preventDefault();
         setSelectedIndex((index) => nextCommandIndex(flat, index, 1));
@@ -84,12 +79,12 @@ export function CommandPalette({ isOpen, onClose, ctx, extraItems, workspaceToke
       } else if (event.key === "Enter") {
         event.preventDefault();
         const item = flat[selectedIndex];
-        if (item) run(item);
+        if (item) void run(item);
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isOpen, flat, selectedIndex, onClose, run]);
+  }, [isOpen, flat, selectedIndex, dismiss, run]);
 
   useEffect(() => {
     listRef.current
@@ -105,11 +100,12 @@ export function CommandPalette({ isOpen, onClose, ctx, extraItems, workspaceToke
     <div
       className="fixed inset-0 z-50 flex items-start justify-center bg-stone-950/35 px-4 py-[15vh] backdrop-blur-sm"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) dismiss();
       }}
     >
       <WorkspaceCommit surface="search" token={workspaceToken} />
       <div
+        aria-busy={busy}
         className={cn(
           "flex w-full max-w-xl flex-col border border-border bg-[var(--ra-main-surface-color)]",
           "shadow-[0_12px_32px_rgba(28,25,23,0.15)]",
@@ -151,10 +147,10 @@ export function CommandPalette({ isOpen, onClose, ctx, extraItems, workspaceToke
                       type="button"
                       data-index={index}
                       aria-selected={selected}
-                      disabled={item.disabled}
+                      disabled={item.disabled || busy}
                       aria-pressed={item.checked}
                       onMouseMove={() => { if (!item.disabled) setSelectedIndex(index); }}
-                      onClick={() => run(item)}
+                      onClick={() => { void run(item); }}
                       className={cn(
                         "relative flex w-full items-center gap-3 px-4 py-2 text-left transition-colors",
                         selected ? "bg-fg/[0.07]" : "hover:bg-fg/[0.04]",

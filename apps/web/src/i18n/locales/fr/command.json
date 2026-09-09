@@ -1,4 +1,5 @@
 {
+  "partial": "Paramètre enregistré ; navigation non terminée",
   "search": {
     "placeholder": "Rechercher des livres, collections, commandes…"
   },
@@ -19,6 +20,8 @@
     "plugins": "Extensions"
   },
   "actions": {
+    "openBook": { "title": "Ouvrir un livre" },
+    "openCollection": { "title": "Ouvrir une collection" },
     "goShelf": {
       "title": "Bibliothèque",
       "keywords": "étagère livres accueil"

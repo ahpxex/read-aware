@@ -1,4 +1,5 @@
 {
+  "partial": "設定は保存されましたが、画面の移動は完了しませんでした",
   "search": {
     "placeholder": "本、コレクション、コマンドを検索…"
   },
@@ -17,6 +18,8 @@
     "plugins": "プラグイン"
   },
   "actions": {
+    "openBook": { "title": "本を開く" },
+    "openCollection": { "title": "コレクションを開く" },
     "goShelf": {
       "title": "ライブラリ",
       "keywords": "本棚 蔵書 ホーム ライブラリ"

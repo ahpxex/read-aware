@@ -1,4 +1,4 @@
-import type { HostCommandDescriptor, PluginContext, PluginListView, PluginViewResult } from "@read-aware/plugin-types";
+import type { HostCommandDescriptor, HostCommandRequest, PluginContext, PluginListView, PluginViewResult } from "@read-aware/plugin-types";
 
 const translations: Record<string, string[]> = {
   en: ["Host commands", "Refresh", "Selected", "Permission required", "Workspace unavailable", "Reader control required", "Setting saved; navigation did not complete"],
@@ -15,19 +15,36 @@ export const commandStrings = (locale: string) => translations[locale] ?? transl
 export async function commandsView(ctx: PluginContext): Promise<PluginListView> {
   const api = ctx.services.ui.commands!, t = commandStrings(ctx.locale), snapshot = await api.list();
   const refresh = async (): Promise<PluginViewResult> => ({ view: await commandsView(ctx), navigation: "replace" });
-  const execute = async (command: HostCommandDescriptor): Promise<PluginViewResult> => {
-    const receipt = await api.execute!({ id: command.id, ...(snapshot.workspaceRevision === null ? {} : { expectedWorkspaceRevision: snapshot.workspaceRevision }) });
+  const execute = async (command: HostCommandDescriptor, request: HostCommandRequest): Promise<PluginViewResult> => {
+    const receipt = await api.execute!({ ...request, ...(snapshot.workspaceRevision === null ? {} : { expectedWorkspaceRevision: snapshot.workspaceRevision }) });
     if (receipt.status === "completed") return { close: true };
     return { view: { kind: "detail", title: command.title, content: [
       { kind: "text", text: t[6] }, { kind: "error", code: receipt.errorCode ?? "ui/unavailable" },
     ], actions: [{ id: "refresh", label: t[1], icon: "arrows-clockwise", run: refresh }] }, navigation: "replace" };
+  };
+  const choose = async (command: HostCommandDescriptor): Promise<PluginViewResult> => {
+    if (command.id === "open-book") {
+      const books = await ctx.domains.library!.queries.books.list();
+      return { view: { kind: "list", title: command.title, searchable: true, items: books.map(book => ({
+        id: book.id, title: book.title, subtitle: book.author, icon: "book-open",
+        onSelect: () => execute(command, { id: "open-book", args: { bookId: book.id } }),
+      })) } };
+    }
+    if (command.id === "open-collection") {
+      const collections = await ctx.domains.library!.queries.collections.list();
+      return { view: { kind: "list", title: command.title, searchable: true, items: collections.map(collection => ({
+        id: collection.id, title: collection.name, icon: "books",
+        onSelect: () => execute(command, { id: "open-collection", args: { collectionId: collection.id } }),
+      })) } };
+    }
+    return execute(command, { id: command.id });
   };
   return { kind: "list", title: t[0], searchable: true,
     items: snapshot.commands.map(command => ({ id: command.id, title: command.title, keywords: [command.id],
       subtitle: command.unavailableReason === "permission" ? t[3] : command.unavailableReason === "workspace" ? t[4]
         : command.unavailableReason === "reader-control" ? t[5] : undefined,
       accessories: command.checked ? [{ kind: "icon", icon: "check", label: t[2] }] : [],
-      ...(command.enabled && api.execute ? { onSelect: () => execute(command) } : {}),
+      ...(command.enabled && api.execute ? { onSelect: () => choose(command) } : {}),
     })),
     actions: [{ id: "refresh", label: t[1], icon: "arrows-clockwise", run: refresh }],
   };

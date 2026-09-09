@@ -746,3 +746,17 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [文档/清理] 两份变更 HTML 在 1440×1000、1024×768、390×844 无页面横向溢出、重复 ID、坏页内锚点、无名按钮或已观察 HTTP 资源错误；wheel-phase/滚轮搜索、Escape、矩阵抽屉 inert/主题刷新保持通过。初次截图发生在平滑滚动尚未结束，未采信为变更内容视觉证据；改为即时滚动后查看矩阵桌面与插件说明移动端实际变更段落，console/page error 为空。文档仍依赖 CDN，浏览器已关闭。写文档时磁盘仅余 191 MiB，删除本仓库可重建 .turbo/cache 后恢复写入，未删除用户数据。原生 observer/error listener/global 已清，原 panel KV 缺席态恢复，测试触发器/面板菜单 key 为零；窗口恢复 1200×800，进程组 95367 终态 143，5184/9224 无监听，正式 app 未操作。
 
 [仍缺] 物理触控板送达/时序、packaged 和 Windows/Linux 输入回归未验，启动 WebContent 终止后恢复和既有 bridge/IMK 警告保留。不宣称所有 Tauri 事件安全，不替代面板焦点/动画/数据完成或全部双端与 W01-W32 验收。完整目标继续，未推送。
+
+## 2026-09-09：后续接线前的源码反查
+
+[代码/待修] READ16 的既有宿主实际包含模式启停、单位切换、上/下一单元与 returnToCurrent；TextUnitNavigatorBar 没有“跟随开关”，useTextUnitNavigator 明确保留 resting unit，不让手动翻页移动它。useReadAloud 的播完自动下一单元也不是可独立切换的 viewport-follow。旧 K02 目标把“跟随”与已有控制放在一行，不能因此推断已有对应宿主按钮或内部函数。该目标需明确语义与宿主建设，不能发明一个方法名后标记 API 漏接已修；本轮未实现跟随。
+
+[代码/待修] 接 TXT04/TXT05 前发现抽取事实本身不可靠，来源是 book-text-store.ts 与 domain/library.ts，以下为源码路径推导，尚未做专门故障运行，未标记修复：
+
+- extract 在缺源文件时返回 chapters=[]、sectionsFailed=0；ensureBookTextExtracted 允许这种结果写 complete=true，getBookTextStatus 随后报告 textless。应区分 missing source / not-found 与成功抽取零文本。
+- sectionsFailed>0 但 chapters 非空仍满足终局写入条件；getPersistedBookText 和共享 chapterCache 会继续使用这个不完整结果。局部失败不能宣称全书已抽取，也不能让后续查询永久失去重试机会。
+- checkpoint 将失败 section 的空文本和已前进 nextSection 一起存储，恢复路径直接采信原料，不带失败集合；一次暂时失败可能在续跑后被遗忘。需要保存可重试状态，不能只改最终 complete 条件。
+- 合并章节时丢弃短于 40 字符的文本，再以“章节为空”推断“无文字层”；短文本不等于无文本。没有支持的 section 读取器也不能等同成功读到空。
+- PDF 冷查询对后台 pending 使用空 catch，getTextStatus 只有 ok/unextracted/textless，没有进行中、部分失败或后台错误状态。只增加两端查询入口会把这些不准确的事实直接扩散。
+
+[下一实现单元] 先统一正文抽取的可用性/完成/失败/断点事实、内容身份和缓存失效，再接通受授权的 Agent/插件状态查询及正文准备任务，补真实 Tauri 故障与恢复证据；不会将新状态类型或静态端口计作消费者闭环。此记录是当前缺口的新增依据，不关闭 TXT04/TXT05、READ16 或完整目标。

@@ -26,6 +26,11 @@ export type HostCommandDescriptor = {
   parameters: { type: "object"; properties: Record<string, { type: "string"; minLength: number; maxLength: number }>; required?: string[]; additionalProperties: false };
 };
 export type HostCommandSnapshot = { version: 1; workspaceRevision: number | null; commands: HostCommandDescriptor[] };
+/** Revision orders deliveries within one subscription, not across subscriptions or settings writes. */
+export type HostCommandObservation = { revision: number } & (
+  | { status: "ready"; snapshot: HostCommandSnapshot }
+  | { status: "error"; code: string }
+);
 export type HostCommandReceipt = {
   commandId: HostCommandId;
   status: "completed" | "partial";

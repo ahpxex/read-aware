@@ -16,7 +16,8 @@ export function LocalWriteFailureToasts() {
   const { t } = useTranslation("common");
   useEffect(
     () =>
-      onAppEvent("local-write-failed", ({ code }) => {
+      onAppEvent("local-write-failed", ({ code, owner }) => {
+        if (owner === "caller") return;
         toast({
           variant: "destructive",
           title: t("errors.localSaveFailedTitle"),

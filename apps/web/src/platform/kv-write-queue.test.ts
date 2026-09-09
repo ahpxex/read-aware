@@ -5,7 +5,7 @@ function fixture() {
   const mirror = new Map<string, string>([["plugin.key", "original"]]);
   const disk = new Map(mirror);
   const pending: { key: string; value: string | null; resolve(): void; reject(error: Error): void }[] = [];
-  const committed: unknown[] = [], origins: string[] = [], failures: unknown[] = [], transactions: KVCommit[] = [];
+  const committed: unknown[] = [], origins: string[] = [], failures: unknown[] = [], failureOwners: string[] = [], transactions: KVCommit[] = [];
   const queue = new KVWriteQueue({
     read: key => mirror.get(key) ?? null,
     mirror: (key, value) => { if (value === null) mirror.delete(key); else mirror.set(key, value); },
@@ -14,13 +14,24 @@ function fixture() {
     } })),
     committed: (key, value, origin) => { committed.push([key, value]); origins.push(origin); },
     settled: commit => { transactions.push(commit); },
-    failed: (key, error) => { failures.push([key, error]); },
+    failed: (key, error, owner) => { failures.push([key, error]); failureOwners.push(owner); },
   });
-  return { queue, mirror, disk, pending, committed, origins, failures, transactions };
+  return { queue, mirror, disk, pending, committed, origins, failures, failureOwners, transactions };
 }
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 
 describe("durable KV write queue", () => {
+  test("failure presentation ownership belongs to each queued operation, not a global suppression flag", async () => {
+    const f = fixture();
+    let reject!: (error: Error) => void;
+    const domain = f.queue.batch(new Map([["plugin.key", "domain"]]), () => new Promise<void>((_, no) => { reject = no; }), "agent", "local", "caller");
+    const legacy = f.queue.write("plugin.key", "legacy");
+    await tick(); reject(Error("domain failed")); await expect(domain).rejects.toThrow("domain failed");
+    expect(f.mirror.get("plugin.key")).toBe("legacy");
+    await tick(); f.pending[0].reject(Error("legacy failed")); await expect(legacy).rejects.toThrow("legacy failed");
+    expect(f.failureOwners).toEqual(["caller", "store"]);
+    expect(f.mirror.get("plugin.key")).toBe("original"); expect(f.transactions).toEqual([]);
+  });
   test("transaction feed preserves actor/source, groups batch entries, includes restores and excludes failure", async () => {
     const f = fixture();
     const first = f.queue.batch(new Map([["plugin.key", "changed"], ["plugin.other", "second"]]), async () => {}, "agent");

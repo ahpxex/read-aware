@@ -1474,14 +1474,44 @@ has been retired. Closing an opening before it creates a session also revokes
 that token; authorized workspace navigation accounts for this pending state.
 This does not roll back renderer/history effects that already occurred.
 
-[代码] Library Desk **0.5** extends Workspace > Host commands: searchable host titles
+[代码] UI **1.6** adds `services.ui.commands.observe(handler)`, with the same
+library read/write grant as list. Each subscription first reads the authorized
+command projection, then re-reads on committed workspace changes (including
+reader entry/exit), settled shelf-setting observations and host language changes.
+Settings observations include local, remote-tagged, restore and catalog changes;
+unchanged authorized command output is deduplicated, so hidden setting changes
+do not leak through additional deliveries. This is not a reservation, resource
+enumeration, focus observer or target-specific enabled check.
+
+- Payload is `{ revision, status: "ready", snapshot }` or
+  `{ revision, status: "error", code }`. Revision starts at 1 and orders only
+  delivered values within that subscription; it is not a global revision,
+  `workspaceRevision`, settings CAS or a revision shared with Agent queries.
+- At most 64 command subscriptions per runtime; underlying settings/workspace
+  observation limits can reject registration earlier. Registration failures
+  release acquired sources. Initial subscribe/read races discard superseded
+  reads; slow callbacks serialize and coalesce invalidations to the latest state.
+- Read errors are logged and delivered as stable codes; the next invalidation
+  may recover. Handler errors are logged without killing the subscription.
+  Workspace detachment yields a ready catalog with workspace-unavailable
+  commands, not an empty command list. Disposal is idempotent, aborts the read
+  owner, releases sources and suppresses late delivery. Worker track/promote/
+  retirement rules apply; no observer executes commands on the user's behalf.
+- Agent list/execute still query this same service on demand. There is no new
+  perpetual model loop or claim that every host operation has dynamic availability.
+
+[代码] Library Desk **0.6** extends Workspace > Host commands: searchable host titles
 and IDs, current checked values, unavailable reasons, explicit refresh, guarded
 execution, close only on full completion. Partial completion stays open with a
 saved-setting statement and host-localized error. Refresh never automatically
-repeats the write. The command page is a snapshot, not a live command observer;
+repeats the write. The command page now subscribes only while visible, composing
+observe + publishView with a detail surface containing a stable nested list.
+Checked/available states update without clearing search. Observation failure
+keeps the last rows, adds a host-localized inline error and removes stale actions;
+recovery restores actions. Resource pickers remain query-time snapshots, and
 execution revalidates stale state. Book/collection commands compose library
 queries with searchable resource pickers, then execute the selected real ID with
-the discovery revision. Its manifest requires UI ^1.5, views ^1.2 and
+the revision of the clicked command snapshot, not a later live update. Its manifest requires UI ^1.6, views ^1.2 and
 read/write grants for exactly `shelf.layout`, `shelf.sort`, `shelf.group`.
 
 [环境] [Native evidence](./evidence/host-commands-2026-09-10.json) covers isolated
@@ -1495,13 +1525,28 @@ Worker resource schemas/grants/missing targets, book/global Agent resource calls
 native palette dynamic results and compiled Library Desk 0.5 resource pickers.
 A targeted SQLite failure kept the native palette open with no successful setting
 event; recovery produced one settings.changed with origin=user and closed it.
-The failure also exposed duplicate storage/command toasts; this presentation
-ownership gap remains recorded, not declared fixed. Delayed opening cancellation
+That failure exposed duplicate storage/command toasts. The subsequent
+[observation and error-ownership evidence](./evidence/command-observation-2026-09-10.json)
+verifies their repair: settings-domain commits explicitly assign failure presentation
+to their caller. KV rollback, logging, `local-write-failed` and Promise rejection
+remain; the event carries owner=caller and the global toast bridge does not render
+it twice. This host-only per-operation flag is not plugin-controlled or a global
+suppression window. Legacy void writes and other batches retain store-owned
+presentation, including while caller-owned writes fail concurrently. Native
+commands and compiled plugin actions each showed one localized SQL-failure
+notice; a legacy write still showed its one global notice. Failure/retry retained
+the actual grid/list value and destination behavior. This is not a declaration
+that all other async store facades already have caller-owned presentation.
+The same native evidence verifies Worker initial state, hidden-field filtering,
+unsubscribe, real reader availability, host-language titles and compiled live
+checked values from local and remote-tagged writes with search preserved.
+Read-error recovery, slow handlers, 64-observer limits and exact stale-read races
+are unit-tested, not all native-injected failures. Delayed opening cancellation
 was reproduced in a failing unit test before the controller fix; exact delayed
 lookup, timeout/frame concurrency and partial-result windows are not all native
 E2E evidence. Deterministic tool calls are not autonomous model decisions.
 Import task results, cross-plugin command invocation, remaining native entrypoints,
-complete availability/observation and focus, packaged and Windows/Linux remain
+complete target-level availability and focus, packaged and Windows/Linux remain
 open. **UI03 remains partial on both ends.**
 
 ### Host inference privacy policy
@@ -2019,7 +2064,7 @@ adjacent distribution repository, not a fourteenth plugin in this checkout:
 | Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |
 | Workspace Profiles | settled settings snapshots, exact path grants, atomic presets, private documents, shelf header/command views and Agent tool |
 | Text Desk | library text preparation/tasks, single/shelf multi-query search, snippets, paged status views, reader header/command and explicit book navigation |
-| Library Desk | workspace/collection navigation, host-command discovery and guarded execution with typed resource pickers (0.5), command search, grouped native selection, live selection count, explicit batch review/removal, durable pending-file discovery and safe retry |
+| Library Desk | workspace/collection navigation, live host-command discovery and guarded execution with typed resource pickers (0.6), command search, grouped native selection, live selection count, explicit batch review/removal, durable pending-file discovery and safe retry |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs
 in their packages and registered capabilities.

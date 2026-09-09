@@ -616,6 +616,7 @@ export function buildPluginContext(
     const library = domain.library;
     const commands = actorHostCommands(settingsDomain, true, !!library.commands, !!domain.reading?.commands);
     ctx.services.ui.commands = {
+      observe: handler => track(() => ({ dispose: commands.observe(handler) })),
       list: async () => {
         lifecycle.assertActive("services.ui.commands.list");
         return commands.list(lifecycle.signal);

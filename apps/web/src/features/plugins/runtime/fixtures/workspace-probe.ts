@@ -1,7 +1,11 @@
-import type { HostCommandId, PluginModule, WorkspaceSnapshot, WorkspaceTarget } from "@read-aware/plugin-types";
+import type { HostCommandId, HostCommandObservation, PluginModule, WorkspaceSnapshot, WorkspaceTarget } from "@read-aware/plugin-types";
 
 export default { activate(ctx) {
   const commands = ctx.services.ui.commands;
+  const commandStates: HostCommandObservation[] = [];
+  const watch = commands?.observe(state => { commandStates.push(state); if (commandStates.length > 20) commandStates.shift(); });
+  ctx.contributions.commands.register({ id: "host-observed", title: "Observed commands", run: () => ({ toast: JSON.stringify(commandStates) }) });
+  ctx.contributions.commands.register({ id: "host-unwatch", title: "Stop observing commands", run: () => { watch?.dispose(); return { toast: JSON.stringify(commandStates.length) }; } });
   ctx.contributions.commands.register({ id: "host-list", title: "Inspect host commands", run: async () => ({ toast: JSON.stringify({
     readable: !!commands, writable: !!commands?.execute, snapshot: await commands?.list(),
   }) }) });

@@ -95,7 +95,7 @@ const pluginMap = pairs([
   ["services.ui.publishView", "MORE05"],
   ["services.ui.reader.snapshot services.ui.reader.observe services.ui.reader.setPanel", "READ10"],
   ["services.ui.workspace.snapshot services.ui.workspace.observe services.ui.workspace.navigate", "UI01 UI02"],
-  ["services.ui.commands.list services.ui.commands.execute", "UI03"],
+  ["services.ui.commands.list services.ui.commands.execute services.ui.commands.observe", "UI03"],
   ["services.network.fetch", "SYS06"], ["services.llm.ask", "AI06"], ["services.clipboard.writeText", "SYS08"],
   ["services.session.environment services.session.observeEnvironment", "MORE03"],
 ]);

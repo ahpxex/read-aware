@@ -175,9 +175,10 @@ describe("settings durable command boundary", () => {
     const events: string[] = [];
     const failureViews: unknown[] = [];
     subscriptions.push(agent.events.subscribe(event => events.push(event.origin)));
-    subscriptions.push(onAppEvent("local-write-failed", () => failureViews.push([
+    subscriptions.push(onAppEvent("local-write-failed", ({ owner }) => failureViews.push([
       getDefaultStore().get(appSettingsAtom).theme,
       getDefaultStore().get(generalSettingsAtom).startView,
+      owner,
     ])));
     const failed = agent.commands.update([
       { path: "appearance.theme", value: "dark" },
@@ -189,7 +190,7 @@ describe("settings durable command boundary", () => {
     pending.shift()!.reject({ code: "db/locked", message: "forced lock" });
     expect((await failed).code).toBe("db/locked");
     await tick();
-    expect(failureViews).toEqual([[DEFAULT_APP_SETTINGS.theme, DEFAULT_GENERAL_SETTINGS.startView]]);
+    expect(failureViews).toEqual([[DEFAULT_APP_SETTINGS.theme, DEFAULT_GENERAL_SETTINGS.startView, "caller"]]);
     expect(events).toEqual([]);
     expect(pending).toHaveLength(1);
     expect(JSON.parse(pending[0].entries[0][1]).theme).toBe(DEFAULT_APP_SETTINGS.theme);

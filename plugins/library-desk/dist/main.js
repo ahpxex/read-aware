@@ -40,10 +40,11 @@ var translations2 = {
 };
 var commandStrings = (locale) => translations2[locale] ?? translations2[locale.split("-")[0]] ?? translations2.en;
 async function commandsView(ctx) {
-  const api = ctx.services.ui.commands, t = commandStrings(ctx.locale), snapshot = await api.list();
+  const api = ctx.services.ui.commands, t = commandStrings(ctx.locale);
+  let snapshot = await api.list(), failure;
   const refresh = async () => ({ view: await commandsView(ctx), navigation: "replace" });
-  const execute = async (command, request) => {
-    const receipt = await api.execute({ ...request, ...snapshot.workspaceRevision === null ? {} : { expectedWorkspaceRevision: snapshot.workspaceRevision } });
+  const execute = async (command, request, expectedWorkspaceRevision) => {
+    const receipt = await api.execute({ ...request, ...expectedWorkspaceRevision === null ? {} : { expectedWorkspaceRevision } });
     if (receipt.status === "completed")
       return { close: true };
     return { view: { kind: "detail", title: command.title, content: [
@@ -51,7 +52,7 @@ async function commandsView(ctx) {
       { kind: "error", code: receipt.errorCode ?? "ui/unavailable" }
     ], actions: [{ id: "refresh", label: t[1], icon: "arrows-clockwise", run: refresh }] }, navigation: "replace" };
   };
-  const choose = async (command) => {
+  const choose = async (command, revision) => {
     if (command.id === "open-book") {
       const books = await ctx.domains.library.queries.books.list();
       return { view: { kind: "list", title: command.title, searchable: true, items: books.map((book) => ({
@@ -59,7 +60,7 @@ async function commandsView(ctx) {
         title: book.title,
         subtitle: book.author,
         icon: "book-open",
-        onSelect: () => execute(command, { id: "open-book", args: { bookId: book.id } })
+        onSelect: () => execute(command, { id: "open-book", args: { bookId: book.id } }, revision)
       })) } };
     }
     if (command.id === "open-collection") {
@@ -68,25 +69,48 @@ async function commandsView(ctx) {
         id: collection.id,
         title: collection.name,
         icon: "books",
-        onSelect: () => execute(command, { id: "open-collection", args: { collectionId: collection.id } })
+        onSelect: () => execute(command, { id: "open-collection", args: { collectionId: collection.id } }, revision)
       })) } };
     }
-    return execute(command, { id: command.id });
+    return execute(command, { id: command.id }, revision);
   };
-  return {
-    kind: "list",
-    title: t[0],
-    searchable: true,
-    items: snapshot.commands.map((command) => ({
-      id: command.id,
-      title: command.title,
-      keywords: [command.id],
-      subtitle: command.unavailableReason === "permission" ? t[3] : command.unavailableReason === "workspace" ? t[4] : command.unavailableReason === "reader-control" ? t[5] : undefined,
-      accessories: command.checked ? [{ kind: "icon", icon: "check", label: t[2] }] : [],
-      ...command.enabled && api.execute ? { onSelect: () => choose(command) } : {}
-    })),
-    actions: [{ id: "refresh", label: t[1], icon: "arrows-clockwise", run: refresh }]
+  const content = () => {
+    const current = snapshot;
+    const list = {
+      kind: "list",
+      searchable: true,
+      items: current.commands.map((command) => ({
+        id: command.id,
+        title: command.title,
+        keywords: [command.id],
+        subtitle: command.unavailableReason === "permission" ? t[3] : command.unavailableReason === "workspace" ? t[4] : command.unavailableReason === "reader-control" ? t[5] : undefined,
+        accessories: command.checked ? [{ kind: "icon", icon: "check", label: t[2] }] : [],
+        ...!failure && command.enabled && api.execute ? { onSelect: () => choose(command, current.workspaceRevision) } : {}
+      })),
+      actions: [{ id: "refresh", label: t[1], icon: "arrows-clockwise", run: refresh }]
+    };
+    return { kind: "detail", title: t[0], content: [
+      { kind: "group", blocks: failure ? [{ kind: "error", code: failure }] : [] },
+      list
+    ] };
   };
+  return { ...content(), live: { subscribe(channel) {
+    let disposed = false, revision = 0;
+    const subscription = api.observe(async (state) => {
+      if (disposed)
+        return;
+      if (state.status === "ready") {
+        snapshot = state.snapshot;
+        failure = undefined;
+      } else
+        failure = state.code;
+      await ctx.services.ui.publishView(channel, { revision: ++revision, view: content() });
+    });
+    return { dispose() {
+      disposed = true;
+      subscription.dispose();
+    } };
+  } } };
 }
 
 // src/workspace.ts

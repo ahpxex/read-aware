@@ -32,7 +32,7 @@ import { reconcileGenesisEvents } from "./event-genesis";
 import { hydrateInterimProjections } from "./interim-projections";
 import { createLogger } from "./logger";
 import { hydrateSecrets } from "./secret-store";
-import { KVWriteQueue, type KVWriteOrigin, type KVCommit } from "./kv-write-queue";
+import { KVWriteQueue, type KVWriteOrigin, type KVCommit, type KVFailureOwner } from "./kv-write-queue";
 export type { KVCommit } from "./kv-write-queue";
 
 const log = createLogger("local-store");
@@ -96,9 +96,9 @@ const writes = new KVWriteQueue({
   persist: (key, value) => value === null ? invoke<void>("delete_kv", { key }) : invoke<void>("set_kv", { key, value }),
   committed: notifyWrite,
   settled: notifyCommit,
-  failed: (key, error) => {
+  failed: (key, error, owner) => {
     log.error(`KV write failed for "${key}"`, error);
-    emitAppEvent("local-write-failed", { kind: "kv", code: errorCode(error) });
+    emitAppEvent("local-write-failed", { kind: "kv", code: errorCode(error), owner });
   },
 });
 
@@ -186,11 +186,11 @@ export const localKV = {
 };
 
 /** Host-only multi-record settings commit; never exposes raw KV authority to actors. */
-export function setLocalKVBatch(entries: ReadonlyMap<string, string | null>, actor: EventOrigin | null = null, source: "local" | "restore" = "local"): Promise<void> {
+export function setLocalKVBatch(entries: ReadonlyMap<string, string | null>, actor: EventOrigin | null = null, source: "local" | "restore" = "local", failureOwner: KVFailureOwner = "store"): Promise<void> {
   if (entries.size === 0) return Promise.resolve();
   const values = new Map(entries);
   if (isTauri()) {
-    return writes.batch(values, () => invoke("set_kv_batch", { entries: [...values] }), actor, source);
+    return writes.batch(values, () => invoke("set_kv_batch", { entries: [...values] }), actor, source, failureOwner);
   }
   // Storybook has no SQLite transaction. Restore its prior records on failure,
   // and do not notify observers until all writes have succeeded.

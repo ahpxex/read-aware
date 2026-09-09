@@ -39,5 +39,6 @@ export function commitSettingsDraft(before: SettingsDraft, next: SettingsDraft, 
   for (const [pluginId, values] of Object.entries(next.pluginSettings.values)) {
     record(pluginSettingsKey(pluginId), before.pluginSettings.values[pluginId], values);
   }
-  return setLocalKVBatch(entries, origin);
+  // Domain commands return the exact failure to their UI, Agent or Worker owner.
+  return setLocalKVBatch(entries, origin, "local", "caller");
 }

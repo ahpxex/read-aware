@@ -47,7 +47,7 @@ export type AppEventMap = {
    * "couldn't save" so the user doesn't believe a lost change stuck; the raw
    * cause is already in the log at the failure site.
    */
-  "local-write-failed": { kind: "kv" | "secret"; code?: string };
+  "local-write-failed": { kind: "kv" | "secret"; code?: string; owner?: "store" | "caller" };
 };
 
 export type AppEventName = keyof AppEventMap;

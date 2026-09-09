@@ -1,0 +1,47 @@
+{
+  "date": "2026-09-10",
+  "environment": { "runtime": "Tauri macOS debug", "appIdentifier": "com.readaware.app.capability-e2e", "frontendPort": 5184, "bridgePort": 9224, "formalDataTouched": false },
+  "contract": { "service": "ui 1.6", "plugin": "Library Desk 0.6.0", "rows": ["UI03"], "commandCount": 18, "newMethod": "services.ui.commands.observe", "agent": "Existing book/global list_host_commands and execute_host_command consume the same service on demand, not a perpetual observation loop." },
+  "observations": [
+    { "case": "Real Worker initial authorization", "result": "No-grant worker observed no catalog. Read-only initial state had 18 disabled descriptors with no checked values. Fully granted initial state included authorized checked values and enabled actions, revision 1." },
+    { "case": "Committed settings and hidden fields", "result": "Agent-origin shelf.layout=list commit changed full worker layout-list from checked=false/revision1 to true/revision2; read-only worker remained at its single initial delivery because its hidden setting projection did not change." },
+    { "case": "Compiled live composition", "result": "Library Desk 0.6 Workspace > Host commands retained the typed search 'list view' while a committed settings change added Selected to Switch to list view. A remote-tagged KV write followed by flush changed layout back to grid; Selected disappeared without clearing search or replacing the dialog." },
+    { "case": "Real reader availability", "result": "Library-write-only worker initially observed go-stats enabled. Opening the owned synthetic FB2 changed its next observation to disabled with reader-control. Existing book Agent go-shelf closed the reader through shared execution." },
+    { "case": "Language and unsubscribe", "result": "Changing host language from en to zh-Hans changed the read worker's title from Library to 书库 on the next delivery; language restored. Full worker host-unwatch returned 3 and a subsequent committed sort change left its stored delivery count at 3." },
+    { "case": "Native command failure ownership", "result": "Targeted SQLite BEFORE UPDATE refusal for read-aware-shelf-view left grid unchanged and native search open at revision6. Exactly one role=status contained the localized database failure, without raw SQL. Removing the trigger and retrying list-view closed search at revision7." },
+    { "case": "Legacy failure is not suppressed", "result": "After the previous toast expired, a legacy localKV.setItem on the same faulted shelf key rolled back to grid and displayed exactly one global Change not saved notice. Caller-owned domain failure did not suppress unrelated store-owned operations." },
+    { "case": "Compiled plugin failure and recovery", "result": "A new targeted SQL refusal made the compiled plugin grid-view click show exactly one localized status notice while preserving the command dialog and 'grid view' search. Removing the trigger and clicking again saved grid and closed the dialog." }
+  ],
+  "unitEvidence": [
+    "Observer stale reads are discarded, slow handlers coalesce, unchanged projections deduplicate, stable read errors recover, disposed reads are aborted and late delivery suppressed.",
+    "64 subscriptions are bounded, failed registrations release capacity, handler exceptions are logged and later changes still deliver.",
+    "Plugin read failure retains prior rows, displays stable inline error and removes actions; recovery restores actions. Each callback keeps its own snapshot revision, and retirement suppresses publication.",
+    "Settings rollback precedes caller-owned failure event; legacy default event still presents globally. Mixed queued operations retain independent failure ownership rather than using a global suppression flag."
+  ],
+  "screenshotsInspected": ["/tmp/command-observation-live-1200.png", "/tmp/command-observation-failure-800.png"],
+  "captureBoundary": "The 1200x800 capture shows the live filtered command and Selected check. The 800x650 later capture shows the preserved native command frame but not the earlier transient toast; notice counts are supported by contemporaneous DOM observations, not that screenshot. No document horizontal overflow at 800.",
+  "cleanup": { "ownedBookIds": ["baa17812-e11b-4b53-8308-81cd1dcd1c90", "cb08a8cb-f4ad-4b7a-97d8-8dd0dfb70f6e"], "ownedCollectionId": "2daad324-9c66-4b30-9533-3679e523d1e0", "ownedBooksAfter": 0, "contributionsAfter": 0, "settingsRestored": true, "localeRestored": true, "sqlTriggerRemoved": true, "originalBooksPreserved": ["07ef226e-1ebc-47b6-8dc9-d09109448d22", "8ced004f-efe3-408f-80a8-a0ebffec84d3"], "processGroup": 21768, "exitCode": 143, "unownedProcessGroupNotOperated": 89360 },
+  "validation": {
+    "testTasks": "23/23 passed; web 896 tests, 9880 assertions, 154 files",
+    "typecheckTasks": "26/26 passed",
+    "build": "Frontend production build and explicit Library Desk build passed",
+    "inventory": { "rows": 243, "entries": 674, "modelUnits": 30, "catalog": 30, "baseline": 129, "scenarios": 32 },
+    "documents": {
+      "pages": ["host-capability-matrix", "host-capability-model", "plugin-system"],
+      "viewports": ["1440x1000", "1024x768", "390x844"],
+      "screenshotsInspected": true,
+      "search": { "observe": [13, 2, 4], "观察": [16, 7, 7], "targetRows": ["UI03", "C1"], "escapeClears": true },
+      "drawerAndTheme": "Matrix/model mobile drawer sets and clears main.inert; theme survives reload. Plugin-system has neither control.",
+      "audit": "No document horizontal overflow, duplicate IDs, broken fragment anchors, unnamed buttons or browser errors; observed CDN responses 200. No new diagrams.",
+      "browserClosed": true,
+      "boundary": "Static documentation checks are not product runtime evidence."
+    }
+  },
+  "boundaries": [
+    "Observation revision is per subscription, not a cross-actor clock, workspace revision, settings CAS or execution reservation.",
+    "Only settings-domain batches opt into caller presentation. Other async store facades are not declared migrated; legacy defaults remain store-owned.",
+    "Read failure/recovery, delayed-read and callback concurrency limits were unit-tested, not all injected into Tauri. Remote-tagged local writes are not a real cross-device sync campaign.",
+    "UI03 stays partial: target-specific availability, import tasks, cross-plugin invocation, remaining native entrypoints and complete focus remain open.",
+    "No packaged build, Windows/Linux, full install/upgrade consent or autonomous model inference was verified in this unit. Existing native/bridge/chunk warnings remain."
+  ]
+}

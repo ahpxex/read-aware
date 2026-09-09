@@ -52,7 +52,7 @@ export const units: Unit[] = [
     "叙事图遵守阅读边界，说明性图按 flavor；重分类后旧图版本可辨；候选被接受/拒绝有来源。当前未实现的画像与 bundle 单列，不成为 Jumper 的前置条件。"),
   unit("C1", "Contribution", "actions/options", "动作、命令与动态选项", "UI03-05 EXT01-02 MORE04-05 CFG09", "contributions.selectionActions contributions.headerActions contributions.commands contributions.settingsOptions",
     "插件声明 action/command ID、位置、参数、标题、可见/可用/checked 条件与默认键位；宿主组合菜单/快捷键/命令面板；动态设置选项提供候选而非替用户修改值。现有 header shelf/reader 保留，确有宿主插槽的上下文菜单按位置参数扩展。",
-    "模型调用的是受 schema/权限约束的语义命令，不是点击菜单或执行 label；UI 1.5 的 18 个命令已由 list_host_commands/execute_host_command 双 scope、插件 commands.list/execute 与原生命令面板共用服务。16 个无参数动作加 open-book/bookId、open-collection/collectionId；Library Desk 0.5 组合真实资源选择器。设置已保存但导航失败返回 partial；开书等 reading ready，不清无关覆盖层。原生执行等待/重复点击/Escape/旧帧隔离已接，取消后迟到 begin 已修复；固定目录快照与执行复核不代表导入、跨插件、全部入口/可用性/观察已闭合，SQL 故障仍有重复 toast。插件命令要模型可用需 C4 显式贡献工具或宿主明确适配。",
+    "模型调用受 schema/权限约束的语义命令，不是菜单 label；18 个命令由 list_host_commands/execute_host_command 双 scope、插件 commands.list/execute 与原生命令面板共用服务。UI 1.6 新增授权快照观察，覆盖工作区、已提交 shelf 设置和语言，串行合并/错误恢复/释放；Library Desk 0.6 实时 checked/可用性和稳定搜索，资源选择冻结点击时 revision。Agent 查询读取同源状态，不新增常驻模型观察。设置已保存但导航失败返回 partial，开书等 ready 不清无关覆盖层；原生等待/禁重/Escape/旧帧隔离与迟到 begin 已修复。领域设置失败由 caller 呈现，旧 void 写保留全局提示，SQL 故障复测不再双 toast。目标级完整 availability、导入、跨插件、其余原生入口/焦点/打包跨平台仍缺；插件命令给模型使用需 C4 显式贡献工具或宿主明确适配。",
     "Jumper 0.2 用 reader headerActions 与 observeSession 组合前后跳可用性。commands/headerActions/selectionActions 1.1 的注册句柄 updateState 更新完整 visible/enabled/checked 快照，旧句柄不能改同名新注册。声明无额外 permission 不代表动作能绕过它调用的领域权限。",
     "不为每个菜单再建 contribution family；命令 broker 仅解析已注册类型化描述，禁止任意字符串反射到 host 函数。静态注册与实时 enablement 分开。",
     "禁用/撤权后命令不可执行；菜单状态随 session 刷新；键位冲突可诊断；插件卸载不留下快捷键或悬挂 UI 回调。"),

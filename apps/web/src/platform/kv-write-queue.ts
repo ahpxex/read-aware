@@ -3,6 +3,8 @@ import type { EventOrigin } from "@read-aware/core";
 type Mutation = { value: string | null; done: Promise<void> };
 type KeyState = { durable: string | null; mutations: Mutation[] };
 export type KVWriteOrigin = "local" | "remote";
+/** A caller-owned failure still rejects and is logged; its caller owns user presentation. */
+export type KVFailureOwner = "store" | "caller";
 export type KVCommit = {
   entries: { key: string; value: string | null }[];
   source: KVWriteOrigin | "restore";
@@ -26,7 +28,7 @@ export class KVWriteQueue {
     persist(key: string, value: string | null): Promise<void>;
     committed(key: string, value: string | null, origin: KVWriteOrigin): void;
     settled?(commit: KVCommit): void;
-    failed(key: string, error: unknown): void;
+    failed(key: string, error: unknown, owner: KVFailureOwner): void;
   }) {}
 
   write(key: string, value: string | null, origin: KVWriteOrigin = "local", actor: EventOrigin | null = null): Promise<void> {
@@ -34,8 +36,8 @@ export class KVWriteQueue {
   }
 
   /** Atomic user edits publish only after the entire native transaction commits. */
-  batch(values: ReadonlyMap<string, string | null>, persist: () => Promise<void>, actor: EventOrigin | null = null, source: "local" | "restore" = "local"): Promise<void> {
-    return this.enqueue(values, persist, "local", actor, source);
+  batch(values: ReadonlyMap<string, string | null>, persist: () => Promise<void>, actor: EventOrigin | null = null, source: "local" | "restore" = "local", failureOwner: KVFailureOwner = "store"): Promise<void> {
+    return this.enqueue(values, persist, "local", actor, source, failureOwner);
   }
 
   /** Invoke without a microtask gap between the settled-state check and the read/enqueue. */
@@ -59,6 +61,7 @@ export class KVWriteQueue {
     origin?: KVWriteOrigin,
     actor: EventOrigin | null = null,
     source: KVCommit["source"] = origin ?? "restore",
+    failureOwner: KVFailureOwner = "store",
   ): Promise<void> {
     const entries = [...values].map(([key, value]) => {
       const state = this.keys.get(key) ?? { durable: this.deps.read(key), mutations: [] };
@@ -83,7 +86,7 @@ export class KVWriteQueue {
           this.deps.mirror(key, latest ? latest.value : state.durable);
           if (!state.mutations.length) this.keys.delete(key);
         }
-        if (failure) this.deps.failed(entries[0]?.key ?? "replacement", failure.error);
+        if (failure) this.deps.failed(entries[0]?.key ?? "replacement", failure.error, failureOwner);
         else this.deps.settled?.({ entries: entries.map(({ key, value }) => ({ key, value })), source, actor });
       }
     });

@@ -7,6 +7,8 @@ import { AppError, type HostCommandReceipt } from "@read-aware/core";
 import { initI18n } from "../../../i18n";
 import type { CommandItem } from "../lib/build-commands";
 import { useCommandExecution, type NativeCommandExecutor } from "./useCommandExecution";
+import { LocalWriteFailureToasts } from "../../../components/LocalWriteFailureToasts";
+import { emitAppEvent } from "../../../platform/app-events";
 
 if (process.env.COMMAND_EXECUTION_CASE === "1") {
 test("palette waits, isolates frames, reports truthful failures and cancels explicit dismissal", async () => {
@@ -23,7 +25,7 @@ test("palette waits, isolates frames, reports truthful failures and cancels expl
   let api!: ReturnType<typeof useCommandExecution>, closed = 0;
   const onClose = () => { closed++; };
   function Harness({ open }: { open: boolean }) { api = useCommandExecution(open, onClose, execute); return null; }
-  const render = async (open: boolean) => { await act(async () => { root.render(<ToastProvider><Harness open={open} /></ToastProvider>); }); };
+  const render = async (open: boolean) => { await act(async () => { root.render(<ToastProvider><LocalWriteFailureToasts /><Harness open={open} /></ToastProvider>); }); };
   const completed: HostCommandReceipt = { commandId: "open-book", status: "completed", completed: ["reading"] };
   try {
     await initI18n("en"); await render(true);
@@ -43,10 +45,16 @@ test("palette waits, isolates frames, reports truthful failures and cancels expl
     expect(closed).toBe(1);
 
     await act(async () => { run = api.run(item); });
-    await act(async () => { pending.shift()!.reject(new AppError("db/locked", "private raw failure")); await run; });
+    await act(async () => {
+      emitAppEvent("local-write-failed", { kind: "kv", code: "db/locked", owner: "caller" });
+      pending.shift()!.reject(new AppError("db/locked", "private raw failure")); await run;
+    });
     expect(closed).toBe(1); expect(api.busy).toBe(false);
     expect(dom.window.document.body.textContent).not.toContain("private raw failure");
     expect(dom.window.document.querySelector('[role="status"]')?.textContent).toBeTruthy();
+    expect(dom.window.document.querySelectorAll('[role="status"]')).toHaveLength(1);
+    await act(async () => { emitAppEvent("local-write-failed", { kind: "kv", code: "db/locked" }); });
+    expect(dom.window.document.querySelectorAll('[role="status"]')).toHaveLength(2);
 
     await act(async () => { run = api.run(item); });
     await act(async () => { pending.shift()!.resolve({ commandId: "layout-list", status: "partial", completed: ["settings"], errorCode: "ui/superseded" }); await run; });

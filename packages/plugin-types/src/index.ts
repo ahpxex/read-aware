@@ -45,7 +45,7 @@ export type { ReadingTimeQuery, ReadingTimeCursor, ReadingTimeSnapshot, ReadingT
 export type { ReadingInsights, ReadingInsightsQuery, ReadingPeriod } from "@read-aware/core";
 export type { WorkspaceTarget, WorkspaceQuery, WorkspaceSnapshot, WorkspaceReceipt, WorkspaceSettingsSection } from "@read-aware/core";
 export type { SettingsObservation, SettingsObservationCause } from "@read-aware/core";
-export type { HostCommandId, HostCommandRequest, HostCommandDescriptor, HostCommandSnapshot, HostCommandReceipt } from "@read-aware/core";
+export type { HostCommandId, HostCommandRequest, HostCommandDescriptor, HostCommandSnapshot, HostCommandReceipt, HostCommandObservation } from "@read-aware/core";
 import type {
   AnnotationItem,
   AskItem,
@@ -1651,6 +1651,8 @@ export type PluginHostServices = {
     /** UI 1.4: native navigation/shelf commands. UI 1.5: typed open-book/open-collection args. Never arbitrary menu/plugin IDs. */
     commands?: {
       list(): Promise<import("@read-aware/core").HostCommandSnapshot>;
+      /** UI 1.6: initial authorized snapshot, then serial/coalesced workspace, shelf-setting and locale changes. */
+      observe(handler: (state: import("@read-aware/core").HostCommandObservation) => unknown): PluginDisposable;
       /** Library write plus each command's setting grant; opening/leaving a reader needs reading:write. */
       execute?(request: import("@read-aware/core").HostCommandRequest): Promise<import("@read-aware/core").HostCommandReceipt>;
     };

@@ -1179,7 +1179,10 @@ unconditioned targets, duplicate conditions/event IDs, non-agent origin, raw
 content changes, invalid ranking/evidence changes, invalid promotion and pinned
 automatic forgetting/supersession. A supersession must be followed by its winner
 credit in the same batch. Existing event IDs cannot be silently accepted as a new
-plan. Public memory 1.1 permissions and plugin methods are unchanged.
+plan. It returns the surviving supplied read set with post-commit revisions,
+captured inside that same transaction. It never acknowledges unread insertions
+or later edits through a second store read. Public memory 1.1 permissions and
+plugin methods are unchanged.
 
 [代码] The judgment normalizer skips malformed array entries and overlapping
 merge/contradiction endpoints; a retained winner cannot subsequently become a
@@ -1189,23 +1192,53 @@ report proposed counts as committed counts or mark the dirty revision clean.
 Memory-building cancellation is passed to the host and rechecked after event
 minting, before dispatch; cancellation is not undo after dispatch.
 
+[代码] Each eligible `consolidateIfNeeded()` now reads authoritative active
+snapshots, comparing a canonical ID/revision checkpoint and the existing
+30-day decay rule against the host clock. This replaces the runtime-own-write
+counter: user/plugin/native remote-apply edits, insertions, removal and time-only
+eligibility can trigger a new pass. Unchanged, not-due data skips model work, not
+the store read. Successful passes settle only the transaction receipt (or the
+original read set for a no-write pass); changes during/after that pass remain
+eligible on the next check. Model exceptions, non-object/unparseable output and
+non-`stop` completion reasons leave judgment unsettled. Deterministic decay may
+still commit after a failed judgment; the next check retries judgment without
+repeating that freshly committed decay. Runtime in-flight deduplication remains.
+
+[代码/环境] Scheduling is still the existing five-minute idle loop, initial
+queue and return-to-visible queue, subject to an available Agent runtime and
+enabled memory building. Hidden/closed apps do not run this loop. This is bounded
+poll cadence, not an immediate change subscription, durable job or an execution
+deadline; slow model/background work can delay a pass. Restarting creates a fresh
+checkpoint. No extra observer/timer or plugin maintenance authority was added.
+
 [环境] [Native evidence](./evidence/memory-maintenance-2026-09-10.json) verifies a
 real Worker correction during scripted judgment, stale merge/reinforcement
 rejection, second-event SQL failure with whole-batch rollback, successful retry,
 and subsequent editing through compiled Memory Desk. Rust tests independently
 cover event/outbox rollback and payload/read-set restrictions. Model answers were
 scripted, not autonomous inference; packaged/Windows/Linux and distributed races
-are unverified. Native inspection also found Pin/Correct icon names falling back
-to the generic symbol; this presentation gap is not part of the CAS proof.
+are unverified. The Pin/Correct icon fallback discovered there is now fixed by
+registering the existing `push-pin`/`pencil-simple` names in the host icon catalog.
+
+[环境] [Idle evidence](./evidence/memory-idle-2026-09-10.json) uses a real
+AgentRuntime with production SQLite ports restricted to one owned fixture row,
+actual Worker writes, native `applyRemote`, and compiled Memory Desk pin/correct
+actions. Each change reruns evaluation and then settles. With an injected clock,
+30 days minus 1 ms skips, the exact boundary decays; an owned SQL rejection leaves
+importance and event count unchanged, then retries successfully at the same
+clock. These direct idle calls do not test five-minute wall-clock scheduling or
+autonomous inference (one row needs no model). Native remote apply uses locally
+minted fixture events, not relay/E2E or a second device. Rust proves receipt
+exclusion of unread insertions/late edits; Agent tests cover failed/incomplete
+judgment retry, time-only expiry, external changes and post-receipt races.
 
 [设计/仍缺] Tokens are local. Newly inserted rows outside the captured read set
 do not invalidate it; no serializable judgment over the future whole collection
 is claimed. New-fact promotion/deduplication, repeated extraction of forgotten
 facts, complete pipeline quiescence, whole-store/model budget control, public
 observation, per-book authorization and true cross-device CAS remain open.
-The runtime's idle dirty counter still tracks its own writes, not every external
-plugin/user/sync write or the passage of a decay day; the new transaction protects
-an attempted plan but does not prove that all required future passes are scheduled.
+Unread insertions do not cancel a running judgment, but now remain dirty for the
+next eligible poll rather than being absorbed into its settled checkpoint.
 
 ## 6. Settings Is a Domain
 

@@ -14,15 +14,18 @@ export async function snapshotMemories(): Promise<MemorySnapshot[]> {
 }
 async function commitMaintenance(conditions: { memoryId: string; revision: string }[], drafts: DomainEventDraft[], signal?: AbortSignal) {
   assertAllowed(signal);
-  if (!drafts.length) return;
+  if (!drafts.length) return [];
   const events = await mintEventRows(drafts);
   assertAllowed(signal);
-  await invoke("memory_maintenance_commit", { conditions, events });
+  const committed = await invoke<MemorySnapshot[]>("memory_maintenance_commit", { conditions, events });
   broadcastDomainEventDrafts(drafts);
+  return committed;
 }
 export async function applyMemoryChanges(changes: MemoryChange[], snapshots: MemorySnapshot[], signal?: AbortSignal) {
+  assertAllowed(signal);
   const plan = planMemoryMaintenance(changes, snapshots);
-  await commitMaintenance(plan.conditions, plan.events.map(event => ({ ...event, origin: "agent" })), signal);
+  if (!plan.events.length) return structuredClone(snapshots);
+  return commitMaintenance(plan.conditions, plan.events.map(event => ({ ...event, origin: "agent" })), signal);
 }
 export async function reinforceMemory(snapshot: MemorySnapshot, signal?: AbortSignal) {
   const { memory, revision } = structuredClone(snapshot);

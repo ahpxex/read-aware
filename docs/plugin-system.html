@@ -353,7 +353,7 @@
           </div></details>
           <details class="ep"><summary>纠错不能静默覆盖新版本，遗忘不等于擦除历史</summary><div class="ep-body">
             <p>inspect 返回活动记忆和版本；mutate 仅允许纠错、置顶/取消置顶、遗忘，需 memory:write。SQLite 在同一事务复核版本并提交事件与投影；冲突或拒写保留插件草稿。Agent 的 manage_memory 走相同路径，每次变更先请求用户批准。</p>
-            <p>遗忘退出活跃检索，不删除事件历史或外部副本。现有记忆的后台巩固与强化也已接同源版本保护；整个合并计划原子提交，拒绝旧判断覆盖新修改。外部写/时间变化触发维护、跨设备协调与新事实去重仍缺。macOS debug 已验 Worker 冲突、第二步 SQL 失败回滚、重试与编译表单；模型判断/批准为脚本，跨平台未验，Pin/Correct 图标仍回退为通用符号。<a href="./plugin-system.md#memory-maintenance">后台维护边界</a></p>
+            <p>遗忘退出活跃检索，不删除事件历史或外部副本。后台巩固与强化采用同源版本和原子整批提交；空闲检查读取真实版本及衰减期限，外部写入、时间变化、判断失败会重新评估，提交回执不吞掉迟到修改。仍是五分钟空闲轮询，不是即时观察或耐久任务；跨设备协调与新事实去重仍缺。macOS debug 已验 Worker、原生 remote apply、衰减边界、SQL 回滚重试和编译表单，Pin/Correct 图标已修复；时钟为注入、非联网同步或自主推理，跨平台未验。<a href="./plugin-system.md#memory-maintenance">后台维护边界</a></p>
           </div></details>
         </div>
       </section>

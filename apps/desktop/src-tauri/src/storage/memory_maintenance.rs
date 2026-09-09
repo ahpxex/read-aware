@@ -45,7 +45,7 @@ pub(crate) fn commit_inner(
     conn: &mut Connection,
     conditions: &[MemoryCondition],
     events: &[EventRow],
-) -> Result<(), CommandError> {
+) -> Result<Vec<MemorySnapshot>, CommandError> {
     if conditions.is_empty()
         || events.is_empty()
         || events.len() > conditions.len().saturating_mul(4)
@@ -151,8 +151,17 @@ pub(crate) fn commit_inner(
             ));
         }
     }
+    // Only acknowledge records this plan actually read. Newly inserted rows must
+    // remain visible as a change to the next maintenance pass.
+    let committed = conditions
+        .iter()
+        .map(|condition| read_snapshot(&tx, &condition.memory_id))
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .flatten()
+        .collect();
     tx.commit()?;
-    Ok(())
+    Ok(committed)
 }
 
 #[tauri::command]
@@ -165,7 +174,7 @@ pub fn memory_maintenance_commit(
     conditions: Vec<MemoryCondition>,
     events: Vec<EventRow>,
     db: tauri::State<'_, Db>,
-) -> Result<(), CommandError> {
+) -> Result<Vec<MemorySnapshot>, CommandError> {
     let mut conn = db.0.lock()?;
     commit_inner(&mut conn, &conditions, &events)
 }

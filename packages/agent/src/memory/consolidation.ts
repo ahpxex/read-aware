@@ -7,6 +7,7 @@
  */
 import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
 import type { CompleteFn } from "../models/complete";
+import type { MemorySnapshot } from "@read-aware/core";
 import type { AgentLogPort, MemoryChange, MemoryPort, MemoryRecord } from "../ports";
 
 // ---- 衰减（纯函数，可独立测试） --------------------------------------------
@@ -73,8 +74,8 @@ async function judgementChanges(
   complete: CompleteFn,
   model: Model<Api>,
   log?: AgentLogPort,
-): Promise<MemoryChange[]> {
-  if (memories.length < 2) return [];
+): Promise<{ changes: MemoryChange[]; succeeded: boolean }> {
+  if (memories.length < 2) return { changes: [], succeeded: true };
   const listing = memories
     .map(
       (memory) =>
@@ -87,16 +88,20 @@ async function judgementChanges(
       systemPrompt: CONSOLIDATION_PROMPT,
       messages: [{ role: "user", content: listing, timestamp: Date.now() }],
     });
+    if (message.stopReason !== "stop") {
+      log?.warn("memory consolidation judgement did not complete", { stopReason: message.stopReason, error: message.errorMessage });
+      return { changes: [], succeeded: false };
+    }
     parsed = parseJson(messageText(message));
   } catch (error) {
     // "No changes" is a safe degradation, but a dead consolidation pass must
     // not be indistinguishable from a quiet one.
     log?.warn("memory consolidation judgement failed", error);
-    return [];
+    return { changes: [], succeeded: false };
   }
-  if (!parsed) {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     log?.warn("memory consolidation output was not parseable JSON");
-    return [];
+    return { changes: [], succeeded: false };
   }
 
   const byId = new Map(memories.map((memory) => [memory.id, memory]));
@@ -139,7 +144,7 @@ async function judgementChanges(
     touch(memory.id);
   }
 
-  return changes;
+  return { changes, succeeded: true };
 }
 
 // ---- 入口 -------------------------------------------------------------------
@@ -158,11 +163,17 @@ export interface RunConsolidationInput {
   model: Model<Api>;
   /** 注入时钟便于测试；缺省取当前时间 */
   now?: number;
+  /** Already captured by the idle gate; also used as the conditional write set. */
+  snapshots?: MemorySnapshot[];
 }
 
 export async function runConsolidation(input: RunConsolidationInput): Promise<ConsolidationReport> {
+  return (await runConsolidationPass(input)).report;
+}
+
+export async function runConsolidationPass(input: RunConsolidationInput) {
   const now = input.now ?? Date.now();
-  const snapshots = await input.memory.snapshotMemories();
+  const snapshots = input.snapshots ?? await input.memory.snapshotMemories();
   const memories = snapshots.map(snapshot => snapshot.memory);
 
   const decay = decayChanges(memories, now);
@@ -170,15 +181,20 @@ export async function runConsolidation(input: RunConsolidationInput): Promise<Co
     decay.filter((change) => change.type === "forget").map((change) => change.id),
   );
   const remaining = memories.filter((memory) => !forgottenIds.has(memory.id));
-  const judged = await judgementChanges(remaining, input.complete, input.model, input.log);
+  const judgment = await judgementChanges(remaining, input.complete, input.model, input.log);
+  const judged = judgment.changes;
 
   const changes = [...decay, ...judged];
-  if (changes.length) await input.memory.applyMemoryChanges(changes, snapshots);
+  const committed = changes.length ? await input.memory.applyMemoryChanges(changes, snapshots) : snapshots;
 
   return {
-    decayed: decay.filter((change) => change.type === "decay").length,
-    forgotten: forgottenIds.size,
-    merged: judged.filter((change) => change.type === "supersede").length,
-    promoted: judged.filter((change) => change.type === "promote").length,
+    snapshots: committed,
+    judgmentSucceeded: judgment.succeeded,
+    report: {
+      decayed: decay.filter((change) => change.type === "decay").length,
+      forgotten: forgottenIds.size,
+      merged: judged.filter((change) => change.type === "supersede").length,
+      promoted: judged.filter((change) => change.type === "promote").length,
+    },
   };
 }

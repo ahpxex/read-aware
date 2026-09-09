@@ -4,7 +4,8 @@
  */
 import type { ThreadChunk } from "../chunks";
 import { digestBookCatchUp, digestBookTick } from "../memory/graph-upkeep";
-import { runConsolidation, type ConsolidationReport } from "../memory/consolidation";
+import { runConsolidationPass, type ConsolidationReport } from "../memory/consolidation";
+import { ConsolidationCheckpoint } from "../memory/consolidation-checkpoint";
 import { runMemoryBuild } from "../memory/build-policy";
 import {
   accountCredential,
@@ -33,6 +34,8 @@ export interface AgentRuntimeOptions {
   fetch?: AgentFetch;
   inferencePolicy?: InferencePolicy;
   maxWindowTurns?: number;
+  /** Host clock for time-only maintenance eligibility; tests inject exact boundaries. */
+  now?: () => number;
   /**
    * 宿主对解析出的模型做最后修饰的接缝——产品用它注入用户配置的
    * OpenRouter 上游路由（compat.openRouterRouting），eval 用同型接缝
@@ -49,32 +52,12 @@ export class AgentRuntime {
   private readonly completeFns: Record<ModelRole, CompleteFn>;
   private readonly streamFns: Record<ModelRole, StreamFn>;
   private readonly threads = new Map<string, AgentThread>();
-  private memoryRevision = 1;
-  private consolidatedRevision = 0;
+  private readonly consolidationCheckpoint = new ConsolidationCheckpoint();
   private consolidationWork: Promise<ConsolidationReport | null> | null = null;
 
   constructor(options: AgentRuntimeOptions) {
     this.options = options;
-    const memory = options.deps.memory;
-    this.deps = {
-      ...options.deps,
-      memory: {
-        ...memory,
-        saveMemory: async (input) => {
-          const saved = await memory.saveMemory(input);
-          this.memoryRevision += 1;
-          return saved;
-        },
-        reinforceMemory: async (snapshot, signal) => {
-          await memory.reinforceMemory(snapshot, signal);
-          this.memoryRevision += 1;
-        },
-        applyMemoryChanges: async (changes, snapshots, signal) => {
-          await memory.applyMemoryChanges(changes, snapshots, signal);
-          if (changes.length > 0) this.memoryRevision += 1;
-        },
-      },
-    };
+    this.deps = options.deps;
     const registry = buildProviderRegistry();
     const baseResolve = createModelResolver(options.account, options.models, registry);
     this.resolveModel = options.transformModel
@@ -190,9 +173,8 @@ export class AgentRuntime {
   }
 
   /**
-   * Idle-maintenance entrypoint. It runs once for a fresh runtime and again only
-   * after a successful memory write, so a host timer never turns into repeated
-   * no-op LLM calls.
+   * Each eligible idle tick checks durable revisions and decay eligibility.
+   * An unchanged, not-yet-due store never causes another model call.
    */
   consolidateIfNeeded(): Promise<ConsolidationReport | null> {
     if (this.options.deps.memoryPolicy?.enabled() === false) return Promise.resolve(null);
@@ -245,23 +227,22 @@ export class AgentRuntime {
 
   private runConsolidation(force: boolean): Promise<ConsolidationReport | null> {
     if (this.consolidationWork) return this.consolidationWork;
-    if (!force && this.memoryRevision === this.consolidatedRevision) {
-      return Promise.resolve(null);
-    }
     this.consolidationWork = runMemoryBuild(this.options.deps, async operation => {
-      // Include every extraction queued before this idle pass. Writes that land
-      // during the pass advance the revision and deliberately keep it dirty.
       await operation.guard(() => this.flushBackgroundWork())();
-      const revision = this.memoryRevision;
-      const report = await operation.guard(() => runConsolidation({
-        // The pass's own merge/decay writes should not mark a second pass dirty.
+      const snapshots = await operation.guard(() => this.options.deps.memory.snapshotMemories())();
+      const now = this.options.now?.() ?? Date.now();
+      if (!force && !this.consolidationCheckpoint.needed(snapshots, now)) return null;
+      const pass = await operation.guard(() => runConsolidationPass({
         log: this.options.deps.log,
         memory: operation.protect(this.options.deps).memory,
         complete: operation.complete(this.completeFns.fast),
         model: this.resolveModel("fast"),
+        snapshots,
+        now,
       }))();
-      if (this.memoryRevision === revision) this.consolidatedRevision = revision;
-      return report;
+      // Use the transaction receipt, not a later read that could hide new work.
+      this.consolidationCheckpoint.settle(pass.snapshots, pass.judgmentSucceeded);
+      return pass.report;
     }).finally(() => {
       this.consolidationWork = null;
     });

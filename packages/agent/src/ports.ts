@@ -251,7 +251,8 @@ export interface MemoryPort {
   saveMemory(input: NewMemoryInput): Promise<MemoryRecord>;
   /** 提炼命中已有记忆 → 证据 +1（doc §4：反复出现才强化） */
   reinforceMemory(snapshot: import("@read-aware/core").MemorySnapshot, signal?: AbortSignal): Promise<void>;
-  applyMemoryChanges(changes: MemoryChange[], snapshots: import("@read-aware/core").MemorySnapshot[], signal?: AbortSignal): Promise<void>;
+  /** Returns the surviving read set at the commit boundary, never a later reread. */
+  applyMemoryChanges(changes: MemoryChange[], snapshots: import("@read-aware/core").MemorySnapshot[], signal?: AbortSignal): Promise<import("@read-aware/core").MemorySnapshot[]>;
 }
 
 /**

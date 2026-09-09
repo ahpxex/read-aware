@@ -35,6 +35,7 @@ export function createMemoryMaintenanceFixture(rows: MemoryRecord[], management:
       await assertCurrent(snapshots, signal);
       const touched = new Set(plan.events.map(event => event.payload.memoryId));
       for (const next of plan.rows) if (touched.has(next.id)) Object.assign(rows.find(row => row.id === next.id)!, next, { updatedAt: new Date().toISOString() });
+      return (await Promise.all(snapshots.map(snapshot => management.inspect(snapshot.memory.id)))).filter((snapshot): snapshot is MemorySnapshot => !!snapshot);
     },
   };
 }

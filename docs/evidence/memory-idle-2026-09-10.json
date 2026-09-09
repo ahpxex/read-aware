@@ -1,0 +1,147 @@
+{
+  "date": "2026-09-10",
+  "scope": "Isolated macOS Tauri debug app; current idle maintenance checkpoint changes",
+  "app": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "frontendPort": 5184,
+    "bridgePort": 9224,
+    "ownedProcessGroup": 49279
+  },
+  "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-memory-idle-probe.ts",
+  "owned": {
+    "bookId": "26aa7e2a-bec9-4748-a309-b3eac8d8fb29",
+    "memoryIds": [
+      "6cf540f2-f518-42ef-afe0-f41c9b53d2ba",
+      "f10e661a-9a00-42ec-b2ec-26e906f4c93f",
+      "e038eb56-27b4-4a43-925d-6a0d2225836b"
+    ]
+  },
+  "runtime": "Real AgentRuntime, production memory port; snapshot input restricted to the owned user memory. An injected clock drives exact eligibility. Direct consolidateIfNeeded calls, not the five-minute timer.",
+  "checks": [
+    {
+      "name": "fresh-and-stable",
+      "firstReport": {
+        "decayed": 0,
+        "forgotten": 0,
+        "merged": 0,
+        "promoted": 0
+      },
+      "nextReport": null
+    },
+    {
+      "name": "worker-write",
+      "actor": "capability-memory-feedback-write",
+      "operation": "inspect then correct",
+      "content": "Corrected by real Worker",
+      "nextReport": "non-null",
+      "followingReport": null
+    },
+    {
+      "name": "native-remote-apply",
+      "path": "createIpcSyncStore().applyRemote with locally minted canonical fixture events",
+      "result": {
+        "appended": 1,
+        "applied": 1,
+        "deferred": false,
+        "replayed": false
+      },
+      "content": "Received through native remote apply",
+      "nextReport": "non-null",
+      "followingReport": null,
+      "notProven": "Relay transport, E2E encryption and multi-device convergence"
+    },
+    {
+      "name": "time-only",
+      "agedUpdatedAt": "2026-08-11T19:59:42.994Z",
+      "beforeBoundary": 1789070382993,
+      "atBoundary": 1789070382994,
+      "beforeBoundaryReport": null,
+      "initialImportance": 0.6
+    },
+    {
+      "name": "native-write-failure",
+      "trigger": "capability_idle_deny: BEFORE UPDATE on owned memory only; RAISE ABORT",
+      "errorCode": "db/error",
+      "importanceAfterFailure": 0.6,
+      "eventsBefore": 4,
+      "eventsAfter": 4,
+      "cleanup": "Trigger removed in finally"
+    },
+    {
+      "name": "same-clock-retry",
+      "report": {
+        "decayed": 1,
+        "forgotten": 0,
+        "merged": 0,
+        "promoted": 0
+      },
+      "importance": 0.51,
+      "nextReport": null,
+      "revision": "mem1:3f9b5ece85594030c711485dca60b6e8352e954ad0eef9de8b8ef53eaca688e7"
+    },
+    {
+      "name": "compiled-memory-desk",
+      "version": "0.2.0",
+      "actions": [
+        "Open Personal memory and owned detail",
+        "Click Pin; stored pinned=true; next idle evaluates then settles",
+        "Open Correct, type text and Submit; stored content matches; next idle evaluates then settles"
+      ],
+      "finalContent": "Corrected in compiled Memory Desk after idle decay",
+      "icons": "push-pin and pencil-simple visually confirmed, no puzzle fallback",
+      "viewport": {
+        "width": 800,
+        "height": 650,
+        "overflow": false
+      }
+    }
+  ],
+  "modelCalls": 0,
+  "screenshots": [
+    {
+      "path": "/tmp/memory-idle-desk-800.png",
+      "inspected": true
+    },
+    {
+      "path": "/tmp/memory-idle-desk-corrected-800.png",
+      "inspected": true
+    }
+  ],
+  "unitEvidence": {
+    "rust": "memory_maintenance_receipt_excludes_unread_insertions_and_later_edits: receipt contains only surviving supplied read set, excludes inserted c and preserves pre-late-edit revision",
+    "agent": [
+      "external insert/correct/forget invalidate checkpoint",
+      "exact time-only decay and own receipt settlement",
+      "post-receipt user edit triggers next pass",
+      "exception, malformed/non-object JSON, error/aborted/length/toolUse completion retry",
+      "failed judgment may commit decay; next pass retries judgment without repeating decay"
+    ]
+  },
+  "cleanup": {
+    "workersTerminated": 5,
+    "contributions": 0,
+    "feedbackContributions": 0,
+    "ownedBooks": 0,
+    "ownedMemoryStatus": "All three forgotten; event history intentionally retained",
+    "triggerRemoved": true,
+    "windowRestoredLogical": {
+      "width": 900,
+      "height": 650
+    },
+    "driverStopped": 9224,
+    "nativeSession": 52877,
+    "nativeExitCode": 1,
+    "ownedPortsClosed": true,
+    "unownedProcessGroup89360": "Untouched",
+    "productionData": "Untouched"
+  },
+  "limits": [
+    "No autonomous model reasoning in native test",
+    "No wall-clock five-minute scheduling or visibility timer E2E",
+    "No packaged/Windows/Linux verification",
+    "No whole-store load/model-budget test",
+    "No public observation/job API or per-book grants",
+    "Unread insertions do not invalidate the running judgment; they remain eligible next poll",
+    "No durable or cross-device compare-and-swap"
+  ]
+}

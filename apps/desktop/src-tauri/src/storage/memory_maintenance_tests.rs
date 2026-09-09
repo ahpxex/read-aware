@@ -97,6 +97,44 @@ fn memory_maintenance_merge_is_atomic_with_winner_credit_and_sync_outbox() {
 }
 
 #[test]
+fn memory_maintenance_receipt_excludes_unread_insertions_and_later_edits() {
+    let mut conn = db();
+    let expected = conditions(&mut conn);
+    commit_events_inner(
+        &mut conn,
+        &[event(
+            "seed-c",
+            "c",
+            "memory.promoted",
+            json!({"memoryId":"c","content":"New fact","kind":"fact","scope":"user"}),
+            2,
+        )],
+    )
+    .unwrap();
+    let receipt = commit_inner(&mut conn, &expected, &merge()).unwrap();
+    assert_eq!(receipt.len(), 1);
+    assert_eq!(receipt[0].memory.id, "a");
+    let now = snapshots_inner(&mut conn).unwrap();
+    assert_eq!(now.len(), 2);
+    assert_eq!(receipt[0].revision, now[0].revision);
+    commit_events_inner(
+        &mut conn,
+        &[event(
+            "late-edit",
+            "a",
+            "memory.revised",
+            json!({"memoryId":"a","content":"Late correction"}),
+            12,
+        )],
+    )
+    .unwrap();
+    assert_ne!(
+        receipt[0].revision,
+        snapshots_inner(&mut conn).unwrap()[0].revision
+    );
+}
+
+#[test]
 fn memory_maintenance_stale_read_set_prevents_decay_merge_and_reinforcement() {
     let mut conn = db();
     let expected = conditions(&mut conn);

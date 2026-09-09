@@ -33,7 +33,7 @@ export type HighlightColor = "yellow" | "green" | "blue" | "pink";
 export type HighlightStyle = "highlight" | "underline";
 
 /** Explicit user feedback on a long-term memory. */
-export type MemoryFeedbackSignal = "pin" | "correct" | "reject";
+export type MemoryFeedbackSignal = "pin" | "unpin" | "correct" | "reject";
 
 /**
  * Which software actor produced an event, orthogonal to `actorId` (operator

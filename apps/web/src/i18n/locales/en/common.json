@@ -12,6 +12,12 @@
     "copied": "Copied"
   },
   "errors": {
+    "memoryInvalidInput": "Enter a valid memory change.",
+    "memoryNotFound": "This memory is no longer available.",
+    "memoryConflict": "This memory changed. Refresh it before editing.",
+    "memoryUnavailable": "Memory management requires the desktop app.",
+    "memoryCancelled": "The memory change was cancelled.",
+    "memoryForbidden": "This memory is outside the allowed scope.",
     "memoryInvalidQuery": "Choose valid memory scopes, names, or a chapter number.",
     "settingsObserverLimit": "Too many settings subscriptions are active.",
     "settingsUnavailable": "Settings could not be read. Try again.",

@@ -7,6 +7,7 @@ export * from "./workspace";
 export * from "./host-commands";
 export * from "./book-memory";
 export * from "./memory-query";
+export * from "./memory-management";
 export * from "./reading-events";
 export * from "./domains";
 export * from "./capabilities";

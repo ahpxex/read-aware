@@ -73,6 +73,11 @@
           "description": "The collection will be removed. Its books will stay on your shelf without a collection.",
           "approve": "Delete collection"
         },
+        "manageMemory": {
+          "question": "Review this memory change?",
+          "description": "{{subject}}\n\nOnly the shown change will be applied. Forgetting stops active retrieval; event history is retained.",
+          "approve": "Apply change"
+        },
         "deleteAnnotation": {
           "question": "Delete this annotation?",
           "description": "“{{subject}}” will be permanently removed from your reading context.",

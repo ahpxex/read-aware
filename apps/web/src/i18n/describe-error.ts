@@ -79,6 +79,12 @@ const AI_SETTINGS: ErrorAction = "open-ai-settings";
 
 const CODE_COPY: Record<string, CopyEntry> = {
   "memory/invalid-query": { key: "memoryInvalidQuery", retryable: false },
+  "memory/invalid-input": { key: "memoryInvalidInput", retryable: false },
+  "memory/not-found": { key: "memoryNotFound", retryable: false },
+  "memory/conflict": { key: "memoryConflict", retryable: false },
+  "memory/unavailable": { key: "memoryUnavailable", retryable: false },
+  "memory/cancelled": { key: "memoryCancelled", retryable: false },
+  "memory/forbidden": { key: "memoryForbidden", retryable: false },
   "ui/invalid-target": { key: "workspaceInvalid", retryable: false },
   "ui/target-not-found": { key: "workspaceMissing", retryable: false },
   "ui/superseded": { key: "workspaceChanged", retryable: false },

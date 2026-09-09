@@ -12,6 +12,12 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "memoryInvalidInput": "Geben Sie eine gültige Erinnerungsänderung ein.",
+    "memoryNotFound": "Diese Erinnerung ist nicht mehr verfügbar.",
+    "memoryConflict": "Die Erinnerung wurde geändert. Vor dem Bearbeiten aktualisieren.",
+    "memoryUnavailable": "Die Speicherverwaltung benötigt die Desktop-App.",
+    "memoryCancelled": "Die Erinnerungsänderung wurde abgebrochen.",
+    "memoryForbidden": "Diese Erinnerung liegt außerhalb des erlaubten Bereichs.",
     "memoryInvalidQuery": "Gültige Erinnerungsbereiche, Namen oder eine Kapitelnummer wählen.",
     "settingsObserverLimit": "Zu viele aktive Einstellungsabonnements.",
     "settingsUnavailable": "Die Einstellungen konnten nicht gelesen werden. Versuchen Sie es erneut.",

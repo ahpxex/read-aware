@@ -17,11 +17,16 @@ const CUSTOM_CHOICE = "__read_aware_custom_answer__";
 const permissionKeys: Record<
   ChatPermissionAction,
   {
-    question: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation"}.question`;
-    description: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation"}.description`;
-    approve: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation"}.approve`;
+    question: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory"}.question`;
+    description: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory"}.description`;
+    approve: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory"}.approve`;
   }
 > = {
+  "manage-memory": {
+    question: "chat.interaction.permission.manageMemory.question",
+    description: "chat.interaction.permission.manageMemory.description",
+    approve: "chat.interaction.permission.manageMemory.approve",
+  },
   "delete-book": {
     question: "chat.interaction.permission.deleteBook.question",
     description: "chat.interaction.permission.deleteBook.description",

@@ -153,9 +153,9 @@ The current public roster is:
 | Annotations | highlights and notes | `annotations:read`, `annotations:write` |
 | Conversations | book/global threads and message summaries | `conversations:read` |
 | Settings | catalog, resolved values, targets, validation, change events | exact path grants |
-| Memory | active memory search and bounded chapter graph queries | `memory:read` (1.0) |
+| Memory | active memory search, chapter graphs and conditional feedback | `memory:read`, `memory:write` (1.1) |
 
-Profile projection and direct memory mutation remain internal. A page, React
+Profile projection and raw memory projection writes remain internal. A page, React
 feature, menu, or route is not a domain merely because it has a name.
 
 There is no `shelf` domain. Library ownership and active reading behavior are
@@ -990,11 +990,12 @@ stores, or SQLite directly.
 <a id="memory-read-domain"></a>
 ### Memory 1.0: Read Models and Trusted Graph Boundaries
 
-[代码] `domains.memory` is a read-only public domain. `memory:read` grants
-`queries.search(input)` and `queries.bookGraph(bookId, query?)`; there are no
-commands or event subscriptions. Compatibility (`requires.domains.memory`) does
+[代码] `domains.memory` initially exposed read-only queries in 1.0. `memory:read`
+grants `queries.search(input)` and `queries.bookGraph(bookId, query?)`, plus
+`queries.inspect(id)` since 1.1. There are no event subscriptions; conditional
+feedback commands were added in 1.1 below. Compatibility (`requires.domains.memory`) does
 not itself grant access. Install consent describes personal/cross-book memory
-and protected chapter graphs in all eight locales. There is no `memory:write`.
+and protected chapter graphs in all eight locales. `memory:write` was added in 1.1.
 The shared contracts live in `packages/core/src/memory-query.ts` and
 `book-memory.ts`; Agent ports re-export their existing type names.
 
@@ -1059,14 +1060,15 @@ activation lifetime is checked before and after reads. Retired owners reject
 not physical cancellation of already running SQLite reads. Database failures
 propagate through stable error handling rather than returning empty lists.
 
-[代码/组合] Memory Desk 0.1 uses only memory:read, library:read, reading:write,
+[代码/组合] Memory Desk 0.1 used memory:read, library:read, reading:write;
+0.2 upgrades to memory:write for conditional feedback. Both versions use
 declarative views, shelf/reader header actions and an open command. It provides
 personal/cross-book/book memory queries, 40-book pages (search filters the current
 page), up to 100 memory results, graph/name/chapter queries, profile provenance
 and source navigation. Overview/profile truncation is displayed; a source click
 rechecks the current graph boundary, requires stored chapterHref, awaits reading
 ready, then closes its own view. Missing provenance reports reader/target-not-found.
-It adds no Agent tool, network permission, LLM call or memory mutation. Source
+The plugin adds no Agent tool, network permission or LLM call. Source
 roster now contains 14 plugins; Rust BUNDLED remains six, excluding Memory Desk.
 
 [环境/验证] Isolated macOS debug Tauri tests use real SQLite, module Workers,
@@ -1079,13 +1081,82 @@ A repeated menu label was traced to two distinct plugin IDs (installed plugin
 plus explicit fixture); cleanup removed only the fixture's contributions.
 
 [设计/仍缺] Per-book/field grants, query observation, full pagination/exhaustion,
-feedback commands, profile projections and formal context bundles remain open.
+general feedback ratings, profile projections and formal context bundles remain open.
 Stored chapterHref has no content hash and is NOT a versioned ReadingLocation;
 rechecking visibility does not prove that an old digest belongs to replaced
 source content. Extremely long stored entity names can exceed query input limits;
 general large-result UX and chapter payload byte bounds are not closed by the
 200/40 count limits. Packaged, Windows/Linux, all formats and autonomous-model
 verification are not claimed by this unit.
+
+<a id="memory-feedback"></a>
+### Memory 1.1: Conditional User Feedback
+
+[代码] `queries.inspect(id)` returns `{memory, revision}` for an active memory,
+or null for missing/superseded/forgotten rows. ID is nonblank, at most 256 UTF-16
+code units. Revision is opaque `mem1:` plus 64 lowercase hex characters, derived
+from the serialized row and newest locally appended memory event identity under
+one SQLite read transaction. It changes even for equal-timestamp ABA writes.
+It is device-local, not a cross-device clock or an approval token.
+
+[代码] `commands.mutate(input)` requires `memory:write`, which implies read.
+Every input contains `memoryId` and `expectedRevision` from inspect, plus exactly
+one operation: `{op:"correct",content}`, `{op:"setPinned",pinned}`, or `{op:"forget"}`.
+Content is trimmed, nonblank and at most 16000 UTF-16 units; pinned is a strict
+boolean. Extra fields, invalid revisions, custom reason, scope, kind, weight,
+evidence-count and raw event input are rejected. This is not arbitrary memory
+creation or projection access. Plugin writes during activation are denied.
+
+[代码] Host normalizes/copies input before asynchronous work and mints canonical
+events with the actual actor origin. Rust `memory_commit` independently accepts
+only content-only `memory.revised`, pin/unpin-only `memory.feedback`, or
+`memory.forgotten` with reason=user and matching aggregate identity. A SQLite
+IMMEDIATE transaction checks the active row/revision, rejects a reused event ID,
+appends/applies through `commit_events_in_transaction` (including sync outbox),
+reads the new revision and commits. Result is `{memoryId,revision}`, with null
+revision after forgetting. Stable errors: `memory/invalid-input`, `memory/not-found`,
+`memory/conflict`, `memory/unavailable`, `memory/cancelled`, `memory/forbidden`;
+storage failures retain their database code. Events are broadcast only after IPC
+success. Signals are checked before dispatch; after dispatch, cancellation does
+not undo a durable mutation or justify reporting that nothing changed.
+
+[代码] Agent `manage_memory` is sequential in both scopes. Inspect does not ask;
+correct, setPinned and forget require the caller's revision and ALWAYS ask through
+the existing permission interaction with action `manage-memory`, displaying ID,
+scope, old content and requested operation/value. The validated change stays
+frozen through approval, and native CAS rechecks after the answer. Decline returns
+changed=false. Book threads can manage user/global/own-book records, not another
+book's memory. Global threads can inspect a discovered memory ID across books.
+Existing-memory management is independent of the memory-building switch; it does
+not run an LLM or promote a new fact. Permission titles/descriptions, plugin
+consent and stable errors are localized in eight languages.
+
+[代码] Memory Desk 0.2 reads inspect on entry, shows full content/ID/scope and
+adds correction, pin/unpin and forget. Each action captures the displayed revision;
+SQL failure or conflict preserves the form draft, not an auto-rebased overwrite.
+The user returns, refreshes and decides again. Forget requires a confirmation
+checkbox; correction uses a textarea. Pin/unpin is reversible, correction can be
+edited again. Forget only excludes this record from active retrieval, retaining
+event history and not removing prior prompts or external copies. There is no
+public restore operation. Old 0.1 installs need approval of the added write grant;
+the native fixture does not prove the full upgrade-consent flow.
+
+[环境] [Native evidence](./evidence/memory-feedback-2026-09-10.json): real Worker
+read/write separation, stale revision rejection, Agent approval/decline and
+concurrent-write rejection, compiled plugin SQL fault/retry, retained stale draft,
+explicit forgetting and canonical event origins. Agent answers were scripted via
+the production tool's interaction port, not native chat clicks or autonomous
+inference. Rust tests cover ABA, conditional event/outbox/projection rollback and
+payload restrictions. Packaged, Windows/Linux and cross-device approval/CAS are
+not verified by these tests.
+
+[设计/未闭合] Legacy automatic consolidation/reinforcement does not yet use these
+tokens, so this does not prove protection from every late background plan. No
+memory observation, per-book plugin grant, full pagination, event-history erasure
+or arbitrary feedback scoring was added. Legacy `correct`/`reject` feedback
+signals have no projection effect; new correction deliberately emits revised,
+not that ineffective feedback event. Core now includes the already-implemented
+native `unpin` signal rather than using a type cast to hide the contract drift.
 
 ## 6. Settings Is a Domain
 
@@ -1985,7 +2056,7 @@ restored; it is not remote LLM, word-card rendering, or installation-upgrade E2E
 The manifest permission vocabulary is derived from the catalogs:
 
 - Domains: `library:read`, `library:write`, `reading:read`, `reading:write`,
-  `annotations:read`, `annotations:write`, `conversations:read`, `memory:read`.
+  `annotations:read`, `annotations:write`, `conversations:read`, `memory:read`, `memory:write`.
 - Contributions: `reader:modes`, `agent:tools`, `agent:context`,
   `agent:retrieval`, `agent:memory`, `ui:themes`, `sync:transport`.
 - Services: `service:network`, `service:llm`, `service:clipboard`.
@@ -2166,7 +2237,7 @@ adjacent distribution repository, not a fourteenth plugin in this checkout:
 | Workspace Profiles | settled settings snapshots, exact path grants, atomic presets, private documents, shelf header/command views and Agent tool |
 | Text Desk | library text preparation/tasks, single/shelf multi-query search, snippets, paged status views, reader header/command and explicit book navigation |
 | Library Desk | workspace/collection navigation, live host-command discovery and guarded execution with typed resource pickers (0.6), command search, grouped native selection, live selection count, explicit batch review/removal, durable pending-file discovery and safe retry |
-| Memory Desk | active personal/cross-book/book memory search, protected chapter graphs, entity profiles and source navigation (0.1); shared Agent queries, no extra model tool |
+| Memory Desk | memory search, protected chapter graphs, source navigation and conditional correction/pin/unpin/forget (0.2); shared Agent queries and manage_memory, no duplicate plugin tool |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs
 in their packages and registered capabilities.

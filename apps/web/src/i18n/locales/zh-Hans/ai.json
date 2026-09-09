@@ -73,6 +73,11 @@
           "description": "分类会被删除，其中的书仍会保留在书架上，但不再属于任何分类。",
           "approve": "删除分类"
         },
+        "manageMemory": {
+          "question": "确认这项记忆变更？",
+          "description": "{{subject}}\n\n仅应用上方变更。遗忘会停止检索此记忆，但保留事件历史。",
+          "approve": "应用变更"
+        },
         "deleteAnnotation": {
           "question": "要删除这条标注吗？",
           "description": "“{{subject}}”会从你的阅读上下文中永久移除。",

@@ -1,0 +1,43 @@
+{
+  "date": "2026-09-10",
+  "environment": { "runtime": "Tauri macOS debug", "appIdentifier": "com.readaware.app.capability-e2e", "frontendPort": 5184, "bridgePort": 9224, "formalDataTouched": false },
+  "contract": { "domain": "memory 1.1", "permission": "memory:write", "plugin": "Memory Desk 0.2.0", "rows": ["MEM01", "MEM04", "MEM05"], "methods": ["queries.inspect", "commands.mutate"], "agent": "manage_memory in book/global scopes, sequential, exact user approval before mutation" },
+  "observations": [
+    { "case": "Real Worker authority and CAS", "result": "Read-only Worker inspected the owned memory and had no command method; write Worker corrected content and pinned it. Reusing the pre-correction revision returned memory/conflict. Importance, evidence count, kind and scope remained unchanged." },
+    { "case": "Production Agent tool", "result": "Declining forget returned changed=false and kept the record. Approved correction committed with origin=agent. A user correction injected during approval made the Agent commit reject memory/conflict, preserving the user change. Approval answers were fixture-driven, not a real model or native chat approval click." },
+    { "case": "Compiled plugin SQLite fault and retry", "result": "Targeted BEFORE UPDATE trigger on the owned memory rejected the actual Memory Desk correction form. Draft text remained, exactly one localized database error appeared, old content stayed Concurrent user correction and domain-event count remained 5. Trigger removed in finally; the same form retried successfully and displayed corrected content." },
+    { "case": "Compiled stale draft", "result": "While a correction form was open with a new draft, the production Agent tool committed another correction. Submitting the old plugin form displayed memoryConflict localized text and retained the draft. Back then Refresh showed the actual Agent content; no automatic rebase occurred." },
+    { "case": "Explicit forgetting", "result": "Submitting the forget form with unchecked confirmation displayed Required and did not mutate. After checking confirmation and submitting, Personal memory showed No memories found; Worker inspect returned null. SQLite retained status=forgotten and original event history." },
+    { "case": "Canonical origins", "result": "Owned event sequence before cleanup: promoted/agent, revised/plugin:capability-memory-feedback-write, feedback/same plugin, revised/agent, revised/user, revised/plugin:capability-memory-domain-desk, revised/agent, forgotten/plugin:capability-memory-domain-desk. Cleanup appended another user forgotten event rather than deleting log history." }
+  ],
+  "unitEvidence": [
+    "Rust read snapshot combines serialized active row with latest locally appended memory event ID; equal-millisecond ABA changes revision. Immediate transaction validates condition, appends/applies event and outbox, computes receipt, then commits.",
+    "Rust tests cover correction/pin/unpin/forget, missing/inactive rows, extra scope/weight/evidence fields, unsupported event types and signals, SQL rejection rollback of log/projection/outbox, and retry.",
+    "TS tests cover exact bounded copied inputs, Agent approval/decline/wrong-book/extra fields/concurrent writer, read-only plugin actions, captured form revision, invalid input and conflict propagation. Follow-up tests verify arguments cannot change the approved operation and cancellation before inspection or during approval prevents mutation."
+  ],
+  "screenshotsInspected": ["/tmp/memory-feedback-failure-800.png", "/tmp/memory-feedback-conflict-800.png", "/tmp/memory-feedback-forgotten-1200.png"],
+  "cleanup": {
+    "ownedBookId": "6207083c-120f-44fc-ad01-b15f3a56664a",
+    "ownedMemoryIds": ["113ef5fc-266d-4af9-a6b6-5de38e6ff137", "db16c1d2-f79d-4f5f-aae7-9964f9588a7a", "4fe5d57a-df37-455b-b097-56f7339cae32"],
+    "ownedBooksAfter": 0, "contributionsAfter": 0, "feedbackContributionsAfter": 0,
+    "sqlTriggerRemoved": true, "processGroup": 37895, "exitCode": 1, "unownedProcessGroupNotOperated": 89360,
+    "note": "Only isolated owned fixtures were removed/forgotten. Original two books and installed plugins retained; test event history remains. Ports 5184/9224 stopped."
+  },
+  "validation": { "testTasks": "24/24; web 901 tests, 9911 assertions, 155 files", "typecheckTasks": "27/27", "build": "Frontend production build and explicit Memory Desk build passed", "rust": "144 passed, 1 ignored, 0 failed; includes three new memory transaction tests" },
+  "documentation": {
+    "inventory": "243 evidence rows, 684 entry mappings, 30 ownership units, 31 catalog members, 129 baseline items, 32 scenarios; 14 source plugins, six native bundled plugins",
+    "gates": "Both generators --check, ten inventory/model tests and three Markdown/HTML pair validators passed",
+    "viewports": ["1440x1000", "1024x768", "390x844"],
+    "pages": ["host-capability-matrix", "host-capability-model", "plugin-system"],
+    "screenshots": "Nine /tmp/memory-feedback-<page>-<width>.png screenshots inspected; model screenshots refreshed after adding manage_memory to D6 text",
+    "interactions": "manage_memory/纠错 returned matrix 2/3 rows including MEM04/MEM05, model 2/3 entries including D6, plugin reference 1/1 section. Escape reset searches; matrix/model mobile drawer toggled inert correctly, theme matched persisted value after reload. Plugin reference has no theme or drawer.",
+    "checks": "No document horizontal overflow, duplicate IDs, broken in-page anchors, unnamed buttons or browser errors. Observed CDN responses 200. No diagrams added. Browser closed; documentation checks are not product E2E."
+  },
+  "boundaries": [
+    "Revision is device-local, not a cross-device CAS or an approval token. Write grant permits all memory scopes; book Agent limits other-book access before approval.",
+    "Mutation cancellation is checked before IPC dispatch; a dispatched durable write may finish and is not undone. No new observe stream or public write to scope, weights, evidence counts or raw projections.",
+    "Forget suppresses active retrieval, not physical deletion of events, prior prompts or external copies. There is no public restore operation.",
+    "Legacy automatic consolidation/reinforcement writes do not yet use these expectedRevision tokens; their stale-plan protection is not proved. Legacy correct/reject feedback signals still have no projection effect and are not exposed by mutate.",
+    "No complete packaged/Windows/Linux, consent upgrade flow, all-format, real chat approval UI, autonomous inference or multi-device campaign was verified. Existing native/bridge/build warnings remain."
+  ]
+}

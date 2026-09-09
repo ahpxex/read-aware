@@ -177,7 +177,7 @@ export interface UserInteractionOption {
 }
 
 export type UserPermissionAction =
-  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation";
+  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory";
 
 type UserInteractionBase = {
   /** Globally unique for the lifetime of the tool call. */
@@ -380,6 +380,10 @@ export interface ExternalMemoryCandidateRequest {
 }
 
 export interface RuntimeDeps {
+  memoryManagement: {
+    inspect(id: string, signal?: AbortSignal): Promise<import("@read-aware/core").MemorySnapshot | null>;
+    mutate(input: import("@read-aware/core").MemoryMutation, signal?: AbortSignal): Promise<import("@read-aware/core").MemoryMutationReceipt>;
+  };
   hostCommands: {
     list(signal?: AbortSignal): Promise<import("@read-aware/core").HostCommandSnapshot>;
     execute(request: import("@read-aware/core").HostCommandRequest, signal?: AbortSignal): Promise<import("@read-aware/core").HostCommandReceipt>;

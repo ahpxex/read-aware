@@ -9,6 +9,7 @@ import type { MemoryKind, MemoryScope, RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { textResult } from "./tool-result";
 import { runMemoryBuild } from "../memory/build-policy";
+import { buildMemoryManagementTool } from "./memory-management-tool";
 
 /** 线程默认可见的 scope 集合（doc §3 的检索默认值）。 */
 export function visibleScopes(scope: ThreadScope): MemoryScope[] {
@@ -82,5 +83,5 @@ export function buildMemoryTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
     },
   };
 
-  return [searchMemory, remember];
+  return [searchMemory, remember, buildMemoryManagementTool(scope, deps)];
 }

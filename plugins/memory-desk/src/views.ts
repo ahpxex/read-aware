@@ -1,6 +1,7 @@
-import type { MemoryScope, PluginContext, PluginDetailView, PluginFormView, PluginListView } from "@read-aware/plugin-types";
+import type { MemoryScope, PluginContext, PluginFormView, PluginListView } from "@read-aware/plugin-types";
 import { graphView } from "./graph";
 import { strings } from "./strings";
+import { memoryDetail } from "./management";
 
 export async function memoryDesk(ctx: PluginContext): Promise<PluginListView> {
   const t = strings(ctx.locale);
@@ -29,11 +30,8 @@ export async function booksView(ctx: PluginContext, page = 0): Promise<PluginLis
 export async function memories(ctx: PluginContext, scope: MemoryScope, query?: string): Promise<PluginListView> {
   const t = strings(ctx.locale), rows = await ctx.domains.memory!.queries.search({ scopes: [scope], query, limit: 100 });
   return { kind: "list", title: t[scope === "user" ? 1 : scope === "global" ? 2 : 5], searchable: true, emptyText: t[8],
-    items: rows.map(row => ({ id: row.id, title: row.content, subtitle: row.updatedAt, icon: "brain", onSelect: () => ({ view: {
-      kind: "detail", title: t[5], content: [{ kind: "text", text: row.content }, { kind: "keyValue", rows: [
-        { label: "ID", value: row.id }, { label: t[22], value: row.scope },
-      ] }],
-    } satisfies PluginDetailView }) })), actions: [
+    items: rows.map(row => ({ id: row.id, title: row.content, subtitle: row.updatedAt, icon: "brain",
+      onSelect: async () => ({ view: await memoryDetail(ctx, row.id, () => memories(ctx, scope, query)) }) })), actions: [
       { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await memories(ctx, scope, query), navigation: "replace" }) },
       { id: "search", label: t[6], icon: "magnifying-glass", run: () => ({ view: { kind: "form", title: t[6], fields: [
         { id: "query", kind: "text", label: t[22], value: query ?? "" },

@@ -21,11 +21,13 @@ import { createSettingsPort } from "./settings-port";
 import { createUserInteractionPort } from "./user-interaction-port";
 import { memoryPolicy } from "../memory-policy";
 import { readingContextPolicy } from "../reading-context-policy";
+import { inspectMemory, mutateMemory } from "../../../../domain/memory-management";
 
 export { GLOBAL_CONVERSATION_ID } from "./conversation-port";
 
 export function buildRuntimeDeps(): RuntimeDeps {
   return {
+    memoryManagement: { inspect: inspectMemory, mutate: (input, signal) => mutateMemory(input, "agent", signal) },
     hostCommands: trustedHostCommands("agent"),
     environment: { snapshot: async () => hostEnvironment.snapshot() },
     workspace: { snapshot: async query => workspace.snapshot(query), navigate: (target, revision, signal) => workspace.navigate(target, revision, signal, true) },

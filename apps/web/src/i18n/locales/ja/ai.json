@@ -73,6 +73,11 @@
           "description": "コレクションは削除されますが、本はコレクション未設定のまま本棚に残ります。",
           "approve": "コレクションを削除"
         },
+        "manageMemory": {
+          "question": "この記憶の変更を確認しますか？",
+          "description": "{{subject}}\n\n表示された変更のみを適用します。忘却後は検索対象外になりますが、イベント履歴は保持されます。",
+          "approve": "変更を適用"
+        },
         "deleteAnnotation": {
           "question": "この注釈を削除しますか？",
           "description": "「{{subject}}」は読書コンテキストから完全に削除されます。",

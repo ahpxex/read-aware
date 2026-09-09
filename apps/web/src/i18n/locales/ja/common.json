@@ -12,6 +12,12 @@
     "copied": "コピーしました"
   },
   "errors": {
+    "memoryInvalidInput": "有効な記憶の変更を入力してください。",
+    "memoryNotFound": "この記憶は利用できません。",
+    "memoryConflict": "記憶が変更されました。更新してから編集してください。",
+    "memoryUnavailable": "記憶の管理にはデスクトップアプリが必要です。",
+    "memoryCancelled": "記憶の変更はキャンセルされました。",
+    "memoryForbidden": "この記憶は許可された範囲外です。",
     "memoryInvalidQuery": "有効な記憶範囲、名前、または章番号を指定してください。",
     "settingsObserverLimit": "設定の購読数が上限に達しました。",
     "settingsUnavailable": "設定を読み取れませんでした。もう一度お試しください。",

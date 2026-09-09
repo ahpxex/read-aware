@@ -12,6 +12,12 @@
     "copied": "Copiado"
   },
   "errors": {
+    "memoryInvalidInput": "Introduce un cambio de memoria válido.",
+    "memoryNotFound": "Este recuerdo ya no está disponible.",
+    "memoryConflict": "Este recuerdo cambió. Actualízalo antes de editar.",
+    "memoryUnavailable": "La gestión de memoria requiere la aplicación de escritorio.",
+    "memoryCancelled": "El cambio de memoria se canceló.",
+    "memoryForbidden": "Este recuerdo está fuera del alcance permitido.",
     "memoryInvalidQuery": "Elige ámbitos de memoria, nombres o un número de capítulo válidos.",
     "settingsObserverLimit": "Hay demasiadas suscripciones activas a los ajustes.",
     "settingsUnavailable": "No se pudieron leer los ajustes. Inténtalo de nuevo.",

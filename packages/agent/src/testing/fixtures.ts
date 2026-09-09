@@ -6,6 +6,7 @@
 import { annotationPageFixture } from "./annotation-pages";
 import { createWorkspaceFixture } from "./workspace-fixture";
 import { createAnnotationMutationFixture } from "./annotation-mutations";
+import { createMemoryManagementFixture } from "./memory-management";
 import { AppError } from "@read-aware/core";
 import type {
   BookStats,
@@ -352,6 +353,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     (memory.status ?? "active") === "active";
 
   const deps: RuntimeDeps = {
+    memoryManagement: createMemoryManagementFixture(stores.memories),
     workspace: createWorkspaceFixture(),
     hostCommands: {
       list: async () => ({ version: 1, workspaceRevision: null, commands: [] }),

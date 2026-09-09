@@ -35,6 +35,7 @@ const agentMap = pairs([
   ["create_annotation", "ANN02 ANN05"], ["edit_annotation", "ANN04 ANN05"],
   ["apply_annotation_changes", "ANN04 ANN05 ANN06 ANN08"],
   ["delete_annotation", "ANN04 ANN05 ANN06"], ["search_memory", "MEM01"], ["remember", "MEM02"],
+  ["manage_memory", "MEM01 MEM04 MEM05"],
   ["search_conversation get_recent_turns", "AI01"], ["get_conversation_insights", "MEM12"],
   ["get_toc", "TXT01"], ["read_chapter", "TXT03"], ["search_book_text", "TXT06"],
   ["get_book_text_status", "TXT04"],
@@ -56,6 +57,8 @@ const pluginMap = pairs([
   ["domains.settings.events.subscribe domains.settings.queries.observe services.storage.onChange", "CFG10"],
   ["domains.memory.queries.search", "MEM01"],
   ["domains.memory.queries.bookGraph", "MEM11"],
+  ["domains.memory.queries.inspect", "MEM01 MEM05"],
+  ["domains.memory.commands.mutate", "MEM04 MEM05"],
   ["domains.library.queries.books.list domains.library.queries.books.get", "LIB01"],
   ["domains.library.queries.books.getToc", "TXT01"], ["domains.library.queries.books.getChapterText", "TXT03"],
   ["domains.library.queries.books.getTextState", "TXT04"],
@@ -126,6 +129,7 @@ const nativeMap = pairs([
   ["annotations_list annotations_search annotations_page annotation_get annotation_put annotation_delete", "ANN01 ANN08"],
   ["annotation_inspect annotations_commit", "ANN08"],
   ["memories_list_all memory_get memory_put", "MEM01 MEM02 MEM04"], ["chapter_digests_list", "MEM10 MEM11"],
+  ["memory_inspect memory_commit", "MEM01 MEM04 MEM05"],
   ["ai_chat_load ai_chat_load_all ai_chat_list ai_chat_replace ai_chat_clear", "AI01 AI02 AI03"],
   ["plugin_docs_put plugin_docs_get plugin_docs_delete plugin_docs_list plugin_docs_clear vocabulary_migrate_to_plugin_documents", "SYS02 SYS03"],
   ["plugin_docs_snapshot plugin_docs_restore", "SYS03"],
@@ -263,7 +267,7 @@ export function collectInventory(): Inventory[] {
   }
   const featureMap = pairs([["agent ai", "AI01 AI03 MEM01"],["annotations", "ANN01"],["command", "UI03"],["library shelf", "LIB01 UI02"],["menus", "UI05"],["navigation", "UI01 SYS17"],["plugins", "EXT01 CON03"],["reader", "READ01 TXT01"],["settings", "CFG01 OPS08"],["stats", "STAT01"],["sync", "OPS01"],["update", "SYS16"]]);
   for (const directory of readdirSync("apps/web/src/features", {withFileTypes:true}).filter(d=>d.isDirectory())) add("Feature owner", directory.name, featureMap[directory.name], "[代码+人工审计] 所属功能组入口；目录覆盖不等于每个 UI 分支测试通过");
-  const expectedPlugins = pairs([["memory-desk", "MEM01 MEM11 READ01 EXT02 EXT05"],["dictionary", "EXT09 AI12 READ07 LIB01"],["rss-reader", "EXT10"],["editorial-themes", "EXT08"],["sentence-reader", "READ15 READ16"],["tts", "READ17 READ18"],["webdav-sync", "OPS04"],["jumper", "TXT02 TXT07 READ06 EXT02"],["annotation-desk", "ANN01 ANN04 ANN05 ANN08 EXT02 EXT05 SYS10"],["listening-desk", "READ16 READ18 READ06 EXT02 MORE03"],["reading-goals", "AI11 MEM03 SET23 STAT02 STAT05 STAT03 EXT07 EXT02 EXT05 SYS01"],["workspace-profiles", "UI02 UI04 CFG01 CFG10 EXT02 EXT05 SYS02"],["text-desk", "TXT04 TXT05 TXT06 LIB01 READ01 EXT02 EXT05"],["library-desk", "LIB01 LIB05 READ01 UI01 UI02 UI03 EXT02 EXT03 MORE05"]]);
+  const expectedPlugins = pairs([["memory-desk", "MEM01 MEM04 MEM05 MEM11 READ01 EXT02 EXT05"],["dictionary", "EXT09 AI12 READ07 LIB01"],["rss-reader", "EXT10"],["editorial-themes", "EXT08"],["sentence-reader", "READ15 READ16"],["tts", "READ17 READ18"],["webdav-sync", "OPS04"],["jumper", "TXT02 TXT07 READ06 EXT02"],["annotation-desk", "ANN01 ANN04 ANN05 ANN08 EXT02 EXT05 SYS10"],["listening-desk", "READ16 READ18 READ06 EXT02 MORE03"],["reading-goals", "AI11 MEM03 SET23 STAT02 STAT05 STAT03 EXT07 EXT02 EXT05 SYS01"],["workspace-profiles", "UI02 UI04 CFG01 CFG10 EXT02 EXT05 SYS02"],["text-desk", "TXT04 TXT05 TXT06 LIB01 READ01 EXT02 EXT05"],["library-desk", "LIB01 LIB05 READ01 UI01 UI02 UI03 EXT02 EXT03 MORE05"]]);
   for (const directory of readdirSync("plugins",{withFileTypes:true}).filter(d=>d.isDirectory()).sort((a,b)=>a.name.localeCompare(b.name))) {
     const manifest = JSON.parse(readFileSync(`plugins/${directory.name}/manifest.json`,"utf8"));
     add("First-party source plugin", manifest.id, expectedPlugins[directory.name], `[代码] 源码版本 ${manifest.version}；源码存在不等于打包、安装、启用或模型可调用`);

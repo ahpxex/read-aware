@@ -19,6 +19,7 @@ describe("plugin capability catalog", () => {
       "annotations:write",
       "conversations:read",
       "memory:read",
+      "memory:write",
       "reader:modes",
       "agent:tools",
       "agent:context",

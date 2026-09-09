@@ -91,6 +91,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   apply_annotation_changes: { changes: [{ op: "updateNote", annotationId: "note-1", body: "Batch revised thought." }] },
   delete_annotation: { annotationId: "hl-1" },
   search_memory: {},
+  manage_memory: { action: "inspect", memoryId: "surface-memory" },
   remember: { content: "The reader enjoys locked-room mysteries.", scope: "user", kind: "preference" },
   search_conversation: { queries: ["clue"] },
   get_recent_turns: {},
@@ -166,6 +167,7 @@ describe("tool surface contract", () => {
         if (!params) continue; // 完备性由上面的用例把守
         // 每个工具独立的 fixture：破坏性工具（fixture 自动批准权限）不得污染后续用例
         const { deps } = createInMemoryDeps(seed());
+        if (name === "manage_memory") params.memoryId = (await deps.memory.saveMemory({ content: "The reader enjoys mysteries.", scope: "user", kind: "preference", origin: "agent", sourceThreadKey: "surface" })).id;
         // The generic fixture has no attached host command runtime. These receipts
         // exercise output formatting only; shared-service tests prove execution.
         deps.hostCommands.list = async () => ({ version: 1, workspaceRevision: 1, commands: HOST_COMMAND_IDS.map(id => ({

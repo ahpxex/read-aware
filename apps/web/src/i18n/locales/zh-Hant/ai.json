@@ -73,6 +73,11 @@
           "description": "分類會被刪除，其中的書仍會保留在書架上，但不再屬於任何分類。",
           "approve": "刪除分類"
         },
+        "manageMemory": {
+          "question": "確認這項記憶變更？",
+          "description": "{{subject}}\n\n僅套用上方變更。遺忘會停止檢索此記憶，但保留事件歷史。",
+          "approve": "套用變更"
+        },
         "deleteAnnotation": {
           "question": "要刪除這則標註嗎？",
           "description": "「{{subject}}」會從你的閱讀上下文中永久移除。",

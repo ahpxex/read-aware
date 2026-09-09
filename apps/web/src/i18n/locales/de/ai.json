@@ -73,6 +73,11 @@
           "description": "Die Sammlung wird entfernt. Ihre Bücher bleiben ohne Sammlung im Regal.",
           "approve": "Sammlung löschen"
         },
+        "manageMemory": {
+          "question": "Diese Erinnerungsänderung prüfen?",
+          "description": "{{subject}}\n\nNur diese Änderung wird angewendet. Vergessen beendet den Abruf; der Ereignisverlauf bleibt erhalten.",
+          "approve": "Änderung anwenden"
+        },
         "deleteAnnotation": {
           "question": "Diese Annotation löschen?",
           "description": "„{{subject}}“ wird dauerhaft aus deinem Lesekontext entfernt.",

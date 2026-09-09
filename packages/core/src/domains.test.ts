@@ -15,6 +15,7 @@ describe("domain capability catalog", () => {
       "annotations:write",
       "conversations:read",
       "memory:read",
+      "memory:write",
     ]);
   });
 

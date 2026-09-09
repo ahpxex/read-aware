@@ -73,6 +73,11 @@
           "description": "La colección se eliminará. Sus libros seguirán en la estantería sin colección.",
           "approve": "Eliminar colección"
         },
+        "manageMemory": {
+          "question": "¿Confirmar este cambio de memoria?",
+          "description": "{{subject}}\n\nSolo se aplicará este cambio. Olvidar excluye el recuerdo de las búsquedas; el historial de eventos se conserva.",
+          "approve": "Aplicar cambio"
+        },
         "deleteAnnotation": {
           "question": "¿Eliminar esta anotación?",
           "description": "«{{subject}}» se eliminará permanentemente de tu contexto de lectura.",

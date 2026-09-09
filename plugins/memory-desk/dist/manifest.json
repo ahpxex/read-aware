@@ -1,14 +1,14 @@
 {
   "id": "memory-desk",
   "name": "Memory Desk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "schemaVersion": 1,
   "description": "Review reading memories and chapter graphs, search entities, and navigate to their source chapters.",
   "author": "ReadAware",
   "main": "main.js",
-  "permissions": ["memory:read", "library:read", "reading:write"],
+  "permissions": ["memory:write", "library:read", "reading:write"],
   "requires": {
-    "domains": { "memory": "^1.0.0", "library": "^1.0.0", "reading": "^2.0.0" },
+    "domains": { "memory": "^1.1.0", "library": "^1.0.0", "reading": "^2.0.0" },
     "contributions": { "commands": "^1.0.0", "headerActions": "^1.0.0" },
     "schemas": { "views": "^1.2.0" }
   }

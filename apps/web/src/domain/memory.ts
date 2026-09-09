@@ -6,9 +6,10 @@ import { getPersistedBookText } from "../features/library/lib/book-text-store";
 import { readingRuntime } from "./reading-runtime";
 import { createMemoryQueries } from "./memory-queries";
 import { bookMemoryBoundary } from "./book-memory-boundary";
+import { inspectMemory, mutateMemory } from "./memory-management";
 
 /** Memory reads do not import books, construct digests, or grant raw projection writes. */
-export function createMemoryDomain(_origin: EventOrigin, lifetime?: AbortSignal) {
+export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal) {
   const memory = createMemoryPort(), bookMemory = createBookMemoryPort();
   const queries = createMemoryQueries({ search: memory.searchMemories, graph: async bookId => {
     const digests = await bookMemory.listDigests(bookId);
@@ -18,5 +19,6 @@ export function createMemoryDomain(_origin: EventOrigin, lifetime?: AbortSignal)
     const boundary = bookMemoryBoundary(book, readingRuntime.snapshot(), chapters?.map((chapter, index) => ({ index, hrefs: chapter.hrefs })) ?? null);
     return { digests, boundary, flavor: book.narrativity ?? undefined };
   } }, lifetime);
-  return { queries, commands: {}, events: {} };
+  return { queries: { ...queries, inspect: (id: string) => inspectMemory(id, lifetime) },
+    commands: { mutate: (input: import("@read-aware/core").MemoryMutation) => mutateMemory(input, origin, lifetime) }, events: {} };
 }

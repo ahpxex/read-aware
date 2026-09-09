@@ -73,6 +73,11 @@
           "description": "La collection sera supprimée. Ses livres resteront dans votre bibliothèque sans collection.",
           "approve": "Supprimer la collection"
         },
+        "manageMemory": {
+          "question": "Confirmer cette modification ?",
+          "description": "{{subject}}\n\nSeule cette modification sera appliquée. L'oubli exclut le souvenir des recherches ; l'historique des événements est conservé.",
+          "approve": "Appliquer"
+        },
         "deleteAnnotation": {
           "question": "Supprimer cette annotation ?",
           "description": "« {{subject}} » sera définitivement retiré de votre contexte de lecture.",

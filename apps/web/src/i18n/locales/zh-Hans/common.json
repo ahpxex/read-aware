@@ -12,6 +12,12 @@
     "copied": "已复制"
   },
   "errors": {
+    "memoryInvalidInput": "请输入有效的记忆变更。",
+    "memoryNotFound": "这条记忆已不可用。",
+    "memoryConflict": "记忆已变化，请刷新后再编辑。",
+    "memoryUnavailable": "记忆管理需要桌面应用。",
+    "memoryCancelled": "记忆变更已取消。",
+    "memoryForbidden": "这条记忆不在允许范围内。",
     "memoryInvalidQuery": "请选择有效的记忆范围、名称或章节号。",
     "settingsObserverLimit": "设置订阅数量已达上限。",
     "settingsUnavailable": "无法读取设置，请重试。",

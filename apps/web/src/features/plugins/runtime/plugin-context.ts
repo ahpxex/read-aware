@@ -799,7 +799,13 @@ export function buildPluginContext(
     };
   }
 
-  if (domain.memory) ctx.domains.memory = { queries: domain.memory.queries };
+  if (domain.memory) {
+    const memory = domain.memory;
+    ctx.domains.memory = { queries: memory.queries, ...(memory.commands ? { commands: { mutate: input => {
+      lifecycle.assertActive("domains.memory.commands.mutate");
+      return memory.commands!.mutate(input);
+    } } } : {}) };
+  }
 
   // ─── Services ─────────────────────────────────────────────────────────────
 

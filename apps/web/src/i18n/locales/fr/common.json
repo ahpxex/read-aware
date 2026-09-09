@@ -12,6 +12,12 @@
     "copied": "Copié"
   },
   "errors": {
+    "memoryInvalidInput": "Saisissez une modification valide.",
+    "memoryNotFound": "Ce souvenir n'est plus disponible.",
+    "memoryConflict": "Ce souvenir a changé. Actualisez-le avant de le modifier.",
+    "memoryUnavailable": "La gestion des souvenirs nécessite l'application de bureau.",
+    "memoryCancelled": "La modification a été annulée.",
+    "memoryForbidden": "Ce souvenir est hors du périmètre autorisé.",
     "memoryInvalidQuery": "Choisissez des portées de mémoire, des noms ou un numéro de chapitre valides.",
     "settingsObserverLimit": "Trop d'abonnements aux paramètres sont actifs.",
     "settingsUnavailable": "Impossible de lire les paramètres. Réessayez.",

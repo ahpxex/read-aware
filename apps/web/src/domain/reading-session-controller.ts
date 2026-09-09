@@ -1,5 +1,13 @@
 import { AppError, errorCode, type EventOrigin, type ReadingModeConfiguration, type ReadingModeSnapshot, type ReadingModeReceipt, type ReadingPlaybackSnapshot, type ReadingPlaybackReceipt, type ReadingLocation, type ReadingNavigationReceipt, type ReadingSessionSnapshot, type ReadingSessionGuard, type ReadingTarget } from "@read-aware/core";
 import type { ReadingModeStepOutcome, ReadingModeStepReceipt } from "@read-aware/core";
+import type { ReadingControlsSnapshot, ReadingControlsReceipt } from "@read-aware/core";
+
+export type ReadingControlsAdapter = {
+  snapshot(): ReadingControlsSnapshot;
+  observe(listener: () => void): () => void;
+  setVisible(visible: boolean, signal?: AbortSignal): Promise<ReadingControlsSnapshot>;
+  retire(): void;
+};
 
 export type ReadingModeAdapter = {
   generation(): number;
@@ -36,6 +44,7 @@ export class ReadingSessionController {
   private shell: Shell | undefined;
   private playbackAdapter: { id: string; adapter: ReadingPlaybackAdapter; dispose(): void } | undefined;
   private modeAdapter: { id: string; adapter: ReadingModeAdapter; dispose(): void } | undefined;
+  private controlsAdapter: { id: string; adapter: ReadingControlsAdapter; dispose(): void } | undefined;
   private readonly listeners = new Set<(snapshot: ReadingSessionSnapshot) => unknown>();
   private readonly changes = new Set<() => void>();
   private history: ReadingLocation[] = [];
@@ -48,6 +57,7 @@ export class ReadingSessionController {
     history: { canGoBack: false, canGoForward: false },
     playback: unavailablePlayback(),
     mode: unavailableMode(),
+    controls: null,
   };
 
   constructor(private readonly report: (error: unknown) => void = () => {}, private readonly deadlineMs = 30_000) {}
@@ -70,10 +80,11 @@ export class ReadingSessionController {
     if (intent === undefined) this.intent++;
     this.detachPlayback();
     this.detachMode();
+    this.detachControls();
     const id = crypto.randomUUID();
     this.userOpening = intent === undefined ? { id, before: this.state.location } : undefined;
     this.session = { id, bookId };
-    this.publish({ sessionId: id, bookId, status: "loading", location: null, visibleText: "", errorCode: undefined, playback: unavailablePlayback(), mode: unavailableMode() });
+    this.publish({ sessionId: id, bookId, status: "loading", location: null, visibleText: "", errorCode: undefined, playback: unavailablePlayback(), mode: unavailableMode(), controls: null });
     return id;
   }
 
@@ -102,7 +113,8 @@ export class ReadingSessionController {
     this.session.error = error;
     this.detachPlayback();
     this.detachMode();
-    this.publish({ status: "error", errorCode: errorCode(error) ?? "reader/load-failed", playback: unavailablePlayback(), mode: unavailableMode() });
+    this.detachControls();
+    this.publish({ status: "error", errorCode: errorCode(error) ?? "reader/load-failed", playback: unavailablePlayback(), mode: unavailableMode(), controls: null });
   }
 
   closed(): void {
@@ -111,7 +123,42 @@ export class ReadingSessionController {
     this.detachPlayback();
     this.detachMode();
     this.session = undefined;
-    this.publish({ status: "idle", sessionId: null, bookId: null, location: null, visibleText: "", errorCode: undefined, playback: unavailablePlayback(), mode: unavailableMode() });
+    this.detachControls();
+    this.publish({ status: "idle", sessionId: null, bookId: null, location: null, visibleText: "", errorCode: undefined, playback: unavailablePlayback(), mode: unavailableMode(), controls: null });
+  }
+
+  bindControls(id: string, adapter: ReadingControlsAdapter): () => void {
+    if (this.session?.id !== id) return () => {};
+    this.detachControls();
+    const binding = { id, adapter, dispose: () => {} };
+    this.controlsAdapter = binding;
+    binding.dispose = adapter.observe(() => {
+      if (this.controlsAdapter === binding && this.session?.id === id) this.publish({ controls: adapter.snapshot() });
+    });
+    this.publish({ controls: adapter.snapshot() });
+    return () => {
+      if (this.controlsAdapter !== binding) return;
+      this.detachControls(); this.publish({ controls: null });
+    };
+  }
+
+  async setControls(visible: boolean, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingControlsReceipt> {
+    if (signal?.aborted) throw signal.reason;
+    this.checkGuard(guard);
+    if (typeof visible !== "boolean") throw new AppError("reader/invalid-target", "Controls visibility must be boolean");
+    const binding = this.controlsAdapter;
+    if (!binding || this.session?.id !== binding.id || this.state.status !== "ready") throw new AppError("reader/unavailable", "Controls require a ready reader");
+    const controls = await binding.adapter.setVisible(visible, signal);
+    if (signal?.aborted) throw signal.reason;
+    this.checkGuard(guard);
+    if (this.controlsAdapter !== binding) throw new AppError("reader/superseded", "Reader controls session was replaced");
+    return { status: "completed", sessionId: binding.id, controls };
+  }
+
+  private detachControls(): void {
+    const binding = this.controlsAdapter;
+    this.controlsAdapter = undefined;
+    binding?.dispose(); binding?.adapter.retire();
   }
 
   bindMode(id: string, adapter: ReadingModeAdapter): () => void {

@@ -4,7 +4,7 @@ import { listeningView } from "../src/views";
 
 function fixture() {
   const state: ReadingSessionSnapshot = { revision: 1, sessionId: "session", bookId: "book", status: "ready", location: null,
-    visibleText: "private text", history: { canGoBack: true, canGoForward: false },
+    visibleText: "private text", controls: null, history: { canGoBack: true, canGoForward: false },
     mode: { status: "unavailable", unavailableReason: "no-provider", requestedActive: false, modeKey: null, availableModes: [],
       label: null, unitId: null, units: [], progress: null, cfiRange: null, position: null },
     playback: { status: "stopped", unavailableReason: null, backend: null, fallback: false, owner: null, cfiRange: null } };
@@ -17,6 +17,32 @@ function fixture() {
   } } } } as unknown as PluginContext;
   return { ctx, state, calls };
 }
+
+test("controls action preserves its displayed intent and guard, and closes only after UI completion", async () => {
+  for (const visible of [true, false]) {
+    const { ctx, state, calls } = fixture(); state.controls = { visible };
+    let finish!: () => void;
+    ctx.domains.reading!.commands!.setControls = async (...args) => {
+      calls.push(args); await new Promise<void>(resolve => { finish = resolve; });
+      return { status: "completed", sessionId: "session", controls: { visible: !visible } };
+    };
+    const view = await listeningView(ctx);
+    if (view.kind !== "blocks") throw Error("Expected blocks");
+    const row = view.blocks.find(block => block.kind === "actions");
+    if (row?.kind !== "actions") throw Error("Expected actions");
+    const action = row.actions.find(action => action.id === "reader-controls")!;
+    expect(action.icon).toBe("rows");
+    expect(action.label).toBe(visible ? "Hide reader controls" : "Show reader controls");
+    state.controls.visible = !visible; state.sessionId = "new-session";
+    let settled = false;
+    const pending = Promise.resolve(action.run()).then(value => { settled = true; return value; });
+    await Promise.resolve(); expect(settled).toBe(false);
+    expect(calls).toEqual([[!visible, { sessionId: "session", bookId: "book" }]]);
+    finish(); expect(await pending).toEqual({ close: true });
+    ctx.domains.reading!.commands!.setControls = async () => { throw Error("session retired"); };
+    await expect(action.run()).rejects.toThrow("session retired");
+  }
+});
 test("composition exposes available actions, not raw passage text, and guards all writes", async () => {
   const { ctx, calls } = fixture();
   const view = await listeningView(ctx);

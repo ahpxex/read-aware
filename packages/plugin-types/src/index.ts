@@ -1203,6 +1203,8 @@ export type PluginReadingDomain = {
     };
   };
   commands?: {
+    /** Set reader chrome visibility; completes after UI commit. Does not alter panel preferences or playback. */
+    setControls(visible: boolean, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingControlsReceipt>;
     setFinished(bookId: string, finished: boolean): Promise<void>;
     openBook(bookId: string): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
     goTo(target: import("@read-aware/core").ReadingTarget): Promise<import("@read-aware/core").ReadingNavigationReceipt>;

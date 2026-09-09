@@ -99,6 +99,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   navigate_reading: { action: "next" },
   control_read_aloud: { action: "stop" },
   configure_reading_mode: { active: false },
+  set_reader_controls: { visible: true },
   ask_user: {
     question: "Which direction?",
     options: [

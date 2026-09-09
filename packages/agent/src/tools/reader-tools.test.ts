@@ -66,7 +66,30 @@ test("another book's viewport is neither exposed nor controlled by a book-scoped
   await expect(tool("navigate_reading").execute("test", { action: "next" })).rejects.toThrow("not the active reader");
   await expect(tool("control_read_aloud").execute("test", { action: "stop" })).rejects.toThrow("not the active reader");
   await expect(tool("configure_reading_mode").execute("test", { active: false })).rejects.toThrow("not the active reader");
+  await expect(tool("set_reader_controls").execute("test", { visible: true })).rejects.toThrow("not the active reader");
   expect(stores.readerRequests).toHaveLength(count);
+});
+
+test("reader chrome tool waits for UI completion and carries cancellation and both scope guards", async () => {
+  const { deps, tool } = fixture(); const abort = new AbortController();
+  let observed: unknown; let finish!: () => void;
+  deps.reader.setControls = async (visible, signal, guard) => {
+    observed = { visible, signal, guard };
+    await new Promise<void>(resolve => { finish = resolve; });
+    return { status: "completed", sessionId: "fixture", controls: { visible } };
+  };
+  let settled = false;
+  const pending = tool("set_reader_controls").execute("test", { visible: false }, abort.signal)
+    .then(value => { settled = true; return value; });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(settled).toBe(false);
+  expect(observed).toEqual({ visible: false, signal: abort.signal, guard: { sessionId: "fixture", bookId } });
+  finish();
+  const result = await pending;
+  if (result.content[0]?.type !== "text") throw Error("Expected text");
+  expect(JSON.parse(result.content[0].text)).toMatchObject({ status: "completed", controls: { visible: false } });
+  deps.reader.setControls = async () => { throw new AppError("reader/timeout", "No render"); };
+  await expect(tool("set_reader_controls").execute("test", { visible: true })).rejects.toMatchObject({ code: "reader/timeout" });
 });
 
 test("read-aloud forwards session scope and cancellation and waits for backend completion", async () => {

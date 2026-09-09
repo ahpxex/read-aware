@@ -22,6 +22,7 @@ import type { LoadedBook, TocEntry } from "../lib/reader-types";
 import { getVirtualBookBinding } from "../../plugins/lib/virtual-books";
 import { AppError } from "@read-aware/core";
 import { readingRuntime } from "../../../domain/reading-runtime";
+import { useReaderControls } from "./useReaderControls";
 
 type ReaderSource =
   | { format: BookFormat; data: LoadedBook }
@@ -57,7 +58,9 @@ export function useReaderSession({
   const [readerSource, setReaderSource] = useState<ReaderSource>(null);
   const [readerLoadError, setReaderLoadError] = useState<ReaderLoadError | null>(null);
   const [isReaderLoading, setIsReaderLoading] = useState(false);
-  const [shellVisible, setShellVisible] = useLocalAtom(false);
+  const { controls, visible: shellVisible, setVisible: setShellVisible } = useReaderControls();
+  const controlsBinding = useRef<(() => void) | undefined>(undefined);
+  useEffect(() => () => controlsBinding.current?.(), []);
   const [readerPage, setReaderPage] = useLocalAtom({ current: 0, total: 0 });
   const [readerToc, setReaderToc] = useLocalAtom<TocEntry[]>([]);
   const [currentChapterHref, setCurrentChapterHref] = useLocalAtom<string | null>(null);
@@ -158,6 +161,8 @@ export function useReaderSession({
 
   const openReader = useCallback((book: LibraryBook, navigationIntent?: number) => {
     const sessionId = readingRuntime.begin(book.id, navigationIntent);
+    controlsBinding.current?.();
+    controlsBinding.current = readingRuntime.bindControls(sessionId, controls);
     const requestId = readerLoadRequestIdRef.current + 1;
     readerLoadRequestIdRef.current = requestId;
 
@@ -223,7 +228,7 @@ export function useReaderSession({
         setIsReaderLoading(false);
       }
     })();
-  }, [replaceBookInState, reportError, resetReaderState, setShellVisible, t]);
+  }, [controls, replaceBookInState, reportError, resetReaderState, setShellVisible, t]);
 
   const closeReader = useCallback(() => {
     readingRuntime.closed();

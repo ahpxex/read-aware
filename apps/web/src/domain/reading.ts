@@ -42,6 +42,7 @@ export type ReadingQueries = {
 };
 
 export type ReadingCommands = {
+  setControls(visible: boolean, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<import("@read-aware/core").ReadingControlsReceipt>;
   configureMode(input: import("@read-aware/core").ReadingModeConfiguration, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<import("@read-aware/core").ReadingModeReceipt>;
   returnToMode(signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt>;
   stepMode(direction: "next" | "previous", signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<import("@read-aware/core").ReadingModeStepReceipt>;
@@ -118,6 +119,7 @@ export function createReadingDomain(origin: EventOrigin): ReadingDomain {
   };
 
   const commands: ReadingCommands = {
+    setControls: (visible, signal, guard) => readingRuntime.setControls(visible, signal, guard),
     configureMode: (input, signal, guard) => readingRuntime.configureMode(input, signal, guard),
     returnToMode: (signal, guard) => readingRuntime.returnToMode(signal, guard),
     stepMode: (direction, signal, guard) => readingRuntime.stepMode(direction, signal, guard),

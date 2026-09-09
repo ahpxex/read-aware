@@ -144,6 +144,7 @@ export interface AnnotationsPort {
 }
 
 export interface ReaderPort {
+  setControls(visible: boolean, signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingControlsReceipt>;
   configureMode(input: import("@read-aware/core").ReadingModeConfiguration, signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingModeReceipt>;
   returnToMode(signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
   stepMode(direction: "next" | "previous", signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingModeStepReceipt>;

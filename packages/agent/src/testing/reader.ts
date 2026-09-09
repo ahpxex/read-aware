@@ -9,6 +9,7 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
   const mode: ReadingModeSnapshot = { status: "unavailable", unavailableReason: "no-provider", requestedActive: false,
     modeKey: null, label: null, availableModes: [], unitId: null, units: [], progress: null, cfiRange: null, position: null };
   let revision = 0;
+  let controls = { visible: false };
   let location: ReadingLocation | null = initialBookId ? { bookId: initialBookId, contentVersion: "fixture", fraction: 0 } : null;
   const receipt = (): ReadingNavigationReceipt => {
     if (!location) throw new Error("No active fixture reader");
@@ -16,7 +17,12 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
     return { status: "completed", sessionId: "fixture", location: { ...location } };
   };
   return {
-    getSession: async () => ({ revision, sessionId: location ? "fixture" : null, bookId: location?.bookId ?? null, status: location ? "ready" : "idle", location, visibleText: "", history: { canGoBack: false, canGoForward: false }, playback, mode }),
+    getSession: async () => ({ revision, sessionId: location ? "fixture" : null, bookId: location?.bookId ?? null, status: location ? "ready" : "idle", location, visibleText: "", history: { canGoBack: false, canGoForward: false }, playback, mode, controls: location ? { ...controls } : null }),
+    setControls: async visible => {
+      if (!location) throw new Error("No active fixture reader");
+      controls = { visible }; revision++;
+      return { status: "completed", sessionId: "fixture", controls: { ...controls } };
+    },
     configureMode: async input => {
       if (input.active) throw new Error("Fixture has no reader-mode provider");
       return { status: "completed", sessionId: "fixture", mode };

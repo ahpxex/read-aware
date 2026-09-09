@@ -1,6 +1,8 @@
 // src/strings.ts
 var locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 var labels = {
+  showControls: ["Show reader controls", "显示阅读工具栏", "顯示閱讀工具列", "読書ツールバーを表示", "Показать панель чтения", "Afficher les commandes de lecture", "Lesesteuerung anzeigen", "Mostrar controles de lectura"],
+  hideControls: ["Hide reader controls", "隐藏阅读工具栏", "隱藏閱讀工具列", "読書ツールバーを隠す", "Скрыть панель чтения", "Masquer les commandes de lecture", "Lesesteuerung ausblenden", "Ocultar controles de lectura"],
   offline: ["System reports offline", "系统报告离线", "系統回報離線", "システムはオフラインと報告", "Система сообщает об отсутствии сети", "Le système indique un état hors ligne", "System meldet offline", "El sistema indica que no hay conexión"],
   provider: ["Reading mode provider", "阅读模式提供者", "閱讀模式提供者", "読書モードの提供元", "Поставщик режима чтения", "Fournisseur du mode de lecture", "Lesemodus-Anbieter", "Proveedor del modo de lectura"],
   title: ["Listening Desk", "朗读台", "朗讀台", "読み上げ", "Чтение вслух", "Lecture audio", "Vorlesen", "Lectura en voz alta"],
@@ -93,6 +95,18 @@ async function listeningView(ctx, boundary) {
     }
   } : null;
   if (state.status === "ready" && state.sessionId) {
+    if (state.controls) {
+      const visible = !state.controls.visible;
+      actions.push({
+        id: "reader-controls",
+        label: tr(ctx.locale, visible ? "showControls" : "hideControls"),
+        icon: "rows",
+        run: async () => {
+          await reading.commands.setControls(visible, guard);
+          return { close: true };
+        }
+      });
+    }
     if (mode.requestedActive && ["ready", "empty"].includes(mode.status)) {
       for (const direction of ["previous", "next"])
         actions.push({

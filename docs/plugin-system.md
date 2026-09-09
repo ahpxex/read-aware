@@ -178,6 +178,38 @@ Engine work cannot yet be aborted per navigation; cancelling a waiter is not a
 promise that a physical move was undone. PDF completion waits for rasterization,
 which an occluded WKWebView may suspend until it is visible.
 
+### Reader Controls Visibility
+
+[代码] Reading 2.6 adds `queries.session().controls: { visible: boolean } | null`
+and `commands.setControls(visible, guard?)`. `reading:read` can query and observe;
+`reading:write` is required to change it. Agent `set_reader_controls` uses the
+same controller with its turn AbortSignal and book/session guard. This is an
+explicit show/hide command, not a toggle based on a potentially stale snapshot.
+Null means no bound controls surface; commands require a ready reader.
+
+The host's space/content-click/scroll/panel-intent paths use that same owner.
+The last committed visibility is published through `observeSession`, incrementing
+revision only when the value changes. Even a repeated-value command waits for
+its own React DOM commit. The receipt is `{ status: "completed", sessionId,
+controls: { visible } }`, not proof that a CSS transition or physical raster has
+finished. Header and already-selected docked panels follow it; saved panel choices,
+reading position/history, mode and playback are not modified.
+
+New UI/actor intent, session replacement or surface disposal rejects outstanding
+work with `reader/superseded`; invalid values use `reader/invalid-target`, a missing
+or non-ready surface uses `reader/unavailable`, and no commit within ten seconds
+uses `reader/timeout`. Agent abort and plugin instance termination cancel waiting.
+Cancelled uncommitted intent is discarded and late acknowledgements ignored;
+cancellation does not undo an already committed UI change. Plugins do not yet
+have an independent per-call AbortSignal. Listening Desk 0.8 consumes the snapshot
+and guarded command, closing its view only after success. It remains an on-demand
+view rather than a live subscriber, and does not add a redundant model tool.
+
+[验证] Controller, real React DOM, Agent tool and plugin view tests cover completion,
+concurrency, stale guards, cancellation, timeouts, observer reentrancy, disposal and
+failure propagation. Native evidence and remaining environment boundaries are
+recorded in [reader controls evidence](./evidence/reader-controls-2026-09-09.json).
+
 [代码] Mode configuration writes the book's retained state and selected provider's
 unit preference in one SQLite batch, after earlier KV writes settle. Completion
 waits for the current generation's exact write receipts and initial position

@@ -690,3 +690,17 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [文档] 243 行、600 库存、74 设置、30 单元/catalog、129 原验收和 32 场景保持。七项模型门禁、两个生成器 --check、三个文档对 validator 通过。矩阵与插件说明 HTML 在 1440×1000、1024×768、390×844 无页面横向溢出、重复 ID、坏页内锚点、无名按钮或已观察资源 HTTP 错误。conflicted/冲突搜索与 Escape、矩阵抽屉 inert 和主题刷新保持通过；交互使用 DOM 事件验证，移动截图已查看，console/page error 为空。模型 HTML 未改，MD 仅反查事实同步；文档仍依赖 CDN，不算产品验证。
 
 [清理/仍缺] 两轮诊断贡献/工具/文档归零、原覆盖空态与 SQLite {} 恢复、书关闭；既有合成书阅读轨迹不倒写。自有进程组 72110/73357 均退出，5184/9224 无监听，文档浏览器关闭，正式 app 未操作。保留既有 Rust 37 warnings、初始 WebContent 终止后恢复、bridge 版本提示；带 selector 的 DOM snapshot 报 resolveAll 不存在，改用完整 snapshot 验证，无业务代码绕过。UI04 仍部分：全来源 revision/origin、所有键盘布局/格式/选区与模式路由、原生菜单、packaged/Windows/Linux 未完成。其他双端缺口与六项无效果设置、W01-W32 组合继续，总目标保持进行中，未推送。
+
+## 2026-09-09：D2 / 阅读控制层共享状态与 Reading 2.6
+
+[代码] READ09 从双端未接改为接通。ReadingSessionSnapshot.controls 返回最后一次 React DOM 提交的 visible，无绑定时为 null；reading.commands.setControls 和 Agent set_reader_controls 使用同一会话控制器。UI 的空格、内容点击、滚动、打开面板等原有路径也写同一 owner。命令仅控制 header/已选 docked panels 显示，不修改已保存面板选择、位置、历史、模式或播放。重复值也等待本次 DOM 提交，不按派发就报成功，也不宣称 CSS 动画或物理绘制已结束。
+
+[代码] 写要求 ready 和 reading:write，读取/观察只需 reading:read。会话/书籍 guard 阻止旧视图控制新书；更新意图、替换/关闭/失败/解绑使在途请求 superseded。Agent signal 和插件实例生命周期取消等待，十秒无提交报 timeout；取消丢弃未提交意图，迟到 ack 忽略，不保证撤销已呈现状态。观察者失败隔离，重入变化不改写原请求的完成快照。Listening Desk 0.8 使用已有表单/动作组合，按显示时快照提供显式 show/hide，成功后关闭视图，不新增专属 Agent 工具。
+
+[环境] [证据](./evidence/reader-controls-2026-09-09.json)来自隔离 macOS debug Tauri，实际 Agent 工具和当前构建的 Listening Desk Worker 双端显示/隐藏，原生空格与只读 Worker 状态一致；只读 Worker 无 commands。header More 菜单打开插件，关闭并重开同书后旧按钮被拒绝、保留视图并显示不含 raw error 的通用插件错误提示；Refresh 重新取得 guard 后恢复。控制操作前后 CFI/历史/模式/播放一致；错误、预取消和错误会话不改状态。未调用远端模型，也未在桌面注入 pending timeout/退出故障，这些边界由控制器与 React 测试覆盖。
+
+[验证] 聚焦 34 项、315 次断言通过；全仓 test 21/21（web 760 项、8553 次断言）、typecheck 24/24、生产前端 build 通过。首次全量测试指出新增工具数量断言未更新，补两端名单后重跑成功。截图发现 sidebar 不在既有图标目录，改用已支持 rows，重建后第二轮原生查看稳定截图并重测隐藏。首次导入旧阅读探针使 Vite 预构建 pdf-lib 后 reload；通过 revision 归零和启动日志确认，再准备诊断 Worker，未把旧状态当成连续运行。一次 rAF 观察超时，重新前置测试 app 后取得真实错误提示；保留既有 Rust/Node/bridge 警告和启动 WebContent 终止后恢复记录。
+
+[文档] 重扫 243 行、603 库存映射、74 设置、30 单元/catalog、129 原验收、32 场景，新增两种 scope 的 Agent 工具和一个插件方法均可反查 READ09。三对 validator 和七项模型门禁通过。矩阵/插件说明 HTML 在 1440×1000、1024×768、390×844 无页面横向溢出、重复 ID、坏页内锚点、无名按钮或已观察 HTTP 资源错误；中英文 setControls/控制层搜索和 Escape 通过，矩阵抽屉/主题刷新保持通过。移动截图已查看，console/page error 为空；模型 HTML 无共享摘要变化，仅 MD 反查行更新。文档仍依赖 CDN，浏览器检查不计作产品验收。
+
+[清理/仍缺] 诊断贡献归零，书关闭；两轮自有进程组 78262/79393 均退出，5184/9224 无监听，文档浏览器关闭。正式 app 和设置未修改，合成书阅读轨迹不倒写。READ10 指定面板选择仍未接，单次插件取消句柄、packaged/Windows/Linux 未验；其余双端缺口、六项无效果设置和 W01-W32 全组合继续，未推送、不关闭总目标。

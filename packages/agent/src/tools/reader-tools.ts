@@ -138,5 +138,17 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
         { sessionId: current.sessionId, ...(scope.kind === "book" ? { bookId: scope.bookId } : {}) }));
     },
   };
-  return [openBook, session, control, playback, mode];
+  const controls: AgentTool = {
+    name: "set_reader_controls", label: "Reader controls",
+    description: "Show or hide the current reader's header and docked panels. Query get_reading_session.controls first. This changes only chrome visibility: it does not open/close a book, change saved panel choices, start/stop audio, or move the reading position. Completes when the UI commits. Use only for an explicit user request.",
+    parameters: Type.Object({ visible: Type.Boolean() }),
+    executionMode: "sequential",
+    execute: async (_id, params, signal) => {
+      const current = await deps.reader.getSession();
+      if (!current.sessionId || scope.kind === "book" && current.bookId !== scope.bookId) throw new Error("This book is not the active reader");
+      return textResult(await deps.reader.setControls((params as { visible: boolean }).visible, signal,
+        { sessionId: current.sessionId, ...(scope.kind === "book" ? { bookId: scope.bookId } : {}) }));
+    },
+  };
+  return [openBook, session, control, playback, mode, controls];
 }

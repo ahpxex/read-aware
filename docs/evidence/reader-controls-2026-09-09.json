@@ -1,0 +1,51 @@
+{
+  "date": "2026-09-09",
+  "capability": "READ09",
+  "contract": "reading 2.6.0",
+  "consumer": "Listening Desk 0.8.0",
+  "environment": {
+    "app": "com.readaware.app.capability-e2e",
+    "runtime": "macOS debug Tauri",
+    "ports": [5184, 9224],
+    "formalAppTouched": false,
+    "book": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+    "bookTitle": "Reading Capability Probe",
+    "pluginIdentity": "capability-controls-desk",
+    "pluginModule": "plugins/listening-desk/dist/main.js"
+  },
+  "observed": [
+    "Actual set_reader_controls Agent tool returned completed after showing the reader header; snapshot changed from visible false to true with revision 10 to 11.",
+    "Actual built Listening Desk Worker displayed Hide reader controls; clicking it hid and marked header/docked sections inert, then closed the plugin dialog.",
+    "Reopening the plugin while hidden offered Show reader controls; the action restored the header. Native space key hid and showed the same snapshot state.",
+    "Controls-only operations preserved the actual CFI, history availability, inactive mode and playback-unavailable state.",
+    "A real reading:read Worker saw controls.visible but had no reading.commands. The permission probe was repeated after a confirmed Vite dependency reload.",
+    "The actual header More menu opened the diagnostic Listening Desk alongside the independently installed older plugin. The diagnostic entry used the current built 0.8 module.",
+    "Closing and reopening the same book retained the old plugin view but changed session identity. Its stale action was rejected, the dialog remained open, and a localized generic plugin-error toast appeared without raw error prose.",
+    "Refresh rebuilt the view with the new session guard; Show reader controls then succeeded and closed it.",
+    "A book-scoped Agent tool targeting another book rejected before control. Direct host commands rejected stale session, malformed visibility and pre-aborted signal with unchanged snapshot.",
+    "After rebuilding the supported rows icon, a second isolated app run rendered the actual icon; a settled dialog screenshot was inspected and Hide succeeded again.",
+    "Cleanup removed all four diagnostic contributions and closed the book; controls became null. Owned process groups 78262 and 79393 exited 143. Formal app and settings were not modified."
+  ],
+  "localTests": {
+    "focused": "34 tests / 315 assertions passed",
+    "coverage": ["real React DOM acknowledgement", "repeated-value command acknowledgement", "no premature state publication", "concurrent/UI intent supersession", "late render rejection", "AbortSignal and timeout", "stale book/session guards", "close/fail/replacement/unbind", "observer failure and reentrancy", "Agent guard/cancellation/error propagation", "plugin displayed intent and close-after-success"],
+    "fullTest": "21/21 tasks; web 760 tests / 8553 assertions",
+    "typecheck": "24/24 tasks",
+    "frontendBuild": "passed; existing chunk-size, mixed-import and Node deprecation warnings retained"
+  },
+  "screenshotsInspected": ["/tmp/readaware-controls-show.png", "/tmp/readaware-controls-hide.png", "/tmp/readaware-controls-stale.png", "/tmp/readaware-controls-rows-settled.png"],
+  "issuesDuringVerification": [
+    "Initial WebContent process termination recovered during normal boot; existing 37 Rust warnings and MCP plugin-version warning retained.",
+    "Dynamically importing the existing reading probe first optimized pdf-lib and reloaded Vite. Runtime revision 0 and boot logs confirmed the reload; probes were prepared again, not treated as persistent across navigation.",
+    "One requestAnimationFrame-based observation timed out while the view was not painting. The app was explicitly foregrounded before rechecking the stale-action toast.",
+    "Screenshot exposed an unsupported sidebar icon falling back to a puzzle glyph; changed to the already supported rows icon."
+  ],
+  "notProven": [
+    "No remote model inference; the actual product Agent tool was invoked by the diagnostic helper.",
+    "No packaged build, Windows or Linux verification for this capability.",
+    "Completion proves React DOM commit, not CSS transition completion or physical screen rasterization.",
+    "Pending cancellation, timeout and retirement are covered by controller/React tests, not native fault injection.",
+    "No per-call plugin cancellation handle, no general panel-selection API, and no claim that W01-W32 or all host gaps are complete.",
+    "Screenshot paths are local inspection artifacts, not committed binary attachments."
+  ]
+}

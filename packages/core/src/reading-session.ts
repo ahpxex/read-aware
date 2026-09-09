@@ -40,7 +40,12 @@ export type ReadingSessionSnapshot = {
   history: { canGoBack: boolean; canGoForward: boolean };
   playback: ReadingPlaybackSnapshot;
   mode: ReadingModeSnapshot;
+  /** Last committed reader-chrome visibility, or null without an attached UI. */
+  controls: ReadingControlsSnapshot | null;
 };
+
+export type ReadingControlsSnapshot = { visible: boolean };
+export type ReadingControlsReceipt = { status: "completed"; sessionId: string; controls: ReadingControlsSnapshot };
 
 /** A versioned address independent of the currently visible section. */
 export type ReadingModePosition = {

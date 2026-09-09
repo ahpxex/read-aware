@@ -40,6 +40,15 @@ export async function listeningView(ctx: PluginContext, boundary?: "start-of-boo
     },
   } : null;
   if (state.status === "ready" && state.sessionId) {
+    if (state.controls) {
+      const visible = !state.controls.visible;
+      actions.push({ id: "reader-controls", label: tr(ctx.locale, visible ? "showControls" : "hideControls"), icon: "rows",
+        run: async () => {
+          await reading.commands!.setControls(visible, guard);
+          return { close: true };
+        },
+      });
+    }
     if (mode.requestedActive && ["ready", "empty"].includes(mode.status)) {
       for (const direction of ["previous", "next"] as const) actions.push({
         id: `${direction}-unit`, label: tr(ctx.locale, direction === "next" ? "nextUnit" : "previousUnit"),

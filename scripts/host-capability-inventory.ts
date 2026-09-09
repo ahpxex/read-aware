@@ -39,6 +39,7 @@ const agentMap = pairs([
   ["control_read_aloud", "READ18"],
   ["get_host_environment", "MORE03"],
   ["configure_reading_mode", "READ16"],
+  ["set_reader_controls", "READ09"],
   ["ask_user", "AI04"], ["get_settings update_settings", "CFG01"],
 ]);
 const pluginMap = pairs([
@@ -64,6 +65,7 @@ const pluginMap = pairs([
   ["domains.reading.commands.configureMode", "READ16"],
   ["domains.reading.commands.returnToMode", "READ16"],
   ["domains.reading.commands.stepMode", "READ16"],
+  ["domains.reading.commands.setControls", "READ09"],
   ["domains.annotations.queries.list", "ANN01"], ["domains.annotations.commands.createHighlight", "ANN02 ANN03"],
   ["domains.annotations.queries.get domains.annotations.queries.page", "ANN08"], ["domains.annotations.commands.removeAsk", "ANN06"],
   ["domains.annotations.queries.inspect domains.annotations.commands.applyChanges", "ANN08"],

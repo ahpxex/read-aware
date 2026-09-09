@@ -132,15 +132,12 @@ export function ReaderShellOverlay({
   // so only one can be open at a time and resizing is meaningless.
   const isPhone = usePhoneViewport();
   const toggleToc = () => {
-    const next = !tocOpen;
-    setTocOpen(next);
-    if (next && isPhone) setNotesOpen(false);
+    void setTocOpen(previous => !previous, isPhone);
   };
   const toggleNotes = () => {
-    const next = !notesOpen;
-    setNotesOpen(next);
-    if (next) requestChatFocus();
-    if (next && isPhone) setTocOpen(false);
+    void setNotesOpen(previous => !previous, isPhone).then(layout => {
+      if (layout?.notesOpen) requestChatFocus();
+    });
   };
 
   // Android back gesture: a phone full-screen sheet is a deeper layer, so back
@@ -299,13 +296,12 @@ export function ReaderShellOverlay({
     handledPanelIntentIdRef.current = panelIntent.id;
     switch (panelIntent.panel) {
       case "toc":
-        setTocOpen(true);
-        if (isPhone) setNotesOpen(false);
+        void setTocOpen(true, isPhone);
         break;
       case "chat":
-        setNotesOpen(true);
-        requestChatFocus();
-        if (isPhone) setTocOpen(false);
+        void setNotesOpen(true, isPhone).then(layout => {
+          if (layout?.notesOpen) requestChatFocus();
+        });
         break;
       case "appearance":
         setAppearanceOpen(true);
@@ -322,11 +318,10 @@ export function ReaderShellOverlay({
     if (!askAiRequest || askAiRequest.bookId !== bookId) return;
     if (askAiRequest.id === handledAskAiIdRef.current) return;
     handledAskAiIdRef.current = askAiRequest.id;
-    setNotesOpen(true);
-    requestChatFocus();
-    // Full-screen sheets are exclusive on phones — chat replaces the TOC.
-    if (isPhone) setTocOpen(false);
-  }, [askAiRequest, bookId, requestChatFocus, setNotesOpen, setTocOpen, isPhone]);
+    void setNotesOpen(true, isPhone).then(layout => {
+      if (layout?.notesOpen) requestChatFocus();
+    });
+  }, [askAiRequest, bookId, requestChatFocus, setNotesOpen, isPhone]);
 
   // The appearance popover is transient — it closes whenever the overlay is
   // dismissed. The contents and chat panels are NOT reset: they keep their open

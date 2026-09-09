@@ -1,0 +1,101 @@
+{
+  "date": "2026-09-09",
+  "scope": "READ10 prerequisite: host TOC/chat panel persistence, not public Agent/plugin panel APIs",
+  "environment": {
+    "platform": "macOS debug Tauri",
+    "appIdentifier": "com.readaware.app.capability-e2e",
+    "frontendPort": 5184,
+    "bridgePort": 9224,
+    "nativePid": 81842,
+    "ownedProcessGroup": 81626,
+    "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+    "book": "Reading Capability Probe (synthetic FB2)",
+    "formalAppTouched": false
+  },
+  "nativeChecks": [
+    {
+      "case": "missing preference row: real SQLite insert failure",
+      "method": "BEFORE INSERT and BEFORE UPDATE triggers reject only read-aware-reader-panels in the isolated app_kv; click the actual Table of contents button",
+      "result": {
+        "tocInert": true,
+        "chatInert": true,
+        "mirror": null,
+        "sqliteRowCount": 0,
+        "statusCount": 1,
+        "statusText": "Change not savedThe local database ran into a problem.",
+        "rawTriggerErrorVisible": false
+      }
+    },
+    {
+      "case": "remove faults, retry and reopen",
+      "method": "Drop owned triggers; click TOC and Chat at width 1200; compare actual sections, localKV and SQLite; close/reopen the same book and reveal controls",
+      "result": { "tocOpen": true, "notesOpen": true, "sqliteMatches": true, "reopenedBothVisible": true }
+    },
+    {
+      "case": "external host write refreshes mounted panel",
+      "method": "Call updateReaderPanelLayout to close TOC without dispatching a UI toggle",
+      "result": { "tocInert": true, "chatInert": false, "receipt": { "tocOpen": false, "notesOpen": true } }
+    },
+    {
+      "case": "narrow-window exclusive switch failure and recovery",
+      "method": "Resize the actual Tauri window to 600x844; with Chat open reintroduce both SQLite triggers, click TOC, inspect UI/mirror/SQLite, then drop faults and retry",
+      "failure": {
+        "tocInert": true,
+        "chatInert": false,
+        "sqlite": { "tocOpen": false, "notesOpen": true },
+        "statusCount": 1,
+        "statusText": "Change not savedThe local database ran into a problem.",
+        "rawTriggerErrorVisible": false
+      },
+      "recovery": { "tocInert": false, "chatInert": true, "sqlite": { "tocOpen": true, "notesOpen": false }, "pageHorizontalOverflow": false },
+      "screenshot": "/tmp/reader-panel-persistence-600.png (local, visually inspected, not a committed artifact)",
+      "boundary": "Native checks prove the resulting two-field state and rollback; one-write counting and delayed-write races are independently asserted by the hook tests."
+    }
+  ],
+  "automatedCoverage": {
+    "file": "apps/web/src/features/reader/hooks/reader-panel-layout.test.tsx",
+    "runner": "PANEL_LAYOUT_CASE=1 bun test apps/web/src/features/reader/hooks/reader-panel-layout.test.tsx",
+    "passed": 10,
+    "assertions": 54,
+    "cases": [
+      "Optimistic DOM mirrors state while success waits for the exact native commit",
+      "Write rejection rolls back mounted state and produces one translated notice, not raw prose",
+      "Queued toggles read settled predecessors and suppress superseded focus continuations",
+      "A later intent uses rollback instead of retaining a failed optimistic sibling field",
+      "Exclusive pane switch writes once and restores both fields on failure",
+      "External KV changes and rollback refresh the mounted panel without write echo",
+      "Book replacement immediately reads its own state and cancels queued old-owner intents",
+      "Host helper preserves error codes; cancellation settles promptly without pretending to undo dispatched IPC",
+      "Same-value request avoids writes; invalid values and malformed legacy data cannot corrupt preferences",
+      "Concurrent book owners merge against the committed predecessor without losing other books"
+    ],
+    "boundary": "JSDOM/React StrictMode with controlled native IPC promises; not real SQLite scheduling, platform keyboard input, or Worker permission coverage"
+  },
+  "validation": {
+    "test": "21/21 tasks; web 761 tests, 8555 assertions; isolated panel child 10 tests, 54 assertions",
+    "typecheck": "24/24 tasks",
+    "frontendBuild": "1/1 task; 7490 modules; existing Node deprecation, mixed-import and chunk-size warnings",
+    "capabilityGate": "7 tests; 243 rows, 603 inventory mappings, 74 settings, 30 ownership units/catalog entries, 129 acceptance items, 32 scenarios",
+    "documentation": "Matrix/model pair validators and both generators --check pass. Matrix HTML checked at 1440x1000, 1024x768, 390x844; no horizontal overflow, duplicate IDs, bad page anchors, unnamed buttons, observed HTTP resource failures or console/page errors. Chinese/English filtering, Escape, drawer inert and theme persistence pass. Screenshots inspected; browser closed. This verifies documentation, not the product."
+  },
+  "cleanup": {
+    "originalPreference": null,
+    "restore": "localKV.removeItemAsync after fault triggers were dropped",
+    "sqlitePreferenceRowsAfterRestore": 0,
+    "sqliteOwnedFaultTriggersAfterRestore": 0,
+    "bothPanelsInertAfterRestore": true,
+    "windowRestoredTo": "1200x800 logical pixels",
+    "finalView": "Library; no Table of contents section",
+    "driverDisconnected": true,
+    "ownedProcessExit": 143,
+    "ports5184And9224HaveNoListeners": true
+  },
+  "observationsAndOpenIssues": [
+    "One reopen produced an unhandled Tauri event unregisterListener error (listeners[eventId].handlerId) from platform/wheel-phase.ts. Not fixed by this panel persistence change; retain as a separate reader lifetime defect.",
+    "A final cleanup close observation timed out during Vite HMR/reboot after a dependency-list-only source edit. Re-polled the live app and confirmed Library/no reader panel, rather than treating the timeout as process termination.",
+    "Native production code change after the fault tests only removes an unused React effect dependency; the additional test initializes real English i18n and asserts translated text.",
+    "No public Agent/plugin specified-panel service, version bump, permission contract, or new composition plugin is delivered by this prerequisite.",
+    "Annotations/appearance remain transient UI state; hidden/overflow menu entry handling and actual panel DOM completion receipts are still pending.",
+    "No packaged, Windows/Linux, every supported book format, every locale, or delayed native IPC cancellation certification."
+  ]
+}

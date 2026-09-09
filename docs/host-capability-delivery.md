@@ -704,3 +704,15 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [文档] 重扫 243 行、603 库存映射、74 设置、30 单元/catalog、129 原验收、32 场景，新增两种 scope 的 Agent 工具和一个插件方法均可反查 READ09。三对 validator 和七项模型门禁通过。矩阵/插件说明 HTML 在 1440×1000、1024×768、390×844 无页面横向溢出、重复 ID、坏页内锚点、无名按钮或已观察 HTTP 资源错误；中英文 setControls/控制层搜索和 Escape 通过，矩阵抽屉/主题刷新保持通过。移动截图已查看，console/page error 为空；模型 HTML 无共享摘要变化，仅 MD 反查行更新。文档仍依赖 CDN，浏览器检查不计作产品验收。
 
 [清理/仍缺] 诊断贡献归零，书关闭；两轮自有进程组 78262/79393 均退出，5184/9224 无监听，文档浏览器关闭。正式 app 和设置未修改，合成书阅读轨迹不倒写。READ10 指定面板选择仍未接，单次插件取消句柄、packaged/Windows/Linux 未验；其余双端缺口、六项无效果设置和 W01-W32 全组合继续，未推送、不关闭总目标。
+
+## 2026-09-09：S3 / 面板持久化与生命周期前置修复
+
+[代码] READ10 双端仍为未接，本次没有新增公共 API 或提高 capability version。原生目录/聊天开关从独立 React 状态加静默保存改为 useSyncExternalStore 观察共享 KV 镜像，反映外部更新和失败回滚；updateReaderPanelLayout 等前次写结算后计算本次意图，保留其他书记录，返回该次 SQLite 写入的真实 Promise。失败码在宿主 helper 保留，UI hook 记录日志并复用全局 LocalWriteFailureToasts，不重复提示。窄窗两面板互斥切换一次写入；聊天聚焦只由最新且仍有效的成功意图续接，不以派发或乐观呈现作为保存完成。
+
+[代码] book owner 在 layout effect 建立，切书/卸载取消排队操作；新书首帧直接取自身布局，不等旧书 effect。取消立即终结调用方等待，但不谎称撤销已进入 IPC 的写。畸形旧 JSON/数组回落默认，opaque book ID 不走对象原型；新写入验证布尔字段。同值请求在前序写结算后直接返回，不额外写盘。既有 panelIntent 与 Ask AI 入口复用同一互斥保存路径。注释/外观的临时状态、统一面板 DOM 完成回执、隐藏/overflow 菜单入口仍待公共服务实现。
+
+[环境] [证据](./evidence/reader-panel-persistence-2026-09-09.json)来自实际隔离 macOS debug Tauri。仅向隔离 app_kv 的目标 key 安装临时 INSERT/UPDATE 拒绝触发器，点击真实目录按钮：面板回滚关闭、SQLite 无新行、只有一次英文“Change not saved”提示，无 raw trigger 文本。去掉触发器重试，1200px 窗口目录/聊天同时打开且 SQLite 一致；关闭并重开同书保留选择。外部宿主 helper 写入立即刷新已挂载面板。600×844 窄窗从聊天切目录，真实数据库拒绝后恢复聊天；解除故障重试得到目录开/聊天关且无横向溢出，截图已查看。单次写计数、延迟提交与换书排队取消由 React/IPC 控制测试证明，不冒充本轮真实 SQLite 调度测试。
+
+[验证] 独立 StrictMode/i18n/原生 IPC 子进程 10 项、54 断言通过；全仓 test 21/21（web 761 项、8555 断言）、typecheck 24/24、前端生产 build 通过，保留既有 Node/混合导入/体积警告。重扫 243 行、603 库存、74 设置、30 单元/catalog、129 原验收、32 场景，七项模型门禁与两生成器 --check 通过。矩阵 MD/HTML 同步证据与未接边界，统一模型 MD 仅更新反查，HTML 共享摘要未变；两对 validator 通过。矩阵 HTML 三尺寸、中英文筛选/Escape、抽屉 inert、主题刷新保持通过，无重复 ID/坏页内锚点/无名按钮/已观察资源错误；console/page error 为空。文档依赖 CDN，浏览器检查不代表产品验证。
+
+[新发现/清理] 关闭重开时观察到 platform/wheel-phase.ts 的 Tauri unregisterListener 未处理拒绝（listeners[eventId].handlerId），保留为独立未解决生命周期缺陷，不能称整个阅读器无错误。清理期间一次 close 观察在 Vite HMR/boot 重启时超时，重新检查真实 app 已回 Library 且无阅读面板；未据超时重启进程。目标偏好恢复原缺席状态，两故障触发器删除，SQLite 行/触发器均为 0，窗口恢复 1200×800，自有进程组 81626 终态 143、5184/9224 无监听，文档浏览器关闭。正式 app 未操作，合成书阅读轨迹不倒写。READ10 双端接口及其组合插件、滚轮退订缺陷、其余部分/未接项、W01-W32 全组合与 packaged/Windows/Linux 仍继续，未推送、不关闭总目标。

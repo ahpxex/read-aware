@@ -49,6 +49,9 @@ extends the reader — and the agent — from the inside.
   spacing, and other reading settings.
 - **See the habit forming.** Reading-time statistics make progress visible
   across books and sessions.
+- **Pick up on another device.** Sync books, reading progress, annotations,
+  conversations, and memory with end-to-end encryption, through the ReadAware
+  relay or your own WebDAV server.
 - **Bring almost any book.** EPUB, MOBI, AZW3, FB2, PDF, TXT, HTML, CBZ, and
   CBR share one reading, selection, annotation, and progress model, with no
   format conversion.
@@ -95,9 +98,31 @@ not the chrome.
 | Linux | Available; broader real-world testing is welcome |
 | iOS | Supported; App Store distribution is not available yet |
 
-Cross-device sync is planned. Today, ReadAware is local-first: books, reading
-progress, annotations, conversations, and memory stay on the device, while
-remote model inference remains optional and provider-controlled.
+## Cross-device sync
+
+Cross-device sync is available now. Books, reading progress, highlights, notes,
+conversations, and memory sync between your devices. Supported app, AI, and
+plugin preferences roam too; device-specific settings such as reading typography
+stay local. Choose where your encrypted data is stored:
+
+- **ReadAware relay.** Connect your ReadAware account in Settings > Data & Sync.
+  See [pricing](https://readaware.app/pricing/) for storage allowances and plans.
+- **Your own WebDAV server.** Install the **WebDAV Sync** plugin from the
+  marketplace, configure its server URL, username, password (or app password),
+  and folder, then connect WebDAV in Settings > Data & Sync. This uses your
+  WebDAV storage instead of the ReadAware relay and does not require a ReadAware
+  sync account.
+
+Both options use the same sync engine: data is encrypted on your device before
+upload, and the remote stores ciphertext. Use the same encryption passphrase
+on every device connected to the same account or WebDAV folder. Keep it safe:
+it cannot be recovered if forgotten. The WebDAV login password and the
+encryption passphrase serve different purposes.
+
+ReadAware remains local-first: reading and writing notes work offline, changes
+merge when you reconnect, and disconnecting sync keeps your local data. Optional
+AI inference is separate from sync encryption: relevant reading context is sent
+to your chosen model provider.
 
 ## Architecture
 
@@ -116,7 +141,7 @@ ReadAware app
 
 Remote services
 ├── Model provider           optional inference through the reader's account
-└── Sync relay               planned encrypted event and blob transport
+└── Sync storage             ReadAware relay or WebDAV; encrypted events and blobs
 ```
 
 The source of truth is local. Raw domain events form the syncable record;
@@ -140,7 +165,7 @@ The repository itself is a Bun workspace monorepo orchestrated by Turborepo.
 | `packages/core` | Domain entities, events, and storage contracts |
 | `packages/ui` | Shared design system and co-located Storybook stories |
 | `packages/plugin-types` | The public plugin API surface |
-| `plugins/` | First-party plugins: dictionary, themes, RSS, read-aloud voices |
+| `plugins/` | First-party plugins: dictionary, themes, RSS, read-aloud voices, WebDAV sync |
 
 Architecture decisions and target data contracts live in
 [`docs/agent-architecture.md`](docs/agent-architecture.md) and

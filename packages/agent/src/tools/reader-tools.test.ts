@@ -67,7 +67,29 @@ test("another book's viewport is neither exposed nor controlled by a book-scoped
   await expect(tool("control_read_aloud").execute("test", { action: "stop" })).rejects.toThrow("not the active reader");
   await expect(tool("configure_reading_mode").execute("test", { active: false })).rejects.toThrow("not the active reader");
   await expect(tool("set_reader_controls").execute("test", { visible: true })).rejects.toThrow("not the active reader");
+  const panels = await tool("get_reader_panels").execute("test", {});
+  expect(panels.content[0]).toMatchObject({ type: "text", text: "null" });
+  await expect(tool("set_reader_panel").execute("test", { panel: "chat", open: true })).rejects.toMatchObject({ code: "reader/superseded" });
   expect(stores.readerRequests).toHaveLength(count);
+});
+
+test("panel tools wait for the shared UI service, retain guards and forward errors and cancellation", async () => {
+  const { deps, tool } = fixture(); const abort = new AbortController();
+  const current = await deps.reader.getPanels();
+  let observed: unknown, finish!: () => void;
+  deps.reader.setPanel = async (...args) => {
+    observed = args; await new Promise<void>(resolve => { finish = resolve; });
+    return { status: "completed", panel: "chat", snapshot: current! };
+  };
+  let settled = false;
+  const request = tool("set_reader_panel").execute("test", { panel: "chat", open: true }, abort.signal).then(value => { settled = true; return value; });
+  await new Promise(resolve => setTimeout(resolve, 0)); expect(settled).toBe(false);
+  expect(observed).toEqual(["chat", true, abort.signal, { sessionId: current!.sessionId, bookId }]);
+  finish(); await request; expect(settled).toBe(true);
+  deps.reader.setPanel = async () => { throw new AppError("db/locked", "private"); };
+  await expect(tool("set_reader_panel").execute("test", { panel: "chat", open: true })).rejects.toMatchObject({ code: "db/locked" });
+  deps.reader.getPanels = async () => null;
+  await expect(tool("set_reader_panel").execute("test", { panel: "chat", open: true })).rejects.toMatchObject({ code: "reader/unavailable" });
 });
 
 test("reader chrome tool waits for UI completion and carries cancellation and both scope guards", async () => {

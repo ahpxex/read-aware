@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAtomValue } from "jotai";
 import { describeError, useTranslation } from "../../../i18n";
 import { useLocalAtom } from "@read-aware/ui/state";
-import { askAiRequestAtom } from "../../ai/state/chat-intent";
-import { readerPanelIntentAtom } from "../state/panel-intent";
 import {
   markLibraryBookOpened,
   resolveStoredBookFile,
@@ -81,28 +78,6 @@ export function useReaderSession({
   // header's progress bar.
   const [readerFraction, setReaderFraction] = useLocalAtom<number | null>(null);
   const readerLoadRequestIdRef = useRef(0);
-  // "Ask AI about this" should reveal the reader shell even when the chrome is
-  // dismissed (immersive reading), so the chat panel it opens is actually shown.
-  const askAiRequest = useAtomValue(askAiRequestAtom);
-  const handledAskAiIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!askAiRequest || askAiRequest.bookId !== selectedBook?.id) return;
-    if (askAiRequest.id === handledAskAiIdRef.current) return;
-    handledAskAiIdRef.current = askAiRequest.id;
-    setShellVisible(true);
-  }, [askAiRequest, selectedBook?.id, setShellVisible]);
-
-  // 导航条的面板直达按钮同理：面板渲染在 chrome 里，意图到达即点亮 chrome
-  // （目标面板由 ReaderShellOverlay 消费同一意图打开）。
-  const panelIntent = useAtomValue(readerPanelIntentAtom);
-  const handledPanelIntentIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!panelIntent || panelIntent.bookId !== selectedBook?.id) return;
-    if (panelIntent.id === handledPanelIntentIdRef.current) return;
-    handledPanelIntentIdRef.current = panelIntent.id;
-    setShellVisible(true);
-  }, [panelIntent, selectedBook?.id, setShellVisible]);
-
   const resetReaderState = useCallback(() => {
     setReaderSource(null);
     setReaderLoadError(null);

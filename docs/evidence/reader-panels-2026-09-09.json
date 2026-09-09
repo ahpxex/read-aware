@@ -1,0 +1,68 @@
+{
+  "date": "2026-09-09",
+  "capability": "READ10",
+  "contract": "services.ui 1.1.0 reader.snapshot / observe / setPanel",
+  "consumer": "Listening Desk 0.9.0",
+  "environment": {
+    "app": "com.readaware.app.capability-e2e",
+    "runtime": "macOS debug Tauri",
+    "ports": [5184, 9224],
+    "formalAppTouched": false,
+    "books": ["07ef226e-1ebc-47b6-8dc9-d09109448d22", "8ced004f-efe3-408f-80a8-a0ebffec84d3"],
+    "bookFormats": ["synthetic FB2 Reading Capability Probe", "synthetic PDF Reading Paint Probe"],
+    "pluginIdentities": ["capability-panels-empty", "capability-panels-read", "capability-panels-write", "capability-controls-desk"],
+    "ownedProcessGroups": [89403, 91565],
+    "finalNativePid": 91748
+  },
+  "observed": [
+    "Actual product get_reader_panels and set_reader_panel Agent tools and native header controls used the same ReaderPanelsService. All four panels opened and closed, with actual TOC/chat sections becoming non-inert and actual annotation/appearance dialog content mounted.",
+    "Second run session f5f4ad95-fa6c-423b-8b1c-9007a8095f87: four Agent open/close pairs preserved exact CFI, history availability, session identity, inactive mode and playback-unavailable state. Revisions describe panel changes, not a claim that reading time stopped.",
+    "Three real module Workers proved empty/read/write exposure. Empty had no reader service or snapshots; read had immediate state plus revisions but no setPanel; write opened and closed all four panels. The read observer also saw native TOC button state in the first run.",
+    "Actual built Listening Desk 0.9 registered four contributions and exposed four panel actions alongside mode/playback/history/controls. Clicking Open: Appearance displayed the host fields and removed plugin actions after successful completion.",
+    "Moving core:appearance out of menus.readerHeader.visible into More left no inline appearance trigger. Agent and native More > Appearance still opened the shared fields in a host Dialog.",
+    "Native screenshot initially showed the appearance dialog taller than the 600x844 viewport (top -142, height 1128). Added max-h-full overflow-y-auto at this dialog consumer. Retest: top 24, bottom 820, height 796; real scroll reached the final Scroll/Single Page/Two Pages controls; no horizontal page overflow. At 1200x800: top 32, bottom 768, height 736.",
+    "Synthetic PDF appearance used its actual fixed-layout controls, omitted editable typography and rendered a visible 582px-high dialog with Page Rendering and Reading Mode. Actual PDF page was visible behind it.",
+    "Canonical diagnostic imports dispatched panel and empty Ask AI presentation requests while chrome was hidden. Appearance and chat became visible without duplicate reveal cancellation or raw errors. No prompt or model call was sent.",
+    "Native reopen exposed stale completed Ask AI presentation replay. Added channel-specific acknowledgements in the shared Jotai store without clearing ChatPanel's independent request. Final test opened chat, explicitly closed it, reopened the same book, and observed controls false/chat false both immediately and on a later query (session 594b2316-02ad-44f8-8207-e39126beb308).",
+    "Temporary SQLite INSERT/UPDATE triggers rejected only read-aware-reader-panels writes. Actual Agent and Worker TOC commands both returned db/error, rolled back TOC false/chat true, and did not show raw trigger text. After both triggers were removed the same Worker command succeeded with TOC true/chat false and matching read-only snapshot.",
+    "Final stale plugin view test captured session 594b2316-02ad-44f8-8207-e39126beb308 then reopened into 690698f4-f050-46de-9062-273d479ecdb1. Clicking old Open: Chat retained the view, left chat false, and showed the localized generic plugin error. Refresh then Open: Chat succeeded; actions disappeared and chat was true.",
+    "A wrong-book Agent query returned null and its write rejected; a pre-aborted host call rejected without changing the panel snapshot.",
+    "Cleanup terminated remaining diagnostic Workers and returned zero contributions, closed the synthetic reader, restored both originally absent panel/menu KV keys and the 1200x800 window. SQLite confirmed no target keys or fault triggers; process group 91565 exited 143 and ports 5184/9224 had no listeners. Formal app/data were not operated on; synthetic reading history was not rewritten."
+  ],
+  "localTests": {
+    "reactAndPersistence": "13 isolated StrictMode cases / 65 assertions; exact persistence, rollback notice, concurrency, book replacement, external writes, initial ready/StrictMode intents and completed-intent remount",
+    "service": "9 cases / 49 assertions: same-value fresh commit, validation, database failure, supersession, cancellation, timeout, retirement and observer reentrancy",
+    "permissionAdapter": "2 cases / 9 assertions: zero/read/write grants, lifecycle signal and captured functions after termination",
+    "agentAndConsumer": "26 cases / 124 assertions across reader tools, registry and Listening Desk views; tool-surface suite additionally registers and executes both new tools in global/book scope",
+    "fullTest": "21/21 tasks; web 772 tests / 8613 assertions (isolated child cases counted separately above)",
+    "typecheck": "24/24 tasks",
+    "frontendBuild": "passed; existing Node deprecation, mixed-import and chunk-size warnings retained"
+  },
+  "screenshotsInspected": [
+    "/tmp/reader-panels-overflow-600-fixed.png",
+    "/tmp/reader-panels-overflow-1200-fixed.png",
+    "/tmp/reader-panels-pdf.png"
+  ],
+  "documentation": {
+    "inventory": "243 evidence rows, 610 callable/registered inventory mappings, 74 settings, 30 owners/catalog members, 129 acceptance items, 32 scenarios",
+    "checks": "both generators --check, seven ownership tests and three MD/HTML pair validators passed",
+    "browser": "changed matrix/plugin-system HTML at 1440x1000, 1024x768, 390x844: no page horizontal overflow, duplicate IDs, bad internal anchors, unnamed buttons or observed HTTP resource failures; EN/ZH search and Escape passed; matrix drawer inert and theme persistence passed; console/page error output empty",
+    "boundary": "model HTML shared summary unchanged; only generated MD reverse mapping changed. Docs use CDN and browser checks do not prove desktop product behavior. Early shell-quoting failures were corrected and all viewport checks rerun."
+  },
+  "issuesDuringVerification": [
+    "First-run pre-settled screenshot did not show the intended dialog and was not accepted as visual proof. Second run explicitly foregrounded the isolated PID and inspected the physical screenshot, exposing and fixing the real overflow.",
+    "Direct unversioned optimized Jotai dependency imports did not reach the app's store. Replaced this diagnostic path with source-fixture canonical imports. Editing the fixture and intent atom triggered confirmed Vite full reloads; probes/session identities were recreated, not assumed to survive.",
+    "Initial full test failed because new Agent tool surface cases were missing. Registered both with executable parameters; final full test passed.",
+    "Rapid native reopen again produced the existing wheel-phase unsubscribe unhandled rejection: listeners[eventId].handlerId. This independent lifecycle issue remains open, despite panel guard/retry success.",
+    "Initial WebContent termination recovered at boot; existing 37 Rust warnings, Node and bridge-version warnings retained."
+  ],
+  "notProven": [
+    "No remote LLM inference; real Agent tool implementations were invoked directly with actual host ports.",
+    "No packaged build or Windows/Linux verification of reader panel behavior.",
+    "Completion is exact write success plus React commit, not animation, physical raster, annotation/chat content loading or actual focus completion.",
+    "Cancellation/timeout/late commit and cross-book write scheduling have controlled service/React tests, not all equivalent native fault-injection paths.",
+    "No per-call Worker cancellation API; instance termination is the plugin cancellation boundary.",
+    "No claim of general selection/focus API, all S3 operations, W01-W32 completion, or a fully error-free reader lifecycle.",
+    "Screenshots are local inspection artifacts, not committed image attachments."
+  ]
+}

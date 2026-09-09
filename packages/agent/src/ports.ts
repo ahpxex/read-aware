@@ -144,6 +144,8 @@ export interface AnnotationsPort {
 }
 
 export interface ReaderPort {
+  getPanels(): Promise<import("@read-aware/core").ReaderPanelsSnapshot | null>;
+  setPanel(panel: import("@read-aware/core").ReaderPanel, open: boolean, signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReaderPanelReceipt>;
   setControls(visible: boolean, signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingControlsReceipt>;
   configureMode(input: import("@read-aware/core").ReadingModeConfiguration, signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingModeReceipt>;
   returnToMode(signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;

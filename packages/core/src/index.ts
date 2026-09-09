@@ -5,6 +5,7 @@ export * from "./capabilities";
 export * from "./events";
 export * from "./read-models";
 export * from "./reading-session";
+export * from "./reader-panels";
 export * from "./reading-context";
 export * from "./host-environment";
 export * from "./book-navigation";

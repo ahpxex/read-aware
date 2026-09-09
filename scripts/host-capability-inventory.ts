@@ -40,6 +40,7 @@ const agentMap = pairs([
   ["get_host_environment", "MORE03"],
   ["configure_reading_mode", "READ16"],
   ["set_reader_controls", "READ09"],
+  ["get_reader_panels set_reader_panel", "READ10"],
   ["ask_user", "AI04"], ["get_settings update_settings", "CFG01"],
 ]);
 const pluginMap = pairs([
@@ -76,6 +77,7 @@ const pluginMap = pairs([
   ["services.storage.flush", "SYS01"],
   ["services.secrets.get services.secrets.set services.secrets.remove", "SYS04"], ["services.ui.showToast", "EXT07"],
   ["services.ui.exportFile", "SYS10"], ["services.schedules.bind", "MORE01"],
+  ["services.ui.reader.snapshot services.ui.reader.observe services.ui.reader.setPanel", "READ10"],
   ["services.network.fetch", "SYS06"], ["services.llm.ask", "AI06"], ["services.clipboard.writeText", "SYS08"],
   ["services.session.environment services.session.observeEnvironment", "MORE03"],
 ]);

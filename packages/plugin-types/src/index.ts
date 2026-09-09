@@ -1587,6 +1587,13 @@ export type PluginHostServices = {
   ui: {
     showToast(message: string): void;
     exportFile(file: PluginExportFile): Promise<boolean>;
+    /** Requires reading:read (write includes read). No book content is returned. */
+    reader?: {
+      snapshot(): Promise<import("@read-aware/core").ReaderPanelsSnapshot | null>;
+      observe(handler: (snapshot: import("@read-aware/core").ReaderPanelsSnapshot | null) => unknown): PluginDisposable;
+      /** Requires reading:write. Opening reveals controls; completion waits for persistence and DOM commit. */
+      setPanel?(panel: import("@read-aware/core").ReaderPanel, open: boolean, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReaderPanelReceipt>;
+    };
   };
   schedules: {
     bind(scheduleId: string, run: () => void | Promise<void>): PluginDisposable;

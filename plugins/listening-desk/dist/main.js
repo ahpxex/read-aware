@@ -1,6 +1,12 @@
 // src/strings.ts
 var locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 var labels = {
+  openPanel: ["Open:", "打开：", "開啟：", "開く：", "Открыть:", "Ouvrir :", "Öffnen:", "Abrir:"],
+  closePanel: ["Close:", "关闭：", "關閉：", "閉じる：", "Закрыть:", "Fermer :", "Schließen:", "Cerrar:"],
+  toc: ["Contents", "目录", "目錄", "目次", "Оглавление", "Sommaire", "Inhaltsverzeichnis", "Índice"],
+  annotations: ["Annotations", "标注", "標註", "注釈", "Аннотации", "Annotations", "Anmerkungen", "Anotaciones"],
+  appearance: ["Appearance", "外观", "外觀", "表示", "Оформление", "Apparence", "Darstellung", "Apariencia"],
+  chat: ["Chat", "聊天", "聊天", "チャット", "Чат", "Discussion", "Chat", "Chat"],
   showControls: ["Show reader controls", "显示阅读工具栏", "顯示閱讀工具列", "読書ツールバーを表示", "Показать панель чтения", "Afficher les commandes de lecture", "Lesesteuerung anzeigen", "Mostrar controles de lectura"],
   hideControls: ["Hide reader controls", "隐藏阅读工具栏", "隱藏閱讀工具列", "読書ツールバーを隠す", "Скрыть панель чтения", "Masquer les commandes de lecture", "Lesesteuerung ausblenden", "Ocultar controles de lectura"],
   offline: ["System reports offline", "系统报告离线", "系統回報離線", "システムはオフラインと報告", "Система сообщает об отсутствии сети", "Le système indique un état hors ligne", "System meldet offline", "El sistema indica que no hay conexión"],
@@ -45,6 +51,7 @@ async function listeningView(ctx, boundary) {
     throw new Error("Listening Desk requires reading:write");
   const state = await reading.queries.session();
   const environment = await ctx.services.session.environment();
+  const panels = await ctx.services.ui?.reader?.snapshot();
   const playback = state.playback;
   const guard = { sessionId: state.sessionId ?? undefined, bookId: state.bookId ?? undefined };
   const refresh = async () => ({ view: await listeningView(ctx), navigation: "replace" });
@@ -95,6 +102,20 @@ async function listeningView(ctx, boundary) {
     }
   } : null;
   if (state.status === "ready" && state.sessionId) {
+    if (panels?.sessionId === state.sessionId && panels.bookId === state.bookId && ctx.services.ui.reader?.setPanel) {
+      for (const panel of ["toc", "annotations", "appearance", "chat"]) {
+        const open = !panels.panels[panel].open;
+        actions.push({
+          id: `panel-${panel}`,
+          icon: "rows",
+          label: `${tr(ctx.locale, open ? "openPanel" : "closePanel")} ${tr(ctx.locale, panel)}`,
+          run: async () => {
+            await ctx.services.ui.reader.setPanel(panel, open, { sessionId: panels.sessionId, bookId: panels.bookId });
+            return { close: true };
+          }
+        });
+      }
+    }
     if (state.controls) {
       const visible = !state.controls.visible;
       actions.push({

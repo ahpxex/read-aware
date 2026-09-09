@@ -9,6 +9,7 @@
  * write implies read.
  */
 import { fetch as corsFreeFetch } from "@tauri-apps/plugin-http";
+import { readerPanels } from "../../../services/reader-panels";
 import {
   canUseContribution,
   canUseHostService,
@@ -671,6 +672,17 @@ export function buildPluginContext(
 
   if (domain.reading) {
     const reading = domain.reading;
+    ctx.services.ui.reader = {
+      snapshot: async () => {
+        lifecycle.assertActive("services.ui.reader.snapshot");
+        return readerPanels.snapshot();
+      },
+      observe: handler => track(() => ({ dispose: readerPanels.observe(handler) })),
+      ...(reading.commands ? { setPanel: (panel: import("@read-aware/core").ReaderPanel, open: boolean, guard?: import("@read-aware/core").ReadingSessionGuard) => {
+        lifecycle.assertActive("services.ui.reader.setPanel");
+        return readerPanels.setPanel(panel, open, lifecycle.signal, guard);
+      } } : {}),
+    };
     ctx.domains.reading = {
       queries: reading.queries,
       events: {

@@ -716,3 +716,19 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [验证] 独立 StrictMode/i18n/原生 IPC 子进程 10 项、54 断言通过；全仓 test 21/21（web 761 项、8555 断言）、typecheck 24/24、前端生产 build 通过，保留既有 Node/混合导入/体积警告。重扫 243 行、603 库存、74 设置、30 单元/catalog、129 原验收、32 场景，七项模型门禁与两生成器 --check 通过。矩阵 MD/HTML 同步证据与未接边界，统一模型 MD 仅更新反查，HTML 共享摘要未变；两对 validator 通过。矩阵 HTML 三尺寸、中英文筛选/Escape、抽屉 inert、主题刷新保持通过，无重复 ID/坏页内锚点/无名按钮/已观察资源错误；console/page error 为空。文档依赖 CDN，浏览器检查不代表产品验证。
 
 [新发现/清理] 关闭重开时观察到 platform/wheel-phase.ts 的 Tauri unregisterListener 未处理拒绝（listeners[eventId].handlerId），保留为独立未解决生命周期缺陷，不能称整个阅读器无错误。清理期间一次 close 观察在 Vite HMR/boot 重启时超时，重新检查真实 app 已回 Library 且无阅读面板；未据超时重启进程。目标偏好恢复原缺席状态，两故障触发器删除，SQLite 行/触发器均为 0，窗口恢复 1200×800，自有进程组 81626 终态 143、5184/9224 无监听，文档浏览器关闭。正式 app 未操作，合成书阅读轨迹不倒写。READ10 双端接口及其组合插件、滚轮退订缺陷、其余部分/未接项、W01-W32 全组合与 packaged/Windows/Linux 仍继续，未推送、不关闭总目标。
+
+## 2026-09-09：S3 / 四面板共享服务与 Listening Desk 0.9
+
+[代码] READ10 双端接通：services.ui 1.1 的 reader.snapshot/observe/setPanel 与 Agent get_reader_panels/set_reader_panel 共用 ReaderPanelsService；reading:read 可查询/观察，reading:write 才有命令，零阅读权限不获得面板或书籍元数据。四种 panel 为 toc/annotations/appearance/chat，快照区分已选择 open 和当前 visible，携带 session/book/revision，不返回内容。打开先显示控制层；目录/聊天精确持久提交后再等待新的 React DOM commit，瞬时注释/外观不写 KV。同值仍等待本次提交、不重复写盘；观察者副本和失败隔离，回调重入不污染已完成回执。
+
+[代码] 原生按钮与面板/Ask AI 意图也使用同一服务，移除 useReaderSession 独立 reveal 和旧 useReaderPanelLayout owner。意图等待 ready，StrictMode 重放取消未完成工作后可重新接入；完成确认存于共享 Jotai store，防止重开同书重新打开旧 Ask AI 请求，不消费 ChatPanel 独立的附件信号。取消/换书/隐藏/更新意图阻止迟到续接，十秒无提交报 timeout；取消不撤销已派发 IPC 或已经显示的控制层。窄窗目录/聊天互斥一次保存，数据库失败保留原 code、回滚且复用本地化提示。外观移到 More 后改为普通命令打开共用字段的 Dialog，而不是依赖已卸载的内联 Popover。
+
+[环境] [证据](./evidence/reader-panels-2026-09-09.json)来自两轮隔离 macOS debug Tauri。实际 Agent 工具、三个空/读/写权限 Worker、当前构建 Listening Desk 0.9 和原生按钮都跑通；四面板操作前后 CFI/历史/会话/模式/播放一致。真实 SQLite INSERT/UPDATE 拒绝触发器使双端返回 db/error，窄窗回滚为聊天开/目录关；解除后重试成功，观察者状态一致。旧 Listening Desk 视图在同书新会话拒绝操作并保留视图/提示错误，Refresh 后成功且关闭。没有远端模型推理。
+
+[发现与修复] 真实截图暴露 More 外观 Dialog 原先高 1128、top=-142，改为 max-h-full overflow-y-auto；600x844 下位于 24..820，滚动可到最后阅读模式控件；1200x800 下位于 32..768，无横向溢出。合成 PDF 显示自己的 Page Rendering/Reading Mode，隐藏不可用字体编辑，截图可见真实页面。重开测试又暴露已完成 Ask AI 重放，修复后新会话 controls=false/chat=false，后续查询仍一致。测试直接导入未带 Vite 版本的 Jotai 依赖未触达真实 store，改用源码诊断模块的规范 import；模块编辑导致确认的 Vite reload，重新建会话与 Worker 后才采信结果。
+
+[验证] StrictMode/IPC 子进程 13 项、65 断言；服务 9 项、49 断言；权限适配 2 项、9 断言；Agent/注册表/Listening Desk 26 项、124 断言。新增工具表面遗漏被全量门禁发现，补真实执行参数后通过；新面板工具在缺 surface/错书时也保留稳定错误码。最终全仓 test 21/21（web 772 项、8613 断言）、typecheck 24/24、前端生产 build 通过；既有 Node/混合导入/体积与 37 Rust warnings 保留。
+
+[文档与重扫] 243 行、610 注册入口库存、74 设置、30 单元/catalog、129 验收、32 场景；新入口均反查 READ10，七项模型门禁与两生成器 --check 通过。矩阵和插件规范双版本同步，统一模型只更新 MD 反查，未改无共享摘要变化的 HTML；三对 validator 通过。两份变更 HTML 三尺寸、中英文搜索/Escape、矩阵抽屉 inert/主题刷新保持通过，无页面横向溢出、重复 ID、坏页内锚点、无名按钮、已观察 HTTP 资源错误或 console/page error。浏览器只验文档，不代表产品；文档仍依赖 CDN。
+
+[清理与仍缺] 两轮进程组 89403/91565 均已退出，诊断贡献归零、原始缺席的 panel/menu KV 恢复、故障触发器删除、5184/9224 无监听、文档浏览器关闭，正式 app 未操作。快速原生重开再次复现 wheel-phase 的 listeners[eventId].handlerId 退订未处理拒绝，仍是独立未解决缺陷。READ10 不承诺动画、物理栅格、实际焦点或面板数据加载完成；单次 Worker 取消、packaged/Windows/Linux 尚未验收。其余部分/未接项、完整 W01-W32 组合与全目标继续，不推送、不关闭目标。

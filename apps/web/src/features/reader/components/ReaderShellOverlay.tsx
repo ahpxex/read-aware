@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useAtomValue } from "jotai";
 import type { ReadingModeSnapshot } from "@read-aware/core";
 import { CaretLeft, ChatCircle, ListBullets } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { usePhoneViewport } from "@read-aware/ui/media";
-import { Body, IconButton, ScrollArea, Tooltip, useToast } from "@read-aware/ui";
+import { Body, Dialog, IconButton, ScrollArea, Tooltip, useToast } from "@read-aware/ui";
 import { describeError, formatPercent, useLocale, useTranslation } from "../../../i18n";
 import { createLogger } from "../../../platform/logger";
 import { ChatPanel } from "../../ai/components/ChatPanel";
-import { askAiRequestAtom } from "../../ai/state/chat-intent";
 import { useBookAnnotations } from "../../annotations/hooks/useBookAnnotations";
 import type { LibraryBook } from "../../library/lib/library-types";
 import { useBackInterceptor } from "../../../hooks/useBackInterceptor";
@@ -29,15 +28,14 @@ import { headerActionsAtom } from "../../plugins/state/plugin-store";
 import { findTocIndexForHref } from "../lib/epub-utils";
 import type { ReadingCursor } from "../lib/reader-types";
 import { buildProgressMarks } from "../lib/reader-progress";
-import { readerPanelIntentAtom } from "../state/panel-intent";
-import { useReaderPanelLayout } from "../hooks/useReaderPanelLayout";
+import { useReaderPanels } from "../hooks/useReaderPanels";
 import { useReaderPanelSizes } from "../hooks/useReaderPanelSizes";
 import { useReaderModeSelection } from "../hooks/useReaderModeSelection";
 import type { TocEntry } from "../lib/reader-types";
 import { ReaderNotesPopover } from "./ReaderNotesPopover";
 import { ReaderProgressScrubber } from "./ReaderProgressScrubber";
 import { ReaderResizeHandle } from "./ReaderResizeHandle";
-import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
+import { ReaderAppearanceFields, ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
 import { ReaderModePicker } from "./ReaderModePicker";
 import { contributionText } from "../../plugins/lib/plugin-i18n";
 
@@ -117,28 +115,18 @@ export function ReaderShellOverlay({
 
   // TOC + chat panels persist per book (restored when the book reopens); the
   // appearance popover is transient and resets each session.
-  const { tocOpen, notesOpen, setTocOpen, setNotesOpen } = useReaderPanelLayout(bookId);
+  const isPhone = usePhoneViewport();
+  const { toc: tocOpen, chat: notesOpen, appearance: appearanceOpen, annotations: annotationsOpen, chatFocusRequestId, setPanel } = useReaderPanels(bookId, visible, isPhone);
+  const setTocOpen = (open: boolean) => setPanel("toc", open);
+  const setNotesOpen = (open: boolean) => setPanel("chat", open);
+  const setAppearanceOpen = (open: boolean) => setPanel("appearance", open);
+  const setAnnotationsOpen = (open: boolean) => setPanel("annotations", open);
   const { sizes, adjust: adjustPanel, persist: persistPanelSizes } = useReaderPanelSizes();
-  const [appearanceOpen, setAppearanceOpen] = useState(false);
-  const [annotationsOpen, setAnnotationsOpen] = useState(false);
-  // Opening the chat is what earns the caret — not merely having it on screen.
-  // `notesOpen` survives the chrome being dismissed and the book being closed,
-  // so focusing off "revealed" would raise the phone keyboard every time the
-  // reader tapped the page to check the header.
-  const [chatFocusRequestId, setChatFocusRequestId] = useState(0);
-  const requestChatFocus = useCallback(() => setChatFocusRequestId((id) => id + 1), []);
 
   // Phone-width: the side docks become full-screen sheets (below the top bar),
   // so only one can be open at a time and resizing is meaningless.
-  const isPhone = usePhoneViewport();
-  const toggleToc = () => {
-    void setTocOpen(previous => !previous, isPhone);
-  };
-  const toggleNotes = () => {
-    void setNotesOpen(previous => !previous, isPhone).then(layout => {
-      if (layout?.notesOpen) requestChatFocus();
-    });
-  };
+  const toggleToc = () => setTocOpen(!tocOpen);
+  const toggleNotes = () => setNotesOpen(!notesOpen);
 
   // Android back gesture: a phone full-screen sheet is a deeper layer, so back
   // closes it (chat first — it renders on top) instead of unwinding the whole
@@ -237,6 +225,7 @@ export function ReaderShellOverlay({
   const coreReaderRun: Record<string, (() => void) | undefined> = {
     "core:navigator": textUnitModeAvailable ? onToggleTextUnitMode : undefined,
     "core:chat": toggleNotes,
+    "core:appearance": () => setAppearanceOpen(true),
   };
   const readerOverflowEntries = readerLayout.overflow
     .map((id): MenuOverflowEntry | null => {
@@ -255,7 +244,7 @@ export function ReaderShellOverlay({
       }
       const meta = coreMenuMeta("readerHeader", id);
       if (!meta) return null;
-      if (id === "core:appearance" || id === "core:navigator" && canSelectMode) {
+      if (id === "core:navigator" && canSelectMode) {
         return {
           id,
           label: String(tMenus(`menus.items.${meta.labelKey}` as never)),
@@ -282,58 +271,6 @@ export function ReaderShellOverlay({
 
   const activeTocIndex = findTocIndexForHref(tocEntries, currentChapterHref);
 
-  // "Ask AI about this" fires from the reader (a sibling component) via this
-  // atom. Reveal the chat panel; the chat panel itself adopts the passage. We
-  // track the handled id rather than clearing the atom so the panel can react to
-  // the same dispatch independently.
-  // 导航条的面板意图（TOC / 批注 / 外观 / 聊天直达按钮）——session 那头
-  // 同时把 chrome 亮出来，这里只负责打开目标面板；按 id 去重。
-  const panelIntent = useAtomValue(readerPanelIntentAtom);
-  const handledPanelIntentIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!panelIntent || panelIntent.bookId !== bookId) return;
-    if (panelIntent.id === handledPanelIntentIdRef.current) return;
-    handledPanelIntentIdRef.current = panelIntent.id;
-    switch (panelIntent.panel) {
-      case "toc":
-        void setTocOpen(true, isPhone);
-        break;
-      case "chat":
-        void setNotesOpen(true, isPhone).then(layout => {
-          if (layout?.notesOpen) requestChatFocus();
-        });
-        break;
-      case "appearance":
-        setAppearanceOpen(true);
-        break;
-      case "annotations":
-        setAnnotationsOpen(true);
-        break;
-    }
-  }, [panelIntent, bookId, isPhone, requestChatFocus, setNotesOpen, setTocOpen]);
-
-  const askAiRequest = useAtomValue(askAiRequestAtom);
-  const handledAskAiIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!askAiRequest || askAiRequest.bookId !== bookId) return;
-    if (askAiRequest.id === handledAskAiIdRef.current) return;
-    handledAskAiIdRef.current = askAiRequest.id;
-    void setNotesOpen(true, isPhone).then(layout => {
-      if (layout?.notesOpen) requestChatFocus();
-    });
-  }, [askAiRequest, bookId, requestChatFocus, setNotesOpen, isPhone]);
-
-  // The appearance popover is transient — it closes whenever the overlay is
-  // dismissed. The contents and chat panels are NOT reset: they keep their open
-  // state so dismissing then re-opening the header restores whatever the reader
-  // had revealed. (Reset state lives in the panels' `visible &&` reveal gate.)
-  useEffect(() => {
-    if (!visible) {
-      setAppearanceOpen(false);
-      setAnnotationsOpen(false);
-    }
-  }, [visible]);
-
   // Reveal the current chapter when the contents panel opens (or the chapter
   // changes while it's open), centering it so it's easy to find.
   const tocListRef = useRef<HTMLDivElement | null>(null);
@@ -356,6 +293,12 @@ export function ReaderShellOverlay({
         "pointer-events-none fixed inset-0 z-50 flex min-h-0 flex-col overflow-clip",
       )}
     >
+      {!readerLayout.visible.includes("core:appearance") && (
+        <Dialog open={appearanceOpen} onClose={() => setAppearanceOpen(false)} title={t("readingAppearance")}
+          className="max-h-full overflow-y-auto">
+          <ReaderAppearanceFields bookId={bookId} fixedLayout={fixedLayout} />
+        </Dialog>
+      )}
       {/* Top bar — doubles as the window drag region on desktop. Non-interactive
           children stay pointer-events-none so a drag started anywhere but the
           buttons falls through to this element; the buttons re-enable clicks.

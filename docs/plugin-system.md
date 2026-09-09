@@ -210,6 +210,63 @@ concurrency, stale guards, cancellation, timeouts, observer reentrancy, disposal
 failure propagation. Native evidence and remaining environment boundaries are
 recorded in [reader controls evidence](./evidence/reader-controls-2026-09-09.json).
 
+### Reader Panel Presentation
+
+[代码] `services.ui` 1.1 adds the optional `reader` service. It is present only
+with `reading:read` (also implied by `reading:write`): `snapshot()` returns
+`ReaderPanelsSnapshot | null`, and `observe(handler)` immediately delivers the
+current snapshot and subsequent revisions until disposed or the plugin stops.
+Only `reading:write` adds `setPanel(panel, open, guard?)`. The four stable panel
+IDs are `toc`, `annotations`, `appearance`, and `chat`; `open` is a boolean,
+not a toggle. The service does not expose DOM, stores, annotations or chat content.
+Agent `get_reader_panels` / `set_reader_panel` use the same service, restrict
+book-scoped tools to the active book, and forward the turn's abort signal.
+
+Snapshots contain `sessionId`, `bookId`, `revision`, `controlsVisible`, and
+`panels[panel]: { open, visible }`. Null means no ready bound panel surface.
+`open` is a selected panel state; a saved dock choice can remain open while
+controls are hidden and `visible` is false. Snapshots describe committed React UI,
+including optimistic KV values that can later roll back; they are NOT durable
+save receipts. `setPanel` returns `{ status: "completed", panel, snapshot }` only
+after that command's exact write succeeds (if any) and a fresh React commit
+acknowledges the requested state. Same-value operations still require a fresh
+commit but do not write unchanged preferences or increment semantic revision.
+Opening reveals controls first. Closing does not reveal hidden controls.
+
+TOC/chat use the book-scoped shared KV store; in narrow windows opening one
+closes the other in one write. Annotations/appearance are transient and close
+when chrome hides or the book changes. Native controls, mode-bar panel intents,
+Ask AI presentation, Agent and plugin commands share the same owner. Initial
+intents wait for a ready binding; successful presentation acknowledgements
+survive a reader remount without consuming ChatPanel's independent attachment
+request. Thus a completed old Ask AI request does not reopen chat on book reopen.
+When appearance is moved from the inline header to More, the same fields render
+in a viewport-bounded scrollable Dialog. This is an overflow placement, not a
+new fully-hidden menu zone.
+
+Guard validation, missing/retired surfaces and conflicting intents use
+`reader/invalid-target`, `reader/unavailable`, and `reader/superseded`; ten seconds
+without completion uses `reader/timeout`. A new panel intent supersedes the
+previous one. Agent abort/plugin termination promptly cancel waiting and queued
+undispatched work; already-dispatched persistence or already-shown chrome is not
+undone. Save failures keep their database error code, roll back the optimistic
+view, and use the existing localized write-failure notice. Observer copies and
+errors are isolated. Receipts do not prove CSS animation, screen rasterization,
+annotation/chat data loading or actual focus completion. Worker per-call abort
+is still not exposed.
+
+Listening Desk 0.9 requires UI 1.1 and composes four guarded panel actions with
+reading mode, playback, history and controls. It closes its own view only on
+success; a stale session guard leaves the view available for Refresh and retry.
+[验证] Unit/React/actor tests and isolated macOS debug Tauri tests cover the paths
+listed in [reader panel evidence](./evidence/reader-panels-2026-09-09.json), including
+SQLite rejection, real Workers, real plugin UI, narrow/wide windows and fixed-layout
+appearance. Packaged and Windows/Linux panel behavior remain unverified. A native
+wheel-phase unsubscribe exception on rapid reader reopen remains an independent
+open lifecycle issue, not a successful panel or sandbox guarantee.
+
+### Mode Configuration Durability
+
 [代码] Mode configuration writes the book's retained state and selected provider's
 unit preference in one SQLite batch, after earlier KV writes settle. Completion
 waits for the current generation's exact write receipts and initial position

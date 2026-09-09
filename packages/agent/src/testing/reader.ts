@@ -10,6 +10,12 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
     modeKey: null, label: null, availableModes: [], unitId: null, units: [], progress: null, cfiRange: null, position: null };
   let revision = 0;
   let controls = { visible: false };
+  const panels = { toc: { open: false, visible: false }, chat: { open: false, visible: false }, annotations: { open: false, visible: false }, appearance: { open: false, visible: false } };
+  const showControls = (visible: boolean) => {
+    controls = { visible };
+    if (!visible) { panels.annotations.open = false; panels.appearance.open = false; }
+    for (const panel of Object.values(panels)) panel.visible = visible && panel.open;
+  };
   let location: ReadingLocation | null = initialBookId ? { bookId: initialBookId, contentVersion: "fixture", fraction: 0 } : null;
   const receipt = (): ReadingNavigationReceipt => {
     if (!location) throw new Error("No active fixture reader");
@@ -17,10 +23,17 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
     return { status: "completed", sessionId: "fixture", location: { ...location } };
   };
   return {
+    getPanels: async () => location ? { sessionId: "fixture", bookId: location.bookId, revision, controlsVisible: controls.visible, panels: structuredClone(panels) } : null,
+    setPanel: async (panel, open) => {
+      if (!location) throw new Error("No active fixture reader");
+      if (open) showControls(true);
+      panels[panel] = { open, visible: open && controls.visible }; revision++;
+      return { status: "completed", panel, snapshot: { sessionId: "fixture", bookId: location.bookId, revision, controlsVisible: controls.visible, panels: structuredClone(panels) } };
+    },
     getSession: async () => ({ revision, sessionId: location ? "fixture" : null, bookId: location?.bookId ?? null, status: location ? "ready" : "idle", location, visibleText: "", history: { canGoBack: false, canGoForward: false }, playback, mode, controls: location ? { ...controls } : null }),
     setControls: async visible => {
       if (!location) throw new Error("No active fixture reader");
-      controls = { visible }; revision++;
+      showControls(visible); revision++;
       return { status: "completed", sessionId: "fixture", controls: { ...controls } };
     },
     configureMode: async input => {

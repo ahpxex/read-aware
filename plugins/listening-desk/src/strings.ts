@@ -1,5 +1,11 @@
 const locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 const labels = {
+  openPanel: ["Open:", "打开：", "開啟：", "開く：", "Открыть:", "Ouvrir :", "Öffnen:", "Abrir:"],
+  closePanel: ["Close:", "关闭：", "關閉：", "閉じる：", "Закрыть:", "Fermer :", "Schließen:", "Cerrar:"],
+  toc: ["Contents", "目录", "目錄", "目次", "Оглавление", "Sommaire", "Inhaltsverzeichnis", "Índice"],
+  annotations: ["Annotations", "标注", "標註", "注釈", "Аннотации", "Annotations", "Anmerkungen", "Anotaciones"],
+  appearance: ["Appearance", "外观", "外觀", "表示", "Оформление", "Apparence", "Darstellung", "Apariencia"],
+  chat: ["Chat", "聊天", "聊天", "チャット", "Чат", "Discussion", "Chat", "Chat"],
   showControls: ["Show reader controls", "显示阅读工具栏", "顯示閱讀工具列", "読書ツールバーを表示", "Показать панель чтения", "Afficher les commandes de lecture", "Lesesteuerung anzeigen", "Mostrar controles de lectura"],
   hideControls: ["Hide reader controls", "隐藏阅读工具栏", "隱藏閱讀工具列", "読書ツールバーを隠す", "Скрыть панель чтения", "Masquer les commandes de lecture", "Lesesteuerung ausblenden", "Ocultar controles de lectura"],
   offline: ["System reports offline", "系统报告离线", "系統回報離線", "システムはオフラインと報告", "Система сообщает об отсутствии сети", "Le système indique un état hors ligne", "System meldet offline", "El sistema indica que no hay conexión"],

@@ -46,15 +46,6 @@ export function ReaderAppearanceMenu({
   onOpenChange,
 }: ReaderAppearanceMenuProps) {
   const { t } = useTranslation("reader");
-  const { scope, prefs, setScope, updatePrefs } = useReaderAppearance(bookId);
-  const pluginThemes = useAtomValue(pluginThemesAtom);
-  const pluginThemeOptions = usePluginReaderThemeOptions();
-
-  const scopeOptions: { value: ReaderAppearanceScope; label: string }[] = [
-    { value: "global", label: t("scope.global") },
-    { value: "book", label: t("scope.book") },
-  ];
-
   return (
     <Popover
       align="right"
@@ -67,6 +58,24 @@ export function ReaderAppearanceMenu({
       onOpenChange={onOpenChange}
       panelClassName="max-h-[min(72vh,34rem)] w-80 overflow-y-auto"
     >
+      <ReaderAppearanceFields bookId={bookId} fixedLayout={fixedLayout} />
+    </Popover>
+  );
+}
+
+/** Shared content for the inline popover and menu-independent host dialog. */
+export function ReaderAppearanceFields({ bookId, fixedLayout = false }: Pick<ReaderAppearanceMenuProps, "bookId" | "fixedLayout">) {
+  const { t } = useTranslation("reader");
+  const { scope, prefs, setScope, updatePrefs } = useReaderAppearance(bookId);
+  const pluginThemes = useAtomValue(pluginThemesAtom);
+  const pluginThemeOptions = usePluginReaderThemeOptions();
+
+  const scopeOptions: { value: ReaderAppearanceScope; label: string }[] = [
+    { value: "global", label: t("scope.global") },
+    { value: "book", label: t("scope.book") },
+  ];
+
+  return (
       <div className="flex w-full flex-col gap-5">
         <div>
           <ChoiceGroup
@@ -180,6 +189,5 @@ export function ReaderAppearanceMenu({
           />
         )}
       </div>
-    </Popover>
   );
 }

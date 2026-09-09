@@ -18,6 +18,30 @@ function fixture() {
   return { ctx, state, calls };
 }
 
+test("panel actions preserve their displayed open/close intent and only close after the host receipt", async () => {
+  const { ctx, state, calls } = fixture();
+  let finish!: () => void;
+  const panels = { sessionId: state.sessionId!, bookId: state.bookId!, revision: 1, controlsVisible: true,
+    panels: { toc: { open: true, visible: true }, chat: { open: false, visible: false }, annotations: { open: false, visible: false }, appearance: { open: false, visible: false } } };
+  ctx.services.ui = { showToast() {}, exportFile: async () => false, reader: {
+    snapshot: async () => panels, observe: () => ({ dispose() {} }),
+    setPanel: async (...args) => { calls.push(args); await new Promise<void>(resolve => { finish = resolve; }); return { status: "completed", panel: args[0], snapshot: panels }; },
+  } };
+  const view = await listeningView(ctx);
+  if (view.kind !== "blocks") throw Error("Expected blocks");
+  const row = view.blocks.find(block => block.kind === "actions");
+  if (row?.kind !== "actions") throw Error("Expected actions");
+  const actions = row.actions.filter(a => a.id.startsWith("panel-")); expect(actions).toHaveLength(4);
+  expect(actions[0]!.label).toBe("Close: Contents");
+  let settled = false;
+  const request = Promise.resolve(actions[0]!.run()).then(value => { settled = true; return value; });
+  await Promise.resolve(); expect(settled).toBe(false);
+  expect(calls).toEqual([["toc", false, { sessionId: "session", bookId: "book" }]]);
+  finish(); expect(await request).toEqual({ close: true });
+  ctx.services.ui.reader!.setPanel = async () => { throw Error("stale panel session"); };
+  await expect(actions[1]!.run()).rejects.toThrow("stale panel session");
+});
+
 test("controls action preserves its displayed intent and guard, and closes only after UI completion", async () => {
   for (const visible of [true, false]) {
     const { ctx, state, calls } = fixture(); state.controls = { visible };

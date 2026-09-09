@@ -5,7 +5,7 @@ import type { ThreadScope } from "../thread-scope";
 import { resolveBookId } from "./current-book";
 import { textResult } from "./tool-result";
 import type { AgentTurnState } from "./turn-state";
-import type { ReadingLocation } from "@read-aware/core";
+import { AppError, type ReadingLocation } from "@read-aware/core";
 import { readingContextCall } from "../runtime/reading-context-policy";
 
 export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: AgentTurnState): AgentTool[] {
@@ -150,5 +150,27 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
         { sessionId: current.sessionId, ...(scope.kind === "book" ? { bookId: scope.bookId } : {}) }));
     },
   };
-  return [openBook, session, control, playback, mode, controls];
+  const panelState: AgentTool = {
+    name: "get_reader_panels", label: "Reader panels",
+    description: "Read which TOC, annotations, appearance and chat panels are selected and visible in the active reader. Returns no book content. Null means no ready panel surface; a book-scoped turn cannot inspect another book's panels.",
+    parameters: Type.Object({}),
+    execute: async () => {
+      const snapshot = await deps.reader.getPanels();
+      return textResult(scope.kind === "book" && snapshot?.bookId !== scope.bookId ? null : snapshot);
+    },
+  };
+  const panelControl: AgentTool = {
+    name: "set_reader_panel", label: "Set reader panel",
+    description: "Explicitly open or close toc, annotations, appearance or chat for a user request. Query get_reader_panels first. Opening also reveals reader controls; TOC/chat choices persist per book and are exclusive in a narrow window. Annotations/appearance are transient. Completes after required persistence and a UI commit, not animation or data loading. Does not change reading position or start an AI turn.",
+    parameters: Type.Object({ panel: Type.Union([Type.Literal("toc"), Type.Literal("annotations"), Type.Literal("appearance"), Type.Literal("chat")]), open: Type.Boolean() }),
+    executionMode: "sequential",
+    execute: async (_id, params, signal) => {
+      const current = await deps.reader.getPanels();
+      if (!current) throw new AppError("reader/unavailable", "Reader panels are not attached");
+      if (scope.kind === "book" && current.bookId !== scope.bookId) throw new AppError("reader/superseded", "This book is not the active reader");
+      const { panel, open } = params as { panel: import("@read-aware/core").ReaderPanel; open: boolean };
+      return textResult(await deps.reader.setPanel(panel, open, signal, { bookId: current.bookId, sessionId: current.sessionId }));
+    },
+  };
+  return [openBook, session, control, playback, mode, controls, panelState, panelControl];
 }

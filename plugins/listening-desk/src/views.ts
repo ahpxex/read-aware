@@ -6,6 +6,7 @@ export async function listeningView(ctx: PluginContext, boundary?: "start-of-boo
   if (!reading?.commands) throw new Error("Listening Desk requires reading:write");
   const state = await reading.queries.session();
   const environment = await ctx.services.session.environment();
+  const panels = await ctx.services.ui?.reader?.snapshot();
   const playback = state.playback;
   const guard = { sessionId: state.sessionId ?? undefined, bookId: state.bookId ?? undefined };
   const refresh = async () => ({ view: await listeningView(ctx), navigation: "replace" as const });
@@ -40,6 +41,17 @@ export async function listeningView(ctx: PluginContext, boundary?: "start-of-boo
     },
   } : null;
   if (state.status === "ready" && state.sessionId) {
+    if (panels?.sessionId === state.sessionId && panels.bookId === state.bookId && ctx.services.ui.reader?.setPanel) {
+      for (const panel of ["toc", "annotations", "appearance", "chat"] as const) {
+        const open = !panels.panels[panel].open;
+        actions.push({ id: `panel-${panel}`, icon: "rows", label: `${tr(ctx.locale, open ? "openPanel" : "closePanel")} ${tr(ctx.locale, panel)}`,
+          run: async () => {
+            await ctx.services.ui.reader!.setPanel!(panel, open, { sessionId: panels.sessionId, bookId: panels.bookId });
+            return { close: true };
+          },
+        });
+      }
+    }
     if (state.controls) {
       const visible = !state.controls.visible;
       actions.push({ id: "reader-controls", label: tr(ctx.locale, visible ? "showControls" : "hideControls"), icon: "rows",

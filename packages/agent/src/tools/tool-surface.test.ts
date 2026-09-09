@@ -100,6 +100,8 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   control_read_aloud: { action: "stop" },
   configure_reading_mode: { active: false },
   set_reader_controls: { visible: true },
+  get_reader_panels: {},
+  set_reader_panel: { panel: "toc", open: true },
   ask_user: {
     question: "Which direction?",
     options: [

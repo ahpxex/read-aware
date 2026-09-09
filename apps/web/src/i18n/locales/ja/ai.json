@@ -9,6 +9,7 @@
     "thinking": "考え中…",
     "thought": "思考の過程",
     "tools": {
+      "delete_books": "本を削除しています",
       "search_memory": "記憶を呼び出しています",
       "remember": "記憶を保存しています",
       "search_conversation": "過去の会話を検索しています",
@@ -50,6 +51,11 @@
         "approved": "許可しました",
         "declined": "許可しませんでした",
         "decline": "残す",
+        "deleteBooks": {
+          "question": "これらの本または残りのファイルを削除しますか？",
+          "description": "以下の本と元のファイルを完全に削除します。この操作は取り消せません。\n\n{{subject}}",
+          "approve": "完全に削除"
+        },
         "deleteBook": {
           "question": "本棚から『{{subject}}』を削除しますか？",
           "description": "インポートした元ファイルとローカルの読書データが完全に削除されます。この操作は取り消せません。",

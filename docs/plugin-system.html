@@ -207,6 +207,10 @@
         <div class="wrap">
           <h2>Domains</h2>
           <p class="intro">插件只看到权限允许的 actor view。所有写入都经过正式命令，并记录来源。</p>
+          <details class="ep" data-search-section="batch removal delete_books Library Desk 批量 删除 清理 重试"><summary>Library 1.5：批量删除双端接通，记录与文件结果分开</summary><div class="ep-body">
+            <p>Agent 全局 delete_books 一次批准固定的 1–1000 个 ID；插件 removeMany 经 library:write 调用。记录/事件原子提交，文件失败仍明确报告记录已删。retryRemovalCleanup 只重试文件，不再写删除事件；任一书已恢复则整次拒绝文件清理。</p>
+            <p>Library Desk 0.1 实际组合选择、完整标题审阅、删除和清理重试；实时更新不清空搜索。macOS debug 已验两端回滚、拒绝/取消、恢复保护及菜单操作；不是自主模型、完整擦除或耐久恢复。大批量、打包和跨平台未验。<a href="./plugin-system.md#batch-book-removal">完整契约</a> · <a href="./evidence/book-batch-removal-2026-09-09.json">原生证据</a></p>
+          </div></details>
           <details class="ep"><summary>Library 1.3：正文状态与请求控制双端接通</summary><div class="ep-body">
             <p>Agent get_book_text_status 与插件 getTextState 共享七种准备状态、三种文本存在性和源版本。查询不启动抽取或下载；全部节成功且最终索引落盘才就绪。短正文可以有字而没有索引章节，缺文件和失败不再误报无文字。</p>
             <p>v5 断点只复用成功节，保留失败，区分最后一节读完与最终索引保存；旧记录惰性失效。Agent 和插件可请求准备、重建、观察及取消自己的任务；取消只释放自身租约，其他使用者继续工作，已派发读写不回滚。任务回执不代表完成，也不代表已取得抽取租约。</p>
@@ -218,7 +222,7 @@
             <p>Text Desk 0.4 组合搜索表单、精确/词元匹配列表、片段详情和明确开书。真实 macOS Worker 已验权限与错误，Agent 原有剧透围栏保留；跨书搜索后未准备的书仍未准备。分页、扫描预算、节内取消、打包及跨平台尚未完成。<a href="./plugin-system.md#derived-prose-search">完整契约</a> · <a href="./evidence/book-text-search-2026-09-09.json">原生证据</a></p>
           </div></details>
           <details class="ep" data-search-section="virtual removal removeVirtualBook 虚拟书 删除 解绑"><summary>虚拟书删除：不再吞错，绑定清理等待持久化</summary><div class="ep-body">
-            <p>插件删除失败时保留绑定并返回错误；绑定写入失败也不报成功。书可能已删除，显式重试可以完成清理，这不是跨书籍、文件、绑定和 RSS 文档的原子事务。损坏注册表报 db/error，不当空表覆盖；新绑定不会被旧清理移除。</p>
+            <p>事件提交失败时保留绑定并返回错误；绑定写入失败也不报成功。书已删后的重试可完成绑定清理，但 1.5 的删除通知先于文件释放：文件失败时绑定可能已清除，虚拟书重试不等于文件重试，需保留 ID 调用 retryRemovalCleanup。耐久恢复仍缺；这不是跨书籍、文件、绑定和 RSS 文档的原子事务。</p>
             <p>真实 macOS Worker 命令与 Agent 插件工具已验证 SQLite 删除事件拒绝、绑定写拒绝和恢复重试；不是自主模型或完整 RSS 退订验收。并发创建删除、崩溃恢复、打包和跨平台仍缺，LIB13 保留部分。<a href="./plugin-system.md#virtual-book-removal">完整契约</a> · <a href="./evidence/virtual-book-removal-2026-09-09.json">原生证据</a></p>
           </div></details>
           <details class="ep" data-search-section="live views 实时 视图 推送 Text Desk"><summary>UI 1.2 / views 1.1：自有视图实时更新，关闭即退订</summary><div class="ep-body">
@@ -313,7 +317,7 @@
         <div class="wrap">
           <h2>Agent 智能扩展</h2>
           <p class="intro">插件只能提供有边界的数据与候选，不能接管系统提示词或直接写长期记忆。</p>
-          <details class="ep"><summary>记忆构建开关已接通，Reading Goals 已实际消费两类贡献</summary><div class="ep-body"><p>buildMemory 关闭后，宿主停止 remember、候选、抽取、摘要、巩固和 digest 等记忆构建；排队与在途任务取消，重开不复活旧结果。聊天/历史和旧记忆仍可读取；已派发写不保证撤销。摘要保存/清除等待持久回执。</p><p>Reading Goals 按书保存目标并提供上下文，用户选择后才提出记忆候选；清除目标不删除已提升的记忆。源码十二个插件、编译内置六个，本插件不在内置清单且没有专属 Agent 目标编辑工具。macOS debug 已验双端、候选落库与失败取消；安装重启、打包/跨平台、键盘遍历与所有屏外控件仍未验。<a href="./plugin-system.md#host-memory-build-policy">完整边界</a></p></div></details>
+          <details class="ep"><summary>记忆构建开关已接通，Reading Goals 已实际消费两类贡献</summary><div class="ep-body"><p>buildMemory 关闭后，宿主停止 remember、候选、抽取、摘要、巩固和 digest 等记忆构建；排队与在途任务取消，重开不复活旧结果。聊天/历史和旧记忆仍可读取；已派发写不保证撤销。摘要保存/清除等待持久回执。</p><p>Reading Goals 按书保存目标并提供上下文，用户选择后才提出记忆候选；清除目标不删除已提升的记忆。源码十三个插件、编译内置六个，本插件不在内置清单且没有专属 Agent 目标编辑工具。macOS debug 已验双端、候选落库与失败取消；安装重启、打包/跨平台、键盘遍历与所有屏外控件仍未验。<a href="./plugin-system.md#host-memory-build-policy">完整边界</a></p></div></details>
           <details class="ep"><summary>文本隐私已接 Agent 和插件结构化推理，任意字符串仍有边界</summary><div class="ep-body"><p>Agent 自动附件、历史与 viewport/grounding 按设置过滤。LLM 1.1 的 readingContext 由宿主组装；必需正文被禁止则在请求前拒绝，结构错误明确报错，收紧以 ai/context-changed 取消在途请求和重试。重开只允许新请求。</p><p>Dictionary 1.3 已迁移：选区与周边正文不再自行拼入 prompt，设置竞态不写误导缓存；本地缓存仍可读。macOS debug 双端三模式四组合、实际 Dictionary Worker 缓存/拒绝、结构化重试与三个并发请求取消已有证据。任意 prompt/HTTP/TTS、独立检索与旧衍生内容不受全局清除；完整 UI、打包/跨平台仍未验，SET24/25 保持部分。<a href="./plugin-system.md#host-reading-context-policy">精确边界</a></p></div></details>
           <div class="table-shell">
             <table>

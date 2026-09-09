@@ -1,5 +1,6 @@
 export * from "./entities";
 export * from "./errors";
+export * from "./book-removal";
 export * from "./domains";
 export * from "./capabilities";
 export * from "./events";

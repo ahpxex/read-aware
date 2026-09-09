@@ -9,6 +9,7 @@
     "thinking": "思考中…",
     "thought": "思考過程",
     "tools": {
+      "delete_books": "正在移除書籍",
       "search_memory": "正在回憶",
       "remember": "正在記下這一點",
       "search_conversation": "正在檢索過往對話",
@@ -50,6 +51,11 @@
         "approved": "已允許",
         "declined": "未允許",
         "decline": "保留",
+        "deleteBooks": {
+          "question": "永久移除這些書籍或殘留檔案？",
+          "description": "將永久移除以下書籍及其來源檔案。此操作無法復原。\n\n{{subject}}",
+          "approve": "永久移除"
+        },
         "deleteBook": {
           "question": "要從書架刪除《{{subject}}》嗎？",
           "description": "這會永久移除匯入的原始檔案和本機閱讀資料，且無法復原。",

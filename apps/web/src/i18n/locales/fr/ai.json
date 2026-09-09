@@ -9,6 +9,7 @@
     "thinking": "Réflexion…",
     "thought": "Cheminement de pensée",
     "tools": {
+      "delete_books": "Suppression des livres",
       "search_memory": "Rappel des souvenirs",
       "remember": "Enregistrement d'un souvenir",
       "search_conversation": "Recherche dans les conversations passées",
@@ -50,6 +51,11 @@
         "approved": "Autorisé",
         "declined": "Non autorisé",
         "decline": "Conserver",
+        "deleteBooks": {
+          "question": "Supprimer ces livres ou les fichiers restants ?",
+          "description": "Les livres indiqués et leurs fichiers sources seront supprimés définitivement. Cette action est irréversible.\n\n{{subject}}",
+          "approve": "Supprimer définitivement"
+        },
         "deleteBook": {
           "question": "Supprimer « {{subject}} » de votre bibliothèque ?",
           "description": "Le fichier source importé et ses données de lecture locales seront définitivement supprimés. Cette action est irréversible.",

@@ -9,6 +9,7 @@
     "thinking": "思考中…",
     "thought": "思考过程",
     "tools": {
+      "delete_books": "正在移除书籍",
       "search_memory": "正在回忆",
       "remember": "正在记下这一点",
       "search_conversation": "正在检索过往对话",
@@ -50,6 +51,11 @@
         "approved": "已允许",
         "declined": "未允许",
         "decline": "保留",
+        "deleteBooks": {
+          "question": "永久移除这些书籍或残留文件？",
+          "description": "将永久移除以下书籍及其源文件。此操作无法撤销。\n\n{{subject}}",
+          "approve": "永久移除"
+        },
         "deleteBook": {
           "question": "要从书架删除《{{subject}}》吗？",
           "description": "这会永久移除导入的原始文件和本地阅读数据，且无法撤销。",

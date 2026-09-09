@@ -27,7 +27,7 @@ const agentMap = pairs([
   ["list_books get_book_overview", "LIB01"], ["get_annotations", "ANN01"],
   ["list_collections", "LIB15"], ["get_reading_stats", "STAT01 STAT02"],
   ["update_book", "LIB02 LIB03 READ19"], ["manage_collection", "LIB16 LIB18"],
-  ["delete_book", "LIB04"], ["delete_collection", "LIB17"],
+  ["delete_book", "LIB04"], ["delete_books", "LIB05"], ["delete_collection", "LIB17"],
   ["create_annotation", "ANN02 ANN05"], ["edit_annotation", "ANN04 ANN05"],
   ["apply_annotation_changes", "ANN04 ANN05 ANN06 ANN08"],
   ["delete_annotation", "ANN04 ANN05 ANN06"], ["search_memory", "MEM01"], ["remember", "MEM02"],
@@ -57,6 +57,7 @@ const pluginMap = pairs([
   ["domains.library.queries.collections.list domains.library.queries.collections.booksIn", "LIB15"],
   ["domains.library.commands.books.importBook", "LIB06"], ["domains.library.commands.books.editMetadata", "LIB02"],
   ["domains.library.commands.books.setStarred", "LIB03"], ["domains.library.commands.books.remove", "LIB04"],
+  ["domains.library.commands.books.removeMany domains.library.commands.books.retryRemovalCleanup", "LIB05"],
   ["domains.library.commands.books.addVirtualBook", "LIB12"], ["domains.library.commands.books.removeVirtualBook", "LIB13"],
   ["domains.library.commands.collections.create domains.library.commands.collections.rename", "LIB16"],
   ["domains.library.commands.collections.remove", "LIB17"], ["domains.library.commands.collections.assignBooks", "LIB18"],
@@ -238,7 +239,7 @@ export function collectInventory(): Inventory[] {
   }
   const featureMap = pairs([["agent ai", "AI01 AI03 MEM01"],["annotations", "ANN01"],["command", "UI03"],["library shelf", "LIB01 UI02"],["menus", "UI05"],["navigation", "UI01 SYS17"],["plugins", "EXT01 CON03"],["reader", "READ01 TXT01"],["settings", "CFG01 OPS08"],["stats", "STAT01"],["sync", "OPS01"],["update", "SYS16"]]);
   for (const directory of readdirSync("apps/web/src/features", {withFileTypes:true}).filter(d=>d.isDirectory())) add("Feature owner", directory.name, featureMap[directory.name], "[代码+人工审计] 所属功能组入口；目录覆盖不等于每个 UI 分支测试通过");
-  const expectedPlugins = pairs([["dictionary", "EXT09 AI12 READ07 LIB01"],["rss-reader", "EXT10"],["editorial-themes", "EXT08"],["sentence-reader", "READ15 READ16"],["tts", "READ17 READ18"],["webdav-sync", "OPS04"],["jumper", "TXT02 TXT07 READ06 EXT02"],["annotation-desk", "ANN01 ANN04 ANN05 ANN08 EXT02 EXT05 SYS10"],["listening-desk", "READ16 READ18 READ06 EXT02 MORE03"],["reading-goals", "AI11 MEM03 SET23 EXT02 EXT05 SYS01"],["workspace-profiles", "UI02 UI04 CFG01 CFG10 EXT02 EXT05 SYS02"],["text-desk", "TXT04 LIB01 READ01 EXT02 EXT05"]]);
+  const expectedPlugins = pairs([["dictionary", "EXT09 AI12 READ07 LIB01"],["rss-reader", "EXT10"],["editorial-themes", "EXT08"],["sentence-reader", "READ15 READ16"],["tts", "READ17 READ18"],["webdav-sync", "OPS04"],["jumper", "TXT02 TXT07 READ06 EXT02"],["annotation-desk", "ANN01 ANN04 ANN05 ANN08 EXT02 EXT05 SYS10"],["listening-desk", "READ16 READ18 READ06 EXT02 MORE03"],["reading-goals", "AI11 MEM03 SET23 EXT02 EXT05 SYS01"],["workspace-profiles", "UI02 UI04 CFG01 CFG10 EXT02 EXT05 SYS02"],["text-desk", "TXT04 TXT05 TXT06 LIB01 READ01 EXT02 EXT05"],["library-desk", "LIB01 LIB05 EXT02 EXT03 MORE05"]]);
   for (const directory of readdirSync("plugins",{withFileTypes:true}).filter(d=>d.isDirectory()).sort((a,b)=>a.name.localeCompare(b.name))) {
     const manifest = JSON.parse(readFileSync(`plugins/${directory.name}/manifest.json`,"utf8"));
     add("First-party source plugin", manifest.id, expectedPlugins[directory.name], `[代码] 源码版本 ${manifest.version}；源码存在不等于打包、安装、启用或模型可调用`);

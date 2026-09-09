@@ -78,6 +78,9 @@ type CopyEntry = {
 const AI_SETTINGS: ErrorAction = "open-ai-settings";
 
 const CODE_COPY: Record<string, CopyEntry> = {
+  "library/invalid-removal": { key: "bookRemovalInvalid", retryable: false },
+  "library/removal-cleanup-pending": { key: "bookRemovalCleanupPending", retryable: false },
+  "library/book-reappeared": { key: "bookRemovalReappeared", retryable: false },
   "library/cancelled": { key: "bookSearchCancelled", retryable: false },
   "library/invalid-query": { key: "bookSearchInvalid", retryable: false },
   "library/book-not-found": { key: "bookNotFound", retryable: false },

@@ -93,6 +93,8 @@ export interface LibraryPort {
    */
   setBookNarrativity(bookId: Id, narrativity: "narrative" | "expository"): Promise<void>;
   removeBook(bookId: Id): Promise<void>;
+  removeBooks(bookIds: Id[]): Promise<import("@read-aware/core").BookRemovalReceipt>;
+  retryBookRemovalCleanup(bookIds: Id[]): Promise<import("@read-aware/core").BookFileReleaseReceipt>;
   createCollection(name: string): Promise<CollectionSummary>;
   renameCollection(collectionId: string, name: string): Promise<void>;
   removeCollection(collectionId: string): Promise<void>;
@@ -170,7 +172,7 @@ export interface UserInteractionOption {
 }
 
 export type UserPermissionAction =
-  "delete-book" | "delete-collection" | "delete-annotation";
+  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation";
 
 type UserInteractionBase = {
   /** Globally unique for the lifetime of the tool call. */

@@ -9,6 +9,7 @@
     "thinking": "Pensando…",
     "thought": "Razonamiento",
     "tools": {
+      "delete_books": "Eliminando libros",
       "search_memory": "Recordando",
       "remember": "Guardando un recuerdo",
       "search_conversation": "Buscando en conversaciones pasadas",
@@ -50,6 +51,11 @@
         "approved": "Aprobado",
         "declined": "No aprobado",
         "decline": "Conservar",
+        "deleteBooks": {
+          "question": "¿Eliminar estos libros o los archivos restantes?",
+          "description": "Los libros indicados y sus archivos de origen se eliminarán permanentemente. Esta acción no se puede deshacer.\n\n{{subject}}",
+          "approve": "Eliminar permanentemente"
+        },
         "deleteBook": {
           "question": "¿Eliminar «{{subject}}» de tu estantería?",
           "description": "Esto elimina permanentemente el archivo importado y sus datos de lectura locales. No se puede deshacer.",

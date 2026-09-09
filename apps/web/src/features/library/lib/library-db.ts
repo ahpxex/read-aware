@@ -1,5 +1,7 @@
 import { invoke } from "../../../platform/ipc";
-import type { EventOrigin } from "@read-aware/core";
+import { AppError, type EventOrigin } from "@read-aware/core";
+import { removeBookBatch, releaseRemovedBookFiles } from "./book-removal";
+import { createLogger } from "../../../platform/logger";
 import {
   getDesktopBlob,
   getDesktopBlobInfo,
@@ -59,16 +61,16 @@ async function putBookRecord(book: LibraryBook): Promise<void> {
   await invoke("library_put_book", { book });
 }
 
-async function deleteBookRecords(bookIds: string[], origin?: EventOrigin): Promise<void> {
-  if (bookIds.length === 0) return;
+async function deleteBookRecords(bookIds: string[], origin?: EventOrigin) {
   assertDesktop("Removing books");
   // `book.removed` drops the row and its annotations on apply; the blobs
   // (file + cover) are object-storage content and are released separately.
-  await commitDomainEvents(
-    ...bookIds.map((bookId) => ({ type: "book.removed" as const, payload: { bookId }, origin })),
-  );
-  await invoke("library_release_book_files", { ids: bookIds });
-  for (const bookId of bookIds) emitAppEvent("book-removed", { bookId });
+  return removeBookBatch(bookIds, {
+    commit: ids => commitDomainEvents(...ids.map(bookId => ({ type: "book.removed" as const, payload: { bookId }, origin }))),
+    releaseFiles: ids => invoke("library_release_book_files", { ids }),
+    removed: bookId => emitAppEvent("book-removed", { bookId }),
+    warn: error => createLogger("library").warn("Books removed but local file release failed", error),
+  });
 }
 
 async function getAllCollectionRecords(): Promise<Collection[]> {
@@ -417,7 +419,15 @@ export async function setBooksCollection(
 }
 
 export async function removeLibraryBooks(bookIds: string[], origin?: EventOrigin) {
-  await deleteBookRecords(bookIds, origin);
+  return deleteBookRecords(bookIds, origin);
+}
+
+export async function retryLibraryBookFileRelease(bookIds: string[]) {
+  assertDesktop("Releasing removed book files");
+  return releaseRemovedBookFiles(bookIds, {
+    releaseFiles: ids => invoke("library_release_book_files", { ids }),
+    warn: error => createLogger("library").warn("Removed book file release retry failed", error),
+  });
 }
 
 export async function markLibraryBookOpened(bookId: string) {
@@ -429,7 +439,10 @@ export async function markLibraryBookOpened(bookId: string) {
 }
 
 export async function removeLibraryBook(bookId: string, origin?: EventOrigin) {
-  await deleteBookRecords([bookId], origin);
+  const receipt = await deleteBookRecords([bookId], origin);
+  // Preserve the existing single-delete error contract. Batch callers get the
+  // committed/cleanup distinction and can retry the same IDs explicitly.
+  if (receipt.files.status === "pending") throw new AppError(receipt.files.errorCode, "Book removed but local file release failed");
 }
 
 // --- Restore (import a previously-exported bundle; ids preserved) ------------

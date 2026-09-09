@@ -398,6 +398,13 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         if (index < 0) throw new Error(`unknown book id: ${bookId} — ids come from list_books; in a book thread just omit bookId for the current book, never guess from a title`);
         books.splice(index, 1);
       },
+      removeBooks: async bookIds => {
+        const ids = new Set(bookIds);
+        for (let i = books.length - 1; i >= 0; i--) if (ids.has(books[i].id)) books.splice(i, 1);
+        return { bookIds: [...ids], committed: true, files: { status: "released" } };
+      },
+      retryBookRemovalCleanup: async bookIds => ({ bookIds, files: books.some(book => bookIds.includes(book.id))
+        ? { status: "pending", errorCode: "library/book-reappeared" } : { status: "released" } }),
       createCollection: async (name) => {
         const collection: CollectionSummary = {
           id: `collection-${++collectionCounter}`,

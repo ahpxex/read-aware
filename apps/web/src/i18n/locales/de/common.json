@@ -12,6 +12,9 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "bookRemovalInvalid": "Wähle 1–1000 gültige Buch-IDs.",
+    "bookRemovalCleanupPending": "Die Bücher wurden entfernt, aber die lokalen Dateien wurden noch nicht vollständig bereinigt.",
+    "bookRemovalReappeared": "Ein Buch ist wieder vorhanden. Seine Dateien wurden nicht entfernt.",
     "bookSearchCancelled": "Die Textsuche wurde abgebrochen.",
     "bookSearchInvalid": "Prüfen Sie Suchanfragen und Suchgrenzen und versuchen Sie es erneut.",
     "bookNotFound": "Dieses Buch ist nicht mehr in der Bibliothek.",

@@ -9,6 +9,7 @@
     "thinking": "Thinking…",
     "thought": "Thought process",
     "tools": {
+      "delete_books": "Removing books",
       "search_memory": "Recalling memories",
       "remember": "Saving a memory",
       "search_conversation": "Searching past conversations",
@@ -50,6 +51,11 @@
         "approved": "Approved",
         "declined": "Not approved",
         "decline": "Keep it",
+        "deleteBooks": {
+          "question": "Remove these books or remaining files?",
+          "description": "This permanently removes the listed books and their source files. This cannot be undone.\n\n{{subject}}",
+          "approve": "Remove permanently"
+        },
         "deleteBook": {
           "question": "Delete “{{subject}}” from your shelf?",
           "description": "This permanently removes the imported source file and its local reading data. This cannot be undone.",

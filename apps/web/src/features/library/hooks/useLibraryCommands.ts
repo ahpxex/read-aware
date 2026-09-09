@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useSetAtom } from "jotai";
+import { AppError } from "@read-aware/core";
 import { userDomain } from "../../../domain";
 import { createLogger } from "../../../platform/logger";
 import { deleteBookText } from "../lib/book-text-store";
@@ -120,8 +121,9 @@ export function useLibraryCommands({ reportError, reload }: LibraryCommandOption
           ? userDomain.library.commands.books.remove(ids[0]!)
           : userDomain.library.commands.books.removeMany(ids);
       void remove
-        .then(() => {
+        .then((receipt) => {
           setBooks((current) => removeBooks(current, ids));
+          if (receipt && receipt.files.status === "pending") reportError(new AppError("library/removal-cleanup-pending", "Books removed; local files need cleanup"));
           // Best-effort: a failure strands orphaned full-text rows, not user data.
           void deleteBookText(ids).catch((error: unknown) => {
             log.warn("full-text cleanup failed after book removal", error);

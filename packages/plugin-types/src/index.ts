@@ -40,6 +40,7 @@
  */
 
 import { PLUGIN_PERMISSIONS as CORE_PLUGIN_PERMISSIONS } from "@read-aware/core";
+export type { BookRemovalReceipt, BookFileReleaseReceipt } from "@read-aware/core";
 import type {
   AnnotationItem,
   AskItem,
@@ -1218,6 +1219,10 @@ export type PluginLibraryDomain = {
       editMetadata(bookId: string, patch: { title?: string; author?: string }): Promise<void>;
       setStarred(bookId: string, starred: boolean): Promise<void>;
       remove(bookId: string): Promise<void>;
+      /** 1-1000 IDs, deduplicated. Atomic record deletion; local file release is separately reported. */
+      removeMany(bookIds: string[]): Promise<import("@read-aware/core").BookRemovalReceipt>;
+      /** Retry file release only. Refuses any ID now present in the library; never deletes records. */
+      retryRemovalCleanup(bookIds: string[]): Promise<import("@read-aware/core").BookFileReleaseReceipt>;
       addVirtualBook(input: {
         providerId: string;
         key: string;

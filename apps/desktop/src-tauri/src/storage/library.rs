@@ -232,6 +232,12 @@ pub fn library_release_book_files(
 ) -> Result<(), CommandError> {
     let conn = db.0.lock()?;
     for id in &ids {
+        let present: bool = conn.query_row("SELECT EXISTS(SELECT 1 FROM books WHERE id = ?1)", [id], |row| row.get(0))?;
+        if present {
+            return Err(CommandError::new("library/book-reappeared", "Refusing to release files belonging to a current book"));
+        }
+    }
+    for id in &ids {
         delete_blob_inner(&conn, &data_dir.0, &format!("bookfile:{id}"))?;
         delete_blob_inner(&conn, &data_dir.0, &crate::covers::cover_blob_key(id))?;
     }

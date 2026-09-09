@@ -1,0 +1,66 @@
+{
+  "date": "2026-09-09",
+  "scope": "LIB05, library 1.5, global Agent delete_books, Library Desk 0.1, same-frame list search preservation",
+  "environment": {
+    "platform": "macOS Tauri debug with native SQLite and real module Workers",
+    "identifier": "com.readaware.app.capability-e2e",
+    "bridgePort": 9224,
+    "frontendPort": 5184,
+    "formalApp": "Untouched. Another pre-existing dev process occupied 9223; all UI and data operations targeted the verified isolated 9224 app.",
+    "agentBoundary": "Production delete_books tool and production runtime ports; real ChatInteractionPrompt mounted by a guarded fixture. No autonomous LLM or persisted chat turn."
+  },
+  "fixtures": [
+    "apps/web/src/features/plugins/runtime/fixtures/batch-removal-probe.ts",
+    "apps/web/src/features/plugins/runtime/fixtures/desktop-batch-removal-probe.tsx",
+    "plugins/library-desk/src/views.ts"
+  ],
+  "checks": [
+    { "name": "Worker permissions", "empty": { "read": false, "removeMany": false, "retry": false }, "read": { "read": true, "removeMany": false, "retry": false }, "write": { "read": true, "removeMany": true, "retry": true } },
+    { "name": "Empty batch rejected through public Worker command", "errorCode": "library/invalid-removal" },
+    { "name": "Agent decline", "result": { "deleted": false, "reason": "User declined." }, "booksRemain": 2 },
+    { "name": "Second event failure rolls back entire batch", "fault": "Isolated SQLite BEFORE INSERT trigger raises ABORT for book.removed on the second ID", "actors": ["plugin:capability-batch-write", "agent with real approval click"], "errorCode": "db/error", "afterEach": { "bookRows": 2, "removalEvents": 0 } },
+    { "name": "File cleanup failure follows committed records", "fault": "Isolated BEFORE UPDATE OF deleted_at trigger on first bookfile blob", "receipt": { "committed": true, "files": { "status": "pending", "errorCode": "db/error" } }, "bookRows": 0, "removalEvents": 2, "boundary": "Physical file removal may precede failed blob metadata update; this is intentionally not an atomic filesystem batch." },
+    { "name": "Agent approved cleanupOnly retries files without record events", "files": { "status": "pending", "errorCode": "db/error" }, "removalEventsAfterRetry": 2 },
+    { "name": "Restored-book guard preflights the whole batch", "method": "Restore the first seeded book, then call shared domain retry with absent-book ID first and restored-book ID second", "fileSizesBefore": [636, 566], "fileSizesAfter": [636, 566], "files": { "status": "pending", "errorCode": "library/book-reappeared" }, "workerAlsoReturnsSameCode": true, "agentRejectsBeforeApproval": "library/book-reappeared" },
+    { "name": "After removing file fault, explicit plugin removal succeeds", "receipt": { "committed": true, "files": { "status": "released" } } },
+    { "name": "Agent cancellation before dispatch", "result": "AbortError", "bookRows": 2, "removalEvents": 0 },
+    { "name": "Agent approved fresh batch succeeds", "ids": ["6252900b-8fb6-45b4-9b88-abbba7fb6bf3", "17d76b38-a08f-4b1d-8c70-2c5d05a4a923"], "receipt": { "committed": true, "files": { "status": "released" } }, "nativeEventOrigin": "agent", "nativeEventCount": 2 },
+    { "name": "Actual shelf More -> Library Desk", "actions": ["search", "toggle two synthetic books", "review frozen titles", "remove under file fault", "read Books removed / Local files still need cleanup", "drop file fault", "Retry file cleanup", "read File cleanup complete"], "nativeEventOrigin": "plugin:library-desk", "nativeEventCount": 2 },
+    { "name": "Live list regression found and fixed", "before": "Toggling selection cleared host list search because it reset on every view object update", "after": "Text State Probe query remains while live selection count changes; filtered list settles to only three synthetic books", "fix": "Frame identity already controls remounts; remove the redundant view-object search reset", "viewports": [[800, 650], [1200, 800]] },
+    { "name": "Full-title review", "fix": "Use wrapping text blocks rather than truncating list titles for destructive review", "verifiedViewport": [800, 650], "finalPluginRemoval": "Books removed / File cleanup complete", "documentHorizontalOverflow": false, "dialogHorizontalOverflow": false }
+  ],
+  "screenshotsInspected": [
+    "/tmp/library-desk-pending.png",
+    "/tmp/library-desk-selection-800.png",
+    "/tmp/library-desk-selection-1200.png",
+    "/tmp/library-desk-review-800.png"
+  ],
+  "captureCaveat": "An initial background screenshot was blank despite valid DOM. The isolated PID was focused and selection captures repeated and visually inspected; the blank capture was not accepted as evidence.",
+  "cleanup": {
+    "batchContributions": 0,
+    "fixtureContributions": 0,
+    "ownedBooksRemaining": 0,
+    "faultTriggersRemaining": 0,
+    "preservedPreExistingBooks": ["Reading Capability Probe", "Reading Paint Probe"],
+    "isolatedProcessExit": 143,
+    "isolatedPortsReleased": [5184, 9224]
+  },
+  "validation": {
+    "workspaceTests": "23/23 tasks; web 845 tests, 9366 assertions; no failures",
+    "typecheck": "26/26 tasks",
+    "frontendBuild": "Passed; existing large-chunk and mixed-import warnings remain",
+    "nativeBuild": "Isolated debug Rust build passed before native tests; existing warnings remain",
+    "inventory": "243 rows, 639 entry mappings, 129 baseline mappings",
+    "model": "30 ownership units, 30 catalog members, 32 scenarios; seven audit tests pass",
+    "documents": "Three MD/HTML pairs validated; three viewports each (1440x1000, 1024x768, 390x844), no horizontal page overflow, duplicate IDs, broken in-page anchors or unnamed buttons; EN/ZH search, Escape, matrix/model drawer and theme persistence checked. Browser errors/console empty. No Mermaid; existing CDN resources remain."
+  },
+  "notProven": [
+    "Autonomous model choice and persisted approval transcript",
+    "Crash/restart recovery of pending file cleanup",
+    "Cross-device or cross-actor version-conditional approval",
+    "1000-item approval and view load",
+    "Complete user-data erasure across plugin documents, chats, memory, indexes and remote blobs",
+    "Legacy single-delete partial-file-error redesign",
+    "Packaged CSP, marketplace installation, Windows and Linux"
+  ]
+}

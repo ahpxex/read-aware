@@ -623,6 +623,8 @@ export function buildPluginContext(
           editMetadata: library.commands.books.editMetadata,
           setStarred: library.commands.books.setStarred,
           remove: library.commands.books.remove,
+          removeMany: library.commands.books.removeMany,
+          retryRemovalCleanup: library.commands.books.retryRemovalCleanup,
           addVirtualBook: async (
             input: Parameters<
               NonNullable<

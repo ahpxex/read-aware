@@ -9,6 +9,7 @@
     "thinking": "Denkt nach…",
     "thought": "Gedankengang",
     "tools": {
+      "delete_books": "Bücher werden entfernt",
       "search_memory": "Ruft Erinnerungen ab",
       "remember": "Speichert eine Erinnerung",
       "search_conversation": "Durchsucht frühere Gespräche",
@@ -50,6 +51,11 @@
         "approved": "Genehmigt",
         "declined": "Nicht genehmigt",
         "decline": "Behalten",
+        "deleteBooks": {
+          "question": "Diese Bücher oder verbliebenen Dateien entfernen?",
+          "description": "Die aufgeführten Bücher und ihre Quelldateien werden dauerhaft entfernt. Dies kann nicht rückgängig gemacht werden.\n\n{{subject}}",
+          "approve": "Dauerhaft entfernen"
+        },
         "deleteBook": {
           "question": "„{{subject}}“ aus dem Regal löschen?",
           "description": "Dadurch werden die importierte Quelldatei und die lokalen Lesedaten dauerhaft entfernt. Dies kann nicht rückgängig gemacht werden.",

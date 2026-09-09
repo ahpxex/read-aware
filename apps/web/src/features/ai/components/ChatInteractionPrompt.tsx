@@ -17,15 +17,20 @@ const CUSTOM_CHOICE = "__read_aware_custom_answer__";
 const permissionKeys: Record<
   ChatPermissionAction,
   {
-    question: `chat.interaction.permission.${"deleteBook" | "deleteCollection" | "deleteAnnotation"}.question`;
-    description: `chat.interaction.permission.${"deleteBook" | "deleteCollection" | "deleteAnnotation"}.description`;
-    approve: `chat.interaction.permission.${"deleteBook" | "deleteCollection" | "deleteAnnotation"}.approve`;
+    question: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation"}.question`;
+    description: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation"}.description`;
+    approve: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation"}.approve`;
   }
 > = {
   "delete-book": {
     question: "chat.interaction.permission.deleteBook.question",
     description: "chat.interaction.permission.deleteBook.description",
     approve: "chat.interaction.permission.deleteBook.approve",
+  },
+  "delete-books": {
+    question: "chat.interaction.permission.deleteBooks.question",
+    description: "chat.interaction.permission.deleteBooks.description",
+    approve: "chat.interaction.permission.deleteBooks.approve",
   },
   "delete-collection": {
     question: "chat.interaction.permission.deleteCollection.question",
@@ -208,7 +213,7 @@ function PermissionPrompt({
 
   return (
     <div className="flex flex-col gap-3">
-      <Caption as="p" className="leading-5 text-fg-muted">
+      <Caption as="p" className="whitespace-pre-wrap break-words leading-5 text-fg-muted">
         {t(keys.description, { subject: request.subject })}
       </Caption>
       <div className="flex flex-wrap items-center gap-2">

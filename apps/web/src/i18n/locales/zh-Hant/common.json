@@ -12,6 +12,9 @@
     "copied": "已複製"
   },
   "errors": {
+    "bookRemovalInvalid": "請選擇 1–1000 個有效的書籍 ID。",
+    "bookRemovalCleanupPending": "書籍已移除，但本機檔案清理尚未完成。",
+    "bookRemovalReappeared": "書籍已重新出現，未釋放其檔案。",
     "bookSearchCancelled": "正文搜尋已取消。",
     "bookSearchInvalid": "請檢查查詢詞和搜尋範圍後重試。",
     "bookNotFound": "這本書已不在書庫中。",

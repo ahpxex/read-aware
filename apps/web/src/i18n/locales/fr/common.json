@@ -12,6 +12,9 @@
     "copied": "Copié"
   },
   "errors": {
+    "bookRemovalInvalid": "Sélectionnez entre 1 et 1000 identifiants de livres valides.",
+    "bookRemovalCleanupPending": "Les livres ont été supprimés, mais le nettoyage des fichiers locaux n’est pas terminé.",
+    "bookRemovalReappeared": "Un livre est à nouveau présent. Ses fichiers n’ont pas été supprimés.",
     "bookSearchCancelled": "La recherche dans le texte a été annulée.",
     "bookSearchInvalid": "Vérifiez les requêtes et les limites de recherche, puis réessayez.",
     "bookNotFound": "Ce livre ne figure plus dans la bibliothèque.",

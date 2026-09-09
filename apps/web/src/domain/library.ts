@@ -18,6 +18,8 @@ import type {
   BookTextTaskSnapshot,
   BookTextSearch,
   BookTextHit,
+  BookRemovalReceipt,
+  BookFileReleaseReceipt,
 } from "@read-aware/core";
 import { i18n } from "../i18n";
 import { emitAppEvent } from "../platform/app-events";
@@ -29,6 +31,7 @@ import {
   listLibraryBooks,
   removeLibraryBook,
   removeLibraryBooks,
+  retryLibraryBookFileRelease,
   renameCollection,
   setBooksCollection,
   setLibraryBookStarred,
@@ -109,7 +112,8 @@ export type LibraryCommands = {
     editMetadata(bookId: string, patch: { title?: string; author?: string }): Promise<void>;
     setStarred(bookId: string, starred: boolean): Promise<void>;
     remove(bookId: string): Promise<void>;
-    removeMany(bookIds: string[]): Promise<void>;
+    removeMany(bookIds: string[]): Promise<BookRemovalReceipt>;
+    retryRemovalCleanup(bookIds: string[]): Promise<BookFileReleaseReceipt>;
     addVirtualBook(input: { title: string; author?: string }): Promise<BookSummary>;
     updateVirtualBookTitle(bookId: string, title: string, author?: string): Promise<void>;
   };
@@ -200,9 +204,11 @@ export function createLibraryDomain(origin: EventOrigin, lifetime?: AbortSignal)
         notifyLibraryChanged();
       },
       removeMany: async (bookIds) => {
-        await removeLibraryBooks(bookIds.map(String), origin);
+        const receipt = await removeLibraryBooks(bookIds, origin);
         notifyLibraryChanged();
+        return receipt;
       },
+      retryRemovalCleanup: retryLibraryBookFileRelease,
       addVirtualBook: async (input) => {
         const book = await addVirtualLibraryBook(
           { title: String(input.title), author: input.author },

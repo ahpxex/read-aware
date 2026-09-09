@@ -12,6 +12,9 @@
     "copied": "已复制"
   },
   "errors": {
+    "bookRemovalInvalid": "请选择 1–1000 个有效的书籍 ID。",
+    "bookRemovalCleanupPending": "书籍已移除，但本地文件清理尚未完成。",
+    "bookRemovalReappeared": "书籍已重新出现，未释放其文件。",
     "bookSearchCancelled": "正文搜索已取消。",
     "bookSearchInvalid": "请检查查询词和搜索范围后重试。",
     "bookNotFound": "这本书已不在书库中。",

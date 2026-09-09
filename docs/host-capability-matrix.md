@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 193、部分 43、待建 3、引擎 1、占位 2、非桌面 1。
-- Agent：接通 111、部分 46、未接 46、扩展 14、自动 20、内部 6。
-- 插件：接通 125、部分 77、未接 41。
+- Agent：接通 112、未接 46、部分 45、扩展 14、自动 20、内部 6。
+- 插件：接通 126、部分 76、未接 41。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -65,7 +65,7 @@
 | <a id="LIB02"></a>LIB02 | 修改标题/作者 | 实装 | **接通**：update_book<br>[设计] 写工具 | **接通**：library.commands.books.editMetadata<br>[设计] 写领域 | 书架；Agent | 已有单项写，批量与冲突另列 | [LIB](../apps/web/src/domain/library.ts) [LIBUI](../apps/web/src/features/library/hooks/useLibraryCommands.ts) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | B02 |
 | <a id="LIB03"></a>LIB03 | 收藏/取消收藏 | 实装 | **接通**：update_book.starred<br>[设计] 写工具 | **接通**：library.commands.books.setStarred<br>[设计] 写领域 | 书架；Agent | 按对象授权与写回执仍需基线回归 | [LIB](../apps/web/src/domain/library.ts) [LIBUI](../apps/web/src/features/library/hooks/useLibraryCommands.ts) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | B02 |
 | <a id="LIB04"></a>LIB04 | 删除单本书 | 实装 | **接通**：delete_book + 用户批准<br>[设计] 受控写工具 | **接通**：library.commands.books.remove<br>[设计] 写领域/风险策略 | 书架；Agent；RSS | Agent 有批准环节；插件是已授权直接写，不等价于逐次批准 | [LIB](../apps/web/src/domain/library.ts) [LIBUI](../apps/web/src/features/library/hooks/useLibraryCommands.ts) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | B02 |
-| <a id="LIB05"></a>LIB05 | 批量删除书籍 | 实装 | **部分**：可逐个 delete_book，无批次契约<br>[设计] 批量受控工具 | **部分**：可循环 remove，未开放 removeMany<br>[设计] 批量写与逐项结果 | 书架多选 | 循环单项不等于宿主批量语义；需原子性/部分成功契约 | [LIB](../apps/web/src/domain/library.ts) [LIBUI](../apps/web/src/features/library/hooks/useLibraryCommands.ts) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | B02 |
+| <a id="LIB05"></a>LIB05 | 批量删除书籍 | 实装 | **接通**：delete_books[全局]：固定 ID 批次一次批准；cleanupOnly 文件重试<br>[设计] 批量受控工具 | **接通**：library 1.5 books.removeMany/retryRemovalCleanup；library:write<br>[设计] 原子记录批次与独立文件回执 | 书架多选；Agent；Library Desk 选择/审阅/删除/清理重试 | 1–1000 个非空 ID，每个至多 256 字符，复制并去重、不强制转换。单次事件事务提交记录/投影；失败全回滚，无删除通知或文件清理。提交后先通知，再清理源文件/封面；回执 committed:true 与 files.released/pending 分离，pending 保留稳定 errorCode，不声称文件事务。重试仅释放文件，不再写删除事件；原生持锁预检全部 ID，任何书已恢复则整次拒绝文件清理。Agent 批准前拒绝未知 ID，文件重试拒绝现存书，拒绝/派发前取消不写入；插件按域授权直接写，Library Desk 自有审阅不是宿主权限票据。实际 macOS debug 验双端数据库回滚、文件失败、恢复保护、拒绝/取消与成功；真实菜单插件验搜索选中/审阅/待清理/重试。批次不是跨设备 CAS 或全数据擦除，不撤销已派发提交；旧单删仍用异常表达文件失败，崩溃恢复/大批量/packaged/Windows/Linux 未验。 | [LIB](../apps/web/src/domain/library.ts) [LIBUI](../apps/web/src/features/library/hooks/useLibraryCommands.ts) [BOOKBATCH](../apps/web/src/features/library/lib/book-removal.ts) [BOOKBATCHTOOL](../packages/agent/src/tools/delete-books.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [LIBRARYDESK](../plugins/library-desk/src/views.ts) [BOOKBATCHPROOF](../docs/evidence/book-batch-removal-2026-09-09.json) | B02 |
 | <a id="LIB06"></a>LIB06 | 导入已有支持格式的书籍字节 | 实装 | **未接**：无正式入口<br>[设计] 用户选文件后导入工具 | **部分**：library.commands.books.importBook<br>[设计] 导入任务 | 书架导入/拖放/系统打开 | Agent 无导入工具；插件有字节入口，无完整进度/取消/FileRef | [IMPORT](../apps/web/src/features/library/lib/book-import.ts) [LIB](../apps/web/src/domain/library.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [REGISTRY](../packages/agent/src/tools/registry.ts) | B04 |
 | <a id="LIB07"></a>LIB07 | 识别格式/DRM/损坏文件并报告 | 实装 | **未接**：无正式入口<br>[设计] 查询导入能力/失败原因 | **部分**：importBook 间接触发<br>[设计] 格式能力与错误契约 | 导入与阅读加载 | 不能由 BookFormat enum 推断任意文件可读 | [IMPORT](../apps/web/src/features/library/lib/book-import.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [SESSION](../apps/web/src/features/reader/hooks/useReaderSession.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | B08 |
 | <a id="LIB08"></a>LIB08 | 查询/读取书籍原文件与本地可用性 | 实装 | **未接**：无正式入口<br>[设计] 受控资源查询 | **未接**：无正式入口<br>[设计] Book ResourceRef 查询/导出 | 阅读加载；备份；同步 | 当前 BookSummary 不提供源文件资源；不可开放任意路径 | [BLOB](../apps/web/src/platform/blob-store.ts) [SESSION](../apps/web/src/features/reader/hooks/useReaderSession.ts) [LIB](../apps/web/src/domain/library.ts) [API](../packages/plugin-types/src/index.ts) | B05 |
@@ -73,7 +73,7 @@
 | <a id="LIB10"></a>LIB10 | 缺失封面/元数据后台补齐 | 实装 | **未接**：无正式入口<br>[设计] 状态查询/受控重试 | **未接**：无正式入口<br>[设计] 状态查询/受控重试 | scheduleCatchUpEnrichment / enrichFromOpenBook | 宿主后台任务已存在；不是新增插件算法要求 | [ENRICH](../apps/web/src/features/library/lib/book-enrichment.ts) [APP](../apps/web/src/App.tsx) [COREVENTS](../packages/core/src/events.ts) | B08 |
 | <a id="LIB11"></a>LIB11 | 重复检测、同源书合并和 ID 重定向 | 实装 | **未接**：无正式入口<br>[设计] 预览后批准合并 | **未接**：无正式入口<br>[设计] 预览后批准合并 | 导入去重；同步后 reconcileDuplicateBooks | 查询候选与合并结果映射未公开 | [DEDUPE](../apps/web/src/platform/book-dedupe.ts) [LIB](../apps/web/src/domain/library.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) | A04, B06 |
 | <a id="LIB12"></a>LIB12 | 创建/幂等绑定虚拟书并更新标题 | 实装 | **扩展**：RSS subscribe_feed[全局]<br>[设计] 内容创建工具/贡献消费 | **接通**：addVirtualBook，同 binding 更新标题<br>[设计] 插件自有内容领域 | RSS | 不是所有虚拟书创建都自动成为 Agent 工具；仅 RSS 提供一例 | [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [VIRTUAL](../apps/web/src/features/plugins/lib/virtual-books.ts) [RSSFEED](../plugins/rss-reader/src/feed.ts) [RSSTOOLS](../plugins/rss-reader/src/agent-tools.ts) | B07 |
-| <a id="LIB13"></a>LIB13 | 移除插件自有虚拟书 | 部分 | **部分**：delete_book 通用删除；无 RSS 退订工具<br>[设计] 受控删除工具 | **部分**：removeVirtualBook 传播删除失败并等待绑定清理持久化<br>[设计] 自有内容删除回执 | RSS 退订；书架删除后订阅清理 | removeVirtualBook 不再吞删除异常；确认读前等待既有 KV 写结算，删除失败保留绑定，清理等待持久回执。清理失败可能发生在书已删除之后，调用仍拒绝，显式重试完成解绑；这不是书籍、blob、绑定、RSS 文档的联合原子事务。损坏绑定 JSON/结构报 db/error，不当空表或覆盖；同 ID 绑定已变化则拒绝清理。隔离 macOS 真实 Worker 命令与 Agent 插件工具均验证 domain_events 拒绝、app_kv 拒绝及重试；不是自主模型/完整 RSS 退订验收。RSS 私有缓存、并发 add/remove、崩溃恢复、packaged/跨平台仍缺。 | [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [VIRTUAL](../apps/web/src/features/plugins/lib/virtual-books.ts) [RSSVIEWS](../plugins/rss-reader/src/views.ts) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) [VIRTUALREMOVALPROOF](../docs/evidence/virtual-book-removal-2026-09-09.json) | B07 |
+| <a id="LIB13"></a>LIB13 | 移除插件自有虚拟书 | 部分 | **部分**：delete_book 通用删除；无 RSS 退订工具<br>[设计] 受控删除工具 | **部分**：removeVirtualBook 传播删除失败并等待绑定清理持久化<br>[设计] 自有内容删除回执 | RSS 退订；书架删除后订阅清理 | removeVirtualBook 不再吞删除异常；确认读前等待既有 KV 写结算，事件提交失败保留绑定，清理等待持久回执。清理失败可能发生在书已删除之后，调用仍拒绝，显式重试完成解绑；这不是书籍、blob、绑定、RSS 文档的联合原子事务。library 1.5 提交后即通知，文件失败时绑定可能已清除；再次 removeVirtualBook 不会重试文件，需保留 bookId 调用 retryRemovalCleanup，虚拟书内的耐久恢复缺口保留。损坏绑定 JSON/结构报 db/error，不当空表或覆盖；同 ID 绑定已变化则拒绝清理。隔离 macOS 真实 Worker 命令与 Agent 插件工具均验证 domain_events 拒绝、app_kv 拒绝及重试；不是自主模型/完整 RSS 退订验收。RSS 私有缓存、并发 add/remove、崩溃恢复、packaged/跨平台仍缺。 | [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [VIRTUAL](../apps/web/src/features/plugins/lib/virtual-books.ts) [RSSVIEWS](../plugins/rss-reader/src/views.ts) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) [VIRTUALREMOVALPROOF](../docs/evidence/virtual-book-removal-2026-09-09.json) [BOOKBATCH](../apps/web/src/features/library/lib/book-removal.ts) | B07 |
 | <a id="LIB14"></a>LIB14 | 虚拟内容修订/离线缓存/当前书刷新 | 部分 | **扩展**：RSS refresh_feed[全局]<br>[设计] 内容刷新工具 | **部分**：contentProviders.load + 私有缓存<br>[设计] revision/失效/重载契约 | RSS | 订阅缓存更新不是通用内容版本协议；在读书/旧位置失效未闭合 | [VIRTUAL](../apps/web/src/features/plugins/lib/virtual-books.ts) [RSSFEED](../plugins/rss-reader/src/feed.ts) [RSSVIEWS](../plugins/rss-reader/src/views.ts) [API](../packages/plugin-types/src/index.ts) | B07, N02 |
 | <a id="LIB15"></a>LIB15 | 列出集合及其成员 | 实装 | **接通**：list_collections[全局]<br>[设计] 查询工具 | **接通**：library.queries.collections.list/booksIn<br>[设计] 只读领域 | 书架；Agent | 集合单归属模型保持不变 | [LIB](../apps/web/src/domain/library.ts) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | B03 |
 | <a id="LIB16"></a>LIB16 | 创建/重命名集合 | 实装 | **接通**：manage_collection[全局]<br>[设计] 写工具 | **接通**：collections.create/rename<br>[设计] 写领域 | 书架；Agent | 书内不注册全局集合管理工具是明确 scope 策略 | [LIB](../apps/web/src/domain/library.ts) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | B03 |
@@ -409,9 +409,9 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：41 个。
+- Agent global：42 个。
 - Agent book：35 个。
-- Plugin ctx：99 个。
+- Plugin ctx：101 个。
 - Plugin returned interface：25 个。
 - Capability domains：5 个。
 - Capability contributions：14 个。
@@ -430,12 +430,12 @@
 - Domain subscription ANNOTATION_EVENTS：8 个。
 - Domain subscription CONVERSATION_EVENTS：4 个。
 - Feature owner：14 个。
-- First-party source plugin：12 个。
+- First-party source plugin：13 个。
 - Plugin Agent contribution：8 个。
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 99 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 101 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -450,6 +450,7 @@
 | `update_book` | [LIB02](#LIB02) [LIB03](#LIB03) [READ19](#READ19) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_collection` | [LIB16](#LIB16) [LIB18](#LIB18) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `delete_book` | [LIB04](#LIB04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `delete_books` | [LIB05](#LIB05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `delete_collection` | [LIB17](#LIB17) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `create_annotation` | [ANN02](#ANN02) [ANN05](#ANN05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `edit_annotation` | [ANN04](#ANN04) [ANN05](#ANN05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -552,6 +553,8 @@
 | `domains.library.commands.books.editMetadata` | [LIB02](#LIB02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.commands.books.setStarred` | [LIB03](#LIB03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.commands.books.remove` | [LIB04](#LIB04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.library.commands.books.removeMany` | [LIB05](#LIB05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.library.commands.books.retryRemovalCleanup` | [LIB05](#LIB05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.commands.books.addVirtualBook` | [LIB12](#LIB12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.commands.books.removeVirtualBook` | [LIB13](#LIB13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.commands.collections.create` | [LIB16](#LIB16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -1135,11 +1138,12 @@
 | `dictionary` | [EXT09](#EXT09) [AI12](#AI12) [READ07](#READ07) [LIB01](#LIB01) | [代码] 源码版本 1.3.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `editorial-themes` | [EXT08](#EXT08) | [代码] 源码版本 1.0.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `jumper` | [TXT02](#TXT02) [TXT07](#TXT07) [READ06](#READ06) [EXT02](#EXT02) | [代码] 源码版本 0.2.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `library-desk` | [LIB01](#LIB01) [LIB05](#LIB05) [EXT02](#EXT02) [EXT03](#EXT03) [MORE05](#MORE05) | [代码] 源码版本 0.1.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `listening-desk` | [READ16](#READ16) [READ18](#READ18) [READ06](#READ06) [EXT02](#EXT02) [MORE03](#MORE03) | [代码] 源码版本 0.9.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `reading-goals` | [AI11](#AI11) [MEM03](#MEM03) [SET23](#SET23) [EXT02](#EXT02) [EXT05](#EXT05) [SYS01](#SYS01) | [代码] 源码版本 0.1.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `rss-reader` | [EXT10](#EXT10) | [代码] 源码版本 0.7.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `sentence-reader` | [READ15](#READ15) [READ16](#READ16) | [代码] 源码版本 1.1.0；源码存在不等于打包、安装、启用或模型可调用 |
-| `text-desk` | [TXT04](#TXT04) [LIB01](#LIB01) [READ01](#READ01) [EXT02](#EXT02) [EXT05](#EXT05) | [代码] 源码版本 0.4.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `text-desk` | [TXT04](#TXT04) [TXT05](#TXT05) [TXT06](#TXT06) [LIB01](#LIB01) [READ01](#READ01) [EXT02](#EXT02) [EXT05](#EXT05) | [代码] 源码版本 0.4.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `tts` | [READ17](#READ17) [READ18](#READ18) | [代码] 源码版本 0.5.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `webdav-sync` | [OPS04](#OPS04) | [代码] 源码版本 0.2.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `workspace-profiles` | [UI02](#UI02) [UI04](#UI04) [CFG01](#CFG01) [CFG10](#CFG10) [EXT02](#EXT02) [EXT05](#EXT05) [SYS02](#SYS02) | [代码] 源码版本 0.2.0；源码存在不等于打包、安装、启用或模型可调用 |

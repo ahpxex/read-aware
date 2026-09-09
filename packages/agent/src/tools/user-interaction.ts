@@ -11,6 +11,7 @@ import type {
 export const INTERACTIVE_TOOL_NAMES = [
   "ask_user",
   "delete_book",
+  "delete_books",
   "delete_collection",
   "delete_annotation",
 ] as const;

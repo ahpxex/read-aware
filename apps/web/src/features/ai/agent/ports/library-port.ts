@@ -64,6 +64,8 @@ export function createLibraryPort(): LibraryPort {
       });
     },
     removeBook: (bookId) => library.commands.books.remove(String(bookId)),
+    removeBooks: bookIds => library.commands.books.removeMany(bookIds),
+    retryBookRemovalCleanup: bookIds => library.commands.books.retryRemovalCleanup(bookIds),
     createCollection: (name) => library.commands.collections.create(name),
     renameCollection: (collectionId, name) =>
       library.commands.collections.rename(collectionId, name),

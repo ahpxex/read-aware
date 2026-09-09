@@ -462,6 +462,58 @@ physical keyboard/mouse. Host built-in Agent availability, continuous load,
 marketplace install/upgrade, packaged and Windows/Linux remain outstanding;
 MORE05 is still partial.
 
+### Batch Book Removal
+
+[代码] Library 1.5 exposes `commands.books.removeMany(bookIds)` and
+`commands.books.retryRemovalCleanup(bookIds)` to `library:write` plugins.
+Both accept 1-1000 nonblank string IDs, each at most 256 characters; inputs are
+copied and deduplicated without coercing or trimming IDs. Invalid input rejects
+with `library/invalid-removal` before writes. Empty batches are not silent no-ops.
+
+[代码] `removeMany` commits all `book.removed` events and projections in one
+SQLite transaction. Database failure rejects the call with no removal notification
+or file release. After commit, observers receive removal events before separate
+source-file/cover cleanup, so a file failure cannot leave the shelf pretending the
+records still exist. The returned `{ bookIds, committed: true, files }` distinguishes
+`files.status: "released"` from `"pending"` with a stable `errorCode`. File cleanup
+can be partially applied; it is not part of the record transaction. Observer
+exceptions are logged and do not suppress remaining notifications or cleanup.
+
+[代码] `retryRemovalCleanup` returns `{ bookIds, files }` without appending any
+record-removal events. The native command holds the database lock and checks
+**all** IDs before releasing any file; a current book yields pending
+`library/book-reappeared`. Other failures retain their stable code; unknown errors
+use `fs/unknown`. This guards restored books, not arbitrary cross-device CAS.
+Direct batch removal remains idempotent for absent IDs and may append another
+removal event; use the file-only method for cleanup retries. Legacy single
+`remove` keeps its void/error contract and can reject after records committed.
+
+[代码] The global Agent tool `delete_books` uses the same domain and freezes a
+copied, deduplicated batch before one approval displaying every title. New removal
+rejects unknown IDs before approval; `cleanupOnly: true` refuses current books and
+uses file-only retry. Decline and cancellation before dispatch do not mutate;
+abort does not undo a dispatched database transaction. Book scope deliberately
+does not expose this global administration tool. Plugin domain grants allow direct
+writes and do not imply per-operation host approval.
+
+[代码] Library Desk 0.1 composes queries, live list selection, full-title review,
+batch deletion and safe cleanup retry through public APIs. It requires library 1.5
+and library:write. List refreshes keep the current search query; explicit navigation
+uses the host frame identity. Older refresh results and disposed views cannot
+publish over newer content. Its review is plugin UX, not a host authorization
+ticket. It is a source plugin, not one of the six Rust bundled plugins.
+
+[环境] [Native evidence](./evidence/book-batch-removal-2026-09-09.json) covers
+isolated macOS debug Tauri: no/read/write Worker grants, invalid input, both actors'
+second-event rollback, pending file release, file-only retry without new events,
+restored-book preflight preserving both files, Agent rejection/cancellation/success,
+and actual shelf-menu Library Desk review/delete/retry at 1200x800 and 800x650.
+Agent tests invoke the production tool/ports and real approval component in a
+fixture surface, not an autonomous model or persisted chat turn. This is not full
+data erasure: private plugin documents, chats, memories, derived indexes and remote
+blob lifecycle have separate owners. Crash recovery, 1000-item rendering/load,
+packaged CSP, Windows/Linux and cross-device races remain unverified.
+
 ### Derived Prose Search
 
 [代码] Library 1.4 adds `queries.books.searchText(input)` under `library:read`
@@ -528,7 +580,12 @@ by a bind/unbind operation.
 [代码] This is an ordered operation, not an atomic transaction across event-sourced
 books, source blobs, device-local bindings and plugin documents. If deletion
 committed but cleanup failed, the book remains deleted and the operation rejects;
-an explicit repeat can finish cleanup. An already absent owned binding is an
+an explicit repeat can finish pending binding cleanup. Since library 1.5, the
+book-removed notification follows the record commit even when file release fails:
+the binding may already be absent in that case. Repeating removeVirtualBook then
+does not retry files; callers retaining the removed book ID can use
+retryRemovalCleanup. Durable recovery of that ID inside the virtual-book workflow
+remains a gap. An already absent owned binding is an
 idempotent no-op. No new permissions or raw storage APIs are exposed. RSS private
 subscription cleanup and its core-Agent approval workflow are separate concerns.
 
@@ -1448,9 +1505,9 @@ user configuration.
 
 ## 13. First-Party Coverage
 
-The twelve source plugins use the registry-backed contract. Rust currently bundles
+The thirteen source plugins use the registry-backed contract. Rust currently bundles
 six; source presence is not installation or enablement. Theme Schedule is in the
-adjacent distribution repository, not a thirteenth plugin in this checkout:
+adjacent distribution repository, not a fourteenth plugin in this checkout:
 
 | Plugin | Primary capabilities |
 | --- | --- |
@@ -1467,6 +1524,7 @@ adjacent distribution repository, not a thirteenth plugin in this checkout:
 | Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |
 | Workspace Profiles | settled settings snapshots, exact path grants, atomic presets, private documents, shelf header/command views and Agent tool |
 | Text Desk | library text preparation/tasks, single/shelf multi-query search, snippets, paged status views, reader header/command and explicit book navigation |
+| Library Desk | live shelf selection, explicit batch review/removal, separate file-cleanup receipts and safe retry |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs
 in their packages and registered capabilities.

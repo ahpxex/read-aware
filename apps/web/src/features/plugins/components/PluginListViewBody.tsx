@@ -1,5 +1,5 @@
 import { ListBullets } from "@phosphor-icons/react";
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
 import {
   Caption,
   EmptyState,
@@ -84,8 +84,6 @@ export function PluginListViewBody({
   // Defaults to "today" (the freshest slice), and remembers the user's choice
   // per view when a stable key is available.
   const [range, setRange] = useState<PluginTimelineRange>(() => readTimelineRange(viewStateKey));
-
-  useEffect(() => setQuery(""), [view]);
 
   const selectRange = (next: PluginTimelineRange) => {
     setRange(next);

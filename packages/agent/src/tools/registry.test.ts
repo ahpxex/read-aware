@@ -37,6 +37,7 @@ describe("agent tool registry", () => {
     expect(tools).not.toContain("list_collections");
     expect(tools).not.toContain("manage_collection");
     expect(tools).not.toContain("delete_collection");
+    expect(tools).not.toContain("delete_books");
     expect(tools).not.toContain("get_conversation_insights");
     expect(tools).not.toContain("present_books");
   });
@@ -52,7 +53,8 @@ describe("agent tool registry", () => {
 
     const tools = names(buildAgentTools(global, deps));
 
-    expect(tools).toHaveLength(41);
+    expect(tools).toHaveLength(42);
+    expect(tools).toContain("delete_books");
     expect(tools).toContain("get_book_text_status");
     expect(tools).toContain("get_reader_panels");
     expect(tools).toContain("set_reader_panel");

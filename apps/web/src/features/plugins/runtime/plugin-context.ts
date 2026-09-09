@@ -706,6 +706,7 @@ export function buildPluginContext(
       events: {
         subscribe: trackedOn(reading.events.subscribe),
         observeSession: handler => track(() => ({ dispose: reading.events.observeSession(handler) })),
+        observeTime: (query, handler) => track(() => ({ dispose: reading.events.observeTime(query, handler) })),
       },
     };
     if (reading.commands) {

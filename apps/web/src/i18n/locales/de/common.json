@@ -12,6 +12,10 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "readingTimeInvalid": "Prüfe Buch, Datum und Seitengröße der Sitzungen.",
+    "readingTimeStale": "Die Lesestatistik wird wiederhergestellt. Versuche es danach erneut.",
+    "readingTimeUnavailable": "Die Lesezeit konnte nicht geladen werden.",
+    "readingTimeLimit": "Schließe zuerst eine andere Live-Lesezeitansicht.",
     "bookRemovalInvalid": "Wähle 1–1000 gültige Buch-IDs.",
     "bookRemovalCleanupPending": "Die Bücher wurden entfernt, aber die lokalen Dateien wurden noch nicht vollständig bereinigt.",
     "bookRemovalReappeared": "Ein Buch ist wieder vorhanden. Seine Dateien wurden nicht entfernt.",

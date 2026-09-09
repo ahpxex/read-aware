@@ -78,6 +78,11 @@ type CopyEntry = {
 const AI_SETTINGS: ErrorAction = "open-ai-settings";
 
 const CODE_COPY: Record<string, CopyEntry> = {
+  "reading/invalid-time-query": { key: "readingTimeInvalid", retryable: false },
+  "reading/stats-stale": { key: "readingTimeStale", retryable: true },
+  "reading/stats-invalid": { key: "readingTimeUnavailable", retryable: false },
+  "reading/stats-unavailable": { key: "readingTimeUnavailable", retryable: true },
+  "reading/stats-observer-limit": { key: "readingTimeLimit", retryable: false },
   "library/invalid-removal": { key: "bookRemovalInvalid", retryable: false },
   "library/invalid-cleanup-query": { key: "bookCleanupInvalid", retryable: false },
   "library/cleanup-stale": { key: "bookCleanupStale", retryable: true },

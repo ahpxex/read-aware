@@ -1,6 +1,8 @@
 import type { PluginContext, PluginFormView, PluginView, PluginViewResult } from "@read-aware/plugin-types";
 import { clearGoal, readGoal, saveGoal } from "./goals";
 import { copy } from "./strings";
+import { readingTimeView } from "./time-view";
+import { timeCopy } from "./time-strings";
 
 export async function goalsView(ctx: PluginContext, bookId?: string): Promise<PluginView> {
   const t = copy(ctx.locale);
@@ -39,5 +41,6 @@ export async function goalsView(ctx: PluginContext, bookId?: string): Promise<Pl
     { kind: "text", text: "ReadAware" }, policyForm, { kind: "actions", actions: [
     ...(goal ? [{ id: "clear", label: t.clear, icon: "trash", run: async () => { await clearGoal(ctx, target); return refresh(); } }] : []),
     { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: refresh },
+    { id: "time", label: timeCopy(ctx.locale).title, icon: "clock", run: async () => ({ view: await readingTimeView(ctx, { bookId: target }) }) },
   ] }] };
 }

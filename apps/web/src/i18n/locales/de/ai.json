@@ -9,6 +9,7 @@
     "thinking": "Denkt nach…",
     "thought": "Gedankengang",
     "tools": {
+      "get_reading_time": "Prüft die aktuelle Lesezeit",
       "delete_books": "Bücher werden entfernt",
       "list_book_removal_cleanup": "Ausstehende Dateibereinigung prüfen",
       "search_memory": "Ruft Erinnerungen ab",

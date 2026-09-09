@@ -26,6 +26,7 @@ function pairs(entries: Array<[string, string]>): Record<string, string[]> {
 const agentMap = pairs([
   ["list_books get_book_overview", "LIB01"], ["get_annotations", "ANN01"],
   ["list_collections", "LIB15"], ["get_reading_stats", "STAT01 STAT02"],
+  ["get_reading_time", "STAT03"],
   ["update_book", "LIB02 LIB03 READ19"], ["manage_collection", "LIB16 LIB18"],
   ["delete_book", "LIB04"], ["delete_books", "LIB05"], ["delete_collection", "LIB17"],
   ["list_book_removal_cleanup", "LIB05 LIB13"],
@@ -66,6 +67,7 @@ const pluginMap = pairs([
   ["domains.library.events.subscribe domains.reading.events.subscribe domains.conversations.events.subscribe", "CON07"],
   ["domains.annotations.events.subscribe", "ANN09"],
   ["domains.reading.queries.stats.forBook domains.reading.queries.stats.list domains.reading.queries.stats.overview", "STAT01"],
+  ["domains.reading.queries.stats.time domains.reading.events.observeTime", "STAT03"],
   ["domains.reading.commands.setFinished", "READ19"], ["domains.reading.commands.openBook", "READ01"], ["domains.reading.commands.goTo", "READ03"],
   ["domains.reading.queries.session", "READ07 TXT09 READ16"], ["domains.reading.events.observeSession", "READ08"],
   ["domains.reading.commands.back domains.reading.commands.forward", "READ06"],
@@ -119,6 +121,7 @@ const nativeMap = pairs([
   ["plugin_docs_put plugin_docs_get plugin_docs_delete plugin_docs_list plugin_docs_clear vocabulary_migrate_to_plugin_documents", "SYS02 SYS03"],
   ["plugin_docs_snapshot plugin_docs_restore", "SYS03"],
   ["reading_time_genesis reading_time_load reading_session_accrue reading_session_position reading_sessions_pending reading_session_flush reading_time_import", "STAT03 STAT04"],
+  ["reading_time_snapshot", "STAT03"],
   ["external_open_take", "SYS12"], ["diagnostics_read_logs diagnostics_log_dir", "SYS15"],
   ["book_file_size read_book_head", "LIB06 SYS11"], ["write_export_file", "SYS10"],
   ["android_update_check android_update_install set_status_bar_hidden sync_safe_area set_volume_key_capture app_store_storefront move_task_to_back book_pick_start book_pick_poll", "SYS18"],
@@ -242,7 +245,7 @@ export function collectInventory(): Inventory[] {
   }
   const featureMap = pairs([["agent ai", "AI01 AI03 MEM01"],["annotations", "ANN01"],["command", "UI03"],["library shelf", "LIB01 UI02"],["menus", "UI05"],["navigation", "UI01 SYS17"],["plugins", "EXT01 CON03"],["reader", "READ01 TXT01"],["settings", "CFG01 OPS08"],["stats", "STAT01"],["sync", "OPS01"],["update", "SYS16"]]);
   for (const directory of readdirSync("apps/web/src/features", {withFileTypes:true}).filter(d=>d.isDirectory())) add("Feature owner", directory.name, featureMap[directory.name], "[代码+人工审计] 所属功能组入口；目录覆盖不等于每个 UI 分支测试通过");
-  const expectedPlugins = pairs([["dictionary", "EXT09 AI12 READ07 LIB01"],["rss-reader", "EXT10"],["editorial-themes", "EXT08"],["sentence-reader", "READ15 READ16"],["tts", "READ17 READ18"],["webdav-sync", "OPS04"],["jumper", "TXT02 TXT07 READ06 EXT02"],["annotation-desk", "ANN01 ANN04 ANN05 ANN08 EXT02 EXT05 SYS10"],["listening-desk", "READ16 READ18 READ06 EXT02 MORE03"],["reading-goals", "AI11 MEM03 SET23 EXT02 EXT05 SYS01"],["workspace-profiles", "UI02 UI04 CFG01 CFG10 EXT02 EXT05 SYS02"],["text-desk", "TXT04 TXT05 TXT06 LIB01 READ01 EXT02 EXT05"],["library-desk", "LIB01 LIB05 EXT02 EXT03 MORE05"]]);
+  const expectedPlugins = pairs([["dictionary", "EXT09 AI12 READ07 LIB01"],["rss-reader", "EXT10"],["editorial-themes", "EXT08"],["sentence-reader", "READ15 READ16"],["tts", "READ17 READ18"],["webdav-sync", "OPS04"],["jumper", "TXT02 TXT07 READ06 EXT02"],["annotation-desk", "ANN01 ANN04 ANN05 ANN08 EXT02 EXT05 SYS10"],["listening-desk", "READ16 READ18 READ06 EXT02 MORE03"],["reading-goals", "AI11 MEM03 SET23 STAT03 EXT07 EXT02 EXT05 SYS01"],["workspace-profiles", "UI02 UI04 CFG01 CFG10 EXT02 EXT05 SYS02"],["text-desk", "TXT04 TXT05 TXT06 LIB01 READ01 EXT02 EXT05"],["library-desk", "LIB01 LIB05 EXT02 EXT03 MORE05"]]);
   for (const directory of readdirSync("plugins",{withFileTypes:true}).filter(d=>d.isDirectory()).sort((a,b)=>a.name.localeCompare(b.name))) {
     const manifest = JSON.parse(readFileSync(`plugins/${directory.name}/manifest.json`,"utf8"));
     add("First-party source plugin", manifest.id, expectedPlugins[directory.name], `[代码] 源码版本 ${manifest.version}；源码存在不等于打包、安装、启用或模型可调用`);

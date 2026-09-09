@@ -7,6 +7,7 @@ import {
   Divider,
   Eyebrow,
   Heading,
+  InlineError,
   Metric,
   Progress,
   Quote,
@@ -15,6 +16,8 @@ import {
   Tag,
 } from "@read-aware/ui";
 import { Markdown } from "../../ai/components/Markdown";
+import { AppError } from "@read-aware/core";
+import { describeError } from "../../../i18n/describe-error";
 import {
   DictionaryEntryBody,
   DictionaryEntryHeading,
@@ -153,6 +156,9 @@ function PluginBlockRenderer({
         </Stack>
       </Stack>
     );
+  }
+  if (block.kind === "error") {
+    return <InlineError>{describeError(new AppError(block.code, "")).body}</InlineError>;
   }
   if (block.kind === "alert") {
     return <Alert title={block.title} variant={block.variant}>{block.message}</Alert>;

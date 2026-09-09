@@ -1,7 +1,7 @@
 {
   "id": "reading-goals",
   "name": "Reading Goals",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "schemaVersion": 1,
   "minAppVersion": "0.3.0",
   "description": "Book-specific reading goals, conversation context and opt-in memory suggestions.",
@@ -10,9 +10,9 @@
   "permissions": ["reading:read", "library:read", "agent:context", "agent:memory"],
   "settingsAccess": { "read": ["ai.preferences.buildMemory"], "write": ["ai.preferences.buildMemory"] },
   "requires": {
-    "domains": { "reading": "^2.0.0", "library": "^1.1.0", "settings": "^1.2.0" },
+    "domains": { "reading": "^2.7.0", "library": "^1.1.0", "settings": "^1.2.0" },
     "contributions": { "headerActions": "^1.0.0", "commands": "^1.0.0", "agentContextProviders": "^1.0.0", "memoryCandidateProviders": "^1.0.0" },
-    "services": { "storage": "^2.0.0" },
-    "schemas": { "views": "^1.0.0" }
+    "services": { "storage": "^2.0.0", "ui": "^1.2.0" },
+    "schemas": { "views": "^1.2.0" }
   }
 }

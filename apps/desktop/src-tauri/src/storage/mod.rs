@@ -40,6 +40,8 @@ mod sync;
 pub use sync::*;
 mod reading_time;
 pub use reading_time::*;
+mod reading_snapshot;
+pub use reading_snapshot::*;
 mod preferences;
 pub use preferences::*;
 mod checkpoints;

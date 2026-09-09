@@ -9,6 +9,7 @@
     "thinking": "思考中…",
     "thought": "思考过程",
     "tools": {
+      "get_reading_time": "正在查看当前阅读时长",
       "delete_books": "正在移除书籍",
       "list_book_removal_cleanup": "正在查询待清理文件",
       "search_memory": "正在回忆",

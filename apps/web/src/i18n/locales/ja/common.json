@@ -12,6 +12,10 @@
     "copied": "コピーしました"
   },
   "errors": {
+    "readingTimeInvalid": "本、日付、セッションのページ設定を確認してください。",
+    "readingTimeStale": "読書統計を復旧中です。完了後に再試行してください。",
+    "readingTimeUnavailable": "読書時間を読み込めませんでした。",
+    "readingTimeLimit": "別の読書時間ビューを閉じてください。",
     "bookRemovalInvalid": "有効な書籍 ID を 1～1000 件選択してください。",
     "bookRemovalCleanupPending": "本は削除されましたが、ローカルファイルの削除は完了していません。",
     "bookRemovalReappeared": "本が再び存在するため、ファイルは削除されませんでした。",

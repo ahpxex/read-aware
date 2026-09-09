@@ -1,6 +1,7 @@
 /** Reading domain - reading lifecycle, progress projections, and time. */
 import type { BookStats, EventOrigin, StatsOverview, ReadingTarget, ReadingSessionSnapshot, ReadingSessionGuard, ReadingNavigationReceipt } from "@read-aware/core";
 import { readingRuntime } from "./reading-runtime";
+import { queryReadingTime, readingTimeObserver } from "./reading-time";
 import { listLibraryBooks, setLibraryBookFinished } from "../features/library/lib/library-db";
 import type { LibraryBook } from "../features/library/lib/library-types";
 import {
@@ -35,6 +36,7 @@ function toBookStats(book: LibraryBook, time: BookReadingStats | undefined): Boo
 export type ReadingQueries = {
   session(): Promise<ReadingSessionSnapshot>;
   stats: {
+    time(query?: import("@read-aware/core").ReadingTimeQuery): Promise<import("@read-aware/core").ReadingTimeSnapshot>;
     forBook(bookId: string): Promise<BookStats | null>;
     list(): Promise<BookStats[]>;
     overview(): Promise<StatsOverview>;
@@ -62,6 +64,7 @@ export type ReadingDomain = {
   events: {
     subscribe: DomainEventSubscribe<(typeof READING_EVENTS)[number]>;
     observeSession(handler: (snapshot: ReadingSessionSnapshot) => unknown): () => void;
+    observeTime(query: import("@read-aware/core").ReadingTimeQuery, handler: (event: import("@read-aware/core").ReadingTimeObservation) => unknown): () => void;
   };
 };
 
@@ -69,6 +72,7 @@ export function createReadingDomain(origin: EventOrigin): ReadingDomain {
   const queries: ReadingQueries = {
     session: async () => readingRuntime.snapshot(),
     stats: {
+      time: queryReadingTime,
       forBook: async (bookId) => {
         const book = (await listLibraryBooks()).find((entry) => entry.id === String(bookId));
         if (!book) return null;
@@ -139,6 +143,7 @@ export function createReadingDomain(origin: EventOrigin): ReadingDomain {
   return {
     queries,
     commands,
-    events: { subscribe: domainSubscribe(READING_EVENTS, origin), observeSession: handler => readingRuntime.observe(handler) },
+    events: { subscribe: domainSubscribe(READING_EVENTS, origin), observeSession: handler => readingRuntime.observe(handler),
+      observeTime: (query, handler) => readingTimeObserver.observe(query, handler) },
   };
 }

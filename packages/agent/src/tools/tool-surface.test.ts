@@ -74,6 +74,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   get_annotations: { bookId: BOOK_ID },
   list_collections: {},
   get_reading_stats: {},
+  get_reading_time: {},
   update_book: { bookId: BOOK_ID, starred: true },
   manage_collection: { action: "create", name: "New shelf" },
   delete_book: { bookId: BOOK_ID },

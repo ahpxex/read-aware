@@ -602,6 +602,11 @@ function normalizeBlock(input: unknown, context: string, depth: number): PluginB
       ),
     };
   }
+  if (kind === "error") {
+    const code = string(value.code, `${context}.code`)!;
+    if (code.length > 128 || !/^[a-z0-9][a-z0-9/-]*$/.test(code)) throw new Error(`${context}.code must be a stable error code`);
+    return { kind, code };
+  }
   if (kind === "alert") {
     return {
       kind,

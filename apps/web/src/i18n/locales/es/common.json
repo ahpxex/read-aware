@@ -12,6 +12,10 @@
     "copied": "Copiado"
   },
   "errors": {
+    "readingTimeInvalid": "Comprueba el libro, la fecha y los límites de paginación.",
+    "readingTimeStale": "Las estadísticas se están recuperando. Inténtalo después.",
+    "readingTimeUnavailable": "No se pudo cargar el tiempo de lectura.",
+    "readingTimeLimit": "Cierra primero otra vista del tiempo de lectura en directo.",
     "bookRemovalInvalid": "Selecciona entre 1 y 1000 identificadores de libros válidos.",
     "bookRemovalCleanupPending": "Los libros se eliminaron, pero la limpieza de los archivos locales no terminó.",
     "bookRemovalReappeared": "Un libro vuelve a estar presente. Sus archivos no se eliminaron.",

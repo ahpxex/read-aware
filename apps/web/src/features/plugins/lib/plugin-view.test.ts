@@ -8,6 +8,13 @@ import {
 const noOp = () => undefined;
 
 describe("normalizePluginView", () => {
+  test("persistent errors accept only stable codes and discard raw messages", () => {
+    expect(normalizePluginView({ kind: "blocks", blocks: [{ kind: "error", code: "db/locked", message: "PRIVATE" }] }))
+      .toEqual({ kind: "blocks", blocks: [{ kind: "error", code: "db/locked" }] });
+    for (const code of ["", "raw error details", "x".repeat(129), "<script>"]) {
+      expect(() => normalizePluginView({ kind: "blocks", blocks: [{ kind: "error", code }] })).toThrow();
+    }
+  });
   test("accepts only a callable live source and discards undeclared source fields", () => {
     const subscribe = () => ({ dispose() {} });
     expect(normalizePluginView({ kind: "markdown", markdown: "Current", live: { subscribe, ignored: noOp } }))

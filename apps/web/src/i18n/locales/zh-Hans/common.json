@@ -12,6 +12,10 @@
     "copied": "已复制"
   },
   "errors": {
+    "readingTimeInvalid": "请检查书籍、日期和会话分页参数。",
+    "readingTimeStale": "阅读统计仍在恢复，请稍后重试。",
+    "readingTimeUnavailable": "无法读取阅读时长。",
+    "readingTimeLimit": "请先关闭另一个实时阅读时长视图。",
     "bookRemovalInvalid": "请选择 1–1000 个有效的书籍 ID。",
     "bookRemovalCleanupPending": "书籍已移除，但本地文件清理尚未完成。",
     "bookRemovalReappeared": "书籍已重新出现，未释放其文件。",

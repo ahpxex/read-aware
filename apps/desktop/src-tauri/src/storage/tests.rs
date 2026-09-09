@@ -1,6 +1,8 @@
 //! storage 的单元测试（`mod tests` 的独立文件形态 —— 仍是单元测试作用域，
 //! 可访问父模块私有项；集成测试才放 crate 根的 tests/ 目录）。
 use super::*;
+#[path = "reading_snapshot_tests.rs"]
+mod reading_snapshot_tests;
 
 fn test_conn() -> Connection {
     let conn = Connection::open_in_memory().expect("open in-memory db");

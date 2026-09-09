@@ -1,0 +1,108 @@
+{
+  "date": "2026-09-09",
+  "scope": "STAT03 persisted pending reading time; EXT07 inline stable-code error block",
+  "environment": {
+    "appIdentifier": "com.readaware.app.capability-e2e",
+    "platform": "macOS",
+    "build": "debug",
+    "bridgePort": 9224,
+    "formalUserAppUntouched": true
+  },
+  "contracts": {
+    "readingVersion": "2.7.0",
+    "viewsVersion": "1.2.0",
+    "plugin": "Reading Goals 0.2.0",
+    "agentTool": "get_reading_time",
+    "pluginPage": {
+      "default": 50,
+      "max": 100
+    },
+    "agentPage": {
+      "default": 10,
+      "max": 10
+    },
+    "observerMax": 64,
+    "observerInterval": "at least 1 second after read and callback complete"
+  },
+  "observations": {
+    "permissions": "Real Workers: no grant hides reading; read exposes query/observer but no commands; write exposes existing commands and query/observer, no time accrual command.",
+    "synthetic": "20s in earlier hour plus 5s current hour via guarded synthetic native fixture, not actual reading.",
+    "pagination": "Two one-row pages each report total 25000ms and count 2; distinct hour keys, final cursor null.",
+    "atomicFlush": "2 events appended/applied; before settled 0/pending25s/total25s; after settled25s/pending0/total25s.",
+    "fault": "Isolated DB initially had no sync_profile. Inserted disabled profile with marker reading-time-e2e-fault and projections_stale=1; live observer revisions18..25 emitted reading/stats-stale; error block retained old value and safe English recovery text. Removed only the marked row; revision26 resumed ready and error cleared automatically.",
+    "realReader": "Actual owned FB2 navigation completed, document.hasFocus true. First tick pending20.001s; second40.003s; positionAt unchanged by ticks. Close settled43.7s including partial tick, total68.7s with synthetic25s.",
+    "disposal": "Real Worker observer stopped at revision103; later read remained103.",
+    "consumerUI": "Compiled preview unique ID capability-time-ui: shelf More > Reading time, live failure/recovery, Pending sessions empty after flush, Today calendar label, Close. Inspected screenshots at 1200x800 and800x650 logical window; no horizontal overflow. First narrow screenshot caught opening animation; recaptured settled frame.",
+    "cleanup": "Terminated three probe Workers and compiled preview, disposed contributions, closed reader, flushed only owned buckets, removed three synthetic books. Original two books remain, pending table empty, sync_profile empty. Owned process group76157 stopped; unowned group89360 untouched.",
+    "devInterruption": "Initial fixture import optimized pdf-lib/path and Vite reloaded, losing module state. Confirmed reload in logs, removed only the two attempted synthetic IDs via domain removal, then reseeded after module stabilization; no restart based only on timeout."
+  },
+  "verification": {
+    "native": "140 passed, 1 ignored (37 existing warnings); includes concurrent WAL snapshots versus20 native flushes",
+    "focused": "Final Agent focused run: 7 passed /260 assertions, including JSON-escaped identifiers shortening the page without skipping its cursor. Reading Goals: 5 passed /26 assertions. Named locale fields rebuilt and typechecked.",
+    "full": "Final bun test23/23 tasks passed (web851 tests/9478 assertions), typecheck26/26 and frontend build passed. Final Rust lib140 passed/1 ignored. Matrix647 inventory mappings and model checks passed. Three document pairs validated; nine viewport screenshots inspected, EN/ZH search/Escape and model/matrix drawer/theme persistence checked. Browser errors empty. Owned native process exited143, browser closed, ports5184/9224 have no listeners."
+  },
+  "limitations": [
+    "Not autonomous model reasoning; production tool execution with real native dependencies.",
+    "Not packaged, Windows/Linux, cross-device convergence or long-run stress.",
+    "No guarantee that unpersisted active interval is included or observations are exactly1Hz.",
+    "Model/catalog mappings do not close all goal gaps."
+  ],
+  "raw": {
+    "actors": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"agentBook\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":null,\"observedAt\":\"2026-09-09T14:16:20.306Z\",\"pending\":[{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"lastAt\":\"2026-09-09T12:16:20.301Z\",\"localDay\":\"2026-09-09\",\"localHour\":20,\"positionAt\":null,\"readingSeconds\":20,\"startedAt\":\"2026-09-09T12:16:20.301Z\"},{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"lastAt\":\"2026-09-09T14:16:20.302Z\",\"localDay\":\"2026-09-09\",\"localHour\":22,\"positionAt\":null,\"readingSeconds\":5,\"startedAt\":\"2026-09-09T14:16:20.302Z\"}],\"pendingBucketCount\":2,\"pendingReadingSeconds\":25,\"settledReadingSeconds\":0,\"totalReadingSeconds\":25},\"agentGlobal\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":null,\"observedAt\":\"2026-09-09T14:16:20.306Z\",\"pending\":[{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"lastAt\":\"2026-09-09T12:16:20.301Z\",\"localDay\":\"2026-09-09\",\"localHour\":20,\"positionAt\":null,\"readingSeconds\":20,\"startedAt\":\"2026-09-09T12:16:20.301Z\"},{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"lastAt\":\"2026-09-09T14:16:20.302Z\",\"localDay\":\"2026-09-09\",\"localHour\":22,\"positionAt\":null,\"readingSeconds\":5,\"startedAt\":\"2026-09-09T14:16:20.302Z\"}],\"pendingBucketCount\":2,\"pendingReadingSeconds\":25,\"settledReadingSeconds\":0,\"totalReadingSeconds\":25},\"pages\":{\"commands\":[],\"current\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":\"2026-09-09\",\"localHour\":20},\"observedAtEpochMs\":1788963380303,\"pending\":[{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"lastAt\":1788956180301,\"localDay\":\"2026-09-09\",\"localHour\":20,\"ms\":20000,\"positionAt\":null,\"startedAt\":1788956180301}],\"pendingBucketCount\":2,\"pendingMs\":25000,\"settledMs\":0,\"totalMs\":25000},\"hasReading\":true,\"next\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":null,\"observedAtEpochMs\":1788963380304,\"pending\":[{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"lastAt\":1788963380302,\"localDay\":\"2026-09-09\",\"localHour\":22,\"ms\":5000,\"positionAt\":null,\"startedAt\":1788963380302}],\"pendingBucketCount\":2,\"pendingMs\":25000,\"settledMs\":0,\"totalMs\":25000},\"seen\":[{\"revision\":1,\"snapshot\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":null,\"observedAtEpochMs\":1788963380300,\"pending\":[],\"pendingBucketCount\":0,\"pendingMs\":0,\"settledMs\":0,\"totalMs\":0},\"status\":\"ready\"}],\"version\":\"2.7.0\"},\"permissions\":{\"empty\":{\"commands\":[],\"current\":null,\"hasReading\":false,\"next\":null,\"seen\":[]},\"read\":{\"commands\":[],\"current\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":null,\"observedAtEpochMs\":1788963380297,\"pending\":[],\"pendingBucketCount\":0,\"pendingMs\":0,\"settledMs\":0,\"totalMs\":0},\"hasReading\":true,\"next\":null,\"seen\":[],\"version\":\"2.7.0\"},\"write\":{\"commands\":[\"setFinished\",\"openBook\",\"goTo\",\"back\",\"forward\",\"step\",\"close\",\"controlPlayback\",\"configureMode\",\"setControls\",\"returnToMode\",\"stepMode\"],\"current\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":null,\"observedAtEpochMs\":1788963380298,\"pending\":[],\"pendingBucketCount\":0,\"pendingMs\":0,\"settledMs\":0,\"totalMs\":0},\"hasReading\":true,\"next\":null,\"seen\":[],\"version\":\"2.7.0\"}}}\n\n[Executed in window: main]"
+        }
+      ]
+    },
+    "failureUI": {
+      "content": [
+        {
+          "type": "text",
+          "text": "# Scoped to: [role=dialog]\n- dialog Reading Goals [modal] [ref=e0]:\n  - heading Reading Goals [level=2] [ref=e1]:\n    - text: Reading Goals\n  - paragraph [ref=e5]:\n    - text: Reading time\n  - paragraph [ref=e10]:\n    - text: All books\n  - alert [ref=e11]:\n    - text: Reading statistics are still recovering. Try again when recovery finishes.\n  - paragraph [ref=e13]:\n    - text: Last successful sample\n  - text: Active reading\n  - paragraph [ref=e16]:\n    - text: \"2:09:33\"\n  - list [ref=e17]:\n    - term [ref=e19]:\n      - text: Settled\n    - definition [ref=e20]:\n      - text: \"2:09:08\"\n    - term [ref=e22]:\n      - text: Pending sessions\n    - definition [ref=e23]:\n      - text: \"0:00:25\"\n    - term [ref=e25]:\n      - text: Sampled at (UTC)\n    - definition [ref=e26]:\n      - text: \"2026-09-09T14:16:36.833Z\"\n    - term [ref=e28]:\n      - text: Calendar day\n    - definition [ref=e29]:\n      - text: All time\n  - separator [ref=e31]\n  - button Pending sessions [ref=e34]:\n    - text: Pending sessions\n  - button Today [ref=e35]:\n    - text: Today\n  - button All time [ref=e36]:\n    - text: All time\n  - button Close [ref=e37]:\n    - text: Close\n\n# ───────────────────────────────────────\n# Generated: 2026-09-09T14:16:44.038Z\n# Elements indexed: 38\n# Use [ref=eN] with other webview tools"
+        }
+      ]
+    },
+    "recovery": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"agent\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":null,\"observedAt\":\"2026-09-09T14:16:51.835Z\",\"pending\":[],\"pendingBucketCount\":0,\"pendingReadingSeconds\":0,\"settledReadingSeconds\":25,\"totalReadingSeconds\":25},\"flushed\":{\"appended\":2,\"applied\":2},\"recovered\":{\"commands\":[],\"current\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":\"2026-09-09\",\"localHour\":20},\"observedAtEpochMs\":1788963411829,\"pending\":[{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"lastAt\":1788956180301,\"localDay\":\"2026-09-09\",\"localHour\":20,\"ms\":20000,\"positionAt\":null,\"startedAt\":1788956180301}],\"pendingBucketCount\":2,\"pendingMs\":25000,\"settledMs\":0,\"totalMs\":25000},\"hasReading\":true,\"next\":null,\"seen\":[{\"revision\":17,\"snapshot\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":\"2026-09-09\",\"localHour\":20},\"observedAtEpochMs\":1788963396369,\"pending\":[{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"lastAt\":1788956180301,\"localDay\":\"2026-09-09\",\"localHour\":20,\"ms\":20000,\"positionAt\":null,\"startedAt\":1788956180301}],\"pendingBucketCount\":2,\"pendingMs\":25000,\"settledMs\":0,\"totalMs\":25000},\"status\":\"ready\"},{\"errorCode\":\"reading/stats-stale\",\"revision\":18,\"status\":\"error\"},{\"errorCode\":\"reading/stats-stale\",\"revision\":19,\"status\":\"error\"},{\"errorCode\":\"reading/stats-stale\",\"revision\":20,\"status\":\"error\"},{\"errorCode\":\"reading/stats-stale\",\"revision\":21,\"status\":\"error\"},{\"errorCode\":\"reading/stats-stale\",\"revision\":22,\"status\":\"error\"},{\"errorCode\":\"reading/stats-stale\",\"revision\":23,\"status\":\"error\"},{\"errorCode\":\"reading/stats-stale\",\"revision\":24,\"status\":\"error\"},{\"errorCode\":\"reading/stats-stale\",\"revision\":25,\"status\":\"error\"},{\"revision\":26,\"snapshot\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":\"2026-09-09\",\"localHour\":20},\"observedAtEpochMs\":1788963405406,\"pending\":[{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"lastAt\":1788956180301,\"localDay\":\"2026-09-09\",\"localHour\":20,\"ms\":20000,\"positionAt\":null,\"startedAt\":1788956180301}],\"pendingBucketCount\":2,\"pendingMs\":25000,\"settledMs\":0,\"totalMs\":25000},\"status\":\"ready\"},{\"revision\":27,\"snapshot\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":\"2026-09-09\",\"localHour\":20},\"observedAtEpochMs\":1788963406410,\"pending\":[{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"lastAt\":1788956180301,\"localDay\":\"2026-09-09\",\"localHour\":20,\"ms\":20000,\"positionAt\":null,\"startedAt\":1788956180301}],\"pendingBucketCount\":2,\"pendingMs\":25000,\"settledMs\":0,\"totalMs\":25000},\"status\":\"ready\"},{\"revision\":28,\"snapshot\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":\"2026-09-09\",\"localHour\":20},\"observedAtEpochMs\":1788963407414,\"pending\":[{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"lastAt\":1788956180301,\"localDay\":\"2026-09-09\",\"localHour\":20,\"ms\":20000,\"positionAt\":null,\"startedAt\":1788956180301}],\"pendingBucketCount\":2,\"pendingMs\":25000,\"settledMs\":0,\"totalMs\":25000},\"status\":\"ready\"},{\"revision\":29,\"snapshot\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":\"2026-09-09\",\"localHour\":20},\"observedAtEpochMs\":1788963408418,\"pending\":[{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"lastAt\":1788956180301,\"localDay\":\"2026-09-09\",\"localHour\":20,\"ms\":20000,\"positionAt\":null,\"startedAt\":1788956180301}],\"pendingBucketCount\":2,\"pendingMs\":25000,\"settledMs\":0,\"totalMs\":25000},\"status\":\"ready\"},{\"revision\":30,\"snapshot\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":\"2026-09-09\",\"localHour\":20},\"observedAtEpochMs\":1788963409421,\"pending\":[{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"lastAt\":1788956180301,\"localDay\":\"2026-09-09\",\"localHour\":20,\"ms\":20000,\"positionAt\":null,\"startedAt\":1788956180301}],\"pendingBucketCount\":2,\"pendingMs\":25000,\"settledMs\":0,\"totalMs\":25000},\"status\":\"ready\"},{\"revision\":31,\"snapshot\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":\"2026-09-09\",\"localHour\":20},\"observedAtEpochMs\":1788963410424,\"pending\":[{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"lastAt\":1788956180301,\"localDay\":\"2026-09-09\",\"localHour\":20,\"ms\":20000,\"positionAt\":null,\"startedAt\":1788956180301}],\"pendingBucketCount\":2,\"pendingMs\":25000,\"settledMs\":0,\"totalMs\":25000},\"status\":\"ready\"},{\"revision\":32,\"snapshot\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":\"2026-09-09\",\"localHour\":20},\"observedAtEpochMs\":1788963411428,\"pending\":[{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"lastAt\":1788956180301,\"localDay\":\"2026-09-09\",\"localHour\":20,\"ms\":20000,\"positionAt\":null,\"startedAt\":1788956180301}],\"pendingBucketCount\":2,\"pendingMs\":25000,\"settledMs\":0,\"totalMs\":25000},\"status\":\"ready\"}],\"version\":\"2.7.0\"}}\n\n[Executed in window: main]"
+        }
+      ]
+    },
+    "realTick": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"focus\":true,\"sample\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":null,\"observedAt\":\"2026-09-09T14:17:40.803Z\",\"pending\":[{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"lastAt\":\"2026-09-09T14:17:29.912Z\",\"localDay\":\"2026-09-09\",\"localHour\":22,\"positionAt\":\"2026-09-09T14:17:10.006Z\",\"readingSeconds\":20.001,\"startedAt\":\"2026-09-09T14:17:09.978Z\"}],\"pendingBucketCount\":1,\"pendingReadingSeconds\":20.001,\"settledReadingSeconds\":25,\"totalReadingSeconds\":45.001}}\n\n[Executed in window: main]"
+        }
+      ]
+    },
+    "beforeClose": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"before\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":null,\"observedAt\":\"2026-09-09T14:17:53.342Z\",\"pending\":[{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"lastAt\":\"2026-09-09T14:17:49.914Z\",\"localDay\":\"2026-09-09\",\"localHour\":22,\"positionAt\":\"2026-09-09T14:17:10.006Z\",\"readingSeconds\":40.003,\"startedAt\":\"2026-09-09T14:17:09.978Z\"}],\"pendingBucketCount\":1,\"pendingReadingSeconds\":40.003,\"settledReadingSeconds\":25,\"totalReadingSeconds\":65.003}}\n\n[Executed in window: main]"
+        }
+      ]
+    },
+    "afterClose": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"after\":{\"bookId\":\"d6a0d31c-7170-496d-86cd-4d56146e95c1\",\"localDay\":null,\"nextCursor\":null,\"observedAt\":\"2026-09-09T14:18:03.493Z\",\"pending\":[],\"pendingBucketCount\":0,\"pendingReadingSeconds\":0,\"settledReadingSeconds\":68.7,\"totalReadingSeconds\":68.7},\"lastRevision\":103}\n\n[Executed in window: main]"
+        }
+      ]
+    },
+    "cleanup": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"contributions\":0,\"remainingBooks\":0,\"timeContributions\":0}\n\n[Executed in window: main]"
+        }
+      ]
+    }
+  }
+}

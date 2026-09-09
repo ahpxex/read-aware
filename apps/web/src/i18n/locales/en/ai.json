@@ -9,6 +9,7 @@
     "thinking": "Thinking…",
     "thought": "Thought process",
     "tools": {
+      "get_reading_time": "Reading current active time",
       "delete_books": "Removing books",
       "list_book_removal_cleanup": "Checking pending file cleanup",
       "search_memory": "Recalling memories",

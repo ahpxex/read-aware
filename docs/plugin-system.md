@@ -247,6 +247,85 @@ write failure, deletion/source races, concurrent PDF work and final-checkpoint
 restart. Durable setup error history, virtual indexing, all formats, release and cross-platform tests
 remain incomplete. See [evidence](./evidence/book-text-state-2026-09-09.json).
 
+### Persisted Reading Time
+
+[代码] Reading 2.7 adds `queries.stats.time(query?)` and
+`events.observeTime(query, handler)` for `reading:read` and `reading:write`.
+Without reading permission, neither entry is exposed. They do not accrue time, move a reading
+position, force a session flush, or write events. Existing `stats.forBook/list/overview`
+remain settled-only. The shared native `reading_time_snapshot` reads settled
+projections and device-local pending buckets in one SQLite read transaction,
+including when another connection flushes concurrently.
+
+| Field / rule | Contract |
+| --- | --- |
+| `bookId?` | nonblank string, at most 256 UTF-16 units; specified missing book rejects `library/book-not-found`; omitted means aggregate |
+| `localDay?` | valid `YYYY-MM-DD`; matches the calendar label recorded by each session, not a conversion into the current timezone |
+| `limit?`, `after?` | default 50, integer 1–100; keyset cursor `{bookId, localDay, localHour}` with hour 0–23, validated against specified scope; order by those three fields |
+| `bookId`, `localDay` | accepted scope, omitted input returned as null |
+| `settledMs`, `pendingMs`, `totalMs` | entire scope, never just the returned page; total is settled + pending; exact nonnegative JSON integers |
+| `pendingBucketCount` | entire scope, including zero-time buckets that carry an observed position |
+| `observedAtEpochMs` | native wall clock sampled inside the read transaction; not a revision or globally monotonic clock |
+| `pending[]` | bounded `{bookId, localDay, localHour, ms, startedAt, lastAt, positionAt}`; lastAt can advance on ticks, positionAt only on page turns and is nullable; no locator/progress payload |
+| `nextCursor` | last returned key when more rows exist, otherwise null; subsequent pages are live, not a frozen multi-page snapshot |
+
+[代码] Totals must not be added across pages. A bucket flushed between pages may
+disappear; the returned totals remain consistent within each response.
+Stale projections reject `reading/stats-stale` instead of returning incomplete
+statistics. Invalid input rejects `reading/invalid-time-query`; invalid aggregate
+range rejects `reading/stats-invalid`; an unavailable native clock rejects
+`reading/stats-unavailable`. SQLite failures preserve normalized error codes.
+Recovery/unavailable errors have localized retryable descriptions; invalid
+input/data and observer-limit errors do not. The query does not invent a zero
+result on read failure.
+
+[代码] `observeTime` immediately samples, then waits at least one second after
+the native read and asynchronous consumer callback finish before sampling again.
+It emits `{revision, status:"ready", snapshot}` or
+`{revision, status:"error", errorCode}`. Revision starts at 1 per subscription,
+including failed reads. At most 64 observers are active across the host; overflow
+rejects `reading/stats-observer-limit`. Input/cursor are copied, polls never
+overlap within a subscription, slow callbacks apply backpressure, and disposal
+is idempotent, cancels the next timer and ignores late results. Already-issued
+native reads are not aborted. Plugin activation cleanup tracks the subscription;
+live view departure/close disposes it. This is sampled observation, not a replay
+feed or exactly-once event delivery.
+
+[代码] Agent `get_reading_time` is registered in both scopes. Book scope defaults
+to the current book; `allBooks:true` explicitly selects aggregate. It exposes the
+same day/keyset filter with default/max 10 buckets to bound model output, formats
+durations as seconds and observation clocks as ISO UTC, preserves a nullable
+positionAt, and checks cancellation before and after the read. JSON-escaped IDs
+can further shorten a page to fit 16,000 characters; the cursor moves to its last
+returned bucket so no entry is silently skipped. It does not flush.
+The underlying reader normally persists active time on a 20-second tick; elapsed
+time still only in the tracker is not extrapolated. Pending means local,
+provisional time not yet in the event-sourced settled projection, not proof of
+cross-device synchronization or continuous wall-clock reading.
+
+[代码] Reading Goals 0.2 composes the query and observer with the shelf menu,
+command palette, book-goal detail action, day/all-time filters, pending keyset
+list/detail and UI 1.2 live publication. Main detail updates automatically;
+pending list uses explicit refresh. It requires views 1.2, which adds the
+`{kind:"error", code}` block. The normalizer accepts only 1–128 characters matching
+`^[a-z0-9][a-z0-9/-]*$`, drops extra fields, and rejects invalid blocks. The host
+renders `InlineError` with localized `describeError` copy; unknown valid codes
+use the safe generic fallback, never plugin raw text. No error dialog or automatic
+retry action is introduced. A failed live read retains the last successful sample
+with an explicit stale label; subsequent success removes the error. Initial
+action/query failure propagates to the existing host failure surface.
+
+[环境] Isolated macOS debug Tauri verified no/read/write permission Workers,
+two pending keyset pages, both production Agent scopes, a controlled 25-second
+flush with unchanged total, stale-projection error and automatic recovery,
+subscription disposal, compiled Reading Goals menu/day/empty-list flows, and
+800x650 layout without horizontal overflow. Actual foreground FB2 reading
+produced 20.001 then 40.003 pending seconds; closing settled 43.7 seconds including
+the partial tick. The 25-second setup was synthetic native accrual, not real
+reading. Rust tests cover WAL concurrent read/flush and racing ticks. Autonomous
+model decisions, long-running load, packaged builds and Windows/Linux are not
+verified by this evidence. See [evidence](./evidence/reading-time-snapshot-2026-09-09.json).
+
 ### Derived Text Requests
 
 [代码] Library 1.3 exposes actor-owned preparation requests, not a generic durable

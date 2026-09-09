@@ -12,6 +12,10 @@
     "copied": "Copied"
   },
   "errors": {
+    "readingTimeInvalid": "Check the book, calendar day and session page limits.",
+    "readingTimeStale": "Reading statistics are still recovering. Try again when recovery finishes.",
+    "readingTimeUnavailable": "Reading time could not be loaded.",
+    "readingTimeLimit": "Close another live reading-time view before opening this one.",
     "bookRemovalInvalid": "Choose 1-1000 valid book IDs.",
     "bookRemovalCleanupPending": "The books were removed, but local file cleanup did not finish.",
     "bookRemovalReappeared": "A book is present again. Its files were not released.",

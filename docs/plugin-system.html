@@ -206,6 +206,11 @@
       <section data-search-section="domains 领域 library reading annotations conversations settings contentTypography typography defaultColor updateChannel textAlign fixedLayoutColor whatsNewDialog durability workspace profiles shelf shortcuts key-chord text desk extraction 正文 抽取 书架 工作区 预设 快捷键 冲突 模式 持久 回执">
         <div class="wrap">
           <h2>Domains</h2>
+          <details class="ep" data-search-section="reading time pending STAT03 阅读 时长 待结算"><summary>Reading 2.7：Agent 与插件共享已结算和待结算时长</summary><div class="ep-body">
+            <p>同一数据库快照读取两部分，总时长不会因会话结算而重复增加。支持按书、记录日期过滤及有界分页；Agent 输出秒数和 ISO 时间，插件还可观察更新。只开放读取，不开放计时写入或强制结算。</p>
+            <p>Reading Goals 0.2 组合时长详情、日期切换和待结算列表。读取失败保留上次成功样本，通过 views 1.2 内联错误显示宿主本地化文案；恢复后自动续更，关闭即退订。</p>
+            <p>macOS debug 已验双端查询、真实阅读 tick、结算、失败恢复和窄窗菜单。数据只含已持久样本，通常约 20 秒写入一次，不外推秒表，也不代表跨设备已同步；打包、跨平台和长时负载未验。<a href="./plugin-system.md#persisted-reading-time">完整契约</a> · <a href="./evidence/reading-time-snapshot-2026-09-09.json">桌面证据</a></p>
+          </div></details>
           <p class="intro">插件只看到权限允许的 actor view。所有写入都经过正式命令，并记录来源。</p>
           <details class="ep" data-search-section="batch removal delete_books Library Desk 批量 删除 清理 重试"><summary>Library 1.6：批量删除与重启后清理恢复双端接通</summary><div class="ep-body">
             <p>Agent 全局 delete_books 一次批准固定的 1–1000 个 ID；插件 removeMany 经 library:write 调用。记录/事件原子提交，文件失败仍明确报告记录已删。retryRemovalCleanup 只重试文件，不再写删除事件；任一书已恢复则整次拒绝文件清理。</p>

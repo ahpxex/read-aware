@@ -41,6 +41,7 @@
 
 import { PLUGIN_PERMISSIONS as CORE_PLUGIN_PERMISSIONS } from "@read-aware/core";
 export type { BookRemovalReceipt, BookFileReleaseReceipt, BookRemovalCleanupPage, BookRemovalCleanupQuery } from "@read-aware/core";
+export type { ReadingTimeQuery, ReadingTimeCursor, ReadingTimeSnapshot, ReadingTimeObservation, PendingReadingTime } from "@read-aware/core";
 import type {
   AnnotationItem,
   AskItem,
@@ -708,6 +709,8 @@ export type PluginMetadataItem =
 export type PluginLayoutGap = "tight" | "normal" | "relaxed";
 
 export type PluginBlock =
+  /** Host-localized persistent failure. Raw error text is never rendered. Views >=1.2. */
+  | { kind: "error"; code: string }
   | { kind: "markdown"; markdown: string }
   /** Host typography; plugins choose semantic emphasis, never classes. */
   | {
@@ -1250,6 +1253,8 @@ export type PluginReadingDomain = {
   queries: {
     session(): Promise<import("@read-aware/core").ReadingSessionSnapshot>;
     stats: {
+      /** Atomic settled + pending time, with native sampling clock. Reading >=2.7. */
+      time(query?: import("@read-aware/core").ReadingTimeQuery): Promise<import("@read-aware/core").ReadingTimeSnapshot>;
       forBook(bookId: string): Promise<PluginBookStats | null>;
       list(): Promise<PluginBookStats[]>;
       overview(): Promise<PluginStatsOverview>;
@@ -1279,6 +1284,8 @@ export type PluginReadingDomain = {
   events: {
     subscribe: DomainSubscribe<ReadingDomainEventType>;
     observeSession(handler: (snapshot: import("@read-aware/core").ReadingSessionSnapshot) => void | Promise<void>): PluginDisposable;
+    /** Immediate sample then a 1s minimum gap after each delivery. Errors are explicit; dispose stops further delivery. */
+    observeTime(query: import("@read-aware/core").ReadingTimeQuery, handler: (event: import("@read-aware/core").ReadingTimeObservation) => void | Promise<void>): PluginDisposable;
   };
 };
 

@@ -9,6 +9,7 @@
     "thinking": "考え中…",
     "thought": "思考の過程",
     "tools": {
+      "get_reading_time": "現在の読書時間を確認しています",
       "delete_books": "本を削除しています",
       "list_book_removal_cleanup": "未完了のファイル削除を確認しています",
       "search_memory": "記憶を呼び出しています",

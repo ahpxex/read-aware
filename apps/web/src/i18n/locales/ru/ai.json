@@ -9,6 +9,7 @@
     "thinking": "Думаю…",
     "thought": "Ход размышлений",
     "tools": {
+      "get_reading_time": "Проверяю текущее время чтения",
       "delete_books": "Удаление книг",
       "list_book_removal_cleanup": "Проверка ожидающей очистки файлов",
       "search_memory": "Вспоминаю",

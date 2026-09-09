@@ -351,6 +351,8 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   const deps: RuntimeDeps = {
     environment: { snapshot: async () => ({ revision: 1, runtime: "desktop", platform: "macos", locale: "en", timeZone: "UTC", utcOffsetMinutes: 0, networkHint: "unknown" }) },
     library: {
+      getReadingTime: async (query = {}) => ({ bookId: query.bookId ?? null, localDay: query.localDay ?? null,
+        observedAtEpochMs: 0, settledMs: 0, pendingMs: 0, totalMs: 0, pendingBucketCount: 0, pending: [], nextCursor: null }),
       listBooks: async () => books,
       listBookRemovalCleanup: async () => ({ items: [], nextCursor: null }),
       getBook: async (id) => books.find((book) => book.id === id),

@@ -49,6 +49,7 @@ export function createLibraryPort(): LibraryPort {
       (await reading.queries.stats.forBook(String(bookId))) ?? undefined,
     listBookStats: () => reading.queries.stats.list(),
     getStatsOverview: () => reading.queries.stats.overview(),
+    getReadingTime: query => reading.queries.stats.time(query),
     editBookMetadata: (bookId, patch) =>
       library.commands.books.editMetadata(String(bookId), patch),
     setBookStarred: (bookId, starred) =>

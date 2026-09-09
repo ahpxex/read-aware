@@ -9,6 +9,7 @@
     "thinking": "Réflexion…",
     "thought": "Cheminement de pensée",
     "tools": {
+      "get_reading_time": "Consultation du temps de lecture actuel",
       "delete_books": "Suppression des livres",
       "list_book_removal_cleanup": "Vérification du nettoyage en attente",
       "search_memory": "Rappel des souvenirs",

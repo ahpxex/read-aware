@@ -9,6 +9,7 @@ import { presentBookStats, presentStatsOverview } from "./format-stats";
 import { textResult } from "./tool-result";
 import { requestUserInteraction } from "./user-interaction";
 import { buildDeleteBooksTool, buildListBookRemovalCleanupTool } from "./delete-books";
+import { buildReadingTimeTool } from "./reading-time";
 
 export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const listCollections: AgentTool = {
@@ -33,7 +34,7 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
     name: "get_reading_stats",
     label: "Reading stats",
     description:
-      "Get active reading time and progress, with durations already formatted for the reader (quote them as given — never invent millisecond numbers). Call it only when the user asks about reading time, streaks, or progress — content questions never need it. With bookId, returns that book; without it, returns the whole-shelf aggregate and every book's stats. bookId defaults to the current book in a book thread, so pass allBooks=true there for the aggregate.",
+      "Get SETTLED reading history and progress, with durations already formatted for the reader. For current time including unfinished sessions, use get_reading_time instead. Quote formatted durations as given. Call only for reading time, streaks, or progress, not content questions. With bookId returns that book; otherwise the whole-shelf aggregate and every book's stats. In a book thread defaults to the current book; allBooks=true requests the aggregate.",
     parameters: Type.Object({
       bookId: Type.Optional(Type.String()),
       allBooks: Type.Optional(
@@ -244,12 +245,13 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
   };
 
   if (scope.kind === "book") {
-    return [getReadingStats, updateBook, deleteBook];
+    return [getReadingStats, buildReadingTimeTool(scope, deps), updateBook, deleteBook];
   }
 
   return [
     listCollections,
     getReadingStats,
+    buildReadingTimeTool(scope, deps),
     updateBook,
     manageCollection,
     deleteBook,

@@ -18,10 +18,10 @@ const CATCH_UP_CONCURRENCY = 6;
 const catchUpInFlight = new Set<string>();
 
 /**
- * 阅读会话触发的图谱追平：打开一本书即并行补建它的纪要欠账，跑到清零。
+ * 阅读会话触发的图谱追平：打开一本书即并行扫描当前边界内的纪要欠账。
  * 存量用户（读了半本、图是空的）从开卷那一刻起建图，不等 5 分钟空闲
  * 节拍、不等聊天。每章成功即落成事件，进程中断无损，重跑续账。
- * 同书去重；追平后的再次调用是一次纯读空转。
+ * 同书去重；失败/无文本保留欠账并报告，不误称已清零。
  */
 export function catchUpBookGraph(bookId: string, throughChapterHref?: string): void {
   if (!memoryPolicy.enabled()) return;
@@ -33,8 +33,9 @@ export function catchUpBookGraph(bookId: string, throughChapterHref?: string): v
       throughChapterHref,
       concurrency: CATCH_UP_CONCURRENCY,
     })
-    .then((digested) => {
-      if (digested > 0) log.info(`book graph caught up: ${digested} chapters`, { bookId });
+    .then((report) => {
+      if (report.status === "complete") log.info("book graph pass complete", { bookId, digested: report.digested });
+      else log.warn("book graph pass incomplete", { bookId, ...report });
     })
     .catch((error) => log.warn("book graph catch-up failed", error))
     .finally(() => catchUpInFlight.delete(bookId));

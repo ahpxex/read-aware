@@ -1091,6 +1091,61 @@ general large-result UX and chapter payload byte bounds are not closed by the
 200/40 count limits. Packaged, Windows/Linux, all formats and autonomous-model
 verification are not claimed by this unit.
 
+<a id="digest-execution"></a>
+### Digest Execution: Internal Reports, Not Public Tasks
+
+[代码] `AgentRuntime.digestBook` and `digestBookCatchUp` now return an internal
+`DigestReport`, not a count that conflates failure with completion. The report
+contains `status: complete|partial|unavailable`, `eligible`, `attempted`,
+`digested`, `remaining`, `emptyChapters`, and `{chapterIndex,errorCode}` failures.
+`remaining` includes empty, failed and unattempted missing/obsolete rows;
+`digested` counts only acknowledged saves in this pass, not the whole stored graph.
+Unknown reader boundary and an empty TOC are unavailable with an explicit reason;
+book/TOC/progress read errors reject instead of becoming zero backlog. Failed
+automatic classification can still conservatively digest as narrative, but the
+report remains partial with `classification-pending`, even when remaining is zero.
+
+[代码] Full catch-up takes one finite pass through the sampled eligible range,
+attempting each missing or flavor/version-obsolete chapter once. Empty/failing
+early chapters do not prevent later chapters from running, and no chapter is
+retried in the same run. A later run queries persisted rows again; failed rows
+remain eligible while successful current rows are skipped. Capped idle ticks
+still select the earliest missing entries; this is not a durable retry scheduler.
+Concurrency is an integer 1–16 (default 1; desktop catch-up uses 6); maxChapters
+is a nonnegative safe integer, default 2 for ticks. The full pass uses the finite
+TOC range, not an unbounded retry loop. Per-chapter completion reports committed
+count through the existing internal progress callback.
+
+[代码] Non-stop inference (`length`, `error`, `aborted`, `toolUse`) and malformed
+or missing summaries fail with `ai/provider`; genuine blank text is separately
+reported, never persisted as a fake digest. A missing text result is
+`library/content-unavailable`; other failures retain their stable code or
+`ai/unknown`. Chapter failures are logged, reported and do not discard sibling
+successes. Rebuilding an early chapter only passes earlier stored/completed
+entities into its name-resolution prompt, never later names/aliases. The eval
+resume path follows the same ordering restriction. This does not prove model
+semantic correctness or eliminate the existing 20,000-character text truncation.
+
+[代码/边界] The direct execution runner checks cancellation before/after reads,
+inference and before saving, stops accepting new chapters, and waits for its
+active logical workers before rejecting. An already dispatched save may commit;
+there is no rollback claim. The outer `runMemoryBuild` policy race can still
+reject before uncancellable underlying IO settles. Public task lifecycle,
+cross-run locking, content-version/source identity and atomic protection against
+reclassification during a run are not provided by this report.
+
+[环境] [Digest execution evidence](./evidence/digest-run-2026-09-10.json)
+uses real SQLite ports in isolated macOS Tauri debug with scripted inference.
+Chapter 0 returned length while chapter 1 still committed; a targeted owned-row
+SQL trigger caused db/error with event count 8→8, and retry succeeded after
+finally removing it. Paused inference cancelled before release did not save its
+late result. Production Agent/Worker graph queries agreed, and compiled Memory
+Desk 0.4 displayed rebuilt entities with future names excluded. One native
+screenshot was inspected. The fixture does not run autonomous inference, the
+full outer policy shutdown, remote sync or packaged/Windows/Linux variants.
+No plugin API, permission or task UI was added: MEM10 remains Agent automatic,
+plugin unconnected, with public progress/cancel/retry/rebuild still pending.
+
 <a id="book-classification"></a>
 ### Memory 1.3: Book Classification
 

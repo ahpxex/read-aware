@@ -4,12 +4,12 @@ import type { Id } from "@read-aware/core";
 import type { ChapterDigest } from "../ports";
 import {
   DIGEST_VERSION,
-  digestMissingChapters,
   extractChapterDigest,
   mergeCharacterRegistry,
   mergeRelationGraph,
   resolveEntityNames,
 } from "./chapter-digest";
+import { digestMissingChapters } from "./digest-run";
 
 const MODEL = { id: "stub", provider: "stub", api: "openai-completions" } as unknown as Model<Api>;
 const BOOK_ID = "book-1" as Id;
@@ -58,8 +58,8 @@ describe("extractChapterDigest", () => {
     });
   });
 
-  test("model failure or malformed output degrades to undefined", async () => {
-    const failed = await extractChapterDigest({
+  test("model failure or malformed output rejects rather than looking like empty text", async () => {
+    const failed = extractChapterDigest({
       complete: async () => {
         throw new Error("provider down");
       },
@@ -68,15 +68,15 @@ describe("extractChapterDigest", () => {
       chapterText: "正文",
       knownCharacters: [],
     });
-    expect(failed).toBeUndefined();
-    const malformed = await extractChapterDigest({
+    await expect(failed).rejects.toThrow("provider down");
+    const malformed = extractChapterDigest({
       complete: async () => reply("我觉得这一章很精彩！"),
       model: MODEL,
       chapterIndex: 0,
       chapterText: "正文",
       knownCharacters: [],
     });
-    expect(malformed).toBeUndefined();
+    await expect(malformed).rejects.toMatchObject({ code: "ai/provider" });
   });
 
   test("expository flavor prompts for concepts and accepts the semantic key", async () => {
@@ -223,7 +223,7 @@ describe("digestMissingChapters", () => {
       beforeChapterIndex: 3,
       maxChapters: 2,
     });
-    expect(count).toBe(2);
+    expect(count.digested).toBe(2);
     expect(digested).toEqual([0, 1]);
     expect(saved.map((entry) => entry.digest.chapterIndex)).toEqual([0, 1]);
     expect(saved[0]!.digest.chapterHref).toBe("ch0.html");
@@ -241,7 +241,7 @@ describe("digestMissingChapters", () => {
       beforeChapterIndex: 2,
       maxChapters: 5,
     });
-    expect(count).toBe(1);
+    expect(count.digested).toBe(1);
     expect(digested).toEqual([1]);
   });
 
@@ -280,7 +280,7 @@ describe("digestMissingChapters", () => {
       maxChapters: 5,
       flavor: "expository",
     });
-    expect(count).toBe(1);
+    expect(count.digested).toBe(1);
     expect(digested).toEqual([0]);
     expect(saved[0]!.digest.flavor).toBe("expository");
   });
@@ -309,9 +309,9 @@ describe("digestMissingChapters", () => {
         maxChapters: 2,
         flavor: "expository",
       });
-    expect(await tick()).toBe(2);
-    expect(await tick()).toBe(1);
-    expect(await tick()).toBe(0); // 账已清——之后的节拍是无害空转
+    expect((await tick()).digested).toBe(2);
+    expect((await tick()).digested).toBe(1);
+    expect((await tick()).digested).toBe(0); // 账已清——之后的节拍是无害空转
     expect(saved.map((digest) => digest.chapterIndex)).toEqual([0, 1, 2]);
     expect(saved.every((digest) => digest.flavor === "expository")).toBe(true);
   });
@@ -358,7 +358,7 @@ describe("digestMissingChapters", () => {
       maxChapters: 10,
       concurrency: 3,
     });
-    expect(count).toBe(5);
+    expect(count.digested).toBe(5);
     expect(peakInFlight).toBe(3); // 滑动窗口确实保持 3 章在飞
     expect(saved.map((digest) => digest.chapterIndex).sort()).toEqual([0, 1, 2, 3, 4]);
     // 起跑的前 3 章在任何完成之前启动——锚名录为空；后续补位的章启动时
@@ -376,7 +376,7 @@ describe("digestMissingChapters", () => {
       bookId: BOOK_ID,
       beforeChapterIndex: 0,
     });
-    expect(count).toBe(0);
+    expect(count.digested).toBe(0);
     expect(digested).toEqual([]);
   });
 });

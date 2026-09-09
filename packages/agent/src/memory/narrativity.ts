@@ -75,6 +75,10 @@ export async function classifyNarrativity(
     input.log?.warn("narrativity classification failed", error);
     return undefined;
   }
+  if (message.stopReason !== "stop") {
+    input.log?.warn("narrativity classification did not complete");
+    return undefined;
+  }
   const raw = extractText(message).replace(/```(?:json)?/g, "").trim();
   let parsed: unknown;
   try {

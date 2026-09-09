@@ -1202,3 +1202,19 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [文档/清理] 矩阵、模型、插件说明共享事实同步，纠正模型生成器残留的只读 1.0 说法和观察轮询间隔描述，保留原 memory-feedback 锚点。九张 1440×1000、1024×768、390×844 截图均已检查，无页面横向溢出、重复 ID、坏页内锚点、无名按钮或浏览器 errors；观察 CDN 为 200。classify_book/分类分别命中矩阵 1/4 行、模型 2/2 条、插件说明 1/1 节，均含对应分类项；Escape 恢复 243/57/18 项。矩阵/模型移动抽屉令 HEADER/MAIN inert，关闭和主题刷新保持通过；插件说明原无抽屉/主题，三页无 Mermaid，HTML 仍依赖 CDN。文档浏览器已关闭，不作为产品证据。既有原生清理证据确认六 Worker/贡献归零、批准根卸载、SQL 恢复、PGID 71324 / exec 98518 终态 143，driver 9224 停止；本轮再次确认 5184/9224 无监听。未操作既有 89360/9223 或正式数据。
 
 [剩余] 分类变更不是立即重建、取消在途摘要或历史擦除；旧自动事件/旧客户端的守卫兼容边界仍在。MEM10 的公开生成/重建任务与状态、完整预算/来源版本/细粒度授权，以及其他双端部分/未接项继续；全能力自由组合、完整并发撤权/长时/packaged/Windows/Linux/真实跨设备验收未完成。整体目标保持进行中，未推送。
+
+## 2026-09-10：图谱任务接线前的真实执行回执与有限追平
+
+[进度/根因] 上轮 bb06a7ca 已提交分类双端能力，属于有效进展。本轮推进 MEM10 时确认两个实际失败窗口：catch-up 把本批成功 0 章当作欠账清零，前几章失败/无文本会令后章一直轮不到；目录/进度读失败又被降为 0。另一个问题是重建早章会拿到所有已存后章的实体/别名，污染早章纪要。先修执行器，而不是把不可信的计数直接包装成公开任务进度。
+
+[代码/调用链] 将章节执行调度移入独立 digest-run.ts，提炼和纯图归并保留原模块。AgentRuntime 的 digestBook/digestBookCatchUp 返回 DigestReport：complete/partial/unavailable、eligible/attempted/digested/remaining、空章与逐章错误码；宿主 catch-up 日志跟随回执，不再把正成功数当成完整追平。完整 catch-up 一次有限扫描采样边界，每章最多尝试一次，失败/空章不阻塞后章也不在本次无限重试；下一次从持久结果重算欠账。普通 capped idle tick 仍按最早缺失章选预算，不宣称耐久公平调度已完成。并发 1–16、章预算非负安全整数，非法预算在分类/读写前拒绝；零章预算不调用自动分类。
+
+[失败/取消] extractChapterDigest 的 provider/解析失败不再伪装无文本；非 stop、无效 JSON/缺失摘要均 ai/provider，空文本单列，undefined 正文为 library/content-unavailable。单章读/模型/存储失败记录日志并保留欠账，其余章可继续成功。未完成分类响应不落分类事件；保守 narrative 产物仍可落库，但报告 classification-pending/partial。直接执行器等待 active logical workers，取消后不接新章、不保存迟到模型结果，已派发写可以完成；外层 runMemoryBuild 仍有取消竞速，不证明物理 IO 已收束。重新提炼早章和 eval resume 均只引用更早章的实体锚；不是内容版本或长期并发分类保护。
+
+[原生/组合] [digest-run](./evidence/digest-run-2026-09-10.json) 使用隔离 macOS Tauri debug、真实 SQLite 端口、三 Worker 与编译 Memory Desk 0.4，模型只用脚本。自有三章 FB2 的 0/1 章经事件置为旧版，读者边界为第 2 章；首章 length 失败、次章仍提交，回执 attempted 2/digested 1/remaining 1。定向 SQL trigger 拒绝自有第 0 章更新，回执 db/error，事件数实际 8→8、旧行不变；finally 移除 trigger 后只重试一章并 complete。暂停推理后取消，释放迟到响应才退出，未保存旧章新摘要。所有捕获提示词均不含未来 Hidden/Secret；Agent 与真实 Worker 查询一致，Memory Desk 显示 Rebuilt0/Rebuilt1，原生截图已看、无页面溢出。没有公开任务按钮/模型工具，这不是该接口的 E2E。
+
+[验证/扫描] 最终全仓 test 24/24（Agent 402 项/80 文件，web 911 项/10029 断言/159 文件）、typecheck 27/27、前端 production build 1/1，通过。新增八项测试覆盖失败不饿死、重试、未知边界/读失败、非 stop/写失败、未来实体锚、取消/已派发写、预算与未完成分类；既有章纪要测试迁移到报告语义。首次类型检查发现 fixture logger 多了 AgentLogPort 不支持的方法，移除后重跑；最初一处旧数字断言迁移遗漏已修正。Rust 无源码变化，本轮未跑 Rust 全套；旧 37 项编译/bridge/build 警告保留。库存/模型 11 项、30 断言、两生成器 --check、三 pair validator 与 git diff --check 通过。243 行、693 入口映射、30 单元、31 catalog、129 验收、32 场景及双端状态不变；Memory 仍 1.3、插件仍 14 源码/6 内置，没有以新增内部函数冒充公共接通。
+
+[文档/清理] 矩阵及插件规范的 MD/HTML 共享事实同步；模型 MD 仅更新生成的 MEM10 证据行，模型 HTML 的责任裁决未变，本轮未改。两 HTML 的六张 1440×1000、1024×768、390×844 图已检查，无页面横向溢出/重复 ID/坏页内锚点/无名按钮，浏览器 errors 空、观察 CDN 200。DigestReport/补齐命中矩阵 1/5 行、插件说明 1/1 节，含 MEM10；Escape 恢复 243/18 项。矩阵抽屉 HEADER/MAIN inert、Escape 关闭与主题刷新保持通过；插件说明原无主题/抽屉，文档无 Mermaid、仍依赖 CDN，不能代替产品验收。浏览器关闭，三 Worker/自有书贡献归零，三记忆经事件遗忘，SQL trigger 清除；只读 SQL 确认。首次事件数 SQL 用错 payload 字段只造成只读失败，按 schema 改为 payload_json 后重做完整 8→8 故障验证。PGID 77216 / exec 56787 终态 143，driver 9224 停止，5184/9224 无监听，既有 89360/9223 与正式数据未操作。
+
+[下一步/剩余] 公共任务 ID、查询/观察、启动/取消/重试/重建及 Agent 批准、插件授权与实际任务视图仍需接入；此前还需把跨运行互斥、内容/分类条件提交和外层取消生命周期对齐，不能让新任务覆盖另一任务/旧分类的摘要。完整内容预算/来源版本、其余双端缺口、全能力自由组合及长时/并发撤权/packaged/Windows/Linux/真实跨设备验收未完成。整体目标继续，不标记完成，未推送。

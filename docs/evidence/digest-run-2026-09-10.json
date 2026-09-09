@@ -1,0 +1,19 @@
+{
+  "date": "2026-09-10",
+  "scope": "Internal digest execution report and finite catch-up prerequisite for MEM10 public tasks",
+  "app": { "identifier": "com.readaware.app.capability-e2e", "mode": "macOS Tauri debug", "frontendPort": 5184, "bridgePort": 9224 },
+  "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-digest-run-probe.ts",
+  "execution": "Production digestBookCatchUp and buildRuntimeDeps SQLite ports, scripted inference; real Worker/Agent graph reads and compiled Memory Desk 0.4. Not public task tools or autonomous model reasoning.",
+  "bookId": "5bed54af-ef5d-4f14-98b1-f48cf11bd48e",
+  "memoryIds": ["bfbb2f6a-7eed-41a3-b5e9-57d5ca9711b9", "ca98ac1d-5fe4-4d3a-bc06-9fd09ae83fd5", "76583990-37d7-4222-8f41-3532304f15b1"],
+  "seed": "Three real FB2 chapters; own chapter 0/1 rows made version 1 through canonical events, chapter 2 keeps Hidden/Secret future identity; reader boundary is chapter 2",
+  "partial": { "status": "partial", "eligible": 2, "attempted": 2, "digested": 1, "remaining": 1, "failures": [{ "chapterIndex": 0, "errorCode": "ai/provider" }], "cause": "Chapter 0 model stopReason length; chapter 1 still generated and persisted" },
+  "writeFailure": { "trigger": "capability_digest_run_failure, BEFORE UPDATE only own book/chapter 0", "report": "partial, attempted 1, digested 0, remaining 1, db/error", "eventsBefore": 8, "eventsAfter": 8, "chapter0": "Old chapter 0, version 1", "cleanup": "DROP TRIGGER in finally", "retry": "complete, attempted 1, digested 1, remaining 0" },
+  "cancellation": { "started": true, "whilePausedAfterCancel": "still running until scripted inference released", "afterRelease": "AbortError", "lateSave": false, "persistedChapter0Version": 1, "note": "Direct execution runner drains logical workers; not proof that the outer policy race waits for physical native IO" },
+  "consumers": { "workerAndAgentAgree": true, "afterPartial": ["Rebuilt1"], "afterRetry": ["Rebuilt0", "Rebuilt1"], "futureNameInInferencePrompts": false, "compiledPlugin": "Memory Desk Chapter graph rendered Rebuilt0 and Rebuilt1, excludes Hidden", "pageOverflow": false },
+  "screenshots": ["/tmp/digest-run-desk.png"],
+  "screenshotsInspected": true,
+  "environment": "Existing Rust/bridge warnings retained. First SQL event-count query used payload rather than payload_json and failed read-only; corrected from schema and repeated fault test proved 8 -> 8. Typecheck rejected an extra debug/info test logger field; corrected to AgentLogPort without loosening types.",
+  "cleanup": { "workersRetired": 3, "contributions": 0, "ownedBooks": 0, "ownedMemories": "3 forgotten; history retained", "triggerRemaining": false, "nativePid": 77375, "nativeProcessGroup": 77216, "nativeExec": 56787, "nativeExit": 143, "bridgeStopped": 9224, "unowned89360And9223": "untouched", "productionData": "untouched" },
+  "limits": ["No public task discovery/progress/cancel/retry/rebuild API or new permissions; MEM10 stays Agent automatic and plugin unconnected.", "Reports describe the sampled boundary and local completed writes, not content-version/provenance or atomic reclassification safety across a long run.", "Empty chapters remain pending rather than becoming fake digests. Single full catch-up does not starve later chapters; ordinary capped idle ticks still select the earliest missing entries.", "The existing outer memory-policy wrapper can reject before uncancellable dispatched IO settles; already dispatched writes are not rolled back. Direct runner cancellation evidence does not close the full task lifecycle.", "No real remote inference, relay/second device, all formats, packaged CSP, Windows/Linux or long-running full-product concurrency evidence."]
+}

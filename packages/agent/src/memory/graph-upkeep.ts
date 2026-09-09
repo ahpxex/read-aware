@@ -8,11 +8,11 @@
  * （聊天时阅读器未开）→ 已读完的书全书。都没有则本节拍空转。
  */
 import type { Api, Model } from "@earendil-works/pi-ai";
-import type { Id } from "@read-aware/core";
+import { AppError, type Id } from "@read-aware/core";
 import type { CompleteFn } from "../models/complete";
 import type { RuntimeDeps } from "../ports";
 import { findChapterByHref } from "../text/chapter-lookup";
-import { digestMissingChapters } from "./chapter-digest";
+import { digestMissingChapters, digestExecutionBudget, unavailableDigestReport, type DigestReport } from "./digest-run";
 import { classifyNarrativity } from "./narrativity";
 
 export interface DigestBookTickInput {
@@ -26,6 +26,8 @@ export interface DigestBookTickInput {
   maxChapters?: number;
   /** 批内并发度（见 digestMissingChapters.concurrency）。 */
   concurrency?: number;
+  signal?: AbortSignal;
+  onProgress?: (digested: number) => void;
 }
 
 /**
@@ -36,6 +38,7 @@ async function ensureNarrativity(
   input: DigestBookTickInput,
 ): Promise<"narrative" | "expository" | undefined> {
   const book = await input.deps.library.getBook(input.bookId);
+  input.signal?.throwIfAborted();
   if (!book) return undefined;
   if (book.narrativity) return book.narrativity;
   const toc = await input.deps.bookText.getToc(input.bookId).catch((error) => {
@@ -46,6 +49,7 @@ async function ensureNarrativity(
   // 正文样本：跳过版权页等空转小节，取第一段像样的实文。
   let sampleText = "";
   for (let index = 0; index < Math.min(toc.length, 8) && sampleText.length < 600; index++) {
+    input.signal?.throwIfAborted();
     const text = await input.deps.bookText
       .getChapterText(input.bookId, index)
       .catch((error) => {
@@ -54,62 +58,62 @@ async function ensureNarrativity(
       });
     if (text && text.trim().length > sampleText.length) sampleText = text.trim();
   }
+  input.signal?.throwIfAborted();
   if (!sampleText) return undefined;
   const narrativity = await classifyNarrativity({
     log: input.deps.log,
-    complete: input.complete,
+    complete: (model, context) => input.complete(model, context, { signal: input.signal }),
     model: input.model,
     title: book.title,
     author: book.author,
     toc,
     sampleText,
   });
-  if (!narrativity) return undefined;
+  input.signal?.throwIfAborted();
+  if (!narrativity) {
+    input.deps.log?.warn("narrativity classification incomplete; keeping it pending");
+    return undefined;
+  }
   try {
-    return await input.deps.library.classifyBookIfUnclassified(input.bookId, narrativity);
+    return await input.deps.library.classifyBookIfUnclassified(input.bookId, narrativity, input.signal);
   } catch (error) {
     input.deps.log?.warn("recording narrativity failed; will reclassify next tick", error);
     return undefined;
   }
 }
 
-/** 跑一个图谱节拍；返回本次实际提炼的章数（0 = 账已清或边界未知）。 */
-export async function digestBookTick(input: DigestBookTickInput): Promise<number> {
+/** A report distinguishes completed work, remaining chapters and unknown boundaries. */
+export async function digestBookTick(input: DigestBookTickInput): Promise<DigestReport> {
+  const { max } = digestExecutionBudget(input);
   const deps = input.deps;
+  input.signal?.throwIfAborted();
   const book = await deps.library.getBook(input.bookId);
-  if (!book) return 0;
+  input.signal?.throwIfAborted();
+  if (!book) throw new AppError("reader/book-not-found", "Book not found");
   // 边界：显式 href → 书的进度 chapterHref（聊天时阅读器未开）→ 读完全书。
   const href =
     input.throughChapterHref ??
-    (
-      await deps.library.getBookStats(input.bookId).catch((error) => {
-        deps.log?.warn("digest tick: book stats unavailable", error);
-        return undefined;
-      })
-    )?.chapterHref;
+    (await deps.library.getBookStats(input.bookId))?.chapterHref;
+  input.signal?.throwIfAborted();
   let beforeChapterIndex: number | undefined;
   if (href) {
-    const toc = await deps.bookText.getToc(input.bookId).catch((error) => {
-      deps.log?.warn("digest tick: toc unavailable", error);
-      return undefined;
-    });
+    const toc = await deps.bookText.getToc(input.bookId);
+    input.signal?.throwIfAborted();
     const chapter = toc ? findChapterByHref(toc, href) : undefined;
     beforeChapterIndex = chapter?.index;
   }
   if (beforeChapterIndex === undefined) {
-    if (book.status !== "finished") return 0;
-    // A failed toc read here returns 0, which the catch-up loop reads as
-    // "backlog cleared" — the warn is what keeps that from being silent.
-    const toc = await deps.bookText.getToc(input.bookId).catch((error) => {
-      deps.log?.warn("digest tick: toc unavailable; treating as no backlog", error);
-      return undefined;
-    });
-    beforeChapterIndex = toc?.length ?? 0;
+    if (book.status !== "finished") return unavailableDigestReport("boundary-unknown");
+    const toc = await deps.bookText.getToc(input.bookId);
+    input.signal?.throwIfAborted();
+    if (!toc.length) return unavailableDigestReport("no-toc");
+    beforeChapterIndex = toc.length;
   }
   // 纪要口径跟着书的叙事性走。未分类的书先分类；分类失败本节拍按
   // narrative 保守提炼——它的产物起码无害，分类落库后口径不符的行会被重算。
-  const narrativity = book.narrativity ?? (await ensureNarrativity(input));
-  return digestMissingChapters({
+  const narrativity = book.narrativity ?? (max === 0 ? undefined : await ensureNarrativity(input));
+  input.signal?.throwIfAborted();
+  const report = await digestMissingChapters({
     bookText: deps.bookText,
     bookMemory: deps.bookMemory,
     complete: input.complete,
@@ -119,34 +123,25 @@ export async function digestBookTick(input: DigestBookTickInput): Promise<number
     maxChapters: input.maxChapters,
     flavor: narrativity ?? "narrative",
     concurrency: input.concurrency,
+    signal: input.signal,
+    log: deps.log,
+    onProgress: input.onProgress,
   });
+  if (!narrativity) { report.status = "partial"; report.reason = "classification-pending"; }
+  return report;
 }
 
 export interface DigestBookCatchUpInput extends Omit<DigestBookTickInput, "maxChapters"> {
-  /** 每轮循环的批大小；缺省 = concurrency（一轮一批）。 */
-  batchChapters?: number;
   /** 取消信号（关书/退出时宿主中止；已落库的章节无损保留）。 */
   signal?: AbortSignal;
-  /** 每批完成后的进度回调（累计已提炼章数）。 */
+  /** 每章保存后的进度回调（本次累计已提炼章数）。 */
   onProgress?: (digestedSoFar: number) => void;
 }
 
 /**
- * 持续追平：只要读者还在这本书里（signal 未中止），并行批次一轮接一轮
- * 跑到欠账清零。这是存量进度的根治路径——打开书即开始建图，不等空闲
- * 节拍也不等聊天；每章成功即落库，中断只丢在飞的那一批。
- * 返回本次总共提炼的章数。
+ * One finite pass over the sampled boundary. Empty/failing chapters stay pending,
+ * but cannot starve later chapters or cause an unbounded retry loop in this run.
  */
-export async function digestBookCatchUp(input: DigestBookCatchUpInput): Promise<number> {
-  const concurrency = Math.max(1, Math.floor(input.concurrency ?? 1));
-  const batch = Math.max(1, Math.floor(input.batchChapters ?? concurrency));
-  let total = 0;
-  for (;;) {
-    if (input.signal?.aborted) break;
-    const digested = await digestBookTick({ ...input, maxChapters: batch });
-    if (digested === 0) break;
-    total += digested;
-    input.onProgress?.(total);
-  }
-  return total;
+export async function digestBookCatchUp(input: DigestBookCatchUpInput): Promise<DigestReport> {
+  return digestBookTick({ ...input, maxChapters: Number.MAX_SAFE_INTEGER });
 }

@@ -983,6 +983,7 @@ export class AgentThread {
           bookId: this.scope.bookId,
           throughChapterHref: cursorChapterHref,
           maxChapters: AgentThread.DIGEST_CHAPTERS_PER_TURN,
+          signal: operation.signal,
         });
       }
     }, contextCall.signal)

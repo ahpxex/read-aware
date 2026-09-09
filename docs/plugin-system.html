@@ -361,6 +361,10 @@
             <p>events.observe 立即读取 search/inspect/bookGraph/classification，每次读取和回调完成后一秒再读，只推送变化、错误和恢复；最多 64 个订阅，关闭/退役释放并丢弃迟到结果。每次重算图谱边界，非逐写事件日志或即时撤回。</p>
             <p>Memory Desk 列表、记录、人物和章节详情自动更新；失败清旧内容与动作，恢复续读，正常列表更新保留搜索。编辑表单冻结草稿与版本。真实 macOS debug 已验 Worker、原生 remote apply、Agent 同源读取、SQL 故障恢复、边界收紧和退订；非联网同步或自主模型证明。<a href="./plugin-system.md#memory-observation">观察契约与证据</a></p>
           </div></details>
+          <details class="ep"><summary>图谱补齐已区分失败和完成，公开任务入口仍未接</summary><div class="ep-body">
+            <p>内部 DigestReport 区分已提交、空章、失败、欠账与未知边界；完整追平有限扫描一次，不再因前章失败饿死后章，重试跳过已成功章。早章重建只用更早章的实体锚，非 stop 的模型答复不落库。</p>
+            <p>原生 SQLite 与脚本推理已验部分成功、SQL 失败回滚、重试、取消无迟到摘要及双端图查询和 Memory Desk 显示。不是自主模型或公开任务 E2E；外层策略竞速、版本与跨运行协调仍缺，任务进度/取消/重试/重建 API 未接。<a href="./plugin-system.md#digest-execution">执行回执与验证边界</a></p>
+          </div></details>
           <details class="ep"><summary>分类更改需版本条件，Agent 每次批准，插件表单保留冲突草稿</summary><div class="ep-body">
             <p>classification 查询需 memory:read，classify 需 memory:write；只能改叙事/说明性，不能传自动填空标记。bcl1 版本在事务内复核。Agent classify_book 两 scope 已接，书内仅本书；Memory Desk 0.4 观察分类并要求确认边界变化。插件确认是 UX，不是新的宿主授权票据。</p>
             <p>说明性分类不设章节剧透边界；自动分类只填空，不覆盖用户的新选择。旧摘要逐步重建，不取消在途任务或擦除历史；旧事件/旧客户端兼容边界保留。原生已验真实 Worker、生产工具与批准组件、编译表单、冲突草稿、读故障恢复和退订；批准组件为隔离挂载，不冒充完整聊天或自主模型。<a href="./plugin-system.md#book-classification">分类契约与证据</a></p>

@@ -82,7 +82,7 @@ for (let index = 0; index < epub.chapters.length; index++) {
   // 与产品管线同一门槛：没有实文的章节静默跳过（不算失败）。
   if (!chapter.text.trim()) continue;
   const known = mergeCharacterRegistry(
-    [...digests.values()].sort((a, b) => a.chapterIndex - b.chapterIndex),
+    [...digests.values()].filter(digest => digest.chapterIndex < index).sort((a, b) => a.chapterIndex - b.chapterIndex),
   );
   const digest = await extractChapterDigest({
     complete,
@@ -92,6 +92,9 @@ for (let index = 0; index < epub.chapters.length; index++) {
     chapterText: chapter.text,
     knownCharacters: known,
     flavor,
+  }).catch(error => {
+    console.error(`  #${index} inference failed`, error);
+    return undefined;
   });
   if (!digest) {
     failed.push(index);

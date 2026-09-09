@@ -10,16 +10,14 @@
  * 概念脉络，硬套人物表只会抽出噪音。两种口径共享同一存储形状
  * （name/aliases/note 实体 + from/kind/to 边），语义由 flavor 区分。
  *
- * 与逐轮记忆提炼同一失败哲学：任何失败都静默跳过该章，绝不冒泡；
+ * 单章失败由执行器记录并报告，不把失败当成没有欠账；
  * 产物经 BookMemoryPort 落成 book.chapterDigested 事件（LLM 产物不可
  * 确定性重算，入事件流才可跨设备同步、可重放）。
  */
 import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
-import type { Id } from "@read-aware/core";
+import { AppError } from "@read-aware/core";
 import type { CompleteFn } from "../models/complete";
 import type {
-  BookMemoryPort,
-  BookTextPort,
   ChapterDigest,
   DigestCharacter,
   DigestFlavor,
@@ -173,39 +171,38 @@ export interface ExtractChapterDigestInput {
   knownCharacters: DigestCharacter[];
   /** 提炼口径；缺省 narrative（既有调用方的原语义）。 */
   flavor?: DigestFlavor;
+  signal?: AbortSignal;
 }
 
-/** 提炼单章；任何失败返回 undefined（调用方跳过该章，下次再试）。 */
+/** Empty text has no digest; provider/parse failures reject for the runner to report. */
 export async function extractChapterDigest(
   input: ExtractChapterDigestInput,
 ): Promise<ChapterDigest | undefined> {
   const flavor: DigestFlavor = input.flavor ?? "narrative";
+  input.signal?.throwIfAborted();
   const text = input.chapterText.trim();
   if (!text) return undefined;
-  let message: AssistantMessage;
-  try {
-    message = await input.complete(input.model, {
-      systemPrompt:
-        flavor === "expository"
-          ? buildExpositoryDigestPrompt(input.knownCharacters)
-          : buildNarrativeDigestPrompt(input.knownCharacters),
-      messages: [
-        {
-          role: "user",
-          content: `Chapter #${input.chapterIndex}${
-            input.chapterTitle ? ` "${input.chapterTitle}"` : ""
-          }:\n\n${text.slice(0, CHAPTER_TEXT_BUDGET)}`,
-          timestamp: Date.now(),
-        },
-      ],
-    });
-  } catch {
-    return undefined;
-  }
+  const message = await input.complete(input.model, {
+    systemPrompt:
+      flavor === "expository"
+        ? buildExpositoryDigestPrompt(input.knownCharacters)
+        : buildNarrativeDigestPrompt(input.knownCharacters),
+    messages: [
+      {
+        role: "user",
+        content: `Chapter #${input.chapterIndex}${
+          input.chapterTitle ? ` "${input.chapterTitle}"` : ""
+        }:\n\n${text.slice(0, CHAPTER_TEXT_BUDGET)}`,
+        timestamp: Date.now(),
+      },
+    ],
+  }, { signal: input.signal });
+  input.signal?.throwIfAborted();
+  if (message.stopReason !== "stop") throw new AppError("ai/provider", "Chapter digest inference did not complete");
   const parsed = parseJson(extractText(message));
-  if (!parsed || typeof parsed !== "object") return undefined;
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new AppError("ai/provider", "Invalid chapter digest response");
   const { summary, characters, concepts, relations } = parsed as Record<string, unknown>;
-  if (typeof summary !== "string" || !summary.trim()) return undefined;
+  if (typeof summary !== "string" || !summary.trim()) throw new AppError("ai/provider", "Missing chapter digest summary");
   // expository 提示词按语义要 "concepts" 键；存储形状统一在 characters。
   // 模型偶尔仍答 "characters"（或反之）——两个键都认，语义键优先。
   const entities = flavor === "expository" ? (concepts ?? characters) : (characters ?? concepts);
@@ -387,86 +384,4 @@ export function mergeCharacterRegistry(digests: ChapterDigest[]): DigestCharacte
     }
   }
   return [...byName.values()];
-}
-
-export interface DigestMissingChaptersInput {
-  bookText: Pick<BookTextPort, "getToc" | "getChapterText">;
-  bookMemory: BookMemoryPort;
-  complete: CompleteFn;
-  model: Model<Api>;
-  bookId: Id;
-  /** 只提炼严格小于该 index 的章节——当前章还没读完，不属于"读毕"。 */
-  beforeChapterIndex: number;
-  /** 单次调用的章节预算（后台管线按 idle 节拍分摊成本）。 */
-  maxChapters?: number;
-  /** 提炼口径（书的叙事性）；缺省 narrative。口径不符的旧行视同缺失重算。 */
-  flavor?: DigestFlavor;
-  /** 批内并发度（缺省 1 = 串行）。批间仍串行并刷新实体名录锚。 */
-  concurrency?: number;
-}
-
-/**
- * 补齐缺失（或版本/口径过期）的章节纪要，按序逐章、每次最多 maxChapters 章。
- * 返回本次实际提炼的章数；单章失败跳过不中断。
- */
-export async function digestMissingChapters(
-  input: DigestMissingChaptersInput,
-): Promise<number> {
-  const max = input.maxChapters ?? 2;
-  const flavor: DigestFlavor = input.flavor ?? "narrative";
-  if (max <= 0 || input.beforeChapterIndex <= 0) return 0;
-  const [toc, existing] = await Promise.all([
-    input.bookText.getToc(input.bookId),
-    input.bookMemory.listDigests(input.bookId),
-  ]);
-  // 口径不符的行（书被重新分类，或旧的全量 narrative 时代抽了说明书）
-  // 视同缺失——注入侧读什么口径，行里就得是什么口径，否则概念图里
-  // 会站着一排"人物"。
-  const current = new Map(
-    existing
-      .filter(
-        (digest) =>
-          digest.digestVersion >= DIGEST_VERSION && (digest.flavor ?? "narrative") === flavor,
-      )
-      .map((digest) => [digest.chapterIndex, digest]),
-  );
-  const ceiling = Math.min(input.beforeChapterIndex, toc.length);
-  const missing: number[] = [];
-  for (let index = 0; index < ceiling && missing.length < max; index++) {
-    if (!current.has(index)) missing.push(index);
-  }
-  // 滑动窗口并行（worker pool）：始终保持 concurrency 章在飞，完成一章
-  // 立刻补位——不分批，避免"每批等最慢章"的木桶效应（章长方差大的书
-  // 会把批式并行拖回串行）。每章启动时取当下已完成名录的最新快照作
-  // 拼写归并锚；同时在飞的章互相看不见的实体碎片，事后由
-  // resolveEntityNames 的别名共现并查集兜底归并。concurrency=1 即原
-  // 串行语义（含名录逐章累积）。
-  const concurrency = Math.max(1, Math.floor(input.concurrency ?? 1));
-  let digested = 0;
-  let cursor = 0;
-  const worker = async (): Promise<void> => {
-    for (;;) {
-      const slot = cursor++;
-      if (slot >= missing.length) return;
-      const index = missing[slot]!;
-      const chapterText = await input.bookText.getChapterText(input.bookId, index);
-      if (!chapterText?.trim()) continue;
-      const digest = await extractChapterDigest({
-        complete: input.complete,
-        model: input.model,
-        chapterIndex: index,
-        chapterHref: toc[index]?.hrefs?.[0],
-        chapterTitle: toc[index]?.title,
-        chapterText,
-        knownCharacters: mergeCharacterRegistry([...current.values()]),
-        flavor,
-      });
-      if (!digest) continue;
-      await input.bookMemory.saveDigest(input.bookId, digest);
-      current.set(index, digest);
-      digested += 1;
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(concurrency, missing.length) }, worker));
-  return digested;
 }

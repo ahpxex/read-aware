@@ -4,6 +4,7 @@
  */
 import type { ThreadChunk } from "../chunks";
 import { digestBookCatchUp, digestBookTick } from "../memory/graph-upkeep";
+import type { DigestReport } from "../memory/digest-run";
 import { runConsolidationPass, type ConsolidationReport } from "../memory/consolidation";
 import { ConsolidationCheckpoint } from "../memory/consolidation-checkpoint";
 import { runMemoryBuild } from "../memory/build-policy";
@@ -184,12 +185,12 @@ export class AgentRuntime {
   /**
    * 章节读毕提炼（book_memory 投影 v1 的写管道；空闲节拍调用）。
    * `throughChapterHref` 是读者当前所在章——只提炼它之前的章节；缺失时
-   * 仅已读完的书提炼全书。跑在 fast 档；返回本次实际提炼的章数。
+   * 仅已读完的书提炼全书。跑在 fast 档；报告已提交、失败和剩余章节。
    */
   async digestBook(
     bookId: Id,
     options?: { throughChapterHref?: string; maxChapters?: number },
-  ): Promise<number> {
+  ): Promise<DigestReport> {
     return runMemoryBuild(this.options.deps, operation => digestBookTick({
       deps: operation.protect(this.options.deps),
       complete: operation.complete(this.completeFns.fast),
@@ -197,11 +198,12 @@ export class AgentRuntime {
       bookId,
       throughChapterHref: options?.throughChapterHref,
       maxChapters: options?.maxChapters,
+      signal: operation.signal,
     }));
   }
 
   /**
-   * 持续追平一本书的图谱欠账（并行批次跑到清零或 signal 中止）。
+   * 单次扫描一本书的图谱欠账；失败/无文本不阻塞后章，不在本次反复重试。
    * 宿主在阅读会话开始时调用——只要用户在读这本书，图就在后台建。
    */
   async digestBookCatchUp(
@@ -212,7 +214,7 @@ export class AgentRuntime {
       signal?: AbortSignal;
       onProgress?: (digestedSoFar: number) => void;
     },
-  ): Promise<number> {
+  ): Promise<DigestReport> {
     return runMemoryBuild(this.options.deps, operation => digestBookCatchUp({
       deps: operation.protect(this.options.deps),
       complete: operation.complete(this.completeFns.fast),

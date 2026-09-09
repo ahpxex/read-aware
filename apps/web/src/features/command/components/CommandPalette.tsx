@@ -5,6 +5,9 @@ import { useTranslation } from "../../../i18n";
 import { buildCommands, type CommandContext, type CommandItem } from "../lib/build-commands";
 import { filterCommands } from "../lib/filter-commands";
 import { availableCommandIndex, nextCommandIndex } from "../lib/command-selection";
+import { useAtom } from "jotai";
+import { commandQueryAtom } from "../../../state/ui";
+import { WorkspaceCommit } from "../../../components/WorkspaceCommit";
 
 type CommandPaletteProps = {
   isOpen: boolean;
@@ -12,6 +15,7 @@ type CommandPaletteProps = {
   ctx: CommandContext;
   /** Externally contributed items (e.g. plugin actions), appended to the set. */
   extraItems?: CommandItem[];
+  workspaceToken?: number;
 };
 
 /**
@@ -19,9 +23,9 @@ type CommandPaletteProps = {
  * shelf controls. The available commands are built dynamically from the current
  * context, ranked by query relevance, and grouped into sections.
  */
-export function CommandPalette({ isOpen, onClose, ctx, extraItems }: CommandPaletteProps) {
+export function CommandPalette({ isOpen, onClose, ctx, extraItems, workspaceToken = 0 }: CommandPaletteProps) {
   const { t } = useTranslation("command");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useAtom(commandQueryAtom);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -47,7 +51,6 @@ export function CommandPalette({ isOpen, onClose, ctx, extraItems }: CommandPale
 
   useEffect(() => {
     if (!isOpen) return;
-    setQuery("");
     setSelectedIndex(0);
     const id = window.setTimeout(() => inputRef.current?.focus(), 40);
     return () => window.clearTimeout(id);
@@ -105,6 +108,7 @@ export function CommandPalette({ isOpen, onClose, ctx, extraItems }: CommandPale
         if (event.target === event.currentTarget) onClose();
       }}
     >
+      <WorkspaceCommit surface="search" token={workspaceToken} />
       <div
         className={cn(
           "flex w-full max-w-xl flex-col border border-border bg-[var(--ra-main-surface-color)]",
@@ -119,6 +123,7 @@ export function CommandPalette({ isOpen, onClose, ctx, extraItems }: CommandPale
             ref={inputRef}
             type="text"
             value={query}
+            maxLength={4096}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t("search.placeholder")}
             className="flex-1 bg-transparent text-base text-fg outline-none placeholder:text-fg-subtle"

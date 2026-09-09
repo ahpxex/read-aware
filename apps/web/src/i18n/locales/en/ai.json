@@ -9,6 +9,8 @@
     "thinking": "Thinking…",
     "thought": "Thought process",
     "tools": {
+      "get_workspace": "Workspace",
+      "navigate_app": "Navigate app",
       "get_reading_time": "Reading current active time",
       "get_reading_insights": "Reading trends",
       "delete_books": "Removing books",

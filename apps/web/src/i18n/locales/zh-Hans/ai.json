@@ -9,6 +9,8 @@
     "thinking": "思考中…",
     "thought": "思考过程",
     "tools": {
+      "get_workspace": "当前界面",
+      "navigate_app": "切换界面",
       "get_reading_time": "正在查看当前阅读时长",
       "get_reading_insights": "阅读趋势",
       "delete_books": "正在移除书籍",

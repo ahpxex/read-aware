@@ -12,6 +12,13 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "workspaceInvalid": "Das Navigationsziel oder die Auswahl ist ungültig.",
+    "workspaceMissing": "Die Seite, Sammlung oder Auswahl ist nicht mehr verfügbar.",
+    "workspaceChanged": "Der Arbeitsbereich hat sich geändert. Prüfen Sie den aktuellen Zustand.",
+    "workspaceUnavailable": "Der Arbeitsbereich ist noch nicht bereit.",
+    "workspaceTimeout": "Das Ziel konnte nicht vollständig geöffnet werden.",
+    "workspaceReadingPermission": "Zum Verlassen des Readers ist die Berechtigung zur Lesesteuerung erforderlich.",
+    "workspaceObserverLimit": "Zu viele aktive Arbeitsbereich-Abonnements.",
     "readingTimeInvalid": "Prüfe Buch, Datum und Seitengröße der Sitzungen.",
     "readingTimeStale": "Die Lesestatistik wird wiederhergestellt. Versuche es danach erneut.",
     "readingTimeUnavailable": "Die Lesezeit konnte nicht geladen werden.",

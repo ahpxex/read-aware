@@ -1,0 +1,46 @@
+{
+  "date": "2026-09-09",
+  "environment": { "runtime": "Tauri macOS debug", "appIdentifier": "com.readaware.app.capability-e2e", "frontendPort": 5184, "bridgePort": 9224, "formalDataTouched": false },
+  "contract": { "service": "ui 1.3", "agentTools": ["get_workspace", "navigate_app"], "scopes": ["book", "global"], "plugin": "Library Desk 0.3.0", "rows": ["UI01", "UI02"] },
+  "observations": [
+    { "case": "Worker grants", "result": "No grant omits workspace. library:read exposes snapshot/observation but no navigate. library:write adds navigation. Both library:write and reading:write permit reader exit." },
+    { "case": "Selection and continuation", "result": "Two synthetic FB2 books in one synthetic collection became pressed native shelf cards. Read Worker limit 1 returned total 2, one ID and nextCursor. Agent book-scope snapshot matched both IDs." },
+    { "case": "Invalid target", "result": "Missing collection and selecting collected books at shelf root both rejected ui/target-not-found, without a successful navigation receipt." },
+    { "case": "Semantic routes", "result": "Global Agent opened stats. Worker opened Reading settings, then command search with Workspace Probe as the actual textbox value. Native click on its collection result returned to that collection and produced a new observed revision." },
+    { "case": "Reader boundary", "result": "Real Foliate FB2 open completed with a versioned location. library:write-only stats navigation rejected ui/reading-permission and surface remained reader. The same actor opened Reading settings over the reader. Fully granted Worker then completed normal close to statistics." },
+    { "case": "Selection reconciliation", "result": "Moving one owned selected book out of the collection through the real library command changed committed selection from two IDs to the remaining one, revision 16 to 17." },
+    { "case": "Compiled plugin composition", "result": "Actual Library Desk checkboxes selected two books now in different collections. Show selection on shelf displayed two groups of one. Clicking Shelf closed the plugin and selected exactly the uncollected owned book, not the unrelated existing books. Workspace > Search > Open preserved the query in the native command palette." },
+    { "case": "Latest intent and cancellation", "result": "Two concurrent service intents rejected the first with ui/superseded and completed the second as agent. Reusing the old revision rejected ui/superseded. Direct caller abort rejected AbortError without a stats transition. Book-scope Agent subsequently opened shelf." }
+  ],
+  "finalRun": {
+    "bookIds": ["294dab14-a51f-4013-9368-9b60cadca82a", "d9c6f1cc-9d8a-48c5-ab71-1c69444af3ff"],
+    "collectionId": "32bc1af6-19b7-4e51-9a3d-a7c3a5365d50",
+    "verified": [
+      "Final code and compiled plugin repeated Worker grants, two-item native selection, Agent book snapshot, missing collection and hidden selection errors.",
+      "Global Agent statistics, Worker Reading settings and command search completed. Actual native click selected the collection search result.",
+      "Real FB2 open returned a sha256-versioned location. library:write-only exit rejected ui/reading-permission, settings kept the reader open, fully granted Worker closed it to statistics.",
+      "Moving one selected book while statistics was visible reconciled selection from two to one at revision 16, without opening the shelf.",
+      "At 800x650, compiled Library Desk Workspace rendered corrected curated icons. Search > Open retained Workspace Probe in the native input with maxLength 4096; no document horizontal overflow.",
+      "Concurrent stats/agent intents rejected the first with ui/superseded and completed agent; book-scope Agent then completed shelf navigation."
+    ],
+    "ownedBooksAfterCleanup": 0,
+    "contributionsAfterCleanup": 0,
+    "processGroup": 93846,
+    "exitCode": 143
+  },
+  "screenshotsInspected": ["/tmp/workspace-selection.png", "/tmp/workspace-desk-800.png", "/tmp/workspace-desk-final-800.png"],
+  "viewportChecks": ["1200x800 native selection", "800x650 compiled plugin group and search form; no document horizontal overflow"],
+  "testBoundaries": [
+    "Agent tools used production ports but were invoked deterministically, not by autonomous model inference.",
+    "Unit tests, not native lock injection, prove DB failure preservation, deferred UI replica, timeout, cancellation, observer cap/coalescing and stale atom changes.",
+    "Navigation acknowledges component commit, not animation completion, keyboard focus, background data loads, reading-time durability or sync.",
+    "Plugin preview used an independent runtime identity, not installation consent or persisted enabled-state migration.",
+    "Full remote-race convergence, 1000-book native load, all focus/dialog flows, packaged build and Windows/Linux remain unverified."
+  ],
+  "developmentRecovery": [
+    "A fixture rename initially invoked nonexistent setBooks; Vite then logged a full page reload. Exact attempted book IDs 611e9877-20d7-4b83-aeae-c97625b77454 and 99878ce4-1a8a-402f-b66b-41791e122157 and collection 5bba9970-c658-4814-813a-712a1d37c677 were removed after isolation verification.",
+    "Later validation rebuilt plugin assets and the webview rebooted during preview startup. Failed startup was observed, then its exact books a794cc70-c610-4a37-ad8e-f376db746256 and bbf67655-0a2d-4741-9231-0f637496e614 and collection b646971e-d0af-470b-ad48-704fb0cdc1f3 were removed. No timeout-only restart was used.",
+    "Existing development reload logs include a Tauri event-unlisten rejection in useWindowMaximized; it is not claimed fixed by workspace navigation."
+  ],
+  "cleanup": { "firstPreviewOwnedBooks": 0, "firstPreviewContributions": 0, "originalBooksPreserved": ["07ef226e-1ebc-47b6-8dc9-d09109448d22", "8ced004f-efe3-408f-80a8-a0ebffec84d3"], "firstOwnedProcessGroup": 90456, "firstExitCode": 143, "unownedProcessGroupNotOperated": 89360 }
+}

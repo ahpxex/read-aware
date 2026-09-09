@@ -1218,7 +1218,100 @@ native write rollback and snapshots waiting for failed UI writes. No model
 inference, installation approval, packaged build, cross-platform or restart
 durability claim is made. A development rebuild caused a transient module-load
 boot failure before the same app remounted; the resulting diagnostics notice
-is visible in screenshots. UI02 and CFG10 retain their remaining gaps.
+is visible in screenshots. UI02 was subsequently connected by UI 1.3 below;
+CFG10 retains its remaining gaps.
+
+### Workspace navigation and selection
+
+[代码] UI service **1.3** adds `services.ui.workspace`, owned by the shared
+`WorkspaceService` and the app shell adapter. `library:read` or `library:write`
+exposes `snapshot(query?)` and `observe(query, handler)`; only `library:write`
+exposes `navigate(target, expectedRevision?)`. These reuse existing domain grants
+without creating a second permission catalog. Reading grants alone do not reveal
+the workspace. Leaving an active reader additionally requires `reading:write`.
+Opening settings or command search does not close the reader. Activation may
+declare observations but cannot navigate; retirement aborts pending operations
+and disposes subscriptions. Captured methods cannot regain authority after stop.
+
+[代码] Targets are a closed union:
+
+| Target | Accepted fields and effect |
+| --- | --- |
+| `shelf` | `collectionId?: string|null` (omitted means root), `selection?: { active: boolean, bookIds: string[] }`; omitted selection clears it |
+| `agent`, `stats` | Open the native Context or statistics surface |
+| `settings` | `section?`, default `general`; nine built-ins: general, appearance, reading, ai, plugins, menus, shortcuts, dataSync, about; `plugin:<id>` only for an enabled plugin declaring settings |
+| `search` | `query?`, default empty, at most 4096 UTF-16 code units; opens the existing command palette, not full-book search or a new filtered shelf |
+
+Shelf selection accepts at most 1000 IDs, each nonblank and at most 256 UTF-16
+code units, cloned and deduplicated. Inactive selection must be empty. All selected
+books must exist in the target collection; root means uncollected books, not all
+books. An empty library cannot enter selection mode. No hidden selection is
+created. Selecting books does not authorize their deletion or execute a command.
+The host reconciles selection after collection changes, book moves and removal,
+including while the shelf is hidden. Layout/grouping/sort remain `settings`
+operations, not duplicate workspace state or a second persistence layer.
+
+[代码] Snapshots contain a monotonic process-local `revision`, the committed
+`surface` (`shelf`, `agent`, `stats`, `plugin`, `reader`), current collection,
+settings open/section, command-search open/query, and selection active/total/page.
+They contain no reader book ID, text, credentials, DOM, settings values or raw
+router/atom handles. `snapshot({ selectionAfter?, limit? })` uses ascending
+code-unit ID order, defaults to 100 and permits 1–1000. `nextCursor` is the last
+returned ID when another page exists; total describes the full selection, not
+the page. This is not a frozen pagination session: compare revisions and restart
+when state changes. Unbound reads reject `ui/unavailable`.
+
+Observation delivers an initial snapshot (or null when unbound), then committed
+state changes. Each callback is serialized; slow consumers receive the latest
+coalesced state rather than an unbounded queue. The service permits 64 observers
+globally, reports callback errors to the log, and delivers null on shell retirement.
+Dispose prevents later delivery but cannot undo a callback already running.
+
+[代码] `navigate` validates targets and an optional nonnegative safe-integer
+revision. Newer navigation supersedes prior work. Native atom changes during
+async validation or reader close also win. Database failures remain failures,
+not missing-target or empty-state success. Library targets wait for the existing
+library UI replica to contain imported/updated targets before applying selection;
+the wait is abortable and does not invent another book store. Reader exit uses
+the existing reading controller and animated handoff. Neither cancellation nor
+failure rolls back an already-dispatched reader close or ephemeral UI change.
+
+The 10-second operation deadline includes validation and rendering. A receipt is
+`{ status: "completed", snapshot }` only after the intended destination's layout
+effect inside its Suspense/error boundary and a matching fresh shell commit.
+Dispatch alone, a spinner, or an incorrect settings section cannot acknowledge
+completion. This proves component commit, not animation completion, focus,
+background data loading, durable reading-time settlement or sync completion.
+Seven localized service errors are `ui/invalid-target`, `ui/target-not-found`,
+`ui/superseded`, `ui/unavailable`, `ui/timeout`, `ui/reading-permission`, and
+`ui/observer-limit`. Storage errors and caller abort reasons retain their identity.
+
+[代码] Product Agent book/global scopes register `get_workspace` and
+`navigate_app` through the same service. Query pages are capped at 25; model
+output uses an explicit 256-character search preview with `queryTruncated`.
+JSON-expanded identifiers can shorten a selection page to stay below the 16000
+character tool budget; total and a usable continuation cursor are preserved.
+
+Library Desk **0.3** composes collection queries, workspace observation, native
+navigation and a search form with the existing live-view protocol. Cross-collection
+checkbox selection first becomes explicit collection groups; choosing one group
+shows only that group's IDs on the shelf. A successful navigation closes the
+plugin dialog; failure leaves it open. The workspace header observes the native
+selection count, while the collection list is a snapshot refreshed by reopening.
+Its manifest now requires UI ^1.3.0 and reading:write as well as library:write;
+normal installation/update consent remains required for the expanded grant.
+
+[环境] [Desktop evidence](./evidence/workspace-navigation-2026-09-09.json)
+covers isolated macOS debug Tauri: real permission-gated Workers, both production
+Agent scopes, a two-book native selection/page, hidden/missing-target rejection,
+native command-result navigation, reader-close authorization, settings over a
+real FB2 reader, moved-book reconciliation, and compiled Library Desk group/search
+UI. Unit tests additionally hold/reject DB reads, defer UI-replica publication,
+cancel/supersede owners, withhold destination commit and stress observer delivery.
+This does not prove autonomous model decisions, full installation consent,
+packaged/Windows/Linux, all dialogs/focus, remote-race convergence or 1000-book
+native performance. UI03 command enumeration/execution and other open rows remain
+separate; UI01/UI02 are connected for the explicit semantics above.
 
 ### Host inference privacy policy
 
@@ -1735,7 +1828,7 @@ adjacent distribution repository, not a fourteenth plugin in this checkout:
 | Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |
 | Workspace Profiles | settled settings snapshots, exact path grants, atomic presets, private documents, shelf header/command views and Agent tool |
 | Text Desk | library text preparation/tasks, single/shelf multi-query search, snippets, paged status views, reader header/command and explicit book navigation |
-| Library Desk | live shelf selection, explicit batch review/removal, durable pending-file discovery and safe retry |
+| Library Desk | workspace/collection navigation, command search, grouped native selection, live selection count, explicit batch review/removal, durable pending-file discovery and safe retry |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs
 in their packages and registered capabilities.

@@ -12,6 +12,13 @@
     "copied": "已复制"
   },
   "errors": {
+    "workspaceInvalid": "导航目标或选择集无效。",
+    "workspaceMissing": "该页面、集合或所选书籍已不可用。",
+    "workspaceChanged": "界面状态已改变，请检查当前状态后重试。",
+    "workspaceUnavailable": "界面尚未就绪。",
+    "workspaceTimeout": "目标页面未能完成打开。",
+    "workspaceReadingPermission": "离开阅读器需要阅读控制权限。",
+    "workspaceObserverLimit": "界面状态订阅数量已达上限。",
     "readingTimeInvalid": "请检查书籍、日期和会话分页参数。",
     "readingTimeStale": "阅读统计仍在恢复，请稍后重试。",
     "readingTimeUnavailable": "无法读取阅读时长。",

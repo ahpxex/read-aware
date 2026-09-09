@@ -13,6 +13,7 @@ import { buildReaderTools } from "./reader-tools";
 import { buildNavigationTools } from "./navigation-tools";
 import { buildSettingsTools } from "./settings-tools";
 import { buildEnvironmentTools } from "./environment-tools";
+import { buildWorkspaceTools } from "./workspace-tools";
 import { buildShelfTools } from "./shelf-tools";
 import type { AgentTurnState } from "./turn-state";
 
@@ -27,6 +28,7 @@ export function buildAgentTools(
 ): AgentTool[] {
   return [
     ...buildEnvironmentTools(deps),
+    ...buildWorkspaceTools(deps),
     ...buildThreadTools(scope, deps),
     ...buildShelfTools(scope, deps),
     ...buildAnnotationTools(scope, deps),

@@ -1,6 +1,7 @@
 import type { PluginContext, PluginBook, PluginDetailView, PluginListView, PluginView, PluginViewChannel } from "@read-aware/plugin-types";
 import type { BookFileReleaseReceipt } from "@read-aware/plugin-types";
 import { strings, cleanupStrings } from "./strings";
+import { workspaceStrings, workspaceView } from "./workspace";
 
 export async function libraryDesk(ctx: PluginContext): Promise<PluginView> {
   const library = ctx.domains.library!, write = library.commands!.books, t = strings(ctx.locale);
@@ -66,6 +67,8 @@ export async function libraryDesk(ctx: PluginContext): Promise<PluginView> {
       },
     })),
     actions: [{ id: "refresh", label: t[7], icon: "arrows-clockwise", run: refresh },
+      { id: "workspace", label: workspaceStrings(ctx.locale)[0], icon: "books", run: async () => ({ view: await workspaceView(ctx) }) },
+      ...(selected.size ? [{ id: "show-selection", label: workspaceStrings(ctx.locale)[7], icon: "arrow-right", run: async () => ({ view: await workspaceView(ctx, books.filter(book => selected.has(book.id))) }) }] : []),
       { id: "cleanup", label: cleanupText[0], icon: "arrows-clockwise", run: async () => ({ view: await pendingCleanup() }) },
       ...(selected.size ? [{ id: "review", label: `${t[1]} (${selected.size})`, icon: "trash", run: () => ({ view: review(books.filter(book => selected.has(book.id))) }) }] : [])],
   });

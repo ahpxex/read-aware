@@ -11,6 +11,7 @@
 import { fetch as corsFreeFetch } from "@tauri-apps/plugin-http";
 import type { PluginActionRegistration } from "@read-aware/plugin-types";
 import { readerPanels } from "../../../services/reader-panels";
+import { workspace } from "../../../services/workspace";
 import { publishPluginView } from "../lib/plugin-view-channels";
 import {
   canUseContribution,
@@ -599,6 +600,14 @@ export function buildPluginContext(
   // host-only details such as tracked subscriptions and virtual-book bindings.
   if (domain.library) {
     const library = domain.library;
+    ctx.services.ui.workspace = {
+      snapshot: async query => { lifecycle.assertActive("services.ui.workspace.snapshot"); return workspace.snapshot(query); },
+      observe: (query, handler) => track(() => ({ dispose: workspace.observe(query, handler) })),
+      ...(library.commands ? { navigate: (target: import("@read-aware/core").WorkspaceTarget, expectedRevision?: number) => {
+        lifecycle.assertActive("services.ui.workspace.navigate");
+        return workspace.navigate(target, expectedRevision, lifecycle.signal, !!domain.reading?.commands);
+      } } : {}),
+    };
     ctx.domains.library = {
       queries: {
         ...library.queries,

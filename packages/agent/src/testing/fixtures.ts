@@ -4,6 +4,7 @@
  * 检索按 pinned/importance/recency 排序。
  */
 import { annotationPageFixture } from "./annotation-pages";
+import { createWorkspaceFixture } from "./workspace-fixture";
 import { createAnnotationMutationFixture } from "./annotation-mutations";
 import { AppError } from "@read-aware/core";
 import type {
@@ -349,6 +350,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     (memory.status ?? "active") === "active";
 
   const deps: RuntimeDeps = {
+    workspace: createWorkspaceFixture(),
     environment: { snapshot: async () => ({ revision: 1, runtime: "desktop", platform: "macos", locale: "en", timeZone: "UTC", utcOffsetMinutes: 0, networkHint: "unknown" }) },
     library: {
       getReadingTime: async (query = {}) => ({ bookId: query.bookId ?? null, localDay: query.localDay ?? null,

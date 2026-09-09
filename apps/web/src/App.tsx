@@ -52,6 +52,8 @@ import { usePluginCommandItems } from "./features/plugins/hooks/usePluginCommand
 import { initializePlugins } from "./features/plugins/runtime/plugin-host";
 import { checkPluginUpdates } from "./features/plugins/runtime/plugin-updates";
 import { useReadingRuntimeShell } from "./features/reader/hooks/useReadingRuntimeShell";
+import { useWorkspaceShell } from "./hooks/useWorkspaceShell";
+import { WorkspaceCommit } from "./components/WorkspaceCommit";
 
 // The shelf is the boot-critical surface; everything below is split out of its
 // chunk and prefetched on idle (see app-warmup.ts), so cold start parses less
@@ -87,6 +89,7 @@ const SettingsDialog = lazy(() =>
 );
 import {
   activeCollectionAtom,
+  commandSearchOpenAtom,
   activeTopNavAtom,
   generalSettingsAtom,
   settingsOpenAtom,
@@ -96,7 +99,7 @@ import {
 } from "./state/ui";
 
 function App() {
-  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [searchModalOpen, setSearchModalOpen] = useAtom(commandSearchOpenAtom);
   const [settingsOpen, setSettingsOpen] = useAtom(settingsOpenAtom);
   const generalSettings = useAtomValue(generalSettingsAtom);
   const softwareUpdate = useSoftwareUpdate();
@@ -230,6 +233,7 @@ function App() {
     [library.books, openBook],
   );
   useReadingRuntimeShell(handleOpenBook, closeBook);
+  const workspaceToken = useWorkspaceShell(!!reader.selectedBook, library.books, library.collections, library.libraryReady);
   useEffect(() => {
     if (shelfHandoff === "idle") setHeldShelfBooks(null);
   }, [shelfHandoff]);
@@ -538,11 +542,13 @@ function App() {
                 onDeleteCollection={library.handleDeleteCollection}
                 onSetBooksCollection={library.handleSetBooksCollection}
               />
+              {library.libraryReady && <WorkspaceCommit surface="shelf" token={workspaceToken} />}
               </FeatureErrorBoundary>
             ) : activeTopNav === "agent" ? (
               <FeatureErrorBoundary surface="agent" resetKey={activeTopNav}>
                 <Suspense fallback={<SurfaceFallback />}>
                   <AgentWorkspace />
+                  <WorkspaceCommit surface="agent" token={workspaceToken} />
                 </Suspense>
               </FeatureErrorBoundary>
             ) : activeTopNav === "stats" ? (
@@ -552,6 +558,7 @@ function App() {
                     books={library.books}
                     onOpenBook={handleOpenBook}
                   />
+                  <WorkspaceCommit surface="stats" token={workspaceToken} />
                 </Suspense>
               </FeatureErrorBoundary>
             ) : (
@@ -571,12 +578,14 @@ function App() {
         onClose={() => setSearchModalOpen(false)}
         ctx={commandContext}
         extraItems={pluginCommandItems}
+        workspaceToken={workspaceToken}
       />
 
       {settingsMounted && (
         <Suspense fallback={null}>
           <SettingsDialog
             open={settingsOpen}
+            workspaceToken={workspaceToken}
             onClose={() => setSettingsOpen(false)}
           />
         </Suspense>

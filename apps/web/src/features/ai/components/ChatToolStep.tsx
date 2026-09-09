@@ -28,6 +28,8 @@ const TOOL_LABEL_KEYS = {
   get_reading_stats: "chat.tools.get_reading_stats",
   get_reading_time: "chat.tools.get_reading_time",
   get_reading_insights: "chat.tools.get_reading_insights",
+  get_workspace: "chat.tools.get_workspace",
+  navigate_app: "chat.tools.navigate_app",
   update_book: "chat.tools.update_book",
   manage_collection: "chat.tools.manage_collection",
   delete_book: "chat.tools.delete_book",

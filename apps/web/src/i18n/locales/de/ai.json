@@ -9,6 +9,8 @@
     "thinking": "Denkt nach…",
     "thought": "Gedankengang",
     "tools": {
+      "get_workspace": "Arbeitsbereich",
+      "navigate_app": "Ansicht wechseln",
       "get_reading_time": "Prüft die aktuelle Lesezeit",
       "get_reading_insights": "Lesetrends",
       "delete_books": "Bücher werden entfernt",

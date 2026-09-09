@@ -69,6 +69,8 @@ function seed(): InMemorySeed {
  */
 const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   get_host_environment: {},
+  get_workspace: {},
+  navigate_app: { target: { surface: "stats" } },
   list_books: {},
   get_book_overview: { bookId: BOOK_ID },
   get_annotations: { bookId: BOOK_ID },

@@ -14,13 +14,14 @@ import {
   X,
   type Icon,
 } from "@phosphor-icons/react";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { IconButton, ScrollArea } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { usePhoneViewport } from "@read-aware/ui/media";
 import { useBackInterceptor } from "../../hooks/useBackInterceptor";
 import { useTranslation } from "../../i18n";
-import { settingsSectionRequestAtom, type CoreSettingsSectionId } from "../../state/ui";
+import { activeSettingsSectionAtom, settingsSectionRequestAtom, type CoreSettingsSectionId, type SettingsSectionId } from "../../state/ui";
+import { workspace } from "../../services/workspace";
 import { installedPluginsAtom } from "../plugins/state/plugin-store";
 import type { PluginManifest } from "../plugins/lib/plugin-types";
 import { AboutPanel } from "./sections/AboutPanel";
@@ -68,7 +69,7 @@ type NavEntry =
   | { kind: "core"; section: SettingsSection }
   | { kind: "plugin"; manifest: PluginManifest };
 
-const entryKey = (entry: NavEntry) =>
+const entryKey = (entry: NavEntry): SettingsSectionId =>
   entry.kind === "core" ? entry.section.id : `plugin:${entry.manifest.id}`;
 
 const EXIT_DURATION_MS = 220;
@@ -77,9 +78,10 @@ const INDICATOR_HEIGHT = 18;
 type SettingsDialogProps = {
   open: boolean;
   onClose: () => void;
+  workspaceToken?: number;
 };
 
-export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
+export function SettingsDialog({ open, onClose, workspaceToken = 0 }: SettingsDialogProps) {
   const { t } = useTranslation("settings");
   const titleId = useId();
   const closeTimerRef = useRef<number | null>(null);
@@ -193,6 +195,13 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
   // A plugin toggling off can shrink the entry list under the active index.
   const safeActiveIndex = Math.min(activeIndex, entries.length - 1);
+  const setActiveSection = useSetAtom(activeSettingsSectionAtom);
+  const currentEntry = isPhone ? (phoneSectionIndex === null ? null : entries[Math.min(phoneSectionIndex, entries.length - 1)]) : entries[safeActiveIndex];
+  const currentSection = open && isPresent && !isClosing && currentEntry ? entryKey(currentEntry) : null;
+  useLayoutEffect(() => {
+    setActiveSection(currentSection);
+    if (currentSection) workspace.acknowledge("settings", workspaceToken);
+  }, [currentSection, setActiveSection, workspaceToken]);
 
   // Slide the active-section indicator to the centre of the active nav item.
   useLayoutEffect(() => {

@@ -77,25 +77,26 @@ export type TopNav = (typeof topNavs)[number] | `plugin:${string}`;
 export const activeTopNavAtom = atom<TopNav>("shelf");
 
 export const settingsOpenAtom = atom(false);
+export const activeSettingsSectionAtom = atom<SettingsSectionId | null>(null);
+export const commandQueryAtom = atom("");
+const commandSearchOpenBaseAtom = atom(false);
+export const commandSearchOpenAtom = atom(
+  get => get(commandSearchOpenBaseAtom),
+  (get, set, open: boolean) => {
+    if (open && !get(commandSearchOpenBaseAtom)) set(commandQueryAtom, "");
+    set(commandSearchOpenBaseAtom, open);
+  },
+);
 
 /** The settings dialog's built-in sections. */
-export type CoreSettingsSectionId =
-  | "general"
-  | "appearance"
-  | "reading"
-  | "ai"
-  | "plugins"
-  | "menus"
-  | "shortcuts"
-  | "dataSync"
-  | "about";
+export type CoreSettingsSectionId = (typeof import("@read-aware/core").WORKSPACE_SETTINGS_SECTIONS)[number];
 
 /**
  * A deep-linkable settings section: a core section, or `plugin:<id>` for an
  * enabled plugin's own settings section (present only while that plugin is
  * enabled and declares settings; a request for a missing section is dropped).
  */
-export type SettingsSectionId = CoreSettingsSectionId | `plugin:${string}`;
+export type SettingsSectionId = import("@read-aware/core").WorkspaceSettingsSection;
 
 /**
  * One-shot deep-link request: the section the settings dialog should land on

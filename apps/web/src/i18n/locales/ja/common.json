@@ -12,6 +12,13 @@
     "copied": "コピーしました"
   },
   "errors": {
+    "workspaceInvalid": "移動先または選択が無効です。",
+    "workspaceMissing": "ページ、コレクション、または選択した本は利用できません。",
+    "workspaceChanged": "画面の状態が変わりました。現在の状態を確認して再試行してください。",
+    "workspaceUnavailable": "画面の準備ができていません。",
+    "workspaceTimeout": "移動先を開けませんでした。",
+    "workspaceReadingPermission": "リーダーを閉じるには読書操作の権限が必要です。",
+    "workspaceObserverLimit": "画面状態の購読数が上限に達しました。",
     "readingTimeInvalid": "本、日付、セッションのページ設定を確認してください。",
     "readingTimeStale": "読書統計を復旧中です。完了後に再試行してください。",
     "readingTimeUnavailable": "読書時間を読み込めませんでした。",

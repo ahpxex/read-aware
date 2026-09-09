@@ -43,6 +43,7 @@ import { PLUGIN_PERMISSIONS as CORE_PLUGIN_PERMISSIONS } from "@read-aware/core"
 export type { BookRemovalReceipt, BookFileReleaseReceipt, BookRemovalCleanupPage, BookRemovalCleanupQuery } from "@read-aware/core";
 export type { ReadingTimeQuery, ReadingTimeCursor, ReadingTimeSnapshot, ReadingTimeObservation, PendingReadingTime } from "@read-aware/core";
 export type { ReadingInsights, ReadingInsightsQuery, ReadingPeriod } from "@read-aware/core";
+export type { WorkspaceTarget, WorkspaceQuery, WorkspaceSnapshot, WorkspaceReceipt, WorkspaceSettingsSection } from "@read-aware/core";
 import type {
   AnnotationItem,
   AskItem,
@@ -1643,6 +1644,13 @@ export type PluginHostServices = {
     remove(key: string): Promise<void>;
   };
   ui: {
+    /** Library read grant: current workspace, not arbitrary UI/DOM state. */
+    workspace?: {
+      snapshot(query?: import("@read-aware/core").WorkspaceQuery): Promise<import("@read-aware/core").WorkspaceSnapshot>;
+      observe(query: import("@read-aware/core").WorkspaceQuery, handler: (snapshot: import("@read-aware/core").WorkspaceSnapshot | null) => unknown): PluginDisposable;
+      /** Library write grant; leaving an active reader additionally requires reading:write. */
+      navigate?(target: import("@read-aware/core").WorkspaceTarget, expectedRevision?: number): Promise<import("@read-aware/core").WorkspaceReceipt>;
+    };
     showToast(message: string): void;
     exportFile(file: PluginExportFile): Promise<boolean>;
     /** Updates only this activation's visible frame. Revision is a nonnegative, increasing safe integer.

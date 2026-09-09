@@ -1,16 +1,16 @@
 {
   "id": "library-desk",
   "name": "Library Desk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "schemaVersion": 1,
-  "description": "Select books, review a removal batch, and retry remaining local file cleanup.",
+  "description": "Navigate collections and app surfaces, show selected books on the shelf, review removal batches, and retry file cleanup.",
   "author": "ReadAware",
   "main": "main.js",
-  "permissions": ["library:write"],
+  "permissions": ["library:write", "reading:write"],
   "requires": {
-    "domains": { "library": "^1.6.0" },
+    "domains": { "library": "^1.6.0", "reading": "^2.0.0" },
     "contributions": { "headerActions": "^1.0.0", "commands": "^1.0.0" },
-    "services": { "ui": "^1.2.0" },
+    "services": { "ui": "^1.3.0" },
     "schemas": { "views": "^1.1.0" }
   }
 }

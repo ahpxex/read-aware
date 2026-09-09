@@ -78,6 +78,13 @@ type CopyEntry = {
 const AI_SETTINGS: ErrorAction = "open-ai-settings";
 
 const CODE_COPY: Record<string, CopyEntry> = {
+  "ui/invalid-target": { key: "workspaceInvalid", retryable: false },
+  "ui/target-not-found": { key: "workspaceMissing", retryable: false },
+  "ui/superseded": { key: "workspaceChanged", retryable: false },
+  "ui/unavailable": { key: "workspaceUnavailable", retryable: true },
+  "ui/timeout": { key: "workspaceTimeout", retryable: true },
+  "ui/reading-permission": { key: "workspaceReadingPermission", retryable: false },
+  "ui/observer-limit": { key: "workspaceObserverLimit", retryable: false },
   "reading/invalid-time-query": { key: "readingTimeInvalid", retryable: false },
   "reading/stats-stale": { key: "readingTimeStale", retryable: true },
   "reading/stats-invalid": { key: "readingTimeUnavailable", retryable: false },

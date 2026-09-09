@@ -2,6 +2,7 @@
 import type { RuntimeDeps } from "@read-aware/agent";
 import { createLogger } from "../../../../platform/logger";
 import { hostEnvironment } from "../../../../platform/host-environment";
+import { workspace } from "../../../../services/workspace";
 import {
   getPluginAgentContext,
   getPluginAgentTools,
@@ -25,6 +26,7 @@ export { GLOBAL_CONVERSATION_ID } from "./conversation-port";
 export function buildRuntimeDeps(): RuntimeDeps {
   return {
     environment: { snapshot: async () => hostEnvironment.snapshot() },
+    workspace: { snapshot: async query => workspace.snapshot(query), navigate: (target, revision, signal) => workspace.navigate(target, revision, signal, true) },
     memoryPolicy,
     readingContextPolicy,
     library: createLibraryPort(),

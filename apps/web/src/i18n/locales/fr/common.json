@@ -12,6 +12,13 @@
     "copied": "Copié"
   },
   "errors": {
+    "workspaceInvalid": "La destination ou la sélection est invalide.",
+    "workspaceMissing": "Cette page, collection ou sélection n'est plus disponible.",
+    "workspaceChanged": "L'espace de travail a changé. Vérifiez son état avant de réessayer.",
+    "workspaceUnavailable": "L'espace de travail n'est pas encore prêt.",
+    "workspaceTimeout": "La destination n'a pas pu finir de s'ouvrir.",
+    "workspaceReadingPermission": "Quitter le lecteur nécessite l'autorisation de contrôler la lecture.",
+    "workspaceObserverLimit": "Trop d'abonnements à l'espace de travail sont actifs.",
     "readingTimeInvalid": "Vérifiez le livre, la date et les limites de pagination.",
     "readingTimeStale": "Les statistiques sont en cours de récupération. Réessayez ensuite.",
     "readingTimeUnavailable": "Impossible de charger le temps de lecture.",

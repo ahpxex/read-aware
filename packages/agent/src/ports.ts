@@ -456,6 +456,10 @@ export interface ExternalMemoryCandidateRequest {
 export interface RuntimeDeps {
   readingContextPolicy?: import("./runtime/reading-context-policy").ReadingContextPolicy;
   environment: { snapshot(): Promise<import("@read-aware/core").HostEnvironmentSnapshot> };
+  workspace: {
+    snapshot(query?: import("@read-aware/core").WorkspaceQuery): Promise<import("@read-aware/core").WorkspaceSnapshot>;
+    navigate(target: import("@read-aware/core").WorkspaceTarget, expectedRevision?: number, signal?: AbortSignal): Promise<import("@read-aware/core").WorkspaceReceipt>;
+  };
   /** Live host preference; disabled blocks derived-memory work, not stored-data reads. */
   memoryPolicy?: import("./memory/build-policy").MemoryBuildPolicy;
   library: LibraryPort;

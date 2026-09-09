@@ -9,6 +9,8 @@
     "thinking": "Pensando…",
     "thought": "Razonamiento",
     "tools": {
+      "get_workspace": "Espacio de trabajo",
+      "navigate_app": "Cambiar de vista",
       "get_reading_time": "Consultando el tiempo de lectura actual",
       "get_reading_insights": "Tendencias de lectura",
       "delete_books": "Eliminando libros",

@@ -9,6 +9,8 @@
     "thinking": "Думаю…",
     "thought": "Ход размышлений",
     "tools": {
+      "get_workspace": "Текущий интерфейс",
+      "navigate_app": "Перейти к экрану",
       "get_reading_time": "Проверяю текущее время чтения",
       "get_reading_insights": "Тенденции чтения",
       "delete_books": "Удаление книг",

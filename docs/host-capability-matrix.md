@@ -13,7 +13,7 @@
 
 1. 不能确认能力都已实现。此表区分宿主行为、Agent 工具/自动管线、插件 API/贡献和实际插件消费者；没有把代码存在算成端到端可用。
 2. 运行态正在接通：版本化位置、会话快照、精确搜索、导航回执/历史与朗读启停已由共享域提供给 Agent、Jumper 和 Listening Desk。模式控制、通用任务与资源释放、全部格式及跨平台验收仍未完成；持久化领域 API 无法代表全部产品能力。
-3. 6 个旧设置路径仍未找到对应效果消费者；两端可改值不等于行为覆盖。两个文本发送设置已过滤 Agent 自动输入/历史附件并在收紧时取消，插件结构化 readingContext 与 Dictionary 1.3 也已接通，任意 prompt/HTTP/TTS 仍有边界；buildMemory 已控制记忆构建与在途取消；localOnly 已接入宿主 Agent/插件 LLM 的拒绝与在途取消，但任意插件 HTTP/TTS/同步仍不受该策略约束，保留部分。settings 1.2 的九项真实偏好已接通；书架布局/分组/排序已接 settings 1.3；快捷键绑定查询/重绑/冲突/null 恢复与激活冲突暂停已接 settings 1.5，Workspace Profiles 0.2 已实际组合；原生快捷键编辑与停用命令清理已统一，全来源观察、搜索和选择集等缺口仍在。
+3. 6 个旧设置路径仍未找到对应效果消费者；两端可改值不等于行为覆盖。两个文本发送设置已过滤 Agent 自动输入/历史附件并在收紧时取消，插件结构化 readingContext 与 Dictionary 1.3 也已接通，任意 prompt/HTTP/TTS 仍有边界；buildMemory 已控制记忆构建与在途取消；localOnly 已接入宿主 Agent/插件 LLM 的拒绝与在途取消，但任意插件 HTTP/TTS/同步仍不受该策略约束，保留部分。settings 1.2 的九项真实偏好已接通；书架布局/分组/排序已接 settings 1.3；快捷键绑定查询/重绑/冲突/null 恢复与激活冲突暂停已接 settings 1.5，Workspace Profiles 0.2 已实际组合；原生快捷键编辑与停用命令清理已统一；UI 1.3 将语义导航、命令搜索、当前集合和分页选择集接到双端，Library Desk 0.3 已组合。设置全来源观察及其他缺口仍在。
 4. Agent 自动记忆巩固与 digest 管线已经接入；画像 seed/实体事件投影并未同等接通。不要沿用旧架构说明把它们一起说成已实现或未实现。
 5. 插件 UI、贡献注册、宿主消费、模型工具是不同方向。Dictionary/RSS 提供模型工具；宿主 control_read_aloud、configure_reading_mode 与 navigate_reading 统一消费声音和模式提供者，Listening Desk 调用相同控制器。主题调度/WebDAV 连接仍无同等直接操作工具；设置可改不等于行为接通。
 6. 备份 v1 并非全部当前存储的完整快照；私有数据、聊天、记忆、密钥、日志与同步状态的生命周期必须分别建模。原基线 129 项与 GAP01–GAP18 均保留，没有借新表宣告关闭。
@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 193、部分 43、待建 3、引擎 1、占位 2、非桌面 1。
-- Agent：接通 114、未接 45、部分 44、扩展 14、自动 20、内部 6。
-- 插件：接通 129、部分 74、未接 40。
+- Agent：接通 116、未接 45、部分 42、扩展 14、自动 20、内部 6。
+- 插件：接通 131、部分 72、未接 40。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -146,8 +146,8 @@
 
 | ID | 宿主能力 | 宿主现状 | Agent 当前与目标 | 插件当前与目标 | 实际消费者 | 缺口/边界 | 来源 | 旧基线 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="UI01"></a>UI01 | 书架/Agent/统计/设置与集合页面导航 | 实装 | **部分**：open_book；present_books 仅书卡<br>[设计] 语义导航工具 | **部分**：openBook；插件自己的 page<br>[设计] 语义路由服务 | 主导航；命令面板 | 无通用 openSettings/openCollection/goStats；不公开 Router/Jotai | [APP](../apps/web/src/App.tsx) [UI](../apps/web/src/state/ui.ts) [COMMAND](../apps/web/src/features/command/lib/build-commands.tsx) [API](../packages/plugin-types/src/index.ts) | I01 |
-| <a id="UI02"></a>UI02 | 书架搜索/布局/排序/分组/多选 | 实装 | **部分**：settings 1.3 shelf.layout/group/sort；list_books 查询数据<br>[设计] 查询视图状态/受控设置 | **部分**：settings 1.3 shelf.* + 已结算 snapshot<br>[设计] 视图状态与选择集服务 | 书架；Workspace Profiles；Agent 设置工具 | 布局/分组/排序已通过共享设置和 KV 回滚接到真实书架；Workspace Profiles 组合快照、私有文档与原子更新。搜索/当前集合/选择集仍未开放；多选不是批量删除授权 | [SHELF](../apps/web/src/features/shelf/lib/shelf-view.ts) [SHELFUI](../apps/web/src/features/shelf/components/Shelf.tsx) [COMMAND](../apps/web/src/features/command/lib/build-commands.tsx) [SHELFSETTINGS](../apps/web/src/domain/settings/shelf-preferences.ts) [WORKSPACEPROFILES](../plugins/workspace-profiles/src/profiles.ts) [WORKSPACEEVIDENCE](../docs/evidence/workspace-profiles-2026-09-09.json) | H03 |
+| <a id="UI01"></a>UI01 | 书架/Agent/统计/设置与集合页面导航 | 实装 | **接通**：get_workspace/navigate_app 双 scope<br>[设计] 语义导航工具 | **接通**：UI 1.3 workspace.snapshot/observe/navigate<br>[设计] 语义路由服务 | 原生导航；Agent；Library Desk 0.3 | 同一服务接受 shelf/agent/stats/settings/search 意图；settings 支持九个内置节及启用插件节，search 是现有命令面板。library:read/write 可查询观察，library:write 可导航；离开正在阅读的书另需 reading:write，设置/搜索不关闭阅读。校验目标存在、期望 revision；异步校验/关闭期间原生新意图优先，新请求/取消/退役拒绝旧请求。10 秒期限，目标组件在 Suspense 内提交后才确认；回执不是动画结束、数据加载或阅读时长结算。快照含实际 reader 状态但无书 ID/正文/凭据。macOS debug 已验 Worker 权限、原生命令搜索、双 scope 端口、真实 FB2 关闭和编译插件。任意命令执行、全应用历史、全部弹窗焦点管理、打包/跨平台仍未验；不公开 Router/Jotai。 | [APP](../apps/web/src/App.tsx) [UI](../apps/web/src/state/ui.ts) [COMMAND](../apps/web/src/features/command/lib/build-commands.tsx) [API](../packages/plugin-types/src/index.ts) [WORKSPACESERVICE](../apps/web/src/services/workspace.ts) [WORKSPACEADAPTER](../apps/web/src/services/workspace-adapter.ts) [WORKSPACETOOLS](../packages/agent/src/tools/workspace-tools.ts) [WORKSPACEDESK](../plugins/library-desk/src/workspace.ts) [WORKSPACENAVPROOF](../docs/evidence/workspace-navigation-2026-09-09.json) | I01 |
+| <a id="UI02"></a>UI02 | 命令面板搜索/书架布局/排序/分组/多选 | 实装 | **接通**：settings 1.3 shelf.* + get_workspace/navigate_app<br>[设计] 查询视图状态/受控设置 | **接通**：settings 1.3 shelf.* + UI 1.3 workspace<br>[设计] 视图状态与选择集服务 | 书架；Workspace Profiles；Library Desk 0.3；Agent | 布局/分组/排序沿用共享设置与 KV 回滚。集合和选择为设备内存态，观察实际提交；移出集合/删除后去掉隐藏或失效选择，隐藏书架时也协调。选择查询按 ID 码元序分页，默认 100/最大 1000，total 为全选择数；翻页须比 revision。导航最多 1000 个 256 字符 ID，必须全属目标集合；省略 selection 清空，不隐选其他集合。搜索最长 4096 字符，非新建书架过滤或书内检索。64 个观察者上限，慢回调合并最新状态，退役 null；Agent 查询至多 25，结果按预算缩页且保留 cursor，query 明确 256 字符预览。Library Desk 把跨集合勾选分组，用户明确选择一组后显示，不自动删除。macOS debug 已验 2 项选择/分页、移出后变 1、插件真实选择与搜索表单；大规模负载/远端竞态/打包和跨平台未验，多选不是批量删除授权。 | [SHELF](../apps/web/src/features/shelf/lib/shelf-view.ts) [SHELFUI](../apps/web/src/features/shelf/components/Shelf.tsx) [COMMAND](../apps/web/src/features/command/lib/build-commands.tsx) [SHELFSETTINGS](../apps/web/src/domain/settings/shelf-preferences.ts) [WORKSPACEPROFILES](../plugins/workspace-profiles/src/profiles.ts) [WORKSPACEEVIDENCE](../docs/evidence/workspace-profiles-2026-09-09.json) [WORKSPACESERVICE](../apps/web/src/services/workspace.ts) [WORKSPACEADAPTER](../apps/web/src/services/workspace-adapter.ts) [WORKSPACETOOLS](../packages/agent/src/tools/workspace-tools.ts) [WORKSPACEDESK](../plugins/library-desk/src/workspace.ts) [WORKSPACENAVPROOF](../docs/evidence/workspace-navigation-2026-09-09.json) | H03 |
 | <a id="UI03"></a>UI03 | 发现/执行宿主命令与可用条件 | 实装 | **未接**：无正式入口<br>[设计] 可审计的命令调用 | **部分**：commands.register 只贡献自己的命令<br>[设计] 命令注册与受控调用分离 | 命令面板/快捷键 | 不能把菜单 ID 或命令 label 当稳定 RPC；需参数 schema、条件、回执 | [COMMAND](../apps/web/src/features/command/lib/build-commands.tsx) [SHORTCUT](../apps/web/src/features/settings/lib/shortcuts.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | I02, I03 |
 | <a id="UI04"></a>UI04 | 快捷键查询、重绑、冲突与重置 | 实装 | **部分**：get_settings/update_settings：shortcuts section<br>[设计] 完整绑定与生命周期 | **部分**：settings 1.5：key-chord 查询/重绑/null 恢复；默认 shortcut 贡献<br>[设计] 命令绑定与冲突查询 | 快捷键设置页；Agent；Workspace Profiles 0.2 自身命令重绑 | 16 个内置、当前注册插件命令及未注册插件遗留覆盖按同一有效 binding 读写，default/override/availability/conflicted/conflicts 可查询；插件路径编码且精确授权，writable 按授权收窄，冲突引用按 read grant 过滤。整批最终态校验允许交换，失败不提交；null 删除覆盖，不表示禁用。实际 macOS 键盘验证 Agent 改搜索、Worker 交换搜索/设置、Workspace 表单改自己的命令并按新键打开；冲突保留表单与绑定并显示本地化稳定错误。原生设置页已统一域写，单项/全部重置等待提交，发出 user 来源事件；只读 atom 不再有直接整表 setter。停用命令遗留覆盖按授权可查/改/清，原生不可用分组可重置，真实 Worker 已验退休后修改与 SQLite 清理。激活冲突已统一裁决：全局、插件、阅读器按同一实时目录暂停所有冲突绑定，不依赖监听/注册顺序；停用或重绑自动恢复。原生页显示冲突，conflicted 保留给授权调用者而冲突路径仍按 grant 隐藏。实机已验搜索/插件重启冲突、正文 iframe 冲突/停用恢复与插件面板不误翻页。仍缺全来源 revision/origin；available 不代表当前焦点可执行。保留部分，不宣称 packaged/跨平台与完整按键路由已验 | [SHORTCUT](../apps/web/src/features/settings/lib/shortcuts.ts) [SHORTUI](../apps/web/src/features/settings/sections/ShortcutsPanel.tsx) [SHORTCUTCATALOG](../apps/web/src/features/settings/lib/shortcut-catalog.ts) [SHORTCUTSETTINGS](../apps/web/src/domain/settings/shortcut-preferences.ts) [SHORTCUTPROOF](../docs/evidence/keyboard-shortcuts-2026-09-09.json) [SHORTCUTEDITOR](../apps/web/src/features/settings/hooks/useShortcutPreferences.ts) [SHORTCUTEDITORPROOF](../docs/evidence/shortcut-editor-2026-09-09.json) [SHORTCUTDISPATCH](../apps/web/src/features/settings/lib/shortcut-dispatch.ts) [SHORTCUTDISPATCHPROOF](../docs/evidence/shortcut-dispatch-2026-09-09.json) [API](../packages/plugin-types/src/index.ts) | H03, I02 |
 | <a id="UI05"></a>UI05 | 菜单可见/溢出位置及自定义重排 | 实装 | **接通**：get_settings/update_settings menus.*<br>[设计] 结构化设置工具 | **接通**：settings domain menus.* 按路径授权<br>[设计] 结构化设置领域 | 菜单设置；插件 header/selection | 可改布局不代表可调用菜单动作；具体 8 个路径另逐项列出 | [MENU](../apps/web/src/features/menus/lib/menu-registry.tsx) [MENUSTATE](../apps/web/src/features/menus/state/menu-config.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) | I08 |
@@ -409,9 +409,9 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：45 个。
-- Agent book：37 个。
-- Plugin ctx：105 个。
+- Agent global：47 个。
+- Agent book：39 个。
+- Plugin ctx：108 个。
 - Plugin returned interface：25 个。
 - Capability domains：5 个。
 - Capability contributions：14 个。
@@ -435,13 +435,15 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 105 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 108 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
 | 当前注册项 | 矩阵行 | 说明 |
 | --- | --- | --- |
 | `get_host_environment` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_workspace` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `navigate_app` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_books` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_book_overview` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_annotations` | [ANN01](#ANN01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -492,6 +494,8 @@
 | 当前注册项 | 矩阵行 | 说明 |
 | --- | --- | --- |
 | `get_host_environment` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_workspace` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `navigate_app` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_book_overview` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_annotations` | [ANN01](#ANN01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_reading_stats` | [STAT01](#STAT01) [STAT02](#STAT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -617,6 +621,9 @@
 | `services.ui.publishView` | [MORE05](#MORE05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.showToast` | [EXT07](#EXT07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.exportFile` | [SYS10](#SYS10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.ui.workspace.snapshot` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.ui.workspace.observe` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.ui.workspace.navigate` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.reader.snapshot` | [READ10](#READ10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.reader.observe` | [READ10](#READ10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.reader.setPanel` | [READ10](#READ10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -1150,7 +1157,7 @@
 | `dictionary` | [EXT09](#EXT09) [AI12](#AI12) [READ07](#READ07) [LIB01](#LIB01) | [代码] 源码版本 1.3.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `editorial-themes` | [EXT08](#EXT08) | [代码] 源码版本 1.0.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `jumper` | [TXT02](#TXT02) [TXT07](#TXT07) [READ06](#READ06) [EXT02](#EXT02) | [代码] 源码版本 0.2.0；源码存在不等于打包、安装、启用或模型可调用 |
-| `library-desk` | [LIB01](#LIB01) [LIB05](#LIB05) [EXT02](#EXT02) [EXT03](#EXT03) [MORE05](#MORE05) | [代码] 源码版本 0.2.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `library-desk` | [LIB01](#LIB01) [LIB05](#LIB05) [UI01](#UI01) [UI02](#UI02) [EXT02](#EXT02) [EXT03](#EXT03) [MORE05](#MORE05) | [代码] 源码版本 0.3.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `listening-desk` | [READ16](#READ16) [READ18](#READ18) [READ06](#READ06) [EXT02](#EXT02) [MORE03](#MORE03) | [代码] 源码版本 0.9.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `reading-goals` | [AI11](#AI11) [MEM03](#MEM03) [SET23](#SET23) [STAT02](#STAT02) [STAT05](#STAT05) [STAT03](#STAT03) [EXT07](#EXT07) [EXT02](#EXT02) [EXT05](#EXT05) [SYS01](#SYS01) | [代码] 源码版本 0.3.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `rss-reader` | [EXT10](#EXT10) | [代码] 源码版本 0.7.0；源码存在不等于打包、安装、启用或模型可调用 |

@@ -117,6 +117,9 @@ export const sources: Record<string, string> = {
   MODELCATALOG: "apps/web/src/features/ai/lib/model-catalog.ts",
   AICONFIGUI: "apps/web/src/features/settings/components/AIConfigPanel.tsx",
   SHELF: "apps/web/src/features/shelf/lib/shelf-view.ts",
+  SHELFSETTINGS: "apps/web/src/domain/settings/shelf-preferences.ts",
+  WORKSPACEPROFILES: "plugins/workspace-profiles/src/profiles.ts",
+  WORKSPACEEVIDENCE: "docs/evidence/workspace-profiles-2026-09-09.json",
   SHELFUI: "apps/web/src/features/shelf/components/Shelf.tsx",
   SHORTCUT: "apps/web/src/features/settings/lib/shortcuts.ts",
   SHORTUI: "apps/web/src/features/settings/sections/ShortcutsPanel.tsx",
@@ -288,11 +291,11 @@ export const groups: { name: string; rows: Capability[] }[] = [
 groups.push(
   { name: "应用导航、命令与配置范围", rows: [
     cap("UI01", "书架/Agent/统计/设置与集合页面导航", "实装", actor("部分", "open_book；present_books 仅书卡", "语义导航工具"), actor("部分", "openBook；插件自己的 page", "语义路由服务"), ["APP","UI","COMMAND","API"], "主导航；命令面板", "无通用 openSettings/openCollection/goStats；不公开 Router/Jotai"),
-    cap("UI02", "书架搜索/布局/排序/分组/多选", "实装", actor("部分", "list_books 查数据，不改变视图", "查询视图状态/受控设置"), absent("视图状态与选择集服务"), ["SHELF","SHELFUI","COMMAND"], "书架；命令面板", "数据查询不是切换用户当前列表；多选不是用户授权批量删除"),
+    cap("UI02", "书架搜索/布局/排序/分组/多选", "实装", actor("部分", "settings 1.3 shelf.layout/group/sort；list_books 查询数据", "查询视图状态/受控设置"), actor("部分", "settings 1.3 shelf.* + 已结算 snapshot", "视图状态与选择集服务"), ["SHELF","SHELFUI","COMMAND","SHELFSETTINGS","WORKSPACEPROFILES","WORKSPACEEVIDENCE"], "书架；Workspace Profiles；Agent 设置工具", "布局/分组/排序已通过共享设置和 KV 回滚接到真实书架；Workspace Profiles 组合快照、私有文档与原子更新。搜索/当前集合/选择集仍未开放；多选不是批量删除授权"),
     cap("UI03", "发现/执行宿主命令与可用条件", "实装", absent("可审计的命令调用"), actor("部分", "commands.register 只贡献自己的命令", "命令注册与受控调用分离"), ["COMMAND","SHORTCUT","CTX"], "命令面板/快捷键", "不能把菜单 ID 或命令 label 当稳定 RPC；需参数 schema、条件、回执"),
     cap("UI04", "快捷键查询、重绑、冲突与重置", "实装", absent("快捷键设置工具"), actor("部分", "贡献默认 shortcut，无重绑查询", "命令绑定与冲突查询"), ["SHORTCUT","SHORTUI","API"], "快捷键设置页；插件命令", "默认快捷键不是用户实际绑定；菜单快捷键与原生快捷键需一致"),
     cap("UI05", "菜单可见/溢出位置及自定义重排", "实装", actor("接通", "get_settings/update_settings menus.*", "结构化设置工具"), actor("接通", "settings domain menus.* 按路径授权", "结构化设置领域"), ["MENU","MENUSTATE","SETTINGS","SETTOOLS"], "菜单设置；插件 header/selection", "可改布局不代表可调用菜单动作；具体 8 个路径另逐项列出"),
-    cap("CFG01", "设置 discover/read/update 与动态选项", "实装", actor("接通", "get_settings/update_settings；等待本地事务提交", "设置工具"), actor("接通", "settings 1.1 discover/read/update；原子保存与授权结果", "路径授权设置领域"), ["SETTINGS","SETDOMAIN","SETTOOLS","CTX","KV","RUST"], "Agent；Theme Schedule；TTS options", "单个命令跨 KV 记录原子提交；失败不发 settings.changed，下一命令基于已结算状态；结果快照按 read/write grant 过滤。事务不包含密钥、远端漫游提交或尚未接通的效果；设置 API 接通不证明值有消费者"),
+    cap("CFG01", "设置 discover/read/update 与动态选项", "实装", actor("接通", "get_settings/update_settings；等待本地事务提交", "设置工具"), actor("接通", "settings 1.3 snapshot/discover/read/update；原子保存与授权结果", "路径授权设置领域"), ["SETTINGS","SETDOMAIN","SETTOOLS","CTX","KV","RUST"], "Agent；Theme Schedule；TTS options", "snapshot 等待此前命令/UI 写结算后一次读取，按路径授权过滤；单个命令跨 KV 记录原子提交；失败不发 settings.changed，下一命令基于已结算状态；结果快照按 read/write grant 过滤。事务不包含密钥、远端漫游提交或尚未接通的效果；设置 API 接通不证明值有消费者"),
     cap("CFG02", "全局/本书/全书阅读设置覆盖", "实装", actor("接通", "update_settings target", "显式作用域写工具"), actor("接通", "settings.commands.update target", "显式作用域写领域"), ["SETDOMAIN","SETTINGS","OVERRIDES","SETTOOLS"], "AppearancePanel；Agent", "all-books 写全局并更新 overrides，不等于清除所有覆盖"),
     cap("CFG03", "清除覆盖/恢复默认/查询值来源", "实装", absent("reset + effective value/provenance"), absent("reset + effective value/provenance"), ["PREFS","OVERRIDES","SETTINGS"], "阅读外观设置", "当前 update 不能表达 inherit/delete override；不是写默认值可替代"),
     cap("CFG04", "阅读对齐 reading.textAlign", "实装", actor("接通", "get_settings/update_settings", "结构化设置工具"), actor("接通", "settings 1.2；显式 global/book/all-books", "路径授权设置领域"), ["PREFS","SETTINGS","READER"], "阅读设置/渲染", "book/start/justify；与阅读外观同一覆盖规则，不是另造 CSS 接口"),
@@ -301,7 +304,7 @@ groups.push(
     cap("CFG07", "AI 提供商/端点/密钥配置", "实装", actor("部分", "只读 provider/credentialConfigured；无密钥", "打开宿主敏感配置流程"), actor("部分", "受权读非敏感存在状态；无宿主 key", "打开宿主敏感配置流程"), ["AICONFIG","AICONFIGUI","SETTINGS","SECRETS"], "AIConfigPanel", "不开放：读取宿主密钥；不能把 readonly provider 算作可切换提供商"),
     cap("CFG08", "模型目录刷新、连接测试与模型能力", "实装", actor("部分", "设置 discover 给模型选项", "连接诊断/能力查询"), actor("部分", "settings discover 动态选项", "连接诊断/能力查询"), ["MODELCATALOG","AICONFIGUI","SETTINGS"], "AI 配置页", "选择已缓存模型不等于能刷新/测试连接"),
     cap("CFG09", "插件非敏感设置的动态路径", "实装", actor("接通", "plugins.<id>.<field> get/update_settings", "参数配置工具"), actor("接通", "自有路径默认授权；他者路径需 grant", "隔离设置领域"), ["CTX","SETTINGS","SETDOMAIN"], "TTS/RSS/Theme Schedule 等", "插件启用/声明决定目录；secret/password 字段不暴露；配置不等于执行插件命令"),
-    cap("CFG10", "设置变化事件/外部写入刷新", "部分", actor("自动", "每次读当前目录/值；持久失败向工具拒绝", "运行时刷新"), actor("部分", "提交事件 + KV 镜像/回滚失效通知", "有版本/来源的观察"), ["SETDOMAIN","CTX","WORKER","KV"], "Theme Schedule；插件设置视图", "通用设置记录与菜单 base atom 跟随 KV，插件表单/模式/提供者订阅覆盖声明设置回滚；失效通知在 Worker 镜像观察之后分发。GAP03/09/11 仍缺全来源带 revision/origin 的领域广播、所有 UI 编辑草稿与异步效果验收；不是关闭完整 GAP"),
+    cap("CFG10", "设置变化事件/外部写入刷新", "部分", actor("自动", "每次读当前目录/值；持久失败向工具拒绝", "运行时刷新"), actor("部分", "提交事件 + KV 镜像/回滚失效通知", "有版本/来源的观察"), ["SETDOMAIN","CTX","WORKER","KV"], "Theme Schedule；插件设置视图", "通用设置记录、书架布局/分组/排序与菜单 base atom 跟随 KV，插件表单/模式/提供者订阅覆盖声明设置回滚；失效通知在 Worker 镜像观察之后分发。GAP03/09/11 仍缺全来源带 revision/origin 的领域广播、所有 UI 编辑草稿与异步效果验收；不是关闭完整 GAP"),
     cap("CFG11", "聊天/笔记内容字体：跟随阅读或独立字号/字体/行距", "实装", actor("接通", "appearance.contentTypography.*", "结构化设置工具"), actor("接通", "settings 1.2；四个全局字段", "路径授权设置领域"), ["TYPOGRAPHY","TYPOGRAPHYUI","TYPOGRAPHYEFFECT","SETTINGS"], "AppearancePanel；聊天、笔记、插件 Markdown 与 composer", "followReader/fontFamily/fontSize/lineSpacing；跟随全局 reader 而非本书 override；fontFamily=null 为应用字体，独立字段只在 followReader=false 生效；base atom 跟随 KV 回滚"),
     cap("CFG12", "新标注默认颜色", "实装", actor("接通", "annotations.defaultColor", "结构化设置工具"), actor("接通", "settings 1.2；annotations section", "路径授权设置领域"), ["MARKPREFS","TEXTACTIONS","SETTINGS"], "一键高亮/下划线；recolor 更新后续默认色", "yellow/green/blue/pink，默认 yellow；宿主动作即时读取当前偏好，不再捕获挂载时颜色；不重染已有标注"),
     cap("CFG13", "软件更新通道 stable/beta", "实装", actor("接通", "general.updateChannel", "设备本地设置工具"), actor("接通", "settings 1.2；全局枚举字段", "路径授权设置领域"), ["UPDATECHANNEL","ABOUT","UPDATE","SETTINGS"], "AboutPanel；软件更新查询", "设备本地且不漫游；已打开 About 控件跟随 KV 更新/回滚；修改通道只影响后续检查，不批准下载、安装或重启"),
@@ -419,6 +422,7 @@ export const staticSettingPaths = [
   "appearance.contentTypography.followReader", "appearance.contentTypography.fontFamily",
   "appearance.contentTypography.fontSize", "appearance.contentTypography.lineSpacing",
   "annotations.defaultColor", "general.updateChannel",
+  "shelf.layout", "shelf.group", "shelf.sort",
 ];
 export const ineffectiveSettings = new Set([
   "general.launchAtStartup", "general.fileAssociations",

@@ -1,6 +1,7 @@
 import { localKV } from "../../../platform/local-store";
 
-const STORAGE_KEY = "read-aware-shelf-view";
+export const SHELF_VIEW_KEY = "read-aware-shelf-view";
+const STORAGE_KEY = SHELF_VIEW_KEY;
 
 export type ShelfLayout = "grid" | "list";
 export type ShelfGroup = "none" | "status" | "author" | "format";

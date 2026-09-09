@@ -3,7 +3,8 @@ import { getDefaultStore } from "jotai";
 import { createSettingsDomain } from "./domain";
 import { localKV, onLocalKVWrite } from "../../platform/local-store";
 import { onAppEvent } from "../../platform/app-events";
-import { appSettingsAtom, generalSettingsAtom } from "../../state/ui";
+import { appSettingsAtom, generalSettingsAtom, shelfViewAtom } from "../../state/ui";
+import { DEFAULT_SHELF_VIEW, SHELF_VIEW_KEY } from "../../features/shelf/lib/shelf-view";
 import { APP_SETTINGS_KEY, DEFAULT_APP_SETTINGS } from "../../features/settings/lib/app-settings";
 import { GENERAL_SETTINGS_KEY, DEFAULT_GENERAL_SETTINGS } from "../../features/settings/lib/general-settings";
 import { buildPluginSettingsView } from "../../features/plugins/lib/plugin-settings";
@@ -35,6 +36,7 @@ beforeEach(async () => {
   hold = false;
   await localKV.setItemAsync(APP_SETTINGS_KEY, JSON.stringify(DEFAULT_APP_SETTINGS));
   await localKV.setItemAsync(GENERAL_SETTINGS_KEY, JSON.stringify(DEFAULT_GENERAL_SETTINGS));
+  await localKV.setItemAsync(SHELF_VIEW_KEY, JSON.stringify(DEFAULT_SHELF_VIEW));
   hold = true;
 });
 afterEach(async () => {
@@ -47,6 +49,31 @@ afterEach(async () => {
 });
 
 describe("settings durable command boundary", () => {
+  test("preset snapshots wait for older UI writes and never capture a rejected optimistic view", async () => {
+    getDefaultStore().set(shelfViewAtom, { ...DEFAULT_SHELF_VIEW, layout: "list" });
+    let settled = false;
+    const snapshot = createSettingsDomain("plugin:preset", { read: ["shelf.*"] }).queries.snapshot().then(value => { settled = true; return value; });
+    await tick(); expect(settled).toBe(false);
+    pending.shift()!.reject({ code: "db/locked", message: "shelf UI lock" });
+    expect((await snapshot).settings.find(setting => setting.path === "shelf.layout")?.value).toBe("grid");
+    expect(getDefaultStore().get(shelfViewAtom).layout).toBe("grid");
+  });
+  test("failed shelf/app presets roll back before queued actor edits read the view", async () => {
+    const failed = createSettingsDomain("agent").commands.update([
+      { path: "shelf.layout", value: "list" }, { path: "appearance.theme", value: "dark" },
+    ]).catch(error => error);
+    const next = createSettingsDomain("plugin:shelf", { write: ["shelf.sort"] }).commands.update([{ path: "shelf.sort", value: "title" }]);
+    await tick();
+    expect(getDefaultStore().get(shelfViewAtom).layout).toBe("list");
+    expect(pending[0]!.entries).toHaveLength(2);
+    pending.shift()!.reject({ code: "db/locked", message: "preset lock" });
+    expect((await failed).code).toBe("db/locked");
+    await tick();
+    expect(getDefaultStore().get(appSettingsAtom).theme).toBe(DEFAULT_APP_SETTINGS.theme);
+    expect(getDefaultStore().get(shelfViewAtom)).toEqual({ ...DEFAULT_SHELF_VIEW, sort: "title" });
+    pending.shift()!.resolve(); await next;
+    expect(JSON.parse(disk.get(SHELF_VIEW_KEY)!)).toEqual({ ...DEFAULT_SHELF_VIEW, sort: "title" });
+  });
   test("Agent and plugin updates wait for one native batch and publish only after commit", async () => {
     const events: string[] = [];
     const commits: string[] = [];
@@ -161,6 +188,6 @@ describe("settings durable command boundary", () => {
     });
     const output = await new Response(child.stderr).text();
     expect(await child.exited, output).toBe(0);
-    expect(output).toContain("5 pass");
+    expect(output).toContain("7 pass");
   }, 30_000);
 }

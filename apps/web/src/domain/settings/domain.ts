@@ -17,6 +17,7 @@ import {
   aiPreferencesAtom,
   appSettingsAtom,
   generalSettingsAtom,
+  shelfViewAtom,
   contentTypographyAtom,
   readerOverridesAtom,
   readerPreferencesAtom,
@@ -87,6 +88,7 @@ function readDraft(): SettingsDraft {
   const store = getDefaultStore();
   return {
     general: store.get(generalSettingsAtom),
+    shelf: store.get(shelfViewAtom),
     appearance: store.get(appSettingsAtom),
     reading: store.get(readerPreferencesAtom),
     readerOverrides: store.get(readerOverridesAtom),
@@ -208,7 +210,11 @@ export function createSettingsDomain(
   const policy = actorPolicy(origin, access);
   return {
     queries: {
-      snapshot: async (query) => visibleSnapshot(policy, query),
+      snapshot: async (query) => {
+        const accepted = query === undefined ? undefined : structuredClone(query);
+        await updateTail;
+        return afterLocalKVWrites(() => visibleSnapshot(policy, accepted));
+      },
       discover: async (query) =>
         settingsSnapshot(query).settings
           .filter((setting) => canAccess(policy, "discover", setting.path))

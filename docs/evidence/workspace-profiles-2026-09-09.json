@@ -1,0 +1,382 @@
+{
+  "date": "2026-09-09",
+  "scope": "Isolated macOS debug Tauri, com.readaware.app.capability-e2e, localhost:5184/9224; no formal app data",
+  "capability": "domains.settings 1.3.0",
+  "probe": "apps/web/src/features/plugins/runtime/fixtures/desktop-workspace-profiles-probe.ts",
+  "actors": [
+    "Product update_settings tool via real runtime ports",
+    "Compiled Workspace Profiles Worker under capability-workspace-profiles diagnostic identity",
+    "Settings probe Worker"
+  ],
+  "results": {
+    "workspaceSetup": {
+      "status": "done",
+      "result": {
+        "view": {
+          "layout": "grid",
+          "group": "none",
+          "sort": "recent"
+        },
+        "storedView": {
+          "layout": "grid",
+          "group": "none",
+          "sort": "recent"
+        },
+        "appearance": {
+          "theme": "system",
+          "motion": "system"
+        },
+        "profiles": []
+      }
+    },
+    "workspaceActions": {
+      "status": "done",
+      "result": {
+        "profiles": {
+          "gist": [
+            {
+              "id": "c5f90102-dcd7-46ad-a862-e67d954fe096",
+              "version": 1,
+              "name": "Native Reading Workspace",
+              "changes": [
+                {
+                  "path": "shelf.layout",
+                  "value": "grid",
+                  "target": {
+                    "kind": "global"
+                  }
+                },
+                {
+                  "path": "shelf.group",
+                  "value": "none",
+                  "target": {
+                    "kind": "global"
+                  }
+                },
+                {
+                  "path": "shelf.sort",
+                  "value": "recent",
+                  "target": {
+                    "kind": "global"
+                  }
+                },
+                {
+                  "path": "appearance.theme",
+                  "value": "system",
+                  "target": {
+                    "kind": "global"
+                  }
+                },
+                {
+                  "path": "appearance.motion",
+                  "value": "system",
+                  "target": {
+                    "kind": "global"
+                  }
+                },
+                {
+                  "path": "reading.fontSize",
+                  "value": "medium",
+                  "target": {
+                    "kind": "global"
+                  }
+                },
+                {
+                  "path": "reading.lineSpacing",
+                  "value": "comfortable",
+                  "target": {
+                    "kind": "global"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "changed": "committed",
+        "snapshot": {
+          "view": {
+            "layout": "list",
+            "group": "author",
+            "sort": "title"
+          },
+          "storedView": {
+            "layout": "list",
+            "group": "author",
+            "sort": "title"
+          },
+          "appearance": {
+            "theme": "system",
+            "motion": "reduced"
+          },
+          "profiles": [
+            {
+              "id": "c5f90102-dcd7-46ad-a862-e67d954fe096",
+              "json": "{\"version\":1,\"name\":\"Native Reading Workspace\",\"changes\":[{\"path\":\"shelf.layout\",\"value\":\"grid\",\"target\":{\"kind\":\"global\"}},{\"path\":\"shelf.group\",\"value\":\"none\",\"target\":{\"kind\":\"global\"}},{\"path\":\"shelf.sort\",\"value\":\"recent\",\"target\":{\"kind\":\"global\"}},{\"path\":\"appearance.theme\",\"value\":\"system\",\"target\":{\"kind\":\"global\"}},{\"path\":\"appearance.motion\",\"value\":\"system\",\"target\":{\"kind\":\"global\"}},{\"path\":\"reading.fontSize\",\"value\":\"medium\",\"target\":{\"kind\":\"global\"}},{\"path\":\"reading.lineSpacing\",\"value\":\"comfortable\",\"target\":{\"kind\":\"global\"}}]}",
+              "bookId": null,
+              "anchor": null,
+              "updatedAt": "2026-09-09T04:27:50.547Z"
+            }
+          ]
+        }
+      }
+    },
+    "workspaceRoundTrip": {
+      "status": "done",
+      "result": {
+        "restored": {
+          "view": {
+            "layout": "grid",
+            "group": "none",
+            "sort": "recent"
+          },
+          "storedView": {
+            "layout": "grid",
+            "group": "none",
+            "sort": "recent"
+          },
+          "appearance": {
+            "theme": "system",
+            "motion": "system"
+          },
+          "profiles": [
+            {
+              "id": "c5f90102-dcd7-46ad-a862-e67d954fe096",
+              "json": "{\"version\":1,\"name\":\"Native Reading Workspace\",\"changes\":[{\"path\":\"shelf.layout\",\"value\":\"grid\",\"target\":{\"kind\":\"global\"}},{\"path\":\"shelf.group\",\"value\":\"none\",\"target\":{\"kind\":\"global\"}},{\"path\":\"shelf.sort\",\"value\":\"recent\",\"target\":{\"kind\":\"global\"}},{\"path\":\"appearance.theme\",\"value\":\"system\",\"target\":{\"kind\":\"global\"}},{\"path\":\"appearance.motion\",\"value\":\"system\",\"target\":{\"kind\":\"global\"}},{\"path\":\"reading.fontSize\",\"value\":\"medium\",\"target\":{\"kind\":\"global\"}},{\"path\":\"reading.lineSpacing\",\"value\":\"comfortable\",\"target\":{\"kind\":\"global\"}}]}",
+              "bookId": null,
+              "anchor": null,
+              "updatedAt": "2026-09-09T04:27:50.547Z"
+            }
+          ]
+        },
+        "updated": {
+          "status": "committed",
+          "changed": [
+            {
+              "path": "shelf.layout",
+              "value": "list",
+              "target": {
+                "kind": "global"
+              }
+            },
+            {
+              "path": "shelf.group",
+              "value": "format",
+              "target": {
+                "kind": "global"
+              }
+            },
+            {
+              "path": "shelf.sort",
+              "value": "progress",
+              "target": {
+                "kind": "global"
+              }
+            }
+          ],
+          "paths": [
+            "shelf.layout",
+            "shelf.group",
+            "shelf.sort",
+            "appearance.theme",
+            "appearance.motion",
+            "reading.fontSize",
+            "reading.lineSpacing"
+          ]
+        },
+        "saved": {
+          "gist": {
+            "id": "b72fda1a-b599-4433-a128-f6e8cdeddc7f",
+            "name": "Agent Saved Workspace"
+          }
+        },
+        "applied": {
+          "gist": {
+            "id": "b72fda1a-b599-4433-a128-f6e8cdeddc7f",
+            "name": "Agent Saved Workspace",
+            "changed": [
+              {
+                "path": "shelf.layout",
+                "value": "list",
+                "target": {
+                  "kind": "global"
+                }
+              },
+              {
+                "path": "shelf.group",
+                "value": "format",
+                "target": {
+                  "kind": "global"
+                }
+              },
+              {
+                "path": "shelf.sort",
+                "value": "progress",
+                "target": {
+                  "kind": "global"
+                }
+              }
+            ],
+            "overrides": []
+          }
+        },
+        "snapshot": {
+          "view": {
+            "layout": "list",
+            "group": "format",
+            "sort": "progress"
+          },
+          "storedView": {
+            "layout": "list",
+            "group": "format",
+            "sort": "progress"
+          },
+          "appearance": {
+            "theme": "system",
+            "motion": "system"
+          },
+          "profiles": [
+            {
+              "id": "b72fda1a-b599-4433-a128-f6e8cdeddc7f",
+              "json": "{\"version\":1,\"name\":\"Agent Saved Workspace\",\"changes\":[{\"path\":\"shelf.layout\",\"value\":\"list\",\"target\":{\"kind\":\"global\"}},{\"path\":\"shelf.group\",\"value\":\"format\",\"target\":{\"kind\":\"global\"}},{\"path\":\"shelf.sort\",\"value\":\"progress\",\"target\":{\"kind\":\"global\"}},{\"path\":\"appearance.theme\",\"value\":\"system\",\"target\":{\"kind\":\"global\"}},{\"path\":\"appearance.motion\",\"value\":\"system\",\"target\":{\"kind\":\"global\"}},{\"path\":\"reading.fontSize\",\"value\":\"medium\",\"target\":{\"kind\":\"global\"}},{\"path\":\"reading.lineSpacing\",\"value\":\"comfortable\",\"target\":{\"kind\":\"global\"}}]}",
+              "bookId": null,
+              "anchor": null,
+              "updatedAt": "2026-09-09T04:29:00.768Z"
+            },
+            {
+              "id": "c5f90102-dcd7-46ad-a862-e67d954fe096",
+              "json": "{\"version\":1,\"name\":\"Native Reading Workspace\",\"changes\":[{\"path\":\"shelf.layout\",\"value\":\"grid\",\"target\":{\"kind\":\"global\"}},{\"path\":\"shelf.group\",\"value\":\"none\",\"target\":{\"kind\":\"global\"}},{\"path\":\"shelf.sort\",\"value\":\"recent\",\"target\":{\"kind\":\"global\"}},{\"path\":\"appearance.theme\",\"value\":\"system\",\"target\":{\"kind\":\"global\"}},{\"path\":\"appearance.motion\",\"value\":\"system\",\"target\":{\"kind\":\"global\"}},{\"path\":\"reading.fontSize\",\"value\":\"medium\",\"target\":{\"kind\":\"global\"}},{\"path\":\"reading.lineSpacing\",\"value\":\"comfortable\",\"target\":{\"kind\":\"global\"}}]}",
+              "bookId": null,
+              "anchor": null,
+              "updatedAt": "2026-09-09T04:27:50.547Z"
+            }
+          ]
+        },
+        "removed": {
+          "gist": {
+            "deleted": "b72fda1a-b599-4433-a128-f6e8cdeddc7f"
+          }
+        }
+      }
+    },
+    "workspaceCleanup": {
+      "status": "done",
+      "result": {
+        "plugin": {
+          "profiles": 0,
+          "tools": 0,
+          "commands": 0
+        },
+        "settings": {
+          "contributions": 0
+        },
+        "snapshot": {
+          "view": {
+            "layout": "grid",
+            "group": "none",
+            "sort": "recent"
+          },
+          "storedView": {
+            "layout": "grid",
+            "group": "none",
+            "sort": "recent"
+          },
+          "appearance": {
+            "theme": "system",
+            "motion": "system"
+          },
+          "profiles": []
+        }
+      }
+    },
+    "workspaceFinalCleanup": {
+      "after": {
+        "appearance": {
+          "motion": "system",
+          "theme": "system"
+        },
+        "profiles": [],
+        "storedView": {
+          "group": "none",
+          "layout": "grid",
+          "sort": "recent"
+        },
+        "view": {
+          "group": "none",
+          "layout": "grid",
+          "sort": "recent"
+        }
+      },
+      "before": {
+        "appearance": {
+          "motion": "system",
+          "theme": "system"
+        },
+        "profiles": [],
+        "storedView": {
+          "group": "author",
+          "layout": "list",
+          "sort": "title"
+        },
+        "view": {
+          "group": "author",
+          "layout": "list",
+          "sort": "title"
+        }
+      },
+      "plugin": {
+        "commands": 0,
+        "profiles": 0,
+        "tools": 0
+      },
+      "settings": {
+        "contributions": 0
+      }
+    }
+  },
+  "ui": {
+    "savedViaForm": "Native Reading Workspace",
+    "blankName": "field error observed",
+    "appliedViaButton": "Restored grid/none/recent and system motion",
+    "deletedViaButton": true,
+    "headerMenu": "Opened diagnostic Workspace Profiles from shelf More menu; dev-installed workspace-profiles also present under a different ID",
+    "icons": "Final plus/cards/refresh icons visually checked; no fallback puzzle glyph",
+    "thumbnail": {
+      "width": 44,
+      "height": 64,
+      "overflow": false,
+      "titleDuplicated": false
+    },
+    "screenshots": [
+      "/tmp/workspace-profiles-list-final.png",
+      "/tmp/workspace-profiles-menu-final.png",
+      "/tmp/workspace-profiles-detail-fixed.png"
+    ],
+    "viewport": [
+      1200,
+      800
+    ],
+    "dialogHorizontalOverflow": false
+  },
+  "caveats": [
+    "Initial Vite dependency optimization reloaded before mutation; re-imported fixtures in the same live process.",
+    "Rebuilding the plugin caused a development module-load failure followed by mounted reload, showing a prior-problem toast. No crash-free boot claim.",
+    "Early screenshots captured transitions and were not counted as settled UI evidence.",
+    "Concurrency, native write rollback, unauthorized and stale-option rejection were tested in focused tests, not injected into this live app run.",
+    "No real model inference or semantic evaluation; direct registered product tools were invoked.",
+    "No packaged, Windows/Linux, installation approval or restart durability verification. Book-specific override preservation tested in plugin unit tests, not changed in this live app run.",
+    "UI02 search, current collection and selection remain unexposed. W01-W32 and all actor gaps remain incomplete."
+  ],
+  "cleanup": {
+    "fixtureDocuments": 0,
+    "fixtureTools": 0,
+    "fixtureCommands": 0,
+    "settingsContributions": 0,
+    "restoredSevenPreferences": true,
+    "ownedProcessGroup": 55573,
+    "exitCode": 143,
+    "portsFree": [
+      5184,
+      9224
+    ]
+  }
+}

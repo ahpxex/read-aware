@@ -258,7 +258,7 @@ resolution, persistence, and change effects.
 
 Appearance is a Settings section, not a domain and not a service.
 
-Current stable sections include General, Appearance, Reading, Annotations, Menus and
+Current stable sections include General, Shelf, Appearance, Reading, Annotations, Menus and
 Shortcuts, AI, Sync, and Plugins. Sections organize discovery and UI; they do
 not create separate APIs.
 
@@ -276,6 +276,7 @@ Settings operations are:
 
 - discover permitted definitions;
 - read resolved values;
+- capture a settled, path-filtered snapshot of values and override metadata;
 - update permitted paths at supported targets;
 - subscribe to committed changes.
 
@@ -322,6 +323,51 @@ real FB2 alignment/highlights, PDF canvas colors, typography, permission
 rejection, and injected SQLite failure; post-update relaunch behavior,
 other desktop platforms, and packaged validation of these nine paths remain
 unverified. See [delivery evidence](./host-capability-delivery.md).
+
+### Shelf preferences and workspace profiles
+
+[代码] `domains.settings` 1.3 adds three global, device-local paths to the
+same catalog used by product Agent tools and granted plugins:
+
+| Path | Values |
+| --- | --- |
+| `shelf.layout` | `grid`, `list` |
+| `shelf.group` | `none`, `status`, `author`, `format` |
+| `shelf.sort` | `recent`, `added`, `title`, `author`, `progress` |
+
+They update the existing shelf preference record, including atomic batches with
+other settings. The shelf atom follows external KV writes and failed-write
+rollback even when unmounted. These preferences do not navigate, change the
+active collection/filter/selection, or mutate books. Per-book targets reject.
+
+[代码] Plugins can now call `queries.snapshot(query?)`. Unlike separately timed
+reads, it waits for previously queued settings commands and local KV writes to
+settle before one synchronous snapshot. Returned values and override paths are
+filtered by read/write grants; discovery-only grants reveal no values. This is
+not a revision token or an atomic read-modify-write transaction; another actor
+can change settings after capture. Existing `read`/`discover` can still show
+optimistic state, while this snapshot is intended for coherent saved presets.
+
+[代码] Workspace Profiles 0.1 composes this API with private document storage,
+shelf header/command views and the `workspace_profiles` Agent tool in global
+and book scopes. It saves exactly the three shelf paths plus `appearance.theme`,
+`appearance.motion`, `reading.fontSize` and `reading.lineSpacing`. Names trim to
+1-80 characters; each save creates a UUID document in `profiles`. Apply
+validates the version, exact path set and global targets, then submits one
+atomic settings update. Current catalog validation rejects stale theme options
+without partial changes. Global reading changes preserve existing book overrides;
+the tool returns override metadata. Delete removes the preset, not host settings.
+It neither changes AI privacy nor accesses credentials or plugin lifecycle.
+
+[环境] The [desktop evidence](./evidence/workspace-profiles-2026-09-09.json)
+covers real product tools, the built plugin Worker, save/validation/apply/delete
+UI, shelf grouping and ordering, the header entry, and cleanup in isolated
+macOS debug Tauri. Focused tests cover queued actors, permission filtering,
+native write rollback and snapshots waiting for failed UI writes. No model
+inference, installation approval, packaged build, cross-platform or restart
+durability claim is made. A development rebuild caused a transient module-load
+boot failure before the same app remounted; the resulting diagnostics notice
+is visible in screenshots. UI02 and CFG10 retain their remaining gaps.
 
 ### Host inference privacy policy
 
@@ -819,9 +865,9 @@ user configuration.
 
 ## 13. First-Party Coverage
 
-The ten source plugins use the registry-backed contract. Rust currently bundles
+The eleven source plugins use the registry-backed contract. Rust currently bundles
 six; source presence is not installation or enablement. Theme Schedule is in the
-adjacent distribution repository, not an eleventh plugin in this checkout:
+adjacent distribution repository, not a twelfth plugin in this checkout:
 
 | Plugin | Primary capabilities |
 | --- | --- |
@@ -836,6 +882,7 @@ adjacent distribution repository, not an eleventh plugin in this checkout:
 | Annotation Desk | paged annotations, conditional edits, export, views |
 | Listening Desk | reading mode/provider control, unit navigation, playback/history, environment offline hint |
 | Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |
+| Workspace Profiles | settled settings snapshots, exact path grants, atomic presets, private documents, shelf header/command views and Agent tool |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs
 in their packages and registered capabilities.

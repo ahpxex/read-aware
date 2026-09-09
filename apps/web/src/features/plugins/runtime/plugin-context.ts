@@ -224,6 +224,7 @@ export function buildPluginContext(
     domains: {
       settings: {
         queries: {
+          snapshot: settingsDomain.queries.snapshot,
           discover: settingsDomain.queries.discover,
           read: settingsDomain.queries.read,
         },

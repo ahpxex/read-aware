@@ -50,6 +50,8 @@ import type { ContentTypographySettings } from "../../features/settings/lib/cont
 import type { UpdateChannel } from "../../features/update/lib/update-channel";
 import type { Highlight } from "../../features/annotations/lib/annotation-types";
 import { contentPreferenceDefinitions } from "./content-preferences";
+import type { ShelfView } from "../../features/shelf/lib/shelf-view";
+import { shelfPreferenceDefinitions } from "./shelf-preferences";
 import { cleanFontFamily, fontOptions } from "./font-options";
 import type {
   PluginFormField,
@@ -58,6 +60,7 @@ import type {
 
 export type SettingsDraft = {
   general: GeneralSettings;
+  shelf: ShelfView;
   appearance: AppSettings;
   reading: ReaderSettingsPreferences;
   readerOverrides: ReaderOverrides;
@@ -600,6 +603,7 @@ export function buildSettingDefinitions(
 ): SettingDefinition[] {
   const definitions: SettingDefinition[] = [
     ...contentPreferenceDefinitions(),
+    ...shelfPreferenceDefinitions(),
     globalDefinition({
       path: "general.startView",
       section: "general",

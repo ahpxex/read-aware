@@ -51,6 +51,7 @@ import {
 import { textUnitReaderModeAtom } from "../features/plugins/state/plugin-store";
 import { onAppEvent } from "../platform/app-events";
 import {
+  SHELF_VIEW_KEY,
   getShelfView,
   saveShelfView,
   type ShelfView,
@@ -233,6 +234,7 @@ onLocalKVChange((key) => {
     case APP_SETTINGS_KEY: store.set(appSettingsBaseAtom, getAppSettings()); break;
     case CONTENT_TYPOGRAPHY_KEY: store.set(contentTypographyBaseAtom, getContentTypography()); break;
     case AI_PREFERENCES_KEY: store.set(aiPreferencesBaseAtom, getAIPreferences()); break;
+    case SHELF_VIEW_KEY: store.set(shelfViewBaseAtom, getShelfView()); break;
     case READER_PREFERENCES_KEY: store.set(readerPreferencesBaseAtom, getReaderPreferences()); break;
     case READER_OVERRIDES_KEY: store.set(readerOverridesBaseAtom, getReaderOverrides()); break;
     case GENERAL_SETTINGS_KEY: {

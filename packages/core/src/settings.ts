@@ -3,6 +3,7 @@ import type { EventOrigin } from "./entities";
 /** Canonical product settings vocabulary shared by UI, agent, and plugins. */
 export type SettingsSection =
   | "general"
+  | "shelf"
   | "appearance"
   | "reading"
   | "annotations"

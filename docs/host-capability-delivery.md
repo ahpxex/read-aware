@@ -628,3 +628,21 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [验证] 聚焦 7 文件、23 测试、84 次断言通过；新增覆盖字段验证/复制、四组合、必需字段、重试、已完成 Promise 撤权竞态、流式迟到回调、宿主 runtime 接线和 Dictionary 缓存/普通输入。全仓 test 20/20、typecheck 23/23、Dictionary build、生产前端 build 通过；保留既有 Rust cfg/dead-code 与 Vite 大块/混合导入警告，未修改 Rust 业务或重跑 Rust 全套。三个文档对 validator、两个生成器 --check 与 diff --check 通过。改变的矩阵和插件说明 HTML 在 1440×1000、1024×768、390×844 无横向溢出/重复 ID/坏锚点/无名按钮/已观察资源错误；中英文搜索与 Escape、矩阵目录和主题刷新保持通过。模型 HTML 概览事实不变，生成器未改该文件；Markdown 的逐项证据同步更新。文档浏览器已关闭，仍依赖 CDN。
 
 [清理/仍缺] 插件 lookups/words、选择动作、命令与探针贡献均归零；原模型配置/密钥和四设置恢复，两个自有进程组退出，5184/9224/19843 无监听。正式实例未操作、未推送。保持 224 行、578 库存、129 验收项、30 责任单元/catalog、32 场景；SET24/25 仍是部分，任意自组装 prompt/HTTP/TTS、独立检索和旧衍生内容没有全局来源治理。公开取消/任务预算/用量回执、其余双端接线、全组合插件和 packaged/Windows/Linux 仍待实现或验收，总目标未关闭。
+
+## 2026-09-09：D5 / 书架偏好与 Workspace Profiles
+
+[代码] settings 升至 1.3.0，shelf.layout/group/sort 接入现有目录、Agent get_settings/update_settings 与插件精确路径授权。布局 grid/list，分组 none/status/author/format，排序 recent/added/title/author/progress，均为 global/device-local。写回原 shelf-view KV，与其他偏好同批原子提交；shelfViewAtom 跟随外部写入及失败回滚，即使书架没有挂载也更新。没有改变当前筛选、集合、多选或书籍数据。
+
+[代码] 插件补公开 queries.snapshot，沿用宿主已有快照与权限过滤，不把七次 read 拼成伪快照。等待此前排队命令和 KV 写结算后一次读取；此前 UI 写失败时返回回滚后的值，不捕获已失败的乐观状态。discover-only 不获得值，未授予路径的 overrides 也过滤。该快照不是 revision 锁或跨后续动作的事务；read/discover 的乐观读取行为没有冒充同等保证。
+
+[代码] 新增实用插件 Workspace Profiles 0.1.0。七项精确读写授权覆盖三项书架设置、应用主题/动效、全局阅读字号/行距；组合私有 profiles 文档、书架 header、命令、声明式列表/表单及双域 workspace_profiles Agent 工具。保存创建 UUID，名称校验 1-80 字符；应用检查版本/路径/全局目标，以当前目录原子验证提交，过期主题不部分应用；删除预设不改变宿主设置。全局阅读设置保留已有本书覆盖，工具回执包含 overrides。源码插件十一项，Rust bundled 六项；dev-installed 实例不等于生产内置或安装审批通过。
+
+[环境] [桌面证据](./evidence/workspace-profiles-2026-09-09.json)来自隔离 macOS debug Tauri 5184/9224。实际表单保存 Native Reading Workspace、空名称显示字段错误；实际 Agent 设置工具改为 list/author/title/reduced，点击预设 Apply 恢复 grid/none/recent/system。设置 Worker 改为 list/format/progress，插件注册 Agent 工具保存、应用、删除同样生效。最终从真实书架 More 入口打开诊断 Worker，检查 plus/cards/refresh 图标、七字段详情和 Delete；生产身份与诊断身份各有一个 header，不误判为重复注册。
+
+[代码/环境] 列表状态暴露了原无封面缩略图的标题挤压，新增 compact 呈现：44×64 内只放 Phosphor 书籍图标和格式，标题留在行正文；完整封面不变，增加长标题/AZW3 Story。真实 Tauri 测得缩略图无横纵溢出，1200×800 弹窗无横向溢出；最终列表/菜单/详情截图已查看。早期截图处在加载/关闭过渡，不计作完成证据。开发重建触发一次模块加载失败后同进程重新 mounted，截图保留诊断通知；不宣称启动零错误。没有真实模型调用或语义 eval；没有注入真实 SQLite 锁、修改本书覆盖或验安装重启，相关语义只按下述测试范围计证据。
+
+[验证] 聚焦 3 文件 11 个外层测试、38 次断言通过，其中独立 native IPC 持久化子进程有 7 项用例；涵盖双 actor 排队合并、权限/非法值/目标拒绝、跨记录失败回滚、失败后快照、过期预设与覆盖回执。全仓 test 21/21、typecheck 24/24、新插件 build、生产前端 build 通过；首次 test 因能力版本断言仍为 settings 1.2 失败，更新为真实 1.3 后重跑成功。保留 Vite 体积/混合导入和 Node 弃用警告；未改 Rust 业务，未独立重跑 Rust 全套或 packaged 构建。
+
+[文档] 重扫为 227 行、584 库存、58 设置路径、129 原验收项、30 责任单元/catalog、32 场景。七项模型门禁、两个生成器 --check 和三个文档对 validator 通过。矩阵、模型、插件说明 HTML 在 1440×1000、1024×768、390×844 无页面横向溢出、重复 ID、坏锚点、无名按钮或已观察资源 HTTP 错误；中英文 Workspace/书架搜索与 Escape、已有目录 inert 和主题刷新保持通过，console/page error 为空。文档仍依赖 CDN，无新增图；文档浏览器不算产品验证，已关闭。
+
+[清理/仍缺] 各轮诊断 profiles/tools/commands 与设置贡献归零，七项偏好恢复；自有进程组 55573 已退出、5184/9224 无监听，正式实例未操作。UI02 的搜索/当前集合/选择集、UI04 快捷键、CFG10 全来源观察、六项无效果设置、其余双端缺口、W01-W32 全组合及 packaged/Windows/Linux 验收仍未完成。原 GAP 没有因新增插件或字段关闭，总目标保持进行中。

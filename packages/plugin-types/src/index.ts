@@ -1289,6 +1289,8 @@ export type PluginConversationsDomain = {
 
 export type PluginSettingsDomain = {
   queries: {
+    /** Since settings 1.3: one host snapshot after prior queued writes settle, filtered by exact path grants. */
+    snapshot(query?: SettingsQuery): Promise<import("@read-aware/core").SettingsSnapshot>;
     discover(query?: SettingsQuery): Promise<SettingCatalogEntry[]>;
     read(path: string, target?: SettingsQueryTarget): Promise<SettingReadResult>;
   };

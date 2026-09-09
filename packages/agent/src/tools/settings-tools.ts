@@ -17,6 +17,7 @@ const sectionSchema = Type.Union([
   Type.Literal("appearance", { description: "Application appearance and chat/note content typography, not reader pages" }),
   Type.Literal("reading", { description: "Reader pages: theme, font, and reading mode" }),
   Type.Literal("annotations", { description: "Preferences for new highlights and underlines" }),
+  Type.Literal("shelf", { description: "Device-local shelf layout, grouping and sort order, not book data or selection" }),
   Type.Literal("ai", { description: "Non-sensitive AI behavior preferences" }),
   Type.Literal("menus", {
     description:

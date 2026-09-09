@@ -82,6 +82,7 @@ export function settingsSnapshotFromDraft(
 function cloneDraft(draft: SettingsDraft): SettingsDraft {
   return {
     general: { ...draft.general },
+    shelf: { ...draft.shelf },
     appearance: { ...draft.appearance },
     reading: { ...draft.reading },
     contentTypography: { ...draft.contentTypography },
@@ -127,6 +128,7 @@ function mutableFingerprint(draft: SettingsDraft): string {
     : null;
   return JSON.stringify({
     general: draft.general,
+    shelf: draft.shelf,
     appearance: draft.appearance,
     reading: draft.reading,
     contentTypography: draft.contentTypography,

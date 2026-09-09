@@ -3,6 +3,7 @@ import { MENU_CONFIG_KEY } from "../../features/menus/state/menu-config";
 import { pluginSettingsKey } from "../../features/plugins/lib/plugin-settings";
 import { APP_SETTINGS_KEY } from "../../features/settings/lib/app-settings";
 import { GENERAL_SETTINGS_KEY } from "../../features/settings/lib/general-settings";
+import { SHELF_VIEW_KEY } from "../../features/shelf/lib/shelf-view";
 import { AI_PREFERENCES_KEY } from "../../features/settings/lib/ai-preferences";
 import { READER_PREFERENCES_KEY } from "../../features/settings/lib/reader-settings";
 import { READER_OVERRIDES_KEY } from "../../features/settings/lib/reader-overrides";
@@ -20,6 +21,7 @@ export function commitSettingsDraft(before: SettingsDraft, next: SettingsDraft):
     if (JSON.stringify(previous) !== encoded) entries.set(key, encoded);
   };
   record(GENERAL_SETTINGS_KEY, before.general, next.general);
+  record(SHELF_VIEW_KEY, before.shelf, next.shelf);
   record(APP_SETTINGS_KEY, before.appearance, next.appearance);
   record(READER_PREFERENCES_KEY, before.reading, next.reading);
   record(READER_OVERRIDES_KEY, before.readerOverrides, next.readerOverrides);

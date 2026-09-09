@@ -5,7 +5,7 @@
 - 状态：**代码盘点完成；能力实现与桌面验收未完成**。
 - 最后核验日期：2026-09-09。
 - 范围：当前 Tauri 桌面宿主及必要组合协议；Agent 指 ReadAware 产品内的模型工具与自动管线，不是外部 Coding Agent 的电脑控制能力。
-- [代码] 224 行 / 13 组，129 个既有验收项全部有对应行。字段行是可核对设置清单，不能与功能族相加当产品功能数量。
+- [代码] 227 行 / 13 组，129 个既有验收项全部有对应行。字段行是可核对设置清单，不能与功能族相加当产品功能数量。
 - [设计] 两个目标列是建议开放方式/刻意拒绝方式，尚未实现的目标不混入当前状态。
 - 修改事实源 [host-capability-matrix.data.ts](./host-capability-matrix.data.ts)，再运行 [生成器](../scripts/build-host-capability-matrix.ts)；不要分别手改生成的 MD/HTML。
 
@@ -13,16 +13,16 @@
 
 1. 不能确认能力都已实现。此表区分宿主行为、Agent 工具/自动管线、插件 API/贡献和实际插件消费者；没有把代码存在算成端到端可用。
 2. 运行态正在接通：版本化位置、会话快照、精确搜索、导航回执/历史与朗读启停已由共享域提供给 Agent、Jumper 和 Listening Desk。模式控制、通用任务与资源释放、全部格式及跨平台验收仍未完成；持久化领域 API 无法代表全部产品能力。
-3. 6 个旧设置路径仍未找到对应效果消费者；两端可改值不等于行为覆盖。两个文本发送设置已过滤 Agent 自动输入/历史附件并在收紧时取消，插件结构化 readingContext 与 Dictionary 1.3 也已接通，任意 prompt/HTTP/TTS 仍有边界；buildMemory 已控制记忆构建与在途取消；localOnly 已接入宿主 Agent/插件 LLM 的拒绝与在途取消，但任意插件 HTTP/TTS/同步仍不受该策略约束，保留部分。settings 1.2 的九项真实偏好已接通；快捷键、书架视图等缺口仍在。
+3. 6 个旧设置路径仍未找到对应效果消费者；两端可改值不等于行为覆盖。两个文本发送设置已过滤 Agent 自动输入/历史附件并在收紧时取消，插件结构化 readingContext 与 Dictionary 1.3 也已接通，任意 prompt/HTTP/TTS 仍有边界；buildMemory 已控制记忆构建与在途取消；localOnly 已接入宿主 Agent/插件 LLM 的拒绝与在途取消，但任意插件 HTTP/TTS/同步仍不受该策略约束，保留部分。settings 1.2 的九项真实偏好已接通；书架布局/分组/排序已接 settings 1.3；快捷键、搜索与选择集等缺口仍在。
 4. Agent 自动记忆巩固与 digest 管线已经接入；画像 seed/实体事件投影并未同等接通。不要沿用旧架构说明把它们一起说成已实现或未实现。
 5. 插件 UI、贡献注册、宿主消费、模型工具是不同方向。Dictionary/RSS 提供模型工具；宿主 control_read_aloud、configure_reading_mode 与 navigate_reading 统一消费声音和模式提供者，Listening Desk 调用相同控制器。主题调度/WebDAV 连接仍无同等直接操作工具；设置可改不等于行为接通。
 6. 备份 v1 并非全部当前存储的完整快照；私有数据、聊天、记忆、密钥、日志与同步状态的生命周期必须分别建模。原基线 129 项与 GAP01–GAP18 均保留，没有借新表宣告关闭。
 
 ## 计数与口径
 
-- 宿主：实装 174、部分 43、待建 3、引擎 1、占位 2、非桌面 1。
-- Agent：接通 89、部分 45、未接 50、扩展 14、自动 20、内部 6。
-- 插件：接通 102、部分 75、未接 47。
+- 宿主：实装 177、部分 43、待建 3、引擎 1、占位 2、非桌面 1。
+- Agent：接通 92、部分 45、未接 50、扩展 14、自动 20、内部 6。
+- 插件：接通 105、部分 76、未接 46。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -147,11 +147,11 @@
 | ID | 宿主能力 | 宿主现状 | Agent 当前与目标 | 插件当前与目标 | 实际消费者 | 缺口/边界 | 来源 | 旧基线 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | <a id="UI01"></a>UI01 | 书架/Agent/统计/设置与集合页面导航 | 实装 | **部分**：open_book；present_books 仅书卡<br>[设计] 语义导航工具 | **部分**：openBook；插件自己的 page<br>[设计] 语义路由服务 | 主导航；命令面板 | 无通用 openSettings/openCollection/goStats；不公开 Router/Jotai | [APP](../apps/web/src/App.tsx) [UI](../apps/web/src/state/ui.ts) [COMMAND](../apps/web/src/features/command/lib/build-commands.tsx) [API](../packages/plugin-types/src/index.ts) | I01 |
-| <a id="UI02"></a>UI02 | 书架搜索/布局/排序/分组/多选 | 实装 | **部分**：list_books 查数据，不改变视图<br>[设计] 查询视图状态/受控设置 | **未接**：无正式入口<br>[设计] 视图状态与选择集服务 | 书架；命令面板 | 数据查询不是切换用户当前列表；多选不是用户授权批量删除 | [SHELF](../apps/web/src/features/shelf/lib/shelf-view.ts) [SHELFUI](../apps/web/src/features/shelf/components/Shelf.tsx) [COMMAND](../apps/web/src/features/command/lib/build-commands.tsx) | H03 |
+| <a id="UI02"></a>UI02 | 书架搜索/布局/排序/分组/多选 | 实装 | **部分**：settings 1.3 shelf.layout/group/sort；list_books 查询数据<br>[设计] 查询视图状态/受控设置 | **部分**：settings 1.3 shelf.* + 已结算 snapshot<br>[设计] 视图状态与选择集服务 | 书架；Workspace Profiles；Agent 设置工具 | 布局/分组/排序已通过共享设置和 KV 回滚接到真实书架；Workspace Profiles 组合快照、私有文档与原子更新。搜索/当前集合/选择集仍未开放；多选不是批量删除授权 | [SHELF](../apps/web/src/features/shelf/lib/shelf-view.ts) [SHELFUI](../apps/web/src/features/shelf/components/Shelf.tsx) [COMMAND](../apps/web/src/features/command/lib/build-commands.tsx) [SHELFSETTINGS](../apps/web/src/domain/settings/shelf-preferences.ts) [WORKSPACEPROFILES](../plugins/workspace-profiles/src/profiles.ts) [WORKSPACEEVIDENCE](../docs/evidence/workspace-profiles-2026-09-09.json) | H03 |
 | <a id="UI03"></a>UI03 | 发现/执行宿主命令与可用条件 | 实装 | **未接**：无正式入口<br>[设计] 可审计的命令调用 | **部分**：commands.register 只贡献自己的命令<br>[设计] 命令注册与受控调用分离 | 命令面板/快捷键 | 不能把菜单 ID 或命令 label 当稳定 RPC；需参数 schema、条件、回执 | [COMMAND](../apps/web/src/features/command/lib/build-commands.tsx) [SHORTCUT](../apps/web/src/features/settings/lib/shortcuts.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | I02, I03 |
 | <a id="UI04"></a>UI04 | 快捷键查询、重绑、冲突与重置 | 实装 | **未接**：无正式入口<br>[设计] 快捷键设置工具 | **部分**：贡献默认 shortcut，无重绑查询<br>[设计] 命令绑定与冲突查询 | 快捷键设置页；插件命令 | 默认快捷键不是用户实际绑定；菜单快捷键与原生快捷键需一致 | [SHORTCUT](../apps/web/src/features/settings/lib/shortcuts.ts) [SHORTUI](../apps/web/src/features/settings/sections/ShortcutsPanel.tsx) [API](../packages/plugin-types/src/index.ts) | H03, I02 |
 | <a id="UI05"></a>UI05 | 菜单可见/溢出位置及自定义重排 | 实装 | **接通**：get_settings/update_settings menus.*<br>[设计] 结构化设置工具 | **接通**：settings domain menus.* 按路径授权<br>[设计] 结构化设置领域 | 菜单设置；插件 header/selection | 可改布局不代表可调用菜单动作；具体 8 个路径另逐项列出 | [MENU](../apps/web/src/features/menus/lib/menu-registry.tsx) [MENUSTATE](../apps/web/src/features/menus/state/menu-config.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) | I08 |
-| <a id="CFG01"></a>CFG01 | 设置 discover/read/update 与动态选项 | 实装 | **接通**：get_settings/update_settings；等待本地事务提交<br>[设计] 设置工具 | **接通**：settings 1.1 discover/read/update；原子保存与授权结果<br>[设计] 路径授权设置领域 | Agent；Theme Schedule；TTS options | 单个命令跨 KV 记录原子提交；失败不发 settings.changed，下一命令基于已结算状态；结果快照按 read/write grant 过滤。事务不包含密钥、远端漫游提交或尚未接通的效果；设置 API 接通不证明值有消费者 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [KV](../apps/web/src/platform/local-store.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | H01 |
+| <a id="CFG01"></a>CFG01 | 设置 discover/read/update 与动态选项 | 实装 | **接通**：get_settings/update_settings；等待本地事务提交<br>[设计] 设置工具 | **接通**：settings 1.3 snapshot/discover/read/update；原子保存与授权结果<br>[设计] 路径授权设置领域 | Agent；Theme Schedule；TTS options | snapshot 等待此前命令/UI 写结算后一次读取，按路径授权过滤；单个命令跨 KV 记录原子提交；失败不发 settings.changed，下一命令基于已结算状态；结果快照按 read/write grant 过滤。事务不包含密钥、远端漫游提交或尚未接通的效果；设置 API 接通不证明值有消费者 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [KV](../apps/web/src/platform/local-store.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | H01 |
 | <a id="CFG02"></a>CFG02 | 全局/本书/全书阅读设置覆盖 | 实装 | **接通**：update_settings target<br>[设计] 显式作用域写工具 | **接通**：settings.commands.update target<br>[设计] 显式作用域写领域 | AppearancePanel；Agent | all-books 写全局并更新 overrides，不等于清除所有覆盖 | [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [OVERRIDES](../apps/web/src/features/settings/lib/reader-overrides.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) | H05 |
 | <a id="CFG03"></a>CFG03 | 清除覆盖/恢复默认/查询值来源 | 实装 | **未接**：无正式入口<br>[设计] reset + effective value/provenance | **未接**：无正式入口<br>[设计] reset + effective value/provenance | 阅读外观设置 | 当前 update 不能表达 inherit/delete override；不是写默认值可替代 | [PREFS](../apps/web/src/features/settings/lib/reader-settings.ts) [OVERRIDES](../apps/web/src/features/settings/lib/reader-overrides.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | H05 |
 | <a id="CFG04"></a>CFG04 | 阅读对齐 reading.textAlign | 实装 | **接通**：get_settings/update_settings<br>[设计] 结构化设置工具 | **接通**：settings 1.2；显式 global/book/all-books<br>[设计] 路径授权设置领域 | 阅读设置/渲染 | book/start/justify；与阅读外观同一覆盖规则，不是另造 CSS 接口 | [PREFS](../apps/web/src/features/settings/lib/reader-settings.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) | H02 |
@@ -160,12 +160,12 @@
 | <a id="CFG07"></a>CFG07 | AI 提供商/端点/密钥配置 | 实装 | **部分**：只读 provider/credentialConfigured；无密钥<br>[设计] 打开宿主敏感配置流程 | **部分**：受权读非敏感存在状态；无宿主 key<br>[设计] 打开宿主敏感配置流程 | AIConfigPanel | 不开放：读取宿主密钥；不能把 readonly provider 算作可切换提供商 | [AICONFIG](../apps/web/src/features/ai/lib/ai-config.ts) [AICONFIGUI](../apps/web/src/features/settings/components/AIConfigPanel.tsx) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SECRETS](../apps/web/src/platform/secret-store.ts) | H04 |
 | <a id="CFG08"></a>CFG08 | 模型目录刷新、连接测试与模型能力 | 实装 | **部分**：设置 discover 给模型选项<br>[设计] 连接诊断/能力查询 | **部分**：settings discover 动态选项<br>[设计] 连接诊断/能力查询 | AI 配置页 | 选择已缓存模型不等于能刷新/测试连接 | [MODELCATALOG](../apps/web/src/features/ai/lib/model-catalog.ts) [AICONFIGUI](../apps/web/src/features/settings/components/AIConfigPanel.tsx) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | H04 |
 | <a id="CFG09"></a>CFG09 | 插件非敏感设置的动态路径 | 实装 | **接通**：plugins.<id>.<field> get/update_settings<br>[设计] 参数配置工具 | **接通**：自有路径默认授权；他者路径需 grant<br>[设计] 隔离设置领域 | TTS/RSS/Theme Schedule 等 | 插件启用/声明决定目录；secret/password 字段不暴露；配置不等于执行插件命令 | [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) | H06 |
-| <a id="CFG10"></a>CFG10 | 设置变化事件/外部写入刷新 | 部分 | **自动**：每次读当前目录/值；持久失败向工具拒绝<br>[设计] 运行时刷新 | **部分**：提交事件 + KV 镜像/回滚失效通知<br>[设计] 有版本/来源的观察 | Theme Schedule；插件设置视图 | 通用设置记录与菜单 base atom 跟随 KV，插件表单/模式/提供者订阅覆盖声明设置回滚；失效通知在 Worker 镜像观察之后分发。GAP03/09/11 仍缺全来源带 revision/origin 的领域广播、所有 UI 编辑草稿与异步效果验收；不是关闭完整 GAP | [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [WORKER](../apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts) [KV](../apps/web/src/platform/local-store.ts) | H01 |
+| <a id="CFG10"></a>CFG10 | 设置变化事件/外部写入刷新 | 部分 | **自动**：每次读当前目录/值；持久失败向工具拒绝<br>[设计] 运行时刷新 | **部分**：提交事件 + KV 镜像/回滚失效通知<br>[设计] 有版本/来源的观察 | Theme Schedule；插件设置视图 | 通用设置记录、书架布局/分组/排序与菜单 base atom 跟随 KV，插件表单/模式/提供者订阅覆盖声明设置回滚；失效通知在 Worker 镜像观察之后分发。GAP03/09/11 仍缺全来源带 revision/origin 的领域广播、所有 UI 编辑草稿与异步效果验收；不是关闭完整 GAP | [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [WORKER](../apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts) [KV](../apps/web/src/platform/local-store.ts) | H01 |
 | <a id="CFG11"></a>CFG11 | 聊天/笔记内容字体：跟随阅读或独立字号/字体/行距 | 实装 | **接通**：appearance.contentTypography.*<br>[设计] 结构化设置工具 | **接通**：settings 1.2；四个全局字段<br>[设计] 路径授权设置领域 | AppearancePanel；聊天、笔记、插件 Markdown 与 composer | followReader/fontFamily/fontSize/lineSpacing；跟随全局 reader 而非本书 override；fontFamily=null 为应用字体，独立字段只在 followReader=false 生效；base atom 跟随 KV 回滚 | [TYPOGRAPHY](../apps/web/src/features/settings/lib/content-typography.ts) [TYPOGRAPHYUI](../apps/web/src/features/settings/sections/AppearancePanel.tsx) [TYPOGRAPHYEFFECT](../apps/web/src/features/settings/hooks/useContentTypography.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | 新增盘点 |
 | <a id="CFG12"></a>CFG12 | 新标注默认颜色 | 实装 | **接通**：annotations.defaultColor<br>[设计] 结构化设置工具 | **接通**：settings 1.2；annotations section<br>[设计] 路径授权设置领域 | 一键高亮/下划线；recolor 更新后续默认色 | yellow/green/blue/pink，默认 yellow；宿主动作即时读取当前偏好，不再捕获挂载时颜色；不重染已有标注 | [MARKPREFS](../apps/web/src/features/annotations/lib/annotation-prefs.ts) [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | 新增盘点 |
 | <a id="CFG13"></a>CFG13 | 软件更新通道 stable/beta | 实装 | **接通**：general.updateChannel<br>[设计] 设备本地设置工具 | **接通**：settings 1.2；全局枚举字段<br>[设计] 路径授权设置领域 | AboutPanel；软件更新查询 | 设备本地且不漫游；已打开 About 控件跟随 KV 更新/回滚；修改通道只影响后续检查，不批准下载、安装或重启 | [UPDATECHANNEL](../apps/web/src/features/update/lib/update-channel.ts) [ABOUT](../apps/web/src/features/settings/sections/AboutPanel.tsx) [UPDATE](../apps/web/src/features/update/lib/software-update.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | 新增盘点 |
 
-### 设置字段逐项覆盖（55 个具体路径）
+### 设置字段逐项覆盖（58 个具体路径）
 
 | ID | 宿主能力 | 宿主现状 | Agent 当前与目标 | 插件当前与目标 | 实际消费者 | 缺口/边界 | 来源 | 旧基线 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -224,6 +224,9 @@
 | <a id="SET53"></a>SET53 | appearance.contentTypography.lineSpacing | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [TYPOGRAPHY](../apps/web/src/features/settings/lib/content-typography.ts) [TYPOGRAPHYEFFECT](../apps/web/src/features/settings/hooks/useContentTypography.ts) | 新增盘点 |
 | <a id="SET54"></a>SET54 | annotations.defaultColor | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [MARKPREFS](../apps/web/src/features/annotations/lib/annotation-prefs.ts) [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) | 新增盘点 |
 | <a id="SET55"></a>SET55 | general.updateChannel | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [UPDATECHANNEL](../apps/web/src/features/update/lib/update-channel.ts) [ABOUT](../apps/web/src/features/settings/sections/AboutPanel.tsx) | 新增盘点 |
+| <a id="SET56"></a>SET56 | shelf.layout | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [UI](../apps/web/src/state/ui.ts) | 新增盘点 |
+| <a id="SET57"></a>SET57 | shelf.group | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [UI](../apps/web/src/state/ui.ts) | 新增盘点 |
+| <a id="SET58"></a>SET58 | shelf.sort | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [UI](../apps/web/src/state/ui.ts) | 新增盘点 |
 
 ### 对话、Agent 交互与推理
 
@@ -381,9 +384,10 @@
 | Annotation Desk | 分页检索标注、无位置笔记、条件编辑与文件导出 | 消费通用 annotations 工具对应领域，不另注册专属模型工具 | UI 是组合消费者，不表示全部批次/外部变化已验收 |
 | Listening Desk | 模式选择/配置、单元步进/返回、朗读、历史 | 消费上述宿主工具对应的 reading 域，不重复注册模型工具 | 按需刷新 UI；不冒充实时订阅视图 |
 | Reading Goals | 书内目标、上下文/记忆候选、宿主记忆开关 | 自动上下文与候选管线；通用 settings 操作开关 | 无专属目标编辑工具；非 release 内置；候选公共回执仍缺 |
+| Workspace Profiles | 七路径工作区预设的保存、列表、应用与删除 | workspace_profiles；global/book，保存/应用/删除仅按明确请求 | 不改变本书覆盖；无网络/密钥/书库写权限；非内置，安装升级和跨平台未验 |
 | WebDAV Sync | 密文 transport | 无专属工具；非敏感设置可改 | 连接/断开/同步状态，必须使用宿主控制面 |
 
-[代码] Reading Goals 同时注册 agentContextProviders 与 memoryCandidateProviders：每轮按请求书籍提供私有阅读目标，用户选择后提出书内偏好；实际宿主裁决、入库与 buildMemory 取消已在隔离 Tauri 验证。Dictionary 提供检索贡献，运行时会生成一个额外 retrieve 工具。具体带命名空间的 7 个插件 Agent 入口在库存表中列出。
+[代码] Reading Goals 同时注册 agentContextProviders 与 memoryCandidateProviders：每轮按请求书籍提供私有阅读目标，用户选择后提出书内偏好；实际宿主裁决、入库与 buildMemory 取消已在隔离 Tauri 验证。Dictionary 提供检索贡献，运行时会生成一个额外 retrieve 工具。具体带命名空间的 8 个插件 Agent 入口在库存表中列出。
 
 [代码/范围补充] 邻接仓库 `readaware-plugins` 在本轮查看的提交为 `441e3c9b2403c086459b1d4611efad6e8e1ceb72`：Theme Schedule 1.0.1 已通过 settings discover/update 与 Worker clock 组合主题定时切换，没有专属 Agent 工具；WebDAV 0.1.0 是另一个分发位置。此补充不另计主仓插件，不证明线上 marketplace 已发布或用户已安装；生成器不依赖邻接仓库。
 
@@ -391,13 +395,13 @@
 
 - Agent global：34 个。
 - Agent book：28 个。
-- Plugin ctx：86 个。
+- Plugin ctx：87 个。
 - Plugin returned interface：17 个。
 - Capability domains：5 个。
 - Capability contributions：14 个。
 - Capability services：8 个。
 - Capability schemas：3 个。
-- Settings path：55 个。
+- Settings path：58 个。
 - Native command：135 个。
 - Native plugin：11 个。
 - Menu placement：16 个。
@@ -410,12 +414,12 @@
 - Domain subscription ANNOTATION_EVENTS：8 个。
 - Domain subscription CONVERSATION_EVENTS：4 个。
 - Feature owner：14 个。
-- First-party source plugin：10 个。
-- Plugin Agent contribution：7 个。
+- First-party source plugin：11 个。
+- Plugin Agent contribution：8 个。
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 86 个顶层可调用路径；返回的 collection/session 方法单列。Settings 55 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 87 个顶层可调用路径；返回的 collection/session 方法单列。Settings 58 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -493,6 +497,7 @@
 
 | 当前注册项 | 矩阵行 | 说明 |
 | --- | --- | --- |
+| `domains.settings.queries.snapshot` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.settings.queries.discover` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.settings.queries.read` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.settings.commands.update` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -662,6 +667,9 @@
 | `appearance.contentTypography.lineSpacing` | [SET53](#SET53) | [代码] 目录可读写；实际效果见主表 |
 | `annotations.defaultColor` | [SET54](#SET54) | [代码] 目录可读写；实际效果见主表 |
 | `general.updateChannel` | [SET55](#SET55) | [代码] 目录可读写；实际效果见主表 |
+| `shelf.layout` | [SET56](#SET56) | [代码] 目录可读写；实际效果见主表 |
+| `shelf.group` | [SET57](#SET57) | [代码] 目录可读写；实际效果见主表 |
+| `shelf.sort` | [SET58](#SET58) | [代码] 目录可读写；实际效果见主表 |
 | `general.startView` | [SET01](#SET01) | [代码] 目录可读写；实际效果见主表 |
 | `general.language` | [SET02](#SET02) | [代码] 目录可读写；实际效果见主表 |
 | `general.crashPrompt` | [SET03](#SET03) | [代码] 目录可读写；实际效果见主表 |
@@ -1067,6 +1075,7 @@
 | `sentence-reader` | [READ15](#READ15) [READ16](#READ16) | [代码] 源码版本 1.1.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `tts` | [READ17](#READ17) [READ18](#READ18) | [代码] 源码版本 0.5.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `webdav-sync` | [OPS04](#OPS04) | [代码] 源码版本 0.2.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `workspace-profiles` | [UI02](#UI02) [CFG01](#CFG01) [CFG10](#CFG10) [EXT02](#EXT02) [EXT05](#EXT05) [SYS02](#SYS02) | [代码] 源码版本 0.1.0；源码存在不等于打包、安装、启用或模型可调用 |
 
 ### Plugin Agent contribution
 
@@ -1079,6 +1088,7 @@
 | `plugin_rss_reader_list_feeds` | [EXT10](#EXT10) | [代码] 仅 global；插件启用后才进入工具集；来源 plugins/rss-reader/src/agent-tools.ts |
 | `plugin_rss_reader_subscribe_feed` | [EXT10](#EXT10) | [代码] 仅 global；插件启用后才进入工具集；来源 plugins/rss-reader/src/agent-tools.ts |
 | `plugin_rss_reader_refresh_feed` | [EXT10](#EXT10) | [代码] 仅 global；插件启用后才进入工具集；来源 plugins/rss-reader/src/agent-tools.ts |
+| `plugin_workspace_profiles_workspace_profiles` | [UI02](#UI02) [CFG01](#CFG01) [CFG10](#CFG10) [EXT02](#EXT02) [EXT05](#EXT05) [SYS02](#SYS02) | [代码] global/book；插件启用后才进入工具集；来源 plugins/workspace-profiles/src/index.ts |
 
 ### Plugin setting declaration
 

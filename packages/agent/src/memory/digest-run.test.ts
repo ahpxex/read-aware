@@ -54,7 +54,7 @@ test("incomplete automatic classification remains partial without persisting its
 
 test("model termination/invalid payload and write failures stay pending without losing sibling successes", async () => {
   const { deps } = fixture(), save = deps.bookMemory.saveDigest;
-  deps.bookMemory.saveDigest = async (id, digest) => { if (digest.chapterIndex === 2) throw new AppError("db/locked", "PRIVATE"); await save(id, digest); };
+  deps.bookMemory.saveDigest = async (id, digest, revision, signal) => { if (digest.chapterIndex === 2) throw new AppError("db/locked", "PRIVATE"); await save(id, digest, revision, signal); };
   const report = await digestBookCatchUp({ deps, bookId: "b", model, concurrency: 3, complete: async (_model, context) => {
     const text = JSON.stringify(context.messages);
     if (text.includes("Chapter #0")) return { ...reply(), stopReason: "length" };
@@ -68,7 +68,7 @@ test("model termination/invalid payload and write failures stay pending without 
 
 test("repaired early chapters never receive later stored names or aliases", async () => {
   const { deps } = fixture();
-  await deps.bookMemory.saveDigest("b", { chapterIndex: 4, summary: "Future", characters: [{ name: "FUTURE_SECRET", aliases: ["FUTURE_ALIAS"] }], relations: [], digestVersion: 2, flavor: "narrative" });
+  await deps.bookMemory.saveDigest("b", { chapterIndex: 4, summary: "Future", characters: [{ name: "FUTURE_SECRET", aliases: ["FUTURE_ALIAS"] }], relations: [], digestVersion: 2, flavor: "narrative" }, (await deps.bookMemory.inspectDigest("b", 4))!.revision);
   const report = await digestMissingChapters({ ...deps, bookId: "b", beforeChapterIndex: 5, maxChapters: 1, model, complete: async (_model, context) => {
     expect(context.systemPrompt).not.toContain("FUTURE_SECRET"); expect(context.systemPrompt).not.toContain("FUTURE_ALIAS"); return reply();
   } });
@@ -88,7 +88,7 @@ test("cancellation drains active work, prevents late saves/new chapters and pres
   expect(calls).toBe(2); expect(await deps.bookMemory.listDigests("b")).toHaveLength(0);
 
   const saving = deferred(), commit = deferred(), second = new AbortController(), save = deps.bookMemory.saveDigest;
-  deps.bookMemory.saveDigest = async (id, digest) => { saving.resolve(); await commit.promise; await save(id, digest); };
+  deps.bookMemory.saveDigest = async (id, digest, revision) => { saving.resolve(); await commit.promise; await save(id, digest, revision); };
   const dispatched = digestBookCatchUp({ deps, bookId: "b", model, signal: second.signal, complete: async () => reply() });
   await saving.promise; second.abort(); commit.resolve();
   await expect(dispatched).rejects.toBeDefined();
@@ -109,4 +109,29 @@ test("a zero chapter budget does not run automatic classification", async () => 
   const { deps, stores } = fixture(); stores.books[0]!.narrativity = undefined;
   expect(await digestBookTick({ deps, bookId: "b", model, maxChapters: 0, complete: async () => { throw Error("Must not infer"); } })).toMatchObject({ status: "partial", reason: "classification-pending", attempted: 0, remaining: 5 });
   expect(stores.books[0]!.narrativity).toBeUndefined();
+});
+
+test("classification changing during inference rejects old-flavor output without rebasing its revision", async () => {
+  const { deps } = fixture();
+  const report = await digestBookTick({ deps, bookId: "b", model, maxChapters: 1, complete: async () => {
+    const before = (await deps.bookClassification.inspect("b"))!;
+    await deps.bookClassification.change({ bookId: "b", narrativity: "expository", expectedRevision: before.revision });
+    return reply();
+  } });
+  expect(report).toMatchObject({ status: "partial", digested: 0, remaining: 5, failures: [{ chapterIndex: 0, errorCode: "memory/conflict" }] });
+  expect(await deps.bookMemory.listDigests("b")).toHaveLength(0);
+});
+
+test("two concurrent runs cannot both replace the same chapter and unrelated chapter writes remain independent", async () => {
+  const { deps } = fixture(), started = deferred(), release = deferred(); let calls = 0;
+  const run = () => digestBookTick({ deps, bookId: "b", model, maxChapters: 1, complete: async () => { if (++calls === 2) started.resolve(); await release.promise; return reply(); } });
+  const a = run(), b = run(); await started.promise; release.resolve();
+  const results = await Promise.all([a,b]);
+  expect(results.map(r => r.digested).sort()).toEqual([0,1]);
+  expect(results.flatMap(r => r.failures)).toEqual([{ chapterIndex: 0, errorCode: "memory/conflict" }]);
+  const snapshot = (await deps.bookMemory.inspectDigest("b", 0))!;
+  const other = (await deps.bookMemory.inspectDigest("b", 1))!;
+  const digest = { chapterIndex: 1, summary: "Other", characters: [], relations: [], digestVersion: 2 };
+  await deps.bookMemory.saveDigest("b", digest, other.revision);
+  expect((await deps.bookMemory.inspectDigest("b", 0))!.revision).toBe(snapshot.revision);
 });

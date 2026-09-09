@@ -183,7 +183,7 @@ describe("mergeRelationGraph", () => {
 });
 
 describe("digestMissingChapters", () => {
-  function harness(existing: ChapterDigest[] = []) {
+  function harness(existing: ChapterDigest[] = [], flavor: "narrative" | "expository" = "narrative") {
     const saved: Array<{ bookId: Id; digest: ChapterDigest }> = [];
     const digested: number[] = [];
     const deps = {
@@ -198,6 +198,7 @@ describe("digestMissingChapters", () => {
         getChapterText: async (_bookId: Id, index: number) => `第${index}章正文`,
       },
       bookMemory: {
+        inspectDigest: async (bookId: Id, chapterIndex: number) => ({ bookId, chapterIndex, flavor, revision: `bdg1:${"a".repeat(64)}` }),
         listDigests: async () => existing,
         saveDigest: async (bookId: Id, digest: ChapterDigest) => {
           saved.push({ bookId, digest });
@@ -270,7 +271,7 @@ describe("digestMissingChapters", () => {
         digestVersion: DIGEST_VERSION,
         // flavor 缺省 = narrative —— 分类为 expository 后视同缺失
       },
-    ]);
+    ], "expository");
     const count = await digestMissingChapters({
       ...deps,
       complete: deps.complete as never,
@@ -292,6 +293,8 @@ describe("digestMissingChapters", () => {
     const { deps } = (() => {
       const base = harness();
       base.deps.bookMemory = {
+        ...base.deps.bookMemory,
+        inspectDigest: async (bookId: Id, chapterIndex: number) => ({ bookId, chapterIndex, flavor: "expository" as const, revision: `bdg1:${"a".repeat(64)}` }),
         listDigests: async () => [...saved],
         saveDigest: async (_bookId: Id, digest: ChapterDigest) => {
           saved.push(digest);
@@ -333,6 +336,7 @@ describe("digestMissingChapters", () => {
         getChapterText: async (_bookId: Id, index: number) => `第${index}章正文`,
       },
       bookMemory: {
+        inspectDigest: async (bookId: Id, chapterIndex: number) => ({ bookId, chapterIndex, flavor: "narrative" as const, revision: `bdg1:${"a".repeat(64)}` }),
         listDigests: async () => [...saved],
         saveDigest: async (_bookId: Id, digest: ChapterDigest) => {
           saved.push(digest);

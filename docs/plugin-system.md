@@ -1131,8 +1131,8 @@ inference and before saving, stops accepting new chapters, and waits for its
 active logical workers before rejecting. An already dispatched save may commit;
 there is no rollback claim. The outer `runMemoryBuild` policy race can still
 reject before uncancellable underlying IO settles. Public task lifecycle,
-cross-run locking, content-version/source identity and atomic protection against
-reclassification during a run are not provided by this report.
+cross-run locking and content-version/source identity are not provided by this
+report. Local chapter/classification conditional commits are described below.
 
 [环境] [Digest execution evidence](./evidence/digest-run-2026-09-10.json)
 uses real SQLite ports in isolated macOS Tauri debug with scripted inference.
@@ -1145,6 +1145,60 @@ screenshot was inspected. The fixture does not run autonomous inference, the
 full outer policy shutdown, remote sync or packaged/Windows/Linux variants.
 No plugin API, permission or task UI was added: MEM10 remains Agent automatic,
 plugin unconnected, with public progress/cancel/retry/rebuild still pending.
+
+<a id="digest-conditional"></a>
+### Digest Commit Conditions
+
+[代码] `BookMemoryPort.inspectDigest(bookId, chapterIndex, signal?)` returns null
+for an absent book, otherwise `{bookId,chapterIndex,flavor,revision}`. The opaque
+`bdg1:` revision is 64 lowercase hex digits over the book/chapter identity,
+classification revision, raw chapter projection and last chapter event identity.
+The runner captures it before text/inference and passes that exact revision to
+`saveDigest(bookId,digest,expectedRevision,signal?)`; it never rebases a late
+model result onto a fresh version. A changed flavor before inference fails early.
+
+[代码] `book_digest_inspect` reads a SQLite snapshot. `book_digest_commit` takes
+an IMMEDIATE transaction and rechecks book existence, revision and flavor before
+the canonical event/projection/outbox write. Same-chapter competition and
+classification ABA (change away and back) yield `memory/conflict`; unrelated
+chapter writes do not invalidate the token. The supplied HLC must sort after
+every already observed import/classification/merge/removal and same-chapter
+digest, preventing an acknowledged local result from replaying before its
+predecessor. Duplicate event IDs and malformed inputs are rejected. Successful
+commit returns the new snapshot; the host port broadcasts only after success.
+
+[代码] Native validation requires a nonblank book ID of at most 256 UTF-16 units,
+nonnegative safe chapter index, nonblank summary, positive safe digestVersion,
+narrative/expository flavor and optional string chapterHref. Only the documented
+payload keys are accepted. Entity/relation arrays have at most 12 entries;
+entities require nonblank name, optional string note and nonblank string aliases;
+relations require nonblank from/kind/to and optional string note, with no extra
+keys. Invalid targets/payloads/tokens return `memory/invalid-input`, a removed
+book `reader/book-not-found`, conflicts `memory/conflict`, storage failure its
+stable database code. No string-byte or alias-count budget is implied.
+
+[代码/边界] The host clones input before asynchronous event minting, checks abort
+before minting and again before native dispatch, and rejects early cancellation
+with `memory/cancelled`. Already dispatched writes can commit and must still
+broadcast their actual outcome. Failure rolls back event, projection and outbox.
+A conflicting run does not increment digested; its sampled remaining is not a
+fresh global backlog query and may include a chapter another run has completed.
+These are local optimistic conditions, not distributed locks: legacy/general
+remote event application is unchanged. No content hash, anchor read-set version,
+cross-run inference deduplication or outer-policy physical IO drain is claimed.
+
+[环境] [Conditional digest evidence](./evidence/digest-conditional-2026-09-10.json)
+uses isolated macOS debug, a three-chapter FB2, scripted inference and six real
+Workers. A Worker changed narrative to expository and back during inference:
+chapter 0 conflicted while chapter 1 committed. A fresh pass repaired chapter 0;
+a competing committed Winner then survived a late generator. Mutating caller
+input after starting save did not change the persisted Winner. Pre-dispatch
+cancel left broadcasts at 4. An owned SQL trigger caused db/error with both
+event/outbox counts 15 to 15 and no broadcast; removing it allowed retry.
+Agent/Worker graph results agreed, and compiled Memory Desk displayed Winner
+and Rebuilt1 without future Hidden names. Native screenshot inspected; owned
+records/Workers/trigger cleaned. This is not public-task or autonomous-model
+E2E, nor packaged/Windows/Linux/remote-sync validation. Memory remains 1.3.
 
 <a id="book-classification"></a>
 ### Memory 1.3: Book Classification

@@ -8,6 +8,7 @@ import { createWorkspaceFixture } from "./workspace-fixture";
 import { createAnnotationMutationFixture } from "./annotation-mutations";
 import { createMemoryManagementFixture } from "./memory-management";
 import { createBookClassificationFixture } from "./book-classification";
+import { createBookMemoryFixture } from "./book-memory";
 import { createMemoryMaintenanceFixture } from "./memory-maintenance";
 import { AppError } from "@read-aware/core";
 import type {
@@ -355,8 +356,9 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     (memory.status ?? "active") === "active";
 
   const memoryManagement = createMemoryManagementFixture(stores.memories);
+  const bookClassification = createBookClassificationFixture(books);
   const deps: RuntimeDeps = {
-    bookClassification: createBookClassificationFixture(books),
+    bookClassification,
     memoryManagement,
     workspace: createWorkspaceFixture(),
     hostCommands: {
@@ -659,16 +661,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         return results.slice(0, limit ?? 16);
       },
     },
-    bookMemory: {
-      listDigests: async (bookId) => structuredClone(stores.chapterDigests.get(bookId) ?? []),
-      saveDigest: async (bookId, digest) => {
-        const digests = stores.chapterDigests.get(bookId) ?? [];
-        const next = digests.filter((entry) => entry.chapterIndex !== digest.chapterIndex);
-        next.push(structuredClone(digest));
-        next.sort((a, b) => a.chapterIndex - b.chapterIndex);
-        stores.chapterDigests.set(bookId, next);
-      },
-    },
+    bookMemory: createBookMemoryFixture(stores.chapterDigests, bookClassification),
     settings: {
       getSettings: async (query) => querySettings(stores.settings, query),
       updateSettings: async (changes) => {

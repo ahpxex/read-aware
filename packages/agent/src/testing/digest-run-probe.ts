@@ -8,11 +8,15 @@ export function digestRunProbe(deps: RuntimeDeps, bookId: string, href: string) 
   let outcome: unknown, started = false;
   const inputs: Array<{ chapter: number; hasFutureName: boolean }> = [];
   const run = async (mode: "fail-first" | "success" | "pause") => {
+    let paused = false;
     const complete: DigestBookTickInput["complete"] = async (_model, context) => {
       const chapter = Number(JSON.stringify(context.messages).match(/Chapter #(\d+)/)?.[1]);
       inputs.push({ chapter, hasFutureName: /Hidden|Secret future identity/.test(context.systemPrompt ?? "") });
       started = true;
-      if (mode === "pause") await new Promise<void>(resolve => { release = resolve; });
+      if (mode === "pause" && !paused) {
+        paused = true;
+        await new Promise<void>(resolve => { release = resolve; });
+      }
       return { role: "assistant", api: "openai-completions", provider: "fixture", model: "fixture", timestamp: Date.now(),
         stopReason: mode === "fail-first" && chapter === 0 ? "length" : "stop",
         content: [{ type: "text", text: JSON.stringify({ summary: `Rebuilt chapter ${chapter}`, characters: [{ name: `Rebuilt${chapter}` }], relations: [] }) }],

@@ -349,7 +349,8 @@ export interface SettingsPort {
  */
 export interface BookMemoryPort {
   listDigests(bookId: Id): Promise<ChapterDigest[]>;
-  saveDigest(bookId: Id, digest: ChapterDigest): Promise<void>;
+  inspectDigest(bookId: Id, chapterIndex: number, signal?: AbortSignal): Promise<import("@read-aware/core").BookDigestSnapshot | null>;
+  saveDigest(bookId: Id, digest: ChapterDigest, expectedRevision: string, signal?: AbortSignal): Promise<void>;
 }
 
 /** Host logging for degraded background work that cannot report through a UI. */

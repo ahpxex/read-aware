@@ -31,7 +31,7 @@ fn invalid() -> CommandError {
 fn valid_id(id: &str) -> bool {
     !id.trim().is_empty() && id.encode_utf16().count() <= 256
 }
-fn read_snapshot(
+pub(super) fn read_snapshot(
     conn: &Connection,
     id: &str,
 ) -> Result<Option<BookClassificationSnapshot>, CommandError> {

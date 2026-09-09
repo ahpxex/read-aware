@@ -1,5 +1,7 @@
 /** Read-only chapter memory contracts. These are distilled evidence, never verbatim source text. */
 export type DigestFlavor = "narrative" | "expository";
+/** Local optimistic condition for one chapter and its book classification, not content provenance. */
+export type BookDigestSnapshot = { bookId: string; chapterIndex: number; flavor: DigestFlavor; revision: string };
 /** Names/aliases use this edition's spelling; flavor determines character vs concept semantics. */
 export interface DigestCharacter { name: string; aliases?: string[]; note?: string }
 export interface DigestRelation { from: string; kind: string; to: string; note?: string }

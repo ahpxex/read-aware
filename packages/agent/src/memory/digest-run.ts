@@ -65,6 +65,10 @@ export async function digestMissingChapters(input: DigestMissingChaptersInput): 
       if (index === undefined) return;
       report.attempted++;
       try {
+        const snapshot = await input.bookMemory.inspectDigest(input.bookId, index, input.signal);
+        input.signal?.throwIfAborted();
+        if (!snapshot) throw new AppError("reader/book-not-found", "Digest book disappeared");
+        if (snapshot.flavor !== flavor) throw new AppError("memory/conflict", "Book classification changed before generation");
         const text = await input.bookText.getChapterText(input.bookId, index);
         input.signal?.throwIfAborted();
         if (stopped) return;
@@ -78,7 +82,7 @@ export async function digestMissingChapters(input: DigestMissingChaptersInput): 
         input.signal?.throwIfAborted();
         if (stopped) return;
         if (!digest) throw new AppError("ai/provider", "Nonempty chapter produced no digest");
-        await input.bookMemory.saveDigest(input.bookId, digest);
+        await input.bookMemory.saveDigest(input.bookId, digest, snapshot.revision, input.signal);
         current.set(index, digest); report.digested++; report.remaining--;
       } catch (error) {
         if (input.signal?.aborted) { stopped = true; throw error; }

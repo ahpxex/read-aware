@@ -1,0 +1,567 @@
+{
+  "date": "2026-09-10",
+  "scope": "Conditional internal chapter digest writes; MEM10 remains Agent automatic / plugin unconnected",
+  "environment": {
+    "app": "com.readaware.app.capability-e2e",
+    "frontend": 5184,
+    "bridge": 9224,
+    "platform": "macOS Tauri debug",
+    "model": "Scripted completion; real SQLite ports and six Worker consumers; not autonomous inference"
+  },
+  "fixture": {
+    "bookId": "3614954c-7a3b-416b-8d10-35d5d8974940",
+    "chapters": [
+      {
+        "hrefs": [
+          "0"
+        ],
+        "index": 0
+      },
+      {
+        "hrefs": [
+          "1"
+        ],
+        "index": 1
+      },
+      {
+        "hrefs": [
+          "2"
+        ],
+        "index": 2
+      }
+    ],
+    "marker": "Memory Domain Probe f349230d-04b6-4a0c-8632-d9de6fdafd0e",
+    "memoryIds": [
+      "25186ddb-6efa-4f91-a236-4a381685e70a",
+      "14377121-a5ef-4d62-a07b-9fda5f6a4ed4",
+      "32506b2d-43cf-4b53-9874-83557998983d"
+    ],
+    "path": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e"
+  },
+  "classificationABA": [
+    {
+      "action": "inspect",
+      "result": {
+        "status": "ok",
+        "value": {
+          "bookId": "3614954c-7a3b-416b-8d10-35d5d8974940",
+          "narrativity": "narrative",
+          "revision": "bcl1:4cf5582d3b5d387e8c44416b6c29d0a0db3895b3471b45804c09d908cc6a7213"
+        }
+      }
+    },
+    {
+      "action": "expository",
+      "result": {
+        "status": "ok",
+        "value": {
+          "changed": true,
+          "snapshot": {
+            "bookId": "3614954c-7a3b-416b-8d10-35d5d8974940",
+            "narrativity": "expository",
+            "revision": "bcl1:b3cae4015f71da79b4ef128eb0d51b12e2ecf913d74162dd0dd9368cb17214d9"
+          }
+        }
+      }
+    },
+    {
+      "action": "inspect",
+      "result": {
+        "status": "ok",
+        "value": {
+          "bookId": "3614954c-7a3b-416b-8d10-35d5d8974940",
+          "narrativity": "expository",
+          "revision": "bcl1:b3cae4015f71da79b4ef128eb0d51b12e2ecf913d74162dd0dd9368cb17214d9"
+        }
+      }
+    },
+    {
+      "action": "narrative",
+      "result": {
+        "status": "ok",
+        "value": {
+          "changed": true,
+          "snapshot": {
+            "bookId": "3614954c-7a3b-416b-8d10-35d5d8974940",
+            "narrativity": "narrative",
+            "revision": "bcl1:1ce61f342ac3d1867be87e75bdd7a3213d97c8bc10a9f1aa19ba8ddb74101d85"
+          }
+        }
+      }
+    }
+  ],
+  "staleClassification": {
+    "release": {
+      "broadcasts": 1,
+      "inputs": [
+        {
+          "chapter": 0,
+          "hasFutureName": false
+        },
+        {
+          "chapter": 1,
+          "hasFutureName": false
+        }
+      ],
+      "outcome": {
+        "report": {
+          "attempted": 2,
+          "digested": 1,
+          "eligible": 2,
+          "emptyChapters": [],
+          "failures": [
+            {
+              "chapterIndex": 0,
+              "errorCode": "memory/conflict"
+            }
+          ],
+          "remaining": 1,
+          "status": "partial"
+        },
+        "status": "done"
+      },
+      "started": true
+    },
+    "rows": {
+      "broadcasts": 1,
+      "rows": [
+        {
+          "chapterHref": "0",
+          "chapterIndex": 0,
+          "characters": [],
+          "digestVersion": 1,
+          "flavor": "narrative",
+          "relations": [],
+          "summary": "Old 0"
+        },
+        {
+          "chapterHref": "1",
+          "chapterIndex": 1,
+          "characters": [
+            {
+              "name": "Rebuilt1"
+            }
+          ],
+          "digestVersion": 2,
+          "flavor": "narrative",
+          "relations": [],
+          "summary": "Rebuilt chapter 1"
+        },
+        {
+          "chapterHref": "2",
+          "chapterIndex": 2,
+          "characters": [
+            {
+              "aliases": [
+                "Ada"
+              ],
+              "name": "Hidden",
+              "note": "Secret future identity"
+            }
+          ],
+          "digestVersion": 2,
+          "flavor": "narrative",
+          "relations": [],
+          "summary": "Synthetic chapter 3: Hidden"
+        }
+      ]
+    }
+  },
+  "freshRetry": {
+    "pass": {
+      "inputs": [
+        {
+          "chapter": 0,
+          "hasFutureName": false
+        },
+        {
+          "chapter": 1,
+          "hasFutureName": false
+        },
+        {
+          "chapter": 0,
+          "hasFutureName": false
+        }
+      ],
+      "report": {
+        "attempted": 1,
+        "digested": 1,
+        "eligible": 2,
+        "emptyChapters": [],
+        "failures": [],
+        "remaining": 0,
+        "status": "complete"
+      }
+    },
+    "status": {
+      "broadcasts": 3,
+      "inputs": [
+        {
+          "chapter": 0,
+          "hasFutureName": false
+        },
+        {
+          "chapter": 1,
+          "hasFutureName": false
+        },
+        {
+          "chapter": 0,
+          "hasFutureName": false
+        }
+      ],
+      "outcome": {
+        "status": "running"
+      },
+      "started": false
+    }
+  },
+  "competingWriteAndInputClone": {
+    "release": {
+      "broadcasts": 4,
+      "inputs": [
+        {
+          "chapter": 0,
+          "hasFutureName": false
+        },
+        {
+          "chapter": 1,
+          "hasFutureName": false
+        },
+        {
+          "chapter": 0,
+          "hasFutureName": false
+        },
+        {
+          "chapter": 0,
+          "hasFutureName": false
+        }
+      ],
+      "outcome": {
+        "report": {
+          "attempted": 1,
+          "digested": 0,
+          "eligible": 2,
+          "emptyChapters": [],
+          "failures": [
+            {
+              "chapterIndex": 0,
+              "errorCode": "memory/conflict"
+            }
+          ],
+          "remaining": 1,
+          "status": "partial"
+        },
+        "status": "done"
+      },
+      "started": true
+    },
+    "rows": {
+      "broadcasts": 4,
+      "rows": [
+        {
+          "chapterHref": "0",
+          "chapterIndex": 0,
+          "characters": [
+            {
+              "name": "Winner"
+            }
+          ],
+          "digestVersion": 2,
+          "flavor": "narrative",
+          "relations": [],
+          "summary": "Winner"
+        },
+        {
+          "chapterHref": "1",
+          "chapterIndex": 1,
+          "characters": [
+            {
+              "name": "Rebuilt1"
+            }
+          ],
+          "digestVersion": 2,
+          "flavor": "narrative",
+          "relations": [],
+          "summary": "Rebuilt chapter 1"
+        },
+        {
+          "chapterHref": "2",
+          "chapterIndex": 2,
+          "characters": [
+            {
+              "aliases": [
+                "Ada"
+              ],
+              "name": "Hidden",
+              "note": "Secret future identity"
+            }
+          ],
+          "digestVersion": 2,
+          "flavor": "narrative",
+          "relations": [],
+          "summary": "Synthetic chapter 3: Hidden"
+        }
+      ]
+    },
+    "winner": {
+      "broadcasts": 4,
+      "status": "saved"
+    }
+  },
+  "cancelledBeforeDispatch": {
+    "after": {
+      "broadcasts": 4,
+      "rows": [
+        {
+          "chapterHref": "0",
+          "chapterIndex": 0,
+          "characters": [
+            {
+              "name": "Winner"
+            }
+          ],
+          "digestVersion": 2,
+          "flavor": "narrative",
+          "relations": [],
+          "summary": "Winner"
+        },
+        {
+          "chapterHref": "1",
+          "chapterIndex": 1,
+          "characters": [
+            {
+              "name": "Rebuilt1"
+            }
+          ],
+          "digestVersion": 2,
+          "flavor": "narrative",
+          "relations": [],
+          "summary": "Rebuilt chapter 1"
+        },
+        {
+          "chapterHref": "2",
+          "chapterIndex": 2,
+          "characters": [
+            {
+              "aliases": [
+                "Ada"
+              ],
+              "name": "Hidden",
+              "note": "Secret future identity"
+            }
+          ],
+          "digestVersion": 2,
+          "flavor": "narrative",
+          "relations": [],
+          "summary": "Synthetic chapter 3: Hidden"
+        }
+      ]
+    },
+    "before": {
+      "broadcasts": 4,
+      "rows": [
+        {
+          "chapterHref": "0",
+          "chapterIndex": 0,
+          "characters": [
+            {
+              "name": "Winner"
+            }
+          ],
+          "digestVersion": 2,
+          "flavor": "narrative",
+          "relations": [],
+          "summary": "Winner"
+        },
+        {
+          "chapterHref": "1",
+          "chapterIndex": 1,
+          "characters": [
+            {
+              "name": "Rebuilt1"
+            }
+          ],
+          "digestVersion": 2,
+          "flavor": "narrative",
+          "relations": [],
+          "summary": "Rebuilt chapter 1"
+        },
+        {
+          "chapterHref": "2",
+          "chapterIndex": 2,
+          "characters": [
+            {
+              "aliases": [
+                "Ada"
+              ],
+              "name": "Hidden",
+              "note": "Secret future identity"
+            }
+          ],
+          "digestVersion": 2,
+          "flavor": "narrative",
+          "relations": [],
+          "summary": "Synthetic chapter 3: Hidden"
+        }
+      ]
+    },
+    "cancel": {
+      "broadcasts": 4,
+      "code": "memory/cancelled",
+      "status": "error"
+    }
+  },
+  "sqlFailure": {
+    "failure": {
+      "broadcasts": 4,
+      "code": "db/error",
+      "status": "error"
+    },
+    "rows": {
+      "broadcasts": 4,
+      "rows": [
+        {
+          "chapterHref": "0",
+          "chapterIndex": 0,
+          "characters": [
+            {
+              "name": "Winner"
+            }
+          ],
+          "digestVersion": 2,
+          "flavor": "narrative",
+          "relations": [],
+          "summary": "Winner"
+        },
+        {
+          "chapterHref": "1",
+          "chapterIndex": 1,
+          "characters": [
+            {
+              "name": "Rebuilt1"
+            }
+          ],
+          "digestVersion": 2,
+          "flavor": "narrative",
+          "relations": [],
+          "summary": "Rebuilt chapter 1"
+        },
+        {
+          "chapterHref": "2",
+          "chapterIndex": 2,
+          "characters": [
+            {
+              "aliases": [
+                "Ada"
+              ],
+              "name": "Hidden",
+              "note": "Secret future identity"
+            }
+          ],
+          "digestVersion": 2,
+          "flavor": "narrative",
+          "relations": [],
+          "summary": "Synthetic chapter 3: Hidden"
+        }
+      ]
+    }
+  },
+  "sqlCounts": {
+    "before": {
+      "events": 15,
+      "outbox": 15
+    },
+    "after": {
+      "events": 15,
+      "outbox": 15
+    },
+    "retry": {
+      "status": "saved",
+      "broadcasts": 5
+    }
+  },
+  "consumers": {
+    "agent": {
+      "chapterRange": [
+        0,
+        1
+      ],
+      "chaptersDigested": 2,
+      "edgeCount": 0,
+      "entities": [
+        {
+          "chapters": 1,
+          "name": "Rebuilt1"
+        },
+        {
+          "chapters": 1,
+          "name": "Winner"
+        }
+      ],
+      "entityCount": 2,
+      "fence": "graph clamped to chapters before the reader's position (chapter index 2)",
+      "graph": "overview",
+      "note": "Pass names for profiles with relations and provenance chapters. This is distilled memory, not verbatim source text.",
+      "truncated": false
+    },
+    "plugin": {
+      "status": "ok",
+      "value": {
+        "chapterRange": [
+          0,
+          1
+        ],
+        "chaptersDigested": 2,
+        "edgeCount": 0,
+        "entities": [
+          {
+            "chapters": 1,
+            "name": "Rebuilt1"
+          },
+          {
+            "chapters": 1,
+            "name": "Winner"
+          }
+        ],
+        "entityCount": 2,
+        "fence": "graph clamped to chapters before the reader's position (chapter index 2)",
+        "graph": "overview",
+        "note": "Pass names for profiles with relations and provenance chapters. This is distilled memory, not verbatim source text.",
+        "truncated": false
+      }
+    }
+  },
+  "ui": {
+    "overflow": false,
+    "privateShown": false,
+    "text": "Memory Desk\n\nChapter graph\n\n\nRefresh\n\nSearch\n\nRebuilt1\nChapters: 1\n\nWinner\nChapters: 1\nClose",
+    "viewport": [
+      900,
+      650
+    ]
+  },
+  "screenshot": {
+    "path": "/tmp/digest-conditional-memory-desk.png",
+    "inspected": true
+  },
+  "cleanup": {
+    "ownedBooks": 0,
+    "contributions": 0,
+    "classificationContributions": 0,
+    "ownedMemories": "forgotten via domain events",
+    "triggerRemoved": true,
+    "driverStopped": true,
+    "ownedProcessGroup": 81758
+  },
+  "interruptions": [
+    "Editing the pause-only-first-chapter probe raced a Vite reload during initial fixture setup. Owned book 23842da6-9554-4712-9152-94a216216f6e and its three memories were removed/forgotten through host APIs before retrying; no production data touched.",
+    "An initial cleanup-only SELECT used nonexistent memories.forgotten; corrected after PRAGMA table_info to status. No write failed or was bypassed."
+  ],
+  "boundaries": [
+    "bdg1 validates current chapter projection, last chapter event identity and classification revision in the native immediate transaction. It is not a content hash or a cross-device CAS.",
+    "HLC order guard rejects local candidates that would replay before already observed relevant events; old or remote unconditional events are not retroactively converted.",
+    "Direct runner uses original pre-inference revision without rebasing; an unrelated chapter commit does not conflict. Conflicts retain report.remaining for this run even if another run completed the row.",
+    "No public task IDs, progress/cancel/retry/rebuild API, multi-run inference deduplication, source-version lease or whole-policy IO drain was introduced.",
+    "Packaged builds, Windows/Linux, network sync, long workloads and autonomous-model correctness were not tested by this evidence."
+  ]
+}

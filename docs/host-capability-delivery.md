@@ -1218,3 +1218,21 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [文档/清理] 矩阵及插件规范的 MD/HTML 共享事实同步；模型 MD 仅更新生成的 MEM10 证据行，模型 HTML 的责任裁决未变，本轮未改。两 HTML 的六张 1440×1000、1024×768、390×844 图已检查，无页面横向溢出/重复 ID/坏页内锚点/无名按钮，浏览器 errors 空、观察 CDN 200。DigestReport/补齐命中矩阵 1/5 行、插件说明 1/1 节，含 MEM10；Escape 恢复 243/18 项。矩阵抽屉 HEADER/MAIN inert、Escape 关闭与主题刷新保持通过；插件说明原无主题/抽屉，文档无 Mermaid、仍依赖 CDN，不能代替产品验收。浏览器关闭，三 Worker/自有书贡献归零，三记忆经事件遗忘，SQL trigger 清除；只读 SQL 确认。首次事件数 SQL 用错 payload 字段只造成只读失败，按 schema 改为 payload_json 后重做完整 8→8 故障验证。PGID 77216 / exec 56787 终态 143，driver 9224 停止，5184/9224 无监听，既有 89360/9223 与正式数据未操作。
 
 [下一步/剩余] 公共任务 ID、查询/观察、启动/取消/重试/重建及 Agent 批准、插件授权与实际任务视图仍需接入；此前还需把跨运行互斥、内容/分类条件提交和外层取消生命周期对齐，不能让新任务覆盖另一任务/旧分类的摘要。完整内容预算/来源版本、其余双端缺口、全能力自由组合及长时/并发撤权/packaged/Windows/Linux/真实跨设备验收未完成。整体目标继续，不标记完成，未推送。
+
+## 2026-09-10：摘要按章节和分类版本条件提交
+
+[进度/复核] 43679d7e 的执行回执改动已提交，之后的模型确认回复仅是状态说明，不算新增实现。本轮重新检查未提交代码、测试日志及 5184/9224 的实际监听 PID；继续已有隔离 App，不因缺少旧输出句柄重复启动。目标仍是双端全部应开放能力及组合验收；此单元补 MEM10 公共任务前置的真实提交条件，未把自动管线改标为公共接通。
+
+[代码/根因] BookMemoryPort 增加 inspectDigest，saveDigest 强制 expectedRevision；执行器在正文/推理前读取快照，提交使用原版本，绝不在迟到响应后重取版本覆盖新结果。bdg1 包含书章身份、bcl1 分类版本、原始投影和最后章事件身份；原生 book_digest_inspect/commit 是快照查询与 IMMEDIATE 条件事务。分类变化/改回及同章竞争均 memory/conflict，其他章独立。提交沿 canonical event/projection/outbox 一次事务，失败全部回滚；书已删 reader/book-not-found，非法载荷/token memory/invalid-input。宿主先复制输入，mint 前及派发前查取消，仅真实提交成功后广播；已派发写仍可能提交。
+
+[重放] 首次 Rust 验证暴露实际窗口：本地事件立即应用，而重建按 HLC 排序，旧时间戳候选可能当时成功却在重放中被覆盖。新增相关书事件/同章摘要 HLC 顺序预检，候选必须晚于所有已观察前驱；测试重跑通过。该判断不是跨设备 CAS，旧/远端一般事件应用不改写。既有分类快照 helper 只调整模块可见性，共享同一 revision 来源。新增 TS 测试 fixture 也拒绝竞争写，但原生事务测试才是存储权威。
+
+[原生/组合] [digest-conditional](./evidence/digest-conditional-2026-09-10.json) 在隔离 macOS Tauri debug 中使用真实 SQLite、六 Worker、编译 Memory Desk 0.4 与脚本推理。Worker 在暂停推理中做 narrative→expository→narrative：第 0 章 conflict，第 1 章继续成功；新轮仅修复第 0 章。另一轮推理暂停期间先提交 Winner，释放旧结果后 conflict，Winner 不被覆盖。开始保存后突变输入为 PRIVATE_MUTATED，实际仍保存 Winner；立即取消返回 memory/cancelled、广播维持 4。自有 SQL trigger 拒绝更新返回 db/error，事件/outbox 均 15→15、旧行及广播不变；finally 移除 trigger 后成功广播 5。Agent 与真实 Worker 图谱同为 Winner/Rebuilt1，未来 Hidden/Secret 排除；点击编译插件 Books→自有书→Chapter graph，原生截图已看，900×650 页面无横向溢出。
+
+[验证] 全仓 test 24/24（Agent 404 项/80 文件；web 911 项/159 文件），typecheck 27/27；前端 production build 1/1 通过，之后仅测试 fixture 和文档修改。Rust 全套 156 pass/0 fail/1 ignored；新增四项覆盖原子回滚、竞争/分类 ABA、输入/删书和旧 HLC，Agent 新增两项推理期重分类与并发。最初类型推断及旧 HLC 测试失败修复后重跑，没有放宽生产契约。库存/模型 11 项/30 断言、两生成器 --check、三个 pair validator 及 git diff --check 通过。243 行/695 库存映射/30 单元/31 catalog/129 验收/32 场景；多出的两个是内部 IPC，不是公共 API。Memory 1.3、14 源码插件/6 编译内置、双端接通状态保持原状。
+
+[文档/清理] 矩阵与插件规范 MD/HTML 同步条件提交事实；模型 MD 只更新生成的 MEM10 行，HTML 责任裁决不变。两页六张 1440×1000、1024×768、390×844 截图均已检查；无页面溢出、重复 ID、坏页内锚点、无名按钮或浏览器 errors，观察 CDN 200。bdg1/条件命中矩阵 1/10 行均含 MEM10；插件 bdg1/条件提交均命中记忆章节，Escape 恢复 243/18 项。矩阵移动抽屉 HEADER/MAIN inert、关闭及主题刷新保持通过；插件原无抽屉/主题，文档无 Mermaid、仍依赖 CDN。浏览器已关闭。
+
+[清理/插曲] 修改探针使暂停只发生于本轮第一章时，Vite reload 与首次 fixture setup 相撞导致 Worker 启动失败。只删除自有书 23842da6-9554-4712-9152-94a216216f6e 并遗忘其三记忆，重新暖载后完成全部测试；没有重启 App 掩盖问题。最终六 Worker/贡献归零，两次自有书均 0、六记忆 status=forgotten，trigger 已移除。首次只读清理检查用了不存在的 forgotten 列，查 PRAGMA 后改为 status 确认。driver 9224 已停止，确认自有 PGID 81758 的进程及 5184/9224 监听均消失；既有 89360/9223 与正式用户数据未操作。遗忘不等于事件历史擦除。
+
+[下一步/剩余] 公共任务 ID/进度观察/启动/取消/重试/重建、Agent 批准和插件任务 UI 仍未接。本机条件提交不去重跨运行推理，不证明原文 hash 或实体锚读集版本；外层 memory-policy 的取消竞速仍可早于物理 IO 收束。remaining 是本轮采样欠账，竞争方完成同章后也可能非零，不能直接充当全局任务状态。其余双端部分/未接项、全能力自由组合及长时/撤权/打包/Windows/Linux/真实跨设备验收继续，整体目标未完成，未推送。

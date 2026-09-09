@@ -28,6 +28,8 @@ mod memory_mutations;
 pub use memory_mutations::*;
 mod book_classification;
 pub use book_classification::*;
+mod book_digest;
+pub use book_digest::*;
 mod memory_maintenance;
 pub use memory_maintenance::*;
 mod memories;

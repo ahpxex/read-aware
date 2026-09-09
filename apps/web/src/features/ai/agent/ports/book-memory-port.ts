@@ -7,7 +7,7 @@
  */
 import { invoke } from "../../../../platform/ipc";
 import type { BookMemoryPort } from "@read-aware/agent";
-import { commitDomainEvents } from "../../../../platform/domain-events";
+import { inspectBookDigest, saveBookDigest } from "../../../../domain/book-digest";
 import { isTauri } from "../../../../platform/environment";
 import { decodeChapterDigestRows } from "./chapter-digest-row";
 
@@ -20,21 +20,7 @@ export function createBookMemoryPort(): BookMemoryPort {
       });
       return decodeChapterDigestRows(rows, bookId);
     },
-    saveDigest: async (bookId, digest) => {
-      await commitDomainEvents({
-        type: "book.chapterDigested",
-        payload: {
-          bookId,
-          chapterIndex: digest.chapterIndex,
-          ...(digest.chapterHref ? { chapterHref: digest.chapterHref } : {}),
-          summary: digest.summary,
-          characters: digest.characters,
-          relations: digest.relations,
-          digestVersion: digest.digestVersion,
-          ...(digest.flavor ? { flavor: digest.flavor } : {}),
-        },
-        origin: "agent",
-      });
-    },
+    inspectDigest: inspectBookDigest,
+    saveDigest: saveBookDigest,
   };
 }

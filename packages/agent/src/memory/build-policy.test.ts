@@ -47,7 +47,7 @@ describe("memory build policy", () => {
       () => guarded.memory.applyMemoryChanges([], []),
       () => guarded.profile.putProfileSummary("late"),
       () => guarded.conversations.putInsights("global", "late"),
-      () => guarded.bookMemory.saveDigest("book" as Id, { chapterIndex: 0, summary: "late", characters: [], relations: [], digestVersion: 1 }),
+      () => guarded.bookMemory.saveDigest("book" as Id, { chapterIndex: 0, summary: "late", characters: [], relations: [], digestVersion: 1 }, `bdg1:${"a".repeat(64)}`),
       () => guarded.library.classifyBookIfUnclassified("book" as Id, "narrative"),
       () => guarded.extraMemoryCandidates!({ scope: { kind: "global", threadId: "policy-test" }, userText: "late", assistantText: "late" }),
     ];

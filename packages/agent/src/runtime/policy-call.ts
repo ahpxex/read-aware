@@ -23,7 +23,20 @@ export function policyCall(policy: LivePolicy, denied: () => Error, signal?: Abo
   return {
     signal: controller.signal,
     assertAllowed() { check(); controller.signal.throwIfAborted(); },
-    wait<T>(operation: Promise<T>): Promise<T> { return Promise.race([operation, aborted]); },
+    async wait<T>(operation: Promise<T>): Promise<T> {
+      // Even an already-settled result must not win against a revoked grant.
+      // Attach the race first so a rejected operation is always observed.
+      const result = Promise.race([operation, aborted]);
+      check();
+      if (controller.signal.aborted) {
+        void result.catch(() => {});
+        controller.signal.throwIfAborted();
+      }
+      const value = await result;
+      check();
+      controller.signal.throwIfAborted();
+      return value;
+    },
     dispose() {
       if (disposed) return;
       disposed = true;

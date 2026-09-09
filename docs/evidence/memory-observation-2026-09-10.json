@@ -1,0 +1,167 @@
+{
+  "date": "2026-09-10",
+  "scope": "memory 1.2 query observation and Memory Desk 0.3",
+  "app": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "frontendPort": 5184,
+    "bridgePort": 9224,
+    "ownedProcessGroup": 54486,
+    "mode": "macOS Tauri debug"
+  },
+  "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-memory-observation-probe.ts",
+  "owned": {
+    "bookId": "d1f94e1c-e2b2-4869-920e-52c183829cae",
+    "memoryIds": [
+      "a8281f8d-5125-4d2a-bec7-4370d7f8d10d",
+      "5d8dcdcc-56a0-4c98-ad88-cd7e91cf1d4e",
+      "6dff34e5-d389-4121-a901-282308ffcc3d"
+    ],
+    "marker": "Memory Domain Probe 2ca4ebf5-e0e9-4ead-9f65-65e1157027b3"
+  },
+  "checks": [
+    {
+      "name": "worker-grants",
+      "empty": {
+        "observe": false,
+        "write": false
+      },
+      "read": {
+        "observe": true,
+        "write": false
+      },
+      "write": {
+        "observe": true,
+        "write": true
+      },
+      "invalidSpoilerQuery": "memory/invalid-query"
+    },
+    {
+      "name": "initial-and-deduplicated",
+      "searchRevision": 1,
+      "inspectRevision": 1,
+      "graphRevision": 1,
+      "graphEntities": [
+        "Ada",
+        "Ben"
+      ],
+      "hiddenAliasExcluded": true
+    },
+    {
+      "name": "real-worker-correction",
+      "writeActor": "capability-memory-observation-write",
+      "compiledListUpdated": true
+    },
+    {
+      "name": "native-remote-apply",
+      "result": {
+        "appended": 1,
+        "applied": 1,
+        "deferred": false,
+        "replayed": false
+      },
+      "searchAndInspectRevision": 3,
+      "graphUnchangedRevision": 1,
+      "compiledListUpdated": true,
+      "localSearchRetained": "Memory",
+      "productionAgentSearchIncludedSameUserRecord": true
+    },
+    {
+      "name": "native-read-failure",
+      "fault": "Temporarily rename isolated memories table to capability_memories_read_fault",
+      "restoredInFinally": true,
+      "errorCode": "db/error",
+      "inspectErrorRevision": 4,
+      "compiledView": "Inline localized error; old memory/actions removed; only Back/Close remain",
+      "automaticRecovery": true
+    },
+    {
+      "name": "frozen-form",
+      "draft": "My frozen edit draft",
+      "externalUserWriteObservedRevision": 6,
+      "submit": "memory/conflict",
+      "localizedToast": "This memory changed. Refresh it before editing.",
+      "draftRetained": true,
+      "rawSqlNameInUi": false
+    },
+    {
+      "name": "forget",
+      "inspectRevision": 7,
+      "inspectSnapshot": null,
+      "searchRevision": 7,
+      "searchMemories": [],
+      "compiledDetail": "This memory is no longer available."
+    },
+    {
+      "name": "graph-boundary",
+      "before": "Persisted reader position index 2; profile Ada has Ada / Ben knows (Chapter 2)",
+      "after": "Position index 0; graph empty, old relation and provenance removed",
+      "graphRevision": 2,
+      "compiledDetailAutomaticallyUpdated": true,
+      "restoration": "Position index 2 restores the compiled profile without refresh"
+    },
+    {
+      "name": "unsubscribe-and-retire",
+      "before": {
+        "graph": 2,
+        "record": 7,
+        "search": 7
+      },
+      "afterFurtherGraphWrite": {
+        "graph": 2,
+        "record": 7,
+        "search": 7
+      },
+      "retiredObserverContributions": 0
+    }
+  ],
+  "screenshots": [
+    "/tmp/memory-observation-list-800.png",
+    "/tmp/memory-observation-failure-800.png",
+    "/tmp/memory-observation-draft-800.png",
+    "/tmp/memory-observation-fence-800.png"
+  ],
+  "visual": {
+    "allScreenshotsInspected": true,
+    "logicalViewport": {
+      "width": 800,
+      "height": 650
+    },
+    "documentOverflow": false
+  },
+  "unitEvidence": [
+    "Query validation and copied filters",
+    "Initial/change/error/recovery delivery",
+    "Serialized slow reads and callbacks; failed delivery retry",
+    "Caller/reader/callback mutation isolation",
+    "Owner abort discards pending reads; 64 limit and release",
+    "Live search recovery and late publication after dispose",
+    "New detail revision while an old edit form remains frozen",
+    "Graph error clears stale spoiler content",
+    "Eight locale error copy"
+  ],
+  "cleanup": {
+    "workersTerminated": 6,
+    "contributions": 0,
+    "observationContributions": 0,
+    "ownedBooks": 0,
+    "ownedMemories": "All three forgotten through events; history intentionally retained",
+    "schemaRestored": true,
+    "logicalWindowRestored": {
+      "width": 900,
+      "height": 650
+    },
+    "nativeExec": 51675,
+    "nativeExit": 1,
+    "driverStopped": 9224,
+    "unownedProcessGroup89360": "Untouched",
+    "productionData": "Untouched"
+  },
+  "limits": [
+    "Synthetic three-chapter FB2 and scripted digests",
+    "Agent tool invoked directly, not autonomous model decisions",
+    "Native remote apply uses locally minted events, not relay/E2E/second-device testing",
+    "Polling/coalescing, not an event log or instant revocation",
+    "No full-query byte budget, pagination, per-book grant, durable subscription or maintenance task control",
+    "No packaged/Windows/Linux or long-duration load testing"
+  ]
+}

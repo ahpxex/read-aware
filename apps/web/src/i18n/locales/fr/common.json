@@ -12,6 +12,8 @@
     "copied": "Copié"
   },
   "errors": {
+    "memoryObserverLimit": "Trop d'abonnements aux souvenirs sont actifs.",
+    "memoryObservationFailed": "Impossible de lire les souvenirs. Réessayez.",
     "memoryInvalidInput": "Saisissez une modification valide.",
     "memoryNotFound": "Ce souvenir n'est plus disponible.",
     "memoryConflict": "Ce souvenir a changé. Actualisez-le avant de le modifier.",

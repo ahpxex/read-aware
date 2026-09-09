@@ -12,6 +12,8 @@
     "copied": "コピーしました"
   },
   "errors": {
+    "memoryObserverLimit": "記憶の購読数が上限に達しました。",
+    "memoryObservationFailed": "記憶を読み込めませんでした。もう一度お試しください。",
     "memoryInvalidInput": "有効な記憶の変更を入力してください。",
     "memoryNotFound": "この記憶は利用できません。",
     "memoryConflict": "記憶が変更されました。更新してから編集してください。",

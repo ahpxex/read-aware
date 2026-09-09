@@ -12,6 +12,8 @@
     "copied": "已複製"
   },
   "errors": {
+    "memoryObserverLimit": "記憶訂閱數量已達上限。",
+    "memoryObservationFailed": "無法讀取記憶，請重試。",
     "memoryInvalidInput": "請輸入有效的記憶變更。",
     "memoryNotFound": "這條記憶已無法使用。",
     "memoryConflict": "記憶已變更，請重新整理後編輯。",

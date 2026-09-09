@@ -12,6 +12,8 @@
     "copied": "已复制"
   },
   "errors": {
+    "memoryObserverLimit": "记忆订阅数量已达上限。",
+    "memoryObservationFailed": "无法读取记忆，请重试。",
     "memoryInvalidInput": "请输入有效的记忆变更。",
     "memoryNotFound": "这条记忆已不可用。",
     "memoryConflict": "记忆已变化，请刷新后再编辑。",

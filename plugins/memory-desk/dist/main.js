@@ -12,6 +12,37 @@ var locales = {
 };
 var strings = (locale) => locales[locale] ?? locales[locale.split("-")[0]] ?? en;
 
+// src/live-memory.ts
+async function liveMemoryView(ctx, query, title, render) {
+  const memory = ctx.domains.memory;
+  let sample, failure;
+  try {
+    sample = query.kind === "search" ? { kind: query.kind, memories: await memory.queries.search(query.query) } : query.kind === "inspect" ? { kind: query.kind, snapshot: await memory.queries.inspect(query.memoryId) } : { kind: query.kind, graph: await memory.queries.bookGraph(query.bookId, query.query) };
+  } catch (error) {
+    failure = error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : "memory/observation-failed";
+  }
+  const content = () => failure || !sample ? { kind: "detail", title, content: [{ kind: "error", code: failure ?? "memory/observation-failed" }] } : render(sample);
+  return { ...content(), live: { subscribe(channel) {
+    let disposed = false, revision = 0;
+    const subscription = memory.events.observe(query, async (event) => {
+      if (disposed)
+        return;
+      if (event.status === "ready") {
+        sample = event.result;
+        failure = undefined;
+      } else {
+        sample = undefined;
+        failure = event.errorCode;
+      }
+      await ctx.services.ui.publishView(channel, { revision: ++revision, view: content() });
+    });
+    return { dispose() {
+      disposed = true;
+      subscription.dispose();
+    } };
+  } } };
+}
+
 // src/graph.ts
 function graphSearch(ctx, bookId) {
   const t = strings(ctx.locale);
@@ -27,73 +58,84 @@ function graphSearch(ctx, bookId) {
     return { view: await graphView(ctx, bookId, chapter ? { chapterIndex: Number(chapter) - 1 } : names.length ? { names } : {}) };
   } };
 }
-async function graphView(ctx, bookId, query = {}) {
-  const t = strings(ctx.locale), graph = await ctx.domains.memory.queries.bookGraph(bookId, query);
-  const actions = [
-    { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await graphView(ctx, bookId, query), navigation: "replace" }) },
-    { id: "search", label: t[6], icon: "magnifying-glass", run: () => ({ view: graphSearch(ctx, bookId) }) }
-  ];
-  if (graph.graph === "chapter") {
-    return { kind: "detail", title: `${t[23]} ${graph.chapterIndex + 1}`, content: [
-      { kind: "text", text: graph.summary },
-      { kind: "keyValue", rows: graph.entities.map((entity) => ({ label: entity.name, value: entity.note ?? entity.aliases?.join(", ") ?? "" })) },
-      { kind: "keyValue", rows: graph.relations.map((edge) => ({ label: `${edge.from} / ${edge.to}`, value: `${edge.kind}${edge.note ? `: ${edge.note}` : ""}` })) }
-    ], actions: [...actions, { id: "source", label: t[15], icon: "book-open", run: async () => {
-      const current = await ctx.domains.memory.queries.bookGraph(bookId, { chapterIndex: graph.chapterIndex });
-      if (current.graph !== "chapter")
-        return { view: await graphView(ctx, bookId, { chapterIndex: graph.chapterIndex }), navigation: "replace" };
-      if (!current.chapterHref)
-        return { view: { kind: "detail", title: t[15], content: [{ kind: "error", code: "reader/target-not-found" }] } };
-      await ctx.domains.reading.commands.goTo({ bookId, href: current.chapterHref });
-      return { close: true };
-    } }] };
-  }
-  if (graph.graph === "overview") {
-    const list = {
-      kind: "list",
-      title: t[4],
-      searchable: true,
-      actions,
-      items: graph.entities.map((entity) => ({
-        id: entity.name,
-        title: entity.name,
-        subtitle: `${t[16]}: ${entity.chapters}`,
+async function graphView(ctx, bookId, query = {}, profileName) {
+  const t = strings(ctx.locale);
+  return liveMemoryView(ctx, { kind: "bookGraph", bookId, query }, t[4], (result) => {
+    if (result.kind !== "bookGraph")
+      throw Error("Unexpected memory observation result");
+    const graph = result.graph;
+    const actions = [
+      { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await graphView(ctx, bookId, query, profileName), navigation: "replace" }) },
+      { id: "search", label: t[6], icon: "magnifying-glass", run: () => ({ view: graphSearch(ctx, bookId) }) }
+    ];
+    if (graph.graph === "chapter") {
+      return { kind: "detail", title: `${t[23]} ${graph.chapterIndex + 1}`, content: [
+        { kind: "text", text: graph.summary },
+        { kind: "keyValue", rows: graph.entities.map((entity) => ({ label: entity.name, value: entity.note ?? entity.aliases?.join(", ") ?? "" })) },
+        { kind: "keyValue", rows: graph.relations.map((edge) => ({ label: `${edge.from} / ${edge.to}`, value: `${edge.kind}${edge.note ? `: ${edge.note}` : ""}` })) }
+      ], actions: [...actions, { id: "source", label: t[15], icon: "book-open", run: async () => {
+        const current = await ctx.domains.memory.queries.bookGraph(bookId, { chapterIndex: graph.chapterIndex });
+        if (current.graph !== "chapter")
+          return { view: await graphView(ctx, bookId, { chapterIndex: graph.chapterIndex }), navigation: "replace" };
+        if (!current.chapterHref)
+          return { view: { kind: "detail", title: t[15], content: [{ kind: "error", code: "reader/target-not-found" }] } };
+        await ctx.domains.reading.commands.goTo({ bookId, href: current.chapterHref });
+        return { close: true };
+      } }] };
+    }
+    if (graph.graph === "overview") {
+      const list = {
+        kind: "list",
+        title: t[4],
+        searchable: true,
+        actions,
+        items: graph.entities.map((entity) => ({
+          id: entity.name,
+          title: entity.name,
+          subtitle: `${t[16]}: ${entity.chapters}`,
+          icon: "brain",
+          onSelect: async () => ({ view: await graphView(ctx, bookId, { names: [entity.name] }) })
+        })),
+        emptyText: t[11]
+      };
+      return graph.truncated ? { kind: "detail", title: t[4], actions, content: [
+        { kind: "text", text: t[19] },
+        { ...list, actions: undefined }
+      ] } : list;
+    }
+    if (graph.graph === "profiles") {
+      if (profileName) {
+        const profile = graph.profiles.find((item) => item.name === profileName);
+        if (!profile)
+          return { kind: "detail", title: profileName, content: [{ kind: "text", text: t[18] }], actions };
+        return { kind: "detail", title: profile.name, content: [
+          { kind: "text", text: profile.aliases?.join(", ") ?? "" },
+          { kind: "text", text: profile.note ?? "" },
+          { kind: "list", title: t[16], items: profile.appearsInChapters.map((index) => ({
+            id: String(index),
+            title: `${t[23]} ${index + 1}`,
+            icon: "book-open",
+            onSelect: async () => ({ view: await graphView(ctx, bookId, { chapterIndex: index }) })
+          })) },
+          { kind: "keyValue", rows: profile.relations.map((edge) => ({ label: `${edge.from} / ${edge.to}`, value: `${edge.kind} (${t[23]} ${edge.establishedAt + 1})` })) },
+          ...profile.relationsTruncated ? [{ kind: "text", text: t[19] }] : []
+        ], actions };
+      }
+      const items = graph.profiles.map((profile) => ({
+        id: profile.name,
+        title: profile.name,
+        subtitle: profile.note,
         icon: "brain",
-        onSelect: async () => ({ view: await graphView(ctx, bookId, { names: [entity.name] }) })
-      })),
-      emptyText: t[11]
-    };
-    return graph.truncated ? { kind: "detail", title: t[4], actions, content: [
-      { kind: "text", text: t[19] },
-      { ...list, actions: undefined }
-    ] } : list;
-  }
-  if (graph.graph === "profiles") {
-    const items = graph.profiles.map((profile) => ({
-      id: profile.name,
-      title: profile.name,
-      subtitle: profile.note,
-      icon: "brain",
-      onSelect: () => ({ view: { kind: "detail", title: profile.name, content: [
-        { kind: "text", text: profile.aliases?.join(", ") ?? "" },
-        { kind: "text", text: profile.note ?? "" },
-        { kind: "list", title: t[16], items: profile.appearsInChapters.map((index) => ({
-          id: String(index),
-          title: `${t[23]} ${index + 1}`,
-          icon: "book-open",
-          onSelect: async () => ({ view: await graphView(ctx, bookId, { chapterIndex: index }) })
-        })) },
-        { kind: "keyValue", rows: profile.relations.map((edge) => ({ label: `${edge.from} / ${edge.to}`, value: `${edge.kind} (${t[23]} ${edge.establishedAt + 1})` })) },
-        ...profile.relationsTruncated ? [{ kind: "text", text: t[19] }] : []
-      ] } })
-    }));
-    return { kind: "detail", title: t[4], actions, content: [
-      { kind: "list", searchable: true, items, emptyText: t[18] },
-      ...graph.notFound.length ? [{ kind: "text", text: `${t[18]}: ${graph.notFound.join(", ")}` }] : [],
-      ...graph.truncated ? [{ kind: "text", text: t[19] }] : []
-    ] };
-  }
-  return { kind: "detail", title: t[4], actions, content: [{ kind: "text", text: t[graph.graph === "unavailable" ? 9 : graph.graph === "miss" ? 10 : 11] }] };
+        onSelect: async () => ({ view: await graphView(ctx, bookId, { names: [profile.name] }, profile.name) })
+      }));
+      return { kind: "detail", title: t[4], actions, content: [
+        { kind: "list", searchable: true, items, emptyText: t[18] },
+        ...graph.notFound.length ? [{ kind: "text", text: `${t[18]}: ${graph.notFound.join(", ")}` }] : [],
+        ...graph.truncated ? [{ kind: "text", text: t[19] }] : []
+      ] };
+    }
+    return { kind: "detail", title: t[4], actions, content: [{ kind: "text", text: t[graph.graph === "unavailable" ? 9 : graph.graph === "miss" ? 10 : 11] }] };
+  });
 }
 
 // src/management.ts
@@ -109,43 +151,47 @@ var words = {
 };
 async function memoryDetail(ctx, id, removed) {
   const t = words[ctx.locale] ?? words[ctx.locale.split("-")[0]] ?? words.en;
-  const snapshot = await ctx.domains.memory.queries.inspect(id);
-  if (!snapshot)
-    return { kind: "detail", title: t[0], content: [{ kind: "error", code: "memory/not-found" }] };
-  const { memory, revision } = snapshot;
-  const refresh = () => memoryDetail(ctx, id, removed);
-  const apply = (change) => ctx.domains.memory.commands.mutate(change);
-  const base = { memoryId: id, expectedRevision: revision };
-  return { kind: "detail", title: t[0], content: [
-    { kind: "text", text: memory.content },
-    { kind: "keyValue", rows: [{ label: "ID", value: id }, { label: t[9], value: memory.scope }] }
-  ], actions: [
-    { id: "refresh", label: t[1], icon: "arrows-clockwise", run: async () => ({ view: await refresh(), navigation: "replace" }) },
-    ...ctx.domains.memory.commands ? [
-      { id: "pin", label: t[memory.pinned ? 4 : 3], icon: "push-pin", run: async () => {
-        await apply({ ...base, op: "setPinned", pinned: !memory.pinned });
-        return { view: await refresh(), navigation: "replace" };
-      } },
-      { id: "correct", label: t[2], icon: "pencil-simple", run: () => ({ view: { kind: "form", title: t[2], fields: [
-        { id: "content", kind: "textarea", label: t[6], value: memory.content }
-      ], onSubmit: async (values) => {
-        const content = values.content;
-        if (typeof content !== "string" || !content.trim() || content.length > 16000)
-          return { fieldErrors: { content: t[8] } };
-        await apply({ ...base, op: "correct", content });
-        return { view: await refresh(), navigation: "replace" };
-      } } }) },
-      { id: "forget", label: t[5], icon: "trash", run: () => ({ view: { kind: "form", title: t[5], fields: [
-        { id: "content", kind: "textarea", label: t[6], value: memory.content, disabled: true },
-        { id: "confirm", kind: "checkbox", label: t[7], value: false }
-      ], onSubmit: async (values) => {
-        if (values.confirm !== true)
-          return { fieldErrors: { confirm: t[8] } };
-        await apply({ ...base, op: "forget" });
-        return { view: await removed(), navigation: "replace" };
-      } } }) }
-    ] : []
-  ] };
+  return liveMemoryView(ctx, { kind: "inspect", memoryId: id }, t[0], (result) => {
+    if (result.kind !== "inspect")
+      throw Error("Unexpected memory observation result");
+    const snapshot = result.snapshot;
+    if (!snapshot)
+      return { kind: "detail", title: t[0], content: [{ kind: "error", code: "memory/not-found" }] };
+    const { memory, revision } = snapshot;
+    const refresh = () => memoryDetail(ctx, id, removed);
+    const apply = (change) => ctx.domains.memory.commands.mutate(change);
+    const base = { memoryId: id, expectedRevision: revision };
+    return { kind: "detail", title: t[0], content: [
+      { kind: "text", text: memory.content },
+      { kind: "keyValue", rows: [{ label: "ID", value: id }, { label: t[9], value: memory.scope }] }
+    ], actions: [
+      { id: "refresh", label: t[1], icon: "arrows-clockwise", run: async () => ({ view: await refresh(), navigation: "replace" }) },
+      ...ctx.domains.memory.commands ? [
+        { id: "pin", label: t[memory.pinned ? 4 : 3], icon: "push-pin", run: async () => {
+          await apply({ ...base, op: "setPinned", pinned: !memory.pinned });
+          return { view: await refresh(), navigation: "replace" };
+        } },
+        { id: "correct", label: t[2], icon: "pencil-simple", run: () => ({ view: { kind: "form", title: t[2], fields: [
+          { id: "content", kind: "textarea", label: t[6], value: memory.content }
+        ], onSubmit: async (values) => {
+          const content = values.content;
+          if (typeof content !== "string" || !content.trim() || content.length > 16000)
+            return { fieldErrors: { content: t[8] } };
+          await apply({ ...base, op: "correct", content });
+          return { view: await refresh(), navigation: "replace" };
+        } } }) },
+        { id: "forget", label: t[5], icon: "trash", run: () => ({ view: { kind: "form", title: t[5], fields: [
+          { id: "content", kind: "textarea", label: t[6], value: memory.content, disabled: true },
+          { id: "confirm", kind: "checkbox", label: t[7], value: false }
+        ], onSubmit: async (values) => {
+          if (values.confirm !== true)
+            return { fieldErrors: { confirm: t[8] } };
+          await apply({ ...base, op: "forget" });
+          return { view: await removed(), navigation: "replace" };
+        } } }) }
+      ] : []
+    ] };
+  });
 }
 
 // src/views.ts
@@ -186,31 +232,36 @@ async function booksView(ctx, page = 0) {
   };
 }
 async function memories(ctx, scope, query) {
-  const t = strings(ctx.locale), rows = await ctx.domains.memory.queries.search({ scopes: [scope], query, limit: 100 });
-  return {
-    kind: "list",
-    title: t[scope === "user" ? 1 : scope === "global" ? 2 : 5],
-    searchable: true,
-    emptyText: t[8],
-    items: rows.map((row) => ({
-      id: row.id,
-      title: row.content,
-      subtitle: row.updatedAt,
-      icon: "brain",
-      onSelect: async () => ({ view: await memoryDetail(ctx, row.id, () => memories(ctx, scope, query)) })
-    })),
-    actions: [
-      { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await memories(ctx, scope, query), navigation: "replace" }) },
-      { id: "search", label: t[6], icon: "magnifying-glass", run: () => ({ view: { kind: "form", title: t[6], fields: [
-        { id: "query", kind: "text", label: t[22], value: query ?? "" }
-      ], onSubmit: async (values) => {
-        const value = String(values.query ?? "");
-        if (value.length > 2000)
-          return { fieldErrors: { query: t[19] } };
-        return { view: await memories(ctx, scope, value) };
-      } } }) }
-    ]
-  };
+  const t = strings(ctx.locale), title = t[scope === "user" ? 1 : scope === "global" ? 2 : 5];
+  return liveMemoryView(ctx, { kind: "search", query: { scopes: [scope], query, limit: 100 } }, title, (result) => {
+    if (result.kind !== "search")
+      throw Error("Unexpected memory observation result");
+    const rows = result.memories;
+    return {
+      kind: "list",
+      title,
+      searchable: true,
+      emptyText: t[8],
+      items: rows.map((row) => ({
+        id: row.id,
+        title: row.content,
+        subtitle: row.updatedAt,
+        icon: "brain",
+        onSelect: async () => ({ view: await memoryDetail(ctx, row.id, () => memories(ctx, scope, query)) })
+      })),
+      actions: [
+        { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await memories(ctx, scope, query), navigation: "replace" }) },
+        { id: "search", label: t[6], icon: "magnifying-glass", run: () => ({ view: { kind: "form", title: t[6], fields: [
+          { id: "query", kind: "text", label: t[22], value: query ?? "" }
+        ], onSubmit: async (values) => {
+          const value = String(values.query ?? "");
+          if (value.length > 2000)
+            return { fieldErrors: { query: t[19] } };
+          return { view: await memories(ctx, scope, value) };
+        } } }) }
+      ]
+    };
+  });
 }
 
 // src/index.ts

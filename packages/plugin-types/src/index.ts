@@ -47,6 +47,7 @@ export type { WorkspaceTarget, WorkspaceQuery, WorkspaceSnapshot, WorkspaceRecei
 export type { SettingsObservation, SettingsObservationCause } from "@read-aware/core";
 export type { MemoryRecord, MemoryScope, MemoryQuery, BookGraphQuery, BookGraphResult, BookGraphProfile } from "@read-aware/core";
 export type { MemorySnapshot, MemoryMutation, MemoryMutationReceipt } from "@read-aware/core";
+export type { MemoryObservationQuery, MemoryObservationResult, MemoryObservation } from "@read-aware/core";
 export type { HostCommandId, HostCommandRequest, HostCommandDescriptor, HostCommandSnapshot, HostCommandReceipt, HostCommandObservation } from "@read-aware/core";
 import type {
   AnnotationItem,
@@ -1377,12 +1378,17 @@ export type PluginDomains = {
   reading?: PluginReadingDomain;
   annotations?: PluginAnnotationsDomain;
   conversations?: PluginConversationsDomain;
-  /** Memory 1.1. Write permits conditional feedback, never arbitrary projection writes. */
+  /** Memory 1.2. Write permits conditional feedback, never arbitrary projection writes. */
   memory?: { queries: {
     inspect(id: string): Promise<import("@read-aware/core").MemorySnapshot | null>;
     search(input: import("@read-aware/core").MemoryQuery): Promise<import("@read-aware/core").MemoryRecord[]>;
     bookGraph(bookId: string, query?: import("@read-aware/core").BookGraphQuery): Promise<import("@read-aware/core").BookGraphResult>;
-  }; commands?: { mutate(input: import("@read-aware/core").MemoryMutation): Promise<import("@read-aware/core").MemoryMutationReceipt> } };
+  }; commands?: { mutate(input: import("@read-aware/core").MemoryMutation): Promise<import("@read-aware/core").MemoryMutationReceipt> };
+    events: {
+      /** Initial snapshot, then changed results/errors; bounded polling, not an event log. */
+      observe(query: import("@read-aware/core").MemoryObservationQuery, handler: (event: import("@read-aware/core").MemoryObservation) => unknown): PluginDisposable;
+    };
+  };
   settings: PluginSettingsDomain;
 };
 

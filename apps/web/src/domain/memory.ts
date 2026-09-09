@@ -7,6 +7,15 @@ import { readingRuntime } from "./reading-runtime";
 import { createMemoryQueries } from "./memory-queries";
 import { bookMemoryBoundary } from "./book-memory-boundary";
 import { inspectMemory, mutateMemory } from "./memory-management";
+import { MemoryObserver } from "./memory-observer";
+import { createLogger } from "../platform/logger";
+import type { MemoryObservation, MemoryObservationQuery, MemoryObservationResult } from "@read-aware/core";
+
+const log = createLogger("memory-observation");
+const observer = new MemoryObserver({
+  schedule: work => { const timer = setTimeout(work, 1000); return () => clearTimeout(timer); },
+  report: error => log.warn("Memory observation failed", error),
+});
 
 /** Memory reads do not import books, construct digests, or grant raw projection writes. */
 export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal) {
@@ -19,6 +28,12 @@ export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal) 
     const boundary = bookMemoryBoundary(book, readingRuntime.snapshot(), chapters?.map((chapter, index) => ({ index, hrefs: chapter.hrefs })) ?? null);
     return { digests, boundary, flavor: book.narrativity ?? undefined };
   } }, lifetime);
+  const read = async (query: MemoryObservationQuery): Promise<MemoryObservationResult> => {
+    if (query.kind === "search") return { kind: query.kind, memories: await queries.search(query.query) };
+    if (query.kind === "inspect") return { kind: query.kind, snapshot: await inspectMemory(query.memoryId, lifetime) };
+    return { kind: query.kind, graph: await queries.bookGraph(query.bookId, query.query) };
+  };
   return { queries: { ...queries, inspect: (id: string) => inspectMemory(id, lifetime) },
-    commands: { mutate: (input: import("@read-aware/core").MemoryMutation) => mutateMemory(input, origin, lifetime) }, events: {} };
+    commands: { mutate: (input: import("@read-aware/core").MemoryMutation) => mutateMemory(input, origin, lifetime) },
+    events: { observe: (input: MemoryObservationQuery, handler: (event: MemoryObservation) => unknown) => observer.observe(input, read, handler, lifetime) } };
 }

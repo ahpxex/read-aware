@@ -1080,7 +1080,7 @@ localized SQLite read failure retaining the old view, retry and source navigatio
 A repeated menu label was traced to two distinct plugin IDs (installed plugin
 plus explicit fixture); cleanup removed only the fixture's contributions.
 
-[设计/仍缺] Per-book/field grants, query observation, full pagination/exhaustion,
+[设计/仍缺] Per-book/field grants, full pagination/exhaustion,
 general feedback ratings, profile projections and formal context bundles remain open.
 Stored chapterHref has no content hash and is NOT a versioned ReadingLocation;
 rechecking visibility does not prove that an old digest belongs to replaced
@@ -1152,11 +1152,70 @@ not verified by these tests.
 
 [代码] Existing-record consolidation and extraction reinforcement now use the same
 row/event revisions. See the internal maintenance boundary below. No
-memory observation, per-book plugin grant, full pagination, event-history erasure
+per-book plugin grant, full pagination, event-history erasure
 or arbitrary feedback scoring was added. Legacy `correct`/`reject` feedback
 signals have no projection effect; new correction deliberately emits revised,
 not that ineffective feedback event. Core now includes the already-implemented
 native `unpin` signal rather than using a type cast to hide the contract drift.
+
+<a id="memory-observation"></a>
+### Memory 1.2: Query Observation
+
+[代码] `events.observe(query, handler)` returns a PluginDisposable under
+memory:read (also implied by write). Exactly three query variants are accepted:
+`{kind:"search",query:MemoryQuery}`, `{kind:"inspect",memoryId}`, and
+`{kind:"bookGraph",bookId,query?:BookGraphQuery}`. Normalization copies inputs,
+rejects extra authority/fields, and enforces the existing query/ID limits before
+allocating a subscription. There is no event-log access or new write permission.
+
+[代码] Each subscription immediately starts an asynchronous authorized read,
+then schedules another read 1000 ms after the previous read and callback finish.
+Reads and callbacks are serial per subscription. Identical results/error codes
+are suppressed; recovery to the same earlier result is delivered. Handler failure
+is logged and the latest result is retried on a later poll rather than falsely
+acknowledged. The host-wide limit is 64; disposal/owner abort releases its slot
+and timer and drops late read results, but does not undo dispatched SQLite work.
+New calls on a retired owner reject. Slow consumers extend the polling interval.
+
+[代码] Events have per-subscription increasing `revision` and either
+`{status:"ready",result}` or `{status:"error",errorCode}`. Ready result is
+`{kind:"search",memories}`, `{kind:"inspect",snapshot}` or
+`{kind:"bookGraph",graph}`. Inspect null means missing/inactive, not a read error.
+Revision is a delivery sequence, not mem1 CAS, durable identity or global clock.
+Read failures are logged with raw details and delivered as stable database codes
+or `memory/observation-failed`; `memory/observer-limit` is terminal until a slot
+is released. New error copy exists in all eight locales.
+
+[代码] Every graph poll reruns the existing flavor/fence filtering. Position,
+classification and native remote-apply changes become visible through queries,
+without relying on a complete event bus. Search scopes remain filters, not
+per-book grants; memory records themselves retain their existing scope policy.
+This is eventual observation of bounded query results, not every write: changes
+between polls may coalesce, scope-excluded changes produce no payload, and
+unchanged results need not emit even if an underlying event was appended. Native
+query reads and graph metadata assembly are not a new cross-table snapshot/CAS.
+
+[代码] Memory Desk 0.3 composes observe with UI publishView and live views for
+memory lists, records, graph overviews, named profiles and chapters. Initial or
+later read failures show an inline coded error and remove old content/actions;
+recovery resumes without clicking refresh. Successful list updates retain local
+search. Entering an edit/forget form ends that frame's observer; its draft and
+expectedRevision stay frozen. New detail actions capture new revisions. Closing,
+back navigation and plugin retirement release subscriptions through view ownership.
+The book picker remains a paged query snapshot, not a library observer. Existing
+source navigation still rechecks the graph before opening its chapter.
+
+[环境] [Native evidence](./evidence/memory-observation-2026-09-10.json) covers
+real Worker read/write/absent grants, invalid spoiler authority, local/Worker/
+native remote-apply changes, Agent search of the same persisted result, compiled
+list search retention, SQL read failure/automatic recovery, frozen draft conflict,
+forget-to-null/empty, graph-boundary contraction/restoration and unsubscribe.
+The synthetic FB2 uses scripted digests; remote apply uses locally minted test
+events. No autonomous model, network relay/E2E, packaged or cross-platform claim.
+Backpressure, callback failure, budget release and late-read abort use unit tests.
+Polling is not instantaneous revocation of previously delivered content, durable
+subscription, maintenance task control, pagination, full payload budgeting or
+proof of all graph/Agent prompt consumers sharing identical spoiler policy.
 
 <a id="memory-maintenance"></a>
 ### Conditional Background Maintenance
@@ -1181,8 +1240,8 @@ automatic forgetting/supersession. A supersession must be followed by its winner
 credit in the same batch. Existing event IDs cannot be silently accepted as a new
 plan. It returns the surviving supplied read set with post-commit revisions,
 captured inside that same transaction. It never acknowledges unread insertions
-or later edits through a second store read. Public memory 1.1 permissions and
-plugin methods are unchanged.
+or later edits through a second store read. Public feedback permissions and
+mutation methods are unchanged from memory 1.1; observation is added in 1.2.
 
 [代码] The judgment normalizer skips malformed array entries and overlapping
 merge/contradiction endpoints; a retained winner cannot subsequently become a
@@ -1236,7 +1295,7 @@ judgment retry, time-only expiry, external changes and post-receipt races.
 do not invalidate it; no serializable judgment over the future whole collection
 is claimed. New-fact promotion/deduplication, repeated extraction of forgotten
 facts, complete pipeline quiescence, whole-store/model budget control, public
-observation, per-book authorization and true cross-device CAS remain open.
+maintenance task control, per-book authorization and true cross-device CAS remain open.
 Unread insertions do not cancel a running judgment, but now remain dirty for the
 next eligible poll rather than being absorbed into its settled checkpoint.
 

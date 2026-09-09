@@ -48,7 +48,9 @@ describe("Memory Desk public composition", () => {
     const view = await graphView(f.ctx, "b") as PluginDetailView;
     expect(await view.actions!.find(action => action.id === "source")!.run()).toHaveProperty("view");
     f.ctx.domains.memory!.queries.search = async () => { throw Error("read refused"); };
-    await expect(memories(f.ctx, "user")).rejects.toThrow("read refused");
+    const failure = await memories(f.ctx, "user") as PluginDetailView;
+    expect(failure.content).toEqual([{ kind: "error", code: "memory/observation-failed" }]);
+    expect(failure.actions).toBeUndefined();
   });
   test("profiles preserve provenance chapter actions and bounded-result notices", async () => {
     const f = fixture(); f.setGraph({ graph: "profiles", profiles: [{ name: "Ada", appearsInChapters: [2], relations: [], relationsTruncated: true }], notFound: ["Ben"], truncated: true, note: "" });

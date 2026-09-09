@@ -1,5 +1,6 @@
-import type { BookGraphQuery, PluginAction, PluginContext, PluginDetailView, PluginFormView, PluginListItem, PluginListView } from "@read-aware/plugin-types";
+import type { BookGraphQuery, PluginAction, PluginContext, PluginFormView, PluginListItem, PluginListView } from "@read-aware/plugin-types";
 import { strings } from "./strings";
+import { liveMemoryView, type MemoryDeskView } from "./live-memory";
 
 export function graphSearch(ctx: PluginContext, bookId: string): PluginFormView {
   const t = strings(ctx.locale);
@@ -14,10 +15,13 @@ export function graphSearch(ctx: PluginContext, bookId: string): PluginFormView 
     return { view: await graphView(ctx, bookId, chapter ? { chapterIndex: Number(chapter) - 1 } : names.length ? { names } : {}) };
   } };
 }
-export async function graphView(ctx: PluginContext, bookId: string, query: BookGraphQuery = {}): Promise<PluginDetailView | PluginListView> {
-  const t = strings(ctx.locale), graph = await ctx.domains.memory!.queries.bookGraph(bookId, query);
+export async function graphView(ctx: PluginContext, bookId: string, query: BookGraphQuery = {}, profileName?: string): Promise<MemoryDeskView> {
+  const t = strings(ctx.locale);
+  return liveMemoryView(ctx, { kind: "bookGraph", bookId, query }, t[4], result => {
+  if (result.kind !== "bookGraph") throw Error("Unexpected memory observation result");
+  const graph = result.graph;
   const actions: PluginAction[] = [
-    { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await graphView(ctx, bookId, query), navigation: "replace" }) },
+    { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await graphView(ctx, bookId, query, profileName), navigation: "replace" }) },
     { id: "search", label: t[6], icon: "magnifying-glass", run: () => ({ view: graphSearch(ctx, bookId) }) },
   ];
   if (graph.graph === "chapter") {
@@ -43,14 +47,19 @@ export async function graphView(ctx: PluginContext, bookId: string, query: BookG
     ] } : list;
   }
   if (graph.graph === "profiles") {
-    const items: PluginListItem[] = graph.profiles.map(profile => ({ id: profile.name, title: profile.name, subtitle: profile.note, icon: "brain",
-      onSelect: () => ({ view: { kind: "detail", title: profile.name, content: [
+    if (profileName) {
+      const profile = graph.profiles.find(item => item.name === profileName);
+      if (!profile) return { kind: "detail", title: profileName, content: [{ kind: "text", text: t[18] }], actions };
+      return { kind: "detail", title: profile.name, content: [
         { kind: "text", text: profile.aliases?.join(", ") ?? "" }, { kind: "text", text: profile.note ?? "" },
         { kind: "list", title: t[16], items: profile.appearsInChapters.map(index => ({ id: String(index), title: `${t[23]} ${index + 1}`, icon: "book-open",
           onSelect: async () => ({ view: await graphView(ctx, bookId, { chapterIndex: index }) }) })) },
         { kind: "keyValue", rows: profile.relations.map(edge => ({ label: `${edge.from} / ${edge.to}`, value: `${edge.kind} (${t[23]} ${edge.establishedAt + 1})` })) },
         ...(profile.relationsTruncated ? [{ kind: "text" as const, text: t[19] }] : []),
-      ] } }) }));
+      ], actions };
+    }
+    const items: PluginListItem[] = graph.profiles.map(profile => ({ id: profile.name, title: profile.name, subtitle: profile.note, icon: "brain",
+      onSelect: async () => ({ view: await graphView(ctx, bookId, { names: [profile.name] }, profile.name) }) }));
     return { kind: "detail", title: t[4], actions, content: [
       { kind: "list", searchable: true, items, emptyText: t[18] },
       ...(graph.notFound.length ? [{ kind: "text" as const, text: `${t[18]}: ${graph.notFound.join(", ")}` }] : []),
@@ -58,4 +67,5 @@ export async function graphView(ctx: PluginContext, bookId: string, query: BookG
     ] };
   }
   return { kind: "detail", title: t[4], actions, content: [{ kind: "text", text: t[graph.graph === "unavailable" ? 9 : graph.graph === "miss" ? 10 : 11] }] };
+  });
 }

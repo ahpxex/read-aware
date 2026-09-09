@@ -25,6 +25,7 @@ test("memory query and consumer inventories stay distinct from bundled or model 
   expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.queries.bookGraph")?.rows).toEqual(["MEM11"]);
   expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.queries.inspect")?.rows).toEqual(["MEM01", "MEM05"]);
   expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.commands.mutate")?.rows).toEqual(["MEM04", "MEM05"]);
+  expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.events.observe")?.rows).toEqual(["MEM01", "MEM04", "MEM05", "MEM11"]);
   expect(inventory.find(item => item.family === "First-party source plugin" && item.name === "memory-desk")?.rows).toContain("MEM05");
   expect(inventory.find(item => item.family === "First-party source plugin" && item.name === "memory-desk")?.rows).toContain("MEM11");
   expect(inventory.some(item => item.family === "Native bundled plugin" && item.name === "memory-desk")).toBe(false);

@@ -1,4 +1,5 @@
 import type { MemoryMutation, PluginContext, PluginDetailView, PluginView } from "@read-aware/plugin-types";
+import { liveMemoryView, type MemoryDeskView } from "./live-memory";
 
 const words: Record<string, readonly string[]> = {
   en: ["Memory", "Refresh", "Correct", "Pin", "Unpin", "Forget", "Content", "Confirm forgetting this memory", "Required", "Scope"],
@@ -10,9 +11,11 @@ const words: Record<string, readonly string[]> = {
   es: ["Recuerdo", "Actualizar", "Corregir", "Fijar", "Desfijar", "Olvidar", "Contenido", "Confirmar que se olvide este recuerdo", "Obligatorio", "Alcance"],
   ru: ["Память", "Обновить", "Исправить", "Закрепить", "Открепить", "Забыть", "Содержание", "Подтвердить забывание этой записи", "Обязательно", "Область"],
 };
-export async function memoryDetail(ctx: PluginContext, id: string, removed: () => Promise<PluginView>): Promise<PluginDetailView> {
+export async function memoryDetail(ctx: PluginContext, id: string, removed: () => Promise<PluginView>): Promise<MemoryDeskView> {
   const t = words[ctx.locale] ?? words[ctx.locale.split("-")[0]] ?? words.en!;
-  const snapshot = await ctx.domains.memory!.queries.inspect(id);
+  return liveMemoryView(ctx, { kind: "inspect", memoryId: id }, t[0]!, result => {
+  if (result.kind !== "inspect") throw Error("Unexpected memory observation result");
+  const snapshot = result.snapshot;
   if (!snapshot) return { kind: "detail", title: t[0]!, content: [{ kind: "error", code: "memory/not-found" }] };
   const { memory, revision } = snapshot;
   const refresh = () => memoryDetail(ctx, id, removed);
@@ -41,5 +44,6 @@ export async function memoryDetail(ctx: PluginContext, id: string, removed: () =
         await apply({ ...base, op: "forget" }); return { view: await removed(), navigation: "replace" as const };
       } } }) },
     ] : []),
-  ] };
+  ] } satisfies PluginDetailView;
+  });
 }

@@ -12,6 +12,8 @@
     "copied": "Copied"
   },
   "errors": {
+    "memoryObserverLimit": "Too many memory subscriptions are active.",
+    "memoryObservationFailed": "Memory could not be read. Try again.",
     "memoryInvalidInput": "Enter a valid memory change.",
     "memoryNotFound": "This memory is no longer available.",
     "memoryConflict": "This memory changed. Refresh it before editing.",

@@ -12,6 +12,8 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "memoryObserverLimit": "Zu viele aktive Erinnerungsabonnements.",
+    "memoryObservationFailed": "Erinnerungen konnten nicht gelesen werden. Versuche es erneut.",
     "memoryInvalidInput": "Geben Sie eine gültige Erinnerungsänderung ein.",
     "memoryNotFound": "Diese Erinnerung ist nicht mehr verfügbar.",
     "memoryConflict": "Die Erinnerung wurde geändert. Vor dem Bearbeiten aktualisieren.",

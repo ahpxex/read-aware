@@ -59,6 +59,7 @@ const pluginMap = pairs([
   ["domains.memory.queries.bookGraph", "MEM11"],
   ["domains.memory.queries.inspect", "MEM01 MEM05"],
   ["domains.memory.commands.mutate", "MEM04 MEM05"],
+  ["domains.memory.events.observe", "MEM01 MEM04 MEM05 MEM11"],
   ["domains.library.queries.books.list domains.library.queries.books.get", "LIB01"],
   ["domains.library.queries.books.getToc", "TXT01"], ["domains.library.queries.books.getChapterText", "TXT03"],
   ["domains.library.queries.books.getTextState", "TXT04"],

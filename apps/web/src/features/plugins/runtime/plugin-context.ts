@@ -801,7 +801,9 @@ export function buildPluginContext(
 
   if (domain.memory) {
     const memory = domain.memory;
-    ctx.domains.memory = { queries: memory.queries, ...(memory.commands ? { commands: { mutate: input => {
+    ctx.domains.memory = { queries: memory.queries,
+      events: { observe: (query, handler) => track(() => ({ dispose: memory.events.observe(query, handler) })) },
+      ...(memory.commands ? { commands: { mutate: input => {
       lifecycle.assertActive("domains.memory.commands.mutate");
       return memory.commands!.mutate(input);
     } } } : {}) };

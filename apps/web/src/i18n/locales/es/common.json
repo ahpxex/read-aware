@@ -12,6 +12,8 @@
     "copied": "Copiado"
   },
   "errors": {
+    "memoryObserverLimit": "Hay demasiadas suscripciones activas a la memoria.",
+    "memoryObservationFailed": "No se pudo leer la memoria. Inténtalo de nuevo.",
     "memoryInvalidInput": "Introduce un cambio de memoria válido.",
     "memoryNotFound": "Este recuerdo ya no está disponible.",
     "memoryConflict": "Este recuerdo cambió. Actualízalo antes de editar.",

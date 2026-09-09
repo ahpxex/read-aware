@@ -83,6 +83,8 @@ const CODE_COPY: Record<string, CopyEntry> = {
   "memory/not-found": { key: "memoryNotFound", retryable: false },
   "memory/conflict": { key: "memoryConflict", retryable: false },
   "memory/unavailable": { key: "memoryUnavailable", retryable: false },
+  "memory/observer-limit": { key: "memoryObserverLimit", retryable: false },
+  "memory/observation-failed": { key: "memoryObservationFailed", retryable: true },
   "memory/cancelled": { key: "memoryCancelled", retryable: false },
   "memory/forbidden": { key: "memoryForbidden", retryable: false },
   "ui/invalid-target": { key: "workspaceInvalid", retryable: false },

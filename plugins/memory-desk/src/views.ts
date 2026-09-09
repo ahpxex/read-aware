@@ -2,6 +2,7 @@ import type { MemoryScope, PluginContext, PluginFormView, PluginListView } from 
 import { graphView } from "./graph";
 import { strings } from "./strings";
 import { memoryDetail } from "./management";
+import { liveMemoryView, type MemoryDeskView } from "./live-memory";
 
 export async function memoryDesk(ctx: PluginContext): Promise<PluginListView> {
   const t = strings(ctx.locale);
@@ -27,9 +28,12 @@ export async function booksView(ctx: PluginContext, page = 0): Promise<PluginLis
       })),
     ] };
 }
-export async function memories(ctx: PluginContext, scope: MemoryScope, query?: string): Promise<PluginListView> {
-  const t = strings(ctx.locale), rows = await ctx.domains.memory!.queries.search({ scopes: [scope], query, limit: 100 });
-  return { kind: "list", title: t[scope === "user" ? 1 : scope === "global" ? 2 : 5], searchable: true, emptyText: t[8],
+export async function memories(ctx: PluginContext, scope: MemoryScope, query?: string): Promise<MemoryDeskView> {
+  const t = strings(ctx.locale), title = t[scope === "user" ? 1 : scope === "global" ? 2 : 5];
+  return liveMemoryView(ctx, { kind: "search", query: { scopes: [scope], query, limit: 100 } }, title, result => {
+    if (result.kind !== "search") throw Error("Unexpected memory observation result");
+    const rows = result.memories;
+    return { kind: "list", title, searchable: true, emptyText: t[8],
     items: rows.map(row => ({ id: row.id, title: row.content, subtitle: row.updatedAt, icon: "brain",
       onSelect: async () => ({ view: await memoryDetail(ctx, row.id, () => memories(ctx, scope, query)) }) })), actions: [
       { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await memories(ctx, scope, query), navigation: "replace" }) },
@@ -41,4 +45,5 @@ export async function memories(ctx: PluginContext, scope: MemoryScope, query?: s
         return { view: await memories(ctx, scope, value) };
       } } satisfies PluginFormView }) },
     ] };
+  });
 }

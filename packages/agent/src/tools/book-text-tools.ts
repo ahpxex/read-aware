@@ -6,7 +6,7 @@
  */
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
-import type { Id } from "@read-aware/core";
+import { AppError, type Id } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { normalizeBookIdParam, resolveBookId as resolveScopedBookId } from "./current-book";
@@ -69,7 +69,7 @@ export function buildBookTextTools(
     name: "get_toc",
     label: "Table of contents",
     description:
-      "Get a book's table of contents. Each entry carries chapterIndex (what read_chapter takes) AND chapterNumber (how the reader counts, 1-based): when the reader says \"chapter N\", find the entry whose chapterNumber is N and pass its chapterIndex — never do the arithmetic yourself. chars = text length (one read_chapter part covers 12000 chars). A TOC does not prove whether a topic appears in the prose: if the reader asks you to check coverage, continue with search_book_text or read_chapter in this same turn instead of offering to look later. An empty result carries textStatus: \"textless\" means the book has no text layer at all (image-only scan — do not retry, tell the reader honestly), \"unextracted\" means extraction has not finished yet. bookId defaults to the current book.",
+      "Get a book's indexed table of contents. Each entry carries chapterIndex (what read_chapter takes) AND chapterNumber (how the reader counts, 1-based): when the reader says \"chapter N\", find the entry whose chapterNumber is N and pass its chapterIndex — never do the arithmetic yourself. chars = text length (one read_chapter part covers 12000 chars). A TOC does not prove whether a topic appears in the prose: if the reader asks you to check coverage, continue with search_book_text or read_chapter in this same turn instead of offering to look later. Empty results carry textState on current hosts (legacy hosts use textStatus). Only ready plus textless proves every required section was read successfully with no extractable text; available text can have no indexed chapters. Preparing, unsupported and unavailable are not textless. Partial or failed preparation returns an error. Use get_book_text_status for a read-only check without starting extraction. bookId defaults to the current book.",
     parameters: Type.Object({
       bookId: Type.Optional(Type.String()),
     }),
@@ -77,10 +77,19 @@ export function buildBookTextTools(
       const { bookId } = params as { bookId?: string };
       const target = resolveBookId(bookId);
       const toc = await deps.bookText.getToc(target);
+      if (toc.length === 0 && deps.bookText.getTextState) {
+        const state = await deps.bookText.getTextState(target);
+        if (state.status === "error" || state.status === "partial") throw new AppError(state.errorCode ?? "library/text-extraction-failed", "Book text preparation failed or is incomplete");
+        return textResult({ chapters: [], textState: state,
+          note: state.status === "preparing" ? "Text preparation is running. Do not repeatedly retry in this turn."
+            : state.text === "textless" ? "All required sections were read successfully and contain no extractable text. Do not retry the same extraction."
+            : state.text === "available" ? "Text exists, but no chapters meet the current chapter indexing policy. Exact location search uses a separate source."
+            : "Derived text is not available. This is not evidence that the book has no text layer." });
+      }
       // 空目录要说真话：纯图扫描版（无文字层）与"还没抽取"是两种事实，
       // 前者重试无益，模型该向读者如实解释，而不是对着空数组瞎猜。
       if (toc.length === 0 && deps.bookText.getTextStatus) {
-        const status = await deps.bookText.getTextStatus(target).catch(() => undefined);
+        const status = await deps.bookText.getTextStatus(target);
         if (status === "textless") {
           return textResult({
             chapters: [],
@@ -239,5 +248,12 @@ export function buildBookTextTools(
     },
   };
 
-  return [getToc, readChapter, searchBookText];
+  const getTextState: AgentTool = {
+    name: "get_book_text_status",
+    label: "Book text status",
+    description: "Read the local derived-text preparation state without starting extraction or downloading the book. Reports preparing, partial, unsupported, unavailable, error, or ready separately from actual text presence and indexed chapter count. Progress counts source sections, not chapters; available text may have no indexed chapters. bookId defaults to the current book. This status does not describe live location search or the book's knowledge graph.",
+    parameters: Type.Object({ bookId: Type.Optional(Type.String()) }),
+    execute: async (_id, params) => textResult(await deps.bookText.getTextState!(resolveBookId((params as { bookId?: string }).bookId))),
+  };
+  return [...(deps.bookText.getTextState ? [getTextState] : []), getToc, readChapter, searchBookText];
 }

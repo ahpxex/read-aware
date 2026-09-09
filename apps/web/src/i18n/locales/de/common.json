@@ -12,6 +12,8 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "bookTextExtractionFailed": "Ein Teil des Buchtexts konnte nicht vorbereitet werden. Versuche es erneut, um unvollständige Abschnitte fortzusetzen.",
+    "bookTextUnsupported": "Dieses Buch enthält keine unterstützten Textabschnitte für den Kapitelindex.",
     "settingsInvalidShortcut": "Wähle eine gültige Taste und optionale Zusatztasten. Escape ist zum Schließen von Overlays reserviert.",
     "settingsShortcutConflict": "Dieses Tastenkürzel ist bereits belegt. Wähle eine andere Kombination oder ändere die kollidierenden Belegungen gemeinsam.",
     "readerPlaybackFailed": "Das Vorlesen wurde wegen eines Audioproblems gestoppt. Versuche es erneut oder wähle eine andere Stimme.",

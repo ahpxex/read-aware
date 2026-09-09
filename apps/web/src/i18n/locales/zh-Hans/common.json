@@ -12,6 +12,8 @@
     "copied": "已复制"
   },
   "errors": {
+    "bookTextExtractionFailed": "部分书籍正文未能准备完成。重试可继续处理未完成的章节。",
+    "bookTextUnsupported": "此书未提供可用于章节索引的受支持文本分节。",
     "settingsInvalidShortcut": "请选择有效按键和可选修饰键。Escape 保留用于关闭浮层。",
     "settingsShortcutConflict": "该快捷键已被占用。请选择其他组合，或同时修改冲突的绑定。",
     "readerPlaybackFailed": "音频无法播放，朗读已停止。请重试或更换声音。",

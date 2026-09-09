@@ -12,6 +12,8 @@
     "copied": "コピーしました"
   },
   "errors": {
+    "bookTextExtractionFailed": "書籍の本文の一部を準備できませんでした。再試行すると未完了のセクションを処理します。",
+    "bookTextUnsupported": "この書籍には章の索引に対応したテキストセクションがありません。",
     "settingsInvalidShortcut": "有効なキーと必要な修飾キーを選択してください。Escape はオーバーレイを閉じるために予約されています。",
     "settingsShortcutConflict": "このショートカットは使用中です。別の組み合わせを選ぶか、競合する割り当てをまとめて変更してください。",
     "readerPlaybackFailed": "音声を再生できないため、読み上げを停止しました。再試行するか、別の音声を選択してください。",

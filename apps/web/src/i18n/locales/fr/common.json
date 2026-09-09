@@ -12,6 +12,8 @@
     "copied": "Copié"
   },
   "errors": {
+    "bookTextExtractionFailed": "Une partie du texte n'a pas pu être préparée. Réessayez pour reprendre les sections incomplètes.",
+    "bookTextUnsupported": "Ce livre ne fournit pas de sections de texte compatibles avec l'index des chapitres.",
     "settingsInvalidShortcut": "Choisissez une touche valide et des modificateurs facultatifs. Échap est réservé à la fermeture des fenêtres superposées.",
     "settingsShortcutConflict": "Ce raccourci est déjà attribué. Choisissez une autre combinaison ou modifiez ensemble les raccourcis en conflit.",
     "readerPlaybackFailed": "La lecture à voix haute s'est arrêtée car l'audio n'a pas pu être lu. Réessayez ou choisissez une autre voix.",

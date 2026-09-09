@@ -630,6 +630,12 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     },
     bookText: {
       ...createMemoryBookNavigation(stores.chapters),
+      getTextState: async bookId => {
+        const chapters = stores.chapters.get(bookId);
+        return { bookId, contentVersion: "fixture", status: chapters ? "ready" : "unprepared",
+          text: chapters ? chapters.some(chapter => chapter.text.length > 0) ? "available" : "textless" : "unknown",
+          chapterCount: chapters?.length ?? 0, progress: null };
+      },
       getToc: async (bookId) => {
         const chapters = stores.chapters.get(bookId) ?? [];
         return chapters.map<ChapterRef>((chapter, index) => ({

@@ -13,6 +13,7 @@ import type {
   BookNavigationToc,
   BookLocationSearch,
   BookLocationSearchPage,
+  BookTextSnapshot,
 } from "@read-aware/core";
 import { i18n } from "../i18n";
 import { emitAppEvent } from "../platform/app-events";
@@ -36,6 +37,7 @@ import type { LibraryBook } from "../features/library/lib/library-types";
 import {
   ensureBookTextExtracted,
   getPersistedBookText,
+  getBookTextSnapshot,
   type ExtractedChapter,
 } from "../features/library/lib/book-text-store";
 import {
@@ -63,24 +65,12 @@ export function toBookSummary(book: LibraryBook): BookSummary {
 
 const notifyLibraryChanged = (): void => emitAppEvent("library-changed", {});
 
-const chapterCache = new Map<string, ExtractedChapter[]>();
-
 export async function getExtractedChapters(bookId: string): Promise<ExtractedChapter[]> {
-  const key = String(bookId);
-  const cached = chapterCache.get(key);
-  if (cached) return cached;
-  const chapters = await ensureBookTextExtracted(key);
-  if (chapters.length > 0) chapterCache.set(key, chapters);
-  return chapters;
+  return ensureBookTextExtracted(bookId);
 }
 
 export async function getPersistedChapters(bookId: string): Promise<ExtractedChapter[] | null> {
-  const key = String(bookId);
-  const cached = chapterCache.get(key);
-  if (cached) return cached;
-  const chapters = await getPersistedBookText(key);
-  if (chapters) chapterCache.set(key, chapters);
-  return chapters;
+  return getPersistedBookText(bookId);
 }
 
 export type LibraryQueries = {
@@ -88,6 +78,7 @@ export type LibraryQueries = {
     list(): Promise<BookSummary[]>;
     get(bookId: string): Promise<BookSummary | null>;
     getToc(bookId: string): Promise<ChapterRef[]>;
+    getTextState(bookId: string): Promise<BookTextSnapshot>;
     getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
     getNavigationToc(bookId: string, signal?: AbortSignal): Promise<BookNavigationToc>;
     searchLocations(input: BookLocationSearch, signal?: AbortSignal): Promise<BookLocationSearchPage>;
@@ -131,6 +122,7 @@ export function createLibraryDomain(origin: EventOrigin): LibraryDomain {
   const queries: LibraryQueries = {
     books: {
       getNavigationToc: getBookNavigationToc,
+      getTextState: getBookTextSnapshot,
       searchLocations: searchBookLocations,
       list: async () => (await listLibraryBooks()).map(toBookSummary),
       get: async (bookId) => {

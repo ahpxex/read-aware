@@ -203,10 +203,15 @@
         </div>
       </section>
 
-      <section data-search-section="domains 领域 library reading annotations conversations settings contentTypography typography defaultColor updateChannel textAlign fixedLayoutColor whatsNewDialog durability workspace profiles shelf shortcuts key-chord 书架 工作区 预设 快捷键 冲突 模式 持久 回执">
+      <section data-search-section="domains 领域 library reading annotations conversations settings contentTypography typography defaultColor updateChannel textAlign fixedLayoutColor whatsNewDialog durability workspace profiles shelf shortcuts key-chord text desk extraction 正文 抽取 书架 工作区 预设 快捷键 冲突 模式 持久 回执">
         <div class="wrap">
           <h2>Domains</h2>
           <p class="intro">插件只看到权限允许的 actor view。所有写入都经过正式命令，并记录来源。</p>
+          <details class="ep"><summary>Library 1.2：正文状态双端接通，失败与无文字分开</summary><div class="ep-body">
+            <p>Agent get_book_text_status 与插件 getTextState 共享七种准备状态、三种文本存在性和源版本。查询不启动抽取或下载；全部节成功且最终索引落盘才就绪。短正文可以有字而没有索引章节，缺文件和失败不再误报无文字。</p>
+            <p>v5 断点只复用成功节，保留失败，区分最后一节读完与最终索引保存；旧 v3/v4 惰性失效，换源和删除淘汰旧结果。Text Desk 0.1 组合书籍列表、状态详情、刷新与明确开书，不需要宿主专属分支。</p>
+            <p>macOS 隔离 debug 已验真实 Agent/权限 Worker、短 FB2/空白 PDF、注入读失败后的原生保存与重试、缺源/换版本和编译插件界面。准备/重建/取消任务尚未公开，短章索引策略和旧摘要引用未重建；持久任务错误、虚拟索引、全部格式、打包及跨平台仍缺。<a href="./plugin-system.md#derived-text-state">完整契约</a> · <a href="./evidence/book-text-state-2026-09-09.json">证据</a></p>
+          </div></details>
           <p>Settings 1.2 沿用单次更新的 SQLite 原子提交与双端持久回执，快照按授权过滤；失败回滚且不发成功事件。新增九项真实偏好：阅读对齐、固定版式配色、更新说明提示、内容字体四字段、默认标注色和更新通道。内容字体可跟随全局阅读设置或独立配置；默认色只影响新标注，更新通道只影响下次检查且不漫游。macOS debug 已验实际字体、FB2 标注、PDF 画布、已打开的更新面板与失败回滚；更新后重启、跨平台与这九项的打包验收仍未完成，完整带版本变更流也仍缺。</p>
           <details class="ep"><summary>Settings 1.3：书架偏好双端接通，Workspace Profiles 保存组合预设</summary><div class="ep-body">
             <p>布局、分组、排序进入同一设置域，真实书架跟随更新和失败回滚。插件 snapshot 等待此前命令与本地写入结算，按权限一次读取；这不是跨后续修改的事务或版本锁。</p>
@@ -288,7 +293,7 @@
         <div class="wrap">
           <h2>Agent 智能扩展</h2>
           <p class="intro">插件只能提供有边界的数据与候选，不能接管系统提示词或直接写长期记忆。</p>
-          <details class="ep"><summary>记忆构建开关已接通，Reading Goals 已实际消费两类贡献</summary><div class="ep-body"><p>buildMemory 关闭后，宿主停止 remember、候选、抽取、摘要、巩固和 digest 等记忆构建；排队与在途任务取消，重开不复活旧结果。聊天/历史和旧记忆仍可读取；已派发写不保证撤销。摘要保存/清除等待持久回执。</p><p>Reading Goals 按书保存目标并提供上下文，用户选择后才提出记忆候选；清除目标不删除已提升的记忆。源码十一个插件、编译内置六个，本插件不在内置清单且没有专属 Agent 目标编辑工具。macOS debug 已验双端、候选落库与失败取消；安装重启、打包/跨平台、键盘遍历与所有屏外控件仍未验。<a href="./plugin-system.md#host-memory-build-policy">完整边界</a></p></div></details>
+          <details class="ep"><summary>记忆构建开关已接通，Reading Goals 已实际消费两类贡献</summary><div class="ep-body"><p>buildMemory 关闭后，宿主停止 remember、候选、抽取、摘要、巩固和 digest 等记忆构建；排队与在途任务取消，重开不复活旧结果。聊天/历史和旧记忆仍可读取；已派发写不保证撤销。摘要保存/清除等待持久回执。</p><p>Reading Goals 按书保存目标并提供上下文，用户选择后才提出记忆候选；清除目标不删除已提升的记忆。源码十二个插件、编译内置六个，本插件不在内置清单且没有专属 Agent 目标编辑工具。macOS debug 已验双端、候选落库与失败取消；安装重启、打包/跨平台、键盘遍历与所有屏外控件仍未验。<a href="./plugin-system.md#host-memory-build-policy">完整边界</a></p></div></details>
           <details class="ep"><summary>文本隐私已接 Agent 和插件结构化推理，任意字符串仍有边界</summary><div class="ep-body"><p>Agent 自动附件、历史与 viewport/grounding 按设置过滤。LLM 1.1 的 readingContext 由宿主组装；必需正文被禁止则在请求前拒绝，结构错误明确报错，收紧以 ai/context-changed 取消在途请求和重试。重开只允许新请求。</p><p>Dictionary 1.3 已迁移：选区与周边正文不再自行拼入 prompt，设置竞态不写误导缓存；本地缓存仍可读。macOS debug 双端三模式四组合、实际 Dictionary Worker 缓存/拒绝、结构化重试与三个并发请求取消已有证据。任意 prompt/HTTP/TTS、独立检索与旧衍生内容不受全局清除；完整 UI、打包/跨平台仍未验，SET24/25 保持部分。<a href="./plugin-system.md#host-reading-context-policy">精确边界</a></p></div></details>
           <div class="table-shell">
             <table>

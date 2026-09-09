@@ -178,6 +178,76 @@ Engine work cannot yet be aborted per navigation; cancelling a waiter is not a
 promise that a physical move was undone. PDF completion waits for rasterization,
 which an occluded WKWebView may suspend until it is visible.
 
+### Derived Text State
+
+[代码] Library 1.2 adds `queries.books.getTextState(bookId)` returning
+`BookTextSnapshot`. `library:read` exposes the query; `library:write` includes
+that read view; no library permission exposes neither. Agent
+`get_book_text_status` uses the same owner in book and global scopes, defaulting
+to the current book only in book scope. Reading status never starts parsing,
+downloads a missing file, or writes a derived record.
+
+| Field | Current meaning |
+| --- | --- |
+| `bookId`, `contentVersion` | Book identity and current locally available `sha256:` source version; null when unavailable or virtual |
+| `status` | `unprepared`, `preparing`, `ready`, `partial`, `unsupported`, `unavailable`, `error` |
+| `text` | `unknown`, `available`, `textless`; independent of preparation status and indexed chapter count |
+| `chapterCount` | Finalized chapters only; zero while partial/preparing |
+| `progress` | null before section discovery; otherwise `total/completed/failed/unsupported` counts required source sections, not chapters |
+| `errorCode` | Optional stable failure code, never the raw parser/database error message |
+
+[代码] `ready` requires a nonempty set of required linear sections, successful
+reads of every section, and a durable finalized index. Only successful empty
+reads of every required section prove `textless`. A short text can be
+`ready/available` with zero chapters: the existing minimum 40-character merged
+chapter policy remains unchanged to avoid silently renumbering chapter/digest
+references. This API does not describe live exact-location search or book memory.
+Virtual derived indexes and sections with no supported reader are `unsupported`,
+not textless. Missing local source is `unavailable`; a nonexistent book rejects
+with `library/book-not-found`. Database query failures reject rather than becoming
+an empty state. Known section codes survive; otherwise failures use
+`library/text-extraction-failed`. Unsupported extraction uses
+`library/text-unsupported`. Both have localized copy in all eight locales.
+
+[代码] Native `booktext:<id>` records are v5, with source version, required section
+indices, successful pieces, failed indices/codes, unsupported indices and an
+explicit `finalized` bit. A last-section checkpoint is not yet a final index.
+Validation rejects malformed, overlapping or wrong-source records; v3/v4 are
+invalidated lazily, not declared complete by migration. Retries reuse only
+successful pieces for the same source/section layout. Five consecutive failures
+stop work without claiming unvisited sections. Partial chapters are not published
+to Agent/digest consumers. Per-section observation has constant-size payloads;
+text is sorted/copied at adaptive checkpoints and finalization, not every section.
+
+[代码] All callers share the repository job for a book/source; version changes
+abort old work and invalidate old cached chapters. Writes/deletion serialize per
+book in this process; queued writes recheck source and job ownership before/after
+native persistence. Delete aborts the job and queues cleanup behind any dispatched
+write. This is not a global native transaction or an engine-level force-abort.
+Cold PDF TOC queries start background preparation and return promptly; a completed
+cache is returned immediately. Background failures are logged and visible through
+status. Setup/parser/write errors outside checkpoints are in-process state, not
+durable task history across restart. Old inaccurate digest references are not
+retroactively repaired by this change.
+
+[代码] Text Desk 0.1 composes book listing, read-only state, reader header/command
+views and explicit `reading.openBook`. Each page queries status for at most 20
+books; book listing itself is not native-paged. Failed status rows remain visible,
+detail failures propagate to the host error surface, refresh replaces the view,
+and Open closes only after navigation succeeds. It is a source plugin, not added
+to the Rust bundled list. It does not start/rebuild/cancel an extraction task.
+
+[环境] Isolated macOS debug Tauri verified both actual Agent scopes, three real
+Worker permission views, no derived blob after status-only inspection, injected
+section failure with native persistence and successful-only retry, real short
+FB2/normal FB2/blank PDF extraction, source removal/hash invalidation and the
+compiled Text Desk menu/detail/open flow. Fault injection is at the parser
+section boundary, not a native disk permission failure. Repository tests cover
+write failure, deletion/source races, concurrent PDF work and final-checkpoint
+restart. Public prepare/rebuild/cancel/observe task controls (TXT05), durable setup
+error history, virtual indexing, all formats, release and cross-platform tests
+remain incomplete. See [evidence](./evidence/book-text-state-2026-09-09.json).
+
 ### Reader Controls Visibility
 
 [代码] Reading 2.6 adds `queries.session().controls: { visible: boolean } | null`
@@ -1083,9 +1153,9 @@ user configuration.
 
 ## 13. First-Party Coverage
 
-The eleven source plugins use the registry-backed contract. Rust currently bundles
+The twelve source plugins use the registry-backed contract. Rust currently bundles
 six; source presence is not installation or enablement. Theme Schedule is in the
-adjacent distribution repository, not a twelfth plugin in this checkout:
+adjacent distribution repository, not a thirteenth plugin in this checkout:
 
 | Plugin | Primary capabilities |
 | --- | --- |
@@ -1101,6 +1171,7 @@ adjacent distribution repository, not a twelfth plugin in this checkout:
 | Listening Desk | reading mode/provider control, unit navigation, playback/history, environment offline hint |
 | Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |
 | Workspace Profiles | settled settings snapshots, exact path grants, atomic presets, private documents, shelf header/command views and Agent tool |
+| Text Desk | library text preparation state, paged status views, reader header/command and explicit book navigation |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs
 in their packages and registered capabilities.

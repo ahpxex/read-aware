@@ -33,6 +33,7 @@ const agentMap = pairs([
   ["delete_annotation", "ANN04 ANN05 ANN06"], ["search_memory", "MEM01"], ["remember", "MEM02"],
   ["search_conversation get_recent_turns", "AI01"], ["get_conversation_insights", "MEM12"],
   ["get_toc", "TXT01"], ["read_chapter", "TXT03"], ["search_book_text", "TXT06"],
+  ["get_book_text_status", "TXT04"],
   ["get_navigation_toc", "TXT02"], ["find_book_locations", "TXT07 TXT13"],
   ["query_book_graph", "MEM11"], ["present_books", "AI05"], ["open_book", "READ01 READ03"],
   ["get_reading_session", "READ07 TXT09 READ16"], ["navigate_reading", "READ02 READ04 READ06 READ16"],
@@ -48,6 +49,7 @@ const pluginMap = pairs([
   ["domains.settings.events.subscribe services.storage.onChange", "CFG10"],
   ["domains.library.queries.books.list domains.library.queries.books.get", "LIB01"],
   ["domains.library.queries.books.getToc", "TXT01"], ["domains.library.queries.books.getChapterText", "TXT03"],
+  ["domains.library.queries.books.getTextState", "TXT04"],
   ["domains.library.queries.books.getNavigationToc", "TXT02"], ["domains.library.queries.books.searchLocations", "TXT07 TXT13"],
   ["domains.library.queries.collections.list domains.library.queries.collections.booksIn", "LIB15"],
   ["domains.library.commands.books.importBook", "LIB06"], ["domains.library.commands.books.editMetadata", "LIB02"],
@@ -215,7 +217,7 @@ export function collectInventory(): Inventory[] {
   }
   const featureMap = pairs([["agent ai", "AI01 AI03 MEM01"],["annotations", "ANN01"],["command", "UI03"],["library shelf", "LIB01 UI02"],["menus", "UI05"],["navigation", "UI01 SYS17"],["plugins", "EXT01 CON03"],["reader", "READ01 TXT01"],["settings", "CFG01 OPS08"],["stats", "STAT01"],["sync", "OPS01"],["update", "SYS16"]]);
   for (const directory of readdirSync("apps/web/src/features", {withFileTypes:true}).filter(d=>d.isDirectory())) add("Feature owner", directory.name, featureMap[directory.name], "[代码+人工审计] 所属功能组入口；目录覆盖不等于每个 UI 分支测试通过");
-  const expectedPlugins = pairs([["dictionary", "EXT09 AI12 READ07 LIB01"],["rss-reader", "EXT10"],["editorial-themes", "EXT08"],["sentence-reader", "READ15 READ16"],["tts", "READ17 READ18"],["webdav-sync", "OPS04"],["jumper", "TXT02 TXT07 READ06 EXT02"],["annotation-desk", "ANN01 ANN04 ANN05 ANN08 EXT02 EXT05 SYS10"],["listening-desk", "READ16 READ18 READ06 EXT02 MORE03"],["reading-goals", "AI11 MEM03 SET23 EXT02 EXT05 SYS01"],["workspace-profiles", "UI02 UI04 CFG01 CFG10 EXT02 EXT05 SYS02"]]);
+  const expectedPlugins = pairs([["dictionary", "EXT09 AI12 READ07 LIB01"],["rss-reader", "EXT10"],["editorial-themes", "EXT08"],["sentence-reader", "READ15 READ16"],["tts", "READ17 READ18"],["webdav-sync", "OPS04"],["jumper", "TXT02 TXT07 READ06 EXT02"],["annotation-desk", "ANN01 ANN04 ANN05 ANN08 EXT02 EXT05 SYS10"],["listening-desk", "READ16 READ18 READ06 EXT02 MORE03"],["reading-goals", "AI11 MEM03 SET23 EXT02 EXT05 SYS01"],["workspace-profiles", "UI02 UI04 CFG01 CFG10 EXT02 EXT05 SYS02"],["text-desk", "TXT04 LIB01 READ01 EXT02 EXT05"]]);
   for (const directory of readdirSync("plugins",{withFileTypes:true}).filter(d=>d.isDirectory()).sort((a,b)=>a.name.localeCompare(b.name))) {
     const manifest = JSON.parse(readFileSync(`plugins/${directory.name}/manifest.json`,"utf8"));
     add("First-party source plugin", manifest.id, expectedPlugins[directory.name], `[代码] 源码版本 ${manifest.version}；源码存在不等于打包、安装、启用或模型可调用`);

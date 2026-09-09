@@ -1157,6 +1157,8 @@ export type PluginLibraryDomain = {
       list(): Promise<PluginBook[]>;
       get(bookId: string): Promise<PluginBook | null>;
       getToc(bookId: string): Promise<PluginChapterRef[]>;
+      /** Read-only derived-text state. Never starts parsing, fetching, or extraction. */
+      getTextState(bookId: string): Promise<import("@read-aware/core").BookTextSnapshot>;
     getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
     getNavigationToc(bookId: string): Promise<import("@read-aware/core").BookNavigationToc>;
     searchLocations(input: import("@read-aware/core").BookLocationSearch): Promise<import("@read-aware/core").BookLocationSearchPage>;

@@ -88,6 +88,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   get_recent_turns: {},
   get_conversation_insights: { bookId: BOOK_ID },
   get_toc: { bookId: BOOK_ID },
+  get_book_text_status: { bookId: BOOK_ID },
   get_navigation_toc: { bookId: BOOK_ID },
   find_book_locations: { bookId: BOOK_ID, query: "Victor" },
   read_chapter: { bookId: BOOK_ID, chapterIndex: 0 },

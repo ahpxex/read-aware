@@ -9,6 +9,7 @@ export * from "./reader-panels";
 export * from "./reading-context";
 export * from "./host-environment";
 export * from "./book-navigation";
+export * from "./book-text";
 export * from "./annotation-query";
 export * from "./annotation-mutations";
 export * from "./settings";

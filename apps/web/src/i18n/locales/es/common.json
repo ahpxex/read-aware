@@ -12,6 +12,8 @@
     "copied": "Copiado"
   },
   "errors": {
+    "bookTextExtractionFailed": "No se pudo preparar parte del texto del libro. Reintenta para continuar las secciones pendientes.",
+    "bookTextUnsupported": "Este libro no ofrece secciones de texto compatibles con el índice de capítulos.",
     "settingsInvalidShortcut": "Elige una tecla válida y modificadores opcionales. Escape está reservado para cerrar las ventanas superpuestas.",
     "settingsShortcutConflict": "Este atajo ya está asignado. Elige otra combinación o cambia a la vez las asignaciones en conflicto.",
     "readerPlaybackFailed": "La lectura en voz alta se detuvo porque no se pudo reproducir el audio. Inténtalo de nuevo o elige otra voz.",

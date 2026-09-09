@@ -1,0 +1,374 @@
+{
+  "date": "2026-09-09",
+  "scope": "TXT04 state query and extraction correctness foundation; TXT05 public task control remains open",
+  "environment": {
+    "platform": "macOS",
+    "build": "Tauri debug, frontend Vite",
+    "identifier": "com.readaware.app.capability-e2e",
+    "frontendPort": 5184,
+    "bridgePort": 9223,
+    "pid": 3726,
+    "processGroup": 3560,
+    "bridgeNote": "Port 9223 belonged to verified isolated PID 3726 this run; all MCP calls explicitly targeted it. No formal app operations."
+  },
+  "contract": {
+    "library": "1.2.0",
+    "agentTool": "get_book_text_status",
+    "pluginQuery": "domains.library.queries.books.getTextState",
+    "derivedRecord": 5,
+    "completion": "All required linear sections successfully read AND finalized index durably saved",
+    "textless": "All required reads successful and every piece empty; not inferred from empty chapters",
+    "legacy": "v3/v4 not trusted; lazy re-extraction",
+    "shortTextPolicy": "Existing >=40-character merged chapter policy retained. Short available text can yield zero indexed chapters."
+  },
+  "native": {
+    "blank": {
+      "chapters": [],
+      "state": {
+        "bookId": "85d23e9a-73c2-45ce-9cb9-667df7a15511",
+        "chapterCount": 0,
+        "contentVersion": "sha256:2d86db9c8d46b87fedbd426d010042931a7cf7b9a1ba87c5657825f134a2096b",
+        "progress": {
+          "completed": 1,
+          "failed": 0,
+          "total": 1,
+          "unsupported": 0
+        },
+        "status": "ready",
+        "text": "textless"
+      }
+    },
+    "initial": {
+      "agent-book": {
+        "bookId": "4a124d36-1813-4718-953d-3ea5675f89f8",
+        "chapterCount": 0,
+        "contentVersion": "sha256:7fe0f487035f29c1cd0017c6627aed790c6335836d3401d59567cf2dcaa6b5e2",
+        "progress": null,
+        "status": "unprepared",
+        "text": "unknown"
+      },
+      "agent-global": {
+        "bookId": "4a124d36-1813-4718-953d-3ea5675f89f8",
+        "chapterCount": 0,
+        "contentVersion": "sha256:7fe0f487035f29c1cd0017c6627aed790c6335836d3401d59567cf2dcaa6b5e2",
+        "progress": null,
+        "status": "unprepared",
+        "text": "unknown"
+      },
+      "derivedBlob": null,
+      "empty": {
+        "hasLibrary": false,
+        "hasWrite": false
+      },
+      "read": {
+        "hasLibrary": true,
+        "hasWrite": false,
+        "state": {
+          "bookId": "4a124d36-1813-4718-953d-3ea5675f89f8",
+          "chapterCount": 0,
+          "contentVersion": "sha256:7fe0f487035f29c1cd0017c6627aed790c6335836d3401d59567cf2dcaa6b5e2",
+          "progress": null,
+          "status": "unprepared",
+          "text": "unknown"
+        }
+      },
+      "write": {
+        "hasLibrary": true,
+        "hasWrite": true,
+        "state": {
+          "bookId": "4a124d36-1813-4718-953d-3ea5675f89f8",
+          "chapterCount": 0,
+          "contentVersion": "sha256:7fe0f487035f29c1cd0017c6627aed790c6335836d3401d59567cf2dcaa6b5e2",
+          "progress": null,
+          "status": "unprepared",
+          "text": "unknown"
+        }
+      }
+    },
+    "normal": {
+      "chapters": [
+        {
+          "hrefs": [
+            "0"
+          ],
+          "text": "Text preparation probe: this section contains enough text for the chapter index.",
+          "title": "Text preparation probe: this section contains enough text for the chapter index."
+        }
+      ],
+      "state": {
+        "bookId": "4a124d36-1813-4718-953d-3ea5675f89f8",
+        "chapterCount": 1,
+        "contentVersion": "sha256:7fe0f487035f29c1cd0017c6627aed790c6335836d3401d59567cf2dcaa6b5e2",
+        "progress": {
+          "completed": 1,
+          "failed": 0,
+          "total": 1,
+          "unsupported": 0
+        },
+        "status": "ready",
+        "text": "available"
+      }
+    },
+    "partial": {
+      "calls": [
+        1,
+        2,
+        1
+      ],
+      "failure": "fs/permission",
+      "partial": {
+        "agent-book": {
+          "bookId": "4a124d36-1813-4718-953d-3ea5675f89f8",
+          "chapterCount": 0,
+          "contentVersion": "sha256:7fe0f487035f29c1cd0017c6627aed790c6335836d3401d59567cf2dcaa6b5e2",
+          "errorCode": "fs/permission",
+          "progress": {
+            "completed": 2,
+            "failed": 1,
+            "total": 3,
+            "unsupported": 0
+          },
+          "status": "partial",
+          "text": "available"
+        },
+        "agent-global": {
+          "bookId": "4a124d36-1813-4718-953d-3ea5675f89f8",
+          "chapterCount": 0,
+          "contentVersion": "sha256:7fe0f487035f29c1cd0017c6627aed790c6335836d3401d59567cf2dcaa6b5e2",
+          "errorCode": "fs/permission",
+          "progress": {
+            "completed": 2,
+            "failed": 1,
+            "total": 3,
+            "unsupported": 0
+          },
+          "status": "partial",
+          "text": "available"
+        },
+        "derivedBlob": {
+          "byteSize": 600,
+          "mimeType": "application/json",
+          "sha256": "49f347b1b0c36b1110473f2f41d89f33808fb3179761b78d906a1f9b5d973360"
+        },
+        "empty": {
+          "hasLibrary": false,
+          "hasWrite": false
+        },
+        "read": {
+          "hasLibrary": true,
+          "hasWrite": false,
+          "state": {
+            "bookId": "4a124d36-1813-4718-953d-3ea5675f89f8",
+            "chapterCount": 0,
+            "contentVersion": "sha256:7fe0f487035f29c1cd0017c6627aed790c6335836d3401d59567cf2dcaa6b5e2",
+            "errorCode": "fs/permission",
+            "progress": {
+              "completed": 2,
+              "failed": 1,
+              "total": 3,
+              "unsupported": 0
+            },
+            "status": "partial",
+            "text": "available"
+          }
+        },
+        "write": {
+          "hasLibrary": true,
+          "hasWrite": true,
+          "state": {
+            "bookId": "4a124d36-1813-4718-953d-3ea5675f89f8",
+            "chapterCount": 0,
+            "contentVersion": "sha256:7fe0f487035f29c1cd0017c6627aed790c6335836d3401d59567cf2dcaa6b5e2",
+            "errorCode": "fs/permission",
+            "progress": {
+              "completed": 2,
+              "failed": 1,
+              "total": 3,
+              "unsupported": 0
+            },
+            "status": "partial",
+            "text": "available"
+          }
+        }
+      },
+      "ready": {
+        "agent-book": {
+          "bookId": "4a124d36-1813-4718-953d-3ea5675f89f8",
+          "chapterCount": 1,
+          "contentVersion": "sha256:7fe0f487035f29c1cd0017c6627aed790c6335836d3401d59567cf2dcaa6b5e2",
+          "progress": {
+            "completed": 3,
+            "failed": 0,
+            "total": 3,
+            "unsupported": 0
+          },
+          "status": "ready",
+          "text": "available"
+        },
+        "agent-global": {
+          "bookId": "4a124d36-1813-4718-953d-3ea5675f89f8",
+          "chapterCount": 1,
+          "contentVersion": "sha256:7fe0f487035f29c1cd0017c6627aed790c6335836d3401d59567cf2dcaa6b5e2",
+          "progress": {
+            "completed": 3,
+            "failed": 0,
+            "total": 3,
+            "unsupported": 0
+          },
+          "status": "ready",
+          "text": "available"
+        },
+        "derivedBlob": {
+          "byteSize": 1005,
+          "mimeType": "application/json",
+          "sha256": "44bedab5bf36fed3f182c2ba8d68a3679dcb8db3263844a638a7b0339ef9d9fd"
+        },
+        "empty": {
+          "hasLibrary": false,
+          "hasWrite": false
+        },
+        "read": {
+          "hasLibrary": true,
+          "hasWrite": false,
+          "state": {
+            "bookId": "4a124d36-1813-4718-953d-3ea5675f89f8",
+            "chapterCount": 1,
+            "contentVersion": "sha256:7fe0f487035f29c1cd0017c6627aed790c6335836d3401d59567cf2dcaa6b5e2",
+            "progress": {
+              "completed": 3,
+              "failed": 0,
+              "total": 3,
+              "unsupported": 0
+            },
+            "status": "ready",
+            "text": "available"
+          }
+        },
+        "write": {
+          "hasLibrary": true,
+          "hasWrite": true,
+          "state": {
+            "bookId": "4a124d36-1813-4718-953d-3ea5675f89f8",
+            "chapterCount": 1,
+            "contentVersion": "sha256:7fe0f487035f29c1cd0017c6627aed790c6335836d3401d59567cf2dcaa6b5e2",
+            "progress": {
+              "completed": 3,
+              "failed": 0,
+              "total": 3,
+              "unsupported": 0
+            },
+            "status": "ready",
+            "text": "available"
+          }
+        }
+      }
+    },
+    "short": {
+      "chapters": [],
+      "state": {
+        "bookId": "f1cf71cf-721d-4b45-b355-d89520a556c2",
+        "chapterCount": 0,
+        "contentVersion": "sha256:016304d7eecebf3a9468d789ca9537933bf3b6b090b961262fcb5eaa303e5b63",
+        "progress": {
+          "completed": 1,
+          "failed": 0,
+          "total": 1,
+          "unsupported": 0
+        },
+        "status": "ready",
+        "text": "available"
+      }
+    },
+    "source": {
+      "changed": {
+        "bookId": "4a124d36-1813-4718-953d-3ea5675f89f8",
+        "chapterCount": 0,
+        "contentVersion": "sha256:3bdcac78695447d0bb981578bd398fc8d3fd00dcce8d33a84369c5ed7957879a",
+        "progress": null,
+        "status": "unprepared",
+        "text": "unknown"
+      },
+      "missing": {
+        "bookId": "4a124d36-1813-4718-953d-3ea5675f89f8",
+        "chapterCount": 0,
+        "contentVersion": null,
+        "errorCode": "library/content-unavailable",
+        "progress": null,
+        "status": "unavailable",
+        "text": "unknown"
+      }
+    }
+  },
+  "ui": {
+    "plugin": "Text Desk 0.1.0",
+    "runtime": "Actual compiled dist/main.js in module Worker, not added to Rust bundled list",
+    "flow": "Reader More -> Text Desk -> short text detail -> Open book. During loading dialog remained; after ready it closed and visibleText was Short text.",
+    "details": "Short detail showed Prepared/Text found/0 indexed chapters/1 of 1 sections; blank PDF showed Prepared/No extractable text/0 indexed chapters/1 of 1 sections.",
+    "input": "DOM click dispatch through real host callbacks, not physical keyboard/mouse verification",
+    "viewports": [
+      {
+        "width": 1200,
+        "height": 800,
+        "visual": "List and short detail screenshots inspected"
+      },
+      {
+        "width": 800,
+        "height": 650,
+        "visual": "DOM no-overflow checked; final blank detail screenshot inspected after OS process focus. Earlier stale reader-frame captures while hidden were rejected."
+      }
+    ],
+    "screenshots": [
+      "/tmp/readaware-text-desk-list-final.png",
+      "/tmp/readaware-text-desk-short.png",
+      "/tmp/readaware-text-desk-blank-final.png"
+    ]
+  },
+  "unitCoverage": [
+    "source status never fetches/extracts",
+    "missing vs nonexistent source",
+    "successful empty vs short text",
+    "successful-only resume after partial failure",
+    "65 sections with five consecutive failures and unvisited tail",
+    "unsupported/absent/nonlinear sections and virtual source",
+    "durable final write and db/locked rejection",
+    "concurrent cold PDF readers/cache/background failure",
+    "last-section checkpoint with failed final write, fresh repository resume without rereading",
+    "source replacement during extraction and stale cache invalidation",
+    "delete while read or write pending cannot resurrect record",
+    "legacy/wrong-source/corrupt/overlapping/unfinalized record validation",
+    "Agent book/global tools and status errors",
+    "Text Desk bounded per-page status reads, failure row, refresh/open failure",
+    "retry verifies finalized durable record and clears prior in-process acknowledgement failure"
+  ],
+  "validation": {
+    "focusedRepository": "12 tests, 94 assertions",
+    "agentStatus": "6 tests",
+    "textDesk": "3 tests, 15 assertions",
+    "typecheck": "25/25 tasks",
+    "frontendBuild": "passed; not a packaged Tauri build",
+    "fullTests": "22/22 final tasks; web 791 tests, 8720 assertions",
+    "documentation": "Both generators --check; 7 model gate tests; three pair validators; three changed HTML pages at 1440x1000, 1024x768 and 390x844 without page overflow, duplicate IDs, bad anchors, unnamed buttons or observed failed resources. English/Chinese search and Escape checked; matrix drawer inert state and theme reload persistence checked. Console/page errors empty. Existing CDN dependency retained; no Mermaid diagrams added."
+  },
+  "cleanup": {
+    "workers": "All four probe/desk Workers terminated; contributions zero in both runs",
+    "books": "Six owned synthetic books removed; native SQL title-prefix count zero",
+    "derivedBlobs": "Six booktext registry tombstones retained by native deletion contract; all storage_uri null, deleted_at set, sync_required zero",
+    "process": "Owned process group 3560 terminated, exec exit 143; 5184/9223/9224 not listening",
+    "formalApp": "Not operated"
+  },
+  "limitations": [
+    "Section failure was injected using registered Foliate content and AppError fs/permission; native persistence/Worker/Agent were real, but this was not an OS file-permission denial.",
+    "Write/concurrency/deletion/final-checkpoint fault tests use injected repository dependencies, not native SQLite faults or process kill.",
+    "No remote LLM inference, marketplace install/upgrade, packaged/release, Windows/Linux, all source formats, large-book benchmark or physical input coverage.",
+    "TXT05 prepare/rebuild/cancel/observe task API not yet public.",
+    "Setup/parser/write errors outside saved checkpoints are in-process, not durable task history.",
+    "Virtual derived index unsupported; old inaccurate chapter/digest references not retroactively repaired.",
+    "Per-book JS write/delete FIFO is not a universal native transaction; parser cancellation waits for in-progress read to return."
+  ],
+  "observations": [
+    "Vite dependency optimization and source edits reloaded the WebView; verified boot and empty owned inventory before reseeding, no process restart on timeout.",
+    "First typecheck found missing global threadId in new tests and fixture return-type errors; corrected and final typecheck passed.",
+    "Tauri set_focus permission denied; no permissions changed, used OS process focus for screenshots.",
+    "Initial native build retained existing 37 Rust warnings, initial WebContent termination then successful boot and bridge version notice."
+  ]
+}

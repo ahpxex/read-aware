@@ -760,3 +760,25 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 - PDF 冷查询对后台 pending 使用空 catch，getTextStatus 只有 ok/unextracted/textless，没有进行中、部分失败或后台错误状态。只增加两端查询入口会把这些不准确的事实直接扩散。
 
 [下一实现单元] 先统一正文抽取的可用性/完成/失败/断点事实、内容身份和缓存失效，再接通受授权的 Agent/插件状态查询及正文准备任务，补真实 Tauri 故障与恢复证据；不会将新状态类型或静态端口计作消费者闭环。此记录是当前缺口的新增依据，不关闭 TXT04/TXT05、READ16 或完整目标。
+
+## 2026-09-09：正文事实修复与 TXT04 双端状态查询
+
+[代码] 将上述正文事实缺陷修复后再开放查询。BookTextRepository 成为唯一抽取/持久结果所有者；原 domain/library 的无版本 chapterCache 删除。v5 记录 source hash、必需节、成功原料、失败 code、unsupported 和 finalized，v3/v4 惰性失效，不将旧不完整结果升级为完整。短正文与无文字独立判断，保留原 40 字符章节策略；部分结果不向 Agent/digest 发布可能重编号的章节。连续五次失败停止并保存断点，恢复只补失败/未读节；每节进度是固定大小快照，不再每节复制/排序全书。缺文件、无书、不支持、准备中、部分失败、读取错误与真实空文本分开。
+
+[代码] 进一步修复最后一节恰好触发 checkpoint 的窗口：所有节读完不等于最终章节索引已落盘，finalized 只随完整章节结果保存。最终保存失败后的断点即使 completed=total 仍是 partial，新 repository 重启恢复会完成合并而不重读成功节。显式重试读回已最终化持久记录时，清除先前进程内失败，不永久显示旧错误。换源/删书淘汰旧任务，持久写/删按书 FIFO 且前后复核所有者和 source；非通用 SQLite 事务，不能强行中断正在执行的解析器 read。
+
+[代码] Library 1.2 的 queries.books.getTextState 与 Agent get_book_text_status（书内/全局）共享 BookTextSnapshot：七种准备状态、三种文本存在性、章节数、源版本、分节进度、可选稳定错误码。查询无抽取、下载或写副作用。library:read 可读，write 包含读，无授权没有域；get_toc 空结果保留状态，失败不伪装空目录。PDF 冷查询后台拒绝现在被记录和日志捕获，完整缓存立即可读。新增两错误的八语言提示。
+
+[组合插件] 新增 Text Desk 0.1，组合书籍列表、每页至多 20 个状态读取、详情/刷新与 reader header/command、明确 Open book；开书完成后才关闭，失败由宿主错误面呈现。列表本身仍一次枚举书库，不宣称原生分页。源码插件变为 12，Rust 内置仍 6，本插件通过 fixture 启动真实编译 Worker，并未加入内置清单。Bun lock 同时校正既有 Listening Desk/Workspace Profiles workspace 版本元数据，未升级它们的依赖。
+
+[环境] [结构化证据](./evidence/book-text-state-2026-09-09.json)：隔离 macOS debug Tauri 的 dataDir 为 com.readaware.app.capability-e2e，5184 前端，本轮 9223 的监听 PID 明确为自有 3726（不是沿用前轮 9224 假设），全部 MCP 调用显式指定。两轮均验证实际 Agent 双 scope 和 empty/read/write 三个 Worker，状态查询后 booktext blob 仍缺席；注入一节 fs/permission 后，双端报告 partial、completed=2/total=3/failed=1，成功节不重读、失败节读两次，恢复 ready。注入点是注册 Foliate 内容的 section getter，原生 blob 持久化和 Worker/Agent 为真，不冒充 OS 权限故障。
+
+[环境] 真正解析短 FB2 得 ready/available/0 章，普通 FB2 得 ready/available/1 章，空白一页 PDF 得 ready/textless/0 章；源 blob 删除得 unavailable/unknown，替换 hash 得 unprepared，随后恢复自有源。实际 reader More → Text Desk → 短正文详情 → Open book，loading 时仍有对话框，ready 后关闭且 visibleText 为 Short text.。1200×800 的列表与短正文详情、800×650 的空白 PDF 详情截图已查看。初次若干截图只捕获到隐藏 WebView 的旧正文，不计视觉证据；OS 定向自有进程置前后取得最终详情图。使用 DOM click 而非物理键鼠；未修改 Tauri set_focus 权限。
+
+[验证] 最终 repository 12 项/94 断言、Agent 状态 6 项、Text Desk 3 项/15 断言；全仓 test 22/22（web 791 项/8720 断言）、typecheck 25/25、前端生产 build 通过。最后补的进程内错误清理用依赖注入测试验证，不冒充新增原生故障测试。没有 Rust 业务修改，保留原生启动的既有 37 warnings、WebContent 首次终止后恢复、bridge 版本提示与 IMK 警告；前端保留大 chunk/动态导入既有构建警告。
+
+[文档/扫描] 更新矩阵和统一模型事实源及生成双份、插件说明双份：243 行、614 库存映射、30 单元/30 catalog、129 旧验收/32 场景反查通过，两生成器 --check、7 项模型门禁及三对 validator 通过。三份变更 HTML 在 1440×1000、1024×768、390×844 无页面横向溢出、重复 ID、坏页内锚点、无名按钮或已观察资源失败；中英文搜索与 Escape、矩阵抽屉 inert 与主题刷新保持通过，console/page errors 为空。移动端矩阵沿用表格内部横滚；已查看 TXT04、模型库存、插件新契约段落截图。仍依赖 CDN，无 Mermaid 图，文档浏览器已关闭。
+
+[清理] 两轮四个 probe/desk Worker 均退休、贡献归零、共六本自有合成书删除；SQLite 书名匹配为零。六个 booktext 不是删除 registry 行，而是按原生契约保留 tombstone：storage_uri 全空、deleted_at 全有值、sync_required 全零。事件历史不倒写。自有进程组 3560 终态 143，5184/9223/9224 均无监听，窗口恢复 1200×800；正式 app、书库及凭证未操作。
+
+[仍缺/下一单元] TXT04 限定的只读状态已双端接通，TXT05 仍未接：prepare/rebuild/cancel/observe 的显式任务契约与真实组合消费要继续实现，不能让取消一个插件请求误杀共享阅读器准备。setup/parser/write 错误尚无耐久任务历史，虚拟正文索引、短章索引政策和旧错误 digest 引用未重建；所有格式、大书性能、真实物理输入、marketplace 安装/升级、packaged 与 Windows/Linux 未验。其余部分/未接能力和 W01-W32 全组合继续，未推送、不关闭完整目标。

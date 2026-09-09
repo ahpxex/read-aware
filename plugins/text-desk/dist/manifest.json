@@ -1,0 +1,15 @@
+{
+  "id": "text-desk",
+  "name": "Text Desk",
+  "version": "0.1.0",
+  "schemaVersion": 1,
+  "description": "Inspect book text availability and preparation progress, then open a book for reading.",
+  "author": "ReadAware",
+  "main": "main.js",
+  "permissions": ["library:read", "reading:write"],
+  "requires": {
+    "domains": { "library": "^1.2.0", "reading": "^2.0.0" },
+    "contributions": { "headerActions": "^1.0.0", "commands": "^1.0.0" },
+    "schemas": { "views": "^1.0.0" }
+  }
+}

@@ -15,6 +15,7 @@ import { createLibraryDomain } from "../../../../domain/library";
 export function createBookTextPort(): BookTextPort {
   const library = createLibraryDomain("agent").queries.books;
   return {
+    getTextState: library.getTextState,
     getNavigationToc: library.getNavigationToc,
     searchLocations: async ({ throughChapterIndex, ...input }, signal) => {
       const hrefs = throughChapterIndex === undefined ? undefined : (await getExtractedChapters(input.bookId))

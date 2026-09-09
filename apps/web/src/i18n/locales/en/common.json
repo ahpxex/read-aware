@@ -12,6 +12,8 @@
     "copied": "Copied"
   },
   "errors": {
+    "bookTextExtractionFailed": "Some book text could not be prepared. Try again to resume unfinished sections.",
+    "bookTextUnsupported": "This book does not provide supported text sections for chapter indexing.",
     "settingsInvalidShortcut": "Choose a valid key and optional modifiers. Escape is reserved for closing overlays.",
     "settingsShortcutConflict": "That shortcut is already assigned. Choose another combination or update the conflicting bindings together.",
     "readerPlaybackFailed": "Read aloud stopped because audio could not be played. Try again or choose another voice.",

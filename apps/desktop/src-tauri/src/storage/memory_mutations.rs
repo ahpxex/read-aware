@@ -30,7 +30,7 @@ fn invalid() -> CommandError {
 fn valid_id(id: &str) -> bool {
     !id.trim().is_empty() && id.encode_utf16().count() <= 256
 }
-fn read_snapshot(conn: &Connection, id: &str) -> Result<Option<MemorySnapshot>, CommandError> {
+pub(crate) fn read_snapshot(conn: &Connection, id: &str) -> Result<Option<MemorySnapshot>, CommandError> {
     let Some(memory) = conn
         .query_row(
             "SELECT * FROM memories WHERE id=?1 AND status='active'",

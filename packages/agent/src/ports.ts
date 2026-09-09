@@ -246,10 +246,12 @@ export interface MemoryPort {
   searchMemories(filter: MemoryQuery): Promise<MemoryRecord[]>;
   /** 全量 active 记忆 —— 巩固批处理的输入。 */
   listMemories(): Promise<MemoryRecord[]>;
+  /** Read revisions before model work; feedback must never be rebased onto a newer row. */
+  snapshotMemories(filter?: MemoryQuery): Promise<import("@read-aware/core").MemorySnapshot[]>;
   saveMemory(input: NewMemoryInput): Promise<MemoryRecord>;
   /** 提炼命中已有记忆 → 证据 +1（doc §4：反复出现才强化） */
-  reinforceMemory(id: string): Promise<void>;
-  applyMemoryChanges(changes: MemoryChange[]): Promise<void>;
+  reinforceMemory(snapshot: import("@read-aware/core").MemorySnapshot, signal?: AbortSignal): Promise<void>;
+  applyMemoryChanges(changes: MemoryChange[], snapshots: import("@read-aware/core").MemorySnapshot[], signal?: AbortSignal): Promise<void>;
 }
 
 /**

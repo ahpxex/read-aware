@@ -1150,13 +1150,62 @@ inference. Rust tests cover ABA, conditional event/outbox/projection rollback an
 payload restrictions. Packaged, Windows/Linux and cross-device approval/CAS are
 not verified by these tests.
 
-[设计/未闭合] Legacy automatic consolidation/reinforcement does not yet use these
-tokens, so this does not prove protection from every late background plan. No
+[代码] Existing-record consolidation and extraction reinforcement now use the same
+row/event revisions. See the internal maintenance boundary below. No
 memory observation, per-book plugin grant, full pagination, event-history erasure
 or arbitrary feedback scoring was added. Legacy `correct`/`reject` feedback
 signals have no projection effect; new correction deliberately emits revised,
 not that ineffective feedback event. Core now includes the already-implemented
 native `unpin` signal rather than using a type cast to hide the contract drift.
+
+<a id="memory-maintenance"></a>
+### Conditional Background Maintenance
+
+[代码] The internal MemoryPort now exposes `snapshotMemories(filter?)` in addition
+to plain queries. Rust `memories_snapshot` reads active records and row/event
+revisions in one read transaction. Consolidation captures these before model
+judgment; extraction and legacy-transcript adoption capture the selected records
+before asking for reinforcement. The model receives memory text, not authority to
+invent revision tokens. Duplicate reinforced IDs are deduplicated.
+
+[代码] `reinforceMemory(snapshot, signal?)` uses that exact snapshot, not a fresh
+post-model record. `applyMemoryChanges(changes, snapshots, signal?)` freezes the
+read set and simulates ordered decay, forgetting, supersession/winner credit and
+promotion before minting events. The native `memory_maintenance_commit` checks
+every supplied revision under an IMMEDIATE transaction, then validates/applies
+the events and commits the entire plan, including outbox entries. A missing or
+changed record rejects memory/conflict with no partial batch. The API rejects
+unconditioned targets, duplicate conditions/event IDs, non-agent origin, raw
+content changes, invalid ranking/evidence changes, invalid promotion and pinned
+automatic forgetting/supersession. A supersession must be followed by its winner
+credit in the same batch. Existing event IDs cannot be silently accepted as a new
+plan. Public memory 1.1 permissions and plugin methods are unchanged.
+
+[代码] The judgment normalizer skips malformed array entries and overlapping
+merge/contradiction endpoints; a retained winner cannot subsequently become a
+loser in the same plan. Pinned records are not automatically replaced. Stale
+plans reject rather than automatically rebasing, and failed consolidation cannot
+report proposed counts as committed counts or mark the dirty revision clean.
+Memory-building cancellation is passed to the host and rechecked after event
+minting, before dispatch; cancellation is not undo after dispatch.
+
+[环境] [Native evidence](./evidence/memory-maintenance-2026-09-10.json) verifies a
+real Worker correction during scripted judgment, stale merge/reinforcement
+rejection, second-event SQL failure with whole-batch rollback, successful retry,
+and subsequent editing through compiled Memory Desk. Rust tests independently
+cover event/outbox rollback and payload/read-set restrictions. Model answers were
+scripted, not autonomous inference; packaged/Windows/Linux and distributed races
+are unverified. Native inspection also found Pin/Correct icon names falling back
+to the generic symbol; this presentation gap is not part of the CAS proof.
+
+[设计/仍缺] Tokens are local. Newly inserted rows outside the captured read set
+do not invalidate it; no serializable judgment over the future whole collection
+is claimed. New-fact promotion/deduplication, repeated extraction of forgotten
+facts, complete pipeline quiescence, whole-store/model budget control, public
+observation, per-book authorization and true cross-device CAS remain open.
+The runtime's idle dirty counter still tracks its own writes, not every external
+plugin/user/sync write or the passage of a decay day; the new transaction protects
+an attempted plan but does not prove that all required future passes are scheduled.
 
 ## 6. Settings Is a Domain
 

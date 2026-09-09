@@ -1,0 +1,27 @@
+{
+  "date": "2026-09-10",
+  "environment": { "runtime": "Tauri macOS debug", "appIdentifier": "com.readaware.app.capability-e2e", "frontendPort": 5184, "bridgePort": 9224, "formalDataTouched": false },
+  "contract": "Internal snapshotMemories captures row/event revisions before consolidation or extraction. memory_maintenance_commit validates the entire supplied read set and applies all canonical maintenance events within one SQLite IMMEDIATE transaction. Public memory domain stays 1.1; no new background-management authority is granted to plugins.",
+  "observations": [
+    "A real memory:write Worker corrected the owned user memory while runConsolidation was awaiting its scripted model judgment. The stale merge plan and a reinforcement request using the pre-model snapshot both rejected memory/conflict. Both memories remained active, evidenceCount=1 and importance=0.5; corrected content remained intact.",
+    "A targeted BEFORE UPDATE trigger rejected the winner credit (second event) of a real production MemoryPort merge. The result was db/error; the earlier supersede event and its projection rolled back. Both revisions remained unchanged and the owned event log contained only two promotions and the earlier plugin correction.",
+    "After finally removing the trigger, a freshly read plan committed: global duplicate superseded, user winner remained active with evidenceCount=2 and importance=0.6. The two events had origin=agent.",
+    "Compiled Memory Desk 0.2 displayed the retained corrected memory. Its real correction form then saved User correction after atomic maintenance using the refreshed revision; the resulting event had origin=plugin:capability-memory-domain-desk. Native screenshots inspected at 800x650, no document overflow. Pin and Correct icons currently fall back to the generic puzzle symbol; recorded as a presentation gap rather than silently counted correct."
+  ],
+  "screenshotsInspected": ["/tmp/memory-maintenance-detail-800.png", "/tmp/memory-maintenance-corrected-800.png"],
+  "unitEvidence": [
+    "Rust: atomic supersede/winner credit and outbox rollback on second-event failure; stale read set, missing/forgotten rows, out-of-set writes, arbitrary content/weights/scope and pinned target rejection.",
+    "Agent: correction during judgment rejects the whole plan; corrected/forgotten records cannot receive stale reinforcement; overlapping merge proposals cannot supersede their own retained winner; pinned records survive automated replacement; malformed list entries are ignored; duplicate reinforced IDs are deduplicated.",
+    "Existing memory policy and runtime dirty-revision tests now instrument snapshotMemories. Policy cancellation is passed into host maintenance ports and checked before IPC dispatch; dispatched writes are not promised to roll back."
+  ],
+  "validation": { "testTasks": "24/24; Agent 376 tests, web 901 tests/9911 assertions/155 files", "typecheckTasks": "27/27", "frontendBuild": "passed; existing large-chunk warning remains", "rust": "147 passed, 1 ignored, 0 failed" },
+  "documentation": { "inventory": "243 rows, 686 entry mappings, 30 units, 31 catalog members, 129 baseline items, 32 scenarios", "checks": "Both generators --check, ten inventory/model tests and three pair validators passed. Nine screenshots inspected across 1440x1000, 1024x768 and 390x844; no page overflow, duplicate IDs, broken local anchors, unnamed buttons or browser errors. Observed CDN responses 200, no diagrams added.", "search": "memory/巩固 matched matrix 7/3 rows, model 3/2 entries, plugin reference 4/2 sections, including memory maintenance. The distinct word 后台 did not match MEM04 because that row says 自动巩固; this was not counted as a successful target match.", "interactions": "Escape clears search; matrix/model mobile drawer inert and theme persistence after reload passed. Plugin reference has neither control. Browser closed; document checks are not product E2E." },
+  "cleanup": { "bookId": "1f2248d8-852b-4185-bb30-022edf1ebeda", "memoryIds": ["e0168339-6c47-4039-9201-39b976cf13a5", "0bf22cc7-b66b-42bb-b5dd-83c40412261b", "a45ce8a4-35c5-48cb-90b8-8866ba420482"], "ownedBooksAfter": 0, "contributionsAfter": 0, "feedbackContributionsAfter": 0, "triggerRemoved": true, "processGroup": 44308, "exitCode": 1, "unownedProcessGroupNotOperated": 89360 },
+  "boundaries": [
+    "The conflict token and transaction are device-local, not a distributed CAS. A newly inserted record outside the captured read set is not a conflict; this is not a serializable model judgment across the entire future memory collection.",
+    "New memory promotion/deduplication is outside this existing-record repair. No guarantee against repeated semantic extraction of a forgotten fact, and no physical event erasure or full pipeline quiescence API.",
+    "Memory snapshots and model input still read the existing whole active store for maintenance, with no completed pagination, model-budget policy or large-corpus campaign.",
+    "The runtime idle dirty counter still follows runtime-owned writes; external plugin/user/sync invalidation and time-only decay scheduling remain a separate gap. Conditional commit protects attempted plans, not whether every needed pass is scheduled.",
+    "Native model output was scripted, not autonomous inference. No packaged/Windows/Linux, true multi-device race, real model, upgrade-consent or complete lifecycle campaign was performed. Public observation, per-book grants and remaining capability families are still open."
+  ]
+}

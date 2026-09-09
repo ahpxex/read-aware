@@ -8,7 +8,8 @@
 import { matchesMemoryQuery, type MemoryPort, type MemoryRecord } from "@read-aware/agent";
 import { normalizeMemoryQuery } from "@read-aware/core";
 import { commitDomainEvents } from "../../../../platform/domain-events";
-import { getMemoryRow, listAllMemoryRows } from "./memory-store";
+import { listAllMemoryRows } from "./memory-store";
+import { applyMemoryChanges, reinforceMemory, snapshotMemories } from "./memory-maintenance";
 
 const isActive = (memory: MemoryRecord) => (memory.status ?? "active") === "active";
 
@@ -69,81 +70,16 @@ export function createMemoryPort(): MemoryPort {
       });
       return record;
     },
-    reinforceMemory: async (id) => {
-      const memory = await getMemoryRow(id);
-      if (!memory) return;
-      memory.evidenceCount += 1;
-      memory.importance = Math.min(1, memory.importance + 0.15);
-      memory.updatedAt = new Date().toISOString();
-      await commitDomainEvents({
-        type: "memory.revised",
-        payload: {
-          memoryId: memory.id,
-          importance: memory.importance,
-          evidenceCount: memory.evidenceCount,
-        },
-        origin: "agent",
-      });
+    snapshotMemories: async (filter) => {
+      const snapshots = await snapshotMemories();
+      if (!filter) return snapshots;
+      const query = normalizeMemoryQuery(filter);
+      const scopes = new Set<string>(query.scopes);
+      return snapshots.filter(({ memory }) => scopes.has(memory.scope) && (!query.query || matchesMemoryQuery(memory.content, query.query)))
+        .sort((a, b) => Number(b.memory.pinned ?? false) - Number(a.memory.pinned ?? false) || b.memory.importance - a.memory.importance || b.memory.updatedAt.localeCompare(a.memory.updatedAt))
+        .slice(0, query.limit);
     },
-    applyMemoryChanges: async (changes) => {
-      const now = new Date().toISOString();
-      for (const change of changes) {
-        const memory = await getMemoryRow(change.id);
-        if (!memory) continue;
-        switch (change.type) {
-          case "supersede": {
-            memory.status = "superseded";
-            await commitDomainEvents({
-              type: "memory.superseded",
-              payload: { memoryId: memory.id, bySupersedingId: change.byId },
-              origin: "agent",
-            });
-            if (change.byId) {
-              const winner = await getMemoryRow(change.byId);
-              if (winner) {
-                winner.evidenceCount += 1;
-                winner.importance = Math.min(1, winner.importance + 0.1);
-                winner.updatedAt = now;
-                await commitDomainEvents({
-                  type: "memory.revised",
-                  payload: {
-                    memoryId: winner.id,
-                    importance: winner.importance,
-                    evidenceCount: winner.evidenceCount,
-                  },
-                  origin: "agent",
-                });
-              }
-            }
-            break;
-          }
-          case "forget":
-            memory.status = "forgotten";
-            await commitDomainEvents({
-              type: "memory.forgotten",
-              payload: { memoryId: memory.id, reason: "decay" },
-              origin: "agent",
-            });
-            break;
-          case "promote":
-            memory.scope = change.scope;
-            memory.updatedAt = now;
-            await commitDomainEvents({
-              type: "memory.revised",
-              payload: { memoryId: memory.id, ...eventScope(memory.scope) },
-              origin: "agent",
-            });
-            break;
-          case "decay":
-            memory.importance = change.importance;
-            await commitDomainEvents({
-              type: "memory.revised",
-              payload: { memoryId: memory.id, importance: memory.importance },
-              origin: "agent",
-            });
-            break;
-        }
-      }
-    },
+    reinforceMemory,
+    applyMemoryChanges,
   };
 }

@@ -52,3 +52,4 @@ export { AgentRuntime, createAgentRuntime, type AgentRuntimeOptions } from "./ru
 export { matchesMemoryQuery } from "./memory/query-match";
 
 // eval viewer 的数据源：套件目录（场景定义本身就是可序列化的）。
+export { planMemoryMaintenance } from "./memory/maintenance-plan";

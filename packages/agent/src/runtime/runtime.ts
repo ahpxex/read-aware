@@ -65,12 +65,12 @@ export class AgentRuntime {
           this.memoryRevision += 1;
           return saved;
         },
-        reinforceMemory: async (id) => {
-          await memory.reinforceMemory(id);
+        reinforceMemory: async (snapshot, signal) => {
+          await memory.reinforceMemory(snapshot, signal);
           this.memoryRevision += 1;
         },
-        applyMemoryChanges: async (changes) => {
-          await memory.applyMemoryChanges(changes);
+        applyMemoryChanges: async (changes, snapshots, signal) => {
+          await memory.applyMemoryChanges(changes, snapshots, signal);
           if (changes.length > 0) this.memoryRevision += 1;
         },
       },

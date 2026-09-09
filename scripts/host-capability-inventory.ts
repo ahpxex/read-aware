@@ -130,6 +130,7 @@ const nativeMap = pairs([
   ["annotation_inspect annotations_commit", "ANN08"],
   ["memories_list_all memory_get memory_put", "MEM01 MEM02 MEM04"], ["chapter_digests_list", "MEM10 MEM11"],
   ["memory_inspect memory_commit", "MEM01 MEM04 MEM05"],
+  ["memories_snapshot memory_maintenance_commit", "MEM02 MEM04 MEM05"],
   ["ai_chat_load ai_chat_load_all ai_chat_list ai_chat_replace ai_chat_clear", "AI01 AI02 AI03"],
   ["plugin_docs_put plugin_docs_get plugin_docs_delete plugin_docs_list plugin_docs_clear vocabulary_migrate_to_plugin_documents", "SYS02 SYS03"],
   ["plugin_docs_snapshot plugin_docs_restore", "SYS03"],

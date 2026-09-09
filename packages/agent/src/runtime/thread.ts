@@ -860,10 +860,11 @@ export class AgentThread {
       turns: window,
     });
     if (this.disposed) return summary;
-    const existing = await deps.memory.searchMemories({
+    const snapshots = await deps.memory.snapshotMemories({
       scopes: visibleScopes(this.scope),
       limit: 20,
     });
+    const existing = snapshots.map(snapshot => snapshot.memory);
     const inherited = await extractMemoriesFromTranscript({
       log: deps.log,
       complete: complete,
@@ -881,7 +882,8 @@ export class AgentThread {
       });
     }
     for (const id of inherited.reinforcedIds) {
-      await deps.memory.reinforceMemory(id);
+      const snapshot = snapshots.find(item => item.memory.id === id);
+      if (snapshot) await deps.memory.reinforceMemory(snapshot);
     }
     return summary;
   }
@@ -911,10 +913,11 @@ export class AgentThread {
       const bootstrapped =
         previousInsights === undefined ? await this.adoptLegacyThread(fast, deps, complete, permissions) : undefined;
       if (this.disposed) return;
-      const existing = await deps.memory.searchMemories({
+      const snapshots = await deps.memory.snapshotMemories({
         scopes: visibleScopes(this.scope),
         limit: 20,
       });
+      const existing = snapshots.map(snapshot => snapshot.memory);
       const result = await extractMemories({
         log: deps.log,
         complete,
@@ -935,7 +938,8 @@ export class AgentThread {
         knownForExtensions.push(saved);
       }
       for (const id of result.reinforcedIds) {
-        await deps.memory.reinforceMemory(id);
+        const snapshot = snapshots.find(item => item.memory.id === id);
+        if (snapshot) await deps.memory.reinforceMemory(snapshot);
       }
 
       const proposed = await deps.extraMemoryCandidates?.({

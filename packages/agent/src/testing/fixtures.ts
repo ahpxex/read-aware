@@ -7,6 +7,7 @@ import { annotationPageFixture } from "./annotation-pages";
 import { createWorkspaceFixture } from "./workspace-fixture";
 import { createAnnotationMutationFixture } from "./annotation-mutations";
 import { createMemoryManagementFixture } from "./memory-management";
+import { createMemoryMaintenanceFixture } from "./memory-maintenance";
 import { AppError } from "@read-aware/core";
 import type {
   BookStats,
@@ -352,8 +353,9 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   const isActive = (memory: MemoryRecord) =>
     (memory.status ?? "active") === "active";
 
+  const memoryManagement = createMemoryManagementFixture(stores.memories);
   const deps: RuntimeDeps = {
-    memoryManagement: createMemoryManagementFixture(stores.memories),
+    memoryManagement,
     workspace: createWorkspaceFixture(),
     hostCommands: {
       list: async () => ({ version: 1, workspaceRevision: null, commands: [] }),
@@ -613,46 +615,8 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         stores.memories.push(record);
         return record;
       },
-      reinforceMemory: async (id) => {
-        const memory = stores.memories.find((m) => m.id === id);
-        if (!memory) return;
-        memory.evidenceCount += 1;
-        memory.importance = Math.min(1, memory.importance + 0.15);
-        memory.updatedAt = new Date().toISOString();
-      },
-      listMemories: async () => stores.memories.filter(isActive),
-      applyMemoryChanges: async (changes) => {
-        const now = new Date().toISOString();
-        for (const change of changes) {
-          const memory = stores.memories.find((m) => m.id === change.id);
-          if (!memory) continue;
-          switch (change.type) {
-            case "supersede":
-              memory.status = "superseded";
-              if (change.byId) {
-                const winner = stores.memories.find(
-                  (m) => m.id === change.byId,
-                );
-                if (winner) {
-                  winner.evidenceCount += 1;
-                  winner.importance = Math.min(1, winner.importance + 0.1);
-                  winner.updatedAt = now;
-                }
-              }
-              break;
-            case "forget":
-              memory.status = "forgotten";
-              break;
-            case "promote":
-              memory.scope = change.scope;
-              memory.updatedAt = now;
-              break;
-            case "decay":
-              memory.importance = change.importance;
-              break;
-          }
-        }
-      },
+      listMemories: async () => structuredClone(stores.memories.filter(isActive)),
+      ...createMemoryMaintenanceFixture(stores.memories, memoryManagement),
     },
     bookText: {
       preparation: createMemoryTextPreparation(stores.chapters),

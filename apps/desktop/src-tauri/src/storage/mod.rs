@@ -26,6 +26,8 @@ mod annotation_mutations;
 pub use annotation_mutations::*;
 mod memory_mutations;
 pub use memory_mutations::*;
+mod memory_maintenance;
+pub use memory_maintenance::*;
 mod memories;
 pub use memories::*;
 mod chat;

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Id } from "@read-aware/core";
-import { createInMemoryDeps } from "../testing/fixtures";
+import { createInMemoryDeps, seedMemory } from "../testing/fixtures";
 import { buildMemoryTools } from "../tools/memory-tools";
 import { applyOnboarding } from "../onboarding";
 import { createAgentRuntime } from "../runtime/runtime";
@@ -43,8 +43,8 @@ describe("memory build policy", () => {
     resolve([]);
     const writes = [
       () => guarded.memory.saveMemory({ scope: "user", kind: "fact", content: "late", origin: "plugin", sourceThreadKey: "global" }),
-      () => guarded.memory.reinforceMemory("any"),
-      () => guarded.memory.applyMemoryChanges([]),
+      () => guarded.memory.reinforceMemory({ memory: seedMemory({ id: "any", scope: "user", content: "test" }), revision: `mem1:${"0".repeat(64)}` }),
+      () => guarded.memory.applyMemoryChanges([], []),
       () => guarded.profile.putProfileSummary("late"),
       () => guarded.conversations.putInsights("global", "late"),
       () => guarded.bookMemory.saveDigest("book" as Id, { chapterIndex: 0, summary: "late", characters: [], relations: [], digestVersion: 1 }),
@@ -77,7 +77,7 @@ describe("memory build policy", () => {
     const state = memoryPolicyState(); state.set(false);
     const { deps } = createInMemoryDeps(); deps.memoryPolicy = state.policy;
     let reads = 0;
-    deps.memory.listMemories = async () => { reads++; return []; };
+    deps.memory.snapshotMemories = async () => { reads++; return []; };
     const runtime = createAgentRuntime({ deps, account: { kind: "api-key", provider: "openai", apiKey: "test" }, models: { smart: "test", fast: "test" } });
     expect(await runtime.consolidateIfNeeded()).toBeNull();
     await expect(runtime.consolidate()).rejects.toMatchObject({ code: "ai/memory-disabled" });
@@ -96,7 +96,7 @@ describe("memory build policy", () => {
     let started!: () => void;
     const reading = new Promise<void>(resolve => { started = resolve; });
     let reads = 0;
-    deps.memory.listMemories = async () => {
+    deps.memory.snapshotMemories = async () => {
       reads++;
       if (reads === 1) { started(); await new Promise<void>(resolve => { release = resolve; }); }
       return [];

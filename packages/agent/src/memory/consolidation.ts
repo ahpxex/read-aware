@@ -111,22 +111,25 @@ async function judgementChanges(
   };
 
   for (const merge of Array.isArray(merges) ? merges : []) {
+    if (!merge || typeof merge !== "object") continue;
     const keep = typeof merge.keep === "string" ? byId.get(merge.keep) : undefined;
     const drop = typeof merge.drop === "string" ? byId.get(merge.drop) : undefined;
-    if (!keep || !drop || keep.id === drop.id || touched.has(drop.id)) continue;
+    if (!keep || !drop || keep.id === drop.id || touched.has(drop.id) || touched.has(keep.id) || drop.pinned) continue;
     changes.push({ type: "supersede", id: drop.id, byId: keep.id });
-    touch(drop.id);
+    touch(drop.id, keep.id);
   }
 
   for (const conflict of Array.isArray(contradictions) ? contradictions : []) {
+    if (!conflict || typeof conflict !== "object") continue;
     const winner = typeof conflict.winner === "string" ? byId.get(conflict.winner) : undefined;
     const loser = typeof conflict.loser === "string" ? byId.get(conflict.loser) : undefined;
-    if (!winner || !loser || winner.id === loser.id || touched.has(loser.id)) continue;
+    if (!winner || !loser || winner.id === loser.id || touched.has(loser.id) || touched.has(winner.id) || loser.pinned) continue;
     changes.push({ type: "supersede", id: loser.id, byId: winner.id });
-    touch(loser.id);
+    touch(loser.id, winner.id);
   }
 
   for (const promotion of Array.isArray(promotions) ? promotions : []) {
+    if (!promotion || typeof promotion !== "object") continue;
     const memory = typeof promotion.id === "string" ? byId.get(promotion.id) : undefined;
     if (!memory || touched.has(memory.id)) continue;
     if (!memory.scope.startsWith("book:")) continue;
@@ -159,7 +162,8 @@ export interface RunConsolidationInput {
 
 export async function runConsolidation(input: RunConsolidationInput): Promise<ConsolidationReport> {
   const now = input.now ?? Date.now();
-  const memories = await input.memory.listMemories();
+  const snapshots = await input.memory.snapshotMemories();
+  const memories = snapshots.map(snapshot => snapshot.memory);
 
   const decay = decayChanges(memories, now);
   const forgottenIds = new Set(
@@ -169,7 +173,7 @@ export async function runConsolidation(input: RunConsolidationInput): Promise<Co
   const judged = await judgementChanges(remaining, input.complete, input.model, input.log);
 
   const changes = [...decay, ...judged];
-  if (changes.length) await input.memory.applyMemoryChanges(changes);
+  if (changes.length) await input.memory.applyMemoryChanges(changes, snapshots);
 
   return {
     decayed: decay.filter((change) => change.type === "decay").length,

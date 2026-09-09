@@ -6,10 +6,10 @@ import { createAgentRuntime } from "./runtime";
 function makeRuntime() {
   const { deps, stores } = createInMemoryDeps();
   let memoryLists = 0;
-  const listMemories = deps.memory.listMemories;
-  deps.memory.listMemories = async () => {
+  const snapshotMemories = deps.memory.snapshotMemories;
+  deps.memory.snapshotMemories = async () => {
     memoryLists += 1;
-    return listMemories();
+    return snapshotMemories();
   };
   const runtime = createAgentRuntime({
     deps,

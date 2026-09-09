@@ -156,7 +156,7 @@ async function runExtraction(
 
   const knownIds = new Set(input.existing.map((memory) => memory.id));
   const reinforcedIds = Array.isArray(rawReinforced)
-    ? rawReinforced.filter((id): id is string => typeof id === "string" && knownIds.has(id))
+    ? [...new Set(rawReinforced.filter((id): id is string => typeof id === "string" && knownIds.has(id)))]
     : [];
 
   const newMemories: MemoryCandidate[] = [];

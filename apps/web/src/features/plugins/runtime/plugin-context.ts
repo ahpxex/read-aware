@@ -40,6 +40,7 @@ import { AiNotConfiguredError } from "../../ai/lib/ai-errors";
 import {
   bindVirtualBook,
   findVirtualBookId,
+  removeOwnedVirtualBook,
   unbindVirtualBook,
 } from "../lib/virtual-books";
 import { showPluginToast } from "../lib/plugin-toast";
@@ -666,18 +667,11 @@ export function buildPluginContext(
               >["books"]["removeVirtualBook"]
             >[0],
           ) => {
-          const bookId = findVirtualBookId({
+          await removeOwnedVirtualBook({
             pluginId: manifest.id,
             providerId: String(input.providerId),
             key: String(input.key),
-          });
-          if (!bookId) return;
-          try {
-            await library.commands!.books.remove(bookId);
-          } catch (error) {
-            log.error("virtual book removal failed", error);
-          }
-          unbindVirtualBook(bookId);
+          }, library.commands!.books.remove);
           },
         },
         collections: library.commands.collections,

@@ -213,6 +213,10 @@
             <p>Text Desk 0.3 组合列表、状态、确认重建、请求详情与取消、明确开书；请求详情实时推送，列表仍显式刷新。插件任务限当前激活代，Agent 两 scope 共用进程所有者；每个所有者至多 16 活跃、64 保留请求，每任务 16 观察者，慢回调合并最新快照。</p>
             <p>macOS 隔离 debug 已验权限 Worker、共享取消/退役、观察退订、重建冲突、真实 FB2、Agent 双 scope 与编译插件界面。暂停/优先级、耐久任务/超时、虚拟索引、全部格式、打包及跨平台仍缺；TXT05 仍为部分。<a href="./plugin-system.md#derived-text-requests">完整契约</a> · <a href="./evidence/book-text-tasks-2026-09-09.json">任务证据</a> · <a href="./evidence/book-text-state-2026-09-09.json">正文事实证据</a></p>
           </div></details>
+          <details class="ep" data-search-section="virtual removal removeVirtualBook 虚拟书 删除 解绑"><summary>虚拟书删除：不再吞错，绑定清理等待持久化</summary><div class="ep-body">
+            <p>插件删除失败时保留绑定并返回错误；绑定写入失败也不报成功。书可能已删除，显式重试可以完成清理，这不是跨书籍、文件、绑定和 RSS 文档的原子事务。损坏注册表报 db/error，不当空表覆盖；新绑定不会被旧清理移除。</p>
+            <p>真实 macOS Worker 命令与 Agent 插件工具已验证 SQLite 删除事件拒绝、绑定写拒绝和恢复重试；不是自主模型或完整 RSS 退订验收。并发创建删除、崩溃恢复、打包和跨平台仍缺，LIB13 保留部分。<a href="./plugin-system.md#virtual-book-removal">完整契约</a> · <a href="./evidence/virtual-book-removal-2026-09-09.json">原生证据</a></p>
+          </div></details>
           <details class="ep" data-search-section="live views 实时 视图 推送 Text Desk"><summary>UI 1.2 / views 1.1：自有视图实时更新，关闭即退订</summary><div class="ep-body">
             <p>插件通过 live.subscribe 取得宿主签发的可见帧通道，再 publishView 完整画面。通道限当前激活代和视图；旧版本报 stale，外部或退休通道报 inactive。更新保留帧身份与现有草稿协调，不改变导航，不开放 DOM 或额外数据权限。</p>
             <p>离开、嵌套弹窗或关闭立即撤通道，返回重新订阅当前值；迟到确认仍会释放。回调在画面提交后释放，中间快照不累积；失败保留旧画面并显示安全错误。每激活最多 16 通道；accepted 不是绘制完成，退订不是取消业务任务。</p>

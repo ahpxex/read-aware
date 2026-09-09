@@ -1,0 +1,124 @@
+{
+  "date": "2026-09-09",
+  "baseCommit": "475f8162",
+  "scope": "Owned virtual-book removal failures and binding durability",
+  "environment": {
+    "appIdentifier": "com.readaware.app.capability-e2e",
+    "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+    "pid": 40303,
+    "processGroup": 40137,
+    "frontendPort": 5184,
+    "bridgePort": 9223,
+    "platform": "macOS debug Tauri/WebKit"
+  },
+  "bookId": "66185a68-d81b-46c3-9f7c-305685ea3eb8",
+  "results": {
+    "event-plugin": {
+      "actor": "plugin",
+      "binding": {
+        "key": "synthetic-removal",
+        "pluginId": "capability-virtual-removal",
+        "providerId": "content"
+      },
+      "bookExists": true,
+      "bookId": "66185a68-d81b-46c3-9f7c-305685ea3eb8",
+      "completed": false,
+      "failure": {
+        "code": "db/error",
+        "message": "AppError: commit_events: capability virtual removal event failure"
+      }
+    },
+    "event-agent": {
+      "actor": "agent",
+      "binding": {
+        "key": "synthetic-removal",
+        "pluginId": "capability-virtual-removal",
+        "providerId": "content"
+      },
+      "bookExists": true,
+      "bookId": "66185a68-d81b-46c3-9f7c-305685ea3eb8",
+      "completed": false,
+      "failure": {
+        "code": "db/error",
+        "message": "AppError: commit_events: capability virtual removal event failure"
+      }
+    },
+    "binding-plugin": {
+      "actor": "plugin",
+      "binding": {
+        "key": "synthetic-removal",
+        "pluginId": "capability-virtual-removal",
+        "providerId": "content"
+      },
+      "bookExists": false,
+      "bookId": "66185a68-d81b-46c3-9f7c-305685ea3eb8",
+      "completed": false,
+      "failure": {
+        "code": "db/error",
+        "message": "AppError: set_kv: capability virtual removal binding failure"
+      }
+    },
+    "binding-agent": {
+      "actor": "agent",
+      "binding": {
+        "key": "synthetic-removal",
+        "pluginId": "capability-virtual-removal",
+        "providerId": "content"
+      },
+      "bookExists": false,
+      "bookId": "66185a68-d81b-46c3-9f7c-305685ea3eb8",
+      "completed": false,
+      "failure": {
+        "code": "db/error",
+        "message": "AppError: set_kv: capability virtual removal binding failure"
+      }
+    },
+    "retry-agent": {
+      "actor": "agent",
+      "binding": null,
+      "bookExists": false,
+      "bookId": "66185a68-d81b-46c3-9f7c-305685ea3eb8",
+      "completed": true
+    },
+    "retry-plugin": {
+      "actor": "plugin",
+      "binding": null,
+      "bookExists": false,
+      "bookId": "66185a68-d81b-46c3-9f7c-305685ea3eb8",
+      "completed": true
+    }
+  },
+  "fixtures": [
+    "apps/web/src/features/plugins/runtime/fixtures/desktop-virtual-removal-probe.ts",
+    "apps/web/src/features/plugins/runtime/fixtures/virtual-removal-probe.ts"
+  ],
+  "faults": [
+    "SQLite BEFORE INSERT on domain_events rejects only book.removed for the owned synthetic book.",
+    "SQLite BEFORE INSERT on app_kv rejects writes to read-aware-virtual-books, including shared book-removed cleanup and explicit retry."
+  ],
+  "databaseCleanup": {
+    "syntheticBookRows": 0,
+    "bindingAbsent": true,
+    "faultTriggersRemaining": 0,
+    "pluginContributions": 0
+  },
+  "validation": {
+    "unit": "5 tests, 34 assertions",
+    "fullTests": "22/22 tasks; web 825 tests, 9177 assertions",
+    "typecheck": "25/25 tasks",
+    "frontendBuild": "passed, not a packaged desktop build",
+    "docs": "Three pair validators; matrix/plugin HTML at 1440x1000, 1024x768, 390x844; English/Chinese search and Escape; matrix drawer/inert/theme persistence; screenshots inspected. No observed overflow, duplicate IDs, bad anchors, unnamed buttons or resource failures. Model HTML unchanged, generated Markdown fact mirror updated.",
+    "cleanup": "Owned PGID 40137 exited 143; 5184/9223/9224 listeners absent; own documentation browser closed. Formal app untouched."
+  },
+  "diagnostics": [
+    "Existing 37 Rust warnings, initial WebContent termination/recovery, bridge version and frontend chunk/mixed-import warnings remain.",
+    "Expected native KV failures were logged by the write queue during fault injection.",
+    "Documentation automation temporarily reached about:blank; client commands ended with missing-element/evaluation errors. Doctor passed. Reopening the same browser session and repeating URL-checked interactions succeeded; final page/console error buffers empty."
+  ],
+  "boundaries": [
+    "Plugin path executes the real Worker command; Agent path executes the real getPluginAgentTools adapter over that Worker, not an autonomous model turn.",
+    "Domain-event failure leaves book and binding intact. Binding-write failure can occur after book deletion committed; the operation rejects, does not roll back the book, and an explicit retry completes cleanup.",
+    "No public arbitrary SQL authority was added. Test triggers were installed only in the confirmed isolated database and removed.",
+    "RSS private document cleanup, unsubscribe approval, concurrent add/remove across restart, creation/binding atomicity, packaged/Windows/Linux and full lifecycle remain unverified."
+  ]
+}

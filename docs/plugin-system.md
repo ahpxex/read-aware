@@ -462,6 +462,35 @@ physical keyboard/mouse. Host built-in Agent availability, continuous load,
 marketplace install/upgrade, packaged and Windows/Linux remain outstanding;
 MORE05 is still partial.
 
+### Virtual Book Removal
+
+[代码] `library.commands.books.removeVirtualBook({ providerId, key })` resolves
+only the calling plugin's binding after earlier local KV writes settle. It awaits
+the shared library deletion and propagates failure instead of unbinding and
+returning success. It then waits for the exact binding cleanup write, or observes
+that the shared book-removed listener already completed it. A changed binding is
+not removed and rejects with `plugin/unavailable`. Invalid registry JSON or entry
+shape rejects with `db/error`; it is not an empty registry and cannot be overwritten
+by a bind/unbind operation.
+
+[代码] This is an ordered operation, not an atomic transaction across event-sourced
+books, source blobs, device-local bindings and plugin documents. If deletion
+committed but cleanup failed, the book remains deleted and the operation rejects;
+an explicit repeat can finish cleanup. An already absent owned binding is an
+idempotent no-op. No new permissions or raw storage APIs are exposed. RSS private
+subscription cleanup and its core-Agent approval workflow are separate concerns.
+
+[环境] [Virtual-removal evidence](./evidence/virtual-book-removal-2026-09-09.json)
+uses an isolated macOS Tauri Worker with command and Agent-tool paths. A SQLite
+trigger rejects the synthetic book's deletion event: both paths report `db/error`,
+preserving book and binding. A second trigger rejects binding KV writes: both
+paths fail even though the book has already been deleted. Removing that fault
+lets the Agent-tool retry complete and the command repeat become a no-op. Test
+book/binding, triggers and contributions are gone. This is real native storage and
+Worker evidence, not an autonomous model turn or full RSS unsubscribe test.
+Concurrent creation/removal, crash recovery, packaged/Windows/Linux and the full
+virtual-content lifecycle remain outstanding; LIB13 remains partial.
+
 ### Reader Controls Visibility
 
 [代码] Reading 2.6 adds `queries.session().controls: { visible: boolean } | null`

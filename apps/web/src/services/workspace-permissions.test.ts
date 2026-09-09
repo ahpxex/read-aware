@@ -28,3 +28,23 @@ test("workspace disclosure and navigation are gated separately, and leaving a re
   const activating = actor(["library:write"], false);
   expect(() => activating.context.services.ui.workspace!.navigate!({ surface: "stats" })).toThrow();
 });
+
+test("host commands cannot use registration permission as navigation or settings authority", async () => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: { getItem: () => null } });
+  cleanups.push(() => { if (previous) Object.defineProperty(globalThis, "localStorage", previous); else Reflect.deleteProperty(globalThis, "localStorage"); });
+  expect(actor([]).context.services.ui.commands).toBeUndefined();
+  expect(actor(["reading:write"]).context.services.ui.commands).toBeUndefined();
+  const read = actor(["library:read"]);
+  expect(read.context.services.ui.commands?.list).toBeFunction();
+  expect(read.context.services.ui.commands?.execute).toBeUndefined();
+  const write = actor(["library:write"]), api = write.context.services.ui.commands!;
+  expect(api.execute).toBeFunction();
+  const snapshot = await api.list();
+  expect(snapshot.commands.filter(c => c.settingsPath).every(c => c.unavailableReason === "permission" && c.checked === undefined)).toBe(true);
+  await expect(api.execute!({ id: "layout-list" })).rejects.toMatchObject({ code: "ui/unavailable" });
+  write.lifecycle.stop(); expect(() => api.execute!({ id: "go-stats" })).toThrow();
+  expect(() => api.list()).toThrow();
+  const activating = actor(["library:write"], false);
+  expect(() => activating.context.services.ui.commands!.execute!({ id: "go-stats" })).toThrow();
+});

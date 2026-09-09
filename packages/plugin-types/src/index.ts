@@ -45,6 +45,7 @@ export type { ReadingTimeQuery, ReadingTimeCursor, ReadingTimeSnapshot, ReadingT
 export type { ReadingInsights, ReadingInsightsQuery, ReadingPeriod } from "@read-aware/core";
 export type { WorkspaceTarget, WorkspaceQuery, WorkspaceSnapshot, WorkspaceReceipt, WorkspaceSettingsSection } from "@read-aware/core";
 export type { SettingsObservation, SettingsObservationCause } from "@read-aware/core";
+export type { HostCommandId, HostCommandRequest, HostCommandDescriptor, HostCommandSnapshot, HostCommandReceipt } from "@read-aware/core";
 import type {
   AnnotationItem,
   AskItem,
@@ -1647,6 +1648,12 @@ export type PluginHostServices = {
     remove(key: string): Promise<void>;
   };
   ui: {
+    /** Since UI 1.4. Finite native navigation/shelf commands, not arbitrary menu or plugin IDs. */
+    commands?: {
+      list(): Promise<import("@read-aware/core").HostCommandSnapshot>;
+      /** Library write plus each command's setting grant; leaving a reader needs reading:write. */
+      execute?(request: import("@read-aware/core").HostCommandRequest): Promise<import("@read-aware/core").HostCommandReceipt>;
+    };
     /** Library read grant: current workspace, not arbitrary UI/DOM state. */
     workspace?: {
       snapshot(query?: import("@read-aware/core").WorkspaceQuery): Promise<import("@read-aware/core").WorkspaceSnapshot>;

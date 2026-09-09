@@ -9,6 +9,8 @@
     "thinking": "Думаю…",
     "thought": "Ход размышлений",
     "tools": {
+      "list_host_commands": "Команды приложения",
+      "execute_host_command": "Выполнить команду приложения",
       "get_workspace": "Текущий интерфейс",
       "navigate_app": "Перейти к экрану",
       "get_reading_time": "Проверяю текущее время чтения",

@@ -1,4 +1,5 @@
 import type { PluginBook, PluginContext, PluginListView, PluginView, PluginViewChannel, WorkspaceSnapshot, WorkspaceTarget } from "@read-aware/plugin-types";
+import { commandsView, commandStrings } from "./commands";
 
 const translations: Record<string, string[]> = {
   en: ["Workspace", "Shelf", "Context", "Statistics", "Settings", "Search", "Open", "Show selection on shelf", "Selected"],
@@ -28,6 +29,7 @@ export async function workspaceView(ctx: PluginContext, selected?: PluginBook[])
         ...(group.books ? { selection: { active: true, bookIds: group.books.map(book => book.id) } } : {}) }),
     })),
     actions: selected ? [] : [
+      { id: "host-commands", label: commandStrings(ctx.locale)[0], icon: "rows", run: async () => ({ view: await commandsView(ctx) }) },
       { id: "agent", label: t[2], icon: "chat-circle-dots", run: () => open({ surface: "agent" }) },
       { id: "stats", label: t[3], icon: "chart-line-up", run: () => open({ surface: "stats" }) },
       { id: "settings", label: t[4], icon: "rows", run: () => open({ surface: "settings", section: "general" }) },

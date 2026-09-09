@@ -13,6 +13,7 @@ import {
   type Icon,
 } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
+import { HOST_SHELF_SORTS, HOST_SHELF_GROUPS } from "@read-aware/core";
 import type { TFunction } from "i18next";
 import type { Collection, LibraryBook } from "../../library/lib/library-types";
 import type {
@@ -172,13 +173,7 @@ export function buildCommands(
     perform: () => ctx.setLayout(nextLayout),
   });
 
-  for (const sort of [
-    "recent",
-    "added",
-    "title",
-    "author",
-    "progress",
-  ] as ShelfSort[]) {
+  for (const sort of HOST_SHELF_SORTS) {
     if (sort === ctx.shelfView.sort) continue;
     items.push({
       id: `sort-${sort}`,
@@ -191,7 +186,7 @@ export function buildCommands(
     });
   }
 
-  for (const group of ["none", "status", "author", "format"] as ShelfGroup[]) {
+  for (const group of HOST_SHELF_GROUPS) {
     if (group === ctx.shelfView.group) continue;
     items.push({
       id: `group-${group}`,

@@ -9,6 +9,8 @@
     "thinking": "思考中…",
     "thought": "思考過程",
     "tools": {
+      "list_host_commands": "宿主命令",
+      "execute_host_command": "執行宿主命令",
       "get_workspace": "目前介面",
       "navigate_app": "切換介面",
       "get_reading_time": "正在查看目前閱讀時間",

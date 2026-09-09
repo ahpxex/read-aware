@@ -9,6 +9,8 @@
     "thinking": "Pensando…",
     "thought": "Razonamiento",
     "tools": {
+      "list_host_commands": "Comandos del anfitrión",
+      "execute_host_command": "Ejecutar comando del anfitrión",
       "get_workspace": "Espacio de trabajo",
       "navigate_app": "Cambiar de vista",
       "get_reading_time": "Consultando el tiempo de lectura actual",

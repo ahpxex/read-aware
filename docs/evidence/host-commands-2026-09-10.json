@@ -1,0 +1,31 @@
+{
+  "date": "2026-09-10",
+  "environment": { "runtime": "Tauri macOS debug", "appIdentifier": "com.readaware.app.capability-e2e", "frontendPort": 5184, "bridgePort": 9224, "formalDataTouched": false },
+  "contract": { "service": "ui 1.4", "agentTools": ["list_host_commands", "execute_host_command"], "scopes": ["book", "global"], "plugin": "Library Desk 0.4.0", "rows": ["UI03"], "commandCount": 16 },
+  "validation": { "testTasks": "23/23", "webTests": 887, "webAssertions": 9755, "typecheckTasks": "26/26", "frontendBuild": "passed", "pluginBuild": "passed", "matrixRows": 243, "inventoryEntries": 665, "modelUnits": 30, "catalogEntries": 30, "baselineItems": 129, "scenarios": 32, "modelGateTests": 7, "rustTestsRerun": false },
+  "observations": [
+    { "case": "Real Worker grants", "result": "No grant omits commands. library:read discovers 16 disabled commands without execute or checked values. library:write enables navigation but cannot change shelf fields. Fully granted Worker sees authorized checked values and can execute." },
+    { "case": "Persistent setting then selection-preserving navigation", "result": "Two synthetic FB2 books selected in their collection remained selected after layout-list returned completed [settings, workspace]. Collection ID and both selected IDs were unchanged." },
+    { "case": "Both Agent scopes", "result": "Global Agent go-stats and book Agent go-context returned completed [workspace]. Book-scope discovery returned all 16 commands. Reusing revision 4 after subsequent navigation rejected ui/superseded." },
+    { "case": "Real reader handoff", "result": "Opening a real synthetic FB2 disabled go-stats for library:write-only Worker with reader-control reason. Executing rejected ui/unavailable. open-settings completed while workspace.surface remained reader; full Worker then closed reading and completed statistics." },
+    { "case": "SQLite refusal and recovery", "result": "A BEFORE UPDATE trigger on only read-aware-shelf-view rejected both Worker and Agent layout-grid with db/error. Workspace remained statistics at revision 12 and persisted layout-list remained checked. Removing the trigger let the Agent complete layout-grid." },
+    { "case": "Compiled composition", "result": "Library Desk 0.4 Workspace > Host commands rendered the host catalog. Actual search input list view filtered to Switch to list view; clicking it saved shelf.layout=list, returned to shelf and closed the dialog. 1200x800 command UI and 800x650 list-layout result screenshots were inspected; no document horizontal overflow." }
+  ],
+  "firstPreview": { "bookIds": ["d42fe880-94ad-4d1c-b479-f2af58dd2859", "9f1b7c34-d7e7-4a82-8b69-55ce73b4a029"], "collectionId": "7b54065c-9532-424b-b88c-2539002ffacf", "ownedBooksAfterCleanup": 0, "contributionsAfterCleanup": 0 },
+  "compiledPreview": { "bookIds": ["c3aa53fa-06de-40d9-ad8c-301ee578cb06", "9c92872f-15b7-4145-8174-64c221d6c0af"], "collectionId": "cf4ba6e0-f383-4055-9cb1-7c50f962f538" },
+  "screenshotsInspected": ["/tmp/host-commands-1200.png", "/tmp/host-commands-800.png", "/tmp/host-commands-result-800.png", "/tmp/host-commands-error-800.png"],
+  "compiledFailureRecovery": "A second exact shelf-key SQL trigger kept the compiled command dialog open after grid-view click. The later screenshot shows the correctly filtered row and no raw SQL; it does not prove an earlier transient toast was visible. Removing the trigger and clicking again saved grid and closed the dialog.",
+  "cleanup": { "ownedBooks": 0, "contributions": 0, "settingsRestored": true, "faultTriggerRemoved": true, "originalBooksPreserved": ["07ef226e-1ebc-47b6-8dc9-d09109448d22", "8ced004f-efe3-408f-80a8-a0ebffec84d3"], "processGroup": 10981, "exitCode": 143, "unownedProcessGroupNotOperated": 89360 },
+  "boundaries": [
+    "Direct deterministic Agent tool execution is not autonomous model behavior.",
+    "Deferred storage, all 16 mappings, retirement and post-write partial receipts are covered by unit tests, not a full native concurrency or crash-recovery campaign.",
+    "Native command palette still has its own callback dispatch. Dynamic book/collection items, import tasks and cross-plugin invocation remain open; UI03 stays partial.",
+    "Discovery reports coarse authorization/workspace conditions, not a reservation or proof that the selection target still exists.",
+    "The plugin command page is a refreshable snapshot, not an observer. Installation/upgrade consent, packaged builds, Windows/Linux and complete focus behavior are unverified."
+  ],
+  "developmentRecovery": [
+    "Initial workspace preview used stale Library Desk 0.3 compiled output, whose Workspace page correctly lacked Host commands. No plugin-composition success was claimed for it. Its owned books/workers were cleaned up, the 0.4 plugin was explicitly built, and a fresh preview exercised the actual command page.",
+    "A guessed optimized window-module import failed. Window resize used the MCP window API instead. First capture preceded native repaint and was not accepted as UI evidence; subsequent screenshots showed the dialog and actual result. The 800 search screenshot shows pre-filter rows, so search filtering is supported by DOM and successful click evidence, not that image.",
+    "Existing bridge-version, native compile warnings and an initial WebView process termination/reboot are not claimed fixed."
+  ]
+}

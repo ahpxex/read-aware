@@ -1,6 +1,13 @@
-import type { PluginModule, WorkspaceSnapshot, WorkspaceTarget } from "@read-aware/plugin-types";
+import type { HostCommandId, PluginModule, WorkspaceSnapshot, WorkspaceTarget } from "@read-aware/plugin-types";
 
 export default { activate(ctx) {
+  const commands = ctx.services.ui.commands;
+  ctx.contributions.commands.register({ id: "host-list", title: "Inspect host commands", run: async () => ({ toast: JSON.stringify({
+    readable: !!commands, writable: !!commands?.execute, snapshot: await commands?.list(),
+  }) }) });
+  if (commands?.execute) for (const id of ["go-stats", "go-shelf", "go-context", "open-settings", "layout-grid", "layout-list", "sort-title", "group-author"] satisfies HostCommandId[]) {
+    ctx.contributions.commands.register({ id: `host-${id}`, title: id, run: async () => ({ toast: JSON.stringify(await commands.execute!({ id })) }) });
+  }
   const api = ctx.services.ui.workspace;
   const seen: (WorkspaceSnapshot | null)[] = [];
   api?.observe({ limit: 1 }, snapshot => { seen.push(snapshot); if (seen.length > 20) seen.shift(); });

@@ -44,6 +44,7 @@ const agentMap = pairs([
   ["control_read_aloud", "READ18"],
   ["get_host_environment", "MORE03"],
   ["get_workspace navigate_app", "UI01 UI02"],
+  ["list_host_commands execute_host_command", "UI03"],
   ["configure_reading_mode", "READ16"],
   ["set_reader_controls", "READ09"],
   ["get_reader_panels set_reader_panel", "READ10"],
@@ -93,6 +94,7 @@ const pluginMap = pairs([
   ["services.ui.publishView", "MORE05"],
   ["services.ui.reader.snapshot services.ui.reader.observe services.ui.reader.setPanel", "READ10"],
   ["services.ui.workspace.snapshot services.ui.workspace.observe services.ui.workspace.navigate", "UI01 UI02"],
+  ["services.ui.commands.list services.ui.commands.execute", "UI03"],
   ["services.network.fetch", "SYS06"], ["services.llm.ask", "AI06"], ["services.clipboard.writeText", "SYS08"],
   ["services.session.environment services.session.observeEnvironment", "MORE03"],
 ]);

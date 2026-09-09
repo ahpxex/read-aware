@@ -5,7 +5,7 @@
  */
 import { describe, expect, test } from "bun:test";
 import type { AgentTool, AgentToolResult } from "@earendil-works/pi-agent-core";
-import type { Id } from "@read-aware/core";
+import { HOST_COMMAND_IDS, type Id } from "@read-aware/core";
 import { createInMemoryDeps, type InMemorySeed } from "../testing/fixtures";
 import type { ThreadScope } from "../thread-scope";
 import { buildAgentTools } from "./registry";
@@ -71,6 +71,8 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   get_host_environment: {},
   get_workspace: {},
   navigate_app: { target: { surface: "stats" } },
+  list_host_commands: {},
+  execute_host_command: { id: "go-stats" },
   list_books: {},
   get_book_overview: { bookId: BOOK_ID },
   get_annotations: { bookId: BOOK_ID },
@@ -164,6 +166,12 @@ describe("tool surface contract", () => {
         if (!params) continue; // 完备性由上面的用例把守
         // 每个工具独立的 fixture：破坏性工具（fixture 自动批准权限）不得污染后续用例
         const { deps } = createInMemoryDeps(seed());
+        // The generic fixture has no attached host command runtime. These receipts
+        // exercise output formatting only; shared-service tests prove execution.
+        deps.hostCommands.list = async () => ({ version: 1, workspaceRevision: 1, commands: HOST_COMMAND_IDS.map(id => ({
+          id, title: id, enabled: true, parameters: { type: "object", properties: {}, additionalProperties: false },
+        })) });
+        deps.hostCommands.execute = async request => ({ commandId: request.id, status: "completed", completed: ["workspace"] });
         if (name === "cancel_book_text_task") params.taskId = (await deps.bookText.preparation!.start(BOOK_ID)).taskId;
         if (name === "edit_annotation") params.expectedRevision = (await deps.annotations.inspectAnnotation(String(params.annotationId)))!.revision;
         if (name === "apply_annotation_changes") {

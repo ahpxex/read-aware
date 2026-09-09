@@ -9,6 +9,8 @@
     "thinking": "考え中…",
     "thought": "思考の過程",
     "tools": {
+      "list_host_commands": "ホストコマンド",
+      "execute_host_command": "ホストコマンドを実行",
       "get_workspace": "現在の画面",
       "navigate_app": "画面を移動",
       "get_reading_time": "現在の読書時間を確認しています",

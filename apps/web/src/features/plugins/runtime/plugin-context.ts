@@ -12,6 +12,7 @@ import { fetch as corsFreeFetch } from "@tauri-apps/plugin-http";
 import type { PluginActionRegistration } from "@read-aware/plugin-types";
 import { readerPanels } from "../../../services/reader-panels";
 import { workspace } from "../../../services/workspace";
+import { actorHostCommands } from "../../../services/host-command-runtime";
 import { publishPluginView } from "../lib/plugin-view-channels";
 import {
   canUseContribution,
@@ -613,6 +614,17 @@ export function buildPluginContext(
   // host-only details such as tracked subscriptions and virtual-book bindings.
   if (domain.library) {
     const library = domain.library;
+    const commands = actorHostCommands(settingsDomain, true, !!library.commands, !!domain.reading?.commands);
+    ctx.services.ui.commands = {
+      list: async () => {
+        lifecycle.assertActive("services.ui.commands.list");
+        return commands.list(lifecycle.signal);
+      },
+      ...(library.commands ? { execute: (request: import("@read-aware/core").HostCommandRequest) => {
+        lifecycle.assertActive("services.ui.commands.execute");
+        return commands.execute(request, lifecycle.signal);
+      } } : {}),
+    };
     ctx.services.ui.workspace = {
       snapshot: async query => { lifecycle.assertActive("services.ui.workspace.snapshot"); return workspace.snapshot(query); },
       observe: (query, handler) => track(() => ({ dispose: workspace.observe(query, handler) })),

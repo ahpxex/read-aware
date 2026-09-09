@@ -9,6 +9,8 @@
     "thinking": "Thinking…",
     "thought": "Thought process",
     "tools": {
+      "list_host_commands": "Host commands",
+      "execute_host_command": "Run host command",
       "get_workspace": "Workspace",
       "navigate_app": "Navigate app",
       "get_reading_time": "Reading current active time",

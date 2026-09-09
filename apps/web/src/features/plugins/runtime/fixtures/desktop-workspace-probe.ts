@@ -1,6 +1,6 @@
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
-import type { PluginDisposable, PluginManifest, WorkspaceTarget } from "@read-aware/plugin-types";
+import type { HostCommandRequest, PluginDisposable, PluginManifest, WorkspaceTarget } from "@read-aware/plugin-types";
 import { createLibraryDomain } from "../../../../domain/library";
 import { workspace } from "../../../../services/workspace";
 import { buildRuntimeDeps } from "../../../ai/agent/ports";
@@ -35,7 +35,8 @@ export async function prepareWorkspaceProbe() {
   for (const role of ["empty", "read", "write", "reader"] as const) await start({ id: `capability-workspace-${role}`, name: `Workspace ${role}`, version: "1.0.0", schemaVersion: 1,
     description: JSON.stringify({ collectionId, bookIds: books }),
     permissions: role === "empty" ? [] : role === "read" ? ["library:read"] : role === "write" ? ["library:write"] : ["library:write", "reading:write"],
-    requires: { services: { ui: "^1.3.0" }, domains: { library: "^1.6.0", reading: "^2.0.0" } } }, new URL("./workspace-probe.ts", import.meta.url).href);
+    ...(role === "reader" ? { settingsAccess: { read: ["shelf.*"], write: ["shelf.*"] } } : {}),
+    requires: { services: { ui: "^1.4.0" }, domains: { library: "^1.6.0", reading: "^2.0.0" } } }, new URL("./workspace-probe.ts", import.meta.url).href);
   await start({ ...manifest, id: "capability-workspace-desk" } as PluginManifest, new URL("../../../../../../../plugins/library-desk/dist/main.js", import.meta.url).href);
   return { path, collectionId, bookIds: [...books] };
 }
@@ -49,6 +50,13 @@ export async function agentWorkspace(name: "get_workspace" | "navigate_app", tar
   await isolated();
   const tools = buildAgentTools(scope === "book" ? { kind: "book", bookId: books[0] } : { kind: "global", threadId: "workspace-probe" }, buildRuntimeDeps());
   const result = await tools.find(tool => tool.name === name)!.execute("workspace-e2e", name === "navigate_app" ? { target } : {});
+  if (result.content[0]?.type !== "text") throw Error("Expected Agent text");
+  return JSON.parse(result.content[0].text) as unknown;
+}
+export async function agentHostCommand(request?: HostCommandRequest, scope: "book" | "global" = "global") {
+  await isolated();
+  const tools = buildAgentTools(scope === "book" ? { kind: "book", bookId: books[0] } : { kind: "global", threadId: "workspace-probe" }, buildRuntimeDeps());
+  const result = await tools.find(tool => tool.name === (request ? "execute_host_command" : "list_host_commands"))!.execute("host-command-e2e", request ?? {});
   if (result.content[0]?.type !== "text") throw Error("Expected Agent text");
   return JSON.parse(result.content[0].text) as unknown;
 }

@@ -353,6 +353,10 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
 
   const deps: RuntimeDeps = {
     workspace: createWorkspaceFixture(),
+    hostCommands: {
+      list: async () => ({ version: 1, workspaceRevision: null, commands: [] }),
+      execute: async () => { throw new Error("Host commands require an attached workspace fixture"); },
+    },
     environment: { snapshot: async () => ({ revision: 1, runtime: "desktop", platform: "macos", locale: "en", timeZone: "UTC", utcOffsetMinutes: 0, networkHint: "unknown" }) },
     library: {
       getReadingTime: async (query = {}) => ({ bookId: query.bookId ?? null, localDay: query.localDay ?? null,

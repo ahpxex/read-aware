@@ -27,8 +27,48 @@ function cleanupStrings(locale) {
   return cleanup[locale] ?? cleanup[locale.split("-")[0]] ?? cleanup.en;
 }
 
-// src/workspace.ts
+// src/commands.ts
 var translations2 = {
+  en: ["Host commands", "Refresh", "Selected", "Permission required", "Workspace unavailable", "Reader control required", "Setting saved; navigation did not complete"],
+  "zh-Hans": ["宿主命令", "刷新", "已选中", "需要授权", "工作区不可用", "需要阅读控制权限", "设置已保存，界面切换未完成"],
+  "zh-Hant": ["宿主命令", "重新整理", "已選取", "需要授權", "工作區無法使用", "需要閱讀控制權限", "設定已儲存，介面切換未完成"],
+  ja: ["ホストコマンド", "更新", "選択済み", "権限が必要", "ワークスペースを利用できません", "読書の操作権限が必要", "設定は保存されましたが、画面の移動は完了しませんでした"],
+  de: ["Host-Befehle", "Aktualisieren", "Ausgewählt", "Berechtigung erforderlich", "Arbeitsbereich nicht verfügbar", "Lesesteuerung erforderlich", "Einstellung gespeichert; Ansicht nicht gewechselt"],
+  fr: ["Commandes hôte", "Actualiser", "Sélectionné", "Autorisation requise", "Espace indisponible", "Contrôle de lecture requis", "Paramètre enregistré ; navigation non terminée"],
+  es: ["Comandos del anfitrión", "Actualizar", "Seleccionado", "Permiso necesario", "Espacio no disponible", "Control de lectura necesario", "Ajuste guardado; navegación incompleta"],
+  ru: ["Команды приложения", "Обновить", "Выбрано", "Требуется разрешение", "Рабочая область недоступна", "Требуется управление чтением", "Настройка сохранена; переход не завершён"]
+};
+var commandStrings = (locale) => translations2[locale] ?? translations2[locale.split("-")[0]] ?? translations2.en;
+async function commandsView(ctx) {
+  const api = ctx.services.ui.commands, t = commandStrings(ctx.locale), snapshot = await api.list();
+  const refresh = async () => ({ view: await commandsView(ctx), navigation: "replace" });
+  const execute = async (command) => {
+    const receipt = await api.execute({ id: command.id, ...snapshot.workspaceRevision === null ? {} : { expectedWorkspaceRevision: snapshot.workspaceRevision } });
+    if (receipt.status === "completed")
+      return { close: true };
+    return { view: { kind: "detail", title: command.title, content: [
+      { kind: "text", text: t[6] },
+      { kind: "error", code: receipt.errorCode ?? "ui/unavailable" }
+    ], actions: [{ id: "refresh", label: t[1], icon: "arrows-clockwise", run: refresh }] }, navigation: "replace" };
+  };
+  return {
+    kind: "list",
+    title: t[0],
+    searchable: true,
+    items: snapshot.commands.map((command) => ({
+      id: command.id,
+      title: command.title,
+      keywords: [command.id],
+      subtitle: command.unavailableReason === "permission" ? t[3] : command.unavailableReason === "workspace" ? t[4] : command.unavailableReason === "reader-control" ? t[5] : undefined,
+      accessories: command.checked ? [{ kind: "icon", icon: "check", label: t[2] }] : [],
+      ...command.enabled && api.execute ? { onSelect: () => execute(command) } : {}
+    })),
+    actions: [{ id: "refresh", label: t[1], icon: "arrows-clockwise", run: refresh }]
+  };
+}
+
+// src/workspace.ts
+var translations3 = {
   en: ["Workspace", "Shelf", "Context", "Statistics", "Settings", "Search", "Open", "Show selection on shelf", "Selected"],
   "zh-Hans": ["工作区", "书架", "上下文", "统计", "设置", "搜索", "打开", "在书架显示所选书籍", "已选择"],
   "zh-Hant": ["工作區", "書架", "上下文", "統計", "設定", "搜尋", "開啟", "在書架顯示所選書籍", "已選取"],
@@ -38,7 +78,7 @@ var translations2 = {
   es: ["Espacio de trabajo", "Biblioteca", "Contexto", "Estadísticas", "Ajustes", "Buscar", "Abrir", "Mostrar selección en la biblioteca", "Seleccionado"],
   ru: ["Рабочая область", "Библиотека", "Контекст", "Статистика", "Настройки", "Поиск", "Открыть", "Показать выбранные книги в библиотеке", "Выбрано"]
 };
-var workspaceStrings = (locale) => translations2[locale] ?? translations2[locale.split("-")[0]] ?? translations2.en;
+var workspaceStrings = (locale) => translations3[locale] ?? translations3[locale.split("-")[0]] ?? translations3.en;
 async function workspaceView(ctx, selected) {
   const api = ctx.services.ui.workspace, library = ctx.domains.library, t = workspaceStrings(ctx.locale);
   const collections = await library.queries.collections.list();
@@ -68,6 +108,7 @@ async function workspaceView(ctx, selected) {
       })
     })),
     actions: selected ? [] : [
+      { id: "host-commands", label: commandStrings(ctx.locale)[0], icon: "rows", run: async () => ({ view: await commandsView(ctx) }) },
       { id: "agent", label: t[2], icon: "chat-circle-dots", run: () => open({ surface: "agent" }) },
       { id: "stats", label: t[3], icon: "chart-line-up", run: () => open({ surface: "stats" }) },
       { id: "settings", label: t[4], icon: "rows", run: () => open({ surface: "settings", section: "general" }) },

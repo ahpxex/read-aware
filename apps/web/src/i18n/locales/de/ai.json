@@ -9,6 +9,8 @@
     "thinking": "Denkt nach…",
     "thought": "Gedankengang",
     "tools": {
+      "list_host_commands": "Host-Befehle",
+      "execute_host_command": "Host-Befehl ausführen",
       "get_workspace": "Arbeitsbereich",
       "navigate_app": "Ansicht wechseln",
       "get_reading_time": "Prüft die aktuelle Lesezeit",

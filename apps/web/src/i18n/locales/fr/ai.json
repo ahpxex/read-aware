@@ -9,6 +9,8 @@
     "thinking": "Réflexion…",
     "thought": "Cheminement de pensée",
     "tools": {
+      "list_host_commands": "Commandes hôte",
+      "execute_host_command": "Exécuter une commande hôte",
       "get_workspace": "Espace de travail",
       "navigate_app": "Changer de vue",
       "get_reading_time": "Consultation du temps de lecture actuel",

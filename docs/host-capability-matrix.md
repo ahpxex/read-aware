@@ -21,7 +21,7 @@
 ## 计数与口径
 
 - 宿主：实装 193、部分 43、待建 3、引擎 1、占位 2、非桌面 1。
-- Agent：接通 116、未接 45、部分 42、扩展 14、自动 20、内部 6。
+- Agent：接通 116、未接 44、部分 43、扩展 14、自动 20、内部 6。
 - 插件：接通 131、部分 72、未接 40。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
@@ -148,7 +148,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | <a id="UI01"></a>UI01 | 书架/Agent/统计/设置与集合页面导航 | 实装 | **接通**：get_workspace/navigate_app 双 scope<br>[设计] 语义导航工具 | **接通**：UI 1.3 workspace.snapshot/observe/navigate<br>[设计] 语义路由服务 | 原生导航；Agent；Library Desk 0.3 | 同一服务接受 shelf/agent/stats/settings/search 意图；settings 支持九个内置节及启用插件节，search 是现有命令面板。library:read/write 可查询观察，library:write 可导航；离开正在阅读的书另需 reading:write，设置/搜索不关闭阅读。校验目标存在、期望 revision；异步校验/关闭期间原生新意图优先，新请求/取消/退役拒绝旧请求。10 秒期限，目标组件在 Suspense 内提交后才确认；回执不是动画结束、数据加载或阅读时长结算。快照含实际 reader 状态但无书 ID/正文/凭据。macOS debug 已验 Worker 权限、原生命令搜索、双 scope 端口、真实 FB2 关闭和编译插件。任意命令执行、全应用历史、全部弹窗焦点管理、打包/跨平台仍未验；不公开 Router/Jotai。 | [APP](../apps/web/src/App.tsx) [UI](../apps/web/src/state/ui.ts) [COMMAND](../apps/web/src/features/command/lib/build-commands.tsx) [API](../packages/plugin-types/src/index.ts) [WORKSPACESERVICE](../apps/web/src/services/workspace.ts) [WORKSPACEADAPTER](../apps/web/src/services/workspace-adapter.ts) [WORKSPACETOOLS](../packages/agent/src/tools/workspace-tools.ts) [WORKSPACEDESK](../plugins/library-desk/src/workspace.ts) [WORKSPACENAVPROOF](../docs/evidence/workspace-navigation-2026-09-09.json) | I01 |
 | <a id="UI02"></a>UI02 | 命令面板搜索/书架布局/排序/分组/多选 | 实装 | **接通**：settings 1.3 shelf.* + get_workspace/navigate_app<br>[设计] 查询视图状态/受控设置 | **接通**：settings 1.3 shelf.* + UI 1.3 workspace<br>[设计] 视图状态与选择集服务 | 书架；Workspace Profiles；Library Desk 0.3；Agent | 布局/分组/排序沿用共享设置与 KV 回滚。集合和选择为设备内存态，观察实际提交；移出集合/删除后去掉隐藏或失效选择，隐藏书架时也协调。选择查询按 ID 码元序分页，默认 100/最大 1000，total 为全选择数；翻页须比 revision。导航最多 1000 个 256 字符 ID，必须全属目标集合；省略 selection 清空，不隐选其他集合。搜索最长 4096 字符，非新建书架过滤或书内检索。64 个观察者上限，慢回调合并最新状态，退役 null；Agent 查询至多 25，结果按预算缩页且保留 cursor，query 明确 256 字符预览。Library Desk 把跨集合勾选分组，用户明确选择一组后显示，不自动删除。macOS debug 已验 2 项选择/分页、移出后变 1、插件真实选择与搜索表单；大规模负载/远端竞态/打包和跨平台未验，多选不是批量删除授权。 | [SHELF](../apps/web/src/features/shelf/lib/shelf-view.ts) [SHELFUI](../apps/web/src/features/shelf/components/Shelf.tsx) [COMMAND](../apps/web/src/features/command/lib/build-commands.tsx) [SHELFSETTINGS](../apps/web/src/domain/settings/shelf-preferences.ts) [WORKSPACEPROFILES](../plugins/workspace-profiles/src/profiles.ts) [WORKSPACEEVIDENCE](../docs/evidence/workspace-profiles-2026-09-09.json) [WORKSPACESERVICE](../apps/web/src/services/workspace.ts) [WORKSPACEADAPTER](../apps/web/src/services/workspace-adapter.ts) [WORKSPACETOOLS](../packages/agent/src/tools/workspace-tools.ts) [WORKSPACEDESK](../plugins/library-desk/src/workspace.ts) [WORKSPACENAVPROOF](../docs/evidence/workspace-navigation-2026-09-09.json) | H03 |
-| <a id="UI03"></a>UI03 | 发现/执行宿主命令与可用条件 | 实装 | **未接**：无正式入口<br>[设计] 可审计的命令调用 | **部分**：commands.register 只贡献自己的命令<br>[设计] 命令注册与受控调用分离 | 命令面板/快捷键 | 不能把菜单 ID 或命令 label 当稳定 RPC；需参数 schema、条件、回执 | [COMMAND](../apps/web/src/features/command/lib/build-commands.tsx) [SHORTCUT](../apps/web/src/features/settings/lib/shortcuts.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | I02, I03 |
+| <a id="UI03"></a>UI03 | 发现/执行宿主命令与可用条件 | 实装 | **部分**：list_host_commands/execute_host_command 双 scope<br>[设计] 可审计的命令调用 | **部分**：UI 1.4 commands.list/execute；commands.register 仍只贡献自己的命令<br>[设计] 命令注册与受控调用分离 | 命令面板/快捷键；Library Desk 0.4；Agent | 当前开放 16 个无参数导航/书架命令，固定 ID/空参数 schema，返回授权可见的 checked、可用条件和 workspaceRevision。library:read 查询，library:write 执行；书架字段另需精确 settingsAccess，离开阅读另需 reading:write。执行重新校验，设置真实保存后才导航；已保存但导航失败返回 partial/settings/stable code，不冒充原子事务或回滚。保留当前集合/最多 1000 项选择；选择目标与数据库有效性仍在执行时验证，enabled 不是完成保证。macOS debug 已验真实 Worker、双 scope、SQL 拒写与恢复、真实 FB2 权限及编译插件搜索/执行。原生命令面板仍有自己的回调分发，动态书籍/集合、导入任务、跨插件命令、全部原生动作和完整可用性/焦点/打包跨平台仍未接通或未验，UI03 保持部分。 | [COMMAND](../apps/web/src/features/command/lib/build-commands.tsx) [SHORTCUT](../apps/web/src/features/settings/lib/shortcuts.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [HOSTCOMMANDS](../apps/web/src/services/host-commands.ts) [HOSTCOMMANDTOOLS](../packages/agent/src/tools/host-command-tools.ts) [HOSTCOMMANDDESK](../plugins/library-desk/src/commands.ts) [HOSTCOMMANDPROOF](../docs/evidence/host-commands-2026-09-10.json) | I02, I03 |
 | <a id="UI04"></a>UI04 | 快捷键查询、重绑、冲突与重置 | 实装 | **部分**：get_settings/update_settings：shortcuts section<br>[设计] 完整绑定与生命周期 | **部分**：settings 1.5：key-chord 查询/重绑/null 恢复；默认 shortcut 贡献<br>[设计] 命令绑定与冲突查询 | 快捷键设置页；Agent；Workspace Profiles 0.2 自身命令重绑 | 16 个内置、当前注册插件命令及未注册插件遗留覆盖按同一有效 binding 读写，default/override/availability/conflicted/conflicts 可查询；插件路径编码且精确授权，writable 按授权收窄，冲突引用按 read grant 过滤。整批最终态校验允许交换，失败不提交；null 删除覆盖，不表示禁用。实际 macOS 键盘验证 Agent 改搜索、Worker 交换搜索/设置、Workspace 表单改自己的命令并按新键打开；冲突保留表单与绑定并显示本地化稳定错误。原生设置页已统一域写，单项/全部重置等待提交，发出 user 来源事件；只读 atom 不再有直接整表 setter。停用命令遗留覆盖按授权可查/改/清，原生不可用分组可重置，真实 Worker 已验退休后修改与 SQLite 清理。激活冲突已统一裁决：全局、插件、阅读器按同一实时目录暂停所有冲突绑定，不依赖监听/注册顺序；停用或重绑自动恢复。原生页显示冲突，conflicted 保留给授权调用者而冲突路径仍按 grant 隐藏。实机已验搜索/插件重启冲突、正文 iframe 冲突/停用恢复与插件面板不误翻页。settings 1.6 queries.observe 已覆盖本地/远端/恢复与目录的 revision/source，旧调用者 origin 仍可为 null；available 不代表当前焦点可执行。保留部分，不宣称 packaged/跨平台与完整按键路由已验 | [SHORTCUT](../apps/web/src/features/settings/lib/shortcuts.ts) [SHORTUI](../apps/web/src/features/settings/sections/ShortcutsPanel.tsx) [SHORTCUTCATALOG](../apps/web/src/features/settings/lib/shortcut-catalog.ts) [SHORTCUTSETTINGS](../apps/web/src/domain/settings/shortcut-preferences.ts) [SHORTCUTPROOF](../docs/evidence/keyboard-shortcuts-2026-09-09.json) [SHORTCUTEDITOR](../apps/web/src/features/settings/hooks/useShortcutPreferences.ts) [SHORTCUTEDITORPROOF](../docs/evidence/shortcut-editor-2026-09-09.json) [SHORTCUTDISPATCH](../apps/web/src/features/settings/lib/shortcut-dispatch.ts) [SHORTCUTDISPATCHPROOF](../docs/evidence/shortcut-dispatch-2026-09-09.json) [API](../packages/plugin-types/src/index.ts) | H03, I02 |
 | <a id="UI05"></a>UI05 | 菜单可见/溢出位置及自定义重排 | 实装 | **接通**：get_settings/update_settings menus.*<br>[设计] 结构化设置工具 | **接通**：settings domain menus.* 按路径授权<br>[设计] 结构化设置领域 | 菜单设置；插件 header/selection | 可改布局不代表可调用菜单动作；具体 8 个路径另逐项列出 | [MENU](../apps/web/src/features/menus/lib/menu-registry.tsx) [MENUSTATE](../apps/web/src/features/menus/state/menu-config.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) | I08 |
 | <a id="CFG01"></a>CFG01 | 设置 discover/read/update 与动态选项 | 实装 | **接通**：get_settings/update_settings；等待本地事务提交<br>[设计] 设置工具 | **接通**：settings 1.5 snapshot/discover/read/update；原子保存与授权结果<br>[设计] 路径授权设置领域 | Agent；Theme Schedule；TTS options；Workspace Profiles | snapshot 等待此前命令/UI 写结算后一次读取，按路径授权过滤；单个命令跨 KV 记录原子提交；失败不发 settings.changed，下一命令基于已结算状态；结果快照按 read/write grant 过滤，writable 反映当前 actor 授权，discover 不泄露快捷键运行态。事务不包含密钥、远端漫游提交或尚未接通的效果；设置 API 接通不证明值有消费者 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [KV](../apps/web/src/platform/local-store.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | H01 |
@@ -409,9 +409,9 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：47 个。
-- Agent book：39 个。
-- Plugin ctx：109 个。
+- Agent global：49 个。
+- Agent book：41 个。
+- Plugin ctx：111 个。
 - Plugin returned interface：25 个。
 - Capability domains：5 个。
 - Capability contributions：14 个。
@@ -435,7 +435,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 109 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 111 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -444,6 +444,8 @@
 | `get_host_environment` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_workspace` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `navigate_app` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `list_host_commands` | [UI03](#UI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `execute_host_command` | [UI03](#UI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_books` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_book_overview` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_annotations` | [ANN01](#ANN01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -496,6 +498,8 @@
 | `get_host_environment` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_workspace` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `navigate_app` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `list_host_commands` | [UI03](#UI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `execute_host_command` | [UI03](#UI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_book_overview` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_annotations` | [ANN01](#ANN01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_reading_stats` | [STAT01](#STAT01) [STAT02](#STAT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -622,6 +626,8 @@
 | `services.ui.publishView` | [MORE05](#MORE05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.showToast` | [EXT07](#EXT07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.exportFile` | [SYS10](#SYS10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.ui.commands.list` | [UI03](#UI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.ui.commands.execute` | [UI03](#UI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.workspace.snapshot` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.workspace.observe` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.workspace.navigate` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -1158,7 +1164,7 @@
 | `dictionary` | [EXT09](#EXT09) [AI12](#AI12) [READ07](#READ07) [LIB01](#LIB01) | [代码] 源码版本 1.3.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `editorial-themes` | [EXT08](#EXT08) | [代码] 源码版本 1.0.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `jumper` | [TXT02](#TXT02) [TXT07](#TXT07) [READ06](#READ06) [EXT02](#EXT02) | [代码] 源码版本 0.2.0；源码存在不等于打包、安装、启用或模型可调用 |
-| `library-desk` | [LIB01](#LIB01) [LIB05](#LIB05) [UI01](#UI01) [UI02](#UI02) [EXT02](#EXT02) [EXT03](#EXT03) [MORE05](#MORE05) | [代码] 源码版本 0.3.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `library-desk` | [LIB01](#LIB01) [LIB05](#LIB05) [UI01](#UI01) [UI02](#UI02) [EXT02](#EXT02) [EXT03](#EXT03) [MORE05](#MORE05) | [代码] 源码版本 0.4.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `listening-desk` | [READ16](#READ16) [READ18](#READ18) [READ06](#READ06) [EXT02](#EXT02) [MORE03](#MORE03) | [代码] 源码版本 0.9.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `reading-goals` | [AI11](#AI11) [MEM03](#MEM03) [SET23](#SET23) [STAT02](#STAT02) [STAT05](#STAT05) [STAT03](#STAT03) [EXT07](#EXT07) [EXT02](#EXT02) [EXT05](#EXT05) [SYS01](#SYS01) | [代码] 源码版本 0.3.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `rss-reader` | [EXT10](#EXT10) | [代码] 源码版本 0.7.0；源码存在不等于打包、安装、启用或模型可调用 |

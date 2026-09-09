@@ -206,6 +206,11 @@
       <section data-search-section="domains 领域 library reading annotations conversations settings contentTypography typography defaultColor updateChannel textAlign fixedLayoutColor whatsNewDialog durability workspace profiles shelf shortcuts key-chord text desk extraction 正文 抽取 书架 工作区 预设 快捷键 冲突 模式 持久 回执">
         <div class="wrap">
           <h2>Domains</h2>
+          <details class="ep" data-search-section="host commands UI03 partial 宿主 命令 部分 回执"><summary>UI 1.4：两端共享 16 个宿主命令，完整命令能力仍未闭合</summary><div class="ep-body">
+            <p>Agent 和 Library Desk 0.4 可发现并执行导航、书架布局/排序/分组，读取授权范围内的选中状态。书库写权限不替代设置字段或阅读控制权限；不接受任意菜单 ID。</p>
+            <p>设置保存后才导航；保存成功但导航失败返回部分完成，不假称回滚。插件保留错误和刷新入口，只有全部完成才关闭。命令页是快照，执行时重新验证。</p>
+            <p>macOS debug 已验真实 Worker、双 scope、SQL 拒写/恢复、FB2 权限和编译插件搜索执行；原生回调统一、动态命令、导入任务、跨插件调用、完整可用性和打包跨平台仍缺。<a href="./plugin-system.md#host-command-discovery-and-execution">完整契约</a> · <a href="./evidence/host-commands-2026-09-10.json">桌面证据</a></p>
+          </div></details>
           <details class="ep" data-search-section="workspace navigation selection UI01 UI02 工作区 导航 搜索 选择集"><summary>UI 1.3：Agent 和插件共享应用导航与书架选择</summary><div class="ep-body">
             <p>同一服务打开书架、集合、Context、统计、设置和命令搜索，观察实际界面及分页选择集。离开阅读器另需阅读控制权限；不公开 DOM、原子状态、正文或凭据。</p>
             <p>Library Desk 0.3 把跨集合勾选分组，用户选定一组后才在书架显示；搜索表单直接打开原生命令面板。删除仍需独立操作。旧请求、过期状态和失效目标明确失败，导航等目标组件提交才确认，不冒充动画结束或数据持久化。</p>

@@ -1,0 +1,82 @@
+{
+  "date": "2026-09-09",
+  "scope": "commands/headerActions/selectionActions/agentTools 1.1 registration state and compiled Jumper 0.2",
+  "environment": {
+    "platform": "macOS debug Tauri, actual WebKit Workers",
+    "identifier": "com.readaware.app.capability-e2e",
+    "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+    "frontendPort": 5184,
+    "bridgePort": 9223,
+    "pid": 30590,
+    "processGroup": 30436,
+    "formalAppTouched": false
+  },
+  "nativeProbe": {
+    "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-action-state-probe.ts",
+    "worker": "apps/web/src/features/plugins/runtime/fixtures/action-state-probe.ts",
+    "passed": [
+      "six exact registrations across four contribution points accept newer state through the real Worker bridge",
+      "disabled and hidden callbacks reject command, selection, header and cached Agent tool execution",
+      "disabled tool is omitted from Agent discovery; re-enabled cached tool executes",
+      "real shortcut listener rejects disabled and runs enabled command",
+      "already-started Agent tool finishes after state is disabled",
+      "old revision returns stale",
+      "shelf and reader More menus render enabled/disabled/checked and remove hidden entries",
+      "palette skips disabled results; Enter with one disabled result does not execute or dismiss",
+      "open full page keeps its draft and does not reload when its entry is disabled",
+      "actual FB2 selection toolbar renders checked/disabled/hidden states; disabled click does not invoke and re-enabled click does",
+      "Worker shutdown removes all owned contributions"
+    ],
+    "selectionCallsBeforeDisabledClick": 3,
+    "selectionCallsAfterDisabledClick": 3,
+    "selectionCallsAfterEnabledClick": 4,
+    "draftAfterDisable": "Retained draft",
+    "pageSourceLoadsAfterDisable": 1
+  },
+  "jumper": {
+    "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-jumper-state-probe.ts",
+    "entry": "plugins/jumper/dist/main.js",
+    "version": "0.2.0",
+    "actor": "capability-state-jumper",
+    "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+    "book": "pre-existing isolated synthetic Reading Capability Probe FB2, not newly imported or deleted",
+    "closed": { "open": false, "back": false, "forward": false },
+    "opened": { "open": true, "back": false, "forward": false },
+    "navigated": { "open": true, "back": true, "forward": false },
+    "back": { "open": true, "back": false, "forward": true },
+    "forward": { "open": true, "back": true, "forward": false },
+    "afterClose": { "open": false, "back": false, "forward": false },
+    "probeCorrection": "Initial assertions incorrectly assumed history reset on every close and treated loading agreement as ready. Final probe compares host history and exact snapshot revision, explicitly requiring readiness before invoking actions. No reader history behavior was changed to satisfy the probe."
+  },
+  "tests": {
+    "focused": { "passed": 28, "assertions": 183 },
+    "workspaceTestTasks": 22,
+    "webTests": 819,
+    "webAssertions": 9138,
+    "additionalBoundaries": ["malformed snapshots", "same-ID replacement", "owner abort", "old cached Agent tool", "register ACK before/after update", "dispose before/after ACK", "non-mutable handle rejection"]
+  },
+  "visual": {
+    "logicalWindows": [[1200, 800], [800, 650]],
+    "inspectedLocalScreenshots": ["/tmp/readaware-action-state-menu.png", "/tmp/readaware-action-state-palette-disabled.png", "/tmp/readaware-action-state-page-draft.png", "/tmp/readaware-action-state-selection.png"],
+    "pageOverflow": false,
+    "note": "Local screenshots are not durable repository assets. MCP dispatched DOM click/key/selection events; this is not physical input."
+  },
+  "cleanup": {
+    "actionProbeContributions": 0,
+    "jumperProbeContributions": 0,
+    "readingSession": "idle",
+    "newBooks": 0,
+    "windowRestored": [1200, 800],
+    "processExitCode": 143,
+    "portsReleased": [5184, 9223, 9224]
+  },
+  "limitations": [
+    "No autonomous model choice or hot insertion of tools into an already-built turn",
+    "Host built-in Agent tools still lack universal availability modeling",
+    "No packaged, Windows/Linux, marketplace install/upgrade or sustained-load verification",
+    "No complete focus/all-form/all-locale matrix; independently opened dialogs retain their own lifetime",
+    "Existing 37 Rust warnings, bridge version warning and initial WebContent termination followed by successful boot remain",
+    "Vite reloaded on native fixture edits; stale script execution was discarded, final probe reran after fresh activation",
+    "Retiring a Worker during an observer delivery logged plugin runtime stopping; no new callback was granted authority"
+  ]
+}

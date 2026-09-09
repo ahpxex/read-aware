@@ -12,6 +12,7 @@
     "copied": "已复制"
   },
   "errors": {
+    "pluginActionDisabled": "此插件操作当前不可用。",
     "bookTextExtractionFailed": "部分书籍正文未能准备完成。重试可继续处理未完成的章节。",
     "bookTextUnsupported": "此书未提供可用于章节索引的受支持文本分节。",
     "bookTextCancelled": "此正文准备请求已取消。",

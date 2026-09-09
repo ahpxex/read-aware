@@ -19,6 +19,14 @@ const remoteOwners = new WeakMap<object, AbortSignal>();
 /** Internal identity, attached by the bridge rather than supplied by plugin data. */
 export function pluginCallbackOwner(callback: object): AbortSignal | undefined { return remoteOwners.get(callback); }
 
+/** Host guards keep the original activation identity without transferring callback leases. */
+export function guardPluginCallback<T extends (...args: never[]) => unknown>(callback: T, guard: () => void): T {
+  const wrapped = ((...args: never[]) => { guard(); return callback(...args); }) as T;
+  const owner = remoteOwners.get(callback);
+  if (owner) remoteOwners.set(wrapped, owner);
+  return wrapped;
+}
+
 /** Walk containers, preserving cycles, aliases, sparse arrays and inert property names. */
 function mapGraph(value: unknown, replace: (value: unknown) => unknown, copy = true): unknown {
   const seen = new Map<object, unknown>();

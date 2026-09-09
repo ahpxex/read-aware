@@ -123,9 +123,21 @@ const nativeMap = pairs([
 
 function source(path: string) { return ts.createSourceFile(path, readFileSync(path,"utf8"), ts.ScriptTarget.Latest, true, path.endsWith("tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS); }
 function typeMembers(path: string, name: string): string[] {
-  const declaration = source(path).statements.find(s => ts.isTypeAliasDeclaration(s) && s.name.text === name);
-  if (!declaration || !ts.isTypeAliasDeclaration(declaration) || !ts.isTypeLiteralNode(declaration.type)) throw new Error(`Missing type ${name}`);
-  return declaration.type.members.map(m => m.name && (ts.isIdentifier(m.name) || ts.isStringLiteral(m.name)) ? m.name.text : "");
+  const file = source(path);
+  const resolve = (name: string, seen: Set<string>): string[] => {
+    if (seen.has(name)) throw new Error(`Recursive inventory type ${name}`);
+    const declaration = file.statements.find(s => ts.isTypeAliasDeclaration(s) && s.name.text === name);
+    if (!declaration || !ts.isTypeAliasDeclaration(declaration)) throw new Error(`Missing type ${name}`);
+    const active = new Set([...seen, name]);
+    const members = (node: import("../apps/web/node_modules/typescript").TypeNode): string[] => {
+      if (ts.isTypeLiteralNode(node)) return node.members.map(m => m.name && (ts.isIdentifier(m.name) || ts.isStringLiteral(m.name)) ? m.name.text : "");
+      if (ts.isIntersectionTypeNode(node)) return node.types.flatMap(members);
+      if (ts.isTypeReferenceNode(node) && ts.isIdentifier(node.typeName) && !node.typeArguments) return resolve(node.typeName.text, active);
+      throw new Error(`Unsupported inventory type ${name}: ${node.getText()}`);
+    };
+    return [...new Set(members(declaration.type))];
+  };
+  return resolve(name, new Set());
 }
 function namedInitializer(path: string, name: string) {
   for (const statement of source(path).statements) {
@@ -162,6 +174,11 @@ export function collectInventory(): Inventory[] {
   }
   for (const method of typeMembers("packages/plugin-types/src/index.ts", "PluginDocumentCollection")) add("Plugin returned interface", `storage.collection().${method}`, ["SYS02"]);
   for (const method of typeMembers("packages/plugin-types/src/index.ts", "PluginSyncTransportSession")) add("Plugin returned interface", `syncTransport.open().${method}`, ["OPS04"]);
+  for (const point of ["commands", "headerActions", "selectionActions", "agentTools"]) {
+    for (const method of typeMembers("packages/plugin-types/src/index.ts", "PluginActionRegistration")) {
+      add("Plugin returned interface", `contributions.${point}.register().${method}`, ["MORE05"], "[代码] 精确注册句柄；不是按公开 ID 更新其他注册或增加权限");
+    }
+  }
   for (const [family, catalog] of Object.entries(HOST_CAPABILITY_CATALOG)) for (const key of Object.keys(catalog)) add(`Capability ${family}`, key, catalogMap[family]?.[key]);
 
   const snapshot = { general:DEFAULT_GENERAL_SETTINGS, shelf:{layout:"grid",group:"none",sort:"recent"}, appearance:{theme:"system",motion:"system"}, reading:DEFAULT_READER_SETTINGS, readerOverrides:{}, contentTypography:DEFAULT_CONTENT_TYPOGRAPHY, defaultMarkColor:"yellow", updateChannel:"stable", aiPreferences:DEFAULT_AI_PREFERENCES, aiConfig:{provider:"custom",model:"test",fastModel:"fast",apiKey:"stub"}, pluginThemes:[], pluginFonts:[], menus:{config:{},plugins:{}}, pluginSettings:{declared:[],values:{}} };

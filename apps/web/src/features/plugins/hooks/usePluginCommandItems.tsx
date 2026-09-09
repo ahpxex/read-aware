@@ -1,6 +1,6 @@
 /**
- * Plugin contributions as command-palette items — the unconditional fallback
- * entry point for every installed action (docs/plugin-system.md §7): explicit
+ * Plugin contributions as command-palette items, independent of user menu
+ * placement but respecting the current action state: explicit
  * plugin commands plus shelf header actions (pages navigate, popups open in
  * the Dialog host). Reader-surface actions stay out — they need an open book.
  */
@@ -12,6 +12,7 @@ import { renderPluginIcon } from "../lib/plugin-icons";
 import { contributionText } from "../lib/plugin-i18n";
 import { runPluginContribution } from "../lib/run-result";
 import { headerActionsAtom, pluginCommandsAtom } from "../state/plugin-store";
+import { actionEnabled, actionVisible } from "../lib/plugin-action-state";
 
 export function usePluginCommandItems(openPluginPage: (key: string) => void): CommandItem[] {
   const commands = useAtomValue(pluginCommandsAtom);
@@ -20,6 +21,7 @@ export function usePluginCommandItems(openPluginPage: (key: string) => void): Co
   return useMemo(() => {
     const items: CommandItem[] = [];
     for (const command of commands) {
+      if (!actionVisible(command)) continue;
       items.push({
         id: `plugin-command-${command.key}`,
         kind: "action",
@@ -27,6 +29,8 @@ export function usePluginCommandItems(openPluginPage: (key: string) => void): Co
         title: contributionText(command.title),
         subtitle: command.pluginName,
         keywords: command.keywords,
+        disabled: !actionEnabled(command),
+        checked: command.state?.checked,
         icon: renderPluginIcon(command.icon, 16),
         perform: () => {
           void runPluginContribution(command.pluginId, command.pluginName, command.run);
@@ -34,13 +38,15 @@ export function usePluginCommandItems(openPluginPage: (key: string) => void): Co
       });
     }
     for (const action of headerActions) {
-      if (action.surface !== "shelf") continue;
+      if (action.surface !== "shelf" || !actionVisible(action)) continue;
       items.push({
         id: `plugin-action-${action.key}`,
         kind: "action",
         group: "plugins",
         title: contributionText(action.title),
         subtitle: action.pluginName,
+        disabled: !actionEnabled(action),
+        checked: action.state?.checked,
         icon: renderPluginIcon(action.icon, 16),
         perform: () => {
           if (action.presentation === "page") openPluginPage(action.key);

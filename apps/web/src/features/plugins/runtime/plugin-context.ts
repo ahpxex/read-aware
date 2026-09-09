@@ -9,6 +9,7 @@
  * write implies read.
  */
 import { fetch as corsFreeFetch } from "@tauri-apps/plugin-http";
+import type { PluginActionRegistration } from "@read-aware/plugin-types";
 import { readerPanels } from "../../../services/reader-panels";
 import { publishPluginView } from "../lib/plugin-view-channels";
 import {
@@ -190,6 +191,14 @@ export function buildPluginContext(
   const storagePrefix = pluginStoragePrefix(manifest.id);
   const track = (factory: () => PluginDisposable): PluginDisposable =>
     lifecycle.stage(factory);
+  const trackAction = (factory: () => PluginActionRegistration): PluginActionRegistration => {
+    let live: PluginActionRegistration | undefined;
+    const staged = track(() => { live = factory(); return live; });
+    return { dispose: () => staged.dispose(), updateState: async state => {
+      lifecycle.assertActive("contribution.updateState");
+      return live ? live.updateState(state) : { status: "inactive" };
+    } };
+  };
   const brand = { pluginId: manifest.id, pluginName: manifest.name };
 
   /**
@@ -258,7 +267,7 @@ export function buildPluginContext(
     contributions: {
       selectionActions: {
         register: (action) =>
-          track(() =>
+          trackAction(() =>
             registerSelectionActionContribution({
               ...action,
               ...brand,
@@ -268,7 +277,7 @@ export function buildPluginContext(
       },
       headerActions: {
         register: (action) =>
-          track(() =>
+          trackAction(() =>
             registerHeaderActionContribution({
               ...action,
               ...brand,
@@ -280,7 +289,7 @@ export function buildPluginContext(
       },
       commands: {
         register: (command) =>
-          track(() =>
+          trackAction(() =>
             registerCommandContribution({
               ...command,
               defaultShortcut: normalizeDefaultShortcut(command.defaultShortcut),
@@ -377,7 +386,7 @@ export function buildPluginContext(
       agentTools: canUseContribution("agentTools", permissions)
         ? {
             register: (tool) =>
-              track(() =>
+              trackAction(() =>
                 registerToolContribution({
                   ...tool,
                   ...brand,

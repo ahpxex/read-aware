@@ -14,6 +14,7 @@ import { pluginShortcutId } from "../../settings/lib/shortcuts";
 import { appShortcutForEvent } from "../../settings/lib/shortcut-dispatch";
 import { runPluginContribution } from "../lib/run-result";
 import { pluginCommandsAtom } from "../state/plugin-store";
+import { actionEnabled } from "../lib/plugin-action-state";
 
 export function usePluginCommandShortcuts(): void {
   useEffect(() => {
@@ -23,6 +24,7 @@ export function usePluginCommandShortcuts(): void {
       const command = getDefaultStore().get(pluginCommandsAtom).find(command => pluginShortcutId(command.key) === shortcut);
       if (command) {
         event.preventDefault();
+        if (!actionEnabled(command)) return;
         void runPluginContribution(command.pluginId, command.pluginName, command.run);
       }
     }

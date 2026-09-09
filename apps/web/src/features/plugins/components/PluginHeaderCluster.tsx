@@ -28,6 +28,7 @@ import {
 import { PluginViewRenderer } from "./PluginViewRenderer";
 import { contributionText } from "../lib/plugin-i18n";
 import { usePluginViewSource } from "../hooks/usePluginViewSource";
+import { actionEnabled, actionVisible } from "../lib/plugin-action-state";
 
 type PluginHeaderClusterProps = {
   surface: PluginHeaderSurface;
@@ -49,7 +50,7 @@ export function PluginHeaderCluster({
   const allActions = useAtomValue(headerActionsAtom);
   const placement = useAtomValue(pluginPlacementAtom);
 
-  const actions = allActions.filter((action) => action.surface === surface);
+  const actions = allActions.filter((action) => action.surface === surface && actionVisible(action));
   if (actions.length === 0) return null;
 
   const pinnedKeys = (surface === "shelf" ? placement.shelfHeader : placement.readerHeader).slice(
@@ -71,6 +72,8 @@ export function PluginHeaderCluster({
           <Tooltip key={action.key} content={contributionText(action.title)} side="bottom">
             <IconButton
               label={contributionText(action.title)}
+              disabled={!actionEnabled(action)}
+              aria-pressed={action.state?.checked}
               size="sm"
               onClick={() => onOpenPage?.(action.key)}
               className={cn(
@@ -100,6 +103,8 @@ export function PluginHeaderCluster({
             </span>
           }
           items={overflow.map((action) => ({
+            disabled: !actionEnabled(action),
+            checked: action.state?.checked,
             label: contributionText(action.title),
             icon: renderPluginIcon(action.icon, 15),
             onClick: () => {
@@ -129,11 +134,14 @@ export function PluginHeaderItem({
   onOpenPage?: (key: string) => void;
   buttonClassName?: string;
 }) {
+  if (!actionVisible(action)) return null;
   if (action.surface === "shelf" && action.presentation === "page") {
     return (
       <Tooltip content={contributionText(action.title)} side="bottom">
         <IconButton
           label={contributionText(action.title)}
+          disabled={!actionEnabled(action)}
+          aria-pressed={action.state?.checked}
           size="sm"
           onClick={() => onOpenPage?.(action.key)}
           className={cn(
@@ -161,7 +169,7 @@ function PluginHeaderPopupButton({
   buttonClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const { view } = usePluginViewSource(action, open, () => action.view(input),
+  const { view } = usePluginViewSource(action.view, open, () => action.view(input),
     () => { showPluginFailureToast(action.pluginName); setOpen(false); }, input.book?.id);
 
   return (
@@ -170,6 +178,8 @@ function PluginHeaderPopupButton({
       onOpenChange={setOpen}
       align="right"
       triggerLabel={contributionText(action.title)}
+      triggerDisabled={!actionEnabled(action)}
+      triggerPressed={action.state?.checked}
       triggerTooltip={contributionText(action.title)}
       className={buttonClassName}
       trigger={

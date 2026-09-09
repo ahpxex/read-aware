@@ -834,12 +834,22 @@ export type SelectionActionInput = {
   source: SelectionActionSource;
 };
 
-/**
- * An entry in the reader's selection/annotation action menus. Runs silently
- * (`toast` feedback) or opens a Dialog (`view` result) — the only two outcomes
- * allowed inside the reader.
- */
+/** Full presentation snapshot. Hidden or disabled actions reject new execution.
+ * revision is a non-negative safe integer; initial omission defaults to 0/true/true.
+ * checked is presentation only and does not toggle itself or grant authority. */
+export type PluginActionState = { revision: number; visible: boolean; enabled: boolean; checked?: boolean };
+/** applied acknowledges host state, not DOM paint or durable business completion. */
+export type PluginActionStateReceipt = { status: "applied" | "stale" | "inactive" };
+/** Since the four interactive contribution points v1.1. State belongs to this
+ * exact registration. Replaced/disposed handles are inactive; old revisions stale.
+ * Updates require an active plugin and do not cancel already-started operations. */
+export type PluginActionRegistration = PluginDisposable & {
+  updateState(state: PluginActionState): Promise<PluginActionStateReceipt>;
+};
+
+/** Selection/annotation menu entry. May run silently, report a toast or open a view. */
 export type PluginSelectionAction = {
+  state?: PluginActionState;
   id: string;
   title: PluginText;
   icon?: string;
@@ -863,6 +873,7 @@ export type HeaderActionInput = {
  * per `presentation`.
  */
 export type PluginHeaderAction = {
+  state?: PluginActionState;
   id: string;
   title: PluginText;
   icon?: string;
@@ -986,6 +997,7 @@ export type PluginShortcut = {
 
 /** A command-palette entry. */
 export type PluginCommand = {
+  state?: PluginActionState;
   id: string;
   title: PluginText;
   icon?: string;
@@ -1006,6 +1018,7 @@ export type PluginCommand = {
  * namespaced `plugin_<pluginId>_<name>` before it reaches the model.
  */
 export type PluginToolDefinition = {
+  state?: PluginActionState;
   /** snake_case identifier, unique within the plugin. */
   name: string;
   /** Short human label shown in the chat's tool activity row. */
@@ -1554,13 +1567,13 @@ export type PluginSyncTransport = {
 
 export type PluginContributions = {
   selectionActions: {
-    register(action: PluginSelectionAction): PluginDisposable;
+    register(action: PluginSelectionAction): PluginActionRegistration;
   };
   headerActions: {
-    register(action: PluginHeaderAction): PluginDisposable;
+    register(action: PluginHeaderAction): PluginActionRegistration;
   };
   commands: {
-    register(command: PluginCommand): PluginDisposable;
+    register(command: PluginCommand): PluginActionRegistration;
   };
   settingsOptions: {
     register(
@@ -1583,7 +1596,7 @@ export type PluginContributions = {
     register(mode: PluginReaderMode): PluginDisposable;
   };
   agentTools?: {
-    register(tool: PluginToolDefinition): PluginDisposable;
+    register(tool: PluginToolDefinition): PluginActionRegistration;
   };
   agentContextProviders?: {
     register(provider: PluginAgentContextProvider): PluginDisposable;

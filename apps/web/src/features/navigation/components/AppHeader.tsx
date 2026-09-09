@@ -103,7 +103,7 @@ export function AppHeader({
   // Plugin buttons live on the shelf header only (docs/plugin-system.md §5).
   const onShelf = activeTopNav === "shelf";
   const shelfPluginActions = useAtomValue(headerActionsAtom).filter(
-    (action) => action.surface === "shelf",
+    (action) => action.surface === "shelf" && action.state?.visible !== false,
   );
 
   // User-arranged layout: visible items inline (core + plugin interleaved in
@@ -228,6 +228,8 @@ export function AppHeader({
       return {
         id,
         label: contributionText(action.title),
+        disabled: action.state?.enabled === false,
+        checked: action.state?.checked,
         icon: renderPluginIcon(action.icon, 16),
         run: () => {
           if (action.presentation === "page")
@@ -403,6 +405,8 @@ export function AppHeader({
                   ? shelfPluginActions.map((action) => ({
                       id: pluginMenuId(action.key),
                       label: contributionText(action.title),
+                      disabled: action.state?.enabled === false,
+                      checked: action.state?.checked,
                       icon: renderPluginIcon(action.icon, 16),
                       run: () => {
                         if (action.presentation === "page") {

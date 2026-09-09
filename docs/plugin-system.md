@@ -379,10 +379,64 @@ the cancel action disappeared. Only a registered section getter was held; native
 book source, task repository, SQLite/blob persistence and RPC remained real.
 1200x800 and 800x650 screenshots were inspected. Unit tests additionally bound
 100 successive update callback graphs and cover invalid disposers and subscription
-failures. Contribution visible/enabled/checked, general Agent enablement, all form
+failures. Interactive contribution state is implemented below; general host Agent enablement, all form
 schema/focus/locale interactions, large payloads, physical input, marketplace
 install/upgrade, packaged and Windows/Linux remain unverified or unimplemented;
 MORE05 remains partial, not closed by live views alone.
+
+### <a id="interactive-contribution-state"></a>Interactive Contribution State
+
+[代码] `commands`, `headerActions`, `selectionActions` and `agentTools` are at
+contribution version 1.1. Their optional initial `state` and returned
+`PluginActionRegistration.updateState(state)` share a full snapshot:
+`{ revision, visible, enabled, checked? }`. Omission at registration means
+revision 0, visible/enabled true and no checked value. Revisions must be
+non-negative safe integers; booleans are validated. Omitting checked in a later
+snapshot removes checkable presentation. There is no partial merge or automatic
+toggle. Missing/malformed update payloads fail with `plugin/invalid-input`.
+
+[代码] State is owned by the exact registration, not its public ID. A valid newer
+snapshot returns `applied`; equal/older revisions return `stale`; replaced,
+disposed and unknown handles return `inactive` without revealing another owner.
+Worker handles wait for the registration ACK and remain usable after `await`;
+dispose-before-ACK prevents subsequent updates. The host only accepts the four
+mutable contribution handle types from that Worker's held registrations. Updates
+require active lifecycle phase and use existing RPC limits/deadlines. No grant,
+business state, persistence or render-completion guarantee is added.
+
+[代码] Hidden entries are removed from runtime menus and the command palette;
+disabled entries remain visible but inert. Checked presentation uses accessible
+pressed/checked semantics. Keyboard palette navigation skips disabled results,
+including the all-disabled case. User menu placement and shortcut customization
+continue listing registrations: hiding a menu placement is not revoking a command.
+Every invocation of a registered callback rechecks registration ownership and
+current visible/enabled state, including old UI closures and cached Agent tools.
+Unavailable actions reject with `plugin/action-disabled` (eight localized copies);
+retired registrations reject with `plugin/unavailable`. Tool discovery filters both
+book/global scopes; this does not hot-add tools to an already-built model turn.
+
+[代码] State changes do not cancel operations that already started or revoke
+callbacks in a view already opened by an action. Disabling an open page/popup does
+not reload its source or reset drafts. Hiding removes mounted header entries and
+exits a hidden full page; an independently opened dialog is not that entry and
+remains under its own view/activation lifetime. Domain grants still apply to its
+actions. A callback's private activation identity survives host execution guards.
+
+[代码] Jumper 0.2 composes `reading.events.observeSession` with these handles:
+open/header require a ready session; back/forward additionally require the host
+history flag. Initial entries are disabled until the first observed snapshot.
+Jumper never owns a second history or infers readiness from menu visibility.
+
+[环境] [Action-state evidence](./evidence/plugin-action-state-2026-09-09.json)
+records actual isolated macOS WebKit Workers, shelf/reader menus, command palette,
+selection toolbar, keyboard listener, retained page draft, cached Agent tool and
+an in-flight tool surviving disable. Compiled Jumper followed real FB2 navigation,
+back/forward and close/reopen state. Screenshots at 1200x800 and 800x650 were
+inspected. Tests cover replacement, malformed/stale updates, owner abort and
+dispose-before/after ACK. Native inputs were MCP-dispatched DOM events, not
+physical keyboard/mouse. Host built-in Agent availability, continuous load,
+marketplace install/upgrade, packaged and Windows/Linux remain outstanding;
+MORE05 is still partial.
 
 ### Reader Controls Visibility
 

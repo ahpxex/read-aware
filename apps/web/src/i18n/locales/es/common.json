@@ -12,6 +12,7 @@
     "copied": "Copiado"
   },
   "errors": {
+    "pluginActionDisabled": "Esta acción del plugin no está disponible actualmente.",
     "bookTextExtractionFailed": "No se pudo preparar parte del texto del libro. Reintenta para continuar las secciones pendientes.",
     "bookTextUnsupported": "Este libro no ofrece secciones de texto compatibles con el índice de capítulos.",
     "bookTextCancelled": "Se canceló esta solicitud de preparación del texto.",

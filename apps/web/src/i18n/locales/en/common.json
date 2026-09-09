@@ -12,6 +12,7 @@
     "copied": "Copied"
   },
   "errors": {
+    "pluginActionDisabled": "This plugin action is not currently available.",
     "bookTextExtractionFailed": "Some book text could not be prepared. Try again to resume unfinished sections.",
     "bookTextUnsupported": "This book does not provide supported text sections for chapter indexing.",
     "bookTextCancelled": "This text preparation request was cancelled.",

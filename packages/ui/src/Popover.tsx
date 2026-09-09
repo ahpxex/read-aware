@@ -8,6 +8,8 @@ type PopoverProps = {
   trigger: ReactNode;
   /** Accessible name for the (otherwise unlabeled) trigger button. */
   triggerLabel?: string;
+  triggerDisabled?: boolean;
+  triggerPressed?: boolean;
   /** Visible hover/focus tooltip for the trigger, matching the icon buttons in
    *  the same cluster. Wraps only the button, so the open panel doesn't trip it. */
   triggerTooltip?: string;
@@ -35,6 +37,8 @@ type PopoverProps = {
 export function Popover({
   trigger,
   triggerLabel,
+  triggerDisabled,
+  triggerPressed,
   triggerTooltip,
   triggerTooltipSide = "bottom",
   triggerTooltipAlign = "center",
@@ -94,10 +98,12 @@ export function Popover({
       ref={triggerRef}
       type="button"
       aria-label={triggerLabel}
+      disabled={triggerDisabled}
+      aria-pressed={triggerPressed}
       aria-expanded={open}
       aria-controls={open ? panelId : undefined}
       onClick={() => setOpen((o) => !o)}
-      className={cn("inline-flex", triggerClassName)}
+      className={cn("inline-flex disabled:cursor-default disabled:opacity-50", triggerClassName)}
     >
       {trigger}
     </button>

@@ -77,7 +77,7 @@ export function ReaderSelectionMenu({
   const [copied, setCopied] = useState(false);
   const askEnabled = useAskAiEnabled();
   const menuConfig = useAtomValue(menuConfigAtom);
-  const pluginActions = useAtomValue(selectionActionsAtom);
+  const pluginActions = useAtomValue(selectionActionsAtom).filter(action => action.state?.visible !== false);
 
   useEffect(() => {
     return () => {
@@ -215,6 +215,8 @@ export function ReaderSelectionMenu({
         return {
           id,
           label: contributionText(action.title),
+          disabled: action.state?.enabled === false,
+          checked: action.state?.checked,
           icon: renderPluginIcon(action.icon, 15),
           run: () =>
             void runPluginContribution(
@@ -262,6 +264,8 @@ export function ReaderSelectionMenu({
                 <Tooltip content={contributionText(action.title)} side="top">
                   <IconButton
                     label={contributionText(action.title)}
+                    disabled={action.state?.enabled === false}
+                    aria-pressed={action.state?.checked}
                     size="sm"
                     onClick={() =>
                       void runPluginContribution(

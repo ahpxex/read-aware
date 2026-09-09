@@ -18,6 +18,7 @@ import { runPluginContribution } from "../lib/run-result";
 import type { RegisteredSelectionAction, SelectionActionInput } from "../lib/plugin-types";
 import { selectionActionsAtom } from "../state/plugin-store";
 import { contributionText } from "../lib/plugin-i18n";
+import { actionEnabled, actionVisible } from "../lib/plugin-action-state";
 
 /** Matches the quiet ghost-button styling of the hosting menus. */
 const actionButtonClass =
@@ -38,7 +39,7 @@ export function PluginSelectionCluster({
   overflowSide = "bottom",
 }: PluginSelectionClusterProps) {
   const { t } = useTranslation("plugins");
-  const actions = useAtomValue(selectionActionsAtom);
+  const actions = useAtomValue(selectionActionsAtom).filter(actionVisible);
   const menuConfig = useAtomValue(menuConfigAtom);
 
   if (actions.length === 0 || !input) return null;
@@ -76,6 +77,8 @@ export function PluginSelectionCluster({
         <Tooltip key={action.key} content={contributionText(action.title)} side="top">
           <IconButton
             label={contributionText(action.title)}
+            disabled={!actionEnabled(action)}
+            aria-pressed={action.state?.checked}
             size="sm"
             onClick={() => run(action)}
             className={actionButtonClass}
@@ -96,6 +99,8 @@ export function PluginSelectionCluster({
             </span>
           }
           items={overflow.map((action) => ({
+            disabled: !actionEnabled(action),
+            checked: action.state?.checked,
             label: contributionText(action.title),
             icon: renderPluginIcon(action.icon, 15),
             onClick: () => run(action),

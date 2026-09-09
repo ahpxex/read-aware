@@ -12,6 +12,7 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "pluginActionDisabled": "Diese Plugin-Aktion ist derzeit nicht verfügbar.",
     "bookTextExtractionFailed": "Ein Teil des Buchtexts konnte nicht vorbereitet werden. Versuche es erneut, um unvollständige Abschnitte fortzusetzen.",
     "bookTextUnsupported": "Dieses Buch enthält keine unterstützten Textabschnitte für den Kapitelindex.",
     "bookTextCancelled": "Diese Textaufbereitungsanfrage wurde abgebrochen.",

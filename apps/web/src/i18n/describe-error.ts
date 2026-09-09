@@ -78,6 +78,7 @@ type CopyEntry = {
 const AI_SETTINGS: ErrorAction = "open-ai-settings";
 
 const CODE_COPY: Record<string, CopyEntry> = {
+  "plugin/action-disabled": { key: "pluginActionDisabled", retryable: false },
   "library/text-extraction-failed": { key: "bookTextExtractionFailed", retryable: true },
   "library/text-unsupported": { key: "bookTextUnsupported", retryable: false },
   "library/text-cancelled": { key: "bookTextCancelled", retryable: false },

@@ -42,6 +42,8 @@ export type CommandItem = {
   /** Cover for book items; the icon is used as a fallback. */
   coverUrl?: string | null;
   perform: () => void;
+  disabled?: boolean;
+  checked?: boolean;
 };
 
 /** Fixed section order in the palette. */

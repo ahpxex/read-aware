@@ -32,6 +32,10 @@ import { updateInstalledPlugin } from "../state/plugin-store";
 import { flattenPluginRequest, flattenPluginResponse } from "./plugin-network-wire";
 import { PluginRpcPending } from "./plugin-rpc-pending";
 import { decodePluginCallbacks, retainPluginCallbacks, type PluginCallbackWire } from "./plugin-callback-wire";
+import type { PluginActionRegistration } from "../lib/plugin-types";
+
+type HeldRegistration = PluginDisposable & Partial<Pick<PluginActionRegistration, "updateState">>;
+const actionRegistrations = new Set(["selectionActions", "headerActions", "commands", "agentTools"].map(point => `contributions.${point}.register`));
 
 const log = createLogger("plugins");
 
@@ -265,7 +269,7 @@ export function startPluginWorker(
    * Disposables the plugin is holding. A `PluginDisposable` cannot be cloned, so
    * the Worker gets a handle and releases it by sending that back.
    */
-  const heldDisposables = new Map<string, PluginDisposable>();
+  const heldDisposables = new Map<string, HeldRegistration>();
   let nextDisposableId = 1;
 
   return new Promise<SandboxedPlugin>((resolve, reject) => {
@@ -439,7 +443,7 @@ export function startPluginWorker(
             return;
           }
           const controller = new AbortController();
-          let argumentOwner: PluginDisposable | undefined;
+          let argumentOwner: HeldRegistration | undefined;
           let releaseArguments = () => releaseCallbacks(message.args);
           incomingCalls.set(message.id, controller);
           const timeout = setTimeout(() => controller.abort(new AppError("plugin/timeout", "Plugin call timed out")), 120_000);
@@ -448,7 +452,17 @@ export function startPluginWorker(
             if (quiescing && !message.method.startsWith("services.storage.")) {
               throw new AppError("plugin/cancelled", "Plugin runtime is stopping");
             }
-            const method = resolveMethod(ctx, message.method);
+            const method = message.method === "$registration.updateState"
+              ? (...params: unknown[]) => {
+                runtime.lifecycle.assertActive("contribution.updateState");
+                const [handle, state] = params;
+                if (typeof handle !== "string") throw new AppError("plugin/invalid-input", "Registration handle must be a string");
+                const registration = heldDisposables.get(handle);
+                if (!registration) return { status: "inactive" };
+                if (!registration.updateState) throw new AppError("plugin/unavailable", "Registration has no action state");
+                return registration.updateState(state as Parameters<PluginActionRegistration["updateState"]>[0]);
+              }
+              : resolveMethod(ctx, message.method);
             if (!method) throw new AppError("plugin/unavailable", `"${message.method}" is not granted to plugin "${manifest.id}"`);
             const args = decodePluginCallbacks(message.args, invokeHandle, handles => {
               if (!terminated) worker.postMessage({ t: "release", handles });
@@ -488,6 +502,10 @@ export function startPluginWorker(
                   finally { releaseArguments(); }
                 },
               };
+              if (actionRegistrations.has(message.method) && typeof (registration as HeldRegistration).updateState === "function") {
+                argumentOwner.updateState = state => disposed ? Promise.resolve({ status: "inactive" })
+                  : (registration as PluginActionRegistration).updateState(state);
+              }
               heldDisposables.set(handle, argumentOwner);
               try {
                 worker.postMessage({ t: "result", id: message.id, ok: true, value: null, disposable: handle });

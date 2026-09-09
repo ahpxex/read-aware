@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MagnifyingGlass } from "@phosphor-icons/react";
+import { Check, MagnifyingGlass } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { buildCommands, type CommandContext, type CommandItem } from "../lib/build-commands";
 import { filterCommands } from "../lib/filter-commands";
+import { availableCommandIndex, nextCommandIndex } from "../lib/command-selection";
 
 type CommandPaletteProps = {
   isOpen: boolean;
@@ -53,11 +54,12 @@ export function CommandPalette({ isOpen, onClose, ctx, extraItems }: CommandPale
   }, [isOpen]);
 
   useEffect(() => {
-    setSelectedIndex((index) => (flat.length === 0 ? 0 : Math.min(index, flat.length - 1)));
-  }, [flat.length]);
+    setSelectedIndex((index) => availableCommandIndex(flat, index));
+  }, [flat]);
 
   const run = useCallback(
     (item: CommandItem) => {
+      if (item.disabled) return;
       item.perform();
       onClose();
     },
@@ -72,10 +74,10 @@ export function CommandPalette({ isOpen, onClose, ctx, extraItems }: CommandPale
         onClose();
       } else if (event.key === "ArrowDown") {
         event.preventDefault();
-        setSelectedIndex((index) => (flat.length ? (index + 1) % flat.length : 0));
+        setSelectedIndex((index) => nextCommandIndex(flat, index, 1));
       } else if (event.key === "ArrowUp") {
         event.preventDefault();
-        setSelectedIndex((index) => (flat.length ? (index - 1 + flat.length) % flat.length : 0));
+        setSelectedIndex((index) => nextCommandIndex(flat, index, -1));
       } else if (event.key === "Enter") {
         event.preventDefault();
         const item = flat[selectedIndex];
@@ -144,11 +146,14 @@ export function CommandPalette({ isOpen, onClose, ctx, extraItems }: CommandPale
                       type="button"
                       data-index={index}
                       aria-selected={selected}
-                      onMouseMove={() => setSelectedIndex(index)}
+                      disabled={item.disabled}
+                      aria-pressed={item.checked}
+                      onMouseMove={() => { if (!item.disabled) setSelectedIndex(index); }}
                       onClick={() => run(item)}
                       className={cn(
                         "relative flex w-full items-center gap-3 px-4 py-2 text-left transition-colors",
                         selected ? "bg-fg/[0.07]" : "hover:bg-fg/[0.04]",
+                        item.disabled && "cursor-default opacity-50",
                       )}
                     >
                       {selected && (
@@ -176,7 +181,8 @@ export function CommandPalette({ isOpen, onClose, ctx, extraItems }: CommandPale
                           </span>
                         )}
                       </span>
-                      {selected && (
+                      {item.checked && <Check size={16} aria-hidden="true" className="shrink-0" />}
+                      {selected && !item.disabled && (
                         <span className="shrink-0 text-xs text-fg-subtle" aria-hidden="true">
                           ↵
                         </span>

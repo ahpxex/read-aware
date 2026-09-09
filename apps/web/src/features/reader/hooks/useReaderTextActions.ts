@@ -119,7 +119,7 @@ export function useReaderTextActions({
   const dispatchAskAi = useSetAtom(askAiRequestAtom);
   const pluginSelectionActions = useAtomValue(selectionActionsAtom);
   const lookupAction =
-    pluginSelectionActions.find((action) => action.role === "lookup") ?? null;
+    pluginSelectionActions.find((action) => action.role === "lookup" && action.state?.visible !== false && action.state?.enabled !== false) ?? null;
 
   const [noteTarget, setNoteTarget] = useState<ActionTarget | null>(null);
   const [noteEditorOpen, setNoteEditorOpen] = useState(false);

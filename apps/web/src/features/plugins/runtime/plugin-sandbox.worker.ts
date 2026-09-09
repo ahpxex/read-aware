@@ -25,6 +25,8 @@
  *     description plus a handle and calls back through `invoke`.
  */
 import type {
+  PluginActionRegistration,
+  PluginActionStateReceipt,
   PluginContext,
   PluginManifest,
   PluginMigration,
@@ -147,7 +149,7 @@ const callbacks = new PluginCallbackRegistry();
  * `ctx.contributions.commands.register(...).dispose()` works on the object it got back, with
  * the release travelling once the host answers.
  */
-type CallResult = Promise<unknown> & { dispose: () => void };
+type CallResult = Promise<unknown> & PluginActionRegistration;
 
 function callHost(method: string, args: unknown[], signal?: AbortSignal): CallResult {
   const receipt = pendingCalls.call(id => {
@@ -164,9 +166,16 @@ function callHost(method: string, args: unknown[], signal?: AbortSignal): CallRe
       // Failed calls have no registration to dispose; the host releases arguments.
     });
   };
+  const updateState: PluginActionRegistration["updateState"] = async state => {
+    if (disposed) return { status: "inactive" };
+    const response = await receipt as { disposable?: string };
+    if (disposed) return { status: "inactive" };
+    if (!response.disposable) throw codedError("Call did not create a registration", "plugin/unavailable");
+    return await callHost("$registration.updateState", [response.disposable, state]) as PluginActionStateReceipt;
+  };
   const promise = receipt.then(value => {
     const response = value as { value: unknown; disposable?: string };
-    return response.disposable ? { dispose } : response.value;
+    return response.disposable ? { dispose, updateState } : response.value;
   });
   inFlightHostCalls.add(promise);
   void promise.then(
@@ -178,6 +187,7 @@ function callHost(method: string, args: unknown[], signal?: AbortSignal): CallRe
   );
   const result = promise as CallResult;
   result.dispose = dispose;
+  result.updateState = updateState;
   return result;
 }
 

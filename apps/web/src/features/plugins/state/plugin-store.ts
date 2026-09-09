@@ -31,21 +31,22 @@ import type {
   RegisteredMemoryCandidateProvider,
 } from "../lib/plugin-types";
 import { createContributionRegistry } from "./contribution-registry";
+import { createInteractiveContributionRegistry } from "./interactive-contribution-registry";
 
 const store = getDefaultStore();
 
 // ─── Contribution registries ─────────────────────────────────────────────────
 
 const selectionActionsRegistry =
-  createContributionRegistry<RegisteredSelectionAction>("selectionActions");
+  createInteractiveContributionRegistry<RegisteredSelectionAction>("selectionActions", "run");
 const headerActionsRegistry =
-  createContributionRegistry<RegisteredHeaderAction>("headerActions");
+  createInteractiveContributionRegistry<RegisteredHeaderAction>("headerActions", "view");
 const readerModesRegistry =
   createContributionRegistry<RegisteredReaderMode>("readerModes");
 const commandsRegistry =
-  createContributionRegistry<RegisteredCommand>("commands");
+  createInteractiveContributionRegistry<RegisteredCommand>("commands", "run");
 const toolsRegistry =
-  createContributionRegistry<RegisteredTool>("agentTools");
+  createInteractiveContributionRegistry<RegisteredTool>("agentTools", "execute");
 const agentContextProvidersRegistry =
   createContributionRegistry<RegisteredAgentContextProvider>("agentContextProviders");
 const agentRetrievalProvidersRegistry =
@@ -88,13 +89,13 @@ export function markPluginsReady(): void {
 
 export function registerSelectionActionContribution(
   item: RegisteredSelectionAction,
-): PluginDisposable {
+) {
   return selectionActionsRegistry.register(item);
 }
 
 export function registerHeaderActionContribution(
   item: RegisteredHeaderAction,
-): PluginDisposable {
+) {
   return headerActionsRegistry.register(item);
 }
 
@@ -104,11 +105,11 @@ export function registerReaderModeContribution(
   return readerModesRegistry.register(item);
 }
 
-export function registerCommandContribution(item: RegisteredCommand): PluginDisposable {
+export function registerCommandContribution(item: RegisteredCommand) {
   return commandsRegistry.register(item);
 }
 
-export function registerToolContribution(item: RegisteredTool): PluginDisposable {
+export function registerToolContribution(item: RegisteredTool) {
   return toolsRegistry.register(item);
 }
 

@@ -1,4 +1,5 @@
 import { useRef, useEffect, useId, useCallback, type ReactNode } from "react";
+import { Check } from "@phosphor-icons/react";
 import { useLocalAtom } from "./lib/useLocalAtom";
 import { cn } from "./lib/cn";
 import { useHorizontalViewportCollision } from "./lib/useHorizontalViewportCollision";
@@ -9,6 +10,7 @@ type DropdownItem = {
   icon?: ReactNode;
   destructive?: boolean;
   disabled?: boolean;
+  checked?: boolean;
 };
 
 type DropdownMenuProps = {
@@ -183,7 +185,8 @@ export function DropdownMenu({
             <button
               key={item.label}
               ref={(el) => { itemRefs.current[i] = el; }}
-              role="menuitem"
+              role={item.checked === undefined ? "menuitem" : "menuitemcheckbox"}
+              aria-checked={item.checked}
               tabIndex={i === activeIndex ? 0 : -1}
               disabled={item.disabled}
               onClick={() => {
@@ -210,6 +213,7 @@ export function DropdownMenu({
                 </span>
               )}
               <span className="min-w-0 flex-1 truncate">{item.label}</span>
+              {item.checked && <Check size={16} aria-hidden="true" className="shrink-0" />}
             </button>
           ))}
         </div>

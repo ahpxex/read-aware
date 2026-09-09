@@ -12,6 +12,7 @@
     "copied": "コピーしました"
   },
   "errors": {
+    "pluginActionDisabled": "このプラグインの操作は現在利用できません。",
     "bookTextExtractionFailed": "書籍の本文の一部を準備できませんでした。再試行すると未完了のセクションを処理します。",
     "bookTextUnsupported": "この書籍には章の索引に対応したテキストセクションがありません。",
     "bookTextCancelled": "この本文準備リクエストはキャンセルされました。",

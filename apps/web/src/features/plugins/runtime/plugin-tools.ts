@@ -26,6 +26,7 @@ import {
   getRegisteredPluginTools,
 } from "../state/plugin-store";
 import { contributionText } from "../lib/plugin-i18n";
+import { actionEnabled } from "../lib/plugin-action-state";
 
 /**
  * A card-carrying tool result (PluginToolWordCards in the contract): the
@@ -134,6 +135,7 @@ function retrievalTool(provider: RegisteredAgentRetrievalProvider, scope: Thread
 
 export function getPluginAgentTools(scope: ThreadScope): AgentTool[] {
   const tools = getRegisteredPluginTools()
+    .filter(actionEnabled)
     .filter((tool) => !tool.contexts || tool.contexts.includes(scope.kind))
     .map((tool): AgentTool => ({
     name: pluginToolName(tool),

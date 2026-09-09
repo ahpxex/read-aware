@@ -132,3 +132,32 @@ test("real Worker migration drains unawaited storage calls before returning migr
   s.worker.postMessage({ t: "result", id: write.id, ok: false, code: "db/locked", error: "write failed" });
   expect(await s.next(message => message.t === "migrated")).toMatchObject({ id: 903, ok: false, error: "write failed" });
 });
+
+test("real Worker action handles update before and after acknowledgement and retire across disposal races", async () => {
+  const s = sandbox("action-state", "action-state-wire-probe.ts");
+  const main = await s.next(message => message.method === "contributions.commands.register");
+  const handle = (data(main.args!) as { run: () => string }[])[0].run();
+  s.worker.postMessage({ t: "result", id: main.id, ok: true, value: null, disposable: "main" });
+  await s.next(message => message.t === "ready");
+  s.worker.postMessage({ t: "sync", patch: { phase: "active" } });
+  s.worker.postMessage({ t: "invoke", id: 920, handle, args: [] });
+  const child = await s.next(message => message.method === "contributions.commands.register");
+  s.worker.postMessage({ t: "health", id: 921 });
+  await s.next(message => message.t === "healthy" && message.id === 921);
+  expect(s.messages.some(message => message.method === "$registration.updateState")).toBe(false);
+  s.worker.postMessage({ t: "result", id: child.id, ok: true, value: null, disposable: "child" });
+  const first = await s.next(message => message.method === "$registration.updateState");
+  expect(data(first.args!)).toEqual(["child", { revision: 1, enabled: false, visible: true, checked: true }]);
+  s.worker.postMessage({ t: "result", id: first.id, ok: true, value: { status: "applied" } });
+  const second = await s.next(message => message.method === "$registration.updateState");
+  expect(data(second.args!)).toEqual(["child", { revision: 2, enabled: true, visible: false }]);
+  s.worker.postMessage({ t: "result", id: second.id, ok: true, value: { status: "applied" } });
+  expect(await s.next(message => message.t === "dispose")).toMatchObject({ handle: "child" });
+  const temporary = await s.next(message => message.method === "contributions.commands.register");
+  s.worker.postMessage({ t: "result", id: temporary.id, ok: true, value: null, disposable: "temporary" });
+  expect(await s.next(message => message.t === "dispose")).toMatchObject({ handle: "temporary" });
+  const result = resultData(await s.next(message => message.t === "result" && message.id === 920));
+  expect(result).toMatchObject({ ok: true, value: { toast: JSON.stringify({ first: { status: "applied" },
+    second: { status: "applied" }, retired: { status: "inactive" }, disposedBeforeAck: { status: "inactive" } }) } });
+  expect(s.messages.some(message => message.method === "$registration.updateState")).toBe(false);
+});

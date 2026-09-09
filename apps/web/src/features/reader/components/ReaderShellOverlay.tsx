@@ -159,7 +159,7 @@ export function ReaderShellOverlay({
   const { t: tMenus } = useTranslation("settings");
   const menuConfig = useAtomValue(menuConfigAtom);
   const readerPluginActions = useAtomValue(headerActionsAtom).filter(
-    (action) => action.surface === "reader",
+    (action) => action.surface === "reader" && action.state?.visible !== false,
   );
   const readerCoreItems = CORE_MENU_DEFAULTS.readerHeader.filter(
     (id) => id !== "core:navigator" || textUnitMode !== null || canSelectMode,
@@ -235,6 +235,8 @@ export function ReaderShellOverlay({
         return {
           id,
           label: contributionText(action.title),
+          disabled: action.state?.enabled === false,
+          checked: action.state?.checked,
           icon: renderPluginIcon(action.icon, 16),
           run: () =>
             void openHeaderActionDialog(action, {

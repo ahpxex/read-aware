@@ -7,7 +7,7 @@ import { PluginCallbackRegistry, pluginCallbackOwner, retainPluginCallbacks } fr
 import { openPluginViewChannel } from "../lib/plugin-view-channels";
 import { PluginLifecycleController } from "./plugin-lifecycle";
 
-type WireMessage = { t: string; id?: number; handle?: string; handles?: string[]; [key: string]: unknown };
+type WireMessage = { t: string; id?: number; handle?: string; handles?: string[]; disposable?: string; [key: string]: unknown };
 
 /** Deterministic transport faults, with the real host context and registration path. */
 class FaultWorker {
@@ -103,6 +103,43 @@ test("host releases denied and invalid call arguments without granting authority
     await worker.deliver({ t: "call", id: 2, method: "contributions.commands.register", args: worker.callbacks.encode({ run: () => null }) });
     expect(worker.sent.find(message => message.t === "result" && message.id === 2)).toMatchObject({ ok: false, code: "plugin/invalid-input" });
     expect(worker.callbacks.size).toBe(0);
+  } finally { await close(); }
+});
+
+test("action state RPC owns exact live registrations and rejects unsupported or invalid updates", async () => {
+  const { worker, close } = await hostFixture();
+  let id = 100;
+  const call = async (method: string, args: unknown[]) => {
+    const request = id++;
+    await worker.deliver({ t: "call", id: request, method, args: worker.callbacks.encode(args) });
+    return worker.sent.find(message => message.t === "result" && message.id === request)!;
+  };
+  try {
+    const first = await call("contributions.commands.register", [{ id: "mutable", title: "Mutable", run() {} }]);
+    const command = getDefaultStore().get(pluginCommandsAtom).find(item => item.key === "callback-host-test:mutable")!;
+    expect(pluginCallbackOwner(command.run)).toBeDefined();
+    expect(await call("$registration.updateState", [first.disposable, { revision: 1, enabled: false, visible: true, checked: true }]))
+      .toMatchObject({ ok: true, value: { status: "applied" } });
+    expect(command.run).toThrow(expect.objectContaining({ code: "plugin/action-disabled" }));
+    expect(worker.sent.some(message => message.t === "invoke")).toBe(false);
+    expect(await call("$registration.updateState", [first.disposable, { revision: 1, enabled: true, visible: true }]))
+      .toMatchObject({ ok: true, value: { status: "stale" } });
+    expect(await call("$registration.updateState", [first.disposable, undefined]))
+      .toMatchObject({ ok: false, code: "plugin/invalid-input" });
+    await call("contributions.commands.register", [{ id: "mutable", title: "Replacement", run() {} }]);
+    expect(await call("$registration.updateState", [first.disposable, { revision: 100, enabled: false, visible: false }]))
+      .toMatchObject({ ok: true, value: { status: "inactive" } });
+    await worker.deliver({ t: "dispose", handle: first.disposable });
+    expect(await call("$registration.updateState", [first.disposable, {}])).toMatchObject({ ok: true, value: { status: "inactive" } });
+    expect(await call("$registration.updateState", ["unknown-or-foreign", {}])).toMatchObject({ ok: true, value: { status: "inactive" } });
+    expect(await call("$registration.updateState", [null, {}])).toMatchObject({ ok: false, code: "plugin/invalid-input" });
+    const subscription = await call("services.session.observeEnvironment", [() => {}]);
+    expect(subscription.ok).toBe(true);
+    const notification = worker.sent.findLast(message => message.t === "invoke")!;
+    await worker.deliver({ t: "result", id: notification.id, ok: true, value: worker.callbacks.encode(null) });
+    expect(await call("$registration.updateState", [subscription.disposable, { revision: 1, enabled: false, visible: false }]))
+      .toMatchObject({ ok: false, code: "plugin/unavailable" });
+    await worker.deliver({ t: "dispose", handle: subscription.disposable });
   } finally { await close(); }
 });
 

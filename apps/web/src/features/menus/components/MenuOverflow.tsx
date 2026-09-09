@@ -4,7 +4,7 @@
  * Entries are plain {label, icon, run} — the surface decides what running
  * means (callback, dialog, navigation).
  */
-import { DotsThreeVertical } from "@phosphor-icons/react";
+import { Check, DotsThreeVertical } from "@phosphor-icons/react";
 import { useState, type ReactNode } from "react";
 import { Popover } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
@@ -21,6 +21,7 @@ export type MenuOverflowEntry = {
   node?: ReactNode;
   /** Renders the row inert (e.g. import while an import is running). */
   disabled?: boolean;
+  checked?: boolean;
 };
 
 type MenuOverflowProps = {
@@ -95,6 +96,7 @@ export function MenuOverflow({
             <button
               type="button"
               disabled={entry.disabled}
+              aria-pressed={entry.checked}
               onClick={() => {
                 setOpen(false);
                 entry.run?.();
@@ -108,6 +110,7 @@ export function MenuOverflow({
             >
               <span className="text-fg-muted">{entry.icon}</span>
               <span className="min-w-0 flex-1 truncate">{entry.label}</span>
+              {entry.checked && <Check size={16} aria-hidden="true" className="shrink-0" />}
             </button>
             )}
           </li>

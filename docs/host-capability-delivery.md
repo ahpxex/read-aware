@@ -818,3 +818,19 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [文档/清理] 矩阵、统一模型、插件说明双份同步。三份 HTML 在 1440×1000、1024×768、390×844 无页面溢出/重复 ID/坏页内锚点/无名按钮/已观察资源失败；中英文搜索与 Escape、矩阵/模型的抽屉 inert 和主题保持已核对，变更段落截图已看，console/page errors 为空。矩阵“实时”搜索命中六项而不命中 MORE05，因为该行用“推送”；publishView 精确命中 MORE05，未将不匹配谎报为通过。文档浏览器已关闭，固定 CDN 依赖不变，无 Mermaid。自有 Worker 贡献/视图归零，三本合成书按正式命令删除，SQLite Text State Probe 计数 0。窗口恢复 1200×800，PGID 终态 143，5184/9223/9224 无监听，正式 app 未操作。
 
 [仍缺] MORE05 保留部分：贡献 visible/enabled/checked 和 Agent 统一 enablement 尚未实现；全部表单 schema/焦点/locale、大数据/持续更新负载、物理输入、安装升级、packaged 和 Windows/Linux 未验。TXT05 其余调度/耐久任务/虚拟索引等缺口仍在。既有 Rust 37 warnings、启动 WebContent 终止后恢复、bridge 版本提示及前端 chunk/混合导入警告保留。此单元不关闭完整双端能力与 W01-W32 目标，未推送。
+
+## 2026-09-09：交互贡献动态状态与 Jumper 0.2
+
+[代码] commands/headerActions/selectionActions/agentTools 升至 1.1，register 返回精确注册句柄 updateState；完整 revision/visible/enabled/checked 快照经宿主校验。旧版本 stale，同 ID 替换或释放的句柄 inactive；不按公开插件 ID/命令名更新，避免旧异步结果污染新注册。Worker 更新等待注册 ACK，await 后仍可更新，dispose-before-ACK 不再发更新；非交互 disposable 不接受状态写，权限和 RPC 限额/截止沿用。宿主回调包装保留私有 activation identity。
+
+[代码] 书架/阅读 header、选区工具栏及溢出、命令面板、快捷键和查词入口消费状态。每次执行复核精确注册和当前状态，禁用或隐藏都不执行；Agent 两 scope 的插件工具发现过滤状态，缓存的旧工具同样复核。checked 只呈现，不自动切业务。菜单自定义继续列出注册，不把用户隐藏菜单当作撤销命令。已开始的操作不因禁用而取消；打开页面按稳定 view 回调识别来源，状态更新不重载草稿。隐藏完整页面会退出，独立打开的 Dialog 仍遵循自己的 view/activation lifetime。新增 plugin/action-disabled 的八语言文案。
+
+[组合插件] Jumper 0.2 直接组合 observeSession 和四个注册句柄，初始禁用，ready 时开放搜索/header，back/forward 还须对应宿主 history flag。manifest 要求交互贡献 ^1.1，源码与编译产物同步；不复制导航历史，不新增专属宿主分支。仍为十二个源码插件、六个原生内置插件，运行期探针不计产品插件。
+
+[环境] [原生证据](./evidence/plugin-action-state-2026-09-09.json)：隔离 macOS debug PID 30590/PGID 30436，5184 前端/9223 桥，appDataDir 实查正确，正式 app 未操作。真实 Worker 六注册/四贡献点完成禁用、隐藏、恢复和 stale；缓存 Agent 工具与已在途工具分别拒绝新调用和正常完成。实际快捷键监听、书架/阅读 More、命令面板全禁用 Enter、真实 FB2 选区按钮均验，选区禁用 click 调用数保持 3，恢复后变为 4；打开页面草稿 Retained draft 不变，view 源仅调用一次。编译 Jumper 经真实 FB2 导航、back/forward、关闭重开，状态匹配宿主 revision 和历史。
+
+[探针修正] 初次 Jumper 探针错误假设关书总是清空历史，并曾将 loading 时两边都禁用当作 ready 匹配，导致测试失败。修正探针为要求预期 ready/idle 与同 revision，再按宿主真实 history 比较；没有为了过测试改阅读历史。编辑新 fixture 导致 Vite reload，丢弃过期脚本并重新激活后最终通过。退休时在途观察日志 plugin runtime stopping 保留；原生 37 warnings、初始 WebContent 终止后恢复和桥版本提示保留。
+
+[验证/扫描] 聚焦 28 项/183 断言、全仓 test 22/22（web 819 项/9138 断言）、typecheck 25/25、前端生产 build 与 Jumper build 通过。库存扫描增加返回句柄的继承成员解析及四组 updateState/dispose 映射，现为 243 行/634 入口；统一模型 30 单元/30 catalog、129 验收/32 场景，7 项门禁、两生成器与三对文档结构校验通过。模型 C4 补 MORE05 归属，未新增能力目录。三份 HTML 在 1440×1000、1024×768、390×844 检查无页面溢出、重复 ID、坏页内锚点、无名按钮或已观察资源错误；updateState/禁用搜索、Escape、矩阵/模型抽屉 inert 和主题刷新保持通过，截图已看，文档浏览器已关闭。固定 CDN 依赖不变，无 Mermaid。
+
+[清理/剩余] 原生 1200×800、800×650 截图已看；自有 probe/Jumper 贡献均归零，阅读 session idle，窗口恢复 1200×800，PGID 终态 143，5184/9223/9224 无监听。复用隔离环境既有合成 FB2，没有导入或删除书籍。MORE05 仍为部分：宿主内置 Agent 工具统一 availability、在已构建回合中新增工具、完整表单/焦点/locale、持续负载、物理输入、安装升级、packaged/Windows/Linux 尚未完成；其他双端能力缺口与完整组合验收目标继续，未推送。

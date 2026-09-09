@@ -35,6 +35,32 @@ describe("plugin agent tool scopes", () => {
     while (disposables.length > 0) disposables.pop()?.dispose();
   });
 
+  test("disabled tools disappear from both scopes and previously built tools recheck the exact registration", async () => {
+    let calls = 0;
+    const definition = { key: "state-test:tool", pluginId: "state-test", pluginName: "State Test",
+      name: "tool", description: "Tool", execute: () => ++calls };
+    const registration = registerToolContribution(definition);
+    disposables.push(registration);
+    const book = { kind: "book" as const, bookId: "book" as Id };
+    const global = { kind: "global" as const, threadId: "thread" };
+    const cached = getPluginAgentTools(book).find(tool => tool.name === "plugin_state_test_tool")!;
+    await cached.execute("one", {});
+    await registration.updateState({ revision: 1, enabled: false, visible: true });
+    for (const scope of [book, global]) expect(getPluginAgentTools(scope).some(tool => tool.name === cached.name)).toBe(false);
+    await expect(cached.execute("two", {})).rejects.toMatchObject({ code: "plugin/action-disabled" });
+    await registration.updateState({ revision: 2, enabled: true, visible: false });
+    await expect(cached.execute("hidden", {})).rejects.toMatchObject({ code: "plugin/action-disabled" });
+    await registration.updateState({ revision: 3, enabled: true, visible: true });
+    await cached.execute("three", {});
+    expect(calls).toBe(2);
+    disposables.push(registerToolContribution(definition));
+    await expect(cached.execute("old", {})).rejects.toMatchObject({ code: "plugin/unavailable" });
+    expect(await registration.updateState({ revision: 100, enabled: false, visible: false })).toEqual({ status: "inactive" });
+    const current = getPluginAgentTools(global).find(tool => tool.name === cached.name)!;
+    await current.execute("replacement", {});
+    expect(calls).toBe(3);
+  });
+
   test("filters declared contexts and keeps omitted contexts backward compatible", () => {
     register("book_only", ["book"]);
     register("global_only", ["global"]);

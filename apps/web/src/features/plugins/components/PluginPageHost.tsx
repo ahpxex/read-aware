@@ -14,6 +14,7 @@ import { headerActionsAtom } from "../state/plugin-store";
 import { PluginViewRenderer } from "./PluginViewRenderer";
 import { contributionText } from "../lib/plugin-i18n";
 import { usePluginViewSource } from "../hooks/usePluginViewSource";
+import { actionVisible } from "../lib/plugin-action-state";
 
 export const PLUGIN_NAV_PREFIX = "plugin:";
 
@@ -28,9 +29,9 @@ export function PluginPageHost({ navKey, onExit }: PluginPageHostProps) {
     ? navKey.slice(PLUGIN_NAV_PREFIX.length)
     : navKey;
   const actions = useAtomValue(headerActionsAtom);
-  const action = actions.find((entry) => entry.key === key && entry.surface === "shelf") ?? null;
+  const action = actions.find((entry) => entry.key === key && entry.surface === "shelf" && actionVisible(entry)) ?? null;
   const [viewDepth, setViewDepth] = useState(0);
-  const { view, refresh: refreshView } = usePluginViewSource(action, action !== null,
+  const { view, refresh: refreshView } = usePluginViewSource(action?.view, action !== null,
     () => action!.view({}),
     () => { showPluginFailureToast(action?.pluginName); onExit(); },
   );

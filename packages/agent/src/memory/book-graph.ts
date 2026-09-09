@@ -1,8 +1,8 @@
 import { AppError, type BookGraphQuery, type BookGraphResult, type ChapterDigest, type DigestCharacter, type DigestFlavor } from "@read-aware/core";
 import { mergeCharacterRegistry, mergeRelationGraph } from "./chapter-digest";
+import { visibleChapterDigests, type BookGraphBoundary } from "./book-memory-policy";
 
-/** Host/Agent policy only. A public query must never choose its own fence. */
-export type BookGraphBoundary = { kind: "all" } | { kind: "before"; chapterIndex: number } | { kind: "unknown" };
+export type { BookGraphBoundary } from "./book-memory-policy";
 export const MAX_GRAPH_NAMES = 8;
 export const MAX_GRAPH_ENTITIES = 200;
 export const MAX_GRAPH_EDGES = 40;
@@ -39,9 +39,7 @@ export function queryBookGraph(digests: ChapterDigest[], input: BookGraphQuery, 
   }
   const fence = boundary.kind === "before" ? `graph clamped to chapters before the reader's position (chapter index ${boundary.chapterIndex})` : undefined;
   const meta = fence ? { fence } : {};
-  const visible = digests.filter(digest => (!flavor || (digest.flavor ?? "narrative") === flavor) &&
-    (boundary.kind !== "before" || digest.chapterIndex < boundary.chapterIndex))
-    .sort((a, b) => a.chapterIndex - b.chapterIndex);
+  const visible = visibleChapterDigests(digests, boundary, flavor);
   if (query.chapterIndex !== undefined) {
     const digest = visible.find(entry => entry.chapterIndex === query.chapterIndex);
     if (!digest) return { ...meta, graph: "miss", note: "No visible, current-flavor digest for that chapter; it may be absent or beyond the reader's position." };

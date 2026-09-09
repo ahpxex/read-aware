@@ -1034,8 +1034,9 @@ not a printed chapter number. `{}` requests an overview. Callers cannot supply
 | `overview` | chaptersDigested, chapterRange, entityCount, edgeCount, up to 200 entities with aliases/appearance count, truncated flag. |
 | `profiles` | Up to 200 unique matched profiles with aliases/note, appearance chapter indices, up to 40 relations each with establishedAt, relationsTruncated, notFound and overall truncated. |
 
-[代码] `packages/agent/src/memory/book-graph.ts` filters digests BEFORE merging
-aliases, notes and relations. Missing legacy flavor is narrative; known book
+[代码] `packages/agent/src/memory/book-memory-policy.ts` supplies the shared
+filter for graph queries and system-prompt chapter memory BEFORE merging
+aliases, notes and relations. Missing legacy flavor is narrative; current book
 flavor excludes mismatched digests after reclassification. Plugin graph policy
 allows all chapters for expository or finished books. Unfinished narrative and
 unclassified books use a strict-before boundary: for the live book, only its
@@ -1045,13 +1046,14 @@ identities resolve exact href first, then earliest base-href match; missing
 position/identity withholds. Reads do not prepare text or generate digests.
 
 [代码] Agent `query_book_graph` calls the same pure query but retains its trusted
-turn policy: own unfinished narrative book uses the turn fence or existing
+turn policy: own unfinished narrative or unclassified book uses the turn's
+completed-chapter boundary or existing
 spoiler approval; global/cross-book retains the prior all-chapters policy. This
 is shared query logic, not identical actor authorization. A book metadata read
 failure now propagates instead of being swallowed and potentially bypassing the
-fence; missing books reject `reader/book-not-found`. Agent system-prompt digest
-assembly remains a separate consumer; this change does not prove every prompt
-consumer applies the same flavor rules. Result notes/fence are diagnostic prose;
+fence; missing books reject `reader/book-not-found`. System-prompt chapter digest
+assembly now uses the same flavor and boundary filter. This does not unify every
+prose, grounding or output-guard policy. Result notes/fence are diagnostic prose;
 Memory Desk renders localized state strings instead of exposing raw errors.
 
 [代码/生命周期] Requests are normalized/copied before asynchronous work; plugin
@@ -1183,9 +1185,8 @@ association between an old digest and a replaced source file.
 existing live view clears old content/actions and recovers automatically after a
 valid read. Optional prompt digest loading logs the failure and omits the whole
 digest section so chat can continue; this is not a claim that the graph is empty.
-The existing chapter-session prompt remains frozen, so recovery without a new
-session/reset and classification-change invalidation are not claimed. Prompt
-flavor filtering and the unclassified-book Agent policy still need alignment.
+A degraded digest load does not settle the chapter-session cache; the next user
+turn retries without requiring a new session or explicit reset.
 
 [环境] [Native evidence](./evidence/chapter-memory-integrity-2026-09-10.json)
 covers real SQLite malformed JSON, alias type and unknown-flavor faults on an
@@ -1193,6 +1194,51 @@ owned synthetic FB2, actual Agent tool and Worker calls, compiled Memory Desk
 error clearing and automatic recovery. Three native screenshots were inspected.
 AgentThread failure logging/recovery uses an in-memory port and faux provider,
 not native model inference. No packaged/cross-platform or automatic repair claim.
+
+<a id="memory-prompt-policy"></a>
+
+### Shared Chapter Memory Policy and Prompt Refresh
+
+[代码] `chapterMemoryPolicy` defaults an unclassified book to narrative. Narrative
+and unclassified unfinished books expose only chapters strictly before the
+trusted current chapter; unknown/invalid positions withhold. Expository or
+finished books allow all chapters, still filtered to the current flavor. Missing
+legacy digest flavor is narrative; reclassified mismatches never enter alias
+merging, graph profiles or the prompt roster. Plugin href resolution retains its
+live-ready / saved-position policy; Agent uses the current turn's normalized
+cursor. These are different sources of authority, not caller-selected fences.
+
+[代码] AgentTurnState separates the completed-chapter memory boundary from the
+inclusive prose fence. Graph tools recheck book metadata when called, so an old
+all-visible sample cannot override a later restrictive classification. Trusted
+spoiler approval and global/cross-book graph policy remain unchanged. This does
+not grant arbitrary plugin spoilers or apply chapter filtering to user memories.
+
+[代码] AgentThread keys its prompt cache by classification, reading status,
+current chapter index and chapter-memory policy. Changes, including lost cursor
+or finished-to-reading contraction, refresh the prompt before the next user turn's
+model request. The sampled book and cursor also supply the actual prompt, not a
+second inconsistent metadata read. Selection chapter remains a conversation-session
+signal but cannot widen reading authority. A policy-only refresh preserves
+accumulated messages; normal cross-chapter session reset retains its old semantics.
+An unchanged successful same-chapter snapshot stays cached; failed digest reads
+log, omit the digest section, and leave the cache unsettled for the next turn.
+
+[环境] [Native evidence](./evidence/memory-prompt-policy-2026-09-10.json) uses a
+real AgentThread with production SQLite ports and scripted inference, plus real
+Worker queries and compiled Memory Desk. Narrative/expository/narrative changes
+in the same chapter produce corresponding prompt samples with 1/3/5 messages,
+not a reset transcript; the plugin switches Ada/Concept without refresh. Future
+selection, lost cursor and an unclassified row were also exercised. Two native
+screenshots were inspected. Unit tests additionally cover invalid/index-only
+positions, status contraction, failure retry and tool-time restrictive metadata.
+
+[边界] Refresh is next-turn, not cancellation of an already sent request, erasure
+of prior answers/tool results, or provider-side deletion. Stable-policy digest
+edits alone do not invalidate the successful cache. This unit covers chapter
+memory, not all unclassified-book prose retrieval/grounding policies. Source
+versions, budgets/pagination, fine-grained grants, public graph maintenance and
+packaged/cross-platform verification remain open.
 
 <a id="memory-observation"></a>
 ### Memory 1.2: Query Observation

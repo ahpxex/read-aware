@@ -4,6 +4,7 @@
  * 在这里逐段注入；全局线程每轮重建，书线程每个章节会话冻结一份快照。
  */
 import { mergeCharacterRegistry } from "../memory/chapter-digest";
+import { chapterMemoryPolicy, visibleChapterDigests } from "../memory/book-memory-policy";
 import type { BookOverview, ChapterDigest, MemoryRecord } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { SPOILER_POLICY } from "./spoiler-policy";
@@ -24,7 +25,7 @@ export interface SystemPromptInput {
   /** 注入的高置信记忆（book_memory / user 记忆 bundle 的 v0） */
   memories?: MemoryRecord[];
   /**
-   * 已读完章节的纪要（book_memory 投影 v1）：调用方已按剧透边界过滤。
+   * 章节纪要（book_memory 投影 v1）：装配时按当前分类和阅读边界过滤。
    * 人物名录按本书文本原样拼写——版本保真（译名、称呼、谁是谁）的数据源。
    */
   chapterDigests?: ChapterDigest[];
@@ -265,10 +266,9 @@ export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput):
   if (scope.kind === "book" && input.chapterDigests?.length) {
     // 注入措辞跟着书的分类走：说明文的图是概念/论点，小说的图是人物/关系。
     // 未分类按叙事措辞（与围栏的保守默认同向）。
-    const story =
-      input.book?.narrativity === "expository"
-        ? subjectSoFarSection(input.chapterDigests)
-        : storySoFarSection(input.chapterDigests);
+    const policy = chapterMemoryPolicy(input.book, input.currentChapter?.index);
+    const visible = visibleChapterDigests(input.chapterDigests, policy.boundary, policy.flavor);
+    const story = policy.flavor === "expository" ? subjectSoFarSection(visible) : storySoFarSection(visible);
     if (story) sections.push(story);
   }
 

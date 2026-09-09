@@ -1,0 +1,38 @@
+{
+  "date": "2026-09-10",
+  "scope": "Shared chapter memory policy and AgentThread prompt-cache invalidation",
+  "app": { "identifier": "com.readaware.app.capability-e2e", "frontendPort": 5184, "bridgePort": 9224, "ownedProcessGroup": 62044, "mode": "macOS Tauri debug" },
+  "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-memory-prompt-probe.ts",
+  "threadHarness": "packages/agent/src/testing/chapter-memory-thread-probe.ts",
+  "owned": { "bookId": "7fcabd22-a841-48cc-9ac5-39233575e2bb", "memoryIds": ["c0d00961-3445-40d1-a074-4a745a3eeb38", "96659f1d-e049-4424-b119-5788d350a51d", "fda9a7df-f223-44b2-bbfe-834aed0bc191"] },
+  "setup": "Synthetic three-chapter FB2; persisted narrative digests at indices 0 and 2, expository digest at 1; saved reader position 2",
+  "threadPorts": "Production buildRuntimeDeps including SQLite book/digest reads and conversation persistence; only inference scripted and memory-building policy disabled for this isolated thread",
+  "samples": [
+    { "classification": "narrative", "cursor": 2, "narrative": true, "concept": false, "future": false, "messages": 1 },
+    { "classification": "expository", "cursor": 2, "narrative": false, "concept": true, "future": false, "messages": 3 },
+    { "classification": "narrative", "cursor": 2, "narrative": true, "concept": false, "future": false, "messages": 5 },
+    { "classification": "narrative", "cursor": 0, "selection": 2, "narrative": false, "concept": false, "future": false, "messages": 7 },
+    { "classification": "narrative", "cursor": null, "narrative": false, "concept": false, "future": false, "messages": 9 },
+    { "classification": null, "cursor": 2, "narrative": true, "concept": false, "future": false, "messages": 11 }
+  ],
+  "workerAndDirectAgentQueries": {
+    "narrative": { "entities": ["Ada"], "chaptersDigested": 1 },
+    "expository": { "entities": ["Concept"], "chaptersDigested": 1 },
+    "unclassified": { "entities": ["Ada"], "chaptersDigested": 1 },
+    "explicitSpoilerAuthority": "Unchanged; separately covered by existing unit tests"
+  },
+  "compiledMemoryDesk": { "version": "0.3.0", "classificationChangesWithoutRefresh": true, "narrative": "Ada only", "expository": "Concept only", "documentOverflow": false },
+  "screenshots": ["/tmp/memory-prompt-policy-concept.png", "/tmp/memory-prompt-policy-narrative.png"],
+  "allScreenshotsInspected": true,
+  "unitEvidence": ["Invalid and unknown coordinates withhold", "Prompt and graph share flavor-before-merge semantics", "Same-chapter reclassification preserves accumulated conversation", "Index-only movement and finished-to-reading contraction", "Lost cursor clears generated digest section", "Future selection cannot widen chapter-memory authority", "Degraded digest read retries next turn", "Old all-visible sample cannot override restrictive metadata during a later tool call"],
+  "validation": { "testTasks": "24/24", "agent": "389 tests across 77 files", "web": "911 tests, 10026 assertions, 159 files", "typecheckTasks": "27/27", "frontendProductionBuild": "passed", "rust": "unchanged; full suite not rerun" },
+  "environment": "Dynamic faux-provider import caused one Vite optimization reload before fixture writes; warmed successfully after reload. Existing bridge version warning retained.",
+  "cleanup": { "classificationRestoredInFinally": true, "ownedBooks": 0, "workers": 3, "contributions": 0, "ownedMemories": "3 forgotten via events; history retained", "nativeExec": 80528, "nativeExit": 143, "bridgeStopped": 9224, "ports5184And9224Closed": true, "unowned89360And9223": "untouched", "productionData": "untouched" },
+  "limits": [
+    "Policy refresh is at the next user turn, not mid-request cancellation or retroactive erasure of transcript/provider data.",
+    "Stable-policy same-chapter successful digest snapshots remain cached; arbitrary digest edits do not force a reread every turn.",
+    "This unifies chapter memory, not every prose/grounding/output-guard policy for unclassified books.",
+    "No content-versioned provenance, complete payload budgets, fine-grained plugin grants or public graph-maintenance tasks.",
+    "Scripted inference is not autonomous model-quality verification; no packaged/Windows/Linux/second-device/long-duration proof."
+  ]
+}

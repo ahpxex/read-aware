@@ -6,6 +6,7 @@ import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
 import { AppError, type BookGraphQuery } from "@read-aware/core";
 import { MAX_GRAPH_NAMES, normalizeBookGraphQuery, queryBookGraph, type BookGraphBoundary } from "../memory/book-graph";
+import { chapterMemoryPolicy } from "../memory/book-memory-policy";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { assertSpoilerPermission, confirmSpoilerSchema, spoilerGranted } from "./book-text-tools";
@@ -38,10 +39,12 @@ export function buildGraphTools(scope: ThreadScope, deps: RuntimeDeps, turnState
       const book = await deps.library.getBook(target);
       if (!book) throw new AppError("reader/book-not-found", "Book not found");
       let boundary: BookGraphBoundary = { kind: "all" };
-      if (!confirmSpoiler && ownBook && book.narrativity === "narrative" && book.status !== "finished") {
-        boundary = turnState?.spoilerFence
-          ? { kind: "before", chapterIndex: turnState.spoilerFence.throughChapterIndex }
-          : { kind: "unknown" };
+      if (!confirmSpoiler && ownBook) {
+        const sampled = turnState?.bookMemoryBoundary;
+        const chapterIndex = sampled ? sampled.kind === "before" ? sampled.chapterIndex : undefined
+          : turnState?.spoilerFence?.readerChapterIndex ?? turnState?.spoilerFence?.throughChapterIndex;
+        // A turn sampled as all-visible cannot override a later restrictive classification.
+        boundary = chapterMemoryPolicy(book, chapterIndex).boundary;
       }
       const digests = await deps.bookMemory.listDigests(target);
       const result = queryBookGraph(digests, query, boundary, book.narrativity);

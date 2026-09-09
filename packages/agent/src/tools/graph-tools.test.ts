@@ -70,6 +70,17 @@ function parse(result: { content: Array<{ type: string; text?: string }> }): Rec
 }
 
 describe("query_book_graph", () => {
+  test("unclassified books are fenced and a former all-visible snapshot cannot bypass reclassification", async () => {
+    const { deps } = createInMemoryDeps({ books: [{ id: BOOK, title: "Unknown", status: "reading" }], chapterDigests: { [BOOK]: DIGESTS } });
+    const state = createAgentTurnState();
+    const [tool] = buildGraphTools({ kind: "book", bookId: BOOK }, deps, state);
+    expect(parse(await tool!.execute("unknown", {})).graph).toBe("unavailable");
+    state.bookMemoryBoundary = { kind: "before", chapterIndex: 1 };
+    state.spoilerFence = { throughChapterIndex: 0, readerChapterIndex: 1 };
+    expect(parse(await tool!.execute("read", {})).chaptersDigested).toBe(1);
+    state.bookMemoryBoundary = { kind: "all" };
+    expect(parse(await tool!.execute("reclassified", {})).graph).toBe("unavailable");
+  });
   test("metadata lookup failures do not bypass a narrative fence", async () => {
     const { deps } = createInMemoryDeps({ books: [{ id: BOOK, title: "Graph", narrativity: "narrative" }], chapterDigests: { [BOOK]: DIGESTS } });
     const failure = new Error("metadata unavailable");

@@ -345,8 +345,9 @@
           <h2>记忆读取已接通，来源与授权仍有边界</h2>
           <details class="ep"><summary>Memory 1.2：查询、条件反馈与观察，Memory Desk 0.3 实际消费</summary><div class="ep-body">
             <p>search 读取有效个人、跨书或本书记忆；bookGraph 提供章节摘要、实体与关系。Memory Desk 0.3 组合书库、记忆和导航，支持查询、来源查看、复核后打开原文，以及纠错、置顶与遗忘。源码十四个插件，Rust 编译内置仍六个，本插件不在内置清单。</p>
-            <p>图谱先按阅读边界与分类过滤，再合并别名和关系。未知位置与未分类书的 Agent/插件策略尚未完全一致；global/cross-book 保留既有全图政策。元数据读取失败明确报错，不跳过保护。</p>
-            <p>双端共享章节投影校验：损坏 JSON、非法别名/备注及未知分类整次报 db/error，不伪装成空图。Memory Desk 清旧图并自动恢复；提示词可降级但记录日志。原生三类故障已验；提示词分类过滤和缓存失效仍缺。<a href="./plugin-system.md#chapter-memory-integrity">损坏数据边界与证据</a></p>
+            <p>图谱与提示词纪要共享先按分类/阅读边界过滤再合并；未分类书按叙事保护。Agent 用回合游标，插件用宿主位置；global/cross-book 保留既有全图政策，元数据读取失败不跳过保护。</p>
+            <p>同章重分类、读完状态或游标边界变化，会在下一轮刷新提示词但保留对话；选区不扩大权限，读取降级后下轮重试。真实 SQLite AgentThread 与编译插件已验叙事/概念切换；不回收已发送内容，其他正文策略与来源版本仍缺。<a href="./plugin-system.md#memory-prompt-policy">策略与验证边界</a></p>
+            <p>损坏 JSON、非法别名/备注及未知分类整次报 db/error，不伪装成空图。Memory Desk 清旧图并自动恢复；提示词降级有日志。<a href="./plugin-system.md#chapter-memory-integrity">投影完整性证据</a></p>
           </div></details>
           <details class="ep"><summary>memory:read 不是按书授权，来源 href 也不是内容版本证明</summary><div class="ep-body">
             <p>查询 scopes 只是过滤，授权仍可读取全部记忆，记忆记录本身不按章节防剧透。搜索最多 100 条、图谱最多 200 实体、每实体 40 关系；图谱截断会提示，但尚无完整分页、细粒度授权或通用质量评分。</p>

@@ -1,7 +1,7 @@
 /**
  * 一个线程 = 一个 pi Agent 实例（doc §5 runtime/）。
  * 职责：从 ConversationPort 水化转录、装配 system prompt（书线程每个章节
- * 会话一次、会话内冻结；全局线程每轮重建）、把 pi 的事件流翻译成
+ * 会话一次、策略变化时刷新；全局线程每轮重建）、把 pi 的事件流翻译成
  * ThreadChunk、轮末持久化两条 TurnRecord（doc §10）。
  * 书线程按**章节会话**装配上下文：同章节连续，换章节发新消息才重置（doc §5）。
  */
@@ -13,6 +13,7 @@ import { runMemoryBuild } from "../memory/build-policy";
 import { buildSystemPrompt } from "../context/system-prompt";
 import { extractMemories, extractMemoriesFromTranscript } from "../memory/extraction";
 import { digestBookTick } from "../memory/graph-upkeep";
+import { chapterMemoryPolicy } from "../memory/book-memory-policy";
 import {
   bootstrapSummaryFromHistory,
   formatTurnsForFolding,
@@ -21,7 +22,7 @@ import {
 import type { CompleteFn, StreamFn } from "../models/complete";
 import { classifyModelFailure } from "../models/failure";
 import type { ResolveModel } from "../models/roles";
-import type { RuntimeDeps, TurnAttachment } from "../ports";
+import type { BookOverview, RuntimeDeps, TurnAttachment } from "../ports";
 import { findChapterByHref } from "../text/chapter-lookup";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { visibleScopes } from "../tools/memory-tools";
@@ -139,6 +140,7 @@ export class AgentThread {
    */
   private sessionStarted = false;
   private sessionChapter: string | undefined;
+  private sessionMemoryPolicy: string | undefined;
   private contextPermissionsKey: string | undefined;
   /** 一轮内的工具侧状态（出卡去重 + 剧透围栏）；每轮 sendTurn 开始时重算。 */
   private readonly turnState = createAgentTurnState();
@@ -193,6 +195,7 @@ export class AgentThread {
     this.agent = undefined;
     this.sessionStarted = false;
     this.sessionChapter = undefined;
+    this.sessionMemoryPolicy = undefined;
   }
 
   private loadNarrativeIndex(): Promise<NarrativeBookIndex> | undefined {
@@ -340,48 +343,26 @@ export class AgentThread {
 
   private async refreshSystemPrompt(
     agent: Agent,
-    currentChapterHref?: string,
-    cursorChapterIndex?: number,
-  ): Promise<void> {
-    const wantsPosition =
-      this.scope.kind === "book" && (!!currentChapterHref || cursorChapterIndex !== undefined);
-    const [profile, book, shelf, memories, conversationSummary, toc, digests] = await Promise.all([
+    bookContext?: { book?: BookOverview; chapter?: { index: number; title?: string } },
+  ): Promise<boolean> {
+    let digestsUnavailable = false;
+    const [profile, shelf, memories, conversationSummary, digests] = await Promise.all([
       this.deps.profile.getProfileSummary(),
-      this.scope.kind === "book" ? this.deps.library.getBook(this.scope.bookId) : undefined,
       this.scope.kind === "global" ? this.deps.library.listBooks() : undefined,
       this.deps.memory.searchMemories({ scopes: visibleScopes(this.scope), limit: 8 }),
       this.deps.conversations.getInsights(this.key),
-      // 位置反查要 hrefs，只有书线程带着章节 href 时才取目录
-      wantsPosition && this.scope.kind === "book"
-        ? this.deps.bookText.getToc(this.scope.bookId).catch(() => undefined)
-        : undefined,
       this.scope.kind === "book"
         ? this.deps.bookMemory.listDigests(this.scope.bookId).catch((error) => {
+            digestsUnavailable = true;
             this.deps.log?.warn("chapter memory unavailable; omitting prompt digests", error);
             return [];
           })
         : [],
     ]);
-    // 章节身份：href 反查优先；游标直给的 index（eval、以及 href 缺失的
-    // 宿主）作回退——两者同源于 getToc 的坐标系。
-    const chapter =
-      (toc && currentChapterHref ? findChapterByHref(toc, currentChapterHref) : undefined) ??
-      (toc && cursorChapterIndex !== undefined ? toc[cursorChapterIndex] : undefined);
-    // 章节纪要按剧透边界过滤：叙事未读完只给当前章之前的；位置不明时
-    // 宁缺毋滥（一条都不给）。说明书/已读完不设边界。
-    const fenced = book?.narrativity === "narrative" && book.status !== "finished";
-    const chapterDigests =
-      this.scope.kind !== "book"
-        ? undefined
-        : fenced
-          ? chapter
-            ? digests.filter((digest) => digest.chapterIndex < chapter.index)
-            : []
-          : digests;
     const systemPrompt = buildSystemPrompt(this.scope, {
-      book,
-      currentChapter: chapter && { index: chapter.index, title: chapter.title },
-      chapterDigests,
+      book: bookContext?.book,
+      currentChapter: bookContext?.chapter,
+      chapterDigests: digests,
       profile,
       shelfSize: shelf?.length,
       memories,
@@ -393,6 +374,7 @@ export class AgentThread {
     agent.state.systemPrompt = this.transformSystemPrompt
       ? this.transformSystemPrompt(systemPrompt, this.scope)
       : systemPrompt;
+    return !digestsUnavailable;
   }
 
   async *sendTurn(input: SendTurnInput): AsyncGenerator<ThreadChunk> {
@@ -462,9 +444,13 @@ export class AgentThread {
       }
       // 剧透围栏：叙事书 + 未读完 + 本轮游标带章节 index → 正文工具越界需 confirmSpoiler
       this.turnState.spoilerFence = undefined;
+      this.turnState.bookMemoryBoundary = undefined;
       let narrativeUnfinished = false;
+      let currentBook: BookOverview | undefined;
       if (this.scope.kind === "book") {
         const book = await call.wait(this.deps.library.getBook(this.scope.bookId));
+        currentBook = book;
+        this.turnState.bookMemoryBoundary = chapterMemoryPolicy(book, cursor?.chapterIndex).boundary;
         narrativeUnfinished = book?.narrativity === "narrative" && book.status !== "finished";
         if (narrativeUnfinished && cursor?.chapterIndex !== undefined) {
           this.turnState.spoilerFence = {
@@ -499,7 +485,7 @@ export class AgentThread {
       call.assertAllowed();
       const agent = await call.wait(this.ensureAgent(call));
       // 本轮所在章节：选区的章节优先于阅读位置（问哪段话,会话就属于哪章）。
-      // 双重职责：章节会话的边界信号 + system prompt 的稳定章节身份。
+      // 仅决定对话会话；纪要的阅读边界始终来自当前游标。
       const turnChapter = localInput.attachments?.[0]?.chapter ?? cursor?.chapter;
       if (this.scope.kind === "book") {
         // 书线程章节会话（doc §5）：同章节内的轮次共享同一个上下文树
@@ -513,16 +499,20 @@ export class AgentThread {
           turnChapter !== undefined &&
           this.sessionChapter !== undefined &&
           turnChapter !== this.sessionChapter;
-        if (!this.sessionStarted || crossedChapter) {
-          // system prompt 只在会话开始装配一次（含章节身份快照），会话内
-          // 冻结 —— 前缀头部字节级稳定，同章追问跨轮命中 provider 缓存
-          // （中段靠 context-slim 存根的确定性保持稳定）。中途提炼的记忆 /
-          // 动态章内游标只进最新 user message；滚动摘要正是在这里重读。
-          await call.wait(this.refreshSystemPrompt(
-            agent,
-            turnChapter ?? this.sessionChapter,
-            cursor?.chapterIndex,
-          ));
+        const policyKey = JSON.stringify({ classification: currentBook?.narrativity ?? null, status: currentBook?.status ?? null, chapterIndex: cursor?.chapterIndex ?? null,
+          policy: chapterMemoryPolicy(currentBook, cursor?.chapterIndex) });
+        const newSession = !this.sessionStarted || crossedChapter;
+        if (newSession || policyKey !== this.sessionMemoryPolicy) {
+          // Ordinary same-chapter turns keep their stable prefix. Classification,
+          // status, cursor boundary or a degraded digest read invalidates that cache.
+          // Selection chooses the conversation session, never the reading boundary.
+          // Policy changes refresh only the prompt, preserving the conversation.
+          const index = cursor?.chapterIndex;
+          const loaded = await call.wait(this.refreshSystemPrompt(agent, { book: currentBook,
+            chapter: index !== undefined && Number.isSafeInteger(index) && index >= 0 ? { index, title: cursor?.chapterTitle } : undefined }));
+          this.sessionMemoryPolicy = loaded ? policyKey : undefined;
+        }
+        if (newSession) {
           const records = await call.wait(this.deps.conversations.load(this.key));
           agent.state.messages = turnRecordsToMessages(
             permittedTurnRecords(lastTurnTail(records), call.permissions),

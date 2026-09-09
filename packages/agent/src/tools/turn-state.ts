@@ -16,6 +16,8 @@ export interface AgentTurnState {
   readingContextPermissions?: import("../runtime/reading-context-policy").ReadingContextPermissions;
   presentedBookIds: Set<string>;
   spoilerFence?: SpoilerFence;
+  /** Completed-chapter memory boundary, separate from the inclusive prose fence. */
+  bookMemoryBoundary?: import("../memory/book-memory-policy").BookGraphBoundary;
   /** 宿主从本轮用户原话或 ask_user 回答中确定性验证出的剧透授权。 */
   spoilerPermissionGranted: boolean;
   /** 模型试图在无读者授权时使用 confirmSpoiler；最终回包必须安全降级。 */

@@ -509,7 +509,7 @@ The current host services are:
 | `secrets` | plugin-scoped credential slots | built in |
 | `ui` | host toast and save/export flow | built in |
 | `schedules` | bind a manifest-declared periodic task | built in |
-| `session` | 1.1: environment snapshot/observation; legacy bounded reading-session events | built in |
+| `session` | 2.0: environment snapshot/observation only; reading state requires the reading domain | built in |
 | `network` | host HTTP client | `service:network` |
 | `llm` | approved one-shot/structured model calls | `service:llm` |
 | `clipboard` | write text to clipboard | `service:clipboard` |
@@ -535,18 +535,47 @@ Subscribers receive independent copies; callback failures are logged, not
 propagated into other subscribers. Explicit dispose and plugin unload release
 the subscription; the last observer releases listeners and the timer. No
 exactly-once or durable replay is promised. Plugins needing these methods declare
-`requires.services.session: "^1.1.0"`.
+`requires.services.session: "^2.0.0"`.
 
-[代码/环境] Listening Desk 0.6 consumes this service for a localized offline hint
+[代码/环境] Listening Desk 0.7 consumes this service for a localized offline hint
 on view refresh. It does not disable Start on that hint, including system voice.
 The shared store, actual Agent tool and zero-permission Worker were tested in
 isolated macOS debug Tauri; the built Listening Desk Worker returned the localized
 hint. [Evidence](./evidence/host-environment-2026-09-09.json) distinguishes actual
 language changes from controlled navigator/event injection. Network hints do not
 prove endpoint reachability, model/account readiness, or supported format
-availability. Those gaps and migration of the legacy four reading events remain
-open. Real OS timezone/network changes, packaged and other platforms are not
+availability. Those availability gaps remain open. Real OS timezone/network changes, packaged and other platforms are not
 validated by this test.
+
+[代码] Session 2.0 removes `subscribe`, `PluginSessionEventMap` and
+`PluginSessionEventName`; App no longer separately emits book-opened/book-closed,
+chapter-changed or reading-progress. Plugins declare `reading:read` (or write)
+and use `domains.reading.queries.session()` / `events.observeSession()` instead.
+The snapshot distinguishes idle/loading/ready/error, identifies book/session,
+and carries location/history/mode/playback/revision. Its observer immediately
+delivers current state, so late activation does not require replaying an event.
+There is no no-permission compatibility bridge; a `services.session: ^1.x`
+requirement is rejected before activation. Origin/reason and complete revocation
+and cross-platform behavior still require further verification.
+
+[代码] Dictionary 1.2 replaces its event-maintained title cache with on-demand
+reading + library queries under explicit `reading:read` and `library:read`
+permissions. It rechecks book/session identity after reading metadata; a switch,
+close or reopen drops that title, while a read failure rejects instead of
+pretending absence. Lookup cache identity now includes title as a prompt input,
+so entries are not reused across different book contexts. Older cache entries
+are not used by the new keys; saved vocabulary is unchanged. Installed plugin
+updates follow the normal permission-consent policy; compiled built-ins follow
+the existing host-owned bundled policy, not a newly introduced consent bypass.
+
+[环境] [Session boundary evidence](./evidence/reading-session-boundary-2026-09-09.json)
+covers isolated macOS debug Tauri. A zero-permission Worker has only the two
+metadata methods and no reading domain; a read-only Worker immediately receives
+the already-open FB2 session, then PDF loading/ready and closed/idle updates,
+without write commands. The actual built Dictionary Worker uses three seeded
+cache entries to verify late activation, book switching and close select the
+correct contextual result. Host inference is disabled during this probe, then
+restored; it is not remote LLM, word-card rendering, or installation-upgrade E2E.
 
 ## 9. Permissions
 
@@ -720,7 +749,7 @@ adjacent distribution repository, not an eleventh plugin in this checkout:
 
 | Plugin | Primary capabilities |
 | --- | --- |
-| Dictionary | selection/header actions, commands, agent tools, retrieval provider, storage, session, LLM, views |
+| Dictionary | selection/header actions, commands, agent tools, retrieval provider, storage, authorized reading/library queries, LLM, views |
 | Editorial Themes | theme/font contributions and theme schema |
 | RSS Reader | Library, Reading, content provider, commands, agent tools, storage, schedule, network, views/settings |
 | Sentence Reader | reader mode, storage, settings schema |

@@ -3,7 +3,6 @@ import {
   lazy,
   useCallback,
   useEffect,
-  useRef,
   useState,
 } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -37,7 +36,6 @@ import { useBillingReturnDeepLink } from "./features/settings/hooks/useBillingRe
 import { useSyncLoginDeepLink } from "./features/settings/hooks/useSyncLoginDeepLink";
 import { usePluginCommandShortcuts } from "./features/plugins/hooks/usePluginCommandShortcuts";
 import { useSurfaceHandoff } from "./hooks/useSurfaceHandoff";
-import { emitAppEvent } from "./platform/app-events";
 import { startSyncScheduler } from "./platform/sync/sync-scheduler";
 import {
   BACK_REQUEST_EVENT,
@@ -207,44 +205,6 @@ function App() {
     onNewConversation: createGlobalConversation,
     onSelectPrimaryDestination: selectPrimaryDestination,
   });
-
-  // Observation seam for plugins: book open/close, chapter, progress.
-  const openedBookRef = useRef<{
-    id: string;
-    title: string;
-    author?: string;
-  } | null>(null);
-  useEffect(() => {
-    const book = reader.selectedBook;
-    if (book && openedBookRef.current?.id !== book.id) {
-      if (openedBookRef.current) {
-        emitAppEvent("book-closed", { bookId: openedBookRef.current.id });
-      }
-      openedBookRef.current = {
-        id: book.id,
-        title: book.title,
-        author: book.author,
-      };
-      emitAppEvent("book-opened", { book: openedBookRef.current });
-    } else if (!book && openedBookRef.current) {
-      emitAppEvent("book-closed", { bookId: openedBookRef.current.id });
-      openedBookRef.current = null;
-    }
-  }, [reader.selectedBook]);
-  useEffect(() => {
-    if (!openedBookRef.current) return;
-    emitAppEvent("chapter-changed", {
-      bookId: openedBookRef.current.id,
-      chapterHref: reader.currentChapterHref,
-    });
-  }, [reader.currentChapterHref]);
-  useEffect(() => {
-    if (!openedBookRef.current || reader.readerProgress == null) return;
-    emitAppEvent("reading-progress", {
-      bookId: openedBookRef.current.id,
-      fraction: reader.readerProgress,
-    });
-  }, [reader.readerProgress]);
 
   useEffect(() => {
     void softwareUpdate.loadCurrentVersion();

@@ -254,13 +254,14 @@
             <ul class="compact">
               <li>Storage v2：同步读、set/remove 持久 Promise、flush / Secrets</li>
               <li>UI export / Toast</li>
-              <li>Schedules / Session 1.1：环境快照与观察，旧阅读事件待迁移</li>
+              <li>Schedules / Session 2.0：仅环境快照与观察；阅读状态统一归 Reading</li>
               <li>Network / LLM / Clipboard</li>
             </ul>
             <details class="ep">
               <summary>环境：双端共享元数据，网络提示不代表服务就绪</summary>
-              <div class="ep-body"><p>Agent 的 get_host_environment 与插件 environment/observeEnvironment 共用带 revision 的平台、语言、时区与网络提示；首次立即快照，变化刷新，末个观察者释放监听。元数据不含书籍或账号，不绕过 reading 授权。</p><p>Listening Desk 0.6 按需显示离线提示，不禁用本地朗读。隔离 macOS debug 已验双端、零权限 Worker 和实际插件返回；网络切换为受控注入，不冒充真实断网。格式/账号/模型就绪、旧阅读事件迁移和 packaged/跨平台仍缺。<a href="./evidence/host-environment-2026-09-09.json">环境证据</a></p></div>
+              <div class="ep-body"><p>Agent 的 get_host_environment 与插件 environment/observeEnvironment 共用带 revision 的平台、语言、时区与网络提示；首次立即快照，变化刷新，末个观察者释放监听。元数据不含书籍或账号，不绕过 reading 授权。</p><p>Listening Desk 0.7 按需显示离线提示，不禁用本地朗读。隔离 macOS debug 已验双端、零权限 Worker 和实际插件返回；网络切换为受控注入，不冒充真实断网。格式/账号/模型就绪和 packaged/跨平台仍缺。<a href="./evidence/host-environment-2026-09-09.json">环境证据</a></p></div>
             </details>
+            <details class="ep"><summary>旧阅读事件旁路已删除；Dictionary 按授权查询当前书</summary><div class="ep-body"><p>Session 2.0 不再提供 subscribe，旧 ^1 合约明确拒绝。Reading 的即时快照和观察成为唯一阅读状态入口。Dictionary 1.2 声明 reading/library 读取权限，按需取标题并复核会话，不再漏掉迟启用或沿用换书前的标题；查词缓存也区分书籍标题。</p><p>隔离 macOS debug 已验零权限无阅读入口、只读 Worker 的迟启用/换书/关闭、实际 Dictionary Worker 的缓存上下文；不含远端模型、词卡呈现或安装升级。origin/reason、完整撤权与跨平台仍未验收。<a href="./evidence/reading-session-boundary-2026-09-09.json">会话边界证据</a></p></div></details>
             <details class="ep">
               <summary>仅本地模式：宿主推理已拦截，完整网络边界仍未接通</summary>
               <div class="ep-body"><p>Agent、插件 LLM 与连接测试共享实时策略；启用即拒绝新调用并取消在途请求，返回 ai/local-only。保存失败回滚只恢复新调用，不复活旧请求。无本地模型后端，Custom loopback 也拒绝。</p><p>任意插件 HTTP、TTS、同步不受该策略约束；另外两个文本发送隐私开关仍无效果消费者。macOS debug 双端与失败场景已有证据，packaged/跨平台仍未验证。<a href="./plugin-system.md#host-inference-privacy-policy">精确边界</a></p></div>

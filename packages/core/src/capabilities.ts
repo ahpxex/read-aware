@@ -34,7 +34,7 @@ export const HOST_SERVICE_CATALOG = {
   secrets: { version: "1.0.0", permission: null },
   ui: { version: "1.0.0", permission: null },
   schedules: { version: "1.0.0", permission: null },
-  session: { version: "1.1.0", permission: null },
+  session: { version: "2.0.0", permission: null },
   network: { version: "1.1.0", permission: "service:network" },
   llm: { version: "1.0.0", permission: "service:llm" },
   clipboard: { version: "1.0.0", permission: "service:clipboard" },

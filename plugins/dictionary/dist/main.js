@@ -131,8 +131,8 @@ function normalizeEntry(parsed, term) {
     contextualMeaning: typeof parsed.contextualMeaning === "string" ? parsed.contextualMeaning : undefined
   };
 }
-function cacheId(term, languageName, context) {
-  const text = `${languageName}\x00${term.trim().toLowerCase()}\x00${context?.trim() ?? ""}`;
+function lookupCacheId(term, languageName, context, bookTitle) {
+  const text = JSON.stringify([languageName, term.trim().toLowerCase(), context?.trim() ?? "", bookTitle ?? ""]);
   let hash = 5381;
   for (let i = 0;i < text.length; i += 1) {
     hash = (hash * 33 ^ text.charCodeAt(i)) >>> 0;
@@ -143,7 +143,7 @@ async function lookUpTerm(ctx, input) {
   const term = input.term.trim();
   const languageName = resolveLanguageName(ctx, input.language ?? getTargetLanguage(ctx));
   const cache = ctx.services.storage.collection(LOOKUPS_COLLECTION);
-  const id = cacheId(term, languageName, input.context);
+  const id = lookupCacheId(term, languageName, input.context, input.bookTitle);
   const cached = await cache.get(id);
   if (cached?.data?.entry && Array.isArray(cached.data.entry.senses)) {
     return { entry: cached.data.entry, language: languageName };
@@ -226,15 +226,20 @@ async function changeWordLanguage(ctx, doc, targetLanguage) {
   };
 }
 
+// src/current-book.ts
+async function currentBookTitle(ctx) {
+  const before = await ctx.domains.reading.queries.session();
+  if (before.status !== "ready" || !before.bookId || !before.sessionId)
+    return;
+  const book = await ctx.domains.library.queries.books.get(before.bookId);
+  const after = await ctx.domains.reading.queries.session();
+  if (after.status !== "ready" || after.bookId !== before.bookId || after.sessionId !== before.sessionId)
+    return;
+  return book?.title;
+}
+
 // src/agent-tools.ts
 function registerAgentTools(ctx) {
-  let currentBookTitle;
-  ctx.services.session.subscribe("book-opened", ({ book }) => {
-    currentBookTitle = book.title;
-  });
-  ctx.services.session.subscribe("book-closed", () => {
-    currentBookTitle = undefined;
-  });
   ctx.contributions.agentRetrievalProviders.register({
     id: "saved-vocabulary",
     label: "Search saved vocabulary",
@@ -278,7 +283,7 @@ function registerAgentTools(ctx) {
       const { entry, language } = await lookUpTerm(ctx, {
         term,
         context,
-        bookTitle: currentBookTitle
+        bookTitle: await currentBookTitle(ctx)
       });
       const headword = entry.headword || term;
       return {
@@ -354,6 +359,9 @@ function registerAgentTools(ctx) {
 
 // src/types.ts
 function assertPluginCapabilities(ctx) {
+  if (!ctx.domains.reading || !ctx.domains.library) {
+    throw new Error('Dictionary requires "reading:read" and "library:read" permissions');
+  }
   if (!ctx.services.llm) {
     throw new Error('Dictionary requires the "service:llm" permission');
   }

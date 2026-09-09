@@ -1102,22 +1102,6 @@ export type ConversationDomainEventType =
   | "aiMessage.removed"
   | "aiConversation.cleared";
 
-/**
- * Session facts — runtime state of the open reader, NOT domain events (they
- * describe what is on screen, never enter the event log, and need no
- * permission). `book.opened` the domain event exists separately under
- * `books.on` because opening also mutates domain state (last-opened recency).
- */
-export type PluginSessionEventMap = {
-  "book-opened": { book: { id: string; title: string; author?: string } };
-  "book-closed": { bookId: string };
-  "chapter-changed": { bookId: string; chapterHref: string | null };
-  /** Fires on page turns; fraction is 0..1. */
-  "reading-progress": { bookId: string; fraction: number };
-};
-
-export type PluginSessionEventName = keyof PluginSessionEventMap;
-
 // ─── Read models (projections as plugins see them) ───────────────────────────
 //
 // These are the CANONICAL domain read models from @read-aware/core
@@ -1608,10 +1592,6 @@ export type PluginHostServices = {
     environment(): Promise<import("@read-aware/core").HostEnvironmentSnapshot>;
     /** Delivers an initial snapshot, then changed revisions. Disposed on unload. */
     observeEnvironment(handler: (snapshot: import("@read-aware/core").HostEnvironmentSnapshot) => void | Promise<void>): PluginDisposable;
-    subscribe<K extends PluginSessionEventName>(
-      event: K,
-      handler: (payload: PluginSessionEventMap[K]) => void,
-    ): PluginDisposable;
   };
   network?: {
     /** Native HTTP; Request/init semantics and cancellation survive the Worker bridge.

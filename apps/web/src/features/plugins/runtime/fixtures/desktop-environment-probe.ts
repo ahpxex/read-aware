@@ -23,7 +23,7 @@ export async function prepareEnvironmentProbe() {
   if (worker) throw Error("Probe already active");
   try {
     worker = await startPluginWorker({ id, name: "Environment diagnostic", version: "1.0.0", schemaVersion: 1, permissions: [],
-      requires: { services: { session: "^1.1.0" }, contributions: { commands: "^1.0.0" } } }, "0.5.4", disposables,
+      requires: { services: { session: "^2.0.0" }, contributions: { commands: "^1.0.0" } } }, "0.5.4", disposables,
       { moduleUrl: new URL("./environment-probe.ts", import.meta.url).href });
     await worker.checkHealth(); worker.promote();
     return { path };

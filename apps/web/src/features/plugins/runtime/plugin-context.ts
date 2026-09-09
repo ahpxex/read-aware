@@ -48,8 +48,6 @@ import {
   type PluginContext,
   type PluginDisposable,
   type PluginManifest,
-  type PluginSessionEventMap,
-  type PluginSessionEventName,
 } from "../lib/plugin-types";
 import { registerSyncTransport } from "../../../platform/sync/transport-registry";
 import { releasePluginCallbacks } from "./plugin-callback-wire";
@@ -96,13 +94,6 @@ function toPluginDocument(row: PluginDocumentRow) {
 
 /** Names for collections and secret keys: short, flat, no surprises. */
 const NAMESPACE_KEY = /^[a-z0-9][a-z0-9_-]{0,63}$/;
-
-const SESSION_EVENTS: readonly PluginSessionEventName[] = [
-  "book-opened",
-  "book-closed",
-  "chapter-changed",
-  "reading-progress",
-];
 
 /** The app UI's current locale, normalized to a supported one. */
 export function currentAppLocale(): string {
@@ -582,24 +573,6 @@ export function buildPluginContext(
           return hostEnvironment.snapshot();
         },
         observeEnvironment: handler => track(() => ({ dispose: hostEnvironment.observe(handler) })),
-        subscribe: (event, handler) => {
-        if (!SESSION_EVENTS.includes(event)) {
-          throw new Error(`"${String(event)}" is not a session event`);
-        }
-        return track(() => {
-          const off = onAppEvent(event, ((payload: PluginSessionEventMap[typeof event]) => {
-            const report = (error: unknown) =>
-              log.error(`event handler from "${manifest.id}" failed`, error);
-            try {
-              const result = handler(payload as never) as unknown;
-              if (result instanceof Promise) result.catch(report);
-            } catch (error) {
-              report(error);
-            }
-          }) as never);
-          return { dispose: off };
-        });
-        },
       },
     },
   };

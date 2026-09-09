@@ -17,6 +17,15 @@ function manifest(patch: Partial<PluginManifest> = {}): PluginManifest {
 }
 
 describe("plugin capability negotiation", () => {
+  test("metadata service does not grant reading access and legacy event contracts are rejected", () => {
+    const empty = manifest({ permissions: [] });
+    expect(resolvePluginCapabilities(empty).services.session).toBe("2.0.0");
+    expect(resolvePluginCapabilities(empty).domains.reading).toBeUndefined();
+    expect(() => assertPluginCapabilityRequirements(manifest({ requires: { services: { session: "^1.0.0" } } }))).toThrow(/host provides 2.0.0/);
+    expect(() => assertPluginCapabilityRequirements(manifest({ requires: { services: { session: "^2.0.0" } } }))).not.toThrow();
+    expect(() => assertPluginCapabilityRequirements(manifest({ requires: { domains: { reading: "^2.0.0" } } }))).toThrow(/unavailable capability domains.reading/);
+    expect(() => assertPluginCapabilityRequirements(manifest({ permissions: ["reading:read"], requires: { domains: { reading: "^2.0.0" } } }))).not.toThrow();
+  });
   test("publishes only the actor-visible capability versions", () => {
     const visible = resolvePluginCapabilities(
       manifest({ permissions: ["library:read", "service:network", "ui:themes"] }),

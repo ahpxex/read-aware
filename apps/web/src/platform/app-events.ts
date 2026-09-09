@@ -1,6 +1,6 @@
 /**
- * The app-wide event bus for SESSION facts — runtime state of the open
- * reader and cross-feature notifications. Lives in platform/ so feature libs
+ * The app-wide event bus for cross-feature notifications. Reading-session
+ * state belongs to the reading domain. Lives in platform/ so feature libs
  * (library-db, reader session) can emit without depending on consumers.
  * Handlers are isolated: one throwing never breaks the emitter or its peers.
  *
@@ -13,10 +13,6 @@ import { createLogger } from "./logger";
 const log = createLogger("app-events");
 
 export type AppEventMap = {
-  "book-opened": { book: { id: string; title: string; author?: string } };
-  "book-closed": { bookId: string };
-  "chapter-changed": { bookId: string; chapterHref: string | null };
-  "reading-progress": { bookId: string; fraction: number };
   /**
    * The reader just did demand-driven work (a relocation, a page render).
    * Background pipelines that share the reader's resources — the PDF worker,

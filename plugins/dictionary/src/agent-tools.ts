@@ -3,17 +3,9 @@ import { definitionOf } from "./format";
 import { lookUpTerm } from "./lookup";
 import type { DictionaryPluginContext, SavedWord } from "./types";
 import { saveWord, wordCollection } from "./words";
+import { currentBookTitle } from "./current-book";
 
 export function registerAgentTools(ctx: DictionaryPluginContext): void {
-  // The open book's title sharpens contextual senses; session facts carry it.
-  let currentBookTitle: string | undefined;
-  ctx.services.session.subscribe("book-opened", ({ book }) => {
-    currentBookTitle = book.title;
-  });
-  ctx.services.session.subscribe("book-closed", () => {
-    currentBookTitle = undefined;
-  });
-
   ctx.contributions.agentRetrievalProviders.register({
     id: "saved-vocabulary",
     label: "Search saved vocabulary",
@@ -64,7 +56,7 @@ export function registerAgentTools(ctx: DictionaryPluginContext): void {
       const { entry, language } = await lookUpTerm(ctx, {
         term,
         context,
-        bookTitle: currentBookTitle,
+        bookTitle: await currentBookTitle(ctx),
       });
       const headword = entry.headword || term;
       // The model gets a one-line gist; the full entry rides the word card.

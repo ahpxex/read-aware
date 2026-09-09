@@ -575,3 +575,19 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [代码/环境] 重扫为 224 行、583 库存映射、129 验收项、30 责任单元/catalog、32 场景。新增工具和服务映射到已有 MORE03，不扩张 catalog 责任数。两份生成检查、七项模型门禁与三对文档 validator 通过；三份 HTML 在 1440×1000、1024×768、390×844 无页面横向溢出、重复 ID、失效页内锚点、无名按钮或已观察资源 HTTP 错误。中英文环境搜索、Escape、已有抽屉 inert 和主题刷新保持通过；console/page error 为空，移动首页截图已查看。初次 about:blank 不计验证，重新导航后才检查。无新增图，文档仍依赖 CDN；文档浏览器不算产品 E2E。
 
 仍未完成：MORE03 的支持格式/真实 availability、旧阅读事件迁移，READ16 跟随与跨提供者取消补偿、8 项无效果设置、其余双端缺口、W01–W32 全组合、全格式/packaged/跨平台验收。测试恢复 en 与原生 online 属性，两种诊断命令均为 0，预览 Worker 终止时宿主弹窗也被清理；未写测试业务数据。隔离 app 进程已退出，5184/9224 无监听，文档浏览器已关闭，正式实例未操作、未推送，总体目标保持进行中。
+
+## 2026-09-09：删除无授权阅读事件旁路，统一 reading 状态
+
+[代码] session 服务升级 2.0.0，仅保留 environment/observeEnvironment。删除 services.session.subscribe、PluginSessionEventMap/Name、App 的三个 open/close/chapter/progress 广播 effect 及内部事件类型；没有保留返回空值或互相兜底的兼容层。旧 ^1 要求在能力协商时明确拒绝。当前阅读信息统一走 reading 授权域，snapshot/observeSession 的 bookId/sessionId/status/location/history/mode/playback/revision 表达当前事实与变化；Agent 继续使用同一控制器，无需另一份事件实现。
+
+[代码] Dictionary 1.2 声明 reading:read/library:read，以查询组合代替事件维护的书名缓存。读取元数据后复核 book/session/status，换书、重开、关闭则不使用旧标题；读库失败向调用者传播，不当成“没有书”。按需读取修复迟启用与改名不刷新的问题。查词缓存补入 bookTitle 这个实际 prompt 输入，避免不同书籍上下文共用词条；新 cache key 不复用旧缓存，但保存的生词本不变。Listening Desk 0.7 同步声明 session ^2.0.0。源码十插件、bundled 六插件未变；内置更新仍按既有宿主政策，未新增绕过安装许可的流程。
+
+[环境] [结构化证据](./evidence/reading-session-boundary-2026-09-09.json)来自隔离 macOS debug Tauri（5184/9224）。先打开已有合成 FB2，再启用三个真实 Worker：零权限的 session 服务只含 environment/observeEnvironment，无 reading 域/写命令且 seen 始终为空；reading:read Worker 立即收到 revision 10 的 ready 快照，没有写命令。切到已有合成 PDF 收到 loading/ready 与位置变化，到 revision 17；关书收到 revision 18 idle/null。没有靠已废除的 App 广播驱动测试。
+
+[环境] 实际 Dictionary 编译产物在独立诊断身份运行；三条私有缓存分别用 FB2 标题、PDF 标题和无标题作为 key，实际 lookup_word 工具连续返回对应三条 marker 定义。宿主 localOnly 在整个测试中设为 true，避免 cache miss 意外触发远端推理，结束恢复 false。此证据验证正式查询/缓存/工具 Worker 组合，不是远端模型语义或原生词卡 UI，不宣称安装升级同意流程已验收。改名、元数据缺失/失败、读标题途中换书/重开/关闭由单测覆盖；没有冒充这些全部都做了原生故障注入。
+
+[验证] 五个聚焦文件 13 项、34 次断言通过；包含旧合约拒绝、元数据不授予 reading、read grant 正常协商、查询和缓存输入隔离。全仓 test 20 任务、typecheck 23 任务、Dictionary/Listening Desk build 和生产 web build 通过。初次 typecheck 指出 App 删除 effect 后 useRef 未使用，已清理后重跑通过。Rust debug 重编译通过，保留 37 个既有 warnings 与启动 web content process terminated 后 mounted 记录；未改 Rust 业务、未重跑 Rust 全量或 packaged 构建。
+
+[代码/环境] 库存从 583 降为 578：删除一个旧公开方法和四个重复内部广播，不是删除可观察阅读行为。现为 224 证据行、578 库存映射、129 验收项、30 责任单元/catalog、32 场景。生成器先正确拒绝失效的 subscribe 映射，移除过期映射并登记 Dictionary 真实 domain 消费后通过。三对文档 validator、两份生成检查、七项模型反例门禁通过。三份 HTML 的 1440×1000、1024×768、390×844 无页面横向溢出、重复 ID、失效页内锚点、无名按钮或已观察资源 HTTP 错误；中英文搜索/Escape、已有抽屉 inert 和主题刷新保持通过，console/page error 为空，移动首页截图已查看。初次 about:blank 不计证据；文档仍依赖 CDN，无新增图，浏览器不是产品验收。
+
+仍未完成：READ08 origin/reason 与完整执行中撤权/跨平台，MORE03 格式/服务真实就绪，READ16 跟随与跨提供者取消补偿、8 个无效果设置、其他双端缺口、W01–W32 全组合与全格式/packaged/跨平台验收。本批复用实用 Dictionary，不用诊断 Worker 充数。三条诊断文档已删除，诊断命令/工具均为 0，书关闭，localOnly 恢复；已有测试阅读轨迹不倒写。隔离进程退出、5184/9224 无监听，文档浏览器关闭；正式 app 未操作、未推送，总体目标继续。

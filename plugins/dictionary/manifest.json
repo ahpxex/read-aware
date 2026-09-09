@@ -1,10 +1,11 @@
 {
   "id": "dictionary",
   "name": "Dictionary",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "schemaVersion": 1,
   "minAppVersion": "0.3.0",
   "requires": {
+    "domains": { "reading": "^2.0.0", "library": "^1.0.0" },
     "contributions": {
       "selectionActions": "^1.0.0",
       "headerActions": "^1.0.0",
@@ -15,7 +16,6 @@
     "services": {
       "storage": "^2.0.0",
       "ui": "^1.0.0",
-      "session": "^1.0.0",
       "llm": "^1.0.0"
     },
     "schemas": { "views": "^1.0.0" }
@@ -23,6 +23,8 @@
   "description": "Look up words while you read, save them, and revisit full dictionary entries on a searchable timeline.",
   "author": "ReadAware",
   "permissions": [
+    "reading:read",
+    "library:read",
     "service:llm",
     "agent:tools",
     "agent:retrieval"

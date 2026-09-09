@@ -73,14 +73,14 @@ const pluginMap = pairs([
   ["services.storage.get services.storage.set services.storage.remove", "SYS01"], ["services.storage.collection", "SYS02"],
   ["services.storage.flush", "SYS01"],
   ["services.secrets.get services.secrets.set services.secrets.remove", "SYS04"], ["services.ui.showToast", "EXT07"],
-  ["services.ui.exportFile", "SYS10"], ["services.schedules.bind", "MORE01"], ["services.session.subscribe", "READ08"],
+  ["services.ui.exportFile", "SYS10"], ["services.schedules.bind", "MORE01"],
   ["services.network.fetch", "SYS06"], ["services.llm.ask", "AI06"], ["services.clipboard.writeText", "SYS08"],
   ["services.session.environment services.session.observeEnvironment", "MORE03"],
 ]);
 const catalogMap: Record<string, Record<string, string[]>> = {
   domains: { library:["LIB01"], reading:["STAT01","READ01"], annotations:["ANN01"], conversations:["AI01"], settings:["CFG01"] },
   contributions: { selectionActions:["EXT01"], headerActions:["EXT02"], commands:["UI03"], settingsOptions:["CFG09"], voiceProviders:["READ17"], contentProviders:["LIB14"], readerModes:["READ15"], agentTools:["AI10"], agentContextProviders:["AI11"], agentRetrievalProviders:["AI12"], memoryCandidateProviders:["MEM03"], themes:["EXT08"], fonts:["EXT08"], syncTransports:["OPS04"] },
-  services: { storage:["SYS01","SYS02"], secrets:["SYS04"], ui:["EXT07","SYS10"], schedules:["MORE01"], session:["READ08","MORE03"], network:["SYS06"], llm:["AI06"], clipboard:["SYS08"] },
+  services: { storage:["SYS01","SYS02"], secrets:["SYS04"], ui:["EXT07","SYS10"], schedules:["MORE01"], session:["MORE03"], network:["SYS06"], llm:["AI06"], clipboard:["SYS08"] },
   schemas: { views:["EXT03","EXT04","EXT05"], settings:["CFG09"], themes:["EXT08"] },
 };
 const nativeMap = pairs([
@@ -178,7 +178,7 @@ export function collectInventory(): Inventory[] {
   for (const name of stringProperties(namedInitializer("apps/web/src/features/menus/lib/menu-registry.tsx", "CORE_MENU_ITEMS"),"id")) add("Menu placement", name, menuMap[name]);
   const shortcutMap = pairs([["search settings", "UI03"],["new-conversation", "AI02"],["next-page prev-page next-chapter prev-chapter", "READ04"],["toggle-controls", "READ09"],["reader-mode-next-unit reader-mode-prev-unit", "READ16"],["selection-copy", "SYS08"],["selection-highlight", "ANN02"],["selection-underline", "ANN03"],["selection-add-note", "ANN05"],["selection-look-up", "EXT09"],["selection-ask-ai", "AI03"],["close", "UI01 READ02"],["primary-nav", "UI01"],["reader-mode-volume-keys", "SYS18"]]);
   for (const declaration of ["EDITABLE_SHORTCUTS","INFO_SHORTCUTS"]) for (const name of stringProperties(namedInitializer("apps/web/src/features/settings/lib/shortcuts.ts",declaration),"id")) add("Shortcut", name, shortcutMap[name]);
-  const eventMap = pairs([["book-opened book-closed chapter-changed reading-progress", "READ08"],["reader-demand-activity", "TXT05"],["book-removed library-changed book-changed", "CON07 LIB01"],["plugin-storage-changed local-write-failed", "SYS01 CFG10"],["roaming-preferences-changed", "OPS05"],["conversations-changed", "AI01 OPS05"]]);
+  const eventMap = pairs([["reader-demand-activity", "TXT05"],["book-removed library-changed book-changed", "CON07 LIB01"],["plugin-storage-changed local-write-failed", "SYS01 CFG10"],["roaming-preferences-changed", "OPS05"],["conversations-changed", "AI01 OPS05"]]);
   for (const name of typeMembers("apps/web/src/platform/app-events.ts","AppEventMap")) add("App event", name, eventMap[name]);
   const actionMap = pairs([["openBook", "READ01"],["openCollection goShelf goAgent goStats openSettings", "UI01"],["importBook", "LIB06"],["startSelection setLayout setSort setGroup", "UI02"]]);
   for (const name of typeMembers("apps/web/src/features/command/lib/build-commands.tsx","CommandActions")) add("Command action", name, actionMap[name]);
@@ -211,7 +211,7 @@ export function collectInventory(): Inventory[] {
   }
   const featureMap = pairs([["agent ai", "AI01 AI03 MEM01"],["annotations", "ANN01"],["command", "UI03"],["library shelf", "LIB01 UI02"],["menus", "UI05"],["navigation", "UI01 SYS17"],["plugins", "EXT01 CON03"],["reader", "READ01 TXT01"],["settings", "CFG01 OPS08"],["stats", "STAT01"],["sync", "OPS01"],["update", "SYS16"]]);
   for (const directory of readdirSync("apps/web/src/features", {withFileTypes:true}).filter(d=>d.isDirectory())) add("Feature owner", directory.name, featureMap[directory.name], "[代码+人工审计] 所属功能组入口；目录覆盖不等于每个 UI 分支测试通过");
-  const expectedPlugins = pairs([["dictionary", "EXT09 AI12"],["rss-reader", "EXT10"],["editorial-themes", "EXT08"],["sentence-reader", "READ15 READ16"],["tts", "READ17 READ18"],["webdav-sync", "OPS04"],["jumper", "TXT02 TXT07 READ06 EXT02"],["annotation-desk", "ANN01 ANN04 ANN05 ANN08 EXT02 EXT05 SYS10"],["listening-desk", "READ16 READ18 READ06 EXT02 MORE03"],["reading-goals", "AI11 MEM03 SET23 EXT02 EXT05 SYS01"]]);
+  const expectedPlugins = pairs([["dictionary", "EXT09 AI12 READ07 LIB01"],["rss-reader", "EXT10"],["editorial-themes", "EXT08"],["sentence-reader", "READ15 READ16"],["tts", "READ17 READ18"],["webdav-sync", "OPS04"],["jumper", "TXT02 TXT07 READ06 EXT02"],["annotation-desk", "ANN01 ANN04 ANN05 ANN08 EXT02 EXT05 SYS10"],["listening-desk", "READ16 READ18 READ06 EXT02 MORE03"],["reading-goals", "AI11 MEM03 SET23 EXT02 EXT05 SYS01"]]);
   for (const directory of readdirSync("plugins",{withFileTypes:true}).filter(d=>d.isDirectory()).sort((a,b)=>a.name.localeCompare(b.name))) {
     const manifest = JSON.parse(readFileSync(`plugins/${directory.name}/manifest.json`,"utf8"));
     add("First-party source plugin", manifest.id, expectedPlugins[directory.name], `[代码] 源码版本 ${manifest.version}；源码存在不等于打包、安装、启用或模型可调用`);

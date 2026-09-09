@@ -29,6 +29,10 @@ export type DictionaryContext = PluginContext & {
 };
 
 export type DictionaryPluginContext = DictionaryContext & {
+  domains: PluginContext["domains"] & {
+    reading: NonNullable<PluginContext["domains"]["reading"]>;
+    library: NonNullable<PluginContext["domains"]["library"]>;
+  };
   contributions: PluginContext["contributions"] & {
     agentTools: NonNullable<PluginContext["contributions"]["agentTools"]>;
     agentRetrievalProviders: NonNullable<
@@ -40,6 +44,9 @@ export type DictionaryPluginContext = DictionaryContext & {
 export function assertPluginCapabilities(
   ctx: PluginContext,
 ): asserts ctx is DictionaryPluginContext {
+  if (!ctx.domains.reading || !ctx.domains.library) {
+    throw new Error('Dictionary requires "reading:read" and "library:read" permissions');
+  }
   if (!ctx.services.llm) {
     throw new Error('Dictionary requires the "service:llm" permission');
   }

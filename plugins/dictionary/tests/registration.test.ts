@@ -24,8 +24,8 @@ describe("Dictionary contributions", () => {
       },
       services: {
         llm: {},
-        session: { subscribe: () => disposable },
       },
+      domains: { reading: {}, library: {} },
       locale: "en",
     } as unknown as PluginContext;
 

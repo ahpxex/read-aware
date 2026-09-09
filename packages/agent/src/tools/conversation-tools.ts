@@ -11,8 +11,10 @@ import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { normalizeBookIdParam } from "./current-book";
 import { textResult } from "./tool-result";
+import { readingContextCall, permittedTurnRecords } from "../runtime/reading-context-policy";
+import type { AgentTurnState } from "./turn-state";
 
-export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
+export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps, state?: AgentTurnState): AgentTool[] {
   const searchConversation: AgentTool = {
     name: "search_conversation",
     label: "Search past turns",
@@ -30,15 +32,21 @@ export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps): A
         }),
       ),
     }),
-    execute: async (_id, params) => {
+    execute: async (_id, params, signal) => {
       const { queries, allThreads } = params as { queries: string[]; allThreads?: boolean };
-      const results = await deps.conversations.searchTurns({
-        queries: queries.slice(0, 8),
-        threadKey:
-          allThreads || scope.kind === "global" ? undefined : threadScopeKey(scope),
-        limit: 10,
-      });
-      return textResult(results);
+      const call = readingContextCall(deps.readingContextPolicy, signal, state?.readingContextPermissions);
+      try {
+        call.assertAllowed();
+        const results = await call.wait(deps.conversations.searchTurns({
+          queries: queries.slice(0, 8),
+          threadKey:
+            allThreads || scope.kind === "global" ? undefined : threadScopeKey(scope),
+          limit: 10,
+          includeAttachments: call.permissions.selection,
+        }));
+        call.assertAllowed();
+        return textResult(permittedTurnRecords(results, call.permissions));
+      } finally { call.dispose(); }
     },
   };
 
@@ -53,13 +61,18 @@ export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps): A
       ),
       bookId: Type.Optional(Type.String({ description: "Book id (global thread only)" })),
     }),
-    execute: async (_id, params) => {
+    execute: async (_id, params, signal) => {
       const { n = 6, bookId } = params as { n?: number; bookId?: string };
       const normalized = normalizeBookIdParam(bookId);
       const key = normalized ? `book:${normalized}` : threadScopeKey(scope);
-      const records = await deps.conversations.load(key);
-      const clamped = Math.min(Math.max(1, Math.floor(n)), 20);
-      return textResult(records.slice(-clamped));
+      const call = readingContextCall(deps.readingContextPolicy, signal, state?.readingContextPermissions);
+      try {
+        call.assertAllowed();
+        const records = await call.wait(deps.conversations.load(key));
+        const clamped = Math.min(Math.max(1, Math.floor(n)), 20);
+        call.assertAllowed();
+        return textResult(permittedTurnRecords(records.slice(-clamped), call.permissions));
+      } finally { call.dispose(); }
     },
   };
 

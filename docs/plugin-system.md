@@ -352,10 +352,55 @@ successful restoration. See [exact evidence](./evidence/inference-local-only-202
 
 [代码/边界] This is not a global network firewall: arbitrary granted plugin
 HTTP, TTS, sync, and other network services are not governed by this policy.
-`sendHighlightedText` and `sendSurroundingContext` still lack
-their own execution consumers. SET26 therefore remains partial. Complete
+`sendHighlightedText` and `sendSurroundingContext` now constrain the Agent's
+automatic reading inputs as described below, not arbitrary plugin content.
+SET26 therefore remains partial. Complete
 privacy-boundary coverage, packaged CSP and other desktop platforms are not
 verified by this change.
+
+### Host Reading Context Policy
+
+[代码] The existing Agent settings tools and exactly authorized plugin settings
+paths now control the product runtime's live reading-context policy:
+
+| Setting | Effect on new Agent requests |
+| --- | --- |
+| `ai.preferences.sendHighlightedText = false` | Omit automatic selection attachments, including hydrated history and `get_recent_turns` / `search_conversation` results. Exclude attachments from search matching, not just returned records. |
+| `ai.preferences.sendSurroundingContext = false` | Skip deterministic grounding and omit the viewport. |
+| Either setting is false | Omit the whole viewport, including `get_reading_session.visibleText`, because it can overlap a withheld selection. Preserve location metadata and the original spoiler fence. |
+
+[代码] Locally stored attachments and manually authored question text remain
+unchanged. A permission change between turns discards the cached model context
+and rehydrates permitted records. Each turn captures its grants: enabling more
+text affects only a new turn, including history/session tool calls. Tightening
+revokes the active grant permanently, rejects with retryable
+`ai/context-changed`, aborts model transport, suppresses late output, and releases
+the busy state even while an asynchronous preparation read is pending. Background
+memory jobs capture the originating turn's grants when queued; tightening cancels
+queued/in-flight work, including plugin memory candidates. Legacy history adoption
+filters attachments before extraction/summary. Re-enable or preference rollback
+never resurrects a cancelled operation. Already-sent bytes and dispatched writes
+cannot be retroactively revoked. Shared policy waits check revocation before and
+after resolution so an already-fulfilled Promise cannot win against an aborted grant.
+
+[代码/边界] This is an input-origin policy, not arbitrary string redaction or a
+global book-data prohibition. Existing assistant prose, memories, summaries and
+chapter digests can contain previously quoted material. Independent book/annotation
+retrieval, plugin context providers, selection/lookup callbacks, plugin-authored
+LLM prompts and granted HTTP/TTS retain their own boundaries; the two settings do
+not yet govern all those routes. Both SET24 and SET25 remain partial, but are no
+longer classified as having no execution consumer. The model-facing withheld
+selection note is explanatory only; runtime filtering is the enforcement.
+
+[环境] Isolated macOS debug Tauri verified four flag combinations through Agent
+and actual settings Worker writes, actual FB2 viewport sampling, outbound loopback
+requests, retained SQLite attachments with filtered history/session tools,
+in-flight transport cancellation and a new request after re-enable. The attachment
+was supplied by the fixture, not a selection UI gesture. Grounding inclusion is
+covered by runtime tests; this one-screen native sample produced no additional
+grounding block. Packaged, Windows/Linux, full privacy-settings UI and complete
+plugin data-flow coverage remain unverified. See
+[structured evidence](./evidence/reading-context-policy-2026-09-09.json).
 
 ### Host Memory Build Policy
 

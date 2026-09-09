@@ -6,6 +6,7 @@ import { resolveBookId } from "./current-book";
 import { textResult } from "./tool-result";
 import type { AgentTurnState } from "./turn-state";
 import type { ReadingLocation } from "@read-aware/core";
+import { readingContextCall } from "../runtime/reading-context-policy";
 
 export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: AgentTurnState): AgentTool[] {
   const openBook: AgentTool = {
@@ -79,11 +80,18 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
     name: "get_reading_session", label: "Reading session",
     description: "Read the actual active reader status, versioned location, visible text and navigation history availability. A book-scoped turn does not expose another book's viewport.",
     parameters: Type.Object({}),
-    execute: async () => {
-      const snapshot = await deps.reader.getSession();
-      if (scope.kind === "book" && snapshot.bookId !== scope.bookId) return textResult({ status: "not-active", bookId: scope.bookId });
-      return textResult(state?.spoilerFence && !state.spoilerPermissionGranted
-        ? { ...snapshot, visibleText: "", textAccess: "Use the turn's original reading_cursor.visible_text; navigation does not grant spoiler access." } : snapshot);
+    execute: async (_id, _params, signal) => {
+      const call = readingContextCall(deps.readingContextPolicy, signal, state?.readingContextPermissions);
+      try {
+        call.assertAllowed();
+        const snapshot = await call.wait(deps.reader.getSession());
+        if (scope.kind === "book" && snapshot.bookId !== scope.bookId) return textResult({ status: "not-active", bookId: scope.bookId });
+        if (!call.permissions.selection || !call.permissions.surrounding) {
+          return textResult({ ...snapshot, visibleText: "", textAccess: "Viewport text is withheld by the reader's privacy settings." });
+        }
+        return textResult(state?.spoilerFence && !state.spoilerPermissionGranted
+          ? { ...snapshot, visibleText: "", textAccess: "Use the turn's original reading_cursor.visible_text; navigation does not grant spoiler access." } : snapshot);
+      } finally { call.dispose(); }
     },
   };
   const control: AgentTool = {

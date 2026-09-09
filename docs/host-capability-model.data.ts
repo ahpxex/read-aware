@@ -43,7 +43,7 @@ export const units: Unit[] = [
     "沿用 get_settings/update_settings，不为主题/字体/每个布尔字段创建模型工具。敏感配置由 S3 打开宿主设置流程，不把 key 放进提示词。",
     "自有字段与跨插件路径授权分开；动态 option 来自 C1；设置选项变化不能自动执行播放、安装、连接、付款。",
     "明确 null 是值还是 inherit；reset override 不是写默认值；all-books 不等于清覆盖。更新通道 device-local，不被漫游；面板位置/拖动坐标/最后关闭提示不是必须向 Agent 暴露的偏好。",
-    "所有可写路径有生产效果消费者；八个现有无效果设置先接线或禁用。buildMemory 已约束宿主记忆构建，关闭取消在途/排队任务，保留聊天与旧记忆读取；Reading Goals 实际贡献上下文和候选。localOnly 已约束宿主模型调用并取消在途请求，但不约束任意插件 HTTP/TTS/同步，仍需完整隐私边界。切字体、reset、本书覆盖、跨设备更新与失败回滚均验证实际 UI/行为。"),
+    "所有可写路径有生产效果消费者；六个现有无效果设置先接线或禁用。两个文本发送设置已控制 Agent 自动附件/viewport/grounding、历史附件检索及收紧时取消；插件文本回调与独立检索/旧衍生内容边界仍未闭合。buildMemory 已约束宿主记忆构建，关闭取消在途/排队任务，保留聊天与旧记忆读取；Reading Goals 实际贡献上下文和候选。localOnly 已约束宿主模型调用并取消在途请求，但不约束任意插件 HTTP/TTS/同步，仍需完整隐私边界。切字体、reset、本书覆盖、跨设备更新与失败回滚均验证实际 UI/行为。"),
   unit("D6", "Domain", "memory（目标新增）", "记忆、画像与书内知识的受限读模型", "MEM01-11 MEM13", "",
     "统一 memory/profile/book-memory 现有端口的授权读模型：检索、字段来源、章节摘要/人物概念图、任务状态；记住用户确认的事实、纠错/遗忘反馈、分类纠正和重建请求交给宿主业务命令。当前公共 domain catalog 没有 memory。",
     "保留 search_memory/remember/query_book_graph 与自动抽取、巩固、digest；不把内部端口函数存在计作模型工具或成熟产品入口。",

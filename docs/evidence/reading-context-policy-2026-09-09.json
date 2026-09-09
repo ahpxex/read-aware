@@ -1,0 +1,214 @@
+{
+  "date": "2026-09-09",
+  "app": "com.readaware.app.capability-e2e",
+  "platform": "macOS debug Tauri",
+  "ports": {
+    "frontend": 5184,
+    "bridge": 9224,
+    "controlledInference": 19843
+  },
+  "scope": "Agent automatic selection/viewport/grounding inputs, history tools, captured-grant cancellation; Agent and real plugin Worker settings writers.",
+  "setup": {
+    "book": {
+      "bookId": "f822389b-bf53-4db8-95d4-03545f3ef924"
+    },
+    "inference": {
+      "ready": true
+    }
+  },
+  "combinations": {
+    "results": [
+      {
+        "actor": "agent",
+        "selection": true,
+        "surrounding": true,
+        "turn": {
+          "status": "completed",
+          "visible": true
+        },
+        "write": "committed"
+      },
+      {
+        "actor": "plugin",
+        "selection": true,
+        "surrounding": false,
+        "turn": {
+          "status": "completed",
+          "visible": true
+        },
+        "write": "committed"
+      },
+      {
+        "actor": "agent",
+        "selection": false,
+        "surrounding": true,
+        "turn": {
+          "status": "completed",
+          "visible": true
+        },
+        "write": "committed"
+      },
+      {
+        "actor": "plugin",
+        "selection": false,
+        "surrounding": false,
+        "turn": {
+          "status": "completed",
+          "visible": true
+        },
+        "write": "committed"
+      }
+    ],
+    "status": "completed"
+  },
+  "history": {
+    "filtered": {
+      "localSelected": true,
+      "recentSelected": false,
+      "searchSelected": false,
+      "sessionSelected": false
+    },
+    "seed": {
+      "localSelected": true,
+      "recentSelected": false,
+      "searchSelected": false,
+      "sessionSelected": false
+    }
+  },
+  "revocation": {
+    "off": "committed",
+    "on": "committed",
+    "turn": {
+      "code": "ai/context-changed",
+      "status": "failed"
+    }
+  },
+  "runtime": {
+    "history": {
+      "status": "completed",
+      "visible": true
+    },
+    "recovered": {
+      "status": "completed",
+      "visible": true
+    },
+    "revoked": {
+      "code": "ai/context-changed",
+      "status": "failed"
+    }
+  },
+  "requests": [
+    {
+      "selected": true,
+      "viewport": true,
+      "grounding": false,
+      "held": false,
+      "cancelled": false
+    },
+    {
+      "selected": true,
+      "viewport": true,
+      "grounding": false,
+      "held": false,
+      "cancelled": false
+    },
+    {
+      "selected": true,
+      "viewport": false,
+      "grounding": false,
+      "held": false,
+      "cancelled": false
+    },
+    {
+      "selected": false,
+      "viewport": false,
+      "grounding": false,
+      "held": false,
+      "cancelled": false
+    },
+    {
+      "selected": false,
+      "viewport": false,
+      "grounding": false,
+      "held": false,
+      "cancelled": false
+    },
+    {
+      "selected": false,
+      "viewport": false,
+      "grounding": false,
+      "held": false,
+      "cancelled": false
+    },
+    {
+      "selected": true,
+      "viewport": true,
+      "grounding": false,
+      "held": true,
+      "cancelled": true
+    },
+    {
+      "selected": true,
+      "viewport": true,
+      "grounding": false,
+      "held": false,
+      "cancelled": false
+    }
+  ],
+  "discardedRequestIndices": [
+    0
+  ],
+  "discardedReason": "Fixture edit caused Vite page reload during the first sequence. Observed terminal WebView reload; cleaned its book/config and restored settings from the previous preference.changed event before a fresh sequence. Initial request is not counted as a completed scenario.",
+  "requestIndexMap": {
+    "fourCombinations": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "withheldHistoryFollowup": 5,
+    "heldThenRevoked": 6,
+    "newAfterReenable": 7
+  },
+  "cleanup": {
+    "book": {
+      "cleaned": true
+    },
+    "inference": {
+      "contributions": 0
+    },
+    "preferences": {
+      "buildMemory": true,
+      "features": {
+        "askConversation": true,
+        "defineTerm": true,
+        "explainSelection": true,
+        "summarizeChapter": true,
+        "translate": true
+      },
+      "followStreaming": false,
+      "localOnly": false,
+      "sendHighlightedText": true,
+      "sendSurroundingContext": true
+    },
+    "settings": {
+      "contributions": 0
+    }
+  },
+  "verification": {
+    "unit": "17 focused tests / 73 assertions, including global hydration, legacy adoption and dispose-during-preparation. Final full test: 20 successful tasks (19 cached); typecheck: 23 successful tasks (21 cached); production frontend build passed.",
+    "testRetry": "The unchanged Foliate clean-build test exceeded its 30-second timeout during a full run and a focused retry. The subsequent full run completed successfully without changing the test, timeout or production source; no timeout failure was counted as a pass.",
+    "documentation": "Matrix/model/plugin-system pair validators passed; 224 rows, 578 inventory mappings, 30 ownership units, 129 acceptance items and 32 scenarios checked. Browser at 1440x1000, 1024x768 and 390x844: screenshots, no document overflow, duplicate IDs, bad local anchors, unnamed buttons or HTTP resource errors; English/Chinese searches and Escape passed. Matrix/model drawer inert/focus and theme reload persistence passed. Browser closed; documents still use CDN resources.",
+    "rendererScreenshot": "/tmp/readaware-reading-context-policy.png",
+    "processes": "Owned process groups 38439 and 38851 stopped; sessions 25023 and 77135 exited 143; ports 5184/9224/19843 have no listeners."
+  },
+  "boundaries": [
+    "Four settings combinations were sent through the product runtime to loopback SSE. Selection attachment was supplied by the fixture; the viewport was sampled from the actual rendered FB2.",
+    "Native synthetic book fits in the viewport, so no additional grounding block was generated. Grounding inclusion/exclusion is covered by focused runtime tests, not claimed as a native positive-grounding case.",
+    "Local SQLite attachment retained while get_recent_turns/search_conversation/get_reading_session omit its marker.",
+    "The held request reached the server before revocation. Cancellation cannot retract bytes already sent; the server observed cancellation, old call failed ai/context-changed, and a fresh call succeeded.",
+    "Not a privacy guarantee for arbitrary plugin selection/lookup callbacks, granted book/annotation retrieval, HTTP/TTS, plugin-authored LLM prompts, prior assistant text, existing memories or chapter digests.",
+    "No external model requests, no formal app data touched. No packaged/Windows/Linux or complete settings UI interaction test in this evidence.",
+    "Probe plugins are fixtures, not additional user-facing composition plugins."
+  ]
+}

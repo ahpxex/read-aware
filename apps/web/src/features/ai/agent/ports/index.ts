@@ -18,6 +18,7 @@ import { createReaderPort } from "./reader-port";
 import { createSettingsPort } from "./settings-port";
 import { createUserInteractionPort } from "./user-interaction-port";
 import { memoryPolicy } from "../memory-policy";
+import { readingContextPolicy } from "../reading-context-policy";
 
 export { GLOBAL_CONVERSATION_ID } from "./conversation-port";
 
@@ -25,6 +26,7 @@ export function buildRuntimeDeps(): RuntimeDeps {
   return {
     environment: { snapshot: async () => hostEnvironment.snapshot() },
     memoryPolicy,
+    readingContextPolicy,
     library: createLibraryPort(),
     annotations: createAnnotationsPort(),
     reader: createReaderPort(),

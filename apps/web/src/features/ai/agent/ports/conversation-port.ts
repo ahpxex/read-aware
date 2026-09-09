@@ -70,7 +70,7 @@ export function createConversationPort(): ConversationPort {
     append: async () => {
       // no-op：见文件头注释
     },
-    searchTurns: async ({ queries, threadKey, limit }) => {
+    searchTurns: async ({ queries, threadKey, limit, includeAttachments }) => {
       // 匹配核心与 eval 的内存端口同源（searchTurnRecords：多变体合并 +
       // 精确优先 + 词元回退）——此前这里是逐字子串匹配，口语查询几乎
       // 永远命不中原话，工具形同虚设。
@@ -79,7 +79,8 @@ export function createConversationPort(): ConversationPort {
       for (const [storeId, messages] of Object.entries(all)) {
         const key = storeIdToThreadKey(storeId);
         if (threadKey && key !== threadKey) continue;
-        for (const turn of toTurns(messages)) pool.push({ ...turn, threadKey: key });
+        for (const turn of toTurns(messages)) pool.push({ ...turn, threadKey: key,
+          attachments: includeAttachments === false ? undefined : turn.attachments });
       }
       return searchTurnRecords(pool, queries, limit ?? 20);
     },

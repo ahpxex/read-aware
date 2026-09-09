@@ -591,3 +591,24 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [代码/环境] 库存从 583 降为 578：删除一个旧公开方法和四个重复内部广播，不是删除可观察阅读行为。现为 224 证据行、578 库存映射、129 验收项、30 责任单元/catalog、32 场景。生成器先正确拒绝失效的 subscribe 映射，移除过期映射并登记 Dictionary 真实 domain 消费后通过。三对文档 validator、两份生成检查、七项模型反例门禁通过。三份 HTML 的 1440×1000、1024×768、390×844 无页面横向溢出、重复 ID、失效页内锚点、无名按钮或已观察资源 HTTP 错误；中英文搜索/Escape、已有抽屉 inert 和主题刷新保持通过，console/page error 为空，移动首页截图已查看。初次 about:blank 不计证据；文档仍依赖 CDN，无新增图，浏览器不是产品验收。
 
 仍未完成：READ08 origin/reason 与完整执行中撤权/跨平台，MORE03 格式/服务真实就绪，READ16 跟随与跨提供者取消补偿、8 个无效果设置、其他双端缺口、W01–W32 全组合与全格式/packaged/跨平台验收。本批复用实用 Dictionary，不用诊断 Worker 充数。三条诊断文档已删除，诊断命令/工具均为 0，书关闭，localOnly 恢复；已有测试阅读轨迹不倒写。隔离进程退出、5184/9224 无监听，文档浏览器关闭；正式 app 未操作、未推送，总体目标继续。
+
+## 2026-09-09：D5 / Agent 阅读上下文隐私执行
+
+[代码] SET24/25 不再是只保存值：Agent 设置工具与授权插件 settings 写入同一实时策略。选区关闭后，自动附件、历史水化和历史检索/匹配不发送选区；周边关闭后跳过 grounding；任一关闭都移除可能包含选区的整个 viewport，包含 get_reading_session 的文本。保留本地附件、手写问题、位置和原始剧透围栏，不用猜测性的字符串替换实现隐私。
+
+- 每轮捕获授权；扩大权限只作用于新轮次。策略变化使缓存模型上下文重建；历史工具沿用本轮授权，不因中途重新开启而泄露旧附件。
+- 收紧以 ai/context-changed 终止准备中/进行中的回合，原生模型传输收到取消，排队和在途轮后记忆任务及插件候选一并失效；重开不复活旧请求。旧历史领养过滤附件后才提炼/摘要。
+- 修复共享 policyCall 的已完成 Promise 竞态：等待前与取值后复核取消，不能由 fulfilled 结果抢赢已撤销授权。准备阶段失败/取消不再卡住 busy；线程销毁中止准备任务，迟到读取不会启动模型。
+- 核心稳定错误码、模型错误分类和 8 语言 UI 文案同步；错误为可重试，用户可按当前隐私设置发起新请求。
+
+[环境] 17 个聚焦测试、73 次断言覆盖四组合、grounding、历史/全局水化/旧历史领养、开关 off/on、准备阶段失败/取消/销毁、工具授权固定、插件候选与排队任务取消。全仓 test 20 个任务与 typecheck 23 个任务通过；此单元不会靠这些测试宣告其余能力接通。
+
+[环境] 隔离 macOS debug Tauri（5184/9224）实际渲染 FB2，Agent 和真实 settings Worker 交替写两个开关，经实际产品 Agent runtime 向本机 SSE 端点发出四种组合。SQLite 附件保留，历史检索及会话文本隐藏；在途请求被插件关闭设置取消，服务端 observed cancelled=true，重新开启后只有新请求成功。见[结构化证据](./evidence/reading-context-policy-2026-09-09.json)。截图 /tmp/readaware-reading-context-policy.png 确认合成书正文渲染；选区附件由 fixture 提供，不是完整选区手势/UI 聊天验收。单屏合成书没有额外 grounding，正向 grounding 证据来自运行时测试。
+
+复现：运行 bun scripts/reading-context-probe-server.ts，再运行隔离 tauri.capability-e2e 配置。通过 9224 导入 desktop-settings-probe.ts，prepareSettingsProbe 显式备份 sendHighlightedText/sendSurroundingContext/buildMemory/localOnly 四路径，禁用 buildMemory、关闭 localOnly；desktop-inference-probe.ts.prepareInferenceProbe 备份并设置受控模型；desktop-reading-context-probe.ts.prepareReadingContextProbe 导入/打开合成书。交替 agentSettings/pluginSettings 后调用 readingContextProbeTurn，查询 19843/state；seedReadingContextHistory/readingContextHistorySnapshot 验证持久与推理副本；/hold 后发起回合，在服务端确认 held 请求后关闭/重开文本设置，再 /release 并验证下一回合。长场景放在 WebView 明确状态句柄中轮询，不在观察超时后重复执行。完成后依次 cleanupReadingContextProbe、cleanupInferenceProbe、cleanupSettingsProbe，停止自有进程。
+
+[环境] 首次 fixture 编辑导致 Vite 重载，首轮序列作废；实际检查重载日志后清理旧书/密钥备份，并按变更前 preference.changed 记录恢复四设置，重新准备后四组合完整通过。最终配置/密钥恢复，两个 Worker 贡献为 0，测试书/聊天清理，四隐私设置恢复原值；自有 app/服务器已停止，5184/9224/19843 无监听。不要在桌面探针中途编辑 fixture 或重建 Foliate。
+
+[仍缺] SET24/25 保持部分：插件 selection/lookup 回调、插件自组装 LLM/HTTP/TTS、独立正文/标注检索与旧回答/记忆/纪要不受此输入过滤自动清除或禁用。已发出的字节与已派发写不能撤回，完整隐私流、打包/Windows/Linux、完整设置 UI 与 W01–W32 其余组合插件未完成。矩阵无效果设置由 8 降为 6，但没有把两个文本设置改绿；保持 224 行与 578 库存映射，未改变完整目标或关闭原 GAP。
+
+[环境/最终复核] 最终全仓 test 20/20、typecheck 23/23、生产前端 build 通过。其间既有 Foliate clean-build 测试在全仓和独跑各出现一次 30 秒超时，后续完整复跑通过；未修改测试或放宽超时，也不把失败运行算通过。三个文档对 validator 与两份生成器 --check 通过；1440×1000、1024×768、390×844 截图/无横向溢出/锚点/按钮命名/资源错误检查，中英文搜索与 Escape 均通过，矩阵/模型目录 inert/焦点及主题刷新保留通过；文档仍使用 CDN，不是离线资源验证。独立浏览器已关闭。

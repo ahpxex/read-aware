@@ -287,6 +287,8 @@ export interface ConversationPort {
     queries: string[];
     threadKey?: string;
     limit?: number;
+    /** False excludes selection attachments from both matching and results. */
+    includeAttachments?: boolean;
   }): Promise<Array<TurnRecord & { threadKey: string }>>;
   /** 线程的滚动摘要（conversation_insights bundle v0）；无则 undefined。 */
   getInsights(threadKey: string): Promise<string | undefined>;
@@ -452,6 +454,7 @@ export interface ExternalMemoryCandidateRequest {
 }
 
 export interface RuntimeDeps {
+  readingContextPolicy?: import("./runtime/reading-context-policy").ReadingContextPolicy;
   environment: { snapshot(): Promise<import("@read-aware/core").HostEnvironmentSnapshot> };
   /** Live host preference; disabled blocks derived-memory work, not stored-data reads. */
   memoryPolicy?: import("./memory/build-policy").MemoryBuildPolicy;

@@ -527,13 +527,14 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         list.push(turn);
         stores.turns.set(key, list);
       },
-      searchTurns: async ({ queries, threadKey, limit }) => {
+      searchTurns: async ({ queries, threadKey, limit, includeAttachments }) => {
         // 与产品端口同一套匹配核心（searchTurnRecords）——匹配语义在
         // 接缝两侧不许漂移，eval 不许替产品圆谎。
         const pool: Array<TurnRecord & { threadKey: string }> = [];
         for (const [key, list] of stores.turns) {
           if (threadKey && key !== threadKey) continue;
-          for (const turn of list) pool.push({ ...turn, threadKey: key });
+          for (const turn of list) pool.push({ ...turn, threadKey: key,
+            attachments: includeAttachments === false ? undefined : turn.attachments });
         }
         return searchTurnRecords(pool, queries, limit ?? 20);
       },

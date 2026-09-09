@@ -31,6 +31,7 @@
     "aiNotConfigured": "AI isn't set up yet — add an API key to start chatting.",
     "aiLocalOnly": "Local-only mode has disabled AI requests. You can change this in AI settings.",
     "aiMemoryDisabled": "Building memory is disabled. You can enable it in AI settings.",
+    "aiContextChanged": "Reading privacy settings changed, so this request was stopped. Try again with the current settings.",
     "aiAuth": "The AI provider rejected the API key. Check it in Settings.",
     "aiRateLimited": "The AI provider is limiting requests right now. Wait a moment and try again.",
     "aiQuota": "Your AI account is out of credit or quota. Check your provider account.",

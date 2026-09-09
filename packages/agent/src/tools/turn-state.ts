@@ -12,6 +12,8 @@ export interface SpoilerFence {
 }
 
 export interface AgentTurnState {
+  /** Automatic reading context grants captured when this turn began. */
+  readingContextPermissions?: import("../runtime/reading-context-policy").ReadingContextPermissions;
   presentedBookIds: Set<string>;
   spoilerFence?: SpoilerFence;
   /** 宿主从本轮用户原话或 ask_user 回答中确定性验证出的剧透授权。 */

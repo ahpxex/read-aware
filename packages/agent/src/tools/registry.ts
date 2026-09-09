@@ -31,7 +31,7 @@ export function buildAgentTools(
     ...buildShelfTools(scope, deps),
     ...buildAnnotationTools(scope, deps),
     ...buildMemoryTools(scope, deps),
-    ...buildConversationTools(scope, deps),
+    ...buildConversationTools(scope, deps, turnState),
     ...buildBookTextTools(scope, deps, turnState),
     ...buildGraphTools(scope, deps, turnState),
     ...(scope.kind === "global" ? buildPresentTools(deps, turnState) : []),

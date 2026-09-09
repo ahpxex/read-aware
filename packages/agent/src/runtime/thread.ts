@@ -52,6 +52,7 @@ import {
 import { formatPromptTurn, type ReadingCursor } from "./reading-cursor";
 import { toolResultText } from "./tool-trace";
 import { windowByTurns } from "./windowing";
+import { readingContextCall, permittedReadingCursor, permittedTurnRecords, type ReadingContextCall, type ReadingContextPermissions } from "./reading-context-policy";
 
 export type SelectionAttachment = TurnAttachment;
 
@@ -138,6 +139,7 @@ export class AgentThread {
    */
   private sessionStarted = false;
   private sessionChapter: string | undefined;
+  private contextPermissionsKey: string | undefined;
   /** 一轮内的工具侧状态（出卡去重 + 剧透围栏）；每轮 sendTurn 开始时重算。 */
   private readonly turnState = createAgentTurnState();
   /** 未读正文只留在宿主侧作负证据索引，绝不进入模型上下文。 */
@@ -241,6 +243,7 @@ export class AgentThread {
     attachments?: TurnAttachment[];
     violations: NarrativeEvidenceViolation[];
     book: NarrativeBookIndex;
+    signal?: AbortSignal;
   }): Promise<{ answer: string; usage?: Usage; elapsedMs: number }> {
     const started = performance.now();
     const forbidden = input.violations.map((item) => item.phrase);
@@ -272,6 +275,7 @@ export class AgentThread {
           },
         ],
       },
+      { signal: input.signal },
     );
     const candidate = stripEmoji(lastAssistantText([message]));
     const remaining = inspectNarrativeEvidence({
@@ -296,7 +300,7 @@ export class AgentThread {
    * 首次使用时创建 Agent。全局线程从转录 store 水化历史（线程内连续）；
    * 书线程不水化 —— 章节会话首轮由 sendTurn 重置为"一轮尾巴"基线。
    */
-  private async ensureAgent(): Promise<Agent> {
+  private async ensureAgent(call: ReadingContextCall): Promise<Agent> {
     if (this.agent) {
       // Apply refreshed metadata only between turns; never replace the user's model ID.
       this.agent.state.model = this.resolveModel("smart");
@@ -305,12 +309,13 @@ export class AgentThread {
     const model = this.resolveModel("smart");
     const records =
       this.scope.kind === "book" ? [] : await this.deps.conversations.load(this.key);
+    call.assertAllowed();
     const agent = new Agent({
       initialState: {
         model,
         thinkingLevel: this.thinkingLevel,
         tools: buildAgentTools(this.scope, this.deps, this.turnState),
-        messages: turnRecordsToMessages(records, model),
+        messages: turnRecordsToMessages(permittedTurnRecords(records, call.permissions), model),
       },
       transformContext: async (messages) =>
         elideStaleToolResults(windowByTurns(messages, this.maxWindowTurns)),
@@ -382,6 +387,33 @@ export class AgentThread {
   async *sendTurn(input: SendTurnInput): AsyncGenerator<ThreadChunk> {
     if (this.disposed) throw new Error(`thread ${this.key} has been disposed`);
     if (this.busy) throw new Error(`thread ${this.key} is already streaming a turn`);
+    const controller = new AbortController();
+    const cancel = () => controller.abort(input.signal?.aborted ? input.signal.reason : this.lifecycle.signal.reason);
+    input.signal?.addEventListener("abort", cancel, { once: true });
+    this.lifecycle.signal.addEventListener("abort", cancel, { once: true });
+    if (input.signal?.aborted || this.lifecycle.signal.aborted) cancel();
+    const call = readingContextCall(this.deps.readingContextPolicy, controller.signal);
+    const key = JSON.stringify(call.permissions);
+    if (this.contextPermissionsKey !== key) this.discardAgent();
+    this.contextPermissionsKey = key;
+    try {
+      const permitted: SendTurnInput = { ...input, signal: call.signal,
+        attachments: call.permissions.selection ? input.attachments : undefined,
+        readingCursor: permittedReadingCursor(input.readingCursor, call.permissions) };
+      for await (const chunk of this.sendPermittedTurn(permitted, input, call)) {
+        call.assertAllowed();
+        yield chunk;
+      }
+    } finally {
+      call.dispose();
+      input.signal?.removeEventListener("abort", cancel);
+      this.lifecycle.signal.removeEventListener("abort", cancel);
+    }
+  }
+
+  private async *sendPermittedTurn(input: SendTurnInput, localInput: SendTurnInput, call: ReadingContextCall): AsyncGenerator<ThreadChunk> {
+    if (this.disposed) throw new Error(`thread ${this.key} has been disposed`);
+    if (this.busy) throw new Error(`thread ${this.key} is already streaming a turn`);
     this.busy = true;
     // retry/regenerate：UI 已截断并持久化转录，丢内存态从持久层重建本轮
     if (input.reset) this.discardAgent();
@@ -395,66 +427,69 @@ export class AgentThread {
     this.turnState.spoilerPermissionDenied = false;
     this.turnState.spoilerGranted = false;
     this.turnState.evidenceTexts.length = 0;
-    // 游标章节坐标归一：宿主（阅读器）只带 href——抽取章节 index 由 agent 用
-    // 自己的权威映射反查（与 read_chapter 同一坐标系）。eval 等直接给 index
-    // 的调用方原样通过。围栏与接地装配都以归一后的游标为准。
-    let cursor = input.readingCursor;
-    if (
-      this.scope.kind === "book" &&
-      cursor?.chapter !== undefined &&
-      cursor.chapterIndex === undefined
-    ) {
-      const toc = await this.deps.bookText.getToc(this.scope.bookId).catch(() => undefined);
-      const chapter = toc ? findChapterByHref(toc, cursor.chapter) : undefined;
-      if (chapter) {
-        cursor = {
-          ...cursor,
-          chapterIndex: chapter.index,
-          chapterTitle: cursor.chapterTitle ?? chapter.title,
-        };
-      }
-    }
-    // 剧透围栏：叙事书 + 未读完 + 本轮游标带章节 index → 正文工具越界需 confirmSpoiler
-    this.turnState.spoilerFence = undefined;
-    let narrativeUnfinished = false;
-    if (this.scope.kind === "book") {
-      const book = await this.deps.library.getBook(this.scope.bookId);
-      narrativeUnfinished = book?.narrativity === "narrative" && book.status !== "finished";
-      if (narrativeUnfinished && cursor?.chapterIndex !== undefined) {
-        this.turnState.spoilerFence = {
-          throughChapterIndex: cursor.visibleText?.trim()
-            ? cursor.chapterIndex - 1
-            : cursor.chapterIndex,
-          readerChapterIndex: cursor.chapterIndex,
-        };
-      }
-    }
-    // 与远端推理并行预热；未读正文不会进入 prompt，只在回包前作负证据比对。
-    const narrativeIndexPromise = narrativeUnfinished ? this.loadNarrativeIndex() : undefined;
-    // 选中提问的确定性接地：边界内原文证据随本轮注入（见 grounding-context.ts）。
-    // 装配失败静默降级；叙事书没有章节坐标时宁缺毋滥。
-    const groundingContext =
-      this.scope.kind === "book" && input.attachments?.length
-        ? await buildGroundingContext({
-            bookText: this.deps.bookText,
-            bookId: this.scope.bookId,
-            attachments: input.attachments,
-            cursor,
-            narrativeFence: narrativeUnfinished,
-          })
-        : undefined;
-    const extensionContext = await this.deps.extraContext?.({
-      scope: this.scope,
-      userText: input.text,
-    }).then(renderExtensionContext).catch((error) => {
-      this.deps.log?.warn("plugin context providers failed", error);
-      return undefined;
-    });
+    this.turnState.readingContextPermissions = call.permissions;
     try {
-      const agent = await this.ensureAgent();
+      call.assertAllowed();
+      // 游标章节坐标归一：宿主（阅读器）只带 href——抽取章节 index 由 agent 用
+      // 自己的权威映射反查（与 read_chapter 同一坐标系）。eval 等直接给 index
+      // 的调用方原样通过。围栏与接地装配都以归一后的游标为准。
+      let cursor = input.readingCursor;
+      if (
+        this.scope.kind === "book" &&
+        cursor?.chapter !== undefined &&
+        cursor.chapterIndex === undefined
+      ) {
+        const toc = await call.wait(this.deps.bookText.getToc(this.scope.bookId).catch(() => undefined));
+        const chapter = toc ? findChapterByHref(toc, cursor.chapter) : undefined;
+        if (chapter) {
+          cursor = {
+            ...cursor,
+            chapterIndex: chapter.index,
+            chapterTitle: cursor.chapterTitle ?? chapter.title,
+          };
+        }
+      }
+      // 剧透围栏：叙事书 + 未读完 + 本轮游标带章节 index → 正文工具越界需 confirmSpoiler
+      this.turnState.spoilerFence = undefined;
+      let narrativeUnfinished = false;
+      if (this.scope.kind === "book") {
+        const book = await call.wait(this.deps.library.getBook(this.scope.bookId));
+        narrativeUnfinished = book?.narrativity === "narrative" && book.status !== "finished";
+        if (narrativeUnfinished && cursor?.chapterIndex !== undefined) {
+          this.turnState.spoilerFence = {
+            throughChapterIndex: localInput.readingCursor?.visibleText?.trim()
+              ? cursor.chapterIndex - 1
+              : cursor.chapterIndex,
+            readerChapterIndex: cursor.chapterIndex,
+          };
+        }
+      }
+      // 与远端推理并行预热；未读正文不会进入 prompt，只在回包前作负证据比对。
+      const narrativeIndexPromise = narrativeUnfinished ? this.loadNarrativeIndex() : undefined;
+      // 选中提问的确定性接地：边界内原文证据随本轮注入（见 grounding-context.ts）。
+      // 装配失败静默降级；叙事书没有章节坐标时宁缺毋滥。
+      const groundingContext =
+        call.permissions.surrounding && this.scope.kind === "book" && input.attachments?.length
+          ? await call.wait(buildGroundingContext({
+              bookText: this.deps.bookText,
+              bookId: this.scope.bookId,
+              attachments: input.attachments,
+              cursor,
+              narrativeFence: narrativeUnfinished,
+            }))
+          : undefined;
+      const extensionContext = await call.wait(Promise.resolve(this.deps.extraContext?.({
+        scope: this.scope,
+        userText: input.text,
+      }).then(renderExtensionContext).catch((error) => {
+        this.deps.log?.warn("plugin context providers failed", error);
+        return undefined;
+      })));
+      call.assertAllowed();
+      const agent = await call.wait(this.ensureAgent(call));
       // 本轮所在章节：选区的章节优先于阅读位置（问哪段话,会话就属于哪章）。
       // 双重职责：章节会话的边界信号 + system prompt 的稳定章节身份。
-      const turnChapter = input.attachments?.[0]?.chapter ?? cursor?.chapter;
+      const turnChapter = localInput.attachments?.[0]?.chapter ?? cursor?.chapter;
       if (this.scope.kind === "book") {
         // 书线程章节会话（doc §5）：同章节内的轮次共享同一个上下文树
         // （agent.state 连续累积，windowByTurns 封顶）；当且仅当这条消息
@@ -472,14 +507,14 @@ export class AgentThread {
           // 冻结 —— 前缀头部字节级稳定，同章追问跨轮命中 provider 缓存
           // （中段靠 context-slim 存根的确定性保持稳定）。中途提炼的记忆 /
           // 动态章内游标只进最新 user message；滚动摘要正是在这里重读。
-          await this.refreshSystemPrompt(
+          await call.wait(this.refreshSystemPrompt(
             agent,
             turnChapter ?? this.sessionChapter,
             cursor?.chapterIndex,
-          );
-          const records = await this.deps.conversations.load(this.key);
+          ));
+          const records = await call.wait(this.deps.conversations.load(this.key));
           agent.state.messages = turnRecordsToMessages(
-            lastTurnTail(records),
+            permittedTurnRecords(lastTurnTail(records), call.permissions),
             this.resolveModel("smart"),
           );
           this.sessionStarted = true;
@@ -487,11 +522,12 @@ export class AgentThread {
         if (turnChapter !== undefined) this.sessionChapter = turnChapter;
       } else {
         // 全局线程无会话概念：长期存续、记忆与摘要的更新更要紧，维持每轮重建
-        await this.refreshSystemPrompt(agent);
+        await call.wait(this.refreshSystemPrompt(agent));
       }
       unsubscribe = agent.subscribe((event) => queue.push(event));
 
       const onAbort = () => agent.abort();
+      call.assertAllowed();
       input.signal?.addEventListener("abort", onAbort, { once: true });
 
       const userText = formatUserTurn(input.text, input.attachments);
@@ -501,9 +537,10 @@ export class AgentThread {
         cursor,
         groundingContext,
       );
-      const promptText = extensionContext
-        ? `${basePromptText}\n\n${extensionContext}`
-        : basePromptText;
+      const withheldNote = localInput.attachments?.length && !call.permissions.selection
+        ? "[host note: The selected passage is withheld by the reader's privacy settings. Do not guess its wording or automatically reconstruct that selection with tools. Ask for a self-contained question when the request depends on the missing passage.]"
+        : undefined;
+      const promptText = [basePromptText, withheldNote, extensionContext].filter(Boolean).join("\n\n");
       // UI 在流开始前就把本轮用户消息持久化（retry 的截断可见性依赖这一点）。
       // 全局线程水化 / 未来任何全量重建会把它带进 state，而 prompt() 马上又
       // 注入同一条 —— 尾部等值的 user 消息属于本轮，丢弃避免问题被喂两遍。
@@ -648,6 +685,7 @@ export class AgentThread {
         }
       }
       await run;
+      call.assertAllowed();
       // 结构化状态码在 pi-ai 层已折叠成文本 —— 在这里（结构最后可见处）分类出
       // 稳定错误码，UI 据此决定文案与重试可见性，而不是转发 provider 原文。
       if (runError) throw classifyModelFailure(runError);
@@ -703,6 +741,7 @@ export class AgentThread {
                     attachments: input.attachments,
                     violations,
                     book: bookIndex,
+                    signal: input.signal,
                   }).catch((error) => {
                     this.deps.log?.warn(
                       "narrative answer rewrite failed; using deterministic fallback",
@@ -743,7 +782,7 @@ export class AgentThread {
         role: "user",
         content: input.text,
         createdAt: startedAt,
-        attachments: input.attachments,
+        attachments: localInput.attachments,
       });
       if (answer) {
         await this.deps.conversations.append(this.key, {
@@ -755,18 +794,19 @@ export class AgentThread {
 
       // ask-note：书线程每个提问留痕（doc §7）；选区锚优先，退而锚当前阅读位置
       if (this.scope.kind === "book") {
-        const firstAttachment = input.attachments?.[0];
+        const firstAttachment = localInput.attachments?.[0];
         await this.deps.annotations.recordAsk({
           bookId: this.scope.bookId,
           question: input.text,
-          anchor: firstAttachment?.anchor ?? input.readingCursor?.anchor,
-          chapter: firstAttachment?.chapter ?? input.readingCursor?.chapter,
+          anchor: firstAttachment?.anchor ?? localInput.readingCursor?.anchor,
+          chapter: firstAttachment?.chapter ?? localInput.readingCursor?.chapter,
         });
       }
 
       // 轮后管道：记忆提炼 + 滚动摘要 + 图谱节拍。异步、不阻塞、失败静默
       // （doc §10 第 6 步）
-      this.scheduleBackgroundPipeline(userText, answer, cursor?.chapter);
+      call.assertAllowed();
+      this.scheduleBackgroundPipeline(userText, answer, call.permissions, cursor?.chapter);
       if (discardUnsafeAgent) this.discardAgent();
       turnCompleted = true;
     } finally {
@@ -795,10 +835,11 @@ export class AgentThread {
     fast: () => ReturnType<ResolveModel>,
     deps: RuntimeDeps,
     complete: CompleteFn,
+    permissions: ReadingContextPermissions,
   ): Promise<string | undefined> {
     const persisted = await deps.conversations.load(this.key).catch(() => []);
     // load() 此刻已含本轮 user+assistant 两条；历史 = 之前的部分。
-    const history = persisted.slice(0, Math.max(0, persisted.length - 2));
+    const history = permittedTurnRecords(persisted.slice(0, Math.max(0, persisted.length - 2)), permissions);
     if (history.length < 2) return undefined;
     const window = history.slice(-AgentThread.ADOPTION_WINDOW_TURNS);
     const summary = await bootstrapSummaryFromHistory({
@@ -840,11 +881,13 @@ export class AgentThread {
   private scheduleBackgroundPipeline(
     userText: string,
     assistantText: string,
+    permissions: ReadingContextPermissions,
     cursorChapterHref?: string,
   ): void {
     if (!assistantText) return;
     const fast = () => this.resolveModel("fast");
     const previousWork = this.backgroundWork;
+    const contextCall = readingContextCall(this.deps.readingContextPolicy, this.lifecycle.signal, permissions);
     // Subscribe when enqueued so an off/on cycle also revokes waiting jobs.
     this.backgroundWork = runMemoryBuild(this.deps, async operation => {
       await operation.guard(() => previousWork)();
@@ -855,7 +898,7 @@ export class AgentThread {
       // 同一事实不会被写两遍。
       const previousInsights = await deps.conversations.getInsights(this.key);
       const bootstrapped =
-        previousInsights === undefined ? await this.adoptLegacyThread(fast, deps, complete) : undefined;
+        previousInsights === undefined ? await this.adoptLegacyThread(fast, deps, complete, permissions) : undefined;
       if (this.disposed) return;
       const existing = await deps.memory.searchMemories({
         scopes: visibleScopes(this.scope),
@@ -934,13 +977,13 @@ export class AgentThread {
           maxChapters: AgentThread.DIGEST_CHAPTERS_PER_TURN,
         });
       }
-    }, this.lifecycle.signal)
+    }, contextCall.signal)
       .catch((error: unknown) => {
         // Opting out is an expected stop, not a failed background pipeline.
         if (errorCode(error) === ERR_AI_MEMORY_DISABLED) return;
         // 轮后管道失败绝不影响对话，但必须留痕：这一轮的记忆巩固与滚动
         // 摘要没有落下。巩固管道之后会有自己的重试语义。
         this.deps.log?.warn("post-turn pipeline failed; memory/summary skipped this turn", error);
-      });
+      }).finally(() => contextCall.dispose());
   }
 }

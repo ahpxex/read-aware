@@ -16,6 +16,9 @@ export const sources: Record<string, string> = {
   API: "packages/plugin-types/src/index.ts",
   MEMORYPOLICY: "packages/agent/src/memory/build-policy.ts",
   HOSTMEMORYPOLICY: "apps/web/src/features/ai/agent/memory-policy.ts",
+  READINGCONTEXTPOLICY: "packages/agent/src/runtime/reading-context-policy.ts",
+  HOSTREADINGCONTEXTPOLICY: "apps/web/src/features/ai/agent/reading-context-policy.ts",
+  READINGCONTEXTPROOF: "docs/evidence/reading-context-policy-2026-09-09.json",
   MEMORYPOLICYPROOF: "docs/evidence/memory-build-policy-2026-09-09.json",
   READINGGOALS: "plugins/reading-goals/src/index.ts",
   CTX: "apps/web/src/features/plugins/runtime/plugin-context.ts",
@@ -419,8 +422,6 @@ export const ineffectiveSettings = new Set([
   "general.launchAtStartup", "general.fileAssociations",
   "ai.preferences.features.explainSelection", "ai.preferences.features.defineTerm",
   "ai.preferences.features.translate", "ai.preferences.features.summarizeChapter",
-  "ai.preferences.sendHighlightedText",
-  "ai.preferences.sendSurroundingContext",
 ]);
 export const readOnlySettings = new Set([
   "ai.connection.configured", "ai.connection.credentialConfigured", "ai.connection.provider",
@@ -430,12 +431,14 @@ groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.len
   const ineffective = ineffectiveSettings.has(path);
   const localOnly = path === "ai.preferences.localOnly";
   const buildMemory = path === "ai.preferences.buildMemory";
-  const partial = ineffective || localOnly;
+  const readingContext = path === "ai.preferences.sendHighlightedText" || path === "ai.preferences.sendSurroundingContext";
+  const partial = ineffective || localOnly || readingContext;
   const readonly = readOnlySettings.has(path);
   const effect = ineffective
     ? "保存值有实现；全生产源码扫描未找到对应效果消费者。不能算行为已实现或端到端覆盖。"
     : localOnly ? "宿主模型调用已有实时执行策略：Agent smart/fast、后台补全、Worker llm.ask 普通/结构化/流式及连接测试同源拒绝 ai/local-only；进行中调用取消，迟到结果/重试被抑制，恢复只允许新调用。当前无本地模型后端，Custom loopback 也拒绝。隔离 macOS debug 双端/取消/持久失败回滚/原生连接 UI 已验；任意插件 HTTP、TTS、同步不受此策略约束，完整隐私边界与 packaged/跨平台仍未完成，保留部分。"
     : buildMemory ? "实时控制宿主记忆构建：显式 remember、轮后抽取/强化/插件候选/旧历史领养/摘要、巩固、章节 digest/自动叙事分类及 onboarding seed 均受约束。关闭返回 ai/memory-disabled，取消在途模型调用和已排队任务，重开不复活旧任务。普通聊天/历史、旧记忆检索、用户删除和插件自有目标保存不受影响；重开后的新任务可处理保留历史。摘要写入/清除等待持久回执；已派发底层写不保证撤销。隔离 macOS debug 双端、真实 UI 聊天、候选入库、取消和 SQLite 失败已验；packaged/跨平台未验。"
+    : readingContext ? "已有真实 Agent 消费者：selection 关闭过滤自动附件与历史附件检索/匹配；任一文本开关关闭都移除可能重叠的 viewport；surrounding 关闭不装配 grounding。保留本地附件和手写问题，get_reading_session 同样过滤文本；切策略重建缓存上下文。收紧返回 ai/context-changed，取消在途/准备中回合和排队记忆任务，重开不复活旧请求。Agent 设置与授权 Worker 设置写入、四组合请求、SQLite 历史保留和在途传输取消已在隔离 macOS debug 验证。插件 selection/lookup 回调、插件自行组装的 LLM/HTTP/TTS、独立正文/标注检索与旧回答/记忆/纪要不因此清除或禁用；完整隐私、packaged/跨平台仍未闭合，保留部分。"
     : readonly ? "只读状态，不返回密钥/端点凭据；不等于配置命令。"
       : path === "general.autoUpdate" ? "实际消费者只控制自动检查，不表示无批准自动安装。"
         : path.startsWith("menus.") ? "只影响菜单排列/显示，不调用菜单动作。"
@@ -445,6 +448,7 @@ groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.len
     actor(partial ? "部分" : "接通", readonly ? "settings discover/read（需路径授权）" : "settings discover/read/update（需路径授权）", "类型化设置领域"),
     ["SETTINGS","SETDOMAIN","SETTOOLS", ...(localOnly ? ["AIPREFS", "INFERENCEPOLICY", "HOSTINFERENCEPOLICY", "INFERENCEEVIDENCE"]
       : buildMemory ? ["MEMORYPOLICY", "HOSTMEMORYPOLICY", "READINGGOALS", "MEMORYPOLICYPROOF"]
+      : readingContext ? ["READINGCONTEXTPOLICY", "HOSTREADINGCONTEXTPOLICY", "READINGCONTEXTPROOF", "THREAD", "READTOOLS"]
       : path.startsWith("appearance.contentTypography.") ? ["TYPOGRAPHY", "TYPOGRAPHYEFFECT"]
       : path === "annotations.defaultColor" ? ["MARKPREFS", "TEXTACTIONS"]
         : path === "general.updateChannel" ? ["UPDATECHANNEL", "ABOUT"]

@@ -264,17 +264,18 @@
             <details class="ep"><summary>旧阅读事件旁路已删除；Dictionary 按授权查询当前书</summary><div class="ep-body"><p>Session 2.0 不再提供 subscribe，旧 ^1 合约明确拒绝。Reading 的即时快照和观察成为唯一阅读状态入口。Dictionary 1.2 声明 reading/library 读取权限，按需取标题并复核会话，不再漏掉迟启用或沿用换书前的标题；查词缓存也区分书籍标题。</p><p>隔离 macOS debug 已验零权限无阅读入口、只读 Worker 的迟启用/换书/关闭、实际 Dictionary Worker 的缓存上下文；不含远端模型、词卡呈现或安装升级。origin/reason、完整撤权与跨平台仍未验收。<a href="./evidence/reading-session-boundary-2026-09-09.json">会话边界证据</a></p></div></details>
             <details class="ep">
               <summary>仅本地模式：宿主推理已拦截，完整网络边界仍未接通</summary>
-              <div class="ep-body"><p>Agent、插件 LLM 与连接测试共享实时策略；启用即拒绝新调用并取消在途请求，返回 ai/local-only。保存失败回滚只恢复新调用，不复活旧请求。无本地模型后端，Custom loopback 也拒绝。</p><p>任意插件 HTTP、TTS、同步不受该策略约束；另外两个文本发送隐私开关仍无效果消费者。macOS debug 双端与失败场景已有证据，packaged/跨平台仍未验证。<a href="./plugin-system.md#host-inference-privacy-policy">精确边界</a></p></div>
+              <div class="ep-body"><p>Agent、插件 LLM 与连接测试共享实时策略；启用即拒绝新调用并取消在途请求，返回 ai/local-only。保存失败回滚只恢复新调用，不复活旧请求。无本地模型后端，Custom loopback 也拒绝。</p><p>任意插件 HTTP、TTS、同步不受该策略约束；两个文本发送开关已控制 Agent 自动输入，但完整插件隐私仍未闭合。macOS debug 双端与失败场景已有证据，packaged/跨平台仍未验证。<a href="./plugin-system.md#host-inference-privacy-policy">精确边界</a></p></div>
             </details>
           </div>
         </div>
       </section>
 
-      <section data-search-section="agent context retrieval memory 智能扩展 buildMemory Reading Goals 阅读目标 记忆构建">
+      <section data-search-section="agent context retrieval memory 智能扩展 buildMemory Reading Goals 阅读目标 记忆构建 sendHighlightedText sendSurroundingContext 文本隐私">
         <div class="wrap">
           <h2>Agent 智能扩展</h2>
           <p class="intro">插件只能提供有边界的数据与候选，不能接管系统提示词或直接写长期记忆。</p>
           <details class="ep"><summary>记忆构建开关已接通，Reading Goals 已实际消费两类贡献</summary><div class="ep-body"><p>buildMemory 关闭后，宿主停止 remember、候选、抽取、摘要、巩固和 digest 等记忆构建；排队与在途任务取消，重开不复活旧结果。聊天/历史和旧记忆仍可读取；已派发写不保证撤销。摘要保存/清除等待持久回执。</p><p>Reading Goals 按书保存目标并提供上下文，用户选择后才提出记忆候选；清除目标不删除已提升的记忆。源码十插件、编译内置六个，本插件不在内置清单且没有专属 Agent 目标编辑工具。macOS debug 已验双端、候选落库与失败取消；安装重启、打包/跨平台、键盘遍历与所有屏外控件仍未验。<a href="./plugin-system.md#host-memory-build-policy">完整边界</a></p></div></details>
+          <details class="ep"><summary>文本隐私已约束 Agent 自动输入，插件数据通路仍有缺口</summary><div class="ep-body"><p>选区关闭过滤附件及历史附件检索；周边上下文关闭跳过 grounding。任一关闭都移除可能重叠的 viewport，保留本地附件、手写问题和位置。收紧时取消在途回合与排队记忆任务，返回 ai/context-changed；重开只允许新请求。</p><p>Agent 与授权插件均可操作设置；macOS debug 四组合请求、历史保留和传输取消已有证据。插件文本回调、自组装请求、独立正文检索及旧回答/记忆不因此清除或禁用；完整 UI、打包/跨平台仍未验，SET24/25 保持部分。<a href="./plugin-system.md#host-reading-context-policy">精确边界</a></p></div></details>
           <div class="table-shell">
             <table>
               <thead><tr><th>Contribution</th><th>插件提供</th><th>宿主把关</th></tr></thead>

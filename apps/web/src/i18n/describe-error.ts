@@ -78,6 +78,8 @@ type CopyEntry = {
 const AI_SETTINGS: ErrorAction = "open-ai-settings";
 
 const CODE_COPY: Record<string, CopyEntry> = {
+  "settings/invalid-shortcut": { key: "settingsInvalidShortcut", retryable: false },
+  "settings/shortcut-conflict": { key: "settingsShortcutConflict", retryable: false },
   "reader/playback-failed": { key: "readerPlaybackFailed", retryable: true },
   "reader/segmentation-failed": { key: "readerSegmentationFailed", retryable: true },
   "annotations/conflict": { key: "annotationConflict", retryable: false },

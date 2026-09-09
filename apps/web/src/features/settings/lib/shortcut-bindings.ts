@@ -2,7 +2,8 @@ import type { KeyChord, ShortcutBindings, ShortcutId } from "./shortcuts";
 
 import { localKV } from "../../../platform/local-store";
 
-const STORAGE_KEY = "read-aware-shortcuts";
+export const SHORTCUT_BINDINGS_KEY = "read-aware-shortcuts";
+const STORAGE_KEY = SHORTCUT_BINDINGS_KEY;
 
 const LEGACY_IDS: Record<string, ShortcutId> = {
   "navigator-next-sentence": "reader-mode-next-unit",

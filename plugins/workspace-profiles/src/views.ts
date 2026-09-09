@@ -1,6 +1,7 @@
 import type { PluginContext, PluginFormView, PluginView } from "@read-aware/plugin-types";
 import { applyProfile, deleteProfile, listProfiles, profileName, readProfile, saveProfile } from "./profiles";
 import { copy, settingLabel } from "./strings";
+import { shortcutView } from "./shortcut";
 
 function saveView(ctx: PluginContext): PluginFormView {
   const t = copy(ctx.locale);
@@ -30,6 +31,7 @@ export async function profilesView(ctx: PluginContext): Promise<PluginView> {
   return { kind: "list", title: t.title, emptyText: t.empty, actions: [
     { id: "save", label: t.save, icon: "plus", run: () => ({ view: saveView(ctx) }) },
     { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await profilesView(ctx), navigation: "replace" }) },
+    { id: "shortcut", label: t.shortcut, icon: "rows", run: async () => ({ view: await shortcutView(ctx) }) },
   ], items: profiles.map(doc => ({ id: doc.id, title: doc.data.name, timestamp: doc.updatedAt, icon: "cards",
     onSelect: async () => ({ view: await profileView(ctx, doc.id) }) })) };
 }

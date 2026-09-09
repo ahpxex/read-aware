@@ -16,6 +16,8 @@ import {
 } from "./catalog";
 
 export type { SettingsDraft } from "./catalog";
+import { shortcutMetadata } from "./shortcut-preferences";
+import { assertShortcutChanges } from "../../features/settings/lib/shortcut-catalog";
 
 function definitionOptions(
   definition: SettingDefinition,
@@ -69,6 +71,7 @@ export function settingsSnapshotFromDraft(
         kind: definition.kind,
         value: definition.read(draft, target),
         writable: Boolean(definition.write),
+        ...(definition.kind === "key-chord" ? { shortcut: shortcutMetadata(draft, definition.path) } : {}),
         ...(definition.nullable ? { nullable: true } : {}),
         ...(options ? { options } : {}),
         ...(definition.write && definition.supportedTargets
@@ -83,6 +86,7 @@ function cloneDraft(draft: SettingsDraft): SettingsDraft {
   return {
     general: { ...draft.general },
     shelf: { ...draft.shelf },
+    shortcuts: { ...draft.shortcuts, bindings: { ...draft.shortcuts.bindings } },
     appearance: { ...draft.appearance },
     reading: { ...draft.reading },
     contentTypography: { ...draft.contentTypography },
@@ -129,6 +133,7 @@ function mutableFingerprint(draft: SettingsDraft): string {
   return JSON.stringify({
     general: draft.general,
     shelf: draft.shelf,
+    shortcuts: draft.shortcuts.bindings,
     appearance: draft.appearance,
     reading: draft.reading,
     contentTypography: draft.contentTypography,
@@ -195,5 +200,6 @@ export function applySettingChangesToDraft(
     }
   }
 
+  assertShortcutChanges(source.shortcuts.bindings, draft.shortcuts.bindings, draft.shortcuts);
   return { draft, changed };
 }

@@ -30,15 +30,17 @@ export async function prepareSettingsProbe(paths = ["appearance.theme", "appeara
   await assertIsolated();
   if (worker) throw new Error("Settings probe is already running");
   const settings = createSettingsDomain("user");
+  const snapshot = await settings.queries.snapshot();
   restore = await Promise.all(paths.map(async path => {
     const value = await settings.queries.read(path);
-    return { path, value: value.value, target: value.target };
+    const descriptor = snapshot.settings.find(setting => setting.path === path);
+    return { path, value: descriptor?.kind === "key-chord" && !descriptor.shortcut?.overridden ? null : value.value, target: value.target };
   }));
   events = [];
   unsubscribe = settings.events.subscribe(event => events.push(event));
   const manifest: PluginManifest = {
     id, name: "Settings capability probe", version: "1.0.0", schemaVersion: 1, description: "Atomic settings validation",
-    permissions: [], requires: { domains: { settings: "^1.2.0" }, services: { storage: "^2.0.0" } },
+    permissions: [], requires: { domains: { settings: "^1.4.0" }, services: { storage: "^2.0.0" } },
     settingsAccess: { write: paths },
     settings: [{ id: "enabled", kind: "toggle", label: "Enabled", value: false }],
   };

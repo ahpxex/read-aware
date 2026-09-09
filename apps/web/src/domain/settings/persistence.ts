@@ -4,6 +4,7 @@ import { pluginSettingsKey } from "../../features/plugins/lib/plugin-settings";
 import { APP_SETTINGS_KEY } from "../../features/settings/lib/app-settings";
 import { GENERAL_SETTINGS_KEY } from "../../features/settings/lib/general-settings";
 import { SHELF_VIEW_KEY } from "../../features/shelf/lib/shelf-view";
+import { SHORTCUT_BINDINGS_KEY } from "../../features/settings/lib/shortcut-bindings";
 import { AI_PREFERENCES_KEY } from "../../features/settings/lib/ai-preferences";
 import { READER_PREFERENCES_KEY } from "../../features/settings/lib/reader-settings";
 import { READER_OVERRIDES_KEY } from "../../features/settings/lib/reader-overrides";
@@ -22,6 +23,7 @@ export function commitSettingsDraft(before: SettingsDraft, next: SettingsDraft):
   };
   record(GENERAL_SETTINGS_KEY, before.general, next.general);
   record(SHELF_VIEW_KEY, before.shelf, next.shelf);
+  record(SHORTCUT_BINDINGS_KEY, before.shortcuts.bindings, next.shortcuts.bindings);
   record(APP_SETTINGS_KEY, before.appearance, next.appearance);
   record(READER_PREFERENCES_KEY, before.reading, next.reading);
   record(READER_OVERRIDES_KEY, before.readerOverrides, next.readerOverrides);

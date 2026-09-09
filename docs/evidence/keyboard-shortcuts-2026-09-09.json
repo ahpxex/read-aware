@@ -1,0 +1,641 @@
+{
+  "date": "2026-09-09",
+  "environment": {
+    "appIdentifier": "com.readaware.app.capability-e2e",
+    "port": 9224,
+    "devPort": 5184,
+    "platform": "macOS",
+    "build": "debug",
+    "viewport": [
+      1200,
+      800
+    ],
+    "formalAppUntouched": true
+  },
+  "scope": "Settings 1.4 shortcut bindings, product Agent tool and Worker consumers; not full UI04 closure",
+  "setup": {
+    "agent": {
+      "changed": [
+        {
+          "path": "shortcuts.search",
+          "target": {
+            "kind": "global"
+          },
+          "value": [
+            "mod",
+            "shift",
+            "k"
+          ]
+        }
+      ],
+      "snapshot": {
+        "appearance": {
+          "motion": "system",
+          "theme": "system"
+        },
+        "events": [
+          {
+            "changes": [
+              {
+                "path": "shortcuts.search",
+                "target": {
+                  "kind": "global"
+                },
+                "value": [
+                  "mod",
+                  "shift",
+                  "k"
+                ]
+              }
+            ],
+            "origin": "agent",
+            "type": "settings.changed"
+          }
+        ],
+        "general": {
+          "autoUpdate": true,
+          "crashPrompt": true,
+          "fileAssociations": true,
+          "language": null,
+          "launchAtStartup": false,
+          "startView": "shelf",
+          "whatsNewDialog": true
+        }
+      },
+      "status": "committed"
+    },
+    "initial": [
+      {
+        "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement.",
+        "kind": "key-chord",
+        "label": "search",
+        "nullable": true,
+        "path": "shortcuts.search",
+        "section": "shortcuts",
+        "shortcut": {
+          "available": true,
+          "conflicts": [],
+          "defaultBinding": [
+            "mod",
+            "k"
+          ],
+          "overridden": false
+        },
+        "supportedTargets": [
+          "global"
+        ],
+        "value": [
+          "mod",
+          "k"
+        ],
+        "writable": true
+      },
+      {
+        "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement.",
+        "kind": "key-chord",
+        "label": "settings",
+        "nullable": true,
+        "path": "shortcuts.settings",
+        "section": "shortcuts",
+        "shortcut": {
+          "available": true,
+          "conflicts": [],
+          "defaultBinding": [
+            "mod",
+            ","
+          ],
+          "overridden": false
+        },
+        "supportedTargets": [
+          "global"
+        ],
+        "value": [
+          "mod",
+          ","
+        ],
+        "writable": true
+      },
+      {
+        "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement.",
+        "kind": "key-chord",
+        "label": "Workspace Profiles",
+        "nullable": true,
+        "path": "shortcuts.plugin.workspace-profiles%3Aopen",
+        "section": "shortcuts",
+        "shortcut": {
+          "available": true,
+          "conflicts": [],
+          "defaultBinding": null,
+          "overridden": false
+        },
+        "supportedTargets": [
+          "global"
+        ],
+        "value": null,
+        "writable": true
+      }
+    ]
+  },
+  "workerSwap": {
+    "after": [
+      {
+        "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement.",
+        "kind": "key-chord",
+        "label": "search",
+        "nullable": true,
+        "path": "shortcuts.search",
+        "section": "shortcuts",
+        "shortcut": {
+          "available": true,
+          "conflicts": [],
+          "defaultBinding": [
+            "mod",
+            "k"
+          ],
+          "overridden": true
+        },
+        "supportedTargets": [
+          "global"
+        ],
+        "value": [
+          "mod",
+          ","
+        ],
+        "writable": true
+      },
+      {
+        "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement.",
+        "kind": "key-chord",
+        "label": "settings",
+        "nullable": true,
+        "path": "shortcuts.settings",
+        "section": "shortcuts",
+        "shortcut": {
+          "available": true,
+          "conflicts": [],
+          "defaultBinding": [
+            "mod",
+            ","
+          ],
+          "overridden": true
+        },
+        "supportedTargets": [
+          "global"
+        ],
+        "value": [
+          "mod",
+          "shift",
+          "k"
+        ],
+        "writable": true
+      }
+    ],
+    "conflict": {
+      "result": {
+        "code": "settings/shortcut-conflict",
+        "status": "failed"
+      },
+      "snapshot": {
+        "appearance": {
+          "motion": "system",
+          "theme": "system"
+        },
+        "events": [
+          {
+            "changes": [
+              {
+                "path": "shortcuts.search",
+                "target": {
+                  "kind": "global"
+                },
+                "value": [
+                  "mod",
+                  "shift",
+                  "k"
+                ]
+              }
+            ],
+            "origin": "agent",
+            "type": "settings.changed"
+          }
+        ],
+        "general": {
+          "autoUpdate": true,
+          "crashPrompt": true,
+          "fileAssociations": true,
+          "language": null,
+          "launchAtStartup": false,
+          "startView": "shelf",
+          "whatsNewDialog": true
+        }
+      }
+    },
+    "swap": {
+      "result": {
+        "changed": [
+          {
+            "path": "shortcuts.settings",
+            "target": {
+              "kind": "global"
+            },
+            "value": [
+              "mod",
+              "shift",
+              "k"
+            ]
+          },
+          {
+            "path": "shortcuts.search",
+            "target": {
+              "kind": "global"
+            },
+            "value": [
+              "mod",
+              ","
+            ]
+          }
+        ],
+        "paths": [
+          "shortcuts.search",
+          "shortcuts.settings",
+          "shortcuts.plugin.workspace-profiles%3Aopen"
+        ],
+        "status": "committed"
+      },
+      "snapshot": {
+        "appearance": {
+          "motion": "system",
+          "theme": "system"
+        },
+        "events": [
+          {
+            "changes": [
+              {
+                "path": "shortcuts.search",
+                "target": {
+                  "kind": "global"
+                },
+                "value": [
+                  "mod",
+                  "shift",
+                  "k"
+                ]
+              }
+            ],
+            "origin": "agent",
+            "type": "settings.changed"
+          },
+          {
+            "changes": [
+              {
+                "path": "shortcuts.settings",
+                "target": {
+                  "kind": "global"
+                },
+                "value": [
+                  "mod",
+                  "shift",
+                  "k"
+                ]
+              },
+              {
+                "path": "shortcuts.search",
+                "target": {
+                  "kind": "global"
+                },
+                "value": [
+                  "mod",
+                  ","
+                ]
+              }
+            ],
+            "origin": "plugin:capability-settings-probe",
+            "type": "settings.changed"
+          }
+        ],
+        "general": {
+          "autoUpdate": true,
+          "crashPrompt": true,
+          "fileAssociations": true,
+          "language": null,
+          "launchAtStartup": false,
+          "startView": "shelf",
+          "whatsNewDialog": true
+        }
+      }
+    }
+  },
+  "installedPluginForm": {
+    "binding": {
+      "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement.",
+      "kind": "key-chord",
+      "label": "Workspace Profiles",
+      "nullable": true,
+      "path": "shortcuts.plugin.workspace-profiles%3Aopen",
+      "section": "shortcuts",
+      "shortcut": {
+        "available": true,
+        "conflicts": [],
+        "defaultBinding": null,
+        "overridden": true
+      },
+      "supportedTargets": [
+        "global"
+      ],
+      "value": [
+        "mod",
+        "shift",
+        "p"
+      ],
+      "writable": true
+    },
+    "events": [
+      {
+        "changes": [
+          {
+            "path": "shortcuts.search",
+            "target": {
+              "kind": "global"
+            },
+            "value": [
+              "mod",
+              "shift",
+              "k"
+            ]
+          }
+        ],
+        "origin": "agent",
+        "type": "settings.changed"
+      },
+      {
+        "changes": [
+          {
+            "path": "shortcuts.settings",
+            "target": {
+              "kind": "global"
+            },
+            "value": [
+              "mod",
+              "shift",
+              "k"
+            ]
+          },
+          {
+            "path": "shortcuts.search",
+            "target": {
+              "kind": "global"
+            },
+            "value": [
+              "mod",
+              ","
+            ]
+          }
+        ],
+        "origin": "plugin:capability-settings-probe",
+        "type": "settings.changed"
+      },
+      {
+        "changes": [
+          {
+            "path": "shortcuts.plugin.workspace-profiles%3Aopen",
+            "target": {
+              "kind": "global"
+            },
+            "value": [
+              "mod",
+              "shift",
+              "p"
+            ]
+          }
+        ],
+        "origin": "plugin:workspace-profiles",
+        "type": "settings.changed"
+      }
+    ]
+  },
+  "firstCleanup": {
+    "cleanup": {
+      "contributions": 0
+    },
+    "reset": {
+      "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement.",
+      "kind": "key-chord",
+      "label": "Workspace Profiles",
+      "nullable": true,
+      "path": "shortcuts.plugin.workspace-profiles%3Aopen",
+      "section": "shortcuts",
+      "shortcut": {
+        "available": true,
+        "conflicts": [],
+        "defaultBinding": null,
+        "overridden": false
+      },
+      "supportedTargets": [
+        "global"
+      ],
+      "value": null,
+      "writable": true
+    },
+    "restored": [
+      {
+        "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement.",
+        "kind": "key-chord",
+        "label": "search",
+        "nullable": true,
+        "path": "shortcuts.search",
+        "section": "shortcuts",
+        "shortcut": {
+          "available": true,
+          "conflicts": [],
+          "defaultBinding": [
+            "mod",
+            "k"
+          ],
+          "overridden": false
+        },
+        "supportedTargets": [
+          "global"
+        ],
+        "value": [
+          "mod",
+          "k"
+        ],
+        "writable": true
+      },
+      {
+        "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement.",
+        "kind": "key-chord",
+        "label": "settings",
+        "nullable": true,
+        "path": "shortcuts.settings",
+        "section": "shortcuts",
+        "shortcut": {
+          "available": true,
+          "conflicts": [],
+          "defaultBinding": [
+            "mod",
+            ","
+          ],
+          "overridden": false
+        },
+        "supportedTargets": [
+          "global"
+        ],
+        "value": [
+          "mod",
+          ","
+        ],
+        "writable": true
+      },
+      {
+        "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement.",
+        "kind": "key-chord",
+        "label": "Workspace Profiles",
+        "nullable": true,
+        "path": "shortcuts.plugin.workspace-profiles%3Aopen",
+        "section": "shortcuts",
+        "shortcut": {
+          "available": true,
+          "conflicts": [],
+          "defaultBinding": null,
+          "overridden": false
+        },
+        "supportedTargets": [
+          "global"
+        ],
+        "value": null,
+        "writable": true
+      }
+    ]
+  },
+  "finalConflict": {
+    "captured": [
+      "Library\n/\nAgent\n\nSearch\n\nImport\n\nShelf management\n\nReading stats\n\nSettings\n\nMore\n\n\nReading Paint Probe\nUnknown author\n\n\n\n25%\n\n\nFB2\nReading Capability Probe\nReadAware Tests\nReading Capability Probe\nReadAware Tests\n\n\n\n7%\nThat shortcut is already assigned. Choose another combination or update the conflicting bindings together.\n\n\nWorkspace Profiles\n\nKeyboard shortcut\nBinding\n\nCustom\nCommand / Ctrl\n\nAlt / Option\n\nShift\n\nKey\n\nApply\nClose"
+    ],
+    "events": [],
+    "formValue": "k",
+    "snapshot": [
+      {
+        "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement.",
+        "kind": "key-chord",
+        "label": "Workspace Profiles",
+        "nullable": true,
+        "path": "shortcuts.plugin.workspace-profiles%3Aopen",
+        "section": "shortcuts",
+        "shortcut": {
+          "available": true,
+          "conflicts": [],
+          "defaultBinding": null,
+          "overridden": false
+        },
+        "supportedTargets": [
+          "global"
+        ],
+        "value": null,
+        "writable": true
+      }
+    ]
+  },
+  "finalCleanup": {
+    "cleanup": {
+      "contributions": 0
+    },
+    "settings": [
+      {
+        "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement.",
+        "kind": "key-chord",
+        "label": "search",
+        "nullable": true,
+        "path": "shortcuts.search",
+        "section": "shortcuts",
+        "shortcut": {
+          "available": true,
+          "conflicts": [],
+          "defaultBinding": [
+            "mod",
+            "k"
+          ],
+          "overridden": false
+        },
+        "supportedTargets": [
+          "global"
+        ],
+        "value": [
+          "mod",
+          "k"
+        ],
+        "writable": true
+      },
+      {
+        "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement.",
+        "kind": "key-chord",
+        "label": "settings",
+        "nullable": true,
+        "path": "shortcuts.settings",
+        "section": "shortcuts",
+        "shortcut": {
+          "available": true,
+          "conflicts": [],
+          "defaultBinding": [
+            "mod",
+            ","
+          ],
+          "overridden": false
+        },
+        "supportedTargets": [
+          "global"
+        ],
+        "value": [
+          "mod",
+          ","
+        ],
+        "writable": true
+      },
+      {
+        "description": "Device-local binding. Value is optional \"mod\", \"alt\", \"shift\" tokens followed by one KeyboardEvent.key (space is \" \"). Null removes the override and restores the registered default, not an unbind. Escape is reserved for overlays. Availability refers to registered providers, not current focus or command enablement.",
+        "kind": "key-chord",
+        "label": "Workspace Profiles",
+        "nullable": true,
+        "path": "shortcuts.plugin.workspace-profiles%3Aopen",
+        "section": "shortcuts",
+        "shortcut": {
+          "available": true,
+          "conflicts": [],
+          "defaultBinding": null,
+          "overridden": false
+        },
+        "supportedTargets": [
+          "global"
+        ],
+        "value": null,
+        "writable": true
+      }
+    ]
+  },
+  "keyboardObservations": [
+    "Agent changed search to mod+shift+k; native Meta+Shift+k opened the command search palette.",
+    "Worker atomically exchanged search/settings; Meta+Shift+k then opened native Settings; Shortcuts pane showed effective exchanged bindings.",
+    "Workspace Profiles native form set own command mod+shift+p; Meta+Shift+p reopened the registered command."
+  ],
+  "screenshots": {
+    "validated": "/tmp/shortcut-conflict-native-settled.png",
+    "notAccepted": [
+      "/tmp/shortcut-settings-native.png: stale painted panel despite current DOM",
+      "/tmp/shortcut-conflict-native.png: captured busy state, not terminal rejection"
+    ]
+  },
+  "verification": {
+    "tests": "bun run test: 21/21 tasks, web 742 tests / 8465 assertions; Workspace Profiles 8 tests / 28 assertions",
+    "typecheck": "bun run typecheck: 24/24 tasks",
+    "frontendBuild": "bun run build: passed; existing mixed import/chunk size/Node warnings",
+    "cleanup": "Settings restored including absent overrides, probe contributions 0; owned process group 64569 exited; ports 5184/9224 have no listeners"
+  },
+  "limitations": [
+    "No actual model inference or semantic evaluation.",
+    "No packaged/Windows/Linux/all keyboard layouts/all reader or native menu routes.",
+    "Dormant plugin overrides and activation conflicts are not yet exposed/resolved.",
+    "Native shortcuts editor still has its previous validation/write path; no complete revision/origin stream.",
+    "Native SQLite failure semantics covered by focused IPC tests, not a real database lock in this run.",
+    "Debug startup reported a web content process termination before remount; not a crash-free boot claim."
+  ]
+}

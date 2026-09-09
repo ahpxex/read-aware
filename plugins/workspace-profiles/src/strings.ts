@@ -1,7 +1,9 @@
 const en = { title: "Workspace Profiles", save: "Save current workspace", name: "Name", invalid: "Enter a name of 1-80 characters.",
-  empty: "No saved profiles", apply: "Apply", remove: "Delete profile", refresh: "Refresh", saved: "Profile saved", applied: "Profile applied" };
+  empty: "No saved profiles", apply: "Apply", remove: "Delete profile", refresh: "Refresh", saved: "Profile saved", applied: "Profile applied",
+  shortcut: "Keyboard shortcut", binding: "Binding", defaultBinding: "Default", customBinding: "Custom", key: "Key", shortcutSaved: "Shortcut updated" };
 const zh: typeof en = { title: "工作区预设", save: "保存当前工作区", name: "名称", invalid: "请输入 1-80 个字符的名称。",
-  empty: "暂无预设", apply: "应用", remove: "删除预设", refresh: "刷新", saved: "预设已保存", applied: "预设已应用" };
+  empty: "暂无预设", apply: "应用", remove: "删除预设", refresh: "刷新", saved: "预设已保存", applied: "预设已应用",
+  shortcut: "键盘快捷键", binding: "绑定", defaultBinding: "默认", customBinding: "自定义", key: "按键", shortcutSaved: "快捷键已更新" };
 export const copy = (locale: string) => locale.startsWith("zh") ? zh : en;
 
 const labels: Record<string, [string, string]> = {

@@ -646,3 +646,19 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [文档] 重扫为 227 行、584 库存、58 设置路径、129 原验收项、30 责任单元/catalog、32 场景。七项模型门禁、两个生成器 --check 和三个文档对 validator 通过。矩阵、模型、插件说明 HTML 在 1440×1000、1024×768、390×844 无页面横向溢出、重复 ID、坏锚点、无名按钮或已观察资源 HTTP 错误；中英文 Workspace/书架搜索与 Escape、已有目录 inert 和主题刷新保持通过，console/page error 为空。文档仍依赖 CDN，无新增图；文档浏览器不算产品验证，已关闭。
 
 [清理/仍缺] 各轮诊断 profiles/tools/commands 与设置贡献归零，七项偏好恢复；自有进程组 55573 已退出、5184/9224 无监听，正式实例未操作。UI02 的搜索/当前集合/选择集、UI04 快捷键、CFG10 全来源观察、六项无效果设置、其余双端缺口、W01-W32 全组合及 packaged/Windows/Linux 验收仍未完成。原 GAP 没有因新增插件或字段关闭，总目标保持进行中。
+
+## 2026-09-09：D5 / 双端快捷键与 Workspace Profiles 0.2
+
+[代码] settings 1.4 新增 shortcuts section、key-chord kind 和运行态元数据，覆盖 16 项内置可编辑绑定及当前注册插件命令。Agent get_settings/update_settings 与插件同用目录、有效绑定和原子提交。插件命令 key 编码为单一路径片段，manifest 支持 uppercase percent escape；没有开放任意命令执行。默认值、是否覆盖、提供者可用性、冲突路径可查询；只读授权下 writable 为 false，discover 不给值或快捷键运行态，冲突引用按可读路径过滤。
+
+[代码] 修饰键数组使用 mod/alt/shift 加 KeyboardEvent.key；null 删除覆盖、恢复注册默认，不等于禁用。无效键返回 settings/invalid-shortcut，冲突返回 settings/shortcut-conflict；对最终批次验证，允许两键交换，不会先应用半批。既有无关冲突不阻挡其他修改。快捷键 KV 同其他设置原子保存，atom 跟随外部写入及回滚，排队命令不会基于前次未结算值重复分配键位。
+
+[代码] Workspace Profiles 0.2 只新增自身 shortcuts.plugin.workspace-profiles%3Aopen 的精确授权，用宿主表单选择默认/自定义、修饰键和按键；七字段预设模型不变。原生测试发现已穿过 Worker 的稳定错误码被视图动作 catch 丢弃，导致具体冲突变成泛化插件失败。修复动作结果/视图 session 到 toast 的 code 传递；桥只渲染已知本地化错误文案或泛化 fallback，不传原始错误文本。提交失败保留原表单状态和绑定，不关闭、不提示成功。
+
+[环境] [证据](./evidence/keyboard-shortcuts-2026-09-09.json)来自隔离 macOS debug Tauri 5184/9224。实际 Agent 工具把搜索设为 mod+shift+k，键盘打开真实命令搜索；真实 settings Worker 单项抢占报冲突，整批交换搜索/设置成功，同一按键随后打开 Settings，原生快捷键页显示新值。实际安装身份 Workspace Profiles 表单设自身 mod+shift+p，键盘重新打开插件；默认选项恢复 null/overridden=false。错误修复后再次表单提交冲突，已观察并截图具体英文提示，输入 k、空绑定及零成功事件均保留。所有备份按原 override 缺席状态恢复，诊断贡献归零；不把调试调用产品工具算成真实模型推理。
+
+[验证] 新增纯解析/冲突测试 5 项、设置域 5 项、原子持久化子进程第 8 项、插件表单 3 项及错误传递 2 项；已有 manifest 测试补编码路径。最终全仓 test 21/21（web 742 tests / 8465 assertions，Workspace Profiles 8 tests / 28 assertions）、typecheck 24/24、生产前端 build 通过。中途类型检查指出插件 ES lib 不支持 Array.at、toast 描述函数参数不匹配和测试 union 字段读取未收窄，均修复后重跑成功。保留既有构建体积/混合导入及 Node 警告；未改 Rust 业务或重跑 packaged 构建。真实数据库锁/跨记录持久失败由 IPC 测试覆盖，不冒充本轮桌面注入。
+
+[文档] 重扫 243 行、600 库存映射、74 静态设置路径、30 责任单元/catalog、129 原验收项、32 场景。生成器 --check、七项模型门禁、三个文档对 validator 通过。三份 HTML 在 1440×1000、1024×768、390×844 无页面横向溢出、重复 ID、坏页内锚点、无名按钮或已观察资源 HTTP 错误；中英文快捷键搜索/Escape、已有抽屉 inert 和主题刷新保持通过，console/page error 为空，移动首页截图已查看。文档仍依赖 CDN，无新增图；浏览器验证只证明文档。
+
+[清理/仍缺] 自有进程组 64569 已退出、5184/9224 无监听，文档浏览器关闭，正式 app 未操作。UI04 仍为部分：停用插件遗留覆盖未公开，激活可引入冲突，原生设置页仍走旧验证/写入路径；全来源 revision/origin、所有键盘布局/阅读及原生菜单路由、packaged/Windows/Linux 尚未闭合。初始 debug 启动曾报告 web content process terminated 后恢复，早期忙态/旧帧截图不计完成证据。其余双端缺口、六项无效果设置、W01-W32 全组合与完整桌面验收继续，未推送、未关闭总目标。

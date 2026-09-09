@@ -18,6 +18,7 @@ import {
   appSettingsAtom,
   generalSettingsAtom,
   shelfViewAtom,
+  shortcutBindingsAtom,
   contentTypographyAtom,
   readerOverridesAtom,
   readerPreferencesAtom,
@@ -31,6 +32,7 @@ import {
   headerActionsAtom,
   installedPluginsAtom,
   pluginFontsAtom,
+  pluginCommandsAtom,
   pluginThemesAtom,
   selectionActionsAtom,
   textUnitReaderModeAtom,
@@ -40,6 +42,7 @@ import { commitSettingsDraft } from "./persistence";
 import { afterLocalKVWrites } from "../../platform/local-store";
 import { getDefaultMarkColor } from "../../features/annotations/lib/annotation-prefs";
 import { getUpdateChannel } from "../../features/update/lib/update-channel";
+import { contributionText } from "../../features/plugins/lib/plugin-i18n";
 import {
   applySettingChangesToDraft,
   settingsSnapshotFromDraft,
@@ -89,6 +92,11 @@ function readDraft(): SettingsDraft {
   return {
     general: store.get(generalSettingsAtom),
     shelf: store.get(shelfViewAtom),
+    shortcuts: { bindings: store.get(shortcutBindingsAtom),
+      commands: store.get(pluginCommandsAtom).map(command => ({ key: command.key, title: contributionText(command.title), defaultShortcut: command.defaultShortcut })),
+      modeAvailable: store.get(textUnitReaderModeAtom) !== null,
+      lookupAvailable: store.get(selectionActionsAtom).some(action => action.role === "lookup"),
+    },
     appearance: store.get(appSettingsAtom),
     reading: store.get(readerPreferencesAtom),
     readerOverrides: store.get(readerOverridesAtom),
@@ -140,9 +148,10 @@ function visibleSnapshot(
 function filterSnapshot(policy: SettingsAccessPolicy, snapshot: SettingsSnapshot): SettingsSnapshot {
   return {
     ...snapshot,
-    settings: snapshot.settings.filter((setting) =>
-      canAccess(policy, "read", setting.path),
-    ),
+    settings: snapshot.settings.filter(setting => canAccess(policy, "read", setting.path)).map(setting => ({
+      ...setting, writable: setting.writable && canAccess(policy, "write", setting.path),
+      ...(setting.shortcut ? { shortcut: { ...setting.shortcut, conflicts: setting.shortcut.conflicts.filter(path => canAccess(policy, "read", path)) } } : {}),
+    })),
     overrides: snapshot.overrides
       .map((override) => ({
         ...override,
@@ -218,7 +227,7 @@ export function createSettingsDomain(
       discover: async (query) =>
         settingsSnapshot(query).settings
           .filter((setting) => canAccess(policy, "discover", setting.path))
-          .map(({ value: _value, ...definition }) => definition),
+          .map(({ value: _value, shortcut: _shortcut, ...definition }) => ({ ...definition, writable: definition.writable && canAccess(policy, "write", definition.path) })),
       read: async (path, target) => {
         const normalizedPath = String(path);
         if (!canAccess(policy, "read", normalizedPath)) {

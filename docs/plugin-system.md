@@ -359,6 +359,62 @@ without partial changes. Global reading changes preserve existing book overrides
 the tool returns override metadata. Delete removes the preset, not host settings.
 It neither changes AI privacy nor accesses credentials or plugin lifecycle.
 
+### Keyboard shortcut settings
+
+[代码] Settings 1.4 adds the `shortcuts` section: all 16 built-in editable
+bindings and currently registered plugin commands. Agent `get_settings` and
+`update_settings` use the same catalog, validation, atomic KV transaction and
+live binding atom as granted plugins. Existing keyboard handlers consume that
+atom. This is not a second command-execution API.
+
+- Built-ins use `shortcuts.<id>`. Plugin commands use
+  `shortcuts.plugin.<encoded-contribution-key>`: percent-encode the entire key,
+  including dots and `!~*'()`, as one opaque segment. For example,
+  `shortcuts.plugin.workspace-profiles%3Aopen`. Discover the exact path rather
+  than interpreting a command label or decoding arbitrary input. Manifest
+  path validation accepts uppercase percent escapes; grants still match exact
+  paths or explicitly requested path prefixes.
+- `kind: "key-chord"`, global/device-local only. Values are optional `mod`,
+  `alt`, `shift` tokens followed by one `KeyboardEvent.key`; `mod` means
+  Command on macOS, Control elsewhere. Space is `" "`, not `"Space"`.
+  Named keys are ArrowLeft/Right/Up/Down, Enter, Tab, Backspace, Delete, Insert,
+  Home, End, PageUp/Down and F1-F24. A single printable Unicode code point is
+  accepted and lowercased. Duplicate/unknown modifiers, modifier-only input,
+  control characters and Escape reject with `settings/invalid-shortcut`.
+- Writing null removes the override and restores the registered default. It
+  is not an explicit unbind; commands without a default then read null.
+  Snapshot metadata `shortcut` contains `defaultBinding`, `overridden`,
+  `available` and conflicting setting paths. Availability means registered
+  providers, not current focus/command enablement or OS key availability.
+- Snapshot/read values respect path grants; `writable` reflects the actor's
+  write grant, and conflict references are filtered to readable paths.
+  Discovery omits values and live shortcut metadata. A hidden conflicting
+  binding still rejects a write without exposing that binding's path.
+- Validate the final batch, not intermediate edits: swapping two bindings in
+  one update works. Conflicts reject with `settings/shortcut-conflict`, no
+  persistence or change event. Unrelated legacy conflicts do not block other
+  edits. The existing conservative global conflict space excludes unavailable
+  mode/lookup providers. Failed native writes roll back bindings and other
+  settings in the same batch; queued snapshots see the settled state.
+
+[代码] Workspace Profiles 0.2 adds a native-rendered shortcut form using only
+its own exact command path grant. Default/custom mode, modifier toggles and a
+key field submit one settings command. Its seven-field saved presets remain
+unchanged. Plugin action failures now carry only the stable error code to the
+host toast bridge; recognized codes render localized copy, unknown failures
+retain the generic fallback. Raw error details remain in logs. A failed submit
+preserves the form and cannot emit a success toast or close it.
+
+[环境] [Keyboard evidence](./evidence/keyboard-shortcuts-2026-09-09.json)
+covers actual Agent tools, a real Worker batch swap, native keyboard dispatch,
+the installed Workspace Profiles form, conflict toast, null reset and cleanup
+in isolated macOS debug Tauri. It does not prove model inference, packaged
+builds, Windows/Linux, all key layouts or every reader/native-menu route.
+UI04 remains partial: dormant plugin overrides are retained but not exposed
+until registration; activation can introduce conflicts; the native shortcuts
+editor still uses its previous validation/write path, and full revision/origin
+observation is not implemented. These are remaining work, not exemptions.
+
 [环境] The [desktop evidence](./evidence/workspace-profiles-2026-09-09.json)
 covers real product tools, the built plugin Worker, save/validation/apply/delete
 UI, shelf grouping and ordering, the header entry, and cleanup in isolated

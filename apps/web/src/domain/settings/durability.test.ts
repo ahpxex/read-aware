@@ -3,7 +3,8 @@ import { getDefaultStore } from "jotai";
 import { createSettingsDomain } from "./domain";
 import { localKV, onLocalKVWrite } from "../../platform/local-store";
 import { onAppEvent } from "../../platform/app-events";
-import { appSettingsAtom, generalSettingsAtom, shelfViewAtom } from "../../state/ui";
+import { appSettingsAtom, generalSettingsAtom, shelfViewAtom, shortcutBindingsAtom } from "../../state/ui";
+import { SHORTCUT_BINDINGS_KEY } from "../../features/settings/lib/shortcut-bindings";
 import { DEFAULT_SHELF_VIEW, SHELF_VIEW_KEY } from "../../features/shelf/lib/shelf-view";
 import { APP_SETTINGS_KEY, DEFAULT_APP_SETTINGS } from "../../features/settings/lib/app-settings";
 import { GENERAL_SETTINGS_KEY, DEFAULT_GENERAL_SETTINGS } from "../../features/settings/lib/general-settings";
@@ -37,6 +38,7 @@ beforeEach(async () => {
   await localKV.setItemAsync(APP_SETTINGS_KEY, JSON.stringify(DEFAULT_APP_SETTINGS));
   await localKV.setItemAsync(GENERAL_SETTINGS_KEY, JSON.stringify(DEFAULT_GENERAL_SETTINGS));
   await localKV.setItemAsync(SHELF_VIEW_KEY, JSON.stringify(DEFAULT_SHELF_VIEW));
+  await localKV.setItemAsync(SHORTCUT_BINDINGS_KEY, "{}");
   hold = true;
 });
 afterEach(async () => {
@@ -49,6 +51,21 @@ afterEach(async () => {
 });
 
 describe("settings durable command boundary", () => {
+  test("shortcut overrides and app settings roll back together before later reads", async () => {
+    const update = createSettingsDomain("agent").commands.update([
+      { path: "shortcuts.search", value: ["mod", "shift", "p"] }, { path: "appearance.theme", value: "dark" },
+    ]).catch(error => error);
+    await tick();
+    expect(getDefaultStore().get(shortcutBindingsAtom).search).toEqual({ mod: true, shift: true, key: "p" });
+    expect(pending[0]!.entries).toHaveLength(2);
+    const snapshot = createSettingsDomain("agent").queries.snapshot({ section: "shortcuts" });
+    pending.shift()!.reject({ code: "db/locked", message: "shortcut lock" });
+    expect((await update).code).toBe("db/locked");
+    expect((await snapshot).settings.find(setting => setting.path === "shortcuts.search")?.value).toEqual(["mod", "k"]);
+    expect(getDefaultStore().get(shortcutBindingsAtom)).toEqual({});
+    expect(getDefaultStore().get(appSettingsAtom).theme).toBe("system");
+    expect(JSON.parse(disk.get(SHORTCUT_BINDINGS_KEY)!)).toEqual({});
+  });
   test("preset snapshots wait for older UI writes and never capture a rejected optimistic view", async () => {
     getDefaultStore().set(shelfViewAtom, { ...DEFAULT_SHELF_VIEW, layout: "list" });
     let settled = false;
@@ -188,6 +205,6 @@ describe("settings durable command boundary", () => {
     });
     const output = await new Response(child.stderr).text();
     expect(await child.exited, output).toBe(0);
-    expect(output).toContain("7 pass");
+    expect(output).toContain("8 pass");
   }, 30_000);
 }

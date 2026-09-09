@@ -12,6 +12,8 @@
     "copied": "已複製"
   },
   "errors": {
+    "settingsInvalidShortcut": "請選擇有效按鍵和可選修飾鍵。Escape 保留用於關閉浮層。",
+    "settingsShortcutConflict": "該快捷鍵已被使用。請選擇其他組合，或同時修改衝突的綁定。",
     "readerPlaybackFailed": "音訊無法播放，朗讀已停止。請重試或更換聲音。",
     "readerSegmentationFailed": "閱讀模式無法準備目前段落。請關閉後重新開啟此模式以重試。",
     "annotationConflict": "這則標註已被修改。請重新讀取後再決定如何修改。",

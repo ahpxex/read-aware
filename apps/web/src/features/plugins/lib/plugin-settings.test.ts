@@ -111,14 +111,14 @@ describe("settings access manifest", () => {
         schemaVersion: 1,
         requires: {},
         settingsAccess: {
-          read: ["appearance.theme"],
+          read: ["appearance.theme", "shortcuts.plugin.example%3Aopen%2E%2A"],
           write: ["appearance.*"],
         },
       }),
     );
 
     expect(parsed.settingsAccess).toEqual({
-      read: ["appearance.theme"],
+      read: ["appearance.theme", "shortcuts.plugin.example%3Aopen%2E%2A"],
       write: ["appearance.*"],
     });
   });

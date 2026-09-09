@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import { useToast } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { setPluginToastHandler } from "../lib/plugin-toast";
+import { describeErrorCode } from "../../../i18n/describe-error";
 
 export function PluginToastBridge() {
   const { toast } = useToast();
@@ -18,7 +19,7 @@ export function PluginToastBridge() {
         toast({
           variant: "destructive",
           title: payload.pluginName,
-          description: t("runtime.actionFailed"),
+          description: describeErrorCode(payload.code)?.body ?? t("runtime.actionFailed"),
         });
         return;
       }

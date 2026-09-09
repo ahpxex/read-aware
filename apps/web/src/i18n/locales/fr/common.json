@@ -12,6 +12,8 @@
     "copied": "Copié"
   },
   "errors": {
+    "settingsInvalidShortcut": "Choisissez une touche valide et des modificateurs facultatifs. Échap est réservé à la fermeture des fenêtres superposées.",
+    "settingsShortcutConflict": "Ce raccourci est déjà attribué. Choisissez une autre combinaison ou modifiez ensemble les raccourcis en conflit.",
     "readerPlaybackFailed": "La lecture à voix haute s'est arrêtée car l'audio n'a pas pu être lu. Réessayez ou choisissez une autre voix.",
     "readerSegmentationFailed": "Le mode de lecture n'a pas pu préparer ce passage. Désactivez puis réactivez ce mode pour réessayer.",
     "annotationConflict": "Cette annotation a changé. Relisez-la avant d'appliquer vos modifications.",

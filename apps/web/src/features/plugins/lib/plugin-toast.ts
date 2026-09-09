@@ -12,12 +12,13 @@
  *   site, never in the toast.
  */
 import { createLogger } from "../../../platform/logger";
+import { errorCode } from "@read-aware/core";
 
 const log = createLogger("plugins");
 
 export type PluginToastPayload =
   | { kind: "notice"; message: string }
-  | { kind: "failure"; pluginName?: string };
+  | { kind: "failure"; pluginName?: string; code?: string };
 
 type ToastHandler = (payload: PluginToastPayload) => void;
 
@@ -34,7 +35,7 @@ export function showPluginToast(message: string): void {
 }
 
 /** A plugin failed. Log the raw error where it was caught; this only notifies. */
-export function showPluginFailureToast(pluginName?: string): void {
-  if (handler) handler({ kind: "failure", pluginName });
+export function showPluginFailureToast(pluginName?: string, error?: unknown): void {
+  if (handler) handler({ kind: "failure", pluginName, code: errorCode(error) });
   else log.warn("failure toast dropped (no handler)", pluginName ?? "");
 }

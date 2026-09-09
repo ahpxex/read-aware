@@ -12,6 +12,8 @@
     "copied": "Copied"
   },
   "errors": {
+    "settingsInvalidShortcut": "Choose a valid key and optional modifiers. Escape is reserved for closing overlays.",
+    "settingsShortcutConflict": "That shortcut is already assigned. Choose another combination or update the conflicting bindings together.",
     "readerPlaybackFailed": "Read aloud stopped because audio could not be played. Try again or choose another voice.",
     "readerSegmentationFailed": "The reading mode could not prepare this passage. Turn the mode off and on to try again.",
     "annotationConflict": "This annotation changed. Read it again before applying your changes.",

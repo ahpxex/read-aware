@@ -15,7 +15,7 @@ beforeEach(async () => { await localKV.setItemAsync(SHELF_VIEW_KEY, JSON.stringi
 test("Agent and scoped plugin discover the same real shelf options", async () => {
   const agent = await createSettingsDomain("agent").queries.snapshot({ section: "shelf" });
   const plugin = await createSettingsDomain("plugin:shelf", { read: ["shelf.*"] }).queries.snapshot();
-  expect(plugin.settings).toEqual(agent.settings);
+  expect(plugin.settings).toEqual(agent.settings.map(setting => ({ ...setting, writable: false })));
   expect(agent.settings.map(setting => [setting.path, setting.options?.map(option => option.value), setting.supportedTargets])).toEqual([
     ["shelf.layout", ["grid", "list"], ["global"]], ["shelf.group", ["none", "status", "author", "format"], ["global"]],
     ["shelf.sort", ["recent", "added", "title", "author", "progress"], ["global"]],

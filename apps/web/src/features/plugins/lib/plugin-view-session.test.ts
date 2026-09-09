@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test";
 import type { PluginDetailView, PluginViewResult } from "./plugin-types";
 import { PluginViewSession } from "./plugin-view-session";
+import { AppError } from "@read-aware/core";
+import { setPluginToastHandler } from "./plugin-toast";
 import { decodePluginCallbacks, PluginCallbackRegistry, releasePluginCallbacks } from "../runtime/plugin-callback-wire";
 
 function fixture() {
@@ -14,6 +16,21 @@ function fixture() {
   const view = (title: string): PluginDetailView => wire({ kind: "detail", title, content: [], actions: [{ id: "run", label: "Run", run: () => ({ toast: title }) }] });
   return { registry, owner, session, view, wire, notices, failures: () => failures };
 }
+
+test("action failures preserve the form and forward stable error codes without raw details", async () => {
+  const payloads: unknown[] = [];
+  const session = new PluginViewSession();
+  session.setRoot({ kind: "detail", title: "Shortcut", content: [] });
+  const before = session.getSnapshot().renderKey;
+  setPluginToastHandler(payload => payloads.push(payload));
+  try {
+    await session.run(async () => { throw new AppError("settings/shortcut-conflict", "private payload"); });
+    expect(session.getSnapshot().renderKey).toBe(before);
+    expect(session.getSnapshot().stack).toHaveLength(1);
+    expect(session.getSnapshot().busy).toBe(false);
+    expect(payloads).toEqual([{ kind: "failure", pluginName: undefined, code: "settings/shortcut-conflict" }]);
+  } finally { session.dispose(); setPluginToastHandler(null); }
+});
 
 test("push/back/replace/reset release exactly removed view callbacks", async () => {
   const f = fixture();

@@ -21,7 +21,9 @@ async function isolated() {
 export async function prepareWorkspaceProfilesProbe() {
   await isolated();
   if (worker) throw Error("Probe already running");
-  worker = await startPluginWorker({ ...manifest, id } as PluginManifest, "0.5.4", owned,
+  const settingsAccess = Object.fromEntries(Object.entries(manifest.settingsAccess).map(([operation, paths]) => [operation,
+    paths.map(path => path.replace("workspace-profiles%3Aopen", `${id}%3Aopen`))]));
+  worker = await startPluginWorker({ ...manifest, id, settingsAccess } as PluginManifest, "0.5.4", owned,
     { moduleUrl: new URL("../../../../../../../plugins/workspace-profiles/dist/main.js", import.meta.url).href });
   await worker.checkHealth(); worker.promote();
   return workspaceProfilesSnapshot();

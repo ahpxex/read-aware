@@ -4,6 +4,7 @@ import type { EventOrigin } from "./entities";
 export type SettingsSection =
   | "general"
   | "shelf"
+  | "shortcuts"
   | "appearance"
   | "reading"
   | "annotations"
@@ -21,7 +22,8 @@ export type SettingKind =
   | "string"
   | "integer"
   | "number"
-  | "id-list";
+  | "id-list"
+  | "key-chord";
 
 export interface SettingOption {
   value: SettingValue;
@@ -49,6 +51,13 @@ export interface SettingDescriptor {
   nullable?: boolean;
   options?: SettingOption[];
   supportedTargets?: Array<SettingsTarget["kind"]>;
+  /** Read-only metadata for key-chord values. Null writes restore the default. */
+  shortcut?: {
+    defaultBinding: string[] | null;
+    overridden: boolean;
+    available: boolean;
+    conflicts: string[];
+  };
 }
 
 export type SettingCatalogEntry = Omit<SettingDescriptor, "value">;

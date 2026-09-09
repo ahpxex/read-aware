@@ -55,7 +55,13 @@ var en = {
   remove: "Delete profile",
   refresh: "Refresh",
   saved: "Profile saved",
-  applied: "Profile applied"
+  applied: "Profile applied",
+  shortcut: "Keyboard shortcut",
+  binding: "Binding",
+  defaultBinding: "Default",
+  customBinding: "Custom",
+  key: "Key",
+  shortcutSaved: "Shortcut updated"
 };
 var zh = {
   title: "工作区预设",
@@ -67,7 +73,13 @@ var zh = {
   remove: "删除预设",
   refresh: "刷新",
   saved: "预设已保存",
-  applied: "预设已应用"
+  applied: "预设已应用",
+  shortcut: "键盘快捷键",
+  binding: "绑定",
+  defaultBinding: "默认",
+  customBinding: "自定义",
+  key: "按键",
+  shortcutSaved: "快捷键已更新"
 };
 var copy = (locale) => locale.startsWith("zh") ? zh : en;
 var labels = {
@@ -80,6 +92,34 @@ var labels = {
   "reading.lineSpacing": ["Global reading line spacing", "全局阅读行距"]
 };
 var settingLabel = (locale, path) => labels[path]?.[locale.startsWith("zh") ? 1 : 0] ?? path;
+
+// src/shortcut.ts
+async function shortcutView(ctx) {
+  const t = copy(ctx.locale);
+  const path = `shortcuts.plugin.${encodeURIComponent(`${ctx.manifest.id}:open`)}`;
+  const entry = (await ctx.domains.settings.queries.snapshot({ section: "shortcuts" })).settings.find((setting) => setting.path === path);
+  if (!entry?.writable)
+    throw Error("Workspace shortcut is unavailable");
+  const tokens = Array.isArray(entry.value) ? entry.value : [];
+  const modifiers = tokens.slice(0, -1);
+  return { kind: "form", title: t.shortcut, submitLabel: t.apply, fields: [
+    {
+      kind: "select",
+      id: "mode",
+      label: t.binding,
+      value: entry.shortcut?.overridden ? "custom" : "default",
+      options: [{ value: "default", label: t.defaultBinding }, { value: "custom", label: t.customBinding }]
+    },
+    { kind: "toggle", id: "mod", label: "Command / Ctrl", value: modifiers.includes("mod") },
+    { kind: "toggle", id: "alt", label: "Alt / Option", value: modifiers.includes("alt") },
+    { kind: "toggle", id: "shift", label: "Shift", value: modifiers.includes("shift") },
+    { kind: "text", id: "key", label: t.key, value: tokens[tokens.length - 1] ?? "" }
+  ], onSubmit: async (values) => {
+    const value = values.mode === "default" ? null : [...values.mod ? ["mod"] : [], ...values.alt ? ["alt"] : [], ...values.shift ? ["shift"] : [], String(values.key ?? "")];
+    await ctx.domains.settings.commands.update([{ path, value }]);
+    return { toast: t.shortcutSaved, close: true };
+  } };
+}
 
 // src/views.ts
 function saveView(ctx) {
@@ -124,7 +164,8 @@ async function profilesView(ctx) {
   const profiles = await listProfiles(ctx);
   return { kind: "list", title: t.title, emptyText: t.empty, actions: [
     { id: "save", label: t.save, icon: "plus", run: () => ({ view: saveView(ctx) }) },
-    { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await profilesView(ctx), navigation: "replace" }) }
+    { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await profilesView(ctx), navigation: "replace" }) },
+    { id: "shortcut", label: t.shortcut, icon: "rows", run: async () => ({ view: await shortcutView(ctx) }) }
   ], items: profiles.map((doc) => ({
     id: doc.id,
     title: doc.data.name,

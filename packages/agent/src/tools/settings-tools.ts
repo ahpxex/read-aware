@@ -18,6 +18,7 @@ const sectionSchema = Type.Union([
   Type.Literal("reading", { description: "Reader pages: theme, font, and reading mode" }),
   Type.Literal("annotations", { description: "Preferences for new highlights and underlines" }),
   Type.Literal("shelf", { description: "Device-local shelf layout, grouping and sort order, not book data or selection" }),
+  Type.Literal("shortcuts", { description: "Current keyboard bindings, registered defaults, overrides and conflicting paths" }),
   Type.Literal("ai", { description: "Non-sensitive AI behavior preferences" }),
   Type.Literal("menus", {
     description:
@@ -81,7 +82,6 @@ function settingChangeSchema(scope: ThreadScope) {
     {
       path: Type.String({
         minLength: 3,
-        pattern: "^[a-z][a-zA-Z0-9-]*(?:\\.[a-z][a-zA-Z0-9-]*)+$",
         description: "An exact writable path returned by get_settings.",
       }),
       value: settingValueSchema,
@@ -156,7 +156,7 @@ export function buildSettingsTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     name: "update_settings",
     label: "Update settings",
     description:
-      "Update ordinary settings only when the user explicitly asks. Always call get_settings first, then copy exact writable paths and values/options from its catalog. Changes are generic path/value operations: never invent a path or option. For kind=id-list paths (section=menus) the value is the COMPLETE ordered id array — read the current list, modify it, and write it back whole; ids must come from the path's options. A setting with multiple supportedTargets requires an explicit target; call ask_user when the intended scope is ambiguous. Global-only settings may omit target. A successful global write can still report warnings when book overrides take precedence. This tool cannot access API keys, Custom endpoint destinations, destructive data actions, plugin lifecycle, or shortcuts.",
+      "Update ordinary settings only when the user explicitly asks. Always call get_settings first, then copy exact writable paths and values/options from its catalog. Never invent paths. For kind=id-list (menus), write the COMPLETE ordered array using available options. For kind=key-chord (shortcuts), write optional mod/alt/shift tokens followed by one KeyboardEvent.key, e.g. [mod,shift,k]; null restores the registered default, not unbind. Read shortcut metadata for defaults, overrides, availability and conflicts; swap conflicting bindings in ONE batch. A setting with multiple supportedTargets requires an explicit target; call ask_user when scope is ambiguous. Global-only settings may omit target. Global changes may be shadowed by book overrides. This tool cannot access API keys, Custom endpoint destinations, destructive data actions or plugin lifecycle.",
     parameters: Type.Object(
       {
         changes: Type.Array(settingChangeSchema(scope), { minItems: 1, maxItems: 50 }),

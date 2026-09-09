@@ -12,6 +12,8 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "settingsInvalidShortcut": "Wähle eine gültige Taste und optionale Zusatztasten. Escape ist zum Schließen von Overlays reserviert.",
+    "settingsShortcutConflict": "Dieses Tastenkürzel ist bereits belegt. Wähle eine andere Kombination oder ändere die kollidierenden Belegungen gemeinsam.",
     "readerPlaybackFailed": "Das Vorlesen wurde wegen eines Audioproblems gestoppt. Versuche es erneut oder wähle eine andere Stimme.",
     "readerSegmentationFailed": "Der Lesemodus konnte diesen Abschnitt nicht vorbereiten. Schalte den Modus aus und wieder ein, um es erneut zu versuchen.",
     "annotationConflict": "Diese Anmerkung wurde geändert. Lies sie erneut, bevor du Änderungen übernimmst.",

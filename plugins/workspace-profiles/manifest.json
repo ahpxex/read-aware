@@ -1,13 +1,13 @@
 {
-  "id": "workspace-profiles", "name": "Workspace Profiles", "version": "0.1.0", "schemaVersion": 1,
+  "id": "workspace-profiles", "name": "Workspace Profiles", "version": "0.2.0", "schemaVersion": 1,
   "minAppVersion": "0.3.0", "description": "Named shelf, app appearance and global reading presets.",
   "author": "ReadAware", "main": "main.js", "permissions": ["agent:tools"],
   "settingsAccess": {
-    "read": ["shelf.layout", "shelf.group", "shelf.sort", "appearance.theme", "appearance.motion", "reading.fontSize", "reading.lineSpacing"],
-    "write": ["shelf.layout", "shelf.group", "shelf.sort", "appearance.theme", "appearance.motion", "reading.fontSize", "reading.lineSpacing"]
+    "read": ["shelf.layout", "shelf.group", "shelf.sort", "appearance.theme", "appearance.motion", "reading.fontSize", "reading.lineSpacing", "shortcuts.plugin.workspace-profiles%3Aopen"],
+    "write": ["shelf.layout", "shelf.group", "shelf.sort", "appearance.theme", "appearance.motion", "reading.fontSize", "reading.lineSpacing", "shortcuts.plugin.workspace-profiles%3Aopen"]
   },
   "requires": {
-    "domains": { "settings": "^1.3.0" },
+    "domains": { "settings": "^1.4.0" },
     "contributions": { "headerActions": "^1.0.0", "commands": "^1.0.0", "agentTools": "^1.0.0" },
     "services": { "storage": "^2.0.0" }, "schemas": { "views": "^1.0.0" }
   }

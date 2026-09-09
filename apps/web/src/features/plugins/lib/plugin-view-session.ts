@@ -7,7 +7,7 @@ import { showPluginFailureToast, showPluginToast } from "./plugin-toast";
 
 const log = createLogger("plugin-views");
 type Frame = { view: PluginView; renderKey: number; dispose: () => void };
-type Effects = { close?: () => void; refresh?: () => void; toast?: (text: string) => void; failure?: () => void };
+type Effects = { close?: () => void; refresh?: () => void; toast?: (text: string) => void; failure?: (error: unknown) => void };
 export type PluginViewSnapshot = {
   stack: readonly PluginView[];
   /** Explicit navigation replaces UI state, unlike a refresh of root data. */
@@ -166,7 +166,8 @@ export class PluginViewSession {
       log.error("Plugin view action failed", error);
       if (current()) {
         if (dialog) this.closeDialog();
-        (this.effects.failure ?? showPluginFailureToast)();
+        if (this.effects.failure) this.effects.failure(error);
+        else showPluginFailureToast(undefined, error);
       }
       return null;
     } finally {

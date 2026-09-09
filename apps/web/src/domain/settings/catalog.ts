@@ -52,6 +52,9 @@ import type { Highlight } from "../../features/annotations/lib/annotation-types"
 import { contentPreferenceDefinitions } from "./content-preferences";
 import type { ShelfView } from "../../features/shelf/lib/shelf-view";
 import { shelfPreferenceDefinitions } from "./shelf-preferences";
+import { shortcutPreferenceDefinitions } from "./shortcut-preferences";
+import type { ShortcutEnvironment } from "../../features/settings/lib/shortcut-catalog";
+import type { ShortcutBindings } from "../../features/settings/lib/shortcuts";
 import { cleanFontFamily, fontOptions } from "./font-options";
 import type {
   PluginFormField,
@@ -61,6 +64,7 @@ import type {
 export type SettingsDraft = {
   general: GeneralSettings;
   shelf: ShelfView;
+  shortcuts: ShortcutEnvironment & { bindings: ShortcutBindings };
   appearance: AppSettings;
   reading: ReaderSettingsPreferences;
   readerOverrides: ReaderOverrides;
@@ -604,6 +608,7 @@ export function buildSettingDefinitions(
   const definitions: SettingDefinition[] = [
     ...contentPreferenceDefinitions(),
     ...shelfPreferenceDefinitions(),
+    ...shortcutPreferenceDefinitions(draft),
     globalDefinition({
       path: "general.startView",
       section: "general",

@@ -21,7 +21,7 @@ export class PluginManifestError extends Error {}
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const SETTINGS_PATH_PATTERN =
-  /^[a-z][a-zA-Z0-9-]*(?:\.[a-z][a-zA-Z0-9-]*)*(?:\.\*)?$/;
+  /^[a-z][a-zA-Z0-9-]*(?:\.(?:[a-zA-Z0-9_-]|%[0-9A-F]{2})+)*(?:\.\*)?$/;
 
 /** Loose semver: "1", "1.2", "1.2.3" (extra labels ignored). */
 function parseVersion(value: string): number[] | null {

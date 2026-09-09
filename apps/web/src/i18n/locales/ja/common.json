@@ -12,6 +12,8 @@
     "copied": "コピーしました"
   },
   "errors": {
+    "settingsInvalidShortcut": "有効なキーと必要な修飾キーを選択してください。Escape はオーバーレイを閉じるために予約されています。",
+    "settingsShortcutConflict": "このショートカットは使用中です。別の組み合わせを選ぶか、競合する割り当てをまとめて変更してください。",
     "readerPlaybackFailed": "音声を再生できないため、読み上げを停止しました。再試行するか、別の音声を選択してください。",
     "readerSegmentationFailed": "読書モードでこの文章を準備できませんでした。モードを一度オフにしてからオンにし、再試行してください。",
     "annotationConflict": "この注釈は変更されています。再度読み込んでから変更内容を確認してください。",

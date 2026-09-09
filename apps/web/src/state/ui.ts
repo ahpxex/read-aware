@@ -58,6 +58,7 @@ import {
 } from "../features/shelf/lib/shelf-view";
 import {
   getShortcutBindings,
+  SHORTCUT_BINDINGS_KEY,
   saveShortcutBindings,
 } from "../features/settings/lib/shortcut-bindings";
 import type { ShortcutBindings } from "../features/settings/lib/shortcuts";
@@ -235,6 +236,7 @@ onLocalKVChange((key) => {
     case CONTENT_TYPOGRAPHY_KEY: store.set(contentTypographyBaseAtom, getContentTypography()); break;
     case AI_PREFERENCES_KEY: store.set(aiPreferencesBaseAtom, getAIPreferences()); break;
     case SHELF_VIEW_KEY: store.set(shelfViewBaseAtom, getShelfView()); break;
+    case SHORTCUT_BINDINGS_KEY: store.set(shortcutBindingsBaseAtom, getShortcutBindings()); break;
     case READER_PREFERENCES_KEY: store.set(readerPreferencesBaseAtom, getReaderPreferences()); break;
     case READER_OVERRIDES_KEY: store.set(readerOverridesBaseAtom, getReaderOverrides()); break;
     case GENERAL_SETTINGS_KEY: {

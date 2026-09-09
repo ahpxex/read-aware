@@ -47,7 +47,7 @@ export async function runPluginContribution(
         retry: () => void runPluginContribution(pluginId, pluginName, run, options),
       });
     } else {
-      showPluginFailureToast(pluginName);
+      showPluginFailureToast(pluginName, error);
     }
     return;
   }

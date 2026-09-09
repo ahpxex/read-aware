@@ -4,6 +4,7 @@ import type { ThreadScope } from "../thread-scope";
 import { buildAnnotationTools } from "./annotation-tools";
 import { buildBookTextTools } from "./book-text-tools";
 import { buildGraphTools } from "./graph-tools";
+import { buildBookGraphTaskTool } from "./book-graph-task-tool";
 import { buildConversationTools } from "./conversation-tools";
 import { buildInteractionTools } from "./interaction-tools";
 import { buildThreadTools } from "./library-tools";
@@ -38,6 +39,7 @@ export function buildAgentTools(
     ...buildConversationTools(scope, deps, turnState),
     ...buildBookTextTools(scope, deps, turnState),
     ...buildGraphTools(scope, deps, turnState),
+    buildBookGraphTaskTool(scope, deps),
     ...(scope.kind === "global" ? buildPresentTools(deps, turnState) : []),
     ...buildReaderTools(scope, deps, turnState),
     ...buildNavigationTools(scope, deps, turnState),

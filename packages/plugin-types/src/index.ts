@@ -1374,20 +1374,27 @@ export type PluginSettingsDomain = {
   };
 };
 
+export type { BookGraphTaskSnapshot, BookGraphTaskStatus, DigestReport } from "@read-aware/core";
+
 export type PluginDomains = {
   library?: PluginLibraryDomain;
   reading?: PluginReadingDomain;
   annotations?: PluginAnnotationsDomain;
   conversations?: PluginConversationsDomain;
-  /** Memory 1.3. Write permits conditional feedback/classification, never arbitrary projection writes. */
+  /** Memory 1.4. Graph generation additionally requires service:llm; handles belong to this activation. */
   memory?: { queries: {
     inspect(id: string): Promise<import("@read-aware/core").MemorySnapshot | null>;
     classification(bookId: string): Promise<import("@read-aware/core").BookClassificationSnapshot | null>;
+    getGraphTask(bookId: string, taskId: string): Promise<import("@read-aware/core").BookGraphTaskSnapshot>;
+    listGraphTasks(bookId: string): Promise<import("@read-aware/core").BookGraphTaskSnapshot[]>;
     search(input: import("@read-aware/core").MemoryQuery): Promise<import("@read-aware/core").MemoryRecord[]>;
     bookGraph(bookId: string, query?: import("@read-aware/core").BookGraphQuery): Promise<import("@read-aware/core").BookGraphResult>;
   }; commands?: {
     mutate(input: import("@read-aware/core").MemoryMutation): Promise<import("@read-aware/core").MemoryMutationReceipt>;
     classify(input: import("@read-aware/core").BookClassificationChange): Promise<import("@read-aware/core").BookClassificationReceipt>;
+    startGraphTask(bookId: string, mode: "catch-up" | "rebuild"): Promise<import("@read-aware/core").BookGraphTaskSnapshot>;
+    cancelGraphTask(bookId: string, taskId: string): Promise<import("@read-aware/core").BookGraphTaskSnapshot>;
+    retryGraphTask(bookId: string, taskId: string): Promise<import("@read-aware/core").BookGraphTaskSnapshot>;
   };
     events: {
       /** Initial snapshot, then changed results/errors; bounded polling, not an event log. */

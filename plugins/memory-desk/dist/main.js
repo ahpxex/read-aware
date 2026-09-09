@@ -17,7 +17,7 @@ async function liveMemoryView(ctx, query, title, render) {
   const memory = ctx.domains.memory;
   let sample, failure;
   try {
-    sample = query.kind === "search" ? { kind: query.kind, memories: await memory.queries.search(query.query) } : query.kind === "inspect" ? { kind: query.kind, snapshot: await memory.queries.inspect(query.memoryId) } : query.kind === "classification" ? { kind: query.kind, snapshot: await memory.queries.classification(query.bookId) } : { kind: query.kind, graph: await memory.queries.bookGraph(query.bookId, query.query) };
+    sample = query.kind === "search" ? { kind: query.kind, memories: await memory.queries.search(query.query) } : query.kind === "inspect" ? { kind: query.kind, snapshot: await memory.queries.inspect(query.memoryId) } : query.kind === "classification" ? { kind: query.kind, snapshot: await memory.queries.classification(query.bookId) } : query.kind === "graphTasks" ? { kind: query.kind, tasks: await memory.queries.listGraphTasks(query.bookId) } : query.kind === "graphTask" ? { kind: query.kind, task: await memory.queries.getGraphTask(query.bookId, query.taskId) } : { kind: query.kind, graph: await memory.queries.bookGraph(query.bookId, query.query) };
   } catch (error) {
     failure = error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : "memory/observation-failed";
   }
@@ -43,6 +43,78 @@ async function liveMemoryView(ctx, query, title, render) {
   } } };
 }
 
+// src/tasks.ts
+var words = {
+  en: ["Graph tasks", "Fill missing chapters", "Rebuild", "Retry", "Cancel", "Refresh", "No tasks", "I approve sending chapter text to my configured model; charges may apply", "Required", "Status", "Attempted", "Saved", "Remaining", "Queued", "Running", "Cancelling", "Cancelled", "Completed", "Partial", "Unavailable", "Failed"],
+  "zh-Hans": ["图谱任务", "补齐章节", "重建", "重试", "取消", "刷新", "暂无任务", "同意将章节正文发送给已配置的模型，可能产生费用", "必填", "状态", "已尝试", "已保存", "剩余", "排队中", "运行中", "取消中", "已取消", "已完成", "部分完成", "不可用", "失败"],
+  "zh-Hant": ["圖譜工作", "補齊章節", "重建", "重試", "取消", "重新整理", "尚無工作", "同意將章節正文傳送給已設定的模型，可能產生費用", "必填", "狀態", "已嘗試", "已儲存", "剩餘", "排隊中", "執行中", "取消中", "已取消", "已完成", "部分完成", "無法使用", "失敗"],
+  ja: ["グラフのタスク", "不足する章を補完", "再構築", "再試行", "キャンセル", "更新", "タスクなし", "章本文を設定済みモデルに送信することに同意します。料金が発生する場合があります", "必須", "状態", "試行済み", "保存済み", "残り", "待機中", "実行中", "キャンセル中", "キャンセル済み", "完了", "一部完了", "利用不可", "失敗"],
+  de: ["Graph-Aufgaben", "Fehlende Kapitel ergänzen", "Neu aufbauen", "Erneut versuchen", "Abbrechen", "Aktualisieren", "Keine Aufgaben", "Ich stimme dem Senden von Kapiteltext an mein Modell zu; es können Kosten entstehen", "Erforderlich", "Status", "Versucht", "Gespeichert", "Verbleibend", "Wartend", "Läuft", "Wird abgebrochen", "Abgebrochen", "Abgeschlossen", "Teilweise", "Nicht verfügbar", "Fehlgeschlagen"],
+  fr: ["Tâches du graphe", "Compléter les chapitres", "Reconstruire", "Réessayer", "Annuler", "Actualiser", "Aucune tâche", "J'autorise l'envoi du texte au modèle configuré ; des frais sont possibles", "Obligatoire", "État", "Tentés", "Enregistrés", "Restants", "En attente", "En cours", "Annulation", "Annulée", "Terminée", "Partielle", "Indisponible", "Échec"],
+  es: ["Tareas del grafo", "Completar capítulos", "Reconstruir", "Reintentar", "Cancelar", "Actualizar", "Sin tareas", "Autorizo enviar el texto al modelo configurado; puede generar costes", "Obligatorio", "Estado", "Intentados", "Guardados", "Pendientes", "En cola", "En curso", "Cancelando", "Cancelada", "Completada", "Parcial", "No disponible", "Fallida"],
+  ru: ["Задачи графа", "Дополнить главы", "Перестроить", "Повторить", "Отменить", "Обновить", "Задач нет", "Разрешаю отправить текст глав настроенной модели; возможны расходы", "Обязательно", "Статус", "Попыток", "Сохранено", "Осталось", "В очереди", "Выполняется", "Отменяется", "Отменено", "Завершено", "Частично", "Недоступно", "Ошибка"]
+};
+var graphTaskWords = (locale) => words[locale] ?? words[locale.split("-")[0]] ?? words.en;
+var states = ["queued", "running", "cancelling", "cancelled", "completed", "partial", "unavailable", "failed"];
+function approve(ctx, bookId, mode, retryId) {
+  const t = graphTaskWords(ctx.locale), title = t[retryId ? 3 : mode === "rebuild" ? 2 : 1];
+  return {
+    kind: "form",
+    title,
+    submitLabel: title,
+    fields: [{ id: "confirm", kind: "checkbox", label: t[7], value: false }],
+    onSubmit: async (values) => {
+      if (values.confirm !== true)
+        return { fieldErrors: { confirm: t[8] } };
+      const commands = ctx.domains.memory.commands;
+      const task = retryId ? await commands.retryGraphTask(bookId, retryId) : await commands.startGraphTask(bookId, mode);
+      return { view: await graphTaskView(ctx, bookId, task.taskId), navigation: "replace" };
+    }
+  };
+}
+async function graphTasksView(ctx, bookId) {
+  const t = graphTaskWords(ctx.locale);
+  return liveMemoryView(ctx, { kind: "graphTasks", bookId }, t[0], (result) => {
+    if (result.kind !== "graphTasks")
+      throw Error("Unexpected graph tasks observation");
+    const actions = [{ id: "refresh", label: t[5], icon: "arrows-clockwise", run: async () => ({ view: await graphTasksView(ctx, bookId), navigation: "replace" }) }];
+    if (ctx.domains.memory.commands)
+      actions.push({ id: "start", label: t[1], icon: "play", run: () => ({ view: approve(ctx, bookId, "catch-up") }) }, { id: "rebuild", label: t[2], icon: "arrows-clockwise", run: () => ({ view: approve(ctx, bookId, "rebuild") }) });
+    return { kind: "list", title: t[0], actions, emptyText: t[6], items: [...result.tasks].reverse().map((task) => ({
+      id: task.taskId,
+      title: t[task.mode === "rebuild" ? 2 : 1],
+      subtitle: `${t[13 + states.indexOf(task.status)]} · ${task.createdAt}`,
+      icon: "brain",
+      onSelect: async () => ({ view: await graphTaskView(ctx, bookId, task.taskId) })
+    })) };
+  });
+}
+async function graphTaskView(ctx, bookId, taskId) {
+  const t = graphTaskWords(ctx.locale);
+  return liveMemoryView(ctx, { kind: "graphTask", bookId, taskId }, t[0], (result) => {
+    if (result.kind !== "graphTask")
+      throw Error("Unexpected graph task observation");
+    const task = result.task, report = task.report;
+    const actions = [{ id: "refresh", label: t[5], icon: "arrows-clockwise", run: async () => ({ view: await graphTaskView(ctx, bookId, taskId), navigation: "replace" }) }];
+    if (ctx.domains.memory.commands && ["queued", "running"].includes(task.status))
+      actions.push({ id: "cancel", label: t[4], icon: "stop", run: async () => {
+        await ctx.domains.memory.commands.cancelGraphTask(bookId, taskId);
+        return { view: await graphTaskView(ctx, bookId, taskId), navigation: "replace" };
+      } });
+    if (ctx.domains.memory.commands && ["failed", "cancelled", "partial", "unavailable"].includes(task.status))
+      actions.push({ id: "retry", label: t[3], icon: "arrows-clockwise", run: () => ({ view: approve(ctx, bookId, task.mode, taskId) }) });
+    return { kind: "detail", title: t[task.mode === "rebuild" ? 2 : 1], actions, content: [
+      { kind: "keyValue", rows: [
+        { label: t[9], value: t[13 + states.indexOf(task.status)] },
+        { label: "ID", value: taskId },
+        ...report ? [{ label: t[10], value: String(report.attempted) }, { label: t[11], value: String(report.digested) }, { label: t[12], value: String(report.remaining) }] : []
+      ] },
+      ...task.errorCode ? [{ kind: "error", code: task.errorCode }] : [],
+      ...report?.failures.map((failure) => ({ kind: "error", code: failure.errorCode })) ?? []
+    ] };
+  });
+}
+
 // src/graph.ts
 function graphSearch(ctx, bookId) {
   const t = strings(ctx.locale);
@@ -65,6 +137,7 @@ async function graphView(ctx, bookId, query = {}, profileName) {
       throw Error("Unexpected memory observation result");
     const graph = result.graph;
     const actions = [
+      { id: "tasks", label: graphTaskWords(ctx.locale)[0], icon: "list", run: async () => ({ view: await graphTasksView(ctx, bookId) }) },
       { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await graphView(ctx, bookId, query, profileName), navigation: "replace" }) },
       { id: "search", label: t[6], icon: "magnifying-glass", run: () => ({ view: graphSearch(ctx, bookId) }) }
     ];
@@ -139,7 +212,7 @@ async function graphView(ctx, bookId, query = {}, profileName) {
 }
 
 // src/management.ts
-var words = {
+var words2 = {
   en: ["Memory", "Refresh", "Correct", "Pin", "Unpin", "Forget", "Content", "Confirm forgetting this memory", "Required", "Scope"],
   "zh-Hans": ["记忆", "刷新", "纠正", "置顶", "取消置顶", "遗忘", "内容", "确认遗忘这条记忆", "必填", "范围"],
   "zh-Hant": ["記憶", "重新整理", "更正", "置頂", "取消置頂", "遺忘", "內容", "確認遺忘這條記憶", "必填", "範圍"],
@@ -150,7 +223,7 @@ var words = {
   ru: ["Память", "Обновить", "Исправить", "Закрепить", "Открепить", "Забыть", "Содержание", "Подтвердить забывание этой записи", "Обязательно", "Область"]
 };
 async function memoryDetail(ctx, id, removed) {
-  const t = words[ctx.locale] ?? words[ctx.locale.split("-")[0]] ?? words.en;
+  const t = words2[ctx.locale] ?? words2[ctx.locale.split("-")[0]] ?? words2.en;
   return liveMemoryView(ctx, { kind: "inspect", memoryId: id }, t[0], (result) => {
     if (result.kind !== "inspect")
       throw Error("Unexpected memory observation result");
@@ -195,7 +268,7 @@ async function memoryDetail(ctx, id, removed) {
 }
 
 // src/classification.ts
-var words2 = {
+var words3 = {
   en: ["Book classification", "Narrative", "Expository", "Unclassified", "Change classification", "Current classification", "I confirm the classification and spoiler-boundary change", "Expository books have no chapter spoiler boundary. Existing digests rebuild gradually; past answers and in-flight work are not undone.", "Required", "Refresh"],
   "zh-Hans": ["书籍分类", "叙事性", "说明性", "未分类", "更改分类", "当前分类", "确认更改分类及剧透边界", "说明性书籍不设章节剧透边界。旧摘要会逐步重建；历史答复和在途任务不会撤销。", "必填", "刷新"],
   "zh-Hant": ["書籍分類", "敘事性", "說明性", "未分類", "變更分類", "目前分類", "確認變更分類及劇透邊界", "說明性書籍不設章節劇透邊界。舊摘要會逐步重建；歷史回覆和進行中的工作不會撤銷。", "必填", "重新整理"],
@@ -205,7 +278,7 @@ var words2 = {
   es: ["Clasificación del libro", "Narrativo", "Expositivo", "Sin clasificar", "Cambiar clasificación", "Clasificación actual", "Confirmar la clasificación y el límite de spoilers", "Los libros expositivos no tienen límite de spoilers por capítulo. Los resúmenes se renuevan gradualmente; las respuestas anteriores y las tareas en curso no se deshacen.", "Obligatorio", "Actualizar"],
   ru: ["Классификация книги", "Повествование", "Изложение", "Не определена", "Изменить классификацию", "Текущая классификация", "Подтверждаю изменение классификации и границы спойлеров", "Изложение не ограничивает спойлеры по главам. Резюме обновляются постепенно; прошлые ответы и текущие операции не отменяются.", "Обязательно", "Обновить"]
 };
-var classificationWords = (locale) => words2[locale] ?? words2[locale.split("-")[0]] ?? words2.en;
+var classificationWords = (locale) => words3[locale] ?? words3[locale.split("-")[0]] ?? words3.en;
 async function classificationView(ctx, bookId) {
   const t = classificationWords(ctx.locale), refresh = () => classificationView(ctx, bookId);
   return liveMemoryView(ctx, { kind: "classification", bookId }, t[0], (result) => {

@@ -19,7 +19,7 @@ import type { InferencePolicy } from "../models/inference-policy";
 import { buildProviderRegistry } from "../models/registry";
 import type { ModelRole, RoleThinking } from "../models/roles";
 import type { AgentFetch } from "../models/transport";
-import type { Id } from "@read-aware/core";
+import { AppError, type Id } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import { askOneShot, type OneShotInput } from "./one-shot";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
@@ -225,6 +225,22 @@ export class AgentRuntime {
       signal: operation.signal,
       onProgress: count => { operation.assertAllowed(); options?.onProgress?.(count); },
     }), options?.signal);
+  }
+
+  /** Public task execution uses the same queue and protected write lifetime as automatic upkeep. */
+  async runBookGraphTask(input: import("../memory/book-graph-tasks").BookGraphTaskExecution & {
+    resolveBoundary(): Promise<number | undefined>;
+  }): Promise<DigestReport> {
+    return runMemoryBuild(this.options.deps, operation => digestBookCatchUp({
+      deps: operation.protect(this.options.deps), complete: operation.complete(this.completeFns.fast), model: this.resolveModel("fast"),
+      bookId: input.bookId, rebuild: input.rebuild, targets: input.targets, concurrency: 2, signal: operation.signal,
+      onStarted: input.onStarted, onPlan: input.onPlan, onChapterCommitted: input.onChapterCommitted, onReport: input.onReport,
+      resolveBoundary: operation.guard(input.resolveBoundary),
+      checkChapter: operation.guard(async index => {
+        const ceiling = await input.resolveBoundary();
+        if (ceiling === undefined || index >= ceiling) throw new AppError("memory/conflict", "Reading boundary changed during graph generation");
+      }),
+    }), input.signal);
   }
 
   private runConsolidation(force: boolean): Promise<ConsolidationReport | null> {

@@ -12,6 +12,7 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "memoryTaskNotFound": "Diese Graph-Aufgabe ist nicht mehr verfügbar. Starten Sie eine neue Aufgabe.",
     "memoryTaskLimit": "Zu viele Graphanfragen sind aktiv. Warte, bis eine Anfrage abgeschlossen ist.",
     "memoryObserverLimit": "Zu viele aktive Erinnerungsabonnements.",
     "memoryObservationFailed": "Erinnerungen konnten nicht gelesen werden. Versuche es erneut.",

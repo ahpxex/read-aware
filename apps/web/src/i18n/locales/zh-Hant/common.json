@@ -12,6 +12,7 @@
     "copied": "已複製"
   },
   "errors": {
+    "memoryTaskNotFound": "此圖譜工作已無法使用，請建立新工作。",
     "memoryTaskLimit": "圖譜請求過多，請等待現有請求結束。",
     "memoryObserverLimit": "記憶訂閱數量已達上限。",
     "memoryObservationFailed": "無法讀取記憶，請重試。",

@@ -177,7 +177,7 @@ export interface UserInteractionOption {
 }
 
 export type UserPermissionAction =
-  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory" | "classify-book";
+  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory" | "classify-book" | "generate-book-graph";
 
 type UserInteractionBase = {
   /** Globally unique for the lifetime of the tool call. */
@@ -385,6 +385,7 @@ export interface ExternalMemoryCandidateRequest {
 }
 
 export interface RuntimeDeps {
+  bookGraphTasks: import("@read-aware/core").BookGraphTaskPort;
   bookClassification: {
     inspect(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookClassificationSnapshot | null>;
     change(input: import("@read-aware/core").BookClassificationChange, signal?: AbortSignal): Promise<import("@read-aware/core").BookClassificationReceipt>;

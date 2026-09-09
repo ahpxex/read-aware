@@ -31,7 +31,10 @@ test("memory query and consumer inventories stay distinct from bundled or model 
   expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.queries.bookGraph")?.rows).toEqual(["MEM11"]);
   expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.queries.inspect")?.rows).toEqual(["MEM01", "MEM05"]);
   expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.commands.mutate")?.rows).toEqual(["MEM04", "MEM05"]);
-  expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.events.observe")?.rows).toEqual(["MEM01", "MEM04", "MEM05", "MEM09", "MEM11"]);
+  expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.events.observe")?.rows).toEqual(["MEM01", "MEM04", "MEM05", "MEM09", "MEM10", "MEM11"]);
+  for (const name of ["domains.memory.queries.getGraphTask", "domains.memory.queries.listGraphTasks", "domains.memory.commands.startGraphTask", "domains.memory.commands.cancelGraphTask", "domains.memory.commands.retryGraphTask"]) {
+    expect(inventory.find(item => item.family === "Plugin ctx" && item.name === name)?.rows).toEqual(["MEM10"]);
+  }
   expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.queries.classification")?.rows).toEqual(["MEM09"]);
   expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.commands.classify")?.rows).toEqual(["MEM09"]);
   expect(inventory.find(item => item.family === "First-party source plugin" && item.name === "memory-desk")?.rows).toContain("MEM05");

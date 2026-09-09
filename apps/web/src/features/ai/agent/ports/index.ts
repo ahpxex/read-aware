@@ -23,11 +23,13 @@ import { memoryPolicy } from "../memory-policy";
 import { readingContextPolicy } from "../reading-context-policy";
 import { inspectMemory, mutateMemory } from "../../../../domain/memory-management";
 import { inspectBookClassification, changeBookClassification } from "../../../../domain/book-classification";
+import { agentBookGraphTasks } from "../../../../domain/book-graph-tasks";
 
 export { GLOBAL_CONVERSATION_ID } from "./conversation-port";
 
 export function buildRuntimeDeps(): RuntimeDeps {
   return {
+    bookGraphTasks: agentBookGraphTasks,
     bookClassification: { inspect: inspectBookClassification, change: (input, signal) => changeBookClassification(input, "agent", signal) },
     memoryManagement: { inspect: inspectMemory, mutate: (input, signal) => mutateMemory(input, "agent", signal) },
     hostCommands: trustedHostCommands("agent"),

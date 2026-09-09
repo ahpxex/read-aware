@@ -73,6 +73,11 @@
           "description": "La colección se eliminará. Sus libros seguirán en la estantería sin colección.",
           "approve": "Eliminar colección"
         },
+        "generateBookGraph": {
+          "question": "¿Generar el grafo de este libro?",
+          "description": "El texto de los capítulos permitidos se enviará al modelo configurado y puede generar costes. La reconstrucción sustituye resúmenes solo tras generarlos correctamente. Cancelar no revierte el trabajo guardado.",
+          "approve": "Generar grafo"
+        },
         "classifyBook": {
           "question": "¿Cambiar la clasificación de este libro?",
           "description": "{{subject}}\n\nLa clasificación expositiva elimina los límites de spoilers por capítulo y cambia el tipo de grafo. Los resúmenes se reconstruyen gradualmente. No se deshacen las respuestas anteriores ni las tareas en curso.",

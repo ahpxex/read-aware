@@ -73,6 +73,11 @@
           "description": "La collection sera supprimée. Ses livres resteront dans votre bibliothèque sans collection.",
           "approve": "Supprimer la collection"
         },
+        "generateBookGraph": {
+          "question": "Générer le graphe de ce livre ?",
+          "description": "Le texte des chapitres autorisés sera envoyé au modèle configuré, avec des frais possibles. La reconstruction remplace les résumés après une génération réussie. L'annulation ne supprime pas le travail enregistré.",
+          "approve": "Générer le graphe"
+        },
         "classifyBook": {
           "question": "Modifier la classification de ce livre ?",
           "description": "{{subject}}\n\nLa classification explicative supprime les limites de divulgation par chapitre et change le type de graphe. Les résumés existants seront reconstruits progressivement. Les réponses passées et les opérations en cours ne sont pas annulées.",

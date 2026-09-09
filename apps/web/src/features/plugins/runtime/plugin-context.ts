@@ -15,6 +15,7 @@ import { workspace } from "../../../services/workspace";
 import { actorHostCommands } from "../../../services/host-command-runtime";
 import { publishPluginView } from "../lib/plugin-view-channels";
 import {
+  AppError,
   canUseContribution,
   canUseHostService,
   domainGrantsFromPermissions,
@@ -809,6 +810,17 @@ export function buildPluginContext(
     }, classify: input => {
       lifecycle.assertActive("domains.memory.commands.classify");
       return memory.commands!.classify(input);
+    }, startGraphTask: (bookId, mode) => {
+      lifecycle.assertActive("domains.memory.commands.startGraphTask");
+      if (!canUseHostService("llm", permissions)) throw new AppError("memory/forbidden", "Graph generation requires service:llm");
+      return memory.commands!.startGraphTask(bookId, mode);
+    }, retryGraphTask: (bookId, taskId) => {
+      lifecycle.assertActive("domains.memory.commands.retryGraphTask");
+      if (!canUseHostService("llm", permissions)) throw new AppError("memory/forbidden", "Graph generation requires service:llm");
+      return memory.commands!.retryGraphTask(bookId, taskId);
+    }, cancelGraphTask: (bookId, taskId) => {
+      lifecycle.assertActive("domains.memory.commands.cancelGraphTask");
+      return memory.commands!.cancelGraphTask(bookId, taskId);
     } } } : {}) };
   }
 

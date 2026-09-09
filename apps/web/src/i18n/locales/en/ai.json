@@ -73,6 +73,11 @@
           "description": "The collection will be removed. Its books will stay on your shelf without a collection.",
           "approve": "Delete collection"
         },
+        "generateBookGraph": {
+          "question": "Generate this book's graph?",
+          "description": "This sends eligible chapter text to your configured model and may incur charges. Rebuild replaces digests only after successful generation. Cancellation does not undo committed work.",
+          "approve": "Generate graph"
+        },
         "classifyBook": {
           "question": "Change this book's classification?",
           "description": "{{subject}}\n\nExpository classification removes chapter spoiler boundaries and changes the graph style. Existing digests rebuild lazily; past answers and in-flight work are not undone.",

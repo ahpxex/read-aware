@@ -1144,8 +1144,8 @@ late result. Production Agent/Worker graph queries agreed, and compiled Memory
 Desk 0.4 displayed rebuilt entities with future names excluded. One native
 screenshot was inspected. The fixture does not run autonomous inference, the
 full outer policy shutdown, remote sync or packaged/Windows/Linux variants.
-No plugin API, permission or task UI was added: MEM10 remains Agent automatic,
-plugin unconnected, with public progress/cancel/retry/rebuild still pending.
+That execution-report unit added no plugin API, permission or task UI. Public
+task access is now provided separately by Memory 1.4 below.
 
 <a id="digest-conditional"></a>
 ### Digest Commit Conditions
@@ -1246,6 +1246,90 @@ also cover different-book progress, failures, FIFO, capacity/recovery, queued
 cancellation, late reads and request mutation. This is scripted inference and
 receipt gating, not stalled SQLite, autonomous models, public-task UI,
 packaged/Windows/Linux or real remote-sync verification.
+
+<a id="book-graph-tasks"></a>
+### Memory 1.4: Public Graph Tasks
+
+[代码] `queries.listGraphTasks(bookId)` and `getGraphTask(bookId,taskId)` read only
+this actor's handles. `commands.startGraphTask(bookId,"catch-up"|"rebuild")`,
+`cancelGraphTask(bookId,taskId)` and `retryGraphTask(bookId,taskId)` require
+memory:write; start and retry additionally require service:llm at the Worker
+context boundary. Arbitrary digest payloads and caller-supplied chapter/fence
+overrides are not accepted. User/system domain callers are trusted host actors.
+Memory reads remain available without inference permission.
+
+[代码] `BookGraphTaskSnapshot` contains taskId, bookId, mode, optional retryOf,
+revision, createdAt/updatedAt, status, optional DigestReport and errorCode. Status
+is queued/running/cancelling/cancelled/completed/partial/unavailable/failed.
+Accepted means queued, not generated. The report counts eligible/attempted/saved
+and remaining chapters in this pass; failures and empty chapters remain distinct.
+Queries return clones. `events.observe` adds `{kind:"graphTasks",bookId}` and
+`{kind:"graphTask",bookId,taskId}` using the existing bounded, coalescing one-second
+query observer, not every transition or an event log. Errors clear live UI state.
+
+[代码] Each plugin activation has its own owner; Agent handles share one host
+owner across model configuration changes. Neither lists automatic upkeep jobs
+or another actor's tasks. Per owner: at most 16 active requests (including
+cancelling) and 64 retained handles, evicting oldest terminal tasks. The shared
+book queue additionally caps 64 active/waiting passes across owners. Overflow is
+memory/task-limit (retryable); unknown/foreign/evicted handles memory/task-not-found
+(not retryable), invalid book/mode memory/invalid-input, forbidden generation
+memory/forbidden, invalid retry state memory/conflict. Unconfigured inference
+fails the accepted task with ai/not-configured; automatic-build and local-only
+policies still apply. Provider/DB errors retain stable codes, not raw messages.
+
+[代码] The host resolves the live reading boundary after queue entry, and rechecks
+before chapter reads/inference and saves. Unknown position is unavailable, not
+permission to process a whole narrative book. Expository/finished books permit
+all prepared chapters. Automatic classification sampling is limited to already
+completed chapters (at most eight); it cannot use a later chapter merely to
+classify the book. Generation uses the configured fast model, concurrency two,
+one finite full pass, without deleting old digests before successful conditional
+replacement. Retry creates a new handle and retains unfinished targets: a failed
+rebuild's OLD valid row must not count as a successful replacement. Retry of a
+running/cancelling/completed task is rejected; no silent retry loop is created.
+
+[代码] Cancel first moves to cancelling and aborts the execution signal. It becomes
+cancelled only after the protected executor settles, including dispatched write
+receipts; committed chapters and remote charges are not undone. Caller/activation
+abort cancels requests, future calls from the retired owner fail, observations
+stop, and no retired plugin receives new callbacks. Cancellation of a queued
+request does not cancel another owner's active task. Underlying read/model IO
+may outlive a cancelled logical task. Task handles and plans are not persisted.
+
+[代码] Agent `manage_book_graph` supports list/get/start/rebuild/cancel/retry in
+both scopes. Book threads are limited to their book; global requests require an
+explicit discovered book ID, but generation still follows the live host boundary.
+List defaults to 10 and caps at 20 with offset/nextOffset. Every start/rebuild/retry
+requests generate-book-graph approval with book identity and operation; decline
+does not enqueue. Input is copied before approval. Reads/cancel need no model-cost
+approval. This is not a tool to recursively invoke the chat Agent.
+
+[代码/环境] Memory Desk 0.5 combines graph queries, library navigation, task
+observation, explicit cost confirmation and live task list/detail/cancel/retry.
+[Public task evidence](./evidence/book-graph-tasks-2026-09-10.json) records six
+Workers, real SQLite and native OpenAI-compatible SSE to a scripted loopback
+provider. Read-only/no-LLM permissions were denied; another actor's list was empty.
+Failed rebuild retained Ada while the other chapter updated; retry attempted only
+the failed chapter. Agent queued behind plugin work, queued/active cancellation
+terminated without late saves, and Worker retirement aborted two held requests.
+Compiled Memory Desk was clicked through confirmation validation, partial/error
+display and successful retry; both native screenshots were inspected. Agent
+approval was scripted through the real port, not clicked in the approval component
+or generated by an autonomous model. Agent/Worker graph reads agreed and excluded
+future names. Native write-failure/receipt-delay evidence belongs to prior units.
+
+[边界] MEM10 is now partial on both sides, not unconnected and not fully complete:
+there is no user-defined token/money budget, durable recovery, cross-device task
+ownership, source-content hash/lease, or full semantic inference proof. Prepared
+chapter content is required; this API does not import/extract missing book text.
+Public summaries remain sampled results, not a fresh global backlog. Packaged,
+Windows/Linux, real remote sync and full long-duration behavior were not tested.
+The first fixture setup hit a reload and lost its in-memory restore state; only
+owned test book/config were cleaned, and restoration of pre-first-setup isolated
+configuration was not proven. Successful second setup cleaned its captured state.
+No formal application data was used. This is an environment limitation, not proof
+of a shipped task restart/recovery contract.
 
 <a id="book-classification"></a>
 ### Memory 1.3: Book Classification

@@ -1,0 +1,779 @@
+{
+  "date": "2026-09-10",
+  "scope": "Public graph tasks through Agent tools, Worker domain API and compiled Memory Desk 0.5",
+  "environment": {
+    "app": "com.readaware.app.capability-e2e",
+    "platform": "macOS Tauri debug",
+    "frontend": 5184,
+    "bridge": 9224,
+    "model": "Controlled loopback OpenAI-compatible SSE at 127.0.0.1:19844, not an autonomous model",
+    "workers": 6
+  },
+  "seed": {
+    "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+    "chapters": [
+      {
+        "hrefs": [
+          "0"
+        ],
+        "index": 0
+      },
+      {
+        "hrefs": [
+          "1"
+        ],
+        "index": 1
+      },
+      {
+        "hrefs": [
+          "2"
+        ],
+        "index": 2
+      }
+    ],
+    "marker": "Memory Domain Probe a09cf1d8-3dc2-4b43-9c8d-d04c852bb1d5",
+    "memoryIds": [
+      "0962c2d9-0916-446d-892d-53b761c9bdbb",
+      "37619582-9dbd-4e5c-bbb3-7e6a5ab1b92f",
+      "ab2fdced-b7a9-4a97-a9ec-a0bb4c082bde"
+    ],
+    "path": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e"
+  },
+  "access": {
+    "declined": {
+      "approvals": 1,
+      "value": {
+        "started": false
+      }
+    },
+    "observe": {
+      "status": "ok",
+      "value": true
+    },
+    "read": {
+      "code": "unavailable",
+      "status": "error"
+    },
+    "start": {
+      "status": "ok",
+      "value": {
+        "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+        "createdAt": "2026-09-09T23:27:06.228Z",
+        "mode": "catch-up",
+        "revision": 0,
+        "status": "queued",
+        "taskId": "93fe1a0c-48cb-4ef3-8350-ac4c730aeb93",
+        "updatedAt": "2026-09-09T23:27:06.228Z"
+      }
+    },
+    "write": {
+      "code": "memory/forbidden",
+      "status": "error"
+    }
+  },
+  "noMissingAndRebuild": {
+    "noMissing": {
+      "status": "ok",
+      "value": {
+        "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+        "createdAt": "2026-09-09T23:27:06.228Z",
+        "mode": "catch-up",
+        "report": {
+          "attempted": 0,
+          "digested": 0,
+          "eligible": 2,
+          "emptyChapters": [],
+          "failures": [],
+          "remaining": 0,
+          "status": "complete"
+        },
+        "revision": 3,
+        "status": "completed",
+        "taskId": "93fe1a0c-48cb-4ef3-8350-ac4c730aeb93",
+        "updatedAt": "2026-09-09T23:27:06.235Z"
+      }
+    },
+    "rebuild": {
+      "status": "ok",
+      "value": {
+        "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+        "createdAt": "2026-09-09T23:27:06.443Z",
+        "mode": "rebuild",
+        "revision": 0,
+        "status": "queued",
+        "taskId": "0bf52216-2249-47d1-84d2-7f0b10dc910b",
+        "updatedAt": "2026-09-09T23:27:06.443Z"
+      }
+    }
+  },
+  "partialAndPreservedRows": {
+    "foreign": {
+      "code": "memory/task-not-found",
+      "status": "error"
+    },
+    "otherOwner": {
+      "status": "ok",
+      "value": []
+    },
+    "partial": {
+      "status": "ok",
+      "value": {
+        "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+        "createdAt": "2026-09-09T23:27:06.443Z",
+        "mode": "rebuild",
+        "report": {
+          "attempted": 2,
+          "digested": 1,
+          "eligible": 2,
+          "emptyChapters": [],
+          "failures": [
+            {
+              "chapterIndex": 0,
+              "errorCode": "ai/provider"
+            }
+          ],
+          "remaining": 1,
+          "status": "partial"
+        },
+        "revision": 7,
+        "status": "partial",
+        "taskId": "0bf52216-2249-47d1-84d2-7f0b10dc910b",
+        "updatedAt": "2026-09-09T23:27:06.466Z"
+      }
+    },
+    "retry": {
+      "status": "ok",
+      "value": {
+        "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+        "createdAt": "2026-09-09T23:27:25.106Z",
+        "mode": "rebuild",
+        "retryOf": "0bf52216-2249-47d1-84d2-7f0b10dc910b",
+        "revision": 0,
+        "status": "queued",
+        "taskId": "b09f835a-e50c-46b8-bd6d-0a1e4a8efa43",
+        "updatedAt": "2026-09-09T23:27:25.106Z"
+      }
+    },
+    "rows": [
+      {
+        "chapter": 0,
+        "summary": "Synthetic chapter 1: Ada"
+      },
+      {
+        "chapter": 1,
+        "summary": "Public task chapter 1"
+      },
+      {
+        "chapter": 2,
+        "summary": "Synthetic chapter 3: Hidden"
+      }
+    ]
+  },
+  "retryAndConcurrentAgent": {
+    "agent": {
+      "approvals": 1,
+      "value": {
+        "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+        "createdAt": "2026-09-09T23:27:25.454Z",
+        "mode": "rebuild",
+        "revision": 0,
+        "status": "queued",
+        "taskId": "6cd386ef-5ee2-45ce-a17f-2231d2a85186",
+        "updatedAt": "2026-09-09T23:27:25.454Z"
+      }
+    },
+    "rebuild": {
+      "status": "ok",
+      "value": {
+        "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+        "createdAt": "2026-09-09T23:27:25.450Z",
+        "mode": "rebuild",
+        "revision": 0,
+        "status": "queued",
+        "taskId": "d99bac6a-4571-40a7-806f-04cb4982f5bb",
+        "updatedAt": "2026-09-09T23:27:25.450Z"
+      }
+    },
+    "retry": {
+      "status": "ok",
+      "value": {
+        "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+        "createdAt": "2026-09-09T23:27:25.106Z",
+        "mode": "rebuild",
+        "report": {
+          "attempted": 1,
+          "digested": 1,
+          "eligible": 2,
+          "emptyChapters": [],
+          "failures": [],
+          "remaining": 0,
+          "status": "complete"
+        },
+        "retryOf": "0bf52216-2249-47d1-84d2-7f0b10dc910b",
+        "revision": 5,
+        "status": "completed",
+        "taskId": "b09f835a-e50c-46b8-bd6d-0a1e4a8efa43",
+        "updatedAt": "2026-09-09T23:27:25.130Z"
+      }
+    }
+  },
+  "cancellation": {
+    "agentQueued": {
+      "approvals": 0,
+      "value": {
+        "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+        "createdAt": "2026-09-09T23:27:25.454Z",
+        "mode": "rebuild",
+        "revision": 0,
+        "status": "queued",
+        "taskId": "6cd386ef-5ee2-45ce-a17f-2231d2a85186",
+        "updatedAt": "2026-09-09T23:27:25.454Z"
+      }
+    },
+    "cancelAgent": {
+      "approvals": 0,
+      "value": {
+        "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+        "createdAt": "2026-09-09T23:27:25.454Z",
+        "mode": "rebuild",
+        "revision": 1,
+        "status": "cancelling",
+        "taskId": "6cd386ef-5ee2-45ce-a17f-2231d2a85186",
+        "updatedAt": "2026-09-09T23:27:43.036Z"
+      }
+    },
+    "cancelPlugin": {
+      "status": "ok",
+      "value": {
+        "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+        "createdAt": "2026-09-09T23:27:25.450Z",
+        "mode": "rebuild",
+        "report": {
+          "attempted": 2,
+          "digested": 0,
+          "eligible": 2,
+          "emptyChapters": [],
+          "failures": [],
+          "remaining": 2,
+          "status": "partial"
+        },
+        "revision": 5,
+        "status": "cancelling",
+        "taskId": "d99bac6a-4571-40a7-806f-04cb4982f5bb",
+        "updatedAt": "2026-09-09T23:27:43.037Z"
+      }
+    },
+    "plugin": {
+      "status": "ok",
+      "value": {
+        "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+        "createdAt": "2026-09-09T23:27:25.450Z",
+        "mode": "rebuild",
+        "report": {
+          "attempted": 2,
+          "digested": 0,
+          "eligible": 2,
+          "emptyChapters": [],
+          "failures": [],
+          "remaining": 2,
+          "status": "partial"
+        },
+        "revision": 4,
+        "status": "running",
+        "taskId": "d99bac6a-4571-40a7-806f-04cb4982f5bb",
+        "updatedAt": "2026-09-09T23:27:25.457Z"
+      }
+    }
+  },
+  "cancelledAndObservations": {
+    "agent": {
+      "approvals": 0,
+      "value": {
+        "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+        "createdAt": "2026-09-09T23:27:25.454Z",
+        "errorCode": "memory/cancelled",
+        "mode": "rebuild",
+        "revision": 2,
+        "status": "cancelled",
+        "taskId": "6cd386ef-5ee2-45ce-a17f-2231d2a85186",
+        "updatedAt": "2026-09-09T23:27:43.036Z"
+      }
+    },
+    "events": {
+      "status": "ok",
+      "value": [
+        {
+          "result": {
+            "kind": "graphTasks",
+            "tasks": []
+          },
+          "revision": 1,
+          "status": "ready"
+        },
+        {
+          "result": {
+            "kind": "graphTasks",
+            "tasks": [
+              {
+                "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+                "createdAt": "2026-09-09T23:27:06.228Z",
+                "mode": "catch-up",
+                "report": {
+                  "attempted": 0,
+                  "digested": 0,
+                  "eligible": 2,
+                  "emptyChapters": [],
+                  "failures": [],
+                  "remaining": 0,
+                  "status": "complete"
+                },
+                "revision": 3,
+                "status": "completed",
+                "taskId": "93fe1a0c-48cb-4ef3-8350-ac4c730aeb93",
+                "updatedAt": "2026-09-09T23:27:06.235Z"
+              },
+              {
+                "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+                "createdAt": "2026-09-09T23:27:06.443Z",
+                "mode": "rebuild",
+                "report": {
+                  "attempted": 2,
+                  "digested": 1,
+                  "eligible": 2,
+                  "emptyChapters": [],
+                  "failures": [
+                    {
+                      "chapterIndex": 0,
+                      "errorCode": "ai/provider"
+                    }
+                  ],
+                  "remaining": 1,
+                  "status": "partial"
+                },
+                "revision": 7,
+                "status": "partial",
+                "taskId": "0bf52216-2249-47d1-84d2-7f0b10dc910b",
+                "updatedAt": "2026-09-09T23:27:06.466Z"
+              }
+            ]
+          },
+          "revision": 2,
+          "status": "ready"
+        },
+        {
+          "result": {
+            "kind": "graphTasks",
+            "tasks": [
+              {
+                "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+                "createdAt": "2026-09-09T23:27:06.228Z",
+                "mode": "catch-up",
+                "report": {
+                  "attempted": 0,
+                  "digested": 0,
+                  "eligible": 2,
+                  "emptyChapters": [],
+                  "failures": [],
+                  "remaining": 0,
+                  "status": "complete"
+                },
+                "revision": 3,
+                "status": "completed",
+                "taskId": "93fe1a0c-48cb-4ef3-8350-ac4c730aeb93",
+                "updatedAt": "2026-09-09T23:27:06.235Z"
+              },
+              {
+                "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+                "createdAt": "2026-09-09T23:27:06.443Z",
+                "mode": "rebuild",
+                "report": {
+                  "attempted": 2,
+                  "digested": 1,
+                  "eligible": 2,
+                  "emptyChapters": [],
+                  "failures": [
+                    {
+                      "chapterIndex": 0,
+                      "errorCode": "ai/provider"
+                    }
+                  ],
+                  "remaining": 1,
+                  "status": "partial"
+                },
+                "revision": 7,
+                "status": "partial",
+                "taskId": "0bf52216-2249-47d1-84d2-7f0b10dc910b",
+                "updatedAt": "2026-09-09T23:27:06.466Z"
+              },
+              {
+                "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+                "createdAt": "2026-09-09T23:27:25.106Z",
+                "mode": "rebuild",
+                "report": {
+                  "attempted": 1,
+                  "digested": 1,
+                  "eligible": 2,
+                  "emptyChapters": [],
+                  "failures": [],
+                  "remaining": 0,
+                  "status": "complete"
+                },
+                "retryOf": "0bf52216-2249-47d1-84d2-7f0b10dc910b",
+                "revision": 5,
+                "status": "completed",
+                "taskId": "b09f835a-e50c-46b8-bd6d-0a1e4a8efa43",
+                "updatedAt": "2026-09-09T23:27:25.130Z"
+              }
+            ]
+          },
+          "revision": 3,
+          "status": "ready"
+        },
+        {
+          "result": {
+            "kind": "graphTasks",
+            "tasks": [
+              {
+                "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+                "createdAt": "2026-09-09T23:27:06.228Z",
+                "mode": "catch-up",
+                "report": {
+                  "attempted": 0,
+                  "digested": 0,
+                  "eligible": 2,
+                  "emptyChapters": [],
+                  "failures": [],
+                  "remaining": 0,
+                  "status": "complete"
+                },
+                "revision": 3,
+                "status": "completed",
+                "taskId": "93fe1a0c-48cb-4ef3-8350-ac4c730aeb93",
+                "updatedAt": "2026-09-09T23:27:06.235Z"
+              },
+              {
+                "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+                "createdAt": "2026-09-09T23:27:06.443Z",
+                "mode": "rebuild",
+                "report": {
+                  "attempted": 2,
+                  "digested": 1,
+                  "eligible": 2,
+                  "emptyChapters": [],
+                  "failures": [
+                    {
+                      "chapterIndex": 0,
+                      "errorCode": "ai/provider"
+                    }
+                  ],
+                  "remaining": 1,
+                  "status": "partial"
+                },
+                "revision": 7,
+                "status": "partial",
+                "taskId": "0bf52216-2249-47d1-84d2-7f0b10dc910b",
+                "updatedAt": "2026-09-09T23:27:06.466Z"
+              },
+              {
+                "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+                "createdAt": "2026-09-09T23:27:25.106Z",
+                "mode": "rebuild",
+                "report": {
+                  "attempted": 1,
+                  "digested": 1,
+                  "eligible": 2,
+                  "emptyChapters": [],
+                  "failures": [],
+                  "remaining": 0,
+                  "status": "complete"
+                },
+                "retryOf": "0bf52216-2249-47d1-84d2-7f0b10dc910b",
+                "revision": 5,
+                "status": "completed",
+                "taskId": "b09f835a-e50c-46b8-bd6d-0a1e4a8efa43",
+                "updatedAt": "2026-09-09T23:27:25.130Z"
+              },
+              {
+                "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+                "createdAt": "2026-09-09T23:27:25.450Z",
+                "mode": "rebuild",
+                "report": {
+                  "attempted": 2,
+                  "digested": 0,
+                  "eligible": 2,
+                  "emptyChapters": [],
+                  "failures": [],
+                  "remaining": 2,
+                  "status": "partial"
+                },
+                "revision": 4,
+                "status": "running",
+                "taskId": "d99bac6a-4571-40a7-806f-04cb4982f5bb",
+                "updatedAt": "2026-09-09T23:27:25.457Z"
+              }
+            ]
+          },
+          "revision": 4,
+          "status": "ready"
+        }
+      ]
+    },
+    "plugin": {
+      "status": "ok",
+      "value": {
+        "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+        "createdAt": "2026-09-09T23:27:25.450Z",
+        "errorCode": "memory/cancelled",
+        "mode": "rebuild",
+        "report": {
+          "attempted": 2,
+          "digested": 0,
+          "eligible": 2,
+          "emptyChapters": [],
+          "failures": [],
+          "remaining": 2,
+          "status": "partial"
+        },
+        "revision": 8,
+        "status": "cancelled",
+        "taskId": "d99bac6a-4571-40a7-806f-04cb4982f5bb",
+        "updatedAt": "2026-09-09T23:27:43.038Z"
+      }
+    },
+    "stop": {
+      "status": "ok",
+      "value": true
+    }
+  },
+  "uiPartial": {
+    "buttons": [
+      {
+        "label": "Back",
+        "text": ""
+      },
+      {
+        "label": null,
+        "text": "Refresh"
+      },
+      {
+        "label": null,
+        "text": "Retry"
+      },
+      {
+        "label": null,
+        "text": "Close"
+      }
+    ],
+    "overflow": false,
+    "text": "Memory Desk\n\nRebuild\nStatus\nPartial\nID\n8bb8b539-7881-41fe-902b-f8bc9420f180\nAttempted\n2\nSaved\n1\nRemaining\n1\nThe AI provider had a temporary problem. Try again shortly.\nRefresh\nRetry\nClose"
+  },
+  "uiRetry": {
+    "overflow": false,
+    "text": "Memory Desk\n\nRebuild\nStatus\nCompleted\nID\n2ce99e52-8442-4604-ba8a-7ff7909dccf1\nAttempted\n1\nSaved\n1\nRemaining\n0\nRefresh\nClose"
+  },
+  "agentRetry": {
+    "approvals": 1,
+    "value": {
+      "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+      "createdAt": "2026-09-09T23:29:55.756Z",
+      "mode": "rebuild",
+      "retryOf": "6cd386ef-5ee2-45ce-a17f-2231d2a85186",
+      "revision": 0,
+      "status": "queued",
+      "taskId": "3f6d95f7-ea8c-4283-bcbf-6d7327de6f68",
+      "updatedAt": "2026-09-09T23:29:55.756Z"
+    }
+  },
+  "retirement": {
+    "agent": {
+      "approvals": 0,
+      "value": {
+        "bookId": "2f8516bc-4e0c-4cff-830f-541da697b563",
+        "createdAt": "2026-09-09T23:29:55.756Z",
+        "mode": "rebuild",
+        "report": {
+          "attempted": 2,
+          "digested": 2,
+          "eligible": 2,
+          "emptyChapters": [],
+          "failures": [],
+          "remaining": 0,
+          "status": "complete"
+        },
+        "retryOf": "6cd386ef-5ee2-45ce-a17f-2231d2a85186",
+        "revision": 7,
+        "status": "completed",
+        "taskId": "3f6d95f7-ea8c-4283-bcbf-6d7327de6f68",
+        "updatedAt": "2026-09-09T23:29:55.779Z"
+      }
+    },
+    "retired": true
+  },
+  "consumers": {
+    "agent": {
+      "chapterRange": [
+        0,
+        1
+      ],
+      "chaptersDigested": 2,
+      "edgeCount": 0,
+      "entities": [
+        {
+          "chapters": 1,
+          "name": "Task0"
+        },
+        {
+          "chapters": 1,
+          "name": "Task1"
+        }
+      ],
+      "entityCount": 2,
+      "fence": "graph clamped to chapters before the reader's position (chapter index 2)",
+      "graph": "overview",
+      "note": "Pass names for profiles with relations and provenance chapters. This is distilled memory, not verbatim source text.",
+      "truncated": false
+    },
+    "plugin": {
+      "status": "ok",
+      "value": {
+        "chapterRange": [
+          0,
+          1
+        ],
+        "chaptersDigested": 2,
+        "edgeCount": 0,
+        "entities": [
+          {
+            "chapters": 1,
+            "name": "Task0"
+          },
+          {
+            "chapters": 1,
+            "name": "Task1"
+          }
+        ],
+        "entityCount": 2,
+        "fence": "graph clamped to chapters before the reader's position (chapter index 2)",
+        "graph": "overview",
+        "note": "Pass names for profiles with relations and provenance chapters. This is distilled memory, not verbatim source text.",
+        "truncated": false
+      }
+    }
+  },
+  "modelRecords": [
+    {
+      "chapter": -1,
+      "held": false,
+      "failed": false,
+      "cancelled": false
+    },
+    {
+      "chapter": 0,
+      "held": false,
+      "failed": false,
+      "cancelled": false
+    },
+    {
+      "chapter": 1,
+      "held": false,
+      "failed": false,
+      "cancelled": false
+    },
+    {
+      "chapter": 0,
+      "held": false,
+      "failed": true,
+      "cancelled": false
+    },
+    {
+      "chapter": 1,
+      "held": false,
+      "failed": false,
+      "cancelled": false
+    },
+    {
+      "chapter": 0,
+      "held": false,
+      "failed": false,
+      "cancelled": false
+    },
+    {
+      "chapter": 0,
+      "held": true,
+      "failed": false,
+      "cancelled": true
+    },
+    {
+      "chapter": 1,
+      "held": true,
+      "failed": false,
+      "cancelled": true
+    },
+    {
+      "chapter": 0,
+      "held": false,
+      "failed": true,
+      "cancelled": false
+    },
+    {
+      "chapter": 1,
+      "held": false,
+      "failed": false,
+      "cancelled": false
+    },
+    {
+      "chapter": 0,
+      "held": false,
+      "failed": false,
+      "cancelled": false
+    },
+    {
+      "chapter": 0,
+      "held": false,
+      "failed": false,
+      "cancelled": false
+    },
+    {
+      "chapter": 1,
+      "held": false,
+      "failed": false,
+      "cancelled": false
+    },
+    {
+      "chapter": 0,
+      "held": true,
+      "failed": false,
+      "cancelled": true
+    },
+    {
+      "chapter": 1,
+      "held": true,
+      "failed": false,
+      "cancelled": true
+    }
+  ],
+  "screenshots": [
+    "/tmp/graph-public-task-partial.png",
+    "/tmp/graph-public-task-completed.png"
+  ],
+  "cleanup": {
+    "contributions": 0,
+    "ownedBooks": 0,
+    "ownedBooksSQL": 0,
+    "ownedMemories": "all three forgotten",
+    "interruptedBook": "15cbdf6b-de41-4387-848a-176129c1205d removed; no matching memories remained",
+    "nativePGID": 94159,
+    "serverPGID": 94141,
+    "nativeExit": 143,
+    "serverExit": 143,
+    "driver": "stopped"
+  },
+  "boundaries": [
+    "Agent approval was scripted through the real interaction port, not a click in ChatInteractionPrompt or an autonomous chat turn. Plugin cost confirmation and task UI were exercised by real native clicks.",
+    "First fixture prepare reloaded during dynamic loading after importing an owned book, before returning its seed. The book and our loopback config/key were removed; original pre-first-prepare config restoration was not proven. All this occurred only in isolated test data. The successful second prepare restored its captured configuration.",
+    "The first three server records belong to automatic work around that interrupted setup, not public task calls. Subsequent public calls generated only chapters 0/1; future chapter 2 remained excluded.",
+    "A retirement diagnostic used an unresolved bare jotai import after termination; subsequent command absence and cancelled held requests verified retirement. No app restart was used to conceal it.",
+    "No native SQL failure injection in this unit; native conditional-commit and receipt-delay failures remain separately evidenced. Queued/active cancellation used controlled SSE. Task ownership is actor-generation and process-local, not durable or cross-device.",
+    "Task plans/reports use sampled chapter indices and bdg1 commit conditions, not content hashes, source leases or a total monetary/token budget. No packaged, Windows/Linux, real remote-sync or full long-duration verification."
+  ]
+}

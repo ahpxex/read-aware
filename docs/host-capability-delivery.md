@@ -1268,3 +1268,27 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [文档/清理] 矩阵及插件规范 MD/HTML 同步队列事实，纠正 HTML 表格残留的 Memory 1.1；模型 MD 仅更新生成证据行，HTML 责任裁决未变。两页六张 1440×1000、1024×768、390×844 截图已检查，无页面横向溢出、重复 ID、坏页内锚点、无名按钮或浏览器 errors，观察 CDN 200。BookDigestQueue/排队搜索命中矩阵 1/6 行且含 MEM10、插件均命中记忆节；Escape 恢复 243/18 项。矩阵移动抽屉 HEADER/MAIN inert、关闭恢复和主题刷新保持通过；插件说明原无抽屉/主题，均无 Mermaid，HTML 仍依赖 CDN。文档浏览器已关闭。原生证据记录三 Worker/贡献归零、自有书 0、三记忆 forgotten、driver 9224 停止、自有 PGID 88088/exec 80038 终态 143；本轮确认 5184/9224 无监听。未操作既有 89360/9223 或正式数据。
 
 [下一步/剩余] 内部执行器、条件提交、写回执与本机排队已具备；接下来直接接公共图谱任务的 start/get/list/observe/cancel/retry/rebuild、Agent 逐次批准、插件 service:llm 授权与 Memory Desk 任务视图。重建不能先删旧摘要，重试必须保留失败重建目标，取消状态不能先于写回执宣称终态。其余双端部分/未接项、全部能力组合、长时/撤权/打包/跨平台/真实跨设备验收仍未完成，整体目标继续，未推送。
+
+## 2026-09-10：图谱公共任务接入 Agent 与插件
+
+[进度] 上轮 0f8c2fe9 已提交共享按书队列，是有效进展。本轮不再停留在内部前置：memory 升为 1.4，Agent 新增 manage_book_graph，Memory Desk 升为 0.5，真实连接任务查询、补齐、重建、取消、失败重试及观察。MEM10 从 Agent 自动/插件未接变为两端部分；用户预算、内容版本及完整验收仍缺，不误标为全完成。总目标保持全部应开放能力与自由组合验收。
+
+[契约] 核心包提供 BookGraphTaskSnapshot/Port 与 DigestReport。BookGraphTaskOwner 每 actor 16 活动、64 保留任务，按 bookId/taskId 归属查询，未知/跨 actor/驱逐后 memory/task-not-found；旧终态不可重写，迟到回调不能更新终态。Agent owner 跨运行配置实例共享，插件 owner 属于激活代。start 返回 queued 而非完成，runExclusive 进入后才 running；cancel 先 cancelling，等执行器和已派发写结算后 cancelled。调用者取消/插件卸载中止其请求，不取消其他 actor 的工作；句柄/计划不耐久，不枚举自动维护。复用现有 memory.events.observe，新增 graphTasks/graphTask 查询，初始快照及一秒串行变化/错误/恢复，非每个中间状态。
+
+[安全与重建] 插件 memory:write 才有任务命令，start/retry 额外执行时复核 service:llm，read 不能生成；仍受 buildMemory/localOnly 策略。Agent 两 scope，书内仅本书，全局明确 bookId，start/rebuild/retry 每次批准，拒绝不入队，异步前复制输入；list 默认 10/上限 20。执行器进入队列后解析宿主 live boundary，读正文/推理/保存前复核；说明性/已读完允许准备好的全书，未知叙事位置 unavailable，不由模型或插件传入越界索引。自动分类样本也限制已完成章而非固定读前八章。重建保留旧摘要直到条件替换成功，失败目标跨 retry 保留，避免把旧有效行误作重建成功；并发固定 2，完整有限扫描，无自动无限重试或总费用承诺。生成事件仍属于宿主 Agent 管线，任务所有者不被伪装为任意投影写权限。
+
+[原生/组合] [book-graph-tasks](./evidence/book-graph-tasks-2026-09-10.json) 使用隔离 macOS Tauri debug、真实 SQLite、六个 Worker、实际 native HTTP 到受控 loopback SSE。读者无 commands、write 无 service:llm 被拒；另一 owner 列表为空，错误 bookId 返回 task-not-found。补齐当前图 attempted=0；故意 length 失败第 0 章保留 Ada，次章更新成功；重试仅尝试失败第 0 章，随后 complete。Agent 经真实 interaction port 脚本批准，排在插件工作后；排队 Agent 和正在推理的插件取消，终态 cancelled，无迟到保存，服务端两 held 请求均取消。再批准 Agent retry 完成两章，卸载 Worker 又取消两条 held 请求。查询与观察经过真实 Worker wire；Agent/Worker 图一致、未来第 2 章不进入可见图。模型为脚本，不是自主对话；Agent 批准组件未实际点击，本轮不冒充完整聊天批准 E2E。
+
+[原生界面] 从编译 Memory Desk 的 Books→自有书→Chapter graph→Graph tasks 进入列表，确认 owner 隔离后为空。Rebuild 未勾费用确认返回字段 Required；勾选后任务实时显示 Partial、attempted 2/saved 1/remaining 1 与本地化 provider 错误；Retry 再确认后变 Completed、attempted 1/saved 1/remaining 0。两张 900×650 原生截图已检查，无页面横向溢出。没有在浏览器壳验证这些产品行为。
+
+[测试/扫描] 四项 owner/执行器测试覆盖归属、容量/驱逐、活动取消、迟到终态、失败重建保留旧行/目标重试、排队后边界变化与生成后收紧；两项 Agent 工具测试覆盖两 scope、批准/拒绝、输入冻结、取消及畸形参数。Memory Desk 新增两项八语言/费用确认/观察取消/清错恢复/退订测试，web 新增 task 观察过滤测试。全仓 test 24/24（Agent 426、Memory Desk 21、web 913），typecheck 27/27、前端 production build 通过；原有大 chunk 与原生 37 项编译警告保留，Rust 未改未重跑全套。最初类型缺 retryable、旧工具数量/名册、旧域方法名册与库存映射断言已按实际新接口补齐后重跑，没有放宽校验。bun install --lockfile-only 没更新 workspace 版本，已明确同步 memory-desk 的 lock 条目为 0.5.0。库存/模型 11 项/35 断言、两生成器 --check、三 pair validator、git diff --check 通过。243 行/702 入口/30 单元/31 catalog/129 验收/32 场景；Agent 部分 46/自动 17，插件部分 76/未接 34，其余状态保持，14 源码/6 内置插件不变。
+
+[文档] 三对 MD/HTML 共享事实同步，新增公共任务状态/权限/归属/取消/重试/证据边界；保留此前独立内部修复的历史证据，不将其充作公共 API 测试。九张 1440×1000、1024×768、390×844 文档截图均检查，无页面溢出、重复 ID、坏页内锚点、无名按钮或浏览器 errors，观察 CDN 全 200。矩阵 manage_book_graph/重建命中 1/7 行且含 MEM10；模型 service:llm/图谱任务命中 1/2 条且含 D6；插件说明 manage_book_graph/重建命中 1/2 节且含记忆任务。Escape 恢复 243/57/18 项；矩阵/模型移动抽屉 HEADER/MAIN inert、关闭恢复与主题刷新保持通过。插件说明原无抽屉/主题，文档无 Mermaid、仍依赖 CDN；浏览器已关闭，不算产品证据。
+
+[测试环境插曲/清理] 首次动态 fixture 加载触发 WebView reload，在导入自有书 15cbdf6b-de41-4387-848a-176129c1205d 后丢失 setup 返回及内存 restore 状态。未重启 App：删除该书和本轮 loopback config/key，暖载后第二次完成。第一次之前的隔离配置恢复未证明，不能声称完整恢复；正式应用数据未触碰。服务端最初三个记录来自这次 setup 周边自动维护，不计公共调用。一次退休诊断在 terminate 后用 bare import('jotai') 失败，后续命令消失和 held HTTP 取消独立复核。成功 fixture 六 Worker/贡献清零、自有两书 SQL=0、三记忆 forgotten、首个 marker 无残留记忆；第二次捕获配置正常恢复。driver 9224 已停止，自有 PGID 94159/exec 2410 与 loopback PGID 94141/exec 29821 均终态 143，5184/9224/19844 无监听，未操作既有 89360/9223。
+
+[剩余] 公共图谱任务已能组合使用，但 MEM10 的用户可控章节/输入/token/费用预算、来源版本与内容租约、Agent 真实批准界面/完整对话、空章/边界原因的更完整任务呈现及长时/打包/跨平台仍需继续。fixture 配置备份应改为可恢复而非仅内存，避免 reload 再丢回滚信息。其他双端部分/未接项、全能力自由组合和真实跨设备验证未完成；整体目标继续，未推送。
+
+[提交前复核] 最近一次用户确认只核对建模口径，没有新增实现，不计为实现进展。本轮继续审查该未提交单元：onPlan/onChapterCommitted 的迟到回调同样拒绝修改终态重试计划，执行器返回的 report 深拷贝后保存，避免外部引用改动保留报告。新增独立测试验证迟到计划/提交和结果引用突变后，旧报告不变、retry 仍只接原未完成章节。owner 测试现 5 项/27 断言；全仓 test 24/24（Agent 427、Memory Desk 21、web 913）、typecheck 27/27、production web build 1/1 再次通过。原生证据发生在这次终态引用保护之前，不能当成新回归的原生证据；没有重启 App 重演。
+
+[文档复核] 修正矩阵生成器结论仍写 memory 1.3/公共任务未接的漂移，同步 MD/HTML 为 memory 1.4、Memory Desk 0.5 和仍缺任务预算。矩阵 1440/1024/390 三张新截图已检查。agent-browser 一度返回 about:blank/其他页，空白截图与失败搜索不计通过；doctor 后重试得到三张正确目标页截图，但交互仍失去目标，改用独立 Chrome DevTools 页面 ID 验证。manage_book_graph/重建分别命中 MEM10/7 行，Escape 恢复 243；移动抽屉 inert、关闭恢复、dark 主题刷新保持、无重复 ID/坏锚点/无名按钮/console error，观察 CDN 200。两文档生成器与三 pair validator 通过，所有自有文档浏览器页面已关闭；5184/9224/19844 确认无监听。此项只证明文档，不证明产品。

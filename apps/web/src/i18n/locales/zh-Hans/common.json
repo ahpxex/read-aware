@@ -12,6 +12,7 @@
     "copied": "已复制"
   },
   "errors": {
+    "memoryTaskNotFound": "此图谱任务已不可用，请创建新任务。",
     "memoryTaskLimit": "图谱请求过多，请等待现有请求结束。",
     "memoryObserverLimit": "记忆订阅数量已达上限。",
     "memoryObservationFailed": "无法读取记忆，请重试。",

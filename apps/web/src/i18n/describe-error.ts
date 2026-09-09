@@ -85,6 +85,7 @@ const CODE_COPY: Record<string, CopyEntry> = {
   "memory/unavailable": { key: "memoryUnavailable", retryable: false },
   "memory/observer-limit": { key: "memoryObserverLimit", retryable: false },
   "memory/task-limit": { key: "memoryTaskLimit", retryable: true },
+  "memory/task-not-found": { key: "memoryTaskNotFound", retryable: false },
   "memory/observation-failed": { key: "memoryObservationFailed", retryable: true },
   "memory/cancelled": { key: "memoryCancelled", retryable: false },
   "memory/forbidden": { key: "memoryForbidden", retryable: false },

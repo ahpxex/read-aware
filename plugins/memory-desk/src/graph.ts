@@ -1,6 +1,7 @@
 import type { BookGraphQuery, PluginAction, PluginContext, PluginFormView, PluginListItem, PluginListView } from "@read-aware/plugin-types";
 import { strings } from "./strings";
 import { liveMemoryView, type MemoryDeskView } from "./live-memory";
+import { graphTasksView, graphTaskWords } from "./tasks";
 
 export function graphSearch(ctx: PluginContext, bookId: string): PluginFormView {
   const t = strings(ctx.locale);
@@ -21,6 +22,7 @@ export async function graphView(ctx: PluginContext, bookId: string, query: BookG
   if (result.kind !== "bookGraph") throw Error("Unexpected memory observation result");
   const graph = result.graph;
   const actions: PluginAction[] = [
+    { id: "tasks", label: graphTaskWords(ctx.locale)[0]!, icon: "list", run: async () => ({ view: await graphTasksView(ctx, bookId) }) },
     { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await graphView(ctx, bookId, query, profileName), navigation: "replace" }) },
     { id: "search", label: t[6], icon: "magnifying-glass", run: () => ({ view: graphSearch(ctx, bookId) }) },
   ];

@@ -10,6 +10,7 @@ import { inspectMemory, mutateMemory } from "./memory-management";
 import { inspectBookClassification, changeBookClassification } from "./book-classification";
 import { MemoryObserver } from "./memory-observer";
 import { createLogger } from "../platform/logger";
+import { createBookGraphTasks } from "./book-graph-tasks";
 import type { MemoryObservation, MemoryObservationQuery, MemoryObservationResult } from "@read-aware/core";
 
 const log = createLogger("memory-observation");
@@ -21,6 +22,7 @@ const observer = new MemoryObserver({
 /** Memory reads do not import books, construct digests, or grant raw projection writes. */
 export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal) {
   const memory = createMemoryPort(), bookMemory = createBookMemoryPort();
+  const tasks = createBookGraphTasks(lifetime);
   const queries = createMemoryQueries({ search: memory.searchMemories, graph: async bookId => {
     const digests = await bookMemory.listDigests(bookId);
     const chapters = await getPersistedBookText(bookId);
@@ -33,10 +35,16 @@ export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal) 
     if (query.kind === "search") return { kind: query.kind, memories: await queries.search(query.query) };
     if (query.kind === "inspect") return { kind: query.kind, snapshot: await inspectMemory(query.memoryId, lifetime) };
     if (query.kind === "classification") return { kind: query.kind, snapshot: await inspectBookClassification(query.bookId, lifetime) };
+    if (query.kind === "graphTasks") return { kind: query.kind, tasks: await tasks.list(query.bookId) };
+    if (query.kind === "graphTask") return { kind: query.kind, task: await tasks.get(query.bookId, query.taskId) };
     return { kind: query.kind, graph: await queries.bookGraph(query.bookId, query.query) };
   };
-  return { queries: { ...queries, inspect: (id: string) => inspectMemory(id, lifetime), classification: (bookId: string) => inspectBookClassification(bookId, lifetime) },
+  return { queries: { ...queries, inspect: (id: string) => inspectMemory(id, lifetime), classification: (bookId: string) => inspectBookClassification(bookId, lifetime),
+      listGraphTasks: (bookId: string) => tasks.list(bookId), getGraphTask: (bookId: string, taskId: string) => tasks.get(bookId, taskId) },
     commands: { mutate: (input: import("@read-aware/core").MemoryMutation) => mutateMemory(input, origin, lifetime),
-      classify: (input: import("@read-aware/core").BookClassificationChange) => changeBookClassification(input, origin, lifetime) },
+      classify: (input: import("@read-aware/core").BookClassificationChange) => changeBookClassification(input, origin, lifetime),
+      startGraphTask: (bookId: string, mode: "catch-up" | "rebuild") => tasks.start(bookId, mode),
+      cancelGraphTask: (bookId: string, taskId: string) => tasks.cancel(bookId, taskId),
+      retryGraphTask: (bookId: string, taskId: string) => tasks.retry(bookId, taskId) },
     events: { observe: (input: MemoryObservationQuery, handler: (event: MemoryObservation) => unknown) => observer.observe(input, read, handler, lifetime) } };
 }

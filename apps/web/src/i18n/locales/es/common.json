@@ -12,6 +12,7 @@
     "copied": "Copiado"
   },
   "errors": {
+    "memoryTaskNotFound": "Esta tarea de grafo ya no está disponible. Inicia una nueva tarea.",
     "memoryTaskLimit": "Hay demasiadas solicitudes de grafo activas. Espera a que termine una.",
     "memoryObserverLimit": "Hay demasiadas suscripciones activas a la memoria.",
     "memoryObservationFailed": "No se pudo leer la memoria. Inténtalo de nuevo.",

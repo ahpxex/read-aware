@@ -11,6 +11,8 @@ export async function liveMemoryView(ctx: PluginContext, query: MemoryObservatio
     sample = query.kind === "search" ? { kind: query.kind, memories: await memory.queries.search(query.query) }
       : query.kind === "inspect" ? { kind: query.kind, snapshot: await memory.queries.inspect(query.memoryId) }
       : query.kind === "classification" ? { kind: query.kind, snapshot: await memory.queries.classification(query.bookId) }
+      : query.kind === "graphTasks" ? { kind: query.kind, tasks: await memory.queries.listGraphTasks(query.bookId) }
+      : query.kind === "graphTask" ? { kind: query.kind, task: await memory.queries.getGraphTask(query.bookId, query.taskId) }
       : { kind: query.kind, graph: await memory.queries.bookGraph(query.bookId, query.query) };
   } catch (error) {
     // The host renders only the stable code, never the raw storage message.

@@ -73,6 +73,11 @@
           "description": "Die Sammlung wird entfernt. Ihre Bücher bleiben ohne Sammlung im Regal.",
           "approve": "Sammlung löschen"
         },
+        "generateBookGraph": {
+          "question": "Graph dieses Buchs erzeugen?",
+          "description": "Zulässige Kapiteltexte werden an das konfigurierte Modell gesendet. Dabei können Kosten entstehen. Neuaufbau ersetzt Zusammenfassungen erst nach erfolgreicher Generierung. Abbrechen macht gespeicherte Änderungen nicht rückgängig.",
+          "approve": "Graph erzeugen"
+        },
         "classifyBook": {
           "question": "Die Klassifizierung dieses Buchs ändern?",
           "description": "{{subject}}\n\nSachtexte haben keine kapitelbezogene Spoilergrenze und verwenden einen anderen Graphtyp. Bestehende Zusammenfassungen werden schrittweise erneuert. Frühere Antworten und laufende Vorgänge werden nicht rückgängig gemacht.",

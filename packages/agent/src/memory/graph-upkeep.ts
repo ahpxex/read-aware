@@ -28,6 +28,15 @@ export interface DigestBookTickInput {
   concurrency?: number;
   signal?: AbortSignal;
   onProgress?: (digested: number) => void;
+  rebuild?: boolean;
+  targets?: readonly number[];
+  onStarted?: () => void;
+  onPlan?: (chapters: number[]) => void;
+  onChapterCommitted?: (chapter: number) => void;
+  onReport?: (report: DigestReport) => void;
+  /** Trusted host policy, resolved after entering the shared book queue. */
+  resolveBoundary?: () => Promise<number | undefined>;
+  checkChapter?: (chapter: number) => Promise<void>;
 }
 
 /**
@@ -36,6 +45,7 @@ export interface DigestBookTickInput {
  */
 async function ensureNarrativity(
   input: DigestBookTickInput,
+  beforeChapterIndex: number,
 ): Promise<"narrative" | "expository" | undefined> {
   const book = await input.deps.library.getBook(input.bookId);
   input.signal?.throwIfAborted();
@@ -48,8 +58,9 @@ async function ensureNarrativity(
   if (!toc?.length) return undefined;
   // 正文样本：跳过版权页等空转小节，取第一段像样的实文。
   let sampleText = "";
-  for (let index = 0; index < Math.min(toc.length, 8) && sampleText.length < 600; index++) {
+  for (let index = 0; index < Math.min(toc.length, 8, beforeChapterIndex) && sampleText.length < 600; index++) {
     input.signal?.throwIfAborted();
+    await input.checkChapter?.(index);
     const text = await input.deps.bookText
       .getChapterText(input.bookId, index)
       .catch((error) => {
@@ -57,6 +68,7 @@ async function ensureNarrativity(
         return undefined;
       });
     if (text && text.trim().length > sampleText.length) sampleText = text.trim();
+    await input.checkChapter?.(index);
   }
   input.signal?.throwIfAborted();
   if (!sampleText) return undefined;
@@ -84,7 +96,8 @@ async function ensureNarrativity(
 
 /** A report distinguishes completed work, remaining chapters and unknown boundaries. */
 export async function digestBookTick(input: DigestBookTickInput): Promise<DigestReport> {
-  const request = { ...input };
+  const request = { ...input, targets: input.targets && [...input.targets] };
+  if (request.targets?.some(index => !Number.isSafeInteger(index) || index < 0)) throw new AppError("memory/invalid-input", "Invalid digest targets");
   digestExecutionBudget(request);
   return request.deps.bookMemory.runExclusive(request.bookId, () => digestBookTickExclusive(request), request.signal);
 }
@@ -93,15 +106,18 @@ async function digestBookTickExclusive(input: DigestBookTickInput): Promise<Dige
   const { max } = digestExecutionBudget(input);
   const deps = input.deps;
   input.signal?.throwIfAborted();
+  input.onStarted?.();
   const book = await deps.library.getBook(input.bookId);
   input.signal?.throwIfAborted();
   if (!book) throw new AppError("reader/book-not-found", "Book not found");
   // 边界：显式 href → 书的进度 chapterHref（聊天时阅读器未开）→ 读完全书。
-  const href =
+  const href = input.resolveBoundary ? undefined :
     input.throughChapterHref ??
     (await deps.library.getBookStats(input.bookId))?.chapterHref;
   input.signal?.throwIfAborted();
-  let beforeChapterIndex: number | undefined;
+  let beforeChapterIndex = await input.resolveBoundary?.();
+  input.signal?.throwIfAborted();
+  if (input.resolveBoundary && beforeChapterIndex === undefined) return unavailableDigestReport("boundary-unknown");
   if (href) {
     const toc = await deps.bookText.getToc(input.bookId);
     input.signal?.throwIfAborted();
@@ -117,7 +133,7 @@ async function digestBookTickExclusive(input: DigestBookTickInput): Promise<Dige
   }
   // 纪要口径跟着书的叙事性走。未分类的书先分类；分类失败本节拍按
   // narrative 保守提炼——它的产物起码无害，分类落库后口径不符的行会被重算。
-  const narrativity = book.narrativity ?? (max === 0 ? undefined : await ensureNarrativity(input));
+  const narrativity = book.narrativity ?? (max === 0 ? undefined : await ensureNarrativity(input, beforeChapterIndex));
   input.signal?.throwIfAborted();
   const report = await digestMissingChapters({
     bookText: deps.bookText,
@@ -132,6 +148,8 @@ async function digestBookTickExclusive(input: DigestBookTickInput): Promise<Dige
     signal: input.signal,
     log: deps.log,
     onProgress: input.onProgress,
+    rebuild: input.rebuild, targets: input.targets, onPlan: input.onPlan, onChapterCommitted: input.onChapterCommitted,
+    onReport: input.onReport, checkChapter: input.checkChapter,
   });
   if (!narrativity) { report.status = "partial"; report.reason = "classification-pending"; }
   return report;

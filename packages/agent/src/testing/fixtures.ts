@@ -9,6 +9,7 @@ import { createAnnotationMutationFixture } from "./annotation-mutations";
 import { createMemoryManagementFixture } from "./memory-management";
 import { createBookClassificationFixture } from "./book-classification";
 import { createBookMemoryFixture } from "./book-memory";
+import { BookGraphTaskOwner } from "../memory/book-graph-tasks";
 import { createMemoryMaintenanceFixture } from "./memory-maintenance";
 import { AppError } from "@read-aware/core";
 import type {
@@ -358,6 +359,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   const memoryManagement = createMemoryManagementFixture(stores.memories);
   const bookClassification = createBookClassificationFixture(books);
   const deps: RuntimeDeps = {
+    bookGraphTasks: new BookGraphTaskOwner(async () => { throw new AppError("ai/not-configured", "Attach a graph executor for task tests"); }, () => {}),
     bookClassification,
     memoryManagement,
     workspace: createWorkspaceFixture(),

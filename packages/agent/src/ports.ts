@@ -81,6 +81,7 @@ export interface LibraryPort {
   booksInCollection(collectionId: string): Promise<Id[]>;
   getBookStats(bookId: Id): Promise<BookStats | undefined>;
   getReadingTime(query?: import("@read-aware/core").ReadingTimeQuery): Promise<import("@read-aware/core").ReadingTimeSnapshot>;
+  getReadingInsights(query?: import("@read-aware/core").ReadingInsightsQuery): Promise<import("@read-aware/core").ReadingInsights>;
   listBookStats(): Promise<BookStats[]>;
   getStatsOverview(): Promise<StatsOverview>;
   editBookMetadata(

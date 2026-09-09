@@ -42,6 +42,7 @@
 import { PLUGIN_PERMISSIONS as CORE_PLUGIN_PERMISSIONS } from "@read-aware/core";
 export type { BookRemovalReceipt, BookFileReleaseReceipt, BookRemovalCleanupPage, BookRemovalCleanupQuery } from "@read-aware/core";
 export type { ReadingTimeQuery, ReadingTimeCursor, ReadingTimeSnapshot, ReadingTimeObservation, PendingReadingTime } from "@read-aware/core";
+export type { ReadingInsights, ReadingInsightsQuery, ReadingPeriod } from "@read-aware/core";
 import type {
   AnnotationItem,
   AskItem,
@@ -1117,11 +1118,7 @@ export type LibraryDomainEventType =
   | "book.removedFromCollection";
 
 /** Active-reading lifecycle, progress, verdicts, and time. */
-export type ReadingDomainEventType =
-  | "book.opened"
-  | "book.finished"
-  | "book.progressed"
-  | "book.timeRecorded";
+export type ReadingDomainEventType = import("@read-aware/core").ReadingDomainEventType;
 
 export type AnnotationDomainEventType =
   | "highlight.created"
@@ -1255,6 +1252,7 @@ export type PluginReadingDomain = {
     stats: {
       /** Atomic settled + pending time, with native sampling clock. Reading >=2.7. */
       time(query?: import("@read-aware/core").ReadingTimeQuery): Promise<import("@read-aware/core").ReadingTimeSnapshot>;
+      insights(query?: import("@read-aware/core").ReadingInsightsQuery): Promise<import("@read-aware/core").ReadingInsights>;
       forBook(bookId: string): Promise<PluginBookStats | null>;
       list(): Promise<PluginBookStats[]>;
       overview(): Promise<PluginStatsOverview>;

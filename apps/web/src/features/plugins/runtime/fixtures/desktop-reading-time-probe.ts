@@ -2,6 +2,7 @@ import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import type { PluginDisposable, PluginManifest } from "@read-aware/plugin-types";
 import { buildReadingTimeTool } from "../../../../../../../packages/agent/src/tools/reading-time";
+import { buildReadingInsightsTool } from "../../../../../../../packages/agent/src/tools/reading-insights";
 import { buildRuntimeDeps } from "../../../ai/agent/ports";
 import { accrueReadingSession, flushReadingSessions, listPendingReadingSessions } from "../../../../platform/reading-session";
 import { queryReadingTime } from "../../../../domain/reading-time";
@@ -30,7 +31,7 @@ export async function prepareReadingTimeProbe() {
       const id = `capability-time-${role}`;
       await start({ id, name: id, description: books.normal, schemaVersion: 1, version: "1.0.0",
         permissions: role === "empty" ? [] : [role === "read" ? "reading:read" : "reading:write"],
-        requires: { domains: { reading: "^2.7.0" } } }, new URL("./reading-time-probe.ts", import.meta.url).href);
+        requires: { domains: { reading: "^2.8.0" } } }, new URL("./reading-time-probe.ts", import.meta.url).href);
     }
     await start({ ...goalsManifest, id: "capability-time-ui" } as PluginManifest,
       new URL("../../../../../../../plugins/reading-goals/dist/main.js", import.meta.url).href);
@@ -47,6 +48,13 @@ export async function agentReadingTime(scope: "book" | "global" = "book", query 
   await isolated();
   const result = await buildReadingTimeTool(scope === "book" ? { kind: "book", bookId: books.normal! }
     : { kind: "global", threadId: "capability-time" }, buildRuntimeDeps()).execute("time-e2e", query);
+  if (result.content[0]?.type !== "text") throw Error("Expected Agent text");
+  return JSON.parse(result.content[0].text) as unknown;
+}
+export async function agentReadingInsights(scope: "book" | "global" = "book", query = {}) {
+  await isolated();
+  const result = await buildReadingInsightsTool(scope === "book" ? { kind: "book", bookId: books.normal! }
+    : { kind: "global", threadId: "capability-insights" }, buildRuntimeDeps()).execute("insights-e2e", query);
   if (result.content[0]?.type !== "text") throw Error("Expected Agent text");
   return JSON.parse(result.content[0].text) as unknown;
 }

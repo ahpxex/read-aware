@@ -24,7 +24,18 @@ import {
 /** Midnight-to-midnight day index of a `YYYY-MM-DD` key, DST-proof. */
 function dayIndexFromKey(key: string): number {
   const [y, m, d] = key.split("-").map(Number);
-  return Math.floor(Date.UTC(y, m - 1, d) / 86_400_000);
+  const date = new Date(0);
+  date.setUTCFullYear(y, m - 1, d);
+  date.setUTCHours(0, 0, 0, 0);
+  return Math.floor(date.getTime() / 86_400_000);
+}
+
+// Date's numeric constructor interprets years 0..99 as 1900..1999.
+function localCalendarDate(year: number, month: number, day: number): Date {
+  const date = new Date(0);
+  date.setFullYear(year, month, day);
+  date.setHours(0, 0, 0, 0);
+  return date;
 }
 
 /** The local-day key `offset` days before `now` (offset 0 = today). */
@@ -113,7 +124,7 @@ export function earliestReadingDay(daily: DailyReadingMap): Date | null {
   }
   if (min === null) return null;
   const [y, m, d] = min.split("-").map(Number);
-  return new Date(y, m - 1, d);
+  return localCalendarDate(y, m - 1, d);
 }
 
 export type BookInsights = {
@@ -350,7 +361,7 @@ function dailyBars(daily: DailyReadingMap, now: number, days: number): StatsBar[
   for (let i = days - 1; i >= 0; i -= 1) {
     const key = dayKeyAtOffset(now, i);
     const [y, m, d] = key.split("-").map(Number);
-    const date = new Date(y, m - 1, d);
+    const date = localCalendarDate(y, m - 1, d);
     const label = dense ? String(date.getDate()) : weekdayNarrow[date.getDay()];
     bars.push({ key, label, ms: daily[key] ?? 0, isCurrent: key === todayKey });
   }
@@ -366,10 +377,10 @@ function monthlyBars(daily: DailyReadingMap, now: number, months: number): Stats
   const curM = base.getMonth();
   const bars: StatsBar[] = [];
   for (let i = months - 1; i >= 0; i -= 1) {
-    const d = new Date(curY, curM - i, 1);
+    const d = localCalendarDate(curY, curM - i, 1);
     const y = d.getFullYear();
     const m = d.getMonth();
-    const mk = `${y}-${String(m + 1).padStart(2, "0")}`;
+    const mk = `${String(y).padStart(4, "0")}-${String(m + 1).padStart(2, "0")}`;
     const label = m === 0 ? `${monthShort[m]} ’${String(y).slice(2)}` : monthShort[m];
     bars.push({ key: mk, label, ms: byMonth.get(mk) ?? 0, isCurrent: i === 0 });
   }
@@ -396,7 +407,7 @@ export function weekdayDistribution(daily: DailyReadingMap): WeekdayBucket[] {
   const byDow = new Array(7).fill(0);
   for (const [key, ms] of Object.entries(daily)) {
     const [y, m, d] = key.split("-").map(Number);
-    byDow[new Date(y, m - 1, d).getDay()] += ms;
+    byDow[localCalendarDate(y, m - 1, d).getDay()] += ms;
   }
   return WEEKDAY_ORDER.map((dow) => ({
     label: narrow[dow],
@@ -479,6 +490,11 @@ export function computePeriodInsights(
     if (ms) windowDaily[key] = ms;
   }
 
+  const windowStart = new Date(now);
+  windowStart.setDate(windowStart.getDate() - days + 1);
+  const end = new Date(now);
+  const monthCount = (end.getFullYear() - windowStart.getFullYear()) * 12 + end.getMonth() - windowStart.getMonth() + 1;
+
   return {
     period,
     totalMs,
@@ -486,7 +502,7 @@ export function computePeriodInsights(
     booksRead,
     avgPerDayMs: daysRead > 0 ? Math.round(totalMs / daysRead) : 0,
     deltaPct: prevMs > 0 ? (totalMs - prevMs) / prevMs : null,
-    bars: period === "year" ? monthlyBars(daily, now, 12) : dailyBars(daily, now, days),
+    bars: period === "year" ? monthlyBars(windowDaily, now, monthCount) : dailyBars(daily, now, days),
     weekday: weekdayDistribution(windowDaily),
   };
 }

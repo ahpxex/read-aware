@@ -10,6 +10,7 @@
     "thought": "Thought process",
     "tools": {
       "get_reading_time": "Reading current active time",
+      "get_reading_insights": "Reading trends",
       "delete_books": "Removing books",
       "list_book_removal_cleanup": "Checking pending file cleanup",
       "search_memory": "Recalling memories",

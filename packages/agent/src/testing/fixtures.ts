@@ -353,6 +353,11 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     library: {
       getReadingTime: async (query = {}) => ({ bookId: query.bookId ?? null, localDay: query.localDay ?? null,
         observedAtEpochMs: 0, settledMs: 0, pendingMs: 0, totalMs: 0, pendingBucketCount: 0, pending: [], nextCursor: null }),
+      getReadingInsights: async (query = {}) => ({ bookId: query.bookId ?? null, source: "settled", asOfDay: query.asOfDay ?? "2026-09-09",
+        period: query.period ?? "week", totalMs: 0, daysRead: 0, booksRead: 0, avgPerDayMs: 0, deltaRatio: null,
+        bars: [], weekdayMs: Array(7).fill(0), allTimeHourlyMs: Array(24).fill(0),
+        achievements: { totalMs: 0, currentStreak: 0, longestStreak: 0, bestDayMs: 0, bestDayKey: null, daysRead: 0,
+          booksRead: 0, mostReadBookId: null, mostReadBookMs: 0, nextMilestoneMs: 3_600_000 } }),
       listBooks: async () => books,
       listBookRemovalCleanup: async () => ({ items: [], nextCursor: null }),
       getBook: async (id) => books.find((book) => book.id === id),

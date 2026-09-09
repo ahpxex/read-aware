@@ -2,6 +2,8 @@ export * from "./entities";
 export * from "./errors";
 export * from "./book-removal";
 export * from "./reading-time";
+export * from "./reading-insights";
+export * from "./reading-events";
 export * from "./domains";
 export * from "./capabilities";
 export * from "./events";

@@ -75,6 +75,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   list_collections: {},
   get_reading_stats: {},
   get_reading_time: {},
+  get_reading_insights: {},
   update_book: { bookId: BOOK_ID, starred: true },
   manage_collection: { action: "create", name: "New shelf" },
   delete_book: { bookId: BOOK_ID },

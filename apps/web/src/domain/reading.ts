@@ -2,6 +2,7 @@
 import type { BookStats, EventOrigin, StatsOverview, ReadingTarget, ReadingSessionSnapshot, ReadingSessionGuard, ReadingNavigationReceipt } from "@read-aware/core";
 import { readingRuntime } from "./reading-runtime";
 import { queryReadingTime, readingTimeObserver } from "./reading-time";
+import { queryReadingInsights } from "./reading-insights";
 import { listLibraryBooks, setLibraryBookFinished } from "../features/library/lib/library-db";
 import type { LibraryBook } from "../features/library/lib/library-types";
 import {
@@ -37,6 +38,7 @@ export type ReadingQueries = {
   session(): Promise<ReadingSessionSnapshot>;
   stats: {
     time(query?: import("@read-aware/core").ReadingTimeQuery): Promise<import("@read-aware/core").ReadingTimeSnapshot>;
+    insights(query?: import("@read-aware/core").ReadingInsightsQuery): Promise<import("@read-aware/core").ReadingInsights>;
     forBook(bookId: string): Promise<BookStats | null>;
     list(): Promise<BookStats[]>;
     overview(): Promise<StatsOverview>;
@@ -73,6 +75,7 @@ export function createReadingDomain(origin: EventOrigin): ReadingDomain {
     session: async () => readingRuntime.snapshot(),
     stats: {
       time: queryReadingTime,
+      insights: queryReadingInsights,
       forBook: async (bookId) => {
         const book = (await listLibraryBooks()).find((entry) => entry.id === String(bookId));
         if (!book) return null;

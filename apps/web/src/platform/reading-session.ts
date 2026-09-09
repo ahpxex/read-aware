@@ -56,7 +56,7 @@ export function localDayKey(epochMs: number): string {
   const d = new Date(epochMs);
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${month}-${day}`;
+  return `${String(d.getFullYear()).padStart(4, "0")}-${month}-${day}`;
 }
 
 /** Local hour-of-day (0–23) for an epoch timestamp. */

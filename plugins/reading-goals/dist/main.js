@@ -75,11 +75,139 @@ function timeCopy(locale) {
   return copies2[locale] ?? copies2[locale.split("-")[0]] ?? en2;
 }
 
-// src/time-view.ts
+// src/time-format.ts
 function timeDuration(ms) {
   const seconds = Math.floor(ms / 1000);
   return `${Math.floor(seconds / 3600)}:${String(Math.floor(seconds / 60) % 60).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
+
+// src/insights-strings.ts
+var en3 = {
+  title: "Reading trends",
+  period: "Period",
+  week: "Last 7 days",
+  month: "Last 30 days",
+  year: "Last 365 days",
+  all: "All time",
+  open: "Show trends",
+  total: "Reading time",
+  days: "Active days",
+  books: "Books read",
+  average: "Per active day",
+  change: "Change",
+  none: "Not available",
+  dates: "Date totals",
+  hours: "Reading hours (all time)",
+  achievements: "Milestones (all time)",
+  streak: "Current streak",
+  longest: "Longest streak",
+  best: "Best day",
+  next: "Next milestone",
+  reference: "Reference day",
+  refresh: "Refresh"
+};
+var copies3 = {
+  en: en3,
+  "zh-Hans": { title: "阅读趋势", period: "时间范围", week: "最近 7 天", month: "最近 30 天", year: "最近 365 天", all: "全部时间", open: "查看趋势", total: "阅读时长", days: "活跃天数", books: "阅读书数", average: "每活跃日", change: "变化", none: "暂无", dates: "按日期汇总", hours: "阅读时段（全部时间）", achievements: "里程碑（全部时间）", streak: "当前连续天数", longest: "最长连续天数", best: "最佳阅读日", next: "下一里程碑", reference: "参考日期", refresh: "刷新" },
+  "zh-Hant": { title: "閱讀趨勢", period: "時間範圍", week: "最近 7 天", month: "最近 30 天", year: "最近 365 天", all: "全部時間", open: "查看趨勢", total: "閱讀時間", days: "活躍天數", books: "閱讀書數", average: "每活躍日", change: "變化", none: "暫無", dates: "按日期彙總", hours: "閱讀時段（全部時間）", achievements: "里程碑（全部時間）", streak: "目前連續天數", longest: "最長連續天數", best: "最佳閱讀日", next: "下一里程碑", reference: "參考日期", refresh: "重新整理" },
+  ja: { title: "読書傾向", period: "期間", week: "過去7日", month: "過去30日", year: "過去365日", all: "全期間", open: "傾向を表示", total: "読書時間", days: "読書日数", books: "読んだ本", average: "読書日あたり", change: "変化", none: "なし", dates: "日付別合計", hours: "読書時間帯（全期間）", achievements: "到達点（全期間）", streak: "現在の連続日数", longest: "最長連続日数", best: "最も読んだ日", next: "次の到達点", reference: "基準日", refresh: "更新" },
+  de: { title: "Lesetrends", period: "Zeitraum", week: "Letzte 7 Tage", month: "Letzte 30 Tage", year: "Letzte 365 Tage", all: "Gesamte Zeit", open: "Trends anzeigen", total: "Lesezeit", days: "Aktive Tage", books: "Gelesene Bücher", average: "Pro aktivem Tag", change: "Änderung", none: "Nicht verfügbar", dates: "Datumssummen", hours: "Lesezeiten (gesamt)", achievements: "Meilensteine (gesamt)", streak: "Aktuelle Serie", longest: "Längste Serie", best: "Bester Tag", next: "Nächster Meilenstein", reference: "Referenztag", refresh: "Aktualisieren" },
+  fr: { title: "Tendances de lecture", period: "Période", week: "7 derniers jours", month: "30 derniers jours", year: "365 derniers jours", all: "Toute la période", open: "Voir les tendances", total: "Temps de lecture", days: "Jours actifs", books: "Livres lus", average: "Par jour actif", change: "Évolution", none: "Indisponible", dates: "Totaux par date", hours: "Heures de lecture (total)", achievements: "Jalons (total)", streak: "Série actuelle", longest: "Plus longue série", best: "Meilleur jour", next: "Prochain jalon", reference: "Jour de référence", refresh: "Actualiser" },
+  es: { title: "Tendencias de lectura", period: "Período", week: "Últimos 7 días", month: "Últimos 30 días", year: "Últimos 365 días", all: "Todo el tiempo", open: "Ver tendencias", total: "Tiempo de lectura", days: "Días activos", books: "Libros leídos", average: "Por día activo", change: "Cambio", none: "No disponible", dates: "Totales por fecha", hours: "Horas de lectura (total)", achievements: "Hitos (total)", streak: "Racha actual", longest: "Mayor racha", best: "Mejor día", next: "Próximo hito", reference: "Día de referencia", refresh: "Actualizar" },
+  ru: { title: "Тенденции чтения", period: "Период", week: "Последние 7 дней", month: "Последние 30 дней", year: "Последние 365 дней", all: "Всё время", open: "Показать тенденции", total: "Время чтения", days: "Активные дни", books: "Книг прочитано", average: "За активный день", change: "Изменение", none: "Нет данных", dates: "Итоги по датам", hours: "Часы чтения (всё время)", achievements: "Рубежи (всё время)", streak: "Текущая серия", longest: "Лучшая серия", best: "Лучший день", next: "Следующий рубеж", reference: "Опорная дата", refresh: "Обновить" }
+};
+function insightsCopy(locale) {
+  return copies3[locale] ?? copies3[locale.split("-")[0]] ?? en3;
+}
+
+// src/insights-view.ts
+var periods = ["week", "month", "year", "all"];
+function readingInsightsForm(ctx, bookId) {
+  const t = insightsCopy(ctx.locale);
+  return { kind: "form", title: t.title, submitLabel: t.open, fields: [
+    { kind: "choice", id: "period", label: t.period, value: "week", options: periods.map((value) => ({ value, label: t[value] })) }
+  ], onSubmit: async (values) => ({ view: await readingInsightsView(ctx, { bookId, period: values.period }) }) };
+}
+async function readingInsightsView(ctx, query) {
+  const t = insightsCopy(ctx.locale), reading = ctx.domains.reading;
+  let sample = await reading.queries.stats.insights(query);
+  const detail = (data, code) => ({ kind: "detail", title: t.title, content: [
+    { kind: "text", text: t[data.period] },
+    ...code ? [{ kind: "error", code }, { kind: "text", text: timeCopy(ctx.locale).lastSuccessful }] : [],
+    { kind: "metric", label: t.total, value: timeDuration(data.totalMs) },
+    { kind: "keyValue", rows: [
+      { label: t.reference, value: data.asOfDay },
+      { label: t.days, value: String(data.daysRead) },
+      { label: t.books, value: String(data.booksRead) },
+      { label: t.average, value: timeDuration(data.avgPerDayMs) },
+      { label: t.change, value: data.deltaRatio === null ? t.none : `${(data.deltaRatio * 100).toFixed(1)}%` }
+    ] }
+  ], actions: [
+    { id: "dates", label: t.dates, icon: "calendar", run: () => ({ view: {
+      kind: "list",
+      title: t.dates,
+      items: data.bars.map((bar) => ({ id: bar.key, title: bar.key, accessories: [{ kind: "text", text: timeDuration(bar.ms) }] }))
+    } }) },
+    { id: "hours", label: t.hours, icon: "clock", run: () => ({ view: {
+      kind: "list",
+      title: t.hours,
+      items: data.allTimeHourlyMs.map((ms, hour) => ({
+        id: String(hour),
+        title: `${String(hour).padStart(2, "0")}:00`,
+        accessories: [{ kind: "text", text: timeDuration(ms) }]
+      }))
+    } }) },
+    { id: "achievements", label: t.achievements, icon: "chart-line-up", run: () => ({ view: {
+      kind: "detail",
+      title: t.achievements,
+      content: [{ kind: "keyValue", rows: [
+        { label: t.total, value: timeDuration(data.achievements.totalMs) },
+        { label: t.streak, value: String(data.achievements.currentStreak) },
+        { label: t.longest, value: String(data.achievements.longestStreak) },
+        { label: t.best, value: data.achievements.bestDayKey ? `${data.achievements.bestDayKey}: ${timeDuration(data.achievements.bestDayMs)}` : t.none },
+        { label: t.next, value: data.achievements.nextMilestoneMs === null ? t.none : timeDuration(data.achievements.nextMilestoneMs) }
+      ] }]
+    } }) },
+    { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await readingInsightsView(ctx, query), navigation: "replace" }) }
+  ] });
+  return { ...detail(sample), live: { subscribe(channel) {
+    let disposed = false, revision = 0, dirty = false, running;
+    const refresh = () => {
+      dirty = true;
+      if (running)
+        return running;
+      running = (async () => {
+        while (dirty && !disposed) {
+          dirty = false;
+          let code;
+          try {
+            sample = await reading.queries.stats.insights(query);
+          } catch (error) {
+            code = typeof error?.code === "string" ? error.code : "reading/stats-unavailable";
+          }
+          if (!disposed)
+            await ctx.services.ui.publishView(channel, { revision: ++revision, view: detail(sample, code) });
+        }
+      })().catch((error) => {
+        console.warn("Reading trends publication failed", error);
+      }).finally(() => {
+        running = undefined;
+      });
+      return running;
+    };
+    const subscriptions = ["book.sessionRecorded", "book.timeRecorded"].map((type) => reading.events.subscribe(type, (event) => {
+      if (!query.bookId || event.payload.bookId === query.bookId)
+        refresh();
+    }));
+    refresh();
+    return { dispose() {
+      disposed = true;
+      subscriptions.forEach((subscription) => subscription.dispose());
+    } };
+  } } };
+}
+
+// src/time-view.ts
 function today() {
   const now = new Date;
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -126,6 +254,7 @@ async function readingTimeView(ctx, query = {}) {
       { label: t.day, value: query.localDay ?? t.allTime }
     ] }
   ], actions: [
+    { id: "insights", label: insightsCopy(ctx.locale).title, icon: "chart-line-up", run: () => ({ view: readingInsightsForm(ctx, query.bookId) }) },
     { id: "pending", label: t.pending, icon: "clock", run: async () => ({ view: await pendingView() }) },
     { id: "today", label: t.today, icon: "calendar", run: async () => ({ view: await readingTimeView(ctx, { bookId: query.bookId, localDay: today() }), navigation: "replace" }) },
     { id: "all-time", label: t.allTime, icon: "clock", run: async () => ({ view: await readingTimeView(ctx, { bookId: query.bookId }), navigation: "replace" }) },
@@ -212,6 +341,7 @@ var src_default = {
     ctx.contributions.commands.register({ id: "open", title, icon: "notebook", run: async () => ({ view: await goalsView(ctx) }) });
     ctx.contributions.headerActions.register({ id: "reading-time", title: timeCopy(ctx.locale).title, icon: "clock", surface: "shelf", presentation: "popup", view: () => readingTimeView(ctx) });
     ctx.contributions.commands.register({ id: "time", title: timeCopy(ctx.locale).title, icon: "clock", run: async () => ({ view: await readingTimeView(ctx) }) });
+    ctx.contributions.commands.register({ id: "insights", title: insightsCopy(ctx.locale).title, icon: "chart-line-up", run: () => ({ view: readingInsightsForm(ctx) }) });
     agentContextProviders.register({ id: "reading-goal", contexts: ["book"], provide: ({ scope }) => {
       const goal = scope.kind === "book" ? readGoal(ctx, scope.bookId) : null;
       return goal ? [{ title, content: goal.text }] : [];

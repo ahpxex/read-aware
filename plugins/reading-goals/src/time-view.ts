@@ -1,11 +1,10 @@
 import type { PluginContext, PluginDetailView, PluginListView, PluginView } from "@read-aware/plugin-types";
 import type { ReadingTimeQuery, ReadingTimeSnapshot, ReadingTimeObservation } from "@read-aware/plugin-types";
 import { timeCopy } from "./time-strings";
-
-export function timeDuration(ms: number): string {
-  const seconds = Math.floor(ms / 1000);
-  return `${Math.floor(seconds / 3600)}:${String(Math.floor(seconds / 60) % 60).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
-}
+import { timeDuration } from "./time-format";
+import { readingInsightsForm } from "./insights-view";
+import { insightsCopy } from "./insights-strings";
+export { timeDuration } from "./time-format";
 function today(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -45,6 +44,7 @@ export async function readingTimeView(ctx: PluginContext, query: ReadingTimeQuer
       { label: t.day, value: query.localDay ?? t.allTime },
     ] },
   ], actions: [
+    { id: "insights", label: insightsCopy(ctx.locale).title, icon: "chart-line-up", run: () => ({ view: readingInsightsForm(ctx, query.bookId) }) },
     { id: "pending", label: t.pending, icon: "clock", run: async () => ({ view: await pendingView() }) },
     { id: "today", label: t.today, icon: "calendar", run: async () => ({ view: await readingTimeView(ctx, { bookId: query.bookId, localDay: today() }), navigation: "replace" }) },
     { id: "all-time", label: t.allTime, icon: "clock", run: async () => ({ view: await readingTimeView(ctx, { bookId: query.bookId }), navigation: "replace" }) },

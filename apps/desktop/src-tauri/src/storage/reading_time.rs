@@ -393,13 +393,43 @@ fn reading_time_genesis_pass(conn: &mut Connection, device_id: &str) -> Result<u
 
 #[tauri::command]
 pub fn reading_time_load(db: State<'_, Db>) -> Result<ReadingTimeWire, CommandError> {
-    let conn = db.0.lock()?;
+    let mut conn = db.0.lock()?;
+    let tx = conn.transaction()?;
+    let wire = reading_time_load_conn(&tx, None)?;
+    tx.commit()?;
+    Ok(wire)
+}
+
+pub(crate) fn reading_time_scope_inner(conn: &mut Connection, book_id: Option<String>) -> Result<ReadingTimeWire, CommandError> {
+    if book_id.as_deref().is_some_and(|id| id.trim().is_empty() || id.encode_utf16().count() > 256) {
+        return Err(CommandError::new("reading/invalid-time-query", "Invalid reading history book"));
+    }
+    let tx = conn.transaction()?;
+    if super::events::projections_stale_conn(&tx)? {
+        return Err(CommandError::new("reading/stats-stale", "Reading history is recovering"));
+    }
+    if let Some(id) = &book_id {
+        let exists: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM books WHERE id=?1)", [id], |row| row.get(0))?;
+        if !exists { return Err(CommandError::new("library/book-not-found", "Unknown reading history book")); }
+    }
+    let wire = reading_time_load_conn(&tx, book_id.as_deref())?;
+    tx.commit()?;
+    Ok(wire)
+}
+
+#[tauri::command]
+pub fn reading_time_scope(book_id: Option<String>, db: State<'_, Db>) -> Result<ReadingTimeWire, CommandError> {
+    let mut conn = db.0.lock()?;
+    reading_time_scope_inner(&mut conn, book_id)
+}
+
+fn reading_time_load_conn(conn: &Connection, book_id: Option<&str>) -> Result<ReadingTimeWire, CommandError> {
     let totals = {
         let mut stmt = conn
-            .prepare("SELECT book_id, total_ms, first_started_at, last_read_at FROM reading_time_totals")
+            .prepare("SELECT book_id, total_ms, first_started_at, last_read_at FROM reading_time_totals WHERE (?1 IS NULL OR book_id=?1) ORDER BY book_id")
             ?;
         let rows = stmt
-            .query_map([], |row| {
+            .query_map([book_id], |row| {
                 Ok(ReadingTimeTotalRow {
                     book_id: row.get(0)?,
                     total_ms: row.get(1)?,
@@ -414,10 +444,10 @@ pub fn reading_time_load(db: State<'_, Db>) -> Result<ReadingTimeWire, CommandEr
     };
     let daily = {
         let mut stmt = conn
-            .prepare("SELECT book_id, local_day, ms FROM reading_time_daily")
+            .prepare("SELECT book_id, local_day, ms FROM reading_time_daily WHERE (?1 IS NULL OR book_id=?1) ORDER BY book_id,local_day")
             ?;
         let rows = stmt
-            .query_map([], |row| {
+            .query_map([book_id], |row| {
                 Ok(ReadingTimeDailyRow {
                     book_id: row.get(0)?,
                     local_day: row.get(1)?,
@@ -431,10 +461,10 @@ pub fn reading_time_load(db: State<'_, Db>) -> Result<ReadingTimeWire, CommandEr
     };
     let hourly = {
         let mut stmt = conn
-            .prepare("SELECT book_id, local_hour, ms FROM reading_time_hourly")
+            .prepare("SELECT book_id, local_hour, ms FROM reading_time_hourly WHERE (?1 IS NULL OR book_id=?1) ORDER BY book_id,local_hour")
             ?;
         let rows = stmt
-            .query_map([], |row| {
+            .query_map([book_id], |row| {
                 Ok(ReadingTimeHourlyRow {
                     book_id: row.get(0)?,
                     local_hour: row.get(1)?,
@@ -734,4 +764,3 @@ pub(crate) fn reading_time_import_inner(conn: &mut Connection, wire: &ReadingTim
     tx.commit()?;
     Ok(())
 }
-

@@ -138,8 +138,34 @@ fn snapshot_is_consistent_while_a_separate_connection_flushes() {
             let sample =
                 reading_time_snapshot_inner(&mut conn, query(Some("b1"), None, None, 10)).unwrap();
             assert_eq!(sample.total_ms, 20_000);
+            let history = reading_time_scope_inner(&mut conn, Some("b1".into())).unwrap();
+            let total: i64 = history.totals.iter().map(|row| row.total_ms).sum();
+            assert_eq!(history.daily.iter().map(|row| row.ms).sum::<i64>(), total);
+            assert_eq!(history.hourly.iter().map(|row| row.ms).sum::<i64>(), total);
         }
     });
     let sample = reading_time_snapshot_inner(&mut conn, query(Some("b1"), None, None, 10)).unwrap();
     assert_eq!((sample.settled_ms, sample.pending_ms), (20_000, 0));
+}
+
+#[test]
+fn scoped_history_validates_book_and_projection_and_never_flushes() {
+    let mut conn = migrated_conn();
+    commit_events_inner(&mut conn, &[imported("a", 1_000, "a", "A"), imported("b", 1_001, "b", "B")]).unwrap();
+    commit_events_inner(&mut conn, &[session_event("s1", 2_000, "a", 5_000, 1_000_000, 1_000_000, 15, None),
+        session_event("s2", 2_001, "b", 10_000, 1_000_000, 1_000_000, 18, None)]).unwrap();
+    reading_session_accrue_inner(&conn, "a", "2026-09-07", 15, 9_000, 1_010_000).unwrap();
+    let event_count = scalar::<i64>(&conn, "SELECT COUNT(*) FROM domain_events");
+    let one = reading_time_scope_inner(&mut conn, Some("a".into())).unwrap();
+    assert_eq!(one.totals.len(), 1);
+    assert_eq!(one.totals[0].total_ms, 5_000);
+    assert!(one.daily.iter().all(|row| row.book_id == "a"));
+    assert!(one.hourly.iter().all(|row| row.book_id == "a"));
+    let all = reading_time_scope_inner(&mut conn, None).unwrap();
+    assert_eq!(all.totals.iter().map(|row| row.total_ms).sum::<i64>(), 15_000);
+    assert_eq!(scalar::<i64>(&conn, "SELECT SUM(ms) FROM reading_sessions_pending"), 9_000);
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM domain_events"), event_count);
+    for id in ["missing", " "] { assert!(reading_time_scope_inner(&mut conn, Some(id.into())).is_err()); }
+    set_projections_stale_conn(&conn, true).unwrap();
+    assert!(reading_time_scope_inner(&mut conn, None).is_err());
 }

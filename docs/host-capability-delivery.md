@@ -940,3 +940,21 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [验证/扫描] Rust lib 140 pass / 1 ignored，新增日期/分页/无写入/过期投影、并发 tick 与 flush、两个 WAL 连接并发快照回归；37 个既有 warnings 保留。全仓 test 23/23（web 851 项/9478 断言）、typecheck 26/26、前端生产 build 和 Reading Goals 独立 build/typecheck/tests 通过；工具表面格式/转义长度与分页游标回归通过。三个文档对同步，243 行/647 入口、30 单元/30 catalog、129 验收/32 场景，模型 7 项门禁与生成器 --check 通过。STAT03 双端改接通，但 EXT07 仍保留 toast/统一任务批准缺口。三份 HTML 在 1440×1000、1024×768、390×844 无横向溢出/重复 ID/坏页内锚点/无名按钮；中英文搜索、Escape、矩阵与模型抽屉 inert/主题刷新保持通过，截图已看，浏览器 errors 为空。插件说明原本无主题/抽屉；CDN 依赖未改变，未新增图，文档浏览器已关闭。
 
 [剩余] STAT02 的历史小时分布、其他部分/未接能力、完整自由组合覆盖、长时/并发/撤权验收及 packaged/Windows/Linux 继续。此单元不把可调用入口或局部桌面成功当整体完备，不标记总目标完成，未推送。
+
+## 2026-09-09：阅读趋势双端查询与正式会话事件
+
+[进度/根因] 上一轮只回答建模范围，没有改变实现。本单元继续工作区 STAT02/STAT05：统计页已有的周期、小时分布和成就未进入两端正式读模型；sessionRecorded 已实发却未在公开插件 union 内。reading 2.8 新增 stats.insights，core 同源事件名单同时供 runtime gate 和 SDK 类型推导。没有把每种图表变成单独宿主能力。
+
+[代码] 原生 reading_time_scope 在同一只读 SQLite 事务加载指定书/聚合 totals、daily、hourly，验证非空/256 UTF-16 ID、书存在、投影未 stale，读取不 flush。宿主复用统计页纯推导：week/month/year 为最近 7/30/365 天，all 图最多 36 个自然月；7 槽 weekday 随周期，24 槽小时和成就始终 all-time。asOfDay 是日历参考，不是过去数据库快照；聚合包括仍有历史的已删书。修复年度图把范围外整月混入的问题，并移除统计页 DEV 自动持久化模拟历史。边界补测还实际复现 0100 年读取结果 0 而非 3：统一补四位日期键、setFullYear/setUTCFullYear，跨 0099/0100 的周、月柱与连续天数通过回归，没有靠缩小有效日期范围绕过。
+
+[双端/组合] Agent 两 scope 注册 get_reading_insights，书内默认当前书，allBooks 明确聚合，输出秒数和明确命名的 allTime 字段；查询前后检查取消，不承诺取消已发出的 SQLite。Reading Goals 0.3 用公开能力组合周期表单、日/月列表、小时列表、成就与刷新；主详情订阅 sessionRecorded/timeRecorded，按书过滤、合并重读、错误保留带说明的成功样本、离开退订。子视图为快照，返回后重新订阅；不冒充删除/远端/跨日完整观察。八语言工具名/插件文案齐全；不新增计时写权限。
+
+[桌面] [原生证据](./evidence/reading-insights-2026-09-09.json)：隔离 macOS debug 5184/9224，真实 no/read/write Worker 与生产 Agent 端口。合成四桶 130s 在 flush 前不进入 insights，正式提交四事件后，周/月/年/全部为 30/100/100/130s；两个 Agent scope 与插件一致，Worker 收到四份类型化正式会话 payload。编译插件 More > Reading time > Reading trends 切年度、日期列表、小时列表滚动至 23:00、成就、返回均通过；真实合成 60s 结算令可见聚合恰增一分钟，不点刷新。
+
+[失败/恢复] 第二次预览插入精确 disabled sync_profile marker 令投影 stale，两端拒绝 reading/stats-stale；仅注入一条非持久通知触发插件故障重读，不假称它是事件日志。UI 显示宿主本地化错误及 Last successful sample；移除精确 marker，再真实结算合成 25s，错误自动消失且数值更新。800×650、1200×800 截图已看，页面/弹窗未见横向溢出。合成时长不是实际用户经过时间，直接工具执行不是自主模型推理。
+
+[验证/扫描] Rust 141 pass / 1 ignored，含作用域只读/错误及 WAL 并发读写一致性；全仓 test 23/23（web 856 项/9511 断言）、typecheck 26/26、前端生产 build、插件 build 通过。最大转义 ID 与完整 36 柱/24 小时/7 星期工具结果低于 16000 字符。三文档对 validator、生成器 --check 和 7 项模型门禁通过；243 行/651 入口、30 单元/30 catalog、129 验收/32 场景。STAT02 双端接通，STAT05 插件接通、Agent 保持自动读取；CON07 全来源事件一致性等原缺口仍保留。
+
+[文档/清理] 三份 HTML 在 1440×1000、1024×768、390×844 截图已看，无页面溢出/重复 ID/坏页内锚点/无名按钮；中英文搜索和 Escape、矩阵/模型抽屉 inert 及主题刷新保持通过，观察资源 200、errors 为空。模型搜索作用于责任/裁决条目，小时分布命中 R8；不是全文证据表搜索。插件说明原本无主题/抽屉。首个文档浏览器 CLI 明确错误退出，诊断确认 Chrome 页面连 CDP 求值也无响应；只终止自有 Chrome/daemon，重新从 about:blank 启动后检查通过，非因单次观察超时重启。全部自有浏览器已关闭。
+
+[清理/剩余] 初次 Vite 优化在导入中重载，另一次修改工具描述触发明确整页重载；只按日志中的精确 ID 清理本次书，稳定后重新预览。最后原有两本隔离书保留，新书/四 Worker 贡献、pending、临时 profile、文件清理队列均归零。自有 PGID 82485 终态 143，5184/9224 无监听，既有 PGID 89360/9223 未操作；正式数据未动。全来源观察、宿主内部大历史全量加载的性能、其他未接/部分能力、完整自由组合与撤权/并发验收、packaged/Windows/Linux 继续；旧 Rust/bridge/chunk/混合导入警告未宣告修复。整体目标未完成，未推送。

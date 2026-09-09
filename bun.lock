@@ -266,7 +266,7 @@
     },
     "plugins/reading-goals": {
       "name": "@read-aware/plugin-reading-goals",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "devDependencies": {
         "@read-aware/plugin-types": "workspace:*",
         "@read-aware/tsconfig": "workspace:*",

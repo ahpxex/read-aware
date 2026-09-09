@@ -326,6 +326,87 @@ reading. Rust tests cover WAL concurrent read/flush and racing ticks. Autonomous
 model decisions, long-running load, packaged builds and Windows/Linux are not
 verified by this evidence. See [evidence](./evidence/reading-time-snapshot-2026-09-09.json).
 
+### Settled Reading Insights
+
+[代码] Reading 2.8 adds `queries.stats.insights({bookId?, period?, asOfDay?})`
+under `reading:read` (also included in write). No permission means no reading
+domain. `bookId` follows the time-query nonblank/256 UTF-16-unit contract;
+omitted means aggregate. `period` is `week` (default), `month`, `year`, or `all`.
+`asOfDay` is a valid `YYYY-MM-DD` calendar reference (year 0100 or later),
+defaulting to the current local day. Invalid input rejects
+`reading/invalid-time-query`; a specified absent book rejects
+`library/book-not-found`; stale projections reject `reading/stats-stale`.
+Other native failures retain their normalized codes, never an empty fallback.
+Calendar helpers preserve four-digit keys and explicit full years, including a
+window crossing 0100 into 0099; JavaScript's numeric-date 1900 offset is not used.
+
+[代码] `reading_time_scope` reads totals/daily/hourly in one SQLite transaction.
+The host derives the same facts as the statistics UI, rather than maintaining
+a plugin-specific calculation. This is settled-only: no pending rows, clock
+extrapolation, mutation, or flush. The response is:
+
+| Fields | Meaning |
+| --- | --- |
+| `bookId`, `source`, `period`, `asOfDay` | accepted book or null, literal `settled`, selected period and reference day |
+| `totalMs`, `daysRead`, `booksRead`, `avgPerDayMs` | selected-period time, positive-reading days/books, average over active days (rounded milliseconds) |
+| `deltaRatio` | change versus preceding equal window; 0.5 means +50%; null for all-time or zero preceding time |
+| `bars[]` | `{key, ms, isCurrent}`; 7/30 day bars, 12–13 calendar-month bars intersecting the 365-day window, or at most 36 recent calendar months for all-time |
+| `weekdayMs` | seven period-scoped totals, Monday first |
+| `allTimeHourlyMs` | exactly 24 all-time local-hour buckets, never period-scoped |
+| `achievements` | all-time `totalMs`, `currentStreak`, `longestStreak`, `bestDayMs`, nullable `bestDayKey`, `daysRead`, `booksRead`, nullable `mostReadBookId`, `mostReadBookMs`, nullable `nextMilestoneMs` |
+
+[代码] Week/month/year mean trailing 7/30/365 days including the reference day,
+not calendar week/month/year. Year bars now clip the same daily window as the
+headline instead of including out-of-range days from full months. Existing daily
+queries remain available for plugin-defined heatmaps. All-time bars are bounded,
+so they need not sum to lifetime time. Day/hour labels remain recorded local
+labels; the projection has no day-by-hour joint distribution. `asOfDay` is not a
+past database snapshot: all-time achievements/hours can include later records.
+Aggregate history includes removed books whose reading records remain, so
+`booksRead` is not current shelf size. The statistics UI no longer automatically
+writes synthetic history in development; Storybook keeps its own fixtures.
+
+[代码] Both Agent scopes expose `get_reading_insights`, defaulting to the current
+book in book scope; `allBooks:true` selects aggregate. Output durations are
+seconds, weekdays are explicitly Monday-first, and hour/achievement fields are
+named `allTime...`. Cancellation is checked before and after the native query,
+not represented as cancellation of an already-issued SQLite read. Bounded
+36-bar/24-hour/7-weekday output, including maximally escaped valid IDs, is tested
+below 16,000 characters; internal host history loading is not bounded/paginated.
+
+[代码] `READING_DOMAIN_EVENT_TYPES` in core is the single source for both the
+runtime reading event roster and public `ReadingDomainEventType`. The canonical
+`book.sessionRecorded` payload includes bookId, ms, startedAt, endedAt, localDay,
+localHour and optional position. Legacy `book.timeRecorded` remains supported.
+The Agent reads current facts on its next tool call; this is not a model event
+subscription. Same-source typing does not establish remote change delivery,
+durable replay or exactly-once semantics (see capability CON07).
+
+[代码] Reading Goals 0.3 composes the period form, date-total list, all-time hour
+list, milestones and refresh using this query. The main detail subscribes to
+sessionRecorded/timeRecorded, filters book scope, coalesces overlapping refreshes
+and rereads after subscribing. It never accumulates event payloads as another
+statistics store. Failure retains the last successful sample with the localized
+error block and stale label. Departing a live view disposes subscriptions and
+suppresses late publication. Child views are snapshots; return resubscribes and
+refreshes. It is not a full-source observer for deletion, remote changes or
+midnight rollover; explicit refresh remains available.
+
+[环境] Isolated macOS debug Tauri verified production Agent tools in both scopes,
+real no/read/write Workers, four native settlement events, and compiled plugin
+period/date/hour/milestone views. Synthetic pending 130 seconds yielded zero
+settled insights; after flush the scoped week/month/year/all results were
+30/100/100/130 seconds. A further real native flush of synthetic 60 seconds
+updated the visible aggregate by exactly one minute. An isolated stale-projection
+marker rejected both actors; an injected notification (not a log write) exercised
+the live error surface. After removing the marker, a real 25-second settlement
+automatically cleared the error. These synthetic samples are not elapsed user
+reading; direct tool invocation is not autonomous model decision evidence.
+Native tests cover transaction consistency under a concurrent WAL writer and
+read-only scope validation. Large-history performance, complete all-source
+observation, packaged builds and Windows/Linux remain unverified. See
+[desktop evidence](./evidence/reading-insights-2026-09-09.json).
+
 ### Derived Text Requests
 
 [代码] Library 1.3 exposes actor-owned preparation requests, not a generic durable

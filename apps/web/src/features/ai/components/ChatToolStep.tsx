@@ -27,6 +27,7 @@ const TOOL_LABEL_KEYS = {
   list_collections: "chat.tools.list_collections",
   get_reading_stats: "chat.tools.get_reading_stats",
   get_reading_time: "chat.tools.get_reading_time",
+  get_reading_insights: "chat.tools.get_reading_insights",
   update_book: "chat.tools.update_book",
   manage_collection: "chat.tools.manage_collection",
   delete_book: "chat.tools.delete_book",

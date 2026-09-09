@@ -10,6 +10,7 @@
     "thought": "思考過程",
     "tools": {
       "get_reading_time": "正在查看目前閱讀時間",
+      "get_reading_insights": "閱讀趨勢",
       "delete_books": "正在移除書籍",
       "list_book_removal_cleanup": "正在查詢待清理檔案",
       "search_memory": "正在回憶",

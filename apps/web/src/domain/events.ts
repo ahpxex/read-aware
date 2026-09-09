@@ -30,13 +30,7 @@ export const LIBRARY_EVENTS = [
 ] as const;
 
 /** Active-reading lifecycle, progress, verdicts, and recorded reading time. */
-export const READING_EVENTS = [
-  "book.opened",
-  "book.finished",
-  "book.progressed",
-  "book.timeRecorded",
-  "book.sessionRecorded",
-] as const;
+export { READING_DOMAIN_EVENT_TYPES as READING_EVENTS } from "@read-aware/core";
 
 export const ANNOTATION_EVENTS = [
   "highlight.created",

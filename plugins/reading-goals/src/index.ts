@@ -4,6 +4,8 @@ import { goalsView } from "./views";
 import { copy } from "./strings";
 import { readingTimeView } from "./time-view";
 import { timeCopy } from "./time-strings";
+import { readingInsightsForm } from "./insights-view";
+import { insightsCopy } from "./insights-strings";
 
 export default {
   activate(ctx) {
@@ -14,6 +16,7 @@ export default {
     ctx.contributions.commands.register({ id: "open", title, icon: "notebook", run: async () => ({ view: await goalsView(ctx) }) });
     ctx.contributions.headerActions.register({ id: "reading-time", title: timeCopy(ctx.locale).title, icon: "clock", surface: "shelf", presentation: "popup", view: () => readingTimeView(ctx) });
     ctx.contributions.commands.register({ id: "time", title: timeCopy(ctx.locale).title, icon: "clock", run: async () => ({ view: await readingTimeView(ctx) }) });
+    ctx.contributions.commands.register({ id: "insights", title: insightsCopy(ctx.locale).title, icon: "chart-line-up", run: () => ({ view: readingInsightsForm(ctx) }) });
     agentContextProviders.register({ id: "reading-goal", contexts: ["book"], provide: ({ scope }) => {
       const goal = scope.kind === "book" ? readGoal(ctx, scope.bookId) : null;
       return goal ? [{ title, content: goal.text }] : [];

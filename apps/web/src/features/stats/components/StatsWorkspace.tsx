@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from "react";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useMemo } from "react";
+import { useAtomValue } from "jotai";
 import { ChartLineUp } from "@phosphor-icons/react";
 import { Body, EmptyState, Heading, Tabs, InlineError } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
@@ -7,10 +7,8 @@ import { readingStatsAtom } from "../../../state/ui";
 import type { LibraryBook } from "../../library/lib/library-types";
 import {
   formatReadingDuration,
-  replaceReadingStatsStore,
 } from "../../reader/lib/reading-stats";
 import { computeGlobalInsights, periodTabLabel, STATS_PERIODS } from "../lib/reading-insights";
-import { seedReadingStats } from "../lib/stats-mock";
 import { useAnnotationCounts } from "../hooks/useAnnotationCounts";
 import { PeriodOverview } from "./PeriodOverview";
 
@@ -22,25 +20,10 @@ type StatsWorkspaceProps = {
 export function StatsWorkspace({ books, onOpenBook }: StatsWorkspaceProps) {
   const { t, i18n } = useTranslation(["stats", "common"]);
   const store = useAtomValue(readingStatsAtom);
-  const setStore = useSetAtom(readingStatsAtom);
   const annotations = useAnnotationCounts();
   const now = Date.now();
 
   const insights = useMemo(() => computeGlobalInsights(store, now), [store, now]);
-
-  // Dev only: when there isn't enough real reading to make the page interesting,
-  // overwrite localStorage with a believable history so the charts have something
-  // to show. Fires once per mount and not once genuine reading accrues.
-  const seededRef = useRef(false);
-  const willAutoSeed =
-    import.meta.env.DEV && books.length > 0 && insights.totalMs < 60 * 60_000;
-  useEffect(() => {
-    if (!willAutoSeed || seededRef.current) return;
-    seededRef.current = true;
-    const seeded = seedReadingStats(books, Date.now());
-    setStore(seeded);
-    replaceReadingStatsStore(seeded);
-  }, [willAutoSeed, books, setStore]);
 
   const tabs = useMemo(
     () =>
@@ -61,9 +44,6 @@ export function StatsWorkspace({ books, onOpenBook }: StatsWorkspaceProps) {
       })),
     [store, books, annotations, now, onOpenBook, t, i18n.language],
   );
-
-  // Seeding momentarily — render nothing rather than flash sparse/empty content.
-  if (willAutoSeed) return null;
 
   if (insights.totalMs === 0) {
     return (

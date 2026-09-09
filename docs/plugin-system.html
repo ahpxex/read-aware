@@ -206,6 +206,11 @@
       <section data-search-section="domains 领域 library reading annotations conversations settings contentTypography typography defaultColor updateChannel textAlign fixedLayoutColor whatsNewDialog durability workspace profiles shelf shortcuts key-chord text desk extraction 正文 抽取 书架 工作区 预设 快捷键 冲突 模式 持久 回执">
         <div class="wrap">
           <h2>Domains</h2>
+          <details class="ep" data-search-section="reading insights trends STAT02 STAT05 阅读 趋势 成就 小时"><summary>Reading 2.8：两端共享趋势、成就与正式会话事件</summary><div class="ep-body">
+            <p>Agent 与 Reading Goals 0.3 读取同一已结算统计，组合最近 7/30/365 天、日期总量、连续阅读和成就。年度柱状图现在严格匹配 365 天窗口；开发版统计页不再自动写入模拟历史。</p>
+            <p>小时分布与成就是全部历史口径，不能当成某周的小时分布。全部时间图最多 36 个月；参考日期不是历史快照，聚合可含已删书记录。正式 sessionRecorded 的公开类型与运行时名单同源。</p>
+            <p>macOS debug 已验双端权限、结算后自动刷新、失败保留旧值及恢复。插件子视图为快照，尚非覆盖远端/删除/跨日的完整观察；大历史负载、打包和跨平台未验。<a href="./plugin-system.md#settled-reading-insights">完整契约</a> · <a href="./evidence/reading-insights-2026-09-09.json">桌面证据</a></p>
+          </div></details>
           <details class="ep" data-search-section="reading time pending STAT03 阅读 时长 待结算"><summary>Reading 2.7：Agent 与插件共享已结算和待结算时长</summary><div class="ep-body">
             <p>同一数据库快照读取两部分，总时长不会因会话结算而重复增加。支持按书、记录日期过滤及有界分页；Agent 输出秒数和 ISO 时间，插件还可观察更新。只开放读取，不开放计时写入或强制结算。</p>
             <p>Reading Goals 0.2 组合时长详情、日期切换和待结算列表。读取失败保留上次成功样本，通过 views 1.2 内联错误显示宿主本地化文案；恢复后自动续更，关闭即退订。</p>

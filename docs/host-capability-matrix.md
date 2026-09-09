@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 193、部分 43、待建 3、引擎 1、占位 2、非桌面 1。
-- Agent：接通 113、未接 45、部分 45、扩展 14、自动 20、内部 6。
-- 插件：接通 127、部分 76、未接 40。
+- Agent：接通 114、未接 45、部分 44、扩展 14、自动 20、内部 6。
+- 插件：接通 129、部分 74、未接 40。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -137,10 +137,10 @@
 | <a id="ANN08"></a>ANN08 | 按 ID 读取、分页、批量/版本冲突标注操作 | 部分 | **部分**：get_annotations 精确查询附 revision；edit/delete 走 CAS；apply_annotation_changes 原子批次<br>[设计] 有界查询/批量工具 | **部分**：annotations v1.3 queries.get/page/inspect + commands.applyChanges<br>[设计] 有界领域操作 | Agent 查询/条件修改/批准删除；Annotation Desk；桌面 Worker | 分页 1–100 行、默认 20，live 非冻结快照。inspect 给本机版本令牌；applyChanges 对 1–100 个不同现有对象先验所有版本，再同一事务提交事件/投影/outbox，任一失败全回滚。支持笔记正文、高亮颜色/样式、三类删除。Annotation Desk 实机验证新鲜批次保存、过期批次不改任何项、冲突保留草稿；原生双连接同版本仅一方成功。旧单项命令/UI 未迁 CAS，离线跨设备仍沿用同步合并；超长读结果预算、Range 校验和远端失效仍未完成 | [ANNDB](../apps/web/src/features/annotations/lib/annotation-db.ts) [ANNPAGES](../apps/desktop/src-tauri/src/storage/annotation_pages.rs) [ANNOT](../apps/web/src/domain/annotations.ts) [ANNTOOLS](../packages/agent/src/tools/annotation-tools.ts) [ANNBATCHTOOL](../packages/agent/src/tools/annotation-batch-tool.ts) [LIBTOOLS](../packages/agent/src/tools/library-tools.ts) [ANNMUTATIONS](../apps/desktop/src-tauri/src/storage/annotation_mutations.rs) [ANNMUTATIONPROBE](../apps/web/src/features/plugins/runtime/fixtures/desktop-annotation-mutation-probe.ts) [API](../packages/plugin-types/src/index.ts) [DESKBATCH](../plugins/annotation-desk/src/batch.ts) [DESKPROBE](../apps/web/src/features/plugins/runtime/fixtures/desktop-annotation-desk.ts) | A06, F03 |
 | <a id="ANN09"></a>ANN09 | 标注变化与远端失效观察 | 部分 | **自动**：每轮读快照，不订阅工具<br>[设计] 自动刷新/按需查询 | **部分**：annotations.events.subscribe<br>[设计] 完整授权 change feed | 宿主注释 revision | GAP09/GAP11；同步投影变化不等同本地领域广播 | [EVENTROSTER](../apps/web/src/domain/events.ts) [EVENTS](../apps/web/src/platform/domain-events.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [SYNC](../apps/web/src/platform/sync/sync-scheduler.ts) | F06 |
 | <a id="STAT01"></a>STAT01 | 单书/全库/总览已结算阅读统计 | 实装 | **接通**：get_reading_stats<br>[设计] 查询工具 | **接通**：reading.queries.stats.forBook/list/overview<br>[设计] 统计查询 | StatsWorkspace；Agent | 已结算持久数据与当前会话 scratch 必须区分 | [READING](../apps/web/src/domain/reading.ts) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | G01 |
-| <a id="STAT02"></a>STAT02 | 周月年/连续阅读/热图/时段/成就派生 | 实装 | **部分**：get_reading_stats 格式化时长/活跃天等<br>[设计] 有界统计查询/工具侧计算 | **部分**：daily 可派生；BookStats 无小时分布<br>[设计] 原始统计口径+插件计算 | 统计页 | 不是每一种图表都要新 host API；小时分布不是 daily 可以还原的数据 | [STATS](../apps/web/src/features/stats/lib/reading-insights.ts) [STATUI](../apps/web/src/features/stats/components/StatsWorkspace.tsx) [READING](../apps/web/src/domain/reading.ts) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) | G03 |
+| <a id="STAT02"></a>STAT02 | 周月年/连续阅读/热图/时段/成就派生 | 实装 | **接通**：get_reading_insights[双域]；get_reading_stats<br>[设计] 有界统计查询/工具侧计算 | **接通**：reading 2.8 stats.insights；既有 daily 可派生热图<br>[设计] 原始统计口径+插件计算 | 统计页；Agent；Reading Goals 0.3 时段选择、日期总量、小时分布、成就与事件更新 | 同一 SQLite 读事务读取指定书/聚合已结算投影，查询不 flush；缺书/过期投影/非法参数明确拒绝。week/month/year 是含参考日的最近 7/30/365 天；年度 12–13 月柱仅包含窗口内日期，已修正原图混入范围外整月的问题。all 图最多最近 36 个自然月，不等于完整终身直方图。7 槽 weekday 随 period，24 槽小时分布和成就明确 all-time；无日期×小时联合投影，不伪造指定周期小时分布。asOfDay 是日历参考，不是历史数据库快照；聚合保留已删书的历史，不等于当前书架数量。Agent 输出秒数、默认当前书、allBooks 明确聚合。插件主详情消费 sessionRecorded/timeRecorded 并合并重读、出错保留成功样本、离开退订；子视图是快照，删除/远端变化/跨日不声称全来源自动观察。真实 macOS debug Worker 权限、双 scope 工具、编译插件及实时增量已验；无自主模型决策证明。统计页已移除 DEV 自动写模拟历史；大历史查询仍全量读取宿主内部投影，长期负载、packaged/Windows/Linux 未验。 | [STATS](../apps/web/src/features/stats/lib/reading-insights.ts) [STATUI](../apps/web/src/features/stats/components/StatsWorkspace.tsx) [READING](../apps/web/src/domain/reading.ts) [TIME](../apps/web/src/platform/reading-session.ts) [INSIGHTS](../apps/web/src/domain/reading-insights.ts) [INSIGHTSTOOL](../packages/agent/src/tools/reading-insights.ts) [INSIGHTSVIEW](../plugins/reading-goals/src/insights-view.ts) [INSIGHTSPROOF](../docs/evidence/reading-insights-2026-09-09.json) | G03 |
 | <a id="STAT03"></a>STAT03 | 已持久的未结算时长/会话与采样时钟 | 实装 | **接通**：get_reading_time[双域]<br>[设计] 含 pending 的统计查询 | **接通**：reading 2.7 stats.time / events.observeTime<br>[设计] 一致快照与可退订观察 | Agent；Reading Goals 0.2 阅读时长、日期切换、待结算列表与实时详情 | 同一 SQLite 读事务返回 settled/pending/total、全 scope 桶数、原生采样时钟和有界 keyset 页；跨连接 flush 不会重复计数。可按书/记录的 localDay 过滤，页不是冻结快照，翻页不可累加全 scope 总量。插件默认 50/最多 100 桶，Agent 默认/最多 10 桶且输出秒数与 ISO 时钟；书内默认当前书，allBooks 明确聚合。observeTime 首次读取后按至少一秒间隔再读，等待回调背压、全局最多 64 订阅、每订阅 revision；错误显式发布，退订丢弃迟到结果，不中止已派发 SQLite。reading:read/write 可读，零权限不可见，不开放计时写入/强制 flush。原生时钟不是 revision；计时器尚未持久的约 20 秒间隔不外推，不代表跨设备同步或精确墙钟秒表。views 1.2 error 块由宿主 InlineError 本地化；故障保留上次成功样本，恢复自动续更。隔离 macOS debug 已验真实 Worker 权限/分页/错误恢复/退订、双 scope Agent、编译 Reading Goals 菜单及 800x650 窗口、实际阅读 tick 与关闭结算；并发读/flush 有原生 WAL 测试。自主模型决策、长时负载、打包及 Windows/Linux 未验。 | [TIME](../apps/web/src/platform/reading-session.ts) [READING](../apps/web/src/domain/reading.ts) [TIMESNAPSHOT](../apps/desktop/src-tauri/src/storage/reading_snapshot.rs) [TIMEOBSERVER](../apps/web/src/domain/reading-time-observer.ts) [TIMETOOL](../packages/agent/src/tools/reading-time.ts) [TIMEVIEW](../plugins/reading-goals/src/time-view.ts) [TIMEPROOF](../docs/evidence/reading-time-snapshot-2026-09-09.json) | G03 |
 | <a id="STAT04"></a>STAT04 | 计时/位置累积、小时结算和重启恢复 | 实装 | **未接**：宿主自动采集<br>[设计] 不开放：不得伪造阅读 | **未接**：宿主自动采集<br>[设计] 不开放：只读统计/真实阅读操作 | useReadingTimeTracker | 底层 accrue/position/flush/import/genesis 不是插件写权限 | [TIME](../apps/web/src/platform/reading-session.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) | G05 |
-| <a id="STAT05"></a>STAT05 | book.sessionRecorded 正式事件 | 实装 | **自动**：下轮读统计，无模型事件订阅<br>[设计] 运行时数据刷新 | **部分**：runtime roster 有，public union 无<br>[设计] 同源事件契约 | 领域订阅实现 | 公开类型漂移；不能把 legacy timeRecorded 当今天的实际事件 | [EVENTROSTER](../apps/web/src/domain/events.ts) [API](../packages/plugin-types/src/index.ts) [COREVENTS](../packages/core/src/events.ts) | G04 |
+| <a id="STAT05"></a>STAT05 | book.sessionRecorded 正式事件 | 实装 | **自动**：下轮查询最新统计，无模型事件订阅<br>[设计] 运行时数据刷新 | **接通**：共享 core roster 推导 public union 与 runtime 事件名单<br>[设计] 同源事件契约 | 领域订阅；Reading Goals 0.3 结算后重读 | reading:read/write 可订阅 canonical sessionRecorded 的类型化 ms/day/hour/start/end/position payload；无权限不可见。真实原生 flush 追加四个事件后 Worker 收到四份正式通知，编译插件重读而不自行累加事件。legacy timeRecorded 保留兼容旧写入；同源名单防止 public union 漂移，但不等于跨设备事件流/持久重放/恰好一次，相关缺口仍见 CON07。 | [EVENTROSTER](../apps/web/src/domain/events.ts) [READINGEVENTS](../packages/core/src/reading-events.ts) [API](../packages/plugin-types/src/index.ts) [COREVENTS](../packages/core/src/events.ts) [INSIGHTSVIEW](../plugins/reading-goals/src/insights-view.ts) [INSIGHTSPROOF](../docs/evidence/reading-insights-2026-09-09.json) | G04 |
 
 ### 应用导航、命令与配置范围
 
@@ -409,16 +409,16 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：44 个。
-- Agent book：36 个。
-- Plugin ctx：104 个。
+- Agent global：45 个。
+- Agent book：37 个。
+- Plugin ctx：105 个。
 - Plugin returned interface：25 个。
 - Capability domains：5 个。
 - Capability contributions：14 个。
 - Capability services：8 个。
 - Capability schemas：3 个。
 - Settings path：74 个。
-- Native command：137 个。
+- Native command：138 个。
 - Native plugin：11 个。
 - Menu placement：16 个。
 - Shortcut：19 个。
@@ -435,7 +435,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 104 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 105 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -448,6 +448,7 @@
 | `list_collections` | [LIB15](#LIB15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_reading_stats` | [STAT01](#STAT01) [STAT02](#STAT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_reading_time` | [STAT03](#STAT03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_reading_insights` | [STAT02](#STAT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `update_book` | [LIB02](#LIB02) [LIB03](#LIB03) [READ19](#READ19) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_collection` | [LIB16](#LIB16) [LIB18](#LIB18) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `delete_book` | [LIB04](#LIB04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -495,6 +496,7 @@
 | `get_annotations` | [ANN01](#ANN01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_reading_stats` | [STAT01](#STAT01) [STAT02](#STAT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_reading_time` | [STAT03](#STAT03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_reading_insights` | [STAT02](#STAT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `update_book` | [LIB02](#LIB02) [LIB03](#LIB03) [READ19](#READ19) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `delete_book` | [LIB04](#LIB04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `create_annotation` | [ANN02](#ANN02) [ANN05](#ANN05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -567,6 +569,7 @@
 | `domains.library.commands.collections.assignBooks` | [LIB18](#LIB18) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.queries.session` | [READ07](#READ07) [TXT09](#TXT09) [READ16](#READ16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.queries.stats.time` | [STAT03](#STAT03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.reading.queries.stats.insights` | [STAT02](#STAT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.queries.stats.forBook` | [STAT01](#STAT01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.queries.stats.list` | [STAT01](#STAT01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.queries.stats.overview` | [STAT01](#STAT01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -904,6 +907,7 @@
 | `storage::reading_time_genesis` | [STAT03](#STAT03) [STAT04](#STAT04) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `storage::reading_time_load` | [STAT03](#STAT03) [STAT04](#STAT04) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `storage::reading_time_snapshot` | [STAT03](#STAT03) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
+| `storage::reading_time_scope` | [STAT02](#STAT02) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `storage::reading_session_accrue` | [STAT03](#STAT03) [STAT04](#STAT04) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `storage::reading_session_position` | [STAT03](#STAT03) [STAT04](#STAT04) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `storage::reading_sessions_pending` | [STAT03](#STAT03) [STAT04](#STAT04) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
@@ -1148,7 +1152,7 @@
 | `jumper` | [TXT02](#TXT02) [TXT07](#TXT07) [READ06](#READ06) [EXT02](#EXT02) | [代码] 源码版本 0.2.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `library-desk` | [LIB01](#LIB01) [LIB05](#LIB05) [EXT02](#EXT02) [EXT03](#EXT03) [MORE05](#MORE05) | [代码] 源码版本 0.2.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `listening-desk` | [READ16](#READ16) [READ18](#READ18) [READ06](#READ06) [EXT02](#EXT02) [MORE03](#MORE03) | [代码] 源码版本 0.9.0；源码存在不等于打包、安装、启用或模型可调用 |
-| `reading-goals` | [AI11](#AI11) [MEM03](#MEM03) [SET23](#SET23) [STAT03](#STAT03) [EXT07](#EXT07) [EXT02](#EXT02) [EXT05](#EXT05) [SYS01](#SYS01) | [代码] 源码版本 0.2.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `reading-goals` | [AI11](#AI11) [MEM03](#MEM03) [SET23](#SET23) [STAT02](#STAT02) [STAT05](#STAT05) [STAT03](#STAT03) [EXT07](#EXT07) [EXT02](#EXT02) [EXT05](#EXT05) [SYS01](#SYS01) | [代码] 源码版本 0.3.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `rss-reader` | [EXT10](#EXT10) | [代码] 源码版本 0.7.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `sentence-reader` | [READ15](#READ15) [READ16](#READ16) | [代码] 源码版本 1.1.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `text-desk` | [TXT04](#TXT04) [TXT05](#TXT05) [TXT06](#TXT06) [LIB01](#LIB01) [READ01](#READ01) [EXT02](#EXT02) [EXT05](#EXT05) | [代码] 源码版本 0.4.0；源码存在不等于打包、安装、启用或模型可调用 |

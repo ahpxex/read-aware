@@ -10,6 +10,7 @@
     "thought": "Cheminement de pensée",
     "tools": {
       "get_reading_time": "Consultation du temps de lecture actuel",
+      "get_reading_insights": "Tendances de lecture",
       "delete_books": "Suppression des livres",
       "list_book_removal_cleanup": "Vérification du nettoyage en attente",
       "search_memory": "Rappel des souvenirs",

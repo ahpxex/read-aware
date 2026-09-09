@@ -10,6 +10,7 @@ import { textResult } from "./tool-result";
 import { requestUserInteraction } from "./user-interaction";
 import { buildDeleteBooksTool, buildListBookRemovalCleanupTool } from "./delete-books";
 import { buildReadingTimeTool } from "./reading-time";
+import { buildReadingInsightsTool } from "./reading-insights";
 
 export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const listCollections: AgentTool = {
@@ -245,13 +246,14 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
   };
 
   if (scope.kind === "book") {
-    return [getReadingStats, buildReadingTimeTool(scope, deps), updateBook, deleteBook];
+    return [getReadingStats, buildReadingTimeTool(scope, deps), buildReadingInsightsTool(scope, deps), updateBook, deleteBook];
   }
 
   return [
     listCollections,
     getReadingStats,
     buildReadingTimeTool(scope, deps),
+    buildReadingInsightsTool(scope, deps),
     updateBook,
     manageCollection,
     deleteBook,

@@ -991,6 +991,7 @@ pub fn run() {
             storage::reading_time_genesis,
             storage::reading_time_load,
             storage::reading_time_snapshot,
+            storage::reading_time_scope,
             storage::reading_session_accrue,
             storage::reading_session_position,
             storage::reading_sessions_pending,

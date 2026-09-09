@@ -10,6 +10,7 @@
     "thought": "Razonamiento",
     "tools": {
       "get_reading_time": "Consultando el tiempo de lectura actual",
+      "get_reading_insights": "Tendencias de lectura",
       "delete_books": "Eliminando libros",
       "list_book_removal_cleanup": "Consultando la limpieza pendiente",
       "search_memory": "Recordando",

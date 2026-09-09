@@ -261,9 +261,23 @@ success; a stale session guard leaves the view available for Refresh and retry.
 [验证] Unit/React/actor tests and isolated macOS debug Tauri tests cover the paths
 listed in [reader panel evidence](./evidence/reader-panels-2026-09-09.json), including
 SQLite rejection, real Workers, real plugin UI, narrow/wide windows and fixed-layout
-appearance. Packaged and Windows/Linux panel behavior remain unverified. A native
-wheel-phase unsubscribe exception on rapid reader reopen remains an independent
-open lifecycle issue, not a successful panel or sandbox guarantee.
+appearance. Packaged and Windows/Linux panel behavior remain unverified.
+
+[代码] Private wheel-phase input now follows document lifetime: the app-owned
+AppKit monitor evaluates one of three closed CustomEvent scripts in the main
+WebView; mounted readers synchronously add/remove their own DOM listener. There
+is no per-reader native registration or deferred unlisten. This changes neither
+public capabilities nor Worker permissions. The earlier unregisterListener stack
+and installed Tauri registration code support an asynchronous registration/retirement
+race; the precise native scheduling interleaving was not instrumented.
+[环境] The [wheel lifetime evidence](./evidence/wheel-phase-lifetime-2026-09-09.json)
+records 20 actual FB2/PDF close/reopen cycles without the old rejection, 200 retired
+listeners without callbacks, native eval delivery of touch/momentum/end and
+synchronous cleanup. Rust tests preserve the phase classifier. The eval probe
+uses the monitor's fixed scripts, not physical NSEvent input; the attempted
+CGEvent probe had no posting permission and delivered no observed edges. Physical
+trackpad delivery/timing, packaged and Windows/Linux input regression remain
+unverified. This is not a claim that all Tauri subscriptions or input paths are safe.
 
 ### Mode Configuration Durability
 

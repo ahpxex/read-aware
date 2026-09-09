@@ -1,0 +1,48 @@
+{
+  "date": "2026-09-09",
+  "scope": "Document lifetime of private native wheel-phase input; READ10 follow-up, not a new Agent/plugin capability",
+  "environment": {
+    "app": "com.readaware.app.capability-e2e",
+    "runtime": "macOS debug Tauri",
+    "ports": [5184, 9224],
+    "pid": 95570,
+    "processGroup": 95367,
+    "formalAppTouched": false,
+    "tauriRust": "2.11.3",
+    "tauriJavaScriptApi": "2.11.0",
+    "books": ["07ef226e-1ebc-47b6-8dc9-d09109448d22", "8ced004f-efe3-408f-80a8-a0ebffec84d3"]
+  },
+  "causalEvidence": [
+    "Previous reader panel runs repeatedly recorded listeners[eventId].handlerId in unregisterListener, reached through wheel-phase.ts's disposed-before-listen-resolved branch.",
+    "Installed Tauri Rust listen_js injects a registration script via eval and returns the event ID without an explicit JavaScript registration acknowledgement. Installed JS listen resolves into an unlisten closure whose first step reads the registration entry. The observed stack and this ordering support a registration/retirement race; native scheduler ordering was not instrumented.",
+    "Wheel phases are transient main-document input. The AppKit monitor remains app-owned, but a mounted reader no longer creates an asynchronous native event subscription. The monitor dispatches one of three fixed, data-free CustomEvent scripts into the main WebView; each reader owns a synchronous addEventListener/removeEventListener pair on its captured document.",
+    "No SDK monkey patch, timer-based readiness guess, private callback-registry mutation, global rejection suppression, retained old-reader callback or permanent frontend listener was added. Domain/plugin APIs and permissions are unchanged.",
+    "The old phase classifier was moved unchanged to wheel_phase.rs and tested: finger contact wins over old momentum; drag Ended alone does not release the momentum latch; momentum Began/Ended/Cancelled produce the expected three edges; phase-less wheels still emit nothing."
+  ],
+  "nativeObserved": [
+    "Started only the isolated configuration and checked appDataDir before opening synthetic content.",
+    "Created and synchronously retired 200 real frontend subscriptions, then subscribed a current observer. Retired callbacks received zero events.",
+    "Ten rapid close/reopen cycles of the same FB2 book produced ten unique ready session IDs and no captured unhandled rejection.",
+    "Ten more close/reopen cycles alternated synthetic PDF and FB2, again producing ten unique sessions and no captured unhandled rejection. The final session was cfdda164-5ec6-4107-b9a2-24bc6d953d6b.",
+    "MCP native eval delivered the exact three closed CustomEvent statements used by the monitor into the real WKWebView. The current observer received touch, momentum, end in order. After stop, another touch left the observed array unchanged. Retired callbacks and captured errors stayed empty. MCP 0.11.2 execute_js itself calls WebviewWindow.eval; this verifies delivery/consumption, not a physical AppKit event.",
+    "Actual shared Agent reader ports opened TOC and chat after repeated reopen; both appeared and a native screenshot was inspected. No model inference was sent.",
+    "Cleanup removed the diagnostic observer/error listener/global, closed the book and restored the originally absent panel KV key. Window restored to 1200x800; process group exited 143; ports 5184/9224 had no listeners and SQLite showed no panel/menu test keys or fault triggers. Synthetic reading history was not rewritten."
+  ],
+  "localTests": {
+    "frontendFocused": "7 cases / 13 assertions: synchronous setup/teardown, 200 retired consumers, removal during dispatch, independent owners, malformed events, sync/async consumer errors, captured-window cleanup, non-Tauri no-op",
+    "nativeFocused": "3 Rust phase classification and closed-script tests passed",
+    "fullNativeTest": "cargo test --offline --lib: 131 passed, 0 failed, 1 existing ignored; 38 existing warnings",
+    "fullFrontendTest": "21/21 tasks; web 779 tests / 8626 assertions",
+    "typecheck": "24/24 tasks",
+    "frontendBuild": "passed; existing Node deprecation, mixed-import and chunk-size warnings retained"
+  },
+  "screenshotsInspected": ["/tmp/readaware-wheel-reopen-panels.png"],
+  "notProven": [
+    "Physical trackpad delivery and gesture timing were not automated: the attempted PID-targeted Swift CGEvent probe had CGPreflightPostEventAccess() false and delivered no observed edges. Its printed posted message was not counted as success; no accessibility permission was changed.",
+    "The successful native eval test supplies the monitor's fixed scripts through the diagnostic bridge, not through NSEvent. Physical monitor acquisition and native input scheduling remain environmental validation work.",
+    "No packaged or Windows/Linux input regression verification in this unit; the AppKit module remains macOS-only and other platforms retain their existing phase-less heuristics.",
+    "No claim that all Tauri event listeners are race-free, all reader interactions are validated, or the overall host-capability goal is complete.",
+    "Boot again logged an initial WebContent termination then recovered; existing 37 native build warnings, 38 Rust test warnings, bridge-version and IMK messages remain. The regression trace did not recur during the twenty reader cycles.",
+    "The screenshot is a local inspection artifact and is not evidence of a full layout audit."
+  ]
+}

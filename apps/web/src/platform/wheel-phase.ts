@@ -1,5 +1,7 @@
-import { listen } from "@tauri-apps/api/event";
 import { isTauri } from "./environment";
+import { createLogger } from "./logger";
+
+const log = createLogger("wheel-phase");
 
 /**
  * Ground-truth trackpad gesture phases from the desktop shell.
@@ -7,7 +9,7 @@ import { isTauri } from "./environment";
  * DOM wheel events never say whether fingers are on the pad, so a swipe's
  * momentum tail is indistinguishable from a new swipe by deltas alone. On
  * macOS the shell watches every scroll-wheel NSEvent (see
- * `install_scroll_phase_monitor` in the Tauri crate) and emits just the
+ * `wheel_phase::install` in the Tauri crate) and dispatches just the
  * transitions:
  *
  * - `"touch"`    — fingers landed on the pad (also cancels any momentum)
@@ -22,27 +24,23 @@ export const WHEEL_PHASE_EVENT = "ra-wheel-phase";
 export type WheelPhaseEdge = "touch" | "momentum" | "end";
 
 /**
- * Subscribe to the shell's wheel phase edges. Returns the unsubscribe
- * function; a no-op outside the Tauri shell.
+ * The shell dispatches into the current main document. Registration and
+ * removal are synchronous DOM operations, not an async native subscription
+ * whose registration may outlive the reader that requested it.
  */
 export function subscribeWheelPhaseEdges(
   onEdge: (edge: WheelPhaseEdge) => void,
 ): () => void {
   if (!isTauri()) return () => {};
-  let disposed = false;
-  let unlisten: (() => void) | null = null;
-  void listen<string>(WHEEL_PHASE_EVENT, ({ payload }) => {
-    if (payload === "touch" || payload === "momentum" || payload === "end") {
-      onEdge(payload);
-    }
-  }).then((stop) => {
-    // Registration is async — the subscriber may already be gone.
-    if (disposed) stop();
-    else unlisten = stop;
-  });
+  const target = window;
+  const handler = (event: Event) => {
+    const edge: unknown = (event as CustomEvent<unknown>).detail;
+    if (edge !== "touch" && edge !== "momentum" && edge !== "end") return;
+    try { Promise.resolve(onEdge(edge)).catch(error => log.warn("Wheel phase consumer failed", error)); }
+    catch (error) { log.warn("Wheel phase consumer failed", error); }
+  };
+  target.addEventListener(WHEEL_PHASE_EVENT, handler);
   return () => {
-    disposed = true;
-    unlisten?.();
-    unlisten = null;
+    target.removeEventListener(WHEEL_PHASE_EVENT, handler);
   };
 }

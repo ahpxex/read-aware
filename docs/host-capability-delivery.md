@@ -732,3 +732,17 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [文档与重扫] 243 行、610 注册入口库存、74 设置、30 单元/catalog、129 验收、32 场景；新入口均反查 READ10，七项模型门禁与两生成器 --check 通过。矩阵和插件规范双版本同步，统一模型只更新 MD 反查，未改无共享摘要变化的 HTML；三对 validator 通过。两份变更 HTML 三尺寸、中英文搜索/Escape、矩阵抽屉 inert/主题刷新保持通过，无页面横向溢出、重复 ID、坏页内锚点、无名按钮、已观察 HTTP 资源错误或 console/page error。浏览器只验文档，不代表产品；文档仍依赖 CDN。
 
 [清理与仍缺] 两轮进程组 89403/91565 均已退出，诊断贡献归零、原始缺席的 panel/menu KV 恢复、故障触发器删除、5184/9224 无监听、文档浏览器关闭，正式 app 未操作。快速原生重开再次复现 wheel-phase 的 listeners[eventId].handlerId 退订未处理拒绝，仍是独立未解决缺陷。READ10 不承诺动画、物理栅格、实际焦点或面板数据加载完成；单次 Worker 取消、packaged/Windows/Linux 尚未验收。其余部分/未接项、完整 W01-W32 组合与全目标继续，不推送、不关闭目标。
+
+## 2026-09-09：阅读器原生滚轮输入生命周期修复
+
+[代码/推论] 旧 wheel-phase.ts 在组件先卸载、listen 后返回的分支调用 unlisten，真实堆栈在 Tauri unregisterListener 读取不存在的 listeners[eventId].handlerId。核对安装的 Rust Tauri 2.11.3 与 JS API 2.11.0：原生 listen_js eval 注入注册，没有等待 JS 注册确认便返回事件 ID，JS 退订先读该登记。堆栈和实现支持注册/退休竞态推论；未对原生调度交错做插桩，不把推论写成已证明的具体时序。
+
+[代码] 滚轮阶段是当前主文档输入，不是持久领域事件。AppKit monitor 保持 app 所有权，分类逻辑不变，迁入 wheel_phase.rs；只对主 WebView 投递 touch/momentum/end 三个封闭常量 CustomEvent 脚本，不插入外部文本。阅读器同步 add/remove 自己的 DOM listener，捕获原 window，验证载荷并记录消费者同步/异步异常，不再申请或延迟释放原生 listener。没有 SDK 补丁、私有登记表修改、计时等待、全局 rejection 抑制或永久前端监听；不新增插件权力/能力版本。
+
+[环境] [结构化证据](./evidence/wheel-phase-lifetime-2026-09-09.json)：隔离 macOS debug Tauri 中 200 个真实前端监听即时退休后无回调；同一 FB2 十次重开，加 PDF/FB2 交替十次重开，共二十个不同 ready session，没有捕获原退订异常。经原生 MCP eval 投递与 monitor 相同的三个固定语句，当前消费者依序收到三阶段，退订后不再收到 touch；实际 Agent reader port 重开后可显示目录/聊天。MCP 自身使用 WebviewWindow.eval，证明投递与消费而非物理 NSEvent。PID 定向 Swift CGEvent 尝试的 posting 权限为 false、未收到阶段，不计成功，未改变系统辅助功能权限。
+
+[验证] 新增前端 7 项/13 断言、Rust 3 项分类/封闭脚本测试；全仓 test 21/21（web 779 项/8626 断言）、typecheck 24/24、前端生产 build 通过。最终 Rust 全量重跑 131 通过、1 项既有 ignored，38 个既有测试 warning 保留。收尾再次运行前端新测试与模型门禁共 14 项/22 断言通过；243 行/610 库存/30 单元与 catalog/129 验收/32 场景未变，两生成器 --check 和三文档对 validator 通过。更新矩阵与插件说明双份，统一模型仅同步 MD 反查，HTML 无共享摘要变化。
+
+[文档/清理] 两份变更 HTML 在 1440×1000、1024×768、390×844 无页面横向溢出、重复 ID、坏页内锚点、无名按钮或已观察 HTTP 资源错误；wheel-phase/滚轮搜索、Escape、矩阵抽屉 inert/主题刷新保持通过。初次截图发生在平滑滚动尚未结束，未采信为变更内容视觉证据；改为即时滚动后查看矩阵桌面与插件说明移动端实际变更段落，console/page error 为空。文档仍依赖 CDN，浏览器已关闭。写文档时磁盘仅余 191 MiB，删除本仓库可重建 .turbo/cache 后恢复写入，未删除用户数据。原生 observer/error listener/global 已清，原 panel KV 缺席态恢复，测试触发器/面板菜单 key 为零；窗口恢复 1200×800，进程组 95367 终态 143，5184/9224 无监听，正式 app 未操作。
+
+[仍缺] 物理触控板送达/时序、packaged 和 Windows/Linux 输入回归未验，启动 WebContent 终止后恢复和既有 bridge/IMK 警告保留。不宣称所有 Tauri 事件安全，不替代面板焦点/动画/数据完成或全部双端与 W01-W32 验收。完整目标继续，未推送。

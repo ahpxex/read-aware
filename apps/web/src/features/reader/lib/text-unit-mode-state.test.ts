@@ -92,7 +92,7 @@ describe("text-unit mode settings (plugin-owned)", () => {
     });
   });
 
-  test("migrates the legacy prefs row into the plugin object, then drops it", () => {
+  test("reading preserves legacy prefs; explicit settings commit migrates them", async () => {
     storage.set(
       LEGACY_PREFS_KEY,
       JSON.stringify({
@@ -110,6 +110,9 @@ describe("text-unit mode settings (plugin-owned)", () => {
       showProgress: DEFAULT_TEXT_UNIT_MODE_SETTINGS.showProgress,
       sessionTimer: DEFAULT_TEXT_UNIT_MODE_SETTINGS.sessionTimer,
     });
+    expect(storage.has(LEGACY_PREFS_KEY)).toBe(true);
+    expect(storage.has(PLUGIN_SETTINGS_KEY)).toBe(false);
+    await updateTextUnitModeSettings(MODE_KEY, {});
     expect(storage.has(LEGACY_PREFS_KEY)).toBe(false);
     // The migrated values now live in the plugin's settings object.
     expect(JSON.parse(storage.get(PLUGIN_SETTINGS_KEY) ?? "{}")).toMatchObject({
@@ -132,25 +135,40 @@ describe("text-unit mode settings (plugin-owned)", () => {
     });
   });
 
-  test("a legacy unit choice from another mode does not migrate", () => {
+  test("another mode cannot consume or copy the legacy owner's preferences", async () => {
     storage.set(
       LEGACY_PREFS_KEY,
-      JSON.stringify({ modeKey: "other-reader:guided-reading", unitId: "stanza" }),
+      JSON.stringify({ modeKey: "other-reader:guided-reading", unitId: "stanza", tapToAdvance: false }),
     );
 
     expect(readTextUnitModeSettings(MODE_KEY).unitId).toBeNull();
+    expect(readTextUnitModeSettings(MODE_KEY).tapToAdvance).toBe(true);
+    await updateTextUnitModeSettings(MODE_KEY, { showProgress: false });
+    expect(storage.has(LEGACY_PREFS_KEY)).toBe(true);
+    await updateTextUnitModeSettings("other-reader:guided-reading", {});
     expect(storage.has(LEGACY_PREFS_KEY)).toBe(false);
+    expect(readTextUnitModeSettings("other-reader:guided-reading")).toMatchObject({ unitId: "stanza", tapToAdvance: false });
   });
 
-  test("updates merge a patch into the stored object", () => {
+  test("updates merge a patch into the stored object", async () => {
     storage.set(PLUGIN_SETTINGS_KEY, JSON.stringify({ unitId: "sentence", other: "kept" }));
 
-    updateTextUnitModeSettings(MODE_KEY, { showProgress: false, unitId: "paragraph" });
+    await updateTextUnitModeSettings(MODE_KEY, { showProgress: false, unitId: "paragraph" });
 
     expect(JSON.parse(storage.get(PLUGIN_SETTINGS_KEY) ?? "{}")).toEqual({
       unitId: "paragraph",
       other: "kept",
       showProgress: false,
     });
+  });
+
+  test("malformed legacy data is never consumed by reads and only discarded by a commit", async () => {
+    for (const raw of ["broken", "null", "[]", "123"]) {
+      storage.set(LEGACY_PREFS_KEY, raw);
+      expect(readTextUnitModeSettings(MODE_KEY)).toEqual(DEFAULT_TEXT_UNIT_MODE_SETTINGS);
+      expect(storage.get(LEGACY_PREFS_KEY)).toBe(raw);
+      await updateTextUnitModeSettings(MODE_KEY, {});
+      expect(storage.has(LEGACY_PREFS_KEY)).toBe(false);
+    }
   });
 });

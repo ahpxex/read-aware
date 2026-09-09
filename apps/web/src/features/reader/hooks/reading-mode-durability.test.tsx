@@ -12,6 +12,7 @@ const bookId = "mode-durability-test";
 const bookKey = `read-aware-navigator-state:${bookId}`;
 const settingsKey = "read-aware-plugin.mode-durability.settings";
 const modeKey = "mode-durability:reader";
+const legacyKey = "read-aware-navigator-prefs";
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 
 // Native detection and Jotai's module-lifetime subscriptions stay in a child process.
@@ -21,7 +22,7 @@ if (process.env.MODE_DURABILITY_CASE === "1") {
   let contribution: ReturnType<typeof registerReaderModeContribution>;
   let hold = false;
   const disk = new Map<string, string>();
-  const pending: { entries: [string, string][]; commit(): void; reject(error: unknown): void }[] = [];
+  const pending: { entries: [string, string | null][]; commit(): void; reject(error: unknown): void }[] = [];
   function Harness() {
     state = useReadingModeControl(bookId, true);
     useEffect(() => {
@@ -37,16 +38,17 @@ if (process.env.MODE_DURABILITY_CASE === "1") {
     globals = new Map(Object.keys(values).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
     for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
     Object.assign(dom.window, { __TAURI_INTERNALS__: {
-      invoke(command: string, args: { key: string; value: string; entries: [string, string][] }) {
-        if (command !== "set_kv" && command !== "set_kv_batch") return Promise.resolve();
-        const entries: [string, string][] = command === "set_kv" ? [[args.key, args.value]] : args.entries;
+      invoke(command: string, args: { key: string; value: string; entries: [string, string | null][] }) {
+        if (!["set_kv", "delete_kv", "set_kv_batch"].includes(command)) return Promise.resolve();
+        const entries: [string, string | null][] = command === "set_kv_batch" ? args.entries : [[args.key, command === "delete_kv" ? null : args.value]];
         return new Promise<void>((resolve, reject) => {
-          const commit = () => { for (const [key, value] of entries) disk.set(key, value); resolve(); };
+          const commit = () => { for (const [key, value] of entries) { if (value === null) disk.delete(key); else disk.set(key, value); } resolve(); };
           if (hold) pending.push({ entries, commit, reject }); else commit();
         });
       },
     } });
     hold = false;
+    await localKV.removeItemAsync(legacyKey);
     await localKV.setItemAsync(settingsKey, JSON.stringify({ unitId: "sentence", tapToAdvance: false }));
     await localKV.setItemAsync(bookKey, JSON.stringify({ active: false, resting: null, modeKey, unitId: "sentence", contentVersion: "v1" }));
     contribution = registerReaderModeContribution({ id: "reader", key: modeKey, pluginId: "mode-durability",
@@ -109,6 +111,38 @@ if (process.env.MODE_DURABILITY_CASE === "1") {
     await act(async () => { pending.shift()!.commit(); await tick(); });
   });
 
+  test("legacy consumption shares the actor receipt and survives failed source deletion", async () => {
+    const legacy = JSON.stringify({ modeKey, unitId: "paragraph", scrollToStep: true });
+    hold = false; await localKV.setItemAsync(legacyKey, legacy); hold = true;
+    const oldSettings = disk.get(settingsKey);
+    let result!: Promise<unknown>;
+    await act(async () => {
+      result = state.controller.configure({ active: true, unitId: "paragraph" }).catch(error => error);
+      await tick();
+    });
+    expect(pending[0].entries.map(([key]) => key).sort()).toEqual([bookKey, settingsKey, legacyKey].sort());
+    expect(pending[0].entries).toContainEqual([legacyKey, null]);
+    expect(disk.get(legacyKey)).toBe(legacy);
+    expect(disk.get(settingsKey)).toBe(oldSettings);
+    await act(async () => {
+      pending.shift()!.reject({ code: "db/locked", message: "source deletion rejected" });
+      expect(await result).toMatchObject({ code: "db/locked" });
+      await tick();
+    });
+    expect(disk.get(legacyKey)).toBe(legacy);
+    expect(disk.get(settingsKey)).toBe(oldSettings);
+    // The rollback's configuration is itself a new atomic attempt; keep the
+    // injected fault active until the caller explicitly starts recovery.
+    await act(async () => { pending.shift()!.reject({ code: "db/locked", message: "rollback migration rejected" }); await tick(); });
+    expect(disk.get(legacyKey)).toBe(legacy);
+    expect(localKV.getItem(legacyKey)).toBe(legacy);
+    expect(localKV.getItem(settingsKey)).not.toContain('"scrollToStep":true');
+    hold = false;
+    await act(async () => { result = state.controller.configure({ active: true, unitId: "paragraph" }); await tick(); await result; });
+    expect(disk.has(legacyKey)).toBe(false);
+    expect(JSON.parse(disk.get(settingsKey)!)).toMatchObject({ unitId: "paragraph", scrollToStep: true, tapToAdvance: false });
+  });
+
   test("late persistence after cancellation cannot dispatch an obsolete position write", async () => {
     const abort = new AbortController();
     let result!: Promise<unknown>;
@@ -134,6 +168,6 @@ if (process.env.MODE_DURABILITY_CASE === "1") {
     });
     const output = await new Response(child.stderr).text();
     expect(await child.exited, output).toBe(0);
-    expect(output).toContain("3 pass");
+    expect(output).toContain("4 pass");
   }, 30_000);
 }

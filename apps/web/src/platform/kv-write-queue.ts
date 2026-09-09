@@ -20,7 +20,7 @@ export class KVWriteQueue {
   }
 
   /** Atomic user edits publish only after the entire native transaction commits. */
-  batch(values: ReadonlyMap<string, string>, persist: () => Promise<void>): Promise<void> {
+  batch(values: ReadonlyMap<string, string | null>, persist: () => Promise<void>): Promise<void> {
     return this.enqueue(values, persist, "local");
   }
 

@@ -1,0 +1,293 @@
+{
+  "date": "2026-09-09",
+  "baseCommit": "4314674e",
+  "environment": {
+    "platform": "macOS debug Tauri",
+    "appId": "com.readaware.app.capability-e2e",
+    "ports": [
+      5184,
+      9224
+    ],
+    "bookId": "07ef226e-1ebc-47b6-8dc9-d09109448d22",
+    "format": "synthetic FB2",
+    "formalAppTouched": false
+  },
+  "implementation": [
+    "Reading mode preferences no longer writes or deletes during reads.",
+    "Matching legacy preferences are a read-only overlay; existing plugin values win.",
+    "A configuration commits book state, destination preferences and legacy deletion in one SQLite transaction.",
+    "A different explicit legacy mode owner is neither copied nor consumed.",
+    "Malformed legacy JSON is ignored by reads and removed only by a successful settings/configuration commit.",
+    "Host-only set_kv_batch accepts null deletion values; public plugin/Agent permissions unchanged.",
+    "Settings patches wait for prior KV writes before reading and enqueuing their merged values."
+  ],
+  "observations": {
+    "legacyNativeFailures": [
+      {
+        "actor": "agent",
+        "book": "{\"active\":false,\"resting\":null,\"modeKey\":\"sentence-reader:guided-reading\",\"unitId\":\"paragraph\",\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\"}",
+        "error": "db/error",
+        "legacy": "{\"modeKey\":\"sentence-reader:guided-reading\",\"granularity\":\"sentence\",\"tapToAdvance\":false,\"scrollToStep\":true}",
+        "mode": {
+          "availableModes": [
+            {
+              "defaultUnitId": "sentence",
+              "key": "sentence-reader:guided-reading",
+              "label": "Sentence Reader: Read by sentence or paragraph",
+              "units": [
+                {
+                  "id": "sentence",
+                  "label": "By sentence"
+                },
+                {
+                  "id": "paragraph",
+                  "label": "By paragraph"
+                }
+              ]
+            }
+          ],
+          "cfiRange": null,
+          "errorCode": "db/error",
+          "label": "Sentence Reader: Read by sentence or paragraph",
+          "modeKey": "sentence-reader:guided-reading",
+          "position": null,
+          "progress": null,
+          "requestedActive": false,
+          "status": "error",
+          "unavailableReason": null,
+          "unitId": "paragraph",
+          "units": [
+            {
+              "id": "sentence",
+              "label": "By sentence"
+            },
+            {
+              "id": "paragraph",
+              "label": "By paragraph"
+            }
+          ]
+        },
+        "settings": "{\"unitId\":\"paragraph\"}"
+      },
+      {
+        "actor": "plugin",
+        "book": "{\"active\":false,\"resting\":null,\"modeKey\":\"sentence-reader:guided-reading\",\"unitId\":\"paragraph\",\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\"}",
+        "error": "db/error",
+        "legacy": "{\"modeKey\":\"sentence-reader:guided-reading\",\"granularity\":\"sentence\",\"tapToAdvance\":false,\"scrollToStep\":true}",
+        "mode": {
+          "availableModes": [
+            {
+              "defaultUnitId": "sentence",
+              "key": "sentence-reader:guided-reading",
+              "label": "Sentence Reader: Read by sentence or paragraph",
+              "units": [
+                {
+                  "id": "sentence",
+                  "label": "By sentence"
+                },
+                {
+                  "id": "paragraph",
+                  "label": "By paragraph"
+                }
+              ]
+            }
+          ],
+          "cfiRange": null,
+          "errorCode": "db/error",
+          "label": "Sentence Reader: Read by sentence or paragraph",
+          "modeKey": "sentence-reader:guided-reading",
+          "position": null,
+          "progress": null,
+          "requestedActive": false,
+          "status": "error",
+          "unavailableReason": null,
+          "unitId": "paragraph",
+          "units": [
+            {
+              "id": "sentence",
+              "label": "By sentence"
+            },
+            {
+              "id": "paragraph",
+              "label": "By paragraph"
+            }
+          ]
+        },
+        "settings": "{\"unitId\":\"paragraph\"}"
+      }
+    ],
+    "legacyNativeRecovery": [
+      {
+        "actor": "agent",
+        "book": "{\"active\":true,\"resting\":{\"sectionIndex\":0,\"ordinal\":26,\"cfiRange\":\"epubcfi(/6/2!/4/2[chapter-0]/20,/1:19,/1:112)\"},\"modeKey\":\"sentence-reader:guided-reading\",\"unitId\":\"sentence\",\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\"}",
+        "legacy": null,
+        "result": {
+          "content": [
+            {
+              "text": "{\"status\":\"completed\",\"sessionId\":\"28aff434-f53e-4a2c-82b5-8a5c16d6c82d\",\"mode\":{\"status\":\"ready\",\"unavailableReason\":null,\"requestedActive\":true,\"modeKey\":\"sentence-reader:guided-reading\",\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"availableModes\":[{\"key\":\"sentence-reader:guided-reading\",\"label\":\"Sentence Reader: Read by sentence or paragraph\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}],\"defaultUnitId\":\"sentence\"}],\"unitId\":\"sentence\",\"units\":[{\"id\":\"sentence\",\"label\":\"By sentence\"},{\"id\":\"paragraph\",\"label\":\"By paragraph\"}],\"progress\":{\"ordinal\":26,\"total\":121},\"cfiRange\":\"epubcfi(/6/2!/4/2[chapter-0]/20,/1:19,/1:112)\",\"position\":{\"location\":{\"bookId\":\"07ef226e-1ebc-47b6-8dc9-d09109448d22\",\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\",\"cfi\":\"epubcfi(/6/2!/4/2[chapter-0]/20,/1:19,/1:112)\"},\"modeKey\":\"sentence-reader:guided-reading\",\"unitId\":\"sentence\"}}}",
+              "type": "text"
+            }
+          ]
+        },
+        "settings": "{\"unitId\":\"sentence\",\"tapToAdvance\":false,\"scrollToStep\":true}"
+      },
+      {
+        "actor": "plugin",
+        "book": "{\"active\":false,\"resting\":null,\"modeKey\":\"sentence-reader:guided-reading\",\"unitId\":\"paragraph\",\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\"}",
+        "legacy": null,
+        "result": {
+          "navigation": "replace",
+          "view": {
+            "blocks": [
+              {
+                "fields": [
+                  {
+                    "id": "active",
+                    "kind": "toggle",
+                    "label": "Enabled",
+                    "value": false
+                  },
+                  {
+                    "id": "unitId",
+                    "kind": "choice",
+                    "label": "Unit",
+                    "options": [
+                      {
+                        "label": "By sentence",
+                        "value": "sentence"
+                      },
+                      {
+                        "label": "By paragraph",
+                        "value": "paragraph"
+                      }
+                    ],
+                    "value": "paragraph"
+                  }
+                ],
+                "kind": "form",
+                "submitLabel": "Apply",
+                "title": "Sentence Reader: Read by sentence or paragraph"
+              },
+              {
+                "kind": "text",
+                "text": "Unavailable"
+              },
+              {
+                "kind": "text",
+                "text": "Text-unit mode is inactive"
+              },
+              {
+                "actions": [
+                  {
+                    "icon": "arrows-clockwise",
+                    "id": "refresh",
+                    "label": "Refresh"
+                  }
+                ],
+                "kind": "actions"
+              }
+            ],
+            "kind": "blocks"
+          }
+        },
+        "settings": "{\"unitId\":\"paragraph\",\"tapToAdvance\":false,\"scrollToStep\":true}"
+      }
+    ],
+    "legacyReopen": {
+      "legacy": null,
+      "mode": {
+        "availableModes": [
+          {
+            "defaultUnitId": "sentence",
+            "key": "sentence-reader:guided-reading",
+            "label": "Sentence Reader: Read by sentence or paragraph",
+            "units": [
+              {
+                "id": "sentence",
+                "label": "By sentence"
+              },
+              {
+                "id": "paragraph",
+                "label": "By paragraph"
+              }
+            ]
+          }
+        ],
+        "cfiRange": null,
+        "label": "Sentence Reader: Read by sentence or paragraph",
+        "modeKey": "sentence-reader:guided-reading",
+        "position": null,
+        "progress": null,
+        "requestedActive": false,
+        "status": "inactive",
+        "unavailableReason": null,
+        "unitId": "paragraph",
+        "units": [
+          {
+            "id": "sentence",
+            "label": "By sentence"
+          },
+          {
+            "id": "paragraph",
+            "label": "By paragraph"
+          }
+        ]
+      },
+      "settings": "{\"unitId\":\"paragraph\",\"tapToAdvance\":false,\"scrollToStep\":true}"
+    },
+    "legacyCleanup": {
+      "path": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+      "restored": true,
+      "status": "idle"
+    }
+  },
+  "faultInjection": {
+    "trigger": "legacy_receipt_reject_delete",
+    "table": "app_kv",
+    "key": "read-aware-navigator-prefs",
+    "sql": "BEFORE DELETE WHEN OLD.key='read-aware-navigator-prefs' BEGIN SELECT RAISE(ABORT,'legacy source delete fault'); END",
+    "result": "Agent and Listening Desk Worker both returned db/error; book stayed inactive/paragraph, plugin settings stayed original, legacy source remained. Rollback persistence also failed under the still-active trigger, leaving mode error rather than false success."
+  },
+  "verification": {
+    "rust": "128 passed, 1 ignored, 0 failed, including batch destination rejection and source deletion rollback.",
+    "web": "721 passed; workspace 20 test tasks passed.",
+    "typecheck": "23 tasks passed.",
+    "build": "Production web build and actual debug Tauri rebuild passed.",
+    "hook": "4 isolated React/controlled-native cases, including held three-record migration and failed source deletion.",
+    "parser": "Pure read, existing-value precedence, foreign owner retention and malformed JSON.",
+    "queue": "Tombstone rollback and publish-after-commit."
+  },
+  "cleanup": {
+    "backup": [
+      {
+        "key": "read-aware-navigator-prefs",
+        "value": null
+      },
+      {
+        "key": "read-aware-plugin.sentence-reader.settings",
+        "value": "{\"unitId\":\"paragraph\"}"
+      },
+      {
+        "key": "read-aware-navigator-state:07ef226e-1ebc-47b6-8dc9-d09109448d22",
+        "value": "{\"active\":false,\"resting\":null,\"modeKey\":\"sentence-reader:guided-reading\",\"unitId\":\"paragraph\",\"contentVersion\":\"sha256:6a86faa0decfb7f8af78263b715a82b468a2ce0cdbc1072e8057cd0b6b57f108\"}"
+      }
+    ],
+    "restored": true,
+    "triggersRemaining": 0,
+    "appExit": 143,
+    "portsFree": [
+      5184,
+      9224
+    ],
+    "bookRetained": true,
+    "readingProgressNotRewound": true
+  },
+  "limits": [
+    "No new practical plugin; exercised existing Listening Desk.",
+    "Native checks use real tool ports and installed Worker actions, not model semantic evaluation or all UI clicks.",
+    "Other-owner/malformed/delayed receipt cases tested in code, not all through the native UI.",
+    "Startup web content process terminated log preceded successful boot; existing compiler/build/i18n warnings remain.",
+    "No packaged build, Windows/Linux, all formats, or cross-provider cancellation compensation proof.",
+    "The full dual-actor capability and composition-plugin objective remains incomplete."
+  ]
+}

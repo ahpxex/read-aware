@@ -97,6 +97,22 @@ describe("durable KV write queue", () => {
     await tick(); f.pending[0].resolve(); await newer;
     expect(f.disk.get("plugin.other")).toBe("newer");
   });
+  test("migration batches publish source deletion only after success and roll it back on failure", async () => {
+    const f = fixture();
+    let reject!: (error: Error) => void;
+    const values = new Map<string, string | null>([["plugin.key", null], ["plugin.target", "migrated"]]);
+    const failed = f.queue.batch(values, () => new Promise<void>((_, no) => { reject = no; }));
+    expect(f.mirror.has("plugin.key")).toBe(false);
+    expect(f.committed).toEqual([]);
+    await tick(); reject(new Error("source delete failed"));
+    await expect(failed).rejects.toThrow("source delete failed");
+    expect(f.mirror.get("plugin.key")).toBe("original");
+    expect(f.mirror.has("plugin.target")).toBe(false);
+    expect(f.committed).toEqual([]);
+    await f.queue.batch(values, async () => { f.disk.delete("plugin.key"); f.disk.set("plugin.target", "migrated"); });
+    expect(f.committed).toEqual([["plugin.key", null], ["plugin.target", "migrated"]]);
+    expect(f.origins).toEqual(["local", "local"]);
+  });
   test("a synchronous batch observer cannot overwrite a newer mutation on another batch key", async () => {
     const mirror = new Map<string, string>();
     let newer: Promise<void> | undefined;

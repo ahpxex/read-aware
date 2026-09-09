@@ -167,7 +167,7 @@ export const localKV = {
 };
 
 /** Host-only multi-record settings commit; never exposes raw KV authority to actors. */
-export function setLocalKVBatch(entries: ReadonlyMap<string, string>): Promise<void> {
+export function setLocalKVBatch(entries: ReadonlyMap<string, string | null>): Promise<void> {
   if (entries.size === 0) return Promise.resolve();
   const values = new Map(entries);
   if (isTauri()) {
@@ -177,7 +177,10 @@ export function setLocalKVBatch(entries: ReadonlyMap<string, string>): Promise<v
   // and do not notify observers until all writes have succeeded.
   const previous = new Map([...values.keys()].map(key => [key, localStorage.getItem(key)]));
   try {
-    for (const [key, value] of values) localStorage.setItem(key, value);
+    for (const [key, value] of values) {
+      if (value === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, value);
+    }
   } catch (error) {
     for (const [key, value] of previous) {
       if (value === null) localStorage.removeItem(key);

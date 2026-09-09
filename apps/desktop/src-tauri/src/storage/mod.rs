@@ -256,10 +256,14 @@ pub fn set_kv(key: String, value: String, db: State<'_, Db>) -> Result<(), Comma
 
 pub(crate) fn set_kv_batch_inner(
     conn: &mut Connection,
-    entries: Vec<(String, String)>,
+    entries: Vec<(String, Option<String>)>,
 ) -> Result<(), CommandError> {
     let tx = conn.transaction()?;
     for (key, value) in entries {
+        let Some(value) = value else {
+            tx.execute("DELETE FROM app_kv WHERE key = ?1", params![key])?;
+            continue;
+        };
         tx.execute(
             "INSERT INTO app_kv (key, value_json, updated_at)
              VALUES (?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
@@ -275,7 +279,7 @@ pub(crate) fn set_kv_batch_inner(
 /// A settings command can span several preference records, but commits all or none.
 #[tauri::command]
 pub fn set_kv_batch(
-    entries: Vec<(String, String)>,
+    entries: Vec<(String, Option<String>)>,
     db: State<'_, Db>,
 ) -> Result<(), CommandError> {
     let mut conn = db.0.lock()?;

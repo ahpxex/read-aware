@@ -186,8 +186,7 @@ the original database code and restores the prior requested mode; optimistic
 preference rollback is not treated as a new user intent. Deferred position writes
 verify revision/provider/unit before dispatch and wait for configuration success.
 Cancellation remains live during saving, and same-configuration waits have a
-deadline. Legacy preference migration failure,
-and compensation of every already-committed preference on cross-provider
+deadline. Compensation of every already-committed preference on cross-provider
 cancellation are not closed by this configuration receipt.
 
 [环境] Isolated macOS debug Tauri evidence covers actual Agent tools and Listening
@@ -225,6 +224,27 @@ recovers. The captured error surface contains multiple toasts from fault
 testing; it is not a zero-noise UX or complete keyboard audit. Delayed-save,
 supersession, retirement and history timing also have focused tests. No real
 remote TTS, packaged, other-platform or all-format validation is claimed.
+
+[代码] Legacy reading behavior preferences are now a side-effect-free read
+overlay. Existing plugin values win; an explicit different mode owner neither
+supplies values nor loses its source row. Configuration persists the book state,
+merged plugin preferences and legacy-row deletion in one SQLite transaction;
+settings patches also merge after prior writes settle and consume the source
+atomically. Malformed legacy JSON contributes no values and is discarded only
+by a successful commit. Source deletion failure rolls back all destination
+writes and rejects the same Agent/plugin receipt with its database code.
+The host-only batch IPC accepts null deletions; no raw KV authority is exposed
+to plugins or the model. This does not make completed cross-provider preference
+changes universally undoable.
+
+[环境] [Migration evidence](./evidence/reading-mode-migration-2026-09-09.json)
+records real Agent and Listening Desk Worker failures on a SQLite BEFORE DELETE
+trigger in isolated macOS debug Tauri. The legacy row, original plugin values
+and inactive book configuration survive. Removing the trigger permits recovery;
+closing/reopening the book retains migrated values. Delayed receipts, malformed
+data and foreign-owner retention also have focused tests; not every case was
+repeated through native UI. Rust tests pass (128, one ignored), but packaged,
+other-platform and complete keyboard validation remain open.
 
 Every domain write uses the same canonical command path as the product and is
 stamped with origin `plugin:<id>`. Plugins never mutate projections, feature

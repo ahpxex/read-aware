@@ -8,13 +8,13 @@
  * lose anyone's reading place.
  */
 
-import { localKV, setLocalKVBatch } from "../../../platform/local-store";
+import { afterLocalKVWrites, localKV, setLocalKVBatch } from "../../../platform/local-store";
 import { createLogger } from "../../../platform/logger";
 import {
   readPluginSettingsValues,
   pluginSettingsKey,
-  writePluginSettingsValues,
 } from "../../plugins/lib/plugin-settings";
+import type { PluginFormValues } from "@read-aware/plugin-types";
 
 const log = createLogger("reading-mode-state");
 function observedWrite(write: Promise<void>): Promise<void> {
@@ -134,13 +134,14 @@ export function writeTextUnitModeState(
 
 /** One configuration intent cannot leave the book and provider preference disagreeing. */
 export function writeTextUnitModeConfiguration(bookId: string, state: PersistedTextUnitModeState, persistUnit: boolean): Promise<void> {
-  const entries = new Map([[stateKey(bookId), JSON.stringify(state)]]);
+  const entries = new Map<string, string | null>([[stateKey(bookId), JSON.stringify(state)]]);
   if (persistUnit && state.modeKey && state.unitId) {
     const pluginId = pluginIdOfModeKey(state.modeKey);
-    const values = readPluginSettingsValues(pluginId);
-    if (values.unitId !== state.unitId) {
+    const { values, consumeLegacy } = modeSettingsWithLegacy(state.modeKey);
+    if (consumeLegacy || values.unitId !== state.unitId) {
       entries.set(pluginSettingsKey(pluginId), JSON.stringify({ ...values, unitId: state.unitId }));
     }
+    if (consumeLegacy) entries.set(LEGACY_BEHAVIOR_PREFS_KEY, null);
   }
   return observedWrite(setLocalKVBatch(entries));
 }
@@ -182,48 +183,39 @@ function pluginIdOfModeKey(modeKey: string): string {
 }
 
 /**
- * One-time move of the retired app-owned prefs row into the mode plugin's
- * settings object. Stored plugin values win; the legacy row only fills gaps
- * (and its unit id only when it was written by this mode or predates keys).
+ * Reading is side-effect free. Only an explicit settings/configuration commit
+ * consumes the legacy row, in the same transaction as its destination.
  */
-function migrateLegacyBehaviorPrefs(pluginId: string, modeKey: string): void {
-  let raw: string | null = null;
+function modeSettingsWithLegacy(modeKey: string): { values: PluginFormValues; consumeLegacy: boolean } {
+  const values = readPluginSettingsValues(pluginIdOfModeKey(modeKey));
+  const raw = localKV.getItem(LEGACY_BEHAVIOR_PREFS_KEY);
+  if (!raw) return { values, consumeLegacy: false };
   try {
-    raw = localKV.getItem(LEGACY_BEHAVIOR_PREFS_KEY);
-  } catch {
-    return;
-  }
-  if (!raw) return;
-  try {
-    const parsed = JSON.parse(raw) as {
-      modeKey?: unknown;
-      unitId?: unknown;
-      granularity?: unknown;
-      tapToAdvance?: unknown;
-      scrollToStep?: unknown;
-    };
-    const merged = { ...readPluginSettingsValues(pluginId) };
-    if (!("tapToAdvance" in merged)) merged.tapToAdvance = parsed.tapToAdvance !== false;
-    if (!("scrollToStep" in merged)) merged.scrollToStep = parsed.scrollToStep === true;
-    const legacyModeKey = validModeKey(parsed.modeKey);
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { values, consumeLegacy: true };
+    const legacy = parsed as Record<string, unknown>;
+    const legacyModeKey = validModeKey(legacy.modeKey);
+    // Discovery/selection of another provider must not steal the saved owner.
+    if (legacyModeKey && legacyModeKey !== modeKey) return { values, consumeLegacy: false };
+    const merged = { ...values };
+    if (!("tapToAdvance" in merged)) merged.tapToAdvance = legacy.tapToAdvance !== false;
+    if (!("scrollToStep" in merged)) merged.scrollToStep = legacy.scrollToStep === true;
     const legacyUnitId =
-      validUnitId(parsed.unitId) ?? validUnitId(parsed.granularity) ?? LEGACY_DEFAULT_UNIT_ID;
-    if (!("unitId" in merged) && (legacyModeKey === null || legacyModeKey === modeKey)) {
+      validUnitId(legacy.unitId) ?? validUnitId(legacy.granularity) ?? LEGACY_DEFAULT_UNIT_ID;
+    if (!("unitId" in merged)) {
       merged.unitId = legacyUnitId;
     }
-    observedWrite(writePluginSettingsValues(pluginId, merged));
+    return { values: merged, consumeLegacy: true };
   } catch {
-    // An unreadable legacy row migrates nothing but is still consumed.
+    // Malformed legacy JSON supplies no preferences; only a successful commit discards it.
+    return { values, consumeLegacy: true };
   }
-  localKV.removeItem(LEGACY_BEHAVIOR_PREFS_KEY);
 }
 
 /** Read the mode's behavior settings from its plugin's settings object. */
 export function readTextUnitModeSettings(modeKey: string | null): TextUnitModeSettings {
   if (!modeKey) return DEFAULT_TEXT_UNIT_MODE_SETTINGS;
-  const pluginId = pluginIdOfModeKey(modeKey);
-  migrateLegacyBehaviorPrefs(pluginId, modeKey);
-  const stored = readPluginSettingsValues(pluginId);
+  const { values: stored } = modeSettingsWithLegacy(modeKey);
   const defaults = DEFAULT_TEXT_UNIT_MODE_SETTINGS;
   return {
     unitId: validUnitId(stored.unitId),
@@ -243,13 +235,16 @@ export function updateTextUnitModeSettings(
   modeKey: string,
   patch: Partial<TextUnitModeSettings>,
 ): Promise<void> {
-  const pluginId = pluginIdOfModeKey(modeKey);
-  const merged = { ...readPluginSettingsValues(pluginId) };
-  for (const [id, value] of Object.entries(patch)) {
-    if (value === null) delete merged[id];
-    else if (value !== undefined) merged[id] = value;
-  }
-  return observedWrite(writePluginSettingsValues(pluginId, merged));
+  return observedWrite(afterLocalKVWrites(() => {
+    const { values: merged, consumeLegacy } = modeSettingsWithLegacy(modeKey);
+    for (const [id, value] of Object.entries(patch)) {
+      if (value === null) delete merged[id];
+      else if (value !== undefined) merged[id] = value;
+    }
+    const entries = new Map<string, string | null>([[pluginSettingsKey(pluginIdOfModeKey(modeKey)), JSON.stringify(merged)]]);
+    if (consumeLegacy) entries.set(LEGACY_BEHAVIOR_PREFS_KEY, null);
+    return setLocalKVBatch(entries);
+  }));
 }
 
 /** Center of a floating control, as fractions of the reader viewport (0..1). */

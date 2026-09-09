@@ -2330,26 +2330,51 @@ fn plugin_document_snapshot_restores_the_pre_update_state_atomically() {
 #[test]
 fn kv_batch_commits_all_records_or_rolls_back() {
     let mut conn = migrated_conn();
-    set_kv_batch_inner(&mut conn, vec![("first".into(), "original".into())]).unwrap();
+    set_kv_batch_inner(&mut conn, vec![("first".into(), Some("original".into()))]).unwrap();
     conn.execute_batch(
         "CREATE TRIGGER fail_settings_batch BEFORE INSERT ON app_kv
          WHEN NEW.key = 'rejected'
          BEGIN SELECT RAISE(ABORT, 'forced settings failure'); END;",
     ).unwrap();
     assert!(set_kv_batch_inner(&mut conn, vec![
-        ("first".into(), "changed".into()),
-        ("second".into(), "new".into()),
-        ("rejected".into(), "fail".into()),
+        ("first".into(), Some("changed".into())),
+        ("second".into(), Some("new".into())),
+        ("rejected".into(), Some("fail".into())),
     ]).is_err());
     let rows: Vec<(String, String)> = conn.prepare("SELECT key, value_json FROM app_kv")
         .unwrap().query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
         .unwrap().collect::<Result<_, _>>().unwrap();
     assert_eq!(rows, vec![("first".into(), "original".into())]);
     set_kv_batch_inner(&mut conn, vec![
-        ("first".into(), "committed".into()), ("second".into(), "new".into()),
+        ("first".into(), Some("committed".into())), ("second".into(), Some("new".into())),
     ]).unwrap();
     let count: i64 = conn.query_row("SELECT count(*) FROM app_kv", [], |row| row.get(0)).unwrap();
     assert_eq!(count, 2);
+}
+
+#[test]
+fn kv_batch_migration_delete_failure_preserves_source_and_destination() {
+    let mut conn = migrated_conn();
+    set_kv_batch_inner(&mut conn, vec![
+        ("legacy".into(), Some("source".into())),
+        ("target".into(), Some("original".into())),
+    ]).unwrap();
+    conn.execute_batch("CREATE TRIGGER reject_legacy_delete BEFORE DELETE ON app_kv
+        WHEN OLD.key = 'legacy' BEGIN SELECT RAISE(ABORT, 'migration failed'); END;").unwrap();
+    assert!(set_kv_batch_inner(&mut conn, vec![
+        ("target".into(), Some("migrated".into())), ("legacy".into(), None),
+    ]).is_err());
+    let value = |key: &str| conn.query_row("SELECT value_json FROM app_kv WHERE key = ?1", [key], |row| row.get::<_, String>(0)).unwrap();
+    assert_eq!(value("legacy"), "source");
+    assert_eq!(value("target"), "original");
+    conn.execute_batch("DROP TRIGGER reject_legacy_delete;").unwrap();
+    set_kv_batch_inner(&mut conn, vec![
+        ("target".into(), Some("migrated".into())), ("legacy".into(), None),
+    ]).unwrap();
+    let rows: Vec<(String, String)> = conn.prepare("SELECT key, value_json FROM app_kv")
+        .unwrap().query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .unwrap().collect::<Result<_, _>>().unwrap();
+    assert_eq!(rows, vec![("target".into(), "migrated".into())]);
 }
 
 #[test]

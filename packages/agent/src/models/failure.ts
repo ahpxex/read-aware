@@ -20,6 +20,8 @@ import {
   ERR_AI_LOCAL_ONLY,
   ERR_AI_MEMORY_DISABLED,
   ERR_AI_CONTEXT_CHANGED,
+  ERR_AI_CONTEXT_WITHHELD,
+  ERR_AI_INVALID_READING_CONTEXT,
   ERR_AI_CONTEXT_OVERFLOW,
   ERR_AI_NETWORK,
   ERR_AI_PROVIDER,
@@ -33,6 +35,8 @@ const CATEGORIES: Array<{ code: string; retryable: boolean; pattern: RegExp }> =
   { code: ERR_AI_LOCAL_ONLY, retryable: false, pattern: /\[ai\/local-only\]/ },
   { code: ERR_AI_MEMORY_DISABLED, retryable: false, pattern: /\[ai\/memory-disabled\]/ },
   { code: ERR_AI_CONTEXT_CHANGED, retryable: true, pattern: /\[ai\/context-changed\]/ },
+  { code: ERR_AI_CONTEXT_WITHHELD, retryable: false, pattern: /\[ai\/context-withheld\]/ },
+  { code: ERR_AI_INVALID_READING_CONTEXT, retryable: false, pattern: /\[ai\/invalid-reading-context\]/ },
   {
     // Key problems — fixable in Settings, never by retrying.
     code: ERR_AI_AUTH,

@@ -32,6 +32,8 @@
     "aiLocalOnly": "Le mode local uniquement a désactivé les requêtes IA. Vous pouvez le modifier dans les paramètres IA.",
     "aiMemoryDisabled": "La création de mémoire est désactivée. Vous pouvez l'activer dans les paramètres IA.",
     "aiContextChanged": "Les paramètres de confidentialité de lecture ont changé. La requête a été arrêtée. Réessayez avec les paramètres actuels.",
+    "aiContextWithheld": "Cette action nécessite du texte de lecture dont vos paramètres de confidentialité empêchent l’envoi. Vérifiez les paramètres de confidentialité de l’IA.",
+    "aiInvalidReadingContext": "Cette action a fourni un contexte de lecture invalide. Mettez à jour l’application ou le plugin avant de réessayer.",
     "aiAuth": "Le fournisseur d'IA a refusé la clé d'API. Vérifiez-la dans les réglages.",
     "aiRateLimited": "Le fournisseur d'IA limite les requêtes pour le moment. Patientez un instant puis réessayez.",
     "aiQuota": "Le crédit ou le quota de votre compte IA est épuisé. Vérifiez votre compte fournisseur.",

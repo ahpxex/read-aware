@@ -3,6 +3,8 @@ import type { TargetLanguage } from "./languages";
 
 export type SavedWord = {
   term: string;
+  /** Older rows without this field are conservatively treated as book selections. */
+  source?: "selection" | "provided";
   /** Human-readable explanation language the entry was produced in. */
   language: string;
   /** Stable locale preference used to regenerate the entry. */
@@ -15,6 +17,7 @@ export type SavedWord = {
 
 export type SaveWordInput = {
   text: string;
+  source?: "selection" | "provided";
   context?: string;
   bookId?: string;
   bookTitle?: string;

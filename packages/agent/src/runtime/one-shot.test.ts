@@ -1,0 +1,104 @@
+import { expect, test } from "bun:test";
+import { createAssistantMessageEventStream, type Api, type Model } from "@earendil-works/pi-ai";
+import { fauxAssistantMessage } from "@earendil-works/pi-ai/providers/faux";
+import type { CompleteFn, StreamFn } from "../models/complete";
+import { contextPolicyState } from "../testing/reading-context-policy";
+import { createInMemoryDeps } from "../testing/fixtures";
+import { askOneShot } from "./one-shot";
+import { createAgentRuntime } from "./runtime";
+
+const model = { id: "probe", provider: "openai", api: "openai-completions" } as Model<Api>;
+const readingContext = { selection: "SELECTION_947", surrounding: "PASSAGE_628" };
+function fixture(complete: CompleteFn, stream: StreamFn = () => { throw Error("Unexpected stream"); }) {
+  const policy = contextPolicyState({ selection: true, surrounding: true });
+  return { policy, deps: { resolveModel: () => model, completeFns: { fast: complete, smart: complete },
+    streamFns: { fast: stream, smart: stream }, readingContextPolicy: policy } };
+}
+
+test("plain and structured retries use the same filtered context, without mutating input", async () => {
+  const prompts: string[] = [];
+  const f = fixture(async (_model, context) => {
+    prompts.push(JSON.stringify(context));
+    return fauxAssistantMessage(prompts.length === 1 ? "invalid" : '{"answer":"ok"}');
+  });
+  f.policy.set({ selection: true, surrounding: false });
+  expect(await askOneShot({ prompt: "typed", readingContext, schema: { type: "object", required: ["answer"] } }, f.deps))
+    .toEqual({ answer: "ok" });
+  expect(prompts).toHaveLength(2);
+  for (const prompt of prompts) { expect(prompt).toContain("SELECTION_947"); expect(prompt).not.toContain("PASSAGE_628"); }
+  expect(readingContext.surrounding).toBe("PASSAGE_628");
+  expect(f.policy.listeners()).toBe(0);
+});
+
+test("withheld or malformed context fails before model resolution or provider access", async () => {
+  let calls = 0;
+  const f = fixture(async () => { calls++; return fauxAssistantMessage("unexpected"); });
+  f.policy.set({ selection: false, surrounding: false });
+  await expect(askOneShot({ prompt: "typed", readingContext: { ...readingContext, required: ["selection"] } }, f.deps))
+    .rejects.toMatchObject({ code: "ai/context-withheld" });
+  await expect(askOneShot({ prompt: "typed", readingContext: { selection: 2 } as never }, f.deps))
+    .rejects.toMatchObject({ code: "ai/invalid-reading-context" });
+  expect(calls).toBe(0); expect(f.policy.listeners()).toBe(0);
+});
+
+test("revocation rejects a hung completion promptly and cannot become a retry after off/on", async () => {
+  let resolve!: (value: ReturnType<typeof fauxAssistantMessage>) => void;
+  let signal: AbortSignal | undefined;
+  let calls = 0;
+  const f = fixture((_model, _context, options) => {
+    signal = options?.signal; calls++;
+    return new Promise(done => { resolve = done; });
+  });
+  const result = askOneShot({ prompt: "typed", readingContext, schema: { type: "object" } }, f.deps);
+  f.policy.set({ selection: false, surrounding: true });
+  f.policy.set({ selection: true, surrounding: true });
+  await expect(result).rejects.toMatchObject({ code: "ai/context-changed" });
+  expect(signal?.aborted).toBe(true);
+  resolve(fauxAssistantMessage("invalid, would normally retry"));
+  await new Promise(done => setTimeout(done, 0));
+  expect(calls).toBe(1); expect(f.policy.listeners()).toBe(0);
+});
+
+test("settled provider results still lose to same-turn policy revocation", async () => {
+  const f = fixture(async () => fauxAssistantMessage("already settled"));
+  const result = askOneShot({ prompt: "typed", readingContext }, f.deps);
+  f.policy.set({ selection: true, surrounding: false });
+  await expect(result).rejects.toMatchObject({ code: "ai/context-changed" });
+  expect(f.policy.listeners()).toBe(0);
+});
+
+test("revoked stream aborts without waiting and drops late deltas", async () => {
+  const source = createAssistantMessageEventStream();
+  let signal: AbortSignal | undefined;
+  const f = fixture(async () => { throw Error("Unexpected complete"); }, (_model, _context, options) => {
+    signal = options?.signal; return source;
+  });
+  const deltas: string[] = [];
+  const result = askOneShot({ prompt: "typed", readingContext, onText: text => deltas.push(text) }, f.deps);
+  source.push({ type: "text_delta", contentIndex: 0, delta: "first", partial: fauxAssistantMessage("first") });
+  await new Promise(done => setTimeout(done, 0));
+  expect(deltas).toEqual(["first"]);
+  f.policy.set({ selection: false, surrounding: false });
+  await expect(result).rejects.toMatchObject({ code: "ai/context-changed" });
+  f.policy.set({ selection: true, surrounding: true });
+  source.push({ type: "text_delta", contentIndex: 0, delta: "late", partial: fauxAssistantMessage("late") });
+  source.push({ type: "done", reason: "stop", message: fauxAssistantMessage("late") });
+  await new Promise(done => setTimeout(done, 0));
+  expect(deltas).toEqual(["first"]); expect(signal?.aborted).toBe(true); expect(f.policy.listeners()).toBe(0);
+});
+
+test("ordinary typed prompts are not misclassified as book text", async () => {
+  const f = fixture(async (_model, context) => fauxAssistantMessage(JSON.stringify(context)));
+  f.policy.set({ selection: false, surrounding: false });
+  expect(await askOneShot({ prompt: "typed SELECTION_947" }, f.deps)).toContain("typed SELECTION_947");
+  expect(f.policy.listeners()).toBe(0);
+});
+
+test("AgentRuntime forwards its host policy to one-shot calls", async () => {
+  const { deps } = createInMemoryDeps();
+  deps.readingContextPolicy = contextPolicyState({ selection: false, surrounding: false });
+  const runtime = createAgentRuntime({ deps, account: { kind: "api-key", provider: "openai", apiKey: "never-used" },
+    models: { fast: "not-resolved", smart: "not-resolved" } });
+  await expect(runtime.ask({ prompt: "typed", readingContext: { selection: "private", required: ["selection"] } }))
+    .rejects.toMatchObject({ code: "ai/context-withheld" });
+});

@@ -32,6 +32,8 @@
     "aiLocalOnly": "Der lokale Modus hat KI-Anfragen deaktiviert. Du kannst dies in den KI-Einstellungen ändern.",
     "aiMemoryDisabled": "Der Gedächtnisaufbau ist deaktiviert. Du kannst ihn in den KI-Einstellungen aktivieren.",
     "aiContextChanged": "Die Datenschutzeinstellungen fürs Lesen wurden geändert. Die Anfrage wurde gestoppt. Versuche es mit den aktuellen Einstellungen erneut.",
+    "aiContextWithheld": "Diese Aktion benötigt Lesetext, dessen Übermittlung Ihre Datenschutzeinstellungen verhindern. Prüfen Sie die KI-Datenschutzeinstellungen.",
+    "aiInvalidReadingContext": "Diese Aktion hat ungültigen Lesekontext übergeben. Aktualisieren Sie die App oder das Plugin, bevor Sie es erneut versuchen.",
     "aiAuth": "Der KI-Anbieter hat den API-Schlüssel abgelehnt. Bitte in den Einstellungen prüfen.",
     "aiRateLimited": "Der KI-Anbieter begrenzt gerade die Anfragen. Bitte kurz warten und erneut versuchen.",
     "aiQuota": "Guthaben oder Kontingent des KI-Kontos ist aufgebraucht. Bitte das Anbieterkonto prüfen.",

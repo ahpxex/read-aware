@@ -18,6 +18,7 @@ export async function saveWord(
   const targetLanguage = input.language ?? getTargetLanguage(ctx);
   const { language, entry } = await lookUpTerm(ctx, {
     term,
+    source: input.source,
     context: input.context,
     bookTitle: input.bookTitle,
     language: targetLanguage,
@@ -31,6 +32,7 @@ export async function saveWord(
     idFor(term, language),
     {
       term,
+      source: input.source ?? "provided",
       language,
       targetLanguage,
       entry,
@@ -56,6 +58,7 @@ export async function changeWordLanguage(
   const word = doc.data;
   const { language, entry } = await lookUpTerm(ctx, {
     term: word.term,
+    source: word.source ?? "selection",
     context: word.context,
     bookTitle: word.bookTitle,
     language: targetLanguage,

@@ -19,6 +19,8 @@ export const sources: Record<string, string> = {
   READINGCONTEXTPOLICY: "packages/agent/src/runtime/reading-context-policy.ts",
   HOSTREADINGCONTEXTPOLICY: "apps/web/src/features/ai/agent/reading-context-policy.ts",
   READINGCONTEXTPROOF: "docs/evidence/reading-context-policy-2026-09-09.json",
+  STRUCTUREDREADING: "packages/agent/src/runtime/one-shot.ts",
+  STRUCTUREDREADINGPROOF: "docs/evidence/structured-reading-context-2026-09-09.json",
   MEMORYPOLICYPROOF: "docs/evidence/memory-build-policy-2026-09-09.json",
   READINGGOALS: "plugins/reading-goals/src/index.ts",
   CTX: "apps/web/src/features/plugins/runtime/plugin-context.ts",
@@ -310,7 +312,7 @@ groups.push(
     cap("AI03", "发送/流式生成/停止/重试聊天回合", "实装", actor("自动", "用户回合驱动 thread.run", "运行时保持宿主所有"), actor("部分", "llm.ask 是独立推理，不是向聊天发送", "受控 conversation turn 意图"), ["THREAD","CHATCONTROL","CHATUI","RUNTIME","API"], "书内聊天；全局聊天", "自动递归对话/伪造用户消息不开放；用户触发的发送和停止需意图契约"),
     cap("AI04", "提问、选项澄清、批准/拒绝高风险动作", "实装", actor("接通", "ask_user + InteractionPort", "宿主交互工具"), actor("部分", "表单可收输入，无通用权限批准票据", "宿主拥有的一次性批准流程"), ["INTERACTION","ANNTOOLS","SHELFTOOLS","API"], "Agent question/permission cards", "确认 UI 与授权决策分离；插件自画 Yes 按钮不是 host approval"),
     cap("AI05", "Agent 展示可点击书卡与词典卡", "实装", actor("接通", "present_books[全局]；插件 tool details.wordCards", "结构化结果呈现"), actor("部分", "agentTools 固定 word-card details", "类型化呈现结果"), ["PRESENT","EXTOOLS","API","DICTTOOLS"], "Agent 书卡；Dictionary 单词卡", "工具结果卡与 PluginView 协议不同，不能任意互换"),
-    cap("AI06", "一次性文本/结构化/流式 LLM 推理", "实装", actor("自动", "Runtime ask + 线程推理", "运行时服务"), actor("接通", "services.llm.ask fast/smart + schema/onText", "受预算约束的推理服务"), ["RUNTIME","CTX","API","DICT"], "Dictionary；Agent 后台管线", "流式回调存在，但无公开 AbortSignal/任务预算/用量回执"),
+    cap("AI06", "一次性文本/结构化/流式 LLM 推理", "实装", actor("自动", "Runtime ask + 线程推理", "运行时服务"), actor("接通", "services.llm 1.1 ask + readingContext/schema/onText", "受预算约束的推理服务"), ["RUNTIME","CTX","API","DICT","STRUCTUREDREADING","STRUCTUREDREADINGPROOF"], "Dictionary 1.3；Agent 后台管线", "readingContext 由宿主过滤并在收紧时取消普通/结构化/流式调用；必需正文被禁止时报 ai/context-withheld，非法结构报 ai/invalid-reading-context。Dictionary 本地缓存仍可读，外发不自行拼接选区。双端四组合、重试、并发取消已有 macOS debug 证据；任意 prompt 不做来源推断。仍无公开 AbortSignal/任务预算/用量回执"),
     cap("AI07", "推理取消、超时、用量/预算/成本可见性", "部分", actor("部分", "线程 abort；model API 内部控制", "统一任务/预算"), actor("部分", "ask 无公开取消/用量字段", "统一任务/预算"), ["THREAD","RUNTIME","CTX","WIRE"], "聊天 Stop；模型错误处理", "宿主线程停止不是所有插件推理任务的可取消协议"),
     cap("AI08", "书内 scope/游标/选区自动 grounding", "实装", actor("自动", "thread + grounding-context", "自动且有来源的上下文"), actor("部分", "context/retrieval provider 能补充，不能覆写核心", "受限上下文贡献"), ["THREAD","GROUND","EXTOOLS"], "书内 Agent", "自动注入不等于独立工具；不允许插件注入更高优先级系统策略"),
     cap("AI09", "剧透边界、请求允许超前内容", "实装", actor("接通", "read_chapter/search_book_text/query_book_graph + 批准", "宿主策略"), actor("部分", "book text domain 无同样的模型剧透审批", "数据授权与 Agent 剧透策略分开"), ["SPOILER","TEXTTOOLS","GRAPHTOOLS","LIB"], "书内 Agent", "访问权限不是剧透许可；插件提供上下文需要 provenance/fence 政策"),
@@ -438,7 +440,7 @@ groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.len
     ? "保存值有实现；全生产源码扫描未找到对应效果消费者。不能算行为已实现或端到端覆盖。"
     : localOnly ? "宿主模型调用已有实时执行策略：Agent smart/fast、后台补全、Worker llm.ask 普通/结构化/流式及连接测试同源拒绝 ai/local-only；进行中调用取消，迟到结果/重试被抑制，恢复只允许新调用。当前无本地模型后端，Custom loopback 也拒绝。隔离 macOS debug 双端/取消/持久失败回滚/原生连接 UI 已验；任意插件 HTTP、TTS、同步不受此策略约束，完整隐私边界与 packaged/跨平台仍未完成，保留部分。"
     : buildMemory ? "实时控制宿主记忆构建：显式 remember、轮后抽取/强化/插件候选/旧历史领养/摘要、巩固、章节 digest/自动叙事分类及 onboarding seed 均受约束。关闭返回 ai/memory-disabled，取消在途模型调用和已排队任务，重开不复活旧任务。普通聊天/历史、旧记忆检索、用户删除和插件自有目标保存不受影响；重开后的新任务可处理保留历史。摘要写入/清除等待持久回执；已派发底层写不保证撤销。隔离 macOS debug 双端、真实 UI 聊天、候选入库、取消和 SQLite 失败已验；packaged/跨平台未验。"
-    : readingContext ? "已有真实 Agent 消费者：selection 关闭过滤自动附件与历史附件检索/匹配；任一文本开关关闭都移除可能重叠的 viewport；surrounding 关闭不装配 grounding。保留本地附件和手写问题，get_reading_session 同样过滤文本；切策略重建缓存上下文。收紧返回 ai/context-changed，取消在途/准备中回合和排队记忆任务，重开不复活旧请求。Agent 设置与授权 Worker 设置写入、四组合请求、SQLite 历史保留和在途传输取消已在隔离 macOS debug 验证。插件 selection/lookup 回调、插件自行组装的 LLM/HTTP/TTS、独立正文/标注检索与旧回答/记忆/纪要不因此清除或禁用；完整隐私、packaged/跨平台仍未闭合，保留部分。"
+    : readingContext ? "已有真实 Agent 消费者：selection 关闭过滤自动附件与历史附件检索/匹配；任一文本开关关闭都移除可能重叠的 viewport；surrounding 关闭不装配 grounding。保留本地附件和手写问题，get_reading_session 同样过滤文本；切策略重建缓存上下文。收紧返回 ai/context-changed，取消在途/准备中回合和排队记忆任务，重开不复活旧请求。Agent 设置与授权 Worker 设置写入、四组合请求、SQLite 历史保留和在途传输取消已在隔离 macOS debug 验证。LLM 1.1 readingContext 已将结构化正文纳入同一过滤/取消，Dictionary 1.3 已迁移，必需字段被禁止时报 ai/context-withheld；双端三模式四组合、实际缓存/拒绝、重试及三并发取消有桌面证据。插件本地 selection/lookup 回调、任意自行组装 prompt/HTTP/TTS、独立正文/标注检索与旧回答/记忆/纪要不因此清除或禁用；完整隐私、packaged/跨平台仍未闭合，保留部分。"
     : readonly ? "只读状态，不返回密钥/端点凭据；不等于配置命令。"
       : path === "general.autoUpdate" ? "实际消费者只控制自动检查，不表示无批准自动安装。"
         : path.startsWith("menus.") ? "只影响菜单排列/显示，不调用菜单动作。"
@@ -448,7 +450,7 @@ groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.len
     actor(partial ? "部分" : "接通", readonly ? "settings discover/read（需路径授权）" : "settings discover/read/update（需路径授权）", "类型化设置领域"),
     ["SETTINGS","SETDOMAIN","SETTOOLS", ...(localOnly ? ["AIPREFS", "INFERENCEPOLICY", "HOSTINFERENCEPOLICY", "INFERENCEEVIDENCE"]
       : buildMemory ? ["MEMORYPOLICY", "HOSTMEMORYPOLICY", "READINGGOALS", "MEMORYPOLICYPROOF"]
-      : readingContext ? ["READINGCONTEXTPOLICY", "HOSTREADINGCONTEXTPOLICY", "READINGCONTEXTPROOF", "THREAD", "READTOOLS"]
+      : readingContext ? ["READINGCONTEXTPOLICY", "HOSTREADINGCONTEXTPOLICY", "READINGCONTEXTPROOF", "STRUCTUREDREADING", "STRUCTUREDREADINGPROOF", "THREAD", "READTOOLS"]
       : path.startsWith("appearance.contentTypography.") ? ["TYPOGRAPHY", "TYPOGRAPHYEFFECT"]
       : path === "annotations.defaultColor" ? ["MARKPREFS", "TEXTACTIONS"]
         : path === "general.updateChannel" ? ["UPDATECHANNEL", "ABOUT"]

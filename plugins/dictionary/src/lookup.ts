@@ -113,6 +113,7 @@ type CachedLookup = {
 
 export type LookUpTermInput = {
   term: string;
+  source?: "selection" | "provided";
   context?: string;
   bookTitle?: string;
   /** Target language override; omitted means the saved preference. */
@@ -126,16 +127,31 @@ export async function lookUpTerm(
   const term = input.term.trim();
   const languageName = resolveLanguageName(ctx, input.language ?? getTargetLanguage(ctx));
   const cache = ctx.services.storage.collection(LOOKUPS_COLLECTION);
-  const id = lookupCacheId(term, languageName, input.context, input.bookTitle);
+  const originalId = lookupCacheId(term, languageName, input.context, input.bookTitle);
 
-  const cached = await cache.get<CachedLookup>(id);
+  // Existing entries are local data: a privacy opt-out must not disable reading them.
+  const cached = await cache.get<CachedLookup>(originalId);
   if (cached?.data?.entry && Array.isArray(cached.data.entry.senses)) {
     return { entry: cached.data.entry, language: languageName };
   }
 
+  const [selectionSetting, surroundingSetting] = input.context?.trim()
+    ? await Promise.all([
+        ctx.domains.settings.queries.read("ai.preferences.sendHighlightedText"),
+        ctx.domains.settings.queries.read("ai.preferences.sendSurroundingContext"),
+      ]) : [];
+  const context = selectionSetting?.value === true && surroundingSetting?.value === true ? input.context : undefined;
+  const id = lookupCacheId(term, languageName, context, input.bookTitle);
+  if (id !== originalId) {
+    const withoutPassage = await cache.get<CachedLookup>(id);
+    if (withoutPassage?.data?.entry && Array.isArray(withoutPassage.data.entry.senses)) {
+      return { entry: withoutPassage.data.entry, language: languageName };
+    }
+  }
+  const selected = input.source === "selection";
   const prompt = [
-    `Term to define: ${JSON.stringify(term)}.`,
-    input.context ? `It appears in this passage: ${JSON.stringify(input.context)}.` : "",
+    selected ? "Define the term supplied in the host reading context's selection field." : `Term to define: ${JSON.stringify(term)}.`,
+    context ? "Use the host reading context's surrounding field to identify its meaning in the passage." : "",
     input.bookTitle ? `The book is ${JSON.stringify(input.bookTitle)}.` : "",
     "Write every human-readable field (definitions, part-of-speech labels, examples, " +
       `etymology, contextual meaning) in ${languageName}.`,
@@ -148,6 +164,12 @@ export async function lookUpTerm(
     prompt,
     system: SYSTEM_PROMPT,
     schema: ENTRY_SCHEMA,
+    readingContext: selected || context ? {
+      selection: selected ? term : undefined,
+      surrounding: context,
+      // Required fragments make a settings race fail instead of caching a different request.
+      required: [...(selected ? ["selection" as const] : []), ...(context ? ["surrounding" as const] : [])],
+    } : undefined,
   })) as Partial<PluginDictionaryEntry>;
   const entry = normalizeEntry(raw, term);
 
@@ -155,7 +177,7 @@ export async function lookUpTerm(
     term,
     language: languageName,
     entry,
-    context: input.context,
+    context,
     at: new Date().toISOString(),
   } satisfies CachedLookup);
 

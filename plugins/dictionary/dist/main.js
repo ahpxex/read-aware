@@ -143,14 +143,27 @@ async function lookUpTerm(ctx, input) {
   const term = input.term.trim();
   const languageName = resolveLanguageName(ctx, input.language ?? getTargetLanguage(ctx));
   const cache = ctx.services.storage.collection(LOOKUPS_COLLECTION);
-  const id = lookupCacheId(term, languageName, input.context, input.bookTitle);
-  const cached = await cache.get(id);
+  const originalId = lookupCacheId(term, languageName, input.context, input.bookTitle);
+  const cached = await cache.get(originalId);
   if (cached?.data?.entry && Array.isArray(cached.data.entry.senses)) {
     return { entry: cached.data.entry, language: languageName };
   }
+  const [selectionSetting, surroundingSetting] = input.context?.trim() ? await Promise.all([
+    ctx.domains.settings.queries.read("ai.preferences.sendHighlightedText"),
+    ctx.domains.settings.queries.read("ai.preferences.sendSurroundingContext")
+  ]) : [];
+  const context = selectionSetting?.value === true && surroundingSetting?.value === true ? input.context : undefined;
+  const id = lookupCacheId(term, languageName, context, input.bookTitle);
+  if (id !== originalId) {
+    const withoutPassage = await cache.get(id);
+    if (withoutPassage?.data?.entry && Array.isArray(withoutPassage.data.entry.senses)) {
+      return { entry: withoutPassage.data.entry, language: languageName };
+    }
+  }
+  const selected = input.source === "selection";
   const prompt = [
-    `Term to define: ${JSON.stringify(term)}.`,
-    input.context ? `It appears in this passage: ${JSON.stringify(input.context)}.` : "",
+    selected ? "Define the term supplied in the host reading context's selection field." : `Term to define: ${JSON.stringify(term)}.`,
+    context ? "Use the host reading context's surrounding field to identify its meaning in the passage." : "",
     input.bookTitle ? `The book is ${JSON.stringify(input.bookTitle)}.` : "",
     "Write every human-readable field (definitions, part-of-speech labels, examples, " + `etymology, contextual meaning) in ${languageName}.`,
     "Keep the headword itself in its original language."
@@ -159,14 +172,19 @@ async function lookUpTerm(ctx, input) {
   const raw = await ctx.services.llm.ask({
     prompt,
     system: SYSTEM_PROMPT,
-    schema: ENTRY_SCHEMA
+    schema: ENTRY_SCHEMA,
+    readingContext: selected || context ? {
+      selection: selected ? term : undefined,
+      surrounding: context,
+      required: [...selected ? ["selection"] : [], ...context ? ["surrounding"] : []]
+    } : undefined
   });
   const entry = normalizeEntry(raw, term);
   await cache.put(id, {
     term,
     language: languageName,
     entry,
-    context: input.context,
+    context,
     at: new Date().toISOString()
   });
   return { entry, language: languageName };
@@ -182,6 +200,7 @@ async function saveWord(ctx, input) {
   const targetLanguage = input.language ?? getTargetLanguage(ctx);
   const { language, entry } = await lookUpTerm(ctx, {
     term,
+    source: input.source,
     context: input.context,
     bookTitle: input.bookTitle,
     language: targetLanguage
@@ -189,6 +208,7 @@ async function saveWord(ctx, input) {
   const passage = input.context && input.context.trim().toLowerCase() !== term.toLowerCase() ? input.context.trim() : undefined;
   await wordCollection(ctx).put(idFor(term, language), {
     term,
+    source: input.source ?? "provided",
     language,
     targetLanguage,
     entry,
@@ -205,6 +225,7 @@ async function changeWordLanguage(ctx, doc, targetLanguage) {
   const word = doc.data;
   const { language, entry } = await lookUpTerm(ctx, {
     term: word.term,
+    source: word.source ?? "selection",
     context: word.context,
     bookTitle: word.bookTitle,
     language: targetLanguage
@@ -521,6 +542,7 @@ var plugin = {
       run: async (input) => {
         const { term, language } = await saveWord(ctx, {
           text: input.text,
+          source: "selection",
           context: input.context ?? input.text.trim().slice(0, 300),
           bookId: input.book.id,
           bookTitle: input.book.title

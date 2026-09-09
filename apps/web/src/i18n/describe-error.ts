@@ -39,6 +39,8 @@ import {
   ERR_AI_LOCAL_ONLY,
   ERR_AI_MEMORY_DISABLED,
   ERR_AI_CONTEXT_CHANGED,
+  ERR_AI_CONTEXT_WITHHELD,
+  ERR_AI_INVALID_READING_CONTEXT,
   ERR_AI_PROVIDER,
   ERR_AI_QUOTA,
   ERR_AI_RATE_LIMITED,
@@ -108,6 +110,8 @@ const CODE_COPY: Record<string, CopyEntry> = {
   [ERR_AI_LOCAL_ONLY]: { key: "aiLocalOnly", retryable: false, action: AI_SETTINGS },
   [ERR_AI_MEMORY_DISABLED]: { key: "aiMemoryDisabled", retryable: false, action: AI_SETTINGS },
   [ERR_AI_CONTEXT_CHANGED]: { key: "aiContextChanged", retryable: true },
+  [ERR_AI_CONTEXT_WITHHELD]: { key: "aiContextWithheld", retryable: false, action: AI_SETTINGS },
+  [ERR_AI_INVALID_READING_CONTEXT]: { key: "aiInvalidReadingContext", retryable: false },
   // Legacy alias: chat rows persisted before the shared code vocabulary carry
   // the old spelling in their errorCode column. Never remove.
   "ai-not-configured": { key: "aiNotConfigured", retryable: false, action: AI_SETTINGS },

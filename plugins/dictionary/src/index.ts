@@ -25,6 +25,7 @@ const plugin: PluginModule = {
       run: async (input) => {
         const { term, language } = await saveWord(ctx, {
           text: input.text,
+          source: "selection",
           context: input.context ?? input.text.trim().slice(0, 300),
           bookId: input.book.id,
           bookTitle: input.book.title,

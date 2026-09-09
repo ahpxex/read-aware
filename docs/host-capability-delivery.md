@@ -612,3 +612,19 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [仍缺] SET24/25 保持部分：插件 selection/lookup 回调、插件自组装 LLM/HTTP/TTS、独立正文/标注检索与旧回答/记忆/纪要不受此输入过滤自动清除或禁用。已发出的字节与已派发写不能撤回，完整隐私流、打包/Windows/Linux、完整设置 UI 与 W01–W32 其余组合插件未完成。矩阵无效果设置由 8 降为 6，但没有把两个文本设置改绿；保持 224 行与 578 库存映射，未改变完整目标或关闭原 GAP。
 
 [环境/最终复核] 最终全仓 test 20/20、typecheck 23/23、生产前端 build 通过。其间既有 Foliate clean-build 测试在全仓和独跑各出现一次 30 秒超时，后续完整复跑通过；未修改测试或放宽超时，也不把失败运行算通过。三个文档对 validator 与两份生成器 --check 通过；1440×1000、1024×768、390×844 截图/无横向溢出/锚点/按钮命名/资源错误检查，中英文搜索与 Escape 均通过，矩阵/模型目录 inert/焦点及主题刷新保留通过；文档仍使用 CDN，不是离线资源验证。独立浏览器已关闭。
+
+## 2026-09-09：S6 / 插件结构化阅读上下文与 Dictionary 1.3
+
+[代码] LLM capability 升至 1.1.0，services.llm.ask 与 AgentRuntime.ask 共用 one-shot 执行。新增 readingContext 的 selection/surrounding/required，宿主在组装模型请求时按实时阅读隐私策略过滤。任一文本开关关闭均不发送可能重叠的 surrounding；必需文本被禁止在推理前报 ai/context-withheld；未知字段、非字符串与缺失/空的必需字段报 ai/invalid-reading-context。两错误均有稳定分类及八语言 UI 文案。普通、结构化重试、流式共享固定授权，收紧取消传输并拒绝迟到结果/回调/重试；重新打开只影响新请求。
+
+[代码] Dictionary 1.3 声明 llm ^1.1.0、settings ^1.2.0 与两个文本偏好的精确读取权限。选区来源和正文分开交给宿主，不插入 prompt/system/schema。所有实际传入片段都声明 required，设置竞态直接拒绝，避免按错误上下文写缓存；周边被禁止时使用独立的无上下文缓存身份。已缓存结果仍是可本地读取的数据，不因为禁止外发而失效。保存 source，旧生词再生成时保守视为 selection；用户/模型明确提供的词仍是普通输入，不假装宿主能追踪任意字符串来源。
+
+[环境] [结构化证据](./evidence/structured-reading-context-2026-09-09.json)来自隔离 macOS debug Tauri 5184/9224 与 loopback SSE 19843。两 actor × 三调用模式 × 四设置组合，共 24 次请求，与服务端 selection/surrounding marker 逐项一致。实际编译 Dictionary Worker：两次冷查分别发送选区加周边、仅选区；禁止选区的冷查返回 ai/context-withheld，零额外请求且私有文档计数不变；关闭两开关后已有缓存仍成功，零额外请求。一次故意损坏 JSON 导致结构化重试，两次请求均只含允许的选区。
+
+[环境] 同时挂起实际 Dictionary、Agent 普通 ask 与插件流式 ask，服务端确认三个 held 请求后由 settings Worker 关闭并重开两开关。三个调用均返回 ai/context-changed，服务端三个 cancelled=true，Dictionary 缓存/生词数仍为 2/2。解除服务端 hold 后新查词成功变为 3/3，总共 32 次请求。输入通过注册动作的 fixture 提供，不冒充真实选区手势/词卡 UI 或模型语义验收；fixture 也不计作新的 W01–W32 组合插件。
+
+复现：先启动 bun scripts/structured-reading-probe-server.ts 与隔离 tauri.capability-e2e 配置；prepareSettingsProbe 备份四个隐私路径，关闭 buildMemory/localOnly，再 prepareInferenceProbe 和 prepareStructuredReadingProbe。structuredReadingProbe 支持 agent/plugin 与 plain/structured/stream；dictionaryReadingProbe 的后缀隔离缓存。/malformed-next 控制下一回答，/hold 与 /release 控制在途取消，/state 只返回 marker 布尔值，不记录 prompt 或凭证。长序列在 WebView 状态句柄内执行并轮询，不在观察超时后重启。最后依次 cleanupStructuredReadingProbe、cleanupInferenceProbe、cleanupSettingsProbe。
+
+[验证] 聚焦 7 文件、23 测试、84 次断言通过；新增覆盖字段验证/复制、四组合、必需字段、重试、已完成 Promise 撤权竞态、流式迟到回调、宿主 runtime 接线和 Dictionary 缓存/普通输入。全仓 test 20/20、typecheck 23/23、Dictionary build、生产前端 build 通过；保留既有 Rust cfg/dead-code 与 Vite 大块/混合导入警告，未修改 Rust 业务或重跑 Rust 全套。三个文档对 validator、两个生成器 --check 与 diff --check 通过。改变的矩阵和插件说明 HTML 在 1440×1000、1024×768、390×844 无横向溢出/重复 ID/坏锚点/无名按钮/已观察资源错误；中英文搜索与 Escape、矩阵目录和主题刷新保持通过。模型 HTML 概览事实不变，生成器未改该文件；Markdown 的逐项证据同步更新。文档浏览器已关闭，仍依赖 CDN。
+
+[清理/仍缺] 插件 lookups/words、选择动作、命令与探针贡献均归零；原模型配置/密钥和四设置恢复，两个自有进程组退出，5184/9224/19843 无监听。正式实例未操作、未推送。保持 224 行、578 库存、129 验收项、30 责任单元/catalog、32 场景；SET24/25 仍是部分，任意自组装 prompt/HTTP/TTS、独立检索和旧衍生内容没有全局来源治理。公开取消/任务预算/用量回执、其余双端接线、全组合插件和 packaged/Windows/Linux 仍待实现或验收，总目标未关闭。

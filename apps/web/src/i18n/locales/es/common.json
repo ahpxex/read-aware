@@ -32,6 +32,8 @@
     "aiLocalOnly": "El modo solo local ha desactivado las solicitudes de IA. Puedes cambiarlo en los ajustes de IA.",
     "aiMemoryDisabled": "La creación de memoria está desactivada. Puedes activarla en los ajustes de IA.",
     "aiContextChanged": "Los ajustes de privacidad de lectura han cambiado y la solicitud se ha detenido. Vuelve a intentarlo con los ajustes actuales.",
+    "aiContextWithheld": "Esta acción necesita texto de lectura que tus ajustes de privacidad no permiten enviar. Revisa los ajustes de privacidad de la IA.",
+    "aiInvalidReadingContext": "Esta acción proporcionó un contexto de lectura no válido. Actualiza la aplicación o el complemento antes de volver a intentarlo.",
     "aiAuth": "El proveedor de IA rechazó la clave de API. Revísala en Ajustes.",
     "aiRateLimited": "El proveedor de IA está limitando las solicitudes. Espera un momento e inténtalo de nuevo.",
     "aiQuota": "Tu cuenta de IA se quedó sin crédito o cuota. Revisa tu cuenta del proveedor.",

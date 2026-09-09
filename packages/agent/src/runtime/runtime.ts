@@ -13,14 +13,13 @@ import {
   type RoleModels,
 } from "../models/accounts";
 import { createCompleteFn, createStreamFn, type CompleteFn, type StreamFn } from "../models/complete";
-import { classifyModelFailure } from "../models/failure";
 import type { InferencePolicy } from "../models/inference-policy";
 import { buildProviderRegistry } from "../models/registry";
 import type { ModelRole, RoleThinking } from "../models/roles";
 import type { AgentFetch } from "../models/transport";
 import type { Id } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
-import { extractJsonObject, schemaViolations } from "../structured";
+import { askOneShot, type OneShotInput } from "./one-shot";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { AgentThread, type SendTurnInput } from "./thread";
 
@@ -169,83 +168,15 @@ export class AgentRuntime {
    * 带 `onText` 时流式回调文本增量（最终仍 resolve 完整文本）。流式与
    * schema 互斥——结构化答案没有可读的中间态。
    */
-  async ask(input: {
-    prompt: string;
-    system?: string;
-    model?: "fast" | "smart";
-    onText?: (delta: string) => void;
-  }): Promise<string>;
-  async ask(input: {
-    prompt: string;
-    system?: string;
-    model?: "fast" | "smart";
-    schema: Record<string, unknown>;
-  }): Promise<unknown>;
-  async ask(input: {
-    prompt: string;
-    system?: string;
-    model?: "fast" | "smart";
-    schema?: Record<string, unknown>;
-    onText?: (delta: string) => void;
-  }): Promise<unknown> {
-    if (input.schema && input.onText) {
-      throw new Error("ask: schema and onText are mutually exclusive");
-    }
-    const complete = async (system: string | undefined, prompt: string): Promise<string> => {
-      const role = input.model ?? "fast";
-      const model = this.resolveModel(role);
-      const context = {
-        systemPrompt: system,
-        messages: [{ role: "user" as const, content: prompt, timestamp: Date.now() }],
-      };
-      let message;
-      if (input.onText) {
-        const stream = this.streamFns[role](model, context);
-        for await (const event of stream) {
-          if (event.type === "text_delta") input.onText(event.delta);
-        }
-        message = await stream.result();
-      } else {
-        message = await this.completeFns[role](model, context);
-      }
-      // completeSimple 不 reject：失败 resolve 成 stopReason "error"/"aborted"。
-      if (message.stopReason === "error") {
-        throw classifyModelFailure(message.errorMessage ?? "ask failed");
-      }
-      if (message.stopReason === "aborted") {
-        throw new Error(message.errorMessage ?? "ask aborted");
-      }
-      return message.content
-        .filter((block): block is { type: "text"; text: string } => block.type === "text")
-        .map((block) => block.text)
-        .join("");
-    };
-
-    if (!input.schema) return complete(input.system, input.prompt);
-
-    const instruction =
-      "Return ONLY a single JSON object — no prose, no markdown, no code fences. " +
-      `It must validate against this JSON Schema:\n${JSON.stringify(input.schema)}`;
-    const system = input.system ? `${input.system}\n\n${instruction}` : instruction;
-
-    let feedback = "";
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      const prompt =
-        attempt === 0
-          ? input.prompt
-          : `${input.prompt}\n\nYour previous reply was invalid (${feedback}). ` +
-            "Reply again with ONLY the corrected JSON object.";
-      const text = await complete(system, prompt);
-      try {
-        const value: unknown = JSON.parse(extractJsonObject(text));
-        const problems = schemaViolations(value, input.schema);
-        if (problems.length === 0) return value;
-        feedback = problems.slice(0, 5).join("; ");
-      } catch (error) {
-        feedback = error instanceof Error ? error.message : String(error);
-      }
-    }
-    throw new Error(`structured ask failed schema validation: ${feedback}`);
+  async ask(input: OneShotInput & { schema?: never }): Promise<string>;
+  async ask(input: OneShotInput & { schema: Record<string, unknown>; onText?: never }): Promise<unknown>;
+  async ask(input: OneShotInput): Promise<unknown> {
+    return askOneShot(input, {
+      resolveModel: this.resolveModel,
+      completeFns: this.completeFns,
+      streamFns: this.streamFns,
+      readingContextPolicy: this.deps.readingContextPolicy,
+    });
   }
 
   /**

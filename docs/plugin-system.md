@@ -383,6 +383,37 @@ never resurrects a cancelled operation. Already-sent bytes and dispatched writes
 cannot be retroactively revoked. Shared policy waits check revocation before and
 after resolution so an already-fulfilled Promise cannot win against an aborted grant.
 
+[代码] `services.llm.ask` / `AgentRuntime.ask` accept `readingContext` since
+LLM capability 1.1.0. It contains optional `selection` and `surrounding` strings,
+plus `required?: Array<"selection" | "surrounding">`. The host validates the
+shape and assembles only permitted fields into the model input; surrounding is
+withheld when either text permission is false. Required fields must be nonempty
+and present: invalid declarations fail with `ai/invalid-reading-context`; a
+required but withheld field fails before inference with `ai/context-withheld`.
+Both are nonretryable without correcting input/settings. Plain, schema/retry,
+and streaming paths share the captured policy; tightening aborts transport,
+rejects with `ai/context-changed`, suppresses late output/retries and releases
+listeners. No caller-supplied cancellation/task budget is added by this contract.
+
+[代码] Dictionary 1.3 requires LLM ^1.1.0 and settings ^1.2.0 with exact read
+access to both text preferences. Selection callbacks mark the term's source;
+term and permitted passage use the structured fields, not prompt interpolation.
+Every supplied fragment is required, so a settings race cannot cache an answer
+for a different input. Withheld context uses a distinct context-free cache key.
+Exact local cache hits do not invoke inference and remain readable with sharing
+off. Saved words retain source; legacy words without it are conservatively
+treated as selections when regenerating. Explicitly provided/typed terms remain
+ordinary prompts. Local selection processing is not itself external disclosure.
+
+[环境] The [structured-reading evidence](./evidence/structured-reading-context-2026-09-09.json)
+covers 24 isolated macOS debug calls (two actors, three modes, four flag
+combinations), actual built Dictionary Worker cold/cache/denial paths, a
+malformed-response retry, and three concurrent held calls cancelled by a
+settings Worker. Provider records prove filtering and transport cancellation;
+SQLite plugin document counts stay unchanged on denial/cancellation. Re-enable
+permits a new lookup only. Selection input is fixture-supplied, not a UI gesture;
+packaged and other platforms are not verified here.
+
 [代码/边界] This is an input-origin policy, not arbitrary string redaction or a
 global book-data prohibition. Existing assistant prose, memories, summaries and
 chapter digests can contain previously quoted material. Independent book/annotation

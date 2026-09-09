@@ -748,6 +748,7 @@ export function buildPluginContext(
   if (canUseHostService("llm", permissions)) {
     const ask = async (input: {
       prompt: string;
+      readingContext?: import("@read-aware/core").ModelReadingContext;
       system?: string;
       model?: "fast" | "smart";
       schema?: Record<string, unknown>;
@@ -761,6 +762,7 @@ export function buildPluginContext(
       if (!runtime) throw new AiNotConfiguredError();
       const base = {
         prompt: String(input.prompt),
+        readingContext: input.readingContext,
         system: input.system,
         model: input.model === "smart" ? ("smart" as const) : ("fast" as const),
       };

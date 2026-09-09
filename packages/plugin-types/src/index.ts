@@ -1602,12 +1602,16 @@ export type PluginHostServices = {
   llm?: {
     ask(input: {
       prompt: string;
+      /** Since llm 1.1: host filters book text and revokes in-flight requests when privacy tightens.
+       * Do not interpolate these fragments into prompt, system, or schema yourself. */
+      readingContext?: import("@read-aware/core").ModelReadingContext;
       system?: string;
       model?: "fast" | "smart";
       onText?: (delta: string) => void;
     }): Promise<string>;
     ask(input: {
       prompt: string;
+      readingContext?: import("@read-aware/core").ModelReadingContext;
       system?: string;
       model?: "fast" | "smart";
       schema: Record<string, unknown>;

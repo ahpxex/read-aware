@@ -1,0 +1,713 @@
+{
+  "date": "2026-09-09",
+  "scope": "Isolated macOS debug Tauri; real built Dictionary Worker and host AgentRuntime.ask, not UI selection gestures or model semantics",
+  "appIdentifier": "com.readaware.app.capability-e2e",
+  "ports": {
+    "frontend": 5184,
+    "bridge": 9224,
+    "provider": 19843
+  },
+  "sources": [
+    "apps/web/src/features/plugins/runtime/fixtures/desktop-structured-reading-probe.ts",
+    "apps/web/src/features/plugins/runtime/fixtures/structured-reading-probe.ts",
+    "scripts/structured-reading-probe-server.ts"
+  ],
+  "combinations": {
+    "status": "done",
+    "rows": [
+      {
+        "s": true,
+        "c": true,
+        "actor": "agent",
+        "mode": "plain",
+        "result": {
+          "status": "completed",
+          "text": "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}",
+          "deltas": []
+        }
+      },
+      {
+        "s": true,
+        "c": true,
+        "actor": "agent",
+        "mode": "structured",
+        "result": {
+          "status": "completed",
+          "text": {
+            "headword": "Controlled",
+            "senses": [
+              {
+                "definition": "Controlled dictionary entry"
+              }
+            ]
+          },
+          "deltas": []
+        }
+      },
+      {
+        "s": true,
+        "c": true,
+        "actor": "agent",
+        "mode": "stream",
+        "result": {
+          "status": "completed",
+          "text": "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}",
+          "deltas": [
+            "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}"
+          ]
+        }
+      },
+      {
+        "s": true,
+        "c": true,
+        "actor": "plugin",
+        "mode": "plain",
+        "result": {
+          "status": "completed",
+          "text": "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}",
+          "deltas": []
+        }
+      },
+      {
+        "s": true,
+        "c": true,
+        "actor": "plugin",
+        "mode": "structured",
+        "result": {
+          "status": "completed",
+          "text": {
+            "headword": "Controlled",
+            "senses": [
+              {
+                "definition": "Controlled dictionary entry"
+              }
+            ]
+          },
+          "deltas": []
+        }
+      },
+      {
+        "s": true,
+        "c": true,
+        "actor": "plugin",
+        "mode": "stream",
+        "result": {
+          "status": "completed",
+          "text": "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}",
+          "deltas": [
+            "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}"
+          ]
+        }
+      },
+      {
+        "s": true,
+        "c": false,
+        "actor": "agent",
+        "mode": "plain",
+        "result": {
+          "status": "completed",
+          "text": "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}",
+          "deltas": []
+        }
+      },
+      {
+        "s": true,
+        "c": false,
+        "actor": "agent",
+        "mode": "structured",
+        "result": {
+          "status": "completed",
+          "text": {
+            "headword": "Controlled",
+            "senses": [
+              {
+                "definition": "Controlled dictionary entry"
+              }
+            ]
+          },
+          "deltas": []
+        }
+      },
+      {
+        "s": true,
+        "c": false,
+        "actor": "agent",
+        "mode": "stream",
+        "result": {
+          "status": "completed",
+          "text": "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}",
+          "deltas": [
+            "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}"
+          ]
+        }
+      },
+      {
+        "s": true,
+        "c": false,
+        "actor": "plugin",
+        "mode": "plain",
+        "result": {
+          "status": "completed",
+          "text": "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}",
+          "deltas": []
+        }
+      },
+      {
+        "s": true,
+        "c": false,
+        "actor": "plugin",
+        "mode": "structured",
+        "result": {
+          "status": "completed",
+          "text": {
+            "headword": "Controlled",
+            "senses": [
+              {
+                "definition": "Controlled dictionary entry"
+              }
+            ]
+          },
+          "deltas": []
+        }
+      },
+      {
+        "s": true,
+        "c": false,
+        "actor": "plugin",
+        "mode": "stream",
+        "result": {
+          "status": "completed",
+          "text": "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}",
+          "deltas": [
+            "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}"
+          ]
+        }
+      },
+      {
+        "s": false,
+        "c": true,
+        "actor": "agent",
+        "mode": "plain",
+        "result": {
+          "status": "completed",
+          "text": "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}",
+          "deltas": []
+        }
+      },
+      {
+        "s": false,
+        "c": true,
+        "actor": "agent",
+        "mode": "structured",
+        "result": {
+          "status": "completed",
+          "text": {
+            "headword": "Controlled",
+            "senses": [
+              {
+                "definition": "Controlled dictionary entry"
+              }
+            ]
+          },
+          "deltas": []
+        }
+      },
+      {
+        "s": false,
+        "c": true,
+        "actor": "agent",
+        "mode": "stream",
+        "result": {
+          "status": "completed",
+          "text": "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}",
+          "deltas": [
+            "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}"
+          ]
+        }
+      },
+      {
+        "s": false,
+        "c": true,
+        "actor": "plugin",
+        "mode": "plain",
+        "result": {
+          "status": "completed",
+          "text": "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}",
+          "deltas": []
+        }
+      },
+      {
+        "s": false,
+        "c": true,
+        "actor": "plugin",
+        "mode": "structured",
+        "result": {
+          "status": "completed",
+          "text": {
+            "headword": "Controlled",
+            "senses": [
+              {
+                "definition": "Controlled dictionary entry"
+              }
+            ]
+          },
+          "deltas": []
+        }
+      },
+      {
+        "s": false,
+        "c": true,
+        "actor": "plugin",
+        "mode": "stream",
+        "result": {
+          "status": "completed",
+          "text": "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}",
+          "deltas": [
+            "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}"
+          ]
+        }
+      },
+      {
+        "s": false,
+        "c": false,
+        "actor": "agent",
+        "mode": "plain",
+        "result": {
+          "status": "completed",
+          "text": "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}",
+          "deltas": []
+        }
+      },
+      {
+        "s": false,
+        "c": false,
+        "actor": "agent",
+        "mode": "structured",
+        "result": {
+          "status": "completed",
+          "text": {
+            "headword": "Controlled",
+            "senses": [
+              {
+                "definition": "Controlled dictionary entry"
+              }
+            ]
+          },
+          "deltas": []
+        }
+      },
+      {
+        "s": false,
+        "c": false,
+        "actor": "agent",
+        "mode": "stream",
+        "result": {
+          "status": "completed",
+          "text": "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}",
+          "deltas": [
+            "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}"
+          ]
+        }
+      },
+      {
+        "s": false,
+        "c": false,
+        "actor": "plugin",
+        "mode": "plain",
+        "result": {
+          "status": "completed",
+          "text": "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}",
+          "deltas": []
+        }
+      },
+      {
+        "s": false,
+        "c": false,
+        "actor": "plugin",
+        "mode": "structured",
+        "result": {
+          "status": "completed",
+          "text": {
+            "headword": "Controlled",
+            "senses": [
+              {
+                "definition": "Controlled dictionary entry"
+              }
+            ]
+          },
+          "deltas": []
+        }
+      },
+      {
+        "s": false,
+        "c": false,
+        "actor": "plugin",
+        "mode": "stream",
+        "result": {
+          "status": "completed",
+          "text": "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}",
+          "deltas": [
+            "{\"headword\":\"Controlled\",\"senses\":[{\"definition\":\"Controlled dictionary entry\"}]}"
+          ]
+        }
+      }
+    ]
+  },
+  "dictionary": {
+    "status": "done",
+    "rows": [
+      {
+        "s": true,
+        "c": true,
+        "suffix": "both",
+        "result": {
+          "status": "completed",
+          "toast": "Saved “SELECTION_MARKER_947_both”",
+          "counts": {
+            "lookups": 1,
+            "words": 1
+          }
+        }
+      },
+      {
+        "s": true,
+        "c": false,
+        "suffix": "selection",
+        "result": {
+          "status": "completed",
+          "toast": "Saved “SELECTION_MARKER_947_selection”",
+          "counts": {
+            "lookups": 2,
+            "words": 2
+          }
+        }
+      },
+      {
+        "s": false,
+        "c": true,
+        "suffix": "denied",
+        "result": {
+          "status": "failed",
+          "code": "ai/context-withheld",
+          "counts": {
+            "lookups": 2,
+            "words": 2
+          }
+        }
+      },
+      {
+        "s": false,
+        "c": false,
+        "suffix": "both",
+        "result": {
+          "status": "completed",
+          "toast": "Saved “SELECTION_MARKER_947_both”",
+          "counts": {
+            "lookups": 2,
+            "words": 2
+          }
+        }
+      }
+    ]
+  },
+  "retry": {
+    "status": "completed",
+    "text": {
+      "headword": "Controlled",
+      "senses": [
+        {
+          "definition": "Controlled dictionary entry"
+        }
+      ]
+    },
+    "deltas": []
+  },
+  "revoked": {
+    "status": "running",
+    "agent": {
+      "status": "failed",
+      "code": "ai/context-changed",
+      "deltas": []
+    },
+    "plugin": {
+      "status": "failed",
+      "code": "ai/context-changed",
+      "deltas": []
+    },
+    "dictionary": {
+      "status": "failed",
+      "code": "ai/context-changed",
+      "counts": {
+        "lookups": 2,
+        "words": 2
+      }
+    }
+  },
+  "fresh": {
+    "status": "completed",
+    "toast": "Saved “SELECTION_MARKER_947_held”",
+    "counts": {
+      "lookups": 3,
+      "words": 3
+    }
+  },
+  "requests": [
+    {
+      "selected": true,
+      "surrounding": true,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": true,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": true,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": true,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": true,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": true,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": false,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": false,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": false,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": false,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": false,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": false,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": false,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": false,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": false,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": false,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": false,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": false,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": true,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": true
+    },
+    {
+      "selected": true,
+      "surrounding": false,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": true,
+      "held": true,
+      "cancelled": true,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": true,
+      "held": true,
+      "cancelled": true,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": true,
+      "held": true,
+      "cancelled": true,
+      "malformed": false
+    },
+    {
+      "selected": true,
+      "surrounding": true,
+      "held": false,
+      "cancelled": false,
+      "malformed": false
+    }
+  ],
+  "cleanup": {
+    "status": "done",
+    "result": {
+      "structured": {
+        "counts": {
+          "lookups": 0,
+          "words": 0
+        },
+        "actions": 0,
+        "commands": 0
+      },
+      "inference": {
+        "contributions": 0
+      },
+      "settings": {
+        "contributions": 0
+      }
+    }
+  },
+  "restored": {
+    "buildMemory": true,
+    "localOnly": false,
+    "sendHighlightedText": true,
+    "sendSurroundingContext": true
+  },
+  "processes": "Owned groups 47270/47269 stopped; sessions 41317/95934 exited 143; ports 5184/9224/19843 have no listeners",
+  "limits": [
+    "Selection input supplied to registered action by fixture, not reader gesture or visible word-card UI",
+    "Only supplied readingContext fields governed; arbitrary prompt/system/schema and granted HTTP/TTS not provenance verified",
+    "Old derived prose and explicit retrieval are not globally redacted",
+    "No packaged or Windows/Linux verification for this unit",
+    "Probe fixtures do not count as new W01-W32 composition plugins"
+  ]
+}

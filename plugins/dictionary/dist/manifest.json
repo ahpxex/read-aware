@@ -1,11 +1,11 @@
 {
   "id": "dictionary",
   "name": "Dictionary",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "schemaVersion": 1,
   "minAppVersion": "0.3.0",
   "requires": {
-    "domains": { "reading": "^2.0.0", "library": "^1.0.0" },
+    "domains": { "reading": "^2.0.0", "library": "^1.0.0", "settings": "^1.2.0" },
     "contributions": {
       "selectionActions": "^1.0.0",
       "headerActions": "^1.0.0",
@@ -16,11 +16,12 @@
     "services": {
       "storage": "^2.0.0",
       "ui": "^1.0.0",
-      "llm": "^1.0.0"
+      "llm": "^1.1.0"
     },
     "schemas": { "views": "^1.0.0" }
   },
   "description": "Look up words while you read, save them, and revisit full dictionary entries on a searchable timeline.",
+  "settingsAccess": { "read": ["ai.preferences.sendHighlightedText", "ai.preferences.sendSurroundingContext"] },
   "author": "ReadAware",
   "permissions": [
     "reading:read",

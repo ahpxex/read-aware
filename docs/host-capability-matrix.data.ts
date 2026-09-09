@@ -13,6 +13,12 @@ export const cap = (id: string, name: string, host: HostState, agent: Actor, plu
   ({ id, name, host, agent, plugin, sources, consumers, gap, baseline: [] });
 
 export const sources: Record<string, string> = {
+  MEMORYDOMAIN: "apps/web/src/domain/memory.ts",
+  MEMORYQUERIES: "apps/web/src/domain/memory-queries.ts",
+  MEMORYBOUNDARY: "apps/web/src/domain/book-memory-boundary.ts",
+  GRAPHQUERY: "packages/agent/src/memory/book-graph.ts",
+  MEMORYDESK: "plugins/memory-desk/src/graph.ts",
+  MEMORYDOMAINPROOF: "docs/evidence/memory-domain-2026-09-10.json",
   TEXTSEARCH: "apps/web/src/features/library/lib/book-text-search.ts",
   TEXTSEARCHPROOF: "docs/evidence/book-text-search-2026-09-09.json",
   API: "packages/plugin-types/src/index.ts",
@@ -394,7 +400,7 @@ groups.push(
     cap("AI12", "按需插件检索 provider", "实装", actor("扩展", "自动生成 retrieve 工具", "按需有界检索工具"), actor("接通", "agentRetrievalProviders.register", "检索贡献"), ["EXTOOLS","DICTTOOLS","REGISTRY"], "Dictionary saved-vocabulary", "名称隔离/限量由 adapter 控制；查询结果不是可信指令"),
   ] },
   { name: "长期记忆、画像与图谱", rows: [
-    cap("MEM01", "查询长期记忆", "实装", actor("接通", "search_memory", "检索工具"), absent("受 scope 授权的只读 memory domain"), ["MEMTOOLS","MEMORYPORT","PORTS","API"], "Agent", "没有 plugin memory domain；不能用 conversation 查询冒充记忆读取"),
+    cap("MEM01", "查询长期记忆", "实装", actor("接通", "search_memory：复用规范化记忆检索", "检索工具"), actor("部分", "memory 1.0 queries.search；memory:read", "受 scope 授权的只读 memory domain"), ["MEMTOOLS","MEMORYPORT","PORTS","API","MEMORYDOMAIN","MEMORYQUERIES","MEMORYDESK","MEMORYDOMAINPROOF"], "Agent；Memory Desk 0.1", "共享 active 记忆检索、pinned/importance/updatedAt 排序；1–16 个显式 user/global/book:<id> scope，去重，query 至多 2000 字符，limit 默认 20/最大 100。Agent book 检索仍包含 user/global/book，插件由 scopes 选择；memory:read 授予全部 scope，过滤不是细粒度授权，记忆记录也不按章节防剧透。不是 conversation 查询。Worker 退役前后复核，拒绝迟到结果但不物理取消 SQLite；读失败不变空列表。Memory Desk 顶多显示 100 条，尚无分页/耗尽标志、变化观察、按书/字段授权或纠错/遗忘命令。真实 macOS debug Worker/Agent/编译插件已验；非自主模型、打包/跨平台未验。"),
     cap("MEM02", "显式记住事实/偏好", "实装", actor("接通", "remember", "有来源的写工具"), actor("部分", "只能贡献 memory candidates", "候选提议，由宿主裁决"), ["MEMTOOLS","MEMORYPORT","API"], "Agent", "不开放：插件直接写记忆投影或伪造强化次数"),
     cap("MEM03", "轮后抽取/去重/强化记忆", "实装", actor("自动", "thread 轮后抽取与 reinforce", "自动管线"), actor("部分", "memoryCandidateProviders.propose", "候选贡献"), ["THREAD","MEMORYPORT","API","MEMORYPOLICY","READINGGOALS","MEMORYPOLICYPROOF"], "Agent 后台；Reading Goals 用户选择后提议书内偏好", "buildMemory 已约束抽取/强化/候选/摘要/巩固/digest；关闭取消在途和排队任务，重开只允许新任务。候选只经宿主裁决写入，不开放投影写；候选接受/拒绝的公共可观察回执仍缺，故插件保持部分。保留旧记忆和聊天；提交前已派发写不承诺撤销。"),
     cap("MEM04", "记忆巩固、修订/替代/遗忘", "实装", actor("自动", "maintenance → consolidateIfNeeded → applyMemoryChanges", "自动管线+受控反馈工具"), absent("候选/反馈接口，不直接改投影"), ["MAINT","CONSOLIDATE","MEMORYPORT","APPLY"], "空闲维护", "不能沿用旧说明声称全部 consolidation 未实现；模型无独立遗忘工具"),
@@ -404,7 +410,7 @@ groups.push(
     cap("MEM08", "profile.updated / entity.resolved / entity.merged 投影", "占位", actor("内部", "事件类型/端口，并非完整实体整合", "宿主 consolidation 投影"), absent("未来只读/候选接口"), ["COREVENTS","APPLY"], "apply.rs 接受但返回无投影", "宿主自身待实现，不应归为插件 API 单纯漏导出"),
     cap("MEM09", "叙事性分类/重分类与图谱风格", "实装", actor("自动", "digest pipeline 自动分类", "管线状态+用户重分类意图"), absent("分类查询/受控重分类"), ["MAINT","RUNTIME","COREVENTS","APPLY"], "章节 digest 后台管线", "narrative 与 expository 的 fence 不同；重分类后旧 flavor 懒重建"),
     cap("MEM10", "完成章节摘要、人物/概念图生成与补齐", "实装", actor("自动", "digestBook/digestBookCatchUp + idle", "自动任务+状态/重试"), absent("图谱任务查询/候选提供"), ["MAINT","RUNTIME","GRAPHP"], "阅读后 catch-up；空闲维护", "没有公开任务进度/取消/重建入口；不能说只有函数没调用"),
-    cap("MEM11", "检索书内人物/关系/概念图", "实装", actor("接通", "query_book_graph", "有 fence 的查询工具"), absent("book memory 只读领域"), ["GRAPHTOOLS","GRAPHP","API"], "Agent", "插件缺读图谱领域；原始 chapterDigests 列表不是完整安全查询"),
+    cap("MEM11", "检索书内人物/关系/概念图", "实装", actor("部分", "query_book_graph：共享先过滤再合并查询", "有 fence 和版本来源的查询工具"), actor("部分", "memory 1.0 queries.bookGraph；memory:read", "book memory 只读领域"), ["GRAPHTOOLS","GRAPHP","API","MEMORYDOMAIN","MEMORYBOUNDARY","GRAPHQUERY","MEMORYDESK","MEMORYDOMAINPROOF"], "Agent；Memory Desk 0.1", "查询 overview、1–8 个至多 256 字符名称或非负安全整数 chapterIndex（互斥）；200 实体/profile、每 profile 40 关系，截断可判定，章节含已有 chapterHref。先按 fence/当前 flavor 过滤再合并，超前别名/备注/关系不污染已读图；未知位置 unavailable，不存在/不可见章节同一 miss。插件未读完叙事及未分类书依 live ready href 或非当前书保存 href 与现有正文目录求边界，loading 不回退保存位置；不触发文本准备/digest。说明性/已读完书允许全图，旧 flavor 排除。Agent 书内沿用回合 fence/可信剧透授权，global/cross-book 保留既有全图政策；修复元数据失败被吞后跳过保护。Memory Desk 搜索/实体/章节/来源导航复核最新边界，等实际 ready 才关闭；读取失败保留旧页并本地化报错，SQL 故障/恢复与真实 FB2 已验。chapterHref 没有内容 hash，非版本化 ReadingLocation；旧摘要与替换原文的一致性、全部 prompt 消费者的 flavor、细粒度授权/观察与全格式/跨平台仍未闭合，双端保留部分。"),
     cap("MEM12", "跨对话 insights 与滚动摘要", "实装", actor("接通", "get_conversation_insights[全局]；rolling summary 自动", "检索工具+自动摘要"), actor("部分", "可读 transcript，无 insights/summary 正式 API", "有来源的只读查询"), ["CHATTOOLS","THREAD","CHATPORT"], "全局 Agent；长对话", "不能将可重读对话当作已有相同摘要/洞见"),
     cap("MEM13", "可版本化导出 context bundle", "待建", absent("上下文包查询/导出工具"), absent("上下文包资源服务"), ["API","PORTS","RUNTIME","BACKUP"], "无正式 context bundle 产品能力", "这是既定方向，不是已存在宿主能力；备份 JSON 不是 context bundle"),
   ] },

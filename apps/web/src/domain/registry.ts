@@ -15,6 +15,7 @@ import {
 import { createLibraryDomain } from "./library";
 import { createReadingDomain } from "./reading";
 import { createSettingsDomain } from "./settings/domain";
+import { createMemoryDomain } from "./memory";
 
 type DomainSurface = {
   queries: object;
@@ -48,6 +49,7 @@ export const DOMAIN_REGISTRY = {
     events: ["settings.changed"],
     create: (origin: EventOrigin) => createSettingsDomain(origin),
   },
+  memory: { events: [], create: createMemoryDomain },
 } satisfies Record<DomainId, DomainDefinition>;
 
 export type DomainApi = {

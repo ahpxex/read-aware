@@ -54,6 +54,8 @@ const agentMap = pairs([
 const pluginMap = pairs([
   ["domains.settings.queries.snapshot domains.settings.queries.discover domains.settings.queries.read domains.settings.commands.update", "CFG01"],
   ["domains.settings.events.subscribe domains.settings.queries.observe services.storage.onChange", "CFG10"],
+  ["domains.memory.queries.search", "MEM01"],
+  ["domains.memory.queries.bookGraph", "MEM11"],
   ["domains.library.queries.books.list domains.library.queries.books.get", "LIB01"],
   ["domains.library.queries.books.getToc", "TXT01"], ["domains.library.queries.books.getChapterText", "TXT03"],
   ["domains.library.queries.books.getTextState", "TXT04"],
@@ -100,7 +102,7 @@ const pluginMap = pairs([
   ["services.session.environment services.session.observeEnvironment", "MORE03"],
 ]);
 const catalogMap: Record<string, Record<string, string[]>> = {
-  domains: { library:["LIB01"], reading:["STAT01","READ01"], annotations:["ANN01"], conversations:["AI01"], settings:["CFG01"] },
+  domains: { library:["LIB01"], reading:["STAT01","READ01"], annotations:["ANN01"], conversations:["AI01"], settings:["CFG01"], memory:["MEM01","MEM11"] },
   contributions: { selectionActions:["EXT01"], headerActions:["EXT02"], commands:["UI03"], settingsOptions:["CFG09"], voiceProviders:["READ17"], contentProviders:["LIB14"], readerModes:["READ15"], agentTools:["AI10"], agentContextProviders:["AI11"], agentRetrievalProviders:["AI12"], memoryCandidateProviders:["MEM03"], themes:["EXT08"], fonts:["EXT08"], syncTransports:["OPS04"] },
   services: { storage:["SYS01","SYS02"], secrets:["SYS04"], ui:["EXT07","SYS10"], schedules:["MORE01"], session:["MORE03"], network:["SYS06"], llm:["AI06"], clipboard:["SYS08"] },
   schemas: { views:["EXT03","EXT04","EXT05"], settings:["CFG09"], themes:["EXT08"] },
@@ -261,7 +263,7 @@ export function collectInventory(): Inventory[] {
   }
   const featureMap = pairs([["agent ai", "AI01 AI03 MEM01"],["annotations", "ANN01"],["command", "UI03"],["library shelf", "LIB01 UI02"],["menus", "UI05"],["navigation", "UI01 SYS17"],["plugins", "EXT01 CON03"],["reader", "READ01 TXT01"],["settings", "CFG01 OPS08"],["stats", "STAT01"],["sync", "OPS01"],["update", "SYS16"]]);
   for (const directory of readdirSync("apps/web/src/features", {withFileTypes:true}).filter(d=>d.isDirectory())) add("Feature owner", directory.name, featureMap[directory.name], "[代码+人工审计] 所属功能组入口；目录覆盖不等于每个 UI 分支测试通过");
-  const expectedPlugins = pairs([["dictionary", "EXT09 AI12 READ07 LIB01"],["rss-reader", "EXT10"],["editorial-themes", "EXT08"],["sentence-reader", "READ15 READ16"],["tts", "READ17 READ18"],["webdav-sync", "OPS04"],["jumper", "TXT02 TXT07 READ06 EXT02"],["annotation-desk", "ANN01 ANN04 ANN05 ANN08 EXT02 EXT05 SYS10"],["listening-desk", "READ16 READ18 READ06 EXT02 MORE03"],["reading-goals", "AI11 MEM03 SET23 STAT02 STAT05 STAT03 EXT07 EXT02 EXT05 SYS01"],["workspace-profiles", "UI02 UI04 CFG01 CFG10 EXT02 EXT05 SYS02"],["text-desk", "TXT04 TXT05 TXT06 LIB01 READ01 EXT02 EXT05"],["library-desk", "LIB01 LIB05 READ01 UI01 UI02 UI03 EXT02 EXT03 MORE05"]]);
+  const expectedPlugins = pairs([["memory-desk", "MEM01 MEM11 READ01 EXT02 EXT05"],["dictionary", "EXT09 AI12 READ07 LIB01"],["rss-reader", "EXT10"],["editorial-themes", "EXT08"],["sentence-reader", "READ15 READ16"],["tts", "READ17 READ18"],["webdav-sync", "OPS04"],["jumper", "TXT02 TXT07 READ06 EXT02"],["annotation-desk", "ANN01 ANN04 ANN05 ANN08 EXT02 EXT05 SYS10"],["listening-desk", "READ16 READ18 READ06 EXT02 MORE03"],["reading-goals", "AI11 MEM03 SET23 STAT02 STAT05 STAT03 EXT07 EXT02 EXT05 SYS01"],["workspace-profiles", "UI02 UI04 CFG01 CFG10 EXT02 EXT05 SYS02"],["text-desk", "TXT04 TXT05 TXT06 LIB01 READ01 EXT02 EXT05"],["library-desk", "LIB01 LIB05 READ01 UI01 UI02 UI03 EXT02 EXT03 MORE05"]]);
   for (const directory of readdirSync("plugins",{withFileTypes:true}).filter(d=>d.isDirectory()).sort((a,b)=>a.name.localeCompare(b.name))) {
     const manifest = JSON.parse(readFileSync(`plugins/${directory.name}/manifest.json`,"utf8"));
     add("First-party source plugin", manifest.id, expectedPlugins[directory.name], `[代码] 源码版本 ${manifest.version}；源码存在不等于打包、安装、启用或模型可调用`);

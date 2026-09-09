@@ -153,9 +153,10 @@ The current public roster is:
 | Annotations | highlights and notes | `annotations:read`, `annotations:write` |
 | Conversations | book/global threads and message summaries | `conversations:read` |
 | Settings | catalog, resolved values, targets, validation, change events | exact path grants |
+| Memory | active memory search and bounded chapter graph queries | `memory:read` (1.0) |
 
-Profile and Memory remain internal. A page, React feature, menu, or route is not
-a domain merely because it has a name.
+Profile projection and direct memory mutation remain internal. A page, React
+feature, menu, or route is not a domain merely because it has a name.
 
 There is no `shelf` domain. Library ownership and active reading behavior are
 separate. Do not restore `shelf` as an alias.
@@ -985,6 +986,106 @@ other-platform and complete keyboard validation remain open.
 Every domain write uses the same canonical command path as the product and is
 stamped with origin `plugin:<id>`. Plugins never mutate projections, feature
 stores, or SQLite directly.
+
+<a id="memory-read-domain"></a>
+### Memory 1.0: Read Models and Trusted Graph Boundaries
+
+[代码] `domains.memory` is a read-only public domain. `memory:read` grants
+`queries.search(input)` and `queries.bookGraph(bookId, query?)`; there are no
+commands or event subscriptions. Compatibility (`requires.domains.memory`) does
+not itself grant access. Install consent describes personal/cross-book memory
+and protected chapter graphs in all eight locales. There is no `memory:write`.
+The shared contracts live in `packages/core/src/memory-query.ts` and
+`book-memory.ts`; Agent ports re-export their existing type names.
+
+[代码] Search accepts exactly `scopes`, `query`, `limit`. Scopes are a required
+array of 1–16 `user`, `global`, or `book:<id>` strings; book IDs are nonblank and
+at most 256 UTF-16 code units. Duplicates are removed. Optional query is trimmed
+and at most 2000 code units. Optional limit is an integer 1–100, default 20.
+Invalid input rejects with `memory/invalid-query`; unknown fields are rejected.
+It returns cloned `MemoryRecord[]`, not conversations: active rows, the existing
+text-match predicate, then pinned, importance and updatedAt descending. There is
+no cursor, total, or exhaustion flag. Storage reads still enumerate memories
+internally; the result limit is not an indexed storage or byte-budget guarantee.
+Agent `search_memory` uses the same port/normalizer, with its existing scope
+composition: book queries include that book plus user/global memory.
+
+[代码/授权边界] `memory:read` currently grants all memory scopes. A query's
+`scopes` is a filter, not a per-book or field authorization grant. MemoryRecord
+content is not chapter-fenced. Reading a book graph is a separate policy-bearing
+query; it does not make every memory record safe for spoiler-sensitive display.
+No raw SQL, projection mutation, automatic promotion, forgetting, classification,
+digest construction or task control is granted by these reads.
+
+[代码] `bookGraph` validates a nonblank book ID of at most 256 code units and
+accepts exactly an optional `names` array OR `chapterIndex`, never both. Names
+contain 1–8 nonblank strings, each at most 256 code units, trimmed/deduplicated;
+chapterIndex is a nonnegative safe integer in the extracted chapter sequence,
+not a printed chapter number. `{}` requests an overview. Callers cannot supply
+`confirmSpoiler` or a fence. The tagged `BookGraphResult` variants are:
+
+| graph | Result |
+| --- | --- |
+| `unavailable` | Unknown trusted reading position; no chapter memory disclosed. |
+| `empty` | No visible current-flavor digests; not a swallowed read error. |
+| `miss` | Requested chapter has no visible current-flavor digest; absence and withheld existence use the same response. |
+| `chapter` | chapterIndex, optional stored chapterHref, summary, entities and relations. |
+| `overview` | chaptersDigested, chapterRange, entityCount, edgeCount, up to 200 entities with aliases/appearance count, truncated flag. |
+| `profiles` | Up to 200 unique matched profiles with aliases/note, appearance chapter indices, up to 40 relations each with establishedAt, relationsTruncated, notFound and overall truncated. |
+
+[代码] `packages/agent/src/memory/book-graph.ts` filters digests BEFORE merging
+aliases, notes and relations. Missing legacy flavor is narrative; known book
+flavor excludes mismatched digests after reclassification. Plugin graph policy
+allows all chapters for expository or finished books. Unfinished narrative and
+unclassified books use a strict-before boundary: for the live book, only its
+ready href is authoritative; loading/unknown does not fall back to a later
+saved location. Other books use saved progress href. Existing extracted chapter
+identities resolve exact href first, then earliest base-href match; missing
+position/identity withholds. Reads do not prepare text or generate digests.
+
+[代码] Agent `query_book_graph` calls the same pure query but retains its trusted
+turn policy: own unfinished narrative book uses the turn fence or existing
+spoiler approval; global/cross-book retains the prior all-chapters policy. This
+is shared query logic, not identical actor authorization. A book metadata read
+failure now propagates instead of being swallowed and potentially bypassing the
+fence; missing books reject `reader/book-not-found`. Agent system-prompt digest
+assembly remains a separate consumer; this change does not prove every prompt
+consumer applies the same flavor rules. Result notes/fence are diagnostic prose;
+Memory Desk renders localized state strings instead of exposing raw errors.
+
+[代码/生命周期] Requests are normalized/copied before asynchronous work; plugin
+activation lifetime is checked before and after reads. Retired owners reject
+`plugin/cancelled`, including saved method closures. This discards late delivery,
+not physical cancellation of already running SQLite reads. Database failures
+propagate through stable error handling rather than returning empty lists.
+
+[代码/组合] Memory Desk 0.1 uses only memory:read, library:read, reading:write,
+declarative views, shelf/reader header actions and an open command. It provides
+personal/cross-book/book memory queries, 40-book pages (search filters the current
+page), up to 100 memory results, graph/name/chapter queries, profile provenance
+and source navigation. Overview/profile truncation is displayed; a source click
+rechecks the current graph boundary, requires stored chapterHref, awaits reading
+ready, then closes its own view. Missing provenance reports reader/target-not-found.
+It adds no Agent tool, network permission, LLM call or memory mutation. Source
+roster now contains 14 plugins; Rust BUNDLED remains six, excluding Memory Desk.
+
+[环境/验证] Isolated macOS debug Tauri tests use real SQLite, module Workers,
+production Agent tools (not autonomous inference), compiled Memory Desk and a
+synthetic three-chapter FB2. Evidence: [memory domain](./evidence/memory-domain-2026-09-10.json).
+They cover denied/granted authority, explicit scopes, pre-merge spoiler protection,
+unknown/live boundary, flavor reclassification, rejected caller spoiler claims,
+localized SQLite read failure retaining the old view, retry and source navigation.
+A repeated menu label was traced to two distinct plugin IDs (installed plugin
+plus explicit fixture); cleanup removed only the fixture's contributions.
+
+[设计/仍缺] Per-book/field grants, query observation, full pagination/exhaustion,
+feedback commands, profile projections and formal context bundles remain open.
+Stored chapterHref has no content hash and is NOT a versioned ReadingLocation;
+rechecking visibility does not prove that an old digest belongs to replaced
+source content. Extremely long stored entity names can exceed query input limits;
+general large-result UX and chapter payload byte bounds are not closed by the
+200/40 count limits. Packaged, Windows/Linux, all formats and autonomous-model
+verification are not claimed by this unit.
 
 ## 6. Settings Is a Domain
 
@@ -1884,7 +1985,7 @@ restored; it is not remote LLM, word-card rendering, or installation-upgrade E2E
 The manifest permission vocabulary is derived from the catalogs:
 
 - Domains: `library:read`, `library:write`, `reading:read`, `reading:write`,
-  `annotations:read`, `annotations:write`, `conversations:read`.
+  `annotations:read`, `annotations:write`, `conversations:read`, `memory:read`.
 - Contributions: `reader:modes`, `agent:tools`, `agent:context`,
   `agent:retrieval`, `agent:memory`, `ui:themes`, `sync:transport`.
 - Services: `service:network`, `service:llm`, `service:clipboard`.
@@ -2065,6 +2166,7 @@ adjacent distribution repository, not a fourteenth plugin in this checkout:
 | Workspace Profiles | settled settings snapshots, exact path grants, atomic presets, private documents, shelf header/command views and Agent tool |
 | Text Desk | library text preparation/tasks, single/shelf multi-query search, snippets, paged status views, reader header/command and explicit book navigation |
 | Library Desk | workspace/collection navigation, live host-command discovery and guarded execution with typed resource pickers (0.6), command search, grouped native selection, live selection count, explicit batch review/removal, durable pending-file discovery and safe retry |
+| Memory Desk | active personal/cross-book/book memory search, protected chapter graphs, entity profiles and source navigation (0.1); shared Agent queries, no extra model tool |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs
 in their packages and registered capabilities.

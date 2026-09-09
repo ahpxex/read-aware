@@ -12,6 +12,7 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "memoryInvalidQuery": "Gültige Erinnerungsbereiche, Namen oder eine Kapitelnummer wählen.",
     "settingsObserverLimit": "Zu viele aktive Einstellungsabonnements.",
     "settingsUnavailable": "Die Einstellungen konnten nicht gelesen werden. Versuchen Sie es erneut.",
     "workspaceInvalid": "Das Navigationsziel oder die Auswahl ist ungültig.",

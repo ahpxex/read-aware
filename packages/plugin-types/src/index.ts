@@ -45,6 +45,7 @@ export type { ReadingTimeQuery, ReadingTimeCursor, ReadingTimeSnapshot, ReadingT
 export type { ReadingInsights, ReadingInsightsQuery, ReadingPeriod } from "@read-aware/core";
 export type { WorkspaceTarget, WorkspaceQuery, WorkspaceSnapshot, WorkspaceReceipt, WorkspaceSettingsSection } from "@read-aware/core";
 export type { SettingsObservation, SettingsObservationCause } from "@read-aware/core";
+export type { MemoryRecord, MemoryScope, MemoryQuery, BookGraphQuery, BookGraphResult, BookGraphProfile } from "@read-aware/core";
 export type { HostCommandId, HostCommandRequest, HostCommandDescriptor, HostCommandSnapshot, HostCommandReceipt, HostCommandObservation } from "@read-aware/core";
 import type {
   AnnotationItem,
@@ -1375,6 +1376,11 @@ export type PluginDomains = {
   reading?: PluginReadingDomain;
   annotations?: PluginAnnotationsDomain;
   conversations?: PluginConversationsDomain;
+  /** Memory 1.0, memory:read. No mutation or raw digest list is exposed. */
+  memory?: { queries: {
+    search(input: import("@read-aware/core").MemoryQuery): Promise<import("@read-aware/core").MemoryRecord[]>;
+    bookGraph(bookId: string, query?: import("@read-aware/core").BookGraphQuery): Promise<import("@read-aware/core").BookGraphResult>;
+  } };
   settings: PluginSettingsDomain;
 };
 

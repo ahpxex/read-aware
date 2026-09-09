@@ -12,6 +12,7 @@
     "copied": "Copiado"
   },
   "errors": {
+    "memoryInvalidQuery": "Elige ámbitos de memoria, nombres o un número de capítulo válidos.",
     "settingsObserverLimit": "Hay demasiadas suscripciones activas a los ajustes.",
     "settingsUnavailable": "No se pudieron leer los ajustes. Inténtalo de nuevo.",
     "workspaceInvalid": "El destino o la selección no es válido.",

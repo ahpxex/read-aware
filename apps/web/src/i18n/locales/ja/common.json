@@ -12,6 +12,7 @@
     "copied": "コピーしました"
   },
   "errors": {
+    "memoryInvalidQuery": "有効な記憶範囲、名前、または章番号を指定してください。",
     "settingsObserverLimit": "設定の購読数が上限に達しました。",
     "settingsUnavailable": "設定を読み取れませんでした。もう一度お試しください。",
     "workspaceInvalid": "移動先または選択が無効です。",

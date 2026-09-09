@@ -70,6 +70,13 @@ function parse(result: { content: Array<{ type: string; text?: string }> }): Rec
 }
 
 describe("query_book_graph", () => {
+  test("metadata lookup failures do not bypass a narrative fence", async () => {
+    const { deps } = createInMemoryDeps({ books: [{ id: BOOK, title: "Graph", narrativity: "narrative" }], chapterDigests: { [BOOK]: DIGESTS } });
+    const failure = new Error("metadata unavailable");
+    deps.library.getBook = async () => { throw failure; };
+    const [tool] = buildGraphTools({ kind: "book", bookId: BOOK }, deps);
+    await expect(tool!.execute("query", {})).rejects.toBe(failure);
+  });
   test("profiles match by alias, case-insensitively, with provenance edges", async () => {
     const { query_book_graph } = tools({ fenceAt: 2 });
     const out = parse(await query_book_graph!.execute("q1", { names: ["米嘉"] }));

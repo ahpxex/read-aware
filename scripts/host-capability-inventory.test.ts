@@ -18,3 +18,12 @@ test("a new semantic command cannot silently inherit a catch-all audit mapping",
   try { expect(() => collectInventory()).toThrow("Unmapped Host semantic command: audit-unmapped-command"); }
   finally { ids.pop(); }
 });
+
+test("memory query and consumer inventories stay distinct from bundled or model tools", () => {
+  const inventory = collectInventory();
+  expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.queries.search")?.rows).toEqual(["MEM01"]);
+  expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.queries.bookGraph")?.rows).toEqual(["MEM11"]);
+  expect(inventory.find(item => item.family === "First-party source plugin" && item.name === "memory-desk")?.rows).toContain("MEM11");
+  expect(inventory.some(item => item.family === "Native bundled plugin" && item.name === "memory-desk")).toBe(false);
+  expect(inventory.some(item => item.family === "Plugin Agent contribution" && item.name.includes("memory-desk"))).toBe(false);
+});

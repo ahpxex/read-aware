@@ -799,6 +799,8 @@ export function buildPluginContext(
     };
   }
 
+  if (domain.memory) ctx.domains.memory = { queries: domain.memory.queries };
+
   // ─── Services ─────────────────────────────────────────────────────────────
 
   if (canUseHostService("network", permissions)) {

@@ -295,6 +295,7 @@
                 <tr><td>Annotations</td><td>高亮与笔记</td><td>read / write</td></tr>
                 <tr><td>Conversations</td><td>书籍与全局对话摘要</td><td>read</td></tr>
                 <tr><td>Settings</td><td>设置目录、目标、校验、解析值与变更事件</td><td>精确路径授权</td></tr>
+                <tr><td>Memory 1.0</td><td>长期记忆检索与受保护章节图谱</td><td>memory:read</td></tr>
               </tbody>
             </table>
           </div>
@@ -339,11 +340,25 @@
         </div>
       </section>
 
+      <section data-search-section="memory Memory Desk 记忆 图谱 search bookGraph 防剧透">
+        <div class="section-inner">
+          <h2>记忆读取已接通，来源与授权仍有边界</h2>
+          <details class="ep"><summary>Memory 1.0：两个只读查询，Agent 与插件共享查询逻辑</summary><div class="ep-body">
+            <p>search 读取有效个人、跨书或本书记忆；bookGraph 提供章节摘要、实体与关系。Memory Desk 0.1 组合书库、记忆和导航，支持查询、来源查看及复核后打开原文；没有新增专属模型工具。源码十四个插件，Rust 编译内置仍六个，本插件不在内置清单。</p>
+            <p>图谱先按阅读边界与分类过滤，再合并别名和关系，未知位置不披露。Agent 书内使用回合边界，global/cross-book 保留既有全图政策；元数据读取失败明确报错，不跳过保护。</p>
+          </div></details>
+          <details class="ep"><summary>memory:read 不是按书授权，来源 href 也不是内容版本证明</summary><div class="ep-body">
+            <p>查询 scopes 只是过滤，授权仍可读取全部记忆，记忆记录本身不按章节防剧透。搜索最多 100 条、图谱最多 200 实体、每实体 40 关系；图谱截断会提示，但尚无完整分页、变化观察、细粒度授权或反馈命令。</p>
+            <p>已有 chapterHref 没有内容 hash，不能证明旧摘要对应替换后的原文。画像投影、正式 bundle、超长实体与大结果体验仍待补。macOS debug 已验真实 Worker、Agent 工具、编译插件、SQL 失败/恢复和 FB2 导航，非自主模型、全格式或跨平台证明。<a href="./plugin-system.md#memory-read-domain">完整契约与证据</a></p>
+          </div></details>
+        </div>
+      </section>
+
       <section data-search-section="agent context retrieval memory 智能扩展 buildMemory Reading Goals 阅读目标 记忆构建 sendHighlightedText sendSurroundingContext 文本隐私">
         <div class="wrap">
           <h2>Agent 智能扩展</h2>
           <p class="intro">插件只能提供有边界的数据与候选，不能接管系统提示词或直接写长期记忆。</p>
-          <details class="ep"><summary>记忆构建开关已接通，Reading Goals 已实际消费两类贡献</summary><div class="ep-body"><p>buildMemory 关闭后，宿主停止 remember、候选、抽取、摘要、巩固和 digest 等记忆构建；排队与在途任务取消，重开不复活旧结果。聊天/历史和旧记忆仍可读取；已派发写不保证撤销。摘要保存/清除等待持久回执。</p><p>Reading Goals 按书保存目标并提供上下文，用户选择后才提出记忆候选；清除目标不删除已提升的记忆。源码十三个插件、编译内置六个，本插件不在内置清单且没有专属 Agent 目标编辑工具。macOS debug 已验双端、候选落库与失败取消；安装重启、打包/跨平台、键盘遍历与所有屏外控件仍未验。<a href="./plugin-system.md#host-memory-build-policy">完整边界</a></p></div></details>
+          <details class="ep"><summary>记忆构建开关已接通，Reading Goals 已实际消费两类贡献</summary><div class="ep-body"><p>buildMemory 关闭后，宿主停止 remember、候选、抽取、摘要、巩固和 digest 等记忆构建；排队与在途任务取消，重开不复活旧结果。聊天/历史和旧记忆仍可读取；已派发写不保证撤销。摘要保存/清除等待持久回执。</p><p>Reading Goals 按书保存目标并提供上下文，用户选择后才提出记忆候选；清除目标不删除已提升的记忆。源码十四个插件、编译内置六个，本插件不在内置清单且没有专属 Agent 目标编辑工具。macOS debug 已验双端、候选落库与失败取消；安装重启、打包/跨平台、键盘遍历与所有屏外控件仍未验。<a href="./plugin-system.md#host-memory-build-policy">完整边界</a></p></div></details>
           <details class="ep"><summary>文本隐私已接 Agent 和插件结构化推理，任意字符串仍有边界</summary><div class="ep-body"><p>Agent 自动附件、历史与 viewport/grounding 按设置过滤。LLM 1.1 的 readingContext 由宿主组装；必需正文被禁止则在请求前拒绝，结构错误明确报错，收紧以 ai/context-changed 取消在途请求和重试。重开只允许新请求。</p><p>Dictionary 1.3 已迁移：选区与周边正文不再自行拼入 prompt，设置竞态不写误导缓存；本地缓存仍可读。macOS debug 双端三模式四组合、实际 Dictionary Worker 缓存/拒绝、结构化重试与三个并发请求取消已有证据。任意 prompt/HTTP/TTS、独立检索与旧衍生内容不受全局清除；完整 UI、打包/跨平台仍未验，SET24/25 保持部分。<a href="./plugin-system.md#host-reading-context-policy">精确边界</a></p></div></details>
           <div class="table-shell">
             <table>

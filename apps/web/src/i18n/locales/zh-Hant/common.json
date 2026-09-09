@@ -12,6 +12,7 @@
     "copied": "已複製"
   },
   "errors": {
+    "memoryInvalidQuery": "請選擇有效的記憶範圍、名稱或章節號。",
     "settingsObserverLimit": "設定訂閱數量已達上限。",
     "settingsUnavailable": "無法讀取設定，請重試。",
     "workspaceInvalid": "導覽目標或選取範圍無效。",

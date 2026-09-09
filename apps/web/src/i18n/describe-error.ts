@@ -78,6 +78,7 @@ type CopyEntry = {
 const AI_SETTINGS: ErrorAction = "open-ai-settings";
 
 const CODE_COPY: Record<string, CopyEntry> = {
+  "memory/invalid-query": { key: "memoryInvalidQuery", retryable: false },
   "ui/invalid-target": { key: "workspaceInvalid", retryable: false },
   "ui/target-not-found": { key: "workspaceMissing", retryable: false },
   "ui/superseded": { key: "workspaceChanged", retryable: false },

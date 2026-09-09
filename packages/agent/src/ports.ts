@@ -25,6 +25,8 @@ import type {
   AgentSettingsUpdateResult,
 } from "./settings";
 import type { ThreadScope } from "./thread-scope";
+import type { ChapterDigest, MemoryRecord, MemoryScope, MemoryKind, MemoryQuery } from "@read-aware/core";
+export type { DigestFlavor, DigestCharacter, DigestRelation, ChapterDigest, MemoryRecord, MemoryScope, MemoryKind, MemoryStatus } from "@read-aware/core";
 
 // 标注读模型：直接用 @read-aware/core 的 canonical 判别联合（read-models.ts）
 // —— 与插件面、产品面同一套形状，漂移在类型层就报错。
@@ -220,28 +222,6 @@ export interface UserInteractionPort {
   ): Promise<UserInteractionAnswer>;
 }
 
-/** 记忆 scope：单库多 scope，线程按 scope 检索（doc §4）。 */
-export type MemoryScope = "user" | "global" | `book:${string}`;
-
-export type MemoryKind = "fact" | "preference" | "insight" | "summary";
-
-export type MemoryStatus = "active" | "superseded" | "forgotten";
-
-export interface MemoryRecord {
-  id: string;
-  scope: MemoryScope;
-  kind: MemoryKind;
-  content: string;
-  /** 0..1；初始低置信，随证据强化（doc §4 置信度） */
-  importance: number;
-  evidenceCount: number;
-  pinned?: boolean;
-  /** 缺省视为 active；superseded/forgotten 不参与检索与注入 */
-  status?: MemoryStatus;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface NewMemoryInput {
   scope: MemoryScope;
   kind: MemoryKind;
@@ -263,11 +243,7 @@ export type MemoryChange =
  * （importance/recency/pinned/FTS），以及翻译成 memory.* 事件。
  */
 export interface MemoryPort {
-  searchMemories(filter: {
-    scopes: MemoryScope[];
-    query?: string;
-    limit?: number;
-  }): Promise<MemoryRecord[]>;
+  searchMemories(filter: MemoryQuery): Promise<MemoryRecord[]>;
   /** 全量 active 记忆 —— 巩固批处理的输入。 */
   listMemories(): Promise<MemoryRecord[]>;
   saveMemory(input: NewMemoryInput): Promise<MemoryRecord>;
@@ -364,57 +340,6 @@ export interface SettingsPort {
 }
 
 /**
- * 宿主的日志接缝（可选）。运行时只在"一个错误被有意吞掉"的地方使用 ——
- * 例如轮后巩固管道失败：对话不受影响，但失败必须留下痕迹（产品侧落到
- * 桌面端的日志文件）。缺省即静默，测试与 CLI 无需提供。
- */
-/**
- * 纪要口径：书的叙事性决定纪要抽什么。narrative 抽人物与人物关系
- * （叙事图），expository 抽概念/术语与概念关系（论证图）。旧行没有
- * flavor 字段——按 narrative 解释（当时只有这一种口径）。
- */
-export type DigestFlavor = "narrative" | "expository";
-
-/**
- * 章节读毕提炼的一条实体记录；name/aliases 按本书文本原样拼写。
- * narrative 口径下是人物，expository 口径下是概念/术语——形状同一，
- * 语义由所在 digest 的 flavor 决定。
- */
-export interface DigestCharacter {
-  name: string;
-  aliases?: string[];
-  note?: string;
-}
-
-/**
- * 章节读毕提炼的一条关系边（digestVersion 2 起）。narrative 口径是
- * 人物关系（叙事图的边），expository 口径是概念关系（论证图的边）。
- * from/to 用实体名录里的 name 原样拼写；确立章节即所在 digest 的
- * chapterIndex——剧透边界因此是图上的一次 WHERE 切片，不靠事后裁剪。
- */
-export interface DigestRelation {
-  from: string;
-  /** 关系种类，本书语言的短名词（"父亲"、"未婚妻"…；"属于"、"导致"…）。 */
-  kind: string;
-  to: string;
-  note?: string;
-}
-
-/** book.chapterDigested 的物化行：一章一份"读到这里为止"的纪要。 */
-export interface ChapterDigest {
-  chapterIndex: number;
-  chapterHref?: string;
-  /** 一两句话的章节纪要，严格来自该章文本。 */
-  summary: string;
-  characters: DigestCharacter[];
-  /** 该章确立/揭示的实体关系（digestVersion 1 的旧行没有——空数组）。 */
-  relations: DigestRelation[];
-  digestVersion: number;
-  /** 提炼口径；旧行缺省 = narrative（当时唯一的口径）。 */
-  flavor?: DigestFlavor;
-}
-
-/**
  * 书籍记忆读写（book_memory 投影 v1：章节纪要 + 人物名录）。
  * 实现方以 book.chapterDigested 事件为写入口径——摘要是 LLM 产物、不可
  * 确定性重算，所以记录成事件而非只写投影；listDigests 读物化表。
@@ -424,6 +349,7 @@ export interface BookMemoryPort {
   saveDigest(bookId: Id, digest: ChapterDigest): Promise<void>;
 }
 
+/** Host logging for degraded background work that cannot report through a UI. */
 export interface AgentLogPort {
   warn(message: string, detail?: unknown): void;
   error(message: string, detail?: unknown): void;

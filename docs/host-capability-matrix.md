@@ -14,15 +14,15 @@
 1. 不能确认能力都已实现。此表区分宿主行为、Agent 工具/自动管线、插件 API/贡献和实际插件消费者；没有把代码存在算成端到端可用。
 2. 运行态正在接通：版本化位置、会话快照、精确搜索、导航回执/历史与朗读启停已由共享域提供给 Agent、Jumper 和 Listening Desk。模式控制、通用任务与资源释放、全部格式及跨平台验收仍未完成；持久化领域 API 无法代表全部产品能力。
 3. 6 个旧设置路径仍未找到对应效果消费者；两端可改值不等于行为覆盖。两个文本发送设置已过滤 Agent 自动输入/历史附件并在收紧时取消，插件结构化 readingContext 与 Dictionary 1.3 也已接通，任意 prompt/HTTP/TTS 仍有边界；buildMemory 已控制记忆构建与在途取消；localOnly 已接入宿主 Agent/插件 LLM 的拒绝与在途取消，但任意插件 HTTP/TTS/同步仍不受该策略约束，保留部分。settings 1.2 的九项真实偏好已接通；书架布局/分组/排序已接 settings 1.3；快捷键绑定查询/重绑/冲突/null 恢复与激活冲突暂停已接 settings 1.5；原生快捷键编辑与停用命令清理已统一；UI 1.3 将语义导航、命令搜索、当前集合和分页选择集接到双端，Library Desk 0.3 已组合。settings 1.6 新增已提交设置观察，Workspace Profiles 0.3 已实时组合；旧命令事件、来源身份完整性、实际效果与打包跨平台等缺口仍在。
-4. Agent 自动记忆巩固与 digest 管线已经接入；画像 seed/实体事件投影并未同等接通。不要沿用旧架构说明把它们一起说成已实现或未实现。
+4. memory 1.0 与 Memory Desk 已接只读记忆检索和受边界保护的图谱，Agent 共享检索/合并逻辑；按书授权、变化观察和摘要来源版本仍缺。自动巩固/digest 已接入，画像 seed/实体事件投影与正式 bundle 未同等接通，不混计完成。
 5. 插件 UI、贡献注册、宿主消费、模型工具是不同方向。Dictionary/RSS 提供模型工具；宿主 control_read_aloud、configure_reading_mode 与 navigate_reading 统一消费声音和模式提供者，Listening Desk 调用相同控制器。主题调度/WebDAV 连接仍无同等直接操作工具；设置可改不等于行为接通。
 6. 备份 v1 并非全部当前存储的完整快照；私有数据、聊天、记忆、密钥、日志与同步状态的生命周期必须分别建模。原基线 129 项与 GAP01–GAP18 均保留，没有借新表宣告关闭。
 
 ## 计数与口径
 
 - 宿主：实装 193、部分 43、待建 3、引擎 1、占位 2、非桌面 1。
-- Agent：接通 116、未接 44、部分 43、扩展 14、自动 20、内部 6。
-- 插件：接通 131、部分 72、未接 40。
+- Agent：接通 115、未接 44、部分 44、扩展 14、自动 20、内部 6。
+- 插件：接通 131、部分 74、未接 38。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -265,7 +265,7 @@
 
 | ID | 宿主能力 | 宿主现状 | Agent 当前与目标 | 插件当前与目标 | 实际消费者 | 缺口/边界 | 来源 | 旧基线 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="MEM01"></a>MEM01 | 查询长期记忆 | 实装 | **接通**：search_memory<br>[设计] 检索工具 | **未接**：无正式入口<br>[设计] 受 scope 授权的只读 memory domain | Agent | 没有 plugin memory domain；不能用 conversation 查询冒充记忆读取 | [MEMTOOLS](../packages/agent/src/tools/memory-tools.ts) [MEMORYPORT](../apps/web/src/features/ai/agent/ports/memory-port.ts) [PORTS](../apps/web/src/features/ai/agent/ports/index.ts) [API](../packages/plugin-types/src/index.ts) | M01 |
+| <a id="MEM01"></a>MEM01 | 查询长期记忆 | 实装 | **接通**：search_memory：复用规范化记忆检索<br>[设计] 检索工具 | **部分**：memory 1.0 queries.search；memory:read<br>[设计] 受 scope 授权的只读 memory domain | Agent；Memory Desk 0.1 | 共享 active 记忆检索、pinned/importance/updatedAt 排序；1–16 个显式 user/global/book:<id> scope，去重，query 至多 2000 字符，limit 默认 20/最大 100。Agent book 检索仍包含 user/global/book，插件由 scopes 选择；memory:read 授予全部 scope，过滤不是细粒度授权，记忆记录也不按章节防剧透。不是 conversation 查询。Worker 退役前后复核，拒绝迟到结果但不物理取消 SQLite；读失败不变空列表。Memory Desk 顶多显示 100 条，尚无分页/耗尽标志、变化观察、按书/字段授权或纠错/遗忘命令。真实 macOS debug Worker/Agent/编译插件已验；非自主模型、打包/跨平台未验。 | [MEMTOOLS](../packages/agent/src/tools/memory-tools.ts) [MEMORYPORT](../apps/web/src/features/ai/agent/ports/memory-port.ts) [PORTS](../apps/web/src/features/ai/agent/ports/index.ts) [API](../packages/plugin-types/src/index.ts) [MEMORYDOMAIN](../apps/web/src/domain/memory.ts) [MEMORYQUERIES](../apps/web/src/domain/memory-queries.ts) [MEMORYDESK](../plugins/memory-desk/src/graph.ts) [MEMORYDOMAINPROOF](../docs/evidence/memory-domain-2026-09-10.json) | M01 |
 | <a id="MEM02"></a>MEM02 | 显式记住事实/偏好 | 实装 | **接通**：remember<br>[设计] 有来源的写工具 | **部分**：只能贡献 memory candidates<br>[设计] 候选提议，由宿主裁决 | Agent | 不开放：插件直接写记忆投影或伪造强化次数 | [MEMTOOLS](../packages/agent/src/tools/memory-tools.ts) [MEMORYPORT](../apps/web/src/features/ai/agent/ports/memory-port.ts) [API](../packages/plugin-types/src/index.ts) | M03 |
 | <a id="MEM03"></a>MEM03 | 轮后抽取/去重/强化记忆 | 实装 | **自动**：thread 轮后抽取与 reinforce<br>[设计] 自动管线 | **部分**：memoryCandidateProviders.propose<br>[设计] 候选贡献 | Agent 后台；Reading Goals 用户选择后提议书内偏好 | buildMemory 已约束抽取/强化/候选/摘要/巩固/digest；关闭取消在途和排队任务，重开只允许新任务。候选只经宿主裁决写入，不开放投影写；候选接受/拒绝的公共可观察回执仍缺，故插件保持部分。保留旧记忆和聊天；提交前已派发写不承诺撤销。 | [THREAD](../packages/agent/src/runtime/thread.ts) [MEMORYPORT](../apps/web/src/features/ai/agent/ports/memory-port.ts) [API](../packages/plugin-types/src/index.ts) [MEMORYPOLICY](../packages/agent/src/memory/build-policy.ts) [READINGGOALS](../plugins/reading-goals/src/index.ts) [MEMORYPOLICYPROOF](../docs/evidence/memory-build-policy-2026-09-09.json) | L06, M03 |
 | <a id="MEM04"></a>MEM04 | 记忆巩固、修订/替代/遗忘 | 实装 | **自动**：maintenance → consolidateIfNeeded → applyMemoryChanges<br>[设计] 自动管线+受控反馈工具 | **未接**：无正式入口<br>[设计] 候选/反馈接口，不直接改投影 | 空闲维护 | 不能沿用旧说明声称全部 consolidation 未实现；模型无独立遗忘工具 | [MAINT](../apps/web/src/features/ai/agent/maintenance.ts) [CONSOLIDATE](../packages/agent/src/memory/consolidation.ts) [MEMORYPORT](../apps/web/src/features/ai/agent/ports/memory-port.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) | M04 |
@@ -275,7 +275,7 @@
 | <a id="MEM08"></a>MEM08 | profile.updated / entity.resolved / entity.merged 投影 | 占位 | **内部**：事件类型/端口，并非完整实体整合<br>[设计] 宿主 consolidation 投影 | **未接**：无正式入口<br>[设计] 未来只读/候选接口 | apply.rs 接受但返回无投影 | 宿主自身待实现，不应归为插件 API 单纯漏导出 | [COREVENTS](../packages/core/src/events.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) | M05 |
 | <a id="MEM09"></a>MEM09 | 叙事性分类/重分类与图谱风格 | 实装 | **自动**：digest pipeline 自动分类<br>[设计] 管线状态+用户重分类意图 | **未接**：无正式入口<br>[设计] 分类查询/受控重分类 | 章节 digest 后台管线 | narrative 与 expository 的 fence 不同；重分类后旧 flavor 懒重建 | [MAINT](../apps/web/src/features/ai/agent/maintenance.ts) [RUNTIME](../packages/agent/src/runtime/runtime.ts) [COREVENTS](../packages/core/src/events.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) | 新增盘点 |
 | <a id="MEM10"></a>MEM10 | 完成章节摘要、人物/概念图生成与补齐 | 实装 | **自动**：digestBook/digestBookCatchUp + idle<br>[设计] 自动任务+状态/重试 | **未接**：无正式入口<br>[设计] 图谱任务查询/候选提供 | 阅读后 catch-up；空闲维护 | 没有公开任务进度/取消/重建入口；不能说只有函数没调用 | [MAINT](../apps/web/src/features/ai/agent/maintenance.ts) [RUNTIME](../packages/agent/src/runtime/runtime.ts) [GRAPHP](../apps/web/src/features/ai/agent/ports/book-memory-port.ts) | M02 |
-| <a id="MEM11"></a>MEM11 | 检索书内人物/关系/概念图 | 实装 | **接通**：query_book_graph<br>[设计] 有 fence 的查询工具 | **未接**：无正式入口<br>[设计] book memory 只读领域 | Agent | 插件缺读图谱领域；原始 chapterDigests 列表不是完整安全查询 | [GRAPHTOOLS](../packages/agent/src/tools/graph-tools.ts) [GRAPHP](../apps/web/src/features/ai/agent/ports/book-memory-port.ts) [API](../packages/plugin-types/src/index.ts) | M02 |
+| <a id="MEM11"></a>MEM11 | 检索书内人物/关系/概念图 | 实装 | **部分**：query_book_graph：共享先过滤再合并查询<br>[设计] 有 fence 和版本来源的查询工具 | **部分**：memory 1.0 queries.bookGraph；memory:read<br>[设计] book memory 只读领域 | Agent；Memory Desk 0.1 | 查询 overview、1–8 个至多 256 字符名称或非负安全整数 chapterIndex（互斥）；200 实体/profile、每 profile 40 关系，截断可判定，章节含已有 chapterHref。先按 fence/当前 flavor 过滤再合并，超前别名/备注/关系不污染已读图；未知位置 unavailable，不存在/不可见章节同一 miss。插件未读完叙事及未分类书依 live ready href 或非当前书保存 href 与现有正文目录求边界，loading 不回退保存位置；不触发文本准备/digest。说明性/已读完书允许全图，旧 flavor 排除。Agent 书内沿用回合 fence/可信剧透授权，global/cross-book 保留既有全图政策；修复元数据失败被吞后跳过保护。Memory Desk 搜索/实体/章节/来源导航复核最新边界，等实际 ready 才关闭；读取失败保留旧页并本地化报错，SQL 故障/恢复与真实 FB2 已验。chapterHref 没有内容 hash，非版本化 ReadingLocation；旧摘要与替换原文的一致性、全部 prompt 消费者的 flavor、细粒度授权/观察与全格式/跨平台仍未闭合，双端保留部分。 | [GRAPHTOOLS](../packages/agent/src/tools/graph-tools.ts) [GRAPHP](../apps/web/src/features/ai/agent/ports/book-memory-port.ts) [API](../packages/plugin-types/src/index.ts) [MEMORYDOMAIN](../apps/web/src/domain/memory.ts) [MEMORYBOUNDARY](../apps/web/src/domain/book-memory-boundary.ts) [GRAPHQUERY](../packages/agent/src/memory/book-graph.ts) [MEMORYDESK](../plugins/memory-desk/src/graph.ts) [MEMORYDOMAINPROOF](../docs/evidence/memory-domain-2026-09-10.json) | M02 |
 | <a id="MEM12"></a>MEM12 | 跨对话 insights 与滚动摘要 | 实装 | **接通**：get_conversation_insights[全局]；rolling summary 自动<br>[设计] 检索工具+自动摘要 | **部分**：可读 transcript，无 insights/summary 正式 API<br>[设计] 有来源的只读查询 | 全局 Agent；长对话 | 不能将可重读对话当作已有相同摘要/洞见 | [CHATTOOLS](../packages/agent/src/tools/conversation-tools.ts) [THREAD](../packages/agent/src/runtime/thread.ts) [CHATPORT](../apps/web/src/features/ai/agent/ports/conversation-port.ts) | 新增盘点 |
 | <a id="MEM13"></a>MEM13 | 可版本化导出 context bundle | 待建 | **未接**：无正式入口<br>[设计] 上下文包查询/导出工具 | **未接**：无正式入口<br>[设计] 上下文包资源服务 | 无正式 context bundle 产品能力 | 这是既定方向，不是已存在宿主能力；备份 JSON 不是 context bundle | [API](../packages/plugin-types/src/index.ts) [PORTS](../apps/web/src/features/ai/agent/ports/index.ts) [RUNTIME](../packages/agent/src/runtime/runtime.ts) [BACKUP](../apps/web/src/features/settings/lib/backup-io.ts) | M06 |
 
@@ -401,6 +401,7 @@
 | Listening Desk | 模式选择/配置、单元步进/返回、朗读、历史、控制层与四面板（0.9） | 消费 reading 域与 UI 1.1 reader 服务；通用 get_reader_panels / set_reader_panel，不重复注册模型工具 | 按需刷新 UI；不冒充实时订阅视图 |
 | Reading Goals | 书内目标、上下文/记忆候选、宿主记忆开关 | 自动上下文与候选管线；通用 settings 操作开关 | 无专属目标编辑工具；非 release 内置；候选公共回执仍缺 |
 | Workspace Profiles | 七路径工作区预设的保存、列表、应用与删除 | workspace_profiles；global/book，保存/应用/删除仅按明确请求 | 不改变本书覆盖；无网络/密钥/书库写权限；非内置，安装升级和跨平台未验 |
+| Memory Desk | 个人/跨书/本书记忆检索、受边界保护的实体图谱与来源导航 | 同源 search_memory / query_book_graph；无新增专属工具 | memory:read 非按书授权；无观察与来源版本校验；非内置 |
 | WebDAV Sync | 密文 transport | 无专属工具；非敏感设置可改 | 连接/断开/同步状态，必须使用宿主控制面 |
 
 [代码] Reading Goals 同时注册 agentContextProviders 与 memoryCandidateProviders：每轮按请求书籍提供私有阅读目标，用户选择后提出书内偏好；实际宿主裁决、入库与 buildMemory 取消已在隔离 Tauri 验证。Dictionary 提供检索贡献，运行时会生成一个额外 retrieve 工具。具体带命名空间的 8 个插件 Agent 入口在库存表中列出。
@@ -411,9 +412,9 @@
 
 - Agent global：49 个。
 - Agent book：41 个。
-- Plugin ctx：112 个。
+- Plugin ctx：114 个。
 - Plugin returned interface：25 个。
-- Capability domains：5 个。
+- Capability domains：6 个。
 - Capability contributions：14 个。
 - Capability services：8 个。
 - Capability schemas：3 个。
@@ -431,12 +432,12 @@
 - Domain subscription ANNOTATION_EVENTS：8 个。
 - Domain subscription CONVERSATION_EVENTS：4 个。
 - Feature owner：14 个。
-- First-party source plugin：13 个。
+- First-party source plugin：14 个。
 - Plugin Agent contribution：8 个。
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 112 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 114 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -615,6 +616,8 @@
 | `domains.conversations.queries.listThreads` | [AI01](#AI01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.conversations.queries.getThread` | [AI01](#AI01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.conversations.events.subscribe` | [CON07](#CON07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.memory.queries.search` | [MEM01](#MEM01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.memory.queries.bookGraph` | [MEM11](#MEM11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.storage.get` | [SYS01](#SYS01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.storage.set` | [SYS01](#SYS01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.storage.remove` | [SYS01](#SYS01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -694,6 +697,7 @@
 | `annotations` | [ANN01](#ANN01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `conversations` | [AI01](#AI01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `memory` | [MEM01](#MEM01) [MEM11](#MEM11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 
 ### Capability contributions
 
@@ -1181,6 +1185,7 @@
 | `jumper` | [TXT02](#TXT02) [TXT07](#TXT07) [READ06](#READ06) [EXT02](#EXT02) | [代码] 源码版本 0.2.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `library-desk` | [LIB01](#LIB01) [LIB05](#LIB05) [READ01](#READ01) [UI01](#UI01) [UI02](#UI02) [UI03](#UI03) [EXT02](#EXT02) [EXT03](#EXT03) [MORE05](#MORE05) | [代码] 源码版本 0.6.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `listening-desk` | [READ16](#READ16) [READ18](#READ18) [READ06](#READ06) [EXT02](#EXT02) [MORE03](#MORE03) | [代码] 源码版本 0.9.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `memory-desk` | [MEM01](#MEM01) [MEM11](#MEM11) [READ01](#READ01) [EXT02](#EXT02) [EXT05](#EXT05) | [代码] 源码版本 0.1.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `reading-goals` | [AI11](#AI11) [MEM03](#MEM03) [SET23](#SET23) [STAT02](#STAT02) [STAT05](#STAT05) [STAT03](#STAT03) [EXT07](#EXT07) [EXT02](#EXT02) [EXT05](#EXT05) [SYS01](#SYS01) | [代码] 源码版本 0.3.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `rss-reader` | [EXT10](#EXT10) | [代码] 源码版本 0.7.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `sentence-reader` | [READ15](#READ15) [READ16](#READ16) | [代码] 源码版本 1.1.0；源码存在不等于打包、安装、启用或模型可调用 |

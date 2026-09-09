@@ -39,4 +39,11 @@ describe("domain registry", () => {
     expect(DOMAIN_REGISTRY.reading.events).toContain("book.progressed");
     expect(DOMAIN_REGISTRY.reading.events).not.toContain("book.imported");
   });
+  test("memory requires its own read grant and has no public write grant", () => {
+    const denied = createActorDomainView("plugin:test", { library: "read" });
+    expect(denied.memory).toBeUndefined();
+    const granted = createActorDomainView("plugin:test", { memory: "read" });
+    expect(Object.keys(granted.memory!.queries)).toEqual(["search", "bookGraph"]);
+    expect(granted.memory!.commands).toBeUndefined();
+  });
 });

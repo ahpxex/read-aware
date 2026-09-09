@@ -1,0 +1,56 @@
+{
+  "date": "2026-09-10",
+  "environment": { "runtime": "Tauri macOS debug", "appIdentifier": "com.readaware.app.capability-e2e", "frontendPort": 5184, "bridgePort": 9224, "formalDataTouched": false },
+  "contract": { "domain": "memory 1.0", "permission": "memory:read", "plugin": "Memory Desk 0.1.0", "rows": ["MEM01", "MEM11"], "methods": ["queries.search", "queries.bookGraph"], "agent": "Existing search_memory shares the storage port/normalizer; query_book_graph shares the pure pre-filtered graph query, retaining its trusted turn/global policy." },
+  "observations": [
+    { "case": "Real Worker authorization", "result": "No-grant Worker reported memory=false; memory:read-only Worker reported memory=true, commands=false. Query authority is independent of library access. Caller confirmSpoiler=true rejected memory/invalid-query." },
+    { "case": "Pre-merge spoiler filter", "result": "Synthetic FB2 has Ada in chapter 0, Ben and an Ada-knows-Ben edge in chapter 1, Hidden with alias Ada and a secret note in chapter 2. With saved position at chapter 2, plugin and book Agent returned exactly Ada/Ben, 2 digests, range [0,1], 1 edge. Hidden alias/note did not contaminate the graph. Requested hidden chapter returned generic miss." },
+    { "case": "Actor policy is explicit", "result": "Book Agent used trusted fixture fence 2; global Agent retained the existing 3-digest unrestricted policy. Plugin single-book memory filter returned one book memory; existing Agent book search included user/global/book and returned all three owned memories. This does not prove per-book authorization or spoiler fencing of MemoryRecord content." },
+    { "case": "Compiled plugin composition", "result": "Memory Desk Books > owned book > Chapter graph showed Ada/Ben, entity detail showed provenance chapters, and Chapter 1 showed summary/entities. Refresh used the public memory query, source navigation rechecked visibility and waited for reader ready before closing." },
+    { "case": "Real SQLite read fault", "result": "Temporarily renamed chapter_digests to capability_memory_held_digests in the isolated DB; Worker read rejected db/error. Actual compiled plugin Refresh retained the old chapter detail and showed one localized 'The local database ran into a problem.' notice without raw SQL. A finally block restored the table; retry succeeded. The temporary table was absent after restoration." },
+    { "case": "Live reader fence and flavor", "result": "Open source reached actual FB2 href 0 with versioned reading CFI and closed the plugin dialog. Subsequent graph was empty at fence 0 instead of using later saved progress. Reclassification to expository withheld old narrative-flavor digests for both actors; narrative restored. No digest generation or model inference was performed." },
+    { "case": "Duplicate menu label diagnosis", "result": "Recheck before probe activation showed one installed memory-desk reader action. Probe activation added a distinct capability-memory-domain-desk reader action with the same title. Cleanup removed only fixture contributions; installed memory-desk kept exactly one reader and one shelf action. Not duplicate rendering of one registration." },
+    { "case": "Independent repeat", "result": "A new owned FB2 and three memories repeated permission denial/grant, rejected spoiler flag, hidden chapter miss and identical book-Agent/Worker overview. Compiled Personal memory UI displayed only the new user-scope evidence. Fixture cleanup returned ownedBooks=0, contributions=0." }
+  ],
+  "unitEvidence": [
+    "Invalid queries, copied inputs, retired late results and saved closures, storage failures, live/loading/persisted/unknown positions and finished/expository policies are covered by domain tests.",
+    "Pure graph tests cover hidden aliases/notes, generic miss, flavor mismatch, chapter result isolation, overlapping entity queries and 200-entity/40-edge limits.",
+    "Agent metadata failure propagates instead of swallowing an exception and skipping spoiler protection.",
+    "Memory Desk tests cover explicit scopes, 40-book page clamping, chapter form validation, provenance recheck, missing href, errors, overview/profile truncation and eight locales."
+  ],
+  "screenshotsInspected": ["/tmp/memory-domain-overview-1200.png", "/tmp/memory-domain-chapter-800.png", "/tmp/memory-domain-source-800.png", "/tmp/memory-domain-recheck-personal.png"],
+  "captureBoundary": "Initial three captures show graph, retained detail/localized read failure and actual FB2 text. No horizontal overflow at 800. Repeat personal screenshot captured loading, not the final result; final personal-memory success is supported by later DOM text, not that image.",
+  "cleanup": {
+    "ownedBookIds": ["8e70d2b7-9a9a-4179-a8b6-beb08d4823ad", "d5aaf769-99b1-4d08-ab5e-b4395650c005", "b035e20b-c4d5-44a8-9990-be6777af5d91"],
+    "ownedMemoryIds": ["4b7541df-d286-44a9-a9a6-0e676f4d0a09", "383e4795-8682-4288-a132-27e82e03bdf9", "1fca652c-7139-40af-8cfb-f5a7405557c7", "f5680a69-13ca-4d00-b3b9-14367b2203ce", "5f831148-07e3-461b-bffa-ed4a67fb8661", "fff87806-32b6-457e-b7e2-fdad0d7d9d74"],
+    "ownedBooksAfter": 0, "contributionsAfter": 0, "memoryPolicy": "Forgotten through canonical events, not physically erased; isolated test event history remains.",
+    "originalBooksPreserved": ["07ef226e-1ebc-47b6-8dc9-d09109448d22", "8ced004f-efe3-408f-80a8-a0ebffec84d3"],
+    "sqlTableRestored": true,
+    "processes": [{ "group": 29267, "exitCode": 1 }, { "group": 32035, "exitCode": 1 }],
+    "unownedProcessGroupNotOperated": 89360,
+    "firstAttempt": "Vite optimized a new dynamic path import and reloaded during initial seed preparation. The first owned book was removed by exact ID/title check; it was not counted as successful E2E. Later stable runs succeeded."
+  },
+  "validation": {
+    "testTasks": "24/24 passed; web 901 tests, 9910 assertions, 155 files",
+    "typecheckTasks": "27/27 passed",
+    "build": "Frontend production build and explicit Memory Desk build passed, including the overview truncation presentation; final commands all terminated successfully.",
+    "inventory": { "rows": 243, "entries": 678, "modelUnits": 30, "catalog": 31, "baseline": 129, "scenarios": 32 },
+    "documents": {
+      "pages": ["host-capability-matrix", "host-capability-model", "plugin-system"],
+      "viewports": ["1440x1000", "1024x768", "390x844"],
+      "screenshotsInspected": true,
+      "search": { "memory": [7, 3, 4], "记忆": [17, 7, 3], "targetRows": ["MEM01", "MEM11", "D6"], "escapeClears": true },
+      "drawerAndTheme": "Matrix/model mobile drawer toggled main.inert; dark/light class and saved preference persisted across reload/navigation. Plugin-system has neither control.",
+      "audit": "No document horizontal overflow, duplicate IDs, broken fragment anchors, unnamed buttons or browser errors; observed CDN responses were 200. No diagrams added.",
+      "browserClosed": true,
+      "boundary": "Documentation verification is not product runtime verification."
+    }
+  },
+  "boundaries": [
+    "memory:read grants all memory scopes; query filtering is not per-book/field authority. No memory writes or observers are exposed.",
+    "Search has a 100-result limit without cursor/exhaustion, graph 200 entities and 40 edges/profile; neither proves general byte-bounded chapter payloads or full large-data UX.",
+    "chapterHref is not content-versioned. Visibility recheck does not validate old digests against replaced source bytes. Agent prompt assembly is a separate consumer not proved flavor-consistent here.",
+    "Plugin graph policy uses current/persisted reading position; Agent global/cross-book policy intentionally remains different. Runtime lifecycle tests discard late replies, not physically cancel SQLite.",
+    "No packaged, Windows/Linux, all-format, full consent upgrade, autonomous inference, long-running concurrency or complete privacy campaign was performed. Native bridge/version, startup WebView and build chunk warnings remain."
+  ]
+}

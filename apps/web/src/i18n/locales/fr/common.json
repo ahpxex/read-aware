@@ -12,6 +12,7 @@
     "copied": "Copié"
   },
   "errors": {
+    "memoryInvalidQuery": "Choisissez des portées de mémoire, des noms ou un numéro de chapitre valides.",
     "settingsObserverLimit": "Trop d'abonnements aux paramètres sont actifs.",
     "settingsUnavailable": "Impossible de lire les paramètres. Réessayez.",
     "workspaceInvalid": "La destination ou la sélection est invalide.",

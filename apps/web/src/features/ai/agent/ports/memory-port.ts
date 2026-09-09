@@ -6,6 +6,7 @@
  * （docs/data-model.md：consolidation as events）。
  */
 import { matchesMemoryQuery, type MemoryPort, type MemoryRecord } from "@read-aware/agent";
+import { normalizeMemoryQuery } from "@read-aware/core";
 import { commitDomainEvents } from "../../../../platform/domain-events";
 import { getMemoryRow, listAllMemoryRows } from "./memory-store";
 
@@ -23,13 +24,14 @@ function eventScope(scope: MemoryRecord["scope"]): {
 export function createMemoryPort(): MemoryPort {
   return {
     searchMemories: async (filter) => {
-      const scopes = new Set<string>(filter.scopes);
+      const query = normalizeMemoryQuery(filter);
+      const scopes = new Set<string>(query.scopes);
       return (await listAllMemoryRows())
         .filter(
           (memory) =>
             isActive(memory) &&
             scopes.has(memory.scope) &&
-            (!filter.query || matchesMemoryQuery(memory.content, filter.query)),
+            (!query.query || matchesMemoryQuery(memory.content, query.query)),
         )
         .sort(
           (a, b) =>
@@ -37,7 +39,7 @@ export function createMemoryPort(): MemoryPort {
             b.importance - a.importance ||
             b.updatedAt.localeCompare(a.updatedAt),
         )
-        .slice(0, filter.limit ?? 50);
+        .slice(0, query.limit);
     },
     listMemories: async () => (await listAllMemoryRows()).filter(isActive),
     saveMemory: async (input) => {

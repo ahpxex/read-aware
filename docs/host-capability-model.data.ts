@@ -43,7 +43,7 @@ export const units: Unit[] = [
     "沿用 get_settings/update_settings，不为主题/字体/每个布尔字段创建模型工具。敏感配置由 S3 打开宿主设置流程，不把 key 放进提示词。",
     "自有字段与跨插件路径授权分开；动态 option 来自 C1；设置选项变化不能自动执行播放、安装、连接、付款。",
     "明确 null 是值还是 inherit；reset override 不是写默认值；all-books 不等于清覆盖。更新通道 device-local，不被漫游；面板位置/拖动坐标/最后关闭提示不是必须向 Agent 暴露的偏好。",
-    "所有可写路径有生产效果消费者；九个现有无效果设置先接线或禁用。localOnly 已约束宿主模型调用并取消在途请求，但不约束任意插件 HTTP/TTS/同步，仍需完整隐私边界。切字体、reset、本书覆盖、跨设备更新与失败回滚均验证实际 UI/行为。"),
+    "所有可写路径有生产效果消费者；八个现有无效果设置先接线或禁用。buildMemory 已约束宿主记忆构建，关闭取消在途/排队任务，保留聊天与旧记忆读取；Reading Goals 实际贡献上下文和候选。localOnly 已约束宿主模型调用并取消在途请求，但不约束任意插件 HTTP/TTS/同步，仍需完整隐私边界。切字体、reset、本书覆盖、跨设备更新与失败回滚均验证实际 UI/行为。"),
   unit("D6", "Domain", "memory（目标新增）", "记忆、画像与书内知识的受限读模型", "MEM01-11 MEM13", "",
     "统一 memory/profile/book-memory 现有端口的授权读模型：检索、字段来源、章节摘要/人物概念图、任务状态；记住用户确认的事实、纠错/遗忘反馈、分类纠正和重建请求交给宿主业务命令。当前公共 domain catalog 没有 memory。",
     "保留 search_memory/remember/query_book_graph 与自动抽取、巩固、digest；不把内部端口函数存在计作模型工具或成熟产品入口。",
@@ -204,7 +204,7 @@ export const refinements = [
   ["R5", "拒绝重复 API", "AI03 SYS08", "聊天复制 = conversations 读取 + clipboard；retry/clear 不是业务撤销，不删除已完成的工具副作用。draft/发送仍需用户意图与回合 generation。"],
   ["R6", "拒绝虚构宿主能力", "LIB06", "ReaderWorkspace 的重新导入按钮当前调用 library.openImportPicker，不能据此要求/宣称已有原文件原子替换引擎。"],
   ["R7", "收回不必要的暴露", "READ11 MORE02", "面板开关/焦点与用户选择集可以语义化；toc/chat 像素宽度和浮动控制 x/y 由宿主布局管理，不要求每项成为 Agent 工具或 settings 字段。"],
-  ["R8", "校正库存口径", "EXT11", "当前源码有九个第一方插件，Rust BUNDLED 编译清单有六个；WebDAV、Annotation Desk、Listening Desk 不在内置清单。源码、编译内置与用户安装态分开枚举，以矩阵生成库存反查，不沿用旧的六源码/五内置数字。"],
+  ["R8", "校正库存口径", "EXT11", "当前源码有十个第一方插件，Rust BUNDLED 编译清单有六个；WebDAV、Annotation Desk、Listening Desk、Reading Goals 不在内置清单。Reading Goals 实际提供书内上下文和记忆候选，并消费 buildMemory 实时设置；这不是新增宿主域或专属模型工具。源码、编译内置与用户安装态分开枚举，以矩阵生成库存反查，不沿用旧的六源码/五内置数字。"],
   ["R9", "限制基础设施规模", "CON06-08 EXT06 MORE06", "通用耐久队列、可重放事件总线、全局事务、任意跨插件 RPC、富文本编辑器都不是当前必补；选择快照+revision、有限任务、业务批次、已声明 provider、场景所需声明 UI。"],
   ["R10", "细化设置完成语义", "CFG01 CFG10", "settings 1.1 的单个已验证命令现在等待本地 SQLite KV 批次提交；失败整体回滚且不广播成功，跨 actor 命令在前序结算后读快照。结果按授权过滤；不是远端漫游、系统设置效果、密钥或 reading.configureMode 的持久完成证明。"],
 ] as const;

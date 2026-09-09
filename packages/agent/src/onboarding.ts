@@ -7,6 +7,7 @@
  * Onboarding 只是种子，不是画像的真相来源 —— 之后靠渐进式画像持续更新。
  */
 import type { NewMemoryInput, RuntimeDeps } from "./ports";
+import { runMemoryBuild } from "./memory/build-policy";
 
 export interface OnboardingAnswers {
   /** 阅读目标，如"系统学习经济史" */
@@ -29,24 +30,26 @@ export function buildProfileSummary(answers: OnboardingAnswers): string {
 }
 
 export async function applyOnboarding(
-  deps: Pick<RuntimeDeps, "profile" | "memory">,
+  deps: Pick<RuntimeDeps, "profile" | "memory" | "memoryPolicy">,
   answers: OnboardingAnswers,
 ): Promise<void> {
-  const summary = buildProfileSummary(answers);
-  if (summary) await deps.profile.putProfileSummary(summary);
+  return runMemoryBuild(deps, async operation => {
+    const summary = buildProfileSummary(answers);
+    if (summary) await operation.guard(deps.profile.putProfileSummary)(summary);
 
-  const seeds: Array<Pick<NewMemoryInput, "kind" | "content">> = [];
-  if (answers.goals) seeds.push({ kind: "preference", content: `阅读目标：${answers.goals}` });
-  if (answers.explanationDepth) {
-    seeds.push({ kind: "preference", content: `讲解偏好：${answers.explanationDepth}` });
-  }
-  if (answers.background) seeds.push({ kind: "fact", content: `读者背景：${answers.background}` });
-  for (const seed of seeds) {
-    await deps.memory.saveMemory({
-      ...seed,
-      scope: "user",
-      origin: "onboarding",
-      sourceThreadKey: "global",
-    });
-  }
+    const seeds: Array<Pick<NewMemoryInput, "kind" | "content">> = [];
+    if (answers.goals) seeds.push({ kind: "preference", content: `阅读目标：${answers.goals}` });
+    if (answers.explanationDepth) {
+      seeds.push({ kind: "preference", content: `讲解偏好：${answers.explanationDepth}` });
+    }
+    if (answers.background) seeds.push({ kind: "fact", content: `读者背景：${answers.background}` });
+    for (const seed of seeds) {
+      await operation.guard(deps.memory.saveMemory)({
+        ...seed,
+        scope: "user",
+        origin: "onboarding",
+        sourceThreadKey: "global",
+      });
+    }
+  });
 }

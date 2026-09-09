@@ -5,7 +5,7 @@
  * 运行时只*读*转录做水化与原话检索，写摘要（insights）归自己。
  */
 import { searchTurnRecords, type ConversationPort, type TurnRecord } from "@read-aware/agent";
-import { localKV } from "../../../../platform/local-store";
+import { afterLocalKVWrites, localKV } from "../../../../platform/local-store";
 import {
   GLOBAL_CONVERSATION_ID,
   isGlobalThreadId,
@@ -48,17 +48,20 @@ function readInsights(): Record<string, string> {
   try {
     return JSON.parse(localKV.getItem(INSIGHTS_KEY) ?? "{}") as Record<string, string>;
   } catch {
+    // Old or malformed cached summaries can be rebuilt from retained transcripts.
     return {};
   }
 }
 
-export function clearStoredConversationInsights(threadKey: string): void {
-  const insights = readInsights();
-  let changed = delete insights[threadKey];
-  if (threadKey === `global:${GLOBAL_CONVERSATION_ID}`) {
-    changed = delete insights.global || changed;
-  }
-  if (changed) localKV.setItem(INSIGHTS_KEY, JSON.stringify(insights));
+export function clearStoredConversationInsights(threadKey: string): Promise<void> {
+  return afterLocalKVWrites(async () => {
+    const insights = readInsights();
+    let changed = delete insights[threadKey];
+    if (threadKey === `global:${GLOBAL_CONVERSATION_ID}`) {
+      changed = delete insights.global || changed;
+    }
+    if (changed) await localKV.setItemAsync(INSIGHTS_KEY, JSON.stringify(insights));
+  });
 }
 
 export function createConversationPort(): ConversationPort {
@@ -88,13 +91,11 @@ export function createConversationPort(): ConversationPort {
         (threadKey === `global:${GLOBAL_CONVERSATION_ID}` ? insights.global : undefined)
       );
     },
-    putInsights: async (threadKey, summary) => {
+    putInsights: (threadKey, summary) => afterLocalKVWrites(async () => {
       const insights = readInsights();
       insights[threadKey] = summary;
-      localKV.setItem(INSIGHTS_KEY, JSON.stringify(insights));
-    },
-    clearInsights: async (threadKey) => {
-      clearStoredConversationInsights(threadKey);
-    },
+      await localKV.setItemAsync(INSIGHTS_KEY, JSON.stringify(insights));
+    }),
+    clearInsights: clearStoredConversationInsights,
   };
 }

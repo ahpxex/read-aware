@@ -88,6 +88,6 @@ export async function discardAgentThread(kind: "book" | "global", id: string): P
   if (cached) {
     await cached.runtime.discardThread(scope);
   } else {
-    clearStoredConversationInsights(threadScopeKey(scope));
+    await clearStoredConversationInsights(threadScopeKey(scope));
   }
 }

@@ -452,6 +452,8 @@ export interface ExternalMemoryCandidateRequest {
 }
 
 export interface RuntimeDeps {
+  /** Live host preference; disabled blocks derived-memory work, not stored-data reads. */
+  memoryPolicy?: import("./memory/build-policy").MemoryBuildPolicy;
   library: LibraryPort;
   annotations: AnnotationsPort;
   reader: ReaderPort;

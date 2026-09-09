@@ -14,6 +14,10 @@ export const cap = (id: string, name: string, host: HostState, agent: Actor, plu
 
 export const sources: Record<string, string> = {
   API: "packages/plugin-types/src/index.ts",
+  MEMORYPOLICY: "packages/agent/src/memory/build-policy.ts",
+  HOSTMEMORYPOLICY: "apps/web/src/features/ai/agent/memory-policy.ts",
+  MEMORYPOLICYPROOF: "docs/evidence/memory-build-policy-2026-09-09.json",
+  READINGGOALS: "plugins/reading-goals/src/index.ts",
   CTX: "apps/web/src/features/plugins/runtime/plugin-context.ts",
   WIRE: "apps/web/src/features/plugins/runtime/plugin-worker-host.ts",
   WORKER: "apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts",
@@ -301,13 +305,13 @@ groups.push(
     cap("AI08", "书内 scope/游标/选区自动 grounding", "实装", actor("自动", "thread + grounding-context", "自动且有来源的上下文"), actor("部分", "context/retrieval provider 能补充，不能覆写核心", "受限上下文贡献"), ["THREAD","GROUND","EXTOOLS"], "书内 Agent", "自动注入不等于独立工具；不允许插件注入更高优先级系统策略"),
     cap("AI09", "剧透边界、请求允许超前内容", "实装", actor("接通", "read_chapter/search_book_text/query_book_graph + 批准", "宿主策略"), actor("部分", "book text domain 无同样的模型剧透审批", "数据授权与 Agent 剧透策略分开"), ["SPOILER","TEXTTOOLS","GRAPHTOOLS","LIB"], "书内 Agent", "访问权限不是剧透许可；插件提供上下文需要 provenance/fence 政策"),
     cap("AI10", "注册供模型使用的插件工具", "实装", actor("扩展", "extraTools(scope) 进入真实 registry", "受 scope/授权控制工具"), actor("接通", "agentTools.register", "工具贡献"), ["REGISTRY","PORTS","EXTOOLS","DICTTOOLS","RSSTOOLS"], "Dictionary 3 个；RSS 3 个", "插件安装/启用后才存在；不能将拥有插件 UI 视为已经有 Agent 工具"),
-    cap("AI11", "每轮上下文 provider", "实装", actor("自动", "plugin context provider 注入线程", "受预算/来源约束消费"), actor("接通", "agentContextProviders.register", "上下文贡献"), ["EXTOOLS","THREAD","API"], "宿主已接线；本仓六插件未注册该类", "无消费者是 adoption 缺口，不是 host 未实现"),
+    cap("AI11", "每轮上下文 provider", "实装", actor("自动", "plugin context provider 注入线程", "受预算/来源约束消费"), actor("接通", "agentContextProviders.register", "上下文贡献"), ["EXTOOLS","THREAD","API","READINGGOALS","MEMORYPOLICYPROOF"], "Reading Goals 按请求书籍 scope 提供阅读目标", "真实 Worker 到受控推理服务已验；没有专属目标编辑工具，不等于任意上下文语义已验收"),
     cap("AI12", "按需插件检索 provider", "实装", actor("扩展", "自动生成 retrieve 工具", "按需有界检索工具"), actor("接通", "agentRetrievalProviders.register", "检索贡献"), ["EXTOOLS","DICTTOOLS","REGISTRY"], "Dictionary saved-vocabulary", "名称隔离/限量由 adapter 控制；查询结果不是可信指令"),
   ] },
   { name: "长期记忆、画像与图谱", rows: [
     cap("MEM01", "查询长期记忆", "实装", actor("接通", "search_memory", "检索工具"), absent("受 scope 授权的只读 memory domain"), ["MEMTOOLS","MEMORYPORT","PORTS","API"], "Agent", "没有 plugin memory domain；不能用 conversation 查询冒充记忆读取"),
     cap("MEM02", "显式记住事实/偏好", "实装", actor("接通", "remember", "有来源的写工具"), actor("部分", "只能贡献 memory candidates", "候选提议，由宿主裁决"), ["MEMTOOLS","MEMORYPORT","API"], "Agent", "不开放：插件直接写记忆投影或伪造强化次数"),
-    cap("MEM03", "轮后抽取/去重/强化记忆", "实装", actor("自动", "thread 轮后抽取与 reinforce", "自动管线"), actor("部分", "memoryCandidateProviders.propose", "候选贡献"), ["THREAD","MEMORYPORT","API"], "Agent 后台；本仓无候选 provider 消费者", "自动管线已实装；buildMemory 开关未接消费，见逐项设置"),
+    cap("MEM03", "轮后抽取/去重/强化记忆", "实装", actor("自动", "thread 轮后抽取与 reinforce", "自动管线"), actor("部分", "memoryCandidateProviders.propose", "候选贡献"), ["THREAD","MEMORYPORT","API","MEMORYPOLICY","READINGGOALS","MEMORYPOLICYPROOF"], "Agent 后台；Reading Goals 用户选择后提议书内偏好", "buildMemory 已约束抽取/强化/候选/摘要/巩固/digest；关闭取消在途和排队任务，重开只允许新任务。候选只经宿主裁决写入，不开放投影写；候选接受/拒绝的公共可观察回执仍缺，故插件保持部分。保留旧记忆和聊天；提交前已派发写不承诺撤销。"),
     cap("MEM04", "记忆巩固、修订/替代/遗忘", "实装", actor("自动", "maintenance → consolidateIfNeeded → applyMemoryChanges", "自动管线+受控反馈工具"), absent("候选/反馈接口，不直接改投影"), ["MAINT","CONSOLIDATE","MEMORYPORT","APPLY"], "空闲维护", "不能沿用旧说明声称全部 consolidation 未实现；模型无独立遗忘工具"),
     cap("MEM05", "用户反馈记忆质量/纠错", "部分", actor("内部", "memory.feedback 事件/投影，未注册工具", "受控反馈工具"), absent("受控反馈命令"), ["COREVENTS","APPLY","MEMTOOLS"], "历史 genesis 回填；未见当前反馈 UI 入口", "事件与投影存在不代表用户/Agent 可以触发；需来源与撤销语义"),
     cap("MEM06", "读取用户画像并注入上下文", "实装", actor("自动", "ProfilePort.read → thread prompt", "自动上下文/受控查询"), absent("授权字段画像查询"), ["PROFILEPORT","THREAD","PORTS"], "Agent system prompt", "画像当前存 localKV；不是 profile.updated 的成熟投影"),
@@ -408,7 +412,7 @@ export const ineffectiveSettings = new Set([
   "general.launchAtStartup", "general.fileAssociations",
   "ai.preferences.features.explainSelection", "ai.preferences.features.defineTerm",
   "ai.preferences.features.translate", "ai.preferences.features.summarizeChapter",
-  "ai.preferences.buildMemory", "ai.preferences.sendHighlightedText",
+  "ai.preferences.sendHighlightedText",
   "ai.preferences.sendSurroundingContext",
 ]);
 export const readOnlySettings = new Set([
@@ -418,11 +422,13 @@ export const readOnlySettings = new Set([
 groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.length} 个具体路径）`, rows: staticSettingPaths.map((path, i) => {
   const ineffective = ineffectiveSettings.has(path);
   const localOnly = path === "ai.preferences.localOnly";
+  const buildMemory = path === "ai.preferences.buildMemory";
   const partial = ineffective || localOnly;
   const readonly = readOnlySettings.has(path);
   const effect = ineffective
     ? "保存值有实现；全生产源码扫描未找到对应效果消费者。不能算行为已实现或端到端覆盖。"
     : localOnly ? "宿主模型调用已有实时执行策略：Agent smart/fast、后台补全、Worker llm.ask 普通/结构化/流式及连接测试同源拒绝 ai/local-only；进行中调用取消，迟到结果/重试被抑制，恢复只允许新调用。当前无本地模型后端，Custom loopback 也拒绝。隔离 macOS debug 双端/取消/持久失败回滚/原生连接 UI 已验；任意插件 HTTP、TTS、同步不受此策略约束，完整隐私边界与 packaged/跨平台仍未完成，保留部分。"
+    : buildMemory ? "实时控制宿主记忆构建：显式 remember、轮后抽取/强化/插件候选/旧历史领养/摘要、巩固、章节 digest/自动叙事分类及 onboarding seed 均受约束。关闭返回 ai/memory-disabled，取消在途模型调用和已排队任务，重开不复活旧任务。普通聊天/历史、旧记忆检索、用户删除和插件自有目标保存不受影响；重开后的新任务可处理保留历史。摘要写入/清除等待持久回执；已派发底层写不保证撤销。隔离 macOS debug 双端、真实 UI 聊天、候选入库、取消和 SQLite 失败已验；packaged/跨平台未验。"
     : readonly ? "只读状态，不返回密钥/端点凭据；不等于配置命令。"
       : path === "general.autoUpdate" ? "实际消费者只控制自动检查，不表示无批准自动安装。"
         : path.startsWith("menus.") ? "只影响菜单排列/显示，不调用菜单动作。"
@@ -431,6 +437,7 @@ groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.len
     actor(partial ? "部分" : "接通", readonly ? "get_settings" : "get_settings/update_settings", "类型化设置工具"),
     actor(partial ? "部分" : "接通", readonly ? "settings discover/read（需路径授权）" : "settings discover/read/update（需路径授权）", "类型化设置领域"),
     ["SETTINGS","SETDOMAIN","SETTOOLS", ...(localOnly ? ["AIPREFS", "INFERENCEPOLICY", "HOSTINFERENCEPOLICY", "INFERENCEEVIDENCE"]
+      : buildMemory ? ["MEMORYPOLICY", "HOSTMEMORYPOLICY", "READINGGOALS", "MEMORYPOLICYPROOF"]
       : path.startsWith("appearance.contentTypography.") ? ["TYPOGRAPHY", "TYPOGRAPHYEFFECT"]
       : path === "annotations.defaultColor" ? ["MARKPREFS", "TEXTACTIONS"]
         : path === "general.updateChannel" ? ["UPDATECHANNEL", "ABOUT"]

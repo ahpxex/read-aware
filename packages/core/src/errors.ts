@@ -59,6 +59,7 @@ export const ERR_SYNC_CHECKPOINT_PRECONDITION = "sync/checkpoint-precondition";
 /** AI provider failure codes (classified in @read-aware/agent). */
 export const ERR_AI_NOT_CONFIGURED = "ai/not-configured";
 export const ERR_AI_LOCAL_ONLY = "ai/local-only";
+export const ERR_AI_MEMORY_DISABLED = "ai/memory-disabled";
 export const ERR_AI_AUTH = "ai/auth";
 export const ERR_AI_RATE_LIMITED = "ai/rate-limited";
 export const ERR_AI_QUOTA = "ai/quota";

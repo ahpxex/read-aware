@@ -11,7 +11,7 @@
 >
 > Concise human-facing version: [plugin-system.html](./plugin-system.html).
 
-> Audit guidance updated 2026-09-08: use the [unified capability model](./host-capability-model.md)
+> Audit guidance updated 2026-09-09: use the [unified capability model](./host-capability-model.md)
 > for target ownership, both actors, and explicit limits on infrastructure;
 > use the [current matrix](./host-capability-matrix.md) for actual wiring and
 > the [acceptance baseline](./plugin-capability-baseline.md) for GAP01–GAP18.
@@ -278,10 +278,47 @@ successful restoration. See [exact evidence](./evidence/inference-local-only-202
 
 [代码/边界] This is not a global network firewall: arbitrary granted plugin
 HTTP, TTS, sync, and other network services are not governed by this policy.
-`buildMemory`, `sendHighlightedText`, and `sendSurroundingContext` still lack
-their own execution consumers. SET27 therefore remains partial. Complete
+`sendHighlightedText` and `sendSurroundingContext` still lack
+their own execution consumers. SET26 therefore remains partial. Complete
 privacy-boundary coverage, packaged CSP and other desktop platforms are not
 verified by this change.
+
+### Host Memory Build Policy
+
+[代码] `ai.preferences.buildMemory` is a live host policy shared by Agent settings
+and exactly authorized plugin settings. Disabled means no new host-derived
+memory: explicit `remember`, onboarding seeds, extraction/reinforcement, plugin
+candidate promotion, legacy transcript adoption, rolling insights, consolidation
+(including decay), chapter digests and automatic narrativity classification.
+The runtime subscribes when work is queued, not when it finally starts. Disabling
+revokes queued and in-flight operations with `ai/memory-disabled`, aborts their
+model transport and suppresses late results; re-enabling permits only new work.
+Summary writes and clears await SQLite durability and propagate failures.
+
+[代码/边界] Ordinary chat, raw transcript persistence, existing-memory retrieval,
+annotations, user deletion and plugin-owned goal storage remain available. This
+is not erasure or a prohibition on processing retained history after re-enable.
+Already dispatched storage writes are not transactionally undone by cancellation;
+already invoked plugin providers may finish their own side effects, although the
+host stops waiting and cannot promote their late results. The policy does not
+make the host's unfinished profile/entity projections complete.
+
+[代码] Reading Goals is a practical composition of reader header/command views,
+book-scoped private durable storage, context and memory candidate contributions,
+and exact `ai.preferences.buildMemory` access. Context follows the request's book,
+not whichever book is currently open; memory suggestion is opt-in. Clear removes
+the private goal, not already promoted memories. Forms capture their target book
+and save goal and host policy independently. No dedicated Agent goal-editing tool
+is registered; no new host domain or plugin-ID branch was needed.
+
+[环境] The real Worker, native chat UI and controlled loopback inference verified
+goal context, candidate promotion, disabled memory with retained chat history,
+in-flight cancellation, no resurrection, fresh work after re-enable, and SQLite
+failures for goal/policy/insight writes. The source plugin is not release-bundled;
+marketplace install/restart, packaged CSP, remote inference semantics and other
+desktop platforms were not tested for this plugin. Narrow-window body scrolling
+exists; keyboard focus traversal and every off-screen control remain unverified.
+See [structured evidence](./evidence/memory-build-policy-2026-09-09.json).
 
 Plugin access is declared in `settingsAccess` with exact paths or explicit
 `section.*` groups. `discover`, `read`, and `write` are separate grants. An app
@@ -573,7 +610,9 @@ user configuration.
 
 ## 13. First-Party Coverage
 
-The current first-party plugins all use the registry-backed contract:
+The ten source plugins use the registry-backed contract. Rust currently bundles
+six; source presence is not installation or enablement. Theme Schedule is in the
+adjacent distribution repository, not an eleventh plugin in this checkout:
 
 | Plugin | Primary capabilities |
 | --- | --- |
@@ -584,6 +623,10 @@ The current first-party plugins all use the registry-backed contract:
 | Text to Speech | voice/options providers, storage, secrets, network, settings schema |
 | Theme Schedule | Settings domain, options/commands, storage/UI, committed schedule, settings schema |
 | WebDAV Sync | sync transport, storage, secrets, network, settings schema |
+| Jumper | reader header, navigation TOC, precise search, shared locations/history |
+| Annotation Desk | paged annotations, conditional edits, export, views |
+| Listening Desk | reading mode/provider control, unit navigation, playback/history |
+| Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs
 in their packages and registered capabilities.

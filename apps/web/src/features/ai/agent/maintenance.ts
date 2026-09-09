@@ -2,6 +2,7 @@ import type { Id } from "@read-aware/core";
 import { getAgentRuntime } from "./agent-runtime";
 import { createLogger } from "../../../platform/logger";
 import { listLibraryBooks } from "../../library/lib/library-db";
+import { memoryPolicy } from "./memory-policy";
 
 const log = createLogger("agent");
 
@@ -23,6 +24,7 @@ const catchUpInFlight = new Set<string>();
  * 同书去重；追平后的再次调用是一次纯读空转。
  */
 export function catchUpBookGraph(bookId: string, throughChapterHref?: string): void {
+  if (!memoryPolicy.enabled()) return;
   const runtime = getAgentRuntime();
   if (!runtime || catchUpInFlight.has(bookId)) return;
   catchUpInFlight.add(bookId);
@@ -55,14 +57,14 @@ export function startAgentMaintenance(): () => void {
   const hidden = () => document.visibilityState === "hidden";
   const run = async () => {
     cancelIdle = null;
-    if (stopped || hidden()) return;
+    if (stopped || hidden() || !memoryPolicy.enabled()) return;
     try {
       await getAgentRuntime()?.consolidateIfNeeded();
     } catch (error) {
       // Maintenance is retried on the next idle tick and must never disturb chat.
       log.warn("memory consolidation failed", error);
     }
-    if (stopped || hidden()) return;
+    if (stopped || hidden() || !memoryPolicy.enabled()) return;
     try {
       // 章节读毕提炼（book_memory 投影）：只碰最近打开的那本书——它的
       // 抽取缓存是热的；其余书轮到被打开时自然补齐。

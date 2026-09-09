@@ -8,7 +8,7 @@ export function createProfilePort(): ProfilePort {
   return {
     getProfileSummary: async () => localKV.getItem(PROFILE_KEY) ?? undefined,
     putProfileSummary: async (summary) => {
-      localKV.setItem(PROFILE_KEY, summary);
+      await localKV.setItemAsync(PROFILE_KEY, summary);
     },
   };
 }

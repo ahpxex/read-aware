@@ -5,6 +5,7 @@
 import type { ThreadChunk } from "../chunks";
 import { digestBookCatchUp, digestBookTick } from "../memory/graph-upkeep";
 import { runConsolidation, type ConsolidationReport } from "../memory/consolidation";
+import { runMemoryBuild } from "../memory/build-policy";
 import {
   accountCredential,
   createModelResolver,
@@ -263,6 +264,7 @@ export class AgentRuntime {
    * no-op LLM calls.
    */
   consolidateIfNeeded(): Promise<ConsolidationReport | null> {
+    if (this.options.deps.memoryPolicy?.enabled() === false) return Promise.resolve(null);
     return this.runConsolidation(false);
   }
 
@@ -275,14 +277,14 @@ export class AgentRuntime {
     bookId: Id,
     options?: { throughChapterHref?: string; maxChapters?: number },
   ): Promise<number> {
-    return digestBookTick({
-      deps: this.options.deps,
-      complete: this.completeFns.fast,
+    return runMemoryBuild(this.options.deps, operation => digestBookTick({
+      deps: operation.protect(this.options.deps),
+      complete: operation.complete(this.completeFns.fast),
       model: this.resolveModel("fast"),
       bookId,
       throughChapterHref: options?.throughChapterHref,
       maxChapters: options?.maxChapters,
-    });
+    }));
   }
 
   /**
@@ -298,16 +300,16 @@ export class AgentRuntime {
       onProgress?: (digestedSoFar: number) => void;
     },
   ): Promise<number> {
-    return digestBookCatchUp({
-      deps: this.options.deps,
-      complete: this.completeFns.fast,
+    return runMemoryBuild(this.options.deps, operation => digestBookCatchUp({
+      deps: operation.protect(this.options.deps),
+      complete: operation.complete(this.completeFns.fast),
       model: this.resolveModel("fast"),
       bookId,
       throughChapterHref: options?.throughChapterHref,
       concurrency: options?.concurrency,
-      signal: options?.signal,
-      onProgress: options?.onProgress,
-    });
+      signal: operation.signal,
+      onProgress: count => { operation.assertAllowed(); options?.onProgress?.(count); },
+    }), options?.signal);
   }
 
   private runConsolidation(force: boolean): Promise<ConsolidationReport | null> {
@@ -315,21 +317,21 @@ export class AgentRuntime {
     if (!force && this.memoryRevision === this.consolidatedRevision) {
       return Promise.resolve(null);
     }
-    this.consolidationWork = (async () => {
+    this.consolidationWork = runMemoryBuild(this.options.deps, async operation => {
       // Include every extraction queued before this idle pass. Writes that land
       // during the pass advance the revision and deliberately keep it dirty.
-      await this.flushBackgroundWork();
+      await operation.guard(() => this.flushBackgroundWork())();
       const revision = this.memoryRevision;
-      const report = await runConsolidation({
+      const report = await operation.guard(() => runConsolidation({
         // The pass's own merge/decay writes should not mark a second pass dirty.
         log: this.options.deps.log,
-        memory: this.options.deps.memory,
-        complete: this.completeFns.fast,
+        memory: operation.protect(this.options.deps).memory,
+        complete: operation.complete(this.completeFns.fast),
         model: this.resolveModel("fast"),
-      });
+      }))();
       if (this.memoryRevision === revision) this.consolidatedRevision = revision;
       return report;
-    })().finally(() => {
+    }).finally(() => {
       this.consolidationWork = null;
     });
     return this.consolidationWork;

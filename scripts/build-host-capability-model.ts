@@ -25,7 +25,7 @@ const conclusions = [
   "本文件是统一目标与取舍的入口；能力矩阵是当前接线事实，旧基线是验收条目与 GAP 证据。目标描述不能覆盖源码现状，原 GAP01–GAP18 没有因本轮文档关闭。",
 ];
 const priorities = [
-  ["P0", "真实效果与安全完成", "D5/S1/Q1–Q3", "修复/禁用九个无效果设置，并补 localOnly 的插件网络边界；写持久屏障、更新回滚、稳定错误、RPC 终态/配额、取消/撤权、过期结果和资源释放。安全缺口不能被丰富 API 掩盖。"],
+  ["P0", "真实效果与安全完成", "D5/S1/Q1–Q3", "修复/禁用八个无效果设置，并补 localOnly 的插件网络边界；写持久屏障、更新回滚、稳定错误、RPC 终态/配额、取消/撤权、过期结果和资源释放。安全缺口不能被丰富 API 掩盖。"],
   ["P1", "运行态闭合", "D1/D2/S3/V1", "统一 Location/Range、可定位 TOC/搜索、session 快照、导航完成和共享历史；然后接模式/朗读/临时强调与 UI。Jumper 作为组合验收，不把编号算法迁入宿主。"],
   ["P1", "已有行为对等接入", "D3–D6/S4/S9/S10", "补已有标注参数/ask 删除、聊天意图、真实设置字段、受权记忆读、资源选择/导出、同步状态和插件目录；不等于给模型开放每个底层方法。"],
   ["P2", "明确场景需要的扩展", "C1–C5/S8/V1", "补动态入口、计划可观察性、必要分页/树表格、类型化 provider 消费；词典/RSS 缺工具优先在插件补。无需求不建通用框架。"],
@@ -46,7 +46,7 @@ const body = `<section id="model"><h2>统一模型</h2><p>Agent 与插件共用�
 <section id="findings"><h2>深挖与收敛</h2>${refinements.map(([id, kind, refs, text]) => detail(id, `${kind} · ${text.split("；")[0].split("。")[0]}`, `<p>${esc(text)}</p><p><a href="./host-capability-matrix.html">现状证据：${esc(refs)}</a></p>`, `${kind} ${refs}`)).join("\n")}</section>
 <section id="scenarios"><h2>组合场景</h2>${scenarios.map(([name, refs, text], i) => detail(`scenario-${i}`, name, `<p>${esc(text)}</p><p>${refs.split(" ").map(id => `<a href="#${id}" data-unit-link>${id}</a>`).join(" · ")}</p>`, `${name} ${refs}`)).join("\n")}</section>
 <section id="priorities"><h2>缺口顺序</h2>${priorities.map(([p, name, refs, text], i) => detail(`priority-${i}`, `${p} · ${name}`, `<p>${esc(text)}</p><p>${esc(refs)}</p>`)).join("\n")}<p>先修效果、持久性和生命周期，再补运行态和对等入口。画像/实体投影、正式 context bundle 与完整备份是宿主独立工作，不是 Jumper 的前置条件。</p></section>
-<section id="boundaries"><h2>验证边界</h2><p>${rows.length} 条证据、30 个当前 catalog 成员、129 个旧验收项、32 个旧场景都有模型归属；不等于所有未知行为零遗漏。</p><p>本轮仅完成源码审计、文档与映射检查；未修改宿主能力或实现 Jumper。未验证真实 Tauri 全能力、打包 CSP、跨设备同步、外部服务和用户插件安装态。</p><p>原 GAP01–GAP18 仍未关闭。静态文档浏览器检查不能替代产品验收；固定 CDN 字体/图标资源需要网络。本页无 Mermaid 图。</p></section>`;
+<section id="boundaries"><h2>验证边界</h2><p>${rows.length} 条证据、30 个当前 catalog 成员、129 个旧验收项、32 个旧场景都有模型归属；不等于所有未知行为零遗漏。</p><p>已陆续实现共享能力和 Jumper 等组合插件，局部桌面证据见执行账本；尚未完成全能力 Tauri、完整打包 CSP、跨设备同步、外部服务和用户插件安装态验收。</p><p>原 GAP01–GAP18 仍未关闭。静态文档浏览器检查不能替代产品验收；固定 CDN 字体/图标资源需要网络。本页无 Mermaid 图。</p></section>`;
 const replacements: Record<string, string> = {
   TITLE: esc(title), STATUS: esc(status), DATE: date, BODY: body,
   NAV: sections.map(([id, label]) => `<a href="#${id}">${label}</a>`).join("\n"),

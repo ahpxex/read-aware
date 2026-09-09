@@ -11,6 +11,7 @@ import type { ThreadChunk } from "../chunks";
 import type { AnnotationItem, BookOverview, RuntimeDeps } from "../ports";
 import { createInMemoryDeps } from "../testing/fixtures";
 import { AgentThread } from "./thread";
+import { memoryPolicyState } from "../testing/memory-policy";
 
 const BOOKS: BookOverview[] = [
   { id: "b1" as Id, title: "Debt: The First 5000 Years", author: "David Graeber", progressPercent: 42 },
@@ -231,6 +232,65 @@ describe("AgentThread", () => {
       origin: "plugin",
       sourceThreadKey: "book:b1",
     });
+  });
+
+  test("memory opt-out keeps chat and ask history but skips legacy adoption, extraction, candidates and insights", async () => {
+    const { faux, model } = makeFaux();
+    faux.setResponses([fauxAssistantMessage("Still answering.")]);
+    const state = memoryPolicyState(); state.set(false);
+    const { deps, stores } = createInMemoryDeps({ books: BOOKS, turns: { "book:b1": [
+      { role: "user", content: "Legacy request", createdAt: "2026-01-01T00:00:00Z" },
+      { role: "assistant", content: "Legacy answer", createdAt: "2026-01-01T00:00:01Z" },
+    ] } });
+    deps.memoryPolicy = state.policy;
+    let modelCalls = 0, candidateCalls = 0;
+    deps.extraMemoryCandidates = async () => { candidateCalls++; return []; };
+    const thread = new AgentThread({
+      scope: { kind: "book", bookId: "b1" as Id }, deps, resolveModel: () => model,
+      getApiKey: () => "test", streamFn: streamSimple,
+      completeFn: async () => { modelCalls++; return fauxAssistantMessage("must not execute"); },
+    });
+    await collect(thread.sendTurn({ text: "New question" }));
+    await thread.flushBackgroundWork();
+    expect(stores.turns.get("book:b1")).toHaveLength(4);
+    expect(stores.asks).toHaveLength(1);
+    expect(stores.insights.size).toBe(0);
+    expect(stores.memories).toHaveLength(0);
+    expect(modelCalls).toBe(0); expect(candidateCalls).toBe(0); expect(state.count()).toBe(0);
+  });
+
+  test("memory revocation drops in-flight plugin candidates and queued pipelines without reviving on re-enable", async () => {
+    const { faux, model } = makeFaux();
+    faux.setResponses([fauxAssistantMessage("One"), fauxAssistantMessage("Two"), fauxAssistantMessage("Three")]);
+    const state = memoryPolicyState();
+    const { deps, stores } = createInMemoryDeps({ books: BOOKS, insights: { "book:b1": "existing" } });
+    deps.memoryPolicy = state.policy;
+    let entered!: () => void, release!: () => void, candidateCalls = 0;
+    const waiting = new Promise<void>(resolve => { entered = resolve; });
+    const delayed = new Promise<void>(resolve => { release = resolve; });
+    deps.extraMemoryCandidates = async () => {
+      candidateCalls++;
+      if (candidateCalls === 1) { entered(); await delayed; }
+      return [{ scope: "book:b1", kind: "insight", content: candidateCalls === 1 ? "old candidate" : "new candidate" }];
+    };
+    const thread = makeThread(deps, model);
+    await collect(thread.sendTurn({ text: "First" }));
+    await waiting;
+    await collect(thread.sendTurn({ text: "Queued second" }));
+    expect(state.count()).toBe(2);
+    state.set(false); state.set(true);
+    await thread.flushBackgroundWork();
+    release();
+    await Promise.resolve();
+    expect(stores.memories).toHaveLength(0);
+    expect(stores.insights.get("book:b1")).toBe("existing");
+    expect(candidateCalls).toBe(1);
+    expect(state.count()).toBe(0);
+    await collect(thread.sendTurn({ text: "Fresh third" }));
+    await thread.flushBackgroundWork();
+    expect(stores.memories.map(memory => memory.content)).toEqual(["new candidate"]);
+    expect(candidateCalls).toBe(2);
+    expect(state.count()).toBe(0);
   });
 
   test("rehydrates a previous selection with its quoted text and chapter", async () => {

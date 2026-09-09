@@ -18,6 +18,7 @@ import {
   AppError,
   ERR_AI_AUTH,
   ERR_AI_LOCAL_ONLY,
+  ERR_AI_MEMORY_DISABLED,
   ERR_AI_CONTEXT_OVERFLOW,
   ERR_AI_NETWORK,
   ERR_AI_PROVIDER,
@@ -29,6 +30,7 @@ import {
 /** Ordered: the first matching category wins. */
 const CATEGORIES: Array<{ code: string; retryable: boolean; pattern: RegExp }> = [
   { code: ERR_AI_LOCAL_ONLY, retryable: false, pattern: /\[ai\/local-only\]/ },
+  { code: ERR_AI_MEMORY_DISABLED, retryable: false, pattern: /\[ai\/memory-disabled\]/ },
   {
     // Key problems — fixable in Settings, never by retrying.
     code: ERR_AI_AUTH,

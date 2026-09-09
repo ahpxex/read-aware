@@ -13,16 +13,16 @@
 
 1. 不能确认能力都已实现。此表区分宿主行为、Agent 工具/自动管线、插件 API/贡献和实际插件消费者；没有把代码存在算成端到端可用。
 2. 运行态正在接通：版本化位置、会话快照、精确搜索、导航回执/历史与朗读启停已由共享域提供给 Agent、Jumper 和 Listening Desk。模式控制、通用任务与资源释放、全部格式及跨平台验收仍未完成；持久化领域 API 无法代表全部产品能力。
-3. 9 个旧设置路径仍未找到对应效果消费者；两端可改值不等于行为覆盖。localOnly 已接入宿主 Agent/插件 LLM 的拒绝与在途取消，但任意插件 HTTP/TTS/同步仍不受该策略约束，保留部分。settings 1.2 的九项真实偏好已接通；快捷键、书架视图等缺口仍在。
+3. 8 个旧设置路径仍未找到对应效果消费者；两端可改值不等于行为覆盖。buildMemory 已控制记忆构建与在途取消；localOnly 已接入宿主 Agent/插件 LLM 的拒绝与在途取消，但任意插件 HTTP/TTS/同步仍不受该策略约束，保留部分。settings 1.2 的九项真实偏好已接通；快捷键、书架视图等缺口仍在。
 4. Agent 自动记忆巩固与 digest 管线已经接入；画像 seed/实体事件投影并未同等接通。不要沿用旧架构说明把它们一起说成已实现或未实现。
 5. 插件 UI、贡献注册、宿主消费、模型工具是不同方向。Dictionary/RSS 提供模型工具；宿主 control_read_aloud、configure_reading_mode 与 navigate_reading 统一消费声音和模式提供者，Listening Desk 调用相同控制器。主题调度/WebDAV 连接仍无同等直接操作工具；设置可改不等于行为接通。
 6. 备份 v1 并非全部当前存储的完整快照；私有数据、聊天、记忆、密钥、日志与同步状态的生命周期必须分别建模。原基线 129 项与 GAP01–GAP18 均保留，没有借新表宣告关闭。
 
 ## 计数与口径
 
-- 宿主：实装 173、部分 44、待建 3、引擎 1、占位 2、非桌面 1。
-- Agent：接通 88、部分 45、未接 50、扩展 14、自动 21、内部 6。
-- 插件：接通 101、部分 76、未接 47。
+- 宿主：实装 174、部分 43、待建 3、引擎 1、占位 2、非桌面 1。
+- Agent：接通 89、部分 44、未接 50、扩展 14、自动 21、内部 6。
+- 插件：接通 102、部分 75、未接 47。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -191,7 +191,7 @@
 | <a id="SET20"></a>SET20 | ai.preferences.features.translate | 部分 | **部分**：get_settings/update_settings<br>[设计] 类型化设置工具 | **部分**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 仅设置页/设置存储/目录；效果未接 | 保存值有实现；全生产源码扫描未找到对应效果消费者。不能算行为已实现或端到端覆盖。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [AIPREFS](../apps/web/src/features/settings/lib/ai-preferences.ts) | 新增盘点 |
 | <a id="SET21"></a>SET21 | ai.preferences.features.summarizeChapter | 部分 | **部分**：get_settings/update_settings<br>[设计] 类型化设置工具 | **部分**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 仅设置页/设置存储/目录；效果未接 | 保存值有实现；全生产源码扫描未找到对应效果消费者。不能算行为已实现或端到端覆盖。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [AIPREFS](../apps/web/src/features/settings/lib/ai-preferences.ts) | 新增盘点 |
 | <a id="SET22"></a>SET22 | ai.preferences.features.askConversation | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [AIPREFS](../apps/web/src/features/settings/lib/ai-preferences.ts) | 新增盘点 |
-| <a id="SET23"></a>SET23 | ai.preferences.buildMemory | 部分 | **部分**：get_settings/update_settings<br>[设计] 类型化设置工具 | **部分**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 仅设置页/设置存储/目录；效果未接 | 保存值有实现；全生产源码扫描未找到对应效果消费者。不能算行为已实现或端到端覆盖。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [AIPREFS](../apps/web/src/features/settings/lib/ai-preferences.ts) | 新增盘点 |
+| <a id="SET23"></a>SET23 | ai.preferences.buildMemory | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 实时控制宿主记忆构建：显式 remember、轮后抽取/强化/插件候选/旧历史领养/摘要、巩固、章节 digest/自动叙事分类及 onboarding seed 均受约束。关闭返回 ai/memory-disabled，取消在途模型调用和已排队任务，重开不复活旧任务。普通聊天/历史、旧记忆检索、用户删除和插件自有目标保存不受影响；重开后的新任务可处理保留历史。摘要写入/清除等待持久回执；已派发底层写不保证撤销。隔离 macOS debug 双端、真实 UI 聊天、候选入库、取消和 SQLite 失败已验；packaged/跨平台未验。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [MEMORYPOLICY](../packages/agent/src/memory/build-policy.ts) [HOSTMEMORYPOLICY](../apps/web/src/features/ai/agent/memory-policy.ts) [READINGGOALS](../plugins/reading-goals/src/index.ts) [MEMORYPOLICYPROOF](../docs/evidence/memory-build-policy-2026-09-09.json) | 新增盘点 |
 | <a id="SET24"></a>SET24 | ai.preferences.sendHighlightedText | 部分 | **部分**：get_settings/update_settings<br>[设计] 类型化设置工具 | **部分**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 仅设置页/设置存储/目录；效果未接 | 保存值有实现；全生产源码扫描未找到对应效果消费者。不能算行为已实现或端到端覆盖。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [AIPREFS](../apps/web/src/features/settings/lib/ai-preferences.ts) | 新增盘点 |
 | <a id="SET25"></a>SET25 | ai.preferences.sendSurroundingContext | 部分 | **部分**：get_settings/update_settings<br>[设计] 类型化设置工具 | **部分**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 仅设置页/设置存储/目录；效果未接 | 保存值有实现；全生产源码扫描未找到对应效果消费者。不能算行为已实现或端到端覆盖。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [AIPREFS](../apps/web/src/features/settings/lib/ai-preferences.ts) | 新增盘点 |
 | <a id="SET26"></a>SET26 | ai.preferences.localOnly | 部分 | **部分**：get_settings/update_settings<br>[设计] 类型化设置工具 | **部分**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 宿主模型调用已有实时执行策略：Agent smart/fast、后台补全、Worker llm.ask 普通/结构化/流式及连接测试同源拒绝 ai/local-only；进行中调用取消，迟到结果/重试被抑制，恢复只允许新调用。当前无本地模型后端，Custom loopback 也拒绝。隔离 macOS debug 双端/取消/持久失败回滚/原生连接 UI 已验；任意插件 HTTP、TTS、同步不受此策略约束，完整隐私边界与 packaged/跨平台仍未完成，保留部分。 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [AIPREFS](../apps/web/src/features/settings/lib/ai-preferences.ts) [INFERENCEPOLICY](../packages/agent/src/models/inference-policy.ts) [HOSTINFERENCEPOLICY](../apps/web/src/features/ai/agent/inference-policy.ts) [INFERENCEEVIDENCE](../docs/evidence/inference-local-only-2026-09-09.json) | 新增盘点 |
@@ -239,7 +239,7 @@
 | <a id="AI08"></a>AI08 | 书内 scope/游标/选区自动 grounding | 实装 | **自动**：thread + grounding-context<br>[设计] 自动且有来源的上下文 | **部分**：context/retrieval provider 能补充，不能覆写核心<br>[设计] 受限上下文贡献 | 书内 Agent | 自动注入不等于独立工具；不允许插件注入更高优先级系统策略 | [THREAD](../packages/agent/src/runtime/thread.ts) [GROUND](../packages/agent/src/runtime/grounding-context.ts) [EXTOOLS](../apps/web/src/features/plugins/runtime/plugin-tools.ts) | L07 |
 | <a id="AI09"></a>AI09 | 剧透边界、请求允许超前内容 | 实装 | **接通**：read_chapter/search_book_text/query_book_graph + 批准<br>[设计] 宿主策略 | **部分**：book text domain 无同样的模型剧透审批<br>[设计] 数据授权与 Agent 剧透策略分开 | 书内 Agent | 访问权限不是剧透许可；插件提供上下文需要 provenance/fence 政策 | [SPOILER](../packages/agent/src/tools/spoiler-permission.ts) [TEXTTOOLS](../packages/agent/src/tools/book-text-tools.ts) [GRAPHTOOLS](../packages/agent/src/tools/graph-tools.ts) [LIB](../apps/web/src/domain/library.ts) | L07 |
 | <a id="AI10"></a>AI10 | 注册供模型使用的插件工具 | 实装 | **扩展**：extraTools(scope) 进入真实 registry<br>[设计] 受 scope/授权控制工具 | **接通**：agentTools.register<br>[设计] 工具贡献 | Dictionary 3 个；RSS 3 个 | 插件安装/启用后才存在；不能将拥有插件 UI 视为已经有 Agent 工具 | [REGISTRY](../packages/agent/src/tools/registry.ts) [PORTS](../apps/web/src/features/ai/agent/ports/index.ts) [EXTOOLS](../apps/web/src/features/plugins/runtime/plugin-tools.ts) [DICTTOOLS](../plugins/dictionary/src/agent-tools.ts) [RSSTOOLS](../plugins/rss-reader/src/agent-tools.ts) | L06 |
-| <a id="AI11"></a>AI11 | 每轮上下文 provider | 实装 | **自动**：plugin context provider 注入线程<br>[设计] 受预算/来源约束消费 | **接通**：agentContextProviders.register<br>[设计] 上下文贡献 | 宿主已接线；本仓六插件未注册该类 | 无消费者是 adoption 缺口，不是 host 未实现 | [EXTOOLS](../apps/web/src/features/plugins/runtime/plugin-tools.ts) [THREAD](../packages/agent/src/runtime/thread.ts) [API](../packages/plugin-types/src/index.ts) | L06 |
+| <a id="AI11"></a>AI11 | 每轮上下文 provider | 实装 | **自动**：plugin context provider 注入线程<br>[设计] 受预算/来源约束消费 | **接通**：agentContextProviders.register<br>[设计] 上下文贡献 | Reading Goals 按请求书籍 scope 提供阅读目标 | 真实 Worker 到受控推理服务已验；没有专属目标编辑工具，不等于任意上下文语义已验收 | [EXTOOLS](../apps/web/src/features/plugins/runtime/plugin-tools.ts) [THREAD](../packages/agent/src/runtime/thread.ts) [API](../packages/plugin-types/src/index.ts) [READINGGOALS](../plugins/reading-goals/src/index.ts) [MEMORYPOLICYPROOF](../docs/evidence/memory-build-policy-2026-09-09.json) | L06 |
 | <a id="AI12"></a>AI12 | 按需插件检索 provider | 实装 | **扩展**：自动生成 retrieve 工具<br>[设计] 按需有界检索工具 | **接通**：agentRetrievalProviders.register<br>[设计] 检索贡献 | Dictionary saved-vocabulary | 名称隔离/限量由 adapter 控制；查询结果不是可信指令 | [EXTOOLS](../apps/web/src/features/plugins/runtime/plugin-tools.ts) [DICTTOOLS](../plugins/dictionary/src/agent-tools.ts) [REGISTRY](../packages/agent/src/tools/registry.ts) | L06 |
 
 ### 长期记忆、画像与图谱
@@ -248,7 +248,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | <a id="MEM01"></a>MEM01 | 查询长期记忆 | 实装 | **接通**：search_memory<br>[设计] 检索工具 | **未接**：无正式入口<br>[设计] 受 scope 授权的只读 memory domain | Agent | 没有 plugin memory domain；不能用 conversation 查询冒充记忆读取 | [MEMTOOLS](../packages/agent/src/tools/memory-tools.ts) [MEMORYPORT](../apps/web/src/features/ai/agent/ports/memory-port.ts) [PORTS](../apps/web/src/features/ai/agent/ports/index.ts) [API](../packages/plugin-types/src/index.ts) | M01 |
 | <a id="MEM02"></a>MEM02 | 显式记住事实/偏好 | 实装 | **接通**：remember<br>[设计] 有来源的写工具 | **部分**：只能贡献 memory candidates<br>[设计] 候选提议，由宿主裁决 | Agent | 不开放：插件直接写记忆投影或伪造强化次数 | [MEMTOOLS](../packages/agent/src/tools/memory-tools.ts) [MEMORYPORT](../apps/web/src/features/ai/agent/ports/memory-port.ts) [API](../packages/plugin-types/src/index.ts) | M03 |
-| <a id="MEM03"></a>MEM03 | 轮后抽取/去重/强化记忆 | 实装 | **自动**：thread 轮后抽取与 reinforce<br>[设计] 自动管线 | **部分**：memoryCandidateProviders.propose<br>[设计] 候选贡献 | Agent 后台；本仓无候选 provider 消费者 | 自动管线已实装；buildMemory 开关未接消费，见逐项设置 | [THREAD](../packages/agent/src/runtime/thread.ts) [MEMORYPORT](../apps/web/src/features/ai/agent/ports/memory-port.ts) [API](../packages/plugin-types/src/index.ts) | L06, M03 |
+| <a id="MEM03"></a>MEM03 | 轮后抽取/去重/强化记忆 | 实装 | **自动**：thread 轮后抽取与 reinforce<br>[设计] 自动管线 | **部分**：memoryCandidateProviders.propose<br>[设计] 候选贡献 | Agent 后台；Reading Goals 用户选择后提议书内偏好 | buildMemory 已约束抽取/强化/候选/摘要/巩固/digest；关闭取消在途和排队任务，重开只允许新任务。候选只经宿主裁决写入，不开放投影写；候选接受/拒绝的公共可观察回执仍缺，故插件保持部分。保留旧记忆和聊天；提交前已派发写不承诺撤销。 | [THREAD](../packages/agent/src/runtime/thread.ts) [MEMORYPORT](../apps/web/src/features/ai/agent/ports/memory-port.ts) [API](../packages/plugin-types/src/index.ts) [MEMORYPOLICY](../packages/agent/src/memory/build-policy.ts) [READINGGOALS](../plugins/reading-goals/src/index.ts) [MEMORYPOLICYPROOF](../docs/evidence/memory-build-policy-2026-09-09.json) | L06, M03 |
 | <a id="MEM04"></a>MEM04 | 记忆巩固、修订/替代/遗忘 | 实装 | **自动**：maintenance → consolidateIfNeeded → applyMemoryChanges<br>[设计] 自动管线+受控反馈工具 | **未接**：无正式入口<br>[设计] 候选/反馈接口，不直接改投影 | 空闲维护 | 不能沿用旧说明声称全部 consolidation 未实现；模型无独立遗忘工具 | [MAINT](../apps/web/src/features/ai/agent/maintenance.ts) [CONSOLIDATE](../packages/agent/src/memory/consolidation.ts) [MEMORYPORT](../apps/web/src/features/ai/agent/ports/memory-port.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) | M04 |
 | <a id="MEM05"></a>MEM05 | 用户反馈记忆质量/纠错 | 部分 | **内部**：memory.feedback 事件/投影，未注册工具<br>[设计] 受控反馈工具 | **未接**：无正式入口<br>[设计] 受控反馈命令 | 历史 genesis 回填；未见当前反馈 UI 入口 | 事件与投影存在不代表用户/Agent 可以触发；需来源与撤销语义 | [COREVENTS](../packages/core/src/events.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) [MEMTOOLS](../packages/agent/src/tools/memory-tools.ts) | M04 |
 | <a id="MEM06"></a>MEM06 | 读取用户画像并注入上下文 | 实装 | **自动**：ProfilePort.read → thread prompt<br>[设计] 自动上下文/受控查询 | **未接**：无正式入口<br>[设计] 授权字段画像查询 | Agent system prompt | 画像当前存 localKV；不是 profile.updated 的成熟投影 | [PROFILEPORT](../apps/web/src/features/ai/agent/ports/profile-port.ts) [THREAD](../packages/agent/src/runtime/thread.ts) [PORTS](../apps/web/src/features/ai/agent/ports/index.ts) | M05 |
@@ -350,14 +350,14 @@
 
 | 顺序 | 行号 | 必须先解决的原因 |
 | --- | --- | --- |
-| P0 | SET04/SET05/SET18–SET21/SET23–SET26 | 9 个只保存值的设置；SET27 localOnly 的宿主推理已接，插件网络边界仍缺。隐私/记忆开关需要真实效果，不是只补 API。 |
+| P0 | SET04/SET05/SET18–SET21/SET24–SET25 | 8 个只保存值的设置；SET26 localOnly 的宿主推理已接，插件网络边界仍缺。隐私/记忆开关需要真实效果，不是只补 API。 |
 | P0 | READ01/READ03/READ20、SYS01/SYS03、CON03–CON05 | 假成功、更新回滚覆盖合法写、持久屏障、失联/迟到 effect；原 GAP01–GAP18 没有关闭。 |
 | P1 | TXT02/TXT07/TXT13、READ06/READ07、MORE05 | Jumper 完整闭环：语义目录、精准命中、公共 Location、当前快照、统一历史、异步搜索 UI。 |
 | P1 | READ16/READ18、MEM01/MEM11、AI02/AI03、SYS11 | 已有宿主能力却没有对应端入口，不能要求新插件重写宿主。 |
 | P1 | OPS08、MEM07/MEM08 | 宿主自身的备份范围/画像写入/实体投影未闭合，不能通过开放底层权限修复。 |
 | P2 | CON01/CON06/CON07/CON10、MORE06 | 建立操作目录、任务、观察、跨贡献调用和新增行为门禁，再逐项补控制面。 |
 
-### 9 个尚无效果消费者的设置
+### 8 个尚无效果消费者的设置
 
 - `general.launchAtStartup`
 - `general.fileAssociations`
@@ -365,11 +365,10 @@
 - `ai.preferences.features.defineTerm`
 - `ai.preferences.features.translate`
 - `ai.preferences.features.summarizeChapter`
-- `ai.preferences.buildMemory`
 - `ai.preferences.sendHighlightedText`
 - `ai.preferences.sendSurroundingContext`
 
-“未找到效果消费者”来自本轮生产代码检索与调用链检查，不是运行时复现；其中 fileAssociations 对应的系统文件打开本身存在，但没有读取该 toggle。buildMemory、sendHighlightedText、sendSurroundingContext 仍需作为真实行为缺陷处理。SET27 localOnly 已有宿主推理消费者与桌面证据，完整插件网络隐私边界仍未完成，不列入“无消费者”清单，也不改为全部接通。
+“未找到效果消费者”来自本轮生产代码检索与调用链检查，不是运行时复现；其中 fileAssociations 对应的系统文件打开本身存在，但没有读取该 toggle。sendHighlightedText、sendSurroundingContext 仍需作为真实行为缺陷处理。SET23 buildMemory 已接入实时记忆构建策略，普通聊天和保留记忆检索不受影响。SET26 localOnly 已有宿主推理消费者与桌面证据，完整插件网络隐私边界仍未完成，不列入“无消费者”清单，也不改为全部接通。
 
 ## 已有插件的 Agent 覆盖
 
@@ -383,9 +382,10 @@
 | Jumper | 印刷章号/目录序号/标题、精确正文搜索、前进/后退 | 通用 get_navigation_toc / find_book_locations / open_book / navigate_reading | 不重复注册专属模型工具；仍需完整视觉/格式/取消验收 |
 | Annotation Desk | 分页检索标注、无位置笔记、条件编辑与文件导出 | 消费通用 annotations 工具对应领域，不另注册专属模型工具 | UI 是组合消费者，不表示全部批次/外部变化已验收 |
 | Listening Desk | 模式选择/配置、单元步进/返回、朗读、历史 | 消费上述宿主工具对应的 reading 域，不重复注册模型工具 | 按需刷新 UI；不冒充实时订阅视图 |
+| Reading Goals | 书内目标、上下文/记忆候选、宿主记忆开关 | 自动上下文与候选管线；通用 settings 操作开关 | 无专属目标编辑工具；非 release 内置；候选公共回执仍缺 |
 | WebDAV Sync | 密文 transport | 无专属工具；非敏感设置可改 | 连接/断开/同步状态，必须使用宿主控制面 |
 
-[代码] 宿主已消费 agentContextProviders 和 memoryCandidateProviders，但库存中的第一方插件没有注册实例；这是缺消费者，不是宿主贡献 API 缺失。Dictionary 提供检索贡献，运行时会生成一个额外 retrieve 工具。具体带命名空间的 7 个插件 Agent 入口在库存表中列出。
+[代码] Reading Goals 同时注册 agentContextProviders 与 memoryCandidateProviders：每轮按请求书籍提供私有阅读目标，用户选择后提出书内偏好；实际宿主裁决、入库与 buildMemory 取消已在隔离 Tauri 验证。Dictionary 提供检索贡献，运行时会生成一个额外 retrieve 工具。具体带命名空间的 7 个插件 Agent 入口在库存表中列出。
 
 [代码/范围补充] 邻接仓库 `readaware-plugins` 在本轮查看的提交为 `441e3c9b2403c086459b1d4611efad6e8e1ceb72`：Theme Schedule 1.0.1 已通过 settings discover/update 与 Worker clock 组合主题定时切换，没有专属 Agent 工具；WebDAV 0.1.0 是另一个分发位置。此补充不另计主仓插件，不证明线上 marketplace 已发布或用户已安装；生成器不依赖邻接仓库。
 
@@ -412,7 +412,7 @@
 - Domain subscription ANNOTATION_EVENTS：8 个。
 - Domain subscription CONVERSATION_EVENTS：4 个。
 - Feature owner：14 个。
-- First-party source plugin：9 个。
+- First-party source plugin：10 个。
 - Plugin Agent contribution：7 个。
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
@@ -1065,6 +1065,7 @@
 | `editorial-themes` | [EXT08](#EXT08) | [代码] 源码版本 1.0.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `jumper` | [TXT02](#TXT02) [TXT07](#TXT07) [READ06](#READ06) [EXT02](#EXT02) | [代码] 源码版本 0.1.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `listening-desk` | [READ16](#READ16) [READ18](#READ18) [READ06](#READ06) [EXT02](#EXT02) | [代码] 源码版本 0.5.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `reading-goals` | [AI11](#AI11) [MEM03](#MEM03) [SET23](#SET23) [EXT02](#EXT02) [EXT05](#EXT05) [SYS01](#SYS01) | [代码] 源码版本 0.1.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `rss-reader` | [EXT10](#EXT10) | [代码] 源码版本 0.7.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `sentence-reader` | [READ15](#READ15) [READ16](#READ16) | [代码] 源码版本 1.1.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `tts` | [READ17](#READ17) [READ18](#READ18) | [代码] 源码版本 0.5.0；源码存在不等于打包、安装、启用或模型可调用 |

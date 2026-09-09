@@ -1,0 +1,354 @@
+{
+  "date": "2026-09-09",
+  "status": "memory-build policy and Reading Goals debug desktop verification; overall capability goal incomplete",
+  "environment": {
+    "app": "com.readaware.app.capability-e2e",
+    "platform": "macOS",
+    "build": "Tauri debug",
+    "vitePort": 5184,
+    "mcpPort": 9224,
+    "inference": "controlled loopback SSE on 19843, no external model",
+    "officialDataTouched": false
+  },
+  "sources": {
+    "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-memory-probe.ts",
+    "server": "scripts/memory-policy-probe-server.ts",
+    "plugin": "plugins/reading-goals/src/index.ts"
+  },
+  "implementation": {
+    "policy": "ai.preferences.buildMemory",
+    "code": "ai/memory-disabled",
+    "guarded": [
+      "remember",
+      "onboarding seeds",
+      "extraction",
+      "reinforcement",
+      "plugin candidates",
+      "legacy adoption",
+      "rolling insights",
+      "consolidation and decay",
+      "chapter digests",
+      "automatic narrativity classification"
+    ],
+    "retained": [
+      "normal chat and raw transcript",
+      "existing memory reads",
+      "annotations",
+      "user deletion",
+      "plugin goal storage"
+    ],
+    "revocation": "queued and active operations are permanently revoked; newly enabled operations use new leases",
+    "durability": "insight put/clear await ordered native persistence; failed writes do not acknowledge success"
+  },
+  "observed": {
+    "disabledNativeChat": {
+      "explicit": {
+        "code": "ai/memory-disabled",
+        "status": "failed"
+      },
+      "snapshot": {
+        "goal": "{\"text\":\"Memory policy probe goal: compare the evidence\",\"suggestMemory\":true}",
+        "insights": "Memory policy probe summary.",
+        "memories": [
+          {
+            "content": "Memory policy probe goal: compare the evidence",
+            "createdAt": "2026-09-09T00:49:46.399Z",
+            "evidenceCount": 1,
+            "id": "f80e189e-38f2-4e8e-ba20-fe49680756c1",
+            "importance": 0.35,
+            "kind": "preference",
+            "pinned": false,
+            "scope": "book:e0ef3734-4486-4ef0-b167-326725ca9fa4",
+            "status": "active",
+            "updatedAt": "2026-09-09T00:49:46.399Z"
+          }
+        ],
+        "turns": 2
+      },
+      "ui": "\nShelf\n\nContents\n\nNotes\nMemory Policy Probe\n0 / 1 · 100%\n\nRead by sentence or paragraph\n\nReading appearance\n\nChat\n\nMore\n\nReading goals\nMemory policy probe UI history stays available.\n\nCopy message\nMemory policy probe answer.\n\nCopy message\n\nRegenerate response\n\n"
+    },
+    "cancelledExtraction": {
+      "disable": {
+        "changed": [
+          {
+            "path": "ai.preferences.buildMemory",
+            "target": {
+              "kind": "global"
+            },
+            "value": false
+          }
+        ],
+        "snapshot": {
+          "appearance": {
+            "motion": "system",
+            "theme": "system"
+          },
+          "events": [
+            {
+              "changes": [
+                {
+                  "path": "ai.preferences.buildMemory",
+                  "target": {
+                    "kind": "global"
+                  },
+                  "value": false
+                }
+              ],
+              "origin": "agent",
+              "type": "settings.changed"
+            },
+            {
+              "changes": [
+                {
+                  "path": "ai.preferences.buildMemory",
+                  "target": {
+                    "kind": "global"
+                  },
+                  "value": true
+                }
+              ],
+              "origin": "plugin:reading-goals",
+              "type": "settings.changed"
+            },
+            {
+              "changes": [
+                {
+                  "path": "ai.preferences.buildMemory",
+                  "target": {
+                    "kind": "global"
+                  },
+                  "value": false
+                }
+              ],
+              "origin": "agent",
+              "type": "settings.changed"
+            },
+            {
+              "changes": [
+                {
+                  "path": "ai.preferences.buildMemory",
+                  "target": {
+                    "kind": "global"
+                  },
+                  "value": true
+                }
+              ],
+              "origin": "plugin:reading-goals",
+              "type": "settings.changed"
+            },
+            {
+              "changes": [
+                {
+                  "path": "ai.preferences.buildMemory",
+                  "target": {
+                    "kind": "global"
+                  },
+                  "value": false
+                }
+              ],
+              "origin": "agent",
+              "type": "settings.changed"
+            }
+          ],
+          "general": {
+            "autoUpdate": true,
+            "crashPrompt": true,
+            "fileAssociations": true,
+            "language": null,
+            "launchAtStartup": false,
+            "startView": "shelf",
+            "whatsNewDialog": true
+          }
+        },
+        "status": "committed"
+      },
+      "result": null,
+      "snapshot": {
+        "goal": "{\"text\":\"Memory policy probe goal: cancellation must not promote this\",\"suggestMemory\":true}",
+        "insights": "Memory policy probe summary.",
+        "memories": [
+          {
+            "content": "Memory policy probe goal: compare the evidence",
+            "createdAt": "2026-09-09T00:49:46.399Z",
+            "evidenceCount": 1,
+            "id": "f80e189e-38f2-4e8e-ba20-fe49680756c1",
+            "importance": 0.35,
+            "kind": "preference",
+            "pinned": false,
+            "scope": "book:e0ef3734-4486-4ef0-b167-326725ca9fa4",
+            "status": "active",
+            "updatedAt": "2026-09-09T00:49:46.399Z"
+          }
+        ],
+        "turns": 2
+      }
+    },
+    "serverCancellation": {
+      "kind": "extraction",
+      "held": true,
+      "cancelled": true,
+      "observedBeforeRelease": true
+    },
+    "noResurrectionAndFreshJob": {
+      "fresh": {
+        "goal": "{\"text\":\"Memory policy probe goal: resumed fresh work\",\"suggestMemory\":true}",
+        "insights": "Memory policy probe summary.",
+        "memories": [
+          {
+            "content": "Memory policy probe goal: resumed fresh work",
+            "createdAt": "2026-09-09T00:54:55.530Z",
+            "evidenceCount": 1,
+            "id": "0135a2f8-40fa-4a39-b176-a1faaec77dbb",
+            "importance": 0.35,
+            "kind": "preference",
+            "pinned": false,
+            "scope": "book:e0ef3734-4486-4ef0-b167-326725ca9fa4",
+            "status": "active",
+            "updatedAt": "2026-09-09T00:54:55.530Z"
+          },
+          {
+            "content": "Memory policy probe goal: compare the evidence",
+            "createdAt": "2026-09-09T00:49:46.399Z",
+            "evidenceCount": 1,
+            "id": "f80e189e-38f2-4e8e-ba20-fe49680756c1",
+            "importance": 0.35,
+            "kind": "preference",
+            "pinned": false,
+            "scope": "book:e0ef3734-4486-4ef0-b167-326725ca9fa4",
+            "status": "active",
+            "updatedAt": "2026-09-09T00:49:46.399Z"
+          }
+        ],
+        "turns": 2
+      },
+      "late": {
+        "goal": "{\"text\":\"Memory policy probe goal: cancellation must not promote this\",\"suggestMemory\":true}",
+        "insights": "Memory policy probe summary.",
+        "memories": [
+          {
+            "content": "Memory policy probe goal: compare the evidence",
+            "createdAt": "2026-09-09T00:49:46.399Z",
+            "evidenceCount": 1,
+            "id": "f80e189e-38f2-4e8e-ba20-fe49680756c1",
+            "importance": 0.35,
+            "kind": "preference",
+            "pinned": false,
+            "scope": "book:e0ef3734-4486-4ef0-b167-326725ca9fa4",
+            "status": "active",
+            "updatedAt": "2026-09-09T00:49:46.399Z"
+          }
+        ],
+        "turns": 2
+      },
+      "newGoal": {
+        "goal": "{\"text\":\"Memory policy probe goal: resumed fresh work\",\"suggestMemory\":true}",
+        "insights": "Memory policy probe summary.",
+        "memories": [
+          {
+            "content": "Memory policy probe goal: compare the evidence",
+            "createdAt": "2026-09-09T00:49:46.399Z",
+            "evidenceCount": 1,
+            "id": "f80e189e-38f2-4e8e-ba20-fe49680756c1",
+            "importance": 0.35,
+            "kind": "preference",
+            "pinned": false,
+            "scope": "book:e0ef3734-4486-4ef0-b167-326725ca9fa4",
+            "status": "active",
+            "updatedAt": "2026-09-09T00:49:46.399Z"
+          }
+        ],
+        "turns": 2
+      }
+    },
+    "insightFailure": {
+      "code": "db/error",
+      "retained": "committed",
+      "status": "failed"
+    },
+    "settingFailure": {
+      "explicit": {
+        "code": "ai/memory-disabled",
+        "status": "failed"
+      },
+      "policy": {
+        "code": "db/error",
+        "status": "failed"
+      }
+    },
+    "goalFailure": {
+      "nativeUi": "Save goal",
+      "trigger": "BEFORE INSERT app_kv for read-aware-plugin.reading-goals.goal:%",
+      "oldGoalRetainedInSQLite": true,
+      "draftRetained": true,
+      "userSawLocalizedFailure": true
+    },
+    "finalFreshRun": {
+      "bookId": "622670c1-3f28-4bc9-b2da-d7f71af68813",
+      "workerContributions": 4,
+      "disabledRemember": "ai/memory-disabled",
+      "enabledMemoryId": "04229522-4531-48e9-a000-643dc218ead4",
+      "insights": "Memory policy probe summary."
+    },
+    "cleanup": {
+      "readingGoalsContributions": 0,
+      "inferenceContributions": 0,
+      "settingsContributions": 0,
+      "goalAndBookMarkerAbsent": true,
+      "insights": {},
+      "memoryPolicy": true,
+      "localOnly": false,
+      "triggerAbsent": true,
+      "portsClosed": [
+        5184,
+        9224,
+        19843
+      ]
+    }
+  },
+  "tests": {
+    "focused": "8 passed: memory-build policy and conversation-port durability",
+    "fullTest": "20 tasks passed (18 cached), web 698 tests",
+    "typecheck": "23 tasks passed (21 cached)",
+    "productionWebBuild": "passed, rebuilt after profile persistence fix; not packaged Tauri verification",
+    "profilePort": "awaits durable write; one regression test, no new native profile E2E",
+    "documentation": "224 rows, 579 inventory entries, 129 baseline mappings; 30 units/catalog members and 32 scenarios; seven model gates and three pair validators passed"
+  },
+  "visual": {
+    "viewports": [
+      [
+        1200,
+        800
+      ],
+      [
+        800,
+        600
+      ]
+    ],
+    "screenshots": [
+      "/tmp/reading-goals-native-final-1200.png",
+      "/tmp/reading-goals-native-final-800.png",
+      "/tmp/reading-goals-native-failure-800.png"
+    ],
+    "inspected": true,
+    "narrowDialog": {
+      "left": 176,
+      "right": 624,
+      "top": 73,
+      "bottom": 527,
+      "scrollClientHeight": 295,
+      "scrollHeight": 444,
+      "pageWidth": 800
+    }
+  },
+  "limitations": [
+    "Direct runtime fixture does not persist raw turns because product ConversationPort.append is intentionally a no-op; native UI separately persisted two messages.",
+    "Initial screenshots caught loading and were replaced only after the form rendered.",
+    "Synthetic Tab did not establish native keyboard traversal. A scroll attempt used a missing selector; not counted as successful off-screen control coverage.",
+    "A diagnostic SQL SELECT used value instead of value_json, failed after DROP TRIGGER had succeeded; schema was re-read and subsequent SQL used value_json.",
+    "Already dispatched native writes cannot be undone; already running plugin side effects are not cancelled by host result suppression.",
+    "Retained historical data may be processed by fresh jobs after re-enable.",
+    "Reading Goals has no dedicated Agent goal-editing tools and is not release-bundled; source Worker testing is not installation/restart/packaged CSP verification.",
+    "No real remote model semantic evaluation, other desktop platforms, or full W01-W32 coverage.",
+    "Existing extraction/summary fallback paths log expected policy cancellation; no claim of warning-free runtime."
+  ]
+}

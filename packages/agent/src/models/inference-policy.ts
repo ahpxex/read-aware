@@ -1,6 +1,7 @@
 import { AppError, ERR_AI_LOCAL_ONLY } from "@read-aware/core";
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
 import type { Api, AssistantMessage, AssistantMessageEventStream, Model } from "@earendil-works/pi-ai";
+import { policyCall } from "../runtime/policy-call";
 
 /** Host policy is checked again for every model call, including cached runtimes. */
 export interface InferencePolicy {
@@ -13,33 +14,7 @@ export function localOnlyError(): AppError {
 }
 
 export function inferenceCall(policy: InferencePolicy, signal?: AbortSignal) {
-  const controller = new AbortController();
-  const check = () => { if (policy.localOnly()) controller.abort(localOnlyError()); };
-  const abort = () => controller.abort(signal?.reason);
-  const unsubscribe = policy.subscribe(check);
-  signal?.addEventListener("abort", abort, { once: true });
-  check();
-  if (signal?.aborted) abort();
-  let rejectAbort!: (reason: unknown) => void;
-  const aborted = new Promise<never>((_, reject) => { rejectAbort = reject; });
-  const onAbort = () => rejectAbort(controller.signal.reason);
-  controller.signal.addEventListener("abort", onAbort, { once: true });
-  if (controller.signal.aborted) onAbort();
-  // A preflight rejection can precede the first raced operation.
-  void aborted.catch(() => {});
-  let disposed = false;
-  return {
-    signal: controller.signal,
-    assertAllowed() { check(); controller.signal.throwIfAborted(); },
-    wait<T>(operation: Promise<T>): Promise<T> { return Promise.race([operation, aborted]); },
-    dispose() {
-      if (disposed) return;
-      disposed = true;
-      unsubscribe();
-      signal?.removeEventListener("abort", abort);
-      controller.signal.removeEventListener("abort", onAbort);
-    },
-  };
+  return policyCall({ enabled: () => !policy.localOnly(), subscribe: listener => policy.subscribe(listener) }, localOnlyError, signal);
 }
 
 export type InferenceCall = ReturnType<typeof inferenceCall>;

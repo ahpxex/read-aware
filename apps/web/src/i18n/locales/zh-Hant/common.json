@@ -30,6 +30,7 @@
     "secretsUnavailable": "無法開啟憑證儲存區，金鑰暫時無法儲存或讀取。",
     "aiNotConfigured": "尚未設定 AI——新增 API 金鑰即可開始對話。",
     "aiLocalOnly": "僅本機模式已禁止 AI 請求，可在 AI 設定中變更。",
+    "aiMemoryDisabled": "記憶建立已關閉，可在 AI 設定中啟用。",
     "aiAuth": "AI 服務商拒絕了這個 API 金鑰，請在設定中檢查。",
     "aiRateLimited": "AI 服務商正在限流，請稍候片刻再試。",
     "aiQuota": "AI 帳戶額度或餘額已用完，請檢查你的服務商帳戶。",

@@ -30,6 +30,7 @@
     "secretsUnavailable": "Der Schlüsselspeicher lässt sich nicht öffnen; Schlüssel können derzeit weder gespeichert noch gelesen werden.",
     "aiNotConfigured": "KI ist noch nicht eingerichtet — füge einen API-Schlüssel hinzu, um loszulegen.",
     "aiLocalOnly": "Der lokale Modus hat KI-Anfragen deaktiviert. Du kannst dies in den KI-Einstellungen ändern.",
+    "aiMemoryDisabled": "Der Gedächtnisaufbau ist deaktiviert. Du kannst ihn in den KI-Einstellungen aktivieren.",
     "aiAuth": "Der KI-Anbieter hat den API-Schlüssel abgelehnt. Bitte in den Einstellungen prüfen.",
     "aiRateLimited": "Der KI-Anbieter begrenzt gerade die Anfragen. Bitte kurz warten und erneut versuchen.",
     "aiQuota": "Guthaben oder Kontingent des KI-Kontos ist aufgebraucht. Bitte das Anbieterkonto prüfen.",

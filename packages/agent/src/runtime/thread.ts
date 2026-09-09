@@ -8,6 +8,8 @@
 import { Agent, type AgentEvent, type ThinkingLevel } from "@earendil-works/pi-agent-core";
 import type { Usage } from "@earendil-works/pi-ai";
 import type { ThreadChunk } from "../chunks";
+import { errorCode, ERR_AI_MEMORY_DISABLED } from "@read-aware/core";
+import { runMemoryBuild } from "../memory/build-policy";
 import { buildSystemPrompt } from "../context/system-prompt";
 import { extractMemories, extractMemoriesFromTranscript } from "../memory/extraction";
 import { digestBookTick } from "../memory/graph-upkeep";
@@ -791,26 +793,28 @@ export class AgentThread {
    */
   private async adoptLegacyThread(
     fast: () => ReturnType<ResolveModel>,
+    deps: RuntimeDeps,
+    complete: CompleteFn,
   ): Promise<string | undefined> {
-    const persisted = await this.deps.conversations.load(this.key).catch(() => []);
+    const persisted = await deps.conversations.load(this.key).catch(() => []);
     // load() 此刻已含本轮 user+assistant 两条；历史 = 之前的部分。
     const history = persisted.slice(0, Math.max(0, persisted.length - 2));
     if (history.length < 2) return undefined;
     const window = history.slice(-AgentThread.ADOPTION_WINDOW_TURNS);
     const summary = await bootstrapSummaryFromHistory({
-      log: this.deps.log,
-      complete: this.completeFn,
+      log: deps.log,
+      complete: complete,
       model: fast(),
       turns: window,
     });
     if (this.disposed) return summary;
-    const existing = await this.deps.memory.searchMemories({
+    const existing = await deps.memory.searchMemories({
       scopes: visibleScopes(this.scope),
       limit: 20,
     });
     const inherited = await extractMemoriesFromTranscript({
-      log: this.deps.log,
-      complete: this.completeFn,
+      log: deps.log,
+      complete: complete,
       model: fast(),
       scope: this.scope,
       transcript: formatTurnsForFolding(window),
@@ -818,14 +822,14 @@ export class AgentThread {
     });
     if (this.disposed) return summary;
     for (const candidate of inherited.newMemories) {
-      await this.deps.memory.saveMemory({
+      await deps.memory.saveMemory({
         ...candidate,
         origin: "extraction",
         sourceThreadKey: this.key,
       });
     }
     for (const id of inherited.reinforcedIds) {
-      await this.deps.memory.reinforceMemory(id);
+      await deps.memory.reinforceMemory(id);
     }
     return summary;
   }
@@ -840,94 +844,100 @@ export class AgentThread {
   ): void {
     if (!assistantText) return;
     const fast = () => this.resolveModel("fast");
-    this.backgroundWork = this.backgroundWork
-      .then(async () => {
-        if (this.disposed) return;
-        // 领养先于逐轮提炼：先继承的记忆会出现在本轮提炼的已知清单里，
-        // 同一事实不会被写两遍。
-        const previousInsights = await this.deps.conversations.getInsights(this.key);
-        const bootstrapped =
-          previousInsights === undefined ? await this.adoptLegacyThread(fast) : undefined;
-        if (this.disposed) return;
-        const existing = await this.deps.memory.searchMemories({
-          scopes: visibleScopes(this.scope),
-          limit: 20,
+    const previousWork = this.backgroundWork;
+    // Subscribe when enqueued so an off/on cycle also revokes waiting jobs.
+    this.backgroundWork = runMemoryBuild(this.deps, async operation => {
+      await operation.guard(() => previousWork)();
+      const deps = operation.protect(this.deps);
+      const complete = operation.complete(this.completeFn);
+      if (this.disposed) return;
+      // 领养先于逐轮提炼：先继承的记忆会出现在本轮提炼的已知清单里，
+      // 同一事实不会被写两遍。
+      const previousInsights = await deps.conversations.getInsights(this.key);
+      const bootstrapped =
+        previousInsights === undefined ? await this.adoptLegacyThread(fast, deps, complete) : undefined;
+      if (this.disposed) return;
+      const existing = await deps.memory.searchMemories({
+        scopes: visibleScopes(this.scope),
+        limit: 20,
+      });
+      const result = await extractMemories({
+        log: deps.log,
+        complete,
+        model: fast(),
+        scope: this.scope,
+        userText,
+        assistantText,
+        existing,
+      });
+      if (this.disposed) return;
+      const knownForExtensions = [...existing];
+      for (const candidate of result.newMemories) {
+        const saved = await deps.memory.saveMemory({
+          ...candidate,
+          origin: "extraction",
+          sourceThreadKey: this.key,
         });
-        const result = await extractMemories({
-          log: this.deps.log,
-          complete: this.completeFn,
-          model: fast(),
+        knownForExtensions.push(saved);
+      }
+      for (const id of result.reinforcedIds) {
+        await deps.memory.reinforceMemory(id);
+      }
+
+      const proposed = await deps.extraMemoryCandidates?.({
+        scope: this.scope,
+        userText,
+        assistantText,
+      }).catch((error) => {
+        deps.log?.warn("plugin memory candidate providers failed", error);
+        return [];
+      });
+      if (!this.disposed && proposed?.length) {
+        const candidates = normalizeExternalMemoryCandidates({
           scope: this.scope,
-          userText,
-          assistantText,
-          existing,
+          candidates: proposed,
+          existing: knownForExtensions,
         });
-        if (this.disposed) return;
-        const knownForExtensions = [...existing];
-        for (const candidate of result.newMemories) {
-          const saved = await this.deps.memory.saveMemory({
+        for (const candidate of candidates) {
+          const saved = await deps.memory.saveMemory({
             ...candidate,
-            origin: "extraction",
+            origin: "plugin",
             sourceThreadKey: this.key,
           });
           knownForExtensions.push(saved);
         }
-        for (const id of result.reinforcedIds) {
-          await this.deps.memory.reinforceMemory(id);
-        }
+      }
 
-        const proposed = await this.deps.extraMemoryCandidates?.({
-          scope: this.scope,
-          userText,
-          assistantText,
-        }).catch((error) => {
-          this.deps.log?.warn("plugin memory candidate providers failed", error);
-          return [];
-        });
-        if (!this.disposed && proposed?.length) {
-          const candidates = normalizeExternalMemoryCandidates({
-            scope: this.scope,
-            candidates: proposed,
-            existing: knownForExtensions,
-          });
-          for (const candidate of candidates) {
-            const saved = await this.deps.memory.saveMemory({
-              ...candidate,
-              origin: "plugin",
-              sourceThreadKey: this.key,
-            });
-            knownForExtensions.push(saved);
-          }
-        }
+      const previous = previousInsights ?? bootstrapped;
+      const summary = await updateRollingSummary({
+        log: deps.log,
+        complete,
+        model: fast(),
+        previous,
+        userText,
+        assistantText,
+      });
+      if (!this.disposed && summary && summary !== previousInsights) {
+        await deps.conversations.putInsights(this.key, summary);
+      }
 
-        const previous = previousInsights ?? bootstrapped;
-        const summary = await updateRollingSummary({
-          log: this.deps.log,
-          complete: this.completeFn,
+      // 图谱节拍：书线程每轮顺手补建这本书的纪要欠账。存量用户换新
+      // agent 后从第一条消息起，图随对话逐轮追平——不必等空闲维护循环
+      // （它 5 分钟一拍、只照顾最近打开的书）。账已清时这里是纯读空转。
+      if (!this.disposed && this.scope.kind === "book") {
+        await digestBookTick({
+          deps,
+          complete,
           model: fast(),
-          previous,
-          userText,
-          assistantText,
+          bookId: this.scope.bookId,
+          throughChapterHref: cursorChapterHref,
+          maxChapters: AgentThread.DIGEST_CHAPTERS_PER_TURN,
         });
-        if (!this.disposed && summary && summary !== previousInsights) {
-          await this.deps.conversations.putInsights(this.key, summary);
-        }
-
-        // 图谱节拍：书线程每轮顺手补建这本书的纪要欠账。存量用户换新
-        // agent 后从第一条消息起，图随对话逐轮追平——不必等空闲维护循环
-        // （它 5 分钟一拍、只照顾最近打开的书）。账已清时这里是纯读空转。
-        if (!this.disposed && this.scope.kind === "book") {
-          await digestBookTick({
-            deps: this.deps,
-            complete: this.completeFn,
-            model: fast(),
-            bookId: this.scope.bookId,
-            throughChapterHref: cursorChapterHref,
-            maxChapters: AgentThread.DIGEST_CHAPTERS_PER_TURN,
-          });
-        }
-      })
+      }
+    }, this.lifecycle.signal)
       .catch((error: unknown) => {
+        // Opting out is an expected stop, not a failed background pipeline.
+        if (errorCode(error) === ERR_AI_MEMORY_DISABLED) return;
         // 轮后管道失败绝不影响对话，但必须留痕：这一轮的记忆巩固与滚动
         // 摘要没有落下。巩固管道之后会有自己的重试语义。
         this.deps.log?.warn("post-turn pipeline failed; memory/summary skipped this turn", error);

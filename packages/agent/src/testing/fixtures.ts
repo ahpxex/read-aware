@@ -7,6 +7,7 @@ import { annotationPageFixture } from "./annotation-pages";
 import { createWorkspaceFixture } from "./workspace-fixture";
 import { createAnnotationMutationFixture } from "./annotation-mutations";
 import { createMemoryManagementFixture } from "./memory-management";
+import { createBookClassificationFixture } from "./book-classification";
 import { createMemoryMaintenanceFixture } from "./memory-maintenance";
 import { AppError } from "@read-aware/core";
 import type {
@@ -355,6 +356,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
 
   const memoryManagement = createMemoryManagementFixture(stores.memories);
   const deps: RuntimeDeps = {
+    bookClassification: createBookClassificationFixture(books),
     memoryManagement,
     workspace: createWorkspaceFixture(),
     hostCommands: {

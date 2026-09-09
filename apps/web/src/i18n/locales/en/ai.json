@@ -73,6 +73,11 @@
           "description": "The collection will be removed. Its books will stay on your shelf without a collection.",
           "approve": "Delete collection"
         },
+        "classifyBook": {
+          "question": "Change this book's classification?",
+          "description": "{{subject}}\n\nExpository classification removes chapter spoiler boundaries and changes the graph style. Existing digests rebuild lazily; past answers and in-flight work are not undone.",
+          "approve": "Change classification"
+        },
         "manageMemory": {
           "question": "Review this memory change?",
           "description": "{{subject}}\n\nOnly the shown change will be applied. Forgetting stops active retrieval; event history is retained.",

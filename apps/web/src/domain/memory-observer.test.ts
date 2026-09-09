@@ -11,11 +11,12 @@ function fixture() {
   return { observer, timers, errors, tick: async () => { const work = [...timers]; timers.clear(); work.forEach(fn => fn()); await flush(); } };
 }
 test("observation validates and copies only supported bounded query authority", () => {
+  expect(normalizeMemoryObservation({ kind: "classification", bookId: "b" })).toEqual({ kind: "classification", bookId: "b" });
   expect(normalizeMemoryObservation({ kind: "search", query: { scopes: ["user", "user"], query: " x " } })).toEqual({ kind: "search", query: { scopes: ["user"], query: "x", limit: 20 } });
   for (const input of [null, [], {}, { kind: "inspect", memoryId: " " }, { kind: "inspect", memoryId: "m", raw: true },
     { kind: "search", query: { scopes: ["all"] } }, { kind: "bookGraph", bookId: "b", query: { confirmSpoiler: true } },
     { kind: "bookGraph", bookId: "b", query: { names: ["Ada"], chapterIndex: 1 } }, { kind: "bookGraph", bookId: "" },
-    { kind: "bookGraph", bookId: "b", query: null }]) {
+    { kind: "bookGraph", bookId: "b", query: null }, { kind: "classification", bookId: "b", query: {} }, { kind: "classification", bookId: " " }]) {
     expect(() => normalizeMemoryObservation(input as never)).toThrow();
   }
 });

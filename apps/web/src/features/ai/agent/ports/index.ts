@@ -22,11 +22,13 @@ import { createUserInteractionPort } from "./user-interaction-port";
 import { memoryPolicy } from "../memory-policy";
 import { readingContextPolicy } from "../reading-context-policy";
 import { inspectMemory, mutateMemory } from "../../../../domain/memory-management";
+import { inspectBookClassification, changeBookClassification } from "../../../../domain/book-classification";
 
 export { GLOBAL_CONVERSATION_ID } from "./conversation-port";
 
 export function buildRuntimeDeps(): RuntimeDeps {
   return {
+    bookClassification: { inspect: inspectBookClassification, change: (input, signal) => changeBookClassification(input, "agent", signal) },
     memoryManagement: { inspect: inspectMemory, mutate: (input, signal) => mutateMemory(input, "agent", signal) },
     hostCommands: trustedHostCommands("agent"),
     environment: { snapshot: async () => hostEnvironment.snapshot() },

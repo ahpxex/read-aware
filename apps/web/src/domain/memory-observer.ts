@@ -4,10 +4,14 @@ import { normalizeBookGraphQuery } from "@read-aware/agent";
 export function normalizeMemoryObservation(input: MemoryObservationQuery): MemoryObservationQuery {
   const fail = (): never => { throw new AppError("memory/invalid-query", "Invalid memory observation query"); };
   if (!input || typeof input !== "object" || Array.isArray(input)) return fail();
-  const keys = input.kind === "search" ? ["kind", "query"] : input.kind === "inspect" ? ["kind", "memoryId"] : ["kind", "bookId", "query"];
+  const keys = input.kind === "search" ? ["kind", "query"] : input.kind === "inspect" ? ["kind", "memoryId"] : input.kind === "classification" ? ["kind", "bookId"] : ["kind", "bookId", "query"];
   if (Object.keys(input).some(key => !keys.includes(key))) return fail();
   if (input.kind === "search") return { kind: input.kind, query: normalizeMemoryQuery(input.query) };
   if (input.kind === "inspect") { validateMemoryId(input.memoryId); return { kind: input.kind, memoryId: input.memoryId }; }
+  if (input.kind === "classification") {
+    if (typeof input.bookId !== "string" || !input.bookId.trim() || input.bookId.length > 256) return fail();
+    return { kind: input.kind, bookId: input.bookId };
+  }
   if (input.kind !== "bookGraph" || typeof input.bookId !== "string" || !input.bookId.trim() || input.bookId.length > 256) return fail();
   return { kind: input.kind, bookId: input.bookId, query: normalizeBookGraphQuery(input.query === undefined ? {} : input.query) };
 }

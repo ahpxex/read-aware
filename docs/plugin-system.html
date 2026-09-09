@@ -340,11 +340,11 @@
         </div>
       </section>
 
-      <section data-search-section="memory Memory Desk manage_memory 记忆 图谱 search bookGraph inspect mutate 纠错 置顶 遗忘 防剧透">
+      <section data-search-section="memory Memory Desk manage_memory classify_book classification 分类 重分类 记忆 图谱 search bookGraph inspect mutate 纠错 置顶 遗忘 防剧透">
         <div class="section-inner">
           <h2>记忆读取已接通，来源与授权仍有边界</h2>
-          <details class="ep"><summary>Memory 1.2：查询、条件反馈与观察，Memory Desk 0.3 实际消费</summary><div class="ep-body">
-            <p>search 读取有效个人、跨书或本书记忆；bookGraph 提供章节摘要、实体与关系。Memory Desk 0.3 组合书库、记忆和导航，支持查询、来源查看、复核后打开原文，以及纠错、置顶与遗忘。源码十四个插件，Rust 编译内置仍六个，本插件不在内置清单。</p>
+          <details class="ep"><summary>Memory 1.3：查询、条件反馈与分类，Memory Desk 0.4 实际消费</summary><div class="ep-body">
+            <p>search 读取有效个人、跨书或本书记忆；bookGraph 提供章节摘要、实体与关系。Memory Desk 0.4 组合书库、记忆和导航，支持查询、来源查看、复核后打开原文，以及纠错、置顶、遗忘与分类纠正。源码十四个插件，Rust 编译内置仍六个，本插件不在内置清单。</p>
             <p>图谱与提示词纪要共享先按分类/阅读边界过滤再合并；未分类书按叙事保护。Agent 用回合游标，插件用宿主位置；global/cross-book 保留既有全图政策，元数据读取失败不跳过保护。</p>
             <p>同章重分类、读完状态或游标边界变化，会在下一轮刷新提示词但保留对话；选区不扩大权限，读取降级后下轮重试。真实 SQLite AgentThread 与编译插件已验叙事/概念切换；不回收已发送内容，其他正文策略与来源版本仍缺。<a href="./plugin-system.md#memory-prompt-policy">策略与验证边界</a></p>
             <p>损坏 JSON、非法别名/备注及未知分类整次报 db/error，不伪装成空图。Memory Desk 清旧图并自动恢复；提示词降级有日志。<a href="./plugin-system.md#chapter-memory-integrity">投影完整性证据</a></p>
@@ -358,8 +358,12 @@
             <p>遗忘退出活跃检索，不删除事件历史或外部副本。后台巩固与强化采用同源版本和原子整批提交；空闲检查读取真实版本及衰减期限，外部写入、时间变化、判断失败会重新评估，提交回执不吞掉迟到修改。仍是五分钟空闲轮询，不是即时观察或耐久任务；跨设备协调与新事实去重仍缺。macOS debug 已验 Worker、原生 remote apply、衰减边界、SQL 回滚重试和编译表单，Pin/Correct 图标已修复；时钟为注入、非联网同步或自主推理，跨平台未验。<a href="./plugin-system.md#memory-maintenance">后台维护边界</a></p>
           </div></details>
           <details class="ep"><summary>查询观察：变化和失败都可见，编辑草稿不被刷新覆盖</summary><div class="ep-body">
-            <p>events.observe 立即读取 search/inspect/bookGraph，此后至少每秒重读，串行等待回调，只推送变化、错误和恢复；最多 64 个订阅，关闭/退役释放并丢弃迟到结果。每次重算图谱边界，非逐写事件日志或即时撤回。</p>
+            <p>events.observe 立即读取 search/inspect/bookGraph/classification，每次读取和回调完成后一秒再读，只推送变化、错误和恢复；最多 64 个订阅，关闭/退役释放并丢弃迟到结果。每次重算图谱边界，非逐写事件日志或即时撤回。</p>
             <p>Memory Desk 列表、记录、人物和章节详情自动更新；失败清旧内容与动作，恢复续读，正常列表更新保留搜索。编辑表单冻结草稿与版本。真实 macOS debug 已验 Worker、原生 remote apply、Agent 同源读取、SQL 故障恢复、边界收紧和退订；非联网同步或自主模型证明。<a href="./plugin-system.md#memory-observation">观察契约与证据</a></p>
+          </div></details>
+          <details class="ep"><summary>分类更改需版本条件，Agent 每次批准，插件表单保留冲突草稿</summary><div class="ep-body">
+            <p>classification 查询需 memory:read，classify 需 memory:write；只能改叙事/说明性，不能传自动填空标记。bcl1 版本在事务内复核。Agent classify_book 两 scope 已接，书内仅本书；Memory Desk 0.4 观察分类并要求确认边界变化。插件确认是 UX，不是新的宿主授权票据。</p>
+            <p>说明性分类不设章节剧透边界；自动分类只填空，不覆盖用户的新选择。旧摘要逐步重建，不取消在途任务或擦除历史；旧事件/旧客户端兼容边界保留。原生已验真实 Worker、生产工具与批准组件、编译表单、冲突草稿、读故障恢复和退订；批准组件为隔离挂载，不冒充完整聊天或自主模型。<a href="./plugin-system.md#book-classification">分类契约与证据</a></p>
           </div></details>
         </div>
       </section>

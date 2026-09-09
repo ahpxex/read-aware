@@ -92,6 +92,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   delete_annotation: { annotationId: "hl-1" },
   search_memory: {},
   manage_memory: { action: "inspect", memoryId: "surface-memory" },
+  classify_book: { action: "inspect", bookId: BOOK_ID },
   remember: { content: "The reader enjoys locked-room mysteries.", scope: "user", kind: "preference" },
   search_conversation: { queries: ["clue"] },
   get_recent_turns: {},

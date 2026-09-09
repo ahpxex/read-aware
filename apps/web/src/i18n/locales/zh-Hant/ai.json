@@ -73,6 +73,11 @@
           "description": "分類會被刪除，其中的書仍會保留在書架上，但不再屬於任何分類。",
           "approve": "刪除分類"
         },
+        "classifyBook": {
+          "question": "變更這本書的分類？",
+          "description": "{{subject}}\n\n說明性分類不設章節劇透邊界，並改變圖譜風格。舊摘要會逐步重建；歷史回覆和進行中的工作不會撤銷。",
+          "approve": "變更分類"
+        },
         "manageMemory": {
           "question": "確認這項記憶變更？",
           "description": "{{subject}}\n\n僅套用上方變更。遺忘會停止檢索此記憶，但保留事件歷史。",

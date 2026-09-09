@@ -7,6 +7,7 @@ import { readingRuntime } from "./reading-runtime";
 import { createMemoryQueries } from "./memory-queries";
 import { bookMemoryBoundary } from "./book-memory-boundary";
 import { inspectMemory, mutateMemory } from "./memory-management";
+import { inspectBookClassification, changeBookClassification } from "./book-classification";
 import { MemoryObserver } from "./memory-observer";
 import { createLogger } from "../platform/logger";
 import type { MemoryObservation, MemoryObservationQuery, MemoryObservationResult } from "@read-aware/core";
@@ -31,9 +32,11 @@ export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal) 
   const read = async (query: MemoryObservationQuery): Promise<MemoryObservationResult> => {
     if (query.kind === "search") return { kind: query.kind, memories: await queries.search(query.query) };
     if (query.kind === "inspect") return { kind: query.kind, snapshot: await inspectMemory(query.memoryId, lifetime) };
+    if (query.kind === "classification") return { kind: query.kind, snapshot: await inspectBookClassification(query.bookId, lifetime) };
     return { kind: query.kind, graph: await queries.bookGraph(query.bookId, query.query) };
   };
-  return { queries: { ...queries, inspect: (id: string) => inspectMemory(id, lifetime) },
-    commands: { mutate: (input: import("@read-aware/core").MemoryMutation) => mutateMemory(input, origin, lifetime) },
+  return { queries: { ...queries, inspect: (id: string) => inspectMemory(id, lifetime), classification: (bookId: string) => inspectBookClassification(bookId, lifetime) },
+    commands: { mutate: (input: import("@read-aware/core").MemoryMutation) => mutateMemory(input, origin, lifetime),
+      classify: (input: import("@read-aware/core").BookClassificationChange) => changeBookClassification(input, origin, lifetime) },
     events: { observe: (input: MemoryObservationQuery, handler: (event: MemoryObservation) => unknown) => observer.observe(input, read, handler, lifetime) } };
 }

@@ -2,6 +2,7 @@ import type { MemoryScope, PluginContext, PluginFormView, PluginListView } from 
 import { graphView } from "./graph";
 import { strings } from "./strings";
 import { memoryDetail } from "./management";
+import { classificationView, classificationWords } from "./classification";
 import { liveMemoryView, type MemoryDeskView } from "./live-memory";
 
 export async function memoryDesk(ctx: PluginContext): Promise<PluginListView> {
@@ -20,6 +21,7 @@ export async function booksView(ctx: PluginContext, page = 0): Promise<PluginLis
       onSelect: async () => ({ view: { kind: "list", title: book.title, items: [
         { id: "graph", title: t[4], icon: "brain", onSelect: async () => ({ view: await graphView(ctx, book.id) }) },
         { id: "memory", title: t[5], icon: "brain", onSelect: async () => ({ view: await memories(ctx, `book:${book.id}`) }) },
+        { id: "classification", title: classificationWords(ctx.locale)[0]!, icon: "book-open", onSelect: async () => ({ view: await classificationView(ctx, book.id) }) },
       ] } }) })), actions: [
       { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await booksView(ctx, current), navigation: "replace" }) },
       ...[-1, 1].filter(direction => current + direction >= 0 && (current + direction) * 40 < books.length).map(direction => ({

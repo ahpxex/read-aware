@@ -806,6 +806,9 @@ export function buildPluginContext(
       ...(memory.commands ? { commands: { mutate: input => {
       lifecycle.assertActive("domains.memory.commands.mutate");
       return memory.commands!.mutate(input);
+    }, classify: input => {
+      lifecycle.assertActive("domains.memory.commands.classify");
+      return memory.commands!.classify(input);
     } } } : {}) };
   }
 

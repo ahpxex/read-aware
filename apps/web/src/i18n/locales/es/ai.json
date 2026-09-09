@@ -73,6 +73,11 @@
           "description": "La colección se eliminará. Sus libros seguirán en la estantería sin colección.",
           "approve": "Eliminar colección"
         },
+        "classifyBook": {
+          "question": "¿Cambiar la clasificación de este libro?",
+          "description": "{{subject}}\n\nLa clasificación expositiva elimina los límites de spoilers por capítulo y cambia el tipo de grafo. Los resúmenes se reconstruyen gradualmente. No se deshacen las respuestas anteriores ni las tareas en curso.",
+          "approve": "Cambiar clasificación"
+        },
         "manageMemory": {
           "question": "¿Confirmar este cambio de memoria?",
           "description": "{{subject}}\n\nSolo se aplicará este cambio. Olvidar excluye el recuerdo de las búsquedas; el historial de eventos se conserva.",

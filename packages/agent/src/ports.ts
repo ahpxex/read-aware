@@ -177,7 +177,7 @@ export interface UserInteractionOption {
 }
 
 export type UserPermissionAction =
-  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory";
+  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory" | "classify-book";
 
 type UserInteractionBase = {
   /** Globally unique for the lifetime of the tool call. */
@@ -383,6 +383,10 @@ export interface ExternalMemoryCandidateRequest {
 }
 
 export interface RuntimeDeps {
+  bookClassification: {
+    inspect(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookClassificationSnapshot | null>;
+    change(input: import("@read-aware/core").BookClassificationChange, signal?: AbortSignal): Promise<import("@read-aware/core").BookClassificationReceipt>;
+  };
   memoryManagement: {
     inspect(id: string, signal?: AbortSignal): Promise<import("@read-aware/core").MemorySnapshot | null>;
     mutate(input: import("@read-aware/core").MemoryMutation, signal?: AbortSignal): Promise<import("@read-aware/core").MemoryMutationReceipt>;

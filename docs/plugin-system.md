@@ -1091,6 +1091,83 @@ general large-result UX and chapter payload byte bounds are not closed by the
 200/40 count limits. Packaged, Windows/Linux, all formats and autonomous-model
 verification are not claimed by this unit.
 
+<a id="book-classification"></a>
+### Memory 1.3: Book Classification
+
+[代码] `memory.queries.classification(bookId)` requires `memory:read` or
+`memory:write` and returns `{bookId,narrativity,revision}`. Narrativity is
+`narrative`, `expository` or null (not yet classified). A missing book returns
+null; invalid stored classification fails `db/error`, never an unclassified
+success. IDs are nonblank and at most 256 UTF-16 units. Revision is opaque
+`bcl1:` plus 64 lowercase hex characters, computed from classification and
+relevant event identity in one read transaction. It rejects equal-value ABA,
+ignores unrelated reading/metadata writes and is device-local, not a content
+version or distributed compare-and-swap.
+
+[代码] `memory.commands.classify({bookId,narrativity,expectedRevision})` requires
+`memory:write`, which authorizes this operation on accessible books. Narrativity
+must be narrative/expository; no reset-to-null, automatic-fill flag, arbitrary
+event or extra fields. The host copies input, checks lifecycle before and after
+event minting, then native `book_classification_commit` rechecks existence and
+version in an IMMEDIATE transaction. Event log, projection and outbox commit
+together. Result is `{snapshot,changed}` after commit; `memory/conflict` requires
+fresh inspection and a new decision, not blind retry. Cancellation before
+dispatch rejects `memory/cancelled`; after dispatch it does not undo the commit.
+Source origin is the actual plugin/Agent/user, not an input field.
+
+[代码] `events.observe({kind:"classification",bookId},handler)` adds a fourth
+query to the Memory 1.2 observation protocol. Ready result is
+`{kind:"classification",snapshot}`; null means the book disappeared. The same
+64-observer budget, serialized reads/callbacks, initial async snapshot,
+1000-ms-after-completion polling, error/recovery, owner cleanup and late-result
+discard apply. The outer event revision orders deliveries; only the snapshot's
+bcl1 revision can authorize a conditional classification change. No per-book
+grant is added by the query filter or observation.
+
+[代码] Product Agent `classify_book` supports inspect/classify in both scopes;
+book threads can only address their current book, global threads supply an
+existing ID. Every change freezes the requested value/version, reads current
+state, and requests `classify-book` approval with the book title/ID and exact
+before/after classification. Localized consent explains that expository books
+have no chapter spoiler fence. Decline/cancel does not write; a concurrent
+change while approval is pending still conflicts. A tool must not reclassify
+merely to evade spoiler policy. Manual correction remains available with
+automatic memory building disabled. This is not a general inference task.
+
+[代码] Memory Desk 0.4 (requires memory ^1.3.0) composes the existing book picker
+with classification detail/observation and a conditional form. Changing the
+classification requires a checkbox acknowledging its spoiler-boundary effect.
+The form captures the viewed revision and selected classification; background
+updates do not rebase it. A failed write leaves the draft and checkbox intact.
+Back to detail observes fresh state; a new form uses the new version. Read errors
+remove stale details/actions and recover automatically. This checkbox is plugin
+UX, not a host-issued approval ticket: a granted plugin may call classify
+directly, while Agent changes always use its approval tool.
+
+[代码] The internal `classifyBookIfUnclassified` path remains separate. Native
+storage only fills null and returns the winning persisted flavor to the digest
+pipeline, without a fake event/broadcast when another writer already classified
+the book. New automatic events carry onlyIfUnclassified, honored by the current
+projector during both replay orders. Legacy unmarked events remain unconditional;
+older clients do not enforce the guard. Existing mismatched digests rebuild
+lazily, not on classify completion. No cancellation of in-flight digests, erasure
+of previous answers, versioned provenance or public graph-rebuild task is added.
+
+[环境] [Public classification evidence](./evidence/book-classification-public-2026-09-10.json)
+covers six real Workers in isolated macOS Tauri debug, absent/read/write grants,
+strict input/stale versions, live changes, errors/recovery and unsubscribe.
+The production Agent tool and interaction port used the real ChatInteractionPrompt
+mounted in a controlled native fixture root: actual buttons declined, approved,
+and approved after a concurrent write that correctly conflicted. This is component/
+tool integration, not a full AgentThread/chat transcript or autonomous model run.
+Compiled Memory Desk 0.4 changed the persisted classification, retained a
+conflicting draft, cleared a corrupt SQLite read and recovered after finally
+restoring the owned row. Four screenshots were inspected; SQLite confirmed
+actor origins, owned-book removal and three forgotten synthetic memories.
+Packaged, all locales/formats, real relay/second-device and Windows/Linux remain
+unverified. Foundational native transaction/replay evidence is
+[recorded separately](./evidence/book-classification-storage-2026-09-10.json).
+
 <a id="memory-feedback"></a>
 ### Memory 1.1: Conditional User Feedback
 

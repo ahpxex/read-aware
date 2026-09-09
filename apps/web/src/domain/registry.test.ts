@@ -43,8 +43,8 @@ describe("domain registry", () => {
     const denied = createActorDomainView("plugin:test", { library: "read" });
     expect(denied.memory).toBeUndefined();
     const granted = createActorDomainView("plugin:test", { memory: "read" });
-    expect(Object.keys(granted.memory!.queries)).toEqual(["search", "bookGraph", "inspect"]);
+    expect(Object.keys(granted.memory!.queries)).toEqual(["search", "bookGraph", "inspect", "classification"]);
     expect(granted.memory!.commands).toBeUndefined();
-    expect(Object.keys(createActorDomainView("plugin:test", { memory: "write" }).memory!.commands!)).toEqual(["mutate"]);
+    expect(Object.keys(createActorDomainView("plugin:test", { memory: "write" }).memory!.commands!)).toEqual(["mutate", "classify"]);
   });
 });

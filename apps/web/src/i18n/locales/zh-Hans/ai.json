@@ -73,6 +73,11 @@
           "description": "分类会被删除，其中的书仍会保留在书架上，但不再属于任何分类。",
           "approve": "删除分类"
         },
+        "classifyBook": {
+          "question": "更改这本书的分类？",
+          "description": "{{subject}}\n\n说明性分类不设章节剧透边界，并改变图谱风格。旧摘要会逐步重建；历史答复和在途任务不会撤销。",
+          "approve": "更改分类"
+        },
         "manageMemory": {
           "question": "确认这项记忆变更？",
           "description": "{{subject}}\n\n仅应用上方变更。遗忘会停止检索此记忆，但保留事件历史。",

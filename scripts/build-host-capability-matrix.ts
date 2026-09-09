@@ -29,7 +29,7 @@ const conclusions = [
   "不能确认能力都已实现。此表区分宿主行为、Agent 工具/自动管线、插件 API/贡献和实际插件消费者；没有把代码存在算成端到端可用。",
   "运行态正在接通：版本化位置、会话快照、精确搜索、导航回执/历史与朗读启停已由共享域提供给 Agent、Jumper 和 Listening Desk。模式控制、通用任务与资源释放、全部格式及跨平台验收仍未完成；持久化领域 API 无法代表全部产品能力。",
   `${ineffectiveSettings.size} 个旧设置路径仍未找到对应效果消费者；两端可改值不等于行为覆盖。两个文本发送设置已过滤 Agent 自动输入/历史附件并在收紧时取消，插件结构化 readingContext 与 Dictionary 1.3 也已接通，任意 prompt/HTTP/TTS 仍有边界；buildMemory 已控制记忆构建与在途取消；localOnly 已接入宿主 Agent/插件 LLM 的拒绝与在途取消，但任意插件 HTTP/TTS/同步仍不受该策略约束，保留部分。settings 1.2 的九项真实偏好已接通；书架布局/分组/排序已接 settings 1.3；快捷键绑定查询/重绑/冲突/null 恢复与激活冲突暂停已接 settings 1.5；原生快捷键编辑与停用命令清理已统一；UI 1.3 将语义导航、命令搜索、当前集合和分页选择集接到双端，Library Desk 0.3 已组合。settings 1.6 新增已提交设置观察，Workspace Profiles 0.3 已实时组合；旧命令事件、来源身份完整性、实际效果与打包跨平台等缺口仍在。`,
-  "memory 1.2 与 Memory Desk 已接记忆检索、保护图谱和条件纠错/置顶/遗忘，Agent 共享检索/合并逻辑；查询观察与编译视图已接变化/错误/恢复；按书授权和摘要来源版本仍缺。自动巩固/digest 已接入，画像 seed/实体事件投影与正式 bundle 未同等接通，不混计完成。",
+  "memory 1.3 与 Memory Desk 0.4 已接记忆检索、保护图谱、条件反馈和分类查询/纠正；Agent 共享检索与写入，classify_book 每次变更要求批准。查询观察与编译视图已接变化/错误/恢复，分类冲突保留草稿；按书授权、摘要来源版本和公共图谱任务仍缺。自动巩固/digest 已接入，画像 seed/实体事件投影与正式 bundle 未同等接通，不混计完成。",
   "插件 UI、贡献注册、宿主消费、模型工具是不同方向。Dictionary/RSS 提供模型工具；宿主 control_read_aloud、configure_reading_mode 与 navigate_reading 统一消费声音和模式提供者，Listening Desk 调用相同控制器。主题调度/WebDAV 连接仍无同等直接操作工具；设置可改不等于行为接通。",
   "备份 v1 并非全部当前存储的完整快照；私有数据、聊天、记忆、密钥、日志与同步状态的生命周期必须分别建模。原基线 129 项与 GAP01–GAP18 均保留，没有借新表宣告关闭。",
 ];

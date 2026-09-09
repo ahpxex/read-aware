@@ -42,6 +42,76 @@ test("unit steps wait for committed consumers, return boundaries and never add j
   runtime.closed();
 });
 
+test("unit movement waits for durable position, reports failure and can recover without reconfiguring", async () => {
+  const { runtime, controller, ready } = fixture(); controller.requireDurability();
+  const configured = runtime.configureMode({ active: true }); ready(); await configured;
+  const position = { modeKey: "test:mode", unitId: "sentence", location: { bookId: "book", contentVersion: "v1", cfi: "next" } };
+  const feedback = { status: "ready" as const, progress: { ordinal: 2, total: 3 }, cfiRange: "next", position };
+  let save!: () => void, fail!: (error: unknown) => void;
+  controller.bindStepper(async () => {
+    controller.persistPosition(controller.generation(), "test:mode", "sentence",
+      () => new Promise<void>((resolve, reject) => { save = resolve; fail = reject; }), position);
+    controller.feedback(controller.generation(), "test:mode", "sentence", feedback);
+    return { outcome: "moved", feedback };
+  });
+  let done = false;
+  const work = runtime.stepMode("next").then(result => { done = true; return result; }, error => error);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(runtime.snapshot().mode.cfiRange).toBe("next"); expect(done).toBe(false);
+  fail(new AppError("db/locked", "position failed"));
+  expect(await work).toMatchObject({ code: "db/locked" });
+  expect(runtime.snapshot().history.canGoBack).toBe(false);
+  const recovery = runtime.stepMode("next");
+  await new Promise(resolve => setTimeout(resolve, 0)); save();
+  expect(await recovery).toMatchObject({ outcome: "moved", mode: { cfiRange: "next" } });
+  runtime.closed();
+});
+
+test("return history waits for persistence and explicit return retries an already failed position", async () => {
+  const { runtime, id, controller } = fixture(); controller.requireDurability();
+  const position = { modeKey: "test:mode", unitId: "sentence", location: { bookId: "book", contentVersion: "v1", cfi: "resting" } };
+  const feedback = { status: "ready" as const, cfiRange: "resting", progress: { ordinal: 0, total: 1 }, position };
+  const configured = runtime.configureMode({ active: true });
+  controller.persistPosition(controller.generation(), "test:mode", "sentence", async () => {}, position);
+  controller.feedback(controller.generation(), "test:mode", "sentence", feedback); await configured;
+  const away = { ...position.location, cfi: "away" };
+  runtime.attach(id, { navigate: async () => position.location, step: async () => away }, away);
+  let fail!: (error: unknown) => void, commit!: () => void;
+  let calls = 0;
+  const persist = () => new Promise<void>((resolve, reject) => { calls++; commit = resolve; fail = reject; });
+  controller.persistPosition(controller.generation(), "test:mode", "sentence", persist, position);
+  const returning = runtime.returnToMode().catch(error => error);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(runtime.snapshot().history.canGoBack).toBe(false);
+  fail(new AppError("db/locked", "return failed"));
+  expect(await returning).toMatchObject({ code: "db/locked" });
+  expect(runtime.snapshot().history.canGoBack).toBe(false);
+  const recovery = runtime.returnToMode();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(calls).toBe(2);
+  commit(); await recovery;
+  expect(runtime.snapshot().history.canGoBack).toBe(true);
+  runtime.closed();
+});
+
+test("new navigation releases a position-save waiter even if the old database write never settles", async () => {
+  const { runtime, controller, ready } = fixture(); controller.requireDurability();
+  const configured = runtime.configureMode({ active: true }); ready(); await configured;
+  const position = { modeKey: "test:mode", unitId: "sentence", location: { bookId: "book", contentVersion: "v1", cfi: "next" } };
+  const feedback = { status: "ready" as const, progress: { ordinal: 1, total: 2 }, cfiRange: "next", position };
+  controller.bindStepper(async () => {
+    controller.persistPosition(controller.generation(), "test:mode", "sentence", () => new Promise(() => {}), position);
+    controller.feedback(controller.generation(), "test:mode", "sentence", feedback);
+    return { outcome: "moved", feedback };
+  });
+  const stepping = runtime.stepMode("next").catch(error => error);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const navigation = runtime.navigate({ fraction: 0.8 });
+  expect(await stepping).toMatchObject({ code: "reader/superseded" });
+  expect((await navigation).status).toBe("completed");
+  runtime.closed();
+});
+
 test("new navigation cancels unit traversal and waits for its renderer work to release", async () => {
   const { runtime, controller, ready } = fixture();
   const configured = runtime.configureMode({ active: true }); ready(); await configured;

@@ -1,5 +1,6 @@
 import { AppError, errorCode, type ReadingModeConfiguration, type ReadingModeSnapshot, type ReadingModePosition, type ReadingModeStepOutcome, type ReadingModeDescriptor } from "@read-aware/core";
 import { ReadingModeWrites } from "./reading-mode-writes";
+import { ReadingModePositionWrites } from "./reading-mode-position-writes";
 
 export type ModeDescriptor = ReadingModeDescriptor & { implementation?: object };
 export type ModeRequest = { revision: number; active: boolean; unitId: string | null; modeKey: string | null };
@@ -19,6 +20,7 @@ export class ReadingModeController {
   private pending: Pending | undefined;
   private confirmedRevision = -1;
   private readonly writes = new ReadingModeWrites((revision, error) => this.persistenceFailed(revision, error));
+  private readonly positionWrites = new ReadingModePositionWrites();
   private configurationWrite: Promise<void> = Promise.resolve();
   private rollback: ModeRequest | undefined;
   private persistenceTracked = false;
@@ -47,14 +49,16 @@ export class ReadingModeController {
   }
 
   /** A stale render must not dispatch a write, even if it has the latest revision ref. */
-  persistPosition = (revision: number, modeKey: string | null, unitId: string | null, write: () => Promise<void>): void => {
+  persistPosition = (revision: number, modeKey: string | null, unitId: string | null, write: () => Promise<void>, position: ReadingModePosition | null = null): void => {
     const current = () => revision === this.request.revision && modeKey === this.request.modeKey && unitId === this.request.unitId;
+    if (!current()) return;
     const receipt = Promise.resolve().then(async () => {
       if (!current()) return;
       await this.configurationWrite;
       if (current()) await write();
     });
-    this.trackPersistence(revision, receipt);
+    this.positionWrites.track(revision, position, receipt, () => this.persistPosition(revision, modeKey, unitId, write, position));
+    if (this.confirmedRevision !== revision) this.trackPersistence(revision, receipt);
   };
 
   async reconcilePreference(readUnit: () => string | null): Promise<void> {
@@ -85,8 +89,12 @@ export class ReadingModeController {
     const stepper = this.stepper;
     if (!stepper || !this.request.active) throw new AppError("reader/unavailable", "Reading mode stepper is not attached");
     const revision = this.request.revision;
+    const retry = this.positionWrites.retryable();
     const result = await stepper(direction, signal);
-    await this.waitForFeedback(result.feedback, signal, () => stepper === this.stepper && revision === this.request.revision);
+    const current = () => stepper === this.stepper && revision === this.request.revision;
+    await this.waitForFeedback(result.feedback, signal, current);
+    if (this.persistenceTracked) await this.positionWrites.wait(revision, result.feedback.position ?? null, signal, retry);
+    this.checkFeedback(result.feedback, signal, current);
     return result.outcome;
   }
 
@@ -94,8 +102,24 @@ export class ReadingModeController {
     const waiter = this.positionWaiter;
     if (!waiter) throw new AppError("reader/unavailable", "Reading mode position is not attached");
     const revision = this.request.revision;
+    const retry = this.positionWrites.retryable();
     const feedback = await waiter(position, signal);
-    await this.waitForFeedback(feedback, signal, () => waiter === this.positionWaiter && revision === this.request.revision);
+    const current = () => waiter === this.positionWaiter && revision === this.request.revision;
+    await this.waitForFeedback(feedback, signal, current);
+    if (this.persistenceTracked) await this.positionWrites.wait(revision, feedback.position ?? null, signal, retry);
+    this.checkFeedback(feedback, signal, current);
+  }
+
+  private checkFeedback(feedback: ModeFeedback, signal: AbortSignal, current: () => boolean): void {
+    if (signal.aborted) throw signal.reason;
+    if (!current()) throw new AppError("reader/superseded", "Reading mode changed during movement");
+    if (this.result.status === "error") throw new AppError(this.result.errorCode ?? "reader/segmentation-failed", "Reading mode restoration failed");
+    if (!this.matchesFeedback(feedback)) throw new AppError("reader/superseded", "Reading mode changed during movement");
+  }
+
+  private matchesFeedback(feedback: ModeFeedback): boolean {
+    return this.result.status === feedback.status && this.result.cfiRange === feedback.cfiRange
+      && this.result.progress?.ordinal === feedback.progress?.ordinal && this.result.progress?.total === feedback.progress?.total;
   }
 
   private waitForFeedback(feedback: ModeFeedback, signal: AbortSignal, current: () => boolean): Promise<void> {
@@ -108,8 +132,7 @@ export class ReadingModeController {
           if (signal.aborted) throw signal.reason;
           if (!current()) throw new AppError("reader/superseded", "Reading mode changed during movement");
           if (this.result.status === "error") throw new AppError(this.result.errorCode ?? "reader/segmentation-failed", "Reading mode restoration failed");
-          if (this.result.status !== feedback.status || this.result.cfiRange !== feedback.cfiRange
-            || this.result.progress?.ordinal !== feedback.progress?.ordinal || this.result.progress?.total !== feedback.progress?.total) return;
+          if (!this.matchesFeedback(feedback)) return;
           cleanup(); resolve();
         } catch (error) { cleanup(); reject(error); }
       };
@@ -164,7 +187,11 @@ export class ReadingModeController {
         const abort = () => owner.abort(signal?.reason);
         signal?.addEventListener("abort", abort, { once: true });
         const timer = setTimeout(() => owner.abort(new AppError("reader/timeout", "Reading mode persistence did not settle")), this.deadlineMs);
-        try { await this.writes.wait(revision, owner.signal); }
+        const retry = this.positionWrites.retryable();
+        try {
+          await this.writes.wait(revision, owner.signal);
+          await this.positionWrites.wait(revision, this.result.position, owner.signal, retry);
+        }
         finally { clearTimeout(timer); signal?.removeEventListener("abort", abort); }
       }
       if (signal?.aborted) throw signal.reason;
@@ -206,7 +233,11 @@ export class ReadingModeController {
   retire(): boolean {
     const before = this.pending?.before;
     this.supersede();
-    if (!before) return false;
+    if (!before) {
+      this.positionWrites.retire();
+      this.writes.start(this.request.revision);
+      return false;
+    }
     this.change(before.active, before.unitId, before.modeKey);
     return true;
   }
@@ -277,6 +308,7 @@ export class ReadingModeController {
     this.rollback = rollback;
     this.configurationWrite = Promise.resolve();
     this.writes.start(this.request.revision);
+    this.positionWrites.start(this.request.revision);
     const unavailableReason = !this.supported ? "unsupported-format" : !this.descriptor ? "no-provider" : null;
     this.result = { status: unavailableReason ? "unavailable" : active ? "preparing" : "inactive", unavailableReason,
       requestedActive: active, modeKey, label: this.descriptor?.label ?? null, availableModes: this.availableModes(),

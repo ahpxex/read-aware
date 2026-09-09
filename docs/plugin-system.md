@@ -186,7 +186,7 @@ the original database code and restores the prior requested mode; optimistic
 preference rollback is not treated as a new user intent. Deferred position writes
 verify revision/provider/unit before dispatch and wait for configuration success.
 Cancellation remains live during saving, and same-configuration waits have a
-deadline. Later unit navigation durability, legacy preference migration failure,
+deadline. Legacy preference migration failure,
 and compensation of every already-committed preference on cross-provider
 cancellation are not closed by this configuration receipt.
 
@@ -198,6 +198,33 @@ observation and ultimately returned db/locked; it is not evidence of responsive
 UI while writes are delayed. Controlled IPC/React tests separately verify delayed
 receipts and stale-write prevention. Packaged and other-platform validation remain
 open; see [mode durability evidence](./evidence/reading-mode-durability-2026-09-09.json).
+
+[代码] Unit stepping and returning now also await persistence of their exact
+book/content-version/provider/unit/CFI target before acknowledging completion.
+Position receipts are separate from configuration receipts: a failed movement
+does not poison every later action in the same mode. An explicit next action can
+retry an already-failed position, including returning without changing the CFI;
+a new failure still reaches its original caller. Equivalent re-saves require the
+newest receipt. A different target, content revision, mode retirement, caller
+cancellation or newer navigation cannot acknowledge the old target. A cancelled
+waiter releases the renderer queue without waiting for unresponsive storage.
+Returning records jump history only after this barrier; ordinary unit steps do
+not create jump history. `mode.status=ready` still describes indexed content,
+not durable storage. Already-performed page movement and dispatched writes are
+not rolled back. The automatic read-aloud loop awaits the same step receipt and
+stops on a database error instead of playing the next unsaved unit.
+
+[环境] [Position durability evidence](./evidence/reading-position-durability-2026-09-09.json)
+uses the isolated macOS debug app, synthetic FB2, real Agent tool ports and
+Listening Desk Worker actions. SQLite triggers reject unit/return writes; both
+actors receive db/error and recover without reconfiguring. A two-second local
+PCM diagnostic provider reaches playing, then advancing, then error/db/error
+when the next unit cannot save; there is no second playing transition. The
+visible native Next paragraph button also reports localized write failure and
+recovers. The captured error surface contains multiple toasts from fault
+testing; it is not a zero-noise UX or complete keyboard audit. Delayed-save,
+supersession, retirement and history timing also have focused tests. No real
+remote TTS, packaged, other-platform or all-format validation is claimed.
 
 Every domain write uses the same canonical command path as the product and is
 stamped with origin `plugin:<id>`. Plugins never mutate projections, feature

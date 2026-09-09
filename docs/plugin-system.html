@@ -213,7 +213,8 @@
           <details class="ep"><summary>模式配置：落盘才成功，保存失败恢复先前选择</summary><div class="ep-body">
             <p>书内状态与提供者单位偏好同批提交，回执等待精确写结果和首次位置保存；失败返回原数据库 code，不把回滚误判为新意图。旧 revision/provider/unit 的位置写不再派发，配置成功后才保存位置。</p>
             <p>隔离 macOS debug 已验 Agent、Listening Desk Worker 的双端故障与恢复、重开位置和慢分段取消；原生错误文案已检查。SQLite 锁曾阻塞 MCP，延迟回执的时序证据来自独立 IPC/React 测试，不宣称锁等待时 UI 流畅。</p>
-            <p>仍缺跟随、后续步进/返回持久回执、旧偏好迁移故障和跨提供者取消补偿；已提交偏好不是全部可撤销。打包与跨平台未验。<a href="./evidence/reading-mode-durability-2026-09-09.json">查看证据</a>。</p>
+            <p>单元步进/返回也已等待目标位置落盘；失败保留 db code，下一次明确操作可重试，不会污染整段模式会话。自动朗读在保存失败时停止，不播下一段。隔离 Agent、Listening Desk、原生按钮与本地 PCM 声源已验故障/恢复；页面已移动不伪装回滚，ready 仅表示索引完成。</p>
+            <p>仍缺跟随、旧偏好迁移故障和跨提供者取消补偿；已提交偏好不是全部可撤销。打包、跨平台与远端 TTS 未验；故障截图含多条 toast，不宣称完整键盘或零噪声 UX。<a href="./evidence/reading-mode-durability-2026-09-09.json">配置证据</a> · <a href="./evidence/reading-position-durability-2026-09-09.json">位置证据</a>。</p>
           </div></details>
           <div class="table-shell">
             <table>

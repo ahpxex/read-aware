@@ -88,13 +88,19 @@ export async function modeNavigation(action: "return-to-unit" | "away" | "next-u
   } finally { if (modeAbort === abort) modeAbort = undefined; }
 }
 export async function pluginUnitStep(direction: "next" | "previous") {
+  return pluginModeAction(`${direction}-unit`);
+}
+export async function pluginReturnToUnit() {
+  return pluginModeAction("return-to-unit");
+}
+async function pluginModeAction(actionId: string) {
   await isolated();
   const command = getDefaultStore().get(pluginCommandsAtom).find(command => command.pluginId === "listening-desk" && command.id === "open");
   const result = await command?.run();
   if (result?.view?.kind !== "blocks") throw new Error("Listening Desk view unavailable");
   const row = result.view.blocks.find(block => block.kind === "actions");
-  const action = row?.kind === "actions" ? row.actions.find(action => action.id === `${direction}-unit`) : null;
-  if (!action) throw new Error("Listening Desk step action unavailable");
+  const action = row?.kind === "actions" ? row.actions.find(action => action.id === actionId) : null;
+  if (!action) throw new Error("Listening Desk mode action unavailable");
   await action.run();
   return readingRuntime.snapshot();
 }

@@ -76,7 +76,7 @@ export type TextUnitNavigator = {
 
 type UseTextUnitNavigatorOptions = {
   configurationRevision?: number;
-  onPersistence?: (revision: number, modeKey: string | null, unitId: string | null, write: () => Promise<void>) => void;
+  onPersistence?: (revision: number, modeKey: string | null, unitId: string | null, write: () => Promise<void>, position: ReadingModePosition | null) => void;
   active: boolean;
   /** Temporarily unavailable because its plugin is disabled. The engine-side
    *  affordances are removed, but the persisted resting place is retained so
@@ -243,7 +243,11 @@ export function useTextUnitNavigator({
       contentVersion: contentVersionRef.current,
     };
     const write = () => writeTextUnitModeState(id, state);
-    if (onPersistenceRef.current) onPersistenceRef.current(configurationRef.current, state.modeKey, state.unitId, write);
+    const position = state.resting?.cfiRange ? {
+      modeKey: state.modeKey, unitId: state.unitId,
+      location: { bookId: id, contentVersion: state.contentVersion, cfi: state.resting.cfiRange },
+    } : null;
+    if (onPersistenceRef.current) onPersistenceRef.current(configurationRef.current, state.modeKey, state.unitId, write, position);
     else void write();
   }, []);
 

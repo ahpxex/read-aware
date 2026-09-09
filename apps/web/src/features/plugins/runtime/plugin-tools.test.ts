@@ -106,6 +106,30 @@ describe("plugin agent providers", () => {
     while (disposables.length > 0) disposables.pop()?.dispose();
   });
 
+  test("cached retrieval tools cannot execute disposed or same-ID replacement providers", async () => {
+    let calls = 0;
+    const definition = { key: "retrieval-state:search", pluginId: "retrieval-state", pluginName: "Retrieval State",
+      id: "search", label: "Search", description: "Search", retrieve: () => { calls++; return []; } };
+    const registration = registerAgentRetrievalProviderContribution(definition);
+    disposables.push(registration);
+    const scope = { kind: "global" as const, threadId: "thread" };
+    const name = "plugin_retrieval_state_retrieve_search";
+    const original = getPluginAgentTools(scope).find(tool => tool.name === name)!;
+    await original.execute("one", { query: "query" });
+    // A replacement is a new registration even when its public key is identical.
+    const replacement = registerAgentRetrievalProviderContribution(definition);
+    disposables.push(replacement);
+    await expect(original.execute("retired", { query: "query" })).rejects.toMatchObject({ code: "plugin/unavailable" });
+    const current = getPluginAgentTools(scope).find(tool => tool.name === name)!;
+    await current.execute("two", { query: "query" });
+    registration.dispose();
+    expect(getPluginAgentTools(scope).some(tool => tool.name === name)).toBe(true);
+    replacement.dispose();
+    expect(getPluginAgentTools(scope).some(tool => tool.name === name)).toBe(false);
+    await expect(current.execute("disposed", { query: "query" })).rejects.toMatchObject({ code: "plugin/unavailable" });
+    expect(calls).toBe(2);
+  });
+
   test("consumes context, retrieval, and memory candidates through bounded host adapters", async () => {
     disposables.push(
       registerAgentContextProviderContribution({

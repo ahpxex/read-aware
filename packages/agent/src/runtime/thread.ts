@@ -169,8 +169,8 @@ export class AgentThread {
   }
 
   /**
-   * 工具集失效（如插件启停）：丢弃缓存的 Agent，下一轮 ensureAgent() 以
-   * 最新的 extraTools 快照重建。转录在 store 里，无损。
+   * Explicit context invalidation discards the cached chapter session. Tool-only
+   * changes do not need this: definitions refresh at every model request.
    */
   invalidateAgent(): void {
     this.discardAgent();
@@ -314,11 +314,19 @@ export class AgentThread {
       initialState: {
         model,
         thinkingLevel: this.thinkingLevel,
-        tools: buildAgentTools(this.scope, this.deps, this.turnState),
+        tools: [],
         messages: turnRecordsToMessages(permittedTurnRecords(records, call.permissions), model),
       },
       transformContext: async (messages) =>
         elideStaleToolResults(windowByTurns(messages, this.maxWindowTurns)),
+      // Refresh both discovery and execution context between provider requests,
+      // without discarding the conversation or its turn-scoped permissions.
+      prepareNextTurnWithContext: ({ context }) => ({
+        context: {
+          ...context,
+          tools: buildAgentTools(this.scope, this.deps, this.turnState),
+        },
+      }),
       // Agent 不转发 cacheRetention，只能在 streamFn 这层补：一轮多次往返共享
       // 同一前缀（system prompt 轮内稳定），Anthropic 式显式缓存在这里全是净赚；
       // 不支持的 provider 由 pi 忽略。
@@ -528,6 +536,9 @@ export class AgentThread {
 
       const onAbort = () => agent.abort();
       call.assertAllowed();
+      // The loop preparation hook runs only after the first model response.
+      // Build before attaching the abort listener, so a failed discovery cannot leak it.
+      agent.state.tools = buildAgentTools(this.scope, this.deps, this.turnState);
       input.signal?.addEventListener("abort", onAbort, { once: true });
 
       const userText = formatUserTurn(input.text, input.attachments);

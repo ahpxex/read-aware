@@ -70,7 +70,7 @@ export const units: Unit[] = [
     "取消/换书/停用 provider 后不再播放迟到音频；回退状态与当前声音可读，费用/请求取消边界明确。"),
   unit("C4", "Contribution", "agent extensions", "工具、上下文、检索与记忆候选", "AI04-05 AI08-12 MEM02-03 EXT09-10 MORE05-06", "contributions.agentTools contributions.agentContextProviders contributions.agentRetrievalProviders contributions.memoryCandidateProviders",
     "工具显式声明 scope/schema/风险；上下文每轮有界注入；检索按需返回有来源片段；记忆候选由宿主去重/政策裁决。四个通道保留不同语义和生命周期，不合并成万能 agent.invoke。",
-    "只有插件 installed + enabled + scope/grant/availability 满足时才消费。agentTools 1.1 按当前 visible/enabled 过滤两 scope 的工具集合，缓存工具在每次执行前仍检查精确注册和状态；此接线不是所有宿主内置 Agent 工具的统一 enablement。上下文与候选没有插件实例不等于宿主 API 未实现。",
+    "只有插件 installed + enabled + scope/grant/availability 满足时才消费。agentTools 1.1 按当前 visible/enabled 过滤两 scope 的工具集合；AgentThread 每次模型请求前刷新工具与检索定义，不丢弃章节会话。已发出请求保留原定义，缓存工具和检索执行前复核精确注册，旧调用不能转交同名新实现。此接线不是所有宿主内置 Agent 工具的统一 enablement；脚本推理真实 Worker 验收不是自主远端模型验收。上下文与候选没有插件实例不等于宿主 API 未实现。",
     "Dictionary 已有 3 工具 + 1 检索；RSS 有 3 global 工具；其他源插件没有直接操作工具。删除词/CSV/退订/OPML 可以在插件补工具，不要求宿主新增词汇/RSS 领域。",
     "输出不成为高优先级指令；不得通过 plugin tool 规避 host 批准/剧透规则；不能把自有私有数据自动变成所有插件可见。",
     "跨 scope 不暴露工具；输入/输出有界，失败不悬挂整轮；撤权和停用失效；检索引用可追踪，候选无条件入记忆视为失败。"),

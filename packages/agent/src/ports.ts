@@ -480,9 +480,9 @@ export interface RuntimeDeps {
   settings: SettingsPort;
   log?: AgentLogPort;
   /**
-   * 宿主注入的额外工具（产品侧：用户插件注册的 agent 工具）。每次 Agent
-   * 组装时取一次快照；集合变化后宿主调用 `AgentRuntime.invalidateAgents()`
-   * 让下一轮重建。
+   * 宿主注入的额外工具（产品侧：用户插件注册的 agent 工具）。每次模型请求
+   * 前重新取快照，无需 invalidateAgents。已发出的请求使用原工具定义；
+   * execute 必须复核注册身份、生命周期及当前可用性，不能转交同名新实现。
    */
   extraTools?: (scope: ThreadScope) => AgentTool[];
   /** Bounded, provenance-stamped data blocks appended to the current user turn. */

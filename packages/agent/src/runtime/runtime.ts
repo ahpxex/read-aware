@@ -144,7 +144,7 @@ export class AgentRuntime {
     await Promise.all([...this.threads.values()].map((thread) => thread.flushBackgroundWork()));
   }
 
-  /** 工具集变化（如插件启停）后调用：所有线程下一轮以新工具重建 Agent。 */
+  /** Invalidate cached context sessions; tool definitions refresh without this. */
   invalidateAgents(): void {
     for (const thread of this.threads.values()) thread.invalidateAgent();
   }

@@ -122,7 +122,8 @@ export function registerAgentContextProviderContribution(
 export function registerAgentRetrievalProviderContribution(
   item: RegisteredAgentRetrievalProvider,
 ): PluginDisposable {
-  return agentRetrievalProvidersRegistry.register(item);
+  // Cached Agent tools retain this identity, not just the reusable public key.
+  return agentRetrievalProvidersRegistry.register({ ...item });
 }
 
 export function registerMemoryCandidateProviderContribution(

@@ -13,9 +13,7 @@ import { getDefaultStore } from "jotai";
 import { appHttpFetch } from "../../../platform/http-client";
 import {
   pluginAgentContextProvidersAtom,
-  pluginAgentRetrievalProvidersAtom,
   pluginMemoryCandidateProvidersAtom,
-  pluginToolsAtom,
 } from "../../plugins/state/plugin-store";
 import { getAIConfig, type OpenRouterRoutingConfig } from "../lib/ai-config";
 import { accountFromConfig } from "./account";
@@ -26,13 +24,8 @@ import "../lib/model-catalog";
 
 let cached: { key: string; runtime: AgentRuntime } | null = null;
 
-// 插件工具集变化（启停/安装）时，让所有线程下一轮以新工具快照重建 Agent。
-getDefaultStore().sub(pluginToolsAtom, () => {
-  cached?.runtime.invalidateAgents();
-});
-getDefaultStore().sub(pluginAgentRetrievalProvidersAtom, () => {
-  cached?.runtime.invalidateAgents();
-});
+// Tool/retrieval registrations are refreshed at each model request by AgentThread.
+// Do not discard a book's chapter session when only its available tools change.
 getDefaultStore().sub(pluginAgentContextProvidersAtom, () => {
   cached?.runtime.invalidateAgents();
 });

@@ -2,7 +2,7 @@
  * Bridges plugin-registered tools into the agent runtime's AgentTool shape
  * (docs/plugin-system.md §8): namespaced `plugin_<id>_<name>`, provenance in
  * the description so the model knows the source, JSON results. Wired into
- * RuntimeDeps.extraTools; the registry snapshot is taken per agent build.
+ * RuntimeDeps.extraTools; the registry snapshot is taken per model request.
  */
 import type {
   AgentExtensionContextBlock,
@@ -14,6 +14,7 @@ import type {
   ThreadScope,
   WordReference,
 } from "@read-aware/agent";
+import { AppError } from "@read-aware/core";
 import type {
   PluginAgentScope,
   RegisteredAgentRetrievalProvider,
@@ -105,6 +106,9 @@ function retrievalTool(provider: RegisteredAgentRetrievalProvider, scope: Thread
     description: `[Plugin: ${provider.pluginName}] ${provider.description}`,
     parameters: RETRIEVAL_PARAMETERS as AgentTool["parameters"],
     execute: async (_toolCallId, raw) => {
+      if (!getRegisteredAgentRetrievalProviders().includes(provider)) {
+        throw new AppError("plugin/unavailable", "Retrieval registration has retired");
+      }
       const params = (raw ?? {}) as { query?: unknown; limit?: unknown };
       const query = typeof params.query === "string" ? params.query.trim() : "";
       if (!query) throw new Error("query is required");

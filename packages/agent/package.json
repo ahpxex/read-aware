@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./spike": "./src/spike.ts",
     "./evals": "./src/evals/index.ts",
-    "./testing": "./src/testing/fixtures.ts"
+    "./testing": "./src/testing/fixtures.ts",
+    "./testing/tool-refresh-probe": "./src/testing/tool-refresh-probe.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

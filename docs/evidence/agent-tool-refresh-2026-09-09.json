@@ -1,0 +1,125 @@
+{
+  "date": "2026-09-09",
+  "baseCommit": "958d7269",
+  "scope": "Agent toolset refresh at each model request; not universal built-in availability",
+  "environment": {
+    "appIdentifier": "com.readaware.app.capability-e2e",
+    "pid": 38475,
+    "processGroup": 38299,
+    "frontendPort": 5184,
+    "bridgePort": 9223,
+    "platform": "macOS debug Tauri/WebKit"
+  },
+  "native": {
+    "remaining": 0,
+    "run": {
+      "result": {
+        "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+        "ends": [
+          {
+            "id": "probe-1",
+            "isError": false,
+            "output": "{\"status\":\"applied\"}",
+            "phase": "end",
+            "tool": "plugin_capability_tool_refresh_arm",
+            "type": "tool-step"
+          },
+          {
+            "id": "probe-2",
+            "isError": false,
+            "output": "{\"calls\":1,\"generation\":1}",
+            "phase": "end",
+            "tool": "plugin_capability_tool_refresh_target",
+            "type": "tool-step"
+          },
+          {
+            "id": "probe-3",
+            "isError": true,
+            "output": "Contribution is not currently available",
+            "phase": "end",
+            "tool": "plugin_capability_tool_refresh_target",
+            "type": "tool-step"
+          },
+          {
+            "id": "probe-4",
+            "isError": false,
+            "output": "{\"status\":\"applied\"}",
+            "phase": "end",
+            "tool": "plugin_capability_tool_refresh_arm",
+            "type": "tool-step"
+          },
+          {
+            "id": "probe-5",
+            "isError": false,
+            "output": "{\"calls\":2,\"generation\":1}",
+            "phase": "end",
+            "tool": "plugin_capability_tool_refresh_target",
+            "type": "tool-step"
+          },
+          {
+            "id": "probe-6",
+            "isError": true,
+            "output": "Contribution registration has retired",
+            "phase": "end",
+            "tool": "plugin_capability_tool_refresh_target",
+            "type": "tool-step"
+          },
+          {
+            "id": "probe-7",
+            "isError": false,
+            "output": "{\"calls\":3,\"generation\":2}",
+            "phase": "end",
+            "tool": "plugin_capability_tool_refresh_target",
+            "type": "tool-step"
+          }
+        ],
+        "inference": "scripted stream transport",
+        "modelRequests": 9,
+        "priorConversationRetained": true,
+        "state": {
+          "calls": 3,
+          "generation": 2
+        },
+        "storage": "in-memory test ports",
+        "targetDiscovery": [
+          false,
+          true,
+          true,
+          false,
+          true,
+          true,
+          true,
+          true,
+          true
+        ]
+      },
+      "status": "completed"
+    },
+    "url": "http://localhost:5184/"
+  },
+  "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-tool-refresh-probe.ts",
+  "worker": "apps/web/src/features/plugins/runtime/fixtures/tool-refresh-probe.ts",
+  "transport": "packages/agent/src/testing/tool-refresh-probe.ts",
+  "screenshot": "/tmp/readaware-tool-refresh-native-focused.png",
+  "screenshotRun": "Earlier successful run, PID 35488/PGID 35341; unfocused first capture was blank below header, focused capture was inspected and shows both existing books.",
+  "cleanup": "Both owned process groups stopped with exit 143; final 5184/9223/9224 listeners absent. Probe contributions zero before shutdown; documentation browser closed.",
+  "validation": {
+    "focused": "7 tests, 54 assertions",
+    "fullTests": "22/22 tasks; web 820 tests, 9143 assertions",
+    "typecheck": "25/25 tasks",
+    "frontendBuild": "passed; not packaged desktop verification",
+    "modelGate": "7 tests, 9 assertions",
+    "inventory": "243 rows, 634 mappings, 30 units/catalog members, 129 acceptance items, 32 scenarios",
+    "docs": "Three pairs structurally validated; three HTML documents checked at 1440x1000, 1024x768, 390x844; English/Chinese search and Escape, model/matrix drawer and theme persistence verified; no observed overflow, duplicate IDs, bad anchors, unnamed buttons or resource errors. Console/page errors empty. Fixed nested plugin-system search hiding a matching child behind its parent. Fixed CDN dependencies remain, no Mermaid."
+  },
+  "boundaries": [
+    "Real Worker registration/state RPC and product AgentThread loop; inference is scripted, conversation ports are in-memory.",
+    "No production credentials, formal app, book import/delete, or external model requests were used by the probe.",
+    "Native probe covers agentTools; retired retrieval providers are covered by unit tests.",
+    "No packaged build, Windows/Linux, autonomous remote inference, continuous load, or new general built-in operation availability proof."
+  ],
+  "diagnostics": [
+    "37 existing Rust warnings; initial WebContent termination recovered; MCP bridge version warning.",
+    "Initial test imports failed in WebKit; removed Node-only faux provider imports from native transport and replaced test-only Node hash with opaque Web Crypto CAS tokens. An HMR/reload race briefly failed boot; a fresh reload recovered. Two successful native runs followed, plus a fresh-process final-code rerun on PID 38475 with the same nine-request results."
+  ]
+}

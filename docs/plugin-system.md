@@ -413,7 +413,31 @@ Every invocation of a registered callback rechecks registration ownership and
 current visible/enabled state, including old UI closures and cached Agent tools.
 Unavailable actions reject with `plugin/action-disabled` (eight localized copies);
 retired registrations reject with `plugin/unavailable`. Tool discovery filters both
-book/global scopes; this does not hot-add tools to an already-built model turn.
+book/global scopes. AgentThread refreshes the complete scoped tool snapshot before
+each model request, including the first request of a reused thread and subsequent
+tool-loop requests. It uses pi's supported `prepareNextTurnWithContext` to replace
+both discovery and execution context, not only the provider's advertised schemas.
+Tool/retrieval registration changes no longer discard the cached chapter session.
+
+[代码] An outstanding model request keeps its original definitions and callbacks.
+Disabling or replacing a registration while that request is pending does not send
+its old call to the new implementation. Execution checks reject it; the next model
+request discovers the current toolset. Retrieval tools also check exact current
+registration identity and reject retired providers with `plugin/unavailable`,
+including when the same definition object is registered again. Already-started
+operations are not cancelled by this refresh. Scope, turn permissions, spoiler
+state, message history and result compaction remain governed by existing policy.
+This is not unified availability for all host built-in operations.
+
+[环境] [Tool-loop evidence](./evidence/agent-tool-refresh-2026-09-09.json) records a
+real isolated macOS Tauri Worker and product AgentThread across nine model requests:
+arm a disabled tool, execute it, disable during an outstanding response, re-enable
+in the same user turn, replace the same name during the next user turn, then execute
+the new registration. Only three target side effects occur; both stale invocations
+fail and previous conversation remains. Inference is a scripted stream, conversation
+ports are in-memory, not autonomous remote-model or SQLite persistence evidence.
+Unit tests cover both book/global loops, between-user-turn refresh and retired
+retrieval providers. Packaged/Windows/Linux and continuous load remain unverified.
 
 [代码] State changes do not cancel operations that already started or revoke
 callbacks in a view already opened by an action. Disabling an open page/popup does

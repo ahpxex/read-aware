@@ -1,14 +1,23 @@
-import { createHash } from "node:crypto";
 import { AppError, validateAnnotationMutations, type AnnotationItem, type AnnotationMutation, type AnnotationCommitResult, type AnnotationSnapshot } from "@read-aware/core";
 
 /** Synchronous checks and writes model the native atomic boundary, not SQLite. */
 export function createAnnotationMutationFixture(rows: AnnotationItem[]) {
   const generations = new Map<string, number>();
+  const revisions = new Map<string, { fingerprint: string; revision: string }>();
   const touch = (id: string) => { generations.set(id, (generations.get(id) ?? 0) + 1); };
   const inspect = (id: string): AnnotationSnapshot | null => {
     const item = rows.find(item => item.id === id);
     if (!item) return null;
-    return { annotation: structuredClone(item), revision: `ann1:${createHash("sha256").update(JSON.stringify([item, generations.get(id) ?? 0])).digest("hex")}` };
+    // Revisions are opaque CAS tokens. Keep the fixture usable in both Bun and
+    // WebKit without reproducing the native database's hashing implementation.
+    const fingerprint = JSON.stringify([item, generations.get(id) ?? 0]);
+    let current = revisions.get(id);
+    if (current?.fingerprint !== fingerprint) {
+      const bytes = crypto.getRandomValues(new Uint8Array(32));
+      current = { fingerprint, revision: `ann1:${Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("")}` };
+      revisions.set(id, current);
+    }
+    return { annotation: structuredClone(item), revision: current.revision };
   };
   const apply = (changes: AnnotationMutation[]): AnnotationCommitResult => {
     validateAnnotationMutations(changes);

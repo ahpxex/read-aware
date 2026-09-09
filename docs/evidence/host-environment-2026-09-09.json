@@ -1,0 +1,73 @@
+{
+  "date": "2026-09-09",
+  "scope": "Isolated macOS debug Tauri com.readaware.app.capability-e2e, ports 5184/9224. Formal app untouched.",
+  "contract": "session 1.1.0; Agent get_host_environment in both scopes; Listening Desk 0.6.0 built artifact under diagnostic identity",
+  "method": {
+    "network": "Controlled navigator.onLine property and DOM offline/online events, not actual OS connectivity loss.",
+    "locale": "Actual i18n.changeLanguage en -> zh-Hans -> ja; restored en.",
+    "timezone": "Actual Intl timezone Asia/Singapore/UTC+480; changes covered by injected store unit tests, not an OS setting change.",
+    "actors": "Actual Agent tool/dependencies, permission-free module Worker, actual built Listening Desk Worker. No model semantic evaluation.",
+    "ui": "Native Listening Desk dialog showed offline hint; restoring native online property and clicking Refresh removed hint. Screenshot /tmp/host-environment-listening.png inspected."
+  },
+  "observations": {
+    "environmentInitial": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"agent\":{\"content\":[{\"text\":\"{\\\"runtime\\\":\\\"desktop\\\",\\\"platform\\\":\\\"macos\\\",\\\"locale\\\":\\\"en\\\",\\\"timeZone\\\":\\\"Asia/Singapore\\\",\\\"utcOffsetMinutes\\\":480,\\\"networkHint\\\":\\\"online\\\",\\\"revision\\\":2}\",\"type\":\"text\"}]},\"plugin\":{\"current\":{\"locale\":\"en\",\"networkHint\":\"online\",\"platform\":\"macos\",\"revision\":2,\"runtime\":\"desktop\",\"timeZone\":\"Asia/Singapore\",\"utcOffsetMinutes\":480},\"hasReading\":false,\"seen\":[{\"locale\":\"en\",\"networkHint\":\"online\",\"platform\":\"macos\",\"revision\":2,\"runtime\":\"desktop\",\"timeZone\":\"Asia/Singapore\",\"utcOffsetMinutes\":480}],\"version\":\"1.1.0\"},\"prep\":{\"path\":\"/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e\"}}\n\n[Executed in window: main]"
+        }
+      ]
+    },
+    "environmentChanged": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"agent\":{\"content\":[{\"text\":\"{\\\"runtime\\\":\\\"desktop\\\",\\\"platform\\\":\\\"macos\\\",\\\"locale\\\":\\\"zh-Hans\\\",\\\"timeZone\\\":\\\"Asia/Singapore\\\",\\\"utcOffsetMinutes\\\":480,\\\"networkHint\\\":\\\"offline\\\",\\\"revision\\\":4}\",\"type\":\"text\"}]},\"listening\":{\"view\":{\"blocks\":[{\"kind\":\"text\",\"text\":\"不可用\"},{\"kind\":\"text\",\"text\":\"系统报告离线\"},{\"kind\":\"text\",\"text\":\"尚未打开书籍\"},{\"actions\":[{\"icon\":\"arrows-clockwise\",\"id\":\"refresh\",\"label\":\"刷新\"}],\"kind\":\"actions\"}],\"kind\":\"blocks\"}},\"plugin\":{\"current\":{\"locale\":\"zh-Hans\",\"networkHint\":\"offline\",\"platform\":\"macos\",\"revision\":4,\"runtime\":\"desktop\",\"timeZone\":\"Asia/Singapore\",\"utcOffsetMinutes\":480},\"hasReading\":false,\"seen\":[{\"locale\":\"en\",\"networkHint\":\"online\",\"platform\":\"macos\",\"revision\":2,\"runtime\":\"desktop\",\"timeZone\":\"Asia/Singapore\",\"utcOffsetMinutes\":480},{\"locale\":\"en\",\"networkHint\":\"offline\",\"platform\":\"macos\",\"revision\":3,\"runtime\":\"desktop\",\"timeZone\":\"Asia/Singapore\",\"utcOffsetMinutes\":480},{\"locale\":\"zh-Hans\",\"networkHint\":\"offline\",\"platform\":\"macos\",\"revision\":4,\"runtime\":\"desktop\",\"timeZone\":\"Asia/Singapore\",\"utcOffsetMinutes\":480}],\"version\":\"1.1.0\"}}\n\n[Executed in window: main]"
+        }
+      ]
+    },
+    "environmentDisposed": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"agent\":{\"content\":[{\"text\":\"{\\\"runtime\\\":\\\"desktop\\\",\\\"platform\\\":\\\"macos\\\",\\\"locale\\\":\\\"ja\\\",\\\"timeZone\\\":\\\"Asia/Singapore\\\",\\\"utcOffsetMinutes\\\":480,\\\"networkHint\\\":\\\"offline\\\",\\\"revision\\\":5}\",\"type\":\"text\"}]},\"plugin\":{\"current\":{\"locale\":\"ja\",\"networkHint\":\"offline\",\"platform\":\"macos\",\"revision\":5,\"runtime\":\"desktop\",\"timeZone\":\"Asia/Singapore\",\"utcOffsetMinutes\":480},\"hasReading\":false,\"seen\":[{\"locale\":\"en\",\"networkHint\":\"online\",\"platform\":\"macos\",\"revision\":2,\"runtime\":\"desktop\",\"timeZone\":\"Asia/Singapore\",\"utcOffsetMinutes\":480},{\"locale\":\"en\",\"networkHint\":\"offline\",\"platform\":\"macos\",\"revision\":3,\"runtime\":\"desktop\",\"timeZone\":\"Asia/Singapore\",\"utcOffsetMinutes\":480},{\"locale\":\"zh-Hans\",\"networkHint\":\"offline\",\"platform\":\"macos\",\"revision\":4,\"runtime\":\"desktop\",\"timeZone\":\"Asia/Singapore\",\"utcOffsetMinutes\":480}],\"version\":\"1.1.0\"}}\n\n[Executed in window: main]"
+        }
+      ]
+    },
+    "environmentListening": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"view\":{\"blocks\":[{\"kind\":\"text\",\"text\":\"Unavailable\"},{\"kind\":\"text\",\"text\":\"System reports offline\"},{\"kind\":\"text\",\"text\":\"No open book\"},{\"actions\":[{\"icon\":\"arrows-clockwise\",\"id\":\"refresh\",\"label\":\"Refresh\"}],\"kind\":\"actions\"}],\"kind\":\"blocks\"}}\n\n[Executed in window: main]"
+        }
+      ]
+    },
+    "environmentCleanup": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"commands\":0,\"locale\":\"en\",\"online\":true}\n\n[Executed in window: main]"
+        }
+      ]
+    },
+    "environmentUIOnline": {
+      "content": [
+        {
+          "type": "text",
+          "text": "# Scoped to: [role=dialog]\n- dialog Listening Desk [modal] [ref=e0]:\n  - heading Listening Desk [level=2] [ref=e1]:\n    - text: Listening Desk\n  - paragraph [ref=e6]:\n    - text: Unavailable\n  - paragraph [ref=e7]:\n    - text: No open book\n  - button Refresh [ref=e9]:\n    - text: Refresh\n  - separator [ref=e11]\n  - button Close [ref=e13]:\n    - text: Close\n\n# ───────────────────────────────────────\n# Generated: 2026-09-09T02:44:03.653Z\n# Elements indexed: 14\n# Use [ref=eN] with other webview tools"
+        }
+      ]
+    }
+  },
+  "limits": [
+    "No real network outage, remote endpoint reachability or OS timezone change tested.",
+    "No packaged/Windows/Linux coverage.",
+    "No installation upgrade/restart test for Listening Desk 0.6; original installed version not replaced.",
+    "Offline Start remains enabled via plugin unit test; no book opened or real audio started in this test.",
+    "Legacy four session reading events, supported formats and true service readiness remain open."
+  ],
+  "failedAttempts": [
+    "An initial direct probe imported a different Jotai module and did not find its command. Replaced by fixture importing the application's store.",
+    "One preview start collided with Vite full reload and failed. Repeated after boot mounted on the same live app; built Worker and native refresh then succeeded."
+  ]
+}

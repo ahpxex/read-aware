@@ -1,6 +1,7 @@
 // src/strings.ts
 var locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 var labels = {
+  offline: ["System reports offline", "系统报告离线", "系統回報離線", "システムはオフラインと報告", "Система сообщает об отсутствии сети", "Le système indique un état hors ligne", "System meldet offline", "El sistema indica que no hay conexión"],
   provider: ["Reading mode provider", "阅读模式提供者", "閱讀模式提供者", "読書モードの提供元", "Поставщик режима чтения", "Fournisseur du mode de lecture", "Lesemodus-Anbieter", "Proveedor del modo de lectura"],
   title: ["Listening Desk", "朗读台", "朗讀台", "読み上げ", "Чтение вслух", "Lecture audio", "Vorlesen", "Lectura en voz alta"],
   start: ["Start", "开始", "開始", "開始", "Начать", "Démarrer", "Starten", "Iniciar"],
@@ -41,6 +42,7 @@ async function listeningView(ctx, boundary) {
   if (!reading?.commands)
     throw new Error("Listening Desk requires reading:write");
   const state = await reading.queries.session();
+  const environment = await ctx.services.session.environment();
   const playback = state.playback;
   const guard = { sessionId: state.sessionId ?? undefined, bookId: state.bookId ?? undefined };
   const refresh = async () => ({ view: await listeningView(ctx), navigation: "replace" });
@@ -139,6 +141,7 @@ async function listeningView(ctx, boundary) {
     ...modeForm ? [modeForm] : [],
     ...boundary ? [{ kind: "text", text: tr(ctx.locale, boundary) }] : [],
     { kind: "text", text: tr(ctx.locale, playback.status) },
+    ...environment.networkHint === "offline" ? [{ kind: "text", text: tr(ctx.locale, "offline") }] : [],
     ...playback.unavailableReason ? [{ kind: "text", text: tr(ctx.locale, playback.unavailableReason) }] : [],
     ...playback.backend ? [{ kind: "text", text: tr(ctx.locale, playback.fallback ? "fallback" : playback.backend) }] : [],
     { kind: "actions", actions }

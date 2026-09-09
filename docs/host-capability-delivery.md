@@ -557,3 +557,21 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [代码/环境] 重扫仍为 224 行、579 库存映射、129 验收项、30 责任单元/catalog、32 场景；生成一致性与七项模型门禁通过，READ16 保持部分。三对文档 validator 通过，三份 HTML 在 1440×1000、1024×768、390×844 无页面横向溢出、重复 ID、失效页内锚点、无名按钮或已观察资源 HTTP 错误；中英文搜索/Escape、已有抽屉 inert 与主题刷新保持通过，无 console/page error。初次 about:blank 不计验证，重新导航后才检查；截图只检查了首页，不冒充展开详情截图。无新增图，文档仍依赖 CDN，文档浏览器不是产品 E2E。
 
 仍未完成：READ16 跟随与跨提供者取消补偿、其他双端缺口、8 个无效果设置、实用组合插件/W01–W32 全覆盖、全格式/packaged/跨平台验收。本批复用 Listening Desk，没有新增实用插件。隔离书已关闭，三项偏好备份经原生 KV 恢复并读库比对，临时 trigger 清空；保留合成书，不倒写测试阅读进度。隔离 app 确认退出、5184/9224 无监听，文档浏览器关闭，正式应用未接触，未推送；总体目标保持进行中。
+
+## 2026-09-09：共享环境快照、观察与实际插件消费
+
+[代码] session 服务升级为 1.1.0，新增 environment/observeEnvironment；产品 Agent 在全局和书内都有 get_host_environment，读取同一个 HostEnvironmentStore。字段为 revision、runtime、platform、locale、timeZone、utcOffsetMinutes、networkHint。查询总是刷新，观察先发当前快照再发变化版本；语言、online/offline、focus/pageshow 触发刷新，时区/DST 无通用 WebView 事件，因此有观察者时每 30 秒复核。没有观察者不保留 timer；回调独立副本、失败记录日志、dispose/卸载释放监听，重入刷新不向后续观察者交付更旧 revision。
+
+[代码/边界] 使用已有平台探测，不采用窗口装饰的 debug OS 覆盖。networkHint 仅 OS/WebView 提示，不能断言目标 URL 可达、账户/模型就绪或格式支持；revision 是本实例版本，不是跨重启游标。该元数据不带书籍、账户、密钥或设备标识，无需 reading 权限。旧 session 四种阅读事件迁移、格式与实际 availability 仍未完成，MORE03 保留部分。
+
+[代码] Listening Desk 升至 0.6.0，声明 session ^1.1.0，八语言离线提示进入真实视图。它只在请求/刷新视图时读取，不阻止本地朗读、不做每次在线事件强制重建表单。此批复用实用插件，不新增无用途的能力展示壳；源码插件十个、bundled 六个保持不变。
+
+[环境] [结构化证据](./evidence/host-environment-2026-09-09.json)：隔离 macOS debug Tauri（com.readaware.app.capability-e2e，5184/9224）中实际 Agent 工具和零权限 Worker 首次读到相同 revision 2、en、Asia/Singapore、UTC+480、online。受控 navigator.onLine/offline 注入与实际 i18n 切换后均为 revision 4、zh-Hans、offline；Worker 收到 2/3/4。dispose 后切 ja，查询更新至 5，观察历史保持 2/3/4。插件 hasReading=false，未借元数据服务暴露阅读域。时区变化由注入 store 单测覆盖，不冒充真实系统设置变化；未断开机器网络。
+
+[环境] Listening Desk 的编译产物以独立诊断身份启动 Worker，返回中文离线提示。随后真实宿主弹窗显示英文提示，恢复 native navigator 属性后点击 Refresh，提示消失；截图 /tmp/host-environment-listening.png 已查看。没有打开书籍/启动声音，离线 Start 不被禁用由插件动作测试证明。未替换已有安装，不宣称升级、重启或模型语义 eval 通过。第一次诊断错误使用独立 Jotai 导入没找到命令，另一次启动撞上 Vite reload；改用实际 store 并在同一 app mounted 后复测成功，没有把失败算通过。
+
+[验证] 五个聚焦测试文件 20 项、274 次断言通过，含初始订阅窗口、变更去重、时区/偏移刷新、观察者拒绝/隔离/释放、重入版本，以及 Agent 读取前和读取中取消。全仓 test 20 任务、typecheck 23 任务通过，Listening Desk build 和生产 web build 通过。未改 Rust 业务逻辑，未重跑 Rust 全量；debug/前端构建不等于 packaged。环境快照当前生产调用链已有证据，不据此推断全部平台或服务 ready。
+
+[代码/环境] 重扫为 224 行、583 库存映射、129 验收项、30 责任单元/catalog、32 场景。新增工具和服务映射到已有 MORE03，不扩张 catalog 责任数。两份生成检查、七项模型门禁与三对文档 validator 通过；三份 HTML 在 1440×1000、1024×768、390×844 无页面横向溢出、重复 ID、失效页内锚点、无名按钮或已观察资源 HTTP 错误。中英文环境搜索、Escape、已有抽屉 inert 和主题刷新保持通过；console/page error 为空，移动首页截图已查看。初次 about:blank 不计验证，重新导航后才检查。无新增图，文档仍依赖 CDN；文档浏览器不算产品 E2E。
+
+仍未完成：MORE03 的支持格式/真实 availability、旧阅读事件迁移，READ16 跟随与跨提供者取消补偿、8 项无效果设置、其余双端缺口、W01–W32 全组合、全格式/packaged/跨平台验收。测试恢复 en 与原生 online 属性，两种诊断命令均为 0，预览 Worker 终止时宿主弹窗也被清理；未写测试业务数据。隔离 app 进程已退出，5184/9224 无监听，文档浏览器已关闭，正式实例未操作、未推送，总体目标保持进行中。

@@ -69,6 +69,9 @@ export const sources: Record<string, string> = {
   MODEDURABILITY: "docs/evidence/reading-mode-durability-2026-09-09.json",
   POSITIONDURABILITY: "docs/evidence/reading-position-durability-2026-09-09.json",
   MODEMIGRATION: "docs/evidence/reading-mode-migration-2026-09-09.json",
+  ENVIRONMENT: "apps/web/src/platform/host-environment.ts",
+  ENVTOOLS: "packages/agent/src/tools/environment-tools.ts",
+  ENVPROOF: "docs/evidence/host-environment-2026-09-09.json",
   AUDIO: "apps/web/src/features/reader/hooks/useReadAloud.ts",
   PLAYBACK: "apps/web/src/features/reader/lib/read-aloud-controller.ts",
   PLAYBACKPROOF: "docs/evidence/reading-playback-2026-09-09.json",
@@ -452,7 +455,7 @@ groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.len
 groups.push({ name: "组合能力与遗漏补查", rows: [
   cap("MORE01", "周期调度/启动补跑/失败记录", "实装", actor("扩展", "RSS 工具可手动刷新；无调度工具", "查询/配置自动化意图"), actor("部分", "manifest schedules + services.schedules.bind", "有状态的调度服务"), ["SCHED","API","RSS"], "RSS 每小时刷新；外部 Theme Schedule", "最小 15 分钟、首轮 5 秒、每分钟扫描；触发时写 lastRun，不是成功时；关 App 不运行；无暂停/历史查询"),
   cap("MORE02", "一次性延迟/短周期/空闲任务与自触发防环", "部分", actor("自动", "maintenance 有 idle 策略，无通用调度工具", "宿主自动管线/受控计划"), actor("部分", "Worker timer 可用，无宿主可恢复任务", "有 owner/origin 的任务服务"), ["SCHED","MAINT","WORKER","CTX"], "Theme Schedule 用 Worker clock；RSS 定时", "setTimeout 不是可审计后台任务；ignoreSelf 不能阻止跨插件循环"),
-  cap("MORE03", "环境 locale/platform/timezone/在线/ready 快照", "部分", actor("自动", "prompt 语言/日期与运行态分别注入", "环境查询工具"), actor("部分", "ctx.locale/appVersion/manifest/capabilities", "统一环境与 availability 快照"), ["CTX","THREAD","RUST","API"], "插件本地化；Agent prompt", "无统一平台/时区/在线/支持格式/就绪信息；读取 locale 并不等于订阅全部环境变化"),
+  cap("MORE03", "环境 locale/platform/timezone/在线/ready 快照", "部分", actor("部分", "get_host_environment（全局/书内）+ 自动语言/日期上下文", "环境查询与真实 availability"), actor("部分", "session 1.1 environment/observeEnvironment + ctx.appVersion/capabilities", "统一环境与 availability 快照"), ["CTX","ENVIRONMENT","ENVTOOLS","ENVPROOF","API","LISTENINGDESK"], "Agent 查询；零权限 Worker 观察；Listening Desk 0.6 离线提示", "共享 revision、runtime/platform/locale/timeZone/utcOffsetMinutes/networkHint；首次立即快照，语言/网络/焦点变化刷新，时区每 30 秒复核且每次查询刷新，末个观察者释放监听与 timer。网络仅 OS/WebView 提示，不证明 endpoint 可达、账号/模型就绪或格式可用；这些 availability 仍缺。无阅读/账号字段，不借内置服务绕过 reading 权限。Listening Desk 按需刷新离线提示，不阻止本地朗读。隔离 macOS debug 双端与真实 Worker 已验；旧 session 四阅读事件迁移仍缺，packaged/跨平台/真实系统时区和网络切换未验。"),
   cap("MORE04", "书籍/集合上下文菜单与 Agent header 插槽", "实装", absent("语义命令，不操作菜单 DOM"), actor("部分", "公开 header surface 仅 shelf/reader", "现有语义插槽扩展"), ["SHELFUI","AGENTUI","MENU","API"], "宿主上下文菜单/Agent header", "宿主已有菜单不等于每处允许 plugin contribution"),
   cap("MORE05", "贡献的动态 visible/enabled/checked 与自有视图刷新", "部分", actor("部分", "工具按 scope 注册，无统一 enablement", "操作 availability"), actor("部分", "静态注册/返回新 view，无通用状态流", "声明式条件与受控视图状态"), ["API","RENDER","CTX","REGISTRY"], "宿主已有动态 UI 条件", "静态入口与实时可用性分离；不允许 Worker 访问 UI store"),
   cap("MORE06", "发现/复用类型化提供者与跨插件权限交集", "部分", actor("扩展", "host 聚合各插件 tool/retrieval", "宿主 broker 消费"), actor("部分", "阅读模式可发现/选择；无通用 provider discover/invoke", "依赖和资源范围重鉴权的 broker"), ["EXTOOLS","CTX","SYNCTRANSPORT","API"], "宿主消费 voices/content/modes/tools/transports", "注册、被宿主消费、被其他插件调用是三个方向；不开放任意字符串 RPC/他人 storage"),

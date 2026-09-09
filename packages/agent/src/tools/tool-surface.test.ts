@@ -68,6 +68,7 @@ function seed(): InMemorySeed {
  * 完备性断言会指认漏网的名字。
  */
 const SURFACE_CASES: Record<string, Record<string, unknown>> = {
+  get_host_environment: {},
   list_books: {},
   get_book_overview: { bookId: BOOK_ID },
   get_annotations: { bookId: BOOK_ID },

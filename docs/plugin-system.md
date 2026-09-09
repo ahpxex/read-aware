@@ -509,7 +509,7 @@ The current host services are:
 | `secrets` | plugin-scoped credential slots | built in |
 | `ui` | host toast and save/export flow | built in |
 | `schedules` | bind a manifest-declared periodic task | built in |
-| `session` | subscribe to bounded reading-session events | built in |
+| `session` | 1.1: environment snapshot/observation; legacy bounded reading-session events | built in |
 | `network` | host HTTP client | `service:network` |
 | `llm` | approved one-shot/structured model calls | `service:llm` |
 | `clipboard` | write text to clipboard | `service:clipboard` |
@@ -517,6 +517,36 @@ The current host services are:
 Services are not a native escape hatch. Never expose raw paths, unrestricted
 filesystem access, Tauri invocation, SQL, Foliate internals, arbitrary process
 execution, or a generic host invoke method.
+
+[代码] `services.session.environment()` returns a fresh shared
+`HostEnvironmentSnapshot`: `revision`, `runtime` (`desktop`/`preview`),
+`platform` (`macos`/`windows`/`linux`/`unknown`), `locale`, nullable IANA `timeZone`,
+`utcOffsetMinutes` (east of UTC, including DST), and `networkHint`
+(`online`/`offline`/`unknown`). Revision belongs to this host instance, increases
+only on changed facts, and is not a durable cross-restart cursor. The Agent's
+`get_host_environment` in both scopes reads the same store; abort is checked
+before and after the read. No book, account, credentials or device identifiers
+are returned, so this metadata requires no reading grant.
+
+[代码] `observeEnvironment(handler)` delivers an immediate snapshot then changed
+revisions. Locale and online/offline/focus/pageshow events refresh it; timezone
+and DST also refresh every 30 seconds while observed. Every query refreshes.
+Subscribers receive independent copies; callback failures are logged, not
+propagated into other subscribers. Explicit dispose and plugin unload release
+the subscription; the last observer releases listeners and the timer. No
+exactly-once or durable replay is promised. Plugins needing these methods declare
+`requires.services.session: "^1.1.0"`.
+
+[代码/环境] Listening Desk 0.6 consumes this service for a localized offline hint
+on view refresh. It does not disable Start on that hint, including system voice.
+The shared store, actual Agent tool and zero-permission Worker were tested in
+isolated macOS debug Tauri; the built Listening Desk Worker returned the localized
+hint. [Evidence](./evidence/host-environment-2026-09-09.json) distinguishes actual
+language changes from controlled navigator/event injection. Network hints do not
+prove endpoint reachability, model/account readiness, or supported format
+availability. Those gaps and migration of the legacy four reading events remain
+open. Real OS timezone/network changes, packaged and other platforms are not
+validated by this test.
 
 ## 9. Permissions
 
@@ -699,7 +729,7 @@ adjacent distribution repository, not an eleventh plugin in this checkout:
 | WebDAV Sync | sync transport, storage, secrets, network, settings schema |
 | Jumper | reader header, navigation TOC, precise search, shared locations/history |
 | Annotation Desk | paged annotations, conditional edits, export, views |
-| Listening Desk | reading mode/provider control, unit navigation, playback/history |
+| Listening Desk | reading mode/provider control, unit navigation, playback/history, environment offline hint |
 | Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs

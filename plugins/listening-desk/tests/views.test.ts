@@ -9,7 +9,7 @@ function fixture() {
       label: null, unitId: null, units: [], progress: null, cfiRange: null, position: null },
     playback: { status: "stopped", unavailableReason: null, backend: null, fallback: false, owner: null, cfiRange: null } };
   const calls: unknown[] = [];
-  const ctx = { locale: "en", domains: { reading: { queries: { session: async () => state }, commands: {
+  const ctx = { locale: "en", services: { session: { environment: async () => ({ networkHint: "online" }) } }, domains: { reading: { queries: { session: async () => state }, commands: {
     controlPlayback: async (...args: unknown[]) => { calls.push(args); state.playback.status = "playing"; },
     back: async (...args: unknown[]) => { calls.push(["back", ...args]); },
     configureMode: async (...args: unknown[]) => { calls.push(["mode", ...args]); },
@@ -41,6 +41,18 @@ test("unavailable playback offers refresh, not a start that would silently do no
   expect(row.actions.map(action => action.id)).toEqual(["refresh"]);
   expect(JSON.stringify(view)).toContain("Text-unit mode is inactive");
   expect(view.blocks.some(block => block.kind === "form")).toBe(false);
+});
+
+test("system offline hint is visible but does not disable local playback", async () => {
+  const { ctx, calls } = fixture();
+  ctx.services.session.environment = async () => ({ revision: 1, runtime: "desktop", platform: "macos", locale: "en", timeZone: "UTC", utcOffsetMinutes: 0, networkHint: "offline" });
+  const view = await listeningView(ctx);
+  expect(JSON.stringify(view)).toContain("System reports offline");
+  if (view.kind !== "blocks") throw Error("Expected blocks");
+  const row = view.blocks.find(block => block.kind === "actions");
+  if (row?.kind !== "actions") throw Error("Expected actions");
+  await row.actions.find(action => action.id === "start")!.run();
+  expect(calls[0]).toEqual(["start", { sessionId: "session", bookId: "book" }]);
 });
 
 test("mode form validates declared units and retains its session and provider preconditions", async () => {

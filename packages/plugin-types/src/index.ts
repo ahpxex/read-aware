@@ -1604,6 +1604,10 @@ export type PluginHostServices = {
     bind(scheduleId: string, run: () => void | Promise<void>): PluginDisposable;
   };
   session: {
+    /** Fresh non-sensitive metadata; contains no reading or account state. */
+    environment(): Promise<import("@read-aware/core").HostEnvironmentSnapshot>;
+    /** Delivers an initial snapshot, then changed revisions. Disposed on unload. */
+    observeEnvironment(handler: (snapshot: import("@read-aware/core").HostEnvironmentSnapshot) => void | Promise<void>): PluginDisposable;
     subscribe<K extends PluginSessionEventName>(
       event: K,
       handler: (payload: PluginSessionEventMap[K]) => void,

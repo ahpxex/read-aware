@@ -21,6 +21,7 @@ import { onAppEvent } from "../../../platform/app-events";
 import { exportTextFile } from "../../../platform/export-file";
 import { flushLocalKV, localKV } from "../../../platform/local-store";
 import { createLogger } from "../../../platform/logger";
+import { hostEnvironment } from "../../../platform/host-environment";
 import {
   deletePluginSecret,
   getPluginSecret,
@@ -576,6 +577,11 @@ export function buildPluginContext(
         },
       },
       session: {
+        environment: async () => {
+          lifecycle.assertActive("services.session.environment");
+          return hostEnvironment.snapshot();
+        },
+        observeEnvironment: handler => track(() => ({ dispose: hostEnvironment.observe(handler) })),
         subscribe: (event, handler) => {
         if (!SESSION_EVENTS.includes(event)) {
           throw new Error(`"${String(event)}" is not a session event`);

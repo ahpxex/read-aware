@@ -452,6 +452,7 @@ export interface ExternalMemoryCandidateRequest {
 }
 
 export interface RuntimeDeps {
+  environment: { snapshot(): Promise<import("@read-aware/core").HostEnvironmentSnapshot> };
   /** Live host preference; disabled blocks derived-memory work, not stored-data reads. */
   memoryPolicy?: import("./memory/build-policy").MemoryBuildPolicy;
   library: LibraryPort;

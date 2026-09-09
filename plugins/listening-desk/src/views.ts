@@ -5,6 +5,7 @@ export async function listeningView(ctx: PluginContext, boundary?: "start-of-boo
   const reading = ctx.domains.reading;
   if (!reading?.commands) throw new Error("Listening Desk requires reading:write");
   const state = await reading.queries.session();
+  const environment = await ctx.services.session.environment();
   const playback = state.playback;
   const guard = { sessionId: state.sessionId ?? undefined, bookId: state.bookId ?? undefined };
   const refresh = async () => ({ view: await listeningView(ctx), navigation: "replace" as const });
@@ -73,6 +74,7 @@ export async function listeningView(ctx: PluginContext, boundary?: "start-of-boo
     ...(modeForm ? [modeForm] : []),
     ...(boundary ? [{ kind: "text" as const, text: tr(ctx.locale, boundary) }] : []),
     { kind: "text", text: tr(ctx.locale, playback.status) },
+    ...(environment.networkHint === "offline" ? [{ kind: "text" as const, text: tr(ctx.locale, "offline") }] : []),
     ...(playback.unavailableReason ? [{ kind: "text" as const, text: tr(ctx.locale, playback.unavailableReason) }] : []),
     ...(playback.backend ? [{ kind: "text" as const, text: tr(ctx.locale, playback.fallback ? "fallback" : playback.backend) }] : []),
     { kind: "actions", actions },

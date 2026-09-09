@@ -1,6 +1,7 @@
 /** RuntimeDeps 装配：全部端口都接产品存储。 */
 import type { RuntimeDeps } from "@read-aware/agent";
 import { createLogger } from "../../../../platform/logger";
+import { hostEnvironment } from "../../../../platform/host-environment";
 import {
   getPluginAgentContext,
   getPluginAgentTools,
@@ -22,6 +23,7 @@ export { GLOBAL_CONVERSATION_ID } from "./conversation-port";
 
 export function buildRuntimeDeps(): RuntimeDeps {
   return {
+    environment: { snapshot: async () => hostEnvironment.snapshot() },
     memoryPolicy,
     library: createLibraryPort(),
     annotations: createAnnotationsPort(),

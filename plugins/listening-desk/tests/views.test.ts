@@ -23,7 +23,7 @@ test("panel actions preserve their displayed open/close intent and only close af
   let finish!: () => void;
   const panels = { sessionId: state.sessionId!, bookId: state.bookId!, revision: 1, controlsVisible: true,
     panels: { toc: { open: true, visible: true }, chat: { open: false, visible: false }, annotations: { open: false, visible: false }, appearance: { open: false, visible: false } } };
-  ctx.services.ui = { showToast() {}, exportFile: async () => false, reader: {
+  ctx.services.ui = { showToast() {}, exportFile: async () => false, publishView: async () => ({ status: "inactive" }), reader: {
     snapshot: async () => panels, observe: () => ({ dispose() {} }),
     setPanel: async (...args) => { calls.push(args); await new Promise<void>(resolve => { finish = resolve; }); return { status: "completed", panel: args[0], snapshot: panels }; },
   } };

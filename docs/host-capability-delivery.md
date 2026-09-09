@@ -800,3 +800,21 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [验证/扫描] 聚焦 31 项/232 断言通过；最终全仓 test 22/22（web 801 项/8782 断言）、typecheck 25/25，通过前端 build 与 Text Desk 编译。模型 7 项门禁与两生成器 --check、三文档对 validator 通过：243 能力行、625 入口映射、30 所有权单元/30 catalog、129 旧验收/32 场景。矩阵、统一模型、插件说明三份 HTML 均在 1440×1000、1024×768、390×844 检查无页面横向溢出/重复 ID/坏锚点/无名按钮/已观察资源错误；中英文搜索、Escape、矩阵和模型抽屉 inert/主题刷新保持通过。三份变更内容截图已查看，文档浏览器关闭；无 Mermaid 图，CDN 依赖不变。
 
 [清理/边界] 所有自有合成书已通过正式命令删除，SQLite 的 Text State Probe 计数为 0；probe/desk 贡献与观察释放，窗口恢复 1200×800，进程组终态 143，5184/9223/9224 无监听。正式 app/书库/凭证未操作。原生既有 37 warnings、初始 WebContent 终止后恢复、bridge 版本提示、IMK 警告与前端大 chunk/混合导入警告保留。TXT05 从未接推进到部分，不宣告关闭：显式 pause/resume/优先级、耐久任务历史/超时、公开 reader-demand、虚拟索引、全格式/大书、安装升级、packaged/跨平台与 MORE05 动态视图仍缺；其余双端能力和 W01-W32 完整目标继续，未推送。
+
+## 2026-09-09：实时插件视图与 Text Desk 0.3
+
+[代码] UI 1.2 / views 1.1 增加 live.subscribe 与 publishView。宿主签发只属于当前 Worker 激活代和可见帧的通道，接受非负安全整数 revision 的完整静态视图快照；不接受在更新中替换 live source 或导航。foreign/retired/unknown 统一 inactive，旧 revision 为 stale，applied 仅是宿主会话接收，不是 DOM/绘制或持久化完成。每激活最多 16 可见通道，沿用双向 256 RPC 和 120 秒截止；不是耐久流、exactly-once 或源节流器。
+
+[代码] push/modal/suspend/close 立即撤销通道并异步 dispose；back/resume 新通道要求重发当前快照，晚 ACK 仍释放。源失败保留最后画面，安全 InlineError 仅在可重试时提供 Retry，坏视图使用 plugin/invalid-input；清理失败日志保留。更新维持帧身份与现有表单草稿协调，不误丢在途动作的有效导航。Worker 普通调用参数从强制释放改为可转移回调租约，宿主只持有已绘制与最新未绘制画面，中间回调立即释放；注册仍将完整参数租约转给 disposable。
+
+[发现/修复] 新测试暴露了旧 owner watcher 的独立性错误：相邻视图使用同一个 session.close 注册 abort listener，EventTarget 去重后，旧租约 unwatch 会移除新租约的监听。改为每次观察创建唯一 listener identity，增加回调为空视图与重叠释放回归；真实激活退休也关闭当前实时画面。没有修改私有平台登记表或绕过生命周期。
+
+[组合插件] Text Desk 0.3 请求详情将 library.observeTextTask 的立即快照/后续 revision 组合为 live publication；终态自动移除取消按钮。关闭只退订，不取消请求；列表仍显式刷新。使用版本化 manifest 依赖 ui ^1.2 / views ^1.1，编译产物同步。Agent 既有准备/查询/取消工具不变，不因插件呈现协议新增模型可执行 UI 权力。源码仍为十二插件，内置六插件，不混算运行期测试探针。
+
+[环境] [结构化证据](./evidence/plugin-live-views-2026-09-09.json)：隔离 macOS debug PID 24237/PGID 24090，Vite 5184/桥 9223，appDataDir 实查为 com.readaware.app.capability-e2e。真实 WebKit Worker 验证跨 actor 拒绝、旧 revision、普通 RPC 返回后新按钮可调用、草稿不被更新覆盖、push/back/modal 订阅释放与新通道、坏内容安全失败、关闭后的迟到更新与 ACK、Worker 退休和贡献清理。编译 Text Desk 从 reader More 打开，Prepare 后 0/3 Running，在已注册 section getter 的屏障释放后无需 Refresh 即 3/3 Completed、1 章且取消按钮消失。没有模拟原生存储、源身份或 RPC。1200×800、800×650 画面截图已看，无页面横向溢出；长合成书名沿用截断，窄窗正文可滚动、底部操作可达。
+
+[验证/扫描] 聚焦 wire/host/live/Text Desk 29 项/376 断言通过；随后增加 live 声明校验，normalizer 16 项/44 断言通过。最终全仓 test 22/22（web 811 项/9043 断言）、typecheck 25/25，前端生产 build 与 Text Desk 编译通过。模型 7 项门禁、两生成器 --check、三文档对 validator 通过；243 能力行、626 入口映射、30 责任单元/30 catalog、129 旧验收/32 场景。MORE05 同时映射 UI 服务 owner 与视图 schema 责任，不新增平行能力目录。
+
+[文档/清理] 矩阵、统一模型、插件说明双份同步。三份 HTML 在 1440×1000、1024×768、390×844 无页面溢出/重复 ID/坏页内锚点/无名按钮/已观察资源失败；中英文搜索与 Escape、矩阵/模型的抽屉 inert 和主题保持已核对，变更段落截图已看，console/page errors 为空。矩阵“实时”搜索命中六项而不命中 MORE05，因为该行用“推送”；publishView 精确命中 MORE05，未将不匹配谎报为通过。文档浏览器已关闭，固定 CDN 依赖不变，无 Mermaid。自有 Worker 贡献/视图归零，三本合成书按正式命令删除，SQLite Text State Probe 计数 0。窗口恢复 1200×800，PGID 终态 143，5184/9223/9224 无监听，正式 app 未操作。
+
+[仍缺] MORE05 保留部分：贡献 visible/enabled/checked 和 Agent 统一 enablement 尚未实现；全部表单 schema/焦点/locale、大数据/持续更新负载、物理输入、安装升级、packaged 和 Windows/Linux 未验。TXT05 其余调度/耐久任务/虚拟索引等缺口仍在。既有 Rust 37 warnings、启动 WebContent 终止后恢复、bridge 版本提示及前端 chunk/混合导入警告保留。此单元不关闭完整双端能力与 W01-W32 目标，未推送。

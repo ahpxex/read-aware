@@ -14,6 +14,7 @@
     "search": "Search",
     "noMatches": "No matching items",
     "invalidView": "This plugin returned an invalid view",
+    "liveFailed": "Live updates stopped. The last received view is shown.",
     "detail": "Details",
     "timeline": {
       "filter": "Time range",

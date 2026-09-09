@@ -1,10 +1,19 @@
-import type { BookTextTaskSnapshot, PluginContext, PluginDetailView, PluginFormView, PluginListView } from "@read-aware/plugin-types";
+import type { BookTextTaskSnapshot, PluginContext, PluginDetailView, PluginFormView, PluginListView, PluginView } from "@read-aware/plugin-types";
 import { tr } from "./strings";
 
 const active = (task: BookTextTaskSnapshot) => task.status === "queued" || task.status === "running";
 
-export async function requestDetail(ctx: PluginContext, bookId: string, title: string, taskId: string): Promise<PluginDetailView> {
+export async function requestDetail(ctx: PluginContext, bookId: string, title: string, taskId: string): Promise<PluginDetailView & Pick<PluginView, "live">> {
   const task = await ctx.domains.library!.queries.books.getTextTask(bookId, taskId);
+  return { ...requestSnapshot(ctx, title, task), live: {
+    subscribe: channel => ctx.domains.library!.events.observeTextTask(bookId, taskId, async current => {
+      await ctx.services.ui.publishView(channel, { revision: current.revision, view: requestSnapshot(ctx, title, current) });
+    }),
+  } };
+}
+
+function requestSnapshot(ctx: PluginContext, title: string, task: BookTextTaskSnapshot): PluginDetailView {
+  const { bookId, taskId } = task;
   const progress = task.textState.progress;
   const rows = [
     { label: tr(ctx.locale, "request"), value: tr(ctx.locale, `task_${task.status}`) },

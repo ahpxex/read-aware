@@ -14,6 +14,7 @@
     "search": "検索",
     "noMatches": "一致する項目がありません",
     "invalidView": "このプラグインは無効なビューを返しました",
+    "liveFailed": "自動更新が停止しました。最後に受信した表示を保持しています。",
     "detail": "詳細",
     "timeline": {
       "filter": "期間",

@@ -14,6 +14,7 @@
     "search": "Buscar",
     "noMatches": "No hay elementos coincidentes",
     "invalidView": "Este plugin devolvió una vista no válida",
+    "liveFailed": "Las actualizaciones se detuvieron. Se muestra la última vista recibida.",
     "detail": "Detalles",
     "timeline": {
       "filter": "Intervalo de tiempo",

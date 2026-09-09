@@ -81,6 +81,7 @@ const pluginMap = pairs([
   ["services.storage.flush", "SYS01"],
   ["services.secrets.get services.secrets.set services.secrets.remove", "SYS04"], ["services.ui.showToast", "EXT07"],
   ["services.ui.exportFile", "SYS10"], ["services.schedules.bind", "MORE01"],
+  ["services.ui.publishView", "MORE05"],
   ["services.ui.reader.snapshot services.ui.reader.observe services.ui.reader.setPanel", "READ10"],
   ["services.network.fetch", "SYS06"], ["services.llm.ask", "AI06"], ["services.clipboard.writeText", "SYS08"],
   ["services.session.environment services.session.observeEnvironment", "MORE03"],

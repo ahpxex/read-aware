@@ -10,6 +10,7 @@
  */
 import { fetch as corsFreeFetch } from "@tauri-apps/plugin-http";
 import { readerPanels } from "../../../services/reader-panels";
+import { publishPluginView } from "../lib/plugin-view-channels";
 import {
   canUseContribution,
   canUseHostService,
@@ -539,6 +540,10 @@ export function buildPluginContext(
         },
       },
       ui: {
+        publishView: async (channel, update) => {
+          lifecycle.assertActive("services.ui.publishView");
+          return publishPluginView(lifecycle.signal, channel, update);
+        },
         showToast: (message) => {
           lifecycle.assertActive("services.ui.showToast");
           showPluginToast(String(message));

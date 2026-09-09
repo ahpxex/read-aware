@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { BookTextTaskSnapshot, PluginContext, PluginDetailView } from "@read-aware/plugin-types";
+import type { BookTextTaskSnapshot, PluginContext, PluginDetailView, PluginViewUpdate } from "@read-aware/plugin-types";
 import { rebuildForm, requestDetail, requestList, startRequest } from "../src/task-views";
 
 function harness() {
@@ -54,4 +54,32 @@ test("task list drills into its exact handle, failed queries and cancels do not 
   await expect(detail.actions!.find(a => a.id === "cancel")!.run()).rejects.toThrow("cancel failed");
   await expect(requestDetail(h.ctx, "book", "Book", "task")).rejects.toThrow();
   expect(h.cancelled).toEqual([]);
+});
+
+test("request views publish initial, progress and terminal snapshots; hiding releases observation, not the request", async () => {
+  const h = harness(), updates: PluginViewUpdate[] = [];
+  let observer: ((task: BookTextTaskSnapshot) => void | Promise<void>) | undefined;
+  h.ctx.domains.library!.events = { ...h.ctx.domains.library!.events,
+    observeTextTask: (bookId, taskId, callback) => {
+      expect([bookId, taskId]).toEqual(["book", "task"]);
+      observer = callback; void callback(structuredClone(h.task));
+      return { dispose() { observer = undefined; } };
+    },
+  };
+  h.ctx.services = { ui: { publishView: async (channel, update) => {
+    expect(channel).toEqual({ id: "visible-frame" }); updates.push(update); return { status: "applied" };
+  } } } as PluginContext["services"];
+  const detail = await requestDetail(h.ctx, "book", "Book", "task");
+  expect(updates).toEqual([]);
+  const subscription = await detail.live!.subscribe({ id: "visible-frame" });
+  expect(updates[0].revision).toBe(1);
+  h.task.revision = 2; h.task.textState.progress!.completed = 2;
+  await observer!(structuredClone(h.task));
+  expect((updates[1].view as PluginDetailView).content[0]).toMatchObject({ rows: expect.arrayContaining([{ label: "Read sections", value: "2 / 3" }]) });
+  h.task.revision = 3; h.task.status = "completed";
+  await observer!(structuredClone(h.task));
+  expect(updates.map(update => update.revision)).toEqual([1, 2, 3]);
+  expect((updates[2].view as PluginDetailView).actions!.some(action => action.id === "cancel")).toBe(false);
+  expect(updates.every(update => !("live" in update.view))).toBe(true);
+  subscription.dispose(); expect(observer).toBeUndefined(); expect(h.cancelled).toEqual([]);
 });

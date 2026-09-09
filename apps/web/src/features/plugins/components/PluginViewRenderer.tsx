@@ -1,6 +1,6 @@
 /** Host renderer for the declarative plugin component vocabulary. */
 import { CaretLeft } from "@phosphor-icons/react";
-import { Fragment, useEffect } from "react";
+import { Fragment, useEffect, useLayoutEffect } from "react";
 import {
   InlineError,
   Body,
@@ -14,6 +14,7 @@ import {
 } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
+import { describeError } from "../../../i18n/describe-error";
 import { Markdown } from "../../ai/components/Markdown";
 import type { PluginView } from "../lib/plugin-types";
 import type { PluginViewSession } from "../lib/plugin-view-session";
@@ -61,13 +62,15 @@ export function PluginViewRenderer({
   className,
 }: PluginViewRendererProps) {
   const { t } = useTranslation(["plugins", "common"]);
-  const { session, stack, renderKey, error: viewError, busy, dialog: detailDialog } = usePluginViewSession(view, provided, onClose, onRequestRefresh);
+  const { session, stack, renderKey, error: viewError, liveError, busy, dialog: detailDialog } = usePluginViewSession(view, provided, onClose, onRequestRefresh);
 
   useEffect(() => {
     onDepthChange?.(stack.length);
   }, [onDepthChange, stack.length]);
 
   const current = stack.length > 0 ? stack[stack.length - 1] : null;
+  useLayoutEffect(() => { session.acknowledgeRender(current); }, [session, current]);
+  const liveFailure = liveError ? describeError(liveError, { fallback: t("viewer.liveFailed") }) : null;
 
   const closeDetailDialog = () => session.closeDialog(true);
   const handleResult = session.run;
@@ -142,6 +145,9 @@ export function PluginViewRenderer({
   return (
     <>
       <Stack gap="sm" className={cn("min-h-0", className)}>
+        {liveFailure && <InlineError onRetry={liveFailure.retryable ? session.retryLive : undefined} retryLabel={t("common:errorBoundary.retry")}>
+          {liveFailure.body}
+        </InlineError>}
         {(stack.length > 1 || current.title) && (
           <Stack direction="horizontal" gap="xs" align="center" className="shrink-0">
             {stack.length > 1 && (

@@ -1,0 +1,66 @@
+{
+  "date": "2026-09-09",
+  "scope": "UI 1.2 / views 1.1 live view publication and compiled Text Desk 0.3",
+  "environment": {
+    "platform": "macOS debug Tauri, actual WebKit Workers",
+    "identifier": "com.readaware.app.capability-e2e",
+    "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+    "frontendPort": 5184,
+    "bridgePort": 9223,
+    "pid": 24237,
+    "processGroup": 24090,
+    "visible": true,
+    "focused": true,
+    "formalAppTouched": false
+  },
+  "liveProbe": {
+    "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-live-view-probe.ts",
+    "worker": "apps/web/src/features/plugins/runtime/fixtures/live-view-probe.ts",
+    "passed": [
+      "foreign activation publication returns inactive",
+      "updated button callback works after publication RPC completion",
+      "user draft survives a full snapshot update",
+      "old/equal revision returns stale",
+      "push disposes parent subscription and rejects updates to hidden frame",
+      "back creates a fresh channel and receives current snapshot",
+      "nested modal disposes parent subscription, close resubscribes",
+      "invalid content returns plugin/invalid-input, stops source, preserves last content and hides raw error",
+      "late subscription acknowledgement after close disposes resource",
+      "closed frame rejects late publication as inactive",
+      "Worker retirement closes visible live view and removes contributions"
+    ]
+  },
+  "textDesk": {
+    "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-text-task-probe.ts",
+    "entry": "stageLiveTextDeskProbe / finishLiveTextDeskExtraction / cleanupTextTaskProbe",
+    "openedFrom": "Reader header More > Text Desk > normal book > Prepare text",
+    "injectedBehavior": "registered Foliate section getter held behind a deterministic barrier; native source identity, repository, SQLite/blob persistence and RPC unchanged",
+    "initial": { "request": "Running", "sections": "0 / 3", "cancelAction": true },
+    "terminalWithoutRefresh": { "request": "Completed", "sections": "3 / 3", "chapters": 1, "text": "Text found", "cancelAction": false },
+    "bookIds": ["d02046df-8114-4820-ba6b-9e3dc641991d", "dcbe8504-868c-46a3-bd43-f62fdc264915", "dbaa6b5a-ca43-44a5-88d2-ba95755ff3b4"]
+  },
+  "visual": {
+    "logicalWindows": [[1200, 800], [800, 650]],
+    "inspectedLocalScreenshots": ["/tmp/live-view-1200.png", "/tmp/live-view-800.png", "/tmp/text-desk-live-running.png", "/tmp/text-desk-live-completed.png", "/tmp/text-desk-live-completed-1200.png"],
+    "pageOverflow": false,
+    "note": "Screenshots are local, not durable repository artifacts. Long synthetic titles use existing truncation; request body scrolls while footer actions remain reachable."
+  },
+  "cleanup": {
+    "liveProbeContributions": 0,
+    "textDeskContributions": 0,
+    "ownedBooksRemaining": 0,
+    "sqliteTextStateProbeCount": 0,
+    "windowRestored": [1200, 800],
+    "processExitCode": 143
+  },
+  "limitations": [
+    "No autonomous LLM invocation or new Agent UI tool; existing Agent preparation tools are unchanged",
+    "No packaged or Windows/Linux verification in this unit",
+    "No physical input, marketplace installation or upgrade test",
+    "No universal dynamic contribution visible/enabled/checked or Agent enablement",
+    "No complete form schema, focus, all-locale, large-payload or sustained-source-load audit",
+    "applied acknowledges session acceptance, not React commit or paint",
+    "16 channels per activation and existing RPC bounds are not durable stream persistence or source throttling",
+    "Existing 37 Rust warnings and initial WebContent termination followed by successful boot remain; bridge plugin version warning remains"
+  ]
+}

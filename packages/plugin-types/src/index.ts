@@ -777,12 +777,23 @@ export type PluginRowCell = {
 /** Legacy row cells stay single-block; runtime validation bounds recursion. */
 export type PluginRowCellBlock = PluginBlock;
 
-export type PluginView =
+export type PluginViewContent =
   | PluginMarkdownView
   | PluginListView
   | PluginFormView
   | PluginBlocksView
   | PluginDetailView;
+
+/** Issued by the host for one visible frame; never saved or reused after disposal. */
+export type PluginViewChannel = { id: string };
+export type PluginViewUpdate = { revision: number; view: PluginViewContent };
+export type PluginViewUpdateReceipt = { status: "applied" | "stale" | "inactive" };
+export type PluginView = PluginViewContent & {
+  /** Subscribed only while this frame is visible. Publish full snapshots through ui.publishView.
+   * Return a disposer; hiding/back/close/retirement invalidates the channel immediately.
+   * Each subscription must send its current snapshot before subsequent changes. */
+  live?: { subscribe(channel: PluginViewChannel): PluginDisposable | Promise<PluginDisposable> };
+};
 
 /**
  * What an action / list-select / form-submit may produce:
@@ -1598,6 +1609,9 @@ export type PluginHostServices = {
   ui: {
     showToast(message: string): void;
     exportFile(file: PluginExportFile): Promise<boolean>;
+    /** Updates only this activation's visible frame. Revision is a nonnegative, increasing safe integer.
+     * Receipt confirms host acceptance, not paint; updates cannot navigate or replace the subscription. */
+    publishView(channel: PluginViewChannel, update: PluginViewUpdate): Promise<PluginViewUpdateReceipt>;
     /** Requires reading:read (write includes read). No book content is returned. */
     reader?: {
       snapshot(): Promise<import("@read-aware/core").ReaderPanelsSnapshot | null>;

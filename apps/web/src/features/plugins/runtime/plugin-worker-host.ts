@@ -31,7 +31,7 @@ import { invalidateSyncTransportSessions } from "../../../platform/sync/transpor
 import { updateInstalledPlugin } from "../state/plugin-store";
 import { flattenPluginRequest, flattenPluginResponse } from "./plugin-network-wire";
 import { PluginRpcPending } from "./plugin-rpc-pending";
-import { decodePluginCallbacks, type PluginCallbackWire } from "./plugin-callback-wire";
+import { decodePluginCallbacks, retainPluginCallbacks, type PluginCallbackWire } from "./plugin-callback-wire";
 
 const log = createLogger("plugins");
 
@@ -440,6 +440,7 @@ export function startPluginWorker(
           }
           const controller = new AbortController();
           let argumentOwner: PluginDisposable | undefined;
+          let releaseArguments = () => releaseCallbacks(message.args);
           incomingCalls.set(message.id, controller);
           const timeout = setTimeout(() => controller.abort(new AppError("plugin/timeout", "Plugin call timed out")), 120_000);
           controller.signal.addEventListener("abort", () => clearTimeout(timeout), { once: true });
@@ -449,7 +450,12 @@ export function startPluginWorker(
             }
             const method = resolveMethod(ctx, message.method);
             if (!method) throw new AppError("plugin/unavailable", `"${message.method}" is not granted to plugin "${manifest.id}"`);
-            const args = decodePluginCallbacks(message.args, invokeHandle, undefined, runtime.lifecycle.signal);
+            const args = decodePluginCallbacks(message.args, invokeHandle, handles => {
+              if (!terminated) worker.postMessage({ t: "release", handles });
+            }, runtime.lifecycle.signal);
+            // Ordinary consumers may retain a normalized subgraph (live view updates).
+            // Registrations transfer this entire lease to their returned disposable.
+            releaseArguments = retainPluginCallbacks(args);
             if (!Array.isArray(args)) throw new AppError("plugin/invalid-input", "Plugin call arguments must be an array");
             if (message.method === "services.network.fetch") {
               // Validate the body limit on the authoritative side too: a plugin
@@ -479,7 +485,7 @@ export function startPluginWorker(
                   if (disposed) return;
                   disposed = true;
                   try { registration.dispose(); }
-                  finally { releaseCallbacks(message.args); }
+                  finally { releaseArguments(); }
                 },
               };
               heldDisposables.set(handle, argumentOwner);
@@ -508,7 +514,7 @@ export function startPluginWorker(
           } finally {
             // Streaming callbacks belong to the call; registration callbacks
             // belong to the returned disposable, not the plugin's entire lifetime.
-            if (!argumentOwner) releaseCallbacks(message.args);
+            if (!argumentOwner) releaseArguments();
             clearTimeout(timeout);
             incomingCalls.delete(message.id);
           }

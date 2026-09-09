@@ -170,3 +170,18 @@ export async function cleanupTextTaskProbe() {
   const cleanup = await cleanupTextStateProbe(); books = {};
   return { ...cleanup, taskContributions: ids.map(id => ({ id, count: inspectContributions(id).length })) };
 }
+
+/** Leave an actual Text Desk request behind a deterministic extraction barrier for UI verification. */
+export async function stageLiveTextDeskProbe() {
+  const dataDir = await isolated(); assert(!Object.keys(books).length, "Clean up previous probe first");
+  books = (await seedTextStateBooks()).books;
+  await holdExtraction(); await startTextDeskProbe();
+  return { dataDir, books };
+}
+
+export async function finishLiveTextDeskExtraction() {
+  await isolated(); releaseBarrier?.();
+  await until(() => reads === 3);
+  await releaseExtraction();
+  return { reads };
+}

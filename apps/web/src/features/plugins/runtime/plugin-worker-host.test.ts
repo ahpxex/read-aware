@@ -3,7 +3,8 @@ import type { PluginContext, PluginDisposable } from "../lib/plugin-types";
 import { getDefaultStore } from "jotai";
 import { pluginCommandsAtom } from "../state/plugin-store";
 import { describeContext, startPluginWorker } from "./plugin-worker-host";
-import { PluginCallbackRegistry } from "./plugin-callback-wire";
+import { PluginCallbackRegistry, pluginCallbackOwner, retainPluginCallbacks } from "./plugin-callback-wire";
+import { openPluginViewChannel } from "../lib/plugin-view-channels";
 import { PluginLifecycleController } from "./plugin-lifecycle";
 
 type WireMessage = { t: string; id?: number; handle?: string; handles?: string[]; [key: string]: unknown };
@@ -103,6 +104,35 @@ test("host releases denied and invalid call arguments without granting authority
     expect(worker.sent.find(message => message.t === "result" && message.id === 2)).toMatchObject({ ok: false, code: "plugin/invalid-input" });
     expect(worker.callbacks.size).toBe(0);
   } finally { await close(); }
+});
+
+test("ordinary API arguments can transfer callback ownership to a live view without retaining discarded fields", async () => {
+  const { worker, close } = await hostFixture();
+  let release = () => {};
+  let channel: ReturnType<typeof openPluginViewChannel> | undefined;
+  try {
+    await worker.deliver({ t: "call", id: 1, method: "contributions.commands.register", args: worker.callbacks.encode([{ id: "test", title: "Test", run: () => null }]) });
+    const command = getDefaultStore().get(pluginCommandsAtom).find(item => item.pluginId === "callback-host-test")!;
+    const owner = pluginCallbackOwner(command.run)!;
+    expect(owner).toBeDefined();
+    let action!: () => unknown;
+    channel = openPluginViewChannel(owner, update => {
+      if (update.view.kind !== "detail") throw Error("Expected detail");
+      action = update.view.actions![0].run;
+      release = retainPluginCallbacks(action);
+    });
+    await worker.deliver({ t: "call", id: 2, method: "services.ui.publishView", args: worker.callbacks.encode([channel.channel, {
+      revision: 1, view: { kind: "detail", content: [], actions: [{ id: "retained", label: "Retained", run: () => null }], discarded: () => null },
+    }]) });
+    expect(worker.sent.find(message => message.t === "result" && message.id === 2)).toMatchObject({ ok: true, value: { status: "applied" } });
+    expect(worker.callbacks.size).toBe(2);
+    const invoked = action();
+    const request = worker.sent.findLast(message => message.t === "invoke")!;
+    await worker.deliver({ t: "result", id: request.id, ok: true, value: worker.callbacks.encode({ toast: "Still callable" }) });
+    expect(await invoked).toEqual({ toast: "Still callable" });
+    release(); expect(worker.callbacks.size).toBe(1);
+    await expect(action()).rejects.toMatchObject({ code: "plugin/unavailable" });
+  } finally { release(); channel?.dispose(); await close(); }
 });
 
 test("host releases malformed and unmatched callback results and disposed registrations", async () => {

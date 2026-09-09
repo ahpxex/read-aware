@@ -50,6 +50,14 @@ function tr(locale, key) {
 var active = (task) => task.status === "queued" || task.status === "running";
 async function requestDetail(ctx, bookId, title, taskId) {
   const task = await ctx.domains.library.queries.books.getTextTask(bookId, taskId);
+  return { ...requestSnapshot(ctx, title, task), live: {
+    subscribe: (channel) => ctx.domains.library.events.observeTextTask(bookId, taskId, async (current) => {
+      await ctx.services.ui.publishView(channel, { revision: current.revision, view: requestSnapshot(ctx, title, current) });
+    })
+  } };
+}
+function requestSnapshot(ctx, title, task) {
+  const { bookId, taskId } = task;
   const progress = task.textState.progress;
   const rows = [
     { label: tr(ctx.locale, "request"), value: tr(ctx.locale, `task_${task.status}`) },

@@ -210,8 +210,13 @@
           <details class="ep"><summary>Library 1.3：正文状态与请求控制双端接通</summary><div class="ep-body">
             <p>Agent get_book_text_status 与插件 getTextState 共享七种准备状态、三种文本存在性和源版本。查询不启动抽取或下载；全部节成功且最终索引落盘才就绪。短正文可以有字而没有索引章节，缺文件和失败不再误报无文字。</p>
             <p>v5 断点只复用成功节，保留失败，区分最后一节读完与最终索引保存；旧记录惰性失效。Agent 和插件可请求准备、重建、观察及取消自己的任务；取消只释放自身租约，其他使用者继续工作，已派发读写不回滚。任务回执不代表完成，也不代表已取得抽取租约。</p>
-            <p>Text Desk 0.2 组合列表、状态、确认重建、请求详情与取消、明确开书；界面显式刷新而非实时推送。插件任务限当前激活代，Agent 两 scope 共用进程所有者；每个所有者至多 16 活跃、64 保留请求，每任务 16 观察者，慢回调合并最新快照。</p>
-            <p>macOS 隔离 debug 已验权限 Worker、共享取消/退役、观察退订、重建冲突、真实 FB2、Agent 双 scope 与编译插件界面。暂停/优先级、耐久任务/超时、动态视图推送、虚拟索引、全部格式、打包及跨平台仍缺；TXT05 仍为部分。<a href="./plugin-system.md#derived-text-requests">完整契约</a> · <a href="./evidence/book-text-tasks-2026-09-09.json">任务证据</a> · <a href="./evidence/book-text-state-2026-09-09.json">正文事实证据</a></p>
+            <p>Text Desk 0.3 组合列表、状态、确认重建、请求详情与取消、明确开书；请求详情实时推送，列表仍显式刷新。插件任务限当前激活代，Agent 两 scope 共用进程所有者；每个所有者至多 16 活跃、64 保留请求，每任务 16 观察者，慢回调合并最新快照。</p>
+            <p>macOS 隔离 debug 已验权限 Worker、共享取消/退役、观察退订、重建冲突、真实 FB2、Agent 双 scope 与编译插件界面。暂停/优先级、耐久任务/超时、虚拟索引、全部格式、打包及跨平台仍缺；TXT05 仍为部分。<a href="./plugin-system.md#derived-text-requests">完整契约</a> · <a href="./evidence/book-text-tasks-2026-09-09.json">任务证据</a> · <a href="./evidence/book-text-state-2026-09-09.json">正文事实证据</a></p>
+          </div></details>
+          <details class="ep" data-search-section="live views 实时 视图 推送 Text Desk"><summary>UI 1.2 / views 1.1：自有视图实时更新，关闭即退订</summary><div class="ep-body">
+            <p>插件通过 live.subscribe 取得宿主签发的可见帧通道，再 publishView 完整画面。通道限当前激活代和视图；旧版本报 stale，外部或退休通道报 inactive。更新保留帧身份与现有草稿协调，不改变导航，不开放 DOM 或额外数据权限。</p>
+            <p>离开、嵌套弹窗或关闭立即撤通道，返回重新订阅当前值；迟到确认仍会释放。回调在画面提交后释放，中间快照不累积；失败保留旧画面并显示安全错误。每激活最多 16 通道；accepted 不是绘制完成，退订不是取消业务任务。</p>
+            <p>真实 macOS debug 已验回调、草稿、逆序、跨插件、嵌套与退出；Text Desk 从阅读菜单打开后，无需刷新便由 Running 0/3 到 Completed 3/3。贡献动态可见/禁用/勾选、Agent enablement、全表单/焦点/大数据、打包和跨平台仍缺，MORE05 保留部分。<a href="./plugin-system.md#live-plugin-views">完整契约</a> · <a href="./evidence/plugin-live-views-2026-09-09.json">验证证据</a></p>
           </div></details>
           <p>Settings 1.2 沿用单次更新的 SQLite 原子提交与双端持久回执，快照按授权过滤；失败回滚且不发成功事件。新增九项真实偏好：阅读对齐、固定版式配色、更新说明提示、内容字体四字段、默认标注色和更新通道。内容字体可跟随全局阅读设置或独立配置；默认色只影响新标注，更新通道只影响下次检查且不漫游。macOS debug 已验实际字体、FB2 标注、PDF 画布、已打开的更新面板与失败回滚；更新后重启、跨平台与这九项的打包验收仍未完成，完整带版本变更流也仍缺。</p>
           <details class="ep"><summary>Settings 1.3：书架偏好双端接通，Workspace Profiles 保存组合预设</summary><div class="ep-body">

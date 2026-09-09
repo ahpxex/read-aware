@@ -14,6 +14,7 @@
     "search": "搜索",
     "noMatches": "没有匹配项目",
     "invalidView": "插件返回了无效界面",
+    "liveFailed": "实时更新已停止，当前显示最近收到的界面。",
     "detail": "详情",
     "timeline": {
       "filter": "时间范围",

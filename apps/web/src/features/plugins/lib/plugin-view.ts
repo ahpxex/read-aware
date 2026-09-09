@@ -706,6 +706,15 @@ function normalizeDetailView(input: Record<string, unknown>, context: string): P
 
 export function normalizePluginView(input: unknown): PluginView {
   const value = record(input, "view");
+  const view = normalizeViewContent(value);
+  if (value.live == null) return view;
+  const live = record(value.live, "view.live");
+  if (typeof live.subscribe !== "function") throw new PluginViewError("view.live.subscribe must be a function");
+  return { ...view, live: { subscribe: live.subscribe as NonNullable<PluginView["live"]>["subscribe"] } };
+}
+
+function normalizeViewContent(input: unknown): PluginView {
+  const value = record(input, "view");
   const kind = string(value.kind, "view.kind");
   if (kind === "markdown") {
     return {

@@ -4,9 +4,10 @@ import { navigatePluginViewStack, normalizePluginView, PluginViewError } from ".
 import { observePluginCallbackOwners, releasePluginCallbacks, retainPluginCallbacks } from "../runtime/plugin-callback-wire";
 import { createLogger } from "../../../platform/logger";
 import { showPluginFailureToast, showPluginToast } from "./plugin-toast";
+import { PluginLiveView } from "./plugin-live-view";
 
 const log = createLogger("plugin-views");
-type Frame = { view: PluginView; renderKey: number; dispose: () => void };
+type Frame = { view: PluginView; renderKey: number; dispose: () => void; rendered?: () => void; live?: PluginLiveView; liveError?: unknown };
 type Effects = { close?: () => void; refresh?: () => void; toast?: (text: string) => void; failure?: (error: unknown) => void };
 export type PluginViewSnapshot = {
   stack: readonly PluginView[];
@@ -14,6 +15,7 @@ export type PluginViewSnapshot = {
   renderKey: number | null;
   busy: boolean;
   error: boolean;
+  liveError: unknown;
   dialog: { requestId: number; title: string; session: PluginViewSession } | null;
 };
 
@@ -41,7 +43,7 @@ export class PluginViewSession {
   private inlineRequest = 0;
   private readonly foreground = new Set<number>();
   private readonly listeners = new Set<() => void>();
-  private snapshot: PluginViewSnapshot = { stack: [], renderKey: null, busy: false, error: false, dialog: null };
+  private snapshot: PluginViewSnapshot = { stack: [], renderKey: null, busy: false, error: false, liveError: null, dialog: null };
 
   constructor(private effects: Effects = {}) {}
   configure(effects: Effects): void { this.effects = effects; }
@@ -49,8 +51,10 @@ export class PluginViewSession {
   subscribe = (listener: () => void): (() => void) => { this.listeners.add(listener); return () => this.listeners.delete(listener); };
 
   private publish(patch: Partial<PluginViewSnapshot> = {}): void {
+    const dialog = patch.dialog === undefined ? this.snapshot.dialog : patch.dialog;
+    for (const frame of this.frames) frame.live?.setVisible(this.active && frame === this.frames.at(-1) && !dialog);
     this.snapshot = { ...this.snapshot, stack: this.frames.map(frame => frame.view), renderKey: this.frames.at(-1)?.renderKey ?? null,
-      busy: this.foreground.size > 0, ...patch };
+      busy: this.foreground.size > 0, liveError: this.frames.at(-1)?.liveError ?? null, ...patch };
     for (const listener of [...this.listeners]) listener();
   }
 
@@ -64,6 +68,43 @@ export class PluginViewSession {
     for (const frame of previous) if (!next.includes(frame)) this.release(frame.dispose);
   }
 
+  private ownFrame(raw: PluginView, renderKey: number): Frame {
+    let current = ownView(raw, this.close, renderKey);
+    let painted: Frame | undefined;
+    const frame: Frame = { ...current,
+      rendered: () => {
+        const prior = painted; painted = current;
+        if (prior && prior !== current) this.release(prior.dispose);
+      },
+      dispose: () => {
+        frame.live?.dispose(); current.dispose();
+        if (painted && painted !== current) painted.dispose();
+      },
+    };
+    try {
+      if (current.view.live) frame.live = new PluginLiveView(current.view.live, next => {
+        const replacement = ownView(next, this.close, renderKey);
+        const previous = current; current = replacement; frame.view = replacement.view;
+        // Keep only the visible callbacks plus the latest unpainted snapshot.
+        // A button in the old React commit must not lose its handle mid-click.
+        if (previous !== painted) this.release(previous.dispose);
+        this.publish();
+      }, error => { frame.liveError = error; this.publish(); });
+      return frame;
+    } catch (error) { current.dispose(); throw error; }
+  }
+
+  acknowledgeRender = (view: PluginView | null): void => {
+    const frame = this.frames.at(-1);
+    if (frame?.view === view) frame.rendered?.();
+  };
+
+  retryLive = (): void => {
+    const frame = this.frames.at(-1);
+    if (!this.active || !frame?.live) return;
+    frame.liveError = null; frame.live.retry(); this.publish();
+  };
+
   setRoot(view: PluginView | null): void {
     if (this.root === view) return;
     this.root = view;
@@ -75,7 +116,7 @@ export class PluginViewSession {
     try {
       // Live root-data refreshes retain drafts. An explicit action returning a
       // view below always receives a new key, even at the same stack depth.
-      if (view) frame = ownView(view, this.close, this.frames.length === 1 ? this.frames[0].renderKey : ++this.nextFrameKey);
+      if (view) frame = this.ownFrame(view, this.frames.length === 1 ? this.frames[0].renderKey : ++this.nextFrameKey);
     }
     catch (failure) {
       error = true;
@@ -89,6 +130,7 @@ export class PluginViewSession {
   resume(): void { this.active = true; this.publish(); }
   suspend(): number {
     this.active = false;
+    for (const frame of this.frames) frame.live?.setVisible(false);
     this.foreground.clear();
     return ++this.epoch;
   }
@@ -148,7 +190,7 @@ export class PluginViewSession {
       } else if (result.view) {
         if (dialog) this.snapshot.dialog!.session.setRoot(result.view);
         else {
-          const frame = ownView(result.view, this.close, ++this.nextFrameKey);
+          const frame = this.ownFrame(result.view, ++this.nextFrameKey);
           try {
             const next = navigatePluginViewStack(this.frames.map(item => item.view), frame.view, result.navigation);
             const existing = new Map(this.frames.map(item => [item.view, item]));

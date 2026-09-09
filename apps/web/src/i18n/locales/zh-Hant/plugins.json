@@ -14,6 +14,7 @@
     "search": "搜尋",
     "noMatches": "沒有符合項目",
     "invalidView": "外掛回傳了無效介面",
+    "liveFailed": "即時更新已停止，目前顯示最近收到的介面。",
     "detail": "詳情",
     "timeline": {
       "filter": "時間範圍",

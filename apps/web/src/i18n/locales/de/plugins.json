@@ -14,6 +14,7 @@
     "search": "Suchen",
     "noMatches": "Keine passenden Einträge",
     "invalidView": "Dieses Plugin hat eine ungültige Ansicht zurückgegeben",
+    "liveFailed": "Live-Aktualisierungen wurden angehalten. Die zuletzt empfangene Ansicht bleibt sichtbar.",
     "detail": "Details",
     "timeline": {
       "filter": "Zeitraum",

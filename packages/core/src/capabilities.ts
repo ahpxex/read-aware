@@ -32,7 +32,7 @@ export type ContributionPermission = Exclude<
 export const HOST_SERVICE_CATALOG = {
   storage: { version: "2.0.0", permission: null },
   secrets: { version: "1.0.0", permission: null },
-  ui: { version: "1.1.0", permission: null },
+  ui: { version: "1.2.0", permission: null },
   schedules: { version: "1.0.0", permission: null },
   session: { version: "2.0.0", permission: null },
   network: { version: "1.1.0", permission: "service:network" },
@@ -48,7 +48,7 @@ export type HostServicePermission = Exclude<
 
 /** Host-rendered declaration grammars, versioned apart from executable APIs. */
 export const DECLARATIVE_SCHEMA_CATALOG = {
-  views: { version: "1.0.0" },
+  views: { version: "1.1.0" },
   settings: { version: "1.0.0" },
   themes: { version: "1.0.0" },
 } as const;

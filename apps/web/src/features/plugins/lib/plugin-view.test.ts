@@ -8,6 +8,14 @@ import {
 const noOp = () => undefined;
 
 describe("normalizePluginView", () => {
+  test("accepts only a callable live source and discards undeclared source fields", () => {
+    const subscribe = () => ({ dispose() {} });
+    expect(normalizePluginView({ kind: "markdown", markdown: "Current", live: { subscribe, ignored: noOp } }))
+      .toEqual({ kind: "markdown", markdown: "Current", live: { subscribe } });
+    for (const live of [true, [], "source", {}, { subscribe: 1 }]) {
+      expect(() => normalizePluginView({ kind: "markdown", markdown: "Current", live })).toThrow(PluginViewError);
+    }
+  });
   test("accepts a semantic detail with host metadata and actions", () => {
     const view = normalizePluginView({
       kind: "detail",

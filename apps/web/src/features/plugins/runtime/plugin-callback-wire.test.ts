@@ -1,5 +1,16 @@
 import { expect, test } from "bun:test";
-import { decodePluginCallbacks, PluginCallbackRegistry, releasePluginCallbacks, type PluginCallbackWire } from "./plugin-callback-wire";
+import { decodePluginCallbacks, observePluginCallbackOwners, PluginCallbackRegistry, releasePluginCallbacks, type PluginCallbackWire } from "./plugin-callback-wire";
+
+test("overlapping owner watches using the same callback remain independently disposable", () => {
+  const owner = new AbortController(), registry = new PluginCallbackRegistry();
+  const view = decodePluginCallbacks(registry.encode({ kind: "markdown", markdown: "No callbacks" }), () => null, undefined, owner.signal);
+  let retired = 0;
+  const close = () => { retired++; };
+  const first = observePluginCallbackOwners(view, close);
+  const second = observePluginCallbackOwners(view, close);
+  first(); first(); owner.abort();
+  expect(retired).toBe(1); second();
+});
 
 function roundtrip<T>(registry: PluginCallbackRegistry, value: T): T {
   const wire = structuredClone(registry.encode(value));

@@ -298,13 +298,14 @@ eviction. Supplying taskId returns the exact snapshot instead of a page. An
 alternate host without the optional preparation port does not advertise these
 tools. This is not an LLM end-to-end test or per-conversation task isolation.
 
-[代码] Text Desk 0.2 requires library:write and reading:write. Prepare returns a
+[代码] Text Desk 0.3 requires library:write and reading:write. Prepare returns a
 request detail; Rebuild requires a checkbox confirmation with host field errors;
 My requests lists this activation's handles. Cancel says "this request", never
 "all extraction"; Refresh rereads the handle and replaces the view. Failures show
-safe localized labels, never raw error messages. Views are action-returned
-snapshots: live push refresh remains a separate MORE05 gap, not simulated by
-polling or DOM access. This plugin does not contribute extra Agent tools because
+safe localized labels, never raw error messages. Request details now compose
+`observeTextTask` with UI 1.2 / views 1.1 live publication. Closing the detail
+disposes observation, not the task. Lists remain explicitly refreshed. There is
+no polling or DOM access. This plugin does not contribute extra Agent tools because
 the host already supplies the shared ones.
 
 [环境] Isolated macOS debug verifies actual permission-gated Workers, activation
@@ -317,6 +318,71 @@ add source/write races, caps, slow-observer coalescing, failure propagation and
 task-wide timeout, virtual indexing, all formats, marketplace installation,
 packaged/cross-platform and physical-input validation remain outstanding. TXT05
 therefore remains partial. See [task evidence](./evidence/book-text-tasks-2026-09-09.json).
+
+### Live Plugin Views
+
+[代码] `schemas.views` 1.1 adds optional `PluginView.live.subscribe(channel)`;
+`services.ui` 1.2 adds `publishView(channel, { revision, view })`. Existing static
+views are unchanged. `view` in an update is `PluginViewContent`: markdown, list,
+form, blocks or detail, without another `live` declaration. This publishes a full
+snapshot, not a patch, navigation result or new source. No DOM, React, Jotai,
+arbitrary host callback or additional domain permission is exposed. Agent tools
+continue to return structured data through their host renderer; this is not a
+new model-executable UI tool or unified Agent enablement implementation.
+
+[代码] The host calls subscribe only for the visible top frame, with a serializable
+`{ id: string }` channel, and expects a disposable or Promise of one. The channel
+belongs to that frame and the private Worker activation AbortSignal attached by
+the bridge, not a plugin-supplied ID. A plugin cannot publish into another actor's
+frame. At most 16 channels may be active per activation (`plugin/busy` beyond
+that). Source authors must publish their current snapshot on each subscription
+to close the initial-query/subscribe gap; Text Desk's immediate task observation
+does so. Hidden parent frames, nested modal presentation, suspension and close
+retire channels immediately and invoke the subscription disposer asynchronously.
+Back/resume creates a fresh channel. A late subscription acknowledgement is still
+disposed. Stopping a view source does not cancel business work unless its own
+explicit disposer contract says so; Text Desk only stops observing.
+
+[代码] `revision` is a nonnegative safe integer, monotonically increasing within
+one channel; the initial accepted revision may be zero. The receipt is
+`{ status: "applied" | "stale" | "inactive" }`: applied means accepted into the
+host view session, not React commit, pixel paint or durable data completion.
+Equal/lower revisions return stale without applying content. Unknown, foreign
+and retired channels uniformly return inactive without exposing existence.
+Malformed channel/revision or view declarations reject with `plugin/invalid-input`.
+For an active channel, invalid view content also stops the subscription and
+preserves the last good view with localized InlineError. Subscription failures
+behave the same way; Retry is offered only when `describeError` marks the failure
+retryable. Cleanup failures are logged. The existing RPC bounds remain 256 pending
+calls per direction and 120-second deadlines; this is not a durable stream or
+an exactly-once delivery guarantee. There is no built-in source throttling.
+
+[代码] Live updates preserve the frame identity, allowing the existing form
+draft reconciliation to retain edited fields and allowing an in-flight action's
+valid navigation to complete. Normalized callbacks are held by leases. The
+currently painted snapshot survives until React acknowledges its replacement;
+only it and the latest unpainted snapshot are retained, with intermediate update
+callbacks released. Ordinary Worker API arguments now use transferable leases
+instead of forced release at RPC completion. Each overlapping owner watcher uses
+its own listener identity so releasing the previous view cannot remove the new
+view's retirement listener. Closing/unloading the owner still retires the view,
+including callback-free content. No guarantee is made for preserving drafts when
+the field schema or view kind fundamentally changes.
+
+[环境] [Live-view evidence](./evidence/plugin-live-views-2026-09-09.json) records
+isolated macOS debug tests using actual WebKit Workers and the app renderer:
+foreign publication, stale revision, updated button callback, retained user draft,
+push/back/modal source disposal, fresh resubscription, invalid content, late ACK,
+closed channel and activation retirement. Compiled Text Desk 0.3 opened from the
+reader More menu and advanced from Running 0/3 to Completed 3/3 without Refresh;
+the cancel action disappeared. Only a registered section getter was held; native
+book source, task repository, SQLite/blob persistence and RPC remained real.
+1200x800 and 800x650 screenshots were inspected. Unit tests additionally bound
+100 successive update callback graphs and cover invalid disposers and subscription
+failures. Contribution visible/enabled/checked, general Agent enablement, all form
+schema/focus/locale interactions, large payloads, physical input, marketplace
+install/upgrade, packaged and Windows/Linux remain unverified or unimplemented;
+MORE05 remains partial, not closed by live views alone.
 
 ### Reader Controls Visibility
 

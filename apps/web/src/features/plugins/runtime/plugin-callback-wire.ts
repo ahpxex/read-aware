@@ -16,6 +16,9 @@ const remoteReleases = new WeakMap<Callback, () => void>();
 const remoteRetains = new WeakMap<Callback, () => () => void>();
 const remoteOwners = new WeakMap<object, AbortSignal>();
 
+/** Internal identity, attached by the bridge rather than supplied by plugin data. */
+export function pluginCallbackOwner(callback: object): AbortSignal | undefined { return remoteOwners.get(callback); }
+
 /** Walk containers, preserving cycles, aliases, sparse arrays and inert property names. */
 function mapGraph(value: unknown, replace: (value: unknown) => unknown, copy = true): unknown {
   const seen = new Map<object, unknown>();
@@ -167,8 +170,11 @@ export function observePluginCallbackOwners(value: unknown, onRetired: () => voi
     return typeof entry === "function" ? null : entry;
   }, false);
   if ([...owners].some(owner => owner.aborted)) throw new AppError("plugin/unavailable", "Plugin view owner has stopped");
-  for (const owner of owners) owner.addEventListener("abort", onRetired, { once: true });
-  return () => { for (const owner of owners) owner.removeEventListener("abort", onRetired); };
+  // Overlapping view leases may share the same onRetired callback. EventTarget
+  // deduplicates listeners, so each lease needs its own registration identity.
+  const retire = () => onRetired();
+  for (const owner of owners) owner.addEventListener("abort", retire, { once: true });
+  return () => { for (const owner of owners) owner.removeEventListener("abort", retire); };
 }
 
 /** Discard an unconsumed result; live view leases keep shared callbacks alive. */

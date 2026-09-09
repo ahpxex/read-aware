@@ -78,6 +78,7 @@ export async function runDesktopLiveViewProbe() {
     assert((await call("advance")).status === "inactive", "Hidden parent accepted updates");
     button(String(i18n.t("plugins:viewer.back")), dialog()!)!.click();
     await until(() => !!button("Action 2", dialog()!));
+    assert(dialog()!.querySelector<HTMLInputElement>("input")!.value === "User draft", "Back navigation reset user draft");
     const resumed = await call("inspect"); assert(resumed.channel.id !== initial.channel.id, "Resumed view reused expired channel");
     results.push("live callback remains callable after RPC; revisions, drafts, push/back and fresh resubscription verified");
 

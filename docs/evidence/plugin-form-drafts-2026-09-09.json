@@ -1,0 +1,93 @@
+{
+  "date": "2026-09-09",
+  "scope": "Host-owned form drafts across plugin navigation, not overall capability completion",
+  "environment": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+    "pid": 49465,
+    "pgid": 49318,
+    "frontendPort": 5184,
+    "bridgePort": 9223,
+    "platform": "macOS debug Tauri"
+  },
+  "status": "completed",
+  "native": {
+    "liveViewFixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-live-view-probe.ts",
+    "textDeskFixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-form-draft-probe.ts",
+    "liveViewChecks": [
+      "A real Worker publishes an embedded form; edited draft survives live defaults changing",
+      "Push to action result, return, resubscribe on a fresh channel: draft remains User draft",
+      "Foreign, stale and hidden publications rejected",
+      "Nested modal suspends parent subscription",
+      "Malformed update preserves content, exposes no raw payload and stops subscription",
+      "Late subscription acknowledgement is disposed after close",
+      "Worker retirement closes its view and clears contributions"
+    ],
+    "textDeskChecks": [
+      "Compiled Text Desk opened from reader More menu",
+      "Empty submission displays validation; editing clears it; returning to old input does not resurrect it",
+      "Shelf query survives search/results/back",
+      "Search-this-book form with the same field ID starts empty",
+      "Book query survives its own results/back",
+      "Returning through detail and parent results restores the original shelf query",
+      "Open book closes the dialog only after the expected reading session is ready",
+      "Closing and reopening starts an empty form session"
+    ],
+    "finalResults": [
+      {
+        "viewport": [800, 650],
+        "first": "Text preparation probe\nchapter index",
+        "second": "Text index",
+        "pageOverflow": false,
+        "dialogOverflow": false,
+        "openBook": { "completed": true, "bookId": "17fafe43-c7e5-445a-bf02-3c2be3969f35", "status": "ready" }
+      },
+      {
+        "viewport": [1200, 800],
+        "first": "Text preparation probe\nchapter index",
+        "second": "Text index",
+        "pageOverflow": false,
+        "dialogOverflow": false,
+        "openBook": { "completed": true, "bookId": "17fafe43-c7e5-445a-bf02-3c2be3969f35", "status": "ready" }
+      }
+    ],
+    "screenshotsInspected": ["/tmp/plugin-form-back-1200.png", "/tmp/plugin-form-back-800.png"],
+    "searchRegression": "Real plugin no-grant/read/write and Agent book/global ports passed again; cold book remained unprepared. No autonomous remote model call."
+  },
+  "validation": {
+    "focusedTests": 17,
+    "focusedAssertions": 1092,
+    "workspaceTests": "22/22 tasks; web 838 tests, 9277 assertions",
+    "typecheck": "25/25 tasks",
+    "frontendProductionBuild": "passed",
+    "modelGate": "7 tests, 9 assertions",
+    "inventory": "243 rows, 635 mappings; 30 ownership units, 30 catalog entries, 129 acceptance items, 32 scenarios"
+  },
+  "cleanup": {
+    "deletedSyntheticBooks": [
+      "a8674f1c-70b4-49fe-94a2-78d30e386626",
+      "11ba2ab0-deac-4463-b6fc-6b4b64c4d676",
+      "3a6aa0da-dd8b-4e94-925e-123d678a3369",
+      "17fafe43-c7e5-445a-bf02-3c2be3969f35",
+      "9caa2bbf-9038-4f40-9267-94cdf324249e",
+      "2596e658-dca1-4142-bb87-00e52849aa60"
+    ],
+    "remainingBooksVerifiedBySqlite": 0,
+    "probeAndTextDeskContributions": 0,
+    "pluginDialogs": 0,
+    "windowRestored": [1200, 800],
+    "processExitCode": 143,
+    "portsReleased": [5184, 9223, 9224],
+    "formalAppDataTouched": false
+  },
+  "limits": [
+    "Structural path is form identity. Reordering equivalent forms is not a keyed migration API.",
+    "Draft retention is not persistence or proof that a debounced write completed.",
+    "No generic retention of validation, focus, scroll or dynamic option editor state across unmount.",
+    "No new Agent tool was added; the view host is not a second Agent execution API.",
+    "Release, Windows/Linux, sustained load and complete capability coverage remain unverified.",
+    "Editing source during the initial native run caused a full reload and invalidated old refs; final fixtures were rerun after edits and builds settled.",
+    "Existing useWindowMaximized HMR unlisten rejection reproduced and remains unfixed.",
+    "Existing 37 Rust warnings, initial recovered WebContent termination, bridge version warning and frontend chunk/mixed-import warnings remain."
+  ]
+}

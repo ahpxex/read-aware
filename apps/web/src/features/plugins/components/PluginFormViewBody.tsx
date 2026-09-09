@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Button,
   Checkbox,
@@ -10,7 +10,7 @@ import {
   TimeField,
   Toggle,
 } from "@read-aware/ui";
-import { useReactiveSetting } from "../../../hooks/useReactiveSetting";
+import { usePluginFormDraft } from "../hooks/usePluginFormDraft";
 import { useTranslation } from "../../../i18n";
 import { usePluginFieldOptions } from "../hooks/usePluginFieldOptions";
 import { contributionText } from "../lib/plugin-i18n";
@@ -27,26 +27,6 @@ type PluginFormViewBodyProps = {
   busy: boolean;
   onResult: PluginResultRunner;
 };
-
-/** The form values a view's declared fields seed (secret fields have none). */
-function seedValues(fields: PluginFormField[]): PluginFormValues {
-  const seeded: PluginFormValues = {};
-  for (const field of fields) {
-    if (field.kind === "secret") continue;
-    seeded[field.id] =
-      field.kind === "toggle" || field.kind === "checkbox"
-        ? (field.value ?? false)
-        : field.kind === "number"
-          ? (field.value ?? 0)
-          : field.kind === "select" || field.kind === "choice"
-            ? (field.value ??
-              (field.kind === "select" && field.dynamicOptions
-                ? ""
-                : (field.options[0]?.value ?? "")))
-            : (field.value ?? "");
-  }
-  return seeded;
-}
 
 /**
  * `visibleWhen` gates rendering only: hidden fields keep their values in the
@@ -273,73 +253,10 @@ function PluginDynamicSelectField({
 
 export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyProps) {
   const { t } = useTranslation("plugins");
-  const reactive = view.submitMode === "change";
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [saveRevision, setSaveRevision] = useState(0);
+  const { values, errors, updateValue, submit, flush, reactive } = usePluginFormDraft(view, onResult);
   // Bumped when a secret field writes/clears, so state that depends on
   // stored credentials (dynamic option lists) knows to re-resolve.
   const [secretsRevision, setSecretsRevision] = useState(0);
-  const [values, setValues] = useState<PluginFormValues>(() => seedValues(view.fields));
-  // The last values this form AGREED on with its view (seeded or adopted).
-  // Reconciliation compares against it to tell a live user draft apart from
-  // a field that simply still holds the old stored value.
-  const baselineRef = useRef<PluginFormValues>(seedValues(view.fields));
-
-  // A fresh view prop carries fresh stored values (an external writer — the
-  // agent, another surface — changed the settings while this form is open).
-  // Adopt them for every field the user hasn't diverged on, so an edit here
-  // can never write a stale snapshot back over the external change; a live
-  // draft keeps winning until it persists.
-  useEffect(() => {
-    const next = seedValues(view.fields);
-    const baseline = baselineRef.current;
-    const adopted: string[] = [];
-    setValues((current) => {
-      const merged = { ...current };
-      for (const [id, value] of Object.entries(next)) {
-        if (!(id in merged) || Object.is(merged[id], baseline[id])) {
-          if (!Object.is(merged[id], value)) adopted.push(id);
-          merged[id] = value;
-        }
-      }
-      return merged;
-    });
-    // A stale validation message must not outlive the value it was about.
-    if (adopted.length > 0) {
-      setErrors((previous) => {
-        const next_ = { ...previous };
-        for (const id of adopted) delete next_[id];
-        return next_;
-      });
-    }
-    baselineRef.current = next;
-  }, [view]);
-  const { flush } = useReactiveSetting({
-    value: values,
-    revision: saveRevision,
-    enabled: reactive,
-    persist: (next) => {
-      setErrors({});
-      void (async () => {
-        const result = await onResult(
-          () => view.onSubmit({ ...next }),
-          { background: true },
-        );
-        if (result?.fieldErrors) setErrors(result.fieldErrors);
-      })();
-    },
-  });
-
-  const updateValue = (id: string, value: string | boolean | number) => {
-    setValues((previous) => ({ ...previous, [id]: value }));
-    setErrors((previous) => {
-      if (previous[id] === undefined) return previous;
-      const next = { ...previous };
-      delete next[id];
-      return next;
-    });
-    if (reactive) setSaveRevision((current) => current + 1);
-  };
 
   return (
     <Stack
@@ -348,15 +265,7 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
       className="px-0.5 py-1"
       onSubmit={(event) => {
         event.preventDefault();
-        if (reactive) {
-          flush();
-          return;
-        }
-        setErrors({});
-        void (async () => {
-          const result = await onResult(() => view.onSubmit({ ...values }));
-          if (result?.fieldErrors) setErrors(result.fieldErrors);
-        })();
+        submit();
       }}
     >
       {view.fields.filter((field) => fieldVisible(field, values)).map((field) => {

@@ -617,6 +617,14 @@ export type PluginFormField = PluginFormFieldBase &
 
 export type PluginFormValues = Record<string, string | boolean | number>;
 
+/**
+ * Ordinary field drafts survive push/back within one host view session.
+ * Root/live refreshes adopt unchanged defaults and preserve edited values.
+ * Nested form identity is its structural path; fields use id and kind.
+ * Replace/reset, removal or session disposal discard drafts. Password inputs
+ * clear when their frame hides; secret fields never enter PluginFormValues.
+ * This is in-memory editor state, not storage or a successful save receipt.
+ */
 export type PluginFormView = {
   kind: "form";
   title?: string;

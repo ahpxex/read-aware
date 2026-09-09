@@ -5,14 +5,17 @@ import { observePluginCallbackOwners, releasePluginCallbacks, retainPluginCallba
 import { createLogger } from "../../../platform/logger";
 import { showPluginFailureToast, showPluginToast } from "./plugin-toast";
 import { PluginLiveView } from "./plugin-live-view";
+import { PluginFormDrafts } from "./plugin-form-drafts";
 
 const log = createLogger("plugin-views");
-type Frame = { view: PluginView; renderKey: number; dispose: () => void; rendered?: () => void; live?: PluginLiveView; liveError?: unknown };
+type OwnedView = { view: PluginView; renderKey: number; dispose: () => void };
+type Frame = OwnedView & { forms: PluginFormDrafts; rendered?: () => void; live?: PluginLiveView; liveError?: unknown };
 type Effects = { close?: () => void; refresh?: () => void; toast?: (text: string) => void; failure?: (error: unknown) => void };
 export type PluginViewSnapshot = {
   stack: readonly PluginView[];
   /** Explicit navigation replaces UI state, unlike a refresh of root data. */
   renderKey: number | null;
+  forms: PluginFormDrafts | null;
   busy: boolean;
   error: boolean;
   liveError: unknown;
@@ -20,7 +23,7 @@ export type PluginViewSnapshot = {
 };
 
 /** Own the normalized callbacks, not discarded fields from a raw declaration. */
-function ownView(raw: PluginView, onRetired: () => void, renderKey: number): Frame {
+function ownView(raw: PluginView, onRetired: () => void, renderKey: number): OwnedView {
   const releaseRaw = retainPluginCallbacks(raw);
   try {
     const view = normalizePluginView(raw);
@@ -43,7 +46,7 @@ export class PluginViewSession {
   private inlineRequest = 0;
   private readonly foreground = new Set<number>();
   private readonly listeners = new Set<() => void>();
-  private snapshot: PluginViewSnapshot = { stack: [], renderKey: null, busy: false, error: false, liveError: null, dialog: null };
+  private snapshot: PluginViewSnapshot = { stack: [], renderKey: null, forms: null, busy: false, error: false, liveError: null, dialog: null };
 
   constructor(private effects: Effects = {}) {}
   configure(effects: Effects): void { this.effects = effects; }
@@ -52,8 +55,13 @@ export class PluginViewSession {
 
   private publish(patch: Partial<PluginViewSnapshot> = {}): void {
     const dialog = patch.dialog === undefined ? this.snapshot.dialog : patch.dialog;
-    for (const frame of this.frames) frame.live?.setVisible(this.active && frame === this.frames.at(-1) && !dialog);
+    for (const frame of this.frames) {
+      const visible = this.active && frame === this.frames.at(-1) && !dialog;
+      frame.live?.setVisible(visible);
+      if (!visible) frame.forms.hide();
+    }
     this.snapshot = { ...this.snapshot, stack: this.frames.map(frame => frame.view), renderKey: this.frames.at(-1)?.renderKey ?? null,
+      forms: this.frames.at(-1)?.forms ?? null,
       busy: this.foreground.size > 0, liveError: this.frames.at(-1)?.liveError ?? null, ...patch };
     for (const listener of [...this.listeners]) listener();
   }
@@ -65,13 +73,16 @@ export class PluginViewSession {
   private replaceFrames(next: Frame[]): void {
     const previous = this.frames;
     this.frames = next;
-    for (const frame of previous) if (!next.includes(frame)) this.release(frame.dispose);
+    for (const frame of previous) if (!next.includes(frame)) {
+      this.release(frame.dispose);
+      if (!next.some(candidate => candidate.forms === frame.forms)) frame.forms.dispose();
+    }
   }
 
-  private ownFrame(raw: PluginView, renderKey: number): Frame {
+  private ownFrame(raw: PluginView, renderKey: number, forms?: PluginFormDrafts): Frame {
     let current = ownView(raw, this.close, renderKey);
-    let painted: Frame | undefined;
-    const frame: Frame = { ...current,
+    let painted: OwnedView | undefined;
+    const frame: Frame = { ...current, forms: forms ?? new PluginFormDrafts(current.view),
       rendered: () => {
         const prior = painted; painted = current;
         if (prior && prior !== current) this.release(prior.dispose);
@@ -82,16 +93,18 @@ export class PluginViewSession {
       },
     };
     try {
+      if (forms) forms.reconcile(current.view);
       if (current.view.live) frame.live = new PluginLiveView(current.view.live, next => {
         const replacement = ownView(next, this.close, renderKey);
         const previous = current; current = replacement; frame.view = replacement.view;
+        frame.forms.reconcile(replacement.view);
         // Keep only the visible callbacks plus the latest unpainted snapshot.
         // A button in the old React commit must not lose its handle mid-click.
         if (previous !== painted) this.release(previous.dispose);
         this.publish();
       }, error => { frame.liveError = error; this.publish(); });
       return frame;
-    } catch (error) { current.dispose(); throw error; }
+    } catch (error) { current.dispose(); if (!forms) frame.forms.dispose(); throw error; }
   }
 
   acknowledgeRender = (view: PluginView | null): void => {
@@ -116,7 +129,8 @@ export class PluginViewSession {
     try {
       // Live root-data refreshes retain drafts. An explicit action returning a
       // view below always receives a new key, even at the same stack depth.
-      if (view) frame = this.ownFrame(view, this.frames.length === 1 ? this.frames[0].renderKey : ++this.nextFrameKey);
+      const previous = this.frames.length === 1 ? this.frames[0] : undefined;
+      if (view) frame = this.ownFrame(view, previous?.renderKey ?? ++this.nextFrameKey, previous?.forms);
     }
     catch (failure) {
       error = true;
@@ -162,6 +176,12 @@ export class PluginViewSession {
     if (refresh) this.effects.refresh?.();
   };
 
+  /** An unmount flush or stale UI event must never execute as the next page. */
+  runFrom = (renderKey: number | null, run: () => PluginViewResult | Promise<PluginViewResult>, options?: PluginResultOptions): Promise<PluginViewResult> => {
+    if (renderKey === null || this.frames.at(-1)?.renderKey !== renderKey || this.snapshot.dialog) return Promise.resolve(null);
+    return this.run(run, options);
+  };
+
   run = async (run: () => PluginViewResult | Promise<PluginViewResult>, options?: PluginResultOptions): Promise<PluginViewResult> => {
     if (!this.active || !this.frames.length) return null;
     const source = this.frames.at(-1);
@@ -195,7 +215,7 @@ export class PluginViewSession {
             const next = navigatePluginViewStack(this.frames.map(item => item.view), frame.view, result.navigation);
             const existing = new Map(this.frames.map(item => [item.view, item]));
             this.replaceFrames(next.map(view => view === frame.view ? frame : existing.get(view)!));
-          } catch (error) { this.release(frame.dispose); throw error; }
+          } catch (error) { this.release(frame.dispose); frame.forms.dispose(); throw error; }
           this.closeDialog();
           this.publish();
         }

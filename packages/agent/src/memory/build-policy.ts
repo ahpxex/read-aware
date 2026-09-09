@@ -8,47 +8,73 @@ export type MemoryBuildPolicy = LivePolicy;
 const unrestricted: LivePolicy = { enabled: () => true, subscribe: () => () => {} };
 
 export async function runMemoryBuild<T>(
-  deps: Pick<RuntimeDeps, "memoryPolicy">,
+  deps: Pick<RuntimeDeps, "memoryPolicy" | "log">,
   work: (operation: MemoryBuildOperation) => Promise<T>,
   signal?: AbortSignal,
 ): Promise<T> {
   const call = policyCall(deps.memoryPolicy ?? unrestricted,
     () => new AppError(ERR_AI_MEMORY_DISABLED, "[ai/memory-disabled] Building memory is disabled."), signal);
+  const commits = new Set<Promise<void>>();
+  let closed = false;
+  const assertAllowed = () => {
+    call.assertAllowed();
+    if (closed) throw new AppError("memory/cancelled", "Memory operation has finished");
+  };
   const guard = <A extends unknown[], R>(fn: (...args: A) => Promise<R>) => async (...args: A): Promise<R> => {
-    call.assertAllowed();
+    assertAllowed();
     const result = await call.wait(fn(...args));
-    call.assertAllowed();
+    assertAllowed();
+    return result;
+  };
+  // Reads/inference may be abandoned, but a dispatched mutation owns its receipt
+  // until settlement. Abort cannot turn an unknown write outcome into "done".
+  const commit: MemoryBuildOperation["commit"] = fn => async (...args) => {
+    assertAllowed();
+    const pending = fn(...args);
+    const settled = pending.then(() => {}, error => {
+      if (call.signal.aborted) deps.log?.warn("Memory commit failed while cancellation was draining", error);
+    });
+    commits.add(settled);
+    void settled.then(() => { commits.delete(settled); });
+    const result = await call.wait(pending);
+    assertAllowed();
     return result;
   };
   try {
     call.assertAllowed();
     return await call.wait(work({
       signal: call.signal,
-      assertAllowed: call.assertAllowed,
+      assertAllowed,
       guard,
+      commit,
       complete: complete => (model, context) => guard(() => complete(model, context, { signal: call.signal }))(),
       protect: original => ({
         ...original,
         memory: { ...original.memory,
-          saveMemory: guard(original.memory.saveMemory),
-          reinforceMemory: guard(snapshot => original.memory.reinforceMemory(snapshot, call.signal)),
-          applyMemoryChanges: guard((changes, snapshots) => original.memory.applyMemoryChanges(changes, snapshots, call.signal)) },
-        conversations: { ...original.conversations, putInsights: guard(original.conversations.putInsights) },
-        profile: { ...original.profile, putProfileSummary: guard(original.profile.putProfileSummary) },
+          saveMemory: commit(original.memory.saveMemory),
+          reinforceMemory: commit(snapshot => original.memory.reinforceMemory(snapshot, call.signal)),
+          applyMemoryChanges: commit((changes, snapshots) => original.memory.applyMemoryChanges(changes, snapshots, call.signal)) },
+        conversations: { ...original.conversations, putInsights: commit(original.conversations.putInsights) },
+        profile: { ...original.profile, putProfileSummary: commit(original.profile.putProfileSummary) },
         bookMemory: { ...original.bookMemory,
           inspectDigest: guard((bookId, index) => original.bookMemory.inspectDigest(bookId, index, call.signal)),
-          saveDigest: guard((bookId, digest, revision) => original.bookMemory.saveDigest(bookId, digest, revision, call.signal)) },
-        library: { ...original.library, classifyBookIfUnclassified: guard((bookId, flavor) => original.library.classifyBookIfUnclassified(bookId, flavor, call.signal)) },
+          saveDigest: commit((bookId, digest, revision) => original.bookMemory.saveDigest(bookId, digest, revision, call.signal)) },
+        library: { ...original.library, classifyBookIfUnclassified: commit((bookId, flavor) => original.library.classifyBookIfUnclassified(bookId, flavor, call.signal)) },
         extraMemoryCandidates: original.extraMemoryCandidates && guard(original.extraMemoryCandidates),
       }),
     }));
-  } finally { call.dispose(); }
+  } finally {
+    closed = true;
+    try { await Promise.all(commits); }
+    finally { call.dispose(); }
+  }
 }
 
 interface MemoryBuildOperation {
   signal: AbortSignal;
   assertAllowed(): void;
   guard<A extends unknown[], R>(fn: (...args: A) => Promise<R>): (...args: A) => Promise<R>;
+  commit<A extends unknown[], R>(fn: (...args: A) => Promise<R>): (...args: A) => Promise<R>;
   complete(complete: CompleteFn): CompleteFn;
   protect(deps: RuntimeDeps): RuntimeDeps;
 }

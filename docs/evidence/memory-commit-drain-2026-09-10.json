@@ -1,0 +1,187 @@
+{
+  "date": "2026-09-10",
+  "scope": "Memory build policy write-receipt draining, not public MEM10 task endpoints",
+  "environment": {
+    "app": "com.readaware.app.capability-e2e",
+    "frontend": 5184,
+    "bridge": 9224,
+    "platform": "macOS Tauri debug",
+    "inference": "No model required; direct real SQLite port operations",
+    "workers": 3
+  },
+  "fixture": {
+    "bookId": "db002647-c360-49ae-b4e1-7529c803946d",
+    "chapters": [
+      {
+        "hrefs": [
+          "0"
+        ],
+        "index": 0
+      },
+      {
+        "hrefs": [
+          "1"
+        ],
+        "index": 1
+      },
+      {
+        "hrefs": [
+          "2"
+        ],
+        "index": 2
+      }
+    ],
+    "marker": "Memory Domain Probe 903d22f1-3902-4700-8463-605333900ed8",
+    "memoryIds": [
+      "f1f93843-62ec-4953-bab8-2965b91381ed",
+      "aa4815e6-d25d-4e7f-9a38-7c888dc06321",
+      "3bec9ca3-503a-4c18-812d-223f8e0f6863"
+    ],
+    "path": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e"
+  },
+  "committedBeforeReceiptRelease": {
+    "cancellation": {
+      "broadcasts": 1,
+      "policySubscriptions": 1,
+      "receipt": "committed",
+      "status": "cancelling",
+      "warnings": []
+    },
+    "release": {
+      "broadcasts": 1,
+      "errorCode": "ai/memory-disabled",
+      "policySubscriptions": 0,
+      "receipt": "committed",
+      "status": "cancelled-or-failed",
+      "warnings": []
+    },
+    "sqlSummary": "Drained native receipt"
+  },
+  "failedBeforeReceiptRelease": {
+    "cancellation": {
+      "before": {
+        "broadcasts": 1,
+        "policySubscriptions": 1,
+        "receipt": "failed",
+        "status": "running",
+        "warnings": []
+      },
+      "cancel": {
+        "broadcasts": 1,
+        "policySubscriptions": 1,
+        "receipt": "failed",
+        "status": "cancelling",
+        "warnings": []
+      }
+    },
+    "release": {
+      "broadcasts": 1,
+      "errorCode": "ai/memory-disabled",
+      "policySubscriptions": 0,
+      "receipt": "failed",
+      "status": "cancelled-or-failed",
+      "warnings": [
+        {
+          "code": "db/error",
+          "message": "Memory commit failed while cancellation was draining"
+        }
+      ]
+    },
+    "eventAndOutboxCounts": {
+      "before": [
+        8,
+        8
+      ],
+      "after": [
+        8,
+        8
+      ]
+    }
+  },
+  "freshRetry": {
+    "status": "completed",
+    "receipt": "committed",
+    "broadcasts": 2,
+    "policySubscriptions": 0
+  },
+  "consumers": {
+    "agent": {
+      "chapterRange": [
+        0,
+        1
+      ],
+      "chaptersDigested": 2,
+      "edgeCount": 1,
+      "entities": [
+        {
+          "chapters": 1,
+          "name": "Ben"
+        },
+        {
+          "chapters": 1,
+          "name": "Drained"
+        }
+      ],
+      "entityCount": 2,
+      "fence": "graph clamped to chapters before the reader's position (chapter index 2)",
+      "graph": "overview",
+      "note": "Pass names for profiles with relations and provenance chapters. This is distilled memory, not verbatim source text.",
+      "truncated": false
+    },
+    "plugin": {
+      "status": "ok",
+      "value": {
+        "chapterRange": [
+          0,
+          1
+        ],
+        "chaptersDigested": 2,
+        "edgeCount": 1,
+        "entities": [
+          {
+            "chapters": 1,
+            "name": "Ben"
+          },
+          {
+            "chapters": 1,
+            "name": "Drained"
+          }
+        ],
+        "entityCount": 2,
+        "fence": "graph clamped to chapters before the reader's position (chapter index 2)",
+        "graph": "overview",
+        "note": "Pass names for profiles with relations and provenance chapters. This is distilled memory, not verbatim source text.",
+        "truncated": false
+      }
+    }
+  },
+  "ui": {
+    "overflow": false,
+    "text": "Memory Desk\n\nChapter graph\n\n\nRefresh\n\nSearch\n\nBen\nChapters: 1\n\nDrained\nChapters: 1\nClose",
+    "viewport": [
+      900,
+      650
+    ]
+  },
+  "screenshot": {
+    "path": "/tmp/memory-drain-desk.png",
+    "inspected": true
+  },
+  "cleanup": {
+    "ownedBooks": 0,
+    "contributions": 0,
+    "ownedMemories": "All three status=forgotten, via domain events",
+    "ownedTriggerCount": 0,
+    "driver9224": "stopped",
+    "nativeProcessGroup": 85307,
+    "nativeExecExitCode": 143,
+    "ports5184and9224": "no listeners"
+  },
+  "boundaries": [
+    "The fixture delays delivery of an already settled native port receipt, not the native SQLite transaction. Unit tests separately gate underlying write promises before settlement.",
+    "No public task registry, task progress UI, Agent tool, plugin command or inference deduplication was introduced.",
+    "Seven protected write destinations drain their returned promises; reads/inference/plugin candidates can still be abandoned and their physical IO or remote side effects are not guaranteed stopped.",
+    "Already dispatched writes may commit. An indefinitely unsettled write deliberately prevents terminal cancellation. Retired protected operations reject new work.",
+    "No production data, autonomous model, packaged build, Windows/Linux or remote sync was exercised."
+  ]
+}

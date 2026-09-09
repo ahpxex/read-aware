@@ -363,7 +363,7 @@
           </div></details>
           <details class="ep"><summary>图谱补齐已区分失败和完成，公开任务入口仍未接</summary><div class="ep-body">
             <p>内部 DigestReport 区分已提交、空章、失败、欠账与未知边界；完整追平有限扫描一次，不再因前章失败饿死后章，重试跳过已成功章。早章重建只用更早章的实体锚，非 stop 的模型答复不落库。</p>
-            <p>bdg1 章节与分类版本在原生事务复核：同章竞争、分类改回和过旧事件时间都不能覆盖新结果，其他章节不互相冲突；失败回滚事件/投影/同步队列，成功后才广播。已验脚本推理、取消、SQL 失败重试与双端图查询和 Memory Desk 显示；不是自主模型或公开任务 E2E。内容版本、跨运行协调和外层取消收束仍缺，任务 API 未接。<a href="./plugin-system.md#digest-conditional">条件提交与验证边界</a></p>
+            <p>bdg1 章节与分类版本在原生事务复核：同章竞争、分类改回和过旧事件时间都不能覆盖新结果，其他章节不互相冲突；失败回滚事件/投影/同步队列，成功后才广播。取消会等已派发写回执，但不等全部读/模型物理 IO。已验脚本推理、SQL 失败重试与双端图查询和 Memory Desk 显示；不是自主模型或公开任务 E2E。内容版本与跨运行协调仍缺，任务 API 未接。<a href="./plugin-system.md#digest-conditional">条件提交与验证边界</a></p>
           </div></details>
           <details class="ep"><summary>分类更改需版本条件，Agent 每次批准，插件表单保留冲突草稿</summary><div class="ep-body">
             <p>classification 查询需 memory:read，classify 需 memory:write；只能改叙事/说明性，不能传自动填空标记。bcl1 版本在事务内复核。Agent classify_book 两 scope 已接，书内仅本书；Memory Desk 0.4 观察分类并要求确认边界变化。插件确认是 UX，不是新的宿主授权票据。</p>
@@ -376,7 +376,7 @@
         <div class="wrap">
           <h2>Agent 智能扩展</h2>
           <p class="intro">插件只能提供有边界的数据与候选，不能接管系统提示词或直接写长期记忆。</p>
-          <details class="ep"><summary>记忆构建开关已接通，Reading Goals 已实际消费两类贡献</summary><div class="ep-body"><p>buildMemory 关闭后，宿主停止 remember、候选、抽取、摘要、巩固和 digest 等记忆构建；排队与在途任务取消，重开不复活旧结果。聊天/历史和旧记忆仍可读取；已派发写不保证撤销。摘要保存/清除等待持久回执。</p><p>Reading Goals 按书保存目标并提供上下文，用户选择后才提出记忆候选；清除目标不删除已提升的记忆。源码十四个插件、编译内置六个，本插件不在内置清单且没有专属 Agent 目标编辑工具。macOS debug 已验双端、候选落库与失败取消；安装重启、打包/跨平台、键盘遍历与所有屏外控件仍未验。<a href="./plugin-system.md#host-memory-build-policy">完整边界</a></p></div></details>
+          <details class="ep"><summary>记忆构建开关已接通，取消必须等已派发写回执</summary><div class="ep-body"><p>buildMemory 关闭立即禁止新写，重开不复活旧操作；七类受保护写必须全部返回后，外层才结束取消并退订，迟到数据库失败仍记日志。写可能已提交，不能假称撤销；读/模型仍可放弃等待。原生已验回执延迟、SQL 失败、重试和编译 Memory Desk，未把测试回执门当作真实网络或公共任务 UI。<a href="./plugin-system.md#memory-commit-drain">取消与写入边界</a></p><p>聊天/历史和旧记忆仍可读取。Reading Goals 按书保存目标并提供上下文，用户选择后才提出记忆候选；清除目标不删除已提升记忆。源码十四个插件、内置六个，本插件不在内置清单且无专属 Agent 编辑工具。已有 macOS debug 双端证据，安装重启、打包/跨平台及完整控件验收仍缺。<a href="./plugin-system.md#host-memory-build-policy">完整边界</a></p></div></details>
           <details class="ep"><summary>文本隐私已接 Agent 和插件结构化推理，任意字符串仍有边界</summary><div class="ep-body"><p>Agent 自动附件、历史与 viewport/grounding 按设置过滤。LLM 1.1 的 readingContext 由宿主组装；必需正文被禁止则在请求前拒绝，结构错误明确报错，收紧以 ai/context-changed 取消在途请求和重试。重开只允许新请求。</p><p>Dictionary 1.3 已迁移：选区与周边正文不再自行拼入 prompt，设置竞态不写误导缓存；本地缓存仍可读。macOS debug 双端三模式四组合、实际 Dictionary Worker 缓存/拒绝、结构化重试与三个并发请求取消已有证据。任意 prompt/HTTP/TTS、独立检索与旧衍生内容不受全局清除；完整 UI、打包/跨平台仍未验，SET24/25 保持部分。<a href="./plugin-system.md#host-reading-context-policy">精确边界</a></p></div></details>
           <div class="table-shell">
             <table>

@@ -35,7 +35,7 @@ export async function applyOnboarding(
 ): Promise<void> {
   return runMemoryBuild(deps, async operation => {
     const summary = buildProfileSummary(answers);
-    if (summary) await operation.guard(deps.profile.putProfileSummary)(summary);
+    if (summary) await operation.commit(deps.profile.putProfileSummary)(summary);
 
     const seeds: Array<Pick<NewMemoryInput, "kind" | "content">> = [];
     if (answers.goals) seeds.push({ kind: "preference", content: `阅读目标：${answers.goals}` });
@@ -44,7 +44,7 @@ export async function applyOnboarding(
     }
     if (answers.background) seeds.push({ kind: "fact", content: `读者背景：${answers.background}` });
     for (const seed of seeds) {
-      await operation.guard(deps.memory.saveMemory)({
+      await operation.commit(deps.memory.saveMemory)({
         ...seed,
         scope: "user",
         origin: "onboarding",

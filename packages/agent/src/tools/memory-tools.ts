@@ -73,7 +73,7 @@ export function buildMemoryTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
       } else {
         memoryScope = rawScope;
       }
-      const saved = await runMemoryBuild(deps, operation => operation.guard(deps.memory.saveMemory)({
+      const saved = await runMemoryBuild(deps, operation => operation.commit(deps.memory.saveMemory)({
         scope: memoryScope,
         kind,
         content,

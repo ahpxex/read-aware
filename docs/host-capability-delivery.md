@@ -1236,3 +1236,19 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [清理/插曲] 修改探针使暂停只发生于本轮第一章时，Vite reload 与首次 fixture setup 相撞导致 Worker 启动失败。只删除自有书 23842da6-9554-4712-9152-94a216216f6e 并遗忘其三记忆，重新暖载后完成全部测试；没有重启 App 掩盖问题。最终六 Worker/贡献归零，两次自有书均 0、六记忆 status=forgotten，trigger 已移除。首次只读清理检查用了不存在的 forgotten 列，查 PRAGMA 后改为 status 确认。driver 9224 已停止，确认自有 PGID 81758 的进程及 5184/9224 监听均消失；既有 89360/9223 与正式用户数据未操作。遗忘不等于事件历史擦除。
 
 [下一步/剩余] 公共任务 ID/进度观察/启动/取消/重试/重建、Agent 批准和插件任务 UI 仍未接。本机条件提交不去重跨运行推理，不证明原文 hash 或实体锚读集版本；外层 memory-policy 的取消竞速仍可早于物理 IO 收束。remaining 是本轮采样欠账，竞争方完成同章后也可能非零，不能直接充当全局任务状态。其余双端部分/未接项、全能力自由组合及长时/撤权/打包/Windows/Linux/真实跨设备验收继续，整体目标未完成，未推送。
+
+## 2026-09-10：记忆构建取消等待已派发写回执
+
+[进度/根因] 上轮 bf9b7614 已提交章节/分类条件保护，属于有效进展，工作区干净。本轮继续 MEM10 公共任务前置生命周期，发现外层 runMemoryBuild 用同一个 Promise.race 处理读、模型和实际写入：取消后父调用先结束，未收到回执的写仍可能提交，后续任务因而误以为旧操作已完全退出。此前直接 digest runner 的逻辑 worker 排空不能弥补这层竞速。
+
+[代码] 增加 operation.commit，与可放弃等待的 guard 明确分开。protect 的七类写（saveMemory、reinforceMemory、applyMemoryChanges、putInsights、putProfileSummary、saveDigest、classifyBookIfUnclassified）全部跟踪原端口 promise；显式 remember 和 onboarding 的三处旧 guard 写也迁移。取消立即冻结操作、拒绝后续写，但外层 promise 要等所有已派发 commit settle 后才释放策略订阅并结束。已提交成功不回滚，取消期迟到失败通过 log.warn 保留原错误，调用方仍得到策略/调用者取消原因；重开不恢复旧操作。成功或失败返回也关闭捕获的 guard/commit，不能在启用策略下复用已结束 operation。
+
+[边界] 未把全部 IO 改成无限等待：普通读、模型和插件候选仍能及时取消/放弃等待，迟到宿主写被 guard 拒绝；不能保证底层网络/远端计费/插件自身副作用已停。永久不 settle 的写会让取消保持 pending，而不是捏造终态。直接手动分类/反馈仍走自己的命令生命周期，不受自动构建开关禁止。没有公共任务 ID/状态/按钮/工具，也没有跨运行推理协调；这一内部修复不能让 MEM10 从自动/未接改为双端接通。
+
+[原生/组合] [memory-commit-drain](./evidence/memory-commit-drain-2026-09-10.json) 使用隔离 macOS debug、真实 SQLite 和三个 Worker。fixture 在真实原生写结束后暂缓向受保护端口交付回执，不伪称暂停数据库事务：取消后状态仍 cancelling、策略订阅 1，SQL 已有 Drained native receipt；释放回执才返回 ai/memory-disabled、订阅 0，广播维持 1。自有 SQL trigger 导致真实 db/error，事件/outbox 均 8→8、广播仍 1；释放失败回执后记录 warn code=db/error，调用方仍是策略取消。finally 移除 trigger，新操作正常 completed、广播 2。Agent 和真实 Worker 的保护图查询一致，编译 Memory Desk 经 Books→自有书→Chapter graph 显示 Ben/Drained，900×650 原生截图已看、无页面横向溢出；未来 Hidden 未出现在图中。不涉及自主推理或公共任务 UI。
+
+[验证/扫描] 新增十项测试覆盖七种写目的地、多写成功/失败同时排空、晚到失败日志、成功/失败后的 guard/commit 复用、调用者取消；既有挂起模型、晚到读和候选、开关重开测试保持通过。全仓 test 24/24（Agent 414 项/81 文件；web 911 项/159 文件）、typecheck 27/27、前端 production build 1/1 通过。Rust 未修改，本单元未重跑 Rust 全套；原生沿用已有 37 项编译/bridge 警告。代码重扫未发现 operation.guard 直接包 save/put/reinforce/classify/applyMemory 的残留；这不是所有语义的形式证明。库存/模型 11 项/30 断言，两生成器 --check、三 pair validator 和 git diff --check 通过。保持 243 行、695 入口、30 单元、31 catalog、129 旧验收、32 场景、Memory 1.3 和 14 源码/6 内置插件，未以内部 commit 函数冒充新增插件能力。
+
+[文档/清理] 矩阵 MEM03/MEM10/SET23 与插件规范 MD/HTML 同步取消回执事实；模型 MD 只同步生成证据行，HTML 责任裁决未变。两页六张 1440×1000、1024×768、390×844 截图已看；无页面溢出/重复 ID/坏页内锚点/无名按钮或浏览器 errors，观察 CDN 200，无 Mermaid。矩阵 memory-policy/回执命中 1/19 行，含 MEM10；插件 buildMemory/回执命中 1/5 节，含 Agent 智能扩展；Escape 恢复 243/18 项。矩阵移动抽屉 HEADER/MAIN inert、关闭与主题刷新保持通过；插件原无抽屉/主题。文档浏览器关闭，HTML 仍依赖 CDN，不作为产品验收。三个 Worker/贡献清零，自有书 0、三记忆 status=forgotten、trigger 0；driver 9224 停止，自有 PGID 85307 / exec 84517 终态 143，5184/9224 无监听。既有 89360/9223 和正式用户数据未操作。
+
+[下一步/剩余] 接公共图谱任务时可以依赖当前条件提交和写回执排空，但仍需共享所有权/跨运行协调、启动/观察/取消/重试/重建契约，以及 Agent 批准、插件授权和真实任务视图。不能把未来任务 cancelled 等同于所有模型网络已终止；应明确任务自身写回执边界。内容/来源/实体锚版本、全能力组合、其余双端缺口及长时/撤权/打包/跨平台/真实跨设备验证仍未完成，整体目标继续，未推送。

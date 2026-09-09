@@ -1129,8 +1129,9 @@ semantic correctness or eliminate the existing 20,000-character text truncation.
 [代码/边界] The direct execution runner checks cancellation before/after reads,
 inference and before saving, stops accepting new chapters, and waits for its
 active logical workers before rejecting. An already dispatched save may commit;
-there is no rollback claim. The outer `runMemoryBuild` policy race can still
-reject before uncancellable underlying IO settles. Public task lifecycle,
+there is no rollback claim. The outer `runMemoryBuild` now drains dispatched
+protected write receipts before rejecting, but may abandon reads/inference.
+It does not prove all underlying IO or remote model work has stopped. Public task lifecycle,
 cross-run locking and content-version/source identity are not provided by this
 report. Local chapter/classification conditional commits are described below.
 
@@ -1185,7 +1186,8 @@ A conflicting run does not increment digested; its sampled remaining is not a
 fresh global backlog query and may include a chapter another run has completed.
 These are local optimistic conditions, not distributed locks: legacy/general
 remote event application is unchanged. No content hash, anchor read-set version,
-cross-run inference deduplication or outer-policy physical IO drain is claimed.
+cross-run inference deduplication or full physical IO drain is claimed. Protected
+write receipt draining is provided by the memory build policy below.
 
 [环境] [Conditional digest evidence](./evidence/digest-conditional-2026-09-10.json)
 uses isolated macOS debug, a three-chapter FB2, scripted inference and six real
@@ -2251,6 +2253,41 @@ The runtime subscribes when work is queued, not when it finally starts. Disablin
 revokes queued and in-flight operations with `ai/memory-disabled`, aborts their
 model transport and suppresses late results; re-enabling permits only new work.
 Summary writes and clears await SQLite durability and propagate failures.
+
+<a id="memory-commit-drain"></a>
+[代码] `runMemoryBuild` separates revocable `operation.guard` reads/inference
+from `operation.commit` mutations. `operation.protect` uses commit tracking for
+saveMemory, reinforceMemory, applyMemoryChanges, putInsights, putProfileSummary,
+saveDigest and classifyBookIfUnclassified; onboarding and explicit remember also
+use commit rather than the generic race. Cancellation immediately revokes new
+work, but the operation promise does not settle until every already dispatched
+protected mutation promise has settled. Its policy subscription remains until
+then. A mutation can commit during that interval; this is not rollback. A late
+storage rejection is logged even when the public failure remains the policy or
+caller cancellation. Turning the policy back on never reauthorizes the old call.
+
+[代码/边界] Completion or failure closes the captured operation: even an otherwise
+enabled policy cannot authorize reuse of a captured guard/commit after its owner
+has returned (`memory/cancelled`). Reads and model/plugin candidate calls can
+still be abandoned promptly, with late host writes blocked; their physical IO,
+remote billing and plugin-side effects are not drained or undone. A permanently
+unsettled write keeps cancellation pending rather than inventing a terminal
+receipt. This change does not create public task states, a task registry or
+cross-run inference coordination. Direct domain edits such as user classification
+and feedback retain their own lifetimes, outside the automatic-build policy.
+
+[环境] [Memory write-drain evidence](./evidence/memory-commit-drain-2026-09-10.json)
+uses isolated macOS debug, real SQLite writes and three Worker consumers. The
+fixture holds delivery of a real port receipt after native completion, not the
+SQLite transaction itself: cancellation stays pending with one policy subscription,
+and only receipt release lets the operation reject/unsubscribe. A trigger-induced
+native failure keeps event/outbox counts 8 to 8 and broadcasts unchanged; its
+released late failure is logged as db/error while the caller gets ai/memory-disabled.
+Fresh retry succeeds. Agent/Worker graph queries agree and compiled Memory Desk
+shows the committed Drained entity. Unit tests independently gate seven write
+destinations, drain sibling success/failure, block retained operations and retain
+prompt hung-read/model cancellation. This is not a public-task UI or physical
+network-cancellation test; packaged/Windows/Linux/remote sync remain unverified.
 
 [代码/边界] Ordinary chat, raw transcript persistence, existing-memory retrieval,
 annotations, user deletion and plugin-owned goal storage remain available. This

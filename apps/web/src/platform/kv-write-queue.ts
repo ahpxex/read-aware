@@ -15,6 +15,11 @@ export class KVWriteQueue {
   private readonly keys = new Map<string, KeyState>();
   get pending(): boolean { return this.keys.size > 0; }
 
+  readDurable(key: string): string | null {
+    const state = this.keys.get(key);
+    return state ? state.durable : this.deps.read(key);
+  }
+
   constructor(private readonly deps: {
     read(key: string): string | null;
     mirror(key: string, value: string | null): void;

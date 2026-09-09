@@ -45,6 +45,12 @@ const LEGACY_AI_KEY_STORAGE_KEY = "read-aware-ai-key";
 const snapshot = new Map<SecretKey, string>();
 let hydrated = false;
 const commitListeners = new Set<(key: SecretKey, source: KVWriteOrigin) => void>();
+const writeListeners = new Set<(key: SecretKey, value: string | null) => void>();
+/** Credential-policy boundary only: exact durable local values for sealing, never a public observer. */
+export function onLocalSecretWrite(listener: (key: SecretKey, value: string | null) => void): () => void {
+  writeListeners.add(listener);
+  return () => writeListeners.delete(listener);
+}
 /** Host-only invalidation; values never leave the credential boundary. */
 export function onSecretCommit(listener: (key: SecretKey, source: KVWriteOrigin) => void): () => void {
   commitListeners.add(listener);
@@ -59,7 +65,12 @@ const writes = new KVWriteQueue({
   read: key => snapshot.get(key as SecretKey) ?? null,
   mirror: (key, value) => { if (value === null) snapshot.delete(key as SecretKey); else snapshot.set(key as SecretKey, value); },
   persist: (key, value) => value === null ? invoke("secret_delete", { key }) : invoke("secret_set", { key, value }),
-  committed: () => {},
+  committed: (key, value, source) => {
+    if (source !== "local") return;
+    for (const listener of [...writeListeners]) {
+      try { listener(key as SecretKey, value); } catch (error) { log.warn("Credential publication failed", error); }
+    }
+  },
   settled: commit => { for (const { key } of commit.entries) notifyCommit(key as SecretKey, commit.source === "remote" ? "remote" : "local"); },
   failed: (key, error) => {
     log.error(`failed to persist "${key}"`, error);
@@ -116,13 +127,24 @@ export function getSecret(key: SecretKey): string {
   return snapshot.get(key) ?? "";
 }
 
+/** A pending master-key edit must not seal durable credentials under an unsaved key. */
+export function getDurableSecret(key: SecretKey): string {
+  return writes.readDurable(key) ?? "";
+}
+
+export function setSecretAsync(key: SecretKey, value: string, source: KVWriteOrigin = "local"): Promise<void> {
+  if (isTauri()) return writes.write(key, value || null, source);
+  if (value) snapshot.set(key, value); else snapshot.delete(key);
+  notifyCommit(key, source);
+  return Promise.resolve();
+}
+
+export function deleteSecretAsync(key: SecretKey, source: KVWriteOrigin = "local"): Promise<void> {
+  return setSecretAsync(key, "", source);
+}
+
 export function setSecret(key: SecretKey, value: string, source: KVWriteOrigin = "local"): void {
-  if (!value) {
-    deleteSecret(key, source);
-    return;
-  }
-  if (isTauri()) { void writes.write(key, value, source); return; }
-  snapshot.set(key, value); notifyCommit(key, source);
+  void setSecretAsync(key, value, source);
 }
 
 /** Hydrated slot names under a prefix — never the values. */
@@ -131,8 +153,7 @@ export function listSecretSlots(prefix: string): SecretKey[] {
 }
 
 export function deleteSecret(key: SecretKey, source: KVWriteOrigin = "local"): void {
-  if (isTauri()) { void writes.write(key, null, source); return; }
-  snapshot.delete(key); notifyCommit(key, source);
+  void deleteSecretAsync(key, source);
 }
 
 // ─── Plugin-scoped secrets ───────────────────────────────────────────────────

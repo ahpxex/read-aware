@@ -26,10 +26,13 @@ import { isTauri } from "./environment";
 import { localKV, onLocalKVWrite } from "./local-store";
 import { createLogger } from "./logger";
 import {
-  deleteSecret,
+  afterSecretWrites,
+  deleteSecretAsync,
+  getDurableSecret,
   getSecret,
   listSecretSlots,
-  setSecret,
+  onLocalSecretWrite,
+  setSecretAsync,
   type SecretKey,
 } from "./secret-store";
 import { fromBase64, openSecret, sealSecret } from "./sync-envelope";
@@ -112,7 +115,7 @@ const isRoamingSecretSlot = (slot: string): boolean =>
   ROAMING_SECRET_SLOT_PREFIXES.some((prefix) => slot.startsWith(prefix));
 
 function masterKey(): Uint8Array | null {
-  const b64 = getSecret("sync.master-key");
+  const b64 = getDurableSecret("sync.master-key");
   return b64 ? fromBase64(b64) : null;
 }
 
@@ -121,7 +124,7 @@ function masterKey(): Uint8Array | null {
  * connected has no master key and publishes nothing — `republishRoamingSecrets`
  * catches those up when an account connects.
  */
-export function publishRoamingSecret(slot: SecretKey, value: string | null): void {
+function publishRoamingSecret(slot: SecretKey, value: string | null): void {
   if (!isTauri() || !isRoamingSecretSlot(slot)) return;
   const key = masterKey();
   if (!key) return;
@@ -136,46 +139,52 @@ export function publishRoamingSecret(slot: SecretKey, value: string | null): voi
   });
 }
 
+onLocalSecretWrite(publishRoamingSecret);
+
 /**
  * Seal every locally-present roaming credential into the log — called right
  * after an account connects, so keys entered before sync existed (or before
  * this device joined the account) roam without waiting for their next edit.
  */
-export function republishRoamingSecrets(): void {
+export async function republishRoamingSecrets(): Promise<void> {
   if (!isTauri()) return;
-  for (const prefix of ROAMING_SECRET_SLOT_PREFIXES) {
-    for (const slot of listSecretSlots(prefix)) {
-      const value = getSecret(slot);
-      if (value) publishRoamingSecret(slot, value);
+  await afterSecretWrites(() => {
+    for (const prefix of ROAMING_SECRET_SLOT_PREFIXES) {
+      for (const slot of listSecretSlots(prefix)) {
+        const value = getDurableSecret(slot);
+        if (value) publishRoamingSecret(slot, value);
+      }
     }
-  }
+  });
 }
 
 /** Sealed projection row → this device's secret store. True if it moved. */
-function overlaySecret(slot: string, valueJson: string): boolean {
-  if (!isRoamingSecretSlot(slot)) return false;
-  const key = masterKey();
-  if (!key) return false;
-  try {
-    const parsed: unknown = JSON.parse(valueJson);
-    const typedSlot = slot as SecretKey;
-    if (parsed === null) {
-      if (!getSecret(typedSlot)) return false;
-      deleteSecret(typedSlot, "remote");
+async function overlaySecret(slot: string, valueJson: string): Promise<boolean> {
+  return afterSecretWrites(async () => {
+    if (!isRoamingSecretSlot(slot)) return false;
+    try {
+      const key = masterKey();
+      if (!key) return false;
+      const parsed: unknown = JSON.parse(valueJson);
+      const typedSlot = slot as SecretKey;
+      if (parsed === null) {
+        if (!getSecret(typedSlot)) return false;
+        await deleteSecretAsync(typedSlot, "remote");
+        return true;
+      }
+      const sealed = (parsed as { sealed?: unknown }).sealed;
+      if (typeof sealed !== "string") return false;
+      const value = openSecret(key, slot, sealed);
+      if (getSecret(typedSlot) === value) return false;
+      await setSecretAsync(typedSlot, value, "remote");
       return true;
+    } catch (error) {
+      // Bad ciphertext preserves the old value; a failed write rolls back in
+      // the secret queue. Neither is announced as a completed overlay.
+      log.warn(`could not apply roamed secret ${slot}`, error);
+      return false;
     }
-    const sealed = (parsed as { sealed?: unknown }).sealed;
-    if (typeof sealed !== "string") return false;
-    const value = openSecret(key, slot, sealed);
-    if (getSecret(typedSlot) === value) return false;
-    setSecret(typedSlot, value, "remote");
-    return true;
-  } catch (error) {
-    // Sealed under a different passphrase epoch, or malformed: leave this
-    // device's credential alone rather than clobbering it with garbage.
-    log.warn(`could not open roamed secret ${slot}`, error);
-    return false;
-  }
+  });
 }
 
 /**
@@ -268,11 +277,12 @@ function canonical(json: string | null): string | null {
 }
 
 /** Projection → KV (and sealed rows → the secret store). Returns moved keys. */
-function overlayRows(rows: PreferenceRow[]): string[] {
+async function overlayRows(rows: PreferenceRow[]): Promise<string[]> {
+  await afterSecretWrites(() => {});
   const changed: string[] = [];
   for (const row of rows) {
     if (row.key.startsWith(SECRET_EVENT_PREFIX)) {
-      if (overlaySecret(row.key.slice(SECRET_EVENT_PREFIX.length), row.valueJson)) {
+      if (await overlaySecret(row.key.slice(SECRET_EVENT_PREFIX.length), row.valueJson)) {
         changed.push(row.key);
       }
       continue;
@@ -326,7 +336,7 @@ function reconcileUnpublished(rows: PreferenceRow[]): void {
   for (const prefix of ROAMING_SECRET_SLOT_PREFIXES) {
     for (const slot of listSecretSlots(prefix)) {
       if (present.has(`${SECRET_EVENT_PREFIX}${slot}`)) continue;
-      const value = getSecret(slot);
+      const value = getDurableSecret(slot);
       if (value) publishRoamingSecret(slot, value);
     }
   }
@@ -341,7 +351,7 @@ export async function hydrateRoamingPreferences(): Promise<void> {
   if (!isTauri()) return;
   try {
     const rows = await invoke<PreferenceRow[]>("preferences_load_all");
-    overlayRows(rows);
+    await overlayRows(rows);
     reconcileUnpublished(rows);
   } catch (error) {
     log.error("boot overlay failed; using device-local values", error);
@@ -358,7 +368,7 @@ export async function refreshRoamingPreferences(): Promise<void> {
   if (!isTauri()) return;
   try {
     const rows = await invoke<PreferenceRow[]>("preferences_load_all");
-    const changed = overlayRows(rows);
+    const changed = await overlayRows(rows);
     reconcileUnpublished(rows);
     if (changed.length > 0) {
       emitAppEvent("roaming-preferences-changed", { keys: changed });

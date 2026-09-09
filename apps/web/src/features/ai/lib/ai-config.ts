@@ -71,7 +71,6 @@ export interface AIConfig {
 }
 
 import { localKV } from "../../../platform/local-store";
-import { publishRoamingSecret } from "../../../platform/roaming-preferences";
 import {
   deleteSecret,
   getSecret,
@@ -319,13 +318,8 @@ export function saveAIConfig(config: AIConfig): void {
   const storedApiKey = getSecret(slot);
   if (apiKey && storedApiKey !== apiKey) {
     setSecret(slot, apiKey);
-    // The credential roams too — SEALED with the sync master key before it
-    // enters the log, so other devices on this passphrase unlock it while
-    // every at-rest copy stays ciphertext.
-    publishRoamingSecret(slot, apiKey);
   } else if (!apiKey && storedApiKey) {
     deleteSecret(slot);
-    publishRoamingSecret(slot, null);
   }
   // The single-slot era key must not linger as a fallback for OTHER providers.
   if (getSecret("ai-api-key")) deleteSecret("ai-api-key");

@@ -1071,8 +1071,30 @@ Host credentials now use ordered optimistic writes: an older failure cannot
 overwrite a newer pending value. Successful AI credential writes invalidate only
 safe metadata, not values; sync/plugin secret changes do not enter the catalog.
 Settings reads verify both queues are settled in the same JS turn. The stores
-are not one transaction, encrypted-at-rest storage is unchanged, and this does
-not prove remote credential publication waits for local durability.
+are not one transaction and encrypted-at-rest storage is unchanged.
+
+[代码] Host credential roaming now listens to exact successful local secret
+writes, not AIConfigPanel call sites or the optimistic snapshot. Failed writes
+and remote-tagged overlays never publish credential events. The host-only
+publication listener receives the committed value for immediate sealing; public
+settings observers still receive only safe configuration metadata. Sealing uses
+the durable master key, never a queued optimistic replacement. Catch-up waits
+for pending credential writes and rollbacks before sampling. Relay/transport
+connection setup awaits required credential writes before account adoption and
+profile activation. Sealed remote overlays await the encrypted local write and
+announce only successful movement; failed writes roll back and retry on a later
+refresh. No new Agent tool or plugin secret permission is introduced.
+
+[环境] [Credential roaming evidence](./evidence/credential-roaming-2026-09-10.json)
+covers isolated macOS debug encrypted writes, rejected insert/replacement/delete,
+sealed event payloads, remote overlay failure/recovery and non-echo. Delayed
+publication, failed catch-up, pending master-key replacement and rejected
+connection setup also have isolated IPC regression tests. This is not a network
+relay or cross-device convergence test. Credential storage and event append
+remain separate transactions: event append is best-effort, not a durable outbox
+or crash-replay guarantee. Atomic account switching, legacy key adoption,
+ordinary KV overlay completion, stale projection races, all UI drafts and
+packaged/Windows/Linux verification remain open.
 
 [代码] There are at most 64 observers globally (`settings/observer-limit`). Each
 serializes reads/callbacks and coalesces slow delivery. Invalidation during a

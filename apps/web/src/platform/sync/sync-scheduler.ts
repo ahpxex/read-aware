@@ -21,7 +21,7 @@ import { localDeviceId, observeRemoteHlcStamps, onDomainEventBroadcast } from ".
 import { localKV } from "../local-store";
 import { createLogger } from "../logger";
 import { refreshRoamingPreferences, republishRoamingSecrets } from "../roaming-preferences";
-import { deleteSecret, getSecret, setSecret } from "../secret-store";
+import { deleteSecret, deleteSecretAsync, getSecret, setSecretAsync } from "../secret-store";
 import { fromBase64 } from "../sync-envelope";
 import { classifySyncError } from "./classify-sync-error";
 import { clearReauthNoticeDismissal } from "./reauth-notice";
@@ -644,8 +644,8 @@ export async function persistConnection(options: {
   accountId: string;
   masterKeyBase64: string;
 }): Promise<void> {
-  setSecret("sync.session", options.session);
-  setSecret("sync.master-key", options.masterKeyBase64);
+  await setSecretAsync("sync.session", options.session);
+  await setSecretAsync("sync.master-key", options.masterKeyBase64);
   // Before the scheduler wakes up against this account: if the bookkeeping
   // belongs to a different one, it resets here — otherwise "already pushed"
   // marks earned against the OLD account's mailbox would silently withhold
@@ -661,7 +661,7 @@ export async function persistConnection(options: {
   // Credentials that predate this connection (an API key entered while
   // offline) get sealed into the log now, so they roam without waiting for
   // their next edit.
-  republishRoamingSecrets();
+  await republishRoamingSecrets();
   // A fresh session opens a fresh epoch: if THIS one ever dies, the "sign in
   // again" notice must prompt anew, whatever the user dismissed before.
   clearReauthNoticeDismissal();
@@ -704,10 +704,10 @@ export async function persistTransportConnection(options: {
   endpointId: string;
   masterKeyBase64: string;
 }): Promise<void> {
-  setSecret("sync.master-key", options.masterKeyBase64);
+  await setSecretAsync("sync.master-key", options.masterKeyBase64);
   // No relay session in transport mode; a leftover one must not linger as a
   // phantom credential.
-  deleteSecret("sync.session");
+  await deleteSecretAsync("sync.session");
   // Different mailbox ⇒ wholesale outbox/cursor reset, same as switching
   // relay accounts — "already pushed" was only ever true of the old remote.
   await adoptSyncAccount(transportAccountId(options.ref, options.endpointId));
@@ -721,6 +721,6 @@ export async function persistTransportConnection(options: {
   // Credentials that predate this connection (an API key entered while
   // offline) get sealed into the log now, so they roam without waiting for
   // their next edit.
-  republishRoamingSecrets();
+  await republishRoamingSecrets();
   restartSyncScheduler();
 }

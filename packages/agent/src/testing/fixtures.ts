@@ -408,10 +408,11 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         if (!book) throw new Error(`unknown book id: ${bookId} — ids come from list_books; in a book thread just omit bookId for the current book, never guess from a title`);
         book.status = finished ? "finished" : "reading";
       },
-      setBookNarrativity: async (bookId, narrativity) => {
+      classifyBookIfUnclassified: async (bookId, narrativity) => {
         const book = books.find((entry) => entry.id === bookId);
         if (!book) throw new Error(`unknown book id: ${bookId} — ids come from list_books; in a book thread just omit bookId for the current book, never guess from a title`);
-        book.narrativity = narrativity;
+        book.narrativity ??= narrativity;
+        return book.narrativity;
       },
       removeBook: async (bookId) => {
         const index = books.findIndex((entry) => entry.id === bookId);

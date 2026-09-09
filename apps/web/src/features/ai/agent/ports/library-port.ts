@@ -6,7 +6,7 @@
 import type { BookOverview, LibraryPort } from "@read-aware/agent";
 import type { BookStats, BookSummary, Id } from "@read-aware/core";
 import { createDomainApi } from "../../../../domain";
-import { commitDomainEvents } from "../../../../platform/domain-events";
+import { classifyBookIfUnclassified } from "../../../../domain/book-classification";
 
 function toOverview(book: BookSummary, state: BookStats | undefined): BookOverview {
   return {
@@ -57,15 +57,7 @@ export function createLibraryPort(): LibraryPort {
       library.commands.books.setStarred(String(bookId), starred),
     setBookFinished: (bookId, finished) =>
       reading.commands.setFinished(String(bookId), finished),
-    // 管线接缝（与 book-memory-port 的 saveDigest 同构）：LLM 判定入事件流，
-    // apply.rs 物化到 books.narrativity。
-    setBookNarrativity: async (bookId, narrativity) => {
-      await commitDomainEvents({
-        type: "book.narrativityClassified",
-        payload: { bookId: String(bookId) as Id, narrativity },
-        origin: "agent",
-      });
-    },
+    classifyBookIfUnclassified,
     removeBook: (bookId) => library.commands.books.remove(String(bookId)),
     removeBooks: bookIds => library.commands.books.removeMany(bookIds),
     retryBookRemovalCleanup: bookIds => library.commands.books.retryRemovalCleanup(bookIds),

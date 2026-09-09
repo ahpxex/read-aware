@@ -36,7 +36,7 @@ export async function runMemoryBuild<T>(
         conversations: { ...original.conversations, putInsights: guard(original.conversations.putInsights) },
         profile: { ...original.profile, putProfileSummary: guard(original.profile.putProfileSummary) },
         bookMemory: { ...original.bookMemory, saveDigest: guard(original.bookMemory.saveDigest) },
-        library: { ...original.library, setBookNarrativity: guard(original.library.setBookNarrativity) },
+        library: { ...original.library, classifyBookIfUnclassified: guard((bookId, flavor) => original.library.classifyBookIfUnclassified(bookId, flavor, call.signal)) },
         extraMemoryCandidates: original.extraMemoryCandidates && guard(original.extraMemoryCandidates),
       }),
     }));

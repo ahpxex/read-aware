@@ -131,6 +131,7 @@ const nativeMap = pairs([
   ["annotation_inspect annotations_commit", "ANN08"],
   ["memories_list_all memory_get memory_put", "MEM01 MEM02 MEM04"], ["chapter_digests_list", "MEM10 MEM11"],
   ["memory_inspect memory_commit", "MEM01 MEM04 MEM05"],
+  ["book_classification_inspect book_classification_commit", "MEM09"],
   ["memories_snapshot memory_maintenance_commit", "MEM02 MEM04 MEM05"],
   ["ai_chat_load ai_chat_load_all ai_chat_list ai_chat_replace ai_chat_clear", "AI01 AI02 AI03"],
   ["plugin_docs_put plugin_docs_get plugin_docs_delete plugin_docs_list plugin_docs_clear vocabulary_migrate_to_plugin_documents", "SYS02 SYS03"],
@@ -183,7 +184,29 @@ function stringProperties(node: import("../apps/web/node_modules/typescript").No
 function methodPaths(value: object, prefix = ""): string[] {
   return Object.entries(value).flatMap(([key, entry]) => typeof entry === "function" ? [prefix + key] : entry && typeof entry === "object" && !Array.isArray(entry) ? methodPaths(entry, `${prefix}${key}.`) : []);
 }
+export function assertUniqueSourceKeys(source = readFileSync(new URL("../docs/host-capability-matrix.data.ts", import.meta.url), "utf8")): void {
+  const file = ts.createSourceFile("matrix.ts", source, ts.ScriptTarget.Latest, true);
+  let found = false;
+  const visit = (node: import("../apps/web/node_modules/typescript").Node) => {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === "sources") {
+      found = true;
+      if (!node.initializer || !ts.isObjectLiteralExpression(node.initializer)) throw Error("Expected explicit source map");
+      const seen = new Set<string>();
+      for (const property of node.initializer.properties) {
+        if (!ts.isPropertyAssignment(property) || !(ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))) throw Error("Expected static source key");
+        const key = property.name.text;
+        if (seen.has(key)) throw Error(`Duplicate source key: ${key}`);
+        seen.add(key);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(file);
+  if (!found) throw Error("Source map missing");
+}
+
 export function collectInventory(): Inventory[] {
+  assertUniqueSourceKeys();
   inventory.length = 0;
   const { deps } = createInMemoryDeps();
   for (const scope of [{ kind:"global", threadId:"audit" }, { kind:"book", bookId:"audit" }] as const) {

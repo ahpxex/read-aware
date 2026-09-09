@@ -974,6 +974,8 @@ pub fn run() {
             storage::memories_list_all,
             storage::memory_inspect,
             storage::memory_commit,
+            storage::book_classification_inspect,
+            storage::book_classification_commit,
             storage::memories_snapshot,
             storage::memory_maintenance_commit,
             storage::chapter_digests_list,

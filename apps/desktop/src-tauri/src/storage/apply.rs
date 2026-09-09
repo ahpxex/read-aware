@@ -814,9 +814,19 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandE
         "book.narrativityClassified" => {
             let id = require(p, "bookId", t)?;
             let narrativity = require(p, "narrativity", t)?;
+            if !matches!(narrativity.as_str(), "narrative" | "expository") {
+                return Err(format!("{t}: invalid narrativity").into());
+            }
+            // A late automatic verdict must not override a classification already
+            // established by a user or another device, including during replay.
+            let automatic = match p.get("onlyIfUnclassified") {
+                None => false,
+                Some(Value::Bool(true)) => true,
+                _ => return Err(format!("{t}: invalid automatic classification guard").into()),
+            };
             tx.execute(
-                "UPDATE books SET narrativity = ?2, updated_at = ?3 WHERE id = ?1",
-                params![id, narrativity, at],
+                "UPDATE books SET narrativity = ?2, updated_at = ?3 WHERE id = ?1 AND (?4 = 0 OR narrativity IS NULL)",
+                params![id, narrativity, at, automatic],
             )
             ?;
         }

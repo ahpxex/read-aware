@@ -26,6 +26,8 @@ mod annotation_mutations;
 pub use annotation_mutations::*;
 mod memory_mutations;
 pub use memory_mutations::*;
+mod book_classification;
+pub use book_classification::*;
 mod memory_maintenance;
 pub use memory_maintenance::*;
 mod memories;

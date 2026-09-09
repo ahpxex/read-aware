@@ -66,12 +66,11 @@ async function ensureNarrativity(
   });
   if (!narrativity) return undefined;
   try {
-    await input.deps.library.setBookNarrativity(input.bookId, narrativity);
+    return await input.deps.library.classifyBookIfUnclassified(input.bookId, narrativity);
   } catch (error) {
     input.deps.log?.warn("recording narrativity failed; will reclassify next tick", error);
     return undefined;
   }
-  return narrativity;
 }
 
 /** 跑一个图谱节拍；返回本次实际提炼的章数（0 = 账已清或边界未知）。 */

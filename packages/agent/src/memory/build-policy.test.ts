@@ -48,7 +48,7 @@ describe("memory build policy", () => {
       () => guarded.profile.putProfileSummary("late"),
       () => guarded.conversations.putInsights("global", "late"),
       () => guarded.bookMemory.saveDigest("book" as Id, { chapterIndex: 0, summary: "late", characters: [], relations: [], digestVersion: 1 }),
-      () => guarded.library.setBookNarrativity("book" as Id, "narrative"),
+      () => guarded.library.classifyBookIfUnclassified("book" as Id, "narrative"),
       () => guarded.extraMemoryCandidates!({ scope: { kind: "global", threadId: "policy-test" }, userText: "late", assistantText: "late" }),
     ];
     for (const write of writes) await expect(write()).rejects.toMatchObject({ code: "ai/memory-disabled" });

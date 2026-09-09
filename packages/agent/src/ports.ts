@@ -93,10 +93,10 @@ export interface LibraryPort {
   setBookStarred(bookId: Id, starred: boolean): Promise<void>;
   setBookFinished(bookId: Id, finished: boolean): Promise<void>;
   /**
-   * 落库叙事性分类（空闲管线的 LLM 判定；宿主实现记 book.narrativityClassified
-   * 事件）。用户可见工具永远不该直接调它——它是管线接缝，不是编辑功能。
+   * Atomically fill only an unclassified book; return the actual persisted
+   * flavor when another caller won. Internal pipeline, not a user edit tool.
    */
-  setBookNarrativity(bookId: Id, narrativity: "narrative" | "expository"): Promise<void>;
+  classifyBookIfUnclassified(bookId: Id, narrativity: "narrative" | "expository", signal?: AbortSignal): Promise<"narrative" | "expository">;
   removeBook(bookId: Id): Promise<void>;
   removeBooks(bookIds: Id[]): Promise<import("@read-aware/core").BookRemovalReceipt>;
   retryBookRemovalCleanup(bookIds: Id[]): Promise<import("@read-aware/core").BookFileReleaseReceipt>;

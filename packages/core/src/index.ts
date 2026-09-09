@@ -6,6 +6,7 @@ export * from "./reading-insights";
 export * from "./workspace";
 export * from "./host-commands";
 export * from "./book-memory";
+export * from "./book-classification";
 export * from "./memory-query";
 export * from "./memory-management";
 export * from "./memory-observation";

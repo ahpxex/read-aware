@@ -1,0 +1,31 @@
+{
+  "date": "2026-09-10",
+  "scope": "Conditional classification storage and automatic pipeline, not public actor tools or plugin forms",
+  "app": { "identifier": "com.readaware.app.capability-e2e", "frontendPort": 5184, "bridgePort": 9224, "mode": "macOS Tauri debug" },
+  "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-classification-probe.ts",
+  "bookId": "1353ff30-e8b2-4163-a59f-7f52077a6a2d",
+  "source": "Real synthetic FB2 imported by the production library domain; 583 bytes",
+  "results": {
+    "initial": null,
+    "automatic": "narrative",
+    "edited": "expository",
+    "lateAutomaticReturned": "expository",
+    "lateAutomaticDidNotWrite": true,
+    "staleRevision": "memory/conflict",
+    "preCancelled": "memory/cancelled",
+    "failedWritesDidNotChangeRevision": true,
+    "final": "expository"
+  },
+  "persistedEvidence": "Read-only SQLite inspection found exactly the automatic guarded classification with origin agent and the explicit classification with origin user, plus import/cover/removal; no late or rejected classification event",
+  "unitEvidence": ["Strict IDs/flavors/revisions and copied input", "Atomic absent-to-classified fill", "Explicit conditional writes and actual winning flavor", "Equal-value ABA rejection", "SQL failure rolls back projection, log and sync outbox", "Deletion rejects late writes", "Invalid projection returns db/error", "Both automatic/explicit event orders retain explicit classification on full replay", "User change during scripted inference determines the following digest flavor"],
+  "validation": { "testTasks": "24/24", "agent": "390 tests across 78 files", "web": "911 tests, 10026 assertions, 159 files", "rust": "152 passed, 1 ignored", "typecheckTasks": "27/27", "frontendProductionBuild": "passed" },
+  "environment": "First native metadata-only probe was removed; typecheck caught its missing sourceBlobKey contract, so the retained fixture now imports and removes a real FB2. First Rust compile required explicit MutexGuard locals; test seed required fileName. A bare-module dynamic import and an initial read-only JSON-path query failed; corrected without product data writes. Existing bridge/version, Rust and bundle-size warnings retained.",
+  "cleanup": { "ownedBooksRemaining": 0, "earlierOwnedBookId": "5a74bf9f-16de-494b-ac5c-c77b08497b7b", "history": "retained", "nativeProcessGroups": [66890, 67894], "nativeExecs": [89666, 58924], "nativeExitCodes": [143, 143], "bridgeStopped": 9224, "ports5184And9224Closed": true, "unowned89360And9223": "untouched", "productionData": "untouched" },
+  "limits": [
+    "No public memory-domain classification query/change/observer, no approved model tool or plugin form in this unit; MEM09 remains automatic for Agent and unconnected for plugins.",
+    "The automatic event guard is honored by this projector; legacy unmarked events remain unconditional and older clients do not understand the new guard.",
+    "Conditional revisions protect a device-local commit, not distributed compare-and-swap. Remote conflicting explicit changes still use ordered event replay.",
+    "No cancellation of already dispatched commits or in-flight digests, no content-versioned provenance or automatic undo.",
+    "No autonomous model-quality, real relay/second-device, packaged or Windows/Linux verification. No new product UI was exercised."
+  ]
+}

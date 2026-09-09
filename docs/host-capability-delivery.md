@@ -1170,3 +1170,19 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [文档/清理] 三文档对同步清除过时的“提示词分类过滤未接”结论，并说明下一轮刷新与现有缓存边界。九张 1440×1000、1024×768、390×844 文档截图均已查看，无页面横向溢出/重复 ID/坏锚点/无名按钮，浏览器 errors 空、观察 CDN 200。memory/分类搜索分别命中矩阵 7/4 行、模型 3/1 条、插件说明 4/1 节，包含目标条目；Escape 恢复全部。矩阵/模型移动抽屉 inert 和主题刷新保持通过，插件说明原无这些控件，三页无 Mermaid；HTML 仍依赖 CDN，文档验收不冒充产品。专属浏览器已关闭。首次 warm import 触发 Vite 优化刷新发生在造数据前，刷新后重新 warm 成功，未复制 fixture；旧 bridge/Rust/build 警告保留。三个 Worker/自有书贡献归零，三记忆事件遗忘、历史保留，只读 SQL 再验；PGID 62044 / exec 80528 终态 143，driver 9224 停止，5184/9224 无监听。既有 89360/9223 与正式数据未操作。
 
 [剩余] 策略失效在下一用户轮，不取消已经发出的模型请求，也不擦除历史答复/工具结果/远端副本；成功的同策略纪要缓存不因任意后台编辑逐轮刷新。未分类书的其余正文检索、grounding 和输出守卫尚未统一，本单元只统一章节记忆。来源版本、完整预算/分页、细粒度授权、公开图谱任务及其余双端部分/未接能力继续；全能力自由组合、完整并发撤权/长时/packaged/Windows/Linux 验收未完成。整体目标保持进行中，未推送。
+
+## 2026-09-10：分类接线前的原子写入与自动结果保护
+
+[进度/根因] 上轮 cfe5fe52 完成并提交共享章节策略，属于有效进展。本轮推进 MEM09 时确认 setBookNarrativity 是无条件事件写：LLM 推理期间的用户选择会被迟到结果覆盖，后续 digest 还使用迟到模型分类而不是实际持久分类。因此先完成公共重分类所依赖的持久化单元；没有把新增内部 IPC 算成 Agent 工具或插件入口已接通。
+
+[代码/契约] 新 book_classification_inspect 在同一读事务取 bookId/narrativity/revision，缺书 null、非法投影 db/error。bcl1:64hex 包含书 ID、分类和最近相关导入/分类/合并/删除事件身份；同值 ABA 失效，不被普通阅读/元数据写频繁作废，不是内容版本或跨设备 CAS。book_classification_commit 在 IMMEDIATE 事务内验证书、事件形状、版本与唯一事件 ID，沿 canonical append/apply 路径提交，再返回实际快照；失败回滚投影、日志与发件箱。仅允许 narrative/expository，书 ID 非空至多 256 UTF-16 单元，拒绝额外字段、无版本用户变更及伪造自动来源。正常变更记录实际 origin，设备本地 signal 在 mint 前后复核；原生已派发提交不宣称可撤销。
+
+[自动管线] LibraryPort 改为 classifyBookIfUnclassified，只有空分类才提交；已经分类返回实际胜出值，不新增事件、不发虚假广播。graph-upkeep 用返回值选择随后 digest 的 flavor，buildMemory 的取消信号传到提交前检查。新自动事件携带 onlyIfUnclassified:true，apply.rs 在正常应用和重放均仅填空，两种自动/用户事件顺序都保留明确选择；旧无标记事件仍按旧语义，旧客户端不识别该守卫。分类调用前已经取样的旧 digest、在途模型请求、已发内容和跨设备显式冲突不由本单元回滚或取消。
+
+[原生证据] [classification-storage](./evidence/book-classification-storage-2026-09-10.json)：隔离 macOS Tauri debug 真实导入 583 字节自有 FB2，通过生产 LibraryPort/共享服务验证 null→自动 narrative→用户 expository→迟到自动返回 expository 且 revision 不变；过期写 memory/conflict、预取消 memory/cancelled，失败后版本不变。finally 走正式删书及文件清理。只读 SQLite 确认只有两条分类事件及正确 origin，自动事件带守卫，没有迟到/拒绝写事件，自有书归零。不是 Worker、批准卡、插件表单或自主模型 E2E。首次 metadata-only fixture 缺少 sourceBlobKey 被 typecheck 拦下，改为正式 FB2 导入后重跑；前一自有记录已删除。Rust 首次编译修正 MutexGuard 局部变量，种子补 fileName，未放宽生产校验。
+
+[验证/扫描] 全仓 test 24/24（Agent 390 项/78 文件；web 911 项/10026 断言/159 文件）、最终 typecheck 27/27、前端 production build 通过；Rust 全套 152 passed、1 ignored，新增四项覆盖 ABA、SQL/发件箱回滚、删除、无效形状/投影与重放。核心 TS 分类测试和推理期间用户修改的 digest 消费测试通过。库存/模型 11 项、28 断言；243 行、689 入口映射、30 单元、31 catalog、129 验收、32 场景。扫描还发现上一单元的 MEMORYPOLICY 证据键与 build-policy 重名，改为 CHAPTERMEMORYPOLICY，并增加 TypeScript AST 检查，防止重复键静默覆盖真实证据路径。旧 setBookNarrativity 源码调用已清零；公开 SDK/manifest/catalog 版本、14 源码插件和 6 内置插件不变。
+
+[文档/清理] 矩阵 MD/HTML 更新，模型 MD 仅更新逐行来源和缺口事实；模型 HTML 的目标与裁决没有变化，本轮未改。两生成器与两文档 pair 检查通过。矩阵 1440×1000、1024×768、390×844 三张截图均已查看，无页面溢出/重复 ID/坏锚点/无名按钮；7 个 CDN 资源 200、浏览器 errors 空、无 Mermaid。classifyBookIfUnclassified/重分类搜索均命中 MEM09，Escape 恢复 243 行；移动抽屉令 HEADER/MAIN inert，Escape 关闭，深色主题刷新保持。HTML 仍联网，不作为产品证据。专属浏览器关闭；两次自有原生 PGID 66890/67894、exec 89666/58924 均终态 143，bridge 9224 停止，5184/9224 无监听。既有 89360/9223 与正式数据未操作。
+
+[下一接线] 本单元仅交付可安全复用的分类持久化和自动管线，MEM09 仍标 Agent 自动、插件未接。接下来需将 inspect/change 接入 memory 的授权读写面、Agent 两 scope 的逐次批准工具和 Memory Desk 的冻结版本表单，并复测真实 Worker/批准拒绝/冲突草稿/卸载；不允许直接把 LibraryPort 的内部自动写接口暴露给插件。随后继续 MEM10 公共任务和其余全部双端缺口。整体目标仍未完成，未推送。

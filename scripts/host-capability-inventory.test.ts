@@ -1,6 +1,12 @@
 import { expect, test } from "bun:test";
 import { HOST_COMMAND_IDS } from "../packages/core/src/host-commands";
-import { collectInventory } from "./host-capability-inventory";
+import { assertUniqueSourceKeys, collectInventory } from "./host-capability-inventory";
+
+test("source evidence keys cannot silently overwrite an unrelated capability source", () => {
+  expect(() => assertUniqueSourceKeys()).not.toThrow();
+  expect(() => assertUniqueSourceKeys('const sources = { MEMORYPOLICY: "one", "MEMORYPOLICY": "two" };')).toThrow("Duplicate source key: MEMORYPOLICY");
+  expect(() => assertUniqueSourceKeys('const sources = { ...other };')).toThrow("Expected static source key");
+});
 
 test("semantic commands retain explicit audit mappings after native callback removal", () => {
   const inventory = collectInventory();

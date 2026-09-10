@@ -71,8 +71,11 @@ export function loadFeedContent(ctx: RssPluginContext, url: string) {
   });
 }
 
-export function unsubscribeFeed(ctx: RssPluginContext, url: string): Promise<void> {
+export function unsubscribeFeed(ctx: RssPluginContext, url: string, expectedBookId?: string): Promise<void> {
   return serial(ctx, url, async () => {
+    if (expectedBookId !== undefined && (await getFeed(ctx, url))?.bookId !== expectedBookId) {
+      throw Object.assign(new Error("RSS subscription changed since approval"), { code: "reader/superseded" });
+    }
     await ctx.domains.library.commands.books.removeVirtualBook({ providerId: PROVIDER_ID, key: url });
     await removeFeed(ctx, url);
   });

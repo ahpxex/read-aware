@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { PluginBookContent } from "@read-aware/plugin-types";
+import type { PluginBookContent, PluginToolDefinition } from "@read-aware/plugin-types";
 import plugin from "../src/index";
 import { parseFeed } from "../src/feed";
 import { forgetRemovedBook, loadFeedContent, openFeed, subscribe, unsubscribeFeed } from "../src/feed-library";
@@ -11,10 +11,11 @@ const xml = (items: string) => `<rss><channel><title>Feed</title>${items}</chann
 const item = (id: string, body = id) => `<item><guid>${id}</guid><title>${id}</title><description>${body}</description></item>`;
 
 function fixture() {
+  const tools: PluginToolDefinition[] = [];
   const tables = new Map<string, Map<string, unknown>>();
   const table = (name: string) => { let values = tables.get(name); if (!values) { values = new Map(); tables.set(name, values); } return values; };
   const state = { xml: xml(item("one")), fetches: 0, notifications: 0, offline: false, failIndex: false, failNotify: false,
-    bookId: "book-1", sourceRevision: "new", readingRevision: "old", readingBook: "book-1", events: [] as string[], hold: undefined as Promise<void> | undefined };
+    bookId: "book-1", failRemove: false, sourceRevision: "new", readingRevision: "old", readingBook: "book-1", events: [] as string[], hold: undefined as Promise<void> | undefined };
   let provider: ((key: string) => Promise<PluginBookContent>) | undefined;
   const ctx = {
     locale: "en",
@@ -35,7 +36,7 @@ function fixture() {
       library: {
         commands: { books: {
           addVirtualBook: async () => ({ id: state.bookId }),
-          removeVirtualBook: async () => {},
+          removeVirtualBook: async () => { if (state.failRemove) throw Object.assign(new Error("Removal failed"), { code: "db/locked" }); },
           invalidateVirtualBook: async () => {
             state.notifications++;
             const feed = await getFeed(ctx, url);
@@ -59,11 +60,25 @@ function fixture() {
     },
     contributions: {
       contentProviders: { register: (value: { load: typeof provider }) => { provider = value.load; return { dispose() {} }; } },
-      headerActions: { register: () => ({ dispose() {} }) }, commands: { register: () => ({ dispose() {} }) }, agentTools: { register: () => ({ dispose() {} }) },
+      headerActions: { register: () => ({ dispose() {} }) }, commands: { register: () => ({ dispose() {} }) }, agentTools: { register: (tool: PluginToolDefinition) => { tools.push(tool); return { dispose() {} }; } },
     },
   } as unknown as RssPluginContext;
-  return { ctx, state, table, provider: () => provider! };
+  return { ctx, state, table, tools, provider: () => provider! };
 }
+
+test("RSS unsubscribe tool requires approval, refuses changed bindings and preserves failed removals", async () => {
+  const f = fixture(); await plugin.activate(f.ctx); const feed = await subscribe(f.ctx, url);
+  const tool = f.tools.find(tool => tool.name === "unsubscribe_feed")!;
+  expect(tool.approval).toBe("required"); expect(tool.contexts).toEqual(["global"]);
+  await expect(tool.execute({ url, bookId: "old-book" })).rejects.toMatchObject({ code: "reader/superseded" });
+  expect(await getFeed(f.ctx, url)).not.toBeNull();
+  f.state.failRemove = true;
+  await expect(tool.execute({ url, bookId: feed.bookId })).rejects.toMatchObject({ code: "db/locked" });
+  expect(await getFeed(f.ctx, url)).not.toBeNull();
+  f.state.failRemove = false;
+  expect(await tool.execute({ url, bookId: feed.bookId })).toEqual({ unsubscribed: true, url, bookId: feed.bookId });
+  expect(await getFeed(f.ctx, url)).toBeNull(); expect(f.table("feed-content").size).toBe(0);
+});
 
 test("RSS IDs follow declared identities or links across insertion, reordering and edits", async () => {
   const before = await parseFeed(xml(item("one") + item("two")), url);

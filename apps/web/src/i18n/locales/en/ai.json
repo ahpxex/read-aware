@@ -76,6 +76,11 @@
           "description": "This permanently removes the imported source file and its local reading data. This cannot be undone.",
           "approve": "Delete book"
         },
+        "pluginTool": {
+          "question": "Run this plugin tool?",
+          "description": "The plugin may change or delete data. Approve only this call with the arguments shown below; this does not grant additional permissions.\n\n{{subject}}",
+          "approve": "Run tool"
+        },
         "mergeBooks": {
           "question": "Merge these duplicate books?",
           "description": "The first record is kept. Annotations and reading data follow the host's merge rules; chat transcripts keep their original references. This cannot be undone and does not reclaim files immediately.\n\n{{subject}}",

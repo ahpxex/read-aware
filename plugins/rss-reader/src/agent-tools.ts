@@ -1,4 +1,4 @@
-import { subscribe } from "./feed-library";
+import { subscribe, unsubscribeFeed } from "./feed-library";
 import { getFeed, loadFeeds } from "./storage";
 import type { RssPluginContext } from "./types";
 
@@ -9,6 +9,21 @@ export function feedToolLimit(value: unknown): number {
 }
 
 export function registerAgentTools(ctx: RssPluginContext): void {
+  ctx.contributions.agentTools.register({
+    name: "unsubscribe_feed", label: "Unsubscribe from RSS", contexts: ["global"], approval: "required",
+    description: "Unsubscribe from this exact RSS URL and bookId returned by list_feeds. Removes the virtual book, its associated reading data and plugin-cached articles. This cannot be undone. A recreated subscription with a different bookId is refused.",
+    parameters: { type: "object", properties: {
+      url: { type: "string", minLength: 1, maxLength: 2048 }, bookId: { type: "string", minLength: 1, maxLength: 256 },
+    }, required: ["url", "bookId"], additionalProperties: false },
+    execute: async params => {
+      if (typeof params.url !== "string" || !params.url.trim() || params.url.length > 2048
+        || typeof params.bookId !== "string" || !params.bookId.trim() || params.bookId.length > 256) {
+        throw Object.assign(new Error("Invalid RSS subscription target"), { code: "plugin/invalid-input" });
+      }
+      await unsubscribeFeed(ctx, params.url.trim(), params.bookId);
+      return { unsubscribed: true, url: params.url.trim(), bookId: params.bookId };
+    },
+  });
   ctx.contributions.agentTools.register({
     name: "list_feeds",
     label: "RSS subscriptions",

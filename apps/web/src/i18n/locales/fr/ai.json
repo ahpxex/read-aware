@@ -76,6 +76,11 @@
           "description": "Le fichier source importé et ses données de lecture locales seront définitivement supprimés. Cette action est irréversible.",
           "approve": "Supprimer le livre"
         },
+        "pluginTool": {
+          "question": "Exécuter cet outil de l’extension ?",
+          "description": "L’extension peut modifier ou supprimer des données. L’autorisation concerne uniquement cet appel avec les paramètres ci-dessous, sans accorder de permissions supplémentaires.\n\n{{subject}}",
+          "approve": "Exécuter l’outil"
+        },
         "mergeBooks": {
           "question": "Fusionner ces livres en double ?",
           "description": "Le premier enregistrement est conservé. Les annotations et données de lecture suivent les règles de fusion de l’app ; les conversations gardent leurs références d’origine. Cette action est irréversible et ne libère pas immédiatement d’espace.\n\n{{subject}}",

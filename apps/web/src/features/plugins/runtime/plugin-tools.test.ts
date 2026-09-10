@@ -8,6 +8,7 @@ import {
   registerToolContribution,
 } from "../state/plugin-store";
 import { inspectContributions } from "../state/contribution-registry";
+import { assertToolApproval } from "../lib/plugin-tool-approval";
 import {
   getPluginAgentContext,
   getPluginAgentTools,
@@ -98,6 +99,66 @@ describe("plugin agent tool scopes", () => {
         pluginId: "scope-test",
       },
     ]);
+  });
+
+  test("confirmation snapshots arguments, requires host approval and preserves interaction details", async () => {
+    const calls: unknown[] = [], updates: unknown[] = [];
+    const registration = registerToolContribution({ key: "approval:remove", pluginId: "approval", pluginName: "Approval Test",
+      name: "remove", label: "Remove item", description: "Remove one item", approval: "required", execute: params => { calls.push(params); return { removed: true }; } });
+    disposables.push(registration);
+    const scope = { kind: "global" as const, threadId: "approval-thread" };
+    let answer = "decline";
+    const params = { id: "original", nested: { value: 1 } };
+    const tool = getPluginAgentTools(scope, { request: async request => {
+      expect(request.kind).toBe("permission");
+      if (request.kind === "permission") {
+        expect(request.action).toBe("plugin-tool");
+        expect(request.subject).toContain("Approval Test (approval)");
+        expect(request.subject).toContain('"original"');
+      }
+      expect(calls).toHaveLength(0);
+      params.id = "changed"; params.nested.value = 99;
+      return { optionId: answer };
+    } }).find(item => item.name === "plugin_approval_remove")!;
+    expect(tool.executionMode).toBe("sequential");
+    const declined = await tool.execute("declined", params, undefined, update => { updates.push(update); });
+    expect(calls).toHaveLength(0); expect(declined.details).toMatchObject({ type: "user-interaction", phase: "response" });
+    params.id = "original"; params.nested.value = 1; answer = "approve";
+    const approved = await tool.execute("approved", params, undefined, update => { updates.push(update); });
+    expect(calls).toEqual([{ id: "original", nested: { value: 1 } }]);
+    expect(approved.details).toMatchObject({ type: "user-interaction", phase: "response", answer: { optionId: "approve" } });
+    expect(updates).toHaveLength(4);
+  });
+
+  test("missing confirmation port, oversized input and retired or cancelled approvals never execute", async () => {
+    let calls = 0, prompts = 0;
+    const definition = { key: "approval:guarded", pluginId: "approval", pluginName: "Approval",
+      name: "guarded", description: "Remove", approval: "required" as const, execute: () => ++calls };
+    const registration = registerToolContribution(definition); disposables.push(registration);
+    const scope = { kind: "global" as const, threadId: "guarded-thread" };
+    const noPort = getPluginAgentTools(scope).find(tool => tool.name === "plugin_approval_guarded")!;
+    await expect(noPort.execute("missing", {})).rejects.toMatchObject({ code: "ui/unavailable" });
+    const tool = getPluginAgentTools(scope, { request: async () => { prompts++; await registration.updateState({ revision: 1, enabled: false, visible: true }); return { optionId: "approve" }; } }).find(tool => tool.name === noPort.name)!;
+    await expect(tool.execute("large", { text: "x".repeat(16_384) })).rejects.toMatchObject({ code: "plugin/payload-too-large" });
+    await expect(tool.execute("invalid", { value: NaN })).rejects.toMatchObject({ code: "plugin/invalid-input" });
+    expect(prompts).toBe(0);
+    await expect(tool.execute("disabled", {})).rejects.toMatchObject({ code: "plugin/action-disabled" });
+    expect(calls).toBe(0);
+    disposables.push(registerToolContribution(definition));
+    const controller = new AbortController();
+    const current = getPluginAgentTools(scope, { request: async () => { controller.abort(new Error("Turn stopped")); return { optionId: "approve" }; } }).find(item => item.name === noPort.name)!;
+    await expect(current.execute("cancelled", {}, controller.signal)).rejects.toThrow("Turn stopped");
+    await expect(tool.execute("replaced", {})).rejects.toMatchObject({ code: "plugin/unavailable" });
+    expect(calls).toBe(0);
+  });
+
+  test("approval cannot be silently accepted by pre-1.2 capability ranges", () => {
+    expect(() => assertToolApproval(undefined)).not.toThrow();
+    expect(() => assertToolApproval("required", "^1.2.0")).not.toThrow();
+    for (const range of [undefined, "*", "^1.0.0", ">=1.1.0", "^1.1.0 || ^2.0.0"]) {
+      expect(() => assertToolApproval("required", range)).toThrow();
+    }
+    expect(() => assertToolApproval(false, "^1.2.0")).toThrow();
   });
 });
 

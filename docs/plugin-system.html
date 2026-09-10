@@ -334,6 +334,10 @@
             <p>新增 onClose，已接受的视图离栈时区分返回、替换、重置、关闭、根刷新与卸载；被子页遮住或实时更新不触发。通知不阻止关闭，不接受返回导航，也不是保存或焦点回执；外层直接移除容器只报告卸载。退休/崩溃不保证送达，异步回调最多保留十秒句柄。本批只过定向测试，真实 Worker/桌面组合待验。</p>
             <p>真实 macOS debug 已验回调、草稿、逆序、跨插件、嵌套与退出；Text Desk 从阅读菜单打开后，无需刷新便由 Running 0/3 到 Completed 3/3。动态贡献状态见下一项；宿主 Agent 统一可用性、全表单/焦点/大数据、打包和跨平台仍缺，MORE05 保留部分。<a href="./plugin-system.md#live-plugin-views">完整契约</a> · <a href="./evidence/plugin-live-views-2026-09-09.json">验证证据</a></p>
           </div></details>
+          <details class="ep" data-search-section="approval confirmation 插件 确认 删词 退订"><summary>AgentTools 1.2：插件工具可要求宿主逐次确认</summary><div class="ep-body">
+            <p>声明 required 后，宿主先展示插件身份、工具说明和完整参数，再执行获准的参数快照。拒绝、取消、过期或注册失效不调用插件；确认不增加权限，也不回滚已经执行的写入。</p>
+            <p>Dictionary 1.4 已补删词与 CSV 导出，RSS 0.10 已补退订；删除工具需要确认，导出使用系统保存对话框。OPML Agent 导入及通用任务进度仍缺。基础测试通过，真实 Worker/Tauri 组合留集中验收。<a href="./plugin-system.md#plugin-tool-confirmation-agenttools-12">契约与边界</a></p>
+          </div></details>
           <details class="ep" data-search-section="action state updateState Jumper 动态 状态 禁用 勾选"><summary>交互贡献 1.1：菜单、快捷键和插件 Agent 工具共用动态状态</summary><div class="ep-body">
             <p>commands、headerActions、selectionActions、agentTools 的注册句柄可更新完整可见、可用、勾选状态。旧版本报 stale，旧注册不能修改同名新注册。宿主每次执行都复核，缓存工具也不能绕过禁用；checked 只呈现，不增加权限。</p>
             <p>禁用不取消已开始的业务、不重置打开页面的草稿。隐藏贡献与用户调整菜单布局不同；独立弹窗仍由自己的视图生命周期管理。Jumper 0.2 直接订阅阅读会话和宿主历史，前后跳不再始终可用。</p>

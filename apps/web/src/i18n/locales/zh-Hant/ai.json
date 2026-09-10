@@ -76,6 +76,11 @@
           "description": "這會永久移除匯入的原始檔案和本機閱讀資料，且無法復原。",
           "approve": "刪除書籍"
         },
+        "pluginTool": {
+          "question": "執行這個外掛工具？",
+          "description": "外掛可能修改或刪除資料。僅確認下列參數對應的本次呼叫，不授予額外權限。\n\n{{subject}}",
+          "approve": "執行工具"
+        },
         "mergeBooks": {
           "question": "合併這些重複書籍？",
           "description": "保留下方第一筆記錄。標註與閱讀資料按宿主規則合併，聊天記錄保留原參照。合併無法復原，也不會立即回收檔案空間。\n\n{{subject}}",

@@ -76,6 +76,11 @@
           "description": "这会永久移除导入的原始文件和本地阅读数据，且无法撤销。",
           "approve": "删除书籍"
         },
+        "pluginTool": {
+          "question": "执行这个插件工具？",
+          "description": "插件可能修改或删除数据。仅确认下列参数对应的本次调用，不授予额外权限。\n\n{{subject}}",
+          "approve": "执行工具"
+        },
         "mergeBooks": {
           "question": "合并这些重复书籍？",
           "description": "保留下方第一条记录。标注和阅读数据按宿主规则归并，聊天记录保留原引用。合并不可撤销，也不会立即回收文件空间。\n\n{{subject}}",

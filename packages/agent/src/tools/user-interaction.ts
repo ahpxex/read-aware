@@ -67,7 +67,7 @@ export function interactionFromToolDetails(
  * appendStreamChunk treats the duplicate as an idempotent update.
  */
 export async function requestUserInteraction(input: {
-  deps: RuntimeDeps;
+  deps: Pick<RuntimeDeps, "interactions">;
   toolCallId: string;
   threadKey: string;
   request: UserInteractionRequestInput;

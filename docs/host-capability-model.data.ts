@@ -71,7 +71,7 @@ export const units: Unit[] = [
   unit("C4", "Contribution", "agent extensions", "工具、上下文、检索与记忆候选", "AI04-05 AI08-12 MEM02-03 EXT09-10 MORE05-06", "contributions.agentTools contributions.agentContextProviders contributions.agentRetrievalProviders contributions.memoryCandidateProviders",
     "工具显式声明 scope/schema/风险；上下文每轮有界注入；检索按需返回有来源片段；记忆候选由宿主去重/政策裁决。四个通道保留不同语义和生命周期，不合并成万能 agent.invoke。",
     "只有插件 installed + enabled + scope/grant/availability 满足时才消费。agentTools 1.1 按当前 visible/enabled 过滤两 scope 的工具集合；AgentThread 每次模型请求前刷新工具与检索定义，不丢弃章节会话。已发出请求保留原定义，缓存工具和检索执行前复核精确注册，旧调用不能转交同名新实现。此接线不是所有宿主内置 Agent 工具的统一 enablement；脚本推理真实 Worker 验收不是自主远端模型验收。上下文与候选没有插件实例不等于宿主 API 未实现。",
-    "Dictionary 已有 3 工具 + 1 检索；RSS 有 3 global 工具；其他源插件没有直接操作工具。删除词/CSV/退订/OPML 可以在插件补工具，不要求宿主新增词汇/RSS 领域。",
+    "agentTools 1.2 approval=required 已接宿主逐次确认，显示来源与完整JSON参数后执行冻结参数，拒绝/取消/过期/注册失效不执行，不增加权限或提供数据事务。Dictionary 1.4 有5工具+1检索，新增global删词/CSV；RSS 0.10有4个global工具，新增经确认且校验bookId的退订。OPML工具仍待插件补；不要求宿主新增词汇/RSS领域。真实Worker/Tauri批准和保存对话框留集中验收。",
     "输出不成为高优先级指令；不得通过 plugin tool 规避 host 批准/剧透规则；不能把自有私有数据自动变成所有插件可见。",
     "跨 scope 不暴露工具；输入/输出有界，失败不悬挂整轮；撤权和停用失效；检索引用可追踪，候选无条件入记忆视为失败。"),
   unit("C5", "Contribution", "themes/fonts/syncTransports", "静态资产与密文传输扩展", "EXT08 SYS14 OPS02 OPS04", "contributions.themes contributions.fonts contributions.syncTransports",
@@ -233,8 +233,8 @@ export const evidence = [
 
 export const scenarios = [
   ["Jumper", "D1 D2 C1 S3 V1 Q2 Q3", "已建第一方 Jumper：reader header/命令、分层目录与版本化精确搜索、共享会话/导航回执/历史。印刷章号、目录序号、标题匹配由插件区分；不存在章节不派发，歧义给候选。隔离 Tauri FB2 Worker 与实际 Agent 端口通过；WebView hidden 导致前台绘制/截图未通过，PDF、超大查询预算与逐调用取消仍未关闭。"],
-  ["Dictionary", "D1 D2 C4 S1 S6 S7 V1", "查询/保存/检索已经有工具；删词/CSV 工具缺消费者，应在插件补；当前文本上下文/存储持久屏障缺口由宿主补。复制/导出失败必须可见。"],
-  ["RSS/OPML", "D1 C2 C4 S1 S4 S5 S8", "订阅/刷新工具已有，退订/OPML 工具未贡献；文件选择为宿主漏接能力，OPML 解析为插件算法。正文版本更新不能把当前会话悄悄指向旧引用。"],
+  ["Dictionary", "D1 D2 C4 S1 S6 S7 V1", "查询/保存/检索及1.4新增global删词/CSV工具已接；删除由agentTools 1.2宿主确认，导出沿用保存对话框，当前文本上下文/存储持久屏障仍归宿主。真实批准/复制/导出组合待验。"],
+  ["RSS/OPML", "D1 C2 C4 S1 S4 S5 S8", "订阅/刷新及0.10经批准退订工具已有，OPML工具未贡献；文件选择使用现有resources.pick，OPML解析为插件算法。正文版本更新不能把当前会话悄悄指向旧引用。"],
   ["句读与 TTS", "D2 C2 C3 D5 Q2", "reading 2.5 已共享朗读、模式快照/启停/单位配置、版本化返回、单元步进与模式提供者发现/选择；Listening Desk 组合模式表单、朗读、历史、Current passage 与上下单元。配置的书内状态/提供者偏好同批落盘，回执等待该请求精确持久结果，失败不被偏好回滚误报为 superseded；位置写在配置成功后复核 revision/key/unit。步进从 resting 继续并返回 moved/start-of-book/end-of-book，等待真实页面/分段/React 反馈与目标位置提交，不记跳转历史；返回同样等待持久完成。位置保存失败保留 db code，下一次明确操作可重试；自动朗读消费同一回执，书尾正常停止，保存失败则停止而非继续播下一段。隔离 macOS Tauri 已验跨节、慢 Worker、失败、取消、书尾及双端 SQLite 故障/恢复；空节/非线性/其他格式仍需桌面验证。模式选择通过 availableModes/selectModeKey，失效选择保留且不隐式替换，取消撤回未完成选择但不撤销所有已提交提供者偏好。旧偏好读取无副作用，迁移的新设置、书内配置和旧记录删除同批提交；不同所有者保留，删除失败两端拒绝且旧值保留。READ16 跟随和跨提供者取消补偿仍缺；release、其他系统、远端 TTS 未验。"],
   ["主题与定时主题", "D5 C5 S8 V3", "主题/字体可组合，已有 settings 足以切换；短 clock 不要求耐久工作流。新增主题无需宿主改动，缺字体时回退。"],
   ["WebDAV", "C5 S2 S5 S9 Q2", "密文传输 v2 已有 session.close、宿主会话所有权和原生请求取消；sync 1.0 已接双端状态/积压/立即同步和设置页入口，独立授权不随 transport 自动授予。定向连接流程、跨设备与升级回滚仍待接线或集中验收。"],

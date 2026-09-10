@@ -1193,6 +1193,9 @@ export type PluginCommand = {
  */
 export type PluginToolDefinition = {
   state?: PluginActionState;
+  /** agentTools >=1.2: host confirmation of this exact call before execute.
+   * Requires a manifest range excluding older hosts. Does not grant new permissions. */
+  approval?: "required";
   /** snake_case identifier, unique within the plugin. */
   name: string;
   /** Short human label shown in the chat's tool activity row. */

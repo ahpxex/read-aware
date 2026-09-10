@@ -6,6 +6,8 @@ test("graph approval keeps its chapter limit through chat presentation without a
   expect(toChatInteractionRequest(request)).toEqual(request);
   const legacy = { id: "old", threadKey: "book:b", kind: "permission" as const, action: "delete-book" as const, subject: "Book" };
   expect(toChatInteractionRequest(legacy)).toEqual(legacy);
+  const plugin = { ...legacy, action: "plugin-tool" as const, subject: 'Dictionary (dictionary) / delete_saved_word\n{"id":"en:word"}' };
+  expect(toChatInteractionRequest(plugin)).toEqual(plugin);
 });
 
 test("all graph approval translations disclose the subject and resolved chapter limit", async () => {
@@ -14,5 +16,8 @@ test("all graph approval translations disclose the subject and resolved chapter 
     const description = json.chat.interaction.permission.generateBookGraph.description;
     expect(description).toContain("{{subject}}");
     expect(description).toContain("{{maxChapters}}");
+    expect(json.chat.interaction.permission.pluginTool.description).toContain("{{subject}}");
+    expect(json.chat.interaction.permission.pluginTool.question.length).toBeGreaterThan(0);
+    expect(json.chat.interaction.permission.pluginTool.approve.length).toBeGreaterThan(0);
   }
 });

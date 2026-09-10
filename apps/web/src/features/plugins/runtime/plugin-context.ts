@@ -1,3 +1,4 @@
+import { assertToolApproval } from "../lib/plugin-tool-approval";
 /**
  * Builds the `ctx` handed to a plugin's activate(). This is a POLICY shell:
  * the data surface itself is the shared domain layer (src/domain), built
@@ -453,14 +454,16 @@ export function buildPluginContext(
         : undefined,
       agentTools: canUseContribution("agentTools", permissions)
         ? {
-            register: (tool) =>
-              trackAction(() =>
+            register: (tool) => {
+              assertToolApproval(tool.approval, manifest.requires.contributions?.agentTools);
+              return trackAction(() =>
                 registerToolContribution({
                   ...tool,
                   ...brand,
                   key: contributionKey(manifest.id, tool.name),
                 }),
-              ),
+              );
+            },
           }
         : undefined,
       agentContextProviders: canUseContribution("agentContextProviders", permissions)

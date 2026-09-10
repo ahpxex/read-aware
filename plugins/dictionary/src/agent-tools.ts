@@ -4,8 +4,30 @@ import { lookUpTerm } from "./lookup";
 import type { DictionaryPluginContext, SavedWord } from "./types";
 import { saveWord, wordCollection } from "./words";
 import { currentBookTitle } from "./current-book";
+import { exportSavedWords } from "./export";
 
 export function registerAgentTools(ctx: DictionaryPluginContext): void {
+  ctx.contributions.agentTools.register({
+    name: "delete_saved_word", label: "Delete saved word", contexts: ["global"], approval: "required",
+    description: "Permanently remove one saved Dictionary entry by its exact id from get_vocabulary. This deletes that saved word, not book annotations or other words. There is no undo.",
+    parameters: { type: "object", properties: { id: { type: "string", minLength: 1, maxLength: 512 } }, required: ["id"], additionalProperties: false },
+    execute: async params => {
+      if (typeof params.id !== "string" || !params.id.trim() || params.id.length > 512) throw Object.assign(new Error("Invalid saved-word ID"), { code: "plugin/invalid-input" });
+      const saved = await wordCollection(ctx).get<SavedWord>(params.id);
+      if (!saved) return { deleted: false, reason: "not-found" };
+      await wordCollection(ctx).delete(saved.id);
+      return { deleted: true, id: saved.id, term: saved.data.term };
+    },
+  });
+  ctx.contributions.agentTools.register({
+    name: "export_vocabulary", label: "Export saved words", contexts: ["global"],
+    description: "Export the saved Dictionary entries as CSV through the host save dialog. The user chooses the destination or cancels. File contents are not returned to the model.",
+    execute: async () => {
+      const saved = await wordCollection(ctx).list<SavedWord>();
+      const result = await exportSavedWords(ctx, saved);
+      return { exported: !!result, count: result ? saved.length : 0 };
+    },
+  });
   ctx.contributions.agentRetrievalProviders.register({
     id: "saved-vocabulary",
     label: "Search saved vocabulary",
@@ -95,7 +117,8 @@ export function registerAgentTools(ctx: DictionaryPluginContext): void {
           : 50;
       const saved = await wordCollection(ctx).list<SavedWord>();
       return saved
-        .map(({ data: word }) => ({
+        .map(({ id, data: word }) => ({
+          id,
           term: word.term,
           language: word.language,
           definition: definitionOf(word.entry),

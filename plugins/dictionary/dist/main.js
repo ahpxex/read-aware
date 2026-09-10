@@ -259,8 +259,78 @@ async function currentBookTitle(ctx) {
   return book?.title;
 }
 
+// src/export.ts
+function savedWordsCsv(saved) {
+  const rows = [
+    [
+      "Word",
+      "Pronunciation",
+      "Definition",
+      "Etymology",
+      "Contextual meaning",
+      "Language",
+      "Book",
+      "Source context",
+      "Added at"
+    ],
+    ...saved.map(({ data: word }) => [
+      word.term,
+      word.entry.pronunciation,
+      definitionForExport(word.entry),
+      word.entry.etymology,
+      word.entry.contextualMeaning,
+      word.language,
+      word.bookTitle,
+      word.context,
+      word.addedAt
+    ])
+  ];
+  return `\uFEFF${rows.map((row) => row.map(csvCell).join(",")).join(`\r
+`)}`;
+}
+async function exportSavedWords(ctx, saved) {
+  const exported = await ctx.services.ui.exportFile({
+    filename: `readaware-dictionary-${localDateStamp(new Date)}.csv`,
+    content: savedWordsCsv(saved),
+    mimeType: "text/csv;charset=utf-8"
+  });
+  if (!exported)
+    return;
+  return {
+    toast: `Exported ${saved.length} saved ${saved.length === 1 ? "word" : "words"}`
+  };
+}
+
 // src/agent-tools.ts
 function registerAgentTools(ctx) {
+  ctx.contributions.agentTools.register({
+    name: "delete_saved_word",
+    label: "Delete saved word",
+    contexts: ["global"],
+    approval: "required",
+    description: "Permanently remove one saved Dictionary entry by its exact id from get_vocabulary. This deletes that saved word, not book annotations or other words. There is no undo.",
+    parameters: { type: "object", properties: { id: { type: "string", minLength: 1, maxLength: 512 } }, required: ["id"], additionalProperties: false },
+    execute: async (params) => {
+      if (typeof params.id !== "string" || !params.id.trim() || params.id.length > 512)
+        throw Object.assign(new Error("Invalid saved-word ID"), { code: "plugin/invalid-input" });
+      const saved = await wordCollection(ctx).get(params.id);
+      if (!saved)
+        return { deleted: false, reason: "not-found" };
+      await wordCollection(ctx).delete(saved.id);
+      return { deleted: true, id: saved.id, term: saved.data.term };
+    }
+  });
+  ctx.contributions.agentTools.register({
+    name: "export_vocabulary",
+    label: "Export saved words",
+    contexts: ["global"],
+    description: "Export the saved Dictionary entries as CSV through the host save dialog. The user chooses the destination or cancels. File contents are not returned to the model.",
+    execute: async () => {
+      const saved = await wordCollection(ctx).list();
+      const result = await exportSavedWords(ctx, saved);
+      return { exported: !!result, count: result ? saved.length : 0 };
+    }
+  });
   ctx.contributions.agentRetrievalProviders.register({
     id: "saved-vocabulary",
     label: "Search saved vocabulary",
@@ -335,7 +405,8 @@ function registerAgentTools(ctx) {
       const needle = typeof params.query === "string" ? params.query.trim().toLowerCase() : "";
       const limit = typeof params.limit === "number" && params.limit > 0 ? Math.min(200, Math.floor(params.limit)) : 50;
       const saved = await wordCollection(ctx).list();
-      return saved.map(({ data: word }) => ({
+      return saved.map(({ id, data: word }) => ({
+        id,
         term: word.term,
         language: word.language,
         definition: definitionOf(word.entry),
@@ -392,48 +463,6 @@ function assertPluginCapabilities(ctx) {
   if (!ctx.contributions.agentRetrievalProviders) {
     throw new Error('Dictionary requires the "agent:retrieval" permission');
   }
-}
-
-// src/export.ts
-function savedWordsCsv(saved) {
-  const rows = [
-    [
-      "Word",
-      "Pronunciation",
-      "Definition",
-      "Etymology",
-      "Contextual meaning",
-      "Language",
-      "Book",
-      "Source context",
-      "Added at"
-    ],
-    ...saved.map(({ data: word }) => [
-      word.term,
-      word.entry.pronunciation,
-      definitionForExport(word.entry),
-      word.entry.etymology,
-      word.entry.contextualMeaning,
-      word.language,
-      word.bookTitle,
-      word.context,
-      word.addedAt
-    ])
-  ];
-  return `\uFEFF${rows.map((row) => row.map(csvCell).join(",")).join(`\r
-`)}`;
-}
-async function exportSavedWords(ctx, saved) {
-  const exported = await ctx.services.ui.exportFile({
-    filename: `readaware-dictionary-${localDateStamp(new Date)}.csv`,
-    content: savedWordsCsv(saved),
-    mimeType: "text/csv;charset=utf-8"
-  });
-  if (!exported)
-    return;
-  return {
-    toast: `Exported ${saved.length} saved ${saved.length === 1 ? "word" : "words"}`
-  };
 }
 
 // src/views.ts

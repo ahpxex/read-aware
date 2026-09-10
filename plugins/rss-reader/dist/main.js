@@ -3836,8 +3836,11 @@ function loadFeedContent(ctx, url) {
     return content;
   });
 }
-function unsubscribeFeed(ctx, url) {
+function unsubscribeFeed(ctx, url, expectedBookId) {
   return serial(ctx, url, async () => {
+    if (expectedBookId !== undefined && (await getFeed(ctx, url))?.bookId !== expectedBookId) {
+      throw Object.assign(new Error("RSS subscription changed since approval"), { code: "reader/superseded" });
+    }
     await ctx.domains.library.commands.books.removeVirtualBook({ providerId: PROVIDER_ID, key: url });
     await removeFeed(ctx, url);
   });
@@ -3879,6 +3882,24 @@ function feedToolLimit(value) {
   return typeof value === "number" && value > 0 ? Math.min(30, Math.floor(value)) : 10;
 }
 function registerAgentTools(ctx) {
+  ctx.contributions.agentTools.register({
+    name: "unsubscribe_feed",
+    label: "Unsubscribe from RSS",
+    contexts: ["global"],
+    approval: "required",
+    description: "Unsubscribe from this exact RSS URL and bookId returned by list_feeds. Removes the virtual book, its associated reading data and plugin-cached articles. This cannot be undone. A recreated subscription with a different bookId is refused.",
+    parameters: { type: "object", properties: {
+      url: { type: "string", minLength: 1, maxLength: 2048 },
+      bookId: { type: "string", minLength: 1, maxLength: 256 }
+    }, required: ["url", "bookId"], additionalProperties: false },
+    execute: async (params) => {
+      if (typeof params.url !== "string" || !params.url.trim() || params.url.length > 2048 || typeof params.bookId !== "string" || !params.bookId.trim() || params.bookId.length > 256) {
+        throw Object.assign(new Error("Invalid RSS subscription target"), { code: "plugin/invalid-input" });
+      }
+      await unsubscribeFeed(ctx, params.url.trim(), params.bookId);
+      return { unsubscribed: true, url: params.url.trim(), bookId: params.bookId };
+    }
+  });
   ctx.contributions.agentTools.register({
     name: "list_feeds",
     label: "RSS subscriptions",

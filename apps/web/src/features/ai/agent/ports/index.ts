@@ -36,6 +36,7 @@ export { GLOBAL_CONVERSATION_ID } from "./conversation-port";
 
 export function buildRuntimeDeps(): RuntimeDeps {
   const conversations = createConversationsDomain("agent");
+  const interactions = createUserInteractionPort();
   return {
     schedules: { list: async query => pluginSchedules.list(query), control: (input, signal) => pluginSchedules.control(input, signal) },
     sync: hostSync,
@@ -56,7 +57,7 @@ export function buildRuntimeDeps(): RuntimeDeps {
     library: createLibraryPort(),
     annotations: createAnnotationsPort(),
     reader: createReaderPort(),
-    interactions: createUserInteractionPort(),
+    interactions,
     conversations: createConversationPort(),
     profile: createProfilePort(),
     memory: createMemoryPort(),
@@ -64,7 +65,7 @@ export function buildRuntimeDeps(): RuntimeDeps {
     bookMemory: createBookMemoryPort(),
     settings: createSettingsPort(),
     log: createLogger("agent"),
-    extraTools: getPluginAgentTools,
+    extraTools: scope => getPluginAgentTools(scope, interactions),
     extraContext: getPluginAgentContext,
     extraMemoryCandidates: getPluginMemoryCandidates,
   };

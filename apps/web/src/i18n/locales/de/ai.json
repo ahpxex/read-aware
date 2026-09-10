@@ -76,6 +76,11 @@
           "description": "Dadurch werden die importierte Quelldatei und die lokalen Lesedaten dauerhaft entfernt. Dies kann nicht rückgängig gemacht werden.",
           "approve": "Buch löschen"
         },
+        "pluginTool": {
+          "question": "Dieses Plugin-Werkzeug ausführen?",
+          "description": "Das Plugin kann Daten ändern oder löschen. Die Zustimmung gilt nur für diesen Aufruf mit den gezeigten Argumenten und erteilt keine zusätzlichen Berechtigungen.\n\n{{subject}}",
+          "approve": "Werkzeug ausführen"
+        },
         "mergeBooks": {
           "question": "Diese doppelten Bücher zusammenführen?",
           "description": "Der erste Eintrag bleibt erhalten. Anmerkungen und Lesedaten werden nach den Regeln der App zusammengeführt; Chats behalten ihre ursprünglichen Referenzen. Dies ist nicht rückgängig zu machen und gibt nicht sofort Speicher frei.\n\n{{subject}}",

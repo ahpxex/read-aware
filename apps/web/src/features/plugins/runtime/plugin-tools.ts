@@ -13,6 +13,7 @@ import type {
   ReferencePayload,
   ThreadScope,
   WordReference,
+  UserInteractionPort,
 } from "@read-aware/agent";
 import { AppError } from "@read-aware/core";
 import type {
@@ -28,6 +29,7 @@ import {
 } from "../state/plugin-store";
 import { contributionText } from "../lib/plugin-i18n";
 import { actionEnabled } from "../lib/plugin-action-state";
+import { confirmPluginTool } from "./plugin-tool-confirmation";
 
 /**
  * A card-carrying tool result (PluginToolWordCards in the contract): the
@@ -137,7 +139,7 @@ function retrievalTool(provider: RegisteredAgentRetrievalProvider, scope: Thread
   };
 }
 
-export function getPluginAgentTools(scope: ThreadScope): AgentTool[] {
+export function getPluginAgentTools(scope: ThreadScope, interactions?: UserInteractionPort): AgentTool[] {
   const tools = getRegisteredPluginTools()
     .filter(actionEnabled)
     .filter((tool) => !tool.contexts || tool.contexts.includes(scope.kind))
@@ -149,19 +151,28 @@ export function getPluginAgentTools(scope: ThreadScope): AgentTool[] {
     // pi passes the schema through to the provider without TypeBox runtime
     // validation, so plain JSON Schema is the honest input type here.
     parameters: (tool.parameters ?? EMPTY_PARAMETERS) as AgentTool["parameters"],
-    execute: async (_toolCallId, params) => {
-      const result = await tool.execute((params ?? {}) as Record<string, unknown>);
+    executionMode: tool.approval === "required" ? "sequential" : undefined,
+    execute: async (toolCallId, params, signal, onUpdate) => {
+      signal?.throwIfAborted();
+      if (tool.approval !== undefined && tool.approval !== "required") throw new AppError("plugin/invalid-input", "Invalid tool approval policy");
+      const confirmation = tool.approval === "required"
+        ? await confirmPluginTool({ tool, scope, interactions, toolCallId, params, signal, onUpdate }) : undefined;
+      if (confirmation && !confirmation.approved) return {
+        content: [{ type: "text" as const, text: JSON.stringify({ executed: false, reason: "declined" }) }], details: confirmation.details,
+      };
+      signal?.throwIfAborted();
+      const result = await tool.execute(confirmation?.params ?? (params ?? {}) as Record<string, unknown>);
       const cards = toWordReferences(result);
       if (cards) {
         const reference: ReferencePayload = { kind: "words", words: cards.words };
         return {
           content: [{ type: "text" as const, text: JSON.stringify(cards.gist) }],
-          details: { reference },
+          details: { ...confirmation?.details, reference },
         };
       }
       return {
         content: [{ type: "text" as const, text: JSON.stringify(result ?? null) }],
-        details: undefined,
+        details: confirmation?.details,
       };
     },
     }));

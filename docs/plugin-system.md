@@ -2030,7 +2030,7 @@ below; cross-version position migration remains unfinished.
 requires library `^1.16.0` and reading `^2.16.0`, retaining existing permissions,
 network/storage requirements and schemaVersion 1. Parser identity, cache persistence
 and library workflows live in `identity.ts`, `content-cache.ts` and `feed-library.ts`.
-UI actions and the existing three global Agent tools reuse those workflows.
+UI actions and the global Agent tools reuse those workflows.
 
 [代码] Subscription metadata stays in the private `feeds` collection. Optional
 `contentId` references a SHA-256-addressed `{version: 1, url, content}` document in
@@ -2067,8 +2067,8 @@ the article still exists, compares the same book's loaded sourceRevision against
 getContentState, and reloads a non-ready or outdated existing session before opening
 and navigating by the stable href with the current contentVersion. Reload keeps the
 host's from-start semantics rather than applying an old CFI. Ordinary shelf opens
-still follow the host's stored-position behavior. Agent unsubscribe and OPML tools
-are not added by this batch.
+still follow the host's stored-position behavior. RSS 0.10 additionally exposes
+approved Agent unsubscribe (see below); an OPML Agent tool remains absent.
 
 [环境] Fifteen RSS tests cover parser identity, source-plugin activation, offline
 cache consumption, failure/retry, same-feed serialization and explicit navigation
@@ -4146,6 +4146,53 @@ or memory access:
 Plugins never receive the product Memory port, cannot inject system rules, and
 cannot write a long-term memory directly. A contribution supplies evidence or
 a candidate; the host remains the consumer and decision boundary.
+
+### Plugin Tool Confirmation (AgentTools 1.2)
+
+[代码] `PluginToolDefinition.approval: "required"` makes the Agent adapter request
+host confirmation before invoking the plugin executor. Registration requires a
+manifest agentTools range excluding versions below 1.2; invalid policies reject
+with `plugin/invalid-input`. Omitted approval preserves existing tools. The
+production extraTools adapter shares the Agent's UserInteractionPort and chat
+permission renderer, with localized `plugin-tool` warnings in all eight locales.
+Missing interaction infrastructure rejects with `ui/unavailable`, never bypasses.
+
+[代码] Required tools execute sequentially within the Agent tool scheduler. Before
+requesting confirmation, the host snapshots JSON arguments (max 16384 UTF-16 code
+units), displays the full arguments with registered plugin name/ID, tool label and
+description (whole subject max 24576), and executes that snapshot only after an
+explicit approve response. Non-JSON arguments reject; oversized prompts reject
+with `plugin/payload-too-large`, not hidden truncation. No plugin callback runs to
+prepare the prompt. Decline/cancelled answers return `{executed:false,reason:"declined"}`;
+other answers cannot approve. Interaction request/response updates and final details
+use the existing transcript path; word-card references can coexist with the response.
+
+[代码] Pending approval expires after five minutes and follows turn cancellation,
+Worker callback-owner retirement and exact registration availability. Disposal,
+replacement, hiding or disabling cancels the pending approval; execution rechecks
+the guarded callback and cannot transfer approval to a same-name replacement.
+This is not a durable approval ticket, arbitrary plugin UI confirmation service,
+new data permission or automatic risk classification. An already-authorized plugin
+can still invoke its ordinary APIs outside this Agent tool. Cancellation after
+executor dispatch does not undo its writes or provide per-operation Worker abort.
+Approved arguments identify a call, not a transactional snapshot of changing data.
+
+[代码] Dictionary 1.4 adds global `delete_saved_word` (required approval, exact ID
+now returned by get_vocabulary) and `export_vocabulary` (existing CSV serializer
+and host save dialog; cancellation returns exported:false, no CSV enters the model).
+Deletion removes the current document at that exact ID, not a version-CAS record.
+RSS 0.10 adds global `unsubscribe_feed` with required approval of URL plus bookId;
+the existing per-URL queue rechecks bookId before deletion and refuses a recreated
+binding with `reader/superseded`. Both use existing private storage/library APIs;
+no host Dictionary/RSS domain is introduced. Dictionary now has five tools plus
+one retrieval provider; RSS has four global tools. OPML Agent import remains absent.
+
+[环境] Focused tests exercise host approval/decline, immutable arguments,
+registration replacement/disable, cancellation, missing ports, input/version bounds,
+localized request conversion and source-plugin delete/export workflows. Build and
+types are checked separately. These are basic checks, not real Worker/Tauri/model
+acceptance; save-dialog, approval-card and deletion composition remain for the
+concentrated native phase. General task progress/cancellation stays unfinished.
 
 ### Sync transports
 

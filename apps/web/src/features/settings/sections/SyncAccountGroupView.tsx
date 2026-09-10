@@ -70,7 +70,7 @@ type SyncAccountGroupViewProps = {
    */
   deleteAccountOpen: boolean;
   onDeleteAccountOpenChange: (open: boolean) => void;
-  /** True while the relay wipes the account — locks the dialog meanwhile. */
+  /** Locks destructive confirmation while an account action is running. */
   deletingAccount: boolean;
   onDeleteAccount: () => void;
   onSyncNow: () => void;
@@ -418,16 +418,14 @@ export function SyncAccountGroupView({
         <div className="space-y-4">
           <p>{t("dataSync.connected.disconnectBody")}</p>
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => onDisconnectOpenChange(false)}>
+            <Button variant="ghost" size="sm" disabled={sync.busy || deletingAccount} onClick={() => onDisconnectOpenChange(false)}>
               {t("dataSync.connected.cancel")}
             </Button>
             <Button
               variant="danger"
               size="sm"
-              onClick={() => {
-                onDisconnectOpenChange(false);
-                onDisconnect();
-              }}
+              disabled={sync.busy || deletingAccount}
+              onClick={onDisconnect}
             >
               {t("dataSync.connected.disconnect")}
             </Button>

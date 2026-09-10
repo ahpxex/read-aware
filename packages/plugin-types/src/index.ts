@@ -2099,11 +2099,12 @@ export type PluginHostServices = {
     release(id: string): Promise<void>;
   };
   /** Requires service:sync; no keys, account identifiers, billing tickets or raw event access. */
-  sync?: Omit<import("@read-aware/core").HostSyncPort, "backlog" | "account" | "requestSync" | "openSettings"> & {
+  sync?: Omit<import("@read-aware/core").HostSyncPort, "backlog" | "account" | "requestSync" | "openSettings" | "requestFlow"> & {
     backlog(): ReturnType<import("@read-aware/core").HostSyncPort["backlog"]>;
     account(): ReturnType<import("@read-aware/core").HostSyncPort["account"]>;
     requestSync(): ReturnType<import("@read-aware/core").HostSyncPort["requestSync"]>;
     openSettings(): ReturnType<import("@read-aware/core").HostSyncPort["openSettings"]>;
+    requestFlow(request: import("@read-aware/core").HostSyncFlowRequest, options?: PluginCallOptions): ReturnType<import("@read-aware/core").HostSyncPort["requestFlow"]>;
     observe(handler: (snapshot: import("@read-aware/core").HostSyncSnapshot) => unknown): PluginDisposable;
   };
   session: {

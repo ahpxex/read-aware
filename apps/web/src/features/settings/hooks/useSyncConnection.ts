@@ -155,6 +155,16 @@ export function useSyncConnection() {
     [reloadProfile],
   );
 
+  const deleteAccount = useCallback(
+    (): Promise<void> => runSyncConnectionOperation(async () => {
+      // Keep the account/session stable through both remote deletion and local disconnect.
+      await syncRelayClient().deleteAccount();
+      await disconnectSync();
+      await reloadProfile();
+    }),
+    [reloadProfile],
+  );
+
   const openTransport = async (ref: string) => {
     const transport = findSyncTransport(ref);
     if (!transport) {
@@ -218,6 +228,7 @@ export function useSyncConnection() {
     probeTransport,
     connectTransport,
     disconnect,
+    deleteAccount,
     requestSyncNow,
   };
 }

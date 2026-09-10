@@ -18,3 +18,21 @@ test("sync tools distinguish settings navigation from approved sync and make rem
   const signal = new AbortController(); signal.abort(Error("cancelled"));
   await expect(manage.execute("cancel", { action: "now" }, signal.signal)).rejects.toThrow("cancelled");
 });
+
+test("both scopes discover backend refs and delegate all account flows to host confirmation", async () => {
+  for (const scope of [{ kind: "global", threadId: "global-test" }, { kind: "book", bookId: "b1" }] as const) {
+    const { deps, stores } = createInMemoryDeps();
+    const seen: unknown[] = [];
+    deps.sync.connectionOptions = async () => [{ ref: "webdav:main", label: "WebDAV" }];
+    deps.sync.requestFlow = async (input, signal) => { signal?.throwIfAborted(); seen.push(input); return { action: input.action, status: "cancelled" }; };
+    const [read, manage] = buildSyncTools(scope, deps);
+    expect(JSON.stringify(await read.execute("connections", { includeConnections: true }))).toContain("webdav:main");
+    for (const action of ["connect", "disconnect", "delete-account", "upgrade", "billing"]) {
+      expect(JSON.stringify(await manage.execute(action, { action, ...(action === "connect" ? { transportRef: "webdav:main" } : {}) }))).toContain("cancelled");
+    }
+    expect(seen).toHaveLength(5); expect(seen[0]).toEqual({ action: "connect", transportRef: "webdav:main" });
+    // The native dialog, not a second Agent approval token, owns confirmation.
+    expect(stores.interactions).toHaveLength(0);
+    await expect(manage.execute("invalid", { action: "delete-account", transportRef: "webdav:main" })).rejects.toMatchObject({ code: "ui/invalid-target" });
+  }
+});

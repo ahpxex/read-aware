@@ -6,6 +6,8 @@ type Adapter = {
   subscribe(handler: () => void): () => void;
   backlog: HostSyncPort["backlog"]; account(): Promise<AccountResponse>;
   run(): Promise<unknown | null>; openSettings(signal?: AbortSignal): Promise<unknown>;
+  connectionOptions: HostSyncPort["connectionOptions"];
+  requestFlow: HostSyncPort["requestFlow"];
 };
 function quota(value: number | null): number | null {
   if (value === null || (typeof value === "number" && Number.isFinite(value) && value >= 0)) return value;
@@ -85,6 +87,14 @@ export class HostSyncService implements HostSyncPort {
   async openSettings(signal?: AbortSignal) {
     signal?.throwIfAborted(); await this.adapter.openSettings(signal); signal?.throwIfAborted();
     return { status: "opened" as const, surface: "dataSync" as const };
+  }
+  async connectionOptions() {
+    if (!this.adapter.supported()) return [];
+    return this.adapter.connectionOptions();
+  }
+  requestFlow(...args: Parameters<HostSyncPort["requestFlow"]>) {
+    if (!this.adapter.supported()) return Promise.reject(new AppError("ui/unavailable", "Sync account flows require desktop"));
+    return this.adapter.requestFlow(...args);
   }
   private guard(signal?: AbortSignal, expected?: string): string {
     signal?.throwIfAborted();

@@ -941,6 +941,12 @@ export function buildPluginContext(
       account: () => { lifecycle.assertActive("services.sync.account"); return hostSync.account(lifecycle.signal); },
       requestSync: () => { lifecycle.assertActive("services.sync.requestSync"); return hostSync.requestSync(lifecycle.signal); },
       openSettings: () => { lifecycle.assertActive("services.sync.openSettings"); return hostSync.openSettings(lifecycle.signal); },
+      connectionOptions: async () => { lifecycle.assertActive("services.sync.connectionOptions"); return hostSync.connectionOptions(); },
+      requestFlow: (request, options) => {
+        lifecycle.assertActive("services.sync.requestFlow");
+        const signal = pluginOperationSignal(lifecycle.signal, options);
+        return lifecycle.read("services.sync.requestFlow", () => hostSync.requestFlow(request, signal), signal);
+      },
       observe: handler => track(() => ({ dispose: hostSync.observe(handler) })),
     };
   }

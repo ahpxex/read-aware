@@ -117,6 +117,7 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
   };
 
   const handleClose = () => {
+    if (sync.busy) return;
     // Password fields should never linger in mounted dialog state after the
     // user dismisses the surface. A verified identity may survive, but it must
     // be confirmed again before the password field can reappear.

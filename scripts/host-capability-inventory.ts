@@ -186,6 +186,8 @@ const pluginMap = pairs([
   ["services.session.environment services.session.observeEnvironment", "MORE03"],
   ["services.sync.snapshot services.sync.observe services.sync.backlog services.sync.requestSync", "OPS01 OPS03"],
   ["services.sync.account", "OPS06 OPS07"],
+  ["services.sync.connectionOptions", "OPS01"],
+  ["services.sync.requestFlow", "OPS01 OPS06 OPS07"],
   ["services.schedules.list services.schedules.observe services.schedules.control", "MORE01"],
   ["services.maintenance.snapshot services.maintenance.observe services.maintenance.checkForUpdates", "SYS16"],
   ["services.maintenance.openSettings", "SYS15 SYS16 EXT12 OPS08 OPS09"],

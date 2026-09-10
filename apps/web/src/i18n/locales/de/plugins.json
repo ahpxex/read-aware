@@ -89,7 +89,7 @@
     },
     "permission": {
       "service_diagnostics": "Lokale Ereignisprojektionen prüfen und Gesamtzahlen lesen, ohne Protokolle, Datensatzinhalte oder Reparaturen",
-      "service_sync": "Synchronisierungsstatus und Kontonutzung lesen, synchronisieren und Verbindungseinstellungen öffnen",
+      "service_sync": "Sync-Status, Backends und Kontonutzung lesen; Sync, hostbestätigte Verbindung oder Kontolöschung anfordern und Upgrade- oder Abrechnungsseiten öffnen",
       "reader_modes": "Einen von der App gerenderten geführten Lesemodus hinzufügen",
       "ui_themes": "App- und Lesethemen mit mitgelieferten Schriften anbieten, die erst bei Auswahl gelten",
       "library_read": "Bücher, Sammlungen, Metadaten und Kapiteltexte lesen",

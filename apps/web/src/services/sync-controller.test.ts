@@ -17,6 +17,8 @@ function fixture() {
     backlog: async () => ({ events: 10, blobs: 20 }), account: async () => account,
     run: async (): Promise<object | null> => { runs++; return {}; },
     openSettings: async () => ({ snapshot: { selection: { bookIds: ["private-selected-book"] } } }),
+    connectionOptions: async () => [{ ref: "test:transport", label: "Test backend" }],
+    requestFlow: async (request: import("@read-aware/core").HostSyncFlowRequest) => ({ action: request.action, status: "cancelled" as const }),
   };
   const service = new HostSyncService(adapter, () => {});
   return { service, adapter, status, account, runs: () => runs, change: () => { epoch = "2"; notify(); },

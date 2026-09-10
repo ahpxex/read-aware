@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+2026-09-11 同步账户批次已接线：sync1.1为插件及双域Agent接上后端ref/名称发现和connect/disconnect/delete-account/upgrade/billing五个定向宿主流程。登录身份/口令、断开和删除确认保留原生操作；删除远端及本地断开共用连接锁，保留本地书籍。回执区分completed/cancelled/external-opened，不把打开账单页当成购买完成，不返回凭据/ticket/URL。一次一个流程，不替换已打开的原生对话框；账号换代拒绝旧确认，未开始取消关闭，已确认工作等源结束才释放、不回滚。公共单次signal进入现有Worker请求取消表，现共28入口；沿用service:sync并更新八语言授权说明，没有增加模型工具名。
+
+[验证] 控制器、正式插件权限/取消、双域Agent、受控挂载及模型库存共40项测试通过；全仓typecheck 27/27通过，三文档对结构检查通过。917入口映射、38个catalog成员；OPS01/06/07按已有宿主行为标接通，不是实际端到端已验。挂载测试使用受控连接/relay/外链端口；编译Worker、真实登录/删除/支付及Tauri跨设备组合留集中阶段，无耐久TaskRef/重启恢复，Worker等待仍受既有超时限制。本批未启动桌面/浏览器、未推送，整体目标继续。
+
 2026-09-11 投影诊断批次已接线：diagnostics1.0 verifyProjections需要独立service:diagnostics（八语言授权说明），Agent双域verify_local_data共用同一宿主端口。仅返回event-projections范围/ISO完成时间/一致性/重放事件数/漂移表数/两侧差异行总数，不发原始表名、记录样本、正文、日志或路径。原生诊断面板也迁入共用verify_projections在途IPC；源结算前新调用复用，取消只结束当前等待而不提前释放校验/回滚。PluginCallOptions参数位置表增加diagnostics第0位，共27入口；权限先于调用，预取消不派发，退休拒绝，回填不完整/故障不假报一致。
 
 [验证] 聚合过滤/失败拒绝/并发共享IPC/取消、正式插件权限、八语言授权、Agent双域注册与结果表面、发现/版本协商及库存模型共50 pass / 1301 assertions；全仓typecheck 27/27通过。915入口映射、38个catalog成员；新增工具是只读校验，不是修复/重建/事件写入。Rust校验器未改，IPC测试为受控返回，不是原生SQLite或真实Tauri证明；业务诊断插件、编译Worker与集中桌面验收仍待做。本批未启动桌面/浏览器、未推送，整体目标继续。

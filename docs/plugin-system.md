@@ -4754,7 +4754,7 @@ The current host services are:
 | `maintenance` | 1.0: updater snapshot/observation, release check and native maintenance controls | built in; check requires `service:network` |
 | `diagnostics` | 1.0: local event-projection verification counts | `service:diagnostics` |
 | `resources` | 1.1: native file selection, original/cover snapshots, bounded read/write/seal/save/release | built in; book sources require `library:read` or write |
-| `sync` | 1.0: sanitized status, backlog, account quotas, sync request and host settings | `service:sync` |
+| `sync` | 1.1: sanitized status, backlog, quotas, backend discovery, sync and directed account flows | `service:sync` |
 | `network` | 2.1: scoped HTTP, bounded pull streams, shared concurrency and policy discovery | `service:network` + `networkAccess.origins` for arbitrary fetch |
 | `llm` | approved one-shot/structured model calls | `service:llm` |
 | `clipboard` | 1.1: write text or a sealed raster image resource | `service:clipboard` |
@@ -5036,8 +5036,8 @@ diagnostics, real native load/cancellation and a business diagnostic plugin stay
 in the concentrated composition/E2E phase. No generic TaskRef or repair gate is
 claimed by this read-only service.
 
-[代码] Sync 1.0 exposes `snapshot()`, `observe(handler)`, `backlog()`, `account()`,
-`requestSync()`, and `openSettings()`. Its separate `service:sync` grant is not
+[代码] Sync 1.1 exposes `snapshot()`, `observe(handler)`, `backlog()`, `account()`,
+`requestSync()`, `openSettings()`, `connectionOptions()` and `requestFlow(request, options?)`. Its separate `service:sync` grant is not
 implied by network access or a sync transport contribution. Snapshot contains
 connection availability, scheduler phase/counters, last success/error code,
 cycle-start backlog and remaining backfill, never account/email IDs, keys,
@@ -5056,10 +5056,42 @@ means no new cycle, and `completed` means that cycle ended, not that all devices
 or backfill have converged. Caller cancellation prevents dispatch or delivery,
 not shared physical sync or rollback. `openSettings()` waits for the host Data &
 Sync page and returns only `opened`, not workspace/library data or completed
-login, disconnect, deletion or purchase. Targeted flows and their final receipts
-remain unconnected. Agent `get_sync_status` and `manage_sync` share this service
-in both scopes; manual sync asks approval, account fetching is opt-in. Focused
-checks passed; new composition/native/cross-device acceptance remains pending.
+login, disconnect, deletion or purchase.
+
+`connectionOptions()` returns current registered plugin backend `{ref,label}`
+entries, not configured endpoints or credentials. Relay sign-in needs no ref.
+`requestFlow({action,transportRef?}, {signal?})` accepts `connect`, `disconnect`,
+`delete-account`, `upgrade`, `billing`; only connect accepts a transport ref.
+It navigates to Data & Sync and invokes the mounted native owner. Login still
+requires identity confirmation and the host-only passphrase; disconnect and
+remote account deletion still require their existing native confirmation.
+Deletion holds the shared connection gate across remote wipe and local disconnect;
+local books/annotations are retained. A changed account generation invalidates
+an outstanding confirmation. Connect errors can be retried in the same dialog;
+other action failures reject, with localized native feedback, never fake success.
+
+The receipt is only `{action,status}`: `completed`, `cancelled`, or
+`external-opened` for upgrade/billing. Billing reuses the account eligibility and
+platform purchase gate; no URL, ticket, session or payment approval crosses back
+to the caller. External handoff is not a purchase/subscription-change receipt.
+One flow/action can own this surface at a time, including while navigating;
+native dialogs are not replaced by an actor request. Dismiss/unmount before
+confirmation returns cancelled. Per-call abort/Worker timeout/retirement closes
+an unstarted flow and rejects; confirmed native work retains ownership through
+actual settlement and cannot be rolled back. Billing checks cancellation and
+connection generation before external handoff. There is no durable TaskRef or
+restart recovery; the existing Worker RPC deadline still applies to the wait.
+`services.sync.requestFlow` uses options slot 1 in the shared signal-position
+table (28 supported methods). Native binding/run/settlement methods are not
+included in the public context, so an actor cannot self-confirm.
+
+Agent `get_sync_status(includeConnections?)` and `manage_sync` share this service
+in both scopes; manual sync asks Agent approval, directed destructive flows ask
+native confirmation instead of manufacturing an Agent approval for the user.
+Account fetching and backend discovery are opt-in. Focused controller, public
+permission/cancellation and mounted-hook tests use controlled host/remote ports;
+compiled Worker, actual dialogs/credentials/billing and cross-device Tauri
+acceptance remain in the concentrated composition/E2E phase.
 
 [代码] Schedules 1.1 retains `bind(id,run)` and adds `list({offset?,limit?})`,
 `observe(query,handler)`, and `control(id,"pause"|"resume"|"run")`. Plugins only

@@ -16,6 +16,13 @@ export type HostSyncAccount = {
   aiCreditsUsed: number; limits: SyncTierLimits;
 };
 export type HostSyncReceipt = { status: "completed" | "already-running"; snapshot: HostSyncSnapshot };
+export type HostSyncFlow = "connect" | "disconnect" | "delete-account" | "upgrade" | "billing";
+export type HostSyncFlowRequest = { action: HostSyncFlow; transportRef?: string };
+export type HostSyncFlowReceipt = {
+  action: HostSyncFlow;
+  /** External handoff is not proof of purchase or a billing change. */
+  status: "completed" | "cancelled" | "external-opened";
+};
 export type HostSyncPort = {
   snapshot(): Promise<HostSyncSnapshot>;
   backlog(signal?: AbortSignal): Promise<{ events: number; blobs: number }>;
@@ -25,4 +32,9 @@ export type HostSyncPort = {
   requestSync(signal?: AbortSignal): Promise<HostSyncReceipt>;
   /** Opens the host Data & Sync page, not an automatic login, disconnect or purchase. */
   openSettings(signal?: AbortSignal): Promise<{ status: "opened"; surface: "dataSync" }>;
+  /** Registered backend references and display labels, never endpoint credentials. */
+  connectionOptions(): Promise<{ ref: string; label: string }[]>;
+  /** Host-owned identity/passphrase and destructive confirmation. Waits for the
+   * final local outcome or external handoff. Cancellation cannot undo a started operation. */
+  requestFlow(request: HostSyncFlowRequest, signal?: AbortSignal): Promise<HostSyncFlowReceipt>;
 };

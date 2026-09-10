@@ -5,6 +5,7 @@ import type { PluginCallOptions } from "@read-aware/plugin-types";
  * Transport metadata is not authority: the host still resolves the actor's method. */
 export const PLUGIN_CALL_OPTIONS = {
   "services.diagnostics.verifyProjections": 0,
+  "services.sync.requestFlow": 1,
   "domains.library.queries.books.inspectResource": 1,
   "domains.library.queries.books.getNavigationToc": 1,
   "domains.library.queries.books.listNavigationTargets": 1,

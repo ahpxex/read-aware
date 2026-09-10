@@ -89,7 +89,7 @@
     },
     "permission": {
       "service_diagnostics": "Vérifier les projections locales des événements et lire les totaux, sans journaux, contenu des enregistrements ni réparation",
-      "service_sync": "Consulter la synchronisation et les quotas, synchroniser et ouvrir les paramètres de connexion",
+      "service_sync": "Consulter la synchronisation, les services et les quotas ; demander une synchronisation, une connexion ou suppression de compte confirmée par l’hôte, et ouvrir les pages d’offre ou de facturation",
       "reader_modes": "Ajouter un mode de lecture guidée rendu par l’application",
       "ui_themes": "Proposer des thèmes pour l’application et la lecture, avec polices incluses, appliqués uniquement à la sélection",
       "library_read": "Lire les livres, collections, métadonnées et textes des chapitres",

@@ -84,6 +84,7 @@ export function TransportConnectDialog({
   }, [ref]);
 
   const handleClose = () => {
+    if (sync.busy) return;
     // Password fields never linger in mounted dialog state.
     setPassphrase("");
     setPassphraseError(null);

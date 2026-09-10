@@ -3,62 +3,35 @@
  * the outbox backlogs, and the billing round-trips. The rows themselves are
  * `SyncAccountGroupView`.
  */
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAtom } from "jotai";
 import { useToast } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
-import { openExternalUrl } from "../../../platform/external-link";
 import { createLogger } from "../../../platform/logger";
-import { siteBaseUrl } from "../../../platform/site-url";
-import { syncRelayClient } from "../../../platform/sync/sync-scheduler";
 import { syncLoginTokenAtom } from "../../../state/ui";
 import { useBlobBookTitle } from "../../sync/hooks/useBlobBookTitle";
 import { useSyncBacklog, useSyncBookBacklog } from "../../sync/hooks/useSyncStatus";
 import { useExternalPurchaseAllowed } from "../hooks/useExternalPurchaseAllowed";
 import { useSyncAccountInfo } from "../hooks/useSyncAccountInfo";
 import { useSyncConnection } from "../hooks/useSyncConnection";
+import { useSyncAccountFlows } from "../hooks/useSyncAccountFlows";
 import { SyncAccountGroupView } from "./SyncAccountGroupView";
 
 const log = createLogger("sync");
 
-/** App locale → the landing site's locale prefix (English lives at the root). */
-const LANDING_LOCALE: Record<string, string> = {
-  "zh-Hans": "zh",
-  "zh-Hant": "zh-hant",
-  ja: "ja",
-  fr: "fr",
-  de: "de",
-  ru: "ru",
-  es: "es",
-};
-
-/**
- * The landing pricing page in the app's language — where "Upgrade plan"
- * leads. Its paid cards start a web checkout; fulfillment reaches the account
- * by the paid email (accounts are keyed by email), so no session must travel.
- */
-function pricingUrl(locale: string): string {
-  const prefix = LANDING_LOCALE[locale];
-  return prefix ? `${siteBaseUrl()}/${prefix}/pricing` : `${siteBaseUrl()}/pricing`;
-}
-
 export function SyncAccountGroup() {
-  const { t, i18n } = useTranslation("settings");
+  const { t } = useTranslation("settings");
   const { toast } = useToast();
   const sync = useSyncConnection();
 
-  const [connectOpen, setConnectOpen] = useState(false);
-  const [transportDialogRef, setTransportDialogRef] = useState<string | null>(null);
-  const [disconnectOpen, setDisconnectOpen] = useState(false);
-  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
-  const [deletingAccount, setDeletingAccount] = useState(false);
   const backlog = useSyncBacklog(sync.connected);
   const bookBacklog = useSyncBookBacklog(sync.connected);
   // Account info (email, plan, usage) is the relay's — a transport connection
   // has no account to ask about.
   const accountInfo = useSyncAccountInfo(sync.connected && sync.connectedTransport === null);
   const purchaseAllowed = useExternalPurchaseAllowed();
+  const flows = useSyncAccountFlows(sync, purchaseAllowed);
   const movingBookTitle = useBlobBookTitle(
     sync.status.state === "syncing" ? (sync.status.progress?.blobKey ?? null) : null,
   );
@@ -76,8 +49,8 @@ export function SyncAccountGroup() {
       setLinkToken(null);
       return;
     }
-    setConnectOpen(true);
-  }, [linkToken, connected, sessionRejected, setLinkToken]);
+    flows.setConnectOpen(true);
+  }, [linkToken, connected, sessionRejected, setLinkToken, sync.busy]);
 
   const handleSyncNow = async () => {
     try {
@@ -92,67 +65,6 @@ export function SyncAccountGroup() {
     }
   };
 
-  const billingFailed = (error: unknown) => {
-    log.error("billing session failed", error);
-    toast({
-      variant: "destructive",
-      title: t("dataSync.noticeError"),
-      description: t("dataSync.billing.failed"),
-    });
-  };
-
-  const openPortal = async () => {
-    try {
-      await openExternalUrl(await syncRelayClient().createPortal());
-    } catch (error) {
-      billingFailed(error);
-    }
-  };
-
-  // Deletion order matters: the relay wipes first (needs the session), the
-  // local disconnect follows. Local books and annotations stay — deletion is
-  // about the server copy and the account itself.
-  const deleteAccount = async () => {
-    setDeletingAccount(true);
-    try {
-      await syncRelayClient().deleteAccount();
-      await sync.disconnect();
-      setDeleteAccountOpen(false);
-      toast({
-        title: t("dataSync.noticeDone"),
-        description: t("dataSync.deleteAccount.done"),
-      });
-    } catch (error) {
-      log.error("account deletion failed", error);
-      toast({
-        variant: "destructive",
-        title: t("dataSync.noticeError"),
-        description: t("dataSync.deleteAccount.failed"),
-      });
-    } finally {
-      setDeletingAccount(false);
-    }
-  };
-
-  const openUpgrade = async () => {
-    let target = pricingUrl(i18n.language);
-    try {
-      // The ticket lets the pricing page bind its checkout to THIS account
-      // and return the buyer to the app afterwards. It rides in the fragment
-      // — never sent to any server, never logged.
-      const ticket = await syncRelayClient().billingTicket();
-      target += `#upgrade=${encodeURIComponent(ticket)}`;
-    } catch {
-      // Offline or a pre-ticket relay: the plain pricing page still sells —
-      // fulfillment falls back to matching the checkout email.
-    }
-    try {
-      await openExternalUrl(target);
-    } catch (error) {
-      billingFailed(error);
-    }
-  };
-
   return (
     <SyncAccountGroupView
       // The web shell has no store and no sync — keep the pre-sync placeholder.
@@ -164,22 +76,22 @@ export function SyncAccountGroup() {
       backlog={backlog}
       bookBacklog={bookBacklog}
       movingBookTitle={movingBookTitle}
-      connectOpen={connectOpen}
-      onConnectOpenChange={setConnectOpen}
-      transportDialogRef={transportDialogRef}
-      onTransportDialogChange={setTransportDialogRef}
-      disconnectOpen={disconnectOpen}
-      onDisconnectOpenChange={setDisconnectOpen}
-      deleteAccountOpen={deleteAccountOpen}
-      onDeleteAccountOpenChange={setDeleteAccountOpen}
-      deletingAccount={deletingAccount}
-      onDeleteAccount={() => void deleteAccount()}
+      connectOpen={flows.connectOpen}
+      onConnectOpenChange={flows.setConnectOpen}
+      transportDialogRef={flows.transportDialogRef}
+      onTransportDialogChange={flows.setTransportDialogRef}
+      disconnectOpen={flows.disconnectOpen}
+      onDisconnectOpenChange={flows.setDisconnectOpen}
+      deleteAccountOpen={flows.deleteAccountOpen}
+      onDeleteAccountOpenChange={flows.setDeleteAccountOpen}
+      deletingAccount={flows.working}
+      onDeleteAccount={() => void flows.deleteAccount()}
       onSyncNow={() => void handleSyncNow()}
-      onDisconnect={() => void sync.disconnect()}
+      onDisconnect={() => void flows.disconnect()}
       purchaseAllowed={purchaseAllowed}
-      onOpenPortal={() => void openPortal()}
-      onOpenUpgrade={() => void openUpgrade()}
-      sync={sync}
+      onOpenPortal={() => void flows.openPortal()}
+      onOpenUpgrade={() => void flows.openUpgrade()}
+      sync={flows.sync}
     />
   );
 }

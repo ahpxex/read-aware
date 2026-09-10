@@ -388,6 +388,8 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       backlog: async () => ({ events: 0, blobs: 0 }), account: async () => null,
       requestSync: async () => { throw new AppError("ui/unavailable", "Connect a sync fixture"); },
       openSettings: async () => ({ status: "opened", surface: "dataSync" }),
+      connectionOptions: async () => [],
+      requestFlow: async () => { throw new AppError("ui/unavailable", "Attach a sync account flow fixture"); },
     },
     conversationControl: {
       turnRequests: async () => [],

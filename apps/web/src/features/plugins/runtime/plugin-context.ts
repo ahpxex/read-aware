@@ -73,6 +73,7 @@ import {
 } from "./plugin-backend";
 import {
   registerCommandContribution,
+  registerContextActionContribution,
   registerAgentContextProviderContribution,
   registerAgentRetrievalProviderContribution,
   registerContentProviderContribution,
@@ -309,15 +310,30 @@ export function buildPluginContext(
       },
       headerActions: {
         register: (action) =>
-          trackAction(() =>
-            registerHeaderActionContribution({
+          trackAction(() => {
+            if (!["shelf", "reader", "agent"].includes(action.surface)) {
+              throw new AppError("plugin/invalid-input", "Unknown header surface");
+            }
+            return registerHeaderActionContribution({
               ...action,
               ...brand,
               presentation:
-                action.surface === "reader" ? "popup" : (action.presentation ?? "popup"),
+                action.surface !== "shelf" ? "popup" : (action.presentation ?? "popup"),
               key: contributionKey(manifest.id, action.id),
-            }),
-          ),
+            });
+          }),
+      },
+      contextActions: {
+        register: (action) => trackAction(() => {
+          if (!["book", "collection"].includes(action.surface)) {
+            throw new AppError("plugin/invalid-input", "Unknown context surface");
+          }
+          return registerContextActionContribution({
+            ...action,
+            ...brand,
+            key: contributionKey(manifest.id, action.id),
+          });
+        }),
       },
       commands: {
         register: (command) =>

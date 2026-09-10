@@ -19,6 +19,7 @@ import type {
   PluginSelectOption,
   PluginView,
   RegisteredCommand,
+  RegisteredContextAction,
   RegisteredAgentContextProvider,
   RegisteredAgentRetrievalProvider,
   RegisteredHeaderAction,
@@ -41,6 +42,8 @@ const selectionActionsRegistry =
   createInteractiveContributionRegistry<RegisteredSelectionAction>("selectionActions", "run");
 const headerActionsRegistry =
   createInteractiveContributionRegistry<RegisteredHeaderAction>("headerActions", "view");
+const contextActionsRegistry =
+  createInteractiveContributionRegistry<RegisteredContextAction>("contextActions", "run");
 const readerModesRegistry =
   createContributionRegistry<RegisteredReaderMode>("readerModes");
 const commandsRegistry =
@@ -62,6 +65,7 @@ const voiceProvidersRegistry =
 
 export const selectionActionsAtom = selectionActionsRegistry.atom;
 export const headerActionsAtom = headerActionsRegistry.atom;
+export const contextActionsAtom = contextActionsRegistry.atom;
 export const readerModesAtom = readerModesRegistry.atom;
 export const pluginCommandsAtom = commandsRegistry.atom;
 export const pluginToolsAtom = toolsRegistry.atom;
@@ -97,6 +101,10 @@ export function registerHeaderActionContribution(
   item: RegisteredHeaderAction,
 ) {
   return headerActionsRegistry.register(item);
+}
+
+export function registerContextActionContribution(item: RegisteredContextAction) {
+  return contextActionsRegistry.register(item);
 }
 
 export function registerReaderModeContribution(

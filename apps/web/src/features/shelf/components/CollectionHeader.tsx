@@ -3,6 +3,7 @@ import { Body, Button, Dialog, Heading, IconButton, Tooltip } from "@read-aware/
 import { useLocalAtom } from "@read-aware/ui/state";
 import { Trans, useTranslation } from "../../../i18n";
 import type { Collection } from "../../library/lib/library-types";
+import { PluginContextMenu } from "../../plugins/components/PluginContextMenu";
 
 type CollectionHeaderProps = {
   collection: Collection;
@@ -74,6 +75,7 @@ export function CollectionHeader({ collection, count, onRename, onDelete }: Coll
             icon={<Trash size={16} weight="regular" aria-hidden="true" />}
           />
         </Tooltip>
+        <PluginContextMenu input={{ surface: "collection", collection }} />
       </div>
 
       <Body className="mt-1 text-sm tabular-nums text-fg-muted">

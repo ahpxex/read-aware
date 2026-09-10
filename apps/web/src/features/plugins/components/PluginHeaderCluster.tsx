@@ -53,7 +53,7 @@ export function PluginHeaderCluster({
   const actions = allActions.filter((action) => action.surface === surface && actionVisible(action));
   if (actions.length === 0) return null;
 
-  const pinnedKeys = (surface === "shelf" ? placement.shelfHeader : placement.readerHeader).slice(
+  const pinnedKeys = (surface === "shelf" ? placement.shelfHeader : surface === "reader" ? placement.readerHeader : []).slice(
     0,
     HEADER_PIN_LIMIT,
   );
@@ -170,7 +170,7 @@ function PluginHeaderPopupButton({
 }) {
   const [open, setOpen] = useState(false);
   const { view } = usePluginViewSource(action.view, open, () => action.view(input),
-    () => { showPluginFailureToast(action.pluginName); setOpen(false); }, input.book?.id);
+    () => { showPluginFailureToast(action.pluginName); setOpen(false); }, input.book?.id ?? input.thread?.id);
 
   return (
     <Popover

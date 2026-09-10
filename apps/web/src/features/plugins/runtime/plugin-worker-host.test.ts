@@ -1,7 +1,7 @@
 import { describe, expect, spyOn, test } from "bun:test";
 import type { PluginContext, PluginDisposable } from "../lib/plugin-types";
 import { getDefaultStore } from "jotai";
-import { pluginCommandsAtom } from "../state/plugin-store";
+import { contextActionsAtom, pluginCommandsAtom } from "../state/plugin-store";
 import { describeContext, startPluginWorker } from "./plugin-worker-host";
 import { PluginCallbackRegistry, pluginCallbackOwner, retainPluginCallbacks } from "./plugin-callback-wire";
 import { openPluginViewChannel } from "../lib/plugin-view-channels";
@@ -140,6 +140,33 @@ test("action state RPC owns exact live registrations and rejects unsupported or 
     expect(await call("$registration.updateState", [subscription.disposable, { revision: 1, enabled: false, visible: false }]))
       .toMatchObject({ ok: false, code: "plugin/unavailable" });
     await worker.deliver({ t: "dispose", handle: subscription.disposable });
+  } finally { await close(); }
+});
+
+test("context action RPC carries target metadata and owns state updates through disposal", async () => {
+  const { worker, close } = await hostFixture();
+  try {
+    await worker.deliver({ t: "call", id: 1, method: "contributions.contextActions.register", args: worker.callbacks.encode([
+      { id: "book", title: "Book action", surface: "book", run() {} },
+    ]) });
+    const receipt = worker.sent.find(message => message.t === "result" && message.id === 1)!;
+    expect(receipt).toMatchObject({ ok: true });
+    expect(receipt.disposable).toBeString();
+    const action = getDefaultStore().get(contextActionsAtom).find(item => item.pluginId === "callback-host-test")!;
+    const input = { surface: "book" as const, book: { id: "b", title: "Book" } };
+    const pending = Promise.resolve(action.run(input)).catch(error => error);
+    const invocation = worker.sent.findLast(message => message.t === "invoke")!;
+    expect(invocation.args).toEqual([input]);
+    await worker.deliver({ t: "result", id: invocation.id, ok: true, value: worker.callbacks.encode(null) });
+    expect(await pending).toBeNull();
+    await worker.deliver({ t: "call", id: 2, method: "$registration.updateState", args: worker.callbacks.encode([
+      receipt.disposable, { revision: 1, visible: true, enabled: false },
+    ]) });
+    expect(worker.sent.find(message => message.t === "result" && message.id === 2)).toMatchObject({ ok: true, value: { status: "applied" } });
+    expect(() => action.run(input)).toThrow(expect.objectContaining({ code: "plugin/action-disabled" }));
+    await worker.deliver({ t: "dispose", handle: receipt.disposable });
+    expect(getDefaultStore().get(contextActionsAtom).some(item => item.pluginId === "callback-host-test")).toBe(false);
+    expect(worker.callbacks.size).toBe(0);
   } finally { await close(); }
 });
 

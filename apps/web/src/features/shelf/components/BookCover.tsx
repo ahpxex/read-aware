@@ -1,4 +1,4 @@
-import { Check, Info, Star, Trash } from "@phosphor-icons/react";
+import { Check, DotsThreeVertical, Info, Star, Trash } from "@phosphor-icons/react";
 import { DropdownMenu, IconButton, Progress, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useLocalAtom } from "@read-aware/ui/state";
@@ -8,6 +8,7 @@ import { useLongPress } from "../hooks/useLongPress";
 import { setBookDragPayload } from "../lib/book-drag";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
 import { BookDetailsDialog, BookRemoveDialog } from "./BookDialogs";
+import { usePluginContextItems } from "../../plugins/hooks/usePluginContextItems";
 
 type BookCoverProps = {
   book: LibraryBook;
@@ -42,6 +43,8 @@ export function BookCover({
   className,
 }: BookCoverProps) {
   const { t } = useTranslation("shelf");
+  const { t: tp } = useTranslation("plugins");
+  const pluginItems = usePluginContextItems({ surface: "book", book });
   const [infoOpen, setInfoOpen] = useLocalAtom(false);
   const [removeOpen, setRemoveOpen] = useLocalAtom(false);
   // Touch: no hover to reveal the action overlay, so a long press opens the
@@ -60,6 +63,11 @@ export function BookCover({
     >
       <button
         type="button"
+        onContextMenu={(event) => {
+          if (selecting) return;
+          event.preventDefault();
+          setMenuOpen(true);
+        }}
         onClick={selecting ? onToggleSelect : onClick}
         aria-pressed={selecting ? selected : undefined}
         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg focus-visible:ring-offset-2 focus-visible:ring-offset-fill"
@@ -149,11 +157,11 @@ export function BookCover({
                 icon={<Info size={14} weight="regular" aria-hidden="true" />}
               />
               <IconButton
-                label={t("book.remove", { title: book.title })}
+                label={pluginItems.length ? tp("menu.actions") : t("book.remove", { title: book.title })}
                 size="sm"
-                onClick={() => setRemoveOpen(true)}
-                className="rounded-sm text-white/70 hover:text-red-400 focus-visible:ring-white"
-                icon={<Trash size={14} weight="regular" aria-hidden="true" />}
+                onClick={() => pluginItems.length ? setMenuOpen(true) : setRemoveOpen(true)}
+                className={cn("rounded-sm text-white/70 focus-visible:ring-white", pluginItems.length ? "hover:text-white" : "hover:text-red-400")}
+                icon={pluginItems.length ? <DotsThreeVertical size={16} aria-hidden="true" /> : <Trash size={14} weight="regular" aria-hidden="true" />}
               />
             </div>
 
@@ -205,6 +213,7 @@ export function BookCover({
                 onClick: () => setRemoveOpen(true),
                 destructive: true,
               },
+              ...pluginItems,
             ]}
           />
         </div>

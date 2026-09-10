@@ -856,8 +856,9 @@ MORE05 remains partial, not closed by live views alone.
 
 ### <a id="interactive-contribution-state"></a>Interactive Contribution State
 
-[代码] `commands`, `headerActions`, `selectionActions` and `agentTools` are at
-contribution version 1.1. Their optional initial `state` and returned
+[代码] `commands` and `agentTools` are at contribution version 1.1;
+`selectionActions` and `headerActions` are at 1.2, and `contextActions` at 1.0.
+All five support optional initial `state` and returned
 `PluginActionRegistration.updateState(state)` share a full snapshot:
 `{ revision, visible, enabled, checked? }`. Omission at registration means
 revision 0, visible/enabled true and no checked value. Revisions must be
@@ -3015,7 +3016,8 @@ The canonical contribution roster is:
 | ID | Plugin supplies | Host owns |
 | --- | --- | --- |
 | `selectionActions` | selection action and handler | selection menu and invocation UX |
-| `headerActions` | reader/library action and view | toolbar/page placement and accessibility |
+| `headerActions` | reader/library/Agent action and view | toolbar/page placement and accessibility |
+| `contextActions` | book/collection action and handler | target metadata, object menu and invocation UX |
 | `commands` | command metadata and handler | registry, palette, shortcuts |
 | `settingsOptions` | dynamic options for a declared plugin field | settings form and validation |
 | `voiceProviders` | voice discovery and synthesis | selected voice, playback, fallback |
@@ -3028,6 +3030,49 @@ The canonical contribution roster is:
 | `themes` | semantic app/reader theme data | validation, selection, generated CSS |
 | `fonts` | metadata and approved font assets | loading, picker, active selection |
 | `syncTransports` | a ciphertext mailbox on a remote of the plugin's choosing (WebDAV, S3, …) | encryption, event log, cursors, merge, connect ritual, scheduling |
+
+### Object Menus and Agent Header
+
+[代码] `headerActions` 1.2 adds `surface: "agent"` to `shelf`/`reader`.
+The Agent page appends contributions to its existing responsive header entries;
+inline actions use the anchored popup, collapsed entries use the existing Dialog
+host. The input is `{ thread: { kind: "global", id } }`, including an empty draft
+thread that may not yet have persisted messages. Switching threads remounts the
+inline view. Reader and Agent registrations normalize `presentation` to `popup`;
+only the shelf can present a full page. Agent actions do not enter shelf primary
+navigation, shelf/reader customization, or the global command palette.
+
+[代码] `contributions.contextActions.register` accepts `id`, `title`, optional
+`icon`, `state`, optional `presentation: "dialog"`, `surface: "book" | "collection"`,
+and `run(input)` returning the existing `PluginViewResult` (view/toast/void).
+The host consumes it in BookCover's shared action menu (hover trigger, right-click,
+long press), BookRow's action menu, CollectionTile's grid/list menu, and
+CollectionHeader's action menu. No nested interactive elements are added to
+collection open buttons. Menus disappear when no visible contribution remains.
+
+[代码] Input is a discriminated union: book receives only
+`{ surface: "book", book: { id, title, author? } }`; collection receives only
+`{ surface: "collection", collection: { id, name } }`. Rendering does not call
+plugin code; clicking sends a fresh copy of the rendered target snapshot.
+No original file paths, cover URLs, full LibraryBook/Collection objects, members,
+transcripts or selection sets cross this boundary. Registration needs no extra
+permission, but the input is not a grant: domain queries/commands remain gated.
+Targets can become stale after rendering; mutations must use normal domain
+validation rather than assuming the object's continued existence.
+
+[代码] Both registries use the existing guarded callback lifecycle, replacement
+identity and revisioned `updateState`; context state is registration-wide, not
+per-target evaluation. Worker RPC returns mutable registration handles and
+releases callbacks on disposal. Context action results share command/selection
+view ownership, failure reporting, loading Dialog and stale result disposal.
+Unknown surfaces reject with `plugin/invalid-input`.
+
+[环境] Focused context projection, state/retirement, bridge and type checks cover
+the new wiring. Actual native menu interactions, narrow-window placement, plugin
+view composition and focus restoration remain for the concentrated Tauri E2E
+phase. This does not provide OS-native context menus, bulk selection actions,
+per-object dynamic conditions, or new menu layout settings. Agent uses existing
+semantic library/conversation tools, not tools that click these menu entries.
 
 All contribution registries use the same ownership rules:
 

@@ -7,6 +7,7 @@ import type { BookMetadataPatch, LibraryBook } from "../../library/lib/library-t
 import { setBookDragPayload } from "../lib/book-drag";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
 import { BookDetailsDialog, BookRemoveDialog } from "./BookDialogs";
+import { PluginContextMenu } from "../../plugins/components/PluginContextMenu";
 
 type BookRowProps = {
   book: LibraryBook;
@@ -123,6 +124,7 @@ export function BookRow({
 
       {!selecting && (
         <div className="flex shrink-0 items-center gap-1">
+          <PluginContextMenu input={{ surface: "book", book }} />
           <IconButton
             label={book.starred ? t("book.unstar", { title: book.title }) : t("book.star", { title: book.title })}
             size="sm"

@@ -35,7 +35,7 @@ import { decodePluginCallbacks, retainPluginCallbacks, type PluginCallbackWire }
 import type { PluginActionRegistration } from "../lib/plugin-types";
 
 type HeldRegistration = PluginDisposable & Partial<Pick<PluginActionRegistration, "updateState">>;
-const actionRegistrations = new Set(["selectionActions", "headerActions", "commands", "agentTools"].map(point => `contributions.${point}.register`));
+const actionRegistrations = new Set(["selectionActions", "headerActions", "contextActions", "commands", "agentTools"].map(point => `contributions.${point}.register`));
 
 const log = createLogger("plugins");
 

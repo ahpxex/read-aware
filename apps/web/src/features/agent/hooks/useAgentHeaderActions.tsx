@@ -5,6 +5,7 @@ import { useTranslation } from "../../../i18n";
 import type { LibraryBook } from "../../library/lib/library-types";
 import type { HeaderActionEntry } from "../../navigation/lib/header-actions";
 import { agentHeaderActionClass } from "../lib/agent-header-action";
+import { usePluginAgentHeaderEntries } from "../../plugins/hooks/usePluginAgentHeaderEntries";
 
 // Entry METADATA (ids, labels, icons) must exist synchronously for the
 // header's collapse math; only the popovers themselves are code-split.
@@ -35,6 +36,7 @@ export function useAgentHeaderActions({
   onNewConversation: () => void;
 }): HeaderActionEntry[] {
   const { t } = useTranslation("ai");
+  const pluginEntries = usePluginAgentHeaderEntries();
 
   return [
     {
@@ -93,5 +95,6 @@ export function useAgentHeaderActions({
         ),
       },
     },
+    ...pluginEntries,
   ];
 }

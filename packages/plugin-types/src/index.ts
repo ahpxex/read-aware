@@ -884,11 +884,13 @@ export type PluginSelectionAction = {
   run: (input: SelectionActionInput) => PluginViewResult | Promise<PluginViewResult>;
 };
 
-export type PluginHeaderSurface = "shelf" | "reader";
+export type PluginHeaderSurface = "shelf" | "reader" | "agent";
 
 export type HeaderActionInput = {
   /** Present on the reader surface: the open book. */
   book?: { id: string; title: string; author?: string };
+  /** Agent page: selected global thread, which may not yet have persisted turns. */
+  thread?: { kind: "global"; id: string };
 };
 
 /**
@@ -902,9 +904,25 @@ export type PluginHeaderAction = {
   title: PluginText;
   icon?: string;
   surface: PluginHeaderSurface;
-  /** Shelf only — the reader never allows full-page interruptions. */
+  /** Shelf only; reader and Agent headers always open a popup. */
   presentation?: "popup" | "page";
   view: (input: HeaderActionInput) => PluginView | Promise<PluginView>;
+};
+
+/** User-selected target metadata only; reading or mutating it still requires domain grants. */
+export type ContextActionInput =
+  | { surface: "book"; book: { id: string; title: string; author?: string } }
+  | { surface: "collection"; collection: { id: string; name: string } };
+
+export type PluginContextAction = {
+  id: string;
+  title: PluginText;
+  icon?: string;
+  surface: ContextActionInput["surface"];
+  /** Registration-wide state, not a separate state for each target. */
+  state?: PluginActionState;
+  presentation?: "dialog";
+  run(input: ContextActionInput): PluginViewResult | Promise<PluginViewResult>;
 };
 
 // ─── Reader-mode contributions ──────────────────────────────────────────────
@@ -1676,6 +1694,9 @@ export type PluginContributions = {
   };
   headerActions: {
     register(action: PluginHeaderAction): PluginActionRegistration;
+  };
+  contextActions: {
+    register(action: PluginContextAction): PluginActionRegistration;
   };
   commands: {
     register(command: PluginCommand): PluginActionRegistration;

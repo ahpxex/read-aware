@@ -6,6 +6,7 @@
  */
 import type {
   PluginCommand,
+  PluginContextAction,
   PluginFontContribution,
   PluginHeaderAction,
   PluginManifest,
@@ -54,6 +55,12 @@ export type RegisteredSelectionAction = PluginSelectionAction & {
 };
 
 export type RegisteredHeaderAction = PluginHeaderAction & {
+  key: ContributionKey;
+  pluginId: string;
+  pluginName: string;
+};
+
+export type RegisteredContextAction = PluginContextAction & {
   key: ContributionKey;
   pluginId: string;
   pluginName: string;

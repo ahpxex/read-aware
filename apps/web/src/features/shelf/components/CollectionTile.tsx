@@ -5,6 +5,7 @@ import { useLocalAtom } from "@read-aware/ui/state";
 import { useTranslation } from "../../../i18n";
 import { dragCarriesBooks, readBookDragPayload } from "../lib/book-drag";
 import type { ShelfLayout } from "../lib/shelf-view";
+import { PluginContextMenu } from "../../plugins/components/PluginContextMenu";
 
 export type CollectionTileData = {
   id: string;
@@ -88,52 +89,58 @@ export function CollectionTile({ data, layout, onOpen, onDropBooks }: Collection
 
   if (layout === "list") {
     return (
-      <button
-        type="button"
-        onClick={onOpen}
-        {...dropProps}
-        className={cn(
-          "group flex w-full items-center gap-4 rounded-sm px-2 py-2 text-left transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
-          dragOver && "bg-fg/5 ring-1 ring-fg",
-        )}
-      >
-        <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-sm border border-border bg-fill">
-          <Montage coverUrls={data.coverUrls} className="h-full w-full" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <span className="block truncate font-serif text-sm font-medium text-fg">{data.name}</span>
-          <span className="mt-0.5 block font-sans text-[13px] tabular-nums text-fg-muted">
-            {countLabel}
-          </span>
-        </div>
-        <CaretRight size={16} weight="regular" aria-hidden="true" className="shrink-0 text-fg-subtle" />
-      </button>
+      <div className="flex min-w-0 items-center">
+        <button
+          type="button"
+          onClick={onOpen}
+          {...dropProps}
+          className={cn(
+            "group flex min-w-0 flex-1 items-center gap-4 rounded-sm px-2 py-2 text-left transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
+            dragOver && "bg-fg/5 ring-1 ring-fg",
+          )}
+        >
+          <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-sm border border-border bg-fill">
+            <Montage coverUrls={data.coverUrls} className="h-full w-full" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <span className="block truncate font-serif text-sm font-medium text-fg">{data.name}</span>
+            <span className="mt-0.5 block font-sans text-[13px] tabular-nums text-fg-muted">
+              {countLabel}
+            </span>
+          </div>
+          <CaretRight size={16} weight="regular" aria-hidden="true" className="shrink-0 text-fg-subtle" />
+        </button>
+        <PluginContextMenu input={{ surface: "collection", collection: data }} />
+      </div>
     );
   }
 
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      {...dropProps}
-      className="group flex w-full max-w-32 justify-self-start flex-col text-left focus-visible:outline-none sm:max-w-36 lg:max-w-44"
-    >
-      <div
-        className={cn(
-          "relative aspect-[2/3] w-full overflow-hidden rounded-sm border border-border bg-fill transition-shadow group-hover:shadow-md group-focus-within:shadow-md",
-          dragOver && "ring-2 ring-fg",
-        )}
+    <div className="relative w-full max-w-32 justify-self-start sm:max-w-36 lg:max-w-44">
+      <button
+        type="button"
+        onClick={onOpen}
+        {...dropProps}
+        className="group flex w-full flex-col text-left focus-visible:outline-none"
       >
-        <Montage coverUrls={data.coverUrls} className="h-full w-full" />
-        <div className="absolute inset-x-0 bottom-0 bg-stone-950/70 px-2 py-1.5">
-          <span className="block truncate font-serif text-xs font-medium leading-tight text-white">
-            {data.name}
-          </span>
-          <span className="mt-0.5 block font-sans text-[10px] tabular-nums text-white/70">
-            {countLabel}
-          </span>
+        <div
+          className={cn(
+            "relative aspect-[2/3] w-full overflow-hidden rounded-sm border border-border bg-fill transition-shadow group-hover:shadow-md group-focus-within:shadow-md",
+            dragOver && "ring-2 ring-fg",
+          )}
+        >
+          <Montage coverUrls={data.coverUrls} className="h-full w-full" />
+          <div className="absolute inset-x-0 bottom-0 bg-stone-950/70 px-2 py-1.5">
+            <span className="block truncate font-serif text-xs font-medium leading-tight text-white">
+              {data.name}
+            </span>
+            <span className="mt-0.5 block font-sans text-[10px] tabular-nums text-white/70">
+              {countLabel}
+            </span>
+          </div>
         </div>
-      </div>
-    </button>
+      </button>
+      <PluginContextMenu input={{ surface: "collection", collection: data }} className="absolute right-1 top-1" />
+    </div>
   );
 }

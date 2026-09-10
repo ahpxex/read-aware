@@ -22,7 +22,7 @@
 
 - 宿主：实装 194、部分 43、待建 3、占位 2、非桌面 1。
 - Agent：接通 133、部分 57、扩展 13、未接 22、自动 14、内部 4。
-- 插件：接通 147、部分 80、未接 16。
+- 插件：接通 148、部分 79、未接 16。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -359,7 +359,7 @@
 | <a id="MORE01"></a>MORE01 | 周期调度/启动补跑/失败记录 | 实装 | **接通**：list_plugin_schedules/manage_plugin_schedule 全局<br>[设计] 枚举与批准 pause/resume/run | **接通**：schedules 1.1 bind/list/observe/control<br>[设计] 自有计划状态与受控执行 | RSS 现有每小时刷新；Agent 与插件正式入口 | 每插件最多 64 个绑定，查询偏移分页 1–100/默认 50，观察初始+串行合并变化。暂停/恢复等持久写；手动 run 越过暂停/间隔一次，不恢复自动计划。每 key 跨重绑定共享 flight，already-running 不假称完成；开始记录落库后才派发 callback，结束记录落库后才 completed，失败不会刷新 lastSuccessAt。旧时间戳只迁为 lastStartedAt；未完成记录显示 interrupted，不伪造成功。新/旧调度记录排除偏好漫游；不是完整执行历史。退休停止新调用与迟到结果写，已派发持久写参与生命周期 drain；不保证物理副作用回滚。首轮 5 秒/每分钟扫描，至少 15 分钟间隔，错过多轮合并一次，关 App 不运行；最后绑定释放计时器。定向持久/并发/权限测试已验，组合插件与 Tauri 重启/升级验收待集中进行。 | [SCHED](../apps/web/src/features/plugins/runtime/plugin-scheduler.ts) [SCHEDCONTROL](../apps/web/src/features/plugins/runtime/plugin-schedule-controller.ts) [SCHEDTOOLS](../packages/agent/src/tools/schedule-tools.ts) [API](../packages/plugin-types/src/index.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [RSS](../plugins/rss-reader/src/index.ts) [ROAM](../apps/web/src/platform/roaming-preferences.ts) | Q03 |
 | <a id="MORE02"></a>MORE02 | 一次性延迟/短周期/空闲任务与自触发防环 | 部分 | **自动**：maintenance 有 idle 策略，无通用调度工具<br>[设计] 宿主自动管线/受控计划 | **部分**：Worker timer 可用，无宿主可恢复任务<br>[设计] 有 owner/origin 的任务服务 | Theme Schedule 用 Worker clock；RSS 定时 | setTimeout 不是可审计后台任务；ignoreSelf 不能阻止跨插件循环 | [SCHED](../apps/web/src/features/plugins/runtime/plugin-scheduler.ts) [MAINT](../apps/web/src/features/ai/agent/maintenance.ts) [WORKER](../apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | Q04, Q05 |
 | <a id="MORE03"></a>MORE03 | 环境 locale/platform/timezone/在线/ready 快照 | 部分 | **部分**：get_host_environment（全局/书内）+ 自动语言/日期上下文<br>[设计] 环境查询与真实 availability | **部分**：session 2.0 environment/observeEnvironment + ctx.appVersion/capabilities<br>[设计] 统一环境与 availability 快照 | Agent 查询；零权限 Worker 观察；Listening Desk 0.7 离线提示 | 共享 revision、runtime/platform/locale/timeZone/utcOffsetMinutes/networkHint；首次立即快照，语言/网络/焦点变化刷新，时区每 30 秒复核且每次查询刷新，末个观察者释放监听与 timer。网络仅 OS/WebView 提示，不证明 endpoint 可达、账号/模型就绪或格式可用；这些 availability 仍缺。无阅读/账号字段，不借内置服务绕过 reading 权限。Listening Desk 按需刷新离线提示，不阻止本地朗读。隔离 macOS debug 双端与真实 Worker 已验；旧 session 四阅读事件旁路已移除；packaged/跨平台/真实系统时区和网络切换未验。 | [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [ENVIRONMENT](../apps/web/src/platform/host-environment.ts) [ENVTOOLS](../packages/agent/src/tools/environment-tools.ts) [ENVPROOF](../docs/evidence/host-environment-2026-09-09.json) [SESSIONBOUNDARY](../docs/evidence/reading-session-boundary-2026-09-09.json) [API](../packages/plugin-types/src/index.ts) [LISTENINGDESK](../plugins/listening-desk/src/views.ts) | A07 |
-| <a id="MORE04"></a>MORE04 | 书籍/集合上下文菜单与 Agent header 插槽 | 实装 | **未接**：无正式入口<br>[设计] 语义命令，不操作菜单 DOM | **部分**：公开 header surface 仅 shelf/reader<br>[设计] 现有语义插槽扩展 | 宿主上下文菜单/Agent header | 宿主已有菜单不等于每处允许 plugin contribution | [SHELFUI](../apps/web/src/features/shelf/components/Shelf.tsx) [AGENTUI](../apps/web/src/features/agent/components/AgentWorkspace.tsx) [MENU](../apps/web/src/features/menus/lib/menu-registry.tsx) [API](../packages/plugin-types/src/index.ts) | I05 |
+| <a id="MORE04"></a>MORE04 | 书籍/集合上下文菜单与 Agent header 插槽 | 实装 | **未接**：无正式入口<br>[设计] 语义命令，不操作菜单 DOM | **接通**：contextActions 1.0 book/collection；headerActions 1.2 agent<br>[设计] 语义对象动作及页头视图 | 书籍网格/列表、集合卡片/详情操作菜单；Agent header 与窄窗 overflow | 接通待集中验收。书籍 id/title/author、集合 id/name 和当前全局线程 id 是点击上下文，不授予领域读取/写入权限，不披露原始路径、封面 URL、消息或成员清单。context action 返回既有 view/toast/void，复用注册级动态状态、退休和 Dialog 生命周期；Agent header 强制 popup，换线程重建视图，不加入书架导航/命令面板。集合/书籍列表为显式操作菜单，不声称系统级原生右键菜单或批量选择贡献；逐目标条件、菜单自定义布局不是本批范围。 | [SHELFUI](../apps/web/src/features/shelf/components/Shelf.tsx) [AGENTUI](../apps/web/src/features/agent/components/AgentWorkspace.tsx) [MENU](../apps/web/src/features/menus/lib/menu-registry.tsx) [API](../packages/plugin-types/src/index.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [CONTEXTACTIONS](../apps/web/src/features/plugins/lib/context-action-items.tsx) [AGENTHEADER](../apps/web/src/features/plugins/hooks/usePluginAgentHeaderEntries.tsx) [CONTEXTACTIONPROOF](../apps/web/src/features/plugins/runtime/context-actions.test.ts) | I05 |
 | <a id="MORE05"></a>MORE05 | 贡献的动态 visible/enabled/checked 与自有视图刷新 | 部分 | **部分**：两 scope 每次模型请求刷新工具/检索；缓存执行复核；内置工具未统一<br>[设计] 操作 availability | **部分**：四交互贡献 1.1 register().updateState；views 1.1 live.subscribe + UI 1.2 publishView<br>[设计] 声明式条件与受控视图状态 | Jumper 0.2；Text Desk 0.3 请求详情；真实 Worker/Agent 组合探针 | commands/headerActions/selectionActions/agentTools 的精确注册句柄接收非负安全整数 revision 的完整 visible/enabled/checked 快照；旧版本 stale，同 ID 替换/释放句柄 inactive。菜单、命令面板、快捷键、查词和缓存 Agent 工具执行前复核；hidden 也拒绝新调用，checked 只呈现，不自动修改业务或增加权限。禁用不取消已启动操作，也不重置打开页面的草稿；用户菜单布局隐藏不等于贡献主动禁用。Worker 更新等待注册 ACK，沿用 RPC 限额/截止。Jumper 观察实际 session/history 自动更新前后跳。live 通道仍限激活代/可见帧，push/modal/关闭撤销，返回重新订阅，最多 16 通道；失败保留旧画面，applied 不是绘制或业务完成。AgentThread 每次模型请求更新发现与执行上下文，不因工具变化丢弃章节会话；已发出请求保留旧定义，执行前拒绝退休/禁用注册，不能转交同名新实现；检索同样复核注册身份。隔离 macOS debug 已验真实快捷键、书架/阅读菜单、命令面板、选区工具栏、页面草稿、缓存 Agent/在途操作与编译 Jumper；新增真实 Worker 九次模型请求验证启用、停用、恢复、替换与历史保留，推理为脚本、对话为内存，非自主模型或 SQLite 证据。宿主内置 Agent 工具统一 availability、全表单/焦点/大数据与 packaged/跨平台仍缺；不开放 DOM/Jotai。 | [API](../packages/plugin-types/src/index.ts) [RENDER](../apps/web/src/features/plugins/components/PluginViewRenderer.tsx) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [REGISTRY](../packages/agent/src/tools/registry.ts) [VIEWSESSION](../apps/web/src/features/plugins/lib/plugin-view-session.ts) [LIVEVIEW](../apps/web/src/features/plugins/lib/plugin-live-view.ts) [VIEWCHANNELS](../apps/web/src/features/plugins/lib/plugin-view-channels.ts) [CALLBACKWIRE](../apps/web/src/features/plugins/runtime/plugin-callback-wire.ts) [LIVEVIEWPROOF](../docs/evidence/plugin-live-views-2026-09-09.json) [ACTIONSTATE](../apps/web/src/features/plugins/state/interactive-contribution-registry.ts) [ACTIONSTATEPROOF](../docs/evidence/plugin-action-state-2026-09-09.json) [THREAD](../packages/agent/src/runtime/thread.ts) [EXTOOLS](../apps/web/src/features/plugins/runtime/plugin-tools.ts) [TOOLREFRESHPROOF](../docs/evidence/agent-tool-refresh-2026-09-09.json) | I07, J04, J05 |
 | <a id="MORE06"></a>MORE06 | 发现/复用类型化提供者与跨插件权限交集 | 部分 | **扩展**：host 聚合各插件 tool/retrieval<br>[设计] 宿主 broker 消费 | **部分**：阅读模式可发现/选择；无通用 provider discover/invoke<br>[设计] 依赖和资源范围重鉴权的 broker | 宿主消费 voices/content/modes/tools/transports | 注册、被宿主消费、被其他插件调用是三个方向；不开放任意字符串 RPC/他人 storage | [EXTOOLS](../apps/web/src/features/plugins/runtime/plugin-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [SYNCTRANSPORT](../apps/web/src/platform/sync/transport-registry.ts) [API](../packages/plugin-types/src/index.ts) | N04, N06 |
 | <a id="MORE07"></a>MORE07 | 插件自有二进制资产与资源配额 | 部分 | **扩展**：只经插件工具间接消费<br>[设计] 受权资源意图 | **部分**：包内 assets 有；无可写私有 blob API<br>[设计] 私有可撤销 ResourceRef/流/配额 | 主题字体包内资源；TTS 内存音频 | 包内静态资产、文档 JSON、运行期私有 blob 三者不可混算 | [BLOB](../apps/web/src/platform/blob-store.ts) [DOCS](../apps/web/src/features/plugins/runtime/plugin-backend.ts) [API](../packages/plugin-types/src/index.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | J08, O04 |
@@ -412,10 +412,10 @@
 
 - Agent global：85 个。
 - Agent book：68 个。
-- Plugin ctx：174 个。
-- Plugin returned interface：25 个。
+- Plugin ctx：175 个。
+- Plugin returned interface：27 个。
 - Capability domains：6 个。
-- Capability contributions：14 个。
+- Capability contributions：15 个。
 - Capability services：12 个。
 - Capability schemas：3 个。
 - Settings path：74 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 174 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 175 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -769,7 +769,8 @@
 | `services.clipboard.writeImage` | [SYS09](#SYS09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.clipboard.writeText` | [SYS08](#SYS08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `contributions.selectionActions.register` | [EXT01](#EXT01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
-| `contributions.headerActions.register` | [EXT02](#EXT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `contributions.headerActions.register` | [EXT02](#EXT02) [MORE04](#MORE04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `contributions.contextActions.register` | [MORE04](#MORE04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `contributions.commands.register` | [UI03](#UI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `contributions.settingsOptions.register` | [CFG09](#CFG09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `contributions.voiceProviders.register` | [READ17](#READ17) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -806,6 +807,8 @@
 | `contributions.commands.register().updateState` | [MORE05](#MORE05) | [代码] 精确注册句柄；不是按公开 ID 更新其他注册或增加权限 |
 | `contributions.headerActions.register().dispose` | [MORE05](#MORE05) | [代码] 精确注册句柄；不是按公开 ID 更新其他注册或增加权限 |
 | `contributions.headerActions.register().updateState` | [MORE05](#MORE05) | [代码] 精确注册句柄；不是按公开 ID 更新其他注册或增加权限 |
+| `contributions.contextActions.register().dispose` | [MORE05](#MORE05) | [代码] 精确注册句柄；不是按公开 ID 更新其他注册或增加权限 |
+| `contributions.contextActions.register().updateState` | [MORE05](#MORE05) | [代码] 精确注册句柄；不是按公开 ID 更新其他注册或增加权限 |
 | `contributions.selectionActions.register().dispose` | [MORE05](#MORE05) | [代码] 精确注册句柄；不是按公开 ID 更新其他注册或增加权限 |
 | `contributions.selectionActions.register().updateState` | [MORE05](#MORE05) | [代码] 精确注册句柄；不是按公开 ID 更新其他注册或增加权限 |
 | `contributions.agentTools.register().dispose` | [MORE05](#MORE05) | [代码] 精确注册句柄；不是按公开 ID 更新其他注册或增加权限 |
@@ -827,7 +830,8 @@
 | 当前注册项 | 矩阵行 | 说明 |
 | --- | --- | --- |
 | `selectionActions` | [EXT01](#EXT01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
-| `headerActions` | [EXT02](#EXT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `headerActions` | [EXT02](#EXT02) [MORE04](#MORE04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `contextActions` | [MORE04](#MORE04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `commands` | [UI03](#UI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `settingsOptions` | [CFG09](#CFG09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `voiceProviders` | [READ17](#READ17) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

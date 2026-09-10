@@ -194,7 +194,14 @@ pub fn serve_blob(
     let Ok(conn) = db.0.lock() else {
         return not_found();
     };
-    let key = cover_blob_key(book_id);
+    let key: String = match conn.query_row(
+        "SELECT cover_blob_key FROM books WHERE id=?1 AND cover_status='ready' AND cover_blob_key IS NOT NULL",
+        [book_id], |row| row.get(0),
+    ) {
+        Ok(key) => key,
+        Err(rusqlite::Error::QueryReturnedNoRows) => return not_found(),
+        Err(error) => { log::warn!("cover projection lookup failed: {error}"); return not_found(); }
+    };
     let record = match get_blob_record_inner(&conn, &data_dir.0, &key) {
         Ok(Some(record)) => record,
         Ok(None) => return not_found(),

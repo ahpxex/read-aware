@@ -76,6 +76,11 @@
           "description": "这会永久移除导入的原始文件和本地阅读数据，且无法撤销。",
           "approve": "删除书籍"
         },
+        "mergeBooks": {
+          "question": "合并这些重复书籍？",
+          "description": "保留下方第一条记录。标注和阅读数据按宿主规则归并，聊天记录保留原引用。合并不可撤销，也不会立即回收文件空间。\n\n{{subject}}",
+          "approve": "合并记录"
+        },
         "importResource": {
           "question": "将这个文件加入书架？",
           "description": "通过正常书库流程导入 {{subject}}，原文件不会改变。书库数据沿用你现有的同步设置。",

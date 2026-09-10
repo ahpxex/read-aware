@@ -694,6 +694,7 @@ export function buildPluginContext(
         books: {
           prepareText: library.commands.books.prepareText,
           retryEnrichment: (bookId: string) => library.commands!.books.retryEnrichment(bookId, lifecycle.signal),
+          mergeDuplicates: (input: import("@read-aware/core").BookMergeRequest) => library.commands!.books.mergeDuplicates(input, lifecycle.signal),
           cancelTextTask: library.commands.books.cancelTextTask,
           importBook: library.commands.books.importBook,
           importResource: (id: string) => importResourceBook(resources, id, selfOrigin, lifecycle.signal),

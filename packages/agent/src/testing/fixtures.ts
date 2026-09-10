@@ -412,6 +412,10 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     },
     environment: { snapshot: async () => ({ revision: 1, runtime: "desktop", platform: "macos", locale: "en", timeZone: "UTC", utcOffsetMinutes: 0, networkHint: "unknown" }) },
     library: {
+      listDuplicates: async () => ({ groups: [], total: 0, nextOffset: null }),
+      previewMerge: async () => null,
+      resolveBookId: async () => null,
+      mergeDuplicates: async () => { throw new AppError("ui/unavailable", "Attach a merge fixture"); },
       getEnrichment: async () => { throw new AppError("ui/unavailable", "Attach an enrichment fixture"); },
       retryEnrichment: async () => { throw new AppError("ui/unavailable", "Attach an enrichment fixture"); },
       importResource: async () => { throw new AppError("ui/unavailable", "Attach an import resource fixture"); },

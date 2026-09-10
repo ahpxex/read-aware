@@ -76,6 +76,11 @@
           "description": "Dadurch werden die importierte Quelldatei und die lokalen Lesedaten dauerhaft entfernt. Dies kann nicht rückgängig gemacht werden.",
           "approve": "Buch löschen"
         },
+        "mergeBooks": {
+          "question": "Diese doppelten Bücher zusammenführen?",
+          "description": "Der erste Eintrag bleibt erhalten. Anmerkungen und Lesedaten werden nach den Regeln der App zusammengeführt; Chats behalten ihre ursprünglichen Referenzen. Dies ist nicht rückgängig zu machen und gibt nicht sofort Speicher frei.\n\n{{subject}}",
+          "approve": "Einträge zusammenführen"
+        },
         "importResource": {
           "question": "Diese Datei zum Bücherregal hinzufügen?",
           "description": "{{subject}} über den normalen Bibliotheksablauf importieren. Das Original bleibt unverändert. Ihre bisherigen Synchronisierungseinstellungen gelten weiterhin.",

@@ -76,6 +76,11 @@
           "description": "Le fichier source importé et ses données de lecture locales seront définitivement supprimés. Cette action est irréversible.",
           "approve": "Supprimer le livre"
         },
+        "mergeBooks": {
+          "question": "Fusionner ces livres en double ?",
+          "description": "Le premier enregistrement est conservé. Les annotations et données de lecture suivent les règles de fusion de l’app ; les conversations gardent leurs références d’origine. Cette action est irréversible et ne libère pas immédiatement d’espace.\n\n{{subject}}",
+          "approve": "Fusionner"
+        },
         "importResource": {
           "question": "Ajouter ce fichier à votre bibliothèque ?",
           "description": "Importer {{subject}} via le processus habituel. L’original reste inchangé. Vos paramètres de synchronisation actuels s’appliquent.",

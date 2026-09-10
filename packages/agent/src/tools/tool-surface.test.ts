@@ -77,6 +77,10 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   open_book_cover: { bookId: BOOK_ID },
   get_book_enrichment: { bookId: BOOK_ID },
   retry_book_enrichment: { bookId: BOOK_ID },
+  list_duplicate_books: {},
+  preview_book_merge: { bookId: BOOK_ID },
+  merge_duplicate_books: { bookId: BOOK_ID, expectedRevision: `bmg1:${"a".repeat(64)}` },
+  resolve_book_reference: { bookId: BOOK_ID },
   copy_resource_image: { id: "resource-fixture" },
   read_resource_text: { id: "resource-fixture" },
   save_resource: { id: "resource-fixture" },
@@ -196,6 +200,9 @@ describe("tool surface contract", () => {
         // 每个工具独立的 fixture：破坏性工具（fixture 自动批准权限）不得污染后续用例
         const { deps } = createInMemoryDeps(seed());
         deps.hostIO.writeClipboard = async () => {};
+        deps.library.previewMerge = async () => ({ revision: `bmg1:${"a".repeat(64)}`, keep: { id: BOOK_ID, title: "Keeper", author: "Author", createdAt: "2026-09-01" },
+          merged: [{ id: "duplicate", title: "Duplicate", author: "Author", createdAt: "2026-09-02" }] });
+        deps.library.mergeDuplicates = async () => ({ committed: true, keepId: BOOK_ID, redirects: [{ from: "duplicate", to: BOOK_ID }] });
         deps.library.getEnrichment = async bookId => ({ bookId, cover: { status: "none", local: false }, metadataPending: false,
           sourceLocal: true, supported: true, job: { phase: "idle", startedAt: null, finishedAt: null, errorCode: null, reason: null } });
         deps.library.retryEnrichment = async bookId => ({ status: "not-needed", snapshot: await deps.library.getEnrichment(bookId) });

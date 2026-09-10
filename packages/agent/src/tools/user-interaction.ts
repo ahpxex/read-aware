@@ -12,6 +12,7 @@ export const INTERACTIVE_TOOL_NAMES = [
   "ask_user",
   "delete_book",
   "delete_books",
+  "merge_duplicate_books",
   "delete_collection",
   "delete_annotation",
   "manage_memory",

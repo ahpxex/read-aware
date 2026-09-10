@@ -43,6 +43,7 @@ import {
 } from "../features/library/lib/library-db";
 import { importBook } from "../features/library/lib/book-import";
 import { getBookEnrichment, retryBookEnrichment, createEnrichmentObserver } from "./book-enrichment";
+import { listDuplicateBooks, previewBookMerge, mergeDuplicateBooks, resolveMergedBook } from "./book-merge";
 import { searchBookText } from "../features/library/lib/book-text-search";
 import { getBookNavigationToc, searchBookLocations } from "../features/library/lib/book-content-navigation";
 import { readBookRange } from "../features/library/lib/book-range";
@@ -90,6 +91,9 @@ export async function getPersistedChapters(bookId: string): Promise<ExtractedCha
 export type LibraryQueries = {
   books: {
     list(): Promise<BookSummary[]>;
+    listDuplicates(query?: import("@read-aware/core").DuplicateBookQuery, signal?: AbortSignal): Promise<import("@read-aware/core").DuplicateBookPage>;
+    previewMerge(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookMergePreview | null>;
+    resolveId(bookId: string, signal?: AbortSignal): Promise<string | null>;
     listRemovalCleanup(query?: BookRemovalCleanupQuery): Promise<BookRemovalCleanupPage>;
     get(bookId: string): Promise<BookSummary | null>;
     getToc(bookId: string): Promise<ChapterRef[]>;
@@ -113,6 +117,7 @@ export type LibraryCommands = {
   books: {
     prepareText(bookId: string, options?: BookTextPrepareOptions): Promise<BookTextTaskSnapshot>;
     retryEnrichment(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookEnrichmentReceipt>;
+    mergeDuplicates(input: import("@read-aware/core").BookMergeRequest, signal?: AbortSignal): Promise<import("@read-aware/core").BookMergeReceipt>;
     cancelTextTask(bookId: string, taskId: string): Promise<BookTextTaskSnapshot>;
     importBook(input: {
       fileName: string;
@@ -151,6 +156,9 @@ export function createLibraryDomain(origin: EventOrigin, lifetime?: AbortSignal)
   const queries: LibraryQueries = {
     books: {
       getNavigationToc: getBookNavigationToc,
+      listDuplicates: (query, signal) => listDuplicateBooks(query, signal ?? lifetime),
+      previewMerge: (bookId, signal) => previewBookMerge(bookId, signal ?? lifetime),
+      resolveId: (bookId, signal) => resolveMergedBook(bookId, signal ?? lifetime),
       listRemovalCleanup: listLibraryRemovalCleanup,
       getTextState: getBookTextSnapshot,
       getEnrichment: (bookId, signal) => getBookEnrichment(bookId, signal ?? lifetime),
@@ -190,6 +198,7 @@ export function createLibraryDomain(origin: EventOrigin, lifetime?: AbortSignal)
   const commands: LibraryCommands = {
     books: {
       prepareText: (bookId, options) => textTasks.start(bookId, options),
+      mergeDuplicates: (input, signal) => mergeDuplicateBooks(input, origin, signal ?? lifetime),
       retryEnrichment: (bookId, signal) => retryBookEnrichment(bookId, origin, signal ?? lifetime),
       cancelTextTask: async (bookId, taskId) => textTasks.cancel(bookId, taskId),
       importBook: async (input) => {

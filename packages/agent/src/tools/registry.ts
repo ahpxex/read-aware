@@ -22,6 +22,7 @@ import { buildSyncTools } from "./sync-tools";
 import { buildMaintenanceTools } from "./maintenance-tools";
 import { buildResourceTools } from "./resource-tools";
 import { buildEnrichmentTools } from "./enrichment-tools";
+import { buildBookMergeTools } from "./book-merge-tools";
 import { buildScheduleTools } from "./schedule-tools";
 import { buildShelfTools } from "./shelf-tools";
 import type { AgentTurnState } from "./turn-state";
@@ -44,6 +45,7 @@ export function buildAgentTools(
     ...buildMaintenanceTools(deps),
     ...buildResourceTools(scope, deps),
     ...buildEnrichmentTools(scope, deps),
+    ...buildBookMergeTools(scope, deps),
     ...buildScheduleTools(scope, deps),
     ...buildThreadTools(scope, deps),
     ...buildShelfTools(scope, deps),

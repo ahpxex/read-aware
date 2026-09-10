@@ -3136,6 +3136,45 @@ explicit user intent; acceptance does not prove completion. Focused tests passed
 real formats, reader/Worker combinations and concurrent native writes remain for
 integrated Tauri verification.
 
+[代码] Library 1.10 adds read queries `books.listDuplicates({offset?,limit?})`,
+`books.previewMerge(bookId)`, `books.resolveId(bookId)`, and write command
+`books.mergeDuplicates({bookId,expectedRevision})`. Read grants expose queries;
+plugin library:write authorizes merge without a second host approval prompt.
+Global Agent tools `list_duplicate_books`, `preview_book_merge`,
+`merge_duplicate_books`, `resolve_book_reference` share the domain; the merge
+tool requires per-operation host approval displaying the full keeper/member list.
+Book-thread Agents do not receive these global management tools.
+
+Only identical nonempty source SHA groups qualify, not similar titles. Keeper is
+oldest createdAt then smallest ID. Candidate pages default to 20, allow 1..50 and
+offset 0..1,000,000, return groups/total/nextOffset, and are live rather than stable
+cursor snapshots. Preview returns revision/keep/merged with id/title/author/
+createdAt per member, or null for a book without duplicates; unknown books reject.
+At most 1000 duplicates per preview/commit. Revision includes source hash, full
+membership, displayed metadata and latest identity event, not all reading or
+annotation state. Agent output truncates members/redirects to 50 with total counts;
+approval still displays the full group. Plugin receipts contain all redirects.
+
+Merge rechecks the preview inside an immediate SQLite transaction and appends
+ordinary origin-attributed book.merged events atomically. Stale previews reject
+with ui/superseded, malformed requests with ui/invalid-target; callers must preview
+and approve anew. Keeper metadata and current host reading/annotation merge rules
+apply. Chat transcripts/provenance are not combined into one thread. Receipt is
+committed/keepId/redirects; resolveId returns a living ID or null for unknown/deleted
+targets. Automatic reconciliation uses the same conditional implementation and
+can invalidate a pending manual preview.
+
+When only a duplicate has a local original, the host materializes the keeper
+original before retiring records. SQL rollback does not delete the duplicate;
+an extra unregistered cache file may remain after filesystem copy plus SQL failure.
+Inherited covers use their projected cover key. Cleanup refuses live alias assets
+with library/cleanup-stale while their keeper exists, preserving inherited files;
+after keeper deletion normal cleanup can release them. Merge is irreversible,
+does not promise immediate disk reclamation, and follows existing sync policy.
+Cancellation before dispatch prevents mutation; cancellation after native dispatch
+does not roll back durable writes. Focused permission/approval/transaction/asset
+tests passed; Worker, actual approval UI and multi-device Tauri E2E remain pending.
+
 References contain opaque actor-local ID, basename, MIME hint, size, state,
 source and expiry. Each plugin activation/Agent conversation owns at most 16
 references and 1 GiB; each file is at most 1 GiB, with host limits of 64 native

@@ -10,35 +10,32 @@
  * means two devices detecting the same duplicate emit IDENTICAL merge
  * events, and applying the second is a no-op. No coordination needed.
  */
-import { invoke } from "./ipc";
-import { emitAppEvent } from "./app-events";
-import { commitDomainEvents } from "./domain-events";
+import { listDuplicateBooks, previewBookMerge, mergeDuplicateBooks } from "../domain/book-merge";
 import { isTauri } from "./environment";
 import { createLogger } from "./logger";
 
 const log = createLogger("book-dedupe");
 
-type DuplicateBookEntry = { id: string; createdAt: string };
-
 /** Collapse same-content book records. Returns how many merges were emitted. */
 export async function reconcileDuplicateBooks(): Promise<number> {
   if (!isTauri()) return 0;
   try {
-    const groups = await invoke<DuplicateBookEntry[][]>("library_duplicate_book_groups");
-    const merges = groups.flatMap((group) => {
-      const [keeper, ...rest] = group;
-      if (!keeper) return [];
-      return rest.map((merged) => ({
-        type: "book.merged" as const,
-        payload: { keepId: keeper.id, mergedId: merged.id },
-        origin: "system" as const,
-      }));
-    });
-    if (merges.length === 0) return 0;
-    await commitDomainEvents(...merges);
-    log.info(`merged ${merges.length} duplicate book record(s)`);
-    emitAppEvent("library-changed", {});
-    return merges.length;
+    const ids: string[] = []; let offset: number | null = 0;
+    do {
+      const page = await listDuplicateBooks({ offset, limit: 50 });
+      ids.push(...page.groups.map(group => group.bookId)); offset = page.nextOffset;
+    } while (offset !== null);
+    let count = 0;
+    for (const bookId of ids) {
+      try {
+        const preview = await previewBookMerge(bookId);
+        if (!preview) continue;
+        const receipt = await mergeDuplicateBooks({ bookId, expectedRevision: preview.revision }, "system");
+        count += receipt.redirects.length;
+      } catch (error) { log.warn("Duplicate group changed or failed; retry after the next pull", error); }
+    }
+    if (count) log.info(`merged ${count} duplicate book record(s)`);
+    return count;
   } catch (error) {
     log.warn("reconcile failed; will retry after the next pull", error);
     return 0;

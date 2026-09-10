@@ -55,6 +55,10 @@ pub(crate) fn release_book_files_inner(conn: &mut Connection, data_dir: &Path, i
         if present {
             return Err(CommandError::new("library/book-reappeared", "Refusing to release files belonging to a current book"));
         }
+        let live_alias: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM book_aliases a JOIN books b ON b.id=a.keep_id WHERE a.merged_id=?1)", [id], |row| row.get(0))?;
+        if live_alias {
+            return Err(CommandError::new("library/cleanup-stale", "Merged assets remain pinned while their keeper exists"));
+        }
     }
     // Files are not transactional. Keep every intent until both blob metadata
     // updates and intent deletion commit; retry tolerates already absent bytes.

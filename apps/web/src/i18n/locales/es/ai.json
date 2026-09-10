@@ -76,6 +76,11 @@
           "description": "Esto elimina permanentemente el archivo importado y sus datos de lectura locales. No se puede deshacer.",
           "approve": "Eliminar libro"
         },
+        "mergeBooks": {
+          "question": "¿Combinar estos libros duplicados?",
+          "description": "Se conserva el primer registro. Las anotaciones y los datos de lectura se combinan según las reglas de la app; los chats conservan sus referencias originales. No se puede deshacer ni libera espacio inmediatamente.\n\n{{subject}}",
+          "approve": "Combinar registros"
+        },
         "importResource": {
           "question": "¿Añadir este archivo a tu biblioteca?",
           "description": "Importar {{subject}} mediante el proceso normal de la biblioteca. El original no cambia. Se aplica tu configuración de sincronización actual.",

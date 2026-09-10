@@ -1199,6 +1199,11 @@ export type PluginLibraryDomain = {
   queries: {
     books: {
       list(): Promise<PluginBook[]>;
+      /** Library 1.10: same-content groups; live offset pages, limit 1-50. */
+      listDuplicates(query?: import("@read-aware/core").DuplicateBookQuery): Promise<import("@read-aware/core").DuplicateBookPage>;
+      previewMerge(bookId: string): Promise<import("@read-aware/core").BookMergePreview | null>;
+      /** Current book ID or merge redirect, null if neither points to a living book. */
+      resolveId(bookId: string): Promise<string | null>;
       /** Durable device-local pending file cleanup, including after view/plugin restart. Live keyset page, limit 1-100 (default 50). */
       listRemovalCleanup(query?: import("@read-aware/core").BookRemovalCleanupQuery): Promise<import("@read-aware/core").BookRemovalCleanupPage>;
       get(bookId: string): Promise<PluginBook | null>;
@@ -1227,6 +1232,8 @@ export type PluginLibraryDomain = {
       prepareText(bookId: string, options?: import("@read-aware/core").BookTextPrepareOptions): Promise<import("@read-aware/core").BookTextTaskSnapshot>;
       /** Retry unchecked covers and missing/filename-derived metadata using the shared queue, without forcing replacement or download. */
       retryEnrichment(bookId: string): Promise<import("@read-aware/core").BookEnrichmentReceipt>;
+      /** Conditional record merge with the host's deterministic keeper; not file deletion or undo. */
+      mergeDuplicates(input: import("@read-aware/core").BookMergeRequest): Promise<import("@read-aware/core").BookMergeReceipt>;
       /** Cancels only this activation's request; shared work or dispatched writes may continue. */
       cancelTextTask(bookId: string, taskId: string): Promise<import("@read-aware/core").BookTextTaskSnapshot>;
       importBook(input: {

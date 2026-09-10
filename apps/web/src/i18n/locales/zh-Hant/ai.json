@@ -76,6 +76,11 @@
           "description": "這會永久移除匯入的原始檔案和本機閱讀資料，且無法復原。",
           "approve": "刪除書籍"
         },
+        "mergeBooks": {
+          "question": "合併這些重複書籍？",
+          "description": "保留下方第一筆記錄。標註與閱讀資料按宿主規則合併，聊天記錄保留原參照。合併無法復原，也不會立即回收檔案空間。\n\n{{subject}}",
+          "approve": "合併記錄"
+        },
         "importResource": {
           "question": "將這個檔案加入書架？",
           "description": "透過正常書庫流程匯入 {{subject}}，原檔案不會改變。書庫資料沿用你現有的同步設定。",

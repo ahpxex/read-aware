@@ -76,6 +76,11 @@
           "description": "This permanently removes the imported source file and its local reading data. This cannot be undone.",
           "approve": "Delete book"
         },
+        "mergeBooks": {
+          "question": "Merge these duplicate books?",
+          "description": "The first record is kept. Annotations and reading data follow the host's merge rules; chat transcripts keep their original references. This cannot be undone and does not reclaim files immediately.\n\n{{subject}}",
+          "approve": "Merge records"
+        },
         "importResource": {
           "question": "Add this file to your shelf?",
           "description": "Import {{subject}} through the normal library pipeline. The original stays unchanged. Library data follows your existing sync settings.",

@@ -76,6 +76,10 @@ export interface TurnRecord {
 }
 
 export interface LibraryPort {
+  listDuplicates(query?: import("@read-aware/core").DuplicateBookQuery, signal?: AbortSignal): Promise<import("@read-aware/core").DuplicateBookPage>;
+  previewMerge(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookMergePreview | null>;
+  mergeDuplicates(input: import("@read-aware/core").BookMergeRequest, signal?: AbortSignal): Promise<import("@read-aware/core").BookMergeReceipt>;
+  resolveBookId(bookId: string, signal?: AbortSignal): Promise<string | null>;
   getEnrichment(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookEnrichmentSnapshot>;
   retryEnrichment(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookEnrichmentReceipt>;
   importResource(threadKey: string, id: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookImportReceipt>;
@@ -181,7 +185,7 @@ export interface UserInteractionOption {
 }
 
 export type UserPermissionAction =
-  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory" | "classify-book" | "generate-book-graph" | "clear-conversation" | "sync-now" | "manage-schedule" | "access-book-file" | "import-resource";
+  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory" | "classify-book" | "generate-book-graph" | "clear-conversation" | "sync-now" | "manage-schedule" | "access-book-file" | "import-resource" | "merge-books";
 
 type UserInteractionBase = {
   /** Globally unique for the lifetime of the tool call. */

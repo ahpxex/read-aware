@@ -38,6 +38,7 @@ const agentMap = pairs([
   ["open_book_resource", "LIB08"],
   ["open_book_cover", "LIB09"],
   ["get_book_enrichment", "LIB09 LIB10"],
+  ["list_duplicate_books preview_book_merge merge_duplicate_books resolve_book_reference", "LIB11"],
   ["retry_book_enrichment", "LIB10"],
   ["copy_resource_image", "SYS09"],
   ["read_resource_text release_resource", "SYS13"],
@@ -97,6 +98,7 @@ const pluginMap = pairs([
   ["domains.library.queries.books.list domains.library.queries.books.get", "LIB01"],
   ["domains.library.queries.books.getToc", "TXT01"], ["domains.library.queries.books.getChapterText", "TXT03"],
   ["domains.library.queries.books.getTextState", "TXT04"],
+  ["domains.library.queries.books.listDuplicates domains.library.queries.books.previewMerge domains.library.queries.books.resolveId domains.library.commands.books.mergeDuplicates", "LIB11"],
   ["domains.library.queries.books.getEnrichment domains.library.events.observeEnrichment", "LIB09 LIB10"],
   ["domains.library.commands.books.retryEnrichment", "LIB10"],
   ["domains.library.commands.books.prepareText domains.library.commands.books.cancelTextTask domains.library.queries.books.getTextTask domains.library.queries.books.listTextTasks domains.library.events.observeTextTask", "TXT05"],
@@ -164,6 +166,7 @@ const catalogMap: Record<string, Record<string, string[]>> = {
 };
 const nativeMap = pairs([
   ["library_stage_import", "LIB06"], ["library_put_cover library_cover_backlog", "LIB09 LIB10"],
+  ["library_duplicate_groups library_merge_preview library_merge_commit library_resolve_book", "LIB11"],
   ["append_events commit_events rebuild_projections verify_projections read_events_since list_event_aggregate_ids", "OPS11"],
   ["apply_remote_events stage_remote_events finalize_staged_events", "OPS02 OPS05"],
   ["local_device_get sync_profile_get sync_profile_set sync_profile_touch sync_adopt_account", "OPS01 OPS02"],

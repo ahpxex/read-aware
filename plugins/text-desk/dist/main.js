@@ -1,6 +1,27 @@
 // src/strings.ts
 var locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 var labels = {
+  references: ["Notes and links", "脚注与链接", "註腳與連結", "注釈とリンク", "Примечания и ссылки", "Notes et liens", "Anmerkungen und Links", "Notas y enlaces"],
+  reference: ["Reference", "引用", "引用", "参照", "Ссылка", "Référence", "Verweis", "Referencia"],
+  images: ["Book images", "书内图片", "書內圖片", "書籍の画像", "Иллюстрации книги", "Images du livre", "Buchbilder", "Imágenes del libro"],
+  image: ["Image", "图片", "圖片", "画像", "Изображение", "Image", "Bild", "Imagen"],
+  noSections: ["No source sections", "没有源文件分节", "沒有來源分節", "元のセクションなし", "Нет разделов источника", "Aucune section source", "Keine Quellabschnitte", "Sin secciones de origen"],
+  noReferences: ["No notes or links in this section", "本节没有脚注或链接", "本節沒有註腳或連結", "このセクションに注釈やリンクはありません", "В разделе нет примечаний или ссылок", "Aucune note ni aucun lien dans cette section", "Keine Anmerkungen oder Links in diesem Abschnitt", "Sin notas ni enlaces en esta sección"],
+  noImages: ["No images in this section", "本节没有图片", "本節沒有圖片", "このセクションに画像はありません", "В разделе нет изображений", "Aucune image dans cette section", "Keine Bilder in diesem Abschnitt", "Sin imágenes en esta sección"],
+  reference_resolved: ["Internal reference", "书内引用", "書內引用", "書籍内の参照", "Внутренняя ссылка", "Référence interne", "Interner Verweis", "Referencia interna"],
+  reference_external: ["External link", "外部链接", "外部連結", "外部リンク", "Внешняя ссылка", "Lien externe", "Externer Link", "Enlace externo"],
+  reference_blocked: ["Blocked link", "已阻止的链接", "已封鎖的連結", "ブロックされたリンク", "Заблокированная ссылка", "Lien bloqué", "Blockierter Link", "Enlace bloqueado"],
+  reference_missing: ["Reference target not found", "找不到引用目标", "找不到引用目標", "参照先が見つかりません", "Цель ссылки не найдена", "Cible de référence introuvable", "Verweisziel nicht gefunden", "Destino de referencia no encontrado"],
+  reference_unsupported: ["Unsupported reference", "不支持的引用", "不支援的引用", "非対応の参照", "Неподдерживаемая ссылка", "Référence non prise en charge", "Nicht unterstützter Verweis", "Referencia no compatible"],
+  image_missing: ["Image not found", "找不到图片", "找不到圖片", "画像が見つかりません", "Изображение не найдено", "Image introuvable", "Bild nicht gefunden", "Imagen no encontrada"],
+  image_external: ["Remote image not loaded", "未加载远程图片", "未載入遠端圖片", "リモート画像は未読込", "Удалённое изображение не загружено", "Image distante non chargée", "Externes Bild nicht geladen", "Imagen remota no cargada"],
+  image_unsupported: ["Unsupported image", "不支持的图片", "不支援的圖片", "非対応の画像", "Неподдерживаемое изображение", "Image non prise en charge", "Nicht unterstütztes Bild", "Imagen no compatible"],
+  nativeReference: ["Show reader note", "在阅读器预览脚注", "在閱讀器預覽註腳", "リーダーで注釈を表示", "Показать примечание в читалке", "Afficher la note dans le lecteur", "Anmerkung im Reader anzeigen", "Mostrar nota en el lector"],
+  nativeImage: ["Open image viewer", "打开图片查看器", "開啟圖片檢視器", "画像ビューアを開く", "Открыть просмотр изображения", "Ouvrir la visionneuse", "Bildbetrachter öffnen", "Abrir visor de imágenes"],
+  copyImage: ["Copy image", "复制图片", "複製圖片", "画像をコピー", "Копировать изображение", "Copier l'image", "Bild kopieren", "Copiar imagen"],
+  saveImage: ["Save image", "保存图片", "儲存圖片", "画像を保存", "Сохранить изображение", "Enregistrer l'image", "Bild speichern", "Guardar imagen"],
+  imageCopied: ["Image copied", "图片已复制", "圖片已複製", "画像をコピーしました", "Изображение скопировано", "Image copiée", "Bild kopiert", "Imagen copiada"],
+  imageSaved: ["Image saved", "图片已保存", "圖片已儲存", "画像を保存しました", "Изображение сохранено", "Image enregistrée", "Bild gespeichert", "Imagen guardada"],
   searching: ["Searching", "搜索中", "搜尋中", "検索中", "Поиск", "Recherche en cours", "Suche läuft", "Buscando"],
   searchCancelled: ["Search cancelled", "搜索已取消", "搜尋已取消", "検索をキャンセルしました", "Поиск отменён", "Recherche annulée", "Suche abgebrochen", "Búsqueda cancelada"],
   temporaryMarks: ["Temporary marks", "临时标记", "暫時標記", "一時マーク", "Временные отметки", "Marques temporaires", "Temporäre Markierungen", "Marcas temporales"],
@@ -424,6 +445,147 @@ async function rangeDetail(ctx, input) {
   ] };
 }
 
+// src/content-pagination.ts
+function contentPagination(offsets, nextOffset, load) {
+  const go = async (next) => ({ view: await load(next), navigation: "replace" });
+  return {
+    page: offsets.length,
+    ...offsets.length > 1 ? { onPrevious: () => go(offsets.slice(0, -1)) } : {},
+    ...nextOffset === null ? {} : { onNext: () => go([...offsets, nextOffset]) }
+  };
+}
+
+// src/reference-views.ts
+async function referenceList(ctx, source, offsets = [0]) {
+  const page = await ctx.domains.library.queries.books.listReferences({ ...source, offset: offsets[offsets.length - 1], limit: 20 });
+  return {
+    kind: "list",
+    title: tr(ctx.locale, "references"),
+    searchable: true,
+    emptyText: tr(ctx.locale, page.status === "unsupported" ? "unsupported" : "noReferences"),
+    items: page.items.map((item) => ({
+      id: String(item.reference.index),
+      title: item.label || `${tr(ctx.locale, "reference")} ${item.reference.index + 1}`,
+      icon: item.kind === "inline-note" ? "note-pencil" : "link",
+      onSelect: async () => ({ view: await referenceDetail(ctx, item.reference) })
+    })),
+    pagination: contentPagination(offsets, page.nextOffset, (next) => referenceList(ctx, source, next))
+  };
+}
+async function referenceDetail(ctx, reference, offsets = [0]) {
+  const input = { reference, offset: offsets[offsets.length - 1], limit: 4000 };
+  const preview = await ctx.domains.library.queries.books.readReference(input);
+  const pagination = contentPagination(offsets, preview.nextOffset, (next) => referenceDetail(ctx, preview.reference, next));
+  return { kind: "detail", title: preview.label || tr(ctx.locale, "reference"), content: [
+    { kind: "text", text: tr(ctx.locale, `reference_${preview.status}`) },
+    ...preview.text ? [{
+      kind: "quote",
+      text: preview.text,
+      caption: `${preview.offset + 1}-${preview.offset + preview.text.length} / ${preview.totalLength}`
+    }] : [],
+    ...preview.url ? [{ kind: "text", text: preview.url }] : []
+  ], actions: [
+    ...preview.location ? [{ id: "open-source", label: tr(ctx.locale, "openPassage"), icon: "book-open", run: async () => {
+      await ctx.domains.reading.commands.goTo(preview.location);
+      return { close: true };
+    } }] : [],
+    ...preview.status === "resolved" ? [{ id: "native-preview", label: tr(ctx.locale, "nativeReference"), icon: "note-pencil", run: async () => {
+      const guard = await ensureReadingSession(ctx, reference.bookId);
+      const receipt = await ctx.services.ui.reader.previewReference(input, guard);
+      return receipt.status === "opened" ? { close: true } : { toast: tr(ctx.locale, `reference_${receipt.preview.status}`) };
+    } }] : [],
+    ...pagination.onPrevious ? [{ id: "previous", label: tr(ctx.locale, "previous"), icon: "arrow-left", run: pagination.onPrevious }] : [],
+    ...pagination.onNext ? [{ id: "next", label: tr(ctx.locale, "next"), icon: "arrow-right", run: pagination.onNext }] : []
+  ] };
+}
+
+// src/image-views.ts
+async function imageList(ctx, source, offsets = [0]) {
+  const page = await ctx.domains.library.queries.books.listImages({ ...source, offset: offsets[offsets.length - 1], limit: 20 });
+  return {
+    kind: "list",
+    title: tr(ctx.locale, "images"),
+    searchable: true,
+    emptyText: tr(ctx.locale, page.status === "unsupported" ? "unsupported" : "noImages"),
+    items: page.items.map((item) => ({
+      id: String(item.image.index),
+      title: item.alt || `${tr(ctx.locale, "image")} ${item.image.index + 1}`,
+      icon: "book-bookmark",
+      onSelect: async () => ({ view: await imageDetail(ctx, item) })
+    })),
+    pagination: contentPagination(offsets, page.nextOffset, (next) => imageList(ctx, source, next))
+  };
+}
+async function imageDetail(ctx, image) {
+  const query = { image: image.image }, resources = ctx.services.resources;
+  const result = await ctx.domains.library.queries.books.openImageResource(query);
+  const title = image.alt || `${tr(ctx.locale, "image")} ${image.image.index + 1}`;
+  if (result.status !== "ready")
+    return {
+      kind: "detail",
+      title,
+      content: [{ kind: "text", text: tr(ctx.locale, `image_${result.status}`) }]
+    };
+  const resource = result.resource;
+  return {
+    kind: "detail",
+    title,
+    content: [{ kind: "image", resourceId: resource.id, alt: result.image.alt || title }],
+    actions: [
+      { id: "native-image", label: tr(ctx.locale, "nativeImage"), icon: "arrow-square-out", run: async () => {
+        const guard = await ensureReadingSession(ctx, image.image.bookId);
+        const receipt = await ctx.services.ui.reader.image.open(query, guard);
+        return receipt.status === "opened" ? { close: true } : { toast: tr(ctx.locale, `image_${receipt.reason}`) };
+      } },
+      { id: "save-image", label: tr(ctx.locale, "saveImage"), icon: "download-simple", run: async () => (await resources.save(resource.id, resource.name)).saved ? { toast: tr(ctx.locale, "imageSaved") } : null },
+      { id: "copy-image", label: tr(ctx.locale, "copyImage"), icon: "copy", run: async () => {
+        await ctx.services.clipboard.writeImage(resource.id);
+        return { toast: tr(ctx.locale, "imageCopied") };
+      } },
+      ...result.image.location ? [{ id: "open-source", label: tr(ctx.locale, "openPassage"), icon: "book-open", run: async () => {
+        await ctx.domains.reading.commands.goTo(result.image.location);
+        return { close: true };
+      } }] : []
+    ],
+    onClose: () => resources.release(resource.id)
+  };
+}
+
+// src/content-sections.ts
+async function contentSections(ctx, bookId, title, kind, contentVersion, offsets = [0]) {
+  const library = ctx.domains.library.queries.books;
+  const version = contentVersion ?? (await library.getNavigationToc(bookId)).contentVersion;
+  const page = await library.listNavigationTargets({
+    bookId,
+    contentVersion: version,
+    kind: "sections",
+    offset: offsets[offsets.length - 1],
+    limit: 20
+  });
+  return {
+    kind: "list",
+    title: `${title} / ${tr(ctx.locale, kind)}`,
+    searchable: true,
+    emptyText: tr(ctx.locale, "noSections"),
+    items: page.items.map((item) => ({
+      id: String(item.index),
+      title: item.label || `${tr(ctx.locale, "sourceSection")} ${item.index + 1}`,
+      icon: "file-text",
+      ...item.sectionIndex === null ? {} : { onSelect: async () => {
+        const input = { bookId: page.bookId, contentVersion: page.contentVersion, sectionIndex: item.sectionIndex };
+        return { view: await (kind === "images" ? imageList(ctx, input) : referenceList(ctx, input)) };
+      } }
+    })),
+    actions: [{
+      id: "refresh",
+      label: tr(ctx.locale, "refresh"),
+      icon: "arrows-clockwise",
+      run: async () => ({ view: await contentSections(ctx, bookId, title, kind), navigation: "replace" })
+    }],
+    pagination: contentPagination(offsets, page.nextOffset, (next) => contentSections(ctx, bookId, title, kind, page.contentVersion, next))
+  };
+}
+
 // src/views.ts
 async function textDetail(ctx, bookId, title) {
   const state = await ctx.domains.library.queries.books.getTextState(bookId);
@@ -437,6 +599,8 @@ async function textDetail(ctx, bookId, title) {
   return { kind: "detail", title, content: [{ kind: "keyValue", rows }], actions: [
     { id: "search", label: tr(ctx.locale, "searchBook"), icon: "magnifying-glass", run: () => ({ view: textSearchForm(ctx, bookId) }) },
     { id: "find-passage", label: tr(ctx.locale, "findPassage"), icon: "magnifying-glass", run: () => ({ view: rangeSearchForm(ctx, bookId) }) },
+    { id: "references", label: tr(ctx.locale, "references"), icon: "link", run: async () => ({ view: await contentSections(ctx, bookId, title, "references") }) },
+    { id: "images", label: tr(ctx.locale, "images"), icon: "book-bookmark", run: async () => ({ view: await contentSections(ctx, bookId, title, "images") }) },
     { id: "refresh", label: tr(ctx.locale, "refresh"), icon: "arrows-clockwise", run: async () => ({ view: await textDetail(ctx, bookId, title), navigation: "replace" }) },
     { id: "open", label: tr(ctx.locale, "open"), icon: "book-open", run: async () => {
       await ctx.domains.reading.commands.openBook(bookId);

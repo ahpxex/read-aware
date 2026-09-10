@@ -4,6 +4,7 @@ import { rebuildForm, requestList, startRequest } from "./task-views";
 import { textSearchForm } from "./search-views";
 import { capturedRangeDetail, rangeSearchForm } from "./range-views";
 import { emphasisList } from "./emphasis-views";
+import { contentSections } from "./content-sections";
 
 export async function textDetail(ctx: PluginContext, bookId: string, title: string): Promise<PluginDetailView> {
   const state = await ctx.domains.library!.queries.books.getTextState(bookId);
@@ -18,6 +19,8 @@ export async function textDetail(ctx: PluginContext, bookId: string, title: stri
   return { kind: "detail", title, content: [{ kind: "keyValue", rows }], actions: [
     { id: "search", label: tr(ctx.locale, "searchBook"), icon: "magnifying-glass", run: () => ({ view: textSearchForm(ctx, bookId) }) },
     { id: "find-passage", label: tr(ctx.locale, "findPassage"), icon: "magnifying-glass", run: () => ({ view: rangeSearchForm(ctx, bookId) }) },
+    { id: "references", label: tr(ctx.locale, "references"), icon: "link", run: async () => ({ view: await contentSections(ctx, bookId, title, "references") }) },
+    { id: "images", label: tr(ctx.locale, "images"), icon: "book-bookmark", run: async () => ({ view: await contentSections(ctx, bookId, title, "images") }) },
     { id: "refresh", label: tr(ctx.locale, "refresh"), icon: "arrows-clockwise", run: async () => ({ view: await textDetail(ctx, bookId, title), navigation: "replace" }) },
     { id: "open", label: tr(ctx.locale, "open"), icon: "book-open", run: async () => {
       await ctx.domains.reading!.commands!.openBook(bookId); return { close: true };

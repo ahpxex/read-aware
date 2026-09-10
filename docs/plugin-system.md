@@ -5870,13 +5870,56 @@ adjacent distribution repository, not an additional source plugin in this checko
 | Listening Desk | reading mode/provider control, unit navigation, playback/history, environment offline hint |
 | Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |
 | Workspace Profiles | settled settings snapshots, exact path grants, atomic presets, private documents, shelf header/command views and Agent tool |
-| Text Desk | library text preparation/tasks, cancellable live single/shelf multi-query search (0.9), snippets, paged status views, reader header/command and explicit book navigation |
+| Text Desk | versioned section/reference/image browsing, bounded note previews, image resource display/save/copy and native preview handoffs (0.10); text preparation/tasks, cancellable search, snippets, reader header/command and explicit navigation |
 | Library Desk | user-picked import with initialization review, local cover preview/copy/save, original export and live enrichment/retry (0.7); workspace/collection navigation, guarded host commands, native selection, batch review/removal and durable cleanup retry |
 | Memory Desk | memory search, protected chapter graphs, source navigation and conditional correction/pin/unpin/forget (0.2); shared Agent queries and manage_memory, no duplicate plugin tool |
 | Maintenance Desk | public model catalogs, native connection-test/backup/diagnostic handoffs and projection verification (0.1); receipt journal, no new host or Agent APIs |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs
 in their packages and registered capabilities.
+
+### Text Desk Content Composition
+
+[代码] Text Desk 0.10 adds no host or Agent interface. Its manifest requires
+Library 1.17, Reading 2.11, UI 1.13, Resources 1.2, Clipboard 1.1 and Views 1.8;
+copying images adds `service:clipboard`. It does not request network access.
+New labels use the existing eight-locale catalog.
+
+- Book detail offers notes/links and images independently of text extraction.
+  `getNavigationToc` supplies the content version; `listNavigationTargets` lists
+  20 source sections per page. Rows use actual `sectionIndex`, not TOC ordinal
+  or extracted chapter number. Explicit refresh starts a fresh version; ordinary
+  next/back retains the captured version and propagates stale-source failures.
+- `listReferences` / `listImages` list 20 entries within the selected section.
+  Listing does not open bytes or move the reader. Search is within that page,
+  not an exhaustive whole-book media search. Unsupported source DOM is distinct
+  from an empty supported section.
+- `readReference` requests at most 4000 UTF-16 units per page; exact returned
+  offsets are retained for next/back rather than recalculated. Plain text and
+  HTTP(S) target strings are displayed as data. External, blocked, missing and
+  unsupported targets do not get open/fetch actions. Resolved source locations
+  navigate only on explicit click, using their original content version.
+- Native note and image actions ensure the matching reading session, then call
+  `previewReference` / `reader.image.open` with that session guard. Only `opened`
+  closes the plugin surface; `not-opened` reports its status. This reuses the
+  existing native note/viewer controls, not a plugin renderer or another engine.
+- Selecting an image uses `openImageResource`. `ready` supplies a resource image
+  block plus native-viewer, save, copy and optional source-location actions.
+  Missing/external/unsupported receipts get explicit states without fetch.
+  Save cancellation is not success. Copy waits for the host receipt and requires
+  the separate clipboard permission. Closing the accepted preview frame releases
+  its reference; expiry/activation retirement remains the fallback for an
+  unaccepted frame. Host raster decoding still applies: ready bytes do not prove
+  that a particular image format can be decoded or visually displayed.
+
+[验证] 28 Text Desk tests / 156 assertions, plugin build/typecheck and controlled
+compiled-entry composition pass. Coverage includes source-vs-TOC indices,
+version/offset pagination, non-resolved states, resource cleanup, native handoff
+guards and failure receipts. No desktop launched for this batch: actual WebKit
+Worker, parser formats, image pixels, native preview focus/layering, save/paste
+and closure during native operations remain concentrated Tauri E2E work. Existing
+PDF object/CSS image and non-DOM reference gaps are not marked solved by adding
+a consumer. Document visual checks were not rerun.
 
 ### Library Desk Asset Composition
 

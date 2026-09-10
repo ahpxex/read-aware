@@ -1,16 +1,16 @@
 {
   "id": "text-desk",
   "name": "Text Desk",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "schemaVersion": 1,
-  "description": "Inspect book text, prepare or rebuild its index, manage preparation requests, and open a book for reading.",
+  "description": "Search book text, browse section references and images, open native previews, export images, and manage text preparation.",
   "author": "ReadAware",
   "main": "main.js",
-  "permissions": ["library:write", "reading:write"],
+  "permissions": ["library:write", "reading:write", "service:clipboard"],
   "requires": {
     "domains": { "library": "^1.17.0", "reading": "^2.11.0" },
     "contributions": { "headerActions": "^1.0.0", "commands": "^1.0.0", "selectionActions": "^1.2.0" },
-    "services": { "ui": "^1.2.0" },
+    "services": { "ui": "^1.13.0", "resources": "^1.2.0", "clipboard": "^1.1.0" },
     "schemas": { "views": "^1.8.0" }
   }
 }

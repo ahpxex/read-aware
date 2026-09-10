@@ -287,7 +287,7 @@
           <details class="ep" data-search-section="references footnotes 脚注 链接 引用 Library 1.12"><summary>Library 1.12：双端查询书内引用，读取有界纯文本预览</summary><div class="ep-body">
             <p>按版本和分节列举链接/内联脚注，同源解析后返回目标位置与可续读文本。Agent 在加载前同时核对来源和目标的阅读范围；外链只报告，不加载或打开，插件不获得 DOM。</p>
             <p>UI 1.8 已接当前书的原生预览开关：显示等待 DOM 提交，关闭只认自有 ID；新请求、用户操作及会话退休拒绝迟到结果。插件需书库读与阅读写权限，Agent 保留原阅读边界。</p>
-            <p>无 DOM 的 PDF 链接、大型分节预算与真实插件/前景焦点组合仍待接通或集中验收，TXT11 保持部分。<a href="./plugin-system.md#book-reference-queries">完整契约</a></p>
+            <p>Text Desk 0.10 已组合分节/引用分页、精确偏移续读、原文跳转和原生预览交接；外链只作数据展示。无 DOM 的 PDF 链接、大型分节预算仍缺，真实 Worker/格式/前景焦点留集中验收。TXT11 保持部分，不代表尚无消费者。<a href="./plugin-system.md#book-reference-queries">完整契约</a></p>
           </div></details>
           <details class="ep" data-search-section="searchText derived prose 正文 检索 多查询"><summary>Library 1.4：Agent 与插件共享本书和跨书正文检索</summary><div class="ep-body">
             <p>1–12 个查询变体、每个至多 1024 字符，返回至多 100 个章内片段。指定书可以准备正文；跨书只读本地已持久索引，不触发批量抽取。缺书、非法参数和读取失败明确拒绝；结果不是可导航的 CFI/Range，也不是全书架穷尽或相关性排名。</p>
@@ -309,7 +309,7 @@
           </div></details>
           <details class="ep" data-search-section="book images listImages openImageResource 图片 资源"><summary>Library 1.13：书内图片目录与临时资源已双端接通</summary><div class="ep-body">
             <p>插件与 Agent 可以按书籍版本和分节列出图片、取得内嵌图片资源，复用 EPUB/FB2/MOBI6/KF8/漫画解析器。目录包含源位置与有界替代文字，不读取图片字节；获取资源不加载外链，保留书库授权、阅读边界与调用方隔离。</p>
-            <p>最多 16 MiB，一小时临时封口引用，可保存或另行授权复制；ready 只代表字节已复制，不等于解码或模型看懂图片。UI 1.13 已接程序化打开，PDF 内嵌对象和 CSS/srcset 图片仍缺。基础测试通过，真实 Worker/Tauri 组合留集中验收。<a href="./plugin-system.md#embedded-book-image-resources-library-113--resources-12">完整契约</a></p>
+            <p>最多 16 MiB，一小时临时封口引用；ready 不等于解码或视觉理解。Text Desk 0.10 已组合分节/图片目录、资源预览、保存/授权复制、原文与原生灯箱交接，关闭释放引用，保存取消不报成功，不增加网络权限。八语言、28项基础检查及构建通过，本批未启动桌面；实际像素/粘贴/格式/焦点留集中验收，PDF 对象和 CSS/srcset 图片仍缺。<a href="./plugin-system.md#text-desk-content-composition">组合边界</a></p>
           </div></details>
           <details class="ep" data-search-section="show_book_image image open 灯箱 打开 图片"><summary>UI 1.13：图片查询结果可以直接打开现有灯箱</summary><div class="ep-body">
             <p>插件 image.open 与 Agent show_book_image 接受当前书的版本化图片描述符，保留书库读、阅读写与 Agent 阅读边界。不接受任意 URL，不加载外链，不导航或创建持久资源。</p>

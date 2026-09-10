@@ -28,6 +28,7 @@ export class PluginLifecycleController {
   private rollingBack = false;
   private readonly storageWrites = new Set<Promise<unknown>>();
   private readonly cleanups = new Set<Promise<void>>();
+  private readonly reads = new Set<Promise<unknown>>();
   private readonly cleanupErrors: unknown[] = [];
   private stopped = false;
   private readonly operations = new AbortController();
@@ -209,20 +210,24 @@ export class PluginLifecycleController {
 
   /** Cancel the consumer promptly; retain the source operation until its own
    * finally releases resources, including non-interruptible parser/IPC loads. */
-  read<T>(operation: string, run: () => Promise<T>): Promise<T> {
+  read<T>(operation: string, run: (signal: AbortSignal) => Promise<T>, callerSignal?: AbortSignal): Promise<T> {
     if (this.stopped) throw new AppError("plugin/cancelled", `${operation} is unavailable after plugin stop`);
-    this.signal.throwIfAborted();
-    const pending = Promise.resolve().then(() => { this.signal.throwIfAborted(); return run(); });
-    this.trackCleanup(pending.then(() => {}, error => {
+    const signal = callerSignal ? AbortSignal.any([this.signal, callerSignal]) : this.signal;
+    signal.throwIfAborted();
+    if (this.reads.size >= 32) throw new AppError("plugin/busy", "Plugin read capacity is occupied");
+    const pending = Promise.resolve().then(() => { signal.throwIfAborted(); return run(signal); });
+    this.reads.add(pending);
+    this.trackCleanup(pending.then(() => { this.reads.delete(pending); }, error => {
+      this.reads.delete(pending);
       // Normal read failures already reach the caller. After cancellation only
       // the expected abort is ignorable; source/cleanup failures still surface.
-      if (this.signal.aborted && error !== this.signal.reason && !(error instanceof Error && error.name === "AbortError")) throw error;
+      if (signal.aborted && error !== signal.reason && !(error instanceof Error && error.name === "AbortError")) throw error;
     }));
     return new Promise<T>((resolve, reject) => {
-      const cancel = () => reject(this.signal.reason);
-      this.signal.addEventListener("abort", cancel, { once: true });
-      void pending.then(value => { this.signal.removeEventListener("abort", cancel); resolve(value); },
-        error => { this.signal.removeEventListener("abort", cancel); reject(error); });
+      const cancel = () => reject(signal.reason);
+      signal.addEventListener("abort", cancel, { once: true });
+      void pending.then(value => { signal.removeEventListener("abort", cancel); if (signal.aborted) reject(signal.reason); else resolve(value); },
+        error => { signal.removeEventListener("abort", cancel); reject(signal.aborted ? signal.reason : error); });
     });
   }
 

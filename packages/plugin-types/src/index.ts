@@ -1358,7 +1358,7 @@ export type PluginLibraryDomain = {
       /** Library 1.11: import routing hints; extensions alone do not prove readability. */
       listFormats(): Promise<import("@read-aware/core").BookFormatCapability[]>;
       /** Initialize this activation's sealed resource with the reader parser; no import. */
-      inspectResource(id: string): Promise<import("@read-aware/core").BookInspection>;
+      inspectResource(id: string, options?: PluginCallOptions): Promise<import("@read-aware/core").BookInspection>;
       /** Library 1.10: same-content groups; live offset pages, limit 1-50. */
       listDuplicates(query?: import("@read-aware/core").DuplicateBookQuery): Promise<import("@read-aware/core").DuplicateBookPage>;
       previewMerge(bookId: string): Promise<import("@read-aware/core").BookMergePreview | null>;
@@ -1373,25 +1373,25 @@ export type PluginLibraryDomain = {
       /** Library 1.9: local cover/source state and the latest process-local enrichment attempt. */
       getEnrichment(bookId: string): Promise<import("@read-aware/core").BookEnrichmentSnapshot>;
       /** Source metadata only; never loads a provider or reveals reading state. Library 1.16. */
-      getContentState(bookId: string): Promise<import("@read-aware/core").BookContentState>;
+      getContentState(bookId: string, options?: PluginCallOptions): Promise<import("@read-aware/core").BookContentState>;
       getTextTask(bookId: string, taskId: string): Promise<import("@read-aware/core").BookTextTaskSnapshot>;
       listTextTasks(bookId: string): Promise<import("@read-aware/core").BookTextTaskSnapshot[]>;
     getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
-    getNavigationToc(bookId: string): Promise<import("@read-aware/core").BookNavigationToc>;
+    getNavigationToc(bookId: string, options?: PluginCallOptions): Promise<import("@read-aware/core").BookNavigationToc>;
     /** Library 1.14: bounded source-section or author-supplied page-label catalog; not screen page counts. */
-    listNavigationTargets(input: import("@read-aware/core").BookNavigationTargetsQuery): Promise<import("@read-aware/core").BookNavigationTargetsPage>;
-    searchLocations(input: import("@read-aware/core").BookLocationSearch): Promise<import("@read-aware/core").BookLocationSearchPage>;
-    readRange(input: import("@read-aware/core").BookRangeQuery): Promise<import("@read-aware/core").BookRangePage>;
+    listNavigationTargets(input: import("@read-aware/core").BookNavigationTargetsQuery, options?: PluginCallOptions): Promise<import("@read-aware/core").BookNavigationTargetsPage>;
+    searchLocations(input: import("@read-aware/core").BookLocationSearch, options?: PluginCallOptions): Promise<import("@read-aware/core").BookLocationSearchPage>;
+    readRange(input: import("@read-aware/core").BookRangeQuery, options?: PluginCallOptions): Promise<import("@read-aware/core").BookRangePage>;
     /** Library 1.12: versioned section references, not extracted chapter indices. */
-    listReferences(input: import("@read-aware/core").BookReferencesQuery): Promise<import("@read-aware/core").BookReferencesPage>;
+    listReferences(input: import("@read-aware/core").BookReferencesQuery, options?: PluginCallOptions): Promise<import("@read-aware/core").BookReferencesPage>;
     /** Library 1.13: section-local img/SVG image discovery; never fetches remote images. */
-    listImages(input: import("@read-aware/core").BookImagesQuery): Promise<import("@read-aware/core").BookImagesPage>;
+    listImages(input: import("@read-aware/core").BookImagesQuery, options?: PluginCallOptions): Promise<import("@read-aware/core").BookImagesPage>;
     /** Seal an embedded image as this activation's ResourceRef; does not display it or decode pixels. */
     openImageResource(input: import("@read-aware/core").BookImageQuery): Promise<import("@read-aware/core").BookImageResource>;
     /** Plain-text preview and resolved navigation location; never fetches or opens an external URL. */
-    readReference(input: import("@read-aware/core").BookReferenceQuery): Promise<import("@read-aware/core").BookReferencePreview>;
+    readReference(input: import("@read-aware/core").BookReferenceQuery, options?: PluginCallOptions): Promise<import("@read-aware/core").BookReferencePreview>;
     /** Multi-query derived prose search. Single-book may prepare text; shelf search never does. Results are not navigation locations. */
-    searchText(input: import("@read-aware/core").BookTextSearch): Promise<import("@read-aware/core").BookTextHit[]>;
+    searchText(input: import("@read-aware/core").BookTextSearch, options?: PluginCallOptions): Promise<import("@read-aware/core").BookTextHit[]>;
     };
     collections: {
       list(): Promise<PluginCollection[]>;
@@ -1447,6 +1447,11 @@ export type PluginLibraryDomain = {
   };
 };
 
+/** Library 1.17 / Reading 2.18: optional final argument on supported calls.
+ * Cancellation stops waiting and reaches cooperative host work, not rollback.
+ * Already-started parsing/IPC or navigation may still finish; realm cleanup drains sources. */
+export type PluginCallOptions = { signal?: AbortSignal };
+
 export type PluginReadingDomain = {
   queries: {
     /** This activation's temporary marks only; attached does not mean visible in the viewport. */
@@ -1463,34 +1468,34 @@ export type PluginReadingDomain = {
   };
   commands?: {
     /** Temporary owned marks, not annotations. No navigation; replacement requires an observed revision. */
-    putEmphasis(input: import("@read-aware/core").ReadingEmphasisWrite, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingEmphasisReceipt>;
-    removeEmphasis(input: import("@read-aware/core").ReadingEmphasisRef, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingEmphasisRemoval>;
+    putEmphasis(input: import("@read-aware/core").ReadingEmphasisWrite, guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions): Promise<import("@read-aware/core").ReadingEmphasisReceipt>;
+    removeEmphasis(input: import("@read-aware/core").ReadingEmphasisRef, guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions): Promise<import("@read-aware/core").ReadingEmphasisRemoval>;
     /** Requires this book to be open; validates its source range, navigates, then waits for the selection overlay commit. */
-    selectRange(range: import("@read-aware/core").BookTextRange, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingSelectionReceipt>;
+    selectRange(range: import("@read-aware/core").BookTextRange, guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions): Promise<import("@read-aware/core").ReadingSelectionReceipt>;
     /** Clears only the observed selection ID; a replacement selection is never silently cleared. */
-    clearSelection(expectedId: string, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingSelectionReceipt>;
+    clearSelection(expectedId: string, guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions): Promise<import("@read-aware/core").ReadingSelectionReceipt>;
     /** Set reader chrome visibility; completes after UI commit. Does not alter panel preferences or playback. */
-    setControls(visible: boolean, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingControlsReceipt>;
+    setControls(visible: boolean, guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions): Promise<import("@read-aware/core").ReadingControlsReceipt>;
     setFinished(bookId: string, finished: boolean): Promise<void>;
-    openBook(bookId: string): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
-    goTo(target: import("@read-aware/core").ReadingTarget): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
-    back(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
-    forward(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
+    openBook(bookId: string, options?: PluginCallOptions): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
+    goTo(target: import("@read-aware/core").ReadingTarget, options?: PluginCallOptions): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
+    back(guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
+    forward(guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
     /** Reading 2.12: page, source-section and book-boundary navigation; section/boundary jumps enter history. */
-    step(direction: import("@read-aware/core").ReadingStep, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
+    step(direction: import("@read-aware/core").ReadingStep, guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
     /** Reopen the current source at its start, discarding stale locators. Reading 2.15. */
-    reload(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
-    close(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<void>;
+    reload(guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
+    close(guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions): Promise<void>;
     /** Start resolves on actual audio start. Stop is idempotent; disabling the initiating plugin stops its playback. */
-    controlPlayback(action: "start" | "stop", guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingPlaybackReceipt>;
+    controlPlayback(action: "start" | "stop", guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions): Promise<import("@read-aware/core").ReadingPlaybackReceipt>;
     /** Configure the host mode; modeKey guards the current provider, selectModeKey selects from session().mode.availableModes.
      * Resolves after real indexing (ready/empty) or deactivation. Failed indexing rejects.
      * Disabling the caller cancels an unfinished change; completed mode preferences remain. */
-    configureMode(input: import("@read-aware/core").ReadingModeConfiguration, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingModeReceipt>;
+    configureMode(input: import("@read-aware/core").ReadingModeConfiguration, guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions): Promise<import("@read-aware/core").ReadingModeReceipt>;
     /** Return to the versioned resting unit; wait for renderer navigation and unit restoration before committing history. */
-    returnToMode(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
+    returnToMode(guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
     /** Step one configured text unit, across sections if necessary; reports book boundaries explicitly. */
-    stepMode(direction: "next" | "previous", guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingModeStepReceipt>;
+    stepMode(direction: "next" | "previous", guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions): Promise<import("@read-aware/core").ReadingModeStepReceipt>;
   };
   events: {
     subscribe: DomainSubscribe<ReadingDomainEventType>;

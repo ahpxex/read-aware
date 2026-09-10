@@ -24,6 +24,7 @@
  *     which cannot be cloned. They stay here; the host gets a serializable
  *     description plus a handle and calls back through `invoke`.
  */
+import { preparePluginCall } from "./plugin-call-options";
 import type {
   PluginActionRegistration,
   PluginActionStateReceipt,
@@ -152,6 +153,9 @@ const callbacks = new PluginCallbackRegistry();
 type CallResult = Promise<unknown> & PluginActionRegistration;
 
 function callHost(method: string, args: unknown[], signal?: AbortSignal): CallResult {
+  const prepared = preparePluginCall(method, args);
+  args = prepared.args;
+  signal ??= prepared.signal;
   const receipt = pendingCalls.call(id => {
     callbacks.send(args, wire => post({ t: "call", id, method, args: wire }));
   }, { signal, cancel: id => post({ t: "cancel", id }) });

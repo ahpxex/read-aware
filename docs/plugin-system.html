@@ -376,6 +376,10 @@
             <p>隔离 macOS debug 已验三端更新、冲突恢复与 SQLite 清理；正文 iframe 合成按键已验冲突不翻页、恢复后翻页、插件打开不重复翻页。失败持久化由 React/IPC 测试覆盖；全来源已提交观察另见 settings 1.6，来源身份完整性、真实模型、全键盘路由、打包及跨平台未完成，UI04 保持部分。<a href="./plugin-system.md#keyboard-shortcut-settings">契约与边界</a>。</p>
           </div></details>
           <p>Reading v2 已提供当前会话快照、即时快照观察、版本化落点、有限可见文本与历史可用性。开书、跳转、前进后退、翻页返回完成回执；关闭等待会话退休、已接收时间/位置写入及本书桶结算。失败可退出画面但拒绝成功回执，取消不回滚已发起的关闭；控制命令可带书籍/会话 guard。Agent 共用同一控制器。<a href="./evidence/reading-retirement-2026-09-10.json">原生双端与写锁恢复证据</a>，不代表打包/跨平台验收。</p>
+          <details class="ep"><summary>Library 1.17 / Reading 2.18：26 个方法支持单次取消</summary><div class="ep-body">
+            <p>10个正文查询和16个阅读控制增加末参数options.signal，保留原会话guard及权限。Worker只发送请求级取消，宿主注入实际控制器；取消一个搜索或导航不必停用整个插件，也不影响兄弟请求。</p>
+            <p>读等待先结束，实际源读未结算仍占每realm32个名额，退休继续排空；不是强杀解析器或回滚已呈现/保存效果。资源获取、持久写、跨页任务进度和统一重试仍另有缺口。基础及Bun Worker验证通过，真实业务插件/Tauri组合后置。</p>
+          </div></details>
           <details class="ep"><summary>Reading 2.17：PDF 屏内文字与“空/不可用”状态已接通</summary><div class="ep-body">
             <p>插件查询、观察和 Agent 会话查询共用 visibleTextState，区分有文字、已渲染但空、暂不可用及截断。PDF从已就绪文字层读取与视口相交的文字段，排除隐藏及屏外缓存页；最多12000字符、扫描20000文本节点，不再因没有Range便假报空。自动阅读游标同源，隐私和原回合剧透限制保持。</p>
             <p>这是文字段级读取，不是逐字形裁剪、遮挡识别或OCR；非PDF固定版式无文字层仍不支持。基础DOM/会话/正式插件/Agent过滤测试通过，真实PDF缩放、滚动、双页与Tauri组合留集中验收。</p>

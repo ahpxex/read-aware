@@ -28,7 +28,7 @@ function sandbox(scenario: string, fixture = "wire-probe.ts") {
     t: "boot", url: new URL(`./fixtures/${fixture}`, import.meta.url).href,
     manifest: { id: "wire-test", name: "Wire test", description: scenario, version: "1.0.0", schemaVersion: 1 },
     appVersion: "1.0.0", capabilities: {}, locale: "en", phase: "activating", storage: {},
-    shape: { services: { llm: { ask: "fn", askDetailed: "fn", policy: "fn" }, logging: { write: "fn", policy: "fn" }, network: { fetch: "fn", openStream: "fn", readStream: "fn", closeStream: "fn" } }, contributions: { commands: { register: "fn" } }, __collection: { put: "fn", get: "fn", page: "fn" } },
+    shape: { domains: { library: { queries: { books: { searchLocations: "fn" } } }, reading: { commands: { step: "fn" } } }, services: { llm: { ask: "fn", askDetailed: "fn", policy: "fn" }, logging: { write: "fn", policy: "fn" }, network: { fetch: "fn", openStream: "fn", readStream: "fn", closeStream: "fn" } }, contributions: { commands: { register: "fn" } }, __collection: { put: "fn", get: "fn", page: "fn" } },
   });
   return { worker, messages, next };
 }
@@ -43,6 +43,21 @@ async function command(scenario: string, fixture?: string) {
   s.worker.postMessage({ t: "invoke", id: 900, handle, args: [] });
   return s;
 }
+
+test.each(["query", "navigation"])("Worker %s cancellation strips options, preserves guards and drops late results", async kind => {
+  const method = kind === "query" ? "domains.library.queries.books.searchLocations" : "domains.reading.commands.step";
+  const pre = await command(`${kind}-pre`, "operation-cancel-probe.ts");
+  expect(resultData(await pre.next(message => message.t === "result" && message.id === 900))).toMatchObject({ ok: true, value: { toast: "replaced" } });
+  expect(pre.messages.some(message => message.method === method)).toBe(false);
+  const live = await command(`${kind}-live`, "operation-cancel-probe.ts");
+  const call = await live.next(message => message.method === method);
+  expect(data(call.args!)).toEqual(kind === "query" ? [{ bookId: "b", query: "q" }, undefined] : ["next", { sessionId: "active" }, undefined]);
+  expect(await live.next(message => message.t === "cancel")).toMatchObject({ id: call.id });
+  expect(resultData(await live.next(message => message.t === "result" && message.id === 900))).toMatchObject({ ok: true, value: { toast: "replaced" } });
+  live.worker.postMessage({ t: "result", id: call.id, ok: true, value: { late: true } });
+  live.worker.postMessage({ t: "health", id: 993 }); await live.next(message => message.t === "healthy");
+  expect(live.messages.some(message => message.t === "result" && message.id === 900)).toBe(false);
+});
 
 test.each(["ask", "askDetailed"])("Worker LLM %s cancellation keeps AbortSignal local and cancels only its outstanding request", async method => {
   const suffix = method === "askDetailed" ? "-detailed" : "";

@@ -406,6 +406,58 @@ not a mounted-animation proof. Real Tauri/Worker multi-format links, previews,
 chapter shortcuts, completion revisit and plugin back/forward stay in the
 concentrated composition E2E stage. READ04/READ06 are connected, not E2E-certified.
 
+### Per-Call Cancellation (Library 1.17 / Reading 2.18)
+
+[代码] `PluginCallOptions = {signal?:AbortSignal}` is an optional FINAL argument
+on the 26 methods below. Existing parameters, guards, return values and grants
+are unchanged; omitted guards still occupy their position before options.
+
+| Namespace | Methods | Zero-based options position |
+| --- | --- | --- |
+| `domains.library.queries.books` | `inspectResource`, `getNavigationToc`, `listNavigationTargets`, `searchLocations`, `readRange`, `listReferences`, `listImages`, `readReference`, `searchText`, `getContentState` | 1 |
+| `domains.reading.commands` | `openBook`, `goTo`, `back`, `forward`, `reload`, `close`, `returnToMode` | 1 |
+| `domains.reading.commands` | `putEmphasis`, `removeEmphasis`, `selectRange`, `clearSelection`, `step`, `controlPlayback`, `configureMode`, `setControls`, `stepMode` | 2 |
+
+[代码] `plugin-call-options.ts` is one shared transport table, not a second
+permission registry. Only a method granted by the actual host context can run.
+Options must be an object with only an optional real AbortSignal; malformed
+options reject `plugin/invalid-argument`. The Worker retains the signal locally,
+strips the options from serialized data and uses existing RPC-ID cancellation.
+Pre-aborted calls dispatch nothing; in-flight cancellation and late-result
+discard apply only to that request. Host RPC overwrites any raw forged signal
+with its request controller, preserving business parameters and session guards.
+The actual context merges it with realm cancellation before entering existing
+domain implementations. Existing Agent tool signals and spoiler/reading scopes
+are unchanged; this does not add model-callable tools or arbitrary grants.
+
+[代码] `lifecycle.read` now accepts the combined signal, rejects the waiting
+caller promptly, and tracks the original source until settlement/finally.
+It permits at most 32 unsettled source reads per realm across all its callers,
+including reads that predate these versions; excess reads reject `plugin/busy`
+without dispatch or a waiting queue. Cancellation does not free a source slot
+early. Unexpected source failures after cancellation remain logged and visible
+to shutdown; ordinary read failures do not poison shutdown. This is not a
+cross-plugin/application parsing quota. Navigation uses its existing controller,
+30-second deadline, intention ordering and source serialization. The generic
+120-second RPC ceiling now also aborts the supported domain operation. Direct
+host calls do not acquire that RPC timer merely by passing options.
+
+[代码] Cancellation is not rollback or forced physical parser/IPC interruption.
+Already-applied navigation, selection, playback or saved preferences may remain;
+accepted close/reading-time flush still finishes safely. Callers must explicitly
+cancel obsolete searches: the host does not infer latest-wins from query text.
+`openImageResource`, general resource acquisition, durable writes and all methods
+not listed above do not acquire this options contract. Existing LLM/network
+cancellation contracts remain separate. Cross-page TaskRef/progress/history,
+large-section cooperative scan budgets and unified retry/idempotency remain gaps.
+
+[环境] Focused tests cover all 26 actual context methods at pre-cancellation,
+signal slot/guard projection, source draining/capacity, actual query forwarding,
+host RPC injection and real Bun Worker query/navigation cancellation. Providers
+and renderers are controlled test doubles; this is not native Tauri or business
+plugin E2E. Composition plugins will consume the new options in the concentrated
+integration stage rather than adding per-capability desktop checks here.
+
 ### Viewport Text Availability (Reading 2.17)
 
 [代码] Existing `reading.queries.session`, `reading.events.observeSession` and

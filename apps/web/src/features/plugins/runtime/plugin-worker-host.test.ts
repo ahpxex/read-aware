@@ -8,6 +8,9 @@ import { openPluginViewChannel } from "../lib/plugin-view-channels";
 import { PluginLifecycleController } from "./plugin-lifecycle";
 import * as runtimeModule from "../../ai/agent/agent-runtime";
 import type { AgentRuntime, OneShotInput } from "@read-aware/agent";
+import type { PluginPermission } from "@read-aware/core";
+import * as contentNavigation from "../../library/lib/book-content-navigation";
+import { readingRuntime } from "../../../domain/reading-runtime";
 
 type WireMessage = { t: string; id?: number; handle?: string; handles?: string[]; disposable?: string; [key: string]: unknown };
 
@@ -30,7 +33,7 @@ class FaultWorker {
   terminate() { this.terminated = true; this.callbacks.clear(); }
 }
 
-async function hostFixture(permissions: Array<"service:llm"> = []) {
+async function hostFixture(permissions: PluginPermission[] = []) {
   const native = globalThis.Worker;
   const storageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
   const values = new Map<string, string>();
@@ -94,6 +97,29 @@ describe("plugin worker capability bridge", () => {
       },
     });
   });
+});
+
+test.each(["query", "navigation"])("%s RPC cancellation reaches the existing domain, not a forged options signal", async kind => {
+  let started!: () => void, signal: AbortSignal | undefined;
+  const ready = new Promise<void>(resolve => { started = resolve; });
+  const run = (value?: AbortSignal): Promise<never> => {
+    signal = value; started();
+    return new Promise((_, reject) => value!.addEventListener("abort", () => reject(value!.reason), { once: true }));
+  };
+  const spy = kind === "query" ? spyOn(contentNavigation, "searchBookLocations").mockImplementation((_input, value) => run(value))
+    : spyOn(readingRuntime, "step").mockImplementation((_direction, value, guard) => { expect(guard).toEqual({ sessionId: "active" }); return run(value); });
+  const { worker, close } = await hostFixture(["library:read", "reading:write"]);
+  try {
+    const method = kind === "query" ? "domains.library.queries.books.searchLocations" : "domains.reading.commands.step";
+    const args = kind === "query" ? [{ bookId: "b", query: "q" }, { signal: { forged: true } }]
+      : ["next", { sessionId: "active" }, { signal: { forged: true } }];
+    const call = worker.deliver({ t: "call", id: 991, method, args: worker.callbacks.encode(args) });
+    await ready;
+    expect(signal).toBeInstanceOf(AbortSignal); expect(signal?.aborted).toBe(false);
+    await worker.deliver({ t: "cancel", id: 991 }); await call;
+    expect(signal?.aborted).toBe(true);
+    expect(worker.sent.find(message => message.t === "result" && message.id === 991)).toMatchObject({ ok: false, code: "plugin/cancelled" });
+  } finally { await close(); spy.mockRestore(); }
 });
 
 test.each(["ask", "askDetailed"])("LLM %s RPC cancellation injects the current request signal into the actual host service", async method => {

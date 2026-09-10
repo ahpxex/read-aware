@@ -11,7 +11,8 @@ import { assertToolApproval } from "../lib/plugin-tool-approval";
  */
 import { fetch as corsFreeFetch } from "@tauri-apps/plugin-http";
 import { createPluginNetworkService } from "./plugin-network";
-import type { PluginActionRegistration } from "@read-aware/plugin-types";
+import type { PluginActionRegistration, PluginCallOptions } from "@read-aware/plugin-types";
+import { pluginOperationSignal } from "./plugin-call-options";
 import { readerPanels } from "../../../services/reader-panels";
 import { readerFocus } from "../../../services/reader-focus";
 import { readerReferencePreview } from "../../../services/reader-reference-preview";
@@ -170,6 +171,7 @@ export function buildPluginContext(
   const permissions = new Set(manifest.permissions ?? []);
   const selfOrigin = `plugin:${manifest.id}` as const;
   const lifecycle = new PluginLifecycleController(disposables);
+  const callSignal = (options?: PluginCallOptions) => pluginOperationSignal(lifecycle.signal, options);
   const referencePreviewOwner = {};
   lifecycle.signal.addEventListener("abort", () => lifecycle.trackCleanup(readerReferencePreview.release(referencePreviewOwner)), { once: true });
   const resources = createResourceOwner(() => {
@@ -681,17 +683,17 @@ export function buildPluginContext(
         ...library.queries,
         books: {
           ...library.queries.books,
-          inspectResource: id => lifecycle.read("library.inspectResource", () => inspectResourceBook(resources, id, lifecycle.signal)),
-          getNavigationToc: (bookId) => lifecycle.read("library.getNavigationToc", () => library.queries.books.getNavigationToc(bookId, lifecycle.signal)),
-          listNavigationTargets: input => lifecycle.read("library.listNavigationTargets", () => library.queries.books.listNavigationTargets(input, lifecycle.signal)),
-          searchLocations: (input) => lifecycle.read("library.searchLocations", () => library.queries.books.searchLocations(input, lifecycle.signal)),
-          readRange: (input) => lifecycle.read("library.readRange", () => library.queries.books.readRange(input, lifecycle.signal)),
-          listReferences: (input) => lifecycle.read("library.listReferences", () => library.queries.books.listReferences(input, lifecycle.signal)),
-          listImages: input => lifecycle.read("library.listImages", () => library.queries.books.listImages(input, lifecycle.signal)),
+          inspectResource: (id, options) => lifecycle.read("library.inspectResource", signal => inspectResourceBook(resources, id, signal), callSignal(options)),
+          getNavigationToc: (bookId, options) => lifecycle.read("library.getNavigationToc", signal => library.queries.books.getNavigationToc(bookId, signal), callSignal(options)),
+          listNavigationTargets: (input, options) => lifecycle.read("library.listNavigationTargets", signal => library.queries.books.listNavigationTargets(input, signal), callSignal(options)),
+          searchLocations: (input, options) => lifecycle.read("library.searchLocations", signal => library.queries.books.searchLocations(input, signal), callSignal(options)),
+          readRange: (input, options) => lifecycle.read("library.readRange", signal => library.queries.books.readRange(input, signal), callSignal(options)),
+          listReferences: (input, options) => lifecycle.read("library.listReferences", signal => library.queries.books.listReferences(input, signal), callSignal(options)),
+          listImages: (input, options) => lifecycle.read("library.listImages", signal => library.queries.books.listImages(input, signal), callSignal(options)),
           openImageResource: input => lifecycle.read("library.openImageResource", () => openBookImageResource(resources, input, lifecycle.signal)),
-          readReference: (input) => lifecycle.read("library.readReference", () => library.queries.books.readReference(input, lifecycle.signal)),
-          searchText: (input) => library.queries.books.searchText(input, lifecycle.signal),
-          getContentState: bookId => lifecycle.read("library.getContentState", () => library.queries.books.getContentState(bookId, lifecycle.signal)),
+          readReference: (input, options) => lifecycle.read("library.readReference", signal => library.queries.books.readReference(input, signal), callSignal(options)),
+          searchText: (input, options) => lifecycle.read("library.searchText", signal => library.queries.books.searchText(input, signal), callSignal(options)),
+          getContentState: (bookId, options) => lifecycle.read("library.getContentState", signal => library.queries.books.getContentState(bookId, signal), callSignal(options)),
           listRemovalCleanup: library.queries.books.listRemovalCleanup,
         },
       },
@@ -836,22 +838,22 @@ export function buildPluginContext(
       ctx.domains.reading.commands = guardMutationTree(
         {
         setFinished: reading.commands.setFinished,
-        putEmphasis: (input: import("@read-aware/core").ReadingEmphasisWrite, guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.putEmphasis(input, lifecycle.signal, guard),
-        removeEmphasis: (input: import("@read-aware/core").ReadingEmphasisRef, guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.removeEmphasis(input, lifecycle.signal, guard),
-        selectRange: (range: import("@read-aware/core").BookTextRange, guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.selectRange(range, lifecycle.signal, guard),
-        clearSelection: (expectedId: string, guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.clearSelection(expectedId, lifecycle.signal, guard),
-        openBook: (bookId: string) => reading.commands!.openBook(bookId, lifecycle.signal),
-        goTo: (target: import("@read-aware/core").ReadingTarget) => reading.commands!.goTo(target, lifecycle.signal),
-        back: (guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.back(lifecycle.signal, guard),
-        forward: (guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.forward(lifecycle.signal, guard),
-        step: (direction: import("@read-aware/core").ReadingStep, guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.step(direction, lifecycle.signal, guard),
-        reload: (guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.reload(lifecycle.signal, guard),
-        close: (guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.close(lifecycle.signal, guard),
-        controlPlayback: (action: "start" | "stop", guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.controlPlayback(action, lifecycle.signal, guard),
-        configureMode: (input: import("@read-aware/core").ReadingModeConfiguration, guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.configureMode(input, lifecycle.signal, guard),
-        setControls: (visible: boolean, guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.setControls(visible, lifecycle.signal, guard),
-        returnToMode: (guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.returnToMode(lifecycle.signal, guard),
-        stepMode: (direction: "next" | "previous", guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.stepMode(direction, lifecycle.signal, guard),
+        putEmphasis: (input: import("@read-aware/core").ReadingEmphasisWrite, guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions) => reading.commands!.putEmphasis(input, callSignal(options), guard),
+        removeEmphasis: (input: import("@read-aware/core").ReadingEmphasisRef, guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions) => reading.commands!.removeEmphasis(input, callSignal(options), guard),
+        selectRange: (range: import("@read-aware/core").BookTextRange, guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions) => reading.commands!.selectRange(range, callSignal(options), guard),
+        clearSelection: (expectedId: string, guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions) => reading.commands!.clearSelection(expectedId, callSignal(options), guard),
+        openBook: (bookId: string, options?: PluginCallOptions) => reading.commands!.openBook(bookId, callSignal(options)),
+        goTo: (target: import("@read-aware/core").ReadingTarget, options?: PluginCallOptions) => reading.commands!.goTo(target, callSignal(options)),
+        back: (guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions) => reading.commands!.back(callSignal(options), guard),
+        forward: (guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions) => reading.commands!.forward(callSignal(options), guard),
+        step: (direction: import("@read-aware/core").ReadingStep, guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions) => reading.commands!.step(direction, callSignal(options), guard),
+        reload: (guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions) => reading.commands!.reload(callSignal(options), guard),
+        close: (guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions) => reading.commands!.close(callSignal(options), guard),
+        controlPlayback: (action: "start" | "stop", guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions) => reading.commands!.controlPlayback(action, callSignal(options), guard),
+        configureMode: (input: import("@read-aware/core").ReadingModeConfiguration, guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions) => reading.commands!.configureMode(input, callSignal(options), guard),
+        setControls: (visible: boolean, guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions) => reading.commands!.setControls(visible, callSignal(options), guard),
+        returnToMode: (guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions) => reading.commands!.returnToMode(callSignal(options), guard),
+        stepMode: (direction: "next" | "previous", guard?: import("@read-aware/core").ReadingSessionGuard, options?: PluginCallOptions) => reading.commands!.stepMode(direction, callSignal(options), guard),
         },
         (operation) => lifecycle.assertActive(operation),
         "domains.reading.commands",

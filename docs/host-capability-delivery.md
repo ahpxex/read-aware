@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+2026-09-11 单次取消批次已接线：Library 1.17 / Reading 2.18 为10个正文查询和16个阅读控制添加末参数 PluginCallOptions.signal，保留原参数/guard/权限。Worker与宿主共用26项参数位置表，本地预取消不派发，途中按RPC id取消，宿主覆盖伪造signal并合并realm；不取消兄弟请求。lifecycle.read等待可先结束，但源/lease实际结算前继续排空并占每realm32个源读名额，满则plugin/busy，无等待队列；导航复用既有控制器/30秒截止，原RPC120秒超时也传到底层。
+
+[验证] 26方法正式上下文预取消、真实查询转发/源排空/额度、宿主RPC和Bun Worker查询/导航、既有生命周期/导航/Agent围栏与库存模型共99 pass / 5621 assertions；全仓typecheck 27/27通过。911入口映射，没有新增Agent工具。资源获取/持久写不自动获得options，已呈现/保存效果不回滚，物理解析中止、跨页TaskRef/进度、统一重试仍缺。业务插件接入及真实Tauri组合留集中阶段，本批未启动桌面/浏览器、未推送，整体目标继续。
+
 2026-09-11 可见正文批次已接线：reading 2.17 在既有 session/observeSession 与双scope get_reading_session 返回 visibleTextState。PDF从已渲染且视口相交的文字段取文，不再因Range为空直接丢失正文；按iframe缩放换算，排除隐藏/屏外缓存页。就绪空页、暂不可用、扫描超限和截断分开；预览12000 UTF-16不拆字符对，PDF最多扫描20000文本节点。自动阅读游标同源并保留1800字符摘要，换会话/替换/卸载/错误/关闭清旧文字，Agent隐私和原回合剧透边界不变。
 
 [验证] 正式会话/插件查询、DOM几何/文字状态、阅读导航与Agent过滤、库存模型合计63 pass / 283 assertions；全仓typecheck 27/27通过，Foliate严格检查并重建49个静态模块。911入口映射，无新增模型工具。PDF按相交文字段而非逐字形/遮挡识别，不做OCR；固定非PDF无文字层仍不支持。真实PDF.js/Tauri缩放、滚动、双页及全部格式留集中验收，本批未启动桌面/浏览器、未推送，整体目标继续。

@@ -21,6 +21,7 @@ import type {
   PluginManifest,
 } from "@read-aware/plugin-types";
 import { AppError, errorCode } from "@read-aware/core";
+import { injectPluginCallSignal } from "./plugin-call-options";
 import { buildPluginContext, currentAppLocale, pluginStoragePrefix } from "./plugin-context";
 import { pluginModuleUrl } from "./plugin-backend";
 import { i18n } from "../../../i18n";
@@ -471,6 +472,7 @@ export function startPluginWorker(
             // Registrations transfer this entire lease to their returned disposable.
             releaseArguments = retainPluginCallbacks(args);
             if (!Array.isArray(args)) throw new AppError("plugin/invalid-input", "Plugin call arguments must be an array");
+            injectPluginCallSignal(message.method, args, controller.signal);
             if (message.method === "services.network.fetch" || message.method === "services.network.openStream") {
               // Validate the body limit on the authoritative side too: a plugin
               // can send messages directly rather than use its friendly proxy.

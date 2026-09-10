@@ -1,7 +1,7 @@
 import type { Book } from './book.js'
 import * as CFI from './epubcfi.js'
-import { search, searchMatcher, type SearchExcerpt, type SearchMatcherOptions } from './search.js'
-import { textWalker } from './text-walker.js'
+import { searchAsync, matcherSearchOptions, type SearchExcerpt, type SearchMatcherOptions } from './search.js'
+import { collectTextAsync, textWalker } from './text-walker.js'
 
 export type TextQuote = { exact: string; prefix?: string; suffix?: string }
 export type ContentMatch = { cfi: string; excerpt: SearchExcerpt; textQuote?: TextQuote }
@@ -23,19 +23,21 @@ export async function* searchContentSection(book: Book, index: number, query: st
     if (section.createDocument) {
         const doc = await section.createDocument()
         signal?.throwIfAborted()
-        yield { textLength: [...textWalker(doc, strings => [strings.join('').trim().length])][0] ?? 0 }
-        for (const { range, excerpt } of searchMatcher(textWalker, options)(doc, query)) {
+        const { strings, makeRange } = await collectTextAsync(doc, options.acceptNode, signal)
+        yield { textLength: strings.join('').trim().length }
+        for await (const { range, excerpt } of searchAsync(strings, query, matcherSearchOptions(doc, options), signal)) {
             signal?.throwIfAborted()
-            yield { cfi: contentCFI(book, index, range), excerpt }
+            const { startIndex, startOffset, endIndex, endOffset } = range
+            yield { cfi: contentCFI(book, index, makeRange(startIndex, startOffset, endIndex, endOffset)), excerpt }
         }
     } else if (section.getText) {
         const text = await section.getText()
         signal?.throwIfAborted()
         yield { textLength: text.trim().length }
-        for (const { range, excerpt } of search([text], query, {
+        for await (const { range, excerpt } of searchAsync([text], query, {
             granularity: options.matchWholeWords ? 'word' : 'grapheme',
             sensitivity: options.matchCase ? 'variant' : 'accent',
-        })) {
+        }, signal)) {
             signal?.throwIfAborted()
             yield { cfi: contentCFI(book, index), excerpt, textQuote: {
                 exact: text.slice(range.startOffset, range.endOffset),

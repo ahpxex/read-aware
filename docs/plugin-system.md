@@ -442,6 +442,22 @@ cross-plugin/application parsing quota. Navigation uses its existing controller,
 120-second RPC ceiling now also aborts the supported domain operation. Direct
 host calls do not acquire that RPC timer merely by passing options.
 
+[代码] `searchLocations` now collects DOM text cooperatively and uses the same
+Foliate matcher through `searchAsync` for DOM and PDF extracted text. Collection
+and Intl segmentation checkpoint every 256 accepted nodes/raw segments (including
+whitespace-only/Format-only input); substring scans bound candidate starts to
+32768 UTF-16 units with query overlap. A checkpoint past the approximately 8 ms
+quantum yields a real timer turn and checks cancellation before continuing.
+The synchronous engine API and async API consume one matching implementation;
+locale, exact ranges, overlapping matches and excerpts retain their semantics.
+`searchText` similarly uses shared `searchChaptersAsync`: bounded substring
+steps, real timer yields, unchanged query ordering/fallback/dedupe and Agent
+chapter ceiling. Cancelled derived-text scans report `library/cancelled`.
+These are cooperative scheduling points, NOT an 8 ms hard deadline or a total
+memory limit: document/PDF extraction, native TreeWalker/Intl calls, string
+joining/case conversion and individual excerpt operations are not preempted.
+No cross-page TaskRef, progress protocol or new model tool is introduced.
+
 [代码] Cancellation is not rollback or forced physical parser/IPC interruption.
 Already-applied navigation, selection, playback or saved preferences may remain;
 accepted close/reading-time flush still finishes safely. Callers must explicitly
@@ -2281,11 +2297,13 @@ conversation matchers now live in core, with existing Agent exports retained.
 - Agent retains current-book defaults and its host-verified spoiler ceiling;
   the UI plugin does not gain access to the Agent's spoiler permission state.
   The tool returns up to 16 hits and records snippet evidence as before.
-- The Agent forwards its abort signal; the plugin passes its activation
-  lifetime. Cancellation is checked before work and after awaited reads, reports
-  `library/cancelled`, and prevents late results. It does not undo extraction or
-  interrupt synchronous matching within a large chapter. Pagination, scan
-  budgets, task handles and cooperative cancellation remain TXT08 work.
+- The Agent forwards its abort signal; the plugin combines activation lifetime
+  and Library 1.17 per-call options.signal. Cancellation is checked before work,
+  after awaited reads and inside cooperative chapter matching, reports
+  `library/cancelled`, and prevents late results. It does not undo or forcibly
+  interrupt extraction. Pagination/task handles for this derived-text search
+  and total scan/memory budgets remain gaps; exact searchLocations has its own
+  existing page cursor.
 
 [代码] Introduced in Text Desk 0.4 (now 0.5, requiring library 1.7), this flow composes the existing library,
 reader, form/list/detail surfaces: shelf-index search, selected-book search,

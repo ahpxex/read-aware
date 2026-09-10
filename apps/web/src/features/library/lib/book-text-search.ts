@@ -1,4 +1,4 @@
-import { AppError, searchChapters, type BookTextSearch, type BookTextHit, type ChapterLike } from "@read-aware/core";
+import { AppError, searchChaptersAsync, type BookTextSearch, type BookTextHit, type ChapterLike } from "@read-aware/core";
 
 export interface BookTextSearchSource {
   list(): Promise<{ id: string }[]>;
@@ -21,11 +21,15 @@ function validate(input: BookTextSearch): Required<Pick<BookTextSearch, "queries
 export async function searchBookText(source: BookTextSearchSource, raw: BookTextSearch, signal?: AbortSignal): Promise<BookTextHit[]> {
   const input = validate(raw);
   const active = () => { if (signal?.aborted) throw new AppError("library/cancelled", "Book text search was cancelled"); };
+  const scan = async (chapters: ChapterLike[], limit: number) => {
+    try { return await searchChaptersAsync(chapters, input.queries, limit, signal); }
+    catch (error) { active(); throw error; }
+  };
   active();
   if (input.bookId) {
     const chapters = await source.extract(input.bookId);
     active();
-    return searchChapters(input.throughChapterIndex === undefined ? chapters : chapters.slice(0, input.throughChapterIndex + 1), input.queries, input.limit)
+    return (await scan(input.throughChapterIndex === undefined ? chapters : chapters.slice(0, input.throughChapterIndex + 1), input.limit))
       .map(hit => ({ ...hit, bookId: input.bookId! }));
   }
   const books = await source.list();
@@ -35,7 +39,7 @@ export async function searchBookText(source: BookTextSearchSource, raw: BookText
     const chapters = await source.persisted(book.id);
     active();
     if (!chapters) continue;
-    results.push(...searchChapters(chapters, input.queries, input.limit - results.length).map(hit => ({ ...hit, bookId: book.id })));
+    results.push(...(await scan(chapters, input.limit - results.length)).map(hit => ({ ...hit, bookId: book.id })));
     if (results.length >= input.limit) break;
   }
   return results;

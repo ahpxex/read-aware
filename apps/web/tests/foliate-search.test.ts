@@ -1,8 +1,21 @@
-import { describe, expect, test } from "bun:test";
-import { search, searchMatcher, type SearchOptions } from "../foliate-js/src/search";
+import { describe, expect, spyOn, test } from "bun:test";
+import { search, searchAsync, searchMatcher, type SearchOptions, type SearchResult } from "../foliate-js/src/search";
 import { indexText } from "../foliate-js/src/text-index";
-import { textWalker } from "../foliate-js/src/text-walker";
+import { collectTextAsync, textWalker } from "../foliate-js/src/text-walker";
 import { withDom } from "./helpers/foliate-dom";
+
+async function collectSearch(strings: string[], query: string, options: SearchOptions = {}, signal?: AbortSignal) {
+  const results: SearchResult[] = [];
+  for await (const result of searchAsync(strings, query, options, signal)) results.push(result);
+  return results;
+}
+
+// Expire the scheduling quantum deterministically; timers still run on the real event loop.
+async function withExpiredQuantum(run: () => Promise<void>) {
+  let time = 0;
+  const clock = spyOn(performance, "now").mockImplementation(() => time += 9);
+  try { await run(); } finally { clock.mockRestore(); }
+}
 
 describe("text offset index", () => {
   test("keeps boundaries on real nodes, including empty chunks", () => {
@@ -101,5 +114,88 @@ describe("document text walking", () => {
       expect(strings).toEqual(["world ", "and"]);
       yield makeRange(0, 0, 1, 3).toString();
     })]).toEqual(["world and"]);
+  }));
+});
+
+describe("cooperative content search", () => {
+  test("async and sync share Unicode, word, whitespace, overlap and cross-node semantics", async () => {
+    for (const sensitivity of ["variant", "accent", "base", "case"] as const) {
+      for (const granularity of ["word", "grapheme"] as const) {
+        for (const [strings, query] of [
+          [["left A", "BCD", "E right"], "ABCDE"], [["aaaa"], "aa"],
+          [["Café cafe CAFÉ"], "café"], [["İx"], "x"], [["a", "😀", "b"], "😀"],
+          [["中文", "阅读"], "阅读"], [["a \n", "\t b"], "a b"], [["a\u200eb"], "ab"],
+          [["worldwide world"], "world"], [["abc"], "\u200e"], [[""], "x"],
+        ] satisfies Array<[string[], string]>) {
+          const options = { sensitivity, granularity };
+          expect(await collectSearch(strings, query, options)).toEqual([...search(strings, query, options)]);
+        }
+      }
+    }
+  });
+
+  test("bounded substring scans preserve overlapping starts at both sides of a chunk edge", async () => {
+    const strings = ["x".repeat(32767) + "aaa", "x".repeat(32767) + "aa"];
+    const options = { sensitivity: "variant" } as const;
+    const results = await collectSearch(strings, "aa", options);
+    expect(results).toEqual([...search(strings, "aa", options)]);
+    expect(results.map(result => [result.range.startIndex, result.range.startOffset])).toEqual([[0, 32767], [0, 32768], [1, 32767]]);
+  });
+
+  test("no-hit, whitespace-only and format-only scans accept timer cancellation before completion", () => withExpiredQuantum(async () => {
+    for (const text of ["x".repeat(4096), " ".repeat(4096), "\u200e".repeat(4096)]) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 0);
+      try {
+        await expect(collectSearch([text], "missing", {}, controller.signal)).rejects.toMatchObject({ name: "AbortError" });
+      } finally { clearTimeout(timer); }
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 0);
+    try {
+      await expect(collectSearch(["x".repeat(100000)], "missing", { sensitivity: "variant" }, controller.signal)).rejects.toMatchObject({ name: "AbortError" });
+    } finally { clearTimeout(timer); }
+    expect(await collectSearch(["sibling"], "sibling")).toHaveLength(1);
+  }));
+
+  test("pre-cancellation reads no content and cancellation after a hit stops the iterator", async () => {
+    const strings = new Proxy(["aa"], { get() { throw new Error("must not read"); } });
+    await expect(collectSearch(strings, "a", {}, AbortSignal.abort())).rejects.toMatchObject({ name: "AbortError" });
+    const controller = new AbortController();
+    const iterator = searchAsync(["aaaa"], "aa", {}, controller.signal);
+    expect((await iterator.next()).value).toMatchObject({ excerpt: { match: "aa" } });
+    controller.abort();
+    await expect(iterator.next()).rejects.toMatchObject({ name: "AbortError" });
+    expect((await iterator.next()).done).toBe(true);
+  });
+
+  test("asynchronous DOM collection shares range clipping and script/style filtering", () => withDom(async ({ document: doc }) => {
+    doc.body.innerHTML = "<script>hidden</script><style>.hidden { color: red }</style><p>before world <em>and after</em></p>";
+    const whole = await collectTextAsync(doc);
+    expect(whole.strings).toEqual(["before world ", "and after"]);
+    const range = doc.createRange();
+    range.setStart(doc.querySelector("p")!.firstChild!, 7);
+    range.setEnd(doc.querySelector("em")!.firstChild!, 3);
+    const clipped = await collectTextAsync(range);
+    expect(clipped.strings).toEqual(["world ", "and"]);
+    expect(clipped.makeRange(0, 1, 1, 3).toString()).toBe("orld and");
+    range.setEnd(range.startContainer, 12);
+    const single = await collectTextAsync(range);
+    expect(single.strings).toEqual(["world"]);
+    expect(single.makeRange(0, 1, 0, 4).startOffset).toBe(8);
+  }));
+
+  test("DOM collection yields during traversal and stops before visiting the remaining nodes", () => withDom(async ({ document: doc }) => {
+    for (let index = 0; index < 2048; index++) doc.body.append(doc.createTextNode("x"));
+    await withExpiredQuantum(async () => {
+      let visited = 0;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 0);
+      try {
+        await expect(collectTextAsync(doc, () => { visited++; return NodeFilter.FILTER_ACCEPT; }, controller.signal))
+          .rejects.toMatchObject({ name: "AbortError" });
+        expect(visited).toBe(256);
+      } finally { clearTimeout(timer); }
+    });
   }));
 });

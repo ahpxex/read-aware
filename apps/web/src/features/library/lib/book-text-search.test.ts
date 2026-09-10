@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import { AppError, type BookTextSearch } from "@read-aware/core";
 import { searchBookText, type BookTextSearchSource } from "./book-text-search";
 
@@ -56,4 +56,22 @@ test("abort before work or during an awaited read rejects without publishing lat
   const controller = new AbortController();
   source.persisted = async () => { controller.abort(); return [{ text: "alpha" }]; };
   await expect(searchBookText(source, { queries: ["alpha"] }, controller.signal)).rejects.toMatchObject({ code: "library/cancelled" });
+});
+
+test("single-book and shelf scans receive cancellation inside matching without starting another read", async () => {
+  let time = 0;
+  const clock = spyOn(performance, "now").mockImplementation(() => time += 1);
+  try {
+    for (const bookId of ["a", undefined]) {
+      const { source, calls } = fixture();
+      source.extract = async () => [{ text: "x".repeat(1000000) }];
+      source.persisted = async id => { calls.push(id); return [{ text: "x".repeat(1000000) }]; };
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 0);
+      try {
+        await expect(searchBookText(source, { queries: ["missing"], bookId }, controller.signal)).rejects.toMatchObject({ code: "library/cancelled" });
+        expect(calls).toEqual(bookId ? [] : ["list", "cold"]);
+      } finally { clearTimeout(timer); }
+    }
+  } finally { clock.mockRestore(); }
 });

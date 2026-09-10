@@ -38,11 +38,23 @@ function snippetAround(text: string, offset: number, matchLength: number): strin
   return `${start > 0 ? "…" : ""}${text.slice(start, end)}${end < text.length ? "…" : ""}`;
 }
 
-export function searchChapters(
+function* findTextSteps(text: string, query: string, from = 0): Generator<undefined, number, unknown> {
+  const chunkSize = 32768;
+  while (from <= text.length - query.length) {
+    yield undefined;
+    const end = Math.min(from + chunkSize, text.length - query.length + 1);
+    const at = text.slice(from, end + query.length - 1).indexOf(query);
+    if (at !== -1) return from + at;
+    from = end;
+  }
+  return -1;
+}
+
+function* searchChapterSteps(
   chapters: ChapterLike[],
   queries: string[],
   limit = 16,
-): ChapterHit[] {
+): Generator<undefined, ChapterHit[], unknown> {
   const cleanQueries = [...new Set(queries.map((q) => q.trim()).filter(Boolean))];
   if (!cleanQueries.length) return [];
 
@@ -60,10 +72,11 @@ export function searchChapters(
     let queryHasExact = false;
 
     // 1) 精确子串：每章最多取前几处
-    chapters.forEach((chapter, chapterIndex) => {
+    for (const [chapterIndex, chapter] of chapters.entries()) {
+      yield undefined;
       let from = 0;
       for (let n = 0; n < MAX_HITS_PER_CHAPTER_PER_QUERY; n++) {
-        const at = chapter.text.indexOf(query, from);
+        const at = yield* findTextSteps(chapter.text, query, from);
         if (at === -1) break;
         queryHasExact = true;
         push(exact, {
@@ -75,28 +88,59 @@ export function searchChapters(
         });
         from = at + query.length;
       }
-    });
+    }
     if (queryHasExact) continue;
 
     // 2) 回退：词元 AND（≥4 个词元时放宽到过半）——按章判定，片段取首个词元附近
     const tokens = tokenize(query);
     if (tokens.length < 2) continue;
     const required = tokens.length >= 4 ? Math.ceil(tokens.length / 2) : tokens.length;
-    chapters.forEach((chapter, chapterIndex) => {
-      const present = tokens.filter((token) => chapter.text.includes(token));
-      if (present.length < required) return;
-      const at = chapter.text.indexOf(present[0]);
+    for (const [chapterIndex, chapter] of chapters.entries()) {
+      yield undefined;
+      const present: Array<{ token: string; at: number }> = [];
+      for (const token of tokens) {
+        const at = yield* findTextSteps(chapter.text, token);
+        if (at !== -1) present.push({ token, at });
+      }
+      if (present.length < required) continue;
+      const { at, token } = present[0];
       push(partial, {
         chapterIndex,
         chapterTitle: chapter.title,
-        snippet: snippetAround(chapter.text, at, present[0].length),
+        snippet: snippetAround(chapter.text, at, token.length),
         offset: at,
         match: "partial",
       });
-    });
+    }
   }
 
   return [...exact, ...partial].slice(0, limit);
+}
+
+export function searchChapters(chapters: ChapterLike[], queries: string[], limit = 16): ChapterHit[] {
+  const steps = searchChapterSteps(chapters, queries, limit);
+  let step = steps.next();
+  while (!step.done) step = steps.next();
+  return step.value;
+}
+
+/** Same matching and ranking as the synchronous API, with cooperative cancellation. */
+export async function searchChaptersAsync(chapters: ChapterLike[], queries: string[], limit = 16, signal?: AbortSignal): Promise<ChapterHit[]> {
+  signal?.throwIfAborted();
+  let deadline = performance.now() + 8;
+  const steps = searchChapterSteps(chapters, queries, limit);
+  let step = steps.next();
+  while (!step.done) {
+    signal?.throwIfAborted();
+    if (performance.now() >= deadline) {
+      await new Promise<void>(resolve => setTimeout(resolve, 0));
+      signal?.throwIfAborted();
+      deadline = performance.now() + 8;
+    }
+    step = steps.next();
+  }
+  signal?.throwIfAborted();
+  return step.value;
 }
 
 export interface TurnLike {

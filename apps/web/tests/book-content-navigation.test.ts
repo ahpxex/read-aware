@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import type { Book } from "../foliate-js/src/book";
 import { contentCFI, resolveTextQuote, searchContentSection } from "../foliate-js/src/content-navigation";
 import * as CFI from "../foliate-js/src/epubcfi";
@@ -106,6 +106,26 @@ test("abort after asynchronous content extraction rejects rather than returning 
   book.sections[0].getText = async () => { controller.abort(); return "needle"; };
   await expect(search(book, {}, controller.signal)).rejects.toMatchObject({ name: "AbortError" });
 });
+
+test("shared location search cancels inside DOM and PDF scans without visiting the next section", () => withDom(async () => {
+  let time = 0;
+  const clock = spyOn(performance, "now").mockImplementation(() => time += 9);
+  try {
+    for (const dom of [false, true]) {
+      document.body.textContent = "x".repeat(8192);
+      const book = pdfBook(document.body.textContent, "needle");
+      if (dom) book.sections[0].createDocument = () => document;
+      let nextReads = 0;
+      book.sections[1].getText = async () => { nextReads++; return "needle"; };
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 0);
+      try {
+        await expect(search(book, {}, controller.signal)).rejects.toMatchObject({ name: "AbortError" });
+        expect(nextReads).toBe(0);
+      } finally { clearTimeout(timer); }
+    }
+  } finally { clock.mockRestore(); }
+}));
 
 test("TOC hierarchy preserves non-navigable headings and does not pretend ordinals are printed numbers", async () => {
   const book = pdfBook("one", "two");

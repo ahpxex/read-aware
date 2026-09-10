@@ -177,7 +177,7 @@ export const units: Unit[] = [
     "不复制第二份能力 registry；不把所有内部行为都变成公开工具。当前对象级授权/metadata policy/packaged CSP 尚未全部验收。",
     "无权限、撤权、过期批准、跨 scope、恶意插件输出和真实打包 CSP 分别测；只测类型不算通过。"),
   unit("Q2", "Contract", "execution/lifecycle", "完成、取消和资源释放", "CON03-06 READ20 AI07", "",
-    "短操作Promise直接给完成结果；Library1.17/Reading2.18的10正文查询/16阅读控制共享PluginCallOptions末参数signal与Worker/host位置表，保留原guard，预取消不派发，宿主注入权威信号，按id取消不影响兄弟请求。读等待先结束但源/lease排空，每realm32个未结算源读，不因取消早退槽；非全App预算。Agent继续传既有工具signal/权限，不添模型工具。长操作request/task ID + progress + cancellation + deadline + terminal result仍为目标，非所有API支持options，资源获取/持久写另有契约。accepted只表示受理，不是完成。跨Worker envelope有版本/类型/长度/并发界限，真实新链路Tauri组合后置。",
+    "短操作Promise直接给完成结果；Library1.17/Reading2.18的10正文查询/16阅读控制共享PluginCallOptions末参数signal与Worker/host位置表，保留原guard，预取消不派发，宿主注入权威信号，按id取消不影响兄弟请求。读等待先结束但源/lease排空，每realm32个未结算源读，不因取消早退槽；非全App预算。searchLocations的DOM取文/DOM与PDF匹配及searchText共享章节匹配已接协作扫描，按节点/片段/子串分块，约8ms到期让出真实定时器后检查signal，无命中也可取消；不是8ms硬截止/总内存额度，不强杀文档/PDF解析或单次原生操作。基础对拍与定时器取消通过。Agent继续传既有工具signal/权限，不添模型工具。长操作request/task ID + progress + cancellation + deadline + terminal result仍为目标，非所有API支持options，资源获取/持久写另有契约。accepted只表示受理，不是完成。跨Worker envelope有版本/类型/长度/并发界限，真实新链路Tauri组合后置。",
     "工具结束必须有真实业务结果；插件 worker 崩溃不让模型轮次无限等待。",
     "owner = plugin generation + view/session/task lease；停用后拒绝新调用、取消在途并清理回调/连接/临时资源；迟到 effect 在 host 提交边界再验 generation。",
     "cancel 不等于 undo/远端回滚；不强制所有任务耐久恢复。stable AppError code 复用项目错误契约，本文不发明与现有 code 冲突的第二套错误枚举。",

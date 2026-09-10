@@ -12,6 +12,9 @@
     "copied": "已复制"
   },
   "errors": {
+    "aiRequestCancelled": "本次 AI 请求已取消。",
+    "aiRequestTimeout": "本次 AI 请求已超时，服务商仍可能已处理该请求。",
+    "aiBusy": "插件 AI 请求繁忙，请等待现有请求结束。",
     "pluginInvalidArgument": "此插件请求包含无效参数。",
     "pluginQuotaExceeded": "此插件请求超出数据限制，请减小批次。",
     "settingsOptionsInvalid": "设置选项查询无效。",

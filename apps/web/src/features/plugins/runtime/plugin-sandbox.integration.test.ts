@@ -28,7 +28,7 @@ function sandbox(scenario: string, fixture = "wire-probe.ts") {
     t: "boot", url: new URL(`./fixtures/${fixture}`, import.meta.url).href,
     manifest: { id: "wire-test", name: "Wire test", description: scenario, version: "1.0.0", schemaVersion: 1 },
     appVersion: "1.0.0", capabilities: {}, locale: "en", phase: "activating", storage: {},
-    shape: { services: { logging: { write: "fn", policy: "fn" }, network: { fetch: "fn", openStream: "fn", readStream: "fn", closeStream: "fn" } }, contributions: { commands: { register: "fn" } }, __collection: { put: "fn", get: "fn", page: "fn" } },
+    shape: { services: { llm: { ask: "fn", policy: "fn" }, logging: { write: "fn", policy: "fn" }, network: { fetch: "fn", openStream: "fn", readStream: "fn", closeStream: "fn" } }, contributions: { commands: { register: "fn" } }, __collection: { put: "fn", get: "fn", page: "fn" } },
   });
   return { worker, messages, next };
 }
@@ -43,6 +43,20 @@ async function command(scenario: string, fixture?: string) {
   s.worker.postMessage({ t: "invoke", id: 900, handle, args: [] });
   return s;
 }
+
+test("Worker LLM cancellation keeps AbortSignal local and cancels only its outstanding request", async () => {
+  const pre = await command("pre-abort", "llm-probe.ts");
+  expect(resultData(await pre.next(message => message.t === "result" && message.id === 900))).toMatchObject({ ok: true, value: { toast: "stopped" } });
+  expect(pre.messages.some(message => message.method === "services.llm.ask")).toBe(false);
+  const live = await command("live-abort", "llm-probe.ts");
+  const call = await live.next(message => message.method === "services.llm.ask");
+  expect(data(call.args!)).toEqual([{ prompt: "probe", timeoutMs: 5000 }]);
+  expect(await live.next(message => message.t === "cancel")).toMatchObject({ id: call.id });
+  expect(resultData(await live.next(message => message.t === "result" && message.id === 900))).toMatchObject({ ok: true, value: { toast: "stopped" } });
+  live.worker.postMessage({ t: "result", id: call.id, ok: true, value: "late private output" });
+  live.worker.postMessage({ t: "health", id: 992 }); await live.next(message => message.t === "healthy");
+  expect(live.messages.some(message => message.t === "result" && message.id === 900)).toBe(false);
+});
 
 test("Worker logging crosses normal and restricted migration contexts with structured receipts", async () => {
   const s = sandbox("logging", "logging-probe.ts");

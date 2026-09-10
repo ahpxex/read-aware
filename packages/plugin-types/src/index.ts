@@ -2121,8 +2121,14 @@ export type PluginHostServices = {
     closeStream(id: string): Promise<void>;
   };
   llm?: {
+    /** llm 1.2: plugin inference concurrency and deadline limits, not billing quotas. */
+    policy(): Promise<{ defaultTimeoutMs: number; maxTimeoutMs: number; perPluginLimit: number; appLimit: number }>;
     ask(input: {
       prompt: string;
+      /** llm 1.2: caller cancellation reaches host inference; no remote rollback guarantee. */
+      signal?: AbortSignal;
+      /** Integer milliseconds, 1..110000, default 60000; covers structured retries too. */
+      timeoutMs?: number;
       /** Since llm 1.1: host filters book text and revokes in-flight requests when privacy tightens.
        * Do not interpolate these fragments into prompt, system, or schema yourself. */
       readingContext?: import("@read-aware/core").ModelReadingContext;
@@ -2132,6 +2138,8 @@ export type PluginHostServices = {
     }): Promise<string>;
     ask(input: {
       prompt: string;
+      signal?: AbortSignal;
+      timeoutMs?: number;
       readingContext?: import("@read-aware/core").ModelReadingContext;
       system?: string;
       model?: "fast" | "smart";

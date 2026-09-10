@@ -24,10 +24,14 @@ function callFetch(fetch: FetchFunction | undefined, call: InferenceCall | undef
   });
 }
 
+/** Host lifecycle tracking observes the provider's actual terminal promise,
+ * not the policy wrapper which may reject earlier on cancellation. */
+export type InferenceSourceTracking = { trackSource?: (source: Promise<unknown>) => void };
+
 export type CompleteFn = (
   model: Model<Api>,
   context: Context,
-  options?: { signal?: AbortSignal },
+  options?: { signal?: AbortSignal } & InferenceSourceTracking,
 ) => Promise<AssistantMessage>;
 
 /** "off" → 不发 reasoning 参数；其余原样传给 pi。 */
@@ -78,14 +82,16 @@ export function createCompleteFn(
 ): CompleteFn {
   const providerFetch = asProviderFetch(fetch);
   return async (model, context, options) => {
+    const { trackSource, ...providerOptions } = options ?? {};
     const call = policy ? inferenceCall(policy, options?.signal) : undefined;
     try {
       call?.assertAllowed();
       const result = registry.completeSimple(
         model,
         context,
-        requestOptions(account, thinking, callFetch(providerFetch, call), call ? { ...options, signal: call.signal } : options),
+        requestOptions(account, thinking, callFetch(providerFetch, call), call ? { ...providerOptions, signal: call.signal } : providerOptions),
       );
+      trackSource?.(result);
       const message = await (call ? call.wait(result) : result);
       call?.assertAllowed();
       return message;
@@ -97,7 +103,7 @@ export function createCompleteFn(
 export type StreamFn = (
   model: Model<Api>,
   context: Context,
-  options?: SimpleStreamOptions,
+  options?: SimpleStreamOptions & InferenceSourceTracking,
 ) => AssistantMessageEventStream;
 
 export function createStreamFn(
@@ -109,12 +115,17 @@ export function createStreamFn(
 ): StreamFn {
   const providerFetch = asProviderFetch(fetch);
   return (model, context, options) => {
+    const { trackSource, ...providerOptions } = options ?? {};
     const call = policy ? inferenceCall(policy, options?.signal) : undefined;
-    const start = () => registry.streamSimple(
-      model,
-      context,
-      requestOptions(account, thinking, callFetch(providerFetch ?? options?.fetch, call), call ? { ...options, signal: call.signal } : options),
-    );
+    const start = () => {
+      const source = registry.streamSimple(
+        model,
+        context,
+        requestOptions(account, thinking, callFetch(providerFetch ?? options?.fetch, call), call ? { ...providerOptions, signal: call.signal } : providerOptions),
+      );
+      trackSource?.(source.result());
+      return source;
+    };
     return call ? guardedInferenceStream(model, call, start) : start();
   };
 }

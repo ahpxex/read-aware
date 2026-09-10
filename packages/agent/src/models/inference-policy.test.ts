@@ -28,6 +28,31 @@ function deferred<T>() {
 }
 
 describe("host inference policy", () => {
+  test("source tracking retains raw completion and stream terminals beyond early policy cancellation", async () => {
+    const state = policyState();
+    const completion = deferred<ReturnType<typeof fauxAssistantMessage>>();
+    const stream = createAssistantMessageEventStream();
+    const captured: SimpleStreamOptions[] = [];
+    const registry = {
+      completeSimple(_m: unknown, _c: unknown, options: SimpleStreamOptions) { captured.push(options); return completion.promise; },
+      streamSimple(_m: unknown, _c: unknown, options: SimpleStreamOptions) { captured.push(options); return stream; },
+    } as unknown as ProviderRegistry;
+    const sources: Promise<unknown>[] = [];
+    const options = { trackSource: (source: Promise<unknown>) => { sources.push(source); } };
+    const plain = createCompleteFn(registry, account, undefined, undefined, state.policy)(model, context, options);
+    const streaming = createStreamFn(registry, account, undefined, undefined, state.policy)(model, context, options);
+    state.set(true);
+    await expect(plain).rejects.toMatchObject({ code: "ai/local-only" });
+    await streaming.result();
+    expect(sources).toHaveLength(2);
+    let settled = 0;
+    for (const source of sources) void source.then(() => { settled++; });
+    await Promise.resolve(); expect(settled).toBe(0);
+    for (const options of captured) expect(options).not.toHaveProperty("trackSource");
+    completion.resolve(fauxAssistantMessage("late"));
+    stream.push({ type: "done", reason: "stop", message: fauxAssistantMessage("late") });
+    await Promise.all(sources); expect(settled).toBe(2);
+  });
   test("blocks both model call forms before the provider is invoked", async () => {
     const state = policyState(); state.set(true);
     let calls = 0;

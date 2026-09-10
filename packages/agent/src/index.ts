@@ -51,6 +51,7 @@ export { INTERACTIVE_TOOL_NAMES, requestUserInteraction } from "./tools/user-int
 export { AgentThread, type AgentThreadOptions, type SendTurnInput, type SelectionAttachment } from "./runtime/thread";
 export { type ReadingCursor } from "./runtime/reading-cursor";
 export { AgentRuntime, createAgentRuntime, type AgentRuntimeOptions } from "./runtime/runtime";
+export type { OneShotInput } from "./runtime/one-shot";
 export { matchesMemoryQuery } from "./memory/query-match";
 export { chapterMemoryPolicy } from "./memory/book-memory-policy";
 

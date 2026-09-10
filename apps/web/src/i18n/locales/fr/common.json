@@ -12,6 +12,9 @@
     "copied": "Copié"
   },
   "errors": {
+    "aiRequestCancelled": "Cette requête IA a été annulée.",
+    "aiRequestTimeout": "Cette requête IA a expiré. Le fournisseur peut néanmoins l’avoir traitée.",
+    "aiBusy": "Les requêtes IA des plugins sont occupées. Attendez qu’une requête se termine.",
     "pluginInvalidArgument": "Cette requête du plugin contient des paramètres non valides.",
     "pluginQuotaExceeded": "Cette requête du plugin dépasse la limite de données. Réduisez la taille du lot.",
     "settingsOptionsInvalid": "Cette recherche d’options est invalide.",

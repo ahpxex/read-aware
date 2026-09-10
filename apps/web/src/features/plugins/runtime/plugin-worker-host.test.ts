@@ -6,6 +6,8 @@ import { describeContext, startPluginWorker } from "./plugin-worker-host";
 import { PluginCallbackRegistry, pluginCallbackOwner, retainPluginCallbacks } from "./plugin-callback-wire";
 import { openPluginViewChannel } from "../lib/plugin-view-channels";
 import { PluginLifecycleController } from "./plugin-lifecycle";
+import * as runtimeModule from "../../ai/agent/agent-runtime";
+import type { AgentRuntime, OneShotInput } from "@read-aware/agent";
 
 type WireMessage = { t: string; id?: number; handle?: string; handles?: string[]; disposable?: string; [key: string]: unknown };
 
@@ -28,7 +30,7 @@ class FaultWorker {
   terminate() { this.terminated = true; this.callbacks.clear(); }
 }
 
-async function hostFixture() {
+async function hostFixture(permissions: Array<"service:llm"> = []) {
   const native = globalThis.Worker;
   const storageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
   const values = new Map<string, string>();
@@ -45,7 +47,7 @@ async function hostFixture() {
   Object.defineProperty(globalThis, "localStorage", { configurable: true, value: storage });
   let started: ReturnType<typeof startPluginWorker>;
   try {
-    started = startPluginWorker({ id: "callback-host-test", name: "Callback host test", version: "1.0.0", schemaVersion: 1, permissions: [], requires: {} }, "1.0.0", disposables, { moduleUrl: "test:callback" });
+    started = startPluginWorker({ id: "callback-host-test", name: "Callback host test", version: "1.0.0", schemaVersion: 1, permissions, requires: {} }, "1.0.0", disposables, { moduleUrl: "test:callback" });
   } finally {
     globalThis.Worker = native;
     if (storageDescriptor) Object.defineProperty(globalThis, "localStorage", storageDescriptor);
@@ -92,6 +94,29 @@ describe("plugin worker capability bridge", () => {
       },
     });
   });
+});
+
+test("LLM RPC cancellation injects the current request signal into the actual host service", async () => {
+  let started!: () => void;
+  const ready = new Promise<void>(resolve => { started = resolve; });
+  let signal: AbortSignal | undefined;
+  const runtime = { ask(input: OneShotInput) {
+    signal = input.signal; started();
+    return new Promise((_, reject) => input.signal!.addEventListener("abort", () => reject(input.signal!.reason), { once: true }));
+  } } as AgentRuntime;
+  const spy = spyOn(runtimeModule, "getAgentRuntime").mockReturnValue(runtime);
+  const { worker, close } = await hostFixture(["service:llm"]);
+  try {
+    const call = worker.deliver({ t: "call", id: 990, method: "services.llm.ask", args: worker.callbacks.encode([{ prompt: "p", signal: { fake: true } }]) });
+    await ready;
+    expect(signal).toBeInstanceOf(AbortSignal);
+    expect(signal?.aborted).toBe(false);
+    await worker.deliver({ t: "cancel", id: 990 });
+    await call;
+    expect(signal?.aborted).toBe(true);
+    expect(signal?.reason).toMatchObject({ code: "ai/request-cancelled" });
+    expect(worker.sent.find(message => message.t === "result" && message.id === 990)).toMatchObject({ ok: false, code: "plugin/cancelled" });
+  } finally { await close(); spy.mockRestore(); }
 });
 
 test("host releases denied and invalid call arguments without granting authority", async () => {

@@ -55,7 +55,7 @@ import {
   type DomainEventSubscribe,
 } from "../../../domain";
 import { getAgentRuntime } from "../../ai/agent/agent-runtime";
-import { AiNotConfiguredError } from "../../ai/lib/ai-errors";
+import { createPluginLlm } from "./plugin-llm";
 import {
   bindVirtualBook,
   findVirtualBookId,
@@ -943,35 +943,7 @@ export function buildPluginContext(
   }
 
   if (canUseHostService("llm", permissions)) {
-    const ask = async (input: {
-      prompt: string;
-      readingContext?: import("@read-aware/core").ModelReadingContext;
-      system?: string;
-      model?: "fast" | "smart";
-      schema?: Record<string, unknown>;
-      onText?: (delta: string) => void;
-    }) => {
-      lifecycle.assertActive("services.llm.ask");
-      const runtime = getAgentRuntime();
-      // Typed so the code survives the sandbox bridge and surfaces (e.g. the
-      // dictionary dialog) can render "connect a provider" copy with a
-      // settings link instead of a generic failure.
-      if (!runtime) throw new AiNotConfiguredError();
-      const base = {
-        prompt: String(input.prompt),
-        readingContext: input.readingContext,
-        system: input.system,
-        model: input.model === "smart" ? ("smart" as const) : ("fast" as const),
-      };
-      if (input.schema && typeof input.schema === "object") {
-        return runtime.ask({ ...base, schema: input.schema });
-      }
-      return runtime.ask({
-        ...base,
-        onText: typeof input.onText === "function" ? input.onText : undefined,
-      });
-    };
-    ctx.services.llm = { ask } as PluginContext["services"]["llm"];
+    ctx.services.llm = createPluginLlm(manifest.id, lifecycle, getAgentRuntime);
   }
 
   if (canUseHostService("clipboard", permissions)) {

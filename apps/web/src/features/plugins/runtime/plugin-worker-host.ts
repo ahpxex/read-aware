@@ -478,6 +478,9 @@ export function startPluginWorker(
               args[0] = request.url;
               args[1] = { ...request.init, signal: controller.signal };
             }
+            if (message.method === "services.llm.ask") {
+              args[0] = { ...(args[0] as object), signal: controller.signal };
+            }
             let value = await method(...args);
             if (value instanceof Response) value = await flattenPluginResponse(value, controller.signal);
             // A registration answers with a disposable, which cannot be cloned:

@@ -686,6 +686,71 @@ annotations 2 migration removes the legacy public unconditional commands.
 
 Private document operations and blocking dispatch have separate contracts below.
 
+### Cancellable Plugin Inference (LLM 1.2)
+
+[代码] `services.llm.ask` retains its text and schema overloads and independent
+`service:llm` permission. Both accept `signal?:AbortSignal` and
+`timeoutMs?:number`. `policy()` returns `defaultTimeoutMs:60000`,
+`maxTimeoutMs:110000`, `perPluginLimit:2`, `appLimit:8`. A provided timeout must
+be an integer from 1 through 110000, and covers the entire invocation including
+the existing maximum two structured attempts. These are plugin execution limits,
+not a token/cost quota or a limit on the core Agent's independent inference.
+Activation/migration cannot invoke inference; privacy/local-only restrictions and
+not-configured failures remain enforced. Valid schema and reading context are
+copied before dispatch; text model/schema/callback/deadline inputs are validated,
+and schema plus onText rejects rather than silently dropping the callback.
+
+[代码] The Worker proxy removes AbortSignal from serialized data and uses the
+existing request-specific RPC cancellation channel. A pre-aborted Worker call
+does not dispatch; in-flight cancellation targets only that RPC. Host dispatch
+always injects its own request controller, overwriting any raw forged signal.
+The service combines caller/realm cancellation and its deadline, passes the
+signal into shared `AgentRuntime.ask`, and the one-shot implementation combines
+it with the existing reading-context and inference policies. This applies even
+without typed readingContext. Cancellation wins over a same-turn late result and
+prevents a structured retry; a failed stream callback aborts the provider before
+unsubscribing from policy. Arbitrary prompt strings remain author-owned text,
+not inferred book provenance or permission to bypass typed reading context.
+
+[代码] Each streamed `onText` callback is awaited before delivering another
+delta, including asynchronous Worker callback acknowledgement. Cancellation
+rejects promptly and suppresses late deltas/results. This bounds outstanding
+callback delivery per invocation, not the provider SDK's internal output queue,
+network backpressure, generated token count or total output memory. No new
+token/output byte cap, usage receipt, price estimate or billing guarantee is
+introduced by this version.
+
+[代码] A host-shared slot pool admits at most two plugin inference operations
+per plugin ID and eight across all plugin IDs; excess calls reject `ai/busy`
+without dispatch or a waiting queue. Replacing an activation does not replenish
+its slots. Host-only `trackSource` plumbing observes the original provider
+completion/stream terminal promise underneath early-returning policy wrappers;
+the tracker itself is never sent to the provider or accepted from plugin input.
+Caller cancellation settles promptly, but capacity and lifecycle cleanup wait
+for both the logical call and all those source promises. Deadline listeners and
+timers are released with cleanup. If an SDK never settles after abort, cleanup
+and capacity remain occupied, rather than declaring physical completion. SDK
+terminal completion is not proof of remote rollback or zero charges.
+
+[代码] Service cancellation is `ai/request-cancelled`; deadline expiry is
+`ai/request-timeout`; capacity is `ai/busy`. These have explicit copy in all eight
+host locales. Only busy suggests retry; cancellation/timeout do not automatically
+retry potentially billable work. Worker-local cancellation preserves the caller's
+original AbortSignal reason; the host RPC envelope uses its existing
+`plugin/cancelled` code when that request controller is cancelled. Privacy errors
+retain their original identity. Existing generic 120-second RPC ceilings remain;
+the 110-second inference maximum leaves room for result transport.
+
+[环境] Focused tests cover plain/structured cancellation, callback sequencing
+and failure, policy revocation, raw provider promise tracking, deadline/capacity,
+cross-activation cleanup, authoritative host signal injection, Bun Worker
+pre-abort/in-flight cancellation, eight-language errors and existing model
+compatibility. Full repository types and capability mappings are checked. No
+real provider or Tauri desktop request has been exercised in this batch; source
+termination uses controlled promises/streams. Actual desktop Stop, slow provider,
+retirement and business-plugin composition remain for concentrated acceptance.
+Usage/cost budgeting, durable tasks and the generic TaskRef contract remain gaps.
+
 ### Plugin Diagnostics (Logging 1.0)
 
 [代码] `services.logging.write(entry)` and `policy()` are an always-available,

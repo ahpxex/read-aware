@@ -111,7 +111,7 @@ export const units: Unit[] = [
     "不建设 WebSocket/TCP/通用离线耐久队列来修复现有 HTTP；中止请求不保证服务端没处理，更不等于撤销已付费操作。",
     "GAP04/05：Request 对象与 url+init 等价；预先 abort 不派发；途中 abort 到达 host fetch；流和重定向不能绕过额度/权限。"),
   unit("S6", "Service", "llm", "受预算约束的独立推理", "AI06-07 CFG08", "services.llm",
-    "fast/smart 文本、结构化、流式输出；task scope、timeout/abort、可获得的 usage/终止原因；请求前校验模型能力和授权预算。",
+    "llm 1.2 fast/smart文本、结构化、流式输出接调用者AbortSignal及timeoutMs，默认60秒/最多110秒涵盖两次结构化尝试。每plugin ID2/全App8个插件请求，policy可查；原提供者terminal promise未结束不退槽，退休排空。readingContext隐私收紧与local-only仍独立撤销；onText逐条等待回调，旧增量淘汰。用量/token/成本预算与统一TaskRef仍缺，基础接线已验，真实Tauri/服务商组合后置。",
     "thread 与自动管线复用推理设施，但 host prompt/审批/记忆业务仍由 Agent runtime 拥有。",
     "llm.ask 仅独立推理；返回结构符合声明 schema，流结束/错误可判定；不能读实际 key 或默认继承用户全部聊天/记忆。",
     "未提供用量的 vendor 返回 unknown，不编造成本；不为此新增本地模型、向量库或第二个 Agent。",

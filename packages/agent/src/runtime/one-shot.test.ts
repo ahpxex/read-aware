@@ -15,6 +15,61 @@ function fixture(complete: CompleteFn, stream: StreamFn = () => { throw Error("U
     streamFns: { fast: stream, smart: stream }, readingContextPolicy: policy } };
 }
 
+test("caller cancellation covers plain inference and suppresses structured retries", async () => {
+  for (const schema of [undefined, { type: "object" }]) {
+    let finish!: (message: ReturnType<typeof fauxAssistantMessage>) => void;
+    let signal: AbortSignal | undefined;
+    let calls = 0;
+    const f = fixture((_model, _context, options) => {
+      calls++; signal = options?.signal;
+      return new Promise(resolve => { finish = resolve; });
+    });
+    const controller = new AbortController();
+    const pending = askOneShot({ prompt: "plain", schema, signal: controller.signal }, f.deps);
+    const reason = new Error("caller stopped"); controller.abort(reason);
+    await expect(pending).rejects.toBe(reason);
+    expect(signal?.aborted).toBe(true);
+    finish(fauxAssistantMessage("invalid"));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(calls).toBe(1);
+    await expect(askOneShot({ prompt: "pre-aborted", signal: controller.signal }, f.deps)).rejects.toBe(reason);
+    expect(calls).toBe(1);
+  }
+});
+
+test("stream callback acknowledgement supplies backpressure and cancellation drops queued deltas", async () => {
+  const source = createAssistantMessageEventStream();
+  const f = fixture(async () => { throw Error("Unexpected completion"); }, () => source);
+  const controller = new AbortController();
+  const received: string[] = [];
+  let acknowledge!: () => void;
+  const pending = askOneShot({ prompt: "plain", signal: controller.signal, onText: async delta => {
+    received.push(delta); await new Promise<void>(resolve => { acknowledge = resolve; });
+  } }, f.deps);
+  for (const delta of ["first", "second"]) source.push({ type: "text_delta", contentIndex: 0, delta, partial: fauxAssistantMessage(delta) });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(received).toEqual(["first"]);
+  controller.abort(new Error("stopped"));
+  await expect(pending).rejects.toThrow("stopped");
+  acknowledge();
+  source.push({ type: "done", reason: "stop", message: fauxAssistantMessage("late") });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(received).toEqual(["first"]);
+});
+
+test("a failed stream consumer aborts the provider before releasing its policy subscription", async () => {
+  const source = createAssistantMessageEventStream();
+  let signal: AbortSignal | undefined;
+  const f = fixture(async () => { throw Error("Unexpected completion"); }, (_model, _context, options) => {
+    signal = options?.signal; return source;
+  });
+  const pending = askOneShot({ prompt: "plain", onText: async () => { throw new Error("consumer failed"); } }, f.deps);
+  source.push({ type: "text_delta", contentIndex: 0, delta: "first", partial: fauxAssistantMessage("first") });
+  await expect(pending).rejects.toThrow("consumer failed");
+  expect(signal?.aborted).toBe(true);
+  source.push({ type: "done", reason: "stop", message: fauxAssistantMessage("late") });
+});
+
 test("plain and structured retries use the same filtered context, without mutating input", async () => {
   const prompts: string[] = [];
   const f = fixture(async (_model, context) => {

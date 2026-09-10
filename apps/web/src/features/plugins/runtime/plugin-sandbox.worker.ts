@@ -328,6 +328,14 @@ function buildContext(
     };
   }
 
+  const llm = services.llm as Record<string, unknown> | undefined;
+  if (llm && typeof llm.ask === "function") {
+    llm.ask = (input: Parameters<NonNullable<PluginContext["services"]["llm"]>["ask"]>[0]) => {
+      const { signal, ...payload } = input;
+      return callHost("services.llm.ask", [payload], signal);
+    };
+  }
+
   return ctx as unknown as PluginContext;
 }
 

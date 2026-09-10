@@ -1,19 +1,20 @@
 import type { Api, Model } from "@earendil-works/pi-ai";
 import type { ModelReadingContext } from "@read-aware/core";
-import type { CompleteFn, StreamFn } from "../models/complete";
+import type { CompleteFn, StreamFn, InferenceSourceTracking } from "../models/complete";
 import { classifyModelFailure } from "../models/failure";
 import type { ModelRole } from "../models/roles";
 import { extractJsonObject, schemaViolations } from "../structured";
 import { modelReadingPrompt, validateModelReadingContext } from "./model-reading-context";
 import { readingContextCall, type ReadingContextPolicy } from "./reading-context-policy";
 
-export type OneShotInput = {
+export type OneShotInput = InferenceSourceTracking & {
   prompt: string;
   system?: string;
   model?: ModelRole;
   readingContext?: ModelReadingContext;
   schema?: Record<string, unknown>;
   onText?: (delta: string) => void;
+  signal?: AbortSignal;
 };
 
 export async function askOneShot(input: OneShotInput, deps: {
@@ -24,7 +25,9 @@ export async function askOneShot(input: OneShotInput, deps: {
 }): Promise<unknown> {
   if (input.schema && input.onText) throw new Error("ask: schema and onText are mutually exclusive");
   const reading = input.readingContext === undefined ? undefined : validateModelReadingContext(input.readingContext);
-  const call = reading ? readingContextCall(deps.readingContextPolicy) : undefined;
+  const failed = new AbortController();
+  const signal = input.signal ? AbortSignal.any([input.signal, failed.signal]) : failed.signal;
+  const call = readingContextCall(reading ? deps.readingContextPolicy : undefined, signal);
   try {
     call?.assertAllowed();
     const originalPrompt = reading ? modelReadingPrompt(input.prompt, reading, call!.permissions) : input.prompt;
@@ -36,14 +39,14 @@ export async function askOneShot(input: OneShotInput, deps: {
       const run = async () => {
         let message;
         if (input.onText) {
-          const stream = deps.streamFns[role](model, context, { signal: call?.signal });
+          const stream = deps.streamFns[role](model, context, { signal: call.signal, trackSource: input.trackSource });
           for await (const event of stream) {
             call?.assertAllowed();
-            if (event.type === "text_delta") input.onText!(event.delta);
+            if (event.type === "text_delta") await call.wait(Promise.resolve(input.onText!(event.delta)));
           }
           message = await stream.result();
         } else {
-          message = await deps.completeFns[role](model, context, { signal: call?.signal });
+          message = await deps.completeFns[role](model, context, { signal: call.signal, trackSource: input.trackSource });
         }
         call?.assertAllowed();
         if (message.stopReason === "error") throw classifyModelFailure(message.errorMessage ?? "ask failed");
@@ -71,5 +74,8 @@ export async function askOneShot(input: OneShotInput, deps: {
       } catch (error) { feedback = error instanceof Error ? error.message : String(error); }
     }
     throw new Error(`structured ask failed schema validation: ${feedback}`);
-  } finally { call?.dispose(); }
+  } catch (error) {
+    failed.abort(error);
+    throw error;
+  } finally { call.dispose(); }
 }

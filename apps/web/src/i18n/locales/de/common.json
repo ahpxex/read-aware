@@ -12,6 +12,9 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "aiRequestCancelled": "Diese KI-Anfrage wurde abgebrochen.",
+    "aiRequestTimeout": "Diese KI-Anfrage hat das Zeitlimit erreicht. Der Anbieter hat sie möglicherweise dennoch verarbeitet.",
+    "aiBusy": "Die KI-Anfragen der Plugins sind ausgelastet. Warten Sie, bis eine Anfrage beendet ist.",
     "pluginInvalidArgument": "Diese Plugin-Anfrage enthält ungültige Parameter.",
     "pluginQuotaExceeded": "Diese Plugin-Anfrage überschreitet das Datenlimit. Verkleinern Sie den Stapel.",
     "settingsOptionsInvalid": "Diese Abfrage von Einstellungsoptionen ist ungültig.",

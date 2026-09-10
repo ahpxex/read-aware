@@ -73,6 +73,9 @@ export const ERR_AI_NETWORK = "ai/network";
 export const ERR_AI_PROVIDER = "ai/provider";
 export const ERR_AI_CONTEXT_OVERFLOW = "ai/context-overflow";
 export const ERR_AI_UNKNOWN = "ai/unknown";
+export const ERR_AI_REQUEST_CANCELLED = "ai/request-cancelled";
+export const ERR_AI_REQUEST_TIMEOUT = "ai/request-timeout";
+export const ERR_AI_BUSY = "ai/busy";
 
 export type AppErrorOptions = {
   retryable?: boolean;

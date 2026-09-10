@@ -170,6 +170,7 @@ const pluginMap = pairs([
   ["services.storage.flush", "SYS01"],
   ["services.storage.applyDocuments", "SYS02"],
   ["services.logging.write services.logging.policy", "SYS15"],
+  ["services.llm.policy", "AI07"],
   ["services.secrets.get services.secrets.set services.secrets.remove", "SYS04"], ["services.ui.showToast", "EXT07"],
   ["services.ui.exportFile", "SYS10"], ["services.schedules.bind", "MORE01"],
   ["services.ui.publishView", "MORE05"],

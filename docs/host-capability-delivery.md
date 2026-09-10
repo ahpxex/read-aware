@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+导航目标目录批次已接线：library 1.14 listNavigationTargets 与 Agent 双 scope list_book_navigation_targets 按内容版本分页列举源分节或解析器已有 page-list。可精确匹配页码标签，重复标签保留多目标，缺表与无匹配分开，失效/外链不给位置；源分节含非线性注释，签发 CFI，页码保留原 fragment 位置，均可交给现有 goTo/open_book。不读正文或加载外链，保留 library 授权、源租约/版本检查与退休排空，不增加 Agent 剧透权限。
+
+[验证] 实际 EPUB 页码表/重复标签/位置、边界/取消/授权和 Agent 回传定位定向 21 pass / 709 assertions，全仓 typecheck 27/27；矩阵 875 入口映射，Agent book 82/global 99，三文档对结构通过。输出每页最多 50（Agent 20），标签最多 300；计数过滤仍扫描元数据，不冒充有界解析器。当前 PDF adapter 尚未提供 PDF 页码标签，重排屏幕页数、TOC 语义章节步进和真实 Worker/Tauri 组合仍待后续；READ05 保留部分，下方历史批次“页码标签仍缺”由本批限定覆盖取代。
+
 源分节导航批次已接线：reading 2.12 step 增加 next-section/previous-section/start/end，Agent 双 scope navigate_reading 同步开放；goTo/open_book 增加必须带 contentVersion 的零起始 sectionIndex。相邻分节跳过 linear=no、跳到分节开头、边界保持实际位置；书首书尾沿用引擎 fraction 0/1。PDF/漫画每源节一源页，不混同目录章节/印刷页码；旧版本、非法/缺失索引与竞争 locator 明确拒绝。共用队列、会话保护、实际落点和固定版式 paint 等待；分节/首尾跳转记共享历史，普通页步进仍不记。
 
 [验证] 引擎适配/控制器历史与版本/Agent 工具定向 46 pass / 699 assertions，全仓 typecheck 27/27。不新增工具名，Agent book 81/global 98，872 入口映射。印刷页标签、重排屏幕页数、TOC 语义章节步进及全部原生链接历史收敛仍未接；真实 Worker/Tauri 多格式导航留集中插件验收。READ04/05/06 保留部分，不把这批基础验证当作端到端完成。

@@ -1245,6 +1245,8 @@ export type PluginLibraryDomain = {
       listTextTasks(bookId: string): Promise<import("@read-aware/core").BookTextTaskSnapshot[]>;
     getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
     getNavigationToc(bookId: string): Promise<import("@read-aware/core").BookNavigationToc>;
+    /** Library 1.14: bounded source-section or author-supplied page-label catalog; not screen page counts. */
+    listNavigationTargets(input: import("@read-aware/core").BookNavigationTargetsQuery): Promise<import("@read-aware/core").BookNavigationTargetsPage>;
     searchLocations(input: import("@read-aware/core").BookLocationSearch): Promise<import("@read-aware/core").BookLocationSearchPage>;
     readRange(input: import("@read-aware/core").BookRangeQuery): Promise<import("@read-aware/core").BookRangePage>;
     /** Library 1.12: versioned section references, not extracted chapter indices. */

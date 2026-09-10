@@ -34,6 +34,7 @@ export * from "./host-environment";
 export * from "./host-window";
 export * from "./reader-image";
 export * from "./book-navigation";
+export * from "./book-navigation-targets";
 export * from "./book-range";
 export * from "./book-references";
 export * from "./book-images";

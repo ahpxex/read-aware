@@ -141,6 +141,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   get_book_text_tasks: { bookId: BOOK_ID },
   cancel_book_text_task: { bookId: BOOK_ID, taskId: "prepared-in-test" },
   get_navigation_toc: { bookId: BOOK_ID },
+  list_book_navigation_targets: { bookId: BOOK_ID, contentVersion: "v1", kind: "pages" },
   find_book_locations: { bookId: BOOK_ID, query: "Victor" },
   read_book_range: {},
   list_book_references: { bookId: BOOK_ID, contentVersion: "fixture", sectionIndex: 0 },
@@ -221,6 +222,7 @@ describe("tool surface contract", () => {
           offset: 0, totalLength: 17, nextOffset: null });
         deps.reader.previewReference = async (_owner, input) => ({ status: "opened", id: "preview", sessionId: "fixture", preview: await deps.bookText.readReference(input) });
         deps.hostIO.writeClipboard = async () => {};
+        deps.bookText.listNavigationTargets = async input => ({ ...input, status: "absent", items: [], total: 0, nextOffset: null });
         deps.bookText.listImages = async input => ({ bookId: input.bookId, contentVersion: input.contentVersion,
           sectionIndex: input.sectionIndex, status: "available", items: [], total: 0, nextOffset: null });
         deps.bookText.openImageResource = async (_owner, input) => ({ status: "missing", image: { image: input.image, alt: "" } });

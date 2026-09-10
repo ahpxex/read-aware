@@ -3,7 +3,7 @@ import type { BookTextPort } from "../ports";
 import type { ChapterSeed } from "./fixtures";
 
 /** Model-tool fixture, not a replacement for Foliate's location/search tests. */
-export function createMemoryBookNavigation(chapters: Map<string, ChapterSeed[]>): Pick<BookTextPort, "getNavigationToc" | "searchLocations" | "readRange"> {
+export function createMemoryBookNavigation(chapters: Map<string, ChapterSeed[]>): Pick<BookTextPort, "getNavigationToc" | "listNavigationTargets" | "searchLocations" | "readRange"> {
   const content = async (bookId: string) => {
     const entries = chapters.get(bookId) ?? [];
     const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(entries)));
@@ -11,6 +11,7 @@ export function createMemoryBookNavigation(chapters: Map<string, ChapterSeed[]>)
     return { entries, contentVersion };
   };
   return {
+    listNavigationTargets: async () => { throw new AppError("library/content-unavailable", "Fixture has no source navigation catalog"); },
     readRange: async ({ throughChapterIndex, ...input }, signal) => {
       const query = normalizeBookRangeQuery(input);
       signal?.throwIfAborted();

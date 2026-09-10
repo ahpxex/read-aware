@@ -718,6 +718,7 @@ export function buildPluginContext(
           ...library.queries.books,
           inspectResource: id => lifecycle.read("library.inspectResource", () => inspectResourceBook(resources, id, lifecycle.signal)),
           getNavigationToc: (bookId) => lifecycle.read("library.getNavigationToc", () => library.queries.books.getNavigationToc(bookId, lifecycle.signal)),
+          listNavigationTargets: input => lifecycle.read("library.listNavigationTargets", () => library.queries.books.listNavigationTargets(input, lifecycle.signal)),
           searchLocations: (input) => lifecycle.read("library.searchLocations", () => library.queries.books.searchLocations(input, lifecycle.signal)),
           readRange: (input) => lifecycle.read("library.readRange", () => library.queries.books.readRange(input, lifecycle.signal)),
           listReferences: (input) => lifecycle.read("library.listReferences", () => library.queries.books.listReferences(input, lifecycle.signal)),

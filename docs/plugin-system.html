@@ -219,7 +219,11 @@
           </div></details>
           <details class="ep" data-search-section="reading step sectionIndex 分节 书首 书尾 页索引"><summary>Reading 2.12：分节、首尾和源页索引导航已双端接通</summary><div class="ep-body">
             <p>插件 step 与 Agent navigate_reading 可前后跳到线性源分节、跳到书首书尾；goTo 与 open_book 可按内容版本和零起始 sectionIndex 定位。PDF/漫画的源分节就是源页，不能当成印刷页码或目录章节号。</p>
-            <p>复用当前会话保护、真实落点与导航历史；相邻分节跳过非线性注释，边界保留当前位置。基础测试通过，真实 Tauri/Worker 组合后置；印刷页标签、重排页数和全部原生链接历史仍待接。<a href="./plugin-system.md#source-order-navigation-reading-212">完整契约</a></p>
+            <p>复用当前会话保护、真实落点与导航历史；相邻分节跳过非线性注释，边界保留当前位置。基础测试通过，真实 Tauri/Worker 组合后置；Library 1.14 已接已有页码表的标签查询；PDF 标签提取、重排页数和全部原生链接历史仍待接。<a href="./plugin-system.md#source-order-navigation-reading-212">完整契约</a></p>
+          </div></details>
+          <details class="ep" data-search-section="listNavigationTargets page-list 页码 分节 索引"><summary>Library 1.14：源分节与书籍页码标签可以分页发现</summary><div class="ep-body">
+            <p>插件和 Agent 共用版本化导航目录，列出全部源分节或解析器提供的页码表；按原始标签精确查找，重复标签保留多个目标。位置可直接交给现有导航，不读正文、不加载外链。</p>
+            <p>无页码表与未匹配到标签分开报告；当前 EPUB 页码表可用，PDF 页码标签提取与重排屏幕页数仍缺，PDF/漫画源页索引不受影响。基础测试通过，真实 Tauri/Worker 组合后置。<a href="./plugin-system.md#navigation-target-catalog-library-114">完整契约</a></p>
           </div></details>
           <details class="ep" data-search-section="workspace navigation selection UI01 UI02 工作区 导航 搜索 选择集"><summary>UI 1.3：Agent 和插件共享应用导航与书架选择</summary><div class="ep-body">
             <p>同一服务打开书架、集合、Context、统计、设置和命令搜索，观察实际界面及分页选择集。离开阅读器另需阅读控制权限；不公开 DOM、原子状态、正文或凭据。</p>

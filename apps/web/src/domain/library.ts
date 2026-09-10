@@ -47,6 +47,7 @@ import { listDuplicateBooks, previewBookMerge, mergeDuplicateBooks, resolveMerge
 import { listBookFormats } from "./book-inspection";
 import { searchBookText } from "../features/library/lib/book-text-search";
 import { getBookNavigationToc, searchBookLocations } from "../features/library/lib/book-content-navigation";
+import { listBookNavigationTargets } from "../features/library/lib/book-navigation-targets";
 import { readBookRange } from "../features/library/lib/book-range";
 import { listBookReferences, readBookReference } from "../features/library/lib/book-references";
 import { listBookImages } from "../features/library/lib/book-images";
@@ -107,6 +108,7 @@ export type LibraryQueries = {
     listTextTasks(bookId: string): Promise<BookTextTaskSnapshot[]>;
     getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
     getNavigationToc(bookId: string, signal?: AbortSignal): Promise<BookNavigationToc>;
+    listNavigationTargets(input: import("@read-aware/core").BookNavigationTargetsQuery, signal?: AbortSignal): Promise<import("@read-aware/core").BookNavigationTargetsPage>;
     searchLocations(input: BookLocationSearch, signal?: AbortSignal): Promise<BookLocationSearchPage>;
     readRange(input: import("@read-aware/core").BookRangeQuery, signal?: AbortSignal, allowedHrefs?: readonly string[]): Promise<import("@read-aware/core").BookRangePage>;
     listReferences(input: import("@read-aware/core").BookReferencesQuery, signal?: AbortSignal, allowedHrefs?: readonly string[]): Promise<import("@read-aware/core").BookReferencesPage>;
@@ -163,6 +165,7 @@ export function createLibraryDomain(origin: EventOrigin, lifetime?: AbortSignal)
   const queries: LibraryQueries = {
     books: {
       getNavigationToc: getBookNavigationToc,
+      listNavigationTargets: listBookNavigationTargets,
       listFormats: listBookFormats,
       listDuplicates: (query, signal) => listDuplicateBooks(query, signal ?? lifetime),
       previewMerge: (bookId, signal) => previewBookMerge(bookId, signal ?? lifetime),

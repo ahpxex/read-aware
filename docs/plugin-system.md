@@ -241,9 +241,51 @@ not expand the Agent's original reading-text privacy or spoiler permission.
 
 [验证] Focused renderer-adapter, history/version/guard and Agent tests pass;
 the fixed-layout render wait remains intact. Real Tauri/Worker multi-format
-navigation is deferred to concentrated plugin E2E. Printed page-label lookup,
-reflowable screen-page counts and full native-link history unification remain
-separate gaps, not aliases for sectionIndex.
+navigation is deferred to concentrated plugin E2E. Library 1.14 supplies the
+source/page-label catalog below; reflowable screen-page counts, PDF label
+extraction and full native-link history unification remain separate gaps.
+
+### Navigation Target Catalog (Library 1.14)
+
+[代码] `library.queries.books.listNavigationTargets` and both Agent scopes'
+`list_book_navigation_targets` expose the same metadata-only query. Library
+read authorization is required; reading-write permission is not. Input is
+`{bookId, contentVersion, kind: "sections" | "pages", offset?, limit?, label?}`.
+Use the version from `getNavigationToc`; default offset is 0 and limit 20,
+maximum 50 (Agent fixed at 20). Optional label is an exact, case-sensitive
+source page-label match, limited to 300 UTF-16 units and valid only for pages.
+Duplicate labels stay separate; the host does not choose an ambiguous page.
+
+The result contains `bookId, contentVersion, kind, status, items, total,
+nextOffset`. Each item has a stable zero-based `index`, `sectionIndex`, `label`,
+`labelTruncated`, `linear`, and `location`. Sections enumerate every source
+reading-order entry, including non-linear notes, with null labels and a
+canonical source CFI. Pages flatten the parser's existing page-list depth-first,
+keeping its original flat index even after label filtering. Labels are capped
+at 300 units with an explicit truncation flag. Null section/linear/location
+means the listed page entry could not resolve to a valid internal section.
+External/unsafe/oversized hrefs are never returned or followed. Valid page
+locations retain fragment hrefs and can be copied unchanged into goTo/open_book.
+
+`available` with no items means an empty catalog or no exact label match;
+`absent` specifically means this parser did not provide a nonempty page-list,
+not that the printed edition has no numbered pages. Current EPUB nav/NCX lists
+work directly; the PDF adapter still does not expose PDF page labels. Its source
+pages remain discoverable using sections. No page numbers or TOC chapter numbers
+are synthesized, and this is not reflowable screen-page counting.
+
+Only selected page links are resolved, without loading chapter DOM or reading
+passages. Counting/filtering still scans page-list metadata; bounded output is
+not a bounded parser-memory claim. The existing source lease verifies version,
+book/provider lifetime and cancellation before/after the query. Bad query or
+offset rejects `library/invalid-query`, stale version `reader/stale-location`,
+resolver failure `library/content-unavailable`; failures are not empty results.
+Plugin retirement drains in-flight reads and rejects later calls. Agent metadata
+queries do not grant spoiler permission or add passage evidence.
+
+[验证] Actual EPUB page-list fixtures, duplicate labels/fragments, source CFI,
+no chapter reads, bounds, cancellation, grants and Agent location round-trip
+tests pass. Real Worker/Tauri navigation remains for concentrated plugin E2E.
 
 ### Annotation Conditional Contract
 

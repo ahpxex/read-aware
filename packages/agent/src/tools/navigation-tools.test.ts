@@ -19,6 +19,23 @@ function value(result: AgentToolResult<unknown>) {
   return JSON.parse(result.content[0].text);
 }
 
+test("navigation catalogs are bounded metadata queries whose locations round-trip without guessed page arithmetic", async () => {
+  const { deps, state, tool } = fixture();
+  const signal = new AbortController().signal, location = { bookId: "book", contentVersion: "v1", href: "first#page-iv" };
+  let passed: unknown;
+  deps.bookText.listNavigationTargets = async (input, actualSignal) => {
+    passed = [input, actualSignal];
+    return { ...input, status: "available", total: 1, nextOffset: null,
+      items: [{ index: 2, sectionIndex: 0, label: "iv", labelTruncated: false, linear: true, location }] };
+  };
+  const page = value(await tool("list_book_navigation_targets").execute("list", { contentVersion: "v1", kind: "pages", label: "iv" }, signal));
+  expect(passed).toEqual([{ bookId: "book", contentVersion: "v1", kind: "pages", label: "iv", offset: 0, limit: 20 }, signal]);
+  deps.reader.goTo = async input => { passed = input; return { status: "completed", sessionId: "current", location }; };
+  await tool("open_book").execute("open", { location: page.items[0].location });
+  expect(passed).toEqual(location); expect(state.spoilerGranted).toBe(false); expect(state.evidenceTexts).toEqual([]);
+  await expect(tool("list_book_navigation_targets").execute("bad", { contentVersion: "v1", kind: "pages", throughChapterIndex: 999 })).rejects.toMatchObject({ code: "library/invalid-query" });
+});
+
 test("precise navigation search preserves the turn's original spoiler fence and records returned evidence", async () => {
   const { deps, state, tool } = fixture();
   const signal = new AbortController().signal;

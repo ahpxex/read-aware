@@ -333,6 +333,7 @@ export interface BookTextPort {
   };
   getTextState?(bookId: Id): Promise<import("@read-aware/core").BookTextSnapshot>;
   getNavigationToc(bookId: Id, signal?: AbortSignal): Promise<import("@read-aware/core").BookNavigationToc>;
+  listNavigationTargets(input: import("@read-aware/core").BookNavigationTargetsQuery, signal?: AbortSignal): Promise<import("@read-aware/core").BookNavigationTargetsPage>;
   readRange(input: import("@read-aware/core").BookRangeQuery & { throughChapterIndex?: number }, signal?: AbortSignal): Promise<import("@read-aware/core").BookRangePage>;
   listReferences(input: import("@read-aware/core").BookReferencesQuery & { throughChapterIndex?: number }, signal?: AbortSignal): Promise<import("@read-aware/core").BookReferencesPage>;
   listImages(input: import("@read-aware/core").BookImagesQuery & { throughChapterIndex?: number }, signal?: AbortSignal): Promise<import("@read-aware/core").BookImagesPage>;

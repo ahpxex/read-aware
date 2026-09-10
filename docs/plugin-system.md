@@ -3096,9 +3096,45 @@ when not locally available; unknown books and storage failures reject. It never
 extracts, downloads or changes a cover. The `source:"cover"` reference contains
 the MIME hint and a `cover.<extension>` suggested basename, not a storage key.
 Plugins can read/save its bytes; Agent `open_book_cover` returns metadata only.
-Null does not distinguish never extracted, no cover, or not downloaded. A live
-cover-status observer, explicit extraction controls and resource-backed plugin
-view rendering are not implemented by this accessor.
+Null does not distinguish never extracted, no cover, or not downloaded; use
+library 1.9 `books.getEnrichment` / `events.observeEnrichment` for those states.
+Resource-backed plugin view rendering is not implemented by this accessor.
+
+[代码] Library 1.9 exposes `queries.books.getEnrichment(bookId)`,
+`commands.books.retryEnrichment(bookId)` and
+`events.observeEnrichment(bookId,handler)`. Queries/observation need library read,
+retry needs write. The snapshot includes `cover:{status,local}`, `sourceLocal`,
+`supported`, `metadataPending`, and `job:{phase,startedAt,finishedAt,errorCode,reason}`.
+Cover status is unchecked/none/ready; metadataPending means eligible missing or
+filename-derived metadata in a supported format, not proof the file contains
+better metadata. Existing automatic PDF catch-up eligibility stays unchanged.
+Unknown books and failed reads reject; these reads never parse/download.
+
+Retry returns queued/already-running/not-needed/unavailable plus the snapshot.
+It only fills unchecked covers and eligible metadata from local EPUB/MOBI/AZW3/
+FB2/CBZ/CBR/PDF sources, without model calls, forced cover replacement or remote
+downloads. Automatic work, explicit retries and open-reader reuse share same-book
+deduplication; queued flags coalesce. Background parses remain serial; an existing
+parsed reader can settle immediately without waiting behind unrelated parses.
+Job states are idle/queued/running/completed/skipped/failed; skipped reasons are
+book-removed/not-needed/unsupported-format/source-unavailable. The latest 256
+process-local records retain stable errors, evict old terminal entries, and reset
+on restart; idle is not proof the book was never processed. A full active queue
+rejects rather than acknowledging unqueued work. Cover extraction errors no longer
+commit a false none verdict. Metadata writes preserve custom fields seen on the
+final read; they are not a cross-device CAS or an atomic transaction with cover
+blob staging. No claim of universal concurrent-edit protection is made here.
+
+Observers send `{status:"ready",snapshot}` or `{status:"error",errorCode}` initially
+and on changed reads, polling one second after each serialized callback settles.
+Errors can recover; raw errors stay in logs. Limit 64 per domain actor; dispose or
+activation retirement stops polling/delivery, not an already accepted shared job.
+Cancellation before queue acceptance prevents enqueue; after acceptance it does
+not roll back writes. Agent `get_book_enrichment` / `retry_book_enrichment` use the
+same domain, with book threads restricted to their own book. Retry is only for
+explicit user intent; acceptance does not prove completion. Focused tests passed;
+real formats, reader/Worker combinations and concurrent native writes remain for
+integrated Tauri verification.
 
 References contain opaque actor-local ID, basename, MIME hint, size, state,
 source and expiry. Each plugin activation/Agent conversation owns at most 16

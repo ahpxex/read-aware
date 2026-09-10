@@ -686,12 +686,14 @@ export function buildPluginContext(
       events: {
         subscribe: trackedOn(library.events.subscribe),
         observeTextTask: (bookId, taskId, listener) => track(() => ({ dispose: library.events.observeTextTask(bookId, taskId, listener) })),
+        observeEnrichment: (bookId, listener) => track(() => ({ dispose: library.events.observeEnrichment(bookId, listener) })),
       },
     };
     if (library.commands) {
       const commands = {
         books: {
           prepareText: library.commands.books.prepareText,
+          retryEnrichment: (bookId: string) => library.commands!.books.retryEnrichment(bookId, lifecycle.signal),
           cancelTextTask: library.commands.books.cancelTextTask,
           importBook: library.commands.books.importBook,
           importResource: (id: string) => importResourceBook(resources, id, selfOrigin, lifecycle.signal),

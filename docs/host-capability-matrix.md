@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 194、部分 43、待建 3、占位 2、非桌面 1。
-- Agent：接通 127、部分 56、未接 29、扩展 13、自动 14、内部 4。
-- 插件：接通 141、部分 80、未接 22。
+- Agent：接通 128、部分 56、未接 28、扩展 13、自动 14、内部 4。
+- 插件：接通 142、部分 80、未接 21。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -69,8 +69,8 @@
 | <a id="LIB06"></a>LIB06 | 导入已有支持格式的书籍字节 | 实装 | **部分**：import_resource_book[global]<br>[设计] 用户选文件后导入工具 | **部分**：library 1.8 commands.books.importBook/importResource<br>[设计] 导入任务 | 书架导入/拖放/系统打开；授权资源导入 | 已接本调用方封口资源直接导入，同源格式检测、原生内容去重和事件落库；返回 imported/duplicate 与实际书籍，修复缺失原书也通知刷新。Agent 逐次批准，插件需 library:write。受理前取消不派发，受理后完成落库而非承诺回滚；不打开书、不改原件、不释放引用。完整任务进度/取消协议与真实组合导入验收仍缺。 | [IMPORT](../apps/web/src/features/library/lib/book-import.ts) [LIB](../apps/web/src/domain/library.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [REGISTRY](../packages/agent/src/tools/registry.ts) [RESOURCEIMPORT](../apps/web/src/domain/library-resource-import.ts) [RESOURCEFILES](../apps/desktop/src-tauri/src/resources.rs) [RESOURCETOOLS](../packages/agent/src/tools/resource-tools.ts) | B04 |
 | <a id="LIB07"></a>LIB07 | 识别格式/DRM/损坏文件并报告 | 实装 | **未接**：无正式入口<br>[设计] 查询导入能力/失败原因 | **部分**：importBook 间接触发<br>[设计] 格式能力与错误契约 | 导入与阅读加载 | 不能由 BookFormat enum 推断任意文件可读 | [IMPORT](../apps/web/src/features/library/lib/book-import.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [SESSION](../apps/web/src/features/reader/hooks/useReaderSession.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | B08 |
 | <a id="LIB08"></a>LIB08 | 查询/读取书籍原文件与本地可用性 | 实装 | **接通**：open_book_resource/save_resource[双域]<br>[设计] 批准后只导出的原书引用 | **接通**：resources.openBook/read/save<br>[设计] 受 library 授权的原文件快照 | 阅读加载；备份；同步；正式资源服务 | 本地无原文件返回 null，书已删除报错，不自动下载。插件获 library 读/写才提供 openBook；Agent 逐次批准、书内仅当前书，原书引用在端口禁止读入模型，正文仍走防剧透工具。引用是已获得的临时独立副本，源变更不替换快照，释放/到期不删原书；无路径/原生键暴露。接线及定向测试完成，真实 Tauri 组合验收待集中进行。 | [BLOB](../apps/web/src/platform/blob-store.ts) [SESSION](../apps/web/src/features/reader/hooks/useReaderSession.ts) [LIB](../apps/web/src/domain/library.ts) [API](../packages/plugin-types/src/index.ts) [RESOURCES](../apps/web/src/services/resources.ts) [RESOURCEOWNER](../apps/web/src/services/resource-owner.ts) [RESOURCEFILES](../apps/desktop/src-tauri/src/resources.rs) [RESOURCETOOLS](../packages/agent/src/tools/resource-tools.ts) | B05 |
-| <a id="LIB09"></a>LIB09 | 提取/显示封面与封面可用状态 | 实装 | **部分**：present_books；open_book_cover[双域]<br>[设计] 封面资源查询/呈现 | **部分**：resources 1.1 openCover/read/save<br>[设计] 封面 ResourceRef | 书架；Agent 书卡；封面后台补齐；资源查询/保存/复制 | 本地 ready 封面已可取得 owner 隔离快照，需书库读授权；Agent 书内限本书、只收元数据不收图片字节。未知书/存储失败拒绝，不可用返回 null，不生成/下载；引用不随封面变化。详细不可用原因/实时状态观察、提取控制和插件资源呈现仍缺，实际 Tauri 组合待集中验证。 | [ENRICH](../apps/web/src/features/library/lib/book-enrichment.ts) [LIB](../apps/web/src/domain/library.ts) [PRESENT](../packages/agent/src/tools/present-tools.ts) [API](../packages/plugin-types/src/index.ts) [RESOURCES](../apps/web/src/services/resources.ts) [RESOURCEOWNER](../apps/web/src/services/resource-owner.ts) [RESOURCEFILES](../apps/desktop/src-tauri/src/resources.rs) [RESOURCETOOLS](../packages/agent/src/tools/resource-tools.ts) | B05 |
-| <a id="LIB10"></a>LIB10 | 缺失封面/元数据后台补齐 | 实装 | **未接**：无正式入口<br>[设计] 状态查询/受控重试 | **未接**：无正式入口<br>[设计] 状态查询/受控重试 | scheduleCatchUpEnrichment / enrichFromOpenBook | 宿主后台任务已存在；不是新增插件算法要求 | [ENRICH](../apps/web/src/features/library/lib/book-enrichment.ts) [APP](../apps/web/src/App.tsx) [COREVENTS](../packages/core/src/events.ts) | B08 |
+| <a id="LIB09"></a>LIB09 | 提取/显示封面与封面可用状态 | 实装 | **部分**：present_books；open_book_cover/get_book_enrichment[双域]<br>[设计] 封面资源查询/呈现 | **部分**：resources 1.1 openCover/read/save；library 1.9 getEnrichment/observeEnrichment<br>[设计] 封面 ResourceRef | 书架；Agent 书卡；封面后台补齐；资源查询/保存/复制 | 本地 ready 封面可取得 owner 隔离快照，需书库读授权；Agent 书内限本书、只收元数据不收图片字节。library 1.9 区分 unchecked/none/ready、封面本地与原文件本地状态；插件观察初始/变化/错误恢复，串行回调后每秒刷新，非逐事件流。未知书/存储失败拒绝；资源查询不生成/下载且不随封面变化。缺失提取重试见 LIB10；插件资源引用呈现仍缺，实际 Tauri 组合待集中验证。 | [ENRICH](../apps/web/src/features/library/lib/book-enrichment.ts) [LIB](../apps/web/src/domain/library.ts) [PRESENT](../packages/agent/src/tools/present-tools.ts) [API](../packages/plugin-types/src/index.ts) [RESOURCES](../apps/web/src/services/resources.ts) [RESOURCEOWNER](../apps/web/src/services/resource-owner.ts) [RESOURCEFILES](../apps/desktop/src-tauri/src/resources.rs) [RESOURCETOOLS](../packages/agent/src/tools/resource-tools.ts) [ENRICHCONTROL](../apps/web/src/domain/book-enrichment.ts) [ENRICHTOOLS](../packages/agent/src/tools/enrichment-tools.ts) | B05 |
+| <a id="LIB10"></a>LIB10 | 缺失封面/元数据后台补齐 | 实装 | **接通**：get_book_enrichment/retry_book_enrichment[双域]<br>[设计] 状态查询/受控重试 | **接通**：library 1.9 books.getEnrichment/retryEnrichment；events.observeEnrichment<br>[设计] 状态查询/受控重试 | 自动 catch-up；已开书复用；插件/Agent 受控重试 | 读不启动任务；重试需 library:write，Agent 仅明确意图/书内仅本书。共享队列后台单解析、同书合并/去重；queued/already-running 不冒充完成，completed/skipped/failed 与稳定错误分开。仅本地支持格式，不下载/调用模型；只补 unchecked 封面与缺失/文件名来源元数据，不强制重做 ready/none。元数据缺失是启发式，未找到更好信息可 skipped。当前进程最多 256 任务条目，淘汰旧终态，重启不保留；观察每 actor 64。受理后任务不随调用方取消撤销；提取失败不再提交 none，当前读到的自定义字段不覆盖。最终写入非跨设备 CAS，完整格式/并发原生验收仍待集中进行。 | [ENRICH](../apps/web/src/features/library/lib/book-enrichment.ts) [APP](../apps/web/src/App.tsx) [COREVENTS](../packages/core/src/events.ts) [ENRICHCONTROL](../apps/web/src/domain/book-enrichment.ts) [ENRICHQUEUE](../apps/web/src/features/library/lib/enrichment-queue.ts) [ENRICHTOOLS](../packages/agent/src/tools/enrichment-tools.ts) [LIB](../apps/web/src/domain/library.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | B08 |
 | <a id="LIB11"></a>LIB11 | 重复检测、同源书合并和 ID 重定向 | 实装 | **未接**：无正式入口<br>[设计] 预览后批准合并 | **未接**：无正式入口<br>[设计] 预览后批准合并 | 导入去重；同步后 reconcileDuplicateBooks | 查询候选与合并结果映射未公开 | [DEDUPE](../apps/web/src/platform/book-dedupe.ts) [LIB](../apps/web/src/domain/library.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) | A04, B06 |
 | <a id="LIB12"></a>LIB12 | 创建/幂等绑定虚拟书并更新标题 | 实装 | **扩展**：RSS subscribe_feed[全局]<br>[设计] 内容创建工具/贡献消费 | **接通**：addVirtualBook，同 binding 更新标题<br>[设计] 插件自有内容领域 | RSS | 不是所有虚拟书创建都自动成为 Agent 工具；仅 RSS 提供一例 | [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [VIRTUAL](../apps/web/src/features/plugins/lib/virtual-books.ts) [RSSFEED](../plugins/rss-reader/src/feed.ts) [RSSTOOLS](../plugins/rss-reader/src/agent-tools.ts) | B07 |
 | <a id="LIB13"></a>LIB13 | 移除插件自有虚拟书 | 部分 | **部分**：delete_book 通用删除；全局清理查询/重试；无 RSS 退订工具<br>[设计] 受控删除工具 | **部分**：removeVirtualBook 传播删除失败并等待绑定清理持久化；library 1.6 文件恢复<br>[设计] 自有内容删除回执 | RSS 退订；书架删除后订阅清理 | 确认读前等待既有 KV 写结算，事件提交失败保留绑定，清理等待持久回执；已删书后失败仍拒绝，显式重试完成解绑。通知先于文件释放，绑定可能已清除；再次 removeVirtualBook 不重试文件，但 library 1.6 宿主持久意图保留书 ID/标题，两端 listRemovalCleanup/文件重试与启动恢复不再依赖绑定或旧回执。无源文件的合成虚拟书已验证意图确认失败时绑定消失、队列仍在，移除故障后重启清理完成，不冒充虚拟文件 I/O。损坏绑定报 db/error、不当空表或覆盖；同 ID 绑定变化拒绝清理。既有真实 Worker/Agent 插件工具的事件和 KV 拒绝测试保留；不是自主模型/完整 RSS 退订验收。书籍、blob、绑定、RSS 文档不是联合原子事务；RSS 私有缓存、并发 add/remove、绑定崩溃恢复、packaged/跨平台仍缺。 | [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [VIRTUAL](../apps/web/src/features/plugins/lib/virtual-books.ts) [RSSVIEWS](../plugins/rss-reader/src/views.ts) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) [VIRTUALREMOVALPROOF](../docs/evidence/virtual-book-removal-2026-09-09.json) [BOOKBATCH](../apps/web/src/features/library/lib/book-removal.ts) [BOOKCLEANUP](../apps/desktop/src-tauri/src/storage/library_cleanup.rs) [BOOKCLEANUPPROOF](../docs/evidence/book-removal-recovery-2026-09-09.json) | B07 |
@@ -410,9 +410,9 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：76 个。
-- Agent book：64 个。
-- Plugin ctx：164 个。
+- Agent global：78 个。
+- Agent book：66 个。
+- Plugin ctx：167 个。
 - Plugin returned interface：25 个。
 - Capability domains：6 个。
 - Capability contributions：14 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 164 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 167 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -464,6 +464,8 @@
 | `save_resource` | [SYS10](#SYS10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `release_resource` | [SYS13](#SYS13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `import_resource_book` | [LIB06](#LIB06) [SYS11](#SYS11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_book_enrichment` | [LIB09](#LIB09) [LIB10](#LIB10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `retry_book_enrichment` | [LIB10](#LIB10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_plugin_schedules` | [MORE01](#MORE01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_plugin_schedule` | [MORE01](#MORE01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_books` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -544,6 +546,8 @@
 | `read_resource_text` | [SYS13](#SYS13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `save_resource` | [SYS10](#SYS10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `release_resource` | [SYS13](#SYS13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_book_enrichment` | [LIB09](#LIB09) [LIB10](#LIB10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `retry_book_enrichment` | [LIB10](#LIB10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_book_overview` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_annotations` | [ANN01](#ANN01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_reading_stats` | [STAT01](#STAT01) [STAT02](#STAT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -602,6 +606,7 @@
 | `domains.library.queries.books.getNavigationToc` | [TXT02](#TXT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.listRemovalCleanup` | [LIB05](#LIB05) [LIB13](#LIB13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.getTextState` | [TXT04](#TXT04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.library.queries.books.getEnrichment` | [LIB09](#LIB09) [LIB10](#LIB10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.getTextTask` | [TXT05](#TXT05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.listTextTasks` | [TXT05](#TXT05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.searchLocations` | [TXT07](#TXT07) [TXT13](#TXT13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -615,7 +620,9 @@
 | `domains.library.queries.collections.booksIn` | [LIB15](#LIB15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.events.subscribe` | [CON07](#CON07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.events.observeTextTask` | [TXT05](#TXT05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.library.events.observeEnrichment` | [LIB09](#LIB09) [LIB10](#LIB10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.commands.books.prepareText` | [TXT05](#TXT05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.library.commands.books.retryEnrichment` | [LIB10](#LIB10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.commands.books.cancelTextTask` | [TXT05](#TXT05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.commands.books.importBook` | [LIB06](#LIB06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.commands.books.importResource` | [LIB06](#LIB06) [SYS11](#SYS11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

@@ -412,6 +412,8 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     },
     environment: { snapshot: async () => ({ revision: 1, runtime: "desktop", platform: "macos", locale: "en", timeZone: "UTC", utcOffsetMinutes: 0, networkHint: "unknown" }) },
     library: {
+      getEnrichment: async () => { throw new AppError("ui/unavailable", "Attach an enrichment fixture"); },
+      retryEnrichment: async () => { throw new AppError("ui/unavailable", "Attach an enrichment fixture"); },
       importResource: async () => { throw new AppError("ui/unavailable", "Attach an import resource fixture"); },
       getReadingTime: async (query = {}) => ({ bookId: query.bookId ?? null, localDay: query.localDay ?? null,
         observedAtEpochMs: 0, settledMs: 0, pendingMs: 0, totalMs: 0, pendingBucketCount: 0, pending: [], nextCursor: null }),

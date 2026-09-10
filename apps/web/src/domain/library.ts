@@ -42,6 +42,7 @@ import {
   updateVirtualLibraryBookTitle,
 } from "../features/library/lib/library-db";
 import { importBook } from "../features/library/lib/book-import";
+import { getBookEnrichment, retryBookEnrichment, createEnrichmentObserver } from "./book-enrichment";
 import { searchBookText } from "../features/library/lib/book-text-search";
 import { getBookNavigationToc, searchBookLocations } from "../features/library/lib/book-content-navigation";
 import { readBookRange } from "../features/library/lib/book-range";
@@ -93,6 +94,7 @@ export type LibraryQueries = {
     get(bookId: string): Promise<BookSummary | null>;
     getToc(bookId: string): Promise<ChapterRef[]>;
     getTextState(bookId: string): Promise<BookTextSnapshot>;
+    getEnrichment(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookEnrichmentSnapshot>;
     getTextTask(bookId: string, taskId: string): Promise<BookTextTaskSnapshot>;
     listTextTasks(bookId: string): Promise<BookTextTaskSnapshot[]>;
     getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
@@ -110,6 +112,7 @@ export type LibraryQueries = {
 export type LibraryCommands = {
   books: {
     prepareText(bookId: string, options?: BookTextPrepareOptions): Promise<BookTextTaskSnapshot>;
+    retryEnrichment(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookEnrichmentReceipt>;
     cancelTextTask(bookId: string, taskId: string): Promise<BookTextTaskSnapshot>;
     importBook(input: {
       fileName: string;
@@ -137,6 +140,7 @@ export type LibraryDomain = {
   events: {
     subscribe: DomainEventSubscribe<(typeof LIBRARY_EVENTS)[number]>;
     observeTextTask(bookId: string, taskId: string, listener: (snapshot: BookTextTaskSnapshot) => void | Promise<void>): () => void;
+    observeEnrichment(bookId: string, listener: (event: import("@read-aware/core").BookEnrichmentObservation) => unknown): () => void;
   };
 };
 
@@ -149,6 +153,7 @@ export function createLibraryDomain(origin: EventOrigin, lifetime?: AbortSignal)
       getNavigationToc: getBookNavigationToc,
       listRemovalCleanup: listLibraryRemovalCleanup,
       getTextState: getBookTextSnapshot,
+      getEnrichment: (bookId, signal) => getBookEnrichment(bookId, signal ?? lifetime),
       getTextTask: async (bookId, taskId) => textTasks.get(bookId, taskId),
       listTextTasks: async bookId => textTasks.list(bookId),
       searchLocations: searchBookLocations,
@@ -185,6 +190,7 @@ export function createLibraryDomain(origin: EventOrigin, lifetime?: AbortSignal)
   const commands: LibraryCommands = {
     books: {
       prepareText: (bookId, options) => textTasks.start(bookId, options),
+      retryEnrichment: (bookId, signal) => retryBookEnrichment(bookId, origin, signal ?? lifetime),
       cancelTextTask: async (bookId, taskId) => textTasks.cancel(bookId, taskId),
       importBook: async (input) => {
         const file = new File([input.data], String(input.fileName));
@@ -258,6 +264,7 @@ export function createLibraryDomain(origin: EventOrigin, lifetime?: AbortSignal)
   return {
     queries,
     commands,
-    events: { subscribe: domainSubscribe(LIBRARY_EVENTS, origin), observeTextTask: (bookId, taskId, listener) => textTasks.observe(bookId, taskId, listener) },
+    events: { subscribe: domainSubscribe(LIBRARY_EVENTS, origin), observeTextTask: (bookId, taskId, listener) => textTasks.observe(bookId, taskId, listener),
+      observeEnrichment: createEnrichmentObserver(lifetime) },
   };
 }

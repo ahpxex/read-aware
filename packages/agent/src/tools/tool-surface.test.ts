@@ -75,6 +75,8 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   import_resource_book: { id: "resource-fixture" },
   open_book_resource: { bookId: BOOK_ID },
   open_book_cover: { bookId: BOOK_ID },
+  get_book_enrichment: { bookId: BOOK_ID },
+  retry_book_enrichment: { bookId: BOOK_ID },
   copy_resource_image: { id: "resource-fixture" },
   read_resource_text: { id: "resource-fixture" },
   save_resource: { id: "resource-fixture" },
@@ -194,6 +196,9 @@ describe("tool surface contract", () => {
         // 每个工具独立的 fixture：破坏性工具（fixture 自动批准权限）不得污染后续用例
         const { deps } = createInMemoryDeps(seed());
         deps.hostIO.writeClipboard = async () => {};
+        deps.library.getEnrichment = async bookId => ({ bookId, cover: { status: "none", local: false }, metadataPending: false,
+          sourceLocal: true, supported: true, job: { phase: "idle", startedAt: null, finishedAt: null, errorCode: null, reason: null } });
+        deps.library.retryEnrichment = async bookId => ({ status: "not-needed", snapshot: await deps.library.getEnrichment(bookId) });
         const resources = deps.resources("surface");
         deps.resources = () => ({ ...resources, copyImage: async () => ({ copied: true, width: 2, height: 3 }) });
         deps.library.importResource = async () => ({ status: "duplicate", book: { id: BOOK_ID, title: "The Locked Room", format: "epub", starred: false,

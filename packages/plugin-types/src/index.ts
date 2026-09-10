@@ -1205,6 +1205,8 @@ export type PluginLibraryDomain = {
       getToc(bookId: string): Promise<PluginChapterRef[]>;
       /** Read-only derived-text state. Never starts parsing, fetching, or extraction. */
       getTextState(bookId: string): Promise<import("@read-aware/core").BookTextSnapshot>;
+      /** Library 1.9: local cover/source state and the latest process-local enrichment attempt. */
+      getEnrichment(bookId: string): Promise<import("@read-aware/core").BookEnrichmentSnapshot>;
       getTextTask(bookId: string, taskId: string): Promise<import("@read-aware/core").BookTextTaskSnapshot>;
       listTextTasks(bookId: string): Promise<import("@read-aware/core").BookTextTaskSnapshot[]>;
     getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
@@ -1223,6 +1225,8 @@ export type PluginLibraryDomain = {
     books: {
       /** Starts an actor-owned background request. A receipt is not completion. */
       prepareText(bookId: string, options?: import("@read-aware/core").BookTextPrepareOptions): Promise<import("@read-aware/core").BookTextTaskSnapshot>;
+      /** Retry unchecked covers and missing/filename-derived metadata using the shared queue, without forcing replacement or download. */
+      retryEnrichment(bookId: string): Promise<import("@read-aware/core").BookEnrichmentReceipt>;
       /** Cancels only this activation's request; shared work or dispatched writes may continue. */
       cancelTextTask(bookId: string, taskId: string): Promise<import("@read-aware/core").BookTextTaskSnapshot>;
       importBook(input: {
@@ -1256,6 +1260,7 @@ export type PluginLibraryDomain = {
   events: {
     subscribe: DomainSubscribe<LibraryDomainEventType>;
     observeTextTask(bookId: string, taskId: string, handler: (snapshot: import("@read-aware/core").BookTextTaskSnapshot) => void | Promise<void>): PluginDisposable;
+    observeEnrichment(bookId: string, handler: (event: import("@read-aware/core").BookEnrichmentObservation) => unknown): PluginDisposable;
   };
 };
 

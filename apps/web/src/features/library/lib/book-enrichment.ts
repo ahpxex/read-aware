@@ -12,6 +12,8 @@ import {
 import { parseFileName } from "./book-file-name";
 import { getBookRecord, openLocalBookFile } from "./library-db";
 import type { BookFormat, LibraryBook } from "./library-types";
+import { EnrichmentQueue, type EnrichmentRequest, type EnrichmentOutcome } from "./enrichment-queue";
+export type { EnrichmentRequest } from "./enrichment-queue";
 
 const log = createLogger("book-enrichment");
 
@@ -34,16 +36,8 @@ const log = createLogger("book-enrichment");
  * a synced blob through the cover hydrator instead).
  */
 
-export type EnrichmentRequest = {
-  bookId: string;
-  /** Decide the cover (`coverStatus` is `unchecked`). */
-  cover: boolean;
-  /** Fill title/author from the parsed metadata. */
-  metadata: boolean;
-};
-
 /** Formats foliate can parse without a view. Virtual books have no file. */
-const ENGINE_FORMATS: ReadonlySet<BookFormat> = new Set([
+export const ENRICHMENT_FORMATS: ReadonlySet<BookFormat> = new Set([
   "epub",
   "mobi",
   "azw3",
@@ -55,35 +49,32 @@ const ENGINE_FORMATS: ReadonlySet<BookFormat> = new Set([
 
 type StoredCover = { coverBlobKey: string; sha256: string } | null;
 
-const queue: EnrichmentRequest[] = [];
-const queued = new Map<string, EnrichmentRequest>();
+export const enrichmentQueue = new EnrichmentQueue(runJob, error => log.warn("Engine enrichment failed", error));
 /** Books this session already tried: a failed parse is not retried in a loop. */
 const attempted = new Set<string>();
-let draining = false;
 
 /** Queue a book; a request already queued for the same id merges into it. */
 export function scheduleBookEnrichment(request: EnrichmentRequest): void {
   if (!isTauri()) return;
-  const pending = queued.get(request.bookId);
-  if (pending) {
-    pending.cover ||= request.cover;
-    pending.metadata ||= request.metadata;
-    return;
-  }
-  const entry = { ...request };
-  queued.set(request.bookId, entry);
-  queue.push(entry);
-  void drain();
+  try { enrichmentQueue.enqueue(request); }
+  catch (error) { log.warn("Unable to schedule enrichment", error); }
 }
 
 /**
  * A PDF whose title is still the one the file name gave it: the engine
  * metadata pass never ran to completion (the app quit mid-import, the parse
- * failed once). The file name is the only source that produces exactly that
- * string, so the comparison is precise, not a guess.
+ * failed once). Matching the filename-derived title is only a retry heuristic:
+ * the embedded metadata may legitimately contain the same title.
  */
-function metadataStillFromFileName(book: LibraryBook): boolean {
+export function metadataStillFromFileName(book: LibraryBook): boolean {
   return book.format === "pdf" && book.title === parseFileName(book.fileName).title;
+}
+
+/** Retry eligibility is broader than the automatic PDF catch-up policy. */
+export function metadataNeedsEnrichment(book: LibraryBook): boolean {
+  const fromFile = parseFileName(book.fileName);
+  return ENRICHMENT_FORMATS.has(book.format)
+    && (book.title === fromFile.title || !book.author || book.author === fromFile.author);
 }
 
 /**
@@ -94,7 +85,7 @@ function metadataStillFromFileName(book: LibraryBook): boolean {
  */
 export function scheduleCatchUpEnrichment(books: readonly LibraryBook[]): void {
   for (const book of books) {
-    if (!ENGINE_FORMATS.has(book.format)) continue;
+    if (!ENRICHMENT_FORMATS.has(book.format)) continue;
     if (attempted.has(book.id)) continue;
     const cover = book.coverStatus === "unchecked";
     const metadata = metadataStillFromFileName(book);
@@ -110,73 +101,56 @@ export async function enrichFromOpenBook(book: LibraryBook, parsed: FoliateBook)
   const cover = book.coverStatus === "unchecked";
   const metadata = metadataStillFromFileName(book);
   if (!cover && !metadata) return;
-  if (!ENGINE_FORMATS.has(book.format)) return;
-  queued.delete(book.id);
+  if (!ENRICHMENT_FORMATS.has(book.format)) return;
   attempted.add(book.id);
   try {
-    await applyParsedBook({ bookId: book.id, cover, metadata }, parsed);
+    await enrichmentQueue.enqueue({ bookId: book.id, cover, metadata }, request => applyParsedBook(request, parsed), true).done;
   } catch (error) {
     log.warn(`cover from the open book failed for ${book.id}`, error);
   }
 }
 
-async function drain(): Promise<void> {
-  if (draining) return;
-  draining = true;
-  try {
-    while (queue.length > 0) {
-      const request = queue.shift()!;
-      queued.delete(request.bookId);
-      attempted.add(request.bookId);
-      try {
-        await runJob(request);
-      } catch (error) {
-        log.warn(`engine enrichment failed for ${request.bookId}`, error);
-      }
-    }
-  } finally {
-    draining = false;
-  }
-}
-
-async function runJob(request: EnrichmentRequest): Promise<void> {
+async function runJob(request: EnrichmentRequest): Promise<EnrichmentOutcome> {
+  attempted.add(request.bookId);
   const book = await getBookRecord(request.bookId);
-  if (!book) return; // Removed while queued.
+  if (!book) return { reason: "book-removed" };
   const needsCover = request.cover && book.coverStatus === "unchecked";
-  if (!needsCover && !request.metadata) return;
-  if (!ENGINE_FORMATS.has(book.format)) return;
+  const needsMetadata = request.metadata;
+  if (!needsCover && !needsMetadata) return { reason: "not-needed" };
+  if (!ENRICHMENT_FORMATS.has(book.format)) return { reason: "unsupported-format" };
   const file = await openLocalBookFile(book);
   if (!file) {
     // Not on this device (a synced-in shell): nothing to parse. The cover,
     // if the importing device found one, arrives through the hydrator.
-    return;
+    return { reason: "source-unavailable" };
   }
   const parsed = await makeFoliateBook(file);
   try {
-    await applyParsedBook({ ...request, cover: needsCover }, parsed);
+    return await applyParsedBook({ ...request, cover: needsCover, metadata: needsMetadata }, parsed);
   } finally {
     await parsed.destroy?.();
   }
 }
 
-async function applyParsedBook(request: EnrichmentRequest, parsed: FoliateBook): Promise<void> {
+async function applyParsedBook(request: EnrichmentRequest, parsed: FoliateBook): Promise<EnrichmentOutcome> {
   const current = await getBookRecord(request.bookId);
-  if (!current) return;
+  if (!current) return { reason: "book-removed" };
   const events = [];
 
   if (request.metadata) {
     const title = foliateTitle(parsed);
     const author = foliateAuthor(parsed);
+    const fromFile = parseFileName(current.fileName);
     const patch = {
-      ...(title && title !== current.title ? { title } : {}),
-      ...(author && author !== current.author ? { author } : {}),
+      ...(title && current.title === fromFile.title && title !== current.title ? { title } : {}),
+      ...(author && (!current.author || current.author === fromFile.author) && author !== current.author ? { author } : {}),
     };
     if (Object.keys(patch).length > 0) {
       events.push({
         type: "book.metadataEdited" as const,
         payload: { bookId: request.bookId, ...patch },
         // Parsed-metadata enrichment is app machinery, not a user edit.
-        origin: "system" as const,
+        origin: request.origin ?? "system" as const,
       });
     }
   }
@@ -192,19 +166,20 @@ async function applyParsedBook(request: EnrichmentRequest, parsed: FoliateBook):
               status: "ready" as const,
               coverBlobKey: stored.coverBlobKey,
             },
-            origin: "system" as const,
+            origin: request.origin ?? "system" as const,
           }
         : {
             type: "book.coverExtracted" as const,
             payload: { bookId: request.bookId, status: "none" as const },
-            origin: "system" as const,
+            origin: request.origin ?? "system" as const,
           },
     );
   }
 
-  if (events.length === 0) return;
+  if (events.length === 0) return { reason: "not-needed" };
   await commitDomainEvents(...events);
   emitAppEvent("book-changed", { bookId: request.bookId });
+  return { reason: null };
 }
 
 /** Sections the coverless fallback opens looking for the book's first image. */
@@ -257,7 +232,7 @@ async function storeParsedCover(bookId: string, parsed: FoliateBook): Promise<St
     blob = (await parsed.getCover?.()) ?? null;
   } catch (error) {
     log.warn(`engine could not extract a cover for ${bookId}`, error);
-    return null;
+    throw error;
   }
   if (!blob || blob.size === 0) blob = await firstInBookImage(parsed);
   if (!blob || blob.size === 0) return null;

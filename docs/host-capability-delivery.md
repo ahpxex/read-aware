@@ -42,6 +42,10 @@
 
 本批定向 24 项/630 断言，库存/模型及原有 host IO 14 项/52 断言，Rust 图像解码/拒绝 2 项和全仓 typecheck 27/27 通过；Rust 既有 38 警告保留。初次 native 编译遇到 clipboard 插件错误没有 CommandError 转换，改为 host log 加稳定 ui/unavailable 后通过。矩阵 243 行/800 映射、catalog 35，Agent book 64/global 76；三文档对结构校验通过。SYS09 授权栅格图片复制/导出调用链接通；LIB09 仍部分，封面细分状态/观察/提取控制/插件视图引用，TXT12 书内图像查询和 SVG 复制均未宣称完成。未启动桌面/浏览器，真实系统粘贴、灯箱点击与 Worker 组合留待集中 E2E；整体目标继续，未推送。
 
+封面/元数据控制批次已接线：library 1.9 getEnrichment/retryEnrichment/observeEnrichment 区分 unchecked/none/ready、封面/原文件本地状态、格式支持、元数据重试资格与最近任务状态。读取不触发解析；重试需书库写授权，Agent 双 scope 的 get_book_enrichment/retry_book_enrichment 书内限本书、只按明确用户意图重试。自动补齐、已开书复用和手动重试共用同书去重；后台串行解析，已解析 reader 不为无关排队重新等待。queued/already-running 与 completed/skipped/failed 分开，跳过原因和稳定错误可查询；只重试本地支持格式、unchecked 封面和缺失/文件名来源元数据，不下载/调用模型/强制重做已有封面。当前读到的自定义字段保留，提取异常不再写成 none；元数据资格仍为启发式，写入不是跨设备 CAS。
+
+本批定向队列、控制器/观察、读写授权、Agent scope/工具表面、解析失败与字段保留、库存/模型共 33 项/645 断言，全仓 typecheck 27/27 通过。任务最多 256 当前进程条目、旧终态淘汰、重启归 idle；观察每 actor 64，串行 callback 后每秒轮询，错误/恢复分开，退休停止交付。受理前取消不入队，受理后共享工作可完成，不当作回滚。矩阵 243 行/807 映射、catalog 35，Agent book 66/global 78，三文档对结构校验通过。LIB10 限定开放面接通，LIB09 插件资源呈现仍缺；本批无 Rust 变更、不启动桌面/浏览器，真实格式、并发写和 Worker/reader 组合留到集中 E2E。整体目标仍继续，未推送。
+
 - [ ] D1–D6：书库/正文、阅读运行态、标注、对话、设置、授权记忆读及受控命令，两端接通。
 - [ ] C1–C5：动作/模式/内容/声音/Agent/主题/传输的注册、宿主消费、必要的受权复用全部可组合。
 - [ ] S1–S11：存储、密钥、UI、资源、网络、推理、剪贴板、调度、同步、插件目录、会话桥收敛。

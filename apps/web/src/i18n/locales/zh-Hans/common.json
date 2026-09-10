@@ -69,6 +69,8 @@
     "annotationInvalidInput": "标注请求包含无效的值。",
     "annotationForbidden": "只有阅读助手可以记录提问轨迹。",
     "bookEncryption": "这本书已加密或受 DRM 保护，无法打开。请使用未加密的副本。",
+    "bookUnsupportedFormat": "不支持此书籍格式。",
+    "bookParseFailed": "无法解析此文件，请尝试另一个副本。",
     "generic": "出了点问题，详情已写入应用日志。",
     "fsNotFound": "ReadAware 需要的文件不见了。",
     "fsPermission": "ReadAware 没有权限访问所需的文件。",

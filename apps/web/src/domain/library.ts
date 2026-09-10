@@ -44,6 +44,7 @@ import {
 import { importBook } from "../features/library/lib/book-import";
 import { getBookEnrichment, retryBookEnrichment, createEnrichmentObserver } from "./book-enrichment";
 import { listDuplicateBooks, previewBookMerge, mergeDuplicateBooks, resolveMergedBook } from "./book-merge";
+import { listBookFormats } from "./book-inspection";
 import { searchBookText } from "../features/library/lib/book-text-search";
 import { getBookNavigationToc, searchBookLocations } from "../features/library/lib/book-content-navigation";
 import { readBookRange } from "../features/library/lib/book-range";
@@ -91,6 +92,7 @@ export async function getPersistedChapters(bookId: string): Promise<ExtractedCha
 export type LibraryQueries = {
   books: {
     list(): Promise<BookSummary[]>;
+    listFormats(): Promise<import("@read-aware/core").BookFormatCapability[]>;
     listDuplicates(query?: import("@read-aware/core").DuplicateBookQuery, signal?: AbortSignal): Promise<import("@read-aware/core").DuplicateBookPage>;
     previewMerge(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookMergePreview | null>;
     resolveId(bookId: string, signal?: AbortSignal): Promise<string | null>;
@@ -156,6 +158,7 @@ export function createLibraryDomain(origin: EventOrigin, lifetime?: AbortSignal)
   const queries: LibraryQueries = {
     books: {
       getNavigationToc: getBookNavigationToc,
+      listFormats: listBookFormats,
       listDuplicates: (query, signal) => listDuplicateBooks(query, signal ?? lifetime),
       previewMerge: (bookId, signal) => previewBookMerge(bookId, signal ?? lifetime),
       resolveId: (bookId, signal) => resolveMergedBook(bookId, signal ?? lifetime),

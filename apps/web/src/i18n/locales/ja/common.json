@@ -69,6 +69,8 @@
     "annotationInvalidInput": "注釈のリクエストに無効な値が含まれています。",
     "annotationForbidden": "質問の記録を作成できるのは読書アシスタントだけです。",
     "bookEncryption": "この本は暗号化されているか DRM で保護されているため開けません。保護されていないコピーを使用してください。",
+    "bookUnsupportedFormat": "この書籍形式はサポートされていません。",
+    "bookParseFailed": "このファイルを解析できませんでした。別のコピーをお試しください。",
     "generic": "問題が発生しました。詳細はアプリのログに記録されています。",
     "fsNotFound": "ReadAware に必要なファイルが見つかりません。",
     "fsPermission": "ReadAware に必要なファイルへのアクセス権限がありません。",

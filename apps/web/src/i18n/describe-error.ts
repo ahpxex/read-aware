@@ -137,6 +137,8 @@ const CODE_COPY: Record<string, CopyEntry> = {
   "annotations/invalid-cursor": { key: "annotationInvalidInput", retryable: false },
   "annotations/forbidden": { key: "annotationForbidden", retryable: false },
   "book/unsupported-encryption": { key: "bookEncryption", retryable: false },
+  "book/unsupported-format": { key: "bookUnsupportedFormat", retryable: false },
+  "book/parse-failed": { key: "bookParseFailed", retryable: false },
   [ERR_FS_NOT_FOUND]: { key: "fsNotFound", retryable: false },
   [ERR_FS_PERMISSION]: { key: "fsPermission", retryable: false },
   [ERR_FS_NO_SPACE]: { key: "fsNoSpace", retryable: false },

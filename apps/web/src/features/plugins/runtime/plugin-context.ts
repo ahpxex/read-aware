@@ -33,6 +33,7 @@ import { hostSync } from "../../../services/sync";
 import { hostMaintenance } from "../../../services/maintenance";
 import { createResourceOwner } from "../../../services/resources";
 import { importResourceBook } from "../../../domain/library-resource-import";
+import { inspectResourceBook } from "../../../domain/book-inspection";
 import {
   deletePluginSecret,
   getPluginSecret,
@@ -676,6 +677,7 @@ export function buildPluginContext(
         ...library.queries,
         books: {
           ...library.queries.books,
+          inspectResource: id => lifecycle.read("library.inspectResource", () => inspectResourceBook(resources, id, lifecycle.signal)),
           getNavigationToc: (bookId) => lifecycle.read("library.getNavigationToc", () => library.queries.books.getNavigationToc(bookId, lifecycle.signal)),
           searchLocations: (input) => lifecycle.read("library.searchLocations", () => library.queries.books.searchLocations(input, lifecycle.signal)),
           readRange: (input) => lifecycle.read("library.readRange", () => library.queries.books.readRange(input, lifecycle.signal)),

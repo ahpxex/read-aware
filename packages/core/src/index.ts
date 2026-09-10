@@ -25,6 +25,7 @@ export * from "./host-maintenance";
 export * from "./resources";
 export * from "./book-enrichment";
 export * from "./book-merge";
+export * from "./book-inspection";
 export * from "./library-import";
 export * from "./plugin-schedules";
 export * from "./reader-panels";

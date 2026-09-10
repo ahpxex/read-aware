@@ -8,6 +8,7 @@ import type { BookStats, BookSummary, Id } from "@read-aware/core";
 import { createDomainApi } from "../../../../domain";
 import { classifyBookIfUnclassified } from "../../../../domain/book-classification";
 import { importResourceBook } from "../../../../domain/library-resource-import";
+import { inspectResourceBook } from "../../../../domain/book-inspection";
 import { agentResources } from "../../../../services/resources";
 
 function toOverview(book: BookSummary, state: BookStats | undefined): BookOverview {
@@ -41,6 +42,8 @@ export function createLibraryPort(): LibraryPort {
 
   return {
     listBooks: listOverviews,
+    listBookFormats: library.queries.books.listFormats,
+    inspectResource: (threadKey, id, signal) => inspectResourceBook(agentResources(threadKey), id, signal),
     listDuplicates: library.queries.books.listDuplicates,
     previewMerge: library.queries.books.previewMerge,
     mergeDuplicates: library.commands.books.mergeDuplicates,

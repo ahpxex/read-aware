@@ -3136,6 +3136,43 @@ explicit user intent; acceptance does not prove completion. Focused tests passed
 real formats, reader/Worker combinations and concurrent native writes remain for
 integrated Tauri verification.
 
+[代码] Library 1.11 adds `queries.books.listFormats()` and
+`queries.books.inspectResource(id)` under library read/write grants.
+The format catalog and import routing share extension/MIME rules for EPUB, PDF,
+MOBI/PRC, AZW3/AZW/KF8, FB2/FB2.ZIP/FBZ, CBZ, CBR, TXT/TEXT and HTML/HTM/XHTML.
+Extensions are routing hints, not proof arbitrary matching bytes are readable;
+compound extensions such as fb2.zip must not be passed unchanged to the native
+picker's simple-extension filter (use zip there). Existing import routing order
+and signature fallback are preserved; unsupported import routing now carries
+book/unsupported-format rather than only localized prose.
+
+Inspection holds this activation's sealed resource through the same parseBookFile
+used by reading, then destroys the parsed book before releasing its borrow.
+It returns formatHint, status (parsed/unsupported/encrypted/failed), coverage
+(always initialization), sectionCount (parsed only) and errorCode.
+The hint follows name/MIME/64 KiB head detection; it is not a verified container
+identity. No title, body, path or image bytes are returned. It neither imports,
+opens a reader, converts the source, changes the library nor publishes sync data.
+Parsing initialization does not inspect all section resources or rendering:
+parsed does not establish that the entire book is undamaged.
+
+Existing book/unsupported-encryption and PDF PasswordException yield encrypted;
+book/unsupported-format yields unsupported; unknown parser errors yield failed
+with book/parse-failed, not a claim of known corruption. Raw details are logged,
+and new error codes have eight-locale copy. Lease, authorization and storage
+errors reject instead of classifying a book as corrupt. Cleanup failure rejects.
+One initialization runs at a time with at most eight pending across actors;
+the native file adapter reads at most 1 MiB per IPC request and checks short reads.
+Some parsers still materialize the full file in host memory under the existing
+resource size limit; this is not a bounded-memory validator or durable task.
+Cancellation prevents subsequent reads/returned success but cannot interrupt
+synchronous parser work; retirement drains accepted work and destroys late books.
+Agent list_book_formats is available in both scopes; inspect_resource_book is
+global-only and consumes that conversation's reference without mutation approval
+or text disclosure. Focused tests cover routing, receipts, permissions, cancellation
+and disposal; actual encrypted/damaged files and Tauri format combinations await
+the integrated verification phase.
+
 [代码] Library 1.10 adds read queries `books.listDuplicates({offset?,limit?})`,
 `books.previewMerge(bookId)`, `books.resolveId(bookId)`, and write command
 `books.mergeDuplicates({bookId,expectedRevision})`. Read grants expose queries;

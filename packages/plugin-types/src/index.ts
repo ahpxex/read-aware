@@ -1199,6 +1199,10 @@ export type PluginLibraryDomain = {
   queries: {
     books: {
       list(): Promise<PluginBook[]>;
+      /** Library 1.11: import routing hints; extensions alone do not prove readability. */
+      listFormats(): Promise<import("@read-aware/core").BookFormatCapability[]>;
+      /** Initialize this activation's sealed resource with the reader parser; no import. */
+      inspectResource(id: string): Promise<import("@read-aware/core").BookInspection>;
       /** Library 1.10: same-content groups; live offset pages, limit 1-50. */
       listDuplicates(query?: import("@read-aware/core").DuplicateBookQuery): Promise<import("@read-aware/core").DuplicateBookPage>;
       previewMerge(bookId: string): Promise<import("@read-aware/core").BookMergePreview | null>;

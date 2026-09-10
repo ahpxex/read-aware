@@ -75,6 +75,8 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   import_resource_book: { id: "resource-fixture" },
   open_book_resource: { bookId: BOOK_ID },
   open_book_cover: { bookId: BOOK_ID },
+  list_book_formats: {},
+  inspect_resource_book: { id: "resource" },
   get_book_enrichment: { bookId: BOOK_ID },
   retry_book_enrichment: { bookId: BOOK_ID },
   list_duplicate_books: {},
@@ -208,6 +210,7 @@ describe("tool surface contract", () => {
         deps.library.retryEnrichment = async bookId => ({ status: "not-needed", snapshot: await deps.library.getEnrichment(bookId) });
         const resources = deps.resources("surface");
         deps.resources = () => ({ ...resources, copyImage: async () => ({ copied: true, width: 2, height: 3 }) });
+        deps.library.inspectResource = async () => ({ status: "parsed", coverage: "initialization", formatHint: "epub", sectionCount: 3, errorCode: null });
         deps.library.importResource = async () => ({ status: "duplicate", book: { id: BOOK_ID, title: "The Locked Room", format: "epub", starred: false,
           collectionId: null, addedAt: "2026-09-01T00:00:00Z", updatedAt: "2026-09-01T00:00:00Z" } });
         deps.hostIO.openExternal = async () => {};

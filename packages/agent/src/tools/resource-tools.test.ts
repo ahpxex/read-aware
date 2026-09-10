@@ -54,6 +54,19 @@ test("UTF-8 paging returns byte offsets without losing split codepoints and reje
   await expect(tool.execute("test", { id: "r" }, new AbortController().signal)).rejects.toMatchObject({ code: "ui/invalid-target" });
 });
 
+test("inspection uses the global conversation resource owner and does not import or request mutation approval", async () => {
+  const { deps, stores } = createInMemoryDeps(), signal = new AbortController().signal;
+  deps.library.inspectResource = async (thread, id, received) => {
+    expect([thread, id, received]).toEqual(["global:thread", "selected", signal]);
+    return { formatHint: "epub", status: "encrypted", coverage: "initialization", sectionCount: null, errorCode: "book/unsupported-encryption" };
+  };
+  const tools = buildResourceTools({ kind: "global", threadId: "thread" }, deps);
+  const tool = tools.find(t => t.name === "inspect_resource_book")!;
+  expect(buildResourceTools({ kind: "book", bookId: "book" as Id }, deps).some(t => t.name === tool.name)).toBe(false);
+  expect(JSON.stringify(await tool.execute("inspect", { id: "selected" }, signal))).toContain("encrypted");
+  expect(stores.interactions).toHaveLength(0);
+});
+
 test("resource import is global-only, requires approval and preserves duplicate receipts", async () => {
   const { deps, stores } = createInMemoryDeps(); let imported = 0;
   deps.library.importResource = async (thread, id) => {

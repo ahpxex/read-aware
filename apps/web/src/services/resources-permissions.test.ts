@@ -9,9 +9,14 @@ test("resource handles expose no raw paths and book acquisition requires library
     expect(Boolean(resources.openBook)).toBe(permissions.length > 0);
     expect(Boolean(resources.openCover)).toBe(permissions.length > 0);
     expect(Boolean(plugin.context.domains.library?.commands?.books.importResource)).toBe(permissions.includes("library:write"));
+    expect(Boolean(plugin.context.domains.library?.queries.books.inspectResource)).toBe(permissions.length > 0);
     expect(() => resources.pick()).toThrow();
     plugin.lifecycle.promote();
     await expect(resources.stat("foreign-id")).rejects.toMatchObject({ code: "fs/not-found" });
+    if (plugin.context.domains.library) {
+      expect(await plugin.context.domains.library.queries.books.listFormats()).toHaveLength(9);
+      await expect(plugin.context.domains.library.queries.books.inspectResource("foreign-id")).rejects.toMatchObject({ code: "fs/not-found" });
+    }
     if (plugin.context.domains.library?.commands) {
       await expect(plugin.context.domains.library.commands.books.importResource("foreign-id")).rejects.toMatchObject({ code: "fs/not-found" });
     }

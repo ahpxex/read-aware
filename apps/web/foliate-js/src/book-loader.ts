@@ -3,7 +3,9 @@ import type { Book, BookFile } from './book.js'
 export type BookInput = string | BookFile | FileSystemDirectoryEntry
 export class ResponseError extends Error {}
 export class NotFoundError extends Error {}
-export class UnsupportedTypeError extends Error {}
+export class UnsupportedTypeError extends Error {
+    readonly code = 'book/unsupported-format'
+}
 
 const hasSignature = async (file: BookFile, signature: number[]) => {
     const bytes = new Uint8Array(await file.slice(0, signature.length).arrayBuffer())

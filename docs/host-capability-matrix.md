@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 194、部分 43、待建 3、占位 2、非桌面 1。
-- Agent：接通 129、部分 56、未接 27、扩展 13、自动 14、内部 4。
-- 插件：接通 143、部分 80、未接 20。
+- Agent：接通 130、部分 56、扩展 13、未接 26、自动 14、内部 4。
+- 插件：接通 144、部分 79、未接 20。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -67,7 +67,7 @@
 | <a id="LIB04"></a>LIB04 | 删除单本书 | 实装 | **接通**：delete_book + 用户批准<br>[设计] 受控写工具 | **接通**：library.commands.books.remove<br>[设计] 写领域/风险策略 | 书架；Agent；RSS | Agent 有批准环节；插件是已授权直接写，不等价于逐次批准 | [LIB](../apps/web/src/domain/library.ts) [LIBUI](../apps/web/src/features/library/hooks/useLibraryCommands.ts) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | B02 |
 | <a id="LIB05"></a>LIB05 | 批量删除书籍 | 实装 | **接通**：delete_books[全局]：固定批次一次批准/cleanupOnly；list_book_removal_cleanup<br>[设计] 批量受控工具与恢复查询 | **接通**：library 1.6 books.removeMany/retryRemovalCleanup；listRemovalCleanup<br>[设计] 原子记录批次与耐久文件清理 | 书架多选；Agent；Library Desk 0.2 选择/审阅/删除/恢复查询/重试 | 1–1000 个非空 ID，每个至多 256 字符，复制去重、不强制转换。事件/投影事务失败全回滚；提交后通知，再清源文件/封面，committed:true 与 files.released/pending 分开。迁移 31 删除触发器在记录事务内登记设备本地清理意图，恢复插入取消意图；两端可按 ID 游标查询 1–100 项（默认 50），不需保留旧回执。启动每页 100 项逐项重试，失败保留且不饿死后页；不是周期任务。文件元数据与意图确认同事务，物理删除可部分完成；重试不新增删除事件。原生持锁预检所有 ID，书已恢复或投影 stale 拒绝清理；重放后仍存在书的意图在同事务取消。Agent 批准/插件域授权边界不变。隔离 macOS debug 验权限、新消费者跨重启查询、插件菜单与 Agent 批准重试；既有原子回滚/恢复保护证据保留。迁移前孤立文件不回填；不是跨设备 CAS、全数据擦除或通用耐久任务；旧单删仍以异常表达文件失败。1000 项真实负载、晚到 blob 写入、packaged/Windows/Linux 未验。 | [LIB](../apps/web/src/domain/library.ts) [LIBUI](../apps/web/src/features/library/hooks/useLibraryCommands.ts) [BOOKBATCH](../apps/web/src/features/library/lib/book-removal.ts) [BOOKBATCHTOOL](../packages/agent/src/tools/delete-books.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [LIBRARYDESK](../plugins/library-desk/src/views.ts) [BOOKBATCHPROOF](../docs/evidence/book-batch-removal-2026-09-09.json) [BOOKCLEANUP](../apps/desktop/src-tauri/src/storage/library_cleanup.rs) [BOOKCLEANUPPROOF](../docs/evidence/book-removal-recovery-2026-09-09.json) | B02 |
 | <a id="LIB06"></a>LIB06 | 导入已有支持格式的书籍字节 | 实装 | **部分**：import_resource_book[global]<br>[设计] 用户选文件后导入工具 | **部分**：library 1.8 commands.books.importBook/importResource<br>[设计] 导入任务 | 书架导入/拖放/系统打开；授权资源导入 | 已接本调用方封口资源直接导入，同源格式检测、原生内容去重和事件落库；返回 imported/duplicate 与实际书籍，修复缺失原书也通知刷新。Agent 逐次批准，插件需 library:write。受理前取消不派发，受理后完成落库而非承诺回滚；不打开书、不改原件、不释放引用。完整任务进度/取消协议与真实组合导入验收仍缺。 | [IMPORT](../apps/web/src/features/library/lib/book-import.ts) [LIB](../apps/web/src/domain/library.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [REGISTRY](../packages/agent/src/tools/registry.ts) [RESOURCEIMPORT](../apps/web/src/domain/library-resource-import.ts) [RESOURCEFILES](../apps/desktop/src-tauri/src/resources.rs) [RESOURCETOOLS](../packages/agent/src/tools/resource-tools.ts) | B04 |
-| <a id="LIB07"></a>LIB07 | 识别格式/DRM/损坏文件并报告 | 实装 | **未接**：无正式入口<br>[设计] 查询导入能力/失败原因 | **部分**：importBook 间接触发<br>[设计] 格式能力与错误契约 | 导入与阅读加载 | 不能由 BookFormat enum 推断任意文件可读 | [IMPORT](../apps/web/src/features/library/lib/book-import.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [SESSION](../apps/web/src/features/reader/hooks/useReaderSession.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | B08 |
+| <a id="LIB07"></a>LIB07 | 识别格式/DRM/损坏文件并报告 | 实装 | **接通**：list_book_formats[双域]/inspect_resource_book[全局]<br>[设计] 格式目录/授权文件检查 | **接通**：library 1.11 books.listFormats/inspectResource<br>[设计] 读授权与自有封口资源 | 导入/阅读共享路由；授权文件初始化检查 | 格式目录与导入共用扩展名/MIME 规则，formatHint 不是字节身份。检查借用本 actor 封口资源，用同一 parseBookFile，返回 parsed/unsupported/encrypted/failed、初始化覆盖范围、sectionCount 和稳定错误码；不返回标题/正文/路径、不导入/打开/写书库或同步。未知解析错误不谎称已证实损坏，存储/租约失败拒绝；MOBI/EPUB 加密码及 PDF 密码失败单列。只初始化，不逐节加载、渲染或证明全书完好。全宿主串行、最多 8 待处理；原生读每块最多 1 MiB，部分格式仍整文件内存。取消阻止后续读/结果交付，已运行解析排空销毁。定向类型/权限/失败测试通过；实际加密/坏书及所有格式的 Tauri 组合待集中 E2E。 | [IMPORT](../apps/web/src/features/library/lib/book-import.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [SESSION](../apps/web/src/features/reader/hooks/useReaderSession.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [BOOKINSPECT](../apps/web/src/domain/book-inspection.ts) [BOOKFORMATS](../packages/core/src/book-inspection.ts) [RESOURCEBOOK](../apps/web/src/platform/resource-book-file.ts) [RESOURCETOOLS](../packages/agent/src/tools/resource-tools.ts) | B08 |
 | <a id="LIB08"></a>LIB08 | 查询/读取书籍原文件与本地可用性 | 实装 | **接通**：open_book_resource/save_resource[双域]<br>[设计] 批准后只导出的原书引用 | **接通**：resources.openBook/read/save<br>[设计] 受 library 授权的原文件快照 | 阅读加载；备份；同步；正式资源服务 | 本地无原文件返回 null，书已删除报错，不自动下载。插件获 library 读/写才提供 openBook；Agent 逐次批准、书内仅当前书，原书引用在端口禁止读入模型，正文仍走防剧透工具。引用是已获得的临时独立副本，源变更不替换快照，释放/到期不删原书；无路径/原生键暴露。接线及定向测试完成，真实 Tauri 组合验收待集中进行。 | [BLOB](../apps/web/src/platform/blob-store.ts) [SESSION](../apps/web/src/features/reader/hooks/useReaderSession.ts) [LIB](../apps/web/src/domain/library.ts) [API](../packages/plugin-types/src/index.ts) [RESOURCES](../apps/web/src/services/resources.ts) [RESOURCEOWNER](../apps/web/src/services/resource-owner.ts) [RESOURCEFILES](../apps/desktop/src-tauri/src/resources.rs) [RESOURCETOOLS](../packages/agent/src/tools/resource-tools.ts) | B05 |
 | <a id="LIB09"></a>LIB09 | 提取/显示封面与封面可用状态 | 实装 | **部分**：present_books；open_book_cover/get_book_enrichment[双域]<br>[设计] 封面资源查询/呈现 | **部分**：resources 1.1 openCover/read/save；library 1.9 getEnrichment/observeEnrichment<br>[设计] 封面 ResourceRef | 书架；Agent 书卡；封面后台补齐；资源查询/保存/复制 | 本地 ready 封面可取得 owner 隔离快照，需书库读授权；Agent 书内限本书、只收元数据不收图片字节。library 1.9 区分 unchecked/none/ready、封面本地与原文件本地状态；插件观察初始/变化/错误恢复，串行回调后每秒刷新，非逐事件流。未知书/存储失败拒绝；资源查询不生成/下载且不随封面变化。缺失提取重试见 LIB10；插件资源引用呈现仍缺，实际 Tauri 组合待集中验证。 | [ENRICH](../apps/web/src/features/library/lib/book-enrichment.ts) [LIB](../apps/web/src/domain/library.ts) [PRESENT](../packages/agent/src/tools/present-tools.ts) [API](../packages/plugin-types/src/index.ts) [RESOURCES](../apps/web/src/services/resources.ts) [RESOURCEOWNER](../apps/web/src/services/resource-owner.ts) [RESOURCEFILES](../apps/desktop/src-tauri/src/resources.rs) [RESOURCETOOLS](../packages/agent/src/tools/resource-tools.ts) [ENRICHCONTROL](../apps/web/src/domain/book-enrichment.ts) [ENRICHTOOLS](../packages/agent/src/tools/enrichment-tools.ts) | B05 |
 | <a id="LIB10"></a>LIB10 | 缺失封面/元数据后台补齐 | 实装 | **接通**：get_book_enrichment/retry_book_enrichment[双域]<br>[设计] 状态查询/受控重试 | **接通**：library 1.9 books.getEnrichment/retryEnrichment；events.observeEnrichment<br>[设计] 状态查询/受控重试 | 自动 catch-up；已开书复用；插件/Agent 受控重试 | 读不启动任务；重试需 library:write，Agent 仅明确意图/书内仅本书。共享队列后台单解析、同书合并/去重；queued/already-running 不冒充完成，completed/skipped/failed 与稳定错误分开。仅本地支持格式，不下载/调用模型；只补 unchecked 封面与缺失/文件名来源元数据，不强制重做 ready/none。元数据缺失是启发式，未找到更好信息可 skipped。当前进程最多 256 任务条目，淘汰旧终态，重启不保留；观察每 actor 64。受理后任务不随调用方取消撤销；提取失败不再提交 none，当前读到的自定义字段不覆盖。最终写入非跨设备 CAS，完整格式/并发原生验收仍待集中进行。 | [ENRICH](../apps/web/src/features/library/lib/book-enrichment.ts) [APP](../apps/web/src/App.tsx) [COREVENTS](../packages/core/src/events.ts) [ENRICHCONTROL](../apps/web/src/domain/book-enrichment.ts) [ENRICHQUEUE](../apps/web/src/features/library/lib/enrichment-queue.ts) [ENRICHTOOLS](../packages/agent/src/tools/enrichment-tools.ts) [LIB](../apps/web/src/domain/library.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | B08 |
@@ -410,9 +410,9 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：82 个。
-- Agent book：66 个。
-- Plugin ctx：171 个。
+- Agent global：84 个。
+- Agent book：67 个。
+- Plugin ctx：173 个。
 - Plugin returned interface：25 个。
 - Capability domains：6 个。
 - Capability contributions：14 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 171 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 173 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -456,6 +456,7 @@
 | `manage_sync` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_software_update` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_maintenance_settings` | [SYS15](#SYS15) [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `list_book_formats` | [LIB07](#LIB07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `pick_resource_files` | [SYS11](#SYS11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_book_resource` | [LIB08](#LIB08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_book_cover` | [LIB09](#LIB09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -463,6 +464,7 @@
 | `read_resource_text` | [SYS13](#SYS13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `save_resource` | [SYS10](#SYS10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `release_resource` | [SYS13](#SYS13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `inspect_resource_book` | [LIB07](#LIB07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `import_resource_book` | [LIB06](#LIB06) [SYS11](#SYS11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_book_enrichment` | [LIB09](#LIB09) [LIB10](#LIB10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `retry_book_enrichment` | [LIB10](#LIB10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -543,6 +545,7 @@
 | `manage_sync` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_software_update` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_maintenance_settings` | [SYS15](#SYS15) [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `list_book_formats` | [LIB07](#LIB07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `pick_resource_files` | [SYS11](#SYS11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_book_resource` | [LIB08](#LIB08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_book_cover` | [LIB09](#LIB09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -608,6 +611,7 @@
 | `domains.settings.commands.update` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.settings.events.subscribe` | [CFG10](#CFG10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.getNavigationToc` | [TXT02](#TXT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.library.queries.books.listFormats` | [LIB07](#LIB07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.listDuplicates` | [LIB11](#LIB11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.previewMerge` | [LIB11](#LIB11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.resolveId` | [LIB11](#LIB11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -623,6 +627,7 @@
 | `domains.library.queries.books.get` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.getToc` | [TXT01](#TXT01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.getChapterText` | [TXT03](#TXT03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.library.queries.books.inspectResource` | [LIB07](#LIB07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.collections.list` | [LIB15](#LIB15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.collections.booksIn` | [LIB15](#LIB15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.events.subscribe` | [CON07](#CON07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

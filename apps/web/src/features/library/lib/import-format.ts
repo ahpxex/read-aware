@@ -1,4 +1,5 @@
 import type { TFunction } from "i18next";
+import { AppError, BOOK_IMPORT_FORMATS } from "@read-aware/core";
 import { invoke } from "../../../platform/ipc";
 import { isTauri } from "../../../platform/environment";
 import { createLogger } from "../../../platform/logger";
@@ -22,30 +23,8 @@ export function sourceFileInfo(source: BookImportSource): {
 /** Format from the file name / MIME type alone; null when neither says. */
 export function formatFromName(name: string, type = ""): BookFormat | null {
   const lower = name.toLowerCase();
-  if (lower.endsWith(".epub") || type === "application/epub+zip") return "epub";
-  if (lower.endsWith(".pdf") || type === "application/pdf") return "pdf";
-  if (lower.endsWith(".mobi") || lower.endsWith(".prc")) return "mobi";
-  if (lower.endsWith(".azw3") || lower.endsWith(".azw") || lower.endsWith(".kf8")) return "azw3";
-  if (
-    lower.endsWith(".fb2") ||
-    lower.endsWith(".fb2.zip") ||
-    lower.endsWith(".fbz") ||
-    type === "application/x-fictionbook+xml"
-  ) {
-    return "fb2";
-  }
-  if (lower.endsWith(".cbz") || type === "application/vnd.comicbook+zip") return "cbz";
-  if (lower.endsWith(".cbr") || type === "application/vnd.comicbook-rar") return "cbr";
-  if (lower.endsWith(".txt") || lower.endsWith(".text") || type === "text/plain") return "txt";
-  if (
-    lower.endsWith(".html") ||
-    lower.endsWith(".htm") ||
-    lower.endsWith(".xhtml") ||
-    type === "text/html"
-  ) {
-    return "html";
-  }
-  return null;
+  return BOOK_IMPORT_FORMATS.find(entry =>
+    entry.extensions.some(extension => lower.endsWith("." + extension)) || entry.mimeTypes.includes(type))?.format ?? null;
 }
 
 /**
@@ -90,5 +69,5 @@ export async function detectBookFormat(
   if (named) return named;
   const sniffed = await sniffSource(source, info.name);
   if (sniffed) return sniffed;
-  throw new Error(t("errors.unsupportedFormat", { name: info.name }));
+  throw new AppError("book/unsupported-format", t("errors.unsupportedFormat", { name: info.name }));
 }

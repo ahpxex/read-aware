@@ -4021,7 +4021,43 @@ without partial changes. Global reading changes preserve existing book overrides
 the tool returns override metadata. Delete removes the preset, not host settings.
 It neither changes AI privacy nor accesses credentials or plugin lifecycle.
 
-### Keyboard shortcut settings
+### Workspace Profiles Font Composition
+
+[代码] Workspace Profiles 0.4 uses existing Settings 1.8 options and Views 1.5
+pagination. It adds exact read/write grants for `reading.fontFamily`,
+`appearance.contentTypography.fontFamily` and
+`appearance.contentTypography.followReader`, not wildcard settings access.
+New v2 preset documents capture all ten paths in one global snapshot and apply
+one existing atomic update. V1 documents retain their exact seven-field behavior,
+remain listable, applicable and deletable and never acquire invented
+font values; no storage rewrite or schema migration is performed. Invalid version,
+missing/duplicate/foreign paths and nonglobal targets reject before applying.
+
+The Fonts action shows current global reading and independent content fonts.
+Catalog search calls host `options`, with a 120-character search and 40 options
+per page; it is not a filter over only the visible page. Forward/back paging keeps
+exact returned offsets and the catalog revision. Refresh starts at zero; changed
+catalogs reject rather than silently mixing pages. Catalog errors propagate, not
+an empty-list fallback. Read-only paths omit mutation controls.
+
+Selecting an option first opens a preview; Apply sends its actual value, including
+null for the app default, never a label guessed to be a font identifier. Choosing
+an independent content font atomically writes that font and `followReader=false`;
+the separate toggle can restore following global reader typography. Reading font
+selection changes only the global font, preserving book overrides. Completion is
+the settings write receipt, not font download/paint completion; subsequent Refresh
+is independent. The existing current-workspace observer now includes ten values.
+The existing dual-scope Agent preset tool supports v1/v2 without a new tool/API.
+
+[验证] 16 plugin tests / 61 assertions, plugin build/typecheck and formal manifest
+validation pass, including compiled command callbacks, exact pagination/search,
+null/global writes, follow toggle, rejected writes and v1 compatibility. Tests use
+a controlled Bun context, not native font enumeration or SQLite/Worker proof.
+Actual installed fonts, visual font application, upgrade grants, preset restart
+and Agent composition remain concentrated desktop acceptance. New labels retain
+the existing Chinese/English fallback policy; document visual checks are deferred.
+
+### Keyboard Shortcut Settings
 
 [代码] Settings 1.4 adds the `shortcuts` section: all 16 built-in editable
 bindings, currently registered plugin commands and retained overrides of

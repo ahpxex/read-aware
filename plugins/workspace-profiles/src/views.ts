@@ -3,6 +3,7 @@ import { applyProfile, deleteProfile, listProfiles, profileName, readProfile, sa
 import { copy, settingLabel } from "./strings";
 import { shortcutView } from "./shortcut";
 import { currentWorkspaceView } from "./current";
+import { fontsView } from "./fonts";
 
 function saveView(ctx: PluginContext): PluginFormView {
   const t = copy(ctx.locale);
@@ -32,6 +33,7 @@ export async function profilesView(ctx: PluginContext): Promise<PluginView> {
   return { kind: "list", title: t.title, emptyText: t.empty, actions: [
     { id: "save", label: t.save, icon: "plus", run: () => ({ view: saveView(ctx) }) },
     { id: "current", label: t.current, icon: "rows", run: async () => ({ view: await currentWorkspaceView(ctx) }) },
+    { id: "fonts", label: t.fonts, icon: "text-aa", run: async () => ({ view: await fontsView(ctx) }) },
     { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await profilesView(ctx), navigation: "replace" }) },
     { id: "shortcut", label: t.shortcut, icon: "rows", run: async () => ({ view: await shortcutView(ctx) }) },
   ], items: profiles.map(doc => ({ id: doc.id, title: doc.data.name, timestamp: doc.updatedAt, icon: "cards",

@@ -1,5 +1,6 @@
 // src/profiles.ts
-var PROFILE_PATHS = ["shelf.layout", "shelf.group", "shelf.sort", "appearance.theme", "appearance.motion", "reading.fontSize", "reading.lineSpacing"];
+var LEGACY_PROFILE_PATHS = ["shelf.layout", "shelf.group", "shelf.sort", "appearance.theme", "appearance.motion", "reading.fontSize", "reading.lineSpacing"];
+var PROFILE_PATHS = [...LEGACY_PROFILE_PATHS, "reading.fontFamily", "appearance.contentTypography.fontFamily", "appearance.contentTypography.followReader"];
 var collection = (ctx) => ctx.services.storage.collection("profiles");
 function profileName(name) {
   if (typeof name !== "string" || !name.trim() || name.trim().length > 80)
@@ -19,7 +20,7 @@ async function saveProfile(ctx, name) {
     return { path, value: setting.value, target: { kind: "global" } };
   });
   const id = crypto.randomUUID();
-  await collection(ctx).put(id, { version: 1, name: cleanName, changes });
+  await collection(ctx).put(id, { version: 2, name: cleanName, changes });
   return { id, name: cleanName };
 }
 async function readProfile(ctx, id) {
@@ -27,7 +28,8 @@ async function readProfile(ctx, id) {
   if (!doc)
     throw Error("Workspace profile no longer exists");
   const profile = doc.data;
-  if (profile?.version !== 1 || !Array.isArray(profile.changes) || profile.changes.length !== PROFILE_PATHS.length || new Set(profile.changes.map((change) => change.path)).size !== PROFILE_PATHS.length || profile.changes.some((change) => !PROFILE_PATHS.some((path) => path === change.path) || change.target?.kind !== "global")) {
+  const paths = profile?.version === 1 ? LEGACY_PROFILE_PATHS : PROFILE_PATHS;
+  if (!profile || ![1, 2].includes(profile.version) || !Array.isArray(profile.changes) || profile.changes.length !== paths.length || profile.changes.some((change) => !change || typeof change !== "object" || !paths.includes(change.path) || change.target?.kind !== "global") || new Set(profile.changes.map((change) => change.path)).size !== paths.length) {
     throw Error("Invalid workspace profile");
   }
   profileName(profile.name);
@@ -62,7 +64,21 @@ var en = {
   customBinding: "Custom",
   key: "Key",
   shortcutSaved: "Shortcut updated",
-  current: "Current workspace"
+  current: "Current workspace",
+  fonts: "Fonts",
+  appDefault: "App default",
+  follow: "Content follows reader typography",
+  search: "Search fonts",
+  query: "Font name",
+  invalidSearch: "Maximum 120 characters",
+  noFonts: "No matching fonts",
+  previous: "Previous",
+  next: "Next",
+  saveFonts: "Apply font",
+  fontSaved: "Font settings saved",
+  saveFollow: "Save",
+  yes: "On",
+  no: "Off"
 };
 var zh = {
   title: "工作区预设",
@@ -81,7 +97,21 @@ var zh = {
   customBinding: "自定义",
   key: "按键",
   shortcutSaved: "快捷键已更新",
-  current: "当前工作区"
+  current: "当前工作区",
+  fonts: "字体",
+  appDefault: "应用默认",
+  follow: "应用内容跟随阅读排版",
+  search: "搜索字体",
+  query: "字体名称",
+  invalidSearch: "最多 120 个字符",
+  noFonts: "没有匹配的字体",
+  previous: "上一页",
+  next: "下一页",
+  saveFonts: "应用字体",
+  fontSaved: "字体设置已保存",
+  saveFollow: "保存",
+  yes: "开启",
+  no: "关闭"
 };
 var copy = (locale) => locale.startsWith("zh") ? zh : en;
 var labels = {
@@ -91,7 +121,10 @@ var labels = {
   "appearance.theme": ["App theme", "应用主题"],
   "appearance.motion": ["Motion", "动画"],
   "reading.fontSize": ["Global reading font size", "全局阅读字号"],
-  "reading.lineSpacing": ["Global reading line spacing", "全局阅读行距"]
+  "reading.lineSpacing": ["Global reading line spacing", "全局阅读行距"],
+  "reading.fontFamily": ["Global reading font", "全局阅读字体"],
+  "appearance.contentTypography.fontFamily": ["Independent content font", "独立应用内容字体"],
+  "appearance.contentTypography.followReader": ["Content follows reader typography", "应用内容跟随阅读排版"]
 };
 var settingLabel = (locale, path) => labels[path]?.[locale.startsWith("zh") ? 1 : 0] ?? path;
 
@@ -145,6 +178,98 @@ async function currentWorkspaceView(ctx) {
   }) } };
 }
 
+// src/fonts.ts
+var FONT_PATHS = ["reading.fontFamily", "appearance.contentTypography.fontFamily"];
+var followPath = "appearance.contentTypography.followReader";
+var target = { kind: "global" };
+function saved(ctx) {
+  const t = copy(ctx.locale);
+  return {
+    kind: "detail",
+    title: t.fonts,
+    content: [{ kind: "text", text: t.fontSaved }],
+    actions: [{ id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await fontsView(ctx), navigation: "replace" }) }]
+  };
+}
+async function fontsView(ctx) {
+  const t = copy(ctx.locale), snapshot = await ctx.domains.settings.queries.snapshot({ target });
+  const follow = snapshot.settings.find((s) => s.path === followPath);
+  return { kind: "list", title: t.fonts, items: FONT_PATHS.map((path) => {
+    const setting = snapshot.settings.find((s) => s.path === path);
+    if (!setting)
+      throw Object.assign(Error("Font setting unavailable"), { code: "settings/options-forbidden" });
+    return {
+      id: path,
+      title: settingLabel(ctx.locale, path),
+      subtitle: setting.value === null ? t.appDefault : String(setting.value),
+      icon: "text-aa",
+      ...setting.writable && (path !== FONT_PATHS[1] || follow?.writable) ? { onSelect: async () => ({ view: await fontCatalog(ctx, path) }) } : {}
+    };
+  }), actions: [
+    { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await fontsView(ctx), navigation: "replace" }) },
+    ...follow?.writable ? [{ id: "follow", label: t.follow, icon: "text-aa", run: () => ({ view: {
+      kind: "form",
+      title: t.fonts,
+      submitLabel: t.saveFollow,
+      fields: [{ id: "follow", kind: "toggle", label: t.follow, value: follow.value === true }],
+      onSubmit: async (values) => {
+        if (typeof values.follow !== "boolean")
+          return { fieldErrors: { follow: t.invalid } };
+        await ctx.domains.settings.commands.update([{ path: followPath, value: values.follow, target }]);
+        return { view: saved(ctx), navigation: "replace" };
+      }
+    } }) }] : []
+  ] };
+}
+async function fontCatalog(ctx, path, search = "", offsets = [0], revision) {
+  const t = copy(ctx.locale);
+  const page = await ctx.domains.settings.queries.options({ path, target, search, offset: offsets[offsets.length - 1], limit: 40, revision });
+  const go = async (next) => ({ view: await fontCatalog(ctx, path, search, next, page.revision), navigation: "replace" });
+  return {
+    kind: "list",
+    title: settingLabel(ctx.locale, path),
+    emptyText: t.noFonts,
+    items: page.options.map((option, index) => ({
+      id: String(page.offset + index),
+      title: option.label,
+      icon: "text-aa",
+      onSelect: () => ({ view: {
+        kind: "detail",
+        title: option.label,
+        content: [{ kind: "text", text: settingLabel(ctx.locale, path) }],
+        actions: [
+          { id: "apply", label: t.saveFonts, icon: "check", run: async () => {
+            await ctx.domains.settings.commands.update([
+              { path, value: option.value, target },
+              ...path === FONT_PATHS[1] ? [{ path: followPath, value: false, target }] : []
+            ]);
+            return { view: saved(ctx), navigation: "replace" };
+          } }
+        ]
+      } })
+    })),
+    actions: [
+      { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await fontCatalog(ctx, path, search), navigation: "replace" }) },
+      { id: "search", label: t.search, icon: "magnifying-glass", run: () => ({ view: {
+        kind: "form",
+        title: t.search,
+        submitLabel: t.search,
+        fields: [{ id: "query", kind: "text", label: t.query, value: search }],
+        onSubmit: async (values) => {
+          if (typeof values.query !== "string" || values.query.length > 120)
+            return { fieldErrors: { query: t.invalidSearch } };
+          return { view: await fontCatalog(ctx, path, values.query.trim()) };
+        }
+      } }) }
+    ],
+    pagination: {
+      page: offsets.length,
+      ...offsets.length > 1 ? { onPrevious: () => go(offsets.slice(0, -1)) } : {},
+      ...page.nextOffset === null ? {} : { onNext: () => go([...offsets, page.nextOffset]) }
+    }
+  };
+}
+
 // src/views.ts
 function saveView(ctx) {
   const t = copy(ctx.locale);
@@ -189,6 +314,7 @@ async function profilesView(ctx) {
   return { kind: "list", title: t.title, emptyText: t.empty, actions: [
     { id: "save", label: t.save, icon: "plus", run: () => ({ view: saveView(ctx) }) },
     { id: "current", label: t.current, icon: "rows", run: async () => ({ view: await currentWorkspaceView(ctx) }) },
+    { id: "fonts", label: t.fonts, icon: "text-aa", run: async () => ({ view: await fontsView(ctx) }) },
     { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await profilesView(ctx), navigation: "replace" }) },
     { id: "shortcut", label: t.shortcut, icon: "rows", run: async () => ({ view: await shortcutView(ctx) }) }
   ], items: profiles.map((doc) => ({
@@ -212,7 +338,7 @@ var src_default = {
       name: "workspace_profiles",
       label: title,
       contexts: ["global", "book"],
-      description: "List, save the current workspace as a named preset, apply an existing preset, or delete a preset. Only save/apply/delete when explicitly requested. List first to get the exact ID. Applies device-local shelf layout/group/sort, app theme/motion, and global reading font size/spacing; book overrides are preserved. Never changes books, current selection, AI privacy, credentials or plugin lifecycle.",
+      description: "List, save the current workspace as a named preset, apply an existing preset, or delete a preset. Only save/apply/delete when explicitly requested. List first to get the exact ID. Applies device-local shelf layout/group/sort, app theme/motion, and global reading font size/spacing. Version 2 also captures reader font, independent content font and content-follow-reader typography; version 1 leaves those unchanged. Book overrides are preserved. Never changes books, current selection, AI privacy, credentials or plugin lifecycle.",
       parameters: { type: "object", properties: { operation: { type: "string", enum: ["list", "save", "apply", "delete"] }, id: { type: "string" }, name: { type: "string" } }, required: ["operation"], additionalProperties: false },
       execute: async (params) => {
         let result;

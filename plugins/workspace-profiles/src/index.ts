@@ -10,7 +10,7 @@ export default {
     ctx.contributions.headerActions.register({ id: "profiles", title, icon: "cards", surface: "shelf", presentation: "popup", view: () => profilesView(ctx) });
     ctx.contributions.commands.register({ id: "open", title, icon: "cards", run: async () => ({ view: await profilesView(ctx) }) });
     ctx.contributions.agentTools.register({ name: "workspace_profiles", label: title, contexts: ["global", "book"],
-      description: "List, save the current workspace as a named preset, apply an existing preset, or delete a preset. Only save/apply/delete when explicitly requested. List first to get the exact ID. Applies device-local shelf layout/group/sort, app theme/motion, and global reading font size/spacing; book overrides are preserved. Never changes books, current selection, AI privacy, credentials or plugin lifecycle.",
+      description: "List, save the current workspace as a named preset, apply an existing preset, or delete a preset. Only save/apply/delete when explicitly requested. List first to get the exact ID. Applies device-local shelf layout/group/sort, app theme/motion, and global reading font size/spacing. Version 2 also captures reader font, independent content font and content-follow-reader typography; version 1 leaves those unchanged. Book overrides are preserved. Never changes books, current selection, AI privacy, credentials or plugin lifecycle.",
       parameters: { type: "object", properties: { operation: { type: "string", enum: ["list", "save", "apply", "delete"] }, id: { type: "string" }, name: { type: "string" } }, required: ["operation"], additionalProperties: false },
       execute: async params => {
         let result: unknown;

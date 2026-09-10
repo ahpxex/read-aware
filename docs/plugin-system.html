@@ -368,7 +368,7 @@
           <p>Settings 1.2 沿用单次更新的 SQLite 原子提交与双端持久回执，快照按授权过滤；失败回滚且不发成功事件。新增九项真实偏好：阅读对齐、固定版式配色、更新说明提示、内容字体四字段、默认标注色和更新通道。内容字体可跟随全局阅读设置或独立配置；默认色只影响新标注，更新通道只影响下次检查且不漫游。macOS debug 已验实际字体、FB2 标注、PDF 画布、已打开的更新面板与失败回滚；更新后重启、跨平台与这九项的打包验收仍未完成，完整带版本变更流也仍缺。</p>
           <details class="ep"><summary>Settings 1.3：书架偏好双端接通，Workspace Profiles 保存组合预设</summary><div class="ep-body">
             <p>布局、分组、排序进入同一设置域，真实书架跟随更新和失败回滚。插件 snapshot 等待此前命令与本地写入结算，按权限一次读取；这不是跨后续修改的事务或版本锁。</p>
-            <p>Workspace Profiles 组合七项设备本地偏好、私有文档、书架菜单与双域 Agent 工具，实现保存、应用、删除。应用一次原子提交，保留本书阅读覆盖；过期主题选项失败不部分应用。没有改变隐私、凭证、当前筛选或选择集。</p>
+            <p>Workspace Profiles 0.4 新预设保存十项本机偏好，加入阅读字体、独立内容字体与跟随开关；旧七项预设原样可用。应用一次原子提交，保留本书覆盖；不改隐私、凭证或选择集。字体新路径只有基础验证，不沿用旧桌面证据宣称通过。</p>
             <p>隔离 macOS debug 已验工具、编译 Worker 与菜单/表单；并发、权限和失败写由聚焦测试覆盖。未验真实模型、安装审批、重启、打包及跨平台；开发重建曾触发模块加载失败后恢复，截图含诊断提示，不宣称启动无错误。<a href="./evidence/workspace-profiles-2026-09-09.json">验证边界</a>。</p>
           </div></details>
           <details class="ep"><summary>Settings 1.9：模型能力查询和目录刷新已接双端</summary><div class="ep-body">
@@ -379,7 +379,7 @@
           <details class="ep" data-search-section="font system options 字体 系统 选项 分页"><summary>Settings 1.8：插件和 Agent 可搜索本机字体，不再猜名字</summary><div class="ep-body">
             <p>按设置路径查询选项，阅读/内容字体包含预设、插件与本机系统字体；返回值可直接交给原有设置命令。仅授予发现权限时不泄露当前值、字体文件或目录，也不触发下载。</p>
             <p>宿主每页默认25、最多100项，Agent默认20、最多50；后续页保留revision，目录变化须重查。系统枚举与原生选择器共用会话缓存，失败显示错误和重试，不当作没有字体；安装/删除OS字体后需重启。</p>
-            <p>类型与双端基础检查已过；选择后的加载沿用宿主，不新增预加载或渲染完成承诺。真实系统枚举、字体效果与Tauri组合待集中验收。</p>
+            <p>Workspace Profiles 0.4 已组合目录搜索、40项分页、选中预览与应用；独立字体连同关闭跟随一次保存，可单独恢复跟随。16项插件测试、构建/类型与清单验证通过；真实字体效果、升级授权及Tauri组合待集中验收，不新增宿主 API。<a href="./plugin-system.md#workspace-profiles-font-composition">组合边界</a></p>
           </div></details>
           <details class="ep" data-search-section="resetReading defaults inherit 重置 默认 来源 覆盖"><summary>Settings 1.7：恢复阅读默认与重新跟随全局是不同操作</summary><div class="ep-body">
             <p>两端已接整套阅读偏好重置，并可查询全局/本书来源、活动/停用覆盖和内置默认。恢复本书默认会保留一套本书覆盖；inherit 则删除覆盖，今后随全局变化。all-books 可明确清除全部覆盖，不影响其他领域或阅读位置。</p>
@@ -387,7 +387,7 @@
           </div></details>
           <details class="ep" data-search-section="settings observation 设置观察"><summary>Settings 1.6：原生、Agent、插件、同步覆盖与恢复共用已提交快照</summary><div class="ep-body">
             <p>queries.observe 按授权观察实际提交值和目录变化；Agent 读取同一进程内 revision。失败写不广播成功，慢消费者合并最新值；来源区分本地、远端、恢复、目录和混合。旧原生调用者无法归因时明确为 null，不冒充用户操作。</p>
-            <p>读取等待 KV 与凭据写成功或回滚，凭据只暴露已配置状态。Workspace Profiles 0.3 的当前工作区直接订阅七项预设值，错误保留旧样本，离开退订。</p>
+            <p>读取等待 KV 与凭据写成功或回滚，凭据只暴露已配置状态。Workspace Profiles 0.4 的当前工作区订阅十项预设值，错误保留旧样本，离开退订；新增字体路径的真实组合验收后置。</p>
             <p>隔离 macOS debug 已验真实设置点击、双端权限、来源/目录变化、编译插件实时刷新、SQLite 拒绝和恢复。凭据现仅在本地持久成功后封装发布，远端覆盖成功后通知且不回发；原生加密存储故障已验证。旧事件、完整来源审计、全部草稿/效果、凭据持久 outbox、真实网络、打包和跨平台仍缺。<a href="./plugin-system.md#settled-settings-observation">完整契约</a> · <a href="./evidence/credential-roaming-2026-09-10.json">凭据边界</a>。</p>
           </div></details>
           <details class="ep"><summary>Settings 1.5：快捷键双端接通，冲突统一暂停而非抢先执行</summary><div class="ep-body">

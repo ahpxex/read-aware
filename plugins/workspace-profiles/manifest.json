@@ -1,14 +1,14 @@
 {
-  "id": "workspace-profiles", "name": "Workspace Profiles", "version": "0.3.0", "schemaVersion": 1,
+  "id": "workspace-profiles", "name": "Workspace Profiles", "version": "0.4.0", "schemaVersion": 1,
   "minAppVersion": "0.3.0", "description": "Named shelf, app appearance and global reading presets.",
   "author": "ReadAware", "main": "main.js", "permissions": ["agent:tools"],
   "settingsAccess": {
-    "read": ["shelf.layout", "shelf.group", "shelf.sort", "appearance.theme", "appearance.motion", "reading.fontSize", "reading.lineSpacing", "shortcuts.plugin.workspace-profiles%3Aopen"],
-    "write": ["shelf.layout", "shelf.group", "shelf.sort", "appearance.theme", "appearance.motion", "reading.fontSize", "reading.lineSpacing", "shortcuts.plugin.workspace-profiles%3Aopen"]
+    "read": ["shelf.layout", "shelf.group", "shelf.sort", "appearance.theme", "appearance.motion", "reading.fontSize", "reading.lineSpacing", "shortcuts.plugin.workspace-profiles%3Aopen", "reading.fontFamily", "appearance.contentTypography.fontFamily", "appearance.contentTypography.followReader"],
+    "write": ["shelf.layout", "shelf.group", "shelf.sort", "appearance.theme", "appearance.motion", "reading.fontSize", "reading.lineSpacing", "shortcuts.plugin.workspace-profiles%3Aopen", "reading.fontFamily", "appearance.contentTypography.fontFamily", "appearance.contentTypography.followReader"]
   },
   "requires": {
-    "domains": { "settings": "^1.6.0" },
+    "domains": { "settings": "^1.8.0" },
     "contributions": { "headerActions": "^1.0.0", "commands": "^1.0.0", "agentTools": "^1.0.0" },
-    "services": { "storage": "^2.0.0", "ui": "^1.2.0" }, "schemas": { "views": "^1.1.0" }
+    "services": { "storage": "^2.0.0", "ui": "^1.2.0" }, "schemas": { "views": "^1.5.0" }
   }
 }

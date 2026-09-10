@@ -1,5 +1,7 @@
-export type Operation = "connection" | "backupExport" | "backupImport" | "reportExport" | "reportSend" | "verify";
-export type Outcome = { status: "responded" | "emptyResponse" | "exported" | "imported" | "sent" | "cancelled" | "consistent" | "drifted";
+export type Operation = "connection" | "backupExport" | "backupImport" | "reportExport" | "reportSend" | "verify"
+  | "syncNow" | "syncConnect" | "syncDisconnect" | "syncDelete" | "syncUpgrade" | "syncBilling";
+export type Outcome = { status: "responded" | "emptyResponse" | "exported" | "imported" | "sent" | "cancelled" | "consistent" | "drifted"
+  | "syncCycleCompleted" | "syncAlreadyRunning" | "syncFlowCompleted" | "syncExternalOpened";
   counts?: { events: number; tables: number; liveRows: number; replayRows: number } };
 export type Entry = { id: number; operation: Operation; timestamp: string;
   phase: "pending" | "cancelling" | "cancelled" | "complete" | "failed"; outcome?: Outcome; errorCode?: string };

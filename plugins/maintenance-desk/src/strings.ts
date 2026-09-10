@@ -1,5 +1,9 @@
 const en = {
   title: "Maintenance Desk", catalog: "Model catalog", provider: "Catalog provider", search: "Search models",
+  syncNow: "Synchronize now", syncConnect: "Connect synchronization", syncDisconnect: "Disconnect synchronization",
+  syncDelete: "Delete Relay account", syncUpgrade: "Choose a plan", syncBilling: "Manage billing",
+  syncCycleCompleted: "Synchronization request completed", syncAlreadyRunning: "A synchronization was already running",
+  syncFlowCompleted: "Native account operation completed", syncExternalOpened: "External page opened; account changes not verified",
   browse: "Browse", refresh: "Refresh from provider", reload: "Reload cached catalog", filters: "Change filters",
   empty: "No matching models", invalidSearch: "Use at most 120 characters.", invalidProvider: "Choose a catalog provider.",
   metadata: "Catalog status", checked: "Last checked", never: "Not checked", refreshing: "Refreshing", yes: "Yes", no: "No",
@@ -21,6 +25,10 @@ const en = {
 };
 const zh: typeof en = {
   title: "维护工作台", catalog: "模型目录", provider: "目录提供者", search: "搜索模型",
+  syncNow: "立即同步", syncConnect: "连接同步", syncDisconnect: "断开同步",
+  syncDelete: "删除 Relay 账户", syncUpgrade: "选择套餐", syncBilling: "管理账单",
+  syncCycleCompleted: "同步请求已完成", syncAlreadyRunning: "已有同步正在运行",
+  syncFlowCompleted: "原生账户操作已完成", syncExternalOpened: "已打开外部页面；未验证账户变更",
   browse: "查看", refresh: "从提供者刷新", reload: "重新读取缓存目录", filters: "修改筛选",
   empty: "没有匹配的模型", invalidSearch: "最多输入 120 个字符。", invalidProvider: "请选择目录提供者。",
   metadata: "目录状态", checked: "上次检查", never: "尚未检查", refreshing: "正在刷新", yes: "是", no: "否",

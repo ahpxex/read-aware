@@ -5329,16 +5329,53 @@ execution; composition/Tauri acceptance remains pending.
 
 ### Maintenance Desk Composition Plugin
 
-[代码] `plugins/maintenance-desk` 0.2.0 consumes public plugin APIs only. It
+[代码] `plugins/maintenance-desk` 0.3.0 consumes public plugin APIs only. It
 adds a shelf header popup and command, not a host domain or Agent tool. Its
 manifest requires settings 1.9, maintenance 1.3, diagnostics 1.1, UI 1.2,
-logging 1.0, plugins 1.1 and views 1.8; grants are `service:network`, `service:diagnostics`
+logging 1.0, plugins 1.1, sync 1.1 and views 1.8; grants are `service:network`, `service:diagnostics`, `service:sync`
 and discover-only `ai.connection.primaryModel`. No current configuration,
 credentials, book data, backup bytes, paths or diagnostic bundle is read.
 The source roster is fifteen; Rust BUNDLED remains six. Maintenance Desk is not
 in that release roster or published. Debug `RepoDist` discovers all built checkout
 plugins as builtin, including this one; that is not a normal user installation.
 
+- Version 0.3 composes all existing sync service entrypoints without host/Agent
+  API changes. Snapshot/observe read local status, backend kind, connection-busy,
+  last-sync timestamp, phase/counts, cycle-start backlog, last-cycle totals and
+  remaining history. Current backlog is a separate explicit read, not a reuse
+  of cycle-start counts. Progress is indeterminate, not an invented percentage.
+  Failed reads reject to the host error surface. Observation retires with the
+  view or activation; query results are not durable sync receipts.
+- Synchronize now has an explicit review before `requestSync`; the shared
+  journal records completed versus already-running. Cancelling this wait cannot
+  stop the shared synchronization, and its pending slot remains until the
+  public call settles. Completion does not prove remote devices caught up or
+  projections are consistent. No follow-up read can erase a successful receipt.
+- `connectionOptions` adds registered ref/label choices after a default Relay
+  choice (omitted transportRef), paged locally in groups of 40 from one fetched
+  directory. Selection freezes the exact ref and label; refresh reloads the
+  directory. Native `requestFlow` handles connect/disconnect/delete-account/
+  upgrade/billing. Plugin review does not approve the native operation: it
+  starts an activation-owned wait with its own signal, closes the plugin popup,
+  and records completed/cancelled/external-opened in the existing 20-entry
+  journal. External-opened is not purchase or billing-change success. Delete
+  review names remote account/data deletion and retention of local books;
+  final identity, credentials, passphrase and deletion confirmation stay native.
+- `account` is only requested by an explicit online-read action for a connected
+  Relay account. It displays tier, three usage counters and four limits; null
+  limits mean unlimited, zero remains zero. A null account is unavailable,
+  not a failed read or zero usage. Billing is offered only when hasBilling;
+  native checks still control eligibility. `openSettings` closes the plugin
+  after opened and never automatically logs in or purchases. Account/backlog
+  views use explicit refresh and do not poll remote services. Supported/busy/
+  connection state gates actions, while the host revalidates at execution.
+- [验证] Version 0.3: 30 plugin tests / 178 assertions, build, typecheck and
+  formal manifest validation pass. Compiled command, all five native flow
+  requests, synchronization receipts, cancellation, observation retirement,
+  quota values and failed reads are exercised with controlled Bun contexts.
+  No real login, deletion, purchase, remote account read or synchronization was
+  executed. Upgrade grant consent, Worker/Tauri, cross-device effects and document
+  visual checks remain for concentrated acceptance. No release roster change.
 - Version 0.2 adds installed metadata and registered contribution directories:
   `plugins.list/observe/contributions/observeContributions`, 40-row offset pages,
   host-side search up to 200 characters, all contributions or exact plugin ID.

@@ -5,13 +5,15 @@ import { copy } from "./strings";
 import { adminCopy } from "./admin-strings";
 import { pluginDirectory } from "./plugin-directory";
 import { updateViews } from "./updates";
+import { syncViews } from "./sync";
 
 export function maintenanceDesk(ctx: PluginContext) {
   const t = copy(ctx.locale), operations = new Operations(), lifetime = new AbortController();
   const catalog = catalogViews(ctx, lifetime.signal);
   const admin = adminCopy(ctx.locale), directory = pluginDirectory(ctx, lifetime.signal), updates = updateViews(ctx, lifetime.signal);
-  const actions: Operation[] = ["connection", "backupExport", "backupImport", "reportExport", "reportSend", "verify"];
-  const run = async (operation: Operation, signal: AbortSignal): Promise<Outcome> => {
+  const actions = ["connection", "backupExport", "backupImport", "reportExport", "reportSend", "verify"] as const satisfies readonly Operation[];
+  type ReviewOperation = typeof actions[number];
+  const run = async (operation: ReviewOperation, signal: AbortSignal): Promise<Outcome> => {
     const options = { signal };
     if (operation === "connection") {
       const result = await ctx.services.maintenance.requestConnectionTest(options);
@@ -31,7 +33,7 @@ export function maintenanceDesk(ctx: PluginContext) {
     } };
   };
   const status = (entry: Entry) => entry.outcome ? t[entry.outcome.status] : t[entry.phase];
-  const review = (operation: Operation): PluginView => ({
+  const review = (operation: ReviewOperation): PluginView => ({
     kind: "detail", title: t[operation], content: [
       { kind: "text", text: operation === "connection" ? t.connectionReview : operation === "verify" ? t.verifyReview
         : operation.startsWith("backup") ? t.backupReview : t.reportReview },
@@ -80,12 +82,14 @@ export function maintenanceDesk(ctx: PluginContext) {
       return { dispose() { subscription.dispose(); if (channel?.id === next.id) channel = undefined; } };
     } } };
   };
+  const sync = syncViews(ctx, lifetime.signal, operations, history);
   const home = (): PluginView => ({
     kind: "list", title: t.title,
     items: [
       { id: "catalog", title: t.catalog, icon: "list-bullets", onSelect: () => ({ view: catalog.form() }) },
       { id: "plugins", title: admin.plugins, icon: "list-bullets", onSelect: async () => ({ view: await directory.page() }) },
       { id: "updates", title: admin.updates, icon: "arrows-clockwise", onSelect: async () => ({ view: await updates.open() }) },
+      { id: "sync", title: sync.title, icon: "arrows-clockwise", onSelect: async () => ({ view: await sync.open() }) },
       ...actions.map(operation => ({ id: operation, title: t[operation], icon: operation === "verify" ? "database" : "arrow-square-out",
         onSelect: () => ({ view: review(operation) }),
       })),

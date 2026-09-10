@@ -4,6 +4,16 @@ var en = {
   catalog: "Model catalog",
   provider: "Catalog provider",
   search: "Search models",
+  syncNow: "Synchronize now",
+  syncConnect: "Connect synchronization",
+  syncDisconnect: "Disconnect synchronization",
+  syncDelete: "Delete Relay account",
+  syncUpgrade: "Choose a plan",
+  syncBilling: "Manage billing",
+  syncCycleCompleted: "Synchronization request completed",
+  syncAlreadyRunning: "A synchronization was already running",
+  syncFlowCompleted: "Native account operation completed",
+  syncExternalOpened: "External page opened; account changes not verified",
   browse: "Browse",
   refresh: "Refresh from provider",
   reload: "Reload cached catalog",
@@ -62,6 +72,16 @@ var zh = {
   catalog: "模型目录",
   provider: "目录提供者",
   search: "搜索模型",
+  syncNow: "立即同步",
+  syncConnect: "连接同步",
+  syncDisconnect: "断开同步",
+  syncDelete: "删除 Relay 账户",
+  syncUpgrade: "选择套餐",
+  syncBilling: "管理账单",
+  syncCycleCompleted: "同步请求已完成",
+  syncAlreadyRunning: "已有同步正在运行",
+  syncFlowCompleted: "原生账户操作已完成",
+  syncExternalOpened: "已打开外部页面；未验证账户变更",
   browse: "查看",
   refresh: "从提供者刷新",
   reload: "重新读取缓存目录",
@@ -579,6 +599,291 @@ function updateViews(ctx, signal) {
   return { open };
 }
 
+// src/sync-strings.ts
+var en3 = {
+  title: "Synchronization",
+  status: "Status",
+  unavailable: "Synchronization unavailable on this platform",
+  backend: "Backend",
+  relay: "ReadAware Relay",
+  transport: "Plugin transport",
+  none: "None",
+  unknown: "Unknown",
+  lastSync: "Last synchronization",
+  never: "Never",
+  managing: "Connection management",
+  yes: "In progress",
+  no: "Idle",
+  backlog: "Current local backlog",
+  events: "Events",
+  blobs: "Files",
+  cycleBacklog: "Backlog at cycle start",
+  lastCycle: "Last cycle",
+  pulled: "Events pulled",
+  pushed: "Events pushed",
+  verified: "Events verified",
+  backfilled: "History events backfilled",
+  remaining: "History events remaining",
+  blobsDone: "Files transferred",
+  blobsTotal: "Files in this cycle",
+  refresh: "Refresh",
+  settings: "Open sync settings",
+  account: "Read account usage (online)",
+  noAccount: "No connected Relay account",
+  tier: "Tier",
+  bytesUsed: "Stored file bytes",
+  eventsUsed: "Stored events",
+  creditsUsed: "AI credits used this month",
+  maxBlob: "Maximum bytes per file",
+  maxBytes: "Stored file byte limit",
+  maxEvents: "Stored event limit",
+  maxCredits: "Monthly AI credit limit",
+  unlimited: "Unlimited",
+  choose: "Connect synchronization",
+  continue: "Continue",
+  results: "Recent operations",
+  connectReview: "Continue to the native connection form. Identity, credentials and passphrase stay in the host.",
+  disconnectReview: "Disconnect this device from synchronization. Local books remain on this device. Confirm in the native settings.",
+  deleteReview: "Delete the connected Relay account and its remote data. Local books remain. The host requires your final confirmation; cancelling this wait cannot undo deletion already started.",
+  upgradeReview: "Open the host's plan selection. A browser handoff is not a completed purchase.",
+  billingReview: "Open the host's billing controls. A browser handoff is not confirmation that billing changed.",
+  syncReview: "Synchronize local changes using the configured connection. This can upload and download data. Cancelling the wait does not stop a shared synchronization or undo applied changes.",
+  states: { disabled: "Disabled", idle: "Idle", syncing: "Synchronizing", error: "Synchronization failed", unauthenticated: "Sign-in required" },
+  phases: {
+    bootstrap: "Restoring device",
+    pull: "Pulling events",
+    verify: "Verifying receipts",
+    push: "Pushing events",
+    blobs: "Transferring files",
+    backfill: "Backfilling history",
+    checkpoint: "Updating checkpoint"
+  }
+};
+var zh3 = {
+  title: "同步",
+  status: "状态",
+  unavailable: "此平台不支持同步",
+  backend: "后端",
+  relay: "ReadAware Relay",
+  transport: "插件传输",
+  none: "无",
+  unknown: "未知",
+  lastSync: "上次同步",
+  never: "从未同步",
+  managing: "连接管理",
+  yes: "正在处理",
+  no: "空闲",
+  backlog: "当前本地积压",
+  events: "事件",
+  blobs: "文件",
+  cycleBacklog: "本轮开始时的积压",
+  lastCycle: "上轮同步",
+  pulled: "拉取事件",
+  pushed: "推送事件",
+  verified: "已核验事件",
+  backfilled: "回填历史事件",
+  remaining: "剩余历史事件",
+  blobsDone: "已传输文件",
+  blobsTotal: "本轮文件总数",
+  refresh: "刷新",
+  settings: "打开同步设置",
+  account: "查询账户用量（联网）",
+  noAccount: "未连接 Relay 账户",
+  tier: "套餐",
+  bytesUsed: "已存文件字节",
+  eventsUsed: "已存事件",
+  creditsUsed: "本月已用 AI 点数",
+  maxBlob: "单文件字节上限",
+  maxBytes: "文件总字节上限",
+  maxEvents: "事件总数上限",
+  maxCredits: "每月 AI 点数上限",
+  unlimited: "不限",
+  choose: "连接同步",
+  continue: "继续",
+  results: "近期操作",
+  connectReview: "继续后打开原生连接表单。身份、凭据和口令均由宿主处理。",
+  disconnectReview: "断开此设备的同步连接，本机书籍仍保留。请在原生设置中确认。",
+  deleteReview: "删除所连接的 Relay 账户及其远端数据，本机书籍仍保留。宿主会要求最终确认；取消等待无法撤销已开始的删除。",
+  upgradeReview: "打开宿主套餐选择。跳转浏览器不代表购买完成。",
+  billingReview: "打开宿主账单管理。跳转浏览器不代表账单已变更。",
+  syncReview: "使用当前连接同步本地变更，可能上传和下载数据。取消等待不会停止共享同步，也不能撤销已应用的变更。",
+  states: { disabled: "已停用", idle: "空闲", syncing: "正在同步", error: "同步失败", unauthenticated: "需要登录" },
+  phases: {
+    bootstrap: "正在恢复设备",
+    pull: "正在拉取事件",
+    verify: "正在核验回执",
+    push: "正在推送事件",
+    blobs: "正在传输文件",
+    backfill: "正在回填历史",
+    checkpoint: "正在更新检查点"
+  }
+};
+var syncCopy = (locale) => locale.startsWith("zh") ? zh3 : en3;
+
+// src/sync.ts
+var flowOperations = {
+  connect: "syncConnect",
+  disconnect: "syncDisconnect",
+  "delete-account": "syncDelete",
+  upgrade: "syncUpgrade",
+  billing: "syncBilling"
+};
+function syncViews(ctx, signal, operations, history) {
+  const t = syncCopy(ctx.locale), common = copy(ctx.locale);
+  const service = () => {
+    signal.throwIfAborted();
+    if (!ctx.services.sync)
+      throw { code: "ui/unavailable" };
+    return ctx.services.sync;
+  };
+  const results = { id: "results", label: t.results, icon: "clock", run: () => ({ view: history() }) };
+  const settings = { id: "settings", label: t.settings, icon: "arrow-square-out", run: async () => {
+    await service().openSettings();
+    return { close: true };
+  } };
+  const requestReview = (request, label) => {
+    const operation = flowOperations[request.action];
+    const review = {
+      connect: t.connectReview,
+      disconnect: t.disconnectReview,
+      "delete-account": t.deleteReview,
+      upgrade: t.upgradeReview,
+      billing: t.billingReview
+    }[request.action];
+    return { kind: "detail", title: common[operation], content: [
+      ...label ? [{ kind: "keyValue", rows: [{ label: t.backend, value: label }] }] : [],
+      { kind: "text", text: review }
+    ], actions: [{
+      id: "continue",
+      label: t.continue,
+      icon: "arrow-right",
+      variant: request.action === "delete-account" ? "danger" : "solid",
+      run: () => {
+        const sync = service();
+        if (!operations.start(operation, async (waitSignal) => {
+          const receipt = await sync.requestFlow(request, { signal: waitSignal });
+          return { status: receipt.status === "completed" ? "syncFlowCompleted" : receipt.status === "external-opened" ? "syncExternalOpened" : "cancelled" };
+        }))
+          return { toast: common.busy };
+        return { close: true };
+      }
+    }] };
+  };
+  const connect = async () => {
+    const options = await service().connectionOptions();
+    signal.throwIfAborted();
+    const choices = [{ label: t.relay, request: { action: "connect" } }, ...options.map((option) => ({
+      label: option.label,
+      request: { action: "connect", transportRef: option.ref }
+    }))];
+    const page = (offset) => ({
+      kind: "list",
+      title: t.choose,
+      items: choices.slice(offset, offset + 40).map((choice, index) => ({
+        id: `backend-${offset + index}`,
+        title: choice.label,
+        onSelect: () => ({ view: requestReview(choice.request, choice.label) })
+      })),
+      pagination: {
+        page: Math.floor(offset / 40) + 1,
+        pageCount: Math.ceil(choices.length / 40),
+        ...offset > 0 ? { onPrevious: () => ({ view: page(offset - 40) }) } : {},
+        ...offset + 40 < choices.length ? { onNext: () => ({ view: page(offset + 40) }) } : {}
+      },
+      actions: [{ id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await connect(), navigation: "replace" }) }]
+    });
+    return page(0);
+  };
+  const flowAction = (action) => ({
+    id: action,
+    label: common[flowOperations[action]],
+    icon: action === "delete-account" ? "trash" : "arrow-square-out",
+    run: () => ({ view: requestReview({ action }) })
+  });
+  const account = async () => {
+    const value = await service().account();
+    signal.throwIfAborted();
+    const quota = (limit) => limit === null ? t.unlimited : String(limit);
+    return { kind: "detail", title: t.account, content: value ? [{ kind: "keyValue", rows: [
+      { label: t.tier, value: value.tier },
+      { label: t.bytesUsed, value: String(value.blobBytesUsed) },
+      { label: t.eventsUsed, value: String(value.eventsUsed) },
+      { label: t.creditsUsed, value: String(value.aiCreditsUsed) },
+      { label: t.maxBlob, value: quota(value.limits.maxBlobBytes) },
+      { label: t.maxBytes, value: quota(value.limits.maxAccountBlobBytes) },
+      { label: t.maxEvents, value: quota(value.limits.maxAccountEvents) },
+      { label: t.maxCredits, value: quota(value.limits.aiMonthlyCredits) }
+    ] }] : [{ kind: "text", text: t.noAccount }], actions: [
+      { id: "refresh", label: t.account, icon: "arrows-clockwise", run: async () => ({ view: await account(), navigation: "replace" }) },
+      ...value ? [flowAction("upgrade"), ...value.hasBilling ? [flowAction("billing")] : [], flowAction("delete-account")] : [],
+      settings
+    ] };
+  };
+  const backlog = async () => {
+    const value = await service().backlog();
+    signal.throwIfAborted();
+    return { kind: "detail", title: t.backlog, content: [{ kind: "keyValue", rows: [
+      { label: t.events, value: String(value.events) },
+      { label: t.blobs, value: String(value.blobs) }
+    ] }], actions: [{ id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await backlog(), navigation: "replace" }) }] };
+  };
+  const syncReview = () => ({
+    kind: "detail",
+    title: common.syncNow,
+    content: [{ kind: "text", text: t.syncReview }],
+    actions: [{ id: "continue", label: t.continue, icon: "arrows-clockwise", run: () => {
+      const sync = service();
+      if (!operations.start("syncNow", async () => {
+        const receipt = await sync.requestSync();
+        return { status: receipt.status === "completed" ? "syncCycleCompleted" : "syncAlreadyRunning" };
+      }))
+        return { toast: common.busy };
+      return { view: history(), navigation: "reset" };
+    } }]
+  });
+  const render = (snapshot) => {
+    const content = [
+      ...snapshot.lastErrorCode ? [{ kind: "error", code: snapshot.lastErrorCode }] : [],
+      { kind: "keyValue", rows: [
+        { label: t.status, value: snapshot.supported ? t.states[snapshot.state] : t.unavailable },
+        { label: t.backend, value: snapshot.backend ? t[snapshot.backend] : t.none },
+        { label: t.lastSync, value: snapshot.lastSyncAt === null ? t.never : new Date(snapshot.lastSyncAt).toISOString() },
+        { label: t.managing, value: snapshot.connectionBusy ? t.yes : t.no },
+        { label: t.remaining, value: String(snapshot.backfillRemaining) }
+      ] }
+    ];
+    if (snapshot.progress)
+      content.push({ kind: "progress", value: null, label: t.phases[snapshot.progress.phase] }, { kind: "keyValue", rows: ["pulled", "pushed", "verified", "backfilled", "blobsDone", "blobsTotal"].map((key) => ({ label: t[key], value: String(snapshot.progress[key]) })) });
+    if (snapshot.cycleStartBacklog)
+      content.push({ kind: "heading", text: t.cycleBacklog }, { kind: "keyValue", rows: [
+        { label: t.events, value: String(snapshot.cycleStartBacklog.events) },
+        { label: t.blobs, value: String(snapshot.cycleStartBacklog.blobs) }
+      ] });
+    if (snapshot.lastCycle)
+      content.push({ kind: "heading", text: t.lastCycle }, {
+        kind: "keyValue",
+        rows: ["pulled", "pushed", "blobs", "backfilled"].map((key) => ({ label: t[key], value: String(snapshot.lastCycle[key]) }))
+      });
+    const ready = snapshot.supported && !snapshot.connectionBusy;
+    return { kind: "detail", title: t.title, content, actions: [
+      ...ready && snapshot.connected && !["disabled", "unauthenticated", "syncing"].includes(snapshot.state) ? [{ id: "sync", label: common.syncNow, icon: "arrows-clockwise", run: () => ({ view: syncReview() }) }] : [],
+      ...ready && (!snapshot.connected || snapshot.state === "unauthenticated") ? [{ id: "connect", label: common.syncConnect, icon: "arrow-square-out", run: async () => ({ view: await connect() }) }] : [],
+      ...ready && snapshot.connected ? [flowAction("disconnect")] : [],
+      ...snapshot.supported ? [{ id: "backlog", label: t.backlog, icon: "database", run: async () => ({ view: await backlog() }) }] : [],
+      ...ready && snapshot.connected && snapshot.backend === "relay" && snapshot.state !== "unauthenticated" ? [{ id: "account", label: t.account, icon: "arrow-square-out", run: async () => ({ view: await account() }) }] : [],
+      { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await open(), navigation: "replace" }) },
+      settings,
+      results
+    ] };
+  };
+  const open = async () => {
+    const sync = service(), snapshot = await sync.snapshot();
+    signal.throwIfAborted();
+    return liveView(ctx, signal, snapshot, (handler) => sync.observe(handler), render);
+  };
+  return { open, title: t.title };
+}
+
 // src/views.ts
 function maintenanceDesk(ctx) {
   const t = copy(ctx.locale), operations = new Operations, lifetime = new AbortController;
@@ -680,6 +985,7 @@ function maintenanceDesk(ctx) {
       } };
     } } };
   };
+  const sync = syncViews(ctx, lifetime.signal, operations, history);
   const home = () => ({
     kind: "list",
     title: t.title,
@@ -687,6 +993,7 @@ function maintenanceDesk(ctx) {
       { id: "catalog", title: t.catalog, icon: "list-bullets", onSelect: () => ({ view: catalog.form() }) },
       { id: "plugins", title: admin.plugins, icon: "list-bullets", onSelect: async () => ({ view: await directory.page() }) },
       { id: "updates", title: admin.updates, icon: "arrows-clockwise", onSelect: async () => ({ view: await updates.open() }) },
+      { id: "sync", title: sync.title, icon: "arrows-clockwise", onSelect: async () => ({ view: await sync.open() }) },
       ...actions.map((operation) => ({
         id: operation,
         title: t[operation],

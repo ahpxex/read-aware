@@ -26,14 +26,19 @@ test("task strings cover all locales, start and rebuild require confirmation", a
 });
 test("task observation follows cancellation, errors clear actions, recovery and disposal stay scoped", async () => {
   const f = fixture(), view = await graphTaskView(f.ctx, "b", "task"), sub = await view.live!.subscribe({ id: "channel" });
-  await view.actions!.find(action => action.id === "cancel")!.run(); expect(f.task.status).toBe("cancelling");
+  const progress = (view as PluginDetailView).content.find(block => block.kind === "progress");
+  if (progress?.kind !== "progress" || !progress.cancel) throw new Error("Expected cancellable progress");
+  expect(progress.value).toBeNull();
+  await progress.cancel.run(); expect(f.task.status).toBe("cancelling");
   await f.emit({ revision: 1, status: "ready", result: { kind: "graphTask", task: f.task } });
   expect((f.updates[0]!.view as PluginDetailView).actions!.map(action => action.id)).toEqual(["refresh"]);
+  expect((f.updates[0]!.view as PluginDetailView).content[0]).toMatchObject({ kind: "progress", value: null, cancel: undefined });
   await f.emit({ revision: 2, status: "error", errorCode: "memory/task-not-found" });
   expect((f.updates[1]!.view as PluginDetailView).actions).toBeUndefined();
   f.task.status = "partial";
   await f.emit({ revision: 3, status: "ready", result: { kind: "graphTask", task: f.task } });
   const retry = (await (f.updates[2]!.view as PluginDetailView).actions!.find(action => action.id === "retry")!.run())!.view as PluginFormView;
+  expect((f.updates[2]!.view as PluginDetailView).content.some(block => block.kind === "progress")).toBe(false);
   expect(retry.fields[0]).toMatchObject({ value: 2 });
   await retry.onSubmit({ confirm: true, maxChapters: 3 }); expect(f.calls).toEqual([["b", "task", { maxChapters: 3 }]]);
   sub.dispose(); await f.emit({ revision: 4, status: "error", errorCode: "late" }); expect(f.updates).toHaveLength(3); expect(f.stopped()).toBe(true);

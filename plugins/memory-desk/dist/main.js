@@ -17,7 +17,7 @@ async function liveMemoryView(ctx, query, title, render) {
   const memory = ctx.domains.memory;
   let sample, failure;
   try {
-    sample = query.kind === "search" ? { kind: query.kind, memories: await memory.queries.search(query.query) } : query.kind === "inspect" ? { kind: query.kind, snapshot: await memory.queries.inspect(query.memoryId) } : query.kind === "classification" ? { kind: query.kind, snapshot: await memory.queries.classification(query.bookId) } : query.kind === "graphTasks" ? { kind: query.kind, tasks: await memory.queries.listGraphTasks(query.bookId) } : query.kind === "graphTask" ? { kind: query.kind, task: await memory.queries.getGraphTask(query.bookId, query.taskId) } : { kind: query.kind, graph: await memory.queries.bookGraph(query.bookId, query.query) };
+    sample = query.kind === "search" ? { kind: query.kind, memories: await memory.queries.search(query.query) } : query.kind === "profile" ? { kind: query.kind, profile: await memory.queries.profile(query.query) } : query.kind === "inspect" ? { kind: query.kind, snapshot: await memory.queries.inspect(query.memoryId) } : query.kind === "classification" ? { kind: query.kind, snapshot: await memory.queries.classification(query.bookId) } : query.kind === "graphTasks" ? { kind: query.kind, tasks: await memory.queries.listGraphTasks(query.bookId) } : query.kind === "graphTask" ? { kind: query.kind, task: await memory.queries.getGraphTask(query.bookId, query.taskId) } : { kind: query.kind, graph: await memory.queries.bookGraph(query.bookId, query.query) };
   } catch (error) {
     failure = error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : "memory/observation-failed";
   }
@@ -115,14 +115,14 @@ async function graphTaskView(ctx, bookId, taskId) {
       throw Error("Unexpected graph task observation");
     const task = result.task, report = task.report;
     const actions = [{ id: "refresh", label: t[5], icon: "arrows-clockwise", run: async () => ({ view: await graphTaskView(ctx, bookId, taskId), navigation: "replace" }) }];
-    if (ctx.domains.memory.commands && ["queued", "running"].includes(task.status))
-      actions.push({ id: "cancel", label: t[4], icon: "stop", run: async () => {
-        await ctx.domains.memory.commands.cancelGraphTask(bookId, taskId);
-        return { view: await graphTaskView(ctx, bookId, taskId), navigation: "replace" };
-      } });
+    const cancel = ctx.domains.memory.commands && ["queued", "running"].includes(task.status) ? { id: taskId, label: t[4], run: async () => {
+      await ctx.domains.memory.commands.cancelGraphTask(bookId, taskId);
+      return { view: await graphTaskView(ctx, bookId, taskId), navigation: "replace" };
+    } } : undefined;
     if (ctx.domains.memory.commands && ["failed", "cancelled", "partial", "unavailable"].includes(task.status))
       actions.push({ id: "retry", label: t[3], icon: "arrows-clockwise", run: () => ({ view: approve(ctx, bookId, task.mode, taskId, task.maxChapters) }) });
     return { kind: "detail", title: t[task.mode === "rebuild" ? 2 : 1], actions, content: [
+      ...["queued", "running", "cancelling"].includes(task.status) ? [{ kind: "progress", value: null, label: t[13 + states.indexOf(task.status)], cancel }] : [],
       { kind: "keyValue", rows: [
         { label: t[9], value: t[13 + states.indexOf(task.status)] },
         { label: "ID", value: taskId },

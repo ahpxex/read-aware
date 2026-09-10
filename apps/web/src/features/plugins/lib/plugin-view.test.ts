@@ -8,6 +8,16 @@ import {
 const noOp = () => undefined;
 
 describe("normalizePluginView", () => {
+  test("progress accepts explicit indeterminate state and bounded cancel actions, never invalid ranges", () => {
+    const progress = (block: object) => normalizePluginView({ kind: "blocks", blocks: [{ kind: "progress", ...block }] });
+    expect(progress({ value: null, cancel: { id: "job", label: "Cancel", run: noOp } })).toMatchObject({ blocks: [{ value: null, cancel: { id: "job", run: noOp } }] });
+    expect(progress({ value: 0, max: 1 })).toMatchObject({ blocks: [{ value: 0, max: 1 }] });
+    for (const block of [{ value: -1 }, { value: 101 }, { value: Infinity }, { value: NaN }, { value: 1, max: 0 },
+      { value: null, max: -1 }, { value: 1, max: Infinity }, {}, { value: null, label: "x".repeat(513) },
+      { value: null, cancel: { id: "", label: "Cancel", run: noOp } }, { value: null, cancel: { id: "job", label: "Cancel", run: "not a callback" } }]) {
+      expect(() => progress(block)).toThrow(PluginViewError);
+    }
+  });
   test("persistent errors accept only stable codes and discard raw messages", () => {
     expect(normalizePluginView({ kind: "blocks", blocks: [{ kind: "error", code: "db/locked", message: "PRIVATE" }] }))
       .toEqual({ kind: "blocks", blocks: [{ kind: "error", code: "db/locked" }] });

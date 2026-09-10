@@ -1439,6 +1439,44 @@ toasts. Typecheck passes. This does not prove actual Worker/Tauri interaction;
 that remains for concentrated plugin E2E. Unified progress/cancellation/approval
 presentation is still incomplete (EXT07). No new Agent tool is introduced.
 
+### Cancellable Progress (Views 1.8)
+
+[代码] The existing `progress` block now accepts `value: number | null` and
+optional `cancel: {id, label, run}`. A number must be finite and in `0..max`;
+`max` defaults to 100 and must be finite and positive. `null` is explicitly
+indeterminate, not zero, and omits percentage text and ARIA numeric values.
+The host Progress component uses a reduced-motion-aware pulse in that state;
+determinate visual and ARIA values agree. Labels are at most 512 UTF-16 units;
+cancel IDs are nonempty/at most 256 and labels nonblank/at most 160. The callback
+must be callable. Use this block inside blocks/detail or nested layouts, not as
+a new root view kind. Existing determinate declarations remain supported;
+invalid negative, overflowing or zero-maximum plugin progress now rejects.
+
+The stop icon uses the supplied accessible label. It stays usable while a main
+view action is busy, sends one in-flight request per mounted cancellation action,
+and uses the existing frame-owned result runner with `background:true`. This is
+a newer inline intent, so the older foreground action's late return cannot
+navigate or toast over it. Cancel failures use the existing localized failure
+surface; closing/replacing a frame retires callbacks and stale results as usual.
+No automatic cancellation occurs on close, and neither clicking nor callback
+settlement proves the task stopped. The plugin must cancel its real operation
+and publish resulting states with the existing live-view channel. No extra
+permissions, automatic retry, TaskRef, deadline or durable queue is introduced.
+
+[代码] Memory Desk 0.7 consumes this block for queued/running/cancelling graph
+tasks. These snapshots have no reliable live denominator, so it shows unknown
+progress rather than turning maxChapters into a percentage. Only queued/running
+states offer the existing `cancelGraphTask`; cancelling removes the stop action,
+and terminal states remove the waiting bar while retaining reports/retry actions.
+Its manifest requires views ^1.8.0. Graph ownership and model approvals are unchanged.
+
+[验证] Normalization, callback serialization/retirement, cancellation alongside
+foreground work, mounted StrictMode controls and Memory Desk task-state tests
+pass. Stories cover determinate/indeterminate/cancellable display. Real Worker,
+native layout and physical cancellation remain for concentrated Tauri acceptance.
+EXT07 and CON06 remain partial because this is presentation, not a unified task
+execution protocol. No new Agent tool is introduced.
+
 ### View Close Notifications (Views 1.3)
 
 [代码] `schemas.views` 1.3 adds optional `PluginView.onClose({ reason })`.

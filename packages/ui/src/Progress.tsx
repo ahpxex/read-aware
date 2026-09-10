@@ -8,7 +8,7 @@ const sizeClasses = {
 } as const;
 
 type ProgressProps = {
-  value: number;
+  value: number | null;
   max?: number;
   size?: keyof typeof sizeClasses;
   label?: string;
@@ -25,35 +25,38 @@ export function Progress({
   className,
 }: ProgressProps) {
   const { t } = useTranslation("ui");
-  const percent = Math.min(100, Math.max(0, (value / max) * 100));
+  const maximum = Number.isFinite(max) && max > 0 ? max : 100;
+  const current = value === null ? undefined : Math.min(maximum, Math.max(0, Number.isFinite(value) ? value : 0));
+  const percent = current === undefined ? undefined : current / maximum * 100;
 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       {(label || showValue) && (
-        <div className="flex items-center justify-between">
+        <div className="flex min-w-0 items-center justify-between gap-2">
           {label && (
-            <span className="font-sans text-[13px] font-medium text-fg-muted">
+            <span className="min-w-0 break-words font-sans text-[13px] font-medium text-fg-muted">
               {label}
             </span>
           )}
           {showValue && (
-            <span className="font-sans text-caption text-fg-muted">
-              {Math.round(percent)}%
+            <span className="min-w-10 shrink-0 text-end font-sans text-caption text-fg-muted">
+              {percent === undefined ? null : `${Math.round(percent)}%`}
             </span>
           )}
         </div>
       )}
       <div
         role="progressbar"
-        aria-valuenow={value}
-        aria-valuemin={0}
-        aria-valuemax={max}
+        aria-valuenow={current}
+        aria-valuemin={current === undefined ? undefined : 0}
+        aria-valuemax={current === undefined ? undefined : maximum}
+        aria-busy={current === undefined || undefined}
         aria-label={label ?? t("progress")}
         className={cn("w-full overflow-hidden rounded-full bg-fill-strong", sizeClasses[size])}
       >
         <div
-          className="h-full rounded-full bg-fg transition-all duration-300"
-          style={{ width: `${percent}%` }}
+          className={cn("h-full rounded-full bg-fg transition-[width] duration-300", current === undefined && "animate-pulse motion-reduce:animate-none")}
+          style={{ width: current === undefined ? "33%" : `${percent}%` }}
         />
       </div>
     </div>

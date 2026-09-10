@@ -9,7 +9,6 @@ import {
   Heading,
   InlineError,
   Metric,
-  Progress,
   Quote,
   Section,
   Stack,
@@ -29,6 +28,7 @@ import { PluginListViewBody } from "./PluginListViewBody";
 import { PluginTableViewBody } from "./PluginTableViewBody";
 import { PluginTreeViewBody } from "./PluginTreeViewBody";
 import { PluginImageViewBody } from "./PluginImageViewBody";
+import { PluginProgressBlock } from "./PluginProgressBlock";
 import type { PluginResultRunner } from "./plugin-view-types";
 
 type PluginBlocksProps = {
@@ -141,14 +141,7 @@ function PluginBlockRenderer({
     return <Metric label={block.label} value={block.value} description={block.description} />;
   }
   if (block.kind === "progress") {
-    return (
-      <Progress
-        value={block.value}
-        max={block.max}
-        label={block.label}
-        showValue={block.showValue}
-      />
-    );
+    return <PluginProgressBlock block={block} onResult={onResult} />;
   }
   if (block.kind === "tags") {
     return (

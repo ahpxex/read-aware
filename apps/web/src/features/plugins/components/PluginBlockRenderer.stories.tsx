@@ -26,6 +26,13 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+export const CancellableProgress: Story = {
+  args: { busy: true, blocks: [
+    { kind: "progress", value: null, label: "Importing books", cancel: { id: "import", label: "Cancel import", run: () => ({ toast: "Cancellation requested" }) } },
+    { kind: "progress", value: 12, max: 40, label: "Downloaded articles", showValue: true },
+  ] },
+};
+
 /** Every simple block kind in one sequence, in declaration order. */
 export const EveryBlockKind: Story = {
   args: { blocks: everyBlockKind },

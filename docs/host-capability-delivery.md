@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+进度呈现批次已接线：views 1.8扩展已有progress块，value:null表示未知进度且不显示百分比/ARIA数值，确定进度严格在正max范围内。新增取消动作在主操作busy时仍可用，单按钮在途去重，复用background结果通道、当前帧/回调所有权与失败呈现；不把点击/回调完成冒充真实任务停止。Memory Desk 0.7直接消费现有图谱任务的queued/running/cancelling状态，取消走cancelGraphTask，终态保留原报告和重试，不伪造章节百分比。未增加Agent工具或新任务执行器。
+
+[验证] 宿主声明/序列化/会话/挂载38 pass / 1183 assertions；Memory Desk 22 pass / 143 assertions；矩阵模型12 pass / 41 assertions；全仓typecheck 27/27（最终26缓存），插件构建通过。未启动桌面/浏览器，物理取消和Worker/Tauri组合留集中验收。EXT07呈现更完整但仍部分，CON06统一TaskRef、截止/重试/耐久协议未由本批实现；整体目标未完成。
+
 阅读焦点批次已接线：UI 1.14 reader.focus(content/toc/chat) 与双scope Agent focus_reader 共用宿主语义目标，插件需reading:write，Agent锁定当前ready会话且书内不能控制其他书。正文外层、目录列表、聊天输入的绑定随会话/组件退休，旧释放不清新绑定。仅聚焦已显示区域，隐藏/inert/前台dialog或menu阻挡返回not-focused，不开面板、不关弹窗、不导航或改草稿；preventScroll并核验当次activeElement。不是OS窗口激活、持续焦点或旧元素/iframe caret恢复。
 
 [验证] 定向焦点/DOM/权限/生产Agent端口/工具、既有面板与库存模型58 pass / 1103 assertions，全仓typecheck 27/27（1缓存），三文档对结构通过。902入口映射。DOM测试使用jsdom夹具几何，不是原生布局；未启动桌面/浏览器，实际键盘、挂载动画和插件关闭后回焦留集中Tauri验收。READ11仍保留未验与精确历史焦点边界，整体目标未完成；下方历史“语义焦点入口仍缺”由本批限定覆盖取代。

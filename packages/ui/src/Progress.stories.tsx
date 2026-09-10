@@ -22,6 +22,10 @@ export const WithLabel: Story = {
   args: { value: 3, max: 12, label: "Reading progress", showValue: true },
 };
 
+export const Indeterminate: Story = {
+  args: { value: null, label: "Importing books", showValue: true },
+};
+
 export const Small: Story = {
   args: { value: 70, size: "sm" },
 };

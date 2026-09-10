@@ -328,6 +328,10 @@
             <p>直接提示与动作结果都可传稳定错误码，由宿主本地化。只有宿主判定可重试且插件提供回调时才显示按钮；未知错误不泄漏原文，也不能强行声明可重试。点击只执行一次，不自动重试、不增加权限、不解释返回导航。</p>
             <p>错误提示六秒到期，全局最多 16 条；关闭、退休或桥接移除释放回调。已点击的异步回调最多保留十秒句柄，不代表取消业务任务。普通文字仍是通知。定向测试和类型检查已过，真实 Worker/Tauri 待集中验收；统一进度、取消与批准仍未完成。<a href="./plugin-system.md#structured-error-toasts-ui-110--views-14">完整契约</a></p>
           </div></details>
+          <details class="ep" data-search-section="progress cancel 进度 等待 取消 Memory Desk"><summary>Views 1.8：未知进度与忙碌时仍可用的取消按钮</summary><div class="ep-body">
+            <p>已有进度块增加未知状态与停止动作。未知时不编造百分比；数值必须在正的最大值以内。取消按钮不被主操作忙碌禁用，单次在途去重，沿用视图回调所有权与本地化错误，不把点击成功当成任务已停止。</p>
+            <p>Memory Desk 0.7已用它呈现图谱任务的等待/取消状态，真实报告和重试保持不变。基础序列化、挂载与插件测试通过；真实Worker/Tauri留集中验收。它不是通用TaskRef、重试、截止或持久队列，EXT07/CON06仍部分。<a href="./plugin-system.md#cancellable-progress-views-18">完整契约</a></p>
+          </div></details>
           <details class="ep" data-search-section="live views 实时 视图 推送 Text Desk"><summary>UI 1.2 / views 1.3：实时视图与关闭通知</summary><div class="ep-body">
             <p>插件通过 live.subscribe 取得宿主签发的可见帧通道，再 publishView 完整画面。通道限当前激活代和视图；旧版本报 stale，外部或退休通道报 inactive。更新保留帧身份与现有草稿协调，不改变导航，不开放 DOM 或额外数据权限。</p>
             <p>离开、嵌套弹窗或关闭立即撤通道，返回重新订阅当前值；迟到确认仍会释放。回调在画面提交后释放，中间快照不累积；失败保留旧画面并显示安全错误。每激活最多 16 通道；accepted 不是绘制完成，退订不是取消业务任务。</p>

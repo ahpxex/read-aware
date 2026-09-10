@@ -20,6 +20,22 @@ function fixture() {
   return { registry, owner, session, view, wire, notices, failures: () => failures };
 }
 
+test("serialized progress cancellation runs alongside a busy action and retires with the view", async () => {
+  const f = fixture(); let finish!: (value: PluginViewResult) => void, cancellations = 0;
+  f.session.setRoot(f.wire({ kind: "blocks", blocks: [{ kind: "progress", value: null,
+    cancel: { id: "work", label: "Cancel", run: () => { cancellations++; finish({ toast: "stale work result" }); return { toast: "Cancellation requested" }; } } }] }));
+  const snapshot = f.session.getSnapshot(), current = snapshot.stack[0];
+  if (current.kind !== "blocks" || current.blocks[0].kind !== "progress") throw new Error("Expected progress");
+  const cancel = current.blocks[0].cancel!.run;
+  const work = f.session.runFrom(snapshot.renderKey, () => new Promise(resolve => { finish = resolve; }));
+  expect(f.session.getSnapshot().busy).toBe(true);
+  await f.session.runFrom(snapshot.renderKey, cancel, { background: true });
+  await work;
+  expect(cancellations).toBe(1); expect(f.notices).toEqual(["Cancellation requested"]);
+  f.session.dispose(); expect(f.registry.size).toBe(0);
+  await expect(Promise.resolve().then(cancel)).rejects.toThrow();
+});
+
 test("tree descendant callbacks survive wire normalization and retire with their frame", async () => {
   const f = fixture();
   f.session.setRoot(f.wire({ kind: "tree", title: "Contents", nodes: [

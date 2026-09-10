@@ -863,7 +863,10 @@ export type PluginBlock =
   /** A row of host buttons; each runs like any other contribution outcome. */
   | { kind: "actions"; actions: PluginAction[]; align?: "start" | "end" }
   | { kind: "metric"; label: string; value: string; description?: string }
-  | { kind: "progress"; value: number; max?: number; label?: string; showValue?: boolean }
+  /** Views 1.8: null is indeterminate. Cancel requests run while the main action is busy;
+   * the plugin must stop its own work and publish the resulting state. */
+  | { kind: "progress"; value: number | null; max?: number; label?: string; showValue?: boolean;
+      cancel?: Pick<PluginAction, "id" | "label" | "run"> }
   | { kind: "tags"; label?: string; values: string[] }
   | {
       kind: "alert";

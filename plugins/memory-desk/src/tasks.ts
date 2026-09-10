@@ -50,11 +50,12 @@ export async function graphTaskView(ctx: PluginContext, bookId: string, taskId: 
     if (result.kind !== "graphTask") throw Error("Unexpected graph task observation");
     const task = result.task, report = task.report;
     const actions: PluginAction[] = [{ id: "refresh", label: t[5]!, icon: "arrows-clockwise", run: async () => ({ view: await graphTaskView(ctx, bookId, taskId), navigation: "replace" }) }];
-    if (ctx.domains.memory!.commands && ["queued", "running"].includes(task.status)) actions.push({ id: "cancel", label: t[4]!, icon: "stop", run: async () => {
+    const cancel = ctx.domains.memory!.commands && ["queued", "running"].includes(task.status) ? { id: taskId, label: t[4]!, run: async () => {
       await ctx.domains.memory!.commands!.cancelGraphTask(bookId, taskId); return { view: await graphTaskView(ctx, bookId, taskId), navigation: "replace" };
-    } });
+    } } satisfies PluginAction : undefined;
     if (ctx.domains.memory!.commands && ["failed", "cancelled", "partial", "unavailable"].includes(task.status)) actions.push({ id: "retry", label: t[3]!, icon: "arrows-clockwise", run: () => ({ view: approve(ctx, bookId, task.mode, taskId, task.maxChapters) }) });
     return { kind: "detail", title: t[task.mode === "rebuild" ? 2 : 1]!, actions, content: [
+      ...(["queued", "running", "cancelling"].includes(task.status) ? [{ kind: "progress" as const, value: null, label: t[13 + states.indexOf(task.status)]!, cancel }] : []),
       { kind: "keyValue", rows: [{ label: t[9]!, value: t[13 + states.indexOf(task.status)]! }, { label: "ID", value: taskId },
         { label: budget.limit, value: String(task.maxChapters) },
         ...(report ? [{ label: t[10]!, value: String(report.attempted) }, { label: t[11]!, value: String(report.digested) }, { label: t[12]!, value: String(report.remaining) }] : [])] },

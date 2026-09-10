@@ -716,12 +716,20 @@ function normalizeBlock(input: unknown, context: string, depth: number): PluginB
     };
   }
   if (kind === "progress") {
+    const progress = value.value === null ? null : finiteNumber(value.value, `${context}.value`);
+    const max = value.max == null ? 100 : finiteNumber(value.max, `${context}.max`);
+    if (max <= 0 || progress !== null && (progress < 0 || progress > max)) throw new PluginViewError(`${context} progress must be within a positive maximum`);
+    const label = string(value.label, `${context}.label`, true);
+    if (label !== undefined && label.length > 512) throw new PluginViewError(`${context}.label exceeds 512 characters`);
+    const action = value.cancel == null ? undefined : normalizeAction(value.cancel, `${context}.cancel`);
+    if (action && (!action.id || action.id.length > 256 || !action.label.trim() || action.label.length > 160)) throw new PluginViewError(`${context}.cancel needs a bounded id and label`);
     return {
       kind,
-      value: finiteNumber(value.value, `${context}.value`),
-      max: value.max == null ? undefined : finiteNumber(value.max, `${context}.max`),
-      label: string(value.label, `${context}.label`, true),
+      value: progress,
+      max: value.max == null ? undefined : max,
+      label,
       showValue: value.showValue === true,
+      ...(action ? { cancel: { id: action.id, label: action.label, run: action.run } } : {}),
     };
   }
   if (kind === "tags") {

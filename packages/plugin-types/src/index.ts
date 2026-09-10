@@ -1337,7 +1337,8 @@ export type PluginReadingDomain = {
     goTo(target: import("@read-aware/core").ReadingTarget): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
     back(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
     forward(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
-    step(direction: "next" | "previous", guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
+    /** Reading 2.12: page, source-section and book-boundary navigation; section/boundary jumps enter history. */
+    step(direction: import("@read-aware/core").ReadingStep, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
     close(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<void>;
     /** Start resolves on actual audio start. Stop is idempotent; disabling the initiating plugin stops its playback. */
     controlPlayback(action: "start" | "stop", guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingPlaybackReceipt>;

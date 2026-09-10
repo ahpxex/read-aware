@@ -22,7 +22,11 @@ export type ReadingTarget = {
   href?: string;
   fraction?: number;
   textQuote?: ReadingTextQuote;
+  /** Zero-based source reading-order index, not TOC/chapter numbering or a printed page label. Requires contentVersion. */
+  sectionIndex?: number;
 };
+
+export type ReadingStep = "next" | "previous" | "next-section" | "previous-section" | "start" | "end";
 
 /** Optional execution preconditions, not a replacement for actor authorization. */
 export type ReadingSessionGuard = {

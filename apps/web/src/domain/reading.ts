@@ -62,7 +62,7 @@ export type ReadingCommands = {
   goTo(target: ReadingTarget, signal?: AbortSignal): Promise<ReadingNavigationReceipt>;
   back(signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt>;
   forward(signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt>;
-  step(direction: "next" | "previous", signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt>;
+  step(direction: import("@read-aware/core").ReadingStep, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt>;
   close(signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<void>;
 };
 

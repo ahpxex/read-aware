@@ -1,5 +1,5 @@
 import { AppError, errorCode, type EventOrigin, type ReadingModeConfiguration, type ReadingModeSnapshot, type ReadingModeReceipt, type ReadingPlaybackSnapshot, type ReadingPlaybackReceipt, type ReadingLocation, type ReadingNavigationReceipt, type ReadingSessionSnapshot, type ReadingSessionGuard, type ReadingTarget } from "@read-aware/core";
-import type { ReadingModeStepOutcome, ReadingModeStepReceipt } from "@read-aware/core";
+import type { ReadingModeStepOutcome, ReadingModeStepReceipt, ReadingStep } from "@read-aware/core";
 import type { ReadingControlsSnapshot, ReadingControlsReceipt } from "@read-aware/core";
 import { normalizeBookRangeQuery, type BookTextRange, type ReadingSelectionSnapshot, type ReadingSelectionReceipt } from "@read-aware/core";
 
@@ -41,7 +41,7 @@ export const unavailablePlayback = (): ReadingPlaybackSnapshot => ({
 
 export type ReadingEngineAdapter = {
   navigate(target: ReadingTarget): Promise<ReadingLocation>;
-  step(direction: "next" | "previous"): Promise<ReadingLocation>;
+  step(direction: ReadingStep): Promise<ReadingLocation>;
 };
 type Session = { id: string; bookId: string; engine?: ReadingEngineAdapter; error?: unknown };
 type Shell = { open(bookId: string, intent: number): void | Promise<void>; close(): void | Promise<void> };
@@ -397,6 +397,10 @@ export class ReadingSessionController {
       || !validString(target.href) || !validString(target.contentVersion, 256)) {
       return Promise.reject(new AppError("reader/invalid-target", "Reading target fields are invalid"));
     }
+    if (target.sectionIndex !== undefined && (!Number.isSafeInteger(target.sectionIndex) || target.sectionIndex < 0
+      || !target.contentVersion || target.cfi !== undefined || target.href !== undefined || target.fraction !== undefined || target.textQuote !== undefined)) {
+      return Promise.reject(new AppError("reader/invalid-target", "Source section requires a version and no competing locator"));
+    }
     if (target.textQuote !== undefined && (!target.textQuote || typeof target.textQuote !== "object"
       || !target.contentVersion || !(target.cfi || target.href) || typeof target.textQuote.exact !== "string"
       || !target.textQuote.exact.trim() || target.textQuote.exact.length > 12000
@@ -421,8 +425,8 @@ export class ReadingSessionController {
     return this.run(this.history[this.cursor + 1], signal, this.cursor + 1, undefined, guard);
   }
 
-  step(direction: "next" | "previous", signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt> {
-    if (direction !== "next" && direction !== "previous") return Promise.reject(new AppError("reader/invalid-target", "Invalid page direction"));
+  step(direction: ReadingStep, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt> {
+    if (!["next", "previous", "next-section", "previous-section", "start", "end"].includes(direction)) return Promise.reject(new AppError("reader/invalid-target", "Invalid navigation step"));
     const bookId = this.session?.bookId;
     if (!bookId) return Promise.reject(new AppError("reader/no-session", "No active reading session"));
     return this.run({ bookId }, signal, undefined, direction, guard);
@@ -435,7 +439,7 @@ export class ReadingSessionController {
     }
   }
 
-  private run(target: ReadingTarget & { bookId: string }, signal?: AbortSignal, historyIndex?: number, direction?: "next" | "previous", guard?: ReadingSessionGuard,
+  private run(target: ReadingTarget & { bookId: string }, signal?: AbortSignal, historyIndex?: number, direction?: ReadingStep, guard?: ReadingSessionGuard,
     settle?: (signal: AbortSignal) => Promise<void>, moveMode?: (signal: AbortSignal) => Promise<void>, prepare?: (signal: AbortSignal) => Promise<void>): Promise<ReadingNavigationReceipt> {
     if (signal?.aborted) return Promise.reject(signal.reason);
     try {
@@ -489,7 +493,7 @@ export class ReadingSessionController {
         if (this.session !== session || session.engine !== engine) throw new AppError("reader/superseded", "Reader engine was replaced");
         if (moveMode) { await moveMode(controller.signal); return this.state.location; }
         return direction ? engine.step(direction)
-          : target.cfi || target.href || target.fraction !== undefined ? engine.navigate(target)
+          : target.cfi || target.href || target.fraction !== undefined || target.sectionIndex !== undefined ? engine.navigate(target)
           : this.state.location;
       });
       this.engineTails.set(engine, movement.catch(() => {}));
@@ -504,7 +508,7 @@ export class ReadingSessionController {
         if (before && this.cursor >= 0) this.history[this.cursor] = before;
         this.cursor = historyIndex;
         this.history[this.cursor] = location;
-      } else if (!direction && !moveMode) {
+      } else if (direction !== "next" && direction !== "previous" && !moveMode) {
         this.recordJump(before, location);
       }
       this.publish({ location });

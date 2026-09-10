@@ -4,6 +4,29 @@ import { ReadingSessionController, type ReadingEngineAdapter } from "./reading-s
 
 const at = (cfi: string, bookId = "book"): ReadingLocation => ({ bookId, contentVersion: "sha256:fixture", cfi });
 
+test("source section and boundary jumps preserve version, guards and history unlike page steps", async () => {
+  const f = fixture(); let target: unknown;
+  f.engine.navigate = async input => { target = input; return at(input.cfi ?? `section-${input.sectionIndex}`); };
+  try {
+    for (const input of [{ sectionIndex: -1, contentVersion: "sha256:fixture" }, { sectionIndex: 0.5, contentVersion: "sha256:fixture" },
+      { sectionIndex: 0 }, { sectionIndex: 0, contentVersion: "sha256:fixture", fraction: 0.5 }]) {
+      await expect(f.runtime.navigate(input)).rejects.toMatchObject({ code: "reader/invalid-target" });
+    }
+    await expect(f.runtime.navigate({ sectionIndex: 0, contentVersion: "old" })).rejects.toMatchObject({ code: "reader/stale-location" });
+    expect(target).toBeUndefined();
+    await f.runtime.step("next"); expect(f.runtime.snapshot().history.canGoBack).toBe(false);
+    await f.runtime.step("next-section", undefined, { sessionId: f.id });
+    expect(f.runtime.snapshot().history.canGoBack).toBe(true);
+    expect((await f.runtime.back()).location.cfi).toBe("next");
+    await f.runtime.navigate({ sectionIndex: 0, contentVersion: "sha256:fixture" });
+    expect(target).toMatchObject({ sectionIndex: 0, bookId: "book" });
+    expect(f.runtime.snapshot().history.canGoForward).toBe(false);
+    await expect(f.runtime.step("end", undefined, { sessionId: "old" })).rejects.toMatchObject({ code: "reader/superseded" });
+    expect((await f.runtime.step("end")).location.cfi).toBe("end");
+    expect((await f.runtime.back()).location.cfi).toBe("section-0");
+  } finally { f.detach(); }
+});
+
 test("cancelled or closed pending shell lookups cannot begin a late reading session", async () => {
   for (const cancel of ["abort", "close"] as const) {
     const runtime = new ReadingSessionController(() => {}, 1000), abort = new AbortController();

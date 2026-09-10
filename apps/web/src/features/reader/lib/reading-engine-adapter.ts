@@ -1,6 +1,7 @@
 import { AppError, type ReadingLocation } from "@read-aware/core";
 import { readingRuntime } from "../../../domain/reading-runtime";
 import { loadContentNavigation, type FoliateView } from "./foliate-engine";
+import type { ReadingEngineAdapter } from "../../../domain/reading-session-controller";
 
 export async function waitForReadingPaint(view: FoliateView): Promise<void> {
   const renderer = view.renderer;
@@ -10,22 +11,26 @@ export async function waitForReadingPaint(view: FoliateView): Promise<void> {
   }
 }
 
-/** The only renderer-specific part of the public reading-session controller. */
-export function attachReadingEngine(view: FoliateView, sessionId: string, bookId: string, contentVersion: string): () => void {
-  const location = (): ReadingLocation => {
-    const position = view.lastLocation;
-    if (!position) throw new AppError("reader/unavailable", "Renderer has not reported its first position");
-    return {
-      bookId, contentVersion,
-      ...(position.cfi ? { cfi: position.cfi } : {}),
-      ...(position.tocItem?.href ? { href: position.tocItem.href } : {}),
-      ...(Number.isFinite(position.fraction) ? { fraction: position.fraction } : {}),
-    };
+function currentLocation(view: FoliateView, bookId: string, contentVersion: string): ReadingLocation {
+  const position = view.lastLocation;
+  if (!position) throw new AppError("reader/unavailable", "Renderer has not reported its first position");
+  return {
+    bookId, contentVersion,
+    ...(position.cfi ? { cfi: position.cfi } : {}),
+    ...(position.tocItem?.href ? { href: position.tocItem.href } : {}),
+    ...(Number.isFinite(position.fraction) ? { fraction: position.fraction } : {}),
   };
-  const publish = () => readingRuntime.relocate(sessionId, location(), view.lastLocation?.range?.toString() ?? "");
-  const detach = readingRuntime.attach(sessionId, {
+}
+
+/** The only renderer-specific part of the public reading-session controller. */
+export function createReadingEngineAdapter(view: FoliateView, bookId: string, contentVersion: string): ReadingEngineAdapter {
+  const location = () => currentLocation(view, bookId, contentVersion);
+  return {
     navigate: async target => {
-      const resolved = await view.goTo(target.cfi ?? target.href ?? { fraction: target.fraction! });
+      if (target.sectionIndex !== undefined && !view.book?.sections[target.sectionIndex]) {
+        throw new AppError("reader/target-not-found", "Source section does not exist");
+      }
+      const resolved = await view.goTo(target.sectionIndex ?? target.cfi ?? target.href ?? { fraction: target.fraction! });
       if (!resolved) throw new AppError("reader/target-not-found", "Renderer could not resolve this target");
       await waitForReadingPaint(view);
       if (target.textQuote) {
@@ -40,11 +45,30 @@ export function attachReadingEngine(view: FoliateView, sessionId: string, bookId
       return location();
     },
     step: async direction => {
-      if (direction === "next") await view.next(); else await view.prev();
+      if (direction === "next") await view.next();
+      else if (direction === "previous") await view.prev();
+      else if (direction === "start" || direction === "end") {
+        if (!await view.goTo({ fraction: direction === "start" ? 0 : 1 })) throw new AppError("reader/target-not-found", "Book boundary could not be resolved");
+      } else {
+        const sections = view.book?.sections, current = view.lastLocation?.section.current;
+        if (!sections || current === undefined || !sections[current]) throw new AppError("reader/unavailable", "Current source section is unavailable");
+        const delta = direction === "next-section" ? 1 : -1;
+        let index = current + delta;
+        while (index >= 0 && index < sections.length && sections[index]?.linear === "no") index += delta;
+        // At a book boundary keep the actual position, rather than fabricating movement.
+        if (index < 0 || index >= sections.length) return location();
+        if (!await view.goTo(index)) throw new AppError("reader/target-not-found", "Adjacent source section could not be resolved");
+      }
       await waitForReadingPaint(view);
       return location();
     },
-  }, location());
+  };
+}
+
+export function attachReadingEngine(view: FoliateView, sessionId: string, bookId: string, contentVersion: string): () => void {
+  const location = () => currentLocation(view, bookId, contentVersion);
+  const publish = () => readingRuntime.relocate(sessionId, location(), view.lastLocation?.range?.toString() ?? "");
+  const detach = readingRuntime.attach(sessionId, createReadingEngineAdapter(view, bookId, contentVersion), location());
   view.addEventListener("relocate", publish);
   publish();
   return () => { view.removeEventListener("relocate", publish); detach(); };

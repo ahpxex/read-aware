@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+源分节导航批次已接线：reading 2.12 step 增加 next-section/previous-section/start/end，Agent 双 scope navigate_reading 同步开放；goTo/open_book 增加必须带 contentVersion 的零起始 sectionIndex。相邻分节跳过 linear=no、跳到分节开头、边界保持实际位置；书首书尾沿用引擎 fraction 0/1。PDF/漫画每源节一源页，不混同目录章节/印刷页码；旧版本、非法/缺失索引与竞争 locator 明确拒绝。共用队列、会话保护、实际落点和固定版式 paint 等待；分节/首尾跳转记共享历史，普通页步进仍不记。
+
+[验证] 引擎适配/控制器历史与版本/Agent 工具定向 46 pass / 699 assertions，全仓 typecheck 27/27。不新增工具名，Agent book 81/global 98，872 入口映射。印刷页标签、重排屏幕页数、TOC 语义章节步进及全部原生链接历史收敛仍未接；真实 Worker/Tauri 多格式导航留集中插件验收。READ04/05/06 保留部分，不把这批基础验证当作端到端完成。
+
 程序化图片灯箱批次已接线：UI 1.13 image.open 与 Agent 双 scope show_book_image 直接消费上一批的版本化书内图片描述符，共用原生灯箱和现有控制。library 读 + reading 写，限定当前书/版本/会话，Agent 保留原章节边界；不接受任意 URL/资源句柄、不加载外链、不导航。opened 等准确 viewer ID 的 React 挂载，不代表解码/像素/视觉理解。新请求、原生点击/关闭及换书阻止迟到展示；失败仅清自有待打开 ID，URL 随关闭/替换/卸载释放，已完成展示不因插件退休自动关闭。
 
 [验证] 定向服务/权限/Agent/挂载 StrictMode 共 18 pass / 726 assertions，模型/库存 12 pass / 41 assertions，全仓 typecheck 27/27。Agent book 81/global 98，矩阵 872 入口映射；三文档对结构通过。TXT12 的程序化灯箱打开缺口已接，PDF 内嵌对象、CSS/srcset 图片与模型图像输入仍未接；真实 Worker/Tauri 解码、焦点与组合 E2E 留集中阶段。下方历史批次的“程序化打开仍缺”由本批取代。

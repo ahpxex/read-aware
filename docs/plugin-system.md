@@ -211,6 +211,40 @@ Engine work cannot yet be aborted per navigation; cancelling a waiter is not a
 promise that a physical move was undone. PDF completion waits for rasterization,
 which an occluded WKWebView may suspend until it is visible.
 
+### Source-Order Navigation (Reading 2.12)
+
+[代码] `reading.commands.step` additionally accepts `next-section`,
+`previous-section`, `start`, and `end`. Agent `navigate_reading` exposes the
+same actions in both scopes. Section steps use the current renderer section
+index, skip sections marked non-linear (for example detached notes), and land
+at the adjacent linear section's start. At either boundary they return the
+unchanged actual location without a fabricated movement. Start/end use the
+engine's existing book-fraction 0/1 resolution. These are source-order sections,
+not nested TOC entries, extracted chapter numbers or printed page labels.
+
+`reading.commands.goTo({bookId?, contentVersion, sectionIndex})` and Agent
+`open_book(sectionIndex, contentVersion)` address a zero-based source section
+directly, including non-linear sections. For PDF/comics this is a source page
+index; fixed-layout spreads can still display two pages. The content version
+is required. Negative/fractional/unsafe indices, missing version or competing
+CFI/href/fraction/textQuote locators fail with `reader/invalid-target`; a stale
+version fails `reader/stale-location`, and absent source section fails
+`reader/target-not-found`. Agent also rejects mixing sectionIndex with chapter
+or annotation selectors. Existing CFI-based locations remain unchanged.
+
+Both routes reuse reading-write authorization, current-session guards for
+steps, renderer serialization, deadlines and actual completion receipts.
+Section/start/end jumps enter the same back/forward history as explicit goTo;
+ordinary page steps do not. Failed or superseded operations do not update
+history, and a new successful jump discards forward history. Navigation does
+not expand the Agent's original reading-text privacy or spoiler permission.
+
+[验证] Focused renderer-adapter, history/version/guard and Agent tests pass;
+the fixed-layout render wait remains intact. Real Tauri/Worker multi-format
+navigation is deferred to concentrated plugin E2E. Printed page-label lookup,
+reflowable screen-page counts and full native-link history unification remain
+separate gaps, not aliases for sectionIndex.
+
 ### Annotation Conditional Contract
 
 [代码] Annotations **2.0.0** removes the five unconditional public commands

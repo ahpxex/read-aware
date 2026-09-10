@@ -1,7 +1,7 @@
 /** Canonical roster of product domains that may be exposed programmatically. */
 export const DOMAIN_CATALOG = {
   library: { version: "1.13.0", pluginAccess: ["read", "write"] },
-  reading: { version: "2.11.0", pluginAccess: ["read", "write"] },
+  reading: { version: "2.12.0", pluginAccess: ["read", "write"] },
   annotations: { version: "2.0.0", pluginAccess: ["read", "write"] },
   conversations: { version: "1.2.0", pluginAccess: ["read", "write"] },
   settings: { version: "1.7.0", pluginAccess: [] },

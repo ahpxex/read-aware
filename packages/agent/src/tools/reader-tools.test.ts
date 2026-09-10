@@ -76,6 +76,24 @@ test("versioned fraction targets and cancellation reach the reader port unchange
   expect(passedTarget).toMatchObject({ bookId, fraction: 0.4, contentVersion: "sha256:fixture" });
 });
 
+test("source sections and book boundaries use shared navigation with unchanged version, signal and guards", async () => {
+  const { deps, tool } = fixture(), abort = new AbortController();
+  let target: unknown, passed: unknown;
+  deps.reader.goTo = async (value, signal) => { target = value; expect(signal).toBe(abort.signal); return receipt; };
+  await tool("open_book").execute("section", { sectionIndex: 0, contentVersion: "v1" }, abort.signal);
+  expect(target).toMatchObject({ bookId, sectionIndex: 0, contentVersion: "v1" });
+  for (const input of [{ sectionIndex: 0 }, { sectionIndex: 1.5, contentVersion: "v1" },
+    { sectionIndex: 0, contentVersion: "v1", chapterIndex: 0 }]) {
+    await expect(tool("open_book").execute("bad", input)).rejects.toMatchObject({ code: "reader/invalid-target" });
+  }
+  const session = await deps.reader.getSession();
+  deps.reader.step = async (...args) => { passed = args; return receipt; };
+  for (const action of ["next-section", "previous-section", "start", "end"]) {
+    await tool("navigate_reading").execute("step", { action }, abort.signal);
+    expect(passed).toEqual([action, abort.signal, { sessionId: session.sessionId, bookId }]);
+  }
+});
+
 test("book-scoped controls pass both session and book guards to the host", async () => {
   const { deps, tool } = fixture(); const abort = new AbortController();
   const snapshot = await deps.reader.getSession();

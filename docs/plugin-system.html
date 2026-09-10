@@ -217,6 +217,10 @@
             <p>观察覆盖工作区、已提交书架设置和语言，串行合并、稳定错误、退订释放。设置保存后才导航，部分完成不假称回滚；开书等待阅读就绪，不清无关覆盖层。</p>
             <p>macOS debug 已验 Worker 过滤/退订、真实阅读和编译插件实时更新。SQL 失败现在由调用方单次呈现，旧存储写仍有全局提示；慢读/恢复为单元证据。导入、跨插件、其余原生入口、目标级可用性和打包跨平台仍缺，UI03 保持部分。<a href="./plugin-system.md#host-command-discovery-and-execution">完整契约</a> · <a href="./evidence/command-observation-2026-09-10.json">桌面证据</a></p>
           </div></details>
+          <details class="ep" data-search-section="reading step sectionIndex 分节 书首 书尾 页索引"><summary>Reading 2.12：分节、首尾和源页索引导航已双端接通</summary><div class="ep-body">
+            <p>插件 step 与 Agent navigate_reading 可前后跳到线性源分节、跳到书首书尾；goTo 与 open_book 可按内容版本和零起始 sectionIndex 定位。PDF/漫画的源分节就是源页，不能当成印刷页码或目录章节号。</p>
+            <p>复用当前会话保护、真实落点与导航历史；相邻分节跳过非线性注释，边界保留当前位置。基础测试通过，真实 Tauri/Worker 组合后置；印刷页标签、重排页数和全部原生链接历史仍待接。<a href="./plugin-system.md#source-order-navigation-reading-212">完整契约</a></p>
+          </div></details>
           <details class="ep" data-search-section="workspace navigation selection UI01 UI02 工作区 导航 搜索 选择集"><summary>UI 1.3：Agent 和插件共享应用导航与书架选择</summary><div class="ep-body">
             <p>同一服务打开书架、集合、Context、统计、设置和命令搜索，观察实际界面及分页选择集。离开阅读器另需阅读控制权限；不公开 DOM、原子状态、正文或凭据。</p>
             <p>Library Desk 0.3 把跨集合勾选分组，用户选定一组后才在书架显示；搜索表单直接打开原生命令面板。删除仍需独立操作。旧请求、过期状态和失效目标明确失败，导航等目标组件提交才确认，不冒充动画结束或数据持久化。</p>

@@ -5,7 +5,7 @@ import type { ThreadScope } from "../thread-scope";
 import { resolveBookId } from "./current-book";
 import { textResult } from "./tool-result";
 import type { AgentTurnState } from "./turn-state";
-import { AppError, type ReadingLocation } from "@read-aware/core";
+import { AppError, type ReadingLocation, type ReadingStep } from "@read-aware/core";
 import { readingContextCall } from "../runtime/reading-context-policy";
 import { buildSelectionTools } from "./selection-tools";
 import { buildEmphasisTools } from "./emphasis-tools";
@@ -15,11 +15,12 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
     name: "open_book",
     label: "Open book",
     description:
-      "Open a shelf book in the reader. Optionally jump to an annotation, chapter index, CFI anchor, chapter href, or fraction (0 to 1). Pass contentVersion when reusing a reported location. bookId defaults to the current book. Returns actual completion.",
+      "Open a shelf book in the reader. Optionally jump to an annotation, extracted chapter index, CFI anchor, chapter href, fraction (0 to 1), or source sectionIndex. sectionIndex is zero-based original reading order, not TOC ordinal or printed page label; requires contentVersion and no other locator. For PDF/comics each source section is one page. Pass contentVersion when reusing a reported location. bookId defaults to the current book. Returns actual completion.",
     parameters: Type.Object({
       bookId: Type.Optional(Type.String()),
       annotationId: Type.Optional(Type.String()),
       chapterIndex: Type.Optional(Type.Number()),
+      sectionIndex: Type.Optional(Type.Integer({ minimum: 0 })),
       anchor: Type.Optional(Type.String()),
       chapterHref: Type.Optional(Type.String()),
       fraction: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
@@ -31,17 +32,22 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
     }),
     executionMode: "sequential",
     execute: async (_id, params, signal) => {
-      const { bookId, annotationId, chapterIndex, anchor, chapterHref, fraction, contentVersion, location } = params as {
+      const { bookId, annotationId, chapterIndex, sectionIndex, anchor, chapterHref, fraction, contentVersion, location } = params as {
         bookId?: string;
         annotationId?: string;
         chapterIndex?: number;
+        sectionIndex?: number;
         anchor?: string;
         chapterHref?: string;
         fraction?: number;
         contentVersion?: string;
         location?: ReadingLocation;
       };
-      if (location && (annotationId || chapterIndex !== undefined || anchor || chapterHref || fraction !== undefined || contentVersion
+      if (sectionIndex !== undefined && (!Number.isSafeInteger(sectionIndex) || sectionIndex < 0 || !contentVersion
+        || annotationId !== undefined || chapterIndex !== undefined || anchor !== undefined || chapterHref !== undefined || fraction !== undefined || location !== undefined)) {
+        throw new AppError("reader/invalid-target", "Source section requires contentVersion and no other locator");
+      }
+      if (location && (annotationId || chapterIndex !== undefined || sectionIndex !== undefined || anchor || chapterHref || fraction !== undefined || contentVersion
         || bookId && bookId !== location.bookId)) throw new Error("Use location or individual locator fields, not conflicting targets");
       const target = resolveBookId(scope, bookId ?? location?.bookId);
       const book = await deps.library.getBook(target);
@@ -64,8 +70,8 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
         if (!targetHref) throw new Error(`chapter ${chapterIndex} has no navigable location`);
       }
 
-      const receipt = location ? await deps.reader.goTo({ ...location, bookId: target }, signal) : targetAnchor || targetHref || fraction !== undefined || contentVersion
-        ? await deps.reader.goTo({ bookId: target, cfi: targetAnchor, href: targetHref, fraction, contentVersion }, signal)
+      const receipt = location ? await deps.reader.goTo({ ...location, bookId: target }, signal) : targetAnchor || targetHref || fraction !== undefined || sectionIndex !== undefined || contentVersion
+        ? await deps.reader.goTo({ bookId: target, cfi: targetAnchor, href: targetHref, fraction, contentVersion, ...(sectionIndex !== undefined ? { sectionIndex } : {}) }, signal)
         : await deps.reader.openBook(target, signal);
       return textResult({
         opened: true,
@@ -104,13 +110,13 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
   };
   const control: AgentTool = {
     name: "navigate_reading", label: "Navigate reading",
-    description: "Move back/forward through explicit reading jumps, turn the next/previous page, step the next-unit/previous-unit in the active text-unit mode, return to its resting position (return-to-unit), or close the reader. Unit stepping continues from the resting position across sections and reports moved/start-of-book/end-of-book; it does not create jump history. Return-to-unit requires get_reading_session.mode.position and does not step. Returns actual completion, not dispatch acknowledgement. Use open_book for a specific book or location.",
-    parameters: Type.Object({ action: Type.Union([Type.Literal("back"), Type.Literal("forward"), Type.Literal("next"), Type.Literal("previous"), Type.Literal("next-unit"), Type.Literal("previous-unit"), Type.Literal("return-to-unit"), Type.Literal("close")]) }),
+    description: "Move back/forward through explicit reading jumps; turn next/previous page; jump next-section/previous-section in linear source reading order (not TOC chapter numbering), or start/end of book; step next-unit/previous-unit in the active text-unit mode; return-to-unit; or close. Section jumps skip non-linear notes, land at the adjacent section start and stay put at boundaries. Section/start/end jumps enter history; ordinary page and unit steps do not. Unit stepping continues from its resting position and reports moved/start-of-book/end-of-book. Return-to-unit requires get_reading_session.mode.position. Returns the actual completed location, not dispatch acknowledgement or new permission to read spoilers. Use open_book for a specific book or location.",
+    parameters: Type.Object({ action: Type.Union(["back", "forward", "next", "previous", "next-section", "previous-section", "start", "end", "next-unit", "previous-unit", "return-to-unit", "close"].map(value => Type.Literal(value))) }),
     executionMode: "sequential",
     execute: async (_id, params, signal) => {
       const current = await deps.reader.getSession();
       if (scope.kind === "book" && current.bookId !== scope.bookId) throw new Error("This book is not the active reader");
-      const { action } = params as { action: "back" | "forward" | "next" | "previous" | "next-unit" | "previous-unit" | "return-to-unit" | "close" };
+      const { action } = params as { action: ReadingStep | "back" | "forward" | "next-unit" | "previous-unit" | "return-to-unit" | "close" };
       const guard = { sessionId: current.sessionId ?? undefined, ...(scope.kind === "book" ? { bookId: scope.bookId } : {}) };
       if (action === "close") { await deps.reader.close(signal, guard); return textResult({ status: "completed", closed: true }); }
       if (action === "return-to-unit") return textResult(await deps.reader.returnToMode(signal, guard));

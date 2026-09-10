@@ -100,7 +100,7 @@ test("empty pages have filters/refresh but no invalid zero-item selection or exp
   const f = fixture([]);
   const view = list(await deskView(f.ctx));
   expect(view.items).toEqual([]);
-  expect(view.actions?.map(action => action.id)).toEqual(["filter", "refresh", "next"]);
+  expect(view.actions?.map(action => action.id)).toEqual(["new-note", "filter", "refresh", "next"]);
 });
 
 test("note writes use the inspected revision and reset to a fresh list after completion", async () => {
@@ -229,11 +229,14 @@ test("locale fallback distinguishes traditional Chinese and package declares all
   const f = fixture();
   const headers: { surface: string; presentation: string }[] = [];
   const commands: { id: string }[] = [];
+  const selections: { id: string }[] = [];
   f.ctx.contributions = {
+    selectionActions: { register: action => { selections.push(action); return { dispose() {} }; } },
     headerActions: { register: action => { headers.push(action as typeof headers[number]); return { dispose() {} }; } },
     commands: { register: command => { commands.push(command); return { dispose() {} }; } },
   } as DeskContext["contributions"];
   await plugin.activate(f.ctx);
   expect(headers.map(({ surface, presentation }) => [surface, presentation])).toEqual([["shelf", "page"], ["reader", "popup"]]);
   expect(commands.map(command => command.id)).toEqual(["open"]);
+  expect(selections.map(action => action.id)).toEqual(["create-note", "create-highlight"]);
 });

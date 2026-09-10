@@ -919,6 +919,39 @@ recovers without reopening. No maximum-library-size, packaged, cross-device or
 Windows/Linux coverage is claimed. Unified Range, bounded native collection
 payloads and full remote event delivery remain separate gaps.
 
+### Annotation Desk Creation Composition
+
+[代码] Annotation Desk 0.4 adds New note to its existing paged desk and registers
+`create-note` / `create-highlight` selection actions as host dialogs. It consumes
+the existing annotations 2 createNote/createHighlight commands and adds only a
+SelectionActions 1.2 requirement; permissions and host/Agent APIs are unchanged.
+The existing Agent create_annotation tool already covers these writes.
+
+- A book-scoped desk captures that book as its only choice. The global desk
+  captures the available book choices and requires an explicit selection.
+  Read failure rejects; no books/missing book has no create form.
+- Selection actions copy the supplied book, text, CFI and chapter before showing
+  the form. They do not read a newer selection when Save is clicked. Empty or
+  over-100000-character text cannot be submitted; note bodies must be nonblank
+  and at most 100000 UTF-16 units, retaining original whitespace/newlines.
+- A note stores the captured quotation; highlights offer yellow/green/blue/pink
+  and highlight/underline. Missing exact anchors are shown explicitly and stay
+  null. Existing creation accepts CFI/chapter, not BookTextRange: no source
+  version is invented, persisted or conditionally checked. This does not close
+  TXT13's versioned annotation-write gap or guarantee source-replacement safety.
+- The successful write returns a receipt view before any reread, replacing the
+  form. View annotation inspects the returned ID and enters existing conditional
+  editing, deletion and export; the other action returns to the paged desk.
+  Read failure after success never reissues creation. Write failure propagates
+  to the host error surface and keeps the draft; no question history is forged.
+
+[验证] 25 plugin tests / 179 assertions, typecheck, build and manifest validation
+pass, including both compiled selection actions and the desk entry, copied
+targets, all colors/styles, validation, absent anchors, read/write failures and
+eight-language labels. Tests use controlled Bun contexts, not native selection
+gestures, real SQLite persistence, Worker/Tauri rendering or a complete Agent
+turn. Those combinations and document visuals remain concentrated acceptance.
+
 ### Annotation Query Observations
 
 [代码] Annotations 2 retains `events.observe(query, handler)` introduced in 1.4 alongside the legacy
@@ -6286,7 +6319,7 @@ adjacent distribution repository, not an additional source plugin in this checko
 | Theme Schedule | Settings domain, options/commands, storage/UI, committed schedule, settings schema |
 | WebDAV Sync | sync transport, storage, secrets, network, settings schema |
 | Jumper | reader header, navigation TOC, cancellable live precise search, shared locations/history; 0.4 source sections/page labels and native step composition |
-| Annotation Desk | live paged annotations and error recovery (0.2), frozen conditional edits, export, views |
+| Annotation Desk | book notes and selection notes/highlights (0.4), live paged annotations, frozen conditional edits, export, views |
 | Listening Desk | reading mode/provider control, unit navigation, playback/history, environment offline hint |
 | Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |
 | Workspace Profiles | settled settings snapshots, exact path grants, atomic presets, private documents, shelf header/command views and Agent tool |

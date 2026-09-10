@@ -1,6 +1,14 @@
 const locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"] as const;
 type Translations = readonly [string, string, string, string, string, string, string, string];
 const strings = {
+  newNote: ["New note", "新建笔记", "新增筆記", "新しいノート", "Новая заметка", "Nouvelle note", "Neue Notiz", "Nueva nota"],
+  newHighlight: ["New highlight", "新建高亮", "新增螢光標記", "新しいハイライト", "Новое выделение", "Nouveau surlignage", "Neue Markierung", "Nuevo resaltado"],
+  created: ["Annotation saved", "标注已保存", "標註已儲存", "注釈を保存しました", "Аннотация сохранена", "Annotation enregistrée", "Anmerkung gespeichert", "Anotación guardada"],
+  viewCreated: ["View annotation", "查看标注", "檢視標註", "注釈を表示", "Открыть аннотацию", "Voir l’annotation", "Anmerkung ansehen", "Ver anotación"],
+  chooseBook: ["Choose a book", "选择书籍", "選擇書籍", "本を選択", "Выберите книгу", "Choisir un livre", "Buch auswählen", "Elegir un libro"],
+  bodyRequired: ["Enter note text.", "请输入笔记内容。", "請輸入筆記內容。", "ノートを入力してください。", "Введите текст заметки.", "Saisissez le texte de la note.", "Notiztext eingeben.", "Escribe el texto de la nota."],
+  selectionLimit: ["Select between 1 and 100,000 characters.", "请选择 1 至 100,000 个字符。", "請選取 1 至 100,000 個字元。", "1～100,000 文字を選択してください。", "Выберите от 1 до 100 000 символов.", "Sélectionnez entre 1 et 100 000 caractères.", "Zwischen 1 und 100.000 Zeichen auswählen.", "Selecciona entre 1 y 100.000 caracteres."],
+  unanchored: ["No exact text anchor is available.", "当前没有精确的文本定位。", "目前沒有精確的文字定位。", "正確なテキスト位置がありません。", "Точная привязка к тексту недоступна.", "Aucun ancrage exact dans le texte.", "Keine genaue Textverankerung verfügbar.", "No hay un anclaje exacto al texto."],
   title: ["Annotation Desk", "标注整理器", "標註整理器", "注釈デスク", "Аннотации", "Annotations", "Anmerkungen", "Anotaciones"],
   book: ["Book", "书籍", "書籍", "本", "Книга", "Livre", "Buch", "Libro"],
   allBooks: ["All books", "全部书籍", "全部書籍", "すべての本", "Все книги", "Tous les livres", "Alle Bücher", "Todos los libros"],

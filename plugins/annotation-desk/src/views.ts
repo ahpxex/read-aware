@@ -6,6 +6,7 @@ import { preview, readBooks, subtitle } from "./format";
 import { tr } from "./strings";
 import type { DeskContext, PageState } from "./types";
 import { liveAnnotationPage } from "./live-page";
+import { newNoteView } from "./creation";
 
 async function filterView(ctx: DeskContext, state: PageState): Promise<PluginFormView> {
   const books = await ctx.domains.library.queries.books.list();
@@ -34,6 +35,7 @@ export async function deskView(ctx: DeskContext, state: PageState = { previous: 
     if (state.bookId && !books.has(state.bookId)) books.set(state.bookId, await ctx.domains.library.queries.books.get(state.bookId));
     const refresh = async () => ({ view: await deskView(ctx, { ...state, cursor: undefined, previous: [] }), navigation: "reset" as const });
     const actions: PluginAction[] = [
+      { id: "new-note", label: tr(ctx.locale, "newNote"), icon: "note-pencil", run: async () => ({ view: await newNoteView(ctx, refresh, state.bookId) }) },
       { id: "filter", label: tr(ctx.locale, "filter"), icon: "magnifying-glass", run: async () => ({ view: await filterView(ctx, state) }) },
       { id: "refresh", label: tr(ctx.locale, "refresh"), icon: "arrows-clockwise", run: refresh },
     ];

@@ -1,7 +1,7 @@
 {
   "id": "annotation-desk",
   "name": "Annotation Desk",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "schemaVersion": 1,
   "minAppVersion": "0.3.0",
   "description": "Review, edit, organize and export reading annotations.",
@@ -10,7 +10,7 @@
   "permissions": ["annotations:write", "library:read", "reading:write"],
   "requires": {
     "domains": { "annotations": "^2.0.0", "library": "^1.1.0", "reading": "^2.0.0" },
-    "contributions": { "headerActions": "^1.0.0", "commands": "^1.0.0" },
+    "contributions": { "headerActions": "^1.0.0", "commands": "^1.0.0", "selectionActions": "^1.2.0" },
     "services": { "ui": "^1.2.0" },
     "schemas": { "views": "^1.1.0" }
   }

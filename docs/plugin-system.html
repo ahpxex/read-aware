@@ -214,6 +214,7 @@
         <details class="ep" data-search-section="annotation observation conditional ANN09 标注 观察 同步 草稿 所见版本"><summary>Annotations 2：所有改写按所见版本提交，列表持续观察</summary><div class="ep-body">
           <p>events.observe(page/inspect) 提供初始快照、变化、错误与恢复，包含无本地广播的同步投影；读与回调结算后一秒重读，64 个订阅上限，关闭/退役释放。Agent 按需读取同源结果，不新增常驻模型订阅。</p>
           <p>Annotations 2 删除五个无条件改写/删除入口，统一走所见版本 applyChanges；旧 ^1.x 插件明确拒绝，不偷偷刷新令牌。Agent 删除同样绑定批准时版本。Annotation Desk 0.3 已迁移，真实编译插件的冲突草稿保持不变；恢复/重放仍是宿主内部路径。</p>
+          <p>Annotation Desk 0.4 已组合新建书籍笔记、选区引文笔记及四色高亮/下划线，再进入已有查看、编辑和导出流程；没有新增宿主接口或权限。保存固定原选区，不用后来的选区替换；无精确定位会明确提示。25项插件测试通过，真实桌面新建流程留集中验收；既有创建命令不做源版本条件写，不能借此声称 Range 缺口消失。<a href="./plugin-system.md#annotation-desk-creation-composition">创建流程与边界</a></p>
           <p>原生 Notes、书籍详情、全局标注弹层和正文标记共用串行观察；读失败清旧内容、操作和计数，恢复重画，切书/关闭释放。真实全局 Delete 已验远端先改后删冲突、新内容保留、重读后成功；SQLite 故障恢复与实际 Worker/Agent 条件批次已验。legacy 远端事件、全局/整书载荷、Range 及打包跨平台仍缺，书目单独变更不触发插件列表，不承诺即时交付或自主模型验证。<a href="./plugin-system.md#annotation-conditional-contract">版本迁移</a> · <a href="./plugin-system.md#annotation-query-observations">观察契约</a> · <a href="./evidence/annotation-contract-v2-2026-09-10.json">Annotations 2 证据</a></p>
           <p>存储与封面命令的数据库等待已移入阻塞工作池，封面协议异步响应。macOS 原生已验锁中保存忙碌态、取消重开、旧保存成功后新草稿保留，以及超时错误与重试；取消不回滚已受理写。启动/窗口退出、最大载荷与跨平台不在此保证内。<a href="./plugin-system.md#storage-execution-boundary">执行边界与证据</a></p>
         </div></details>

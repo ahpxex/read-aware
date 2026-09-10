@@ -1,6 +1,14 @@
 // src/strings.ts
 var locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 var strings = {
+  newNote: ["New note", "新建笔记", "新增筆記", "新しいノート", "Новая заметка", "Nouvelle note", "Neue Notiz", "Nueva nota"],
+  newHighlight: ["New highlight", "新建高亮", "新增螢光標記", "新しいハイライト", "Новое выделение", "Nouveau surlignage", "Neue Markierung", "Nuevo resaltado"],
+  created: ["Annotation saved", "标注已保存", "標註已儲存", "注釈を保存しました", "Аннотация сохранена", "Annotation enregistrée", "Anmerkung gespeichert", "Anotación guardada"],
+  viewCreated: ["View annotation", "查看标注", "檢視標註", "注釈を表示", "Открыть аннотацию", "Voir l’annotation", "Anmerkung ansehen", "Ver anotación"],
+  chooseBook: ["Choose a book", "选择书籍", "選擇書籍", "本を選択", "Выберите книгу", "Choisir un livre", "Buch auswählen", "Elegir un libro"],
+  bodyRequired: ["Enter note text.", "请输入笔记内容。", "請輸入筆記內容。", "ノートを入力してください。", "Введите текст заметки.", "Saisissez le texte de la note.", "Notiztext eingeben.", "Escribe el texto de la nota."],
+  selectionLimit: ["Select between 1 and 100,000 characters.", "请选择 1 至 100,000 个字符。", "請選取 1 至 100,000 個字元。", "1～100,000 文字を選択してください。", "Выберите от 1 до 100 000 символов.", "Sélectionnez entre 1 et 100 000 caractères.", "Zwischen 1 und 100.000 Zeichen auswählen.", "Selecciona entre 1 y 100.000 caracteres."],
+  unanchored: ["No exact text anchor is available.", "当前没有精确的文本定位。", "目前沒有精確的文字定位。", "正確なテキスト位置がありません。", "Точная привязка к тексту недоступна.", "Aucun ancrage exact dans le texte.", "Keine genaue Textverankerung verfügbar.", "No hay un anclaje exacto al texto."],
   title: ["Annotation Desk", "标注整理器", "標註整理器", "注釈デスク", "Аннотации", "Annotations", "Anmerkungen", "Anotaciones"],
   book: ["Book", "书籍", "書籍", "本", "Книга", "Livre", "Buch", "Libro"],
   allBooks: ["All books", "全部书籍", "全部書籍", "すべての本", "Все книги", "Tous les livres", "Alle Bücher", "Todos los libros"],
@@ -323,6 +331,97 @@ async function liveAnnotationPage(ctx, input, render) {
   } } };
 }
 
+// src/creation.ts
+function createdView(ctx, item, refresh) {
+  return { kind: "detail", title: tr(ctx.locale, "created"), content: [
+    { kind: "text", text: item.kind === "note" ? item.body : item.text }
+  ], metadata: [{ kind: "label", label: tr(ctx.locale, "kind"), value: tr(ctx.locale, item.kind) }], actions: [
+    {
+      id: "inspect-created",
+      label: tr(ctx.locale, "viewCreated"),
+      icon: "note-pencil",
+      run: async () => ({ view: await detailView(ctx, item.id, refresh) })
+    },
+    { id: "annotations", label: tr(ctx.locale, "title"), icon: "list-bullets", run: refresh }
+  ] };
+}
+async function newNoteView(ctx, refresh, bookId) {
+  const books = bookId ? [await ctx.domains.library.queries.books.get(bookId)].filter((book) => book !== null) : await ctx.domains.library.queries.books.list();
+  if (!books.length)
+    return { kind: "list", title: tr(ctx.locale, "newNote"), items: [], emptyText: tr(ctx.locale, "missingBook") };
+  const choices = books.map((book) => ({ value: book.id, label: book.title }));
+  return { kind: "form", title: tr(ctx.locale, "newNote"), submitLabel: tr(ctx.locale, "save"), fields: [
+    {
+      kind: "select",
+      id: "bookId",
+      label: tr(ctx.locale, "book"),
+      value: bookId ?? "",
+      options: [{ value: "", label: tr(ctx.locale, "chooseBook") }, ...choices]
+    },
+    { kind: "textarea", id: "body", label: tr(ctx.locale, "body"), value: "", rows: 8 }
+  ], onSubmit: async (values) => {
+    if (!choices.some((book) => book.value === values.bookId))
+      return { fieldErrors: { bookId: tr(ctx.locale, "invalid") } };
+    if (typeof values.body !== "string" || !values.body.trim())
+      return { fieldErrors: { body: tr(ctx.locale, "bodyRequired") } };
+    if (values.body.length > 1e5)
+      return { fieldErrors: { body: tr(ctx.locale, "bodyLimit") } };
+    const item = await ctx.domains.annotations.commands.createNote({ bookId: values.bookId, body: values.body });
+    return { view: createdView(ctx, item, refresh), navigation: "replace" };
+  } };
+}
+function selectionCreationView(ctx, input, kind, refresh) {
+  const captured = structuredClone(input);
+  if (!captured.text.trim() || captured.text.length > 1e5)
+    return {
+      kind: "blocks",
+      blocks: [{ kind: "text", text: tr(ctx.locale, "selectionLimit") }]
+    };
+  const colors = ["yellow", "green", "blue", "pink"];
+  const styles = ["highlight", "underline"];
+  const content = [{ kind: "quote", text: captured.text }];
+  if (!captured.cfiRange)
+    content.push({ kind: "text", text: tr(ctx.locale, "unanchored") });
+  content.push({ kind: "form", submitLabel: tr(ctx.locale, "save"), fields: kind === "note" ? [{ kind: "textarea", id: "body", label: tr(ctx.locale, "body"), value: "", rows: 8 }] : [
+    {
+      kind: "choice",
+      id: "color",
+      label: tr(ctx.locale, "color"),
+      value: "yellow",
+      options: colors.map((value) => ({ value, label: tr(ctx.locale, value) }))
+    },
+    {
+      kind: "choice",
+      id: "style",
+      label: tr(ctx.locale, "style"),
+      value: "highlight",
+      options: styles.map((value) => ({ value, label: tr(ctx.locale, value) }))
+    }
+  ], onSubmit: async (values) => {
+    const location = { bookId: captured.book.id, anchor: captured.cfiRange, chapterHref: captured.chapterHref };
+    let item;
+    if (kind === "note") {
+      if (typeof values.body !== "string" || !values.body.trim())
+        return { fieldErrors: { body: tr(ctx.locale, "bodyRequired") } };
+      if (values.body.length > 1e5)
+        return { fieldErrors: { body: tr(ctx.locale, "bodyLimit") } };
+      item = await ctx.domains.annotations.commands.createNote({ ...location, quotedText: captured.text, body: values.body });
+    } else {
+      const color = colors.find((color2) => color2 === values.color), style = styles.find((style2) => style2 === values.style);
+      if (!color || !style)
+        return { fieldErrors: { [!color ? "color" : "style"]: tr(ctx.locale, "invalid") } };
+      item = await ctx.domains.annotations.commands.createHighlight({ ...location, text: captured.text, color, style });
+    }
+    return { view: createdView(ctx, item, refresh), navigation: "replace" };
+  } });
+  return {
+    kind: "detail",
+    title: tr(ctx.locale, kind === "note" ? "newNote" : "newHighlight"),
+    content,
+    metadata: [{ kind: "label", label: tr(ctx.locale, "book"), value: captured.book.title, icon: "book-open" }]
+  };
+}
+
 // src/views.ts
 async function filterView(ctx, state) {
   const books = await ctx.domains.library.queries.books.list();
@@ -364,6 +463,7 @@ async function deskView(ctx, state = { previous: [] }) {
       books.set(state.bookId, await ctx.domains.library.queries.books.get(state.bookId));
     const refresh = async () => ({ view: await deskView(ctx, { ...state, cursor: undefined, previous: [] }), navigation: "reset" });
     const actions = [
+      { id: "new-note", label: tr(ctx.locale, "newNote"), icon: "note-pencil", run: async () => ({ view: await newNoteView(ctx, refresh, state.bookId) }) },
       { id: "filter", label: tr(ctx.locale, "filter"), icon: "magnifying-glass", run: async () => ({ view: await filterView(ctx, state) }) },
       { id: "refresh", label: tr(ctx.locale, "refresh"), icon: "arrows-clockwise", run: refresh }
     ];
@@ -411,6 +511,20 @@ var plugin = {
   activate(ctx) {
     assertCapabilities(ctx);
     const title = tr(ctx.locale, "title");
+    for (const kind of ["note", "highlight"])
+      ctx.contributions.selectionActions.register({
+        id: `create-${kind}`,
+        title: tr(ctx.locale, kind === "note" ? "newNote" : "newHighlight"),
+        icon: kind === "note" ? "note-pencil" : "highlighter",
+        presentation: "dialog",
+        run: (input) => {
+          const bookId = input.book.id;
+          return { view: selectionCreationView(ctx, input, kind, async () => ({
+            view: await deskView(ctx, { bookId, previous: [] }),
+            navigation: "reset"
+          })) };
+        }
+      });
     ctx.contributions.headerActions.register({
       id: "shelf",
       title,

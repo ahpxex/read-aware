@@ -377,11 +377,325 @@ async function importBook(ctx) {
   } }] : [], onClose: () => resources.release(resource.id) } };
 }
 
+// src/organize-strings.ts
+var en3 = {
+  organize: "Organize",
+  metadata: "Edit title and author",
+  title: "Title",
+  author: "Author",
+  save: "Save",
+  required: "Enter a name",
+  favorite: "Favorite",
+  addFavorite: "Add to favorites",
+  removeFavorite: "Remove from favorites",
+  done: "Done",
+  yes: "Yes",
+  no: "No",
+  refresh: "Refresh",
+  missing: "Book no longer available",
+  collections: "Collections",
+  create: "New collection",
+  rename: "Rename",
+  name: "Name",
+  remove: "Remove collection",
+  confirm: "Confirm",
+  deleteWarning: "Remove this collection. Its books will remain in the library.",
+  confirmRequired: "Confirm this change first",
+  move: "Move selected books",
+  ungroup: "No collection",
+  destination: "Destination",
+  selected: "Selected books",
+  duplicates: "Duplicate books",
+  noDuplicates: "No duplicates found",
+  keep: "Keep",
+  merge: "Merge records",
+  mergeWarning: "Merge these duplicate records into the retained book. This cannot be undone.",
+  merged: "Records merged",
+  previous: "Previous",
+  next: "Next",
+  openKeeper: "Retained book",
+  noCollection: "Collection no longer available"
+};
+var zh2 = {
+  organize: "整理书籍",
+  metadata: "编辑书名与作者",
+  title: "书名",
+  author: "作者",
+  save: "保存",
+  required: "请输入名称",
+  favorite: "收藏",
+  addFavorite: "加入收藏",
+  removeFavorite: "取消收藏",
+  done: "完成",
+  yes: "是",
+  no: "否",
+  refresh: "刷新",
+  missing: "书籍已不可用",
+  collections: "集合",
+  create: "新建集合",
+  rename: "重命名",
+  name: "名称",
+  remove: "移除集合",
+  confirm: "确认",
+  deleteWarning: "移除此集合，书籍仍保留在书库中。",
+  confirmRequired: "请先确认此变更",
+  move: "移动所选书籍",
+  ungroup: "无集合",
+  destination: "目标集合",
+  selected: "所选书籍",
+  duplicates: "重复书籍",
+  noDuplicates: "没有重复书籍",
+  keep: "保留",
+  merge: "合并记录",
+  mergeWarning: "将这些重复记录合并到保留书籍中，此操作无法撤销。",
+  merged: "记录已合并",
+  previous: "上一页",
+  next: "下一页",
+  openKeeper: "保留书籍",
+  noCollection: "集合已不可用"
+};
+var organizeStrings = (locale) => locale === "zh-Hans" || locale === "zh-CN" ? zh2 : en3;
+
+// src/organize-books.ts
+function mutationDone(ctx, reload) {
+  const t = organizeStrings(ctx.locale);
+  return { view: { kind: "detail", title: t.done, content: [], actions: [
+    { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await reload(), navigation: "replace" }) }
+  ] }, navigation: "replace" };
+}
+async function organizeBook(ctx, bookId) {
+  const library = ctx.domains.library, t = organizeStrings(ctx.locale);
+  const book = await library.queries.books.get(bookId);
+  if (!book)
+    return { kind: "detail", title: t.organize, content: [{ kind: "text", text: t.missing }] };
+  const reload = () => organizeBook(ctx, bookId);
+  const metadata = () => ({
+    kind: "form",
+    title: t.metadata,
+    fields: [
+      { kind: "text", id: "title", label: t.title, value: book.title },
+      { kind: "text", id: "author", label: t.author, value: book.author ?? "" }
+    ],
+    submitLabel: t.save,
+    onSubmit: async (values) => {
+      const title = typeof values.title === "string" ? values.title.trim() : "";
+      const author = typeof values.author === "string" ? values.author.trim() : "";
+      if (!title)
+        return { fieldErrors: { title: t.required } };
+      await library.commands.books.editMetadata(bookId, {
+        ...title === book.title ? {} : { title },
+        ...author === (book.author ?? "") ? {} : { author }
+      });
+      return mutationDone(ctx, reload);
+    }
+  });
+  return { kind: "detail", title: book.title, content: [{ kind: "keyValue", rows: [
+    { label: t.author, value: book.author ?? "" },
+    { label: t.favorite, value: book.starred ? t.yes : t.no }
+  ] }], actions: [
+    { id: "metadata", label: t.metadata, icon: "note-pencil", run: () => ({ view: metadata() }) },
+    { id: "favorite", label: book.starred ? t.removeFavorite : t.addFavorite, icon: "star", run: async () => {
+      await library.commands.books.setStarred(bookId, !book.starred);
+      return mutationDone(ctx, reload);
+    } },
+    { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await reload(), navigation: "replace" }) }
+  ] };
+}
+
+// src/collections.ts
+function nameForm(ctx, collection) {
+  const t = organizeStrings(ctx.locale), commands = ctx.domains.library.commands.collections;
+  return {
+    kind: "form",
+    title: collection ? t.rename : t.create,
+    fields: [{ kind: "text", id: "name", label: t.name, value: collection?.name ?? "" }],
+    submitLabel: t.save,
+    onSubmit: async (values) => {
+      const name = typeof values.name === "string" ? values.name.trim() : "";
+      if (!name)
+        return { fieldErrors: { name: t.required } };
+      if (collection)
+        await commands.rename(collection.id, name);
+      else
+        await commands.create(name);
+      return mutationDone(ctx, () => collectionList(ctx));
+    }
+  };
+}
+async function collectionList(ctx) {
+  const t = organizeStrings(ctx.locale), collections = await ctx.domains.library.queries.collections.list();
+  return {
+    kind: "list",
+    title: t.collections,
+    searchable: true,
+    items: collections.map((collection) => ({
+      id: collection.id,
+      title: collection.name,
+      icon: "folder",
+      onSelect: async () => ({ view: await collectionDetail(ctx, collection) })
+    })),
+    actions: [
+      { id: "create", label: t.create, icon: "plus", run: () => ({ view: nameForm(ctx) }) },
+      { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await collectionList(ctx), navigation: "replace" }) }
+    ]
+  };
+}
+async function collectionDetail(ctx, collection) {
+  const t = organizeStrings(ctx.locale), library = ctx.domains.library;
+  const members = await library.queries.collections.booksIn(collection.id);
+  return {
+    kind: "detail",
+    title: collection.name,
+    content: [{ kind: "metric", label: t.selected, value: String(members.length) }],
+    actions: [
+      { id: "rename", label: t.rename, icon: "note-pencil", run: () => ({ view: nameForm(ctx, collection) }) },
+      { id: "remove", label: t.remove, icon: "trash", variant: "danger", run: () => ({ view: {
+        kind: "form",
+        title: collection.name,
+        fields: [{ kind: "checkbox", id: "confirm", label: t.deleteWarning, value: false }],
+        submitLabel: t.remove,
+        onSubmit: async (values) => {
+          if (values.confirm !== true)
+            return { fieldErrors: { confirm: t.confirmRequired } };
+          await library.commands.collections.remove(collection.id);
+          return mutationDone(ctx, () => collectionList(ctx));
+        }
+      } }) }
+    ]
+  };
+}
+async function moveBooks(ctx, selected) {
+  const t = organizeStrings(ctx.locale), library = ctx.domains.library;
+  const books = selected.map((book) => ({ id: book.id, title: book.title })), bookIds = books.map((book) => book.id);
+  const collections = await library.queries.collections.list();
+  const targets = [null, ...collections.map((collection) => collection.id)];
+  const form = () => ({ kind: "form", fields: [
+    { kind: "select", id: "destination", label: t.destination, value: "", options: [
+      { value: "", label: t.destination },
+      { value: "0", label: t.ungroup },
+      ...collections.map((collection, index) => ({ value: String(index + 1), label: collection.name }))
+    ] },
+    { kind: "checkbox", id: "confirm", label: `${t.selected}: ${bookIds.length}`, value: false }
+  ], submitLabel: t.move, onSubmit: async (values) => {
+    if (values.confirm !== true)
+      return { fieldErrors: { confirm: t.confirmRequired } };
+    const index = targets.findIndex((_, index2) => String(index2) === values.destination);
+    if (index < 0)
+      return { fieldErrors: { destination: t.required } };
+    const target = targets[index];
+    if (target !== null && !(await library.queries.collections.list()).some((collection) => collection.id === target)) {
+      return { fieldErrors: { destination: t.noCollection } };
+    }
+    await library.commands.collections.assignBooks([...bookIds], target);
+    return mutationDone(ctx, () => collectionList(ctx));
+  } });
+  const render = (offset) => ({ kind: "detail", title: `${t.move} (${bookIds.length})`, content: [
+    {
+      kind: "list",
+      items: books.slice(offset, offset + 20).map((book) => ({ id: book.id, title: book.title, subtitle: book.id, icon: "book-open" })),
+      pagination: {
+        page: Math.floor(offset / 20) + 1,
+        pageCount: Math.max(1, Math.ceil(bookIds.length / 20)),
+        ...offset > 0 ? { onPrevious: () => ({ view: render(offset - 20), navigation: "replace" }) } : {},
+        ...offset + 20 < books.length ? { onNext: () => ({ view: render(offset + 20), navigation: "replace" }) } : {}
+      }
+    },
+    form()
+  ] });
+  return render(0);
+}
+
+// src/duplicates.ts
+async function duplicateList(ctx, offset = 0) {
+  const t = organizeStrings(ctx.locale), page = await ctx.domains.library.queries.books.listDuplicates({ offset, limit: 20 });
+  return {
+    kind: "list",
+    title: t.duplicates,
+    emptyText: t.noDuplicates,
+    items: page.groups.map((group) => ({
+      id: group.bookId,
+      title: group.title,
+      subtitle: String(group.count),
+      icon: "books",
+      onSelect: async () => ({ view: await duplicateReview(ctx, group.bookId) })
+    })),
+    actions: [{ id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await duplicateList(ctx), navigation: "replace" }) }],
+    pagination: {
+      page: Math.floor(offset / 20) + 1,
+      ...offset > 0 ? { onPrevious: async () => ({ view: await duplicateList(ctx, Math.max(0, offset - 20)), navigation: "replace" }) } : {},
+      ...page.nextOffset === null ? {} : { onNext: async () => ({ view: await duplicateList(ctx, page.nextOffset), navigation: "replace" }) }
+    }
+  };
+}
+async function duplicateReview(ctx, bookId) {
+  const preview = await ctx.domains.library.queries.books.previewMerge(bookId);
+  if (!preview)
+    return duplicateList(ctx);
+  const frozen = { revision: preview.revision, keep: { ...preview.keep }, merged: preview.merged.map((member) => ({ ...member })) };
+  return reviewPage(ctx, frozen, 0);
+}
+function reviewPage(ctx, preview, offset) {
+  const t = organizeStrings(ctx.locale), bookId = preview.keep.id, expectedRevision = preview.revision;
+  return { kind: "detail", title: t.duplicates, content: [
+    { kind: "keyValue", rows: [{ label: t.keep, value: `${preview.keep.title}
+${preview.keep.author}
+${bookId}` }] },
+    { kind: "list", title: `${t.merge} (${preview.merged.length})`, items: preview.merged.slice(offset, offset + 20).map((member) => ({
+      id: member.id,
+      title: member.title,
+      subtitle: `${member.author}
+${member.id}`,
+      icon: "book-open"
+    })), pagination: {
+      page: Math.floor(offset / 20) + 1,
+      pageCount: Math.ceil(preview.merged.length / 20),
+      ...offset > 0 ? { onPrevious: () => ({ view: reviewPage(ctx, preview, offset - 20), navigation: "replace" }) } : {},
+      ...offset + 20 < preview.merged.length ? { onNext: () => ({ view: reviewPage(ctx, preview, offset + 20), navigation: "replace" }) } : {}
+    } }
+  ], actions: [
+    { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await duplicateReview(ctx, bookId), navigation: "replace" }) },
+    { id: "merge", label: t.merge, icon: "books", variant: "danger", run: () => ({ view: {
+      kind: "form",
+      title: `${t.keep}: ${preview.keep.title}`,
+      fields: [{ kind: "checkbox", id: "confirm", label: t.mergeWarning, value: false }],
+      submitLabel: t.merge,
+      onSubmit: async (values) => {
+        if (values.confirm !== true)
+          return { fieldErrors: { confirm: t.confirmRequired } };
+        const receipt = await ctx.domains.library.commands.books.mergeDuplicates({ bookId, expectedRevision });
+        return { view: receiptPage(ctx, receipt, 0), navigation: "reset" };
+      }
+    } }) }
+  ] };
+}
+function receiptPage(ctx, receipt, offset) {
+  const t = organizeStrings(ctx.locale);
+  return {
+    kind: "list",
+    title: `${t.merged} (${receipt.redirects.length})`,
+    items: receipt.redirects.slice(offset, offset + 20).map((redirect) => ({ id: redirect.from, title: redirect.from, subtitle: redirect.to, icon: "arrow-right" })),
+    actions: [
+      { id: "keeper", label: t.openKeeper, icon: "book-open", run: async () => {
+        const current = await ctx.domains.library.queries.books.resolveId(receipt.keepId);
+        return { view: current ? await organizeBook(ctx, current) : { kind: "detail", title: t.openKeeper, content: [{ kind: "text", text: t.missing }] } };
+      } },
+      { id: "duplicates", label: t.duplicates, icon: "books", run: async () => ({ view: await duplicateList(ctx), navigation: "reset" }) }
+    ],
+    pagination: {
+      page: Math.floor(offset / 20) + 1,
+      pageCount: Math.max(1, Math.ceil(receipt.redirects.length / 20)),
+      ...offset > 0 ? { onPrevious: () => ({ view: receiptPage(ctx, receipt, offset - 20), navigation: "replace" }) } : {},
+      ...offset + 20 < receipt.redirects.length ? { onNext: () => ({ view: receiptPage(ctx, receipt, offset + 20), navigation: "replace" }) } : {}
+    }
+  };
+}
+
 // src/views.ts
 async function libraryDesk(ctx) {
   const library = ctx.domains.library, write = library.commands.books, t = strings(ctx.locale);
   const cleanupText = cleanupStrings(ctx.locale);
   const assetsText = assetStrings(ctx.locale);
+  const organizeText = organizeStrings(ctx.locale);
   let books = await library.queries.books.list(), channel, revision = 0, refreshGeneration = 0;
   const selected = new Set;
   const refresh = async () => {
@@ -472,6 +786,10 @@ ${book.author ?? ""}` }))
     actions: [
       { id: "refresh", label: t[7], icon: "arrows-clockwise", run: refresh },
       { id: "import", label: assetsText.import, icon: "plus", run: () => importBook(ctx) },
+      { id: "duplicates", label: organizeText.duplicates, icon: "books", run: async () => ({ view: await duplicateList(ctx) }) },
+      { id: "collections", label: organizeText.collections, icon: "folder", run: async () => ({ view: await collectionList(ctx) }) },
+      ...selected.size ? [{ id: "move", label: organizeText.move, icon: "folder", run: async () => ({ view: await moveBooks(ctx, books.filter((book) => selected.has(book.id))) }) }] : [],
+      ...selected.size === 1 ? [{ id: "organize", label: organizeText.organize, icon: "note-pencil", run: async () => ({ view: await organizeBook(ctx, [...selected][0]) }) }] : [],
       ...selected.size === 1 ? [{ id: "details", label: assetsText.details, icon: "book-open", run: async () => ({ view: await bookAssets(ctx, books.find((book) => selected.has(book.id))) }) }] : [],
       { id: "workspace", label: workspaceStrings(ctx.locale)[0], icon: "books", run: async () => ({ view: await workspaceView(ctx) }) },
       ...selected.size ? [{ id: "show-selection", label: workspaceStrings(ctx.locale)[7], icon: "arrow-right", run: async () => ({ view: await workspaceView(ctx, books.filter((book) => selected.has(book.id))) }) }] : [],

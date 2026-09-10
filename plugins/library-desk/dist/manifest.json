@@ -1,9 +1,9 @@
 {
   "id": "library-desk",
   "name": "Library Desk",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "schemaVersion": 1,
-  "description": "Import books, inspect and export local book assets, monitor metadata enrichment, navigate collections, and review removal batches.",
+  "description": "Organize books and collections, review duplicate merges, import books, export local assets, and manage removal batches.",
   "author": "ReadAware",
   "main": "main.js",
   "permissions": ["library:write", "reading:write", "service:clipboard"],

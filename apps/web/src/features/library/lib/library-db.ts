@@ -16,6 +16,7 @@ import type {
   LibraryBookRow,
 } from "./library-types";
 import { withCoverUrl } from "./book-cover-url";
+import { bookMetadataPatch } from "./book-metadata-patch";
 import { isTauri } from "../../../platform/environment";
 import type { BookFileSource } from "../../reader/lib/reader-types";
 import { emitAppEvent } from "../../../platform/app-events";
@@ -285,24 +286,15 @@ export async function updateBookMetadata(
   const existingBook = await getBookRecord(bookId);
   if (!existingBook) return null;
 
-  const title = patch.title?.trim();
-  const author = patch.author?.trim();
-  const nextBook: LibraryBook = {
-    ...existingBook,
-    title: title || existingBook.title,
-    author: author || existingBook.author,
-    updatedAt: new Date().toISOString(),
-  };
-
-  if (nextBook.title === existingBook.title && nextBook.author === existingBook.author) {
+  const changes = bookMetadataPatch(existingBook, patch);
+  if (Object.keys(changes).length === 0) {
     return existingBook;
   }
   await commitDomainEvents({
     type: "book.metadataEdited",
     payload: {
       bookId,
-      ...(nextBook.title !== existingBook.title ? { title: nextBook.title } : {}),
-      ...(nextBook.author !== existingBook.author ? { author: nextBook.author } : {}),
+      ...changes,
     },
     origin,
   });

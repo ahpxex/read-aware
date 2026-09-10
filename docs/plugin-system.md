@@ -5871,7 +5871,7 @@ adjacent distribution repository, not an additional source plugin in this checko
 | Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |
 | Workspace Profiles | settled settings snapshots, exact path grants, atomic presets, private documents, shelf header/command views and Agent tool |
 | Text Desk | versioned section/reference/image browsing, bounded note previews, image resource display/save/copy and native preview handoffs (0.10); text preparation/tasks, cancellable search, snippets, reader header/command and explicit navigation |
-| Library Desk | user-picked import with initialization review, local cover preview/copy/save, original export and live enrichment/retry (0.7); workspace/collection navigation, guarded host commands, native selection, batch review/removal and durable cleanup retry |
+| Library Desk | metadata/favorite edits, collection create/rename/remove and reviewed assignment, conditional duplicate merge and redirect receipts (0.8); import review, cover/original assets, enrichment, workspace commands, batch removal and cleanup retry |
 | Memory Desk | memory search, protected chapter graphs, source navigation and conditional correction/pin/unpin/forget (0.2); shared Agent queries and manage_memory, no duplicate plugin tool |
 | Maintenance Desk | public model catalogs, native connection-test/backup/diagnostic handoffs and projection verification (0.1); receipt journal, no new host or Agent APIs |
 
@@ -5920,6 +5920,52 @@ Worker, parser formats, image pixels, native preview focus/layering, save/paste
 and closure during native operations remain concentrated Tauri E2E work. Existing
 PDF object/CSS image and non-DOM reference gaps are not marked solved by adding
 a consumer. Document visual checks were not rerun.
+
+### Library Desk Organization
+
+[代码] Library Desk 0.8 adds public-API consumers for Library metadata, favorites,
+collections and duplicate management, without adding a host or Agent API. It
+retains 0.7's capability and permission requirements; new labels use simplified
+Chinese or English fallback.
+
+- A single selected book opens a freshly queried organization view. Metadata
+  submits only changed title/author fields; title must remain nonblank. Favorite
+  is a separate single write, not a multi-command transaction. The shared host
+  metadata normalizer now distinguishes omitted author from explicit empty
+  author, so clearing an author produces `book.metadataEdited` with `author: ""`.
+  Empty title retains the existing host behavior; unchanged fields emit no event.
+- Collections can be created, renamed, inspected for member count and removed.
+  Removal has a separate explicit checkbox confirmation; it removes the
+  collection/membership, never calls book deletion. Moving selected books freezes
+  their IDs/titles, shows 20 review rows per page, requires an explicit destination
+  and confirmation, and supports `null` to ungroup. A deleted destination is
+  rejected when rechecked before submission. This is not an atomic compare-and-set
+  guard against deletion after that check.
+- These ordinary writes retain their existing void completion contract and
+  last-write behavior. Result frames do not perform another read that could
+  disguise a completed write as a failed mutation; Refresh is a separate read.
+  They do not promise cross-device CAS, a rollback or that all reviewed books
+  still existed at dispatch. Concurrent missing-target/no-op handling in the
+  legacy host paths remains a limitation, unlike the conditional merge below.
+- Duplicate groups use live offset pages of 20. Opening a group calls
+  `previewMerge`; the returned keeper, members and revision are copied for review.
+  Member pagination uses the same frozen group. A separate checkbox confirms
+  the irreversible merge, submitting only keeper ID and that exact revision.
+  `ui/superseded` propagates without automatic re-preview/retry; returning to
+  review and explicitly refreshing obtains a new group requiring confirmation.
+- A committed merge displays paged `from`/`to` redirects from its receipt without
+  another query or synthetic success. The retained-book action uses `resolveId`
+  before reading current book metadata, so a subsequent merge does not make the
+  receipt's old keeper ID the assumed current identity.
+
+[验证] 28 plugin tests plus two host metadata-normalization tests (30 tests,
+136 assertions) pass; plugin build/typecheck and web typecheck pass. The compiled
+entry runs its actual contribution callbacks in a controlled Bun context, not
+WebKit Worker/Tauri. No real book records changed and no desktop launched for
+this batch. Native merge/collection confirmation, actual event projection and
+restart, multi-device races and visual checks remain concentrated acceptance
+work. Existing mutation limitations are documented, not declared solved merely
+because a consumer now exists.
 
 ### Library Desk Asset Composition
 

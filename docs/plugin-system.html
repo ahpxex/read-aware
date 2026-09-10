@@ -255,6 +255,10 @@
             <p>macOS debug 已验双端查询、真实阅读 tick、结算、失败恢复和窄窗菜单。数据只含已持久样本，通常约 20 秒写入一次，不外推秒表，也不代表跨设备已同步；打包、跨平台和长时负载未验。<a href="./plugin-system.md#persisted-reading-time">完整契约</a> · <a href="./evidence/reading-time-snapshot-2026-09-09.json">桌面证据</a></p>
           </div></details>
           <p class="intro">插件只看到权限允许的 actor view。所有写入都经过正式命令，并记录来源。</p>
+          <details class="ep" data-search-section="Library Desk organize duplicate merge collections 书目 收藏 集合 合并"><summary>Library Desk 0.8：书目、集合与重复书合并已有实际使用方</summary><div class="ep-body">
+            <p>书目编辑与收藏分开写；集合可创建、重命名、确认移除及批量分配。移动先冻结书籍名单并分页审阅。重复书合并保留完整审阅版本，明确确认后条件提交，冲突不自动换组重试；回执显示重定向，查询保留书时重新解析身份。</p>
+            <p>修正宿主清空作者被忽略的问题，未新增宿主或 Agent API。30项相关检查、插件构建及插件/前端类型检查通过；普通书目/集合写入仍不是跨设备CAS，也没有补上旧路径的并发目标缺失回执。本批未操作真实书库，原生写入/重启/确认与视觉验收后置。<a href="./plugin-system.md#library-desk-organization">详细边界</a></p>
+          </div></details>
           <details class="ep" data-search-section="Library Desk import cover resource 封面 导入 导出 补齐"><summary>Library Desk 0.7：导入、封面与原文件组合已接好</summary><div class="ep-body">
             <p>只用既有公开 API：选文件后先检查解析器初始化，明确导入才写书库；结果区分新增与重复。单本详情可观察补齐状态、请求重试、预览和复制保存封面、导出本地原件。复制需独立剪贴板权限，新标签提供简体中文及英文回退。</p>
             <p>接通不等于端到端通过。21项插件检查、类型与构建通过；帧关闭及导出结算释放资源，取消保存不报成功。原生文件选择、真实粘贴、格式及关闭中操作留集中 Tauri 验收，本批不启动桌面。<a href="./plugin-system.md#library-desk-asset-composition">组合边界</a></p>

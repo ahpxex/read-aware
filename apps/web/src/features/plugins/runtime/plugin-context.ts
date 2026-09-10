@@ -177,6 +177,7 @@ export function buildPluginContext(
     selfOrigin,
     domainGrantsFromPermissions(manifest.permissions ?? []),
     lifecycle.signal,
+    work => lifecycle.trackCleanup(work),
   );
   const ownSettingsPaths = (manifest.settings ?? [])
     .filter(
@@ -743,6 +744,7 @@ export function buildPluginContext(
       events: {
         subscribe: trackedOn(reading.events.subscribe),
         observeSession: handler => track(() => ({ dispose: reading.events.observeSession(handler) })),
+        observeEmphasis: handler => track(() => ({ dispose: reading.events.observeEmphasis(handler) })),
         observeTime: (query, handler) => track(() => ({ dispose: reading.events.observeTime(query, handler) })),
       },
     };
@@ -750,6 +752,8 @@ export function buildPluginContext(
       ctx.domains.reading.commands = guardMutationTree(
         {
         setFinished: reading.commands.setFinished,
+        putEmphasis: (input: import("@read-aware/core").ReadingEmphasisWrite, guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.putEmphasis(input, lifecycle.signal, guard),
+        removeEmphasis: (input: import("@read-aware/core").ReadingEmphasisRef, guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.removeEmphasis(input, lifecycle.signal, guard),
         selectRange: (range: import("@read-aware/core").BookTextRange, guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.selectRange(range, lifecycle.signal, guard),
         clearSelection: (expectedId: string, guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.clearSelection(expectedId, lifecycle.signal, guard),
         openBook: (bookId: string) => reading.commands!.openBook(bookId, lifecycle.signal),

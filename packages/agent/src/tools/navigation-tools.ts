@@ -7,6 +7,7 @@ import { assertSpoilerPermission, confirmSpoilerSchema, spoilerGranted } from ".
 import { resolveBookId } from "./current-book";
 import { textResult } from "./tool-result";
 import type { AgentTurnState } from "./turn-state";
+import { bookRangeSchema } from "./book-range-schema";
 
 export function buildNavigationTools(scope: ThreadScope, deps: RuntimeDeps, state?: AgentTurnState): AgentTool[] {
   return [{
@@ -39,11 +40,7 @@ export function buildNavigationTools(scope: ThreadScope, deps: RuntimeDeps, stat
     name: "read_book_range", label: "Read a book range",
     description: "Read a versioned range returned by find_book_locations, without opening or moving the reader. Do not invent or rewrite its bookId, contentVersion or CFI. Returns bounded text, same-section context and nextOffset for continuation. A stale/missing range requires a fresh search. The current narrative book's original reading fence still applies, even to a known range.",
     parameters: Type.Object({
-      range: Type.Object({ bookId: Type.String({ minLength: 1, maxLength: 512 }), contentVersion: Type.String({ minLength: 1, maxLength: 256 }),
-        cfi: Type.String({ minLength: 1, maxLength: 8192 }),
-        textQuote: Type.Optional(Type.Object({ exact: Type.String({ minLength: 1, maxLength: 12000 }),
-          prefix: Type.Optional(Type.String({ maxLength: 2000 })), suffix: Type.Optional(Type.String({ maxLength: 2000 })) }, { additionalProperties: false })),
-      }, { additionalProperties: false }),
+      range: bookRangeSchema,
       offset: Type.Optional(Type.Integer({ minimum: 0 })), limit: Type.Optional(Type.Integer({ minimum: 2, maximum: 12000 })),
       contextChars: Type.Optional(Type.Integer({ minimum: 0, maximum: 2000 })), confirmSpoiler: confirmSpoilerSchema,
     }, { additionalProperties: false }),

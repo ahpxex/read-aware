@@ -44,7 +44,7 @@ test("passage form validates before queries; result selection reads without movi
   expect(reads[1]).toEqual({ range, offset: 3 });
   await detail.actions!.find(a => a.id === "open-passage")!.run();
   expect(jumps).toEqual([range]);
-  await list.actions![0].run();
+  await list.actions!.find(action => action.id === "next")!.run();
   expect(searches[1]).toMatchObject({ contentVersion: "v1", cursor: "next" });
 });
 

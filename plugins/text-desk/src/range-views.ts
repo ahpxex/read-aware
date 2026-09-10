@@ -1,5 +1,7 @@
 import type { BookLocationSearch, BookRangeQuery, BookTextRange, PluginContext, PluginDetailView, PluginFormView, PluginListView } from "@read-aware/plugin-types";
 import { tr } from "./strings";
+import { ensureReadingSession } from "./reader-session";
+import { markPassages } from "./emphasis-views";
 
 export async function capturedRangeDetail(ctx: PluginContext, range?: BookTextRange | null): Promise<PluginDetailView> {
   if (range) return rangeDetail(ctx, { range });
@@ -26,8 +28,12 @@ export async function rangeResults(ctx: PluginContext, input: BookLocationSearch
     items: page.hits.map(hit => ({ id: hit.id, title: hit.excerpt.pre + hit.excerpt.match + hit.excerpt.post, icon: "magnifying-glass",
       subtitle: `${tr(ctx.locale, "sourceSection")} ${hit.sectionIndex + 1} · ${hit.id}`,
       onSelect: async () => ({ view: await rangeDetail(ctx, { range: hit.range }) }) })),
-    actions: page.nextCursor ? [{ id: "next", label: tr(ctx.locale, "next"), icon: "arrow-right",
-      run: async () => ({ view: await rangeResults(ctx, { ...input, contentVersion: page.contentVersion, cursor: page.nextCursor! }), navigation: "replace" }) }] : [],
+    actions: [
+      ...(page.hits.length ? [{ id: "mark-results", label: tr(ctx.locale, "markResults"), icon: "text-aa",
+        run: () => markPassages(ctx, page.hits.map(hit => hit.range)) }] : []),
+      ...(page.nextCursor ? [{ id: "next", label: tr(ctx.locale, "next"), icon: "arrow-right",
+        run: async () => ({ view: await rangeResults(ctx, { ...input, contentVersion: page.contentVersion, cursor: page.nextCursor! }), navigation: "replace" as const }) }] : []),
+    ],
   };
 }
 
@@ -38,12 +44,10 @@ export async function rangeDetail(ctx: PluginContext, input: BookRangeQuery): Pr
     { kind: "quote", text: page.text, caption: `${page.offset + 1}-${page.offset + page.text.length} / ${page.totalLength}` },
     ...(page.context.after ? [{ kind: "text" as const, text: page.context.after }] : []),
   ], actions: [
+    { id: "mark-passage", label: tr(ctx.locale, "highlightMarks"), icon: "text-aa", run: () => markPassages(ctx, [page.range]) },
     { id: "select-passage", label: tr(ctx.locale, "selectPassage"), icon: "text-aa", run: async () => {
-      const reading = ctx.domains.reading!;
-      const current = await reading.queries.session();
-      const session = current.bookId === page.range.bookId && current.status === "ready"
-        ? current : await reading.commands!.openBook(page.range.bookId);
-      await reading.commands!.selectRange(page.range, { bookId: page.range.bookId, sessionId: session.sessionId! });
+      const guard = await ensureReadingSession(ctx, page.range.bookId);
+      await ctx.domains.reading!.commands!.selectRange(page.range, guard);
       return { close: true };
     } },
     { id: "open-passage", label: tr(ctx.locale, "openPassage"), icon: "book-open", run: async () => {

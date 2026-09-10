@@ -4,6 +4,7 @@ import { AppError, normalizeBookRangeQuery, type BookTextRange } from "@read-awa
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { textResult } from "./tool-result";
+import { bookRangeSchema } from "./book-range-schema";
 
 export function buildSelectionTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   return [{
@@ -11,13 +12,7 @@ export function buildSelectionTools(scope: ThreadScope, deps: RuntimeDeps): Agen
     description: "Select a versioned passage in the already open book, or clear an observed selection ID. Copy range from find_book_locations, read_book_range or get_reading_session; never invent an anchor. Selecting navigates and waits for the selection UI to commit. Clear requires selectionId from an earlier receipt or session.selection.id and rejects a newer selection. Returns identity only, never passage text or extra spoiler access. Cancellation does not undo an already displayed selection. Use only for an explicit user request.",
     parameters: Type.Object({
       action: Type.Union([Type.Literal("select"), Type.Literal("clear")]),
-      range: Type.Optional(Type.Object({
-        bookId: Type.String({ minLength: 1, maxLength: 512 }),
-        contentVersion: Type.String({ minLength: 1, maxLength: 256 }),
-        cfi: Type.String({ minLength: 1, maxLength: 8192 }),
-        textQuote: Type.Optional(Type.Object({ exact: Type.String({ minLength: 1, maxLength: 12000 }),
-          prefix: Type.Optional(Type.String({ maxLength: 2000 })), suffix: Type.Optional(Type.String({ maxLength: 2000 })) }, { additionalProperties: false })),
-      }, { additionalProperties: false })),
+      range: Type.Optional(bookRangeSchema),
       selectionId: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })),
     }, { additionalProperties: false }),
     executionMode: "sequential",

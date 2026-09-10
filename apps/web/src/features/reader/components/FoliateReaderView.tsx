@@ -91,6 +91,8 @@ import { attachReadingEngine, waitForReadingPaint } from "../lib/reading-engine-
 import { captureReadingSelection, type SelectionContentIdentity } from "../lib/selection-range";
 import { useSelectionRender } from "../hooks/useSelectionRender";
 import { createReadingSelectionAdapter } from "../lib/reading-selection-adapter";
+import { createReadingEmphasisAdapter } from "../lib/reading-emphasis-adapter";
+import { readingEmphasis } from "../../../domain/reading-emphasis";
 import { fileContentVersion, virtualContentVersion, registerActiveBookContent } from "../../library/lib/book-content-source";
 import type {
   RegisteredReaderMode,
@@ -2145,11 +2147,15 @@ export function FoliateReaderView({
         await waitForReadingPaint(view);
         if (cancelled) return;
         if (sessionId && selectedBook) {
+          const emphasis = await createReadingEmphasisAdapter(view);
+          if (cancelled) { emphasis.retire(); return; }
+          cleanups.push(() => emphasis.retire());
           if (!cancelled) cleanups.push(attachReadingEngine(view, sessionId, selectedBook.id, contentVersion));
           const identity = { view, sessionId, bookId: selectedBook.id, contentVersion };
           selectionContentRef.current = identity;
           cleanups.push(readingRuntime.bindSelection(sessionId, createReadingSelectionAdapter(view,
             () => selectionRef.current, captureSelectionFromDoc, clearSelection, selectionRender)));
+          cleanups.push(readingEmphasis.bind(sessionId, selectedBook.id, contentVersion, emphasis));
           cleanups.push(() => {
             if (selectionContentRef.current !== identity) return;
             selectionContentRef.current = null;

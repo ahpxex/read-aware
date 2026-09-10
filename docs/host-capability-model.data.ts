@@ -23,7 +23,7 @@ export const units: Unit[] = [
   unit("D2", "Domain", "reading", "阅读会话、导航、模式、播放与统计", "TXT09-10 READ01-09 READ12-20 STAT01-05", "domains.reading",
     "读取 session/loading/book/location/selection/history/mode/playback 快照并观察；open、close、goTo、step、seek、back/forward；Range 选择/清除、临时强调/释放、受支持版式操作；模式启停/步进/恢复、朗读启停与状态；读完标记、已结算及 provisional 统计。业务运行态不因未持久化而变成 Service。",
     "当前 grounding 和自动计时保留；按需查询/导航/模式/朗读使用工具，经同一 reading 控制器。模型不合成阅读时长，不将 opened:true 派发回执当 ready。",
-    "读、导航/呈现、持久写分清授权风险；reading 2.10 在捕获选区快照上新增 selectRange/clearSelection。选择前验证源，等待匹配 React 提交；清除绑定所见 id，拒绝误清新选区。Text Desk 0.7 与 Agent 已在真实 FB2/PDF 消费；Agent 命令仅回身份，会话受限时另移除位置 quote，不靠导航扩大隐私/剧透权限。selectionActions 1.2 与当前句段复用来源，不给旧标注补签版本。中途启用先读快照再观察；贡献模式/声音并不授权控制用户播放。原生在途取消、全部格式/跨平台与旧文档非空迟到仍需验收；临时强调 owner/释放仍待建。",
+    "读、导航/呈现、持久写分清授权风险；reading 2.10 selectRange/clearSelection 先验证源、等待匹配 React 提交，清除绑定所见 id。2.11 新增临时标记查询/观察、条件更新/移除，按 Agent/插件激活代隔离并在阅读器退休时释放；不导航、不选择、不写持久标注。Text Desk 0.8 已组合，FB2/PDF 双端局部验证通过；完整组合和原生在途取消留待集中验收。Agent 命令仅回身份，会话受限时移除位置 quote，不靠导航扩大隐私/剧透权限。selectionActions 1.2 与当前句段复用来源，不给旧标注补签版本。贡献模式/声音并不授权控制用户播放。全部格式/跨平台与旧文档非空迟到仍需验收。",
     "位置恢复验证 book/contentVersion/modeKey/unitId；不把旧 ordinal 强套新分段。会话 timer 是可重置的短时 UI 状态，不是 reading_sessions_pending；不为它建立耐久调度系统。面板开关归 S3。",
     "跨书并发导航由宿主统一裁决，迟到完成不移动新会话；失败不推进历史，back/forward 不产生新分支，用户新跳转截断 forward；实际落点才算完成。模式卸载与音频 fallback 可观察。"),
   unit("D3", "Domain", "annotations", "标注、笔记和问题轨迹", "ANN01-09", "domains.annotations",

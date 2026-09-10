@@ -43,6 +43,7 @@ import { PLUGIN_PERMISSIONS as CORE_PLUGIN_PERMISSIONS } from "@read-aware/core"
 export type { BookRemovalReceipt, BookFileReleaseReceipt, BookRemovalCleanupPage, BookRemovalCleanupQuery } from "@read-aware/core";
 export type { ReadingTimeQuery, ReadingTimeCursor, ReadingTimeSnapshot, ReadingTimeObservation, PendingReadingTime } from "@read-aware/core";
 export type { ReadingInsights, ReadingInsightsQuery, ReadingPeriod } from "@read-aware/core";
+export type { ReadingEmphasisWrite, ReadingEmphasisRef, ReadingEmphasisStyle, ReadingEmphasisSnapshot, ReadingEmphasisReceipt, ReadingEmphasisRemoval } from "@read-aware/core";
 export type { WorkspaceTarget, WorkspaceQuery, WorkspaceSnapshot, WorkspaceReceipt, WorkspaceSettingsSection } from "@read-aware/core";
 export type { SettingsObservation, SettingsObservationCause } from "@read-aware/core";
 export type { MemoryRecord, MemoryScope, MemoryQuery, BookGraphQuery, BookGraphResult, BookGraphProfile } from "@read-aware/core";
@@ -1258,6 +1259,8 @@ export type PluginLibraryDomain = {
 
 export type PluginReadingDomain = {
   queries: {
+    /** This activation's temporary marks only; attached does not mean visible in the viewport. */
+    emphasis(): Promise<import("@read-aware/core").ReadingEmphasisSnapshot[]>;
     session(): Promise<import("@read-aware/core").ReadingSessionSnapshot>;
     stats: {
       /** Atomic settled + pending time, with native sampling clock. Reading >=2.7. */
@@ -1269,6 +1272,9 @@ export type PluginReadingDomain = {
     };
   };
   commands?: {
+    /** Temporary owned marks, not annotations. No navigation; replacement requires an observed revision. */
+    putEmphasis(input: import("@read-aware/core").ReadingEmphasisWrite, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingEmphasisReceipt>;
+    removeEmphasis(input: import("@read-aware/core").ReadingEmphasisRef, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingEmphasisRemoval>;
     /** Requires this book to be open; validates its source range, navigates, then waits for the selection overlay commit. */
     selectRange(range: import("@read-aware/core").BookTextRange, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingSelectionReceipt>;
     /** Clears only the observed selection ID; a replacement selection is never silently cleared. */
@@ -1296,6 +1302,7 @@ export type PluginReadingDomain = {
   events: {
     subscribe: DomainSubscribe<ReadingDomainEventType>;
     observeSession(handler: (snapshot: import("@read-aware/core").ReadingSessionSnapshot) => void | Promise<void>): PluginDisposable;
+    observeEmphasis(handler: (snapshot: import("@read-aware/core").ReadingEmphasisSnapshot[]) => void | Promise<void>): PluginDisposable;
     /** Immediate sample then a 1s minimum gap after each delivery. Errors are explicit; dispose stops further delivery. */
     observeTime(query: import("@read-aware/core").ReadingTimeQuery, handler: (event: import("@read-aware/core").ReadingTimeObservation) => void | Promise<void>): PluginDisposable;
   };

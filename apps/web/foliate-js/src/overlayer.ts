@@ -13,7 +13,7 @@ type Overlay = {
     options: DrawOptions
     element: SVGElement
     rects: DOMRectList
-    hitValue: string
+    hitValue: string | null
 }
 
 const createSVGElement = (tag: string): SVGElement =>
@@ -32,7 +32,7 @@ export class Overlayer {
     get element() {
         return this.#svg
     }
-    add(key: string, range: Range | ((root: Node) => Range), draw: DrawFunction, options: DrawOptions, hitValue = key) {
+    add(key: string, range: Range | ((root: Node) => Range), draw: DrawFunction, options: DrawOptions, hitValue: string | null = key) {
         if (this.#map.has(key)) this.remove(key)
         if (typeof range === 'function') range = range(this.#svg.getRootNode())
         const rects = range.getClientRects()
@@ -62,6 +62,7 @@ export class Overlayer {
         // loop in reverse to hit more recently added items first
         for (let i = arr.length - 1; i >= 0; i--) {
             const [, obj] = arr[i]
+            if (obj.hitValue === null) continue
             for (const { left, top, right, bottom } of obj.rects)
                 if (top <= y && left <= x && bottom > y && right > x)
                     return [obj.hitValue, obj.range]

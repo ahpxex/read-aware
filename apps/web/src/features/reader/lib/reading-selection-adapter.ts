@@ -4,6 +4,7 @@ import { readBookRange } from "../../library/lib/book-range";
 import { loadContentNavigation, type FoliateView } from "./foliate-engine";
 import type { SelectionRenderBarrier } from "./selection-render-barrier";
 import type { ReaderSelectionState } from "./selection-overlay";
+import { renderedBookRange } from "./rendered-book-range";
 
 export function createReadingSelectionAdapter(view: FoliateView, current: () => ReaderSelectionState | null,
   capture: (doc: Document, index: number) => boolean, clear: () => void, render: SelectionRenderBarrier): ReadingSelectionAdapter {
@@ -17,21 +18,9 @@ export function createReadingSelectionAdapter(view: FoliateView, current: () => 
     select: async (target: BookTextRange, expectedId, signal) => {
       const { resolveTextQuote } = await loadContentNavigation();
       check(expectedId, signal);
-      let resolved: ReturnType<FoliateView["resolveCFI"]>;
-      try { resolved = view.resolveCFI(target.cfi); }
-      catch (cause) { throw new AppError("reader/target-not-found", "Selection CFI no longer resolves", { cause }); }
-      const content = view.renderer?.getContents().find(content => content.index === resolved.index);
-      if (!content) throw new AppError("reader/target-not-found", "Selection target is not rendered");
-      const { doc, index } = content;
-      const resolveAnchor = () => typeof resolved.anchor === "function" ? resolved.anchor(doc)
-        : target.textQuote ? resolveTextQuote(doc, target.textQuote) : resolved.anchor;
-      let anchor: ReturnType<typeof resolveAnchor>;
-      try {
-        anchor = resolveAnchor();
-      } catch (cause) { throw new AppError("reader/target-not-found", "Selection range no longer resolves uniquely", { cause }); }
-      if (!anchor || typeof anchor === "number" || !("commonAncestorContainer" in anchor) || anchor.collapsed) {
-        throw new AppError("reader/target-not-found", "Selection requires a nonempty rendered range");
-      }
+      const resolved = renderedBookRange(view, target, resolveTextQuote);
+      if (!resolved) throw new AppError("reader/target-not-found", "Selection target is not rendered");
+      const { content: { doc, index }, range: anchor } = resolved;
       const selection = doc.defaultView?.getSelection() ?? doc.getSelection();
       if (!selection) throw new AppError("reader/unavailable", "Document selection is unavailable");
       check(expectedId, signal);

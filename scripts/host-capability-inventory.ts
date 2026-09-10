@@ -53,6 +53,7 @@ const agentMap = pairs([
   ["configure_reading_mode", "READ16"],
   ["set_reader_controls", "READ09"],
   ["set_reading_selection", "READ13"],
+  ["manage_reading_emphasis", "READ14"],
   ["get_reader_panels set_reader_panel", "READ10"],
   ["ask_user", "AI04"], ["get_settings update_settings", "CFG01"],
 ]);
@@ -96,6 +97,7 @@ const pluginMap = pairs([
   ["domains.reading.commands.stepMode", "READ16"],
   ["domains.reading.commands.setControls", "READ09"],
   ["domains.reading.commands.selectRange domains.reading.commands.clearSelection", "READ13"],
+  ["domains.reading.queries.emphasis domains.reading.commands.putEmphasis domains.reading.commands.removeEmphasis domains.reading.events.observeEmphasis", "READ14"],
   ["domains.annotations.queries.list", "ANN01"], ["domains.annotations.commands.createHighlight", "ANN02 ANN03"],
   ["domains.annotations.queries.get domains.annotations.queries.page domains.annotations.queries.inspect", "ANN08"],
   ["domains.annotations.commands.applyChanges", "ANN04 ANN05 ANN06 ANN08"],

@@ -1,5 +1,16 @@
 const locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 const labels = {
+  temporaryMarks: ["Temporary marks", "临时标记", "暫時標記", "一時マーク", "Временные отметки", "Marques temporaires", "Temporäre Markierungen", "Marcas temporales"],
+  noTemporaryMarks: ["No temporary marks", "没有临时标记", "沒有暫時標記", "一時マークなし", "Нет временных отметок", "Aucune marque temporaire", "Keine temporären Markierungen", "Sin marcas temporales"],
+  markResults: ["Mark these results", "标记本批结果", "標記這批結果", "この結果をマーク", "Отметить эти результаты", "Marquer ces résultats", "Diese Treffer markieren", "Marcar estos resultados"],
+  highlightMarks: ["Temporary highlight", "临时强调", "暫時強調", "一時ハイライト", "Временная подсветка", "Surlignage temporaire", "Temporär hervorheben", "Resaltado temporal"],
+  underlineMarks: ["Temporary underline", "临时下划线", "暫時底線", "一時下線", "Временное подчёркивание", "Soulignement temporaire", "Temporär unterstreichen", "Subrayado temporal"],
+  removeMarks: ["Remove marks", "移除标记", "移除標記", "マークを削除", "Удалить отметки", "Retirer les marques", "Markierungen entfernen", "Quitar marcas"],
+  attachedPassages: ["Attached passages", "已呈现文档内的段落", "已呈現文件內的段落", "描画文書内の文章", "Отрывки в отображаемом документе", "Passages du document affiché", "Textstellen im gerenderten Dokument", "Pasajes del documento mostrado"],
+  emphasis_attached: ["Attached", "已附着", "已附加", "配置済み", "Прикреплено", "Attaché", "Angefügt", "Adjunto"],
+  emphasis_deferred: ["Awaiting document", "等待文档呈现", "等待文件呈現", "文書の描画待ち", "Ожидание документа", "En attente du document", "Warten auf Dokument", "Esperando documento"],
+  emphasis_partial: ["Partially attached", "部分已附着", "部分已附加", "一部配置済み", "Частично прикреплено", "Partiellement attaché", "Teilweise angefügt", "Adjunto parcialmente"],
+  emphasis_error: ["Mark could not be rendered", "无法呈现标记", "無法呈現標記", "マークを描画できません", "Не удалось отобразить отметку", "Impossible d’afficher la marque", "Markierung konnte nicht dargestellt werden", "No se pudo mostrar la marca"],
   selectPassage: ["Select passage", "选中段落", "選取段落", "文章を選択", "Выделить отрывок", "Sélectionner le passage", "Textstelle auswählen", "Seleccionar pasaje"],
   clearSelection: ["Clear selection", "清除选区", "清除選取", "選択を解除", "Снять выделение", "Effacer la sélection", "Auswahl aufheben", "Quitar selección"],
   inspectPassage: ["Inspect passage", "查看段落", "檢視段落", "文章を確認", "Просмотреть отрывок", "Examiner le passage", "Textstelle prüfen", "Examinar pasaje"],

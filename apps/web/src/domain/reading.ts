@@ -1,6 +1,7 @@
 /** Reading domain - reading lifecycle, progress projections, and time. */
 import type { BookStats, EventOrigin, StatsOverview, ReadingTarget, ReadingSessionSnapshot, ReadingSessionGuard, ReadingNavigationReceipt } from "@read-aware/core";
 import { readingRuntime } from "./reading-runtime";
+import { readingEmphasis, agentEmphasisOwner } from "./reading-emphasis";
 import { queryReadingTime, readingTimeObserver } from "./reading-time";
 import { queryReadingInsights } from "./reading-insights";
 import { listLibraryBooks, setLibraryBookFinished } from "../features/library/lib/library-db";
@@ -35,6 +36,7 @@ function toBookStats(book: LibraryBook, time: BookReadingStats | undefined): Boo
 }
 
 export type ReadingQueries = {
+  emphasis(): Promise<import("@read-aware/core").ReadingEmphasisSnapshot[]>;
   session(): Promise<ReadingSessionSnapshot>;
   stats: {
     time(query?: import("@read-aware/core").ReadingTimeQuery): Promise<import("@read-aware/core").ReadingTimeSnapshot>;
@@ -46,6 +48,8 @@ export type ReadingQueries = {
 };
 
 export type ReadingCommands = {
+  putEmphasis(input: import("@read-aware/core").ReadingEmphasisWrite, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<import("@read-aware/core").ReadingEmphasisReceipt>;
+  removeEmphasis(input: import("@read-aware/core").ReadingEmphasisRef, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<import("@read-aware/core").ReadingEmphasisRemoval>;
   selectRange(range: import("@read-aware/core").BookTextRange, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<import("@read-aware/core").ReadingSelectionReceipt>;
   clearSelection(expectedId: string, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<import("@read-aware/core").ReadingSelectionReceipt>;
   setControls(visible: boolean, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<import("@read-aware/core").ReadingControlsReceipt>;
@@ -66,14 +70,17 @@ export type ReadingDomain = {
   queries: ReadingQueries;
   commands: ReadingCommands;
   events: {
+    observeEmphasis(handler: (snapshot: import("@read-aware/core").ReadingEmphasisSnapshot[]) => unknown): () => void;
     subscribe: DomainEventSubscribe<(typeof READING_EVENTS)[number]>;
     observeSession(handler: (snapshot: ReadingSessionSnapshot) => unknown): () => void;
     observeTime(query: import("@read-aware/core").ReadingTimeQuery, handler: (event: import("@read-aware/core").ReadingTimeObservation) => unknown): () => void;
   };
 };
 
-export function createReadingDomain(origin: EventOrigin): ReadingDomain {
+export function createReadingDomain(origin: EventOrigin, lifetime?: AbortSignal, trackCleanup?: (work: Promise<void>) => void): ReadingDomain {
+  const emphasis = readingEmphasis.forOwner(origin === "agent" ? agentEmphasisOwner : {}, lifetime, trackCleanup);
   const queries: ReadingQueries = {
+    emphasis: async () => emphasis.list(),
     session: async () => readingRuntime.snapshot(),
     stats: {
       time: queryReadingTime,
@@ -128,6 +135,8 @@ export function createReadingDomain(origin: EventOrigin): ReadingDomain {
   };
 
   const commands: ReadingCommands = {
+    putEmphasis: emphasis.put,
+    removeEmphasis: emphasis.remove,
     selectRange: (range, signal, guard) => readingRuntime.selectRange(range, signal, guard),
     clearSelection: (expectedId, signal, guard) => readingRuntime.clearSelection(expectedId, signal, guard),
     setControls: (visible, signal, guard) => readingRuntime.setControls(visible, signal, guard),
@@ -150,7 +159,7 @@ export function createReadingDomain(origin: EventOrigin): ReadingDomain {
   return {
     queries,
     commands,
-    events: { subscribe: domainSubscribe(READING_EVENTS, origin), observeSession: handler => readingRuntime.observe(handler),
+    events: { subscribe: domainSubscribe(READING_EVENTS, origin), observeEmphasis: emphasis.observe, observeSession: handler => readingRuntime.observe(handler),
       observeTime: (query, handler) => readingTimeObserver.observe(query, handler) },
   };
 }

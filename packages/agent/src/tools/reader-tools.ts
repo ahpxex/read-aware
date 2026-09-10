@@ -8,6 +8,7 @@ import type { AgentTurnState } from "./turn-state";
 import { AppError, type ReadingLocation } from "@read-aware/core";
 import { readingContextCall } from "../runtime/reading-context-policy";
 import { buildSelectionTools } from "./selection-tools";
+import { buildEmphasisTools } from "./emphasis-tools";
 
 export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: AgentTurnState): AgentTool[] {
   const openBook: AgentTool = {
@@ -179,5 +180,5 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
       return textResult(await deps.reader.setPanel(panel, open, signal, { bookId: current.bookId, sessionId: current.sessionId }));
     },
   };
-  return [openBook, session, control, playback, mode, controls, panelState, panelControl, ...buildSelectionTools(scope, deps)];
+  return [openBook, session, control, playback, mode, controls, panelState, panelControl, ...buildSelectionTools(scope, deps), ...buildEmphasisTools(scope, deps)];
 }

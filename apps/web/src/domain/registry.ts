@@ -25,7 +25,7 @@ type DomainSurface = {
 
 type DomainDefinition<TSurface extends DomainSurface = DomainSurface> = {
   events: readonly string[];
-  create(origin: EventOrigin, lifetime?: AbortSignal): TSurface;
+  create(origin: EventOrigin, lifetime?: AbortSignal, trackCleanup?: (work: Promise<void>) => void): TSurface;
 };
 
 export const DOMAIN_REGISTRY = {
@@ -66,11 +66,11 @@ export type ActorDomainView = Partial<{
   [K in DomainId]: DomainView<DomainApi[K]>;
 }>;
 
-export function createDomainApi(origin: EventOrigin, lifetime?: AbortSignal): DomainApi {
+export function createDomainApi(origin: EventOrigin, lifetime?: AbortSignal, trackCleanup?: (work: Promise<void>) => void): DomainApi {
   return Object.fromEntries(
     Object.entries(DOMAIN_REGISTRY).map(([id, definition]) => [
       id,
-      (definition as DomainDefinition).create(origin, lifetime),
+      (definition as DomainDefinition).create(origin, lifetime, trackCleanup),
     ]),
   ) as DomainApi;
 }
@@ -85,8 +85,9 @@ export function createActorDomainView(
   origin: EventOrigin,
   grants: DomainGrants,
   lifetime?: AbortSignal,
+  trackCleanup?: (work: Promise<void>) => void,
 ): ActorDomainView {
-  const domains = createDomainApi(origin, lifetime);
+  const domains = createDomainApi(origin, lifetime, trackCleanup);
   const view: ActorDomainView = {};
   const mutableView = view as Record<string, unknown>;
   for (const id of Object.keys(DOMAIN_REGISTRY) as DomainId[]) {

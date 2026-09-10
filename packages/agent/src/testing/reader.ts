@@ -1,6 +1,7 @@
 import type { ReadingLocation, ReadingNavigationReceipt, ReadingPlaybackSnapshot, ReadingModeSnapshot } from "@read-aware/core";
 import type { ReaderPort } from "../ports";
 import { AppError, normalizeBookRangeQuery, type ReadingSelectionSnapshot, type ReadingSessionGuard } from "@read-aware/core";
+import { normalizeReadingEmphasisWrite, normalizeReadingEmphasisRef, type ReadingEmphasisSnapshot } from "@read-aware/core";
 
 export type ReaderRequest = { type: "open" | "goTo" | "back" | "forward" | "step" | "close"; bookId?: string; anchor?: string; chapterHref?: string; direction?: string };
 
@@ -11,6 +12,7 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
     modeKey: null, label: null, availableModes: [], unitId: null, units: [], progress: null, cfiRange: null, position: null };
   let revision = 0;
   let selection: ReadingSelectionSnapshot | null = null;
+  const emphasis = new Map<string, ReadingEmphasisSnapshot>();
   let controls = { visible: false };
   const panels = { toc: { open: false, visible: false }, chat: { open: false, visible: false }, annotations: { open: false, visible: false }, appearance: { open: false, visible: false } };
   const showControls = (visible: boolean) => {
@@ -32,6 +34,21 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
       || guard?.bookId !== undefined && guard.bookId !== location.bookId) throw new AppError("reader/superseded", "Fixture session changed");
   };
   return {
+    listEmphasis: async () => structuredClone([...emphasis.values()]),
+    putEmphasis: async (input, signal, guard) => {
+      checkSelection(signal, guard); const value = normalizeReadingEmphasisWrite(input);
+      if (value.ranges[0].bookId !== location!.bookId) throw new AppError("reader/out-of-scope", "Open the fixture book first");
+      if (value.ranges[0].contentVersion !== location!.contentVersion) throw new AppError("reader/stale-location", "Fixture source changed");
+      if (value.id && emphasis.get(value.id)?.revision !== value.expectedRevision) throw new AppError("reader/superseded", "Fixture emphasis changed");
+      const snapshot: ReadingEmphasisSnapshot = { id: value.id ?? crypto.randomUUID(), revision: ++revision, sessionId: "fixture", bookId: location!.bookId,
+        style: value.style, count: value.ranges.length, attached: value.ranges.length, status: "attached" };
+      emphasis.set(snapshot.id, snapshot); return { status: "completed", emphasis: structuredClone(snapshot) };
+    },
+    removeEmphasis: async (input, signal, guard) => {
+      checkSelection(signal, guard); const ref = normalizeReadingEmphasisRef(input), previous = emphasis.get(ref.id);
+      if (previous && previous.revision !== ref.expectedRevision) throw new AppError("reader/superseded", "Fixture emphasis changed");
+      return { status: "completed", id: ref.id, removed: emphasis.delete(ref.id) };
+    },
     selectRange: async (input, signal, guard) => {
       const range = normalizeBookRangeQuery({ range: input }).range;
       checkSelection(signal, guard);
@@ -71,7 +88,7 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
       if (action === "start") throw new Error("Fixture has no audio backend");
       return { status: "completed", sessionId: "fixture", playback };
     },
-    openBook: async bookId => { requests.push({ type: "open", bookId }); location = { bookId, contentVersion: "fixture", fraction: 0 }; return receipt(); },
+    openBook: async bookId => { requests.push({ type: "open", bookId }); if (location?.bookId !== bookId) emphasis.clear(); location = { bookId, contentVersion: "fixture", fraction: 0 }; return receipt(); },
     goTo: async target => {
       requests.push({ type: "goTo", bookId: target.bookId, anchor: target.cfi, chapterHref: target.href });
       const bookId = target.bookId ?? location?.bookId;
@@ -81,6 +98,6 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
     step: async direction => { requests.push({ type: "step", direction }); return receipt(); },
     back: async () => { throw new Error("No fixture navigation history"); },
     forward: async () => { throw new Error("No fixture navigation history"); },
-    close: async () => { requests.push({ type: "close" }); location = null; selection = null; revision++; },
+    close: async () => { requests.push({ type: "close" }); location = null; selection = null; emphasis.clear(); revision++; },
   };
 }

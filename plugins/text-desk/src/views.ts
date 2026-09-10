@@ -3,6 +3,7 @@ import { tr } from "./strings";
 import { rebuildForm, requestList, startRequest } from "./task-views";
 import { textSearchForm } from "./search-views";
 import { capturedRangeDetail, rangeSearchForm } from "./range-views";
+import { emphasisList } from "./emphasis-views";
 
 export async function textDetail(ctx: PluginContext, bookId: string, title: string): Promise<PluginDetailView> {
   const state = await ctx.domains.library!.queries.books.getTextState(bookId);
@@ -44,6 +45,7 @@ export async function textDesk(ctx: PluginContext, page = 0): Promise<PluginList
   const actions: PluginAction[] = [{ id: "refresh", label: tr(ctx.locale, "refresh"), icon: "arrows-clockwise",
     run: async () => ({ view: await textDesk(ctx, index), navigation: "replace" }) }];
   actions.push({ id: "search", label: tr(ctx.locale, "searchShelf"), icon: "magnifying-glass", run: () => ({ view: textSearchForm(ctx) }) });
+  actions.push({ id: "temporary-marks", label: tr(ctx.locale, "temporaryMarks"), icon: "text-aa", run: async () => ({ view: await emphasisList(ctx) }) });
   actions.push({ id: "selection", label: tr(ctx.locale, "inspectSelection"), icon: "text-aa",
     run: async () => ({ view: await capturedRangeDetail(ctx, (await ctx.domains.reading!.queries.session()).selection?.range) }) });
   const session = await ctx.domains.reading!.queries.session();

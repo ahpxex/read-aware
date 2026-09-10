@@ -148,6 +148,9 @@ export interface AnnotationsPort {
 
 export interface ReaderPort {
   selectRange(range: import("@read-aware/core").BookTextRange, signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingSelectionReceipt>;
+  listEmphasis(): Promise<import("@read-aware/core").ReadingEmphasisSnapshot[]>;
+  putEmphasis(input: import("@read-aware/core").ReadingEmphasisWrite, signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingEmphasisReceipt>;
+  removeEmphasis(input: import("@read-aware/core").ReadingEmphasisRef, signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingEmphasisRemoval>;
   clearSelection(expectedId: string, signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingSelectionReceipt>;
   getPanels(): Promise<import("@read-aware/core").ReaderPanelsSnapshot | null>;
   setPanel(panel: import("@read-aware/core").ReaderPanel, open: boolean, signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReaderPanelReceipt>;

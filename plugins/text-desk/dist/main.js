@@ -1,6 +1,17 @@
 // src/strings.ts
 var locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 var labels = {
+  temporaryMarks: ["Temporary marks", "临时标记", "暫時標記", "一時マーク", "Временные отметки", "Marques temporaires", "Temporäre Markierungen", "Marcas temporales"],
+  noTemporaryMarks: ["No temporary marks", "没有临时标记", "沒有暫時標記", "一時マークなし", "Нет временных отметок", "Aucune marque temporaire", "Keine temporären Markierungen", "Sin marcas temporales"],
+  markResults: ["Mark these results", "标记本批结果", "標記這批結果", "この結果をマーク", "Отметить эти результаты", "Marquer ces résultats", "Diese Treffer markieren", "Marcar estos resultados"],
+  highlightMarks: ["Temporary highlight", "临时强调", "暫時強調", "一時ハイライト", "Временная подсветка", "Surlignage temporaire", "Temporär hervorheben", "Resaltado temporal"],
+  underlineMarks: ["Temporary underline", "临时下划线", "暫時底線", "一時下線", "Временное подчёркивание", "Soulignement temporaire", "Temporär unterstreichen", "Subrayado temporal"],
+  removeMarks: ["Remove marks", "移除标记", "移除標記", "マークを削除", "Удалить отметки", "Retirer les marques", "Markierungen entfernen", "Quitar marcas"],
+  attachedPassages: ["Attached passages", "已呈现文档内的段落", "已呈現文件內的段落", "描画文書内の文章", "Отрывки в отображаемом документе", "Passages du document affiché", "Textstellen im gerenderten Dokument", "Pasajes del documento mostrado"],
+  emphasis_attached: ["Attached", "已附着", "已附加", "配置済み", "Прикреплено", "Attaché", "Angefügt", "Adjunto"],
+  emphasis_deferred: ["Awaiting document", "等待文档呈现", "等待文件呈現", "文書の描画待ち", "Ожидание документа", "En attente du document", "Warten auf Dokument", "Esperando documento"],
+  emphasis_partial: ["Partially attached", "部分已附着", "部分已附加", "一部配置済み", "Частично прикреплено", "Partiellement attaché", "Teilweise angefügt", "Adjunto parcialmente"],
+  emphasis_error: ["Mark could not be rendered", "无法呈现标记", "無法呈現標記", "マークを描画できません", "Не удалось отобразить отметку", "Impossible d’afficher la marque", "Markierung konnte nicht dargestellt werden", "No se pudo mostrar la marca"],
   selectPassage: ["Select passage", "选中段落", "選取段落", "文章を選択", "Выделить отрывок", "Sélectionner le passage", "Textstelle auswählen", "Seleccionar pasaje"],
   clearSelection: ["Clear selection", "清除选区", "清除選取", "選択を解除", "Снять выделение", "Effacer la sélection", "Auswahl aufheben", "Quitar selección"],
   inspectPassage: ["Inspect passage", "查看段落", "檢視段落", "文章を確認", "Просмотреть отрывок", "Examiner le passage", "Textstelle prüfen", "Examinar pasaje"],
@@ -181,6 +192,77 @@ function hitDetail(ctx, hit, title) {
   ] };
 }
 
+// src/reader-session.ts
+async function ensureReadingSession(ctx, bookId) {
+  const reading = ctx.domains.reading, current = await reading.queries.session();
+  const session = current.bookId === bookId && current.status === "ready" ? current : await reading.commands.openBook(bookId);
+  return { bookId, sessionId: session.sessionId };
+}
+
+// src/emphasis-views.ts
+async function markPassages(ctx, ranges) {
+  const guard = await ensureReadingSession(ctx, ranges[0].bookId);
+  const receipt = await ctx.domains.reading.commands.putEmphasis({ ranges }, guard);
+  return { view: emphasisDetail(ctx, receipt.emphasis, ranges) };
+}
+function emphasisDetail(ctx, mark, ranges) {
+  const guard = { bookId: mark.bookId, sessionId: mark.sessionId };
+  return { kind: "detail", title: tr(ctx.locale, "temporaryMarks"), content: [{ kind: "keyValue", rows: [
+    { label: tr(ctx.locale, "status"), value: tr(ctx.locale, `emphasis_${mark.status}`) },
+    { label: tr(ctx.locale, "attachedPassages"), value: `${mark.attached} / ${mark.count}` }
+  ] }], actions: [
+    { id: "show-mark", label: tr(ctx.locale, "openPassage"), icon: "book-open", run: async () => {
+      await ctx.domains.reading.commands.goTo(ranges[0]);
+      return { close: true };
+    } },
+    { id: "style", label: tr(ctx.locale, mark.style === "highlight" ? "underlineMarks" : "highlightMarks"), icon: "text-aa", run: async () => {
+      const next = await ctx.domains.reading.commands.putEmphasis({
+        ranges,
+        id: mark.id,
+        expectedRevision: mark.revision,
+        style: mark.style === "highlight" ? "underline" : "highlight"
+      }, guard);
+      return { view: emphasisDetail(ctx, next.emphasis, ranges), navigation: "replace" };
+    } },
+    { id: "remove-mark", label: tr(ctx.locale, "removeMarks"), icon: "x", run: async () => {
+      await ctx.domains.reading.commands.removeEmphasis({ id: mark.id, expectedRevision: mark.revision }, guard);
+      return { view: await emphasisList(ctx), navigation: "replace" };
+    } },
+    { id: "all-marks", label: tr(ctx.locale, "temporaryMarks"), icon: "list-bullets", run: async () => ({ view: await emphasisList(ctx) }) }
+  ] };
+}
+function emphasisSnapshot(ctx, marks) {
+  return {
+    kind: "list",
+    title: tr(ctx.locale, "temporaryMarks"),
+    emptyText: tr(ctx.locale, "noTemporaryMarks"),
+    items: marks.map((mark) => ({
+      id: mark.id,
+      title: `${tr(ctx.locale, "passage")} · ${mark.count}`,
+      subtitle: `${tr(ctx.locale, `emphasis_${mark.status}`)} · ${mark.attached} / ${mark.count}`,
+      icon: "text-aa",
+      actions: [{ id: "remove", label: tr(ctx.locale, "removeMarks"), icon: "x", run: async () => {
+        await ctx.domains.reading.commands.removeEmphasis({ id: mark.id, expectedRevision: mark.revision }, { bookId: mark.bookId, sessionId: mark.sessionId });
+        return { view: await emphasisList(ctx), navigation: "replace" };
+      } }]
+    })),
+    actions: [{
+      id: "refresh",
+      label: tr(ctx.locale, "refresh"),
+      icon: "arrows-clockwise",
+      run: async () => ({ view: await emphasisList(ctx), navigation: "replace" })
+    }]
+  };
+}
+async function emphasisList(ctx) {
+  return { ...emphasisSnapshot(ctx, await ctx.domains.reading.queries.emphasis()), live: { subscribe: (channel) => {
+    let revision = 0;
+    return ctx.domains.reading.events.observeEmphasis(async (marks) => {
+      await ctx.services.ui.publishView(channel, { revision: ++revision, view: emphasisSnapshot(ctx, marks) });
+    });
+  } } };
+}
+
 // src/range-views.ts
 async function capturedRangeDetail(ctx, range) {
   if (range)
@@ -212,12 +294,20 @@ async function rangeResults(ctx, input) {
       subtitle: `${tr(ctx.locale, "sourceSection")} ${hit.sectionIndex + 1} · ${hit.id}`,
       onSelect: async () => ({ view: await rangeDetail(ctx, { range: hit.range }) })
     })),
-    actions: page.nextCursor ? [{
-      id: "next",
-      label: tr(ctx.locale, "next"),
-      icon: "arrow-right",
-      run: async () => ({ view: await rangeResults(ctx, { ...input, contentVersion: page.contentVersion, cursor: page.nextCursor }), navigation: "replace" })
-    }] : []
+    actions: [
+      ...page.hits.length ? [{
+        id: "mark-results",
+        label: tr(ctx.locale, "markResults"),
+        icon: "text-aa",
+        run: () => markPassages(ctx, page.hits.map((hit) => hit.range))
+      }] : [],
+      ...page.nextCursor ? [{
+        id: "next",
+        label: tr(ctx.locale, "next"),
+        icon: "arrow-right",
+        run: async () => ({ view: await rangeResults(ctx, { ...input, contentVersion: page.contentVersion, cursor: page.nextCursor }), navigation: "replace" })
+      }] : []
+    ]
   };
 }
 async function rangeDetail(ctx, input) {
@@ -227,11 +317,10 @@ async function rangeDetail(ctx, input) {
     { kind: "quote", text: page.text, caption: `${page.offset + 1}-${page.offset + page.text.length} / ${page.totalLength}` },
     ...page.context.after ? [{ kind: "text", text: page.context.after }] : []
   ], actions: [
+    { id: "mark-passage", label: tr(ctx.locale, "highlightMarks"), icon: "text-aa", run: () => markPassages(ctx, [page.range]) },
     { id: "select-passage", label: tr(ctx.locale, "selectPassage"), icon: "text-aa", run: async () => {
-      const reading = ctx.domains.reading;
-      const current = await reading.queries.session();
-      const session = current.bookId === page.range.bookId && current.status === "ready" ? current : await reading.commands.openBook(page.range.bookId);
-      await reading.commands.selectRange(page.range, { bookId: page.range.bookId, sessionId: session.sessionId });
+      const guard = await ensureReadingSession(ctx, page.range.bookId);
+      await ctx.domains.reading.commands.selectRange(page.range, guard);
       return { close: true };
     } },
     { id: "open-passage", label: tr(ctx.locale, "openPassage"), icon: "book-open", run: async () => {
@@ -299,6 +388,7 @@ async function textDesk(ctx, page = 0) {
     run: async () => ({ view: await textDesk(ctx, index), navigation: "replace" })
   }];
   actions.push({ id: "search", label: tr(ctx.locale, "searchShelf"), icon: "magnifying-glass", run: () => ({ view: textSearchForm(ctx) }) });
+  actions.push({ id: "temporary-marks", label: tr(ctx.locale, "temporaryMarks"), icon: "text-aa", run: async () => ({ view: await emphasisList(ctx) }) });
   actions.push({
     id: "selection",
     label: tr(ctx.locale, "inspectSelection"),

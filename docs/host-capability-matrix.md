@@ -20,9 +20,9 @@
 
 ## 计数与口径
 
-- 宿主：实装 193、部分 43、待建 3、引擎 1、占位 2、非桌面 1。
-- Agent：接通 117、未接 44、部分 48、扩展 14、自动 15、内部 5。
-- 插件：接通 133、部分 76、未接 34。
+- 宿主：实装 194、部分 43、待建 3、占位 2、非桌面 1。
+- Agent：接通 118、未接 43、部分 48、扩展 14、自动 15、内部 5。
+- 插件：接通 134、部分 76、未接 33。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -115,7 +115,7 @@
 | <a id="READ11"></a>READ11 | 阅读面板尺寸/布局与焦点恢复 | 实装 | **未接**：无正式入口<br>[设计] 受控面板布局/焦点意图 | **未接**：无正式入口<br>[设计] 声明式面板布局/关闭回调 | 聊天/目录 resize；阅读焦点 | 不能用插件任意 DOM 或抢焦点代替 | [WORKSPACE](../apps/web/src/features/reader/components/ReaderWorkspace.tsx) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [RENDER](../apps/web/src/features/plugins/components/PluginViewRenderer.tsx) | I06 |
 | <a id="READ12"></a>READ12 | 固定版式自动适配；图片缩放/平移/旋转 | 实装 | **未接**：无正式入口<br>[设计] 格式适用的呈现工具 | **未接**：无正式入口<br>[设计] 呈现状态/命令 | 固定版式自动适配；图片灯箱交互 | 已核对图片灯箱缩放；不把它算作书页手动缩放控件 | [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [ENGINE](../apps/web/foliate-js/src/view.ts) | D09 |
 | <a id="READ13"></a>READ13 | 读取/建立/清除文本选区 | 实装 | **部分**：get_reading_session.selection；set_reading_selection；自动附件<br>[设计] Range 查询/受控选择 | **部分**：reading 2.10 selectRange/clearSelection；session/observeSession；selectionActions 1.2 range<br>[设计] 选区查询/命令 | 选择菜单；Agent；Dictionary；Text Desk 0.7 | 读取捕获版本的范围；selectRange 严格复制 Range，要求当前书 ready，先验证源再导航/选中，等匹配 React 提交。clearSelection 必须提交所见 id，拒绝误清新选区；session/book guard、取消、退役、10 秒呈现超时和导航截止保留。Agent 选区命令只返回 id；受限会话另移除当前位置/模式位置的 quote，避免隐私或剧透旁路。真实 macOS debug Worker 零/读授权无写入口，FB2/PDF 选择/清空、Agent 操作、旧 id 拒绝保留新选区及编译 Text Desk 第二命中选择/清除已验。并发/取消/超时是单元证据，不承诺撤销已移动或已显示界面。迟到非空旧文档、coarse-pointer 定时器、长选区/全部格式、原生在途取消、packaged/跨平台仍未验。旧标注范围仍为空，不用当前版本伪造来源。 | [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [ENGINE](../apps/web/foliate-js/src/view.ts) [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) [API](../packages/plugin-types/src/index.ts) [NAV](../apps/web/src/domain/reading-session-controller.ts) [SELECTIONRANGE](../apps/web/src/features/reader/lib/selection-range.ts) [SELECTIONPROOF](../docs/evidence/selection-range-2026-09-10.json) [SELECTIONCONTROL](../apps/web/src/features/reader/lib/reading-selection-adapter.ts) [SELECTIONCONTROLPROOF](../docs/evidence/selection-control-2026-09-10.json) | E01, E02 |
-| <a id="READ14"></a>READ14 | 临时范围强调/搜索标记及释放 | 引擎 | **未接**：无正式入口<br>[设计] 受控临时呈现 | **未接**：无正式入口<br>[设计] 插件所属 overlay | 文本单元 wash；引擎选区/overlayer | 用户高亮和临时强调分离，不能写 annotation 充当搜索标记 | [ENGINE](../apps/web/foliate-js/src/view.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [UNITS](../apps/web/src/features/reader/hooks/useTextUnitNavigator.ts) | E03, E04 |
+| <a id="READ14"></a>READ14 | 临时范围强调/搜索标记及释放 | 实装 | **接通**：manage_reading_emphasis[双域]<br>[设计] 受控临时呈现 | **接通**：reading 2.11 emphasis/putEmphasis/removeEmphasis/observeEmphasis<br>[设计] 插件所属 overlay | 共享临时标记控制器；Agent；Text Desk 0.8 | 按 Agent/插件激活代隔离，版本化 Range 源校验、条件更新/移除、跨页重建和退出释放；不导航、不选择、不写 annotation。attached 是文档附着数而非屏幕可见数。单批 64、每 owner 16 组、全局 512 范围、32 在途校验；取消回执和物理排空分离。已做 FB2/PDF 双端局部验证；完整组合插件、原生在途取消及跨平台验收待集中进行。 | [READING](../apps/web/src/domain/reading.ts) [API](../packages/plugin-types/src/index.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [RANGEUI](../plugins/text-desk/src/range-views.ts) | E03, E04 |
 | <a id="READ15"></a>READ15 | 贡献句子/段落等分段模式 | 实装 | **未接**：无算法注册工具<br>[设计] 不开放：模型不注册运行代码 | **接通**：readerModes 1.1 register(text-unit-navigator)，同步或异步 segmentText<br>[设计] 模式贡献 | sentence-reader；隔离异步分段探针 | 每章至多 8 个在途 block，30 秒截止；失败不伪装空章，旧任务/同 index 新 Document 不回写，分段与 relocate 任一先后都能落点。真实 macOS debug 验证延迟/拒绝/退出；不是全内存配额或远端计算取消。只开放分段策略，非任意渲染器/解码器 | [API](../packages/plugin-types/src/index.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [SENTENCE](../plugins/sentence-reader/src/index.ts) [UNITS](../apps/web/src/features/reader/hooks/useTextUnitNavigator.ts) [UNITBUILD](../apps/web/src/features/reader/lib/text-unit-build.ts) [UNITINDEX](../apps/web/src/features/reader/lib/text-unit-index.ts) [UNITPROOF](../docs/evidence/reading-segmentation-2026-09-09.json) | K01 |
 | <a id="READ16"></a>READ16 | 启停模式/上下一单元/跟随/回当前 | 实装 | **部分**：configure_reading_mode + navigate_reading(return-to-unit/next-unit/previous-unit)<br>[设计] 模式配置/返回/步进；跟随开关待建 | **部分**：reading 2.5 configureMode(selectModeKey)/returnToMode/stepMode + session.mode/observeSession<br>[设计] 模式配置/返回/步进；跟随开关待建 | 文本单元工具栏；Agent；Listening Desk 模式/返回/步进；自动朗读 | 启停、unit 选择、状态与版本化 resting Location 已共享。2.5 新增 availableModes 与 selectModeKey；modeKey 仍是前置条件。保留失效提供者选择，不静默换到其他插件；取消撤回未完成选择，原生和 Listening Desk 均消费同一控制器。配置的书内状态与提供者偏好合并 SQLite 提交，回执等待该请求的精确写 Promise 和首次位置保存；失败保留 db code 并恢复先前选择，偏好回滚不再冒充新意图。配置成功后才派发匹配 revision/key/unit 的位置写，旧失败不污染新请求。步进从 resting 而非离开的 viewport 继续，跨空节/跳过非线性节，实际页面、分段、React 反馈和目标位置 SQLite 提交后返回 moved/start-of-book/end-of-book；不新增跳转历史。返回同样等待目标位置保存，成功才记历史。保存失败保留 db code；下一次明确动作可重试，同目标重写仍等最新回执。mode.ready 只表示索引完成，不表示已保存；位置/内容版本变化及退出取消等待。模式变更/新导航/取消阻止迟到成功，但不撤销已发生的页面移动；取消不是全部已提交提供者偏好的事务撤销。恢复校验 book/contentVersion/modeKey/unitId 并重解 CFI，不钳制旧 ordinal；无版本旧地址丢弃。隔离 macOS 已验正常/慢分段跨节、拒绝、取消、两端 SQLite 故障和恢复；空节/非线性与其他格式仍需补桌面证据。源码没有独立跟随开关，自动滚到当前单元与手动翻页后单元跟到页面是不同目标，语义待确认，不应把目标开关当成已有宿主漏接；旧偏好迁移已并入配置原子提交，读设置无写副作用、既有值优先、不同提供者保留原记录；删除旧记录失败时两端收到 db code，三条记录均保留，重试可恢复。跨提供者取消补偿未闭合，短时 sessionTimer 不要求耐久调度 | [MODECONTROL](../apps/web/src/features/reader/lib/reading-mode-controller.ts) [MODEOWNER](../apps/web/src/features/reader/hooks/useReadingModeControl.ts) [UNITS](../apps/web/src/features/reader/hooks/useTextUnitNavigator.ts) [WORKSPACE](../apps/web/src/features/reader/components/ReaderWorkspace.tsx) [SHORTCUT](../apps/web/src/features/settings/lib/shortcuts.ts) [MODESTATE](../apps/web/src/features/reader/lib/text-unit-mode-state.ts) [MODETIMER](../apps/web/src/features/reader/hooks/useSessionTimer.ts) [MODEPROOF](../docs/evidence/reading-mode-2026-09-09.json) [MODERETURN](../docs/evidence/reading-mode-return-2026-09-09.json) [MODESTEP](../docs/evidence/reading-mode-step-2026-09-09.json) [MODEDURABILITY](../docs/evidence/reading-mode-durability-2026-09-09.json) [POSITIONDURABILITY](../docs/evidence/reading-position-durability-2026-09-09.json) [MODEMIGRATION](../docs/evidence/reading-mode-migration-2026-09-09.json) | K02 |
 | <a id="READ17"></a>READ17 | 列声音并合成音频的提供者 | 实装 | **部分**：update_settings 可改 TTS 非敏感设置<br>[设计] 受控声源选择 | **接通**：voiceProviders.register/listVoices/synthesize<br>[设计] 语音贡献 | tts；宿主系统语音回退 | Agent 不能借设置接口声称已经触发朗读 | [TTS](../plugins/tts/src/index.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [API](../packages/plugin-types/src/index.ts) [AUDIO](../apps/web/src/features/reader/hooks/useReadAloud.ts) | K03, K05 |
@@ -410,9 +410,9 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：54 个。
-- Agent book：46 个。
-- Plugin ctx：123 个。
+- Agent global：55 个。
+- Agent book：47 个。
+- Plugin ctx：127 个。
 - Plugin returned interface：25 个。
 - Capability domains：6 个。
 - Capability contributions：14 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 123 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 127 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -491,6 +491,7 @@
 | `get_reader_panels` | [READ10](#READ10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `set_reader_panel` | [READ10](#READ10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `set_reading_selection` | [READ13](#READ13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `manage_reading_emphasis` | [READ14](#READ14) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_navigation_toc` | [TXT02](#TXT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `find_book_locations` | [TXT07](#TXT07) [TXT13](#TXT13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `read_book_range` | [TXT10](#TXT10) [TXT13](#TXT13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -542,6 +543,7 @@
 | `get_reader_panels` | [READ10](#READ10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `set_reader_panel` | [READ10](#READ10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `set_reading_selection` | [READ13](#READ13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `manage_reading_emphasis` | [READ14](#READ14) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_navigation_toc` | [TXT02](#TXT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `find_book_locations` | [TXT07](#TXT07) [TXT13](#TXT13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `read_book_range` | [TXT10](#TXT10) [TXT13](#TXT13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -589,6 +591,7 @@
 | `domains.library.commands.collections.rename` | [LIB16](#LIB16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.commands.collections.remove` | [LIB17](#LIB17) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.commands.collections.assignBooks` | [LIB18](#LIB18) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.reading.queries.emphasis` | [READ14](#READ14) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.queries.session` | [READ07](#READ07) [TXT09](#TXT09) [TXT10](#TXT10) [READ13](#READ13) [READ16](#READ16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.queries.stats.time` | [STAT03](#STAT03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.queries.stats.insights` | [STAT02](#STAT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -597,8 +600,11 @@
 | `domains.reading.queries.stats.overview` | [STAT01](#STAT01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.events.subscribe` | [CON07](#CON07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.events.observeSession` | [READ08](#READ08) [READ13](#READ13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.reading.events.observeEmphasis` | [READ14](#READ14) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.events.observeTime` | [STAT03](#STAT03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.commands.setFinished` | [READ19](#READ19) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.reading.commands.putEmphasis` | [READ14](#READ14) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.reading.commands.removeEmphasis` | [READ14](#READ14) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.commands.selectRange` | [READ13](#READ13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.commands.clearSelection` | [READ13](#READ13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.reading.commands.openBook` | [READ01](#READ01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -1216,7 +1222,7 @@
 | `reading-goals` | [AI11](#AI11) [MEM03](#MEM03) [SET23](#SET23) [STAT02](#STAT02) [STAT05](#STAT05) [STAT03](#STAT03) [EXT07](#EXT07) [EXT02](#EXT02) [EXT05](#EXT05) [SYS01](#SYS01) | [代码] 源码版本 0.3.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `rss-reader` | [EXT10](#EXT10) | [代码] 源码版本 0.7.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `sentence-reader` | [READ15](#READ15) [READ16](#READ16) | [代码] 源码版本 1.1.0；源码存在不等于打包、安装、启用或模型可调用 |
-| `text-desk` | [TXT04](#TXT04) [TXT05](#TXT05) [TXT06](#TXT06) [TXT07](#TXT07) [TXT10](#TXT10) [TXT13](#TXT13) [LIB01](#LIB01) [READ01](#READ01) [READ13](#READ13) [EXT01](#EXT01) [EXT02](#EXT02) [EXT05](#EXT05) | [代码] 源码版本 0.7.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `text-desk` | [TXT04](#TXT04) [TXT05](#TXT05) [TXT06](#TXT06) [TXT07](#TXT07) [TXT10](#TXT10) [TXT13](#TXT13) [LIB01](#LIB01) [READ01](#READ01) [READ13](#READ13) [EXT01](#EXT01) [EXT02](#EXT02) [EXT05](#EXT05) | [代码] 源码版本 0.8.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `tts` | [READ17](#READ17) [READ18](#READ18) | [代码] 源码版本 0.5.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `webdav-sync` | [OPS04](#OPS04) | [代码] 源码版本 0.2.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `workspace-profiles` | [UI02](#UI02) [UI04](#UI04) [CFG01](#CFG01) [CFG10](#CFG10) [EXT02](#EXT02) [EXT05](#EXT05) [SYS02](#SYS02) | [代码] 源码版本 0.3.0；源码存在不等于打包、安装、启用或模型可调用 |

@@ -6,6 +6,7 @@ import { readerPanels } from "../../../../services/reader-panels";
 export function createReaderPort(): ReaderPort {
   const reading = createReadingDomain("agent");
   return { getSession: reading.queries.session, ...reading.commands,
+    listEmphasis: reading.queries.emphasis,
     getPanels: async () => readerPanels.snapshot(),
     setPanel: (panel, open, signal, guard) => readerPanels.setPanel(panel, open, signal, guard),
   };

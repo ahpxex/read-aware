@@ -33,13 +33,18 @@ describe("foliate overlayer identities", () => {
 
       overlayer.add("saved-mark", range, draw, {}, "shared-cfi");
       overlayer.add("navigator", range, draw, {}, "shared-cfi");
+      overlayer.add("temporary-emphasis", range, draw, {}, null);
 
-      expect(overlayer.element.children).toHaveLength(2);
+      expect(overlayer.element.children).toHaveLength(3);
       expect(overlayer.hitTest({ x: 20, y: 30 })[0]).toBe("shared-cfi");
 
       overlayer.remove("navigator");
-      expect(overlayer.element.children).toHaveLength(1);
+      expect(overlayer.element.children).toHaveLength(2);
       expect(overlayer.hitTest({ x: 20, y: 30 })[0]).toBe("shared-cfi");
+      overlayer.redraw();
+      expect(overlayer.hitTest({ x: 20, y: 30 })[0]).toBe("shared-cfi");
+      overlayer.remove("saved-mark");
+      expect(overlayer.hitTest({ x: 20, y: 30 })).toEqual([]);
     } finally {
       if (originalDocument === undefined) delete globalThis.document;
       else globalThis.document = originalDocument;

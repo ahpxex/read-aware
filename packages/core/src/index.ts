@@ -17,6 +17,7 @@ export * from "./capabilities";
 export * from "./events";
 export * from "./read-models";
 export * from "./reading-session";
+export * from "./reading-emphasis";
 export * from "./reader-panels";
 export * from "./reading-context";
 export * from "./host-environment";

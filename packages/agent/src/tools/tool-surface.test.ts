@@ -131,6 +131,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   delete_annotation: { annotationId: "hl-1" },
   search_memory: {},
   get_user_profile: {},
+  update_user_profile: { summary: "Prefers concise explanations." },
   manage_memory: { action: "inspect", memoryId: "surface-memory" },
   classify_book: { action: "inspect", bookId: BOOK_ID },
   manage_book_graph: { action: "list", bookId: BOOK_ID },
@@ -271,6 +272,7 @@ describe("tool surface contract", () => {
         if (name === "apply_annotation_changes") {
           for (const change of params.changes as Record<string, unknown>[]) change.expectedRevision = (await deps.annotations.inspectAnnotation(String(change.annotationId)))!.revision;
         }
+        if (name === "update_user_profile") params.expectedRevision = (await deps.profile.readProfile()).revision;
         const tool = buildAgentTools(scope, deps).find(
           (candidate: AgentTool) => candidate.name === name,
         );

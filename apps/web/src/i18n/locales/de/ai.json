@@ -76,6 +76,11 @@
           "description": "Dadurch werden die importierte Quelldatei und die lokalen Lesedaten dauerhaft entfernt. Dies kann nicht rückgängig gemacht werden.",
           "approve": "Buch löschen"
         },
+        "updateProfile": {
+          "question": "Profil ersetzen?",
+          "description": "Das gesamte lokale Profil durch den folgenden Text ersetzen. Leerer Text löscht die Zusammenfassung. Dies gilt für künftige Gespräche, löscht aber keine Erinnerungen, Gesprächsverläufe oder Backups.\n\n{{subject}}",
+          "approve": "Profil speichern"
+        },
         "downloadResource": {
           "question": "Diese Datei herunterladen?",
           "description": "Die folgende URL abrufen und bis zu 64 MiB vorübergehend in dieser Unterhaltung speichern. Keine Anmeldedaten; Weiterleitungen erfordern eine neue Zustimmung. Der Inhalt kann später in die Unterhaltung eingelesen oder über einen separaten Dialog gespeichert werden.\n\n{{subject}}",

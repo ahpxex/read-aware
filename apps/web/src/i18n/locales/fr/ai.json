@@ -76,6 +76,11 @@
           "description": "Le fichier source importé et ses données de lecture locales seront définitivement supprimés. Cette action est irréversible.",
           "approve": "Supprimer le livre"
         },
+        "updateProfile": {
+          "question": "Remplacer votre profil ?",
+          "description": "Remplacez tout le profil local par le texte ci-dessous. Un texte vide efface le résumé. Cela affecte les prochaines conversations, sans supprimer les souvenirs, les historiques ni les sauvegardes.\n\n{{subject}}",
+          "approve": "Enregistrer le profil"
+        },
         "downloadResource": {
           "question": "Télécharger ce fichier ?",
           "description": "Récupérer l’URL ci-dessous et conserver temporairement jusqu’à 64 MiB dans cette conversation. Aucun identifiant envoyé ; toute redirection nécessite une nouvelle autorisation. Le contenu pourra ensuite être lu dans la conversation ou enregistré via une autre boîte de dialogue.\n\n{{subject}}",

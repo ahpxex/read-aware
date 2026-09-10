@@ -343,11 +343,11 @@ export class AgentThread {
 
   private async refreshSystemPrompt(
     agent: Agent,
+    profile: string | undefined,
     bookContext?: { book?: BookOverview; chapter?: { index: number; title?: string } },
   ): Promise<boolean> {
     let digestsUnavailable = false;
-    const [profile, shelf, memories, conversationSummary, digests] = await Promise.all([
-      this.deps.profile.getProfileSummary(),
+    const [shelf, memories, conversationSummary, digests] = await Promise.all([
       this.scope.kind === "global" ? this.deps.library.listBooks() : undefined,
       this.deps.memory.searchMemories({ scopes: visibleScopes(this.scope), limit: 8 }),
       this.deps.conversations.getInsights(this.key),
@@ -484,6 +484,7 @@ export class AgentThread {
       })));
       call.assertAllowed();
       const agent = await call.wait(this.ensureAgent(call));
+      const profile = await call.wait(this.deps.profile.getProfileSummary());
       // 本轮所在章节：选区的章节优先于阅读位置（问哪段话,会话就属于哪章）。
       // 仅决定对话会话；纪要的阅读边界始终来自当前游标。
       const turnChapter = localInput.attachments?.[0]?.chapter ?? cursor?.chapter;
@@ -499,16 +500,16 @@ export class AgentThread {
           turnChapter !== undefined &&
           this.sessionChapter !== undefined &&
           turnChapter !== this.sessionChapter;
-        const policyKey = JSON.stringify({ classification: currentBook?.narrativity ?? null, status: currentBook?.status ?? null, chapterIndex: cursor?.chapterIndex ?? null,
+        const policyKey = JSON.stringify({ profile: profile ?? null, classification: currentBook?.narrativity ?? null, status: currentBook?.status ?? null, chapterIndex: cursor?.chapterIndex ?? null,
           policy: chapterMemoryPolicy(currentBook, cursor?.chapterIndex) });
         const newSession = !this.sessionStarted || crossedChapter;
         if (newSession || policyKey !== this.sessionMemoryPolicy) {
           // Ordinary same-chapter turns keep their stable prefix. Classification,
-          // status, cursor boundary or a degraded digest read invalidates that cache.
+          // profile, status, cursor boundary or a degraded digest read invalidates that cache.
           // Selection chooses the conversation session, never the reading boundary.
           // Policy changes refresh only the prompt, preserving the conversation.
           const index = cursor?.chapterIndex;
-          const loaded = await call.wait(this.refreshSystemPrompt(agent, { book: currentBook,
+          const loaded = await call.wait(this.refreshSystemPrompt(agent, profile, { book: currentBook,
             chapter: index !== undefined && Number.isSafeInteger(index) && index >= 0 ? { index, title: cursor?.chapterTitle } : undefined }));
           this.sessionMemoryPolicy = loaded ? policyKey : undefined;
         }
@@ -523,7 +524,7 @@ export class AgentThread {
         if (turnChapter !== undefined) this.sessionChapter = turnChapter;
       } else {
         // 全局线程无会话概念：长期存续、记忆与摘要的更新更要紧，维持每轮重建
-        await call.wait(this.refreshSystemPrompt(agent));
+        await call.wait(this.refreshSystemPrompt(agent, profile));
       }
       unsubscribe = agent.subscribe((event) => queue.push(event));
 

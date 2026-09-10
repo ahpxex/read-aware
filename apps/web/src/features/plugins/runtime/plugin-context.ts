@@ -952,6 +952,9 @@ export function buildPluginContext(
       ...(memory.commands ? { commands: { mutate: input => {
       lifecycle.assertActive("domains.memory.commands.mutate");
       return memory.commands!.mutate(input);
+    }, updateProfile: input => {
+      lifecycle.assertActive("domains.memory.commands.updateProfile");
+      return memory.commands!.updateProfile(input);
     }, classify: input => {
       lifecycle.assertActive("domains.memory.commands.classify");
       return memory.commands!.classify(input);

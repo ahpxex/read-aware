@@ -483,7 +483,7 @@ describe("AgentThread", () => {
       .toEqual(["q1", "q2"]);
   });
 
-  test("freezes the system prompt within a chapter session, rebuilds on crossing", async () => {
+  test("profile changes refresh the next turn in the same chapter without waiting for a crossing", async () => {
     const { faux, model } = makeFaux();
     const prompts: (string | undefined)[] = [];
     faux.setResponses([
@@ -491,7 +491,7 @@ describe("AgentThread", () => {
       (context) => { prompts.push(context.systemPrompt); return fauxAssistantMessage("a2"); },
       (context) => { prompts.push(context.systemPrompt); return fauxAssistantMessage("a3"); },
     ]);
-    const { deps, stores } = createInMemoryDeps({
+    const { deps } = createInMemoryDeps({
       books: BOOKS,
       profile: "old profile",
       chapters: {
@@ -504,10 +504,10 @@ describe("AgentThread", () => {
     const thread = makeThread(deps, model);
 
     await collect(thread.sendTurn({ text: "q1", readingCursor: { chapter: "ch1.xhtml" } }));
-    // 会话中途画像变了 —— 冻结的 prompt 不该看到它
-    stores.profile.summary = "NEW PROFILE";
+    await deps.profile.updateProfile({ summary: "NEW PROFILE", expectedRevision: (await deps.profile.readProfile()).revision });
     await collect(thread.sendTurn({ text: "q2", readingCursor: { chapter: "ch1.xhtml" } }));
-    expect(prompts[1]).toBe(prompts[0]!);
+    expect(prompts[1]).toContain("NEW PROFILE");
+    expect(prompts[1]).not.toContain("old profile");
     // 换章 → 会话重置 → prompt 重建：新画像与新章节一起生效
     await collect(thread.sendTurn({ text: "q3", readingCursor: { chapter: "ch2.xhtml" } }));
     expect(prompts[2]).toContain("NEW PROFILE");

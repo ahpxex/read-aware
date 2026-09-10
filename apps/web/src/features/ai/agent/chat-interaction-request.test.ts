@@ -10,6 +10,8 @@ test("graph approval keeps its chapter limit through chat presentation without a
   expect(toChatInteractionRequest(plugin)).toEqual(plugin);
   const download = { ...legacy, action: "download-resource" as const, subject: "book.epub\nhttps://example.com/book.epub" };
   expect(toChatInteractionRequest(download)).toEqual(download);
+  const profile = { ...legacy, action: "update-profile" as const, subject: "New profile summary" };
+  expect(toChatInteractionRequest(profile)).toEqual(profile);
 });
 
 test("all graph approval translations disclose the subject and resolved chapter limit", async () => {
@@ -23,5 +25,7 @@ test("all graph approval translations disclose the subject and resolved chapter 
     expect(json.chat.interaction.permission.pluginTool.approve.length).toBeGreaterThan(0);
     expect(json.chat.interaction.permission.downloadResource.description).toContain("{{subject}}");
     expect(json.chat.interaction.permission.downloadResource.description).toContain("64 MiB");
+    expect(json.chat.interaction.permission.updateProfile.description).toContain("{{subject}}");
+    expect(json.chat.interaction.permission.updateProfile.approve.length).toBeGreaterThan(0);
   }
 });

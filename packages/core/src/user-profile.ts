@@ -2,6 +2,18 @@ import { AppError } from "./errors";
 
 /** The current host profile is one plain-text summary, not structured profile fields. */
 export type UserProfileQuery = { offset?: number; limit?: number; expectedRevision?: string };
+export type UserProfileChange = { summary: string; expectedRevision: string };
+export type UserProfileReceipt = { changed: boolean; revision: string; persistence: "device-local" };
+
+export function normalizeUserProfileChange(input: UserProfileChange): UserProfileChange {
+  if (!input || typeof input !== "object" || Array.isArray(input)
+    || Object.keys(input).some(key => key !== "summary" && key !== "expectedRevision")
+    || typeof input.summary !== "string" || input.summary.length > 16000
+    || typeof input.expectedRevision !== "string" || !/^profile1:[a-f0-9]{64}$/.test(input.expectedRevision)) {
+    throw new AppError("memory/invalid-input", "Profile changes require bounded text and the observed revision");
+  }
+  return { summary: input.summary, expectedRevision: input.expectedRevision };
+}
 export type UserProfilePage = {
   exists: boolean;
   text: string;

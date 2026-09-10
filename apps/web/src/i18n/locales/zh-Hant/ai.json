@@ -76,6 +76,11 @@
           "description": "這會永久移除匯入的原始檔案和本機閱讀資料，且無法復原。",
           "approve": "刪除書籍"
         },
+        "updateProfile": {
+          "question": "取代使用者畫像？",
+          "description": "以下方文字取代本機的完整畫像摘要。空白文字會清空摘要。這會影響之後的對話，但不會刪除記憶、對話記錄或備份。\n\n{{subject}}",
+          "approve": "儲存畫像"
+        },
         "downloadResource": {
           "question": "下載這個檔案？",
           "description": "請求下方網址，將最多 64 MiB 暫存於目前對話。不傳送登入憑證，重新導向需要再次確認。之後可以在目前對話中讀取內容，或透過另一個對話框儲存。\n\n{{subject}}",

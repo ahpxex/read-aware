@@ -76,6 +76,11 @@
           "description": "Esto elimina permanentemente el archivo importado y sus datos de lectura locales. No se puede deshacer.",
           "approve": "Eliminar libro"
         },
+        "updateProfile": {
+          "question": "¿Reemplazar tu perfil?",
+          "description": "Reemplaza todo el perfil local con el texto siguiente. Un texto vacío borra el resumen. Esto afecta a futuras conversaciones, pero no elimina recuerdos, historiales ni copias de seguridad.\n\n{{subject}}",
+          "approve": "Guardar perfil"
+        },
         "downloadResource": {
           "question": "¿Descargar este archivo?",
           "description": "Solicitar la URL siguiente y guardar temporalmente hasta 64 MiB en esta conversación. No se envían credenciales; las redirecciones requieren otra aprobación. El contenido podrá leerse en la conversación o guardarse mediante otro diálogo.\n\n{{subject}}",

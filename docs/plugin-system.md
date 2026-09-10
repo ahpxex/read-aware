@@ -2602,7 +2602,7 @@ receipt gating, not stalled SQLite, autonomous models, public-task UI,
 packaged/Windows/Linux or real remote-sync verification.
 
 <a id="book-graph-tasks"></a>
-### Memory 1.6: User Profile Reads
+### Memory 1.7: User Profile Reads and Conditional Writes
 
 [代码] `domains.memory.queries.profile(query?)` and
 `events.observe({ kind: "profile", query? }, handler)` require `memory:read`
@@ -2625,7 +2625,8 @@ exists. End-of-text returns `nextOffset: null`; offsets beyond it are invalid.
 Offset greater than zero requires the prior `profile1:<SHA-256>` revision as
 `expectedRevision`; a mismatch rejects with `memory/conflict` and requires a
 fresh first page. The hash distinguishes absent/empty and identifies captured
-content, not an event sequence, durable receipt or mutation CAS. Queries reject
+content, not an event sequence or durable receipt. The conditional writer below
+uses this identity with a settled-state recheck, not a cross-process CAS. Queries reject
 extra fields, null inputs, nonfinite/fractional/out-of-range numbers and invalid
 tokens with `memory/invalid-query`. Snapshot reads can see optimistic KV values
 that later roll back; automatic prompt reads remain unchanged.
@@ -2643,6 +2644,47 @@ and observation, and both Agent-scope tests pass. Real Worker, model interaction
 and composition-plugin Tauri E2E remain deferred. Confirmed onboarding/profile
 changes (MEM07), profile/entity projections (MEM08), and formal context bundles
 (MEM13) are not implemented by this read API.
+
+[代码] Memory 1.7 adds `commands.updateProfile({summary, expectedRevision})` for
+`memory:write`. The caller must present its complete candidate in its own
+confirmation UI; the domain does not accept a `confirmed` flag or mint a host
+approval ticket. Installation grants still govern plugin write authority.
+`summary` is the entire replacement string, at most 16000 UTF-16 units; empty
+text clears the summary while leaving an existing empty profile. Only these two
+keys are accepted (`memory/invalid-input` otherwise). There is no field inference,
+raw KV access, transcript deletion, backup erasure or memory seeding.
+
+The shared writer (`apps/web/src/domain/user-profile.ts`) waits for pending KV
+writes to settle, checks `expectedRevision`, computes the next content identity,
+then again waits for pending writes, compares the captured raw value and enqueues
+without an async gap. A changed value returns `memory/conflict`; equal content
+after an ABA is deliberately the same identity. The scope is the current host
+process's local KV queue, not cross-window/process/device CAS. Onboarding and
+restore share that queue. A no-op returns `changed:false`; a replacement returns
+`{changed:true, revision, persistence:"device-local"}` only after durable save.
+Writes carry actor attribution in the KV commit notification, not a new
+`profile.updated` event. Failed writes roll back the mirror and reject; logging
+is host-owned and error presentation caller-owned. Cancellation stops writes
+before dispatch, not after; dispatched plugin writes participate in retirement
+cleanup. This retains the existing interim profile storage, not a new projection.
+
+[代码] Both Agent scopes expose `update_user_profile` with the same exact fields.
+It checks the observed revision before asking and submits an immutable candidate
+after host approval; the writer rechecks after approval. The eight localized
+approval surfaces display the complete candidate and disclose full replacement
+and empty-text clearing. Decline returns `changed:false`. Conflicts require a
+fresh read and renewed approval. Explicit edits are not automatic memory
+building. Prompt assembly samples the profile on each user turn; profile changes
+invalidate a book's same-chapter prompt cache without resetting its conversation.
+They do not rewrite a request already sent to a model.
+
+[验证] Shared durable-queue tests cover permission gates, actor attribution,
+immutable inputs, write failure, conflicts, cancellation and retirement drain;
+tool tests cover both scopes, approval/decline and changed-during-approval inputs.
+Scripted AgentThread tests cover next-turn same-chapter prompt updates. Actual
+Worker/Tauri plugin editing and model-driven interview flows remain for the
+concentrated acceptance phase. A full onboarding/seed-memory workflow, profile
+event projection (MEM08), and formal bundles (MEM13) remain separate gaps.
 
 ### Memory 1.5: Public Graph Tasks and Chapter Budgets
 

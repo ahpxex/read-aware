@@ -6,6 +6,7 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
 import { normalizeUserProfileQuery, type UserProfileQuery } from "@read-aware/core";
+import { buildProfileWriteTool } from "./user-profile-write-tool";
 import type { MemoryKind, MemoryScope, RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { textResult } from "./tool-result";
@@ -92,5 +93,5 @@ export function buildMemoryTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
     },
   };
 
-  return [searchMemory, remember, profile, buildMemoryManagementTool(scope, deps), buildBookClassificationTool(scope, deps)];
+  return [searchMemory, remember, profile, buildProfileWriteTool(scope, deps), buildMemoryManagementTool(scope, deps), buildBookClassificationTool(scope, deps)];
 }

@@ -195,7 +195,7 @@ export interface UserInteractionOption {
 }
 
 export type UserPermissionAction =
-  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory" | "classify-book" | "generate-book-graph" | "clear-conversation" | "sync-now" | "manage-schedule" | "access-book-file" | "import-resource" | "merge-books" | "plugin-tool" | "download-resource";
+  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory" | "classify-book" | "generate-book-graph" | "clear-conversation" | "sync-now" | "manage-schedule" | "access-book-file" | "import-resource" | "merge-books" | "plugin-tool" | "download-resource" | "update-profile";
 
 type UserInteractionBase = {
   /** Globally unique for the lifetime of the tool call. */
@@ -305,6 +305,7 @@ export interface ConversationPort {
 
 /** 用户画像摘要（user_profile_context bundle 的 v0：一段文本，无则 undefined）。 */
 export interface ProfilePort {
+  updateProfile(input: import("@read-aware/core").UserProfileChange, signal?: AbortSignal): Promise<import("@read-aware/core").UserProfileReceipt>;
   getProfileSummary(): Promise<string | undefined>;
   readProfile(query?: import("@read-aware/core").UserProfileQuery, signal?: AbortSignal): Promise<import("@read-aware/core").UserProfilePage>;
   /** Internal onboarding write; current host persists device-local KV, not an event projection. */

@@ -76,6 +76,11 @@
           "description": "这会永久移除导入的原始文件和本地阅读数据，且无法撤销。",
           "approve": "删除书籍"
         },
+        "updateProfile": {
+          "question": "替换用户画像？",
+          "description": "用下方文本替换本机的完整画像摘要。空文本会清空摘要。这会影响之后的对话，但不会删除记忆、对话记录或备份。\n\n{{subject}}",
+          "approve": "保存画像"
+        },
         "downloadResource": {
           "question": "下载这个文件？",
           "description": "请求下方地址，将最多 64 MiB 暂存于当前对话。不发送登录凭据，重定向需要再次确认。之后可以在当前对话中读取内容，或通过另一个对话框保存。\n\n{{subject}}",

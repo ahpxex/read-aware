@@ -1607,7 +1607,7 @@ export type PluginDomains = {
   reading?: PluginReadingDomain;
   annotations?: PluginAnnotationsDomain;
   conversations?: PluginConversationsDomain;
-  /** Memory 1.6. Graph generation additionally requires service:llm; handles belong to this activation. */
+  /** Memory 1.7. Graph generation additionally requires service:llm; handles belong to this activation. */
   memory?: { queries: {
     /** The user's existing device-local plain-text summary; read grant, bounded revision-pinned pages. */
     profile(query?: import("@read-aware/core").UserProfileQuery): Promise<import("@read-aware/core").UserProfilePage>;
@@ -1618,6 +1618,10 @@ export type PluginDomains = {
     search(input: import("@read-aware/core").MemoryQuery): Promise<import("@read-aware/core").MemoryRecord[]>;
     bookGraph(bookId: string, query?: import("@read-aware/core").BookGraphQuery): Promise<import("@read-aware/core").BookGraphResult>;
   }; commands?: {
+    /** Replace the device-local summary using the observed profile revision.
+     * Present the complete candidate for user confirmation before calling.
+     * Empty text clears the summary, not memories or historical copies. */
+    updateProfile(input: import("@read-aware/core").UserProfileChange): Promise<import("@read-aware/core").UserProfileReceipt>;
     mutate(input: import("@read-aware/core").MemoryMutation): Promise<import("@read-aware/core").MemoryMutationReceipt>;
     classify(input: import("@read-aware/core").BookClassificationChange): Promise<import("@read-aware/core").BookClassificationReceipt>;
     startGraphTask(bookId: string, mode: "catch-up" | "rebuild", options?: import("@read-aware/core").BookGraphTaskOptions): Promise<import("@read-aware/core").BookGraphTaskSnapshot>;

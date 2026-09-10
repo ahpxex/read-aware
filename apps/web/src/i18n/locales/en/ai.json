@@ -76,6 +76,11 @@
           "description": "This permanently removes the imported source file and its local reading data. This cannot be undone.",
           "approve": "Delete book"
         },
+        "updateProfile": {
+          "question": "Replace your profile?",
+          "description": "Replace your entire device-local profile with the text below. Empty text clears the summary. This affects future conversations, but does not remove memories, transcripts or backups.\n\n{{subject}}",
+          "approve": "Save profile"
+        },
         "downloadResource": {
           "question": "Download this file?",
           "description": "Request the URL below and store up to 64 MiB temporarily in this conversation. No credentials are sent and redirects require another approval. The content may later be read into this conversation or saved through a separate dialog.\n\n{{subject}}",

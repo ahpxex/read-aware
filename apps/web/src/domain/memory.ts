@@ -12,6 +12,7 @@ import { inspectBookClassification, changeBookClassification } from "./book-clas
 import { MemoryObserver } from "./memory-observer";
 import { createLogger } from "../platform/logger";
 import { createBookGraphTasks } from "./book-graph-tasks";
+import { changeUserProfile } from "./user-profile";
 import type { MemoryObservation, MemoryObservationQuery, MemoryObservationResult } from "@read-aware/core";
 
 const log = createLogger("memory-observation");
@@ -21,7 +22,7 @@ const observer = new MemoryObserver({
 });
 
 /** Memory reads do not import books, construct digests, or grant raw projection writes. */
-export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal) {
+export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal, trackCleanup?: (work: Promise<void>) => void) {
   const memory = createMemoryPort(), bookMemory = createBookMemoryPort();
   const profile = (query?: import("@read-aware/core").UserProfileQuery) => createProfilePort().readProfile(query, lifetime);
   const tasks = createBookGraphTasks(lifetime);
@@ -45,6 +46,11 @@ export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal) 
   return { queries: { ...queries, profile, inspect: (id: string) => inspectMemory(id, lifetime), classification: (bookId: string) => inspectBookClassification(bookId, lifetime),
       listGraphTasks: (bookId: string) => tasks.list(bookId), getGraphTask: (bookId: string, taskId: string) => tasks.get(bookId, taskId) },
     commands: { mutate: (input: import("@read-aware/core").MemoryMutation) => mutateMemory(input, origin, lifetime),
+      updateProfile: (input: import("@read-aware/core").UserProfileChange) => {
+        const work = changeUserProfile(input, origin, lifetime);
+        trackCleanup?.(work.then(() => {}, () => {}));
+        return work;
+      },
       classify: (input: import("@read-aware/core").BookClassificationChange) => changeBookClassification(input, origin, lifetime),
       startGraphTask: (bookId: string, mode: "catch-up" | "rebuild", options?: import("@read-aware/core").BookGraphTaskOptions) => tasks.start(bookId, mode, options),
       cancelGraphTask: (bookId: string, taskId: string) => tasks.cancel(bookId, taskId),

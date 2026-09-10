@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 194、部分 43、待建 3、占位 2、非桌面 1。
-- Agent：接通 118、未接 43、部分 48、扩展 14、自动 15、内部 5。
-- 插件：接通 134、部分 76、未接 33。
+- Agent：接通 120、未接 40、部分 49、扩展 14、自动 15、内部 5。
+- 插件：接通 135、部分 76、未接 32。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -293,7 +293,7 @@
 | <a id="EXT08"></a>EXT08 | 应用/阅读主题和字体贡献 | 实装 | **部分**：settings 选择已声明主题/字体<br>[设计] 选择工具，不注册代码资产 | **接通**：manifest themes/fonts<br>[设计] 静态主题/字体贡献 | editorial-themes | 能力 catalog 含 themes/fonts，ctx 无 register 是声明式设计而非漏实现 | [THEMES](../plugins/editorial-themes/manifest.json) [API](../packages/plugin-types/src/index.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | N01 |
 | <a id="EXT09"></a>EXT09 | 词典查询/收藏/复习列表/CSV 导出 | 实装 | **扩展**：lookup_word/get_vocabulary/save_word<br>[设计] 插件工具 | **接通**：Dictionary 私有 storage + LLM + views/export<br>[设计] 现有原语组合 | Dictionary | Agent 无删词/CSV 导出工具；不应把词汇领域搬回宿主 | [DICT](../plugins/dictionary/src/index.ts) [DICTTOOLS](../plugins/dictionary/src/agent-tools.ts) [DICTVIEWS](../plugins/dictionary/src/views.ts) [DICTEXPORT](../plugins/dictionary/src/export.ts) | 新增盘点 |
 | <a id="EXT10"></a>EXT10 | RSS 订阅/刷新/退订/OPML/阅读文章 | 实装 | **扩展**：list_feeds/subscribe_feed/refresh_feed[全局]<br>[设计] 插件工具 | **接通**：RSS 私有 collection + content provider<br>[设计] 现有原语组合 | RSS | 退订与 OPML 无 Agent 工具；刷新正在读的版本仍见 LIB14 | [RSS](../plugins/rss-reader/src/index.ts) [RSSTOOLS](../plugins/rss-reader/src/agent-tools.ts) [RSSVIEWS](../plugins/rss-reader/src/views.ts) [RSSFEED](../plugins/rss-reader/src/feed.ts) | 新增盘点 |
-| <a id="EXT11"></a>EXT11 | 本地 marketplace 插件清单与启用状态 | 实装 | **未接**：无正式入口<br>[设计] 只读插件目录/能力查询工具 | **部分**：ctx.manifest/capabilities 仅自己<br>[设计] 自有与受控公共目录 | 插件管理页 | 不能将仓库里存在等于用户已安装/启用；本次未读取用户安装态 | [HOST](../apps/web/src/features/plugins/runtime/plugin-host.ts) [MARKET](../apps/web/src/features/plugins/runtime/marketplace.ts) [API](../packages/plugin-types/src/index.ts) | 新增盘点 |
+| <a id="EXT11"></a>EXT11 | 本地 marketplace 插件清单与启用状态 | 实装 | **接通**：list_installed_plugins[双域]<br>[设计] 只读插件目录/能力查询工具 | **接通**：services.plugins 1.0 list/observe<br>[设计] 自有与受控公共目录 | 插件管理页；双端公共目录 | 有界查询 installed ID/name/version/builtin/enabled/activationFailed，初始快照与安装态变化观察；不返回设置、路径、凭据或原始错误。enabled 是配置而非健康保证；分页变化需重查，不承诺稳定游标。具体贡献发现/跨插件调用另列 MORE06。接线与定向测试完成，组合插件及桌面验收待集中进行。 | [HOST](../apps/web/src/features/plugins/runtime/plugin-host.ts) [MARKET](../apps/web/src/features/plugins/runtime/marketplace.ts) [API](../packages/plugin-types/src/index.ts) [PLUGINDIRECTORY](../apps/web/src/services/plugin-directory.ts) [HOSTIOTOOLS](../packages/agent/src/tools/host-io-tools.ts) | 新增盘点 |
 | <a id="EXT12"></a>EXT12 | 安装/授权/启停/更新/回滚/卸载插件 | 实装 | **未接**：无正式入口<br>[设计] 打开宿主审批流程 | **未接**：无正式入口<br>[设计] 自管理申请，不得静默控制其他插件 | Plugins settings | 不开放：插件静默授予自己权限/安装代码；Agent 操作也应经宿主批准 | [HOST](../apps/web/src/features/plugins/runtime/plugin-host.ts) [MARKET](../apps/web/src/features/plugins/runtime/marketplace.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | O05, R05 |
 
 ### 存储、网络与原生资源
@@ -307,11 +307,11 @@
 | <a id="SYS05"></a>SYS05 | 插件数据导入导出/配额/同步策略 | 部分 | **扩展**：仅插件自定义工具<br>[设计] 插件拥有的数据操作 | **部分**：exportFile + 私有 CRUD；无通用配额/同步状态<br>[设计] 隔离数据生命周期 | Dictionary CSV；RSS OPML | KV、plugin_docs、secrets、blob 的漫游/备份边界不同，不能统一宣称可同步 | [API](../packages/plugin-types/src/index.ts) [DOCS](../apps/web/src/features/plugins/runtime/plugin-backend.ts) [ROAM](../apps/web/src/platform/roaming-preferences.ts) [BACKUP](../apps/web/src/features/settings/lib/backup-io.ts) | O06 |
 | <a id="SYS06"></a>SYS06 | 原生网络 HTTP 请求与响应 | 实装 | **内部**：推理端口/插件工具，无通用 fetch 工具<br>[设计] 有用途/域名约束网络工具 | **部分**：services.network v1.1：Request/二进制/AbortSignal 跨桥；64 MiB/120s 边界<br>[设计] 完整有界 HTTP 服务 | RSS/TTS/WebDAV；隔离 Tauri wire probe | GAP04/05 的参数保真、预取消不发请求、运行中取消及停用中止原生连接已实测；仍需 Agent 受权网络入口、重定向策略及生产 CSP 验收，见 host-capability-delivery.md | [HTTP](../apps/web/src/platform/http-client.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) [WORKER](../apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts) [RSS](../plugins/rss-reader/src/index.ts) [TTS](../plugins/tts/src/index.ts) | P03 |
 | <a id="SYS07"></a>SYS07 | 网络域名授权、预算、下载流和离线重试 | 部分 | **未接**：无正式入口<br>[设计] 用途受限任务 | **部分**：network permission 是大开关，无完整流/配额<br>[设计] 授权/任务/缓存原语 | 宿主内部 HTTP；各插件自行缓存 | 不是给每个插件重新实现重试/缓存的理由；实时 socket 不算宿主当前产品能力 | [API](../packages/plugin-types/src/index.ts) [HTTP](../apps/web/src/platform/http-client.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) [CATALOG](../packages/core/src/capabilities.ts) | P04, P06 |
-| <a id="SYS08"></a>SYS08 | 剪贴板写文本 | 实装 | **未接**：无复制工具<br>[设计] 用户触发的复制意图 | **接通**：services.clipboard.writeText<br>[设计] 受权剪贴板写 | 选择复制；插件动作 | 写文本不含读剪贴板或图片 | [API](../packages/plugin-types/src/index.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) | P05 |
+| <a id="SYS08"></a>SYS08 | 剪贴板写文本 | 实装 | **接通**：copy_to_clipboard[双域]<br>[设计] 用户触发的复制意图 | **接通**：services.clipboard.writeText<br>[设计] 受权剪贴板写 | 选择复制；插件动作；Agent | 共享写入限 1000000 字符，插件需 service:clipboard；取消阻止未派发写，不回滚已派发写。只接受明确复制意图，不读取剪贴板或复制图片。定向测试通过；新双端组合 E2E 待集中进行。 | [API](../packages/plugin-types/src/index.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) [HOSTIO](../apps/web/src/services/host-io.ts) [HOSTIOTOOLS](../packages/agent/src/tools/host-io-tools.ts) | P05 |
 | <a id="SYS09"></a>SYS09 | 图片复制/导出原生图片资源 | 实装 | **未接**：无正式入口<br>[设计] 用户触发的图像导出 | **未接**：无正式入口<br>[设计] Image ResourceRef + 受权复制/导出 | ReaderImageLightbox | 二进制 exportFile 可保存已持有字节，但无书内图像资源查询/图片剪贴板 | [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [EXPORT](../apps/web/src/platform/export-file.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | J08, P05 |
-| <a id="SYS10"></a>SYS10 | 保存文本/二进制文件与取消回执 | 实装 | **未接**：无正式入口<br>[设计] 宿主文件导出工具 | **接通**：ui.exportFile(filename,content,mimeType) → boolean<br>[设计] 用户确认的文件导出 | Dictionary CSV；Annotation Desk 页内/选中项 JSON/CSV；原生保存 | Annotation Desk 仅导出已观察项，非整库冻结快照；CSV 防公式执行、JSON 保留原文，不导出本机 revision。隔离 release .app 经 CUA 验证原生取消无成功提示、JSON/CSV 保存及文件解析，Unicode/引号/换行/BOM/公式前缀正确；尚未验证二进制、磁盘失败与多窗口保存，没有流式 FileRef | [EXPORT](../apps/web/src/platform/export-file.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [API](../packages/plugin-types/src/index.ts) [DICTEXPORT](../plugins/dictionary/src/export.ts) [DESKEXPORT](../plugins/annotation-desk/src/export.ts) [DESKRELEASE](../docs/evidence/packaged-annotation-desk-2026-09-09.json) | P02 |
+| <a id="SYS10"></a>SYS10 | 保存文本/二进制文件与取消回执 | 实装 | **部分**：export_text_file[双域]；二进制资源工具待接<br>[设计] 宿主文件导出工具 | **接通**：ui.exportFile(filename,content,mimeType) → boolean<br>[设计] 用户确认的文件导出 | Dictionary CSV；Annotation Desk；原生保存；Agent | 双端共享原生保存入口，插件文本/二进制 64 MiB 上限，接受时复制字节，保存对话框后重验取消再写文件；false 表示用户取消。Agent 工具仅接文本，目标名不是文件路径授权。Annotation Desk 仅导出已观察项，既有 release JSON/CSV 保存证据保留；新接口、二进制、磁盘失败与多窗口留集中验收，没有流式 FileRef。 | [EXPORT](../apps/web/src/platform/export-file.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [API](../packages/plugin-types/src/index.ts) [DICTEXPORT](../plugins/dictionary/src/export.ts) [DESKEXPORT](../plugins/annotation-desk/src/export.ts) [DESKRELEASE](../docs/evidence/packaged-annotation-desk-2026-09-09.json) [HOSTIO](../apps/web/src/services/host-io.ts) [HOSTIOTOOLS](../packages/agent/src/tools/host-io-tools.ts) | P02 |
 | <a id="SYS11"></a>SYS11 | 用户选文件/目录、拖放和流式文件句柄 | 实装 | **未接**：无正式入口<br>[设计] 用户授予 FileRef 后导入 | **未接**：无正式入口<br>[设计] 受控文件选择/句柄服务 | 书籍导入；插件安装选择 ZIP | 不能把导入字节 API 当作文件选择器；任意路径/FS 不开放 | [PICKER](../apps/web/src/features/library/lib/pick-book-files.ts) [IMPORT](../apps/web/src/features/library/lib/book-import.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | P01 |
-| <a id="SYS12"></a>SYS12 | 打开外部 URL/系统关联打开/深链接路由 | 实装 | **部分**：回答链接可由用户点击，无 opener 工具<br>[设计] 用户意图下的受控 URL 打开 | **未接**：无正式入口<br>[设计] scheme 白名单外部打开/URI contribution | 账号登录/购买链接；系统打开书籍 | 外部 URL 打开与注册任意协议不同；OAuth ticket 不给插件 | [EXTERNAL](../apps/web/src/platform/external-link.ts) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) | P05 |
+| <a id="SYS12"></a>SYS12 | 打开外部 URL/系统关联打开/深链接路由 | 实装 | **部分**：open_external_url[双域]<br>[设计] 用户意图下的受控 URL 打开 | **部分**：ui 1.7 openExternal；要求 service:network<br>[设计] scheme 白名单外部打开/URI contribution | 账号登录/购买链接；系统打开书籍；双端显式外链意图 | HTTP(S) 外链已接共享 opener，拒绝嵌入凭据、控制字符及 file/data/javascript/自定义 scheme；成功表示交给 OS，不表示网页加载。外部 URL 打开与注册协议不同，URI contribution/关联文件句柄仍未接；OAuth ticket 不给插件。定向权限和参数测试通过，集中桌面验收待做。 | [EXTERNAL](../apps/web/src/platform/external-link.ts) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTIO](../apps/web/src/services/host-io.ts) [HOSTIOTOOLS](../packages/agent/src/tools/host-io-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | P05 |
 | <a id="SYS13"></a>SYS13 | Blob 范围读取/流式读写/提交/中止 | 实装 | **内部**：正文/推理端口间接用，不读任意 blob<br>[设计] 受权 ResourceRef | **部分**：导入/导出只支持持有的 bytes<br>[设计] 资源句柄/流/额度 | 原书阅读；同步分片；封面 | 底层 get_blob/blob_write_* 不可直接暴露；跨线程大对象需 transferable/backpressure | [BLOB](../apps/web/src/platform/blob-store.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [API](../packages/plugin-types/src/index.ts) | P01 |
 | <a id="SYS14"></a>SYS14 | 系统字体枚举和字体资产加载 | 实装 | **部分**：settings discover reading.fontFamily<br>[设计] 受支持字体列表 | **部分**：settings options + fonts manifest<br>[设计] 字体资源能力 | 阅读字体选择；editorial-themes | 列表选择已可组合，不需要插件访问系统字体目录 | [RUST](../apps/desktop/src-tauri/src/lib.rs) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [API](../packages/plugin-types/src/index.ts) | 新增盘点 |
 | <a id="SYS15"></a>SYS15 | 原生日志/诊断包/崩溃报告导出与发送 | 实装 | **未接**：无正式入口<br>[设计] 打开宿主脱敏诊断流程 | **未接**：无正式入口<br>[设计] 隔离 logger + 自有诊断输出 | 设置 Troubleshooting；CrashFollowUpPrompt | 不得向任意插件暴露全量日志/凭据；发送需显式用户意图 | [DIAG](../apps/web/src/features/settings/lib/diagnostics.ts) [ERRORS](../packages/core/src/errors.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | R05, R06 |
@@ -410,13 +410,13 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：55 个。
-- Agent book：47 个。
-- Plugin ctx：127 个。
+- Agent global：59 个。
+- Agent book：51 个。
+- Plugin ctx：130 个。
 - Plugin returned interface：25 个。
 - Capability domains：6 个。
 - Capability contributions：14 个。
-- Capability services：8 个。
+- Capability services：9 个。
 - Capability schemas：3 个。
 - Settings path：74 个。
 - Native command：146 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 127 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 130 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -448,6 +448,10 @@
 | `navigate_app` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_host_commands` | [UI03](#UI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `execute_host_command` | [UI03](#UI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `list_installed_plugins` | [EXT11](#EXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `copy_to_clipboard` | [SYS08](#SYS08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `export_text_file` | [SYS10](#SYS10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `open_external_url` | [SYS12](#SYS12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_books` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_book_overview` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_annotations` | [ANN01](#ANN01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -508,6 +512,10 @@
 | `navigate_app` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_host_commands` | [UI03](#UI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `execute_host_command` | [UI03](#UI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `list_installed_plugins` | [EXT11](#EXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `copy_to_clipboard` | [SYS08](#SYS08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `export_text_file` | [SYS10](#SYS10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `open_external_url` | [SYS12](#SYS12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_book_overview` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_annotations` | [ANN01](#ANN01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_reading_stats` | [STAT01](#STAT01) [STAT02](#STAT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -664,7 +672,10 @@
 | `services.ui.reader.snapshot` | [READ10](#READ10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.reader.observe` | [READ10](#READ10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.reader.setPanel` | [READ10](#READ10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.ui.openExternal` | [SYS12](#SYS12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.schedules.bind` | [MORE01](#MORE01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.plugins.list` | [EXT11](#EXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.plugins.observe` | [EXT11](#EXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.session.environment` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.session.observeEnvironment` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.network.fetch` | [SYS06](#SYS06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -752,6 +763,7 @@
 | `ui` | [EXT07](#EXT07) [SYS10](#SYS10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `schedules` | [MORE01](#MORE01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `session` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `plugins` | [EXT11](#EXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `network` | [SYS06](#SYS06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `llm` | [AI06](#AI06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `clipboard` | [SYS08](#SYS08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

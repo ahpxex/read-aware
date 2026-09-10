@@ -24,7 +24,8 @@ import {
 } from "@read-aware/core";
 import { DEFAULT_LOCALE, i18n, isAppLocale } from "../../../i18n";
 import { onAppEvent } from "../../../platform/app-events";
-import { exportTextFile } from "../../../platform/export-file";
+import { hostIO } from "../../../services/host-io";
+import { pluginDirectory } from "../../../services/plugin-directory";
 import { flushLocalKV, localKV } from "../../../platform/local-store";
 import { createLogger } from "../../../platform/logger";
 import { hostEnvironment } from "../../../platform/host-environment";
@@ -577,16 +578,7 @@ export function buildPluginContext(
         },
         exportFile: (file) => {
           lifecycle.assertActive("services.ui.exportFile");
-          const content = file?.content;
-          const binary = content instanceof Uint8Array || content instanceof ArrayBuffer;
-          if (!file || typeof file.filename !== "string" || (typeof content !== "string" && !binary)) {
-            throw new Error("exportFile requires a filename and text or binary content");
-          }
-          return exportTextFile({
-            filename: file.filename,
-            content,
-            mimeType: typeof file.mimeType === "string" ? file.mimeType : undefined,
-          });
+          return hostIO.exportFile(file, lifecycle.signal);
         },
       },
       schedules: {
@@ -601,6 +593,13 @@ export function buildPluginContext(
           }
           return track(() => registerPluginSchedule(manifest.id, declaration, run));
         },
+      },
+      plugins: {
+        list: async query => {
+          lifecycle.assertActive("services.plugins.list");
+          return pluginDirectory.list(query);
+        },
+        observe: (query, handler) => track(() => ({ dispose: pluginDirectory.observe(query, handler) })),
       },
       session: {
         environment: async () => {
@@ -878,8 +877,15 @@ export function buildPluginContext(
     ctx.services.clipboard = {
       writeText: (text) => {
         lifecycle.assertActive("services.clipboard.writeText");
-        return navigator.clipboard.writeText(String(text));
+        return hostIO.writeClipboard(text, lifecycle.signal);
       },
+    };
+  }
+
+  if (canUseHostService("network", permissions)) {
+    ctx.services.ui.openExternal = url => {
+      lifecycle.assertActive("services.ui.openExternal");
+      return hostIO.openExternal(url, lifecycle.signal);
     };
   }
 

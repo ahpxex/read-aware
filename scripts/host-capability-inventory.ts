@@ -25,6 +25,10 @@ function pairs(entries: Array<[string, string]>): Record<string, string[]> {
   return Object.fromEntries(entries.flatMap(([names, rows]) => words(names).map(name => [name, words(rows)])));
 }
 const agentMap = pairs([
+  ["list_installed_plugins", "EXT11"],
+  ["copy_to_clipboard", "SYS08"],
+  ["export_text_file", "SYS10"],
+  ["open_external_url", "SYS12"],
   ["classify_book", "MEM09"],
   ["list_books get_book_overview", "LIB01"], ["get_annotations", "ANN01"],
   ["list_collections", "LIB15"], ["get_reading_stats", "STAT01 STAT02"],
@@ -58,6 +62,8 @@ const agentMap = pairs([
   ["ask_user", "AI04"], ["get_settings update_settings", "CFG01"],
 ]);
 const pluginMap = pairs([
+  ["services.plugins.list services.plugins.observe", "EXT11"],
+  ["services.ui.openExternal", "SYS12"],
   ["domains.settings.queries.snapshot domains.settings.queries.discover domains.settings.queries.read domains.settings.commands.update", "CFG01"],
   ["domains.settings.events.subscribe domains.settings.queries.observe services.storage.onChange", "CFG10"],
   ["domains.memory.queries.search", "MEM01"],
@@ -117,7 +123,7 @@ const pluginMap = pairs([
 const catalogMap: Record<string, Record<string, string[]>> = {
   domains: { library:["LIB01"], reading:["STAT01","READ01"], annotations:["ANN01"], conversations:["AI01"], settings:["CFG01"], memory:["MEM01","MEM11"] },
   contributions: { selectionActions:["EXT01"], headerActions:["EXT02"], commands:["UI03"], settingsOptions:["CFG09"], voiceProviders:["READ17"], contentProviders:["LIB14"], readerModes:["READ15"], agentTools:["AI10"], agentContextProviders:["AI11"], agentRetrievalProviders:["AI12"], memoryCandidateProviders:["MEM03"], themes:["EXT08"], fonts:["EXT08"], syncTransports:["OPS04"] },
-  services: { storage:["SYS01","SYS02"], secrets:["SYS04"], ui:["EXT07","SYS10"], schedules:["MORE01"], session:["MORE03"], network:["SYS06"], llm:["AI06"], clipboard:["SYS08"] },
+  services: { storage:["SYS01","SYS02"], secrets:["SYS04"], ui:["EXT07","SYS10"], schedules:["MORE01"], session:["MORE03"], plugins:["EXT11"], network:["SYS06"], llm:["AI06"], clipboard:["SYS08"] },
   schemas: { views:["EXT03","EXT04","EXT05"], settings:["CFG09"], themes:["EXT08"] },
 };
 const nativeMap = pairs([

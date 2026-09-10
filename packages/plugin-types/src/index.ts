@@ -1706,6 +1706,8 @@ export type PluginHostServices = {
     };
     showToast(message: string): void;
     exportFile(file: PluginExportFile): Promise<boolean>;
+    /** UI 1.7, requires service:network. Explicit user intent only; HTTP(S), no credentials or local schemes. */
+    openExternal?(url: string): Promise<void>;
     /** Updates only this activation's visible frame. Revision is a nonnegative, increasing safe integer.
      * Receipt confirms host acceptance, not paint; updates cannot navigate or replace the subscription. */
     publishView(channel: PluginViewChannel, update: PluginViewUpdate): Promise<PluginViewUpdateReceipt>;
@@ -1719,6 +1721,12 @@ export type PluginHostServices = {
   };
   schedules: {
     bind(scheduleId: string, run: () => void | Promise<void>): PluginDisposable;
+  };
+  plugins: {
+    /** Public installed metadata only, no settings, paths, secrets or raw errors. */
+    list(query?: import("@read-aware/core").PluginDirectoryQuery): Promise<import("@read-aware/core").PluginDirectoryPage>;
+    /** Initial page and changes; offset pages must be reloaded after directory changes. */
+    observe(query: import("@read-aware/core").PluginDirectoryQuery, handler: (page: import("@read-aware/core").PluginDirectoryPage) => unknown): PluginDisposable;
   };
   session: {
     /** Fresh non-sensitive metadata; contains no reading or account state. */

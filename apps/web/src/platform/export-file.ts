@@ -36,7 +36,8 @@ function bytesToBase64(bytes: Uint8Array): string {
 }
 
 /** Save plugin-generated content (text or binary) through host-owned platform UI. */
-export async function exportTextFile(file: FileExport): Promise<boolean> {
+export async function exportTextFile(file: FileExport, signal?: AbortSignal): Promise<boolean> {
+  signal?.throwIfAborted();
   const filename = safeBasename(file.filename);
   const binary = typeof file.content !== "string";
 
@@ -48,6 +49,7 @@ export async function exportTextFile(file: FileExport): Promise<boolean> {
         ? [{ name: `${extension.toUpperCase()} file`, extensions: [extension] }]
         : undefined,
     });
+    signal?.throwIfAborted();
     if (!path) return false;
     if (binary) {
       await invoke("write_export_file", {

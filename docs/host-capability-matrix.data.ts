@@ -13,6 +13,9 @@ export const cap = (id: string, name: string, host: HostState, agent: Actor, plu
   ({ id, name, host, agent, plugin, sources, consumers, gap, baseline: [] });
 
 export const sources: Record<string, string> = {
+  HOSTIO: "apps/web/src/services/host-io.ts",
+  HOSTIOTOOLS: "packages/agent/src/tools/host-io-tools.ts",
+  PLUGINDIRECTORY: "apps/web/src/services/plugin-directory.ts",
   ANNOBSERVER: "apps/web/src/domain/annotation-observer.ts",
   ANNOBSERVATION: "packages/core/src/annotation-observation.ts",
   ANNLIVE: "plugins/annotation-desk/src/live-page.ts",
@@ -491,7 +494,7 @@ groups.push(
     cap("EXT08", "应用/阅读主题和字体贡献", "实装", actor("部分", "settings 选择已声明主题/字体", "选择工具，不注册代码资产"), actor("接通", "manifest themes/fonts", "静态主题/字体贡献"), ["THEMES","API","SETTINGS"], "editorial-themes", "能力 catalog 含 themes/fonts，ctx 无 register 是声明式设计而非漏实现"),
     cap("EXT09", "词典查询/收藏/复习列表/CSV 导出", "实装", actor("扩展", "lookup_word/get_vocabulary/save_word", "插件工具"), actor("接通", "Dictionary 私有 storage + LLM + views/export", "现有原语组合"), ["DICT","DICTTOOLS","DICTVIEWS","DICTEXPORT"], "Dictionary", "Agent 无删词/CSV 导出工具；不应把词汇领域搬回宿主"),
     cap("EXT10", "RSS 订阅/刷新/退订/OPML/阅读文章", "实装", actor("扩展", "list_feeds/subscribe_feed/refresh_feed[全局]", "插件工具"), actor("接通", "RSS 私有 collection + content provider", "现有原语组合"), ["RSS","RSSTOOLS","RSSVIEWS","RSSFEED"], "RSS", "退订与 OPML 无 Agent 工具；刷新正在读的版本仍见 LIB14"),
-    cap("EXT11", "本地 marketplace 插件清单与启用状态", "实装", absent("只读插件目录/能力查询工具"), actor("部分", "ctx.manifest/capabilities 仅自己", "自有与受控公共目录"), ["HOST","MARKET","API"], "插件管理页", "不能将仓库里存在等于用户已安装/启用；本次未读取用户安装态"),
+    cap("EXT11", "本地 marketplace 插件清单与启用状态", "实装", actor("接通", "list_installed_plugins[双域]", "只读插件目录/能力查询工具"), actor("接通", "services.plugins 1.0 list/observe", "自有与受控公共目录"), ["HOST","MARKET","API","PLUGINDIRECTORY","HOSTIOTOOLS"], "插件管理页；双端公共目录", "有界查询 installed ID/name/version/builtin/enabled/activationFailed，初始快照与安装态变化观察；不返回设置、路径、凭据或原始错误。enabled 是配置而非健康保证；分页变化需重查，不承诺稳定游标。具体贡献发现/跨插件调用另列 MORE06。接线与定向测试完成，组合插件及桌面验收待集中进行。"),
     cap("EXT12", "安装/授权/启停/更新/回滚/卸载插件", "实装", absent("打开宿主审批流程"), absent("自管理申请，不得静默控制其他插件"), ["HOST","MARKET","RUST"], "Plugins settings", "不开放：插件静默授予自己权限/安装代码；Agent 操作也应经宿主批准"),
   ] },
   { name: "存储、网络与原生资源", rows: [
@@ -502,11 +505,11 @@ groups.push(
     cap("SYS05", "插件数据导入导出/配额/同步策略", "部分", actor("扩展", "仅插件自定义工具", "插件拥有的数据操作"), actor("部分", "exportFile + 私有 CRUD；无通用配额/同步状态", "隔离数据生命周期"), ["API","DOCS","ROAM","BACKUP"], "Dictionary CSV；RSS OPML", "KV、plugin_docs、secrets、blob 的漫游/备份边界不同，不能统一宣称可同步"),
     cap("SYS06", "原生网络 HTTP 请求与响应", "实装", actor("内部", "推理端口/插件工具，无通用 fetch 工具", "有用途/域名约束网络工具"), actor("部分", "services.network v1.1：Request/二进制/AbortSignal 跨桥；64 MiB/120s 边界", "完整有界 HTTP 服务"), ["HTTP","CTX","WIRE","WORKER","RSS","TTS"], "RSS/TTS/WebDAV；隔离 Tauri wire probe", "GAP04/05 的参数保真、预取消不发请求、运行中取消及停用中止原生连接已实测；仍需 Agent 受权网络入口、重定向策略及生产 CSP 验收，见 host-capability-delivery.md"),
     cap("SYS07", "网络域名授权、预算、下载流和离线重试", "部分", absent("用途受限任务"), actor("部分", "network permission 是大开关，无完整流/配额", "授权/任务/缓存原语"), ["API","HTTP","WIRE","CATALOG"], "宿主内部 HTTP；各插件自行缓存", "不是给每个插件重新实现重试/缓存的理由；实时 socket 不算宿主当前产品能力"),
-    cap("SYS08", "剪贴板写文本", "实装", actor("未接", "无复制工具", "用户触发的复制意图"), actor("接通", "services.clipboard.writeText", "受权剪贴板写"), ["API","CTX","TEXTACTIONS"], "选择复制；插件动作", "写文本不含读剪贴板或图片"),
+    cap("SYS08", "剪贴板写文本", "实装", actor("接通", "copy_to_clipboard[双域]", "用户触发的复制意图"), actor("接通", "services.clipboard.writeText", "受权剪贴板写"), ["API","CTX","TEXTACTIONS","HOSTIO","HOSTIOTOOLS"], "选择复制；插件动作；Agent", "共享写入限 1000000 字符，插件需 service:clipboard；取消阻止未派发写，不回滚已派发写。只接受明确复制意图，不读取剪贴板或复制图片。定向测试通过；新双端组合 E2E 待集中进行。"),
     cap("SYS09", "图片复制/导出原生图片资源", "实装", absent("用户触发的图像导出"), absent("Image ResourceRef + 受权复制/导出"), ["READER","EXPORT","RUST"], "ReaderImageLightbox", "二进制 exportFile 可保存已持有字节，但无书内图像资源查询/图片剪贴板"),
-    cap("SYS10", "保存文本/二进制文件与取消回执", "实装", absent("宿主文件导出工具"), actor("接通", "ui.exportFile(filename,content,mimeType) → boolean", "用户确认的文件导出"), ["EXPORT","CTX","API","DICTEXPORT","DESKEXPORT","DESKRELEASE"], "Dictionary CSV；Annotation Desk 页内/选中项 JSON/CSV；原生保存", "Annotation Desk 仅导出已观察项，非整库冻结快照；CSV 防公式执行、JSON 保留原文，不导出本机 revision。隔离 release .app 经 CUA 验证原生取消无成功提示、JSON/CSV 保存及文件解析，Unicode/引号/换行/BOM/公式前缀正确；尚未验证二进制、磁盘失败与多窗口保存，没有流式 FileRef"),
+    cap("SYS10", "保存文本/二进制文件与取消回执", "实装", actor("部分", "export_text_file[双域]；二进制资源工具待接", "宿主文件导出工具"), actor("接通", "ui.exportFile(filename,content,mimeType) → boolean", "用户确认的文件导出"), ["EXPORT","CTX","API","DICTEXPORT","DESKEXPORT","DESKRELEASE","HOSTIO","HOSTIOTOOLS"], "Dictionary CSV；Annotation Desk；原生保存；Agent", "双端共享原生保存入口，插件文本/二进制 64 MiB 上限，接受时复制字节，保存对话框后重验取消再写文件；false 表示用户取消。Agent 工具仅接文本，目标名不是文件路径授权。Annotation Desk 仅导出已观察项，既有 release JSON/CSV 保存证据保留；新接口、二进制、磁盘失败与多窗口留集中验收，没有流式 FileRef。"),
     cap("SYS11", "用户选文件/目录、拖放和流式文件句柄", "实装", absent("用户授予 FileRef 后导入"), absent("受控文件选择/句柄服务"), ["PICKER","IMPORT","RUST"], "书籍导入；插件安装选择 ZIP", "不能把导入字节 API 当作文件选择器；任意路径/FS 不开放"),
-    cap("SYS12", "打开外部 URL/系统关联打开/深链接路由", "实装", actor("部分", "回答链接可由用户点击，无 opener 工具", "用户意图下的受控 URL 打开"), absent("scheme 白名单外部打开/URI contribution"), ["EXTERNAL","APP","RUST"], "账号登录/购买链接；系统打开书籍", "外部 URL 打开与注册任意协议不同；OAuth ticket 不给插件"),
+    cap("SYS12", "打开外部 URL/系统关联打开/深链接路由", "实装", actor("部分", "open_external_url[双域]", "用户意图下的受控 URL 打开"), actor("部分", "ui 1.7 openExternal；要求 service:network", "scheme 白名单外部打开/URI contribution"), ["EXTERNAL","APP","RUST","HOSTIO","HOSTIOTOOLS","CTX"], "账号登录/购买链接；系统打开书籍；双端显式外链意图", "HTTP(S) 外链已接共享 opener，拒绝嵌入凭据、控制字符及 file/data/javascript/自定义 scheme；成功表示交给 OS，不表示网页加载。外部 URL 打开与注册协议不同，URI contribution/关联文件句柄仍未接；OAuth ticket 不给插件。定向权限和参数测试通过，集中桌面验收待做。"),
     cap("SYS13", "Blob 范围读取/流式读写/提交/中止", "实装", actor("内部", "正文/推理端口间接用，不读任意 blob", "受权 ResourceRef"), actor("部分", "导入/导出只支持持有的 bytes", "资源句柄/流/额度"), ["BLOB","RUST","API"], "原书阅读；同步分片；封面", "底层 get_blob/blob_write_* 不可直接暴露；跨线程大对象需 transferable/backpressure"),
     cap("SYS14", "系统字体枚举和字体资产加载", "实装", actor("部分", "settings discover reading.fontFamily", "受支持字体列表"), actor("部分", "settings options + fonts manifest", "字体资源能力"), ["RUST","SETTINGS","API"], "阅读字体选择；editorial-themes", "列表选择已可组合，不需要插件访问系统字体目录"),
     cap("SYS15", "原生日志/诊断包/崩溃报告导出与发送", "实装", absent("打开宿主脱敏诊断流程"), absent("隔离 logger + 自有诊断输出"), ["DIAG","ERRORS","RUST"], "设置 Troubleshooting；CrashFollowUpPrompt", "不得向任意插件暴露全量日志/凭据；发送需显式用户意图"),

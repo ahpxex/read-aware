@@ -3039,9 +3039,38 @@ The current host services are:
 | `ui` | host toast and save/export flow | built in |
 | `schedules` | bind a manifest-declared periodic task | built in |
 | `session` | 2.0: environment snapshot/observation only; reading state requires the reading domain | built in |
+| `plugins` | 1.0: bounded installed public metadata list/observation | built in |
 | `network` | host HTTP client | `service:network` |
 | `llm` | approved one-shot/structured model calls | `service:llm` |
 | `clipboard` | write text to clipboard | `service:clipboard` |
+
+[代码] UI 1.7 adds `openExternal(url)` when `service:network` is granted.
+It accepts HTTP(S) only (up to 8192 characters), rejects credentials and control
+characters, and delegates to the system opener. Completion means OS dispatch,
+not remote page load; custom schemes, local files and OAuth tickets remain
+outside this API. Agent `open_external_url` uses the same host implementation.
+Both are explicit-user-intent operations, never a background data export path.
+
+[代码] Agent `copy_to_clipboard` now shares the plugin clipboard writer (text
+only, up to 1000000 characters). `export_text_file` uses the same native save
+flow as plugin `ui.exportFile`; user cancellation returns `saved:false`/`false`.
+The shared export accepts text or bytes up to 64 MiB, copies accepted bytes,
+and rechecks cancellation after the save dialog before dispatching the write.
+The model tool accepts text only; a suggested filename grants no path access.
+Dispatched clipboard/file effects are not rolled back by subsequent cancellation.
+
+[代码] `services.plugins.list({search?,offset?,limit?})` and `observe(query,handler)`
+return public `id/name/version/builtin/enabled/activationFailed`, total and next
+offset. Limit is 1–100 (default 50), offset is nonnegative, search at most 200
+characters. Observation emits the initial page and installed-state changes and
+is activation-owned. No settings, paths, credentials or raw activation errors
+are exposed. Enabled describes configuration, not contribution health. Restart
+offset pagination after changes. Agent `list_installed_plugins` shares this
+query; provider discovery/invocation and management approvals are separate work.
+
+[环境] These new connections have type and focused contract/permission tests.
+Combination plugins and native E2E are intentionally deferred to the integrated
+validation phase; existing export evidence does not prove this new batch.
 
 Services are not a native escape hatch. Never expose raw paths, unrestricted
 filesystem access, Tauri invocation, SQL, Foliate internals, arbitrary process

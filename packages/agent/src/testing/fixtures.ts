@@ -358,6 +358,12 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   const memoryManagement = createMemoryManagementFixture(stores.memories);
   const bookClassification = createBookClassificationFixture(books);
   const deps: RuntimeDeps = {
+    hostIO: {
+      listPlugins: async () => ({ plugins: [], total: 0, offset: 0, nextOffset: null }),
+      writeClipboard: async () => { throw new AppError("ui/unavailable", "Attach a clipboard fixture"); },
+      exportFile: async () => false,
+      openExternal: async () => { throw new AppError("ui/unavailable", "Attach an external browser fixture"); },
+    },
     bookGraphTasks: new BookGraphTaskOwner(async () => { throw new AppError("ai/not-configured", "Attach a graph executor for task tests"); }, () => {}),
     bookClassification,
     memoryManagement,

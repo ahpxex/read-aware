@@ -2,6 +2,7 @@
 import type { RuntimeDeps } from "@read-aware/agent";
 import { createLogger } from "../../../../platform/logger";
 import { hostEnvironment } from "../../../../platform/host-environment";
+import { hostIO } from "../../../../services/host-io";
 import { workspace } from "../../../../services/workspace";
 import { trustedHostCommands } from "../../../../services/host-command-runtime";
 import {
@@ -29,6 +30,7 @@ export { GLOBAL_CONVERSATION_ID } from "./conversation-port";
 
 export function buildRuntimeDeps(): RuntimeDeps {
   return {
+    hostIO,
     bookGraphTasks: agentBookGraphTasks,
     bookClassification: { inspect: inspectBookClassification, change: (input, signal) => changeBookClassification(input, "agent", signal) },
     memoryManagement: { inspect: inspectMemory, mutate: (input, signal) => mutateMemory(input, "agent", signal) },

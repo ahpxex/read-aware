@@ -16,6 +16,7 @@ import { buildSettingsTools } from "./settings-tools";
 import { buildEnvironmentTools } from "./environment-tools";
 import { buildWorkspaceTools } from "./workspace-tools";
 import { buildHostCommandTools } from "./host-command-tools";
+import { buildHostIOTools } from "./host-io-tools";
 import { buildShelfTools } from "./shelf-tools";
 import type { AgentTurnState } from "./turn-state";
 
@@ -32,6 +33,7 @@ export function buildAgentTools(
     ...buildEnvironmentTools(deps),
     ...buildWorkspaceTools(deps),
     ...buildHostCommandTools(deps),
+    ...buildHostIOTools(deps),
     ...buildThreadTools(scope, deps),
     ...buildShelfTools(scope, deps),
     ...buildAnnotationTools(scope, deps),

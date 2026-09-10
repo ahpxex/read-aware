@@ -403,6 +403,12 @@ export interface RuntimeDeps {
   };
   readingContextPolicy?: import("./runtime/reading-context-policy").ReadingContextPolicy;
   environment: { snapshot(): Promise<import("@read-aware/core").HostEnvironmentSnapshot> };
+  hostIO: {
+    listPlugins(query?: import("@read-aware/core").PluginDirectoryQuery): Promise<import("@read-aware/core").PluginDirectoryPage>;
+    writeClipboard(text: string, signal?: AbortSignal): Promise<void>;
+    exportFile(file: import("@read-aware/core").HostExportFile, signal?: AbortSignal): Promise<boolean>;
+    openExternal(url: string, signal?: AbortSignal): Promise<void>;
+  };
   workspace: {
     snapshot(query?: import("@read-aware/core").WorkspaceQuery): Promise<import("@read-aware/core").WorkspaceSnapshot>;
     navigate(target: import("@read-aware/core").WorkspaceTarget, expectedRevision?: number, signal?: AbortSignal): Promise<import("@read-aware/core").WorkspaceReceipt>;

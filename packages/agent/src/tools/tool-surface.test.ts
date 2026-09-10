@@ -68,6 +68,10 @@ function seed(): InMemorySeed {
  * 完备性断言会指认漏网的名字。
  */
 const SURFACE_CASES: Record<string, Record<string, unknown>> = {
+  list_installed_plugins: {},
+  copy_to_clipboard: { text: "Requested text" },
+  export_text_file: { filename: "reading.txt", content: "Requested text" },
+  open_external_url: { url: "https://readaware.app/" },
   get_host_environment: {},
   get_workspace: {},
   navigate_app: { target: { surface: "stats" } },
@@ -172,6 +176,8 @@ describe("tool surface contract", () => {
         if (!params) continue; // 完备性由上面的用例把守
         // 每个工具独立的 fixture：破坏性工具（fixture 自动批准权限）不得污染后续用例
         const { deps } = createInMemoryDeps(seed());
+        deps.hostIO.writeClipboard = async () => {};
+        deps.hostIO.openExternal = async () => {};
         if (name === "read_book_range") params.range = (await deps.bookText.searchLocations({ bookId: BOOK_ID, query: "Victor" })).hits[0].range;
         if (name === "manage_memory") params.memoryId = (await deps.memory.saveMemory({ content: "The reader enjoys mysteries.", scope: "user", kind: "preference", origin: "agent", sourceThreadKey: "surface" })).id;
         // The generic fixture has no attached host command runtime. These receipts

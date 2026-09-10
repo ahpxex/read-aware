@@ -2,10 +2,14 @@ import type { PluginContext, PluginBook, PluginDetailView, PluginListView, Plugi
 import type { BookFileReleaseReceipt } from "@read-aware/plugin-types";
 import { strings, cleanupStrings } from "./strings";
 import { workspaceStrings, workspaceView } from "./workspace";
+import { assetStrings } from "./assets-strings";
+import { bookAssets } from "./book-assets";
+import { importBook } from "./import-book";
 
 export async function libraryDesk(ctx: PluginContext): Promise<PluginView> {
   const library = ctx.domains.library!, write = library.commands!.books, t = strings(ctx.locale);
   const cleanupText = cleanupStrings(ctx.locale);
+  const assetsText = assetStrings(ctx.locale);
   let books = await library.queries.books.list(), channel: PluginViewChannel | undefined, revision = 0, refreshGeneration = 0;
   const selected = new Set<string>();
   const refresh = async () => {
@@ -67,6 +71,8 @@ export async function libraryDesk(ctx: PluginContext): Promise<PluginView> {
       },
     })),
     actions: [{ id: "refresh", label: t[7], icon: "arrows-clockwise", run: refresh },
+      { id: "import", label: assetsText.import, icon: "plus", run: () => importBook(ctx) },
+      ...(selected.size === 1 ? [{ id: "details", label: assetsText.details, icon: "book-open", run: async () => ({ view: await bookAssets(ctx, books.find(book => selected.has(book.id))!) }) }] : []),
       { id: "workspace", label: workspaceStrings(ctx.locale)[0], icon: "books", run: async () => ({ view: await workspaceView(ctx) }) },
       ...(selected.size ? [{ id: "show-selection", label: workspaceStrings(ctx.locale)[7], icon: "arrow-right", run: async () => ({ view: await workspaceView(ctx, books.filter(book => selected.has(book.id))) }) }] : []),
       { id: "cleanup", label: cleanupText[0], icon: "arrows-clockwise", run: async () => ({ view: await pendingCleanup() }) },

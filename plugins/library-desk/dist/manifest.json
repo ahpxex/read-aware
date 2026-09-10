@@ -1,17 +1,17 @@
 {
   "id": "library-desk",
   "name": "Library Desk",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "schemaVersion": 1,
-  "description": "Navigate collections and app surfaces, show selected books on the shelf, review removal batches, and retry file cleanup.",
+  "description": "Import books, inspect and export local book assets, monitor metadata enrichment, navigate collections, and review removal batches.",
   "author": "ReadAware",
   "main": "main.js",
-  "permissions": ["library:write", "reading:write"],
+  "permissions": ["library:write", "reading:write", "service:clipboard"],
   "settingsAccess": { "read": ["shelf.layout", "shelf.sort", "shelf.group"], "write": ["shelf.layout", "shelf.sort", "shelf.group"] },
   "requires": {
-    "domains": { "library": "^1.6.0", "reading": "^2.0.0" },
+    "domains": { "library": "^1.11.0", "reading": "^2.0.0" },
     "contributions": { "headerActions": "^1.0.0", "commands": "^1.0.0" },
-    "services": { "ui": "^1.6.0" },
-    "schemas": { "views": "^1.2.0" }
+    "services": { "ui": "^1.6.0", "resources": "^1.1.0", "clipboard": "^1.1.0" },
+    "schemas": { "views": "^1.7.0" }
   }
 }

@@ -183,10 +183,205 @@ async function workspaceView(ctx, selected) {
   } } };
 }
 
+// src/assets-strings.ts
+var en2 = {
+  details: "Book details",
+  import: "Import book",
+  confirmImport: "Import",
+  imported: "Imported",
+  duplicate: "Already in library",
+  cover: "Cover",
+  preview: "Preview cover",
+  copy: "Copy cover",
+  copied: "Cover copied",
+  save: "Save cover",
+  export: "Export original file",
+  saved: "Saved",
+  unavailable: "Not available locally",
+  unchecked: "Not checked",
+  none: "No cover",
+  ready: "Available locally",
+  enrichment: "Metadata and cover",
+  retry: "Retry enrichment",
+  refresh: "Refresh",
+  source: "Original file",
+  local: "Available locally",
+  remote: "Not available locally",
+  pending: "Metadata pending",
+  complete: "Metadata complete",
+  file: "File",
+  size: "Bytes",
+  format: "Format",
+  sections: "Sections",
+  inspection: "Parser initialization",
+  parsed: "Initialized",
+  unsupported: "Unsupported format",
+  encrypted: "Encrypted",
+  failed: "Failed",
+  unknown: "Unknown",
+  idle: "Idle",
+  queued: "Queued",
+  running: "Running",
+  completed: "Completed",
+  skipped: "Skipped"
+};
+var zh = {
+  details: "书籍详情",
+  import: "导入书籍",
+  confirmImport: "导入",
+  imported: "已导入",
+  duplicate: "书库中已存在",
+  cover: "封面",
+  preview: "预览封面",
+  copy: "复制封面",
+  copied: "封面已复制",
+  save: "保存封面",
+  export: "导出原文件",
+  saved: "已保存",
+  unavailable: "本地不可用",
+  unchecked: "尚未检查",
+  none: "没有封面",
+  ready: "本地可用",
+  enrichment: "元数据与封面",
+  retry: "重试补齐",
+  refresh: "刷新",
+  source: "原文件",
+  local: "本地可用",
+  remote: "本地不可用",
+  pending: "元数据待补齐",
+  complete: "元数据已完整",
+  file: "文件",
+  size: "字节",
+  format: "格式",
+  sections: "章节数",
+  inspection: "解析器初始化",
+  parsed: "已初始化",
+  unsupported: "不支持的格式",
+  encrypted: "已加密",
+  failed: "失败",
+  unknown: "未知",
+  idle: "空闲",
+  queued: "排队中",
+  running: "进行中",
+  completed: "已完成",
+  skipped: "已跳过"
+};
+var assetStrings = (locale) => locale === "zh-Hans" || locale === "zh-CN" ? zh : en2;
+
+// src/book-assets.ts
+async function bookAssets(ctx, book) {
+  const library = ctx.domains.library, resources = ctx.services.resources, t = assetStrings(ctx.locale);
+  let snapshot = await library.queries.books.getEnrichment(book.id), failure;
+  const unavailable = () => ({ toast: t.unavailable });
+  const saveOriginal = async () => {
+    const resource = await resources.openBook(book.id);
+    if (!resource)
+      return unavailable();
+    try {
+      return (await resources.save(resource.id, resource.name)).saved ? { toast: t.saved } : null;
+    } finally {
+      await resources.release(resource.id);
+    }
+  };
+  const cover = async () => {
+    const resource = await resources.openCover(book.id);
+    if (!resource)
+      return unavailable();
+    return { view: {
+      kind: "detail",
+      title: book.title,
+      content: [{ kind: "image", resourceId: resource.id, alt: book.title, aspectRatio: 2 / 3 }],
+      actions: [
+        { id: "save-cover", label: t.save, icon: "download-simple", run: async () => (await resources.save(resource.id, resource.name)).saved ? { toast: t.saved } : null },
+        { id: "copy-cover", label: t.copy, icon: "copy", run: async () => {
+          await ctx.services.clipboard.writeImage(resource.id);
+          return { toast: t.copied };
+        } }
+      ],
+      onClose: () => resources.release(resource.id)
+    } };
+  };
+  const content = () => ({
+    kind: "detail",
+    title: book.title,
+    content: [
+      { kind: "group", blocks: failure ? [{ kind: "error", code: failure }] : [] },
+      { kind: "keyValue", rows: [
+        { label: t.cover, value: snapshot.cover.local ? t.ready : snapshot.cover.status === "ready" ? t.unavailable : t[snapshot.cover.status] },
+        { label: t.source, value: snapshot.sourceLocal ? t.local : t.remote },
+        { label: t.enrichment, value: `${snapshot.metadataPending ? t.pending : t.complete} / ${t[snapshot.job.phase]}` }
+      ] },
+      ...snapshot.job.errorCode ? [{ kind: "error", code: snapshot.job.errorCode }] : []
+    ],
+    actions: [
+      { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await bookAssets(ctx, book), navigation: "replace" }) },
+      ...!failure && snapshot.cover.local ? [{ id: "cover", label: t.preview, icon: "book-bookmark", run: cover }] : [],
+      ...!failure && snapshot.sourceLocal ? [{ id: "export", label: t.export, icon: "download-simple", run: saveOriginal }] : [],
+      ...!failure && snapshot.supported && snapshot.sourceLocal && snapshot.job.phase !== "queued" && snapshot.job.phase !== "running" && (snapshot.metadataPending || snapshot.cover.status === "unchecked") ? [{ id: "enrich", label: t.retry, icon: "arrows-clockwise", run: async () => {
+        await library.commands.books.retryEnrichment(book.id);
+        return { view: await bookAssets(ctx, book), navigation: "replace" };
+      } }] : []
+    ]
+  });
+  return { ...content(), live: { subscribe(channel) {
+    let disposed = false, revision = 0;
+    const subscription = library.events.observeEnrichment(book.id, async (event) => {
+      if (disposed)
+        return;
+      if (event.status === "ready") {
+        snapshot = event.snapshot;
+        failure = undefined;
+      } else
+        failure = event.errorCode;
+      await ctx.services.ui.publishView(channel, { revision: ++revision, view: content() });
+    });
+    return { dispose() {
+      disposed = true;
+      subscription.dispose();
+    } };
+  } } };
+}
+
+// src/import-book.ts
+async function importBook(ctx) {
+  const library = ctx.domains.library, resources = ctx.services.resources, t = assetStrings(ctx.locale);
+  const formats = await library.queries.books.listFormats();
+  const picked = await resources.pick({ multiple: false, extensions: formats.flatMap((format) => format.extensions) });
+  const resource = picked.resources[0];
+  if (!resource)
+    return null;
+  let inspection;
+  try {
+    inspection = await library.queries.books.inspectResource(resource.id);
+  } catch (error) {
+    await resources.release(resource.id);
+    throw error;
+  }
+  return { view: { kind: "detail", title: t.import, content: [
+    { kind: "keyValue", rows: [
+      { label: t.file, value: resource.name },
+      { label: t.size, value: String(resource.size) },
+      { label: t.format, value: inspection.formatHint ?? t.unknown },
+      { label: t.inspection, value: t[inspection.status] },
+      { label: t.sections, value: inspection.sectionCount === null ? t.unknown : String(inspection.sectionCount) }
+    ] },
+    ...inspection.errorCode ? [{ kind: "error", code: inspection.errorCode }] : []
+  ], actions: inspection.status === "parsed" ? [{ id: "import", label: t.confirmImport, icon: "plus", run: async () => {
+    const receipt = await library.commands.books.importResource(resource.id);
+    return { view: {
+      kind: "detail",
+      title: receipt.book.title,
+      content: [{ kind: "text", text: receipt.status === "duplicate" ? t.duplicate : t.imported }],
+      actions: [{ id: "details", label: t.details, icon: "book-open", run: async () => ({ view: await bookAssets(ctx, receipt.book) }) }]
+    }, navigation: "replace" };
+  } }] : [], onClose: () => resources.release(resource.id) } };
+}
+
 // src/views.ts
 async function libraryDesk(ctx) {
   const library = ctx.domains.library, write = library.commands.books, t = strings(ctx.locale);
   const cleanupText = cleanupStrings(ctx.locale);
+  const assetsText = assetStrings(ctx.locale);
   let books = await library.queries.books.list(), channel, revision = 0, refreshGeneration = 0;
   const selected = new Set;
   const refresh = async () => {
@@ -276,6 +471,8 @@ ${book.author ?? ""}` }))
     })),
     actions: [
       { id: "refresh", label: t[7], icon: "arrows-clockwise", run: refresh },
+      { id: "import", label: assetsText.import, icon: "plus", run: () => importBook(ctx) },
+      ...selected.size === 1 ? [{ id: "details", label: assetsText.details, icon: "book-open", run: async () => ({ view: await bookAssets(ctx, books.find((book) => selected.has(book.id))) }) }] : [],
       { id: "workspace", label: workspaceStrings(ctx.locale)[0], icon: "books", run: async () => ({ view: await workspaceView(ctx) }) },
       ...selected.size ? [{ id: "show-selection", label: workspaceStrings(ctx.locale)[7], icon: "arrow-right", run: async () => ({ view: await workspaceView(ctx, books.filter((book) => selected.has(book.id))) }) }] : [],
       { id: "cleanup", label: cleanupText[0], icon: "arrows-clockwise", run: async () => ({ view: await pendingCleanup() }) },

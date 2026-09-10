@@ -255,6 +255,10 @@
             <p>macOS debug 已验双端查询、真实阅读 tick、结算、失败恢复和窄窗菜单。数据只含已持久样本，通常约 20 秒写入一次，不外推秒表，也不代表跨设备已同步；打包、跨平台和长时负载未验。<a href="./plugin-system.md#persisted-reading-time">完整契约</a> · <a href="./evidence/reading-time-snapshot-2026-09-09.json">桌面证据</a></p>
           </div></details>
           <p class="intro">插件只看到权限允许的 actor view。所有写入都经过正式命令，并记录来源。</p>
+          <details class="ep" data-search-section="Library Desk import cover resource 封面 导入 导出 补齐"><summary>Library Desk 0.7：导入、封面与原文件组合已接好</summary><div class="ep-body">
+            <p>只用既有公开 API：选文件后先检查解析器初始化，明确导入才写书库；结果区分新增与重复。单本详情可观察补齐状态、请求重试、预览和复制保存封面、导出本地原件。复制需独立剪贴板权限，新标签提供简体中文及英文回退。</p>
+            <p>接通不等于端到端通过。21项插件检查、类型与构建通过；帧关闭及导出结算释放资源，取消保存不报成功。原生文件选择、真实粘贴、格式及关闭中操作留集中 Tauri 验收，本批不启动桌面。<a href="./plugin-system.md#library-desk-asset-composition">组合边界</a></p>
+          </div></details>
           <details class="ep" data-search-section="batch removal delete_books Library Desk 批量 删除 清理 重试"><summary>Library 1.6：批量删除与重启后清理恢复双端接通</summary><div class="ep-body">
             <p>Agent 全局 delete_books 一次批准固定的 1–1000 个 ID；插件 removeMany 经 library:write 调用。记录/事件原子提交，文件失败仍明确报告记录已删。retryRemovalCleanup 只重试文件，不再写删除事件；任一书已恢复则整次拒绝文件清理。</p>
             <p>Library Desk 0.2 和 Agent 可重新查询宿主持久清理队列，不必保留旧回执。删除事务同时登记，恢复书籍取消登记；启动逐项重试，失败保留且不阻塞后续。详情显示完整标题与 ID，手动重试不新增删除事件。</p>

@@ -5852,9 +5852,9 @@ user configuration.
 
 ## 13. First-Party Coverage
 
-The thirteen source plugins use the registry-backed contract. Rust currently bundles
+The fifteen source plugins use the registry-backed contract. Rust currently bundles
 six; source presence is not installation or enablement. Theme Schedule is in the
-adjacent distribution repository, not a fourteenth plugin in this checkout:
+adjacent distribution repository, not an additional source plugin in this checkout:
 
 | Plugin | Primary capabilities |
 | --- | --- |
@@ -5871,11 +5871,50 @@ adjacent distribution repository, not a fourteenth plugin in this checkout:
 | Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |
 | Workspace Profiles | settled settings snapshots, exact path grants, atomic presets, private documents, shelf header/command views and Agent tool |
 | Text Desk | library text preparation/tasks, cancellable live single/shelf multi-query search (0.9), snippets, paged status views, reader header/command and explicit book navigation |
-| Library Desk | workspace/collection navigation, live host-command discovery and guarded execution with typed resource pickers (0.6), command search, grouped native selection, live selection count, explicit batch review/removal, durable pending-file discovery and safe retry |
+| Library Desk | user-picked import with initialization review, local cover preview/copy/save, original export and live enrichment/retry (0.7); workspace/collection navigation, guarded host commands, native selection, batch review/removal and durable cleanup retry |
 | Memory Desk | memory search, protected chapter graphs, source navigation and conditional correction/pin/unpin/forget (0.2); shared Agent queries and manage_memory, no duplicate plugin tool |
+| Maintenance Desk | public model catalogs, native connection-test/backup/diagnostic handoffs and projection verification (0.1); receipt journal, no new host or Agent APIs |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs
 in their packages and registered capabilities.
+
+### Library Desk Asset Composition
+
+[代码] Library Desk 0.7 uses only public Library 1.11, Resources 1.1,
+Clipboard 1.1, UI 1.6 and Views 1.7. It adds no host or Agent API. Library write
+includes read access; copying covers additionally requires `service:clipboard`.
+New asset labels support simplified Chinese and English, with English fallback.
+
+- Import uses `listFormats` to filter the native single-file picker, then
+  `inspectResource` for parser initialization. It does not claim full-book
+  readability. Only `parsed` enables an explicit import action. The final
+  `importResource` receipt distinguishes `imported` from `duplicate`; the
+  committed result is shown before any optional follow-up detail query.
+- Closing/replacing the accepted import review releases its picked reference.
+  A thrown inspection releases immediately; a failed import retains the review
+  for retry. No direct file paths, book bytes or Tauri imports enter the plugin.
+- A single selected book exposes details using `getEnrichment` and
+  `observeEnrichment`. Failed observations retain prior data with an error block
+  and remove effect actions until recovery. Retirement disposes observation.
+  Explicit retry only requests missing metadata/unchecked covers on supported
+  local books; queued/running is not reported as completed.
+- Cover preview acquires an owner-scoped `openCover` reference on demand and
+  renders the existing `image` block at an uncropped 2:3 ratio. Save and copy
+  use `resources.save` and `clipboard.writeImage`; closing that accepted frame
+  releases the reference. A hidden parent is not a closed frame. Host resource
+  expiry/activation cleanup remains authoritative if a frame is never accepted.
+- Original export acquires a fresh `openBook` reference and releases it in
+  `finally` after save success, cancellation or failure. It never fetches a
+  missing original. Native save cancellation produces no success toast.
+
+[验证] 21 plugin tests (93 assertions), plugin typecheck/build and a compiled
+entry running in a controlled Bun context pass. These test actual contribution
+callbacks and resource ownership flows, not the WebKit Worker or native file
+picker/clipboard/parser. New asset/import flows remain pending concentrated
+Tauri E2E, including representative formats, real paste/save and closing while
+native operations are pending. The LIB09 wiring marker is now connected because
+the previously claimed missing image presentation already exists; this is not an
+E2E completion claim. No desktop launch or document visual rerun in this batch.
 
 [代码] Jumper 0.3 and Text Desk 0.9 consume Library 1.17, UI 1.2 and Views 1.8
 without host changes. Valid search submission pushes a live indeterminate

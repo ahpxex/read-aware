@@ -233,6 +233,16 @@
     "Whole-book snapshots now also look up a local event identity per annotation; maximum size/performance not verified. Legacy public unconditional commands, unified Range, other native action-completion ownership and exact delayed-ack native race remain.",
     "No packaged, Windows/Linux, autonomous inference, real network sync/cross-device or maximum-load verification. Overall goal remains active."
   ],
+  "blockingPathFollowup": {
+    "status": "Source-level diagnosis; execution migration and successful delayed-ack native test remain unimplemented",
+    "facts": [
+      "Cargo.lock pins tauri-macros 2.6.2. Its locally inspected command/wrapper.rs defaults to ExecutionContext::Blocking and body_blocking calls the command inline before replying; synchronous commands do not gain a blocking pool from a Promise at the JS call site.",
+      "annotations_commit and annotation_inspect in storage/annotation_mutations.rs, annotations_list in storage/annotations.rs, and annotations_page in storage/annotation_pages.rs synchronously acquire the same Db Mutex<Connection> declared in storage/mod.rs.",
+      "storage/schema.rs apply_connection_pragmas sets busy_timeout=5000. commit_events and reading_session_accrue/position/flush also acquire that same mutex synchronously. Contention is not isolated to the editor's commit command.",
+      "storage/events.rs rebuild_projections already demonstrates the repository's async plus spawn_blocking execution boundary and explicitly documents synchronous commands freezing the window. Merely moving annotations_commit while leaving synchronous mutex waiters can still stall the UI."
+    ],
+    "nextAcceptance": "Audit and move blocking database execution off UI dispatch without bypassing transactional writes or changing cancellation into rollback. Repeat a real held-lock save with native busy state, Cancel/reopen interaction, successful commit after lock release, and proof the old completion does not close the new draft. Preserve rejection/recovery and reading-retirement checks."
+  },
   "validation": {
     "focused": "3 TS tests / 22 assertions; native snapshot ABA test added",
     "fullTests": "24/24 tasks; web 938 tests / 10178 assertions / 169 files",

@@ -206,6 +206,11 @@
       <section data-search-section="domains 领域 library reading annotations conversations settings contentTypography typography defaultColor updateChannel textAlign fixedLayoutColor whatsNewDialog durability workspace profiles shelf shortcuts key-chord text desk extraction 正文 抽取 书架 工作区 预设 快捷键 冲突 模式 持久 回执">
         <div class="wrap">
           <h2>Domains</h2>
+          <details class="ep" data-search-section="library conversations invalidation remote restore 书库 对话 同步 失效"><summary>Library 1.18 / Conversations 1.3：数据变化后可通知插件重新查询</summary><div class="ep-body">
+            <p>events.observeInvalidation 接本地变更、宿主刷新、远端投影提交及书籍/集合恢复；即使同步后续步骤失败，已经提交的数据仍会通知。沿用各领域读权限，Agent 继续按需查同源数据。</p>
+            <p>只返回本订阅序号和来源，不暴露记录或伪造远端业务事件。初始交付、串行合并、每领域64个订阅，退休释放；收到通知应重新查询，不自动重做写操作。不是数据库版本、完整同步成功或可重放日志。</p>
+            <p>基础接线测试通过；旧业务事件订阅仍只覆盖本地，真实插件、Worker和Tauri同步留集中验收。<a href="./plugin-system.md#projection-invalidation-library-118--conversations-13">契约与边界</a></p>
+          </div></details>
         <details class="ep" data-search-section="annotation observation conditional ANN09 标注 观察 同步 草稿 所见版本"><summary>Annotations 2：所有改写按所见版本提交，列表持续观察</summary><div class="ep-body">
           <p>events.observe(page/inspect) 提供初始快照、变化、错误与恢复，包含无本地广播的同步投影；读与回调结算后一秒重读，64 个订阅上限，关闭/退役释放。Agent 按需读取同源结果，不新增常驻模型订阅。</p>
           <p>Annotations 2 删除五个无条件改写/删除入口，统一走所见版本 applyChanges；旧 ^1.x 插件明确拒绝，不偷偷刷新令牌。Agent 删除同样绑定批准时版本。Annotation Desk 0.3 已迁移，真实编译插件的冲突草稿保持不变；恢复/重放仍是宿主内部路径。</p>

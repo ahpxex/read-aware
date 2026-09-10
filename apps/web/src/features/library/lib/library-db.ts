@@ -472,10 +472,16 @@ export async function restoreLibraryBook(
   fileBytes: Uint8Array | null,
 ): Promise<void> {
   await putBookRecord(book);
-  if (fileBytes) await putBookFileBytes(book.id, fileBytes);
+  try {
+    if (fileBytes) await putBookFileBytes(book.id, fileBytes);
+  } finally {
+    // The row already committed even when restoring its file fails.
+    emitAppEvent("projections-invalidated", { source: "restore" });
+  }
 }
 
 /** Upsert a collection record verbatim (id preserved). */
 export async function restoreCollection(collection: Collection): Promise<void> {
   await putCollectionRecord(collection);
+  emitAppEvent("projections-invalidated", { source: "restore" });
 }

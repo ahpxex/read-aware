@@ -1444,6 +1444,9 @@ export type PluginLibraryDomain = {
     observeTextTask(bookId: string, taskId: string, handler: (snapshot: import("@read-aware/core").BookTextTaskSnapshot) => void | Promise<void>): PluginDisposable;
     observeEnrichment(bookId: string, handler: (event: import("@read-aware/core").BookEnrichmentObservation) => unknown): PluginDisposable;
     observeContentState(bookId: string, handler: (event: import("@read-aware/core").BookContentObservation) => unknown): PluginDisposable;
+    /** Initial and coalesced reload hints, including remote projection changes.
+     * Re-query authorized data; not an event log or a conditional-write token. */
+    observeInvalidation(handler: (event: import("@read-aware/core").ProjectionInvalidation) => unknown): PluginDisposable;
   };
 };
 
@@ -1579,6 +1582,7 @@ export type PluginConversationsDomain = {
     clear(target: import("@read-aware/core").ConversationTarget): Promise<import("@read-aware/core").ConversationControlReceipt>;
   };
   events: { subscribe: DomainSubscribe<ConversationDomainEventType>;
+    observeInvalidation(handler: (event: import("@read-aware/core").ProjectionInvalidation) => unknown): PluginDisposable;
     observeRuntime(handler: (snapshot: import("@read-aware/core").ConversationRuntimeSnapshot) => unknown): PluginDisposable };
 };
 

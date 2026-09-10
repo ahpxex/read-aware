@@ -711,6 +711,7 @@ export function buildPluginContext(
       },
       events: {
         subscribe: trackedOn(library.events.subscribe),
+        observeInvalidation: handler => track(() => ({ dispose: library.events.observeInvalidation(handler) })),
         observeTextTask: (bookId, taskId, listener) => track(() => ({ dispose: library.events.observeTextTask(bookId, taskId, listener) })),
         observeEnrichment: (bookId, listener) => track(() => ({ dispose: library.events.observeEnrichment(bookId, listener) })),
         observeContentState: (bookId, listener) => track(() => ({ dispose: library.events.observeContentState(bookId, listener) })),
@@ -899,6 +900,7 @@ export function buildPluginContext(
       queries: domain.conversations.queries,
       events: {
         observeRuntime: handler => track(() => ({ dispose: domain.conversations!.events.observeRuntime(handler) })),
+        observeInvalidation: handler => track(() => ({ dispose: domain.conversations!.events.observeInvalidation(handler) })),
         subscribe: trackedOn(domain.conversations.events.subscribe),
       },
       ...(domain.conversations.commands ? { commands: {

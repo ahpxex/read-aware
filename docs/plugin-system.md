@@ -266,7 +266,7 @@ The current public roster is:
 | Library | books, source files, metadata, TOC, collections, import and removal | `library:read`, `library:write` |
 | Reading | active session, navigation, location, progress, reading time | `reading:read`, `reading:write` |
 | Annotations 2.0 | highlights, notes, passive question traces, conditional edits and query observations | `annotations:read`, `annotations:write` |
-| Conversations 1.2 | threads, summaries, live state, thread management and host-confirmed turn requests | `conversations:read`, `conversations:write` |
+| Conversations 1.3 | threads, summaries, live state, projection invalidation, thread management and host-confirmed turn requests | `conversations:read`, `conversations:write` |
 | Settings | catalog, resolved values, targets, validation, change events | exact path grants |
 | Memory | active memory search, chapter graphs and conditional feedback | `memory:read`, `memory:write` (1.1) |
 
@@ -405,6 +405,48 @@ anchors or footnote rendering. Completion-screen wiring is source/type checked,
 not a mounted-animation proof. Real Tauri/Worker multi-format links, previews,
 chapter shortcuts, completion revisit and plugin back/forward stay in the
 concentrated composition E2E stage. READ04/READ06 are connected, not E2E-certified.
+
+### Projection Invalidation (Library 1.18 / Conversations 1.3)
+
+[代码] Both domains expose `events.observeInvalidation(handler)` under their
+existing read grant (write implies read). It returns a lifecycle-tracked
+`PluginDisposable`. The shared domain layer exposes the same subscription;
+Agent tools continue to read current projections on demand, without another
+model tool or background model subscription.
+
+The callback receives only `{ revision, source }`: `source` is `initial`,
+`local`, `host`, `remote`, `restore`, or `mixed`. The initial callback is invoked
+at registration; subsequent invalidations coalesce while a callback is running
+and within a queued microtask. Delivery is serial, with at most 64 active
+observers per domain across the process. Callback failures are logged, not
+thrown into a committing write; later invalidations still deliver. Disposal or
+retirement removes listeners and suppresses queued delivery, but does not
+cancel an already-started callback or its business effects.
+
+Library observes local `book.*` / `collection.*` broadcasts and host shelf,
+book-change and book-removal notifications. Conversations observes local
+`aiConversation.*` / `aiMessage.*`, book merge/removal and host conversation
+notifications. Both conservatively invalidate on committed remote projection
+changes and backup book/collection restores, even if their own query is unchanged.
+The sync IPC adapter emits after apply/replay, staged finalization, checkpoint
+bootstrap and replaying/completed backfill. Merely staging history does not
+invalidate; rejected IPC does not emit. Earlier committed pages still notify
+when a later sync phase fails. A restored book row also notifies when its
+subsequent file restore fails, because the row already committed.
+
+This is a reload hint, not a replayed business event, database snapshot, CAS
+token, globally comparable revision, or proof that a whole sync/backup finished.
+Consumers subscribe and re-query through their authorized domain, retain query
+errors as errors, and must not replay commands in response. `host` has no known
+actor; no row IDs, payloads, account keys, or raw errors are delivered. Legacy
+`events.subscribe` remains local-only; direct out-of-process DB edits and every
+historical raw restore path are not covered. Existing annotation/memory/time
+snapshot observers and settings observation retain their separate contracts.
+
+[代码] `domain/projection-invalidation.test.ts` exercises permissions, serial
+coalescing, retirement, failed callbacks and production IPC adapter notifications
+using controlled IPC responses. Native SQLite, compiled Worker, composition
+plugins and actual network/Tauri synchronization remain concentrated E2E work.
 
 ### Per-Call Cancellation (Library 1.17 / Reading 2.18 / Diagnostics 1.1 / Sync 1.1)
 

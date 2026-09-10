@@ -2,10 +2,11 @@
  * The engine's local side bound to Tauri IPC — outbox reads and
  * acknowledgements, the merge entry point, cursors, and blob bytes. Every
  * command here lands in `storage/sync.rs` / `storage/events.rs`, which the
- * Rust suite covers; this file stays a translation layer with nothing to test
- * but names.
+ * Rust suite covers. Successful projection changes emit reload hints here,
+ * before later network work can fail and hide an already-committed merge.
  */
 import { invoke } from "../ipc";
+import { emitAppEvent } from "../app-events";
 import { localDeviceId } from "../domain-events";
 import type { HlcStamp } from "@read-aware/core";
 import { getDesktopBlob, openDesktopBlobWriter, putDesktopBlob } from "../blob-store";
@@ -27,12 +28,16 @@ export function createIpcSyncStore(): SyncLocalStore {
     markEventsPushed: (assigned) => invoke("sync_mark_events_pushed", { assigned }),
     markEventsFailed: (eventIds, error) =>
       invoke("sync_mark_events_failed", { eventIds, error }),
-    applyRemote: (events, seqs) =>
-      invoke<MergeReport>("apply_remote_events", { events, seqs: seqs ?? null }),
+    applyRemote: async (events, seqs) => {
+      const result = await invoke<MergeReport>("apply_remote_events", { events, seqs: seqs ?? null });
+      if (result.applied > 0 || result.replayed) emitAppEvent("projections-invalidated", { source: "remote" });
+      return result;
+    },
     stageRemote: (events, seqs) =>
       invoke<number>("stage_remote_events", { events, seqs: seqs ?? null }),
     finalizeStaged: async () => {
       await invoke("finalize_staged_events");
+      emitAppEvent("projections-invalidated", { source: "remote" });
     },
     outboxCounts: () => invoke<SyncOutboxCounts>("sync_outbox_counts"),
     unverifiedEvents: (limit) => invoke<string[]>("sync_unverified_events", { limit }),
@@ -46,12 +51,22 @@ export function createIpcSyncStore(): SyncLocalStore {
     maintainCheckpoint: () => invoke<CheckpointInfo | null>("checkpoint_maintain"),
     preparePublishCheckpoint: () => invoke<CheckpointInfo>("checkpoint_prepare_publish"),
     markCheckpointPublished: (id) => invoke("checkpoint_mark_published", { id }),
-    restoreBootstrapCheckpoint: (blobKey) =>
-      invoke<CheckpointInfo>("checkpoint_restore_bootstrap", { blobKey }),
+    restoreBootstrapCheckpoint: async (blobKey) => {
+      const result = await invoke<CheckpointInfo>("checkpoint_restore_bootstrap", { blobKey });
+      emitAppEvent("projections-invalidated", { source: "remote" });
+      return result;
+    },
     backfillStatus: () => invoke<BackfillStatus | null>("sync_backfill_status"),
-    backfillEvents: (events, seqs) =>
-      invoke<BackfillReport>("sync_backfill_events", { events, seqs }),
-    settleBackfill: () => invoke<BackfillStatus | null>("sync_backfill_settle"),
+    backfillEvents: async (events, seqs) => {
+      const result = await invoke<BackfillReport>("sync_backfill_events", { events, seqs });
+      if (result.replayed) emitAppEvent("projections-invalidated", { source: "remote" });
+      return result;
+    },
+    settleBackfill: async () => {
+      const result = await invoke<BackfillStatus | null>("sync_backfill_settle");
+      if (result?.complete) emitAppEvent("projections-invalidated", { source: "remote" });
+      return result;
+    },
     deviceId: () => localDeviceId(),
     async eventsCursor() {
       const cursor = await invoke<{ remoteCursor: string | null } | null>("sync_cursor_get", {

@@ -11,6 +11,7 @@ import {
 } from "../features/ai/lib/conversation-store";
 import { CONVERSATION_EVENTS, domainSubscribe, type DomainEventSubscribe } from "./events";
 import { conversationCommands, conversationSnapshot, conversationTurnRequests, observeConversations } from "./conversation-control";
+import { observeConversationInvalidation } from "./projection-invalidation";
 
 function toMessages(
   messages: Awaited<ReturnType<typeof loadConversation>>,
@@ -39,12 +40,13 @@ export type ConversationsDomain = {
   queries: ConversationQueries;
   commands: ReturnType<typeof conversationCommands>;
   events: {
+    observeInvalidation(handler: (event: import("@read-aware/core").ProjectionInvalidation) => unknown): () => void;
     observeRuntime(handler: (snapshot: import("@read-aware/core").ConversationRuntimeSnapshot) => unknown): () => void;
     subscribe: DomainEventSubscribe<(typeof CONVERSATION_EVENTS)[number]>;
   };
 };
 
-export function createConversationsDomain(origin: EventOrigin): ConversationsDomain {
+export function createConversationsDomain(origin: EventOrigin, lifetime?: AbortSignal): ConversationsDomain {
   return {
     queries: {
       turnRequests: async () => conversationTurnRequests.list(origin),
@@ -59,6 +61,6 @@ export function createConversationsDomain(origin: EventOrigin): ConversationsDom
       getThread: async (threadId) => toMessages(await loadConversation(String(threadId))),
     },
     commands: conversationCommands(origin),
-    events: { subscribe: domainSubscribe(CONVERSATION_EVENTS, origin), observeRuntime: observeConversations },
+    events: { observeInvalidation: handler => observeConversationInvalidation(handler, lifetime), subscribe: domainSubscribe(CONVERSATION_EVENTS, origin), observeRuntime: observeConversations },
   };
 }

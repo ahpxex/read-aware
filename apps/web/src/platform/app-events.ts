@@ -13,6 +13,8 @@ import { createLogger } from "./logger";
 const log = createLogger("app-events");
 
 export type AppEventMap = {
+  /** Projection transactions with no local business-event broadcast. No row data. */
+  "projections-invalidated": { source: "remote" | "restore" };
   /**
    * The reader just did demand-driven work (a relocation, a page render).
    * Background pipelines that share the reader's resources — the PDF worker,

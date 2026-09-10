@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+2026-09-11 书库/对话失效批次已接线：library1.18及conversations1.3增加events.observeInvalidation，沿用各域读授权。初始通知后串行合并本地业务广播、宿主刷新、远端投影及书籍/集合恢复；仅revision/source，每领域全进程64个观察，退休释放。sync-store在实际投影IPC成功后通知，覆盖apply/replay、暂存最终重放、bootstrap及回填重放/完成，不等后续同步阶段成功；仅stage或失败IPC不假发。恢复书籍行后文件失败也通知已经提交的行。Agent继续按需查同源投影，没有新增模型循环或工具。
+
+[验证] 60项基础测试、356断言通过（含生产同步适配器的受控IPC、授权/串行/退休及同步引擎回归）；全仓typecheck27/27和三文档对结构检查通过，927入口映射、38个catalog成员。纠正领域注册测试漏列此前已实现profile/updateProfile的旧断言。通知不是业务事件重放、数据库CAS或整个同步成功，旧subscribe仍本地-only；不接管原生UI现有周期刷新，不覆盖外部原始DB修改或全部历史恢复路径。OPS05/CON07保持部分，真实网络同步/编译Worker/组合插件/Tauri及HTML视觉复核留集中验收；未启动桌面/浏览器，未推送，整体目标继续。
+
 2026-09-11 扩展发现批次已接线：plugins1.1 contributions/observeContributions 与双域 Agent list_plugin_contributions 共用注册目录，覆盖14个共享扩展注册点及独立syncTransports。仅返回point/pluginId/key，不调用提供者、不返回私有配置或凭据，也不额外授予执行权限。支持类型/插件/文本过滤、默认50及最大100条分页、16000字符条目预算；nextOffset按实际返回数量推进，注册变化后需重新分页。观察初次发布及后续变化，串行合并、全进程最多64个，消费者退休自动释放。
 
 [验证] 39项基础测试、919个断言通过；全仓typecheck 27/27（缓存命中）、三文档对结构检查通过。924入口映射、38个catalog成员，Agent工具book90/global108。测试覆盖全部15类真实注册表及正式插件上下文/Agent接线，提供者使用受控fixture；不是编译Worker、业务插件或Tauri端到端证明。MORE06仍标部分：发现已接通，通用跨插件调用与权限交集代理未实现；注册不代表健康、可见或可调用。本批未启动桌面/浏览器，HTML视觉复核与真实组合留集中验收；整体目标继续，未推送。

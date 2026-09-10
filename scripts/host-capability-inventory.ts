@@ -100,6 +100,7 @@ const agentMap = pairs([
 ]);
 const pluginMap = pairs([
   ["domains.conversations.queries.runtime domains.conversations.events.observeRuntime", "AI02 AI03"],
+  ["domains.library.events.observeInvalidation domains.conversations.events.observeInvalidation", "OPS05 CON07"],
   ["domains.conversations.commands.createThread domains.conversations.commands.selectThread domains.conversations.commands.clear", "AI02"],
   ["domains.conversations.commands.stop", "AI03"],
   ["domains.conversations.commands.requestTurn domains.conversations.commands.cancelTurnRequest domains.conversations.queries.turnRequests", "AI03"],
@@ -360,7 +361,7 @@ export function collectInventory(): Inventory[] {
   for (const name of stringProperties(namedInitializer("apps/web/src/features/menus/lib/menu-registry.tsx", "CORE_MENU_ITEMS"),"id")) add("Menu placement", name, menuMap[name]);
   const shortcutMap = pairs([["search settings", "UI03"],["new-conversation", "AI02"],["next-page prev-page next-chapter prev-chapter", "READ04"],["toggle-controls", "READ09"],["reader-mode-next-unit reader-mode-prev-unit", "READ16"],["selection-copy", "SYS08"],["selection-highlight", "ANN02"],["selection-underline", "ANN03"],["selection-add-note", "ANN05"],["selection-look-up", "EXT09"],["selection-ask-ai", "AI03"],["close", "UI01 READ02"],["primary-nav", "UI01"],["reader-mode-volume-keys", "SYS18"]]);
   for (const declaration of ["EDITABLE_SHORTCUTS","INFO_SHORTCUTS"]) for (const name of stringProperties(namedInitializer("apps/web/src/features/settings/lib/shortcuts.ts",declaration),"id")) add("Shortcut", name, shortcutMap[name]);
-  const eventMap = pairs([["reader-demand-activity", "TXT05"],["book-removed library-changed book-changed", "CON07 LIB01"],["plugin-storage-changed local-write-failed", "SYS01 CFG10"],["roaming-preferences-changed", "OPS05"],["conversations-changed", "AI01 OPS05"]]);
+  const eventMap = pairs([["reader-demand-activity", "TXT05"],["book-removed library-changed book-changed", "CON07 LIB01"],["plugin-storage-changed local-write-failed", "SYS01 CFG10"],["roaming-preferences-changed", "OPS05"],["projections-invalidated", "CON07 OPS05"],["conversations-changed", "AI01 OPS05"]]);
   for (const name of typeMembers("apps/web/src/platform/app-events.ts","AppEventMap")) add("App event", name, eventMap[name]);
   const actionMap = pairs([["importBook", "LIB06"]]);
   for (const name of typeMembers("apps/web/src/features/command/lib/build-commands.tsx","CommandActions")) add("Command action", name, actionMap[name]);

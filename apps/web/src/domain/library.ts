@@ -53,6 +53,7 @@ import { readBookRange } from "../features/library/lib/book-range";
 import { listBookReferences, readBookReference } from "../features/library/lib/book-references";
 import { listBookImages } from "../features/library/lib/book-images";
 import type { LibraryBook } from "../features/library/lib/library-types";
+import { observeLibraryInvalidation } from "./projection-invalidation";
 import {
   ensureBookTextExtracted,
   getPersistedBookText,
@@ -154,6 +155,7 @@ export type LibraryDomain = {
   queries: LibraryQueries;
   commands: LibraryCommands;
   events: {
+    observeInvalidation(handler: (event: import("@read-aware/core").ProjectionInvalidation) => unknown): () => void;
     subscribe: DomainEventSubscribe<(typeof LIBRARY_EVENTS)[number]>;
     observeTextTask(bookId: string, taskId: string, listener: (snapshot: BookTextTaskSnapshot) => void | Promise<void>): () => void;
     observeEnrichment(bookId: string, listener: (event: import("@read-aware/core").BookEnrichmentObservation) => unknown): () => void;
@@ -291,7 +293,7 @@ export function createLibraryDomain(origin: EventOrigin, lifetime?: AbortSignal)
   return {
     queries,
     commands,
-    events: { subscribe: domainSubscribe(LIBRARY_EVENTS, origin), observeTextTask: (bookId, taskId, listener) => textTasks.observe(bookId, taskId, listener),
+    events: { observeInvalidation: handler => observeLibraryInvalidation(handler, lifetime), subscribe: domainSubscribe(LIBRARY_EVENTS, origin), observeTextTask: (bookId, taskId, listener) => textTasks.observe(bookId, taskId, listener),
       observeEnrichment: createEnrichmentObserver(lifetime), observeContentState: createContentStateObserver(lifetime) },
   };
 }

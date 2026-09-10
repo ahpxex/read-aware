@@ -1,14 +1,21 @@
 /** Canonical roster of product domains that may be exposed programmatically. */
 export const DOMAIN_CATALOG = {
-  library: { version: "1.17.0", pluginAccess: ["read", "write"] },
+  library: { version: "1.18.0", pluginAccess: ["read", "write"] },
   reading: { version: "2.18.0", pluginAccess: ["read", "write"] },
   annotations: { version: "2.0.0", pluginAccess: ["read", "write"] },
-  conversations: { version: "1.2.0", pluginAccess: ["read", "write"] },
+  conversations: { version: "1.3.0", pluginAccess: ["read", "write"] },
   settings: { version: "1.8.0", pluginAccess: [] },
   memory: { version: "1.7.0", pluginAccess: ["read", "write"] },
 } as const;
 
 export type DomainId = keyof typeof DOMAIN_CATALOG;
+
+/** A conservative reload hint. Revision orders this subscription's deliveries,
+ * not database transactions; it is neither a cursor nor a conditional-write token. */
+export type ProjectionInvalidation = {
+  revision: number;
+  source: "initial" | "local" | "host" | "remote" | "restore" | "mixed";
+};
 export type DomainAccess = "read" | "write";
 
 export type DomainPermission = {

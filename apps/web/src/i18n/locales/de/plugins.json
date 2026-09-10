@@ -1,5 +1,16 @@
 {
   "viewer": {
+    "pagination": {
+      "previous": "Vorherige Seite",
+      "next": "Nächste Seite",
+      "page": "Seite {{page}}",
+      "pageOf": "Seite {{page}} von {{total}}"
+    },
+    "table": {
+      "label": "Tabelle",
+      "open": "Öffnen",
+      "openItem": "{{label}} öffnen"
+    },
     "back": "Zurück",
     "close": "Schließen",
     "submit": "Absenden",

@@ -217,7 +217,8 @@ export class PluginViewSession {
         else {
           const frame = this.ownFrame(result.view, ++this.nextFrameKey);
           try {
-            const next = navigatePluginViewStack(this.frames.map(item => item.view), frame.view, result.navigation);
+            const navigation = result.navigation === undefined ? options?.navigation : result.navigation;
+            const next = navigatePluginViewStack(this.frames.map(item => item.view), frame.view, navigation);
             const existing = new Map(this.frames.map(item => [item.view, item]));
             this.replaceFrames(next.map(view => view === frame.view ? frame : existing.get(view)!), result.navigation === "reset" ? "reset" : "replaced");
           } catch (error) { this.release(frame.dispose); frame.forms.dispose(); throw error; }

@@ -1,5 +1,16 @@
 {
   "viewer": {
+    "pagination": {
+      "previous": "上一页",
+      "next": "下一页",
+      "page": "第 {{page}} 页",
+      "pageOf": "第 {{page}} 页，共 {{total}} 页"
+    },
+    "table": {
+      "label": "表格",
+      "open": "打开",
+      "openItem": "打开 {{label}}"
+    },
     "back": "返回",
     "close": "关闭",
     "submit": "提交",

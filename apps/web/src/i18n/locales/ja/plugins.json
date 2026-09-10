@@ -1,5 +1,16 @@
 {
   "viewer": {
+    "pagination": {
+      "previous": "前のページ",
+      "next": "次のページ",
+      "page": "{{page}} ページ",
+      "pageOf": "{{page}} / {{total}} ページ"
+    },
+    "table": {
+      "label": "表",
+      "open": "開く",
+      "openItem": "{{label}}を開く"
+    },
     "back": "戻る",
     "close": "閉じる",
     "submit": "送信",

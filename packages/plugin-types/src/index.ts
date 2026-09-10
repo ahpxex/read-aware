@@ -462,6 +462,18 @@ export type PluginListItem = {
   onSelect?: () => PluginViewResult | Promise<PluginViewResult>;
 };
 
+/** Plugin-owned pages, including cursor sources with no known page count.
+ * Callbacks return the complete containing view; navigation defaults to replace.
+ * No speculative fetch, accumulation, or data-source access is performed by the host. */
+export type PluginViewPagination = {
+  /** One-based display page. */
+  page: number;
+  pageCount?: number;
+  /** Omit a callback when that direction is unavailable. */
+  onPrevious?: () => PluginViewResult | Promise<PluginViewResult>;
+  onNext?: () => PluginViewResult | Promise<PluginViewResult>;
+};
+
 export type PluginListView = {
   kind: "list";
   title?: string;
@@ -478,6 +490,43 @@ export type PluginListView = {
    * This month / All tabs. Search is debounced by the host.
    */
   timeline?: boolean;
+  /** Search and timeline filters apply only to items on this supplied page. */
+  pagination?: PluginViewPagination;
+};
+
+export type PluginTableColumn = {
+  id: string;
+  label: string;
+  align?: "start" | "end";
+  /** Requires the table's sort controller. */
+  sortable?: boolean;
+};
+export type PluginTableSort = { column: string; direction: "ascending" | "descending" };
+export type PluginTableRow = {
+  id: string;
+  /** Accessible name for the row's open command. */
+  label: string;
+  /** Exactly one plain-text, finite-number, or null cell for each declared column. */
+  cells: Record<string, string | number | null>;
+  presentation?: "push" | "dialog";
+  onSelect?: () => PluginViewResult | Promise<PluginViewResult>;
+};
+/** A semantic, horizontally scrollable table: 1-16 columns and at most 200 rows
+ * per snapshot. Use pagination for larger datasets. No HTML or custom cell renderers. */
+export type PluginTableView = {
+  kind: "table";
+  title?: string;
+  columns: PluginTableColumn[];
+  rows: PluginTableRow[];
+  actions?: PluginAction[];
+  emptyText?: string;
+  pagination?: PluginViewPagination;
+  /** Plugin owns dataset-wide ordering and returns the complete containing view.
+   * The host never sorts only the visible page. Navigation defaults to replace. */
+  sort?: {
+    value?: PluginTableSort;
+    onChange: (sort: PluginTableSort) => PluginViewResult | Promise<PluginViewResult>;
+  };
 };
 
 /**
@@ -781,6 +830,7 @@ export type PluginBlock =
    */
   | { kind: "row"; cells: PluginRowCell[]; align?: "start" | "center" | "baseline" }
   | PluginListView
+  | PluginTableView
   | PluginFormView;
 
 export type PluginColumnCell = {
@@ -802,6 +852,7 @@ export type PluginRowCellBlock = PluginBlock;
 export type PluginViewContent =
   | PluginMarkdownView
   | PluginListView
+  | PluginTableView
   | PluginFormView
   | PluginBlocksView
   | PluginDetailView;

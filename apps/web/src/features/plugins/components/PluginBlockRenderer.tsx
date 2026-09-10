@@ -26,6 +26,7 @@ import type { PluginBlock, PluginLayoutGap } from "../lib/plugin-types";
 import { PluginActionGroup } from "./PluginActionGroup";
 import { PluginFormViewBody } from "./PluginFormViewBody";
 import { PluginListViewBody } from "./PluginListViewBody";
+import { PluginTableViewBody } from "./PluginTableViewBody";
 import type { PluginResultRunner } from "./plugin-view-types";
 
 type PluginBlocksProps = {
@@ -223,5 +224,6 @@ function PluginBlockRenderer({
   if (block.kind === "list") {
     return <PluginListViewBody view={block} busy={busy} onResult={onResult} />;
   }
+  if (block.kind === "table") return <PluginTableViewBody view={block} busy={busy} onResult={onResult} />;
   return <PluginFormViewBody key={stackDepth} view={block} busy={busy} onResult={onResult} />;
 }

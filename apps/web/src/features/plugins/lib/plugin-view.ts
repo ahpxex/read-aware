@@ -11,6 +11,9 @@ import type {
   PluginListAccessory,
   PluginListItem,
   PluginListView,
+  PluginViewPagination,
+  PluginTableView,
+  PluginTableRow,
   PluginMetadataItem,
   PluginText,
   PluginView,
@@ -23,6 +26,8 @@ const MAX_BLOCKS = 120;
 // bound, not a DOM one — a saved-word notebook legitimately holds thousands.
 // The cap stays only as a runaway sanity limit.
 const MAX_LIST_ITEMS = 50_000;
+const MAX_TABLE_COLUMNS = 16;
+const MAX_TABLE_ROWS = 200;
 const MAX_FORM_FIELDS = 40;
 const MAX_ACTIONS = 20;
 const MAX_DETAIL_CONTROLS = 8;
@@ -213,7 +218,82 @@ function normalizeListView(input: Record<string, unknown>, context: string): Plu
     searchable: input.searchable === true,
     searchPlaceholder: string(input.searchPlaceholder, `${context}.searchPlaceholder`, true),
     timeline: input.timeline === true,
+    pagination: normalizePagination(input.pagination, `${context}.pagination`),
   };
+}
+
+function normalizePagination(input: unknown, context: string): PluginViewPagination | undefined {
+  if (input == null) return undefined;
+  const value = record(input, context);
+  const positiveInteger = (input: unknown, key: string): number => {
+    const number = finiteNumber(input, `${context}.${key}`);
+    if (!Number.isSafeInteger(number) || number < 1) throw new PluginViewError(`${context}.${key} must be a positive safe integer`);
+    return number;
+  };
+  const page = positiveInteger(value.page, "page");
+  const pageCount = value.pageCount == null ? undefined : positiveInteger(value.pageCount, "pageCount");
+  if (pageCount !== undefined && page > pageCount) throw new PluginViewError(`${context}.page exceeds pageCount`);
+  for (const key of ["onPrevious", "onNext"] as const) {
+    if (value[key] != null && typeof value[key] !== "function") throw new PluginViewError(`${context}.${key} must be a function`);
+  }
+  if (page === 1 && value.onPrevious != null) throw new PluginViewError(`${context}.onPrevious cannot precede page 1`);
+  if (pageCount === page && value.onNext != null) throw new PluginViewError(`${context}.onNext cannot exceed pageCount`);
+  return { page, pageCount, onPrevious: value.onPrevious as PluginViewPagination["onPrevious"], onNext: value.onNext as PluginViewPagination["onNext"] };
+}
+
+function normalizeTableView(input: Record<string, unknown>, context: string): PluginTableView {
+  const columnIds = new Set<string>();
+  const columns = array(input.columns, `${context}.columns`, MAX_TABLE_COLUMNS).map((input, index) => {
+    const path = `${context}.columns[${index}]`;
+    const value = record(input, path);
+    const id = string(value.id, `${path}.id`)!;
+    if (!id || columnIds.has(id)) throw new PluginViewError(`${path}.id must be nonempty and unique`);
+    columnIds.add(id);
+    return { id, label: string(value.label, `${path}.label`)!,
+      align: oneOf(value.align, ["start", "end"] as const, "start", `${path}.align`), sortable: value.sortable === true };
+  });
+  if (!columns.length) throw new PluginViewError(`${context}.columns must not be empty`);
+  let sort: PluginTableView["sort"];
+  if (input.sort != null) {
+    const value = record(input.sort, `${context}.sort`);
+    if (typeof value.onChange !== "function") throw new PluginViewError(`${context}.sort.onChange must be a function`);
+    sort = { onChange: value.onChange as NonNullable<PluginTableView["sort"]>["onChange"] };
+    if (value.value != null) {
+      const current = record(value.value, `${context}.sort.value`);
+      const column = string(current.column, `${context}.sort.value.column`)!;
+      if (!columns.some(entry => entry.id === column && entry.sortable)) throw new PluginViewError(`${context}.sort.value.column must name a sortable column`);
+      if (current.direction == null) throw new PluginViewError(`${context}.sort.value.direction is required`);
+      sort.value = { column, direction: oneOf(current.direction, ["ascending", "descending"] as const, "ascending", `${context}.sort.value.direction`) };
+    }
+  }
+  if (!sort && columns.some(column => column.sortable)) throw new PluginViewError(`${context}.sort is required for sortable columns`);
+  const rowIds = new Set<string>();
+  const rows = array(input.rows, `${context}.rows`, MAX_TABLE_ROWS).map((input, index): PluginTableRow => {
+    const path = `${context}.rows[${index}]`;
+    const value = record(input, path);
+    const id = string(value.id, `${path}.id`)!;
+    if (!id || rowIds.has(id)) throw new PluginViewError(`${path}.id must be nonempty and unique`);
+    rowIds.add(id);
+    const cells = record(value.cells, `${path}.cells`);
+    if (Object.keys(cells).length !== columns.length || Object.keys(cells).some(key => !columnIds.has(key))) {
+      throw new PluginViewError(`${path}.cells must match the declared columns`);
+    }
+    const normalizedCells = Object.fromEntries(columns.map(({ id }) => {
+      const cell = cells[id];
+      if (cell !== null && typeof cell !== "string" && (typeof cell !== "number" || !Number.isFinite(cell))) {
+        throw new PluginViewError(`${path}.cells.${id} must be text, a finite number, or null`);
+      }
+      return [id, cell as string | number | null];
+    }));
+    if (value.onSelect != null && typeof value.onSelect !== "function") throw new PluginViewError(`${path}.onSelect must be a function`);
+    return { id, label: string(value.label, `${path}.label`)!, cells: normalizedCells,
+      presentation: oneOf(value.presentation, ["push", "dialog"] as const, "push", `${path}.presentation`),
+      onSelect: value.onSelect as PluginTableRow["onSelect"] };
+  });
+  return { kind: "table", title: string(input.title, `${context}.title`, true), columns, rows, sort,
+    actions: input.actions == null ? undefined : normalizeActions(input.actions, `${context}.actions`),
+    emptyText: string(input.emptyText, `${context}.emptyText`, true),
+    pagination: normalizePagination(input.pagination, `${context}.pagination`) };
 }
 
 /**
@@ -685,6 +765,7 @@ function normalizeBlock(input: unknown, context: string, depth: number): PluginB
     };
   }
   if (kind === "list") return normalizeListView(value, context);
+  if (kind === "table") return normalizeTableView(value, context);
   if (kind === "form") return normalizeFormView(value, context);
   throw new PluginViewError(`${context}.kind "${kind}" is not supported`);
 }
@@ -733,6 +814,7 @@ function normalizeViewContent(input: unknown): PluginView {
     };
   }
   if (kind === "list") return normalizeListView(value, "view");
+  if (kind === "table") return normalizeTableView(value, "view");
   if (kind === "form") return normalizeFormView(value, "view");
   if (kind === "blocks") {
     return {

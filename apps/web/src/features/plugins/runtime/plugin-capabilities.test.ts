@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { DOMAIN_CATALOG } from "@read-aware/core";
 import type { PluginManifest } from "../lib/plugin-types";
 import {
   assertPluginCapabilityRequirements,
@@ -38,7 +39,7 @@ describe("plugin capability negotiation", () => {
       manifest({ permissions: ["library:read", "service:network", "ui:themes"] }),
     );
 
-    expect(visible.domains).toEqual({ library: "1.7.0", settings: "1.6.0" });
+    expect(visible.domains).toEqual({ library: DOMAIN_CATALOG.library.version, settings: DOMAIN_CATALOG.settings.version });
     expect(visible.services.network).toBe("1.1.0");
     expect(visible.services.llm).toBeUndefined();
     expect(visible.contributions.themes).toBe("1.0.0");
@@ -64,5 +65,14 @@ describe("plugin capability negotiation", () => {
 
   test("accepts the awaited storage contract", () => {
     expect(() => assertPluginCapabilityRequirements(manifest({ requires: { services: { storage: "^2.0.0" } } }))).not.toThrow();
+  });
+
+  test("negotiates paged table declarations without adding data permissions", () => {
+    const request = manifest({ requires: { schemas: { views: "^1.5.0" } } });
+    expect(() => assertPluginCapabilityRequirements(request)).not.toThrow();
+    const visible = resolvePluginCapabilities(request);
+    expect(visible.schemas.views).toBe("1.5.0");
+    expect(visible.domains.library).toBeUndefined();
+    expect(visible.domains.reading).toBeUndefined();
   });
 });

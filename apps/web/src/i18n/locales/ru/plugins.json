@@ -1,5 +1,16 @@
 {
   "viewer": {
+    "pagination": {
+      "previous": "Предыдущая страница",
+      "next": "Следующая страница",
+      "page": "Страница {{page}}",
+      "pageOf": "Страница {{page}} из {{total}}"
+    },
+    "table": {
+      "label": "Таблица",
+      "open": "Открыть",
+      "openItem": "Открыть {{label}}"
+    },
     "back": "Назад",
     "close": "Закрыть",
     "submit": "Отправить",

@@ -1052,6 +1052,52 @@ response-budget tests pass, with desktop grants checked against local Tauri ACL.
 This is not native Window-manager, actual Worker, packaged or cross-platform E2E;
 those remain for concentrated composition testing.
 
+### Paged Lists and Tables (Views 1.5)
+
+[代码] `schemas.views` 1.5 adds `PluginListView.pagination` and `PluginTableView`
+at the root, inside blocks/details/columns, and in live content snapshots.
+`PluginViewPagination` declares a one-based positive safe-integer `page`, optional
+positive safe-integer `pageCount`, and optional `onPrevious` / `onNext` callbacks.
+Unknown totals support cursor-backed sources. Omit unavailable directions;
+previous on page 1, next on the known final page, and page beyond pageCount reject.
+An empty result can still have a pager. List search/timeline filtering applies
+only to supplied items on the current page, not to the entire dataset.
+
+Tables declare 1..16 columns (`id`, `label`, optional `align: start|end`,
+`sortable`) and at most 200 rows per snapshot. Each row has unique nonempty `id`,
+accessible `label`, and `cells` with exactly the declared column keys; values
+are plain strings, finite numbers or null. Duplicate/empty column IDs, unknown
+cells and object-valued/custom-renderer cells reject; strings render literally.
+Optional row `onSelect` returns the
+ordinary view result, with `presentation: push|dialog`; table-level `actions`
+and `emptyText` use the existing renderer. The semantic HTML table scrolls
+horizontally within its surface, wraps cell text, exposes column sort state,
+and uses keyboard-operable host buttons for sorting and opening rows.
+
+Optional `sort: { value?: { column, direction }, onChange }` is plugin-controlled.
+The value must name a sortable column; direction is `ascending|descending`.
+Sortable columns require an onChange controller. Clicking an unsorted column
+requests ascending; clicking the active column toggles direction. The plugin
+sorts its full dataset and supplies the new page; the host does not silently
+sort only visible rows. No speculative fetching or page accumulation is added.
+
+Paging/sorting callbacks return `PluginViewResult`, containing the complete
+enclosing view (including when a table/list is nested in blocks). Navigation
+defaults to replace, while an explicit push/replace/reset wins. Replacements
+use ordinary frame lifecycle, including onClose/re-subscription. Empty results
+do nothing; failures retain the page and use stable-code host errors. Busy
+controls disable, stale results are discarded, and callback ownership follows
+the existing session/Worker bridge. This does not cancel an in-flight business
+task or promise focus restoration across a replaced frame. The schema grants
+no additional data access and does not add Agent tools or executable model UI.
+
+[验证] Normalization, callback-wire/session paging and retirement, capability
+negotiation, mounted React sort/open/busy/empty-pager tests pass. Interactive,
+empty, busy and narrow Storybook fixtures are available. Real Worker/Tauri
+composition, large datasets, narrow-window rendering and keyboard/focus flows
+remain for concentrated E2E. Tree/editor/resource-image schemas remain open
+under EXT06; table/pagination are not a claim that the whole row is complete.
+
 ### Structured Error Toasts (UI 1.10 / Views 1.4)
 
 [代码] `services.ui.showToast` and `PluginViewResult.toast` accept `PluginToast`:
@@ -1130,7 +1176,7 @@ evidence below does not validate the new close callback.
 [代码] `schemas.views` 1.1 adds optional `PluginView.live.subscribe(channel)`;
 `services.ui` 1.2 adds `publishView(channel, { revision, view })`. Existing static
 views are unchanged. `view` in an update is `PluginViewContent`: markdown, list,
-form, blocks or detail, without another `live` or `onClose` declaration. This publishes a full
+form, blocks, detail or (since views 1.5) table, without another `live` or `onClose` declaration. This publishes a full
 snapshot, not a patch, navigation result or new source. No DOM, React, Jotai,
 arbitrary host callback or additional domain permission is exposed. Agent tools
 continue to return structured data through their host renderer; this is not a

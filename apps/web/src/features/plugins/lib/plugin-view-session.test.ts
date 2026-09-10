@@ -20,6 +20,45 @@ function fixture() {
   return { registry, owner, session, view, wire, notices, failures: () => failures };
 }
 
+test("table data controls replace pages without growing history and retire old callbacks", async () => {
+  const f = fixture();
+  const view = (page: number): PluginView => ({ kind: "table",
+    columns: [{ id: "name", label: "Name", sortable: true }], rows: [],
+    pagination: { page, onNext: () => ({ view: view(page + 1) }) },
+    sort: { onChange: () => ({ view: view(1) }) } });
+  f.session.setRoot(f.wire(view(1)));
+  for (let page = 1; page <= 4; page++) {
+    const current = f.session.getSnapshot().stack[0];
+    if (current.kind !== "table") throw new Error("Expected table");
+    expect(current.pagination?.page).toBe(page);
+    await f.session.runFrom(f.session.getSnapshot().renderKey, current.pagination!.onNext!, { navigation: "replace" });
+    expect(f.session.getSnapshot().stack).toHaveLength(1);
+    expect(f.registry.size).toBe(2);
+  }
+  const current = f.session.getSnapshot().stack[0];
+  if (current.kind !== "table") throw new Error("Expected table");
+  await f.session.run(() => current.sort!.onChange({ column: "name", direction: "ascending" }), { navigation: "replace" });
+  expect((f.session.getSnapshot().stack[0] as typeof current).pagination?.page).toBe(1);
+  // A plugin may deliberately navigate elsewhere rather than replacing data.
+  await f.session.run(() => ({ view: f.view("Detail"), navigation: "push" }), { navigation: "replace" });
+  expect(f.session.getSnapshot().stack).toHaveLength(2);
+  f.session.dispose(); expect(f.registry.size).toBe(0);
+});
+
+test("data-control failure retains the current page; a late page after close is discarded", async () => {
+  const f = fixture();
+  f.session.setRoot(f.wire({ kind: "list", items: [], pagination: { page: 2, onPrevious: () => null } }));
+  const key = f.session.getSnapshot().renderKey;
+  await f.session.run(() => { throw new AppError("db/locked", "private"); }, { navigation: "replace" });
+  expect(f.failures()).toBe(1); expect(f.session.getSnapshot().renderKey).toBe(key);
+  expect(f.registry.size).toBe(1);
+  let finish!: (value: PluginViewResult) => void;
+  const pending = f.session.run(() => new Promise(resolve => { finish = resolve; }), { navigation: "replace" });
+  f.session.close();
+  finish({ view: f.view("Late page") }); await pending;
+  expect(f.registry.size).toBe(0); expect(f.session.getSnapshot().stack).toEqual([]);
+});
+
 test("accepted frames report their removal once, not when covered by push or a dialog", async () => {
   const f = fixture(), closed: string[] = [];
   const view = (title: string): PluginView => f.wire({ kind: "markdown", markdown: title,

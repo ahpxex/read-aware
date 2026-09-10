@@ -24,6 +24,7 @@ import {
 } from "../lib/plugin-timeline";
 import type { PluginListAccessory, PluginListItem, PluginListView } from "../lib/plugin-types";
 import { PluginActionGroup } from "./PluginActionGroup";
+import { PluginViewPagination } from "./PluginViewPagination";
 import type { PluginResultRunner } from "./plugin-view-types";
 
 type PluginListViewBodyProps = {
@@ -212,6 +213,7 @@ export function PluginListViewBody({
           title={view.emptyText ?? t("viewer.empty")}
           className="py-10"
         />
+        <PluginViewPagination pagination={view.pagination} busy={busy} onResult={onResult} />
       </Stack>
     );
   }
@@ -243,6 +245,7 @@ export function PluginListViewBody({
           <PluginVirtualRows rows={plainRows} />
         </Stack>
       )}
+      <PluginViewPagination pagination={view.pagination} busy={busy} onResult={onResult} />
     </Stack>
   );
 }

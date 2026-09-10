@@ -26,6 +26,7 @@ import { PluginActionGroup } from "./PluginActionGroup";
 import { PluginDetailViewBody } from "./PluginDetailViewBody";
 import { PluginFormViewBody } from "./PluginFormViewBody";
 import { PluginListViewBody } from "./PluginListViewBody";
+import { PluginTableViewBody } from "./PluginTableViewBody";
 
 type PluginViewRendererProps = {
   /** The root view, or null while the container is still fetching it. */
@@ -113,6 +114,7 @@ export function PluginViewRenderer({
           onResult={handleResult}
         />
       )}
+      {current.kind === "table" && <PluginTableViewBody view={current} busy={busy} onResult={handleResult} />}
       {current.kind === "blocks" && (
         <PluginBlocks
           blocks={current.blocks}

@@ -183,7 +183,7 @@ const catalogMap: Record<string, Record<string, string[]>> = {
   domains: { library:["LIB01"], reading:["STAT01","READ01"], annotations:["ANN01"], conversations:["AI01"], settings:["CFG01"], memory:["MEM01","MEM11"] },
   contributions: { selectionActions:["EXT01"], headerActions:["EXT02","MORE04"], contextActions:["MORE04"], commands:["UI03"], settingsOptions:["CFG09"], voiceProviders:["READ17"], contentProviders:["LIB14"], readerModes:["READ15"], agentTools:["AI10"], agentContextProviders:["AI11"], agentRetrievalProviders:["AI12"], memoryCandidateProviders:["MEM03"], themes:["EXT08"], fonts:["EXT08"], syncTransports:["OPS04"] },
   services: { storage:["SYS01","SYS02"], secrets:["SYS04"], ui:["EXT07","SYS10"], schedules:["MORE01"], session:["MORE03"], plugins:["EXT11"], maintenance:["SYS15","SYS16"], resources:["SYS11","SYS13"], sync:["OPS01"], network:["SYS06"], llm:["AI06"], clipboard:["SYS08"] },
-  schemas: { views:["EXT03","EXT04","EXT05"], settings:["CFG09"], themes:["EXT08"] },
+  schemas: { views:["EXT03","EXT04","EXT05","EXT06"], settings:["CFG09"], themes:["EXT08"] },
 };
 const nativeMap = pairs([
   ["library_stage_import", "LIB06"], ["library_put_cover library_cover_backlog", "LIB09 LIB10"],

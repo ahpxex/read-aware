@@ -5,6 +5,8 @@ export type PluginResultOptions = {
   dialogTitle?: string;
   /** Run without blocking the whole view, for reactive settings writes. */
   background?: boolean;
+  /** Host default for data controls; explicit plugin navigation still wins. */
+  navigation?: "replace";
 };
 
 export type PluginResultRunner = (

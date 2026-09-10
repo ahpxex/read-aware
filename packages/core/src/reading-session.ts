@@ -36,6 +36,13 @@ export type ReadingSessionGuard = {
   sessionId?: string;
 };
 
+export type ReadingVisibleTextState = {
+  status: "available" | "empty" | "unavailable";
+  source: "range" | "pdf-text-layer" | null;
+  truncated: boolean;
+  reason?: "not-ready" | "not-visible" | "unsupported" | "scan-limit" | "read-failed" | "withheld";
+};
+
 export type ReadingSessionSnapshot = {
   revision: number;
   sessionId: string | null;
@@ -43,6 +50,9 @@ export type ReadingSessionSnapshot = {
   status: "idle" | "loading" | "ready" | "error";
   location: ReadingLocation | null;
   visibleText: string;
+  /** Reading 2.17: distinguishes a rendered empty viewport from unavailable text.
+   * PDF includes text runs intersecting the reader viewport, not OCR or occlusion detection. */
+  visibleTextState?: ReadingVisibleTextState;
   /** Captured from the current reader, never reconstructed from an old annotation. */
   selection: ReadingSelectionSnapshot | null;
   errorCode?: string;

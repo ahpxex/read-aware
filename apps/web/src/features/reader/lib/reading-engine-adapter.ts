@@ -4,6 +4,7 @@ import { loadContentNavigation, type FoliateView } from "./foliate-engine";
 import type { ReadingEngineAdapter } from "../../../domain/reading-session-controller";
 import { adjacentTocEntry, flattenToc } from "./epub-utils";
 import { readingPagination } from "./reading-pagination";
+import { readingVisibleText } from "./reading-visible-text";
 
 export async function waitForReadingPaint(view: FoliateView): Promise<void> {
   const renderer = view.renderer;
@@ -78,7 +79,10 @@ export function createReadingEngineAdapter(view: FoliateView, bookId: string, co
 export function attachReadingEngine(view: FoliateView, sessionId: string, bookId: string, contentVersion: string, sourceRevision = contentVersion): () => void {
   const location = () => currentLocation(view, bookId, contentVersion);
   const engine = createReadingEngineAdapter(view, bookId, contentVersion, sourceRevision);
-  const publish = () => readingRuntime.relocate(sessionId, location(), view.lastLocation?.range?.toString() ?? "", engine);
+  const publish = () => {
+    const visible = readingVisibleText(view);
+    readingRuntime.relocate(sessionId, location(), visible.text, engine, visible.state);
+  };
   const detach = readingRuntime.attach(sessionId, engine, location());
   view.addEventListener("relocate", publish);
   publish();

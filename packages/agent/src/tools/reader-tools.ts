@@ -87,7 +87,7 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
 
   const session: AgentTool = {
     name: "get_reading_session", label: "Reading session",
-    description: "Read the actual active reader status, versioned location, visible text, selection, history availability and current pagination. pagination.section is zero-based source order including non-linear sections. pagination.screen counts viewport/spread steps only within the current reflowable section, not columns, printed page labels or whole-book pages; null for fixed layout, continuous scroll or transient geometry. It changes with window/font/layout and is not a persistent navigation target. selection.range can be passed unchanged to read_book_range. A book-scoped turn does not expose another book's viewport or selection.",
+    description: "Read the actual active reader status, versioned location, visible text, selection, history availability and current pagination. visibleTextState distinguishes available, rendered empty, and unavailable text; PDF text includes intersecting text runs, not OCR or exact glyph/overlay visibility. truncated means the preview is incomplete. pagination.section is zero-based source order including non-linear sections. pagination.screen counts viewport/spread steps only within the current reflowable section, not columns, printed page labels or whole-book pages; null for fixed layout, continuous scroll or transient geometry. It changes with window/font/layout and is not a persistent navigation target. selection.range can be passed unchanged to read_book_range. A book-scoped turn does not expose another book's viewport or selection.",
     parameters: Type.Object({}),
     execute: async (_id, _params, signal) => {
       const call = readingContextCall(deps.readingContextPolicy, signal, state?.readingContextPermissions);
@@ -99,6 +99,7 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
         if (privateText || state?.spoilerFence && !state.spoilerPermissionGranted) {
           const safe = structuredClone(snapshot);
           safe.visibleText = ""; safe.selection = null;
+          safe.visibleTextState = { status: "unavailable", source: null, truncated: false, reason: "withheld" };
           if (safe.location) delete safe.location.textQuote;
           if (safe.mode.position) delete safe.mode.position.location.textQuote;
           return textResult({ ...safe, textAccess: privateText

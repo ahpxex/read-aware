@@ -70,6 +70,7 @@ test("navigation cannot turn a later viewport into authorized text", async () =>
   const session = await deps.reader.getSession();
   deps.reader.getSession = async () => ({ ...session, visibleText: "spoiler after navigation" });
   expect(value(await tool("get_reading_session").execute("test", {})).visibleText).toBe("");
+  expect(value(await tool("get_reading_session").execute("test", {})).visibleTextState).toEqual({ status: "unavailable", source: null, truncated: false, reason: "withheld" });
   state.spoilerPermissionGranted = true;
   expect(value(await tool("get_reading_session").execute("test", {})).visibleText).toBe("spoiler after navigation");
 });

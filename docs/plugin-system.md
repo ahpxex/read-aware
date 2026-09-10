@@ -406,6 +406,48 @@ not a mounted-animation proof. Real Tauri/Worker multi-format links, previews,
 chapter shortcuts, completion revisit and plugin back/forward stay in the
 concentrated composition E2E stage. READ04/READ06 are connected, not E2E-certified.
 
+### Viewport Text Availability (Reading 2.17)
+
+[代码] Existing `reading.queries.session`, `reading.events.observeSession` and
+both Agent scopes' `get_reading_session` expose `visibleTextState` alongside
+`visibleText`. No new query, content grant or model tool is introduced. State is
+`{status:available|empty|unavailable, source:range|pdf-text-layer|null, truncated,
+reason?}`. Reasons are `not-ready`, `not-visible`, `unsupported`, `scan-limit`,
+`read-failed`, or Agent-filtered `withheld`. The type is optional for older
+snapshot producers; the live host supplies it. An empty string alone is not
+evidence that a page/book has no extractable text.
+
+[代码] Reflowable content continues to use the renderer's visible Range. Fixed
+PDF pages use their already-rendered `.textLayer`; the PDF renderer marks it
+loading on render start and ready only after completion. Host extraction
+intersects the renderer/outer viewport, iframe bounds (including frame scale),
+and text-run rectangles. Hidden or offscreen warm-cache frames do not contribute;
+non-text-layer annotations/controls are excluded. Empty is reported only from a
+ready visible text layer (or an empty reflowable Range). A pending encountered
+visible page yields unavailable rather than combining its old text with another
+page. Missing geometry/support and DOM failures are not empty pages; failures
+log and return `read-failed`.
+
+[代码] Text is capped at 12000 UTF-16 units without splitting surrogate pairs.
+PDF traversal stops after 20000 text nodes: partial text is marked truncated;
+no text before that limit reports unavailable/scan-limit. This does not impose
+a memory budget on existing reflowable Range.toString or PDF.js rendering.
+Native reading cursors consume the same helper, then retain their existing
+1800-character whitespace-normalized summary. Session attachment/replacement,
+detachment, failure, close and new-book loading clear old text and metadata;
+relocations retain the current adapter/session guard. Query and observation
+snapshots remain copied. Agent privacy and original-turn spoiler rules clear
+both text and metadata (`withheld`); navigation cannot grant additional access.
+
+[环境] PDF extraction is at intersecting text-run granularity, not precise
+glyph clipping, reading-order reconstruction, overlay occlusion detection or
+OCR. A rendered image-only viewport can be empty without proving the whole book
+textless. Fixed non-PDF documents without a PDF text layer remain unsupported.
+DOM geometry fixtures, real session/permission-scoped plugin query wiring and
+Agent filtering are covered by focused tests; real PDF.js/Tauri zoom, scroll,
+spreads and multi-format composition remain in concentrated E2E. No desktop or
+browser UI was launched for this wiring batch.
+
 ### Current Pagination (Reading 2.14)
 
 [代码] `reading.queries.session`, `reading.events.observeSession` and both scopes'

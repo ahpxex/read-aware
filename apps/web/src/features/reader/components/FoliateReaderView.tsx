@@ -22,6 +22,7 @@ import { flattenToc, findTocIndexForHref, adjacentTocEntry } from "../lib/epub-u
 import { createNativeLinkNavigator } from "../lib/native-link-navigation";
 import { attachTocFractions } from "../lib/toc-fractions";
 import { chapterProgressAt, normalizeReadingCursorText } from "../lib/reading-cursor";
+import { readingVisibleText } from "../lib/reading-visible-text";
 import { relocateDismissesShell } from "../lib/shell-dismissal";
 import type { LoadedBook, ReadingCursor, TocEntry } from "../lib/reader-types";
 import { retainBook } from '../lib/book-lifetime';
@@ -1965,7 +1966,7 @@ export function FoliateReaderView({
         }).catch(error => log.warn('Could not prepare chapter marks', error));
 
         const onRelocate = (event: Event) => {
-          if (cancelled || sessionId && readingRuntime.snapshot().sessionId !== sessionId) return;
+          if (!view || cancelled || sessionId && readingRuntime.snapshot().sessionId !== sessionId) return;
           // Tell background pipelines (text extraction) the reader is busy —
           // the page being read must win the PDF worker and the blob channel.
           emitAppEvent("reader-demand-activity", {});
@@ -1981,7 +1982,7 @@ export function FoliateReaderView({
           const chapterTitle =
             detail.tocItem?.label?.trim() || entries[activeTocIndex]?.label?.trim() || undefined;
           const chapterProgress = chapterProgressAt(entries, href, fraction);
-          const visibleText = normalizeReadingCursorText(detail.range?.toString() ?? "");
+          const visibleText = normalizeReadingCursorText(readingVisibleText(view).text);
           lastLocationTargetRef.current = cfi ?? href;
           const progressPercent = Math.round(fraction * 100);
           onPageChangeRef.current?.(current, total);

@@ -1,6 +1,6 @@
 import { AppError, errorCode, type EventOrigin, type ReadingModeConfiguration, type ReadingModeSnapshot, type ReadingModeReceipt, type ReadingPlaybackSnapshot, type ReadingPlaybackReceipt, type ReadingLocation, type ReadingNavigationReceipt, type ReadingSessionSnapshot, type ReadingSessionGuard, type ReadingTarget } from "@read-aware/core";
 import type { ReadingModeStepOutcome, ReadingModeStepReceipt, ReadingStep, ReadingPaginationSnapshot } from "@read-aware/core";
-import type { ReadingControlsSnapshot, ReadingControlsReceipt } from "@read-aware/core";
+import type { ReadingControlsSnapshot, ReadingControlsReceipt, ReadingVisibleTextState } from "@read-aware/core";
 import { normalizeBookRangeQuery, type BookTextRange, type ReadingSelectionSnapshot, type ReadingSelectionReceipt } from "@read-aware/core";
 
 export type ReadingSelectionAdapter = {
@@ -47,6 +47,9 @@ export type ReadingEngineAdapter = {
 };
 const paginationOf = (engine?: ReadingEngineAdapter): ReadingPaginationSnapshot | null => structuredClone(engine?.pagination?.() ?? null);
 type Session = { id: string; bookId: string; engine?: ReadingEngineAdapter; error?: unknown };
+const noVisibleText = (): { visibleText: string; visibleTextState: ReadingVisibleTextState } => ({
+  visibleText: "", visibleTextState: { status: "unavailable", source: null, truncated: false, reason: "not-ready" },
+});
 type Shell = { open(bookId: string, intent: number, options?: { resetPosition: true }): void | Promise<void>; close(): void | Promise<void> };
 
 /** Owns session identity and completion, never DOM, rendering or persistence. */
@@ -69,6 +72,7 @@ export class ReadingSessionController {
   private readonly engineTails = new WeakMap<ReadingEngineAdapter, Promise<unknown>>();
   private state: ReadingSessionSnapshot = {
     revision: 0, sessionId: null, bookId: null, status: "idle", location: null, visibleText: "",
+    visibleTextState: noVisibleText().visibleTextState,
     history: { canGoBack: false, canGoForward: false },
     playback: unavailablePlayback(),
     mode: unavailableMode(),
@@ -100,7 +104,7 @@ export class ReadingSessionController {
     const id = crypto.randomUUID();
     this.userOpening = intent === undefined ? { id, before: this.state.location } : undefined;
     this.session = { id, bookId };
-    this.publish({ sessionId: id, bookId, status: "loading", location: null, visibleText: "", selection: null, errorCode: undefined, playback: unavailablePlayback(), mode: unavailableMode(), controls: null, pagination: null });
+    this.publish({ sessionId: id, bookId, status: "loading", location: null, ...noVisibleText(), selection: null, errorCode: undefined, playback: unavailablePlayback(), mode: unavailableMode(), controls: null, pagination: null });
     return id;
   }
 
@@ -112,17 +116,19 @@ export class ReadingSessionController {
       this.recordJump(this.userOpening.before, location);
       this.userOpening = undefined;
     }
-    this.publish({ status: "ready", location, errorCode: undefined, pagination: paginationOf(engine), sourceRevision: engine.sourceRevision ?? null });
+    this.publish({ status: "ready", location, ...noVisibleText(), errorCode: undefined, pagination: paginationOf(engine), sourceRevision: engine.sourceRevision ?? null });
     return () => {
       if (this.session?.id !== id || this.session.engine !== engine) return;
       this.session.engine = undefined;
-      this.publish({ status: "loading", selection: null, pagination: null });
+      this.publish({ status: "loading", ...noVisibleText(), selection: null, pagination: null });
     };
   }
 
-  relocate(id: string, location: ReadingLocation, visibleText: string, source?: ReadingEngineAdapter): void {
+  relocate(id: string, location: ReadingLocation, visibleText: string, source?: ReadingEngineAdapter, visibleTextState?: ReadingVisibleTextState): void {
     if (this.session?.id !== id || source && (this.session.engine !== source || this.state.status !== "ready")) return;
     this.publish({ location, visibleText: visibleText.slice(0, 12_000), selection: null,
+      visibleTextState: visibleTextState ? structuredClone(visibleTextState)
+        : { status: visibleText ? "available" : "unavailable", source: null, truncated: visibleText.length > 12_000 },
       pagination: this.state.status === "ready" ? paginationOf(this.session.engine) : null });
   }
 
@@ -204,7 +210,7 @@ export class ReadingSessionController {
     this.detachMode();
     this.detachControls();
     this.detachSelection();
-    this.publish({ status: "error", selection: null, errorCode: errorCode(error) ?? "reader/load-failed", playback: unavailablePlayback(), mode: unavailableMode(), controls: null, pagination: null });
+    this.publish({ status: "error", ...noVisibleText(), selection: null, errorCode: errorCode(error) ?? "reader/load-failed", playback: unavailablePlayback(), mode: unavailableMode(), controls: null, pagination: null });
   }
 
   closed(): void {
@@ -215,7 +221,7 @@ export class ReadingSessionController {
     this.session = undefined;
     this.detachControls();
     this.detachSelection();
-    this.publish({ status: "idle", sessionId: null, bookId: null, location: null, visibleText: "", selection: null, errorCode: undefined, playback: unavailablePlayback(), mode: unavailableMode(), controls: null, pagination: null });
+    this.publish({ status: "idle", sessionId: null, bookId: null, location: null, ...noVisibleText(), selection: null, errorCode: undefined, playback: unavailablePlayback(), mode: unavailableMode(), controls: null, pagination: null });
   }
 
   bindControls(id: string, adapter: ReadingControlsAdapter): () => void {

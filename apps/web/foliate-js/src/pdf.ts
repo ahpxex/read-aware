@@ -293,6 +293,8 @@ const render = async (page: PDFPage, doc: Document, zoom: number,
         if (signal?.aborted) throw new RenderCancelledError()
     }
     throwIfAborted()
+    const textStatus = doc.querySelector<HTMLElement>('.textLayer')
+    if (textStatus) textStatus.dataset.readawareTextState = 'loading'
     const natural = page.getViewport({ scale: 1 })
     let scale = zoom * devicePixelRatio
     const maxScale = Math.sqrt(MAX_RENDER_PIXELS / (natural.width * natural.height))
@@ -398,6 +400,8 @@ const render = async (page: PDFPage, doc: Document, zoom: number,
     }
     await new pdfjsLib.AnnotationLayer({ page, viewport, div: annotationContainer, linkService })
         .render({ annotations: await page.getAnnotations() })
+    throwIfAborted()
+    container.dataset.readawareTextState = 'ready'
 }
 
 const renderPage = async (page: PDFPage, onRendered?: (canvas: HTMLCanvasElement) => void): Promise<PageSource> => {

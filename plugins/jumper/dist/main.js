@@ -342,6 +342,265 @@ async function navigationTargets(ctx, source, kind, offsets = [0], label) {
   };
 }
 
+// src/bookmarks.ts
+var BOOKMARKS = "bookmarks";
+var bookmarkCollection = (ctx) => ctx.services.storage.collection(BOOKMARKS);
+var object = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);
+var text = (value, max) => typeof value === "string" && Boolean(value.trim()) && value.length <= max;
+function bookmarkName(value) {
+  return text(value, 120) ? value.trim() : null;
+}
+function targetOf(raw) {
+  if (!object(raw) || !text(raw.bookId, 512) || !text(raw.contentVersion, 256))
+    return null;
+  const target = { bookId: raw.bookId, contentVersion: raw.contentVersion };
+  if (raw.cfi !== undefined) {
+    if (!text(raw.cfi, 8192))
+      return null;
+    target.cfi = raw.cfi;
+  } else if (raw.href !== undefined) {
+    if (!text(raw.href, 8192))
+      return null;
+    target.href = raw.href;
+  } else if (typeof raw.fraction === "number" && Number.isFinite(raw.fraction) && raw.fraction >= 0 && raw.fraction <= 1)
+    target.fraction = raw.fraction;
+  else
+    return null;
+  if (raw.textQuote !== undefined) {
+    const quote = raw.textQuote;
+    if (!object(quote) || !text(quote.exact, 12000))
+      return null;
+    target.textQuote = { exact: quote.exact };
+    for (const key of ["prefix", "suffix"])
+      if (quote[key] !== undefined) {
+        if (typeof quote[key] !== "string" || quote[key].length > 2000)
+          return null;
+        target.textQuote[key] = quote[key];
+      }
+  }
+  return target;
+}
+function parseBookmark(value) {
+  if (!object(value) || value.version !== 1 || !bookmarkName(value.name) || !text(value.bookTitle, 500) || value.kind !== "location" && value.kind !== "selection")
+    return null;
+  const target = targetOf(value.target);
+  if (!target || value.kind === "selection" && !target.cfi)
+    return null;
+  return { version: 1, name: bookmarkName(value.name), bookTitle: value.bookTitle, kind: value.kind, target };
+}
+async function captureBookmark(ctx, kind) {
+  const session = await ctx.domains.reading.queries.session();
+  if (session.status !== "ready" || !session.bookId || !session.location) {
+    throw Object.assign(Error("Bookmark requires a ready reader"), { code: "reader/unavailable" });
+  }
+  const target = targetOf(kind === "selection" ? session.selection?.range : session.location);
+  if (!target || target.bookId !== session.bookId || target.contentVersion !== session.location.contentVersion) {
+    throw Object.assign(Error("Bookmark location is unavailable"), { code: "reader/stale-location" });
+  }
+  const selectionName = session.selection?.text.trim().slice(0, 120);
+  const book = await ctx.domains.library.queries.books.get(target.bookId);
+  if (!book)
+    throw Object.assign(Error("Bookmark book missing"), { code: "library/book-not-found" });
+  const bookTitle = book.title.trim().slice(0, 500) || book.id;
+  return {
+    version: 1,
+    name: (kind === "selection" ? selectionName : bookTitle.slice(0, 120)) || bookTitle.slice(0, 120),
+    bookTitle,
+    kind,
+    target
+  };
+}
+async function writeBookmark(ctx, id, data, expectedRevision) {
+  return ctx.services.storage.applyDocuments([{
+    kind: "put",
+    collection: BOOKMARKS,
+    id,
+    data,
+    bookId: data.target.bookId,
+    ...data.target.cfi ? { anchor: data.target.cfi } : {},
+    expectedRevision
+  }]);
+}
+async function removeBookmark(ctx, doc) {
+  return ctx.services.storage.applyDocuments([{ kind: "delete", collection: BOOKMARKS, id: doc.id, expectedRevision: doc.revision }]);
+}
+async function openBookmark(ctx, bookmark) {
+  if (!await ctx.domains.library.queries.books.get(bookmark.target.bookId)) {
+    throw Object.assign(Error("Bookmark book missing"), { code: "library/book-not-found" });
+  }
+  await ctx.domains.reading.commands.goTo(structuredClone(bookmark.target));
+  return { close: true };
+}
+
+// src/bookmark-strings.ts
+var en2 = {
+  title: "Bookmarks",
+  empty: "No bookmarks",
+  name: "Name",
+  save: "Save bookmark",
+  saved: "Bookmark saved",
+  current: "Bookmark current location",
+  selection: "Bookmark selection",
+  location: "Reading location",
+  range: "Selected passage",
+  open: "Go to bookmark",
+  rename: "Rename",
+  renamed: "Bookmark renamed",
+  remove: "Delete bookmark",
+  removed: "Bookmark deleted",
+  confirm: "Delete this bookmark",
+  invalidName: "Enter a name of 1-120 characters.",
+  required: "Confirm deletion.",
+  invalid: "Bookmark data unavailable",
+  missing: "Bookmark no longer exists",
+  stale: "Bookmarks changed. Refresh the list.",
+  conflict: "This bookmark changed. Refresh before trying again.",
+  refresh: "Refresh",
+  all: "All books",
+  thisBook: "Current book",
+  version: "Source version",
+  book: "Book",
+  kind: "Type"
+};
+var zh2 = {
+  title: "书签",
+  empty: "暂无书签",
+  name: "名称",
+  save: "保存书签",
+  saved: "书签已保存",
+  current: "收藏当前位置",
+  selection: "收藏选区",
+  location: "阅读位置",
+  range: "选中段落",
+  open: "跳转到书签",
+  rename: "重命名",
+  renamed: "书签已重命名",
+  remove: "删除书签",
+  removed: "书签已删除",
+  confirm: "删除这条书签",
+  invalidName: "请输入 1-120 个字符的名称。",
+  required: "请确认删除。",
+  invalid: "书签数据不可用",
+  missing: "书签已不存在",
+  stale: "书签列表已变化，请刷新。",
+  conflict: "这条书签已变化，请刷新后再试。",
+  refresh: "刷新",
+  all: "全部书籍",
+  thisBook: "当前书籍",
+  version: "内容版本",
+  book: "书籍",
+  kind: "类型"
+};
+var bookmarkCopy = (locale) => locale.startsWith("zh") ? zh2 : en2;
+
+// src/bookmark-views.ts
+function message(ctx, text2) {
+  const t = bookmarkCopy(ctx.locale);
+  return { kind: "detail", title: t.title, content: [{ kind: "text", text: text2 }], actions: [
+    { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await bookmarksView(ctx), navigation: "reset" }) }
+  ] };
+}
+function nameForm(ctx, data, id, expectedRevision) {
+  const t = bookmarkCopy(ctx.locale);
+  return {
+    kind: "form",
+    title: data.bookTitle,
+    submitLabel: expectedRevision === null ? t.save : t.rename,
+    fields: [{ id: "name", kind: "text", label: t.name, value: data.name }],
+    onSubmit: async (values) => {
+      const name = bookmarkName(values.name);
+      if (!name)
+        return { fieldErrors: { name: t.invalidName } };
+      const receipt = await writeBookmark(ctx, id, { ...data, name }, expectedRevision);
+      return { view: message(ctx, receipt.status === "conflict" ? t.conflict : expectedRevision === null ? t.saved : t.renamed), navigation: "replace" };
+    }
+  };
+}
+async function saveBookmarkView(ctx, kind) {
+  const data = await captureBookmark(ctx, kind), t = bookmarkCopy(ctx.locale);
+  return { kind: "blocks", blocks: [
+    { kind: "text", text: kind === "selection" ? t.range : t.location },
+    nameForm(ctx, data, crypto.randomUUID(), null)
+  ] };
+}
+function deleteForm(ctx, doc) {
+  const t = bookmarkCopy(ctx.locale), bookmark = parseBookmark(doc.data);
+  return {
+    kind: "form",
+    title: bookmark?.name ?? t.invalid,
+    submitLabel: t.remove,
+    fields: [{ id: "confirm", kind: "checkbox", label: t.confirm, value: false }],
+    onSubmit: async (values) => {
+      if (values.confirm !== true)
+        return { fieldErrors: { confirm: t.required } };
+      const receipt = await removeBookmark(ctx, doc);
+      return { view: message(ctx, receipt.status === "conflict" ? t.conflict : t.removed), navigation: "replace" };
+    }
+  };
+}
+async function bookmarkDetail(ctx, id) {
+  const doc = await bookmarkCollection(ctx).get(id), t = bookmarkCopy(ctx.locale);
+  if (!doc)
+    return message(ctx, t.missing);
+  const bookmark = parseBookmark(doc.data);
+  return {
+    kind: "detail",
+    title: bookmark?.name ?? t.invalid,
+    content: bookmark ? [{ kind: "keyValue", rows: [
+      { label: t.book, value: bookmark.bookTitle },
+      { label: t.kind, value: bookmark.kind === "selection" ? t.range : t.location },
+      { label: t.version, value: bookmark.target.contentVersion }
+    ] }] : [{ kind: "text", text: t.invalid }],
+    actions: [
+      ...bookmark ? [
+        { id: "open", label: t.open, icon: "arrow-right", run: () => openBookmark(ctx, bookmark) },
+        { id: "rename", label: t.rename, icon: "pencil-simple", run: () => ({ view: nameForm(ctx, bookmark, doc.id, doc.revision) }) }
+      ] : [],
+      { id: "remove", label: t.remove, icon: "trash", run: () => ({ view: deleteForm(ctx, doc) }) },
+      { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await bookmarkDetail(ctx, id), navigation: "replace" }) }
+    ]
+  };
+}
+async function bookmarksView(ctx, bookId, cursors = [undefined]) {
+  const t = bookmarkCopy(ctx.locale);
+  const page = await bookmarkCollection(ctx).page({ bookId, limit: 40, cursor: cursors[cursors.length - 1] });
+  if (page.status === "stale-cursor")
+    return message(ctx, t.stale);
+  const session = await ctx.domains.reading.queries.session();
+  const ready = session.status === "ready" && session.location && session.bookId;
+  const next = async (values) => ({ view: await bookmarksView(ctx, bookId, values), navigation: "replace" });
+  return {
+    kind: "list",
+    title: t.title,
+    emptyText: t.empty,
+    searchable: true,
+    items: page.items.map((doc) => {
+      const bookmark = parseBookmark(doc.data);
+      return {
+        id: doc.id,
+        title: bookmark?.name ?? t.invalid,
+        subtitle: bookmark?.bookTitle,
+        timestamp: doc.updatedAt,
+        icon: "book-bookmark",
+        onSelect: async () => ({ view: await bookmarkDetail(ctx, doc.id) })
+      };
+    }),
+    actions: [
+      { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: () => next([undefined]) },
+      ...ready ? [
+        { id: "save-location", label: t.current, icon: "plus", run: async () => ({ view: await saveBookmarkView(ctx, "location") }) },
+        ...session.selection?.range ? [{ id: "save-selection", label: t.selection, icon: "highlighter", run: async () => ({ view: await saveBookmarkView(ctx, "selection") }) }] : []
+      ] : [],
+      ...bookId ? [{ id: "all", label: t.all, icon: "books", run: async () => ({ view: await bookmarksView(ctx), navigation: "replace" }) }] : ready ? [{ id: "this-book", label: t.thisBook, icon: "book-open", run: async () => ({ view: await bookmarksView(ctx, session.bookId), navigation: "replace" }) }] : []
+    ],
+    pagination: {
+      page: cursors.length,
+      ...cursors.length > 1 ? { onPrevious: () => next(cursors.slice(0, -1)) } : {},
+      ...page.nextCursor ? { onNext: () => next([...cursors, page.nextCursor]) } : {}
+    }
+  };
+}
+
 // src/views.ts
 async function jump(ctx, location) {
   await ctx.domains.reading.commands.goTo(location);
@@ -413,12 +672,15 @@ async function jumperView(ctx) {
   return { kind: "blocks", blocks: [
     ...actions.length ? [{ kind: "actions", actions }] : [],
     form,
-    { kind: "actions", actions: [{
-      id: "navigation",
-      label: navigationWords(ctx.locale).navigation,
-      icon: "compass",
-      run: async () => ({ view: await navigationView(ctx) })
-    }] }
+    { kind: "actions", actions: [
+      {
+        id: "navigation",
+        label: navigationWords(ctx.locale).navigation,
+        icon: "list-bullets",
+        run: async () => ({ view: await navigationView(ctx) })
+      },
+      { id: "bookmarks", label: bookmarkCopy(ctx.locale).title, icon: "book-bookmark", run: async () => ({ view: await bookmarksView(ctx) }) }
+    ] }
   ] };
 }
 
@@ -443,6 +705,14 @@ var plugin = {
       state: unavailable,
       keywords: "jump chapter text search navigation",
       run: async () => ({ view: await jumperView(ctx) })
+    });
+    ctx.contributions.commands.register({
+      id: "bookmarks",
+      title: `Jumper: ${bookmarkCopy(ctx.locale).title}`,
+      icon: "book-bookmark",
+      state: { revision: 0, visible: true, enabled: true },
+      keywords: "bookmark saved location passage",
+      run: async () => ({ view: await bookmarksView(ctx) })
     });
     const history = ["back", "forward"].map((direction) => ({
       direction,

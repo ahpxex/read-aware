@@ -5,6 +5,8 @@ import type { JumperContext } from "./types";
 import { textSearchView } from "./text-search";
 import { navigationView } from "./navigation";
 import { navigationWords } from "./navigation-strings";
+import { bookmarksView } from "./bookmark-views";
+import { bookmarkCopy } from "./bookmark-strings";
 
 async function jump(ctx: JumperContext, location: ReadingLocation) {
   await ctx.domains.reading.commands.goTo(location);
@@ -55,7 +57,8 @@ export async function jumperView(ctx: JumperContext): Promise<PluginView> {
       run: async () => { await ctx.domains.reading.commands[direction](guard); return { close: true }; } });
   }
   return { kind: "blocks", blocks: [...(actions.length ? [{ kind: "actions" as const, actions }] : []), form,
-    { kind: "actions", actions: [{ id: "navigation", label: navigationWords(ctx.locale).navigation, icon: "compass",
-      run: async () => ({ view: await navigationView(ctx) }) }] },
+    { kind: "actions", actions: [{ id: "navigation", label: navigationWords(ctx.locale).navigation, icon: "list-bullets",
+      run: async () => ({ view: await navigationView(ctx) }) },
+      { id: "bookmarks", label: bookmarkCopy(ctx.locale).title, icon: "book-bookmark", run: async () => ({ view: await bookmarksView(ctx) }) }] },
   ] };
 }

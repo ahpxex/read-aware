@@ -1,7 +1,7 @@
 {
   "id": "jumper",
   "name": "Jumper",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "schemaVersion": 1,
   "minAppVersion": "0.3.0",
   "description": "Jump to chapters, find passages, and retrace reading locations.",
@@ -11,7 +11,7 @@
   "requires": {
     "domains": { "library": "^1.17.0", "reading": "^2.14.0" },
     "contributions": { "headerActions": "^1.1.0", "commands": "^1.1.0" },
-    "services": { "ui": "^1.2.0" },
+    "services": { "ui": "^1.2.0", "storage": "^2.1.0" },
     "schemas": { "views": "^1.8.0" }
   }
 }

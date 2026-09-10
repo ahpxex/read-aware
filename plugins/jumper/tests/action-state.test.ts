@@ -17,7 +17,9 @@ test("Jumper composes observed session readiness and history with action availab
   await plugin.activate({ locale: "en", contributions: { commands: { register }, headerActions: { register } },
     domains: { library: {}, reading: { commands: {}, events: { observeSession(handler: typeof observe) { observe = handler; } } } },
   } as unknown as PluginContext);
-  expect([...states.values()].every(state => !state.enabled)).toBe(true);
+  const readerStates = () => [...states].filter(([id]) => id !== "bookmarks").map(([, state]) => state);
+  expect(readerStates().every(state => !state.enabled)).toBe(true);
+  expect(states.get("bookmarks")?.enabled).toBe(true);
   const session = (revision: number, status: Session["status"], back: boolean, forward: boolean) =>
     ({ revision, status, history: { canGoBack: back, canGoForward: forward } }) as Session;
   await observe(session(1, "ready", true, false));
@@ -32,7 +34,8 @@ test("Jumper composes observed session readiness and history with action availab
   expect(states.get("forward")?.enabled).toBe(true);
   for (const [index, status] of (["loading", "error", "idle"] as const).entries()) {
     await observe(session(index + 3, status, true, true));
-    expect([...states.values()].every(state => !state.enabled)).toBe(true);
+    expect(readerStates().every(state => !state.enabled)).toBe(true);
+    expect(states.get("bookmarks")?.enabled).toBe(true);
     expect([...states.values()].every(state => state.visible)).toBe(true);
   }
 });

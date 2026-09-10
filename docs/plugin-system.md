@@ -692,6 +692,46 @@ whole-book reflow pagination is not an existing host capability being claimed.
 
 ### Jumper Source Navigation Composition
 
+[代码] Jumper 0.5 additionally composes bookmarks using existing Reading 2.14
+locations/selection ranges and Storage 2.1 private documents. The reader menu
+opens the bookmark list; the separate `jumper:bookmarks` command remains enabled
+without an open book. No host table, public API or permission was added.
+
+- Save current location or a readable selection into the private `bookmarks`
+  collection. Capture happens when opening the naming form, not on submission;
+  later navigation cannot retarget the captured book/version. Names are 1-120
+  UTF-16 characters, book-title snapshots at most 500. Selection targets preserve
+  CFI and any disambiguating text quote. Missing/unreadable selections fail rather
+  than saving the viewport as though it were the selection.
+- Version 1 documents retain name, book title, kind and explicit versioned target.
+  CFI takes precedence over href and fraction; malformed preferred coordinates
+  reject rather than falling back. Create compares absence at one captured UUID;
+  rename/delete compare the revision displayed in the detail. Delete requires a
+  checked confirmation. Conflicts do not overwrite or delete the newer document.
+- Global/current-book lists request 40 documents per page. Exact continuation
+  cursors are retained; stale cursors show a refresh action rather than mixing
+  snapshots. Built-in text filtering only filters the displayed page. Views are
+  explicitly refreshed, not live document subscriptions. Invalid documents show
+  a non-navigable entry that can still be explicitly deleted.
+- Return checks that the referenced book exists and calls shared `goTo` with the
+  stored source version, closing only after successful navigation. No stale
+  version is rewritten and no percentage guess is substituted. Host source/CFI
+  errors remain errors. This does not restore a selection highlight or migrate
+  bookmarks across changed content. Source versions remain opaque; a
+  session-scoped source can become stale after that session ends.
+- Private document `bookId/anchor` fields are indexes: removing a book leaves its
+  bookmarks available for explicit cleanup. Successful writes show their receipt
+  without a follow-up read that could obscure the write outcome. Uninstall and
+  private-storage lifecycle remain host-owned. There is no sync guarantee or new
+  bookmark-specific Agent tool in this batch.
+
+[验证] 29 Jumper tests / 175 assertions, build, typecheck and manifest validation
+pass. Tests include compiled command/reader entry callbacks, exact range/version
+capture, conditional edits, stale cursors and navigation failures. Storage and
+navigation are controlled fixtures, not SQLite/Worker/native restart proof.
+Cross-book/restart return, native selection and all-format behavior remain for
+concentrated Tauri acceptance; document visual checks are deferred.
+
 [代码] Jumper 0.4 consumes existing Library 1.17 and Reading 2.14 without new
 host/Agent APIs or permissions. Its original chapter/title/TOC-ordinal search,
 cancellable text search and shared back/forward remain the first screen; a

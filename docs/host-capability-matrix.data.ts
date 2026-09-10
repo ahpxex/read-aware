@@ -263,6 +263,9 @@ export const sources: Record<string, string> = {
   JUMPER: "plugins/jumper/src/views.ts",
   JUMPERNAVIGATION: "plugins/jumper/src/navigation.ts",
   JUMPERNAVIGATIONPROOF: "plugins/jumper/tests/navigation.test.ts",
+  JUMPERBOOKMARKS: "plugins/jumper/src/bookmarks.ts",
+  JUMPERBOOKMARKVIEWS: "plugins/jumper/src/bookmark-views.ts",
+  JUMPERBOOKMARKPROOF: "plugins/jumper/tests/bookmarks.test.ts",
   JUMPERSEARCH: "plugins/jumper/src/text-search.ts",
   JUMPERSEARCHPROOF: "plugins/jumper/tests/jumper.test.ts",
   TEXTDESKSEARCH: "plugins/text-desk/src/search-task.ts",
@@ -677,7 +680,7 @@ groups.push(
   ] },
   { name: "存储、网络与原生资源", rows: [
     cap("SYS01", "插件隔离 KV 同步读与异步持久写", "实装", actor("扩展", "通过插件工具间接使用，无 KV 工具", "不得读任意私有 KV"), actor("接通", "storage v2 get/set/remove/flush/onChange；set/remove 返回持久 Promise", "带 durable ack 的隔离 KV"), ["CTX","WORKER","KV","DICT"], "全部有设置/状态插件；RSS 迁移等待 remove", "已接顺序持久写、flush、镜像失败重基和 remote origin；相关故障单元测试通过，真实 Worker/Tauri 持久化与全生命周期 E2E 尚待验收，不据此关闭全部 GAP02/03"),
-    cap("SYS02", "插件私有文档 CRUD/分页/条件事务", "实装", actor("扩展", "Dictionary/RSS 工具通过插件访问", "插件工具封装其自有数据"), actor("接通", "storage 2.1 collection.page/revision + applyDocuments", "隔离文档服务"), ["CTX","DOCS","API","DICT","RSS"], "Dictionary words；RSS feeds；文档基础传输测试", "page默认50/最多200条、4MiB JSON，绑定命名空间/过滤/排序和集合变更代；任何集合写令续页stale-cursor重读，不拼不同快照。applyDocuments一次比较1..100条跨自有集合put/delete/check，null要求不存在，revision要求准确写版本；SQLite事务冲突不写/故障全回滚，单文档4MiB/批8MiB。旧API及恢复同样轮换身份，候选激活不可写、迁移可写，读参与退休清理、已派发写排空。原生SQLite和Bun Worker基础测试通过，不是组合插件Tauri验收。全字段搜索、KV/文档联合事务、跨设备和订阅仍缺；bookId/anchor是索引不是自动删除所有权。"),
+    cap("SYS02", "插件私有文档 CRUD/分页/条件事务", "实装", actor("扩展", "Dictionary/RSS 工具通过插件访问", "插件工具封装其自有数据"), actor("接通", "storage 2.1 collection.page/revision + applyDocuments", "隔离文档服务"), ["CTX","DOCS","API","DICT","RSS","JUMPERBOOKMARKS","JUMPERBOOKMARKVIEWS","JUMPERBOOKMARKPROOF"], "Dictionary words；RSS feeds；Jumper 0.5 书签；文档基础传输测试", "page默认50/最多200条、4MiB JSON，绑定命名空间/过滤/排序和集合变更代；任何集合写令续页stale-cursor重读，不拼不同快照。applyDocuments一次比较1..100条跨自有集合put/delete/check，null要求不存在，revision要求准确写版本；SQLite事务冲突不写/故障全回滚，单文档4MiB/批8MiB。旧API及恢复同样轮换身份，候选激活不可写、迁移可写，读参与退休清理、已派发写排空。Jumper 0.5 已组合版本化位置/选区书签、40项分页、命名/改名/确认删除和共享goTo，创建/改删分别比较不存在/所见写版本；旧源拒绝而不猜位置。29项插件测试/175断言、构建/类型通过，编译入口使用受控存储与导航，不是原生重启/跨书证明；本批无书签Agent工具。原生SQLite和Bun Worker基础测试通过，不是组合插件Tauri验收。全字段搜索、KV/文档联合事务、跨设备和订阅仍缺；bookId/anchor是索引不是自动删除所有权。"),
     cap("SYS03", "插件 schema 迁移/快照/更新回滚", "部分", actor("未接", "宿主管理安装生命周期", "不开放：模型操作迁移存储"), actor("部分", "migrate storage-only；quiesce/drain 后 snapshot；schemaVersion 等待持久", "quiescent + durable migration"), ["HOST","WIRE","WORKER","RUST"], "RSS legacy feeds 迁移；插件更新", "已修复健康检查失败误恢复与旧实例晚写丢失的时序；全局外部设置并发、KV/docs 联合恢复和真实 Tauri 更新故障 E2E 仍待验收，GAP01/02 不整体关闭"),
     cap("SYS04", "插件自有 secret get/set/remove", "实装", actor("未接", "不提供密钥读取工具", "不开放：密钥进模型上下文"), actor("接通", "services.secrets namespace", "隔离凭据服务"), ["CTX","SECRETS","TTS","WEBDAV"], "TTS；WebDAV", "私有 secret 不等于可读宿主 AI key/同步解密 key"),
     cap("SYS05", "插件数据导入导出/配额/同步策略", "部分", actor("扩展", "仅插件自定义工具", "插件拥有的数据操作"), actor("部分", "exportFile + 私有 CRUD；无通用配额/同步状态", "隔离数据生命周期"), ["API","DOCS","ROAM","BACKUP"], "Dictionary CSV；RSS OPML", "KV、plugin_docs、secrets、blob 的漫游/备份边界不同，不能统一宣称可同步"),

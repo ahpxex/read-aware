@@ -83,7 +83,7 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
       panels[panel] = { open, visible: open && controls.visible }; revision++;
       return { status: "completed", panel, snapshot: { sessionId: "fixture", bookId: location.bookId, revision, controlsVisible: controls.visible, sizes: { ...sizes }, layout: "docked", panels: structuredClone(panels) } };
     },
-    getSession: async () => ({ revision, sessionId: location ? "fixture" : null, bookId: location?.bookId ?? null, status: location ? "ready" : "idle", location, visibleText: "", selection: structuredClone(selection), history: { canGoBack: false, canGoForward: false }, playback, mode, controls: location ? { ...controls } : null }),
+    getSession: async () => ({ revision, sessionId: location ? "fixture" : null, bookId: location?.bookId ?? null, status: location ? "ready" : "idle", location, visibleText: "", selection: structuredClone(selection), history: { canGoBack: false, canGoForward: false }, playback, mode, controls: location ? { ...controls } : null, pagination: null }),
     setControls: async visible => {
       if (!location) throw new Error("No active fixture reader");
       showControls(visible); revision++;

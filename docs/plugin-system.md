@@ -242,8 +242,9 @@ not expand the Agent's original reading-text privacy or spoiler permission.
 [验证] Focused renderer-adapter, history/version/guard and Agent tests pass;
 the fixed-layout render wait remains intact. Real Tauri/Worker multi-format
 navigation is deferred to concentrated plugin E2E. Library 1.14 supplies the
-source/page-label catalog below, including PDF labels; reflowable screen-page
-counts remain separate gaps. TOC steps and native-link history are connected by
+source/page-label catalog below, including PDF labels; current-section reflowable
+screen counts are connected by reading 2.14 below, not a whole-book page total.
+TOC steps and native-link history are connected by
 reading 2.13 below; their actual desktop composition remains unverified.
 
 ### TOC Steps and Native Jump History (Reading 2.13)
@@ -289,6 +290,50 @@ anchors or footnote rendering. Completion-screen wiring is source/type checked,
 not a mounted-animation proof. Real Tauri/Worker multi-format links, previews,
 chapter shortcuts, completion revisit and plugin back/forward stay in the
 concentrated composition E2E stage. READ04/READ06 are connected, not E2E-certified.
+
+### Current Pagination (Reading 2.14)
+
+[代码] `reading.queries.session`, `reading.events.observeSession` and both scopes'
+existing `get_reading_session` return `pagination: ReadingPaginationSnapshot|null`.
+It contains `layout: reflowable|fixed`, `flow: paginated|scrolled`, zero-based
+`section: {index,count}` from the original source order (including non-linear
+sections), and `screen: {index,count}|null`. Source sections remain separate
+from TOC chapters and printed labels; PDF/comic source sections identify source
+pages, while a fixed-layout spread can display more than one source section.
+
+`screen` describes viewport/spread steps in the CURRENT reflowable section, not
+individual columns, source pages, printed page labels, text-extraction locations
+or a whole-book page count. It uses the existing paginator's `page - 1` and
+`pages - 2`, excluding its leading/trailing navigation padding. Missing geometry,
+non-finite/non-integer values, padding positions, fixed layout and continuous
+scroll produce a null screen instead of inventing a page count. Missing renderer
+or an invalid source-section index produces null pagination.
+
+The public controller samples geometry on attachment, relocation and successful
+navigation completion. The existing renderer emits relocation after reflow/
+anchor restoration even at the same offset, so font/window/column/flow changes
+use that same path without a second observer or page-count cache. Reports carry
+the enclosing session revision/location/content version; these metrics are
+ephemeral and are not a persistent navigation address or independently stable
+layout revision. Use CFI/href/versioned source index/fraction for navigation.
+Unrendered sections are never opened or measured to estimate a total.
+
+Controller snapshots clone renderer metadata; caller mutation cannot alter
+subsequent snapshots. Begin, detach, failure and close clear pagination. Native
+relocations carry adapter identity so a replaced adapter in the same session
+cannot overwrite its successor. Existing reading-read grants and lifecycle
+govern plugin queries/subscriptions. Agent text privacy/spoiler handling remains
+unchanged; numeric pagination does not grant text access, and a book-scoped
+request does not expose another book's pagination. No additional tool is added.
+
+[验证] Controlled paginator/fixed-layout inputs, real adapter attachment/event
+wiring, copied state and lifecycle reset, completion updates, same-session
+replacement, plugin read/observe grants and both Agent scopes are tested. Existing
+navigation/link and Listening Desk tests pass. No new native desktop session was
+launched: actual font/window/multicolumn/RTL reflow, PDF/comic rendering and
+Worker/plugin composition remain for concentrated Tauri E2E. READ05 is connected
+for existing host navigation and current layout metadata, not E2E-certified;
+whole-book reflow pagination is not an existing host capability being claimed.
 
 ### Navigation Target Catalog (Library 1.14)
 

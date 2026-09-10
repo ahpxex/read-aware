@@ -23,7 +23,8 @@ test("session selection is versioned and withheld with privacy restrictions, spo
   const original = await deps.reader.getSession();
   const selection = { id: "selected", text: "needle", textLength: 6,
     range: { bookId, contentVersion: "v1", cfi: "epubcfi(/6/2)", textQuote: { exact: "needle", prefix: "private context" } } };
-  deps.reader.getSession = async () => ({ ...original, selection });
+  const pagination = { layout: "reflowable" as const, flow: "paginated" as const, section: { index: 0, count: 8 }, screen: { index: 2, count: 5 } };
+  deps.reader.getSession = async () => ({ ...original, selection, pagination });
   const state = createAgentTurnState(), policy = contextPolicyState({ selection: true, surrounding: true });
   deps.readingContextPolicy = policy;
   const read = async () => {
@@ -32,15 +33,20 @@ test("session selection is versioned and withheld with privacy restrictions, spo
     return JSON.parse(result.content[0].text);
   };
   expect((await read()).selection).toEqual(selection);
+  expect((await read()).pagination).toEqual(pagination);
   for (const permissions of [{ selection: false, surrounding: true }, { selection: true, surrounding: false }]) {
     policy.set(permissions);
     expect((await read()).selection).toBeNull();
+    expect((await read()).pagination).toEqual(pagination);
   }
   policy.set({ selection: true, surrounding: true }); state.spoilerFence = { throughChapterIndex: 0 };
   expect((await read()).selection).toBeNull();
   state.spoilerPermissionGranted = true;
   expect((await read()).selection).toEqual(selection);
-  deps.reader.getSession = async () => ({ ...original, bookId: "other", selection });
+  const globalResult = await buildReaderTools({ kind: "global", threadId: "pagination-test" }, deps, state).find(t => t.name === "get_reading_session")!.execute("pagination", {});
+  if (globalResult.content[0]?.type !== "text") throw Error("Expected text");
+  expect(JSON.parse(globalResult.content[0].text).pagination).toEqual(pagination);
+  deps.reader.getSession = async () => ({ ...original, bookId: "other", selection, pagination });
   expect(await read()).toEqual({ status: "not-active", bookId });
   expect(policy.listeners()).toBe(0);
 });

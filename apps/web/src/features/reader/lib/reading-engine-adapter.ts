@@ -3,6 +3,7 @@ import { readingRuntime } from "../../../domain/reading-runtime";
 import { loadContentNavigation, type FoliateView } from "./foliate-engine";
 import type { ReadingEngineAdapter } from "../../../domain/reading-session-controller";
 import { adjacentTocEntry, flattenToc } from "./epub-utils";
+import { readingPagination } from "./reading-pagination";
 
 export async function waitForReadingPaint(view: FoliateView): Promise<void> {
   const renderer = view.renderer;
@@ -27,6 +28,7 @@ function currentLocation(view: FoliateView, bookId: string, contentVersion: stri
 export function createReadingEngineAdapter(view: FoliateView, bookId: string, contentVersion: string): ReadingEngineAdapter {
   const location = () => currentLocation(view, bookId, contentVersion);
   return {
+    pagination: () => readingPagination(view),
     navigate: async target => {
       if (target.sectionIndex !== undefined && !view.book?.sections[target.sectionIndex]) {
         throw new AppError("reader/target-not-found", "Source section does not exist");
@@ -74,8 +76,9 @@ export function createReadingEngineAdapter(view: FoliateView, bookId: string, co
 
 export function attachReadingEngine(view: FoliateView, sessionId: string, bookId: string, contentVersion: string): () => void {
   const location = () => currentLocation(view, bookId, contentVersion);
-  const publish = () => readingRuntime.relocate(sessionId, location(), view.lastLocation?.range?.toString() ?? "");
-  const detach = readingRuntime.attach(sessionId, createReadingEngineAdapter(view, bookId, contentVersion), location());
+  const engine = createReadingEngineAdapter(view, bookId, contentVersion);
+  const publish = () => readingRuntime.relocate(sessionId, location(), view.lastLocation?.range?.toString() ?? "", engine);
+  const detach = readingRuntime.attach(sessionId, engine, location());
   view.addEventListener("relocate", publish);
   publish();
   return () => { view.removeEventListener("relocate", publish); detach(); };

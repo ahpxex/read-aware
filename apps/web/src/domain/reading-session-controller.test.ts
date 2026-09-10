@@ -4,6 +4,31 @@ import { ReadingSessionController, type ReadingEngineAdapter } from "./reading-s
 
 const at = (cfi: string, bookId = "book"): ReadingLocation => ({ bookId, contentVersion: "sha256:fixture", cfi });
 
+test("pagination snapshots copy engine state, update after commands and clear at lifecycle boundaries", async () => {
+  const runtime = new ReadingSessionController();
+  expect(runtime.snapshot().pagination).toBeNull();
+  const metrics = { layout: "reflowable" as const, flow: "paginated" as const, section: { index: 0, count: 2 }, screen: { index: 0, count: 4 } };
+  const engine: ReadingEngineAdapter = { pagination: () => metrics,
+    navigate: async () => { metrics.screen.index = 2; return at("moved"); },
+    step: async () => { metrics.screen.index++; return at("step"); } };
+  const id = runtime.begin("book"); expect(runtime.snapshot().pagination).toBeNull();
+  const detach = runtime.attach(id, engine, at("start"));
+  try {
+    metrics.screen.count = 5;
+    expect(runtime.snapshot().pagination?.screen?.count).toBe(4);
+    const copy = runtime.snapshot(); copy.pagination!.screen!.index = 99;
+    expect(runtime.snapshot().pagination?.screen?.index).toBe(0);
+    await runtime.navigate({ cfi: "moved" });
+    expect(runtime.snapshot().pagination?.screen).toEqual({ index: 2, count: 5 });
+    await runtime.step("next"); expect(runtime.snapshot().pagination?.screen?.index).toBe(3);
+    runtime.fail(id, Error("render failed")); expect(runtime.snapshot().pagination).toBeNull();
+    runtime.relocate(id, at("late"), "", engine); expect(runtime.snapshot().pagination).toBeNull();
+    runtime.begin("other"); expect(runtime.snapshot().pagination).toBeNull();
+    runtime.relocate(id, at("stale"), "", engine); expect(runtime.snapshot().bookId).toBe("other");
+    runtime.closed(); expect(runtime.snapshot().pagination).toBeNull();
+  } finally { detach(); runtime.closed(); }
+});
+
 test("source section and boundary jumps preserve version, guards and history unlike page steps", async () => {
   const f = fixture(); let target: unknown;
   f.engine.navigate = async input => { target = input; return at(input.cfi ?? `section-${input.sectionIndex}`); };

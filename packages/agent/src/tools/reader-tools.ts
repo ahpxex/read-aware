@@ -86,7 +86,7 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
 
   const session: AgentTool = {
     name: "get_reading_session", label: "Reading session",
-    description: "Read the actual active reader status, versioned location, visible text, captured selection and navigation history availability. selection.range can be passed unchanged to read_book_range; null means no portable anchor. A book-scoped turn does not expose another book's viewport or selection.",
+    description: "Read the actual active reader status, versioned location, visible text, selection, history availability and current pagination. pagination.section is zero-based source order including non-linear sections. pagination.screen counts viewport/spread steps only within the current reflowable section, not columns, printed page labels or whole-book pages; null for fixed layout, continuous scroll or transient geometry. It changes with window/font/layout and is not a persistent navigation target. selection.range can be passed unchanged to read_book_range. A book-scoped turn does not expose another book's viewport or selection.",
     parameters: Type.Object({}),
     execute: async (_id, _params, signal) => {
       const call = readingContextCall(deps.readingContextPolicy, signal, state?.readingContextPermissions);

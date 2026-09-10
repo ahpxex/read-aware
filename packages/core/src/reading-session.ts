@@ -51,6 +51,20 @@ export type ReadingSessionSnapshot = {
   mode: ReadingModeSnapshot;
   /** Last committed reader-chrome visibility, or null without an attached UI. */
   controls: ReadingControlsSnapshot | null;
+  /** Current layout only; null without a ready, reporting renderer. */
+  pagination: ReadingPaginationSnapshot | null;
+};
+
+export type ReadingPaginationSnapshot = {
+  layout: "reflowable" | "fixed";
+  flow: "paginated" | "scrolled";
+  /** Zero-based original source section, including non-linear sections. */
+  section: { index: number; count: number };
+  /** Zero-based viewport/spread in the CURRENT reflowable section, excluding
+   * engine padding. Not columns, printed page labels or a whole-book total.
+   * Null for fixed layout, continuous scroll or unavailable/transient geometry.
+   * Changes with window/font/layout; never use as a persistent reading target. */
+  screen: { index: number; count: number } | null;
 };
 
 export type ReadingSelectionSnapshot = {

@@ -4,7 +4,7 @@ import { listeningView } from "../src/views";
 
 function fixture() {
   const state: ReadingSessionSnapshot = { revision: 1, sessionId: "session", bookId: "book", status: "ready", location: null,
-    visibleText: "private text", selection: null, controls: null, history: { canGoBack: true, canGoForward: false },
+    visibleText: "private text", selection: null, controls: null, pagination: null, history: { canGoBack: true, canGoForward: false },
     mode: { status: "unavailable", unavailableReason: "no-provider", requestedActive: false, modeKey: null, availableModes: [],
       label: null, unitId: null, units: [], progress: null, cfiRange: null, position: null },
     playback: { status: "stopped", unavailableReason: null, backend: null, fallback: false, owner: null, cfiRange: null } };

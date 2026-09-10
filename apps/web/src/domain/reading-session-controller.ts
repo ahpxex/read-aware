@@ -1,5 +1,5 @@
 import { AppError, errorCode, type EventOrigin, type ReadingModeConfiguration, type ReadingModeSnapshot, type ReadingModeReceipt, type ReadingPlaybackSnapshot, type ReadingPlaybackReceipt, type ReadingLocation, type ReadingNavigationReceipt, type ReadingSessionSnapshot, type ReadingSessionGuard, type ReadingTarget } from "@read-aware/core";
-import type { ReadingModeStepOutcome, ReadingModeStepReceipt, ReadingStep } from "@read-aware/core";
+import type { ReadingModeStepOutcome, ReadingModeStepReceipt, ReadingStep, ReadingPaginationSnapshot } from "@read-aware/core";
 import type { ReadingControlsSnapshot, ReadingControlsReceipt } from "@read-aware/core";
 import { normalizeBookRangeQuery, type BookTextRange, type ReadingSelectionSnapshot, type ReadingSelectionReceipt } from "@read-aware/core";
 
@@ -42,7 +42,9 @@ export const unavailablePlayback = (): ReadingPlaybackSnapshot => ({
 export type ReadingEngineAdapter = {
   navigate(target: ReadingTarget): Promise<ReadingLocation>;
   step(direction: ReadingStep): Promise<ReadingLocation>;
+  pagination?(): ReadingPaginationSnapshot | null;
 };
+const paginationOf = (engine?: ReadingEngineAdapter): ReadingPaginationSnapshot | null => structuredClone(engine?.pagination?.() ?? null);
 type Session = { id: string; bookId: string; engine?: ReadingEngineAdapter; error?: unknown };
 type Shell = { open(bookId: string, intent: number): void | Promise<void>; close(): void | Promise<void> };
 
@@ -69,7 +71,7 @@ export class ReadingSessionController {
     history: { canGoBack: false, canGoForward: false },
     playback: unavailablePlayback(),
     mode: unavailableMode(),
-    controls: null, selection: null,
+    controls: null, selection: null, pagination: null,
   };
 
   constructor(private readonly report: (error: unknown) => void = () => {}, private readonly deadlineMs = 30_000) {}
@@ -97,7 +99,7 @@ export class ReadingSessionController {
     const id = crypto.randomUUID();
     this.userOpening = intent === undefined ? { id, before: this.state.location } : undefined;
     this.session = { id, bookId };
-    this.publish({ sessionId: id, bookId, status: "loading", location: null, visibleText: "", selection: null, errorCode: undefined, playback: unavailablePlayback(), mode: unavailableMode(), controls: null });
+    this.publish({ sessionId: id, bookId, status: "loading", location: null, visibleText: "", selection: null, errorCode: undefined, playback: unavailablePlayback(), mode: unavailableMode(), controls: null, pagination: null });
     return id;
   }
 
@@ -109,16 +111,18 @@ export class ReadingSessionController {
       this.recordJump(this.userOpening.before, location);
       this.userOpening = undefined;
     }
-    this.publish({ status: "ready", location, errorCode: undefined });
+    this.publish({ status: "ready", location, errorCode: undefined, pagination: paginationOf(engine) });
     return () => {
       if (this.session?.id !== id || this.session.engine !== engine) return;
       this.session.engine = undefined;
-      this.publish({ status: "loading", selection: null });
+      this.publish({ status: "loading", selection: null, pagination: null });
     };
   }
 
-  relocate(id: string, location: ReadingLocation, visibleText: string): void {
-    if (this.session?.id === id) this.publish({ location, visibleText: visibleText.slice(0, 12_000), selection: null });
+  relocate(id: string, location: ReadingLocation, visibleText: string, source?: ReadingEngineAdapter): void {
+    if (this.session?.id !== id || source && (this.session.engine !== source || this.state.status !== "ready")) return;
+    this.publish({ location, visibleText: visibleText.slice(0, 12_000), selection: null,
+      pagination: this.state.status === "ready" ? paginationOf(this.session.engine) : null });
   }
 
   /** Host-only feedback from the attached reader. Stale renderers cannot publish. */
@@ -199,7 +203,7 @@ export class ReadingSessionController {
     this.detachMode();
     this.detachControls();
     this.detachSelection();
-    this.publish({ status: "error", selection: null, errorCode: errorCode(error) ?? "reader/load-failed", playback: unavailablePlayback(), mode: unavailableMode(), controls: null });
+    this.publish({ status: "error", selection: null, errorCode: errorCode(error) ?? "reader/load-failed", playback: unavailablePlayback(), mode: unavailableMode(), controls: null, pagination: null });
   }
 
   closed(): void {
@@ -210,7 +214,7 @@ export class ReadingSessionController {
     this.session = undefined;
     this.detachControls();
     this.detachSelection();
-    this.publish({ status: "idle", sessionId: null, bookId: null, location: null, visibleText: "", selection: null, errorCode: undefined, playback: unavailablePlayback(), mode: unavailableMode(), controls: null });
+    this.publish({ status: "idle", sessionId: null, bookId: null, location: null, visibleText: "", selection: null, errorCode: undefined, playback: unavailablePlayback(), mode: unavailableMode(), controls: null, pagination: null });
   }
 
   bindControls(id: string, adapter: ReadingControlsAdapter): () => void {
@@ -511,7 +515,7 @@ export class ReadingSessionController {
       } else if (direction !== "next" && direction !== "previous" && !moveMode) {
         this.recordJump(before, location);
       }
-      this.publish({ location });
+      this.publish({ location, pagination: paginationOf(engine) });
       return { status: "completed", sessionId: session.id, location: structuredClone(location) };
     };
     const superseded = () => {

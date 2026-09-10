@@ -3,6 +3,8 @@ import { findChapters } from "./chapters";
 import { tr } from "./strings";
 import type { JumperContext } from "./types";
 import { textSearchView } from "./text-search";
+import { navigationView } from "./navigation";
+import { navigationWords } from "./navigation-strings";
 
 async function jump(ctx: JumperContext, location: ReadingLocation) {
   await ctx.domains.reading.commands.goTo(location);
@@ -52,5 +54,8 @@ export async function jumperView(ctx: JumperContext): Promise<PluginView> {
     actions.push({ id: direction, label: tr(ctx.locale, direction), icon: direction === "back" ? "arrow-left" : "arrow-right",
       run: async () => { await ctx.domains.reading.commands[direction](guard); return { close: true }; } });
   }
-  return { kind: "blocks", blocks: [...(actions.length ? [{ kind: "actions" as const, actions }] : []), form] };
+  return { kind: "blocks", blocks: [...(actions.length ? [{ kind: "actions" as const, actions }] : []), form,
+    { kind: "actions", actions: [{ id: "navigation", label: navigationWords(ctx.locale).navigation, icon: "compass",
+      run: async () => ({ view: await navigationView(ctx) }) }] },
+  ] };
 }

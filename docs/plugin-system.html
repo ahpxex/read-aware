@@ -237,7 +237,7 @@
           </div></details>
           <details class="ep" data-search-section="listNavigationTargets page-list 页码 分节 索引"><summary>Library 1.14：源分节与书籍页码标签可以分页发现</summary><div class="ep-body">
             <p>插件和 Agent 共用版本化导航目录，列出全部源分节或解析器提供的页码表；按原始标签精确查找，重复标签保留多个目标。位置可直接交给现有导航，不读正文、不加载外链。</p>
-            <p>无页码表与未匹配到标签分开报告；EPUB 与 PDF 标签现已接同源目录，PDF 标签延迟加载并与原生页进度共享，不挡首屏；失败不伪装缺表。Reading 2.14 已接当前分节屏幕计数，不推算全书重排页数。基础测试通过，实际 PDF.js Worker/Tauri 组合后置。<a href="./plugin-system.md#navigation-target-catalog-library-114">完整契约</a></p>
+            <p>无页码表与未匹配标签分开；EPUB/PDF 标签同源，当前分节屏幕计数不推算全书页数。Jumper 0.4 已组合40项源目录、精确页码查找、分节序号输入及八种原生步进；重复标签不猜目标，分页固定版本，步进固定会话。19项插件测试及构建/类型检查通过，真实格式/Worker/Tauri组合后置。<a href="./plugin-system.md#navigation-target-catalog-library-114">完整契约</a> · <a href="./plugin-system.md#jumper-source-navigation-composition">Jumper组合</a></p>
           </div></details>
           <details class="ep" data-search-section="workspace navigation selection UI01 UI02 工作区 导航 搜索 选择集"><summary>UI 1.3：Agent 和插件共享应用导航与书架选择</summary><div class="ep-body">
             <p>同一服务打开书架、集合、Context、统计、设置和命令搜索，观察实际界面及分页选择集。离开阅读器另需阅读控制权限；不公开 DOM、原子状态、正文或凭据。</p>

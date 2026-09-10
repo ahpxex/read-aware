@@ -690,6 +690,45 @@ Worker/plugin composition remain for concentrated Tauri E2E. READ05 is connected
 for existing host navigation and current layout metadata, not E2E-certified;
 whole-book reflow pagination is not an existing host capability being claimed.
 
+### Jumper Source Navigation Composition
+
+[代码] Jumper 0.4 consumes existing Library 1.17 and Reading 2.14 without new
+host/Agent APIs or permissions. Its original chapter/title/TOC-ordinal search,
+cancellable text search and shared back/forward remain the first screen; a
+Navigation action adds source-section/page-label catalogs and eight native steps.
+
+- Opening navigation reads a ready session, captures book/session/content
+  identity and shows reported source-section and current-section screen counts.
+  Null screen geometry is omitted, not zero or an invented whole-book page total.
+  The snapshot is explicitly refreshed, not a second pagination engine.
+- Next/previous screen, source section, TOC heading, and book start/end use
+  existing `reading.commands.step` with the captured book and session guard.
+  Only a successful host receipt closes the plugin. Failure keeps the surface;
+  no private history or fallback positioning is created.
+- Catalogs query 40 rows at a time, preserve the source version and exact
+  returned continuation offsets, and retain original item indices. Labels may
+  repeat; each target stays a separate choice. Non-linear sections and unavailable
+  locations are identified, and only returned valid locations expose a jump.
+  Truncated labels are marked with an ellipsis. Enumeration never moves the reader.
+- Source-section number input is one-based, bounded by the source count and
+  converted only to versioned zero-based `sectionIndex`. It is not interpreted as
+  a printed chapter or page number. Page search passes a nonblank 1-300 UTF-16
+  exact label, including original whitespace/case, without picking duplicates.
+  No available page table differs from no matching label and from query failure.
+- Refresh obtains the latest original navigation TOC version and restarts the
+  same source catalog/filter at zero. Ordinary paging does not silently replace
+  its version. Selected catalog locations preserve the explicit book/version;
+  unlike relative steps, they may reopen that original book via normal goTo.
+
+[验证] 19 plugin tests / 108 assertions, plugin build/typecheck and formal
+manifest validation pass, including compiled root navigation callbacks, guarded
+steps, duplicate/unlocated labels, exact label search, stale versions, source
+number validation and geometry omission. Tests use controlled Bun callbacks, not
+actual multi-format parser/Worker/reader paint. New labels use simplified Chinese
+and English fallback. Native FB2/EPUB/PDF navigation, reflow/multicolumn/RTL and
+desktop keyboard/visual checks remain concentrated acceptance; no whole-book
+reflow page index or new PDF object support is claimed.
+
 ### Navigation Target Catalog (Library 1.14)
 
 [代码] `library.queries.books.listNavigationTargets` and both Agent scopes'
@@ -5990,7 +6029,7 @@ adjacent distribution repository, not an additional source plugin in this checko
 | Text to Speech | voice/options providers, storage, secrets, network, settings schema |
 | Theme Schedule | Settings domain, options/commands, storage/UI, committed schedule, settings schema |
 | WebDAV Sync | sync transport, storage, secrets, network, settings schema |
-| Jumper | reader header, navigation TOC, cancellable live precise search (0.3), shared locations/history |
+| Jumper | reader header, navigation TOC, cancellable live precise search, shared locations/history; 0.4 source sections/page labels and native step composition |
 | Annotation Desk | live paged annotations and error recovery (0.2), frozen conditional edits, export, views |
 | Listening Desk | reading mode/provider control, unit navigation, playback/history, environment offline hint |
 | Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |

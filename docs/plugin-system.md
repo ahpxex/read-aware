@@ -5329,16 +5329,40 @@ execution; composition/Tauri acceptance remains pending.
 
 ### Maintenance Desk Composition Plugin
 
-[代码] `plugins/maintenance-desk` 0.1.0 consumes public plugin APIs only. It
+[代码] `plugins/maintenance-desk` 0.2.0 consumes public plugin APIs only. It
 adds a shelf header popup and command, not a host domain or Agent tool. Its
 manifest requires settings 1.9, maintenance 1.3, diagnostics 1.1, UI 1.2,
-logging 1.0 and views 1.8; grants are `service:network`, `service:diagnostics`
+logging 1.0, plugins 1.1 and views 1.8; grants are `service:network`, `service:diagnostics`
 and discover-only `ai.connection.primaryModel`. No current configuration,
 credentials, book data, backup bytes, paths or diagnostic bundle is read.
 The source roster is fifteen; Rust BUNDLED remains six. Maintenance Desk is not
 in that release roster or published. Debug `RepoDist` discovers all built checkout
 plugins as builtin, including this one; that is not a normal user installation.
 
+- Version 0.2 adds installed metadata and registered contribution directories:
+  `plugins.list/observe/contributions/observeContributions`, 40-row offset pages,
+  host-side search up to 200 characters, all contributions or exact plugin ID.
+  Live changes replace the visible page; refresh restarts at offset zero, and
+  previous-page navigation remains available after a directory shrinks. Pages
+  are not revision-pinned. Plugin details are selected metadata snapshots:
+  id/name/version/builtin/enabled/activationFailed, not a health assertion.
+  Contribution point/pluginId/key identities have no invoke action. Observers
+  dispose on frame closure or plugin deactivation; failed reads reject to the
+  host error surface rather than becoming empty directories.
+- Software updates compose `maintenance.snapshot/observe/checkForUpdates`.
+  Opening only reads; an explicit network-authorized check renders its returned
+  snapshot without a follow-up query. Unsupported platforms are distinguished
+  from up-to-date; busy states omit check. Phase, versions, selected channel,
+  last successfully checked channel and error stage come from the host. Progress
+  uses the host's 0-100 value or null, never an invented percentage. These flows
+  do not enter the backup/diagnostics journal. `openSettings(plugins/updates)`
+  closes the plugin only after opened; it neither clicks native controls nor
+  reports installation, enablement or restart success. No new grants or APIs.
+- [验证] Version 0.2: 20 plugin tests / 125 assertions, build, typecheck and
+  formal manifest validation pass, including compiled command entry, paging,
+  live disposal, check receipt and native handoff calls. Contexts are controlled
+  Bun fixtures, not WebKit Workers. New management/update paths, real upgrade
+  behavior and document visual checks remain for concentrated native acceptance.
 - Catalog provider choices are twelve explicit public IDs, not the active
   account: openai, anthropic, openrouter, google, deepseek, xai, groq, mistral,
   moonshotai, zai, zai-coding-cn, ollama-cloud. No custom/Relay/Codex catalog.

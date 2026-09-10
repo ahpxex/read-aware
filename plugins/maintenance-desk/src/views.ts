@@ -2,10 +2,14 @@ import type { PluginBlock, PluginContext, PluginDetailView, PluginView, PluginVi
 import { catalogViews } from "./catalog";
 import { Operations, failureCode, type Entry, type Operation, type Outcome } from "./operations";
 import { copy } from "./strings";
+import { adminCopy } from "./admin-strings";
+import { pluginDirectory } from "./plugin-directory";
+import { updateViews } from "./updates";
 
 export function maintenanceDesk(ctx: PluginContext) {
   const t = copy(ctx.locale), operations = new Operations(), lifetime = new AbortController();
   const catalog = catalogViews(ctx, lifetime.signal);
+  const admin = adminCopy(ctx.locale), directory = pluginDirectory(ctx, lifetime.signal), updates = updateViews(ctx, lifetime.signal);
   const actions: Operation[] = ["connection", "backupExport", "backupImport", "reportExport", "reportSend", "verify"];
   const run = async (operation: Operation, signal: AbortSignal): Promise<Outcome> => {
     const options = { signal };
@@ -80,6 +84,8 @@ export function maintenanceDesk(ctx: PluginContext) {
     kind: "list", title: t.title,
     items: [
       { id: "catalog", title: t.catalog, icon: "list-bullets", onSelect: () => ({ view: catalog.form() }) },
+      { id: "plugins", title: admin.plugins, icon: "list-bullets", onSelect: async () => ({ view: await directory.page() }) },
+      { id: "updates", title: admin.updates, icon: "arrows-clockwise", onSelect: async () => ({ view: await updates.open() }) },
       ...actions.map(operation => ({ id: operation, title: t[operation], icon: operation === "verify" ? "database" : "arrow-square-out",
         onSelect: () => ({ view: review(operation) }),
       })),

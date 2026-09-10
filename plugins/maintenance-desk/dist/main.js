@@ -310,10 +310,280 @@ function catalogViews(ctx, signal) {
   return { form };
 }
 
+// src/admin-strings.ts
+var en2 = {
+  plugins: "Installed plugins",
+  contributions: "Registered contributions",
+  updates: "Software updates",
+  managePlugins: "Manage plugins",
+  manageUpdates: "Open update settings",
+  check: "Check for updates",
+  search: "Search",
+  browse: "Browse",
+  filters: "Search directory",
+  refresh: "Refresh",
+  empty: "No matches",
+  invalidSearch: "Use at most 200 characters.",
+  version: "Version",
+  enabled: "Configured enabled",
+  builtin: "Built-in",
+  activationFailed: "Activation failed",
+  yes: "Yes",
+  no: "No",
+  current: "Current version",
+  available: "Available version",
+  channel: "Selected channel",
+  checkedChannel: "Last successfully checked channel",
+  unknown: "Unknown",
+  never: "Not checked",
+  status: "Status",
+  unsupported: "Updates unavailable on this platform",
+  stable: "Stable",
+  beta: "Beta",
+  errorStage: "Failed operation",
+  checkStage: "Update check",
+  installStage: "Installation",
+  phases: {
+    idle: "Not checked",
+    checking: "Checking",
+    "up-to-date": "Up to date",
+    available: "Update available",
+    downloading: "Downloading",
+    installing: "Installing",
+    "permission-required": "Permission required",
+    "installer-open": "Installer opened",
+    error: "Update failed"
+  }
+};
+var zh2 = {
+  plugins: "已安装插件",
+  contributions: "已注册贡献项",
+  updates: "软件更新",
+  managePlugins: "管理插件",
+  manageUpdates: "打开更新设置",
+  check: "检查更新",
+  search: "搜索",
+  browse: "查询",
+  filters: "搜索目录",
+  refresh: "刷新",
+  empty: "没有匹配项",
+  invalidSearch: "最多输入 200 个字符。",
+  version: "版本",
+  enabled: "已配置启用",
+  builtin: "内置",
+  activationFailed: "激活失败",
+  yes: "是",
+  no: "否",
+  current: "当前版本",
+  available: "可用版本",
+  channel: "所选通道",
+  checkedChannel: "上次成功检查的通道",
+  unknown: "未知",
+  never: "尚未检查",
+  status: "状态",
+  unsupported: "此平台不支持软件更新",
+  stable: "稳定版",
+  beta: "测试版",
+  errorStage: "失败操作",
+  checkStage: "检查更新",
+  installStage: "安装",
+  phases: {
+    idle: "尚未检查",
+    checking: "正在检查",
+    "up-to-date": "已是最新版本",
+    available: "有可用更新",
+    downloading: "正在下载",
+    installing: "正在安装",
+    "permission-required": "需要授权",
+    "installer-open": "已打开安装程序",
+    error: "更新失败"
+  }
+};
+var adminCopy = (locale) => locale.startsWith("zh") ? zh2 : en2;
+
+// src/live-view.ts
+function liveView(ctx, signal, initial, observe, render) {
+  return { ...render(initial), live: { subscribe(channel) {
+    signal.throwIfAborted();
+    let active = true, revision = 0;
+    const subscription = observe((value) => {
+      if (!active || signal.aborted)
+        return;
+      ctx.services.ui.publishView(channel, { revision: ++revision, view: render(value) }).catch(async (error) => {
+        try {
+          await ctx.services.logging.write({ level: "warn", event: "maintenance-view-publish-failed", errorCode: failureCode(error) });
+        } catch {}
+      });
+    });
+    const dispose = () => {
+      if (!active)
+        return;
+      active = false;
+      signal.removeEventListener("abort", dispose);
+      subscription.dispose();
+    };
+    signal.addEventListener("abort", dispose, { once: true });
+    if (signal.aborted)
+      dispose();
+    return { dispose };
+  } } };
+}
+
+// src/plugin-directory.ts
+var LIMIT = 40;
+function pluginDirectory(ctx, signal) {
+  const t = adminCopy(ctx.locale);
+  const manage = {
+    id: "manage",
+    label: t.managePlugins,
+    icon: "arrow-square-out",
+    run: async () => {
+      signal.throwIfAborted();
+      await ctx.services.maintenance.openSettings("plugins");
+      return { close: true };
+    }
+  };
+  const detail = (entry) => ({
+    kind: "detail",
+    title: entry.name,
+    content: [{ kind: "keyValue", rows: [
+      { label: "ID", value: entry.id },
+      { label: t.version, value: entry.version },
+      { label: t.enabled, value: entry.enabled ? t.yes : t.no },
+      { label: t.builtin, value: entry.builtin ? t.yes : t.no },
+      { label: t.activationFailed, value: entry.activationFailed ? t.yes : t.no }
+    ] }],
+    actions: [
+      {
+        id: "contributions",
+        label: t.contributions,
+        icon: "list-bullets",
+        run: async () => ({ view: await page("contributions", { pluginId: entry.id }) })
+      },
+      manage
+    ]
+  });
+  const form = (kind, query) => ({
+    kind: "form",
+    title: t[kind],
+    submitLabel: t.browse,
+    fields: [{ kind: "text", id: "search", label: t.search, value: query.search ?? "" }],
+    onSubmit: async (values) => {
+      if (typeof values.search !== "string" || values.search.length > 200)
+        return { fieldErrors: { search: t.invalidSearch } };
+      return { view: await page(kind, { ...query.pluginId ? { pluginId: query.pluginId } : {}, search: values.search.trim() }) };
+    }
+  });
+  const page = async (kind = "plugins", query = {}) => {
+    signal.throwIfAborted();
+    const request = { ...query, offset: query.offset ?? 0, limit: LIMIT };
+    const actions = [
+      {
+        id: "refresh",
+        label: t.refresh,
+        icon: "arrows-clockwise",
+        run: async () => ({ view: await page(kind, { ...query, offset: 0 }), navigation: "replace" })
+      },
+      { id: "search", label: t.filters, icon: "magnifying-glass", run: () => ({ view: form(kind, query) }) },
+      manage,
+      ...kind === "plugins" ? [{
+        id: "contributions",
+        label: t.contributions,
+        icon: "list-bullets",
+        run: async () => ({ view: await page("contributions") })
+      }] : []
+    ];
+    const pagination = (result2) => ({
+      page: Math.floor(result2.offset / LIMIT) + 1,
+      ...result2.offset > 0 ? { onPrevious: async () => ({ view: await page(kind, { ...query, offset: Math.max(0, result2.offset - LIMIT) }) }) } : {},
+      ...result2.nextOffset !== null ? { onNext: async () => ({ view: await page(kind, { ...query, offset: result2.nextOffset }) }) } : {}
+    });
+    if (kind === "plugins") {
+      const result2 = await ctx.services.plugins.list(request);
+      signal.throwIfAborted();
+      return liveView(ctx, signal, result2, (handler) => ctx.services.plugins.observe(request, handler), (value) => ({
+        kind: "list",
+        title: `${t.plugins} (${value.total})`,
+        emptyText: t.empty,
+        actions,
+        pagination: pagination(value),
+        items: value.plugins.map((entry) => ({
+          id: entry.id,
+          title: entry.name,
+          subtitle: `${entry.id} · ${entry.version}`,
+          accessories: entry.activationFailed ? [{ kind: "text", text: t.activationFailed }] : [],
+          onSelect: () => ({ view: detail(entry) })
+        }))
+      }));
+    }
+    const result = await ctx.services.plugins.contributions(request);
+    signal.throwIfAborted();
+    return liveView(ctx, signal, result, (handler) => ctx.services.plugins.observeContributions(request, handler), (value) => ({
+      kind: "list",
+      title: `${t.contributions} (${value.total})`,
+      emptyText: t.empty,
+      actions,
+      pagination: pagination(value),
+      items: value.contributions.map((entry) => ({
+        id: JSON.stringify([entry.point, entry.pluginId, entry.key]),
+        title: entry.key,
+        subtitle: `${entry.pluginId} · ${entry.point}`
+      }))
+    }));
+  };
+  return { page };
+}
+
+// src/updates.ts
+function updateViews(ctx, signal) {
+  const t = adminCopy(ctx.locale), maintenance = ctx.services.maintenance;
+  const show = (snapshot) => liveView(ctx, signal, snapshot, (handler) => maintenance.observe(handler), render);
+  const render = (snapshot) => {
+    const busy = ["checking", "downloading", "installing"].includes(snapshot.phase);
+    return { kind: "detail", title: t.updates, content: [
+      { kind: "keyValue", rows: [
+        { label: t.status, value: snapshot.supported ? t.phases[snapshot.phase] : t.unsupported },
+        { label: t.current, value: snapshot.currentVersion ?? t.unknown },
+        { label: t.available, value: snapshot.availableVersion ?? t.unknown },
+        { label: t.channel, value: t[snapshot.channel] },
+        { label: t.checkedChannel, value: snapshot.checkedChannel ? t[snapshot.checkedChannel] : t.never },
+        ...snapshot.errorStage ? [{ label: t.errorStage, value: snapshot.errorStage === "check" ? t.checkStage : t.installStage }] : []
+      ] },
+      ...snapshot.supported && busy ? [{ kind: "progress", value: snapshot.progress, max: 100, label: t.phases[snapshot.phase] }] : []
+    ], actions: [
+      ...snapshot.supported && !busy && maintenance.checkForUpdates ? [{
+        id: "check",
+        label: t.check,
+        icon: "arrows-clockwise",
+        run: async () => {
+          signal.throwIfAborted();
+          const result = await maintenance.checkForUpdates();
+          signal.throwIfAborted();
+          return { view: show(result), navigation: "replace" };
+        }
+      }] : [],
+      { id: "refresh", label: t.refresh, icon: "clock", run: async () => ({ view: await open(), navigation: "replace" }) },
+      { id: "manage", label: t.manageUpdates, icon: "arrow-square-out", run: async () => {
+        signal.throwIfAborted();
+        await maintenance.openSettings("updates");
+        return { close: true };
+      } }
+    ] };
+  };
+  const open = async () => {
+    signal.throwIfAborted();
+    const snapshot = await maintenance.snapshot();
+    signal.throwIfAborted();
+    return show(snapshot);
+  };
+  return { open };
+}
+
 // src/views.ts
 function maintenanceDesk(ctx) {
   const t = copy(ctx.locale), operations = new Operations, lifetime = new AbortController;
   const catalog = catalogViews(ctx, lifetime.signal);
+  const admin = adminCopy(ctx.locale), directory = pluginDirectory(ctx, lifetime.signal), updates = updateViews(ctx, lifetime.signal);
   const actions = ["connection", "backupExport", "backupImport", "reportExport", "reportSend", "verify"];
   const run = async (operation, signal) => {
     const options = { signal };
@@ -415,6 +685,8 @@ function maintenanceDesk(ctx) {
     title: t.title,
     items: [
       { id: "catalog", title: t.catalog, icon: "list-bullets", onSelect: () => ({ view: catalog.form() }) },
+      { id: "plugins", title: admin.plugins, icon: "list-bullets", onSelect: async () => ({ view: await directory.page() }) },
+      { id: "updates", title: admin.updates, icon: "arrows-clockwise", onSelect: async () => ({ view: await updates.open() }) },
       ...actions.map((operation) => ({
         id: operation,
         title: t[operation],

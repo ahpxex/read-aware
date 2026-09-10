@@ -1,0 +1,59 @@
+{
+  "date": "2026-09-11",
+  "environment": "Isolated macOS Tauri debug com.readaware.app.capability-e2e, real SQLite, WebKit and compiled module Workers",
+  "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-annotation-composition.ts",
+  "plugins": { "text-desk": "0.11.1", "annotation-desk": "0.4.0" },
+  "book": {
+    "id": "62cc0d31-6e0c-4633-932e-0ae12c3544e7",
+    "title": "Composition ccbd782e",
+    "format": "fb2",
+    "contentVersion": "sha256:aec20a3b4afe94df0da90e356651014582a7b4b307228ab0dbc05151859d15aa"
+  },
+  "workflow": [
+    "Text Desk registered command -> owned book -> Find a passage -> search Deterministic acceptance content -> actual result -> Select passage",
+    "Native ready reader and selection have the exact 32-character quote and epubcfi(/6/2!/4/2[first]/4,/1:0,/1:32); plugin dialog closes",
+    "Visible native selection toolbar More -> registered Annotation Desk New note -> enter body -> Save -> Annotation saved receipt",
+    "View annotation -> edit body -> Save -> scoped list; persisted ID, quote, CFI and chapter remain unchanged",
+    "Scoped desk New note -> preselected owned book -> Save creates a book-only note without anchor or quote",
+    "Repeat actual Text Desk search/selection -> native More -> New highlight -> Blue -> Underline -> Save",
+    "Close plugin, Escape clears the temporary selection; persisted blue underline remains visible on precisely the selected text",
+    "Annotation Desk registered command queries all three owned rows -> select all -> Review selection",
+    "Delete without checkbox returns Confirm deletion first and all three rows remain",
+    "Confirm deletion -> Delete selected annotations -> actual query returns zero and the plugin shows No annotations",
+    "Close plugin; native reader screenshot confirms the blue underline has disappeared"
+  ],
+  "records": [
+    { "id": "23d66510-019f-48e0-8ff6-bdd4c87af3df", "kind": "note", "quote": "Deterministic acceptance content", "chapterHref": "0", "body": "Edited annotation ccbd782e\nThe source quote stays unchanged." },
+    { "id": "560a0f32-764b-4589-9400-1aac974cde85", "kind": "note", "body": "Book-only note ccbd782e", "anchorPresent": false },
+    { "id": "e6422056-f8d3-4b12-8a77-923e2f115b23", "kind": "highlight", "color": "blue", "style": "underline", "text": "Deterministic acceptance content" }
+  ],
+  "visuals": {
+    "foreground": "visibility visible, focus true after activating the owned app",
+    "logicalWindows": [[900, 650], [600, 750]],
+    "narrowEditDialog": "opacity 1; no overflowing descendants; actual edited textarea and original quote inspected",
+    "screenshots": ["annotation-created-2026-09-11.png", "annotation-deleted-2026-09-11.png"],
+    "discarded": "An immediate close-animation screenshot was not retained as a final visual result"
+  },
+  "cleanup": {
+    "domainBookRemoval": { "committed": true, "files": "released" },
+    "readOnlySqlCounts": { "ownedBooks": 0, "ownedAnnotations": 0, "ownedPendingReading": 0 },
+    "remainingBooks": ["Reading Capability Probe", "Reading Paint Probe"],
+    "pluginEnablementRestored": true,
+    "windowRestored": [900, 650],
+    "appPidStopped": 60502,
+    "driverStopped": 9224,
+    "frontendSession": 11737,
+    "frontendExitCode": 0,
+    "original9223Untouched": true
+  },
+  "validation": ["Web typecheck passed with the fixture", "Native composition completed without production code changes"],
+  "limits": [
+    "Import setup used the host library fixture, not the plugin file picker",
+    "Search was entered through the actual registered command, not the reader-header gesture",
+    "Selection was established by Text Desk using the public host command, not a physical drag",
+    "DOM automation activated actual UI controls, including a form Save below the current scroll viewport; no claim of full pointer/keyboard accessibility",
+    "No export, other colors, highlight fill, empty-input rejection proof, restart, source replacement, PDF/other formats, packaged build or cross-platform acceptance in this batch",
+    "No Agent/model invocation; existing creation persists legacy CFI/chapter, not a source-version condition",
+    "Complete capability coverage and document visual acceptance remain unfinished"
+  ]
+}

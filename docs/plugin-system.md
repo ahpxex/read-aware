@@ -952,6 +952,22 @@ eight-language labels. Tests use controlled Bun contexts, not native selection
 gestures, real SQLite persistence, Worker/Tauri rendering or a complete Agent
 turn. Those combinations and document visuals remain concentrated acceptance.
 
+[验证] The [2026-09-11 native composition](./evidence/annotation-composition-2026-09-11.json)
+now covers Text Desk search/result/Select passage -> native selection More ->
+Annotation Desk creation, against an owned FB2 and real SQLite. An anchored note
+was created and conditionally edited without changing its quote/CFI; a second
+book-only note had no invented anchor. A blue underline created through the
+same selection menu appeared on the exact source text and remained after Escape
+cleared the selection. All three records survived unconfirmed deletion, then
+confirmed batch deletion cleared the actual query, plugin list and native mark.
+Foreground 900x650/600x750 logical windows were inspected, including an edit
+dialog without horizontal overflow. The setup imported through the host fixture;
+controls were automated, not a physical drag or full accessibility test. No
+export, other colors/fill, restart, source replacement, other formats, Agent turn
+or packaged/cross-platform result is claimed. Owned data/files were cleaned up,
+window/plugin states restored and owned processes stopped; document visuals
+remain deferred. This upgrades the tested combination, not TXT13's contract.
+
 ### Annotation Query Observations
 
 [代码] Annotations 2 retains `events.observe(query, handler)` introduced in 1.4 alongside the legacy

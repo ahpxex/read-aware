@@ -20,6 +20,10 @@ export type FeedSubscription = {
   addedAt: string;
   lastFetched: string;
   articles: FeedArticle[];
+  /** Immutable full-content document referenced by this subscription snapshot. */
+  contentId?: string;
+  /** Durable retry intent if publishing the saved source to the host failed. */
+  contentPending?: boolean;
 };
 
 export type FeedResult = {

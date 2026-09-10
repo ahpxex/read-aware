@@ -3493,64 +3493,10 @@ function assertPluginCapabilities(ctx) {
     throw new Error('RSS Reader requires the "agent:tools" permission');
 }
 
-// src/storage.ts
-var COLLECTION = "feeds";
-function isRecord(value) {
-  return typeof value === "object" && value !== null;
-}
-function readArticle(value) {
-  if (!isRecord(value) || typeof value.id !== "string" || typeof value.title !== "string") {
-    return null;
-  }
-  return {
-    id: value.id,
-    title: value.title,
-    link: typeof value.link === "string" ? value.link : undefined,
-    publishedAt: typeof value.publishedAt === "string" ? value.publishedAt : undefined,
-    publishedAtIso: typeof value.publishedAtIso === "string" ? value.publishedAtIso : undefined
-  };
-}
-function readFeed(value) {
-  if (!isRecord(value) || typeof value.url !== "string" || typeof value.title !== "string" || typeof value.bookId !== "string") {
-    return null;
-  }
-  const articles = Array.isArray(value.articles) ? value.articles.map(readArticle).filter((article) => article !== null) : [];
-  return {
-    url: value.url,
-    title: value.title,
-    bookId: value.bookId,
-    addedAt: typeof value.addedAt === "string" ? value.addedAt : "",
-    lastFetched: typeof value.lastFetched === "string" ? value.lastFetched : "",
-    articles
-  };
-}
-async function loadFeeds(ctx) {
-  const documents = await ctx.services.storage.collection(COLLECTION).list({ limit: 1000 });
-  return documents.map((document) => readFeed(document.data)).filter((feed) => feed !== null);
-}
-async function getFeed(ctx, url) {
-  const document = await ctx.services.storage.collection(COLLECTION).get(url);
-  return document ? readFeed(document.data) : null;
-}
-async function upsertFeed(ctx, feed) {
-  await ctx.services.storage.collection(COLLECTION).put(feed.url, feed, { bookId: feed.bookId });
-}
-async function removeFeed(ctx, url) {
-  await ctx.services.storage.collection(COLLECTION).delete(url);
-}
-async function migrateLegacyFeeds(ctx) {
-  const legacy = ctx.services.storage.get("feeds");
-  if (!Array.isArray(legacy))
-    return;
-  for (const raw of legacy) {
-    const feed = readFeed(raw);
-    if (!feed)
-      continue;
-    const existing = await getFeed(ctx, feed.url);
-    if (!existing)
-      await upsertFeed(ctx, feed);
-  }
-  await ctx.services.storage.remove("feeds");
+// src/identity.ts
+async function digest(value) {
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 // src/feed.ts
@@ -3566,6 +3512,8 @@ function escapeHtml(value) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 function resolveArticleLink(value, feedUrl) {
+  if (!value.trim())
+    return;
   try {
     const link = new URL(value, feedUrl);
     return link.protocol === "http:" || link.protocol === "https:" ? link.toString() : undefined;
@@ -3644,7 +3592,10 @@ function articleLimit(ctx) {
   const value = settings?.articleLimit;
   return typeof value === "number" && value >= 5 && value <= 100 ? Math.floor(value) : MAX_ARTICLES;
 }
-function parseFeed(xmlText, feedUrl, limit = MAX_ARTICLES) {
+async function parseFeed(xmlText, feedUrl, limit = MAX_ARTICLES) {
+  if (new TextEncoder().encode(xmlText).byteLength > 4 * 1024 * 1024) {
+    throw Object.assign(new Error("Feed XML exceeds 4 MiB"), { code: "plugin/payload-too-large" });
+  }
   if (XMLValidator.validate(xmlText) !== true) {
     throw new Error("Not a valid RSS/Atom feed");
   }
@@ -3658,9 +3609,14 @@ function parseFeed(xmlText, feedUrl, limit = MAX_ARTICLES) {
   if (!shape)
     throw new Error("Not a valid RSS/Atom feed");
   const title = shape.title || feedUrl;
-  const items = shape.items.slice(0, limit);
+  const count = Number.isFinite(limit) ? Math.max(1, Math.min(100, Math.floor(limit))) : MAX_ARTICLES;
   const articles = [];
-  const sections = items.map((item, index) => {
+  const sections = [];
+  const seen = new Set;
+  for (const item of shape.items) {
+    if (articles.length >= count)
+      break;
+    const index = articles.length;
     const articleTitle = textOf(item.title) || `Article ${index + 1}`;
     const body = (shape.kind === "atom" ? firstText(item, "content", "summary") : firstText(item, "content:encoded", "description")) || "<p>(no content in feed)</p>";
     const rawLink = shape.kind === "atom" ? atomLink(item.link) : firstText(item, "link");
@@ -3668,14 +3624,19 @@ function parseFeed(xmlText, feedUrl, limit = MAX_ARTICLES) {
     const publishedAt = (shape.kind === "atom" ? firstText(item, "published", "updated") : firstText(item, "pubDate", "dc:date")) || undefined;
     const publishedDate = publishedAt ? new Date(publishedAt) : null;
     const publishedAtIso = publishedDate && !Number.isNaN(publishedDate.getTime()) ? publishedDate.toISOString() : undefined;
-    const id = `article-${index}`;
+    const declaredId = shape.kind === "atom" ? firstText(item, "id") : firstText(item, "guid", "@_rdf:about");
+    const identity = declaredId ? ["id", declaredId] : link ? ["link", link] : ["content", textOf(item.title), publishedAt ?? "", body];
+    const id = `article-${await digest(JSON.stringify([feedUrl, ...identity]))}`;
+    if (seen.has(id))
+      continue;
+    seen.add(id);
     const header = [
       publishedAt ? `<p><em>${escapeHtml(publishedAt)}</em></p>` : "",
       link ? `<p><a href="${escapeHtml(link)}">Read on the web</a></p>` : ""
     ].join("");
     articles.push({ id, title: articleTitle, link, publishedAt, publishedAtIso });
-    return { id, title: articleTitle, html: `${header}${body}` };
-  });
+    sections.push({ id, title: articleTitle, html: `${header}${body}` });
+  }
   return {
     title,
     articles,
@@ -3688,42 +3649,229 @@ async function fetchFeed(ctx, url) {
     throw new Error(`Feed returned ${response.status}`);
   return parseFeed(await response.text(), url, articleLimit(ctx));
 }
-async function ensureBook(ctx, feed) {
-  const book = await ctx.domains.library.commands.books.addVirtualBook({
-    providerId: PROVIDER_ID,
-    key: feed.url,
-    title: feed.title,
-    author: "RSS"
-  });
-  if (book.id === feed.bookId)
-    return feed;
-  const healed = { ...feed, bookId: book.id };
-  await upsertFeed(ctx, healed);
-  return healed;
+
+// src/content-cache.ts
+var collection = "feed-content";
+var unavailable = () => Object.assign(new Error("Cached feed content is missing or invalid"), { code: "library/content-unavailable" });
+async function storeContent(ctx, url, content, bookId) {
+  const value = { version: 1, url, content };
+  const json = JSON.stringify(value);
+  if (new TextEncoder().encode(json).byteLength > 4 * 1024 * 1024) {
+    throw Object.assign(new Error("Cached feed exceeds 4 MiB"), { code: "plugin/payload-too-large" });
+  }
+  const id = await digest(json);
+  await ctx.services.storage.collection(collection).put(id, value, { bookId });
+  return id;
 }
-async function subscribe(ctx, rawUrl) {
-  const url = rawUrl.trim();
-  if (!isHttpFeedUrl(url))
-    throw new Error("Enter a valid http(s) feed URL");
+async function cachedContent(ctx, feed) {
+  if (!feed.contentId)
+    return null;
+  const row = await ctx.services.storage.collection(collection).get(feed.contentId);
+  const value = row?.data;
+  if (!value || value.version !== 1 || value.url !== feed.url || !value.content || !Array.isArray(value.content.sections) || value.content.sections.length !== feed.articles.length || value.content.sections.some((section, index) => !section || typeof section.html !== "string" || section.id !== feed.articles[index]?.id) || await digest(JSON.stringify(value)) !== feed.contentId)
+    throw unavailable();
+  return structuredClone(value.content);
+}
+async function discardContent(ctx, id) {
+  await ctx.services.storage.collection(collection).delete(id);
+}
+async function discardUnreferencedContent(ctx, id) {
+  try {
+    await discardContent(ctx, id);
+  } catch (error) {
+    console.warn("RSS unreferenced content cleanup failed", error);
+  }
+}
+
+// src/storage.ts
+var COLLECTION = "feeds";
+function isRecord(value) {
+  return typeof value === "object" && value !== null;
+}
+function readArticle(value) {
+  if (!isRecord(value) || typeof value.id !== "string" || typeof value.title !== "string") {
+    return null;
+  }
+  return {
+    id: value.id,
+    title: value.title,
+    link: typeof value.link === "string" ? value.link : undefined,
+    publishedAt: typeof value.publishedAt === "string" ? value.publishedAt : undefined,
+    publishedAtIso: typeof value.publishedAtIso === "string" ? value.publishedAtIso : undefined
+  };
+}
+function readFeed(value) {
+  if (!isRecord(value) || typeof value.url !== "string" || typeof value.title !== "string" || typeof value.bookId !== "string") {
+    return null;
+  }
+  const articles = Array.isArray(value.articles) ? value.articles.map(readArticle).filter((article) => article !== null) : [];
+  return {
+    url: value.url,
+    title: value.title,
+    bookId: value.bookId,
+    addedAt: typeof value.addedAt === "string" ? value.addedAt : "",
+    lastFetched: typeof value.lastFetched === "string" ? value.lastFetched : "",
+    articles,
+    ...typeof value.contentId === "string" ? { contentId: value.contentId } : {},
+    ...value.contentPending === true ? { contentPending: true } : {}
+  };
+}
+async function loadFeeds(ctx) {
+  const documents = await ctx.services.storage.collection(COLLECTION).list({ limit: 1000 });
+  return documents.map((document) => readFeed(document.data)).filter((feed) => feed !== null);
+}
+async function getFeed(ctx, url) {
+  const document = await ctx.services.storage.collection(COLLECTION).get(url);
+  return document ? readFeed(document.data) : null;
+}
+async function upsertFeed(ctx, feed) {
+  await ctx.services.storage.collection(COLLECTION).put(feed.url, feed, { bookId: feed.bookId });
+}
+async function removeFeed(ctx, url) {
+  const feed = await getFeed(ctx, url);
+  await ctx.services.storage.collection(COLLECTION).delete(url);
+  if (feed?.contentId)
+    await discardUnreferencedContent(ctx, feed.contentId);
+}
+async function migrateLegacyFeeds(ctx) {
+  const legacy = ctx.services.storage.get("feeds");
+  if (!Array.isArray(legacy))
+    return;
+  for (const raw of legacy) {
+    const feed = readFeed(raw);
+    if (!feed)
+      continue;
+    const existing = await getFeed(ctx, feed.url);
+    if (!existing)
+      await upsertFeed(ctx, feed);
+  }
+  await ctx.services.storage.remove("feeds");
+}
+
+// src/feed-library.ts
+var queues = new WeakMap;
+function serial(ctx, url, work) {
+  let queue = queues.get(ctx);
+  if (!queue) {
+    queue = new Map;
+    queues.set(ctx, queue);
+  }
+  const next = (queue.get(url) ?? Promise.resolve()).catch(() => {}).then(work);
+  queue.set(url, next);
+  const cleanup = () => {
+    if (queue.get(url) === next)
+      queue.delete(url);
+  };
+  next.then(cleanup, cleanup);
+  return next;
+}
+async function saveRefresh(ctx, url, notify) {
   const existing = await getFeed(ctx, url);
-  const { title, articles } = await fetchFeed(ctx, url);
-  const book = await ctx.domains.library.commands.books.addVirtualBook({
-    providerId: PROVIDER_ID,
-    key: url,
-    title,
-    author: "RSS"
-  });
+  const { title, articles, content } = await fetchFeed(ctx, url);
+  const book = await ctx.domains.library.commands.books.addVirtualBook({ providerId: PROVIDER_ID, key: url, title, author: "RSS" });
+  const contentId = await storeContent(ctx, url, content, book.id);
   const now = new Date().toISOString();
-  const feed = {
+  const pending = notify && (contentId !== existing?.contentId || existing.contentPending === true);
+  let feed = {
     url,
     title,
     bookId: book.id,
     addedAt: existing?.addedAt || now,
     lastFetched: now,
-    articles
+    articles,
+    contentId,
+    ...pending ? { contentPending: true } : {}
   };
-  await upsertFeed(ctx, feed);
+  try {
+    await upsertFeed(ctx, feed);
+  } catch (error) {
+    if (contentId !== existing?.contentId)
+      await discardUnreferencedContent(ctx, contentId);
+    throw error;
+  }
+  try {
+    if (pending) {
+      await ctx.domains.library.commands.books.invalidateVirtualBook({ providerId: PROVIDER_ID, key: url });
+      const { contentPending: _pending, ...published } = feed;
+      await upsertFeed(ctx, published);
+      feed = published;
+    }
+  } finally {
+    if (existing?.contentId && existing.contentId !== contentId)
+      await discardUnreferencedContent(ctx, existing.contentId);
+  }
   return feed;
+}
+function subscribe(ctx, rawUrl) {
+  const url = rawUrl.trim();
+  if (!isHttpFeedUrl(url))
+    return Promise.reject(new Error("Enter a valid http(s) feed URL"));
+  return serial(ctx, url, () => saveRefresh(ctx, url, true));
+}
+function ensureBook(ctx, input) {
+  return serial(ctx, input.url, async () => {
+    const feed = await getFeed(ctx, input.url);
+    if (!feed)
+      throw Object.assign(new Error("RSS subscription was removed"), { code: "library/book-not-found" });
+    const book = await ctx.domains.library.commands.books.addVirtualBook({ providerId: PROVIDER_ID, key: feed.url, title: feed.title, author: "RSS" });
+    if (book.id === feed.bookId)
+      return feed;
+    const healed = { ...feed, bookId: book.id };
+    await upsertFeed(ctx, healed);
+    return healed;
+  });
+}
+function loadFeedContent(ctx, url) {
+  return serial(ctx, url, async () => {
+    const feed = await getFeed(ctx, url);
+    if (!feed)
+      throw Object.assign(new Error("RSS subscription was removed"), { code: "library/book-not-found" });
+    const cached = await cachedContent(ctx, feed);
+    if (cached)
+      return cached;
+    const seeded = await saveRefresh(ctx, url, false);
+    const content = await cachedContent(ctx, seeded);
+    if (!content)
+      throw Object.assign(new Error("RSS content was not saved"), { code: "library/content-unavailable" });
+    return content;
+  });
+}
+function unsubscribeFeed(ctx, url) {
+  return serial(ctx, url, async () => {
+    await ctx.domains.library.commands.books.removeVirtualBook({ providerId: PROVIDER_ID, key: url });
+    await removeFeed(ctx, url);
+  });
+}
+async function forgetRemovedBook(ctx, bookId) {
+  const feed = (await loadFeeds(ctx)).find((feed2) => feed2.bookId === bookId);
+  if (!feed)
+    return null;
+  return serial(ctx, feed.url, async () => {
+    if ((await getFeed(ctx, feed.url))?.bookId !== bookId)
+      return null;
+    await removeFeed(ctx, feed.url);
+    return feed;
+  });
+}
+async function openFeed(ctx, input, articleId) {
+  let feed = await ensureBook(ctx, input);
+  await loadFeedContent(ctx, feed.url);
+  const current = await getFeed(ctx, feed.url);
+  if (!current || articleId && !current.articles.some((article) => article.id === articleId)) {
+    throw Object.assign(new Error("RSS article no longer exists in this snapshot"), { code: "reader/target-not-found" });
+  }
+  feed = current;
+  let session = await ctx.domains.reading.queries.session();
+  if (session.bookId === feed.bookId && session.sessionId) {
+    const source = await ctx.domains.library.queries.books.getContentState(feed.bookId);
+    if (session.status !== "ready" || source.sourceRevision !== session.sourceRevision) {
+      await ctx.domains.reading.commands.reload({ bookId: feed.bookId, sessionId: session.sessionId });
+    }
+  }
+  await ctx.domains.reading.commands.openBook(feed.bookId);
+  session = await ctx.domains.reading.queries.session();
+  if (articleId)
+    await ctx.domains.reading.commands.goTo({ bookId: feed.bookId, href: articleId, contentVersion: session.location?.contentVersion });
 }
 
 // src/agent-tools.ts
@@ -4201,7 +4349,9 @@ async function refreshAllFeeds(ctx) {
       try {
         await subscribe(ctx, feed.url);
         refreshed += 1;
-      } catch {}
+      } catch (error) {
+        console.warn("RSS background refresh failed", error);
+      }
     }
   }));
   return refreshed === total ? tr(ctx.locale, "refreshedAll", { n: refreshed }) : tr(ctx.locale, "refreshedSome", { ok: refreshed, total });
@@ -4285,8 +4435,7 @@ function feedDetailView(ctx, feed) {
     subtitle: formatWhen(ctx, article.publishedAtIso, "date"),
     icon: "article",
     onSelect: async () => {
-      const healed = await ensureBook(ctx, feed);
-      await ctx.domains.reading.commands.goTo({ bookId: healed.bookId, href: article.id });
+      await openFeed(ctx, feed, article.id);
       return { close: true };
     }
   }));
@@ -4313,8 +4462,7 @@ function feedDetailView(ctx, feed) {
         label: tr(ctx.locale, "openAsBook"),
         icon: "book-open",
         run: async () => {
-          const healed = await ensureBook(ctx, feed);
-          await ctx.domains.reading.commands.openBook(healed.bookId);
+          await openFeed(ctx, feed);
           return { close: true };
         }
       },
@@ -4337,11 +4485,7 @@ function feedDetailView(ctx, feed) {
         icon: "trash",
         variant: "danger",
         run: async () => {
-          await ctx.domains.library.commands.books.removeVirtualBook({
-            providerId: PROVIDER_ID,
-            key: feed.url
-          });
-          await removeFeed(ctx, feed.url);
+          await unsubscribeFeed(ctx, feed.url);
           return {
             toast: tr(ctx.locale, "unsubscribedFrom", { title: feed.title }),
             view: await rssPageView(ctx),
@@ -4416,7 +4560,7 @@ var plugin = {
     assertPluginCapabilities(ctx);
     ctx.contributions.contentProviders.register({
       id: PROVIDER_ID,
-      load: async (url) => (await fetchFeed(ctx, url)).content
+      load: (url) => loadFeedContent(ctx, url)
     });
     ctx.contributions.headerActions.register({
       id: "feeds",
@@ -4426,14 +4570,15 @@ var plugin = {
       presentation: "page",
       view: () => rssPageView(ctx)
     });
-    ctx.domains.library.events.subscribe("book.removed", ({ payload: { bookId } }) => {
-      (async () => {
-        const feed = (await loadFeeds(ctx)).find((entry) => entry.bookId === bookId);
+    ctx.domains.library.events.subscribe("book.removed", async ({ payload: { bookId } }) => {
+      try {
+        const feed = await forgetRemovedBook(ctx, bookId);
         if (!feed)
           return;
-        await removeFeed(ctx, feed.url);
         ctx.services.ui.showToast(tr(ctx.locale, "unsubscribedFrom", { title: feed.title }));
-      })();
+      } catch (error) {
+        console.warn("RSS removed-book cleanup failed", error);
+      }
     });
     ctx.contributions.commands.register({
       id: "subscribe",

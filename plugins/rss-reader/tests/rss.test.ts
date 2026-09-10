@@ -72,12 +72,12 @@ const ATOM_FIXTURE = `<?xml version="1.0" encoding="utf-8"?>
 </feed>`;
 
 describe("parseFeed", () => {
-  test("RSS 2.0: prefers content:encoded, resolves relative links, parses dates", () => {
-    const result = parseFeed(RSS_FIXTURE, "https://sspai.com/feed");
+  test("RSS 2.0: prefers content:encoded, resolves relative links, parses dates", async () => {
+    const result = await parseFeed(RSS_FIXTURE, "https://sspai.com/feed");
     expect(result.title).toBe("少数派");
     expect(result.articles).toHaveLength(2);
     expect(result.articles[0]).toMatchObject({
-      id: "article-0",
+      id: expect.stringMatching(/^article-[a-f0-9]{64}$/),
       title: "第一篇 & 附录",
       link: "https://sspai.com/post/1",
       publishedAtIso: "2026-07-23T08:00:00.000Z",
@@ -88,8 +88,8 @@ describe("parseFeed", () => {
     expect(result.articles[1].publishedAtIso).toBeUndefined();
   });
 
-  test("Atom: alternate link wins, published date parses", () => {
-    const result = parseFeed(ATOM_FIXTURE, "https://example.com/feed.xml");
+  test("Atom: alternate link wins, published date parses", async () => {
+    const result = await parseFeed(ATOM_FIXTURE, "https://example.com/feed.xml");
     expect(result.title).toBe("An Atom Feed");
     expect(result.articles[0]).toMatchObject({
       title: "Entry One",
@@ -99,15 +99,15 @@ describe("parseFeed", () => {
     expect(result.content.sections[0].html).toContain("<p>Body</p>");
   });
 
-  test("rejects non-feed and invalid XML", () => {
-    expect(() => parseFeed("not xml at all", "https://x.example")).toThrow(/valid/);
-    expect(() => parseFeed("<html><body>hi</body></html>", "https://x.example")).toThrow(
+  test("rejects non-feed and invalid XML", async () => {
+    await expect(parseFeed("not xml at all", "https://x.example")).rejects.toThrow(/valid/);
+    await expect(parseFeed("<html><body>hi</body></html>", "https://x.example")).rejects.toThrow(
       /valid/,
     );
   });
 
-  test("honors the article limit", () => {
-    expect(parseFeed(RSS_FIXTURE, "https://sspai.com/feed", 1).articles).toHaveLength(1);
+  test("honors the article limit", async () => {
+    expect((await parseFeed(RSS_FIXTURE, "https://sspai.com/feed", 1)).articles).toHaveLength(1);
   });
 });
 

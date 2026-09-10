@@ -59,7 +59,7 @@ export const units: Unit[] = [
   unit("C2", "Contribution", "contentProviders/readerModes", "内容与阅读算法提供者", "LIB12-14 READ15-16 EXT10", "contributions.contentProviders contributions.readerModes",
     "content provider 提供插件拥有的虚拟书内容/版本；reader mode 提供已支持 text-unit-navigator 分段策略。宿主负责阅读、版本切换、模式状态和资源引用。",
     "经 library/reading 工具消费结果，不要求模型注册算法或直接读 provider 内部数据。",
-    "RSS 和 sentence-reader 保持插件业务。library 1.16 getContentState/observeContentState及双域Agent get_book_content_state只查源元数据，不调用provider或读取私有key/阅读状态；sourceRevision跟踪通知、提供者换代和绑定key，reading 2.16 ready快照独立提供装载token用于同书比较。每actor64串行观察、一秒复核、错误/恢复和退休清理；未通知远端变化不声称可知。library 1.15自有invalidate仍需library写，通知不自动移动阅读器，reading 2.15 reload独立授权从头加载。旧active解析器不跨binding key借用。基础接线测试通过，RSS迁移、离线正文、稳定文章身份、跨版本位置迁移和真实Tauri组合待做。跨插件消费有真实需要时通过受权类型化 provider broker，不直接访问其他插件 storage。",
+    "RSS 和 sentence-reader 保持插件业务。library 1.16 getContentState/observeContentState及双域Agent get_book_content_state只查源元数据，不调用provider或读取私有key/阅读状态；sourceRevision跟踪通知、提供者换代和绑定key，reading 2.16 ready快照独立提供装载token用于同书比较。每actor64串行观察、一秒复核、错误/恢复和退休清理；未通知远端变化不声称可知。library 1.15自有invalidate仍需library写，通知不自动移动阅读器，reading 2.15 reload独立授权从头加载。旧active解析器不跨binding key借用。基础接线测试通过；RSS 0.9 已消费源通知/状态/重载，私有正文缓存支持离线读取，文章按源 ID/link 优先保持身份，同 URL 操作串行。远程媒体不缓存，无 ID/link 的身份随内容变化；跨版本位置迁移、崩溃遗留缓存回收和真实 Tauri 组合仍待做。跨插件消费有真实需要时通过受权类型化 provider broker，不直接访问其他插件 storage。",
     "不是任意格式解码器、HTML/DOM 注入或全新阅读器渲染器；OCR、新格式、新阅读交互原语属于宿主能力更新。",
     "provider 失效、disable、内容变更返回明确 unavailable/stale；旧回调不覆盖新版本；模式恢复必须验证引用仍适用。"),
   unit("C3", "Contribution", "voiceProviders", "声音与合成提供者", "READ17-18", "contributions.voiceProviders",

@@ -169,7 +169,7 @@ non-retryable surfaces in all eight locales.
 callers authenticate explicitly, never inherit another plugin/host session.
 `credentials` does not opt into a cookie jar. Custom secret headers are not
 automatically identifiable: TTS requests use `redirect: "error"` rather than risk
-forwarding vendor API keys. RSS 0.8, TTS 0.6 and WebDAV 0.3 declare `"*"` because
+forwarding vendor API keys. RSS 0.9, TTS 0.6 and WebDAV 0.3 declare `"*"` because
 their endpoints are user-configurable, including local HTTP. This is explicit
 broad authorization, not per-configured-endpoint confinement or DNS/IP isolation.
 No automatic retries, aggregate-byte/rate quota or unrestricted Agent fetch tool
@@ -1964,10 +1964,9 @@ provider's private cache: the provider decides what `load` returns.
 source-query borrowing versus fresh loading, in-flight invalidation, both Agent
 tool scopes, production Agent port, and controlled-engine session replacement.
 The content-query fixture supplies IPC responses, not SQLite or native Tauri.
-RSS has not yet adopted invalidation or added offline full-content storage;
-stable article identity, update subscriptions, cross-version position migration
-and real Worker/Tauri composition remain outstanding. No desktop/browser launched
-for this batch; these APIs are connected, not end-to-end accepted.
+RSS 0.9 now consumes invalidation and stores feed content locally, as described
+below. Cross-version position migration and real Worker/Tauri composition remain
+outstanding. These APIs are connected, not end-to-end accepted.
 
 ### Source State Observation (Library 1.16 / Reading 2.16)
 
@@ -2021,9 +2020,61 @@ raw messages and cannot be mistaken for an empty source.
 no provider loads, reader-data separation, invalidation/provider/key changes,
 file metadata/missing/storage failures, copied serial observations, error/recovery,
 limits and retirement, plus both Agent scopes and renderer-adapter regression.
-Native Tauri/Worker delivery, actual filesystem changes and RSS consumption remain
-for the concentrated composition acceptance phase. Offline content caching and
-cross-version position migration remain separate unfinished work.
+Native Tauri/Worker delivery, actual filesystem changes and real RSS composition
+remain for concentrated acceptance. RSS cache/source API wiring is implemented
+below; cross-version position migration remains unfinished.
+
+### RSS 0.9 Content Composition
+
+[代码] This batch changes only `plugins/rss-reader`, not the host API. The manifest
+requires library `^1.16.0` and reading `^2.16.0`, retaining existing permissions,
+network/storage requirements and schemaVersion 1. Parser identity, cache persistence
+and library workflows live in `identity.ts`, `content-cache.ts` and `feed-library.ts`.
+UI actions and the existing three global Agent tools reuse those workflows.
+
+[代码] Subscription metadata stays in the private `feeds` collection. Optional
+`contentId` references a SHA-256-addressed `{version: 1, url, content}` document in
+`feed-content`; bodies do not inflate subscription listings. The provider reads
+that saved snapshot without network access. Legacy metadata without a contentId
+fetches and saves once on first load, without invalidating its own in-flight open.
+A referenced cache with missing data, wrong URL/shape/article IDs or a mismatched
+digest rejects with `library/content-unavailable`, not a silent network fallback.
+Explicit refresh can repair it. The XML input before parsing and serialized cache
+each have a 4 MiB limit (`plugin/payload-too-large`); XML is already buffered by
+network.fetch at that point, so this is not a 4 MiB network allocation limit.
+Only feed-provided HTML is saved; linked articles and remote media are not downloaded.
+
+[代码] Articles use `article-<SHA-256>` identifiers derived from feed URL plus Atom
+id / RSS guid / RDF about, then resolved HTTP(S) link, then title/date/body fallback.
+Duplicate identities keep the first entry. Insertion, reordering and body edits
+preserve declared-ID/link identities; anonymous fallback identities change when
+their inputs change. Old ordinal hrefs are not guessed or redirected to another
+article. This does not migrate existing CFIs, annotations or saved reading progress.
+
+[代码] Refresh writes immutable content before publishing its metadata pointer.
+Changed content or an existing `contentPending` flag triggers the owned host
+invalidation; unchanged content does not. Publication failure leaves durable retry
+intent and rejects the action; an explicit refresh retries even identical content.
+Metadata-write failure preserves the old pointer and attempts new-orphan cleanup.
+Replacement/unsubscribe attempts old-reference cleanup, logging cleanup failures.
+Per-context/per-URL queues serialize refresh, initial loading, binding healing and
+removal. Late book-removed events recheck the current book ID before deleting a
+subscription. This is not a transaction spanning books, bindings and plugin data,
+nor a crash-recovery garbage collector; interrupted writes can leave orphan data.
+
+[代码] Background refresh does not move the reader. Explicit plugin open verifies
+the article still exists, compares the same book's loaded sourceRevision against
+getContentState, and reloads a non-ready or outdated existing session before opening
+and navigating by the stable href with the current contentVersion. Reload keeps the
+host's from-start semantics rather than applying an old CFI. Ordinary shelf opens
+still follow the host's stored-position behavior. Agent unsubscribe and OPML tools
+are not added by this batch.
+
+[环境] Fifteen RSS tests cover parser identity, source-plugin activation, offline
+cache consumption, failure/retry, same-feed serialization and explicit navigation
+using controlled network/storage/reading ports. Build and types are checked
+separately. These are basic composition checks, not a built Worker or native Tauri
+acceptance result; full RSS refresh/reading/removal remains in concentrated E2E.
 
 ### Virtual Book Removal
 

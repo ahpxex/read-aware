@@ -11,11 +11,12 @@ import type {
   PluginListItem,
   PluginListView,
 } from "@read-aware/plugin-types";
-import { ensureBook, isHttpFeedUrl, subscribe } from "./feed";
+import { isHttpFeedUrl } from "./feed";
+import { openFeed, subscribe, unsubscribeFeed } from "./feed-library";
 import { feedUrlsFromOpml } from "./opml";
 import { articlesTag, tr } from "./strings";
-import { getFeed, loadFeeds, removeFeed } from "./storage";
-import { PROVIDER_ID, type FeedSubscription, type RssPluginContext } from "./types";
+import { getFeed, loadFeeds } from "./storage";
+import type { FeedSubscription, RssPluginContext } from "./types";
 
 function formatWhen(
   ctx: RssPluginContext,
@@ -48,8 +49,8 @@ export async function refreshAllFeeds(ctx: RssPluginContext): Promise<string> {
         try {
           await subscribe(ctx, feed.url);
           refreshed += 1;
-        } catch {
-          // One unavailable feed must not prevent the others from refreshing.
+        } catch (error) {
+          console.warn("RSS background refresh failed", error);
         }
       }
     }),
@@ -145,8 +146,7 @@ export function feedDetailView(
     subtitle: formatWhen(ctx, article.publishedAtIso, "date"),
     icon: "article",
     onSelect: async () => {
-      const healed = await ensureBook(ctx, feed);
-      await ctx.domains.reading.commands.goTo({ bookId: healed.bookId, href: article.id });
+      await openFeed(ctx, feed, article.id);
       return { close: true };
     },
   }));
@@ -174,8 +174,7 @@ export function feedDetailView(
         label: tr(ctx.locale, "openAsBook"),
         icon: "book-open",
         run: async () => {
-          const healed = await ensureBook(ctx, feed);
-          await ctx.domains.reading.commands.openBook(healed.bookId);
+          await openFeed(ctx, feed);
           return { close: true };
         },
       },
@@ -198,11 +197,7 @@ export function feedDetailView(
         icon: "trash",
         variant: "danger",
         run: async () => {
-          await ctx.domains.library.commands.books.removeVirtualBook({
-            providerId: PROVIDER_ID,
-            key: feed.url,
-          });
-          await removeFeed(ctx, feed.url);
+          await unsubscribeFeed(ctx, feed.url);
           return {
             toast: tr(ctx.locale, "unsubscribedFrom", { title: feed.title }),
             view: await rssPageView(ctx),

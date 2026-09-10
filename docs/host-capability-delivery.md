@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+RSS 0.9 组合接线已完成，本批不改宿主：消费既有 library 1.16 / reading 2.16，私有 feeds 元数据引用独立 feed-content 正文快照，已有缓存可离线读；文章以声明 ID/link 优先生成稳定身份。刷新先落正文及索引，再通知自有来源变化；失败保留通知重试意图，后台不移动阅读器，显式打开才比较源并重载/按当前版本导航。同 URL 操作串行，退订及迟到删除事件校验当前绑定后清理引用。旧订阅首次读取补缓存，不猜测旧 ordinal href 的文章映射。
+
+[验证] RSS 15 pass / 88 assertions；矩阵/模型12 pass / 41 assertions，全仓typecheck 27/27（24缓存），RSS构建及三文档对结构检查通过。源码激活和受控端口证明基础组合，不是编译Worker或原生Tauri验收；本批没有启动桌面/浏览器。远程媒体不离线缓存，跨版本CFI/标注/进度迁移、崩溃遗留缓存回收及真实组合E2E仍缺，LIB14保持部分；Agent退订/OPML工具未补。未推送，整体目标未完成。下方历史批次“RSS消费迁移/离线正文/稳定文章身份仍缺”由本批限定覆盖取代。
+
 来源观察批次已接线：library 1.16 getContentState/observeContentState 与双scope Agent get_book_content_state只读源元数据，不加载provider或正文；区分本地文件缺失、虚拟绑定缺失/注册不可用/已注册，不暴露路径、私有key或阅读状态。reading 2.16 ready快照增加装载时sourceRevision，可在独立阅读授权下与同书源token比较，识别失效通知、提供者换代与绑定key切换；已注册不证明网络/缓存可用，相同token不能探测未通知的远端变化。64个/actor串行观察、读和回调结算后一秒复核，去重、错误/恢复与退休清理；旧active解析器不跨binding key借用。
 
 [验证] 状态/实际上下文/Agent端口、双scope工具、串行观察/额度/退休、内容失效与引擎回归、矩阵模型合计53 pass / 807 assertions；全仓typecheck 27/27，三文档对结构检查通过。库存891映射。受控IPC不是原生SQLite/Tauri，未启动桌面/浏览器；RSS接入、离线正文、稳定文章身份与跨版本位置迁移及真实Worker/Tauri组合仍待完成，LIB14保留部分，未推送，整体目标未完成。

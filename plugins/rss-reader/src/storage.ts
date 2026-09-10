@@ -6,6 +6,7 @@
  */
 import type { PluginMigrationStorage } from "@read-aware/plugin-types";
 import type { FeedArticle, FeedSubscription } from "./types";
+import { discardUnreferencedContent } from "./content-cache";
 
 const COLLECTION = "feeds";
 
@@ -51,6 +52,8 @@ export function readFeed(value: unknown): FeedSubscription | null {
     addedAt: typeof value.addedAt === "string" ? value.addedAt : "",
     lastFetched: typeof value.lastFetched === "string" ? value.lastFetched : "",
     articles,
+    ...(typeof value.contentId === "string" ? { contentId: value.contentId } : {}),
+    ...(value.contentPending === true ? { contentPending: true } : {}),
   };
 }
 
@@ -75,7 +78,9 @@ export async function upsertFeed(ctx: StorageCtx, feed: FeedSubscription): Promi
 }
 
 export async function removeFeed(ctx: StorageCtx, url: string): Promise<void> {
+  const feed = await getFeed(ctx, url);
   await ctx.services.storage.collection(COLLECTION).delete(url);
+  if (feed?.contentId) await discardUnreferencedContent(ctx, feed.contentId);
 }
 
 /**

@@ -1,4 +1,4 @@
-import { subscribe } from "./feed";
+import { subscribe } from "./feed-library";
 import { getFeed, loadFeeds } from "./storage";
 import type { RssPluginContext } from "./types";
 

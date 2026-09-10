@@ -1,7 +1,7 @@
 import { XMLParser, XMLValidator } from "fast-xml-parser";
-import type { FeedArticle, FeedResult, FeedSubscription, RssPluginContext } from "./types";
-import { MAX_ARTICLES, PROVIDER_ID } from "./types";
-import { getFeed, upsertFeed } from "./storage";
+import type { FeedArticle, FeedResult, RssPluginContext } from "./types";
+import { MAX_ARTICLES } from "./types";
+import { digest } from "./identity";
 
 export function isHttpFeedUrl(value: string): boolean {
   try {
@@ -22,6 +22,7 @@ function escapeHtml(value: string): string {
 }
 
 function resolveArticleLink(value: string, feedUrl: string): string | undefined {
+  if (!value.trim()) return undefined;
   try {
     const link = new URL(value, feedUrl);
     return link.protocol === "http:" || link.protocol === "https:" ? link.toString() : undefined;
@@ -127,11 +128,14 @@ function articleLimit(ctx: RssPluginContext): number {
     : MAX_ARTICLES;
 }
 
-export function parseFeed(
+export async function parseFeed(
   xmlText: string,
   feedUrl: string,
   limit = MAX_ARTICLES,
-): FeedResult {
+): Promise<FeedResult> {
+  if (new TextEncoder().encode(xmlText).byteLength > 4 * 1024 * 1024) {
+    throw Object.assign(new Error("Feed XML exceeds 4 MiB"), { code: "plugin/payload-too-large" });
+  }
   if (XMLValidator.validate(xmlText) !== true) {
     throw new Error("Not a valid RSS/Atom feed");
   }
@@ -145,10 +149,14 @@ export function parseFeed(
   if (!shape) throw new Error("Not a valid RSS/Atom feed");
 
   const title = shape.title || feedUrl;
-  const items = shape.items.slice(0, limit);
+  const count = Number.isFinite(limit) ? Math.max(1, Math.min(100, Math.floor(limit))) : MAX_ARTICLES;
 
   const articles: FeedArticle[] = [];
-  const sections = items.map((item, index) => {
+  const sections: FeedResult["content"]["sections"] = [];
+  const seen = new Set<string>();
+  for (const item of shape.items) {
+    if (articles.length >= count) break;
+    const index = articles.length;
     const articleTitle = textOf(item.title) || `Article ${index + 1}`;
     const body =
       (shape.kind === "atom"
@@ -167,15 +175,20 @@ export function parseFeed(
       publishedDate && !Number.isNaN(publishedDate.getTime())
         ? publishedDate.toISOString()
         : undefined;
-    const id = `article-${index}`;
+    const declaredId = shape.kind === "atom" ? firstText(item, "id") : firstText(item, "guid", "@_rdf:about");
+    const identity = declaredId ? ["id", declaredId] : link ? ["link", link]
+      : ["content", textOf(item.title), publishedAt ?? "", body];
+    const id = `article-${await digest(JSON.stringify([feedUrl, ...identity]))}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
     const header = [
       publishedAt ? `<p><em>${escapeHtml(publishedAt)}</em></p>` : "",
       link ? `<p><a href="${escapeHtml(link)}">Read on the web</a></p>` : "",
     ].join("");
 
     articles.push({ id, title: articleTitle, link, publishedAt, publishedAtIso });
-    return { id, title: articleTitle, html: `${header}${body}` };
-  });
+    sections.push({ id, title: articleTitle, html: `${header}${body}` });
+  }
 
   return {
     title,
@@ -188,49 +201,4 @@ export async function fetchFeed(ctx: RssPluginContext, url: string): Promise<Fee
   const response = await ctx.services.network.fetch(url, { signal: AbortSignal.timeout(15_000) });
   if (!response.ok) throw new Error(`Feed returned ${response.status}`);
   return parseFeed(await response.text(), url, articleLimit(ctx));
-}
-
-export async function ensureBook(
-  ctx: RssPluginContext,
-  feed: FeedSubscription,
-): Promise<FeedSubscription> {
-  const book = await ctx.domains.library.commands.books.addVirtualBook({
-    providerId: PROVIDER_ID,
-    key: feed.url,
-    title: feed.title,
-    author: "RSS",
-  });
-  if (book.id === feed.bookId) return feed;
-
-  const healed = { ...feed, bookId: book.id };
-  await upsertFeed(ctx, healed);
-  return healed;
-}
-
-export async function subscribe(
-  ctx: RssPluginContext,
-  rawUrl: string,
-): Promise<FeedSubscription> {
-  const url = rawUrl.trim();
-  if (!isHttpFeedUrl(url)) throw new Error("Enter a valid http(s) feed URL");
-
-  const existing = await getFeed(ctx, url);
-  const { title, articles } = await fetchFeed(ctx, url);
-  const book = await ctx.domains.library.commands.books.addVirtualBook({
-    providerId: PROVIDER_ID,
-    key: url,
-    title,
-    author: "RSS",
-  });
-  const now = new Date().toISOString();
-  const feed: FeedSubscription = {
-    url,
-    title,
-    bookId: book.id,
-    addedAt: existing?.addedAt || now,
-    lastFetched: now,
-    articles,
-  };
-  await upsertFeed(ctx, feed);
-  return feed;
 }

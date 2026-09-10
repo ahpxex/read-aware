@@ -1413,6 +1413,9 @@ export type PluginSettingsDomain = {
   };
   commands: {
     update(changes: SettingChange[]): Promise<SettingsUpdateResult>;
+    /** Settings 1.7: reset the whole reader-preference bundle; every reading path must be writable.
+     * defaults restores built-ins; inherit deletes active and remembered book overrides. */
+    resetReading(request: import("@read-aware/core").ReadingSettingsReset): Promise<SettingsUpdateResult>;
   };
   events: {
     subscribe(

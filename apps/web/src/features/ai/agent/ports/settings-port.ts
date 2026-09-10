@@ -7,5 +7,6 @@ export function createSettingsPort(): SettingsPort {
   return {
     getSettings: settings.queries.snapshot,
     updateSettings: settings.commands.update,
+    resetReading: settings.commands.resetReading,
   };
 }

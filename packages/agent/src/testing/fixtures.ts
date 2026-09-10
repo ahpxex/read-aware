@@ -692,6 +692,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     },
     bookMemory: createBookMemoryFixture(stores.chapterDigests, bookClassification),
     settings: {
+      resetReading: async () => { throw new AppError("ui/unavailable", "Attach a reading reset fixture"); },
       getSettings: async (query) => querySettings(stores.settings, query),
       updateSettings: async (changes) => {
         const result = applySettingChanges(stores.settings, changes);

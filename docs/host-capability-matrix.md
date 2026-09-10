@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 194、部分 43、待建 3、占位 2、非桌面 1。
-- Agent：接通 132、部分 57、扩展 13、未接 23、自动 14、内部 4。
-- 插件：接通 146、部分 80、未接 17。
+- Agent：接通 133、部分 57、扩展 13、未接 22、自动 14、内部 4。
+- 插件：接通 147、部分 80、未接 16。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -153,7 +153,7 @@
 | <a id="UI05"></a>UI05 | 菜单可见/溢出位置及自定义重排 | 实装 | **接通**：get_settings/update_settings menus.*<br>[设计] 结构化设置工具 | **接通**：settings domain menus.* 按路径授权<br>[设计] 结构化设置领域 | 菜单设置；插件 header/selection | 可改布局不代表可调用菜单动作；具体 8 个路径另逐项列出 | [MENU](../apps/web/src/features/menus/lib/menu-registry.tsx) [MENUSTATE](../apps/web/src/features/menus/state/menu-config.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) | I08 |
 | <a id="CFG01"></a>CFG01 | 设置 discover/read/update 与动态选项 | 实装 | **接通**：get_settings/update_settings；等待本地事务提交<br>[设计] 设置工具 | **接通**：settings 1.5 snapshot/discover/read/update；原子保存与授权结果<br>[设计] 路径授权设置领域 | Agent；Theme Schedule；TTS options；Workspace Profiles | snapshot 等待此前命令/UI 写结算后一次读取，按路径授权过滤；单个命令跨 KV 记录原子提交；失败不发 settings.changed，下一命令基于已结算状态；结果快照按 read/write grant 过滤，writable 反映当前 actor 授权，discover 不泄露快捷键运行态。事务不包含密钥、远端漫游提交或尚未接通的效果；设置 API 接通不证明值有消费者 | [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [KV](../apps/web/src/platform/local-store.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | H01 |
 | <a id="CFG02"></a>CFG02 | 全局/本书/全书阅读设置覆盖 | 实装 | **接通**：update_settings target<br>[设计] 显式作用域写工具 | **接通**：settings.commands.update target<br>[设计] 显式作用域写领域 | AppearancePanel；Agent | all-books 写全局并更新 overrides，不等于清除所有覆盖 | [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [OVERRIDES](../apps/web/src/features/settings/lib/reader-overrides.ts) [SETTOOLS](../packages/agent/src/tools/settings-tools.ts) | H05 |
-| <a id="CFG03"></a>CFG03 | 清除覆盖/恢复默认/查询值来源 | 实装 | **未接**：无正式入口<br>[设计] reset + effective value/provenance | **未接**：无正式入口<br>[设计] reset + effective value/provenance | 阅读外观设置 | 当前 update 不能表达 inherit/delete override；不是写默认值可替代 | [PREFS](../apps/web/src/features/settings/lib/reader-settings.ts) [OVERRIDES](../apps/web/src/features/settings/lib/reader-overrides.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | H05 |
+| <a id="CFG03"></a>CFG03 | 清除覆盖/恢复默认/查询值来源 | 实装 | **接通**：get_settings/reset_reading_settings[双域]<br>[设计] 来源查询/整套阅读偏好重置 | **接通**：settings 1.7 snapshot/read + commands.resetReading<br>[设计] 读路径授权/全部阅读字段写授权 | 既有阅读偏好/覆盖存储；两端共享重置 | 沿用整套本书覆盖而非新增逐字段继承。reading 元数据给出 global/book 来源、absent/active/inactive 覆盖及内置 defaultValue；discover 不泄露当前来源。defaults global 仅重置全局，book 写内置默认为本书覆盖，all-books 重置全局并删全部覆盖；inherit book/all-books 删除含停用记忆的覆盖并跟随未来全局，不能用于 global。须有全部现有 reading 字段写权；同普通更新队列、单批持久回执/失败无成功事件，退休排队不派发。重置通知使全部阅读字段失效，值相等也可能来源改变；重复重置无伪变更。不重置其他领域/阅读位置；不是跨设备 CAS、全设置来源审计或逐字段 inherit。定向测试通过，真实 Worker/外观效果仍待集中 Tauri E2E。 | [PREFS](../apps/web/src/features/settings/lib/reader-settings.ts) [OVERRIDES](../apps/web/src/features/settings/lib/reader-overrides.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [READINGRESET](../apps/web/src/domain/settings/reading-reset.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | H05 |
 | <a id="CFG04"></a>CFG04 | 阅读对齐 reading.textAlign | 实装 | **接通**：get_settings/update_settings<br>[设计] 结构化设置工具 | **接通**：settings 1.2；显式 global/book/all-books<br>[设计] 路径授权设置领域 | 阅读设置/渲染 | book/start/justify；与阅读外观同一覆盖规则，不是另造 CSS 接口 | [PREFS](../apps/web/src/features/settings/lib/reader-settings.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) | H02 |
 | <a id="CFG05"></a>CFG05 | 固定版式颜色 reading.fixedLayoutColor | 实装 | **接通**：get_settings/update_settings<br>[设计] 结构化设置工具 | **接通**：settings 1.2；显式 global/book/all-books<br>[设计] 路径授权设置领域 | 固定版式外观 | theme/original；不是 reading.theme 的同义项；仅固定版式内容消费 | [PREFS](../apps/web/src/features/settings/lib/reader-settings.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) | H02 |
 | <a id="CFG06"></a>CFG06 | 更新内容弹窗 general.whatsNewDialog | 实装 | **接通**：get_settings/update_settings<br>[设计] 结构化设置工具 | **接通**：settings 1.2；全局布尔字段<br>[设计] 路径授权设置领域 | GeneralPanel / useWhatsNewDialog | 控制后续升级说明提示，不是立即打开更新弹窗或安装更新 | [GENERAL](../apps/web/src/features/settings/lib/general-settings.ts) [WHATSNEW](../apps/web/src/features/update/hooks/useWhatsNewDialog.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | H04 |
@@ -410,9 +410,9 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：84 个。
-- Agent book：67 个。
-- Plugin ctx：173 个。
+- Agent global：85 个。
+- Agent book：68 个。
+- Plugin ctx：174 个。
 - Plugin returned interface：25 个。
 - Capability domains：6 个。
 - Capability contributions：14 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 173 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 174 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -527,6 +527,7 @@
 | `ask_user` | [AI04](#AI04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `update_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `reset_reading_settings` | [CFG03](#CFG03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 
 ### Agent book
 
@@ -599,6 +600,7 @@
 | `ask_user` | [AI04](#AI04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `update_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `reset_reading_settings` | [CFG03](#CFG03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 
 ### Plugin ctx
 
@@ -608,6 +610,7 @@
 | `domains.settings.queries.observe` | [CFG10](#CFG10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.settings.queries.discover` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.settings.queries.read` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.settings.commands.resetReading` | [CFG03](#CFG03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.settings.commands.update` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.settings.events.subscribe` | [CFG10](#CFG10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.getNavigationToc` | [TXT02](#TXT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

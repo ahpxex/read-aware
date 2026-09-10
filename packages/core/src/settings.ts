@@ -48,6 +48,12 @@ export interface SettingDescriptor {
   kind: SettingKind;
   value: SettingValue;
   writable: boolean;
+  /** Present for reader preferences. Global is a source layer, not proof of a persisted override. */
+  reading?: {
+    source: "global" | "book";
+    override: "absent" | "active" | "inactive";
+    defaultValue: SettingValue;
+  };
   nullable?: boolean;
   options?: SettingOption[];
   supportedTargets?: Array<SettingsTarget["kind"]>;
@@ -62,12 +68,13 @@ export interface SettingDescriptor {
   };
 }
 
-export type SettingCatalogEntry = Omit<SettingDescriptor, "value">;
+export type SettingCatalogEntry = Omit<SettingDescriptor, "value" | "reading">;
 
 export interface SettingReadResult {
   path: string;
   value: SettingValue;
   target: SettingsQueryTarget;
+  reading?: SettingDescriptor["reading"];
 }
 
 /** Exact paths or an explicit `section.*` group. `*` means every path. */
@@ -124,3 +131,8 @@ export interface SettingsChangedEvent {
   origin: EventOrigin;
   changes: SettingChange[];
 }
+
+/** Whole reader-preference bundle, matching the host's per-book override model. */
+export type ReadingSettingsReset =
+  | { action: "defaults"; target: SettingsTarget }
+  | { action: "inherit"; target: Exclude<SettingsTarget, { kind: "global" }> };

@@ -269,6 +269,10 @@ export function buildPluginContext(
           },
         },
         commands: {
+          resetReading: request => {
+            lifecycle.assertActive("domains.settings.commands.resetReading");
+            return settingsDomain.commands.resetReading(request, lifecycle.signal);
+          },
           update: changes => {
             lifecycle.assertActive("domains.settings.commands.update");
             return settingsDomain.commands.update(changes, lifecycle.signal);

@@ -2249,6 +2249,43 @@ gap before enqueueing its transaction. An optimistic matching UI value is not
 treated as a durable no-op. Returned
 snapshots, like reads, are filtered to the actor's permitted paths.
 
+[代码] Settings 1.7 adds `commands.resetReading({action,target})`, exposed to
+both Agent scopes through `reset_reading_settings`. This is the whole reader
+preference bundle, not individual-field inheritance or a reset of other domains.
+Target is explicit; Agent book targets may omit bookId to use the current book,
+and Agent resolution checks the book exists. Plugin targets follow the existing
+settings domain ID model, without a separate book existence lookup.
+
+| Action | Target | Effect |
+| --- | --- | --- |
+| defaults | global | Restore built-in reader preferences, retain every book override |
+| defaults | book | Store built-in preferences as this book's active override |
+| defaults | all-books | Restore global built-ins and delete all book overrides |
+| inherit | book | Delete this book's entire saved override, active or remembered inactive |
+| inherit | all-books | Delete all book overrides without changing global preferences |
+
+inherit/global and malformed targets reject with ui/invalid-target. A reset
+requires write authorization for every exposed book-scoped reading preference;
+a font-only grant cannot reset unrelated reader fields. Insufficient authorization
+rejects with memory/forbidden. The same ordered settings queue and local batch
+transaction apply; accepted input is copied, queued cancellation/retirement
+prevents dispatch, and failed persistence produces no successful command event.
+Cancellation after dispatch does not roll back committed settings. No compare-
+and-swap or global shutdown guarantee is added.
+
+Snapshot/read descriptors for these preferences add
+`reading:{source,override,defaultValue}`: source is global/book, override is
+absent/active/inactive, and defaultValue is the built-in default. Global is a layer,
+not proof that a stored global override exists; this is not full provenance for
+every setting. Discovery omits this current-state metadata as well as values.
+Reset receipts contain a path-filtered reading snapshot at the requested book or
+global target. A changed bundle emits settings.changed invalidation for every
+reader field, including equal values whose source changed; this event is not a
+replayable instruction to recreate overrides. Identical repeated resets do not
+report false changes due to object key order. Existing settled observation
+remains the source of committed revisions. Focused reset, grant, source, queue/
+failure and Agent tests pass; native Worker/reader styling E2E remains pending.
+
 Native preference atoms and Worker mirrors can show optimistic values while
 the command runs and follow rollback if it fails. Declared plugin settings
 invalidate from that mirror, after all KV observers have run. Their form

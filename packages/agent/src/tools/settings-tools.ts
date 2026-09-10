@@ -1,6 +1,6 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
-import type { Id } from "@read-aware/core";
+import { AppError, type Id, type ReadingSettingsReset } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type {
   AgentSettingChange,
@@ -190,5 +190,20 @@ export function buildSettingsTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     },
   };
 
-  return [getSettings, updateSettings];
+  const resetReading: AgentTool = {
+    name: "reset_reading_settings", label: "Reset reading appearance", executionMode: "sequential",
+    description: "Only on explicit user request, reset the WHOLE reader-preference bundle after reading get_settings. target is required; ask_user if scope is ambiguous. action=defaults with global restores built-in global preferences but retains book overrides; with book stores built-in defaults as that book's active override; with all-books resets global and deletes all active/remembered overrides. action=inherit with book deletes its override and follows future global changes; with all-books deletes every override without changing global values. inherit is invalid for global. Equal values are not the same as removing an override. get_settings reading metadata exposes source, active/inactive/absent override and built-in defaultValue. This does not reset general/AI/plugin preferences, positions or book data. Cancellation before persistence prevents the reset; dispatched writes are not rolled back by later cancellation.",
+    parameters: Type.Object({ action: Type.Union([Type.Literal("defaults"), Type.Literal("inherit")]), target: writeTargetSchema(scope) }, { additionalProperties: false }),
+    execute: async (_id, params, signal) => {
+      const accepted = structuredClone(params) as { action: "defaults" | "inherit"; target?: { kind: string; bookId?: string } };
+      signal?.throwIfAborted();
+      const target = await normalizeTarget(deps, scope, accepted.target);
+      if (!target || !["defaults", "inherit"].includes(accepted.action) || (accepted.action === "inherit" && target.kind === "global")) {
+        throw new AppError("ui/invalid-target", "Choose an explicit valid reading reset scope");
+      }
+      signal?.throwIfAborted();
+      return textResult(await deps.settings.resetReading({ action: accepted.action, target } as ReadingSettingsReset, signal));
+    },
+  };
+  return [getSettings, updateSettings, resetReading];
 }

@@ -11,7 +11,10 @@ import type {
   SettingsSnapshot,
   SettingsUpdateResult,
   SettingsObservation,
+  ReadingSettingsReset,
 } from "@read-aware/core";
+import { AppError } from "@read-aware/core";
+import { readingResetPaths, resetReadingDraft } from "./reading-reset";
 import { getDefaultStore } from "jotai";
 import { createLogger } from "../../platform/logger";
 import {
@@ -163,6 +166,10 @@ async function applySettingsChanges(
 ): Promise<SettingsUpdateResult> {
   const before = readDraft();
   const result = applySettingChangesToDraft(before, changes);
+  return commitResult(origin, before, result);
+}
+
+async function commitResult(origin: EventOrigin, before: SettingsDraft, result: { draft: SettingsDraft; changed: SettingChange[] }, query?: SettingsQuery): Promise<SettingsUpdateResult> {
   await commitSettingsDraft(before, result.draft, origin);
   if (result.changed.length > 0) {
     const event: SettingsChangedEvent = {
@@ -180,7 +187,7 @@ async function applySettingsChanges(
   }
   return {
     changed: result.changed,
-    settings: { ...settingsSnapshotFromDraft(result.draft), revision: settingsObservation.revision },
+    settings: { ...settingsSnapshotFromDraft(result.draft, query), revision: settingsObservation.revision },
   };
 }
 
@@ -206,6 +213,7 @@ export type SettingsDomain = {
   };
   commands: {
     update(changes: SettingChange[], signal?: AbortSignal): Promise<SettingsUpdateResult>;
+    resetReading(request: ReadingSettingsReset, signal?: AbortSignal): Promise<SettingsUpdateResult>;
   };
   events: {
     subscribe(handler: (event: SettingsChangedEvent) => void): () => void;
@@ -236,7 +244,7 @@ export function createSettingsDomain(
         const snapshot = await afterSettingsWrites(() => settingsSnapshot(accepted));
         return snapshot.settings
           .filter((setting) => canAccess(policy, "discover", setting.path))
-          .map(({ value: _value, shortcut: _shortcut, ...definition }) => ({ ...definition, writable: definition.writable && canAccess(policy, "write", definition.path) }));
+          .map(({ value: _value, shortcut: _shortcut, reading: _reading, ...definition }) => ({ ...definition, writable: definition.writable && canAccess(policy, "write", definition.path) }));
       },
       read: async (path, target) => {
         const normalizedPath = String(path);
@@ -252,10 +260,27 @@ export function createSettingsDomain(
           path: descriptor.path,
           value: descriptor.value as SettingValue,
           target: resolvedTarget,
+          ...(descriptor.reading ? { reading: descriptor.reading } : {}),
         };
       },
     },
     commands: {
+      resetReading: async (request, signal) => {
+        const accepted = structuredClone(request);
+        const result = updateTail.then(() => afterSettingsWrites(async () => {
+          signal?.throwIfAborted();
+          const before = readDraft();
+          if (readingResetPaths(before).some(path => !canAccess(policy, "write", path))) {
+            throw new AppError("memory/forbidden", "Reset requires write access to every reader preference");
+          }
+          const result = resetReadingDraft(before, accepted);
+          return commitResult(origin, before, result, { section: "reading", target: accepted.target.kind === "book"
+            ? { kind: "book", bookId: accepted.target.bookId.trim() } : { kind: "global" } });
+        }));
+        updateTail = result.then(() => {}, () => {});
+        const committed = await result;
+        return { ...committed, settings: filterSnapshot(policy, committed.settings) };
+      },
       update: async (changes, signal) => {
         signal?.throwIfAborted();
         for (const change of changes) {

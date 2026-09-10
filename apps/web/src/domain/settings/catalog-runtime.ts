@@ -18,6 +18,7 @@ import {
 export type { SettingsDraft } from "./catalog";
 import { shortcutMetadata } from "./shortcut-preferences";
 import { assertShortcutChanges } from "../../features/settings/lib/shortcut-catalog";
+import { DEFAULT_READER_PREFERENCES } from "../../features/settings/lib/reader-settings";
 
 function definitionOptions(
   definition: SettingDefinition,
@@ -61,6 +62,7 @@ export function settingsSnapshotFromDraft(
     )
     .map<SettingDescriptor>((definition) => {
       const options = definitionOptions(definition, draft);
+      const override = target.kind === "book" ? draft.readerOverrides[target.bookId] : undefined;
       return {
         path: definition.path,
         section: definition.section,
@@ -71,6 +73,13 @@ export function settingsSnapshotFromDraft(
         kind: definition.kind,
         value: definition.read(draft, target),
         writable: Boolean(definition.write),
+        ...(definition.section === "reading" && definition.supportedTargets?.includes("book") ? {
+          reading: {
+            source: override?.scope === "book" ? "book" as const : "global" as const,
+            override: override ? override.scope === "book" ? "active" as const : "inactive" as const : "absent" as const,
+            defaultValue: definition.read({ ...draft, reading: { ...DEFAULT_READER_PREFERENCES } }, { kind: "global" }),
+          },
+        } : {}),
         ...(definition.kind === "key-chord" ? { shortcut: shortcutMetadata(draft, definition.path) } : {}),
         ...(definition.nullable ? { nullable: true } : {}),
         ...(options ? { options } : {}),

@@ -158,6 +158,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   },
   get_settings: {},
   update_settings: { changes: [{ path: "appearance.theme", value: "dark" }] },
+  reset_reading_settings: { action: "inherit", target: { kind: "book", bookId: BOOK_ID } },
 };
 
 /** 模型可见文本的表面规则。 */
@@ -211,6 +212,7 @@ describe("tool surface contract", () => {
         const resources = deps.resources("surface");
         deps.resources = () => ({ ...resources, copyImage: async () => ({ copied: true, width: 2, height: 3 }) });
         deps.library.inspectResource = async () => ({ status: "parsed", coverage: "initialization", formatHint: "epub", sectionCount: 3, errorCode: null });
+        deps.settings.resetReading = async () => ({ changed: [], settings: await deps.settings.getSettings({ section: "reading" }) });
         deps.library.importResource = async () => ({ status: "duplicate", book: { id: BOOK_ID, title: "The Locked Room", format: "epub", starred: false,
           collectionId: null, addedAt: "2026-09-01T00:00:00Z", updatedAt: "2026-09-01T00:00:00Z" } });
         deps.hostIO.openExternal = async () => {};

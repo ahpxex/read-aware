@@ -14,7 +14,7 @@ export const CONTRIBUTION_CATALOG = {
   voiceProviders: { version: "1.0.0", permission: null },
   contentProviders: { version: "1.0.0", permission: null },
   readerModes: { version: "1.1.0", permission: "reader:modes" },
-  agentTools: { version: "1.2.0", permission: "agent:tools" },
+  agentTools: { version: "1.3.0", permission: "agent:tools" },
   agentContextProviders: { version: "1.0.0", permission: "agent:context" },
   agentRetrievalProviders: { version: "1.0.0", permission: "agent:retrieval" },
   memoryCandidateProviders: { version: "1.0.0", permission: "agent:memory" },

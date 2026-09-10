@@ -1216,6 +1216,8 @@ export type PluginToolDefinition = {
    * model reads. Resolve with `{ gist, wordCards }` (PluginToolWordCards) to
    * additionally render word cards in the chat turn: the reader sees the full
    * entries as cards at the tool's position, the model sees only `gist`.
+   * agentTools >=1.3 also accepts PluginToolBookCards: host-resolved shelf
+   * cards, requiring library read access; the model receives gist and ID receipts.
    */
   execute: (params: Record<string, unknown>) => unknown | Promise<unknown>;
 };
@@ -1237,6 +1239,16 @@ export type PluginToolWordCard = {
 export type PluginToolWordCards = {
   gist: unknown;
   wordCards: PluginToolWordCard[];
+};
+
+/** Host-rendered shelf cards (agentTools >=1.3, library:read/write).
+ * 1..24 references, each bookId nonblank and at most 256 characters.
+ * Duplicates collapse; unknown books are skipped. A book thread can show only
+ * its current book, a global thread any authorized shelf book. No custom
+ * titles, covers, URLs or mixing with wordCards; rendering does not open books. */
+export type PluginToolBookCards = {
+  gist: unknown;
+  bookCards: Array<{ bookId: string }>;
 };
 
 // ─── Events ──────────────────────────────────────────────────────────────────

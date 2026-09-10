@@ -73,6 +73,30 @@ describe("present flow", () => {
     faux?.unregister();
   });
 
+  test("extension book cards and present_books share per-turn deduplication", async () => {
+    const { faux, model } = makeFaux();
+    faux.setResponses([
+      fauxAssistantMessage([fauxToolCall("plugin_books_show", {})], { stopReason: "toolUse" }),
+      fauxAssistantMessage([fauxToolCall("present_books", { bookIds: ["b1", "b2"] })], { stopReason: "toolUse" }),
+      fauxAssistantMessage([fauxToolCall("plugin_books_show", {})], { stopReason: "toolUse" }),
+      fauxAssistantMessage("Done."),
+    ]);
+    const { deps } = createInMemoryDeps({ books: BOOKS });
+    deps.extraTools = () => [{ name: "plugin_books_show", label: "Show", description: "Show a book", parameters: Type.Object({}),
+      execute: async () => ({ content: [{ type: "text" as const, text: "Shown" }],
+        details: { reference: { kind: "books", books: [{ bookId: "b1", title: BOOKS[0]!.title }] } } }),
+    }];
+    const thread = makeThread({ kind: "global", threadId: "book-cards" }, deps, model);
+    const chunks = await collect(thread.sendTurn({ text: "Show the books" }));
+    expect(references(chunks).map(chunk => chunk.reference.kind === "books" ? chunk.reference.books.map(book => book.bookId) : [])).toEqual([["b1"], ["b2"]]);
+    faux.setResponses([
+      fauxAssistantMessage([fauxToolCall("plugin_books_show", {})], { stopReason: "toolUse" }),
+      fauxAssistantMessage("Again."),
+    ]);
+    expect(references(await collect(thread.sendTurn({ text: "Show again" })))).toHaveLength(1);
+    await thread.dispose();
+  });
+
   test("present_books validates ids, hydrates snapshots, emits one reference chunk", async () => {
     const { faux, model } = makeFaux();
     let secondRound: Context | undefined;

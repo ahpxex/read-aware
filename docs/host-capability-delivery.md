@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+2026-09-11 插件聊天书卡批次已接线：agentTools1.3支持PluginToolBookCards，插件仅提交1..24个bookId及gist，宿主按注册插件library读/写授权查询真实title/author，拒绝伪造resolver/标题/封面/URL。全局可显示书库，书内仅当前书；重复去重、未知与scope外ID分别回执，读失败不伪装未知。现有details.reference书卡、封面与点击路径复用，不自动开书；AgentThread与present_books共享本轮ID去重，下轮恢复。hydration纳入生命周期读及turn signal；既有wordCards与工具批准保持兼容，没有新增模型工具。
+
+[验证] 32项基础测试、192断言通过；全仓typecheck27/27、三文档对结构检查通过，927入口映射、38个catalog成员。生产注册/权限/书内过滤使用受控IPC；脚本AgentThread验证引用chunk及跨工具/跨轮去重，不是实际远端模型或UI绘制。AI05按现有固定书卡/词卡范围标接通，PluginView不可任意互换；回执只证明引用准备，卡片可能因已展示被线程去重。compiledWorker/业务插件/真实Tauri点击及HTML视觉复核留集中阶段；未启动桌面/浏览器，未推送，整体目标继续。
+
 2026-09-11 书库/对话失效批次已接线：library1.18及conversations1.3增加events.observeInvalidation，沿用各域读授权。初始通知后串行合并本地业务广播、宿主刷新、远端投影及书籍/集合恢复；仅revision/source，每领域全进程64个观察，退休释放。sync-store在实际投影IPC成功后通知，覆盖apply/replay、暂存最终重放、bootstrap及回填重放/完成，不等后续同步阶段成功；仅stage或失败IPC不假发。恢复书籍行后文件失败也通知已经提交的行。Agent继续按需查同源投影，没有新增模型循环或工具。
 
 [验证] 60项基础测试、356断言通过（含生产同步适配器的受控IPC、授权/串行/退休及同步引擎回归）；全仓typecheck27/27和三文档对结构检查通过，927入口映射、38个catalog成员。纠正领域注册测试漏列此前已实现profile/updateProfile的旧断言。通知不是业务事件重放、数据库CAS或整个同步成功，旧subscribe仍本地-only；不接管原生UI现有周期刷新，不覆盖外部原始DB修改或全部历史恢复路径。OPS05/CON07保持部分，真实网络同步/编译Worker/组合插件/Tauri及HTML视觉复核留集中验收；未启动桌面/浏览器，未推送，整体目标继续。

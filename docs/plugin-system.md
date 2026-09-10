@@ -1965,7 +1965,7 @@ MORE05 remains partial, not closed by live views alone.
 
 ### <a id="interactive-contribution-state"></a>Interactive Contribution State
 
-[代码] `commands` and `agentTools` are at contribution version 1.1;
+[代码] `commands` is at contribution version 1.1 and `agentTools` at 1.3;
 `selectionActions` and `headerActions` are at 1.2, and `contextActions` at 1.0.
 All five support optional initial `state` and returned
 `PluginActionRegistration.updateState(state)` share a full snapshot:
@@ -4666,6 +4666,47 @@ or memory access:
 Plugins never receive the product Memory port, cannot inject system rules, and
 cannot write a long-term memory directly. A contribution supplies evidence or
 a candidate; the host remains the consumer and decision boundary.
+
+### Plugin Book Cards (AgentTools 1.3)
+
+[代码] A registered tool can return `PluginToolBookCards`, an object containing
+`gist` and `bookCards: Array<{ bookId: string }>`. Declare agentTools `^1.3.0`
+when using this result. The tool still requires `agent:tools`; resolving cards
+also requires the registering plugin's `library:read` or `library:write` grant.
+Without that grant the host rejects with `memory/forbidden`, including when
+untyped plugin input tries to supply a resolver. The resolver is host-installed
+after spreading the plugin definition; it never comes from the Worker.
+
+There must be 1..24 entries (the same card-stack limit as `present_books`), with
+nonblank book IDs at most 256 characters. IDs retain exact spelling; duplicates
+collapse in first-seen order. Only `bookId` is accepted on each card, and only
+`gist`/`bookCards` on the result. Custom titles, authors, URLs, covers, mixed
+word/book card results and invalid input reject with `plugin/invalid-input`
+before hydration. Ordinary JSON and existing word-card results retain their
+previous handling.
+
+The host reads the authorized shelf once and constructs only bookId/title/author
+references from actual records. Global threads may present any such book; book
+threads retain only their current book ID. The model receives
+`{ gist, presented, skippedUnknown, skippedScope }`, not the hydrated metadata;
+the UI receives the existing `details.reference` books payload alongside any
+approval response. All-skipped input emits no reference. Failed storage reads
+reject rather than masquerading as unknown books. The hydration read follows
+plugin retirement and turn cancellation; already-displayed cards are not erased.
+
+The thread shares its per-turn book-ID set between extension results and
+`present_books`; repeated cards are suppressed across both paths, and the next
+turn may show them again. `presented` means a reference was prepared, not a DOM
+paint receipt (the thread may suppress an already-shown card). Covers, live
+progress and explicit click navigation use the existing host card UI. This does
+not open a book automatically, expose paths/book text, accept arbitrary React
+or PluginView content, or add a model tool. Metadata and gist otherwise retain
+existing host/plugin result budgets; the count limit is not a total-memory bound.
+
+[代码] Production registration, permission/scope filtering, metadata hydration,
+validation and cancellation have controlled IPC tests. A scripted AgentThread
+test verifies reference chunks and cross-tool/next-turn deduplication. Compiled
+Worker, real plugin card clicks and Tauri UI verification remain concentrated E2E.
 
 ### Plugin Tool Confirmation (AgentTools 1.2)
 

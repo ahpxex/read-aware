@@ -347,6 +347,10 @@
             <p>声明 required 后，宿主先展示插件身份、工具说明和完整参数，再执行获准的参数快照。拒绝、取消、过期或注册失效不调用插件；确认不增加权限，也不回滚已经执行的写入。</p>
             <p>Dictionary 1.4 已补删词与 CSV 导出，RSS 已补退订；删除工具需要确认，导出使用系统保存对话框。RSS 0.11 还接上本地 OPML 文件预填与经确认的 Agent 文本导入，分批报告新增、已有和失败，不自动处理下一批。通用任务进度仍缺。基础测试通过，真实 Worker/Tauri 组合留集中验收。<a href="./plugin-system.md#plugin-tool-confirmation-agenttools-12">确认契约</a> · <a href="./plugin-system.md#rss-opml-import-011">OPML 与边界</a></p>
           </div></details>
+          <details class="ep" data-search-section="agentTools bookCards 书卡 插件 展示"><summary>AgentTools 1.3：插件工具也能展示宿主书卡</summary><div class="ep-body">
+            <p>插件只提供1至24个书籍ID，宿主凭该插件的书库读权限取得真实书名和作者；不接受自定义封面、链接或伪造标题。书内对话只显示当前书，全局对话可显示书架书籍，未知ID明确跳过。</p>
+            <p>复用现有卡片、封面与点击导航；和present_books共享本轮去重，不自动开书、不向模型追加整份卡片数据，也不增加权限。基础接线与脚本线程测试通过，真实插件点击及Tauri留集中验收。<a href="./plugin-system.md#plugin-book-cards-agenttools-13">契约与边界</a></p>
+          </div></details>
           <details class="ep" data-search-section="action state updateState Jumper 动态 状态 禁用 勾选"><summary>交互贡献 1.1：菜单、快捷键和插件 Agent 工具共用动态状态</summary><div class="ep-body">
             <p>commands、headerActions、selectionActions、agentTools 的注册句柄可更新完整可见、可用、勾选状态。旧版本报 stale，旧注册不能修改同名新注册。宿主每次执行都复核，缓存工具也不能绕过禁用；checked 只呈现，不增加权限。</p>
             <p>禁用不取消已开始的业务、不重置打开页面的草稿。隐藏贡献与用户调整菜单布局不同；独立弹窗仍由自己的视图生命周期管理。Jumper 0.2 直接订阅阅读会话和宿主历史，前后跳不再始终可用。</p>

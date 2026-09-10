@@ -72,7 +72,7 @@ export const units: Unit[] = [
     "工具显式声明 scope/schema/风险；上下文每轮有界注入；检索按需返回有来源片段；记忆候选由宿主去重/政策裁决。四个通道保留不同语义和生命周期，不合并成万能 agent.invoke。",
     "只有插件 installed + enabled + scope/grant/availability 满足时才消费。agentTools 1.1 按当前 visible/enabled 过滤两 scope 的工具集合；AgentThread 每次模型请求前刷新工具与检索定义，不丢弃章节会话。已发出请求保留原定义，缓存工具和检索执行前复核精确注册，旧调用不能转交同名新实现。此接线不是所有宿主内置 Agent 工具的统一 enablement；脚本推理真实 Worker 验收不是自主远端模型验收。上下文与候选没有插件实例不等于宿主 API 未实现。",
     "agentTools 1.2 approval=required 已接宿主逐次确认，显示来源与完整JSON参数后执行冻结参数，拒绝/取消/过期/注册失效不执行，不增加权限或提供数据事务。Dictionary 1.4 有5工具+1检索，新增global删词/CSV；RSS 0.11有5个global工具，含经确认且校验bookId的退订和OPML文本导入；原生文件通过resources预填表单，每批默认10/最大20，四并发、区分新增/已有/失败，既有不刷新，不自动跑后续页或回滚。不要求宿主新增词汇/RSS领域。真实Worker/Tauri批准和保存对话框留集中验收。",
-    "输出不成为高优先级指令；不得通过 plugin tool 规避 host 批准/剧透规则；不能把自有私有数据自动变成所有插件可见。",
+    "agentTools1.3已接PluginToolBookCards：1..24个bookId，宿主按注册插件library读授权读取真实title/author，拒自定义展示字段和伪造resolver。书内仅当前书、global可展示书库；模型只收gist及presented/skippedUnknown/skippedScope，引用走已有书卡管线。与present_books共用本轮ID去重，下一轮重置；不自动开书，回执非绘制完成。生命周期与signal进入宿主读，失败不假报未知；基础IPC/脚本线程检查通过，真实Worker/业务插件/Tauri点击集中后置。输出不成为高优先级指令，不规避批准/剧透规则，不把私有数据变成其他插件可见。",
     "跨 scope 不暴露工具；输入/输出有界，失败不悬挂整轮；撤权和停用失效；检索引用可追踪，候选无条件入记忆视为失败。"),
   unit("C5", "Contribution", "themes/fonts/syncTransports", "静态资产与密文传输扩展", "EXT08 SYS14 OPS02 OPS04", "contributions.themes contributions.fonts contributions.syncTransports",
     "themes/fonts 由 manifest 声明、宿主加载验证并供 settings 选择；syncTransports 提供密文连接/session 操作，宿主掌管加解密、ACK、游标、重试与同步调度。三者共用贡献生命周期，不共用业务控制器。",

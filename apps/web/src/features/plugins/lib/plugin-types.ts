@@ -88,6 +88,8 @@ export type RegisteredTool = PluginToolDefinition & {
   key: ContributionKey;
   pluginId: string;
   pluginName: string;
+  /** Host-installed authorization closure; never accepted from plugin input. */
+  resolveBookCards?: import("../runtime/plugin-book-cards").PluginBookCardResolver;
 };
 
 export type RegisteredAgentContextProvider = PluginAgentContextProvider & {

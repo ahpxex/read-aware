@@ -676,9 +676,18 @@ export class AgentThread {
                   answer: interaction.answer,
                 };
               }
-              const reference = referenceFromToolDetails(
+              let reference = referenceFromToolDetails(
                 (event.result as { details?: unknown } | undefined)?.details,
               );
+              // present_books accounts at execution; extension cards join the
+              // same per-turn set here, before any reference reaches the UI.
+              if (reference?.kind === "books" && event.toolName !== "present_books") {
+                const books = reference.books.filter(book => {
+                  if (this.turnState.presentedBookIds.has(book.bookId)) return false;
+                  this.turnState.presentedBookIds.add(book.bookId); return true;
+                });
+                reference = books.length ? { kind: "books", books } : undefined;
+              }
               if (reference) {
                 yield { type: "reference", id: event.toolCallId, reference };
               }

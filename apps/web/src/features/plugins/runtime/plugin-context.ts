@@ -1,4 +1,5 @@
 import { assertToolApproval } from "../lib/plugin-tool-approval";
+import { resolvePluginBookCards } from "./plugin-book-cards";
 /**
  * Builds the `ctx` handed to a plugin's activate(). This is a POLICY shell:
  * the data surface itself is the shared domain layer (src/domain), built
@@ -444,6 +445,8 @@ export function buildPluginContext(
                   ...tool,
                   ...brand,
                   key: contributionKey(manifest.id, tool.name),
+                  resolveBookCards: domain.library ? (ids, signal) => lifecycle.read("agentTools.bookCards",
+                    active => resolvePluginBookCards(ids, domain.library!.queries.books.list, active), signal) : undefined,
                 }),
               );
             },

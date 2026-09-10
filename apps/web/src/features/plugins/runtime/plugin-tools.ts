@@ -30,6 +30,7 @@ import {
 import { contributionText } from "../lib/plugin-i18n";
 import { actionEnabled } from "../lib/plugin-action-state";
 import { confirmPluginTool } from "./plugin-tool-confirmation";
+import { pluginBookCardResult } from "./plugin-book-cards";
 
 /**
  * A card-carrying tool result (PluginToolWordCards in the contract): the
@@ -162,6 +163,11 @@ export function getPluginAgentTools(scope: ThreadScope, interactions?: UserInter
       };
       signal?.throwIfAborted();
       const result = await tool.execute(confirmation?.params ?? (params ?? {}) as Record<string, unknown>);
+      const bookCards = await pluginBookCardResult(result, scope, tool.resolveBookCards, signal);
+      if (bookCards) return {
+        content: [{ type: "text" as const, text: JSON.stringify(bookCards.ack) }],
+        details: { ...confirmation?.details, ...(bookCards.books.length ? { reference: { kind: "books" as const, books: bookCards.books } } : {}) },
+      };
       const cards = toWordReferences(result);
       if (cards) {
         const reference: ReferencePayload = { kind: "words", words: cards.words };

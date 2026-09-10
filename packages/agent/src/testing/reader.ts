@@ -1,5 +1,6 @@
 import type { ReadingLocation, ReadingNavigationReceipt, ReadingPlaybackSnapshot, ReadingModeSnapshot } from "@read-aware/core";
 import type { ReaderPort } from "../ports";
+import { AppError, normalizeBookRangeQuery, type ReadingSelectionSnapshot, type ReadingSessionGuard } from "@read-aware/core";
 
 export type ReaderRequest = { type: "open" | "goTo" | "back" | "forward" | "step" | "close"; bookId?: string; anchor?: string; chapterHref?: string; direction?: string };
 
@@ -9,6 +10,7 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
   const mode: ReadingModeSnapshot = { status: "unavailable", unavailableReason: "no-provider", requestedActive: false,
     modeKey: null, label: null, availableModes: [], unitId: null, units: [], progress: null, cfiRange: null, position: null };
   let revision = 0;
+  let selection: ReadingSelectionSnapshot | null = null;
   let controls = { visible: false };
   const panels = { toc: { open: false, visible: false }, chat: { open: false, visible: false }, annotations: { open: false, visible: false }, appearance: { open: false, visible: false } };
   const showControls = (visible: boolean) => {
@@ -20,9 +22,32 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
   const receipt = (): ReadingNavigationReceipt => {
     if (!location) throw new Error("No active fixture reader");
     revision++;
+    selection = null;
     return { status: "completed", sessionId: "fixture", location: { ...location } };
   };
+  const checkSelection = (signal?: AbortSignal, guard?: ReadingSessionGuard) => {
+    signal?.throwIfAborted();
+    if (!location) throw new AppError("reader/unavailable", "No active fixture reader");
+    if (guard?.sessionId !== undefined && guard.sessionId !== "fixture"
+      || guard?.bookId !== undefined && guard.bookId !== location.bookId) throw new AppError("reader/superseded", "Fixture session changed");
+  };
   return {
+    selectRange: async (input, signal, guard) => {
+      const range = normalizeBookRangeQuery({ range: input }).range;
+      checkSelection(signal, guard);
+      if (range.bookId !== location!.bookId) throw new AppError("reader/out-of-scope", "Open the fixture book first");
+      if (range.contentVersion !== location!.contentVersion) throw new AppError("reader/stale-location", "Fixture content changed");
+      const text = range.textQuote?.exact ?? "Fixture selection";
+      selection = { id: crypto.randomUUID(), text, textLength: text.length, range };
+      location = range; revision++;
+      return { status: "completed", sessionId: "fixture", selection: structuredClone(selection) };
+    },
+    clearSelection: async (expectedId, signal, guard) => {
+      checkSelection(signal, guard);
+      if (!selection || selection.id !== expectedId) throw new AppError("reader/superseded", "Fixture selection changed");
+      selection = null; revision++;
+      return { status: "completed", sessionId: "fixture", selection: null };
+    },
     getPanels: async () => location ? { sessionId: "fixture", bookId: location.bookId, revision, controlsVisible: controls.visible, panels: structuredClone(panels) } : null,
     setPanel: async (panel, open) => {
       if (!location) throw new Error("No active fixture reader");
@@ -30,7 +55,7 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
       panels[panel] = { open, visible: open && controls.visible }; revision++;
       return { status: "completed", panel, snapshot: { sessionId: "fixture", bookId: location.bookId, revision, controlsVisible: controls.visible, panels: structuredClone(panels) } };
     },
-    getSession: async () => ({ revision, sessionId: location ? "fixture" : null, bookId: location?.bookId ?? null, status: location ? "ready" : "idle", location, visibleText: "", selection: null, history: { canGoBack: false, canGoForward: false }, playback, mode, controls: location ? { ...controls } : null }),
+    getSession: async () => ({ revision, sessionId: location ? "fixture" : null, bookId: location?.bookId ?? null, status: location ? "ready" : "idle", location, visibleText: "", selection: structuredClone(selection), history: { canGoBack: false, canGoForward: false }, playback, mode, controls: location ? { ...controls } : null }),
     setControls: async visible => {
       if (!location) throw new Error("No active fixture reader");
       showControls(visible); revision++;
@@ -56,6 +81,6 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
     step: async direction => { requests.push({ type: "step", direction }); return receipt(); },
     back: async () => { throw new Error("No fixture navigation history"); },
     forward: async () => { throw new Error("No fixture navigation history"); },
-    close: async () => { requests.push({ type: "close" }); location = null; revision++; },
+    close: async () => { requests.push({ type: "close" }); location = null; selection = null; revision++; },
   };
 }

@@ -1,6 +1,8 @@
 // src/strings.ts
 var locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 var labels = {
+  selectPassage: ["Select passage", "选中段落", "選取段落", "文章を選択", "Выделить отрывок", "Sélectionner le passage", "Textstelle auswählen", "Seleccionar pasaje"],
+  clearSelection: ["Clear selection", "清除选区", "清除選取", "選択を解除", "Снять выделение", "Effacer la sélection", "Auswahl aufheben", "Quitar selección"],
   inspectPassage: ["Inspect passage", "查看段落", "檢視段落", "文章を確認", "Просмотреть отрывок", "Examiner le passage", "Textstelle prüfen", "Examinar pasaje"],
   inspectSelection: ["Current selection", "当前选区", "目前選取範圍", "現在の選択", "Текущее выделение", "Sélection actuelle", "Aktuelle Auswahl", "Selección actual"],
   noSourceRange: ["No versioned passage is available", "没有可用的版本化段落", "沒有可用的版本化段落", "バージョン付きの文章はありません", "Нет доступного версионированного отрывка", "Aucun passage versionné disponible", "Keine versionierte Textstelle verfügbar", "No hay un pasaje versionado disponible"],
@@ -225,6 +227,13 @@ async function rangeDetail(ctx, input) {
     { kind: "quote", text: page.text, caption: `${page.offset + 1}-${page.offset + page.text.length} / ${page.totalLength}` },
     ...page.context.after ? [{ kind: "text", text: page.context.after }] : []
   ], actions: [
+    { id: "select-passage", label: tr(ctx.locale, "selectPassage"), icon: "text-aa", run: async () => {
+      const reading = ctx.domains.reading;
+      const current = await reading.queries.session();
+      const session = current.bookId === page.range.bookId && current.status === "ready" ? current : await reading.commands.openBook(page.range.bookId);
+      await reading.commands.selectRange(page.range, { bookId: page.range.bookId, sessionId: session.sessionId });
+      return { close: true };
+    } },
     { id: "open-passage", label: tr(ctx.locale, "openPassage"), icon: "book-open", run: async () => {
       await ctx.domains.reading.commands.goTo(page.range);
       return { close: true };
@@ -296,6 +305,20 @@ async function textDesk(ctx, page = 0) {
     icon: "text-aa",
     run: async () => ({ view: await capturedRangeDetail(ctx, (await ctx.domains.reading.queries.session()).selection?.range) })
   });
+  const session = await ctx.domains.reading.queries.session();
+  if (session.selection && session.sessionId && session.bookId) {
+    const selectionId = session.selection.id;
+    const guard = { sessionId: session.sessionId, bookId: session.bookId };
+    actions.push({
+      id: "clear-selection",
+      label: tr(ctx.locale, "clearSelection"),
+      icon: "x",
+      run: async () => {
+        await ctx.domains.reading.commands.clearSelection(selectionId, guard);
+        return { close: true };
+      }
+    });
+  }
   for (const direction of [-1, 1])
     if (index + direction >= 0 && (index + direction) * 20 < books.length)
       actions.push({

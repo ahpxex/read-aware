@@ -20,7 +20,7 @@ export async function prepareSelectionProbe() {
     const id = `capability-selection-${access}`; ids.push(id);
     const manifest: PluginManifest = { id, name: "Selection probe", version: "1.0.0", schemaVersion: 1,
       permissions: access === "none" ? [] : [`reading:${access}`, "library:read"],
-      requires: access === "none" ? {} : { domains: { reading: "^2.9.0", library: "^1.7.0" } } };
+      requires: access === "none" ? {} : { domains: { reading: "^2.10.0", library: "^1.7.0" } } };
     const worker = await startPluginWorker(manifest, "0.5.4", disposables, { moduleUrl: new URL("./selection-probe.ts", import.meta.url).href });
     workers.push(worker); await worker.checkHealth(); worker.promote();
   }

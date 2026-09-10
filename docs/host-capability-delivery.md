@@ -1470,3 +1470,19 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [复扫/文档] 三对事实同步；库存/模型 12 项/37 断言，243 行/701 入口/30 单元/31 catalog/129 验收/32 场景，14 源码插件/6 内置不变。扩大的是已有 get_reading_session/session/observe 的语义映射，不虚增工具或插件数。三页各验证真实 1440×1000、1024×768、390×844；selection/选区搜索矩阵 19/8、模型 2/2、插件 5/6，Escape 清空。矩阵/模型抽屉 inert/恢复和主题刷新保持通过；未观察到页面横溢、重复 ID、坏片段锚点、无名按钮或 console error，CDN 均 200，自有页面 13 关闭；HTML 依赖网络，文档不是产品证明。
 
 [剩余] READ13/TXT10/TXT13 仍部分：公共建立/清除选区、临时强调所有权、持久标注来源与 Range 写入校验还未闭合；不能把读取选区当作能操控选区。迟到非空捕获/触摸定时器、最大载荷、全部格式、真实 provider/源替换、自主模型、打包/跨平台/跨设备与全部能力组合继续。整体目标保持 active，未推送。
+
+## 2026-09-10：Reading 2.10 双端选区控制
+
+[进度] 前一个确认回合只复述模型现状，属于 no progress。本轮从现有未完成改动继续实现，不缩小全部双端补齐目标。
+
+[代码/组合] selectRange 复制并严格验证源范围，要求当前书 ready；先读源校验，再导航并恢复 DOM/PDF 唯一选区，等待匹配 React 提交。clearSelection 绑定所见 capture id，不能清除新选区。公开插件命令受 reading:write 和激活期取消约束；Agent set_reading_selection 两 scope 共用服务，仅返回 status/sessionId/selectionId。Text Desk 0.7 搜索详情新增选中动作，需要时先正式开书，再携带会话 guard 选中；header 列表清除动作冻结展示时 id，不点击时偷换成最新 id。选择有导航截止及 10 秒呈现截止，取消/失败不承诺撤销已呈现界面。绑定换代通知观察者，旧验证无需等到超时才拒绝。
+
+[发现/修复] 新隐私测试发现 get_reading_session 隐藏 selection 后仍可能经 location.textQuote 泄露内容，已同时移除受限 current/mode position 的 quote，保留宿主对象不变；不把新 UI 权限当正文权限。导航 exact quote 8192 上限与 Range 12000 生产契约不一致，现统一接收至 12000，超限仍拒绝。
+
+[原生证据] [selection-control](./evidence/selection-control-2026-09-10.json)：隔离 macOS Tauri debug，真实 FB2/PDF、SQLite、Worker 和实际 Agent ports。零/读 Worker 均不能调用写命令；写 Worker 建立、重复建立、清除通过，旧 id 返回 reader/superseded 且新选区不变。Agent 建立/清除回执不带文本，旧版本拒绝；PDF 第二个 needle 按上下文唯一命中。编译 Text Desk 的实际 dialog 按钮清除选区，另经搜索→第二个结果→Select passage 后 dialog 退出，原生截图显示第二个 needle 高亮及工具栏。这里是实际工具调用，不是自主模型推理或 OS 拖选。
+
+[验证/清理] 全仓 test 24/24（web 962 项、10327 断言、174 文件），typecheck 27/27，production frontend build、库存/模型 12 项/37 断言通过；无 Rust 源码更改，不宣称全 Rust 或 packaged 验证，既有编译/大 chunk 警告保留。源验证等待、错误/作用域、渲染提交等待、旧选择、新导航、取消、换代、超时、清除并发和消费者关闭回执有单元测试。两本自有书经正式删除/文件清理，只读 SQLite books/annotations/cleanup/live blob 为零；事件保留。两个既有测试书不属于本轮，未删除。七个 Worker/插件贡献归零；driver 9224 停止，PGID 43925/exec 47704 终态 143，5184/9224 无监听。
+
+[文档/复扫] 三对 MD/HTML 同步，生成器及 pair validator 通过；243 行/705 入口/30 单元/31 catalog/129 验收/32 场景，增加两 scope 工具映射与两个插件命令，不增加插件数量。三页 1440×1000、1024×768、390×844 截图与 DOM 检查无页面横溢、重复 id 或坏片段锚点；selection/选区搜索有效，Escape 清空，矩阵/模型抽屉 inert/释放及主题刷新保持通过，无观察到的 console error/warn。文档仍依赖既有 CDN，不是离线自包含；自有浏览器页 14 已关闭。
+
+[剩余] READ13 保留部分：原生在途取消/撤权、全部格式/长范围、迟到非空旧文档/触摸定时器、provider 变更、packaged/跨平台未验。临时强调所有权、持久标注来源与 Range 写入及其余双端缺口继续，未声称全部能力或组合场景完成，未推送。

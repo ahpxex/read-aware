@@ -89,6 +89,8 @@ import { resolveContentProvider } from "../../plugins/lib/virtual-books";
 import { readingRuntime } from "../../../domain/reading-runtime";
 import { attachReadingEngine, waitForReadingPaint } from "../lib/reading-engine-adapter";
 import { captureReadingSelection, type SelectionContentIdentity } from "../lib/selection-range";
+import { useSelectionRender } from "../hooks/useSelectionRender";
+import { createReadingSelectionAdapter } from "../lib/reading-selection-adapter";
 import { fileContentVersion, virtualContentVersion, registerActiveBookContent } from "../../library/lib/book-content-source";
 import type {
   RegisteredReaderMode,
@@ -506,6 +508,7 @@ export function FoliateReaderView({
   const [currentChapterHref, setCurrentChapterHref] = useState<string | null>(null);
   const [isFixedLayout, setIsFixedLayout] = useState(false);
   const [selection, setSelection] = useState<ReaderSelectionState | null>(null);
+  const selectionRender = useSelectionRender(selection, selectionRef);
   const selectionContentRef = useRef<SelectionContentIdentity | null>(null);
   const [activeAnnotation, setActiveAnnotation] = useState<{
     highlight: Highlight;
@@ -2145,6 +2148,8 @@ export function FoliateReaderView({
           if (!cancelled) cleanups.push(attachReadingEngine(view, sessionId, selectedBook.id, contentVersion));
           const identity = { view, sessionId, bookId: selectedBook.id, contentVersion };
           selectionContentRef.current = identity;
+          cleanups.push(readingRuntime.bindSelection(sessionId, createReadingSelectionAdapter(view,
+            () => selectionRef.current, captureSelectionFromDoc, clearSelection, selectionRender)));
           cleanups.push(() => {
             if (selectionContentRef.current !== identity) return;
             selectionContentRef.current = null;
@@ -2176,7 +2181,7 @@ export function FoliateReaderView({
     // selectedBook object each tick, and re-running this effect would tear down
     // and rebuild the engine in a loop. `readingMode` is included so switching
     // layout re-initializes the engine, restoring position from the live CFI.
-  }, [attachDocListeners, clearSelection, initialBook, selectedBook?.id, readingMode]);
+  }, [attachDocListeners, captureSelectionFromDoc, clearSelection, initialBook, selectedBook?.id, readingMode, selectionRender]);
 
   useEffect(() => {
     if (!chapterNavigationRequest?.href) return;

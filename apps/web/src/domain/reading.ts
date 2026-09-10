@@ -46,6 +46,8 @@ export type ReadingQueries = {
 };
 
 export type ReadingCommands = {
+  selectRange(range: import("@read-aware/core").BookTextRange, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<import("@read-aware/core").ReadingSelectionReceipt>;
+  clearSelection(expectedId: string, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<import("@read-aware/core").ReadingSelectionReceipt>;
   setControls(visible: boolean, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<import("@read-aware/core").ReadingControlsReceipt>;
   configureMode(input: import("@read-aware/core").ReadingModeConfiguration, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<import("@read-aware/core").ReadingModeReceipt>;
   returnToMode(signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt>;
@@ -126,6 +128,8 @@ export function createReadingDomain(origin: EventOrigin): ReadingDomain {
   };
 
   const commands: ReadingCommands = {
+    selectRange: (range, signal, guard) => readingRuntime.selectRange(range, signal, guard),
+    clearSelection: (expectedId, signal, guard) => readingRuntime.clearSelection(expectedId, signal, guard),
     setControls: (visible, signal, guard) => readingRuntime.setControls(visible, signal, guard),
     configureMode: (input, signal, guard) => readingRuntime.configureMode(input, signal, guard),
     returnToMode: (signal, guard) => readingRuntime.returnToMode(signal, guard),

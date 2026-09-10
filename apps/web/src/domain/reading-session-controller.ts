@@ -1,7 +1,14 @@
 import { AppError, errorCode, type EventOrigin, type ReadingModeConfiguration, type ReadingModeSnapshot, type ReadingModeReceipt, type ReadingPlaybackSnapshot, type ReadingPlaybackReceipt, type ReadingLocation, type ReadingNavigationReceipt, type ReadingSessionSnapshot, type ReadingSessionGuard, type ReadingTarget } from "@read-aware/core";
 import type { ReadingModeStepOutcome, ReadingModeStepReceipt } from "@read-aware/core";
 import type { ReadingControlsSnapshot, ReadingControlsReceipt } from "@read-aware/core";
-import type { ReadingSelectionSnapshot } from "@read-aware/core";
+import { normalizeBookRangeQuery, type BookTextRange, type ReadingSelectionSnapshot, type ReadingSelectionReceipt } from "@read-aware/core";
+
+export type ReadingSelectionAdapter = {
+  validate(range: BookTextRange, signal: AbortSignal): Promise<void>;
+  select(range: BookTextRange, expectedId: string | null, signal: AbortSignal): Promise<ReadingSelectionSnapshot>;
+  clear(expectedId: string, signal?: AbortSignal): Promise<void>;
+  retire(): void;
+};
 
 export type ReadingControlsAdapter = {
   snapshot(): ReadingControlsSnapshot;
@@ -46,6 +53,7 @@ export class ReadingSessionController {
   private playbackAdapter: { id: string; adapter: ReadingPlaybackAdapter; dispose(): void } | undefined;
   private modeAdapter: { id: string; adapter: ReadingModeAdapter; dispose(): void } | undefined;
   private controlsAdapter: { id: string; adapter: ReadingControlsAdapter; dispose(): void } | undefined;
+  private selectionAdapter: { id: string; adapter: ReadingSelectionAdapter } | undefined;
   private readonly listeners = new Set<(snapshot: ReadingSessionSnapshot) => unknown>();
   private readonly changes = new Set<() => void>();
   private history: ReadingLocation[] = [];
@@ -85,6 +93,7 @@ export class ReadingSessionController {
     this.detachPlayback();
     this.detachMode();
     this.detachControls();
+    this.detachSelection();
     const id = crypto.randomUUID();
     this.userOpening = intent === undefined ? { id, before: this.state.location } : undefined;
     this.session = { id, bookId };
@@ -121,12 +130,75 @@ export class ReadingSessionController {
     this.publish({ selection: selection ? structuredClone(selection) : null });
   }
 
+  bindSelection(id: string, adapter: ReadingSelectionAdapter): () => void {
+    if (this.session?.id !== id) return () => {};
+    this.detachSelection();
+    const binding = { id, adapter }; this.selectionAdapter = binding;
+    this.publish({ selection: null });
+    return () => {
+      if (this.selectionAdapter !== binding) return;
+      this.detachSelection(); this.publish({ selection: null });
+    };
+  }
+
+  private detachSelection(): void {
+    const binding = this.selectionAdapter; this.selectionAdapter = undefined;
+    binding?.adapter.retire();
+  }
+
+  async selectRange(input: BookTextRange, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingSelectionReceipt> {
+    const range = normalizeBookRangeQuery({ range: input }).range;
+    signal?.throwIfAborted(); this.checkGuard(guard);
+    const binding = this.selectionAdapter;
+    if (!binding || this.state.status !== "ready" || this.session?.id !== binding.id) throw new AppError("reader/unavailable", "Selection requires a ready reader");
+    if (range.bookId !== this.session.bookId) throw new AppError("reader/out-of-scope", "Open the target book before selecting a passage");
+    const initial = this.state.selection?.id ?? null;
+    let phase: "preparing" | "navigating" | "applying" = "preparing";
+    const abort = new AbortController(), cancel = () => abort.abort(signal?.reason);
+    signal?.addEventListener("abort", cancel, { once: true });
+    const off = this.observe(snapshot => {
+      const selected = snapshot.selection?.id ?? null;
+      if (this.selectionAdapter !== binding || (phase === "preparing" && selected !== initial)
+        || (phase === "navigating" && selected !== null && selected !== initial)) {
+        abort.abort(new AppError("reader/superseded", "Selection intent was replaced"));
+      }
+    });
+    let selected: ReadingSelectionSnapshot | undefined;
+    try {
+      await this.run(range, abort.signal, undefined, undefined, { bookId: range.bookId, sessionId: binding.id }, async signal => {
+        signal.throwIfAborted();
+        if (this.selectionAdapter !== binding) throw new AppError("reader/superseded", "Selection adapter changed");
+        phase = "applying";
+        selected = await binding.adapter.select(range, this.state.selection?.id ?? null, signal);
+        if (this.state.selection?.id !== selected.id) throw new AppError("reader/superseded", "A newer selection replaced the applied range");
+      }, undefined, async signal => {
+        await binding.adapter.validate(range, signal);
+        signal.throwIfAborted(); phase = "navigating";
+      });
+      if (!selected) throw new AppError("reader/unavailable", "No committed selection");
+      return { status: "completed", sessionId: binding.id, selection: structuredClone(selected) };
+    } finally { off(); signal?.removeEventListener("abort", cancel); }
+  }
+
+  async clearSelection(expectedId: string, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingSelectionReceipt> {
+    signal?.throwIfAborted(); this.checkGuard(guard);
+    if (typeof expectedId !== "string" || !expectedId.trim() || expectedId.length > 256) throw new AppError("reader/invalid-target", "An observed selection ID is required");
+    const binding = this.selectionAdapter;
+    if (!binding || this.state.status !== "ready" || this.session?.id !== binding.id) throw new AppError("reader/unavailable", "Selection requires a ready reader");
+    if (this.state.selection?.id !== expectedId) throw new AppError("reader/superseded", "Selection changed before clearing");
+    await binding.adapter.clear(expectedId, signal);
+    signal?.throwIfAborted(); this.checkGuard(guard);
+    if (this.selectionAdapter !== binding || this.state.selection) throw new AppError("reader/superseded", "Selection changed while clearing");
+    return { status: "completed", sessionId: binding.id, selection: null };
+  }
+
   fail(id: string, error: unknown): void {
     if (this.session?.id !== id) return;
     this.session.error = error;
     this.detachPlayback();
     this.detachMode();
     this.detachControls();
+    this.detachSelection();
     this.publish({ status: "error", selection: null, errorCode: errorCode(error) ?? "reader/load-failed", playback: unavailablePlayback(), mode: unavailableMode(), controls: null });
   }
 
@@ -137,6 +209,7 @@ export class ReadingSessionController {
     this.detachMode();
     this.session = undefined;
     this.detachControls();
+    this.detachSelection();
     this.publish({ status: "idle", sessionId: null, bookId: null, location: null, visibleText: "", selection: null, errorCode: undefined, playback: unavailablePlayback(), mode: unavailableMode(), controls: null });
   }
 
@@ -326,7 +399,7 @@ export class ReadingSessionController {
     }
     if (target.textQuote !== undefined && (!target.textQuote || typeof target.textQuote !== "object"
       || !target.contentVersion || !(target.cfi || target.href) || typeof target.textQuote.exact !== "string"
-      || !target.textQuote.exact.trim() || target.textQuote.exact.length > 8192
+      || !target.textQuote.exact.trim() || target.textQuote.exact.length > 12000
       || [target.textQuote.prefix, target.textQuote.suffix].some(value => value !== undefined && (typeof value !== "string" || value.length > 8192)))) {
       return Promise.reject(new AppError("reader/invalid-target", "Text quote requires a versioned section and bounded text"));
     }
@@ -363,7 +436,7 @@ export class ReadingSessionController {
   }
 
   private run(target: ReadingTarget & { bookId: string }, signal?: AbortSignal, historyIndex?: number, direction?: "next" | "previous", guard?: ReadingSessionGuard,
-    settle?: (signal: AbortSignal) => Promise<void>, moveMode?: (signal: AbortSignal) => Promise<void>): Promise<ReadingNavigationReceipt> {
+    settle?: (signal: AbortSignal) => Promise<void>, moveMode?: (signal: AbortSignal) => Promise<void>, prepare?: (signal: AbortSignal) => Promise<void>): Promise<ReadingNavigationReceipt> {
     if (signal?.aborted) return Promise.reject(signal.reason);
     try {
       this.checkGuard(guard);
@@ -393,6 +466,7 @@ export class ReadingSessionController {
     const execute = async (): Promise<ReadingNavigationReceipt> => {
       check();
       this.checkGuard(guard);
+      if (prepare) { await prepare(controller.signal); check(); this.checkGuard(guard); }
       if (this.session?.bookId !== target.bookId) {
         if (!this.shell) throw new AppError("reader/unavailable", "Reader shell is not mounted");
         this.openingIntent = intent;

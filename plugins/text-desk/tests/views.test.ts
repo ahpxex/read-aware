@@ -15,7 +15,7 @@ function harness() {
       },
       getToc: async () => { throw Error("Status inspection must not prepare text"); },
     } } },
-    reading: { commands: { openBook: async (bookId: string) => { if (openFails) throw Error("open failed"); opened.push(bookId); } } },
+    reading: { queries: { session: async () => ({ selection: null }) }, commands: { openBook: async (bookId: string) => { if (openFails) throw Error("open failed"); opened.push(bookId); } } },
   } } as unknown as PluginContext;
   return { ctx, calls, opened, fail: (id: string) => { fail = id; }, failOpen: () => { openFails = true; } };
 }
@@ -45,4 +45,17 @@ test("failed detail reads and navigation propagate instead of closing or renderi
   await expect(textDetail(h.ctx, "7", "Book 7")).rejects.toThrow();
   h.fail(""); const detail = await textDetail(h.ctx, "7", "Book 7"); h.failOpen();
   await expect(detail.actions!.find(action => action.id === "open")!.run()).rejects.toThrow("open failed"); expect(h.opened).toEqual([]);
+});
+
+test("clear captures the displayed selection ID and rejects instead of clearing a newer user selection", async () => {
+  const h = harness(), seen: unknown[] = [];
+  const state = { sessionId: "session", bookId: "7", selection: { id: "old" } };
+  h.ctx.domains.reading!.queries.session = async () => structuredClone(state) as Awaited<ReturnType<NonNullable<PluginContext["domains"]["reading"]>["queries"]["session"]>>;
+  h.ctx.domains.reading!.commands!.clearSelection = async (id, guard) => {
+    seen.push([id, guard]); if (id !== state.selection.id) throw Error("selection replaced");
+    return { status: "completed", sessionId: "session", selection: null };
+  };
+  const view = await textDesk(h.ctx); state.selection.id = "new";
+  await expect(view.actions!.find(a => a.id === "clear-selection")!.run()).rejects.toThrow("selection replaced");
+  expect(seen).toEqual([["old", { bookId: "7", sessionId: "session" }]]);
 });

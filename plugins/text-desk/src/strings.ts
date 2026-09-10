@@ -1,5 +1,7 @@
 const locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 const labels = {
+  selectPassage: ["Select passage", "选中段落", "選取段落", "文章を選択", "Выделить отрывок", "Sélectionner le passage", "Textstelle auswählen", "Seleccionar pasaje"],
+  clearSelection: ["Clear selection", "清除选区", "清除選取", "選択を解除", "Снять выделение", "Effacer la sélection", "Auswahl aufheben", "Quitar selección"],
   inspectPassage: ["Inspect passage", "查看段落", "檢視段落", "文章を確認", "Просмотреть отрывок", "Examiner le passage", "Textstelle prüfen", "Examinar pasaje"],
   inspectSelection: ["Current selection", "当前选区", "目前選取範圍", "現在の選択", "Текущее выделение", "Sélection actuelle", "Aktuelle Auswahl", "Selección actual"],
   noSourceRange: ["No versioned passage is available", "没有可用的版本化段落", "沒有可用的版本化段落", "バージョン付きの文章はありません", "Нет доступного версионированного отрывка", "Aucun passage versionné disponible", "Keine versionierte Textstelle verfügbar", "No hay un pasaje versionado disponible"],

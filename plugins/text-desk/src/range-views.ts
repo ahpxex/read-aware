@@ -38,6 +38,14 @@ export async function rangeDetail(ctx: PluginContext, input: BookRangeQuery): Pr
     { kind: "quote", text: page.text, caption: `${page.offset + 1}-${page.offset + page.text.length} / ${page.totalLength}` },
     ...(page.context.after ? [{ kind: "text" as const, text: page.context.after }] : []),
   ], actions: [
+    { id: "select-passage", label: tr(ctx.locale, "selectPassage"), icon: "text-aa", run: async () => {
+      const reading = ctx.domains.reading!;
+      const current = await reading.queries.session();
+      const session = current.bookId === page.range.bookId && current.status === "ready"
+        ? current : await reading.commands!.openBook(page.range.bookId);
+      await reading.commands!.selectRange(page.range, { bookId: page.range.bookId, sessionId: session.sessionId! });
+      return { close: true };
+    } },
     { id: "open-passage", label: tr(ctx.locale, "openPassage"), icon: "book-open", run: async () => {
       await ctx.domains.reading!.commands!.goTo(page.range); return { close: true };
     } },

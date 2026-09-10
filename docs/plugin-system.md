@@ -1100,7 +1100,7 @@ not proof that later extraction will succeed.
 copies values. Relocation, renderer detachment, failure, replacement and close
 clear the public selection; native Escape publishes its clear. Late capture
 checks document membership before clearing or replacing state. This is not a
-new public selection write API or a general fix for all document listeners.
+general fix for all document listeners. Public writes are specified below.
 
 [代码] `selectionActions` 1.2 adds optional `input.range` (the current host sends
 a range or null). Native selection uses the captured reference. Guided reading
@@ -1128,8 +1128,47 @@ paragraph detail, native Escape and switch clearing. Selection was created via
 DOM Range and dispatched pointerup, not an OS mouse drag. The detached-document
 event had no live Selection, so it does not prove the nonempty stale branch.
 Privacy combinations are unit evidence, not native preference-toggle evidence.
-Public set/clear commands, annotation creation/validation/persistence, all-format
-and packaged/cross-platform coverage remain incomplete.
+Annotation creation/validation/persistence, all-format and packaged/cross-platform
+coverage remain incomplete. Public selection commands are specified below.
+
+### Selection Control
+
+[代码] Reading 2.10 exposes `commands.selectRange(range, guard?)` and
+`commands.clearSelection(expectedId, guard?)` to plugins with `reading:write`.
+No/read grants do not expose commands. Both actors share the reading controller;
+Agent `set_reading_selection` has `select` with a copied BookTextRange or `clear`
+with a previously observed selectionId, never both. Select requires the target
+book already ready, validates the source before navigation, checks content
+version/session identity, restores a rendered DOM range (PDF: unique quote),
+and joins its matching React overlay commit. This is not a compositor/animation
+completion guarantee. Clear requires the exact selection identity and waits for
+the matching null commit. Newer user selections, renderer replacement and stale
+guards reject rather than clearing a replacement selection.
+
+[代码] Selection presentation has a 10-second deadline; select also shares the
+navigation deadline, cancellation and intent ordering. Plugin retirement forwards
+its lifecycle signal. Cancellation rejects the receipt; it does not roll back
+an already moved viewport or displayed selection. A source failure happens before
+movement, while a later rendering failure may occur after movement. Agent returns
+only status/sessionId/selectionId, not text. Under privacy/spoiler restrictions,
+`get_reading_session` removes selection and visibleText plus textQuote from both
+current location and mode position. The model must still use authorized range
+reads for text. Navigation now accepts exact quotes up to the producer's 12000
+UTF-16 limit rather than rejecting otherwise valid 8193-12000-unit references.
+
+[环境] [Native evidence](./evidence/selection-control-2026-09-10.json) covers
+real FB2/PDF module Worker select/clear, no/read grant absence, stale clear
+preserving a newer selection, actual Agent tool select/clear and stale version
+rejection. Compiled Text Desk 0.7 composes search/read/select and a captured-ID
+clear action; native dialog button clicks selected the second PDF match, then
+the dialog exited with its selection toolbar still visible. Both owned books,
+their annotations, cleanup intents and live blob paths were removed through
+formal commands and checked with read-only SQLite. Existing books were untouched.
+Unit tests cover source/guard rejection, delayed validation and React commit,
+replacement/cancellation/timeout, privacy redaction and consumer completion.
+Native in-flight cancellation, all formats, long ranges, stale nonempty documents,
+provider replacement, packaged and Windows/Linux remain unverified; READ13 stays
+partial rather than treating this command pair as the complete capability goal.
 
 ### Derived Prose Search
 

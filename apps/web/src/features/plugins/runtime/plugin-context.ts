@@ -750,6 +750,8 @@ export function buildPluginContext(
       ctx.domains.reading.commands = guardMutationTree(
         {
         setFinished: reading.commands.setFinished,
+        selectRange: (range: import("@read-aware/core").BookTextRange, guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.selectRange(range, lifecycle.signal, guard),
+        clearSelection: (expectedId: string, guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.clearSelection(expectedId, lifecycle.signal, guard),
         openBook: (bookId: string) => reading.commands!.openBook(bookId, lifecycle.signal),
         goTo: (target: import("@read-aware/core").ReadingTarget) => reading.commands!.goTo(target, lifecycle.signal),
         back: (guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.back(lifecycle.signal, guard),

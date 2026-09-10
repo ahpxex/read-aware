@@ -46,6 +46,13 @@ export async function textDesk(ctx: PluginContext, page = 0): Promise<PluginList
   actions.push({ id: "search", label: tr(ctx.locale, "searchShelf"), icon: "magnifying-glass", run: () => ({ view: textSearchForm(ctx) }) });
   actions.push({ id: "selection", label: tr(ctx.locale, "inspectSelection"), icon: "text-aa",
     run: async () => ({ view: await capturedRangeDetail(ctx, (await ctx.domains.reading!.queries.session()).selection?.range) }) });
+  const session = await ctx.domains.reading!.queries.session();
+  if (session.selection && session.sessionId && session.bookId) {
+    const selectionId = session.selection.id;
+    const guard = { sessionId: session.sessionId, bookId: session.bookId };
+    actions.push({ id: "clear-selection", label: tr(ctx.locale, "clearSelection"), icon: "x",
+      run: async () => { await ctx.domains.reading!.commands!.clearSelection(selectionId, guard); return { close: true }; } });
+  }
   for (const direction of [-1, 1]) if (index + direction >= 0 && (index + direction) * 20 < books.length) actions.push({
     id: direction < 0 ? "previous" : "next", label: tr(ctx.locale, direction < 0 ? "previous" : "next"), icon: direction < 0 ? "arrow-left" : "arrow-right",
     run: async () => ({ view: await textDesk(ctx, index + direction), navigation: "replace" }),

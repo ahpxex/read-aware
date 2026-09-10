@@ -7,6 +7,7 @@ import { textResult } from "./tool-result";
 import type { AgentTurnState } from "./turn-state";
 import { AppError, type ReadingLocation } from "@read-aware/core";
 import { readingContextCall } from "../runtime/reading-context-policy";
+import { buildSelectionTools } from "./selection-tools";
 
 export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: AgentTurnState): AgentTool[] {
   const openBook: AgentTool = {
@@ -86,12 +87,17 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
         call.assertAllowed();
         const snapshot = await call.wait(deps.reader.getSession());
         if (scope.kind === "book" && snapshot.bookId !== scope.bookId) return textResult({ status: "not-active", bookId: scope.bookId });
-        if (!call.permissions.selection || !call.permissions.surrounding) {
-          return textResult({ ...snapshot, visibleText: "", selection: null,
-            textAccess: "Viewport text is withheld by the reader's privacy settings." });
+        const privateText = !call.permissions.selection || !call.permissions.surrounding;
+        if (privateText || state?.spoilerFence && !state.spoilerPermissionGranted) {
+          const safe = structuredClone(snapshot);
+          safe.visibleText = ""; safe.selection = null;
+          if (safe.location) delete safe.location.textQuote;
+          if (safe.mode.position) delete safe.mode.position.location.textQuote;
+          return textResult({ ...safe, textAccess: privateText
+            ? "Viewport text is withheld by the reader's privacy settings."
+            : "Use the turn's original reading_cursor.visible_text; navigation does not grant spoiler access." });
         }
-        return textResult(state?.spoilerFence && !state.spoilerPermissionGranted
-          ? { ...snapshot, visibleText: "", selection: null, textAccess: "Use the turn's original reading_cursor.visible_text; navigation does not grant spoiler access." } : snapshot);
+        return textResult(snapshot);
       } finally { call.dispose(); }
     },
   };
@@ -173,5 +179,5 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
       return textResult(await deps.reader.setPanel(panel, open, signal, { bookId: current.bookId, sessionId: current.sessionId }));
     },
   };
-  return [openBook, session, control, playback, mode, controls, panelState, panelControl];
+  return [openBook, session, control, playback, mode, controls, panelState, panelControl, ...buildSelectionTools(scope, deps)];
 }

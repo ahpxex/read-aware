@@ -56,3 +56,23 @@ test("stale reads and failed searches reject, never display a fabricated empty o
   ctx.domains.library!.queries.books.searchLocations = async () => { throw failure; };
   await expect(rangeResults(ctx, { bookId: "book", query: "needle" })).rejects.toBe(failure);
 });
+
+test("select passage composes open-if-needed with versioned selection and waits before closing", async () => {
+  const { ctx, range } = fixture();
+  const calls: unknown[] = []; let release!: () => void;
+  ctx.domains.reading!.queries = { session: async () => ({ bookId: "other", status: "ready" }) } as NonNullable<PluginContext["domains"]["reading"]>["queries"];
+  ctx.domains.reading!.commands!.openBook = async bookId => {
+    calls.push(["open", bookId]); return { status: "completed", sessionId: "opened", location: range };
+  };
+  ctx.domains.reading!.commands!.selectRange = async (...args) => {
+    calls.push(["select", ...args]); await new Promise<void>(resolve => { release = resolve; });
+    return { status: "completed", sessionId: "opened", selection: null };
+  };
+  const view = await rangeDetail(ctx, { range }); let done = false;
+  const pending = Promise.resolve(view.actions!.find(a => a.id === "select-passage")!.run()).then(value => { done = true; return value; });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(done).toBe(false); expect(calls).toEqual([["open", "book"], ["select", range, { bookId: "book", sessionId: "opened" }]]);
+  release(); expect(await pending).toEqual({ close: true });
+  ctx.domains.reading!.commands!.selectRange = async () => { throw Error("stale range"); };
+  await expect(view.actions!.find(a => a.id === "select-passage")!.run()).rejects.toThrow("stale range");
+});

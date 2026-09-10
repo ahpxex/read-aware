@@ -57,6 +57,12 @@ export type ReadingSelectionSnapshot = {
   rangeUnavailableReason?: "unsupported" | "too-large" | "unavailable";
 };
 
+export type ReadingSelectionReceipt = {
+  status: "completed";
+  sessionId: string;
+  selection: ReadingSelectionSnapshot | null;
+};
+
 export type ReadingControlsSnapshot = { visible: boolean };
 export type ReadingControlsReceipt = { status: "completed"; sessionId: string; controls: ReadingControlsSnapshot };
 

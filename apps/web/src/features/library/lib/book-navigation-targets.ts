@@ -22,6 +22,7 @@ export async function navigationTargetsInBook(book: FoliateBook, input: BookNavi
   const items: BookNavigationTargetEntry[] = [];
   const base = { bookId: query.bookId, contentVersion: query.contentVersion };
   let total = 0;
+  let pages: FoliateTocItem[] | null = null;
   if (query.kind === "sections") {
     total = book.sections.length;
     for (let index = query.offset; index < Math.min(total, query.offset + query.limit); index++) {
@@ -30,8 +31,14 @@ export async function navigationTargetsInBook(book: FoliateBook, input: BookNavi
         location: { ...base, cfi: cfi(book, index) } });
     }
   } else {
+    try { pages = book.getPageList ? await book.getPageList() : book.pageList ?? null; }
+    catch (cause) {
+      signal?.throwIfAborted();
+      throw new AppError("library/content-unavailable", "Page labels could not be loaded", { cause });
+    }
+    signal?.throwIfAborted();
     let index = 0;
-    for (const entry of pageEntries(book.pageList ?? [])) {
+    for (const entry of pageEntries(pages ?? [])) {
       signal?.throwIfAborted();
       const position = index++, label = entry.label ?? "";
       if (query.label !== undefined && label !== query.label) continue;
@@ -53,7 +60,7 @@ export async function navigationTargetsInBook(book: FoliateBook, input: BookNavi
     }
   }
   if (query.offset > total) throw new AppError("library/invalid-query", "Navigation offset exceeds matching targets");
-  return { ...base, kind: query.kind, status: query.kind === "pages" && !book.pageList?.length ? "absent" : "available",
+  return { ...base, kind: query.kind, status: query.kind === "pages" && !pages?.length ? "absent" : "available",
     items, total, nextOffset: query.offset + items.length < total ? query.offset + items.length : null };
 }
 

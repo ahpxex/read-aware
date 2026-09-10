@@ -23,3 +23,25 @@ export const makePDFTOCItem = (item: PDFOutline): TOCItem => ({
     href: item.url ?? JSON.stringify(item.dest),
     subitems: item.items.length ? item.items.map(makePDFTOCItem) : null,
 })
+
+/** Coalesce optional metadata reads without delaying PDF initialization or hiding failures. */
+export const createPDFPageListLoader = (
+    pdf: Pick<PDFDocument, 'numPages' | 'getPageLabels'>,
+    isClosed: () => boolean,
+): (() => Promise<TOCItem[] | null>) => {
+    let pending: Promise<TOCItem[] | null> | undefined
+    return () => {
+        if (isClosed()) return Promise.reject(new Error('PDF document was closed'))
+        pending ??= Promise.resolve().then(() => {
+            if (isClosed()) throw new Error('PDF document was closed')
+            return pdf.getPageLabels()
+        }).then(labels => {
+            if (isClosed()) throw new Error('PDF document was closed')
+            if (labels === null) return null
+            if (!Array.isArray(labels) || labels.length !== pdf.numPages || labels.some(label => typeof label !== 'string'))
+                throw new Error('PDF page labels do not match the source pages')
+            return labels.map((label, index) => ({ label, href: JSON.stringify([index, { name: 'Fit' }]) }))
+        }).catch((error: unknown) => { pending = undefined; throw error })
+        return pending
+    }
+}

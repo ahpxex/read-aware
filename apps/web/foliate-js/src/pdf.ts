@@ -3,7 +3,7 @@ import * as pdfjsLib from './vendor/pdfjs/pdf.mjs'
 import type { PDFPage, PDFDestination, LoadingTask } from './vendor/pdfjs/pdf.mjs'
 import { getPDFMetadata } from './pdf-metadata.js'
 import { BookRangeTransport } from './pdf-transport.js'
-import { makePDFTOCItem, resolvePDFHref } from './pdf-navigation.js'
+import { createPDFPageListLoader, makePDFTOCItem, resolvePDFHref } from './pdf-navigation.js'
 
 const pdfjsPath = (path: string) => new URL(`vendor/pdfjs/${path}`, import.meta.url).toString()
 
@@ -476,6 +476,7 @@ export const makePDF = async (file: BookFile) => {
     const renderedCovers = new Map<number, Promise<Awaited<ReturnType<typeof thumbnailFromCanvas>> | null>>()
     const urls = new Set<string>()
     let destroyed = false
+    const getPageList = createPDFPageListLoader(pdf, () => destroyed)
     const sections = Array.from({ length: pdf.numPages }, (_, i) => ({
         id: `page:${i + 1}`,
         load: async () => {
@@ -527,7 +528,7 @@ export const makePDF = async (file: BookFile) => {
         return null
     }
     return {
-        metadata, toc, sections,
+        metadata, toc, sections, getPageList,
         rendition: { layout: 'pre-paginated' },
         isExternal: (uri: string) => /^\w+:/i.test(uri),
         resolveHref: (href: string) => resolvePDFHref(pdf, href),

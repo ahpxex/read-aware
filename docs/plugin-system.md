@@ -242,8 +242,8 @@ not expand the Agent's original reading-text privacy or spoiler permission.
 [验证] Focused renderer-adapter, history/version/guard and Agent tests pass;
 the fixed-layout render wait remains intact. Real Tauri/Worker multi-format
 navigation is deferred to concentrated plugin E2E. Library 1.14 supplies the
-source/page-label catalog below; reflowable screen-page counts, PDF label
-extraction and full native-link history unification remain separate gaps.
+source/page-label catalog below, including PDF labels; reflowable screen-page
+counts and full native-link history unification remain separate gaps.
 
 ### Navigation Target Catalog (Library 1.14)
 
@@ -269,10 +269,22 @@ locations retain fragment hrefs and can be copied unchanged into goTo/open_book.
 
 `available` with no items means an empty catalog or no exact label match;
 `absent` specifically means this parser did not provide a nonempty page-list,
-not that the printed edition has no numbered pages. Current EPUB nav/NCX lists
-work directly; the PDF adapter still does not expose PDF page labels. Its source
-pages remain discoverable using sections. No page numbers or TOC chapter numbers
-are synthesized, and this is not reflowable screen-page counting.
+not that the printed edition has no numbered pages. EPUB nav/NCX lists and PDF
+page labels both feed this catalog. PDF's `getPageList` lazily consumes the
+vendored PDF.js `getPageLabels`; it retains Roman labels, prefixes and duplicate
+labels verbatim, maps each to its source page using the existing numeric
+destination resolver, and does not invent labels when PDF.js returns null.
+Source pages remain discoverable using sections. No page numbers or TOC chapter
+numbers are synthesized, and this is not reflowable screen-page counting.
+
+PDF label loading is shared by native page-progress initialization and catalog
+queries without blocking first-page rendering. Concurrent requests coalesce;
+successful or absent metadata is cached for that parser lifetime, failures are
+not cached, and closed parsers reject before dispatch or publishing late data.
+Label count/type mismatch rejects rather than shifting a page's identity.
+Metadata failure logs in native progress and rejects the catalog query with
+`library/content-unavailable`, not `absent`. Section-only queries do not request
+page labels. Cancellation still drains the in-flight parser read.
 
 Only selected page links are resolved, without loading chapter DOM or reading
 passages. Counting/filtering still scans page-list metadata; bounded output is
@@ -285,7 +297,10 @@ queries do not grant spoiler permission or add passage evidence.
 
 [验证] Actual EPUB page-list fixtures, duplicate labels/fragments, source CFI,
 no chapter reads, bounds, cancellation, grants and Agent location round-trip
-tests pass. Real Worker/Tauri navigation remains for concentrated plugin E2E.
+tests pass. PDF label mapping/coalescing/failure/retirement and shared-query tests
+use controlled PDF document ports, not a real PDF.js worker; actual PDF label
+extraction, native progress and Worker/Tauri navigation remain for concentrated
+plugin E2E.
 
 ### Annotation Conditional Contract
 

@@ -7,8 +7,22 @@ import { makeEPUBFixture } from "./fixtures/foliate-epub";
 import { withDom } from "./helpers/foliate-dom";
 import { buildPluginContext } from "../src/features/plugins/runtime/plugin-context";
 import type { Book } from "../foliate-js/src/book";
+import { createPDFPageListLoader, resolvePDFHref } from "../foliate-js/src/pdf-navigation";
 
 const query = { bookId: "book", contentVersion: "v1", kind: "pages" } as const;
+
+test("deferred PDF labels use the same catalog and do not masquerade read errors as absent", async () => {
+  let reads = 0;
+  const pdf = { numPages: 2, getPageLabels: async () => { reads++; return ["iv", "1"]; },
+    getPageIndex: async () => -1, getDestination: async () => null };
+  const book: Book = { sections: [0, 1].map(index => ({ id: `page:${index + 1}`, size: 1000, load: () => "" })),
+    getPageList: createPDFPageListLoader(pdf, () => false), resolveHref: href => resolvePDFHref(pdf, href) };
+  await navigationTargetsInBook(book, { ...query, kind: "sections" }, contentCFI); expect(reads).toBe(0);
+  expect(await navigationTargetsInBook(book, { ...query, label: "iv" }, contentCFI)).toMatchObject({ status: "available", total: 1,
+    items: [{ sectionIndex: 0, label: "iv", location: { href: '[0,{"name":"Fit"}]' } }] });
+  book.getPageList = async () => { throw Error("metadata failed"); };
+  await expect(navigationTargetsInBook(book, query, contentCFI)).rejects.toMatchObject({ code: "library/content-unavailable" });
+});
 
 test("actual EPUB page labels preserve duplicates and fragments without loading chapter documents", () => withDom(async () => {
   const f = makeEPUBFixture();

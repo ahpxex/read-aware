@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+PDF 页码标签批次已接线：PDF adapter 的延迟 getPageList 消费现有 PDF.js getPageLabels，保留罗马数字/前缀/重复标签，经原数字目标解析器定位源页。复用上一批 listNavigationTargets，插件/Agent 不新增专用 API；原生页进度也消费同源延迟目录。异步元数据不挡首屏，并发合并、成功/缺表缓存、失败可重试，关闭前后拒绝迟到结果；数量/类型不符拒绝而不偏移页身份，查询失败不报 absent。源分节查询不读取标签。
+
+[验证] PDF 映射/缓存/失败/关闭、共享目录及原导航定向 13 pass / 81 assertions，全仓 typecheck 27/27，49 个 Foliate 静态模块已重建。PDF 测试使用受控 document ports，并非实际 PDF.js Worker；真实标签抽取、原生页进度和插件/Tauri 导航留集中 E2E。重排屏幕页数与 TOC 语义章节步进仍缺，整体目标未完成；下方历史“PDF 标签提取仍缺”由本批接线取代。
+
 导航目标目录批次已接线：library 1.14 listNavigationTargets 与 Agent 双 scope list_book_navigation_targets 按内容版本分页列举源分节或解析器已有 page-list。可精确匹配页码标签，重复标签保留多目标，缺表与无匹配分开，失效/外链不给位置；源分节含非线性注释，签发 CFI，页码保留原 fragment 位置，均可交给现有 goTo/open_book。不读正文或加载外链，保留 library 授权、源租约/版本检查与退休排空，不增加 Agent 剧透权限。
 
 [验证] 实际 EPUB 页码表/重复标签/位置、边界/取消/授权和 Agent 回传定位定向 21 pass / 709 assertions，全仓 typecheck 27/27；矩阵 875 入口映射，Agent book 82/global 99，三文档对结构通过。输出每页最多 50（Agent 20），标签最多 300；计数过滤仍扫描元数据，不冒充有界解析器。当前 PDF adapter 尚未提供 PDF 页码标签，重排屏幕页数、TOC 语义章节步进和真实 Worker/Tauri 组合仍待后续；READ05 保留部分，下方历史批次“页码标签仍缺”由本批限定覆盖取代。

@@ -16,6 +16,7 @@ export type PDFDocument = {
     getPageIndex(ref: { num: number; gen: number }): Promise<number>
     getDestination(name: string): Promise<PDFDestination | null>
     getOutline(): Promise<PDFOutline[] | null>
+    getPageLabels(): Promise<string[] | null>
     getMetadata(): Promise<{ info: Record<string, unknown>; metadata: PDFMetadata | null }>
     destroy(): Promise<void>
 }

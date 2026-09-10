@@ -135,7 +135,9 @@ export class View extends HTMLElement {
         // Outline resolution must not block the first page or update a replacement book.
         void Promise.all([
             toc.init({ toc: book.toc ?? [], ids, splitHref, getFragment }),
-            pages.init({ toc: book.pageList ?? [], ids, splitHref, getFragment }),
+            Promise.resolve().then(async () => pages.init({
+                toc: (book.getPageList ? await book.getPageList() : book.pageList) ?? [], ids, splitHref, getFragment,
+            })),
         ]).then(() => {
             if (generation === this.#generation && this.#lastRelocateDetail)
                 this.#onRelocate({ ...this.#lastRelocateDetail, reason: 'anchor' })

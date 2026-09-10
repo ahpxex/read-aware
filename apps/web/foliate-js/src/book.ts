@@ -103,6 +103,8 @@ export interface Book {
     metadata?: BookMetadata
     toc?: TOCItem[] | null
     pageList?: TOCItem[] | null
+    /** Optional deferred page metadata; failure must not be mistaken for an absent list. */
+    getPageList?: () => MaybePromise<TOCItem[] | null>
     landmarks?: TOCItem[] | null
     rendition?: Rendition
     dir?: string | null

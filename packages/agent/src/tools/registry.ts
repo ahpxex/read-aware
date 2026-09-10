@@ -13,6 +13,7 @@ import { buildMemoryTools } from "./memory-tools";
 import { buildPresentTools } from "./present-tools";
 import { buildReaderTools } from "./reader-tools";
 import { buildNavigationTools } from "./navigation-tools";
+import { buildReferenceTools } from "./reference-tools";
 import { buildSettingsTools } from "./settings-tools";
 import { buildEnvironmentTools } from "./environment-tools";
 import { buildWorkspaceTools } from "./workspace-tools";
@@ -59,6 +60,7 @@ export function buildAgentTools(
     ...(scope.kind === "global" ? buildPresentTools(deps, turnState) : []),
     ...buildReaderTools(scope, deps, turnState),
     ...buildNavigationTools(scope, deps, turnState),
+    ...buildReferenceTools(scope, deps, turnState),
     ...buildInteractionTools(scope, deps, turnState),
     ...buildSettingsTools(scope, deps),
     ...(deps.extraTools?.(scope) ?? []),

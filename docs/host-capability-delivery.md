@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+引用读取批次已接线：library 1.12 提供 listReferences/readReference，双 scope Agent 对应 list_book_references/read_book_reference。输入绑定书籍版本、解析器分节和引用序号；列举不读取目标，纯文本预览可分页，解析成功返回可交给原导航的位置。外链仅报告 HTTP(S) URL，不加载/打开；内联脚注读取原注文字，DOM 留在宿主。Agent 在来源/目标分节加载前核对原阅读边界，链接不是授权票据，脚注不自动豁免。未知/不支持/受阻目标与读取异常分开，插件继续遵循 library 授权和生命周期排空。
+
+本引用批次：25 项/658 断言和 typecheck 27/27、三文档对结构校验通过。覆盖 DOM 查询/预览分页、CFI 往返、文档不变、权限/注入参数、加载前双端范围、外链/缺失/不支持、取消与 Agent 工具输出；矩阵 243 行/837 映射，catalog 36，Agent book 70/global 87。TXT11 由未接变为部分：原生脚注浮层主动打开/关闭、无 DOM 的 PDF 链接和大型单节可中断预算仍缺，真实格式/Worker/组合插件留到集中 E2E 阶段；不把普通纯文本预览当成已验原生脚注界面。本批未启动桌面/浏览器、未推送。
+
 对象动作与 Agent 页头批次已接线：contextActions 1.0 统一书籍/集合动作，接入书籍网格/列表、集合卡片/详情；headerActions 1.2 增加 agent，使用原有页头缩排与 overflow，传当前全局线程 ID。对象输入只给目标 ID/名称摘要，不传原始路径、封面、成员或消息，不增加读写权限。复用注册级 visible/enabled/checked、替换/释放保护、Worker 可更新句柄和现有 view/toast/Dialog 生命周期；仅 shelf 允许 page，Agent/reader 强制 popup。Agent 本身继续走领域语义工具，不增加点击菜单的工具。MORE04 标为接通待集中验收。
 
 本对象动作批次：30 项/208 断言定向测试、全仓 typecheck 27/27 与三文档对结构检查通过；矩阵 243 行/831 映射，catalog 36 项，Agent 工具仍 book 68/global 85。测试覆盖最小目标投影、快照复制、跨 surface 过滤、状态/退休、未知 surface、无授权不出现 library 域，以及仿真 Worker 传输与句柄释放。不是实际 Worker/UI E2E；真实桌面菜单、窄窗/焦点和插件组合留到集中阶段。无系统级原生右键菜单、批量选择贡献、逐对象条件或新布局设置；本批未启动桌面/浏览器、未推送。

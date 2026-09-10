@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 194、部分 43、待建 3、占位 2、非桌面 1。
-- Agent：接通 133、部分 57、扩展 13、未接 22、自动 14、内部 4。
-- 插件：接通 148、部分 79、未接 16。
+- Agent：接通 133、部分 58、扩展 13、未接 21、自动 14、内部 4。
+- 插件：接通 148、部分 80、未接 15。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -94,7 +94,7 @@
 | <a id="TXT08"></a>TXT08 | 搜索分页、取消、背压和过期查询淘汰 | 待建 | **未接**：无正式入口<br>[设计] 有界搜索任务 | **未接**：无正式入口<br>[设计] 有界搜索任务 | 无完整公共实现 | 引擎局部 cancel 不等于端到端插件/Agent 任务协议 | [ENGINE](../apps/web/foliate-js/src/view.ts) [API](../packages/plugin-types/src/index.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) | C06 |
 | <a id="TXT09"></a>TXT09 | 读取当前可见文本/阅读游标 | 部分 | **部分**：get_reading_session + 原有自动 grounding<br>[设计] 按需读当前会话 + 自动 grounding | **部分**：reading.queries.session + observeSession<br>[设计] 会话快照与范围查询 | 书内 Agent；桌面 FB2 探针 | 重排正文已返回实际可见 Range 文本，限 12000 字符；PDF range 为空时 visibleText 仍为空，文本可用性分类待补 | [NAV](../apps/web/src/domain/reading-session-controller.ts) [NAVADAPTER](../apps/web/src/features/reader/lib/reading-engine-adapter.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [GROUND](../packages/agent/src/runtime/grounding-context.ts) [API](../packages/plugin-types/src/index.ts) | C07 |
 | <a id="TXT10"></a>TXT10 | 选区附近句段上下文 | 实装 | **部分**：get_reading_session.selection → read_book_range；既有附件/grounding<br>[设计] 有来源的范围读取 | **部分**：reading 2.9 session.selection / selectionActions 1.2 range → library.readRange<br>[设计] 可按范围查询 | Ask AI；Dictionary；Text Desk 0.6 | 搜索/真实选区 Range 可在不移动阅读器时按 UTF-16 分页读取，默认 4000/上限 12000，整范围外同分节上下文每侧默认 240/上限 2000，不切 surrogate pair。原生选区捕获显示源的版本；当前句段仅在 position 与 book/CFI 相符时提供同源 Range。Agent 当前叙事书沿用回合 fence，自动选区查询受隐私/原始剧透限制；插件仍是领域授权。旧标注不补签当前版本，Range 写入未统一；不是句段语义分割或完整文档快照。 | [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) [GROUND](../packages/agent/src/runtime/grounding-context.ts) [API](../packages/plugin-types/src/index.ts) [DICT](../plugins/dictionary/src/index.ts) [RANGEHOST](../apps/web/src/features/library/lib/book-range.ts) [RANGEUI](../plugins/text-desk/src/range-views.ts) [RANGEPROOF](../docs/evidence/book-range-2026-09-10.json) [SELECTIONRANGE](../apps/web/src/features/reader/lib/selection-range.ts) [SELECTIONPROOF](../docs/evidence/selection-range-2026-09-10.json) | C07 |
-| <a id="TXT11"></a>TXT11 | 书内脚注/链接目标解析与预览 | 实装 | **未接**：无正式入口<br>[设计] 引用目标查询/宿主预览 | **未接**：无正式入口<br>[设计] 书内链接 ResourceRef/预览 | ReaderFootnotePopover | DOM 与样式保持宿主所有；只开放语义目标 | [ENGINE](../apps/web/foliate-js/src/view.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [API](../packages/plugin-types/src/index.ts) | C08, E05 |
+| <a id="TXT11"></a>TXT11 | 书内脚注/链接目标解析与预览 | 实装 | **部分**：list_book_references/read_book_reference[双域]<br>[设计] 版本化引用目标查询/纯文本预览 | **部分**：library 1.12 listReferences/readReference<br>[设计] 语义引用/纯文本预览/导航组合 | 原生 ReaderFootnotePopover；新增查询等待组合插件 | 版本化 sectionIndex+index 描述，单节列举 1–50 条、预览 2–12000 UTF-16 单元可续读；不开放 DOM 或任意目标 URL。链接交给同源解析器，脚注图标直接读 zy-footnote/alt；返回 resolved/external/blocked/missing/unsupported，内部 location 可交给既有导航，外链仅报告 HTTP(S) 且不加载/打开。Agent 来源与目标分节均在解析前验证原阅读边界，脚注不自动豁免；插件需 library 授权。CFI、当前内容版本和 provider 生命周期复用既有租约。纯文本可用现有声明式视图呈现，尚未接原生脚注浮层的主动打开/关闭；不含 computed-style 脚注猜测、无 DOM 的 PDF 批注链接或图片资源。大型单节解析预算、真实 EPUB/FB2/Worker/原生预览与组合验证待集中阶段，TXT11 保持部分。 | [ENGINE](../apps/web/foliate-js/src/view.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [API](../packages/plugin-types/src/index.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [BOOKREFERENCES](../apps/web/src/features/library/lib/book-references.ts) [REFERENCETOOLS](../packages/agent/src/tools/reference-tools.ts) [REFERENCEPROOF](../apps/web/tests/book-references.test.ts) | C08, E05 |
 | <a id="TXT12"></a>TXT12 | 书内图片读取与灯箱缩放预览 | 实装 | **未接**：无正式入口<br>[设计] 受控图片查询/预览 | **未接**：无正式入口<br>[设计] 图片 ResourceRef/预览 | ReaderImageLightbox | 灯箱存在不等于模型已有图像输入工具 | [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [BLOB](../apps/web/src/platform/blob-store.ts) [API](../packages/plugin-types/src/index.ts) | C08, E05, J08 |
 | <a id="TXT13"></a>TXT13 | 统一位置/范围解析、校验、版本与失效 | 部分 | **部分**：搜索/会话选区 → read_book_range / open_book<br>[设计] 宿主签发 Location/Range | **部分**：library 1.7 / reading 2.9 / selectionActions 1.2 → readRange / goTo<br>[设计] 宿主签发 Location/Range | Jumper/Agent/RSS；Text Desk 0.6；标注仍待统一 Range | 文件 SHA-256/虚拟内容摘要；来源 lease/前后校验和 provider 代际保护。readRange 严格复制书/版本/CFI/quote，拒绝额外权力字段；DOM 用 canonical 单文档 CFI，PDF 用页 CFI+唯一 quote，歧义/缺失/不支持/越界分码。真实选区捕获显示源版本，当前句段复用匹配 position，旧标注不补签版本。共享 View 页 CFI 不再误解析为空页内路径。三项内容查询取消先拒绝 Worker 调用，物理读取/lease 仍由 shutdown drain 等待，后续非取消错误不吞。真实 macOS Worker、Agent、编译插件 FB2/PDF 选区/导航、句段详情及慢读退役已有证据；引擎大节仍整段/上下文读取，非有界内存或即时中止。公共选区命令见 READ13；标注身份/Range 写入、跨模式引用、全部格式、最大载荷、provider 更新/在途内容替换、packaged/跨平台仍未完整。 | [ENGINE](../apps/web/foliate-js/src/view.ts) [NAV](../apps/web/src/domain/reading-session-controller.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [API](../packages/plugin-types/src/index.ts) [CONTENTSOURCE](../apps/web/src/features/library/lib/book-content-source.ts) [NAVTOOLS](../packages/agent/src/tools/navigation-tools.ts) [RANGEHOST](../apps/web/src/features/library/lib/book-range.ts) [RANGETYPES](../packages/core/src/book-range.ts) [RANGEENGINE](../apps/web/foliate-js/src/content-range.ts) [RANGEUI](../plugins/text-desk/src/range-views.ts) [RANGEPROOF](../docs/evidence/book-range-2026-09-10.json) [SELECTIONRANGE](../apps/web/src/features/reader/lib/selection-range.ts) [SELECTIONPROOF](../docs/evidence/selection-range-2026-09-10.json) | A02, A03, A04, E06, F04 |
 
@@ -410,9 +410,9 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：85 个。
-- Agent book：68 个。
-- Plugin ctx：175 个。
+- Agent global：87 个。
+- Agent book：70 个。
+- Plugin ctx：177 个。
 - Plugin returned interface：27 个。
 - Capability domains：6 个。
 - Capability contributions：15 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 175 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 177 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -524,6 +524,8 @@
 | `get_navigation_toc` | [TXT02](#TXT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `find_book_locations` | [TXT07](#TXT07) [TXT13](#TXT13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `read_book_range` | [TXT10](#TXT10) [TXT13](#TXT13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `list_book_references` | [TXT11](#TXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `read_book_reference` | [TXT11](#TXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `ask_user` | [AI04](#AI04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `update_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -597,6 +599,8 @@
 | `get_navigation_toc` | [TXT02](#TXT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `find_book_locations` | [TXT07](#TXT07) [TXT13](#TXT13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `read_book_range` | [TXT10](#TXT10) [TXT13](#TXT13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `list_book_references` | [TXT11](#TXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `read_book_reference` | [TXT11](#TXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `ask_user` | [AI04](#AI04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `update_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -625,6 +629,8 @@
 | `domains.library.queries.books.listTextTasks` | [TXT05](#TXT05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.searchLocations` | [TXT07](#TXT07) [TXT13](#TXT13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.readRange` | [TXT10](#TXT10) [TXT13](#TXT13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.library.queries.books.listReferences` | [TXT11](#TXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.library.queries.books.readReference` | [TXT11](#TXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.searchText` | [TXT06](#TXT06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.list` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.library.queries.books.get` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

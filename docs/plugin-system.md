@@ -3009,6 +3009,65 @@ Settings chooses among capabilities; contributions supply choices. The active
 theme, font, voice, and reader mode are settings. The available themes, fonts,
 voices, and modes are contributions.
 
+## <a id="book-reference-queries"></a>Book Reference Queries
+
+[代码] Library 1.12 exposes `queries.books.listReferences` and `readReference`
+under `library:read` (also implied by write). Both are read-only; neither changes
+the reader, opens a popup, fetches a URL, nor writes an annotation. The Agent
+registers `list_book_references` and `read_book_reference` in both scopes over
+the same domain implementation.
+
+- `listReferences({bookId, contentVersion, sectionIndex, offset?, limit?})`
+  requires a nonblank book ID (max 512) and content version (max 256).
+  `sectionIndex` is a nonnegative safe integer in the book's parser/spine, not
+  an extracted chapter index or printed chapter number. Get it and the version
+  from navigation TOC. Offset defaults to 0; limit defaults to 20, range 1–50.
+  The response includes source identity, `status: available|unsupported`, total,
+  nextOffset, and items with bounded 300-character label, `kind: link|inline-note`
+  and `{bookId, contentVersion, sectionIndex, index}` reference. Enumeration
+  follows document order and does not resolve/load destinations or expose hrefs.
+- `readReference({reference, offset?, limit?})` resolves that exact reference
+  against the leased version, with offset default 0 and limit 2–12000 (default
+  4000). Input objects are copied and unknown fields, including caller-supplied
+  `hrefs`, `throughChapterIndex`, URLs or grants, reject. Pre/post content version,
+  book existence, virtual-provider replacement and cancellation checks reuse
+  `withBookContent`; plugin cancellation uses lifecycle read/drain.
+- Responses retain the reference and label, plus
+  `status: resolved|external|blocked|missing|unsupported`, text, UTF-16 offset,
+  totalLength and nextOffset. Resolved internal links include a versioned CFI
+  `location` consumable by existing navigation. A missing link index or anchor
+  is `missing`; absent source section is `library/range-not-found`. No DOM
+  creation capability is `unsupported`, not proof that the book has no links.
+  Source parse/I/O errors propagate rather than becoming an empty list.
+- Supported elements are HTML/SVG anchors with href/xlink:href and inline image
+  notes marked `zy-footnote`, `epub-footnote`, or `zhangyue-footnote`. Inline
+  note text comes from `zy-footnote`, then `alt`. Link hrefs pass through the
+  source section and book resolver; target elements/ranges produce plain text
+  from a detached fragment, with script/style excluded. Numeric zero means
+  section start; other numeric anchors are unsupported. No DOM objects or HTML
+  cross the public boundary. Source documents remain unchanged.
+- HTTP(S) external links return only their bounded URL; protocol-relative links
+  normalize to HTTPS. Credentials and unsafe/unsupported external schemes are
+  blocked. Queries never fetch or open them. Ordinary external opening remains
+  a separate explicit intent with its existing service permission. Internal
+  preview offsets beyond text or splitting a surrogate pair reject; returned
+  chunks do not split pairs. Empty resolved text is not a missing reference.
+- Agent listing uses at most 20 items. Both source and target are checked against
+  the original current-book reading fence before document parsing; knowing a
+  reference does not authorize its destination, including endnote sections.
+  Host-verified explicit spoiler consent may relax this fence; the model cannot
+  grant itself consent. Global/other-book policy remains as before. Only returned
+  preview text enters evidence; no hidden target content or raw DOM is injected.
+
+[环境] DOM/CFI, projection, pagination, cancellation, fence, Agent tool/registry
+and type checks verify wiring, not actual native UI/Worker composition. Plugins
+can render the returned plain text using existing views; actively opening or
+closing the native ReaderFootnotePopover is not connected. Computed-style note
+heuristics, PDF annotation links without DOM, image resources and a preemptible
+large-section parsing budget remain gaps. Responses are bounded, but parsing a
+section still materializes its DOM and target text. TXT11 remains partial until
+the remaining host presentation and real-format composition are addressed.
+
 ## 7. Contributions
 
 The canonical contribution roster is:

@@ -135,6 +135,8 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   get_navigation_toc: { bookId: BOOK_ID },
   find_book_locations: { bookId: BOOK_ID, query: "Victor" },
   read_book_range: {},
+  list_book_references: { bookId: BOOK_ID, contentVersion: "fixture", sectionIndex: 0 },
+  read_book_reference: { reference: { bookId: BOOK_ID, contentVersion: "fixture", sectionIndex: 0, index: 0 } },
   read_chapter: { bookId: BOOK_ID, chapterIndex: 0 },
   search_book_text: { queries: ["footprints"], bookId: BOOK_ID },
   query_book_graph: { bookId: BOOK_ID },
@@ -202,6 +204,10 @@ describe("tool surface contract", () => {
         if (!params) continue; // 完备性由上面的用例把守
         // 每个工具独立的 fixture：破坏性工具（fixture 自动批准权限）不得污染后续用例
         const { deps } = createInMemoryDeps(seed());
+        deps.bookText.listReferences = async input => ({ bookId: input.bookId, contentVersion: input.contentVersion, sectionIndex: input.sectionIndex,
+          status: "available", items: [], total: 0, nextOffset: null });
+        deps.bookText.readReference = async input => ({ reference: input.reference, status: "resolved", label: "Note", text: "Reference preview",
+          offset: 0, totalLength: 17, nextOffset: null });
         deps.hostIO.writeClipboard = async () => {};
         deps.library.previewMerge = async () => ({ revision: `bmg1:${"a".repeat(64)}`, keep: { id: BOOK_ID, title: "Keeper", author: "Author", createdAt: "2026-09-01" },
           merged: [{ id: "duplicate", title: "Duplicate", author: "Author", createdAt: "2026-09-02" }] });

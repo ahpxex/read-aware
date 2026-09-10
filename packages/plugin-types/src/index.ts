@@ -1240,6 +1240,10 @@ export type PluginLibraryDomain = {
     getNavigationToc(bookId: string): Promise<import("@read-aware/core").BookNavigationToc>;
     searchLocations(input: import("@read-aware/core").BookLocationSearch): Promise<import("@read-aware/core").BookLocationSearchPage>;
     readRange(input: import("@read-aware/core").BookRangeQuery): Promise<import("@read-aware/core").BookRangePage>;
+    /** Library 1.12: versioned section references, not extracted chapter indices. */
+    listReferences(input: import("@read-aware/core").BookReferencesQuery): Promise<import("@read-aware/core").BookReferencesPage>;
+    /** Plain-text preview and resolved navigation location; never fetches or opens an external URL. */
+    readReference(input: import("@read-aware/core").BookReferenceQuery): Promise<import("@read-aware/core").BookReferencePreview>;
     /** Multi-query derived prose search. Single-book may prepare text; shelf search never does. Results are not navigation locations. */
     searchText(input: import("@read-aware/core").BookTextSearch): Promise<import("@read-aware/core").BookTextHit[]>;
     };

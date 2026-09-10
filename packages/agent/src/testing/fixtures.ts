@@ -653,6 +653,8 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       ...createMemoryMaintenanceFixture(stores.memories, memoryManagement),
     },
     bookText: {
+      listReferences: async () => { throw new AppError("library/content-unavailable", "Fixture has no book reference documents"); },
+      readReference: async () => { throw new AppError("library/content-unavailable", "Fixture has no book reference documents"); },
       preparation: createMemoryTextPreparation(stores.chapters),
       ...createMemoryBookNavigation(stores.chapters),
       getTextState: async bookId => {

@@ -38,3 +38,18 @@ export const TwoColumns: Story = {
 export const SingleColumn: Story = {
   args: { items: sampleItems, columns: 1 },
 };
+
+export const LongIdentifiers: Story = {
+  args: {
+    variant: "inline",
+    items: [
+      { label: "Book", value: "Composition 88c607e9" },
+      {
+        label: "Source version",
+        value: "sha256:fdfc6932a5e03e05f52dfc45764f333f122fb6782490e9e877edbabc0295bb49",
+      },
+      { label: "UnbrokenLabel".repeat(8), value: "UnbrokenValue".repeat(8) },
+    ],
+  },
+  decorators: [(Story) => <div style={{ width: 320, maxWidth: "100%" }}><Story /></div>],
+};

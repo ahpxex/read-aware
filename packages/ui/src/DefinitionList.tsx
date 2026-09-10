@@ -28,7 +28,7 @@ export function DefinitionList({
   return (
     <dl
       className={cn(
-        "grid",
+        "grid min-w-0",
         variant === "stacked" ? "gap-6 sm:gap-8" : "gap-x-6 gap-y-2",
         columnClasses[columns],
         className,
@@ -38,15 +38,16 @@ export function DefinitionList({
         <div
           key={item.label}
           className={cn(
+            "min-w-0",
             variant === "inline" && "grid grid-cols-[minmax(5rem,auto)_minmax(0,1fr)] gap-4",
           )}
         >
-          <dt className="font-sans text-[13px] font-medium text-fg-subtle">
+          <dt className="min-w-0 [overflow-wrap:anywhere] font-sans text-[13px] font-medium text-fg-subtle">
             {item.label}
           </dt>
           <dd
             className={cn(
-              "min-w-0 text-sm text-fg",
+              "min-w-0 [overflow-wrap:anywhere] text-sm text-fg",
               variant === "stacked" ? "mt-1.5 leading-6" : "leading-5",
             )}
           >

@@ -1,0 +1,85 @@
+{
+  "date": "2026-09-11",
+  "scope": "Jumper 0.6 bookmarks and Agent approval; Workspace Profiles 0.5 native window controls",
+  "environment": {
+    "application": "/tmp/readaware-maintenance-acceptance.app",
+    "identifier": "com.readaware.app.capability-e2e",
+    "platform": "macOS aarch64 debug RepoDist, Tauri 2.11.2, app 0.5.4",
+    "frontendPort": 5184,
+    "bridgePort": 9224,
+    "productionDataUsed": false,
+    "entry": "Registered plugin commands through runPluginContribution, compiled Workers and native webview controls; Agent tools through buildRuntimeDeps and the real ChatInteractionPrompt/interaction port"
+  },
+  "bookmarks": {
+    "bookId": "cc376f5f-06b2-4afd-92ca-777d2521b0a3",
+    "bookTitle": "Composition 88c607e9",
+    "source": "Owned FB2 imported through the host library domain",
+    "contentVersion": "sha256:fdfc6932a5e03e05f52dfc45764f333f122fb6782490e9e877edbabc0295bb49",
+    "uiSave": {
+      "id": "c0e0a10c-65f3-4fd3-aeb3-e6abd286e930",
+      "originalName": "Composition bookmark 88c607e9",
+      "originalRevision": "6863efd74d4ceaf49621524ebb0224d7",
+      "renamed": "Renamed bookmark 88c607e9",
+      "renamedRevision": "81c00d8a2bdf197e18ead5a7e44ac1cf",
+      "cfi": "epubcfi(/6/2!/4/2[first],/1:0,/8/1:36)"
+    },
+    "agent": {
+      "list": "Registered list_bookmarks returned the real document id and revision",
+      "rename": "Run tool in the actual approval widget executed manage_bookmark; SQLite name and revision changed",
+      "declineDelete": "Keep it returned executed:false/reason:declined; document remained",
+      "staleSave": "Captured section-0 token, opened save approval, navigated to section 1 before approval; Run tool returned stale-location and created no document",
+      "freshSave": {
+        "id": "b3efbd3e-dee2-4019-9d67-d53d240d1ce4",
+        "name": "Agent bookmark 88c607e9",
+        "revision": "1d9220ef6c40ff6047cf3f381a0fd5e2",
+        "cfi": "epubcfi(/6/4!/4/2[second],/1:0,/4/1:39)",
+        "result": "Fresh location inspection and Run tool returned saved; real private SQLite document matched"
+      }
+    },
+    "restart": {
+      "method": "Cleanly close owned reader, stop bridge, terminate verified owned app PID 54322, confirm port closed, relaunch the same app as PID 54580",
+      "preserved": "Both bookmark ids, revisions and JSON survived the actual app-process restart",
+      "return": "Open bookmarks from the shelf, choose Renamed bookmark, Go to bookmark; observed loading with dialog still open, then ready at the exact saved section-0 CFI with dialog closed",
+      "readerSession": "2fb35068-b11c-4dbc-9d49-0d7d7f9cfae0"
+    },
+    "uiDelete": "Submitting without checkbox showed Confirm deletion; confirming deleted only Agent bookmark. Subsequent SQLite inspection contained only Renamed bookmark"
+  },
+  "window": {
+    "maximize": "Plugin action set native maximized true; physical frame changed from 1800x1300 to 3024x1898; live view updated",
+    "restore": "Plugin Restore window returned maximized false",
+    "fullscreen": "Plugin Enter full screen set fullscreen true; Exit full screen returned fullscreen/maximized false and focused true",
+    "minimize": "Plugin action set minimized true and focused false",
+    "restoreMinimized": "DOM-automated plugin Restore window returned minimized false and focused true; not a Dock or physical-click test",
+    "foreground": "After actual fullscreen entry/exit, document.visibilityState was visible and dialog opacity was 1; normal-window screenshots were visually inspected"
+  },
+  "defectFixed": {
+    "component": "packages/ui/src/DefinitionList.tsx, consumed by plugin keyValue rendering",
+    "before": "At 600x750 logical pixels, the full source hash had scrollWidth 568 versus clientWidth 261; ancestor definition list had scrollWidth 677 versus clientWidth 370",
+    "fix": "Keep grid items shrinkable and wrap unbroken labels/values anywhere. Do not truncate or modify stored identifiers",
+    "after": "At 600x750 the complete hash had scrollWidth/clientWidth 261/261 and computed overflow-wrap:anywhere. No overflowing descendants in the dialog at 600x750 or 900x650; visibility visible and opacity 1",
+    "regression": "Added LongIdentifiers Storybook case with a full source hash and long unbroken label/value; UI and web typechecks passed; actual Tauri geometry and screenshot rechecked"
+  },
+  "screenshots": [
+    "bookmark-window-2026-09-11.png",
+    "bookmark-list-2026-09-11.png",
+    "bookmark-detail-2026-09-11.png"
+  ],
+  "cleanup": {
+    "privateDocuments": "Owned-book filter only; empty after cleanup",
+    "bookRemoval": { "committed": true, "files": "released" },
+    "reader": "idle, bookId null, sessionId null",
+    "remainingBooks": ["Reading Capability Probe", "Reading Paint Probe"],
+    "plugins": "Jumper and Workspace Profiles retained original enabled state true",
+    "window": "Restored 900x650 logical pixels; not minimized/maximized/fullscreen",
+    "processes": "Owned PID 54580 terminated, driver 9224 stopped, frontend session exited 0; no 5184/9224 listeners",
+    "original9223": "Not operated"
+  },
+  "limitations": [
+    "Agent calls were scripted tool invocations with the real approval adapter/widget and Worker, not a complete model-driven chat turn. No inference request or chat message was sent.",
+    "No fresh plugin upgrade-consent flow, selection bookmark, multiple-format bookmark, cross-book switch, cross-device sync or crash-durability claim.",
+    "Initial background-window DOM/native-state checks do not prove foreground visuals. Only settled visible screenshots are accepted; an early transition screenshot was replaced.",
+    "Shared UI HMR reloaded the frontend and cleared fixture ownership. Re-prepared the exact existing owned book before cleanup; did not recreate test data or restart because of observation failure.",
+    "One post-restart scoped DOM snapshot failed with resolveAll unavailable; an unscoped retry on the same live app succeeded. A follow-up command used display-qualified jumper:bookmarks instead of internal bookmarks and was corrected without product changes.",
+    "Automation bridge cannot report its plugin version. No bridge upgrade was attempted. This batch does not certify every capability or remaining acceptance scenario."
+  ]
+}

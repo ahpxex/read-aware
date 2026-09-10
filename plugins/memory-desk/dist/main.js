@@ -447,9 +447,226 @@ async function editProfile(ctx, expectedRevision) {
   } };
 }
 
+// src/conversation-control-strings.ts
+var en3 = {
+  controls: "Conversation controls",
+  current: "Selected global conversation",
+  newDraft: "New global draft",
+  selected: "Conversation selected",
+  draftSelected: "New draft selected",
+  select: "Select conversation",
+  refresh: "Refresh",
+  requests: "My turn requests",
+  noRequests: "No retained requests",
+  cancel: "Cancel request",
+  draft: "Propose draft",
+  send: "Request send",
+  retry: "Request retry",
+  text: "Message",
+  invalidText: "Enter 1-65,536 characters",
+  stop: "Stop conversation",
+  stopped: "Stop completed",
+  clear: "Clear conversation",
+  cleared: "Conversation cleared",
+  confirmClear: "Clear this conversation and its summary; keep long-term memories and event history",
+  confirmRetry: "Retry the existing user message",
+  confirm: "Confirm this action first",
+  target: "Target",
+  state: "State",
+  messages: "Messages",
+  inactive: "Not mounted",
+  loading: "Loading",
+  streaming: "Generating",
+  idle: "Idle",
+  pending: "Awaiting host confirmation",
+  adopted: "Draft adopted",
+  started: "Turn started",
+  dismissed: "Dismissed",
+  cancelled: "Cancelled",
+  stale: "Conversation changed",
+  failed: "Failed",
+  expired: "Expired"
+};
+var zh2 = {
+  controls: "对话控制",
+  current: "当前选中的全局对话",
+  newDraft: "新建全局草稿",
+  selected: "已选择对话",
+  draftSelected: "已选择新草稿",
+  select: "选择对话",
+  refresh: "刷新",
+  requests: "我的回合请求",
+  noRequests: "暂无保留请求",
+  cancel: "取消请求",
+  draft: "提交草稿",
+  send: "请求发送",
+  retry: "请求重试",
+  text: "消息",
+  invalidText: "请输入 1-65,536 个字符",
+  stop: "停止对话",
+  stopped: "停止操作已完成",
+  clear: "清空对话",
+  cleared: "对话已清空",
+  confirmClear: "清空此对话及其摘要，保留长期记忆和事件历史",
+  confirmRetry: "重试已有用户消息",
+  confirm: "请先确认此操作",
+  target: "目标",
+  state: "状态",
+  messages: "消息数",
+  inactive: "未挂载",
+  loading: "加载中",
+  streaming: "生成中",
+  idle: "空闲",
+  pending: "等待宿主确认",
+  adopted: "已采用草稿",
+  started: "回合已开始",
+  dismissed: "已拒绝",
+  cancelled: "已取消",
+  stale: "对话已变化",
+  failed: "失败",
+  expired: "已过期"
+};
+var conversationWords = (locale) => locale === "zh-Hans" ? zh2 : en3;
+
+// src/turn-requests.ts
+function requestDetail(ctx, request) {
+  const t = conversationWords(ctx.locale);
+  return { kind: "detail", title: t[request.action], content: [{ kind: "keyValue", rows: [
+    { label: t.target, value: `${request.target.kind}:${request.target.id}` },
+    { label: t.state, value: t[request.status] }
+  ] }], actions: [
+    { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => {
+      const current = (await ctx.domains.conversations.queries.turnRequests()).find((r) => r.id === request.id);
+      if (!current)
+        throw Object.assign(Error("Retained request missing"), { code: "ui/invalid-target" });
+      return { view: requestDetail(ctx, current), navigation: "replace" };
+    } },
+    ...request.status === "pending" && ctx.domains.conversations.commands ? [{ id: "cancel", label: t.cancel, icon: "x", run: async () => {
+      const receipt = await ctx.domains.conversations.commands.cancelTurnRequest(request.id);
+      return { view: requestDetail(ctx, receipt), navigation: "replace" };
+    } }] : []
+  ] };
+}
+async function turnRequestsView(ctx, target, page = 0) {
+  const t = conversationWords(ctx.locale);
+  const requests = (await ctx.domains.conversations.queries.turnRequests()).filter((r) => !target || r.target.kind === target.kind && r.target.id === target.id).sort((a, b) => b.createdAt - a.createdAt);
+  const current = Math.min(Math.max(0, page), Math.max(0, Math.ceil(requests.length / 40) - 1));
+  return {
+    kind: "list",
+    title: t.requests,
+    emptyText: t.noRequests,
+    items: requests.slice(current * 40, (current + 1) * 40).map((r) => ({
+      id: r.id,
+      title: t[r.action],
+      subtitle: `${t[r.status]} / ${r.target.kind}:${r.target.id}`,
+      icon: "chat-circle",
+      onSelect: () => ({ view: requestDetail(ctx, r) })
+    })),
+    actions: [
+      { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await turnRequestsView(ctx, target, current), navigation: "replace" }) }
+    ],
+    pagination: {
+      page: current + 1,
+      ...current > 0 ? { onPrevious: async () => ({ view: await turnRequestsView(ctx, target, current - 1), navigation: "replace" }) } : {},
+      ...(current + 1) * 40 < requests.length ? { onNext: async () => ({ view: await turnRequestsView(ctx, target, current + 1), navigation: "replace" }) } : {}
+    }
+  };
+}
+
+// src/conversation-controls.ts
+function controlReceipt(ctx, target, title, status) {
+  const t = conversationWords(ctx.locale);
+  return {
+    kind: "detail",
+    title,
+    content: [{ kind: "text", text: status }, { kind: "keyValue", rows: [{ label: t.target, value: `${target.kind}:${target.id}` }] }],
+    actions: [{
+      id: "refresh",
+      label: t.refresh,
+      icon: "arrows-clockwise",
+      run: async () => ({ view: await conversationControls(ctx, target, title), navigation: "replace" })
+    }]
+  };
+}
+function proposal(ctx, target, action) {
+  const t = conversationWords(ctx.locale);
+  return {
+    kind: "form",
+    title: t[action],
+    submitLabel: t[action],
+    fields: action === "retry" ? [{ id: "confirm", kind: "checkbox", label: t.confirmRetry, value: false }] : [{ id: "text", kind: "textarea", label: t.text, value: "" }],
+    onSubmit: async (values) => {
+      if (action === "retry" && values.confirm !== true)
+        return { fieldErrors: { confirm: t.confirm } };
+      if (action !== "retry" && (typeof values.text !== "string" || !values.text.trim() || values.text.length > 65536))
+        return { fieldErrors: { text: t.invalidText } };
+      const receipt = await ctx.domains.conversations.commands.requestTurn(action === "retry" ? { target, action } : { target, action, text: values.text });
+      return { close: true, toast: t[receipt.status] };
+    }
+  };
+}
+async function conversationControls(ctx, input, title) {
+  const target = { ...input }, t = conversationWords(ctx.locale), domain = ctx.domains.conversations;
+  const render = (runtime) => {
+    const session = runtime.sessions.find((s) => s.kind === target.kind && s.id === target.id);
+    const ready = session && !session.loading && !session.streaming;
+    return { kind: "detail", title: `${title} / ${t.controls}`, content: [{ kind: "keyValue", rows: [
+      { label: t.target, value: `${target.kind}:${target.id}` },
+      { label: t.state, value: !session ? t.inactive : session.loading ? t.loading : session.streaming ? t.streaming : t.idle },
+      ...session ? [{ label: t.messages, value: String(session.messageCount) }] : []
+    ] }], actions: [
+      { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await conversationControls(ctx, target, title), navigation: "replace" }) },
+      { id: "requests", label: t.requests, icon: "list", run: async () => ({ view: await turnRequestsView(ctx, target) }) },
+      ...domain.commands ? [
+        ...target.kind === "global" ? [{ id: "select", label: t.select, icon: "chat-circle", run: async () => {
+          const receipt = await domain.commands.selectThread(target.id);
+          return { view: controlReceipt(ctx, receipt.target, title, t.selected), navigation: "replace" };
+        } }] : [],
+        ...ready ? ["draft", "send", ...session.messageCount > 0 ? ["retry"] : []].map((action) => ({
+          id: action,
+          label: t[action],
+          icon: action === "retry" ? "arrow-clockwise" : "paper-plane-tilt",
+          run: () => ({ view: proposal(ctx, target, action) })
+        })) : [],
+        { id: "stop", label: t.stop, icon: "stop", run: async () => {
+          const receipt = await domain.commands.stop(target);
+          return { view: controlReceipt(ctx, receipt.target, title, t.stopped), navigation: "replace" };
+        } },
+        { id: "clear", label: t.clear, icon: "trash", run: () => ({ view: {
+          kind: "form",
+          title: `${title} / ${t.clear}`,
+          submitLabel: t.clear,
+          fields: [
+            { id: "confirm", kind: "checkbox", label: t.confirmClear, description: `${target.kind}:${target.id}`, value: false }
+          ],
+          onSubmit: async (values) => {
+            if (values.confirm !== true)
+              return { fieldErrors: { confirm: t.confirm } };
+            const receipt = await domain.commands.clear(target);
+            return { view: controlReceipt(ctx, receipt.target, title, t.cleared), navigation: "replace" };
+          }
+        } }) }
+      ] : []
+    ] };
+  };
+  const initial = await domain.queries.runtime();
+  return { ...render(initial), live: { subscribe(channel) {
+    let disposed = false, revision = 0;
+    const subscription = domain.events.observeRuntime(async (state) => {
+      if (!disposed)
+        await ctx.services.ui.publishView(channel, { revision: ++revision, view: render(state) });
+    });
+    return { dispose() {
+      disposed = true;
+      subscription.dispose();
+    } };
+  } } };
+}
+
 // src/conversation-summaries.ts
 async function conversationSummaries(ctx, page = 0) {
   const t = contextWords(ctx.locale), threads = await ctx.domains.conversations.queries.listThreads();
+  const c = conversationWords(ctx.locale), domain = ctx.domains.conversations;
   const current = Math.min(Math.max(page, 0), Math.max(0, Math.ceil(threads.length / 40) - 1));
   return {
     kind: "list",
@@ -464,7 +681,16 @@ async function conversationSummaries(ctx, page = 0) {
       onSelect: async () => ({ view: await conversationSummary(ctx, { kind: "global", id: thread.id }, thread.title || t.untitled) })
     })),
     actions: [
-      { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await conversationSummaries(ctx, current), navigation: "replace" }) }
+      { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await conversationSummaries(ctx, current), navigation: "replace" }) },
+      { id: "current", label: c.current, icon: "chat-circle", run: async () => {
+        const state = await domain.queries.runtime();
+        return { view: await conversationControls(ctx, { kind: "global", id: state.selectedGlobalThreadId }, c.current) };
+      } },
+      { id: "requests", label: c.requests, icon: "list", run: async () => ({ view: await turnRequestsView(ctx) }) },
+      ...domain.commands ? [{ id: "new", label: c.newDraft, icon: "plus", run: async () => {
+        const receipt = await domain.commands.createThread();
+        return { view: controlReceipt(ctx, receipt.target, c.newDraft, c.draftSelected) };
+      } }] : []
     ],
     pagination: {
       page: current + 1,
@@ -485,7 +711,13 @@ async function conversationSummary(ctx, target, title) {
       { kind: "text", variant: "caption", text: `${summary?.length ? offset + 1 : 0}-${offset + page.text.length} / ${summary?.length ?? 0}` }
     ], actions: [
       { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await conversationSummary(ctx, target, title), navigation: "replace" }) },
-      ...pageActions(ctx.locale, offsets, page.nextOffset, render)
+      ...pageActions(ctx.locale, offsets, page.nextOffset, render),
+      {
+        id: "controls",
+        label: conversationWords(ctx.locale).controls,
+        icon: "chat-circle",
+        run: async () => ({ view: await conversationControls(ctx, target, title) })
+      }
     ] };
   };
   return render([0]);
@@ -584,6 +816,11 @@ var src_default = {
     ctx.contributions.commands.register({ id: "open", title, icon: "brain", run: async () => ({ view: await memoryDesk(ctx) }) });
     for (const surface of ["shelf", "reader"])
       ctx.contributions.headerActions.register({ id: surface, title, icon: "brain", surface, presentation: "popup", view: () => memoryDesk(ctx) });
+    ctx.contributions.headerActions.register({ id: "agent", title, icon: "brain", surface: "agent", view: (input) => {
+      if (!input.thread)
+        throw Object.assign(Error("Agent header target missing"), { code: "ui/unavailable" });
+      return conversationControls(ctx, input.thread, title);
+    } });
   }
 };
 export {

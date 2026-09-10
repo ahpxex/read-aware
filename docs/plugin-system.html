@@ -440,7 +440,8 @@
           <div class="callout">
             <strong>Appearance 不是 Domain。</strong>它是 Settings 的一个 section。选择主题属于 Settings，提供主题属于 Theme Contribution。
           </div>
-          <p>Conversations 1.2 已接两端线程管理和待确认草稿/发送/重试。空线程只保存选择，提交请求也不自动导航；只有宿主聊天按钮能批准执行。每个已挂载目标最多一个请求，五分钟过期，关闭/退休取消；不覆盖用户草稿，重试保留原消息和附件。状态区分待确认、已采用和已启动，不冒充模型回答完成；新入口已过定向检查，组合插件与桌面验收待集中进行。</p>
+          <p>Conversations 已接线程管理和待确认草稿/发送/重试；只有宿主聊天按钮能批准执行。Memory Desk 0.9 已组合创建/选择、状态观察、停止/确认清空和自有请求查询/取消，并增加 Agent 页头入口。选择不等于导航，待确认/已采用/已启动不冒充回答完成。</p>
+          <p>41项插件测试、构建和类型检查通过，含真实请求状态机及编译贡献回调；测试中的批准为脚本，不是原生点击。需升级 conversations:write 授权，真实聊天批准、持久化和模型回合留集中桌面验收。<a href="./plugin-system.md#memory-desk-conversation-controls">组合边界</a></p>
           <p>Memory 1.7 已接画像查询、观察与条件替换，Agent 双域可读取并在宿主展示完整候选后批准保存；插件需 memory:write，自身界面负责确认。摘要最多16000字符单元，旧版本拒绝覆盖，保存成功才回执；空文本清摘要但不删除记忆、历史或备份。同章下一用户轮也更新画像提示词，保留对话。不开放原始KV，现有本机存储不是跨进程/跨设备CAS或事件投影。完整访谈与种子记忆编排仍缺；基础测试通过，真实Worker/Tauri组合留集中验收。</p>
           <p>停止/清空等待最后回合写入，清空不撤销长期记忆、事件历史或工具副作用，不承诺多步原子回滚。Agent 清空须批准，执行中的线程不能用工具停止/清空自身；请求查询只给自有摘要，不能伪造 role 历史。</p>
           <details class="ep" data-search-section="Memory Desk profile conversation summary 画像 对话 摘要"><summary>Memory Desk 0.8：画像编辑与书内、全局对话摘要已有实际使用方</summary><div class="ep-body">

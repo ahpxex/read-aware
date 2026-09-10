@@ -1,11 +1,15 @@
 import type { PluginContext, PluginDetailView, PluginListView } from "@read-aware/plugin-types";
 import { contextWords } from "./context-strings";
 import { pageActions, textPage } from "./context-pagination";
+import { conversationControls, controlReceipt } from "./conversation-controls";
+import { conversationWords } from "./conversation-control-strings";
+import { turnRequestsView } from "./turn-requests";
 
 type Target = Parameters<NonNullable<PluginContext["domains"]["conversations"]>["queries"]["getInsights"]>[0];
 
 export async function conversationSummaries(ctx: PluginContext, page = 0): Promise<PluginListView> {
   const t = contextWords(ctx.locale), threads = await ctx.domains.conversations!.queries.listThreads();
+  const c = conversationWords(ctx.locale), domain = ctx.domains.conversations!;
   const current = Math.min(Math.max(page, 0), Math.max(0, Math.ceil(threads.length / 40) - 1));
   return { kind: "list", title: t.conversations, searchable: true, emptyText: t.noThreads,
     items: threads.slice(current * 40, (current + 1) * 40).map(thread => ({
@@ -13,6 +17,15 @@ export async function conversationSummaries(ctx: PluginContext, page = 0): Promi
       onSelect: async () => ({ view: await conversationSummary(ctx, { kind: "global", id: thread.id }, thread.title || t.untitled) }),
     })), actions: [
       { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await conversationSummaries(ctx, current), navigation: "replace" }) },
+      { id: "current", label: c.current, icon: "chat-circle", run: async () => {
+        const state = await domain.queries.runtime();
+        return { view: await conversationControls(ctx, { kind: "global", id: state.selectedGlobalThreadId }, c.current) };
+      } },
+      { id: "requests", label: c.requests, icon: "list", run: async () => ({ view: await turnRequestsView(ctx) }) },
+      ...(domain.commands ? [{ id: "new", label: c.newDraft, icon: "plus", run: async () => {
+        const receipt = await domain.commands!.createThread();
+        return { view: controlReceipt(ctx, receipt.target, c.newDraft, c.draftSelected) };
+      } }] : []),
     ], pagination: { page: current + 1, pageCount: Math.max(1, Math.ceil(threads.length / 40)),
       ...(current ? { onPrevious: async () => ({ view: await conversationSummaries(ctx, current - 1), navigation: "replace" as const }) } : {}),
       ...((current + 1) * 40 < threads.length ? { onNext: async () => ({ view: await conversationSummaries(ctx, current + 1), navigation: "replace" as const }) } : {}),
@@ -32,6 +45,8 @@ export async function conversationSummary(ctx: PluginContext, target: Target, ti
     ], actions: [
       { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await conversationSummary(ctx, target, title), navigation: "replace" }) },
       ...pageActions(ctx.locale, offsets, page.nextOffset, render),
+      { id: "controls", label: conversationWords(ctx.locale).controls, icon: "chat-circle",
+        run: async () => ({ view: await conversationControls(ctx, target, title) }) },
     ] };
   };
   return render([0]);

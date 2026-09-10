@@ -308,6 +308,53 @@ book in book scope; state queries show the last 20 scoped requests and a
 truncation flag. Streaming output remains in native chat, not a public role-write
 API. Focused checks passed; integrated plugin/Tauri acceptance is pending.
 
+### Memory Desk Conversation Controls
+
+[代码] Memory Desk 0.9 consumes existing Conversations 1.4 runtime, thread
+commands and retained turn requests, plus HeaderActions 1.2's Agent header target.
+Its grant changes from `conversations:read` to `conversations:write` (including
+read). No host API, model tool or unrestricted history writer is added. The
+existing shelf/reader entry remains; the Agent header opens controls for the
+specific global thread supplied by the host, not an inferred conversation.
+
+- Summary details link to controls for their exact book/global target. Global
+  summaries also offer selected-thread controls, new global draft and all owned
+  request history. New/select report the actual returned identity, without
+  navigating or claiming a new persisted transcript. A new draft becomes a
+  transcript only after its first message, under the existing host contract.
+- Control views query and observe runtime metadata: mounted/loading/generating/
+  idle and message count. Leaving releases the subscription; late callbacks do
+  not publish. Read-only contexts omit write controls. Request buttons are shown
+  for mounted idle sessions; the host still revalidates actual readiness and
+  retry eligibility at request and acceptance time.
+- Draft/send forms accept nonblank text up to 65536 UTF-16 units; retry requires
+  confirmation and submits no replacement text. A successful request closes the
+  plugin surface and reports its actual status, exposing the native approval
+  surface. It does not adopt a draft, click Send, call a model, or await output.
+  Failure rejects without closing the form. Native approval owns pending to
+  adopted/started transitions; started never means inference has finished.
+- Owned request lists display 40 records per page, newest first, optionally
+  filtered to the exact target. They use explicit refresh, not polling. Details
+  show action, target and status only, without transcript/request text. Cancel
+  acts on the captured request ID and renders the actual receipt: if already
+  started/adopted, it must not report cancelled. Expired/evicted records are not
+  fabricated from local cache. Retention/expiry remain the existing host limits.
+- Stop waits for the host turn drain; clear requires a separate checkbox that
+  names the frozen target and states that long-term memories/event history stay.
+  Neither action claims rollback of prior tool effects or an atomic multi-step
+  clear. Success is based on the command receipt; refreshing runtime is a
+  separate action, not a prerequisite for reporting a completed write.
+
+[验证] 41 plugin tests / 241 assertions, build/typecheck and manifest validation
+pass. Tests execute real host `ConversationTurnRequests` with controlled surface
+callbacks and the compiled plugin command/Agent-header contributions: no send,
+draft adoption or retry occurs until scripted host acceptance. They cover failure,
+live disposal, frozen clear, delayed stop, started-versus-cancelled receipts and
+paging. This is Bun integration, not actual WebKit/Tauri approval clicks, profile
+upgrade grants, chat persistence or a real model turn. New labels use simplified
+Chinese/English fallback. Desktop composition and document visual checks remain
+concentrated acceptance work.
+
 ### Stored Conversation Summaries (Conversations 1.4)
 
 [代码] `queries.getInsights({kind:"book"|"global",id})` returns the stored

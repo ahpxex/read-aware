@@ -2912,7 +2912,7 @@ and source navigation. Overview/profile truncation is displayed; a source click
 rechecks the current graph boundary, requires stored chapterHref, awaits reading
 ready, then closes its own view. Missing provenance reports reader/target-not-found.
 The plugin adds no Agent tool, network permission or LLM call. Source
-roster now contains 14 plugins; Rust BUNDLED remains six, excluding Memory Desk.
+roster now contains 15 plugins; Rust BUNDLED remains six, excluding Memory Desk and Maintenance Desk.
 
 [环境/验证] Isolated macOS debug Tauri tests use real SQLite, module Workers,
 production Agent tools (not autonomous inference), compiled Memory Desk and a
@@ -5162,6 +5162,56 @@ same service in both scopes; checking is explicit opt-in. SYS16's bounded actor
 entry is connected; logging 1.0 supplies plugin-owned diagnostic output, while
 diagnostics 1.1 adds host-confirmed export/send final flow receipts. Focused checks cover wiring, not real desktop update/diagnostics
 execution; composition/Tauri acceptance remains pending.
+
+### Maintenance Desk Composition Plugin
+
+[代码] `plugins/maintenance-desk` 0.1.0 consumes public plugin APIs only. It
+adds a shelf header popup and command, not a host domain or Agent tool. Its
+manifest requires settings 1.9, maintenance 1.3, diagnostics 1.1, UI 1.2,
+logging 1.0 and views 1.8; grants are `service:network`, `service:diagnostics`
+and discover-only `ai.connection.primaryModel`. No current configuration,
+credentials, book data, backup bytes, paths or diagnostic bundle is read.
+The source roster is fifteen; Rust BUNDLED remains six. This plugin is built
+but not bundled, auto-installed or published.
+
+- Catalog provider choices are twelve explicit public IDs, not the active
+  account: openai, anthropic, openrouter, google, deepseek, xai, groq, mistral,
+  moonshotai, zai, zai-coding-cn, ollama-cloud. No custom/Relay/Codex catalog.
+- The form queries cached metadata, with search limited to 120 characters and
+  25-row pages. Next/previous retain provider/search/revision. Stale pages show
+  an error and offer a first-page reload. Only an explicit refresh action calls
+  the shared remote refresh; errors retain a recovery path, never claim empty
+  catalog success. Details show ID, input types, reasoning and token limits.
+- Connection testing, v1 backup import/export, report export/send and local
+  projection verification each have a review step. Native flows then close
+  the plugin popup without awaiting their receipt inside that view callback;
+  host buttons, file selection and final confirmation still belong to the user.
+  Verification remains in the plugin's live result view and performs no repair.
+- `operations.ts` owns one pending operation and up to twenty newest entries
+  per activation. Reopening Recent operations reads retained status; a live
+  subscription updates an open result view. Unsubscribing does not abort native
+  work. Cancel aborts only the wait and retains the busy slot until its promise
+  settles; a late successful receipt cannot overwrite cancellation. Host-side
+  exclusivity still controls any native operation continuing after RPC settlement.
+- Results retain operation/time, stable error codes, receipt status or projection
+  counts only. Finished entries can be cleared without removing the pending
+  entry. Deactivation aborts waits and clears the journal; there is no durable
+  task, restart recovery or replay. Backup import may reload the app before a
+  result can be revisited. Errors render through host-localized error blocks;
+  live publication failures use the public best-effort logger.
+- Review copy explicitly distinguishes a primary-model response from saved
+  settings/all model features, v1 from a full backup, report endpoint receipt
+  from developer review, and local projection verification from repair or
+  cross-device health. Import may partially overwrite data; cancellation cannot
+  undo it. Existing backup/report personal-data warnings remain applicable.
+
+[环境/验证] Focused controlled-port tests cover public entry registration,
+review-before-effects, close/reopen receipt ownership, all native request
+directions, live counts, cancellation/retirement, bounded history, errors,
+catalog revision paging and explicit refresh. The build and production manifest
+validator are checked separately. These are not actual Worker/Tauri/native-file,
+provider-network or desktop E2E results; concentrated desktop acceptance remains
+pending. No host API was added for this consumer.
 
 ### Native AI Connection Test (Maintenance 1.3)
 

@@ -8,6 +8,14 @@ test("source evidence keys cannot silently overwrite an unrelated capability sou
   expect(() => assertUniqueSourceKeys('const sources = { ...other };')).toThrow("Expected static source key");
 });
 
+test("maintenance composition is a source consumer, not a new Agent tool or bundled plugin", () => {
+  const inventory = collectInventory();
+  expect(inventory.find(item => item.family === "First-party source plugin" && item.name === "maintenance-desk")?.rows)
+    .toEqual(["CFG08", "SYS15", "OPS03", "OPS08", "OPS11", "EXT02", "EXT05"]);
+  expect(inventory.some(item => item.family === "Native bundled plugin" && item.name === "maintenance-desk")).toBe(false);
+  expect(inventory.some(item => item.family === "Plugin Agent contribution" && item.name.includes("maintenance_desk"))).toBe(false);
+});
+
 test("semantic commands retain explicit audit mappings after native callback removal", () => {
   const inventory = collectInventory();
   const commands = inventory.filter(item => item.family === "Host semantic command");

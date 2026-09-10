@@ -1,0 +1,18 @@
+{
+  "id": "maintenance-desk",
+  "name": "Maintenance Desk",
+  "version": "0.1.0",
+  "schemaVersion": 1,
+  "description": "Browse public model catalogs and review native connection test, library backup and diagnostics outcomes.",
+  "author": "ReadAware",
+  "main": "main.js",
+  "minAppVersion": "0.3.0",
+  "permissions": ["service:network", "service:diagnostics"],
+  "settingsAccess": { "discover": ["ai.connection.primaryModel"] },
+  "requires": {
+    "domains": { "settings": "^1.9.0" },
+    "contributions": { "headerActions": "^1.0.0", "commands": "^1.0.0" },
+    "services": { "maintenance": "^1.3.0", "diagnostics": "^1.1.0", "ui": "^1.2.0", "logging": "^1.0.0" },
+    "schemas": { "views": "^1.8.0" }
+  }
+}

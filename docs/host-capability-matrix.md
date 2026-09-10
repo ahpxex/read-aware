@@ -432,7 +432,7 @@
 - Domain subscription ANNOTATION_EVENTS：8 个。
 - Domain subscription CONVERSATION_EVENTS：4 个。
 - Feature owner：14 个。
-- First-party source plugin：14 个。
+- First-party source plugin：15 个。
 - Plugin Agent contribution：12 个。
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
@@ -1443,6 +1443,7 @@
 | `jumper` | [TXT02](#TXT02) [TXT07](#TXT07) [READ06](#READ06) [EXT02](#EXT02) | [代码] 源码版本 0.3.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `library-desk` | [LIB01](#LIB01) [LIB05](#LIB05) [READ01](#READ01) [UI01](#UI01) [UI02](#UI02) [UI03](#UI03) [EXT02](#EXT02) [EXT03](#EXT03) [MORE05](#MORE05) | [代码] 源码版本 0.6.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `listening-desk` | [READ16](#READ16) [READ18](#READ18) [READ06](#READ06) [EXT02](#EXT02) [MORE03](#MORE03) | [代码] 源码版本 0.9.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `maintenance-desk` | [CFG08](#CFG08) [SYS15](#SYS15) [OPS03](#OPS03) [OPS08](#OPS08) [OPS11](#OPS11) [EXT02](#EXT02) [EXT05](#EXT05) | [代码] 源码版本 0.1.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `memory-desk` | [MEM01](#MEM01) [MEM04](#MEM04) [MEM05](#MEM05) [MEM09](#MEM09) [MEM10](#MEM10) [MEM11](#MEM11) [READ01](#READ01) [EXT02](#EXT02) [EXT05](#EXT05) | [代码] 源码版本 0.7.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `reading-goals` | [AI11](#AI11) [MEM03](#MEM03) [SET23](#SET23) [STAT02](#STAT02) [STAT05](#STAT05) [STAT03](#STAT03) [EXT07](#EXT07) [EXT02](#EXT02) [EXT05](#EXT05) [SYS01](#SYS01) | [代码] 源码版本 0.3.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `rss-reader` | [EXT10](#EXT10) | [代码] 源码版本 0.11.0；源码存在不等于打包、安装、启用或模型可调用 |

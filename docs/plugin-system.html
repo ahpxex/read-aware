@@ -514,7 +514,7 @@
         <div class="section-inner">
           <h2>记忆读取已接通，来源与授权仍有边界</h2>
           <details class="ep"><summary>Memory 1.5：查询、反馈、分类与任务，Memory Desk 0.6 实际消费</summary><div class="ep-body">
-            <p>search 读取有效个人、跨书或本书记忆；bookGraph 提供章节摘要、实体与关系。Memory Desk 0.6 组合书库、记忆和导航，支持查询、来源查看、复核后打开原文，以及纠错、置顶、遗忘与分类纠正。源码十四个插件，Rust 编译内置仍六个，本插件不在内置清单。</p>
+            <p>search 读取有效个人、跨书或本书记忆；bookGraph 提供章节摘要、实体与关系。Memory Desk 0.6 组合书库、记忆和导航，支持查询、来源查看、复核后打开原文，以及纠错、置顶、遗忘与分类纠正。源码十五个插件，Rust 编译内置仍六个，本插件不在内置清单。</p>
             <p>图谱与提示词纪要共享先按分类/阅读边界过滤再合并；未分类书按叙事保护。Agent 用回合游标，插件用宿主位置；global/cross-book 保留既有全图政策，元数据读取失败不跳过保护。</p>
             <p>同章重分类、读完状态或游标边界变化，会在下一轮刷新提示词但保留对话；选区不扩大权限，读取降级后下轮重试。真实 SQLite AgentThread 与编译插件已验叙事/概念切换；不回收已发送内容，其他正文策略与来源版本仍缺。<a href="./plugin-system.md#memory-prompt-policy">策略与验证边界</a></p>
             <p>损坏 JSON、非法别名/备注及未知分类整次报 db/error，不伪装成空图。Memory Desk 清旧图并自动恢复；提示词降级有日志。<a href="./plugin-system.md#chapter-memory-integrity">投影完整性证据</a></p>
@@ -548,7 +548,7 @@
         <div class="wrap">
           <h2>Agent 智能扩展</h2>
           <p class="intro">插件只能提供有边界的数据与候选，不能接管系统提示词或直接写长期记忆。</p>
-          <details class="ep"><summary>记忆构建开关已接通，取消必须等已派发写回执</summary><div class="ep-body"><p>buildMemory 关闭立即禁止新写，重开不复活旧操作；七类受保护写必须全部返回后，外层才结束取消并退订，迟到数据库失败仍记日志。写可能已提交，不能假称撤销；读/模型仍可放弃等待。原生已验回执延迟、SQL 失败、重试和编译 Memory Desk，未把测试回执门当作真实网络或公共任务 UI。<a href="./plugin-system.md#memory-commit-drain">取消与写入边界</a></p><p>聊天/历史和旧记忆仍可读取。Reading Goals 按书保存目标并提供上下文，用户选择后才提出记忆候选；清除目标不删除已提升记忆。源码十四个插件、内置六个，本插件不在内置清单且无专属 Agent 编辑工具。已有 macOS debug 双端证据，安装重启、打包/跨平台及完整控件验收仍缺。<a href="./plugin-system.md#host-memory-build-policy">完整边界</a></p></div></details>
+          <details class="ep"><summary>记忆构建开关已接通，取消必须等已派发写回执</summary><div class="ep-body"><p>buildMemory 关闭立即禁止新写，重开不复活旧操作；七类受保护写必须全部返回后，外层才结束取消并退订，迟到数据库失败仍记日志。写可能已提交，不能假称撤销；读/模型仍可放弃等待。原生已验回执延迟、SQL 失败、重试和编译 Memory Desk，未把测试回执门当作真实网络或公共任务 UI。<a href="./plugin-system.md#memory-commit-drain">取消与写入边界</a></p><p>聊天/历史和旧记忆仍可读取。Reading Goals 按书保存目标并提供上下文，用户选择后才提出记忆候选；清除目标不删除已提升记忆。源码十五个插件、内置六个，本插件不在内置清单且无专属 Agent 编辑工具。已有 macOS debug 双端证据，安装重启、打包/跨平台及完整控件验收仍缺。<a href="./plugin-system.md#host-memory-build-policy">完整边界</a></p></div></details>
           <details class="ep"><summary>文本隐私已接 Agent 和插件结构化推理，任意字符串仍有边界</summary><div class="ep-body"><p>Agent 自动附件、历史与 viewport/grounding 按设置过滤。LLM 1.1 的 readingContext 由宿主组装；必需正文被禁止则在请求前拒绝，结构错误明确报错，收紧以 ai/context-changed 取消在途请求和重试。重开只允许新请求。</p><p>Dictionary 1.3 已迁移：选区与周边正文不再自行拼入 prompt，设置竞态不写误导缓存；本地缓存仍可读。macOS debug 双端三模式四组合、实际 Dictionary Worker 缓存/拒绝、结构化重试与三个并发请求取消已有证据。任意 prompt/HTTP/TTS、独立检索与旧衍生内容不受全局清除；完整 UI、打包/跨平台仍未验，SET24/25 保持部分。<a href="./plugin-system.md#host-reading-context-policy">精确边界</a></p></div></details>
           <div class="table-shell">
             <table>
@@ -581,6 +581,11 @@
           <details><summary>维护入口：更新、诊断、插件管理、备份与清空数据</summary>
             <p>maintenance 1.3 为插件和双 scope Agent 提供更新状态及七个宿主管理入口，新增 AI 测试按钮定位；更新联网检查需插件 network 授权，与原生更新共用状态和互斥控制。频道变更使旧结果失效，失败不当作已是最新。</p>
             <p>opened 只表示控件已挂载和定位，不点击控件、不代表操作完成。安装权限、文件选择与 DELETE 确认仍由用户完成；日志、路径、凭据和备份字节不交给调用方。logging 已接插件自有输出，诊断与备份最终回执另见对应流程；组合及 Tauri 验收待集中进行。</p>
+          </details>
+          <details><summary>Maintenance Desk：管理能力已有组合插件，真实桌面验收待做</summary>
+            <p>0.1 只用公开 API，提供书架顶部入口和命令，组合模型目录搜索分页与显式刷新、AI 连接测试、v1 备份、诊断报告及本机投影校验，不增加宿主或 Agent 接口。源码十五个插件，编译内置仍六个；本插件已构建但未内置、安装或发布。</p>
+            <p>原生流程关闭插件弹窗后继续等用户操作，重开可看最近二十条结果；结果页实时更新。只保存会话内状态、错误码和计数，不读配置、凭据或报告/备份内容。一次一个操作，取消只结束等待、不撤销已开始效果，停用和重启不保留记录。</p>
+            <p>目录只读十二个公共提供者的元数据，过期分页重新加载，失败不伪装空结果。备份不是全量、导入可部分覆盖、报告可能含个人数据，原生确认保留。基础受控组合测试、构建和正式清单校验通过；实际 Worker、Tauri、文件和远端效果集中后置。</p>
           </details>
           <details><summary>Maintenance 1.3：连接测试由用户点击，插件和 Agent 可等待结果</summary>
             <p>requestConnectionTest 与双域 request_ai_connection_test 只定位原生按钮，不填写配置或自动测试。用户完成配置并亲自点击后，沿用主模型和宿主推理策略，可能产生服务商费用；调用方只得到 responded、empty、cancelled 或错误，不收到密钥、端点、模型身份或回复。</p>

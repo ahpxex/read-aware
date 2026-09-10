@@ -2,7 +2,7 @@
 export type ResourceRef = {
   id: string; name: string; mimeType: string; size: number;
   state: "writing" | "ready"; expiresAt: number;
-  source: "picked" | "created" | "book" | "cover";
+  source: "picked" | "created" | "book" | "cover" | "image";
 };
 export type ResourcePickOptions = { multiple?: boolean; extensions?: string[] };
 export type ResourceCreateOptions = { name: string; mimeType?: string };

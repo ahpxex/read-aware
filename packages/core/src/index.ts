@@ -36,6 +36,7 @@ export * from "./reader-image";
 export * from "./book-navigation";
 export * from "./book-range";
 export * from "./book-references";
+export * from "./book-images";
 export * from "./reader-reference-preview";
 export * from "./book-text";
 export * from "./book-graph-task";

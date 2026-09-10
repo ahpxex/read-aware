@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+书内图片批次已接线：library 1.13 listImages/openImageResource 与双 scope list_book_images/open_book_image_resource 共用源解析器和 owner 资源队列。按版本/分节分页图片目录、返回源位置，EPUB/FB2/MOBI6/KF8/漫画内嵌图片获取为 resources 1.2 的 source=image 封口快照；最多 16 MiB、无远程 fetch，保留 library 授权、Agent 阅读边界与激活/会话隔离。ready 仅表示字节已复制，不是解码或视觉理解；剪贴板授权独立。
+
+[验证] 图片目录/实际格式解析器、资源清理、权限/取消/Agent 双域与工具输出定向测试 39 pass / 859 assertions；模型/库存 12 pass / 41 assertions，全仓 typecheck 27/27，Foliate 49 个静态模块已重建。矩阵 243 行/869 映射，Agent book 80/global 97，三文档对结构通过。TXT12 从未接变为部分：程序化打开灯箱、PDF 内嵌对象、CSS/srcset 图片与模型图像输入仍缺。真实 Worker/Tauri/图片显示与系统粘贴不在本批基础验证内，留集中组合阶段；下方历史批次“图片发现/读取仍缺”的描述由本批取代。
+
 图片灯箱控制批次已接线：UI 1.12 reader.image.snapshot/observe/control 与双 scope get_reader_image/control_reader_image 共用原生灯箱和缩放手势；reading 读可观察、写可控制。按准确 viewer ID 缩放/平移/旋转/复位/关闭，updated 等匹配 React commit，closed 等移除；换书/换图/新意图拒绝旧请求，退休清理调用和订阅，不关闭用户仍在使用的灯箱。无图片 URL/字节/alt 文本，不增加内容读取权。
 
 [验证] 服务/授权/双域工具及真实组件挂载 StrictMode 定向测试 13 pass / 665 assertions，全仓 typecheck 27/27。本批没有真实 Worker/Tauri 像素、手势或焦点验收，留集中组合阶段。READ12 保留部分；TXT12 图片发现/读取/打开仍缺，不把灯箱操作冒充书页手动缩放。

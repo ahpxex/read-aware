@@ -88,6 +88,11 @@ export class MOBI6 implements Book {
             id: index,
             load: () => this.loadSection(section),
             createDocument: () => this.createDocument(section),
+            loadImage: async element => {
+                const index = Number(element.getAttribute('recindex'))
+                if (!Number.isSafeInteger(index) || index < 1) return null
+                return new Blob([await this.mobi.loadResource(index - 1)])
+            },
             size: section.end - section.start,
         }))
 

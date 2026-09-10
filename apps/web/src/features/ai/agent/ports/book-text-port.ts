@@ -3,6 +3,8 @@ import { type BookTextPort, type ChapterRef } from "@read-aware/agent";
 import { getExtractedChapters } from "../../../../domain";
 import { getBookTextStatus } from "../../../library/lib/book-text-store";
 import { createLibraryDomain } from "../../../../domain/library";
+import { openBookImageResource } from "../../../../domain/library-book-images";
+import { agentResources } from "../../../../services/resources";
 
 export function createBookTextPort(): BookTextPort {
   const domain = createLibraryDomain("agent");
@@ -11,6 +13,16 @@ export function createBookTextPort(): BookTextPort {
     preparation: { start: domain.commands.books.prepareText, get: library.getTextTask, list: library.listTextTasks, cancel: domain.commands.books.cancelTextTask },
     getTextState: library.getTextState,
     getNavigationToc: library.getNavigationToc,
+    listImages: async ({ throughChapterIndex, ...input }, signal) => {
+      const hrefs = throughChapterIndex === undefined ? undefined : (await getExtractedChapters(input.bookId))
+        .slice(0, Math.max(0, throughChapterIndex + 1)).flatMap(chapter => chapter.hrefs ?? []);
+      return library.listImages(input, signal, hrefs);
+    },
+    openImageResource: async (ownerKey, { throughChapterIndex, ...input }, signal) => {
+      const hrefs = throughChapterIndex === undefined ? undefined : (await getExtractedChapters(input.image.bookId))
+        .slice(0, Math.max(0, throughChapterIndex + 1)).flatMap(chapter => chapter.hrefs ?? []);
+      return openBookImageResource(agentResources(ownerKey, ownerKey.startsWith("book:") ? ownerKey.slice(5) : undefined), input, signal, hrefs);
+    },
     listReferences: async ({ throughChapterIndex, ...input }, signal) => {
       const hrefs = throughChapterIndex === undefined ? undefined : (await getExtractedChapters(input.bookId))
         .slice(0, Math.max(0, throughChapterIndex + 1)).flatMap(chapter => chapter.hrefs ?? []);

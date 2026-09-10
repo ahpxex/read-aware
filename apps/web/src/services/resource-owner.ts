@@ -1,4 +1,4 @@
-import { AppError, RESOURCE_LIFETIME_MS, RESOURCE_MAX_CHUNK, RESOURCE_MAX_SIZE,
+import { AppError, BOOK_IMAGE_MAX_BYTES, RESOURCE_LIFETIME_MS, RESOURCE_MAX_CHUNK, RESOURCE_MAX_SIZE,
   type ResourcePort, type ResourceRef, type ResourcePickOptions, type ResourceCreateOptions, type ResourceImageReceipt } from "@read-aware/core";
 
 export type NativeResource = { id: string; size: number; name: string; mimeType: string };
@@ -58,6 +58,36 @@ export class ResourceOwner implements ResourcePort {
   }
   openCover(bookId: string, signal?: AbortSignal) {
     return this.openBookAsset(bookId, "cover", signal);
+  }
+  /** Host-only acquisition: parse and copy within the actor's queue, never through Worker bytes. */
+  importImage(bookId: string, load: () => Promise<Blob | null>, signal?: AbortSignal): Promise<ResourceRef | null> {
+    idValue(bookId); this.authorizeBook(bookId);
+    return this.run(async () => {
+      this.authorizeBook(bookId);
+      this.capacity([{ id: "", size: 0, name: "illustration", mimeType: "application/octet-stream" }]);
+      const blob = await load();
+      this.guard(signal); this.authorizeBook(bookId);
+      if (!blob) return null;
+      if (!blob.size || blob.size > BOOK_IMAGE_MAX_BYTES) throw invalid();
+      const mimeType = mime(blob.type || undefined);
+      const extension = ({ "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif",
+        "image/webp": "webp", "image/bmp": "bmp", "image/svg+xml": "svg", "image/avif": "avif" } as Record<string, string>)[mimeType] ?? "bin";
+      const name = `illustration.${extension}`;
+      this.capacity([{ id: "", size: blob.size, name, mimeType }]);
+      const value = await this.adapter.create({ name, mimeType });
+      try {
+        for (let offset = 0; offset < blob.size; offset += RESOURCE_MAX_CHUNK) {
+          this.guard(signal);
+          const bytes = new Uint8Array(await blob.slice(offset, offset + RESOURCE_MAX_CHUNK).arrayBuffer());
+          this.guard(signal);
+          const size = await this.adapter.append(value.id, offset, bytes);
+          if (size !== offset + bytes.length) throw new AppError("internal", "Unexpected image resource size");
+        }
+        this.guard(signal); await this.adapter.commit(value.id);
+        this.guard(signal); this.authorizeBook(bookId);
+        return this.register({ ...value, size: blob.size, name, mimeType }, "image", "ready");
+      } catch (error) { await this.cleanNative([value]); throw error; }
+    }, signal);
   }
   private openBookAsset(bookId: string, source: "book" | "cover", signal?: AbortSignal) {
     idValue(bookId); this.authorizeBook(bookId);

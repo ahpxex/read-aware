@@ -32,6 +32,7 @@ import { createLogger } from "../../../platform/logger";
 import { hostEnvironment } from "../../../platform/host-environment";
 import { hostWindow } from "../../../services/window";
 import { readerImage } from "../../../services/reader-image";
+import { openBookImageResource } from "../../../domain/library-book-images";
 import { hostSync } from "../../../services/sync";
 import { hostMaintenance } from "../../../services/maintenance";
 import { createResourceOwner } from "../../../services/resources";
@@ -718,6 +719,8 @@ export function buildPluginContext(
           searchLocations: (input) => lifecycle.read("library.searchLocations", () => library.queries.books.searchLocations(input, lifecycle.signal)),
           readRange: (input) => lifecycle.read("library.readRange", () => library.queries.books.readRange(input, lifecycle.signal)),
           listReferences: (input) => lifecycle.read("library.listReferences", () => library.queries.books.listReferences(input, lifecycle.signal)),
+          listImages: input => lifecycle.read("library.listImages", () => library.queries.books.listImages(input, lifecycle.signal)),
+          openImageResource: input => lifecycle.read("library.openImageResource", () => openBookImageResource(resources, input, lifecycle.signal)),
           readReference: (input) => lifecycle.read("library.readReference", () => library.queries.books.readReference(input, lifecycle.signal)),
           searchText: (input) => library.queries.books.searchText(input, lifecycle.signal),
           listRemovalCleanup: library.queries.books.listRemovalCleanup,

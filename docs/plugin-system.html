@@ -273,7 +273,11 @@
           </div></details>
           <details class="ep" data-search-section="image lightbox zoom pan rotate 图片 灯箱 缩放 平移 旋转"><summary>UI 1.12：已有图片灯箱可由插件和 Agent 操作</summary><div class="ep-body">
             <p>读取当前灯箱状态，按准确 ID 缩放、平移、旋转、复位或关闭；与原生手势和按钮共用实现。reading 读权限只能观察，写权限才能操作，书内 Agent 不能控制另一书籍。没有图片 URL、字节或描述，不会借此获取图片内容。</p>
-            <p>更新等待匹配 React 提交，关闭等待视图移除；换图/换书拒绝旧操作，取消不回滚已发生变化。定向与挂载 React 测试通过，真实 Worker/Tauri 留集中验收。书内图片发现、资源读取和程序化打开仍缺，不等于已支持书页手动缩放。<a href="./plugin-system.md#native-image-viewer-controls-ui-112">完整契约</a></p>
+            <p>更新等待匹配 React 提交，关闭等待视图移除；换图/换书拒绝旧操作，取消不回滚已发生变化。定向与挂载 React 测试通过，真实 Worker/Tauri 留集中验收。Library 1.13 已接书内图片发现和资源读取，程序化打开仍缺，不等于已支持书页手动缩放。<a href="./plugin-system.md#native-image-viewer-controls-ui-112">完整契约</a></p>
+          </div></details>
+          <details class="ep" data-search-section="book images listImages openImageResource 图片 资源"><summary>Library 1.13：书内图片目录与临时资源已双端接通</summary><div class="ep-body">
+            <p>插件与 Agent 可以按书籍版本和分节列出图片、取得内嵌图片资源，复用 EPUB/FB2/MOBI6/KF8/漫画解析器。目录包含源位置与有界替代文字，不读取图片字节；获取资源不加载外链，保留书库授权、阅读边界与调用方隔离。</p>
+            <p>最多 16 MiB，一小时临时封口引用，可保存或另行授权复制；ready 只代表字节已复制，不等于解码或模型看懂图片。程序化打开、PDF 内嵌对象和 CSS/srcset 图片仍缺。基础测试通过，真实 Worker/Tauri 组合留集中验收。<a href="./plugin-system.md#embedded-book-image-resources-library-113--resources-12">完整契约</a></p>
           </div></details>
           <details class="ep" data-search-section="window minimize maximize fullscreen 窗口 最小化 最大化 全屏"><summary>UI 1.11：主窗口状态与受限操作已双端接通</summary><div class="ep-body">
             <p>插件 window.snapshot / observe / control 与 Agent get_app_window / control_app_window 共用主窗口服务，自绘标题栏和拖拽边缘也消费它。支持最小化、最大化、还原、设置全屏，并读取聚焦状态；不返回标题、路径、坐标或其他窗口。</p>
@@ -454,7 +458,7 @@
           <h2>版本与权限</h2>
           <details><summary>文件资源：选取、分块读写、原书导出</summary>
             <p>resources 1.1 提供隔离的临时引用：原生选择文件、原书/本地封面快照、分块读写、封口和保存。封面不可用返回空，不触发生成或下载。每调用方 16 引用/1 GiB、1 小时有效；无任意路径，不进同步或备份。Agent 原书引用需批准且只能导出，不能绕过防剧透读取。</p>
-            <p>clipboard 1.1 已接授权图片引用复制，原生解码 PNG/JPEG/GIF/BMP/WebP；最多 16 MiB 编码、8192 单边和 16,777,216 像素，不支持 SVG。Agent 不接收图片字节，插件须独立剪贴板权限；阅读灯箱共用后端。插件资源呈现与书内图片查询仍缺，真实粘贴和组合留到集中验收。</p>
+            <p>clipboard 1.1 已接授权图片引用复制，原生解码 PNG/JPEG/GIF/BMP/WebP；最多 16 MiB 编码、8192 单边和 16,777,216 像素，不支持 SVG。Agent 不接收图片字节，插件须独立剪贴板权限；阅读灯箱共用后端。Library 1.13 已接书内图片查询与资源读取，插件资源呈现仍缺，真实粘贴和组合留到集中验收。</p>
             <p>library 1.11 已接格式目录与授权文件检查，复用导入路由和阅读器解析入口，不导入或打开书籍。两端可区分初始化成功、加密、不支持和解析失败；仅返回状态/节数，不返回正文。成功不代表全书无损，部分格式仍需整文件内存；真实坏书、加密和格式组合留待集中验收。</p>
             <p>library 1.10 已接同源重复候选、合并预览、条件合并与旧 ID 重定向。插件需书库写权限，global Agent 逐次批准完整组；事务重验预览，保留最早记录，沿用宿主数据归并规则。聊天不合并为一个线程，继承文件在保留书籍存活期间不清理，不承诺立即释放空间。定向及原生事务测试通过，真实组合仍待集中验收。</p>
             <p>library 1.9 已接封面/原文件本地状态、后台补齐状态查询、观察和受控重试。双端与宿主共用队列，失败不当作没有封面，排队不当作完成；不下载、不调用模型、不强制重做已有封面。任务记录仅当前进程，观察按秒刷新；元数据缺失是启发式，最终写入不是跨设备条件事务，真实组合仍待集中验收。</p>

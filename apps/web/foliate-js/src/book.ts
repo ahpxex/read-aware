@@ -71,6 +71,8 @@ export type BookSection = {
     load: () => MaybePromise<string | PageSource>
     unload?: () => void
     createDocument?: () => MaybePromise<Document>
+    /** Read an image from this section's detached source DOM; never fetch external URLs. */
+    loadImage?: (element: Element) => MaybePromise<Blob | null>
     getText?: () => MaybePromise<string>
     linear?: string | null
     cfi?: string

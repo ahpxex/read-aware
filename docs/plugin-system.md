@@ -825,8 +825,60 @@ closes its own stale lightbox. Commands do not navigate, copy or persist images.
 [验证] Focused service, permissions, Agent scopes and mounted React StrictMode
 tests pass, including toolbar/API shared transforms and committed close.
 Real Worker/Tauri pixels, gestures, resizing and focus remain for concentrated
-E2E. TXT12 image discovery/resource reads/opening are still missing; READ12
+E2E. Library 1.13 now supplies TXT12 image discovery/resource reads; programmatic
+viewer opening is still missing. READ12
 remains partial rather than claiming manual fixed-layout page zoom exists.
+
+### Embedded Book Image Resources (Library 1.13 / Resources 1.2)
+
+[代码] `domains.library.queries.books.listImages` and `openImageResource` require
+`library:read` (or write). Both Agent scopes expose `list_book_images` and
+`open_book_image_resource`, using the same parser and resource owner as plugins.
+No network, reading-write, clipboard or original-book-export grant is implied.
+
+`listImages({bookId, contentVersion, sectionIndex, offset?, limit?})` requires
+the actual source version and section index from the navigation TOC. Default
+offset is 0, limit 20, maximum 50 (Agent fixed at 20). It returns
+`bookId, contentVersion, sectionIndex, status, items, total, nextOffset`.
+Status is `available` or `unsupported`; an empty supported section is distinct
+from one with no source DOM. Each item has `image: {bookId, contentVersion,
+sectionIndex, index}`, an alt/aria-label capped at 300 characters and a source
+`ReadingLocation`. It enumerates img and SVG image elements, excluding known
+footnote markers, without loading image bytes. Extra fields, invalid integers,
+or offsets past the section reject `library/invalid-query`.
+
+`openImageResource({image})` rechecks the descriptor and returns `status, image`
+plus `resource` only for `ready`. Other statuses are `missing`, `external`,
+`unsupported`; no raw source URL, path or bytes are returned. HTTP(S) and
+protocol-relative sources are external and never fetched. Base64 image data
+and private EPUB manifest/MOBI6/KF8 record/comic archive loaders are supported;
+FB2 and virtual HTML can supply inline data images. Arbitrary URL schemes,
+foreign blob URLs and non-base64 data are not supported. A missing book/section,
+stale version or inaccessible content remains an error, not an empty result.
+Malformed/empty/oversized inline or loaded bytes reject `ui/invalid-target`;
+parser acquisition failures normalize to `library/content-unavailable`.
+
+The encoded-byte ceiling is 16 MiB. `ready` means a sealed, owner-scoped copy
+with `ResourceRef.source = "image"`, not validated pixels, SVG rasterization
+or automatic model vision input. MIME is a source hint. Generic resources can
+read/save/release it; image clipboard copying still needs separate permission
+and native decoding. Copies use fixed suggested names, 1 MiB chunks and the
+existing one-hour TTL, 16-reference/1 GiB owner quota and 32-request queue.
+They do not enter SQLite, sync or backup. Failure/retirement cleans temporary
+files; cancellation does not interrupt an already running parser synchronously.
+Metadata discovery still parses a whole source section, not a bounded parser.
+
+Agent book scope rejects other books and checks its host-derived narrative
+chapter fence before source DOM/image loading. Only actual spoiler approval
+removes that fence; model parameters cannot inject a fence or resource owner.
+Resources belong to the actual conversation; already-authorized snapshots do
+not retroactively disappear when reading progress changes.
+
+[验证] Actual parser fixtures for EPUB, FB2, MOBI6, KF8 and comics, resource
+cleanup, grants, cancellation and Agent scope tests pass. PDF embedded objects,
+CSS backgrounds, srcset selection, standalone inline SVG artwork and
+programmatic viewer opening remain unsupported. Real Worker/Tauri composition,
+decoding/display and system paste remain for concentrated plugin E2E.
 
 ### Main Window Controls (UI 1.11)
 

@@ -1249,6 +1249,10 @@ export type PluginLibraryDomain = {
     readRange(input: import("@read-aware/core").BookRangeQuery): Promise<import("@read-aware/core").BookRangePage>;
     /** Library 1.12: versioned section references, not extracted chapter indices. */
     listReferences(input: import("@read-aware/core").BookReferencesQuery): Promise<import("@read-aware/core").BookReferencesPage>;
+    /** Library 1.13: section-local img/SVG image discovery; never fetches remote images. */
+    listImages(input: import("@read-aware/core").BookImagesQuery): Promise<import("@read-aware/core").BookImagesPage>;
+    /** Seal an embedded image as this activation's ResourceRef; does not display it or decode pixels. */
+    openImageResource(input: import("@read-aware/core").BookImageQuery): Promise<import("@read-aware/core").BookImageResource>;
     /** Plain-text preview and resolved navigation location; never fetches or opens an external URL. */
     readReference(input: import("@read-aware/core").BookReferenceQuery): Promise<import("@read-aware/core").BookReferencePreview>;
     /** Multi-query derived prose search. Single-book may prepare text; shelf search never does. Results are not navigation locations. */

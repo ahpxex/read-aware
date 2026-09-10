@@ -81,6 +81,18 @@ export class EPUB implements Book {
             },
             unload: () => loader.unloadItem(item),
             createDocument: () => this.loadDocument(item),
+            loadImage: async element => {
+                const src = element.getAttribute('src') ?? element.getAttribute('href')
+                    ?? element.getAttributeNS(NS.XLINK, 'href')
+                if (!src) return null
+                const href = resolveURL(src, item.href).split('#')[0]
+                if (isExternal(href)) return null
+                const resource = this.resources.getItemByHref(href)
+                if (!resource?.mediaType.startsWith('image/')) return null
+                if ((this.getSize(href) ?? 0) > 16 * 1024 * 1024) throw new Error('Image exceeds resource limit')
+                const blob = await this.loadBlob(href)
+                return blob ? new Blob([await this.#encryption.decode(href, blob)], { type: resource.mediaType }) : null
+            },
             resolveHref: href => resolveURL(href, item.href),
             mediaOverlay: this.resources.getItemByID(item.mediaOverlay),
         }))

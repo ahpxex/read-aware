@@ -334,6 +334,8 @@ export interface BookTextPort {
   getNavigationToc(bookId: Id, signal?: AbortSignal): Promise<import("@read-aware/core").BookNavigationToc>;
   readRange(input: import("@read-aware/core").BookRangeQuery & { throughChapterIndex?: number }, signal?: AbortSignal): Promise<import("@read-aware/core").BookRangePage>;
   listReferences(input: import("@read-aware/core").BookReferencesQuery & { throughChapterIndex?: number }, signal?: AbortSignal): Promise<import("@read-aware/core").BookReferencesPage>;
+  listImages(input: import("@read-aware/core").BookImagesQuery & { throughChapterIndex?: number }, signal?: AbortSignal): Promise<import("@read-aware/core").BookImagesPage>;
+  openImageResource(ownerKey: string, input: import("@read-aware/core").BookImageQuery & { throughChapterIndex?: number }, signal?: AbortSignal): Promise<import("@read-aware/core").BookImageResource>;
   readReference(input: import("@read-aware/core").BookReferenceQuery & { throughChapterIndex?: number }, signal?: AbortSignal): Promise<import("@read-aware/core").BookReferencePreview>;
   searchLocations(input: Omit<import("@read-aware/core").BookLocationSearch, "hrefs"> & { throughChapterIndex?: number }, signal?: AbortSignal): Promise<import("@read-aware/core").BookLocationSearchPage>;
   getToc(bookId: Id): Promise<ChapterRef[]>;

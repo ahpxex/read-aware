@@ -25,6 +25,25 @@ function fixture(authorizeBook: (id: string) => void = () => {}) {
   return { owner, adapter, files, released, errors, make, time: (value: number) => { now = value; } };
 }
 
+test("image acquisition serializes source reads, seals chunks, checks scope and cleans failed copies", async () => {
+  const f = fixture(id => { if (id !== "book") throw new AppError("memory/forbidden", "Wrong book"); });
+  try {
+    expect(() => f.owner.importImage("other", async () => new Blob(["pixels"]))).toThrow();
+    const bytes = new Uint8Array(RESOURCE_MAX_CHUNK + 3).fill(17);
+    const resource = await f.owner.importImage("book", async () => new Blob([bytes], { type: "image/png" }));
+    expect(resource).toMatchObject({ source: "image", state: "ready", size: bytes.length, name: "illustration.png" });
+    expect(await f.owner.read(resource!.id, RESOURCE_MAX_CHUNK, 3)).toMatchObject({ eof: true, nextOffset: bytes.length });
+    await expect(f.owner.append(resource!.id, bytes.length, new Uint8Array([1]))).rejects.toMatchObject({ code: "ui/invalid-target" });
+    await f.owner.release(resource!.id); expect(f.files.size).toBe(0);
+    f.adapter.commit = async () => { throw new AppError("fs/permission-denied", "Cannot seal"); };
+    await expect(f.owner.importImage("book", async () => new Blob(["pixels"]))).rejects.toMatchObject({ code: "fs/permission-denied" });
+    expect(f.files.size).toBe(0);
+    const abort = new AbortController();
+    await expect(f.owner.importImage("book", async () => { abort.abort(Error("retired")); return new Blob(["pixels"]); }, abort.signal)).rejects.toThrow("retired");
+    expect(f.files.size).toBe(0);
+  } finally { await f.owner.dispose(); }
+});
+
 test("resource chunks are copied before queueing, offset checked, sealed and saved with honest cancellation", async () => {
   const f = fixture();
   try {

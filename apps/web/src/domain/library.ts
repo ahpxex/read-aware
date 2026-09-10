@@ -49,6 +49,7 @@ import { searchBookText } from "../features/library/lib/book-text-search";
 import { getBookNavigationToc, searchBookLocations } from "../features/library/lib/book-content-navigation";
 import { readBookRange } from "../features/library/lib/book-range";
 import { listBookReferences, readBookReference } from "../features/library/lib/book-references";
+import { listBookImages } from "../features/library/lib/book-images";
 import type { LibraryBook } from "../features/library/lib/library-types";
 import {
   ensureBookTextExtracted,
@@ -109,6 +110,7 @@ export type LibraryQueries = {
     searchLocations(input: BookLocationSearch, signal?: AbortSignal): Promise<BookLocationSearchPage>;
     readRange(input: import("@read-aware/core").BookRangeQuery, signal?: AbortSignal, allowedHrefs?: readonly string[]): Promise<import("@read-aware/core").BookRangePage>;
     listReferences(input: import("@read-aware/core").BookReferencesQuery, signal?: AbortSignal, allowedHrefs?: readonly string[]): Promise<import("@read-aware/core").BookReferencesPage>;
+    listImages(input: import("@read-aware/core").BookImagesQuery, signal?: AbortSignal, allowedHrefs?: readonly string[]): Promise<import("@read-aware/core").BookImagesPage>;
     readReference(input: import("@read-aware/core").BookReferenceQuery, signal?: AbortSignal, allowedHrefs?: readonly string[]): Promise<import("@read-aware/core").BookReferencePreview>;
     searchText(input: BookTextSearch, signal?: AbortSignal): Promise<BookTextHit[]>;
   };
@@ -173,6 +175,7 @@ export function createLibraryDomain(origin: EventOrigin, lifetime?: AbortSignal)
       searchLocations: searchBookLocations,
       readRange: readBookRange,
       listReferences: listBookReferences,
+      listImages: listBookImages,
       readReference: readBookReference,
       searchText: (input, signal) => searchBookText({ list: listLibraryBooks, extract: getExtractedChapters, persisted: getPersistedChapters }, input, signal ?? lifetime),
       list: async () => (await listLibraryBooks()).map(toBookSummary),

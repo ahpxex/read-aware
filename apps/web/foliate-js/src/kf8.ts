@@ -152,6 +152,14 @@ export class KF8 implements Book {
                 id: index,
                 load: () => this.loadSection(section),
                 createDocument: () => this.createDocument(section),
+                loadImage: async element => {
+                    const src = element.getAttribute('src') ?? element.getAttribute('href')
+                        ?? element.getAttributeNS('http://www.w3.org/1999/xlink', 'href') ?? ''
+                    if (!/^kindle:embed:[0-9a-v]+(?:\?mime=image\/[-+.\w]+)?$/i.test(src)) return null
+                    const { id, type } = parseResourceURI(src)
+                    if (!Number.isSafeInteger(id) || id < 1) return null
+                    return new Blob([await this.mobi.loadResource(id - 1)], { type })
+                },
                 size: section.length,
                 pageSpread: pageSpreads.get(index),
                 ...(section.frags.length ? {} : { linear: 'no' }),

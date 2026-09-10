@@ -42,6 +42,14 @@ export const makeComicBook = ({ entries, loadBlob, getSize }: ComicArchiveLoader
     const sections = files.map(name => ({
         id: name,
         load: () => load(name),
+        createDocument: () => {
+            const doc = document.implementation.createHTMLDocument()
+            const image = doc.createElement('img')
+            image.setAttribute('src', name)
+            doc.body.append(image)
+            return doc
+        },
+        loadImage: () => loadBlob(name),
         unload: () => unload(name),
         size: getSize(name),
     }))

@@ -38,7 +38,7 @@ export const HOST_SERVICE_CATALOG = {
   session: { version: "2.0.0", permission: null },
   plugins: { version: "1.0.0", permission: null },
   maintenance: { version: "1.1.0", permission: null },
-  resources: { version: "1.1.0", permission: null },
+  resources: { version: "1.2.0", permission: null },
   sync: { version: "1.0.0", permission: "service:sync" },
   network: { version: "1.1.0", permission: "service:network" },
   llm: { version: "1.1.0", permission: "service:llm" },

@@ -76,6 +76,11 @@
           "description": "Dadurch werden die importierte Quelldatei und die lokalen Lesedaten dauerhaft entfernt. Dies kann nicht rückgängig gemacht werden.",
           "approve": "Buch löschen"
         },
+        "manageSchedule": {
+          "question": "Diese Zeitplanaktion ausführen?",
+          "description": "{{subject}}. Pause und Fortsetzung werden lokal gespeichert. Eine Ausführung kann Netzwerk- oder Datenzugriffe des Plugins auslösen; abgeschlossene Aktionen werden nicht rückgängig gemacht.",
+          "approve": "Genehmigen"
+        },
         "syncNow": {
           "question": "Jetzt synchronisieren?",
           "description": "Dieses Gerät mit dem eingerichteten verschlüsselten Konto synchronisieren. Abbrechen macht abgeschlossene Übertragungen nicht rückgängig.",

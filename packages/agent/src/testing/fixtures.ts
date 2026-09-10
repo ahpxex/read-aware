@@ -358,6 +358,10 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   const memoryManagement = createMemoryManagementFixture(stores.memories);
   const bookClassification = createBookClassificationFixture(books);
   const deps: RuntimeDeps = {
+    schedules: {
+      list: async () => ({ schedules: [], total: 0, nextOffset: null }),
+      control: async () => { throw new AppError("ui/unavailable", "Bind a schedule fixture"); },
+    },
     sync: {
       snapshot: async () => ({ revision: 0, supported: true, connectionBusy: false, state: "disabled", connected: false, backend: null,
         lastSyncAt: null, lastErrorCode: null, progress: null, cycleStartBacklog: null, lastCycle: null, backfillRemaining: 0 }),

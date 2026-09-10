@@ -1,132 +1,60 @@
-/**
- * Host-owned scheduler for manifest-declared plugin schedules.
- *
- * Semantics are deliberately loose: a bound schedule runs AT LEAST every
- * `everyMinutes` while the app is open, with a catch-up sweep shortly after
- * launch when a cadence was missed. Exact times are never promised, nothing
- * runs while the app is closed, and plugins never install OS-level jobs —
- * all timing lives in this one loop.
- *
- * Last-run instants persist per plugin+schedule (device-local presentation
- * state, not a domain fact) so relaunches don't rerun fresh work. The stamp
- * is written at TRIGGER time: a failing run waits out a full cadence instead
- * of hot-looping.
- */
-import {
-  MIN_SCHEDULE_MINUTES,
-  type PluginDisposable,
-  type PluginScheduleDeclaration,
-} from "@read-aware/plugin-types";
+import { AppError } from "@read-aware/core";
+import type { PluginScheduleDeclaration } from "@read-aware/plugin-types";
 import { localKV } from "../../../platform/local-store";
+import { isTauri } from "../../../platform/environment";
 import { createLogger } from "../../../platform/logger";
+import { PluginScheduleController, type ScheduleRecord } from "./plugin-schedule-controller";
+export { isScheduleDue } from "./plugin-schedule-controller";
 
-const log = createLogger("plugins");
-
-/** First sweep waits for boot to settle; later sweeps tick once a minute. */
-const FIRST_SWEEP_DELAY_MS = 5_000;
-const SWEEP_INTERVAL_MS = 60_000;
-
-type ScheduledTask = {
-  pluginId: string;
-  scheduleId: string;
-  everyMinutes: number;
-  run: () => void | Promise<void>;
-  running: boolean;
-};
-
-const tasks = new Map<string, ScheduledTask>();
-let loopStarted = false;
-
-/** Runtime introspection for diagnostics and lifecycle verification. */
-export function inspectPluginSchedules(): string[] {
-  return [...tasks.keys()].sort();
-}
-
-function runsKey(pluginId: string): string {
-  return `read-aware-plugin.${pluginId}.schedule-runs`;
-}
-
-function readLastRuns(pluginId: string): Record<string, string> {
+const log = createLogger("plugin-schedules");
+const stateKey = (id: string) => `read-aware-plugin.${id}.schedule-state`;
+function read(pluginId: string): Record<string, ScheduleRecord> {
+  if (!isTauri() && typeof localStorage === "undefined") return {};
+  const raw = localKV.getItem(stateKey(pluginId));
+  if (raw) {
+    let records: unknown;
+    try { records = JSON.parse(raw); } catch (error) { throw new AppError("db/error", "Invalid schedule JSON", { cause: error }); }
+    if (!records || typeof records !== "object" || Array.isArray(records)) throw new AppError("db/error", "Invalid stored schedule state");
+    for (const record of Object.values(records)) {
+      if (!record || typeof record !== "object" || typeof record.paused !== "boolean"
+        || ![null, "running", "succeeded", "failed", "cancelled", "interrupted"].includes(record.lastOutcome)
+        || ![record.lastStartedAt, record.lastFinishedAt, record.lastSuccessAt].every(value => value === null || (Number.isFinite(value) && value >= 0 && value <= 8.64e15))
+        || (record.lastErrorCode !== null && typeof record.lastErrorCode !== "string")) throw new AppError("db/error", "Invalid stored schedule record");
+    }
+    return Object.fromEntries(Object.entries(records as Record<string, ScheduleRecord>).map(([id, record]) => [id, {
+      paused: record.paused, lastStartedAt: record.lastStartedAt, lastFinishedAt: record.lastFinishedAt,
+      lastSuccessAt: record.lastSuccessAt, lastOutcome: record.lastOutcome, lastErrorCode: record.lastErrorCode,
+    }]));
+  }
+  // Legacy stamps describe attempts, never successful outcomes.
+  const legacy = localKV.getItem(`read-aware-plugin.${pluginId}.schedule-runs`);
+  if (!legacy) return {};
   try {
-    const raw = localKV.getItem(runsKey(pluginId));
-    const parsed: unknown = raw ? JSON.parse(raw) : null;
-    return typeof parsed === "object" && parsed !== null
-      ? (parsed as Record<string, string>)
-      : {};
-  } catch {
-    return {};
+    const entries: unknown = JSON.parse(legacy);
+    if (!entries || typeof entries !== "object" || Array.isArray(entries)) return {};
+    return Object.fromEntries(Object.entries(entries).map(([id, stamp]) => [id, { paused: false,
+      lastStartedAt: typeof stamp === "string" && Number.isFinite(Date.parse(stamp)) ? Date.parse(stamp) : null,
+      lastFinishedAt: null, lastSuccessAt: null, lastOutcome: null, lastErrorCode: null }]));
+  } catch (error) { log.warn("Ignoring malformed legacy schedule stamps", error); return {}; }
+}
+export const pluginSchedules = new PluginScheduleController({ read,
+  write: (pluginId, records) => localKV.setItemAsync(stateKey(pluginId), JSON.stringify(records)),
+}, error => log.warn("Plugin schedule failed", error));
+export const inspectPluginSchedules = () => pluginSchedules.inspect();
+
+let first: ReturnType<typeof setTimeout> | undefined;
+let loop: ReturnType<typeof setInterval> | undefined;
+function updateLoop() {
+  if (!pluginSchedules.size) {
+    clearTimeout(first); clearInterval(loop); first = undefined; loop = undefined;
+  } else if (first === undefined && loop === undefined) {
+    first = setTimeout(() => {
+      first = undefined; pluginSchedules.sweep();
+      if (pluginSchedules.size) loop = setInterval(() => pluginSchedules.sweep(), 60_000);
+    }, 5_000);
   }
 }
-
-function stampLastRun(pluginId: string, scheduleId: string, at: number): void {
-  const runs = readLastRuns(pluginId);
-  runs[scheduleId] = new Date(at).toISOString();
-  localKV.setItem(runsKey(pluginId), JSON.stringify(runs));
-}
-
-/** Pure due-check, exported for tests. */
-export function isScheduleDue(
-  lastRunIso: string | undefined,
-  everyMinutes: number,
-  nowMs: number,
-): boolean {
-  const cadence = Math.max(everyMinutes, MIN_SCHEDULE_MINUTES) * 60_000;
-  if (!lastRunIso) return true;
-  const last = Date.parse(lastRunIso);
-  // A garbled or FUTURE stamp (clock moved back) must not wedge the task.
-  if (!Number.isFinite(last) || last > nowMs) return true;
-  return nowMs - last >= cadence;
-}
-
-function sweep(): void {
-  const now = Date.now();
-  for (const task of tasks.values()) {
-    if (task.running) continue;
-    const last = readLastRuns(task.pluginId)[task.scheduleId];
-    if (!isScheduleDue(last, task.everyMinutes, now)) continue;
-    task.running = true;
-    stampLastRun(task.pluginId, task.scheduleId, now);
-    Promise.resolve()
-      .then(() => task.run())
-      .catch((error) => {
-        log.warn(
-          `schedule "${task.pluginId}:${task.scheduleId}" failed`,
-          error,
-        );
-      })
-      .finally(() => {
-        task.running = false;
-      });
-  }
-}
-
-function ensureLoop(): void {
-  if (loopStarted) return;
-  loopStarted = true;
-  setTimeout(() => {
-    sweep();
-    setInterval(sweep, SWEEP_INTERVAL_MS);
-  }, FIRST_SWEEP_DELAY_MS);
-}
-
-export function registerPluginSchedule(
-  pluginId: string,
-  declaration: PluginScheduleDeclaration,
-  run: () => void | Promise<void>,
-): PluginDisposable {
-  const key = `${pluginId}:${declaration.id}`;
-  const task: ScheduledTask = {
-    pluginId,
-    scheduleId: declaration.id,
-    everyMinutes: Math.max(declaration.everyMinutes, MIN_SCHEDULE_MINUTES),
-    run,
-    running: false,
-  };
-  tasks.set(key, task);
-  ensureLoop();
-  return {
-    dispose: () => {
-      if (tasks.get(key) === task) tasks.delete(key);
-    },
-  };
+export function registerPluginSchedule(pluginId: string, declaration: PluginScheduleDeclaration, run: () => void | Promise<void>) {
+  const registration = pluginSchedules.register(pluginId, declaration, run); updateLoop();
+  return { dispose: () => { registration.dispose(); updateLoop(); } };
 }

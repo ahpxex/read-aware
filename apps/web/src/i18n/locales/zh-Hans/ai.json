@@ -76,6 +76,11 @@
           "description": "这会永久移除导入的原始文件和本地阅读数据，且无法撤销。",
           "approve": "删除书籍"
         },
+        "manageSchedule": {
+          "question": "执行此计划操作？",
+          "description": "{{subject}}。暂停和恢复会保存在此设备。运行可能执行该插件原有的网络或数据操作，已完成的效果不会撤销。",
+          "approve": "批准"
+        },
         "syncNow": {
           "question": "立即同步？",
           "description": "将此设备与已配置的加密账号同步。取消请求不会撤回已完成的传输。",

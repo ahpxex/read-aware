@@ -318,6 +318,8 @@ export const sources: Record<string, string> = {
   RENDER: "apps/web/src/features/plugins/components/PluginViewRenderer.tsx",
   HOST: "apps/web/src/features/plugins/runtime/plugin-host.ts",
   SCHED: "apps/web/src/features/plugins/runtime/plugin-scheduler.ts",
+  SCHEDCONTROL: "apps/web/src/features/plugins/runtime/plugin-schedule-controller.ts",
+  SCHEDTOOLS: "packages/agent/src/tools/schedule-tools.ts",
   VIRTUAL: "apps/web/src/features/plugins/lib/virtual-books.ts",
   KV: "apps/web/src/platform/local-store.ts",
   DOCS: "apps/web/src/features/plugins/runtime/plugin-backend.ts",
@@ -620,7 +622,7 @@ groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.len
 }) });
 
 groups.push({ name: "组合能力与遗漏补查", rows: [
-  cap("MORE01", "周期调度/启动补跑/失败记录", "实装", actor("扩展", "RSS 工具可手动刷新；无调度工具", "查询/配置自动化意图"), actor("部分", "manifest schedules + services.schedules.bind", "有状态的调度服务"), ["SCHED","API","RSS"], "RSS 每小时刷新；外部 Theme Schedule", "最小 15 分钟、首轮 5 秒、每分钟扫描；触发时写 lastRun，不是成功时；关 App 不运行；无暂停/历史查询"),
+  cap("MORE01", "周期调度/启动补跑/失败记录", "实装", actor("接通", "list_plugin_schedules/manage_plugin_schedule 全局", "枚举与批准 pause/resume/run"), actor("接通", "schedules 1.1 bind/list/observe/control", "自有计划状态与受控执行"), ["SCHED","SCHEDCONTROL","SCHEDTOOLS","API","CTX","RSS","ROAM"], "RSS 现有每小时刷新；Agent 与插件正式入口", "每插件最多 64 个绑定，查询偏移分页 1–100/默认 50，观察初始+串行合并变化。暂停/恢复等持久写；手动 run 越过暂停/间隔一次，不恢复自动计划。每 key 跨重绑定共享 flight，already-running 不假称完成；开始记录落库后才派发 callback，结束记录落库后才 completed，失败不会刷新 lastSuccessAt。旧时间戳只迁为 lastStartedAt；未完成记录显示 interrupted，不伪造成功。新/旧调度记录排除偏好漫游；不是完整执行历史。退休停止新调用与迟到结果写，已派发持久写参与生命周期 drain；不保证物理副作用回滚。首轮 5 秒/每分钟扫描，至少 15 分钟间隔，错过多轮合并一次，关 App 不运行；最后绑定释放计时器。定向持久/并发/权限测试已验，组合插件与 Tauri 重启/升级验收待集中进行。"),
   cap("MORE02", "一次性延迟/短周期/空闲任务与自触发防环", "部分", actor("自动", "maintenance 有 idle 策略，无通用调度工具", "宿主自动管线/受控计划"), actor("部分", "Worker timer 可用，无宿主可恢复任务", "有 owner/origin 的任务服务"), ["SCHED","MAINT","WORKER","CTX"], "Theme Schedule 用 Worker clock；RSS 定时", "setTimeout 不是可审计后台任务；ignoreSelf 不能阻止跨插件循环"),
   cap("MORE03", "环境 locale/platform/timezone/在线/ready 快照", "部分", actor("部分", "get_host_environment（全局/书内）+ 自动语言/日期上下文", "环境查询与真实 availability"), actor("部分", "session 2.0 environment/observeEnvironment + ctx.appVersion/capabilities", "统一环境与 availability 快照"), ["CTX","ENVIRONMENT","ENVTOOLS","ENVPROOF","SESSIONBOUNDARY","API","LISTENINGDESK"], "Agent 查询；零权限 Worker 观察；Listening Desk 0.7 离线提示", "共享 revision、runtime/platform/locale/timeZone/utcOffsetMinutes/networkHint；首次立即快照，语言/网络/焦点变化刷新，时区每 30 秒复核且每次查询刷新，末个观察者释放监听与 timer。网络仅 OS/WebView 提示，不证明 endpoint 可达、账号/模型就绪或格式可用；这些 availability 仍缺。无阅读/账号字段，不借内置服务绕过 reading 权限。Listening Desk 按需刷新离线提示，不阻止本地朗读。隔离 macOS debug 双端与真实 Worker 已验；旧 session 四阅读事件旁路已移除；packaged/跨平台/真实系统时区和网络切换未验。"),
   cap("MORE04", "书籍/集合上下文菜单与 Agent header 插槽", "实装", absent("语义命令，不操作菜单 DOM"), actor("部分", "公开 header surface 仅 shelf/reader", "现有语义插槽扩展"), ["SHELFUI","AGENTUI","MENU","API"], "宿主上下文菜单/Agent header", "宿主已有菜单不等于每处允许 plugin contribution"),

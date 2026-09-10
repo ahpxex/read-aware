@@ -50,7 +50,7 @@ import {
 } from "../lib/virtual-books";
 import { showPluginToast } from "../lib/plugin-toast";
 import { normalizeReaderMode } from "../lib/reader-mode";
-import { registerPluginSchedule } from "./plugin-scheduler";
+import { pluginSchedules, registerPluginSchedule } from "./plugin-scheduler";
 import { resolvePluginCapabilities } from "./plugin-capabilities";
 import {
   contributionKey,
@@ -583,6 +583,9 @@ export function buildPluginContext(
         },
       },
       schedules: {
+        list: async (query = {}) => { lifecycle.assertActive("services.schedules.list"); return pluginSchedules.list({ ...query, pluginId: manifest.id }); },
+        observe: (query, handler) => track(() => ({ dispose: pluginSchedules.observe({ ...query, pluginId: manifest.id }, handler) })),
+        control: (id, action) => { lifecycle.assertActive("services.schedules.control"); return pluginSchedules.control({ pluginId: manifest.id, id, action }, lifecycle.signal); },
         bind: (scheduleId, run) => {
           const declaration = manifest.schedules?.find(
             (entry) => entry.id === scheduleId,
@@ -592,7 +595,10 @@ export function buildPluginContext(
               `schedule "${scheduleId}" is not declared in manifest.schedules`,
             );
           }
-          return track(() => registerPluginSchedule(manifest.id, declaration, run));
+          return track(() => {
+            const registration = registerPluginSchedule(manifest.id, declaration, run);
+            return { dispose: () => { registration.dispose(); lifecycle.trackCleanup(pluginSchedules.drainWrites(manifest.id)); } };
+          });
         },
       },
       plugins: {

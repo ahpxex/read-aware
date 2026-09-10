@@ -1736,6 +1736,11 @@ export type PluginHostServices = {
   };
   schedules: {
     bind(scheduleId: string, run: () => void | Promise<void>): PluginDisposable;
+    /** Bound schedules owned by this plugin only, with the latest persisted attempt/outcome. */
+    list(query?: Omit<import("@read-aware/core").PluginScheduleQuery, "pluginId">): Promise<import("@read-aware/core").PluginSchedulePage>;
+    observe(query: Omit<import("@read-aware/core").PluginScheduleQuery, "pluginId">, handler: (page: import("@read-aware/core").PluginSchedulePage) => unknown): PluginDisposable;
+    /** Pause/resume persist; run bypasses pause/cadence once. Neither pause nor cancellation undoes dispatched callback effects. */
+    control(id: string, action: "pause" | "resume" | "run"): Promise<import("@read-aware/core").PluginScheduleReceipt>;
   };
   plugins: {
     /** Public installed metadata only, no settings, paths, secrets or raw errors. */

@@ -30,6 +30,7 @@ const agentMap = pairs([
   ["request_conversation_turn", "AI03"],
   ["get_sync_status", "OPS01 OPS03 OPS06 OPS07"],
   ["manage_sync", "OPS01 OPS04 OPS06 OPS07"],
+  ["list_plugin_schedules manage_plugin_schedule", "MORE01"],
   ["list_installed_plugins", "EXT11"],
   ["copy_to_clipboard", "SYS08"],
   ["export_text_file", "SYS10"],
@@ -130,6 +131,7 @@ const pluginMap = pairs([
   ["services.session.environment services.session.observeEnvironment", "MORE03"],
   ["services.sync.snapshot services.sync.observe services.sync.backlog services.sync.requestSync", "OPS01 OPS03"],
   ["services.sync.account", "OPS06 OPS07"],
+  ["services.schedules.list services.schedules.observe services.schedules.control", "MORE01"],
   ["services.sync.openSettings", "OPS01 OPS04 OPS06 OPS07"],
 ]);
 const catalogMap: Record<string, Record<string, string[]>> = {

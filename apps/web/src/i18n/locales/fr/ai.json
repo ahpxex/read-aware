@@ -76,6 +76,11 @@
           "description": "Le fichier source importé et ses données de lecture locales seront définitivement supprimés. Cette action est irréversible.",
           "approve": "Supprimer le livre"
         },
+        "manageSchedule": {
+          "question": "Appliquer cette action planifiée ?",
+          "description": "{{subject}}. La pause et la reprise sont enregistrées sur cet appareil. L’exécution peut utiliser le réseau ou modifier des données ; les effets terminés ne sont pas annulés.",
+          "approve": "Autoriser"
+        },
         "syncNow": {
           "question": "Synchroniser maintenant ?",
           "description": "Synchroniser cet appareil avec le compte chiffré configuré. L’annulation ne supprime pas les transferts terminés.",

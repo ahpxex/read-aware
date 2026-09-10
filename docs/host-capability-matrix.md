@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 194、部分 43、待建 3、占位 2、非桌面 1。
-- Agent：接通 122、未接 35、部分 53、扩展 14、自动 14、内部 5。
-- 插件：接通 137、部分 78、未接 28。
+- Agent：接通 123、未接 35、部分 53、扩展 13、自动 14、内部 5。
+- 插件：接通 138、部分 77、未接 28。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -356,7 +356,7 @@
 
 | ID | 宿主能力 | 宿主现状 | Agent 当前与目标 | 插件当前与目标 | 实际消费者 | 缺口/边界 | 来源 | 旧基线 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="MORE01"></a>MORE01 | 周期调度/启动补跑/失败记录 | 实装 | **扩展**：RSS 工具可手动刷新；无调度工具<br>[设计] 查询/配置自动化意图 | **部分**：manifest schedules + services.schedules.bind<br>[设计] 有状态的调度服务 | RSS 每小时刷新；外部 Theme Schedule | 最小 15 分钟、首轮 5 秒、每分钟扫描；触发时写 lastRun，不是成功时；关 App 不运行；无暂停/历史查询 | [SCHED](../apps/web/src/features/plugins/runtime/plugin-scheduler.ts) [API](../packages/plugin-types/src/index.ts) [RSS](../plugins/rss-reader/src/index.ts) | Q03 |
+| <a id="MORE01"></a>MORE01 | 周期调度/启动补跑/失败记录 | 实装 | **接通**：list_plugin_schedules/manage_plugin_schedule 全局<br>[设计] 枚举与批准 pause/resume/run | **接通**：schedules 1.1 bind/list/observe/control<br>[设计] 自有计划状态与受控执行 | RSS 现有每小时刷新；Agent 与插件正式入口 | 每插件最多 64 个绑定，查询偏移分页 1–100/默认 50，观察初始+串行合并变化。暂停/恢复等持久写；手动 run 越过暂停/间隔一次，不恢复自动计划。每 key 跨重绑定共享 flight，already-running 不假称完成；开始记录落库后才派发 callback，结束记录落库后才 completed，失败不会刷新 lastSuccessAt。旧时间戳只迁为 lastStartedAt；未完成记录显示 interrupted，不伪造成功。新/旧调度记录排除偏好漫游；不是完整执行历史。退休停止新调用与迟到结果写，已派发持久写参与生命周期 drain；不保证物理副作用回滚。首轮 5 秒/每分钟扫描，至少 15 分钟间隔，错过多轮合并一次，关 App 不运行；最后绑定释放计时器。定向持久/并发/权限测试已验，组合插件与 Tauri 重启/升级验收待集中进行。 | [SCHED](../apps/web/src/features/plugins/runtime/plugin-scheduler.ts) [SCHEDCONTROL](../apps/web/src/features/plugins/runtime/plugin-schedule-controller.ts) [SCHEDTOOLS](../packages/agent/src/tools/schedule-tools.ts) [API](../packages/plugin-types/src/index.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [RSS](../plugins/rss-reader/src/index.ts) [ROAM](../apps/web/src/platform/roaming-preferences.ts) | Q03 |
 | <a id="MORE02"></a>MORE02 | 一次性延迟/短周期/空闲任务与自触发防环 | 部分 | **自动**：maintenance 有 idle 策略，无通用调度工具<br>[设计] 宿主自动管线/受控计划 | **部分**：Worker timer 可用，无宿主可恢复任务<br>[设计] 有 owner/origin 的任务服务 | Theme Schedule 用 Worker clock；RSS 定时 | setTimeout 不是可审计后台任务；ignoreSelf 不能阻止跨插件循环 | [SCHED](../apps/web/src/features/plugins/runtime/plugin-scheduler.ts) [MAINT](../apps/web/src/features/ai/agent/maintenance.ts) [WORKER](../apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | Q04, Q05 |
 | <a id="MORE03"></a>MORE03 | 环境 locale/platform/timezone/在线/ready 快照 | 部分 | **部分**：get_host_environment（全局/书内）+ 自动语言/日期上下文<br>[设计] 环境查询与真实 availability | **部分**：session 2.0 environment/observeEnvironment + ctx.appVersion/capabilities<br>[设计] 统一环境与 availability 快照 | Agent 查询；零权限 Worker 观察；Listening Desk 0.7 离线提示 | 共享 revision、runtime/platform/locale/timeZone/utcOffsetMinutes/networkHint；首次立即快照，语言/网络/焦点变化刷新，时区每 30 秒复核且每次查询刷新，末个观察者释放监听与 timer。网络仅 OS/WebView 提示，不证明 endpoint 可达、账号/模型就绪或格式可用；这些 availability 仍缺。无阅读/账号字段，不借内置服务绕过 reading 权限。Listening Desk 按需刷新离线提示，不阻止本地朗读。隔离 macOS debug 双端与真实 Worker 已验；旧 session 四阅读事件旁路已移除；packaged/跨平台/真实系统时区和网络切换未验。 | [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [ENVIRONMENT](../apps/web/src/platform/host-environment.ts) [ENVTOOLS](../packages/agent/src/tools/environment-tools.ts) [ENVPROOF](../docs/evidence/host-environment-2026-09-09.json) [SESSIONBOUNDARY](../docs/evidence/reading-session-boundary-2026-09-09.json) [API](../packages/plugin-types/src/index.ts) [LISTENINGDESK](../plugins/listening-desk/src/views.ts) | A07 |
 | <a id="MORE04"></a>MORE04 | 书籍/集合上下文菜单与 Agent header 插槽 | 实装 | **未接**：无正式入口<br>[设计] 语义命令，不操作菜单 DOM | **部分**：公开 header surface 仅 shelf/reader<br>[设计] 现有语义插槽扩展 | 宿主上下文菜单/Agent header | 宿主已有菜单不等于每处允许 plugin contribution | [SHELFUI](../apps/web/src/features/shelf/components/Shelf.tsx) [AGENTUI](../apps/web/src/features/agent/components/AgentWorkspace.tsx) [MENU](../apps/web/src/features/menus/lib/menu-registry.tsx) [API](../packages/plugin-types/src/index.ts) | I05 |
@@ -410,9 +410,9 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：64 个。
+- Agent global：66 个。
 - Agent book：55 个。
-- Plugin ctx：145 个。
+- Plugin ctx：148 个。
 - Plugin returned interface：25 个。
 - Capability domains：6 个。
 - Capability contributions：14 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 145 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 148 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -454,6 +454,8 @@
 | `open_external_url` | [SYS12](#SYS12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_sync_status` | [OPS01](#OPS01) [OPS03](#OPS03) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_sync` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `list_plugin_schedules` | [MORE01](#MORE01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `manage_plugin_schedule` | [MORE01](#MORE01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_books` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_book_overview` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_annotations` | [ANN01](#ANN01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -691,6 +693,9 @@
 | `services.ui.reader.observe` | [READ10](#READ10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.reader.setPanel` | [READ10](#READ10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.openExternal` | [SYS12](#SYS12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.schedules.list` | [MORE01](#MORE01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.schedules.observe` | [MORE01](#MORE01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.schedules.control` | [MORE01](#MORE01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.schedules.bind` | [MORE01](#MORE01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.plugins.list` | [EXT11](#EXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.plugins.observe` | [EXT11](#EXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

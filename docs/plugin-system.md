@@ -3069,7 +3069,7 @@ The current host services are:
 | `storage` | plugin-scoped KV and document collections | built in |
 | `secrets` | plugin-scoped credential slots | built in |
 | `ui` | host toast and save/export flow | built in |
-| `schedules` | bind a manifest-declared periodic task | built in |
+| `schedules` | 1.1: bind, list, observe, pause/resume and run declared tasks | built in, own schedules only |
 | `session` | 2.0: environment snapshot/observation only; reading state requires the reading domain | built in |
 | `plugins` | 1.0: bounded installed public metadata list/observation | built in |
 | `sync` | 1.0: sanitized status, backlog, account quotas, sync request and host settings | `service:sync` |
@@ -3101,6 +3101,28 @@ login, disconnect, deletion or purchase. Targeted flows and their final receipts
 remain unconnected. Agent `get_sync_status` and `manage_sync` share this service
 in both scopes; manual sync asks approval, account fetching is opt-in. Focused
 checks passed; new composition/native/cross-device acceptance remains pending.
+
+[代码] Schedules 1.1 retains `bind(id,run)` and adds `list({offset?,limit?})`,
+`observe(query,handler)`, and `control(id,"pause"|"resume"|"run")`. Plugins only
+see/control their own bound declarations (64 maximum per plugin). Lists return
+1–100 entries, default 50; observers deliver initial and serial coalesced changes.
+Pause/resume persist on this device. A manual run bypasses pause/cadence once,
+without resuming automatic execution; pause does not stop an active callback.
+The host saves the attempt before invoking the callback, then separately saves
+finish/outcome/success/error code. Only callback and final write completion
+return `completed`; duplicate runs return `already-running`. Latest state is not
+a complete execution history. Legacy `schedule-runs` stamps become start times,
+never successes; unfinished records show `interrupted`. Both `schedule-state`
+and `schedule-runs` are reserved host keys excluded from preference roaming.
+The first sweep waits five seconds, later sweeps run each minute, cadence has a
+15-minute floor, and missed periods coalesce to one attempt. No execution while
+the app is closed, no exact timing or OS jobs. Rebinding does not overlap an old
+flight; retirement prevents new callbacks/late result writes and drains already
+dispatched state writes, not arbitrary callback side effects. The last binding
+releases scheduler timers. Global Agent `list_plugin_schedules` and
+`manage_plugin_schedule` use the same controller with approval for each control;
+book scope has neither tool. Focused checks passed; composition/Tauri lifecycle
+acceptance remains pending.
 
 [代码] UI 1.7 adds `openExternal(url)` when `service:network` is granted.
 It accepts HTTP(S) only (up to 8192 characters), rejects credentials and control

@@ -71,6 +71,8 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   get_conversation_state: {},
   get_sync_status: {},
   manage_sync: { action: "settings" },
+  list_plugin_schedules: {},
+  manage_plugin_schedule: { action: "pause", pluginId: "fixture", id: "refresh" },
   manage_conversation: { action: "create" },
   request_conversation_turn: { action: "draft", target: { kind: "book", id: BOOK_ID }, text: "A question for review" },
   list_installed_plugins: {},
@@ -183,6 +185,12 @@ describe("tool surface contract", () => {
         const { deps } = createInMemoryDeps(seed());
         deps.hostIO.writeClipboard = async () => {};
         deps.hostIO.openExternal = async () => {};
+        if (name === "manage_plugin_schedule") {
+          const schedule = { pluginId: "fixture", id: "refresh", label: "Refresh", everyMinutes: 60, paused: false, running: false,
+            lastStartedAt: null, lastFinishedAt: null, lastSuccessAt: null, lastOutcome: null, lastErrorCode: null };
+          deps.schedules.list = async () => ({ schedules: [schedule], total: 1, nextOffset: null });
+          deps.schedules.control = async () => ({ status: "completed", schedule: { ...schedule, paused: true } });
+        }
         if (name === "read_book_range") params.range = (await deps.bookText.searchLocations({ bookId: BOOK_ID, query: "Victor" })).hits[0].range;
         if (name === "manage_memory") params.memoryId = (await deps.memory.saveMemory({ content: "The reader enjoys mysteries.", scope: "user", kind: "preference", origin: "agent", sourceThreadKey: "surface" })).id;
         // The generic fixture has no attached host command runtime. These receipts

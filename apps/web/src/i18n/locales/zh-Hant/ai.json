@@ -76,6 +76,11 @@
           "description": "這會永久移除匯入的原始檔案和本機閱讀資料，且無法復原。",
           "approve": "刪除書籍"
         },
+        "manageSchedule": {
+          "question": "執行此排程操作？",
+          "description": "{{subject}}。暫停和恢復會儲存在此裝置。執行可能進行此外掛原有的網路或資料操作，已完成的效果不會撤銷。",
+          "approve": "批准"
+        },
         "syncNow": {
           "question": "立即同步？",
           "description": "將此裝置與已設定的加密帳號同步。取消請求不會撤回已完成的傳輸。",

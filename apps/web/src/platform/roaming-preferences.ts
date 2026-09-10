@@ -85,6 +85,8 @@ const ROAMING_PREFIXES: ReadonlyArray<{ prefix: string; policy: RoamingPolicy }>
 ];
 
 function roamingPolicyFor(key: string): RoamingPolicy | null {
+  // Host scheduler bookkeeping belongs to this device, unlike plugin preferences.
+  if (/^read-aware-plugin\.[^.]+\.schedule-(?:state|runs)$/.test(key)) return null;
   const exact = ROAMING_POLICIES[key];
   if (exact) return exact;
   for (const { prefix, policy } of ROAMING_PREFIXES) {

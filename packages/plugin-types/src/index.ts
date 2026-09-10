@@ -1971,6 +1971,22 @@ export type PluginLoggingService = {
   }>;
 };
 
+export type PluginInferenceInput = {
+  prompt: string;
+  system?: string;
+  model?: "fast" | "smart";
+  /** Keep book fragments here: host privacy filtering and live revocation apply. */
+  readingContext?: import("@read-aware/core").ModelReadingContext;
+  /** Cancellation reaches host inference; no remote rollback guarantee. */
+  signal?: AbortSignal;
+  /** Integer milliseconds, 1..110000, default 60000; covers structured retries. */
+  timeoutMs?: number;
+  /** llm 1.3: positive integer <= 65536, requested separately for each attempt.
+   * Model/account/provider limits may be stricter. Omit to retain account defaults.
+   * This is not a total token/cost budget or a guarantee of provider compliance. */
+  maxOutputTokens?: number;
+};
+
 export type PluginHostServices = {
   storage: PluginStorage;
   logging: PluginLoggingService;
@@ -2121,30 +2137,14 @@ export type PluginHostServices = {
     closeStream(id: string): Promise<void>;
   };
   llm?: {
-    /** llm 1.2: plugin inference concurrency and deadline limits, not billing quotas. */
-    policy(): Promise<{ defaultTimeoutMs: number; maxTimeoutMs: number; perPluginLimit: number; appLimit: number }>;
-    ask(input: {
-      prompt: string;
-      /** llm 1.2: caller cancellation reaches host inference; no remote rollback guarantee. */
-      signal?: AbortSignal;
-      /** Integer milliseconds, 1..110000, default 60000; covers structured retries too. */
-      timeoutMs?: number;
-      /** Since llm 1.1: host filters book text and revokes in-flight requests when privacy tightens.
-       * Do not interpolate these fragments into prompt, system, or schema yourself. */
-      readingContext?: import("@read-aware/core").ModelReadingContext;
-      system?: string;
-      model?: "fast" | "smart";
-      onText?: (delta: string) => void;
-    }): Promise<string>;
-    ask(input: {
-      prompt: string;
-      signal?: AbortSignal;
-      timeoutMs?: number;
-      readingContext?: import("@read-aware/core").ModelReadingContext;
-      system?: string;
-      model?: "fast" | "smart";
-      schema: Record<string, unknown>;
-    }): Promise<unknown>;
+    /** Plugin inference limits, not billing quotas. maxOutputTokensLimit since 1.3. */
+    policy(): Promise<{ defaultTimeoutMs: number; maxTimeoutMs: number; perPluginLimit: number; appLimit: number; maxOutputTokensLimit: number }>;
+    ask(input: PluginInferenceInput & { schema?: never; onText?: (delta: string) => void }): Promise<string>;
+    ask(input: PluginInferenceInput & { schema: Record<string, unknown>; onText?: never }): Promise<unknown>;
+    /** llm 1.3: same execution as ask, with per-attempt metadata on success.
+     * Includes structured retries; failure/cancellation rejects, not a billing receipt. */
+    askDetailed(input: PluginInferenceInput & { schema?: never; onText?: (delta: string) => void }): Promise<import("@read-aware/core").InferenceResult<string>>;
+    askDetailed(input: PluginInferenceInput & { schema: Record<string, unknown>; onText?: never }): Promise<import("@read-aware/core").InferenceResult>;
   };
   clipboard?: {
     writeText(text: string): Promise<void>;

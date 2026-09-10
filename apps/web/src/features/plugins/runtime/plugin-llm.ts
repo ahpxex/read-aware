@@ -5,7 +5,7 @@ import { AiNotConfiguredError } from "../../ai/lib/ai-errors";
 import { createLogger } from "../../../platform/logger";
 import type { PluginLifecycleController } from "./plugin-lifecycle";
 
-const LIMITS = { defaultTimeoutMs: 60_000, maxTimeoutMs: 110_000, perPluginLimit: 2, appLimit: 8 };
+const LIMITS = { defaultTimeoutMs: 60_000, maxTimeoutMs: 110_000, perPluginLimit: 2, appLimit: 8, maxOutputTokensLimit: 65_536 };
 const log = createLogger("plugin-llm");
 type Input = Omit<OneShotInput, "trackSource"> & { timeoutMs?: number };
 
@@ -41,9 +41,11 @@ function normalize(input: Input): Input {
   if (input.onText !== undefined && typeof input.onText !== "function") return invalid();
   if (input.schema && input.onText) return invalid();
   if (input.signal !== undefined && !(input.signal instanceof AbortSignal)) return invalid();
+  if (input.maxOutputTokens !== undefined && (!Number.isSafeInteger(input.maxOutputTokens) || input.maxOutputTokens < 1 || input.maxOutputTokens > LIMITS.maxOutputTokensLimit)) return invalid();
   const timeoutMs = input.timeoutMs ?? LIMITS.defaultTimeoutMs;
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > LIMITS.maxTimeoutMs) return invalid();
   return { prompt: input.prompt, system: input.system, model: input.model ?? "fast", timeoutMs, signal: input.signal,
+    maxOutputTokens: input.maxOutputTokens,
     schema: input.schema === undefined ? undefined : structuredClone(input.schema),
     readingContext: input.readingContext === undefined ? undefined : structuredClone(input.readingContext), onText: input.onText };
 }
@@ -51,11 +53,11 @@ function normalize(input: Input): Input {
 export function createPluginLlm(
   pluginId: string,
   lifecycle: PluginLifecycleController,
-  getRuntime: () => Pick<AgentRuntime, "ask"> | null,
+  getRuntime: () => Pick<AgentRuntime, "ask" | "askDetailed"> | null,
   capacity = slots,
 ): NonNullable<PluginHostServices["llm"]> {
-  const ask = async (raw: Input): Promise<unknown> => {
-    lifecycle.assertActive("services.llm.ask");
+  const run = async (raw: Input, detailed: boolean): Promise<unknown> => {
+    lifecycle.assertActive(detailed ? "services.llm.askDetailed" : "services.llm.ask");
     const input = normalize(raw);
     if (input.signal?.aborted) throw new AppError(ERR_AI_REQUEST_CANCELLED, "Plugin inference was cancelled before dispatch");
     const runtime = getRuntime();
@@ -80,7 +82,8 @@ export function createPluginLlm(
     const work = Promise.resolve().then(() => {
       controller.signal.throwIfAborted();
       const base = { prompt: input.prompt, system: input.system, model: input.model,
-        readingContext: input.readingContext, signal: controller.signal, trackSource };
+        readingContext: input.readingContext, signal: controller.signal, trackSource, maxOutputTokens: input.maxOutputTokens };
+      if (detailed) return input.schema ? runtime.askDetailed({ ...base, schema: input.schema }) : runtime.askDetailed({ ...base, onText: input.onText });
       return input.schema ? runtime.ask({ ...base, schema: input.schema }) : runtime.ask({ ...base, onText: input.onText });
     }).catch(error => {
       controller.abort(error);
@@ -109,5 +112,6 @@ export function createPluginLlm(
       return value;
     } finally { controller.signal.removeEventListener("abort", onAbort); }
   };
-  return { ask, policy: async () => { lifecycle.assertActive("services.llm.policy"); return { ...LIMITS }; } } as NonNullable<PluginHostServices["llm"]>;
+  return { ask: (input: Input) => run(input, false), askDetailed: (input: Input) => run(input, true),
+    policy: async () => { lifecycle.assertActive("services.llm.policy"); return { ...LIMITS }; } } as NonNullable<PluginHostServices["llm"]>;
 }

@@ -31,7 +31,7 @@ export type InferenceSourceTracking = { trackSource?: (source: Promise<unknown>)
 export type CompleteFn = (
   model: Model<Api>,
   context: Context,
-  options?: { signal?: AbortSignal } & InferenceSourceTracking,
+  options?: { signal?: AbortSignal; maxTokens?: number } & InferenceSourceTracking,
 ) => Promise<AssistantMessage>;
 
 /** "off" → 不发 reasoning 参数；其余原样传给 pi。 */
@@ -46,12 +46,12 @@ function requestOptions(
   base: SimpleStreamOptions = {},
 ): SimpleStreamOptions {
   const upstreamPayload = base.onPayload;
-  // The readaware subscription rides the same custom-openai wire, so its
-  // payloads need the same compatibility sanitation; its output cap lives on
-  // the relay proxy, hence no client-side maxOutputTokens.
+  // Explicit per-call caps must survive compatibility sanitation. The relay
+  // can impose a stricter subscription cap independently.
   const sanitizedMaxOutputTokens = isCustomOpenAIAccount(account)
-    ? account.maxOutputTokens
-    : undefined;
+    ? base.maxTokens === undefined ? account.maxOutputTokens
+      : Math.min(base.maxTokens, account.maxOutputTokens ?? base.maxTokens)
+    : base.maxTokens;
   const onPayload =
     isCustomOpenAIAccount(account) || account.kind === "readaware"
       ? async (payload: unknown, model: Model<Api>) => {
@@ -65,6 +65,7 @@ function requestOptions(
 
   return {
     ...base,
+    ...(base.maxTokens === undefined ? {} : { maxTokens: sanitizedMaxOutputTokens }),
     apiKey: account.kind === "readaware" ? account.session : account.apiKey,
     reasoning:
       thinking === undefined ? base.reasoning : asReasoning(thinking),

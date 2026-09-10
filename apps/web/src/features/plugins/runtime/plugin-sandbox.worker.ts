@@ -329,10 +329,11 @@ function buildContext(
   }
 
   const llm = services.llm as Record<string, unknown> | undefined;
-  if (llm && typeof llm.ask === "function") {
-    llm.ask = (input: Parameters<NonNullable<PluginContext["services"]["llm"]>["ask"]>[0]) => {
+  for (const operation of ["ask", "askDetailed"] as const) {
+    if (!llm || typeof llm[operation] !== "function") continue;
+    llm[operation] = (input: Parameters<NonNullable<PluginContext["services"]["llm"]>["ask"]>[0]) => {
       const { signal, ...payload } = input;
-      return callHost("services.llm.ask", [payload], signal);
+      return callHost(`services.llm.${operation}`, [payload], signal);
     };
   }
 

@@ -4,6 +4,7 @@ import type {
   AssistantMessageEventStream,
   Context,
   Model,
+  SimpleStreamOptions,
 } from "@earendil-works/pi-ai";
 import { fauxAssistantMessage } from "@earendil-works/pi-ai/providers/faux";
 import type { LlmAccount } from "./accounts";
@@ -50,6 +51,23 @@ async function reasoningSentFor(thinking: ThinkingLevel | undefined): Promise<st
 }
 
 describe("createCompleteFn", () => {
+  test("explicit output caps survive custom/subscription sanitation without exceeding account caps", async () => {
+    const custom: LlmAccount = { kind: "api-key", provider: CUSTOM_OPENAI_PROVIDER_ID, apiKey: "k",
+      baseUrl: "https://gateway.example/v1", api: "openai-responses" };
+    for (const account of [custom, { ...custom, maxOutputTokens: 64 }, { kind: "readaware", session: "s" } as LlmAccount, ACCOUNT]) {
+      for (const mode of ["complete", "stream"]) {
+        let captured!: SimpleStreamOptions;
+        const capture = (value: unknown) => { captured = value as SimpleStreamOptions; };
+        if (mode === "complete") await createCompleteFn(stubRegistry(capture), account)(MODEL, CONTEXT, { maxTokens: 128 });
+        else createStreamFn(stubStreamRegistry(capture), account)(MODEL, CONTEXT, { maxTokens: 128 });
+        const expected = account.kind === "api-key" && "maxOutputTokens" in account ? 64 : 128;
+        expect(captured.maxTokens).toBe(expected);
+        const payload = { model: "m", max_output_tokens: captured.maxTokens };
+        expect(captured.onPayload ? await captured.onPayload(payload, MODEL) : payload).toEqual({ model: "m", max_output_tokens: expected });
+      }
+    }
+  });
+
   test("passes the thinking effort through as reasoning", async () => {
     expect(await reasoningSentFor("medium")).toBe("medium");
   });

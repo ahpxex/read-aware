@@ -478,7 +478,7 @@ export function startPluginWorker(
               args[0] = request.url;
               args[1] = { ...request.init, signal: controller.signal };
             }
-            if (message.method === "services.llm.ask") {
+            if (message.method === "services.llm.ask" || message.method === "services.llm.askDetailed") {
               args[0] = { ...(args[0] as object), signal: controller.signal };
             }
             let value = await method(...args);

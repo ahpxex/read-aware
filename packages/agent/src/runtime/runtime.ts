@@ -21,7 +21,7 @@ import type { ModelRole, RoleThinking } from "../models/roles";
 import type { AgentFetch } from "../models/transport";
 import { AppError, type Id } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
-import { askOneShot, type OneShotInput } from "./one-shot";
+import { askOneShot, askOneShotDetailed, type OneShotInput } from "./one-shot";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { AgentThread, type SendTurnInput } from "./thread";
 
@@ -156,6 +156,17 @@ export class AgentRuntime {
   async ask(input: OneShotInput & { schema: Record<string, unknown>; onText?: never }): Promise<unknown>;
   async ask(input: OneShotInput): Promise<unknown> {
     return askOneShot(input, {
+      resolveModel: this.resolveModel,
+      completeFns: this.completeFns,
+      streamFns: this.streamFns,
+      readingContextPolicy: this.deps.readingContextPolicy,
+    });
+  }
+
+  async askDetailed(input: OneShotInput & { schema?: never }): Promise<import("@read-aware/core").InferenceResult<string>>;
+  async askDetailed(input: OneShotInput & { schema: Record<string, unknown>; onText?: never }): Promise<import("@read-aware/core").InferenceResult>;
+  async askDetailed(input: OneShotInput): Promise<import("@read-aware/core").InferenceResult> {
+    return askOneShotDetailed(input, {
       resolveModel: this.resolveModel,
       completeFns: this.completeFns,
       streamFns: this.streamFns,

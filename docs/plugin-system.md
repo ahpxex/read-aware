@@ -686,12 +686,49 @@ annotations 2 migration removes the legacy public unconditional commands.
 
 Private document operations and blocking dispatch have separate contracts below.
 
-### Cancellable Plugin Inference (LLM 1.2)
+### Cancellable Plugin Inference (LLM 1.3)
+
+[代码] Since 1.3, `services.llm.askDetailed` has the same text/streaming and
+schema overloads as `ask`, but resolves `{value, attempts}`. The shared runtime
+also exposes `AgentRuntime.askDetailed`; no new model-callable Agent tool or
+additional data permission is introduced. Each completed attempt records the
+resolved catalog model `{id,provider}`, SDK `stopReason`, requested per-attempt
+`maxOutputTokens` (null for account defaults), `usage`, and `estimatedCostUsd`.
+Structured success after a retry includes both attempts, but not the invalid
+reply text. Text ending with `length` remains a successful text result with that
+explicit reason. Schema violations after both attempts, provider errors,
+cancellation and deadlines still reject: this is not a final receipt for failed
+or cancelled work, and no durable usage ledger is added.
+
+[代码] Usage contains `input`, `output`, `cacheRead`, `cacheWrite`, `reasoning`
+and `totalTokens`; counters are independent SDK reports, not recomputed totals.
+`reasoning` is already included in `output`. Missing/invalid/negative counters
+are null; unavailable or all-zero SDK usage becomes null rather than claiming
+zero consumption. USD cost is the SDK estimate only when usage and nonzero
+catalog pricing exist; missing/invalid cost or zero-only pricing becomes null.
+This includes custom accounts whose zero catalog prices do not mean free calls.
+No account keys, endpoints, response IDs, reasoning content or raw SDK message
+objects are returned. Receipts are copied per call; no cross-plugin history is
+exposed. These are estimates, not provider invoices or subscription charges.
+
+[代码] Both APIs accept optional `maxOutputTokens`, an integer from 1 through
+65536; `policy().maxOutputTokensLimit` publishes 65536. Invalid input rejects
+`plugin/invalid-argument` before provider dispatch. The shared one-shot runtime
+clamps each attempt to the model's positive catalog max, then the account
+transport may further lower it. Explicit limits survive Custom/ReadAware
+payload sanitation; configured Custom account limits cannot be raised by a
+plugin. Omission retains prior account/provider defaults. Receipt limits describe
+the request before stricter account/relay/provider processing, not measured
+output or provider compliance. A two-attempt structured call requests the cap
+twice: no total input/output token budget, monetary quota, output-byte cap,
+provider-internal retry accounting or application-wide budget is introduced.
+Both APIs share the cancellation, privacy, source tracking and capacity below.
 
 [代码] `services.llm.ask` retains its text and schema overloads and independent
 `service:llm` permission. Both accept `signal?:AbortSignal` and
 `timeoutMs?:number`. `policy()` returns `defaultTimeoutMs:60000`,
-`maxTimeoutMs:110000`, `perPluginLimit:2`, `appLimit:8`. A provided timeout must
+`maxTimeoutMs:110000`, `perPluginLimit:2`, `appLimit:8`, and since 1.3
+`maxOutputTokensLimit:65536`. A provided timeout must
 be an integer from 1 through 110000, and covers the entire invocation including
 the existing maximum two structured attempts. These are plugin execution limits,
 not a token/cost quota or a limit on the core Agent's independent inference.
@@ -716,9 +753,9 @@ not inferred book provenance or permission to bypass typed reading context.
 delta, including asynchronous Worker callback acknowledgement. Cancellation
 rejects promptly and suppresses late deltas/results. This bounds outstanding
 callback delivery per invocation, not the provider SDK's internal output queue,
-network backpressure, generated token count or total output memory. No new
-token/output byte cap, usage receipt, price estimate or billing guarantee is
-introduced by this version.
+network backpressure or total output memory. The optional 1.3 token request and
+success metadata above are separate from callback sequencing and do not prove
+provider billing or enforce a total budget.
 
 [代码] A host-shared slot pool admits at most two plugin inference operations
 per plugin ID and eight across all plugin IDs; excess calls reject `ai/busy`

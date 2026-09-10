@@ -23,7 +23,7 @@ test("inference control errors use localized copy and distinguish retryable capa
 function fixture(capacity = new PluginInferenceSlots(), id = "sample") {
   const lifecycle = new PluginLifecycleController([]); lifecycle.promote();
   const calls: Array<{ input: OneShotInput; finish(value: unknown): void }> = [];
-  const runtime = { ask(input: OneShotInput) {
+  const ask = (input: OneShotInput) => {
     const source = new Promise<unknown>(resolve => { calls.push({ input, finish: resolve }); });
     input.trackSource?.(source);
     return new Promise((resolve, reject) => {
@@ -31,20 +31,47 @@ function fixture(capacity = new PluginInferenceSlots(), id = "sample") {
       input.signal?.addEventListener("abort", abort, { once: true });
       void source.then(value => { input.signal?.removeEventListener("abort", abort); resolve(value); });
     });
-  } } as Pick<AgentRuntime, "ask">;
+  };
+  const runtime = { ask, askDetailed: ask } as Pick<AgentRuntime, "ask" | "askDetailed">;
   return { lifecycle, calls, api: createPluginLlm(id, lifecycle, () => runtime, capacity) };
 }
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 
 test("LLM policy, validation and pre-cancellation reject before inference", async () => {
   const f = fixture();
-  expect(await f.api.policy()).toEqual({ defaultTimeoutMs: 60000, maxTimeoutMs: 110000, perPluginLimit: 2, appLimit: 8 });
+  expect(await f.api.policy()).toEqual({ defaultTimeoutMs: 60000, maxTimeoutMs: 110000, perPluginLimit: 2, appLimit: 8, maxOutputTokensLimit: 65536 });
+  for (const maxOutputTokens of [0, -1, 65537, 1.5, NaN, Infinity]) {
+    await expect(f.api.ask({ prompt: "p", maxOutputTokens })).rejects.toMatchObject({ code: "plugin/invalid-argument" });
+    await expect(f.api.askDetailed({ prompt: "p", maxOutputTokens })).rejects.toMatchObject({ code: "plugin/invalid-argument" });
+  }
   for (const timeoutMs of [0, 110001, 1.5, NaN]) await expect(f.api.ask({ prompt: "p", timeoutMs })).rejects.toMatchObject({ code: "plugin/invalid-argument" });
   await expect(f.api.ask({ prompt: "p", schema: {}, onText() {} } as never)).rejects.toMatchObject({ code: "plugin/invalid-argument" });
   const controller = new AbortController(); controller.abort();
   await expect(f.api.ask({ prompt: "p", signal: controller.signal })).rejects.toMatchObject({ code: "ai/request-cancelled" });
   expect(f.calls).toHaveLength(0);
   f.lifecycle.stop();
+});
+
+test("detailed calls forward output caps and share ordinary inference capacity and cancellation", async () => {
+  const f = fixture();
+  const controller = new AbortController();
+  const detailed = f.api.askDetailed({ prompt: "p", maxOutputTokens: 128, signal: controller.signal });
+  const plain = f.api.ask({ prompt: "p" });
+  const cancelled = Promise.allSettled([detailed]);
+  await tick();
+  expect(f.calls[0].input.maxOutputTokens).toBe(128);
+  await expect(f.api.askDetailed({ prompt: "busy" })).rejects.toMatchObject({ code: "ai/busy" });
+  controller.abort();
+  expect(await cancelled).toMatchObject([{ status: "rejected", reason: { code: "ai/request-cancelled" } }]);
+  f.calls[0].finish({ value: "late", attempts: [] }); f.calls[1].finish("ok");
+  expect(await plain).toBe("ok"); await f.lifecycle.drainCleanups();
+  const result = f.api.askDetailed({ prompt: "p", schema: { type: "object" } });
+  await tick();
+  const receipt = { value: { answer: "ok" }, attempts: [{ model: { id: "probe", provider: "openai" },
+    stopReason: "stop" as const, maxOutputTokens: null, usage: null, estimatedCostUsd: null }] };
+  f.calls[2].finish(receipt);
+  expect(await result).toEqual(receipt);
+  f.lifecycle.stop(); await f.lifecycle.drainCleanups();
 });
 
 test("cancelled inference keeps slots and retirement waiting until provider termination", async () => {

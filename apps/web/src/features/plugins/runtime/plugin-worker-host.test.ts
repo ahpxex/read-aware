@@ -96,18 +96,19 @@ describe("plugin worker capability bridge", () => {
   });
 });
 
-test("LLM RPC cancellation injects the current request signal into the actual host service", async () => {
+test.each(["ask", "askDetailed"])("LLM %s RPC cancellation injects the current request signal into the actual host service", async method => {
   let started!: () => void;
   const ready = new Promise<void>(resolve => { started = resolve; });
   let signal: AbortSignal | undefined;
-  const runtime = { ask(input: OneShotInput) {
+  const run = (input: OneShotInput) => {
     signal = input.signal; started();
     return new Promise((_, reject) => input.signal!.addEventListener("abort", () => reject(input.signal!.reason), { once: true }));
-  } } as AgentRuntime;
+  };
+  const runtime = { ask: run, askDetailed: run } as unknown as AgentRuntime;
   const spy = spyOn(runtimeModule, "getAgentRuntime").mockReturnValue(runtime);
   const { worker, close } = await hostFixture(["service:llm"]);
   try {
-    const call = worker.deliver({ t: "call", id: 990, method: "services.llm.ask", args: worker.callbacks.encode([{ prompt: "p", signal: { fake: true } }]) });
+    const call = worker.deliver({ t: "call", id: 990, method: `services.llm.${method}`, args: worker.callbacks.encode([{ prompt: "p", signal: { fake: true } }]) });
     await ready;
     expect(signal).toBeInstanceOf(AbortSignal);
     expect(signal?.aborted).toBe(false);

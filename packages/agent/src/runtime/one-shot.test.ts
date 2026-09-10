@@ -4,7 +4,7 @@ import { fauxAssistantMessage } from "@earendil-works/pi-ai/providers/faux";
 import type { CompleteFn, StreamFn } from "../models/complete";
 import { contextPolicyState } from "../testing/reading-context-policy";
 import { createInMemoryDeps } from "../testing/fixtures";
-import { askOneShot } from "./one-shot";
+import { askOneShot, askOneShotDetailed } from "./one-shot";
 import { createAgentRuntime } from "./runtime";
 
 const model = { id: "probe", provider: "openai", api: "openai-completions" } as Model<Api>;
@@ -14,6 +14,64 @@ function fixture(complete: CompleteFn, stream: StreamFn = () => { throw Error("U
   return { policy, deps: { resolveModel: () => model, completeFns: { fast: complete, smart: complete },
     streamFns: { fast: stream, smart: stream }, readingContextPolicy: policy } };
 }
+
+test("detailed structured replies retain usage for both attempts and clamp each requested output cap", async () => {
+  const caps: Array<number | undefined> = [];
+  const messages: ReturnType<typeof fauxAssistantMessage>[] = [];
+  const f = fixture(async (_model, _context, options) => {
+    caps.push(options?.maxTokens);
+    const message = fauxAssistantMessage(caps.length === 1 ? "not JSON" : '{"answer":"ok"}');
+    message.usage = { input: 20, output: 10, reasoning: 4, cacheRead: 5, cacheWrite: 0, totalTokens: 35,
+      cost: { input: 0.01, output: 0.02, cacheRead: 0.001, cacheWrite: 0, total: 0.031 } };
+    messages.push(message); return message;
+  });
+  f.deps.resolveModel = () => ({ ...model, maxTokens: 256, cost: { input: 1, output: 2, cacheRead: 1, cacheWrite: 1 } });
+  const result = await askOneShotDetailed({ prompt: "p", maxOutputTokens: 512, schema: { type: "object", required: ["answer"] } }, f.deps);
+  expect(result.value).toEqual({ answer: "ok" }); expect(caps).toEqual([256, 256]);
+  expect(result.attempts).toHaveLength(2);
+  expect(result.attempts[0]).toEqual({ model: { id: "probe", provider: "openai" }, stopReason: "stop", maxOutputTokens: 256,
+    usage: { input: 20, output: 10, reasoning: 4, cacheRead: 5, cacheWrite: 0, totalTokens: 35 }, estimatedCostUsd: 0.031 });
+  messages[0].usage.input = 999;
+  expect(result.attempts[0].usage?.input).toBe(20);
+  expect(JSON.stringify(result)).not.toContain("not JSON");
+});
+
+test("detailed streaming exposes length termination, unknown usage/pricing and no provider internals", async () => {
+  const source = createAssistantMessageEventStream();
+  let cap: number | undefined;
+  const f = fixture(async () => { throw Error("Unexpected completion"); }, (_model, _context, options) => { cap = options?.maxTokens; return source; });
+  const deltas: string[] = [];
+  const pending = askOneShotDetailed({ prompt: "p", maxOutputTokens: 32, onText: text => { deltas.push(text); } }, f.deps);
+  const message = fauxAssistantMessage("short"); message.stopReason = "length";
+  message.responseId = "PRIVATE_RESPONSE_ID";
+  source.push({ type: "text_delta", contentIndex: 0, delta: "short", partial: message });
+  source.push({ type: "done", reason: "length", message });
+  const result = await pending;
+  expect(cap).toBe(32); expect(deltas).toEqual(["short"]); expect(result.value).toBe("short");
+  expect(result.attempts[0]).toMatchObject({ stopReason: "length", usage: null, estimatedCostUsd: null });
+  expect(JSON.stringify(result)).not.toContain("PRIVATE_RESPONSE_ID");
+});
+
+test("detailed inference rejects invalid caps, does not invent missing cost, and retains cancellation", async () => {
+  let calls = 0;
+  const f = fixture(async () => {
+    calls++;
+    const message = fauxAssistantMessage("ok");
+    message.usage.input = 20; message.usage.output = NaN;
+    message.usage.cost.total = 100;
+    return message;
+  });
+  for (const maxOutputTokens of [0, -1, 1.5, Infinity]) {
+    await expect(askOneShotDetailed({ prompt: "p", maxOutputTokens }, f.deps)).rejects.toThrow("positive safe integer");
+  }
+  expect(calls).toBe(0);
+  const result = await askOneShotDetailed({ prompt: "p" }, f.deps);
+  expect(result.attempts[0]).toMatchObject({ maxOutputTokens: null, usage: { input: 20, output: null }, estimatedCostUsd: null });
+  const controller = new AbortController();
+  const pending = askOneShotDetailed({ prompt: "p", signal: controller.signal }, f.deps);
+  controller.abort(new Error("stopped"));
+  await expect(pending).rejects.toThrow("stopped");
+});
 
 test("caller cancellation covers plain inference and suppresses structured retries", async () => {
   for (const schema of [undefined, { type: "object" }]) {
@@ -155,5 +213,7 @@ test("AgentRuntime forwards its host policy to one-shot calls", async () => {
   const runtime = createAgentRuntime({ deps, account: { kind: "api-key", provider: "openai", apiKey: "never-used" },
     models: { fast: "not-resolved", smart: "not-resolved" } });
   await expect(runtime.ask({ prompt: "typed", readingContext: { selection: "private", required: ["selection"] } }))
+    .rejects.toMatchObject({ code: "ai/context-withheld" });
+  await expect(runtime.askDetailed({ prompt: "typed", readingContext: { selection: "private", required: ["selection"] } }))
     .rejects.toMatchObject({ code: "ai/context-withheld" });
 });

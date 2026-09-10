@@ -4,13 +4,19 @@ import { strings } from "./strings";
 import { memoryDetail } from "./management";
 import { classificationView, classificationWords } from "./classification";
 import { liveMemoryView, type MemoryDeskView } from "./live-memory";
+import { profileView } from "./profile";
+import { conversationSummaries, conversationSummary } from "./conversation-summaries";
+import { contextWords } from "./context-strings";
 
 export async function memoryDesk(ctx: PluginContext): Promise<PluginListView> {
   const t = strings(ctx.locale);
   return { kind: "list", title: t[0], items: [
+    { id: "profile", title: contextWords(ctx.locale).profile, icon: "user", onSelect: async () => ({ view: await profileView(ctx) }) },
     { id: "user", title: t[1], icon: "brain", onSelect: async () => ({ view: await memories(ctx, "user") }) },
     { id: "global", title: t[2], icon: "brain", onSelect: async () => ({ view: await memories(ctx, "global") }) },
     { id: "books", title: t[3], icon: "books", onSelect: async () => ({ view: await booksView(ctx) }) },
+    ...(ctx.domains.conversations ? [{ id: "conversations", title: contextWords(ctx.locale).conversations, icon: "chat-circle",
+      onSelect: async () => ({ view: await conversationSummaries(ctx) }) }] : []),
   ] };
 }
 export async function booksView(ctx: PluginContext, page = 0): Promise<PluginListView> {
@@ -22,6 +28,8 @@ export async function booksView(ctx: PluginContext, page = 0): Promise<PluginLis
         { id: "graph", title: t[4], icon: "brain", onSelect: async () => ({ view: await graphView(ctx, book.id) }) },
         { id: "memory", title: t[5], icon: "brain", onSelect: async () => ({ view: await memories(ctx, `book:${book.id}`) }) },
         { id: "classification", title: classificationWords(ctx.locale)[0]!, icon: "book-open", onSelect: async () => ({ view: await classificationView(ctx, book.id) }) },
+        ...(ctx.domains.conversations ? [{ id: "summary", title: contextWords(ctx.locale).bookSummary, icon: "chat-circle",
+          onSelect: async () => ({ view: await conversationSummary(ctx, { kind: "book", id: book.id }, book.title) }) }] : []),
       ] } }) })), actions: [
       { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await booksView(ctx, current), navigation: "replace" }) },
       ...[-1, 1].filter(direction => current + direction >= 0 && (current + direction) * 40 < books.length).map(direction => ({

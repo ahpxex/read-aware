@@ -3089,6 +3089,48 @@ receipt gating, not stalled SQLite, autonomous models, public-task UI,
 packaged/Windows/Linux or real remote-sync verification.
 
 <a id="book-graph-tasks"></a>
+### Memory Desk Profile and Conversation Composition
+
+[代码] Memory Desk 0.8 consumes existing Memory 1.7 and Conversations 1.4 without
+adding a host or Agent API. Its manifest adds `conversations:read`; viewing
+conversation summaries does not borrow `memory:write` authorization. Existing
+graph generation permissions remain unchanged. New labels use simplified
+Chinese or English fallback.
+
+- The home view adds user profile and global conversation summaries; each book
+  adds its own conversation summary. Merely opening these views does not invoke
+  a model, generate a summary, change a conversation or write memory.
+- Profile pages request 4000 UTF-16 units. Subsequent/previous pages carry the
+  displayed revision and exact returned offsets; Refresh restarts at the newest
+  first page. Missing and present-empty profiles have distinct states. Reads
+  propagate failures rather than presenting them as absence.
+- Edit reloads the complete profile with limit 16000 at the displayed revision.
+  The form freezes that revision and requires a separate checkbox to replace
+  the text, including explicit empty-text clearing. It never substitutes the
+  first page for the full profile. Legacy profiles longer than 16000 remain
+  readable but do not expose this bounded editor. Read-only contexts omit Edit.
+- Conflict/write failure rejects without navigation or automatic rebase/retry,
+  leaving the host form draft intact. The completion view reports the actual
+  `changed` receipt; Refresh is a separate read, so a failed follow-up query
+  cannot make a completed write look unsuccessful. No new cross-device CAS,
+  durable profile projection or multi-record memory transaction is implied.
+- Global thread lists display 40 rows per page and clamp after deletion. Book
+  and global targets are explicit `kind/id`; only selecting a row reads its
+  stored summary. A summary's complete returned string is captured once and
+  displayed as plain text in 4000-unit pages without splitting surrogate pairs.
+  Back/Next reuse that snapshot; Refresh obtains a new one. Null and empty
+  strings differ. This bounds the displayed page, not the host response/string
+  memory, and adds neither provenance timestamps nor summary freshness claims.
+- These new views use explicit refresh rather than background observations;
+  existing memory/graph live views are unchanged.
+
+[验证] 33 plugin tests / 194 assertions, plugin typecheck and build pass, including
+the compiled command's real contribution callbacks with a controlled Bun context.
+Profile revision/confirmation/clear/failure, summary paging/Unicode/plain-text,
+book/global targets and locale fallback are covered. This is not WebKit Worker,
+real profile persistence, upgrade permission approval or full chat proof. Native
+composition and document visual checks remain concentrated acceptance work.
+
 ### Memory 1.7: User Profile Reads and Conditional Writes
 
 [代码] `domains.memory.queries.profile(query?)` and

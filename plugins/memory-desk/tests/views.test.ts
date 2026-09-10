@@ -17,7 +17,7 @@ function fixture() {
 describe("Memory Desk public composition", () => {
   test("home and scoped memory queries stay within explicit scopes", async () => {
     const { ctx, calls } = fixture();
-    expect((await memoryDesk(ctx)).items.map(item => item.id)).toEqual(["user", "global", "books"]);
+    expect((await memoryDesk(ctx)).items.map(item => item.id)).toEqual(["profile", "user", "global", "books"]);
     await memories(ctx, "book:b", "Ada"); expect(calls).toEqual([{ scopes: ["book:b"], query: "Ada", limit: 100 }]);
   });
   test("book pagination clamps after library shrink", async () => {

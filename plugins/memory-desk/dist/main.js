@@ -336,13 +336,175 @@ async function classificationView(ctx, bookId) {
   });
 }
 
+// src/context-strings.ts
+var en2 = {
+  profile: "User profile",
+  edit: "Edit profile",
+  summary: "Summary",
+  save: "Save",
+  confirm: "Confirm replacing the profile, including clearing it if empty",
+  required: "Confirm this change first",
+  tooLong: "Maximum 16,000 characters",
+  absent: "No profile yet",
+  empty: "Empty profile",
+  saved: "Profile saved",
+  unchanged: "Profile unchanged",
+  refresh: "Refresh",
+  previous: "Previous",
+  next: "Next",
+  conversations: "Conversation summaries",
+  noThreads: "No conversations",
+  untitled: "Untitled conversation",
+  noSummary: "No stored summary",
+  emptySummary: "Empty summary",
+  bookSummary: "Conversation summary",
+  local: "Device-local"
+};
+var zh = {
+  profile: "用户画像",
+  edit: "编辑画像",
+  summary: "摘要",
+  save: "保存",
+  confirm: "确认替换画像；内容为空时清空画像",
+  required: "请先确认此修改",
+  tooLong: "最多 16,000 个字符",
+  absent: "尚无画像",
+  empty: "画像为空",
+  saved: "画像已保存",
+  unchanged: "画像未变化",
+  refresh: "刷新",
+  previous: "上一页",
+  next: "下一页",
+  conversations: "对话摘要",
+  noThreads: "暂无对话",
+  untitled: "未命名对话",
+  noSummary: "尚无已存摘要",
+  emptySummary: "摘要为空",
+  bookSummary: "对话摘要",
+  local: "仅本机"
+};
+var contextWords = (locale) => locale === "zh-Hans" ? zh : en2;
+
+// src/context-pagination.ts
+function pageActions(locale, offsets, nextOffset, load) {
+  const t = contextWords(locale);
+  const go = async (next) => ({ view: await load(next), navigation: "replace" });
+  return [
+    ...offsets.length > 1 ? [{ id: "previous", label: t.previous, icon: "arrow-left", run: () => go(offsets.slice(0, -1)) }] : [],
+    ...nextOffset === null ? [] : [{ id: "next", label: t.next, icon: "arrow-right", run: () => go([...offsets, nextOffset]) }]
+  ];
+}
+function textPage(text, start) {
+  let end = Math.min(text.length, start + 4000);
+  if (end < text.length && text.charCodeAt(end - 1) >= 55296 && text.charCodeAt(end - 1) <= 56319 && text.charCodeAt(end) >= 56320 && text.charCodeAt(end) <= 57343)
+    --end;
+  return { text: text.slice(start, end), nextOffset: end < text.length ? end : null };
+}
+
+// src/profile.ts
+async function profileView(ctx, offsets = [0], expectedRevision) {
+  const t = contextWords(ctx.locale), memory = ctx.domains.memory;
+  const page = await memory.queries.profile({ offset: offsets[offsets.length - 1], limit: 4000, expectedRevision });
+  return { kind: "detail", title: t.profile, content: [
+    { kind: "text", text: page.text || (page.exists ? t.empty : t.absent) },
+    { kind: "text", variant: "caption", text: `${page.totalLength ? page.offset + 1 : 0}-${page.offset + page.text.length} / ${page.totalLength}` }
+  ], metadata: [{ kind: "label", label: t.profile, value: t.local }], actions: [
+    { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await profileView(ctx), navigation: "replace" }) },
+    ...pageActions(ctx.locale, offsets, page.nextOffset, (next) => profileView(ctx, next, page.revision)),
+    ...memory.commands && page.totalLength <= 16000 ? [{
+      id: "edit",
+      label: t.edit,
+      icon: "pencil-simple",
+      run: async () => ({ view: await editProfile(ctx, page.revision) })
+    }] : []
+  ] };
+}
+async function editProfile(ctx, expectedRevision) {
+  const t = contextWords(ctx.locale), memory = ctx.domains.memory;
+  const page = await memory.queries.profile({ limit: 16000, expectedRevision });
+  if (page.nextOffset !== null)
+    throw Object.assign(Error("Cannot edit an incomplete profile"), { code: "memory/invalid-input" });
+  return { kind: "form", title: t.edit, submitLabel: t.save, fields: [
+    { id: "summary", kind: "textarea", label: t.summary, value: page.text },
+    { id: "confirm", kind: "checkbox", label: t.confirm, value: false }
+  ], onSubmit: async (values) => {
+    if (typeof values.summary !== "string" || values.summary.length > 16000)
+      return { fieldErrors: { summary: t.tooLong } };
+    if (values.confirm !== true)
+      return { fieldErrors: { confirm: t.required } };
+    const receipt = await memory.commands.updateProfile({ summary: values.summary, expectedRevision: page.revision });
+    return { navigation: "replace", view: {
+      kind: "detail",
+      title: t.profile,
+      content: [{ kind: "text", text: receipt.changed ? t.saved : t.unchanged }],
+      actions: [{
+        id: "refresh",
+        label: t.refresh,
+        icon: "arrows-clockwise",
+        run: async () => ({ view: await profileView(ctx), navigation: "replace" })
+      }]
+    } };
+  } };
+}
+
+// src/conversation-summaries.ts
+async function conversationSummaries(ctx, page = 0) {
+  const t = contextWords(ctx.locale), threads = await ctx.domains.conversations.queries.listThreads();
+  const current = Math.min(Math.max(page, 0), Math.max(0, Math.ceil(threads.length / 40) - 1));
+  return {
+    kind: "list",
+    title: t.conversations,
+    searchable: true,
+    emptyText: t.noThreads,
+    items: threads.slice(current * 40, (current + 1) * 40).map((thread) => ({
+      id: thread.id,
+      title: thread.title || t.untitled,
+      subtitle: thread.updatedAt,
+      icon: "chat-circle",
+      onSelect: async () => ({ view: await conversationSummary(ctx, { kind: "global", id: thread.id }, thread.title || t.untitled) })
+    })),
+    actions: [
+      { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await conversationSummaries(ctx, current), navigation: "replace" }) }
+    ],
+    pagination: {
+      page: current + 1,
+      pageCount: Math.max(1, Math.ceil(threads.length / 40)),
+      ...current ? { onPrevious: async () => ({ view: await conversationSummaries(ctx, current - 1), navigation: "replace" }) } : {},
+      ...(current + 1) * 40 < threads.length ? { onNext: async () => ({ view: await conversationSummaries(ctx, current + 1), navigation: "replace" }) } : {}
+    }
+  };
+}
+async function conversationSummary(ctx, target, title) {
+  const summary = await ctx.domains.conversations.queries.getInsights(target);
+  const t = contextWords(ctx.locale);
+  const render = (offsets) => {
+    const offset = offsets[offsets.length - 1];
+    const page = textPage(summary ?? "", offset);
+    return { kind: "detail", title: `${title} / ${t.bookSummary}`, content: [
+      { kind: "text", text: summary === null ? t.noSummary : summary === "" ? t.emptySummary : page.text },
+      { kind: "text", variant: "caption", text: `${summary?.length ? offset + 1 : 0}-${offset + page.text.length} / ${summary?.length ?? 0}` }
+    ], actions: [
+      { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await conversationSummary(ctx, target, title), navigation: "replace" }) },
+      ...pageActions(ctx.locale, offsets, page.nextOffset, render)
+    ] };
+  };
+  return render([0]);
+}
+
 // src/views.ts
 async function memoryDesk(ctx) {
   const t = strings(ctx.locale);
   return { kind: "list", title: t[0], items: [
+    { id: "profile", title: contextWords(ctx.locale).profile, icon: "user", onSelect: async () => ({ view: await profileView(ctx) }) },
     { id: "user", title: t[1], icon: "brain", onSelect: async () => ({ view: await memories(ctx, "user") }) },
     { id: "global", title: t[2], icon: "brain", onSelect: async () => ({ view: await memories(ctx, "global") }) },
-    { id: "books", title: t[3], icon: "books", onSelect: async () => ({ view: await booksView(ctx) }) }
+    { id: "books", title: t[3], icon: "books", onSelect: async () => ({ view: await booksView(ctx) }) },
+    ...ctx.domains.conversations ? [{
+      id: "conversations",
+      title: contextWords(ctx.locale).conversations,
+      icon: "chat-circle",
+      onSelect: async () => ({ view: await conversationSummaries(ctx) })
+    }] : []
   ] };
 }
 async function booksView(ctx, page = 0) {
@@ -360,7 +522,13 @@ async function booksView(ctx, page = 0) {
       onSelect: async () => ({ view: { kind: "list", title: book.title, items: [
         { id: "graph", title: t[4], icon: "brain", onSelect: async () => ({ view: await graphView(ctx, book.id) }) },
         { id: "memory", title: t[5], icon: "brain", onSelect: async () => ({ view: await memories(ctx, `book:${book.id}`) }) },
-        { id: "classification", title: classificationWords(ctx.locale)[0], icon: "book-open", onSelect: async () => ({ view: await classificationView(ctx, book.id) }) }
+        { id: "classification", title: classificationWords(ctx.locale)[0], icon: "book-open", onSelect: async () => ({ view: await classificationView(ctx, book.id) }) },
+        ...ctx.domains.conversations ? [{
+          id: "summary",
+          title: contextWords(ctx.locale).bookSummary,
+          icon: "chat-circle",
+          onSelect: async () => ({ view: await conversationSummary(ctx, { kind: "book", id: book.id }, book.title) })
+        }] : []
       ] } })
     })),
     actions: [
@@ -410,8 +578,8 @@ async function memories(ctx, scope, query) {
 // src/index.ts
 var src_default = {
   activate(ctx) {
-    if (!ctx.domains.memory || !ctx.domains.library || !ctx.domains.reading?.commands)
-      throw Error("Memory Desk requires memory:read, library:read and reading:write");
+    if (!ctx.domains.memory || !ctx.domains.library || !ctx.domains.conversations || !ctx.domains.reading?.commands)
+      throw Error("Memory Desk requires memory:read, library:read, conversations:read and reading:write");
     const title = strings(ctx.locale)[0];
     ctx.contributions.commands.register({ id: "open", title, icon: "brain", run: async () => ({ view: await memoryDesk(ctx) }) });
     for (const surface of ["shelf", "reader"])

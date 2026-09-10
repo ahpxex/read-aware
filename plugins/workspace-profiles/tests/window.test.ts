@@ -12,7 +12,7 @@ function fixture(locale = "en") {
   const requests: Parameters<WindowService["control"]>[0][] = [];
   const published: { revision: number; view: PluginDetailView }[] = [];
   const ctx = { locale, services: {
-    storage: { collection: () => ({ list: async () => [] }) },
+    storage: { collection: () => ({ page: async () => ({ status: "ready", items: [], nextCursor: null }) }) },
     ui: { window: {
       snapshot: async () => { reads++; if (failure) throw failure; return snapshot; },
       observe: (handler: typeof observer) => { observer = handler; return { dispose() { disposed++; } }; },
@@ -117,7 +117,7 @@ test("compiled header and command both expose window controls without new host A
   }
   expect(f.requests).toEqual([{ action: "maximize" }, { action: "maximize" }]);
   const manifest = await Bun.file(new URL("../dist/manifest.json", import.meta.url)).json();
-  expect(manifest.version).toBe("0.5.0");
+  expect(manifest.version).toBe("0.6.0");
   expect(manifest.requires.services.ui).toBe("^1.11.0");
   expect(manifest.permissions).toEqual(["agent:tools"]);
 });

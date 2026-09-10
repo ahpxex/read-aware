@@ -21,7 +21,7 @@ function fixture() {
   }, commands: { update: async (changes: unknown) => {
     if (failure) throw Object.assign(Error("write failed"), { code: "db/error" });
     writes.push(changes); return { changed: changes };
-  } } } }, services: { storage: { collection: () => ({ list: async () => [] }) } } } as unknown as PluginContext;
+  } } } }, services: { storage: { collection: () => ({ page: async () => ({ status: "ready", items: [], nextCursor: null }) }) } } } as unknown as PluginContext;
   return { ctx, queries, writes, changeRevision: () => { revision++; }, fail: () => { failure = true; }, readonly: () => { writable = false; } };
 }
 const viewOf = (r: PluginViewResult) => r!.view as PluginListView;

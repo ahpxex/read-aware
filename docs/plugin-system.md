@@ -4360,8 +4360,50 @@ and book scopes. It saves exactly the three shelf paths plus `appearance.theme`,
 validates the version, exact path set and global targets, then submits one
 atomic settings update. Current catalog validation rejects stale theme options
 without partial changes. Global reading changes preserve existing book overrides;
-the tool returns override metadata. Delete removes the preset, not host settings.
+the current tool returns an override count, not other book IDs. Delete removes the preset, not host settings.
 It neither changes AI privacy nor accesses credentials or plugin lifecycle.
+
+### Workspace Profiles Approved Operations
+
+[代码] Workspace Profiles 0.6 separates the old mixed Agent tool into read-only
+`workspace_profiles` (`list`, `inspect`, `current`), approved `save_workspace_profile`
+and approved `manage_workspace_profile` (`apply`, `delete`), in both book/global
+scopes. Old write operations on `workspace_profiles` now reject rather than bypass
+approval. AgentTools ^1.2 and Storage ^2.1 are required; permissions and host APIs
+are unchanged. Existing version 1/2 documents remain readable without migration.
+
+[代码] `current` returns the ten preset values and a SHA-256 workspaceToken over
+their canonical path/value/global-target list. Approved save recaptures once,
+compares that token and writes that captured copy with expectedRevision=null.
+A changed snapshot returns stale-workspace without writing. This is a value
+fingerprint, not an authorization ticket, an ABA detector or a settings transaction;
+later workspace changes do not alter the captured preset. Each successful save
+creates a new document, not an idempotent overwrite.
+
+[代码] Inspect returns normalized preset values and the storage revision. Apply
+checks that exact revision before submitting its copied values as one existing
+settings command; missing/changed documents return conflict. Later private-document
+writes do not change the values already submitted, and settings/private storage
+are not a joint transaction. Delete uses applyDocuments with the exact revision,
+including for invalid entries. UI details retain their displayed revision, deletion
+requires an unchecked-by-default confirmation, and save/delete show receipts before
+any list refresh. Errors do not become success or an empty list.
+
+[代码] Agent list defaults to 10 and allows 1..20 summaries; UI uses 40-item pages
+with previous/next and explicit refresh. Any collection write invalidates continuation
+cursors. Only inspect emits values: exact v1 seven/v2 ten paths, global targets,
+1..80-character names, scalar finite values, strings up to 1024 characters and null
+only for the two font settings. Host settings validation still decides whether a
+value or an installed theme/font is currently valid. Invalid documents expose no
+arbitrary payload and can be explicitly removed.
+
+[环境] 34 plugin tests cover read/write separation, compiled registration, snapshot
+changes, revision conflicts, conditional removal, paging, confirmation forms and
+write failures; plugin build, types and manifests pass. Existing host approval and
+inventory/model checks pass separately. These use controlled services, not native
+Worker/SQLite/approval UI or model inference. New workflows, font effects, upgrades
+and restart/cross-platform behavior remain for concentrated desktop acceptance;
+older 0.1 desktop evidence does not prove the 0.6 protocol.
 
 ### Workspace Profiles Font Composition
 

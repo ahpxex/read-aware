@@ -352,7 +352,7 @@
     },
     "plugins/workspace-profiles": {
       "name": "@read-aware/plugin-workspace-profiles",
-      "version": "0.3.0",
+      "version": "0.6.0",
       "devDependencies": {
         "@read-aware/plugin-types": "workspace:*",
         "@read-aware/tsconfig": "workspace:*",

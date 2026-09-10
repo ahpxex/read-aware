@@ -1,36 +1,14 @@
 import { expect, test } from "bun:test";
-import type { PluginContext } from "@read-aware/plugin-types";
 import { applyProfile, deleteProfile, LEGACY_PROFILE_PATHS, PROFILE_PATHS, readProfile, saveProfile } from "../src/profiles";
 import plugin from "../src/index";
-
-function fixture() {
-  type Change = Parameters<PluginContext["domains"]["settings"]["commands"]["update"]>[0][number];
-  const documents = new Map<string, unknown>();
-  const updates: Change[][] = [];
-  let snapshots = 0;
-  let fail = false;
-  const ctx = { locale: "en", domains: { settings: {
-    queries: { snapshot: async () => {
-      snapshots++;
-      return { settings: PROFILE_PATHS.map(path => ({ path, value: path === "shelf.layout" ? "list" : "test", writable: true })) };
-    } },
-    commands: { update: async (changes: Change[]) => {
-      if (fail) throw Error("rejected stale option");
-      updates.push(changes);
-      return { changed: changes, settings: { overrides: [{ target: { kind: "book", bookId: "keep" }, paths: ["reading.fontSize"] }] } };
-    } },
-  } },
-    services: { storage: { collection: () => ({ put: async (id: string, data: unknown) => { documents.set(id, data); },
-      get: async (id: string) => documents.has(id) ? { id, data: documents.get(id) } : null,
-      list: async () => [...documents].map(([id, data]) => ({ id, data })), delete: async (id: string) => { documents.delete(id); } }) } },
-  } as unknown as PluginContext;
-  return { ctx, documents, updates, snapshots: () => snapshots, fail() { fail = true; } };
-}
+import { fixture } from "./fixture";
 test("captures one snapshot, applies one atomic command, and preserves override receipts", async () => {
   const f = fixture(); const saved = await saveProfile(f.ctx, "  Research  ");
+  if (saved.status !== "saved") throw Error("Save failed");
   expect(saved.name).toBe("Research"); expect(f.snapshots()).toBe(1); expect(f.updates).toHaveLength(0);
   expect((await readProfile(f.ctx, saved.id)).data.version).toBe(2);
-  const applied = await applyProfile(f.ctx, saved.id);
+  const applied = await applyProfile(f.ctx, saved.id, (await readProfile(f.ctx, saved.id)).revision);
+  if (applied.status !== "applied") throw Error("Apply failed");
   expect(f.updates).toHaveLength(1); expect(f.updates[0]!.map(change => change.path)).toEqual([...PROFILE_PATHS]);
   expect(f.updates[0]!.every(change => change.target?.kind === "global")).toBe(true);
   expect(applied.overrides).toHaveLength(1);
@@ -39,7 +17,7 @@ test("version 1 presets preserve fonts; version 2 requires its complete field se
   const f = fixture();
   const legacy = { version: 1, name: "Old workspace", changes: LEGACY_PROFILE_PATHS.map(path => ({ path, value: "test", target: { kind: "global" } })) };
   f.documents.set("old", legacy);
-  await applyProfile(f.ctx, "old");
+  await applyProfile(f.ctx, "old", "initial");
   expect(f.updates[0]!.map(change => change.path)).toEqual([...LEGACY_PROFILE_PATHS]);
   expect(f.documents.get("old")).toBe(legacy);
   f.documents.set("broken", { ...legacy, version: 2 });
@@ -49,29 +27,31 @@ test("version 1 presets preserve fonts; version 2 requires its complete field se
 });
 test("stale settings failures propagate without deleting the saved preset", async () => {
   const f = fixture(); const saved = await saveProfile(f.ctx, "Reading"); f.fail();
-  await expect(applyProfile(f.ctx, saved.id)).rejects.toThrow("rejected stale option");
+  if (saved.status !== "saved") throw Error("Save failed");
+  await expect(applyProfile(f.ctx, saved.id, (await readProfile(f.ctx, saved.id)).revision)).rejects.toThrow("rejected stale option");
   expect(f.documents.has(saved.id)).toBe(true); expect(f.updates).toHaveLength(0);
 });
 test("invalid names, missing documents and tampered paths cannot broaden writes", async () => {
   const f = fixture();
   for (const name of ["", " ", "x".repeat(81)]) await expect(saveProfile(f.ctx, name)).rejects.toThrow();
   const saved = await saveProfile(f.ctx, "Reading");
+  if (saved.status !== "saved") throw Error("Save failed");
   const doc = await readProfile(f.ctx, saved.id);
   doc.data.changes[0]!.path = "ai.preferences.localOnly";
-  await expect(applyProfile(f.ctx, saved.id)).rejects.toThrow("Invalid workspace profile");
-  await expect(applyProfile(f.ctx, "missing")).rejects.toThrow();
+  f.documents.set(saved.id, doc.data);
+  await expect(applyProfile(f.ctx, saved.id, doc.revision)).rejects.toThrow("Invalid workspace profile");
+  expect(await applyProfile(f.ctx, "missing", "initial")).toEqual({ status: "conflict" });
   expect(f.updates).toHaveLength(0);
 });
 test("deleting a preset does not apply any host settings", async () => {
   const f = fixture(); const saved = await saveProfile(f.ctx, "Reading");
-  await deleteProfile(f.ctx, saved.id);
+  if (saved.status !== "saved") throw Error("Save failed");
+  await deleteProfile(f.ctx, saved.id, (await readProfile(f.ctx, saved.id)).revision);
   expect(f.documents.size).toBe(0); expect(f.updates).toHaveLength(0);
 });
 test("registers shelf UI, command and both Agent scopes", () => {
-  const registrations: Array<{ family: string; value: unknown }> = [];
-  const contribution = (family: string) => ({ register: (value: unknown) => registrations.push({ family, value }) });
-  const f = fixture(); Object.assign(f.ctx, { contributions: { headerActions: contribution("header"), commands: contribution("command"), agentTools: contribution("tool") } });
+  const f = fixture();
   plugin.activate(f.ctx);
-  expect(registrations.map(entry => entry.family)).toEqual(["header", "command", "tool"]);
-  expect(registrations[2]!.value).toMatchObject({ name: "workspace_profiles", contexts: ["global", "book"] });
+  expect(f.registrations).toEqual(["header", "command", "tool", "tool", "tool"]);
+  expect(f.tools.get("workspace_profiles")).toMatchObject({ name: "workspace_profiles", contexts: ["global", "book"] });
 });

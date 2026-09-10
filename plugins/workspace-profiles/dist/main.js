@@ -1,49 +1,165 @@
 // src/profiles.ts
 var LEGACY_PROFILE_PATHS = ["shelf.layout", "shelf.group", "shelf.sort", "appearance.theme", "appearance.motion", "reading.fontSize", "reading.lineSpacing"];
 var PROFILE_PATHS = [...LEGACY_PROFILE_PATHS, "reading.fontFamily", "appearance.contentTypography.fontFamily", "appearance.contentTypography.followReader"];
-var collection = (ctx) => ctx.services.storage.collection("profiles");
+var profileCollection = (ctx) => ctx.services.storage.collection("profiles");
+var invalid = (message) => {
+  throw Object.assign(Error(message), { code: "plugin/invalid-input" });
+};
 function profileName(name) {
   if (typeof name !== "string" || !name.trim() || name.trim().length > 80)
-    throw Error("Profile name must contain 1-80 characters");
+    return invalid("Profile name must contain 1-80 characters");
   return name.trim();
 }
-async function listProfiles(ctx) {
-  return collection(ctx).list();
+function parseProfile(value) {
+  if (!value || typeof value !== "object")
+    return null;
+  const profile = value;
+  const paths = profile.version === 1 ? LEGACY_PROFILE_PATHS : PROFILE_PATHS;
+  if (![1, 2].includes(profile.version) || typeof profile.name !== "string" || !profile.name.trim() || profile.name.trim().length > 80 || !Array.isArray(profile.changes) || profile.changes.length !== paths.length || profile.changes.some((change) => !change || typeof change !== "object" || !paths.includes(change.path) || change.target?.kind !== "global" || !(change.value === null && (change.path === "reading.fontFamily" || change.path === "appearance.contentTypography.fontFamily") || typeof change.value === "boolean" || typeof change.value === "number" && Number.isFinite(change.value) || typeof change.value === "string" && change.value.length <= 1024)) || new Set(profile.changes.map((change) => change.path)).size !== paths.length)
+    return null;
+  return { version: profile.version, name: profile.name.trim(), changes: paths.map((path) => ({
+    path,
+    value: profile.changes.find((change) => change.path === path).value,
+    target: { kind: "global" }
+  })) };
 }
-async function saveProfile(ctx, name) {
+async function listProfiles(ctx, cursor, limit = 40) {
+  return profileCollection(ctx).page({ limit, ...cursor ? { cursor } : {} });
+}
+async function captureProfile(ctx, name) {
   const cleanName = profileName(name);
   const snapshot = await ctx.domains.settings.queries.snapshot({ target: { kind: "global" } });
   const changes = PROFILE_PATHS.map((path) => {
     const setting = snapshot.settings.find((setting2) => setting2.path === path);
     if (!setting?.writable)
-      throw Error(`Profile setting unavailable: ${path}`);
+      throw Object.assign(Error(`Profile setting unavailable: ${path}`), { code: "plugin/unavailable" });
     return { path, value: setting.value, target: { kind: "global" } };
   });
+  const profile = parseProfile({ version: 2, name: cleanName, changes });
+  if (!profile)
+    return invalid("Invalid workspace snapshot");
+  return profile;
+}
+async function profileToken(profile) {
+  const bytes = new TextEncoder().encode(JSON.stringify(profile.changes));
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return `wp1:${Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+}
+async function saveProfile(ctx, name, expectedToken) {
+  const profile = await captureProfile(ctx, name);
+  if (expectedToken !== undefined && await profileToken(profile) !== expectedToken)
+    return { status: "stale-workspace" };
   const id = crypto.randomUUID();
-  await collection(ctx).put(id, { version: 2, name: cleanName, changes });
-  return { id, name: cleanName };
+  const receipt = await ctx.services.storage.applyDocuments([{ kind: "put", collection: "profiles", id, data: profile, expectedRevision: null }]);
+  return receipt.status === "conflict" ? { status: "conflict" } : { status: "saved", id, name: profile.name };
 }
-async function readProfile(ctx, id) {
-  const doc = await collection(ctx).get(id);
-  if (!doc)
-    throw Error("Workspace profile no longer exists");
-  const profile = doc.data;
-  const paths = profile?.version === 1 ? LEGACY_PROFILE_PATHS : PROFILE_PATHS;
-  if (!profile || ![1, 2].includes(profile.version) || !Array.isArray(profile.changes) || profile.changes.length !== paths.length || profile.changes.some((change) => !change || typeof change !== "object" || !paths.includes(change.path) || change.target?.kind !== "global") || new Set(profile.changes.map((change) => change.path)).size !== paths.length) {
-    throw Error("Invalid workspace profile");
-  }
-  profileName(profile.name);
-  return doc;
+async function applyProfile(ctx, id, expectedRevision) {
+  const doc = await profileCollection(ctx).get(id);
+  if (!doc || doc.revision !== expectedRevision)
+    return { status: "conflict" };
+  const profile = parseProfile(doc.data);
+  if (!profile)
+    return invalid("Invalid workspace profile");
+  const receipt = await ctx.domains.settings.commands.update(profile.changes);
+  return { status: "applied", id, name: profile.name, changed: receipt.changed, overrides: receipt.settings.overrides };
 }
-async function applyProfile(ctx, id) {
-  const doc = await readProfile(ctx, id);
-  const receipt = await ctx.domains.settings.commands.update(doc.data.changes);
-  return { id, name: doc.data.name, changed: receipt.changed, overrides: receipt.settings.overrides };
+async function deleteProfile(ctx, id, expectedRevision) {
+  const receipt = await ctx.services.storage.applyDocuments([{ kind: "delete", collection: "profiles", id, expectedRevision }]);
+  return { status: receipt.status === "conflict" ? "conflict" : "deleted", id };
 }
-async function deleteProfile(ctx, id) {
-  await readProfile(ctx, id);
-  await collection(ctx).delete(id);
-  return { deleted: id };
+
+// src/tools.ts
+var invalid2 = () => {
+  throw Object.assign(Error("Invalid workspace tool input"), { code: "plugin/invalid-input" });
+};
+function fields(params, allowed) {
+  if (Object.keys(params).some((key) => !allowed.includes(key)))
+    invalid2();
+}
+function text(value, max = 512) {
+  if (typeof value !== "string" || !value.trim() || value.length > max)
+    return invalid2();
+  return value;
+}
+var string = (maxLength = 512) => ({ type: "string", minLength: 1, maxLength });
+function registerProfileTools(ctx) {
+  if (!ctx.contributions.agentTools)
+    throw Error("Workspace Profiles requires agent:tools");
+  ctx.contributions.agentTools.register({
+    name: "workspace_profiles",
+    label: "Inspect workspace profiles",
+    contexts: ["global", "book"],
+    description: "Read-only workspace presets. List returns a bounded page of names, IDs and revisions; continue with nextCursor, restart on stale-cursor. Inspect requires an exact id and returns the preset values and revision for manage_workspace_profile. Current returns the ten global preset settings and workspaceToken for save_workspace_profile. Does not change settings, select a profile or save. Invalid entries may only be deleted.",
+    parameters: { type: "object", properties: { operation: { type: "string", enum: ["list", "inspect", "current"] }, id: string(), cursor: string(8192), limit: { type: "integer", minimum: 1, maximum: 20 } }, required: ["operation"], additionalProperties: false },
+    execute: async (params) => {
+      if (params.operation === "list") {
+        fields(params, ["operation", "cursor", "limit"]);
+        const limit = params.limit ?? 10;
+        if (typeof limit !== "number" || !Number.isInteger(limit) || limit < 1 || limit > 20)
+          return invalid2();
+        const page = await listProfiles(ctx, params.cursor === undefined ? undefined : text(params.cursor, 8192), limit);
+        if (page.status === "stale-cursor")
+          return page;
+        return { status: "ready", nextCursor: page.nextCursor, items: page.items.map((doc) => {
+          const profile = parseProfile(doc.data);
+          return { id: doc.id, revision: doc.revision, valid: Boolean(profile), ...profile ? { name: profile.name, version: profile.version } : {} };
+        }) };
+      }
+      if (params.operation === "current") {
+        fields(params, ["operation"]);
+        const profile = await captureProfile(ctx, "Current workspace");
+        return { changes: profile.changes, workspaceToken: await profileToken(profile) };
+      }
+      if (params.operation === "inspect") {
+        fields(params, ["operation", "id"]);
+        const id = text(params.id), doc = await profileCollection(ctx).get(id);
+        if (!doc)
+          return { status: "not-found", id };
+        const profile = parseProfile(doc.data);
+        return { status: profile ? "ready" : "invalid-profile", id, revision: doc.revision, ...profile ? { profile } : {} };
+      }
+      return invalid2();
+    }
+  });
+  ctx.contributions.agentTools.register({
+    name: "save_workspace_profile",
+    label: "Save workspace profile",
+    contexts: ["global", "book"],
+    approval: "required",
+    description: "After host approval, save a named copy of the global workspace previously inspected using workspace_profiles(current). Requires its unchanged workspaceToken; returns stale-workspace if those ten values changed. Captures shelf layout/group/sort, app theme/motion, global reader font size/spacing/font and independent content font/follow-reader. No host settings are changed. Does not overwrite an existing profile; repeated successful calls may create separate presets.",
+    parameters: { type: "object", properties: { name: string(80), workspaceToken: { type: "string", pattern: "^wp1:[a-f0-9]{64}$" } }, required: ["name", "workspaceToken"], additionalProperties: false },
+    execute: async (params) => {
+      fields(params, ["name", "workspaceToken"]);
+      const name = profileName(params.name), token = text(params.workspaceToken, 68);
+      if (!/^wp1:[a-f0-9]{64}$/.test(token))
+        return invalid2();
+      return saveProfile(ctx, name, token);
+    }
+  });
+  ctx.contributions.agentTools.register({
+    name: "manage_workspace_profile",
+    label: "Manage workspace profile",
+    contexts: ["global", "book"],
+    approval: "required",
+    description: "Apply or permanently delete an exact workspace preset after host approval. First inspect it with workspace_profiles(inspect), then pass the exact id and expectedRevision. Changed documents return conflict. Apply submits the inspected preset values in one host settings update, preserving per-book overrides; version 1 changes seven fields and leaves fonts unchanged, version 2 changes ten. Delete conditionally removes only the preset. No book data, selection, AI privacy, credentials or plugin lifecycle changes. Application is not a transaction with private profile storage or a font-rendering completion receipt.",
+    parameters: { type: "object", properties: { action: { type: "string", enum: ["apply", "delete"] }, id: string(), expectedRevision: string() }, required: ["action", "id", "expectedRevision"], additionalProperties: false },
+    execute: async (params) => {
+      fields(params, ["action", "id", "expectedRevision"]);
+      const id = text(params.id), revision = text(params.expectedRevision);
+      if (params.action === "delete")
+        return deleteProfile(ctx, id, revision);
+      if (params.action !== "apply")
+        return invalid2();
+      const result = await applyProfile(ctx, id, revision);
+      return result.status === "conflict" ? result : {
+        status: result.status,
+        id,
+        name: result.name,
+        changed: result.changed,
+        preservedBookOverrides: result.overrides.length
+      };
+    }
+  });
 }
 
 // src/strings.ts
@@ -58,6 +174,13 @@ var en = {
   refresh: "Refresh",
   saved: "Profile saved",
   applied: "Profile applied",
+  conflict: "The profile changed. Refresh before trying again.",
+  missing: "Profile no longer exists",
+  invalidProfile: "Invalid profile",
+  stalePage: "Profiles changed. Refresh the list.",
+  confirmDelete: "Permanently delete this profile",
+  confirmRequired: "Confirm deletion first.",
+  deleted: "Profile deleted",
   shortcut: "Keyboard shortcut",
   binding: "Binding",
   defaultBinding: "Default",
@@ -91,6 +214,13 @@ var zh = {
   refresh: "刷新",
   saved: "预设已保存",
   applied: "预设已应用",
+  conflict: "预设已变化，请刷新后再试。",
+  missing: "预设已不存在",
+  invalidProfile: "无效预设",
+  stalePage: "预设列表已变化，请刷新。",
+  confirmDelete: "永久删除此预设",
+  confirmRequired: "请先确认删除。",
+  deleted: "预设已删除",
   shortcut: "键盘快捷键",
   binding: "绑定",
   defaultBinding: "默认",
@@ -360,6 +490,12 @@ async function windowView(ctx) {
 }
 
 // src/views.ts
+function message(ctx, text2) {
+  const t = copy(ctx.locale);
+  return { kind: "detail", title: t.title, content: [{ kind: "text", text: text2 }], actions: [
+    { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await profilesView(ctx), navigation: "reset" }) }
+  ] };
+}
 function saveView(ctx) {
   const t = copy(ctx.locale);
   return {
@@ -374,75 +510,85 @@ function saveView(ctx) {
       } catch {
         return { fieldErrors: { name: t.invalid } };
       }
-      await saveProfile(ctx, name);
-      return { toast: t.saved, view: await profilesView(ctx), navigation: "reset" };
+      const result = await saveProfile(ctx, name);
+      return { view: message(ctx, result.status === "saved" ? t.saved : t.conflict), navigation: "replace" };
+    }
+  };
+}
+function deleteForm(ctx, doc) {
+  const t = copy(ctx.locale);
+  return {
+    kind: "form",
+    title: parseProfile(doc.data)?.name ?? t.invalidProfile,
+    submitLabel: t.remove,
+    fields: [{ id: "confirm", kind: "checkbox", label: t.confirmDelete, value: false }],
+    onSubmit: async (values) => {
+      if (values.confirm !== true)
+        return { fieldErrors: { confirm: t.confirmRequired } };
+      const result = await deleteProfile(ctx, doc.id, doc.revision);
+      return { view: message(ctx, result.status === "deleted" ? t.deleted : t.conflict), navigation: "replace" };
     }
   };
 }
 async function profileView(ctx, id) {
-  const doc = await readProfile(ctx, id);
+  const doc = await profileCollection(ctx).get(id);
   const t = copy(ctx.locale);
+  if (!doc)
+    return message(ctx, t.missing);
+  const profile = parseProfile(doc.data);
   return { kind: "blocks", blocks: [
-    { kind: "heading", text: doc.data.name },
-    ...doc.data.changes.map((change) => ({ kind: "text", text: `${settingLabel(ctx.locale, change.path)}: ${String(change.value)}` })),
+    { kind: "heading", text: profile?.name ?? t.invalidProfile },
+    ...(profile?.changes ?? []).map((change) => ({ kind: "text", text: `${settingLabel(ctx.locale, change.path)}: ${change.value === null ? t.appDefault : String(change.value)}` })),
     { kind: "actions", actions: [
-      { id: "apply", label: t.apply, icon: "check", run: async () => {
-        await applyProfile(ctx, id);
-        return { toast: t.applied, close: true };
-      } },
-      { id: "delete", label: t.remove, icon: "trash", run: async () => {
-        await deleteProfile(ctx, id);
-        return { view: await profilesView(ctx), navigation: "reset" };
-      } }
+      ...profile ? [{ id: "apply", label: t.apply, icon: "check", run: async () => {
+        const result = await applyProfile(ctx, id, doc.revision);
+        return result.status === "applied" ? { toast: t.applied, close: true } : { view: message(ctx, t.conflict), navigation: "replace" };
+      } }] : [],
+      { id: "delete", label: t.remove, icon: "trash", run: () => ({ view: deleteForm(ctx, doc) }) },
+      { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await profileView(ctx, id), navigation: "replace" }) }
     ] }
   ] };
 }
-async function profilesView(ctx) {
+async function profilesView(ctx, cursors = [undefined]) {
   const t = copy(ctx.locale);
-  const profiles = await listProfiles(ctx);
-  return { kind: "list", title: t.title, emptyText: t.empty, actions: [
-    { id: "save", label: t.save, icon: "plus", run: () => ({ view: saveView(ctx) }) },
-    { id: "current", label: t.current, icon: "rows", run: async () => ({ view: await currentWorkspaceView(ctx) }) },
-    { id: "fonts", label: t.fonts, icon: "text-aa", run: async () => ({ view: await fontsView(ctx) }) },
-    { id: "window", label: windowCopy(ctx.locale).title, icon: "rows", run: async () => ({ view: await windowView(ctx) }) },
-    { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await profilesView(ctx), navigation: "replace" }) },
-    { id: "shortcut", label: t.shortcut, icon: "rows", run: async () => ({ view: await shortcutView(ctx) }) }
-  ], items: profiles.map((doc) => ({
-    id: doc.id,
-    title: doc.data.name,
-    timestamp: doc.updatedAt,
-    icon: "cards",
-    onSelect: async () => ({ view: await profileView(ctx, doc.id) })
-  })) };
+  const page = await listProfiles(ctx, cursors[cursors.length - 1]);
+  if (page.status === "stale-cursor")
+    return message(ctx, t.stalePage);
+  const go = async (next) => ({ view: await profilesView(ctx, next), navigation: "replace" });
+  return {
+    kind: "list",
+    title: t.title,
+    emptyText: t.empty,
+    actions: [
+      { id: "save", label: t.save, icon: "plus", run: () => ({ view: saveView(ctx) }) },
+      { id: "current", label: t.current, icon: "rows", run: async () => ({ view: await currentWorkspaceView(ctx) }) },
+      { id: "fonts", label: t.fonts, icon: "text-aa", run: async () => ({ view: await fontsView(ctx) }) },
+      { id: "window", label: windowCopy(ctx.locale).title, icon: "rows", run: async () => ({ view: await windowView(ctx) }) },
+      { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await profilesView(ctx), navigation: "replace" }) },
+      { id: "shortcut", label: t.shortcut, icon: "rows", run: async () => ({ view: await shortcutView(ctx) }) }
+    ],
+    items: page.items.map((doc) => ({
+      id: doc.id,
+      title: parseProfile(doc.data)?.name ?? t.invalidProfile,
+      timestamp: doc.updatedAt,
+      icon: "cards",
+      onSelect: async () => ({ view: await profileView(ctx, doc.id) })
+    })),
+    pagination: {
+      page: cursors.length,
+      ...cursors.length > 1 ? { onPrevious: () => go(cursors.slice(0, -1)) } : {},
+      ...page.nextCursor ? { onNext: () => go([...cursors, page.nextCursor]) } : {}
+    }
+  };
 }
 
 // src/index.ts
 var src_default = {
   activate(ctx) {
-    if (!ctx.contributions.agentTools)
-      throw Error("Workspace Profiles requires agent:tools");
     const title = copy(ctx.locale).title;
     ctx.contributions.headerActions.register({ id: "profiles", title, icon: "cards", surface: "shelf", presentation: "popup", view: () => profilesView(ctx) });
     ctx.contributions.commands.register({ id: "open", title, icon: "cards", run: async () => ({ view: await profilesView(ctx) }) });
-    ctx.contributions.agentTools.register({
-      name: "workspace_profiles",
-      label: title,
-      contexts: ["global", "book"],
-      description: "List, save the current workspace as a named preset, apply an existing preset, or delete a preset. Only save/apply/delete when explicitly requested. List first to get the exact ID. Applies device-local shelf layout/group/sort, app theme/motion, and global reading font size/spacing. Version 2 also captures reader font, independent content font and content-follow-reader typography; version 1 leaves those unchanged. Book overrides are preserved. Never changes books, current selection, AI privacy, credentials or plugin lifecycle.",
-      parameters: { type: "object", properties: { operation: { type: "string", enum: ["list", "save", "apply", "delete"] }, id: { type: "string" }, name: { type: "string" } }, required: ["operation"], additionalProperties: false },
-      execute: async (params) => {
-        let result;
-        if (params.operation === "list")
-          result = (await listProfiles(ctx)).map((doc) => ({ id: doc.id, ...doc.data }));
-        else if (params.operation === "save")
-          result = await saveProfile(ctx, typeof params.name === "string" ? params.name : "");
-        else if ((params.operation === "apply" || params.operation === "delete") && typeof params.id === "string" && params.id) {
-          result = params.operation === "apply" ? await applyProfile(ctx, params.id) : await deleteProfile(ctx, params.id);
-        } else
-          throw Error("Invalid workspace profile operation");
-        return { gist: result };
-      }
-    });
+    registerProfileTools(ctx);
   }
 };
 export {

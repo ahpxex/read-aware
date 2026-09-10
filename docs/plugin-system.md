@@ -5880,6 +5880,15 @@ in their packages and registered capabilities.
 
 ### Text Desk Content Composition
 
+[环境/验证] Subsequent [grouped native acceptance](./evidence/library-content-composition-2026-09-11.json)
+uses the real Text Desk 0.10 Worker and native FB2 parser: section/image/reference
+selection, an empty image section, 240x160 decoded resource pixels, actual macOS
+PNG save, native copy receipt, and native lightbox/footnote handoff pass. Retained
+screenshots show the initial native image and note; paste, foreground focus,
+zoom/rotation paint, other formats and in-flight closure remain unverified.
+Background visibility paused plugin dialog animations, so blank captures are
+excluded. Owned fixture records/assets were removed and plugin states restored.
+
 [代码] Text Desk 0.10 adds no host or Agent interface. Its manifest requires
 Library 1.17, Reading 2.11, UI 1.13, Resources 1.2, Clipboard 1.1 and Views 1.8;
 copying images adds `service:clipboard`. It does not request network access.
@@ -5922,6 +5931,14 @@ PDF object/CSS image and non-DOM reference gaps are not marked solved by adding
 a consumer. Document visual checks were not rerun.
 
 ### Library Desk Organization
+
+[环境/验证] Subsequent [grouped native acceptance](./evidence/library-content-composition-2026-09-11.json)
+uses the real compiled Library Desk 0.8 Worker and isolated SQLite-backed FB2.
+Author edit/clear, favorite, collection create/rename, confirmed assignment and
+confirmed collection removal pass with fresh native queries. Unchecked assignment
+does not write; removing the collection retains its book. Duplicate merge, title
+edit, restart, concurrent writes and foreground keyboard/visual flows remain
+unverified. Fixture entry invokes the registered command, not the header gesture.
 
 [代码] Library Desk 0.8 adds public-API consumers for Library metadata, favorites,
 collections and duplicate management, without adding a host or Agent API. It

@@ -257,7 +257,7 @@
           <p class="intro">插件只看到权限允许的 actor view。所有写入都经过正式命令，并记录来源。</p>
           <details class="ep" data-search-section="Library Desk organize duplicate merge collections 书目 收藏 集合 合并"><summary>Library Desk 0.8：书目、集合与重复书合并已有实际使用方</summary><div class="ep-body">
             <p>书目编辑与收藏分开写；集合可创建、重命名、确认移除及批量分配。移动先冻结书籍名单并分页审阅。重复书合并保留完整审阅版本，明确确认后条件提交，冲突不自动换组重试；回执显示重定向，查询保留书时重新解析身份。</p>
-            <p>修正宿主清空作者被忽略的问题，未新增宿主或 Agent API。30项相关检查、插件构建及插件/前端类型检查通过；普通书目/集合写入仍不是跨设备CAS，也没有补上旧路径的并发目标缺失回执。本批未操作真实书库，原生写入/重启/确认与视觉验收后置。<a href="./plugin-system.md#library-desk-organization">详细边界</a></p>
+            <p>修正清空作者被忽略的问题，未新增 API。30项基础检查通过；隔离桌面真实 Worker 已验作者修改/清空、收藏、集合创建/分配/重命名/移除及未确认不写入。合并、重启、跨设备竞态与前景键盘/视觉仍未验，普通写入不承诺 CAS。<a href="./plugin-system.md#library-desk-organization">详细边界</a> · <a href="./evidence/library-content-composition-2026-09-11.json">组合桌面证据</a></p>
           </div></details>
           <details class="ep" data-search-section="Library Desk import cover resource 封面 导入 导出 补齐"><summary>Library Desk 0.7：导入、封面与原文件组合已接好</summary><div class="ep-body">
             <p>只用既有公开 API：选文件后先检查解析器初始化，明确导入才写书库；结果区分新增与重复。单本详情可观察补齐状态、请求重试、预览和复制保存封面、导出本地原件。复制需独立剪贴板权限，新标签提供简体中文及英文回退。</p>
@@ -291,7 +291,7 @@
           <details class="ep" data-search-section="references footnotes 脚注 链接 引用 Library 1.12"><summary>Library 1.12：双端查询书内引用，读取有界纯文本预览</summary><div class="ep-body">
             <p>按版本和分节列举链接/内联脚注，同源解析后返回目标位置与可续读文本。Agent 在加载前同时核对来源和目标的阅读范围；外链只报告，不加载或打开，插件不获得 DOM。</p>
             <p>UI 1.8 已接当前书的原生预览开关：显示等待 DOM 提交，关闭只认自有 ID；新请求、用户操作及会话退休拒绝迟到结果。插件需书库读与阅读写权限，Agent 保留原阅读边界。</p>
-            <p>Text Desk 0.10 已组合分节/引用分页、精确偏移续读、原文跳转和原生预览交接；外链只作数据展示。无 DOM 的 PDF 链接、大型分节预算仍缺，真实 Worker/格式/前景焦点留集中验收。TXT11 保持部分，不代表尚无消费者。<a href="./plugin-system.md#book-reference-queries">完整契约</a></p>
+            <p>Text Desk 0.10 已组合分节/引用分页、精确续读、原文跳转和原生预览；真实 Worker/FB2 已验脚注读取及原生浮层绘制。外链只展示；PDF 非 DOM 链接、大型分节预算仍缺，其他格式和前景焦点未验。TXT11 保持部分。<a href="./plugin-system.md#book-reference-queries">完整契约</a> · <a href="./evidence/library-content-composition-2026-09-11.json">组合桌面证据</a></p>
           </div></details>
           <details class="ep" data-search-section="searchText derived prose 正文 检索 多查询"><summary>Library 1.4：Agent 与插件共享本书和跨书正文检索</summary><div class="ep-body">
             <p>1–12 个查询变体、每个至多 1024 字符，返回至多 100 个章内片段。指定书可以准备正文；跨书只读本地已持久索引，不触发批量抽取。缺书、非法参数和读取失败明确拒绝；结果不是可导航的 CFI/Range，也不是全书架穷尽或相关性排名。</p>
@@ -313,7 +313,7 @@
           </div></details>
           <details class="ep" data-search-section="book images listImages openImageResource 图片 资源"><summary>Library 1.13：书内图片目录与临时资源已双端接通</summary><div class="ep-body">
             <p>插件与 Agent 可以按书籍版本和分节列出图片、取得内嵌图片资源，复用 EPUB/FB2/MOBI6/KF8/漫画解析器。目录包含源位置与有界替代文字，不读取图片字节；获取资源不加载外链，保留书库授权、阅读边界与调用方隔离。</p>
-            <p>最多 16 MiB，一小时临时封口引用；ready 不等于解码或视觉理解。Text Desk 0.10 已组合分节/图片目录、资源预览、保存/授权复制、原文与原生灯箱交接，关闭释放引用，保存取消不报成功，不增加网络权限。八语言、28项基础检查及构建通过，本批未启动桌面；实际像素/粘贴/格式/焦点留集中验收，PDF 对象和 CSS/srcset 图片仍缺。<a href="./plugin-system.md#text-desk-content-composition">组合边界</a></p>
+            <p>最多 16 MiB，一小时临时引用；ready 不等于解码。Text Desk 0.10 真实 Worker/FB2 已验图片像素、原生 PNG 保存、复制回执及灯箱初始绘制。后台动画停滞的空白截图不计通过；粘贴、前景焦点、缩放旋转画面和其他格式未验，PDF 对象与 CSS/srcset 仍缺。<a href="./plugin-system.md#text-desk-content-composition">组合边界</a> · <a href="./evidence/library-content-composition-2026-09-11.json">桌面证据</a></p>
           </div></details>
           <details class="ep" data-search-section="show_book_image image open 灯箱 打开 图片"><summary>UI 1.13：图片查询结果可以直接打开现有灯箱</summary><div class="ep-body">
             <p>插件 image.open 与 Agent show_book_image 接受当前书的版本化图片描述符，保留书库读、阅读写与 Agent 阅读边界。不接受任意 URL，不加载外链，不导航或创建持久资源。</p>

@@ -1,0 +1,62 @@
+{
+  "date": "2026-09-11",
+  "timezone": "Asia/Singapore",
+  "kind": "grouped-native-acceptance",
+  "checkout": "329a0f12",
+  "environment": {
+    "platform": "macOS debug Tauri, real compiled WebKit plugin Workers",
+    "profile": "com.readaware.app.capability-e2e",
+    "frontendPort": 5184,
+    "bridgePort": 9224,
+    "plugins": { "library-desk": "0.8.0", "text-desk": "0.10.0" },
+    "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-library-content.ts",
+    "entry": "Production registered open command via runPluginContribution; subsequent actual UI callbacks. Header/menu gesture not tested.",
+    "import": "Owned synthetic FB2 imported through the native library domain, not the Library Desk import picker."
+  },
+  "owned": {
+    "marker": "Composition 5a76f0dc",
+    "bookId": "e6d62c61-6bf8-450c-b9c0-02e472dab833",
+    "collectionId": "7aa01da8-5780-4ad8-a0f2-57b63c5d7684",
+    "contentVersion": "sha256:26097652609f9601988f1206a36507090b2944ccdf10e1948a3e8976bb253b7e"
+  },
+  "library": {
+    "authorEdit": "Acceptance Author persisted; explicit empty author then persisted as omitted public author and remained empty after opening the reader.",
+    "clearInput": "Bridge empty typing did not notify React; standard native input value setter plus bubbling input event used before the actual Save callback. Physical keyboard clearing not proved.",
+    "favorite": "Add to favorites followed by fresh native query returned starred=true.",
+    "collectionCreateRename": "Created owned collection, assigned book, then renamed same collection to Composition 5a76f0dc Renamed.",
+    "moveConfirmation": "Unchecked submit showed Confirm this change first and collectionId stayed null; checked submit persisted owned collectionId.",
+    "removeConfirmation": "Unchecked submit rejected; checked removal deleted the collection, retained the book and favorite, and returned collectionId=null."
+  },
+  "content": {
+    "catalog": "Three source sections; source section 2 correctly had no images; source section 1 contained image 1 and note reference 1.",
+    "image": {
+      "decodedSize": [240, 160],
+      "sampledRgba": { "20,80": [229, 57, 53, 255], "120,80": [255, 255, 255, 255], "220,80": [21, 148, 71, 255] },
+      "save": "Actual macOS Save sheet wrote readaware-content-5a76f0dc.png; file command confirmed 240x160 RGBA PNG and saved image was visually inspected.",
+      "copy": "Actual native write returned Image copied; clipboard paste/readback not tested.",
+      "viewer": "Opened matching book and native lightbox; screenshot shows actual image and native controls. Zoom/rotate callbacks were clicked, but animation/final transformed pixels are not proved.",
+      "screenshot": "library-content-lightbox-2026-09-11.png"
+    },
+    "reference": {
+      "text": "1Acceptance footnote: the source is a local test book.",
+      "preview": "Real reference detail followed by Show reader note rendered native note dialog; native Close note clicked.",
+      "screenshot": "library-content-note-2026-09-11.png"
+    }
+  },
+  "visibilityLimit": "Window was visible but document.visibilityState=hidden and hasFocus=false. Animated plugin dialogs sometimes remained opacity=0. Blank captures are excluded; retained screenshots prove initial native note/lightbox paint only, not foreground focus, keyboard flow or animation completion. No permissions or animation behavior were modified.",
+  "cleanup": {
+    "bookRemoval": { "committed": true, "files": { "status": "released" } },
+    "remainingBookIds": ["07ef226e-1ebc-47b6-8dc9-d09109448d22", "8ced004f-efe3-408f-80a8-a0ebffec84d3"],
+    "resources": "Owned collection removed, owned book/file released, both Workers drained and original enabled states restored. Event history is retained by design.",
+    "recheck": "Fixture inspect after cleanup returned book=null and collections=[].",
+    "processes": "Owned application quit, driver 9224 stopped, frontend 5184 session exited 0. Original application 9223 was not operated."
+  },
+  "notVerified": [
+    "Duplicate merge, metadata title edit, explicit ungroup, Library Desk file import and cover workflow",
+    "Restart persistence, event replay, concurrent writes and cross-device behavior",
+    "Clipboard paste, foreground keyboard/focus, viewer zoom/rotation paint and closing during native operations",
+    "Other formats, PDF object/CSS/srcset image and non-DOM reference gaps",
+    "Agent composition, autonomous model choice, packaged CSP, release and other platforms"
+  ],
+  "baseline": "Web typecheck completed successfully; no new host or Agent interface."
+}

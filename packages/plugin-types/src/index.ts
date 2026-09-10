@@ -1778,6 +1778,10 @@ export type PluginHostServices = {
       observe(handler: (snapshot: import("@read-aware/core").ReaderPanelsSnapshot | null) => unknown): PluginDisposable;
       /** Requires reading:write. Opening reveals controls; completion waits for persistence and DOM commit. */
       setPanel?(panel: import("@read-aware/core").ReaderPanel, open: boolean, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReaderPanelReceipt>;
+      /** UI 1.8: also needs library:read. Open book only; resolved preview waits for DOM commit. */
+      previewReference?(query: import("@read-aware/core").BookReferenceQuery, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReaderReferencePreviewReceipt>;
+      /** Only this activation's current preview ID; never closes a native or other owner's note. */
+      closeReferencePreview?(id: string): Promise<import("@read-aware/core").ReaderReferenceCloseReceipt>;
     };
   };
   schedules: {

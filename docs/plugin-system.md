@@ -3061,12 +3061,54 @@ the same domain implementation.
 
 [环境] DOM/CFI, projection, pagination, cancellation, fence, Agent tool/registry
 and type checks verify wiring, not actual native UI/Worker composition. Plugins
-can render the returned plain text using existing views; actively opening or
-closing the native ReaderFootnotePopover is not connected. Computed-style note
+can render the returned plain text using existing views; UI 1.8 now also connects
+the native ReaderFootnotePopover as described below. Computed-style note
 heuristics, PDF annotation links without DOM, image resources and a preemptible
 large-section parsing budget remain gaps. Responses are bounded, but parsing a
 section still materializes its DOM and target text. TXT11 remains partial until
-the remaining host presentation and real-format composition are addressed.
+the remaining formats, budgets and real-format composition are addressed.
+
+### Native Reference Preview (UI 1.8)
+
+[代码] `services.ui.reader.previewReference(query, guard?)` and
+`closeReferencePreview(id)` require library read access plus reading write
+access; no permission means no methods. `query` is the same validated
+BookReferenceQuery above. Previewing requires a mounted ready reader with that
+book and content version; it never opens another book or navigates. Optional
+guard accepts only bookId/sessionId and rejects stale identity before reading.
+
+- A resolved query presents one text page in ReaderFootnotePopover and returns
+  `{status:"opened", id, sessionId, preview}` only after the matching React DOM
+  commit. External/blocked/missing/unsupported returns `{status:"not-opened",
+  preview}` without replacing existing displayed content. Leading/trailing
+  ellipses indicate a partial text page; callers use offset/nextOffset for another
+  page. No automatic full-note loading, HTML or URL execution occurs.
+- API previews portal above the requesting plugin surface, focus their dialog,
+  and attempt to restore the still-connected previous focus on dismissal.
+  Native clicks retain their anchored in-reader presentation. Render commit
+  is not proof of foreground paint, focus restoration or a completed animation.
+- IDs are owned by one plugin activation or one Agent thread. Closing checks
+  exact owner and current ID: closed waits for removal commit; otherwise
+  not-current leaves the other/native/new preview alone. Plugin retirement
+  cancels its pending request and clears only its own currently displayed note.
+- New API/native intents, dismissal and session retirement invalidate earlier
+  reads or presentations. Native async footnotes carry their request sequence
+  through the engine render event, so an old result cannot overwrite a later
+  API/native intent. Cancellation during source parsing retains the actual
+  underlying lease until it settles; presentation acknowledgements have a
+  10-second deadline. No persistence or durable background task is introduced.
+- Agent tools `show_book_reference` and `close_book_reference` exist in both
+  scopes. Ownership comes from the host thread key, not model parameters.
+  Showing uses the same source/target fence and host-verified spoiler consent
+  as reading, returns the bounded preview as evidence, and requires explicit
+  user intent. Closing cannot dismiss another thread's or a plugin's preview.
+
+[环境] Service tests and a StrictMode DOM hook test verify commit ordering,
+ownership, replaced reads, native replacement, stale versions, session change
+and permissions; Agent tests verify thread ownership/fence and output shape.
+Foliate static runtime regeneration/type checks include request ID propagation.
+Real Worker/EPUB/FB2 interaction, foreground portal/focus/keyboard behavior and
+larger parsing failures remain for concentrated Tauri E2E, not claimed here.
 
 ## 7. Contributions
 

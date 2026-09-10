@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X } from "@phosphor-icons/react";
 import { IconButton } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
@@ -10,6 +11,8 @@ type ReaderFootnotePopoverProps = {
   label: string;
   text: string;
   onClose: () => void;
+  /** Explicit API previews sit above the plugin surface that requested them. */
+  foreground?: boolean;
 };
 
 /**
@@ -23,9 +26,21 @@ export function ReaderFootnotePopover({
   label,
   text,
   onClose,
+  foreground = false,
 }: ReaderFootnotePopoverProps) {
   const { t } = useTranslation("reader");
   const { containerRef, menuRef, position } = useAnchoredMenuPosition(anchorRect);
+
+  useEffect(() => {
+    if (!foreground) return;
+    const previous = document.activeElement;
+    const menu = menuRef.current;
+    menu?.focus();
+    return () => {
+      if (previous instanceof HTMLElement && previous.isConnected
+        && (document.activeElement === document.body || menu?.contains(document.activeElement))) previous.focus();
+    };
+  }, [foreground, menuRef]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -38,8 +53,8 @@ export function ReaderFootnotePopover({
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [onClose]);
 
-  return (
-    <div ref={containerRef} className="absolute inset-0 z-30 overflow-hidden">
+  const content = (
+    <div ref={containerRef} data-ui-portal={foreground || undefined} className={foreground ? "fixed inset-0 z-[90] overflow-hidden" : "absolute inset-0 z-30 overflow-hidden"}>
       <button
         type="button"
         aria-label={t("dismissNote")}
@@ -49,6 +64,7 @@ export function ReaderFootnotePopover({
       <div
         ref={menuRef}
         role="dialog"
+        tabIndex={foreground ? -1 : undefined}
         aria-label={label}
         className="absolute flex max-h-[min(45vh,22rem)] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border border-border bg-[var(--ra-main-surface-color)] shadow-[0_8px_28px_-8px_rgba(28,25,23,0.32)]"
         style={position}
@@ -70,4 +86,5 @@ export function ReaderFootnotePopover({
       </div>
     </div>
   );
+  return foreground ? createPortal(content, document.body) : content;
 }

@@ -137,6 +137,8 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   read_book_range: {},
   list_book_references: { bookId: BOOK_ID, contentVersion: "fixture", sectionIndex: 0 },
   read_book_reference: { reference: { bookId: BOOK_ID, contentVersion: "fixture", sectionIndex: 0, index: 0 } },
+  show_book_reference: { reference: { bookId: BOOK_ID, contentVersion: "fixture", sectionIndex: 0, index: 0 } },
+  close_book_reference: { id: "preview" },
   read_chapter: { bookId: BOOK_ID, chapterIndex: 0 },
   search_book_text: { queries: ["footprints"], bookId: BOOK_ID },
   query_book_graph: { bookId: BOOK_ID },
@@ -208,6 +210,7 @@ describe("tool surface contract", () => {
           status: "available", items: [], total: 0, nextOffset: null });
         deps.bookText.readReference = async input => ({ reference: input.reference, status: "resolved", label: "Note", text: "Reference preview",
           offset: 0, totalLength: 17, nextOffset: null });
+        deps.reader.previewReference = async (_owner, input) => ({ status: "opened", id: "preview", sessionId: "fixture", preview: await deps.bookText.readReference(input) });
         deps.hostIO.writeClipboard = async () => {};
         deps.library.previewMerge = async () => ({ revision: `bmg1:${"a".repeat(64)}`, keep: { id: BOOK_ID, title: "Keeper", author: "Author", createdAt: "2026-09-01" },
           merged: [{ id: "duplicate", title: "Duplicate", author: "Author", createdAt: "2026-09-02" }] });

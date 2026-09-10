@@ -34,6 +34,8 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
       || guard?.bookId !== undefined && guard.bookId !== location.bookId) throw new AppError("reader/superseded", "Fixture session changed");
   };
   return {
+    previewReference: async () => { throw new AppError("reader/unavailable", "Fixture has no native reference preview"); },
+    closeReferencePreview: async (_owner, id) => ({ status: "not-current", id }),
     listEmphasis: async () => structuredClone([...emphasis.values()]),
     putEmphasis: async (input, signal, guard) => {
       checkSelection(signal, guard); const value = normalizeReadingEmphasisWrite(input);

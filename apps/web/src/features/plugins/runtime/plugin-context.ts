@@ -11,6 +11,7 @@
 import { fetch as corsFreeFetch } from "@tauri-apps/plugin-http";
 import type { PluginActionRegistration } from "@read-aware/plugin-types";
 import { readerPanels } from "../../../services/reader-panels";
+import { readerReferencePreview } from "../../../services/reader-reference-preview";
 import { workspace } from "../../../services/workspace";
 import { actorHostCommands } from "../../../services/host-command-runtime";
 import { publishPluginView } from "../lib/plugin-view-channels";
@@ -180,6 +181,8 @@ export function buildPluginContext(
   const permissions = new Set(manifest.permissions ?? []);
   const selfOrigin = `plugin:${manifest.id}` as const;
   const lifecycle = new PluginLifecycleController(disposables);
+  const referencePreviewOwner = {};
+  lifecycle.signal.addEventListener("abort", () => lifecycle.trackCleanup(readerReferencePreview.release(referencePreviewOwner)), { once: true });
   const resources = createResourceOwner(() => {
     if (!permissions.has("library:read") && !permissions.has("library:write")) throw new AppError("memory/forbidden", "Book resources require library access");
   });
@@ -801,6 +804,17 @@ export function buildPluginContext(
         lifecycle.assertActive("services.ui.reader.setPanel");
         return readerPanels.setPanel(panel, open, lifecycle.signal, guard);
       } } : {}),
+      ...(reading.commands && domain.library ? {
+        previewReference: (query: import("@read-aware/core").BookReferenceQuery, guard?: import("@read-aware/core").ReadingSessionGuard) => {
+          lifecycle.assertActive("services.ui.reader.previewReference");
+          return lifecycle.read("reader.previewReference", () => readerReferencePreview.open(referencePreviewOwner, query,
+            (input, signal) => domain.library!.queries.books.readReference(input, signal), lifecycle.signal, guard));
+        },
+        closeReferencePreview: (id: string) => {
+          lifecycle.assertActive("services.ui.reader.closeReferencePreview");
+          return lifecycle.read("reader.closeReferencePreview", () => readerReferencePreview.close(referencePreviewOwner, id, lifecycle.signal));
+        },
+      } : {}),
     };
     ctx.domains.reading = {
       queries: reading.queries,

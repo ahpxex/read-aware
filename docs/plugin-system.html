@@ -260,7 +260,8 @@
           </div></details>
           <details class="ep" data-search-section="references footnotes 脚注 链接 引用 Library 1.12"><summary>Library 1.12：双端查询书内引用，读取有界纯文本预览</summary><div class="ep-body">
             <p>按版本和分节列举链接/内联脚注，同源解析后返回目标位置与可续读文本。Agent 在加载前同时核对来源和目标的阅读范围；外链只报告，不加载或打开，插件不获得 DOM。</p>
-            <p>原生脚注浮层控制、无 DOM 的 PDF 链接、大型分节预算与真实插件组合仍待接通或集中验收，TXT11 保持部分。<a href="./plugin-system.md#book-reference-queries">完整契约</a></p>
+            <p>UI 1.8 已接当前书的原生预览开关：显示等待 DOM 提交，关闭只认自有 ID；新请求、用户操作及会话退休拒绝迟到结果。插件需书库读与阅读写权限，Agent 保留原阅读边界。</p>
+            <p>无 DOM 的 PDF 链接、大型分节预算与真实插件/前景焦点组合仍待接通或集中验收，TXT11 保持部分。<a href="./plugin-system.md#book-reference-queries">完整契约</a></p>
           </div></details>
           <details class="ep" data-search-section="searchText derived prose 正文 检索 多查询"><summary>Library 1.4：Agent 与插件共享本书和跨书正文检索</summary><div class="ep-body">
             <p>1–12 个查询变体、每个至多 1024 字符，返回至多 100 个章内片段。指定书可以准备正文；跨书只读本地已持久索引，不触发批量抽取。缺书、非法参数和读取失败明确拒绝；结果不是可导航的 CFI/Range，也不是全书架穷尽或相关性排名。</p>

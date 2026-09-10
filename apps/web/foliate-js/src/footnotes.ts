@@ -45,6 +45,7 @@ export const extractFootnote = (doc: Document, anchor: ResolvedNavigation['ancho
 }
 export type FootnoteBeforeRenderDetail = { view: View }
 export type FootnoteRenderDetail = {
+    requestId?: number
     view: View
     href: string
     type: FootnoteType | null
@@ -54,7 +55,7 @@ export type FootnoteRenderDetail = {
 
 export class FootnoteHandler extends EventTarget {
     detectFootnotes = true
-    async #showFragment(book: Book, { index, anchor }: ResolvedNavigation, href: string): Promise<void> {
+    async #showFragment(book: Book, { index, anchor }: ResolvedNavigation, href: string, requestId?: number): Promise<void> {
         if (!book.sections[index]) throw new Error('Footnote section is missing')
         const view = new View()
         try {
@@ -76,7 +77,7 @@ export class FootnoteHandler extends EventTarget {
                         }
                         doc.body.replaceChildren(range.extractContents())
                         this.dispatchEvent(new CustomEvent<FootnoteRenderDetail>('render',
-                            { detail: { view, href, type, hidden, target } }))
+                            { detail: { view, href, type, hidden, target, requestId } }))
                         resolve()
                     } catch (error) { reject(error) }
                 }, { once: true })
@@ -90,7 +91,7 @@ export class FootnoteHandler extends EventTarget {
             throw error
         }
     }
-    handle(book: Book, event: CustomEvent<LinkDetail>): Promise<void> | undefined {
+    handle(book: Book, event: CustomEvent<LinkDetail>, requestId?: number): Promise<void> | undefined {
         const { a, href } = event.detail
         const { yes, maybe } = isFootnoteReference(a)
         if (!yes && !(this.detectFootnotes && maybe())) return
@@ -98,7 +99,7 @@ export class FootnoteHandler extends EventTarget {
         return Promise.resolve(book.resolveHref?.(href)).then(target => {
             if (!target) throw new Error('Could not resolve footnote: ' + href)
             return this.#showFragment(book, yes ? target
-                : { index: target.index, anchor: doc => extractFootnote(doc, target.anchor) }, href)
+                : { index: target.index, anchor: doc => extractFootnote(doc, target.anchor) }, href, requestId)
         })
     }
 }

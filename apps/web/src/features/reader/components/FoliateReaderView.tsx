@@ -87,6 +87,7 @@ import { DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
 import { buildVirtualFoliateBook } from "../lib/virtual-book";
 import { resolveContentProvider } from "../../plugins/lib/virtual-books";
 import { readingRuntime } from "../../../domain/reading-runtime";
+import { useReferencePreview } from "../hooks/useReferencePreview";
 import { attachReadingEngine, waitForReadingPaint } from "../lib/reading-engine-adapter";
 import { captureReadingSelection, type SelectionContentIdentity } from "../lib/selection-range";
 import { useSelectionRender } from "../hooks/useSelectionRender";
@@ -530,15 +531,10 @@ export function FoliateReaderView({
 
   // Footnote popover: the engine loads + extracts the note into an off-screen
   // staging view; we read its text and show it in the popover.
-  const [footnote, setFootnote] = useState<{
-    anchorRect: SelectionOverlayRect | null;
-    label: string;
-    text: string;
-  } | null>(null);
+  const { footnote, setFootnote, closeFootnote, beginNativeFootnote } = useReferencePreview(selectedBook?.id, t("footnote.note"));
   const footnoteHandlerRef = useRef<FoliateFootnoteHandler | null>(null);
   const footnoteAnchorRectRef = useRef<SelectionOverlayRect | null>(null);
   const footnoteStageRef = useRef<HTMLDivElement | null>(null);
-  const closeFootnote = useCallback(() => setFootnote(null), []);
 
   // Full-screen illustration viewer (issue #13), opened by tapping an image
   // in the book content.
@@ -612,7 +608,7 @@ export function FoliateReaderView({
         anchorRect: footnoteAnchorRectRef.current,
         label: footnoteLabel(detail.type, tRef.current),
         text,
-      });
+      }, detail.requestId);
     };
 
     void createFootnoteHandler().then((created) => {
@@ -2089,7 +2085,7 @@ export function FoliateReaderView({
           const detail = (event as CustomEvent<FoliateLinkDetail>).detail;
           if (detail?.a) footnoteAnchorRectRef.current = anchorRectForElement(detail.a);
           const handler = footnoteHandlerRef.current;
-          if (handler && book) void handler.handle(book, event as CustomEvent<FoliateLinkDetail>)
+          if (handler && book) void handler.handle(book, event as CustomEvent<FoliateLinkDetail>, beginNativeFootnote())
             ?.catch(error => log.warn('Could not render footnote', error));
         };
 
@@ -2319,6 +2315,8 @@ export function FoliateReaderView({
       />
       {footnote && (
         <ReaderFootnotePopover
+          key={footnote.previewId ?? "native"}
+          foreground={!!footnote.previewId}
           anchorRect={footnote.anchorRect}
           label={footnote.label}
           text={footnote.text}

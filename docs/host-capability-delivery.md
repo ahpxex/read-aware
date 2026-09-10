@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+原生引用预览批次已接线：UI 1.8 reader.previewReference/closeReferencePreview 与 Agent 双 scope show_book_reference/close_book_reference 共用当前书原生脚注浮层。只处理已打开的同版本书，查询与 Agent 来源/目标阅读边界不变；插件需 library 读取和 reading 写入。打开等待该请求 DOM 提交，非 resolved 不替换现有内容；关闭只认本激活/本线程的当前 ID，插件退休仅清自己。前景预览不被调用方插件 Dialog 遮住，分页以省略号表示，焦点恢复为尽力处理；原生异步脚注携带请求序号，旧原生结果也不能覆盖新 API 请求。
+
+本预览批次：27 项/672 断言通过，含服务所有权/替换/读取排空/会话变化、StrictMode DOM 提交/原生替换/旧结果/清理、权限以及 Agent 线程身份/原阅读边界；typecheck 27/27，Foliate 严格检查并生成 49 静态模块。矩阵 243 行/843 映射，catalog 36，Agent book 72/global 89。原生脚注主动开关缺口已接通，TXT11 保留 PDF 无 DOM 链接、脚注猜测与大型解析预算等缺口；真实 Worker/格式、前台绘制/焦点/键盘和组合验收仍集中进行。未启动桌面/浏览器、未推送，不把 DOM 夹具当成 Tauri E2E。
+
 引用读取批次已接线：library 1.12 提供 listReferences/readReference，双 scope Agent 对应 list_book_references/read_book_reference。输入绑定书籍版本、解析器分节和引用序号；列举不读取目标，纯文本预览可分页，解析成功返回可交给原导航的位置。外链仅报告 HTTP(S) URL，不加载/打开；内联脚注读取原注文字，DOM 留在宿主。Agent 在来源/目标分节加载前核对原阅读边界，链接不是授权票据，脚注不自动豁免。未知/不支持/受阻目标与读取异常分开，插件继续遵循 library 授权和生命周期排空。
 
 本引用批次：25 项/658 断言和 typecheck 27/27、三文档对结构校验通过。覆盖 DOM 查询/预览分页、CFI 往返、文档不变、权限/注入参数、加载前双端范围、外链/缺失/不支持、取消与 Agent 工具输出；矩阵 243 行/837 映射，catalog 36，Agent book 70/global 87。TXT11 由未接变为部分：原生脚注浮层主动打开/关闭、无 DOM 的 PDF 链接和大型单节可中断预算仍缺，真实格式/Worker/组合插件留到集中 E2E 阶段；不把普通纯文本预览当成已验原生脚注界面。本批未启动桌面/浏览器、未推送。

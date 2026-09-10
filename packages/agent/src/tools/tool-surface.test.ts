@@ -101,6 +101,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   get_app_window: {},
   get_reader_image: {},
   list_book_images: { bookId: BOOK_ID, contentVersion: "v1", sectionIndex: 0 },
+  show_book_image: { image: { bookId: BOOK_ID, contentVersion: "v1", sectionIndex: 0, index: 0 } },
   open_book_image_resource: { image: { bookId: BOOK_ID, contentVersion: "v1", sectionIndex: 0, index: 0 } },
   control_reader_image: { request: { id: "image", action: "zoom-in" } },
   control_app_window: { request: { action: "maximize" } },
@@ -223,6 +224,7 @@ describe("tool surface contract", () => {
         deps.bookText.listImages = async input => ({ bookId: input.bookId, contentVersion: input.contentVersion,
           sectionIndex: input.sectionIndex, status: "available", items: [], total: 0, nextOffset: null });
         deps.bookText.openImageResource = async (_owner, input) => ({ status: "missing", image: { image: input.image, alt: "" } });
+        deps.reader.openImage = async () => ({ status: "not-opened", reason: "missing" });
         deps.reader.getImage = async () => ({ id: "image", sessionId: "fixture", bookId: BOOK_ID,
           revision: 1, scale: 1, rotation: 0, panX: 0, panY: 0 });
         deps.reader.controlImage = async () => ({ status: "updated", snapshot: {

@@ -1799,6 +1799,8 @@ export type PluginHostServices = {
         observe(handler: (state: import("@read-aware/core").ReaderImageSnapshot | null) => unknown): PluginDisposable;
         /** reading:write; exact current viewer ID required. Pan deltas are fractions of its viewport. */
         control?(request: import("@read-aware/core").ReaderImageRequest): Promise<import("@read-aware/core").ReaderImageReceipt>;
+        /** UI 1.13: library read + reading write; opens an embedded image in the current book. */
+        open?(query: import("@read-aware/core").BookImageQuery, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReaderImageOpenReceipt>;
       };
       snapshot(): Promise<import("@read-aware/core").ReaderPanelsSnapshot | null>;
       observe(handler: (snapshot: import("@read-aware/core").ReaderPanelsSnapshot | null) => unknown): PluginDisposable;

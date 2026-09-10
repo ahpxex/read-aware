@@ -156,6 +156,7 @@ export interface AnnotationsPort {
 }
 
 export interface ReaderPort {
+  openImage(input: import("@read-aware/core").BookImageQuery & { throughChapterIndex?: number }, signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReaderImageOpenReceipt>;
   getImage(): Promise<import("@read-aware/core").ReaderImageSnapshot | null>;
   controlImage(request: import("@read-aware/core").ReaderImageRequest, signal?: AbortSignal): Promise<import("@read-aware/core").ReaderImageReceipt>;
   previewReference(ownerKey: string, input: import("@read-aware/core").BookReferenceQuery & { throughChapterIndex?: number }, signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReaderReferencePreviewReceipt>;

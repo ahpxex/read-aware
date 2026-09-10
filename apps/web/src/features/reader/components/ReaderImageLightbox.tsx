@@ -24,6 +24,7 @@ type ReaderImageLightboxProps = {
   alt: string | null;
   onClose: () => void;
   session?: { bookId: string; sessionId: string };
+  viewerId?: string;
 };
 
 /**
@@ -33,10 +34,10 @@ type ReaderImageLightboxProps = {
  * rotation, copy-to-clipboard, and close; Esc and a clean backdrop click
  * close too.
  */
-export function ReaderImageLightbox({ src, alt, onClose, session }: ReaderImageLightboxProps) {
+export function ReaderImageLightbox({ src, alt, onClose, session, viewerId }: ReaderImageLightboxProps) {
   const { t } = useTranslation("reader");
   const zoom = useZoomPan();
-  useImageControls(zoom, session, onClose);
+  useImageControls(zoom, session, onClose, undefined, viewerId);
   const dialogRef = useRef<HTMLDivElement | null>(null);
 
   // The section's blob URL dies when foliate unloads the page under the open
@@ -56,7 +57,7 @@ export function ReaderImageLightbox({ src, alt, onClose, session }: ReaderImageL
           objectUrl = URL.createObjectURL(blob);
           setDisplaySrc(objectUrl);
         })
-        .catch(() => {});
+        .catch(() => { /* Best-effort lifetime copy; the original source remains the fallback. */ });
     }
     return () => {
       disposed = true;

@@ -7,6 +7,9 @@ import { ReaderImageLightbox } from "../src/features/reader/components/ReaderIma
 import { readingRuntime } from "../src/domain/reading-runtime";
 import { readerImage } from "../src/services/reader-image";
 import { initI18n } from "../src/i18n";
+import { useImageViewer } from "../src/features/reader/hooks/useImageViewer";
+import { readerImageOpen } from "../src/services/reader-image-open";
+import type { BookImageData } from "../src/features/library/lib/book-images";
 
 test("native lightbox and public controls share zoom, pan, rotation, reset and committed close under StrictMode", async () => {
   const dom = new JSDOM("<div id='root'></div>", { url: "http://localhost" });
@@ -50,6 +53,56 @@ test("native lightbox and public controls share zoom, pan, rotation, reset and c
     expect(readerImage.snapshot()).toBeNull(); expect(dom.window.document.querySelector('[role="dialog"]')).toBeNull();
   } finally {
     await act(async () => root.unmount()); detach(); dom.window.close();
+    for (const [key, value] of saved) { if (value) Object.defineProperty(globalThis, key, value); else Reflect.deleteProperty(globalThis, key); }
+  }
+});
+
+test("API opening mounts the same lightbox, releases URLs and yields to native activation in StrictMode", async () => {
+  const dom = new JSDOM("<div id='root'></div>", { url: "http://localhost" });
+  const values = { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true };
+  const saved = new Map(Object.keys(values).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  const originalCreate = URL.createObjectURL, originalRevoke = URL.revokeObjectURL, urls = new Set<string>();
+  URL.createObjectURL = blob => { const url = originalCreate(blob); urls.add(url); return url; };
+  URL.revokeObjectURL = url => { urls.delete(url); originalRevoke(url); };
+  const root = createRoot(dom.window.document.getElementById("root")!);
+  const sessionId = readingRuntime.begin("image-book");
+  const location = { bookId: "image-book", contentVersion: "v1", cfi: "start" };
+  const detach = readingRuntime.attach(sessionId, { navigate: async () => location, step: async () => location }, location);
+  const image = { bookId: "image-book", contentVersion: "v1", sectionIndex: 0, index: 0 };
+  const data: BookImageData = { status: "ready", image: { image, alt: "API illustration" }, blob: new Blob(["pixels"], { type: "image/png" }) };
+  let activateNative = () => {};
+  function Surface() {
+    const viewer = useImageViewer("image-book"), current = viewer.lightboxImage;
+    activateNative = () => viewer.setLightboxImage({ src: "data:image/png;base64,cGl4ZWxz", alt: "Native illustration", session: { sessionId, bookId: "image-book" } });
+    return current ? <ReaderImageLightbox key={current.id} viewerId={current.id} session={current.session}
+      alt={current.alt} src={current.src} onClose={viewer.closeLightbox} /> : null;
+  }
+  try {
+    await initI18n("en");
+    await act(async () => root.render(<StrictMode><Surface /></StrictMode>));
+    let pending!: ReturnType<typeof readerImageOpen.open>;
+    await act(async () => { pending = readerImageOpen.open({ image }, async () => data); });
+    const result = await pending;
+    expect(result.status).toBe("opened");
+    if (result.status !== "opened") throw Error("Expected committed image viewer");
+    expect(readerImage.snapshot()?.id).toBe(result.snapshot.id);
+    expect(dom.window.document.querySelector("img")?.alt).toBe("API illustration");
+    expect(dom.window.document.querySelector("img")?.src).toStartWith("blob:");
+    let close!: Promise<ReaderImageReceipt>;
+    await act(async () => { close = readerImage.control({ id: result.snapshot.id, action: "close" }); });
+    expect(await close).toEqual({ status: "closed", id: result.snapshot.id });
+    expect(dom.window.document.querySelector("img")).toBeNull(); expect(urls.size).toBe(0);
+    const held = Promise.withResolvers<BookImageData>();
+    const late = readerImageOpen.open({ image }, () => held.promise).catch(error => error);
+    await act(async () => activateNative());
+    held.resolve(data); expect(await late).toMatchObject({ code: "reader/superseded" });
+    expect(dom.window.document.querySelector("img")?.alt).toBe("Native illustration");
+    await act(async () => { readingRuntime.begin("other"); });
+    expect(dom.window.document.querySelector("img")).toBeNull(); expect(readerImage.snapshot()).toBeNull();
+  } finally {
+    await act(async () => root.unmount()); detach(); dom.window.close();
+    expect(urls.size).toBe(0); URL.createObjectURL = originalCreate; URL.revokeObjectURL = originalRevoke;
     for (const [key, value] of saved) { if (value) Object.defineProperty(globalThis, key, value); else Reflect.deleteProperty(globalThis, key); }
   }
 });

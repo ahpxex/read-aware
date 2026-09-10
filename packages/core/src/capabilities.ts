@@ -33,7 +33,7 @@ export type ContributionPermission = Exclude<
 export const HOST_SERVICE_CATALOG = {
   storage: { version: "2.0.0", permission: null },
   secrets: { version: "1.0.0", permission: null },
-  ui: { version: "1.12.0", permission: null },
+  ui: { version: "1.13.0", permission: null },
   schedules: { version: "1.1.0", permission: null },
   session: { version: "2.0.0", permission: null },
   plugins: { version: "1.0.0", permission: null },

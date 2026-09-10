@@ -5,7 +5,7 @@ import type { useZoomPan } from "./useZoomPan";
 
 export function useImageControls(zoom: ReturnType<typeof useZoomPan>,
   session: { bookId: string; sessionId: string } | undefined, onClose: () => void,
-  service: ReaderImageService = readerImage) {
+  service: ReaderImageService = readerImage, viewerId?: string) {
   const id = useRef(crypto.randomUUID());
   const current = useRef({ zoom, onClose });
   current.current = { zoom, onClose };
@@ -14,7 +14,7 @@ export function useImageControls(zoom: ReturnType<typeof useZoomPan>,
   useLayoutEffect(() => {
     if (!session) return;
     let bound: ReturnType<ReaderImageService["bind"]>;
-    try { bound = service.bind({ ...session, id: id.current }, {
+    try { bound = service.bind({ ...session, id: viewerId ?? id.current }, {
       close: () => current.current.onClose(),
       apply: (request, nextToken) => {
         const view = current.current.zoom;
@@ -38,6 +38,6 @@ export function useImageControls(zoom: ReturnType<typeof useZoomPan>,
     });
     if (stage) resize?.observe(stage);
     return () => { resize?.disconnect(); bound.dispose(); if (binding.current === bound) binding.current = null; };
-  }, [service, session?.bookId, session?.sessionId]);
+  }, [service, session?.bookId, session?.sessionId, viewerId]);
   useLayoutEffect(() => { binding.current?.publish(zoom.snapshot(), token); });
 }

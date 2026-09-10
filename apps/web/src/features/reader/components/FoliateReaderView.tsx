@@ -53,7 +53,8 @@ import { useTextUnitNavigator } from "../hooks/useTextUnitNavigator";
 import { readTextUnitModeState } from "../lib/text-unit-mode-state";
 import type { ModeRequest, ReadingModeController } from "../lib/reading-mode-controller";
 import { createWheelGesture, type WheelGesture } from "../lib/wheel-gesture";
-import { resolveActivatedImage, type ActivatedImage } from "../lib/image-activation";
+import { resolveActivatedImage } from "../lib/image-activation";
+import { useImageViewer } from "../hooks/useImageViewer";
 import { ReaderAnnotationMenu } from "./ReaderAnnotationMenu";
 import { ReaderFootnotePopover } from "./ReaderFootnotePopover";
 import { ReaderImageLightbox } from "./ReaderImageLightbox";
@@ -538,8 +539,7 @@ export function FoliateReaderView({
 
   // Full-screen illustration viewer (issue #13), opened by tapping an image
   // in the book content.
-  const [lightboxImage, setLightboxImage] = useState<(ActivatedImage & { session?: { bookId: string; sessionId: string } }) | null>(null);
-  const closeLightbox = useCallback(() => setLightboxImage(null), []);
+  const { lightboxImage, setLightboxImage, closeLightbox } = useImageViewer(selectedBook?.id);
 
   // 逐句模式：点中静息句的 wash → 在点击处开合该句的动作菜单（复制/高亮/
   // 下划线/笔记/问 AI + 插件 lookup），代替伸到底部工具栏。移动端"够不着"
@@ -2327,7 +2327,8 @@ export function FoliateReaderView({
       )}
       {lightboxImage && (
         <ReaderImageLightbox
-          key={lightboxImage.src}
+          key={lightboxImage.id}
+          viewerId={lightboxImage.id}
           session={lightboxImage.session}
           src={lightboxImage.src}
           alt={lightboxImage.alt}

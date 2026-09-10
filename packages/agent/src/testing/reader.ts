@@ -36,6 +36,7 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
   };
   return {
     getImage: async () => null,
+    openImage: async () => { throw new AppError("reader/unavailable", "Fixture has no image viewer"); },
     controlImage: async () => { throw new AppError("reader/unavailable", "Fixture has no image viewer"); },
     previewReference: async () => { throw new AppError("reader/unavailable", "Fixture has no native reference preview"); },
     closeReferencePreview: async (_owner, id) => ({ status: "not-current", id }),

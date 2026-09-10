@@ -825,8 +825,8 @@ closes its own stale lightbox. Commands do not navigate, copy or persist images.
 [验证] Focused service, permissions, Agent scopes and mounted React StrictMode
 tests pass, including toolbar/API shared transforms and committed close.
 Real Worker/Tauri pixels, gestures, resizing and focus remain for concentrated
-E2E. Library 1.13 now supplies TXT12 image discovery/resource reads; programmatic
-viewer opening is still missing. READ12
+E2E. Library 1.13 supplies TXT12 image discovery/resource reads; UI 1.13 adds
+programmatic viewer opening below. READ12
 remains partial rather than claiming manual fixed-layout page zoom exists.
 
 ### Embedded Book Image Resources (Library 1.13 / Resources 1.2)
@@ -876,9 +876,49 @@ not retroactively disappear when reading progress changes.
 
 [验证] Actual parser fixtures for EPUB, FB2, MOBI6, KF8 and comics, resource
 cleanup, grants, cancellation and Agent scope tests pass. PDF embedded objects,
-CSS backgrounds, srcset selection, standalone inline SVG artwork and
-programmatic viewer opening remain unsupported. Real Worker/Tauri composition,
+CSS backgrounds, srcset selection and standalone inline SVG artwork remain
+unsupported. UI 1.13 adds viewer opening below. Real Worker/Tauri composition,
 decoding/display and system paste remain for concentrated plugin E2E.
+
+### Open Book Images (UI 1.13)
+
+[代码] `services.ui.reader.image.open({image}, guard?)` requires both library
+read and reading write. Both Agent scopes expose `show_book_image`; it derives
+the session guard and preserves the original host chapter fence/spoiler grant.
+Input is the unchanged versioned descriptor from `listImages`, never a URL,
+path, blob key or ResourceRef. The book must already be the mounted ready
+reader; opening does not navigate or prepare another book.
+
+The same embedded-image reader supplies at most 16 MiB to the existing native
+lightbox. It never fetches a remote source and does not create a resource
+handle, SQLite row or sync item. Host-created object URLs are not returned and
+are revoked on replacement/close/unmount. Existing native-click behavior stays
+unchanged, including fixed-layout tap-to-toggle; explicit API opening works
+for discoverable fixed-layout images without changing that tap behavior.
+
+Returns `{status: "opened", snapshot}` after the exact viewer ID is bound by
+the committed React surface. This is not a successful image-decode, animation,
+focus-restoration or model-vision receipt. `snapshot.id` is directly usable by
+the existing image controls. Missing/external/unsupported images return
+`{status: "not-opened", reason}` without replacing the visible image.
+Other source errors retain their library codes; wrong book is
+`reader/out-of-scope`, version mismatch `reader/stale-location`, no mounted
+reader `reader/unavailable`, replaced intent/session `reader/superseded` and a
+ten-second opening deadline `reader/timeout`. Optional `guard` accepts only
+`sessionId, bookId`, checked against the actual session; content version is
+checked before and after reading and again after presentation.
+
+New opens and native clicks/close supersede pending requests. Cancellation or
+activation retirement prevents late presentation and clears only the pending
+request's own viewer ID, never a newer native image. Already completed opens
+remain visible after plugin retirement, like a user-opened viewer; normal
+reading-write controls can close the exact current ID. Parsing is awaited
+through cancellation to drain the actual read, not abandoned in the background.
+
+[验证] Service/session/version/permission/cancellation tests and actual mounted
+React StrictMode open/control/close/native-replacement/URL-cleanup tests pass.
+Real Worker/Tauri decoding, pixels, keyboard focus and plugin composition remain
+for concentrated E2E; no browser-only result is claimed as desktop proof.
 
 ### Main Window Controls (UI 1.11)
 

@@ -9,6 +9,9 @@ export type ReaderImageRequest = ReaderImageAction & { id: string };
 export type ReaderImageReceipt =
   | { status: "updated"; snapshot: ReaderImageSnapshot }
   | { status: "closed"; id: string };
+export type ReaderImageOpenReceipt =
+  | { status: "opened"; snapshot: ReaderImageSnapshot }
+  | { status: "not-opened"; reason: "missing" | "external" | "unsupported" };
 
 export function normalizeReaderImageRequest(input: ReaderImageRequest): ReaderImageRequest {
   const invalid = (): never => { throw new AppError("reader/invalid-target", "Invalid image-viewer request"); };

@@ -8,6 +8,10 @@ import { assertSpoilerPermission, confirmSpoilerSchema, spoilerGranted } from ".
 import { resolveBookId } from "./current-book";
 import { textResult } from "./tool-result";
 
+const imageParameters = Type.Object({ image: Type.Object({ bookId: Type.String({ minLength: 1, maxLength: 512 }),
+  contentVersion: Type.String({ minLength: 1, maxLength: 256 }), sectionIndex: Type.Integer({ minimum: 0 }), index: Type.Integer({ minimum: 0 }) }, { additionalProperties: false }),
+  confirmSpoiler: confirmSpoilerSchema }, { additionalProperties: false });
+
 export function buildBookImageTools(scope: ThreadScope, deps: RuntimeDeps, state?: AgentTurnState): AgentTool[] {
   function access(bookId: string, raw: unknown) {
     if (scope.kind === "book" && bookId !== scope.bookId) throw new AppError("memory/forbidden", "Images belong to another book");
@@ -32,14 +36,27 @@ export function buildBookImageTools(scope: ThreadScope, deps: RuntimeDeps, state
   }, {
     name: "open_book_image_resource", label: "Prepare book illustration", executionMode: "sequential",
     description: "Copy one embedded image from list_book_images into this conversation's temporary sealed resource. Copy the descriptor unchanged. Rechecks source section/version and narrative reading fence before loading; no network requests or original-book export bypass. Returns ready/missing/external/unsupported; ready means bytes copied, NOT decoded pixels or visual understanding. No image bytes, source URL or paths enter the model, and no viewer opens. Max 16 MiB; references last one hour and share existing resource quotas. Use save_resource or copy_resource_image only on user intent; clipboard decoding may reject unsupported formats. Release the reference when finished.",
-    parameters: Type.Object({ image: Type.Object({ bookId: Type.String({ minLength: 1, maxLength: 512 }),
-      contentVersion: Type.String({ minLength: 1, maxLength: 256 }), sectionIndex: Type.Integer({ minimum: 0 }), index: Type.Integer({ minimum: 0 }) }, { additionalProperties: false }),
-      confirmSpoiler: confirmSpoilerSchema }, { additionalProperties: false }),
+    parameters: imageParameters,
     execute: async (_id, params, signal) => {
       signal?.throwIfAborted();
       const { confirmSpoiler, ...input } = params as BookImageQuery & { confirmSpoiler?: unknown };
       const query = normalizeBookImageQuery(input), { current, grant, fence } = access(query.image.bookId, confirmSpoiler);
       const result = await deps.bookText.openImageResource(threadScopeKey(scope), { ...query, ...fence }, signal);
+      signal?.throwIfAborted(); if (state && current && grant) state.spoilerGranted = true;
+      return textResult(result);
+    },
+  }, {
+    name: "show_book_image", label: "Show book illustration", executionMode: "sequential",
+    description: "On explicit user intent, open an embedded image from list_book_images in the currently open book's native lightbox. Copy its versioned descriptor unchanged; open that book first. Preserves the narrative reading fence and does not fetch remote images or navigate. Opened means the matching viewer committed, not successful pixel decoding or model vision. Returns not-opened for missing/external/unsupported images. Use the returned snapshot.id with control_reader_image to zoom, pan, rotate, reset or close. No temporary resource handle is created; viewer bytes are released on replacement/close. A later user click, request or book change supersedes a pending opening.",
+    parameters: imageParameters,
+    execute: async (_id, params, signal) => {
+      signal?.throwIfAborted();
+      const { confirmSpoiler, ...input } = params as BookImageQuery & { confirmSpoiler?: unknown };
+      const query = normalizeBookImageQuery(input), { current, grant, fence } = access(query.image.bookId, confirmSpoiler);
+      const session = await deps.reader.getSession();
+      signal?.throwIfAborted();
+      if (session.status !== "ready" || !session.sessionId) throw new AppError("reader/unavailable", "Open the image book first");
+      const result = await deps.reader.openImage({ ...query, ...fence }, signal, { sessionId: session.sessionId, bookId: query.image.bookId });
       signal?.throwIfAborted(); if (state && current && grant) state.spoilerGranted = true;
       return textResult(result);
     },

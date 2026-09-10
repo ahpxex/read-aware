@@ -32,6 +32,8 @@ import { createLogger } from "../../../platform/logger";
 import { hostEnvironment } from "../../../platform/host-environment";
 import { hostWindow } from "../../../services/window";
 import { readerImage } from "../../../services/reader-image";
+import { readerImageOpen } from "../../../services/reader-image-open";
+import { readBookImage } from "../../library/lib/book-images";
 import { openBookImageResource } from "../../../domain/library-book-images";
 import { hostSync } from "../../../services/sync";
 import { hostMaintenance } from "../../../services/maintenance";
@@ -812,6 +814,10 @@ export function buildPluginContext(
     const reading = domain.reading;
     ctx.services.ui.reader = {
       image: {
+        ...(reading.commands && domain.library ? { open: (query: import("@read-aware/core").BookImageQuery, guard?: import("@read-aware/core").ReadingSessionGuard) => {
+          lifecycle.assertActive("services.ui.reader.image.open");
+          return lifecycle.read("services.ui.reader.image.open", () => readerImageOpen.open(query, readBookImage, lifecycle.signal, guard));
+        } } : {}),
         snapshot: async () => { lifecycle.assertActive("services.ui.reader.image.snapshot"); return readerImage.snapshot(); },
         observe: handler => track(() => ({ dispose: readerImage.observe(handler) })),
         ...(reading.commands ? { control: (request: import("@read-aware/core").ReaderImageRequest) => {

@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+程序化图片灯箱批次已接线：UI 1.13 image.open 与 Agent 双 scope show_book_image 直接消费上一批的版本化书内图片描述符，共用原生灯箱和现有控制。library 读 + reading 写，限定当前书/版本/会话，Agent 保留原章节边界；不接受任意 URL/资源句柄、不加载外链、不导航。opened 等准确 viewer ID 的 React 挂载，不代表解码/像素/视觉理解。新请求、原生点击/关闭及换书阻止迟到展示；失败仅清自有待打开 ID，URL 随关闭/替换/卸载释放，已完成展示不因插件退休自动关闭。
+
+[验证] 定向服务/权限/Agent/挂载 StrictMode 共 18 pass / 726 assertions，模型/库存 12 pass / 41 assertions，全仓 typecheck 27/27。Agent book 81/global 98，矩阵 872 入口映射；三文档对结构通过。TXT12 的程序化灯箱打开缺口已接，PDF 内嵌对象、CSS/srcset 图片与模型图像输入仍未接；真实 Worker/Tauri 解码、焦点与组合 E2E 留集中阶段。下方历史批次的“程序化打开仍缺”由本批取代。
+
 书内图片批次已接线：library 1.13 listImages/openImageResource 与双 scope list_book_images/open_book_image_resource 共用源解析器和 owner 资源队列。按版本/分节分页图片目录、返回源位置，EPUB/FB2/MOBI6/KF8/漫画内嵌图片获取为 resources 1.2 的 source=image 封口快照；最多 16 MiB、无远程 fetch，保留 library 授权、Agent 阅读边界与激活/会话隔离。ready 仅表示字节已复制，不是解码或视觉理解；剪贴板授权独立。
 
 [验证] 图片目录/实际格式解析器、资源清理、权限/取消/Agent 双域与工具输出定向测试 39 pass / 859 assertions；模型/库存 12 pass / 41 assertions，全仓 typecheck 27/27，Foliate 49 个静态模块已重建。矩阵 243 行/869 映射，Agent book 80/global 97，三文档对结构通过。TXT12 从未接变为部分：程序化打开灯箱、PDF 内嵌对象、CSS/srcset 图片与模型图像输入仍缺。真实 Worker/Tauri/图片显示与系统粘贴不在本批基础验证内，留集中组合阶段；下方历史批次“图片发现/读取仍缺”的描述由本批取代。

@@ -3,6 +3,7 @@ import { getDefaultStore } from "jotai";
 import { installedPluginsAtom } from "../features/plugins/state/plugin-store";
 import type { InstalledPlugin } from "../features/plugins/lib/plugin-types";
 import { createLogger } from "../platform/logger";
+import { pluginContributions } from "./plugin-contributions";
 
 const log = createLogger("plugin-directory");
 export function pluginDirectoryPage(installed: readonly InstalledPlugin[], query?: PluginDirectoryQuery): PluginDirectoryPage {
@@ -15,6 +16,8 @@ export function pluginDirectoryPage(installed: readonly InstalledPlugin[], query
     nextOffset: offset + limit < plugins.length ? offset + limit : null };
 }
 export const pluginDirectory = {
+  contributions: pluginContributions.list,
+  observeContributions: pluginContributions.observe,
   list: async (query?: PluginDirectoryQuery) => pluginDirectoryPage(getDefaultStore().get(installedPluginsAtom), query),
   observe: (query: PluginDirectoryQuery, handler: (page: PluginDirectoryPage) => unknown) => {
     const accepted = normalizePluginDirectoryQuery(query), store = getDefaultStore();

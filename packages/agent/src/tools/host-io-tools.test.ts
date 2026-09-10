@@ -18,3 +18,18 @@ test("Agent IO shares bounded host effects, preserves cancelled export and retur
   deps.hostIO.writeClipboard = async () => { throw Error("write failed"); };
   await expect(call("copy_to_clipboard", { text: "no success" })).rejects.toThrow("write failed");
 });
+
+test("Agent contribution discovery forwards validated filters and stops on cancellation", async () => {
+  const { deps } = createInMemoryDeps();
+  const queries: unknown[] = [];
+  deps.hostIO.listPluginContributions = async query => {
+    queries.push(query);
+    return { contributions: [{ point: "contentProviders", pluginId: "feeds", key: "feeds:articles" }], total: 1, offset: 0, nextOffset: null };
+  };
+  const tool = buildHostIOTools(deps).find(tool => tool.name === "list_plugin_contributions")!;
+  expect(JSON.stringify(await tool.execute("test", { point: "contentProviders", pluginId: "feeds", limit: 3 }))).toContain("feeds:articles");
+  expect(queries).toEqual([{ point: "contentProviders", pluginId: "feeds", limit: 3, offset: 0, search: "" }]);
+  await expect(tool.execute("invalid", { point: "__proto__" })).rejects.toMatchObject({ code: "ui/invalid-target" });
+  await expect(tool.execute("cancelled", {}, AbortSignal.abort(Error("stopped")))).rejects.toThrow("stopped");
+  expect(queries).toHaveLength(1);
+});

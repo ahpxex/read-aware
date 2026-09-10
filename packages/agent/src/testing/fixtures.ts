@@ -404,6 +404,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       clear: async target => { stores.turns.delete(`${target.kind}:${target.id}`); return { status: "completed", target }; },
     },
     hostIO: {
+      listPluginContributions: async () => ({ contributions: [], total: 0, offset: 0, nextOffset: null }),
       listPlugins: async () => ({ plugins: [], total: 0, offset: 0, nextOffset: null }),
       writeClipboard: async () => { throw new AppError("ui/unavailable", "Attach a clipboard fixture"); },
       exportFile: async () => false,

@@ -98,6 +98,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   manage_conversation: { action: "create" },
   request_conversation_turn: { action: "draft", target: { kind: "book", id: BOOK_ID }, text: "A question for review" },
   list_installed_plugins: {},
+  list_plugin_contributions: {},
   copy_to_clipboard: { text: "Requested text" },
   export_text_file: { filename: "reading.txt", content: "Requested text" },
   open_external_url: { url: "https://readaware.app/" },

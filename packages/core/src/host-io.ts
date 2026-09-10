@@ -1,4 +1,5 @@
 import { AppError } from "./errors";
+import { CONTRIBUTION_CATALOG, type ContributionId } from "./capabilities";
 
 export type HostExportFile = { filename: string; content: string | Uint8Array | ArrayBuffer; mimeType?: string };
 export type PluginDirectoryQuery = { search?: string; offset?: number; limit?: number };
@@ -8,6 +9,22 @@ export type PluginDirectoryEntry = {
   enabled: boolean; activationFailed: boolean;
 };
 export type PluginDirectoryPage = { plugins: PluginDirectoryEntry[]; total: number; offset: number; nextOffset: number | null };
+export type PluginContributionQuery = PluginDirectoryQuery & { point?: ContributionId; pluginId?: string };
+export type PluginContributionEntry = {
+  point: ContributionId; pluginId: string;
+  /** Registry key, not a callable handle or a universal settings value. */
+  key: string;
+};
+export type PluginContributionPage = { contributions: PluginContributionEntry[]; total: number; offset: number; nextOffset: number | null };
+
+export function normalizePluginContributionQuery(value: PluginContributionQuery = {}): Required<PluginDirectoryQuery> & Pick<PluginContributionQuery, "point" | "pluginId"> {
+  if (!value || typeof value !== "object" || Array.isArray(value)
+    || Object.keys(value).some(key => !["point", "pluginId", "search", "offset", "limit"].includes(key))) return invalid("Invalid contribution query");
+  const { point, pluginId, search, offset, limit } = value;
+  if (point !== undefined && (typeof point !== "string" || !Object.prototype.hasOwnProperty.call(CONTRIBUTION_CATALOG, point))
+    || pluginId !== undefined && (typeof pluginId !== "string" || !pluginId.length || pluginId.length > 256)) return invalid("Invalid contribution filter");
+  return { ...normalizePluginDirectoryQuery({ search, offset, limit }), ...(point === undefined ? {} : { point }), ...(pluginId === undefined ? {} : { pluginId }) };
+}
 
 const invalid = (message: string): never => { throw new AppError("ui/invalid-target", message); };
 export function normalizeClipboardText(value: unknown): string {

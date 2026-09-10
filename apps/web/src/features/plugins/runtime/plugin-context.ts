@@ -616,6 +616,11 @@ export function buildPluginContext(
         },
       },
       plugins: {
+        contributions: async query => {
+          lifecycle.assertActive("services.plugins.contributions");
+          return pluginDirectory.contributions(query);
+        },
+        observeContributions: (query, handler) => track(() => ({ dispose: pluginDirectory.observeContributions(query, handler) })),
         list: async query => {
           lifecycle.assertActive("services.plugins.list");
           return pluginDirectory.list(query);

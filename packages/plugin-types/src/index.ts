@@ -2064,6 +2064,10 @@ export type PluginHostServices = {
     control(id: string, action: "pause" | "resume" | "run"): Promise<import("@read-aware/core").PluginScheduleReceipt>;
   };
   plugins: {
+    /** Registered identities across extension points, never provider callbacks,
+     * data, settings or a grant to invoke another plugin. Offset pages may change. */
+    contributions(query?: import("@read-aware/core").PluginContributionQuery): Promise<import("@read-aware/core").PluginContributionPage>;
+    observeContributions(query: import("@read-aware/core").PluginContributionQuery, handler: (page: import("@read-aware/core").PluginContributionPage) => unknown): PluginDisposable;
     /** Public installed metadata only, no settings, paths, secrets or raw errors. */
     list(query?: import("@read-aware/core").PluginDirectoryQuery): Promise<import("@read-aware/core").PluginDirectoryPage>;
     /** Initial page and changes; offset pages must be reloaded after directory changes. */

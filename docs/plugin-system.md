@@ -4752,7 +4752,7 @@ The current host services are:
 | `ui` | host toast and save/export flow | built in |
 | `schedules` | 1.1: bind, list, observe, pause/resume and run declared tasks | built in, own schedules only |
 | `session` | 2.0: environment snapshot/observation only; reading state requires the reading domain | built in |
-| `plugins` | 1.0: bounded installed public metadata list/observation | built in |
+| `plugins` | 1.1: installed metadata and registered contribution identity discovery/observation | built in |
 | `maintenance` | 1.0: updater snapshot/observation, release check and native maintenance controls | built in; check requires `service:network` |
 | `diagnostics` | 1.1: verification counts and host-confirmed export/send outcomes | `service:diagnostics` |
 | `resources` | 1.1: native file selection, original/cover snapshots, bounded read/write/seal/save/release | built in; book sources require `library:read` or write |
@@ -5176,7 +5176,57 @@ characters. Observation emits the initial page and installed-state changes and
 is activation-owned. No settings, paths, credentials or raw activation errors
 are exposed. Enabled describes configuration, not contribution health. Restart
 offset pagination after changes. Agent `list_installed_plugins` shares this
-query; provider discovery/invocation and management approvals are separate work.
+query; management approvals remain separate.
+
+[代码] Plugins 1.1 adds `services.plugins.contributions(query?)` and
+`observeContributions(query,handler)`, plus Agent `list_plugin_contributions`
+in both scopes. Queries accept `point?:ContributionId`, exact `pluginId?`
+(1–256 characters), `search?` (at most 200 characters), nonnegative `offset?`
+and `limit?` (1–100, default 50). Search is trimmed/case-insensitive across
+point, plugin ID and registry key. Unknown fields/points and invalid bounds
+reject `ui/invalid-target`. Results contain only
+`{contributions:[{point,pluginId,key}],total,offset,nextOffset}`. `key` preserves
+the existing registry spelling; sync transports use `plugin:<pluginId>:<id>`.
+It is not a universal settings value, execution handle or an authorization grant.
+
+The source is the host's existing registry inspection, covering
+`selectionActions`, `headerActions`, `contextActions`, `commands`,
+`settingsOptions`, `voiceProviders`, `contentProviders`, `readerModes`,
+`agentTools`, `agentContextProviders`, `agentRetrievalProviders`,
+`memoryCandidateProviders`, `themes`, `fonts`, and the independent
+`syncTransports` registry. Declarations that are not registered do not appear.
+Identity discovery never calls a settings resolver, voice lister/synthesizer,
+content loader, Agent provider/tool, UI callback or transport `open`.
+It does not return labels, descriptions, voices, configuration, paths,
+credentials, provider outputs or callback objects. Registration is not proof
+of health, readiness, UI visibility/enabled state or tool visibility in a
+particular Agent request. Execute through the relevant existing host API/tool
+with its own argument format and authorization, never through a discovered key
+alone. The host still has no generic cross-plugin invoke/permission-intersection
+broker; MORE06 remains partial rather than claiming that discovery implements it.
+
+Rows sort by point, plugin ID and key. The page admits at most 16000 JSON
+characters of entry objects/separators (excluding the envelope), without
+truncating identities. A too-large first entry rejects `ui/unavailable` instead
+of returning a nonadvancing empty page. Follow actual `nextOffset`, which may
+advance by fewer than `limit` items. Registration changes invalidate positional
+continuity; restart pagination rather than treating offsets as stable cursors.
+There is no snapshot/revision token in this API.
+
+Observation is initial, serial and coalesced over registration, replacement,
+update and removal, including independent transport changes. It returns full
+pages, not event replay or raw provider objects; repeated identical identity
+pages can occur on provider state updates. The 64-observer process limit rejects
+`ui/observer-limit`. Callback failures are logged; disposal/realm retirement
+unsubscribes and suppresses subsequent deliveries, not a callback already started.
+Shared registry notifications are host-internal and cannot make a provider
+registration fail because a directory listener threw.
+
+[环境] Focused tests register all 15 catalog points, prove zero provider callback
+invocations and identity-only results, and exercise pagination/filtering/budget,
+serial observation, retirement, zero-permission plugin context and Agent ports.
+These are controlled registered fixtures, not proof of production activation,
+compiled Worker delivery or business-plugin/Tauri composition.
 
 [环境] These new connections have type and focused contract/permission tests.
 Combination plugins and native E2E are intentionally deferred to the integrated

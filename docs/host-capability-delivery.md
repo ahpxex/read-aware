@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+2026-09-11 扩展发现批次已接线：plugins1.1 contributions/observeContributions 与双域 Agent list_plugin_contributions 共用注册目录，覆盖14个共享扩展注册点及独立syncTransports。仅返回point/pluginId/key，不调用提供者、不返回私有配置或凭据，也不额外授予执行权限。支持类型/插件/文本过滤、默认50及最大100条分页、16000字符条目预算；nextOffset按实际返回数量推进，注册变化后需重新分页。观察初次发布及后续变化，串行合并、全进程最多64个，消费者退休自动释放。
+
+[验证] 39项基础测试、919个断言通过；全仓typecheck 27/27（缓存命中）、三文档对结构检查通过。924入口映射、38个catalog成员，Agent工具book90/global108。测试覆盖全部15类真实注册表及正式插件上下文/Agent接线，提供者使用受控fixture；不是编译Worker、业务插件或Tauri端到端证明。MORE06仍标部分：发现已接通，通用跨插件调用与权限交集代理未实现；注册不代表健康、可见或可调用。本批未启动桌面/浏览器，HTML视觉复核与真实组合留集中验收；整体目标继续，未推送。
+
 2026-09-11 诊断流程批次已接线：diagnostics1.1 requestReport(export/send)与双域Agent request_diagnostics_report共用宿主预览和确认，返回exported/sent/cancelled，不返回包、日志、路径或报告编号。导出也先预览，确认后保存/发送同一包；sent要求固定报告接口HTTP成功及ok:true/非空有界ID，不代表开发者处理。纠正八语言“不含书籍/笔记/对话”的错误保证，明确日志与投影样本可能包含个人记录。既有sync流程控制器抽为宿主内部HostActionFlow复用；未确认取消丢弃迟到采集，已确认保存/上传等源结算再释放、不回滚。单次取消表现29入口；权限仍独立service:diagnostics，八语言授权说明同步。
 
 [验证] 46项基础测试通过（含受控StrictMode挂载、原生确认回调接线、文件选择取消、报告回执解析、插件权限/单次取消、Agent双域及同步流程回归）；全仓typecheck 27/27、三文档对结构检查通过。920入口映射、38个catalog成员，Agent工具book89/global107；SYS15按已有宿主行为标接通。测试端口受控，非真实Tauri文件保存/报告上传、编译Worker或业务插件验收；不承诺自动脱敏、耐久任务/重启恢复或开发者处理结果。本批未启动桌面/浏览器，整体目标继续，未推送。

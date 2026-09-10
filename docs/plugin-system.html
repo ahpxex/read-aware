@@ -445,7 +445,7 @@
               <li>Storage 2.1：KV 持久确认、文档分页与条件事务 / Secrets</li>
               <li>Logging 1.0：自有结构化诊断、来源标记与限流</li>
               <li>UI export / Toast</li>
-              <li>Plugins 1.0：已安装公共目录与变化观察</li>
+              <li>Plugins 1.1：已安装目录与已注册扩展条目发现、观察</li>
               <li>Schedules / Session 2.0：仅环境快照与观察；阅读状态统一归 Reading</li>
               <li>Network 2.1：显式访问范围、逐跳授权、分块下载 / Clipboard</li>
               <li>LLM 1.3：取消、截止、并发、输出上限与用量估算</li>
@@ -463,7 +463,12 @@
               <p>Storage 2.1 的 page 默认50、最多200条及4MiB正文；集合变化返回 stale-cursor，避免拼接不同版本。applyDocuments 一次比较并提交1至100条自有跨集合记录，支持保存、删除和只检查；任何旧版本冲突都不写，数据库失败全部回滚。单条4MiB、批次8MiB，旧接口和恢复写入同样产生新版本身份。</p>
               <p>已派发事务随插件退休排空，不自动重试或撤销。Agent 仍经插件业务工具访问，不直接读私有库；事务不包含KV、文件、核心领域或其他插件。全字段搜索与KV/文档联合恢复仍缺。基础测试与类型检查通过，真实组合插件和Tauri端到端验收集中后置。</p>
             </div></details>
-            <details class="ep"><summary>外链、复制、导出与插件目录：双端已接线，集中验收待做</summary><div class="ep-body"><p>Agent 新增 list_installed_plugins、copy_to_clipboard、export_text_file、open_external_url，共用宿主查询与效果实现。插件目录只返回公开安装元数据，不返回设置、路径、密钥或原始错误；enabled 是配置，不保证贡献健康。</p><p>UI 1.7 openExternal 要求 service:network，只允许无凭据的 HTTP(S)，不开放本机文件或自定义协议。剪贴板只写文本；导出通过原生保存对话框，取消不算成功，派发写入后不承诺回滚。类型与定向测试通过；组合插件和新路径桌面 E2E 留待集中阶段。</p></div></details>
+            <details class="ep"><summary>外链、复制、导出与插件目录：双端已接线，集中验收待做</summary><div class="ep-body"><p>Agent 的 list_installed_plugins、copy_to_clipboard、export_text_file、open_external_url，共用宿主查询与效果实现。插件目录只返回公开安装元数据，不返回设置、路径、密钥或原始错误；enabled 是配置，不保证贡献健康。</p><p>UI 1.7 openExternal 要求 service:network，只允许无凭据的 HTTP(S)，不开放本机文件或自定义协议。剪贴板只写文本；导出通过原生保存对话框，取消不算成功，派发写入后不承诺回滚。类型与定向测试通过；组合插件和新路径桌面 E2E 留待集中阶段。</p></div></details>
+            <details class="ep"><summary>Plugins 1.1：15 种已注册扩展条目可统一发现</summary><div class="ep-body">
+              <p>插件 contributions/observeContributions 与双域 Agent list_plugin_contributions 共用现有注册表，覆盖动作、命令、设置选项、语音、内容、阅读模式、Agent 扩展、主题字体和同步传输。只给扩展点、插件 ID、注册 key，不运行任何提供者，也不返回配置、路径、凭据、正文或回调。</p>
+              <p>按扩展点/插件/搜索分页，默认50/最多100条，条目JSON共16000字符预算；跟随实际nextOffset，注册变化后重读。最多64个串行合并观察，退休释放。注册不是健康、可见或可调用保证，key也不是通用参数或调用句柄；通用跨插件调用和权限交集broker仍未建，MORE06保留部分。</p>
+              <p>15类受控注册、身份过滤、零回调执行、观察和双端接线基础验证通过；编译Worker、真实业务插件与Tauri组合集中后置。</p>
+            </div></details>
             <details class="ep"><summary>Schedules 1.1：自有计划可查、可暂停恢复、可手动运行</summary><div class="ep-body">
               <p>插件只管理自有已绑定计划；全局 Agent 经批准操作。暂停/恢复和最新开始/完成/成功/错误状态持久保存；先记录开始再执行，结束写失败不报完成。手动运行不恢复自动计划，pause 不终止已发任务；同 key 不重入。</p>
               <p>旧时间戳不当成成功，未完成显示 interrupted，记录不再漫游。首轮 5 秒、每分钟扫描、15 分钟间隔下限，关闭 App 不运行，不承诺完整历史/精确时刻；退役排空已发记录写，最后绑定释放计时器。定向检查已过，组合和桌面生命周期验收待集中进行。</p>

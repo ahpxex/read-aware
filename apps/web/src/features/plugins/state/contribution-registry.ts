@@ -1,4 +1,5 @@
 import { atom, getDefaultStore, type PrimitiveAtom } from "jotai";
+import { createLogger } from "../../../platform/logger";
 import type { ContributionId } from "@read-aware/core";
 import type { ContributionKey, PluginDisposable } from "../lib/plugin-types";
 
@@ -30,6 +31,14 @@ type InspectableRegistry = {
 };
 
 const registries = new Map<ContributionPoint, InspectableRegistry>();
+const listeners = new Set<() => void>();
+const log = createLogger("contribution-registry");
+
+/** Registry changes only; observers never receive provider objects or callbacks. */
+export function subscribeContributions(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+}
 
 function validateIdentity(item: ContributionIdentity): void {
   const pluginId = String(item.pluginId).trim();
@@ -99,6 +108,11 @@ export function createContributionRegistry<T extends ContributionIdentity>(
   };
   if (catalog) {
     registries.set(point, { point, list: () => registry.list() });
+    store.sub(entriesAtom, () => {
+      for (const notify of [...listeners]) {
+        try { notify(); } catch (error) { log.warn("Contribution observer failed", error); }
+      }
+    });
   }
   return registry;
 }

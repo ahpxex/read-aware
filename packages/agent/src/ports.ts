@@ -452,6 +452,7 @@ export interface RuntimeDeps {
     clear(target: import("@read-aware/core").ConversationTarget, signal?: AbortSignal): Promise<import("@read-aware/core").ConversationControlReceipt>;
   };
   hostIO: {
+    listPluginContributions(query?: import("@read-aware/core").PluginContributionQuery): Promise<import("@read-aware/core").PluginContributionPage>;
     listPlugins(query?: import("@read-aware/core").PluginDirectoryQuery): Promise<import("@read-aware/core").PluginDirectoryPage>;
     writeClipboard(text: string, signal?: AbortSignal): Promise<void>;
     exportFile(file: import("@read-aware/core").HostExportFile, signal?: AbortSignal): Promise<boolean>;

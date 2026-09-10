@@ -5,6 +5,7 @@ import { pluginDirectory } from "./plugin-directory";
 
 /** The same bounded host effects for Agent ports and permission-gated plugins. */
 export const hostIO = {
+  listPluginContributions: pluginDirectory.contributions,
   listPlugins: pluginDirectory.list,
   writeClipboard: async (text: string, signal?: AbortSignal) => {
     signal?.throwIfAborted(); await navigator.clipboard.writeText(normalizeClipboardText(text));

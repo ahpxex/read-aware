@@ -231,10 +231,10 @@ export class AgentRuntime {
   async runBookGraphTask(input: import("../memory/book-graph-tasks").BookGraphTaskExecution & {
     resolveBoundary(): Promise<number | undefined>;
   }): Promise<DigestReport> {
-    return runMemoryBuild(this.options.deps, operation => digestBookCatchUp({
+    return runMemoryBuild(this.options.deps, operation => digestBookTick({
       deps: operation.protect(this.options.deps), complete: operation.complete(this.completeFns.fast), model: this.resolveModel("fast"),
-      bookId: input.bookId, rebuild: input.rebuild, targets: input.targets, concurrency: 2, signal: operation.signal,
-      onStarted: input.onStarted, onPlan: input.onPlan, onChapterCommitted: input.onChapterCommitted, onReport: input.onReport,
+      bookId: input.bookId, rebuild: input.rebuild, targets: input.targets, maxChapters: input.maxChapters, concurrency: 2, signal: operation.signal,
+      onStarted: input.onStarted, onPlan: input.onPlan, onChapterAttempted: input.onChapterAttempted, onChapterCommitted: input.onChapterCommitted, onReport: input.onReport,
       resolveBoundary: operation.guard(input.resolveBoundary),
       checkChapter: operation.guard(async index => {
         const ceiling = await input.resolveBoundary();

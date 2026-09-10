@@ -1,12 +1,14 @@
-import { AppError, errorCode, validateClassificationBookId, type BookGraphTaskPort, type BookGraphTaskSnapshot, type DigestReport } from "@read-aware/core";
+import { AppError, errorCode, validateClassificationBookId, normalizeBookGraphTaskOptions, type BookGraphTaskOptions, type BookGraphTaskPort, type BookGraphTaskSnapshot, type DigestReport } from "@read-aware/core";
 
 export interface BookGraphTaskExecution {
   bookId: string;
   rebuild: boolean;
+  maxChapters: number;
   targets?: readonly number[];
   signal: AbortSignal;
   onStarted(): void;
   onPlan(chapters: number[]): void;
+  onChapterAttempted(chapter: number): void;
   onChapterCommitted(chapter: number): void;
   onReport(report: DigestReport): void;
 }
@@ -34,10 +36,10 @@ export class BookGraphTaskOwner implements BookGraphTaskPort {
     if (!active(task)) return;
     task.state = { ...task.state, ...change, revision: task.state.revision + 1, updatedAt: new Date().toISOString() };
   }
-  async start(bookId: string, mode: "catch-up" | "rebuild", signal?: AbortSignal) {
-    return this.create(bookId, mode, undefined, undefined, signal);
+  async start(bookId: string, mode: "catch-up" | "rebuild", options?: BookGraphTaskOptions, signal?: AbortSignal) {
+    return this.create(bookId, mode, normalizeBookGraphTaskOptions(options), undefined, undefined, signal);
   }
-  private create(bookId: string, mode: "catch-up" | "rebuild", retryOf?: string, targets?: number[], signal?: AbortSignal): BookGraphTaskSnapshot {
+  private create(bookId: string, mode: "catch-up" | "rebuild", options: BookGraphTaskOptions, retryOf?: string, targets?: number[], signal?: AbortSignal): BookGraphTaskSnapshot {
     this.assertLive(); validateClassificationBookId(bookId);
     if (mode !== "catch-up" && mode !== "rebuild") throw new AppError("memory/invalid-input", "Invalid graph task mode");
     if (signal?.aborted) throw cancelled();
@@ -49,7 +51,7 @@ export class BookGraphTaskOwner implements BookGraphTaskPort {
     const now = new Date().toISOString(), controller = new AbortController();
     const abort = () => this.abort(task);
     const task: Task = { controller, pending: targets && new Set(targets), detach: () => signal?.removeEventListener("abort", abort), state: {
-      taskId: crypto.randomUUID(), bookId, mode, ...(retryOf ? { retryOf } : {}), revision: 0, status: "queued", createdAt: now, updatedAt: now,
+      taskId: crypto.randomUUID(), bookId, mode, maxChapters: options.maxChapters, ...(retryOf ? { retryOf } : {}), revision: 0, status: "queued", createdAt: now, updatedAt: now,
     } };
     this.tasks.set(task.state.taskId, task);
     signal?.addEventListener("abort", abort, { once: true });
@@ -59,10 +61,13 @@ export class BookGraphTaskOwner implements BookGraphTaskPort {
   }
   private async run(task: Task, targets?: number[]) {
     try {
-      const report = await this.execute({ bookId: task.state.bookId, rebuild: task.state.mode === "rebuild", targets,
+      const report = await this.execute({ bookId: task.state.bookId, rebuild: task.state.mode === "rebuild", maxChapters: task.state.maxChapters, targets,
         signal: task.controller.signal,
         onStarted: () => { if (!task.controller.signal.aborted) this.update(task, { status: "running" }); },
         onPlan: chapters => { if (active(task)) task.pending = new Set(chapters); },
+        onChapterAttempted: chapter => {
+          if (active(task) && task.pending?.delete(chapter)) task.pending.add(chapter);
+        },
         onChapterCommitted: chapter => { if (active(task)) task.pending?.delete(chapter); },
         onReport: report => { this.update(task, { report: structuredClone(report) }); },
       });
@@ -88,11 +93,11 @@ export class BookGraphTaskOwner implements BookGraphTaskPort {
   async cancel(bookId: string, taskId: string) {
     const task = this.lookup(bookId, taskId); this.abort(task); return structuredClone(task.state);
   }
-  async retry(bookId: string, taskId: string, signal?: AbortSignal) {
+  async retry(bookId: string, taskId: string, options?: BookGraphTaskOptions, signal?: AbortSignal) {
     const task = this.lookup(bookId, taskId);
     if (active(task) || task.state.status === "completed") throw new AppError("memory/conflict", "Only unfinished terminal tasks can be retried");
     // A failed rebuild can leave a valid OLD digest. Retain its target instead of treating it as repaired.
-    return this.create(bookId, task.state.mode, taskId, task.pending ? [...task.pending] : undefined, signal);
+    return this.create(bookId, task.state.mode, normalizeBookGraphTaskOptions(options, task.state.maxChapters), taskId, task.pending ? [...task.pending] : undefined, signal);
   }
   dispose() {
     if (this.stopped) return;

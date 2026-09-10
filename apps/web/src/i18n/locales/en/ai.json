@@ -75,7 +75,7 @@
         },
         "generateBookGraph": {
           "question": "Generate this book's graph?",
-          "description": "This sends eligible chapter text to your configured model and may incur charges. Rebuild replaces digests only after successful generation. Cancellation does not undo committed work.",
+          "description": "{{subject}}\n\nAt most {{maxChapters}} chapter attempts, including empty or failed chapters. Classification may use an extra model request. This is not a token or spending limit.\n\nThis sends eligible chapter text to your configured model and may incur charges. Rebuild replaces digests only after successful generation. Cancellation does not undo committed work.",
           "approve": "Generate graph"
         },
         "classifyBook": {

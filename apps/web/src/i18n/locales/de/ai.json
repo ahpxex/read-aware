@@ -75,7 +75,7 @@
         },
         "generateBookGraph": {
           "question": "Graph dieses Buchs erzeugen?",
-          "description": "Zulässige Kapiteltexte werden an das konfigurierte Modell gesendet. Dabei können Kosten entstehen. Neuaufbau ersetzt Zusammenfassungen erst nach erfolgreicher Generierung. Abbrechen macht gespeicherte Änderungen nicht rückgängig.",
+          "description": "{{subject}}\n\nHöchstens {{maxChapters}} Kapitelversuche, einschließlich leerer oder fehlgeschlagener Kapitel. Die Klassifizierung kann einen zusätzlichen Modellaufruf erfordern. Dies ist kein Token- oder Kostenlimit.\n\nZulässige Kapiteltexte werden an das konfigurierte Modell gesendet. Dabei können Kosten entstehen. Neuaufbau ersetzt Zusammenfassungen erst nach erfolgreicher Generierung. Abbrechen macht gespeicherte Änderungen nicht rückgängig.",
           "approve": "Graph erzeugen"
         },
         "classifyBook": {

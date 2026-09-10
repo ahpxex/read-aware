@@ -20,6 +20,7 @@ import { toolStepDetail, toolTraceText } from "../lib/chat-stream";
 import type { ChatReference, ChatStreamChunk } from "../lib/chat-types";
 import type { ChatTurnRequest } from "../lib/chat-types";
 import { getAgentRuntime } from "./agent-runtime";
+import { toChatInteractionRequest } from "./chat-interaction-request";
 
 /**
  * present_* 即时执行且卡片就是其可见输出 —— 活动行只会闪一下徒增噪音，
@@ -130,27 +131,7 @@ export function createPiChatTransport(): ChatTransport {
           }
           case "interaction":
             if (chunk.phase === "request") {
-              const request =
-                chunk.request.kind === "question"
-                  ? {
-                      id: chunk.request.id,
-                      threadKey: chunk.request.threadKey,
-                      kind: "question" as const,
-                      question: chunk.request.question,
-                      options: chunk.request.options.map((option) => ({
-                        id: option.id,
-                        label: option.label,
-                        description: option.description,
-                      })),
-                      allowCustom: chunk.request.allowCustom,
-                    }
-                  : {
-                      id: chunk.request.id,
-                      threadKey: chunk.request.threadKey,
-                      kind: "permission" as const,
-                      action: chunk.request.action,
-                      subject: chunk.request.subject,
-                    };
+              const request = toChatInteractionRequest(chunk.request);
               yield {
                 type: "interaction",
                 phase: "request",

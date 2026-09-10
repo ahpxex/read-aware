@@ -810,14 +810,14 @@ export function buildPluginContext(
     }, classify: input => {
       lifecycle.assertActive("domains.memory.commands.classify");
       return memory.commands!.classify(input);
-    }, startGraphTask: (bookId, mode) => {
+    }, startGraphTask: (bookId, mode, options) => {
       lifecycle.assertActive("domains.memory.commands.startGraphTask");
       if (!canUseHostService("llm", permissions)) throw new AppError("memory/forbidden", "Graph generation requires service:llm");
-      return memory.commands!.startGraphTask(bookId, mode);
-    }, retryGraphTask: (bookId, taskId) => {
+      return memory.commands!.startGraphTask(bookId, mode, options);
+    }, retryGraphTask: (bookId, taskId, options) => {
       lifecycle.assertActive("domains.memory.commands.retryGraphTask");
       if (!canUseHostService("llm", permissions)) throw new AppError("memory/forbidden", "Graph generation requires service:llm");
-      return memory.commands!.retryGraphTask(bookId, taskId);
+      return memory.commands!.retryGraphTask(bookId, taskId, options);
     }, cancelGraphTask: (bookId, taskId) => {
       lifecycle.assertActive("domains.memory.commands.cancelGraphTask");
       return memory.commands!.cancelGraphTask(bookId, taskId);

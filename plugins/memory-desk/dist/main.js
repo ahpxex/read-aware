@@ -43,6 +43,19 @@ async function liveMemoryView(ctx, query, title, render) {
   } } };
 }
 
+// src/task-budget.ts
+var copies = {
+  en: { limit: "Maximum chapter attempts", invalid: "Enter a whole number from 1 to 1000", note: "Empty and failed chapters count. Classification may add a model request; this is not a token or spending limit.", reached: "Chapter limit reached", boundary: "Reading boundary is unknown", toc: "No chapter directory is available", classification: "Book classification is still pending", empty: "Empty chapters", chapter: "Chapter" },
+  "zh-Hans": { limit: "最多尝试章节数", invalid: "请输入 1 到 1000 的整数", note: "空章和失败章节也计入。分类可能额外调用模型；这不是 token 或费用上限。", reached: "已达章节上限", boundary: "尚无法确定阅读边界", toc: "没有可用的章节目录", classification: "书籍分类尚未完成", empty: "空章节", chapter: "章节" },
+  "zh-Hant": { limit: "最多嘗試章節數", invalid: "請輸入 1 到 1000 的整數", note: "空章與失敗章節也計入。分類可能額外呼叫模型；這不是 token 或費用上限。", reached: "已達章節上限", boundary: "尚無法確定閱讀邊界", toc: "沒有可用的章節目錄", classification: "書籍分類尚未完成", empty: "空章節", chapter: "章節" },
+  ja: { limit: "章の試行数の上限", invalid: "1 から 1000 の整数を入力してください", note: "空の章や失敗した章も数えます。分類で追加のモデル呼び出しが発生する場合があります。トークン数や料金の上限ではありません。", reached: "章の上限に達しました", boundary: "読書範囲が不明です", toc: "章の目次がありません", classification: "書籍の分類は未完了です", empty: "空の章", chapter: "章" },
+  de: { limit: "Maximale Kapitelversuche", invalid: "Ganze Zahl von 1 bis 1000 eingeben", note: "Leere und fehlgeschlagene Kapitel zählen. Die Klassifizierung kann einen weiteren Modellaufruf benötigen; kein Token- oder Kostenlimit.", reached: "Kapitellimit erreicht", boundary: "Lesegrenze unbekannt", toc: "Kein Kapitelverzeichnis verfügbar", classification: "Buchklassifizierung noch ausstehend", empty: "Leere Kapitel", chapter: "Kapitel" },
+  fr: { limit: "Nombre maximal de tentatives", invalid: "Saisissez un entier de 1 à 1000", note: "Les chapitres vides ou en échec comptent. La classification peut ajouter un appel au modèle ; aucune limite de jetons ou de dépenses.", reached: "Limite de chapitres atteinte", boundary: "Limite de lecture inconnue", toc: "Aucun sommaire disponible", classification: "Classification du livre en attente", empty: "Chapitres vides", chapter: "Chapitre" },
+  es: { limit: "Máximo de intentos de capítulos", invalid: "Introduce un entero de 1 a 1000", note: "Cuentan los capítulos vacíos o fallidos. La clasificación puede añadir una llamada al modelo; no es un límite de tokens ni de gasto.", reached: "Límite de capítulos alcanzado", boundary: "Límite de lectura desconocido", toc: "No hay índice de capítulos", classification: "Clasificación del libro pendiente", empty: "Capítulos vacíos", chapter: "Capítulo" },
+  ru: { limit: "Максимум попыток обработки глав", invalid: "Введите целое число от 1 до 1000", note: "Пустые и неудачные главы учитываются. Классификация может добавить запрос к модели; это не лимит токенов или расходов.", reached: "Достигнут лимит глав", boundary: "Граница чтения неизвестна", toc: "Оглавление недоступно", classification: "Классификация книги ещё не завершена", empty: "Пустые главы", chapter: "Глава" }
+};
+var taskBudgetWords = (locale) => copies[locale] ?? copies[locale.split("-")[0]] ?? copies.en;
+
 // src/tasks.ts
 var words = {
   en: ["Graph tasks", "Fill missing chapters", "Rebuild", "Retry", "Cancel", "Refresh", "No tasks", "I approve sending chapter text to my configured model; charges may apply", "Required", "Status", "Attempted", "Saved", "Remaining", "Queued", "Running", "Cancelling", "Cancelled", "Completed", "Partial", "Unavailable", "Failed"],
@@ -56,18 +69,24 @@ var words = {
 };
 var graphTaskWords = (locale) => words[locale] ?? words[locale.split("-")[0]] ?? words.en;
 var states = ["queued", "running", "cancelling", "cancelled", "completed", "partial", "unavailable", "failed"];
-function approve(ctx, bookId, mode, retryId) {
-  const t = graphTaskWords(ctx.locale), title = t[retryId ? 3 : mode === "rebuild" ? 2 : 1];
+function approve(ctx, bookId, mode, retryId, maxChapters = 20) {
+  const t = graphTaskWords(ctx.locale), budget = taskBudgetWords(ctx.locale), title = t[retryId ? 3 : mode === "rebuild" ? 2 : 1];
   return {
     kind: "form",
     title,
     submitLabel: title,
-    fields: [{ id: "confirm", kind: "checkbox", label: t[7], value: false }],
+    fields: [
+      { id: "maxChapters", kind: "number", label: budget.limit, value: maxChapters, min: 1, max: 1000, step: 1, helperText: budget.note },
+      { id: "confirm", kind: "checkbox", label: t[7], value: false }
+    ],
     onSubmit: async (values) => {
+      const limit = values.maxChapters;
+      if (typeof limit !== "number" || !Number.isSafeInteger(limit) || limit < 1 || limit > 1000)
+        return { fieldErrors: { maxChapters: budget.invalid } };
       if (values.confirm !== true)
         return { fieldErrors: { confirm: t[8] } };
       const commands = ctx.domains.memory.commands;
-      const task = retryId ? await commands.retryGraphTask(bookId, retryId) : await commands.startGraphTask(bookId, mode);
+      const task = retryId ? await commands.retryGraphTask(bookId, retryId, { maxChapters: limit }) : await commands.startGraphTask(bookId, mode, { maxChapters: limit });
       return { view: await graphTaskView(ctx, bookId, task.taskId), navigation: "replace" };
     }
   };
@@ -90,7 +109,7 @@ async function graphTasksView(ctx, bookId) {
   });
 }
 async function graphTaskView(ctx, bookId, taskId) {
-  const t = graphTaskWords(ctx.locale);
+  const t = graphTaskWords(ctx.locale), budget = taskBudgetWords(ctx.locale);
   return liveMemoryView(ctx, { kind: "graphTask", bookId, taskId }, t[0], (result) => {
     if (result.kind !== "graphTask")
       throw Error("Unexpected graph task observation");
@@ -102,15 +121,18 @@ async function graphTaskView(ctx, bookId, taskId) {
         return { view: await graphTaskView(ctx, bookId, taskId), navigation: "replace" };
       } });
     if (ctx.domains.memory.commands && ["failed", "cancelled", "partial", "unavailable"].includes(task.status))
-      actions.push({ id: "retry", label: t[3], icon: "arrows-clockwise", run: () => ({ view: approve(ctx, bookId, task.mode, taskId) }) });
+      actions.push({ id: "retry", label: t[3], icon: "arrows-clockwise", run: () => ({ view: approve(ctx, bookId, task.mode, taskId, task.maxChapters) }) });
     return { kind: "detail", title: t[task.mode === "rebuild" ? 2 : 1], actions, content: [
       { kind: "keyValue", rows: [
         { label: t[9], value: t[13 + states.indexOf(task.status)] },
         { label: "ID", value: taskId },
+        { label: budget.limit, value: String(task.maxChapters) },
         ...report ? [{ label: t[10], value: String(report.attempted) }, { label: t[11], value: String(report.digested) }, { label: t[12], value: String(report.remaining) }] : []
       ] },
+      ...report?.reason ? [{ kind: "text", text: { "chapter-limit": budget.reached, "boundary-unknown": budget.boundary, "no-toc": budget.toc, "classification-pending": budget.classification }[report.reason] }] : [],
+      ...report?.emptyChapters.length ? [{ kind: "keyValue", rows: [{ label: budget.empty, value: report.emptyChapters.map((index) => index + 1).join(", ") }] }] : [],
       ...task.errorCode ? [{ kind: "error", code: task.errorCode }] : [],
-      ...report?.failures.map((failure) => ({ kind: "error", code: failure.errorCode })) ?? []
+      ...report?.failures.flatMap((failure) => [{ kind: "heading", text: `${budget.chapter} ${failure.chapterIndex + 1}` }, { kind: "error", code: failure.errorCode }]) ?? []
     ] };
   });
 }

@@ -229,7 +229,7 @@ function PermissionPrompt({
   return (
     <div className="flex flex-col gap-3">
       <Caption as="p" className="whitespace-pre-wrap break-words leading-5 text-fg-muted">
-        {t(keys.description, { subject: request.subject })}
+        {t(keys.description, { subject: request.subject, maxChapters: request.maxChapters ?? "?" })}
       </Caption>
       <div className="flex flex-wrap items-center gap-2">
         <Button

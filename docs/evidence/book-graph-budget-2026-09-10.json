@@ -1,0 +1,493 @@
+{
+  "date": "2026-09-10",
+  "scope": "Memory 1.5 chapter-attempt budgets across Agent and plugins",
+  "environment": {
+    "app": "com.readaware.app.capability-e2e",
+    "platform": "macOS Tauri debug",
+    "frontend": 5184,
+    "bridge": 9224,
+    "model": "loopback scripted OpenAI-compatible SSE at 127.0.0.1:19844, not autonomous model",
+    "workers": 6
+  },
+  "seed": {
+    "bookId": "8240548d-af2a-48c1-b31d-15673f9bb24c",
+    "chapters": [
+      {
+        "hrefs": [
+          "0"
+        ],
+        "index": 0
+      },
+      {
+        "hrefs": [
+          "1"
+        ],
+        "index": 1
+      },
+      {
+        "hrefs": [
+          "2"
+        ],
+        "index": 2
+      }
+    ],
+    "marker": "Memory Domain Probe d940d6cd-1740-41f2-a96f-5db815a1a1ce",
+    "memoryIds": [
+      "07fadb70-ddb8-495c-b749-38a9b39fd403",
+      "42fb6091-95c3-49d4-ad60-0b67669e2245",
+      "0836abb4-e863-4059-a4a8-b1b8fb5ccbc0"
+    ],
+    "path": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e"
+  },
+  "configurationReload": {
+    "prepared": {
+      "recoveryAvailable": true
+    },
+    "afterExplicitWebViewReload": {
+      "recovery": {
+        "restored": true
+      },
+      "refused": true
+    }
+  },
+  "access": {
+    "invalid": {
+      "code": "memory/invalid-input",
+      "status": "error"
+    },
+    "limited": {
+      "status": "ok",
+      "value": {
+        "bookId": "8240548d-af2a-48c1-b31d-15673f9bb24c",
+        "createdAt": "2026-09-10T00:03:57.145Z",
+        "maxChapters": 1,
+        "mode": "rebuild",
+        "revision": 0,
+        "status": "queued",
+        "taskId": "9dea1009-043a-4bb0-9371-6695dcf660d6",
+        "updatedAt": "2026-09-10T00:03:57.145Z"
+      }
+    },
+    "observe": {
+      "status": "ok",
+      "value": true
+    },
+    "read": {
+      "code": "unavailable",
+      "status": "error"
+    },
+    "write": {
+      "code": "memory/forbidden",
+      "status": "error"
+    }
+  },
+  "limited": {
+    "status": "ok",
+    "value": {
+      "bookId": "8240548d-af2a-48c1-b31d-15673f9bb24c",
+      "createdAt": "2026-09-10T00:03:57.145Z",
+      "maxChapters": 1,
+      "mode": "rebuild",
+      "report": {
+        "attempted": 1,
+        "digested": 1,
+        "eligible": 2,
+        "emptyChapters": [],
+        "failures": [],
+        "reason": "chapter-limit",
+        "remaining": 1,
+        "status": "partial"
+      },
+      "revision": 5,
+      "status": "partial",
+      "taskId": "9dea1009-043a-4bb0-9371-6695dcf660d6",
+      "updatedAt": "2026-09-10T00:03:57.168Z"
+    }
+  },
+  "retry": {
+    "retry": {
+      "status": "ok",
+      "value": {
+        "bookId": "8240548d-af2a-48c1-b31d-15673f9bb24c",
+        "createdAt": "2026-09-10T00:04:15.304Z",
+        "maxChapters": 1,
+        "mode": "rebuild",
+        "retryOf": "9dea1009-043a-4bb0-9371-6695dcf660d6",
+        "revision": 0,
+        "status": "queued",
+        "taskId": "7819f7cb-a54c-457e-a47b-dc99efae301e",
+        "updatedAt": "2026-09-10T00:04:15.304Z"
+      }
+    },
+    "rows": [
+      {
+        "chapterIndex": 0,
+        "summary": "Public task chapter 0"
+      },
+      {
+        "chapterIndex": 1,
+        "summary": "Synthetic chapter 2: Ben"
+      },
+      {
+        "chapterIndex": 2,
+        "summary": "Synthetic chapter 3: Hidden"
+      }
+    ]
+  },
+  "retiredPass": {
+    "status": "ok",
+    "value": {
+      "bookId": "8240548d-af2a-48c1-b31d-15673f9bb24c",
+      "createdAt": "2026-09-10T00:04:15.304Z",
+      "maxChapters": 1,
+      "mode": "rebuild",
+      "report": {
+        "attempted": 1,
+        "digested": 1,
+        "eligible": 2,
+        "emptyChapters": [],
+        "failures": [],
+        "remaining": 0,
+        "status": "complete"
+      },
+      "retryOf": "9dea1009-043a-4bb0-9371-6695dcf660d6",
+      "revision": 5,
+      "status": "completed",
+      "taskId": "7819f7cb-a54c-457e-a47b-dc99efae301e",
+      "updatedAt": "2026-09-10T00:04:15.322Z"
+    }
+  },
+  "observedRevisions": [
+    {
+      "revision": 1,
+      "status": "ready",
+      "tasks": []
+    },
+    {
+      "revision": 2,
+      "status": "ready",
+      "tasks": [
+        {
+          "id": "9dea1009-043a-4bb0-9371-6695dcf660d6",
+          "status": "partial",
+          "maxChapters": 1,
+          "report": {
+            "attempted": 1,
+            "digested": 1,
+            "eligible": 2,
+            "emptyChapters": [],
+            "failures": [],
+            "reason": "chapter-limit",
+            "remaining": 1,
+            "status": "partial"
+          }
+        }
+      ]
+    },
+    {
+      "revision": 3,
+      "status": "ready",
+      "tasks": [
+        {
+          "id": "9dea1009-043a-4bb0-9371-6695dcf660d6",
+          "status": "partial",
+          "maxChapters": 1,
+          "report": {
+            "attempted": 1,
+            "digested": 1,
+            "eligible": 2,
+            "emptyChapters": [],
+            "failures": [],
+            "reason": "chapter-limit",
+            "remaining": 1,
+            "status": "partial"
+          }
+        },
+        {
+          "id": "7819f7cb-a54c-457e-a47b-dc99efae301e",
+          "status": "completed",
+          "maxChapters": 1,
+          "report": {
+            "attempted": 1,
+            "digested": 1,
+            "eligible": 2,
+            "emptyChapters": [],
+            "failures": [],
+            "remaining": 0,
+            "status": "complete"
+          }
+        }
+      ]
+    }
+  ],
+  "agent": {
+    "declined": {
+      "denied": {
+        "result": {
+          "content": [
+            {
+              "text": "{\"started\":false}",
+              "type": "text"
+            }
+          ],
+          "details": {
+            "answer": {
+              "optionId": "decline",
+              "text": "Declined"
+            },
+            "id": "book:8240548d-af2a-48c1-b31d-15673f9bb24c:1e834de7-d6a4-404f-a3ad-27c6247821b7",
+            "phase": "response",
+            "type": "user-interaction"
+          }
+        },
+        "status": "done"
+      }
+    },
+    "approved": {
+      "approval": {
+        "result": {
+          "content": [
+            {
+              "text": "{\"taskId\":\"df5ea9a0-ccbd-4b17-b21b-c679750bf69d\",\"bookId\":\"8240548d-af2a-48c1-b31d-15673f9bb24c\",\"mode\":\"rebuild\",\"maxChapters\":1,\"revision\":0,\"status\":\"queued\",\"createdAt\":\"2026-09-10T00:04:35.443Z\",\"updatedAt\":\"2026-09-10T00:04:35.443Z\"}",
+              "type": "text"
+            }
+          ],
+          "details": {
+            "answer": {
+              "optionId": "approve",
+              "text": "Approved"
+            },
+            "id": "book:8240548d-af2a-48c1-b31d-15673f9bb24c:66daa7d8-eb2d-47a6-bea2-7f41b0b1b7be",
+            "phase": "response",
+            "type": "user-interaction"
+          }
+        },
+        "status": "done"
+      },
+      "tasks": [
+        {
+          "bookId": "8240548d-af2a-48c1-b31d-15673f9bb24c",
+          "createdAt": "2026-09-10T00:04:35.443Z",
+          "maxChapters": 1,
+          "mode": "rebuild",
+          "report": {
+            "attempted": 1,
+            "digested": 1,
+            "eligible": 2,
+            "emptyChapters": [],
+            "failures": [],
+            "reason": "chapter-limit",
+            "remaining": 1,
+            "status": "partial"
+          },
+          "revision": 5,
+          "status": "partial",
+          "taskId": "df5ea9a0-ccbd-4b17-b21b-c679750bf69d",
+          "updatedAt": "2026-09-10T00:04:35.469Z"
+        }
+      ]
+    },
+    "retry": [
+      {
+        "bookId": "8240548d-af2a-48c1-b31d-15673f9bb24c",
+        "createdAt": "2026-09-10T00:04:35.443Z",
+        "maxChapters": 1,
+        "mode": "rebuild",
+        "report": {
+          "attempted": 1,
+          "digested": 1,
+          "eligible": 2,
+          "emptyChapters": [],
+          "failures": [],
+          "reason": "chapter-limit",
+          "remaining": 1,
+          "status": "partial"
+        },
+        "revision": 5,
+        "status": "partial",
+        "taskId": "df5ea9a0-ccbd-4b17-b21b-c679750bf69d",
+        "updatedAt": "2026-09-10T00:04:35.469Z"
+      },
+      {
+        "bookId": "8240548d-af2a-48c1-b31d-15673f9bb24c",
+        "createdAt": "2026-09-10T00:04:55.186Z",
+        "maxChapters": 1,
+        "mode": "rebuild",
+        "report": {
+          "attempted": 1,
+          "digested": 1,
+          "eligible": 2,
+          "emptyChapters": [],
+          "failures": [],
+          "remaining": 0,
+          "status": "complete"
+        },
+        "retryOf": "df5ea9a0-ccbd-4b17-b21b-c679750bf69d",
+        "revision": 5,
+        "status": "completed",
+        "taskId": "99d26505-9a26-4dbb-ac5f-89f486b86942",
+        "updatedAt": "2026-09-10T00:04:55.210Z"
+      }
+    ]
+  },
+  "memoryDesk": {
+    "limited": {
+      "overflow": false,
+      "text": "Memory Desk\n\nRebuild\nStatus\nPartial\nID\nfe2ef386-3d1c-46b4-90e3-bfe405b9dc01\nMaximum chapter attempts\n1\nAttempted\n1\nSaved\n1\nRemaining\n1\nChapter limit reached\nRefresh\nRetry\nClose"
+    },
+    "retryForm": {
+      "confirmation": false,
+      "limit": "1"
+    },
+    "completed": {
+      "overflow": false,
+      "text": "Memory Desk\n\nRebuild\nStatus\nCompleted\nID\nf1736bc7-ae6f-43be-83af-d91877bd0dc7\nMaximum chapter attempts\n2\nAttempted\n1\nSaved\n1\nRemaining\n0\nRefresh\nClose"
+    },
+    "screenshots": [
+      "/tmp/graph-budget-approval.png",
+      "/tmp/graph-budget-desk-partial.png",
+      "/tmp/graph-budget-desk-complete.png"
+    ],
+    "viewport": {
+      "width": 900,
+      "height": 650,
+      "scale": 2
+    }
+  },
+  "consumers": {
+    "agent": {
+      "chapterRange": [
+        0,
+        1
+      ],
+      "chaptersDigested": 2,
+      "edgeCount": 0,
+      "entities": [
+        {
+          "chapters": 1,
+          "name": "Task0"
+        },
+        {
+          "chapters": 1,
+          "name": "Task1"
+        }
+      ],
+      "entityCount": 2,
+      "fence": "graph clamped to chapters before the reader's position (chapter index 2)",
+      "graph": "overview",
+      "note": "Pass names for profiles with relations and provenance chapters. This is distilled memory, not verbatim source text.",
+      "truncated": false
+    },
+    "stop": {
+      "status": "ok",
+      "value": true
+    },
+    "worker": {
+      "status": "ok",
+      "value": {
+        "chapterRange": [
+          0,
+          1
+        ],
+        "chaptersDigested": 2,
+        "edgeCount": 0,
+        "entities": [
+          {
+            "chapters": 1,
+            "name": "Task0"
+          },
+          {
+            "chapters": 1,
+            "name": "Task1"
+          }
+        ],
+        "entityCount": 2,
+        "fence": "graph clamped to chapters before the reader's position (chapter index 2)",
+        "graph": "overview",
+        "note": "Pass names for profiles with relations and provenance chapters. This is distilled memory, not verbatim source text.",
+        "truncated": false
+      }
+    }
+  },
+  "providerCalls": [
+    {
+      "chapter": -1,
+      "held": false,
+      "failed": false,
+      "cancelled": false
+    },
+    {
+      "chapter": 0,
+      "held": false,
+      "failed": false,
+      "cancelled": false
+    },
+    {
+      "chapter": 1,
+      "held": false,
+      "failed": false,
+      "cancelled": false
+    },
+    {
+      "chapter": 0,
+      "held": false,
+      "failed": false,
+      "cancelled": false
+    },
+    {
+      "chapter": 1,
+      "held": false,
+      "failed": false,
+      "cancelled": false
+    },
+    {
+      "chapter": 0,
+      "held": false,
+      "failed": false,
+      "cancelled": false
+    },
+    {
+      "chapter": 1,
+      "held": false,
+      "failed": false,
+      "cancelled": false
+    }
+  ],
+  "cleanup": {
+    "fixture": {
+      "configuration": {
+        "restored": true
+      },
+      "contributions": 0,
+      "ownedBooks": 0
+    },
+    "verified": {
+      "backupAbsent": true,
+      "retired": [
+        true,
+        true,
+        true
+      ]
+    },
+    "sql": {
+      "ownedBooks": 0,
+      "ownedMemoriesForgotten": 3
+    },
+    "nativeSessionExit": 143,
+    "modelServerExit": 143,
+    "nativePGID": 1951,
+    "modelServerPGID": 1949
+  },
+  "boundaries": [
+    "Budget counts chapter attempts, including empty/failed chapters; default 20, permitted 1-1000. Not a token, input-byte, model-call or spending cap.",
+    "One provider chapter=-1 record preceded public work during owned import/classification; six chapter requests are three independently owned rebuild/retry pairs.",
+    "Actual Agent permission component clicked decline, approve and renewed retry via real interaction port and production chat request mapper. Not a full chat transcript or autonomous model test.",
+    "Empty-chapter and per-chapter error presentation covered in unit tests, not native screenshots in this unit. Existing cancellation/concurrency/write-failure native proofs belong to earlier units.",
+    "Retry ordering for unattempted chapters ahead of earlier empty/failed chapters, and direct-runner target validation, were added after this native run and verified by unit tests; this recording does not prove those later changes on desktop.",
+    "Configuration backup stored encrypted before mutation; explicit reload lost JS state; fresh setup refused overwrite; recovery restored captured values and deleted backup. Does not provide durable production graph-task handles or recover pre-existing historical lost config.",
+    "Initial warm import caused Vite dependency reload before any fixture mutations. Explicit recovery reload emitted the previously known useWindowMaximized unlisten handlerId error.",
+    "A cleanup diagnostic guessed readaware.sqlite and created a zero-byte file; stat confirmed fresh creation and it was removed. Actual cleanup used read-only read-aware.db.",
+    "A diagnostic guessed a Jotai optimized-module URL and failed; verified retirement instead through fixture command lookup and host IPC.",
+    "Packaged, Windows/Linux, real remote sync, full long-duration load and source-version leases remain unverified."
+  ]
+}

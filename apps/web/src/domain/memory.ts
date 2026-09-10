@@ -43,8 +43,8 @@ export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal) 
       listGraphTasks: (bookId: string) => tasks.list(bookId), getGraphTask: (bookId: string, taskId: string) => tasks.get(bookId, taskId) },
     commands: { mutate: (input: import("@read-aware/core").MemoryMutation) => mutateMemory(input, origin, lifetime),
       classify: (input: import("@read-aware/core").BookClassificationChange) => changeBookClassification(input, origin, lifetime),
-      startGraphTask: (bookId: string, mode: "catch-up" | "rebuild") => tasks.start(bookId, mode),
+      startGraphTask: (bookId: string, mode: "catch-up" | "rebuild", options?: import("@read-aware/core").BookGraphTaskOptions) => tasks.start(bookId, mode, options),
       cancelGraphTask: (bookId: string, taskId: string) => tasks.cancel(bookId, taskId),
-      retryGraphTask: (bookId: string, taskId: string) => tasks.retry(bookId, taskId) },
+      retryGraphTask: (bookId: string, taskId: string, options?: import("@read-aware/core").BookGraphTaskOptions) => tasks.retry(bookId, taskId, options) },
     events: { observe: (input: MemoryObservationQuery, handler: (event: MemoryObservation) => unknown) => observer.observe(input, read, handler, lifetime) } };
 }

@@ -199,6 +199,7 @@ export type UserInteractionRequest = UserInteractionBase &
         action: UserPermissionAction;
         /** Human-readable object name; the host localizes the surrounding warning. */
         subject: string;
+        maxChapters?: number;
       }
   );
 

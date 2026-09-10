@@ -16,6 +16,7 @@ export const INTERACTIVE_TOOL_NAMES = [
   "delete_annotation",
   "manage_memory",
   "classify_book",
+  "manage_book_graph",
 ] as const;
 
 export type UserInteractionToolDetails =

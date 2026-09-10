@@ -26,6 +26,7 @@ export interface DigestMissingChaptersInput {
   rebuild?: boolean;
   targets?: readonly number[];
   onPlan?: (chapters: number[]) => void;
+  onChapterAttempted?: (chapter: number) => void;
   onChapterCommitted?: (chapter: number) => void;
   onReport?: (report: DigestReport) => void;
   checkChapter?: (chapter: number) => Promise<void>;
@@ -42,6 +43,7 @@ export function digestExecutionBudget(input: { maxChapters?: number; concurrency
 export async function digestMissingChapters(input: DigestMissingChaptersInput): Promise<DigestReport> {
   const { max, concurrency } = digestExecutionBudget(input);
   if (!Number.isSafeInteger(input.beforeChapterIndex) || input.beforeChapterIndex < 0) throw new AppError("memory/invalid-input", "Invalid digest chapter boundary");
+  if (input.targets?.some(index => !Number.isSafeInteger(index) || index < 0)) throw new AppError("memory/invalid-input", "Invalid digest targets");
   input.signal?.throwIfAborted();
   const [toc, existing] = await Promise.all([input.bookText.getToc(input.bookId), input.bookMemory.listDigests(input.bookId)]);
   input.signal?.throwIfAborted();
@@ -49,12 +51,13 @@ export async function digestMissingChapters(input: DigestMissingChaptersInput): 
   const flavor = input.flavor ?? "narrative";
   const current = new Map(existing.filter(d => d.digestVersion >= DIGEST_VERSION && (d.flavor ?? "narrative") === flavor).map(d => [d.chapterIndex, d]));
   const ceiling = Math.min(input.beforeChapterIndex, toc.length), missing: number[] = [];
-  const targets = input.targets && new Set(input.targets);
-  for (let index = 0; index < ceiling; index++) if ((!targets || targets.has(index)) && (input.rebuild || !current.has(index))) missing.push(index);
+  // Retry order puts unattempted work before prior empty/failed chapters, so a small limit cannot starve the tail.
+  const targets = input.targets ? [...new Set(input.targets)] : Array.from({ length: ceiling }, (_, index) => index);
+  for (const index of targets) if (index < ceiling && (input.rebuild || !current.has(index))) missing.push(index);
   input.onPlan?.([...missing]);
   const selected = missing.slice(0, max);
   const report: DigestReport = { status: missing.length ? "partial" : "complete", eligible: ceiling, attempted: 0, digested: 0,
-    remaining: missing.length, emptyChapters: [], failures: [] };
+    remaining: missing.length, emptyChapters: [], failures: [], ...(missing.length > max ? { reason: "chapter-limit" as const } : {}) };
   const publish = () => input.onReport?.(structuredClone(report));
   publish();
   let cursor = 0, fatal: unknown, stopped = false;
@@ -64,6 +67,7 @@ export async function digestMissingChapters(input: DigestMissingChaptersInput): 
       const index = selected[cursor++];
       if (index === undefined) return;
       report.attempted++;
+      input.onChapterAttempted?.(index);
       publish();
       try {
         await input.checkChapter?.(index);

@@ -1248,17 +1248,30 @@ receipt gating, not stalled SQLite, autonomous models, public-task UI,
 packaged/Windows/Linux or real remote-sync verification.
 
 <a id="book-graph-tasks"></a>
-### Memory 1.4: Public Graph Tasks
+### Memory 1.5: Public Graph Tasks and Chapter Budgets
 
 [代码] `queries.listGraphTasks(bookId)` and `getGraphTask(bookId,taskId)` read only
-this actor's handles. `commands.startGraphTask(bookId,"catch-up"|"rebuild")`,
-`cancelGraphTask(bookId,taskId)` and `retryGraphTask(bookId,taskId)` require
+this actor's handles. `commands.startGraphTask(bookId,"catch-up"|"rebuild",options?)`,
+`cancelGraphTask(bookId,taskId)` and `retryGraphTask(bookId,taskId,options?)` require
 memory:write; start and retry additionally require service:llm at the Worker
 context boundary. Arbitrary digest payloads and caller-supplied chapter/fence
 overrides are not accepted. User/system domain callers are trusted host actors.
 Memory reads remain available without inference permission.
 
-[代码] `BookGraphTaskSnapshot` contains taskId, bookId, mode, optional retryOf,
+[代码] `options` is exactly `{maxChapters:number}` when supplied: a safe integer
+from 1 to 1000; no null/array/coercion/unknown keys. Start defaults to 20 attempts;
+retry inherits the prior limit unless explicitly overridden. Validation and
+copying occur before enqueue/approval. Attempts include empty and failed chapters;
+the executor admits at most this number even with two concurrent workers.
+Unattempted targets remain pending and take priority over previously empty/failed
+targets on retry, preventing a small limit from repeatedly starving later chapters.
+A limited pass reports `reason:"chapter-limit"` and remains partial; classification
+pending takes precedence if both conditions apply. This is not a model-call,
+input-byte, token or spending cap: classification can add a model call, and chapter
+length/provider charges vary. Automatic upkeep and explicit internal full catch-up
+keep their existing budgets; each public task has its own approved limit.
+
+[代码] `BookGraphTaskSnapshot` contains taskId, bookId, mode, maxChapters, optional retryOf,
 revision, createdAt/updatedAt, status, optional DigestReport and errorCode. Status
 is queued/running/cancelling/cancelled/completed/partial/unavailable/failed.
 Accepted means queued, not generated. The report counts eligible/attempted/saved
@@ -1284,7 +1297,7 @@ permission to process a whole narrative book. Expository/finished books permit
 all prepared chapters. Automatic classification sampling is limited to already
 completed chapters (at most eight); it cannot use a later chapter merely to
 classify the book. Generation uses the configured fast model, concurrency two,
-one finite full pass, without deleting old digests before successful conditional
+one finite chapter-limited pass, without deleting old digests before successful conditional
 replacement. Retry creates a new handle and retains unfinished targets: a failed
 rebuild's OLD valid row must not count as a successful replacement. Retry of a
 running/cancelling/completed task is rejected; no silent retry loop is created.
@@ -1330,6 +1343,27 @@ owned test book/config were cleaned, and restoration of pre-first-setup isolated
 configuration was not proven. Successful second setup cleaned its captured state.
 No formal application data was used. This is an environment limitation, not proof
 of a shipped task restart/recovery contract.
+
+[代码/环境] Memory Desk 0.6 requires memory 1.5 and composes a numeric chapter-limit
+field, renewed confirmation, inherited/overridden retry limits, limit and unavailable
+reason display, one-based empty/failed chapter numbers and host-localized errors.
+Agent `manage_book_graph` accepts maxChapters only for start/rebuild/retry. The
+permission request carries the resolved limit through the production chat mapper;
+all eight localized descriptions include the task subject and limit. Previously
+the graph permission description omitted subject interpolation, hiding the book and
+operation. Graph interactions now follow the existing suppressed tool-row policy.
+[Budget evidence](./evidence/book-graph-budget-2026-09-10.json) verifies real Worker
+limits and inherited retry, actual Agent approval component decline/approve/retry,
+and compiled Memory Desk limit 1 followed by retry limit 2. Each pair generated
+only chapter 0 then chapter 1; future chapter 2 remained untouched. Three native
+screenshots were inspected. The new retry ordering for empty/failed predecessors
+was added after this native run and is unit-tested, not claimed as native proof.
+Agent UI was mounted in a fixture using the real interaction port and chat mapper,
+not a full chat or autonomous decision. The test configuration now has encrypted
+write-ahead backup outside sync/hydration prefixes: an explicit WebView reload,
+refusal to overwrite the old backup, recovery and backup deletion were verified.
+This protects future test configuration recovery, not old lost settings, durable
+production tasks, or crash recovery of every fixture-owned book/memory record.
 
 <a id="book-classification"></a>
 ### Memory 1.3: Book Classification

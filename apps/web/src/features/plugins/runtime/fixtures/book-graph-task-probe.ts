@@ -4,12 +4,12 @@ export default { activate(ctx) {
   const { bookId } = JSON.parse(ctx.manifest.description!) as { bookId: string };
   let taskId = "", subscription: { dispose(): void } | undefined;
   const observations: unknown[] = [];
-  for (const action of ["start", "rebuild", "retry", "cancel", "list", "get", "observe", "stop", "events", "foreign"]) ctx.contributions.commands.register({
+  for (const action of ["start", "rebuild", "limited", "invalid-limit", "retry", "cancel", "list", "get", "observe", "stop", "events", "foreign"]) ctx.contributions.commands.register({
     id: action, title: action, run: async () => {
       try {
         const memory = ctx.domains.memory!;
         let value: unknown;
-        if (action === "start" || action === "rebuild") { const task = await memory.commands!.startGraphTask(bookId, action === "rebuild" ? "rebuild" : "catch-up"); taskId = task.taskId; value = task; }
+        if (action === "start" || action === "rebuild" || action === "limited" || action === "invalid-limit") { const task = await memory.commands!.startGraphTask(bookId, action === "start" ? "catch-up" : "rebuild", action === "limited" ? { maxChapters: 1 } : action === "invalid-limit" ? { maxChapters: 0 } : undefined); taskId = task.taskId; value = task; }
         else if (action === "retry") { const task = await memory.commands!.retryGraphTask(bookId, taskId); taskId = task.taskId; value = task; }
         else if (action === "cancel") value = await memory.commands!.cancelGraphTask(bookId, taskId);
         else if (action === "get") value = await memory.queries.getGraphTask(bookId, taskId);

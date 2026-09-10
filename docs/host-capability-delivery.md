@@ -1292,3 +1292,21 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [提交前复核] 最近一次用户确认只核对建模口径，没有新增实现，不计为实现进展。本轮继续审查该未提交单元：onPlan/onChapterCommitted 的迟到回调同样拒绝修改终态重试计划，执行器返回的 report 深拷贝后保存，避免外部引用改动保留报告。新增独立测试验证迟到计划/提交和结果引用突变后，旧报告不变、retry 仍只接原未完成章节。owner 测试现 5 项/27 断言；全仓 test 24/24（Agent 427、Memory Desk 21、web 913）、typecheck 27/27、production web build 1/1 再次通过。原生证据发生在这次终态引用保护之前，不能当成新回归的原生证据；没有重启 App 重演。
 
 [文档复核] 修正矩阵生成器结论仍写 memory 1.3/公共任务未接的漂移，同步 MD/HTML 为 memory 1.4、Memory Desk 0.5 和仍缺任务预算。矩阵 1440/1024/390 三张新截图已检查。agent-browser 一度返回 about:blank/其他页，空白截图与失败搜索不计通过；doctor 后重试得到三张正确目标页截图，但交互仍失去目标，改用独立 Chrome DevTools 页面 ID 验证。manage_book_graph/重建分别命中 MEM10/7 行，Escape 恢复 243；移动抽屉 inert、关闭恢复、dark 主题刷新保持、无重复 ID/坏锚点/无名按钮/console error，观察 CDN 200。两文档生成器与三 pair validator 通过，所有自有文档浏览器页面已关闭；5184/9224/19844 确认无监听。此项只证明文档，不证明产品。
+
+## 2026-09-10：公共图谱任务的章节预算与真实批准呈现
+
+[进度/复核] f7306054 后的预算单元已有实现和原生证据；上轮只是回答覆盖确认，不算新增实现。本轮复核工作区、测试终态与契约，补齐文档检查和交付记录后提交。整体目标仍为全部双端应开放能力与组合验收，MEM10 不因单项预算完成而改为全接通。
+
+[代码] memory 1.5 的 startGraphTask/retryGraphTask 和 Agent manage_book_graph 共用 BookGraphTaskOptions.maxChapters：安全整数 1–1000，默认 20；重试继承旧上限或显式覆盖，输入在异步批准/排队前复制。空章和失败也消耗章节尝试，有限执行器不自动追平；报告保留 chapter-limit 与欠账，classification-pending 优先表达未完成分类。任务快照和批准请求携带实际上限；Agent 每次生成/重试重新批准。不是模型调用数、输入/token 或费用上限，分类可能额外调用模型。
+
+[公平性/呈现] 尝试过但未完成的章节移至重试计划末尾，执行器保留目标顺序并去重，避免小预算永远重试前部空章/错误而饿死后章。新增四章回归验证 limit=2 首轮空/失败后，新轮先处理后两章，第三轮再处理遗留项。真实聊天批准组件之前未显示 subject，八语言均补书名/书 ID/动作与预算；新显式 request mapper 用于生产 transport，防止展示边界丢字段。Memory Desk 0.6 增加数字输入/校验、停止原因、空章编号及逐章稳定错误；重试预填旧预算、重新勾选确认。最多 1000 章的大报告分页/载荷控制仍待补。
+
+[原生/组合] [book-graph-budget](./evidence/book-graph-budget-2026-09-10.json) 使用隔离 macOS Tauri debug、真实 SQLite、六 Worker、脚本 loopback SSE 与编译 Memory Desk 0.6。Worker limit=1 的 rebuild 得到 partial/attempted 1/saved 1/remaining 1，继承预算重试只处理另一章并 completed；无读写/LLM 权限与零预算分别拒绝。Agent 真实批准组件经生产 mapper 与 interaction port 显示对象/上限，点击拒绝不建任务，批准及再次批准重试各处理一章。Memory Desk 实际表单默认 20→1，partial 显示 Chapter limit reached，重试默认 1→2 后只处理欠账一章。Agent/Worker 保护图一致且不包含未来 Hidden；provider 六个章节调用对应三个独立 rebuild/retry 对，另有导入期分类调用一项。不是真实自主模型或完整聊天回合；重试公平性和直接目标校验在原生运行后添加，仅有单元证据。三张 900×650 原生截图均已检查，无页面横向溢出。
+
+[测试恢复] 隔离 fixture 在改配置前通过原生 secret_store 加密保存 config/preferences/custom key；WebView 显式 reload 丢失内存状态后，重新 prepare 拒绝覆盖旧备份，recover 恢复实际捕获值后才删除备份。不能恢复历史已丢配置，也不是生产任务耐久化或自有测试记录的通用崩溃恢复。首次动态导入依赖 reload 在 fixture 修改前发生；显式 reload 保留既有 useWindowMaximized unlisten handlerId 报错。一次只读诊断猜错文件名产生新建零字节 readaware.sqlite，核实创建时间/大小后只删除该文件，实际清理查询使用 read-only read-aware.db；错误 Jotai 优化 URL 导入不计验证。
+
+[验证/重扫] 全仓 test 24/24（Agent 429、Memory Desk 22、web 915/10055 断言/162 文件）、typecheck 27/27、production web build 1/1 终态成功；保留已有大 chunk 警告。Rust 未改，未重跑 Rust 全套；前述 native 编译保留旧 37 项警告。库存/模型 11 项/35 断言、两生成器 --check、三 pair validator 通过；243 行/702 入口/30 单元/31 catalog/129 验收/32 场景，14 源码插件/6 内置不变。复核生产 start/retry 使用第四参数传 signal，批准数值经过真实 transport，版本/manifest/lock/编译产物一致；不是所有未知行为的形式证明。
+
+[文档/清理] 三对 MD/HTML 同步已实现章节预算及未完成 token/费用等边界，九张 1440×1000、1024×768、390×844 文档截图重新小批量检查，避免早先输出截断误算已看。矩阵 maxChapters/章节命中 1/12 行（含 MEM10），模型 service:llm/章节命中 1/5 条（含 D6），插件 manage_book_graph/章节命中 1/3 节；Escape 恢复 243/57/18。矩阵/模型抽屉隔离 HEADER/MAIN、关闭恢复与主题刷新保持通过；插件原无抽屉/主题。三页无页面溢出、重复 ID、坏页内锚点、无名按钮或 console error，观察 CDN 200，无 Mermaid。早先章节上限/maxChapters 对不含该字面值页面的零命中不计成功，改用实际存在词验证。文档仍依赖 CDN，不算产品证据；自有 Chrome 页面 3 已关闭。六 Worker/贡献清零、自有书 0、三记忆 forgotten、配置恢复且加密备份已移除；自有 native PGID 1951/exec 1158 与 model server PGID 1949/exec 28085 终态 143，5184/9224/19844 无监听，既有 89360/9223 未操作。
+
+[剩余] MEM10 输入/token/模型调用/费用预算、正文版本/租约及实体锚读集一致性、大报告分页、完整 Agent 对话与自主推理仍需继续；任务持久化并非本单元承诺。其他双端部分/未接项、全能力自由组合、长时/撤权/打包/Windows/Linux/真实跨设备验收尚未完成，整体目标继续，未推送。

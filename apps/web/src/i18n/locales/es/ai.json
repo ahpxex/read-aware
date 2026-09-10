@@ -75,7 +75,7 @@
         },
         "generateBookGraph": {
           "question": "¿Generar el grafo de este libro?",
-          "description": "El texto de los capítulos permitidos se enviará al modelo configurado y puede generar costes. La reconstrucción sustituye resúmenes solo tras generarlos correctamente. Cancelar no revierte el trabajo guardado.",
+          "description": "{{subject}}\n\nComo máximo {{maxChapters}} intentos de capítulos, incluidos los vacíos o fallidos. La clasificación puede requerir una llamada adicional al modelo. No es un límite de tokens ni de gasto.\n\nEl texto de los capítulos permitidos se enviará al modelo configurado y puede generar costes. La reconstrucción sustituye resúmenes solo tras generarlos correctamente. Cancelar no revierte el trabajo guardado.",
           "approve": "Generar grafo"
         },
         "classifyBook": {

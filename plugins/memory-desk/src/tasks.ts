@@ -1,5 +1,6 @@
-import type { PluginContext, PluginFormView, PluginAction } from "@read-aware/plugin-types";
+import type { PluginContext, PluginFormView, PluginAction, PluginViewResult } from "@read-aware/plugin-types";
 import { liveMemoryView, type MemoryDeskView } from "./live-memory";
+import { taskBudgetWords } from "./task-budget";
 
 const words: Record<string, readonly string[]> = {
   en: ["Graph tasks", "Fill missing chapters", "Rebuild", "Retry", "Cancel", "Refresh", "No tasks", "I approve sending chapter text to my configured model; charges may apply", "Required", "Status", "Attempted", "Saved", "Remaining", "Queued", "Running", "Cancelling", "Cancelled", "Completed", "Partial", "Unavailable", "Failed"],
@@ -14,13 +15,16 @@ const words: Record<string, readonly string[]> = {
 export const graphTaskWords = (locale: string) => words[locale] ?? words[locale.split("-")[0]] ?? words.en!;
 const states = ["queued", "running", "cancelling", "cancelled", "completed", "partial", "unavailable", "failed"];
 
-function approve(ctx: PluginContext, bookId: string, mode: "catch-up" | "rebuild", retryId?: string): PluginFormView {
-  const t = graphTaskWords(ctx.locale), title = t[retryId ? 3 : mode === "rebuild" ? 2 : 1]!;
+function approve(ctx: PluginContext, bookId: string, mode: "catch-up" | "rebuild", retryId?: string, maxChapters = 20): PluginFormView {
+  const t = graphTaskWords(ctx.locale), budget = taskBudgetWords(ctx.locale), title = t[retryId ? 3 : mode === "rebuild" ? 2 : 1]!;
   return { kind: "form", title, submitLabel: title,
-    fields: [{ id: "confirm", kind: "checkbox", label: t[7]!, value: false }], onSubmit: async values => {
+    fields: [{ id: "maxChapters", kind: "number", label: budget.limit, value: maxChapters, min: 1, max: 1000, step: 1, helperText: budget.note },
+      { id: "confirm", kind: "checkbox", label: t[7]!, value: false }], onSubmit: async (values): Promise<PluginViewResult> => {
+      const limit = values.maxChapters;
+      if (typeof limit !== "number" || !Number.isSafeInteger(limit) || limit < 1 || limit > 1000) return { fieldErrors: { maxChapters: budget.invalid } };
       if (values.confirm !== true) return { fieldErrors: { confirm: t[8]! } };
       const commands = ctx.domains.memory!.commands!;
-      const task = retryId ? await commands.retryGraphTask(bookId, retryId) : await commands.startGraphTask(bookId, mode);
+      const task = retryId ? await commands.retryGraphTask(bookId, retryId, { maxChapters: limit }) : await commands.startGraphTask(bookId, mode, { maxChapters: limit });
       return { view: await graphTaskView(ctx, bookId, task.taskId), navigation: "replace" };
     } };
 }
@@ -41,7 +45,7 @@ export async function graphTasksView(ctx: PluginContext, bookId: string): Promis
 }
 
 export async function graphTaskView(ctx: PluginContext, bookId: string, taskId: string): Promise<MemoryDeskView> {
-  const t = graphTaskWords(ctx.locale);
+  const t = graphTaskWords(ctx.locale), budget = taskBudgetWords(ctx.locale);
   return liveMemoryView(ctx, { kind: "graphTask", bookId, taskId }, t[0]!, result => {
     if (result.kind !== "graphTask") throw Error("Unexpected graph task observation");
     const task = result.task, report = task.report;
@@ -49,12 +53,15 @@ export async function graphTaskView(ctx: PluginContext, bookId: string, taskId: 
     if (ctx.domains.memory!.commands && ["queued", "running"].includes(task.status)) actions.push({ id: "cancel", label: t[4]!, icon: "stop", run: async () => {
       await ctx.domains.memory!.commands!.cancelGraphTask(bookId, taskId); return { view: await graphTaskView(ctx, bookId, taskId), navigation: "replace" };
     } });
-    if (ctx.domains.memory!.commands && ["failed", "cancelled", "partial", "unavailable"].includes(task.status)) actions.push({ id: "retry", label: t[3]!, icon: "arrows-clockwise", run: () => ({ view: approve(ctx, bookId, task.mode, taskId) }) });
+    if (ctx.domains.memory!.commands && ["failed", "cancelled", "partial", "unavailable"].includes(task.status)) actions.push({ id: "retry", label: t[3]!, icon: "arrows-clockwise", run: () => ({ view: approve(ctx, bookId, task.mode, taskId, task.maxChapters) }) });
     return { kind: "detail", title: t[task.mode === "rebuild" ? 2 : 1]!, actions, content: [
       { kind: "keyValue", rows: [{ label: t[9]!, value: t[13 + states.indexOf(task.status)]! }, { label: "ID", value: taskId },
+        { label: budget.limit, value: String(task.maxChapters) },
         ...(report ? [{ label: t[10]!, value: String(report.attempted) }, { label: t[11]!, value: String(report.digested) }, { label: t[12]!, value: String(report.remaining) }] : [])] },
+      ...(report?.reason ? [{ kind: "text" as const, text: { "chapter-limit": budget.reached, "boundary-unknown": budget.boundary, "no-toc": budget.toc, "classification-pending": budget.classification }[report.reason] }] : []),
+      ...(report?.emptyChapters.length ? [{ kind: "keyValue" as const, rows: [{ label: budget.empty, value: report.emptyChapters.map(index => index + 1).join(", ") }] }] : []),
       ...(task.errorCode ? [{ kind: "error" as const, code: task.errorCode }] : []),
-      ...(report?.failures.map(failure => ({ kind: "error" as const, code: failure.errorCode })) ?? []),
+      ...(report?.failures.flatMap(failure => [{ kind: "heading" as const, text: `${budget.chapter} ${failure.chapterIndex + 1}` }, { kind: "error" as const, code: failure.errorCode }]) ?? []),
     ] };
   });
 }

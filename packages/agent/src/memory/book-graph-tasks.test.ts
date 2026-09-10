@@ -3,7 +3,7 @@ import { fauxAssistantMessage } from "@earendil-works/pi-ai/providers/faux";
 import { AppError, type DigestReport } from "@read-aware/core";
 import { BookGraphTaskOwner, type BookGraphTaskExecution } from "./book-graph-tasks";
 import { createInMemoryDeps } from "../testing/fixtures";
-import { digestBookCatchUp, type DigestBookTickInput } from "./graph-upkeep";
+import { digestBookCatchUp, digestBookTick, type DigestBookTickInput } from "./graph-upkeep";
 import { runMemoryBuild } from "./build-policy";
 
 const empty: DigestReport = { status: "complete", eligible: 0, attempted: 0, digested: 0, remaining: 0, emptyChapters: [], failures: [] };
@@ -93,4 +93,39 @@ test("public boundary is resolved after queueing and rechecked before a generate
   expect(await queued).toMatchObject({ status: "unavailable", reason: "boundary-unknown" }); expect(calls).toBe(0);
   ceiling = 1; expect(await run()).toMatchObject({ status: "partial", digested: 0, failures: [{ chapterIndex: 0, errorCode: "memory/conflict" }] });
   expect(await deps.bookMemory.listDigests("b")).toHaveLength(0);
+});
+
+test("chapter attempts are bounded across concurrency, failures, empty text and renewed retries", async () => {
+  const { deps } = createInMemoryDeps({ books: [{ id: "b", title: "Book", status: "finished", narrativity: "narrative" }],
+    chapters: { b: [0, 1, 2, 3].map(index => ({ title: `C${index}`, text: index === 0 ? " " : `Text${index}`, hrefs: [String(index)] })) } });
+  const seen: number[] = []; let fail = true;
+  const owner = new BookGraphTaskOwner(input => digestBookTick({ ...input, deps, model: { id: "fixture" } as DigestBookTickInput["model"], concurrency: 2,
+    complete: async (_model, context) => {
+      const chapter = Number(String(context.messages[0]!.content).match(/Chapter #(\d+)/)![1]); seen.push(chapter);
+      if (fail && chapter === 1) throw new AppError("ai/provider", "failure");
+      return fauxAssistantMessage('{"summary":"Saved","characters":[],"relations":[]}');
+    },
+  }), () => {});
+  const options = { maxChapters: 2 };
+  const started = owner.start("b", "rebuild", options); options.maxChapters = 1000;
+  const first = await done(owner, (await started).taskId);
+  expect(first).toMatchObject({ maxChapters: 2, status: "partial", report: { reason: "chapter-limit", attempted: 2, digested: 0, remaining: 4, emptyChapters: [0], failures: [{ chapterIndex: 1, errorCode: "ai/provider" }] } });
+  expect(seen).toEqual([1]);
+  fail = false;
+  const second = await done(owner, (await owner.retry("b", first.taskId)).taskId);
+  expect(second).toMatchObject({ maxChapters: 2, report: { attempted: 2, digested: 2, remaining: 2 } });
+  const third = await done(owner, (await owner.retry("b", second.taskId, { maxChapters: 3 })).taskId);
+  expect(third).toMatchObject({ maxChapters: 3, report: { attempted: 2, digested: 1, remaining: 1, emptyChapters: [0] } });
+  expect(third.report?.reason).toBeUndefined(); expect(seen).toEqual([1, 2, 3, 1]);
+});
+
+test("invalid graph budgets are rejected before starting; defaults and caller cancellation remain explicit", async () => {
+  let calls = 0;
+  const owner = new BookGraphTaskOwner(async () => { calls++; return empty; }, () => {});
+  for (const options of [null, [], {}, { maxChapters: "1" }, { maxChapters: 0 }, { maxChapters: 1001 }, { maxChapters: 1.5 }, { maxChapters: Infinity }, { maxChapters: NaN }, { maxChapters: 1, unknown: true }])
+    await expect(owner.start("b", "rebuild", options as never)).rejects.toMatchObject({ code: "memory/invalid-input" });
+  expect(calls).toBe(0);
+  expect((await owner.start("b", "catch-up")).maxChapters).toBe(20);
+  const signal = AbortSignal.abort(); await expect(owner.start("b", "rebuild", { maxChapters: 1 }, signal)).rejects.toMatchObject({ code: "memory/cancelled" });
+  expect(calls).toBe(1);
 });

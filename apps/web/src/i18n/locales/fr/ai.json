@@ -75,7 +75,7 @@
         },
         "generateBookGraph": {
           "question": "Générer le graphe de ce livre ?",
-          "description": "Le texte des chapitres autorisés sera envoyé au modèle configuré, avec des frais possibles. La reconstruction remplace les résumés après une génération réussie. L'annulation ne supprime pas le travail enregistré.",
+          "description": "{{subject}}\n\nAu plus {{maxChapters}} tentatives de chapitres, y compris vides ou en échec. La classification peut nécessiter un appel supplémentaire au modèle. Ce n'est pas une limite de jetons ou de dépenses.\n\nLe texte des chapitres autorisés sera envoyé au modèle configuré, avec des frais possibles. La reconstruction remplace les résumés après une génération réussie. L'annulation ne supprime pas le travail enregistré.",
           "approve": "Générer le graphe"
         },
         "classifyBook": {

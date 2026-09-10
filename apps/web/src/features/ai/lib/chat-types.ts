@@ -90,6 +90,7 @@ export type ChatInteractionRequest = {
         kind: "permission";
         action: ChatPermissionAction;
         subject: string;
+        maxChapters?: number;
       }
   );
 

@@ -32,6 +32,8 @@ export type LoadedBook = {
   /** Absent for virtual books (content comes from a plugin provider). */
   file?: BookFileSource;
   virtual?: VirtualBookRef;
+  /** Explicit source reload must not apply a CFI or progress from old content. */
+  resetPosition?: boolean;
 };
 
 /** A flattened table-of-contents entry backing the chapter list. */

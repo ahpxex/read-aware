@@ -1916,6 +1916,59 @@ book remains unprepared after shelf searches. No autonomous model invocation,
 packaged build, Windows/Linux, sustained load or native mid-scan cancellation is
 claimed. Unit tests cover input bounds, storage failures and abort boundaries.
 
+### Virtual Source Invalidation And Reload
+
+[代码] Library 1.15 adds `commands.books.invalidateVirtualBook({ providerId, key })`
+for plugins with `library:write`. After saving changed source data, its owner can
+invalidate the matching virtual book. The host supplies the caller's plugin ID,
+requires its active content-provider registration, waits for preceding local KV
+writes, checks the book exists, and rechecks provider identity and binding after
+the read. Provider IDs must be nonblank and at most 256 code units; keys nonempty
+and at most 8192. Missing books reject with `library/book-not-found`, unavailable
+or replaced providers/bindings with `library/content-unavailable`; retirement
+rejects before invalidation. Existing stable validation/storage errors propagate.
+
+[代码] The receipt is `{ bookId, revision }`. `revision` is an opaque process-local
+invalidation fence, not a persisted content version, source hash, query cursor or
+cross-device CAS token. Repeated notifications issue new fences. Source queries
+capture the fence, skip an active parser from an older fence, invoke the current
+provider, and compute the existing content hash. They check the fence before and
+after reading; invalidation during a read rejects with `reader/stale-location`.
+Reader loading captures the fence before opening and checks it when registering
+its parser and before attaching the ready engine. Existing parser leases still
+drain normally; invalidation does not immediately abort provider execution or
+erase already-returned data. A previously displayed reader remains on its old
+version until explicitly reloaded. Queries may therefore see the new source
+while the reader still displays the old one; their versions must not be mixed.
+
+[代码] Reading 2.15 adds `commands.reload(guard?)`, independently requiring
+`reading:write`. Agent `navigate_reading({ action: "reload" })` is available in
+both scopes through the same domain; the current session guard is retained and
+a book-scoped turn cannot reload another book. Reload is an explicit user intent:
+it forces a new session even for the same book, rereads the source and starts at
+the beginning. The shell suppresses old CFI/href/fraction restoration. It does not
+infer an equivalent article or migrate annotations, mode positions or old history
+locators across versions. Successful navigation enters existing shared history;
+old-version history remains subject to normal stale-version rejection.
+
+[代码] Reload returns the existing `ReadingNavigationReceipt` only after the new
+engine is ready and reports the completed start position. No session rejects
+with `reader/no-session`; no shell or no newly accepted session is unavailable.
+The existing 30-second navigation deadline, superseding-intent checks, engine
+serialization and lifecycle cancellation apply. Cancelling a pending shell lookup
+revokes its begin token; cancellation after dispatch does not roll back a session
+already opened or provider network effects. The operation does not refresh a
+provider's private cache: the provider decides what `load` returns.
+
+[环境] Focused tests cover the actual plugin context, actor grants/retirement,
+source-query borrowing versus fresh loading, in-flight invalidation, both Agent
+tool scopes, production Agent port, and controlled-engine session replacement.
+The content-query fixture supplies IPC responses, not SQLite or native Tauri.
+RSS has not yet adopted invalidation or added offline full-content storage;
+stable article identity, update subscriptions, cross-version position migration
+and real Worker/Tauri composition remain outstanding. No desktop/browser launched
+for this batch; these APIs are connected, not end-to-end accepted.
+
 ### Virtual Book Removal
 
 [代码] `library.commands.books.removeVirtualBook({ providerId, key })` resolves

@@ -64,6 +64,7 @@ export type ReadingCommands = {
   forward(signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt>;
   step(direction: import("@read-aware/core").ReadingStep, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt>;
   close(signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<void>;
+  reload(signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt>;
 };
 
 export type ReadingDomain = {
@@ -149,6 +150,7 @@ export function createReadingDomain(origin: EventOrigin, lifetime?: AbortSignal,
     back: (signal, guard) => readingRuntime.back(signal, guard),
     forward: (signal, guard) => readingRuntime.forward(signal, guard),
     step: (direction, signal, guard) => readingRuntime.step(direction, signal, guard),
+    reload: (signal, guard) => readingRuntime.reload(signal, guard),
     close: (signal, guard) => readingRuntime.close(signal, guard),
     setFinished: async (bookId, finished) => {
       await setLibraryBookFinished(String(bookId), finished === true, origin);

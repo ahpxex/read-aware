@@ -4,6 +4,49 @@ import { ReadingSessionController, type ReadingEngineAdapter } from "./reading-s
 
 const at = (cfi: string, bookId = "book"): ReadingLocation => ({ bookId, contentVersion: "sha256:fixture", cfi });
 
+test("reload replaces the same-book source, drops old locators and waits for new readiness", async () => {
+  const f = fixture();
+  let nextId = "", attach!: () => void;
+  const off = f.runtime.bindShell({ open: (bookId, intent, options) => {
+    expect(bookId).toBe("book"); expect(options).toEqual({ resetPosition: true });
+    nextId = f.runtime.begin(bookId, intent);
+    attach = () => f.runtime.attach(nextId, {
+      navigate: async () => { throw Error("Old locators must not be replayed"); },
+      step: async direction => { expect(direction).toBe("start"); return { bookId, contentVersion: "new", fraction: 0 }; },
+    }, { bookId, contentVersion: "new", fraction: 0.3 });
+  }, close: () => f.runtime.closed() });
+  try {
+    let completed = false;
+    const pending = f.runtime.reload(undefined, { sessionId: f.id }).then(value => { completed = true; return value; });
+    await Promise.resolve();
+    expect(nextId).not.toBe(f.id); expect(completed).toBe(false); expect(f.runtime.snapshot().status).toBe("loading");
+    attach();
+    expect(await pending).toEqual({ status: "completed", sessionId: nextId, location: { bookId: "book", contentVersion: "new", fraction: 0 } });
+    f.detach(); expect(f.runtime.snapshot().status).toBe("ready");
+    await expect(f.runtime.reload(undefined, { sessionId: f.id })).rejects.toMatchObject({ code: "reader/superseded" });
+  } finally { off(); f.runtime.closed(); }
+});
+
+test("cancelled reload cannot reopen after a late shell lookup", async () => {
+  const f = fixture();
+  const abort = new AbortController();
+  let release!: () => void;
+  const ready = new Promise<void>(resolve => { release = resolve; });
+  let late: unknown;
+  const off = f.runtime.bindShell({ open: async (bookId, intent) => {
+    await ready;
+    try { f.runtime.begin(bookId, intent); } catch (error) { late = error; throw error; }
+  }, close: () => f.runtime.closed() });
+  try {
+    const pending = f.runtime.reload(abort.signal).catch(error => error);
+    abort.abort(new AppError("plugin/cancelled", "Retired")); release();
+    expect(await pending).toMatchObject({ code: "plugin/cancelled" });
+    await Promise.resolve();
+    expect(late).toMatchObject({ code: "reader/superseded" });
+    expect(f.runtime.snapshot().sessionId).toBe(f.id);
+  } finally { off(); f.detach(); f.runtime.closed(); }
+});
+
 test("pagination snapshots copy engine state, update after commands and clear at lifecycle boundaries", async () => {
   const runtime = new ReadingSessionController();
   expect(runtime.snapshot().pagination).toBeNull();

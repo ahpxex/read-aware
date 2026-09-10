@@ -46,7 +46,7 @@ export type ReadingEngineAdapter = {
 };
 const paginationOf = (engine?: ReadingEngineAdapter): ReadingPaginationSnapshot | null => structuredClone(engine?.pagination?.() ?? null);
 type Session = { id: string; bookId: string; engine?: ReadingEngineAdapter; error?: unknown };
-type Shell = { open(bookId: string, intent: number): void | Promise<void>; close(): void | Promise<void> };
+type Shell = { open(bookId: string, intent: number, options?: { resetPosition: true }): void | Promise<void>; close(): void | Promise<void> };
 
 /** Owns session identity and completion, never DOM, rendering or persistence. */
 export class ReadingSessionController {
@@ -436,6 +436,12 @@ export class ReadingSessionController {
     return this.run({ bookId }, signal, undefined, direction, guard);
   }
 
+  reload(signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt> {
+    const bookId = this.session?.bookId;
+    if (!bookId) return Promise.reject(new AppError("reader/no-session", "No active reading session"));
+    return this.run({ bookId }, signal, undefined, "start", guard, undefined, undefined, undefined, true);
+  }
+
   private checkGuard(guard?: ReadingSessionGuard): void {
     if (guard?.bookId !== undefined && guard.bookId !== this.session?.bookId
       || guard?.sessionId !== undefined && guard.sessionId !== this.session?.id) {
@@ -444,7 +450,7 @@ export class ReadingSessionController {
   }
 
   private run(target: ReadingTarget & { bookId: string }, signal?: AbortSignal, historyIndex?: number, direction?: ReadingStep, guard?: ReadingSessionGuard,
-    settle?: (signal: AbortSignal) => Promise<void>, moveMode?: (signal: AbortSignal) => Promise<void>, prepare?: (signal: AbortSignal) => Promise<void>): Promise<ReadingNavigationReceipt> {
+    settle?: (signal: AbortSignal) => Promise<void>, moveMode?: (signal: AbortSignal) => Promise<void>, prepare?: (signal: AbortSignal) => Promise<void>, reload = false): Promise<ReadingNavigationReceipt> {
     if (signal?.aborted) return Promise.reject(signal.reason);
     try {
       this.checkGuard(guard);
@@ -467,6 +473,7 @@ export class ReadingSessionController {
       cleanup();
     }, { once: true });
     const before = this.state.location;
+    const previousSession = this.session;
     const check = () => {
       if (controller.signal.aborted) throw controller.signal.reason;
       if (intent !== this.intent) throw new AppError("reader/superseded", "A newer reading intent replaced this navigation");
@@ -475,15 +482,16 @@ export class ReadingSessionController {
       check();
       this.checkGuard(guard);
       if (prepare) { await prepare(controller.signal); check(); this.checkGuard(guard); }
-      if (this.session?.bookId !== target.bookId) {
+      if (reload || this.session?.bookId !== target.bookId) {
         if (!this.shell) throw new AppError("reader/unavailable", "Reader shell is not mounted");
         this.openingIntent = intent;
-        try { await this.shell.open(target.bookId, intent); }
+        try { await this.shell.open(target.bookId, intent, reload ? { resetPosition: true } : undefined); }
         finally { if (this.openingIntent === intent) this.openingIntent = null; }
       }
       check();
       const session = this.session;
       if (!session || session.bookId !== target.bookId) throw new AppError("reader/superseded", "Reader did not accept this book");
+      if (reload && session === previousSession) throw new AppError("reader/unavailable", "Reader did not reopen its content source");
       await this.waitReady(session, check, controller.signal);
       check();
       if (target.contentVersion && target.contentVersion !== this.state.location?.contentVersion) {

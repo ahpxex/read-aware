@@ -58,6 +58,7 @@ import {
   bindVirtualBook,
   findVirtualBookId,
   removeOwnedVirtualBook,
+  invalidateOwnedVirtualBook,
   unbindVirtualBook,
 } from "../lib/virtual-books";
 import { showPluginToast } from "../lib/plugin-toast";
@@ -811,6 +812,9 @@ export function buildPluginContext(
             key: String(input.key),
           }, library.commands!.books.remove);
           },
+          invalidateVirtualBook: (input: { providerId: string; key: string }) => invalidateOwnedVirtualBook({
+            pluginId: manifest.id, providerId: String(input.providerId), key: String(input.key),
+          }, library.queries.books.get, lifecycle.signal),
         },
         collections: library.commands.collections,
       };
@@ -883,6 +887,7 @@ export function buildPluginContext(
         back: (guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.back(lifecycle.signal, guard),
         forward: (guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.forward(lifecycle.signal, guard),
         step: (direction: import("@read-aware/core").ReadingStep, guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.step(direction, lifecycle.signal, guard),
+        reload: (guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.reload(lifecycle.signal, guard),
         close: (guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.close(lifecycle.signal, guard),
         controlPlayback: (action: "start" | "stop", guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.controlPlayback(action, lifecycle.signal, guard),
         configureMode: (input: import("@read-aware/core").ReadingModeConfiguration, guard?: import("@read-aware/core").ReadingSessionGuard) => reading.commands!.configureMode(input, lifecycle.signal, guard),

@@ -3,7 +3,7 @@ import type { ReaderPort } from "../ports";
 import { AppError, normalizeBookRangeQuery, type ReadingSelectionSnapshot, type ReadingSessionGuard } from "@read-aware/core";
 import { normalizeReadingEmphasisWrite, normalizeReadingEmphasisRef, type ReadingEmphasisSnapshot } from "@read-aware/core";
 
-export type ReaderRequest = { type: "open" | "goTo" | "back" | "forward" | "step" | "close"; bookId?: string; anchor?: string; chapterHref?: string; direction?: string };
+export type ReaderRequest = { type: "open" | "goTo" | "back" | "forward" | "step" | "close" | "reload"; bookId?: string; anchor?: string; chapterHref?: string; direction?: string };
 
 /** Port fixture only; physical renderer behavior is tested in the host controller suite. */
 export function createMemoryReader(initialBookId: string | undefined, requests: ReaderRequest[]): ReaderPort {
@@ -107,6 +107,13 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
       location = { ...target, bookId, contentVersion: target.contentVersion ?? "fixture" }; return receipt();
     },
     step: async direction => { requests.push({ type: "step", direction }); return receipt(); },
+    reload: async (signal, guard) => {
+      checkSelection(signal, guard);
+      requests.push({ type: "reload" });
+      location = { bookId: location!.bookId, contentVersion: "fixture", fraction: 0 };
+      emphasis.clear();
+      return receipt();
+    },
     back: async () => { throw new Error("No fixture navigation history"); },
     forward: async () => { throw new Error("No fixture navigation history"); },
     close: async () => { requests.push({ type: "close" }); location = null; selection = null; emphasis.clear(); revision++; },

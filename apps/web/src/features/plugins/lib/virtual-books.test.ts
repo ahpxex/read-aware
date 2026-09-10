@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { AppError } from "@read-aware/core";
-import { bindVirtualBook, getVirtualBookBinding, removeOwnedVirtualBook, unbindVirtualBook } from "./virtual-books";
+import { bindVirtualBook, getVirtualBookBinding, invalidateOwnedVirtualBook, removeOwnedVirtualBook, unbindVirtualBook } from "./virtual-books";
+import { assertContentNotInvalidated, contentInvalidationRevision } from "../../library/lib/content-invalidation";
+import { registerContentProviderContribution } from "../state/plugin-store";
 
 const registryKey = "read-aware-virtual-books";
 const binding = { pluginId: "virtual-test", providerId: "content", key: "feed" };
@@ -25,6 +27,26 @@ test("virtual removal propagates book failure and preserves the exact binding", 
   const error = new AppError("db/locked", "Injected deletion failure");
   await expect(removeOwnedVirtualBook(binding, async () => { throw error; })).rejects.toBe(error);
   expect(getVirtualBookBinding("book")).toEqual(binding);
+});
+
+test("source invalidation is owned, requires a live binding and fences in-flight reads", async () => {
+  bindVirtualBook("book", binding);
+  const provider = registerContentProviderContribution({ key: "virtual-test:content", pluginId: binding.pluginId,
+    providerId: binding.providerId, load: async () => ({ title: "Feed", sections: [] }) });
+  try {
+    const initial = contentInvalidationRevision("book");
+    const receipt = await invalidateOwnedVirtualBook(binding, async id => ({ id }));
+    expect(receipt.bookId).toBe("book"); expect(receipt.revision).not.toBe(initial);
+    expect(() => assertContentNotInvalidated("book", initial)).toThrow();
+    expect(() => assertContentNotInvalidated("book", receipt.revision)).not.toThrow();
+    await expect(invalidateOwnedVirtualBook({ ...binding, pluginId: "foreign" }, async () => true)).rejects.toMatchObject({ code: "library/content-unavailable" });
+    await expect(invalidateOwnedVirtualBook(binding, async () => null)).rejects.toMatchObject({ code: "library/book-not-found" });
+    const abort = new AbortController(); abort.abort(new AppError("plugin/cancelled", "retired"));
+    await expect(invalidateOwnedVirtualBook(binding, async () => true, abort.signal)).rejects.toMatchObject({ code: "plugin/cancelled" });
+    expect(contentInvalidationRevision("book")).toBe(receipt.revision);
+    await expect(invalidateOwnedVirtualBook(binding, async () => { provider.dispose(); return true; })).rejects.toMatchObject({ code: "library/content-unavailable" });
+    expect(contentInvalidationRevision("book")).toBe(receipt.revision);
+  } finally { provider.dispose(); }
 });
 
 test("binding cleanup failure is not acknowledged, and a retry finishes after a committed deletion", async () => {

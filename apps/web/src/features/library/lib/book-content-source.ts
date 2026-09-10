@@ -8,9 +8,10 @@ import { buildVirtualFoliateBook } from "../../reader/lib/virtual-book";
 import { getVirtualBookBinding, resolveContentProvider } from "../../plugins/lib/virtual-books";
 import { getStoredBookFile, getBookRecord } from "./library-db";
 import { virtualContentVersion } from "./content-version";
+import { assertContentNotInvalidated, contentInvalidationRevision } from "./content-invalidation";
 export { virtualContentVersion } from "./content-version";
 
-type Content = { book: FoliateBook; contentVersion: string; provider?: ReturnType<typeof resolveContentProvider> };
+type Content = { book: FoliateBook; contentVersion: string; provider?: ReturnType<typeof resolveContentProvider>; invalidation?: string };
 const active = new Map<string, Content>();
 
 export async function fileContentVersion(bookId: string): Promise<string> {
@@ -21,8 +22,9 @@ export async function fileContentVersion(bookId: string): Promise<string> {
 
 /** Borrows the reader's parser; each concurrent query retains its own lease. */
 export function registerActiveBookContent(bookId: string, book: FoliateBook, contentVersion: string,
-  provider?: ReturnType<typeof resolveContentProvider>): () => void {
-  const entry: Content = { book, contentVersion, provider };
+  provider?: ReturnType<typeof resolveContentProvider>, invalidation = contentInvalidationRevision(bookId)): () => void {
+  assertContentNotInvalidated(bookId, invalidation);
+  const entry: Content = { book, contentVersion, provider, invalidation };
   active.set(bookId, entry);
   return () => { if (active.get(bookId) === entry) active.delete(bookId); };
 }
@@ -35,7 +37,9 @@ export async function withBookContent<T>(bookId: string, expectedVersion: string
   const binding = getVirtualBookBinding(bookId);
   const provider = binding ? resolveContentProvider(binding) : null;
   if (binding && !provider) throw new AppError("library/content-unavailable", "Book content provider is unavailable");
+  const invalidation = contentInvalidationRevision(bookId);
   let content = active.get(bookId);
+  if (content?.invalidation !== invalidation) content = undefined;
   let release: (() => Promise<void>) | undefined;
   try {
     if (content) {
@@ -60,6 +64,7 @@ export async function withBookContent<T>(bookId: string, expectedVersion: string
     }
     const check = async () => {
       signal?.throwIfAborted();
+      assertContentNotInvalidated(bookId, invalidation);
       const currentBinding = getVirtualBookBinding(bookId);
       if (currentBinding?.pluginId !== binding?.pluginId || currentBinding?.providerId !== binding?.providerId
         || currentBinding?.key !== binding?.key) throw new AppError("reader/stale-location", "Book content binding changed");
@@ -70,6 +75,7 @@ export async function withBookContent<T>(bookId: string, expectedVersion: string
       if (binding && resolveContentProvider(binding) !== provider) throw new AppError("library/content-unavailable", "Book content provider was replaced or removed");
       if (!await getBookRecord(bookId)) throw new AppError("library/book-not-found", "Book was removed during content access");
       signal?.throwIfAborted();
+      assertContentNotInvalidated(bookId, invalidation);
     };
     await check();
     const result = await read(content);

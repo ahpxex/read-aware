@@ -134,7 +134,7 @@ export function useReaderSession({
     noteProgress(bookId, progress);
   }, [applyOptimisticProgress, noteProgress, trace]);
 
-  const openReader = useCallback((book: LibraryBook, navigationIntent?: number) => {
+  const openReader = useCallback((book: LibraryBook, navigationIntent?: number, options?: { resetPosition: true }) => {
     const sessionId = readingRuntime.begin(book.id, navigationIntent);
     const nextTrace = readingTraces.begin(sessionId, book.id);
     traceRef.current = nextTrace;
@@ -159,7 +159,7 @@ export function useReaderSession({
           if (readerLoadRequestIdRef.current !== requestId) return;
           setReaderSource({
             format: book.format,
-            data: { fileName: book.title, format: book.format, virtual: binding },
+            data: { fileName: book.title, format: book.format, virtual: binding, resetPosition: options?.resetPosition },
           });
           setIsReaderLoading(false);
         } else {
@@ -178,6 +178,7 @@ export function useReaderSession({
             fileName: book.fileName,
             format: book.format,
             file: resolved.file,
+            resetPosition: options?.resetPosition,
           },
         });
         setIsReaderLoading(false);

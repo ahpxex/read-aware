@@ -1420,6 +1420,9 @@ export type PluginLibraryDomain = {
         author?: string;
       }): Promise<PluginBook>;
       removeVirtualBook(input: { providerId: string; key: string }): Promise<void>;
+      /** Announce already-saved source changes. Does not reload or move the reader.
+       * revision is a process-local invalidation fence, not a content hash. Library 1.15. */
+      invalidateVirtualBook(input: { providerId: string; key: string }): Promise<{ bookId: string; revision: string }>;
     };
     collections: {
       create(name: string): Promise<PluginCollection>;
@@ -1466,6 +1469,8 @@ export type PluginReadingDomain = {
     forward(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
     /** Reading 2.12: page, source-section and book-boundary navigation; section/boundary jumps enter history. */
     step(direction: import("@read-aware/core").ReadingStep, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
+    /** Reopen the current source at its start, discarding stale locators. Reading 2.15. */
+    reload(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingNavigationReceipt>;
     close(guard?: import("@read-aware/core").ReadingSessionGuard): Promise<void>;
     /** Start resolves on actual audio start. Stop is idempotent; disabling the initiating plugin stops its playback. */
     controlPlayback(action: "start" | "stop", guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReadingPlaybackReceipt>;

@@ -17,6 +17,27 @@ function fixture() {
   return { deps, stores, tool };
 }
 
+test("reload is available in both scopes and forwards cancellation, guards and the completed source", async () => {
+  const { deps } = fixture();
+  const abort = new AbortController();
+  let calls = 0;
+  deps.reader.reload = async (signal, guard) => {
+    expect(signal).toBe(abort.signal); expect(guard?.sessionId).toBe("fixture");
+    if (calls++ === 0) expect(guard?.bookId).toBe(bookId);
+    else expect(guard?.bookId).toBeUndefined();
+    return { ...receipt, sessionId: "reloaded", location: { bookId, contentVersion: "new", fraction: 0 } };
+  };
+  for (const scope of [{ kind: "book", bookId } as const, { kind: "global", threadId: "reload" } as const]) {
+    const tool = buildReaderTools(scope, deps).find(tool => tool.name === "navigate_reading")!;
+    const result = await tool.execute("reload", { action: "reload" }, abort.signal);
+    expect(result.content[0]).toMatchObject({ type: "text" });
+    if (result.content[0]?.type === "text") expect(JSON.parse(result.content[0].text)).toMatchObject({ sessionId: "reloaded", location: { contentVersion: "new", fraction: 0 } });
+  }
+  await deps.reader.openBook("other" as Id);
+  await expect(buildReaderTools({ kind: "book", bookId }, deps).find(t => t.name === "navigate_reading")!.execute("reload", { action: "reload" })).rejects.toThrow("not the active reader");
+  expect(calls).toBe(2);
+});
+
 test("session selection is versioned and withheld with privacy restrictions, spoilers and another book", async () => {
   const { deps } = fixture();
   await deps.reader.openBook(bookId);

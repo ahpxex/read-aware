@@ -97,6 +97,7 @@ import { createReadingSelectionAdapter } from "../lib/reading-selection-adapter"
 import { createReadingEmphasisAdapter } from "../lib/reading-emphasis-adapter";
 import { readingEmphasis } from "../../../domain/reading-emphasis";
 import { fileContentVersion, virtualContentVersion, registerActiveBookContent } from "../../library/lib/book-content-source";
+import { assertContentNotInvalidated, contentInvalidationRevision } from "../../library/lib/content-invalidation";
 import type {
   RegisteredReaderMode,
 } from "../../plugins/lib/plugin-types";
@@ -375,6 +376,7 @@ export function FoliateReaderView({
    *  becomes current again, and the listeners must not stack. */
   const docsWithListenersRef = useRef(new WeakSet<Document>());
   const lastLocationTargetRef = useRef<string | null>(null);
+  const resetPositionSourceRef = useRef<LoadedBook | null>(null);
   const initialFractionRef = useRef(0);
   const loadedBookRef = useRef<LoadedBook | null>(null);
   const tocEntriesRef = useRef<TocEntry[]>([]);
@@ -1854,6 +1856,7 @@ export function FoliateReaderView({
 
     void (async () => {
       try {
+        const invalidation = selectedBook ? contentInvalidationRevision(selectedBook.id) : "initial";
         view = await createFoliateView();
         if (cancelled) return;
         viewRef.current = view;
@@ -1900,7 +1903,7 @@ export function FoliateReaderView({
         }
         releaseBook ??= retainBook(parsedBook);
         if (cancelled) { await releaseBook(); return; }
-        if (selectedBook && sessionId) cleanups.push(registerActiveBookContent(selectedBook.id, parsedBook, contentVersion, contentProvider));
+        if (selectedBook && sessionId) cleanups.push(registerActiveBookContent(selectedBook.id, parsedBook, contentVersion, contentProvider, invalidation));
         if (selectedBook) textUnitNavigatorRef.current.handleContentVersion(selectedBook.id, contentVersion);
         await view.open(parsedBook);
         if (cancelled) return;
@@ -2132,8 +2135,9 @@ export function FoliateReaderView({
           }
         }
 
-        const target = lastLocationTargetRef.current;
-        const savedFraction = initialFractionRef.current;
+        const resetPosition = initialBook.resetPosition && resetPositionSourceRef.current !== initialBook;
+        const target = resetPosition ? null : lastLocationTargetRef.current;
+        const savedFraction = resetPosition ? 0 : initialFractionRef.current;
         // A stored CFI/href can be unparseable for this engine (e.g. a legacy
         // epub.js CFI from before the foliate migration), or simply absent for
         // fixed-layout files. Fall back to the saved reading fraction so the
@@ -2158,10 +2162,13 @@ export function FoliateReaderView({
         // enrichment must wait for the displayed page, not a background render.
         await waitForReadingPaint(view);
         if (cancelled) return;
+        if (selectedBook) assertContentNotInvalidated(selectedBook.id, invalidation);
+        if (resetPosition) resetPositionSourceRef.current = initialBook;
         if (sessionId && selectedBook) {
           const emphasis = await createReadingEmphasisAdapter(view);
           if (cancelled) { emphasis.retire(); return; }
           cleanups.push(() => emphasis.retire());
+          assertContentNotInvalidated(selectedBook.id, invalidation);
           if (!cancelled) cleanups.push(attachReadingEngine(view, sessionId, selectedBook.id, contentVersion));
           const identity = { view, sessionId, bookId: selectedBook.id, contentVersion };
           selectionContentRef.current = identity;

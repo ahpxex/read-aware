@@ -72,6 +72,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   get_sync_status: {},
   get_software_update: {},
   pick_resource_files: {},
+  download_resource: { url: "https://example.com/book.txt", name: "book.txt" },
   import_resource_book: { id: "resource-fixture" },
   open_book_resource: { bookId: BOOK_ID },
   open_book_cover: { bookId: BOOK_ID },
@@ -243,6 +244,8 @@ describe("tool surface contract", () => {
           sourceLocal: true, supported: true, job: { phase: "idle", startedAt: null, finishedAt: null, errorCode: null, reason: null } });
         deps.library.retryEnrichment = async bookId => ({ status: "not-needed", snapshot: await deps.library.getEnrichment(bookId) });
         const resources = deps.resources("surface");
+        deps.downloadResource = async () => ({ status: "downloaded", resource: { id: "downloaded", name: "book.txt", mimeType: "text/plain",
+          size: 10, state: "ready", source: "created", expiresAt: Date.parse("2026-09-10T12:00:00Z") } });
         deps.resources = () => ({ ...resources, copyImage: async () => ({ copied: true, width: 2, height: 3 }) });
         deps.library.inspectResource = async () => ({ status: "parsed", coverage: "initialization", formatHint: "epub", sectionCount: 3, errorCode: null });
         deps.settings.resetReading = async () => ({ changed: [], settings: await deps.settings.getSettings({ section: "reading" }) });

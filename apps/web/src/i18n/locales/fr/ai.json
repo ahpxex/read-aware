@@ -76,6 +76,11 @@
           "description": "Le fichier source importé et ses données de lecture locales seront définitivement supprimés. Cette action est irréversible.",
           "approve": "Supprimer le livre"
         },
+        "downloadResource": {
+          "question": "Télécharger ce fichier ?",
+          "description": "Récupérer l’URL ci-dessous et conserver temporairement jusqu’à 64 MiB dans cette conversation. Aucun identifiant envoyé ; toute redirection nécessite une nouvelle autorisation. Le contenu pourra ensuite être lu dans la conversation ou enregistré via une autre boîte de dialogue.\n\n{{subject}}",
+          "approve": "Télécharger"
+        },
         "pluginTool": {
           "question": "Exécuter cet outil de l’extension ?",
           "description": "L’extension peut modifier ou supprimer des données. L’autorisation concerne uniquement cet appel avec les paramètres ci-dessous, sans accorder de permissions supplémentaires.\n\n{{subject}}",

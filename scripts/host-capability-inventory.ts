@@ -34,6 +34,7 @@ const agentMap = pairs([
   ["get_software_update", "SYS16"],
   ["open_maintenance_settings", "SYS15 SYS16 EXT12 OPS08 OPS09"],
   ["pick_resource_files", "SYS11"],
+  ["download_resource", "SYS06 SYS07 SYS13"],
   ["import_resource_book", "LIB06 SYS11"],
   ["open_book_resource", "LIB08"],
   ["open_book_cover", "LIB09"],

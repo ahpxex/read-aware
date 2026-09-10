@@ -358,6 +358,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   const memoryManagement = createMemoryManagementFixture(stores.memories);
   const bookClassification = createBookClassificationFixture(books);
   const deps: RuntimeDeps = {
+    downloadResource: async () => { throw new AppError("ui/unavailable", "Attach a download fixture"); },
     resources: () => ({
       pick: async () => ({ cancelled: true, resources: [] }), openBook: async () => null, openCover: async () => null,
       copyImage: async () => { throw new AppError("ui/unavailable", "Attach an image clipboard fixture"); },

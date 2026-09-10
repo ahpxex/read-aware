@@ -14,7 +14,9 @@ describe("agent tool registry", () => {
 
     const tools = names(buildAgentTools(book, deps));
 
-    expect(tools).toHaveLength(83);
+    expect(tools).toHaveLength(85);
+    expect(tools).toContain("get_setting_options");
+    expect(tools).toContain("get_book_content_state");
     expect(tools).toContain("get_host_capabilities");
     expect(tools).toContain("reset_reading_settings");
     expect(tools).toContain("list_book_formats");
@@ -26,6 +28,7 @@ describe("agent tool registry", () => {
     expect(tools).toContain("open_book_resource");
     expect(tools).toContain("pick_resource_files");
     expect(tools).not.toContain("import_resource_book");
+    expect(tools).not.toContain("download_resource");
     expect(tools).not.toContain("merge_duplicate_books");
     expect(tools).toContain("get_software_update");
     expect(tools).toContain("open_maintenance_settings");
@@ -86,7 +89,10 @@ describe("agent tool registry", () => {
 
     const tools = names(buildAgentTools(global, deps));
 
-    expect(tools).toHaveLength(100);
+    expect(tools).toHaveLength(103);
+    expect(tools).toContain("get_setting_options");
+    expect(tools).toContain("get_book_content_state");
+    expect(tools).toContain("download_resource");
     expect(tools).toContain("get_host_capabilities");
     expect(tools).toContain("inspect_resource_book");
     expect(tools).toContain("merge_duplicate_books");

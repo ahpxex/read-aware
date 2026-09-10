@@ -224,6 +224,35 @@ resource service can consume each returned chunk; no new raw filesystem grant or
 Agent network tool is implied. Cumulative rate/byte budgets and retry coordination
 remain separate gaps, not an excuse to add a generic durable offline queue.
 
+### Approved Agent Downloads
+
+[代码] Global conversations expose `download_resource({url, name})` through
+`packages/agent/src/tools/download-tools.ts` and
+`apps/web/src/services/resource-download.ts`. Before each dispatch, the host
+asks approval for the copied canonical HTTPS URL and basename. No userinfo,
+fragment, caller headers, upload body, ambient cookies or automatic redirects
+are accepted. URL and name limits are 2048 and 256 characters. Only HTTP 200
+produces a resource; 301/302/303/307/308 return a validated destination requiring
+a new approved call, and other statuses return `http-error` without a resource.
+This is a purpose-limited download tool, not Agent access to generic fetch.
+
+[代码] The existing request owner streams 64 KiB chunks into the conversation's
+resource owner and seals after EOF. Maximum transfer is 64 MiB and 120 seconds,
+one active download per conversation and four app-wide, also counted against
+the shared 32 native requests. Cleanup may outlast the deadline; capacity is
+held until it settles. Failed/cancelled transfers release temporary resources;
+release failures are logged, not a promise of crash-safe rollback. Successful
+resources have the existing owner quotas and one-hour expiry. The tool returns
+metadata with an ISO expiry, not bytes. `read_resource_text`, book inspection,
+import and save remain separate operations under their existing authorization.
+Content and names are untrusted data, never instructions. The approved name is
+retained rather than taking Content-Disposition. There is no DNS/private-IP
+firewall, automatic retry, resumable task, implicit import or permanent save.
+
+[验证] Service, resource-owner, tool, approval-copy and cancellation tests are
+basic integration evidence only. Actual native downloads, redirects and the
+download/import/save composition remain for concentrated Tauri acceptance.
+
 ## 5. Domains
 
 A domain owns read models, queries, commands, events, validation, business

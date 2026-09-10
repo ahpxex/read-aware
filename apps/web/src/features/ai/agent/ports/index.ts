@@ -26,6 +26,7 @@ import { createProfilePort } from "./profile-port";
 import { createReaderPort } from "./reader-port";
 import { createSettingsPort } from "./settings-port";
 import { createUserInteractionPort } from "./user-interaction-port";
+import { downloadResource } from "./download-port";
 import { memoryPolicy } from "../memory-policy";
 import { readingContextPolicy } from "../reading-context-policy";
 import { inspectMemory, mutateMemory } from "../../../../domain/memory-management";
@@ -42,6 +43,7 @@ export function buildRuntimeDeps(): RuntimeDeps {
     sync: hostSync,
     maintenance: hostMaintenance,
     resources: agentResources,
+    downloadResource,
     conversationControl: { snapshot: conversations.queries.runtime, listThreads: conversations.queries.listThreads,
       turnRequests: conversations.queries.turnRequests, ...conversations.commands },
     hostIO,

@@ -76,6 +76,11 @@
           "description": "This permanently removes the imported source file and its local reading data. This cannot be undone.",
           "approve": "Delete book"
         },
+        "downloadResource": {
+          "question": "Download this file?",
+          "description": "Request the URL below and store up to 64 MiB temporarily in this conversation. No credentials are sent and redirects require another approval. The content may later be read into this conversation or saved through a separate dialog.\n\n{{subject}}",
+          "approve": "Download file"
+        },
         "pluginTool": {
           "question": "Run this plugin tool?",
           "description": "The plugin may change or delete data. Approve only this call with the arguments shown below; this does not grant additional permissions.\n\n{{subject}}",

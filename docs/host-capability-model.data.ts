@@ -107,7 +107,7 @@ export const units: Unit[] = [
   unit("S5", "Service", "network", "有界 HTTP", "SYS06-07", "services.network",
     "保留 Request 的 method/headers/body/响应 status/headers/bytes；取消、超时、大小/并发限制、授权目的地与重定向检查；重试说明幂等性，离线明确报告。",
     "宿主推理/插件工具可使用，但不因此添加无限制 fetch 模型工具。",
-    "network 2.1 在2.0显式来源/逐跳授权上接openStream/readStream/closeStream，先响应头后按offset拉取；单流单在途读，默认64 KiB/最大1 MiB片，总下载1 GiB，上传/fetch正文64 MiB。fetch与流共用激活8/全插件32个请求，120秒绝对寿命；EOF/close/到期/停用收尾后退槽，不能靠取消并立即重开绕过并发。open signal只管开头，收据后显式close；读不可重放，已保存字节/远端效果不回滚，不承诺总内存配额。policy含所有硬上限；累计额度/重试协调及受限Agent入口仍缺。最多32个精确来源或单独*，缺省拒绝；禁止HTTPS降级/共享Cookie，TTS密钥请求禁止跳转。第一方自定义地址明确全网含本地，不是DNS/IP隔离；基础及Worker分块测试通过，大文件/慢网/桌面组合留集中验收。",
+    "network 2.1 在2.0显式来源/逐跳授权上接openStream/readStream/closeStream，先响应头后按offset拉取；单流单在途读，默认64 KiB/最大1 MiB片，总下载1 GiB，上传/fetch正文64 MiB。fetch与流共用激活8/全插件32个请求，120秒绝对寿命；EOF/close/到期/停用收尾后退槽，不能靠取消并立即重开绕过并发。open signal只管开头，收据后显式close；读不可重放，已保存字节/远端效果不回滚，不承诺总内存配额。policy含所有硬上限；Agent全局已接download_resource，每次批准准确HTTPS URL/文件名，只做无凭据GET，跳转重新批准；64 MiB/120秒、会话1个/全局4个并发并共享32槽，清理期间不退槽。下载封口为会话资源，仅返回元数据，检查/读取/导入/保存分开，不自动执行，无DNS/私网隔离；基础测试通过，真实下载组合留集中验收。累计额度/重试协调仍缺。最多32个精确来源或单独*，缺省拒绝；禁止HTTPS降级/共享Cookie，TTS密钥请求禁止跳转。第一方自定义地址明确全网含本地，不是DNS/IP隔离；基础及Worker分块测试通过，大文件/慢网/桌面组合留集中验收。",
     "不建设 WebSocket/TCP/通用离线耐久队列来修复现有 HTTP；中止请求不保证服务端没处理，更不等于撤销已付费操作。",
     "GAP04/05：Request 对象与 url+init 等价；预先 abort 不派发；途中 abort 到达 host fetch；流和重定向不能绕过额度/权限。"),
   unit("S6", "Service", "llm", "受预算约束的独立推理", "AI06-07 CFG08", "services.llm",

@@ -23,6 +23,7 @@ export * from "./conversation-control";
 export * from "./host-sync";
 export * from "./host-maintenance";
 export * from "./resources";
+export * from "./resource-download";
 export * from "./book-enrichment";
 export * from "./book-merge";
 export * from "./book-inspection";

@@ -76,6 +76,11 @@
           "description": "Dadurch werden die importierte Quelldatei und die lokalen Lesedaten dauerhaft entfernt. Dies kann nicht rückgängig gemacht werden.",
           "approve": "Buch löschen"
         },
+        "downloadResource": {
+          "question": "Diese Datei herunterladen?",
+          "description": "Die folgende URL abrufen und bis zu 64 MiB vorübergehend in dieser Unterhaltung speichern. Keine Anmeldedaten; Weiterleitungen erfordern eine neue Zustimmung. Der Inhalt kann später in die Unterhaltung eingelesen oder über einen separaten Dialog gespeichert werden.\n\n{{subject}}",
+          "approve": "Datei herunterladen"
+        },
         "pluginTool": {
           "question": "Dieses Plugin-Werkzeug ausführen?",
           "description": "Das Plugin kann Daten ändern oder löschen. Die Zustimmung gilt nur für diesen Aufruf mit den gezeigten Argumenten und erteilt keine zusätzlichen Berechtigungen.\n\n{{subject}}",

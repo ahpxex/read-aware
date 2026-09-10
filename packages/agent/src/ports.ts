@@ -195,7 +195,7 @@ export interface UserInteractionOption {
 }
 
 export type UserPermissionAction =
-  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory" | "classify-book" | "generate-book-graph" | "clear-conversation" | "sync-now" | "manage-schedule" | "access-book-file" | "import-resource" | "merge-books" | "plugin-tool";
+  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory" | "classify-book" | "generate-book-graph" | "clear-conversation" | "sync-now" | "manage-schedule" | "access-book-file" | "import-resource" | "merge-books" | "plugin-tool" | "download-resource";
 
 type UserInteractionBase = {
   /** Globally unique for the lifetime of the tool call. */
@@ -420,6 +420,7 @@ export interface RuntimeDeps {
   sync: import("@read-aware/core").HostSyncPort;
   maintenance: import("@read-aware/core").HostMaintenancePort;
   resources(threadKey: string, bookId?: string): import("@read-aware/core").ResourcePort;
+  downloadResource(threadKey: string, input: import("@read-aware/core").ResourceDownloadInput, signal?: AbortSignal): Promise<import("@read-aware/core").ResourceDownloadReceipt>;
   bookGraphTasks: import("@read-aware/core").BookGraphTaskPort;
   bookClassification: {
     inspect(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookClassificationSnapshot | null>;

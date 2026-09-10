@@ -1,9 +1,12 @@
 import { expect, test } from "bun:test";
-import type { PluginDetailView, PluginViewResult } from "./plugin-types";
+import type { PluginDetailView, PluginView, PluginViewResult } from "./plugin-types";
 import { PluginViewSession } from "./plugin-view-session";
 import { AppError } from "@read-aware/core";
 import { setPluginToastHandler } from "./plugin-toast";
 import { decodePluginCallbacks, PluginCallbackRegistry, releasePluginCallbacks } from "../runtime/plugin-callback-wire";
+import { ownPluginViewClose } from "./plugin-view-close";
+import { normalizePluginView } from "./plugin-view";
+const flush = async () => { for (let i = 0; i < 16; i++) await Promise.resolve(); };
 
 function fixture() {
   const registry = new PluginCallbackRegistry();
@@ -16,6 +19,58 @@ function fixture() {
   const view = (title: string): PluginDetailView => wire({ kind: "detail", title, content: [], actions: [{ id: "run", label: "Run", run: () => ({ toast: title }) }] });
   return { registry, owner, session, view, wire, notices, failures: () => failures };
 }
+
+test("accepted frames report their removal once, not when covered by push or a dialog", async () => {
+  const f = fixture(), closed: string[] = [];
+  const view = (title: string): PluginView => f.wire({ kind: "markdown", markdown: title,
+    onClose: ({ reason }) => { closed.push(`${title}:${reason}`); } });
+  f.session.setRoot(view("root"));
+  await f.session.run(() => ({ view: view("child") })); await flush(); expect(closed).toEqual([]);
+  f.session.back(); await flush(); expect(closed).toEqual(["child:back"]);
+  await f.session.run(() => ({ view: view("replace"), navigation: "replace" }));
+  await f.session.run(() => ({ view: view("pushed") }));
+  await f.session.run(() => ({ view: view("reset"), navigation: "reset" }));
+  await f.session.run(() => ({ view: view("dialog") }), { presentation: "dialog" }); await flush();
+  expect(closed).toEqual(["child:back", "root:replaced", "replace:reset", "pushed:reset"]);
+  f.session.closeDialog(); await flush(); expect(closed.at(-1)).toBe("dialog:closed");
+  f.session.close(); f.session.close(); await flush();
+  expect(closed.at(-1)).toBe("reset:closed"); expect(closed).toHaveLength(6); expect(f.registry.size).toBe(0);
+});
+
+test("StrictMode replay does not close frames; root refresh and real unmount have distinct reasons", async () => {
+  const f = fixture(), closed: string[] = [];
+  const view = (): PluginView => f.wire({ kind: "markdown", markdown: "root", onClose: ({ reason }) => { closed.push(reason); } });
+  const root = view(); f.session.setRoot(root);
+  const epoch = f.session.suspend(); f.session.resume(); f.session.setRoot(root); f.session.disposeIfSuspended(epoch);
+  await flush(); expect(closed).toEqual([]);
+  f.session.setRoot(view()); await flush(); expect(closed).toEqual(["refreshed"]);
+  f.session.disposeIfSuspended(f.session.suspend()); await flush(); expect(closed).toEqual(["refreshed", "unmounted"]);
+  expect(f.registry.size).toBe(0);
+});
+
+test("discarded or retired views are not notified and invalid close declarations fail validation", async () => {
+  const f = fixture(); let closed = 0;
+  const view = (): PluginView => f.wire({ kind: "markdown", markdown: "view", onClose: () => { closed++; } });
+  f.session.setRoot(view());
+  await f.session.run(() => ({ view: view(), navigation: "invalid" } as unknown as PluginViewResult));
+  let finish!: (result: PluginViewResult) => void;
+  const pending = f.session.run(() => new Promise(resolve => { finish = resolve; }));
+  f.owner.abort(); finish({ view: view() }); await pending; await flush();
+  expect(closed).toBe(0); expect(f.registry.size).toBe(0);
+  for (const onClose of [null, false, "callback", {}]) expect(() => normalizePluginView({ kind: "markdown", markdown: "x", onClose })).toThrow();
+});
+
+test("close notification does not delay removal and retains only its callback until settlement", async () => {
+  const f = fixture(); let finish!: () => void, calls = 0;
+  const view = f.wire<PluginView>({ kind: "markdown", markdown: "view", onClose: () => { calls++; return new Promise(resolve => { finish = resolve; }); } });
+  f.session.setRoot(view); f.session.close();
+  expect(f.session.getSnapshot().stack).toEqual([]); await flush();
+  expect(calls).toBe(1); expect(f.registry.size).toBe(1);
+  finish(); await flush(); expect(f.registry.size).toBe(0);
+  const callback = f.wire(() => new Promise<void>(() => {}));
+  const owned = ownPluginViewClose(callback, 5); owned.notify("closed"); owned.dispose();
+  await new Promise(resolve => setTimeout(resolve, 15)); expect(f.registry.size).toBe(0);
+});
 
 test("action failures preserve the form and forward stable error codes without raw details", async () => {
   const payloads: unknown[] = [];

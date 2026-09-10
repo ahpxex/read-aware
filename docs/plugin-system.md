@@ -789,12 +789,52 @@ task-wide timeout, virtual indexing, all formats, marketplace installation,
 packaged/cross-platform and physical-input validation remain outstanding. TXT05
 therefore remains partial. See [task evidence](./evidence/book-text-tasks-2026-09-09.json).
 
+### View Close Notifications (Views 1.3)
+
+[代码] `schemas.views` 1.3 adds optional `PluginView.onClose({ reason })`.
+The callback belongs to one accepted stack frame and is notified at most once
+when that frame is removed. It is not a visibility event: pushing a child,
+opening a nested dialog, temporarily suspending for StrictMode or publishing
+live content does not close the covered frame. Live updates cannot introduce
+or replace `onClose`; the original declaration stays retained until removal.
+
+Reasons are `closed` (session close action/host session close or nested dialog
+dismissal), `back` (popped frame), `replaced` (explicit replace or replacement
+dialog), `reset` (frames removed by reset), `refreshed` (old declaration replaced
+by a newly loaded root), and `unmounted` (host removes the container/root or a
+real React unmount). Outer-container Escape/outside-click handlers that unmount
+the renderer report `unmounted`, not a fabricated precise input cause. Root
+refresh preserves existing form-draft rules but retires the old declaration.
+Nested sessions inherit the parent's removal reason when removed together.
+
+Notification runs after synchronous navigation mutation and never delays,
+vetoes, reverses or acknowledges UI removal. The callback can explicitly release
+plugin-owned resources using its existing permissions, but returning a view,
+toast or other action result is ignored and returned callback handles are
+released. It is not a persistence, task-completion, animation or focus receipt.
+Normal callback errors are logged without reopening the view or showing another
+error dialog. No new Agent tool is needed: Agent results remain host-rendered,
+not model-authored PluginView declarations.
+
+The host retains only the closing callback for its asynchronous notification,
+until settlement, activation retirement or a ten-second retention deadline.
+That deadline releases the lease, not arbitrary work the callback already
+started. Retired/crashed Workers cannot be notified; use the activation disposer
+for activation-wide cleanup. Invalid/unaccepted declarations and late discarded
+action results are released without `onClose`. This is best-effort, at-most-once
+notification, not an exactly-once durable event or an unload veto.
+
+[验证] Focused normalized/serialized callback, stack/dialog/refresh, deadline,
+live-update and mounted React StrictMode tests pass. Real Worker and Tauri
+menu/Dialog/focus combinations remain for concentrated E2E; old live-view desktop
+evidence below does not validate the new close callback.
+
 ### Live Plugin Views
 
 [代码] `schemas.views` 1.1 adds optional `PluginView.live.subscribe(channel)`;
 `services.ui` 1.2 adds `publishView(channel, { revision, view })`. Existing static
 views are unchanged. `view` in an update is `PluginViewContent`: markdown, list,
-form, blocks or detail, without another `live` declaration. This publishes a full
+form, blocks or detail, without another `live` or `onClose` declaration. This publishes a full
 snapshot, not a patch, navigation result or new source. No DOM, React, Jotai,
 arbitrary host callback or additional domain permission is exposed. Agent tools
 continue to return structured data through their host renderer; this is not a
@@ -1347,7 +1387,8 @@ Defaults remain TOC 288/chat 352; callers can request these values explicitly.
 [验证] Focused service/permission/Agent and mounted StrictMode hook tests cover
 the new widths, persistence failure and layout metadata. This addition has not
 yet had real Tauri/Worker/drag E2E; prior panel evidence below does not cover it.
-Semantic focus restoration and plugin-view close-reason receipts remain gaps.
+Semantic focus restoration remains a gap. Views 1.3 now reports plugin frame
+removal reasons, but does not acknowledge focus or native panel animation.
 
 [代码] `services.ui` 1.1 adds the optional `reader` service. It is present only
 with `reading:read` (also implied by `reading:write`): `snapshot()` returns

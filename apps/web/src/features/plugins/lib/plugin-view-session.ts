@@ -1,4 +1,4 @@
-import type { PluginView, PluginViewResult } from "./plugin-types";
+import type { PluginView, PluginViewCloseReason, PluginViewResult } from "./plugin-types";
 import type { PluginResultOptions } from "../components/plugin-view-types";
 import { navigatePluginViewStack, normalizePluginView, PluginViewError } from "./plugin-view";
 import { observePluginCallbackOwners, releasePluginCallbacks, retainPluginCallbacks } from "../runtime/plugin-callback-wire";
@@ -6,10 +6,11 @@ import { createLogger } from "../../../platform/logger";
 import { showPluginFailureToast, showPluginToast } from "./plugin-toast";
 import { PluginLiveView } from "./plugin-live-view";
 import { PluginFormDrafts } from "./plugin-form-drafts";
+import { ownPluginViewClose } from "./plugin-view-close";
 
 const log = createLogger("plugin-views");
 type OwnedView = { view: PluginView; renderKey: number; dispose: () => void };
-type Frame = OwnedView & { forms: PluginFormDrafts; rendered?: () => void; live?: PluginLiveView; liveError?: unknown };
+type Frame = OwnedView & { notifyClosed(reason: PluginViewCloseReason): void; forms: PluginFormDrafts; rendered?: () => void; live?: PluginLiveView; liveError?: unknown };
 type Effects = { close?: () => void; refresh?: () => void; toast?: (text: string) => void; failure?: (error: unknown) => void };
 export type PluginViewSnapshot = {
   stack: readonly PluginView[];
@@ -70,10 +71,11 @@ export class PluginViewSession {
     try { dispose(); } catch (error) { log.warn("View callback cleanup failed", error); }
   }
 
-  private replaceFrames(next: Frame[]): void {
+  private replaceFrames(next: Frame[], reason: PluginViewCloseReason): void {
     const previous = this.frames;
     this.frames = next;
     for (const frame of previous) if (!next.includes(frame)) {
+      this.release(() => frame.notifyClosed(reason));
       this.release(frame.dispose);
       if (!next.some(candidate => candidate.forms === frame.forms)) frame.forms.dispose();
     }
@@ -81,13 +83,15 @@ export class PluginViewSession {
 
   private ownFrame(raw: PluginView, renderKey: number, forms?: PluginFormDrafts): Frame {
     let current = ownView(raw, this.close, renderKey);
+    const closed = ownPluginViewClose(current.view.onClose);
     let painted: OwnedView | undefined;
-    const frame: Frame = { ...current, forms: forms ?? new PluginFormDrafts(current.view),
+    const frame: Frame = { ...current, notifyClosed: closed.notify, forms: forms ?? new PluginFormDrafts(current.view),
       rendered: () => {
         const prior = painted; painted = current;
         if (prior && prior !== current) this.release(prior.dispose);
       },
       dispose: () => {
+        closed.dispose();
         frame.live?.dispose(); current.dispose();
         if (painted && painted !== current) painted.dispose();
       },
@@ -104,7 +108,7 @@ export class PluginViewSession {
         this.publish();
       }, error => { frame.liveError = error; this.publish(); });
       return frame;
-    } catch (error) { current.dispose(); if (!forms) frame.forms.dispose(); throw error; }
+    } catch (error) { closed.dispose(); current.dispose(); if (!forms) frame.forms.dispose(); throw error; }
   }
 
   acknowledgeRender = (view: PluginView | null): void => {
@@ -123,7 +127,7 @@ export class PluginViewSession {
     this.root = view;
     this.epoch++;
     this.foreground.clear();
-    this.closeDialog();
+    this.closeDialog(false, view ? "refreshed" : "unmounted");
     let frame: Frame | undefined;
     let error = false;
     try {
@@ -137,7 +141,7 @@ export class PluginViewSession {
       log.error("Plugin root view failed validation", failure);
       this.release(() => releasePluginCallbacks(view));
     }
-    this.replaceFrames(frame ? [frame] : []);
+    this.replaceFrames(frame ? [frame] : [], view ? "refreshed" : "unmounted");
     this.publish({ error });
   }
 
@@ -151,27 +155,27 @@ export class PluginViewSession {
   disposeIfSuspended(epoch: number): void {
     if (!this.active && this.epoch === epoch) this.dispose();
   }
-  dispose(): void {
+  dispose(reason: PluginViewCloseReason = "unmounted"): void {
     this.suspend();
     this.root = undefined;
-    this.closeDialog();
-    this.replaceFrames([]);
+    this.closeDialog(false, reason);
+    this.replaceFrames([], reason);
     this.publish();
   }
-  close = (): void => { this.dispose(); this.effects.close?.(); };
+  close = (): void => { this.dispose("closed"); this.effects.close?.(); };
   back = (): void => {
     if (!this.active || this.frames.length < 2) return;
     this.epoch++;
     this.foreground.clear();
-    this.closeDialog();
-    this.replaceFrames(this.frames.slice(0, -1));
+    this.closeDialog(false, "back");
+    this.replaceFrames(this.frames.slice(0, -1), "back");
     this.publish();
   };
-  closeDialog = (refresh = false): void => {
+  closeDialog = (refresh = false, reason: PluginViewCloseReason = "closed"): void => {
     const previous = this.snapshot.dialog;
     if (!previous) return;
     this.snapshot = { ...this.snapshot, dialog: null };
-    previous.session.dispose();
+    previous.session.dispose(reason);
     this.publish();
     if (refresh) this.effects.refresh?.();
   };
@@ -189,7 +193,7 @@ export class PluginViewSession {
     const request = ++this.nextRequest;
     const dialog = options?.presentation === "dialog";
     if (dialog) {
-      this.closeDialog();
+      this.closeDialog(false, "replaced");
       this.publish({ dialog: { requestId: request, title: options?.dialogTitle ?? "", session: new PluginViewSession() } });
     } else {
       this.inlineRequest = request;
@@ -214,7 +218,7 @@ export class PluginViewSession {
           try {
             const next = navigatePluginViewStack(this.frames.map(item => item.view), frame.view, result.navigation);
             const existing = new Map(this.frames.map(item => [item.view, item]));
-            this.replaceFrames(next.map(view => view === frame.view ? frame : existing.get(view)!));
+            this.replaceFrames(next.map(view => view === frame.view ? frame : existing.get(view)!), result.navigation === "reset" ? "reset" : "replaced");
           } catch (error) { this.release(frame.dispose); frame.forms.dispose(); throw error; }
           this.closeDialog();
           this.publish();

@@ -712,6 +712,10 @@ function normalizeDetailView(input: Record<string, unknown>, context: string): P
 export function normalizePluginView(input: unknown): PluginView {
   const value = record(input, "view");
   const view = normalizeViewContent(value);
+  if (value.onClose !== undefined) {
+    if (typeof value.onClose !== "function") throw new PluginViewError("view.onClose must be a function");
+    view.onClose = value.onClose as PluginView["onClose"];
+  }
   if (value.live == null) return view;
   const live = record(value.live, "view.live");
   if (typeof live.subscribe !== "function") throw new PluginViewError("view.live.subscribe must be a function");

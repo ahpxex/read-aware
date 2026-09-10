@@ -35,7 +35,7 @@ export class PluginLiveView {
       if (!owner) throw new AppError("plugin/invalid-input", "Live views must belong to a hosted plugin activation");
       const channel = openPluginViewChannel(owner, update => {
         try {
-          if (!update.view || typeof update.view !== "object" || "live" in update.view) {
+          if (!update.view || typeof update.view !== "object" || "live" in update.view || "onClose" in update.view) {
             throw new AppError("plugin/invalid-input", "Live updates must contain only view content");
           }
           this.apply(update.view);

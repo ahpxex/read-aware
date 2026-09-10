@@ -810,7 +810,12 @@ export type PluginViewContent =
 export type PluginViewChannel = { id: string };
 export type PluginViewUpdate = { revision: number; view: PluginViewContent };
 export type PluginViewUpdateReceipt = { status: "applied" | "stale" | "inactive" };
+export type PluginViewCloseReason = "closed" | "back" | "replaced" | "reset" | "refreshed" | "unmounted";
 export type PluginView = PluginViewContent & {
+  /** Once when this accepted frame is removed, not when covered or live-updated.
+   * Notification only: cannot veto closing or return navigation. Not guaranteed after
+   * activation retirement/crash; use activate's disposer for activation resources. */
+  onClose?(event: { reason: PluginViewCloseReason }): void | Promise<void>;
   /** Subscribed only while this frame is visible. Publish full snapshots through ui.publishView.
    * Return a disposer; hiding/back/close/retirement invalidates the channel immediately.
    * Each subscription must send its current snapshot before subsequent changes. */

@@ -15,10 +15,12 @@ test("React StrictMode, same-key source replacement, refresh and unmount transfe
   for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   const root = createRoot(dom.window.document.getElementById("root")!);
   const registry = new PluginCallbackRegistry();
+  const closed: string[] = [];
   const owner = new AbortController();
   const wire = <T,>(value: T): T => decodePluginCallbacks(structuredClone(registry.encode(value)),
     (handle, args) => registry.invoke(handle, args), handles => registry.release(handles), owner.signal) as T;
-  const view = (title: string): PluginDetailView => wire({ kind: "detail", title, content: [], actions: [{ id: "run", label: "Run", run: () => null }] });
+  const view = (title: string): PluginDetailView => wire({ kind: "detail", title, content: [], actions: [{ id: "run", label: "Run", run: () => null }],
+    onClose: ({ reason }: { reason: string }) => { closed.push(`${title}:${reason}`); } });
   type Source = { key: string; load: () => PluginView | Promise<PluginView> };
   let session!: PluginViewSession, refresh!: () => void;
   let failures = 0;
@@ -34,14 +36,14 @@ test("React StrictMode, same-key source replacement, refresh and unmount transfe
     await act(async () => { render({ key: "same", load: () => { loads++; return view("First"); } }); });
     expect(loads).toBe(1);
     expect(dom.window.document.body.textContent).toBe("First");
-    expect(registry.size).toBe(1);
+    expect(registry.size).toBe(2); expect(closed).toEqual([]);
     await act(async () => { await session.run(async () => ({ view: view("Replaced"), navigation: "replace" })); });
-    expect(registry.size).toBe(1);
+    expect(registry.size).toBe(2); expect(closed).toEqual(["First:replaced"]);
     await act(async () => { render({ key: "same", load: () => view("Second") }); });
     expect(dom.window.document.body.textContent).toBe("Second");
-    expect(registry.size).toBe(1);
+    expect(registry.size).toBe(2); expect(closed).toContain("Replaced:unmounted");
     await act(async () => { refresh(); });
-    expect(registry.size).toBe(1);
+    expect(registry.size).toBe(2); expect(closed).toContain("Second:refreshed");
     let finish!: (next: PluginView) => void;
     await act(async () => { render({ key: "same", load: () => new Promise(resolve => { finish = resolve; }) }); });
     await act(async () => { root.unmount(); });
@@ -49,6 +51,7 @@ test("React StrictMode, same-key source replacement, refresh and unmount transfe
     await act(async () => { finish(view("Late")); });
     expect(registry.size).toBe(0);
     expect(failures).toBe(0);
+    expect(closed).toContain("Second:unmounted"); expect(closed.some(value => value.startsWith("Late:"))).toBe(false);
   } finally {
     await act(async () => { root.unmount(); });
     dom.window.close();

@@ -63,6 +63,16 @@ test("live snapshots preserve frame identity, keep painted callbacks until commi
   f.session.dispose(); await flush(); expect(f.disposed()).toBe(1); expect(f.registry.size).toBe(0);
 });
 
+test("live content cannot replace the frame close callback and updates do not notify it", async () => {
+  const f = fixture(), reasons: string[] = [];
+  const view = { ...f.view, onClose: f.wire(({ reason }: { reason: string }) => { reasons.push(reason); }) };
+  f.session.setRoot(view); await flush();
+  expect(f.publish(f.channels[0], { revision: 1, view: { kind: "markdown", markdown: "New data" } })).toEqual({ status: "applied" });
+  f.session.acknowledgeRender(f.session.getSnapshot().stack[0]); await flush(); expect(reasons).toEqual([]);
+  expect(() => f.publish(f.channels[0], { revision: 2, view: { kind: "markdown", markdown: "bad", onClose: () => {} } as PluginView })).toThrow();
+  f.session.close(); await flush(); expect(reasons).toEqual(["closed"]); expect(f.registry.size).toBe(0);
+});
+
 test("push/back and nested dialogs suspend sources and create fresh channels without accepting stale updates", async () => {
   const f = fixture(); f.session.setRoot(f.view); await flush();
   const first = f.channels[0];

@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+视图关闭通知批次已接线：views 1.3 PluginView.onClose 对已接受 frame 至多一次报告 closed/back/replaced/reset/refreshed/unmounted。覆盖、嵌套遮挡、live 更新及 StrictMode 重放不触发；原始关闭回调独立保留，live 不可更换它。通知不阻止关闭、不消费返回导航或 toast，异步只保留通知句柄至结束/退休/十秒期限；无效/迟到丢弃视图不通知，退休/崩溃不保证送达，不能替代 activation disposer。外层直接移除容器只报 unmounted，不虚构 Escape/点击细节、保存或焦点回执。
+
+本通知批次定向 53 项/1436 断言、typecheck 27/27 与三文档对结构检查通过。覆盖序列化回调租约、栈/嵌套/刷新、超时释放、live 更新与实际 React StrictMode 挂载/卸载；这不是实际 Worker/Tauri E2E。catalog 36、矩阵 243 行/849 映射，Agent 数量仍 book 74/global 91：此能力是插件自有视图通知，不新增模型操作 PluginView 的工具。READ11 焦点恢复与 EXT03 完整视觉验收仍未完成。未启动桌面/浏览器，未推送，组合插件集中验收后置。
+
 画像读取批次已接线：memory 1.6 queries.profile 与 profile 观察，Agent 双域 get_user_profile，复用提示词现有的 device-local KV 纯文本摘要。memory:read（write 隐含）可读，不开放原始 KV、推断字段或写入口。默认 4000/最多 16000 UTF-16 单元，续页强制绑定内容 revision，变化 conflict 重读，字符对不截断；未存、空值、读取失败分开，退休拒绝迟到页。观察复用串行有界轮询与错误/恢复，不增加 Agent 常驻订阅。
 
 本画像读取批次定向 53 项/861 断言、typecheck 27/27 和三文档对结构检查通过；矩阵 243 行/849 映射，catalog 36，Agent book 74/global 91。MEM06 现有摘要读能力接通待集中验收，MEM07 访谈写流程、MEM08 投影、MEM13 bundle 仍缺。Memory Desk 只适配新增观察分支，尚未新增画像界面；没有启动桌面/浏览器，没有把单元测试算作真实 Worker/Agent 对话 E2E，未推送。

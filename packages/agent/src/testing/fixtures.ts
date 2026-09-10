@@ -358,6 +358,15 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   const memoryManagement = createMemoryManagementFixture(stores.memories);
   const bookClassification = createBookClassificationFixture(books);
   const deps: RuntimeDeps = {
+    resources: () => ({
+      pick: async () => ({ cancelled: true, resources: [] }), openBook: async () => null,
+      create: async () => { throw new AppError("ui/unavailable", "Attach a resource fixture"); },
+      stat: async id => ({ id, name: "fixture.txt", mimeType: "text/plain", size: 4, state: "ready", source: "picked", expiresAt: Date.now() + 60000 }),
+      read: async () => ({ data: new Uint8Array([116, 101, 115, 116]).buffer, nextOffset: 4, eof: true }),
+      append: async () => { throw new AppError("ui/unavailable", "Attach a resource fixture"); },
+      commit: async () => { throw new AppError("ui/unavailable", "Attach a resource fixture"); },
+      save: async () => ({ saved: false }), release: async () => {},
+    }),
     schedules: {
       list: async () => ({ schedules: [], total: 0, nextOffset: null }),
       control: async () => { throw new AppError("ui/unavailable", "Bind a schedule fixture"); },

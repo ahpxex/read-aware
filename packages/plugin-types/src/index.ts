@@ -1756,6 +1756,19 @@ export type PluginHostServices = {
     /** Requires service:network. Uses the host release feed; no caller-supplied URL or silent installation. */
     checkForUpdates?(): Promise<import("@read-aware/core").HostMaintenanceSnapshot>;
   };
+  resources: {
+    pick(options?: import("@read-aware/core").ResourcePickOptions): Promise<{ cancelled: boolean; resources: import("@read-aware/core").ResourceRef[] }>;
+    /** Requires library:read. Original local file only; no implicit remote download. */
+    openBook?(bookId: string): Promise<import("@read-aware/core").ResourceRef | null>;
+    create(options: import("@read-aware/core").ResourceCreateOptions): Promise<import("@read-aware/core").ResourceRef>;
+    stat(id: string): Promise<import("@read-aware/core").ResourceRef>;
+    read(id: string, offset: number, length: number): Promise<import("@read-aware/core").ResourceChunk>;
+    append(id: string, offset: number, data: Uint8Array | ArrayBuffer): Promise<import("@read-aware/core").ResourceRef>;
+    commit(id: string): Promise<import("@read-aware/core").ResourceRef>;
+    save(id: string, filename?: string): Promise<{ saved: boolean }>;
+    /** Also aborts uncommitted writes. */
+    release(id: string): Promise<void>;
+  };
   /** Requires service:sync; no keys, account identifiers, billing tickets or raw event access. */
   sync?: Omit<import("@read-aware/core").HostSyncPort, "backlog" | "account" | "requestSync" | "openSettings"> & {
     backlog(): ReturnType<import("@read-aware/core").HostSyncPort["backlog"]>;

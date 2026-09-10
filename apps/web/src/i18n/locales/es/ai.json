@@ -76,6 +76,11 @@
           "description": "Esto elimina permanentemente el archivo importado y sus datos de lectura locales. No se puede deshacer.",
           "approve": "Eliminar libro"
         },
+        "accessBookFile": {
+          "question": "¿Preparar el archivo original del libro?",
+          "description": "Crear una referencia temporal de exportación para {{subject}}. El original no cambia. Elegirás el destino por separado; los bytes del libro no se envían al modelo.",
+          "approve": "Preparar archivo"
+        },
         "manageSchedule": {
           "question": "¿Aplicar esta acción programada?",
           "description": "{{subject}}. Pausar y reanudar se guardan en este dispositivo. La ejecución puede realizar operaciones de red o datos del complemento; los efectos completados no se revierten.",

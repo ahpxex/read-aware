@@ -76,6 +76,11 @@
           "description": "這會永久移除匯入的原始檔案和本機閱讀資料，且無法復原。",
           "approve": "刪除書籍"
         },
+        "accessBookFile": {
+          "question": "準備匯出原書檔案？",
+          "description": "為《{{subject}}》建立暫時匯出參照，原檔案不會改變。儲存位置由你另行選擇，書籍位元組不會傳送給模型。",
+          "approve": "準備檔案"
+        },
         "manageSchedule": {
           "question": "執行此排程操作？",
           "description": "{{subject}}。暫停和恢復會儲存在此裝置。執行可能進行此外掛原有的網路或資料操作，已完成的效果不會撤銷。",

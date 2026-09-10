@@ -76,6 +76,11 @@
           "description": "This permanently removes the imported source file and its local reading data. This cannot be undone.",
           "approve": "Delete book"
         },
+        "accessBookFile": {
+          "question": "Prepare the original book file?",
+          "description": "Create a temporary export reference for {{subject}}. The original stays unchanged. You will choose the save destination separately; book bytes are not sent to the model.",
+          "approve": "Prepare file"
+        },
         "manageSchedule": {
           "question": "Apply this schedule action?",
           "description": "{{subject}}. Pause and resume persist on this device. Running may perform the plugin's normal network or data operations; completed effects are not undone.",

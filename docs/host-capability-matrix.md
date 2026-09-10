@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 194、部分 43、待建 3、占位 2、非桌面 1。
-- Agent：接通 124、未接 33、部分 54、扩展 13、自动 14、内部 5。
-- 插件：接通 139、部分 78、未接 26。
+- Agent：接通 126、未接 31、部分 55、扩展 13、自动 14、内部 4。
+- 插件：接通 140、部分 79、未接 24。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -68,7 +68,7 @@
 | <a id="LIB05"></a>LIB05 | 批量删除书籍 | 实装 | **接通**：delete_books[全局]：固定批次一次批准/cleanupOnly；list_book_removal_cleanup<br>[设计] 批量受控工具与恢复查询 | **接通**：library 1.6 books.removeMany/retryRemovalCleanup；listRemovalCleanup<br>[设计] 原子记录批次与耐久文件清理 | 书架多选；Agent；Library Desk 0.2 选择/审阅/删除/恢复查询/重试 | 1–1000 个非空 ID，每个至多 256 字符，复制去重、不强制转换。事件/投影事务失败全回滚；提交后通知，再清源文件/封面，committed:true 与 files.released/pending 分开。迁移 31 删除触发器在记录事务内登记设备本地清理意图，恢复插入取消意图；两端可按 ID 游标查询 1–100 项（默认 50），不需保留旧回执。启动每页 100 项逐项重试，失败保留且不饿死后页；不是周期任务。文件元数据与意图确认同事务，物理删除可部分完成；重试不新增删除事件。原生持锁预检所有 ID，书已恢复或投影 stale 拒绝清理；重放后仍存在书的意图在同事务取消。Agent 批准/插件域授权边界不变。隔离 macOS debug 验权限、新消费者跨重启查询、插件菜单与 Agent 批准重试；既有原子回滚/恢复保护证据保留。迁移前孤立文件不回填；不是跨设备 CAS、全数据擦除或通用耐久任务；旧单删仍以异常表达文件失败。1000 项真实负载、晚到 blob 写入、packaged/Windows/Linux 未验。 | [LIB](../apps/web/src/domain/library.ts) [LIBUI](../apps/web/src/features/library/hooks/useLibraryCommands.ts) [BOOKBATCH](../apps/web/src/features/library/lib/book-removal.ts) [BOOKBATCHTOOL](../packages/agent/src/tools/delete-books.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [LIBRARYDESK](../plugins/library-desk/src/views.ts) [BOOKBATCHPROOF](../docs/evidence/book-batch-removal-2026-09-09.json) [BOOKCLEANUP](../apps/desktop/src-tauri/src/storage/library_cleanup.rs) [BOOKCLEANUPPROOF](../docs/evidence/book-removal-recovery-2026-09-09.json) | B02 |
 | <a id="LIB06"></a>LIB06 | 导入已有支持格式的书籍字节 | 实装 | **未接**：无正式入口<br>[设计] 用户选文件后导入工具 | **部分**：library.commands.books.importBook<br>[设计] 导入任务 | 书架导入/拖放/系统打开 | Agent 无导入工具；插件有字节入口，无完整进度/取消/FileRef | [IMPORT](../apps/web/src/features/library/lib/book-import.ts) [LIB](../apps/web/src/domain/library.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [REGISTRY](../packages/agent/src/tools/registry.ts) | B04 |
 | <a id="LIB07"></a>LIB07 | 识别格式/DRM/损坏文件并报告 | 实装 | **未接**：无正式入口<br>[设计] 查询导入能力/失败原因 | **部分**：importBook 间接触发<br>[设计] 格式能力与错误契约 | 导入与阅读加载 | 不能由 BookFormat enum 推断任意文件可读 | [IMPORT](../apps/web/src/features/library/lib/book-import.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [SESSION](../apps/web/src/features/reader/hooks/useReaderSession.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | B08 |
-| <a id="LIB08"></a>LIB08 | 查询/读取书籍原文件与本地可用性 | 实装 | **未接**：无正式入口<br>[设计] 受控资源查询 | **未接**：无正式入口<br>[设计] Book ResourceRef 查询/导出 | 阅读加载；备份；同步 | 当前 BookSummary 不提供源文件资源；不可开放任意路径 | [BLOB](../apps/web/src/platform/blob-store.ts) [SESSION](../apps/web/src/features/reader/hooks/useReaderSession.ts) [LIB](../apps/web/src/domain/library.ts) [API](../packages/plugin-types/src/index.ts) | B05 |
+| <a id="LIB08"></a>LIB08 | 查询/读取书籍原文件与本地可用性 | 实装 | **接通**：open_book_resource/save_resource[双域]<br>[设计] 批准后只导出的原书引用 | **接通**：resources.openBook/read/save<br>[设计] 受 library 授权的原文件快照 | 阅读加载；备份；同步；正式资源服务 | 本地无原文件返回 null，书已删除报错，不自动下载。插件获 library 读/写才提供 openBook；Agent 逐次批准、书内仅当前书，原书引用在端口禁止读入模型，正文仍走防剧透工具。引用是已获得的临时独立副本，源变更不替换快照，释放/到期不删原书；无路径/原生键暴露。接线及定向测试完成，真实 Tauri 组合验收待集中进行。 | [BLOB](../apps/web/src/platform/blob-store.ts) [SESSION](../apps/web/src/features/reader/hooks/useReaderSession.ts) [LIB](../apps/web/src/domain/library.ts) [API](../packages/plugin-types/src/index.ts) [RESOURCES](../apps/web/src/services/resources.ts) [RESOURCEOWNER](../apps/web/src/services/resource-owner.ts) [RESOURCEFILES](../apps/desktop/src-tauri/src/resources.rs) [RESOURCETOOLS](../packages/agent/src/tools/resource-tools.ts) | B05 |
 | <a id="LIB09"></a>LIB09 | 提取/显示封面与封面可用状态 | 实装 | **部分**：present_books 间接显示书卡<br>[设计] 封面资源查询/呈现 | **未接**：无正式入口<br>[设计] 封面 ResourceRef | 书架；Agent 书卡；封面后台补齐 | Agent 书卡由宿主解析，模型/插件没有封面字节接口 | [ENRICH](../apps/web/src/features/library/lib/book-enrichment.ts) [LIB](../apps/web/src/domain/library.ts) [PRESENT](../packages/agent/src/tools/present-tools.ts) [API](../packages/plugin-types/src/index.ts) | B05 |
 | <a id="LIB10"></a>LIB10 | 缺失封面/元数据后台补齐 | 实装 | **未接**：无正式入口<br>[设计] 状态查询/受控重试 | **未接**：无正式入口<br>[设计] 状态查询/受控重试 | scheduleCatchUpEnrichment / enrichFromOpenBook | 宿主后台任务已存在；不是新增插件算法要求 | [ENRICH](../apps/web/src/features/library/lib/book-enrichment.ts) [APP](../apps/web/src/App.tsx) [COREVENTS](../packages/core/src/events.ts) | B08 |
 | <a id="LIB11"></a>LIB11 | 重复检测、同源书合并和 ID 重定向 | 实装 | **未接**：无正式入口<br>[设计] 预览后批准合并 | **未接**：无正式入口<br>[设计] 预览后批准合并 | 导入去重；同步后 reconcileDuplicateBooks | 查询候选与合并结果映射未公开 | [DEDUPE](../apps/web/src/platform/book-dedupe.ts) [LIB](../apps/web/src/domain/library.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) | A04, B06 |
@@ -309,10 +309,10 @@
 | <a id="SYS07"></a>SYS07 | 网络域名授权、预算、下载流和离线重试 | 部分 | **未接**：无正式入口<br>[设计] 用途受限任务 | **部分**：network permission 是大开关，无完整流/配额<br>[设计] 授权/任务/缓存原语 | 宿主内部 HTTP；各插件自行缓存 | 不是给每个插件重新实现重试/缓存的理由；实时 socket 不算宿主当前产品能力 | [API](../packages/plugin-types/src/index.ts) [HTTP](../apps/web/src/platform/http-client.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) [CATALOG](../packages/core/src/capabilities.ts) | P04, P06 |
 | <a id="SYS08"></a>SYS08 | 剪贴板写文本 | 实装 | **接通**：copy_to_clipboard[双域]<br>[设计] 用户触发的复制意图 | **接通**：services.clipboard.writeText<br>[设计] 受权剪贴板写 | 选择复制；插件动作；Agent | 共享写入限 1000000 字符，插件需 service:clipboard；取消阻止未派发写，不回滚已派发写。只接受明确复制意图，不读取剪贴板或复制图片。定向测试通过；新双端组合 E2E 待集中进行。 | [API](../packages/plugin-types/src/index.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) [HOSTIO](../apps/web/src/services/host-io.ts) [HOSTIOTOOLS](../packages/agent/src/tools/host-io-tools.ts) | P05 |
 | <a id="SYS09"></a>SYS09 | 图片复制/导出原生图片资源 | 实装 | **未接**：无正式入口<br>[设计] 用户触发的图像导出 | **未接**：无正式入口<br>[设计] Image ResourceRef + 受权复制/导出 | ReaderImageLightbox | 二进制 exportFile 可保存已持有字节，但无书内图像资源查询/图片剪贴板 | [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [EXPORT](../apps/web/src/platform/export-file.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | J08, P05 |
-| <a id="SYS10"></a>SYS10 | 保存文本/二进制文件与取消回执 | 实装 | **部分**：export_text_file[双域]；二进制资源工具待接<br>[设计] 宿主文件导出工具 | **接通**：ui.exportFile(filename,content,mimeType) → boolean<br>[设计] 用户确认的文件导出 | Dictionary CSV；Annotation Desk；原生保存；Agent | 双端共享原生保存入口，插件文本/二进制 64 MiB 上限，接受时复制字节，保存对话框后重验取消再写文件；false 表示用户取消。Agent 工具仅接文本，目标名不是文件路径授权。Annotation Desk 仅导出已观察项，既有 release JSON/CSV 保存证据保留；新接口、二进制、磁盘失败与多窗口留集中验收，没有流式 FileRef。 | [EXPORT](../apps/web/src/platform/export-file.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [API](../packages/plugin-types/src/index.ts) [DICTEXPORT](../plugins/dictionary/src/export.ts) [DESKEXPORT](../plugins/annotation-desk/src/export.ts) [DESKRELEASE](../docs/evidence/packaged-annotation-desk-2026-09-09.json) [HOSTIO](../apps/web/src/services/host-io.ts) [HOSTIOTOOLS](../packages/agent/src/tools/host-io-tools.ts) | P02 |
-| <a id="SYS11"></a>SYS11 | 用户选文件/目录、拖放和流式文件句柄 | 实装 | **未接**：无正式入口<br>[设计] 用户授予 FileRef 后导入 | **未接**：无正式入口<br>[设计] 受控文件选择/句柄服务 | 书籍导入；插件安装选择 ZIP | 不能把导入字节 API 当作文件选择器；任意路径/FS 不开放 | [PICKER](../apps/web/src/features/library/lib/pick-book-files.ts) [IMPORT](../apps/web/src/features/library/lib/book-import.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | P01 |
+| <a id="SYS10"></a>SYS10 | 保存文本/二进制文件与取消回执 | 实装 | **接通**：export_text_file/save_resource[双域]<br>[设计] 原生文本/二进制资源导出 | **接通**：ui.exportFile；resources.save<br>[设计] 用户确认的文件导出 | Dictionary CSV；Annotation Desk；原生保存；Agent | 旧 exportFile 为 64 MiB 持有字节便利入口；新增资源保存从匿名文件分块复制到目标同目录暂存文件，sync_all 后替换，失败不先截断已有文件，二进制不经模型。原生保存对话框后重验取消；saved:false 为用户取消，已派发写不回滚。filename 仅 basename 不是路径授权。原生文件单测通过，真实 Tauri 保存、磁盘故障与多窗口验收待集中进行；旧便利接口迁移未完成。 | [EXPORT](../apps/web/src/platform/export-file.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [API](../packages/plugin-types/src/index.ts) [DICTEXPORT](../plugins/dictionary/src/export.ts) [DESKEXPORT](../plugins/annotation-desk/src/export.ts) [DESKRELEASE](../docs/evidence/packaged-annotation-desk-2026-09-09.json) [HOSTIO](../apps/web/src/services/host-io.ts) [HOSTIOTOOLS](../packages/agent/src/tools/host-io-tools.ts) [RESOURCEOWNER](../apps/web/src/services/resource-owner.ts) [RESOURCEFILES](../apps/desktop/src-tauri/src/resources.rs) [RESOURCETOOLS](../packages/agent/src/tools/resource-tools.ts) | P02 |
+| <a id="SYS11"></a>SYS11 | 用户选文件/目录、拖放和流式文件句柄 | 实装 | **部分**：pick_resource_files[双域]<br>[设计] 用户授予 FileRef 后导入 | **部分**：resources.pick/read<br>[设计] 受控文件选择/句柄服务 | 书籍导入；插件安装选择 ZIP；正式资源选择 | 单/多文件原生选择和扩展名过滤已接，取消显式返回，不返回路径；快照只读、1 小时 TTL，不是文件监视。目录授权、拖放事件接管与 FileRef 直接导入仍缺，不能把现有持有字节 import API 算作该能力；接线/定向检查完成，Tauri 对话框验收集中执行。 | [PICKER](../apps/web/src/features/library/lib/pick-book-files.ts) [IMPORT](../apps/web/src/features/library/lib/book-import.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [RESOURCEOWNER](../apps/web/src/services/resource-owner.ts) [RESOURCES](../apps/web/src/services/resources.ts) [RESOURCEFILES](../apps/desktop/src-tauri/src/resources.rs) [RESOURCETOOLS](../packages/agent/src/tools/resource-tools.ts) | P01 |
 | <a id="SYS12"></a>SYS12 | 打开外部 URL/系统关联打开/深链接路由 | 实装 | **部分**：open_external_url[双域]<br>[设计] 用户意图下的受控 URL 打开 | **部分**：ui 1.7 openExternal；要求 service:network<br>[设计] scheme 白名单外部打开/URI contribution | 账号登录/购买链接；系统打开书籍；双端显式外链意图 | HTTP(S) 外链已接共享 opener，拒绝嵌入凭据、控制字符及 file/data/javascript/自定义 scheme；成功表示交给 OS，不表示网页加载。外部 URL 打开与注册协议不同，URI contribution/关联文件句柄仍未接；OAuth ticket 不给插件。定向权限和参数测试通过，集中桌面验收待做。 | [EXTERNAL](../apps/web/src/platform/external-link.ts) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTIO](../apps/web/src/services/host-io.ts) [HOSTIOTOOLS](../packages/agent/src/tools/host-io-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | P05 |
-| <a id="SYS13"></a>SYS13 | Blob 范围读取/流式读写/提交/中止 | 实装 | **内部**：正文/推理端口间接用，不读任意 blob<br>[设计] 受权 ResourceRef | **部分**：导入/导出只支持持有的 bytes<br>[设计] 资源句柄/流/额度 | 原书阅读；同步分片；封面 | 底层 get_blob/blob_write_* 不可直接暴露；跨线程大对象需 transferable/backpressure | [BLOB](../apps/web/src/platform/blob-store.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [API](../packages/plugin-types/src/index.ts) | P01 |
+| <a id="SYS13"></a>SYS13 | Blob 范围读取/流式读写/提交/中止 | 实装 | **部分**：read_resource_text/release_resource；原书只导出<br>[设计] 受权 ResourceRef，不读任意 blob | **部分**：resources.create/stat/read/append/commit/release<br>[设计] 临时资源范围读写/封口/中止 | 原书阅读；同步分片；封面；正式资源服务 | 临时资源分块读写已接：单块 1 MiB，每 owner 16 引用/1 GiB，宿主 64 文件/2 GiB，32 个串行队列；追加 offset 防重复写，commit 后不可写，release 兼 abort，退休等待在途任务后清理。选中/原书独立副本与自建匿名文件不进入同步、备份或数据库；不开放原始 blob key。跨激活持久化资源、书内资产与 transferable 桥优化仍缺，当前桥是有界 structured clone；Agent UTF-8 读取保持码点及字节游标。原生与定向测试通过，组合/Tauri E2E 待集中进行。 | [BLOB](../apps/web/src/platform/blob-store.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [API](../packages/plugin-types/src/index.ts) [RESOURCEOWNER](../apps/web/src/services/resource-owner.ts) [RESOURCEFILES](../apps/desktop/src-tauri/src/resources.rs) [RESOURCETOOLS](../packages/agent/src/tools/resource-tools.ts) | P01 |
 | <a id="SYS14"></a>SYS14 | 系统字体枚举和字体资产加载 | 实装 | **部分**：settings discover reading.fontFamily<br>[设计] 受支持字体列表 | **部分**：settings options + fonts manifest<br>[设计] 字体资源能力 | 阅读字体选择；editorial-themes | 列表选择已可组合，不需要插件访问系统字体目录 | [RUST](../apps/desktop/src-tauri/src/lib.rs) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [API](../packages/plugin-types/src/index.ts) | 新增盘点 |
 | <a id="SYS15"></a>SYS15 | 原生日志/诊断包/崩溃报告导出与发送 | 实装 | **部分**：open_maintenance_settings[双域]<br>[设计] 打开宿主脱敏诊断流程 | **部分**：services.maintenance.openSettings(diagnostics)<br>[设计] 宿主诊断入口；自有诊断输出 | 设置 About Diagnostics；CrashFollowUpPrompt | 已接宿主页面挂载与诊断控件定位，opened 不冒充导出/发送完成；不返回日志、路径、诊断包、凭据，用户仍在宿主触发导出或预览确认发送。自有 logger/诊断输出和最终操作回执仍缺；接线与定向检查完成，组合/Tauri 验收待集中进行。 | [DIAG](../apps/web/src/features/settings/lib/diagnostics.ts) [ERRORS](../packages/core/src/errors.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) | R05, R06 |
 | <a id="SYS16"></a>SYS16 | 检查/下载/安装更新与重启 | 实装 | **接通**：get_software_update/open_maintenance_settings[双域]<br>[设计] 查询状态/打开宿主更新控件 | **接通**：services.maintenance 1.0<br>[设计] 版本/更新状态与观察、受权检查；宿主执行升级 | 软件更新页；autoUpdate 与正式双端服务共用控制器 | snapshot/observe 只读当前 phase/progress/version/选中与已检查频道；checkForUpdates 需插件 network 权限，只用宿主 release feed，失败拒绝不冒充最新。检查复用单飞、与安装互斥，频道换代拒绝旧结果；调用者取消不撤销共享检查。openSettings 仅确认宿主更新控件已挂载和定位，安装/重启仍由原生用户动作批准，禁止插件静默执行；不提供升级最终结果回执。接线与定向检查完成，组合/Tauri 实际检查下载重启待集中验收。 | [UPDATE](../apps/web/src/features/update/lib/software-update.ts) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [API](../packages/plugin-types/src/index.ts) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) [UPDATECONTROL](../apps/web/src/features/update/lib/software-update-controller.ts) | R05 |
@@ -410,16 +410,16 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：68 个。
-- Agent book：57 个。
-- Plugin ctx：152 个。
+- Agent global：73 个。
+- Agent book：62 个。
+- Plugin ctx：161 个。
 - Plugin returned interface：25 个。
 - Capability domains：6 个。
 - Capability contributions：14 个。
-- Capability services：11 个。
+- Capability services：12 个。
 - Capability schemas：3 个。
 - Settings path：74 个。
-- Native command：146 个。
+- Native command：154 个。
 - Native plugin：11 个。
 - Menu placement：16 个。
 - Shortcut：19 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 152 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 161 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -456,6 +456,11 @@
 | `manage_sync` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_software_update` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_maintenance_settings` | [SYS15](#SYS15) [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `pick_resource_files` | [SYS11](#SYS11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `open_book_resource` | [LIB08](#LIB08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `read_resource_text` | [SYS13](#SYS13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `save_resource` | [SYS10](#SYS10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `release_resource` | [SYS13](#SYS13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_plugin_schedules` | [MORE01](#MORE01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_plugin_schedule` | [MORE01](#MORE01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_books` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -529,6 +534,11 @@
 | `manage_sync` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_software_update` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_maintenance_settings` | [SYS15](#SYS15) [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `pick_resource_files` | [SYS11](#SYS11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `open_book_resource` | [LIB08](#LIB08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `read_resource_text` | [SYS13](#SYS13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `save_resource` | [SYS10](#SYS10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `release_resource` | [SYS13](#SYS13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_book_overview` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_annotations` | [ANN01](#ANN01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_reading_stats` | [STAT01](#STAT01) [STAT02](#STAT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -707,6 +717,15 @@
 | `services.maintenance.observe` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.maintenance.openSettings` | [SYS15](#SYS15) [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.maintenance.checkForUpdates` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.resources.pick` | [SYS11](#SYS11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.resources.openBook` | [LIB08](#LIB08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.resources.create` | [SYS13](#SYS13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.resources.stat` | [SYS13](#SYS13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.resources.read` | [SYS13](#SYS13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.resources.append` | [SYS13](#SYS13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.resources.commit` | [SYS13](#SYS13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.resources.save` | [SYS10](#SYS10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.resources.release` | [SYS13](#SYS13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.session.environment` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.session.observeEnvironment` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.sync.snapshot` | [OPS01](#OPS01) [OPS03](#OPS03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -802,6 +821,7 @@
 | `session` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `plugins` | [EXT11](#EXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `maintenance` | [SYS15](#SYS15) [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `resources` | [SYS11](#SYS11) [SYS13](#SYS13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `sync` | [OPS01](#OPS01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `network` | [SYS06](#SYS06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `llm` | [AI06](#AI06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -1023,6 +1043,14 @@
 | `book_file_size` | [LIB06](#LIB06) [SYS11](#SYS11) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `read_book_head` | [LIB06](#LIB06) [SYS11](#SYS11) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `write_export_file` | [SYS10](#SYS10) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
+| `resources::resource_open_file` | [SYS11](#SYS11) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
+| `resources::resource_open_book` | [LIB08](#LIB08) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
+| `resources::resource_create` | [SYS13](#SYS13) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
+| `resources::resource_append` | [SYS13](#SYS13) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
+| `resources::resource_commit` | [SYS13](#SYS13) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
+| `resources::resource_read` | [SYS13](#SYS13) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
+| `resources::resource_save` | [SYS10](#SYS10) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
+| `resources::resource_release` | [SYS13](#SYS13) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `android_update::android_update_check` | [SYS18](#SYS18) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `android_update::android_update_install` | [SYS18](#SYS18) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `desktop_update::desktop_update_check` | [SYS16](#SYS16) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |

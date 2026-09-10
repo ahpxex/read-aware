@@ -76,6 +76,11 @@
           "description": "Le fichier source importé et ses données de lecture locales seront définitivement supprimés. Cette action est irréversible.",
           "approve": "Supprimer le livre"
         },
+        "accessBookFile": {
+          "question": "Préparer le fichier original du livre ?",
+          "description": "Créer une référence temporaire d’exportation pour {{subject}}. L’original reste inchangé. Vous choisirez la destination séparément ; les octets du livre ne sont pas envoyés au modèle.",
+          "approve": "Préparer le fichier"
+        },
         "manageSchedule": {
           "question": "Appliquer cette action planifiée ?",
           "description": "{{subject}}. La pause et la reprise sont enregistrées sur cet appareil. L’exécution peut utiliser le réseau ou modifier des données ; les effets terminés ne sont pas annulés.",

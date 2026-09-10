@@ -76,6 +76,11 @@
           "description": "Dadurch werden die importierte Quelldatei und die lokalen Lesedaten dauerhaft entfernt. Dies kann nicht rückgängig gemacht werden.",
           "approve": "Buch löschen"
         },
+        "accessBookFile": {
+          "question": "Originaldatei des Buchs vorbereiten?",
+          "description": "Eine temporäre Exportreferenz für {{subject}} erstellen. Das Original bleibt unverändert. Den Speicherort wählen Sie separat; Buchdaten werden nicht an das Modell gesendet.",
+          "approve": "Datei vorbereiten"
+        },
         "manageSchedule": {
           "question": "Diese Zeitplanaktion ausführen?",
           "description": "{{subject}}. Pause und Fortsetzung werden lokal gespeichert. Eine Ausführung kann Netzwerk- oder Datenzugriffe des Plugins auslösen; abgeschlossene Aktionen werden nicht rückgängig gemacht.",

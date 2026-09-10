@@ -3073,10 +3073,62 @@ The current host services are:
 | `session` | 2.0: environment snapshot/observation only; reading state requires the reading domain | built in |
 | `plugins` | 1.0: bounded installed public metadata list/observation | built in |
 | `maintenance` | 1.0: updater snapshot/observation, release check and native maintenance controls | built in; check requires `service:network` |
+| `resources` | 1.0: native file selection, temporary snapshots, bounded read/write/seal/save/release | built in; book sources require `library:read` or write |
 | `sync` | 1.0: sanitized status, backlog, account quotas, sync request and host settings | `service:sync` |
 | `network` | host HTTP client | `service:network` |
 | `llm` | approved one-shot/structured model calls | `service:llm` |
 | `clipboard` | write text to clipboard | `service:clipboard` |
+
+[代码] Resources 1.0 exposes `pick({multiple?,extensions?})`, optional
+`openBook(bookId)`, `create({name,mimeType?})`, `stat(id)`,
+`read(id,offset,length)`, `append(id,offset,data)`, `commit(id)`,
+`save(id,filename?)`, and `release(id)`. Desktop only; no arbitrary path or blob
+key enters the public API. Pick cancellation is `{cancelled:true,resources:[]}`;
+failure rejects. Picked files and local book originals are copied natively to
+anonymous temporary files, so later source edits do not alter the acquired
+snapshot. `openBook` needs library access; missing local originals return null,
+deleted books fail, and no remote download is triggered. An acquired snapshot
+is a separate temporary copy until released/expired, not a live book handle.
+
+References contain opaque actor-local ID, basename, MIME hint, size, state,
+source and expiry. Each plugin activation/Agent conversation owns at most 16
+references and 1 GiB; each file is at most 1 GiB, with host limits of 64 native
+handles/2 GiB. References expire after one hour and cannot survive reloads or
+be shared across actors. They are not stored in the blob registry, event log,
+backup or sync outbox. Native anonymous files close on release/process exit;
+host timers and lazy native pruning retire expired handles. `stat` is lease
+metadata, not a fresh filesystem health check. A later read/save may still fail.
+
+Read/append chunks are at most 1 MiB. Each owner serializes at most 32 queued
+operations; accepted append bytes are copied before waiting. Exact append
+offsets prevent duplicate retry writes. An actual partial native append failure
+retires that native file; callers must recreate it, not assume an intact writer.
+`commit` syncs and seals a writer against further appends; `release` is idempotent
+and also aborts unfinished writers. Plugin retirement rejects queued operations,
+drains accepted work and releases files; late acquisition results are cleaned.
+Native file dialogs are user-owned and may still need to be dismissed. Cancellation
+does not undo already dispatched native writes. Read returns bytes, next byte
+offset and EOF; writing resources cannot be read or saved before commit.
+
+`save` uses a native user-selected destination, copies inside Rust to a same-folder
+temporary file, syncs it and atomically replaces the target. Existing files are
+not first truncated on failure. `saved:false` means dialog cancellation. Suggested
+names are basenames, never path grants. Resources remain available after save.
+Legacy `ui.exportFile` still provides the existing 64 MiB convenience API; its
+migration is not finished. The current Worker bridge uses bounded structured
+cloning, not transferables. Persistent private resources, embedded book/cover
+assets, directory/drag-drop grants and direct resource-to-book import remain gaps.
+
+Agent tools are `pick_resource_files`, `open_book_resource`,
+`read_resource_text`, `save_resource`, and `release_resource`, in both scopes.
+Book threads can only acquire their own original, after explicit approval.
+Those references are export-only at the host port; their bytes cannot bypass
+spoiler-aware reading tools. Selected UTF-8 text reads are 4–16384 bytes (default
+8192), preserve partial trailing codepoints by returning the consumed byte
+offset, and reject invalid UTF-8/NUL-containing binary data. File text remains
+untrusted content. Native filesystem unit tests and focused actor tests passed;
+real Tauri dialogs, Worker compositions, large-file/device faults and restart
+acceptance remain for the integrated phase.
 
 [代码] Maintenance 1.0 exposes `snapshot()`, `observe(handler)`,
 `openSettings("updates"|"diagnostics")`, and optional `checkForUpdates()` when

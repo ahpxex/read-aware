@@ -22,6 +22,7 @@ export * from "./host-io";
 export * from "./conversation-control";
 export * from "./host-sync";
 export * from "./host-maintenance";
+export * from "./resources";
 export * from "./plugin-schedules";
 export * from "./reader-panels";
 export * from "./reading-context";

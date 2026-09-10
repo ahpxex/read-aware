@@ -33,6 +33,10 @@ const agentMap = pairs([
   ["list_plugin_schedules manage_plugin_schedule", "MORE01"],
   ["get_software_update", "SYS16"],
   ["open_maintenance_settings", "SYS15 SYS16"],
+  ["pick_resource_files", "SYS11"],
+  ["open_book_resource", "LIB08"],
+  ["read_resource_text release_resource", "SYS13"],
+  ["save_resource", "SYS10"],
   ["list_installed_plugins", "EXT11"],
   ["copy_to_clipboard", "SYS08"],
   ["export_text_file", "SYS10"],
@@ -136,12 +140,16 @@ const pluginMap = pairs([
   ["services.schedules.list services.schedules.observe services.schedules.control", "MORE01"],
   ["services.maintenance.snapshot services.maintenance.observe services.maintenance.checkForUpdates", "SYS16"],
   ["services.maintenance.openSettings", "SYS15 SYS16"],
+  ["services.resources.pick", "SYS11"],
+  ["services.resources.openBook", "LIB08"],
+  ["services.resources.create services.resources.stat services.resources.read services.resources.append services.resources.commit services.resources.release", "SYS13"],
+  ["services.resources.save", "SYS10"],
   ["services.sync.openSettings", "OPS01 OPS04 OPS06 OPS07"],
 ]);
 const catalogMap: Record<string, Record<string, string[]>> = {
   domains: { library:["LIB01"], reading:["STAT01","READ01"], annotations:["ANN01"], conversations:["AI01"], settings:["CFG01"], memory:["MEM01","MEM11"] },
   contributions: { selectionActions:["EXT01"], headerActions:["EXT02"], commands:["UI03"], settingsOptions:["CFG09"], voiceProviders:["READ17"], contentProviders:["LIB14"], readerModes:["READ15"], agentTools:["AI10"], agentContextProviders:["AI11"], agentRetrievalProviders:["AI12"], memoryCandidateProviders:["MEM03"], themes:["EXT08"], fonts:["EXT08"], syncTransports:["OPS04"] },
-  services: { storage:["SYS01","SYS02"], secrets:["SYS04"], ui:["EXT07","SYS10"], schedules:["MORE01"], session:["MORE03"], plugins:["EXT11"], maintenance:["SYS15","SYS16"], sync:["OPS01"], network:["SYS06"], llm:["AI06"], clipboard:["SYS08"] },
+  services: { storage:["SYS01","SYS02"], secrets:["SYS04"], ui:["EXT07","SYS10"], schedules:["MORE01"], session:["MORE03"], plugins:["EXT11"], maintenance:["SYS15","SYS16"], resources:["SYS11","SYS13"], sync:["OPS01"], network:["SYS06"], llm:["AI06"], clipboard:["SYS08"] },
   schemas: { views:["EXT03","EXT04","EXT05"], settings:["CFG09"], themes:["EXT08"] },
 };
 const nativeMap = pairs([
@@ -176,6 +184,10 @@ const nativeMap = pairs([
   ["external_open_take", "SYS12"], ["diagnostics_read_logs diagnostics_log_dir", "SYS15"],
   ["book_file_size read_book_head", "LIB06 SYS11"], ["write_export_file", "SYS10"],
   ["android_update_check android_update_install set_status_bar_hidden sync_safe_area set_volume_key_capture app_store_storefront move_task_to_back book_pick_start book_pick_poll", "SYS18"],
+  ["resource_open_file", "SYS11"],
+  ["resource_open_book", "LIB08"],
+  ["resource_create resource_append resource_commit resource_read resource_release", "SYS13"],
+  ["resource_save", "SYS10"],
   ["desktop_update_check desktop_update_install", "SYS16"], ["set_traffic_lights_visible", "SYS17"], ["list_system_fonts", "SYS14"],
   ["plugins_list plugins_stage_dir plugins_stage_zip plugins_stage_files plugins_commit_candidate plugins_discard_candidate plugins_rollback plugins_uninstall", "EXT11 EXT12 SYS03"],
 ]);

@@ -15,6 +15,7 @@ mod pdf_metadata;
 mod plugins;
 mod plugin_sandbox_policy;
 mod secrets;
+mod resources;
 mod storage;
 mod storefront;
 #[cfg(target_os = "macos")]
@@ -752,6 +753,7 @@ pub fn run() {
         .manage(external_open::ExternalOpenQueue(Mutex::new(launch_open_paths)))
         .manage(storage::BlobReadSessions::default())
         .manage(storage::BlobWriteSessions::default())
+        .manage(resources::ResourceFiles::default())
         .setup(|app| {
             // A deep link landing while the app runs should bring the window
             // forward — the user just clicked a sign-in link in their browser
@@ -1014,6 +1016,14 @@ pub fn run() {
             book_file_size,
             read_book_head,
             write_export_file,
+            resources::resource_open_file,
+            resources::resource_open_book,
+            resources::resource_create,
+            resources::resource_append,
+            resources::resource_commit,
+            resources::resource_read,
+            resources::resource_save,
+            resources::resource_release,
             android_update::android_update_check,
             android_update::android_update_install,
             desktop_update::desktop_update_check,

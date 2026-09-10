@@ -31,6 +31,7 @@ import { createLogger } from "../../../platform/logger";
 import { hostEnvironment } from "../../../platform/host-environment";
 import { hostSync } from "../../../services/sync";
 import { hostMaintenance } from "../../../services/maintenance";
+import { createResourceOwner } from "../../../services/resources";
 import {
   deletePluginSecret,
   getPluginSecret,
@@ -176,6 +177,10 @@ export function buildPluginContext(
   const permissions = new Set(manifest.permissions ?? []);
   const selfOrigin = `plugin:${manifest.id}` as const;
   const lifecycle = new PluginLifecycleController(disposables);
+  const resources = createResourceOwner(() => {
+    if (!permissions.has("library:read") && !permissions.has("library:write")) throw new AppError("memory/forbidden", "Book resources require library access");
+  });
+  lifecycle.signal.addEventListener("abort", () => lifecycle.trackCleanup(resources.dispose()), { once: true });
   const domain = createActorDomainView(
     selfOrigin,
     domainGrantsFromPermissions(manifest.permissions ?? []),
@@ -616,6 +621,19 @@ export function buildPluginContext(
         ...(canUseHostService("network", permissions) ? {
           checkForUpdates: () => { lifecycle.assertActive("services.maintenance.checkForUpdates"); return hostMaintenance.checkForUpdates(lifecycle.signal); },
         } : {}),
+      },
+      resources: {
+        pick: options => { lifecycle.assertActive("services.resources.pick"); return resources.pick(options, lifecycle.signal); },
+        ...(permissions.has("library:read") || permissions.has("library:write") ? {
+          openBook: (bookId: string) => { lifecycle.assertActive("services.resources.openBook"); return resources.openBook(bookId, lifecycle.signal); },
+        } : {}),
+        create: options => { lifecycle.assertActive("services.resources.create"); return resources.create(options, lifecycle.signal); },
+        stat: id => { lifecycle.assertActive("services.resources.stat"); return resources.stat(id, lifecycle.signal); },
+        read: (id, offset, length) => { lifecycle.assertActive("services.resources.read"); return resources.read(id, offset, length, lifecycle.signal); },
+        append: (id, offset, data) => { lifecycle.assertActive("services.resources.append"); return resources.append(id, offset, data, lifecycle.signal); },
+        commit: id => { lifecycle.assertActive("services.resources.commit"); return resources.commit(id, lifecycle.signal); },
+        save: (id, filename) => { lifecycle.assertActive("services.resources.save"); return resources.save(id, filename, lifecycle.signal); },
+        release: id => { lifecycle.assertActive("services.resources.release"); return resources.release(id); },
       },
       session: {
         environment: async () => {

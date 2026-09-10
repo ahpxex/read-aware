@@ -44,6 +44,11 @@
     "actions": "Plugin-Aktionen"
   },
   "settings": {
+    "networkAccess": {
+      "title": "Netzwerkziele",
+      "all": "Alle HTTP- und HTTPS-Ziele, einschließlich lokaler Dienste",
+      "none": "Keine beliebigen HTTP-Anfragen; nur vom Host kontrollierte Aktionen"
+    },
     "title": "Plugins",
     "trustWarning": "Plugins laufen in der App mit demselben Zugriff wie die App selbst. Installiere nur Plugins, denen du vertraust.",
     "install": "Plugin installieren…",

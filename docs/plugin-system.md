@@ -130,13 +130,52 @@ disabled; network and durable state must use granted host services.
 
 RPC calls now have a 120-second deadline and a 256-pending-call limit per
 direction. Clone failures settle their pending call, and runtime errors reject
-waiting contribution invocations. Network v1.1 preserves Request inheritance,
+waiting contribution invocations. Network v2.0 preserves Request inheritance,
 headers and binary bodies, forwards cancellation to native HTTP, and buffers at
 most 64 MiB per body in each direction. Stopping a realm cancels its native HTTP
 requests. Cancellation does not undo server-side effects or already committed
 domain writes. General callback ownership, cancellation of other host tasks,
 wire-envelope validation and packaged CSP remain separate acceptance work; see
 [implementation and desktop evidence](./host-capability-delivery.md).
+
+### Network 2.0 Authorization
+
+[代码] `service:network` exposes `network.fetch` and `network.policy`, but arbitrary
+HTTP requires `manifest.networkAccess: { origins: string[] }`. Missing/empty means
+deny, not legacy all-origins access. At most 32 canonical exact HTTP(S) origins
+(scheme, host, port; optional trailing slash) or the sole entry `"*"`; paths,
+queries, credentials, fragments and subdomain globs are rejected. A declaration
+must require a network semver range excluding pre-2.0 hosts, so older hosts cannot
+silently ignore its restrictions. Install/update consent shows the destinations;
+existing marketplace and local-folder/zip update flows ask for consent each time.
+Host-controlled `ui.openExternal` and update checks keep their own fixed-purpose
+permission and URL rules, independent of arbitrary-fetch origin grants.
+
+[代码] Runtime snapshots the declared origins; `policy()` returns a copy together
+with `maxRedirects: 10`, `maxBodyBytes: 67108864`, `timeoutMs: 120000` (the existing
+RPC deadline, not a fresh timer per hop). Every initial/redirect URL must pass the
+host-side gate. Native `maxRedirections: 0` disables automatic following; manual
+returns the 3xx response, error rejects any redirect status. Follow handles
+301/302/303/307/308, relative locations, at most ten hops and rejects HTTPS-to-HTTP
+downgrades even for `"*"`. 301/302 POST and 303 non-GET/HEAD switch to GET without
+a body/body headers; 307/308 replay the bounded body. Cross-origin hops remove
+Authorization, Proxy-Authorization, Cookie and Referer. Host/Content-Length are
+transport-owned; caller-supplied native proxy/TLS/redirection options are stripped.
+Redirect/error bodies are released, and final URL/redirected metadata crosses the
+Worker bridge. `plugin/network-denied` and `plugin/network-redirect` have localized
+non-retryable surfaces in all eight locales.
+
+[代码/边界] The native HTTP dependency now disables its shared cookie-jar feature;
+callers authenticate explicitly, never inherit another plugin/host session.
+`credentials` does not opt into a cookie jar. Custom secret headers are not
+automatically identifiable: TTS requests use `redirect: "error"` rather than risk
+forwarding vendor API keys. RSS 0.8, TTS 0.6 and WebDAV 0.3 declare `"*"` because
+their endpoints are user-configurable, including local HTTP. This is explicit
+broad authorization, not per-configured-endpoint confinement or DNS/IP isolation.
+No automatic retries, independent network concurrency/aggregate-byte quota,
+streaming download API or unrestricted Agent fetch tool is added. Native network
+behavior and first-party composition remain pending concentrated Tauri E2E;
+focused tests/compilation do not replace that evidence.
 
 ## 5. Domains
 
@@ -3901,7 +3940,7 @@ The current host services are:
 | `maintenance` | 1.0: updater snapshot/observation, release check and native maintenance controls | built in; check requires `service:network` |
 | `resources` | 1.1: native file selection, original/cover snapshots, bounded read/write/seal/save/release | built in; book sources require `library:read` or write |
 | `sync` | 1.0: sanitized status, backlog, account quotas, sync request and host settings | `service:sync` |
-| `network` | host HTTP client | `service:network` |
+| `network` | 2.0: scoped host HTTP client and policy discovery | `service:network` + `networkAccess.origins` for arbitrary fetch |
 | `llm` | approved one-shot/structured model calls | `service:llm` |
 | `clipboard` | 1.1: write text or a sealed raster image resource | `service:clipboard` |
 

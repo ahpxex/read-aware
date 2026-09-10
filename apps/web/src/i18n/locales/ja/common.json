@@ -12,6 +12,8 @@
     "copied": "コピーしました"
   },
   "errors": {
+    "pluginNetworkDenied": "このプラグインはその接続先へのアクセスを許可されていません。",
+    "pluginNetworkRedirect": "このリクエストで許可されていない、または無効なリダイレクトが発生しました。",
     "capabilityQueryInvalid": "機能一覧の絞り込み条件とページ範囲を確認してください。",
     "capabilityCatalogChanged": "機能一覧が変更されました。最初のページから再取得してください。",
     "capabilityCatalogUnavailable": "機能一覧がサイズ制限を超えているため表示できません。",

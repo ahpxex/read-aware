@@ -168,6 +168,12 @@ export type PluginCapabilityView = {
 
 // ─── Manifest ────────────────────────────────────────────────────────────────
 
+export type PluginNetworkAccess = {
+  /** Exact HTTP(S) origins (scheme/host/port), or ["*"] for all HTTP(S) origins.
+   * No paths, subdomain globs, credentials or fragments. At most 32 entries. */
+  origins: string[];
+};
+
 export type PluginManifest = {
   /** Directory name and namespace: lowercase, digits, hyphens. */
   id: string;
@@ -188,6 +194,10 @@ export type PluginManifest = {
   permissions?: PluginPermission[];
   /** Exact Settings Domain paths, or an explicit `section.*` group. */
   settingsAccess?: SettingsAccessPolicy;
+  /** Network 2.0. Missing/empty means no arbitrary HTTP requests, even with
+   * service:network. Fixed-purpose host actions retain their own authorization.
+   * Disclosed on install/update; requires a network >=2 capability range. */
+  networkAccess?: PluginNetworkAccess;
   /** Entry module relative to the plugin folder. Defaults to "main.js". */
   main?: string;
   /**
@@ -1967,9 +1977,18 @@ export type PluginHostServices = {
     observeEnvironment(handler: (snapshot: import("@read-aware/core").HostEnvironmentSnapshot) => void | Promise<void>): PluginDisposable;
   };
   network?: {
+    /** Network 2.0: this activation's immutable authorization and transport limits.
+     * All-origins authorization is ["*"], not a guarantee of endpoint reachability. */
+    policy(): Promise<PluginNetworkAccess & { maxRedirects: number; maxBodyBytes: number; timeoutMs: number }>;
     /** Native HTTP; Request/init semantics and cancellation survive the Worker bridge.
      * Bodies are buffered up to 64 MiB per direction. Calls have a 120s deadline;
-     * an abort does not undo a remote side effect already committed by the server. */
+     * an abort does not undo a remote side effect already committed by the server.
+     * Network 2.0 requires networkAccess for the initial URL and each redirect.
+     * HTTPS -> HTTP redirects are denied. At most 10 redirects; manual returns
+     * the 3xx response, error rejects. Cross-origin hops drop authorization,
+     * proxy-authorization, cookie and referer; custom secret headers are the
+     * plugin's responsibility (use redirect:error for authenticated endpoints).
+     * Host/content-length are transport-owned. No implicit retry or cookie jar. */
     fetch(input: string | URL | Request, init?: RequestInit): Promise<Response>;
   };
   llm?: {

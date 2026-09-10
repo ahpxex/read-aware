@@ -107,7 +107,7 @@ export const units: Unit[] = [
   unit("S5", "Service", "network", "有界 HTTP", "SYS06-07", "services.network",
     "保留 Request 的 method/headers/body/响应 status/headers/bytes；取消、超时、大小/并发限制、授权目的地与重定向检查；重试说明幂等性，离线明确报告。",
     "宿主推理/插件工具可使用，但不因此添加无限制 fetch 模型工具。",
-    "RSS/TTS/WebDAV 不各自重写跨 Worker HTTP 桥；协议、认证、业务缓存仍在插件，提供者 HTTP 不变成宿主 RSS 业务。",
+    "network 2.0 已接 networkAccess.origins 与 policy，最多32个精确HTTP(S)来源或单独*；缺省拒绝任意请求，声明须排除旧宿主，安装/更新展示范围。逐跳授权、禁HTTPS降级、最多10跳，关闭原生自动跟随与共享Cookie jar；跨来源删标准认证/Cookie/Referer，TTS密钥请求拒绝跳转。保留64 MiB正文与120秒RPC截止；独立并发/累计额度、下载流及受限Agent任务仍缺。RSS 0.8/TTS 0.6/WebDAV 0.3显式*支持自定义本地/远端地址，不宣称最小域名授权或DNS/IP隔离；协议、认证、业务缓存仍归插件。基础检查已过，新原生网络链路留集中Tauri验收。",
     "不建设 WebSocket/TCP/通用离线耐久队列来修复现有 HTTP；中止请求不保证服务端没处理，更不等于撤销已付费操作。",
     "GAP04/05：Request 对象与 url+init 等价；预先 abort 不派发；途中 abort 到达 host fetch；流和重定向不能绕过额度/权限。"),
   unit("S6", "Service", "llm", "受预算约束的独立推理", "AI06-07 CFG08", "services.llm",

@@ -6,7 +6,7 @@
 import {
   HOST_CAPABILITY_CATALOG,
 } from "@read-aware/core";
-import { validRange } from "semver";
+import { intersects, validRange } from "semver";
 import {
   MIN_SCHEDULE_MINUTES,
   PLUGIN_PERMISSIONS,
@@ -16,6 +16,7 @@ import {
 } from "./plugin-types";
 import { validateFontContributions, validateThemeContributions } from "./plugin-theme";
 import { isTimeOfDay } from "./time-of-day";
+import { parsePluginNetworkAccess } from "./plugin-network-policy";
 
 export class PluginManifestError extends Error {}
 
@@ -145,6 +146,19 @@ export function validateManifest(raw: unknown): PluginManifest {
       }
     }
     permissions = [...new Set(rawPermissions as PluginPermission[])];
+  }
+
+  let networkAccess: PluginManifest["networkAccess"];
+  if (record.networkAccess !== undefined) {
+    if (!permissions?.includes("service:network")) {
+      throw new PluginManifestError("manifest.networkAccess requires service:network");
+    }
+    const range = requires.services?.network;
+    if (!range || intersects(range, ">=0.0.0 <2.0.0")) {
+      throw new PluginManifestError("manifest.networkAccess requires a network capability range excluding hosts before 2.0");
+    }
+    try { networkAccess = parsePluginNetworkAccess(record.networkAccess); }
+    catch (error) { throw new PluginManifestError(`manifest.networkAccess: ${error instanceof Error ? error.message : String(error)}`); }
   }
 
   let settingsAccess: PluginManifest["settingsAccess"];
@@ -332,6 +346,7 @@ export function validateManifest(raw: unknown): PluginManifest {
     requires,
     permissions,
     settingsAccess,
+    networkAccess,
     main,
     settings,
     schedules,

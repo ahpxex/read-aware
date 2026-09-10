@@ -12,6 +12,8 @@
     "copied": "Copié"
   },
   "errors": {
+    "pluginNetworkDenied": "Ce plugin n’est pas autorisé à contacter cette destination.",
+    "pluginNetworkRedirect": "Cette requête a rencontré une redirection interdite ou invalide.",
     "capabilityQueryInvalid": "Vérifiez les filtres et les limites de pagination du catalogue de fonctionnalités.",
     "capabilityCatalogChanged": "Le catalogue de fonctionnalités a changé. Recommencez à la première page.",
     "capabilityCatalogUnavailable": "Le catalogue de fonctionnalités dépasse la taille d'affichage autorisée.",

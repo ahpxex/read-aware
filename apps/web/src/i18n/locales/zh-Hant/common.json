@@ -12,6 +12,8 @@
     "copied": "已複製"
   },
   "errors": {
+    "pluginNetworkDenied": "此外掛未獲授權存取該網路位址。",
+    "pluginNetworkRedirect": "此網路請求遇到了不允許或無效的重新導向。",
     "capabilityQueryInvalid": "請檢查能力目錄的篩選條件和分頁範圍。",
     "capabilityCatalogChanged": "能力目錄已變更，請從第一頁重新查詢。",
     "capabilityCatalogUnavailable": "能力目錄超出大小限制，無法顯示。",

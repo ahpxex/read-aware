@@ -15,6 +15,7 @@ export function PluginInstallConsentDialog() {
   const manifest = request?.manifest;
   const permissions = manifest?.permissions ?? [];
   const settingsAccess = manifest?.settingsAccess;
+  const networkOrigins = manifest?.networkAccess?.origins ?? [];
   const settingGrants = (["discover", "read", "write"] as const).flatMap(
     (operation) =>
       (settingsAccess?.[operation] ?? []).map((path) => ({ operation, path })),
@@ -64,6 +65,18 @@ export function PluginInstallConsentDialog() {
                     </span>
                   </div>
                 ))}
+                {permissions.includes("service:network") && (
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <Caption>{t("settings.networkAccess.title")}</Caption>
+                    {networkOrigins.length === 0 ? (
+                      <Caption className="text-fg-muted">{t("settings.networkAccess.none")}</Caption>
+                    ) : networkOrigins.map(origin => (
+                      <Caption key={origin} className="break-all text-fg-muted">
+                        {origin === "*" ? t("settings.networkAccess.all") : origin}
+                      </Caption>
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </div>

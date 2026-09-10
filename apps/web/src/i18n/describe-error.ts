@@ -120,6 +120,8 @@ const CODE_COPY: Record<string, CopyEntry> = {
   "library/range-forbidden": { key: "bookRangeForbidden", retryable: false },
   "library/book-not-found": { key: "bookNotFound", retryable: false },
   "plugin/action-disabled": { key: "pluginActionDisabled", retryable: false },
+  "plugin/network-denied": { key: "pluginNetworkDenied", retryable: false },
+  "plugin/network-redirect": { key: "pluginNetworkRedirect", retryable: false },
   "library/text-extraction-failed": { key: "bookTextExtractionFailed", retryable: true },
   "library/text-unsupported": { key: "bookTextUnsupported", retryable: false },
   "library/text-cancelled": { key: "bookTextCancelled", retryable: false },

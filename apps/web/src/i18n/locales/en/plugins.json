@@ -63,6 +63,11 @@
       "read": "Read setting",
       "write": "Change setting"
     },
+    "networkAccess": {
+      "title": "Network destinations",
+      "all": "All HTTP and HTTPS destinations, including local services",
+      "none": "No arbitrary HTTP requests; host-controlled actions only"
+    },
     "scheduleLine": "Scheduled: {{label}} — at least every {{minutes}} min while the app is open",
     "permissionName": {
       "service_sync": "Sync",

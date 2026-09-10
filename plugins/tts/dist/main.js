@@ -244,6 +244,7 @@ async function lookupVoiceName(ctx, network, settings) {
     try {
       const response = await network.fetch(request.url, {
         headers: request.headers,
+        redirect: "error",
         signal: AbortSignal.timeout(5000)
       });
       if (!response.ok)
@@ -295,6 +296,7 @@ var plugin = {
         const request = buildSpeechRequest(settings, apiKey, text2);
         const response = await network.fetch(request.url, {
           method: "POST",
+          redirect: "error",
           headers: request.headers,
           body: request.body,
           signal: AbortSignal.timeout(30000)
@@ -319,7 +321,8 @@ var plugin = {
         const listings = await Promise.all(requests.map(async (request) => {
           try {
             const response = await network.fetch(request.url, {
-              headers: request.headers
+              headers: request.headers,
+              redirect: "error"
             });
             if (!response.ok)
               return [];

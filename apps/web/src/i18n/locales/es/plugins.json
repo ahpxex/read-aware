@@ -44,6 +44,11 @@
     "actions": "Acciones de plugins"
   },
   "settings": {
+    "networkAccess": {
+      "title": "Destinos de red",
+      "all": "Todos los destinos HTTP y HTTPS, incluidos los servicios locales",
+      "none": "Sin solicitudes HTTP arbitrarias; solo acciones controladas por la aplicación"
+    },
     "title": "Plugins",
     "trustWarning": "Los plugins se ejecutan dentro de la aplicación con el mismo acceso que ella. Instala solo plugins de confianza.",
     "install": "Instalar plugin…",

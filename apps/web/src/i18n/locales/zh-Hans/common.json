@@ -12,6 +12,8 @@
     "copied": "已复制"
   },
   "errors": {
+    "pluginNetworkDenied": "此插件未获授权访问该网络地址。",
+    "pluginNetworkRedirect": "此网络请求遇到了不允许或无效的重定向。",
     "capabilityQueryInvalid": "请检查能力目录的筛选条件和分页范围。",
     "capabilityCatalogChanged": "能力目录已变化，请从第一页重新查询。",
     "capabilityCatalogUnavailable": "能力目录超出大小限制，无法显示。",

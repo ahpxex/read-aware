@@ -12,6 +12,8 @@
     "copied": "Copiado"
   },
   "errors": {
+    "pluginNetworkDenied": "Este plugin no tiene permiso para contactar con ese destino.",
+    "pluginNetworkRedirect": "Esta solicitud encontró una redirección no permitida o no válida.",
     "capabilityQueryInvalid": "Revisa los filtros y los límites de paginación del catálogo de funciones.",
     "capabilityCatalogChanged": "El catálogo de funciones ha cambiado. Vuelve a empezar desde la primera página.",
     "capabilityCatalogUnavailable": "El catálogo de funciones supera el límite de tamaño de visualización.",

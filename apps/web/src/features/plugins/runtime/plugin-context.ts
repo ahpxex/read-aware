@@ -9,6 +9,7 @@
  * write implies read.
  */
 import { fetch as corsFreeFetch } from "@tauri-apps/plugin-http";
+import { createPluginNetworkService } from "./plugin-network";
 import type { PluginActionRegistration } from "@read-aware/plugin-types";
 import { readerPanels } from "../../../services/reader-panels";
 import { readerReferencePreview } from "../../../services/reader-reference-preview";
@@ -967,15 +968,7 @@ export function buildPluginContext(
   }
 
   if (canUseHostService("network", permissions)) {
-    ctx.services.network = {
-      // The Rust HTTP client (tauri-plugin-http), not webview fetch: plugin
-      // requests must reach hosts that never heard of CORS. Scope lives in
-      // the capability file (https + localhost), not in the webview CSP.
-      fetch: (input, init) => {
-        lifecycle.assertActive("services.network.fetch");
-        return corsFreeFetch(input, init);
-      },
-    };
+    ctx.services.network = createPluginNetworkService(manifest.networkAccess, lifecycle, corsFreeFetch);
   }
 
   if (canUseHostService("llm", permissions)) {

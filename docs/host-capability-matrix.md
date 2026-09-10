@@ -305,8 +305,8 @@
 | <a id="SYS03"></a>SYS03 | 插件 schema 迁移/快照/更新回滚 | 部分 | **未接**：宿主管理安装生命周期<br>[设计] 不开放：模型操作迁移存储 | **部分**：migrate storage-only；quiesce/drain 后 snapshot；schemaVersion 等待持久<br>[设计] quiescent + durable migration | RSS legacy feeds 迁移；插件更新 | 已修复健康检查失败误恢复与旧实例晚写丢失的时序；全局外部设置并发、KV/docs 联合恢复和真实 Tauri 更新故障 E2E 仍待验收，GAP01/02 不整体关闭 | [HOST](../apps/web/src/features/plugins/runtime/plugin-host.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) [WORKER](../apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | O05, R01 |
 | <a id="SYS04"></a>SYS04 | 插件自有 secret get/set/remove | 实装 | **未接**：不提供密钥读取工具<br>[设计] 不开放：密钥进模型上下文 | **接通**：services.secrets namespace<br>[设计] 隔离凭据服务 | TTS；WebDAV | 私有 secret 不等于可读宿主 AI key/同步解密 key | [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [SECRETS](../apps/web/src/platform/secret-store.ts) [TTS](../plugins/tts/src/index.ts) [WEBDAV](../plugins/webdav-sync/src/index.ts) | O03 |
 | <a id="SYS05"></a>SYS05 | 插件数据导入导出/配额/同步策略 | 部分 | **扩展**：仅插件自定义工具<br>[设计] 插件拥有的数据操作 | **部分**：exportFile + 私有 CRUD；无通用配额/同步状态<br>[设计] 隔离数据生命周期 | Dictionary CSV；RSS OPML | KV、plugin_docs、secrets、blob 的漫游/备份边界不同，不能统一宣称可同步 | [API](../packages/plugin-types/src/index.ts) [DOCS](../apps/web/src/features/plugins/runtime/plugin-backend.ts) [ROAM](../apps/web/src/platform/roaming-preferences.ts) [BACKUP](../apps/web/src/features/settings/lib/backup-io.ts) | O06 |
-| <a id="SYS06"></a>SYS06 | 原生网络 HTTP 请求与响应 | 实装 | **内部**：推理端口/插件工具，无通用 fetch 工具<br>[设计] 有用途/域名约束网络工具 | **部分**：services.network v1.1：Request/二进制/AbortSignal 跨桥；64 MiB/120s 边界<br>[设计] 完整有界 HTTP 服务 | RSS/TTS/WebDAV；隔离 Tauri wire probe | GAP04/05 的参数保真、预取消不发请求、运行中取消及停用中止原生连接已实测；仍需 Agent 受权网络入口、重定向策略及生产 CSP 验收，见 host-capability-delivery.md | [HTTP](../apps/web/src/platform/http-client.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) [WORKER](../apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts) [RSS](../plugins/rss-reader/src/index.ts) [TTS](../plugins/tts/src/index.ts) | P03 |
-| <a id="SYS07"></a>SYS07 | 网络域名授权、预算、下载流和离线重试 | 部分 | **未接**：无正式入口<br>[设计] 用途受限任务 | **部分**：network permission 是大开关，无完整流/配额<br>[设计] 授权/任务/缓存原语 | 宿主内部 HTTP；各插件自行缓存 | 不是给每个插件重新实现重试/缓存的理由；实时 socket 不算宿主当前产品能力 | [API](../packages/plugin-types/src/index.ts) [HTTP](../apps/web/src/platform/http-client.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) [CATALOG](../packages/core/src/capabilities.ts) | P04, P06 |
+| <a id="SYS06"></a>SYS06 | 原生网络 HTTP 请求与响应 | 实装 | **内部**：推理端口/插件工具，无通用 fetch 工具<br>[设计] 有用途/域名约束网络工具 | **部分**：services.network 2.0：Request/二进制/AbortSignal 跨桥；逐跳授权<br>[设计] 完整有界 HTTP 服务 | RSS 0.8/TTS 0.6/WebDAV 0.3；旧隔离 Tauri wire probe | 保留64 MiB正文/120秒RPC边界；networkAccess显式声明来源，禁原生自动跟随，最多10跳；manual返回3xx、error拒绝，307/308保留方法正文，301/302 POST及303非GET/HEAD改GET。跨来源去标准认证/Cookie/Referer头，拒HTTPS降级，最终URL/redirected跨桥；原生HTTP禁共享Cookie jar，TTS自定义密钥请求禁止重定向。旧参数/取消桌面证据不证明新策略，定向检查已过，新重定向与无Cookie原生链路、生产CSP及Agent受限入口仍待集中验收。 | [HTTP](../apps/web/src/platform/http-client.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) [WORKER](../apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts) [RSS](../plugins/rss-reader/src/index.ts) [TTS](../plugins/tts/src/index.ts) [NETWORKSERVICE](../apps/web/src/features/plugins/runtime/plugin-network.ts) [NETWORKPROOF](../apps/web/src/features/plugins/runtime/plugin-network.test.ts) | P03 |
+| <a id="SYS07"></a>SYS07 | 网络域名授权、预算、下载流和离线重试 | 部分 | **未接**：无正式入口<br>[设计] 用途受限任务 | **部分**：network 2.0 networkAccess.origins / policy()；无独立并发/流/重试预算<br>[设计] 授权/任务/缓存原语 | 安装/更新授权；RSS/TTS/WebDAV自定义地址 | 最多32个精确HTTP(S) origin（协议/主机/端口）或单独*；缺省空列表拒绝任意HTTP，不因service:network默许全网。授权展示于每次安装/更新，带networkAccess的声明必须排除旧1.x宿主；运行时复制冻结边界，policy返回副本和现有限额。每次重定向重验来源/协议，原生proxy/TLS/自动跳转选项不接受插件输入；固定用途外链/更新服务保留独立规则。第一方自定义地址插件显式全网包含本地服务，不冒充最小域名或IP/DNS隔离。下载流、独立并发/累计额度、受限Agent网络任务仍缺；socket/通用离线耐久队列不是已有宿主能力。 | [API](../packages/plugin-types/src/index.ts) [HTTP](../apps/web/src/platform/http-client.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) [CATALOG](../packages/core/src/capabilities.ts) [NETWORKPOLICY](../apps/web/src/features/plugins/lib/plugin-network-policy.ts) [NETWORKSERVICE](../apps/web/src/features/plugins/runtime/plugin-network.ts) [NETWORKPROOF](../apps/web/src/features/plugins/runtime/plugin-network.test.ts) | P04, P06 |
 | <a id="SYS08"></a>SYS08 | 剪贴板写文本 | 实装 | **接通**：copy_to_clipboard[双域]<br>[设计] 用户触发的复制意图 | **接通**：services.clipboard.writeText<br>[设计] 受权剪贴板写 | 选择复制；插件动作；Agent | 共享写入限 1000000 字符，插件需 service:clipboard；取消阻止未派发写，不回滚已派发写。只接受明确复制意图，不读取剪贴板或复制图片。定向测试通过；新双端组合 E2E 待集中进行。 | [API](../packages/plugin-types/src/index.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) [HOSTIO](../apps/web/src/services/host-io.ts) [HOSTIOTOOLS](../packages/agent/src/tools/host-io-tools.ts) | P05 |
 | <a id="SYS09"></a>SYS09 | 图片复制/导出原生图片资源 | 实装 | **接通**：copy_resource_image/save_resource[双域]<br>[设计] 用户触发的图像导出 | **接通**：clipboard 1.1 writeImage；resources.save<br>[设计] Image ResourceRef + 受权复制/导出 | ReaderImageLightbox；封面/选中/自建图片引用 | 剪贴板需独立 service:clipboard，仅本 owner 封口非原书引用；原生按字节解码 PNG/JPEG/GIF/BMP/WebP 默认静态图，SVG 不支持。限 16 MiB 编码、8192 单边、16,777,216 像素与 64 MiB 解码分配，失败不先清剪贴板，完成返回 copied/width/height。不读剪贴板、不向模型发图；晚取消不回滚。桌面灯箱 PNG 复制共用后端。library 1.13 与 UI 1.13 已接书内图片发现、资源读取与程序化灯箱打开；真实剪贴板粘贴和多格式/Worker E2E 待集中验收。 | [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [EXPORT](../apps/web/src/platform/export-file.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [RESOURCEOWNER](../apps/web/src/services/resource-owner.ts) [RESOURCEIMAGES](../apps/desktop/src-tauri/src/resource_images.rs) [RESOURCEEXPORT](../apps/web/src/platform/resource-export.ts) [RESOURCETOOLS](../packages/agent/src/tools/resource-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | J08, P05 |
 | <a id="SYS10"></a>SYS10 | 保存文本/二进制文件与取消回执 | 实装 | **接通**：export_text_file/save_resource[双域]<br>[设计] 原生文本/二进制资源导出 | **接通**：ui.exportFile；resources.save<br>[设计] 用户确认的文件导出 | Dictionary CSV；Annotation Desk；原生保存；Agent | exportFile 保留插件 64 MiB 便利入口，桌面已统一为资源暂存/封口/保存/释放；输入先快照，分块追加。原生保存从匿名文件复制到目标同目录暂存文件，sync_all 后替换，失败不先截断已有文件，二进制不经模型。原生保存对话框后重验取消；saved:false 为用户取消，已派发写不回滚。filename 仅 basename 不是路径授权。原生文件单测通过，真实 Tauri 保存、磁盘故障与多窗口验收待集中进行；移动端历史导出和 Storybook 浏览器降级不变。 | [EXPORT](../apps/web/src/platform/export-file.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [API](../packages/plugin-types/src/index.ts) [DICTEXPORT](../plugins/dictionary/src/export.ts) [DESKEXPORT](../plugins/annotation-desk/src/export.ts) [DESKRELEASE](../docs/evidence/packaged-annotation-desk-2026-09-09.json) [HOSTIO](../apps/web/src/services/host-io.ts) [HOSTIOTOOLS](../packages/agent/src/tools/host-io-tools.ts) [RESOURCEOWNER](../apps/web/src/services/resource-owner.ts) [RESOURCEFILES](../apps/desktop/src-tauri/src/resources.rs) [RESOURCETOOLS](../packages/agent/src/tools/resource-tools.ts) [RESOURCEEXPORT](../apps/web/src/platform/resource-export.ts) | P02 |
@@ -412,7 +412,7 @@
 
 - Agent global：100 个。
 - Agent book：83 个。
-- Plugin ctx：191 个。
+- Plugin ctx：192 个。
 - Plugin returned interface：27 个。
 - Capability domains：6 个。
 - Capability contributions：15 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 191 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 192 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -810,6 +810,7 @@
 | `services.sync.requestSync` | [OPS01](#OPS01) [OPS03](#OPS03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.sync.openSettings` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.sync.observe` | [OPS01](#OPS01) [OPS03](#OPS03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.network.policy` | [SYS07](#SYS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.network.fetch` | [SYS06](#SYS06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.llm.ask` | [AI06](#AI06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.clipboard.writeImage` | [SYS09](#SYS09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -1387,11 +1388,11 @@
 | `listening-desk` | [READ16](#READ16) [READ18](#READ18) [READ06](#READ06) [EXT02](#EXT02) [MORE03](#MORE03) | [代码] 源码版本 0.9.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `memory-desk` | [MEM01](#MEM01) [MEM04](#MEM04) [MEM05](#MEM05) [MEM09](#MEM09) [MEM10](#MEM10) [MEM11](#MEM11) [READ01](#READ01) [EXT02](#EXT02) [EXT05](#EXT05) | [代码] 源码版本 0.6.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `reading-goals` | [AI11](#AI11) [MEM03](#MEM03) [SET23](#SET23) [STAT02](#STAT02) [STAT05](#STAT05) [STAT03](#STAT03) [EXT07](#EXT07) [EXT02](#EXT02) [EXT05](#EXT05) [SYS01](#SYS01) | [代码] 源码版本 0.3.0；源码存在不等于打包、安装、启用或模型可调用 |
-| `rss-reader` | [EXT10](#EXT10) | [代码] 源码版本 0.7.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `rss-reader` | [EXT10](#EXT10) | [代码] 源码版本 0.8.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `sentence-reader` | [READ15](#READ15) [READ16](#READ16) | [代码] 源码版本 1.1.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `text-desk` | [TXT04](#TXT04) [TXT05](#TXT05) [TXT06](#TXT06) [TXT07](#TXT07) [TXT10](#TXT10) [TXT13](#TXT13) [LIB01](#LIB01) [READ01](#READ01) [READ13](#READ13) [EXT01](#EXT01) [EXT02](#EXT02) [EXT05](#EXT05) | [代码] 源码版本 0.8.0；源码存在不等于打包、安装、启用或模型可调用 |
-| `tts` | [READ17](#READ17) [READ18](#READ18) | [代码] 源码版本 0.5.0；源码存在不等于打包、安装、启用或模型可调用 |
-| `webdav-sync` | [OPS04](#OPS04) | [代码] 源码版本 0.2.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `tts` | [READ17](#READ17) [READ18](#READ18) | [代码] 源码版本 0.6.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `webdav-sync` | [OPS04](#OPS04) | [代码] 源码版本 0.3.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `workspace-profiles` | [UI02](#UI02) [UI04](#UI04) [CFG01](#CFG01) [CFG10](#CFG10) [EXT02](#EXT02) [EXT05](#EXT05) [SYS02](#SYS02) | [代码] 源码版本 0.3.0；源码存在不等于打包、安装、启用或模型可调用 |
 
 ### Plugin Agent contribution

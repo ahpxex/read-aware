@@ -12,6 +12,8 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "pluginNetworkDenied": "Dieses Plugin darf dieses Netzwerkziel nicht kontaktieren.",
+    "pluginNetworkRedirect": "Diese Anfrage hat eine unzulässige oder ungültige Weiterleitung erhalten.",
     "capabilityQueryInvalid": "Prüfe die Filter und Seitengrenzen des Funktionskatalogs.",
     "capabilityCatalogChanged": "Der Funktionskatalog hat sich geändert. Beginne erneut auf der ersten Seite.",
     "capabilityCatalogUnavailable": "Der Funktionskatalog überschreitet die zulässige Anzeigegröße.",

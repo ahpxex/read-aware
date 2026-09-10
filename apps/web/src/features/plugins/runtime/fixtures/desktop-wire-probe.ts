@@ -20,7 +20,8 @@ export async function runDesktopWireProbe(scenario: "request-storage" | "pre-abo
   await localKV.setItemAsync(prefix + "abortAfterMs", "250");
   const manifest: PluginManifest = {
     id, name: "Capability wire probe", description: scenario, version: "1.0.0", schemaVersion: 1,
-    permissions: ["service:network"], requires: { services: { storage: "^2.0.0", network: "^1.0.0" } },
+    permissions: ["service:network"], requires: { services: { storage: "^2.0.0", network: "^2.0.0" } },
+    networkAccess: { origins: ["http://127.0.0.1:18884"] },
   };
   const disposables: PluginDisposable[] = [];
   const worker = await startPluginWorker(manifest, "0.5.4", disposables, {

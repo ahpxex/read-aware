@@ -1,7 +1,7 @@
 {
   "id": "rss-reader",
   "name": "RSS Reader",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "schemaVersion": 1,
   "minAppVersion": "0.3.0",
   "requires": {
@@ -19,7 +19,7 @@
       "storage": "^2.0.0",
       "ui": "^1.0.0",
       "schedules": "^1.0.0",
-      "network": "^1.0.0"
+      "network": "^2.0.0"
     },
     "schemas": {
       "views": "^1.0.0",
@@ -35,6 +35,7 @@
     "agent:tools"
   ],
   "main": "main.js",
+  "networkAccess": { "origins": ["*"] },
   "schedules": [
     {
       "id": "refresh-feeds",

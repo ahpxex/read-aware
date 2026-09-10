@@ -44,6 +44,11 @@
     "actions": "Actions des extensions"
   },
   "settings": {
+    "networkAccess": {
+      "title": "Destinations réseau",
+      "all": "Toutes les destinations HTTP et HTTPS, y compris les services locaux",
+      "none": "Aucune requête HTTP libre ; uniquement les actions contrôlées par l’application"
+    },
     "title": "Extensions",
     "trustWarning": "Les extensions s'exécutent dans l'application avec le même accès qu'elle. N'installez que des extensions de confiance.",
     "install": "Installer une extension…",

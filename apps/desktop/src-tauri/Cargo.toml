@@ -62,7 +62,9 @@ tauri-plugin-fs = "2"
 # Staging ground for content-URI picks: extractors and the blob copy read a
 # real path, the temp file vanishes with its guard (also used by tests).
 tempfile = "3"
-tauri-plugin-http = "2.5.9"
+# Explicit auth headers belong to each caller; never share a native cookie jar
+# between plugin activations and the host's own HTTP traffic.
+tauri-plugin-http = { version = "2.5.9", default-features = false, features = ["rustls-tls", "http2", "charset", "macos-system-configuration"] }
 # 外链交给系统浏览器（更新日志、官网）。webview 默认吞掉 target=_blank，
 # 前端统一走 openExternalUrl → 本插件。
 tauri-plugin-opener = "2"

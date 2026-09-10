@@ -44,6 +44,11 @@
     "actions": "外掛動作"
   },
   "settings": {
+    "networkAccess": {
+      "title": "網路存取範圍",
+      "all": "所有 HTTP 和 HTTPS 位址，包括本機服務",
+      "none": "不允許任意 HTTP 請求；僅限宿主控制的操作"
+    },
     "title": "外掛",
     "trustWarning": "外掛與應用程式在同一環境中執行,擁有與應用程式相同的資料存取能力。請只安裝你信任的外掛。",
     "install": "安裝外掛…",

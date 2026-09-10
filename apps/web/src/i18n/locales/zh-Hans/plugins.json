@@ -44,6 +44,11 @@
     "actions": "插件动作"
   },
   "settings": {
+    "networkAccess": {
+      "title": "网络访问范围",
+      "all": "所有 HTTP 和 HTTPS 地址，包括本地服务",
+      "none": "不允许任意 HTTP 请求；仅限宿主控制的操作"
+    },
     "title": "插件",
     "trustWarning": "插件与应用运行在同一环境,拥有与应用相同的数据访问能力。请只安装你信任的插件。",
     "install": "安装插件…",

@@ -1,7 +1,7 @@
 {
   "id": "tts",
   "name": "TTS Voices",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "schemaVersion": 1,
   "minAppVersion": "0.3.0",
   "requires": {
@@ -12,7 +12,7 @@
     "services": {
       "storage": "^2.0.0",
       "secrets": "^1.0.0",
-      "network": "^1.0.0"
+      "network": "^2.0.0"
     },
     "schemas": { "settings": "^1.0.0" }
   },
@@ -21,6 +21,7 @@
   "permissions": [
     "service:network"
   ],
+  "networkAccess": { "origins": ["*"] },
   "main": "main.js",
   "settings": [
     {

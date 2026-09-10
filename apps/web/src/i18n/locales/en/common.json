@@ -12,6 +12,8 @@
     "copied": "Copied"
   },
   "errors": {
+    "pluginNetworkDenied": "This plugin is not authorized to contact that destination.",
+    "pluginNetworkRedirect": "This network request encountered a disallowed or invalid redirect.",
     "capabilityQueryInvalid": "Check the capability catalog filters and page limits.",
     "capabilityCatalogChanged": "The capability catalog changed. Start again from the first page.",
     "capabilityCatalogUnavailable": "The capability catalog could not be displayed within its size limit.",

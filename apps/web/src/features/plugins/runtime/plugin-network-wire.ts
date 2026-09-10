@@ -5,6 +5,7 @@ export type PluginNetworkResponse = {
   status: number;
   statusText: string;
   url: string;
+  redirected: boolean;
   headers: [string, string][];
   body: ArrayBuffer;
 };
@@ -88,6 +89,7 @@ export async function flattenPluginResponse(response: Response, signal?: AbortSi
     status: response.status,
     statusText: response.statusText,
     url: response.url,
+    redirected: response.redirected,
     headers: [...response.headers.entries()],
     body: await readBody(response.body, signal, limit),
   };
@@ -100,5 +102,6 @@ export function restorePluginResponse(value: PluginNetworkResponse): Response {
     headers: value.headers,
   });
   Object.defineProperty(response, "url", { value: value.url });
+  Object.defineProperty(response, "redirected", { value: value.redirected });
   return response;
 }

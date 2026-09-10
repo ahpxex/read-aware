@@ -1,7 +1,7 @@
 {
   "id": "webdav-sync",
   "name": "WebDAV Sync",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "schemaVersion": 1,
   "minAppVersion": "0.5.1",
   "requires": {
@@ -11,7 +11,7 @@
     "services": {
       "storage": "^2.0.0",
       "secrets": "^1.0.0",
-      "network": "^1.1.0"
+      "network": "^2.0.0"
     },
     "schemas": {
       "settings": "^1.0.0"
@@ -24,6 +24,7 @@
     "sync:transport"
   ],
   "main": "main.js",
+  "networkAccess": { "origins": ["*"] },
   "settings": [
     {
       "kind": "text",

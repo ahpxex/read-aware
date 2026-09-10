@@ -13,6 +13,7 @@ const manifest: PluginManifest = {
   author: "ReadAware",
   description: "Look up words while reading and keep a vocabulary notebook.",
   permissions: ["annotations:read", "annotations:write", "service:network"],
+  networkAccess: { origins: ["https://dictionary.example.test", "http://localhost:8080"] },
 };
 
 /** Pairs a manifest with a resolver, as the install gate does. */
@@ -43,12 +44,16 @@ export const Default: Story = {
 
 /** A plugin that asks for nothing — the gate says so rather than showing a gap. */
 export const NoPermissions: Story = {
-  decorators: [consent({ ...manifest, permissions: [] })],
+  decorators: [consent({ ...manifest, permissions: [], networkAccess: undefined })],
 };
 
 /** Every permission the contract defines, which is the worst case for length. */
 export const EveryPermission: Story = {
   decorators: [consent({ ...manifest, permissions: [...PLUGIN_PERMISSIONS] })],
+};
+
+export const AllNetworkOrigins: Story = {
+  decorators: [consent({ ...manifest, networkAccess: { origins: ["*"] } })],
 };
 
 /** No author and no description: the identity line degrades to the version. */

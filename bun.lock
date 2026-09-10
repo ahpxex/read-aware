@@ -286,7 +286,7 @@
     },
     "plugins/rss-reader": {
       "name": "@read-aware/plugin-rss-reader",
-      "version": "0.7.0",
+      "version": "0.8.0",
       "dependencies": {
         "fast-xml-parser": "^5.10.1",
       },
@@ -319,7 +319,7 @@
     },
     "plugins/tts": {
       "name": "@read-aware/plugin-tts",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "devDependencies": {
         "@read-aware/plugin-types": "workspace:*",
         "@read-aware/tsconfig": "workspace:*",
@@ -329,7 +329,7 @@
     },
     "plugins/webdav-sync": {
       "name": "@read-aware/plugin-webdav-sync",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "dependencies": {
         "fast-xml-parser": "^5.10.1",
       },

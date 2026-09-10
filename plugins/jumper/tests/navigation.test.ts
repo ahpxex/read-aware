@@ -103,7 +103,7 @@ test("compiled Jumper command keeps chapter search first and exposes source navi
   const f = fixture(); let run!: () => Promise<PluginViewResult>;
   const registration = { updateState: async () => {}, dispose() {} };
   Object.assign(f.ctx, { contributions: { commands: { register: (c: { id: string; run: typeof run }) => { if (c.id === "open") run = c.run; return registration; } },
-    headerActions: { register: () => registration } } });
+    headerActions: { register: () => registration }, agentTools: { register: () => registration } } });
   const plugin = (await import(new URL("../dist/main.js", import.meta.url).href)).default as PluginModule;
   await plugin.activate(f.ctx);
   const root = resultView(await run()); if (root.kind !== "blocks") throw Error("Expected root blocks");

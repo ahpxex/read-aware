@@ -16,6 +16,12 @@ test("maintenance composition is a source consumer, not a new Agent tool or bund
   expect(inventory.some(item => item.family === "Plugin Agent contribution" && item.name.includes("maintenance_desk"))).toBe(false);
 });
 
+test("Jumper bookmark tools are inventoried as global plugin extensions, not new host APIs", () => {
+  const tools = collectInventory().filter(item => item.family === "Plugin Agent contribution" && item.name.startsWith("plugin_jumper_"));
+  expect(tools.map(item => item.name)).toEqual(["plugin_jumper_list_bookmarks", "plugin_jumper_inspect_bookmark_location", "plugin_jumper_save_bookmark", "plugin_jumper_manage_bookmark"]);
+  expect(tools.every(item => item.rows.includes("SYS02") && item.note.includes("仅 global"))).toBe(true);
+});
+
 test("semantic commands retain explicit audit mappings after native callback removal", () => {
   const inventory = collectInventory();
   const commands = inventory.filter(item => item.family === "Host semantic command");

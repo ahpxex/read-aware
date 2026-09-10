@@ -4,10 +4,12 @@ import { jumperView } from "./views";
 import { tr } from "./strings";
 import { bookmarksView } from "./bookmark-views";
 import { bookmarkCopy } from "./bookmark-strings";
+import { registerBookmarkTools } from "./bookmark-tools";
 
 const plugin: PluginModule = {
   activate(ctx) {
     assertCapabilities(ctx);
+    registerBookmarkTools(ctx);
     const unavailable = { revision: 0, visible: true, enabled: false };
     const header = ctx.contributions.headerActions.register({ id: "jumper", title: "Jumper", icon: "magnifying-glass", state: unavailable,
       surface: "reader", presentation: "popup", view: () => jumperView(ctx) });

@@ -14,7 +14,7 @@ test("Jumper composes observed session readiness and history with action availab
       states.set(action.id, state); return { status: "applied" as const };
     } };
   };
-  await plugin.activate({ locale: "en", contributions: { commands: { register }, headerActions: { register } },
+  await plugin.activate({ locale: "en", contributions: { commands: { register }, headerActions: { register }, agentTools: { register: () => ({ dispose() {} }) } },
     domains: { library: {}, reading: { commands: {}, events: { observeSession(handler: typeof observe) { observe = handler; } } } },
   } as unknown as PluginContext);
   const readerStates = () => [...states].filter(([id]) => id !== "bookmarks").map(([, state]) => state);

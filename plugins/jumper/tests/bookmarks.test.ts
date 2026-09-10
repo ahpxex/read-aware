@@ -172,6 +172,7 @@ test("compiled bookmark command works without an open reader, while the reader m
   Object.assign(f.ctx, { contributions: {
     commands: { register: (command: { id: string; run: () => Promise<PluginViewResult> }) => { commands.set(command.id, command.run); return registration; } },
     headerActions: { register: () => registration },
+    agentTools: { register: () => registration },
   } });
   const plugin = (await import(new URL("../dist/main.js", import.meta.url).href)).default as PluginModule;
   await plugin.activate(f.ctx);
@@ -187,5 +188,5 @@ test("compiled bookmark command works without an open reader, while the reader m
   expect((view(await menu.actions.find(a => a.id === "bookmarks")!.run()) as PluginListView).items).toHaveLength(1);
   const manifest = await Bun.file(new URL("../dist/manifest.json", import.meta.url)).json();
   expect(manifest.requires.services.storage).toBe("^2.1.0");
-  expect(manifest.permissions).toEqual(["library:read", "reading:write"]);
+  expect(manifest.permissions).toEqual(["library:read", "reading:write", "agent:tools"]);
 });

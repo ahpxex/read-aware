@@ -692,6 +692,41 @@ whole-book reflow pagination is not an existing host capability being claimed.
 
 ### Jumper Source Navigation Composition
 
+[代码] Jumper 0.6 adds four global Agent tools through the existing
+`agentTools` 1.2 contribution. The new `agent:tools` permission must be granted on
+upgrade. No host API, core Agent tool or private-storage bypass was added.
+These collection-wide tools are intentionally global-only, not book-chat tools:
+
+- `list_bookmarks`: optional exact book filter/cursor, default 10 and maximum 20
+  entries. Returns ID, revision, validity, name, kind, book ID and a title preview
+  capped at 160 characters with an explicit truncation flag, not raw locators or
+  quotes. A stale cursor returns `stale-cursor`, with no mixed page.
+- `inspect_bookmark_location`: reads a current location/readable selection and
+  returns metadata plus a `bm1:` SHA-256 fingerprint of kind and canonical target.
+  This token is an equality precondition, not an authorization token. It does not
+  save, navigate or hold a durable task. Suggested names remain capped at 120.
+- `save_bookmark`: host approval of name/kind/book ID/token precedes execution.
+  Capture the current target again and compare book and fingerprint. A changed
+  target returns `stale-location` without writing; an unreadable target preserves
+  the host error. Once checked, save that captured target even if the reader later
+  moves. Create compares absence at a fresh UUID. This is not deduplication or
+  replay idempotency: repeating an accepted save may create another bookmark.
+- `manage_bookmark`: host approval before open/rename/delete. Requires exact ID
+  and expected revision from listing; rename additionally requires a name, while
+  other actions reject that argument. Missing/changed/invalid entries have
+  explicit outcomes. Delete can clean up invalid documents; open/rename cannot.
+  Rename/delete use the same conditional storage writes as the UI. Open navigates
+  the captured stored target only, preserving the content version and errors.
+
+[验证] 38 Jumper tests / 232 assertions, including compiled registration and
+all new operations; existing host confirmation adapter regressions 7 / 53;
+inventory/model checks 14 / 48; build, typecheck and manifest validation pass.
+The four tools are in the generated inventory as global plugin extensions.
+This is controlled plugin/host testing, not a real model turn, native approval
+click, Worker or restart test. New permission consent, native composition and
+document visual checks remain for the concentrated desktop acceptance phase.
+This supersedes the 0.5 note below that bookmark-specific Agent tools were absent.
+
 [代码] Jumper 0.5 additionally composes bookmarks using existing Reading 2.14
 locations/selection ranges and Storage 2.1 private documents. The reader menu
 opens the bookmark list; the separate `jumper:bookmarks` command remains enabled

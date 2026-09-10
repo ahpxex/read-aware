@@ -1603,6 +1603,8 @@ export type PluginConversationsDomain = {
 
 export type PluginSettingsDomain = {
   queries: {
+    /** Settings 1.9: cached public model metadata; discover access to primaryModel or fastModel. No network. */
+    modelCatalog(query: import("@read-aware/core").ModelCatalogQuery): Promise<import("@read-aware/core").ModelCatalogPage>;
     /** Since settings 1.3: one host snapshot after prior queued writes settle, filtered by exact path grants. */
     snapshot(query?: SettingsQuery): Promise<import("@read-aware/core").SettingsSnapshot>;
     /** Settled snapshots after native, domain, remote, restore and catalog changes. Coalesces slow callbacks. */
@@ -1614,6 +1616,8 @@ export type PluginSettingsDomain = {
     read(path: string, target?: SettingsQueryTarget): Promise<SettingReadResult>;
   };
   commands: {
+    /** Settings 1.9: additionally requires service:network. Shared native refresh, not a connection test. */
+    refreshModelCatalog?(provider: string, options?: PluginCallOptions): Promise<import("@read-aware/core").ModelCatalogPage>;
     update(changes: SettingChange[]): Promise<SettingsUpdateResult>;
     /** Settings 1.7: reset the whole reader-preference bundle; every reading path must be writable.
      * defaults restores built-ins; inherit deletes active and remembered book overrides. */

@@ -5,6 +5,8 @@ import { createDomainApi } from "../../../../domain";
 export function createSettingsPort(): SettingsPort {
   const settings = createDomainApi("agent").settings;
   return {
+    getModelCatalog: settings.queries.modelCatalog,
+    refreshModelCatalog: settings.commands.refreshModelCatalog,
     getSettings: settings.queries.snapshot,
     getSettingOptions: settings.queries.options,
     updateSettings: settings.commands.update,

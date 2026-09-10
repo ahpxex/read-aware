@@ -727,6 +727,10 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     },
     bookMemory: createBookMemoryFixture(stores.chapterDigests, bookClassification),
     settings: {
+      getModelCatalog: async query => ({ provider: query.provider, revision: 1, refreshing: false, checkedAt: null, errorCode: null,
+        models: [], total: 0, offset: query.offset ?? 0, nextOffset: null }),
+      refreshModelCatalog: async provider => ({ provider, revision: 2, refreshing: false, checkedAt: Date.now(), errorCode: null,
+        models: [], total: 0, offset: 0, nextOffset: null }),
       resetReading: async () => { throw new AppError("ui/unavailable", "Attach a reading reset fixture"); },
       getSettings: async (query) => querySettings(stores.settings, query),
       getSettingOptions: async query => {

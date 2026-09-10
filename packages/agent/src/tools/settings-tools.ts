@@ -11,6 +11,7 @@ import type {
 } from "../settings";
 import type { ThreadScope } from "../thread-scope";
 import { textResult } from "./tool-result";
+import { buildModelCatalogTools } from "./model-catalog-tools";
 
 const sectionSchema = Type.Union([
   Type.Literal("general", { description: "General application behavior" }),
@@ -229,5 +230,5 @@ export function buildSettingsTools(scope: ThreadScope, deps: RuntimeDeps): Agent
       return textResult(await deps.settings.resetReading({ action: accepted.action, target } as ReadingSettingsReset, signal));
     },
   };
-  return [getSettings, getSettingOptions, updateSettings, resetReading];
+  return [getSettings, getSettingOptions, updateSettings, resetReading, ...buildModelCatalogTools(deps)];
 }

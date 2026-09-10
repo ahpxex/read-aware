@@ -203,7 +203,7 @@ export function buildPluginContext(
     read: [...(requestedSettings.read ?? []), ...ownSettingsPaths],
     write: [...(requestedSettings.write ?? []), ...ownSettingsPaths],
   };
-  const settingsDomain = createSettingsDomain(selfOrigin, settingsAccess);
+  const settingsDomain = createSettingsDomain(selfOrigin, settingsAccess, permissions.has("service:network"));
   const storagePrefix = pluginStoragePrefix(manifest.id);
   const track = (factory: () => PluginDisposable): PluginDisposable =>
     lifecycle.stage(factory);
@@ -252,6 +252,7 @@ export function buildPluginContext(
     domains: {
       settings: {
         queries: {
+          modelCatalog: query => lifecycle.read("settings.modelCatalog", () => settingsDomain.queries.modelCatalog(query)),
           snapshot: async query => {
             lifecycle.signal.throwIfAborted();
             const result = await settingsDomain.queries.snapshot(query);
@@ -275,6 +276,8 @@ export function buildPluginContext(
           },
         },
         commands: {
+          ...(permissions.has("service:network") ? { refreshModelCatalog: (provider: string, options?: import("@read-aware/plugin-types").PluginCallOptions) =>
+            lifecycle.read("settings.refreshModelCatalog", signal => settingsDomain.commands.refreshModelCatalog(provider, signal), callSignal(options)) } : {}),
           resetReading: request => {
             lifecycle.assertActive("domains.settings.commands.resetReading");
             return settingsDomain.commands.resetReading(request, lifecycle.signal);

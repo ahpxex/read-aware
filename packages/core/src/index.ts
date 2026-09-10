@@ -3,6 +3,7 @@ export * from "./errors";
 export * from "./book-removal";
 export * from "./reading-time";
 export * from "./reading-insights";
+export * from "./model-catalog";
 export * from "./workspace";
 export * from "./host-commands";
 export * from "./book-memory";

@@ -97,6 +97,7 @@ const agentMap = pairs([
   ["update_user_profile", "MEM07"],
   ["ask_user", "AI04"], ["get_settings update_settings", "CFG01"],
   ["get_setting_options", "SYS14"],
+  ["get_model_catalog refresh_model_catalog", "CFG08"],
   ["reset_reading_settings", "CFG03"],
 ]);
 const pluginMap = pairs([
@@ -116,6 +117,7 @@ const pluginMap = pairs([
   ["domains.settings.queries.snapshot domains.settings.queries.discover domains.settings.queries.read domains.settings.commands.update", "CFG01"],
   ["domains.settings.commands.resetReading", "CFG03"],
   ["domains.settings.queries.options", "SYS14"],
+  ["domains.settings.queries.modelCatalog domains.settings.commands.refreshModelCatalog", "CFG08"],
   ["domains.settings.events.subscribe domains.settings.queries.observe services.storage.onChange", "CFG10"],
   ["domains.memory.queries.search", "MEM01"],
   ["domains.memory.queries.profile", "MEM06"],

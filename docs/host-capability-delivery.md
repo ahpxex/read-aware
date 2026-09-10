@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+2026-09-11 模型目录批次已接线：settings1.9 modelCatalog/refreshModelCatalog 与双域 Agent get_model_catalog/refresh_model_catalog 共用原生 ModelCatalogStore。查询需主/快模型路径发现权，不联网；刷新另需 network，复用在途请求、ETag和持久缓存。只读公共模型 id/name、输入类型、推理支持、上下文及输出限制，不给当前选择、保留旧选项、密钥、端点或价格。分页默认25/最多100条，120字符搜索，进程revision拒绝旧续页；显式刷新失败拒绝，旧缓存可读但标错误。单次signal接共享31入口表，取消不回滚共享刷新。
+
+[验证] 45 项基础测试、1114 断言通过，覆盖目录缓存、权限、分页、取消、Agent 接线/输出和库存模型；全仓 typecheck27/27、三文档对结构与 diff 检查通过。937 入口映射、38 catalog 成员，Agent工具 book93/global111。CFG08仍部分：连接测试未接，目录元数据不代表账号可调用或全传输能力就绪；自定义/Relay/Codex目录不支持。未调用真实远端服务、未启动桌面/浏览器，业务插件、compiled Worker、Tauri和HTML视觉复核集中后置；未推送，整体目标继续。
+
 2026-09-11 对话摘要批次已接线：conversations1.4 queries.getInsights(kind/id) 向获对话读权的插件开放已有书籍/全局线程滚动摘要，和 Agent 共用 conversation-insights-store。全局 Agent 原有 get_conversation_insights 增加 threadId，省略目标读当前线程；书内工具范围不变。没有模型调用、摘要生成或公开写入口；成功宿主保存/清除通知原有失效观察，损坏存储返回 db/error，不伪装无摘要或覆写整个映射。
 
 [验证] 35 项基础测试通过，涵盖共用存储、旧 global 映射、授权、退休、取消、持久化失败、Agent 回合及库存模型；全仓 typecheck27/27、三文档对结构与 diff 检查通过。931 入口映射、38 catalog 成员，无新增模型工具。MEM12 按现有只读能力标接通：摘要可能滞后，仍为本机 KV 镜像、可含未落盘写，无来源水位/时间戳/CAS/完整跨设备协议，不等于原话或正式 bundle。未启动桌面/浏览器，compiled Worker、业务插件、真实 Tauri 与 HTML 视觉复核留集中验收；未推送，整体目标继续。

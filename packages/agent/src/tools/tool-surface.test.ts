@@ -181,6 +181,8 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   },
   get_settings: {},
   get_setting_options: { path: "reading.fontFamily" },
+  get_model_catalog: { provider: "openai" },
+  refresh_model_catalog: { provider: "openai" },
   update_settings: { changes: [{ path: "appearance.theme", value: "dark" }] },
   reset_reading_settings: { action: "inherit", target: { kind: "book", bookId: BOOK_ID } },
 };

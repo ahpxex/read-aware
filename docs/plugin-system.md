@@ -486,7 +486,7 @@ plugins and actual network/Tauri synchronization remain concentrated E2E work.
 ### Per-Call Cancellation (Library 1.17 / Reading 2.18 / Diagnostics 1.1 / Sync 1.1 / Maintenance 1.2)
 
 [代码] `PluginCallOptions = {signal?:AbortSignal}` is an optional FINAL argument
-on the 30 methods below. Existing parameters, guards, return values and grants
+on the 31 methods below. Existing parameters, guards, return values and grants
 are unchanged; omitted guards still occupy their position before options.
 
 | Namespace | Methods | Zero-based options position |
@@ -495,6 +495,7 @@ are unchanged; omitted guards still occupy their position before options.
 | `services.diagnostics` | `requestReport` | 1 |
 | `services.sync` | `requestFlow` | 1 |
 | `services.maintenance` | `requestBackup` | 1 |
+| `domains.settings.commands` | `refreshModelCatalog` | 1 |
 | `domains.library.queries.books` | `inspectResource`, `getNavigationToc`, `listNavigationTargets`, `searchLocations`, `readRange`, `listReferences`, `listImages`, `readReference`, `searchText`, `getContentState` | 1 |
 | `domains.reading.commands` | `openBook`, `goTo`, `back`, `forward`, `reload`, `close`, `returnToMode` | 1 |
 | `domains.reading.commands` | `putEmphasis`, `removeEmphasis`, `selectRange`, `clearSelection`, `step`, `controlPlayback`, `configureMode`, `setControls`, `stepMode` | 2 |
@@ -3657,6 +3658,49 @@ next eligible poll rather than being absorbed into its settled checkpoint.
 
 ## 6. Settings Is a Domain
 
+### Model Catalog Discovery (Settings 1.9)
+
+[代码] `queries.modelCatalog({provider,search?,offset?,limit?,revision?})` exposes
+the existing public remote catalog cache, without network access. A plugin needs
+discover access to `ai.connection.primaryModel` or `ai.connection.fastModel`;
+read/write on either path also implies discovery. This does not expose the
+configured provider, selected models, retained removed selections, credentials,
+endpoints, transport headers or billing rates. Supported providers are the same
+as `isCatalogProvider`; custom, ReadAware relay and openai-codex are excluded.
+
+[代码] Results contain provider, process-local revision, refreshing, checkedAt
+(epoch milliseconds or null), stable errorCode/null, models, total, offset and
+nextOffset. Each model contains only id, name, reasoning, input text/image types,
+contextWindow and maxOutputTokens. Search is a trimmed case-insensitive id/name
+substring, up to 120 characters; pages default to 25, maximum 100. Offset must be
+a nonnegative safe integer; later pages require the returned revision. Keep
+provider/search unchanged. A changed cache state, including a refresh or error
+state, invalidates the token with `settings/options-stale`; this is not a durable
+snapshot. Rows are copied. No checkedAt with no error means not yet discovered,
+not a verified empty provider; an error with rows is stale cache, not success.
+
+[代码] `commands.refreshModelCatalog(provider, options?)` additionally requires
+`service:network`; without that permission the method is absent. It invokes the
+same native picker's forced refresh, joins that provider's in-flight request,
+and returns the first 25 rows after completion. Fixed public endpoints, ETags,
+12-second fetch deadline, cache validation and durable replacement remain owned
+by ModelCatalogStore. Failure keeps the old cache but rejects the explicit
+command with its stable error code. No setting change, model call or connection
+test is performed. Per-call signal occupies position 1 in the shared RPC table.
+Plugin cancellation ends its wait; the shared refresh/cache write is not aborted
+or rolled back, and underlying work remains owned until settlement. Agent checks
+signal before/after awaiting the same source.
+
+[代码] Both Agent scopes gain `get_model_catalog` and sequential
+`refresh_model_catalog`; refresh requires explicit user intent. They delegate
+through the SettingsPort/domain and format checkedAt as ISO for the model.
+No model-inference or sensitive-configuration authority is implied. Metadata
+is discovery information, not proof that an account can call the model or that
+every transport feature works. CFG08 remains partial for connection testing.
+Focused cache/permission/pagination/cancellation/Agent checks pass with controlled
+network/cache adapters; actual remote catalogs, compiled Worker and Tauri plugin
+compositions remain concentrated E2E work.
+
 ### Paged Setting Options (Settings 1.8)
 
 [代码] `domains.settings.queries.options({path,target?,search?,offset?,limit?,revision?})`
@@ -5180,7 +5224,7 @@ diagnostic replay back. Native logic is unchanged. `projection-verification.ts`
 coalesces concurrent native diagnostic-bundle, plugin and Agent callers into one
 in-flight IPC, without caching completed checks. Public service callers receive
 independent count objects. Its optional PluginCallOptions.signal occupies slot 0
-in the shared 30-method Worker/host table; the host injects the authoritative
+in the shared 31-method Worker/host table; the host injects the authoritative
 request signal and combines plugin lifetime. Cancelling one waiter rejects it
 promptly, but does not interrupt or release the native flight before completion
 and rollback. Later callers join that flight, and source failure is logged even
@@ -5286,7 +5330,7 @@ actual settlement and cannot be rolled back. Billing checks cancellation and
 connection generation before external handoff. There is no durable TaskRef or
 restart recovery; the existing Worker RPC deadline still applies to the wait.
 `services.sync.requestFlow` uses options slot 1 in the shared signal-position
-table (30 supported methods). Native binding/run/settlement methods are not
+table (31 supported methods). Native binding/run/settlement methods are not
 included in the public context, so an actor cannot self-confirm.
 
 Agent `get_sync_status(includeConnections?)` and `manage_sync` share this service

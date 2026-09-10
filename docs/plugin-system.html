@@ -363,6 +363,11 @@
             <p>Workspace Profiles 组合七项设备本地偏好、私有文档、书架菜单与双域 Agent 工具，实现保存、应用、删除。应用一次原子提交，保留本书阅读覆盖；过期主题选项失败不部分应用。没有改变隐私、凭证、当前筛选或选择集。</p>
             <p>隔离 macOS debug 已验工具、编译 Worker 与菜单/表单；并发、权限和失败写由聚焦测试覆盖。未验真实模型、安装审批、重启、打包及跨平台；开发重建曾触发模块加载失败后恢复，截图含诊断提示，不宣称启动无错误。<a href="./evidence/workspace-profiles-2026-09-09.json">验证边界</a>。</p>
           </div></details>
+          <details class="ep"><summary>Settings 1.9：模型能力查询和目录刷新已接双端</summary><div class="ep-body">
+            <p>插件 modelCatalog 与双域 Agent get_model_catalog 查询缓存中的模型名、输入类型、推理支持、上下文和输出限制。分页默认25/最多100条，变化后旧续页拒绝；不联网、不暴露当前选择、密钥、端点或价格。</p>
+            <p>插件需 primaryModel 或 fastModel 的选项发现权限；refreshModelCatalog 另需 network，Agent 刷新需明确用户意图。复用原生目录请求、ETag和持久缓存，失败保留旧目录但拒绝成功回执；取消不回滚共享刷新。自定义、Relay与Codex目录不支持。</p>
+            <p>目录元数据不是连接成功证明，不调用模型或改设置。基础缓存、授权、分页、取消及Agent测试通过；连接测试仍缺，实际远端/Worker/Tauri组合集中后置，CFG08保持部分。</p>
+          </div></details>
           <details class="ep" data-search-section="font system options 字体 系统 选项 分页"><summary>Settings 1.8：插件和 Agent 可搜索本机字体，不再猜名字</summary><div class="ep-body">
             <p>按设置路径查询选项，阅读/内容字体包含预设、插件与本机系统字体；返回值可直接交给原有设置命令。仅授予发现权限时不泄露当前值、字体文件或目录，也不触发下载。</p>
             <p>宿主每页默认25、最多100项，Agent默认20、最多50；后续页保留revision，目录变化须重查。系统枚举与原生选择器共用会话缓存，失败显示错误和重试，不当作没有字体；安装/删除OS字体后需重启。</p>
@@ -385,9 +390,9 @@
             <p>隔离 macOS debug 已验三端更新、冲突恢复与 SQLite 清理；正文 iframe 合成按键已验冲突不翻页、恢复后翻页、插件打开不重复翻页。失败持久化由 React/IPC 测试覆盖；全来源已提交观察另见 settings 1.6，来源身份完整性、真实模型、全键盘路由、打包及跨平台未完成，UI04 保持部分。<a href="./plugin-system.md#keyboard-shortcut-settings">契约与边界</a>。</p>
           </div></details>
           <p>Reading v2 已提供当前会话快照、即时快照观察、版本化落点、有限可见文本与历史可用性。开书、跳转、前进后退、翻页返回完成回执；关闭等待会话退休、已接收时间/位置写入及本书桶结算。失败可退出画面但拒绝成功回执，取消不回滚已发起的关闭；控制命令可带书籍/会话 guard。Agent 共用同一控制器。<a href="./evidence/reading-retirement-2026-09-10.json">原生双端与写锁恢复证据</a>，不代表打包/跨平台验收。</p>
-          <details class="ep"><summary>正文、阅读和宿主流程：30 个方法支持单次取消</summary><div class="ep-body">
+          <details class="ep"><summary>正文、阅读和宿主流程：31 个方法支持单次取消</summary><div class="ep-body">
             <p>10个正文查询和16个阅读控制增加末参数options.signal，保留原会话guard及权限。Worker只发送请求级取消，宿主注入实际控制器；取消一个搜索或导航不必停用整个插件，也不影响兄弟请求。</p>
-            <p>diagnostics1.1 的 verifyProjections 只返回一致性与计数，原生重放必须完成回滚；不开放修复。另有诊断 requestReport、sync1.1 requestFlow 和 maintenance1.2 requestBackup 支持单次取消，已确认的保存/发送/账户操作不能靠取消回滚。</p>
+            <p>diagnostics1.1 的 verifyProjections 只返回一致性与计数，原生重放必须完成回滚；不开放修复。另有 requestReport、sync1.1 requestFlow、maintenance1.2 requestBackup 和 settings1.9 refreshModelCatalog 支持单次取消，已确认的保存/发送/账户操作不能靠取消回滚，共享目录刷新也不强杀。</p>
             <p>精确位置搜索的DOM取文、DOM/PDF匹配及多查询正文搜索已接协作取消：扫描分批让出线程，无命中也能响应取消；两种搜索各自复用原匹配规则。约8毫秒调度片不是硬截止，不强杀文档/PDF解析或原生字符串操作，也不是总内存预算。定向匹配与定时器取消测试通过。</p>
             <p>Jumper 0.3 / Text Desk 0.9 不改宿主即可组合搜索等待、取消和live视图：首次显示才搜索，关闭/隐藏取消在途请求，迟到结果不回写；返回已完成页保留结果，已取消页需明确重搜。分页保留版本，失败显示稳定错误码，可恢复故障才提供重试。源码组合与构建通过，编译Worker/Tauri交互仍待集中验收。</p>
             <p>读等待先结束，实际源读未结算仍占每realm32个名额，退休继续排空；不是强杀解析器或回滚已呈现/保存效果。资源获取、持久写、跨页任务进度和统一重试仍另有缺口。基础及Bun Worker验证通过，真实业务插件/Tauri组合后置。</p>

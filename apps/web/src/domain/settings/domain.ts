@@ -18,6 +18,7 @@ import type {
 import { AppError, pageSettingOptions, validateSettingsOptionsQuery } from "@read-aware/core";
 import { listSystemFonts } from "../../features/settings/lib/system-fonts";
 import { isFontSetting, systemFontOptions } from "./font-options";
+import { queryModelCatalog, refreshModelCatalog } from "./model-catalog";
 import { readingResetPaths, resetReadingDraft } from "./reading-reset";
 import { getDefaultStore } from "jotai";
 import { createLogger } from "../../platform/logger";
@@ -210,6 +211,7 @@ function enqueueSettingsChanges(origin: EventOrigin, changes: SettingChange[], s
 
 export type SettingsDomain = {
   queries: {
+    modelCatalog(query: import("@read-aware/core").ModelCatalogQuery): Promise<import("@read-aware/core").ModelCatalogPage>;
     snapshot(query?: SettingsQuery): Promise<SettingsSnapshot>;
     observe(query: SettingsQuery, handler: (observation: SettingsObservation) => unknown): () => void;
     discover(query?: SettingsQuery): Promise<SettingCatalogEntry[]>;
@@ -217,6 +219,7 @@ export type SettingsDomain = {
     read(path: string, target?: SettingsQueryTarget): Promise<SettingReadResult>;
   };
   commands: {
+    refreshModelCatalog(provider: string, signal?: AbortSignal): Promise<import("@read-aware/core").ModelCatalogPage>;
     update(changes: SettingChange[], signal?: AbortSignal): Promise<SettingsUpdateResult>;
     resetReading(request: ReadingSettingsReset, signal?: AbortSignal): Promise<SettingsUpdateResult>;
   };
@@ -228,9 +231,15 @@ export type SettingsDomain = {
 export function createSettingsDomain(
   origin: EventOrigin,
   access?: SettingsAccessPolicy,
+  networkAllowed = !origin.startsWith("plugin:"),
 ): SettingsDomain {
   initializeSettingsObservation();
   const policy = actorPolicy(origin, access);
+  const authorizeCatalog = () => {
+    if (!["ai.connection.primaryModel", "ai.connection.fastModel"].some(path => canAccess(policy, "discover", path))) {
+      throw new AppError("settings/options-forbidden", "Model option discovery is not granted");
+    }
+  };
   const settledSnapshot = async (query?: SettingsQuery) => {
     const accepted = query === undefined ? undefined : structuredClone(query);
     await updateTail;
@@ -238,6 +247,7 @@ export function createSettingsDomain(
   };
   return {
     queries: {
+      modelCatalog: async query => { authorizeCatalog(); return queryModelCatalog(query); },
       snapshot: settledSnapshot,
       observe: (query, handler) => {
         const accepted = structuredClone(query);
@@ -282,6 +292,11 @@ export function createSettingsDomain(
       },
     },
     commands: {
+      refreshModelCatalog: (provider, signal) => {
+        authorizeCatalog();
+        if (!networkAllowed) throw new AppError("settings/options-forbidden", "Model catalog refresh requires network authorization");
+        return refreshModelCatalog(provider, signal);
+      },
       resetReading: async (request, signal) => {
         const accepted = structuredClone(request);
         const result = updateTail.then(() => afterSettingsWrites(async () => {

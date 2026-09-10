@@ -1789,6 +1789,13 @@ export type PluginHostServices = {
     publishView(channel: PluginViewChannel, update: PluginViewUpdate): Promise<PluginViewUpdateReceipt>;
     /** Requires reading:read (write includes read). No book content is returned. */
     reader?: {
+      /** UI 1.12: already-open native image viewer. No URL, bytes, alt text or implicit opening. */
+      image?: {
+        snapshot(): Promise<import("@read-aware/core").ReaderImageSnapshot | null>;
+        observe(handler: (state: import("@read-aware/core").ReaderImageSnapshot | null) => unknown): PluginDisposable;
+        /** reading:write; exact current viewer ID required. Pan deltas are fractions of its viewport. */
+        control?(request: import("@read-aware/core").ReaderImageRequest): Promise<import("@read-aware/core").ReaderImageReceipt>;
+      };
       snapshot(): Promise<import("@read-aware/core").ReaderPanelsSnapshot | null>;
       observe(handler: (snapshot: import("@read-aware/core").ReaderPanelsSnapshot | null) => unknown): PluginDisposable;
       /** Requires reading:write. Opening reveals controls; completion waits for persistence and DOM commit. */

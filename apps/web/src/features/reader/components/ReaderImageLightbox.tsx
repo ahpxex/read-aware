@@ -15,6 +15,7 @@ import { copyResourceImageBytes } from "../../../platform/resource-export";
 import { nativeResourceFiles } from "../../../platform/resource-files";
 import { createLogger } from "../../../platform/logger";
 import { useZoomPan } from "../hooks/useZoomPan";
+import { useImageControls } from "../hooks/useImageControls";
 
 const log = createLogger("reader");
 
@@ -22,6 +23,7 @@ type ReaderImageLightboxProps = {
   src: string;
   alt: string | null;
   onClose: () => void;
+  session?: { bookId: string; sessionId: string };
 };
 
 /**
@@ -31,9 +33,10 @@ type ReaderImageLightboxProps = {
  * rotation, copy-to-clipboard, and close; Esc and a clean backdrop click
  * close too.
  */
-export function ReaderImageLightbox({ src, alt, onClose }: ReaderImageLightboxProps) {
+export function ReaderImageLightbox({ src, alt, onClose, session }: ReaderImageLightboxProps) {
   const { t } = useTranslation("reader");
   const zoom = useZoomPan();
+  useImageControls(zoom, session, onClose);
   const dialogRef = useRef<HTMLDivElement | null>(null);
 
   // The section's blob URL dies when foliate unloads the page under the open

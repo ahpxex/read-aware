@@ -538,7 +538,7 @@ export function FoliateReaderView({
 
   // Full-screen illustration viewer (issue #13), opened by tapping an image
   // in the book content.
-  const [lightboxImage, setLightboxImage] = useState<ActivatedImage | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<(ActivatedImage & { session?: { bookId: string; sessionId: string } }) | null>(null);
   const closeLightbox = useCallback(() => setLightboxImage(null), []);
 
   // 逐句模式：点中静息句的 wash → 在点击处开合该句的动作菜单（复制/高亮/
@@ -1564,11 +1564,13 @@ export function FoliateReaderView({
         if (isFixedLayoutRef.current) return;
         const image = resolveActivatedImage(event.target);
         if (!image) return;
+        const identity = selectionContentRef.current;
+        if (!identity?.view.renderer?.getContents().some(content => content.doc === doc)) return;
         event.preventDefault();
         event.stopImmediatePropagation();
         cancelPendingShellToggle();
         cancelPendingShellOpen();
-        setLightboxImage(image);
+        setLightboxImage({ ...image, session: { bookId: identity.bookId, sessionId: identity.sessionId } });
       },
       true,
     );
@@ -2325,6 +2327,8 @@ export function FoliateReaderView({
       )}
       {lightboxImage && (
         <ReaderImageLightbox
+          key={lightboxImage.src}
+          session={lightboxImage.session}
           src={lightboxImage.src}
           alt={lightboxImage.alt}
           onClose={closeLightbox}

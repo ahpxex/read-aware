@@ -32,6 +32,7 @@ export * from "./reader-panels";
 export * from "./reading-context";
 export * from "./host-environment";
 export * from "./host-window";
+export * from "./reader-image";
 export * from "./book-navigation";
 export * from "./book-range";
 export * from "./book-references";

@@ -1,6 +1,7 @@
 import type { ReaderPort } from "@read-aware/agent";
 import { createReadingDomain } from "../../../../domain/reading";
 import { readerPanels } from "../../../../services/reader-panels";
+import { readerImage } from "../../../../services/reader-image";
 import { readerReferencePreview } from "../../../../services/reader-reference-preview";
 import { createBookTextPort } from "./book-text-port";
 
@@ -9,6 +10,8 @@ export function createReaderPort(): ReaderPort {
   const reading = createReadingDomain("agent");
   const bookText = createBookTextPort();
   return { getSession: reading.queries.session, ...reading.commands,
+    getImage: async () => readerImage.snapshot(),
+    controlImage: (request, signal) => readerImage.control(request, signal),
     previewReference: (ownerKey, { throughChapterIndex, ...query }, signal, guard) => readerReferencePreview.open(`agent:${ownerKey}`, query,
       (input, requestSignal) => bookText.readReference({ ...input, throughChapterIndex }, requestSignal), signal, guard),
     closeReferencePreview: (ownerKey, id, signal) => readerReferencePreview.close(`agent:${ownerKey}`, id, signal),

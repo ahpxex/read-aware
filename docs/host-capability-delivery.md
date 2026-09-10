@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+图片灯箱控制批次已接线：UI 1.12 reader.image.snapshot/observe/control 与双 scope get_reader_image/control_reader_image 共用原生灯箱和缩放手势；reading 读可观察、写可控制。按准确 viewer ID 缩放/平移/旋转/复位/关闭，updated 等匹配 React commit，closed 等移除；换书/换图/新意图拒绝旧请求，退休清理调用和订阅，不关闭用户仍在使用的灯箱。无图片 URL/字节/alt 文本，不增加内容读取权。
+
+[验证] 服务/授权/双域工具及真实组件挂载 StrictMode 定向测试 13 pass / 665 assertions，全仓 typecheck 27/27。本批没有真实 Worker/Tauri 像素、手势或焦点验收，留集中组合阶段。READ12 保留部分；TXT12 图片发现/读取/打开仍缺，不把灯箱操作冒充书页手动缩放。
+
 窗口批次已接线：UI 1.11 services.ui.window.snapshot/observe/control 与双 scope get_app_window/control_app_window 共用主窗口服务，自绘标题栏最小化/最大化及边缘显隐改走同源。支持最小化、最大化、还原、全屏，读取 minimized/maximized/fullscreen/focused；无标题/路径/坐标/窗口句柄。操作限明确用户意图，32 个待处理上限，requested 不承诺动画/持久完成；最多 64 观察者共享原生事件与一秒复核，退休取消排队/丢弃迟到结果，不回滚已派发 OS 动作。
 
 [验证] 窗口服务/插件生命周期、双域 Agent、注册和工具输出定向测试 14 pass / 657 assertions，另 7 项模型映射门禁通过；全仓 typecheck 27/27，新增 Tauri 权限与本地生成 ACL 相符。当前书内/全局工具 76/93，243 行/856 个入口映射，36 catalog。真实 Worker/窗口管理器、packaged/跨平台留集中 E2E。SYS17 保留部分：关闭/退出仍缺统一保存协调，不直接开放原生 close；未新增任意窗口或抢焦点能力。

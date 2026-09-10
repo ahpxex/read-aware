@@ -99,6 +99,8 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   open_external_url: { url: "https://readaware.app/" },
   get_host_environment: {},
   get_app_window: {},
+  get_reader_image: {},
+  control_reader_image: { request: { id: "image", action: "zoom-in" } },
   control_app_window: { request: { action: "maximize" } },
   get_workspace: {},
   navigate_app: { target: { surface: "stats" } },
@@ -216,6 +218,10 @@ describe("tool surface contract", () => {
           offset: 0, totalLength: 17, nextOffset: null });
         deps.reader.previewReference = async (_owner, input) => ({ status: "opened", id: "preview", sessionId: "fixture", preview: await deps.bookText.readReference(input) });
         deps.hostIO.writeClipboard = async () => {};
+        deps.reader.getImage = async () => ({ id: "image", sessionId: "fixture", bookId: BOOK_ID,
+          revision: 1, scale: 1, rotation: 0, panX: 0, panY: 0 });
+        deps.reader.controlImage = async () => ({ status: "updated", snapshot: {
+          id: "image", sessionId: "fixture", bookId: BOOK_ID, revision: 2, scale: 1.5, rotation: 0, panX: 0, panY: 0 } });
         deps.window.control = async () => ({ status: "requested", snapshot: { supported: true, revision: 1,
           minimized: false, maximized: true, fullscreen: false, focused: true } });
         deps.library.previewMerge = async () => ({ revision: `bmg1:${"a".repeat(64)}`, keep: { id: BOOK_ID, title: "Keeper", author: "Author", createdAt: "2026-09-01" },

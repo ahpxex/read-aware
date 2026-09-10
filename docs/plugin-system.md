@@ -789,6 +789,45 @@ task-wide timeout, virtual indexing, all formats, marketplace installation,
 packaged/cross-platform and physical-input validation remain outstanding. TXT05
 therefore remains partial. See [task evidence](./evidence/book-text-tasks-2026-09-09.json).
 
+### Native Image Viewer Controls (UI 1.12)
+
+[代码] `services.ui.reader.image.snapshot/observe/control` and the Agent's
+`get_reader_image/control_reader_image` share the existing `ReaderImageLightbox`
+and `useZoomPan`. Reading read permission exposes state/observation; reading
+write additionally exposes control. Agent book scope can only inspect/control
+its active book. This controls an already-open illustration, not a book page.
+
+Snapshot is null without an attached ready viewer; otherwise it contains
+`id, bookId, sessionId, revision, scale, rotation, panX, panY`, never URL,
+bytes, alt text or image content. Scale is fit-relative 1..8, rotation is
+0/90/180/270 clockwise degrees, and pan offsets are viewport fractions.
+Native gestures and toolbar actions publish the same state; resize observation
+refreshes the normalized offsets. At most 64 observers receive initial state
+and serial/coalesced changes; disposal stops later deliveries.
+
+Control requires the exact snapshot ID and one of `zoom-in, zoom-out, rotate,
+reset, close, pan`. Pan additionally requires finite `dx, dy` each in [-1,1],
+as fractions of viewport width/height; positive means right/down. Pan is ignored
+at fit; drag/pan positions are bounded to eight viewport widths/heights.
+Rotation resets zoom/pan, while reset also clears rotation. Extra fields and
+unknown actions reject `reader/invalid-target`; absent viewer rejects
+`reader/unavailable`, stale IDs/newer intents/session retirement reject
+`reader/superseded`.
+
+An `updated` receipt contains the React-committed state for the matching request;
+`closed` waits for removal of that viewer binding. The ten-second deadline
+rejects `reader/timeout`. Neither is an animation or image-decoding receipt,
+nor a lock against concurrent gestures. Cancellation stops waiting, not an
+already-applied transform. Plugin retirement cancels its pending operation and
+observation, but does not close the user's viewer. A retired reading session
+closes its own stale lightbox. Commands do not navigate, copy or persist images.
+
+[验证] Focused service, permissions, Agent scopes and mounted React StrictMode
+tests pass, including toolbar/API shared transforms and committed close.
+Real Worker/Tauri pixels, gestures, resizing and focus remain for concentrated
+E2E. TXT12 image discovery/resource reads/opening are still missing; READ12
+remains partial rather than claiming manual fixed-layout page zoom exists.
+
 ### Main Window Controls (UI 1.11)
 
 [代码] `services.ui.window.snapshot / observe / control` expose only the main

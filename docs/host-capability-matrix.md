@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 194、部分 43、待建 3、占位 2、非桌面 1。
-- Agent：接通 134、部分 60、扩展 13、未接 19、自动 13、内部 4。
-- 插件：接通 149、部分 82、未接 12。
+- Agent：接通 134、部分 61、扩展 13、未接 18、自动 13、内部 4。
+- 插件：接通 149、部分 83、未接 11。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -113,7 +113,7 @@
 | <a id="READ09"></a>READ09 | 阅读沉浸/显示隐藏控制层 | 实装 | **接通**：set_reader_controls + get_reading_session.controls<br>[设计] 有用户意图的呈现命令 | **接通**：reading 2.6 setControls + session.controls/observeSession<br>[设计] 会话呈现命令 | 空格/内容点击/滚动隐藏；Agent；Listening Desk 0.8 | 同一控制器接收 UI 和双端意图，React DOM 提交才发布 visible 和完成回执，不等待 CSS 动画/屏幕栅格。无可用会话为 null，写要求 ready；带 book/session guard，插件生命周期与 Agent signal 取消，10 秒无提交超时，更新意图/退出使旧请求 superseded。取消仅丢弃未提交状态，不承诺撤销已呈现界面。只改 header/已选 docked panels 的显示，不改偏好、书页、历史、模式或音频。Listening Desk 按快照提供显式 show/hide 并在成功后关闭视图；不是所有面板选择 API。跨平台/packaged 仍未验。 | [CONTROLS](../apps/web/src/features/reader/lib/reading-controls-controller.ts) [CONTROLSHOOK](../apps/web/src/features/reader/hooks/useReaderControls.ts) [NAV](../apps/web/src/domain/reading-session-controller.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [API](../packages/plugin-types/src/index.ts) [LISTENINGDESK](../plugins/listening-desk/src/views.ts) [CONTROLSPROOF](../docs/evidence/reader-controls-2026-09-09.json) | D08 |
 | <a id="READ10"></a>READ10 | 目录/注释/外观/聊天面板开关 | 实装 | **接通**：get_reader_panels / set_reader_panel<br>[设计] 打开指定语义面板 | **接通**：services.ui 1.1 reader.snapshot/observe/setPanel<br>[设计] 面板导航服务 | Reader header；Agent；Listening Desk 0.9 | 同一服务接收四面板显式开关；reading:read 才能查询/观察，reading:write 才能操作，零阅读授权没有 reader 接口。快照含 session/book/revision、open 与 visible，无面板内容；它描述已提交 UI，可能含待保存的乐观值，命令回执另等精确 SQLite 保存和新 DOM commit。打开会显示控制层；窄窗目录/聊天互斥单次保存，外观/注释为会话临时状态。新意图/旧会话 superseded，10 秒无提交 timeout，Agent signal/插件卸载取消，不撤销已派发写或已显示界面。面板/Ask AI 意图等待 ready，完成确认防止重开书重复消费；外观在 More 内仍可打开有限高可滚动 Dialog。隔离 macOS debug 已验双端、真实 Worker、SQLite 拒绝/回滚/重试、旧插件视图拒绝、600/1200 窗口及 PDF 外观呈现。不是动画/焦点/内容加载完成保证；单调用 Worker 取消、packaged/跨平台仍未验。滚轮 wheel-phase 已改为原生固定脚本投递当前文档、阅读器同步订阅/退订，移除异步 native listener 生命周期竞态；隔离桌面 20 次 FB2/PDF 重开无原异常，200 个退休监听不收回调，native eval 三阶段投递与退订已验。物理触控板输入/时序及 packaged 回归未验，不外推为全部 Tauri 事件无竞态。 | [WORKSPACE](../apps/web/src/features/reader/components/ReaderWorkspace.tsx) [UI](../apps/web/src/state/ui.ts) [MENU](../apps/web/src/features/menus/lib/menu-registry.tsx) [API](../packages/plugin-types/src/index.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [PANELLAYOUT](../apps/web/src/features/reader/lib/reader-panel-layout.ts) [PANELHOOK](../apps/web/src/features/reader/hooks/useReaderPanels.ts) [PANELSERVICE](../apps/web/src/services/reader-panels.ts) [PANELPROOF](../docs/evidence/reader-panel-persistence-2026-09-09.json) [PANELSAPIPROOF](../docs/evidence/reader-panels-2026-09-09.json) [LISTENINGDESK](../plugins/listening-desk/src/views.ts) [WHEELPHASE](../apps/web/src/platform/wheel-phase.ts) [WHEELNATIVE](../apps/desktop/src-tauri/src/wheel_phase.rs) [WHEELPROOF](../docs/evidence/wheel-phase-lifetime-2026-09-09.json) | D08, I06 |
 | <a id="READ11"></a>READ11 | 阅读面板尺寸/布局与焦点恢复 | 实装 | **部分**：get_reader_panels / set_reader_panel_width[双域]<br>[设计] 受控面板布局/焦点意图 | **部分**：UI 1.9 reader.snapshot/observe/setWidth；views 1.3 onClose<br>[设计] 声明式面板布局/关闭回调 | 聊天/目录 resize；Agent/插件宽度意图 | 目录/聊天共享首选宽度 240..640 整数 CSS px，快照增加 sizes 与 docked/exclusive 布局；窄窗忽略首选宽度，不伪报实际测量值。reading 读可观察、写可调整，Agent 限当前 scope 会话。保存与原生拖拽共用有序 KV 补丁、变化/回滚订阅，命令等待保存与匹配 DOM 提交；不打开面板、不显示控制层、不改变焦点，晚取消不回滚已派发写。views 1.3 已接插件 frame 离栈原因通知，不是保存/焦点回执，退休不保证送达。宽度/新通知待集中 Tauri/Worker 验收，语义焦点恢复仍缺，不开放任意 DOM 或拖动坐标。 | [WORKSPACE](../apps/web/src/features/reader/components/ReaderWorkspace.tsx) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [RENDER](../apps/web/src/features/plugins/components/PluginViewRenderer.tsx) [PANELHOOK](../apps/web/src/features/reader/hooks/useReaderPanels.ts) [PANELSERVICE](../apps/web/src/services/reader-panels.ts) [READTOOLS](../packages/agent/src/tools/reader-tools.ts) [VIEWSESSION](../apps/web/src/features/plugins/lib/plugin-view-session.ts) | I06 |
-| <a id="READ12"></a>READ12 | 固定版式自动适配；图片缩放/平移/旋转 | 实装 | **未接**：无正式入口<br>[设计] 格式适用的呈现工具 | **未接**：无正式入口<br>[设计] 呈现状态/命令 | 固定版式自动适配；图片灯箱交互 | 已核对图片灯箱缩放；不把它算作书页手动缩放控件 | [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [ENGINE](../apps/web/foliate-js/src/view.ts) | D09 |
+| <a id="READ12"></a>READ12 | 固定版式自动适配；图片缩放/平移/旋转 | 实装 | **部分**：get_reader_image/control_reader_image[双域]<br>[设计] 格式适用的呈现工具 | **部分**：UI 1.12 reader.image.snapshot/observe/control<br>[设计] 呈现状态/命令 | 原生灯箱手势/按钮与公共控制同源 | 已打开图片的灯箱支持缩放/平移/旋转/复位/关闭，reading 读可观察、写可控制；准确 viewer ID 防误控下一图，Agent 书内限本书。不含 URL/字节/alt，不能读图片内容。updated 等匹配 React commit，closed 等移除，非动画/解码完成；新意图/换书拒绝旧请求，取消不回滚已应用变化。64 观察者串行合并，退休清理。定向与挂载 StrictMode 测试通过，真实 Worker/Tauri 手势/焦点待集中验收。TXT12 发现/资源读取/程序化打开仍缺；不是书页手动缩放，保留部分。 | [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [ENGINE](../apps/web/foliate-js/src/view.ts) [IMAGECONTROL](../apps/web/src/services/reader-image.ts) [IMAGECONTROLHOOK](../apps/web/src/features/reader/hooks/useImageControls.ts) [IMAGECONTROLPROOF](../apps/web/tests/reader-image-controls.test.tsx) [IMAGECONTROLTOOLS](../packages/agent/src/tools/image-viewer-tools.ts) | D09 |
 | <a id="READ13"></a>READ13 | 读取/建立/清除文本选区 | 实装 | **部分**：get_reading_session.selection；set_reading_selection；自动附件<br>[设计] Range 查询/受控选择 | **部分**：reading 2.10 selectRange/clearSelection；session/observeSession；selectionActions 1.2 range<br>[设计] 选区查询/命令 | 选择菜单；Agent；Dictionary；Text Desk 0.7 | 读取捕获版本的范围；selectRange 严格复制 Range，要求当前书 ready，先验证源再导航/选中，等匹配 React 提交。clearSelection 必须提交所见 id，拒绝误清新选区；session/book guard、取消、退役、10 秒呈现超时和导航截止保留。Agent 选区命令只返回 id；受限会话另移除当前位置/模式位置的 quote，避免隐私或剧透旁路。真实 macOS debug Worker 零/读授权无写入口，FB2/PDF 选择/清空、Agent 操作、旧 id 拒绝保留新选区及编译 Text Desk 第二命中选择/清除已验。并发/取消/超时是单元证据，不承诺撤销已移动或已显示界面。迟到非空旧文档、coarse-pointer 定时器、长选区/全部格式、原生在途取消、packaged/跨平台仍未验。旧标注范围仍为空，不用当前版本伪造来源。 | [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [ENGINE](../apps/web/foliate-js/src/view.ts) [TEXTACTIONS](../apps/web/src/features/reader/hooks/useReaderTextActions.ts) [API](../packages/plugin-types/src/index.ts) [NAV](../apps/web/src/domain/reading-session-controller.ts) [SELECTIONRANGE](../apps/web/src/features/reader/lib/selection-range.ts) [SELECTIONPROOF](../docs/evidence/selection-range-2026-09-10.json) [SELECTIONCONTROL](../apps/web/src/features/reader/lib/reading-selection-adapter.ts) [SELECTIONCONTROLPROOF](../docs/evidence/selection-control-2026-09-10.json) | E01, E02 |
 | <a id="READ14"></a>READ14 | 临时范围强调/搜索标记及释放 | 实装 | **接通**：manage_reading_emphasis[双域]<br>[设计] 受控临时呈现 | **接通**：reading 2.11 emphasis/putEmphasis/removeEmphasis/observeEmphasis<br>[设计] 插件所属 overlay | 共享临时标记控制器；Agent；Text Desk 0.8 | 按 Agent/插件激活代隔离，版本化 Range 源校验、条件更新/移除、跨页重建和退出释放；不导航、不选择、不写 annotation。attached 是文档附着数而非屏幕可见数。单批 64、每 owner 16 组、全局 512 范围、32 在途校验；取消回执和物理排空分离。已做 FB2/PDF 双端局部验证；完整组合插件、原生在途取消及跨平台验收待集中进行。 | [READING](../apps/web/src/domain/reading.ts) [API](../packages/plugin-types/src/index.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) [RANGEUI](../plugins/text-desk/src/range-views.ts) | E03, E04 |
 | <a id="READ15"></a>READ15 | 贡献句子/段落等分段模式 | 实装 | **未接**：无算法注册工具<br>[设计] 不开放：模型不注册运行代码 | **接通**：readerModes 1.1 register(text-unit-navigator)，同步或异步 segmentText<br>[设计] 模式贡献 | sentence-reader；隔离异步分段探针 | 每章至多 8 个在途 block，30 秒截止；失败不伪装空章，旧任务/同 index 新 Document 不回写，分段与 relocate 任一先后都能落点。真实 macOS debug 验证延迟/拒绝/退出；不是全内存配额或远端计算取消。只开放分段策略，非任意渲染器/解码器 | [API](../packages/plugin-types/src/index.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [SENTENCE](../plugins/sentence-reader/src/index.ts) [UNITS](../apps/web/src/features/reader/hooks/useTextUnitNavigator.ts) [UNITBUILD](../apps/web/src/features/reader/lib/text-unit-build.ts) [UNITINDEX](../apps/web/src/features/reader/lib/text-unit-index.ts) [UNITPROOF](../docs/evidence/reading-segmentation-2026-09-09.json) | K01 |
@@ -410,9 +410,9 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：93 个。
-- Agent book：76 个。
-- Plugin ctx：184 个。
+- Agent global：95 个。
+- Agent book：78 个。
+- Plugin ctx：187 个。
 - Plugin returned interface：27 个。
 - Capability domains：6 个。
 - Capability contributions：15 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 184 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 187 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -446,6 +446,8 @@
 | `get_host_environment` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_app_window` | [SYS17](#SYS17) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `control_app_window` | [SYS17](#SYS17) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_reader_image` | [READ12](#READ12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `control_reader_image` | [READ12](#READ12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_workspace` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `navigate_app` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_host_commands` | [UI03](#UI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -544,6 +546,8 @@
 | `get_host_environment` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_app_window` | [SYS17](#SYS17) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `control_app_window` | [SYS17](#SYS17) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_reader_image` | [READ12](#READ12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `control_reader_image` | [READ12](#READ12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_workspace` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `navigate_app` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_host_commands` | [UI03](#UI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -754,6 +758,9 @@
 | `services.ui.workspace.snapshot` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.workspace.observe` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.workspace.navigate` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.ui.reader.image.snapshot` | [READ12](#READ12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.ui.reader.image.observe` | [READ12](#READ12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.ui.reader.image.control` | [READ12](#READ12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.reader.snapshot` | [READ10](#READ10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.reader.observe` | [READ10](#READ10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.reader.setPanel` | [READ10](#READ10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

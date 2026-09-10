@@ -17,6 +17,7 @@ import { buildReferenceTools } from "./reference-tools";
 import { buildSettingsTools } from "./settings-tools";
 import { buildEnvironmentTools } from "./environment-tools";
 import { buildWindowTools } from "./window-tools";
+import { buildImageViewerTools } from "./image-viewer-tools";
 import { buildWorkspaceTools } from "./workspace-tools";
 import { buildHostCommandTools } from "./host-command-tools";
 import { buildHostIOTools } from "./host-io-tools";
@@ -41,6 +42,7 @@ export function buildAgentTools(
   return [
     ...buildEnvironmentTools(deps),
     ...buildWindowTools(deps),
+    ...buildImageViewerTools(scope, deps),
     ...buildWorkspaceTools(deps),
     ...buildHostCommandTools(deps),
     ...buildHostIOTools(deps),

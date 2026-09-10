@@ -87,6 +87,20 @@ export function useZoomPan() {
     }
   }, []);
 
+  const panByPixels = useCallback((dx: number, dy: number) => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    setTransform(current => current.scale <= 1 ? current : {
+      ...current,
+      x: Math.max(-stage.clientWidth * MAX_SCALE, Math.min(stage.clientWidth * MAX_SCALE, current.x + dx)),
+      y: Math.max(-stage.clientHeight * MAX_SCALE, Math.min(stage.clientHeight * MAX_SCALE, current.y + dy)),
+    });
+  }, []);
+  const pan = useCallback((dx: number, dy: number) => {
+    const stage = stageRef.current;
+    if (stage) panByPixels(dx * stage.clientWidth, dy * stage.clientHeight);
+  }, [panByPixels]);
+
   const onPointerMove = useCallback((event: ReactPointerEvent) => {
     const previous = pointersRef.current.get(event.pointerId);
     if (!previous) return;
@@ -113,9 +127,9 @@ export function useZoomPan() {
       const dx = next.x - previous.x;
       const dy = next.y - previous.y;
       if (dx !== 0 || dy !== 0) movedRef.current = true;
-      setTransform((current) => ({ ...current, x: current.x + dx, y: current.y + dy }));
+      panByPixels(dx, dy);
     }
-  }, [applyScale]);
+  }, [applyScale, panByPixels]);
 
   const onPointerEnd = useCallback((event: ReactPointerEvent) => {
     pointersRef.current.delete(event.pointerId);
@@ -177,7 +191,15 @@ export function useZoomPan() {
     transition: pointersRef.current.size > 0 ? undefined : "transform 120ms ease-out",
   }), [transform, rotation, rotationFit]);
 
+  const snapshot = useCallback(() => ({
+    scale: transform.scale, rotation,
+    panX: transform.x / (stageRef.current?.clientWidth || 1),
+    panY: transform.y / (stageRef.current?.clientHeight || 1),
+  }), [transform, rotation]);
+
   return {
+    snapshot,
+    pan,
     stageRef,
     imgRef,
     style,

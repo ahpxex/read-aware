@@ -31,6 +31,7 @@ import { flushLocalKV, localKV } from "../../../platform/local-store";
 import { createLogger } from "../../../platform/logger";
 import { hostEnvironment } from "../../../platform/host-environment";
 import { hostWindow } from "../../../services/window";
+import { readerImage } from "../../../services/reader-image";
 import { hostSync } from "../../../services/sync";
 import { hostMaintenance } from "../../../services/maintenance";
 import { createResourceOwner } from "../../../services/resources";
@@ -807,6 +808,14 @@ export function buildPluginContext(
   if (domain.reading) {
     const reading = domain.reading;
     ctx.services.ui.reader = {
+      image: {
+        snapshot: async () => { lifecycle.assertActive("services.ui.reader.image.snapshot"); return readerImage.snapshot(); },
+        observe: handler => track(() => ({ dispose: readerImage.observe(handler) })),
+        ...(reading.commands ? { control: (request: import("@read-aware/core").ReaderImageRequest) => {
+          lifecycle.assertActive("services.ui.reader.image.control");
+          return lifecycle.read("services.ui.reader.image.control", () => readerImage.control(request, lifecycle.signal));
+        } } : {}),
+      },
       snapshot: async () => {
         lifecycle.assertActive("services.ui.reader.snapshot");
         return readerPanels.snapshot();

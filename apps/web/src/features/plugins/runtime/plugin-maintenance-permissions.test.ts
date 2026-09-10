@@ -7,7 +7,7 @@ test("maintenance is read-only without network and never exposes install/send/ra
   const a = create(false), b = create(true);
   try {
     a.lifecycle.promote(); b.lifecycle.promote();
-    expect(Object.keys(a.context.services.maintenance).sort()).toEqual(["observe", "openSettings", "requestBackup", "snapshot"]);
+    expect(Object.keys(a.context.services.maintenance).sort()).toEqual(["observe", "openSettings", "requestBackup", "requestConnectionTest", "snapshot"]);
     expect(typeof b.context.services.maintenance.checkForUpdates).toBe("function");
     await expect(a.context.services.maintenance.openSettings("install" as never)).rejects.toMatchObject({ code: "ui/invalid-target" });
     a.lifecycle.stop(); b.lifecycle.stop();

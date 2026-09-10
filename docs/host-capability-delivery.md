@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+2026-09-11 AI 连接测试批次已接线：maintenance1.3 requestConnectionTest 与双域 Agent request_ai_connection_test 只定位原生测试按钮，用户亲自点击才用当前表单配置运行既有主模型测试。复用账户映射、HTTP与推理策略，可能产生服务商费用；调用方仅收 responded/empty/cancelled 或错误，不收密钥、端点、模型身份或回复。原生异步状态提到 useAIConnectionTest，改配置/清除/卸载淘汰旧成功；已开始源等结算，不因取消假称强杀/退款。openSettings 新增 ai-connection，共七入口；单次取消共32个RPC入口。
+
+[验证] 34 项基础测试、1101 断言通过（含受控回复的 StrictMode 挂载、零授权请求/必须点击、错误、配置变更、取消、Agent输出、备份回归及库存模型）；全仓 typecheck27/27、三文档对结构与 diff 检查通过。940 入口映射、38 catalog 成员，Agent book94/global112。CFG08 按现有目录/元数据/测试范围标接通，不证明配置持久、Fast档位、所有模型能力或未来可用；没有新增提供者截止或耐久任务。未调用真实服务商、未启动桌面/浏览器；业务插件、compiled Worker、Tauri/远端与HTML视觉复核集中后置，未推送，整体目标继续。
+
 2026-09-11 模型目录批次已接线：settings1.9 modelCatalog/refreshModelCatalog 与双域 Agent get_model_catalog/refresh_model_catalog 共用原生 ModelCatalogStore。查询需主/快模型路径发现权，不联网；刷新另需 network，复用在途请求、ETag和持久缓存。只读公共模型 id/name、输入类型、推理支持、上下文及输出限制，不给当前选择、保留旧选项、密钥、端点或价格。分页默认25/最多100条，120字符搜索，进程revision拒绝旧续页；显式刷新失败拒绝，旧缓存可读但标错误。单次signal接共享31入口表，取消不回滚共享刷新。
 
 [验证] 45 项基础测试、1114 断言通过，覆盖目录缓存、权限、分页、取消、Agent 接线/输出和库存模型；全仓 typecheck27/27、三文档对结构与 diff 检查通过。937 入口映射、38 catalog 成员，Agent工具 book93/global111。CFG08仍部分：连接测试未接，目录元数据不代表账号可调用或全传输能力就绪；自定义/Relay/Codex目录不支持。未调用真实远端服务、未启动桌面/浏览器，业务插件、compiled Worker、Tauri和HTML视觉复核集中后置；未推送，整体目标继续。

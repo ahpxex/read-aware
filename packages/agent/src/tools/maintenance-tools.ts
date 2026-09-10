@@ -6,6 +6,15 @@ import { textResult } from "./tool-result";
 
 export function buildMaintenanceTools(deps: RuntimeDeps): AgentTool[] {
   return [{
+    name: "request_ai_connection_test", label: "Request AI connection test", executionMode: "sequential",
+    description: "Only on explicit user request, reveal the native AI Test connection button and wait for the user to click it. Never clicks, submits credentials or receives endpoint, key, model identity or response text. Tests the primary model using the user's current native form and existing inference policy; may incur provider charges. Returns responded/empty/cancelled; responded only means one nonempty test reply, not all models/features, persistent configuration or future availability. Failure rejects. Editing the configuration during the test invalidates its result. Cancellation/unmount before click prevents this request from starting; an already-started provider call is not physically cancelled or refunded. No automatic test, hidden billing or arbitrary destination.",
+    parameters: Type.Object({}, { additionalProperties: false }),
+    execute: async (_id, _params, signal) => {
+      signal?.throwIfAborted();
+      const result = await deps.maintenance.requestConnectionTest(signal);
+      signal?.throwIfAborted(); return textResult(result);
+    },
+  }, {
     name: "request_backup", label: "Request backup action", executionMode: "sequential",
     description: "Only on explicit user request, reveal the native backup import or export button and wait for the user to click it and use the file dialog. Never clicks, chooses paths or receives backup bytes. Returns imported/exported/cancelled only after that host flow settles; imported does not prove reload/genesis completed. The existing v1 backup includes KV, books, collections, annotations and original files, NOT the complete event log, independent AI/memory/plugin document stores or secrets. Import merges and can overwrite existing records; failures can leave partial writes. Cancellation before merging prevents it; after merging starts it cannot roll back. No silent restore, full-backup guarantee or arbitrary file access.",
     parameters: Type.Object({ action: Type.Union([Type.Literal("import"), Type.Literal("export")]) }, { additionalProperties: false }),

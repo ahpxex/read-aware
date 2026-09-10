@@ -2,6 +2,18 @@ import { expect, test } from "bun:test";
 import { createInMemoryDeps } from "../testing/fixtures";
 import { buildMaintenanceTools } from "./maintenance-tools";
 
+test("Agent connection tests request native consent without receiving configuration or response text", async () => {
+  const { deps } = createInMemoryDeps();
+  const calls: unknown[] = [];
+  deps.maintenance.requestConnectionTest = async signal => { calls.push(signal); return { action: "test", status: "responded" }; };
+  const tool = buildMaintenanceTools(deps).find(tool => tool.name === "request_ai_connection_test")!;
+  const abort = new AbortController();
+  const result = await tool.execute("test", {}, abort.signal);
+  expect(result.content[0]).toEqual({ type: "text", text: JSON.stringify({ action: "test", status: "responded" }) });
+  expect(calls).toEqual([abort.signal]); expect(tool.executionMode).toBe("sequential");
+  abort.abort(); await expect(tool.execute("cancel", {}, abort.signal)).rejects.toThrow(); expect(calls).toHaveLength(1);
+});
+
 test("Agent backup requests preserve native outcomes without file content or automatic approval", async () => {
   const { deps, stores } = createInMemoryDeps();
   const signal = new AbortController().signal;

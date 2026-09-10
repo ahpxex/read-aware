@@ -10,6 +10,20 @@ import { HostActionFlow } from "./host-action-flow";
 import { isTauri } from "../platform/environment";
 
 const log = createLogger("maintenance");
+export const hostConnectionTestFlows = new HostActionFlow<{ action: "test" }, "responded" | "empty">({
+  navigate: async signal => {
+    if (!isTauri()) throw new AppError("ui/unavailable", "Connection testing requires the desktop app");
+    await workspace.navigate({ surface: "settings", section: "ai" }, undefined, signal);
+  },
+  normalize: input => {
+    if (input?.action !== "test") throw new AppError("ui/invalid-target", "Invalid connection test request");
+    return { action: "test" };
+  },
+  completion: (_action, result) => {
+    if (typeof result !== "string") throw new AppError("internal", "Invalid connection test completion");
+    return result.trim() ? "responded" : "empty";
+  },
+});
 export const hostBackupFlows = new HostActionFlow<{ action: BackupAction }, "imported" | "exported">({
   navigate: async signal => {
     if (!isTauri()) throw new AppError("ui/unavailable", "Backup requires the desktop app");
@@ -31,6 +45,7 @@ export const hostBackupFlows = new HostActionFlow<{ action: BackupAction }, "imp
   },
 });
 export const hostMaintenance = new HostMaintenanceService({
+  requestConnectionTest: signal => hostConnectionTestFlows.request({ action: "test" }, signal),
   requestBackup: (action, signal) => hostBackupFlows.request({ action }, signal),
   snapshot: () => softwareUpdater.snapshot(),
   check: signal => softwareUpdater.checkForUpdates(signal),

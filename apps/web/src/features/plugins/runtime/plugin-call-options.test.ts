@@ -18,7 +18,7 @@ test("every supported option slot strips local signals, preserves guards and rec
     injectPluginCallSignal(method, prepared.args, host.signal);
     expect(prepared.args[index]).toEqual({ signal: host.signal });
   }
-  expect(Object.keys(PLUGIN_CALL_OPTIONS)).toHaveLength(31);
+  expect(Object.keys(PLUGIN_CALL_OPTIONS)).toHaveLength(32);
   const args = ["not an options slot"];
   expect(preparePluginCall("services.storage.get", args).args).toBe(args);
   injectPluginCallSignal("services.storage.get", args, host.signal);

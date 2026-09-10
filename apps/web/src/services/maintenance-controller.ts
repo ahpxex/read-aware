@@ -3,11 +3,13 @@ import { AppError, HOST_MAINTENANCE_SURFACES, type HostMaintenancePort, type Hos
 export function maintenanceSection(surface: HostMaintenanceSurface): WorkspaceSettingsSection {
   if (!HOST_MAINTENANCE_SURFACES.includes(surface)) throw new AppError("ui/invalid-target", "Unknown maintenance surface");
   if (surface === "plugins") return "plugins";
+  if (surface === "ai-connection") return "ai";
   if (surface === "backup-import" || surface === "backup-export" || surface === "delete-data") return "dataSync";
   return "about";
 }
 
 type Adapter = {
+  requestConnectionTest?: HostMaintenancePort["requestConnectionTest"];
   requestBackup?: HostMaintenancePort["requestBackup"];
   snapshot(): HostMaintenanceSnapshot;
   check(signal?: AbortSignal): Promise<HostMaintenanceSnapshot>;
@@ -21,6 +23,11 @@ export class HostMaintenanceService implements HostMaintenancePort {
   constructor(private adapter: Adapter, private report: (error: unknown) => void) {}
 
   async snapshot() { return this.adapter.snapshot(); }
+  requestConnectionTest(signal?: AbortSignal) {
+    signal?.throwIfAborted();
+    if (!this.adapter.requestConnectionTest) throw new AppError("ui/unavailable", "AI test controls are unavailable");
+    return this.adapter.requestConnectionTest(signal);
+  }
   requestBackup(action: import("@read-aware/core").BackupAction, signal?: AbortSignal) {
     signal?.throwIfAborted();
     if (action !== "import" && action !== "export") throw new AppError("ui/invalid-target", "Invalid backup action");

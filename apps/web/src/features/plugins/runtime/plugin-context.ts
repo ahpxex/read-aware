@@ -641,6 +641,8 @@ export function buildPluginContext(
           signal => hostDiagnostics.verifyProjections(signal), callSignal(options)),
       } } : {}),
       maintenance: {
+        requestConnectionTest: options => lifecycle.read("services.maintenance.requestConnectionTest",
+          signal => hostMaintenance.requestConnectionTest(signal), callSignal(options)),
         requestBackup: (action, options) => lifecycle.read("services.maintenance.requestBackup",
           signal => hostMaintenance.requestBackup(action, signal), callSignal(options)),
         snapshot: async () => { lifecycle.assertActive("services.maintenance.snapshot"); return hostMaintenance.snapshot(); },

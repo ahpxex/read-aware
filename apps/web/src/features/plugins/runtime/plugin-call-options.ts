@@ -4,6 +4,7 @@ import type { PluginCallOptions } from "@read-aware/plugin-types";
 /** Final options argument positions shared by the Worker proxy and host RPC.
  * Transport metadata is not authority: the host still resolves the actor's method. */
 export const PLUGIN_CALL_OPTIONS = {
+  "services.maintenance.requestConnectionTest": 0,
   "domains.settings.commands.refreshModelCatalog": 1,
   "services.maintenance.requestBackup": 1,
   "services.diagnostics.verifyProjections": 0,

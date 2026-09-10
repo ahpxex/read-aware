@@ -6,12 +6,8 @@
 import { useState, type ReactNode } from "react";
 import {
   DEFAULT_CUSTOM_OPENAI_API,
-  testLlmConnection,
   type CustomOpenAIApi,
 } from "@read-aware/agent";
-import { appHttpFetch } from "../../../platform/http-client";
-import { inferencePolicy } from "../../ai/agent/inference-policy";
-import { createLogger } from "../../../platform/logger";
 import {
   Accordion,
   Button,
@@ -25,11 +21,12 @@ import {
 } from "@read-aware/ui";
 import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
-import { Trans, useTranslation, describeError } from "../../../i18n";
+import { Trans, useTranslation } from "../../../i18n";
 import { useReactiveSetting } from "../../../hooks/useReactiveSetting";
 import { useSyncAccountInfo } from "../hooks/useSyncAccountInfo";
 import { useSyncConnection } from "../hooks/useSyncConnection";
-import { accountFromConfig } from "../../ai/agent/account";
+import { useAIConnectionTest } from "../hooks/useAIConnectionTest";
+import { useMaintenanceSurface } from "../hooks/useMaintenanceSurface";
 import {
   getAIConfig,
   getStoredApiKey,
@@ -67,10 +64,9 @@ function parsePositiveInteger(value: string): number | undefined {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
 }
 
-const log = createLogger("settings");
-
 export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
   const { t } = useTranslation("settings");
+  const connectionTestRef = useMaintenanceSurface("ai-connection");
   const [initialConfig] = useState(() => getAIConfig());
   const initialProvider = initialConfig?.provider ?? "openai";
   const initialModel = initialConfig?.model ?? DEFAULT_MODELS[initialProvider];
@@ -119,8 +115,6 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
   );
   const [isConfigured, setIsConfigured] = useState(Boolean(initialConfig));
   const [saveRevision, setSaveRevision] = useState(0);
-  const [isTesting, setIsTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [showKey, setShowKey] = useState(false);
 
   // The ReadAware subscription rides the sync account: the panel reads its
@@ -184,7 +178,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
   const markConfigChanged = () => {
     setSaveRevision((current) => current + 1);
     setIsConfigured(true);
-    setTestResult(null);
+    resetTest();
   };
 
   // Switching provider swaps in that provider's OWN remembered settings —
@@ -240,58 +234,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
     setOpenRouterOrder("");
     setOpenRouterAllowFallbacks(true);
     setIsConfigured(false);
-    setTestResult(null);
-  };
-
-  const handleTest = async () => {
-    flushConfig();
-    setIsTesting(true);
-    setTestResult(null);
-
-    try {
-      // Same provider stack as real chat (pi-ai), against the current form
-      // values. Exercises the smart tier (the model the chat turn uses).
-      const { account, models } = accountFromConfig({
-        provider,
-        apiKey: apiKey.trim(),
-        model: model.trim(),
-        fastModel: useSeparateFastModel ? fastModel.trim() || undefined : undefined,
-        customBaseUrl: provider === "custom" ? customBaseUrl.trim() : undefined,
-        customApi: provider === "custom" ? customApi : undefined,
-        customSupportsThinking:
-          provider === "custom" ? customSupportsThinking : undefined,
-        customMaxOutputTokens:
-          provider === "custom"
-            ? parsePositiveInteger(customMaxOutputTokens)
-            : undefined,
-      });
-      const response = await testLlmConnection(account, models.smart, {
-        fetch: appHttpFetch,
-        inferencePolicy,
-      });
-
-      if (response) {
-        setTestResult({
-          success: true,
-          message: t("aiConfig.testSuccessMessage", { response }),
-        });
-      } else {
-        setTestResult({
-          success: false,
-          message: t("aiConfig.testEmptyMessage"),
-        });
-      }
-    } catch (error) {
-      // This is a diagnostic surface, but the same rule applies: the raw
-      // provider text goes to the log; the panel shows the classified copy.
-      log.error("AI connection test failed", error);
-      setTestResult({
-        success: false,
-        message: describeError(error, { fallback: t("aiConfig.testUnknownError") }).body,
-      });
-    } finally {
-      setIsTesting(false);
-    }
+    resetTest();
   };
 
   const providerOptions = Object.entries(PROVIDER_LABELS).map(([value, label]) => ({
@@ -326,6 +269,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
     (provider === "custom" && !customBaseUrl.trim()) ||
     hasInvalidCustomMaxOutputTokens ||
     hasInvalidSeparateFastModel;
+  const { isTesting, testResult, handleTest, resetTest } = useAIConnectionTest(reactiveConfig, !isIncomplete, flushConfig);
 
   const handleModelChange = (value: string) => {
     setModel(value);
@@ -494,6 +438,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
       <Stack gap="sm">
         <div className="flex gap-3">
           <Button
+            ref={connectionTestRef}
             onClick={handleTest}
             disabled={isIncomplete || isTesting}
           >

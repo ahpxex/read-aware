@@ -74,6 +74,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   verify_local_data: {},
   request_diagnostics_report: { action: "export" },
   request_backup: { action: "export" },
+  request_ai_connection_test: {},
   pick_resource_files: {},
   download_resource: { url: "https://example.com/book.txt", name: "book.txt" },
   import_resource_book: { id: "resource-fixture" },

@@ -2097,6 +2097,8 @@ export type PluginHostServices = {
     observe(query: import("@read-aware/core").PluginDirectoryQuery, handler: (page: import("@read-aware/core").PluginDirectoryPage) => unknown): PluginDisposable;
   };
   maintenance: {
+    /** Maintenance 1.3: reveal native AI test controls; only the user's click starts inference. */
+    requestConnectionTest(options?: PluginCallOptions): Promise<import("@read-aware/core").ConnectionTestReceipt>;
     /** Reveals a host backup button and awaits the user's click and file dialog.
      * No backup bytes/paths; v1 is a subset, not a complete event-log backup. */
     requestBackup(action: import("@read-aware/core").BackupAction, options?: PluginCallOptions): Promise<import("@read-aware/core").BackupReceipt>;

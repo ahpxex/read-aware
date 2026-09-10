@@ -486,7 +486,7 @@ plugins and actual network/Tauri synchronization remain concentrated E2E work.
 ### Per-Call Cancellation (Library 1.17 / Reading 2.18 / Diagnostics 1.1 / Sync 1.1 / Maintenance 1.2)
 
 [代码] `PluginCallOptions = {signal?:AbortSignal}` is an optional FINAL argument
-on the 31 methods below. Existing parameters, guards, return values and grants
+on the 32 methods below. Existing parameters, guards, return values and grants
 are unchanged; omitted guards still occupy their position before options.
 
 | Namespace | Methods | Zero-based options position |
@@ -495,6 +495,7 @@ are unchanged; omitted guards still occupy their position before options.
 | `services.diagnostics` | `requestReport` | 1 |
 | `services.sync` | `requestFlow` | 1 |
 | `services.maintenance` | `requestBackup` | 1 |
+| `services.maintenance` | `requestConnectionTest` | 0 |
 | `domains.settings.commands` | `refreshModelCatalog` | 1 |
 | `domains.library.queries.books` | `inspectResource`, `getNavigationToc`, `listNavigationTargets`, `searchLocations`, `readRange`, `listReferences`, `listImages`, `readReference`, `searchText`, `getContentState` | 1 |
 | `domains.reading.commands` | `openBook`, `goTo`, `back`, `forward`, `reload`, `close`, `returnToMode` | 1 |
@@ -3696,7 +3697,8 @@ signal before/after awaiting the same source.
 through the SettingsPort/domain and format checkedAt as ISO for the model.
 No model-inference or sensitive-configuration authority is implied. Metadata
 is discovery information, not proof that an account can call the model or that
-every transport feature works. CFG08 remains partial for connection testing.
+every transport feature works. Native connection testing is separately connected
+through Maintenance 1.3; a catalog refresh itself never tests a connection.
 Focused cache/permission/pagination/cancellation/Agent checks pass with controlled
 network/cache adapters; actual remote catalogs, compiled Worker and Tauri plugin
 compositions remain concentrated E2E work.
@@ -5141,7 +5143,8 @@ acceptance prevents dispatch; after acceptance it only cancels the caller's
 delivery, not another caller's shared check. Unsupported checks reject.
 
 `openSettings` accepts updates/diagnostics (About), plugins (Plugins),
-backup-import/backup-export/delete-data (Data & Sync). It waits for the matching
+backup-import/backup-export/delete-data (Data & Sync), and since 1.3
+ai-connection (AI). It waits for the matching
 settings page acknowledgement and a mounted target, then scrolls/focuses it and
 returns `{status:"opened",surface}` only. Plugins targets the page heading; backup
 and deletion target their existing entry buttons, which may still be busy/disabled.
@@ -5159,6 +5162,45 @@ same service in both scopes; checking is explicit opt-in. SYS16's bounded actor
 entry is connected; logging 1.0 supplies plugin-owned diagnostic output, while
 diagnostics 1.1 adds host-confirmed export/send final flow receipts. Focused checks cover wiring, not real desktop update/diagnostics
 execution; composition/Tauri acceptance remains pending.
+
+### Native AI Connection Test (Maintenance 1.3)
+
+[代码] `services.maintenance.requestConnectionTest(options?)` and both scopes'
+sequential Agent `request_ai_connection_test` navigate to AI settings and reveal
+the existing Test connection button. No parameters select a provider, model,
+destination or credentials. No plugin network/LLM grant is needed to request
+this host surface: only the user's native button click starts inference.
+The ordinary form completeness/ongoing-test guard still applies. The user can
+finish configuring the form before clicking; the request does not auto-fill,
+click, save, or approve anything. Plain `openSettings("ai-connection")` remains
+a reveal-only receipt, not a request to await completion.
+
+[代码] `useAIConnectionTest` owns the shared native action lifecycle, result and
+localized error state. At click time it copies the current form configuration,
+calls its existing flush callback, and invokes the existing account mapper,
+primary-model `testLlmConnection`, app HTTP transport and inference policy.
+The prompt remains the existing one-word test with no book/chat context. Form
+changes/clear or unmount during a test invalidate its late success with
+`ui/superseded`; the reply does not certify a new configuration.
+
+[代码] HostActionFlow permits one request/run. Receipts are only
+`{action:"test",status:"responded"|"empty"|"cancelled"}`; no key, endpoint,
+model identity or response text is returned to the actor. Errors reject with
+the existing error contract; raw details stay in logs and the native panel uses
+localized descriptions. Responded means one nonempty primary-model test reply,
+not a save/durability receipt, model feature audit, Fast-tier test or future
+availability guarantee. The response text stays in the existing native UI.
+
+[环境] Test calls may incur provider charges. Unstarted actor cancellation or
+surface retirement ends that request; users remain free to use the native
+button independently. An already-started source remains owned until settlement,
+not physically cancelled/refunded by actor cancellation. The existing Worker
+120-second ceiling does not add a new native provider deadline or durable task.
+Source inference-policy cancellation remains independent. Mounted StrictMode,
+zero-grant ownership, status/error/edit/cancellation tests use controlled model
+responses, not real provider requests. CFG08 is connected for the existing host
+scope; compiled Worker, business-plugin and actual Tauri/remote acceptance remain
+concentrated E2E work.
 
 ### Backup Completion Flows (Maintenance 1.2)
 
@@ -5224,7 +5266,7 @@ diagnostic replay back. Native logic is unchanged. `projection-verification.ts`
 coalesces concurrent native diagnostic-bundle, plugin and Agent callers into one
 in-flight IPC, without caching completed checks. Public service callers receive
 independent count objects. Its optional PluginCallOptions.signal occupies slot 0
-in the shared 31-method Worker/host table; the host injects the authoritative
+in the shared 32-method Worker/host table; the host injects the authoritative
 request signal and combines plugin lifetime. Cancelling one waiter rejects it
 promptly, but does not interrupt or release the native flight before completion
 and rollback. Later callers join that flight, and source failure is logged even
@@ -5330,7 +5372,7 @@ actual settlement and cannot be rolled back. Billing checks cancellation and
 connection generation before external handoff. There is no durable TaskRef or
 restart recovery; the existing Worker RPC deadline still applies to the wait.
 `services.sync.requestFlow` uses options slot 1 in the shared signal-position
-table (31 supported methods). Native binding/run/settlement methods are not
+table (32 supported methods). Native binding/run/settlement methods are not
 included in the public context, so an actor cannot self-confirm.
 
 Agent `get_sync_status(includeConnections?)` and `manage_sync` share this service

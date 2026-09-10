@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 195、部分 43、占位 2、待建 2、非桌面 1。
-- Agent：接通 146、部分 57、扩展 11、自动 13、未接 15、内部 1。
-- 插件：接通 162、部分 73、未接 8。
+- Agent：接通 147、部分 56、扩展 11、自动 13、未接 15、内部 1。
+- 插件：接通 163、部分 72、未接 8。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -158,7 +158,7 @@
 | <a id="CFG05"></a>CFG05 | 固定版式颜色 reading.fixedLayoutColor | 实装 | **接通**：get_settings/update_settings<br>[设计] 结构化设置工具 | **接通**：settings 1.2；显式 global/book/all-books<br>[设计] 路径授权设置领域 | 固定版式外观 | theme/original；不是 reading.theme 的同义项；仅固定版式内容消费 | [PREFS](../apps/web/src/features/settings/lib/reader-settings.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [READER](../apps/web/src/features/reader/components/FoliateReaderView.tsx) | H02 |
 | <a id="CFG06"></a>CFG06 | 更新内容弹窗 general.whatsNewDialog | 实装 | **接通**：get_settings/update_settings<br>[设计] 结构化设置工具 | **接通**：settings 1.2；全局布尔字段<br>[设计] 路径授权设置领域 | GeneralPanel / useWhatsNewDialog | 控制后续升级说明提示，不是立即打开更新弹窗或安装更新 | [GENERAL](../apps/web/src/features/settings/lib/general-settings.ts) [WHATSNEW](../apps/web/src/features/update/hooks/useWhatsNewDialog.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | H04 |
 | <a id="CFG07"></a>CFG07 | AI 提供商/端点/密钥配置 | 实装 | **部分**：只读 provider/credentialConfigured；无密钥<br>[设计] 打开宿主敏感配置流程 | **部分**：受权读非敏感存在状态；无宿主 key<br>[设计] 打开宿主敏感配置流程 | AIConfigPanel | 不开放：读取宿主密钥；不能把 readonly provider 算作可切换提供商 | [AICONFIG](../apps/web/src/features/ai/lib/ai-config.ts) [AICONFIGUI](../apps/web/src/features/settings/components/AIConfigPanel.tsx) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SECRETS](../apps/web/src/platform/secret-store.ts) | H04 |
-| <a id="CFG08"></a>CFG08 | 模型目录刷新、连接测试与模型能力 | 实装 | **部分**：get_model_catalog/refresh_model_catalog[双域]<br>[设计] 目录与元数据已接，连接测试未接 | **部分**：settings1.9 modelCatalog/refreshModelCatalog<br>[设计] 目录与元数据已接，连接测试未接 | AI 配置页与双端共用 ModelCatalogStore | 需主/快模型路径选项发现权；刷新另需network且复用原生请求/ETag/持久缓存。只公开目录行的id/name/reasoning/input/contextWindow/maxOutputTokens，不给当前选择/保留旧选项/密钥/端点/价格。默认25/最多100条，120字符搜索，进程revision变化拒绝旧续页；未知与错误/旧缓存分开。显式刷新失败拒绝，取消不回滚共享源；不是连接测试/模型调用/配置修改。自定义、Relay、Codex目录不支持；基础权限/分页/取消/Agent及既有缓存测试通过，远端/Worker/Tauri组合集中后置，连接测试继续缺口。 | [MODELCATALOG](../apps/web/src/features/ai/lib/model-catalog.ts) [MODELCATALOGDOMAIN](../apps/web/src/domain/settings/model-catalog.ts) [MODELCATALOGPROOF](../apps/web/src/domain/settings/model-catalog.test.ts) [MODELCATALOGTOOLS](../packages/agent/src/tools/model-catalog-tools.ts) [AICONFIGUI](../apps/web/src/features/settings/components/AIConfigPanel.tsx) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | H04 |
+| <a id="CFG08"></a>CFG08 | 模型目录刷新、连接测试与模型能力 | 实装 | **接通**：get_model_catalog/refresh_model_catalog/request_ai_connection_test[双域]<br>[设计] 目录、元数据及原生测试回执 | **接通**：settings1.9 modelCatalog/refreshModelCatalog；maintenance1.3 requestConnectionTest<br>[设计] 目录、元数据及原生测试回执 | AI 配置页、目录缓存与原生主模型测试 | 目录需主/快模型路径发现权，刷新另需network；默认25/最多100行、120字符搜索、进程revision防旧续页，不给选择/保留旧模型/密钥/端点/价格。自定义/Relay/Codex目录不支持，刷新失败保留旧缓存但拒绝成功。测试请求只定位原生按钮，用户点击才用当前表单发主模型测试，可产生费用；返回responded/empty/cancelled或错误，不给模型身份/回复。改配置或卸载淘汰旧成功，已开始源等结算、不因取消退款或强杀；responded非持久保存/完整能力/Fast模型证明，无新提供者截止或耐久任务。基础授权/分页/挂载/Agent通过，实际远端/Worker/Tauri组合待集中验收。 | [MODELCATALOG](../apps/web/src/features/ai/lib/model-catalog.ts) [MODELCATALOGDOMAIN](../apps/web/src/domain/settings/model-catalog.ts) [MODELCATALOGPROOF](../apps/web/src/domain/settings/model-catalog.test.ts) [MODELCATALOGTOOLS](../packages/agent/src/tools/model-catalog-tools.ts) [CONNECTIONTESTFLOW](../apps/web/src/features/settings/hooks/useAIConnectionTest.ts) [CONNECTIONTESTPROOF](../apps/web/src/features/settings/hooks/useAIConnectionTest.test.tsx) [AICONFIGUI](../apps/web/src/features/settings/components/AIConfigPanel.tsx) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | H04 |
 | <a id="CFG09"></a>CFG09 | 插件非敏感设置的动态路径 | 实装 | **接通**：plugins.<id>.<field> get/update_settings<br>[设计] 参数配置工具 | **接通**：自有路径默认授权；他者路径需 grant<br>[设计] 隔离设置领域 | TTS/RSS/Theme Schedule 等 | 插件启用/声明决定目录；secret/password 字段不暴露；配置不等于执行插件命令 | [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) | H06 |
 | <a id="CFG10"></a>CFG10 | 设置变化事件/外部写入刷新 | 部分 | **自动**：get_settings/update_settings 共用已结算 revision；不建模型后台订阅<br>[设计] 运行时刷新 | **部分**：settings 1.6 queries.observe 已结算快照 + source/origin<br>[设计] 有版本/来源的观察 | Workspace Profiles 0.3 当前工作区；Theme Schedule；原生设置与 Worker 镜像 | 观察初始和实际提交后的授权值/目录元数据，64 全局上限、串行/合并、错误稳定 code、退订禁止晚发；领域/原生/插件 KV、远端覆盖、备份合并/前缀恢复、主题字体/命令/菜单/模式目录共用失效时钟。source 为 initial/local/remote/restore/catalog/mixed；领域和插件存储保留 actor，旧原生和远端实际 actor 未知为 null，不伪造 user。snapshot/discover/read 等 KV 与凭据队列结算；密钥不出域，仅已配置状态。失败写无成功通知，已发写不因退役回滚，排队插件写退役后不派发。进程 revision 非同步时钟、CAS、重放或 exactly-once；隐藏/无效变更可只推进时钟。macOS debug 已验实际设置点击、只读拒写/无权空态、两 Agent scope、五类来源、目录增删、编译实时视图、SQLite 拒绝与恢复。凭据发布已改为精确的本地持久成功值，使用已持久主密钥；回补等写队列结算，远端凭据覆盖等实际保存且不回发；原生加密存储拒写/拒删与恢复已有证据，延迟竞争和连接凭据失败有 IPC 回归。旧 settings.changed 仍只含领域命令；凭据保存与事件追加非同一事务，持久 outbox/崩溃重放、完整来源审计、旧密钥迁移、普通 KV 覆盖完成、所有 UI 草稿/异步效果、真实网络与打包跨平台未闭合，GAP03/09/11 保留。 | [SETDOMAIN](../apps/web/src/domain/settings/domain.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [WORKER](../apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts) [KV](../apps/web/src/platform/local-store.ts) [SETOBS](../apps/web/src/domain/settings/observation-sources.ts) [SETOBSHUB](../apps/web/src/domain/settings/observation.ts) [SETOBSPROOF](../docs/evidence/settings-observation-2026-09-10.json) [CURRENTWORKSPACE](../plugins/workspace-profiles/src/current.ts) [CREDENTIALROAMING](../apps/web/src/platform/roaming-preferences.ts) [CREDENTIALPROOF](../docs/evidence/credential-roaming-2026-09-10.json) | H01 |
 | <a id="CFG11"></a>CFG11 | 聊天/笔记内容字体：跟随阅读或独立字号/字体/行距 | 实装 | **接通**：appearance.contentTypography.*<br>[设计] 结构化设置工具 | **接通**：settings 1.2；四个全局字段<br>[设计] 路径授权设置领域 | AppearancePanel；聊天、笔记、插件 Markdown 与 composer | followReader/fontFamily/fontSize/lineSpacing；跟随全局 reader 而非本书 override；fontFamily=null 为应用字体，独立字段只在 followReader=false 生效；base atom 跟随 KV 回滚 | [TYPOGRAPHY](../apps/web/src/features/settings/lib/content-typography.ts) [TYPOGRAPHYUI](../apps/web/src/features/settings/sections/AppearancePanel.tsx) [TYPOGRAPHYEFFECT](../apps/web/src/features/settings/hooks/useContentTypography.ts) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) | 新增盘点 |
@@ -410,9 +410,9 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：111 个。
-- Agent book：93 个。
-- Plugin ctx：219 个。
+- Agent global：112 个。
+- Agent book：94 个。
+- Plugin ctx：220 个。
 - Plugin returned interface：28 个。
 - Capability domains：6 个。
 - Capability contributions：15 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 219 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 220 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -462,11 +462,12 @@
 | `open_external_url` | [SYS12](#SYS12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_sync_status` | [OPS01](#OPS01) [OPS03](#OPS03) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_sync` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `request_ai_connection_test` | [CFG08](#CFG08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `request_backup` | [OPS08](#OPS08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `verify_local_data` | [OPS03](#OPS03) [OPS11](#OPS11) [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `request_diagnostics_report` | [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_software_update` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
-| `open_maintenance_settings` | [SYS15](#SYS15) [SYS16](#SYS16) [EXT12](#EXT12) [OPS08](#OPS08) [OPS09](#OPS09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `open_maintenance_settings` | [SYS15](#SYS15) [SYS16](#SYS16) [EXT12](#EXT12) [OPS08](#OPS08) [OPS09](#OPS09) [CFG08](#CFG08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_book_formats` | [LIB07](#LIB07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `pick_resource_files` | [SYS11](#SYS11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_book_resource` | [LIB08](#LIB08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -578,11 +579,12 @@
 | `open_external_url` | [SYS12](#SYS12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_sync_status` | [OPS01](#OPS01) [OPS03](#OPS03) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_sync` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `request_ai_connection_test` | [CFG08](#CFG08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `request_backup` | [OPS08](#OPS08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `verify_local_data` | [OPS03](#OPS03) [OPS11](#OPS11) [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `request_diagnostics_report` | [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_software_update` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
-| `open_maintenance_settings` | [SYS15](#SYS15) [SYS16](#SYS16) [EXT12](#EXT12) [OPS08](#OPS08) [OPS09](#OPS09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `open_maintenance_settings` | [SYS15](#SYS15) [SYS16](#SYS16) [EXT12](#EXT12) [OPS08](#OPS08) [OPS09](#OPS09) [CFG08](#CFG08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_book_formats` | [LIB07](#LIB07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `pick_resource_files` | [SYS11](#SYS11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_book_resource` | [LIB08](#LIB08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -828,10 +830,11 @@
 | `services.logging.write` | [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.diagnostics.requestReport` | [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.diagnostics.verifyProjections` | [OPS03](#OPS03) [OPS11](#OPS11) [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.maintenance.requestConnectionTest` | [CFG08](#CFG08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.maintenance.requestBackup` | [OPS08](#OPS08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.maintenance.snapshot` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.maintenance.observe` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
-| `services.maintenance.openSettings` | [SYS15](#SYS15) [SYS16](#SYS16) [EXT12](#EXT12) [OPS08](#OPS08) [OPS09](#OPS09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.maintenance.openSettings` | [SYS15](#SYS15) [SYS16](#SYS16) [EXT12](#EXT12) [OPS08](#OPS08) [OPS09](#OPS09) [CFG08](#CFG08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.maintenance.checkForUpdates` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.resources.pick` | [SYS11](#SYS11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.resources.openBook` | [LIB08](#LIB08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

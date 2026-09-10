@@ -366,7 +366,7 @@
           <details class="ep"><summary>Settings 1.9：模型能力查询和目录刷新已接双端</summary><div class="ep-body">
             <p>插件 modelCatalog 与双域 Agent get_model_catalog 查询缓存中的模型名、输入类型、推理支持、上下文和输出限制。分页默认25/最多100条，变化后旧续页拒绝；不联网、不暴露当前选择、密钥、端点或价格。</p>
             <p>插件需 primaryModel 或 fastModel 的选项发现权限；refreshModelCatalog 另需 network，Agent 刷新需明确用户意图。复用原生目录请求、ETag和持久缓存，失败保留旧目录但拒绝成功回执；取消不回滚共享刷新。自定义、Relay与Codex目录不支持。</p>
-            <p>目录元数据不是连接成功证明，不调用模型或改设置。基础缓存、授权、分页、取消及Agent测试通过；连接测试仍缺，实际远端/Worker/Tauri组合集中后置，CFG08保持部分。</p>
+            <p>目录元数据不是连接成功证明，不调用模型或改设置。基础缓存、授权、分页、取消及Agent测试通过；连接测试另走maintenance1.3原生用户确认，实际远端/Worker/Tauri组合集中后置。</p>
           </div></details>
           <details class="ep" data-search-section="font system options 字体 系统 选项 分页"><summary>Settings 1.8：插件和 Agent 可搜索本机字体，不再猜名字</summary><div class="ep-body">
             <p>按设置路径查询选项，阅读/内容字体包含预设、插件与本机系统字体；返回值可直接交给原有设置命令。仅授予发现权限时不泄露当前值、字体文件或目录，也不触发下载。</p>
@@ -390,7 +390,7 @@
             <p>隔离 macOS debug 已验三端更新、冲突恢复与 SQLite 清理；正文 iframe 合成按键已验冲突不翻页、恢复后翻页、插件打开不重复翻页。失败持久化由 React/IPC 测试覆盖；全来源已提交观察另见 settings 1.6，来源身份完整性、真实模型、全键盘路由、打包及跨平台未完成，UI04 保持部分。<a href="./plugin-system.md#keyboard-shortcut-settings">契约与边界</a>。</p>
           </div></details>
           <p>Reading v2 已提供当前会话快照、即时快照观察、版本化落点、有限可见文本与历史可用性。开书、跳转、前进后退、翻页返回完成回执；关闭等待会话退休、已接收时间/位置写入及本书桶结算。失败可退出画面但拒绝成功回执，取消不回滚已发起的关闭；控制命令可带书籍/会话 guard。Agent 共用同一控制器。<a href="./evidence/reading-retirement-2026-09-10.json">原生双端与写锁恢复证据</a>，不代表打包/跨平台验收。</p>
-          <details class="ep"><summary>正文、阅读和宿主流程：31 个方法支持单次取消</summary><div class="ep-body">
+          <details class="ep"><summary>正文、阅读和宿主流程：32 个方法支持单次取消</summary><div class="ep-body">
             <p>10个正文查询和16个阅读控制增加末参数options.signal，保留原会话guard及权限。Worker只发送请求级取消，宿主注入实际控制器；取消一个搜索或导航不必停用整个插件，也不影响兄弟请求。</p>
             <p>diagnostics1.1 的 verifyProjections 只返回一致性与计数，原生重放必须完成回滚；不开放修复。另有 requestReport、sync1.1 requestFlow、maintenance1.2 requestBackup 和 settings1.9 refreshModelCatalog 支持单次取消，已确认的保存/发送/账户操作不能靠取消回滚，共享目录刷新也不强杀。</p>
             <p>精确位置搜索的DOM取文、DOM/PDF匹配及多查询正文搜索已接协作取消：扫描分批让出线程，无命中也能响应取消；两种搜索各自复用原匹配规则。约8毫秒调度片不是硬截止，不强杀文档/PDF解析或原生字符串操作，也不是总内存预算。定向匹配与定时器取消测试通过。</p>
@@ -579,8 +579,13 @@
             <p>library 1.8 已接授权资源直接导入，插件需书库写权限，global Agent 逐次批准；返回新导入或已有书籍，按内容去重，不修改原件。已受理导入会完成落库，取消不代表回滚。桌面便利导出与资源保存共用原生暂存后替换。目录/拖放、书内资产与持久资源仍缺，Worker 桥为有界复制；定向及原生文件单测通过，Tauri 组合验收待集中进行。</p>
           </details>
           <details><summary>维护入口：更新、诊断、插件管理、备份与清空数据</summary>
-            <p>maintenance 1.1 为插件和双 scope Agent 提供更新状态及六个宿主管理入口；联网检查需插件 network 授权，与原生更新共用状态和互斥控制。频道变更使旧结果失效，失败不当作已是最新。</p>
+            <p>maintenance 1.3 为插件和双 scope Agent 提供更新状态及七个宿主管理入口，新增 AI 测试按钮定位；更新联网检查需插件 network 授权，与原生更新共用状态和互斥控制。频道变更使旧结果失效，失败不当作已是最新。</p>
             <p>opened 只表示控件已挂载和定位，不点击控件、不代表操作完成。安装权限、文件选择与 DELETE 确认仍由用户完成；日志、路径、凭据和备份字节不交给调用方。logging 已接插件自有输出，诊断与备份最终回执另见对应流程；组合及 Tauri 验收待集中进行。</p>
+          </details>
+          <details><summary>Maintenance 1.3：连接测试由用户点击，插件和 Agent 可等待结果</summary>
+            <p>requestConnectionTest 与双域 request_ai_connection_test 只定位原生按钮，不填写配置或自动测试。用户完成配置并亲自点击后，沿用主模型和宿主推理策略，可能产生服务商费用；调用方只得到 responded、empty、cancelled 或错误，不收到密钥、端点、模型身份或回复。</p>
+            <p>测试期间改配置或退出页面会淘汰旧成功结果；已开始的请求仍等源结束，取消不是物理中断或退款。responded 只证明一次非空测试回复，不证明保存成功、Fast 模型或全部功能可用，也没有新增提供者截止时间或耐久任务。</p>
+            <p>原生挂载、零授权请求、状态、错误和取消基础测试通过，使用受控回复而非真实服务商。CFG08 按现有范围标接通；Worker、业务插件与 Tauri/远端验收集中后置。</p>
           </details>
           <details><summary>Maintenance 1.2：备份最终回执已接，仍不是全量备份</summary>
             <p>插件 requestBackup 和双域 Agent request_backup 只定位原有按钮，用户亲自点击并选择文件后，返回 imported、exported 或 cancelled。导入和导出共用现有原生文件服务，不把文件内容、路径或计数交给调用方。</p>

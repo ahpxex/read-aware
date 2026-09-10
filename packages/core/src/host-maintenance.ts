@@ -7,10 +7,11 @@ export type HostUpdateState = {
   progress: number | null;
   errorStage: "check" | "install" | null;
 };
-export const HOST_MAINTENANCE_SURFACES = ["updates", "diagnostics", "plugins", "backup-import", "backup-export", "delete-data"] as const;
+export const HOST_MAINTENANCE_SURFACES = ["updates", "diagnostics", "plugins", "backup-import", "backup-export", "delete-data", "ai-connection"] as const;
 export type HostMaintenanceSurface = typeof HOST_MAINTENANCE_SURFACES[number];
 export type BackupAction = "import" | "export";
 export type BackupReceipt = { action: BackupAction; status: "imported" | "exported" | "cancelled" };
+export type ConnectionTestReceipt = { action: "test"; status: "responded" | "empty" | "cancelled" };
 export type HostMaintenanceSnapshot = HostUpdateState & {
   supported: boolean;
   channel: "stable" | "beta";
@@ -18,6 +19,8 @@ export type HostMaintenanceSnapshot = HostUpdateState & {
   checkedChannel: "stable" | "beta" | null;
 };
 export type HostMaintenancePort = {
+  /** Reveal the native test button and await an explicit user click; no configuration or response text. */
+  requestConnectionTest(signal?: AbortSignal): Promise<ConnectionTestReceipt>;
   /** Reveal a host button, then await the user's native action. No bytes or paths. */
   requestBackup(action: BackupAction, signal?: AbortSignal): Promise<BackupReceipt>;
   snapshot(): Promise<HostMaintenanceSnapshot>;

@@ -166,7 +166,7 @@ export const units: Unit[] = [
     "缺字库/资产路径/插件禁用后回退可用；字号不破坏宿主交互与可访问性。"),
   unit("Q1", "Contract", "catalog/authorization", "发现、授权和来源", "CON01-02 CON09 CON11 AI04 AI09", "",
     "单一 capability catalog + 域定义派生 actor 视图；每个操作记录 owner、schema、version、scope、风险、availability、来源和消费者。授权先于副作用，对象/字段/资源范围在执行时复核。",
-    "模型工具只是授权操作的意图适配器，自动管线单独记账。批准票据绑定 actor/operation/对象/有效期，不能被不同请求复用。",
+    "get_host_capabilities 已接双 scope：从唯一 host catalog 读四类公共版本/插件权限提示，从本模型请求 registry 快照读宿主与扩展工具，不再次调用 extraTools。分页 revision 绑定 scope/筛选/可见元数据，变化须从头读；默认10/最多20条并限制转义后 JSON 大小。Host API 元数据不是 Agent 调用入口，工具注册不是实时就绪；字段/对象权限和批准仍在执行处复核。基础验证通过，真实 Agent/Tauri 组合留集中验收。模型工具只是授权操作的意图适配器，自动管线单独记账；批准票据仍绑定 actor/operation/对象/有效期。",
     "manifest consent、运行时 grant、用户一次性批准各司其职；跨插件 broker 取权限交集，不沿调用链提升权限。",
     "不复制第二份能力 registry；不把所有内部行为都变成公开工具。当前对象级授权/metadata policy/packaged CSP 尚未全部验收。",
     "无权限、撤权、过期批准、跨 scope、恶意插件输出和真实打包 CSP 分别测；只测类型不算通过。"),

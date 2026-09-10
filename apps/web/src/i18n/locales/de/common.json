@@ -12,6 +12,9 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "capabilityQueryInvalid": "Prüfe die Filter und Seitengrenzen des Funktionskatalogs.",
+    "capabilityCatalogChanged": "Der Funktionskatalog hat sich geändert. Beginne erneut auf der ersten Seite.",
+    "capabilityCatalogUnavailable": "Der Funktionskatalog überschreitet die zulässige Anzeigegröße.",
     "bookRangeInvalid": "Der Textbereich oder seine Lesegrenzen sind ungültig.",
     "bookRangeMissing": "Diese Textstelle lässt sich nicht mehr finden. Suchen Sie erneut danach.",
     "bookRangeAmbiguous": "Diese Textstelle passt zu mehreren Positionen. Suchen Sie nach einem genaueren Treffer.",

@@ -12,6 +12,9 @@
     "copied": "已复制"
   },
   "errors": {
+    "capabilityQueryInvalid": "请检查能力目录的筛选条件和分页范围。",
+    "capabilityCatalogChanged": "能力目录已变化，请从第一页重新查询。",
+    "capabilityCatalogUnavailable": "能力目录超出大小限制，无法显示。",
     "bookRangeInvalid": "文本范围或读取边界无效。",
     "bookRangeMissing": "此段文字已无法定位，请重新搜索。",
     "bookRangeAmbiguous": "此段文字对应多个位置，请搜索更具体的内容。",

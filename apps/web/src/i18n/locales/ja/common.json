@@ -12,6 +12,9 @@
     "copied": "コピーしました"
   },
   "errors": {
+    "capabilityQueryInvalid": "機能一覧の絞り込み条件とページ範囲を確認してください。",
+    "capabilityCatalogChanged": "機能一覧が変更されました。最初のページから再取得してください。",
+    "capabilityCatalogUnavailable": "機能一覧がサイズ制限を超えているため表示できません。",
     "bookRangeInvalid": "テキスト範囲または読み取り範囲が無効です。",
     "bookRangeMissing": "この文章を特定できなくなりました。もう一度検索してください。",
     "bookRangeAmbiguous": "この文章は複数の箇所に一致します。より具体的な内容で検索してください。",

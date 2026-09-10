@@ -472,6 +472,10 @@
       <section data-search-section="version permission 版本 权限">
         <div class="wrap">
           <h2>版本与权限</h2>
+          <details class="ep" data-search-section="Agent capabilities catalog discovery 能力 发现 目录"><summary>Agent 可查询宿主版本目录与本请求工具，两者不混同</summary><div class="ep-body">
+            <p>get_host_capabilities 在书内和全局均可用：一份列出公共 API 版本与插件权限提示，另一份列出本模型请求实际注册的宿主/扩展工具。直接派生现有目录，不另建映射，不执行插件或业务操作。</p>
+            <p>分页绑定 scope、筛选与元数据版本，变化须重读；默认 10 条、最多 20 条，另有序列化大小限制。API 元数据不是 Agent 调用权，工具注册也不是实时就绪或用户批准。基础测试通过，真实 Agent/Tauri 对话与动态撤权组合待集中验收；内部未开放能力仍由矩阵单列。<a href="./plugin-system.md#agent-capability-discovery">完整契约</a></p>
+          </div></details>
           <details><summary>文件资源：选取、分块读写、原书导出</summary>
             <p>resources 1.1 提供隔离的临时引用：原生选择文件、原书/本地封面快照、分块读写、封口和保存。封面不可用返回空，不触发生成或下载。每调用方 16 引用/1 GiB、1 小时有效；无任意路径，不进同步或备份。Agent 原书引用需批准且只能导出，不能绕过防剧透读取。</p>
             <p>clipboard 1.1 已接授权图片引用复制，原生解码 PNG/JPEG/GIF/BMP/WebP；最多 16 MiB 编码、8192 单边和 16,777,216 像素，不支持 SVG。Agent 不接收图片字节，插件须独立剪贴板权限；阅读灯箱共用后端。Library 1.13 已接书内图片查询与资源读取，插件资源呈现仍缺，真实粘贴和组合留到集中验收。</p>

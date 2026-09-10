@@ -98,6 +98,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   export_text_file: { filename: "reading.txt", content: "Requested text" },
   open_external_url: { url: "https://readaware.app/" },
   get_host_environment: {},
+  get_host_capabilities: {},
   get_app_window: {},
   get_reader_image: {},
   list_book_images: { bookId: BOOK_ID, contentVersion: "v1", sectionIndex: 0 },

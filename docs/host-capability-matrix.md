@@ -21,7 +21,7 @@
 ## 计数与口径
 
 - 宿主：实装 194、部分 43、待建 3、占位 2、非桌面 1。
-- Agent：接通 134、部分 62、扩展 13、未接 17、自动 13、内部 4。
+- Agent：接通 135、部分 61、扩展 13、未接 17、自动 13、内部 4。
 - 插件：接通 149、部分 84、未接 10。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
@@ -339,7 +339,7 @@
 
 | ID | 宿主能力 | 宿主现状 | Agent 当前与目标 | 插件当前与目标 | 实际消费者 | 缺口/边界 | 来源 | 旧基线 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="CON01"></a>CON01 | 能力发现/版本/权限/依赖与安装同意 | 实装 | **部分**：registry 按 scope 产工具；无完整 host 能力目录工具<br>[设计] 语义工具目录 | **接通**：ctx.capabilities + manifest requires/permissions<br>[设计] 版本化能力目录 | 插件安装校验；工具构建 | catalog 当前只列已公开 API，不自动覆盖 host UI/engine/native；新增宿主行为必须更新此表 | [CATALOG](../packages/core/src/capabilities.ts) [API](../packages/plugin-types/src/index.ts) [HOST](../apps/web/src/features/plugins/runtime/plugin-host.ts) [REGISTRY](../packages/agent/src/tools/registry.ts) | A01, R01, R07 |
+| <a id="CON01"></a>CON01 | 能力发现/版本/权限/依赖与安装同意 | 实装 | **接通**：get_host_capabilities[双域]：host 版本元数据与本请求 tools 分开分页<br>[设计] 同源目录，不生成第二份 API 映射 | **接通**：ctx.capabilities + manifest requires/permissions<br>[设计] 版本化能力目录 | 插件安装校验；Agent 本模型请求的 scope 工具与扩展快照 | Agent 可读四类公共版本与插件权限提示，也可查询实际注册工具；元数据不授予插件 API 调用权，注册不代表运行态就绪。分页 revision 绑定 scope/筛选/可见条目，变化重读；默认10/最多20条且 JSON 条目预算12000字符，不调用插件或业务 API，不重复采样 extraTools。基础验证已过，真实 Agent/Tauri 对话及动态撤权组合留集中验收。目录仍只覆盖已公开 API，不冒充内部 UI/engine/native 全覆盖；新增宿主行为必须更新此表。 | [CATALOG](../packages/core/src/capabilities.ts) [API](../packages/plugin-types/src/index.ts) [HOST](../apps/web/src/features/plugins/runtime/plugin-host.ts) [REGISTRY](../packages/agent/src/tools/registry.ts) [AGENTCAPS](../packages/agent/src/tools/capability-tools.ts) [AGENTCAPSPROOF](../packages/agent/src/tools/capability-tools.test.ts) | A01, R01, R07 |
 | <a id="CON02"></a>CON02 | 对象级授权/用户批准/来源与审计 | 部分 | **部分**：book scope + destructive approval<br>[设计] 最小授权工具 | **部分**：domain permissions/settings path grants/plugin namespace<br>[设计] 对象级授权/审批票据 | Agent 写工具；插件 manifest | 域权限不是每个对象的授权；session metadata 默认开放需明确政策 GAP15 | [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [CATALOG](../packages/core/src/capabilities.ts) [ANNTOOLS](../packages/agent/src/tools/annotation-tools.ts) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) | L07, P06, Q05, R02 |
 | <a id="CON03"></a>CON03 | 生命周期 staging/activate/deactivate 与资源释放 | 部分 | **自动**：runtime invalidation/flush background<br>[设计] 任务/贡献消费生命周期 | **部分**：注册 scope、视图/transport session 回调 lease 与异步 cleanup 排空<br>[设计] 全来源 structured cancellation | 插件启停/升级；Agent 运行时重建 | 视图移除或失效时释放局部回调，未消费/非法/迟到结果释放，旧 Worker 不关闭新实例对话框；停用退休 transport 后排空异步关闭及持久写。仍缺通用同 ID 换代失败回滚、其他 provider session/在途 effect 和真实连接全链路；GAP06/08/14 未整体关闭 | [HOST](../apps/web/src/features/plugins/runtime/plugin-host.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) [CALLBACKWIRE](../apps/web/src/features/plugins/runtime/plugin-callback-wire.ts) [LIFECYCLE](../apps/web/src/features/plugins/runtime/plugin-lifecycle.ts) [THREAD](../packages/agent/src/runtime/thread.ts) [SYNCSESSION](../apps/web/src/platform/sync/transport-session.ts) [VIEWSESSION](../apps/web/src/features/plugins/lib/plugin-view-session.ts) [VIEWSOURCE](../apps/web/src/features/plugins/hooks/usePluginViewSource.ts) | E04, K06, N05, Q06, R01, R03 |
 | <a id="CON04"></a>CON04 | 跨 Worker RPC 的类型、错误与资源额度 | 部分 | **扩展**：插件 tool 也经过同一 worker bridge<br>[设计] 工具任务不被悬挂 | **部分**：describeContext + 无业务字段碰撞的 callback metadata + 有界图遍历<br>[设计] 有界可取消版本化 RPC | 所有 Worker 插件及其 Agent 工具 | __fn/__disposable 保持普通数据；编码/clone 失败回滚句柄；图深度/条目/单消息 callback 有界；GAP07/12/13/17 的全消息 schema/字节与存活资源总量、取消、错误码/崩溃路径仍需统一验收 | [WORKER](../apps/web/src/features/plugins/runtime/plugin-sandbox.worker.ts) [WIRE](../apps/web/src/features/plugins/runtime/plugin-worker-host.ts) [CALLBACKWIRE](../apps/web/src/features/plugins/runtime/plugin-callback-wire.ts) [API](../packages/plugin-types/src/index.ts) [ERRORS](../packages/core/src/errors.ts) | J12 |
@@ -410,8 +410,8 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：99 个。
-- Agent book：82 个。
+- Agent global：100 个。
+- Agent book：83 个。
 - Plugin ctx：191 个。
 - Plugin returned interface：27 个。
 - Capability domains：6 个。
@@ -542,6 +542,7 @@
 | `get_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `update_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `reset_reading_settings` | [CFG03](#CFG03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_host_capabilities` | [CON01](#CON01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 
 ### Agent book
 
@@ -629,6 +630,7 @@
 | `get_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `update_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `reset_reading_settings` | [CFG03](#CFG03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_host_capabilities` | [CON01](#CON01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 
 ### Plugin ctx
 

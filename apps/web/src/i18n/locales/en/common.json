@@ -12,6 +12,9 @@
     "copied": "Copied"
   },
   "errors": {
+    "capabilityQueryInvalid": "Check the capability catalog filters and page limits.",
+    "capabilityCatalogChanged": "The capability catalog changed. Start again from the first page.",
+    "capabilityCatalogUnavailable": "The capability catalog could not be displayed within its size limit.",
     "bookRangeInvalid": "The text range or its read bounds are invalid.",
     "bookRangeMissing": "This passage no longer resolves. Search for it again.",
     "bookRangeAmbiguous": "This passage matches more than one location. Search for a more specific match.",

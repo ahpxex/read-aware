@@ -4125,7 +4125,8 @@ visible capability versions and rejects:
 - a requirement the actor has not been granted;
 - a requirement outside the host version range.
 
-The same filtered version map is exposed read-only at runtime. Discovery does
+The same filtered version map is exposed read-only at runtime through plugin
+`ctx.capabilities`. Plugin discovery does
 not reveal internal domains, inaccessible settings, or permission-gated
 capabilities.
 
@@ -4136,6 +4137,54 @@ When changing a capability:
 - major for a breaking contract change.
 
 Do not bump unrelated capabilities to avoid thinking about ownership.
+
+### Agent Capability Discovery
+
+[代码] Both book/global Agent scopes expose `get_host_capabilities`. Two catalogs
+are deliberately separate: `catalog: host` (default) derives public
+domains/services/contributions/schemas directly from `HOST_CAPABILITY_CATALOG`,
+returning `family`, `id`, `version` and `pluginPermissions`; `catalog: tools`
+derives the actual registry snapshot sent to this model request, returning exact
+`name`, `source: host|extension`, `label`, `description` and `textTruncated`.
+The discovery tool includes itself. Extension discovery is sampled once by
+`buildAgentTools`, not re-invoked during catalog reads. A later model request
+builds a fresh registry using the existing runtime path.
+
+Host entries are public API metadata, NOT callable Agent operations. Permission
+arrays are catalog hints, NOT grants or a complete field/object/operation policy
+(settings still require exact paths). Tool entries are registrations for this
+request, NOT live availability probes or approval to execute. Existing scope,
+reading fences, permission, approval and retirement checks remain at execution.
+Descriptions are untrusted metadata, not instructions. Parameter schemas already
+sent with actual tools remain authoritative; this catalog does not duplicate them.
+No plugin callback, business read, write, network request or installation runs.
+
+Optional `family` filters only host queries. `query` is at most 120 UTF-16 units,
+trimmed and lowercased: host matching uses family/id; tools match name and their
+displayed label/description summaries. Labels are capped at 120 units and
+descriptions at 480; `textTruncated` reports either cut. Names remain exact.
+`offset` is a nonnegative safe integer (default 0), `limit` is 1..20 (default 10).
+Results include scope kind (not book/thread IDs), items, filtered total,
+`nextOffset` or null, semantic warnings and `revision: hc1:<SHA-256>`.
+Positive offsets require the previous revision. The digest binds catalog,
+scope kind, normalized filters and visible metadata, remaining stable across
+identical per-request rebuilds. Metadata/filter/scope changes reject with
+`ai/capability-catalog-changed`; restart at zero without revision. Invalid
+queries/unknown fields/out-of-range offsets use `ai/invalid-capability-query`.
+
+Pages also stop at 12000 serialized item characters (including JSON escaping),
+so a page can be shorter than its requested limit. A single oversized entry
+rejects with `ai/capability-catalog-unavailable`, never a truncated callable name
+or silent empty page. All three codes have safe localized non-retryable copy in
+eight locales. Abort is checked before work and after asynchronous hashing.
+This is metadata pagination, not a generalized task or readiness protocol.
+
+[验证] Both-scope registry parity (including extensions), canonical versions,
+pagination across request rebuilds, changed catalogs/queries, serialized output
+budgets, cancellation, error localization and the all-tool surface checks pass.
+Real Agent/Tauri conversation and dynamic plugin retirement/permissions remain
+for concentrated E2E. Public catalog completeness does not establish that every
+internal host behavior has an API; the capability matrix still tracks those gaps.
 
 ## 11. Declarative UI
 

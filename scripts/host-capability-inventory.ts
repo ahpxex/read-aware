@@ -74,6 +74,7 @@ const agentMap = pairs([
   ["get_reading_session", "READ07 TXT09 TXT10 READ13 READ16"], ["navigate_reading", "READ02 READ04 READ06 READ16"],
   ["control_read_aloud", "READ18"],
   ["get_host_environment", "MORE03"],
+  ["get_host_capabilities", "CON01"],
   ["get_workspace navigate_app", "UI01 UI02"],
   ["list_host_commands execute_host_command", "UI03"],
   ["configure_reading_mode", "READ16"],

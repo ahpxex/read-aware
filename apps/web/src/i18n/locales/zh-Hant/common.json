@@ -12,6 +12,9 @@
     "copied": "已複製"
   },
   "errors": {
+    "capabilityQueryInvalid": "請檢查能力目錄的篩選條件和分頁範圍。",
+    "capabilityCatalogChanged": "能力目錄已變更，請從第一頁重新查詢。",
+    "capabilityCatalogUnavailable": "能力目錄超出大小限制，無法顯示。",
     "bookRangeInvalid": "文字範圍或讀取邊界無效。",
     "bookRangeMissing": "此段文字已無法定位，請重新搜尋。",
     "bookRangeAmbiguous": "此段文字對應多個位置，請搜尋更具體的內容。",

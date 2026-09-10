@@ -16,6 +16,7 @@ import { buildNavigationTools } from "./navigation-tools";
 import { buildReferenceTools } from "./reference-tools";
 import { buildSettingsTools } from "./settings-tools";
 import { buildEnvironmentTools } from "./environment-tools";
+import { buildCapabilityTool } from "./capability-tools";
 import { buildWindowTools } from "./window-tools";
 import { buildImageViewerTools } from "./image-viewer-tools";
 import { buildBookImageTools } from "./book-image-tools";
@@ -40,7 +41,7 @@ export function buildAgentTools(
   deps: RuntimeDeps,
   turnState?: AgentTurnState,
 ): AgentTool[] {
-  return [
+  const hostTools: AgentTool[] = [
     ...buildEnvironmentTools(deps),
     ...buildWindowTools(deps),
     ...buildImageViewerTools(scope, deps),
@@ -69,6 +70,7 @@ export function buildAgentTools(
     ...buildReferenceTools(scope, deps, turnState),
     ...buildInteractionTools(scope, deps, turnState),
     ...buildSettingsTools(scope, deps),
-    ...(deps.extraTools?.(scope) ?? []),
   ];
+  const extensions = deps.extraTools?.(scope) ?? [];
+  return [...hostTools, buildCapabilityTool(scope, hostTools, extensions), ...extensions];
 }

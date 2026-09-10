@@ -12,6 +12,9 @@
     "copied": "Copié"
   },
   "errors": {
+    "capabilityQueryInvalid": "Vérifiez les filtres et les limites de pagination du catalogue de fonctionnalités.",
+    "capabilityCatalogChanged": "Le catalogue de fonctionnalités a changé. Recommencez à la première page.",
+    "capabilityCatalogUnavailable": "Le catalogue de fonctionnalités dépasse la taille d'affichage autorisée.",
     "bookRangeInvalid": "La plage de texte ou ses limites de lecture sont invalides.",
     "bookRangeMissing": "Ce passage est introuvable. Recherchez-le à nouveau.",
     "bookRangeAmbiguous": "Ce passage correspond à plusieurs emplacements. Précisez votre recherche.",

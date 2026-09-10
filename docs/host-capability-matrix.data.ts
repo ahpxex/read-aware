@@ -311,6 +311,8 @@ export const sources: Record<string, string> = {
   CHATCONTROL: "apps/web/src/features/ai/hooks/useBookConversation.ts",
   AGENTUI: "apps/web/src/features/agent/components/AgentWorkspace.tsx",
   REGISTRY: "packages/agent/src/tools/registry.ts",
+  AGENTCAPS: "packages/agent/src/tools/capability-tools.ts",
+  AGENTCAPSPROOF: "packages/agent/src/tools/capability-tools.test.ts",
   PORTS: "apps/web/src/features/ai/agent/ports/index.ts",
   LIBPORT: "apps/web/src/features/ai/agent/ports/library-port.ts",
   TEXTPORT: "apps/web/src/features/ai/agent/ports/book-text-port.ts",
@@ -593,7 +595,7 @@ groups.push(
     cap("OPS11", "事件写入、重建/验证投影、历史 genesis", "实装", actor("内部", "领域端口提交业务事件", "只走有语义领域命令"), actor("部分", "公开领域命令内部 commit", "只走有语义领域命令"), ["EVENTS","APPLY","RUST"], "commit_events/rebuild_projections/verify_projections", "不开放：任意 SQL/事件 append/投影写；旧日志未记录的变更不可凭空恢复"),
   ] },
   { name: "跨能力协议与明确边界", rows: [
-    cap("CON01", "能力发现/版本/权限/依赖与安装同意", "实装", actor("部分", "registry 按 scope 产工具；无完整 host 能力目录工具", "语义工具目录"), actor("接通", "ctx.capabilities + manifest requires/permissions", "版本化能力目录"), ["CATALOG","API","HOST","REGISTRY"], "插件安装校验；工具构建", "catalog 当前只列已公开 API，不自动覆盖 host UI/engine/native；新增宿主行为必须更新此表"),
+    cap("CON01", "能力发现/版本/权限/依赖与安装同意", "实装", actor("接通", "get_host_capabilities[双域]：host 版本元数据与本请求 tools 分开分页", "同源目录，不生成第二份 API 映射"), actor("接通", "ctx.capabilities + manifest requires/permissions", "版本化能力目录"), ["CATALOG","API","HOST","REGISTRY","AGENTCAPS","AGENTCAPSPROOF"], "插件安装校验；Agent 本模型请求的 scope 工具与扩展快照", "Agent 可读四类公共版本与插件权限提示，也可查询实际注册工具；元数据不授予插件 API 调用权，注册不代表运行态就绪。分页 revision 绑定 scope/筛选/可见条目，变化重读；默认10/最多20条且 JSON 条目预算12000字符，不调用插件或业务 API，不重复采样 extraTools。基础验证已过，真实 Agent/Tauri 对话及动态撤权组合留集中验收。目录仍只覆盖已公开 API，不冒充内部 UI/engine/native 全覆盖；新增宿主行为必须更新此表。"),
     cap("CON02", "对象级授权/用户批准/来源与审计", "部分", actor("部分", "book scope + destructive approval", "最小授权工具"), actor("部分", "domain permissions/settings path grants/plugin namespace", "对象级授权/审批票据"), ["CTX","CATALOG","ANNTOOLS","SHELFTOOLS"], "Agent 写工具；插件 manifest", "域权限不是每个对象的授权；session metadata 默认开放需明确政策 GAP15"),
     cap("CON03", "生命周期 staging/activate/deactivate 与资源释放", "部分", actor("自动", "runtime invalidation/flush background", "任务/贡献消费生命周期"), actor("部分", "注册 scope、视图/transport session 回调 lease 与异步 cleanup 排空", "全来源 structured cancellation"), ["HOST","CTX","WIRE","CALLBACKWIRE","LIFECYCLE","THREAD","SYNCSESSION","VIEWSESSION","VIEWSOURCE"], "插件启停/升级；Agent 运行时重建", "视图移除或失效时释放局部回调，未消费/非法/迟到结果释放，旧 Worker 不关闭新实例对话框；停用退休 transport 后排空异步关闭及持久写。仍缺通用同 ID 换代失败回滚、其他 provider session/在途 effect 和真实连接全链路；GAP06/08/14 未整体关闭"),
     cap("CON04", "跨 Worker RPC 的类型、错误与资源额度", "部分", actor("扩展", "插件 tool 也经过同一 worker bridge", "工具任务不被悬挂"), actor("部分", "describeContext + 无业务字段碰撞的 callback metadata + 有界图遍历", "有界可取消版本化 RPC"), ["WORKER","WIRE","CALLBACKWIRE","API","ERRORS"], "所有 Worker 插件及其 Agent 工具", "__fn/__disposable 保持普通数据；编码/clone 失败回滚句柄；图深度/条目/单消息 callback 有界；GAP07/12/13/17 的全消息 schema/字节与存活资源总量、取消、错误码/崩溃路径仍需统一验收"),

@@ -21,6 +21,7 @@ import {
 } from "../../../platform/environment";
 import { setTrafficLightsVisible } from "../../../platform/traffic-lights";
 import { useWindowMaximized } from "../hooks/useWindowMaximized";
+import { useWindowActions } from "../hooks/useWindowActions";
 
 async function currentWindow() {
   const { getCurrentWindow } = await import("@tauri-apps/api/window");
@@ -44,7 +45,8 @@ export function WindowCaptionControls({
 }: WindowCaptionControlsProps = {}) {
   const { t } = useTranslation("nav");
   const custom = chrome === "custom";
-  const maximized = useWindowMaximized();
+  const maximized = useWindowMaximized(custom);
+  const windowAction = useWindowActions();
 
   // Dev preview on a real Mac: the native traffic lights would double up with
   // these controls — hide them for the preview's lifetime.
@@ -73,7 +75,7 @@ export function WindowCaptionControls({
         type="button"
         aria-label={t("window.minimize")}
         className={buttonClass}
-        onClick={() => void currentWindow().then((w) => w.minimize())}
+        onClick={() => windowAction({ action: "minimize" })}
       >
         <Minus size={14} weight="regular" aria-hidden="true" />
       </button>
@@ -82,7 +84,7 @@ export function WindowCaptionControls({
         aria-label={maximized ? t("window.restore") : t("window.maximize")}
         className={buttonClass}
         onMouseEnter={showSnapOverlay}
-        onClick={() => void currentWindow().then((w) => w.toggleMaximize())}
+        onClick={() => windowAction({ action: maximized ? "restore" : "maximize" })}
       >
         {maximized ? (
           <CopySimple size={14} weight="regular" aria-hidden="true" />

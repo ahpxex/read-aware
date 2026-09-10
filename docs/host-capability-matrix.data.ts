@@ -13,6 +13,9 @@ export const cap = (id: string, name: string, host: HostState, agent: Actor, plu
   ({ id, name, host, agent, plugin, sources, consumers, gap, baseline: [] });
 
 export const sources: Record<string, string> = {
+  WINDOWSERVICE: "apps/web/src/services/window-controller.ts",
+  WINDOWTOOLS: "packages/agent/src/tools/window-tools.ts",
+  WINDOWPROOF: "apps/web/src/services/window-controller.test.ts",
   REFERENCEPREVIEW: "apps/web/src/services/reader-reference-preview.ts",
   REFERENCEPREVIEWHOOK: "apps/web/src/features/reader/hooks/useReferencePreview.ts",
   REFERENCEPREVIEWPROOF: "apps/web/tests/reference-preview-hook.test.tsx",
@@ -553,7 +556,7 @@ groups.push(
     cap("SYS14", "系统字体枚举和字体资产加载", "实装", actor("部分", "settings discover reading.fontFamily", "受支持字体列表"), actor("部分", "settings options + fonts manifest", "字体资源能力"), ["RUST","SETTINGS","API"], "阅读字体选择；editorial-themes", "列表选择已可组合，不需要插件访问系统字体目录"),
     cap("SYS15", "原生日志/诊断包/崩溃报告导出与发送", "实装", actor("部分", "open_maintenance_settings[双域]", "打开宿主脱敏诊断流程"), actor("部分", "services.maintenance.openSettings(diagnostics)", "宿主诊断入口；自有诊断输出"), ["DIAG","ERRORS","RUST","HOSTMAINTENANCE","MAINTENANCETOOLS"], "设置 About Diagnostics；CrashFollowUpPrompt", "已接宿主页面挂载与诊断控件定位，opened 不冒充导出/发送完成；不返回日志、路径、诊断包、凭据，用户仍在宿主触发导出或预览确认发送。自有 logger/诊断输出和最终操作回执仍缺；接线与定向检查完成，组合/Tauri 验收待集中进行。"),
     cap("SYS16", "检查/下载/安装更新与重启", "实装", actor("接通", "get_software_update/open_maintenance_settings[双域]", "查询状态/打开宿主更新控件"), actor("接通", "services.maintenance 1.0", "版本/更新状态与观察、受权检查；宿主执行升级"), ["UPDATE","APP","RUST","API","HOSTMAINTENANCE","MAINTENANCETOOLS","UPDATECONTROL"], "软件更新页；autoUpdate 与正式双端服务共用控制器", "snapshot/observe 只读当前 phase/progress/version/选中与已检查频道；checkForUpdates 需插件 network 权限，只用宿主 release feed，失败拒绝不冒充最新。检查复用单飞、与安装互斥，频道换代拒绝旧结果；调用者取消不撤销共享检查。openSettings 仅确认宿主更新控件已挂载和定位，安装/重启仍由原生用户动作批准，禁止插件静默执行；不提供升级最终结果回执。接线与定向检查完成，组合/Tauri 实际检查下载重启待集中验收。"),
-    cap("SYS17", "窗口最小化/最大化/全屏/关闭/标题栏", "实装", absent("用户触发的窗口意图"), absent("受限窗口状态/命令"), ["WINDOW","APP","RUST"], "Tauri window controls/macOS traffic lights", "不开放任意窗口创建与 shell；关闭必须先等待持久化 flush"),
+    cap("SYS17", "窗口最小化/最大化/全屏/关闭/标题栏", "实装", actor("部分", "get_app_window / control_app_window[双域]", "用户触发的窗口意图"), actor("部分", "UI 1.11 window.snapshot/observe/control", "受限窗口状态/命令"), ["WINDOW","APP","RUST","WINDOWSERVICE","WINDOWTOOLS","WINDOWPROOF"], "同源自绘标题栏与边缘状态；OS traffic lights", "已接主窗口最小化/最大化/还原/全屏与 minimized/maximized/fullscreen/focused；仅元数据，无标题/坐标/路径或任意窗口。32 个排队操作，64 个观察者共享事件/一秒复核；退休取消未派发操作并释放监听，不回滚已发生动作。requested 仅原生回执，不是动画或持久完成。定向服务/插件/Agent 测试通过，真实 Worker/窗口管理器留集中验收。关闭/退出仍缺统一保存协调，SYS17 保留部分，不直接开放 close。"),
     cap("SYS18", "Android/iOS 遗留桥：状态栏/安全区/音量键/商店", "非桌面", absent("不开放：不在当前 desktop 产品范围"), absent("不开放：不在当前 desktop 产品范围"), ["RUST"], "cfg 分支或桌面 no-op", "Android updater/book picker/background task 和 App Store storefront 不计为桌面插件缺口"),
   ] },
   { name: "同步、账号、备份与维护", rows: [

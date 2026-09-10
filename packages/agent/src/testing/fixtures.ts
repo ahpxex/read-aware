@@ -411,6 +411,8 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       execute: async () => { throw new Error("Host commands require an attached workspace fixture"); },
     },
     environment: { snapshot: async () => ({ revision: 1, runtime: "desktop", platform: "macos", locale: "en", timeZone: "UTC", utcOffsetMinutes: 0, networkHint: "unknown" }) },
+    window: { snapshot: async () => ({ supported: false, revision: 1 }),
+      control: async () => { throw new Error("Window controls require a native test adapter"); } },
     library: {
       listDuplicates: async () => ({ groups: [], total: 0, nextOffset: null }),
       previewMerge: async () => null,

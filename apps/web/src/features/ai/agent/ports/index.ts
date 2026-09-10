@@ -2,6 +2,7 @@
 import type { RuntimeDeps } from "@read-aware/agent";
 import { createLogger } from "../../../../platform/logger";
 import { hostEnvironment } from "../../../../platform/host-environment";
+import { hostWindow } from "../../../../services/window";
 import { hostIO } from "../../../../services/host-io";
 import { hostSync } from "../../../../services/sync";
 import { hostMaintenance } from "../../../../services/maintenance";
@@ -48,6 +49,7 @@ export function buildRuntimeDeps(): RuntimeDeps {
     memoryManagement: { inspect: inspectMemory, mutate: (input, signal) => mutateMemory(input, "agent", signal) },
     hostCommands: trustedHostCommands("agent"),
     environment: { snapshot: async () => hostEnvironment.snapshot() },
+    window: hostWindow,
     workspace: { snapshot: async query => workspace.snapshot(query), navigate: (target, revision, signal) => workspace.navigate(target, revision, signal, true) },
     memoryPolicy,
     readingContextPolicy,

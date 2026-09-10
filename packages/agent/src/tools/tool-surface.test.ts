@@ -98,6 +98,8 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   export_text_file: { filename: "reading.txt", content: "Requested text" },
   open_external_url: { url: "https://readaware.app/" },
   get_host_environment: {},
+  get_app_window: {},
+  control_app_window: { request: { action: "maximize" } },
   get_workspace: {},
   navigate_app: { target: { surface: "stats" } },
   list_host_commands: {},
@@ -214,6 +216,8 @@ describe("tool surface contract", () => {
           offset: 0, totalLength: 17, nextOffset: null });
         deps.reader.previewReference = async (_owner, input) => ({ status: "opened", id: "preview", sessionId: "fixture", preview: await deps.bookText.readReference(input) });
         deps.hostIO.writeClipboard = async () => {};
+        deps.window.control = async () => ({ status: "requested", snapshot: { supported: true, revision: 1,
+          minimized: false, maximized: true, fullscreen: false, focused: true } });
         deps.library.previewMerge = async () => ({ revision: `bmg1:${"a".repeat(64)}`, keep: { id: BOOK_ID, title: "Keeper", author: "Author", createdAt: "2026-09-01" },
           merged: [{ id: "duplicate", title: "Duplicate", author: "Author", createdAt: "2026-09-02" }] });
         deps.library.mergeDuplicates = async () => ({ committed: true, keepId: BOOK_ID, redirects: [{ from: "duplicate", to: BOOK_ID }] });

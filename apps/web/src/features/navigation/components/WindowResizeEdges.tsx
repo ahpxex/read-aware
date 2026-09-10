@@ -34,7 +34,7 @@ const ZONES: Array<{ direction: Direction; style: React.CSSProperties; cursor: s
 ];
 
 export function WindowResizeEdges() {
-  const maximized = useWindowMaximized();
+  const maximized = useWindowMaximized(isTauri() && isLinux());
   if (!isTauri() || !isLinux() || maximized) return null;
 
   const beginResize = (direction: Direction) => {

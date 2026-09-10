@@ -16,6 +16,7 @@ import { buildNavigationTools } from "./navigation-tools";
 import { buildReferenceTools } from "./reference-tools";
 import { buildSettingsTools } from "./settings-tools";
 import { buildEnvironmentTools } from "./environment-tools";
+import { buildWindowTools } from "./window-tools";
 import { buildWorkspaceTools } from "./workspace-tools";
 import { buildHostCommandTools } from "./host-command-tools";
 import { buildHostIOTools } from "./host-io-tools";
@@ -39,6 +40,7 @@ export function buildAgentTools(
 ): AgentTool[] {
   return [
     ...buildEnvironmentTools(deps),
+    ...buildWindowTools(deps),
     ...buildWorkspaceTools(deps),
     ...buildHostCommandTools(deps),
     ...buildHostIOTools(deps),

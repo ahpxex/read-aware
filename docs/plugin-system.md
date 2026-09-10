@@ -789,6 +789,47 @@ task-wide timeout, virtual indexing, all formats, marketplace installation,
 packaged/cross-platform and physical-input validation remain outstanding. TXT05
 therefore remains partial. See [task evidence](./evidence/book-text-tasks-2026-09-09.json).
 
+### Main Window Controls (UI 1.11)
+
+[代码] `services.ui.window.snapshot / observe / control` expose only the main
+desktop window, through the existing local UI service without a new permission.
+The Agent's `get_app_window / control_app_window` use the same service in both
+scopes. Custom caption controls and resize-edge visibility also consume it;
+native OS traffic lights remain native.
+
+Snapshots return `supported: false, revision` outside desktop; supported
+snapshots additionally include `minimized, maximized, fullscreen, focused`.
+Revision changes when sampled flags change. These sequential OS reads are not an
+atomic layout snapshot. There are no title, paths, coordinates, window handles,
+window enumeration, creation or focus-stealing methods.
+
+Control accepts exactly `{ action: "minimize" | "maximize" | "restore" }` or
+`{ action: "fullscreen", enabled: boolean }`. Maximize first unminimizes;
+restore leaves fullscreen, unminimizes and unmaximizes. Each must follow explicit
+user intent. Commands serialize, reject invalid/extra fields and have a shared
+32-pending-operation cap. Queued cancellation prevents dispatch; cancellation
+between native steps does not undo earlier steps. Native failures reject with
+stable errors, and do not poison the queue. The `requested` receipt includes a
+fresh sampled snapshot, not an animation-completion or persistence guarantee.
+Unsupported control rejects `ui/unavailable`.
+
+Observe delivers an initial ready snapshot, then changed snapshots, or a stable
+error code on read failure. Up to 64 observers share native resize/focus listeners
+and a one-second state poll (some window managers omit minimize/fullscreen
+events). Slow handlers serialize and coalesce updates; unchanged values are not
+redelivered. The last unsubscribe removes listeners/timer, including late setup.
+Plugin retirement disposes subscriptions, aborts queued work and discards late
+results; already-dispatched OS changes remain. No callbacks are persisted.
+
+[设计/缺口] Close, quit and restart are not exposed by this API. Existing native
+close remains unchanged; a general pre-exit persistence coordinator is still
+missing, so SYS17 stays partial rather than exposing an unsafe shortcut.
+
+[验证] Focused controller, plugin lifecycle, both Agent scopes, tool registry/
+response-budget tests pass, with desktop grants checked against local Tauri ACL.
+This is not native Window-manager, actual Worker, packaged or cross-platform E2E;
+those remain for concentrated composition testing.
+
 ### Structured Error Toasts (UI 1.10 / Views 1.4)
 
 [代码] `services.ui.showToast` and `PluginViewResult.toast` accept `PluginToast`:

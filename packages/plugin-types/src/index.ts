@@ -1759,6 +1759,12 @@ export type PluginHostServices = {
     remove(key: string): Promise<void>;
   };
   ui: {
+    /** UI 1.11: main-window metadata and explicit user intents. No close, paths, title or arbitrary windows. */
+    window?: {
+      snapshot(): Promise<import("@read-aware/core").HostWindowSnapshot>;
+      observe(handler: (value: import("@read-aware/core").HostWindowObservation) => unknown): PluginDisposable;
+      control(request: import("@read-aware/core").HostWindowRequest): Promise<import("@read-aware/core").HostWindowReceipt>;
+    };
     /** UI 1.4: native navigation/shelf commands. UI 1.5: typed open-book/open-collection args. Never arbitrary menu/plugin IDs. */
     commands?: {
       list(): Promise<import("@read-aware/core").HostCommandSnapshot>;

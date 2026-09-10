@@ -30,6 +30,7 @@ import { pluginDirectory } from "../../../services/plugin-directory";
 import { flushLocalKV, localKV } from "../../../platform/local-store";
 import { createLogger } from "../../../platform/logger";
 import { hostEnvironment } from "../../../platform/host-environment";
+import { hostWindow } from "../../../services/window";
 import { hostSync } from "../../../services/sync";
 import { hostMaintenance } from "../../../services/maintenance";
 import { createResourceOwner } from "../../../services/resources";
@@ -600,6 +601,17 @@ export function buildPluginContext(
         },
       },
       ui: {
+        window: {
+          snapshot: () => {
+            lifecycle.assertActive("services.ui.window.snapshot");
+            return lifecycle.read("services.ui.window.snapshot", () => hostWindow.snapshot(lifecycle.signal));
+          },
+          observe: handler => track(() => ({ dispose: hostWindow.observe(handler) })),
+          control: request => {
+            lifecycle.assertActive("services.ui.window.control");
+            return lifecycle.read("services.ui.window.control", () => hostWindow.control(request, lifecycle.signal));
+          },
+        },
         publishView: async (channel, update) => {
           lifecycle.assertActive("services.ui.publishView");
           return publishPluginView(lifecycle.signal, channel, update);

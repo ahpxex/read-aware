@@ -31,6 +31,7 @@ export * from "./plugin-schedules";
 export * from "./reader-panels";
 export * from "./reading-context";
 export * from "./host-environment";
+export * from "./host-window";
 export * from "./book-navigation";
 export * from "./book-range";
 export * from "./book-references";

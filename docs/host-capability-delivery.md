@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+窗口批次已接线：UI 1.11 services.ui.window.snapshot/observe/control 与双 scope get_app_window/control_app_window 共用主窗口服务，自绘标题栏最小化/最大化及边缘显隐改走同源。支持最小化、最大化、还原、全屏，读取 minimized/maximized/fullscreen/focused；无标题/路径/坐标/窗口句柄。操作限明确用户意图，32 个待处理上限，requested 不承诺动画/持久完成；最多 64 观察者共享原生事件与一秒复核，退休取消排队/丢弃迟到结果，不回滚已派发 OS 动作。
+
+[验证] 窗口服务/插件生命周期、双域 Agent、注册和工具输出定向测试 14 pass / 657 assertions，另 7 项模型映射门禁通过；全仓 typecheck 27/27，新增 Tauri 权限与本地生成 ACL 相符。当前书内/全局工具 76/93，243 行/856 个入口映射，36 catalog。真实 Worker/窗口管理器、packaged/跨平台留集中 E2E。SYS17 保留部分：关闭/退出仍缺统一保存协调，不直接开放原生 close；未新增任意窗口或抢焦点能力。
+
 结构化提示批次已接线：UI 1.10 / views 1.4 的 showToast 和动作结果 toast 共用稳定错误码、本地化与宿主 retryable 判定。用户点击单次重试，不自动重试、不新增权限或 Agent 工具；无效 toast 在视图导航前拒绝。错误提示六秒、全局最多 16 条，关闭/退休清理句柄；执行中回调最多保留十秒，不取消已派发业务。普通文字通知保留原有语义，EXT07 的统一进度/取消/批准仍未接全。
 
 [验证] 结构化提示、动作结果、视图会话与挂载 React 桥接定向测试 27 pass / 1126 assertions；全仓 typecheck 27/27。真实 Worker/Tauri 重试与插件组合留集中 E2E，不复跑文档界面检查。

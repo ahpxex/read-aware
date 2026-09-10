@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 194、部分 43、待建 3、占位 2、非桌面 1。
-- Agent：接通 134、部分 59、扩展 13、未接 20、自动 13、内部 4。
-- 插件：接通 149、部分 81、未接 13。
+- Agent：接通 134、部分 60、扩展 13、未接 19、自动 13、内部 4。
+- 插件：接通 149、部分 82、未接 12。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -316,7 +316,7 @@
 | <a id="SYS14"></a>SYS14 | 系统字体枚举和字体资产加载 | 实装 | **部分**：settings discover reading.fontFamily<br>[设计] 受支持字体列表 | **部分**：settings options + fonts manifest<br>[设计] 字体资源能力 | 阅读字体选择；editorial-themes | 列表选择已可组合，不需要插件访问系统字体目录 | [RUST](../apps/desktop/src-tauri/src/lib.rs) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [API](../packages/plugin-types/src/index.ts) | 新增盘点 |
 | <a id="SYS15"></a>SYS15 | 原生日志/诊断包/崩溃报告导出与发送 | 实装 | **部分**：open_maintenance_settings[双域]<br>[设计] 打开宿主脱敏诊断流程 | **部分**：services.maintenance.openSettings(diagnostics)<br>[设计] 宿主诊断入口；自有诊断输出 | 设置 About Diagnostics；CrashFollowUpPrompt | 已接宿主页面挂载与诊断控件定位，opened 不冒充导出/发送完成；不返回日志、路径、诊断包、凭据，用户仍在宿主触发导出或预览确认发送。自有 logger/诊断输出和最终操作回执仍缺；接线与定向检查完成，组合/Tauri 验收待集中进行。 | [DIAG](../apps/web/src/features/settings/lib/diagnostics.ts) [ERRORS](../packages/core/src/errors.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) | R05, R06 |
 | <a id="SYS16"></a>SYS16 | 检查/下载/安装更新与重启 | 实装 | **接通**：get_software_update/open_maintenance_settings[双域]<br>[设计] 查询状态/打开宿主更新控件 | **接通**：services.maintenance 1.0<br>[设计] 版本/更新状态与观察、受权检查；宿主执行升级 | 软件更新页；autoUpdate 与正式双端服务共用控制器 | snapshot/observe 只读当前 phase/progress/version/选中与已检查频道；checkForUpdates 需插件 network 权限，只用宿主 release feed，失败拒绝不冒充最新。检查复用单飞、与安装互斥，频道换代拒绝旧结果；调用者取消不撤销共享检查。openSettings 仅确认宿主更新控件已挂载和定位，安装/重启仍由原生用户动作批准，禁止插件静默执行；不提供升级最终结果回执。接线与定向检查完成，组合/Tauri 实际检查下载重启待集中验收。 | [UPDATE](../apps/web/src/features/update/lib/software-update.ts) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [API](../packages/plugin-types/src/index.ts) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) [UPDATECONTROL](../apps/web/src/features/update/lib/software-update-controller.ts) | R05 |
-| <a id="SYS17"></a>SYS17 | 窗口最小化/最大化/全屏/关闭/标题栏 | 实装 | **未接**：无正式入口<br>[设计] 用户触发的窗口意图 | **未接**：无正式入口<br>[设计] 受限窗口状态/命令 | Tauri window controls/macOS traffic lights | 不开放任意窗口创建与 shell；关闭必须先等待持久化 flush | [WINDOW](../apps/web/src/features/navigation/components/WindowCaptionControls.tsx) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) | 新增盘点 |
+| <a id="SYS17"></a>SYS17 | 窗口最小化/最大化/全屏/关闭/标题栏 | 实装 | **部分**：get_app_window / control_app_window[双域]<br>[设计] 用户触发的窗口意图 | **部分**：UI 1.11 window.snapshot/observe/control<br>[设计] 受限窗口状态/命令 | 同源自绘标题栏与边缘状态；OS traffic lights | 已接主窗口最小化/最大化/还原/全屏与 minimized/maximized/fullscreen/focused；仅元数据，无标题/坐标/路径或任意窗口。32 个排队操作，64 个观察者共享事件/一秒复核；退休取消未派发操作并释放监听，不回滚已发生动作。requested 仅原生回执，不是动画或持久完成。定向服务/插件/Agent 测试通过，真实 Worker/窗口管理器留集中验收。关闭/退出仍缺统一保存协调，SYS17 保留部分，不直接开放 close。 | [WINDOW](../apps/web/src/features/navigation/components/WindowCaptionControls.tsx) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [WINDOWSERVICE](../apps/web/src/services/window-controller.ts) [WINDOWTOOLS](../packages/agent/src/tools/window-tools.ts) [WINDOWPROOF](../apps/web/src/services/window-controller.test.ts) | 新增盘点 |
 | <a id="SYS18"></a>SYS18 | Android/iOS 遗留桥：状态栏/安全区/音量键/商店 | 非桌面 | **未接**：无正式入口<br>[设计] 不开放：不在当前 desktop 产品范围 | **未接**：无正式入口<br>[设计] 不开放：不在当前 desktop 产品范围 | cfg 分支或桌面 no-op | Android updater/book picker/background task 和 App Store storefront 不计为桌面插件缺口 | [RUST](../apps/desktop/src-tauri/src/lib.rs) | 新增盘点 |
 
 ### 同步、账号、备份与维护
@@ -410,9 +410,9 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：91 个。
-- Agent book：74 个。
-- Plugin ctx：181 个。
+- Agent global：93 个。
+- Agent book：76 个。
+- Plugin ctx：184 个。
 - Plugin returned interface：27 个。
 - Capability domains：6 个。
 - Capability contributions：15 个。
@@ -437,13 +437,15 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 181 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 184 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
 | 当前注册项 | 矩阵行 | 说明 |
 | --- | --- | --- |
 | `get_host_environment` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_app_window` | [SYS17](#SYS17) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `control_app_window` | [SYS17](#SYS17) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_workspace` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `navigate_app` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_host_commands` | [UI03](#UI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -540,6 +542,8 @@
 | 当前注册项 | 矩阵行 | 说明 |
 | --- | --- | --- |
 | `get_host_environment` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_app_window` | [SYS17](#SYS17) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `control_app_window` | [SYS17](#SYS17) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_workspace` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `navigate_app` | [UI01](#UI01) [UI02](#UI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_host_commands` | [UI03](#UI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -738,6 +742,9 @@
 | `services.secrets.get` | [SYS04](#SYS04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.secrets.set` | [SYS04](#SYS04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.secrets.remove` | [SYS04](#SYS04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.ui.window.snapshot` | [SYS17](#SYS17) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.ui.window.observe` | [SYS17](#SYS17) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.ui.window.control` | [SYS17](#SYS17) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.publishView` | [MORE05](#MORE05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.showToast` | [EXT07](#EXT07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.ui.exportFile` | [SYS10](#SYS10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

@@ -421,6 +421,7 @@ export interface RuntimeDeps {
   };
   sync: import("@read-aware/core").HostSyncPort;
   maintenance: import("@read-aware/core").HostMaintenancePort;
+  diagnostics: import("@read-aware/core").HostDiagnosticsPort;
   resources(threadKey: string, bookId?: string): import("@read-aware/core").ResourcePort;
   downloadResource(threadKey: string, input: import("@read-aware/core").ResourceDownloadInput, signal?: AbortSignal): Promise<import("@read-aware/core").ResourceDownloadReceipt>;
   bookGraphTasks: import("@read-aware/core").BookGraphTaskPort;

@@ -379,6 +379,9 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       checkForUpdates: async () => { throw new AppError("ui/unavailable", "Attach an updater fixture"); },
       openSettings: async surface => ({ status: "opened", surface }),
     },
+    diagnostics: {
+      verifyProjections: async () => { throw new AppError("ui/unavailable", "Attach a diagnostics fixture"); },
+    },
     sync: {
       snapshot: async () => ({ revision: 0, supported: true, connectionBusy: false, state: "disabled", connected: false, backend: null,
         lastSyncAt: null, lastErrorCode: null, progress: null, cycleStartBacklog: null, lastCycle: null, backfillRemaining: 0 }),

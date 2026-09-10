@@ -2079,6 +2079,10 @@ export type PluginHostServices = {
     /** Requires service:network. Uses the host release feed; no caller-supplied URL or silent installation. */
     checkForUpdates?(): Promise<import("@read-aware/core").HostMaintenanceSnapshot>;
   };
+  /** Requires service:diagnostics. Counts only; never reads logs or repairs data. */
+  diagnostics?: {
+    verifyProjections(options?: PluginCallOptions): Promise<import("@read-aware/core").ProjectionVerification>;
+  };
   resources: {
     pick(options?: import("@read-aware/core").ResourcePickOptions): Promise<{ cancelled: boolean; resources: import("@read-aware/core").ResourceRef[] }>;
     /** Requires library:read. Original local file only; no implicit remote download. */

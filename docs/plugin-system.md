@@ -406,14 +406,15 @@ not a mounted-animation proof. Real Tauri/Worker multi-format links, previews,
 chapter shortcuts, completion revisit and plugin back/forward stay in the
 concentrated composition E2E stage. READ04/READ06 are connected, not E2E-certified.
 
-### Per-Call Cancellation (Library 1.17 / Reading 2.18)
+### Per-Call Cancellation (Library 1.17 / Reading 2.18 / Diagnostics 1.0)
 
 [代码] `PluginCallOptions = {signal?:AbortSignal}` is an optional FINAL argument
-on the 26 methods below. Existing parameters, guards, return values and grants
+on the 27 methods below. Existing parameters, guards, return values and grants
 are unchanged; omitted guards still occupy their position before options.
 
 | Namespace | Methods | Zero-based options position |
 | --- | --- | --- |
+| `services.diagnostics` | `verifyProjections` | 0 |
 | `domains.library.queries.books` | `inspectResource`, `getNavigationToc`, `listNavigationTargets`, `searchLocations`, `readRange`, `listReferences`, `listImages`, `readReference`, `searchText`, `getContentState` | 1 |
 | `domains.reading.commands` | `openBook`, `goTo`, `back`, `forward`, `reload`, `close`, `returnToMode` | 1 |
 | `domains.reading.commands` | `putEmphasis`, `removeEmphasis`, `selectRange`, `clearSelection`, `step`, `controlPlayback`, `configureMode`, `setControls`, `stepMode` | 2 |
@@ -4751,6 +4752,7 @@ The current host services are:
 | `session` | 2.0: environment snapshot/observation only; reading state requires the reading domain | built in |
 | `plugins` | 1.0: bounded installed public metadata list/observation | built in |
 | `maintenance` | 1.0: updater snapshot/observation, release check and native maintenance controls | built in; check requires `service:network` |
+| `diagnostics` | 1.0: local event-projection verification counts | `service:diagnostics` |
 | `resources` | 1.1: native file selection, original/cover snapshots, bounded read/write/seal/save/release | built in; book sources require `library:read` or write |
 | `sync` | 1.0: sanitized status, backlog, account quotas, sync request and host settings | `service:sync` |
 | `network` | 2.1: scoped HTTP, bounded pull streams, shared concurrency and policy discovery | `service:network` + `networkAccess.origins` for arbitrary fetch |
@@ -4989,9 +4991,50 @@ Those actions remain host UI-owned, including report preview and explicit send
 confirmation. No log contents, paths, report IDs, credentials or raw payloads
 are exposed. Agent `get_software_update` and `open_maintenance_settings` use the
 same service in both scopes; checking is explicit opt-in. SYS16's bounded actor
-entry is connected; SYS15 still lacks plugin-owned diagnostic output and final
-flow receipts. Focused checks cover wiring, not real desktop update/diagnostics
+entry is connected; logging 1.0 supplies plugin-owned diagnostic output, while
+SYS15 still lacks export/send final flow receipts. Focused checks cover wiring, not real desktop update/diagnostics
 execution; composition/Tauri acceptance remains pending.
+
+[代码] Diagnostics 1.0 exposes `services.diagnostics.verifyProjections(options?)`
+only with `service:diagnostics`; library, sync and network grants do not imply it.
+Its dedicated consent label/description exists in all eight locales. The public
+result is `{scope:"event-projections", checkedAt, consistent, eventsReplayed,
+driftedTables, onlyLiveRows, onlyReplayedRows}`; `checkedAt` is an ISO completion
+time, counts are non-negative safe integers. There are no table names, record
+samples, event identifiers, content, file paths or raw logs. `consistent:false`
+is a successful check that found drift, not a failed read. Invalid native reports
+reject `db/error`; unsupported platforms reject `ui/unavailable`; incomplete
+local logs retain `sync/log-incomplete`. Failure never returns a consistent or
+empty-success report.
+
+[代码] The service delegates to the existing native `verify_projections`, which
+compares a transactionally replayed log to the live projections and rolls the
+diagnostic replay back. Native logic is unchanged. `projection-verification.ts`
+coalesces concurrent native diagnostic-bundle, plugin and Agent callers into one
+in-flight IPC, without caching completed checks. Public service callers receive
+independent count objects. Its optional PluginCallOptions.signal occupies slot 0
+in the shared 27-method Worker/host table; the host injects the authoritative
+request signal and combines plugin lifetime. Cancelling one waiter rejects it
+promptly, but does not interrupt or release the native flight before completion
+and rollback. Later callers join that flight, and source failure is logged even
+after callers cancel. Existing host diagnostics still retain raw record samples
+inside their previewed bundle; that report is never the actor response.
+
+[代码] `verify_local_data` is a sequential Agent tool in both scopes, backed by
+the same `RuntimeDeps.diagnostics` port. It is for an explicit user diagnostic
+request, not automatic per-turn maintenance. It neither starts sync nor exports,
+repairs, rebuilds or appends events. The native checker covers its existing
+event-derived projection set, not every local file, chat presentation field,
+future/unimplemented projection, remote device or backup. Historical writes
+missing from the log remain detectable drift, not recoverable history.
+
+[环境] Aggregate filtering, malformed-report rejection, single-flight sharing,
+caller cancellation, granted/denied production plugin context, eight-locale
+consent, Agent registration/output and the signal table have focused tests.
+The IPC test is controlled, not native SQLite/Tauri acceptance; compiled Worker
+diagnostics, real native load/cancellation and a business diagnostic plugin stay
+in the concentrated composition/E2E phase. No generic TaskRef or repair gate is
+claimed by this read-only service.
 
 [代码] Sync 1.0 exposes `snapshot()`, `observe(handler)`, `backlog()`, `account()`,
 `requestSync()`, and `openSettings()`. Its separate `service:sync` grant is not
@@ -5139,7 +5182,7 @@ The manifest permission vocabulary is derived from the catalogs:
   `annotations:read`, `annotations:write`, `conversations:read`, `conversations:write`, `memory:read`, `memory:write`.
 - Contributions: `reader:modes`, `agent:tools`, `agent:context`,
   `agent:retrieval`, `agent:memory`, `ui:themes`, `sync:transport`.
-- Services: `service:sync`, `service:network`, `service:llm`, `service:clipboard`.
+- Services: `service:diagnostics`, `service:sync`, `service:network`, `service:llm`, `service:clipboard`.
 - Settings: exact `settingsAccess` grants rather than a broad permission.
 
 Write implies read within a domain. Permission-free contributions and services

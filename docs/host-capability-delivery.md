@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+2026-09-11 投影诊断批次已接线：diagnostics1.0 verifyProjections需要独立service:diagnostics（八语言授权说明），Agent双域verify_local_data共用同一宿主端口。仅返回event-projections范围/ISO完成时间/一致性/重放事件数/漂移表数/两侧差异行总数，不发原始表名、记录样本、正文、日志或路径。原生诊断面板也迁入共用verify_projections在途IPC；源结算前新调用复用，取消只结束当前等待而不提前释放校验/回滚。PluginCallOptions参数位置表增加diagnostics第0位，共27入口；权限先于调用，预取消不派发，退休拒绝，回填不完整/故障不假报一致。
+
+[验证] 聚合过滤/失败拒绝/并发共享IPC/取消、正式插件权限、八语言授权、Agent双域注册与结果表面、发现/版本协商及库存模型共50 pass / 1301 assertions；全仓typecheck 27/27通过。915入口映射、38个catalog成员；新增工具是只读校验，不是修复/重建/事件写入。Rust校验器未改，IPC测试为受控返回，不是原生SQLite或真实Tauri证明；业务诊断插件、编译Worker与集中桌面验收仍待做。本批未启动桌面/浏览器、未推送，整体目标继续。
+
 2026-09-11 搜索插件组合批次已接线：Jumper0.3 / Text Desk0.9直接消费Library1.17单次signal、UI1.2 live和views1.8 progress/cancel/onClose，不修改宿主实现。提交先呈现未知进度，首次可见才发查询；取消/隐藏/返回/关闭中止当前请求，不影响其他视图搜索，不将迟到结果写回。完成页返回保留结果不重搜；取消后明确重搜创建新控制器。Jumper续页保留版本/查询，结果仍等真实goTo再关闭；Text Desk保留单书/书架及40命中，查询取消后不再读书名，已发书名list仅丢弃迟到结果。失败稳定code呈现，只有db/locked、library/text-extraction-failed、library/text-busy提供同输入重试；终态不盲重试。
 
 [验证] 两插件源码组合、既有宿主进度/视图schema及库存模型共62 pass / 286 assertions；全仓typecheck 27/27、两插件构建通过，manifest/package/dist及相关lock版本已同步。911入口映射，没有新增Agent工具或公共接口。受控端口验证不是编译Worker/Tauri交互；没有启动桌面/浏览器，真实表单返回、菜单、搜索取消、全部格式及原生解析停止留集中验收。此批只组合两个搜索消费者，未将其余能力缺口或整体目标标为完成，未推送。

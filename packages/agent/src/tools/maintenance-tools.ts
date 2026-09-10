@@ -6,6 +6,15 @@ import { textResult } from "./tool-result";
 
 export function buildMaintenanceTools(deps: RuntimeDeps): AgentTool[] {
   return [{
+    name: "verify_local_data", label: "Verify local data", executionMode: "sequential",
+    description: "Only when the user requests a local data integrity check, replay the complete local event log and compare its projections, then roll back the diagnostic replay. Returns consistency and aggregate counts only, never row samples, table names, logs, paths or user content. This can occupy the local database while checking. No repairs, network, backup validation, sync trigger or guarantee about other devices. An incomplete backfill or read failure throws, never reports consistent. Cancellation stops this caller's wait; the shared native check must finish and roll back.",
+    parameters: Type.Object({}, { additionalProperties: false }),
+    execute: async (_id, _params, signal) => {
+      signal?.throwIfAborted();
+      const result = await deps.diagnostics.verifyProjections(signal);
+      signal?.throwIfAborted(); return textResult(result);
+    },
+  }, {
     name: "get_software_update", label: "Software update status",
     description: "Read the host updater state and selected/last-checked channels without network access. Set check:true only when the user requests a fresh check of the host release feed. A failed check throws; it never means up to date. Unsupported platforms cannot check. Current version can be unknown. No download, install, restart, credentials, logs or custom URL access. Cancellation does not stop another caller's shared check.",
     parameters: Type.Object({ check: Type.Optional(Type.Boolean()) }, { additionalProperties: false }),

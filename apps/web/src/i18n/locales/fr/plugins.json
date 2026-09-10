@@ -65,6 +65,7 @@
     "noPermissions": "Aucune autorisation supplémentaire",
     "scheduleLine": "Planifié : {{label}} — au moins toutes les {{minutes}} min quand l'app est ouverte",
     "permissionName": {
+      "service_diagnostics": "Diagnostic des données",
       "service_sync": "Synchronisation",
       "reader_modes": "Modes de lecture",
       "ui_themes": "Thèmes",
@@ -87,6 +88,7 @@
       "sync_transport": "Backend de synchronisation"
     },
     "permission": {
+      "service_diagnostics": "Vérifier les projections locales des événements et lire les totaux, sans journaux, contenu des enregistrements ni réparation",
       "service_sync": "Consulter la synchronisation et les quotas, synchroniser et ouvrir les paramètres de connexion",
       "reader_modes": "Ajouter un mode de lecture guidée rendu par l’application",
       "ui_themes": "Proposer des thèmes pour l’application et la lecture, avec polices incluses, appliqués uniquement à la sélection",

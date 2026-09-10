@@ -65,6 +65,7 @@
     "noPermissions": "無額外權限",
     "scheduleLine": "排程任務：{{label}} — 應用開啟時至少每 {{minutes}} 分鐘執行一次",
     "permissionName": {
+      "service_diagnostics": "資料診斷",
       "service_sync": "同步",
       "reader_modes": "閱讀模式",
       "ui_themes": "主題",
@@ -87,6 +88,7 @@
       "sync_transport": "同步後端"
     },
     "permission": {
+      "service_diagnostics": "檢查本機事件投影一致性並讀取彙總計數，不讀取日誌、記錄內容或修復資料",
       "service_sync": "讀取同步狀態和帳號用量、請求同步並開啟連線設定",
       "reader_modes": "新增由應用程式渲染並控制引導導覽的閱讀模式",
       "ui_themes": "提供應用程式與閱讀頁主題（可附帶字型），僅在你選用後生效",

@@ -22,6 +22,7 @@ export * from "./host-io";
 export * from "./conversation-control";
 export * from "./host-sync";
 export * from "./host-maintenance";
+export * from "./host-diagnostics";
 export * from "./resources";
 export * from "./resource-download";
 export * from "./book-enrichment";

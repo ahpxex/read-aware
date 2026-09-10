@@ -71,6 +71,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   get_conversation_state: {},
   get_sync_status: {},
   get_software_update: {},
+  verify_local_data: {},
   pick_resource_files: {},
   download_resource: { url: "https://example.com/book.txt", name: "book.txt" },
   import_resource_book: { id: "resource-fixture" },
@@ -254,6 +255,8 @@ describe("tool surface contract", () => {
         deps.library.importResource = async () => ({ status: "duplicate", book: { id: BOOK_ID, title: "The Locked Room", format: "epub", starred: false,
           collectionId: null, addedAt: "2026-09-01T00:00:00Z", updatedAt: "2026-09-01T00:00:00Z" } });
         deps.hostIO.openExternal = async () => {};
+        deps.diagnostics.verifyProjections = async () => ({ scope: "event-projections", checkedAt: "2026-09-11T00:00:00Z",
+          consistent: false, eventsReplayed: 20, driftedTables: 1, onlyLiveRows: 2, onlyReplayedRows: 0 });
         if (name === "manage_plugin_schedule") {
           const schedule = { pluginId: "fixture", id: "refresh", label: "Refresh", everyMinutes: 60, paused: false, running: false,
             lastStartedAt: null, lastFinishedAt: null, lastSuccessAt: null, lastOutcome: null, lastErrorCode: null };

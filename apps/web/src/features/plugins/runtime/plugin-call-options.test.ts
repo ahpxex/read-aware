@@ -18,7 +18,7 @@ test("every supported option slot strips local signals, preserves guards and rec
     injectPluginCallSignal(method, prepared.args, host.signal);
     expect(prepared.args[index]).toEqual({ signal: host.signal });
   }
-  expect(Object.keys(PLUGIN_CALL_OPTIONS)).toHaveLength(26);
+  expect(Object.keys(PLUGIN_CALL_OPTIONS)).toHaveLength(27);
   const args = ["not an options slot"];
   expect(preparePluginCall("services.storage.get", args).args).toBe(args);
   injectPluginCallSignal("services.storage.get", args, host.signal);
@@ -28,9 +28,10 @@ test("every supported option slot strips local signals, preserves guards and rec
   }
 });
 
-test("all 26 actual host methods observe pre-cancellation without granting extra domains", () => {
+test("all registered host methods observe pre-cancellation without granting extra domains", () => {
   const built = buildPluginContext({ id: "cancel-probe", name: "Cancel", version: "1", schemaVersion: 1,
-    requires: { domains: { library: "^1.17.0", reading: "^2.18.0" } }, permissions: ["library:read", "reading:write"] }, "1", []);
+    requires: { domains: { library: "^1.17.0", reading: "^2.18.0" }, services: { diagnostics: "^1.0.0" } },
+    permissions: ["library:read", "reading:write", "service:diagnostics"] }, "1", []);
   built.lifecycle.promote();
   const controller = new AbortController(), reason = new Error("cancel this call only"); controller.abort(reason);
   try {

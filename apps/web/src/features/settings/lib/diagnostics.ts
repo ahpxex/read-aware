@@ -6,11 +6,12 @@
  * exports it to a file or sends it to the relay's /v1/report endpoint, always
  * behind an explicit preview-and-confirm; nothing here runs automatically.
  *
- * Log messages are already user-content-free by the logger seam's rules, and
- * the self-check reports row COUNTS plus event type/id samples — so the
- * bundle stays safe to share by construction.
+ * The host-only self-check can include full record samples. They remain in
+ * this explicitly previewed bundle; the plugin/Agent diagnostics service
+ * exposes only aggregate counts, never the raw report.
  */
 import { invoke } from "../../../platform/ipc";
+import { verifyProjectionReport, type ProjectionReport } from "../../../platform/projection-verification";
 import { readCurrentAppVersion } from "../../update/lib/software-update";
 import {
   isAndroid,
@@ -30,12 +31,6 @@ type LogFileTail = {
   truncated: boolean;
 };
 
-type VerifyReport = {
-  consistent: boolean;
-  eventsReplayed: number;
-  drift: { table: string; onlyLive: number; onlyReplayed: number; samples: string[] }[];
-};
-
 export type DiagnosticsBundle = {
   generatedAt: string;
   appVersion: string | null;
@@ -44,7 +39,7 @@ export type DiagnosticsBundle = {
   language: string;
   logs: LogFileTail[] | { unavailable: string };
   /** The event-log ⇄ projection self-check; its failure is itself a finding. */
-  projections: VerifyReport | { unavailable: string };
+  projections: ProjectionReport | { unavailable: string };
 };
 
 export function platformName(): string {
@@ -64,7 +59,7 @@ export async function assembleDiagnosticsBundle(): Promise<DiagnosticsBundle> {
   const [logs, projections] = isTauri()
     ? await Promise.all([
         invoke<LogFileTail[]>("diagnostics_read_logs").catch(describeFailure),
-        invoke<VerifyReport>("verify_projections").catch(describeFailure),
+        verifyProjectionReport().catch(describeFailure),
       ])
     : [
         { unavailable: "log files exist only in the desktop/mobile app" },

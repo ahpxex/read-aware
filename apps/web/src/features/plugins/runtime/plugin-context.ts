@@ -41,6 +41,7 @@ import { readBookImage } from "../../library/lib/book-images";
 import { openBookImageResource } from "../../../domain/library-book-images";
 import { hostSync } from "../../../services/sync";
 import { hostMaintenance } from "../../../services/maintenance";
+import { hostDiagnostics } from "../../../services/diagnostics";
 import { createResourceOwner } from "../../../services/resources";
 import { registerPluginImageOwner } from "../lib/plugin-image-owner";
 import { importResourceBook } from "../../../domain/library-resource-import";
@@ -622,6 +623,10 @@ export function buildPluginContext(
         observe: (query, handler) => track(() => ({ dispose: pluginDirectory.observe(query, handler) })),
       },
       logging: createPluginLogging(manifest.id, manifest.version, lifecycle),
+      ...(canUseHostService("diagnostics", permissions) ? { diagnostics: {
+        verifyProjections: (options?: PluginCallOptions) => lifecycle.read("services.diagnostics.verifyProjections",
+          signal => hostDiagnostics.verifyProjections(signal), callSignal(options)),
+      } } : {}),
       maintenance: {
         snapshot: async () => { lifecycle.assertActive("services.maintenance.snapshot"); return hostMaintenance.snapshot(); },
         observe: handler => track(() => ({ dispose: hostMaintenance.observe(handler) })),

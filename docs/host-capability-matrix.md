@@ -21,7 +21,7 @@
 ## 计数与口径
 
 - 宿主：实装 195、部分 43、占位 2、待建 2、非桌面 1。
-- Agent：接通 142、部分 59、扩展 12、自动 13、未接 15、内部 2。
+- Agent：接通 142、部分 60、扩展 12、自动 13、未接 15、内部 1。
 - 插件：接通 156、部分 79、未接 8。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
@@ -314,7 +314,7 @@
 | <a id="SYS12"></a>SYS12 | 打开外部 URL/系统关联打开/深链接路由 | 实装 | **部分**：open_external_url[双域]<br>[设计] 用户意图下的受控 URL 打开 | **部分**：ui 1.7 openExternal；要求 service:network<br>[设计] scheme 白名单外部打开/URI contribution | 账号登录/购买链接；系统打开书籍；双端显式外链意图 | HTTP(S) 外链已接共享 opener，拒绝嵌入凭据、控制字符及 file/data/javascript/自定义 scheme；成功表示交给 OS，不表示网页加载。外部 URL 打开与注册协议不同，URI contribution/关联文件句柄仍未接；OAuth ticket 不给插件。定向权限和参数测试通过，集中桌面验收待做。 | [EXTERNAL](../apps/web/src/platform/external-link.ts) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTIO](../apps/web/src/services/host-io.ts) [HOSTIOTOOLS](../packages/agent/src/tools/host-io-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | P05 |
 | <a id="SYS13"></a>SYS13 | Blob 范围读取/流式读写/提交/中止 | 实装 | **部分**：read_resource_text/release_resource；原书只导出<br>[设计] 受权 ResourceRef，不读任意 blob | **部分**：resources.create/stat/read/append/commit/release<br>[设计] 临时资源范围读写/封口/中止 | 原书阅读；同步分片；封面；正式资源服务 | 临时资源分块读写已接：单块 1 MiB，每 owner 16 引用/1 GiB，宿主 64 文件/2 GiB，32 个串行队列；追加 offset 防重复写，commit 后不可写，release 兼 abort，退休等待在途任务后清理。选中/原书独立副本与自建匿名文件不进入同步、备份或数据库；不开放原始 blob key。书内嵌图片已可获取临时资源；跨激活持久化资源、其他书内资产与 transferable 桥优化仍缺，当前桥是有界 structured clone；Agent UTF-8 读取保持码点及字节游标。原生与定向测试通过，组合/Tauri E2E 待集中进行。 | [BLOB](../apps/web/src/platform/blob-store.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [API](../packages/plugin-types/src/index.ts) [RESOURCEOWNER](../apps/web/src/services/resource-owner.ts) [RESOURCEFILES](../apps/desktop/src-tauri/src/resources.rs) [RESOURCETOOLS](../packages/agent/src/tools/resource-tools.ts) | P01 |
 | <a id="SYS14"></a>SYS14 | 系统字体枚举和字体资产加载 | 实装 | **接通**：get_setting_options[双域] + update_settings；选中后自动加载<br>[设计] 受支持字体列表 | **接通**：settings 1.8 queries.options/update + fonts manifest<br>[设计] 已有字体选择/加载能力 | 原生FontField；Agent；editorial-themes | 按精确设置路径搜索/分页选项，reading.fontFamily与appearance.contentTypography.fontFamily合并curated/已启用插件/本机系统字体，source=system、system:<family>可直接用于既有update。沿用discover授权（read/write包含发现），不返回当前值、覆盖、字体路径/字节，也不调用秘密字段动态选项回调；通用snapshot保持紧凑。宿主默认25/最大100项，Agent20/50，后续页须同revision；设置目录变化重查。系统枚举与原生选择器共用单飞会话缓存，去隐藏/无效/重复名、返回副本，失败保留错误可重试；安装/删除OS字体需重启刷新。选择后的curated下载/插件字体注入复用已有消费者，不新增预取、字体文件访问或解码/显示就绪回执。基础/双端接线检查通过，真实系统枚举、字体生效与Worker/Tauri组合仍待集中验收；接通不等于端到端已验。 | [RUST](../apps/desktop/src-tauri/src/lib.rs) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [API](../packages/plugin-types/src/index.ts) [SETTINGOPTIONS](../packages/core/src/settings-options.ts) [FONTOPTIONS](../apps/web/src/domain/settings/font-options.ts) [SYSTEMFONTS](../apps/web/src/features/settings/lib/system-fonts.ts) [FONTOPTIONSPROOF](../apps/web/src/domain/settings/options.test.ts) | 新增盘点 |
-| <a id="SYS15"></a>SYS15 | 原生日志/诊断包/崩溃报告导出与发送 | 实装 | **部分**：open_maintenance_settings[双域]；插件业务工具可自记诊断<br>[设计] 打开宿主脱敏诊断流程 | **部分**：logging 1.0 write/policy；maintenance.openSettings(diagnostics)<br>[设计] 宿主诊断入口；自有诊断输出 | 设置 About Diagnostics；CrashFollowUpPrompt；结构化日志基础探针 | logging只收事件名/错误码/12个数值布尔指标，宿主标注plugin ID/版本/阶段；1500字符，每plugin ID60/全App300条滚动一分钟，跨激活共享额度，拒绝不排队。激活/迁移可用、退休拒绝，debug仅开发控制台；accepted仅交给最佳努力logger，非落盘/上传保证。不接受自由文本、stack或正文，仍要求作者不把敏感内容伪装成标识符。opened不冒充导出/发送完成；不返回日志、路径、诊断包或凭据。最终流程回执仍缺，真实Tauri落盘、导出及业务插件消费留集中验收。 | [DIAG](../apps/web/src/features/settings/lib/diagnostics.ts) [ERRORS](../packages/core/src/errors.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) [PLUGINLOGGING](../apps/web/src/features/plugins/runtime/plugin-logging.ts) | R05, R06 |
+| <a id="SYS15"></a>SYS15 | 原生日志/诊断包/崩溃报告导出与发送 | 实装 | **部分**：open_maintenance_settings / verify_local_data[双域]<br>[设计] 打开宿主脱敏诊断流程 | **部分**：logging1.0 write/policy；diagnostics1.0 verifyProjections；maintenance.openSettings<br>[设计] 宿主诊断入口；自有诊断输出 | 设置 About Diagnostics；CrashFollowUpPrompt；结构化日志基础探针 | logging只收事件名/错误码/12个数值布尔指标，宿主标注plugin ID/版本/阶段；1500字符，每plugin ID60/全App300条滚动一分钟，跨激活共享额度，拒绝不排队。激活/迁移可用、退休拒绝，debug仅开发控制台；accepted仅交给最佳努力logger，非落盘/上传保证。不接受自由文本、stack或正文，仍要求作者不把敏感内容伪装成标识符。opened不冒充导出/发送完成；不返回日志、路径、诊断包或凭据。独立授权diagnostics1.0只开放event-projections一致性与汇总计数，去除原始表名/样本；与双域Agent及原生诊断面板共用在途校验，取消不强杀原生回滚。定向基础验证通过，导出/发送最终流程回执仍缺，真实Tauri落盘、导出及业务插件消费留集中验收。 | [DIAG](../apps/web/src/features/settings/lib/diagnostics.ts) [ERRORS](../packages/core/src/errors.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) [PLUGINLOGGING](../apps/web/src/features/plugins/runtime/plugin-logging.ts) [DIAGNOSTICS](../apps/web/src/services/diagnostics.ts) [DIAGNOSTICSPROOF](../apps/web/src/services/diagnostics-controller.test.ts) [DIAGNOSTICSGRANT](../apps/web/src/features/plugins/runtime/plugin-diagnostics.test.ts) | R05, R06 |
 | <a id="SYS16"></a>SYS16 | 检查/下载/安装更新与重启 | 实装 | **接通**：get_software_update/open_maintenance_settings[双域]<br>[设计] 查询状态/打开宿主更新控件 | **接通**：services.maintenance 1.0<br>[设计] 版本/更新状态与观察、受权检查；宿主执行升级 | 软件更新页；autoUpdate 与正式双端服务共用控制器 | snapshot/observe 只读当前 phase/progress/version/选中与已检查频道；checkForUpdates 需插件 network 权限，只用宿主 release feed，失败拒绝不冒充最新。检查复用单飞、与安装互斥，频道换代拒绝旧结果；调用者取消不撤销共享检查。openSettings 仅确认宿主更新控件已挂载和定位，安装/重启仍由原生用户动作批准，禁止插件静默执行；不提供升级最终结果回执。接线与定向检查完成，组合/Tauri 实际检查下载重启待集中验收。 | [UPDATE](../apps/web/src/features/update/lib/software-update.ts) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [API](../packages/plugin-types/src/index.ts) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) [UPDATECONTROL](../apps/web/src/features/update/lib/software-update-controller.ts) | R05 |
 | <a id="SYS17"></a>SYS17 | 窗口最小化/最大化/全屏/关闭/标题栏 | 实装 | **部分**：get_app_window / control_app_window[双域]<br>[设计] 用户触发的窗口意图 | **部分**：UI 1.11 window.snapshot/observe/control<br>[设计] 受限窗口状态/命令 | 同源自绘标题栏与边缘状态；OS traffic lights | 已接主窗口最小化/最大化/还原/全屏与 minimized/maximized/fullscreen/focused；仅元数据，无标题/坐标/路径或任意窗口。32 个排队操作，64 个观察者共享事件/一秒复核；退休取消未派发操作并释放监听，不回滚已发生动作。requested 仅原生回执，不是动画或持久完成。定向服务/插件/Agent 测试通过，真实 Worker/窗口管理器留集中验收。关闭/退出仍缺统一保存协调，SYS17 保留部分，不直接开放 close。 | [WINDOW](../apps/web/src/features/navigation/components/WindowCaptionControls.tsx) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [WINDOWSERVICE](../apps/web/src/services/window-controller.ts) [WINDOWTOOLS](../packages/agent/src/tools/window-tools.ts) [WINDOWPROOF](../apps/web/src/services/window-controller.test.ts) | 新增盘点 |
 | <a id="SYS18"></a>SYS18 | Android/iOS 遗留桥：状态栏/安全区/音量键/商店 | 非桌面 | **未接**：无正式入口<br>[设计] 不开放：不在当前 desktop 产品范围 | **未接**：无正式入口<br>[设计] 不开放：不在当前 desktop 产品范围 | cfg 分支或桌面 no-op | Android updater/book picker/background task 和 App Store storefront 不计为桌面插件缺口 | [RUST](../apps/desktop/src-tauri/src/lib.rs) | 新增盘点 |
@@ -325,7 +325,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | <a id="OPS01"></a>OPS01 | 同步连接/断开/立即同步/状态与积压 | 实装 | **部分**：get_sync_status；manage_sync now/settings 双 scope<br>[设计] 状态与批准同步已接，定向连接流程待接 | **部分**：services.sync 1.0 snapshot/observe/backlog/requestSync/openSettings<br>[设计] 独立 service:sync 控制面 | Data & Sync；Agent 工具；插件正式入口 | 共享 scheduler，初始/变化串行观察最多 64；fresh outbox 与 cycleStartBacklog 分开，不泄漏书籍/blobKey/游标。未连接、凭据失效、连接管理中拒绝；already-running 不是完成，新周期等现有引擎结束才 completed。连接换代或调用者取消不返回旧成功，也不回滚已派发共享同步；不是独立可取消耐久任务。openSettings 只确认 Data & Sync 页面打开，不假称连接/断开完成；定向流程和完成回执仍待接。transport/network 权限不隐式获得 sync 管理。定向测试已验，新组合插件及 Tauri/跨设备验收待集中进行。 | [SYNC](../apps/web/src/platform/sync/sync-scheduler.ts) [SYNCCONNECT](../apps/web/src/platform/sync/connect.ts) [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [API](../packages/plugin-types/src/index.ts) [SYNCSERVICE](../apps/web/src/services/sync.ts) [SYNCCONTROLLER](../apps/web/src/services/sync-controller.ts) [SYNCTOOLS](../packages/agent/src/tools/sync-tools.ts) | R04 |
 | <a id="OPS02"></a>OPS02 | 事件/Blob E2E 加解密、游标、去重/确认与重试 | 实装 | **未接**：宿主内部同步<br>[设计] 不开放：原始密钥/ACK/游标写 | **部分**：只处理 SealedEventWire/密文字节<br>[设计] 只贡献传输 | Relay/WebDAV | 不得通过插件改变确认语义或读取其他插件/账号明文 | [SYNCENGINE](../apps/web/src/platform/sync/sync-engine.ts) [SYNC](../apps/web/src/platform/sync/sync-scheduler.ts) [SYNCTRANSPORT](../apps/web/src/platform/sync/transport-registry.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | 新增盘点 |
-| <a id="OPS03"></a>OPS03 | 检查点/投影恢复/事件历史回填 | 实装 | **部分**：get_sync_status 的 phase/backfillRemaining/lastCycle<br>[设计] 恢复进展已接，诊断修复流程待接 | **部分**：sync 1.0 脱敏进度和观察<br>[设计] 只读回填进度 | checkpoint maintain/publish/bootstrap；backfill | 只提供阶段/计数，不开放游标/ACK/原始账本，也不把 remaining=0 当成投影校验通过。诊断/修复入口仍缺，集中验收待做。 | [RUST](../apps/desktop/src-tauri/src/lib.rs) [SYNCENGINE](../apps/web/src/platform/sync/sync-engine.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) [SYNCSERVICE](../apps/web/src/services/sync.ts) [SYNCCONTROLLER](../apps/web/src/services/sync-controller.ts) | 新增盘点 |
+| <a id="OPS03"></a>OPS03 | 检查点/投影恢复/事件历史回填 | 实装 | **部分**：get_sync_status + verify_local_data[双域]<br>[设计] 恢复进展/只读校验已接，修复待接 | **部分**：sync1.0进度；diagnostics1.0 verifyProjections<br>[设计] 只读回填/投影校验 | checkpoint maintain/publish/bootstrap；backfill | 只提供阶段/计数，不开放游标/ACK/原始账本，也不把 remaining=0 当成投影校验通过。diagnostics1.0已接verifyProjections，需要独立service:diagnostics；双域Agent verify_local_data仅明确诊断意图下调用。返回event-projections范围、checkedAt、一致性、重放事件数、漂移表数与两侧差异行总数，不发table/samples/正文/日志/路径。插件、Agent与原生诊断面板共用一次在途verify_projections，结算前不发第二次；取消只结束当前等待，不强杀原生重放/回滚。回填不完整、故障和非法报告拒绝，不当一致；不是修复、备份/远端设备证明。基础计数/权限/取消/共享IPC及Agent输出测试通过，真实Tauri校验和修复流程仍缺。 | [RUST](../apps/desktop/src-tauri/src/lib.rs) [SYNCENGINE](../apps/web/src/platform/sync/sync-engine.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) [SYNCSERVICE](../apps/web/src/services/sync.ts) [SYNCCONTROLLER](../apps/web/src/services/sync-controller.ts) [DIAGNOSTICS](../apps/web/src/services/diagnostics.ts) [DIAGNOSTICSCONTROLLER](../apps/web/src/services/diagnostics-controller.ts) [DIAGNOSTICSPROOF](../apps/web/src/services/diagnostics-controller.test.ts) [DIAGNOSTICSGRANT](../apps/web/src/features/plugins/runtime/plugin-diagnostics.test.ts) | 新增盘点 |
 | <a id="OPS04"></a>OPS04 | WebDAV 等自定义密文 transport | 实装 | **部分**：可改非敏感插件设置，不能连接<br>[设计] 宿主连接流程 | **接通**：syncTransports v2：register/open/session.close 与密文方法<br>[设计] 密文传输贡献 | WebDAV 0.2.0；隔离 Tauri 原生 HTTP 探针 | 宿主按注册/engine generation 关闭会话，失配与迟到 open 也释放；5 秒 close 上限及错误仍释放回调。桌面已证并发取消/停用不再发请求；真实连接 UI、跨设备与换代失败回滚未完整验收，GAP14 不整项关闭 | [API](../packages/plugin-types/src/index.ts) [WEBDAV](../plugins/webdav-sync/src/index.ts) [SYNCTRANSPORT](../apps/web/src/platform/sync/transport-registry.ts) [SYNCSESSION](../apps/web/src/platform/sync/transport-session.ts) [SYNCCACHE](../apps/web/src/platform/sync/transport-session-cache.ts) [SYNCPROBE](../apps/web/src/features/plugins/runtime/fixtures/desktop-transport-probe.ts) | N03 |
 | <a id="OPS05"></a>OPS05 | 偏好漫游/远端合并后的 UI 失效 | 部分 | **自动**：下一轮读取投影/配置<br>[设计] 一致快照与刷新 | **部分**：roaming KV 与 plugin docs 路径不等价<br>[设计] 授权 change feed + 同步策略 | 跨设备设置/书架/聊天刷新 | GAP09：远端应用缺逐领域订阅广播；不得让插件 replay 原始事件补洞 | [ROAM](../apps/web/src/platform/roaming-preferences.ts) [SYNC](../apps/web/src/platform/sync/sync-scheduler.ts) [APPEVENTS](../apps/web/src/platform/app-events.ts) [DOCS](../apps/web/src/features/plugins/runtime/plugin-backend.ts) | 新增盘点 |
 | <a id="OPS06"></a>OPS06 | 账号登录、连接 token、退出、删除账号 | 实装 | **部分**：get_sync_status connected/backend；manage_sync settings<br>[设计] 匿名状态及设置入口已接 | **部分**：sync 1.0 snapshot/openSettings<br>[设计] 独立授权的状态与宿主页 | SyncAccountGroup；双端设置入口 | 不返回 email、账号 ID、token/主密钥。打开页面后仍需用户操作宿主登录/退出/删除控件；定向流程请求及最终回执未接。删除远端账号不等于删除本地数据，桌面验收待集中进行。 | [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [SYNCCONNECT](../apps/web/src/platform/sync/connect.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [EXTERNAL](../apps/web/src/platform/external-link.ts) [SYNCSERVICE](../apps/web/src/services/sync.ts) [SYNCTOOLS](../packages/agent/src/tools/sync-tools.ts) | 新增盘点 |
@@ -333,7 +333,7 @@
 | <a id="OPS08"></a>OPS08 | 备份导出与合并导入 | 部分 | **部分**：open_maintenance_settings(backup-import/backup-export)[双域]<br>[设计] 打开宿主备份控件 | **部分**：maintenance 1.1 openSettings(backup-import/backup-export)<br>[设计] 打开宿主备份控件 | DataSyncPanel 原有导入/导出按钮定位 | 入口已接，不点击按钮/自动打开文件选择器，不传入备份字节或路径；opened 不是导入/导出完成。v1 仍仅 KV/books/collections/annotations/files；独立 ai_chat/memories/plugin_docs/secret/event-log 未枚举，不能称全量备份；全量内存 JSON、原有导出实现及最终任务回执未改，实际桌面效果留待集中验收。 | [BACKUP](../apps/web/src/features/settings/lib/backup-io.ts) [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) | O06, R05 |
 | <a id="OPS09"></a>OPS09 | 删除本地全部数据 | 实装 | **接通**：open_maintenance_settings(delete-data)[双域]<br>[设计] 打开宿主危险操作入口 | **接通**：maintenance 1.1 openSettings(delete-data)<br>[设计] 只定位，禁止直接 wipe | DataSyncPanel 原有删除入口与 DELETE 文字确认 | 只定位已挂载入口按钮，不打开确认框、不填 DELETE、不批准或执行删除；用户须自行点击并完成宿主文字确认。opened 不代表删除完成；清空本地与删账号不同，私有卸载不升级成全局 wipe。条件/取消/生命周期定向测试通过，真实 Tauri 确认流程待集中验收。 | [WIPE](../apps/web/src/features/settings/lib/delete-all-data.ts) [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) | R05 |
 | <a id="OPS10"></a>OPS10 | 数据目录显示/Reveal | 占位 | **未接**：无正式入口<br>[设计] 待宿主实现后暴露意图 | **未接**：无正式入口<br>[设计] 待宿主实现后暴露意图 | disabled Reveal / PendingBadge | UI 占位不能计入宿主已实现，更不能计入 Agent 或插件覆盖 | [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) | 新增盘点 |
-| <a id="OPS11"></a>OPS11 | 事件写入、重建/验证投影、历史 genesis | 实装 | **内部**：领域端口提交业务事件<br>[设计] 只走有语义领域命令 | **部分**：公开领域命令内部 commit<br>[设计] 只走有语义领域命令 | commit_events/rebuild_projections/verify_projections | 不开放：任意 SQL/事件 append/投影写；旧日志未记录的变更不可凭空恢复 | [EVENTS](../apps/web/src/platform/domain-events.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) [RUST](../apps/desktop/src-tauri/src/lib.rs) | 新增盘点 |
+| <a id="OPS11"></a>OPS11 | 事件写入、重建/验证投影、历史 genesis | 实装 | **部分**：领域端口提交业务事件；verify_local_data[双域]<br>[设计] 语义命令与只读诊断 | **部分**：领域命令内部commit；diagnostics1.0 verifyProjections<br>[设计] 只走有语义领域命令 | commit_events/rebuild_projections/verify_projections | 只读校验汇总已开放，不暴露记录样本或表名；共用原生verify_projections，重放检查最终回滚，回填不完整拒绝。没有开放重建/修复、任意SQL/事件append/投影写或伪造genesis；旧日志未记录的变更不可凭空恢复。真实Tauri调用留集中验收 | [EVENTS](../apps/web/src/platform/domain-events.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) [RUST](../apps/desktop/src-tauri/src/lib.rs) [DIAGNOSTICS](../apps/web/src/services/diagnostics.ts) [DIAGNOSTICSCONTROLLER](../apps/web/src/services/diagnostics-controller.ts) [DIAGNOSTICSPROOF](../apps/web/src/services/diagnostics-controller.test.ts) | 新增盘点 |
 
 ### 跨能力协议与明确边界
 
@@ -410,13 +410,13 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：105 个。
-- Agent book：87 个。
-- Plugin ctx：207 个。
+- Agent global：106 个。
+- Agent book：88 个。
+- Plugin ctx：208 个。
 - Plugin returned interface：28 个。
 - Capability domains：6 个。
 - Capability contributions：15 个。
-- Capability services：13 个。
+- Capability services：14 个。
 - Capability schemas：3 个。
 - Settings path：74 个。
 - Native command：163 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 207 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 208 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -461,6 +461,7 @@
 | `open_external_url` | [SYS12](#SYS12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_sync_status` | [OPS01](#OPS01) [OPS03](#OPS03) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_sync` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `verify_local_data` | [OPS03](#OPS03) [OPS11](#OPS11) [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_software_update` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_maintenance_settings` | [SYS15](#SYS15) [SYS16](#SYS16) [EXT12](#EXT12) [OPS08](#OPS08) [OPS09](#OPS09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_book_formats` | [LIB07](#LIB07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -571,6 +572,7 @@
 | `open_external_url` | [SYS12](#SYS12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_sync_status` | [OPS01](#OPS01) [OPS03](#OPS03) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_sync` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `verify_local_data` | [OPS03](#OPS03) [OPS11](#OPS11) [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_software_update` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_maintenance_settings` | [SYS15](#SYS15) [SYS16](#SYS16) [EXT12](#EXT12) [OPS08](#OPS08) [OPS09](#OPS09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_book_formats` | [LIB07](#LIB07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -807,6 +809,7 @@
 | `services.plugins.observe` | [EXT11](#EXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.logging.policy` | [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.logging.write` | [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.diagnostics.verifyProjections` | [OPS03](#OPS03) [OPS11](#OPS11) [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.maintenance.snapshot` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.maintenance.observe` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.maintenance.openSettings` | [SYS15](#SYS15) [SYS16](#SYS16) [EXT12](#EXT12) [OPS08](#OPS08) [OPS09](#OPS09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -928,6 +931,7 @@
 | `session` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `plugins` | [EXT11](#EXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `maintenance` | [SYS15](#SYS15) [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `diagnostics` | [OPS03](#OPS03) [OPS11](#OPS11) [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `logging` | [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `resources` | [SYS11](#SYS11) [SYS13](#SYS13) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `sync` | [OPS01](#OPS01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

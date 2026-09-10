@@ -4,6 +4,7 @@ import type { PluginCallOptions } from "@read-aware/plugin-types";
 /** Final options argument positions shared by the Worker proxy and host RPC.
  * Transport metadata is not authority: the host still resolves the actor's method. */
 export const PLUGIN_CALL_OPTIONS = {
+  "services.diagnostics.verifyProjections": 0,
   "domains.library.queries.books.inspectResource": 1,
   "domains.library.queries.books.getNavigationToc": 1,
   "domains.library.queries.books.listNavigationTargets": 1,

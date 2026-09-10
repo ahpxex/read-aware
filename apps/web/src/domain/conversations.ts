@@ -5,6 +5,8 @@
  * share its turn drain rather than fabricating user/assistant messages.
  */
 import type { ChatMessageSummary, EventOrigin, ThreadSummary } from "@read-aware/core";
+import { normalizeConversationTarget, type ConversationTarget } from "@read-aware/core";
+import { getStoredConversationInsights } from "../features/ai/lib/conversation-insights-store";
 import {
   listGlobalThreads,
   loadConversation,
@@ -27,6 +29,8 @@ function toMessages(
 }
 
 export type ConversationQueries = {
+  /** Stored rolling summary; null means no summary, not an empty transcript. */
+  getInsights(target: ConversationTarget): Promise<string | null>;
   turnRequests(): Promise<import("@read-aware/core").ConversationTurnRequestSnapshot[]>;
   runtime(): Promise<import("@read-aware/core").ConversationRuntimeSnapshot>;
   /** The book's persistent thread, oldest first; empty when none. */
@@ -49,6 +53,11 @@ export type ConversationsDomain = {
 export function createConversationsDomain(origin: EventOrigin, lifetime?: AbortSignal): ConversationsDomain {
   return {
     queries: {
+      getInsights: async input => {
+        lifetime?.throwIfAborted();
+        const target = normalizeConversationTarget(input);
+        return getStoredConversationInsights(`${target.kind}:${target.id}`) ?? null;
+      },
       turnRequests: async () => conversationTurnRequests.list(origin),
       runtime: async () => conversationSnapshot(),
       getBookThread: async (bookId) => toMessages(await loadConversation(String(bookId))),

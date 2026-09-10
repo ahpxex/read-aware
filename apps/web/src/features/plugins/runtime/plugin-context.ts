@@ -902,7 +902,10 @@ export function buildPluginContext(
 
   if (domain.conversations) {
     ctx.domains.conversations = {
-      queries: domain.conversations.queries,
+      queries: {
+        ...domain.conversations.queries,
+        getInsights: target => lifecycle.read("conversations.getInsights", () => domain.conversations!.queries.getInsights(target)),
+      },
       events: {
         observeRuntime: handler => track(() => ({ dispose: domain.conversations!.events.observeRuntime(handler) })),
         observeInvalidation: handler => track(() => ({ dispose: domain.conversations!.events.observeInvalidation(handler) })),

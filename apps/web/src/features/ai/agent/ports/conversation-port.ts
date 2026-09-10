@@ -5,7 +5,7 @@
  * 运行时只*读*转录做水化与原话检索，写摘要（insights）归自己。
  */
 import { searchTurnRecords, type ConversationPort, type TurnRecord } from "@read-aware/agent";
-import { afterLocalKVWrites, localKV } from "../../../../platform/local-store";
+import { clearStoredConversationInsights, getStoredConversationInsights, putStoredConversationInsights } from "../../lib/conversation-insights-store";
 import {
   GLOBAL_CONVERSATION_ID,
   isGlobalThreadId,
@@ -15,6 +15,7 @@ import {
 import type { ChatMessage } from "../../lib/chat-types";
 
 export { GLOBAL_CONVERSATION_ID };
+export { clearStoredConversationInsights } from "../../lib/conversation-insights-store";
 
 /** threadKey（`book:<id>` | `global:<threadId>`）↔ 会话存储 id（前缀剥掉）。 */
 function threadKeyToStoreId(threadKey: string): string {
@@ -42,28 +43,6 @@ function toTurns(messages: ChatMessage[]): TurnRecord[] {
     }));
 }
 
-const INSIGHTS_KEY = "read-aware-agent-insights";
-
-function readInsights(): Record<string, string> {
-  try {
-    return JSON.parse(localKV.getItem(INSIGHTS_KEY) ?? "{}") as Record<string, string>;
-  } catch {
-    // Old or malformed cached summaries can be rebuilt from retained transcripts.
-    return {};
-  }
-}
-
-export function clearStoredConversationInsights(threadKey: string): Promise<void> {
-  return afterLocalKVWrites(async () => {
-    const insights = readInsights();
-    let changed = delete insights[threadKey];
-    if (threadKey === `global:${GLOBAL_CONVERSATION_ID}`) {
-      changed = delete insights.global || changed;
-    }
-    if (changed) await localKV.setItemAsync(INSIGHTS_KEY, JSON.stringify(insights));
-  });
-}
-
 export function createConversationPort(): ConversationPort {
   return {
     load: async (threadKey) => toTurns(await loadConversation(threadKeyToStoreId(threadKey))),
@@ -84,19 +63,8 @@ export function createConversationPort(): ConversationPort {
       }
       return searchTurnRecords(pool, queries, limit ?? 20);
     },
-    getInsights: async (threadKey) => {
-      const insights = readInsights();
-      // 多线程化前全局线程的 key 是裸 "global"——老摘要按新 key 兜底读一次
-      return (
-        insights[threadKey] ??
-        (threadKey === `global:${GLOBAL_CONVERSATION_ID}` ? insights.global : undefined)
-      );
-    },
-    putInsights: (threadKey, summary) => afterLocalKVWrites(async () => {
-      const insights = readInsights();
-      insights[threadKey] = summary;
-      await localKV.setItemAsync(INSIGHTS_KEY, JSON.stringify(insights));
-    }),
+    getInsights: async (threadKey) => getStoredConversationInsights(threadKey),
+    putInsights: putStoredConversationInsights,
     clearInsights: clearStoredConversationInsights,
   };
 }

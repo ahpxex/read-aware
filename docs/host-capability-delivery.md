@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+2026-09-11 对话摘要批次已接线：conversations1.4 queries.getInsights(kind/id) 向获对话读权的插件开放已有书籍/全局线程滚动摘要，和 Agent 共用 conversation-insights-store。全局 Agent 原有 get_conversation_insights 增加 threadId，省略目标读当前线程；书内工具范围不变。没有模型调用、摘要生成或公开写入口；成功宿主保存/清除通知原有失效观察，损坏存储返回 db/error，不伪装无摘要或覆写整个映射。
+
+[验证] 35 项基础测试通过，涵盖共用存储、旧 global 映射、授权、退休、取消、持久化失败、Agent 回合及库存模型；全仓 typecheck27/27、三文档对结构与 diff 检查通过。931 入口映射、38 catalog 成员，无新增模型工具。MEM12 按现有只读能力标接通：摘要可能滞后，仍为本机 KV 镜像、可含未落盘写，无来源水位/时间戳/CAS/完整跨设备协议，不等于原话或正式 bundle。未启动桌面/浏览器，compiled Worker、业务插件、真实 Tauri 与 HTML 视觉复核留集中验收；未推送，整体目标继续。
+
 2026-09-11 备份流程批次已接线：maintenance1.2 requestBackup 与双域 Agent request_backup 复用 HostActionFlow，只定位已有导入/导出按钮；用户亲自点击并选择文件后返回 imported/exported/cancelled，不向调用方提供字节、路径或计数。导出由 HTML 下载改走已有原生保存，导入改走已有原生资源选择/读取；单次 signal 纳入共享 30 方法 RPC 表，已开始的 v1 合并不因取消伪装回滚。八语言改称书库备份（v1），明确并非全量、可覆盖记录。
 
 [验证] 22 项基础调用/受控文件/StrictMode 挂载测试及 12 项库存模型测试通过；全仓 typecheck27/27、八语言 JSON/键集合、三文档对结构及 diff 检查通过。930 入口映射、38 catalog 成员，Agent 工具 book91/global109。OPS08 仍部分：既有 v1 不覆盖独立聊天/记忆/插件文档/密钥库/事件日志，KV 可能含个人数据；整份 JSON 驻内存、格式验证不完整、顺序合并可能部分写入。imported 不证明重载/genesis 或跨重启回执送达。没有启动桌面/浏览器，真实文件保存/恢复、编译 Worker、业务插件组合及 HTML 视觉复核留集中验收；未推送，整体目标继续。

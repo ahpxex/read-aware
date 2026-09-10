@@ -266,7 +266,7 @@ The current public roster is:
 | Library | books, source files, metadata, TOC, collections, import and removal | `library:read`, `library:write` |
 | Reading | active session, navigation, location, progress, reading time | `reading:read`, `reading:write` |
 | Annotations 2.0 | highlights, notes, passive question traces, conditional edits and query observations | `annotations:read`, `annotations:write` |
-| Conversations 1.3 | threads, summaries, live state, projection invalidation, thread management and host-confirmed turn requests | `conversations:read`, `conversations:write` |
+| Conversations 1.4 | threads, rolling summaries, live state, projection invalidation, thread management and host-confirmed turn requests | `conversations:read`, `conversations:write` |
 | Settings | catalog, resolved values, targets, validation, change events | exact path grants |
 | Memory | active memory search, chapter graphs and conditional feedback | `memory:read`, `memory:write` (1.1) |
 
@@ -307,6 +307,41 @@ Agent `request_conversation_turn` uses the same path, restricted to the current
 book in book scope; state queries show the last 20 scoped requests and a
 truncation flag. Streaming output remains in native chat, not a public role-write
 API. Focused checks passed; integrated plugin/Tauri acceptance is pending.
+
+### Stored Conversation Summaries (Conversations 1.4)
+
+[代码] `queries.getInsights({kind:"book"|"global",id})` returns the stored
+rolling summary as a string, or `null` when no summary exists. It requires
+`conversations:read` (write implies read), not memory or library authorization.
+The shared target normalizer accepts nonblank IDs up to 256 characters, rejects
+extra fields and enforces the existing global ID convention (`__global__` or
+`thread-*`). Queries do not create threads, read transcripts, generate summaries,
+invoke models or expose hidden runtime state. No summary-write API is added.
+Plugin lifecycle cancellation prevents retired calls/results.
+
+[代码] The Agent port and domain share `conversation-insights-store.ts` and the
+existing `read-aware-agent-insights` KV map. Keys remain `book:<id>` and
+`global:<id>`; the legacy bare `global` fallback applies only to `__global__`.
+Missing does not mean no conversation, and an empty stored string is not missing.
+Malformed JSON/map values now reject `db/error` instead of pretending no summary
+exists or allowing the next write to replace a corrupt map. Failed writes reject;
+successful host writes/clears notify existing `events.observeInvalidation` via
+`conversations-changed`, without publishing summary text in the notification.
+
+[代码] Existing global Agent `get_conversation_insights` accepts either `bookId`
+or `threadId`, never both; omitting both reads its own global thread. The book
+response retains `{bookId,summary}`, global responses use `{threadId,summary}`.
+Pre-/post-read cancellation is checked. Book-scope tool registration is unchanged:
+its own rolling summary remains automatic context, not a cross-thread tool.
+
+[环境] These are existing generated summaries, not verified facts, verbatim
+history, fresh inference or a context bundle. They can lag turns and have no
+source watermark, version/CAS or timestamp. Storage remains the device-local KV
+mirror (which may contain a pending write), not a new event projection or a
+complete cross-device summary protocol. Public queries are read-only; retained
+summaries do not acquire new spoiler or automatic prompt-injection guarantees.
+Basic shared-store, authorization, cancellation and Agent flow tests passed;
+compiled Worker, business-plugin composition and actual Tauri remain deferred.
 
 Reading v2 exposes `queries.session()` and `events.observeSession(handler)`:
 an immediate snapshot followed by revisions, with session identity, loading

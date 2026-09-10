@@ -7,6 +7,7 @@
  */
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
+import { AppError, normalizeConversationTarget } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { normalizeBookIdParam } from "./current-book";
@@ -78,19 +79,25 @@ export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps, st
 
   const getConversationInsights: AgentTool = {
     name: "get_conversation_insights",
-    label: "Book conversation summary",
+    label: "Conversation summary",
     description:
-      "Get the rolling summary of one book thread's conversation so far. bookId defaults to the current book.",
+      "Read a stored rolling conversation summary, not verbatim history or a freshly generated summary. Choose bookId or threadId (global thread id), never both; omit both for this conversation. null means no stored summary, not no conversation. Summaries can lag recent turns. Available in global scope only; book scopes already receive their own rolling context.",
     parameters: Type.Object({
-      bookId: Type.Optional(Type.String({ description: "Book id" })),
-    }),
-    execute: async (_id, params) => {
-      const { bookId } = params as { bookId?: string };
-      const target =
-        normalizeBookIdParam(bookId) ?? (scope.kind === "book" ? scope.bookId : undefined);
-      if (!target) throw new Error("bookId is required in the global thread");
-      const summary = await deps.conversations.getInsights(`book:${target}`);
-      return textResult({ bookId: target, summary: summary ?? null });
+      bookId: Type.Optional(Type.String({ minLength: 1, maxLength: 256, description: "Book id" })),
+      threadId: Type.Optional(Type.String({ minLength: 1, maxLength: 256, description: "Global thread id from get_conversation_state" })),
+    }, { additionalProperties: false }),
+    execute: async (_id, params, signal) => {
+      signal?.throwIfAborted();
+      const input = params as { bookId?: string; threadId?: string };
+      if (!input || typeof input !== "object" || Array.isArray(input)
+        || Object.keys(input).some(key => key !== "bookId" && key !== "threadId")
+        || input.bookId !== undefined && input.threadId !== undefined) throw new AppError("ui/invalid-target", "Choose one conversation target");
+      const target = normalizeConversationTarget(input.bookId !== undefined ? { kind: "book", id: input.bookId }
+        : input.threadId !== undefined ? { kind: "global", id: input.threadId }
+        : scope.kind === "book" ? { kind: "book", id: scope.bookId } : { kind: "global", id: scope.threadId });
+      const summary = await deps.conversations.getInsights(`${target.kind}:${target.id}`);
+      signal?.throwIfAborted();
+      return textResult({ ...(target.kind === "book" ? { bookId: target.id } : { threadId: target.id }), summary: summary ?? null });
     },
   };
 

@@ -418,7 +418,7 @@
                 <tr><td>Library</td><td>书、文件、元数据、目录、集合、导入与删除</td><td>read / write</td></tr>
                 <tr><td>Reading</td><td>当前阅读会话、位置、导航、进度与时长</td><td>read / write</td></tr>
                 <tr><td>Annotations 1.4</td><td>高亮、笔记、问题轨迹与查询观察</td><td>read / write</td></tr>
-                <tr><td>Conversations 1.2</td><td>对话摘要、运行态、线程管理与待确认的草稿/发送/重试</td><td>read / write</td></tr>
+                <tr><td>Conversations 1.4</td><td>滚动摘要查询、运行态、线程管理与待确认的草稿/发送/重试</td><td>read / write</td></tr>
                 <tr><td>Settings</td><td>设置目录、目标、校验、解析值与变更事件</td><td>精确路径授权</td></tr>
                 <tr><td>Memory 1.6</td><td>画像摘要查询、记忆与图谱、条件反馈、分类与有章节预算的任务</td><td>memory:read / memory:write；生成另需 service:llm</td></tr>
               </tbody>
@@ -430,6 +430,11 @@
           <p>Conversations 1.2 已接两端线程管理和待确认草稿/发送/重试。空线程只保存选择，提交请求也不自动导航；只有宿主聊天按钮能批准执行。每个已挂载目标最多一个请求，五分钟过期，关闭/退休取消；不覆盖用户草稿，重试保留原消息和附件。状态区分待确认、已采用和已启动，不冒充模型回答完成；新入口已过定向检查，组合插件与桌面验收待集中进行。</p>
           <p>Memory 1.7 已接画像查询、观察与条件替换，Agent 双域可读取并在宿主展示完整候选后批准保存；插件需 memory:write，自身界面负责确认。摘要最多16000字符单元，旧版本拒绝覆盖，保存成功才回执；空文本清摘要但不删除记忆、历史或备份。同章下一用户轮也更新画像提示词，保留对话。不开放原始KV，现有本机存储不是跨进程/跨设备CAS或事件投影。完整访谈与种子记忆编排仍缺；基础测试通过，真实Worker/Tauri组合留集中验收。</p>
           <p>停止/清空等待最后回合写入，清空不撤销长期记忆、事件历史或工具副作用，不承诺多步原子回滚。Agent 清空须批准，执行中的线程不能用工具停止/清空自身；请求查询只给自有摘要，不能伪造 role 历史。</p>
+          <details class="ep"><summary>Conversations 1.4：插件和 Agent 可查询同一份滚动摘要</summary><div class="ep-body">
+            <p>插件 getInsights 按书籍或全局线程 ID 读取，需对话读权限；全局 Agent 的 get_conversation_insights 可指定 bookId/threadId，默认当前线程。不存在返回 null，损坏返回错误；不触发模型、不读完整转录，也不开放内部摘要写入。</p>
+            <p>宿主成功保存或清除后发出既有失效通知，插件可重新查询。摘要仍在本机 KV，可能滞后或含未落盘镜像，没有来源水位、版本、跨设备协议或完整性保证；不是原话、事实认证或正式 context bundle。</p>
+            <p>共用存储、授权、取消及 Agent 流程基础测试通过。MEM12 按现有只读能力标接通，真实 Worker、组合插件和 Tauri 验收集中后置。</p>
+          </div></details>
         </div>
       </section>
 

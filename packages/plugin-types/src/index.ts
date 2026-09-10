@@ -1574,6 +1574,9 @@ export type PluginAnnotationsDomain = {
  */
 export type PluginConversationsDomain = {
   queries: {
+    /** Conversations 1.4: stored rolling summary of a book/global thread, or null.
+     * No generation, freshness guarantee, raw runtime state or summary writes. */
+    getInsights(target: import("@read-aware/core").ConversationTarget): Promise<string | null>;
     /** Up to 128 recently retained host requests, filtered to this actor; no text or other actors' requests. */
     turnRequests(): Promise<import("@read-aware/core").ConversationTurnRequestSnapshot[]>;
     runtime(): Promise<import("@read-aware/core").ConversationRuntimeSnapshot>;

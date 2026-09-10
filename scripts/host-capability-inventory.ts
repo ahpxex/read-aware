@@ -101,6 +101,7 @@ const agentMap = pairs([
 ]);
 const pluginMap = pairs([
   ["domains.conversations.queries.runtime domains.conversations.events.observeRuntime", "AI02 AI03"],
+  ["domains.conversations.queries.getInsights", "MEM12"],
   ["domains.library.events.observeInvalidation domains.conversations.events.observeInvalidation", "OPS05 CON07"],
   ["domains.conversations.commands.createThread domains.conversations.commands.selectThread domains.conversations.commands.clear", "AI02"],
   ["domains.conversations.commands.stop", "AI03"],

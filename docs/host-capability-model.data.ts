@@ -35,7 +35,7 @@ export const units: Unit[] = [
   unit("D4", "Domain", "conversations", "对话内容、线程及回合意图", "AI01-03 MEM12", "domains.conversations",
     "受权读取/搜索线程、消息、摘要/insights；创建、选择、清空线程；用户触发的 draft/发送/停止/重试意图由宿主控制器执行，呈现焦点由 S3 负责。",
     "已接 get_conversation_state 双 scope、manage_conversation 全局管理与 request_conversation_turn 双 scope 草稿/发送/重试/取消建议。请求只有宿主 UI 确认后执行，不能用模型工具递归生成或停止/清空自身。书内只操作本书，请求状态与回合完成分开；重试沿用原消息/附件。",
-    "conversations 1.2 已接管理、运行态观察与 requestTurn/cancelTurnRequest/turnRequests，读写分权。每个已挂载目标最多一个待确认请求，五分钟过期、关闭/退休取消；草稿不覆盖用户文本，发送/重试复核空闲和 transcript generation。只留 128 个自有可读摘要，不伪造 role 历史。stop/clear 等最后写入；定向检查通过，组合插件/Tauri E2E 待验。",
+    "conversations1.4 queries.getInsights(kind/id) 已接现有书籍/全局线程滚动摘要，需对话读权，Agent全局工具同源支持bookId/threadId或当前线程。返回字符串/null，不生成、不开放摘要写；旧global仅归原始全局线程，损坏db/error而非空，宿主成功写/清后发既有失效通知。摘要仍本机KV镜像、可滞后或含未落盘写，无来源水位/时间戳/CAS/跨设备协议，非转录或正式bundle；基础共用存储/授权/取消/Agent测试通过。1.2管理、运行态观察与 requestTurn/cancelTurnRequest/turnRequests 保留读写分权。每个已挂载目标最多一个待确认请求，五分钟过期、关闭/退休取消；草稿不覆盖用户文本，发送/重试复核空闲和 transcript generation。只留128个自有请求元数据，不伪造role历史。stop/clear等最后写入；组合插件/Tauri E2E待验。",
     "重试/清空聊天不撤销已完成的标注、记忆或远端 HTTP 副作用；复制聊天是查询 + 剪贴板，不需要专门 Agent 工具。书内单线程与全局多线程仍保持。",
     "停止保存已产生的部分答复；清空/切线程时旧 generation 不得回写新线程；模型回合、存储提交、展示清除的完成状态分别可验证。"),
   unit("D5", "Domain", "settings", "全部真实偏好及生效语义", "UI02 UI04-05 CFG01-13 SET01-74 SYS14", "domains.settings",

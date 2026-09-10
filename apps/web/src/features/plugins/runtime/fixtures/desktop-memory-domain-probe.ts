@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import type { Id } from "@read-aware/core";
@@ -53,7 +54,7 @@ export async function prepareMemoryDomainProbe() {
 }
 export async function memoryDomainActor(role: "empty" | "read", action: string) {
   await isolated(); const command = getDefaultStore().get(pluginCommandsAtom).find(c => c.pluginId === `capability-memory-domain-${role}` && c.id === action);
-  if (!command) throw Error("Missing command"); return JSON.parse((await command.run())!.toast!) as unknown;
+  if (!command) throw Error("Missing command"); return parseProbeToast((await command.run())!.toast!) as unknown;
 }
 export async function memoryDomainHeaderOwners() {
   await isolated();

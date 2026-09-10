@@ -150,7 +150,7 @@ export const units: Unit[] = [
     "保留 list/detail/markdown/blocks/form 及宿主组件；补有界异步搜索/分页、loading/empty/error、可取消进度、稳定选择和资源引用。Tree/Table 仅在 TOC 层级或比较字段真实需要时补最小语义与键盘协议。",
     "工具卡/问题卡由宿主呈现；不把 PluginView 树当模型可执行 UI 代码。",
     "声明数据与事件，宿主拥有 React/布局/焦点/本地化；每个 view instance/generation 有局部 callback lease。views 1.3 onClose 已接已接受 frame 的 closed/back/replaced/reset/refreshed/unmounted 通知；覆盖与 live 数据更新不触发，live 不可更换关闭回调。异步通知不阻止移除，结果不导航，最多十秒保留通知句柄；退休/崩溃不保证送达，不能替代激活 disposer。外容器直接移除只报告 unmounted，不虚构精确输入原因或焦点回执。真实 Worker/Tauri 组合留集中验收。",
-    "Schema 无独立权力；onSubmit 仍走 Domain/Service。当前虚拟列表已有，不冒充仍需重建；无证据的富文本编辑器/任意 canvas/iframe 不进必补清单。",
+    "Schema 无独立权力；onSubmit 仍走 Domain/Service。UI 1.10 / views 1.4 已接直接与结果结构化 toast：稳定错误码由宿主本地化和判定 retryable，用户单次重试不额外授权；六秒/全局16条，关闭/退休释放回调，执行中最多十秒句柄保留而非业务取消。定向测试通过，真实 Worker/Tauri 待验，统一进度/批准仍缺。当前虚拟列表已有，不冒充仍需重建；无证据的富文本编辑器/任意 canvas/iframe 不进必补清单。",
     "长中文/英文、键盘、窄窗、空数据、失效 callback、异步结果逆序验证；搜索 debounce 不等于取消和防旧结果。"),
   unit("V2", "Schema", "settings", "字段声明而非行为授权", "CFG01-13 SET01-74", "schemas.settings",
     "类型、默认值、scope、约束、secret 标记、动态选项和条件可用性。字段存在、值能保存、效果有消费者分别验证。",

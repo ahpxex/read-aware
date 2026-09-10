@@ -271,6 +271,10 @@
             <p>事件提交失败保留绑定，绑定写失败不报成功。通知先于文件释放，绑定可能先清除；1.6 的宿主清理队列让两端重新发现 ID 并重试文件，启动也会恢复。此项不等于绑定和 RSS 私有缓存的耐久恢复，更不是跨书籍、文件、绑定和文档的原子事务。</p>
             <p>真实 macOS Worker 命令与 Agent 插件工具已验证 SQLite 删除事件拒绝、绑定写拒绝和恢复重试；不是自主模型或完整 RSS 退订验收。并发创建删除、崩溃恢复、打包和跨平台仍缺，LIB13 保留部分。<a href="./plugin-system.md#virtual-book-removal">完整契约</a> · <a href="./evidence/virtual-book-removal-2026-09-09.json">原生证据</a></p>
           </div></details>
+          <details class="ep" data-search-section="toast error retry 错误 重试"><summary>UI 1.10 / views 1.4：结构化错误与用户触发的重试</summary><div class="ep-body">
+            <p>直接提示与动作结果都可传稳定错误码，由宿主本地化。只有宿主判定可重试且插件提供回调时才显示按钮；未知错误不泄漏原文，也不能强行声明可重试。点击只执行一次，不自动重试、不增加权限、不解释返回导航。</p>
+            <p>错误提示六秒到期，全局最多 16 条；关闭、退休或桥接移除释放回调。已点击的异步回调最多保留十秒句柄，不代表取消业务任务。普通文字仍是通知。定向测试和类型检查已过，真实 Worker/Tauri 待集中验收；统一进度、取消与批准仍未完成。<a href="./plugin-system.md#structured-error-toasts-ui-110--views-14">完整契约</a></p>
+          </div></details>
           <details class="ep" data-search-section="live views 实时 视图 推送 Text Desk"><summary>UI 1.2 / views 1.3：实时视图与关闭通知</summary><div class="ep-body">
             <p>插件通过 live.subscribe 取得宿主签发的可见帧通道，再 publishView 完整画面。通道限当前激活代和视图；旧版本报 stale，外部或退休通道报 inactive。更新保留帧身份与现有草稿协调，不改变导航，不开放 DOM 或额外数据权限。</p>
             <p>离开、嵌套弹窗或关闭立即撤通道，返回重新订阅当前值；迟到确认仍会释放。回调在画面提交后释放，中间快照不累积；失败保留旧画面并显示安全错误。每激活最多 16 通道；accepted 不是绘制完成，退订不是取消业务任务。</p>

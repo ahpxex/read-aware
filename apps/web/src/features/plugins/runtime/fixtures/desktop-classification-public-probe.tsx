@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { createRoot, type Root } from "react-dom/client";
 import { getDefaultStore } from "jotai";
 import type { DigestFlavor } from "@read-aware/core";
@@ -30,7 +31,7 @@ export async function prepareClassificationPublicProbe() {
 export async function classificationActor(role: "empty" | "read" | "write", action: string) {
   if (!seed) throw Error("Prepare isolated probe first");
   const command = getDefaultStore().get(pluginCommandsAtom).find(c => c.pluginId === `capability-classification-${role}` && c.id === action);
-  if (!command) throw Error("Missing probe command"); return JSON.parse((await command.run())!.toast!) as unknown;
+  if (!command) throw Error("Missing probe command"); return parseProbeToast((await command.run())!.toast!) as unknown;
 }
 export async function beginClassificationApproval(narrativity: DigestFlavor, global = false) {
   if (!seed || task) throw Error("Prepare isolated probe and finish previous approval first");

@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import { PDFDocument, StandardFonts } from "pdf-lib";
@@ -51,7 +52,7 @@ export async function runRangeProbe() {
   const deps = buildRuntimeDeps();
   const before = await deps.reader.getSession();
   const worker: Record<string, unknown> = {};
-  for (const permission of ["none", "read", "write"]) worker[permission] = JSON.parse((await command(`capability-range-${permission}`).run())!.toast!);
+  for (const permission of ["none", "read", "write"]) worker[permission] = parseProbeToast((await command(`capability-range-${permission}`).run())!.toast!);
   const library = createLibraryDomain("agent");
   const found = await library.queries.books.searchLocations({ bookId: seed.bookId, query: "needle" });
   const first = found.hits[0].range, later = found.hits.at(-1)!.range;

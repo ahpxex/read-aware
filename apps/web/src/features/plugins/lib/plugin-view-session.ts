@@ -1,9 +1,9 @@
-import type { PluginView, PluginViewCloseReason, PluginViewResult } from "./plugin-types";
+import type { PluginToast, PluginView, PluginViewCloseReason, PluginViewResult } from "./plugin-types";
 import type { PluginResultOptions } from "../components/plugin-view-types";
 import { navigatePluginViewStack, normalizePluginView, PluginViewError } from "./plugin-view";
 import { observePluginCallbackOwners, releasePluginCallbacks, retainPluginCallbacks } from "../runtime/plugin-callback-wire";
 import { createLogger } from "../../../platform/logger";
-import { showPluginFailureToast, showPluginToast } from "./plugin-toast";
+import { normalizePluginToast, showPluginFailureToast, showPluginToast } from "./plugin-toast";
 import { PluginLiveView } from "./plugin-live-view";
 import { PluginFormDrafts } from "./plugin-form-drafts";
 import { ownPluginViewClose } from "./plugin-view-close";
@@ -11,7 +11,7 @@ import { ownPluginViewClose } from "./plugin-view-close";
 const log = createLogger("plugin-views");
 type OwnedView = { view: PluginView; renderKey: number; dispose: () => void };
 type Frame = OwnedView & { notifyClosed(reason: PluginViewCloseReason): void; forms: PluginFormDrafts; rendered?: () => void; live?: PluginLiveView; liveError?: unknown };
-type Effects = { close?: () => void; refresh?: () => void; toast?: (text: string) => void; failure?: (error: unknown) => void };
+type Effects = { close?: () => void; refresh?: () => void; toast?: (message: PluginToast) => void; failure?: (error: unknown) => void };
 export type PluginViewSnapshot = {
   stack: readonly PluginView[];
   /** Explicit navigation replaces UI state, unlike a refresh of root data. */
@@ -209,6 +209,7 @@ export class PluginViewSession {
       if (!current()) return null;
       if (result == null) { if (dialog) this.closeDialog(); return result; }
       if (typeof result !== "object" || Array.isArray(result)) throw new PluginViewError("Plugin action result must be an object");
+      if (result.toast !== undefined) normalizePluginToast(result.toast);
       if (result.fieldErrors) {
         if (dialog) throw new PluginViewError("Dialog item cannot return form field errors");
       } else if (result.view) {
@@ -226,7 +227,7 @@ export class PluginViewSession {
       } else if (result.navigation) throw new PluginViewError("Plugin navigation requires a view");
       else if (result.close) { if (dialog) this.closeDialog(true); else this.close(); }
       else if (dialog) this.closeDialog();
-      if (result.toast) (this.effects.toast ?? showPluginToast)(String(result.toast));
+      if (result.toast !== undefined) (this.effects.toast ?? showPluginToast)(result.toast);
       return result;
     } catch (error) {
       log.error("Plugin view action failed", error);

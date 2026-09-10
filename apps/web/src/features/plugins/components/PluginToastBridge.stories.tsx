@@ -39,6 +39,12 @@ export const RaisesAToast: Story = {
   },
 };
 
+export const RetryableError: Story = {
+  render: () => <><PluginToastBridge /><Button onClick={() => showPluginToast({ kind: "error", code: "db/locked",
+    retry: () => showPluginToast("Dictionary: entries imported."),
+  })}>Import entries</Button></>,
+};
+
 /**
  * Without the bridge mounted the handler is unset, so the same call is a no-op
  * rather than a crash — plugin code must never depend on a mounted host.

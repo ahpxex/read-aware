@@ -26,6 +26,8 @@ export interface ToastOptions {
    * caller.
    */
   action?: { label: string; onClick: () => void };
+  /** Host resource cleanup on timeout, dismissal or provider unmount. */
+  onDismiss?: () => void;
 }
 
 interface ToastRecord extends ToastOptions {
@@ -33,7 +35,7 @@ interface ToastRecord extends ToastOptions {
 }
 
 interface ToastContextValue {
-  toast: (options: ToastOptions) => void;
+  toast: (options: ToastOptions) => { dismiss(): void };
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -73,19 +75,26 @@ export function ToastProvider({
   const [toasts, setToasts] = useState<ToastRecord[]>([]);
   const nextIdRef = useRef(1);
   const timersRef = useRef(new Map<number, number>());
+  const recordsRef = useRef(new Map<number, ToastRecord>());
+  const lifetimeRef = useRef(0);
 
   const dismiss = useCallback((id: number) => {
+    const record = recordsRef.current.get(id);
+    if (!record) return;
+    recordsRef.current.delete(id);
     setToasts((current) => current.filter((toast) => toast.id !== id));
     const timer = timersRef.current.get(id);
     if (timer !== undefined) {
       window.clearTimeout(timer);
       timersRef.current.delete(id);
     }
+    try { record.onDismiss?.(); } catch (error) { console.error("Toast cleanup failed", error); }
   }, []);
 
   const toast = useCallback(
     (options: ToastOptions) => {
       const id = nextIdRef.current++;
+      recordsRef.current.set(id, { ...options, id });
       setToasts((current) => [...current, { ...options, id }]);
       const duration = options.duration ?? DEFAULT_DURATION_MS;
       if (duration > 0) {
@@ -94,13 +103,25 @@ export function ToastProvider({
           window.setTimeout(() => dismiss(id), duration),
         );
       }
+      return { dismiss: () => dismiss(id) };
     },
     [dismiss],
   );
 
   useEffect(() => {
-    const timers = timersRef.current;
-    return () => timers.forEach((timer) => window.clearTimeout(timer));
+    const epoch = ++lifetimeRef.current;
+    return () => {
+      // StrictMode's setup/cleanup replay is not a real provider teardown.
+      queueMicrotask(() => {
+        if (lifetimeRef.current !== epoch) return;
+        for (const timer of timersRef.current.values()) window.clearTimeout(timer);
+        timersRef.current.clear();
+        const records = [...recordsRef.current.values()]; recordsRef.current.clear();
+        for (const record of records) {
+          try { record.onDismiss?.(); } catch (error) { console.error("Toast cleanup failed", error); }
+        }
+      });
+    };
   }, []);
 
   const value = useMemo(() => ({ toast }), [toast]);
@@ -128,15 +149,14 @@ export function ToastProvider({
                     {entry.title}
                   </p>
                 )}
-                <div>{entry.description}</div>
+                <div className="max-h-60 overflow-y-auto whitespace-pre-wrap break-words">{entry.description}</div>
                 {entry.action && (
                   <Button
                     size="sm"
                     variant="link"
                     className="mt-1 h-auto p-0 text-xs underline underline-offset-2"
                     onClick={() => {
-                      dismiss(entry.id);
-                      entry.action?.onClick();
+                      try { entry.action?.onClick(); } finally { dismiss(entry.id); }
                     }}
                   >
                     {entry.action.label}

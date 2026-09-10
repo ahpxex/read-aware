@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import type { PluginDisposable, PluginManifest } from "@read-aware/plugin-types";
@@ -30,7 +31,7 @@ export async function panelActor(actor: "empty" | "read" | "write", action = "in
   const command = getDefaultStore().get(pluginCommandsAtom).find(command => command.pluginId === `capability-panels-${actor}` && command.id === action);
   if (!command) throw Error("Panel probe command unavailable");
   const result = await command.run();
-  return result?.toast ? JSON.parse(result.toast) : null;
+  return result?.toast ? parseProbeToast(result.toast) : null;
 }
 export async function dispatchPanelIntent(bookId: string, panel: ReaderPanelKind | "ask") {
   await isolated();

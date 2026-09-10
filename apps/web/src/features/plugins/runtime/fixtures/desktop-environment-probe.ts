@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import type { PluginDisposable, PluginManifest } from "@read-aware/plugin-types";
@@ -35,7 +36,7 @@ export async function pluginEnvironment(action: "read" | "dispose" = "read") {
   if (!command) throw Error("Environment command unavailable");
   const result = await command.run();
   if (!result?.toast) throw Error("Environment receipt missing");
-  return JSON.parse(result.toast) as unknown;
+  return parseProbeToast(result.toast) as unknown;
 }
 export async function agentEnvironment() {
   await isolated();

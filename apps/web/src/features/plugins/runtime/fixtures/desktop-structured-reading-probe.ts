@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import type { PluginDisposable, PluginManifest } from "@read-aware/plugin-types";
@@ -57,7 +58,7 @@ export async function structuredReadingProbe(actor: "agent" | "plugin", mode: "p
     const command = getDefaultStore().get(pluginCommandsAtom).find(command => command.pluginId === probeId && command.id === "ask");
     const receipt = await command?.run();
     if (!receipt?.toast) throw Error("Missing probe result");
-    return JSON.parse(receipt.toast);
+    return parseProbeToast(receipt.toast);
   }
   const runtime = getAgentRuntime();
   if (!runtime) throw Error("Runtime unavailable");

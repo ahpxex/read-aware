@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import type { PluginDisposable, PluginManifest } from "@read-aware/plugin-types";
@@ -43,7 +44,7 @@ export async function prepareSettingsObservationProbe() {
 export async function settingsObservationActor(role: "empty" | "read" | "write", command = "inspect") {
   await isolated(); const contribution = getDefaultStore().get(pluginCommandsAtom).find(c => c.pluginId === `capability-settings-observation-${role}` && c.id === command);
   if (!contribution) throw Error("Missing probe command");
-  return JSON.parse((await contribution.run())!.toast!);
+  return parseProbeToast((await contribution.run())!.toast!);
 }
 export async function changeObservedTheme(source: "native" | "remote" | "restore", value: "light" | "dark" | "system") {
   await isolated(); const next = { ...getAppSettings(), theme: value };

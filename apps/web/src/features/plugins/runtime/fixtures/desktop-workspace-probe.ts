@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import type { HostCommandRequest, PluginDisposable, PluginManifest, WorkspaceTarget } from "@read-aware/plugin-types";
@@ -44,7 +45,7 @@ export async function workspaceActor(role: "empty" | "read" | "write" | "reader"
   await isolated();
   const command = getDefaultStore().get(pluginCommandsAtom).find(c => c.pluginId === `capability-workspace-${role}` && c.id === action);
   if (!command) throw Error("Workspace command unavailable");
-  return JSON.parse((await command.run())!.toast!) as unknown;
+  return parseProbeToast((await command.run())!.toast!) as unknown;
 }
 export async function agentWorkspace(name: "get_workspace" | "navigate_app", target?: WorkspaceTarget, scope: "book" | "global" = "global") {
   await isolated();

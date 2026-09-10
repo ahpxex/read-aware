@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import type { PluginDisposable, PluginManifest } from "@read-aware/plugin-types";
@@ -66,7 +67,7 @@ export async function readSessionActors() {
     const command = getDefaultStore().get(pluginCommandsAtom).find(c => c.pluginId === `capability-session-${suffix}` && c.id === "read");
     const receipt = await command?.run();
     if (!receipt?.toast) throw Error("Missing boundary command");
-    result[suffix] = JSON.parse(receipt.toast);
+    result[suffix] = parseProbeToast(receipt.toast);
   }
   const tool = getDefaultStore().get(pluginToolsAtom).find(t => t.pluginId === dictionaryId && t.name === "lookup_word");
   if (!tool) throw Error("Dictionary tool unavailable");

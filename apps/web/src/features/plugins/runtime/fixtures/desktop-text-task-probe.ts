@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import type { BookTextTaskSnapshot } from "@read-aware/core";
@@ -52,7 +53,7 @@ export async function textTaskCommand(id: string, action: string) {
   await isolated();
   const command = getDefaultStore().get(pluginCommandsAtom).find(command => command.pluginId === id && command.id === action);
   if (!command) throw Error("Probe command missing");
-  return JSON.parse((await command.run())!.toast!);
+  return parseProbeToast((await command.run())!.toast!);
 }
 async function settled(id: string): Promise<BookTextTaskSnapshot> {
   let result: BookTextTaskSnapshot;

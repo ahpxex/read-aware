@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import type { PluginDisposable } from "@read-aware/plugin-types";
@@ -43,7 +44,7 @@ const command = (actor: string, name: string) => {
   if (!found) throw Error(`Missing probe command: ${actor}/${name}`);
   return found;
 };
-async function call(name: string, actor = id) { return JSON.parse((await command(actor, name).run())!.toast!); }
+async function call(name: string, actor = id) { return parseProbeToast((await command(actor, name).run())!.toast!); }
 async function open(name = "open") {
   await runPluginContribution(id, "Live view probe", command(id, name).run, { presentation: "dialog" });
   await until(() => !!dialog()?.querySelector("input"));

@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import { AppError, errorCode } from "@read-aware/core";
@@ -60,7 +61,7 @@ export async function textStateActors(bookId: string) {
       requires: { domains: { library: "^1.2.0" } } }, new URL("./text-state-probe.ts", import.meta.url).href);
     const command = getDefaultStore().get(pluginCommandsAtom).find(command => command.pluginId === id && command.id === "inspect");
     if (!command) throw Error("Probe command missing");
-    output[actor] = JSON.parse((await command.run())!.toast!);
+    output[actor] = parseProbeToast((await command.run())!.toast!);
   }
   for (const scope of [{ kind: "book" as const, bookId }, { kind: "global" as const, threadId: "text-state-e2e" }]) {
     const tool = buildBookTextTools(scope, buildRuntimeDeps()).find(tool => tool.name === "get_book_text_status")!;

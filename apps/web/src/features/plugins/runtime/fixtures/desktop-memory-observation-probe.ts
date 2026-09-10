@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { getDefaultStore } from "jotai";
 import type { PluginDisposable, PluginManifest } from "@read-aware/plugin-types";
 import { prepareMemoryDomainProbe, cleanupMemoryDomainProbe, openMemoryDomainDesk, memoryDomainAgent } from "./desktop-memory-domain-probe";
@@ -24,7 +25,7 @@ export async function prepareMemoryObservationProbe() {
 export async function memoryObservationActor(role: "empty" | "read" | "write", action: string) {
   if (!seed) throw Error("Prepare isolated observation probe first");
   const command = getDefaultStore().get(pluginCommandsAtom).find(c => c.pluginId === `capability-memory-observation-${role}` && c.id === action);
-  if (!command) throw Error("Missing probe command"); return JSON.parse((await command.run())!.toast!) as unknown;
+  if (!command) throw Error("Missing probe command"); return parseProbeToast((await command.run())!.toast!) as unknown;
 }
 export async function memoryObservationChange(kind: "user" | "remote" | "forget" | "early" | "late") {
   if (!seed) throw Error("Prepare isolated observation probe first");

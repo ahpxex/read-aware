@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+结构化提示批次已接线：UI 1.10 / views 1.4 的 showToast 和动作结果 toast 共用稳定错误码、本地化与宿主 retryable 判定。用户点击单次重试，不自动重试、不新增权限或 Agent 工具；无效 toast 在视图导航前拒绝。错误提示六秒、全局最多 16 条，关闭/退休清理句柄；执行中回调最多保留十秒，不取消已派发业务。普通文字通知保留原有语义，EXT07 的统一进度/取消/批准仍未接全。
+
+[验证] 结构化提示、动作结果、视图会话与挂载 React 桥接定向测试 27 pass / 1126 assertions；全仓 typecheck 27/27。真实 Worker/Tauri 重试与插件组合留集中 E2E，不复跑文档界面检查。
+
 视图关闭通知批次已接线：views 1.3 PluginView.onClose 对已接受 frame 至多一次报告 closed/back/replaced/reset/refreshed/unmounted。覆盖、嵌套遮挡、live 更新及 StrictMode 重放不触发；原始关闭回调独立保留，live 不可更换它。通知不阻止关闭、不消费返回导航或 toast，异步只保留通知句柄至结束/退休/十秒期限；无效/迟到丢弃视图不通知，退休/崩溃不保证送达，不能替代 activation disposer。外层直接移除容器只报 unmounted，不虚构 Escape/点击细节、保存或焦点回执。
 
 本通知批次定向 53 项/1436 断言、typecheck 27/27 与三文档对结构检查通过。覆盖序列化回调租约、栈/嵌套/刷新、超时释放、live 更新与实际 React StrictMode 挂载/卸载；这不是实际 Worker/Tauri E2E。catalog 36、矩阵 243 行/849 映射，Agent 数量仍 book 74/global 91：此能力是插件自有视图通知，不新增模型操作 PluginView 的工具。READ11 焦点恢复与 EXT03 完整视觉验收仍未完成。未启动桌面/浏览器，未推送，组合插件集中验收后置。

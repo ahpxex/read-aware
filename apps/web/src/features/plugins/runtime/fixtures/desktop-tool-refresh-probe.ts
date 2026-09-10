@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import { runToolRefreshLoop } from "@read-aware/agent/testing/tool-refresh-probe";
@@ -43,7 +44,7 @@ export async function runDesktopToolRefreshProbe() {
     assert(ends[5]!.isError === true, "Old callback dispatched to replacement");
     assert(ends[6]!.isError === false && ends[6]!.output?.includes('"generation":2'), "Replacement not callable on next request");
     assert(snapshots[6]!.messages.includes("First result."), "Tool changes discarded prior conversation");
-    const state = JSON.parse((await runCommand("inspect"))!.toast!);
+    const state = parseProbeToast((await runCommand("inspect"))!.toast!);
     assert(state.calls === 3 && state.generation === 2, "Unexpected target side effects");
     return { dataDir, modelRequests: snapshots.length, state, ends,
       targetDiscovery: snapshots.map(snapshot => snapshot.tools.includes(target)),

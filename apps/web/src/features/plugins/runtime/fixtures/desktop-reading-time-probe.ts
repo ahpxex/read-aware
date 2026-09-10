@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import type { PluginDisposable, PluginManifest } from "@read-aware/plugin-types";
@@ -42,7 +43,7 @@ export async function pluginReadingTime(action = "inspect", role = "read") {
   await isolated();
   const command = getDefaultStore().get(pluginCommandsAtom).find(entry => entry.pluginId === `capability-time-${role}` && entry.id === action);
   if (!command) throw Error("Probe command unavailable");
-  return JSON.parse((await command.run())!.toast!) as unknown;
+  return parseProbeToast((await command.run())!.toast!) as unknown;
 }
 export async function agentReadingTime(scope: "book" | "global" = "book", query = {}) {
   await isolated();

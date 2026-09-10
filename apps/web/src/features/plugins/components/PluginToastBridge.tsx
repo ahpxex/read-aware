@@ -12,16 +12,19 @@ import { describeErrorCode } from "../../../i18n/describe-error";
 
 export function PluginToastBridge() {
   const { toast } = useToast();
-  const { t } = useTranslation("plugins");
+  const { t } = useTranslation(["plugins", "common"]);
   useEffect(() => {
     setPluginToastHandler((payload) => {
       if (payload.kind === "failure") {
-        toast({
+        const description = describeErrorCode(payload.code);
+        const handle = toast({
           variant: "destructive",
           title: payload.pluginName,
-          description: describeErrorCode(payload.code)?.body ?? t("runtime.actionFailed"),
+          description: description?.body ?? t("runtime.actionFailed"),
+          action: description?.retryable && payload.retry ? { label: t("common:errorBoundary.retry"), onClick: payload.retry } : undefined,
+          onDismiss: payload.onDismiss,
         });
-        return;
+        return handle.dismiss;
       }
       toast({ description: payload.message });
     });

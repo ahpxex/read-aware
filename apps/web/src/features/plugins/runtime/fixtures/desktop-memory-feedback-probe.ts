@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { getDefaultStore } from "jotai";
 import type { PluginDisposable, PluginManifest } from "@read-aware/plugin-types";
 import { prepareMemoryDomainProbe, cleanupMemoryDomainProbe, openMemoryDomainDesk } from "./desktop-memory-domain-probe";
@@ -23,7 +24,7 @@ export async function prepareMemoryFeedbackProbe() {
 export async function memoryFeedbackActor(role: "read" | "write", action: string) {
   if (!seed) throw Error("Prepare isolated probe first");
   const command = getDefaultStore().get(pluginCommandsAtom).find(c => c.pluginId === `capability-memory-feedback-${role}` && c.id === action);
-  if (!command) throw Error("Missing probe command"); return JSON.parse((await command.run())!.toast!) as unknown;
+  if (!command) throw Error("Missing probe command"); return parseProbeToast((await command.run())!.toast!) as unknown;
 }
 export async function memoryFeedbackAgent(action: "correct" | "forget" | "setPinned", approve = true, race = false) {
   if (!seed) throw Error("Prepare isolated probe first");

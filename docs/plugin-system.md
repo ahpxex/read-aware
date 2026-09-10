@@ -789,6 +789,39 @@ task-wide timeout, virtual indexing, all formats, marketplace installation,
 packaged/cross-platform and physical-input validation remain outstanding. TXT05
 therefore remains partial. See [task evidence](./evidence/book-text-tasks-2026-09-09.json).
 
+### Structured Error Toasts (UI 1.10 / Views 1.4)
+
+[代码] `services.ui.showToast` and `PluginViewResult.toast` accept `PluginToast`:
+a notice string (at most 16000 UTF-16 code units), or
+`{ kind: "error", code: string, retry?: () => void | Promise<void> }`.
+Error codes are nonblank and at most 128 code units. Extra fields, raw Error
+objects and invalid callbacks are rejected with `plugin/invalid-input`.
+View results validate the toast before changing navigation. Strings remain
+plain notices, not a route for presenting raw exception messages.
+
+The host localizes error codes and displays a destructive toast; unknown codes
+use generic failure copy. A retry button requires both a callback and a code
+the host classifies as retryable. Plugins cannot override this policy or grant
+the callback additional permissions. Clicking is one-shot; retry is never
+automatic. Callback results are discarded, not interpreted as view navigation.
+Retry failures are logged and presented through the existing safe error bridge.
+
+Structured toasts retain only eligible retry callbacks, expire after six seconds,
+and have a process-wide limit of 16 (oldest first eviction). Dismissal, owner
+retirement or bridge replacement releases them. Clicking separately retains the
+running callback until settlement, retirement or a ten-second retention deadline;
+that deadline does not cancel already-started business work. Plain string notices
+retain their existing lifecycle. Direct calls use the activation signal; action
+results use callback-wire ownership. Without a mounted bridge, errors log their
+code without retaining callbacks. Shared ToastProvider dismissal, timeout and
+real unmount release resources once, including under StrictMode.
+
+[验证] Focused tests cover validation, serialized callback retention, retry
+policy, retirement, eviction, both result routes and mounted localized React
+toasts. Typecheck passes. This does not prove actual Worker/Tauri interaction;
+that remains for concentrated plugin E2E. Unified progress/cancellation/approval
+presentation is still incomplete (EXT07). No new Agent tool is introduced.
+
 ### View Close Notifications (Views 1.3)
 
 [代码] `schemas.views` 1.3 adds optional `PluginView.onClose({ reason })`.

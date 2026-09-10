@@ -13,7 +13,7 @@ function fixture() {
   const owner = new AbortController();
   const notices: string[] = [];
   let failures = 0;
-  const session = new PluginViewSession({ toast: text => notices.push(text), failure: () => { failures++; } });
+  const session = new PluginViewSession({ toast: text => notices.push(String(text)), failure: () => { failures++; } });
   const wire = <T,>(value: T): T => decodePluginCallbacks(structuredClone(registry.encode(value)),
     async (handle, args) => wire(await registry.invoke(handle, args)), handles => registry.release(handles), owner.signal) as T;
   const view = (title: string): PluginDetailView => wire({ kind: "detail", title, content: [], actions: [{ id: "run", label: "Run", run: () => ({ toast: title }) }] });

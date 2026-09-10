@@ -606,7 +606,7 @@ export function buildPluginContext(
         },
         showToast: (message) => {
           lifecycle.assertActive("services.ui.showToast");
-          showPluginToast(String(message));
+          showPluginToast(message, lifecycle.signal);
         },
         exportFile: (file) => {
           lifecycle.assertActive("services.ui.exportFile");

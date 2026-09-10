@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import type { PluginDisposable, PluginManifest } from "@read-aware/plugin-types";
@@ -33,7 +34,7 @@ export async function sampleSelectionProbe() {
   for (const id of ids) {
     const command = getDefaultStore().get(pluginCommandsAtom).find(command => command.pluginId === id);
     if (!command) throw Error("Probe command missing");
-    worker[id] = JSON.parse((await command.run())!.toast!);
+    worker[id] = parseProbeToast((await command.run())!.toast!);
   }
   const scope = { kind: "book" as const, bookId: snapshot.bookId ?? "missing" };
   const tool = buildReaderTools(scope, deps).find(tool => tool.name === "get_reading_session")!;

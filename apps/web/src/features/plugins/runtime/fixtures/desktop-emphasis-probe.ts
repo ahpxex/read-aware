@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import type { PluginDisposable, PluginManifest, ReadingEmphasisSnapshot } from "@read-aware/plugin-types";
@@ -29,7 +30,7 @@ export async function callEmphasisProbe(id: string, action: string) {
   await isolated();
   const command = getDefaultStore().get(pluginCommandsAtom).find(c => c.pluginId === `capability-emphasis-${id}` && c.id === action);
   if (!command) throw Error("Missing probe command");
-  return JSON.parse((await command.run())!.toast!);
+  return parseProbeToast((await command.run())!.toast!);
 }
 export async function stopEmphasisProbe(id: string) { await isolated(); await workers.get(id)?.terminate(); }
 export async function cleanupEmphasisProbe() {

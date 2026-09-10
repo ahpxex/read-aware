@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import type { PluginDisposable, PluginManifest } from "@read-aware/plugin-types";
@@ -38,7 +39,7 @@ export async function prepareAnnotationObservationProbe() {
 export async function annotationObservationActor(role: "empty" | "read" | "write", action: string) {
   await isolated();
   const command = getDefaultStore().get(pluginCommandsAtom).find(c => c.pluginId === `capability-annotation-observation-${role}` && c.id === action);
-  if (!command) throw Error("Missing fixture command"); return JSON.parse((await command.run())!.toast!);
+  if (!command) throw Error("Missing fixture command"); return parseProbeToast((await command.run())!.toast!);
 }
 export async function changeAnnotationObservation(kind: "user" | "remote" | "remove") {
   await isolated(); if (!seed) throw Error("Prepare fixture first");

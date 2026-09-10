@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import type { PluginDisposable } from "@read-aware/plugin-types";
@@ -30,7 +31,7 @@ const command = (name: string) => {
   if (!found) throw Error(`Missing probe command: ${name}`);
   return found;
 };
-export async function actionStateControl(name: string) { await isolated(); return JSON.parse((await command(name).run())!.toast!); }
+export async function actionStateControl(name: string) { await isolated(); return parseProbeToast((await command(name).run())!.toast!); }
 const scope = { kind: "global" as const, threadId: "action-state-probe" };
 const tool = () => getPluginAgentTools(scope).find(tool => tool.name === "plugin_capability_action_state_target")!;
 async function denied(run: () => unknown) {

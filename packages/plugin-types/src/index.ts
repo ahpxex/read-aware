@@ -811,6 +811,8 @@ export type PluginViewChannel = { id: string };
 export type PluginViewUpdate = { revision: number; view: PluginViewContent };
 export type PluginViewUpdateReceipt = { status: "applied" | "stale" | "inactive" };
 export type PluginViewCloseReason = "closed" | "back" | "replaced" | "reset" | "refreshed" | "unmounted";
+/** Error copy and retry eligibility are host-owned; never pass a raw Error/message. */
+export type PluginToast = string | { kind: "error"; code: string; retry?: () => void | Promise<void> };
 export type PluginView = PluginViewContent & {
   /** Once when this accepted frame is removed, not when covered or live-updated.
    * Notification only: cannot veto closing or return navigation. Not guaranteed after
@@ -838,7 +840,7 @@ export type PluginViewResult =
   | undefined
   | null
   | {
-      toast?: string;
+      toast?: PluginToast;
       view?: PluginView;
       navigation?: "push" | "replace" | "reset";
       close?: boolean;
@@ -1772,7 +1774,7 @@ export type PluginHostServices = {
       /** Library write grant; leaving an active reader additionally requires reading:write. */
       navigate?(target: import("@read-aware/core").WorkspaceTarget, expectedRevision?: number): Promise<import("@read-aware/core").WorkspaceReceipt>;
     };
-    showToast(message: string): void;
+    showToast(message: PluginToast): void;
     exportFile(file: PluginExportFile): Promise<boolean>;
     /** UI 1.7, requires service:network. Explicit user intent only; HTTP(S), no credentials or local schemes. */
     openExternal?(url: string): Promise<void>;

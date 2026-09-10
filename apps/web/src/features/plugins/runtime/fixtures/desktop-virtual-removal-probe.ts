@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import { errorCode } from "@read-aware/core";
@@ -34,7 +35,7 @@ export async function startVirtualRemovalProbe() {
     permissions: ["library:write", "agent:tools"], requires: { domains: { library: "^1.0.0" }, contributions: { commands: "^1.1.0", agentTools: "^1.1.0" } } }, "0.5.4", disposables,
   { moduleUrl: new URL("./virtual-removal-probe.ts", import.meta.url).href });
   await worker.checkHealth(); worker.promote();
-  bookId = JSON.parse((await command("create").run())!.toast!).bookId;
+  bookId = parseProbeToast((await command("create").run())!.toast!).bookId;
   await flushLocalKV();
   return { dataDir, ...(await inspectVirtualRemovalProbe()) };
 }

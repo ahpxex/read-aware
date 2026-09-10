@@ -68,7 +68,12 @@ export async function runPluginContribution(
     if (pendingDialogId) closePluginDialog(pendingDialogId);
     return;
   }
-  if (result.toast) showPluginToast(result.toast);
+  try { if (result.toast !== undefined) showPluginToast(result.toast); }
+  catch (error) {
+    log.warn("Plugin returned an invalid toast", error);
+    if (pendingDialogId) closePluginDialog(pendingDialogId);
+    releasePluginCallbacks(result); showPluginFailureToast(pluginName, error); return;
+  }
   if (result.view) {
     const accepted = pendingDialogId
       ? resolvePluginDialog(pendingDialogId, result.view)

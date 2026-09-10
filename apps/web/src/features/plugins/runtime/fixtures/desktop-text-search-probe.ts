@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import type { PluginDisposable, PluginManifest } from "@read-aware/plugin-types";
@@ -32,7 +33,7 @@ export async function startTextSearchProbe() {
     const worker = await startPluginWorker(manifest, "0.5.4", disposables, { moduleUrl: new URL("./text-search-probe.ts", import.meta.url).href });
     workers.set(id, worker); await worker.checkHealth(); worker.promote();
     const command = getDefaultStore().get(pluginCommandsAtom).find(command => command.pluginId === id && command.id === "inspect")!;
-    actors[actor] = JSON.parse((await command.run())!.toast!);
+    actors[actor] = parseProbeToast((await command.run())!.toast!);
   }
   const state = createAgentTurnState(); state.spoilerFence = { throughChapterIndex: -1, readerChapterIndex: 0 };
   for (const kind of ["book", "global"] as const) {

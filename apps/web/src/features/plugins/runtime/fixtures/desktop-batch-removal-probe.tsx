@@ -1,3 +1,4 @@
+import { parseProbeToast } from "./probe-toast";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getDefaultStore } from "jotai";
 import { createRoot, type Root } from "react-dom/client";
@@ -53,14 +54,14 @@ export async function startRemovalRecoveryConsumers() {
     await start({ id, name: id, version: "1.0.0", schemaVersion: 1, description: JSON.stringify(ids),
       permissions: role === "empty" ? [] : [role === "read" ? "library:read" : "library:write"],
       requires: { domains: { library: "^1.6.0" } } }, new URL("./batch-removal-probe.ts", import.meta.url).href);
-    permissions[role] = JSON.parse((await command(id, "inspect").run())!.toast!);
+    permissions[role] = parseProbeToast((await command(id, "inspect").run())!.toast!);
   }
   await start(libraryDeskManifest as PluginManifest, new URL("../../../../../../../plugins/library-desk/dist/main.js", import.meta.url).href);
   return permissions;
 }
 export async function runPluginBatchRemoval(action: "remove" | "retry" | "invalid" | "cleanup-list" | "cleanup-next", actor = "capability-batch-write") {
   await isolated();
-  try { return { result: JSON.parse((await command(actor, action).run())!.toast!) }; }
+  try { return { result: parseProbeToast((await command(actor, action).run())!.toast!) }; }
   catch (error) { return { code: errorCode(error) }; }
 }
 export async function beginAgentBatchRemoval(cleanupOnly = false, cleanupIds?: string[]) {

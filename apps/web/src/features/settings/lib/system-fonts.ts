@@ -1,7 +1,17 @@
 import { invoke } from "../../../platform/ipc";
 import { isTauri } from "../../../platform/environment";
+import { AppError } from "@read-aware/core";
 
-let cache: Promise<string[]> | null = null;
+export function createSystemFontLoader(load: () => Promise<string[]>): () => Promise<string[]> {
+  let cache: Promise<string[]> | null = null;
+  return () => {
+    cache ??= Promise.resolve().then(load).then(dedupeSorted).catch(error => {
+      cache = null;
+      throw new AppError("settings/font-enumeration-failed", "Could not enumerate installed font families", { cause: error, retryable: true });
+    });
+    return cache.then(families => [...families]);
+  };
+}
 
 /**
  * Font families installed on the user's machine, for the reader font picker.
@@ -12,24 +22,10 @@ let cache: Promise<string[]> | null = null;
  * has no `queryLocalFonts` — so in the browser preview / Storybook this
  * resolves to an empty list and the picker falls back to the built-in presets.
  *
- * Cached for the session; the installed set doesn't change while the app runs.
+ * Successful results are cached for the session. Restart after installing or
+ * removing system fonts; a failed enumeration is retryable rather than cached.
  */
-export function listSystemFonts(): Promise<string[]> {
-  if (!cache) {
-    cache = loadSystemFonts();
-  }
-  return cache;
-}
-
-async function loadSystemFonts(): Promise<string[]> {
-  if (!isTauri()) return [];
-  try {
-    const families = await invoke<string[]>("list_system_fonts");
-    return dedupeSorted(families);
-  } catch {
-    return [];
-  }
-}
+export const listSystemFonts = createSystemFontLoader(async () => isTauri() ? invoke<string[]>("list_system_fonts") : []);
 
 /** Drop hidden/blank families, fold case-insensitive duplicates, sort by name. */
 function dedupeSorted(families: string[]): string[] {
@@ -38,7 +34,7 @@ function dedupeSorted(families: string[]): string[] {
   for (const raw of families) {
     const name = raw.trim();
     // Skip blanks and the dot-prefixed hidden system faces (e.g. ".SF NS").
-    if (!name || name.startsWith(".")) continue;
+    if (!name || name.startsWith(".") || name.length > 120 || /[\u0000-\u001f\u007f]/.test(name)) continue;
     const key = name.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);

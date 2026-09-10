@@ -11,7 +11,7 @@ import { createBookClassificationFixture } from "./book-classification";
 import { createBookMemoryFixture } from "./book-memory";
 import { BookGraphTaskOwner } from "../memory/book-graph-tasks";
 import { createMemoryMaintenanceFixture } from "./memory-maintenance";
-import { AppError, userProfilePage } from "@read-aware/core";
+import { AppError, userProfilePage, pageSettingOptions } from "@read-aware/core";
 import type {
   BookStats,
   CollectionSummary,
@@ -706,6 +706,12 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     settings: {
       resetReading: async () => { throw new AppError("ui/unavailable", "Attach a reading reset fixture"); },
       getSettings: async (query) => querySettings(stores.settings, query),
+      getSettingOptions: async query => {
+        const snapshot = querySettings(stores.settings, { target: query.target });
+        const setting = snapshot.settings.find(entry => entry.path === query.path);
+        if (!setting) throw new AppError("settings/options-invalid", "Unknown fixture setting");
+        return pageSettingOptions(setting.options ?? [], snapshot.revision, query);
+      },
       updateSettings: async (changes) => {
         const result = applySettingChanges(stores.settings, changes);
         stores.settings = result.settings;

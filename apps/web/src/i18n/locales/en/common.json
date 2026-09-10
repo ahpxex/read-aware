@@ -12,6 +12,10 @@
     "copied": "Copied"
   },
   "errors": {
+    "settingsOptionsInvalid": "This setting option query is invalid.",
+    "settingsOptionsForbidden": "This plugin is not allowed to list options for that setting.",
+    "settingsOptionsStale": "The setting options have changed. Start the search again.",
+    "settingsFontEnumerationFailed": "Installed fonts could not be listed.",
     "pluginNetworkBusy": "This plugin has too many network requests in progress. Wait for one to finish.",
     "pluginNetworkClosed": "This network response is closed, expired, or unavailable.",
     "pluginNetworkReadInvalid": "The plugin requested an invalid network read.",

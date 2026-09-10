@@ -18,6 +18,14 @@ export function fontOptions(draft: SettingsDraft): SettingOption[] {
   ];
 }
 
+export function isFontSetting(path: string): boolean {
+  return path === "reading.fontFamily" || path === "appearance.contentTypography.fontFamily";
+}
+
+export function systemFontOptions(families: readonly string[]): SettingOption[] {
+  return families.map(family => ({ value: `system:${family}`, label: family, source: "system" }));
+}
+
 export function cleanFontFamily(
   value: SettingValue,
   draft: SettingsDraft,

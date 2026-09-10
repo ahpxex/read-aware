@@ -12,6 +12,10 @@
     "copied": "Copiado"
   },
   "errors": {
+    "settingsOptionsInvalid": "Esta consulta de opciones no es válida.",
+    "settingsOptionsForbidden": "Este plugin no tiene permiso para listar las opciones de ese ajuste.",
+    "settingsOptionsStale": "Las opciones han cambiado. Inicie la búsqueda de nuevo.",
+    "settingsFontEnumerationFailed": "No se pudieron listar las fuentes instaladas.",
     "pluginNetworkBusy": "Este plugin tiene demasiadas solicitudes de red en curso. Espere a que termine alguna.",
     "pluginNetworkClosed": "Esta respuesta de red está cerrada, ha caducado o no está disponible.",
     "pluginNetworkReadInvalid": "El plugin solicitó una lectura de red no válida.",

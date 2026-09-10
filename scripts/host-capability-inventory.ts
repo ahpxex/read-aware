@@ -88,6 +88,7 @@ const agentMap = pairs([
   ["list_book_images open_book_image_resource show_book_image", "TXT12"],
   ["get_user_profile", "MEM06"],
   ["ask_user", "AI04"], ["get_settings update_settings", "CFG01"],
+  ["get_setting_options", "SYS14"],
   ["reset_reading_settings", "CFG03"],
 ]);
 const pluginMap = pairs([
@@ -103,6 +104,7 @@ const pluginMap = pairs([
   ["domains.library.queries.books.listImages domains.library.queries.books.openImageResource", "TXT12"],
   ["domains.settings.queries.snapshot domains.settings.queries.discover domains.settings.queries.read domains.settings.commands.update", "CFG01"],
   ["domains.settings.commands.resetReading", "CFG03"],
+  ["domains.settings.queries.options", "SYS14"],
   ["domains.settings.events.subscribe domains.settings.queries.observe services.storage.onChange", "CFG10"],
   ["domains.memory.queries.search", "MEM01"],
   ["domains.memory.queries.profile", "MEM06"],

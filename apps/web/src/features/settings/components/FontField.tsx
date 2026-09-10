@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { useAtomValue } from "jotai";
-import { Button, Caption, Select, Spinner, Toggle } from "@read-aware/ui";
+import { Button, Caption, InlineError, Select, Spinner, Toggle } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
-import { useTranslation } from "../../../i18n";
+import { describeError, useTranslation } from "../../../i18n";
 import {
   curatedFontId,
   isPluginFont,
@@ -71,7 +71,8 @@ export function FontField({
   className,
 }: FontFieldProps) {
   const { t } = useTranslation("settings");
-  const systemFonts = useSystemFonts();
+  const { fonts: systemFonts, error: systemError, loading: systemLoading, retry: retrySystemFonts } = useSystemFonts();
+  const systemFailure = systemError ? describeError(systemError) : null;
   const pluginFonts = useAtomValue(pluginFontsAtom);
   // A null value is the surface's own default — neither loader owns it.
   const loaded = value ?? NO_FONT;
@@ -150,6 +151,12 @@ export function FontField({
           )
         }
       />
+      {custom && systemLoading && <Spinner size="sm" className="mt-1.5" />}
+      {custom && systemFailure && (
+        <InlineError compact onRetry={systemFailure.retryable ? retrySystemFonts : undefined} retryLabel={t("font.retry")}>
+          {systemFailure.body}
+        </InlineError>
+      )}
       {/* Download feedback for curated fonts — fetched from a CDN on first use,
           which can be slow or unreachable; silence here read as a broken picker. */}
       {fontFace.status === "loading" && (

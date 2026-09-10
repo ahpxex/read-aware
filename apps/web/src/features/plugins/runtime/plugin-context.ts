@@ -277,6 +277,11 @@ export function buildPluginContext(
             const result = await settingsDomain.queries.discover(query);
             lifecycle.signal.throwIfAborted(); return result;
           },
+          options: async query => {
+            lifecycle.signal.throwIfAborted();
+            const result = await settingsDomain.queries.options(query);
+            lifecycle.signal.throwIfAborted(); return result;
+          },
           read: async (path, target) => {
             lifecycle.signal.throwIfAborted();
             const result = await settingsDomain.queries.read(path, target);

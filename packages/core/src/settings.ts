@@ -28,7 +28,7 @@ export type SettingKind =
 export interface SettingOption {
   value: SettingValue;
   label: string;
-  source?: "builtin" | "plugin";
+  source?: "builtin" | "plugin" | "system";
   pluginName?: string;
   polarity?: "light" | "dark";
 }
@@ -94,6 +94,26 @@ export interface SettingsOverrideSummary {
 export interface SettingsQuery {
   section?: SettingsSection;
   target?: SettingsQueryTarget;
+}
+
+/** Settings 1.8: explicit, bounded option discovery, including installed fonts. */
+export interface SettingsOptionsQuery {
+  path: string;
+  target?: SettingsQueryTarget;
+  search?: string;
+  offset?: number;
+  limit?: number;
+  /** Required after the first page. Catalog changes require restarting at zero. */
+  revision?: number;
+}
+
+export interface SettingsOptionsPage {
+  path: string;
+  revision: number;
+  options: SettingOption[];
+  total: number;
+  offset: number;
+  nextOffset: number | null;
 }
 
 export interface SettingsSnapshot {

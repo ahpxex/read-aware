@@ -12,8 +12,12 @@ import type {
   SettingsUpdateResult,
   SettingsObservation,
   ReadingSettingsReset,
+  SettingsOptionsQuery,
+  SettingsOptionsPage,
 } from "@read-aware/core";
-import { AppError } from "@read-aware/core";
+import { AppError, pageSettingOptions, validateSettingsOptionsQuery } from "@read-aware/core";
+import { listSystemFonts } from "../../features/settings/lib/system-fonts";
+import { isFontSetting, systemFontOptions } from "./font-options";
 import { readingResetPaths, resetReadingDraft } from "./reading-reset";
 import { getDefaultStore } from "jotai";
 import { createLogger } from "../../platform/logger";
@@ -209,6 +213,7 @@ export type SettingsDomain = {
     snapshot(query?: SettingsQuery): Promise<SettingsSnapshot>;
     observe(query: SettingsQuery, handler: (observation: SettingsObservation) => unknown): () => void;
     discover(query?: SettingsQuery): Promise<SettingCatalogEntry[]>;
+    options(query: SettingsOptionsQuery): Promise<SettingsOptionsPage>;
     read(path: string, target?: SettingsQueryTarget): Promise<SettingReadResult>;
   };
   commands: {
@@ -245,6 +250,18 @@ export function createSettingsDomain(
         return snapshot.settings
           .filter((setting) => canAccess(policy, "discover", setting.path))
           .map(({ value: _value, shortcut: _shortcut, reading: _reading, ...definition }) => ({ ...definition, writable: definition.writable && canAccess(policy, "write", definition.path) }));
+      },
+      options: async query => {
+        const accepted = validateSettingsOptionsQuery(structuredClone(query));
+        if (!canAccess(policy, "discover", accepted.path)) {
+          throw new AppError("settings/options-forbidden", "Setting option discovery is not granted");
+        }
+        const system = isFontSetting(accepted.path) ? systemFontOptions(await listSystemFonts()) : [];
+        await updateTail;
+        const snapshot = await afterSettingsWrites(() => settingsSnapshot({ target: accepted.target }));
+        const setting = snapshot.settings.find(entry => entry.path === accepted.path);
+        if (!setting) throw new AppError("settings/options-invalid", "Setting is unavailable for this target");
+        return pageSettingOptions([...(setting.options ?? []), ...system], snapshot.revision, accepted);
       },
       read: async (path, target) => {
         const normalizedPath = String(path);

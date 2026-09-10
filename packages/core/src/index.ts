@@ -46,5 +46,6 @@ export * from "./text-search";
 export * from "./annotation-query";
 export * from "./annotation-mutations";
 export * from "./settings";
+export * from "./settings-options";
 export * from "./sync";
 export * from "./user-profile";

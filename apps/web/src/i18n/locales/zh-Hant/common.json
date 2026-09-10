@@ -12,6 +12,10 @@
     "copied": "已複製"
   },
   "errors": {
+    "settingsOptionsInvalid": "設定選項查詢無效。",
+    "settingsOptionsForbidden": "此外掛無權列出該設定的選項。",
+    "settingsOptionsStale": "設定選項已變更，請重新開始查詢。",
+    "settingsFontEnumerationFailed": "無法列出已安裝的字型。",
     "pluginNetworkBusy": "此外掛的網路請求過多，請等待進行中的請求結束。",
     "pluginNetworkClosed": "此網路回應已關閉、過期或無法使用。",
     "pluginNetworkReadInvalid": "外掛要求了無效的網路讀取。",

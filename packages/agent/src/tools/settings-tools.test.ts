@@ -22,6 +22,27 @@ function setting(
 }
 
 describe("settings tools", () => {
+  test("option discovery is bounded, keeps book scope and forwards exact font values", async () => {
+    for (const scope of [{ kind: "global", threadId: "test" }, { kind: "book", bookId: "book-1" }] as const) {
+      const { deps } = createInMemoryDeps({ books: [{ id: "book-1", title: "The Book" }] });
+      let received: unknown;
+      deps.settings.getSettingOptions = async query => {
+        received = query;
+        return { path: query.path, revision: 7, total: 1, offset: 0, nextOffset: null,
+          options: [{ value: "system:Arial", label: "Arial", source: "system" }] };
+      };
+      const tool = buildSettingsTools(scope, deps).find(tool => tool.name === "get_setting_options")!;
+      const result = resultJson(await tool.execute("options", { path: "reading.fontFamily", search: "Arial" }));
+      expect(received).toMatchObject({ path: "reading.fontFamily", search: "Arial", limit: 20 });
+      expect(result).toMatchObject({ revision: 7, options: [{ value: "system:Arial", source: "system" }] });
+      await expect(tool.execute("oversize", { path: "reading.fontFamily", limit: 51 })).rejects.toMatchObject({ code: "settings/options-invalid" });
+      if (scope.kind === "book") {
+        await tool.execute("book", { path: "reading.fontFamily", target: { kind: "book" } });
+        expect(received).toMatchObject({ target: { kind: "book", bookId: "book-1" } });
+        await expect(tool.execute("foreign", { path: "reading.fontFamily", target: { kind: "book", bookId: "different" } })).rejects.toThrow();
+      }
+    }
+  });
   test("reads one section as a generic host settings catalog", async () => {
     const { deps } = createInMemoryDeps();
     const tool = buildSettingsTools({ kind: "global", threadId: "test" }, deps).find(

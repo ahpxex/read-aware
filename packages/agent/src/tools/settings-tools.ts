@@ -1,6 +1,6 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
-import { AppError, type Id, type ReadingSettingsReset } from "@read-aware/core";
+import { AppError, type Id, type ReadingSettingsReset, type SettingsOptionsQuery } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type {
   AgentSettingChange,
@@ -126,11 +126,35 @@ function shadowWarnings(result: AgentSettingsUpdateResult) {
 }
 
 export function buildSettingsTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
+  const getSettingOptions: AgentTool = {
+    name: "get_setting_options",
+    label: "Find setting options",
+    description: "Search and page through one exact setting's available options without reading its current value. reading.fontFamily and appearance.contentTypography.fontFamily include installed system fonts as well as curated and enabled plugin fonts. Copy the returned value into update_settings; do not invent family names. This lists names, not font files or render readiness, and does not download fonts. Retain the same path/search/target and revision for later pages; restart at offset zero if stale. Installing system fonts requires restarting the app to refresh its session cache.",
+    parameters: Type.Object({
+      path: Type.String({ minLength: 1, maxLength: 256 }),
+      search: Type.Optional(Type.String({ maxLength: 120 })),
+      offset: Type.Optional(Type.Integer({ minimum: 0 })),
+      limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 50 })),
+      revision: Type.Optional(Type.Integer({ minimum: 0 })),
+      target: Type.Optional(queryTargetSchema(scope)),
+    }, { additionalProperties: false }),
+    execute: async (_id, params, signal) => {
+      const query = structuredClone(params) as SettingsOptionsQuery;
+      signal?.throwIfAborted();
+      if (query.limit !== undefined && (!Number.isSafeInteger(query.limit) || query.limit < 1 || query.limit > 50)) {
+        throw new AppError("settings/options-invalid", "Choose at most 50 options per page");
+      }
+      const target = await normalizeTarget(deps, scope, query.target) as AgentSettingsQueryTarget | undefined;
+      const result = await deps.settings.getSettingOptions({ ...query, target, limit: query.limit ?? 20 });
+      signal?.throwIfAborted();
+      return textResult(result);
+    },
+  };
   const getSettings: AgentTool = {
     name: "get_settings",
     label: "Read settings",
     description:
-      "Read the host's current non-sensitive settings catalog. Each entry provides an exact path, current value, value kind, valid options, writability, and supportedTargets. Reader page theme/font/mode live in section=reading; section=appearance is application appearance and chat/note content typography. section=annotations includes the default color for new marks, not edits to existing annotations. Use target=book to inspect one book; inside a book agent its bookId defaults to the current book. overrides reports scoped values that shadow global defaults. API keys and Custom endpoint values are never exposed.",
+      "Read the host's current non-sensitive settings catalog. Each entry provides an exact path, current value, value kind, valid options, writability, and supportedTargets. Use get_setting_options to search larger option lists or installed system fonts; those fonts are not included in this compact snapshot. Reader page theme/font/mode live in section=reading; section=appearance is application appearance and chat/note content typography. section=annotations includes the default color for new marks, not edits to existing annotations. Use target=book to inspect one book; inside a book agent its bookId defaults to the current book. overrides reports scoped values that shadow global defaults. API keys and Custom endpoint values are never exposed.",
     parameters: Type.Object(
       {
         section: Type.Optional(sectionSchema),
@@ -205,5 +229,5 @@ export function buildSettingsTools(scope: ThreadScope, deps: RuntimeDeps): Agent
       return textResult(await deps.settings.resetReading({ action: accepted.action, target } as ReadingSettingsReset, signal));
     },
   };
-  return [getSettings, updateSettings, resetReading];
+  return [getSettings, getSettingOptions, updateSettings, resetReading];
 }

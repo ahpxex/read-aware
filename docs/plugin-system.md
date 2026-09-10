@@ -2941,6 +2941,51 @@ next eligible poll rather than being absorbed into its settled checkpoint.
 
 ## 6. Settings Is a Domain
 
+### Paged Setting Options (Settings 1.8)
+
+[代码] `domains.settings.queries.options({path,target?,search?,offset?,limit?,revision?})`
+returns `{path,revision,options,total,offset,nextOffset}`. It discovers options for
+one exact path, not the current value, override source, writable status or any
+unrelated setting. The existing discover permission applies (read/write grants
+also imply discovery). Unknown, sensitive or target-inapplicable paths reject;
+no-option settings return an empty options page. It does not invoke plugins'
+secret-dependent dynamic settings callbacks.
+
+[代码] Search is trimmed, case-insensitive substring matching over label/value,
+up to 120 characters. Offset is a non-negative integer, default zero; page size
+defaults to 25, maximum 100. Offset greater than zero requires the returned
+process-local settings revision, and any mismatched supplied revision rejects as
+stale. Keep path, search and target unchanged between pages. Catalog/settings
+changes can require restarting even if this field's own options did not change;
+this is not a durable snapshot token. Results are copied, so consumers cannot
+mutate shared options. Generic snapshot/discover retain their compact option
+lists and do not enumerate all installed fonts on every settings read.
+
+[代码] For `reading.fontFamily` and
+`appearance.contentTypography.fontFamily`, the query appends installed system
+families to curated/registered plugin choices, using `source: "system"` and the
+exact writable value `system:<family>`. Content typography retains its null/app
+font choice. Names come from the same native list_system_fonts loader as
+FontField; no directory paths, CSS, font bytes or downloads are exposed. Names
+are trimmed, hidden/blank/control-character/over-120-character entries removed,
+case-insensitive duplicates folded, and sorted. Successful enumeration is shared
+for the app session with copied arrays; OS font installation/removal requires
+restart. Failure is not an empty installed set and is not cached; the native
+picker shows a localized retryable InlineError while preserving its current
+selection. Browser preview still has no native system-font list.
+
+[代码] Agent `get_setting_options` is registered in both scopes over the same
+SettingsPort. It defaults to 20 options and caps at 50, normalizes/validates book
+targets like existing settings tools, and checks cancellation before/after the
+query. Returned values are used with ordinary update_settings and the existing
+scope/write rules. Selecting a curated/plugin family still triggers the existing
+host loaders; listing is not preload, file access, download completion or actual
+glyph-rendering proof. Errors are stable/localized: settings/options-invalid,
+settings/options-forbidden, settings/options-stale and
+settings/font-enumeration-failed. Types, focused loader/catalog/authorization and
+Agent/adapter tests are basic verification only; real native font enumeration,
+Worker calls and displayed glyphs remain concentrated Tauri acceptance work.
+
 Settings is not a helper beside the domain system. It is a first-class domain
 because ReadAware owns settings state, catalog metadata, validation, target
 resolution, persistence, and change effects.

@@ -1570,6 +1570,9 @@ export type PluginSettingsDomain = {
     /** Settled snapshots after native, domain, remote, restore and catalog changes. Coalesces slow callbacks. */
     observe(query: SettingsQuery, handler: (observation: import("@read-aware/core").SettingsObservation) => unknown): PluginDisposable;
     discover(query?: SettingsQuery): Promise<SettingCatalogEntry[]>;
+    /** Settings 1.8: bounded options; same path grants as discover. Includes
+     * installed system families for reading/content fonts without font paths or bytes. */
+    options(query: import("@read-aware/core").SettingsOptionsQuery): Promise<import("@read-aware/core").SettingsOptionsPage>;
     read(path: string, target?: SettingsQueryTarget): Promise<SettingReadResult>;
   };
   commands: {

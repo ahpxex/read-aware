@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 195、部分 42、待建 3、占位 2、非桌面 1。
-- Agent：接通 138、部分 58、扩展 13、未接 17、自动 13、内部 4。
-- 插件：接通 153、部分 80、未接 10。
+- Agent：接通 139、部分 57、扩展 13、未接 17、自动 13、内部 4。
+- 插件：接通 154、部分 79、未接 10。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -313,7 +313,7 @@
 | <a id="SYS11"></a>SYS11 | 用户选文件/目录、拖放和流式文件句柄 | 实装 | **部分**：pick_resource_files[双域]；import_resource_book[global]<br>[设计] 用户授予 FileRef 后导入 | **部分**：resources.pick/read；library 1.8 importResource<br>[设计] 受控文件选择/句柄服务 | 书籍导入；插件安装选择 ZIP；正式资源选择 | 单/多文件原生选择和扩展名过滤已接，取消显式返回，不返回路径；快照只读、1 小时 TTL，不是文件监视。FileRef 已能直接进入原生书库导入，不需整本字节在 Worker 往返；目录授权和拖放事件接管仍缺。接线/定向检查完成，Tauri 对话框和实际组合导入验收集中执行。 | [PICKER](../apps/web/src/features/library/lib/pick-book-files.ts) [IMPORT](../apps/web/src/features/library/lib/book-import.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [RESOURCEOWNER](../apps/web/src/services/resource-owner.ts) [RESOURCES](../apps/web/src/services/resources.ts) [RESOURCEFILES](../apps/desktop/src-tauri/src/resources.rs) [RESOURCETOOLS](../packages/agent/src/tools/resource-tools.ts) [RESOURCEIMPORT](../apps/web/src/domain/library-resource-import.ts) | P01 |
 | <a id="SYS12"></a>SYS12 | 打开外部 URL/系统关联打开/深链接路由 | 实装 | **部分**：open_external_url[双域]<br>[设计] 用户意图下的受控 URL 打开 | **部分**：ui 1.7 openExternal；要求 service:network<br>[设计] scheme 白名单外部打开/URI contribution | 账号登录/购买链接；系统打开书籍；双端显式外链意图 | HTTP(S) 外链已接共享 opener，拒绝嵌入凭据、控制字符及 file/data/javascript/自定义 scheme；成功表示交给 OS，不表示网页加载。外部 URL 打开与注册协议不同，URI contribution/关联文件句柄仍未接；OAuth ticket 不给插件。定向权限和参数测试通过，集中桌面验收待做。 | [EXTERNAL](../apps/web/src/platform/external-link.ts) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTIO](../apps/web/src/services/host-io.ts) [HOSTIOTOOLS](../packages/agent/src/tools/host-io-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | P05 |
 | <a id="SYS13"></a>SYS13 | Blob 范围读取/流式读写/提交/中止 | 实装 | **部分**：read_resource_text/release_resource；原书只导出<br>[设计] 受权 ResourceRef，不读任意 blob | **部分**：resources.create/stat/read/append/commit/release<br>[设计] 临时资源范围读写/封口/中止 | 原书阅读；同步分片；封面；正式资源服务 | 临时资源分块读写已接：单块 1 MiB，每 owner 16 引用/1 GiB，宿主 64 文件/2 GiB，32 个串行队列；追加 offset 防重复写，commit 后不可写，release 兼 abort，退休等待在途任务后清理。选中/原书独立副本与自建匿名文件不进入同步、备份或数据库；不开放原始 blob key。书内嵌图片已可获取临时资源；跨激活持久化资源、其他书内资产与 transferable 桥优化仍缺，当前桥是有界 structured clone；Agent UTF-8 读取保持码点及字节游标。原生与定向测试通过，组合/Tauri E2E 待集中进行。 | [BLOB](../apps/web/src/platform/blob-store.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [API](../packages/plugin-types/src/index.ts) [RESOURCEOWNER](../apps/web/src/services/resource-owner.ts) [RESOURCEFILES](../apps/desktop/src-tauri/src/resources.rs) [RESOURCETOOLS](../packages/agent/src/tools/resource-tools.ts) | P01 |
-| <a id="SYS14"></a>SYS14 | 系统字体枚举和字体资产加载 | 实装 | **部分**：settings discover reading.fontFamily<br>[设计] 受支持字体列表 | **部分**：settings options + fonts manifest<br>[设计] 字体资源能力 | 阅读字体选择；editorial-themes | 列表选择已可组合，不需要插件访问系统字体目录 | [RUST](../apps/desktop/src-tauri/src/lib.rs) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [API](../packages/plugin-types/src/index.ts) | 新增盘点 |
+| <a id="SYS14"></a>SYS14 | 系统字体枚举和字体资产加载 | 实装 | **接通**：get_setting_options[双域] + update_settings；选中后自动加载<br>[设计] 受支持字体列表 | **接通**：settings 1.8 queries.options/update + fonts manifest<br>[设计] 已有字体选择/加载能力 | 原生FontField；Agent；editorial-themes | 按精确设置路径搜索/分页选项，reading.fontFamily与appearance.contentTypography.fontFamily合并curated/已启用插件/本机系统字体，source=system、system:<family>可直接用于既有update。沿用discover授权（read/write包含发现），不返回当前值、覆盖、字体路径/字节，也不调用秘密字段动态选项回调；通用snapshot保持紧凑。宿主默认25/最大100项，Agent20/50，后续页须同revision；设置目录变化重查。系统枚举与原生选择器共用单飞会话缓存，去隐藏/无效/重复名、返回副本，失败保留错误可重试；安装/删除OS字体需重启刷新。选择后的curated下载/插件字体注入复用已有消费者，不新增预取、字体文件访问或解码/显示就绪回执。基础/双端接线检查通过，真实系统枚举、字体生效与Worker/Tauri组合仍待集中验收；接通不等于端到端已验。 | [RUST](../apps/desktop/src-tauri/src/lib.rs) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [API](../packages/plugin-types/src/index.ts) [SETTINGOPTIONS](../packages/core/src/settings-options.ts) [FONTOPTIONS](../apps/web/src/domain/settings/font-options.ts) [SYSTEMFONTS](../apps/web/src/features/settings/lib/system-fonts.ts) [FONTOPTIONSPROOF](../apps/web/src/domain/settings/options.test.ts) | 新增盘点 |
 | <a id="SYS15"></a>SYS15 | 原生日志/诊断包/崩溃报告导出与发送 | 实装 | **部分**：open_maintenance_settings[双域]<br>[设计] 打开宿主脱敏诊断流程 | **部分**：services.maintenance.openSettings(diagnostics)<br>[设计] 宿主诊断入口；自有诊断输出 | 设置 About Diagnostics；CrashFollowUpPrompt | 已接宿主页面挂载与诊断控件定位，opened 不冒充导出/发送完成；不返回日志、路径、诊断包、凭据，用户仍在宿主触发导出或预览确认发送。自有 logger/诊断输出和最终操作回执仍缺；接线与定向检查完成，组合/Tauri 验收待集中进行。 | [DIAG](../apps/web/src/features/settings/lib/diagnostics.ts) [ERRORS](../packages/core/src/errors.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) | R05, R06 |
 | <a id="SYS16"></a>SYS16 | 检查/下载/安装更新与重启 | 实装 | **接通**：get_software_update/open_maintenance_settings[双域]<br>[设计] 查询状态/打开宿主更新控件 | **接通**：services.maintenance 1.0<br>[设计] 版本/更新状态与观察、受权检查；宿主执行升级 | 软件更新页；autoUpdate 与正式双端服务共用控制器 | snapshot/observe 只读当前 phase/progress/version/选中与已检查频道；checkForUpdates 需插件 network 权限，只用宿主 release feed，失败拒绝不冒充最新。检查复用单飞、与安装互斥，频道换代拒绝旧结果；调用者取消不撤销共享检查。openSettings 仅确认宿主更新控件已挂载和定位，安装/重启仍由原生用户动作批准，禁止插件静默执行；不提供升级最终结果回执。接线与定向检查完成，组合/Tauri 实际检查下载重启待集中验收。 | [UPDATE](../apps/web/src/features/update/lib/software-update.ts) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [API](../packages/plugin-types/src/index.ts) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) [UPDATECONTROL](../apps/web/src/features/update/lib/software-update-controller.ts) | R05 |
 | <a id="SYS17"></a>SYS17 | 窗口最小化/最大化/全屏/关闭/标题栏 | 实装 | **部分**：get_app_window / control_app_window[双域]<br>[设计] 用户触发的窗口意图 | **部分**：UI 1.11 window.snapshot/observe/control<br>[设计] 受限窗口状态/命令 | 同源自绘标题栏与边缘状态；OS traffic lights | 已接主窗口最小化/最大化/还原/全屏与 minimized/maximized/fullscreen/focused；仅元数据，无标题/坐标/路径或任意窗口。32 个排队操作，64 个观察者共享事件/一秒复核；退休取消未派发操作并释放监听，不回滚已发生动作。requested 仅原生回执，不是动画或持久完成。定向服务/插件/Agent 测试通过，真实 Worker/窗口管理器留集中验收。关闭/退出仍缺统一保存协调，SYS17 保留部分，不直接开放 close。 | [WINDOW](../apps/web/src/features/navigation/components/WindowCaptionControls.tsx) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [WINDOWSERVICE](../apps/web/src/services/window-controller.ts) [WINDOWTOOLS](../packages/agent/src/tools/window-tools.ts) [WINDOWPROOF](../apps/web/src/services/window-controller.test.ts) | 新增盘点 |
@@ -410,9 +410,9 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：100 个。
-- Agent book：83 个。
-- Plugin ctx：195 个。
+- Agent global：101 个。
+- Agent book：84 个。
+- Plugin ctx：196 个。
 - Plugin returned interface：27 个。
 - Capability domains：6 个。
 - Capability contributions：15 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 195 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 196 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -540,6 +540,7 @@
 | `close_book_reference` | [TXT11](#TXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `ask_user` | [AI04](#AI04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_setting_options` | [SYS14](#SYS14) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `update_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `reset_reading_settings` | [CFG03](#CFG03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_host_capabilities` | [CON01](#CON01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -628,6 +629,7 @@
 | `close_book_reference` | [TXT11](#TXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `ask_user` | [AI04](#AI04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_setting_options` | [SYS14](#SYS14) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `update_settings` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `reset_reading_settings` | [CFG03](#CFG03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_host_capabilities` | [CON01](#CON01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -639,6 +641,7 @@
 | `domains.settings.queries.snapshot` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.settings.queries.observe` | [CFG10](#CFG10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.settings.queries.discover` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.settings.queries.options` | [SYS14](#SYS14) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.settings.queries.read` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.settings.commands.resetReading` | [CFG03](#CFG03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.settings.commands.update` | [CFG01](#CFG01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

@@ -12,6 +12,10 @@
     "copied": "已复制"
   },
   "errors": {
+    "settingsOptionsInvalid": "设置选项查询无效。",
+    "settingsOptionsForbidden": "此插件无权列出该设置的选项。",
+    "settingsOptionsStale": "设置选项已变化，请重新开始查询。",
+    "settingsFontEnumerationFailed": "无法列出已安装的字体。",
     "pluginNetworkBusy": "此插件的网络请求过多，请等待正在进行的请求结束。",
     "pluginNetworkClosed": "此网络响应已关闭、过期或不可用。",
     "pluginNetworkReadInvalid": "插件请求了无效的网络读取。",

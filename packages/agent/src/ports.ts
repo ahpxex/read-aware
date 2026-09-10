@@ -362,6 +362,7 @@ export interface BookTextPort {
 export interface SettingsPort {
   resetReading(request: import("@read-aware/core").ReadingSettingsReset, signal?: AbortSignal): Promise<AgentSettingsUpdateResult>;
   getSettings(query?: AgentSettingsQuery): Promise<AgentSettingsSnapshot>;
+  getSettingOptions(query: import("@read-aware/core").SettingsOptionsQuery): Promise<import("@read-aware/core").SettingsOptionsPage>;
   updateSettings(
     changes: AgentSettingChange[],
   ): Promise<AgentSettingsUpdateResult>;

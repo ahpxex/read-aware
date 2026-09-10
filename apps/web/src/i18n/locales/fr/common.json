@@ -12,6 +12,10 @@
     "copied": "Copié"
   },
   "errors": {
+    "settingsOptionsInvalid": "Cette recherche d’options est invalide.",
+    "settingsOptionsForbidden": "Ce plugin n’est pas autorisé à lister les options de ce réglage.",
+    "settingsOptionsStale": "Les options ont changé. Recommencez la recherche.",
+    "settingsFontEnumerationFailed": "Impossible de lister les polices installées.",
     "pluginNetworkBusy": "Ce plugin a trop de requêtes réseau en cours. Attendez la fin de l’une d’elles.",
     "pluginNetworkClosed": "Cette réponse réseau est fermée, expirée ou indisponible.",
     "pluginNetworkReadInvalid": "Le plugin a demandé une lecture réseau invalide.",

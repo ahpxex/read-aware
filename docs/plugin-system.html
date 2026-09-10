@@ -428,6 +428,10 @@
       <section data-search-section="version permission 版本 权限">
         <div class="wrap">
           <h2>版本与权限</h2>
+          <details><summary>维护入口：查询更新、打开宿主诊断控件</summary>
+            <p>maintenance 1.0 为插件和双 scope Agent 提供更新状态；联网检查需插件 network 授权，与原生更新共用状态和互斥控制。频道变更使旧结果失效，失败不当作已是最新。</p>
+            <p>opened 只表示控件已挂载和定位，不代表诊断已导出/发送或更新已安装；日志、路径和凭据不交给调用方，发送、升级与重启仍由用户在宿主操作。自有诊断输出与最终回执仍缺；定向检查通过，组合及 Tauri 验收待集中进行。</p>
+          </details>
           <p class="intro">
             每个 Domain、Contribution、Service 和声明式 UI schema 独立版本化。插件清单声明能力 semver 范围，也用整数 schemaVersion 管理自己的 KV 与文档数据。
           </p>

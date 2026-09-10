@@ -30,6 +30,7 @@ import { flushLocalKV, localKV } from "../../../platform/local-store";
 import { createLogger } from "../../../platform/logger";
 import { hostEnvironment } from "../../../platform/host-environment";
 import { hostSync } from "../../../services/sync";
+import { hostMaintenance } from "../../../services/maintenance";
 import {
   deletePluginSecret,
   getPluginSecret,
@@ -607,6 +608,14 @@ export function buildPluginContext(
           return pluginDirectory.list(query);
         },
         observe: (query, handler) => track(() => ({ dispose: pluginDirectory.observe(query, handler) })),
+      },
+      maintenance: {
+        snapshot: async () => { lifecycle.assertActive("services.maintenance.snapshot"); return hostMaintenance.snapshot(); },
+        observe: handler => track(() => ({ dispose: hostMaintenance.observe(handler) })),
+        openSettings: surface => { lifecycle.assertActive("services.maintenance.openSettings"); return hostMaintenance.openSettings(surface, lifecycle.signal); },
+        ...(canUseHostService("network", permissions) ? {
+          checkForUpdates: () => { lifecycle.assertActive("services.maintenance.checkForUpdates"); return hostMaintenance.checkForUpdates(lifecycle.signal); },
+        } : {}),
       },
       session: {
         environment: async () => {

@@ -13,6 +13,7 @@ import { createLogger } from "../../../platform/logger";
 import { useTranslation } from "../../../i18n";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsRow } from "../components/SettingsRow";
+import { useMaintenanceSurface } from "../hooks/useMaintenanceSurface";
 import {
   assembleDiagnosticsBundle,
   diagnosticsLogDir,
@@ -31,6 +32,7 @@ type ReportPhase =
 export function DiagnosticsGroup() {
   const { t } = useTranslation("settings");
   const { toast } = useToast();
+  const diagnosticsControlRef = useMaintenanceSurface("diagnostics");
   const [assembling, setAssembling] = useState<"export" | "report" | null>(null);
   const [report, setReport] = useState<ReportPhase | null>(null);
 
@@ -109,6 +111,7 @@ export function DiagnosticsGroup() {
           description={t("about.diagnostics.exportRow.description")}
           control={
             <Button
+              ref={diagnosticsControlRef}
               variant="outline"
               size="sm"
               disabled={assembling !== null}

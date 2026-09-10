@@ -14,6 +14,7 @@ import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
 import { DiagnosticsGroup } from "./DiagnosticsGroup";
+import { useMaintenanceSurface } from "../hooks/useMaintenanceSurface";
 
 function valueText(text: string) {
   return <span className="font-sans text-sm text-fg-muted">{text}</span>;
@@ -47,6 +48,7 @@ function linkValue(href: string, label: string) {
 export function AboutPanel() {
   const { t } = useTranslation("settings");
   const update = useSoftwareUpdate();
+  const updateControlRef = useMaintenanceSurface("updates");
   const channel = useSyncExternalStore(subscribeUpdateChannel, getUpdateChannel);
   const buildLabel = !isTauri()
     ? t("about.buildWeb")
@@ -110,6 +112,7 @@ export function AboutPanel() {
                 </span>
               )}
               <Button
+                ref={updateControlRef}
                 variant="outline"
                 size="sm"
                 disabled={!update.supported || busy}

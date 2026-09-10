@@ -4,6 +4,7 @@ import { createLogger } from "../../../../platform/logger";
 import { hostEnvironment } from "../../../../platform/host-environment";
 import { hostIO } from "../../../../services/host-io";
 import { hostSync } from "../../../../services/sync";
+import { hostMaintenance } from "../../../../services/maintenance";
 import { pluginSchedules } from "../../../plugins/runtime/plugin-scheduler";
 import { createConversationsDomain } from "../../../../domain/conversations";
 import { workspace } from "../../../../services/workspace";
@@ -36,6 +37,7 @@ export function buildRuntimeDeps(): RuntimeDeps {
   return {
     schedules: { list: async query => pluginSchedules.list(query), control: (input, signal) => pluginSchedules.control(input, signal) },
     sync: hostSync,
+    maintenance: hostMaintenance,
     conversationControl: { snapshot: conversations.queries.runtime, listThreads: conversations.queries.listThreads,
       turnRequests: conversations.queries.turnRequests, ...conversations.commands },
     hostIO,

@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 194、部分 43、待建 3、占位 2、非桌面 1。
-- Agent：接通 123、未接 35、部分 53、扩展 13、自动 14、内部 5。
-- 插件：接通 138、部分 77、未接 28。
+- Agent：接通 124、未接 33、部分 54、扩展 13、自动 14、内部 5。
+- 插件：接通 139、部分 78、未接 26。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -314,8 +314,8 @@
 | <a id="SYS12"></a>SYS12 | 打开外部 URL/系统关联打开/深链接路由 | 实装 | **部分**：open_external_url[双域]<br>[设计] 用户意图下的受控 URL 打开 | **部分**：ui 1.7 openExternal；要求 service:network<br>[设计] scheme 白名单外部打开/URI contribution | 账号登录/购买链接；系统打开书籍；双端显式外链意图 | HTTP(S) 外链已接共享 opener，拒绝嵌入凭据、控制字符及 file/data/javascript/自定义 scheme；成功表示交给 OS，不表示网页加载。外部 URL 打开与注册协议不同，URI contribution/关联文件句柄仍未接；OAuth ticket 不给插件。定向权限和参数测试通过，集中桌面验收待做。 | [EXTERNAL](../apps/web/src/platform/external-link.ts) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTIO](../apps/web/src/services/host-io.ts) [HOSTIOTOOLS](../packages/agent/src/tools/host-io-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | P05 |
 | <a id="SYS13"></a>SYS13 | Blob 范围读取/流式读写/提交/中止 | 实装 | **内部**：正文/推理端口间接用，不读任意 blob<br>[设计] 受权 ResourceRef | **部分**：导入/导出只支持持有的 bytes<br>[设计] 资源句柄/流/额度 | 原书阅读；同步分片；封面 | 底层 get_blob/blob_write_* 不可直接暴露；跨线程大对象需 transferable/backpressure | [BLOB](../apps/web/src/platform/blob-store.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [API](../packages/plugin-types/src/index.ts) | P01 |
 | <a id="SYS14"></a>SYS14 | 系统字体枚举和字体资产加载 | 实装 | **部分**：settings discover reading.fontFamily<br>[设计] 受支持字体列表 | **部分**：settings options + fonts manifest<br>[设计] 字体资源能力 | 阅读字体选择；editorial-themes | 列表选择已可组合，不需要插件访问系统字体目录 | [RUST](../apps/desktop/src-tauri/src/lib.rs) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [API](../packages/plugin-types/src/index.ts) | 新增盘点 |
-| <a id="SYS15"></a>SYS15 | 原生日志/诊断包/崩溃报告导出与发送 | 实装 | **未接**：无正式入口<br>[设计] 打开宿主脱敏诊断流程 | **未接**：无正式入口<br>[设计] 隔离 logger + 自有诊断输出 | 设置 Troubleshooting；CrashFollowUpPrompt | 不得向任意插件暴露全量日志/凭据；发送需显式用户意图 | [DIAG](../apps/web/src/features/settings/lib/diagnostics.ts) [ERRORS](../packages/core/src/errors.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | R05, R06 |
-| <a id="SYS16"></a>SYS16 | 检查/下载/安装更新与重启 | 实装 | **未接**：无正式入口<br>[设计] 查询状态/打开更新批准流程 | **未接**：无正式入口<br>[设计] 只读版本/更新状态；宿主执行升级 | 软件更新页；autoUpdate 检查 | 不开放：插件静默执行更新/重启；appVersion 不是更新状态 | [UPDATE](../apps/web/src/features/update/lib/software-update.ts) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [API](../packages/plugin-types/src/index.ts) | R05 |
+| <a id="SYS15"></a>SYS15 | 原生日志/诊断包/崩溃报告导出与发送 | 实装 | **部分**：open_maintenance_settings[双域]<br>[设计] 打开宿主脱敏诊断流程 | **部分**：services.maintenance.openSettings(diagnostics)<br>[设计] 宿主诊断入口；自有诊断输出 | 设置 About Diagnostics；CrashFollowUpPrompt | 已接宿主页面挂载与诊断控件定位，opened 不冒充导出/发送完成；不返回日志、路径、诊断包、凭据，用户仍在宿主触发导出或预览确认发送。自有 logger/诊断输出和最终操作回执仍缺；接线与定向检查完成，组合/Tauri 验收待集中进行。 | [DIAG](../apps/web/src/features/settings/lib/diagnostics.ts) [ERRORS](../packages/core/src/errors.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) | R05, R06 |
+| <a id="SYS16"></a>SYS16 | 检查/下载/安装更新与重启 | 实装 | **接通**：get_software_update/open_maintenance_settings[双域]<br>[设计] 查询状态/打开宿主更新控件 | **接通**：services.maintenance 1.0<br>[设计] 版本/更新状态与观察、受权检查；宿主执行升级 | 软件更新页；autoUpdate 与正式双端服务共用控制器 | snapshot/observe 只读当前 phase/progress/version/选中与已检查频道；checkForUpdates 需插件 network 权限，只用宿主 release feed，失败拒绝不冒充最新。检查复用单飞、与安装互斥，频道换代拒绝旧结果；调用者取消不撤销共享检查。openSettings 仅确认宿主更新控件已挂载和定位，安装/重启仍由原生用户动作批准，禁止插件静默执行；不提供升级最终结果回执。接线与定向检查完成，组合/Tauri 实际检查下载重启待集中验收。 | [UPDATE](../apps/web/src/features/update/lib/software-update.ts) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [API](../packages/plugin-types/src/index.ts) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) [UPDATECONTROL](../apps/web/src/features/update/lib/software-update-controller.ts) | R05 |
 | <a id="SYS17"></a>SYS17 | 窗口最小化/最大化/全屏/关闭/标题栏 | 实装 | **未接**：无正式入口<br>[设计] 用户触发的窗口意图 | **未接**：无正式入口<br>[设计] 受限窗口状态/命令 | Tauri window controls/macOS traffic lights | 不开放任意窗口创建与 shell；关闭必须先等待持久化 flush | [WINDOW](../apps/web/src/features/navigation/components/WindowCaptionControls.tsx) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) | 新增盘点 |
 | <a id="SYS18"></a>SYS18 | Android/iOS 遗留桥：状态栏/安全区/音量键/商店 | 非桌面 | **未接**：无正式入口<br>[设计] 不开放：不在当前 desktop 产品范围 | **未接**：无正式入口<br>[设计] 不开放：不在当前 desktop 产品范围 | cfg 分支或桌面 no-op | Android updater/book picker/background task 和 App Store storefront 不计为桌面插件缺口 | [RUST](../apps/desktop/src-tauri/src/lib.rs) | 新增盘点 |
 
@@ -410,13 +410,13 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：66 个。
-- Agent book：55 个。
-- Plugin ctx：148 个。
+- Agent global：68 个。
+- Agent book：57 个。
+- Plugin ctx：152 个。
 - Plugin returned interface：25 个。
 - Capability domains：6 个。
 - Capability contributions：14 个。
-- Capability services：10 个。
+- Capability services：11 个。
 - Capability schemas：3 个。
 - Settings path：74 个。
 - Native command：146 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 148 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 152 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -454,6 +454,8 @@
 | `open_external_url` | [SYS12](#SYS12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_sync_status` | [OPS01](#OPS01) [OPS03](#OPS03) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_sync` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_software_update` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `open_maintenance_settings` | [SYS15](#SYS15) [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_plugin_schedules` | [MORE01](#MORE01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_plugin_schedule` | [MORE01](#MORE01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_books` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -525,6 +527,8 @@
 | `open_external_url` | [SYS12](#SYS12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_sync_status` | [OPS01](#OPS01) [OPS03](#OPS03) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_sync` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_software_update` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `open_maintenance_settings` | [SYS15](#SYS15) [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_book_overview` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_annotations` | [ANN01](#ANN01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_reading_stats` | [STAT01](#STAT01) [STAT02](#STAT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -699,6 +703,10 @@
 | `services.schedules.bind` | [MORE01](#MORE01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.plugins.list` | [EXT11](#EXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.plugins.observe` | [EXT11](#EXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.maintenance.snapshot` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.maintenance.observe` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.maintenance.openSettings` | [SYS15](#SYS15) [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.maintenance.checkForUpdates` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.session.environment` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.session.observeEnvironment` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.sync.snapshot` | [OPS01](#OPS01) [OPS03](#OPS03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -793,6 +801,7 @@
 | `schedules` | [MORE01](#MORE01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `session` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `plugins` | [EXT11](#EXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `maintenance` | [SYS15](#SYS15) [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `sync` | [OPS01](#OPS01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `network` | [SYS06](#SYS06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `llm` | [AI06](#AI06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

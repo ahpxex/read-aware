@@ -31,6 +31,8 @@ const agentMap = pairs([
   ["get_sync_status", "OPS01 OPS03 OPS06 OPS07"],
   ["manage_sync", "OPS01 OPS04 OPS06 OPS07"],
   ["list_plugin_schedules manage_plugin_schedule", "MORE01"],
+  ["get_software_update", "SYS16"],
+  ["open_maintenance_settings", "SYS15 SYS16"],
   ["list_installed_plugins", "EXT11"],
   ["copy_to_clipboard", "SYS08"],
   ["export_text_file", "SYS10"],
@@ -132,12 +134,14 @@ const pluginMap = pairs([
   ["services.sync.snapshot services.sync.observe services.sync.backlog services.sync.requestSync", "OPS01 OPS03"],
   ["services.sync.account", "OPS06 OPS07"],
   ["services.schedules.list services.schedules.observe services.schedules.control", "MORE01"],
+  ["services.maintenance.snapshot services.maintenance.observe services.maintenance.checkForUpdates", "SYS16"],
+  ["services.maintenance.openSettings", "SYS15 SYS16"],
   ["services.sync.openSettings", "OPS01 OPS04 OPS06 OPS07"],
 ]);
 const catalogMap: Record<string, Record<string, string[]>> = {
   domains: { library:["LIB01"], reading:["STAT01","READ01"], annotations:["ANN01"], conversations:["AI01"], settings:["CFG01"], memory:["MEM01","MEM11"] },
   contributions: { selectionActions:["EXT01"], headerActions:["EXT02"], commands:["UI03"], settingsOptions:["CFG09"], voiceProviders:["READ17"], contentProviders:["LIB14"], readerModes:["READ15"], agentTools:["AI10"], agentContextProviders:["AI11"], agentRetrievalProviders:["AI12"], memoryCandidateProviders:["MEM03"], themes:["EXT08"], fonts:["EXT08"], syncTransports:["OPS04"] },
-  services: { storage:["SYS01","SYS02"], secrets:["SYS04"], ui:["EXT07","SYS10"], schedules:["MORE01"], session:["MORE03"], plugins:["EXT11"], sync:["OPS01"], network:["SYS06"], llm:["AI06"], clipboard:["SYS08"] },
+  services: { storage:["SYS01","SYS02"], secrets:["SYS04"], ui:["EXT07","SYS10"], schedules:["MORE01"], session:["MORE03"], plugins:["EXT11"], maintenance:["SYS15","SYS16"], sync:["OPS01"], network:["SYS06"], llm:["AI06"], clipboard:["SYS08"] },
   schemas: { views:["EXT03","EXT04","EXT05"], settings:["CFG09"], themes:["EXT08"] },
 };
 const nativeMap = pairs([

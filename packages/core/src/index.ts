@@ -21,6 +21,7 @@ export * from "./reading-emphasis";
 export * from "./host-io";
 export * from "./conversation-control";
 export * from "./host-sync";
+export * from "./host-maintenance";
 export * from "./plugin-schedules";
 export * from "./reader-panels";
 export * from "./reading-context";

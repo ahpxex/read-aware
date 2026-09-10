@@ -1,124 +1,22 @@
-import { useCallback, useEffect } from "react";
-import { useAtom } from "jotai";
-import {
-  canUseSoftwareUpdater,
-  findSoftwareUpdate,
-  installSoftwareUpdate,
-  readCurrentAppVersion,
-} from "../lib/software-update";
-import { createLogger } from "../../../platform/logger";
+import { useAtomValue } from "jotai";
 import { softwareUpdateAtom } from "../state/software-update";
+import { canUseSoftwareUpdater } from "../lib/software-update";
+import { softwareUpdater } from "../lib/software-update-runtime";
+import { createLogger } from "../../../platform/logger";
 
 const log = createLogger("update");
-
-let activeCheck: Promise<void> | null = null;
-let activeInstall: Promise<void> | null = null;
+const loadCurrentVersion = () => softwareUpdater.loadCurrentVersion();
+const checkForUpdates = async () => {
+  if (!canUseSoftwareUpdater()) return;
+  try { await softwareUpdater.checkForUpdates(); }
+  catch { /* The shared controller logs and publishes the persistent check error. */ }
+};
+const installUpdate = async () => {
+  try { await softwareUpdater.installUpdate(); }
+  catch (error) { log.warn("Update installation was not dispatched", error); }
+};
 
 export function useSoftwareUpdate() {
-  const [state, setState] = useAtom(softwareUpdateAtom);
-  const supported = canUseSoftwareUpdater();
-
-  useEffect(() => {
-    const handleInstallerOpened = () => {
-      setState((previous) => ({ ...previous, phase: "installer-open", progress: null }));
-    };
-    window.addEventListener("ra-android-installer-opened", handleInstallerOpened);
-    return () => window.removeEventListener("ra-android-installer-opened", handleInstallerOpened);
-  }, [setState]);
-
-  const loadCurrentVersion = useCallback(async () => {
-    try {
-      const currentVersion = await readCurrentAppVersion();
-      if (currentVersion) {
-        setState((previous) => ({ ...previous, currentVersion }));
-      }
-    } catch {
-      // Version display is non-critical; update checks surface their own errors.
-    }
-  }, [setState]);
-
-  const checkForUpdates = useCallback(async () => {
-    if (!supported) return;
-    if (activeCheck) return activeCheck;
-
-    activeCheck = (async () => {
-      setState((previous) => ({
-        ...previous,
-        phase: "checking",
-        progress: null,
-        errorStage: null,
-      }));
-      try {
-        const update = await findSoftwareUpdate();
-        if (!update) {
-          setState((previous) => ({
-            ...previous,
-            phase: "up-to-date",
-            availableVersion: null,
-          }));
-          return;
-        }
-        setState({
-          phase: "available",
-          currentVersion: update.currentVersion,
-          availableVersion: update.version,
-          progress: null,
-          errorStage: null,
-        });
-      } catch (error) {
-        log.error("update check failed", error);
-        setState((previous) => ({
-          ...previous,
-          phase: "error",
-          errorStage: "check",
-        }));
-      } finally {
-        activeCheck = null;
-      }
-    })();
-
-    return activeCheck;
-  }, [setState, supported]);
-
-  const installUpdate = useCallback(async () => {
-    if (!supported || activeInstall) return activeInstall ?? undefined;
-
-    activeInstall = (async () => {
-      setState((previous) => ({
-        ...previous,
-        phase: "downloading",
-        progress: null,
-        errorStage: null,
-      }));
-      try {
-        const result = await installSoftwareUpdate(({ phase, progress }) => {
-          setState((previous) => ({ ...previous, phase, progress }));
-        });
-        setState((previous) => ({
-          ...previous,
-          phase: result === "permission-required" ? "permission-required" : "installer-open",
-          progress: null,
-        }));
-      } catch (error) {
-        log.error("update install failed", error);
-        setState((previous) => ({
-          ...previous,
-          phase: "error",
-          errorStage: "install",
-        }));
-      } finally {
-        activeInstall = null;
-      }
-    })();
-
-    return activeInstall;
-  }, [setState, supported]);
-
-  return {
-    state,
-    supported,
-    loadCurrentVersion,
-    checkForUpdates,
-    installUpdate,
-  };
+  return { state: useAtomValue(softwareUpdateAtom), supported: canUseSoftwareUpdater(),
+    loadCurrentVersion, checkForUpdates, installUpdate };
 }

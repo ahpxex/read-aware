@@ -14,7 +14,9 @@ describe("agent tool registry", () => {
 
     const tools = names(buildAgentTools(book, deps));
 
-    expect(tools).toHaveLength(55);
+    expect(tools).toHaveLength(57);
+    expect(tools).toContain("get_software_update");
+    expect(tools).toContain("open_maintenance_settings");
     expect(tools).toContain("get_sync_status");
     expect(tools).toContain("manage_sync");
     expect(tools).toContain("request_conversation_turn");
@@ -72,7 +74,7 @@ describe("agent tool registry", () => {
 
     const tools = names(buildAgentTools(global, deps));
 
-    expect(tools).toHaveLength(66);
+    expect(tools).toHaveLength(68);
     expect(tools).toContain("list_plugin_schedules");
     expect(tools).toContain("manage_plugin_schedule");
     expect(tools).toContain("request_conversation_turn");

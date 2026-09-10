@@ -6,7 +6,7 @@
 - 最后核验日期：2026-09-10。
 - 范围：当前 ReadAware Tauri 桌面宿主、已有第一方插件、产品内 Agent 工具与自动管线。排除外部 Coding Agent 的电脑权限、移动端遗留桥和未决定的新产品。
 - 事实源：本轮审计以 1d97e2e4 后工作区源码为准；目标源是 [host-capability-model.data.ts](./host-capability-model.data.ts)，接线源是 [host-capability-matrix.data.ts](./host-capability-matrix.data.ts)。
-- [代码] 243 条现状证据映射到 30 个责任单元；33 个当前 catalog 成员、129 个旧验收项、32 个旧场景全部反查。单元不是新 API 数，字段行不是独立产品功能。
+- [代码] 243 条现状证据映射到 30 个责任单元；34 个当前 catalog 成员、129 个旧验收项、32 个旧场景全部反查。单元不是新 API 数，字段行不是独立产品功能。
 - [设计] 本文所有目标操作与分组迁移均未冒充现有 SDK；新 namespace 需在实现时经 catalog/permission/version/schema 统一落地。
 
 ## 结论
@@ -216,14 +216,14 @@
 - [设计] 通过条件：跨 namespace/日志脱敏/移除后缓存处理验证；密钥保存与插件非敏感偏好分开报告持久结果。
 - [代码] 现状证据：[SYS04](./host-capability-matrix.md#SYS04) · [CFG07](./host-capability-matrix.md#CFG07)。
 
-### <a id="S3"></a>S3 · Service · ui
+### <a id="S3"></a>S3 · Service · ui / maintenance
 
 **语义导航、视图与宿主管理流程**
 
-- 当前 catalog 身份：`services.ui`。
+- 当前 catalog 身份：`services.ui`、`services.maintenance`。
 - [设计] 操作：语义页面/集合/面板导航、焦点恢复、用户选择集快照；插件自有视图 push/pop/replace/close/refresh、错误/进度呈现；打开指定宿主流程（AI 配置/账号/账单/备份/诊断/更新/数据清除）并返回取消/完成或受限状态。外部 URL 有 scheme/目的约束。
-- [设计] Agent：意图工具可请求宿主流程，用户完成批准；查询数据、改变屏幕、确认破坏性行为是三个不同步骤。
-- [设计] 插件：不拿 DOM/Router/Jotai/原生窗口句柄；自画确认按钮不能铸造 host approval。可请求安全窗口意图，关闭前等待宿主持久屏障。
+- [设计] Agent：意图工具可请求宿主流程，用户完成批准；查询数据、改变屏幕、确认破坏性行为是三个不同步骤。get_software_update 已接双 scope 本地状态及按需 release feed 检查；open_maintenance_settings 打开并定位 updates/diagnostics 宿主控件，不代表安装、导出或发送已完成。
+- [设计] 插件：不拿 DOM/Router/Jotai/原生窗口句柄；自画确认按钮不能铸造 host approval。maintenance 1.0 snapshot/observe/openSettings 内置可用，checkForUpdates 需 service:network；与原生 UI 共用更新状态和互斥锁，频道变化使旧检查失效。安装/重启与诊断内容留在宿主，任务最终回执未接。可请求安全窗口意图，关闭前等待宿主持久屏障。
 - [设计] 限制/不建设：不为每个设置页新增域；不公开拖动坐标/任意窗口/静默重启/付款。管理流程是有类型的有限集合，不是绕过领域命令的万能 dispatch。当前禁用 Reveal 不计已实现。
 - [设计] 通过条件：关闭视图释放 callback/任务并恢复焦点；过期结果不打开旧弹窗；失败用 InlineError/安全 toast，不能伪装空结果；账号删除、本地 wipe、卸载各自确认且不串用。
 - [代码] 现状证据：[UI01](./host-capability-matrix.md#UI01) · [UI02](./host-capability-matrix.md#UI02) · [UI03](./host-capability-matrix.md#UI03) · [READ10](./host-capability-matrix.md#READ10) · [READ11](./host-capability-matrix.md#READ11) · [EXT03](./host-capability-matrix.md#EXT03) · [EXT04](./host-capability-matrix.md#EXT04) · [EXT05](./host-capability-matrix.md#EXT05) · [EXT06](./host-capability-matrix.md#EXT06) · [EXT07](./host-capability-matrix.md#EXT07) · [SYS12](./host-capability-matrix.md#SYS12) · [SYS15](./host-capability-matrix.md#SYS15) · [SYS16](./host-capability-matrix.md#SYS16) · [SYS17](./host-capability-matrix.md#SYS17) · [OPS06](./host-capability-matrix.md#OPS06) · [OPS07](./host-capability-matrix.md#OPS07) · [OPS08](./host-capability-matrix.md#OPS08) · [OPS09](./host-capability-matrix.md#OPS09) · [OPS10](./host-capability-matrix.md#OPS10) · [CFG07](./host-capability-matrix.md#CFG07) · [CFG08](./host-capability-matrix.md#CFG08) · [AI04](./host-capability-matrix.md#AI04) · [AI05](./host-capability-matrix.md#AI05) · [MORE05](./host-capability-matrix.md#MORE05)。
@@ -877,8 +877,8 @@
 | SYS12 | 打开外部 URL/系统关联打开/深链接路由 / 实装 | 部分：open_external_url[双域] | 部分：ui 1.7 openExternal；要求 service:network | 账号登录/购买链接；系统打开书籍；双端显式外链意图；HTTP(S) 外链已接共享 opener，拒绝嵌入凭据、控制字符及 file/data/javascript/自定义 scheme；成功表示交给 OS，不表示网页加载。外部 URL 打开与注册协议不同，URI contribution/关联文件句柄仍未接；OAuth ticket 不给插件。定向权限和参数测试通过，集中桌面验收待做。 | [S3](#S3) | [EXTERNAL](../apps/web/src/platform/external-link.ts) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTIO](../apps/web/src/services/host-io.ts) [HOSTIOTOOLS](../packages/agent/src/tools/host-io-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) |
 | SYS13 | Blob 范围读取/流式读写/提交/中止 / 实装 | 内部：正文/推理端口间接用，不读任意 blob | 部分：导入/导出只支持持有的 bytes | 原书阅读；同步分片；封面；底层 get_blob/blob_write_* 不可直接暴露；跨线程大对象需 transferable/backpressure | [S4](#S4) | [BLOB](../apps/web/src/platform/blob-store.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [API](../packages/plugin-types/src/index.ts) |
 | SYS14 | 系统字体枚举和字体资产加载 / 实装 | 部分：settings discover reading.fontFamily | 部分：settings options + fonts manifest | 阅读字体选择；editorial-themes；列表选择已可组合，不需要插件访问系统字体目录 | [C5](#C5) · [V3](#V3) | [RUST](../apps/desktop/src-tauri/src/lib.rs) [SETTINGS](../apps/web/src/domain/settings/catalog.ts) [API](../packages/plugin-types/src/index.ts) |
-| SYS15 | 原生日志/诊断包/崩溃报告导出与发送 / 实装 | 未接：无正式入口 | 未接：无正式入口 | 设置 Troubleshooting；CrashFollowUpPrompt；不得向任意插件暴露全量日志/凭据；发送需显式用户意图 | [S3](#S3) | [DIAG](../apps/web/src/features/settings/lib/diagnostics.ts) [ERRORS](../packages/core/src/errors.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) |
-| SYS16 | 检查/下载/安装更新与重启 / 实装 | 未接：无正式入口 | 未接：无正式入口 | 软件更新页；autoUpdate 检查；不开放：插件静默执行更新/重启；appVersion 不是更新状态 | [S3](#S3) | [UPDATE](../apps/web/src/features/update/lib/software-update.ts) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [API](../packages/plugin-types/src/index.ts) |
+| SYS15 | 原生日志/诊断包/崩溃报告导出与发送 / 实装 | 部分：open_maintenance_settings[双域] | 部分：services.maintenance.openSettings(diagnostics) | 设置 About Diagnostics；CrashFollowUpPrompt；已接宿主页面挂载与诊断控件定位，opened 不冒充导出/发送完成；不返回日志、路径、诊断包、凭据，用户仍在宿主触发导出或预览确认发送。自有 logger/诊断输出和最终操作回执仍缺；接线与定向检查完成，组合/Tauri 验收待集中进行。 | [S3](#S3) | [DIAG](../apps/web/src/features/settings/lib/diagnostics.ts) [ERRORS](../packages/core/src/errors.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) |
+| SYS16 | 检查/下载/安装更新与重启 / 实装 | 接通：get_software_update/open_maintenance_settings[双域] | 接通：services.maintenance 1.0 | 软件更新页；autoUpdate 与正式双端服务共用控制器；snapshot/observe 只读当前 phase/progress/version/选中与已检查频道；checkForUpdates 需插件 network 权限，只用宿主 release feed，失败拒绝不冒充最新。检查复用单飞、与安装互斥，频道换代拒绝旧结果；调用者取消不撤销共享检查。openSettings 仅确认宿主更新控件已挂载和定位，安装/重启仍由原生用户动作批准，禁止插件静默执行；不提供升级最终结果回执。接线与定向检查完成，组合/Tauri 实际检查下载重启待集中验收。 | [S3](#S3) | [UPDATE](../apps/web/src/features/update/lib/software-update.ts) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [API](../packages/plugin-types/src/index.ts) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) [UPDATECONTROL](../apps/web/src/features/update/lib/software-update-controller.ts) |
 | SYS17 | 窗口最小化/最大化/全屏/关闭/标题栏 / 实装 | 未接：无正式入口 | 未接：无正式入口 | Tauri window controls/macOS traffic lights；不开放任意窗口创建与 shell；关闭必须先等待持久化 flush | [S3](#S3) | [WINDOW](../apps/web/src/features/navigation/components/WindowCaptionControls.tsx) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) |
 | SYS18 | Android/iOS 遗留桥：状态栏/安全区/音量键/商店 / 非桌面 | 未接：无正式入口 | 未接：无正式入口 | cfg 分支或桌面 no-op；Android updater/book picker/background task 和 App Store storefront 不计为桌面插件缺口 | [B1](#B1) | [RUST](../apps/desktop/src-tauri/src/lib.rs) |
 | OPS01 | 同步连接/断开/立即同步/状态与积压 / 实装 | 部分：get_sync_status；manage_sync now/settings 双 scope | 部分：services.sync 1.0 snapshot/observe/backlog/requestSync/openSettings | Data & Sync；Agent 工具；插件正式入口；共享 scheduler，初始/变化串行观察最多 64；fresh outbox 与 cycleStartBacklog 分开，不泄漏书籍/blobKey/游标。未连接、凭据失效、连接管理中拒绝；already-running 不是完成，新周期等现有引擎结束才 completed。连接换代或调用者取消不返回旧成功，也不回滚已派发共享同步；不是独立可取消耐久任务。openSettings 只确认 Data & Sync 页面打开，不假称连接/断开完成；定向流程和完成回执仍待接。transport/network 权限不隐式获得 sync 管理。定向测试已验，新组合插件及 Tauri/跨设备验收待集中进行。 | [S9](#S9) | [SYNC](../apps/web/src/platform/sync/sync-scheduler.ts) [SYNCCONNECT](../apps/web/src/platform/sync/connect.ts) [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [API](../packages/plugin-types/src/index.ts) [SYNCSERVICE](../apps/web/src/services/sync.ts) [SYNCCONTROLLER](../apps/web/src/services/sync-controller.ts) [SYNCTOOLS](../packages/agent/src/tools/sync-tools.ts) |

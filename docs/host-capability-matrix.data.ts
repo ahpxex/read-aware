@@ -13,6 +13,9 @@ export const cap = (id: string, name: string, host: HostState, agent: Actor, plu
   ({ id, name, host, agent, plugin, sources, consumers, gap, baseline: [] });
 
 export const sources: Record<string, string> = {
+  HOSTMAINTENANCE: "apps/web/src/services/maintenance.ts",
+  MAINTENANCETOOLS: "packages/agent/src/tools/maintenance-tools.ts",
+  UPDATECONTROL: "apps/web/src/features/update/lib/software-update-controller.ts",
   HOSTIO: "apps/web/src/services/host-io.ts",
   HOSTIOTOOLS: "packages/agent/src/tools/host-io-tools.ts",
   PLUGINDIRECTORY: "apps/web/src/services/plugin-directory.ts",
@@ -522,8 +525,8 @@ groups.push(
     cap("SYS12", "打开外部 URL/系统关联打开/深链接路由", "实装", actor("部分", "open_external_url[双域]", "用户意图下的受控 URL 打开"), actor("部分", "ui 1.7 openExternal；要求 service:network", "scheme 白名单外部打开/URI contribution"), ["EXTERNAL","APP","RUST","HOSTIO","HOSTIOTOOLS","CTX"], "账号登录/购买链接；系统打开书籍；双端显式外链意图", "HTTP(S) 外链已接共享 opener，拒绝嵌入凭据、控制字符及 file/data/javascript/自定义 scheme；成功表示交给 OS，不表示网页加载。外部 URL 打开与注册协议不同，URI contribution/关联文件句柄仍未接；OAuth ticket 不给插件。定向权限和参数测试通过，集中桌面验收待做。"),
     cap("SYS13", "Blob 范围读取/流式读写/提交/中止", "实装", actor("内部", "正文/推理端口间接用，不读任意 blob", "受权 ResourceRef"), actor("部分", "导入/导出只支持持有的 bytes", "资源句柄/流/额度"), ["BLOB","RUST","API"], "原书阅读；同步分片；封面", "底层 get_blob/blob_write_* 不可直接暴露；跨线程大对象需 transferable/backpressure"),
     cap("SYS14", "系统字体枚举和字体资产加载", "实装", actor("部分", "settings discover reading.fontFamily", "受支持字体列表"), actor("部分", "settings options + fonts manifest", "字体资源能力"), ["RUST","SETTINGS","API"], "阅读字体选择；editorial-themes", "列表选择已可组合，不需要插件访问系统字体目录"),
-    cap("SYS15", "原生日志/诊断包/崩溃报告导出与发送", "实装", absent("打开宿主脱敏诊断流程"), absent("隔离 logger + 自有诊断输出"), ["DIAG","ERRORS","RUST"], "设置 Troubleshooting；CrashFollowUpPrompt", "不得向任意插件暴露全量日志/凭据；发送需显式用户意图"),
-    cap("SYS16", "检查/下载/安装更新与重启", "实装", absent("查询状态/打开更新批准流程"), absent("只读版本/更新状态；宿主执行升级"), ["UPDATE","APP","RUST","API"], "软件更新页；autoUpdate 检查", "不开放：插件静默执行更新/重启；appVersion 不是更新状态"),
+    cap("SYS15", "原生日志/诊断包/崩溃报告导出与发送", "实装", actor("部分", "open_maintenance_settings[双域]", "打开宿主脱敏诊断流程"), actor("部分", "services.maintenance.openSettings(diagnostics)", "宿主诊断入口；自有诊断输出"), ["DIAG","ERRORS","RUST","HOSTMAINTENANCE","MAINTENANCETOOLS"], "设置 About Diagnostics；CrashFollowUpPrompt", "已接宿主页面挂载与诊断控件定位，opened 不冒充导出/发送完成；不返回日志、路径、诊断包、凭据，用户仍在宿主触发导出或预览确认发送。自有 logger/诊断输出和最终操作回执仍缺；接线与定向检查完成，组合/Tauri 验收待集中进行。"),
+    cap("SYS16", "检查/下载/安装更新与重启", "实装", actor("接通", "get_software_update/open_maintenance_settings[双域]", "查询状态/打开宿主更新控件"), actor("接通", "services.maintenance 1.0", "版本/更新状态与观察、受权检查；宿主执行升级"), ["UPDATE","APP","RUST","API","HOSTMAINTENANCE","MAINTENANCETOOLS","UPDATECONTROL"], "软件更新页；autoUpdate 与正式双端服务共用控制器", "snapshot/observe 只读当前 phase/progress/version/选中与已检查频道；checkForUpdates 需插件 network 权限，只用宿主 release feed，失败拒绝不冒充最新。检查复用单飞、与安装互斥，频道换代拒绝旧结果；调用者取消不撤销共享检查。openSettings 仅确认宿主更新控件已挂载和定位，安装/重启仍由原生用户动作批准，禁止插件静默执行；不提供升级最终结果回执。接线与定向检查完成，组合/Tauri 实际检查下载重启待集中验收。"),
     cap("SYS17", "窗口最小化/最大化/全屏/关闭/标题栏", "实装", absent("用户触发的窗口意图"), absent("受限窗口状态/命令"), ["WINDOW","APP","RUST"], "Tauri window controls/macOS traffic lights", "不开放任意窗口创建与 shell；关闭必须先等待持久化 flush"),
     cap("SYS18", "Android/iOS 遗留桥：状态栏/安全区/音量键/商店", "非桌面", absent("不开放：不在当前 desktop 产品范围"), absent("不开放：不在当前 desktop 产品范围"), ["RUST"], "cfg 分支或桌面 no-op", "Android updater/book picker/background task 和 App Store storefront 不计为桌面插件缺口"),
   ] },

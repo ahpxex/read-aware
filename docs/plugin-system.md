@@ -3072,10 +3072,35 @@ The current host services are:
 | `schedules` | 1.1: bind, list, observe, pause/resume and run declared tasks | built in, own schedules only |
 | `session` | 2.0: environment snapshot/observation only; reading state requires the reading domain | built in |
 | `plugins` | 1.0: bounded installed public metadata list/observation | built in |
+| `maintenance` | 1.0: updater snapshot/observation, release check and native maintenance controls | built in; check requires `service:network` |
 | `sync` | 1.0: sanitized status, backlog, account quotas, sync request and host settings | `service:sync` |
 | `network` | host HTTP client | `service:network` |
 | `llm` | approved one-shot/structured model calls | `service:llm` |
 | `clipboard` | write text to clipboard | `service:clipboard` |
+
+[代码] Maintenance 1.0 exposes `snapshot()`, `observe(handler)`,
+`openSettings("updates"|"diagnostics")`, and optional `checkForUpdates()` when
+`service:network` is granted. State includes support, phase, nullable versions,
+progress, error stage and selected/last-successfully-checked channel. Local
+snapshot/observation never checks the network. Observers are initial and serial,
+coalesce intermediate changes, cap at 64, and retire with the plugin. Checks
+use the host release feed only, share the native UI flight, and cannot overlap
+installation. Channel changes invalidate old checks/candidates, including a
+change back to the original channel. Check errors reject with stable codes,
+not an up-to-date result; raw details stay in host logs. Cancellation before
+acceptance prevents dispatch; after acceptance it only cancels the caller's
+delivery, not another caller's shared check. Unsupported checks reject.
+
+`openSettings` waits for About page acknowledgement and a mounted target control,
+then scrolls/focuses it and returns `{status:"opened",surface}` only. It does not
+assemble/export/send a diagnostic bundle or download/install/restart the app.
+Those actions remain host UI-owned, including report preview and explicit send
+confirmation. No log contents, paths, report IDs, credentials or raw payloads
+are exposed. Agent `get_software_update` and `open_maintenance_settings` use the
+same service in both scopes; checking is explicit opt-in. SYS16's bounded actor
+entry is connected; SYS15 still lacks plugin-owned diagnostic output and final
+flow receipts. Focused checks cover wiring, not real desktop update/diagnostics
+execution; composition/Tauri acceptance remains pending.
 
 [代码] Sync 1.0 exposes `snapshot()`, `observe(handler)`, `backlog()`, `account()`,
 `requestSync()`, and `openSettings()`. Its separate `service:sync` grant is not

@@ -70,6 +70,8 @@ function seed(): InMemorySeed {
 const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   get_conversation_state: {},
   get_sync_status: {},
+  get_software_update: {},
+  open_maintenance_settings: { surface: "diagnostics" },
   manage_sync: { action: "settings" },
   list_plugin_schedules: {},
   manage_plugin_schedule: { action: "pause", pluginId: "fixture", id: "refresh" },

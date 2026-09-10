@@ -1748,6 +1748,14 @@ export type PluginHostServices = {
     /** Initial page and changes; offset pages must be reloaded after directory changes. */
     observe(query: import("@read-aware/core").PluginDirectoryQuery, handler: (page: import("@read-aware/core").PluginDirectoryPage) => unknown): PluginDisposable;
   };
+  maintenance: {
+    snapshot(): Promise<import("@read-aware/core").HostMaintenanceSnapshot>;
+    observe(handler: (snapshot: import("@read-aware/core").HostMaintenanceSnapshot) => unknown): PluginDisposable;
+    /** Reveals the host's controls only; export/send/install still require native user actions. */
+    openSettings(surface: import("@read-aware/core").HostMaintenanceSurface): ReturnType<import("@read-aware/core").HostMaintenancePort["openSettings"]>;
+    /** Requires service:network. Uses the host release feed; no caller-supplied URL or silent installation. */
+    checkForUpdates?(): Promise<import("@read-aware/core").HostMaintenanceSnapshot>;
+  };
   /** Requires service:sync; no keys, account identifiers, billing tickets or raw event access. */
   sync?: Omit<import("@read-aware/core").HostSyncPort, "backlog" | "account" | "requestSync" | "openSettings"> & {
     backlog(): ReturnType<import("@read-aware/core").HostSyncPort["backlog"]>;

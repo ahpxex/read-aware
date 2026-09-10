@@ -1,6 +1,8 @@
 import { isAndroid, isMobileOS, isTauri } from "../../../platform/environment";
 import { resolveBetaManifestUrl } from "./release-feed";
 import { getUpdateChannel } from "./update-channel";
+import { invoke } from "../../../platform/ipc";
+import { AppError } from "@read-aware/core";
 
 export type AvailableSoftwareUpdate = {
   currentVersion: string;
@@ -26,14 +28,13 @@ async function invokeWithTimeout<T>(
   timeoutMs: number,
   args?: Record<string, unknown>,
 ): Promise<T> {
-  const { invoke } = await import("@tauri-apps/api/core");
   let timer: number | undefined;
   try {
     return await Promise.race([
       invoke<T>(command, args),
       new Promise<never>((_, reject) => {
         timer = window.setTimeout(
-          () => reject(new Error("The update service did not respond in time.")),
+          () => reject(new AppError("ui/timeout", "The update service did not respond in time.")),
           timeoutMs,
         );
       }),
@@ -76,7 +77,6 @@ export async function findSoftwareUpdate(): Promise<AvailableSoftwareUpdate | nu
 
   desktopUpdateReady = false;
   const endpoint = beta ? await resolveBetaManifestUrl("latest.json") : null;
-  const { invoke } = await import("@tauri-apps/api/core");
   const found = await invoke<AvailableSoftwareUpdate | null>("desktop_update_check", { endpoint });
   desktopUpdateReady = found !== null;
   return found;
@@ -93,7 +93,7 @@ export async function installSoftwareUpdate(
     );
   }
 
-  if (!desktopUpdateReady) throw new Error("No software update is ready to install.");
+  if (!desktopUpdateReady) throw new AppError("ui/unavailable", "No software update is ready to install.");
 
   onProgress({ phase: "downloading", progress: null });
   const { listen } = await import("@tauri-apps/api/event");
@@ -113,7 +113,6 @@ export async function installSoftwareUpdate(
   );
 
   try {
-    const { invoke } = await import("@tauri-apps/api/core");
     await invoke("desktop_update_install");
   } finally {
     unlisten();

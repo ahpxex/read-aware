@@ -362,6 +362,12 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       list: async () => ({ schedules: [], total: 0, nextOffset: null }),
       control: async () => { throw new AppError("ui/unavailable", "Bind a schedule fixture"); },
     },
+    maintenance: {
+      snapshot: async () => ({ supported: false, phase: "idle", channel: "stable", checkedChannel: null,
+        currentVersion: "0.5.4", availableVersion: null, progress: null, errorStage: null }),
+      checkForUpdates: async () => { throw new AppError("ui/unavailable", "Attach an updater fixture"); },
+      openSettings: async surface => ({ status: "opened", surface }),
+    },
     sync: {
       snapshot: async () => ({ revision: 0, supported: true, connectionBusy: false, state: "disabled", connected: false, backend: null,
         lastSyncAt: null, lastErrorCode: null, progress: null, cycleStartBacklog: null, lastCycle: null, backfillRemaining: 0 }),

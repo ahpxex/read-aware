@@ -19,6 +19,7 @@ import { buildWorkspaceTools } from "./workspace-tools";
 import { buildHostCommandTools } from "./host-command-tools";
 import { buildHostIOTools } from "./host-io-tools";
 import { buildSyncTools } from "./sync-tools";
+import { buildMaintenanceTools } from "./maintenance-tools";
 import { buildScheduleTools } from "./schedule-tools";
 import { buildShelfTools } from "./shelf-tools";
 import type { AgentTurnState } from "./turn-state";
@@ -38,6 +39,7 @@ export function buildAgentTools(
     ...buildHostCommandTools(deps),
     ...buildHostIOTools(deps),
     ...buildSyncTools(scope, deps),
+    ...buildMaintenanceTools(deps),
     ...buildScheduleTools(scope, deps),
     ...buildThreadTools(scope, deps),
     ...buildShelfTools(scope, deps),

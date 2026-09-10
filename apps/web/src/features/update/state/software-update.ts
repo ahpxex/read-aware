@@ -1,24 +1,8 @@
 import { atom } from "jotai";
+import type { HostUpdatePhase, HostUpdateState } from "@read-aware/core";
 
-export type SoftwareUpdatePhase =
-  | "idle"
-  | "checking"
-  | "up-to-date"
-  | "available"
-  | "downloading"
-  | "installing"
-  | "permission-required"
-  | "installer-open"
-  | "error";
-
-export type SoftwareUpdateState = {
-  phase: SoftwareUpdatePhase;
-  currentVersion: string | null;
-  availableVersion: string | null;
-  progress: number | null;
-  /** Which step failed; the raw error goes to the log, not into state. */
-  errorStage: "check" | "install" | null;
-};
+export type SoftwareUpdatePhase = HostUpdatePhase;
+export type SoftwareUpdateState = HostUpdateState;
 
 export const softwareUpdateAtom = atom<SoftwareUpdateState>({
   phase: "idle",

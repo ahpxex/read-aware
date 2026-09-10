@@ -393,6 +393,7 @@ export interface RuntimeDeps {
     control(input: import("@read-aware/core").PluginScheduleControl, signal?: AbortSignal): Promise<import("@read-aware/core").PluginScheduleReceipt>;
   };
   sync: import("@read-aware/core").HostSyncPort;
+  maintenance: import("@read-aware/core").HostMaintenancePort;
   bookGraphTasks: import("@read-aware/core").BookGraphTaskPort;
   bookClassification: {
     inspect(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookClassificationSnapshot | null>;

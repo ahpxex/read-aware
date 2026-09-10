@@ -404,6 +404,9 @@ export interface RuntimeDeps {
   readingContextPolicy?: import("./runtime/reading-context-policy").ReadingContextPolicy;
   environment: { snapshot(): Promise<import("@read-aware/core").HostEnvironmentSnapshot> };
   conversationControl: {
+    turnRequests(): Promise<import("@read-aware/core").ConversationTurnRequestSnapshot[]>;
+    requestTurn(request: import("@read-aware/core").ConversationTurnRequest, signal?: AbortSignal): Promise<import("@read-aware/core").ConversationTurnRequestSnapshot>;
+    cancelTurnRequest(id: string, signal?: AbortSignal): Promise<import("@read-aware/core").ConversationTurnRequestSnapshot>;
     snapshot(): Promise<import("@read-aware/core").ConversationRuntimeSnapshot>;
     listThreads(): Promise<import("@read-aware/core").ThreadSummary[]>;
     createThread(signal?: AbortSignal): Promise<import("@read-aware/core").ConversationControlReceipt & { draft: true }>;

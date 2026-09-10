@@ -802,6 +802,8 @@ export function buildPluginContext(
         subscribe: trackedOn(domain.conversations.events.subscribe),
       },
       ...(domain.conversations.commands ? { commands: {
+        requestTurn: (request: import("@read-aware/core").ConversationTurnRequest) => { lifecycle.assertActive("conversations.requestTurn"); return domain.conversations!.commands!.requestTurn(request, lifecycle.signal); },
+        cancelTurnRequest: (id: string) => { lifecycle.assertActive("conversations.cancelTurnRequest"); return domain.conversations!.commands!.cancelTurnRequest(id, lifecycle.signal); },
         createThread: () => { lifecycle.assertActive("conversations.createThread"); return domain.conversations!.commands!.createThread(lifecycle.signal); },
         selectThread: (id: string) => { lifecycle.assertActive("conversations.selectThread"); return domain.conversations!.commands!.selectThread(id, lifecycle.signal); },
         stop: (target: import("@read-aware/core").ConversationTarget) => { lifecycle.assertActive("conversations.stop"); return domain.conversations!.commands!.stop(target, lifecycle.signal); },

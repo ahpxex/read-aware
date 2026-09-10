@@ -32,7 +32,8 @@ export { GLOBAL_CONVERSATION_ID } from "./conversation-port";
 export function buildRuntimeDeps(): RuntimeDeps {
   const conversations = createConversationsDomain("agent");
   return {
-    conversationControl: { snapshot: conversations.queries.runtime, listThreads: conversations.queries.listThreads, ...conversations.commands },
+    conversationControl: { snapshot: conversations.queries.runtime, listThreads: conversations.queries.listThreads,
+      turnRequests: conversations.queries.turnRequests, ...conversations.commands },
     hostIO,
     bookGraphTasks: agentBookGraphTasks,
     bookClassification: { inspect: inspectBookClassification, change: (input, signal) => changeBookClassification(input, "agent", signal) },

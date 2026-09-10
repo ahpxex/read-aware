@@ -1,5 +1,13 @@
 {
   "chat": {
+    "turnRequest": {
+      "draft": "Use draft",
+      "send": "Send proposed message",
+      "retry": "Retry last message",
+      "dismiss": "Dismiss request",
+      "agent": "Agent",
+      "failed": "Conversation request failed"
+    },
     "messageLabel": "Message",
     "placeholder": "Ask about this book…",
     "placeholderWithPassage": "Ask about this passage…",

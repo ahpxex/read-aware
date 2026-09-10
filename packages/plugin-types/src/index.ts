@@ -1356,17 +1356,22 @@ export type PluginAnnotationsDomain = {
 };
 
 /**
- * Conversations 1.1 — authorized queries, global draft selection and stop/clear
+ * Conversations 1.2 — authorized queries, global draft selection and stop/clear
  * controls. Message generation stays with the host chat runtime.
  */
 export type PluginConversationsDomain = {
   queries: {
+    /** Up to 128 recently retained host requests, filtered to this actor; no text or other actors' requests. */
+    turnRequests(): Promise<import("@read-aware/core").ConversationTurnRequestSnapshot[]>;
     runtime(): Promise<import("@read-aware/core").ConversationRuntimeSnapshot>;
     getBookThread(bookId: string): Promise<PluginChatMessage[]>;
     listThreads(): Promise<PluginThreadSummary[]>;
     getThread(threadId: string): Promise<PluginChatMessage[]>;
   };
   commands?: {
+    /** Requires a mounted conversation. Only a host UI confirmation can adopt/send/retry; receipt is not a completed turn. */
+    requestTurn(request: import("@read-aware/core").ConversationTurnRequest): Promise<import("@read-aware/core").ConversationTurnRequestSnapshot>;
+    cancelTurnRequest(id: string): Promise<import("@read-aware/core").ConversationTurnRequestSnapshot>;
     /** Creates and selects a global draft; no transcript row until the first message. Does not navigate the app. */
     createThread(): Promise<import("@read-aware/core").ConversationControlReceipt & { draft: true }>;
     selectThread(threadId: string): Promise<import("@read-aware/core").ConversationControlReceipt>;

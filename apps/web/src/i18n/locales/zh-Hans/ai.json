@@ -1,5 +1,13 @@
 {
   "chat": {
+    "turnRequest": {
+      "draft": "采用草稿",
+      "send": "发送建议消息",
+      "retry": "重试最后一条消息",
+      "dismiss": "忽略请求",
+      "agent": "Agent",
+      "failed": "无法执行对话请求"
+    },
     "messageLabel": "消息",
     "placeholder": "询问关于本书的问题…",
     "placeholderWithPassage": "询问关于这段文字的问题…",

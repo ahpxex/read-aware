@@ -313,7 +313,7 @@
                 <tr><td>Library</td><td>书、文件、元数据、目录、集合、导入与删除</td><td>read / write</td></tr>
                 <tr><td>Reading</td><td>当前阅读会话、位置、导航、进度与时长</td><td>read / write</td></tr>
                 <tr><td>Annotations 1.4</td><td>高亮、笔记、问题轨迹与查询观察</td><td>read / write</td></tr>
-                <tr><td>Conversations 1.1</td><td>对话摘要、运行态观察与创建/选择/停止/清空</td><td>read / write</td></tr>
+                <tr><td>Conversations 1.2</td><td>对话摘要、运行态、线程管理与待确认的草稿/发送/重试</td><td>read / write</td></tr>
                 <tr><td>Settings</td><td>设置目录、目标、校验、解析值与变更事件</td><td>精确路径授权</td></tr>
                 <tr><td>Memory 1.5</td><td>记忆与图谱、条件反馈、分类与有章节预算的任务</td><td>memory:read / memory:write；生成另需 service:llm</td></tr>
               </tbody>
@@ -322,7 +322,8 @@
           <div class="callout">
             <strong>Appearance 不是 Domain。</strong>它是 Settings 的一个 section。选择主题属于 Settings，提供主题属于 Theme Contribution。
           </div>
-          <p>Conversations 1.1 已接插件读写分权与 Agent 状态查询/全局管理。空草稿只保存选择，选择不等于页面导航；停止/清空等待最后回合写入，清空不撤销长期记忆、事件历史或工具副作用，也不承诺多步原子回滚。Agent 清空须批准，执行中的线程不能用工具停止/清空自身。待确认文本草稿、发送/重试仍缺；新入口已过定向检查，组合插件与桌面验收待集中进行。</p>
+          <p>Conversations 1.2 已接两端线程管理和待确认草稿/发送/重试。空线程只保存选择，提交请求也不自动导航；只有宿主聊天按钮能批准执行。每个已挂载目标最多一个请求，五分钟过期，关闭/退休取消；不覆盖用户草稿，重试保留原消息和附件。状态区分待确认、已采用和已启动，不冒充模型回答完成；新入口已过定向检查，组合插件与桌面验收待集中进行。</p>
+          <p>停止/清空等待最后回合写入，清空不撤销长期记忆、事件历史或工具副作用，不承诺多步原子回滚。Agent 清空须批准，执行中的线程不能用工具停止/清空自身；请求查询只给自有摘要，不能伪造 role 历史。</p>
         </div>
       </section>
 

@@ -151,7 +151,7 @@ The current public roster is:
 | Library | books, source files, metadata, TOC, collections, import and removal | `library:read`, `library:write` |
 | Reading | active session, navigation, location, progress, reading time | `reading:read`, `reading:write` |
 | Annotations 2.0 | highlights, notes, passive question traces, conditional edits and query observations | `annotations:read`, `annotations:write` |
-| Conversations 1.1 | threads, message summaries, live state and controlled thread management | `conversations:read`, `conversations:write` |
+| Conversations 1.2 | threads, summaries, live state, thread management and host-confirmed turn requests | `conversations:read`, `conversations:write` |
 | Settings | catalog, resolved values, targets, validation, change events | exact path grants |
 | Memory | active memory search, chapter graphs and conditional feedback | `memory:read`, `memory:write` (1.1) |
 
@@ -172,9 +172,26 @@ turns' final persistence before completing. Clear also discards hidden Agent
 thread state and insights, not long-term memory, event history or completed
 tool effects; its multiple writes do not promise atomic rollback. Agent state
 queries are book-scoped or global; management is global-only, requires approval
-for clear, and refuses stop/clear of the executing thread. User-confirmed text
-drafts, send and retry are still unconnected. Focused checks passed; integrated
-plugin/Tauri acceptance is pending.
+for clear, and refuses stop/clear of the executing thread.
+
+Conversations 1.2 adds `commands.requestTurn({target, action, text?})`, where
+`action` is `draft`, `send`, or `retry`. Draft/send accept 1–65536 characters;
+retry rejects replacement text and preserves the original user message and
+attachments. A mounted chat surface must exist; submitting does not navigate.
+Each target permits one pending proposal, expiring in five minutes. Only host
+chat controls can accept or dismiss it. Draft adoption refuses to overwrite
+typed text; send/retry require an idle unchanged transcript generation. A host
+stop/clear, surface close/replacement, or actor cancellation retires pending
+requests. `cancelTurnRequest(id)` can cancel only the caller's request, not undo
+an accepted draft, started turn or its effects. `queries.turnRequests()` returns
+actor-owned metadata without text; the host retains at most 128 recent entries.
+State changes invalidate `observeRuntime` so consumers can re-read outcomes.
+Statuses are `pending`, `adopted`, `started`, `dismissed`, `cancelled`, `stale`,
+`failed`, or `expired`; none promises a completed model response or durable job.
+Agent `request_conversation_turn` uses the same path, restricted to the current
+book in book scope; state queries show the last 20 scoped requests and a
+truncation flag. Streaming output remains in native chat, not a public role-write
+API. Focused checks passed; integrated plugin/Tauri acceptance is pending.
 
 Reading v2 exposes `queries.session()` and `events.observeSession(handler)`:
 an immediate snapshot followed by revisions, with session identity, loading

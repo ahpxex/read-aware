@@ -1,5 +1,13 @@
 {
   "chat": {
+    "turnRequest": {
+      "draft": "Utiliser le brouillon",
+      "send": "Envoyer le message proposé",
+      "retry": "Réessayer le dernier message",
+      "dismiss": "Ignorer la demande",
+      "agent": "Agent",
+      "failed": "Échec de la demande de conversation"
+    },
     "messageLabel": "Message",
     "placeholder": "Posez une question sur ce livre…",
     "placeholderWithPassage": "Posez une question sur ce passage…",

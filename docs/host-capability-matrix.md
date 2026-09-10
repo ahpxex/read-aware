@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 194、部分 43、待建 3、占位 2、非桌面 1。
-- Agent：接通 121、未接 39、部分 50、扩展 14、自动 14、内部 5。
-- 插件：接通 136、部分 76、未接 31。
+- Agent：接通 122、未接 39、部分 49、扩展 14、自动 14、内部 5。
+- 插件：接通 137、部分 75、未接 31。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -250,7 +250,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | <a id="AI01"></a>AI01 | 读取书内/全局对话及搜索历史 | 实装 | **接通**：search_conversation/get_recent_turns<br>[设计] 有界查询工具 | **接通**：conversations.queries getBookThread/listThreads/getThread<br>[设计] 受权只读领域 | Agent；聊天历史 | 插件拿到 transcript 不等于自动得到画像/记忆；当前查询范围和列表量需约束 | [CHATDOMAIN](../apps/web/src/domain/conversations.ts) [CHATPORT](../apps/web/src/features/ai/agent/ports/conversation-port.ts) [CHATTOOLS](../packages/agent/src/tools/conversation-tools.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | L03 |
 | <a id="AI02"></a>AI02 | 创建/切换/清空全局线程和书内聊天 | 实装 | **接通**：get_conversation_state 双 scope；manage_conversation 全局<br>[设计] 创建/选择及经批准清空其他线程 | **接通**：conversations 1.1 commands.createThread/selectThread/clear<br>[设计] conversations:write 受控命令 | AgentWorkspace；ChatPanel；Agent 工具；插件正式入口 | 创建持久选择的空全局草稿，首次消息才创建 transcript 行；选择不等于导航/可见，未知线程拒绝。clear 先停止并等在途回合最后写入，再清 transcript 与隐藏线程/insights；不删除长期记忆、事件历史或已完成工具副作用，多步清空不承诺原子回滚。Agent 不通过执行中的工具停止/清空自身，以免死锁，当前线程仍由原生控件管理。权限/持久选择失败/排空定向测试通过；新组合插件与 Tauri E2E 待集中验收。 | [CHAT](../apps/web/src/features/ai/lib/conversation-store.ts) [CHATDOMAIN](../apps/web/src/domain/conversations.ts) [CONVCONTROL](../apps/web/src/domain/conversation-control.ts) [CONVRUNTIME](../apps/web/src/domain/conversation-runtime.ts) [CONVTOOLS](../packages/agent/src/tools/conversation-control-tools.ts) [AGENTUI](../apps/web/src/features/agent/components/AgentWorkspace.tsx) [CHATCONTROL](../apps/web/src/features/ai/hooks/useBookConversation.ts) [REGISTRY](../packages/agent/src/tools/registry.ts) | L04 |
-| <a id="AI03"></a>AI03 | 发送/流式生成/停止/重试聊天回合 | 实装 | **部分**：用户回合驱动 thread.run；get_conversation_state；manage_conversation stop<br>[设计] 运行时保持宿主所有，停止其他线程 | **部分**：conversations 1.1 queries.runtime/events.observeRuntime/commands.stop<br>[设计] 初始状态/变化观察与停止排空 | 书内聊天；全局聊天；Agent/插件控制 | 状态含已挂载 session、loading/streaming/messageCount，不暴露消息正文；Agent 书内只看本书。stop 等最后持久写结算，清空期间拒绝新回合；失败不报完成。llm.ask 是独立推理，不能替代产品聊天。待确认草稿、用户触发的发送/重试意图仍未接；自动递归对话/伪造 role 历史不开放。新入口尚待集中桌面验收。 | [THREAD](../packages/agent/src/runtime/thread.ts) [CHATCONTROL](../apps/web/src/features/ai/hooks/useBookConversation.ts) [CHATUI](../apps/web/src/features/ai/components/ChatPanel.tsx) [RUNTIME](../packages/agent/src/runtime/runtime.ts) [API](../packages/plugin-types/src/index.ts) [CONVCONTROL](../apps/web/src/domain/conversation-control.ts) [CONVRUNTIME](../apps/web/src/domain/conversation-runtime.ts) [CONVTOOLS](../packages/agent/src/tools/conversation-control-tools.ts) | L05 |
+| <a id="AI03"></a>AI03 | 发送/流式生成/停止/重试聊天回合 | 实装 | **接通**：request_conversation_turn 双 scope；get_conversation_state；manage_conversation stop<br>[设计] 宿主确认后采用/发送/重试，非递归调用自身 | **接通**：conversations 1.2 requestTurn/cancelTurnRequest + queries.turnRequests/runtime/observeRuntime<br>[设计] 受权提交意图、查询结果与停止排空 | 书内/全局聊天确认栏；Agent/插件正式入口 | draft/send 文本 1–65536 字符，retry 不接替代正文或 role；只向已挂载聊天提交，每个目标最多一个待确认请求，五分钟过期，卸载/关闭/停止/清空取消。宿主原生按钮才可采用草稿或启动回合，草稿不覆盖已输入文本；send/retry 要空闲且沿用请求时的 transcript generation，retry 复用原消息/附件。请求不自动导航；pending 不等于接受，adopted 不等于已发，started 不等于生成/持久化完成；流式输出仍由原生聊天承载，不提供任意伪造历史入口。最多保留全宿主 128 个状态记录，queries 仅返回自有无正文摘要，Agent 只看本 scope 最近 20 项并报截断。取消不能撤回已采用草稿/已启动回合或工具副作用；运行态不暴露正文，stop 等最后写入。定向权限/状态/生命周期测试通过，组合插件与 Tauri E2E 待集中验收。 | [THREAD](../packages/agent/src/runtime/thread.ts) [CHATCONTROL](../apps/web/src/features/ai/hooks/useBookConversation.ts) [CHATUI](../apps/web/src/features/ai/components/ChatPanel.tsx) [RUNTIME](../packages/agent/src/runtime/runtime.ts) [API](../packages/plugin-types/src/index.ts) [CONVCONTROL](../apps/web/src/domain/conversation-control.ts) [CONVRUNTIME](../apps/web/src/domain/conversation-runtime.ts) [CONVTOOLS](../packages/agent/src/tools/conversation-control-tools.ts) [CONVREQUESTS](../apps/web/src/domain/conversation-turn-requests.ts) [CONVREQUESTUI](../apps/web/src/features/ai/components/ChatTurnRequest.tsx) | L05 |
 | <a id="AI04"></a>AI04 | 提问、选项澄清、批准/拒绝高风险动作 | 实装 | **接通**：ask_user + InteractionPort<br>[设计] 宿主交互工具 | **部分**：表单可收输入，无通用权限批准票据<br>[设计] 宿主拥有的一次性批准流程 | Agent question/permission cards | 确认 UI 与授权决策分离；插件自画 Yes 按钮不是 host approval | [INTERACTION](../packages/agent/src/tools/interaction-tools.ts) [ANNTOOLS](../packages/agent/src/tools/annotation-tools.ts) [SHELFTOOLS](../packages/agent/src/tools/shelf-tools.ts) [API](../packages/plugin-types/src/index.ts) | L05 |
 | <a id="AI05"></a>AI05 | Agent 展示可点击书卡与词典卡 | 实装 | **接通**：present_books[全局]；插件 tool details.wordCards<br>[设计] 结构化结果呈现 | **部分**：agentTools 固定 word-card details<br>[设计] 类型化呈现结果 | Agent 书卡；Dictionary 单词卡 | 工具结果卡与 PluginView 协议不同，不能任意互换 | [PRESENT](../packages/agent/src/tools/present-tools.ts) [EXTOOLS](../apps/web/src/features/plugins/runtime/plugin-tools.ts) [API](../packages/plugin-types/src/index.ts) [DICTTOOLS](../plugins/dictionary/src/agent-tools.ts) | 新增盘点 |
 | <a id="AI06"></a>AI06 | 一次性文本/结构化/流式 LLM 推理 | 实装 | **自动**：Runtime ask + 线程推理<br>[设计] 运行时服务 | **接通**：services.llm 1.1 ask + readingContext/schema/onText<br>[设计] 受预算约束的推理服务 | Dictionary 1.3；Agent 后台管线 | readingContext 由宿主过滤并在收紧时取消普通/结构化/流式调用；必需正文被禁止时报 ai/context-withheld，非法结构报 ai/invalid-reading-context。Dictionary 本地缓存仍可读，外发不自行拼接选区。双端四组合、重试、并发取消已有 macOS debug 证据；任意 prompt 不做来源推断。仍无公开 AbortSignal/任务预算/用量回执 | [RUNTIME](../packages/agent/src/runtime/runtime.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) [API](../packages/plugin-types/src/index.ts) [DICT](../plugins/dictionary/src/index.ts) [STRUCTUREDREADING](../packages/agent/src/runtime/one-shot.ts) [STRUCTUREDREADINGPROOF](../docs/evidence/structured-reading-context-2026-09-09.json) | L01 |
@@ -410,9 +410,9 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：61 个。
-- Agent book：52 个。
-- Plugin ctx：136 个。
+- Agent global：62 个。
+- Agent book：53 个。
+- Plugin ctx：139 个。
 - Plugin returned interface：25 个。
 - Capability domains：6 个。
 - Capability contributions：14 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 136 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 139 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -478,6 +478,7 @@
 | `get_conversation_insights` | [MEM12](#MEM12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_conversation_state` | [AI01](#AI01) [AI02](#AI02) [AI03](#AI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_conversation` | [AI02](#AI02) [AI03](#AI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `request_conversation_turn` | [AI03](#AI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_book_text_status` | [TXT04](#TXT04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_toc` | [TXT01](#TXT01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `read_chapter` | [TXT03](#TXT03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -536,6 +537,7 @@
 | `search_conversation` | [AI01](#AI01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_recent_turns` | [AI01](#AI01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_conversation_state` | [AI01](#AI01) [AI02](#AI02) [AI03](#AI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `request_conversation_turn` | [AI03](#AI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_book_text_status` | [TXT04](#TXT04) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_toc` | [TXT01](#TXT01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `read_chapter` | [TXT03](#TXT03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -638,12 +640,15 @@
 | `domains.annotations.commands.createHighlight` | [ANN02](#ANN02) [ANN03](#ANN03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.annotations.commands.applyChanges` | [ANN04](#ANN04) [ANN05](#ANN05) [ANN06](#ANN06) [ANN08](#ANN08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.annotations.commands.createNote` | [ANN05](#ANN05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.conversations.queries.turnRequests` | [AI03](#AI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.conversations.queries.runtime` | [AI02](#AI02) [AI03](#AI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.conversations.queries.getBookThread` | [AI01](#AI01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.conversations.queries.listThreads` | [AI01](#AI01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.conversations.queries.getThread` | [AI01](#AI01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.conversations.events.observeRuntime` | [AI02](#AI02) [AI03](#AI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.conversations.events.subscribe` | [CON07](#CON07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.conversations.commands.requestTurn` | [AI03](#AI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.conversations.commands.cancelTurnRequest` | [AI03](#AI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.conversations.commands.createThread` | [AI02](#AI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.conversations.commands.selectThread` | [AI02](#AI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.conversations.commands.stop` | [AI03](#AI03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

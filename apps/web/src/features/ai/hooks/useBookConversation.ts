@@ -26,13 +26,13 @@ export interface BookConversation {
   streamingParts: ChatAssistantPart[];
   /** Human-readable progress from the transport (e.g. "Thinking…"). */
   status: string | null;
-  send: (text: string, attachments?: ChatAttachment[]) => void;
+  send: (text: string, attachments?: ChatAttachment[]) => boolean;
   /**
    * Re-run the last user turn: drops whatever reply followed it (failed or
    * not), persists the truncation, and regenerates with the agent's thread
    * memory reset. No-op while streaming or on an empty transcript.
    */
-  retry: () => void;
+  retry: () => boolean;
   stop: () => void;
   clear: () => Promise<void>;
 }
@@ -163,6 +163,7 @@ export function useBookConversation(
           // The truncated transcript must be on disk before the agent
           // rehydrates from it (load-bearing for retry on the global thread).
           await persisted;
+          controller.signal.throwIfAborted();
           const stream = getChatTransport().sendTurn(
             {
               bookId,
@@ -246,7 +247,7 @@ export function useBookConversation(
     (text: string, attachments?: ChatAttachment[]) => {
       const trimmed = text.trim();
       const hasAttachment = !!attachments && attachments.length > 0;
-      if ((!trimmed && !hasAttachment) || isLoading || inFlightRef.current || !conversationRuntime.canStart(bookId)) return;
+      if ((!trimmed && !hasAttachment) || isLoading || inFlightRef.current || !conversationRuntime.canStart(bookId)) return false;
 
       const userMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -256,12 +257,13 @@ export function useBookConversation(
         attachments: hasAttachment ? attachments : undefined,
       };
       runTurn(messagesRef.current, userMessage);
+      return true;
     },
     [bookId, isLoading, runTurn],
   );
 
   const retry = useCallback(() => {
-    if (isLoading || inFlightRef.current || !conversationRuntime.canStart(bookId)) return;
+    if (isLoading || inFlightRef.current || !conversationRuntime.canStart(bookId)) return false;
     const current = messagesRef.current;
     let lastUserIndex = -1;
     for (let i = current.length - 1; i >= 0; i -= 1) {
@@ -270,9 +272,10 @@ export function useBookConversation(
         break;
       }
     }
-    if (lastUserIndex < 0) return;
+    if (lastUserIndex < 0) return false;
     // Same user message object — id, attachments and timestamp preserved.
     runTurn(current.slice(0, lastUserIndex), current[lastUserIndex], true);
+    return true;
   }, [bookId, isLoading, runTurn]);
 
   const stop = useCallback(() => {

@@ -11,11 +11,14 @@ import { ChatComposer, type ChatComposerHandle } from "../../ai/components/ChatC
 import { ChatTranscript } from "../../ai/components/ChatTranscript";
 import { useGlobalConversation } from "../../ai/hooks/useGlobalConversation";
 import { activeGlobalThreadAtom } from "../../ai/state/global-thread";
+import { ChatTurnRequest } from "../../ai/components/ChatTurnRequest";
+import { useConversationTurnRequests } from "../../ai/hooks/useConversationTurnRequests";
 
 export function AgentWorkspace() {
   const activeThreadId = useAtomValue(activeGlobalThreadAtom);
   const conversation = useGlobalConversation(activeThreadId);
   const composerRef = useRef<ChatComposerHandle | null>(null);
+  const turnRequests = useConversationTurnRequests({ kind: "global", id: activeThreadId }, conversation, composerRef);
 
   // The page IS the chat — focus the composer on entry and on thread switch
   // (a frame later, after the surface has rendered so focus lands cleanly).
@@ -36,8 +39,11 @@ export function AgentWorkspace() {
         status={conversation.status}
         onRetry={conversation.retry}
       />
+      <ChatTurnRequest request={turnRequests.request} onAccept={turnRequests.accept} onDismiss={turnRequests.dismiss} />
       <ChatComposer
+        key={activeThreadId}
         ref={composerRef}
+        disabled={conversation.isLoading}
         isStreaming={conversation.isStreaming}
         pendingAttachment={null}
         onRemoveAttachment={() => {}}

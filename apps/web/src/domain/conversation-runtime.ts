@@ -27,6 +27,7 @@ export class ConversationRuntime {
     };
   }
   canStart(id: string) { return !this.blocked.has(id) && !this.flights.get(id)?.size; }
+  isControlling(id: string) { return this.blocked.has(id); }
   track(id: string, abort: () => void, done: Promise<void>) {
     const set = this.flights.get(id) ?? new Set(), flight = { abort, done };
     set.add(flight); this.flights.set(id, set);

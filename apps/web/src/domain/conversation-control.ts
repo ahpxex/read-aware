@@ -6,9 +6,11 @@ import { getBookRecord } from "../features/library/lib/library-db";
 import { emitAppEvent } from "../platform/app-events";
 import { createLogger } from "../platform/logger";
 import { ConversationRuntime } from "./conversation-runtime";
+import { ConversationTurnRequests } from "./conversation-turn-requests";
 
 const log = createLogger("conversation-control");
 export const conversationRuntime = new ConversationRuntime(error => log.warn("Conversation lifecycle failed", error));
+export const conversationTurnRequests = new ConversationTurnRequests(() => conversationRuntime.changed());
 const store = getDefaultStore();
 store.sub(activeGlobalThreadAtom, () => conversationRuntime.changed());
 export function conversationSnapshot(): ConversationRuntimeSnapshot {
@@ -28,6 +30,11 @@ export function conversationCommands(origin: EventOrigin) {
     signal?.throwIfAborted(); return target;
   };
   return {
+    requestTurn: async (input: import("@read-aware/core").ConversationTurnRequest, signal?: AbortSignal) =>
+      conversationTurnRequests.request(origin, input, signal),
+    cancelTurnRequest: async (id: string, signal?: AbortSignal) => {
+      signal?.throwIfAborted(); return conversationTurnRequests.cancel(origin, id);
+    },
     createThread: async (signal?: AbortSignal) => {
       signal?.throwIfAborted(); const id = newGlobalThreadId();
       await selectGlobalThread(id, origin, signal);
@@ -43,11 +50,13 @@ export function conversationCommands(origin: EventOrigin) {
     },
     stop: async (input: ConversationTarget, signal?: AbortSignal) => {
       const target = await validate(input, signal);
+      conversationTurnRequests.cancelTarget(target.id);
       await conversationRuntime.quiesce(target.id, async () => {}, signal);
       return { status: "completed" as const, target };
     },
     clear: async (input: ConversationTarget, signal?: AbortSignal) => {
       const target = await validate(input, signal);
+      conversationTurnRequests.cancelTarget(target.id);
       await conversationRuntime.quiesce(target.id, async () => {
         // Lazy import avoids making the Agent's port construction import its own runtime.
         const { discardAgentThread } = await import("../features/ai/agent/agent-runtime");

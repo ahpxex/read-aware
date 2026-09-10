@@ -1,5 +1,13 @@
 {
   "chat": {
+    "turnRequest": {
+      "draft": "下書きを使う",
+      "send": "提案されたメッセージを送信",
+      "retry": "最後のメッセージを再試行",
+      "dismiss": "リクエストを閉じる",
+      "agent": "Agent",
+      "failed": "会話のリクエストに失敗しました"
+    },
     "messageLabel": "メッセージ",
     "placeholder": "この本について質問…",
     "placeholderWithPassage": "この一節について質問…",

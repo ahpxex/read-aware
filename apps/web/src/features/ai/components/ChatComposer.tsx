@@ -13,13 +13,14 @@ import { useTranslation } from "../../../i18n";
 import type { ChatSelectionAttachment } from "../lib/chat-types";
 import { AttachmentChip } from "./AttachmentChip";
 
-export type ChatComposerHandle = { focus: () => void };
+export type ChatComposerHandle = { focus: () => void; adoptDraft: (text: string) => boolean };
 
 type ChatComposerProps = {
   isStreaming: boolean;
+  disabled?: boolean;
   pendingAttachment: ChatSelectionAttachment | null;
   onRemoveAttachment: () => void;
-  onSend: (text: string) => void;
+  onSend: (text: string) => boolean | void;
   onStop: () => void;
 };
 
@@ -32,11 +33,13 @@ const MAX_HEIGHT = 160;
  */
 export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
   function ChatComposer(
-    { isStreaming, pendingAttachment, onRemoveAttachment, onSend, onStop },
+    { isStreaming, disabled = false, pendingAttachment, onRemoveAttachment, onSend, onStop },
     ref,
   ) {
     const { t } = useTranslation("ai");
     const [value, setValue] = useState("");
+    const valueRef = useRef(value);
+    valueRef.current = value;
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const composingRef = useRef(false);
 
@@ -44,7 +47,15 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
     // off-screen) would otherwise scroll it into view and drift the whole overlay.
     useImperativeHandle(
       ref,
-      () => ({ focus: () => textareaRef.current?.focus({ preventScroll: true }) }),
+      () => ({
+        focus: () => textareaRef.current?.focus({ preventScroll: true }),
+        adoptDraft: text => {
+          if (valueRef.current.length > 0) return false;
+          valueRef.current = text; setValue(text);
+          textareaRef.current?.focus({ preventScroll: true });
+          return true;
+        },
+      }),
       [],
     );
 
@@ -60,11 +71,12 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
       el.style.height = `${Math.min(el.scrollHeight, MAX_HEIGHT)}px`;
     }, [value]);
 
-    const canSend = (value.trim().length > 0 || !!pendingAttachment) && !isStreaming;
+    const canSend = (value.trim().length > 0 || !!pendingAttachment) && !isStreaming && !disabled;
 
     function submit() {
       if (!canSend) return;
-      onSend(value);
+      if (onSend(value) === false) return;
+      valueRef.current = "";
       setValue("");
     }
 
@@ -112,7 +124,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
               ref={textareaRef}
               rows={1}
               value={value}
-              onChange={(event) => setValue(event.target.value)}
+              onChange={(event) => { valueRef.current = event.target.value; setValue(event.target.value); }}
               onKeyDown={handleKeyDown}
               onCompositionStart={() => {
                 composingRef.current = true;

@@ -359,6 +359,9 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   const bookClassification = createBookClassificationFixture(books);
   const deps: RuntimeDeps = {
     conversationControl: {
+      turnRequests: async () => [],
+      requestTurn: async request => ({ id: "request-fixture", target: request.target, action: request.action, status: "pending", createdAt: 0 }),
+      cancelTurnRequest: async () => { throw new AppError("ui/invalid-target", "Attach a conversation request fixture"); },
       snapshot: async () => ({ revision: 0, selectedGlobalThreadId: "__global__", sessions: [] }),
       listThreads: async () => [],
       createThread: async () => ({ status: "completed", target: { kind: "global", id: `thread-${crypto.randomUUID()}` }, draft: true }),

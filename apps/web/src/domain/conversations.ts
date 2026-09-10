@@ -10,7 +10,7 @@ import {
   loadConversation,
 } from "../features/ai/lib/conversation-store";
 import { CONVERSATION_EVENTS, domainSubscribe, type DomainEventSubscribe } from "./events";
-import { conversationCommands, conversationSnapshot, observeConversations } from "./conversation-control";
+import { conversationCommands, conversationSnapshot, conversationTurnRequests, observeConversations } from "./conversation-control";
 
 function toMessages(
   messages: Awaited<ReturnType<typeof loadConversation>>,
@@ -26,6 +26,7 @@ function toMessages(
 }
 
 export type ConversationQueries = {
+  turnRequests(): Promise<import("@read-aware/core").ConversationTurnRequestSnapshot[]>;
   runtime(): Promise<import("@read-aware/core").ConversationRuntimeSnapshot>;
   /** The book's persistent thread, oldest first; empty when none. */
   getBookThread(bookId: string): Promise<ChatMessageSummary[]>;
@@ -46,6 +47,7 @@ export type ConversationsDomain = {
 export function createConversationsDomain(origin: EventOrigin): ConversationsDomain {
   return {
     queries: {
+      turnRequests: async () => conversationTurnRequests.list(origin),
       runtime: async () => conversationSnapshot(),
       getBookThread: async (bookId) => toMessages(await loadConversation(String(bookId))),
       listThreads: async () =>

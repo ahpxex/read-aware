@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { buildPluginContext } from "../features/plugins/runtime/plugin-context";
 import type { PluginPermission } from "@read-aware/plugin-types";
-import { conversationCommands, conversationSnapshot } from "./conversation-control";
+import { conversationCommands, conversationSnapshot, conversationTurnRequests } from "./conversation-control";
 import { selectGlobalThread } from "../features/ai/state/global-thread";
 import { saveConversation, clearConversation } from "../features/ai/lib/conversation-store";
 
@@ -16,6 +16,7 @@ test("conversation reads, runtime observations and controls follow separate gran
   expect(actor([]).context.domains.conversations).toBeUndefined();
   const read = actor(["conversations:read"]).context.domains.conversations!;
   expect(read.queries.runtime).toBeFunction(); expect(read.commands).toBeUndefined();
+  expect(read.queries.turnRequests).toBeFunction();
   const snapshots: unknown[] = [], off = read.events.observeRuntime(snapshot => snapshots.push(snapshot));
   expect(snapshots).toHaveLength(1); off.dispose();
   const runtime = actor(["conversations:write"]), write = runtime.context.domains.conversations!;
@@ -23,6 +24,23 @@ test("conversation reads, runtime observations and controls follow separate gran
   await expect(write.commands!.selectThread("not-a-global-thread")).rejects.toMatchObject({ code: "ui/invalid-target" });
   runtime.lifecycle.stop(); expect(() => write.commands!.createThread()).toThrow();
   expect(() => write.commands!.stop({ kind: "book", id: "b1" })).toThrow();
+});
+
+test("plugin turn proposals only expose actor-owned outcomes and retirement cancels pending confirmation", async () => {
+  const target = { kind: "book" as const, id: "bound-book" }, generation = {};
+  let sends = 0;
+  cleanups.push(conversationTurnRequests.bind(target, {
+    state: () => ({ loading: false, ready: true, generation, canRetry: true }),
+    draft: () => true, send: () => { sends++; return true; }, retry: () => true,
+  }));
+  const runtime = actor(["conversations:write"]), domain = runtime.context.domains.conversations!;
+  const request = await domain.commands!.requestTurn({ target, action: "send", text: "Please review before sending" });
+  expect(request.status).toBe("pending"); expect(sends).toBe(0);
+  expect((await domain.queries.turnRequests()).at(-1)).toMatchObject({ id: request.id, status: "pending" });
+  expect(conversationTurnRequests.list("plugin:foreign")).toEqual([]);
+  runtime.lifecycle.stop();
+  expect(conversationTurnRequests.list("plugin:conversation-permissions").at(-1)?.status).toBe("cancelled");
+  expect(() => conversationTurnRequests.accept(request.id)).toThrow(); expect(sends).toBe(0);
 });
 
 test("global drafts select durably, existing threads can be selected, and failed selection keeps the predecessor", async () => {

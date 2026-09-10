@@ -5,6 +5,8 @@ import type { ChatReadingCursor, ChatSelectionAttachment } from "../lib/chat-typ
 import { askAiRequestAtom } from "../state/chat-intent";
 import { ChatComposer, type ChatComposerHandle } from "./ChatComposer";
 import { ChatTranscript } from "./ChatTranscript";
+import { ChatTurnRequest } from "./ChatTurnRequest";
+import { useConversationTurnRequests } from "../hooks/useConversationTurnRequests";
 
 /**
  * The book's AI conversation, rendered as panel content (the note panel owns the
@@ -36,6 +38,7 @@ export function ChatPanel({
   const [pendingAttachment, setPendingAttachment] =
     useState<ChatSelectionAttachment | null>(null);
   const composerRef = useRef<ChatComposerHandle | null>(null);
+  const turnRequests = useConversationTurnRequests({ kind: "book", id: bookId }, conversation, composerRef);
 
   // Focus the composer when the host reports the panel was just opened (a frame
   // later, after the slide-in has started so focus lands cleanly).
@@ -52,11 +55,11 @@ export function ChatPanel({
   useEffect(() => {
     if (!askAiRequest || askAiRequest.bookId !== bookId) return;
     if (askAiRequest.id === lastConsumedIdRef.current) return;
-    lastConsumedIdRef.current = askAiRequest.id;
     if (askAiRequest.prompt) {
-      conversation.send(askAiRequest.prompt);
+      if (conversation.send(askAiRequest.prompt)) lastConsumedIdRef.current = askAiRequest.id;
       return;
     }
+    lastConsumedIdRef.current = askAiRequest.id;
     setPendingAttachment(askAiRequest.attachment ?? null);
     // Defer focus a frame: the shell switches to this tab off the same dispatch,
     // so the composer may still be in a hidden (display:none) tab panel right now.
@@ -65,8 +68,9 @@ export function ChatPanel({
   }, [askAiRequest, bookId, conversation]);
 
   function handleSend(text: string) {
-    conversation.send(text, pendingAttachment ? [pendingAttachment] : undefined);
-    setPendingAttachment(null);
+    const accepted = conversation.send(text, pendingAttachment ? [pendingAttachment] : undefined);
+    if (accepted) setPendingAttachment(null);
+    return accepted;
   }
 
   return (
@@ -79,8 +83,11 @@ export function ChatPanel({
         status={conversation.status}
         onRetry={conversation.retry}
       />
+      <ChatTurnRequest request={turnRequests.request} onAccept={turnRequests.accept} onDismiss={turnRequests.dismiss} />
       <ChatComposer
+        key={bookId}
         ref={composerRef}
+        disabled={conversation.isLoading}
         isStreaming={conversation.isStreaming}
         pendingAttachment={pendingAttachment}
         onRemoveAttachment={() => setPendingAttachment(null)}

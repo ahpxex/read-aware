@@ -7,25 +7,20 @@
  * the guided-reading unit), which is why they belong together: the target
  * differs, the action does not.
  *
- * The note editor's state and the annotations
- * revision signal live here too — they were only ever touched by these actions,
- * so keeping them outside would have meant passing more handles in.
+ * Note draft lifetime and conditional saving live in useReaderNoteEditor.
  * Default mark colour is read at action time from shared preferences.
  */
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import type { RefObject } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
 import { selectionActionsAtom } from "../../plugins/state/plugin-store";
 import { runPluginContribution } from "../../plugins/lib/run-result";
 import type { SelectionActionInput, SelectionActionSource } from "../../plugins/lib/plugin-types";
-import {
-  createHighlight,
-  createNote,
-  deleteAnnotation,
-  recolorHighlight,
-  updateNote,
-} from "../../annotations/lib/annotation-db";
+import { createHighlight } from "../../annotations/lib/annotation-db";
+import { changeObservedAnnotation } from "../../annotations/lib/native-annotation-mutations";
+import { useReaderNoteEditor } from "./useReaderNoteEditor";
+import type { ActionTarget } from "../lib/reader-types";
 import {
   getDefaultMarkColor,
   setDefaultMarkColor,
@@ -38,13 +33,6 @@ import { describeError, useTranslation } from "../../../i18n";
 import { createLogger } from "../../../platform/logger";
 
 const log = createLogger("reader");
-
-/** A passage an action applies to, wherever it came from. */
-export type ActionTarget = {
-  text: string;
-  cfiRange: string | null;
-  chapterHref: string | null;
-};
 
 /** The annotation the reader tapped, with the rect its menu anchors to. */
 export type ActiveAnnotation = {
@@ -113,9 +101,12 @@ export function useReaderTextActions({
   const lookupAction =
     pluginSelectionActions.find((action) => action.role === "lookup" && action.state?.visible !== false && action.state?.enabled !== false) ?? null;
 
-  const [noteTarget, setNoteTarget] = useState<ActionTarget | null>(null);
-  const [noteEditorOpen, setNoteEditorOpen] = useState(false);
-  const [currentNote, setCurrentNote] = useState<Note | null>(null);
+  const reportNoteFailure = useCallback((error: unknown) => {
+    log.error("failed to save note", error);
+    failToastRef.current("annotations.noteSaveFailed", error);
+  }, []);
+  const noteEditor = useReaderNoteEditor(selectedBook?.id, clearSelection, reportNoteFailure);
+  const openNoteEditorFor = noteEditor.open;
 
   const copyTargetText = useCallback(async (text: string) => {
     if (!text) return;
@@ -126,12 +117,6 @@ export function useReaderTextActions({
     }
   }, []);
 
-  const openNoteEditorFor = useCallback((target: ActionTarget) => {
-    setNoteTarget(target);
-    setCurrentNote(null);
-    setNoteEditorOpen(true);
-  }, []);
-
   /** Open the note editor for a passage — editing the note already on it, if any. */
   const openNoteEditorForPassage = useCallback(
     (target: ActionTarget) => {
@@ -139,13 +124,11 @@ export function useReaderTextActions({
         ? notesRef.current?.find((note) => note.cfiRange === target.cfiRange)
         : undefined;
       if (existing) {
-        setNoteTarget({
+        openNoteEditorFor({
           text: existing.text,
           cfiRange: existing.cfiRange,
           chapterHref: existing.chapterHref,
-        });
-        setCurrentNote(existing);
-        setNoteEditorOpen(true);
+        }, existing);
       } else {
         openNoteEditorFor(target);
       }
@@ -159,14 +142,12 @@ export function useReaderTextActions({
    * here the note is already in hand.
    */
   const openExistingNote = useCallback((note: Note) => {
-    setNoteTarget({
+    openNoteEditorFor({
       text: note.text,
       cfiRange: note.cfiRange,
       chapterHref: note.chapterHref,
-    });
-    setCurrentNote(note);
-    setNoteEditorOpen(true);
-  }, []);
+    }, note);
+  }, [openNoteEditorFor]);
 
   const pluginInputFor = useCallback(
     (
@@ -315,7 +296,7 @@ export function useReaderTextActions({
       try {
         // Persist the default before recoloring; failed preferences use the same error surface.
         await setDefaultMarkColor(color);
-        await recolorHighlight(activeAnnotation.highlight, color);
+        await changeObservedAnnotation(activeAnnotation.highlight, { op: "recolorHighlight", color });
       } catch (recolorError) {
         log.error("failed to recolor annotation", recolorError);
         failToastRef.current("annotations.updateFailed", recolorError);
@@ -329,7 +310,7 @@ export function useReaderTextActions({
     if (!activeAnnotation) return;
     const { highlight } = activeAnnotation;
     try {
-      await deleteAnnotation(highlight.id);
+      await changeObservedAnnotation(highlight, { op: "remove" });
     } catch (removeError) {
       log.error("failed to remove annotation", removeError);
       failToastRef.current("annotations.deleteFailed", removeError);
@@ -412,48 +393,6 @@ export function useReaderTextActions({
     [activeAnnotationTarget, navigatorTarget, pluginInputFor, selection],
   );
 
-  // ── The note editor these actions open ────────────────────────────────────
-
-  const handleSaveNote = useCallback(
-    async (content: string) => {
-      if (!noteTarget || !selectedBook) return;
-      try {
-        if (currentNote) {
-          await updateNote(currentNote.id, content);
-        } else {
-          await createNote(
-            selectedBook.id,
-            noteTarget.cfiRange,
-            noteTarget.chapterHref,
-            noteTarget.text,
-            content,
-          );
-        }
-        setNoteEditorOpen(false);
-        setNoteTarget(null);
-        setCurrentNote(null);
-        clearSelection();
-      } catch (noteError) {
-        // The editor stays open with the draft intact; the toast says why.
-        log.error("failed to save note", noteError);
-        failToastRef.current("annotations.noteSaveFailed", noteError);
-      }
-    },
-    [
-      clearSelection,
-      currentNote,
-      noteTarget,
-      selectedBook,
-    ],
-  );
-
-  const closeNoteEditor = useCallback(() => {
-    setNoteEditorOpen(false);
-    setNoteTarget(null);
-    setCurrentNote(null);
-    clearSelection();
-  }, [clearSelection]);
-
   return {
     copyTargetText,
     // selection
@@ -475,12 +414,6 @@ export function useReaderTextActions({
     openExistingNote,
     pluginInputForSource,
     // note editor
-    noteEditor: {
-      isOpen: noteEditorOpen,
-      target: noteTarget,
-      current: currentNote,
-      save: handleSaveNote,
-      close: closeNoteEditor,
-    },
+    noteEditor,
   };
 }

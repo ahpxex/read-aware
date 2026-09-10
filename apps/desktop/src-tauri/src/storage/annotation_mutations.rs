@@ -29,19 +29,26 @@ fn read_snapshot(conn: &Connection, id: &str) -> Result<Option<AnnotationSnapsho
     else {
         return Ok(None);
     };
+    snapshot_for_annotation(conn, annotation).map(Some)
+}
+
+pub(crate) fn snapshot_for_annotation(
+    conn: &Connection,
+    annotation: Annotation,
+) -> Result<AnnotationSnapshot, CommandError> {
     // A state hash alone misses ABA when equal-millisecond writes restore the old
     // bytes. Include the newest locally appended annotation event identity. Tokens
     // deliberately need not survive log replacement or transfer between devices.
     let event: Option<String> = conn.query_row(
         "SELECT id FROM domain_events WHERE aggregate_id=?1 AND aggregate_type IN ('note','highlight','ask') ORDER BY rowid DESC LIMIT 1",
-        [id], |row| row.get(0)).optional()?;
+        [&annotation.id], |row| row.get(0)).optional()?;
     let bytes = serde_json::to_vec(&(&annotation, event))
         .map_err(|error| CommandError::internal(error.to_string()))?;
     let revision = format!("ann1:{:x}", Sha256::digest(bytes));
-    Ok(Some(AnnotationSnapshot {
+    Ok(AnnotationSnapshot {
         annotation,
         revision,
-    }))
+    })
 }
 
 pub(crate) fn annotation_inspect_inner(

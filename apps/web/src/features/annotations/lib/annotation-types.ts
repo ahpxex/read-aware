@@ -22,6 +22,9 @@ export interface BaseAnnotation {
   text: string;
   createdAt: string;
   updatedAt: string;
+  /** Device-local read token, not persisted annotation content. Native observed
+   * lists include it; create/search/legacy objects are not editable snapshots. */
+  readonly revision?: string;
 }
 
 export interface Highlight extends BaseAnnotation {

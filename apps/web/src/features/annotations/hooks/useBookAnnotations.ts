@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { errorCode } from "@read-aware/core";
 import type { Annotation } from "../lib/annotation-types";
-import { userDomain } from "../../../domain";
+import { changeObservedAnnotation } from "../lib/native-annotation-mutations";
 import { observeBookAnnotations } from "../../../domain/annotations";
 import { createLogger } from "../../../platform/logger";
 
@@ -39,14 +39,7 @@ export function useBookAnnotations(bookId: string | null | undefined) {
     async (id: string) => {
       const target = annotations.find((a) => a.id === id);
       if (!target) return;
-      // Domain commands own persistence and origin; observation converges all writers.
-      if (target.type === "highlight") {
-        await userDomain.annotations.commands.removeHighlight(id);
-      } else if (target.type === "note") {
-        await userDomain.annotations.commands.removeNote(id);
-      } else {
-        await userDomain.annotations.commands.removeAsk(id);
-      }
+      await changeObservedAnnotation(target, { op: "remove" });
     },
     [annotations, bookId],
   );

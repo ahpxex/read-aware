@@ -73,6 +73,34 @@ fn count(conn: &Connection, table: &str) -> i64 {
 }
 
 #[test]
+fn native_observed_rows_share_inspect_tokens_and_detect_equal_millisecond_aba() {
+    let mut conn = db();
+    commit_events_inner(&mut conn, &[event("n", "note.created", "n", "original", 1)]).unwrap();
+    let rows = super::super::annotations::annotations_observe_inner(&mut conn, Some("book")).unwrap();
+    assert_eq!(rows.len(), 1);
+    let observed = &rows[0];
+    assert_eq!(observed.revision, condition(&mut conn, "n").expected_revision);
+    let json = serde_json::to_value(observed).unwrap();
+    assert_eq!(json["id"], "n");
+    assert_eq!(json["type"], "note");
+    assert_eq!(json["bookId"], "book");
+    assert!(json.get("annotation").is_none());
+    assert!(json["revision"].as_str().unwrap().starts_with("ann1:"));
+    commit_events_inner(&mut conn, &[
+        event("away", "note.updated", "n", "changed", 2),
+        event("back", "note.updated", "n", "original", 3),
+    ]).unwrap();
+    let next = super::super::annotations::annotations_observe_inner(&mut conn, Some("book")).unwrap();
+    assert_eq!(observed.annotation.content, next[0].annotation.content);
+    assert_ne!(observed.revision, next[0].revision);
+    let result = annotations_commit_inner(&mut conn, &[event("stale", "note.updated", "n", "lost update", 4)],
+        &[AnnotationCondition { annotation_id: "n".into(), expected_revision: observed.revision.clone() }]);
+    assert_eq!(result.unwrap_err().code, "annotations/conflict");
+    assert_eq!(count(&conn, "domain_events"), 3);
+    assert_eq!(body(&mut conn, "n"), "original");
+}
+
+#[test]
 fn annotation_cas_atomic_batch_updates_recolors_deletes_and_preserves_event_origin() {
     let mut conn = db();
     commit_events_inner(

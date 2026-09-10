@@ -16,6 +16,7 @@ export interface NoteEditorProps {
   onCancel: () => void;
   onDelete?: () => void;
   isEditing?: boolean;
+  isSaving?: boolean;
 }
 
 export function NoteEditor({
@@ -26,6 +27,7 @@ export function NoteEditor({
   onCancel,
   onDelete,
   isEditing = false,
+  isSaving = false,
 }: NoteEditorProps) {
   const { t } = useTranslation("ai");
   const [content, setContent] = useState(initialContent);
@@ -71,13 +73,14 @@ export function NoteEditor({
             onChange={(e) => setContent(e.target.value)}
             placeholder={t("note.placeholder")}
             rows={6}
+            disabled={isSaving}
             autoFocus
           />
         </div>
 
         <div className="flex items-center justify-between border-t border-border px-5 py-3">
           {isEditing && onDelete ? (
-            <Button variant="danger" size="sm" onClick={onDelete}>
+            <Button variant="danger" size="sm" onClick={onDelete} disabled={isSaving}>
               {t("note.delete")}
             </Button>
           ) : (
@@ -90,7 +93,8 @@ export function NoteEditor({
             <Button
               size="sm"
               onClick={() => onSave(content)}
-              disabled={!content.trim()}
+              disabled={isSaving || !content.trim()}
+              aria-busy={isSaving}
             >
               {isEditing ? t("note.update") : t("note.save")}
             </Button>

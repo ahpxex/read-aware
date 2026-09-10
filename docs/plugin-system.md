@@ -250,8 +250,55 @@ notes do not overwrite it. Operations are awaited in order, retirement prevents
 subsequent operations, and a failed anchor is logged without preventing other
 marks from rendering. Navigator overlays retain their own namespace. Changing
 the selected highlight closes its stale menu, but observation does not replace
-an open note editor's draft. Native legacy note/menu writes still need migration
-to conditional writes; this is not the plugin editor's existing conflict proof.
+an open note editor's draft. Native note/menu/list mutations now use the displayed
+snapshot's conditional token, as specified below; legacy public single-item
+commands still do not require a caller-provided revision.
+
+### Native Annotation Writes
+
+[代码] Native `annotations_list` captures displayed rows and their `ann1` tokens
+in one SQLite read transaction. Its flat DTO adds a read-only `revision` field;
+the token uses the same `snapshot_for_annotation` as public inspect, including
+the latest locally appended annotation event identity to detect same-millisecond
+ABA. The persisted Annotation row and event schema do not gain that field.
+Create/get/search/legacy objects without a token are not editable snapshots;
+native mutation helpers reject them instead of fetching a fresh pre-save token.
+Whole-book reads remain proportional to annotation count, now including event
+identity lookup per row; this is not a new bounded Worker list contract.
+
+[代码] Native note editing, highlight recolor/delete, and Notes/book-details
+list deletion use the common conditional transaction with origin `user`.
+Recolor changes only the requested color, not a style copied from an old menu.
+New note/highlight creation retains the existing creation path. `useReaderNoteEditor`
+owns a cloned target/note/token and a draft generation. Observations never rebase
+that draft; conflict and storage failures retain it. Repeated synchronous save
+calls are suppressed while saving, the textarea and submit button are disabled,
+and an old save's completion cannot close or clear a new draft. Changing books,
+closing or unmounting retires the UI generation, but does not roll back a write
+already dispatched. Explicitly opening another draft remounts the editor content,
+even if its initial body happens to equal the preceding note's body.
+
+[环境] [Native CAS evidence](./evidence/native-annotation-cas-2026-09-10.json)
+verifies real desktop textarea input and Update/Cancel controls: a Worker note
+edit and a separate actual Agent `edit_annotation` both make the open old native
+draft conflict, preserve its text and leave the competing value intact. Closing
+and reopening reads the newer value and permits a normal conditional save.
+The native helper also rejects stale highlight recolor/delete after Worker
+recolor; a fresh observed token allows deletion. That helper test is not a
+pointer-driven menu or independent book-details E2E test. Rust verifies native
+list/inspect token identity and equal-millisecond ABA; React tests cover duplicate
+save, old callback/completion, replacement drafts and book change.
+
+[环境] Two real SQLite lock attempts returned `db/locked` and one exceeded the
+bridge script wait; they did NOT capture a successfully delayed save completion
+or painted busy state. That exact native cancellation/reopen race remains
+unverified despite the React regression. A dev reload also lost the first
+fixture's in-memory handles and logged a window-listener teardown rejection;
+its known owned rows were removed through domain commands before a fresh run.
+No autonomous inference, relay/cross-device, packaged, maximum-book-load or
+Windows/Linux claim is made. Native menu/selection completion ownership beyond
+the note editor, legacy public unconditional commands and unified Range remain
+separate unfinished work.
 
 [环境] The [native evidence](./evidence/annotation-observation-2026-09-10.json)
 covers real SQLite, four WebKit Workers, actual Agent queries and compiled

@@ -1,0 +1,245 @@
+{
+  "date": "2026-09-10",
+  "scope": "Native displayed annotation revisions, conditional writes and independent note drafts",
+  "environment": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "platform": "macOS Tauri debug",
+    "frontend": 5184,
+    "bridge": 9224,
+    "execSession": 38169,
+    "processGroup": 23957,
+    "terminalExit": 143,
+    "worker": "Real module Worker via existing reader annotation fixture",
+    "agent": "Actual edit_annotation and get_annotations tools; invoked programmatically, no model inference"
+  },
+  "initialRead": {
+    "annotations": [
+      {
+        "bookId": "0f50561d-00de-4c12-8507-6f608cd75f84",
+        "cfiRange": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+        "chapterHref": null,
+        "content": "Initial native note",
+        "createdAt": "2026-09-10T02:00:07.235Z",
+        "id": "a394842a-aadb-43c6-baae-39f07b890176",
+        "revision": "ann1:4eba26780f22159bd91e7dc1d49417114d3f3b8b9d367a15d04d78fc91c981a8",
+        "text": "Shared annotation target",
+        "type": "note",
+        "updatedAt": "2026-09-10T02:00:07.235Z"
+      }
+    ],
+    "seed": {
+      "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+      "bookId": "0f50561d-00de-4c12-8507-6f608cd75f84",
+      "chapterHref": "",
+      "noteId": "a394842a-aadb-43c6-baae-39f07b890176",
+      "otherBookId": "40d22066-00ae-4e6a-9e6a-f0aff0d81404"
+    }
+  },
+  "seed": {
+    "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+    "bookId": "4ff5d7e4-0c67-4dc1-9468-8f910a13b095",
+    "chapterHref": "",
+    "noteId": "64381128-620b-400f-8d70-1179abf89e8a",
+    "otherBookId": "5c173627-3450-40d8-9b8a-f471d7709aab"
+  },
+  "workerConflict": {
+    "agent": {
+      "consistency": "live",
+      "items": [
+        {
+          "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+          "body": "Worker note changed",
+          "bookId": "4ff5d7e4-0c67-4dc1-9468-8f910a13b095",
+          "createdAt": "2026-09-10T02:01:06.011Z",
+          "id": "64381128-620b-400f-8d70-1179abf89e8a",
+          "kind": "note",
+          "quotedText": "Shared annotation target",
+          "updatedAt": "2026-09-10T02:01:16.318Z"
+        }
+      ],
+      "nextCursor": null
+    },
+    "draft": "My native draft must survive another writer.",
+    "overflow": false,
+    "text": "\nEdit Note\n\n“Shared annotation target”\nYour note\n\nCancel\nUpdate\n\nShelf\n\nContents\n\nNotes\nNative annotation observation 372cd09e-8649-4d5b-b462-d560316146d7\n0 / 1 · 100%\n\nRead by sentence or paragraph\n\nReading appearance\n\nChat\n\nMore\n\nShared annotations\nAsk about this book\nSelect a passage and choose Ask AI, or just start typing. This conversation stays with the book.\n\n"
+  },
+  "conflictToast": {
+    "draft": "My native draft must survive another writer.",
+    "text": "\nEdit Note\n\n“Shared annotation target”\nYour note\n\nCancel\nUpdate\n\nShelf\n\nContents\n\nNotes\nNative annotation observation 372cd09e-8649-4d5b-b462-d560316146d7\n0 / 1 · 100%\n\nRead by sentence or paragraph\n\nReading appearance\n\nChat\n\nMore\n\nShared annotations\nAsk about this book\nSelect a passage and choose Ask AI, or just start typing. This conversation stays with the book.\n\nCouldn't save the note\nThis annotation changed. Read it again before applying your changes.\n"
+  },
+  "reopenedSave": {
+    "agent": {
+      "consistency": "live",
+      "items": [
+        {
+          "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+          "body": "Native conditional edit committed.",
+          "bookId": "4ff5d7e4-0c67-4dc1-9468-8f910a13b095",
+          "createdAt": "2026-09-10T02:01:06.011Z",
+          "id": "64381128-620b-400f-8d70-1179abf89e8a",
+          "kind": "note",
+          "quotedText": "Shared annotation target",
+          "updatedAt": "2026-09-10T02:02:02.786Z"
+        }
+      ],
+      "nextCursor": null
+    },
+    "editorOpen": false
+  },
+  "highlightConditionalHelper": {
+    "after": {
+      "bookId": "4ff5d7e4-0c67-4dc1-9468-8f910a13b095",
+      "cfiRange": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+      "chapterHref": "",
+      "color": "blue",
+      "createdAt": "2026-09-10T02:02:03.172Z",
+      "id": "0cca7092-3fe2-4a0a-8845-04b9c3fef5c0",
+      "revision": "ann1:a097c7b61b649546fa8e851a395ec7b5b5a8453148adaf0ac0127a654992847e",
+      "style": "underline",
+      "text": "Shared annotation target",
+      "type": "highlight",
+      "updatedAt": "2026-09-10T02:02:04.176Z"
+    },
+    "agent": {
+      "consistency": "live",
+      "items": [
+        {
+          "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+          "body": "Native conditional edit committed.",
+          "bookId": "4ff5d7e4-0c67-4dc1-9468-8f910a13b095",
+          "createdAt": "2026-09-10T02:01:06.011Z",
+          "id": "64381128-620b-400f-8d70-1179abf89e8a",
+          "kind": "note",
+          "quotedText": "Shared annotation target",
+          "updatedAt": "2026-09-10T02:02:02.786Z"
+        }
+      ],
+      "nextCursor": null
+    },
+    "errors": [
+      "annotations/conflict",
+      "annotations/conflict"
+    ],
+    "old": {
+      "bookId": "4ff5d7e4-0c67-4dc1-9468-8f910a13b095",
+      "cfiRange": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+      "chapterHref": "",
+      "color": "yellow",
+      "createdAt": "2026-09-10T02:02:03.172Z",
+      "id": "0cca7092-3fe2-4a0a-8845-04b9c3fef5c0",
+      "revision": "ann1:6e72febdbfff9ba8395b97e3d3f72a1dc8705e1795bf91cf4fbb407850f6c87f",
+      "style": "highlight",
+      "text": "Shared annotation target",
+      "type": "highlight",
+      "updatedAt": "2026-09-10T02:02:03.172Z"
+    }
+  },
+  "agentWrite": {
+    "content": [
+      {
+        "text": "{\"updated\":true,\"annotationId\":\"64381128-620b-400f-8d70-1179abf89e8a\",\"body\":\"Actual Agent tool changed this note.\"}",
+        "type": "text"
+      }
+    ]
+  },
+  "agentConflict": {
+    "agent": {
+      "consistency": "live",
+      "items": [
+        {
+          "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+          "body": "Actual Agent tool changed this note.",
+          "bookId": "4ff5d7e4-0c67-4dc1-9468-8f910a13b095",
+          "createdAt": "2026-09-10T02:01:06.011Z",
+          "id": "64381128-620b-400f-8d70-1179abf89e8a",
+          "kind": "note",
+          "quotedText": "Shared annotation target",
+          "updatedAt": "2026-09-10T02:02:55.435Z"
+        }
+      ],
+      "nextCursor": null
+    },
+    "draft": "Draft concurrent with actual Agent tool.",
+    "text": "\nEdit Note\n\n“Shared annotation target”\nYour note\n\nCancel\nUpdate\n\nShelf\n\nContents\n\nNotes\nNative annotation observation 372cd09e-8649-4d5b-b462-d560316146d7\n0 / 1 · 100%\n\nRead by sentence or paragraph\n\nReading appearance\n\nChat\n\nMore\n\nShared annotations\nAsk about this book\nSelect a passage and choose Ask AI, or just start typing. This conversation stays with the book.\n\nCouldn't save the note\nThis annotation changed. Read it again before applying your changes.\n"
+  },
+  "lockAttempts": {
+    "sqliteSessions": [
+      49226,
+      64064
+    ],
+    "transactions": "BEGIN IMMEDIATE with no row/schema changes; ROLLBACK and .quit, both terminal",
+    "firstBusySample": {
+      "busy": "false",
+      "disabled": false
+    },
+    "secondBusySample": {
+      "busy": "false",
+      "disabled": false
+    },
+    "afterSecondAttempt": {
+      "agent": {
+        "consistency": "live",
+        "items": [
+          {
+            "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+            "body": "Actual Agent tool changed this note.",
+            "bookId": "4ff5d7e4-0c67-4dc1-9468-8f910a13b095",
+            "createdAt": "2026-09-10T02:01:06.011Z",
+            "id": "64381128-620b-400f-8d70-1179abf89e8a",
+            "kind": "note",
+            "quotedText": "Shared annotation target",
+            "updatedAt": "2026-09-10T02:02:55.435Z"
+          }
+        ],
+        "nextCursor": null
+      },
+      "draft": "Replacement draft survives the earlier save.",
+      "editorOpen": true
+    },
+    "outcome": "annotations_commit rejected db/locked; the second JS click evaluation exceeded bridge timeout. This did not prove successful delayed completion or a painted busy state. Existing note body stayed unchanged. Precise duplicate-save/replacement-draft completion is React unit evidence only."
+  },
+  "cleanup": {
+    "cleanup": {
+      "contributions": 0
+    },
+    "cleanupError": "db/locked",
+    "pending": [],
+    "recovery": {
+      "agent": {
+        "consistency": "live",
+        "items": [
+          {
+            "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+            "body": "Replacement draft survives the earlier save.",
+            "bookId": "4ff5d7e4-0c67-4dc1-9468-8f910a13b095",
+            "createdAt": "2026-09-10T02:01:06.011Z",
+            "id": "64381128-620b-400f-8d70-1179abf89e8a",
+            "kind": "note",
+            "quotedText": "Shared annotation target",
+            "updatedAt": "2026-09-10T02:05:56.616Z"
+          }
+        ],
+        "nextCursor": null
+      },
+      "editorOpen": true
+    }
+  },
+  "finalSql": "books|0\nannotations|0\nfts|0\ncleanup|0\npending|0",
+  "boundaries": [
+    "The first fixture's in-memory state was lost on a dev reload after a test-file edit; its two known book IDs were removed through the library domain before a new fixture. Reload also logged a useWindowMaximized native unlisten rejection; not fixed or relabeled as a CAS failure.",
+    "Initial note editor open used the production show-annotation event, not an anchor pointer hit-test. Conflict/recovery used actual native textarea and Update/Cancel controls. Highlight tests invoked the production native helper against real SQLite, not the visible highlight menu.",
+    "Final cleanup first surfaced db/locked from a reading accrual failed during lock injection, then a second cleanup finished after reader release; no fixture flush workaround. All four owned books, annotations, FTS and removal intents were zero, as was device pending total after process termination.",
+    "cleanup.recovery.editorOpen was sampled before its awaited Agent read and used an unqualified textarea selector; it is not proof of final editor visibility. The earlier reopenedSave independently verifies the specific note-editor textarea closed after success.",
+    "Whole-book snapshots now also look up a local event identity per annotation; maximum size/performance not verified. Legacy public unconditional commands, unified Range, other native action-completion ownership and exact delayed-ack native race remain.",
+    "No packaged, Windows/Linux, autonomous inference, real network sync/cross-device or maximum-load verification. Overall goal remains active."
+  ],
+  "validation": {
+    "focused": "3 TS tests / 22 assertions; native snapshot ABA test added",
+    "fullTests": "24/24 tasks; web 938 tests / 10178 assertions / 169 files",
+    "rust": "158 passed / 1 existing ignored / 0 failed",
+    "typecheck": "27/27 tasks passed after final ActionTarget type relocation",
+    "build": "Production frontend build passed; existing large-chunk warning retained",
+    "inventory": "11 tests / 35 assertions passed on continuation recheck",
+    "documents": "Matrix, model and plugin-system HTML inspected at 1440x1000, 1024x768 and 390x844; no document overflow. Model token/Chinese search returned 3/1 entries, Escape restored 57; plugin annotation/Chinese search returned 2/2 sections, Escape restored 19. Model drawer inert cleanup and light-theme reload persistence passed. No duplicate IDs, broken internal anchors, unnamed buttons or console errors on checked model/plugin pages; observed CDN requests 200. Matrix checks retained from preceding execution. Owned page 9 closed; documentation rendering is not product E2E."
+  }
+}

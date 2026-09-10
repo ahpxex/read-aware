@@ -209,7 +209,7 @@
         <details class="ep" data-search-section="annotation observation ANN09 标注 观察 同步 草稿"><summary>Annotations 1.4：列表观察变化，编辑草稿保持独立</summary><div class="ep-body">
           <p>events.observe(page/inspect) 提供初始快照、变化、错误与恢复，包含无本地广播的同步投影；读与回调结算后一秒重读，64 个订阅上限，关闭/退役释放。Agent 按需读取同源结果，不新增常驻模型订阅。</p>
           <p>Annotation Desk 0.2 实时浏览分页，故障清旧内容和操作，恢复后重新显示；编辑和批选仍冻结版本。真实 SQLite、四 Worker、Agent 查询与编译插件已验远端存储写、读故障/恢复、冲突草稿和删除。</p>
-          <p>原生 Notes、书籍详情和正文标记已共用串行观察；SQL 先按书筛选，错误清旧内容且不显示零计数，恢复重画、切书释放，删高亮恢复同范围笔记标记。公共与原生名额分离；不是完整事件日志或即时撤回，原生旧写条件化、legacy 远端事件、整书载荷及打包跨平台仍缺。书目单独变更不触发插件列表；慢读/回调无固定延迟保证。<a href="./plugin-system.md#annotation-query-observations">完整契约</a> · <a href="./evidence/native-annotation-observation-2026-09-10.json">原生阅读证据</a></p>
+          <p>原生 Notes、书籍详情和正文标记已共用串行观察；SQL 先按书筛选，错误清旧内容且不显示零计数，恢复重画、切书释放，删高亮恢复同范围笔记标记。公共与原生名额分离；不是完整事件日志或即时撤回，原生笔记/菜单/列表删除已按所见版本条件提交，冲突保留草稿；旧公共单项命令、legacy 远端事件、整书载荷及打包跨平台仍缺。书目单独变更不触发插件列表；慢读/回调无固定延迟保证。<a href="./plugin-system.md#annotation-query-observations">完整契约</a> · <a href="./evidence/native-annotation-observation-2026-09-10.json">原生阅读证据</a> · <a href="./evidence/native-annotation-cas-2026-09-10.json">原生条件写证据</a></p>
         </div></details>
           <details class="ep" data-search-section="host commands observe open-book UI03 partial 宿主 命令 观察 开书 部分 回执"><summary>UI 1.6：18 个共享命令增加授权状态观察</summary><div class="ep-body">
             <p>Agent 按需查询同源状态；Library Desk 0.6 实时更新选中/可用状态，保留搜索，错误保留旧行并暂停操作。资源选择仍冻结点击时的 revision；书库写权限不替代字段或阅读权限。</p>

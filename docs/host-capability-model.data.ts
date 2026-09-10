@@ -29,7 +29,7 @@ export const units: Unit[] = [
   unit("D3", "Domain", "annotations", "标注、笔记和问题轨迹", "ANN01-09", "domains.annotations",
     "list/get/filter/page；创建 highlight/underline、改色、笔记 CRUD、受控删除 ask；有业务需求的批次返回原子结果或逐项结果，明确版本冲突；本地/同步写入触发一致失效。",
     "create/edit/delete_annotation、style、精确 ID/分页与条件批次已接同源原生端口；每次调用重新读，不建常驻模型观察。自动 recordAsk 是运行时内部能力，不是供模型伪造的问题写工具。",
-    "removeAsk 与条件批次已接；annotations 1.4 events.observe(page/inspect) 提供初始/变化/错误/恢复，读和 callback 结算后一秒重读，64 个订阅上限。Annotation Desk 0.2 实时浏览、错误清旧数据，编辑/批选仍冻结版本；不能直接 append 问题轨迹、事件日志或投影。原生 Notes/书籍详情和正文标记现复用串行观察，SQL 先按书筛选；错误清旧内容/标记且不显示零计数，恢复重画，切书释放。原生旧写条件化、整书载荷和 legacy 事件远端完整性仍缺，非即时或每条事件必达。",
+    "removeAsk 与条件批次已接；annotations 1.4 events.observe(page/inspect) 提供初始/变化/错误/恢复，读和 callback 结算后一秒重读，64 个订阅上限。Annotation Desk 0.2 实时浏览、错误清旧数据，编辑/批选仍冻结版本；不能直接 append 问题轨迹、事件日志或投影。原生 Notes/书籍详情和正文标记现复用串行观察，SQL 先按书筛选；错误清旧内容/标记且不显示零计数，恢复重画，切书释放。原生列表含与 inspect 同源的本机版本；笔记编辑/菜单/列表删除按所见版本条件提交，冲突保留草稿，不在保存前刷新 token。整书载荷和 legacy 事件远端完整性仍缺，非即时或每条事件必达。",
     "新标注默认色归 D5，不与当前对象 recolor 混合。格式化导出由查询 + 插件序列化 + S4 保存组成；不是新的 annotations.exportCSV API。",
     "无位置笔记可以保存；失效 Range 不落错误高亮；并发编辑不静默覆盖，删书后引用返回失效而非误指其他书；失败加载不是空列表。"),
   unit("D4", "Domain", "conversations", "对话内容、线程及回合意图", "AI01-03 MEM12", "domains.conversations",

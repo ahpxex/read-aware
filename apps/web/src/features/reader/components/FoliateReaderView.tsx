@@ -2345,7 +2345,9 @@ export function FoliateReaderView({
       )}
 
       <NoteEditor
+        key={noteEditor.draftKey}
         isOpen={noteEditor.isOpen}
+        isSaving={noteEditor.isSaving}
         selectedText={noteEditor.target?.text || ""}
         initialContent={noteEditor.current?.content || ""}
         onSave={noteEditor.save}

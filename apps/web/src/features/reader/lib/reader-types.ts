@@ -4,6 +4,13 @@ import type { BookFile } from '../../../../foliate-js/src/book';
 /** Minimal Blob/File surface consumed by foliate's format sniffers and parsers. */
 export type BookFileSource = BookFile;
 
+/** A passage targeted by a selection, stored annotation or guided-reading action. */
+export type ActionTarget = {
+  text: string;
+  cfiRange: string | null;
+  chapterHref: string | null;
+};
+
 /**
  * A book file pulled from local storage, ready to hand to the foliate engine
  * (`makeBook`). foliate auto-detects the format from the bytes, but we keep the

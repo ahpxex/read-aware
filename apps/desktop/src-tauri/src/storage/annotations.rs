@@ -48,9 +48,29 @@ pub(crate) fn row_to_annotation(row: &rusqlite::Row) -> rusqlite::Result<Annotat
 }
 
 #[tauri::command]
-pub fn annotations_list(book_id: Option<String>, db: State<'_, Db>) -> Result<Vec<Annotation>, CommandError> {
-    let conn = db.0.lock()?;
-    annotations_list_inner(&conn, book_id.as_deref())
+pub fn annotations_list(book_id: Option<String>, db: State<'_, Db>) -> Result<Vec<ObservedAnnotation>, CommandError> {
+    let mut conn = db.0.lock()?;
+    annotations_observe_inner(&mut conn, book_id.as_deref())
+}
+
+#[derive(Debug, Serialize)]
+pub struct ObservedAnnotation {
+    #[serde(flatten)]
+    pub annotation: Annotation,
+    pub revision: String,
+}
+
+pub(crate) fn annotations_observe_inner(conn: &mut Connection, book_id: Option<&str>) -> Result<Vec<ObservedAnnotation>, CommandError> {
+    // Native lists carry the SAME token as inspect, captured with their displayed
+    // rows in one read transaction. Never refresh a token just before a stale edit.
+    let tx = conn.transaction()?;
+    let rows = annotations_list_inner(&tx, book_id)?;
+    let snapshots = rows.into_iter().map(|annotation| {
+        let snapshot = super::annotation_mutations::snapshot_for_annotation(&tx, annotation)?;
+        Ok(ObservedAnnotation { annotation: snapshot.annotation, revision: snapshot.revision })
+    }).collect::<Result<Vec<_>, CommandError>>()?;
+    tx.commit()?;
+    Ok(snapshots)
 }
 
 pub(crate) fn annotations_list_inner(conn: &Connection, book_id: Option<&str>) -> Result<Vec<Annotation>, CommandError> {
@@ -186,12 +206,15 @@ mod observation_tests {
 
     #[test]
     fn annotation_book_reads_are_scoped_before_rows_are_decoded() {
-        let conn = database();
+        let mut conn = database();
         assert_eq!(annotations_list_inner(&conn, None).unwrap().len(), 3);
         assert_eq!(annotations_list_inner(&conn, Some("first")).unwrap().len(), 2);
+        assert_eq!(annotations_observe_inner(&mut conn, Some("first")).unwrap().len(), 2);
         assert!(annotations_list_inner(&conn, Some("missing")).unwrap().is_empty());
         conn.execute("UPDATE annotations SET created_at=X'00' WHERE id='b'", []).unwrap();
         assert_eq!(annotations_list_inner(&conn, Some("first")).unwrap().len(), 2);
+        assert_eq!(annotations_observe_inner(&mut conn, Some("first")).unwrap().len(), 2);
+        assert_eq!(annotations_observe_inner(&mut conn, Some("second")).unwrap_err().code, "db/error");
         assert_eq!(annotations_list_inner(&conn, Some("second")).unwrap_err().code, "db/error");
         assert!(annotations_list_inner(&conn, None).is_err());
         conn.execute("UPDATE annotations SET created_at='2026-09-10' WHERE id='b'", []).unwrap();

@@ -34,7 +34,7 @@ export async function imageDetail(ctx: PluginContext, image: Image): Promise<Plu
       { id: "native-image", label: tr(ctx.locale, "nativeImage"), icon: "arrow-square-out", run: async () => {
         const guard = await ensureReadingSession(ctx, image.image.bookId);
         const receipt = await ctx.services.ui.reader!.image!.open!(query, guard);
-        return receipt.status === "opened" ? { close: true } : { toast: tr(ctx.locale, `image_${receipt.reason}`) };
+        return receipt.status === "opened" ? { close: "all" as const } : { toast: tr(ctx.locale, `image_${receipt.reason}`) };
       } },
       { id: "save-image", label: tr(ctx.locale, "saveImage"), icon: "download-simple", run: async () =>
         (await resources.save(resource.id, resource.name)).saved ? { toast: tr(ctx.locale, "imageSaved") } : null },
@@ -42,7 +42,7 @@ export async function imageDetail(ctx: PluginContext, image: Image): Promise<Plu
         await ctx.services.clipboard!.writeImage(resource.id); return { toast: tr(ctx.locale, "imageCopied") };
       } },
       ...(result.image.location ? [{ id: "open-source", label: tr(ctx.locale, "openPassage"), icon: "book-open", run: async () => {
-        await ctx.domains.reading!.commands!.goTo(result.image.location!); return { close: true };
+        await ctx.domains.reading!.commands!.goTo(result.image.location!); return { close: "all" as const };
       } }] : []),
     ], onClose: () => resources.release(resource.id),
   };

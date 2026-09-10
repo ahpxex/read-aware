@@ -87,7 +87,7 @@ describe("plugin capability negotiation", () => {
       const request = manifest({ requires: { schemas: { views: version } } });
       expect(() => assertPluginCapabilityRequirements(request)).not.toThrow();
       const visible = resolvePluginCapabilities(request);
-      expect(visible.schemas.views).toBe("1.8.0");
+      expect(visible.schemas.views).toBe("1.9.0");
       expect(visible.domains.library).toBeUndefined();
       expect(visible.domains.reading).toBeUndefined();
     }

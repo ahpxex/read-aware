@@ -20,6 +20,51 @@ function fixture() {
   return { registry, owner, session, view, wire, notices, failures: () => failures };
 }
 
+test("serialized close-all dismisses only the owning presentation across nested dialogs", async () => {
+  const f = fixture(), other = fixture(); let closed = 0, ordinary = 0;
+  f.session.configure({ close: () => { closed++; } });
+  f.session.setRoot(f.view("root")); other.session.setRoot(other.view("other plugin"));
+  await f.session.run(() => ({ view: f.view("child") }), { presentation: "dialog" });
+  const child = f.session.getSnapshot().dialog!.session;
+  child.configure({ close: () => { ordinary++; f.session.closeDialog(); } });
+  await child.run(() => ({ view: f.wire({ kind: "detail", content: [], actions: [
+    { id: "return", label: "Return", run: () => ({ close: "all" as const }) },
+  ] }) }), { presentation: "dialog" });
+  const grandchild = child.getSnapshot().dialog!.session;
+  const view = grandchild.getSnapshot().stack[0] as PluginDetailView;
+  await grandchild.runFrom(grandchild.getSnapshot().renderKey, view.actions![0].run);
+  expect(closed).toBe(1); expect(ordinary).toBe(0);
+  expect(f.session.getSnapshot().stack).toEqual([]);
+  expect(f.session.getSnapshot().dialog).toBeNull();
+  expect(child.getSnapshot().stack).toEqual([]); expect(grandchild.getSnapshot().stack).toEqual([]);
+  expect(f.registry.size).toBe(0);
+  expect(other.session.getSnapshot().stack[0].title).toBe("other plugin");
+  other.session.dispose();
+});
+
+test("ordinary close remains local and a retired child's late close-all cannot dismiss its replacement", async () => {
+  const f = fixture(); let closed = 0;
+  f.session.configure({ close: () => { closed++; } });
+  f.session.setRoot(f.view("root"));
+  await f.session.run(() => ({ view: f.view("child") }), { presentation: "dialog" });
+  const child = f.session.getSnapshot().dialog!.session;
+  child.configure({ close: () => f.session.closeDialog() });
+  await child.run(() => ({ close: true }));
+  expect(f.session.getSnapshot().stack[0].title).toBe("root");
+  expect(f.session.getSnapshot().dialog).toBeNull(); expect(closed).toBe(0);
+  await f.session.run(() => ({ view: f.view("slow child") }), { presentation: "dialog" });
+  const slow = f.session.getSnapshot().dialog!.session;
+  let finish!: (value: PluginViewResult) => void;
+  const pending = slow.run(() => new Promise(resolve => { finish = resolve; }));
+  await f.session.run(() => ({ view: f.view("replacement") }), { presentation: "dialog" });
+  finish({ close: "all" }); await pending;
+  expect(closed).toBe(0); expect(f.session.getSnapshot().dialog!.session.getSnapshot().stack[0].title).toBe("replacement");
+  f.session.closeDialog();
+  await f.session.run(() => ({ close: "invalid" } as unknown as PluginViewResult));
+  expect(f.session.getSnapshot().stack[0].title).toBe("root"); expect(closed).toBe(0);
+  f.session.dispose(); expect(f.registry.size).toBe(0);
+});
+
 test("serialized progress cancellation runs alongside a busy action and retires with the view", async () => {
   const f = fixture(); let finish!: (value: PluginViewResult) => void, cancellations = 0;
   f.session.setRoot(f.wire({ kind: "blocks", blocks: [{ kind: "progress", value: null,

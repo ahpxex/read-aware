@@ -355,6 +355,16 @@ upgrade grants, chat persistence or a real model turn. New labels use simplified
 Chinese/English fallback. Desktop composition and document visual checks remain
 concentrated acceptance work.
 
+[验证] The 2026-09-11 isolated macOS Tauri composition exercised compiled
+Memory Desk 0.9 against a real SQLite fixture conversation: 5400-character
+summary paging (1-4000, then 4001-5400), native Use draft approval, native
+send-request dismissal, retained adopted/dismissed statuses, and guarded clear.
+Unchecked clear preserved both messages; checked clear removed them. Adopting
+the draft and dismissing send each left message count at two, with no inference.
+The fixture assistant message was scripted, not model output. This does not
+cover retry/streaming/stop, Agent-header entry, upgrade grants or model turns.
+See [native evidence](./evidence/image-conversation-composition-2026-09-11.json).
+
 ### Stored Conversation Summaries (Conversations 1.4)
 
 [代码] `queries.getInsights({kind:"book"|"global",id})` returns the stored
@@ -1716,8 +1726,8 @@ receipts do not push controls. Direct Open image viewer remains available.
 The inspector displays actual zoom, rotation and normalized horizontal/vertical
 offsets as percentages of the viewer stage, not source-image pixels. Actions
 cover zoom-in/out, clockwise rotation, reset, four directions of relative pan
-(0.15 of the corresponding stage dimension), Show image (dismiss inspector
-only) and Close image (wait for host close before dismissing). Each rendered
+(0.15 of the corresponding stage dimension), Show image (dismiss the owning
+plugin presentation) and Close image (wait for host close before dismissing). Each rendered
 callback captures its viewer ID; a newer observed viewer does not retarget old
 callbacks. No image reports an empty state with refresh, not zero transforms.
 Live observation supplies fresh frames, including native changes/replacement
@@ -1725,12 +1735,35 @@ and closure; leaving disposes it and ignores late callbacks. Command failures
 propagate stable host errors without false success. No transform or viewer is
 persisted, and leaving the inspector does not close an opened native image.
 
-[验证] 36 Text Desk tests / 308 assertions, build, typecheck and manifest
+[验证] 36 Text Desk tests / 309 assertions, build, typecheck and manifest
 validation pass, including compiled command/preview entrypoints, all control
 requests, replacement rejection, observation disposal and eight-locale copy.
-Service responses are controlled fixtures. Actual Worker/Tauri image pixels,
-popup/modal/lightbox focus and Escape behavior remain for concentrated native
-acceptance; no new visual or complete Agent-turn evidence is claimed.
+Service responses in these tests are controlled fixtures. Concentrated native
+acceptance found that closing just the child inspector left the outer plugin
+dialog covering the image. Text Desk 0.11.1 requires Views 1.9 and uses
+`close: "all"` for Show image, completed image close, image opening and image
+passage navigation. No new data permission or Agent tool is added.
+
+[验证] Actual compiled Worker/Tauri controls now reveal the decoded 240x160
+fixture image, update zoom/rotation/all four pan directions, reset, and close
+the viewer. Foreground 900x650 and 600x750 logical-window screenshots were
+inspected; the narrow control dialog had no overflowing descendants. Native
+image identity remained bound across the handoff. Pinned-header entry, physical
+gestures, focus restoration, Escape, other formats and full Agent turns are not
+proved by this batch. See [native evidence](./evidence/image-conversation-composition-2026-09-11.json).
+
+### Owning Presentation Dismissal (Views 1.9)
+
+[代码] `PluginViewResult.close: true` retains local-surface dismissal.
+`close: "all"` instead dismisses the root presentation owning the action plus
+its nested plugin dialogs, releasing their frames/observers/callback leases.
+It cannot dismiss another plugin presentation or a native image/window. A
+detached child's late result cannot close its replacement; the root dialog's
+close callback also matches its request identity. This is an explicit result
+operation, not a global window handle or a change to ordinary close semantics.
+Views 1.9 negotiation lets plugins require the new behavior. Nested serialized
+callback, stale-result, local-close and cross-presentation tests pass; Text Desk
+0.11.1 supplies the actual native image handoff consumer above.
 
 ### Embedded Book Image Resources (Library 1.13 / Resources 1.2)
 

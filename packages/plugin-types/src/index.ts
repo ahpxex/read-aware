@@ -959,7 +959,9 @@ export type PluginView = PluginViewContent & {
  * - `{ view }` — open (or push onto) the surface with this view;
  * - `{ view, navigation: "replace" | "reset" }` — replace the current view
  *   or return the surface to a new root view;
- * - `{ close: true }` — dismiss the surface (composable with `toast`);
+ * - `{ close: true }` — dismiss the current surface (composable with `toast`);
+ * - `{ close: "all" }` — since views 1.9, dismiss this presentation and its
+ *   nested plugin dialogs, not another plugin presentation or native viewer;
  * - `{ fieldErrors }` (from a form submit) — stay on the form and show the
  *   errors under their fields.
  */
@@ -971,7 +973,7 @@ export type PluginViewResult =
       toast?: PluginToast;
       view?: PluginView;
       navigation?: "push" | "replace" | "reset";
-      close?: boolean;
+      close?: boolean | "all";
       fieldErrors?: Record<string, string>;
     };
 

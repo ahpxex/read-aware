@@ -136,7 +136,7 @@ test("native image handoff ensures the matching book first; not-opened and error
   const f = fixture();
   f.ctx.domains.reading!.queries.session = async () => ({ bookId: "other", status: "ready" }) as never;
   const detail = await imageDetail(f.ctx, f.image);
-  expect(await action(detail, "native-image").run()).toEqual({ close: true });
+  expect(await action(detail, "native-image").run()).toEqual({ close: "all" });
   expect(f.calls.slice(-2)).toEqual([["open", "book"], ["native-image", { image: f.reference }, { bookId: "book", sessionId: "opened" }]]);
   f.ctx.services.ui.reader!.image!.open = async () => ({ status: "not-opened", reason: "unsupported" });
   expect(await action(detail, "native-image").run()).toEqual({ toast: "Unsupported image" });

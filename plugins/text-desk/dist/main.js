@@ -535,7 +535,7 @@ async function imageControls(ctx) {
       const id = snapshot.id;
       const request = async (operation) => {
         const receipt = await control(operation);
-        return receipt.status === "closed" ? { close: true } : { toast: tr(ctx.locale, "imageUpdated") };
+        return receipt.status === "closed" ? { close: "all" } : { toast: tr(ctx.locale, "imageUpdated") };
       };
       for (const [action, label, icon] of [
         ["zoom-in", "zoomIn", "plus"],
@@ -556,7 +556,7 @@ async function imageControls(ctx) {
           icon,
           run: () => request({ id, action: "pan", dx, dy })
         });
-      actions.push({ id: "show-image", label: tr(ctx.locale, "showImage"), icon: "arrow-square-out", run: () => ({ close: true }) }, { id: "close-image", label: tr(ctx.locale, "closeImage"), icon: "stop", run: () => request({ id, action: "close" }) });
+      actions.push({ id: "show-image", label: tr(ctx.locale, "showImage"), icon: "arrow-square-out", run: () => ({ close: "all" }) }, { id: "close-image", label: tr(ctx.locale, "closeImage"), icon: "stop", run: () => request({ id, action: "close" }) });
     }
     actions.push({
       id: "refresh",
@@ -635,7 +635,7 @@ async function imageDetail(ctx, image) {
       { id: "native-image", label: tr(ctx.locale, "nativeImage"), icon: "arrow-square-out", run: async () => {
         const guard = await ensureReadingSession(ctx, image.image.bookId);
         const receipt = await ctx.services.ui.reader.image.open(query, guard);
-        return receipt.status === "opened" ? { close: true } : { toast: tr(ctx.locale, `image_${receipt.reason}`) };
+        return receipt.status === "opened" ? { close: "all" } : { toast: tr(ctx.locale, `image_${receipt.reason}`) };
       } },
       { id: "save-image", label: tr(ctx.locale, "saveImage"), icon: "download-simple", run: async () => (await resources.save(resource.id, resource.name)).saved ? { toast: tr(ctx.locale, "imageSaved") } : null },
       { id: "copy-image", label: tr(ctx.locale, "copyImage"), icon: "copy", run: async () => {
@@ -644,7 +644,7 @@ async function imageDetail(ctx, image) {
       } },
       ...result.image.location ? [{ id: "open-source", label: tr(ctx.locale, "openPassage"), icon: "book-open", run: async () => {
         await ctx.domains.reading.commands.goTo(result.image.location);
-        return { close: true };
+        return { close: "all" };
       } }] : []
     ],
     onClose: () => resources.release(resource.id)

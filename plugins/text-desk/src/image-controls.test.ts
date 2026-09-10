@@ -57,9 +57,9 @@ test("every image operation uses the captured viewer id and relative pan units",
     { id: "viewer", action: "pan", dx: -0.15, dy: 0 }, { id: "viewer", action: "pan", dx: 0.15, dy: 0 },
     { id: "viewer", action: "pan", dx: 0, dy: -0.15 }, { id: "viewer", action: "pan", dx: 0, dy: 0.15 },
   ]);
-  expect(await action(view, "show-image")).toEqual({ close: true });
+  expect(await action(view, "show-image")).toEqual({ close: "all" });
   expect(f.requests).toHaveLength(8);
-  expect(await action(view, "close-image")).toEqual({ close: true });
+  expect(await action(view, "close-image")).toEqual({ close: "all" });
   expect(f.requests[8]).toEqual({ id: "viewer", action: "close" });
 });
 
@@ -134,7 +134,8 @@ test("compiled command exposes the image workflow with existing grants and retai
   await action(direct, "reset");
   expect(f.requests).toEqual([{ id: "viewer", action: "reset" }]);
   const manifest = await Bun.file(new URL("../dist/manifest.json", import.meta.url)).json();
-  expect(manifest.version).toBe("0.11.0");
+  expect(manifest.version).toBe("0.11.1");
+  expect(manifest.requires.schemas.views).toBe("^1.9.0");
   expect(manifest.requires.services.ui).toBe("^1.13.0");
   expect(manifest.permissions).toEqual(["library:write", "reading:write", "service:clipboard"]);
 });

@@ -20,7 +20,7 @@ export function PluginDialogHost() {
   const { t } = useTranslation(["plugins", "common"]);
   const setSettingsOpen = useSetAtom(settingsOpenAtom);
   const setSettingsSection = useSetAtom(settingsSectionRequestAtom);
-  const close = () => setRequest(null);
+  const close = () => setRequest(current => current?.requestId === request?.requestId ? null : current);
   const described = request?.failure ? describeErrorCode(request.failure.code) : null;
   return (
     <Dialog

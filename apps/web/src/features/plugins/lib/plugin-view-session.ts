@@ -49,7 +49,7 @@ export class PluginViewSession {
   private readonly listeners = new Set<() => void>();
   private snapshot: PluginViewSnapshot = { stack: [], renderKey: null, forms: null, busy: false, error: false, liveError: null, dialog: null };
 
-  constructor(private effects: Effects = {}) {}
+  constructor(private effects: Effects = {}, private readonly parent?: PluginViewSession) {}
   configure(effects: Effects): void { this.effects = effects; }
   getSnapshot = (): PluginViewSnapshot => this.snapshot;
   subscribe = (listener: () => void): (() => void) => { this.listeners.add(listener); return () => this.listeners.delete(listener); };
@@ -163,6 +163,12 @@ export class PluginViewSession {
     this.publish();
   }
   close = (): void => { this.dispose("closed"); this.effects.close?.(); };
+  private dismissAll(): void {
+    if (!this.active) return;
+    if (!this.parent) this.close();
+    // A detached child must not dismiss a replacement dialog or presentation.
+    else if (this.parent.snapshot.dialog?.session === this) this.parent.dismissAll();
+  }
   back = (): void => {
     if (!this.active || this.frames.length < 2) return;
     this.epoch++;
@@ -194,7 +200,7 @@ export class PluginViewSession {
     const dialog = options?.presentation === "dialog";
     if (dialog) {
       this.closeDialog(false, "replaced");
-      this.publish({ dialog: { requestId: request, title: options?.dialogTitle ?? "", session: new PluginViewSession() } });
+      this.publish({ dialog: { requestId: request, title: options?.dialogTitle ?? "", session: new PluginViewSession({}, this) } });
     } else {
       this.inlineRequest = request;
       if (!options?.background) this.foreground.add(request);
@@ -209,6 +215,9 @@ export class PluginViewSession {
       if (!current()) return null;
       if (result == null) { if (dialog) this.closeDialog(); return result; }
       if (typeof result !== "object" || Array.isArray(result)) throw new PluginViewError("Plugin action result must be an object");
+      if (result.close !== undefined && result.close !== false && result.close !== true && result.close !== "all") {
+        throw new PluginViewError("Plugin close must be a boolean or all");
+      }
       if (result.toast !== undefined) normalizePluginToast(result.toast);
       if (result.fieldErrors) {
         if (dialog) throw new PluginViewError("Dialog item cannot return form field errors");
@@ -226,6 +235,7 @@ export class PluginViewSession {
           this.publish();
         }
       } else if (result.navigation) throw new PluginViewError("Plugin navigation requires a view");
+      else if (result.close === "all") this.dismissAll();
       else if (result.close) { if (dialog) this.closeDialog(true); else this.close(); }
       else if (dialog) this.closeDialog();
       if (result.toast !== undefined) (this.effects.toast ?? showPluginToast)(result.toast);

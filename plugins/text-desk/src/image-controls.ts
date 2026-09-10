@@ -24,7 +24,7 @@ export async function imageControls(ctx: PluginContext): Promise<PluginDetailVie
       const id = snapshot.id;
       const request = async (operation: Request) => {
         const receipt = await control(operation);
-        return receipt.status === "closed" ? { close: true } : { toast: tr(ctx.locale, "imageUpdated") };
+        return receipt.status === "closed" ? { close: "all" as const } : { toast: tr(ctx.locale, "imageUpdated") };
       };
       for (const [action, label, icon] of [
         ["zoom-in", "zoomIn", "plus"], ["zoom-out", "zoomOut", "magnifying-glass"],
@@ -36,7 +36,7 @@ export async function imageControls(ctx: PluginContext): Promise<PluginDetailVie
       ] as const) actions.push({ id: direction, label: tr(ctx.locale, direction), icon,
         run: () => request({ id, action: "pan", dx, dy }) });
       actions.push(
-        { id: "show-image", label: tr(ctx.locale, "showImage"), icon: "arrow-square-out", run: () => ({ close: true }) },
+        { id: "show-image", label: tr(ctx.locale, "showImage"), icon: "arrow-square-out", run: () => ({ close: "all" }) },
         { id: "close-image", label: tr(ctx.locale, "closeImage"), icon: "stop", run: () => request({ id, action: "close" }) },
       );
     }

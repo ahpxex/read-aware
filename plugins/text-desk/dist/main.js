@@ -1,6 +1,23 @@
 // src/strings.ts
 var locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 var labels = {
+  imageControls: ["Image controls", "图片控制", "圖片控制", "画像操作", "Управление изображением", "Commandes de l'image", "Bildsteuerung", "Controles de imagen"],
+  noOpenImage: ["No image viewer open", "尚未打开图片查看器", "尚未開啟圖片檢視器", "画像ビューアは開いていません", "Просмотр изображения не открыт", "Aucune visionneuse ouverte", "Kein Bildbetrachter geöffnet", "No hay un visor de imágenes abierto"],
+  zoomIn: ["Zoom in", "放大", "放大", "拡大", "Увеличить", "Agrandir", "Vergrößern", "Acercar"],
+  zoomOut: ["Zoom out", "缩小", "縮小", "縮小", "Уменьшить", "Réduire", "Verkleinern", "Alejar"],
+  rotateImage: ["Rotate", "旋转", "旋轉", "回転", "Повернуть", "Pivoter", "Drehen", "Girar"],
+  resetImage: ["Reset image", "复位图片", "重設圖片", "画像をリセット", "Сбросить изображение", "Réinitialiser l'image", "Bild zurücksetzen", "Restablecer imagen"],
+  panLeft: ["Pan left", "向左平移", "向左平移", "左に移動", "Сдвинуть влево", "Déplacer à gauche", "Nach links verschieben", "Mover a la izquierda"],
+  panRight: ["Pan right", "向右平移", "向右平移", "右に移動", "Сдвинуть вправо", "Déplacer à droite", "Nach rechts verschieben", "Mover a la derecha"],
+  panUp: ["Pan up", "向上平移", "向上平移", "上に移動", "Сдвинуть вверх", "Déplacer vers le haut", "Nach oben verschieben", "Mover hacia arriba"],
+  panDown: ["Pan down", "向下平移", "向下平移", "下に移動", "Сдвинуть вниз", "Déplacer vers le bas", "Nach unten verschieben", "Mover hacia abajo"],
+  showImage: ["Show image", "查看图片", "檢視圖片", "画像を表示", "Показать изображение", "Afficher l'image", "Bild anzeigen", "Mostrar imagen"],
+  closeImage: ["Close image", "关闭图片", "關閉圖片", "画像を閉じる", "Закрыть изображение", "Fermer l'image", "Bild schließen", "Cerrar imagen"],
+  imageUpdated: ["Image updated", "图片已更新", "圖片已更新", "画像を更新しました", "Изображение обновлено", "Image mise à jour", "Bild aktualisiert", "Imagen actualizada"],
+  imageScale: ["Zoom", "缩放", "縮放", "倍率", "Масштаб", "Zoom", "Zoom", "Zoom"],
+  imageRotation: ["Rotation", "旋转角度", "旋轉角度", "回転角度", "Поворот", "Rotation", "Drehung", "Rotación"],
+  imagePanX: ["Horizontal offset", "水平偏移", "水平位移", "水平オフセット", "Смещение по горизонтали", "Décalage horizontal", "Horizontaler Versatz", "Desplazamiento horizontal"],
+  imagePanY: ["Vertical offset", "垂直偏移", "垂直位移", "垂直オフセット", "Смещение по вертикали", "Décalage vertical", "Vertikaler Versatz", "Desplazamiento vertical"],
   references: ["Notes and links", "脚注与链接", "註腳與連結", "注釈とリンク", "Примечания и ссылки", "Notes et liens", "Anmerkungen und Links", "Notas y enlaces"],
   reference: ["Reference", "引用", "引用", "参照", "Ссылка", "Référence", "Verweis", "Referencia"],
   images: ["Book images", "书内图片", "書內圖片", "書籍の画像", "Иллюстрации книги", "Images du livre", "Buchbilder", "Imágenes del libro"],
@@ -499,6 +516,82 @@ async function referenceDetail(ctx, reference, offsets = [0]) {
   ] };
 }
 
+// src/image-controls.ts
+async function openImageControls(ctx, query) {
+  const guard = await ensureReadingSession(ctx, query.image.bookId);
+  const receipt = await ctx.services.ui.reader.image.open(query, guard);
+  if (receipt.status !== "opened")
+    return { toast: tr(ctx.locale, `image_${receipt.reason}`) };
+  return { view: await imageControls(ctx) };
+}
+async function imageControls(ctx) {
+  const image = ctx.services.ui.reader?.image;
+  if (!image?.control)
+    throw Object.assign(Error("Image controls unavailable"), { code: "ui/unavailable" });
+  const control = image.control.bind(image);
+  const render = (snapshot) => {
+    const actions = [];
+    if (snapshot) {
+      const id = snapshot.id;
+      const request = async (operation) => {
+        const receipt = await control(operation);
+        return receipt.status === "closed" ? { close: true } : { toast: tr(ctx.locale, "imageUpdated") };
+      };
+      for (const [action, label, icon] of [
+        ["zoom-in", "zoomIn", "plus"],
+        ["zoom-out", "zoomOut", "magnifying-glass"],
+        ["rotate", "rotateImage", "arrows-clockwise"],
+        ["reset", "resetImage", "arrows-clockwise"]
+      ])
+        actions.push({ id: action, label: tr(ctx.locale, label), icon, run: () => request({ id, action }) });
+      for (const [direction, dx, dy, icon] of [
+        ["panLeft", -0.15, 0, "arrow-left"],
+        ["panRight", 0.15, 0, "arrow-right"],
+        ["panUp", 0, -0.15, undefined],
+        ["panDown", 0, 0.15, undefined]
+      ])
+        actions.push({
+          id: direction,
+          label: tr(ctx.locale, direction),
+          icon,
+          run: () => request({ id, action: "pan", dx, dy })
+        });
+      actions.push({ id: "show-image", label: tr(ctx.locale, "showImage"), icon: "arrow-square-out", run: () => ({ close: true }) }, { id: "close-image", label: tr(ctx.locale, "closeImage"), icon: "stop", run: () => request({ id, action: "close" }) });
+    }
+    actions.push({
+      id: "refresh",
+      label: tr(ctx.locale, "refresh"),
+      icon: "arrows-clockwise",
+      run: async () => ({ view: await imageControls(ctx), navigation: "replace" })
+    });
+    return {
+      kind: "detail",
+      title: tr(ctx.locale, "imageControls"),
+      content: snapshot ? [{ kind: "keyValue", rows: [
+        { label: tr(ctx.locale, "imageScale"), value: `${Math.round(snapshot.scale * 100)}%` },
+        { label: tr(ctx.locale, "imageRotation"), value: `${snapshot.rotation}°` },
+        { label: tr(ctx.locale, "imagePanX"), value: `${Math.round(snapshot.panX * 100)}%` },
+        { label: tr(ctx.locale, "imagePanY"), value: `${Math.round(snapshot.panY * 100)}%` }
+      ] }] : [{ kind: "text", text: tr(ctx.locale, "noOpenImage") }],
+      actions
+    };
+  };
+  return { ...render(await image.snapshot()), live: { subscribe(channel) {
+    let active2 = true, revision = 0;
+    const subscription = image.observe(async (snapshot) => {
+      if (!active2)
+        return;
+      await ctx.services.ui.publishView(channel, { revision: ++revision, view: render(snapshot) });
+    });
+    return { dispose() {
+      if (!active2)
+        return;
+      active2 = false;
+      subscription.dispose();
+    } };
+  } } };
+}
+
 // src/image-views.ts
 async function imageList(ctx, source, offsets = [0]) {
   const page = await ctx.domains.library.queries.books.listImages({ ...source, offset: offsets[offsets.length - 1], limit: 20 });
@@ -511,6 +604,7 @@ async function imageList(ctx, source, offsets = [0]) {
       id: String(item.image.index),
       title: item.alt || `${tr(ctx.locale, "image")} ${item.image.index + 1}`,
       icon: "book-bookmark",
+      presentation: "dialog",
       onSelect: async () => ({ view: await imageDetail(ctx, item) })
     })),
     pagination: contentPagination(offsets, page.nextOffset, (next) => imageList(ctx, source, next))
@@ -532,6 +626,12 @@ async function imageDetail(ctx, image) {
     title,
     content: [{ kind: "image", resourceId: resource.id, alt: result.image.alt || title }],
     actions: [
+      {
+        id: "image-controls",
+        label: tr(ctx.locale, "imageControls"),
+        icon: "magnifying-glass",
+        run: () => openImageControls(ctx, query)
+      },
       { id: "native-image", label: tr(ctx.locale, "nativeImage"), icon: "arrow-square-out", run: async () => {
         const guard = await ensureReadingSession(ctx, image.image.bookId);
         const receipt = await ctx.services.ui.reader.image.open(query, guard);
@@ -678,6 +778,12 @@ var src_default = {
       throw Error("Text Desk requires library:write and reading:write");
     const title = tr(ctx.locale, "title");
     ctx.contributions.commands.register({ id: "open", title, icon: "book-open", run: async () => ({ view: await textDesk(ctx) }) });
+    ctx.contributions.commands.register({
+      id: "image-controls",
+      title: `${title}: ${tr(ctx.locale, "imageControls")}`,
+      icon: "magnifying-glass",
+      run: async () => ({ view: await imageControls(ctx) })
+    });
     ctx.contributions.headerActions.register({ id: "reader", title, icon: "book-open", surface: "reader", presentation: "popup", view: () => textDesk(ctx) });
     ctx.contributions.selectionActions.register({
       id: "inspect-passage",

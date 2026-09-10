@@ -2,6 +2,7 @@ import type { PluginContext, PluginLibraryDomain, PluginListView, PluginView } f
 import { tr } from "./strings";
 import { contentPagination } from "./content-pagination";
 import { ensureReadingSession } from "./reader-session";
+import { openImageControls } from "./image-controls";
 
 type Books = PluginLibraryDomain["queries"]["books"];
 type Source = Parameters<Books["listImages"]>[0];
@@ -12,7 +13,7 @@ export async function imageList(ctx: PluginContext, source: Source, offsets = [0
   return { kind: "list", title: tr(ctx.locale, "images"), searchable: true,
     emptyText: tr(ctx.locale, page.status === "unsupported" ? "unsupported" : "noImages"),
     items: page.items.map(item => ({ id: String(item.image.index), title: item.alt || `${tr(ctx.locale, "image")} ${item.image.index + 1}`,
-      icon: "book-bookmark", onSelect: async () => ({ view: await imageDetail(ctx, item) }),
+      icon: "book-bookmark", presentation: "dialog", onSelect: async () => ({ view: await imageDetail(ctx, item) }),
     })), pagination: contentPagination(offsets, page.nextOffset, next => imageList(ctx, source, next)),
   };
 }
@@ -28,6 +29,8 @@ export async function imageDetail(ctx: PluginContext, image: Image): Promise<Plu
   return { kind: "detail", title,
     content: [{ kind: "image", resourceId: resource.id, alt: result.image.alt || title }],
     actions: [
+      { id: "image-controls", label: tr(ctx.locale, "imageControls"), icon: "magnifying-glass",
+        run: () => openImageControls(ctx, query) },
       { id: "native-image", label: tr(ctx.locale, "nativeImage"), icon: "arrow-square-out", run: async () => {
         const guard = await ensureReadingSession(ctx, image.image.bookId);
         const receipt = await ctx.services.ui.reader!.image!.open!(query, guard);

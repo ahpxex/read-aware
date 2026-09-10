@@ -1705,6 +1705,33 @@ E2E. Library 1.13 supplies TXT12 image discovery/resource reads; UI 1.13 adds
 programmatic viewer opening below. READ12
 remains partial rather than claiming manual fixed-layout page zoom exists.
 
+[代码] Text Desk 0.11 composes the existing image snapshot/observation/control
+service without new host or Agent APIs or permissions. `image-controls` is a
+standalone command for the current viewer. Book image rows open their preview
+in an existing host modal, including when entered from a pinned reader popup;
+the preview's Image controls action opens that versioned image with a ready
+book/session guard, then pushes the inspector. Missing/external/unsupported
+receipts do not push controls. Direct Open image viewer remains available.
+
+The inspector displays actual zoom, rotation and normalized horizontal/vertical
+offsets as percentages of the viewer stage, not source-image pixels. Actions
+cover zoom-in/out, clockwise rotation, reset, four directions of relative pan
+(0.15 of the corresponding stage dimension), Show image (dismiss inspector
+only) and Close image (wait for host close before dismissing). Each rendered
+callback captures its viewer ID; a newer observed viewer does not retarget old
+callbacks. No image reports an empty state with refresh, not zero transforms.
+Live observation supplies fresh frames, including native changes/replacement
+and closure; leaving disposes it and ignores late callbacks. Command failures
+propagate stable host errors without false success. No transform or viewer is
+persisted, and leaving the inspector does not close an opened native image.
+
+[验证] 36 Text Desk tests / 308 assertions, build, typecheck and manifest
+validation pass, including compiled command/preview entrypoints, all control
+requests, replacement rejection, observation disposal and eight-locale copy.
+Service responses are controlled fixtures. Actual Worker/Tauri image pixels,
+popup/modal/lightbox focus and Escape behavior remain for concentrated native
+acceptance; no new visual or complete Agent-turn evidence is claimed.
+
 ### Embedded Book Image Resources (Library 1.13 / Resources 1.2)
 
 [代码] `domains.library.queries.books.listImages` and `openImageResource` require
@@ -6230,7 +6257,7 @@ adjacent distribution repository, not an additional source plugin in this checko
 | Listening Desk | reading mode/provider control, unit navigation, playback/history, environment offline hint |
 | Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |
 | Workspace Profiles | settled settings snapshots, exact path grants, atomic presets, private documents, shelf header/command views and Agent tool |
-| Text Desk | versioned section/reference/image browsing, bounded note previews, image resource display/save/copy and native preview handoffs (0.10); text preparation/tasks, cancellable search, snippets, reader header/command and explicit navigation |
+| Text Desk | versioned section/reference/image browsing, bounded note previews, image resource display/save/copy and native preview handoffs; live native image controls (0.11); text preparation/tasks, cancellable search, snippets, reader header/command and explicit navigation |
 | Library Desk | metadata/favorite edits, collection create/rename/remove and reviewed assignment, conditional duplicate merge and redirect receipts (0.8); import review, cover/original assets, enrichment, workspace commands, batch removal and cleanup retry |
 | Memory Desk | memory search, protected chapter graphs, source navigation and conditional correction/pin/unpin/forget (0.2); shared Agent queries and manage_memory, no duplicate plugin tool |
 | Maintenance Desk | public model catalogs, native connection-test/backup/diagnostic handoffs and projection verification (0.1); receipt journal, no new host or Agent APIs |

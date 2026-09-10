@@ -312,6 +312,7 @@
           <details class="ep" data-search-section="image lightbox zoom pan rotate 图片 灯箱 缩放 平移 旋转"><summary>UI 1.12：已有图片灯箱可由插件和 Agent 操作</summary><div class="ep-body">
             <p>读取当前灯箱状态，按准确 ID 缩放、平移、旋转、复位或关闭；与原生手势和按钮共用实现。reading 读权限只能观察，写权限才能操作，书内 Agent 不能控制另一书籍。没有图片 URL、字节或描述，不会借此获取图片内容。</p>
             <p>更新等待匹配 React 提交，关闭等待视图移除；换图/换书拒绝旧操作，取消不回滚已发生变化。定向与挂载 React 测试通过，真实 Worker/Tauri 留集中验收。Library 1.13 与 UI 1.13 已接书内图片发现、资源读取和程序化打开，不等于已支持书页手动缩放。<a href="./plugin-system.md#native-image-viewer-controls-ui-112">完整契约</a></p>
+            <p>Text Desk 0.11 已组合实时状态、缩放、旋转、复位、四向平移与关闭；图片列表通过既有模态预览进入，另有当前图片控制命令。平移按查看区域比例，不冒充像素；旧按钮固定旧图片 ID，离开退订但不自动关闭图片。36项插件测试、构建、类型和manifest通过，八语言文案齐全，无新宿主/Agent接口或权限；实际画面、焦点和 Escape 留集中桌面验收。</p>
           </div></details>
           <details class="ep" data-search-section="book images listImages openImageResource 图片 资源"><summary>Library 1.13：书内图片目录与临时资源已双端接通</summary><div class="ep-body">
             <p>插件与 Agent 可以按书籍版本和分节列出图片、取得内嵌图片资源，复用 EPUB/FB2/MOBI6/KF8/漫画解析器。目录包含源位置与有界替代文字，不读取图片字节；获取资源不加载外链，保留书库授权、阅读边界与调用方隔离。</p>

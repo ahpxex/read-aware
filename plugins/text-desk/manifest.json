@@ -1,9 +1,9 @@
 {
   "id": "text-desk",
   "name": "Text Desk",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "schemaVersion": 1,
-  "description": "Search book text, browse section references and images, open native previews, export images, and manage text preparation.",
+  "description": "Search book text, browse references and images, control the native image viewer, export images, and manage text preparation.",
   "author": "ReadAware",
   "main": "main.js",
   "permissions": ["library:write", "reading:write", "service:clipboard"],

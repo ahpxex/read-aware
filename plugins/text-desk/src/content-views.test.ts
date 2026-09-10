@@ -168,7 +168,9 @@ test("both source and compiled entry expose image and reference workflows from b
   const detail = (await root.items[0].onSelect!())!.view!;
   const sections = (await action(detail, "images").run())!.view! as PluginListView;
   const images = (await sections.items[0].onSelect!())!.view! as PluginListView;
+  expect(images.items[0].presentation).toBe("dialog");
   const preview = (await images.items[0].onSelect!())!.view!;
+  expect(action(preview, "image-controls")).toBeDefined();
   expect((preview as PluginDetailView).content[0]).toMatchObject({ kind: "image", resourceId: "image-resource" });
   await preview.onClose!({ reason: "closed" });
 });

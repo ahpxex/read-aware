@@ -1,5 +1,8 @@
 const locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 const labels = {
+  inspectPassage: ["Inspect passage", "查看段落", "檢視段落", "文章を確認", "Просмотреть отрывок", "Examiner le passage", "Textstelle prüfen", "Examinar pasaje"],
+  inspectSelection: ["Current selection", "当前选区", "目前選取範圍", "現在の選択", "Текущее выделение", "Sélection actuelle", "Aktuelle Auswahl", "Selección actual"],
+  noSourceRange: ["No versioned passage is available", "没有可用的版本化段落", "沒有可用的版本化段落", "バージョン付きの文章はありません", "Нет доступного версионированного отрывка", "Aucun passage versionné disponible", "Keine versionierte Textstelle verfügbar", "No hay un pasaje versionado disponible"],
   findPassage: ["Find a passage", "查找段落", "尋找段落", "文章を探す", "Найти отрывок", "Trouver un passage", "Textstelle finden", "Buscar un pasaje"],
   passage: ["Passage", "段落", "段落", "文章", "Отрывок", "Passage", "Textstelle", "Pasaje"],
   sourceSection: ["Source section", "源文件分节", "來源分節", "元のセクション", "Раздел источника", "Section source", "Quellabschnitt", "Sección de origen"],

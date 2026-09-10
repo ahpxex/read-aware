@@ -1077,8 +1077,59 @@ logged `library/book-not-found` and produced no successful detail; the transient
 toast was not captured, so no visual error-copy claim is made for that case.
 Autonomous LLM decisions, packaged/Windows/Linux, maximum payload/long-lived
 load, provider content replacement, and remote source mutation are not verified.
-Native selection, guided-unit, and persisted annotation anchors do not yet all
-produce/consume this Range contract; TXT10/TXT13 therefore remain partial.
+Persisted annotation anchors and Range writes are not unified; TXT10/TXT13
+therefore remain partial. Captured selection/guide reads are specified below.
+
+### Captured Selection Ranges
+
+[代码] Reading 2.9 adds `session.selection` to queries and observations. Null
+means no captured selection. A snapshot has a capture `id`, normalized `text`
+preview (at most 12000 UTF-16 units without cutting a surrogate pair), full
+normalized `textLength`, and `range: BookTextRange | null`. The range binds the
+displayed parser's book and content version synchronously at capture time, not
+the version when a later action happens. Unavailable ranges retain copyable
+preview text and report `rangeUnavailableReason`: `unavailable` for absent or
+different parser identity, `too-large` for PDF exact quotes over 12000 units,
+or `unsupported` for a failed portable anchor. No range is truncated into a
+different passage. DOM captures use the source CFI; PDF captures use page CFI
+plus exact text and up to 80 source-text-layer characters on each side. A
+later read checks uniqueness and current source version; capture itself is
+not proof that later extraction will succeed.
+
+[代码] Host feedback accepts only the ready matching session/book/version and
+copies values. Relocation, renderer detachment, failure, replacement and close
+clear the public selection; native Escape publishes its clear. Late capture
+checks document membership before clearing or replacing state. This is not a
+new public selection write API or a general fix for all document listeners.
+
+[代码] `selectionActions` 1.2 adds optional `input.range` (the current host sends
+a range or null). Native selection uses the captured reference. Guided reading
+uses its already versioned `position.location` only while book/CFI match the
+current unit. Legacy annotation targets return null: attaching today's version
+to their old CFI would fabricate provenance. The existing `cfiRange` and
+`context` fields remain for local presentation/lookup; neither is new authority.
+
+[代码] Agent `get_reading_session` returns this snapshot under the existing
+active-book and reading-context policies. Either selection/surrounding sharing
+restriction withholds the whole selection, including PDF quote context. An
+unapproved original turn spoiler fence also withholds it; later navigation is
+not permission. `read_book_range` retains its separate source/fence validation.
+Plugins require reading access for session queries/observations and library
+access for source reads; a contribution input does not grant either domain.
+
+[代码/环境] Text Desk 0.6 composes the captured range from its selection/guide
+menu contribution, or reads the current selection from its header view action,
+then uses ordinary range detail and explicit navigation. No range gives a
+non-actionable unavailable detail, not a guessed search or restamped anchor.
+[Native evidence](./evidence/selection-range-2026-09-10.json) covers real FB2/PDF
+DOM selections, module Workers with no/read/write grants, session observation,
+actual Agent session-to-range tool composition, compiled menu details, guided
+paragraph detail, native Escape and switch clearing. Selection was created via
+DOM Range and dispatched pointerup, not an OS mouse drag. The detached-document
+event had no live Selection, so it does not prove the nonempty stale branch.
+Privacy combinations are unit evidence, not native preference-toggle evidence.
+Public set/clear commands, annotation creation/validation/persistence, all-format
+and packaged/cross-platform coverage remain incomplete.
 
 ### Derived Prose Search
 

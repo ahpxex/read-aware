@@ -1,5 +1,5 @@
 import * as CFI from './epubcfi.js'
-import { resolveContentCFI } from './content-range.js'
+import { captureContentRange, resolveContentCFI } from './content-range.js'
 import type { Book, NavigationTarget, ResolvedNavigation, TOCFragment, TOCItem } from './book.js'
 import { makeBook, type BookInput } from './book-loader.js'
 import { TOCProgress, SectionProgress } from './progress.js'
@@ -272,6 +272,12 @@ export class View extends HTMLElement {
         if (!section) throw new RangeError('Invalid CFI section: ' + index)
         const base = section.cfi ?? CFI.fake.fromIndex(index)
         return range ? CFI.joinIndir(base, CFI.fromRange(range)) : base
+    }
+    getTextRange(index: number, range: Range) {
+        const content = this.renderer?.getContents().find(content => content.index === index)
+        if (!content || content.doc !== range.startContainer.ownerDocument || content.doc !== range.endContainer.ownerDocument)
+            throw new Error('Selection does not belong to the displayed source section')
+        return captureContentRange(this.#requireBook(), index, range)
     }
     resolveCFI(cfi: string): ResolvedNavigation {
         return resolveContentCFI(this.#requireBook(), cfi)

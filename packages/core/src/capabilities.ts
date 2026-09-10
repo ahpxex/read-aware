@@ -6,7 +6,7 @@ import {
 
 /** Host-owned extension points. A null permission means every plugin may use it. */
 export const CONTRIBUTION_CATALOG = {
-  selectionActions: { version: "1.1.0", permission: null },
+  selectionActions: { version: "1.2.0", permission: null },
   headerActions: { version: "1.1.0", permission: null },
   commands: { version: "1.1.0", permission: null },
   settingsOptions: { version: "1.0.0", permission: null },

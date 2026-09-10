@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import type { Book } from "../foliate-js/src/book";
 import { contentCFI, searchContentSection } from "../foliate-js/src/content-navigation";
-import { readContentRange, resolveContentCFI } from "../foliate-js/src/content-range";
+import { captureContentRange, readContentRange, resolveContentCFI } from "../foliate-js/src/content-range";
 import { searchLocationsInBook } from "../src/features/library/lib/book-location-search";
 import { contentSections } from "../src/features/library/lib/book-content-sections";
 import { withDom } from "./helpers/foliate-dom";
@@ -9,6 +9,23 @@ import { withDom } from "./helpers/foliate-dom";
 const options = { offset: 0, limit: 4000, contextChars: 240 };
 const allow = () => {};
 const pdf = (text: string): Book => ({ sections: [{ id: "page", size: text.length, load: () => "", getText: async () => text }] });
+
+test("native DOM and PDF selections produce source-readable ranges, not text-layer paths", () => withDom(async () => {
+  document.body.innerHTML = '<div class="textLayer"><span>first needle here; second </span><span>needle there</span></div><div>not PDF text</div>';
+  const range = document.createRange(), node = document.querySelectorAll("span")[1].firstChild!;
+  range.setStart(node, 0); range.setEnd(node, 6);
+  const book = pdf("first needle here; second needle there");
+  const captured = captureContentRange(book, 0, range);
+  expect(captured).toEqual({ cfi: "epubcfi(/6/2)", textQuote: { exact: "needle", prefix: "first needle here; second ", suffix: " there" } });
+  expect((await readContentRange(book, captured, options, allow)).text).toBe("needle");
+  book.sections[0].createDocument = () => document;
+  const dom = captureContentRange(book, 0, range);
+  expect(dom.textQuote).toBeUndefined();
+  expect((await readContentRange(book, dom, options, allow)).text).toBe("needle");
+  delete book.sections[0].createDocument;
+  range.selectNodeContents(document.body.lastElementChild!);
+  expect(() => captureContentRange(book, 0, range)).toThrow();
+}));
 
 test("search ranges read across inline nodes with bounded context, without a renderer or DOM mutation", () => withDom(async () => {
   document.body.innerHTML = '<p>before Nee<em>dle</em> after</p><script>not context</script><style>p { color: red; }</style>';

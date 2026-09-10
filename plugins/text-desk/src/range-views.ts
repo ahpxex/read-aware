@@ -1,5 +1,10 @@
-import type { BookLocationSearch, BookRangeQuery, PluginContext, PluginDetailView, PluginFormView, PluginListView } from "@read-aware/plugin-types";
+import type { BookLocationSearch, BookRangeQuery, BookTextRange, PluginContext, PluginDetailView, PluginFormView, PluginListView } from "@read-aware/plugin-types";
 import { tr } from "./strings";
+
+export async function capturedRangeDetail(ctx: PluginContext, range?: BookTextRange | null): Promise<PluginDetailView> {
+  if (range) return rangeDetail(ctx, { range });
+  return { kind: "detail", title: tr(ctx.locale, "passage"), content: [{ kind: "text", text: tr(ctx.locale, "noSourceRange") }] };
+}
 
 export function rangeSearchForm(ctx: PluginContext, bookId: string): PluginFormView {
   return { kind: "form", title: tr(ctx.locale, "findPassage"), fields: [

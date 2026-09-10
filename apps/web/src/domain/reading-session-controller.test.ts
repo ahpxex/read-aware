@@ -35,6 +35,36 @@ function fixture(deadline = 1000) {
   return { runtime, id, engine, detach, errors };
 }
 
+test("selection snapshots isolate copies and clear on navigation, detach, failure and session replacement", () => {
+  const f = fixture();
+  const selected = { id: "selection", text: "needle", textLength: 6,
+    range: { bookId: "book", contentVersion: "sha256:fixture", cfi: "epubcfi(/6/2!/4/2,/1:0,/1:6)" } };
+  const observed: Array<string | null> = [];
+  const off = f.runtime.observe(snapshot => { observed.push(snapshot.selection?.text ?? null); if (snapshot.selection) snapshot.selection.text = "mutated"; });
+  f.runtime.selectionChanged(f.id, selected);
+  selected.text = "changed later";
+  expect(f.runtime.snapshot().selection?.text).toBe("needle");
+  f.runtime.selectionChanged("other-session", null);
+  expect(f.runtime.snapshot().selection).not.toBeNull();
+  f.runtime.selectionChanged(f.id, { ...selected, range: { ...selected.range, contentVersion: "old" } });
+  expect(f.runtime.snapshot().selection?.text).toBe("needle");
+  f.runtime.relocate(f.id, at("next"), "next page");
+  expect(f.runtime.snapshot().selection).toBeNull();
+  f.runtime.selectionChanged(f.id, selected); f.detach();
+  expect(f.runtime.snapshot().selection).toBeNull();
+  f.runtime.selectionChanged(f.id, selected);
+  expect(f.runtime.snapshot().selection).toBeNull();
+  f.runtime.attach(f.id, f.engine, at("start"));
+  f.runtime.selectionChanged(f.id, selected); f.runtime.fail(f.id, Error("failed"));
+  expect(f.runtime.snapshot().selection).toBeNull();
+  const next = f.runtime.begin("book"); f.runtime.attach(next, f.engine, at("start"));
+  f.runtime.selectionChanged(f.id, selected);
+  expect(f.runtime.snapshot().selection).toBeNull();
+  f.runtime.selectionChanged(next, selected); f.runtime.closed();
+  expect(f.runtime.snapshot().selection).toBeNull();
+  expect(observed).toContain("needle"); off();
+});
+
 test("snapshot plus subscription starts at the current revision and isolates failing observers", async () => {
   const f = fixture(); const seen: number[] = [];
   const off = f.runtime.observe(state => { seen.push(state.revision); state.location!.cfi = "mutated"; });

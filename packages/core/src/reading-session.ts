@@ -1,4 +1,5 @@
 import type { EventOrigin } from "./entities";
+import type { BookTextRange } from "./book-range";
 
 /** Serializable reading state shared by the host, plugins and the product Agent. */
 export type ReadingTextQuote = { exact: string; prefix?: string; suffix?: string };
@@ -36,12 +37,24 @@ export type ReadingSessionSnapshot = {
   status: "idle" | "loading" | "ready" | "error";
   location: ReadingLocation | null;
   visibleText: string;
+  /** Captured from the current reader, never reconstructed from an old annotation. */
+  selection: ReadingSelectionSnapshot | null;
   errorCode?: string;
   history: { canGoBack: boolean; canGoForward: boolean };
   playback: ReadingPlaybackSnapshot;
   mode: ReadingModeSnapshot;
   /** Last committed reader-chrome visibility, or null without an attached UI. */
   controls: ReadingControlsSnapshot | null;
+};
+
+export type ReadingSelectionSnapshot = {
+  id: string;
+  /** UTF-16 bounded preview; textLength describes the complete normalized selection. */
+  text: string;
+  textLength: number;
+  range: BookTextRange | null;
+  /** A selection can be copied even when its source cannot issue a readable range. */
+  rangeUnavailableReason?: "unsupported" | "too-large" | "unavailable";
 };
 
 export type ReadingControlsSnapshot = { visible: boolean };

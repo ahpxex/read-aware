@@ -78,7 +78,7 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
 
   const session: AgentTool = {
     name: "get_reading_session", label: "Reading session",
-    description: "Read the actual active reader status, versioned location, visible text and navigation history availability. A book-scoped turn does not expose another book's viewport.",
+    description: "Read the actual active reader status, versioned location, visible text, captured selection and navigation history availability. selection.range can be passed unchanged to read_book_range; null means no portable anchor. A book-scoped turn does not expose another book's viewport or selection.",
     parameters: Type.Object({}),
     execute: async (_id, _params, signal) => {
       const call = readingContextCall(deps.readingContextPolicy, signal, state?.readingContextPermissions);
@@ -87,10 +87,11 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
         const snapshot = await call.wait(deps.reader.getSession());
         if (scope.kind === "book" && snapshot.bookId !== scope.bookId) return textResult({ status: "not-active", bookId: scope.bookId });
         if (!call.permissions.selection || !call.permissions.surrounding) {
-          return textResult({ ...snapshot, visibleText: "", textAccess: "Viewport text is withheld by the reader's privacy settings." });
+          return textResult({ ...snapshot, visibleText: "", selection: null,
+            textAccess: "Viewport text is withheld by the reader's privacy settings." });
         }
         return textResult(state?.spoilerFence && !state.spoilerPermissionGranted
-          ? { ...snapshot, visibleText: "", textAccess: "Use the turn's original reading_cursor.visible_text; navigation does not grant spoiler access." } : snapshot);
+          ? { ...snapshot, visibleText: "", selection: null, textAccess: "Use the turn's original reading_cursor.visible_text; navigation does not grant spoiler access." } : snapshot);
       } finally { call.dispose(); }
     },
   };

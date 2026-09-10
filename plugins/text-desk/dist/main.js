@@ -1,6 +1,9 @@
 // src/strings.ts
 var locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 var labels = {
+  inspectPassage: ["Inspect passage", "查看段落", "檢視段落", "文章を確認", "Просмотреть отрывок", "Examiner le passage", "Textstelle prüfen", "Examinar pasaje"],
+  inspectSelection: ["Current selection", "当前选区", "目前選取範圍", "現在の選択", "Текущее выделение", "Sélection actuelle", "Aktuelle Auswahl", "Selección actual"],
+  noSourceRange: ["No versioned passage is available", "没有可用的版本化段落", "沒有可用的版本化段落", "バージョン付きの文章はありません", "Нет доступного версионированного отрывка", "Aucun passage versionné disponible", "Keine versionierte Textstelle verfügbar", "No hay un pasaje versionado disponible"],
   findPassage: ["Find a passage", "查找段落", "尋找段落", "文章を探す", "Найти отрывок", "Trouver un passage", "Textstelle finden", "Buscar un pasaje"],
   passage: ["Passage", "段落", "段落", "文章", "Отрывок", "Passage", "Textstelle", "Pasaje"],
   sourceSection: ["Source section", "源文件分节", "來源分節", "元のセクション", "Раздел источника", "Section source", "Quellabschnitt", "Sección de origen"],
@@ -177,6 +180,11 @@ function hitDetail(ctx, hit, title) {
 }
 
 // src/range-views.ts
+async function capturedRangeDetail(ctx, range) {
+  if (range)
+    return rangeDetail(ctx, { range });
+  return { kind: "detail", title: tr(ctx.locale, "passage"), content: [{ kind: "text", text: tr(ctx.locale, "noSourceRange") }] };
+}
 function rangeSearchForm(ctx, bookId) {
   return { kind: "form", title: tr(ctx.locale, "findPassage"), fields: [
     { kind: "text", id: "query", label: tr(ctx.locale, "passage") },
@@ -282,6 +290,12 @@ async function textDesk(ctx, page = 0) {
     run: async () => ({ view: await textDesk(ctx, index), navigation: "replace" })
   }];
   actions.push({ id: "search", label: tr(ctx.locale, "searchShelf"), icon: "magnifying-glass", run: () => ({ view: textSearchForm(ctx) }) });
+  actions.push({
+    id: "selection",
+    label: tr(ctx.locale, "inspectSelection"),
+    icon: "text-aa",
+    run: async () => ({ view: await capturedRangeDetail(ctx, (await ctx.domains.reading.queries.session()).selection?.range) })
+  });
   for (const direction of [-1, 1])
     if (index + direction >= 0 && (index + direction) * 20 < books.length)
       actions.push({
@@ -301,6 +315,13 @@ var src_default = {
     const title = tr(ctx.locale, "title");
     ctx.contributions.commands.register({ id: "open", title, icon: "book-open", run: async () => ({ view: await textDesk(ctx) }) });
     ctx.contributions.headerActions.register({ id: "reader", title, icon: "book-open", surface: "reader", presentation: "popup", view: () => textDesk(ctx) });
+    ctx.contributions.selectionActions.register({
+      id: "inspect-passage",
+      title: tr(ctx.locale, "inspectPassage"),
+      icon: "magnifying-glass",
+      presentation: "dialog",
+      run: async (input) => ({ view: await capturedRangeDetail(ctx, input.range) })
+    });
   }
 };
 export {

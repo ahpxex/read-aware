@@ -1,6 +1,7 @@
 import { AppError, errorCode, type EventOrigin, type ReadingModeConfiguration, type ReadingModeSnapshot, type ReadingModeReceipt, type ReadingPlaybackSnapshot, type ReadingPlaybackReceipt, type ReadingLocation, type ReadingNavigationReceipt, type ReadingSessionSnapshot, type ReadingSessionGuard, type ReadingTarget } from "@read-aware/core";
 import type { ReadingModeStepOutcome, ReadingModeStepReceipt } from "@read-aware/core";
 import type { ReadingControlsSnapshot, ReadingControlsReceipt } from "@read-aware/core";
+import type { ReadingSelectionSnapshot } from "@read-aware/core";
 
 export type ReadingControlsAdapter = {
   snapshot(): ReadingControlsSnapshot;
@@ -60,7 +61,7 @@ export class ReadingSessionController {
     history: { canGoBack: false, canGoForward: false },
     playback: unavailablePlayback(),
     mode: unavailableMode(),
-    controls: null,
+    controls: null, selection: null,
   };
 
   constructor(private readonly report: (error: unknown) => void = () => {}, private readonly deadlineMs = 30_000) {}
@@ -87,7 +88,7 @@ export class ReadingSessionController {
     const id = crypto.randomUUID();
     this.userOpening = intent === undefined ? { id, before: this.state.location } : undefined;
     this.session = { id, bookId };
-    this.publish({ sessionId: id, bookId, status: "loading", location: null, visibleText: "", errorCode: undefined, playback: unavailablePlayback(), mode: unavailableMode(), controls: null });
+    this.publish({ sessionId: id, bookId, status: "loading", location: null, visibleText: "", selection: null, errorCode: undefined, playback: unavailablePlayback(), mode: unavailableMode(), controls: null });
     return id;
   }
 
@@ -103,12 +104,21 @@ export class ReadingSessionController {
     return () => {
       if (this.session?.id !== id || this.session.engine !== engine) return;
       this.session.engine = undefined;
-      this.publish({ status: "loading" });
+      this.publish({ status: "loading", selection: null });
     };
   }
 
   relocate(id: string, location: ReadingLocation, visibleText: string): void {
-    if (this.session?.id === id) this.publish({ location, visibleText: visibleText.slice(0, 12_000) });
+    if (this.session?.id === id) this.publish({ location, visibleText: visibleText.slice(0, 12_000), selection: null });
+  }
+
+  /** Host-only feedback from the attached reader. Stale renderers cannot publish. */
+  selectionChanged(id: string, selection: ReadingSelectionSnapshot | null): void {
+    if (this.session?.id !== id || this.state.status !== "ready") return;
+    if (selection?.range && (selection.range.bookId !== this.session.bookId
+      || selection.range.contentVersion !== this.state.location?.contentVersion)) return;
+    if (!selection && !this.state.selection) return;
+    this.publish({ selection: selection ? structuredClone(selection) : null });
   }
 
   fail(id: string, error: unknown): void {
@@ -117,7 +127,7 @@ export class ReadingSessionController {
     this.detachPlayback();
     this.detachMode();
     this.detachControls();
-    this.publish({ status: "error", errorCode: errorCode(error) ?? "reader/load-failed", playback: unavailablePlayback(), mode: unavailableMode(), controls: null });
+    this.publish({ status: "error", selection: null, errorCode: errorCode(error) ?? "reader/load-failed", playback: unavailablePlayback(), mode: unavailableMode(), controls: null });
   }
 
   closed(): void {
@@ -127,7 +137,7 @@ export class ReadingSessionController {
     this.detachMode();
     this.session = undefined;
     this.detachControls();
-    this.publish({ status: "idle", sessionId: null, bookId: null, location: null, visibleText: "", errorCode: undefined, playback: unavailablePlayback(), mode: unavailableMode(), controls: null });
+    this.publish({ status: "idle", sessionId: null, bookId: null, location: null, visibleText: "", selection: null, errorCode: undefined, playback: unavailablePlayback(), mode: unavailableMode(), controls: null });
   }
 
   bindControls(id: string, adapter: ReadingControlsAdapter): () => void {

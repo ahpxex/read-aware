@@ -1,6 +1,7 @@
 import type { PluginModule } from "@read-aware/plugin-types";
 import { textDesk } from "./views";
 import { tr } from "./strings";
+import { capturedRangeDetail } from "./range-views";
 
 export default {
   activate(ctx) {
@@ -8,5 +9,7 @@ export default {
     const title = tr(ctx.locale, "title");
     ctx.contributions.commands.register({ id: "open", title, icon: "book-open", run: async () => ({ view: await textDesk(ctx) }) });
     ctx.contributions.headerActions.register({ id: "reader", title, icon: "book-open", surface: "reader", presentation: "popup", view: () => textDesk(ctx) });
+    ctx.contributions.selectionActions.register({ id: "inspect-passage", title: tr(ctx.locale, "inspectPassage"), icon: "magnifying-glass",
+      presentation: "dialog", run: async input => ({ view: await capturedRangeDetail(ctx, input.range) }) });
   },
 } satisfies PluginModule;

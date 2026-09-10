@@ -850,6 +850,8 @@ export type SelectionActionInput = {
   context?: string;
   /** CFI range of the selection/annotation, when the engine can anchor it. */
   cfiRange: string | null;
+  /** Since selectionActions 1.2: captured source reference. Null for legacy annotations or unavailable anchors. */
+  range?: import("@read-aware/core").BookTextRange | null;
   chapterHref: string | null;
   book: { id: string; title: string; author?: string };
   source: SelectionActionSource;

@@ -1,3 +1,5 @@
+import type { ReadingSelectionSnapshot } from "@read-aware/core";
+
 export type SelectionOverlayRect = {
   left: number;
   top: number;
@@ -20,6 +22,7 @@ export type ReaderSelectionState = {
   text: string;
   /** The passage the selection sits in (windowed), for a context-aware lookup. */
   context?: string;
+  captured?: ReadingSelectionSnapshot;
 };
 
 const MIN_RECT_SIDE = 1;

@@ -1452,3 +1452,21 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [复扫/文档] 库存/模型 12 项/37 断言、两个生成器 --check、三 pair validator 通过。243 行/701 入口/30 单元/31 catalog/129 验收/32 场景；入口比上一单元增加三个（双 scope 工具及插件查询），不是完成率。14 源码插件/6 内置不变，Worker 探针不计新插件。三对 MD/HTML 同步事实，三个真实视口 1440×1000、1024×768、390×844 检查，无观察到的页面横溢、重复 ID、坏片段锚点或无名按钮；表格自身横滚。模型 readRange/范围命中 1/3，Escape 恢复 57，抽屉 inert/恢复及 light 刷新保持；插件为 2/3，Escape 恢复 20，原无抽屉/主题。观察 CDN 均 200、模型/插件无 console error，自有文档页 12 关闭。HTML 仍依赖网络，文档验证不是产品 E2E。
 
 [剩余] TXT10/TXT13 仍部分：原生选区、句段与持久标注没有统一版本化 Range 生产/写入验证。全部格式、在途换版本/provider 更新、最大载荷/解析内存、单次公共取消与其他生命周期仍待补。其余双端缺口、全能力组合、自主模型、打包/跨平台/真实跨设备、强杀与长时验收继续；整体目标未完成，未推送。
+
+## 2026-09-10：Reading 2.9 捕获选区与句段范围
+
+[进度] 上轮已提交 01b4b9bb 并完成验证，属于 progress。本轮继续 Range 的生产侧与真实消费者，不以单元完成替代全部双端目标。
+
+[代码] Reading 2.9 的 session.selection 提供 capture id、最多 12000 UTF-16 的规范化预览、完整长度、Range 或 unavailable/too-large/unsupported 原因。源版本在显示 parser/DOM 范围一致时同步捕获，不到执行动作时重读当前版本。DOM 使用 source CFI；PDF 使用页 CFI+原文和两侧最多 80 字符的引用，拒绝将临时文本层路径冒充源范围。过长 PDF 引用不截断成另一个选区。宿主反馈要求 ready 与同 session/book/version，快照隔离复制；导航、卸载、失败、换书和关闭清空，原生 Escape 发布清空。capture 先核对文档归属再做清除，避免迟到无效来源清理新状态；没有借此宣称全部文档监听器生命周期已修复。
+
+[双端/组合] selectionActions 1.2 input.range 携带原生捕获值，句段目标仅在 position 的 book/CFI 与当前 unit 相符时复用原始版本。旧标注返回 null，不能给旧 CFI 补签当前版本。Agent get_reading_session 可与 read_book_range 组合；任一文本隐私开关收紧时整个 selection（含 quote 上下文）不输出，原始回合剧透 fence 与跨书限制继续生效。Text Desk 0.6 新增选区/句段 Inspect passage 和 header 视图中的当前选区入口，仍经普通 library 查询；无引用显示不可操作的不可用详情，不猜位置、不搜索替代。未增加插件领域授权。
+
+[原生证据] [selection-range](./evidence/selection-range-2026-09-10.json) 在隔离 macOS Tauri 使用真实 FB2/PDF、SQLite、模块 Worker、实际 Agent 工具和编译 Text Desk。通过 DOM Range+pointerup 进入生产捕获，不是 OS 拖选。FB2 和 PDF 第二个 needle 的 Worker session/observe 与 Agent 一致，readRange 得原文；无权限看不到 reading，只读没有命令，写权限有命令。实际 More/Inspect passage 点击分别展示匹配上下文和 1-6 / 6；PDF Open passage 到 local CFI 26–32 并清 selection，渲染后弹层关闭。已检查选区高亮与稳定后的两种详情截图，未把首个过渡帧算最终视觉。句段模式真实 configure(active:true)，用实际 glyph rectangle 命中 overlayer，再点击同一插件动作，得到 First passage、1-13 / 13 与后续上下文。header 当前选区入口是代码/单元组合，未单独作菜单 E2E。
+
+[生命周期证据边界] 切书后选区为空；最终 PDF 原生 Escape 后，Worker 查询/观察和实际 Agent 均为空。保留的旧 FB2 document 触发 pointerup 后，新 PDF selection id 与 revision 70 未变；但该旧文档已无 defaultView/getSelection/frameElement，不能用它证明迟到非空捕获分支。精确源身份/预览边界、复制隔离、失效/跨代和 Agent 隐私/剧透组合由聚焦测试覆盖；真实隐私设置切换、coarse-pointer timer 不在本次实机证明内。
+
+[清理/验证] 首次准备期间延迟 Vite reload 丢失内存状态，两个已导入 ID 经 live list 查明并正式清理；随后两轮各两本，也用域删除/文件恢复清理。最终只读 SQL 对六本自有书验证 books/annotations/FTS/removal intents/pending/live blobs 全零，事件历史保留。七类 probe/plugin 贡献归零，driver 9224 停止，PGID 40639 / exec 51573 终态 143，5184/9224 无监听；旧 9223 不动。47 项/189 断言聚焦通过；最终全仓 test 24/24（web 954/10287 断言/172 文件）、typecheck 27/27、production frontend build 通过。开发期类型检查发现 fixture 清理句柄类型、SDK 范围类型名、消费者 snapshot 字段和 selection presentation 枚举错误，均按真实契约修正并重跑；不把中间失败算通过。无 Rust 改动，启动重编译保留 37 既有警告，不冒充全 Rust 或 packaged 验证。
+
+[复扫/文档] 三对事实同步；库存/模型 12 项/37 断言，243 行/701 入口/30 单元/31 catalog/129 验收/32 场景，14 源码插件/6 内置不变。扩大的是已有 get_reading_session/session/observe 的语义映射，不虚增工具或插件数。三页各验证真实 1440×1000、1024×768、390×844；selection/选区搜索矩阵 19/8、模型 2/2、插件 5/6，Escape 清空。矩阵/模型抽屉 inert/恢复和主题刷新保持通过；未观察到页面横溢、重复 ID、坏片段锚点、无名按钮或 console error，CDN 均 200，自有页面 13 关闭；HTML 依赖网络，文档不是产品证明。
+
+[剩余] READ13/TXT10/TXT13 仍部分：公共建立/清除选区、临时强调所有权、持久标注来源与 Range 写入校验还未闭合；不能把读取选区当作能操控选区。迟到非空捕获/触摸定时器、最大载荷、全部格式、真实 provider/源替换、自主模型、打包/跨平台/跨设备与全部能力组合继续。整体目标保持 active，未推送。

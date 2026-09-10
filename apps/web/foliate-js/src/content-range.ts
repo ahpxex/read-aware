@@ -46,6 +46,22 @@ function quoteOffsets(text: string, quote: TextQuote): [number, number] {
 function readText(range: Range): string {
     return [...textWalker(range, strings => [strings.join('')])][0] ?? ''
 }
+
+/** Capture the loaded source identity, not PDF text-layer implementation paths. */
+export function captureContentRange(book: Book, index: number, range: Range): { cfi: string; textQuote?: TextQuote } {
+    const section = book.sections[index]
+    if (!section || range.collapsed) throw new ContentRangeError('not-found')
+    if (section.createDocument) return { cfi: contentCFI(book, index, range) }
+    if (!section.getText) throw new ContentRangeError('unsupported')
+    const doc = range.startContainer.ownerDocument
+    const root = doc?.querySelector('.textLayer')
+    if (!doc || !root?.contains(range.startContainer) || !root.contains(range.endContainer)) throw new ContentRangeError('not-found')
+    const before = doc.createRange(); before.selectNodeContents(root); before.setEnd(range.startContainer, range.startOffset)
+    const after = doc.createRange(); after.selectNodeContents(root); after.setStart(range.endContainer, range.endOffset)
+    return { cfi: contentCFI(book, index), textQuote: {
+        exact: readText(range), prefix: readText(before).slice(-80), suffix: readText(after).slice(0, 80),
+    } }
+}
 const splitsPair = (text: string, offset: number) => offset > 0 && offset < text.length
     && /[\uD800-\uDBFF]/u.test(text[offset - 1]) && /[\uDC00-\uDFFF]/u.test(text[offset])
 

@@ -88,6 +88,7 @@ import { buildVirtualFoliateBook } from "../lib/virtual-book";
 import { resolveContentProvider } from "../../plugins/lib/virtual-books";
 import { readingRuntime } from "../../../domain/reading-runtime";
 import { attachReadingEngine, waitForReadingPaint } from "../lib/reading-engine-adapter";
+import { captureReadingSelection, type SelectionContentIdentity } from "../lib/selection-range";
 import { fileContentVersion, virtualContentVersion, registerActiveBookContent } from "../../library/lib/book-content-source";
 import type {
   RegisteredReaderMode,
@@ -505,6 +506,7 @@ export function FoliateReaderView({
   const [currentChapterHref, setCurrentChapterHref] = useState<string | null>(null);
   const [isFixedLayout, setIsFixedLayout] = useState(false);
   const [selection, setSelection] = useState<ReaderSelectionState | null>(null);
+  const selectionContentRef = useRef<SelectionContentIdentity | null>(null);
   const [activeAnnotation, setActiveAnnotation] = useState<{
     highlight: Highlight;
     anchorRect: SelectionOverlayRect;
@@ -684,6 +686,8 @@ export function FoliateReaderView({
       suppressContentClickTimeoutRef.current = null;
     }
     setSelection(null);
+    const identity = selectionContentRef.current;
+    if (identity) readingRuntime.selectionChanged(identity.sessionId, null);
   }, [cancelPendingShellOpen, clearNativeSelection]);
 
   const {
@@ -723,11 +727,14 @@ export function FoliateReaderView({
     { suppressContentClick = false }: { suppressContentClick?: boolean } = {},
   ) => {
     const view = viewRef.current;
+    // Check ownership before even clearing an invalid selection: an unloaded
+    // iframe's late event must not dismiss the replacement reader's selection.
+    if (!view?.renderer?.getContents().some(content => content.index === index && content.doc === doc)) return false;
     const readerRoot = readerRootRef.current;
     const win = doc.defaultView;
     const selectionInDoc = win?.getSelection?.() ?? doc.getSelection?.() ?? null;
     const frameElement = win?.frameElement;
-    if (!view || !readerRoot || !(frameElement instanceof HTMLElement) || !selectionInDoc) {
+    if (!readerRoot || !(frameElement instanceof HTMLElement) || !selectionInDoc) {
       clearSelection();
       return false;
     }
@@ -767,6 +774,8 @@ export function FoliateReaderView({
       cfiRange = null;
     }
 
+    const identity = selectionContentRef.current;
+    const captured = captureReadingSelection(identity, view, index, range, text);
     const nextSelection: ReaderSelectionState = {
       anchorRect: rects[rects.length - 1] ?? null,
       appearance: "selection",
@@ -775,11 +784,13 @@ export function FoliateReaderView({
       rects,
       text,
       context: getSelectionContext(range, text),
+      captured,
     };
 
     setActiveAnnotation(null);
     selectionRef.current = nextSelection;
     setSelection(nextSelection);
+    if (identity) readingRuntime.selectionChanged(identity.sessionId, captured);
     if (suppressContentClick) armContentClickSuppression();
     // iOS：原生选中菜单会和 app 的选择菜单叠成双份（#10）。捕获完成后立刻
     // 清掉原生选区——菜单没了依附；高亮由 ReaderSelectionHighlight 自绘补回。
@@ -2132,6 +2143,13 @@ export function FoliateReaderView({
         if (cancelled) return;
         if (sessionId && selectedBook) {
           if (!cancelled) cleanups.push(attachReadingEngine(view, sessionId, selectedBook.id, contentVersion));
+          const identity = { view, sessionId, bookId: selectedBook.id, contentVersion };
+          selectionContentRef.current = identity;
+          cleanups.push(() => {
+            if (selectionContentRef.current !== identity) return;
+            selectionContentRef.current = null;
+            readingRuntime.selectionChanged(sessionId, null);
+          });
         }
         if (book && !cancelled) onBookReadyRef.current?.(book);
       } catch (nextError) {

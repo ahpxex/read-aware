@@ -2,6 +2,8 @@ import { expect, test } from "bun:test";
 import { AppError, type Id, type ReadingNavigationReceipt } from "@read-aware/core";
 import { createInMemoryDeps } from "../testing/fixtures";
 import { buildReaderTools } from "./reader-tools";
+import { createAgentTurnState } from "./turn-state";
+import { contextPolicyState } from "../testing/reading-context-policy";
 
 const bookId = "book" as Id;
 const receipt: ReadingNavigationReceipt = {
@@ -14,6 +16,34 @@ function fixture() {
   const tool = (name: string) => tools.find(tool => tool.name === name)!;
   return { deps, stores, tool };
 }
+
+test("session selection is versioned and withheld with privacy restrictions, spoilers and another book", async () => {
+  const { deps } = fixture();
+  await deps.reader.openBook(bookId);
+  const original = await deps.reader.getSession();
+  const selection = { id: "selected", text: "needle", textLength: 6,
+    range: { bookId, contentVersion: "v1", cfi: "epubcfi(/6/2)", textQuote: { exact: "needle", prefix: "private context" } } };
+  deps.reader.getSession = async () => ({ ...original, selection });
+  const state = createAgentTurnState(), policy = contextPolicyState({ selection: true, surrounding: true });
+  deps.readingContextPolicy = policy;
+  const read = async () => {
+    const result = await buildReaderTools({ kind: "book", bookId }, deps, state).find(t => t.name === "get_reading_session")!.execute("selection", {});
+    if (result.content[0]?.type !== "text") throw Error("Expected text");
+    return JSON.parse(result.content[0].text);
+  };
+  expect((await read()).selection).toEqual(selection);
+  for (const permissions of [{ selection: false, surrounding: true }, { selection: true, surrounding: false }]) {
+    policy.set(permissions);
+    expect((await read()).selection).toBeNull();
+  }
+  policy.set({ selection: true, surrounding: true }); state.spoilerFence = { throughChapterIndex: 0 };
+  expect((await read()).selection).toBeNull();
+  state.spoilerPermissionGranted = true;
+  expect((await read()).selection).toEqual(selection);
+  deps.reader.getSession = async () => ({ ...original, bookId: "other", selection });
+  expect(await read()).toEqual({ status: "not-active", bookId });
+  expect(policy.listeners()).toBe(0);
+});
 
 test("open_book only reports opened after the renderer completes, preserving its actual location", async () => {
   const { deps, tool } = fixture();

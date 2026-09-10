@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { BookRangeQuery, PluginContext, PluginDetailView, PluginListView } from "@read-aware/plugin-types";
-import { rangeDetail, rangeResults, rangeSearchForm } from "./range-views";
+import { capturedRangeDetail, rangeDetail, rangeResults, rangeSearchForm } from "./range-views";
 
 function fixture() {
   const range = { bookId: "book", contentVersion: "v1", cfi: "epubcfi(/6/2!/4/2,/1:0,/1:6)" };
@@ -18,6 +18,14 @@ function fixture() {
   } } as unknown as PluginContext;
   return { ctx, range, reads, jumps, searches };
 }
+
+test("selection composition consumes the captured source and never restamps a missing legacy anchor", async () => {
+  const { ctx, range, reads, jumps } = fixture();
+  const missing = await capturedRangeDetail(ctx, null);
+  expect(missing.actions).toBeUndefined(); expect(reads).toEqual([]);
+  await capturedRangeDetail(ctx, range);
+  expect(reads).toEqual([{ range }]); expect(jumps).toEqual([]);
+});
 
 test("passage form validates before queries; result selection reads without moving the reader", async () => {
   const { ctx, range, reads, jumps, searches } = fixture();

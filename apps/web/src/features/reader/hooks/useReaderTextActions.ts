@@ -12,6 +12,7 @@
  */
 import { useCallback, useRef } from "react";
 import type { RefObject } from "react";
+import type { ReadingModePosition, ReadingSelectionSnapshot } from "@read-aware/core";
 import { useAtomValue, useSetAtom } from "jotai";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
 import { selectionActionsAtom } from "../../plugins/state/plugin-store";
@@ -46,6 +47,7 @@ type LiveSelection = {
   cfiRange: string | null;
   chapterHref: string | null;
   context?: string;
+  captured?: ReadingSelectionSnapshot;
 } | null;
 
 type Options = {
@@ -55,7 +57,7 @@ type Options = {
   /** Owned by the view: a relocate clears it, so it cannot live in here. */
   setActiveAnnotation: (value: ActiveAnnotation) => void;
   /** The guided-reading unit currently washed, if that mode is on. */
-  textUnitNavigator: { current: { text: string; cfiRange: string | null } | null };
+  textUnitNavigator: { current: { text: string; cfiRange: string | null } | null; position: ReadingModePosition | null };
   clearSelection: () => void;
   notesRef: RefObject<Note[]>;
   currentChapterHrefRef: RefObject<string | null>;
@@ -160,6 +162,7 @@ export function useReaderTextActions({
         text: target.text,
         context,
         cfiRange: target.cfiRange,
+        range: target.range ? structuredClone(target.range) : null,
         chapterHref: target.chapterHref,
         book: { id: selectedBook.id, title: selectedBook.title, author: selectedBook.author },
         source,
@@ -234,7 +237,7 @@ export function useReaderTextActions({
     ) => {
       if (!selection) return;
       const saved = await saveMark(
-        { text: selection.text, cfiRange: selection.cfiRange, chapterHref: selection.chapterHref },
+        { text: selection.text, cfiRange: selection.cfiRange, chapterHref: selection.chapterHref, range: selection.captured?.range },
         color,
         style,
       );
@@ -251,7 +254,7 @@ export function useReaderTextActions({
     if (!selection) return;
     runLookupAction(
       pluginInputFor(
-        { text: selection.text, cfiRange: selection.cfiRange, chapterHref: selection.chapterHref },
+        { text: selection.text, cfiRange: selection.cfiRange, chapterHref: selection.chapterHref, range: selection.captured?.range },
         "selection",
         selection.context,
       ),
@@ -265,6 +268,7 @@ export function useReaderTextActions({
       text: selection.text,
       cfiRange: selection.cfiRange,
       chapterHref: selection.chapterHref,
+      range: selection.captured?.range,
     });
   }, [openNoteEditorFor, selection]);
 
@@ -274,6 +278,7 @@ export function useReaderTextActions({
       text: selection.text,
       cfiRange: selection.cfiRange,
       chapterHref: selection.chapterHref,
+      range: selection.captured?.range,
     });
     clearSelection();
   }, [clearSelection, requestAskAi, selection]);
@@ -337,12 +342,15 @@ export function useReaderTextActions({
   const navigatorTarget = useCallback((): ActionTarget | null => {
     const unit = textUnitNavigator.current;
     if (!unit) return null;
+    const location = textUnitNavigator.position?.location;
     return {
       text: unit.text,
       cfiRange: unit.cfiRange,
       chapterHref: currentChapterHrefRef.current,
+      range: location && location.bookId === selectedBook?.id && location.cfi === unit.cfiRange
+        ? { bookId: location.bookId, contentVersion: location.contentVersion, cfi: location.cfi } : null,
     };
-  }, [currentChapterHrefRef, textUnitNavigator]);
+  }, [currentChapterHrefRef, textUnitNavigator, selectedBook?.id]);
 
   const handleNavigatorMark = useCallback(
     async (style: NonNullable<Highlight["style"]>) => {
@@ -382,6 +390,7 @@ export function useReaderTextActions({
             text: selection.text,
             cfiRange: selection.cfiRange,
             chapterHref: selection.chapterHref,
+            range: selection.captured?.range,
           },
           "selection",
           selection.context,

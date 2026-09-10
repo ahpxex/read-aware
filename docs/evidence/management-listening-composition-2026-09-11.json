@@ -1,0 +1,72 @@
+{
+  "date": "2026-09-11",
+  "scope": "Maintenance Desk 0.3 and Listening Desk 0.10 native composition acceptance",
+  "environment": {
+    "application": "/tmp/readaware-maintenance-acceptance.app",
+    "identifier": "com.readaware.app.capability-e2e",
+    "appVersion": "0.5.4",
+    "tauriVersion": "2.11.2",
+    "platform": "macOS aarch64 debug RepoDist",
+    "frontendPort": 5184,
+    "bridgePort": 9224,
+    "productionDataUsed": false,
+    "entry": "Registered plugin commands through runPluginContribution and compiled plugin Workers; subsequent actions through native webview DOM controls"
+  },
+  "maintenance": {
+    "directory": "15 installed metadata entries; Jumper search returned one result at version 0.4.0",
+    "contributions": "Jumper exposed three commands and one header action; host-controlled disable changed the open live list from four to zero, re-enable restored four",
+    "settings": "Manage plugins handed off to native plugin settings",
+    "updates": "Explicit release-feed check transitioned through Checking to Up to date on Stable; update settings handed off to native About/Updates",
+    "sync": "Disabled, backend None, connection Idle; explicit local backlog returned 1916 events and 3 files before creating the owned test book",
+    "connect": "Relay and WebDAV choices rendered; Relay review/Continue opened native Data & Sync and Connect account with Google, GitHub and email choices",
+    "cancel": "Native account dialog was cancelled without entering identity or sending login; Recent operations reported Wait cancelled, not a rolled-back connection"
+  },
+  "listening": {
+    "bookId": "f1a30d2f-cf35-464a-9350-5ee9ac44840f",
+    "bookTitle": "Composition 11d15b41",
+    "content": "Owned three-section FB2 fixture imported through the host library domain",
+    "width": "Plugin Chat width form saved 400 px and displayed the successful host receipt; original widths were toc 288 and chat 352",
+    "liveState": "Observed reader readiness, mode readiness and unit 1 of 3, playback status, panel open/visible state and environment layout",
+    "playback": "Existing sandboxed diagnostic PCM voice used with synthesis delay; native plugin Start reached Playing, Stop reached Stopped in both runtime and live view",
+    "narrowWindow": "Resizing from 900x650 to 600x750 logical pixels changed the live layout from Docked to Exclusive, retaining chat width 400",
+    "reload": {
+      "method": "Reload frontend, then reopen the same owned book through readingRuntime.navigate",
+      "verifiedAfterReload": true,
+      "sessionId": "2aeb1006-781d-4d2f-8ade-e5144f7818b1",
+      "widths": { "chat": 400, "toc": 288 },
+      "layout": "exclusive"
+    }
+  },
+  "defectFixed": {
+    "permission": "conversations:write",
+    "symptom": "Memory Desk consent badge displayed settings.permissionName.conversations_write",
+    "fix": "Added permission name and explanatory consent copy in all eight locales",
+    "nativeRecheck": "Memory Desk now displayed Manage conversations and no untranslated permission-name key",
+    "regression": "Every declared permission name and description is nonempty in all eight locales: 1 test, 704 assertions"
+  },
+  "cleanup": {
+    "restoredWidths": { "toc": 288, "chat": 352 },
+    "panels": "All closed; reader controls hidden before closing the owned book",
+    "reader": "idle, bookId null, no session",
+    "bookRemoval": { "committed": true, "files": "released" },
+    "remainingBooks": ["Reading Capability Probe", "Reading Paint Probe"],
+    "enabledRestored": { "jumper": true, "listening-desk": true, "maintenance-desk": true, "tts": true },
+    "diagnosticProbeContributions": 0,
+    "windowRestored": "900x650 logical pixels",
+    "ownedAppStopped": true,
+    "driver9224Stopped": true,
+    "frontendStopped": true,
+    "ports5184And9224": "No listeners after cleanup",
+    "original9223": "Not operated"
+  },
+  "limitations": [
+    "Native webview remained backgrounded with document.visibilityState hidden and some dialog animation opacity zero. DOM callbacks and native state are evidence; foreground visuals, physical keyboard use and audibility are not proved. No screenshots claimed.",
+    "PCM diagnostic playback is not a remote TTS-provider or full automatic-advance test.",
+    "No account identity submitted, account deleted, purchase made, update installed or cross-device sync executed.",
+    "Frontend reload verifies local width persistence, not a packaged application restart or cross-platform behavior.",
+    "HMR and deliberate reload cleared in-memory fixture ownership. Exact owned book ID and recorded original widths were used for guarded manual cleanup.",
+    "Two setup calls initially used the wrong internal signal/guard argument order. Retried with the host signature; corrected the new fixture cleanup signature. These were automation errors, not plugin control failures.",
+    "One unscoped Chat selector opened the underlying native chat panel; it was explicitly restored closed. No message was sent.",
+    "This batch does not certify every capability or Agent workflow. Remaining acceptance work stays open."
+  ]
+}

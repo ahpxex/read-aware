@@ -1,16 +1,16 @@
 {
   "id": "listening-desk",
   "name": "Listening Desk",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "schemaVersion": 1,
-  "description": "Text-unit mode, read-aloud controls and reading history in one reader panel.",
+  "description": "Text-unit modes, live read-aloud status, reader panel widths and navigation history.",
   "author": "ReadAware",
   "main": "main.js",
   "permissions": ["reading:write"],
   "requires": {
-    "domains": { "reading": "^2.6.0" },
-    "services": { "session": "^2.0.0", "ui": "^1.1.0" },
+    "domains": { "reading": "^2.18.0" },
+    "services": { "session": "^2.0.0", "ui": "^1.9.0", "logging": "^1.0.0" },
     "contributions": { "headerActions": "^1.0.0", "commands": "^1.0.0" },
-    "schemas": { "views": "^1.0.0" }
+    "schemas": { "views": "^1.8.0" }
   }
 }

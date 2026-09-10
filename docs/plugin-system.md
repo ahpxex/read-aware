@@ -2816,13 +2816,53 @@ errors are isolated. Receipts do not prove CSS animation, screen rasterization,
 annotation/chat data loading or actual focus completion. Worker per-call abort
 is still not exposed.
 
-Listening Desk 0.9 requires UI 1.1 and composes four guarded panel actions with
+Listening Desk 0.9 added UI 1.1 and composes four guarded panel actions with
 reading mode, playback, history and controls. It closes its own view only on
 success; a stale session guard leaves the view available for Refresh and retry.
 [验证] Unit/React/actor tests and isolated macOS debug Tauri tests cover the paths
 listed in [reader panel evidence](./evidence/reader-panels-2026-09-09.json), including
 SQLite rejection, real Workers, real plugin UI, narrow/wide windows and fixed-layout
 appearance. Packaged and Windows/Linux panel behavior remain unverified.
+
+### Listening Desk Live Status and Panel Widths
+
+[代码] Listening Desk 0.10 keeps the existing mode forms, history, controls and
+four panel actions. A separate live detail view composes observeSession,
+observeEnvironment and reader.observe, using UI publishView. It displays reader/
+mode/playback status, stable error blocks, backend/fallback, current-section unit
+ordinal/total, OS network hint, matching panel layout and open/visible states.
+Preparation/advancing progress is indeterminate, not audio duration or whole-book
+progress. No passage text, selection or CFI is rendered. Panel snapshots from a
+different book/session are ignored until a matching observation arrives. Root
+mode forms remain snapshot-based; live updates do not replace those forms.
+
+[代码] Live playback controls and registered start/stop commands carry the
+displayed book/session guard and activation signal through Reading 2.18. Live
+callbacks are revisioned and return publication promises to host observers;
+frame disposal, failed subscription setup and deactivation release subscriptions.
+Initial read errors reject, and publication failures use public logging. Host
+observer contracts do not deliver read-error events; this view does not add a
+new health guarantee or replay protocol.
+
+[代码] Panel widths uses reader.snapshot/setWidth from UI 1.9, one toc/chat
+choice per form. Width is an integer 240..640 CSS px shared across books, not a
+measured panel size; exclusive layout can ignore it. The form freezes its
+book/session guard, validates before calling, then displays the returned width
+without a second read. Failure preserves the host error; no atomic multi-panel
+write, automatic opening, focus or layout-mode mutation is claimed. Read-only
+setWidth absence omits editing. The existing reading:write grant is unchanged;
+requires Reading 2.18, UI 1.9, session 2.0, logging 1.0 and views 1.8.
+
+[验证] 15 plugin tests / 79 assertions, typecheck, build and formal manifest
+validation pass, including compiled command callbacks, three-stream observation,
+retirement/partial setup cleanup, mismatched sessions, frozen action guards,
+width bounds, rejected writes and receipt/read separation. Controlled Bun
+contexts do not prove WebKit Worker rendering, real audio, native width
+persistence, narrow-window behavior or upgrade activation. Those and document
+visual checks remain for concentrated desktop acceptance. No host/Agent API or
+release-roster change.
+
+### Native Wheel Phase Lifetime
 
 [代码] Private wheel-phase input now follows document lifetime: the app-owned
 AppKit monitor evaluates one of three closed CustomEvent scripts in the main

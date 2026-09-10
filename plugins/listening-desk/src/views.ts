@@ -1,15 +1,20 @@
 import type { PluginContext, PluginAction, PluginView, PluginFormView, PluginViewResult } from "@read-aware/plugin-types";
 import { tr } from "./strings";
+import { readingMonitor } from "./monitor";
+import { panelWidths } from "./panel-widths";
+import { monitorCopy } from "./monitor-strings";
 
-export async function listeningView(ctx: PluginContext, boundary?: "start-of-book" | "end-of-book"): Promise<PluginView> {
+export async function listeningView(ctx: PluginContext, boundary?: "start-of-book" | "end-of-book", signal = new AbortController().signal): Promise<PluginView> {
+  signal.throwIfAborted();
   const reading = ctx.domains.reading;
   if (!reading?.commands) throw new Error("Listening Desk requires reading:write");
   const state = await reading.queries.session();
   const environment = await ctx.services.session.environment();
   const panels = await ctx.services.ui?.reader?.snapshot();
+  signal.throwIfAborted();
   const playback = state.playback;
   const guard = { sessionId: state.sessionId ?? undefined, bookId: state.bookId ?? undefined };
-  const refresh = async () => ({ view: await listeningView(ctx), navigation: "replace" as const });
+  const refresh = async () => ({ view: await listeningView(ctx, undefined, signal), navigation: "replace" as const });
   const actions: PluginAction[] = [];
   const mode = state.mode;
   const providerForm: PluginFormView | null = state.status === "ready" && state.sessionId && mode.availableModes.length > 0
@@ -67,7 +72,7 @@ export async function listeningView(ctx: PluginContext, boundary?: "start-of-boo
         icon: direction === "next" ? "arrow-right" : "arrow-left",
         run: async () => {
           const result = await reading.commands!.stepMode(direction, guard);
-          return { view: await listeningView(ctx, result.outcome === "moved" ? undefined : result.outcome), navigation: "replace" };
+          return { view: await listeningView(ctx, result.outcome === "moved" ? undefined : result.outcome, signal), navigation: "replace" };
         },
       });
     }
@@ -88,6 +93,12 @@ export async function listeningView(ctx: PluginContext, boundary?: "start-of-boo
         await reading.commands![direction](guard); return refresh();
       } });
     }
+  }
+  const labels = monitorCopy(ctx.locale);
+  if (ctx.services.ui?.reader) actions.push({ id: "monitor", label: labels.title, icon: "speaker",
+    run: async () => ({ view: await readingMonitor(ctx, signal) }) });
+  if (state.status === "ready" && panels?.sessionId === state.sessionId && panels.bookId === state.bookId && ctx.services.ui.reader?.setWidth) {
+    actions.push({ id: "widths", label: labels.layout, icon: "rows", run: async () => ({ view: await panelWidths(ctx, signal) }) });
   }
   actions.push({ id: "refresh", label: tr(ctx.locale, "refresh"), icon: "arrows-clockwise", run: refresh });
   return { kind: "blocks", blocks: [

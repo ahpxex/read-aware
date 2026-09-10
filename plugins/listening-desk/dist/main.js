@@ -44,17 +44,241 @@ function tr(locale, key) {
   return labels[key][Math.max(0, locales.indexOf(locale))];
 }
 
+// src/monitor-strings.ts
+var en = {
+  title: "Live reading status",
+  layout: "Panel widths",
+  width: "Preferred width for all books (CSS px)",
+  saved: "Panel width saved",
+  invalidWidth: "Enter a whole number from 240 to 640.",
+  layoutMode: "Panel layout",
+  docked: "Docked",
+  exclusive: "Exclusive",
+  unknown: "Unavailable",
+  reader: "Reader",
+  idle: "No open book",
+  loading: "Loading",
+  ready: "Ready",
+  error: "Reader failed",
+  mode: "Text-unit mode",
+  modeError: "Text-unit mode failed",
+  inactive: "Inactive",
+  preparing: "Preparing",
+  empty: "No units",
+  progress: "Current section unit",
+  panels: "Panels",
+  open: "Open",
+  closed: "Closed",
+  visible: "Visible",
+  hidden: "Hidden",
+  network: "System network hint",
+  online: "Online",
+  offline: "Offline",
+  networkUnknown: "Unknown"
+};
+var zh = {
+  title: "实时阅读状态",
+  layout: "面板宽度",
+  width: "所有书籍的首选宽度（CSS 像素）",
+  saved: "面板宽度已保存",
+  invalidWidth: "请输入 240 到 640 之间的整数。",
+  layoutMode: "面板布局",
+  docked: "并排",
+  exclusive: "互斥",
+  unknown: "不可用",
+  reader: "阅读器",
+  idle: "尚未打开书籍",
+  loading: "正在加载",
+  ready: "已就绪",
+  error: "阅读器出错",
+  mode: "句段模式",
+  modeError: "句段模式出错",
+  inactive: "未启用",
+  preparing: "正在准备",
+  empty: "没有单元",
+  progress: "当前分节单元",
+  panels: "面板",
+  open: "已打开",
+  closed: "已关闭",
+  visible: "可见",
+  hidden: "隐藏",
+  network: "系统网络提示",
+  online: "在线",
+  offline: "离线",
+  networkUnknown: "未知"
+};
+var monitorCopy = (locale) => locale.startsWith("zh") ? zh : en;
+
+// src/panel-widths.ts
+async function panelWidths(ctx, signal) {
+  signal.throwIfAborted();
+  const t = monitorCopy(ctx.locale), reader = ctx.services.ui.reader;
+  const session = await ctx.domains.reading.queries.session();
+  const panels = await reader.snapshot();
+  signal.throwIfAborted();
+  if (session.status !== "ready" || !panels || session.sessionId !== panels.sessionId || session.bookId !== panels.bookId) {
+    throw Object.assign(Error("Reader panel session unavailable"), { code: "reader/unavailable" });
+  }
+  const guard = { sessionId: panels.sessionId, bookId: panels.bookId };
+  return {
+    kind: "list",
+    title: t.layout,
+    items: ["toc", "chat"].map((panel) => ({
+      id: panel,
+      title: tr(ctx.locale, panel),
+      subtitle: `${panels.sizes[panel]} px`,
+      ...reader?.setWidth ? { onSelect: () => ({ view: {
+        kind: "form",
+        title: tr(ctx.locale, panel),
+        submitLabel: tr(ctx.locale, "apply"),
+        fields: [{ kind: "number", id: "width", label: t.width, value: panels.sizes[panel], min: 240, max: 640, step: 1 }],
+        onSubmit: async (values) => {
+          if (typeof values.width !== "number" || !Number.isInteger(values.width) || values.width < 240 || values.width > 640) {
+            return { fieldErrors: { width: t.invalidWidth } };
+          }
+          signal.throwIfAborted();
+          const receipt = await reader.setWidth(panel, values.width, guard);
+          signal.throwIfAborted();
+          return { view: {
+            kind: "detail",
+            title: t.saved,
+            content: [{ kind: "keyValue", rows: [
+              { label: tr(ctx.locale, panel), value: `${receipt.snapshot.sizes[panel]} px` }
+            ] }],
+            actions: [{
+              id: "refresh",
+              label: tr(ctx.locale, "refresh"),
+              icon: "arrows-clockwise",
+              run: async () => ({ view: await panelWidths(ctx, signal), navigation: "replace" })
+            }]
+          }, navigation: "replace" };
+        }
+      } }) } : {}
+    })),
+    actions: [{
+      id: "refresh",
+      label: tr(ctx.locale, "refresh"),
+      icon: "arrows-clockwise",
+      run: async () => ({ view: await panelWidths(ctx, signal), navigation: "replace" })
+    }]
+  };
+}
+
+// src/monitor.ts
+async function readingMonitor(ctx, signal) {
+  signal.throwIfAborted();
+  const reading = ctx.domains.reading, reader = ctx.services.ui.reader, t = monitorCopy(ctx.locale);
+  let session = await reading.queries.session();
+  let environment = await ctx.services.session.environment();
+  let panels = await reader.snapshot();
+  signal.throwIfAborted();
+  const render = () => {
+    const { playback, mode } = session;
+    const matching = panels?.sessionId === session.sessionId && panels?.bookId === session.bookId ? panels : null;
+    const errors = [...new Set([session.errorCode, mode.errorCode, playback.errorCode].filter((code) => Boolean(code)))];
+    const content = [
+      ...errors.map((code) => ({ kind: "error", code })),
+      { kind: "keyValue", rows: [
+        { label: t.reader, value: t[session.status] },
+        { label: t.mode, value: mode.status === "unavailable" ? t.unknown : mode.status === "error" ? t.modeError : t[mode.status] },
+        { label: tr(ctx.locale, "title"), value: tr(ctx.locale, playback.status) },
+        { label: t.network, value: environment.networkHint === "unknown" ? t.networkUnknown : t[environment.networkHint] },
+        { label: t.layoutMode, value: matching ? t[matching.layout] : t.unknown }
+      ] },
+      ...playback.unavailableReason ? [{ kind: "text", text: tr(ctx.locale, playback.unavailableReason) }] : [],
+      ...playback.backend ? [{ kind: "text", text: tr(ctx.locale, playback.fallback ? "fallback" : playback.backend) }] : []
+    ];
+    if (["preparing", "advancing"].includes(playback.status))
+      content.push({ kind: "progress", value: null, label: tr(ctx.locale, playback.status) });
+    if (mode.progress && mode.progress.total > 0)
+      content.push({ kind: "keyValue", rows: [{ label: t.progress, value: `${mode.progress.ordinal + 1} / ${mode.progress.total}` }] });
+    if (matching)
+      content.push({ kind: "heading", text: t.panels }, {
+        kind: "keyValue",
+        rows: ["toc", "chat", "annotations", "appearance"].map((panel) => ({
+          label: tr(ctx.locale, panel),
+          value: `${matching.panels[panel].open ? t.open : t.closed} / ${matching.panels[panel].visible ? t.visible : t.hidden}`
+        }))
+      });
+    const busy = ["preparing", "playing", "advancing"].includes(playback.status);
+    const ready = session.status === "ready" && session.sessionId && session.bookId;
+    const guard = { sessionId: session.sessionId ?? undefined, bookId: session.bookId ?? undefined };
+    const action = busy ? "stop" : "start";
+    return { kind: "detail", title: t.title, content, actions: [
+      ...ready && reading.commands && (busy || !playback.unavailableReason) ? [{
+        id: action,
+        label: tr(ctx.locale, action),
+        icon: busy ? "stop" : "play",
+        run: async () => {
+          signal.throwIfAborted();
+          await reading.commands.controlPlayback(action, guard, { signal });
+        }
+      }] : [],
+      ...ready && matching && reader.setWidth ? [{ id: "widths", label: t.layout, icon: "rows", run: async () => ({ view: await panelWidths(ctx, signal) }) }] : [],
+      { id: "refresh", label: tr(ctx.locale, "refresh"), icon: "arrows-clockwise", run: async () => ({ view: await readingMonitor(ctx, signal), navigation: "replace" }) }
+    ] };
+  };
+  return { ...render(), live: { subscribe(channel) {
+    signal.throwIfAborted();
+    let active = true, revision = 0;
+    const subscriptions = [];
+    const dispose = () => {
+      if (!active)
+        return;
+      active = false;
+      signal.removeEventListener("abort", dispose);
+      for (const subscription of subscriptions)
+        subscription.dispose();
+    };
+    const publish = async () => {
+      if (!active || signal.aborted)
+        return;
+      try {
+        await ctx.services.ui.publishView(channel, { revision: ++revision, view: render() });
+      } catch (error) {
+        const code = error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : "ipc/unknown";
+        try {
+          await ctx.services.logging.write({ level: "warn", event: "listening-view-publish-failed", errorCode: code });
+        } catch {}
+      }
+    };
+    try {
+      subscriptions.push(reading.events.observeSession((value) => {
+        session = value;
+        return publish();
+      }));
+      subscriptions.push(ctx.services.session.observeEnvironment((value) => {
+        environment = value;
+        return publish();
+      }));
+      subscriptions.push(reader.observe((value) => {
+        panels = value;
+        return publish();
+      }));
+      signal.addEventListener("abort", dispose, { once: true });
+      if (signal.aborted)
+        dispose();
+      return { dispose };
+    } catch (error) {
+      dispose();
+      throw error;
+    }
+  } } };
+}
+
 // src/views.ts
-async function listeningView(ctx, boundary) {
+async function listeningView(ctx, boundary, signal = new AbortController().signal) {
+  signal.throwIfAborted();
   const reading = ctx.domains.reading;
   if (!reading?.commands)
     throw new Error("Listening Desk requires reading:write");
   const state = await reading.queries.session();
   const environment = await ctx.services.session.environment();
   const panels = await ctx.services.ui?.reader?.snapshot();
+  signal.throwIfAborted();
   const playback = state.playback;
   const guard = { sessionId: state.sessionId ?? undefined, bookId: state.bookId ?? undefined };
-  const refresh = async () => ({ view: await listeningView(ctx), navigation: "replace" });
+  const refresh = async () => ({ view: await listeningView(ctx, undefined, signal), navigation: "replace" });
   const actions = [];
   const mode = state.mode;
   const providerForm = state.status === "ready" && state.sessionId && mode.availableModes.length > 0 && mode.unavailableReason !== "unsupported-format" && (mode.availableModes.length > 1 || !mode.availableModes.some((provider) => provider.key === mode.modeKey)) ? {
@@ -136,7 +360,7 @@ async function listeningView(ctx, boundary) {
           icon: direction === "next" ? "arrow-right" : "arrow-left",
           run: async () => {
             const result = await reading.commands.stepMode(direction, guard);
-            return { view: await listeningView(ctx, result.outcome === "moved" ? undefined : result.outcome), navigation: "replace" };
+            return { view: await listeningView(ctx, result.outcome === "moved" ? undefined : result.outcome, signal), navigation: "replace" };
           }
         });
     }
@@ -170,6 +394,17 @@ async function listeningView(ctx, boundary) {
       } });
     }
   }
+  const labels2 = monitorCopy(ctx.locale);
+  if (ctx.services.ui?.reader)
+    actions.push({
+      id: "monitor",
+      label: labels2.title,
+      icon: "speaker",
+      run: async () => ({ view: await readingMonitor(ctx, signal) })
+    });
+  if (state.status === "ready" && panels?.sessionId === state.sessionId && panels.bookId === state.bookId && ctx.services.ui.reader?.setWidth) {
+    actions.push({ id: "widths", label: labels2.layout, icon: "rows", run: async () => ({ view: await panelWidths(ctx, signal) }) });
+  }
   actions.push({ id: "refresh", label: tr(ctx.locale, "refresh"), icon: "arrows-clockwise", run: refresh });
   return { kind: "blocks", blocks: [
     ...providerForm ? [providerForm] : [],
@@ -184,25 +419,34 @@ async function listeningView(ctx, boundary) {
 }
 
 // src/index.ts
+var lifetime;
 var src_default = {
   activate(ctx) {
     if (!ctx.domains.reading?.commands)
       throw new Error("Listening Desk requires reading:write");
+    lifetime?.abort();
+    const current = new AbortController;
+    lifetime = current;
     const title = tr(ctx.locale, "title");
-    ctx.contributions.headerActions.register({ id: "reader", title, icon: "speaker", surface: "reader", presentation: "popup", view: () => listeningView(ctx) });
-    ctx.contributions.commands.register({ id: "open", title, icon: "speaker", run: async () => ({ view: await listeningView(ctx) }) });
+    ctx.contributions.headerActions.register({ id: "reader", title, icon: "speaker", surface: "reader", presentation: "popup", view: () => listeningView(ctx, undefined, current.signal) });
+    ctx.contributions.commands.register({ id: "open", title, icon: "speaker", run: async () => ({ view: await listeningView(ctx, undefined, current.signal) }) });
     for (const action of ["start", "stop"])
       ctx.contributions.commands.register({
         id: action,
         title: `${title}: ${tr(ctx.locale, action)}`,
         icon: action === "start" ? "play" : "stop",
         run: async () => {
+          current.signal.throwIfAborted();
           const session = await ctx.domains.reading.queries.session();
           if (!session.sessionId)
             throw new Error("No active reading session");
-          await ctx.domains.reading.commands.controlPlayback(action, { sessionId: session.sessionId });
+          await ctx.domains.reading.commands.controlPlayback(action, { sessionId: session.sessionId, bookId: session.bookId ?? undefined }, { signal: current.signal });
         }
       });
+  },
+  deactivate() {
+    lifetime?.abort();
+    lifetime = undefined;
   }
 };
 export {

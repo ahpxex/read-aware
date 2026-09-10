@@ -1,0 +1,61 @@
+{
+  "date": "2026-09-11",
+  "environment": "Isolated macOS Tauri debug com.readaware.app.capability-e2e, real SQLite, WebKit and compiled RSS 0.11.0 Worker",
+  "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-rss-composition.ts",
+  "server": "scripts/fixtures/rss-composition-server.ts",
+  "feedUrl": "http://127.0.0.1:19846/feed.atom",
+  "bookId": "5f7d38bd-c499-4b7f-9a53-9a348633c5ec",
+  "stableArticleId": "article-cb76e6c321ab52e2c78b1aa200438dc4e70da8fd9e7f5c79c1b177c6c5ed8b8b",
+  "workflow": [
+    "Actual registered RSS command -> Add feed -> Subscribe creates one virtual book and two articles; Stable article opens Edition One",
+    "Switch loopback Atom source to revision 2 -> actual Refresh creates three articles, inserting New article before Stable article and updating its body",
+    "Stable article ID is unchanged; sourceRevision changes, but the loaded reader remains Edition One in its original session",
+    "Actual Stable article selection reloads a new ready session at the stable href and shows Edition Two; old content cache is removed",
+    "Set server to HTTP 503 -> actual Refresh makes a third request; feed lastFetched, metadata, cache and visible Edition Two remain unchanged",
+    "Stop the server process and verify no listener at 19846; close the owned reader and disable/re-enable the real RSS Worker",
+    "Actual RSS command -> owned feed -> Stable article opens a new ready session with Edition Two while the server remains stopped",
+    "Actual Unsubscribe while reading removes the owned subscription, book and feed-content document; cleanup leaves the reader idle"
+  ],
+  "versions": {
+    "firstCache": "2e59cd0e937d2235497e619d3b65a6c755a8e664909aaa3b0806cd3081cedf6c",
+    "secondCache": "139b1fc8b9ebb59c9547eee180fb8b8c27459e13a909c3eab2f22fe65ec50123",
+    "firstSession": "8612c9fb-71c6-41ba-aee6-40dd4b1f4384",
+    "refreshedSession": "03aec64c-84f0-475c-8f9e-aa422cad9182",
+    "offlineSession": "707617cc-53e8-4a2d-a0ed-b88563197703",
+    "offlineLoadedSourceRevision": "416edc9b-511b-4b0f-8b8e-23f57bb1b005:2a38c727-8657-4085-9a85-2d8ba73d29f7",
+    "offlineVisibleText": "Stable article2026-09-11T00:00:00ZStable articleEdition Two: locally cached reading content."
+  },
+  "visuals": {
+    "logicalWindows": [[900, 650], [600, 750]],
+    "screenshots": ["rss-refreshed-2026-09-11.png", "rss-offline-2026-09-11.png"],
+    "result": "Foreground native reader shows Edition Two at both widths"
+  },
+  "cleanup": {
+    "feed": null,
+    "source": null,
+    "cachedContent": [],
+    "readOnlySqlCounts": { "ownedBooks": 0, "ownedAnnotations": 0, "ownedPendingReading": 0, "ownedRssDocuments": 0 },
+    "remainingBooks": ["Reading Capability Probe", "Reading Paint Probe"],
+    "rssOriginalEnabled": true,
+    "rssEnablementRestored": true,
+    "windowRestored": [900, 650],
+    "appPidStopped": 61978,
+    "driverStopped": 9224,
+    "frontendSession": 28246,
+    "frontendExitCode": 0,
+    "serverSession": 3156,
+    "serverExitCode": 130,
+    "noListeners": [5184, 9224, 19846],
+    "original9223Untouched": true
+  },
+  "validation": ["Web typecheck passed with the fixture", "Native composition completed without production code changes"],
+  "limits": [
+    "Offline means the feed source process is stopped, not that system networking was disabled",
+    "Worker restart was tested, not application restart or cross-device persistence",
+    "HTTP 503 preservation was observed; the transient failure toast was not captured",
+    "Stable article identity after reordering does not prove CFI, annotation or reading-position migration",
+    "No real external feeds, remote media cache, OPML file import, Agent/model calls, crash recovery, packaged build or cross-platform acceptance",
+    "UI actions use native webview DOM automation, not physical pointer/keyboard input",
+    "Complete capability coverage and deferred document visual acceptance remain unfinished"
+  ]
+}

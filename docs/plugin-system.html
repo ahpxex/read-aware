@@ -304,7 +304,7 @@
             <p>内容插件保存新数据后可通知自有来源失效；后续查询重新加载，不再借用旧阅读器内容，在途旧结果明确拒绝。通知不拉网、不自动打断阅读；返回的进程失效代不是持久内容哈希。</p>
             <p>插件与 Agent 可独立请求重载当前书，强制新会话从头加载，避免把旧 CFI/进度套到新内容。阅读写权限、书籍/会话范围和取消保留，等待新引擎与实际落点；不负责刷新插件私有缓存或迁移旧位置。</p>
             <p>新增源状态查询/串行观察及双域 Agent 工具，不加载正文、不暴露私有 key 或阅读状态。阅读读权限可另取 ready 会话的源 token，识别已通知更新、提供者换代和来源切换；注册可用不等于缓存/网络可用，相同 token 不证明远端没有未通知变化。</p>
-            <p>RSS 0.9 已消费现有接口：保存离线正文、稳定文章 ID、刷新通知及显式打开时重载，同一订阅操作串行；不缓存远程媒体，不自动移动当前画面。跨版本位置迁移和崩溃遗留缓存回收仍缺。基础测试通过，真实 Worker/Tauri 待集中验收。<a href="./plugin-system.md#rss-09-content-composition">RSS 接线与边界</a> · <a href="./plugin-system.md#source-state-observation-library-116--reading-216">状态与观察契约</a> · <a href="./plugin-system.md#virtual-source-invalidation-and-reload">重载契约</a></p>
+            <p>RSS 已消费现有接口：保存离线正文、稳定文章 ID、刷新通知及显式打开时重载，不自动移动当前画面。0.11 的真实 Worker/Tauri 已跑通订阅、刷新后重载、503 保留缓存、源关闭且 Worker 重启后阅读及退订清理；无需新增宿主接口。远程媒体、跨版本位置迁移和崩溃缓存回收仍缺；OPML/Agent、应用重启及跨平台未验。<a href="./evidence/rss-composition-2026-09-11.json">原生组合证据</a> · <a href="./plugin-system.md#rss-09-content-composition">RSS 接线与边界</a> · <a href="./plugin-system.md#virtual-source-invalidation-and-reload">重载契约</a></p>
           </div></details>
           <details class="ep" data-search-section="virtual removal removeVirtualBook 虚拟书 删除 解绑"><summary>虚拟书删除：不再吞错，绑定清理等待持久化</summary><div class="ep-body">
             <p>事件提交失败保留绑定，绑定写失败不报成功。通知先于文件释放，绑定可能先清除；1.6 的宿主清理队列让两端重新发现 ID 并重试文件，启动也会恢复。此项不等于绑定和 RSS 私有缓存的耐久恢复，更不是跨书籍、文件、绑定和文档的原子事务。</p>

@@ -2852,7 +2852,19 @@ approved Agent unsubscribe (see below); RSS 0.11 adds OPML import as described b
 cache consumption, failure/retry, same-feed serialization and explicit navigation
 using controlled network/storage/reading ports. Build and types are checked
 separately. These are basic composition checks, not a built Worker or native Tauri
-acceptance result; full RSS refresh/reading/removal remains in concentrated E2E.
+acceptance result.
+
+[环境] Native follow-up on 2026-09-11 used the compiled RSS 0.11 Worker and an
+isolated SQLite profile: actual subscribe/open/refresh preserved article identity
+after insertion, kept the current reader unchanged until explicit open, then loaded
+the updated body. A real HTTP 503 preserved the last snapshot. With the loopback
+server stopped and the Worker restarted, the article still opened from saved content.
+Actual unsubscribe removed the feed, virtual book and cache; owned SQL counts are
+zero. Foreground 900/600 logical-pixel reader screenshots and exact observations:
+[RSS composition evidence](./evidence/rss-composition-2026-09-11.json).
+This does not cover remote media, app restart, OPML/Agent workflows, crash recovery,
+cross-version position migration or packaged/cross-platform behavior. The failure
+toast was not captured. No host API changes were needed for this composition.
 
 ### Virtual Book Removal
 

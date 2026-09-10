@@ -1140,8 +1140,53 @@ no additional data access and does not add Agent tools or executable model UI.
 negotiation, mounted React sort/open/busy/empty-pager tests pass. Interactive,
 empty, busy and narrow Storybook fixtures are available. Real Worker/Tauri
 composition, large datasets, narrow-window rendering and keyboard/focus flows
-remain for concentrated E2E. Tree/editor/resource-image schemas remain open
-under EXT06; table/pagination are not a claim that the whole row is complete.
+remain for concentrated E2E. Tree is added in views 1.6 below; editor/resource-image
+schemas remain open under EXT06, so the whole row is not complete.
+
+### Hierarchical Trees (Views 1.6)
+
+[代码] `PluginTreeView` works at the root, in composed blocks and in live snapshots.
+It declares `kind: tree`, a nonblank accessible `title`, `nodes`, optional
+`expandedIds`, `actions`, `emptyText` and the existing `pagination` controller.
+Each `PluginTreeNode` has a nonblank `id` unique throughout that tree and a
+nonblank `title`, plus optional `subtitle`, curated `icon`, `children`, `onSelect`
+and `presentation: push|dialog`. Titles/subtitles render literally, not as HTML.
+The runtime copies/normalizes all nodes, including collapsed descendants;
+cycles, duplicate IDs, invalid callbacks and more than 500 nodes or 12 levels
+reject. Empty children form a leaf. `expandedIds` must contain unique IDs of
+populated branches, not leaves or missing nodes.
+
+Expansion and focus are local host state. Expanding supplied children performs
+no IO and invokes no plugin callback. This is a bounded supplied hierarchy, not
+a lazy-child loading protocol or virtual tree. Plugins load other complete
+snapshots via existing actions, pagination or live updates; pagers can remain
+available on an empty tree. `expandedIds` initializes a mounted frame; live
+updates retain local expansion for surviving populated branch IDs, prune removed
+branches and leave new branches collapsed. Frame replacement/remount initializes
+again; this is not durable expansion or cross-frame semantic focus restoration.
+
+The renderer exposes tree/treeitem roles with levels, sibling positions/counts,
+branch expansion state and one tab stop. Up/down traverse visible rows,
+right expands or enters a branch, left collapses or visits the parent, Home/End
+reach the first/last visible row, `*` expands populated siblings, and typeahead
+matches visible title prefixes (700 ms reset, repeated character cycles).
+Enter/Space and row click run onSelect, or toggle a branch without onSelect;
+the separate caret always toggles without invoking the action. Focus is not
+selection and does not invoke plugin code. Live removal of the focused row
+falls back to a surviving ancestor or the first row without stealing focus
+from another control. Actions/disclosures/paging are disabled while busy.
+
+Node callbacks use the existing result runner, push/dialog presentation,
+localized errors and frame/activation callback retirement. No extra data grants,
+Agent tools, plugin DOM access or model-executable UI are introduced.
+
+[验证] Boundary/pure hierarchy tests, serialized descendant callback/session
+retirement, schema negotiation and mounted StrictMode React keyboard/disclosure,
+typeahead, literal text, busy, live removal and empty paging checks pass. Default,
+busy, empty, narrow and interactive stories are provided. Real Worker/Tauri,
+screen readers, narrow-window layout and composition E2E remain concentrated
+acceptance work; tests do not establish those results. EXT06 remains partial
+for editor/resource-image schemas and the stated verification gaps.
 
 ### Structured Error Toasts (UI 1.10 / Views 1.4)
 
@@ -1221,7 +1266,7 @@ evidence below does not validate the new close callback.
 [代码] `schemas.views` 1.1 adds optional `PluginView.live.subscribe(channel)`;
 `services.ui` 1.2 adds `publishView(channel, { revision, view })`. Existing static
 views are unchanged. `view` in an update is `PluginViewContent`: markdown, list,
-form, blocks, detail or (since views 1.5) table, without another `live` or `onClose` declaration. This publishes a full
+form, blocks, detail, table or (since views 1.6) tree, without another `live` or `onClose` declaration. This publishes a full
 snapshot, not a patch, navigation result or new source. No DOM, React, Jotai,
 arbitrary host callback or additional domain permission is exposed. Agent tools
 continue to return structured data through their host renderer; this is not a

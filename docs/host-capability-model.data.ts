@@ -147,7 +147,7 @@ export const units: Unit[] = [
     "这里不是新 session service 设计，也不是全局万能 runtime context。没有需求的设备指纹/硬件枚举不开放。",
     "读快照与订阅之间不丢更新；locale/可用性变化可刷新；撤 reading 权限后缓存/订阅不继续泄露书名与位置。"),
   unit("V1", "Schema", "views", "声明式内容、表单与交互结果", "EXT03-07 MORE05 MORE08 AI04-05", "schemas.views",
-    "保留 list/detail/markdown/blocks/form 及宿主组件；views 1.5 已补 list/table 共用分页与比较字段语义表格。插件拥有数据源和排序，页控件回调默认替换整帧，已知/未知总页数及空页返回共用动作错误和退休；表格最多16列/200行，文本/有限数/null，排序按钮和行打开可键盘访问，不开放自定义 HTML。基础与挂载 React 已验，真实 Worker/Tauri 留集中验收。有界异步搜索、可取消进度、稳定选择和资源图片仍缺；Tree 在 TOC 层级需要时补语义与键盘协议。",
+    "保留 list/detail/markdown/blocks/form 及宿主组件；views 1.5 已补 list/table 共用分页与比较字段语义表格，最多16列/200行，文本/有限数/null。views 1.6 增加根/块/live Tree，最多500节点/12层，全树唯一身份、初始展开、节点 push/dialog 与分页；宿主拥有展开、方向键/首尾/typeahead，live 保留存续展开且移除焦点退到祖先，不抢外部焦点。展开仅显示已提供子节点，不调用插件或加载；换帧重置，不是虚拟树、惰性子节点协议或跨帧焦点恢复。插件拥有数据源和排序，翻页/排序默认替换整帧，空页保留返回，复用错误和退休。基础/序列化回调/挂载 React 已验，真实 Worker/Tauri、读屏器和窄窗留集中验收。有界异步搜索、可取消进度、稳定选择、编辑器和资源图片仍缺，不开放自定义 HTML。",
     "工具卡/问题卡由宿主呈现；不把 PluginView 树当模型可执行 UI 代码。",
     "声明数据与事件，宿主拥有 React/布局/焦点/本地化；每个 view instance/generation 有局部 callback lease。views 1.3 onClose 已接已接受 frame 的 closed/back/replaced/reset/refreshed/unmounted 通知；覆盖与 live 数据更新不触发，live 不可更换关闭回调。异步通知不阻止移除，结果不导航，最多十秒保留通知句柄；退休/崩溃不保证送达，不能替代激活 disposer。外容器直接移除只报告 unmounted，不虚构精确输入原因或焦点回执。真实 Worker/Tauri 组合留集中验收。",
     "Schema 无独立权力；onSubmit 仍走 Domain/Service。UI 1.10 / views 1.4 已接直接与结果结构化 toast：稳定错误码由宿主本地化和判定 retryable，用户单次重试不额外授权；六秒/全局16条，关闭/退休释放回调，执行中最多十秒句柄保留而非业务取消。定向测试通过，真实 Worker/Tauri 待验，统一进度/批准仍缺。当前虚拟列表已有，不冒充仍需重建；无证据的富文本编辑器/任意 canvas/iframe 不进必补清单。",

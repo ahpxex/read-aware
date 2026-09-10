@@ -1,5 +1,6 @@
 {
   "viewer": {
+    "tree": { "expand": "Expand {{label}}", "collapse": "Collapse {{label}}" },
     "pagination": {
       "previous": "Previous page",
       "next": "Next page",

@@ -14,6 +14,8 @@ import type {
   PluginViewPagination,
   PluginTableView,
   PluginTableRow,
+  PluginTreeView,
+  PluginTreeNode,
   PluginMetadataItem,
   PluginText,
   PluginView,
@@ -291,6 +293,42 @@ function normalizeTableView(input: Record<string, unknown>, context: string): Pl
       onSelect: value.onSelect as PluginTableRow["onSelect"] };
   });
   return { kind: "table", title: string(input.title, `${context}.title`, true), columns, rows, sort,
+    actions: input.actions == null ? undefined : normalizeActions(input.actions, `${context}.actions`),
+    emptyText: string(input.emptyText, `${context}.emptyText`, true),
+    pagination: normalizePagination(input.pagination, `${context}.pagination`) };
+}
+
+function normalizeTreeView(input: Record<string, unknown>, context: string): PluginTreeView {
+  const ids = new Set<string>(), branches = new Set<string>();
+  const nodes = (input: unknown, path: string, depth: number): PluginTreeNode[] => {
+    const entries = array(input, path, 500);
+    if (entries.length && depth > 12) throw new PluginViewError(`${path} exceeds 12 tree levels`);
+    return entries.map((input, index) => {
+      const entryPath = `${path}[${index}]`, value = record(input, entryPath);
+      const id = string(value.id, `${entryPath}.id`)!;
+      if (!id.trim() || ids.has(id)) throw new PluginViewError(`${entryPath}.id must be nonempty and unique throughout the tree`);
+      ids.add(id);
+      if (ids.size > 500) throw new PluginViewError(`${context} exceeds 500 tree nodes`);
+      const title = string(value.title, `${entryPath}.title`)!;
+      if (!title.trim()) throw new PluginViewError(`${entryPath}.title must be nonempty`);
+      if (value.onSelect != null && typeof value.onSelect !== "function") throw new PluginViewError(`${entryPath}.onSelect must be a function`);
+      const children = value.children == null ? undefined : nodes(value.children, `${entryPath}.children`, depth + 1);
+      if (children?.length) branches.add(id);
+      return { id, title, subtitle: string(value.subtitle, `${entryPath}.subtitle`, true),
+        icon: string(value.icon, `${entryPath}.icon`, true), children,
+        presentation: oneOf(value.presentation, ["push", "dialog"] as const, "push", `${entryPath}.presentation`),
+        onSelect: value.onSelect as PluginTreeNode["onSelect"] };
+    });
+  };
+  const normalized = nodes(input.nodes, `${context}.nodes`, 1);
+  const expandedIds = input.expandedIds == null ? undefined : array(input.expandedIds, `${context}.expandedIds`, 500)
+    .map((id, index) => string(id, `${context}.expandedIds[${index}]`)!);
+  if (expandedIds && (new Set(expandedIds).size !== expandedIds.length || expandedIds.some(id => !branches.has(id)))) {
+    throw new PluginViewError(`${context}.expandedIds must name unique populated branches`);
+  }
+  const title = string(input.title, `${context}.title`)!;
+  if (!title.trim()) throw new PluginViewError(`${context}.title must be nonempty`);
+  return { kind: "tree", title, nodes: normalized, expandedIds,
     actions: input.actions == null ? undefined : normalizeActions(input.actions, `${context}.actions`),
     emptyText: string(input.emptyText, `${context}.emptyText`, true),
     pagination: normalizePagination(input.pagination, `${context}.pagination`) };
@@ -766,6 +804,7 @@ function normalizeBlock(input: unknown, context: string, depth: number): PluginB
   }
   if (kind === "list") return normalizeListView(value, context);
   if (kind === "table") return normalizeTableView(value, context);
+  if (kind === "tree") return normalizeTreeView(value, context);
   if (kind === "form") return normalizeFormView(value, context);
   throw new PluginViewError(`${context}.kind "${kind}" is not supported`);
 }
@@ -815,6 +854,7 @@ function normalizeViewContent(input: unknown): PluginView {
   }
   if (kind === "list") return normalizeListView(value, "view");
   if (kind === "table") return normalizeTableView(value, "view");
+  if (kind === "tree") return normalizeTreeView(value, "view");
   if (kind === "form") return normalizeFormView(value, "view");
   if (kind === "blocks") {
     return {

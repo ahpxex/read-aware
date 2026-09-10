@@ -301,7 +301,12 @@
           </div></details>
           <details class="ep" data-search-section="table pagination sort 表格 分页 排序"><summary>Views 1.5：列表分页与语义表格已接通</summary><div class="ep-body">
             <p>列表和表格共用上一页/下一页，支持未知总页数，空页也能返回。表格最多 16 列、每页 200 行，可按数据源排序和打开行详情；仅接收文本、有限数值或空值，不开放 HTML。列表搜索和时间过滤只作用于当前页。</p>
-            <p>翻页与排序默认替换完整视图，不堆积返回历史；沿用错误提示、忙碌禁用和退休清理，失败保留旧页。插件仍需原有数据授权，不增加 Agent 工具。基础与挂载测试通过；真实 Worker/Tauri 组合、窄窗和键盘焦点待集中验收。Tree、编辑器与资源图片 schema 仍缺。<a href="./plugin-system.md#paged-lists-and-tables-views-15">完整契约</a></p>
+            <p>翻页与排序默认替换完整视图，不堆积返回历史；沿用错误提示、忙碌禁用和退休清理，失败保留旧页。插件仍需原有数据授权，不增加 Agent 工具。基础与挂载测试通过；真实 Worker/Tauri 组合、窄窗和键盘焦点待集中验收。Tree 已由 1.6 接入，编辑器与资源图片 schema 仍缺。<a href="./plugin-system.md#paged-lists-and-tables-views-15">完整契约</a></p>
+          </div></details>
+          <details class="ep" data-search-section="tree hierarchy keyboard 树形 层级 键盘"><summary>Views 1.6：声明式树形视图已接通</summary><div class="ep-body">
+            <p>根视图、组合块和 live 快照支持最多500节点/12层的树，包含初始展开、节点动作和分页。宿主处理展开、方向键、首尾定位与名称键入；节点身份全树唯一，标题纯文本。</p>
+            <p>展开只显示已提供的子节点，不暗中加载或调用插件；live 更新保留存续分支的展开状态，移除焦点节点退到祖先且不抢外部焦点。换页/重挂载重新初始化，不是跨视图焦点恢复。沿用动作授权、错误和退休，不新增 Agent 工具。</p>
+            <p>基础、序列化回调与挂载键盘测试通过；真实 Worker/Tauri、读屏器、窄窗和组合验收仍待集中进行。编辑器、资源图片仍缺。<a href="./plugin-system.md#hierarchical-trees-views-16">完整契约</a></p>
           </div></details>
           <details class="ep" data-search-section="toast error retry 错误 重试"><summary>UI 1.10 / views 1.4：结构化错误与用户触发的重试</summary><div class="ep-body">
             <p>直接提示与动作结果都可传稳定错误码，由宿主本地化。只有宿主判定可重试且插件提供回调时才显示按钮；未知错误不泄漏原文，也不能强行声明可重试。点击只执行一次，不自动重试、不增加权限、不解释返回导航。</p>

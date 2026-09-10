@@ -20,6 +20,24 @@ function fixture() {
   return { registry, owner, session, view, wire, notices, failures: () => failures };
 }
 
+test("tree descendant callbacks survive wire normalization and retire with their frame", async () => {
+  const f = fixture();
+  f.session.setRoot(f.wire({ kind: "tree", title: "Contents", nodes: [
+    { id: "part", title: "Part one", children: [{ id: "chapter", title: "Chapter one", onSelect: () => ({
+      view: { kind: "detail", title: "Chapter", content: [], actions: [{ id: "read", label: "Read", run: () => ({ toast: "Read" }) }] },
+    }) }] },
+  ] }));
+  const current = f.session.getSnapshot().stack[0];
+  if (current.kind !== "tree") throw new Error("Expected tree");
+  const select = current.nodes[0].children![0].onSelect!;
+  expect(f.registry.size).toBe(1);
+  await f.session.runFrom(f.session.getSnapshot().renderKey, select);
+  expect(f.session.getSnapshot().stack).toHaveLength(2);
+  expect(f.session.getSnapshot().stack[1].title).toBe("Chapter");
+  f.session.dispose(); expect(f.registry.size).toBe(0);
+  await expect(Promise.resolve().then(select)).rejects.toThrow();
+});
+
 test("table data controls replace pages without growing history and retire old callbacks", async () => {
   const f = fixture();
   const view = (page: number): PluginView => ({ kind: "table",

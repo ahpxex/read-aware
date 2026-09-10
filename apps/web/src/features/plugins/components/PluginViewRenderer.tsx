@@ -27,6 +27,7 @@ import { PluginDetailViewBody } from "./PluginDetailViewBody";
 import { PluginFormViewBody } from "./PluginFormViewBody";
 import { PluginListViewBody } from "./PluginListViewBody";
 import { PluginTableViewBody } from "./PluginTableViewBody";
+import { PluginTreeViewBody } from "./PluginTreeViewBody";
 
 type PluginViewRendererProps = {
   /** The root view, or null while the container is still fetching it. */
@@ -115,6 +116,7 @@ export function PluginViewRenderer({
         />
       )}
       {current.kind === "table" && <PluginTableViewBody view={current} busy={busy} onResult={handleResult} />}
+      {current.kind === "tree" && <PluginTreeViewBody view={current} busy={busy} onResult={handleResult} />}
       {current.kind === "blocks" && (
         <PluginBlocks
           blocks={current.blocks}

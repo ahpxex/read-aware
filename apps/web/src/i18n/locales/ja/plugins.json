@@ -1,5 +1,6 @@
 {
   "viewer": {
+    "tree": { "expand": "{{label}}を展開", "collapse": "{{label}}を折りたたむ" },
     "pagination": {
       "previous": "前のページ",
       "next": "次のページ",

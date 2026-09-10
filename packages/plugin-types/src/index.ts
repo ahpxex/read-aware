@@ -529,6 +529,33 @@ export type PluginTableView = {
   };
 };
 
+export type PluginTreeNode = {
+  /** Unique throughout this tree snapshot, not just among siblings. */
+  id: string;
+  title: string;
+  subtitle?: string;
+  icon?: string;
+  /** Supplied children only. Expanding never fetches data or invokes plugin code. */
+  children?: PluginTreeNode[];
+  presentation?: "push" | "dialog";
+  onSelect?: () => PluginViewResult | Promise<PluginViewResult>;
+};
+/** Bounded hierarchy: at most 500 nodes including collapsed descendants, 12
+ * levels. Expansion and keyboard focus belong to the mounted host frame.
+ * Use pagination/actions to load another complete snapshot, not hidden IO. */
+export type PluginTreeView = {
+  kind: "tree";
+  /** Required accessible name, also used as the root view heading. */
+  title: string;
+  nodes: PluginTreeNode[];
+  /** Initial expansion for each mounted frame; must name populated branches.
+   * Live updates retain local expansion for surviving IDs. */
+  expandedIds?: string[];
+  actions?: PluginAction[];
+  emptyText?: string;
+  pagination?: PluginViewPagination;
+};
+
 /**
  * Shared field attributes. `agentHidden` keeps a declared setting out of the
  * reading agent's settings catalog (the Plugins panel still shows it); text
@@ -831,6 +858,7 @@ export type PluginBlock =
   | { kind: "row"; cells: PluginRowCell[]; align?: "start" | "center" | "baseline" }
   | PluginListView
   | PluginTableView
+  | PluginTreeView
   | PluginFormView;
 
 export type PluginColumnCell = {
@@ -853,6 +881,7 @@ export type PluginViewContent =
   | PluginMarkdownView
   | PluginListView
   | PluginTableView
+  | PluginTreeView
   | PluginFormView
   | PluginBlocksView
   | PluginDetailView;

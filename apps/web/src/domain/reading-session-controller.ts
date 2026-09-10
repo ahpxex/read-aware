@@ -40,6 +40,7 @@ export const unavailablePlayback = (): ReadingPlaybackSnapshot => ({
 });
 
 export type ReadingEngineAdapter = {
+  sourceRevision?: string;
   navigate(target: ReadingTarget): Promise<ReadingLocation>;
   step(direction: ReadingStep): Promise<ReadingLocation>;
   pagination?(): ReadingPaginationSnapshot | null;
@@ -71,7 +72,7 @@ export class ReadingSessionController {
     history: { canGoBack: false, canGoForward: false },
     playback: unavailablePlayback(),
     mode: unavailableMode(),
-    controls: null, selection: null, pagination: null,
+    controls: null, selection: null, pagination: null, sourceRevision: null,
   };
 
   constructor(private readonly report: (error: unknown) => void = () => {}, private readonly deadlineMs = 30_000) {}
@@ -111,7 +112,7 @@ export class ReadingSessionController {
       this.recordJump(this.userOpening.before, location);
       this.userOpening = undefined;
     }
-    this.publish({ status: "ready", location, errorCode: undefined, pagination: paginationOf(engine) });
+    this.publish({ status: "ready", location, errorCode: undefined, pagination: paginationOf(engine), sourceRevision: engine.sourceRevision ?? null });
     return () => {
       if (this.session?.id !== id || this.session.engine !== engine) return;
       this.session.engine = undefined;
@@ -583,6 +584,7 @@ export class ReadingSessionController {
   }
 
   private publish(patch: Partial<ReadingSessionSnapshot>): void {
+    if (patch.status && patch.status !== "ready") patch = { ...patch, sourceRevision: null };
     this.state = { ...this.state, ...patch, revision: this.state.revision + 1,
       history: { canGoBack: this.cursor > 0, canGoForward: this.cursor >= 0 && this.cursor < this.history.length - 1 } };
     for (const listener of [...this.listeners]) this.deliver(listener);

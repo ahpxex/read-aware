@@ -43,6 +43,7 @@ import {
 } from "../features/library/lib/library-db";
 import { importBook } from "../features/library/lib/book-import";
 import { getBookEnrichment, retryBookEnrichment, createEnrichmentObserver } from "./book-enrichment";
+import { getBookContentState, createContentStateObserver } from "./book-content-state";
 import { listDuplicateBooks, previewBookMerge, mergeDuplicateBooks, resolveMergedBook } from "./book-merge";
 import { listBookFormats } from "./book-inspection";
 import { searchBookText } from "../features/library/lib/book-text-search";
@@ -104,6 +105,7 @@ export type LibraryQueries = {
     getToc(bookId: string): Promise<ChapterRef[]>;
     getTextState(bookId: string): Promise<BookTextSnapshot>;
     getEnrichment(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookEnrichmentSnapshot>;
+    getContentState(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookContentState>;
     getTextTask(bookId: string, taskId: string): Promise<BookTextTaskSnapshot>;
     listTextTasks(bookId: string): Promise<BookTextTaskSnapshot[]>;
     getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
@@ -155,6 +157,7 @@ export type LibraryDomain = {
     subscribe: DomainEventSubscribe<(typeof LIBRARY_EVENTS)[number]>;
     observeTextTask(bookId: string, taskId: string, listener: (snapshot: BookTextTaskSnapshot) => void | Promise<void>): () => void;
     observeEnrichment(bookId: string, listener: (event: import("@read-aware/core").BookEnrichmentObservation) => unknown): () => void;
+    observeContentState(bookId: string, listener: (event: import("@read-aware/core").BookContentObservation) => unknown): () => void;
   };
 };
 
@@ -173,6 +176,7 @@ export function createLibraryDomain(origin: EventOrigin, lifetime?: AbortSignal)
       listRemovalCleanup: listLibraryRemovalCleanup,
       getTextState: getBookTextSnapshot,
       getEnrichment: (bookId, signal) => getBookEnrichment(bookId, signal ?? lifetime),
+      getContentState: (bookId, signal) => getBookContentState(bookId, signal ?? lifetime),
       getTextTask: async (bookId, taskId) => textTasks.get(bookId, taskId),
       listTextTasks: async bookId => textTasks.list(bookId),
       searchLocations: searchBookLocations,
@@ -288,6 +292,6 @@ export function createLibraryDomain(origin: EventOrigin, lifetime?: AbortSignal)
     queries,
     commands,
     events: { subscribe: domainSubscribe(LIBRARY_EVENTS, origin), observeTextTask: (bookId, taskId, listener) => textTasks.observe(bookId, taskId, listener),
-      observeEnrichment: createEnrichmentObserver(lifetime) },
+      observeEnrichment: createEnrichmentObserver(lifetime), observeContentState: createContentStateObserver(lifetime) },
   };
 }

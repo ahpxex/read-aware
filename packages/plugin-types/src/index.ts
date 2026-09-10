@@ -1366,6 +1366,8 @@ export type PluginLibraryDomain = {
       getTextState(bookId: string): Promise<import("@read-aware/core").BookTextSnapshot>;
       /** Library 1.9: local cover/source state and the latest process-local enrichment attempt. */
       getEnrichment(bookId: string): Promise<import("@read-aware/core").BookEnrichmentSnapshot>;
+      /** Source metadata only; never loads a provider or reveals reading state. Library 1.16. */
+      getContentState(bookId: string): Promise<import("@read-aware/core").BookContentState>;
       getTextTask(bookId: string, taskId: string): Promise<import("@read-aware/core").BookTextTaskSnapshot>;
       listTextTasks(bookId: string): Promise<import("@read-aware/core").BookTextTaskSnapshot[]>;
     getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
@@ -1435,6 +1437,7 @@ export type PluginLibraryDomain = {
     subscribe: DomainSubscribe<LibraryDomainEventType>;
     observeTextTask(bookId: string, taskId: string, handler: (snapshot: import("@read-aware/core").BookTextTaskSnapshot) => void | Promise<void>): PluginDisposable;
     observeEnrichment(bookId: string, handler: (event: import("@read-aware/core").BookEnrichmentObservation) => unknown): PluginDisposable;
+    observeContentState(bookId: string, handler: (event: import("@read-aware/core").BookContentObservation) => unknown): PluginDisposable;
   };
 };
 

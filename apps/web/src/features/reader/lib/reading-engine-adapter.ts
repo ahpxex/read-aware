@@ -25,9 +25,10 @@ function currentLocation(view: FoliateView, bookId: string, contentVersion: stri
 }
 
 /** The only renderer-specific part of the public reading-session controller. */
-export function createReadingEngineAdapter(view: FoliateView, bookId: string, contentVersion: string): ReadingEngineAdapter {
+export function createReadingEngineAdapter(view: FoliateView, bookId: string, contentVersion: string, sourceRevision = contentVersion): ReadingEngineAdapter {
   const location = () => currentLocation(view, bookId, contentVersion);
   return {
+    sourceRevision,
     pagination: () => readingPagination(view),
     navigate: async target => {
       if (target.sectionIndex !== undefined && !view.book?.sections[target.sectionIndex]) {
@@ -74,9 +75,9 @@ export function createReadingEngineAdapter(view: FoliateView, bookId: string, co
   };
 }
 
-export function attachReadingEngine(view: FoliateView, sessionId: string, bookId: string, contentVersion: string): () => void {
+export function attachReadingEngine(view: FoliateView, sessionId: string, bookId: string, contentVersion: string, sourceRevision = contentVersion): () => void {
   const location = () => currentLocation(view, bookId, contentVersion);
-  const engine = createReadingEngineAdapter(view, bookId, contentVersion);
+  const engine = createReadingEngineAdapter(view, bookId, contentVersion, sourceRevision);
   const publish = () => readingRuntime.relocate(sessionId, location(), view.lastLocation?.range?.toString() ?? "", engine);
   const detach = readingRuntime.attach(sessionId, engine, location());
   view.addEventListener("relocate", publish);

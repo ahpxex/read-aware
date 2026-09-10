@@ -49,6 +49,7 @@ export function createLibraryPort(): LibraryPort {
     mergeDuplicates: library.commands.books.mergeDuplicates,
     resolveBookId: library.queries.books.resolveId,
     getEnrichment: library.queries.books.getEnrichment,
+    getContentState: library.queries.books.getContentState,
     retryEnrichment: library.commands.books.retryEnrichment,
     importResource: (threadKey, id, signal) => importResourceBook(agentResources(threadKey), id, "agent", signal),
     listBookRemovalCleanup: query => library.queries.books.listRemovalCleanup(query),

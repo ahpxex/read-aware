@@ -738,6 +738,7 @@ export function buildPluginContext(
           openImageResource: input => lifecycle.read("library.openImageResource", () => openBookImageResource(resources, input, lifecycle.signal)),
           readReference: (input) => lifecycle.read("library.readReference", () => library.queries.books.readReference(input, lifecycle.signal)),
           searchText: (input) => library.queries.books.searchText(input, lifecycle.signal),
+          getContentState: bookId => lifecycle.read("library.getContentState", () => library.queries.books.getContentState(bookId, lifecycle.signal)),
           listRemovalCleanup: library.queries.books.listRemovalCleanup,
         },
       },
@@ -745,6 +746,7 @@ export function buildPluginContext(
         subscribe: trackedOn(library.events.subscribe),
         observeTextTask: (bookId, taskId, listener) => track(() => ({ dispose: library.events.observeTextTask(bookId, taskId, listener) })),
         observeEnrichment: (bookId, listener) => track(() => ({ dispose: library.events.observeEnrichment(bookId, listener) })),
+        observeContentState: (bookId, listener) => track(() => ({ dispose: library.events.observeContentState(bookId, listener) })),
       },
     };
     if (library.commands) {

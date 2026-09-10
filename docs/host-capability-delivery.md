@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+来源观察批次已接线：library 1.16 getContentState/observeContentState 与双scope Agent get_book_content_state只读源元数据，不加载provider或正文；区分本地文件缺失、虚拟绑定缺失/注册不可用/已注册，不暴露路径、私有key或阅读状态。reading 2.16 ready快照增加装载时sourceRevision，可在独立阅读授权下与同书源token比较，识别失效通知、提供者换代与绑定key切换；已注册不证明网络/缓存可用，相同token不能探测未通知的远端变化。64个/actor串行观察、读和回调结算后一秒复核，去重、错误/恢复与退休清理；旧active解析器不跨binding key借用。
+
+[验证] 状态/实际上下文/Agent端口、双scope工具、串行观察/额度/退休、内容失效与引擎回归、矩阵模型合计53 pass / 807 assertions；全仓typecheck 27/27，三文档对结构检查通过。库存891映射。受控IPC不是原生SQLite/Tauri，未启动桌面/浏览器；RSS接入、离线正文、稳定文章身份与跨版本位置迁移及真实Worker/Tauri组合仍待完成，LIB14保留部分，未推送，整体目标未完成。
+
 虚拟来源刷新批次已接线：library 1.15 invalidateVirtualBook 对当前激活自有 provider/key 发出进程失效代，下一次内容查询不再借旧阅读器解析对象，读前后与阅读器装载拒绝跨代结果。通知不拉网、不自动移动当前画面；独立 reading 2.15 reload 和 Agent navigate_reading(reload) 强制新会话从源开头加载，禁用该次源加载的旧CFI/进度恢复，等待ready及实际落点，保留授权、guard、取消、30秒截止与共享历史。进程revision不是内容hash、耐久状态或跨设备CAS。
 
 [验证] 来源/正式插件上下文/生产Agent端口、双scope工具、会话替换/取消与既有导航及库存模型回归65 pass / 848 assertions；全仓typecheck 27/27，三文档对结构检查通过。库存887映射，Agent工具名数量不变。内容查询用受控IPC，不是原生SQLite/Tauri；本批未启动桌面/浏览器。RSS尚未迁移通知或离线正文缓存，更新观察和跨版本位置迁移仍缺，LIB14保留部分；真实组合刷新留集中验收，未推送，整体目标未完成。

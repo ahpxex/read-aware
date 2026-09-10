@@ -78,6 +78,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   list_book_formats: {},
   inspect_resource_book: { id: "resource" },
   get_book_enrichment: { bookId: BOOK_ID },
+  get_book_content_state: { bookId: BOOK_ID },
   retry_book_enrichment: { bookId: BOOK_ID },
   list_duplicate_books: {},
   preview_book_merge: { bookId: BOOK_ID },

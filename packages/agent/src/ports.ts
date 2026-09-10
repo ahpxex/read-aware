@@ -81,6 +81,7 @@ export interface LibraryPort {
   mergeDuplicates(input: import("@read-aware/core").BookMergeRequest, signal?: AbortSignal): Promise<import("@read-aware/core").BookMergeReceipt>;
   resolveBookId(bookId: string, signal?: AbortSignal): Promise<string | null>;
   getEnrichment(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookEnrichmentSnapshot>;
+  getContentState(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookContentState>;
   retryEnrichment(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookEnrichmentReceipt>;
   importResource(threadKey: string, id: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookImportReceipt>;
   listBookFormats(): Promise<import("@read-aware/core").BookFormatCapability[]>;

@@ -53,6 +53,9 @@ export type ReadingSessionSnapshot = {
   controls: ReadingControlsSnapshot | null;
   /** Current layout only; null without a ready, reporting renderer. */
   pagination: ReadingPaginationSnapshot | null;
+  /** Reading 2.16: source token captured by the ready renderer; absent/null for
+   * unavailable or non-reporting engines. Compare with library.getContentState. */
+  sourceRevision?: string | null;
 };
 
 export type ReadingPaginationSnapshot = {

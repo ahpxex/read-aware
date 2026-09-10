@@ -419,6 +419,10 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       resolveBookId: async () => null,
       mergeDuplicates: async () => { throw new AppError("ui/unavailable", "Attach a merge fixture"); },
       getEnrichment: async () => { throw new AppError("ui/unavailable", "Attach an enrichment fixture"); },
+      getContentState: async bookId => {
+        if (!books.some(book => book.id === bookId)) throw new AppError("library/book-not-found", "Book not found");
+        return { bookId, source: "file", availability: "local", sourceRevision: "fixture", contentVersion: "fixture" };
+      },
       retryEnrichment: async () => { throw new AppError("ui/unavailable", "Attach an enrichment fixture"); },
       importResource: async () => { throw new AppError("ui/unavailable", "Attach an import resource fixture"); },
       listBookFormats: async () => [],

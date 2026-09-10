@@ -97,7 +97,7 @@ import { createReadingSelectionAdapter } from "../lib/reading-selection-adapter"
 import { createReadingEmphasisAdapter } from "../lib/reading-emphasis-adapter";
 import { readingEmphasis } from "../../../domain/reading-emphasis";
 import { fileContentVersion, virtualContentVersion, registerActiveBookContent } from "../../library/lib/book-content-source";
-import { assertContentNotInvalidated, contentInvalidationRevision } from "../../library/lib/content-invalidation";
+import { assertContentNotInvalidated, contentInvalidationRevision, virtualSourceRevision } from "../../library/lib/content-invalidation";
 import type {
   RegisteredReaderMode,
 } from "../../plugins/lib/plugin-types";
@@ -1903,7 +1903,7 @@ export function FoliateReaderView({
         }
         releaseBook ??= retainBook(parsedBook);
         if (cancelled) { await releaseBook(); return; }
-        if (selectedBook && sessionId) cleanups.push(registerActiveBookContent(selectedBook.id, parsedBook, contentVersion, contentProvider, invalidation));
+        if (selectedBook && sessionId) cleanups.push(registerActiveBookContent(selectedBook.id, parsedBook, contentVersion, contentProvider, invalidation, initialBook.virtual?.key));
         if (selectedBook) textUnitNavigatorRef.current.handleContentVersion(selectedBook.id, contentVersion);
         await view.open(parsedBook);
         if (cancelled) return;
@@ -2169,7 +2169,8 @@ export function FoliateReaderView({
           if (cancelled) { emphasis.retire(); return; }
           cleanups.push(() => emphasis.retire());
           assertContentNotInvalidated(selectedBook.id, invalidation);
-          if (!cancelled) cleanups.push(attachReadingEngine(view, sessionId, selectedBook.id, contentVersion));
+          const sourceRevision = contentProvider ? virtualSourceRevision(selectedBook.id, contentProvider, initialBook.virtual!.key) : contentVersion;
+          if (!cancelled) cleanups.push(attachReadingEngine(view, sessionId, selectedBook.id, contentVersion, sourceRevision));
           const identity = { view, sessionId, bookId: selectedBook.id, contentVersion };
           selectionContentRef.current = identity;
           cleanups.push(readingRuntime.bindSelection(sessionId, createReadingSelectionAdapter(view,

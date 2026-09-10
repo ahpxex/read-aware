@@ -11,7 +11,7 @@ import { virtualContentVersion } from "./content-version";
 import { assertContentNotInvalidated, contentInvalidationRevision } from "./content-invalidation";
 export { virtualContentVersion } from "./content-version";
 
-type Content = { book: FoliateBook; contentVersion: string; provider?: ReturnType<typeof resolveContentProvider>; invalidation?: string };
+type Content = { book: FoliateBook; contentVersion: string; provider?: ReturnType<typeof resolveContentProvider>; providerKey?: string; invalidation?: string };
 const active = new Map<string, Content>();
 
 export async function fileContentVersion(bookId: string): Promise<string> {
@@ -22,9 +22,10 @@ export async function fileContentVersion(bookId: string): Promise<string> {
 
 /** Borrows the reader's parser; each concurrent query retains its own lease. */
 export function registerActiveBookContent(bookId: string, book: FoliateBook, contentVersion: string,
-  provider?: ReturnType<typeof resolveContentProvider>, invalidation = contentInvalidationRevision(bookId)): () => void {
+  provider?: ReturnType<typeof resolveContentProvider>, invalidation = contentInvalidationRevision(bookId),
+  providerKey = provider ? getVirtualBookBinding(bookId)?.key : undefined): () => void {
   assertContentNotInvalidated(bookId, invalidation);
-  const entry: Content = { book, contentVersion, provider, invalidation };
+  const entry: Content = { book, contentVersion, provider, providerKey, invalidation };
   active.set(bookId, entry);
   return () => { if (active.get(bookId) === entry) active.delete(bookId); };
 }
@@ -39,7 +40,7 @@ export async function withBookContent<T>(bookId: string, expectedVersion: string
   if (binding && !provider) throw new AppError("library/content-unavailable", "Book content provider is unavailable");
   const invalidation = contentInvalidationRevision(bookId);
   let content = active.get(bookId);
-  if (content?.invalidation !== invalidation) content = undefined;
+  if (content?.invalidation !== invalidation || binding && content?.providerKey !== binding.key) content = undefined;
   let release: (() => Promise<void>) | undefined;
   try {
     if (content) {

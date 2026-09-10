@@ -1969,6 +1969,62 @@ stable article identity, update subscriptions, cross-version position migration
 and real Worker/Tauri composition remain outstanding. No desktop/browser launched
 for this batch; these APIs are connected, not end-to-end accepted.
 
+### Source State Observation (Library 1.16 / Reading 2.16)
+
+[代码] `library.queries.books.getContentState(bookId)` and
+`library.events.observeContentState(bookId, handler)` require library read (write
+implies read). They return source metadata without parsing a book, requesting a
+download or invoking `contentProviders.load`. Agent `get_book_content_state` uses
+the same query in both scopes; book threads are limited to their own book, global
+threads require a book ID. IDs must be nonblank and at most 256 code units.
+
+[代码] `BookContentState` contains only `bookId`, `source` (`file` or `virtual`),
+`availability`, `sourceRevision` and nullable `contentVersion`. File availability
+is `local` or `missing`, from local blob metadata; a known local SHA-256 supplies
+contentVersion. Virtual availability is `missing` for an absent binding,
+`provider-unavailable` for an inactive registration, or `provider-registered`.
+Registration does not prove cache presence, endpoint reachability, parseability
+or readiness. Virtual contentVersion is always null because the query does not
+load or hash provider data. No paths, URLs, private source keys, source bytes or
+reading-session presence are returned. Missing library records reject with
+`library/book-not-found`; storage failures retain stable error codes, not a
+successful missing result. Non-desktop query rejects with `ui/unavailable`.
+
+[代码] sourceRevision is an opaque equality token, not a durable content address,
+monotonic sequence or CAS token. Virtual tokens incorporate this process's
+invalidation fence, exact provider registration identity and private key identity;
+the key itself is replaced with a random token. Replacing a provider or switching
+a binding's key changes the token without loading content. Active content borrowing
+also rejects a different binding key, even under the same provider activation.
+File tokens use the known local hash, or `missing`/`unversioned` when unavailable.
+
+[代码] Reading 2.16 adds optional `session.sourceRevision`, captured at ready-engine
+attachment and cleared to null when loading/error/idle; non-reporting engines use
+null. Source notifications do not rewrite this captured token: a ready reader may
+intentionally still display its older source. With the separate reading read grant,
+compare tokens only for the same ready book; different tokens identify a known
+source/provider change. Equal tokens cannot detect unannounced remote changes or
+prove a virtual provider is deterministic. A caller may offer explicit reload, not
+automatically navigate or treat the source token as a CFI/contentVersion.
+
+[代码] Each library-domain owner may hold at most 64 content-state observers.
+The first read starts immediately; later reads run one second after both the last
+read and callback settle. Identical ready/error snapshots are suppressed; changes,
+stable failures and recovery are delivered as `BookContentObservation`. Callback
+failure is logged and retried on the next sample, without acknowledging delivery.
+Snapshots are copied; disposal/retirement cancels the timer and drops late reads.
+This is a latest-state view, not an event log, exact cross-store snapshot, fixed
+latency promise or automatically registered model subscription. Errors carry no
+raw messages and cannot be mistaken for an empty source.
+
+[环境] Focused tests cover real plugin context/Agent port with controlled IPC,
+no provider loads, reader-data separation, invalidation/provider/key changes,
+file metadata/missing/storage failures, copied serial observations, error/recovery,
+limits and retirement, plus both Agent scopes and renderer-adapter regression.
+Native Tauri/Worker delivery, actual filesystem changes and RSS consumption remain
+for the concentrated composition acceptance phase. Offline content caching and
+cross-version position migration remain separate unfinished work.
+
 ### Virtual Book Removal
 
 [代码] `library.commands.books.removeVirtualBook({ providerId, key })` resolves

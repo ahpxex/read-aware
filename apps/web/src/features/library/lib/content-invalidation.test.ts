@@ -38,12 +38,18 @@ test("formal plugin invalidation bypasses stale active content and rejects a rea
       resolveContentProvider({ pluginId: "content-invalidation", providerId: "feed", key: "source" }));
     expect(await withBookContent(bookId, oldVersion, undefined, async source => source.book.metadata?.title)).toBe("Before");
     expect(loads).toBe(0);
+    bindVirtualBook(bookId, { pluginId: "content-invalidation", providerId: "feed", key: "another-source" });
+    await flushLocalKV();
+    await withBookContent(bookId, undefined, undefined, async source => source.book.metadata?.title);
+    expect(loads).toBe(1);
+    bindVirtualBook(bookId, { pluginId: "content-invalidation", providerId: "feed", key: "source" });
+    await flushLocalKV();
     content = { title: "After", sections: [{ id: "chapter", html: "New" }] };
     const receipt = await plugin.context.domains.library!.commands!.books.invalidateVirtualBook({ providerId: "feed", key: "source" });
     expect(receipt.bookId).toBe(bookId);
     expect(readOnly.context.domains.library!.commands).toBeUndefined();
     expect(await withBookContent(bookId, undefined, undefined, async source => source.book.metadata?.title)).toBe("After");
-    expect(loads).toBe(1);
+    expect(loads).toBe(2);
     await expect(withBookContent(bookId, oldVersion, undefined, async () => "must not succeed")).rejects.toMatchObject({ code: "reader/stale-location" });
     expect(() => registerActiveBookContent(bookId, buildVirtualFoliateBook(content), oldVersion, undefined, oldRevision)).toThrow();
     await expect(withBookContent(bookId, undefined, undefined, async () => {

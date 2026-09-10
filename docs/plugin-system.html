@@ -284,10 +284,11 @@
             <p>1–12 个查询变体、每个至多 1024 字符，返回至多 100 个章内片段。指定书可以准备正文；跨书只读本地已持久索引，不触发批量抽取。缺书、非法参数和读取失败明确拒绝；结果不是可导航的 CFI/Range，也不是全书架穷尽或相关性排名。</p>
             <p>Text Desk 0.4 引入此流程（现为 0.5）：搜索表单、精确/词元匹配列表、片段详情和明确开书。真实 macOS Worker 已验权限与错误，Agent 原有剧透围栏保留；跨书搜索后未准备的书仍未准备。派生检索分页、扫描预算、节内取消、打包及跨平台尚未完成。<a href="./plugin-system.md#derived-prose-search">完整契约</a> · <a href="./evidence/book-text-search-2026-09-09.json">原生证据</a></p>
           </div></details>
-          <details class="ep" data-search-section="virtual refresh invalidateVirtualBook reload 内容 刷新 失效 重载"><summary>Library 1.15 / Reading 2.15：源失效通知与当前书重载分开授权</summary><div class="ep-body">
+          <details class="ep" data-search-section="virtual refresh invalidateVirtualBook reload 内容 刷新 失效 重载"><summary>Library 1.16 / Reading 2.16：内容更新可观察，重载仍需明确请求</summary><div class="ep-body">
             <p>内容插件保存新数据后可通知自有来源失效；后续查询重新加载，不再借用旧阅读器内容，在途旧结果明确拒绝。通知不拉网、不自动打断阅读；返回的进程失效代不是持久内容哈希。</p>
             <p>插件与 Agent 可独立请求重载当前书，强制新会话从头加载，避免把旧 CFI/进度套到新内容。阅读写权限、书籍/会话范围和取消保留，等待新引擎与实际落点；不负责刷新插件私有缓存或迁移旧位置。</p>
-            <p>基础接线测试通过，真实 Worker/Tauri 待集中验收；RSS 消费迁移、离线正文与跨版本位置迁移仍缺。<a href="./plugin-system.md#virtual-source-invalidation-and-reload">完整契约</a></p>
+            <p>新增源状态查询/串行观察及双域 Agent 工具，不加载正文、不暴露私有 key 或阅读状态。阅读读权限可另取 ready 会话的源 token，识别已通知更新、提供者换代和来源切换；注册可用不等于缓存/网络可用，相同 token 不证明远端没有未通知变化。</p>
+            <p>基础接线测试通过，真实 Worker/Tauri 待集中验收；RSS 消费迁移、离线正文与跨版本位置迁移仍缺。<a href="./plugin-system.md#source-state-observation-library-116--reading-216">状态与观察契约</a> · <a href="./plugin-system.md#virtual-source-invalidation-and-reload">重载契约</a></p>
           </div></details>
           <details class="ep" data-search-section="virtual removal removeVirtualBook 虚拟书 删除 解绑"><summary>虚拟书删除：不再吞错，绑定清理等待持久化</summary><div class="ep-body">
             <p>事件提交失败保留绑定，绑定写失败不报成功。通知先于文件释放，绑定可能先清除；1.6 的宿主清理队列让两端重新发现 ID 并重试文件，启动也会恢复。此项不等于绑定和 RSS 私有缓存的耐久恢复，更不是跨书籍、文件、绑定和文档的原子事务。</p>

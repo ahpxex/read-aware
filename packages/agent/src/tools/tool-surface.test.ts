@@ -73,6 +73,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   get_software_update: {},
   verify_local_data: {},
   request_diagnostics_report: { action: "export" },
+  request_backup: { action: "export" },
   pick_resource_files: {},
   download_resource: { url: "https://example.com/book.txt", name: "book.txt" },
   import_resource_book: { id: "resource-fixture" },

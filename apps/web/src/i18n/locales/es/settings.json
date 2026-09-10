@@ -366,11 +366,11 @@
     "reveal": "Mostrar",
     "backup": {
       "title": "Copia de seguridad y exportación",
-      "description": "Guarda todo lo que hay en este dispositivo en un único archivo: pásalo a otro dispositivo o consérvalo como copia de seguridad. Al importar, se combina una copia de seguridad con tus datos actuales."
+      "description": "No es una copia completa: excluye chats de IA, memoria a largo plazo, documentos de plugins, secretos e historial de eventos. La importación puede sobrescribir registros coincidentes y no se puede deshacer automáticamente."
     },
     "fullBackup": {
-      "title": "Copia de seguridad completa",
-      "description": "Libros, resaltados, notas, colecciones, progreso de lectura y todas las preferencias, en un único archivo portátil."
+      "title": "Copia de la biblioteca (v1)",
+      "description": "Libros, archivos originales disponibles localmente, colecciones, anotaciones y preferencias guardadas en un archivo."
     },
     "import": "Importar",
     "export": "Exportar",

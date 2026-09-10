@@ -448,10 +448,10 @@ coalescing, retirement, failed callbacks and production IPC adapter notification
 using controlled IPC responses. Native SQLite, compiled Worker, composition
 plugins and actual network/Tauri synchronization remain concentrated E2E work.
 
-### Per-Call Cancellation (Library 1.17 / Reading 2.18 / Diagnostics 1.1 / Sync 1.1)
+### Per-Call Cancellation (Library 1.17 / Reading 2.18 / Diagnostics 1.1 / Sync 1.1 / Maintenance 1.2)
 
 [代码] `PluginCallOptions = {signal?:AbortSignal}` is an optional FINAL argument
-on the 29 methods below. Existing parameters, guards, return values and grants
+on the 30 methods below. Existing parameters, guards, return values and grants
 are unchanged; omitted guards still occupy their position before options.
 
 | Namespace | Methods | Zero-based options position |
@@ -459,6 +459,7 @@ are unchanged; omitted guards still occupy their position before options.
 | `services.diagnostics` | `verifyProjections` | 0 |
 | `services.diagnostics` | `requestReport` | 1 |
 | `services.sync` | `requestFlow` | 1 |
+| `services.maintenance` | `requestBackup` | 1 |
 | `domains.library.queries.books` | `inspectResource`, `getNavigationToc`, `listNavigationTargets`, `searchLocations`, `readRange`, `listReferences`, `listImages`, `readReference`, `searchText`, `getContentState` | 1 |
 | `domains.reading.commands` | `openBook`, `goTo`, `back`, `forward`, `reload`, `close`, `returnToMode` | 1 |
 | `domains.reading.commands` | `putEmphasis`, `removeEmphasis`, `selectRange`, `clearSelection`, `step`, `controlPlayback`, `configureMode`, `setControls`, `stepMode` | 2 |
@@ -5068,7 +5069,7 @@ and deletion target their existing entry buttons, which may still be busy/disabl
 It does not click controls, select a plugin, change permissions, open a file picker,
 start a backup, open the delete confirmation, type DELETE or wipe data.
 Installation consent, manual controls and the typed deletion confirmation remain
-mandatory. Existing backup v1 coverage and implementation are unchanged; it is
+mandatory. Existing backup v1 coverage remains a subset; it is
 not a complete event-log/AI/memory/plugin-doc/secret backup. No operation-complete
 receipt is implied by opening these controls.
 It also does not assemble/export/send a diagnostic bundle or download/install/restart the app.
@@ -5079,6 +5080,52 @@ same service in both scopes; checking is explicit opt-in. SYS16's bounded actor
 entry is connected; logging 1.0 supplies plugin-owned diagnostic output, while
 diagnostics 1.1 adds host-confirmed export/send final flow receipts. Focused checks cover wiring, not real desktop update/diagnostics
 execution; composition/Tauri acceptance remains pending.
+
+### Backup Completion Flows (Maintenance 1.2)
+
+[代码] `services.maintenance.requestBackup(action, options?)` and dual-scope Agent
+`request_backup` accept `import` or `export`. They navigate to Data & Sync and
+focus the existing matching button; they never click it, open a picker on behalf
+of the actor, choose a file or supply backup contents. The user must click the
+native host button and choose the file/destination. No additional plugin grant
+is needed for this request-only surface. The result contains only
+`{action,status:"imported"|"exported"|"cancelled"}`, not bytes, paths or counts.
+Errors reject rather than reporting cancellation or success.
+
+[代码] The host-only `useBackupActions` binding uses the shared `HostActionFlow`:
+one pending/running flow, signal and realm cancellation, no actor-callable
+binding/run/approval methods. Opposite backup actions and local deletion are
+disabled while a request is pending; active backup/deletion blocks new requests.
+Unmount cancels an unstarted request. An already-started operation retains its
+ownership until the source settles. Cancellation is not rollback, and there is
+no durable task/receipt or restart recovery. Worker requests retain the existing
+120-second ceiling; a completed import schedules the existing reload after
+900 ms, so a receipt is not proof of reload/genesis or guaranteed delivery across
+that reload.
+
+[代码] `backup-file-actions.ts` replaces the HTML download/input paths with
+existing native `exportTextFile` and `createResourceOwner` pick/read services.
+Saving returns the actual save/cancel result. Import reads selected JSON in
+1 MiB chunks with streaming UTF-8 decoding and releases the resource in finally;
+existing resource size/owner limits still apply. The full JSON/base64 remains
+in memory, not a streaming archive. Cancellation checks stop preparation before
+merge; once the existing sequential, nontransactional v1 merge begins, its
+writes finish rather than pretending cancellation restores old state.
+
+[代码] The schema remains v1: KV, books, collections, annotations and locally
+available original files. Independent AI chats, long-term memory, plugin
+documents, secrets and the event log are not enumerated. KV can contain personal
+data; this is not a redacted export. Matching keys/IDs can be overwritten, partial
+failure can leave writes, and existing validation is not a complete schema or
+version validation. Eight-locale native copy now says library backup (v1), not
+full backup. OPS08 remains partial for these host limitations, not for missing
+actor completion wiring.
+
+[验证] Focused controlled-file and mounted StrictMode tests cover native-button
+ownership, cancelled/exported/imported outcomes, lifecycle cancellation, file
+cleanup and Agent/Worker option wiring. They do not exercise actual native
+dialogs, backup contents, SQLite restoration, reload/genesis, compiled Worker
+or business-plugin composition. Those remain concentrated desktop E2E work.
 
 [代码] Diagnostics 1.1 exposes `services.diagnostics.verifyProjections(options?)`
 only with `service:diagnostics`; library, sync and network grants do not imply it.
@@ -5098,7 +5145,7 @@ diagnostic replay back. Native logic is unchanged. `projection-verification.ts`
 coalesces concurrent native diagnostic-bundle, plugin and Agent callers into one
 in-flight IPC, without caching completed checks. Public service callers receive
 independent count objects. Its optional PluginCallOptions.signal occupies slot 0
-in the shared 29-method Worker/host table; the host injects the authoritative
+in the shared 30-method Worker/host table; the host injects the authoritative
 request signal and combines plugin lifetime. Cancelling one waiter rejects it
 promptly, but does not interrupt or release the native flight before completion
 and rollback. Later callers join that flight, and source failure is logged even
@@ -5204,7 +5251,7 @@ actual settlement and cannot be rolled back. Billing checks cancellation and
 connection generation before external handoff. There is no durable TaskRef or
 restart recovery; the existing Worker RPC deadline still applies to the wait.
 `services.sync.requestFlow` uses options slot 1 in the shared signal-position
-table (29 supported methods). Native binding/run/settlement methods are not
+table (30 supported methods). Native binding/run/settlement methods are not
 included in the public context, so an actor cannot self-confirm.
 
 Agent `get_sync_status(includeConnections?)` and `manage_sync` share this service

@@ -366,11 +366,11 @@
     "reveal": "Afficher",
     "backup": {
       "title": "Sauvegarde et export",
-      "description": "Enregistrez tout ce qui se trouve sur cet appareil dans un seul fichier — transférez-le vers un autre appareil ou conservez-le comme sauvegarde. L’import fusionne une sauvegarde avec vos données actuelles."
+      "description": "Cette sauvegarde exclut les conversations IA, la mémoire à long terme, les documents des plugins, les secrets et l’historique des événements. L’import peut écraser les enregistrements correspondants et ne peut pas être annulé automatiquement."
     },
     "fullBackup": {
-      "title": "Sauvegarde complète",
-      "description": "Livres, surlignages, notes, collections, progression de lecture et toutes les préférences, dans un seul fichier portable."
+      "title": "Sauvegarde de la bibliothèque (v1)",
+      "description": "Livres, fichiers originaux disponibles localement, collections, annotations et préférences enregistrées dans un fichier."
     },
     "import": "Importer",
     "export": "Exporter",

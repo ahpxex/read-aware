@@ -2090,6 +2090,9 @@ export type PluginHostServices = {
     observe(query: import("@read-aware/core").PluginDirectoryQuery, handler: (page: import("@read-aware/core").PluginDirectoryPage) => unknown): PluginDisposable;
   };
   maintenance: {
+    /** Reveals a host backup button and awaits the user's click and file dialog.
+     * No backup bytes/paths; v1 is a subset, not a complete event-log backup. */
+    requestBackup(action: import("@read-aware/core").BackupAction, options?: PluginCallOptions): Promise<import("@read-aware/core").BackupReceipt>;
     snapshot(): Promise<import("@read-aware/core").HostMaintenanceSnapshot>;
     observe(handler: (snapshot: import("@read-aware/core").HostMaintenanceSnapshot) => unknown): PluginDisposable;
     /** Reveals the host's controls only; export/send/install still require native user actions. */

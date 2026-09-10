@@ -6,6 +6,17 @@ import { textResult } from "./tool-result";
 
 export function buildMaintenanceTools(deps: RuntimeDeps): AgentTool[] {
   return [{
+    name: "request_backup", label: "Request backup action", executionMode: "sequential",
+    description: "Only on explicit user request, reveal the native backup import or export button and wait for the user to click it and use the file dialog. Never clicks, chooses paths or receives backup bytes. Returns imported/exported/cancelled only after that host flow settles; imported does not prove reload/genesis completed. The existing v1 backup includes KV, books, collections, annotations and original files, NOT the complete event log, independent AI/memory/plugin document stores or secrets. Import merges and can overwrite existing records; failures can leave partial writes. Cancellation before merging prevents it; after merging starts it cannot roll back. No silent restore, full-backup guarantee or arbitrary file access.",
+    parameters: Type.Object({ action: Type.Union([Type.Literal("import"), Type.Literal("export")]) }, { additionalProperties: false }),
+    execute: async (_id, params, signal) => {
+      signal?.throwIfAborted();
+      const action = (params as { action: "import" | "export" }).action;
+      if (action !== "import" && action !== "export") throw new AppError("ui/invalid-target", "Invalid backup action");
+      const result = await deps.maintenance.requestBackup(action, signal);
+      signal?.throwIfAborted(); return textResult(result);
+    },
+  }, {
     name: "verify_local_data", label: "Verify local data", executionMode: "sequential",
     description: "Only when the user requests a local data integrity check, replay the complete local event log and compare its projections, then roll back the diagnostic replay. Returns consistency and aggregate counts only, never row samples, table names, logs, paths or user content. This can occupy the local database while checking. No repairs, network, backup validation, sync trigger or guarantee about other devices. An incomplete backfill or read failure throws, never reports consistent. Cancellation stops this caller's wait; the shared native check must finish and roll back.",
     parameters: Type.Object({}, { additionalProperties: false }),

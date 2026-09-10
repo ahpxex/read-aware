@@ -362,11 +362,11 @@
     "reveal": "Reveal",
     "backup": {
       "title": "Backup & export",
-      "description": "Save everything on this device to a single file — move it to another device or keep it as a backup. Importing merges a backup back into your current data."
+      "description": "This is not a full backup: AI chats, long-term memory, plugin documents, secrets and event history are excluded. Importing may overwrite matching records and cannot be undone automatically."
     },
     "fullBackup": {
-      "title": "Full backup",
-      "description": "Books, highlights, notes, collections, reading progress, and every preference, in one portable file."
+      "title": "Library backup (v1)",
+      "description": "Books, locally available original files, collections, annotations and stored preferences in one file."
     },
     "import": "Import",
     "export": "Export",

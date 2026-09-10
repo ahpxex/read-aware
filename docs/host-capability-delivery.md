@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+2026-09-11 备份流程批次已接线：maintenance1.2 requestBackup 与双域 Agent request_backup 复用 HostActionFlow，只定位已有导入/导出按钮；用户亲自点击并选择文件后返回 imported/exported/cancelled，不向调用方提供字节、路径或计数。导出由 HTML 下载改走已有原生保存，导入改走已有原生资源选择/读取；单次 signal 纳入共享 30 方法 RPC 表，已开始的 v1 合并不因取消伪装回滚。八语言改称书库备份（v1），明确并非全量、可覆盖记录。
+
+[验证] 22 项基础调用/受控文件/StrictMode 挂载测试及 12 项库存模型测试通过；全仓 typecheck27/27、八语言 JSON/键集合、三文档对结构及 diff 检查通过。930 入口映射、38 catalog 成员，Agent 工具 book91/global109。OPS08 仍部分：既有 v1 不覆盖独立聊天/记忆/插件文档/密钥库/事件日志，KV 可能含个人数据；整份 JSON 驻内存、格式验证不完整、顺序合并可能部分写入。imported 不证明重载/genesis 或跨重启回执送达。没有启动桌面/浏览器，真实文件保存/恢复、编译 Worker、业务插件组合及 HTML 视觉复核留集中验收；未推送，整体目标继续。
+
 2026-09-11 插件聊天书卡批次已接线：agentTools1.3支持PluginToolBookCards，插件仅提交1..24个bookId及gist，宿主按注册插件library读/写授权查询真实title/author，拒绝伪造resolver/标题/封面/URL。全局可显示书库，书内仅当前书；重复去重、未知与scope外ID分别回执，读失败不伪装未知。现有details.reference书卡、封面与点击路径复用，不自动开书；AgentThread与present_books共享本轮ID去重，下轮恢复。hydration纳入生命周期读及turn signal；既有wordCards与工具批准保持兼容，没有新增模型工具。
 
 [验证] 32项基础测试、192断言通过；全仓typecheck27/27、三文档对结构检查通过，927入口映射、38个catalog成员。生产注册/权限/书内过滤使用受控IPC；脚本AgentThread验证引用chunk及跨工具/跨轮去重，不是实际远端模型或UI绘制。AI05按现有固定书卡/词卡范围标接通，PluginView不可任意互换；回执只证明引用准备，卡片可能因已展示被线程去重。compiledWorker/业务插件/真实Tauri点击及HTML视觉复核留集中阶段；未启动桌面/浏览器，未推送，整体目标继续。

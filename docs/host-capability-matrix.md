@@ -330,7 +330,7 @@
 | <a id="OPS05"></a>OPS05 | 偏好漫游/远端合并后的 UI 失效 | 部分 | **自动**：下一轮读取投影/配置<br>[设计] 一致快照与刷新 | **部分**：library1.18/conversations1.3 events.observeInvalidation；已有settings/annotations/memory观察<br>[设计] 授权失效后重读 | 跨设备设置/书架/聊天刷新；双领域读授权通知 | 书库/对话已接初始、本地、宿主、远端投影及书籍/集合恢复通知；sync-store按已提交apply/replay/finalize/bootstrap/backfill发出，后续同步失败不隐瞒先前提交。只回订阅revision/source，串行合并、每领域64个，退休释放；不提供记录或完整同步成功保证。读取错误仍由查询处理，旧业务subscribe保持本地-only；原生UI现有周期刷新未改、真实Worker/Tauri组合集中后置。roaming KV与plugin docs同步策略仍不等价，不将GAP09整体关闭。 | [ROAM](../apps/web/src/platform/roaming-preferences.ts) [SYNC](../apps/web/src/platform/sync/sync-scheduler.ts) [APPEVENTS](../apps/web/src/platform/app-events.ts) [DOCS](../apps/web/src/features/plugins/runtime/plugin-backend.ts) [PROJECTIONINVALIDATION](../apps/web/src/domain/projection-invalidation.ts) [PROJECTIONINVALIDATIONPROOF](../apps/web/src/domain/projection-invalidation.test.ts) [SYNCSTORE](../apps/web/src/platform/sync/sync-store.ts) | 新增盘点 |
 | <a id="OPS06"></a>OPS06 | 账号登录、连接 token、退出、删除账号 | 实装 | **接通**：get_sync_status；manage_sync connect/disconnect/delete-account<br>[设计] 宿主身份及危险确认，最终本地回执 | **接通**：sync 1.1 snapshot/requestFlow<br>[设计] 独立授权的宿主账户流程 | SyncAccountGroup；双端流程请求 | 不返回email/账号ID/token/主密钥。请求直接进入现有宿主登录/退出/删除确认，不能自批准或填入凭据；connect失败可在原对话框重试，其他操作失败拒绝并由宿主本地化反馈。completed必须等真实宿主动作，cancelled不写；删除远端和本地断开持有共同连接锁，保留本地书籍/批注。换账号使旧确认失效；确认后取消不回滚。基础检查通过，编译Worker及真实Tauri登录/删除集中后置。 | [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [SYNCCONNECT](../apps/web/src/platform/sync/connect.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [EXTERNAL](../apps/web/src/platform/external-link.ts) [SYNCSERVICE](../apps/web/src/services/sync.ts) [SYNCFLOWS](../apps/web/src/services/sync-flow-controller.ts) [SYNCFLOWUI](../apps/web/src/features/settings/hooks/useSyncAccountFlows.ts) [SYNCTOOLS](../packages/agent/src/tools/sync-tools.ts) | 新增盘点 |
 | <a id="OPS07"></a>OPS07 | 套餐/用量/购买/账单管理 | 实装 | **接通**：get_sync_status includeAccount；manage_sync upgrade/billing<br>[设计] 套餐用量与外部流程交接回执 | **接通**：sync 1.1 account/requestFlow<br>[设计] 按需脱敏读及宿主购买入口 | 购买/账单portal；双端配额与流程 | account仅返回tier/hasBilling/三项用量及四项额度，null是非relay/未连接而非零用量；失败和换代拒绝。upgrade/billing直接复用宿主外链操作，保留平台购买限制与账号资格，打开前复查取消/连接代；不返回URL/ticket/keys/email/accountId。external-opened只证明外部交接，不是支付或订阅变更完成；购买仍由用户在外部页面完成，不开放自动付款。控制器/受控挂载基础检查通过，真实远端套餐、系统浏览器和购买结果留集中Tauri验收。 | [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [EXTERNAL](../apps/web/src/platform/external-link.ts) [SYNCSERVICE](../apps/web/src/services/sync.ts) [SYNCCONTROLLER](../apps/web/src/services/sync-controller.ts) [SYNCFLOWS](../apps/web/src/services/sync-flow-controller.ts) [SYNCFLOWUI](../apps/web/src/features/settings/hooks/useSyncAccountFlows.ts) [SYNCTOOLS](../packages/agent/src/tools/sync-tools.ts) | 新增盘点 |
-| <a id="OPS08"></a>OPS08 | 备份导出与合并导入 | 部分 | **部分**：open_maintenance_settings(backup-import/backup-export)[双域]<br>[设计] 打开宿主备份控件 | **部分**：maintenance 1.1 openSettings(backup-import/backup-export)<br>[设计] 打开宿主备份控件 | DataSyncPanel 原有导入/导出按钮定位 | 入口已接，不点击按钮/自动打开文件选择器，不传入备份字节或路径；opened 不是导入/导出完成。v1 仍仅 KV/books/collections/annotations/files；独立 ai_chat/memories/plugin_docs/secret/event-log 未枚举，不能称全量备份；全量内存 JSON、原有导出实现及最终任务回执未改，实际桌面效果留待集中验收。 | [BACKUP](../apps/web/src/features/settings/lib/backup-io.ts) [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) | O06, R05 |
+| <a id="OPS08"></a>OPS08 | 备份导出与合并导入 | 部分 | **部分**：request_backup / open_maintenance_settings[双域]<br>[设计] 原生备份请求及最终回执已接 | **部分**：maintenance 1.2 requestBackup / openSettings<br>[设计] 原生备份请求及最终回执已接 | DataSyncPanel 原有按钮、原生文件服务与 HostActionFlow | requestBackup 只定位，用户点击及选择文件后返回 imported/exported/cancelled；openSettings 的 opened 仍非完成。不交出字节/路径/计数，无新增授权或自我批准。单次 signal 已接，未开始可取消，已开始合并不回滚；无耐久回执，imported 不证明重载/genesis完成。v1仅KV/books/collections/annotations/本地files，独立聊天/记忆/插件文档/密钥库/event-log未枚举；KV可能含个人数据，整份JSON驻内存、验证不完整、可覆盖及部分写入，故仍部分。八语言已纠正全量备份保证。基础调用/受控文件/挂载测试通过，真实Worker/Tauri恢复与组合留集中验收。 | [BACKUP](../apps/web/src/features/settings/lib/backup-io.ts) [BACKUPFLOW](../apps/web/src/features/settings/lib/backup-file-actions.ts) [BACKUPFLOWUI](../apps/web/src/features/settings/hooks/useBackupActions.ts) [BACKUPFLOWPROOF](../apps/web/src/features/settings/hooks/useBackupActions.test.tsx) [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) | O06, R05 |
 | <a id="OPS09"></a>OPS09 | 删除本地全部数据 | 实装 | **接通**：open_maintenance_settings(delete-data)[双域]<br>[设计] 打开宿主危险操作入口 | **接通**：maintenance 1.1 openSettings(delete-data)<br>[设计] 只定位，禁止直接 wipe | DataSyncPanel 原有删除入口与 DELETE 文字确认 | 只定位已挂载入口按钮，不打开确认框、不填 DELETE、不批准或执行删除；用户须自行点击并完成宿主文字确认。opened 不代表删除完成；清空本地与删账号不同，私有卸载不升级成全局 wipe。条件/取消/生命周期定向测试通过，真实 Tauri 确认流程待集中验收。 | [WIPE](../apps/web/src/features/settings/lib/delete-all-data.ts) [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) | R05 |
 | <a id="OPS10"></a>OPS10 | 数据目录显示/Reveal | 占位 | **未接**：无正式入口<br>[设计] 待宿主实现后暴露意图 | **未接**：无正式入口<br>[设计] 待宿主实现后暴露意图 | disabled Reveal / PendingBadge | UI 占位不能计入宿主已实现，更不能计入 Agent 或插件覆盖 | [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) | 新增盘点 |
 | <a id="OPS11"></a>OPS11 | 事件写入、重建/验证投影、历史 genesis | 实装 | **部分**：领域端口提交业务事件；verify_local_data[双域]<br>[设计] 语义命令与只读诊断 | **部分**：领域命令内部commit；diagnostics1.0 verifyProjections<br>[设计] 只走有语义领域命令 | commit_events/rebuild_projections/verify_projections | 只读校验汇总已开放，不暴露记录样本或表名；共用原生verify_projections，重放检查最终回滚，回填不完整拒绝。没有开放重建/修复、任意SQL/事件append/投影写或伪造genesis；旧日志未记录的变更不可凭空恢复。真实Tauri调用留集中验收 | [EVENTS](../apps/web/src/platform/domain-events.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) [RUST](../apps/desktop/src-tauri/src/lib.rs) [DIAGNOSTICS](../apps/web/src/services/diagnostics.ts) [DIAGNOSTICSCONTROLLER](../apps/web/src/services/diagnostics-controller.ts) [DIAGNOSTICSPROOF](../apps/web/src/services/diagnostics-controller.test.ts) | 新增盘点 |
@@ -410,9 +410,9 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：108 个。
-- Agent book：90 个。
-- Plugin ctx：215 个。
+- Agent global：109 个。
+- Agent book：91 个。
+- Plugin ctx：216 个。
 - Plugin returned interface：28 个。
 - Capability domains：6 个。
 - Capability contributions：15 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 215 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 216 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -462,6 +462,7 @@
 | `open_external_url` | [SYS12](#SYS12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_sync_status` | [OPS01](#OPS01) [OPS03](#OPS03) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_sync` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `request_backup` | [OPS08](#OPS08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `verify_local_data` | [OPS03](#OPS03) [OPS11](#OPS11) [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `request_diagnostics_report` | [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_software_update` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -575,6 +576,7 @@
 | `open_external_url` | [SYS12](#SYS12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_sync_status` | [OPS01](#OPS01) [OPS03](#OPS03) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_sync` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `request_backup` | [OPS08](#OPS08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `verify_local_data` | [OPS03](#OPS03) [OPS11](#OPS11) [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `request_diagnostics_report` | [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_software_update` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -819,6 +821,7 @@
 | `services.logging.write` | [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.diagnostics.requestReport` | [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.diagnostics.verifyProjections` | [OPS03](#OPS03) [OPS11](#OPS11) [SYS15](#SYS15) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.maintenance.requestBackup` | [OPS08](#OPS08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.maintenance.snapshot` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.maintenance.observe` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.maintenance.openSettings` | [SYS15](#SYS15) [SYS16](#SYS16) [EXT12](#EXT12) [OPS08](#OPS08) [OPS09](#OPS09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

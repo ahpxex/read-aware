@@ -362,11 +362,11 @@
     "reveal": "Anzeigen",
     "backup": {
       "title": "Backup & Export",
-      "description": "Speichere alles auf diesem Gerät in einer einzigen Datei — verschiebe sie auf ein anderes Gerät oder bewahre sie als Backup auf. Beim Import wird ein Backup wieder in deine aktuellen Daten eingefügt."
+      "description": "Kein vollständiges Backup: KI-Chats, Langzeitgedächtnis, Plugin-Dokumente, Geheimnisse und Ereignisverlauf fehlen. Der Import kann übereinstimmende Datensätze überschreiben und lässt sich nicht automatisch rückgängig machen."
     },
     "fullBackup": {
-      "title": "Vollständiges Backup",
-      "description": "Bücher, Markierungen, Notizen, Sammlungen, Lesefortschritt und jede Einstellung in einer portablen Datei."
+      "title": "Bibliotheksbackup (v1)",
+      "description": "Bücher, lokal verfügbare Originaldateien, Sammlungen, Anmerkungen und gespeicherte Einstellungen in einer Datei."
     },
     "import": "Importieren",
     "export": "Exportieren",

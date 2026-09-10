@@ -2,6 +2,24 @@ import { expect, test } from "bun:test";
 import { createInMemoryDeps } from "../testing/fixtures";
 import { buildMaintenanceTools } from "./maintenance-tools";
 
+test("Agent backup requests preserve native outcomes without file content or automatic approval", async () => {
+  const { deps, stores } = createInMemoryDeps();
+  const signal = new AbortController().signal;
+  deps.maintenance.requestBackup = async (action, received) => {
+    expect(received).toBe(signal); return { action, status: action === "import" ? "imported" : "cancelled" };
+  };
+  const tool = buildMaintenanceTools(deps).find(tool => tool.name === "request_backup")!;
+  expect(tool.executionMode).toBe("sequential");
+  for (const action of ["import", "export"]) {
+    const result = await tool.execute("backup", { action }, signal);
+    const text = result.content[0]; if (text.type !== "text") throw Error("Expected text");
+    expect(JSON.parse(text.text)).toEqual({ action, status: action === "import" ? "imported" : "cancelled" });
+  }
+  expect(stores.interactions).toHaveLength(0);
+  await expect(tool.execute("bad", { action: "wipe" }, signal)).rejects.toMatchObject({ code: "ui/invalid-target" });
+  await expect(tool.execute("cancel", { action: "export" }, AbortSignal.abort())).rejects.toThrow();
+});
+
 test("Agent maintenance reads locally by default, propagates check failures and reveals without claiming completion", async () => {
   const { deps } = createInMemoryDeps(), calls: unknown[] = [], signal = new AbortController().signal;
   deps.maintenance.checkForUpdates = async s => { calls.push(s); throw Error("offline"); };

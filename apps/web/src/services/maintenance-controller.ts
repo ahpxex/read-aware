@@ -8,6 +8,7 @@ export function maintenanceSection(surface: HostMaintenanceSurface): WorkspaceSe
 }
 
 type Adapter = {
+  requestBackup?: HostMaintenancePort["requestBackup"];
   snapshot(): HostMaintenanceSnapshot;
   check(signal?: AbortSignal): Promise<HostMaintenanceSnapshot>;
   subscribe(handler: () => void): () => void;
@@ -20,6 +21,12 @@ export class HostMaintenanceService implements HostMaintenancePort {
   constructor(private adapter: Adapter, private report: (error: unknown) => void) {}
 
   async snapshot() { return this.adapter.snapshot(); }
+  requestBackup(action: import("@read-aware/core").BackupAction, signal?: AbortSignal) {
+    signal?.throwIfAborted();
+    if (action !== "import" && action !== "export") throw new AppError("ui/invalid-target", "Invalid backup action");
+    if (!this.adapter.requestBackup) throw new AppError("ui/unavailable", "Backup controls are unavailable");
+    return this.adapter.requestBackup(action, signal);
+  }
   checkForUpdates(signal?: AbortSignal) { return this.adapter.check(signal); }
 
   /** Host mount registration, never included in the Worker/Agent port. */
@@ -33,10 +40,15 @@ export class HostMaintenanceService implements HostMaintenancePort {
     signal?.throwIfAborted();
     await this.adapter.navigate(section, signal);
     signal?.throwIfAborted();
+    this.revealControl(surface);
+    return { status: "opened" as const, surface };
+  }
+
+  /** Host-only focus, for a flow whose settings page is already mounted. */
+  revealControl(surface: HostMaintenanceSurface): void {
     const reveal = this.surfaces.get(surface);
     if (!reveal) throw new AppError("ui/unavailable", "Maintenance controls are not mounted");
     reveal();
-    return { status: "opened" as const, surface };
   }
 
   observe(handler: (value: HostMaintenanceSnapshot) => unknown): () => void {

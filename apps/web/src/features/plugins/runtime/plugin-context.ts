@@ -638,6 +638,8 @@ export function buildPluginContext(
           signal => hostDiagnostics.verifyProjections(signal), callSignal(options)),
       } } : {}),
       maintenance: {
+        requestBackup: (action, options) => lifecycle.read("services.maintenance.requestBackup",
+          signal => hostMaintenance.requestBackup(action, signal), callSignal(options)),
         snapshot: async () => { lifecycle.assertActive("services.maintenance.snapshot"); return hostMaintenance.snapshot(); },
         observe: handler => track(() => ({ dispose: hostMaintenance.observe(handler) })),
         openSettings: surface => { lifecycle.assertActive("services.maintenance.openSettings"); return hostMaintenance.openSettings(surface, lifecycle.signal); },

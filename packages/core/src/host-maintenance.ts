@@ -9,6 +9,8 @@ export type HostUpdateState = {
 };
 export const HOST_MAINTENANCE_SURFACES = ["updates", "diagnostics", "plugins", "backup-import", "backup-export", "delete-data"] as const;
 export type HostMaintenanceSurface = typeof HOST_MAINTENANCE_SURFACES[number];
+export type BackupAction = "import" | "export";
+export type BackupReceipt = { action: BackupAction; status: "imported" | "exported" | "cancelled" };
 export type HostMaintenanceSnapshot = HostUpdateState & {
   supported: boolean;
   channel: "stable" | "beta";
@@ -16,6 +18,8 @@ export type HostMaintenanceSnapshot = HostUpdateState & {
   checkedChannel: "stable" | "beta" | null;
 };
 export type HostMaintenancePort = {
+  /** Reveal a host button, then await the user's native action. No bytes or paths. */
+  requestBackup(action: BackupAction, signal?: AbortSignal): Promise<BackupReceipt>;
   snapshot(): Promise<HostMaintenanceSnapshot>;
   /** Checks the host release feed only. Never downloads, installs or restarts. */
   checkForUpdates(signal?: AbortSignal): Promise<HostMaintenanceSnapshot>;

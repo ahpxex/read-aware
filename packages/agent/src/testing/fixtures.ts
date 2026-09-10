@@ -374,6 +374,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       control: async () => { throw new AppError("ui/unavailable", "Bind a schedule fixture"); },
     },
     maintenance: {
+      requestBackup: async action => ({ action, status: "cancelled" }),
       snapshot: async () => ({ supported: false, phase: "idle", channel: "stable", checkedChannel: null,
         currentVersion: "0.5.4", availableVersion: null, progress: null, errorStage: null }),
       checkForUpdates: async () => { throw new AppError("ui/unavailable", "Attach an updater fixture"); },

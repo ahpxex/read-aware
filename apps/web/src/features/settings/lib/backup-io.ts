@@ -1,22 +1,11 @@
 /**
- * Whole-database backup — a single portable file with everything on this device.
- *
- * One bundle carries the KV layer (settings, preferences, conversations, reading
- * stats…), books, collections, annotations, and the original book files
- * (base64). Ids and keys are preserved, so importing is a non-destructive
- * **merge**: every row is upserted, nothing is deleted, and annotations /
- * collections / progress reconnect to their books. This is the local-first
- * backup/restore story until the encrypted sync relay lands.
- *
- * Scope: all user data as today's projections + KV. It does not capture the
- * `domain_events` log or device identity: events are device-scoped sync state
- * (per-device HLC stamps), not portable user data. Restored rows the target
- * device's log has never seen get creation events synthesized by the boot-time
- * genesis reconciliation (platform/event-genesis.ts) on the next launch.
- *
- * Scale note: the whole thing (incl. book bytes) is held in memory as one JSON
- * string. Fine for a personal shelf; a very large library would want a streamed
- * archive instead — revisit if that becomes real.
+ * Legacy v1 subset: KV, books, collections, annotations and locally available
+ * original files. Independent chats, memories, plugin documents, secrets and
+ * the event log are NOT included. This is not a whole-device backup.
+ * Import upserts preserved keys/IDs and may overwrite existing records; its
+ * sequential writes are not transactional. Boot-time genesis reconciles new
+ * restored rows, not the missing event history. The full JSON/base64 bundle
+ * remains in memory; native file transport does not make this a streamed archive.
  */
 import { dumpLocalKV, restoreLocalKV } from "../../../platform/local-store";
 import {
@@ -72,7 +61,7 @@ function base64ToBytes(base64: string): Uint8Array {
   return bytes;
 }
 
-/** Serialize the entire device-local database into one portable JSON string. */
+/** Serialize the v1 backup subset into one portable JSON string. */
 export async function exportBackup(): Promise<string> {
   const [kvAll, books, collections, annotations] = await Promise.all([
     dumpLocalKV(),
@@ -108,7 +97,7 @@ export async function exportBackup(): Promise<string> {
 
 /**
  * Merge a previously-exported backup into the current data. Upserts by key/id
- * (non-destructive: existing rows are overwritten, nothing is deleted).
+ * (existing rows can be overwritten; a later failure does not roll back prior writes).
  * Returns how many of each were restored.
  */
 export async function importBackup(json: string): Promise<BackupImportResult> {

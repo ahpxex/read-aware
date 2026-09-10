@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Button, Dialog, TextField, useToast } from "@read-aware/ui";
 import { isTauri } from "../../../platform/environment";
 import { createLogger } from "../../../platform/logger";
@@ -8,13 +8,12 @@ import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
 import { PendingBadge } from "../components/PendingBadge";
 import { deleteAllData } from "../lib/delete-all-data";
-import { exportBackup, importBackup } from "../lib/backup-io";
+import { useBackupActions } from "../hooks/useBackupActions";
 import { SyncAccountGroup } from "./SyncAccountGroup";
 import { useMaintenanceSurface } from "../hooks/useMaintenanceSurface";
 
 const log = createLogger("data-sync");
 
-const BACKUP_FILENAME = "readaware-backup.json";
 /**
  * The literal the user must type to arm the delete button. Deliberately the
  * same in every locale: it is a safety ritual, not copy — and an uncommon
@@ -28,66 +27,10 @@ export function DataSyncPanel() {
   const deleteControlRef = useMaintenanceSurface("delete-data");
   const { t } = useTranslation("settings");
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
-
-  const handleExport = async () => {
-    setBusy(true);
-    try {
-      const blob = new Blob([await exportBackup()], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = BACKUP_FILENAME;
-      anchor.click();
-      URL.revokeObjectURL(url);
-      toast({
-        variant: "success",
-        title: t("dataSync.noticeDone"),
-        description: t("dataSync.exportSuccess", { file: BACKUP_FILENAME }),
-      });
-    } catch (error) {
-      // The localized line is the user-facing message; the raw error goes to
-      // the console for diagnostics instead of leaking English into the toast.
-      log.error("export failed", error);
-      toast({
-        variant: "destructive",
-        title: t("dataSync.noticeError"),
-        description: t("dataSync.exportError"),
-      });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleImportFile = async (file: File) => {
-    setBusy(true);
-    try {
-      const result = await importBackup(await file.text());
-      toast({
-        variant: "success",
-        title: t("dataSync.noticeDone"),
-        description: t("dataSync.merge.summary", {
-          books: t("dataSync.merge.books", { count: result.books }),
-          annotations: t("dataSync.merge.annotations", { count: result.annotations }),
-          collections: t("dataSync.merge.collections", { count: result.collections }),
-          settings: t("dataSync.merge.settings", { count: result.settings }),
-        }),
-      });
-      window.setTimeout(() => window.location.reload(), 900);
-    } catch (error) {
-      log.error("import failed", error);
-      toast({
-        variant: "destructive",
-        title: t("dataSync.noticeError"),
-        description: t("dataSync.importError"),
-      });
-      setBusy(false);
-    }
-  };
+  const { busy, requested, run } = useBackupActions(deleteOpen || deleting);
 
   const deleteArmed = deleteConfirmText.trim() === DELETE_CONFIRM_PHRASE;
 
@@ -153,25 +96,14 @@ export function DataSyncPanel() {
                 ref={importControlRef}
                 variant="outline"
                 size="sm"
-                disabled={busy}
-                onClick={() => fileInputRef.current?.click()}
+                disabled={busy || deleteOpen || deleting || requested === "export"}
+                onClick={() => void run("import")}
               >
                 {t("dataSync.import")}
               </Button>
-              <Button ref={exportControlRef} size="sm" disabled={busy} onClick={() => void handleExport()}>
+              <Button ref={exportControlRef} size="sm" disabled={busy || deleteOpen || deleting || requested === "import"} onClick={() => void run("export")}>
                 {busy ? t("dataSync.working") : t("dataSync.export")}
               </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="application/json,.json"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = "";
-                  if (file) void handleImportFile(file);
-                }}
-              />
             </span>
           }
         />
@@ -183,7 +115,7 @@ export function DataSyncPanel() {
           title={t("dataSync.deleteAll.title")}
           description={t("dataSync.deleteAll.description")}
           control={
-            <Button ref={deleteControlRef} variant="danger" size="sm" onClick={() => setDeleteOpen(true)}>
+            <Button ref={deleteControlRef} variant="danger" size="sm" disabled={busy || requested !== null} onClick={() => setDeleteOpen(true)}>
               {t("dataSync.deleteAll.button")}
             </Button>
           }

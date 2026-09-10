@@ -9,6 +9,7 @@ export async function liveMemoryView(ctx: PluginContext, query: MemoryObservatio
   let sample: MemoryObservationResult | undefined, failure: string | undefined;
   try {
     sample = query.kind === "search" ? { kind: query.kind, memories: await memory.queries.search(query.query) }
+      : query.kind === "profile" ? { kind: query.kind, profile: await memory.queries.profile(query.query) }
       : query.kind === "inspect" ? { kind: query.kind, snapshot: await memory.queries.inspect(query.memoryId) }
       : query.kind === "classification" ? { kind: query.kind, snapshot: await memory.queries.classification(query.bookId) }
       : query.kind === "graphTasks" ? { kind: query.kind, tasks: await memory.queries.listGraphTasks(query.bookId) }

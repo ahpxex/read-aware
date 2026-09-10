@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 194、部分 43、待建 3、占位 2、非桌面 1。
-- Agent：接通 133、部分 59、扩展 13、未接 20、自动 14、内部 4。
-- 插件：接通 148、部分 81、未接 14。
+- Agent：接通 134、部分 59、扩展 13、未接 20、自动 13、内部 4。
+- 插件：接通 149、部分 81、未接 13。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -270,7 +270,7 @@
 | <a id="MEM03"></a>MEM03 | 轮后抽取/去重/强化记忆 | 实装 | **自动**：thread 轮后抽取与 reinforce<br>[设计] 自动管线 | **部分**：memoryCandidateProviders.propose<br>[设计] 候选贡献 | Agent 后台；Reading Goals 用户选择后提议书内偏好 | buildMemory 已约束抽取/强化/候选/摘要/巩固/digest；关闭取消在途和排队任务，重开只允许新任务。候选只经宿主裁决写入，不开放投影写；候选接受/拒绝的公共可观察回执仍缺，故插件保持部分。保留旧记忆和聊天；已派发写不承诺撤销。七类受保护写均追踪实际回执，取消等待全部写 settle 后才退订/结束；迟到数据库失败有日志，已完成操作不能复用旧 guard。读/模型/插件自身 IO 可放弃等待，不算全部物理工作已停。 | [THREAD](../packages/agent/src/runtime/thread.ts) [MEMORYPORT](../apps/web/src/features/ai/agent/ports/memory-port.ts) [API](../packages/plugin-types/src/index.ts) [MEMORYPOLICY](../packages/agent/src/memory/build-policy.ts) [READINGGOALS](../plugins/reading-goals/src/index.ts) [MEMORYPOLICYPROOF](../docs/evidence/memory-build-policy-2026-09-09.json) [MEMORYDRAINPROOF](../docs/evidence/memory-commit-drain-2026-09-10.json) | L06, M03 |
 | <a id="MEM04"></a>MEM04 | 记忆巩固、修订/替代/遗忘 | 实装 | **部分**：自动 consolidation + manage_memory 条件纠错/遗忘<br>[设计] 自动管线+受控反馈工具 | **部分**：memory 1.3 commands.mutate：correct/forget<br>[设计] 候选/反馈接口，不直接改投影 | 空闲维护；Agent；Memory Desk 0.4 | 纠错/遗忘采用活动行及最后本地 memory 事件身份生成的 mem1 revision；SQLite immediate 事务内复核、append/apply/outbox 一并提交，旧版本/已遗忘拒绝，SQL 失败无事件/投影残留。Agent 每次变更冻结版本并请求确认；确认期间并发修改仍冲突。插件需 memory:write；不开放原始投影、权重、scope 或证据次数。遗忘仅 status=forgotten，不抹日志/既有 prompt/外部副本，无公共恢复命令。现有记录的自动巩固与强化也已接模型前快照、同源 revision 和原子整批提交；任何所读行变化/失活拒绝整个旧计划，合并退场与胜者强化一起回滚。过滤重叠合并端点，不自动替代置顶记录；强化 ID 去重且不事后重读套用。原生 Worker 纠错期间旧计划/强化冲突、第二步 SQL 失败全回滚与重试、编译插件随后编辑已验，模型判断为脚本。后台空闲检查现从全量活动快照比对 ID/revision 和 30 天衰减期限，覆盖插件/用户/原生同步写与纯时间变化；仅用事务内存活读集回执标记已处理，不吞掉读集外新增行或迟到修改，失败/未完整结束的模型判断保留待重试。仍为五分钟空闲轮询，非即时观察/耐久任务；关闭/隐藏/未启用不保证执行。原生真实 Worker、native remote apply 与编译插件写触发、注入时钟精确期限、SQL 失败无残留及重试已验，单行 fixture 无模型调用，非联网同步/墙钟定时器验收。新事实去重/遗忘后再抽取、全量读与模型预算、公共维护任务、跨设备 CAS/全管线协调尚缺；读集外新增不使当前判断失效，只触发下一次检查。 memory 1.3 events.observe 接受 search/inspect/bookGraph/classification 查询，立即异步快照后在读取和回调完成后一秒重读，只推送变化/错误/恢复，至多 64 个订阅，串行读取并等待回调；序号仅属于订阅，非 CAS。每次重算现有权限和图谱边界；不是事件日志/逐写通知，不给新增 scope 授权。Memory Desk 0.4 列表、记录和图谱详情自动更新，错误清旧内容/动作，编辑表单仍冻结版本。原生 Worker 授权/退订、外部写、原生 remote apply、读故障/恢复、遗忘与边界收紧已验；Agent 查询同源状态，不新增常驻模型观察。 | [MAINT](../apps/web/src/features/ai/agent/maintenance.ts) [CONSOLIDATE](../packages/agent/src/memory/consolidation.ts) [MEMORYPORT](../apps/web/src/features/ai/agent/ports/memory-port.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) [MEMORYMANAGEMENT](../apps/web/src/domain/memory-management.ts) [MEMORYMUTATIONS](../apps/desktop/src-tauri/src/storage/memory_mutations.rs) [MEMORYMANAGETOOL](../packages/agent/src/tools/memory-management-tool.ts) [MEMORYFEEDBACKPROOF](../docs/evidence/memory-feedback-2026-09-10.json) [MEMORYMAINTENANCE](../apps/desktop/src-tauri/src/storage/memory_maintenance.rs) [MEMORYPLAN](../packages/agent/src/memory/maintenance-plan.ts) [MEMORYMAINTENANCEPROOF](../docs/evidence/memory-maintenance-2026-09-10.json) [RUNTIME](../packages/agent/src/runtime/runtime.ts) [MEMORYCHECKPOINT](../packages/agent/src/memory/consolidation-checkpoint.ts) [MEMORYIDLEPROOF](../docs/evidence/memory-idle-2026-09-10.json) [MEMORYOBSERVER](../apps/web/src/domain/memory-observer.ts) [MEMORYLIVE](../plugins/memory-desk/src/live-memory.ts) [MEMORYOBSERVATIONPROOF](../docs/evidence/memory-observation-2026-09-10.json) | M04 |
 | <a id="MEM05"></a>MEM05 | 用户反馈记忆质量/纠错 | 部分 | **接通**：manage_memory 双 scope：inspect/correct/setPinned/forget，逐次批准<br>[设计] 受控反馈工具 | **接通**：memory 1.3 inspect + commands.mutate；memory:write<br>[设计] 受控反馈命令 | Agent；Memory Desk 0.4 的纠错/置顶/取消置顶/遗忘表单 | 严格单条语义变更，ID 非空且至多 256 字符、expectedRevision 为 mem1:64hex；correct 非空至多 16000 字符、setPinned 严格布尔、forget 无任意 reason，拒绝额外字段。pin/unpin 可逆且实际影响排序；correct 写 memory.revised，forget 写 reason=user，来源为实际 actor，不伪造强化次数。旧 MemoryFeedbackSignal 补已有原生 unpin；旧 correct/reject feedback 无投影效果且不被新入口冒充支持。Agent 书内仅 user/global/本书，global 可管理发现的其他书记忆；不是更细插件 scope 授权。Memory Desk 冻结读取版本，冲突/SQL 错误保留草稿，用户返回刷新后重新决定；遗忘要求明确勾选。macOS debug 已验真实 Worker、脚本批准的生产工具、编译表单、SQL 拒写/重试、并发保护与遗忘后检索为空；真实聊天批准点击、升级授权、跨平台仍未验。 memory 1.3 events.observe 接受 search/inspect/bookGraph/classification 查询，立即异步快照后在读取和回调完成后一秒重读，只推送变化/错误/恢复，至多 64 个订阅，串行读取并等待回调；序号仅属于订阅，非 CAS。每次重算现有权限和图谱边界；不是事件日志/逐写通知，不给新增 scope 授权。Memory Desk 0.4 列表、记录和图谱详情自动更新，错误清旧内容/动作，编辑表单仍冻结版本。原生 Worker 授权/退订、外部写、原生 remote apply、读故障/恢复、遗忘与边界收紧已验；Agent 查询同源状态，不新增常驻模型观察。 | [COREVENTS](../packages/core/src/events.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) [MEMTOOLS](../packages/agent/src/tools/memory-tools.ts) [MEMORYMANAGEMENT](../apps/web/src/domain/memory-management.ts) [MEMORYMUTATIONS](../apps/desktop/src-tauri/src/storage/memory_mutations.rs) [MEMORYMANAGETOOL](../packages/agent/src/tools/memory-management-tool.ts) [MEMORYMANAGEVIEW](../plugins/memory-desk/src/management.ts) [MEMORYFEEDBACKPROOF](../docs/evidence/memory-feedback-2026-09-10.json) [MEMORYOBSERVER](../apps/web/src/domain/memory-observer.ts) [MEMORYLIVE](../plugins/memory-desk/src/live-memory.ts) [MEMORYOBSERVATIONPROOF](../docs/evidence/memory-observation-2026-09-10.json) | M04 |
-| <a id="MEM06"></a>MEM06 | 读取用户画像并注入上下文 | 实装 | **自动**：ProfilePort.read → thread prompt<br>[设计] 自动上下文/受控查询 | **未接**：无正式入口<br>[设计] 授权字段画像查询 | Agent system prompt | 画像当前存 localKV；不是 profile.updated 的成熟投影 | [PROFILEPORT](../apps/web/src/features/ai/agent/ports/profile-port.ts) [THREAD](../packages/agent/src/runtime/thread.ts) [PORTS](../apps/web/src/features/ai/agent/ports/index.ts) | M05 |
+| <a id="MEM06"></a>MEM06 | 读取用户画像并注入上下文 | 实装 | **接通**：ProfilePort → prompt；get_user_profile[双域]<br>[设计] 自动上下文/受控查询 | **接通**：memory 1.6 queries.profile / events.observe(kind=profile)<br>[设计] 授权现有画像字段查询 | Agent system prompt；新查询待组合插件 | 同一 device-local KV 纯文本摘要，无结构化字段可枚举；memory:read（write 隐含）授权现有摘要，不授予原始 KV、画像写入或 profile/entity 投影。页面默认 4000、上限 16000 UTF-16 单元，nextOffset 不截断字符对；后续页强制 expectedRevision，内容变化 conflict 重读，token 是内容身份而非写 CAS。exists 区分未存与空字符串，错误不当成空画像，退休拒绝迟到页。观察复用有界串行轮询/变化/错误/恢复，无模型查询自动注册观察；不推断字段、不启动访谈或改记忆。只过定向测试，真实 Worker/Agent 对话组合待集中 Tauri 验收；MEM07 写流程、MEM08 投影与 MEM13 bundle 仍缺。 | [PROFILEPORT](../apps/web/src/features/ai/agent/ports/profile-port.ts) [THREAD](../packages/agent/src/runtime/thread.ts) [PORTS](../apps/web/src/features/ai/agent/ports/index.ts) [API](../packages/plugin-types/src/index.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | M05 |
 | <a id="MEM07"></a>MEM07 | Onboarding 访谈写入画像 | 部分 | **内部**：onboarding.ts seed 可写端口；未见产品调用<br>[设计] 明确接入用户确认后的写流程 | **未接**：无正式入口<br>[设计] 候选画像变更流程 | 访谈提示词有；独立 seed 仅导出/测试 | 函数存在不能算完成的访谈→画像闭环 | [ONBOARD](../packages/agent/src/onboarding.ts) [PROFILEPORT](../apps/web/src/features/ai/agent/ports/profile-port.ts) [THREAD](../packages/agent/src/runtime/thread.ts) | M05 |
 | <a id="MEM08"></a>MEM08 | profile.updated / entity.resolved / entity.merged 投影 | 占位 | **内部**：事件类型/端口，并非完整实体整合<br>[设计] 宿主 consolidation 投影 | **未接**：无正式入口<br>[设计] 未来只读/候选接口 | apply.rs 接受但返回无投影 | 宿主自身待实现，不应归为插件 API 单纯漏导出 | [COREVENTS](../packages/core/src/events.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) | M05 |
 | <a id="MEM09"></a>MEM09 | 叙事性分类/重分类与图谱风格 | 实装 | **接通**：classify_book 双 scope 查询/逐次批准 + 自动分类管线<br>[设计] 管线状态+用户重分类意图 | **接通**：memory 1.3 classification/classify/observe；读写授权分离<br>[设计] 分类查询/受控重分类 | 后台管线；Agent classify_book；Memory Desk 0.4 | narrative 与 expository 的 fence 不同；重分类后旧 flavor 懒重建。内部持久化路径已补 bcl1 条件版本查询/提交；自动 classifyBookIfUnclassified 只填空并返回实际分类，用户在推理期间修改不被迟到自动结果覆盖。新自动事件携带 onlyIfUnclassified，当前投影在两种重放顺序均保留明确选择；旧无标记事件与旧客户端不具备此语义。原生 SQLite 已验填空、用户改为说明文、迟到自动结果无写入、过期版本/预取消无写、事件归因及自有记录清理；Rust 另验 ABA、SQL/发件箱回滚与重放。memory 1.3 queries.classification 需 memory:read/write，返回分类/null及条件版本；commands.classify 需 memory:write，拒绝自行传自动填空标记。observe 新增 classification，沿用至多 64 个订阅和串行至少一秒轮询。Agent classify_book 书内仅本书，全局明确 ID；先读版本，每次变更请求用户批准，拒绝/取消不写、批准期间并发仍冲突，不能借分类绕过剧透意图。Memory Desk 0.4 分类详情实时更新，表单需确认分类/剧透边界变化，冻结版本，冲突保留选择和勾选。原生六 Worker、生产 Agent 工具和真实批准组件已验拒绝/批准/并发，编译插件表单成功及冲突、SQL 读故障清旧动作/自动恢复、退订和归因已验。批准组件挂载在隔离 fixture 中，不是完整聊天/自主模型证据。插件表单确认不是宿主批准票据；按书细粒度授权、在途 digest 取消、来源版本、即时重建和跨设备/打包跨平台仍缺 | [MAINT](../apps/web/src/features/ai/agent/maintenance.ts) [RUNTIME](../packages/agent/src/runtime/runtime.ts) [COREVENTS](../packages/core/src/events.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) [CLASSIFICATION](../apps/web/src/domain/book-classification.ts) [CLASSIFICATIONSTORE](../apps/desktop/src-tauri/src/storage/book_classification.rs) [CLASSIFICATIONPROOF](../docs/evidence/book-classification-storage-2026-09-10.json) [CLASSIFICATIONTOOL](../packages/agent/src/tools/book-classification-tool.ts) [CLASSIFICATIONVIEW](../plugins/memory-desk/src/classification.ts) [CLASSIFICATIONPUBLICPROOF](../docs/evidence/book-classification-public-2026-09-10.json) [MEMORYDOMAIN](../apps/web/src/domain/memory.ts) [MEMORYOBSERVER](../apps/web/src/domain/memory-observer.ts) [CTX](../apps/web/src/features/plugins/runtime/plugin-context.ts) | 新增盘点 |
@@ -410,9 +410,9 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：90 个。
-- Agent book：73 个。
-- Plugin ctx：180 个。
+- Agent global：91 个。
+- Agent book：74 个。
+- Plugin ctx：181 个。
 - Plugin returned interface：27 个。
 - Capability domains：6 个。
 - Capability contributions：15 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 180 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 181 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -493,6 +493,7 @@
 | `apply_annotation_changes` | [ANN04](#ANN04) [ANN05](#ANN05) [ANN06](#ANN06) [ANN08](#ANN08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `search_memory` | [MEM01](#MEM01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `remember` | [MEM02](#MEM02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_user_profile` | [MEM06](#MEM06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_memory` | [MEM01](#MEM01) [MEM04](#MEM04) [MEM05](#MEM05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `classify_book` | [MEM09](#MEM09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `search_conversation` | [AI01](#AI01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -574,6 +575,7 @@
 | `apply_annotation_changes` | [ANN04](#ANN04) [ANN05](#ANN05) [ANN06](#ANN06) [ANN08](#ANN08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `search_memory` | [MEM01](#MEM01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `remember` | [MEM02](#MEM02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_user_profile` | [MEM06](#MEM06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_memory` | [MEM01](#MEM01) [MEM04](#MEM04) [MEM05](#MEM05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `classify_book` | [MEM09](#MEM09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `search_conversation` | [AI01](#AI01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -716,6 +718,7 @@
 | `domains.conversations.commands.clear` | [AI02](#AI02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.memory.queries.search` | [MEM01](#MEM01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.memory.queries.bookGraph` | [MEM11](#MEM11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `domains.memory.queries.profile` | [MEM06](#MEM06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.memory.queries.inspect` | [MEM01](#MEM01) [MEM05](#MEM05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.memory.queries.classification` | [MEM09](#MEM09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `domains.memory.queries.listGraphTasks` | [MEM10](#MEM10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

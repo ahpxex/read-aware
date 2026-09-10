@@ -1751,6 +1751,48 @@ receipt gating, not stalled SQLite, autonomous models, public-task UI,
 packaged/Windows/Linux or real remote-sync verification.
 
 <a id="book-graph-tasks"></a>
+### Memory 1.6: User Profile Reads
+
+[代码] `domains.memory.queries.profile(query?)` and
+`events.observe({ kind: "profile", query? }, handler)` require `memory:read`
+(also implied by write). They read the same device-local KV plain-text summary
+as `ProfilePort.getProfileSummary()` used by prompt assembly. The host has no
+structured profile fields: this exposes only the existing summary, not inferred
+background/goals/language fields, secrets, raw KV access, transcripts, profile
+writes, onboarding execution or entity projections. Both book and global Agent
+scopes have `get_user_profile`; the profile is user-wide, not book-scoped.
+
+`UserProfileQuery` accepts only `offset`, `limit`, and `expectedRevision`.
+Offset defaults to 0 and is a nonnegative safe integer. Limit defaults to 4000
+and is an integer 2..16000. `UserProfilePage` returns `exists`, bounded `text`,
+`offset`, `nextOffset`, `totalLength`, `revision`, `format: "plain-text"`, and
+`persistence: "device-local"`. Lengths and offsets count UTF-16 units; generated
+page boundaries never split a surrogate pair and such caller offsets are
+rejected. `exists: false` means no stored summary; a stored empty string still
+exists. End-of-text returns `nextOffset: null`; offsets beyond it are invalid.
+
+Offset greater than zero requires the prior `profile1:<SHA-256>` revision as
+`expectedRevision`; a mismatch rejects with `memory/conflict` and requires a
+fresh first page. The hash distinguishes absent/empty and identifies captured
+content, not an event sequence, durable receipt or mutation CAS. Queries reject
+extra fields, null inputs, nonfinite/fractional/out-of-range numbers and invalid
+tokens with `memory/invalid-query`. Snapshot reads can see optimistic KV values
+that later roll back; automatic prompt reads remain unchanged.
+
+The existing memory observer reruns this same bounded query serially, emits
+changed results/errors/recovery, waits for slow callbacks and stops on disposal
+or plugin retirement. It does not expose a profile write log. Pinned observations
+can emit conflict after an update; unpinned first-page observations follow new
+content. Reads check cancellation before sampling and after hashing and propagate
+storage failures rather than report an absent profile. Output is bounded; hashing
+still samples the complete local summary, not a streaming storage read.
+
+[验证] Focused paging/Unicode/revision, host source/error/retirement, plugin grant
+and observation, and both Agent-scope tests pass. Real Worker, model interaction
+and composition-plugin Tauri E2E remain deferred. Confirmed onboarding/profile
+changes (MEM07), profile/entity projections (MEM08), and formal context bundles
+(MEM13) are not implemented by this read API.
+
 ### Memory 1.5: Public Graph Tasks and Chapter Budgets
 
 [代码] `queries.listGraphTasks(bookId)` and `getGraphTask(bookId,taskId)` read only

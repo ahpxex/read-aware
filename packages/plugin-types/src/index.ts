@@ -1454,8 +1454,10 @@ export type PluginDomains = {
   reading?: PluginReadingDomain;
   annotations?: PluginAnnotationsDomain;
   conversations?: PluginConversationsDomain;
-  /** Memory 1.5. Graph generation additionally requires service:llm; handles belong to this activation. */
+  /** Memory 1.6. Graph generation additionally requires service:llm; handles belong to this activation. */
   memory?: { queries: {
+    /** The user's existing device-local plain-text summary; read grant, bounded revision-pinned pages. */
+    profile(query?: import("@read-aware/core").UserProfileQuery): Promise<import("@read-aware/core").UserProfilePage>;
     inspect(id: string): Promise<import("@read-aware/core").MemorySnapshot | null>;
     classification(bookId: string): Promise<import("@read-aware/core").BookClassificationSnapshot | null>;
     getGraphTask(bookId: string, taskId: string): Promise<import("@read-aware/core").BookGraphTaskSnapshot>;

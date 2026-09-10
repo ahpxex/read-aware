@@ -120,6 +120,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   apply_annotation_changes: { changes: [{ op: "updateNote", annotationId: "note-1", body: "Batch revised thought." }] },
   delete_annotation: { annotationId: "hl-1" },
   search_memory: {},
+  get_user_profile: {},
   manage_memory: { action: "inspect", memoryId: "surface-memory" },
   classify_book: { action: "inspect", bookId: BOOK_ID },
   manage_book_graph: { action: "list", bookId: BOOK_ID },

@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+画像读取批次已接线：memory 1.6 queries.profile 与 profile 观察，Agent 双域 get_user_profile，复用提示词现有的 device-local KV 纯文本摘要。memory:read（write 隐含）可读，不开放原始 KV、推断字段或写入口。默认 4000/最多 16000 UTF-16 单元，续页强制绑定内容 revision，变化 conflict 重读，字符对不截断；未存、空值、读取失败分开，退休拒绝迟到页。观察复用串行有界轮询与错误/恢复，不增加 Agent 常驻订阅。
+
+本画像读取批次定向 53 项/861 断言、typecheck 27/27 和三文档对结构检查通过；矩阵 243 行/849 映射，catalog 36，Agent book 74/global 91。MEM06 现有摘要读能力接通待集中验收，MEM07 访谈写流程、MEM08 投影、MEM13 bundle 仍缺。Memory Desk 只适配新增观察分支，尚未新增画像界面；没有启动桌面/浏览器，没有把单元测试算作真实 Worker/Agent 对话 E2E，未推送。
+
 面板宽度批次已接线：UI 1.9 reader.setWidth 与 Agent 双域 set_reader_panel_width，目录/聊天 240..640 整数 CSS px 首选宽度，共享跨书保存。snapshot/observe 增加 sizes 和 docked/exclusive；窄窗忽略首选值，不当成实际测量。沿用 reading 读写授权、会话 guard 与面板意图仲裁，保存成功后等匹配 DOM 提交；不打开面板、不显示控制层或改变焦点。原生拖拽释放共用有序 KV 补丁，订阅外部变化/回滚，不再静默忽略保存错误。
 
 本宽度批次定向 46 项/756 断言通过（React 隔离子套件另 15 项），typecheck 27/27。矩阵 243 行/846 映射，catalog 36，Agent book 73/global 90；READ11 从未接改部分，语义焦点恢复/插件视图关闭原因仍缺。只做接线期验证，未启动桌面或浏览器；真实 Worker、拖拽/窗口变化与组合插件留集中 Tauri E2E，未推送。

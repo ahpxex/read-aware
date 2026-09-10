@@ -43,3 +43,4 @@ export * from "./annotation-query";
 export * from "./annotation-mutations";
 export * from "./settings";
 export * from "./sync";
+export * from "./user-profile";

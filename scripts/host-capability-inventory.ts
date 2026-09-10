@@ -81,6 +81,7 @@ const agentMap = pairs([
   ["manage_reading_emphasis", "READ14"],
   ["get_reader_panels set_reader_panel", "READ10"],
   ["set_reader_panel_width", "READ11"],
+  ["get_user_profile", "MEM06"],
   ["ask_user", "AI04"], ["get_settings update_settings", "CFG01"],
   ["reset_reading_settings", "CFG03"],
 ]);
@@ -95,6 +96,7 @@ const pluginMap = pairs([
   ["domains.settings.commands.resetReading", "CFG03"],
   ["domains.settings.events.subscribe domains.settings.queries.observe services.storage.onChange", "CFG10"],
   ["domains.memory.queries.search", "MEM01"],
+  ["domains.memory.queries.profile", "MEM06"],
   ["domains.memory.queries.bookGraph", "MEM11"],
   ["domains.memory.queries.inspect", "MEM01 MEM05"],
   ["domains.memory.commands.mutate", "MEM04 MEM05"],

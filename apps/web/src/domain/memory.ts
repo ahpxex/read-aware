@@ -1,6 +1,7 @@
 import { AppError, type EventOrigin } from "@read-aware/core";
 import { createBookMemoryPort } from "../features/ai/agent/ports/book-memory-port";
 import { createMemoryPort } from "../features/ai/agent/ports/memory-port";
+import { createProfilePort } from "../features/ai/agent/ports/profile-port";
 import { getBookRecord } from "../features/library/lib/library-db";
 import { getPersistedBookText } from "../features/library/lib/book-text-store";
 import { readingRuntime } from "./reading-runtime";
@@ -22,6 +23,7 @@ const observer = new MemoryObserver({
 /** Memory reads do not import books, construct digests, or grant raw projection writes. */
 export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal) {
   const memory = createMemoryPort(), bookMemory = createBookMemoryPort();
+  const profile = (query?: import("@read-aware/core").UserProfileQuery) => createProfilePort().readProfile(query, lifetime);
   const tasks = createBookGraphTasks(lifetime);
   const queries = createMemoryQueries({ search: memory.searchMemories, graph: async bookId => {
     const digests = await bookMemory.listDigests(bookId);
@@ -32,6 +34,7 @@ export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal) 
     return { digests, boundary, flavor: book.narrativity ?? undefined };
   } }, lifetime);
   const read = async (query: MemoryObservationQuery): Promise<MemoryObservationResult> => {
+    if (query.kind === "profile") return { kind: query.kind, profile: await profile(query.query) };
     if (query.kind === "search") return { kind: query.kind, memories: await queries.search(query.query) };
     if (query.kind === "inspect") return { kind: query.kind, snapshot: await inspectMemory(query.memoryId, lifetime) };
     if (query.kind === "classification") return { kind: query.kind, snapshot: await inspectBookClassification(query.bookId, lifetime) };
@@ -39,7 +42,7 @@ export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal) 
     if (query.kind === "graphTask") return { kind: query.kind, task: await tasks.get(query.bookId, query.taskId) };
     return { kind: query.kind, graph: await queries.bookGraph(query.bookId, query.query) };
   };
-  return { queries: { ...queries, inspect: (id: string) => inspectMemory(id, lifetime), classification: (bookId: string) => inspectBookClassification(bookId, lifetime),
+  return { queries: { ...queries, profile, inspect: (id: string) => inspectMemory(id, lifetime), classification: (bookId: string) => inspectBookClassification(bookId, lifetime),
       listGraphTasks: (bookId: string) => tasks.list(bookId), getGraphTask: (bookId: string, taskId: string) => tasks.get(bookId, taskId) },
     commands: { mutate: (input: import("@read-aware/core").MemoryMutation) => mutateMemory(input, origin, lifetime),
       classify: (input: import("@read-aware/core").BookClassificationChange) => changeBookClassification(input, origin, lifetime),

@@ -11,7 +11,7 @@ import { createBookClassificationFixture } from "./book-classification";
 import { createBookMemoryFixture } from "./book-memory";
 import { BookGraphTaskOwner } from "../memory/book-graph-tasks";
 import { createMemoryMaintenanceFixture } from "./memory-maintenance";
-import { AppError } from "@read-aware/core";
+import { AppError, userProfilePage } from "@read-aware/core";
 import type {
   BookStats,
   CollectionSummary,
@@ -610,6 +610,12 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     },
     profile: {
       getProfileSummary: async () => stores.profile.summary,
+      readProfile: async (query, signal) => {
+        signal?.throwIfAborted();
+        const page = await userProfilePage(stores.profile.summary, query);
+        signal?.throwIfAborted();
+        return page;
+      },
       putProfileSummary: async (summary) => {
         stores.profile.summary = summary;
       },

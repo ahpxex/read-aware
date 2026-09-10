@@ -324,7 +324,7 @@
                 <tr><td>Annotations 1.4</td><td>高亮、笔记、问题轨迹与查询观察</td><td>read / write</td></tr>
                 <tr><td>Conversations 1.2</td><td>对话摘要、运行态、线程管理与待确认的草稿/发送/重试</td><td>read / write</td></tr>
                 <tr><td>Settings</td><td>设置目录、目标、校验、解析值与变更事件</td><td>精确路径授权</td></tr>
-                <tr><td>Memory 1.5</td><td>记忆与图谱、条件反馈、分类与有章节预算的任务</td><td>memory:read / memory:write；生成另需 service:llm</td></tr>
+                <tr><td>Memory 1.6</td><td>画像摘要查询、记忆与图谱、条件反馈、分类与有章节预算的任务</td><td>memory:read / memory:write；生成另需 service:llm</td></tr>
               </tbody>
             </table>
           </div>
@@ -332,6 +332,7 @@
             <strong>Appearance 不是 Domain。</strong>它是 Settings 的一个 section。选择主题属于 Settings，提供主题属于 Theme Contribution。
           </div>
           <p>Conversations 1.2 已接两端线程管理和待确认草稿/发送/重试。空线程只保存选择，提交请求也不自动导航；只有宿主聊天按钮能批准执行。每个已挂载目标最多一个请求，五分钟过期，关闭/退休取消；不覆盖用户草稿，重试保留原消息和附件。状态区分待确认、已采用和已启动，不冒充模型回答完成；新入口已过定向检查，组合插件与桌面验收待集中进行。</p>
+          <p>Memory 1.6 已接插件 profile 查询/观察与 Agent 双域 get_user_profile，读取提示词同源的本机纯文本画像。默认 4000、最多 16000 字符单元，续页锁定内容版本，变化必须重读；未存、空文本与读取失败分开。沿用记忆读取权限，不开放原始 KV 或画像写入，不把摘要伪装成结构化画像、事件投影或正式上下文包。定向测试通过，真实 Worker/对话组合留集中桌面验收。</p>
           <p>停止/清空等待最后回合写入，清空不撤销长期记忆、事件历史或工具副作用，不承诺多步原子回滚。Agent 清空须批准，执行中的线程不能用工具停止/清空自身；请求查询只给自有摘要，不能伪造 role 历史。</p>
         </div>
       </section>

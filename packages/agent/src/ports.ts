@@ -301,7 +301,8 @@ export interface ConversationPort {
 /** 用户画像摘要（user_profile_context bundle 的 v0：一段文本，无则 undefined）。 */
 export interface ProfilePort {
   getProfileSummary(): Promise<string | undefined>;
-  /** onboarding 与渐进式画像的写入口；实现方翻译成 profile.updated 事件。 */
+  readProfile(query?: import("@read-aware/core").UserProfileQuery, signal?: AbortSignal): Promise<import("@read-aware/core").UserProfilePage>;
+  /** Internal onboarding write; current host persists device-local KV, not an event projection. */
   putProfileSummary(summary: string): Promise<void>;
 }
 

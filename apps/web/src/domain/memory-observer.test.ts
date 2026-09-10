@@ -11,6 +11,9 @@ function fixture() {
   return { observer, timers, errors, tick: async () => { const work = [...timers]; timers.clear(); work.forEach(fn => fn()); await flush(); } };
 }
 test("observation validates and copies only supported bounded query authority", () => {
+  expect(normalizeMemoryObservation({ kind: "profile" })).toEqual({ kind: "profile", query: { offset: 0, limit: 4000 } });
+  expect(() => normalizeMemoryObservation({ kind: "profile", query: { offset: 2 } })).toThrow();
+  expect(() => normalizeMemoryObservation({ kind: "profile", bookId: "b" } as never)).toThrow();
   expect(normalizeMemoryObservation({ kind: "classification", bookId: "b" })).toEqual({ kind: "classification", bookId: "b" });
   expect(normalizeMemoryObservation({ kind: "search", query: { scopes: ["user", "user"], query: " x " } })).toEqual({ kind: "search", query: { scopes: ["user"], query: "x", limit: 20 } });
   for (const input of [null, [], {}, { kind: "inspect", memoryId: " " }, { kind: "inspect", memoryId: "m", raw: true },

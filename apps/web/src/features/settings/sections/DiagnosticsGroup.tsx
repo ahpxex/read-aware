@@ -1,12 +1,11 @@
 /**
  * Settings → About → Diagnostics: export the diagnostics bundle to a file, or
- * send it to the developers through the relay — each behind an explicit user
- * action, the report additionally behind a preview-and-confirm dialog. The
+ * send it to the developers through the relay — both behind the same explicit
+ * preview-and-confirm dialog. The
  * app never uploads anything on its own; this group is the entire reporting
  * surface.
  */
-import { useState } from "react";
-import { Button, Dialog, Spinner, useToast } from "@read-aware/ui";
+import { Button, Dialog, Spinner } from "@read-aware/ui";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { isMobileOS, isTauri } from "../../../platform/environment";
 import { createLogger } from "../../../platform/logger";
@@ -14,76 +13,15 @@ import { useTranslation } from "../../../i18n";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsRow } from "../components/SettingsRow";
 import { useMaintenanceSurface } from "../hooks/useMaintenanceSurface";
-import {
-  assembleDiagnosticsBundle,
-  diagnosticsLogDir,
-  exportDiagnosticsBundle,
-  sendDiagnosticsReport,
-  type DiagnosticsBundle,
-} from "../lib/diagnostics";
+import { useDiagnosticsReport } from "../hooks/useDiagnosticsReport";
+import { diagnosticsLogDir } from "../lib/diagnostics";
 
 const log = createLogger("diagnostics");
 
-type ReportPhase =
-  | { step: "preview"; bundle: DiagnosticsBundle }
-  | { step: "sending"; bundle: DiagnosticsBundle }
-  | { step: "sent"; reportId: string };
-
 export function DiagnosticsGroup() {
   const { t } = useTranslation("settings");
-  const { toast } = useToast();
   const diagnosticsControlRef = useMaintenanceSurface("diagnostics");
-  const [assembling, setAssembling] = useState<"export" | "report" | null>(null);
-  const [report, setReport] = useState<ReportPhase | null>(null);
-
-  const failureToast = (error: unknown, what: "export" | "report") => {
-    log.error(`diagnostics ${what} failed`, error);
-    toast({
-      variant: "destructive",
-      title: t("about.diagnostics.noticeError"),
-      description:
-        what === "export" ? t("about.diagnostics.exportError") : t("about.diagnostics.reportError"),
-    });
-  };
-
-  const handleExport = async () => {
-    setAssembling("export");
-    try {
-      const bundle = await assembleDiagnosticsBundle();
-      if (await exportDiagnosticsBundle(bundle)) {
-        toast({
-          variant: "success",
-          title: t("about.diagnostics.noticeDone"),
-          description: t("about.diagnostics.exportSuccess"),
-        });
-      }
-    } catch (error) {
-      failureToast(error, "export");
-    } finally {
-      setAssembling(null);
-    }
-  };
-
-  const handleOpenReport = async () => {
-    setAssembling("report");
-    try {
-      setReport({ step: "preview", bundle: await assembleDiagnosticsBundle() });
-    } catch (error) {
-      failureToast(error, "report");
-    } finally {
-      setAssembling(null);
-    }
-  };
-
-  const handleSend = async (bundle: DiagnosticsBundle) => {
-    setReport({ step: "sending", bundle });
-    try {
-      setReport({ step: "sent", reportId: await sendDiagnosticsReport(bundle) });
-    } catch (error) {
-      failureToast(error, "report");
-      setReport({ step: "preview", bundle });
-    }
-  };
+  const { report, open, confirm, close } = useDiagnosticsReport();
 
   const handleRevealLogs = async () => {
     try {
@@ -91,12 +29,6 @@ export function DiagnosticsGroup() {
     } catch (error) {
       log.error("revealing the log folder failed", error);
     }
-  };
-
-  const dialogOpen = report !== null;
-  const closeDialog = () => {
-    if (report?.step === "sending") return;
-    setReport(null);
   };
 
   return (
@@ -114,10 +46,10 @@ export function DiagnosticsGroup() {
               ref={diagnosticsControlRef}
               variant="outline"
               size="sm"
-              disabled={assembling !== null}
-              onClick={() => void handleExport()}
+              disabled={report !== null}
+              onClick={() => open("export")}
             >
-              {assembling === "export" && <Spinner size="sm" />}
+              {report?.step === "assembling" && report.action === "export" && <Spinner size="sm" />}
               {t("about.diagnostics.exportRow.button")}
             </Button>
           }
@@ -129,10 +61,10 @@ export function DiagnosticsGroup() {
             <Button
               variant="outline"
               size="sm"
-              disabled={assembling !== null}
-              onClick={() => void handleOpenReport()}
+              disabled={report !== null}
+              onClick={() => open("send")}
             >
-              {assembling === "report" && <Spinner size="sm" />}
+              {report?.step === "assembling" && report.action === "send" && <Spinner size="sm" />}
               {t("about.diagnostics.reportRow.button")}
             </Button>
           }
@@ -151,9 +83,9 @@ export function DiagnosticsGroup() {
       </SettingsGroup>
 
       <Dialog
-        open={dialogOpen}
-        onClose={closeDialog}
-        title={t("about.diagnostics.dialogTitle")}
+        open={report !== null}
+        onClose={close}
+        title={t(report?.action === "export" ? "about.diagnostics.exportRow.title" : "about.diagnostics.dialogTitle")}
       >
         {report?.step === "sent" ? (
           <div className="space-y-4">
@@ -164,11 +96,13 @@ export function DiagnosticsGroup() {
               {report.reportId}
             </p>
             <div className="flex justify-end">
-              <Button size="sm" onClick={closeDialog}>
+              <Button size="sm" onClick={close}>
                 {t("about.diagnostics.done")}
               </Button>
             </div>
           </div>
+        ) : report?.step === "assembling" ? (
+          <div className="flex justify-center py-6"><Spinner /></div>
         ) : report ? (
           <div className="space-y-4">
             <p className="text-sm leading-6 text-fg-muted">
@@ -181,18 +115,18 @@ export function DiagnosticsGroup() {
               <Button
                 variant="ghost"
                 size="sm"
-                disabled={report.step === "sending"}
-                onClick={closeDialog}
+                disabled={report.step === "working"}
+                onClick={close}
               >
                 {t("about.diagnostics.cancel")}
               </Button>
               <Button
                 size="sm"
-                disabled={report.step === "sending"}
-                onClick={() => void handleSend(report.bundle)}
+                disabled={report.step === "working"}
+                onClick={() => void confirm()}
               >
-                {report.step === "sending" && <Spinner size="sm" />}
-                {t("about.diagnostics.send")}
+                {report.step === "working" && <Spinner size="sm" />}
+                {t(report.action === "export" ? "about.diagnostics.exportRow.button" : "about.diagnostics.send")}
               </Button>
             </div>
           </div>

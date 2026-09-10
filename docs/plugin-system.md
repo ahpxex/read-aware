@@ -406,15 +406,17 @@ not a mounted-animation proof. Real Tauri/Worker multi-format links, previews,
 chapter shortcuts, completion revisit and plugin back/forward stay in the
 concentrated composition E2E stage. READ04/READ06 are connected, not E2E-certified.
 
-### Per-Call Cancellation (Library 1.17 / Reading 2.18 / Diagnostics 1.0)
+### Per-Call Cancellation (Library 1.17 / Reading 2.18 / Diagnostics 1.1 / Sync 1.1)
 
 [代码] `PluginCallOptions = {signal?:AbortSignal}` is an optional FINAL argument
-on the 27 methods below. Existing parameters, guards, return values and grants
+on the 29 methods below. Existing parameters, guards, return values and grants
 are unchanged; omitted guards still occupy their position before options.
 
 | Namespace | Methods | Zero-based options position |
 | --- | --- | --- |
 | `services.diagnostics` | `verifyProjections` | 0 |
+| `services.diagnostics` | `requestReport` | 1 |
+| `services.sync` | `requestFlow` | 1 |
 | `domains.library.queries.books` | `inspectResource`, `getNavigationToc`, `listNavigationTargets`, `searchLocations`, `readRange`, `listReferences`, `listImages`, `readReference`, `searchText`, `getContentState` | 1 |
 | `domains.reading.commands` | `openBook`, `goTo`, `back`, `forward`, `reload`, `close`, `returnToMode` | 1 |
 | `domains.reading.commands` | `putEmphasis`, `removeEmphasis`, `selectRange`, `clearSelection`, `step`, `controlPlayback`, `configureMode`, `setControls`, `stepMode` | 2 |
@@ -4752,7 +4754,7 @@ The current host services are:
 | `session` | 2.0: environment snapshot/observation only; reading state requires the reading domain | built in |
 | `plugins` | 1.0: bounded installed public metadata list/observation | built in |
 | `maintenance` | 1.0: updater snapshot/observation, release check and native maintenance controls | built in; check requires `service:network` |
-| `diagnostics` | 1.0: local event-projection verification counts | `service:diagnostics` |
+| `diagnostics` | 1.1: verification counts and host-confirmed export/send outcomes | `service:diagnostics` |
 | `resources` | 1.1: native file selection, original/cover snapshots, bounded read/write/seal/save/release | built in; book sources require `library:read` or write |
 | `sync` | 1.1: sanitized status, backlog, quotas, backend discovery, sync and directed account flows | `service:sync` |
 | `network` | 2.1: scoped HTTP, bounded pull streams, shared concurrency and policy discovery | `service:network` + `networkAccess.origins` for arbitrary fetch |
@@ -4992,10 +4994,10 @@ confirmation. No log contents, paths, report IDs, credentials or raw payloads
 are exposed. Agent `get_software_update` and `open_maintenance_settings` use the
 same service in both scopes; checking is explicit opt-in. SYS16's bounded actor
 entry is connected; logging 1.0 supplies plugin-owned diagnostic output, while
-SYS15 still lacks export/send final flow receipts. Focused checks cover wiring, not real desktop update/diagnostics
+diagnostics 1.1 adds host-confirmed export/send final flow receipts. Focused checks cover wiring, not real desktop update/diagnostics
 execution; composition/Tauri acceptance remains pending.
 
-[代码] Diagnostics 1.0 exposes `services.diagnostics.verifyProjections(options?)`
+[代码] Diagnostics 1.1 exposes `services.diagnostics.verifyProjections(options?)`
 only with `service:diagnostics`; library, sync and network grants do not imply it.
 Its dedicated consent label/description exists in all eight locales. The public
 result is `{scope:"event-projections", checkedAt, consistent, eventsReplayed,
@@ -5013,7 +5015,7 @@ diagnostic replay back. Native logic is unchanged. `projection-verification.ts`
 coalesces concurrent native diagnostic-bundle, plugin and Agent callers into one
 in-flight IPC, without caching completed checks. Public service callers receive
 independent count objects. Its optional PluginCallOptions.signal occupies slot 0
-in the shared 27-method Worker/host table; the host injects the authoritative
+in the shared 29-method Worker/host table; the host injects the authoritative
 request signal and combines plugin lifetime. Cancelling one waiter rejects it
 promptly, but does not interrupt or release the native flight before completion
 and rollback. Later callers join that flight, and source failure is logged even
@@ -5034,7 +5036,44 @@ consent, Agent registration/output and the signal table have focused tests.
 The IPC test is controlled, not native SQLite/Tauri acceptance; compiled Worker
 diagnostics, real native load/cancellation and a business diagnostic plugin stay
 in the concentrated composition/E2E phase. No generic TaskRef or repair gate is
-claimed by this read-only service.
+claimed by this read-only check.
+
+[代码] Diagnostics 1.1 also exposes `requestReport("export"|"send", options?)`
+(options slot 1) and Agent `request_diagnostics_report` in both scopes. The
+independent `service:diagnostics` grant permits requesting the host flow, not
+reading diagnostics or approving the request. Both native buttons and actors
+now assemble into the same host-only preview, including local export; neither
+save dialog nor upload starts before native user confirmation. The plugin/model
+cannot supply a bundle, recipient, file path or confirmation token.
+
+The exact actor result is `{action,status}`: `exported` after the existing save
+operation returns true, `sent` after the fixed relay report endpoint returns
+HTTP success plus `ok:true` and a nonblank report ID (at most 256 characters),
+or `cancelled` for preview dismissal/unmount or save-picker cancellation.
+Report IDs remain visible only in the native success dialog. `sent` proves
+endpoint acknowledgement, not developer review. Errors reject with stable
+codes and generic messages; the host logs the underlying error and shows
+localized feedback rather than reporting success. The confirmed exact bundle
+is not reassembled between preview and save/upload.
+
+`useDiagnosticsReport` binds the mounted About surface; the shared host-only
+`HostActionFlow` also backs sync account flows. Native dialogs are not replaced,
+duplicate requests/actions are rejected, and each owner permits one flow.
+Dismissal/abort before confirmation discards late assembly results. After user
+confirmation, the source save/upload retains ownership through settlement even
+if the caller cancels or the view unmounts; cancellation cannot undo a saved
+file or accepted report. Pending actor waits inherit the existing Worker RPC
+deadline and plugin retirement, not a durable task or restart recovery.
+
+[代码] Diagnostic bundles can include personal log text and full projection
+record samples, including book/note/conversation records. All eight locales now
+warn about this rather than falsely promise no personal content. The bundle
+stays in the native preview and is sent/exported only after the user's action;
+no automatic redaction guarantee or actor access to those bytes is implied.
+[环境] Focused tests cover strict receipt decoding, shared flow transitions,
+permission/cancellation forwarding, both Agent scopes and controlled StrictMode
+hook mounts. Real native dialogs, file saves, report upload, compiled Worker,
+business plugins and Tauri acceptance remain concentrated E2E work.
 
 [代码] Sync 1.1 exposes `snapshot()`, `observe(handler)`, `backlog()`, `account()`,
 `requestSync()`, `openSettings()`, `connectionOptions()` and `requestFlow(request, options?)`. Its separate `service:sync` grant is not
@@ -5082,7 +5121,7 @@ actual settlement and cannot be rolled back. Billing checks cancellation and
 connection generation before external handoff. There is no durable TaskRef or
 restart recovery; the existing Worker RPC deadline still applies to the wait.
 `services.sync.requestFlow` uses options slot 1 in the shared signal-position
-table (28 supported methods). Native binding/run/settlement methods are not
+table (29 supported methods). Native binding/run/settlement methods are not
 included in the public context, so an actor cannot self-confirm.
 
 Agent `get_sync_status(includeConnections?)` and `manage_sync` share this service

@@ -20,6 +20,22 @@ test("Agent maintenance reads locally by default, propagates check failures and 
   await expect(call("open_maintenance_settings", { surface: "install" })).rejects.toMatchObject({ code: "ui/invalid-target" });
 });
 
+test("Agent diagnostic reports delegate preview/confirmation to the host and preserve final outcomes", async () => {
+  const { deps, stores } = createInMemoryDeps();
+  const signal = new AbortController().signal;
+  deps.diagnostics.requestReport = async (action, received) => {
+    expect(received).toBe(signal); return { action, status: action === "export" ? "cancelled" : "sent" };
+  };
+  const tool = buildMaintenanceTools(deps).find(tool => tool.name === "request_diagnostics_report")!;
+  for (const action of ["export", "send"]) {
+    const result = await tool.execute("report", { action }, signal);
+    expect(JSON.stringify(result)).toContain(action === "export" ? "cancelled" : "sent");
+  }
+  expect(stores.interactions).toHaveLength(0);
+  await expect(tool.execute("invalid", { action: "upload-anywhere" }, signal)).rejects.toMatchObject({ code: "ui/invalid-target" });
+  await expect(tool.execute("cancelled", { action: "send" }, AbortSignal.abort(Error("cancelled")))).rejects.toThrow("cancelled");
+});
+
 test("Agent verification uses the shared port, preserves cancellation and never converts failure into success", async () => {
   const { deps } = createInMemoryDeps(), signals: Array<AbortSignal | undefined> = [];
   const summary = { scope: "event-projections" as const, checkedAt: "2026-09-11T00:00:00Z", consistent: false,

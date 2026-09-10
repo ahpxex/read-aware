@@ -560,7 +560,7 @@
     },
     "diagnostics": {
       "title": "Diagnóstico",
-      "description": "ReadAware nunca envía nada por su cuenta. Un paquete de diagnóstico contiene los registros de la aplicación y una autocomprobación del almacenamiento — sin contenido de libros, notas ni conversaciones — y puedes revisarlo todo antes de que salga de este dispositivo.",
+      "description": "Los registros y muestras de integridad pueden incluir datos personales de libros, notas o conversaciones. Revisa el paquete antes de exportarlo o enviarlo. No se envía nada sin tu confirmación.",
       "exportRow": {
         "title": "Exportar diagnóstico",
         "description": "Guardar el paquete como archivo JSON para adjuntarlo a un correo o un issue.",
@@ -577,7 +577,7 @@
         "button": "Mostrar en la carpeta"
       },
       "dialogTitle": "Enviar informe de diagnóstico",
-      "previewBody": "Esto es exactamente lo que se enviará; nada más sale de tu dispositivo.",
+      "previewBody": "Revisa el paquete completo antes de exportarlo o enviarlo. Los registros y muestras pueden contener datos personales.",
       "send": "Enviar",
       "cancel": "Cancelar",
       "done": "Hecho",

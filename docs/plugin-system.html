@@ -376,12 +376,17 @@
             <p>隔离 macOS debug 已验三端更新、冲突恢复与 SQLite 清理；正文 iframe 合成按键已验冲突不翻页、恢复后翻页、插件打开不重复翻页。失败持久化由 React/IPC 测试覆盖；全来源已提交观察另见 settings 1.6，来源身份完整性、真实模型、全键盘路由、打包及跨平台未完成，UI04 保持部分。<a href="./plugin-system.md#keyboard-shortcut-settings">契约与边界</a>。</p>
           </div></details>
           <p>Reading v2 已提供当前会话快照、即时快照观察、版本化落点、有限可见文本与历史可用性。开书、跳转、前进后退、翻页返回完成回执；关闭等待会话退休、已接收时间/位置写入及本书桶结算。失败可退出画面但拒绝成功回执，取消不回滚已发起的关闭；控制命令可带书籍/会话 guard。Agent 共用同一控制器。<a href="./evidence/reading-retirement-2026-09-10.json">原生双端与写锁恢复证据</a>，不代表打包/跨平台验收。</p>
-          <details class="ep"><summary>Library 1.17 / Reading 2.18 / Diagnostics 1.0：27 个方法支持单次取消</summary><div class="ep-body">
+          <details class="ep"><summary>正文、阅读和宿主流程：29 个方法支持单次取消</summary><div class="ep-body">
             <p>10个正文查询和16个阅读控制增加末参数options.signal，保留原会话guard及权限。Worker只发送请求级取消，宿主注入实际控制器；取消一个搜索或导航不必停用整个插件，也不影响兄弟请求。</p>
-            <p>独立授权的diagnostics 1.0另接verifyProjections，Agent双域提供verify_local_data：只返回本地事件投影一致性与汇总计数，不给表名、记录样本、正文或日志。与原生诊断面板共用一次在途检查；取消只结束当前等待，原生重放必须完成回滚。回填不完整或校验失败不会假报一致，不开放修复。基础检查通过，真实Tauri诊断组合仍待验。</p>
+            <p>diagnostics1.1 的 verifyProjections 只返回一致性与计数，原生重放必须完成回滚；不开放修复。另有诊断 requestReport 和 sync1.1 requestFlow 两个流程支持单次取消，已确认的保存/发送/账户操作不能靠取消回滚。</p>
             <p>精确位置搜索的DOM取文、DOM/PDF匹配及多查询正文搜索已接协作取消：扫描分批让出线程，无命中也能响应取消；两种搜索各自复用原匹配规则。约8毫秒调度片不是硬截止，不强杀文档/PDF解析或原生字符串操作，也不是总内存预算。定向匹配与定时器取消测试通过。</p>
             <p>Jumper 0.3 / Text Desk 0.9 不改宿主即可组合搜索等待、取消和live视图：首次显示才搜索，关闭/隐藏取消在途请求，迟到结果不回写；返回已完成页保留结果，已取消页需明确重搜。分页保留版本，失败显示稳定错误码，可恢复故障才提供重试。源码组合与构建通过，编译Worker/Tauri交互仍待集中验收。</p>
             <p>读等待先结束，实际源读未结算仍占每realm32个名额，退休继续排空；不是强杀解析器或回滚已呈现/保存效果。资源获取、持久写、跨页任务进度和统一重试仍另有缺口。基础及Bun Worker验证通过，真实业务插件/Tauri组合后置。</p>
+          </div></details>
+          <details class="ep"><summary>Diagnostics 1.1：导出、发送与最终结果已接双端</summary><div class="ep-body">
+            <p>插件 requestReport 与 Agent request_diagnostics_report 请求宿主预览，用户确认后才保存或发送。回执区分 exported、sent、cancelled；sent 是服务端接受，不是开发者处理完成。日志、诊断包、保存路径和报告编号不返回插件或模型。</p>
+            <p>诊断日志和投影样本可能含书籍、笔记、对话等个人记录，八语言说明已纠正；本地导出也先展示完整预览。确认后保存/发送同一份内容，不暗中重新采集；不承诺自动脱敏。一次一个流程，取消丢弃迟到预览，已确认操作等源结束才释放。</p>
+            <p>授权、最终回执、受控挂载和同步流程回归基础检查通过；编译 Worker、真实 Tauri 文件保存/报告上传及业务插件组合集中后置。没有耐久任务或重启恢复，既有 Worker 等待超时仍生效。</p>
           </div></details>
           <details class="ep"><summary>Reading 2.17：PDF 屏内文字与“空/不可用”状态已接通</summary><div class="ep-body">
             <p>插件查询、观察和 Agent 会话查询共用 visibleTextState，区分有文字、已渲染但空、暂不可用及截断。PDF从已就绪文字层读取与视口相交的文字段，排除隐藏及屏外缓存页；最多12000字符、扫描20000文本节点，不再因没有Range便假报空。自动阅读游标同源，隐私和原回合剧透限制保持。</p>

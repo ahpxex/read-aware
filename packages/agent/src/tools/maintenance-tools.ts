@@ -15,6 +15,17 @@ export function buildMaintenanceTools(deps: RuntimeDeps): AgentTool[] {
       signal?.throwIfAborted(); return textResult(result);
     },
   }, {
+    name: "request_diagnostics_report", label: "Request diagnostic report", executionMode: "sequential",
+    description: "On explicit user request, open a host-owned diagnostic bundle preview for export or send. Logs and integrity samples can contain personal data; the user must inspect and confirm in the native UI. Never receives the bundle, logs, file path or report ID. exported means the save completed; sent means the report endpoint acknowledged it, not that developers reviewed it. cancelled means no confirmed completion. Cancellation closes an unconfirmed flow but cannot undo a confirmed save/upload. No automatic sending, repairs, arbitrary recipient or raw diagnostics access.",
+    parameters: Type.Object({ action: Type.Union([Type.Literal("export"), Type.Literal("send")]) }, { additionalProperties: false }),
+    execute: async (_id, params, signal) => {
+      signal?.throwIfAborted();
+      const action = (params as { action: "export" | "send" }).action;
+      if (action !== "export" && action !== "send") throw new AppError("ui/invalid-target", "Unknown diagnostic report action");
+      const receipt = await deps.diagnostics.requestReport(action, signal);
+      signal?.throwIfAborted(); return textResult(receipt);
+    },
+  }, {
     name: "get_software_update", label: "Software update status",
     description: "Read the host updater state and selected/last-checked channels without network access. Set check:true only when the user requests a fresh check of the host release feed. A failed check throws; it never means up to date. Unsupported platforms cannot check. Current version can be unknown. No download, install, restart, credentials, logs or custom URL access. Cancellation does not stop another caller's shared check.",
     parameters: Type.Object({ check: Type.Optional(Type.Boolean()) }, { additionalProperties: false }),

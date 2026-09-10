@@ -88,7 +88,7 @@
       "sync_transport": "Backend de synchronisation"
     },
     "permission": {
-      "service_diagnostics": "Vérifier les projections locales des événements et lire les totaux, sans journaux, contenu des enregistrements ni réparation",
+      "service_diagnostics": "Lire les totaux de vérification et demander un export ou envoi après aperçu et confirmation ; aucun accès direct aux journaux, données ou réparations",
       "service_sync": "Consulter la synchronisation, les services et les quotas ; demander une synchronisation, une connexion ou suppression de compte confirmée par l’hôte, et ouvrir les pages d’offre ou de facturation",
       "reader_modes": "Ajouter un mode de lecture guidée rendu par l’application",
       "ui_themes": "Proposer des thèmes pour l’application et la lecture, avec polices incluses, appliqués uniquement à la sélection",

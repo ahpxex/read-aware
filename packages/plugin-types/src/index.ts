@@ -2079,8 +2079,9 @@ export type PluginHostServices = {
     /** Requires service:network. Uses the host release feed; no caller-supplied URL or silent installation. */
     checkForUpdates?(): Promise<import("@read-aware/core").HostMaintenanceSnapshot>;
   };
-  /** Requires service:diagnostics. Counts only; never reads logs or repairs data. */
+  /** Requires service:diagnostics. Counts or host-confirmed report outcomes only. */
   diagnostics?: {
+    requestReport(action: import("@read-aware/core").DiagnosticsReportAction, options?: PluginCallOptions): Promise<import("@read-aware/core").DiagnosticsReportReceipt>;
     verifyProjections(options?: PluginCallOptions): Promise<import("@read-aware/core").ProjectionVerification>;
   };
   resources: {

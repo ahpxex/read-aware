@@ -556,7 +556,7 @@
     },
     "diagnostics": {
       "title": "Diagnostics",
-      "description": "ReadAware never sends anything on its own. A diagnostics bundle contains app logs and a storage self-check — no book content, notes, or conversations — and you can inspect everything before it leaves this device.",
+      "description": "Diagnostic logs and integrity-check samples may include personal data, including book, note or conversation records. Review the bundle before exporting or sending it. Nothing is sent without your confirmation.",
       "exportRow": {
         "title": "Export diagnostics",
         "description": "Save the bundle as a JSON file to attach to an email or issue.",
@@ -573,7 +573,7 @@
         "button": "Reveal"
       },
       "dialogTitle": "Send diagnostics report",
-      "previewBody": "This is exactly what will be sent — nothing else leaves your device.",
+      "previewBody": "Review the complete bundle below before exporting or sending. Logs and integrity-check samples may contain personal data.",
       "send": "Send",
       "cancel": "Cancel",
       "done": "Done",

@@ -560,7 +560,7 @@
     },
     "diagnostics": {
       "title": "Diagnostic",
-      "description": "ReadAware n'envoie jamais rien de lui-même. Un paquet de diagnostic contient les journaux de l'application et un auto-contrôle du stockage — aucun contenu de livre, note ou conversation — et vous pouvez tout inspecter avant qu'il ne quitte cet appareil.",
+      "description": "Les journaux et échantillons de vérification peuvent contenir des données personnelles de livres, notes ou conversations. Vérifiez le paquet avant de l'exporter ou de l'envoyer. Rien n'est envoyé sans votre confirmation.",
       "exportRow": {
         "title": "Exporter le diagnostic",
         "description": "Enregistrer le paquet en JSON pour le joindre à un e-mail ou à un ticket.",
@@ -577,7 +577,7 @@
         "button": "Afficher dans le dossier"
       },
       "dialogTitle": "Envoyer le rapport de diagnostic",
-      "previewBody": "Voici exactement ce qui sera envoyé — rien d'autre ne quitte votre appareil.",
+      "previewBody": "Vérifiez le paquet complet ci-dessous avant export ou envoi. Les journaux et échantillons peuvent contenir des données personnelles.",
       "send": "Envoyer",
       "cancel": "Annuler",
       "done": "Terminé",

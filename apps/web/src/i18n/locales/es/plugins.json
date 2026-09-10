@@ -88,7 +88,7 @@
       "sync_transport": "Backend de sincronización"
     },
     "permission": {
-      "service_diagnostics": "Comprobar las proyecciones locales de eventos y leer totales, sin registros, contenido de datos ni reparaciones",
+      "service_diagnostics": "Leer totales de integridad y solicitar exportar o enviar diagnósticos tras tu revisión y confirmación; sin acceso directo a registros, datos o reparaciones",
       "service_sync": "Consultar estado, servicios y uso; solicitar sincronización, conexión o eliminación de cuenta confirmada por la aplicación, y abrir páginas de mejora o facturación",
       "reader_modes": "Añadir un modo de lectura guiada renderizado por la aplicación",
       "ui_themes": "Ofrecer temas para la aplicación y la lectura, con fuentes incluidas, que solo se aplican al seleccionarlos",

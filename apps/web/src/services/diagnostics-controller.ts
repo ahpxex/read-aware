@@ -1,6 +1,6 @@
 import { AppError, type HostDiagnosticsPort, type ProjectionVerification } from "@read-aware/core";
 
-type Adapter = { supported(): boolean; verify(): Promise<unknown> };
+type Adapter = { supported(): boolean; verify(): Promise<unknown>; requestReport: HostDiagnosticsPort["requestReport"] };
 
 function count(value: unknown): number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
@@ -33,6 +33,17 @@ export function projectionVerificationSummary(value: unknown): ProjectionVerific
 export class HostDiagnosticsService implements HostDiagnosticsPort {
   private active: Promise<ProjectionVerification> | undefined;
   constructor(private adapter: Adapter, private report: (error: unknown) => void) {}
+
+  async requestReport(...args: Parameters<HostDiagnosticsPort["requestReport"]>) {
+    args[1]?.throwIfAborted();
+    if (!this.adapter.supported()) throw new AppError("ui/unavailable", "Diagnostic reports require desktop");
+    try { return await this.adapter.requestReport(...args); }
+    catch (error) {
+      args[1]?.throwIfAborted();
+      this.report(error);
+      throw new AppError(error instanceof AppError ? error.code : "ipc/unknown", "Diagnostic report action failed");
+    }
+  }
 
   verifyProjections(signal?: AbortSignal): Promise<ProjectionVerification> {
     signal?.throwIfAborted();

@@ -11,6 +11,7 @@
  * exposes only aggregate counts, never the raw report.
  */
 import { invoke } from "../../../platform/ipc";
+import { AppError } from "@read-aware/core";
 import { verifyProjectionReport, type ProjectionReport } from "../../../platform/projection-verification";
 import { readCurrentAppVersion } from "../../update/lib/software-update";
 import {
@@ -106,8 +107,12 @@ export async function sendDiagnosticsReport(bundle: DiagnosticsBundle): Promise<
     const detail = await response.text().catch(() => "");
     throw new Error(`report upload failed (${response.status}): ${detail.slice(0, 200)}`);
   }
-  const { reportId } = (await response.json()) as { reportId: string };
-  return reportId;
+  const result: unknown = await response.json();
+  if (!result || typeof result !== "object" || !("ok" in result) || result.ok !== true || !("reportId" in result)
+    || typeof result.reportId !== "string" || !result.reportId.trim() || result.reportId.length > 256) {
+    throw new AppError("sync/server", "Invalid diagnostic report receipt");
+  }
+  return result.reportId;
 }
 
 /** Where the log files live, for the settings row's reveal action. */

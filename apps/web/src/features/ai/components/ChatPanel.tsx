@@ -85,6 +85,7 @@ export function ChatPanel({
       />
       <ChatTurnRequest request={turnRequests.request} onAccept={turnRequests.accept} onDismiss={turnRequests.dismiss} />
       <ChatComposer
+        readerBookId={bookId}
         key={bookId}
         ref={composerRef}
         disabled={conversation.isLoading}

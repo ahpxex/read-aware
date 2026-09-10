@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
+import { useReaderFocusTarget } from "../hooks/useReaderFocusTarget";
 import { useAtomValue } from "jotai";
 import type { ReadingModeSnapshot } from "@read-aware/core";
 import { CaretLeft, ChatCircle, ListBullets } from "@phosphor-icons/react";
@@ -278,6 +279,7 @@ export function ReaderShellOverlay({
   // Reveal the current chapter when the contents panel opens (or the chapter
   // changes while it's open), centering it so it's easy to find.
   const tocListRef = useRef<HTMLDivElement | null>(null);
+  useReaderFocusTarget(bookId, "toc", tocListRef);
   useEffect(() => {
     if (!visible || !tocOpen) return;
     const frame = window.requestAnimationFrame(() => {
@@ -469,6 +471,7 @@ export function ReaderShellOverlay({
           <ScrollArea className="h-full min-h-0 flex-1">
             <div
               ref={tocListRef}
+              tabIndex={-1}
               // No horizontal padding here: the rows carry it themselves, so
               // the current chapter's highlight reaches both edges of the panel
               // instead of floating in a channel of panel background — which,

@@ -12,10 +12,12 @@ import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import type { ChatSelectionAttachment } from "../lib/chat-types";
 import { AttachmentChip } from "./AttachmentChip";
+import { useReaderFocusTarget } from "../../reader/hooks/useReaderFocusTarget";
 
 export type ChatComposerHandle = { focus: () => void; adoptDraft: (text: string) => boolean };
 
 type ChatComposerProps = {
+  readerBookId?: string;
   isStreaming: boolean;
   disabled?: boolean;
   pendingAttachment: ChatSelectionAttachment | null;
@@ -33,7 +35,7 @@ const MAX_HEIGHT = 160;
  */
 export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
   function ChatComposer(
-    { isStreaming, disabled = false, pendingAttachment, onRemoveAttachment, onSend, onStop },
+    { isStreaming, disabled = false, pendingAttachment, onRemoveAttachment, onSend, onStop, readerBookId },
     ref,
   ) {
     const { t } = useTranslation("ai");
@@ -41,6 +43,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
     const valueRef = useRef(value);
     valueRef.current = value;
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+    useReaderFocusTarget(readerBookId, "chat", textareaRef);
     const composingRef = useRef(false);
 
     // preventScroll: focusing while the panel is still sliding in (translated

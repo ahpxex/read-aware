@@ -1954,6 +1954,9 @@ export type PluginHostServices = {
       setPanel?(panel: import("@read-aware/core").ReaderPanel, open: boolean, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReaderPanelReceipt>;
       /** Persist a shared TOC/chat width (integer 240..640 CSS px); does not open it or focus. */
       setWidth?(panel: import("@read-aware/core").ResizableReaderPanel, width: number, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReaderPanelReceipt>;
+      /** UI 1.14, reading:write. Focus an already visible semantic target, without opening or dismissing UI.
+       * not-focused is not success; close your own dialog before returning focus. */
+      focus?(target: import("@read-aware/core").ReaderFocusTarget, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReaderFocusReceipt>;
       /** UI 1.8: also needs library:read. Open book only; resolved preview waits for DOM commit. */
       previewReference?(query: import("@read-aware/core").BookReferenceQuery, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<import("@read-aware/core").ReaderReferencePreviewReceipt>;
       /** Only this activation's current preview ID; never closes a native or other owner's note. */

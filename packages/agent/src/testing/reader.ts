@@ -35,6 +35,10 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
       || guard?.bookId !== undefined && guard.bookId !== location.bookId) throw new AppError("reader/superseded", "Fixture session changed");
   };
   return {
+    focus: async (target, signal, guard) => {
+      checkSelection(signal, guard);
+      return { target, sessionId: "fixture", bookId: location!.bookId, status: "not-focused", reason: "missing" };
+    },
     getImage: async () => null,
     openImage: async () => { throw new AppError("reader/unavailable", "Fixture has no image viewer"); },
     controlImage: async () => { throw new AppError("reader/unavailable", "Fixture has no image viewer"); },

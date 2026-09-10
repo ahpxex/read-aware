@@ -30,6 +30,7 @@ export * from "./book-inspection";
 export * from "./library-import";
 export * from "./plugin-schedules";
 export * from "./reader-panels";
+export * from "./reader-focus";
 export * from "./reading-context";
 export * from "./host-environment";
 export * from "./host-window";

@@ -13,6 +13,7 @@ import { fetch as corsFreeFetch } from "@tauri-apps/plugin-http";
 import { createPluginNetworkService } from "./plugin-network";
 import type { PluginActionRegistration } from "@read-aware/plugin-types";
 import { readerPanels } from "../../../services/reader-panels";
+import { readerFocus } from "../../../services/reader-focus";
 import { readerReferencePreview } from "../../../services/reader-reference-preview";
 import { workspace } from "../../../services/workspace";
 import { actorHostCommands } from "../../../services/host-command-runtime";
@@ -857,6 +858,9 @@ export function buildPluginContext(
       }, setWidth: (panel: import("@read-aware/core").ResizableReaderPanel, width: number, guard?: import("@read-aware/core").ReadingSessionGuard) => {
         lifecycle.assertActive("services.ui.reader.setWidth");
         return readerPanels.setWidth(panel, width, lifecycle.signal, guard);
+      }, focus: (target: import("@read-aware/core").ReaderFocusTarget, guard?: import("@read-aware/core").ReadingSessionGuard) => {
+        lifecycle.assertActive("services.ui.reader.focus");
+        return readerFocus.focus(target, lifecycle.signal, guard);
       } } : {}),
       ...(reading.commands && domain.library ? {
         previewReference: (query: import("@read-aware/core").BookReferenceQuery, guard?: import("@read-aware/core").ReadingSessionGuard) => {

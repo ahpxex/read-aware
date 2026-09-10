@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Body, Button, Spinner } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import type { BookFormat, LibraryBook, ReaderProgress } from "../../library/lib/library-types";
@@ -8,6 +8,7 @@ import { useDelayedFlag } from "../hooks/useDelayedFlag";
 import { useReadingModeControl } from "../hooks/useReadingModeControl";
 import { useImmersiveWindowControls } from "../hooks/useImmersiveWindowControls";
 import { useReaderAppearance } from "../hooks/useReaderAppearance";
+import { useReaderFocusTarget } from "../hooks/useReaderFocusTarget";
 import { useReadingTimeTracker } from "../hooks/useReadingTimeTracker";
 import { FoliateReaderView } from "./FoliateReaderView";
 import { ReaderShellOverlay } from "./ReaderShellOverlay";
@@ -87,6 +88,8 @@ export function ReaderWorkspace({
   onAnnotationSelect,
 }: ReaderWorkspaceProps) {
   const { t } = useTranslation("reader");
+  const contentFocus = useRef<HTMLDivElement | null>(null);
+  useReaderFocusTarget(selectedBook.id, "content", contentFocus);
   const { effective: readerSettings } = useReaderAppearance(selectedBook.id);
   const themeBg = useReaderPalette(readerSettings.theme).bg;
   // Only surface the source loader once opening is genuinely slow, so fast opens
@@ -147,6 +150,8 @@ export function ReaderWorkspace({
       // cleanly when the incoming layer is already opaque — two simultaneous
       // fades let the body background flash through.
       className="relative h-screen w-full"
+      ref={contentFocus}
+      tabIndex={-1}
       style={{ backgroundColor: themeBg }}
     >
       {readerSource ? (

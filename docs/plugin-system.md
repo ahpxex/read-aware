@@ -2197,8 +2197,36 @@ Defaults remain TOC 288/chat 352; callers can request these values explicitly.
 [验证] Focused service/permission/Agent and mounted StrictMode hook tests cover
 the new widths, persistence failure and layout metadata. This addition has not
 yet had real Tauri/Worker/drag E2E; prior panel evidence below does not cover it.
-Semantic focus restoration remains a gap. Views 1.3 now reports plugin frame
-removal reasons, but does not acknowledge focus or native panel animation.
+Views 1.3 reports plugin frame removal reasons, but does not acknowledge focus
+or native panel animation. UI 1.14 adds the separate semantic focus operation below.
+
+[代码] `reader.focus(target, guard?)` requires `reading:write`; `target` is exactly
+`content | toc | chat`. Both Agent scopes expose `focus_reader({target})`, pin the
+current ready session/book and reject another book in book scope. Only the host
+registers elements: the outer reading surface, TOC list and book-chat textarea.
+Bindings retire with the component/session; a stale disposer cannot clear a newer
+binding. Public inputs cannot contain selectors, elements, callbacks or coordinates.
+Invalid targets/guards reject `reader/invalid-target`, stale guards reject
+`reader/superseded`, and a reader that is not ready rejects `reader/unavailable`.
+
+`ReaderFocusReceipt` includes target/sessionId/bookId and either `status:focused`
+or `status:not-focused` with `reason:missing|hidden|blocked|rejected`. Disconnected,
+inert, hidden, transparent or unlaid-out elements are not focused. Visible
+`aria-modal=true`, dialog and menu surfaces block outside targets. The operation
+does not open panels, reveal controls, dismiss overlays, navigate, change a draft
+or send messages. It calls focus with preventScroll and checks the exact
+document.activeElement before reporting success; synchronous session replacement
+rejects instead of reporting a stale receipt. Cancellation prevents dispatch,
+not a rollback of focus already moved. This is not OS window activation,
+persistent focus, a prior-element stack, iframe caret or screen-reader restoration.
+Close your own plugin view first; if its modal is still mounted, not-focused is
+honest and must not be treated as success or trigger an automatic retry loop.
+
+[验证] Service, real plugin-context/production Agent-port wiring, scoped tool and
+DOM focus tests pass. DOM tests use jsdom with fixture geometry, not native layout.
+Native keyboard routing, React/Tauri mounting, animation and plugin-close/focus
+composition remain for concentrated acceptance; previous panel evidence does not
+prove this new focus path.
 
 [代码] `services.ui` 1.1 adds the optional `reader` service. It is present only
 with `reading:read` (also implied by `reading:write`): `snapshot()` returns

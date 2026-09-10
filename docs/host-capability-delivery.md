@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+阅读焦点批次已接线：UI 1.14 reader.focus(content/toc/chat) 与双scope Agent focus_reader 共用宿主语义目标，插件需reading:write，Agent锁定当前ready会话且书内不能控制其他书。正文外层、目录列表、聊天输入的绑定随会话/组件退休，旧释放不清新绑定。仅聚焦已显示区域，隐藏/inert/前台dialog或menu阻挡返回not-focused，不开面板、不关弹窗、不导航或改草稿；preventScroll并核验当次activeElement。不是OS窗口激活、持续焦点或旧元素/iframe caret恢复。
+
+[验证] 定向焦点/DOM/权限/生产Agent端口/工具、既有面板与库存模型58 pass / 1103 assertions，全仓typecheck 27/27（1缓存），三文档对结构通过。902入口映射。DOM测试使用jsdom夹具几何，不是原生布局；未启动桌面/浏览器，实际键盘、挂载动画和插件关闭后回焦留集中Tauri验收。READ11仍保留未验与精确历史焦点边界，整体目标未完成；下方历史“语义焦点入口仍缺”由本批限定覆盖取代。
+
 画像写入批次已接线：memory 1.7 commands.updateProfile 与双scope Agent update_user_profile 接入既有本机纯文本摘要，候选最多16000 UTF-16单元，所见内容版本防旧写覆盖。Agent每次展示完整候选并请求宿主批准；插件需memory:write，自身UI负责确认，不新增可自签的确认票据。共享KV队列等待旧写结算，hash后复核原值并同步入队，持久成功才回执，失败回滚镜像，已派发写参加插件退休排空。空文本只清摘要；同章下一用户轮更新profile prompt，保留对话。
 
 [验证] 画像/真实插件上下文/持久队列/双域工具/提示词/既有访谈/库存模型定向67 pass / 1158 assertions，全仓typecheck 27/27（25缓存）。899入口映射。未启动桌面/浏览器；真实Worker/Tauri编辑与模型访谈留集中验收。MEM07双端写入口接通，不等于完整访谈/种子记忆原子编排；profile/entity事件投影、跨进程/跨设备CAS与正式bundle仍不在本批。整体目标未完成；下方历史“画像写入口仍缺”由本批限定覆盖取代。

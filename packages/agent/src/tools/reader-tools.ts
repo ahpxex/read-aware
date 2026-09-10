@@ -9,6 +9,7 @@ import { AppError, type ReadingLocation, type ReadingStep } from "@read-aware/co
 import { readingContextCall } from "../runtime/reading-context-policy";
 import { buildSelectionTools } from "./selection-tools";
 import { buildEmphasisTools } from "./emphasis-tools";
+import { buildReaderFocusTool } from "./reader-focus-tool";
 
 export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: AgentTurnState): AgentTool[] {
   const openBook: AgentTool = {
@@ -200,5 +201,5 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
       return textResult(await deps.reader.setPanelWidth(panel, width, signal, { bookId: current.bookId, sessionId: current.sessionId }));
     },
   };
-  return [openBook, session, control, playback, mode, controls, panelState, panelControl, panelWidth, ...buildSelectionTools(scope, deps), ...buildEmphasisTools(scope, deps)];
+  return [openBook, session, control, playback, mode, controls, panelState, panelControl, panelWidth, buildReaderFocusTool(scope, deps), ...buildSelectionTools(scope, deps), ...buildEmphasisTools(scope, deps)];
 }

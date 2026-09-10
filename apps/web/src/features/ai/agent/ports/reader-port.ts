@@ -1,6 +1,7 @@
 import type { ReaderPort } from "@read-aware/agent";
 import { createReadingDomain } from "../../../../domain/reading";
 import { readerPanels } from "../../../../services/reader-panels";
+import { readerFocus } from "../../../../services/reader-focus";
 import { readerImage } from "../../../../services/reader-image";
 import { readerImageOpen } from "../../../../services/reader-image-open";
 import { readBookImage } from "../../../library/lib/book-images";
@@ -25,6 +26,7 @@ export function createReaderPort(): ReaderPort {
     closeReferencePreview: (ownerKey, id, signal) => readerReferencePreview.close(`agent:${ownerKey}`, id, signal),
     listEmphasis: reading.queries.emphasis,
     getPanels: async () => readerPanels.snapshot(),
+    focus: (target, signal, guard) => readerFocus.focus(target, signal, guard),
     setPanel: (panel, open, signal, guard) => readerPanels.setPanel(panel, open, signal, guard),
     setPanelWidth: (panel, width, signal, guard) => readerPanels.setWidth(panel, width, signal, guard),
   };

@@ -167,6 +167,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   get_reader_panels: {},
   set_reader_panel: { panel: "toc", open: true },
   set_reader_panel_width: { panel: "toc", width: 320 },
+  focus_reader: { target: "content" },
   ask_user: {
     question: "Which direction?",
     options: [

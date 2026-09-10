@@ -12,6 +12,8 @@
     "copied": "Copié"
   },
   "errors": {
+    "pluginInvalidArgument": "Cette requête du plugin contient des paramètres non valides.",
+    "pluginQuotaExceeded": "Cette requête du plugin dépasse la limite de données. Réduisez la taille du lot.",
     "settingsOptionsInvalid": "Cette recherche d’options est invalide.",
     "settingsOptionsForbidden": "Ce plugin n’est pas autorisé à lister les options de ce réglage.",
     "settingsOptionsStale": "Les options ont changé. Recommencez la recherche.",

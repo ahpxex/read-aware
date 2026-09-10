@@ -757,6 +757,7 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
             DELETE FROM book_removal_cleanup WHERE book_id=new.id;
          END;",
     ),
+    (32, "plugin_document_revisions", include_str!("plugin_docs_v32.sql")),
 ];
 
 /// Rebuild the annotation FTS index from the table. Required after any VACUUM
@@ -1036,7 +1037,7 @@ pub(crate) fn wipe_all_data_inner(conn: &mut Connection, data_dir: &Path) -> Res
     let mut tables = wipeable_tables(conn)?;
     // Deleting books produces cleanup intents; wipe those after their producer,
     // regardless of sqlite_master enumeration order.
-    tables.sort_by_key(|table| table == "book_removal_cleanup");
+    tables.sort_by_key(|table| table == "book_removal_cleanup" || table == "plugin_document_generations");
     let tx = conn.transaction()?;
     // FK order problems are sidestepped wholesale: defer enforcement to commit,
     // by which point every referencing row is gone too.

@@ -250,8 +250,17 @@ CREATE TABLE plugin_documents ( -- [device-local] 插件文档集合：插件的
   book_id    TEXT, -- 可选出处：关联书籍（索引用，无外键无级联）。
   anchor     TEXT, -- 可选出处：书内锚点（CFI / locator）。
   updated_at TEXT NOT NULL, -- 最近写入时间；list 默认按它倒序。
+  revision TEXT NOT NULL DEFAULT '', -- v32：每次写入的随机身份；包含旧 API 和恢复写入，不是时间戳或内容 hash。
   PRIMARY KEY (plugin_id, collection, id)
 ); -- plugin_documents 表结束。
+
+CREATE TABLE plugin_document_generations ( -- [device-local] v32：集合分页一致性代；文档写入/删除触发器轮换，卸载与清空设备删除。
+  plugin_id TEXT NOT NULL,
+  collection TEXT NOT NULL,
+  generation TEXT NOT NULL,
+  PRIMARY KEY (plugin_id, collection)
+);
+-- v32 的三个触发器及分页复合索引见 storage/plugin_docs_v32.sql；恢复文档也生成新身份。
 
 CREATE TABLE cached_font_faces ( -- [local index] curated reading fonts 的离线缓存清单；实际 woff2 bytes 作为 font_face blob 存在 blob_objects，可删除重下。
   url TEXT NOT NULL PRIMARY KEY, -- 字体 face 的远端 URL；当前 IndexedDB 就是用 URL 作为 key。

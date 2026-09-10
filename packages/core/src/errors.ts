@@ -27,6 +27,9 @@ export const ERR_FS_NO_SPACE = "fs/no-space";
 export const ERR_DB_LOCKED = "db/locked";
 export const ERR_DB_ERROR = "db/error";
 export const ERR_SECRETS_UNAVAILABLE = "secrets/unavailable";
+/** Invalid plugin service arguments or a bounded service payload over quota. */
+export const ERR_PLUGIN_INVALID_ARGUMENT = "plugin/invalid-argument";
+export const ERR_PLUGIN_QUOTA_EXCEEDED = "plugin/quota-exceeded";
 
 /** Sync/relay failure codes (classified in apps/web platform/sync). */
 export const ERR_SYNC_NETWORK = "sync/network";

@@ -12,6 +12,8 @@
     "copied": "已复制"
   },
   "errors": {
+    "pluginInvalidArgument": "此插件请求包含无效参数。",
+    "pluginQuotaExceeded": "此插件请求超出数据限制，请减小批次。",
     "settingsOptionsInvalid": "设置选项查询无效。",
     "settingsOptionsForbidden": "此插件无权列出该设置的选项。",
     "settingsOptionsStale": "设置选项已变化，请重新开始查询。",

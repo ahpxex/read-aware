@@ -288,6 +288,10 @@ function buildContext(
       return call as Promise<void>;
     },
     flush: () => callHost("services.storage.flush", []),
+    applyDocuments: (changes: import("@read-aware/plugin-types").PluginDocumentChange[]) => {
+      assertLocalStorageWrite();
+      return callHost("services.storage.applyDocuments", [changes]);
+    },
     // Host-side writes (settings page, agent) arrive as a `sync` patch and
     // then as this notification — in that order, so the mirror the handler
     // reads from is already fresh. The plugin's own writes do not echo.
@@ -434,6 +438,7 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
             remove: pluginContext.services.storage.remove,
             flush: pluginContext.services.storage.flush,
             collection: pluginContext.services.storage.collection,
+            applyDocuments: pluginContext.services.storage.applyDocuments,
           },
         };
         await plugin.migrate(migrationContext, message.migration);

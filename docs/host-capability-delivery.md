@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+私有文档批次已接线：storage 2.1 新增 collection.page 和 applyDocuments，分页默认50/最多200条及4MiB JSON，以集合变更代拒绝旧续页。跨自有集合1..100条put/delete/check在SQLite事务中先全部比较再提交，null要求不存在，revision要求准确写版本，冲突不写、故障回滚；单条4MiB/批8MiB。v32迁移及触发器覆盖旧写、同值写和快照恢复，避免复用旧票据。插件主Worker和迁移Worker均接通，读参与退休清理，已派发写参与排空；Agent仍经插件业务工具消费，没有增加私有库直读工具。
+
+[验证] 定向宿主/Worker/生命周期及八语言错误41 pass / 5215 assertions，Rust存储回归123 pass / 1 ignored（既有百万事件压力测试），其中新增SQLite四项覆盖迁移、分页、条件写、回滚和设备清空；矩阵模型12 pass / 41 assertions，906入口映射，全仓typecheck 27/27通过。新增能力尚未由真实业务插件在Tauri中组合验收；全字段搜索、KV/文档联合事务与恢复、跨设备和文档观察仍为缺口。整体目标继续，未推送。
+
 进度呈现批次已接线：views 1.8扩展已有progress块，value:null表示未知进度且不显示百分比/ARIA数值，确定进度严格在正max范围内。新增取消动作在主操作busy时仍可用，单按钮在途去重，复用background结果通道、当前帧/回调所有权与失败呈现；不把点击/回调完成冒充真实任务停止。Memory Desk 0.7直接消费现有图谱任务的queued/running/cancelling状态，取消走cancelGraphTask，终态保留原报告和重试，不伪造章节百分比。未增加Agent工具或新任务执行器。
 
 [验证] 宿主声明/序列化/会话/挂载38 pass / 1183 assertions；Memory Desk 22 pass / 143 assertions；矩阵模型12 pass / 41 assertions；全仓typecheck 27/27（最终26缓存），插件构建通过。未启动桌面/浏览器，物理取消和Worker/Tauri组合留集中验收。EXT07呈现更完整但仍部分，CON06统一TaskRef、截止/重试/耐久协议未由本批实现；整体目标未完成。

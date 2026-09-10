@@ -1656,6 +1656,10 @@ export type PluginStorage = {
    * documents survive the referenced book's deletion.
    */
   collection(name: string): PluginDocumentCollection;
+  /** Storage 2.1: atomically compare and apply 1..100 private document changes.
+   * Every expected revision is checked before any write. Does not include KV,
+   * core domain events, files, or another plugin's documents. */
+  applyDocuments(changes: PluginDocumentChange[]): Promise<PluginDocumentCommit>;
   /**
    * Fires when this plugin's namespace is written from OUTSIDE the plugin —
    * its settings page, the reading agent, another surface editing the same
@@ -1700,7 +1704,28 @@ export type PluginDocument<T = unknown> = {
   anchor?: string;
   /** ISO timestamp of the last write. */
   updatedAt: string;
+  /** Storage 2.1: opaque local write identity, including same-value writes. */
+  revision: string;
 };
+
+export type PluginDocumentChange = {
+  collection: string;
+  id: string;
+  /** null requires absence; a revision requires that exact existing write. */
+  expectedRevision: string | null;
+} & (
+  | { kind: "put"; data: unknown; bookId?: string; anchor?: string }
+  | { kind: "delete" }
+  | { kind: "check" }
+);
+
+export type PluginDocumentCommit =
+  | { status: "conflict"; index: number }
+  | { status: "applied"; documents: Array<{ collection: string; id: string; revision: string | null }> };
+
+export type PluginDocumentPage<T = unknown> =
+  | { status: "stale-cursor" }
+  | { status: "ready"; items: PluginDocument<T>[]; nextCursor: string | null };
 
 export type PluginDocumentCollection = {
   put(id: string, data: unknown, options?: { bookId?: string; anchor?: string }): Promise<void>;
@@ -1712,6 +1737,15 @@ export type PluginDocumentCollection = {
     limit?: number;
     oldestFirst?: boolean;
   }): Promise<PluginDocument<T>[]>;
+  /** Storage 2.1: 1..200 rows (default 50), 4 MiB JSON per page.
+   * Cursors bind namespace/filter/order and expire on any collection write.
+   * On stale-cursor restart rather than combining different snapshots. */
+  page<T = unknown>(filter?: {
+    bookId?: string;
+    limit?: number;
+    oldestFirst?: boolean;
+    cursor?: string;
+  }): Promise<PluginDocumentPage<T>>;
 };
 
 export type PluginAgentScope =

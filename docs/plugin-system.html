@@ -426,12 +426,16 @@
           <div>
             <h2>Services</h2>
             <ul class="compact">
-              <li>Storage v2：同步读、set/remove 持久 Promise、flush / Secrets</li>
+              <li>Storage 2.1：KV 持久确认、文档分页与条件事务 / Secrets</li>
               <li>UI export / Toast</li>
               <li>Plugins 1.0：已安装公共目录与变化观察</li>
               <li>Schedules / Session 2.0：仅环境快照与观察；阅读状态统一归 Reading</li>
               <li>Network 2.1：显式访问范围、逐跳授权、分块下载 / LLM / Clipboard</li>
             </ul>
+            <details class="ep"><summary>插件私有数据：分页、旧版本保护和多记录事务已接通</summary><div class="ep-body">
+              <p>Storage 2.1 的 page 默认50、最多200条及4MiB正文；集合变化返回 stale-cursor，避免拼接不同版本。applyDocuments 一次比较并提交1至100条自有跨集合记录，支持保存、删除和只检查；任何旧版本冲突都不写，数据库失败全部回滚。单条4MiB、批次8MiB，旧接口和恢复写入同样产生新版本身份。</p>
+              <p>已派发事务随插件退休排空，不自动重试或撤销。Agent 仍经插件业务工具访问，不直接读私有库；事务不包含KV、文件、核心领域或其他插件。全字段搜索与KV/文档联合恢复仍缺。基础测试与类型检查通过，真实组合插件和Tauri端到端验收集中后置。</p>
+            </div></details>
             <details class="ep"><summary>外链、复制、导出与插件目录：双端已接线，集中验收待做</summary><div class="ep-body"><p>Agent 新增 list_installed_plugins、copy_to_clipboard、export_text_file、open_external_url，共用宿主查询与效果实现。插件目录只返回公开安装元数据，不返回设置、路径、密钥或原始错误；enabled 是配置，不保证贡献健康。</p><p>UI 1.7 openExternal 要求 service:network，只允许无凭据的 HTTP(S)，不开放本机文件或自定义协议。剪贴板只写文本；导出通过原生保存对话框，取消不算成功，派发写入后不承诺回滚。类型与定向测试通过；组合插件和新路径桌面 E2E 留待集中阶段。</p></div></details>
             <details class="ep"><summary>Schedules 1.1：自有计划可查、可暂停恢复、可手动运行</summary><div class="ep-body">
               <p>插件只管理自有已绑定计划；全局 Agent 经批准操作。暂停/恢复和最新开始/完成/成功/错误状态持久保存；先记录开始再执行，结束写失败不报完成。手动运行不恢复自动计划，pause 不终止已发任务；同 key 不重入。</p>

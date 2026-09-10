@@ -12,6 +12,8 @@
     "copied": "Copied"
   },
   "errors": {
+    "pluginInvalidArgument": "This plugin request contains invalid parameters.",
+    "pluginQuotaExceeded": "This plugin request exceeds the data limit. Use a smaller batch.",
     "settingsOptionsInvalid": "This setting option query is invalid.",
     "settingsOptionsForbidden": "This plugin is not allowed to list options for that setting.",
     "settingsOptionsStale": "The setting options have changed. Start the search again.",

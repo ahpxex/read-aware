@@ -32,6 +32,7 @@ describe("dictionary formatting", () => {
       {
         id: "English serendipity",
         updatedAt: "2026-07-24T00:00:00.000Z",
+        revision: "a".repeat(32),
         data: {
           term: "serendipity",
           language: "English",

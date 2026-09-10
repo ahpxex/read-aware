@@ -19,6 +19,7 @@ pub struct PluginDocumentRow {
     #[serde(default)]
     pub anchor: Option<String>,
     pub updated_at: String,
+    pub revision: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -41,6 +42,7 @@ pub(crate) fn row_to_plugin_document(row: &rusqlite::Row) -> rusqlite::Result<Pl
         book_id: row.get("book_id")?,
         anchor: row.get("anchor")?,
         updated_at: row.get("updated_at")?,
+        revision: row.get("revision")?,
     })
 }
 
@@ -83,7 +85,7 @@ pub async fn plugin_docs_get(
         let db = tauri::Manager::state::<Db>(&app);
         let conn = db.0.lock()?;
         match conn.query_row(
-            "SELECT id, json, book_id, anchor, updated_at FROM plugin_documents
+            "SELECT id, json, book_id, anchor, updated_at, revision FROM plugin_documents
          WHERE plugin_id = ?1 AND collection = ?2 AND id = ?3",
             params![plugin_id, collection, id],
             row_to_plugin_document,
@@ -134,10 +136,10 @@ pub async fn plugin_docs_list(
             "DESC"
         };
         let sql = format!(
-            "SELECT id, json, book_id, anchor, updated_at FROM plugin_documents
+            "SELECT id, json, book_id, anchor, updated_at, revision FROM plugin_documents
          WHERE plugin_id = ?1 AND collection = ?2
            AND (?3 IS NULL OR book_id = ?3)
-         ORDER BY updated_at {order}
+         ORDER BY updated_at {order}, id {order}
          LIMIT ?4"
         );
         let mut stmt = conn.prepare(&sql)?;
@@ -162,13 +164,15 @@ pub async fn plugin_docs_clear(
 ) -> Result<(), CommandError> {
     crate::storage::blocking("plugin_docs_clear", move || {
         let db = tauri::Manager::state::<Db>(&app);
-        let conn = db.0.lock()?;
-        conn.execute(
+        let mut conn = db.0.lock()?;
+        let tx = conn.transaction()?;
+        tx.execute(
             "DELETE FROM plugin_documents WHERE plugin_id = ?1",
             params![plugin_id],
         )
         ?;
-        Ok(())
+        tx.execute("DELETE FROM plugin_document_generations WHERE plugin_id=?1", params![plugin_id])?;
+        Ok(tx.commit()?)
     })
     .await
 }

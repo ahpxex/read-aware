@@ -75,13 +75,7 @@ import {
 } from "../lib/plugin-types";
 import { registerSyncTransport } from "../../../platform/sync/transport-registry";
 import { releasePluginCallbacks } from "./plugin-callback-wire";
-import {
-  pluginDocsDelete,
-  pluginDocsGet,
-  pluginDocsList,
-  pluginDocsPut,
-  type PluginDocumentRow,
-} from "./plugin-backend";
+import { createPluginDocuments } from "./plugin-documents";
 import {
   registerCommandContribution,
   registerContextActionContribution,
@@ -100,22 +94,6 @@ import {
 import { PluginLifecycleController } from "./plugin-lifecycle";
 
 const log = createLogger("plugins");
-
-function toPluginDocument(row: PluginDocumentRow) {
-  let data: unknown = null;
-  try {
-    data = JSON.parse(row.json);
-  } catch {
-    data = null;
-  }
-  return {
-    id: row.id,
-    data,
-    bookId: row.bookId ?? undefined,
-    anchor: row.anchor ?? undefined,
-    updatedAt: row.updatedAt,
-  };
-}
 
 /** Names for collections and secret keys: short, flat, no surprises. */
 const NAMESPACE_KEY = /^[a-z0-9][a-z0-9_-]{0,63}$/;
@@ -570,38 +548,7 @@ export function buildPluginContext(
               }
             }),
           })),
-        collection: (name) => {
-          const collection = String(name);
-          if (!NAMESPACE_KEY.test(collection)) {
-            throw new Error(`invalid collection name: ${collection}`);
-          }
-          return {
-            put: (id, data, options) => {
-              return lifecycle.storageWrite("services.storage.collection.put", () => pluginDocsPut(
-                manifest.id,
-                collection,
-                String(id),
-                JSON.stringify(data ?? null),
-                { bookId: options?.bookId, anchor: options?.anchor },
-              ));
-            },
-            get: async (id) => {
-              const row = await pluginDocsGet(manifest.id, collection, String(id));
-              return (row ? toPluginDocument(row) : null) as never;
-            },
-            delete: (id) => {
-              return lifecycle.storageWrite("services.storage.collection.delete", () => pluginDocsDelete(manifest.id, collection, String(id)));
-            },
-            list: async (filter) =>
-              (
-                await pluginDocsList(manifest.id, collection, {
-                  bookId: filter?.bookId,
-                  limit: filter?.limit,
-                  oldestFirst: filter?.oldestFirst,
-                })
-              ).map(toPluginDocument) as never,
-          };
-        },
+        ...createPluginDocuments(manifest.id, lifecycle),
       },
       secrets: {
         get: (key) => {

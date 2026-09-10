@@ -1002,6 +1002,8 @@ pub fn run() {
             storage::plugin_docs_get,
             storage::plugin_docs_delete,
             storage::plugin_docs_list,
+            storage::plugin_docs_page,
+            storage::plugin_docs_apply,
             storage::plugin_docs_clear,
             storage::plugin_docs_snapshot,
             storage::plugin_docs_restore,

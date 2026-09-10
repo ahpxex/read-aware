@@ -5,6 +5,7 @@
  */
 import { invoke } from "../../../platform/ipc";
 import { customSchemeUrl } from "../../../platform/custom-scheme";
+import type { PluginDocumentChange, PluginDocumentCommit } from "@read-aware/plugin-types";
 
 /** A plugin folder on disk: its id (folder name) and raw manifest text. */
 export type PluginDiskEntry = { id: string; manifest: string; builtin?: boolean };
@@ -66,9 +67,10 @@ export type PluginDocumentRow = {
   bookId?: string;
   anchor?: string;
   updatedAt: string;
+  revision: string;
 };
 
-export type PluginDocumentSnapshotRow = PluginDocumentRow & {
+export type PluginDocumentSnapshotRow = Omit<PluginDocumentRow, "revision"> & {
   collection: string;
 };
 
@@ -117,6 +119,23 @@ export function pluginDocsList(
     limit: filter?.limit ?? null,
     oldestFirst: filter?.oldestFirst ?? null,
   });
+}
+
+export type PluginDocumentPageFilter = { bookId?: string; limit?: number; oldestFirst?: boolean; cursor?: string };
+export type PluginDocumentPageRow =
+  | { status: "stale-cursor" }
+  | { status: "ready"; items: PluginDocumentRow[]; nextCursor: string | null };
+export type PluginDocumentMutation = Omit<PluginDocumentChange, "kind"> & (
+  | { kind: "put"; json: string; bookId?: string; anchor?: string }
+  | { kind: "delete" | "check" }
+);
+
+export function pluginDocsPage(pluginId: string, collection: string, query: PluginDocumentPageFilter): Promise<PluginDocumentPageRow> {
+  return invoke("plugin_docs_page", { pluginId, collection, query });
+}
+
+export function pluginDocsApply(pluginId: string, changes: PluginDocumentMutation[]): Promise<PluginDocumentCommit> {
+  return invoke("plugin_docs_apply", { pluginId, changes });
 }
 
 /** Uninstall wipe — documents die with the plugin (their declared lifecycle). */

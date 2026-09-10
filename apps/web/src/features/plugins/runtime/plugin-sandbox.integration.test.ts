@@ -28,13 +28,13 @@ function sandbox(scenario: string, fixture = "wire-probe.ts") {
     t: "boot", url: new URL(`./fixtures/${fixture}`, import.meta.url).href,
     manifest: { id: "wire-test", name: "Wire test", description: scenario, version: "1.0.0", schemaVersion: 1 },
     appVersion: "1.0.0", capabilities: {}, locale: "en", phase: "activating", storage: {},
-    shape: { services: { network: { fetch: "fn", openStream: "fn", readStream: "fn", closeStream: "fn" } }, contributions: { commands: { register: "fn" } }, __collection: { put: "fn", get: "fn" } },
+    shape: { services: { network: { fetch: "fn", openStream: "fn", readStream: "fn", closeStream: "fn" } }, contributions: { commands: { register: "fn" } }, __collection: { put: "fn", get: "fn", page: "fn" } },
   });
   return { worker, messages, next };
 }
 
-async function command(scenario: string) {
-  const s = sandbox(scenario);
+async function command(scenario: string, fixture?: string) {
+  const s = sandbox(scenario, fixture);
   const registration = await s.next(message => message.method === "contributions.commands.register");
   const handle = (data(registration.args!) as { run: () => string }[])[0].run();
   s.worker.postMessage({ t: "result", id: registration.id, ok: true, value: null, disposable: "registration" });
@@ -43,6 +43,32 @@ async function command(scenario: string) {
   s.worker.postMessage({ t: "invoke", id: 900, handle, args: [] });
   return s;
 }
+
+test("Worker storage override retains document pages and conditional transactions", async () => {
+  const s = await command("documents", "document-probe.ts");
+  const page = await s.next(message => message.method === "services.storage.collection(words).page");
+  expect(data(page.args!)).toEqual([{ limit: 1 }]);
+  s.worker.postMessage({ t: "result", id: page.id, ok: true, value: { status: "ready", items: [{ id: "word", revision: "a".repeat(32), data: {} }], nextCursor: null } });
+  const apply = await s.next(message => message.method === "services.storage.applyDocuments");
+  expect(data(apply.args!)).toEqual([[{ kind: "check", collection: "words", id: "word", expectedRevision: "a".repeat(32) }]]);
+  s.worker.postMessage({ t: "result", id: apply.id, ok: true, value: { status: "conflict", index: 0 } });
+  expect(resultData(await s.next(message => message.t === "result" && message.id === 900))).toMatchObject({ ok: true, value: { toast: "conflict" } });
+});
+
+test("Worker migration storage exposes conditional document commits and waits for acknowledgement", async () => {
+  const s = sandbox("documents", "document-probe.ts");
+  const registration = await s.next(message => message.method === "contributions.commands.register");
+  s.worker.postMessage({ t: "result", id: registration.id, ok: true, value: null, disposable: "registration" });
+  await s.next(message => message.t === "ready");
+  s.worker.postMessage({ t: "sync", patch: { phase: "migrating" } });
+  s.worker.postMessage({ t: "migrate", id: 903, migration: { fromVersion: 1, toVersion: 2, direction: "upgrade" } });
+  const write = await s.next(message => message.method === "services.storage.applyDocuments");
+  expect(data(write.args!)).toEqual([[{ kind: "put", collection: "words", id: "seed", data: {}, expectedRevision: null }]]);
+  s.worker.postMessage({ t: "health", id: 904 }); await s.next(message => message.t === "healthy");
+  expect(s.messages.some(message => message.t === "migrated")).toBe(false);
+  s.worker.postMessage({ t: "result", id: write.id, ok: true, value: { status: "applied", documents: [] } });
+  expect(await s.next(message => message.t === "migrated")).toMatchObject({ id: 903, ok: true });
+});
 
 test("real Worker preserves Request semantics, binary responses and authoritative storage acknowledgements", async () => {
   const s = await command("request-storage");

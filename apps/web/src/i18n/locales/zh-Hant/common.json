@@ -12,6 +12,8 @@
     "copied": "已複製"
   },
   "errors": {
+    "pluginInvalidArgument": "此插件請求包含無效參數。",
+    "pluginQuotaExceeded": "此插件請求超出資料限制，請縮小批次。",
     "settingsOptionsInvalid": "設定選項查詢無效。",
     "settingsOptionsForbidden": "此外掛無權列出該設定的選項。",
     "settingsOptionsStale": "設定選項已變更，請重新開始查詢。",

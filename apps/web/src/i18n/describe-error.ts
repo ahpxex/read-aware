@@ -20,6 +20,8 @@
 import type common from "./locales/en/common.json";
 import { i18n } from "./instance";
 import {
+  ERR_PLUGIN_INVALID_ARGUMENT,
+  ERR_PLUGIN_QUOTA_EXCEEDED,
   ERR_SYNC_MISDIRECTED,
   ERR_SYNC_NETWORK,
   ERR_SYNC_PASSPHRASE,
@@ -120,6 +122,8 @@ const CODE_COPY: Record<string, CopyEntry> = {
   "library/range-forbidden": { key: "bookRangeForbidden", retryable: false },
   "library/book-not-found": { key: "bookNotFound", retryable: false },
   "plugin/action-disabled": { key: "pluginActionDisabled", retryable: false },
+  [ERR_PLUGIN_INVALID_ARGUMENT]: { key: "pluginInvalidArgument", retryable: false },
+  [ERR_PLUGIN_QUOTA_EXCEEDED]: { key: "pluginQuotaExceeded", retryable: false },
   "plugin/network-denied": { key: "pluginNetworkDenied", retryable: false },
   "plugin/network-redirect": { key: "pluginNetworkRedirect", retryable: false },
   "plugin/network-busy": { key: "pluginNetworkBusy", retryable: true },

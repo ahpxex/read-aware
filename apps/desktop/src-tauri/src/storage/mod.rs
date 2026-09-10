@@ -42,6 +42,8 @@ mod chat;
 pub use chat::*;
 mod plugin_docs;
 pub use plugin_docs::*;
+mod plugin_document_operations;
+pub use plugin_document_operations::*;
 mod schema;
 pub use schema::*;
 mod blobs;

@@ -12,6 +12,8 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "pluginInvalidArgument": "Diese Plugin-Anfrage enthält ungültige Parameter.",
+    "pluginQuotaExceeded": "Diese Plugin-Anfrage überschreitet das Datenlimit. Verkleinern Sie den Stapel.",
     "settingsOptionsInvalid": "Diese Abfrage von Einstellungsoptionen ist ungültig.",
     "settingsOptionsForbidden": "Dieses Plugin darf die Optionen dieser Einstellung nicht auflisten.",
     "settingsOptionsStale": "Die Optionen haben sich geändert. Starten Sie die Suche erneut.",

@@ -12,6 +12,8 @@
     "copied": "コピーしました"
   },
   "errors": {
+    "pluginInvalidArgument": "このプラグインのリクエストに無効なパラメータが含まれています。",
+    "pluginQuotaExceeded": "このプラグインのリクエストはデータ制限を超えています。処理する件数を減らしてください。",
     "settingsOptionsInvalid": "設定の選択肢の検索が無効です。",
     "settingsOptionsForbidden": "このプラグインには、この設定の選択肢を表示する権限がありません。",
     "settingsOptionsStale": "設定の選択肢が変更されました。もう一度検索してください。",

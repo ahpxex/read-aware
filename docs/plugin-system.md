@@ -684,6 +684,74 @@ annotations 2 migration removes the legacy public unconditional commands.
 
 ### Storage Execution Boundary
 
+Private document operations and blocking dispatch have separate contracts below.
+
+### Private Document Pages And Transactions (Storage 2.1)
+
+[代码] `services.storage.collection(name).get/list` now return an opaque local
+`revision` with each document. Existing unconditional `put/delete/list` remain;
+`list` orders by `(updatedAt,id)` in the requested direction. Invalid stored
+JSON rejects with `db/error`, never a fabricated `data:null` result.
+
+[代码] `collection(name).page({bookId?,limit?,oldestFirst?,cursor?})` returns
+`{status:"ready",items,nextCursor}` or `{status:"stale-cursor"}`. Default limit
+50, integer range 1..200; at most 4 MiB of document JSON per page. A single legacy
+document larger than that rejects with `plugin/quota-exceeded`; no empty success
+or silent skip. Metadata/serialization overhead is additional, not a total RAM
+budget. Page order is the `(updated_at,id)` keyset; optional book ID is exact.
+The opaque base64url cursor binds plugin ID, collection, book filter, direction,
+and collection generation. Limit may change between pages. Invalid or cross-query
+cursors reject with `plugin/invalid-argument`; any collection write/delete/restore
+invalidates continuation, including an unrelated document under that collection's
+book filter. Consumers restart on stale-cursor, not append to the old snapshot.
+Generation and rows are read in one SQLite transaction. No server-side cursor
+handle or open transaction is retained between calls; cursors are not authority
+to read another namespace, nor persistent subscriptions or cross-device snapshots.
+
+[代码] `services.storage.applyDocuments(changes)` atomically checks and applies
+1..100 entries across collections owned by this plugin. Each entry supplies
+`collection,id,expectedRevision` and `kind:"put"|"delete"|"check"`; put also supplies
+JSON `data` and optional `bookId/anchor`. Explicit null requires absence; a
+32-character revision requires that exact existing write. Check asserts without
+writing. Duplicate collection/ID pairs reject. All conditions run before any
+mutation inside one SQLite IMMEDIATE transaction. A mismatch returns
+`{status:"conflict",index}` without changes or another document's contents;
+success returns `{status:"applied",documents:[{collection,id,revision}]}` only
+after commit, with null revision for absent documents. SQL failure rolls back
+the entire batch, including generated identities. No automatic retry/merge.
+
+[代码] Collections follow the existing 1..64 lowercase ASCII namespace pattern.
+New operations accept nonempty IDs/book IDs up to 1024 UTF-8 bytes, anchors up
+to 16384 bytes, no control characters; cursors up to 8192 bytes. Puts allow 4 MiB
+UTF-8 JSON each, 8 MiB summed per batch. Host projection strips extraneous fields
+and serializes data before IPC; Rust revalidates native inputs. Legacy APIs keep
+their earlier size contract. Migration v32 seeds existing revisions and installs
+insert/content-update/delete triggers so legacy writes, imports and rollback
+restores also rotate revision/generation. Same-value writes and delete/recreate
+do not reuse identities. Snapshot restore deliberately does not restore old
+revision tickets. Uninstall and device reset clear generation metadata.
+
+[代码] Active and storage-only migration phases may commit; candidate activation
+cannot write. Accepted transactions participate in retirement's storage drain,
+and cancellation does not undo dispatched writes. Reads use the existing
+lifecycle read/cleanup barrier. Both normal Worker storage and migration storage
+expose the new entry points. Agent gets no generic private-data tool: plugin
+business tools use these APIs without expanding namespace access. This transaction
+does not include KV, secrets, resource bytes, domain events or another plugin;
+full-field query/FTS, collection observers and combined KV/docs restore remain
+separate capabilities or gaps.
+
+[代码] `plugin/invalid-argument` and `plugin/quota-exceeded` have explicit error
+copy in all eight host locales and are not retryable without changing input.
+
+[环境] Focused host normalization/lifecycle and Bun Worker transport tests plus
+native SQLite migration, stale-page, CAS, batch rollback and reset tests exercise
+the implementation. Full repository typechecking is required for the batch.
+This is not a composed plugin's native Tauri end-to-end acceptance, UI verification,
+multi-device storage or automatic plugin migration proof; those remain deferred.
+
+### Blocking Storage Dispatch
+
 [代码] The 100 previously synchronous storage commands and two cover commands
 now accept an owned AppHandle and run state lookup, mutex acquisition, SQLite
 and filesystem work in the shared `storage/execution.rs` blocking executor.

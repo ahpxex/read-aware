@@ -81,7 +81,7 @@ export const units: Unit[] = [
     "不开放解密 key/事件 ACK 写/字体目录。WebDAV 在源码中但不在 Rust BUNDLED；源仓、编译内置、市场分发、安装、启用、工具可用是六种不同状态。",
     "主题/字体失效可降级；transport 重连/换配置/卸载关闭旧 session；只传密文，不绕过宿主数据合并。"),
   unit("S1", "Service", "storage", "插件私有数据与持久边界", "SYS01-03 SYS05 MORE07", "services.storage",
-    "隔离 KV 镜像 + durable ack/flush；文档 collection CRUD、有界查询、所需索引/分页；按业务需要提供版本条件写或批次。迁移 storage-only，quiesce→drain→snapshot→migrate→activate，失败恢复不能覆盖此前已确认的合法写。",
+    "隔离 KV 镜像 + durable ack/flush；storage 2.1 文档 page 绑定集合变更代，默认50/最多200条及4MiB JSON，变化返回stale-cursor重读。applyDocuments一次比较1..100条自有跨集合put/delete/check，null要求不存在，revision要求该次写；SQLite事务全成或全败。单文档4MiB/批8MiB，旧写及恢复同样轮换身份，读参与退休清理、写参与排空；不含KV/领域/文件或跨设备事务，全字段搜索仍缺。迁移 storage-only，quiesce→drain→snapshot→migrate→activate，失败恢复不能覆盖此前已确认的合法写。",
     "无通用私有 KV/文档工具；通过相应插件工具消费，权限不会因调用方是模型而扩大。",
     "按 plugin ID 隔离；KV、docs、secrets、blob 各自标注本地/漫游/备份/卸载保留政策；书籍索引并不自动意味着随书删除。",
     "不是插件业务 schema 搬到宿主，也不是开放 SQL/transaction handle；取消不回滚已持久写。自有二进制数据引用由 S4，密钥由 S2。",

@@ -127,7 +127,6 @@ export interface AnnotationsPort {
     color?: HighlightColor;
     style?: HighlightStyle;
   }): Promise<HighlightItem>;
-  recolorHighlight(highlightId: Id, color: HighlightColor): Promise<void>;
   createNote(input: {
     bookId: Id;
     body: string;
@@ -135,9 +134,6 @@ export interface AnnotationsPort {
     anchor?: string;
     chapter?: string;
   }): Promise<NoteItem>;
-  updateNote(noteId: Id, body: string): Promise<void>;
-  /** Remove any canonical annotation kind after the caller has confirmed it. */
-  removeAnnotation(annotationId: Id): Promise<void>;
   /**
    * 记录一条 ask-note（doc §7：书线程每个提问留痕；§10 第 5 步，轮末同步落）。
    * 产品实现走共享领域层的 agent-only 动词 createAsk（origin "agent"）。

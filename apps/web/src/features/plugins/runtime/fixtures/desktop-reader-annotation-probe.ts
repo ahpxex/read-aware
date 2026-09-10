@@ -36,7 +36,7 @@ export async function prepareReaderAnnotationProbe() {
     anchor: location.cfi, chapterHref: location.href, quotedText: "Shared annotation target" });
   seed = { bookId: book.id, otherBookId: other.id, noteId: note.id, anchor: location.cfi, chapterHref: location.href ?? "" };
   const manifest: PluginManifest = { id, name: "Reader annotation probe", schemaVersion: 1, version: "1.0.0", description: JSON.stringify(seed),
-    permissions: ["annotations:write", "reading:write"], requires: { domains: { annotations: "^1.4.0", reading: "^2.0.0" } } };
+    permissions: ["annotations:write", "reading:write"], requires: { domains: { annotations: "^2.0.0", reading: "^2.0.0" } } };
   worker = await startPluginWorker(manifest, "0.5.4", disposables, { moduleUrl: new URL("./reader-annotation-probe.ts", import.meta.url).href });
   await worker.checkHealth(); worker.promote(); return seed;
 }

@@ -5,7 +5,6 @@
  * the origin stamp and the list invalidation.
  */
 import type { AnnotationsPort } from "@read-aware/agent";
-import { AppError } from "@read-aware/core";
 import { createDomainApi } from "../../../../domain";
 
 export function createAnnotationsPort(): AnnotationsPort {
@@ -30,8 +29,6 @@ export function createAnnotationsPort(): AnnotationsPort {
         color,
         style,
       }),
-    recolorHighlight: (highlightId, color) =>
-      annotations.commands.recolorHighlight(String(highlightId), color),
     createNote: async ({ bookId, body, quotedText, anchor, chapter }) =>
       annotations.commands.createNote({
         bookId: String(bookId),
@@ -40,19 +37,6 @@ export function createAnnotationsPort(): AnnotationsPort {
         anchor: anchor ?? null,
         chapterHref: chapter ?? null,
       }),
-    updateNote: (noteId, body) =>
-      annotations.commands.updateNote(String(noteId), body),
-    removeAnnotation: async (annotationId) => {
-      const target = await annotations.queries.get(annotationId);
-      if (!target) throw new AppError("annotations/not-found", `annotation not found: ${annotationId}`);
-      if (target.kind === "highlight") {
-        await annotations.commands.removeHighlight(String(annotationId));
-      } else if (target.kind === "note") {
-        await annotations.commands.removeNote(String(annotationId));
-      } else {
-        await annotations.commands.removeAsk(String(annotationId));
-      }
-    },
     recordAsk: async ({ bookId, question, anchor, chapter }) => {
       await annotations.commands.createAsk({
         bookId: String(bookId),

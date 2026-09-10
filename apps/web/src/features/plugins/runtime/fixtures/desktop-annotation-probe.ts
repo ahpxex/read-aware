@@ -44,7 +44,7 @@ export async function runDesktopAnnotationProbe(bookId: string) {
       const disposables: PluginDisposable[] = [];
       const manifest: PluginManifest = { id, name: "Annotations probe", version: "1.0.0", schemaVersion: 1,
         description: readOnly ? "read-only" : "write", permissions: [readOnly ? "annotations:read" : "annotations:write"],
-        requires: { domains: { annotations: "^1.1.0" }, services: { storage: "^2.0.0" } } };
+        requires: { domains: { annotations: "^2.0.0" }, services: { storage: "^2.0.0" } } };
       const worker = await startPluginWorker(manifest, "0.5.4", disposables, { moduleUrl: new URL("./annotation-probe.ts", import.meta.url).href });
       try {
         await worker.checkHealth(); worker.promote();
@@ -82,7 +82,8 @@ export async function runDesktopAnnotationProbe(bookId: string) {
     return { dataDir, results, approvalDriver: "actual interaction port answered programmatically, not chat UI or LLM" };
   } finally {
     const failures = await Promise.allSettled(created.map(async id => {
-      if (await annotations.queries.get(id)) await deps.annotations.removeAnnotation(id);
+      const snapshot = await annotations.queries.inspect(id);
+      if (snapshot) await annotations.commands.applyChanges([{ op: "remove", kind: snapshot.annotation.kind, annotationId: id, expectedRevision: snapshot.revision }]);
     }));
     const errors = failures.filter(result => result.status === "rejected");
     if (errors.length) throw new AggregateError(errors.map(result => result.reason), "Probe annotation cleanup failed");

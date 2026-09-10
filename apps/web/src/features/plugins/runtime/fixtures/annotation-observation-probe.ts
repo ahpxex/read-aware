@@ -7,12 +7,15 @@ export default { activate(ctx) {
     try {
       const domain = ctx.domains.annotations;
       let value: unknown;
-      if (action === "access") value = { observe: !!domain?.events.observe, write: !!domain?.commands };
+      if (action === "access") value = { observe: !!domain?.events.observe, write: !!domain?.commands, commands: Object.keys(domain?.commands ?? {}).sort() };
       else if (action === "state") value = events;
       else if (action === "stop") { for (const sub of subscriptions.splice(0)) sub.dispose(); value = events; }
       else if (!domain) value = { unavailable: true };
       else if (action === "invalid") await domain.events.observe({ kind: "page", query: { limit: 101 } }, () => {});
-      else if (action === "write") { await domain.commands!.updateNote(seed.noteId, "Annotation observation: Worker changed"); value = true; }
+      else if (action === "write") {
+        const snapshot = (await domain.queries.inspect(seed.noteId))!;
+        await domain.commands!.applyChanges([{ op: "updateNote", annotationId: seed.noteId, body: "Annotation observation: Worker changed", expectedRevision: snapshot.revision }]); value = true;
+      }
       else if (!subscriptions.length) for (const kind of ["page", "inspect"] as const) {
         const query = kind === "page" ? { kind, query: { bookId: seed.bookId, limit: 20 } } : { kind, annotationId: seed.noteId };
         subscriptions.push(await domain.events.observe(query, event => { events[kind]!.push(event); if (events[kind]!.length > 32) events[kind]!.shift(); }));

@@ -28,7 +28,7 @@ export async function prepareAnnotationObservationProbe() {
   for (const role of ["empty", "read", "write", "desk"] as const) {
     const declaration: PluginManifest = role === "desk" ? { ...manifest, id: "capability-annotation-observation-desk" } as PluginManifest
       : { id: `capability-annotation-observation-${role}`, name: "Annotation observation probe", version: "1.0.0", schemaVersion: 1,
-        description: JSON.stringify(seed), permissions: role === "empty" ? [] : [`annotations:${role}`], requires: { domains: { annotations: "^1.4.0" } } };
+        description: JSON.stringify(seed), permissions: role === "empty" ? [] : [`annotations:${role}`], requires: { domains: { annotations: "^2.0.0" } } };
     const url = role === "desk" ? new URL("../../../../../../../plugins/annotation-desk/dist/main.js", import.meta.url).href : new URL("./annotation-observation-probe.ts", import.meta.url).href;
     const worker = await startPluginWorker(declaration, "0.5.4", owned, { moduleUrl: url });
     workers.set(role, worker); await worker.checkHealth(); worker.promote();
@@ -43,8 +43,9 @@ export async function annotationObservationActor(role: "empty" | "read" | "write
 export async function changeAnnotationObservation(kind: "user" | "remote" | "remove") {
   await isolated(); if (!seed) throw Error("Prepare fixture first");
   if (kind === "remote") return createIpcSyncStore().applyRemote(await mintEventRows([{ type: "note.updated", origin: "user", payload: { noteId: seed.noteId, body: "Annotation observation: Remote changed" } }]));
-  if (kind === "remove") return domain.commands.removeNote(seed.noteId);
-  return domain.commands.updateNote(seed.noteId, "Annotation observation: User changed");
+  const snapshot = (await domain.queries.inspect(seed.noteId))!;
+  return domain.commands.applyChanges([{ annotationId: seed.noteId, expectedRevision: snapshot.revision,
+    ...(kind === "remove" ? { op: "remove", kind: "note" } as const : { op: "updateNote", body: "Annotation observation: User changed" } as const) }]);
 }
 export async function annotationObservationAgent() {
   await isolated(); if (!seed) throw Error("Prepare fixture first");

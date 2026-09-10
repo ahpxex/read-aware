@@ -15,7 +15,7 @@ const ask: Ask = { id: "ask", bookId: "book", type: "ask", text: "Question", cfi
 const highlight: Highlight = { ...ask, id: "highlight", type: "highlight", color: "blue", style: "underline", updatedAt: ask.createdAt };
 function plugin(permission?: PluginPermission) {
   const disposables: PluginDisposable[] = [];
-  const runtime = buildPluginContext({ id: "annotation-test", name: "Annotation test", version: "1.0.0", schemaVersion: 1, requires: { domains: { annotations: "^1.1.0" } }, permissions: permission ? [permission] : [] }, "0.5.4", disposables);
+  const runtime = buildPluginContext({ id: "annotation-test", name: "Annotation test", version: "1.0.0", schemaVersion: 1, requires: { domains: { annotations: "^2.0.0" } }, permissions: permission ? [permission] : [] }, "0.5.4", disposables);
   runtime.lifecycle.promote();
   cleanups.push(() => runtime.lifecycle.stop());
   return runtime;
@@ -62,40 +62,40 @@ test("Agent and authorized plugins share native pages and preserve query/storage
   expect(read).toHaveBeenCalledTimes(4);
 });
 
-test("only annotation writers receive ask deletion; no plugin receives ask creation", async () => {
+test("only annotation writers receive conditional mutation; no plugin receives ask creation or unconditional aliases", async () => {
   own(spyOn(db, "getAnnotation").mockResolvedValue(ask));
-  const remove = own(spyOn(db, "deleteAnnotation").mockResolvedValue());
+  const apply = own(spyOn(mutations, "commitAnnotationMutations").mockResolvedValue({ atomic: true, changes: [{ annotationId: "ask", revision: null }] }));
   expect(plugin().context.domains.annotations).toBeUndefined();
   const reader = plugin("annotations:read").context.domains.annotations!;
   expect(await reader.queries.get("ask")).toMatchObject({ kind: "ask" });
   expect(reader.commands).toBeUndefined();
   const writer = plugin("annotations:write");
-  expect(writer.context.domains.annotations!.commands).not.toHaveProperty("createAsk");
-  await writer.context.domains.annotations!.commands!.removeAsk("ask");
-  expect(remove).toHaveBeenCalledWith("ask", "plugin:annotation-test");
+  const commands = writer.context.domains.annotations!.commands!;
+  expect(Object.keys(commands).sort()).toEqual(["applyChanges", "createHighlight", "createNote"]);
+  const changes = [{ op: "remove" as const, kind: "ask" as const, annotationId: "ask", expectedRevision: `ann1:${"a".repeat(64)}` }];
+  await commands.applyChanges(changes);
+  expect(apply.mock.calls[0]).toEqual([changes, "plugin:annotation-test", expect.any(AbortSignal)]);
   writer.lifecycle.stop();
-  expect(() => writer.context.domains.annotations!.commands!.removeAsk("ask")).toThrow();
-  expect(remove).toHaveBeenCalledTimes(1);
+  expect(() => commands.applyChanges(changes)).toThrow();
+  expect(apply).toHaveBeenCalledTimes(1);
 });
 
-test("ask deletion rejects wrong kinds, missing IDs and unauthorized trace creation", async () => {
-  const read = own(spyOn(db, "getAnnotation").mockResolvedValue(highlight));
-  const remove = own(spyOn(db, "deleteAnnotation").mockResolvedValue());
+test("plugins cannot create fabricated traces or invalid highlight styles", async () => {
   const domain = createAnnotationsDomain("plugin:annotation-test");
-  await expect(domain.commands.removeAsk("highlight")).rejects.toMatchObject({ code: "annotations/not-found" });
-  read.mockResolvedValue(null);
-  await expect(domain.commands.removeAsk("missing")).rejects.toMatchObject({ code: "annotations/not-found" });
   await expect(domain.commands.createAsk({ bookId: "book", text: "Fabricated" })).rejects.toMatchObject({ code: "annotations/forbidden" });
   await expect(domain.commands.createHighlight({ bookId: "book", text: "Text", style: "invalid" as "underline" })).rejects.toMatchObject({ code: "annotations/invalid-input" });
-  expect(remove).not.toHaveBeenCalled();
 });
 
-test("Agent ask deletion uses the same exact lookup and removal verb", async () => {
-  own(spyOn(db, "getAnnotation").mockResolvedValue(ask));
+test("Agent mutations preserve the supplied revision without rereading and propagate native conflict", async () => {
+  const read = own(spyOn(db, "getAnnotation").mockRejectedValue(new Error("Must not refresh token")));
   const list = own(spyOn(db, "listAnnotations").mockRejectedValue(new Error("Must not scan")));
-  const remove = own(spyOn(db, "deleteAnnotation").mockResolvedValue());
-  await createAnnotationsPort().removeAnnotation("ask");
-  expect(remove).toHaveBeenCalledWith("ask", "agent");
+  const apply = own(spyOn(mutations, "commitAnnotationMutations").mockRejectedValue(new AppError("annotations/conflict", "Changed")));
+  const port = createAnnotationsPort();
+  for (const key of ["removeAnnotation", "updateNote", "recolorHighlight"]) expect(port).not.toHaveProperty(key);
+  const changes = [{ op: "remove" as const, kind: "ask" as const, annotationId: "ask", expectedRevision: `ann1:${"a".repeat(64)}` }];
+  await expect(port.applyChanges(changes)).rejects.toMatchObject({ code: "annotations/conflict" });
+  expect(apply).toHaveBeenCalledWith(changes, "agent", undefined);
+  expect(read).not.toHaveBeenCalled();
   expect(list).not.toHaveBeenCalled();
 });
 

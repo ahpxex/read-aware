@@ -2,7 +2,7 @@
 export const DOMAIN_CATALOG = {
   library: { version: "1.6.0", pluginAccess: ["read", "write"] },
   reading: { version: "2.8.0", pluginAccess: ["read", "write"] },
-  annotations: { version: "1.4.0", pluginAccess: ["read", "write"] },
+  annotations: { version: "2.0.0", pluginAccess: ["read", "write"] },
   conversations: { version: "1.0.0", pluginAccess: ["read"] },
   settings: { version: "1.6.0", pluginAccess: [] },
   memory: { version: "1.5.0", pluginAccess: ["read", "write"] },

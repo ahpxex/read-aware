@@ -13,7 +13,10 @@ export default {
       id: action, title: action, async run() {
         if (action === "mark") highlightId = (await commands.createHighlight({ bookId: seed.bookId,
           anchor: seed.anchor, chapterHref: seed.chapterHref, text: "Shared annotation target", color: "yellow" })).id;
-        else if (action === "note") await commands.updateNote(seed.noteId, "Worker note changed");
+        else if (action === "note") {
+          const snapshot = (await domain.queries.inspect(seed.noteId))!;
+          await commands.applyChanges([{ op: "updateNote", annotationId: seed.noteId, body: "Worker note changed", expectedRevision: snapshot.revision }]);
+        }
         else {
           if (!highlightId) throw Error("Create a mark first");
           const current = await domain.queries.inspect(highlightId);

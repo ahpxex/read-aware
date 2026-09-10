@@ -87,7 +87,7 @@ test("editing requires the observed revision and never overwrites a newer note",
   const { deps, tool } = fixture();
   const observed = parsed(await tool("get_annotations").execute("read", { annotationId: "note" }));
   expect(observed.revision).toMatch(/^ann1:[a-f0-9]{64}$/);
-  await deps.annotations.updateNote("note", "Changed by another actor");
+  await deps.annotations.applyChanges([{ op: "updateNote", annotationId: "note", body: "Changed by another actor", expectedRevision: (await deps.annotations.inspectAnnotation("note"))!.revision }]);
   await expect(tool("edit_annotation").execute("edit", { annotationId: "note", body: "Lost edit", expectedRevision: observed.revision })).rejects.toMatchObject({ code: "annotations/conflict" });
   expect(await deps.annotations.getAnnotation("note")).toMatchObject({ body: "Changed by another actor" });
   await expect(tool("edit_annotation").execute("edit", { annotationId: "note", body: "No token" })).rejects.toMatchObject({ code: "annotations/invalid-input" });
@@ -96,7 +96,7 @@ test("editing requires the observed revision and never overwrites a newer note",
 test("a change during deletion approval invalidates that approval's target version", async () => {
   const { deps, tool } = fixture();
   deps.interactions.request = async () => {
-    await deps.annotations.updateNote("note", "Changed while approval was open");
+    await deps.annotations.applyChanges([{ op: "updateNote", annotationId: "note", body: "Changed while approval was open", expectedRevision: (await deps.annotations.inspectAnnotation("note"))!.revision }]);
     return { optionId: "approve" };
   };
   await expect(tool("delete_annotation").execute("delete", { annotationId: "note" })).rejects.toMatchObject({ code: "annotations/conflict" });
@@ -127,7 +127,7 @@ test("batch checks every version again after approval, without partial changes",
     { op: "remove", kind: "ask", annotationId: "ask", expectedRevision: (await deps.annotations.inspectAnnotation("ask"))!.revision },
   ];
   deps.interactions.request = async () => {
-    await deps.annotations.updateNote("note", "Newer version");
+    await deps.annotations.applyChanges([{ op: "updateNote", annotationId: "note", body: "Newer version", expectedRevision: (await deps.annotations.inspectAnnotation("note"))!.revision }]);
     return { optionId: "approve" };
   };
   await expect(tool("apply_annotation_changes").execute("batch", { changes })).rejects.toMatchObject({ code: "annotations/conflict" });

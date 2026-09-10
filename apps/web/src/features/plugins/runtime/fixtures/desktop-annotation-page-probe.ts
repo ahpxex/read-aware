@@ -45,7 +45,7 @@ export async function runDesktopAnnotationPageProbe(bookId: string) {
       await localKV.setItemAsync(prefix + "input", JSON.stringify({ bookId, query, cursor: first.nextCursor, expectedIds }));
       const disposables: PluginDisposable[] = [];
       const manifest: PluginManifest = { id, name: "Annotation pages probe", version: "1.0.0", schemaVersion: 1,
-        permissions: authorized ? ["annotations:read"] : [], requires: { domains: { annotations: "^1.2.0" }, services: { storage: "^2.0.0" } } };
+        permissions: authorized ? ["annotations:read"] : [], requires: { domains: { annotations: "^2.0.0" }, services: { storage: "^2.0.0" } } };
       const worker = await startPluginWorker(manifest, "0.5.4", disposables, { moduleUrl: new URL("./annotation-page-probe.ts", import.meta.url).href });
       try {
         await worker.checkHealth(); worker.promote();
@@ -64,7 +64,8 @@ export async function runDesktopAnnotationPageProbe(bookId: string) {
         if (inspectContributions(id).length) throw new Error("Page probe left contributions");
       }
     }
-    await deps.annotations.removeAnnotation(first.items[1].id);
+    const removed = (await domain.queries.inspect(first.items[1].id))!;
+    await domain.commands.applyChanges([{ op: "remove", kind: removed.annotation.kind, annotationId: removed.annotation.id, expectedRevision: removed.revision }]);
     const newer = await domain.commands.createNote({ bookId, body: `${query} inserted after first page` });
     created.push(newer.id);
     const continued = await call({ ...filter, cursor: first.nextCursor, limit: 100 });
@@ -73,7 +74,8 @@ export async function runDesktopAnnotationPageProbe(bookId: string) {
     return { dataDir, query, results, verification: "actual Agent tool, SQLite and WebKit Worker; not LLM or UI interaction" };
   } finally {
     const cleanup = await Promise.allSettled(created.map(async id => {
-      if (await domain.queries.get(id)) await deps.annotations.removeAnnotation(id);
+      const snapshot = await domain.queries.inspect(id);
+      if (snapshot) await domain.commands.applyChanges([{ op: "remove", kind: snapshot.annotation.kind, annotationId: id, expectedRevision: snapshot.revision }]);
     }));
     const failures = cleanup.filter(result => result.status === "rejected");
     if (failures.length) throw new AggregateError(failures.map(result => result.reason), "Page probe cleanup failed");

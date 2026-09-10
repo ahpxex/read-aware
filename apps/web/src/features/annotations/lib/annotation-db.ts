@@ -70,19 +70,6 @@ async function requireStored(id: string): Promise<Annotation> {
   return stored;
 }
 
-export async function deleteAnnotation(id: string, origin?: EventOrigin): Promise<void> {
-  assertDesktop("Deleting an annotation");
-  // Read-before-delete so the removal event carries the right variant.
-  const existing = await getAnnotation(id);
-  if (existing?.type === "highlight") {
-    await commitDomainEvents({ type: "highlight.removed", payload: { highlightId: id }, origin });
-  } else if (existing?.type === "note") {
-    await commitDomainEvents({ type: "note.removed", payload: { noteId: id }, origin });
-  } else if (existing?.type === "ask") {
-    await commitDomainEvents({ type: "ask.removed", payload: { askId: id }, origin });
-  }
-}
-
 export async function listAnnotations(filters?: AnnotationFilters): Promise<Annotation[]> {
   if (!isTauri()) return [];
   const query = filters?.searchQuery?.trim();
@@ -133,20 +120,6 @@ export async function createHighlight(
   return requireStored(highlightId) as Promise<Highlight>;
 }
 
-/** Recolor / restyle an existing highlight (the reader's mark menu). */
-export async function recolorHighlight(
-  highlight: Highlight,
-  color: Highlight["color"],
-  origin?: EventOrigin,
-): Promise<Highlight> {
-  await commitDomainEvents({
-    type: "highlight.recolored",
-    payload: { highlightId: highlight.id, color, style: highlight.style },
-    origin,
-  });
-  return requireStored(highlight.id) as Promise<Highlight>;
-}
-
 export async function listHighlights(bookId?: string): Promise<Highlight[]> {
   const annotations = await listAnnotations({ bookId, type: "highlight" });
   return annotations as Highlight[];
@@ -175,18 +148,6 @@ export async function createNote(
     origin,
   });
   return requireStored(noteId) as Promise<Note>;
-}
-
-export async function updateNote(
-  id: string,
-  content: string,
-  origin?: EventOrigin,
-): Promise<Note | null> {
-  const note = await getAnnotation(id);
-  if (!note || note.type !== "note") return null;
-
-  await commitDomainEvents({ type: "note.updated", payload: { noteId: id, body: content }, origin });
-  return requireStored(id) as Promise<Note>;
 }
 
 export async function listNotes(bookId?: string): Promise<Note[]> {

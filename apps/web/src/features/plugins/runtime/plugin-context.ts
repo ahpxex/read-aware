@@ -780,12 +780,7 @@ export function buildPluginContext(
         {
         createHighlight: annotations.commands.createHighlight,
         applyChanges: (changes: import("@read-aware/core").AnnotationMutation[]) => annotations.commands!.applyChanges(changes, lifecycle.signal),
-        recolorHighlight: annotations.commands.recolorHighlight,
-        removeHighlight: annotations.commands.removeHighlight,
         createNote: annotations.commands.createNote,
-        updateNote: annotations.commands.updateNote,
-        removeNote: annotations.commands.removeNote,
-        removeAsk: annotations.commands.removeAsk,
         },
         (operation) => lifecycle.assertActive(operation),
         "domains.annotations.commands",

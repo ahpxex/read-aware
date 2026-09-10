@@ -26,12 +26,9 @@ import {
   createAsk,
   createHighlight,
   createNote,
-  deleteAnnotation,
   getAnnotation,
   listAnnotations,
   pageAnnotations,
-  recolorHighlight,
-  updateNote,
 } from "../features/annotations/lib/annotation-db";
 import type { Annotation } from "../features/annotations/lib/annotation-types";
 import { inspectAnnotation, commitAnnotationMutations } from "../features/annotations/lib/annotation-mutations";
@@ -47,6 +44,12 @@ const observationDeps = {
 const observer = new AnnotationObserver(observationDeps);
 // Plugin quota exhaustion must not prevent the user's own reader from observing.
 const nativeObserver = new AnnotationObserver(observationDeps);
+
+/** Host-only collection surface; this does not enlarge the public Worker query. */
+export function observeAllAnnotations(handler: (event: AnnotationQueryObservation<Annotation[]>) => unknown,
+  lifetime?: AbortSignal): () => void {
+  return nativeObserver.observeSnapshot(() => listAnnotations(), handler, lifetime);
+}
 
 /** Native surfaces already need the whole book; do not enlarge the public Worker payload contract. */
 export function observeBookAnnotations(bookId: string, handler: (event: AnnotationQueryObservation<Annotation[]>) => unknown,
@@ -120,8 +123,6 @@ export type AnnotationCommands = {
     color?: HighlightColor;
     style?: HighlightStyle;
   }): Promise<HighlightItem>;
-  recolorHighlight(highlightId: string, color: HighlightColor): Promise<void>;
-  removeHighlight(highlightId: string): Promise<void>;
   createNote(input: {
     bookId: string;
     body: string;
@@ -129,8 +130,6 @@ export type AnnotationCommands = {
     anchor?: string | null;
     chapterHref?: string | null;
   }): Promise<NoteItem>;
-  updateNote(noteId: string, body: string): Promise<void>;
-  removeNote(noteId: string): Promise<void>;
   /** Agent-only verb: record a passive trace of a book-thread question. */
   createAsk(input: {
     bookId: string;
@@ -138,11 +137,6 @@ export type AnnotationCommands = {
     anchor?: string | null;
     chapterHref?: string | null;
   }): Promise<AskItem>;
-  /**
-   * Remove an ask trace. Any actor may erase (the user owns their traces);
-   * only the agent may record.
-   */
-  removeAsk(askId: string): Promise<void>;
 };
 
 export type AnnotationsDomain = {
@@ -158,20 +152,6 @@ export function createAnnotationsDomain(origin: EventOrigin, lifetime?: AbortSig
   const annotationId = (id: string) => {
     if (typeof id !== "string" || !id.trim()) throw new AppError("annotations/invalid-input", "A non-empty annotation ID is required");
     return id;
-  };
-  const requireHighlight = async (id: string) => {
-    const existing = await getAnnotation(annotationId(id));
-    if (!existing || existing.type !== "highlight") {
-      throw new AppError("annotations/not-found", `highlight not found: ${id}`);
-    }
-    return existing;
-  };
-  const requireNote = async (id: string) => {
-    const existing = await getAnnotation(annotationId(id));
-    if (!existing || existing.type !== "note") {
-      throw new AppError("annotations/not-found", `note not found: ${id}`);
-    }
-    return existing;
   };
 
   const queries: AnnotationQueries = {
@@ -217,14 +197,6 @@ export function createAnnotationsDomain(origin: EventOrigin, lifetime?: AbortSig
       );
       return toAnnotationItem(highlight) as HighlightItem;
     },
-    recolorHighlight: async (highlightId, color) => {
-      const existing = await requireHighlight(highlightId);
-      await recolorHighlight(existing, color, origin);
-    },
-    removeHighlight: async (highlightId) => {
-      await requireHighlight(highlightId);
-      await deleteAnnotation(String(highlightId), origin);
-    },
     createNote: async (input) => {
       const note = await createNote(
         String(input.bookId),
@@ -235,14 +207,6 @@ export function createAnnotationsDomain(origin: EventOrigin, lifetime?: AbortSig
         origin,
       );
       return toAnnotationItem(note) as NoteItem;
-    },
-    updateNote: async (noteId, body) => {
-      await requireNote(noteId);
-      await updateNote(String(noteId), String(body), origin);
-    },
-    removeNote: async (noteId) => {
-      await requireNote(noteId);
-      await deleteAnnotation(String(noteId), origin);
     },
     createAsk: async (input) => {
       if (origin !== "agent") {
@@ -255,13 +219,6 @@ export function createAnnotationsDomain(origin: EventOrigin, lifetime?: AbortSig
         String(input.text),
       );
       return toAnnotationItem(ask) as AskItem;
-    },
-    removeAsk: async (askId) => {
-      const existing = await getAnnotation(annotationId(askId));
-      if (!existing || existing.type !== "ask") {
-        throw new AppError("annotations/not-found", `ask not found: ${askId}`);
-      }
-      await deleteAnnotation(String(askId), origin);
     },
   };
 

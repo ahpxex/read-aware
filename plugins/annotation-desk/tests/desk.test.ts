@@ -224,7 +224,7 @@ test("locale fallback distinguishes traditional Chinese and package declares all
   expect(tr("zh-TW", "title")).toBe("標註整理器");
   expect(tr("fr-CA", "book")).toBe("Livre");
   expect(tr("unknown", "book")).toBe("Book");
-  expect(manifest.requires.domains.annotations).toBe("^1.4.0");
+  expect(manifest.requires.domains.annotations).toBe("^2.0.0");
   expect(manifest.permissions).toEqual(["annotations:write", "library:read", "reading:write"]);
   const f = fixture();
   const headers: { surface: string; presentation: string }[] = [];

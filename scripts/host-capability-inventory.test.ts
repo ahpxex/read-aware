@@ -25,6 +25,14 @@ test("a new semantic command cannot silently inherit a catch-all audit mapping",
   finally { ids.pop(); }
 });
 
+test("annotation edits and removals have one conditional public inventory entry", () => {
+  const commands = collectInventory().filter(item => item.family === "Plugin ctx" && item.name.startsWith("domains.annotations.commands."));
+  expect(commands.map(item => item.name).sort()).toEqual([
+    "domains.annotations.commands.applyChanges", "domains.annotations.commands.createHighlight", "domains.annotations.commands.createNote",
+  ]);
+  expect(commands.find(item => item.name.endsWith("applyChanges"))!.rows).toEqual(["ANN04", "ANN05", "ANN06", "ANN08"]);
+});
+
 test("memory query and consumer inventories stay distinct from bundled or model tools", () => {
   const inventory = collectInventory();
   expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.queries.search")?.rows).toEqual(["MEM01"]);

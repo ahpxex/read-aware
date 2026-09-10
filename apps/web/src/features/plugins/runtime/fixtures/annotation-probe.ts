@@ -14,16 +14,17 @@ export default {
         return;
       }
       if ("createAsk" in annotations.commands!) throw new Error("Plugin can fabricate ask traces");
-      const ask = await annotations.queries.get(input.askId);
+      const snapshot = (await annotations.queries.inspect(input.askId))!;
+      const ask = snapshot.annotation;
       if (ask?.kind !== "ask") throw new Error("Ask query failed");
       const events: unknown[] = [];
       const subscription = annotations.events.subscribe("ask.removed", event => { events.push(event); });
       try {
-        await annotations.commands!.removeAsk(input.askId);
+        await annotations.commands!.applyChanges([{ op: "remove", kind: "ask", annotationId: input.askId, expectedRevision: snapshot.revision }]);
         if (await annotations.queries.get(input.askId)) throw new Error("Ask deletion acknowledged before persistence");
         const failures: Record<string, string> = {};
         for (const [name, id] of [["missing", input.askId], ["wrongKind", input.highlightId]]) {
-          try { await annotations.commands!.removeAsk(id); throw new Error("Invalid ask removal succeeded"); }
+          try { await annotations.commands!.applyChanges([{ op: "remove", kind: "ask", annotationId: id, expectedRevision: snapshot.revision }]); throw new Error("Invalid ask removal succeeded"); }
           catch (error) {
             const code = (error as { code?: string }).code;
             if (code !== "annotations/not-found") throw error;

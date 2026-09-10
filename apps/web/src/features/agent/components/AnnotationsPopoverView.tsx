@@ -6,9 +6,9 @@
  * 因此空态、多书分组、书已删除等状态都能单独渲染。
  */
 import { Notebook } from "@phosphor-icons/react";
-import { Body, Eyebrow, Popover, InlineError } from "@read-aware/ui";
+import { Body, Eyebrow, Popover, InlineError, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
-import { formatNumber, useTranslation } from "../../../i18n";
+import { describeErrorCode, formatNumber, useTranslation } from "../../../i18n";
 import { AnnotationRow } from "../../annotations/components/AnnotationRow";
 import type { Annotation } from "../../annotations/lib/annotation-types";
 import type { LibraryBook } from "../../library/lib/library-types";
@@ -19,6 +19,8 @@ type AnnotationsPopoverViewProps = {
   annotations: Annotation[];
   /** The read failed — render an error state, never an empty list. */
   loadFailed?: boolean;
+  loadErrorCode?: string;
+  isLoading?: boolean;
   onRetryLoad?: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -30,6 +32,8 @@ export function AnnotationsPopoverView({
   books,
   annotations,
   loadFailed = false,
+  loadErrorCode,
+  isLoading = false,
   onRetryLoad,
   open,
   onOpenChange,
@@ -37,6 +41,7 @@ export function AnnotationsPopoverView({
   onDelete,
 }: AnnotationsPopoverViewProps) {
   const { t } = useTranslation(["ai", "common"]);
+  const failure = describeErrorCode(loadErrorCode ?? "annotations/observation-failed");
 
   const bookMap = new Map(books.map((b) => [b.id, b]));
   const grouped = new Map<string, Annotation[]>();
@@ -67,14 +72,14 @@ export function AnnotationsPopoverView({
       <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-2.5">
         <Eyebrow as="span">{t("agent.annotations.title")}</Eyebrow>
         <span className="text-xs tabular-nums text-fg-subtle">
-          {formatNumber(annotations.length)}
+          {!isLoading && !loadFailed ? formatNumber(annotations.length) : null}
         </span>
       </div>
 
-      {loadFailed ? (
+      {isLoading ? <div className="flex justify-center px-4 py-6"><Spinner /></div> : loadFailed ? (
         <div className="px-4 py-6">
-          <InlineError onRetry={onRetryLoad} retryLabel={t("common:errorBoundary.retry")}>
-            {t("common:errors.generic")}
+          <InlineError onRetry={failure?.retryable ? onRetryLoad : undefined} retryLabel={t("common:errorBoundary.retry")}>
+            {failure?.body ?? t("common:errors.generic")}
           </InlineError>
         </div>
       ) : annotations.length === 0 ? (

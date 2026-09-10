@@ -1,0 +1,345 @@
+{
+  "date": "2026-09-10",
+  "scope": "Annotations 2 public conditional-only edits/deletes and shared native all/book observation",
+  "environment": {
+    "app": "com.readaware.app.capability-e2e",
+    "frontend": "http://localhost:5184",
+    "bridge": 9224,
+    "platform": "macOS Tauri debug with actual SQLite and WebKit module Workers",
+    "baseCommit": "5cd19804",
+    "unownedBridge": 9223
+  },
+  "contract": {
+    "version": "2.0.0",
+    "workerWriteKeys": [
+      "applyChanges",
+      "createHighlight",
+      "createNote"
+    ],
+    "workerReadOnlyKeys": [],
+    "legacyRequirement": "^1.4.0",
+    "legacyRejected": "requires domains.annotations ^1.4.0, but the host provides 2.0.0",
+    "negotiationScope": "Actual production negotiation helper invoked in native app; not a new installation UX test",
+    "removedPluginAliases": [
+      "recolorHighlight",
+      "removeHighlight",
+      "updateNote",
+      "removeNote",
+      "removeAsk"
+    ],
+    "removedAgentAliases": [
+      "recolorHighlight",
+      "updateNote",
+      "removeAnnotation"
+    ],
+    "internalRestore": "saveAnnotation/annotation_put, one-time import, replay and remote event ingestion remain host-only"
+  },
+  "nativeGlobal": {
+    "seed": {
+      "bookId": "238c01de-b01e-4d06-8077-9aaaaa5d4cf2",
+      "noteId": "94894e17-5d70-4d5f-be87-03ed691197b1"
+    },
+    "initial": "Actual Agent nav and Highlights & notes button display Initial note and count 1",
+    "workerChange": "Actual write-permitted Worker updates through applyChanges; open native popover and actual Agent get_annotations show Worker changed",
+    "staleDelete": {
+      "method": "Apply a remote note.updated using actual sync applyRemote, immediately call the native Delete button's click event before the one-second observer refresh; programmatic DOM click, not pointer hit-testing",
+      "displayed": "Annotation observation: Worker changed",
+      "persisted": "Annotation observation: Remote changed",
+      "toast": [
+        "Couldn't delete the annotation",
+        "This annotation changed. Read it again before applying your changes."
+      ],
+      "preserved": true
+    },
+    "readFailure": {
+      "method": "One SQLite transaction reads and drops only trg_annotations_fts_update, casts the exact owned note created_at TEXT to BLOB, recreates the identical stored trigger. Restored by reverse cast in a second transaction; text/FTS contents unchanged.",
+      "visible": "The local database ran into a problem.",
+      "deleteButtons": 0,
+      "countHidden": true,
+      "staleContentsCleared": true,
+      "restoredTimestamp": "2026-09-10T02:58:01.351Z",
+      "recovery": "Open popover restores latest note and one Delete button without reopening",
+      "screenshotInspected": true
+    },
+    "successfulDelete": {
+      "method": "Actual close/reopen header button and actual native Delete click after latest observed snapshot",
+      "query": {
+        "items": [],
+        "revision": null
+      },
+      "uiCount": 0,
+      "uiEmpty": "Highlights and notes from your reading will appear here."
+    },
+    "bookTitleBoundary": "Metadata-only probe book was created outside the shell book refresh path; native global book label stayed Unknown Book. Annotation Desk queried and displayed its title. This is not book-title subscription coverage."
+  },
+  "compiledPlugin": {
+    "name": "Annotation Desk",
+    "version": "0.3.0",
+    "source": "plugins/annotation-desk/dist/main.js",
+    "requiredAnnotations": "^2.0.0",
+    "openedWith": "Production runPluginContribution dialog using actual compiled Worker",
+    "draft": "Annotation v2 pinned draft",
+    "conflictAfter": "Another actual Worker changed the note while detail view was open",
+    "error": "An annotation changed or was removed. Nothing was changed. Refresh before trying again.",
+    "draftPreserved": true
+  },
+  "askProbe": {
+    "module": "desktop-annotation-probe.ts",
+    "actualAgentUnderline": true,
+    "readonlyCommandsAbsent": true,
+    "conditionalAskDelete": true,
+    "missing": "annotations/not-found",
+    "wrongKind": "annotations/not-found",
+    "eventOrigin": "plugin:capability-annotations-write",
+    "declinePreserves": true,
+    "approveDeletes": true,
+    "approval": "Actual Agent tools and interaction port answered programmatically, not model inference or chat approval UI"
+  },
+  "mutationProbe": {
+    "created": [
+      "12e24323-855c-4faf-80a1-ac7f2164b42d",
+      "f6c31fe5-80e2-4023-9080-e09a54795099"
+    ],
+    "dataDir": "/Users/ahpx/Library/Application Support/com.readaware.app.capability-e2e",
+    "results": {
+      "agentEdit": {
+        "annotationId": "12e24323-855c-4faf-80a1-ac7f2164b42d",
+        "body": "Agent conditional edit",
+        "updated": true
+      },
+      "approvalConflict": {
+        "code": "annotations/conflict",
+        "remaining": {
+          "body": "Changed while approval was open",
+          "bookId": "238c01de-b01e-4d06-8077-9aaaaa5d4cf2",
+          "createdAt": "2026-09-10T03:00:36.540Z",
+          "id": "12e24323-855c-4faf-80a1-ac7f2164b42d",
+          "kind": "note",
+          "updatedAt": "2026-09-10T03:00:36.768Z"
+        }
+      },
+      "approve": {
+        "note": {
+          "body": "Agent batch final",
+          "bookId": "238c01de-b01e-4d06-8077-9aaaaa5d4cf2",
+          "createdAt": "2026-09-10T03:00:36.540Z",
+          "id": "12e24323-855c-4faf-80a1-ac7f2164b42d",
+          "kind": "note",
+          "updatedAt": "2026-09-10T03:00:36.774Z"
+        },
+        "remaining": null,
+        "result": {
+          "content": [
+            {
+              "text": "{\"atomic\":true,\"changes\":[{\"annotationId\":\"12e24323-855c-4faf-80a1-ac7f2164b42d\",\"revision\":\"ann1:d5f7bf0a97826c048ac18a4a1d3d40391498c32118e4b5aeacd925ffe85a5403\"},{\"annotationId\":\"f6c31fe5-80e2-4023-9080-e09a54795099\",\"revision\":null}]}",
+              "type": "text"
+            }
+          ],
+          "details": {
+            "answer": {
+              "optionId": "approve"
+            },
+            "id": "book:238c01de-b01e-4d06-8077-9aaaaa5d4cf2:batch-approve",
+            "phase": "response",
+            "type": "user-interaction"
+          }
+        }
+      },
+      "decline": {
+        "note": {
+          "body": "Changed while approval was open",
+          "bookId": "238c01de-b01e-4d06-8077-9aaaaa5d4cf2",
+          "createdAt": "2026-09-10T03:00:36.540Z",
+          "id": "12e24323-855c-4faf-80a1-ac7f2164b42d",
+          "kind": "note",
+          "updatedAt": "2026-09-10T03:00:36.768Z"
+        },
+        "remaining": {
+          "bookId": "238c01de-b01e-4d06-8077-9aaaaa5d4cf2",
+          "color": "blue",
+          "createdAt": "2026-09-10T03:00:36.543Z",
+          "id": "f6c31fe5-80e2-4023-9080-e09a54795099",
+          "kind": "highlight",
+          "style": "underline",
+          "text": "Mutation probe quotation",
+          "updatedAt": "2026-09-10T03:00:36.706Z"
+        },
+        "result": {
+          "content": [
+            {
+              "text": "{\"committed\":false,\"reason\":\"User declined.\"}",
+              "type": "text"
+            }
+          ],
+          "details": {
+            "answer": {
+              "optionId": "decline"
+            },
+            "id": "book:238c01de-b01e-4d06-8077-9aaaaa5d4cf2:batch-decline",
+            "phase": "response",
+            "type": "user-interaction"
+          }
+        }
+      },
+      "reader": {
+        "commandsAvailable": false,
+        "highlight": {
+          "annotation": {
+            "bookId": "238c01de-b01e-4d06-8077-9aaaaa5d4cf2",
+            "color": "yellow",
+            "createdAt": "2026-09-10T03:00:36.543Z",
+            "id": "f6c31fe5-80e2-4023-9080-e09a54795099",
+            "kind": "highlight",
+            "style": "highlight",
+            "text": "Mutation probe quotation",
+            "updatedAt": "2026-09-10T03:00:36.543Z"
+          },
+          "revision": "ann1:66937bef9c2bf8ce1ba03fa9a66bbd298378d07f2b1586adc1bbfd48a021b0f9"
+        }
+      },
+      "writer": {
+        "conflict": "annotations/conflict",
+        "events": [
+          {
+            "createdAt": "2026-09-10T03:00:36.707Z",
+            "origin": "plugin:capability-annotation-mutations-write",
+            "payload": {
+              "body": "Worker batch note",
+              "noteId": "12e24323-855c-4faf-80a1-ac7f2164b42d"
+            },
+            "type": "note.updated"
+          },
+          {
+            "createdAt": "2026-09-10T03:00:36.707Z",
+            "origin": "plugin:capability-annotation-mutations-write",
+            "payload": {
+              "color": "blue",
+              "highlightId": "f6c31fe5-80e2-4023-9080-e09a54795099",
+              "style": "underline"
+            },
+            "type": "highlight.recolored"
+          }
+        ],
+        "highlightAfter": {
+          "annotation": {
+            "bookId": "238c01de-b01e-4d06-8077-9aaaaa5d4cf2",
+            "color": "blue",
+            "createdAt": "2026-09-10T03:00:36.543Z",
+            "id": "f6c31fe5-80e2-4023-9080-e09a54795099",
+            "kind": "highlight",
+            "style": "underline",
+            "text": "Mutation probe quotation",
+            "updatedAt": "2026-09-10T03:00:36.706Z"
+          },
+          "revision": "ann1:de56137e6882b645366efac28553919cb46382ccd80189ecef5f4c1068dad84b"
+        },
+        "noteAfter": {
+          "annotation": {
+            "body": "Worker batch note",
+            "bookId": "238c01de-b01e-4d06-8077-9aaaaa5d4cf2",
+            "createdAt": "2026-09-10T03:00:36.540Z",
+            "id": "12e24323-855c-4faf-80a1-ac7f2164b42d",
+            "kind": "note",
+            "updatedAt": "2026-09-10T03:00:36.706Z"
+          },
+          "revision": "ann1:63b322165856437e847ccd4b3c362cb27611e02a94466326406f032075c7a41c"
+        },
+        "receipt": {
+          "atomic": true,
+          "changes": [
+            {
+              "annotationId": "12e24323-855c-4faf-80a1-ac7f2164b42d",
+              "revision": "ann1:63b322165856437e847ccd4b3c362cb27611e02a94466326406f032075c7a41c"
+            },
+            {
+              "annotationId": "f6c31fe5-80e2-4023-9080-e09a54795099",
+              "revision": "ann1:de56137e6882b645366efac28553919cb46382ccd80189ecef5f4c1068dad84b"
+            }
+          ]
+        },
+        "rejectedBatchUnchanged": true
+      }
+    },
+    "verification": "Actual Agent tools/interaction port, SQLite and WebKit Worker. Approval responses are programmatic, not LLM/chat UI."
+  },
+  "nativeBook": {
+    "module": "desktop-reader-annotation-probe.ts",
+    "bookIds": [
+      "3711e24e-b58f-4c8f-8774-4723286c7335",
+      "e2f078f8-df0d-487d-8dac-733bab76e333"
+    ],
+    "noteId": "343a2b3d-a3c2-47db-a21a-d77184416937",
+    "hostIssuedAnchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+    "format": "Actual imported FB2",
+    "workerCreateHighlight": true,
+    "workerNoteEdit": true,
+    "notesUI": {
+      "count": 2,
+      "body": "Worker note changed",
+      "screenshotInspected": true,
+      "visibleYellowHighlight": true
+    },
+    "workerRecolor": {
+      "color": "blue",
+      "style": "underline",
+      "verified": "Actual Agent read; no separate blue underline screenshot"
+    },
+    "workerRemove": {
+      "notesCount": 1,
+      "notePreserved": true
+    },
+    "switchOtherHidesOld": true,
+    "returnQueryPreservesNote": true,
+    "actualAgentClose": {
+      "closed": true,
+      "status": "completed"
+    }
+  },
+  "cleanup": {
+    "probeContributions": 0,
+    "readerContributions": 0,
+    "books": 0,
+    "annotations": 0,
+    "fts": 0,
+    "pendingReading": 0,
+    "removalIntents": 0,
+    "liveBookCoverBlobs": 0,
+    "formalDataUntouched": true,
+    "eventHistoryRetained": true,
+    "driverStopped": true,
+    "ownedProcessGroup": 32394,
+    "ownedExecSession": 79339,
+    "exitCode": 143,
+    "ports5184And9224": "No listeners after stop"
+  },
+  "documentation": {
+    "pairs": ["host-capability-matrix", "host-capability-model", "plugin-system"],
+    "pairValidators": "All three passed; no diagrams needed for the capability tables/contracts",
+    "screenshotsInspected": "All three pages at 1440x1000, 1024x768 and 390x844 (nine screenshots)",
+    "layout": "No observed page overflow, duplicate IDs, broken in-page anchors or unnamed icon buttons; matrix table scrolls internally",
+    "matrixSearch": { "applyChanges": ["ANN04", "ANN05", "ANN06", "ANN08"], "所见版本": ["ANN05", "ANN09"], "escapeClears": true },
+    "modelSearch": { "applyChanges": "1/57", "所见版本": "1/57", "escapeRestores": "57/57" },
+    "pluginSearch": { "applyChanges": "2/19", "所见版本": "2/19", "escapeRestores": "19/19" },
+    "drawerAndTheme": "Matrix/model mobile drawer makes main inert and Escape restores it; matrix dark and model light survive reload. Existing plugin page has no theme/drawer controls.",
+    "resources": "Observed CDN responses 200; static documents still need network",
+    "console": "One initial matrix file-origin unsafe-load console diagnostic occurred. Fresh matrix navigation and model/plugin checks had no console errors; not represented as an entirely clean preserved log.",
+    "ownedPage": "Chrome DevTools isolated annotation-v2-docs page 11 closed",
+    "productBoundary": "Static document checks are not product verification"
+  },
+  "verification": {
+    "workspaceTests": "24/24 tasks, web 940 tests",
+    "typecheck": "27/27 tasks",
+    "frontendBuild": "passed; existing large chunk warnings",
+    "targetedAudit": "13 tests/61 assertions including hook lifecycle",
+    "rust": "No Rust source changes this unit; actual app rebuilt/launched; previous Rust evidence is not a fresh test-suite run"
+  },
+  "remaining": [
+    "Whole-library and whole-book annotation payload size/row event lookup load",
+    "Unified Range validity and stale anchors",
+    "Legacy event subscribers do not receive a full remote log",
+    "Other native menu/selection late completions and native window listener teardown",
+    "Host restoration and cross-device merge are not distributed CAS",
+    "No autonomous inference, packaged build, Windows/Linux or relay E2E",
+    "All other matrix partial/unconnected should-open capabilities and full composition coverage remain active"
+  ]
+}

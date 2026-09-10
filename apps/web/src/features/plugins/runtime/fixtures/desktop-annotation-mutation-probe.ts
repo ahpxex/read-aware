@@ -34,7 +34,7 @@ export async function runDesktopAnnotationMutationProbe(bookId: string) {
     const highlight = await domain.commands.createHighlight({ bookId, text: "Mutation probe quotation" }); created.push(highlight.id);
     const observed = await call("get_annotations", { annotationId: note.id });
     const stale = { annotation: observed.items[0], revision: observed.revision };
-    await domain.commands.updateNote(note.id, "Another actor's change");
+    await domain.commands.applyChanges([{ op: "updateNote", annotationId: note.id, body: "Another actor's change", expectedRevision: (await domain.queries.inspect(note.id))!.revision }]);
     for (const readOnly of [true, false]) {
       const id = `capability-annotation-mutations-${readOnly ? "read" : "write"}`;
       const prefix = `read-aware-plugin.${id}.`;
@@ -43,7 +43,7 @@ export async function runDesktopAnnotationMutationProbe(bookId: string) {
       try {
         await localKV.setItemAsync(prefix + "input", JSON.stringify({ stale, highlightId: highlight.id }));
         const manifest: PluginManifest = { id, name: "Annotation mutations probe", version: "1.0.0", schemaVersion: 1, description: readOnly ? "read-only" : "write",
-          permissions: [readOnly ? "annotations:read" : "annotations:write"], requires: { domains: { annotations: "^1.3.0" }, services: { storage: "^2.0.0" } } };
+          permissions: [readOnly ? "annotations:read" : "annotations:write"], requires: { domains: { annotations: "^2.0.0" }, services: { storage: "^2.0.0" } } };
         worker = await startPluginWorker(manifest, "0.5.4", disposables, { moduleUrl: new URL("./annotation-mutation-probe.ts", import.meta.url).href });
         await worker.checkHealth(); worker.promote();
         const command = getDefaultStore().get(pluginCommandsAtom).find(command => command.pluginId === id);
@@ -67,9 +67,11 @@ export async function runDesktopAnnotationMutationProbe(bookId: string) {
       const deletion = tool("delete_annotation").execute("mutation-approval", { annotationId: note.id }, controller.signal, update => {
         const details = interactionFromToolDetails(update.details);
         if (details?.phase !== "request") return;
-        updateDuringApproval = domain.commands.updateNote(note.id, "Changed while approval was open").then(() => {
+        updateDuringApproval = (async () => {
+          const snapshot = (await domain.queries.inspect(note.id))!;
+          await domain.commands.applyChanges([{ op: "updateNote", annotationId: note.id, body: "Changed while approval was open", expectedRevision: snapshot.revision }]);
           if (!respondToUserInteraction(details.request.id, { optionId: "approve" })) throw new Error("Approval was not pending");
-        });
+        })();
       });
       try { await deletion; throw new Error("Deletion overwrote a change made during approval"); }
       catch (error) { if ((error as { code?: string }).code !== "annotations/conflict") throw error; }
@@ -91,7 +93,10 @@ export async function runDesktopAnnotationMutationProbe(bookId: string) {
     } finally { clearTimeout(timeout); }
     return { dataDir, created, results, verification: "Actual Agent tools/interaction port, SQLite and WebKit Worker. Approval responses are programmatic, not LLM/chat UI." };
   } finally {
-    const cleanup = await Promise.allSettled(created.map(async id => { if (await domain.queries.get(id)) await deps.annotations.removeAnnotation(id); }));
+    const cleanup = await Promise.allSettled(created.map(async id => {
+      const snapshot = await domain.queries.inspect(id);
+      if (snapshot) await domain.commands.applyChanges([{ op: "remove", kind: snapshot.annotation.kind, annotationId: id, expectedRevision: snapshot.revision }]);
+    }));
     const failures = cleanup.filter(result => result.status === "rejected");
     if (failures.length) throw new AggregateError(failures.map(result => result.reason), "Mutation probe cleanup failed");
   }

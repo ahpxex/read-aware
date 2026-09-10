@@ -15,7 +15,6 @@ import { AppError } from "@read-aware/core";
 import type {
   BookStats,
   CollectionSummary,
-  HighlightColor,
   Id,
   StatsOverview,
 } from "@read-aware/core";
@@ -498,15 +497,6 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         annotationMutations.touch(highlight.id);
         return highlight;
       },
-      recolorHighlight: async (highlightId, color: HighlightColor) => {
-        const highlight = annotations.find((entry) => entry.id === highlightId);
-        if (!highlight || highlight.kind !== "highlight") {
-          throw new Error(`highlight not found: ${highlightId}`);
-        }
-        highlight.color = color;
-        highlight.updatedAt = new Date().toISOString();
-        annotationMutations.touch(highlightId);
-      },
       createNote: async ({ bookId, body, quotedText, anchor, chapter }) => {
         const now = new Date().toISOString();
         const note: AnnotationItem = {
@@ -523,22 +513,6 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         annotations.push(note);
         annotationMutations.touch(note.id);
         return note;
-      },
-      updateNote: async (noteId, body) => {
-        const note = annotations.find((entry) => entry.id === noteId);
-        if (!note || note.kind !== "note")
-          throw new Error(`note not found: ${noteId}`);
-        note.body = body;
-        note.updatedAt = new Date().toISOString();
-        annotationMutations.touch(noteId);
-      },
-      removeAnnotation: async (annotationId) => {
-        const index = annotations.findIndex(
-          (entry) => entry.id === annotationId,
-        );
-        if (index < 0) throw new Error(`annotation not found: ${annotationId}`);
-        annotations.splice(index, 1);
-        annotationMutations.touch(annotationId);
       },
       recordAsk: async (input) => {
         stores.asks.push(input);

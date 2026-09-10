@@ -1414,3 +1414,23 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [文档] matrix 与 plugin-system 两对更新，模型 MD 仅生成新增证据链接，HTML 无变化。两页各检查 1440×1000、1024×768、390×844 六张截图；矩阵表格自身横向滚动、页面无横溢。矩阵 busy/阻塞工作池命中 ANN05，Escape 恢复 243；移动抽屉 inert/恢复和 dark 刷新保持通过。插件 macOS/阻塞工作池为 15/2 节，Escape 恢复 19；原无抽屉/主题。无重复 ID/坏页内锚点/无名按钮/console error，观察 CDN 均 200，无图需验，自有页面关闭；HTML 仍依赖网络，非产品验收。
 
 [剩余] 线程池队列/内存上限、启动/退出生命周期、原生监听退订、原生其他动作完成所有权、旧公共无条件写、整书最大载荷与统一 Range 未因本单元关闭。其余双端部分/未接项、全能力组合、自主模型、打包/跨平台/真实跨设备、强杀和长时验收继续。整体目标未完成，未推送。
+
+## 2026-09-10：Annotations 2 统一条件写与全局观察
+
+[进度] 上轮只是应用户要求确认模型状态，没有推进代码，属于 no progress；本轮复核 5cd19804 后已有的未完成迁移并继续实现。总目标仍是全部应开放双端能力、组合插件及原生验收，不以本单元替代整体完成。
+
+[代码/破坏性迁移] annotations 2.0.0 删除公共 recolorHighlight/removeHighlight/updateNote/removeNote/removeAsk 五个无条件命令；插件命令只剩 createHighlight/createNote/applyChanges。修改/删除必须携带决定所依据的观察版本，不在保存旧草稿时悄悄重读 token。Agent 端口同步删除三个旧别名；实际模型工具本来已走共享 CAS，危险操作批准仍绑定原版本。目录、SDK、host context、派生 Worker 形状及库存同步，旧 ^1.x 要求明确拒绝。Annotation Desk 0.3.0 和全部源码测试调用者已迁移；八语言公开示例请求 annotations/storage 2，实际协商检查全部通过。没有新增兼容分支或扩大原生权限。backup saveAnnotation/annotation_put、一次性迁移、重放和远端事件仍是宿主恢复路径，不计作公共编辑 API。
+
+[原生状态] 抽出 useAnnotations 的 all/book 作用域，原 useBookAnnotations 复用同一实现；全局 Agent 标注弹层不再只在打开时读一次，也不再写后手动删列表。两类集合使用同源串行观察、初始 loading、错误清旧内容/动作/计数、恢复、关闭/切书释放和迟到结果隔离。全局 Delete 使用真正显示的行版本，失败经日志和本地化 destructive toast 告知。React 测试使用真实 AnnotationObserver、受控调度与延迟读写验证这些边界，没有用静态形状测试替代生命周期。
+
+[桌面/组合] [annotation-contract-v2](./evidence/annotation-contract-v2-2026-09-10.json) 记录隔离 macOS debug、真实 SQLite、实际 Worker 和实际 Agent 工具。Worker 写权限仅见三个命令，只读无命令；公共条件删 ask 成功，错误类型/缺失稳定报 not-found；实际原子批次旧版本全不改、新版本成功，Agent 批准间发生更新时冲突。编译 Annotation Desk 0.3 的真实 textarea 输入在其他 Worker 修改后 Save 返回冲突，原草稿保持。未进行自主模型推理，批准回复是程序驱动实际交互端口；版本拒绝调用实际协商 helper，不冒充安装 UX 验收。
+
+[全局竞争/故障] 打开真正全局标注弹层后 Worker 修改自动出现；实际 sync applyRemote 投影先改，再立即触发原生 Delete DOM click（非指针命中测试），旧决定被拒绝，新内容保留并显示本地化冲突。关闭重开后用实际 Delete 点击成功，Agent 查询为空、UI 诚实显示零。单个自有 note 的 created_at 在事务内临时改为 BLOB，前后恢复完全相同 FTS trigger，文本/索引不变；真实读取失败清掉内容、按钮和计数，只显示数据库错误，恢复 TEXT 后不需重开便显示新值。元数据夹具绕过书架刷新入口，原生分组书名显示 Unknown Book，编译插件另查到标题；未把这项验证算作书目订阅覆盖。
+
+[阅读/清理] 真正导入两本 FB2，Worker 创建高亮/编辑笔记后 Notes 显示两条且正文黄色标记可见，实际 Agent 查询一致；条件改蓝色下划线由查询验证，删除高亮后 Notes 一条且笔记保留。换书隐藏旧集合，返回保留原笔记，实际 Agent close 返回完成并退休 pending。全部三个自有书通过正式域删除/文件清理，终态 SQL 的 books/annotations/FTS/pending/removal intents/live blobs 均零，事件历史保留。Worker 贡献归零，driver 已停，PGID 32394 / exec 79339 终态 143，5184/9224 无监听，旧 9223 和正式数据未动。
+
+[验证/复扫] 最终全仓 test 24/24（web 940 项/10210 断言/170 文件），typecheck 27/27、production frontend build 通过；既有大 chunk 与 Rust dead_code 警告保留。本轮未改 Rust，实际重编译启动但没有冒充重新跑全 Rust 套件。库存/模型最终 12 项/37 断言通过；含共享 hook 的聚焦组合为 13 项/61 断言。别名调用搜索无命中，两个生成器 --check、三 pair validator、git diff --check 通过。库存从 703 降为 698，减少的恰是五个旧公共入口；仍为 243 行/30 单元/31 catalog/129 验收/32 场景、14 源码插件/6 内置插件，没将 Worker 夹具算新增插件。
+
+[文档] matrix/model/plugin-system 三对同步，共检查 1440×1000、1024×768、390×844 九张截图；表格内部滚动，页面无观察到的横溢、重复 ID、坏页内锚点或无名按钮。applyChanges/所见版本中英搜索、Escape 恢复通过；矩阵/模型抽屉 inert 与主题刷新保持通过，原插件页没有这两种控件。CDN 均 200；矩阵初次保留日志有一条 file-origin unsafe-load，重新导航及模型/插件检查无 console error，不称整个保留日志全干净。自有隔离文档页 11 已关闭；HTML 仍依赖网络，非产品验证。
+
+[剩余] ANN08/ANN09 保留部分：全局/整书结果预算、逐行令牌查询负载、统一 Range、完整远端事件未闭合。其他原生菜单/选区迟到完成、窗口监听退订、启动/退出与队列上限仍待处理。其余双端部分/未接项、全能力组合、自主模型、打包/跨平台/真实跨设备、强杀和长时验收继续；总目标保持 active，未推送。

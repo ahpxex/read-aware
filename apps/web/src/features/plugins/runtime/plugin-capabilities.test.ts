@@ -17,6 +17,13 @@ function manifest(patch: Partial<PluginManifest> = {}): PluginManifest {
 }
 
 describe("plugin capability negotiation", () => {
+  test("annotation 2 requires conditional edits and rejects clients expecting legacy aliases", () => {
+    for (const permission of ["annotations:read", "annotations:write"] as const) {
+      expect(resolvePluginCapabilities(manifest({ permissions: [permission] })).domains.annotations).toBe("2.0.0");
+      expect(() => assertPluginCapabilityRequirements(manifest({ permissions: [permission], requires: { domains: { annotations: "^1.4.0" } } }))).toThrow(/host provides 2.0.0/);
+      expect(() => assertPluginCapabilityRequirements(manifest({ permissions: [permission], requires: { domains: { annotations: "^2.0.0" } } }))).not.toThrow();
+    }
+  });
   test("metadata service does not grant reading access and legacy event contracts are rejected", () => {
     const empty = manifest({ permissions: [] });
     expect(resolvePluginCapabilities(empty).services.session).toBe("2.0.0");

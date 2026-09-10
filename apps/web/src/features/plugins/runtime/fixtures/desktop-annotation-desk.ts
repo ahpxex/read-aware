@@ -50,7 +50,7 @@ export async function recoverAnnotationDesk(bookId: string, ids: string[]) {
 export async function changeDeskNote(id: string) {
   await assertIsolated();
   if (owned.get(id) !== "note") throw new Error("Only fixture notes may be changed");
-  await domain.commands.updateNote(id, "Desk E2E concurrent actor change");
+  await domain.commands.applyChanges([{ op: "updateNote", annotationId: id, body: "Desk E2E concurrent actor change", expectedRevision: (await domain.queries.inspect(id))!.revision }]);
   return domain.queries.inspect(id);
 }
 

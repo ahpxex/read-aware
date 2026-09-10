@@ -1314,7 +1314,8 @@ export type PluginAnnotationsDomain = {
     }): Promise<PluginAnnotation[]>;
   };
   commands?: {
-    /** annotations >=1.3.0. 1..100 distinct existing items, all commit or none. */
+    /** Since 2.0 this is the only edit/delete entry. Use the revision observed
+     * before the user's decision; 1..100 distinct items, all commit or none. */
     applyChanges(changes: import("@read-aware/core").AnnotationMutation[]): Promise<import("@read-aware/core").AnnotationCommitResult>;
     createHighlight(input: {
       bookId: string;
@@ -1324,8 +1325,6 @@ export type PluginAnnotationsDomain = {
       color?: HighlightColor;
       style?: HighlightStyle;
     }): Promise<PluginHighlight>;
-    recolorHighlight(highlightId: string, color: HighlightColor): Promise<void>;
-    removeHighlight(highlightId: string): Promise<void>;
     createNote(input: {
       bookId: string;
       body: string;
@@ -1333,10 +1332,6 @@ export type PluginAnnotationsDomain = {
       anchor?: string | null;
       chapterHref?: string | null;
     }): Promise<PluginNote>;
-    updateNote(noteId: string, body: string): Promise<void>;
-    removeNote(noteId: string): Promise<void>;
-    /** annotations >=1.1.0. Delete an existing ask; never creates a trace. */
-    removeAsk(askId: string): Promise<void>;
   };
   events: {
     subscribe: DomainSubscribe<AnnotationDomainEventType>;

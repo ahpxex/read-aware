@@ -150,7 +150,7 @@ The current public roster is:
 | --- | --- | --- |
 | Library | books, source files, metadata, TOC, collections, import and removal | `library:read`, `library:write` |
 | Reading | active session, navigation, location, progress, reading time | `reading:read`, `reading:write` |
-| Annotations 1.4 | highlights, notes, passive question traces and query observations | `annotations:read`, `annotations:write` |
+| Annotations 2.0 | highlights, notes, passive question traces, conditional edits and query observations | `annotations:read`, `annotations:write` |
 | Conversations | book/global threads and message summaries | `conversations:read` |
 | Settings | catalog, resolved values, targets, validation, change events | exact path grants |
 | Memory | active memory search, chapter graphs and conditional feedback | `memory:read`, `memory:write` (1.1) |
@@ -179,9 +179,57 @@ Engine work cannot yet be aborted per navigation; cancelling a waiter is not a
 promise that a physical move was undone. PDF completion waits for rasterization,
 which an occluded WKWebView may suspend until it is visible.
 
+### Annotation Conditional Contract
+
+[代码] Annotations **2.0.0** removes the five unconditional public commands
+`recolorHighlight`, `removeHighlight`, `updateNote`, `removeNote`, and `removeAsk`.
+The complete plugin command set is now `createHighlight`, `createNote`, and
+`applyChanges`. Creation is unchanged. Every edit/delete uses `applyChanges`
+with the revision obtained from the observation that informed the decision,
+not a fresh read immediately before saving an older draft. One request contains
+1–100 distinct existing annotations; all conditions pass and all events commit,
+or nothing changes. Supported mutations remain note body, highlight color/style,
+and deletion of note/highlight/ask. Missing or wrong-kind objects return
+`annotations/not-found`; changed revisions return `annotations/conflict`.
+
+[代码] This is a deliberate breaking contract, not a compatibility alias that
+silently obtains a current token. Catalog, SDK, permission-gated host context and
+derived Worker shape agree. `^1.x` requirements fail activation negotiation;
+`^2.0.0` callers need read/write grants as before. Read-only actors receive no
+commands; no plugin can create an ask trace. Agent ports also remove their three
+unconditional aliases (`recolorHighlight`, `updateNote`, `removeAnnotation`);
+model tools use the existing shared conditional command and bind destructive
+approval to the observed object version. Plugin write authorization is still
+not the same as per-operation Agent approval.
+
+[代码] Annotation Desk **0.3.0** declares `annotations: ^2.0.0`. Its existing
+frozen detail/batch snapshots remain unchanged; this migration does not replace
+stale drafts or add hidden retries. All source native/Worker test consumers are
+migrated. Eight localized public sample manifests now request annotations 2 and
+awaited storage 2. The host-only backup restore `saveAnnotation/annotation_put`,
+one-time import, replay and remote-event ingestion remain trusted restoration
+paths, not exported edit commands. This change is local optimistic concurrency,
+not distributed CAS or a prohibition on host restoration.
+
+[环境] [Annotations 2 evidence](./evidence/annotation-contract-v2-2026-09-10.json)
+records actual macOS debug Worker command keys, read-only exclusion, old-version
+negotiation rejection, conditional ask deletion, wrong-kind/missing failures,
+atomic stale/fresh batches and Agent approval conflicts. The compiled Desk's
+real text input remains intact after another Worker changes the note and Save
+returns conflict. Agent tools and approval replies were driven programmatically,
+not by autonomous inference. The native global annotation popover now shares
+`useAnnotations` with book-scoped lists: initial/changed/error/recovery snapshots,
+displayed revision deletion, scope teardown and no late imperative filtering.
+A remote projection update immediately before native Delete rejects the stale
+decision with localized copy; a subsequent observed delete succeeds. A targeted
+SQLite type fault clears contents, actions and count; restoring the exact field
+recovers without reopening. No maximum-library-size, packaged, cross-device or
+Windows/Linux coverage is claimed. Unified Range, bounded native collection
+payloads and full remote event delivery remain separate gaps.
+
 ### Annotation Query Observations
 
-[代码] Annotations 1.4 adds `events.observe(query, handler)` alongside the legacy
+[代码] Annotations 2 retains `events.observe(query, handler)` introduced in 1.4 alongside the legacy
 `events.subscribe(event, handler)`. Read access exposes both; write implies read.
 No grant means no annotations domain. The new query is exactly one of:
 
@@ -212,7 +260,7 @@ did not emit local domain events. It does not replay every intermediate state,
 promise immediate revocation, interrupt a hung native read/callback, or provide a
 frozen snapshot across different queries. Legacy event subscribe is unchanged.
 
-[代码] Annotation Desk 0.2 combines annotations 1.4, UI 1.2 and views 1.1 for live
+[代码] Annotation Desk 0.3 combines annotations 2.0, UI 1.2 and views 1.1 for live
 browsing at 20 rows/page. Page/cursor history is captured per view; new filters
 reset it. Read failure replaces stale contents and actions with a localized
 error; recovery repopulates the list. A failed joined book-title lookup also
@@ -223,8 +271,9 @@ updates must not replace a draft or silently rebase its write conditions.
 The Agent continues calling the same page/inspect read model on demand, not
 subscribing a model loop. This is on-demand access, not an automatic model subscription.
 
-[代码] Native Notes, book details and Foliate stored markers now reuse the same
-serialized observation implementation. Native whole-book collections have a
+[代码] Native Notes, book details, the global annotation popover and Foliate
+stored markers now reuse the same serialized observation implementation.
+The global popover uses an all-books scope; native whole-book collections have a
 separate quota from public subscriptions; they are not new unbounded Worker API
 results. `annotations_list` accepts optional `bookId` and filters in SQLite
 before decoding/IPC, so an unrelated book's invalid row cannot poison a scoped
@@ -251,8 +300,8 @@ subsequent operations, and a failed anchor is logged without preventing other
 marks from rendering. Navigator overlays retain their own namespace. Changing
 the selected highlight closes its stale menu, but observation does not replace
 an open note editor's draft. Native note/menu/list mutations now use the displayed
-snapshot's conditional token, as specified below; legacy public single-item
-commands still do not require a caller-provided revision.
+snapshot's conditional token, as specified below. Public unconditional commands
+are removed in annotations 2; see the migration contract above.
 
 ### Native Annotation Writes
 
@@ -302,8 +351,8 @@ fixture's in-memory handles and logged a window-listener teardown rejection;
 its known owned rows were removed through domain commands before a fresh run.
 No autonomous inference, relay/cross-device, packaged, maximum-book-load or
 Windows/Linux claim is made. Native menu/selection completion ownership beyond
-the note editor, legacy public unconditional commands and unified Range remain
-separate unfinished work.
+the note editor and unified Range remain separate unfinished work. The subsequent
+annotations 2 migration removes the legacy public unconditional commands.
 
 ### Storage Execution Boundary
 

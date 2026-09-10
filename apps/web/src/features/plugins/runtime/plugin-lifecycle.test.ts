@@ -3,6 +3,46 @@ import type { PluginDisposable } from "@read-aware/plugin-types";
 import { PluginLifecycleController } from "./plugin-lifecycle";
 
 describe("plugin lifecycle barrier", () => {
+  test("read cancellation settles the caller but shutdown keeps its source lease until finally", async () => {
+    const lifecycle = new PluginLifecycleController([]); lifecycle.promote();
+    let finish!: () => void, released = false;
+    const gate = new Promise<void>(resolve => { finish = resolve; });
+    const read = lifecycle.read("test", async () => {
+      try { await gate; lifecycle.signal.throwIfAborted(); return "late"; }
+      finally { released = true; }
+    });
+    await Promise.resolve(); lifecycle.cancelOperations();
+    await expect(read).rejects.toMatchObject({ code: "plugin/cancelled" });
+    let drained = false;
+    const draining = lifecycle.drainCleanups().then(() => { drained = true; });
+    await Promise.resolve(); expect(drained).toBe(false); expect(released).toBe(false);
+    finish(); await draining; expect(released).toBe(true);
+  });
+  test("read source failures after cancellation remain visible to shutdown, not swallowed as aborts", async () => {
+    const lifecycle = new PluginLifecycleController([]); lifecycle.promote();
+    let fail!: (error: Error) => void;
+    const gate = new Promise<never>((_, reject) => { fail = reject; });
+    const read = lifecycle.read("test", () => gate);
+    await Promise.resolve(); lifecycle.cancelOperations();
+    await expect(read).rejects.toMatchObject({ code: "plugin/cancelled" });
+    fail(Error("source cleanup failed"));
+    await expect(lifecycle.drainCleanups()).rejects.toBeInstanceOf(AggregateError);
+  });
+  test("activation remains read-and-declare; cancelled reads never start and ordinary failure does not poison shutdown", async () => {
+    const lifecycle = new PluginLifecycleController([]);
+    let calls = 0;
+    await lifecycle.read("test", async () => { calls++; });
+    lifecycle.promote();
+    const failure = Error("source failed");
+    await expect(lifecycle.read("test", async () => { throw failure; })).rejects.toBe(failure);
+    await lifecycle.drainCleanups();
+    const pending = lifecycle.read("test", async () => { calls++; });
+    lifecycle.cancelOperations();
+    await expect(pending).rejects.toMatchObject({ code: "plugin/cancelled" });
+    expect(calls).toBe(1);
+    expect(() => lifecycle.read("test", async () => { calls++; })).toThrow();
+    await lifecycle.drainCleanups();
+  });
   test("shutdown drains asynchronous resource cleanup, including failures already settled", async () => {
     const lifecycle = new PluginLifecycleController([]);
     let finish!: () => void;

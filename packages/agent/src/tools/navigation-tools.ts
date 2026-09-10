@@ -1,5 +1,6 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
+import { normalizeBookRangeQuery, type BookRangeQuery } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { assertSpoilerPermission, confirmSpoilerSchema, spoilerGranted } from "./book-text-tools";
@@ -33,6 +34,31 @@ export function buildNavigationTools(scope: ThreadScope, deps: RuntimeDeps, stat
       state?.evidenceTexts.push(...result.hits.map(hit => hit.excerpt.pre + hit.excerpt.match + hit.excerpt.post));
       if (state && confirmSpoiler && scope.kind === "book" && bookId === scope.bookId) state.spoilerGranted = true;
       return textResult(result);
+    },
+  }, {
+    name: "read_book_range", label: "Read a book range",
+    description: "Read a versioned range returned by find_book_locations, without opening or moving the reader. Do not invent or rewrite its bookId, contentVersion or CFI. Returns bounded text, same-section context and nextOffset for continuation. A stale/missing range requires a fresh search. The current narrative book's original reading fence still applies, even to a known range.",
+    parameters: Type.Object({
+      range: Type.Object({ bookId: Type.String({ minLength: 1, maxLength: 512 }), contentVersion: Type.String({ minLength: 1, maxLength: 256 }),
+        cfi: Type.String({ minLength: 1, maxLength: 8192 }),
+        textQuote: Type.Optional(Type.Object({ exact: Type.String({ minLength: 1, maxLength: 12000 }),
+          prefix: Type.Optional(Type.String({ maxLength: 2000 })), suffix: Type.Optional(Type.String({ maxLength: 2000 })) }, { additionalProperties: false })),
+      }, { additionalProperties: false }),
+      offset: Type.Optional(Type.Integer({ minimum: 0 })), limit: Type.Optional(Type.Integer({ minimum: 2, maximum: 12000 })),
+      contextChars: Type.Optional(Type.Integer({ minimum: 0, maximum: 2000 })), confirmSpoiler: confirmSpoilerSchema,
+    }, { additionalProperties: false }),
+    execute: async (_id, params, signal) => {
+      const { confirmSpoiler: rawGrant, ...input } = params as BookRangeQuery & { confirmSpoiler?: unknown };
+      const query = normalizeBookRangeQuery(input);
+      const current = scope.kind === "book" && query.range.bookId === scope.bookId;
+      const grant = spoilerGranted(rawGrant);
+      assertSpoilerPermission(grant, state, current);
+      const page = await deps.bookText.readRange({ ...query,
+        ...(current && state?.spoilerFence && !grant ? { throughChapterIndex: state.spoilerFence.throughChapterIndex } : {}),
+      }, signal);
+      state?.evidenceTexts.push(...[page.context.before, page.text, page.context.after].filter(Boolean));
+      if (state && grant && current) state.spoilerGranted = true;
+      return textResult(page);
     },
   }];
 }

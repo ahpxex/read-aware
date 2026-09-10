@@ -12,6 +12,11 @@
     "copied": "Copied"
   },
   "errors": {
+    "bookRangeInvalid": "The text range or its read bounds are invalid.",
+    "bookRangeMissing": "This passage no longer resolves. Search for it again.",
+    "bookRangeAmbiguous": "This passage matches more than one location. Search for a more specific match.",
+    "bookRangeUnsupported": "This content does not support reading text ranges.",
+    "bookRangeForbidden": "This passage is beyond the permitted reading boundary.",
     "annotationObserverLimit": "Too many annotation subscriptions are active.",
     "annotationObservationFailed": "Annotations could not be refreshed. Try again.",
     "memoryTaskNotFound": "This graph task is no longer available. Start a new task.",

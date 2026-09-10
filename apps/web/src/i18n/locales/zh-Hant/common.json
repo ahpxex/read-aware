@@ -12,6 +12,11 @@
     "copied": "已複製"
   },
   "errors": {
+    "bookRangeInvalid": "文字範圍或讀取邊界無效。",
+    "bookRangeMissing": "此段文字已無法定位，請重新搜尋。",
+    "bookRangeAmbiguous": "此段文字對應多個位置，請搜尋更具體的內容。",
+    "bookRangeUnsupported": "此內容不支援讀取文字範圍。",
+    "bookRangeForbidden": "此段文字超出了允許讀取的邊界。",
     "annotationObserverLimit": "標註訂閱數量已達上限。",
     "annotationObservationFailed": "無法重新整理標註，請重試。",
     "memoryTaskNotFound": "此圖譜工作已無法使用，請建立新工作。",

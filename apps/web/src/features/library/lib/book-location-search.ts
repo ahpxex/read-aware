@@ -2,6 +2,7 @@ import { AppError, type BookLocationSearch, type BookLocationSearchPage, type Bo
 import type { FoliateBook, FoliateTocItem } from "../../reader/lib/foliate-engine";
 import type { searchContentSection } from "../../../../foliate-js/src/content-navigation";
 import { digestContent } from "./content-version";
+import { contentSections } from "./book-content-sections";
 
 type Cursor = { version: string; query: string; section: number; match: number; textSeen: boolean; supported: boolean; unsupported: boolean };
 const invalidCursor = () => new AppError("library/invalid-cursor", "Search cursor does not match this query or content");
@@ -63,17 +64,7 @@ export async function searchLocationsInBook(book: FoliateBook, contentVersion: s
     signal?.throwIfAborted();
     if (input.contentVersion && input.contentVersion !== contentVersion) throw new AppError("reader/stale-location", "Book content revision changed");
     const limit = input.limit ?? 20;
-    const indices = new Set<number>();
-    if (input.hrefs) {
-      for (const href of input.hrefs) {
-        signal?.throwIfAborted();
-        const resolved = await book.resolveHref?.(href);
-        if (resolved && book.sections[resolved.index]) indices.add(resolved.index);
-        // Extracted chapter hrefs also carry canonical spine ids.
-        const index = book.sections.findIndex(section => section.id === href);
-        if (index >= 0) indices.add(index);
-      }
-    } else book.sections.forEach((section, index) => { if (section.linear !== "no") indices.add(index); });
+    const indices = await contentSections(book, input.hrefs, signal);
     const sections = [...indices].sort((a, b) => a - b);
     const query = input.query.trim();
     const key = await digestContent(JSON.stringify([input.bookId, query, input.matchCase === true, input.wholeWords === true, sections]));
@@ -98,8 +89,9 @@ export async function searchLocationsInBook(book: FoliateBook, contentVersion: s
           result.nextCursor = continuation(position, ordinal);
           break;
         }
+        const range = { bookId: input.bookId, contentVersion, cfi: hit.cfi, ...(hit.textQuote ? { textQuote: hit.textQuote } : {}) };
         result.hits.push({ id: `${sectionIndex}:${ordinal}`, sectionIndex, excerpt: hit.excerpt,
-          location: { bookId: input.bookId, contentVersion, cfi: hit.cfi, ...(hit.textQuote ? { textQuote: hit.textQuote } : {}) } });
+          location: { ...range }, range });
       }
       result.scannedSections = position + (result.nextCursor ? 0 : 1);
       if (result.nextCursor) break;

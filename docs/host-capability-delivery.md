@@ -1434,3 +1434,21 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [文档] matrix/model/plugin-system 三对同步，共检查 1440×1000、1024×768、390×844 九张截图；表格内部滚动，页面无观察到的横溢、重复 ID、坏页内锚点或无名按钮。applyChanges/所见版本中英搜索、Escape 恢复通过；矩阵/模型抽屉 inert 与主题刷新保持通过，原插件页没有这两种控件。CDN 均 200；矩阵初次保留日志有一条 file-origin unsafe-load，重新导航及模型/插件检查无 console error，不称整个保留日志全干净。自有隔离文档页 11 已关闭；HTML 仍依赖网络，非产品验证。
 
 [剩余] ANN08/ANN09 保留部分：全局/整书结果预算、逐行令牌查询负载、统一 Range、完整远端事件未闭合。其他原生菜单/选区迟到完成、窗口监听退订、启动/退出与队列上限仍待处理。其余双端部分/未接项、全能力组合、自主模型、打包/跨平台/真实跨设备、强杀和长时验收继续；总目标保持 active，未推送。
+
+## 2026-09-10：Library 1.7 版本化 Range 双端读取
+
+[进度] 上轮只确认模型，属于 no progress。本轮收尾工作区 Range 单元，复核最终测试句柄终态、文档浏览器交互和自有数据清理；没有将确认回复当作实现。目标仍为全部应开放双端能力及真实组合/原生验收。
+
+[代码] BookTextRange 绑定 bookId/contentVersion/CFI/可选 quote；精确搜索生产同一引用，library 1.7 readRange 消费它而不移动阅读器。宿主复制并严格校验字段及 UTF-16 分页边界，返回有界正文、整个 Range 外的同分节上下文和 nextOffset；拒绝代理对/非法位置、过期版本、缺失、歧义、不支持与越权。DOM 用真实 CFI 并以 quote 校验而非擅自重定位；PDF 页 CFI 必须配唯一 quote。底层仍物化源文本/上下文，不宣称解析内存已受输出上限约束。
+
+[双端] Agent read_book_range 在全局/书内 scope 调同一宿主路径；当前书的原始剧透上限在目标分节加载前校验，confirm 参数不能伪造授权，其他书/全局政策未改变。正文和外侧上下文分别记为证据，不伪造跨省略正文的相邻文本。插件 API 不暴露 allowedHrefs 宿主政策。Text Desk 0.5 组合精确搜索、版本化范围详情、续读和显式导航，重复命中显示分节及 occurrence 身份；阅读详情本身不跳转。
+
+[实机发现并修复] [book-range](./evidence/book-range-2026-09-10.json) 保留隔离 macOS Tauri、真实 SQLite/FB2/PDF/模块 Worker、实际 Agent 工具和编译插件证据。PDF 页 CFI 原生成空 local anchor，导航抛 parts.length；现在 View/离线读取共用 resolver，页目标无假锚点。第二个缺口是非可中断源加载阻塞 Worker RPC，停用两秒超时；lifecycle.read 立即取消调用者等待，但跟踪源操作直至 finally 真释放。超过旧截止的 2300 ms 真实持有期间，停用未假成功，释放后 destroy 恰好一次且停用成功。保留激活期合法读取；普通读失败不污染清理，取消后真实源/清理失败仍报告。
+
+[原生/组合验证] 无读授权时库不可见、只读没有写命令；FB2/PDF 各分块得到 nee/dle，32 次并发读取均为 needle。旧版本、删书、未知权限字段、非法 offset、PDF 重复 quote 分别稳定拒绝。实际 Agent 当前书未来分节被拒绝，自授权确认失败，宿主明确许可后成功；全局及预取消路径通过。读取前后 active PDF 会话包含 revision/location 完全相同。实际 Text Desk 搜索/详情/Open passage 打开 FB2，PDF 第二个 needle 的真实 local CFI 为 26–32、visibleText 为 needle、弹层关闭且 canvas 可见。删书后旧命中未构造成功详情；瞬时 toast 未捕获，不宣称错误文案视觉验收。没有自主模型推理。
+
+[清理/验证] 准备期两次 Vite/HMR 中断保留记录，按已查明自有 ID 正式清理而非盲目重试。八本自有书的最终只读 SQL 验 books/annotations/FTS/removal intents/pending/live blob storage 全零，事件历史保留，Worker 贡献归零。desktop exec 61511 终态 143；最终全仓 test 24/24（web 950 项/10262 断言/171 文件）、typecheck 27/27、production frontend build 均终态 0，5184/9224 无监听。既有构建/Rust 警告保留；未改 Rust，未重跑全 Rust 套件，也未作 packaged 证明。
+
+[复扫/文档] 库存/模型 12 项/37 断言、两个生成器 --check、三 pair validator 通过。243 行/701 入口/30 单元/31 catalog/129 验收/32 场景；入口比上一单元增加三个（双 scope 工具及插件查询），不是完成率。14 源码插件/6 内置不变，Worker 探针不计新插件。三对 MD/HTML 同步事实，三个真实视口 1440×1000、1024×768、390×844 检查，无观察到的页面横溢、重复 ID、坏片段锚点或无名按钮；表格自身横滚。模型 readRange/范围命中 1/3，Escape 恢复 57，抽屉 inert/恢复及 light 刷新保持；插件为 2/3，Escape 恢复 20，原无抽屉/主题。观察 CDN 均 200、模型/插件无 console error，自有文档页 12 关闭。HTML 仍依赖网络，文档验证不是产品 E2E。
+
+[剩余] TXT10/TXT13 仍部分：原生选区、句段与持久标注没有统一版本化 Range 生产/写入验证。全部格式、在途换版本/provider 更新、最大载荷/解析内存、单次公共取消与其他生命周期仍待补。其余双端缺口、全能力组合、自主模型、打包/跨平台/真实跨设备、强杀与长时验收继续；整体目标未完成，未推送。

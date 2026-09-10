@@ -12,6 +12,11 @@
     "copied": "コピーしました"
   },
   "errors": {
+    "bookRangeInvalid": "テキスト範囲または読み取り範囲が無効です。",
+    "bookRangeMissing": "この文章を特定できなくなりました。もう一度検索してください。",
+    "bookRangeAmbiguous": "この文章は複数の箇所に一致します。より具体的な内容で検索してください。",
+    "bookRangeUnsupported": "このコンテンツはテキスト範囲の読み取りに対応していません。",
+    "bookRangeForbidden": "この文章は許可された読書範囲を超えています。",
     "annotationObserverLimit": "注釈の購読数が上限に達しました。",
     "annotationObservationFailed": "注釈を更新できませんでした。もう一度お試しください。",
     "memoryTaskNotFound": "このグラフのタスクは利用できません。新しいタスクを開始してください。",

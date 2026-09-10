@@ -105,6 +105,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   cancel_book_text_task: { bookId: BOOK_ID, taskId: "prepared-in-test" },
   get_navigation_toc: { bookId: BOOK_ID },
   find_book_locations: { bookId: BOOK_ID, query: "Victor" },
+  read_book_range: {},
   read_chapter: { bookId: BOOK_ID, chapterIndex: 0 },
   search_book_text: { queries: ["footprints"], bookId: BOOK_ID },
   query_book_graph: { bookId: BOOK_ID },
@@ -169,6 +170,7 @@ describe("tool surface contract", () => {
         if (!params) continue; // 完备性由上面的用例把守
         // 每个工具独立的 fixture：破坏性工具（fixture 自动批准权限）不得污染后续用例
         const { deps } = createInMemoryDeps(seed());
+        if (name === "read_book_range") params.range = (await deps.bookText.searchLocations({ bookId: BOOK_ID, query: "Victor" })).hits[0].range;
         if (name === "manage_memory") params.memoryId = (await deps.memory.saveMemory({ content: "The reader enjoys mysteries.", scope: "user", kind: "preference", origin: "agent", sourceThreadKey: "surface" })).id;
         // The generic fixture has no attached host command runtime. These receipts
         // exercise output formatting only; shared-service tests prove execution.

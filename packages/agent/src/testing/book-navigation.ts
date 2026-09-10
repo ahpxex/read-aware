@@ -1,9 +1,9 @@
-import { AppError, type BookLocationHit } from "@read-aware/core";
+import { AppError, normalizeBookRangeQuery, type BookLocationHit } from "@read-aware/core";
 import type { BookTextPort } from "../ports";
 import type { ChapterSeed } from "./fixtures";
 
 /** Model-tool fixture, not a replacement for Foliate's location/search tests. */
-export function createMemoryBookNavigation(chapters: Map<string, ChapterSeed[]>): Pick<BookTextPort, "getNavigationToc" | "searchLocations"> {
+export function createMemoryBookNavigation(chapters: Map<string, ChapterSeed[]>): Pick<BookTextPort, "getNavigationToc" | "searchLocations" | "readRange"> {
   const content = async (bookId: string) => {
     const entries = chapters.get(bookId) ?? [];
     const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(entries)));
@@ -11,6 +11,25 @@ export function createMemoryBookNavigation(chapters: Map<string, ChapterSeed[]>)
     return { entries, contentVersion };
   };
   return {
+    readRange: async ({ throughChapterIndex, ...input }, signal) => {
+      const query = normalizeBookRangeQuery(input);
+      signal?.throwIfAborted();
+      const { entries, contentVersion } = await content(query.range.bookId);
+      if (contentVersion !== query.range.contentVersion) throw new AppError("reader/stale-location", "Fixture content changed");
+      const match = /^epubcfi\(fixture:(\d+):(\d+):(\d+)\)$/.exec(query.range.cfi);
+      if (!match) throw new AppError("library/range-not-found", "Unknown fixture range");
+      const [sectionIndex, start, end] = match.slice(1).map(Number);
+      if (throughChapterIndex !== undefined && sectionIndex > throughChapterIndex) throw new AppError("library/range-forbidden", "Fixture reading fence");
+      const source = entries[sectionIndex]?.text;
+      if (!source || end > source.length || end <= start) throw new AppError("library/range-not-found", "Missing fixture range");
+      const text = source.slice(start, end);
+      if (query.offset > text.length) throw new AppError("library/invalid-range", "Invalid fixture offset");
+      const next = Math.min(text.length, query.offset + query.limit);
+      signal?.throwIfAborted();
+      return { range: query.range, sectionIndex, text: text.slice(query.offset, next), offset: query.offset, totalLength: text.length,
+        nextOffset: next < text.length ? next : null,
+        context: { before: source.slice(Math.max(0, start - query.contextChars), start), after: source.slice(end, end + query.contextChars) } };
+    },
     getNavigationToc: async (bookId, signal) => {
       signal?.throwIfAborted();
       const { entries, contentVersion } = await content(bookId);
@@ -43,9 +62,10 @@ export function createMemoryBookNavigation(chapters: Map<string, ChapterSeed[]>)
         signal?.throwIfAborted();
         for (const match of chapter.text.matchAll(matcher)) {
           const start = match.index, end = start + match[0].length;
+          const range = { bookId: input.bookId, contentVersion, cfi: `epubcfi(fixture:${sectionIndex}:${start}:${end})` };
           hits.push({ id: `${sectionIndex}:${start}`, sectionIndex,
             excerpt: { pre: chapter.text.slice(Math.max(0, start - 50), start), match: match[0], post: chapter.text.slice(end, end + 50) },
-            location: { bookId: input.bookId, contentVersion, cfi: `fixture:chapter:${sectionIndex}:offset:${start}` },
+            location: { ...range }, range,
           });
         }
       }

@@ -1,6 +1,15 @@
 // src/strings.ts
 var locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 var labels = {
+  findPassage: ["Find a passage", "查找段落", "尋找段落", "文章を探す", "Найти отрывок", "Trouver un passage", "Textstelle finden", "Buscar un pasaje"],
+  passage: ["Passage", "段落", "段落", "文章", "Отрывок", "Passage", "Textstelle", "Pasaje"],
+  sourceSection: ["Source section", "源文件分节", "來源分節", "元のセクション", "Раздел источника", "Section source", "Quellabschnitt", "Sección de origen"],
+  openPassage: ["Open passage", "跳转到段落", "跳至段落", "文章を開く", "Открыть отрывок", "Ouvrir le passage", "Textstelle öffnen", "Abrir pasaje"],
+  matchCase: ["Match case", "区分大小写", "區分大小寫", "大文字と小文字を区別", "Учитывать регистр", "Respecter la casse", "Groß-/Kleinschreibung beachten", "Distinguir mayúsculas"],
+  wholeWords: ["Whole words", "全词匹配", "全詞比對", "単語単位", "Слова целиком", "Mots entiers", "Ganze Wörter", "Palabras completas"],
+  invalidPassage: ["Enter 1-500 characters", "请输入 1–500 个字符", "請輸入 1–500 個字元", "1〜500文字で入力してください", "Введите 1–500 символов", "Saisissez 1 à 500 caractères", "1–500 Zeichen eingeben", "Introduzca de 1 a 500 caracteres"],
+  searchPending: ["No matches in this batch", "本批次没有匹配", "本批次沒有符合項目", "この範囲に一致なし", "В этой порции совпадений нет", "Aucun résultat dans ce lot", "Keine Treffer in diesem Abschnitt", "Sin coincidencias en este lote"],
+  noPassageMatches: ["No matching passage", "没有匹配的段落", "沒有符合的段落", "一致する文章なし", "Отрывок не найден", "Aucun passage correspondant", "Keine passende Textstelle", "Ningún pasaje coincide"],
   search: ["Search", "搜索", "搜尋", "検索", "Поиск", "Rechercher", "Suchen", "Buscar"],
   searchBook: ["Search this book", "搜索本书", "搜尋本書", "この本を検索", "Поиск в книге", "Rechercher dans ce livre", "Dieses Buch durchsuchen", "Buscar en este libro"],
   searchShelf: ["Search indexed books", "搜索已索引书籍", "搜尋已索引書籍", "索引済みの本を検索", "Поиск в индексированных книгах", "Rechercher dans les livres indexés", "Indizierte Bücher durchsuchen", "Buscar en libros indexados"],
@@ -167,6 +176,61 @@ function hitDetail(ctx, hit, title) {
   ] };
 }
 
+// src/range-views.ts
+function rangeSearchForm(ctx, bookId) {
+  return { kind: "form", title: tr(ctx.locale, "findPassage"), fields: [
+    { kind: "text", id: "query", label: tr(ctx.locale, "passage") },
+    { kind: "checkbox", id: "matchCase", label: tr(ctx.locale, "matchCase"), value: false },
+    { kind: "checkbox", id: "wholeWords", label: tr(ctx.locale, "wholeWords"), value: false }
+  ], submitLabel: tr(ctx.locale, "search"), onSubmit: async (values) => {
+    const query = String(values.query ?? "").trim();
+    if (!query || query.length > 500)
+      return { fieldErrors: { query: tr(ctx.locale, "invalidPassage") } };
+    return { view: await rangeResults(ctx, { bookId, query, matchCase: values.matchCase === true, wholeWords: values.wholeWords === true, limit: 20 }) };
+  } };
+}
+async function rangeResults(ctx, input) {
+  const page = await ctx.domains.library.queries.books.searchLocations(input);
+  return {
+    kind: "list",
+    title: input.query,
+    emptyText: tr(ctx.locale, page.nextCursor ? "searchPending" : page.textStatus === "available" ? "noPassageMatches" : page.textStatus === "textless" ? "textless" : "unsupportedSections"),
+    items: page.hits.map((hit) => ({
+      id: hit.id,
+      title: hit.excerpt.pre + hit.excerpt.match + hit.excerpt.post,
+      icon: "magnifying-glass",
+      subtitle: `${tr(ctx.locale, "sourceSection")} ${hit.sectionIndex + 1} · ${hit.id}`,
+      onSelect: async () => ({ view: await rangeDetail(ctx, { range: hit.range }) })
+    })),
+    actions: page.nextCursor ? [{
+      id: "next",
+      label: tr(ctx.locale, "next"),
+      icon: "arrow-right",
+      run: async () => ({ view: await rangeResults(ctx, { ...input, contentVersion: page.contentVersion, cursor: page.nextCursor }), navigation: "replace" })
+    }] : []
+  };
+}
+async function rangeDetail(ctx, input) {
+  const page = await ctx.domains.library.queries.books.readRange(input);
+  return { kind: "detail", title: tr(ctx.locale, "passage"), content: [
+    ...page.context.before ? [{ kind: "text", text: page.context.before }] : [],
+    { kind: "quote", text: page.text, caption: `${page.offset + 1}-${page.offset + page.text.length} / ${page.totalLength}` },
+    ...page.context.after ? [{ kind: "text", text: page.context.after }] : []
+  ], actions: [
+    { id: "open-passage", label: tr(ctx.locale, "openPassage"), icon: "book-open", run: async () => {
+      await ctx.domains.reading.commands.goTo(page.range);
+      return { close: true };
+    } },
+    ...page.nextOffset === null ? [] : [{
+      id: "next",
+      label: tr(ctx.locale, "next"),
+      icon: "arrow-right",
+      run: async () => ({ view: await rangeDetail(ctx, { ...input, range: page.range, offset: page.nextOffset }), navigation: "replace" })
+    }],
+    { id: "search-again", label: tr(ctx.locale, "findPassage"), icon: "magnifying-glass", run: () => ({ view: rangeSearchForm(ctx, page.range.bookId) }) }
+  ] };
+}
+
 // src/views.ts
 async function textDetail(ctx, bookId, title) {
   const state = await ctx.domains.library.queries.books.getTextState(bookId);
@@ -179,6 +243,7 @@ async function textDetail(ctx, bookId, title) {
     rows.push({ label: tr(ctx.locale, "sections"), value: `${state.progress.completed} / ${state.progress.total}` }, { label: tr(ctx.locale, "failed"), value: String(state.progress.failed) }, { label: tr(ctx.locale, "unsupportedSections"), value: String(state.progress.unsupported) });
   return { kind: "detail", title, content: [{ kind: "keyValue", rows }], actions: [
     { id: "search", label: tr(ctx.locale, "searchBook"), icon: "magnifying-glass", run: () => ({ view: textSearchForm(ctx, bookId) }) },
+    { id: "find-passage", label: tr(ctx.locale, "findPassage"), icon: "magnifying-glass", run: () => ({ view: rangeSearchForm(ctx, bookId) }) },
     { id: "refresh", label: tr(ctx.locale, "refresh"), icon: "arrows-clockwise", run: async () => ({ view: await textDetail(ctx, bookId, title), navigation: "replace" }) },
     { id: "open", label: tr(ctx.locale, "open"), icon: "book-open", run: async () => {
       await ctx.domains.reading.commands.openBook(bookId);

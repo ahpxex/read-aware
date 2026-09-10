@@ -1,5 +1,14 @@
 const locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 const labels = {
+  findPassage: ["Find a passage", "查找段落", "尋找段落", "文章を探す", "Найти отрывок", "Trouver un passage", "Textstelle finden", "Buscar un pasaje"],
+  passage: ["Passage", "段落", "段落", "文章", "Отрывок", "Passage", "Textstelle", "Pasaje"],
+  sourceSection: ["Source section", "源文件分节", "來源分節", "元のセクション", "Раздел источника", "Section source", "Quellabschnitt", "Sección de origen"],
+  openPassage: ["Open passage", "跳转到段落", "跳至段落", "文章を開く", "Открыть отрывок", "Ouvrir le passage", "Textstelle öffnen", "Abrir pasaje"],
+  matchCase: ["Match case", "区分大小写", "區分大小寫", "大文字と小文字を区別", "Учитывать регистр", "Respecter la casse", "Groß-/Kleinschreibung beachten", "Distinguir mayúsculas"],
+  wholeWords: ["Whole words", "全词匹配", "全詞比對", "単語単位", "Слова целиком", "Mots entiers", "Ganze Wörter", "Palabras completas"],
+  invalidPassage: ["Enter 1-500 characters", "请输入 1–500 个字符", "請輸入 1–500 個字元", "1〜500文字で入力してください", "Введите 1–500 символов", "Saisissez 1 à 500 caractères", "1–500 Zeichen eingeben", "Introduzca de 1 a 500 caracteres"],
+  searchPending: ["No matches in this batch", "本批次没有匹配", "本批次沒有符合項目", "この範囲に一致なし", "В этой порции совпадений нет", "Aucun résultat dans ce lot", "Keine Treffer in diesem Abschnitt", "Sin coincidencias en este lote"],
+  noPassageMatches: ["No matching passage", "没有匹配的段落", "沒有符合的段落", "一致する文章なし", "Отрывок не найден", "Aucun passage correspondant", "Keine passende Textstelle", "Ningún pasaje coincide"],
   search: ["Search", "搜索", "搜尋", "検索", "Поиск", "Rechercher", "Suchen", "Buscar"],
   searchBook: ["Search this book", "搜索本书", "搜尋本書", "この本を検索", "Поиск в книге", "Rechercher dans ce livre", "Dieses Buch durchsuchen", "Buscar en este libro"],
   searchShelf: ["Search indexed books", "搜索已索引书籍", "搜尋已索引書籍", "索引済みの本を検索", "Поиск в индексированных книгах", "Rechercher dans les livres indexés", "Indizierte Bücher durchsuchen", "Buscar en libros indexados"],

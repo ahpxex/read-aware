@@ -207,6 +207,25 @@ export class PluginLifecycleController {
     if (errors.length) throw errors[0];
   }
 
+  /** Cancel the consumer promptly; retain the source operation until its own
+   * finally releases resources, including non-interruptible parser/IPC loads. */
+  read<T>(operation: string, run: () => Promise<T>): Promise<T> {
+    if (this.stopped) throw new AppError("plugin/cancelled", `${operation} is unavailable after plugin stop`);
+    this.signal.throwIfAborted();
+    const pending = Promise.resolve().then(() => { this.signal.throwIfAborted(); return run(); });
+    this.trackCleanup(pending.then(() => {}, error => {
+      // Normal read failures already reach the caller. After cancellation only
+      // the expected abort is ignorable; source/cleanup failures still surface.
+      if (this.signal.aborted && error !== this.signal.reason && !(error instanceof Error && error.name === "AbortError")) throw error;
+    }));
+    return new Promise<T>((resolve, reject) => {
+      const cancel = () => reject(this.signal.reason);
+      this.signal.addEventListener("abort", cancel, { once: true });
+      void pending.then(value => { this.signal.removeEventListener("abort", cancel); resolve(value); },
+        error => { this.signal.removeEventListener("abort", cancel); reject(error); });
+    });
+  }
+
   trackCleanup(pending: Promise<void>): void {
     this.cleanups.add(pending);
     void pending.then(

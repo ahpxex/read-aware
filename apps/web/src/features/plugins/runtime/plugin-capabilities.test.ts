@@ -38,7 +38,7 @@ describe("plugin capability negotiation", () => {
       manifest({ permissions: ["library:read", "service:network", "ui:themes"] }),
     );
 
-    expect(visible.domains).toEqual({ library: "1.6.0", settings: "1.6.0" });
+    expect(visible.domains).toEqual({ library: "1.7.0", settings: "1.6.0" });
     expect(visible.services.network).toBe("1.1.0");
     expect(visible.services.llm).toBeUndefined();
     expect(visible.contributions.themes).toBe("1.0.0");

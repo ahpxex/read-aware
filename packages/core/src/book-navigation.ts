@@ -1,4 +1,5 @@
 import type { ReadingLocation } from "./reading-session";
+import type { BookTextRange } from "./book-range";
 
 /** Navigation TOC order is not the extracted-text chapter index or printed numbering. */
 export type BookTocEntry = {
@@ -30,6 +31,8 @@ export type BookLocationHit = {
   sectionIndex: number;
   excerpt: { pre: string; match: string; post: string };
   location: ReadingLocation;
+  /** Exact text identity usable by library.readRange without moving the reader. */
+  range: BookTextRange;
 };
 export type BookLocationSearchPage = {
   bookId: string;

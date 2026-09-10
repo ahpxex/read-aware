@@ -244,9 +244,14 @@
             <p>Text Desk 0.3 组合列表、状态、确认重建、请求详情与取消、明确开书；请求详情实时推送，列表仍显式刷新。插件任务限当前激活代，Agent 两 scope 共用进程所有者；每个所有者至多 16 活跃、64 保留请求，每任务 16 观察者，慢回调合并最新快照。</p>
             <p>macOS 隔离 debug 已验权限 Worker、共享取消/退役、观察退订、重建冲突、真实 FB2、Agent 双 scope 与编译插件界面。暂停/优先级、耐久任务/超时、虚拟索引、全部格式、打包及跨平台仍缺；TXT05 仍为部分。<a href="./plugin-system.md#derived-text-requests">完整契约</a> · <a href="./evidence/book-text-tasks-2026-09-09.json">任务证据</a> · <a href="./evidence/book-text-state-2026-09-09.json">正文事实证据</a></p>
           </div></details>
+          <details class="ep" data-search-section="readRange Range passage 文本 范围 版本 生命周期 TXT10 TXT13"><summary>Library 1.7：搜索范围可读取，Agent 与插件同源校验</summary><div class="ep-body">
+            <p>Text Desk 0.5 组合精确搜索、段落详情和明确跳转；范围读取不移动阅读器。DOM 用版本化 CFI，PDF 用页定位和唯一文本引用，歧义或过期不猜位置；上下文只限同一分节。</p>
+            <p>Agent 保留原剧透边界，插件遵循领域授权。内容查询取消先拒绝调用，退出仍等真实读取释放资源。真实 macOS Worker、双 scope 工具、FB2/PDF 插件导航与慢读退役已验；未捕获删除后失败的瞬时 toast。</p>
+            <p>输出有界不等于解析内存有界；原生选区、标注写入及跨模式 Range 尚未统一，TXT10/TXT13 保留部分。最大载荷、全格式、打包与跨平台未验。<a href="./plugin-system.md#versioned-range-reads">完整契约</a> · <a href="./evidence/book-range-2026-09-10.json">桌面证据</a></p>
+          </div></details>
           <details class="ep" data-search-section="searchText derived prose 正文 检索 多查询"><summary>Library 1.4：Agent 与插件共享本书和跨书正文检索</summary><div class="ep-body">
             <p>1–12 个查询变体、每个至多 1024 字符，返回至多 100 个章内片段。指定书可以准备正文；跨书只读本地已持久索引，不触发批量抽取。缺书、非法参数和读取失败明确拒绝；结果不是可导航的 CFI/Range，也不是全书架穷尽或相关性排名。</p>
-            <p>Text Desk 0.4 组合搜索表单、精确/词元匹配列表、片段详情和明确开书。真实 macOS Worker 已验权限与错误，Agent 原有剧透围栏保留；跨书搜索后未准备的书仍未准备。分页、扫描预算、节内取消、打包及跨平台尚未完成。<a href="./plugin-system.md#derived-prose-search">完整契约</a> · <a href="./evidence/book-text-search-2026-09-09.json">原生证据</a></p>
+            <p>Text Desk 0.4 引入此流程（现为 0.5）：搜索表单、精确/词元匹配列表、片段详情和明确开书。真实 macOS Worker 已验权限与错误，Agent 原有剧透围栏保留；跨书搜索后未准备的书仍未准备。派生检索分页、扫描预算、节内取消、打包及跨平台尚未完成。<a href="./plugin-system.md#derived-prose-search">完整契约</a> · <a href="./evidence/book-text-search-2026-09-09.json">原生证据</a></p>
           </div></details>
           <details class="ep" data-search-section="virtual removal removeVirtualBook 虚拟书 删除 解绑"><summary>虚拟书删除：不再吞错，绑定清理等待持久化</summary><div class="ep-body">
             <p>事件提交失败保留绑定，绑定写失败不报成功。通知先于文件释放，绑定可能先清除；1.6 的宿主清理队列让两端重新发现 ID 并重试文件，启动也会恢复。此项不等于绑定和 RSS 私有缓存的耐久恢复，更不是跨书籍、文件、绑定和文档的原子事务。</p>

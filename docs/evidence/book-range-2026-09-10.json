@@ -1,0 +1,1524 @@
+{
+  "date": "2026-09-10",
+  "scope": "Isolated macOS Tauri debug, real SQLite and module Workers; no autonomous model or packaged/cross-platform claim",
+  "implementation": {
+    "library": "1.7.0",
+    "textDesk": "0.5.0",
+    "newTool": "read_book_range",
+    "matrix": "TXT10/TXT13 remain partial"
+  },
+  "native": {
+    "result": {
+      "after": {
+        "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+        "controls": {
+          "visible": false
+        },
+        "history": {
+          "canGoBack": false,
+          "canGoForward": false
+        },
+        "location": {
+          "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+          "cfi": "epubcfi(/6/2!/4/4/2,/1:26,/1:32)",
+          "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+          "fraction": 0.5
+        },
+        "mode": {
+          "availableModes": [
+            {
+              "defaultUnitId": "sentence",
+              "key": "sentence-reader:guided-reading",
+              "label": "Sentence Reader: Read by sentence or paragraph",
+              "units": [
+                {
+                  "id": "sentence",
+                  "label": "By sentence"
+                },
+                {
+                  "id": "paragraph",
+                  "label": "By paragraph"
+                }
+              ]
+            }
+          ],
+          "cfiRange": null,
+          "label": "Sentence Reader: Read by sentence or paragraph",
+          "modeKey": "sentence-reader:guided-reading",
+          "position": null,
+          "progress": null,
+          "requestedActive": false,
+          "status": "unavailable",
+          "unavailableReason": "unsupported-format",
+          "unitId": "paragraph",
+          "units": [
+            {
+              "id": "sentence",
+              "label": "By sentence"
+            },
+            {
+              "id": "paragraph",
+              "label": "By paragraph"
+            }
+          ]
+        },
+        "playback": {
+          "backend": null,
+          "cfiRange": null,
+          "fallback": false,
+          "owner": null,
+          "status": "unavailable",
+          "unavailableReason": "mode-inactive"
+        },
+        "revision": 10,
+        "sessionId": "d64818e7-f4c5-49bc-92c3-0c5f3baf9907",
+        "status": "ready",
+        "visibleText": "needle"
+      },
+      "agent": {
+        "approved": {
+          "context": {
+            "after": " spoiler. This is outside the first chapter fence.",
+            "before": "Later passageLater "
+          },
+          "nextOffset": null,
+          "offset": 0,
+          "range": {
+            "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+            "cfi": "epubcfi(/6/4!/4/2[later]/4,/1:6,/1:12)",
+            "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+          },
+          "sectionIndex": 1,
+          "text": "needle",
+          "totalLength": 6
+        },
+        "first": {
+          "context": {
+            "after": " after. This is the visible test passage.",
+            "before": "First passageBefore "
+          },
+          "nextOffset": null,
+          "offset": 0,
+          "range": {
+            "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+            "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+            "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+          },
+          "sectionIndex": 0,
+          "text": "needle",
+          "totalLength": 6
+        },
+        "laterDenied": {
+          "code": "library/range-forbidden"
+        },
+        "selfGrant": {
+          "code": "tool-denied"
+        }
+      },
+      "before": {
+        "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+        "controls": {
+          "visible": false
+        },
+        "history": {
+          "canGoBack": false,
+          "canGoForward": false
+        },
+        "location": {
+          "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+          "cfi": "epubcfi(/6/2!/4/4/2,/1:26,/1:32)",
+          "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+          "fraction": 0.5
+        },
+        "mode": {
+          "availableModes": [
+            {
+              "defaultUnitId": "sentence",
+              "key": "sentence-reader:guided-reading",
+              "label": "Sentence Reader: Read by sentence or paragraph",
+              "units": [
+                {
+                  "id": "sentence",
+                  "label": "By sentence"
+                },
+                {
+                  "id": "paragraph",
+                  "label": "By paragraph"
+                }
+              ]
+            }
+          ],
+          "cfiRange": null,
+          "label": "Sentence Reader: Read by sentence or paragraph",
+          "modeKey": "sentence-reader:guided-reading",
+          "position": null,
+          "progress": null,
+          "requestedActive": false,
+          "status": "unavailable",
+          "unavailableReason": "unsupported-format",
+          "unitId": "paragraph",
+          "units": [
+            {
+              "id": "sentence",
+              "label": "By sentence"
+            },
+            {
+              "id": "paragraph",
+              "label": "By paragraph"
+            }
+          ]
+        },
+        "playback": {
+          "backend": null,
+          "cfiRange": null,
+          "fallback": false,
+          "owner": null,
+          "status": "unavailable",
+          "unavailableReason": "mode-inactive"
+        },
+        "revision": 10,
+        "sessionId": "d64818e7-f4c5-49bc-92c3-0c5f3baf9907",
+        "status": "ready",
+        "visibleText": "needle"
+      },
+      "cancelled": "AbortError",
+      "global": {
+        "content": [
+          {
+            "text": "{\"range\":{\"bookId\":\"9da5bdb1-f32d-4c20-9315-385c8a7f7e61\",\"contentVersion\":\"sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c\",\"cfi\":\"epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)\"},\"sectionIndex\":0,\"text\":\"needle\",\"offset\":0,\"totalLength\":6,\"nextOffset\":null,\"context\":{\"before\":\"First passageBefore \",\"after\":\" after. This is the visible test passage.\"}}",
+            "type": "text"
+          }
+        ]
+      },
+      "seed": {
+        "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+        "pdfId": "2592bd67-d094-47f4-9619-d329e4e563e6"
+      },
+      "worker": {
+        "none": {
+          "libraryVisible": false
+        },
+        "read": {
+          "ambiguous": "library/range-ambiguous",
+          "commandsVisible": false,
+          "dom": {
+            "continuation": {
+              "context": {
+                "after": "",
+                "before": ""
+              },
+              "nextOffset": null,
+              "offset": 3,
+              "range": {
+                "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+              },
+              "sectionIndex": 0,
+              "text": "dle",
+              "totalLength": 6
+            },
+            "extra": "library/invalid-range",
+            "found": {
+              "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+              "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c",
+              "hits": [
+                {
+                  "excerpt": {
+                    "match": "needle",
+                    "post": " after. This is the visible test passage.",
+                    "pre": "Before "
+                  },
+                  "id": "0:0",
+                  "location": {
+                    "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                    "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                    "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                  },
+                  "range": {
+                    "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                    "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                    "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                  },
+                  "sectionIndex": 0
+                },
+                {
+                  "excerpt": {
+                    "match": "needle",
+                    "post": " spoiler. This is outside the first chapter fence.…",
+                    "pre": "Later "
+                  },
+                  "id": "1:0",
+                  "location": {
+                    "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                    "cfi": "epubcfi(/6/4!/4/2[later]/4,/1:6,/1:12)",
+                    "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                  },
+                  "range": {
+                    "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                    "cfi": "epubcfi(/6/4!/4/2[later]/4,/1:6,/1:12)",
+                    "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                  },
+                  "sectionIndex": 1
+                }
+              ],
+              "nextCursor": null,
+              "scannedSections": 2,
+              "textStatus": "available",
+              "totalSections": 2
+            },
+            "missing": "library/book-not-found",
+            "offset": "library/invalid-range",
+            "parallel": [
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                  "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                  "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                  "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                  "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                  "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                  "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                  "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                  "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                  "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                  "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                  "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                  "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                  "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                  "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                  "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                  "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              }
+            ],
+            "read": {
+              "context": {
+                "after": " after. This",
+                "before": "ssageBefore "
+              },
+              "nextOffset": 3,
+              "offset": 0,
+              "range": {
+                "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+              },
+              "sectionIndex": 0,
+              "text": "nee",
+              "totalLength": 6
+            },
+            "stale": "reader/stale-location"
+          },
+          "libraryVisible": true,
+          "pdf": {
+            "continuation": {
+              "context": {
+                "after": "",
+                "before": ""
+              },
+              "nextOffset": null,
+              "offset": 3,
+              "range": {
+                "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                "cfi": "epubcfi(/6/2)",
+                "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                "textQuote": {
+                  "exact": "needle",
+                  "prefix": "First ",
+                  "suffix": " here; second needle there"
+                }
+              },
+              "sectionIndex": 0,
+              "text": "dle",
+              "totalLength": 6
+            },
+            "extra": "library/invalid-range",
+            "found": {
+              "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+              "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+              "hits": [
+                {
+                  "excerpt": {
+                    "match": "needle",
+                    "post": " here; second needle there",
+                    "pre": "First "
+                  },
+                  "id": "0:0",
+                  "location": {
+                    "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                    "cfi": "epubcfi(/6/2)",
+                    "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                    "textQuote": {
+                      "exact": "needle",
+                      "prefix": "First ",
+                      "suffix": " here; second needle there"
+                    }
+                  },
+                  "range": {
+                    "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                    "cfi": "epubcfi(/6/2)",
+                    "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                    "textQuote": {
+                      "exact": "needle",
+                      "prefix": "First ",
+                      "suffix": " here; second needle there"
+                    }
+                  },
+                  "sectionIndex": 0
+                },
+                {
+                  "excerpt": {
+                    "match": "needle",
+                    "post": " there",
+                    "pre": "First needle here; second "
+                  },
+                  "id": "0:1",
+                  "location": {
+                    "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                    "cfi": "epubcfi(/6/2)",
+                    "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                    "textQuote": {
+                      "exact": "needle",
+                      "prefix": "First needle here; second ",
+                      "suffix": " there"
+                    }
+                  },
+                  "range": {
+                    "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                    "cfi": "epubcfi(/6/2)",
+                    "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                    "textQuote": {
+                      "exact": "needle",
+                      "prefix": "First needle here; second ",
+                      "suffix": " there"
+                    }
+                  },
+                  "sectionIndex": 0
+                },
+                {
+                  "excerpt": {
+                    "match": "needle",
+                    "post": " spoiler",
+                    "pre": "Later "
+                  },
+                  "id": "1:0",
+                  "location": {
+                    "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                    "cfi": "epubcfi(/6/4)",
+                    "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                    "textQuote": {
+                      "exact": "needle",
+                      "prefix": "Later ",
+                      "suffix": " spoiler"
+                    }
+                  },
+                  "range": {
+                    "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                    "cfi": "epubcfi(/6/4)",
+                    "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                    "textQuote": {
+                      "exact": "needle",
+                      "prefix": "Later ",
+                      "suffix": " spoiler"
+                    }
+                  },
+                  "sectionIndex": 1
+                }
+              ],
+              "nextCursor": null,
+              "scannedSections": 2,
+              "textStatus": "available",
+              "totalSections": 2
+            },
+            "missing": "library/book-not-found",
+            "offset": "library/invalid-range",
+            "parallel": [
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                  "cfi": "epubcfi(/6/2)",
+                  "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                  "textQuote": {
+                    "exact": "needle",
+                    "prefix": "First ",
+                    "suffix": " here; second needle there"
+                  }
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                  "cfi": "epubcfi(/6/2)",
+                  "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                  "textQuote": {
+                    "exact": "needle",
+                    "prefix": "First ",
+                    "suffix": " here; second needle there"
+                  }
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                  "cfi": "epubcfi(/6/2)",
+                  "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                  "textQuote": {
+                    "exact": "needle",
+                    "prefix": "First ",
+                    "suffix": " here; second needle there"
+                  }
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                  "cfi": "epubcfi(/6/2)",
+                  "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                  "textQuote": {
+                    "exact": "needle",
+                    "prefix": "First ",
+                    "suffix": " here; second needle there"
+                  }
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                  "cfi": "epubcfi(/6/2)",
+                  "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                  "textQuote": {
+                    "exact": "needle",
+                    "prefix": "First ",
+                    "suffix": " here; second needle there"
+                  }
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                  "cfi": "epubcfi(/6/2)",
+                  "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                  "textQuote": {
+                    "exact": "needle",
+                    "prefix": "First ",
+                    "suffix": " here; second needle there"
+                  }
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                  "cfi": "epubcfi(/6/2)",
+                  "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                  "textQuote": {
+                    "exact": "needle",
+                    "prefix": "First ",
+                    "suffix": " here; second needle there"
+                  }
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                  "cfi": "epubcfi(/6/2)",
+                  "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                  "textQuote": {
+                    "exact": "needle",
+                    "prefix": "First ",
+                    "suffix": " here; second needle there"
+                  }
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              }
+            ],
+            "read": {
+              "context": {
+                "after": " here; secon",
+                "before": "First "
+              },
+              "nextOffset": 3,
+              "offset": 0,
+              "range": {
+                "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                "cfi": "epubcfi(/6/2)",
+                "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                "textQuote": {
+                  "exact": "needle",
+                  "prefix": "First ",
+                  "suffix": " here; second needle there"
+                }
+              },
+              "sectionIndex": 0,
+              "text": "nee",
+              "totalLength": 6
+            },
+            "stale": "reader/stale-location"
+          }
+        },
+        "write": {
+          "ambiguous": "library/range-ambiguous",
+          "commandsVisible": true,
+          "dom": {
+            "continuation": {
+              "context": {
+                "after": "",
+                "before": ""
+              },
+              "nextOffset": null,
+              "offset": 3,
+              "range": {
+                "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+              },
+              "sectionIndex": 0,
+              "text": "dle",
+              "totalLength": 6
+            },
+            "extra": "library/invalid-range",
+            "found": {
+              "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+              "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c",
+              "hits": [
+                {
+                  "excerpt": {
+                    "match": "needle",
+                    "post": " after. This is the visible test passage.",
+                    "pre": "Before "
+                  },
+                  "id": "0:0",
+                  "location": {
+                    "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                    "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                    "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                  },
+                  "range": {
+                    "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                    "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                    "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                  },
+                  "sectionIndex": 0
+                },
+                {
+                  "excerpt": {
+                    "match": "needle",
+                    "post": " spoiler. This is outside the first chapter fence.…",
+                    "pre": "Later "
+                  },
+                  "id": "1:0",
+                  "location": {
+                    "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                    "cfi": "epubcfi(/6/4!/4/2[later]/4,/1:6,/1:12)",
+                    "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                  },
+                  "range": {
+                    "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                    "cfi": "epubcfi(/6/4!/4/2[later]/4,/1:6,/1:12)",
+                    "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                  },
+                  "sectionIndex": 1
+                }
+              ],
+              "nextCursor": null,
+              "scannedSections": 2,
+              "textStatus": "available",
+              "totalSections": 2
+            },
+            "missing": "library/book-not-found",
+            "offset": "library/invalid-range",
+            "parallel": [
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                  "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                  "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                  "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                  "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                  "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                  "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                  "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                  "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                  "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                  "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                  "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                  "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                  "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                  "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                  "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                  "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              }
+            ],
+            "read": {
+              "context": {
+                "after": " after. This",
+                "before": "ssageBefore "
+              },
+              "nextOffset": 3,
+              "offset": 0,
+              "range": {
+                "bookId": "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+                "cfi": "epubcfi(/6/2!/4/2[first]/4,/1:7,/1:13)",
+                "contentVersion": "sha256:ad1a445d047ad3b01878a88f6b8a9f1ffaf8553132c431b5b6ae18babd1c148c"
+              },
+              "sectionIndex": 0,
+              "text": "nee",
+              "totalLength": 6
+            },
+            "stale": "reader/stale-location"
+          },
+          "libraryVisible": true,
+          "pdf": {
+            "continuation": {
+              "context": {
+                "after": "",
+                "before": ""
+              },
+              "nextOffset": null,
+              "offset": 3,
+              "range": {
+                "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                "cfi": "epubcfi(/6/2)",
+                "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                "textQuote": {
+                  "exact": "needle",
+                  "prefix": "First ",
+                  "suffix": " here; second needle there"
+                }
+              },
+              "sectionIndex": 0,
+              "text": "dle",
+              "totalLength": 6
+            },
+            "extra": "library/invalid-range",
+            "found": {
+              "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+              "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+              "hits": [
+                {
+                  "excerpt": {
+                    "match": "needle",
+                    "post": " here; second needle there",
+                    "pre": "First "
+                  },
+                  "id": "0:0",
+                  "location": {
+                    "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                    "cfi": "epubcfi(/6/2)",
+                    "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                    "textQuote": {
+                      "exact": "needle",
+                      "prefix": "First ",
+                      "suffix": " here; second needle there"
+                    }
+                  },
+                  "range": {
+                    "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                    "cfi": "epubcfi(/6/2)",
+                    "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                    "textQuote": {
+                      "exact": "needle",
+                      "prefix": "First ",
+                      "suffix": " here; second needle there"
+                    }
+                  },
+                  "sectionIndex": 0
+                },
+                {
+                  "excerpt": {
+                    "match": "needle",
+                    "post": " there",
+                    "pre": "First needle here; second "
+                  },
+                  "id": "0:1",
+                  "location": {
+                    "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                    "cfi": "epubcfi(/6/2)",
+                    "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                    "textQuote": {
+                      "exact": "needle",
+                      "prefix": "First needle here; second ",
+                      "suffix": " there"
+                    }
+                  },
+                  "range": {
+                    "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                    "cfi": "epubcfi(/6/2)",
+                    "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                    "textQuote": {
+                      "exact": "needle",
+                      "prefix": "First needle here; second ",
+                      "suffix": " there"
+                    }
+                  },
+                  "sectionIndex": 0
+                },
+                {
+                  "excerpt": {
+                    "match": "needle",
+                    "post": " spoiler",
+                    "pre": "Later "
+                  },
+                  "id": "1:0",
+                  "location": {
+                    "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                    "cfi": "epubcfi(/6/4)",
+                    "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                    "textQuote": {
+                      "exact": "needle",
+                      "prefix": "Later ",
+                      "suffix": " spoiler"
+                    }
+                  },
+                  "range": {
+                    "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                    "cfi": "epubcfi(/6/4)",
+                    "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                    "textQuote": {
+                      "exact": "needle",
+                      "prefix": "Later ",
+                      "suffix": " spoiler"
+                    }
+                  },
+                  "sectionIndex": 1
+                }
+              ],
+              "nextCursor": null,
+              "scannedSections": 2,
+              "textStatus": "available",
+              "totalSections": 2
+            },
+            "missing": "library/book-not-found",
+            "offset": "library/invalid-range",
+            "parallel": [
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                  "cfi": "epubcfi(/6/2)",
+                  "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                  "textQuote": {
+                    "exact": "needle",
+                    "prefix": "First ",
+                    "suffix": " here; second needle there"
+                  }
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                  "cfi": "epubcfi(/6/2)",
+                  "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                  "textQuote": {
+                    "exact": "needle",
+                    "prefix": "First ",
+                    "suffix": " here; second needle there"
+                  }
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                  "cfi": "epubcfi(/6/2)",
+                  "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                  "textQuote": {
+                    "exact": "needle",
+                    "prefix": "First ",
+                    "suffix": " here; second needle there"
+                  }
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                  "cfi": "epubcfi(/6/2)",
+                  "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                  "textQuote": {
+                    "exact": "needle",
+                    "prefix": "First ",
+                    "suffix": " here; second needle there"
+                  }
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                  "cfi": "epubcfi(/6/2)",
+                  "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                  "textQuote": {
+                    "exact": "needle",
+                    "prefix": "First ",
+                    "suffix": " here; second needle there"
+                  }
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                  "cfi": "epubcfi(/6/2)",
+                  "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                  "textQuote": {
+                    "exact": "needle",
+                    "prefix": "First ",
+                    "suffix": " here; second needle there"
+                  }
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                  "cfi": "epubcfi(/6/2)",
+                  "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                  "textQuote": {
+                    "exact": "needle",
+                    "prefix": "First ",
+                    "suffix": " here; second needle there"
+                  }
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              },
+              {
+                "context": {
+                  "after": "",
+                  "before": ""
+                },
+                "nextOffset": null,
+                "offset": 0,
+                "range": {
+                  "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                  "cfi": "epubcfi(/6/2)",
+                  "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                  "textQuote": {
+                    "exact": "needle",
+                    "prefix": "First ",
+                    "suffix": " here; second needle there"
+                  }
+                },
+                "sectionIndex": 0,
+                "text": "needle",
+                "totalLength": 6
+              }
+            ],
+            "read": {
+              "context": {
+                "after": " here; secon",
+                "before": "First "
+              },
+              "nextOffset": 3,
+              "offset": 0,
+              "range": {
+                "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+                "cfi": "epubcfi(/6/2)",
+                "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+                "textQuote": {
+                  "exact": "needle",
+                  "prefix": "First ",
+                  "suffix": " here; second needle there"
+                }
+              },
+              "sectionIndex": 0,
+              "text": "nee",
+              "totalLength": 6
+            },
+            "stale": "reader/stale-location"
+          }
+        }
+      }
+    },
+    "status": "completed"
+  },
+  "lifetime": {
+    "result": {
+      "afterLoadReleased": 1,
+      "beforeLoadReleased": 0,
+      "beforeRetirement": 0,
+      "outcome": {
+        "code": "plugin/cancelled",
+        "status": "rejected"
+      },
+      "stoppedBeforeRelease": false
+    },
+    "status": "completed"
+  },
+  "ui": {
+    "domNavigation": {
+      "dialog": false,
+      "session": {
+        "bookId": "12ebbdf3-e50e-48d6-aaab-ff8ff17368c3",
+        "controls": {
+          "visible": false
+        },
+        "history": {
+          "canGoBack": false,
+          "canGoForward": false
+        },
+        "location": {
+          "bookId": "12ebbdf3-e50e-48d6-aaab-ff8ff17368c3",
+          "cfi": "epubcfi(/6/2!/4/2[first],/1:0,/4/1:54)",
+          "contentVersion": "sha256:4e89f639e53ebe2ff00869e5155269c9f43a63c0f2a23b83e2bae73cfab8976c",
+          "fraction": 0.49563318777292575,
+          "href": "0"
+        },
+        "mode": {
+          "availableModes": [
+            {
+              "defaultUnitId": "sentence",
+              "key": "sentence-reader:guided-reading",
+              "label": "Sentence Reader: Read by sentence or paragraph",
+              "units": [
+                {
+                  "id": "sentence",
+                  "label": "By sentence"
+                },
+                {
+                  "id": "paragraph",
+                  "label": "By paragraph"
+                }
+              ]
+            }
+          ],
+          "cfiRange": null,
+          "label": "Sentence Reader: Read by sentence or paragraph",
+          "modeKey": "sentence-reader:guided-reading",
+          "position": null,
+          "progress": null,
+          "requestedActive": false,
+          "status": "inactive",
+          "unavailableReason": null,
+          "unitId": "paragraph",
+          "units": [
+            {
+              "id": "sentence",
+              "label": "By sentence"
+            },
+            {
+              "id": "paragraph",
+              "label": "By paragraph"
+            }
+          ]
+        },
+        "playback": {
+          "backend": null,
+          "cfiRange": null,
+          "fallback": false,
+          "owner": null,
+          "status": "unavailable",
+          "unavailableReason": "mode-inactive"
+        },
+        "revision": 8,
+        "sessionId": "4e296dad-fc36-4683-b761-826d979ef104",
+        "status": "ready",
+        "visibleText": "First passageBefore needle after. This is the visible test passage."
+      }
+    },
+    "pdfNavigation": {
+      "dialog": false,
+      "overflow": false,
+      "session": {
+        "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+        "controls": {
+          "visible": false
+        },
+        "history": {
+          "canGoBack": false,
+          "canGoForward": false
+        },
+        "location": {
+          "bookId": "2592bd67-d094-47f4-9619-d329e4e563e6",
+          "cfi": "epubcfi(/6/2!/4/4/2,/1:26,/1:32)",
+          "contentVersion": "sha256:a28f28f19021f02376cbddd98d46f43821547723ec50898f65d8a78dd2c0a9fa",
+          "fraction": 0.5
+        },
+        "mode": {
+          "availableModes": [
+            {
+              "defaultUnitId": "sentence",
+              "key": "sentence-reader:guided-reading",
+              "label": "Sentence Reader: Read by sentence or paragraph",
+              "units": [
+                {
+                  "id": "sentence",
+                  "label": "By sentence"
+                },
+                {
+                  "id": "paragraph",
+                  "label": "By paragraph"
+                }
+              ]
+            }
+          ],
+          "cfiRange": null,
+          "label": "Sentence Reader: Read by sentence or paragraph",
+          "modeKey": "sentence-reader:guided-reading",
+          "position": null,
+          "progress": null,
+          "requestedActive": false,
+          "status": "unavailable",
+          "unavailableReason": "unsupported-format",
+          "unitId": "paragraph",
+          "units": [
+            {
+              "id": "sentence",
+              "label": "By sentence"
+            },
+            {
+              "id": "paragraph",
+              "label": "By paragraph"
+            }
+          ]
+        },
+        "playback": {
+          "backend": null,
+          "cfiRange": null,
+          "fallback": false,
+          "owner": null,
+          "status": "unavailable",
+          "unavailableReason": "mode-inactive"
+        },
+        "revision": 10,
+        "sessionId": "d64818e7-f4c5-49bc-92c3-0c5f3baf9907",
+        "status": "ready",
+        "visibleText": "needle"
+      },
+      "source": [
+        {
+          "index": 0,
+          "text": "First needle here; second needle there"
+        },
+        {
+          "index": 1,
+          "text": "Later needle spoiler"
+        }
+      ]
+    },
+    "deletedHitSnapshot": {
+      "dialog": "Text Desk\n\nneedle\n\nBefore needle after. This is the visible test passage.\nSource section 1 · 0:0\n\nLater needle spoiler. This is outside the first chapter fence.…\nSource section 2 · 1:0\nClose",
+      "text": "Shelf\n\nContents\n\nNotes\nRange PDF c9ed23ed-9785-44c0-8a2b-41e6fb520a59\n0 / 2 · 50%\n\nReading appearance\n\nChat\n\nMore\nThis file does not expose a navigable table of contents.\nAsk about this book\nSelect a passage and choose Ask AI, or just start typing. This conversation stays with the book.\n\n\nText Desk\n\nneedle\n\nBefore needle after. This is the visible test passage.\nSource section 1 · 0:0\n\nLater needle spoiler. This is outside the first chapter fence.…\nSource section 2 · 1:0\nClose"
+    },
+    "inspectedScreenshots": [
+      "Text Desk range detail, bounded context and explicit Open passage",
+      "FB2 first passage rendered after native click",
+      "PDF second occurrence: 26-32 CFI, visibleText needle, dialog closed, actual canvas page visible",
+      "Deleted-book hit did not construct a successful detail; transient toast not captured"
+    ]
+  },
+  "regressionDiscovery": [
+    "PDF page CFI navigation threw parts.length because an empty local path was fabricated; shared resolver now returns section-only target.",
+    "Held source load triggered plugin quiescence timeout before fix. Lifecycle read barrier now cancels caller immediately and drains original source lease. Explicit 2300ms hold after cancellation exceeds former 2000ms quiescence timeout; termination waited for source release and succeeded.",
+    "First prepare lost its execution context to Vite pdf-lib optimization reload before import; next edit-induced reload interrupted PDF preparation. Explicitly owned staging/book IDs were verified and formally cleaned, not retried blindly."
+  ],
+  "cleanup": {
+    "contributions": [
+      [
+        "capability-range-none",
+        0
+      ],
+      [
+        "capability-range-read",
+        0
+      ],
+      [
+        "capability-range-write",
+        0
+      ],
+      [
+        "capability-range-desk",
+        0
+      ]
+    ],
+    "removed": [
+      "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+      "2592bd67-d094-47f4-9619-d329e4e563e6"
+    ]
+  },
+  "ownedBookIds": [
+    "23b2f865-d2b0-45d7-8d25-522d59dc2fef",
+    "602fd08a-ed1e-4a8e-960a-129e1d1580d3",
+    "12ebbdf3-e50e-48d6-aaab-ff8ff17368c3",
+    "207df528-75b1-4858-9d7d-0fee63bd5f58",
+    "4d2a6532-430a-44d3-a5c2-56477f08662f",
+    "5d26eaf2-c86b-42ea-906f-1d2a1b00d1e5",
+    "9da5bdb1-f32d-4c20-9315-385c8a7f7e61",
+    "2592bd67-d094-47f4-9619-d329e4e563e6"
+  ],
+  "finalVerification": {
+    "test": "24/24 workspace tasks; web 950 tests, 10262 assertions, 171 files; exit 0",
+    "typecheck": "27/27 tasks including strict Foliate and no-any; exit 0",
+    "build": "Production frontend build exit 0; existing large-chunk warnings retained; not a packaged desktop build",
+    "inventory": "12 tests / 37 assertions; 243 rows / 701 entries / 30 units / 31 catalog members / 129 acceptance items / 32 scenarios",
+    "documents": {
+      "pairs": "Three generators/pair checks passed; no diagrams required for contract tables",
+      "viewports": ["1440x1000", "1024x768", "390x844"],
+      "matrix": "Search readRange matched TXT10/TXT13; Chinese range search 31 rows; Escape restored 243; drawer isolation and dark-theme persistence checked",
+      "model": "readRange/range Chinese searches returned 1/3 details; Escape restored 57; mobile main inert while drawer open, restored after Escape; light theme persisted after reload",
+      "pluginSystem": "readRange/range Chinese searches returned 2/3 sections; Escape restored 20; existing page has no drawer/theme controls",
+      "audit": "No observed page overflow, duplicate IDs, broken fragment links or unnamed buttons; model/plugin console errors absent and observed CDN responses 200; HTML remains network dependent",
+      "cleanup": "Owned isolated document page 12 closed; unowned page 1 untouched"
+    },
+    "ownedSqlRemaining": {
+      "books": 0,
+      "annotations": 0,
+      "annotations_fts": 0,
+      "book_removal_cleanup": 0,
+      "reading_sessions_pending": 0,
+      "live_blobs": 0
+    },
+    "sqlScope": "Read-only final query scoped to all eight ownedBookIds; blob keys containing these IDs with non-null storage_uri; immutable event history retained",
+    "processes": "Owned desktop exec 61511 terminal 143; final test/typecheck/build handles 51107/26239/37463 terminal 0; no listeners on 5184/9224"
+  },
+  "unverified": [
+    "Native selection/guided-unit/persisted annotation Range identity and range writes",
+    "In-flight content replacement / provider content updates",
+    "Full EPUB/MOBI/AZW3 and virtual-provider native coverage",
+    "Maximum payload, parsing-memory budget and long-lived load",
+    "All remaining capability rows, compositions, autonomous model decisions, real remote sync",
+    "Packaged, Windows/Linux and forced process death"
+  ]
+}

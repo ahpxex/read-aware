@@ -12,6 +12,11 @@
     "copied": "已复制"
   },
   "errors": {
+    "bookRangeInvalid": "文本范围或读取边界无效。",
+    "bookRangeMissing": "此段文字已无法定位，请重新搜索。",
+    "bookRangeAmbiguous": "此段文字对应多个位置，请搜索更具体的内容。",
+    "bookRangeUnsupported": "此内容不支持读取文本范围。",
+    "bookRangeForbidden": "此段文字超出了允许读取的边界。",
     "annotationObserverLimit": "标注订阅数量已达上限。",
     "annotationObservationFailed": "无法刷新标注，请重试。",
     "memoryTaskNotFound": "此图谱任务已不可用，请创建新任务。",

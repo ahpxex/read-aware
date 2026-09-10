@@ -21,6 +21,7 @@ export * from "./reader-panels";
 export * from "./reading-context";
 export * from "./host-environment";
 export * from "./book-navigation";
+export * from "./book-range";
 export * from "./book-text";
 export * from "./book-graph-task";
 export * from "./book-text-search";

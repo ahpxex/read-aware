@@ -12,6 +12,11 @@
     "copied": "Copiado"
   },
   "errors": {
+    "bookRangeInvalid": "El rango de texto o sus límites de lectura no son válidos.",
+    "bookRangeMissing": "Este pasaje ya no se puede localizar. Búsquelo de nuevo.",
+    "bookRangeAmbiguous": "Este pasaje coincide con varias ubicaciones. Busque un texto más específico.",
+    "bookRangeUnsupported": "Este contenido no admite la lectura de rangos de texto.",
+    "bookRangeForbidden": "Este pasaje está fuera del límite de lectura permitido.",
     "annotationObserverLimit": "Hay demasiadas suscripciones activas a las anotaciones.",
     "annotationObservationFailed": "No se pudieron actualizar las anotaciones. Inténtalo de nuevo.",
     "memoryTaskNotFound": "Esta tarea de grafo ya no está disponible. Inicia una nueva tarea.",

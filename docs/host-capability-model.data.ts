@@ -16,8 +16,8 @@ function unit(id: string, family: Family, owner: string, title: string, refs: st
 export const units: Unit[] = [
   unit("D1", "Domain", "library", "书库、集合与可寻址内容", "LIB01-18 TXT01-08 TXT11-13", "domains.library",
     "书籍/集合 list、get、查询、元数据修改、收藏、导入、删除、合并预览/提交、成员调整；TOC 树、章节正文、文本可用性、准备/重试、带位置的精确搜索、链接目标/图片资源解析。查询返回稳定对象引用与内容版本，搜索返回 snippet + Range，目录条目返回标题、层级、目标及可用编号元数据。",
-    "沿用书库/正文工具，补失真的参数和可定位结果；意图级工具可组合多个读取，不能绕过书籍 scope、剧透批准和删除批准。",
-    "使用相同领域定义，经 manifest 授权取得读/写视图；提供受控原文件/封面引用，不暴露磁盘路径。虚拟书的创建与内容读取仍受 provider 所有权约束。",
+    "沿用书库/正文工具；find_book_locations 已返回版本化 Range，read_book_range 双 scope 消费同一 library 1.7 读取，正文与同分节上下文有界、支持续读。当前书剧透 fence 在目标分节加载前检查，确认参数不能自授权限；保持全局/其他书既有政策。意图级工具可组合读取，不能绕过删除批准。",
+    "library 1.7 searchLocations.range/readRange 已连接 Worker 与 Text Desk 0.5，组合精确搜索、范围详情和实际导航。DOM CFI 与 PDF 页 CFI+quote 同源校验，歧义/缺失/过期明确失败，不把原生路径交给插件。内容查询取消立即结束调用等待，底层资源仍由宿主 drain 释放；真实超过两秒的持有加载已验，无退出假成功。原文件/封面资源、原生选区与标注写入的统一 Range 仍未完整；虚拟书受 provider 所有权约束。",
     "章节编号解析、匹配排序、导出格式、RSS 订阅属于插件算法。章节 ordinal、书上印刷编号和 sectionIndex 不能混用。缺文件重导入目前只是普通导入流程，不承诺原 ID 原子替换。",
     "不存在章节、无文本、内容版本变化、重复导入/ID 重定向、分页耗尽分别可判定；搜索命中可交给 D2 导航，不要求插件造 CFI。"),
   unit("D2", "Domain", "reading", "阅读会话、导航、模式、播放与统计", "TXT09-10 READ01-09 READ12-20 STAT01-05", "domains.reading",

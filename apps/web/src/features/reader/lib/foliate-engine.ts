@@ -71,9 +71,9 @@ function loadEngine(): Promise<EngineAPI> {
   return enginePromise;
 }
 
-export async function loadContentNavigation(): Promise<Pick<EngineAPI, "contentCFI" | "searchContentSection" | "resolveTextQuote">> {
-  const { contentCFI, searchContentSection, resolveTextQuote } = await loadEngine();
-  return { contentCFI, searchContentSection, resolveTextQuote };
+export async function loadContentNavigation(): Promise<Pick<EngineAPI, "contentCFI" | "searchContentSection" | "resolveTextQuote" | "readContentRange">> {
+  const { contentCFI, searchContentSection, resolveTextQuote, readContentRange } = await loadEngine();
+  return { contentCFI, searchContentSection, resolveTextQuote, readContentRange };
 }
 
 /**

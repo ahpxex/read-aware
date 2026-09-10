@@ -1002,6 +1002,84 @@ without source bytes; it is not a virtual-file I/O test. General RSS private-cac
 cleanup, binding persistence recovery, late blob writers, cross-device races,
 packaged and Windows/Linux remain outside this evidence.
 
+### Versioned Range Reads
+
+[代码] Library **1.7** exposes `queries.books.readRange(input)` to
+`library:read` and `library:write`; no library grant means no entry. Precise
+`searchLocations` hits now carry `range` as well as their navigable `location`.
+Both are data references, not permission tokens. The Agent's `read_book_range`
+tool is registered in global and book scopes and uses the same host implementation.
+
+- Range identity: nonblank `bookId` (max 512), `contentVersion` (max 256), and
+  `cfi` (max 8192); optional `textQuote.exact` (nonblank, max 12000) and optional
+  prefix/suffix (max 2000 each). The host copies the input before awaiting reads.
+  Unknown keys at every level are rejected, including injected `hrefs`, grants,
+  and chapter ceilings. References are checked against the source version both
+  before and after reading; missing books/files/providers are not empty passages.
+- Query bounds: `offset` is a nonnegative safe integer, default 0; `limit` is
+  2–12000, default 4000; `contextChars` is 0–2000, default 240 per side. Offsets
+  count UTF-16 units in the resolved range, never extracted chapter offsets.
+  Offsets splitting a surrogate pair or beyond the range reject; chunk/context
+  boundaries avoid splitting pairs. `offset === totalLength` is an exhausted
+  empty page. `nextOffset` is null only when the range is exhausted.
+- Result: normalized `range`, `sectionIndex`, `text`, `offset`, `totalLength`,
+  `nextOffset`, and `context.before/after`. Context is outside the **whole**
+  range, not outside the current chunk, and never crosses its source section.
+  DOM text follows the engine text walker (no script/style); it is not a sentence
+  segmenter or a reconstruction of visual paragraph spacing. A large section
+  still materializes source text/context internally: bounded output is not
+  bounded parsing memory or preemptible synchronous work.
+- DOM ranges require canonical, single-document engine CFIs with noncollapsed
+  text. An optional quote verifies the resolved range; it cannot relocate a
+  mismatching CFI. Text-only sections such as PDF require a canonical page CFI
+  plus a unique quote, with whitespace/soft-hyphen normalization. Multiple
+  matches reject rather than taking the first. The shared View CFI resolver now
+  treats a page CFI as a section target with no fabricated local path, fixing
+  PDF search-result navigation before the rendered quote is resolved.
+- Stable codes: `library/invalid-range`, `library/range-not-found`,
+  `library/range-ambiguous`, `library/range-unsupported`,
+  `library/range-forbidden`, plus existing source/version errors such as
+  `reader/stale-location`. All five new codes have copy in eight locales.
+- Agent current-book reads retain the turn's original narrative ceiling,
+  including surrounding context. The host resolves allowed chapter hrefs to
+  sections and checks before the target document/text load. `confirmSpoiler`
+  requires a host-verified grant; a returned range does not grant access. Global
+  and other-book policy is unchanged. Only returned text/context enters evidence,
+  as separate pieces rather than fabricated adjacency across a paginated range.
+- Plugin `getNavigationToc`, `searchLocations`, and `readRange` now use the
+  lifecycle read barrier: cancellation immediately rejects the consumer with
+  `plugin/cancelled`, while shutdown drains the actual source operation and its
+  lease. Non-interruptible parser/IPC work is not destroyed underneath the read.
+  Expected cancellation is not a shutdown failure; late source/cleanup failures
+  remain logged and reported. This is not a guarantee that a hung parser finishes
+  by a deadline, nor a retrofit of every unrelated plugin query.
+
+[代码/消费者] Text Desk **0.5** requires library 1.7. Its per-book Find a
+passage form accepts an exact query (1–500 characters), case/whole-word options,
+and paginated search batches. Selecting a result reads a versioned passage
+without moving the reader; the explicit Open passage action navigates to that
+range. Duplicate excerpts have section/occurrence labels. Details show a quote,
+bounded surrounding text, offsets and continuation; stale/failed reads reject
+instead of constructing a successful detail. Existing derived-index search
+remains separate and does not pretend its offsets are ranges.
+
+[环境] [Range evidence](./evidence/book-range-2026-09-10.json) records real
+macOS debug Tauri, native imported FB2/PDF, permission-gated module Workers,
+eight concurrent reads per format/permission, actual Agent tools/fence and the
+compiled Text Desk UI. Native navigation reached the second PDF occurrence
+with `visibleText: needle`; actual reader state was unchanged by range-only
+reads. A held native parser load outlasted the old two-second quiescence timeout:
+RPC cancelled first, shutdown remained pending, and the final lease released
+once before successful termination. The load delay is an explicit fixture, not
+a measured production IO latency. An earlier PDF failure and quiescence timeout
+are retained as regression evidence. Deleting a book before opening a stale hit
+logged `library/book-not-found` and produced no successful detail; the transient
+toast was not captured, so no visual error-copy claim is made for that case.
+Autonomous LLM decisions, packaged/Windows/Linux, maximum payload/long-lived
+load, provider content replacement, and remote source mutation are not verified.
+Native selection, guided-unit, and persisted annotation anchors do not yet all
+produce/consume this Range contract; TXT10/TXT13 therefore remain partial.
+
 ### Derived Prose Search
 
 [代码] Library 1.4 adds `queries.books.searchText(input)` under `library:read`
@@ -1038,7 +1116,7 @@ conversation matchers now live in core, with existing Agent exports retained.
   interrupt synchronous matching within a large chapter. Pagination, scan
   budgets, task handles and cooperative cancellation remain TXT08 work.
 
-[代码] Text Desk 0.4 requires library 1.4 and composes the existing library,
+[代码] Introduced in Text Desk 0.4 (now 0.5, requiring library 1.7), this flow composes the existing library,
 reader, form/list/detail surfaces: shelf-index search, selected-book search,
 newline-separated variants, 40-hit result limit, exact/partial labels, plain-text
 snippet detail and explicit Open book. Opening a book does not pretend to jump

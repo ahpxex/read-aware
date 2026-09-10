@@ -12,6 +12,11 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "bookRangeInvalid": "Der Textbereich oder seine Lesegrenzen sind ungültig.",
+    "bookRangeMissing": "Diese Textstelle lässt sich nicht mehr finden. Suchen Sie erneut danach.",
+    "bookRangeAmbiguous": "Diese Textstelle passt zu mehreren Positionen. Suchen Sie nach einem genaueren Treffer.",
+    "bookRangeUnsupported": "Dieser Inhalt unterstützt das Lesen von Textbereichen nicht.",
+    "bookRangeForbidden": "Diese Textstelle liegt außerhalb des erlaubten Lesebereichs.",
     "annotationObserverLimit": "Zu viele Anmerkungsabonnements sind aktiv.",
     "annotationObservationFailed": "Anmerkungen konnten nicht aktualisiert werden. Bitte erneut versuchen.",
     "memoryTaskNotFound": "Diese Graph-Aufgabe ist nicht mehr verfügbar. Starten Sie eine neue Aufgabe.",

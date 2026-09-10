@@ -44,6 +44,7 @@ import {
 import { importBook } from "../features/library/lib/book-import";
 import { searchBookText } from "../features/library/lib/book-text-search";
 import { getBookNavigationToc, searchBookLocations } from "../features/library/lib/book-content-navigation";
+import { readBookRange } from "../features/library/lib/book-range";
 import type { LibraryBook } from "../features/library/lib/library-types";
 import {
   ensureBookTextExtracted,
@@ -97,6 +98,7 @@ export type LibraryQueries = {
     getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
     getNavigationToc(bookId: string, signal?: AbortSignal): Promise<BookNavigationToc>;
     searchLocations(input: BookLocationSearch, signal?: AbortSignal): Promise<BookLocationSearchPage>;
+    readRange(input: import("@read-aware/core").BookRangeQuery, signal?: AbortSignal, allowedHrefs?: readonly string[]): Promise<import("@read-aware/core").BookRangePage>;
     searchText(input: BookTextSearch, signal?: AbortSignal): Promise<BookTextHit[]>;
   };
   collections: {
@@ -150,6 +152,7 @@ export function createLibraryDomain(origin: EventOrigin, lifetime?: AbortSignal)
       getTextTask: async (bookId, taskId) => textTasks.get(bookId, taskId),
       listTextTasks: async bookId => textTasks.list(bookId),
       searchLocations: searchBookLocations,
+      readRange: readBookRange,
       searchText: (input, signal) => searchBookText({ list: listLibraryBooks, extract: getExtractedChapters, persisted: getPersistedChapters }, input, signal ?? lifetime),
       list: async () => (await listLibraryBooks()).map(toBookSummary),
       get: async (bookId) => {

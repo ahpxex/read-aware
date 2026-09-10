@@ -12,6 +12,11 @@
     "copied": "Copié"
   },
   "errors": {
+    "bookRangeInvalid": "La plage de texte ou ses limites de lecture sont invalides.",
+    "bookRangeMissing": "Ce passage est introuvable. Recherchez-le à nouveau.",
+    "bookRangeAmbiguous": "Ce passage correspond à plusieurs emplacements. Précisez votre recherche.",
+    "bookRangeUnsupported": "Ce contenu ne permet pas de lire des plages de texte.",
+    "bookRangeForbidden": "Ce passage dépasse la limite de lecture autorisée.",
     "annotationObserverLimit": "Trop d'abonnements aux annotations sont actifs.",
     "annotationObservationFailed": "Impossible d'actualiser les annotations. Réessayez.",
     "memoryTaskNotFound": "Cette tâche de graphe n'est plus disponible. Lancez une nouvelle tâche.",

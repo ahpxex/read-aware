@@ -11,6 +11,11 @@ export function createBookTextPort(): BookTextPort {
     preparation: { start: domain.commands.books.prepareText, get: library.getTextTask, list: library.listTextTasks, cancel: domain.commands.books.cancelTextTask },
     getTextState: library.getTextState,
     getNavigationToc: library.getNavigationToc,
+    readRange: async ({ throughChapterIndex, ...input }, signal) => {
+      const hrefs = throughChapterIndex === undefined ? undefined : (await getExtractedChapters(input.range.bookId))
+        .slice(0, Math.max(0, throughChapterIndex + 1)).flatMap(chapter => chapter.hrefs ?? []);
+      return library.readRange(input, signal, hrefs);
+    },
     searchLocations: async ({ throughChapterIndex, ...input }, signal) => {
       const hrefs = throughChapterIndex === undefined ? undefined : (await getExtractedChapters(input.bookId))
         .slice(0, Math.max(0, throughChapterIndex + 1)).flatMap(chapter => chapter.hrefs ?? []);

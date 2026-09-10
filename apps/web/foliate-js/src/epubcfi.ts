@@ -155,7 +155,7 @@ const toInnerString = (parsed: ParsedCFI): string => Array.isArray(parsed)
     ? parsed.map(parts => parts.map(partToString).join('')).join('!')
     : [parsed.parent, parsed.start, parsed.end].map(toInnerString).join(',')
 
-const toString = (parsed: ParsedCFI) => wrap(toInnerString(parsed))
+export const toString = (parsed: ParsedCFI) => wrap(toInnerString(parsed))
 
 export function collapse(x: string, toEnd?: boolean): string
 export function collapse(x: ParsedCFI, toEnd?: boolean): CFIPath

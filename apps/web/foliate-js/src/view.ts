@@ -1,4 +1,5 @@
 import * as CFI from './epubcfi.js'
+import { resolveContentCFI } from './content-range.js'
 import type { Book, NavigationTarget, ResolvedNavigation, TOCFragment, TOCItem } from './book.js'
 import { makeBook, type BookInput } from './book-loader.js'
 import { TOCProgress, SectionProgress } from './progress.js'
@@ -273,14 +274,7 @@ export class View extends HTMLElement {
         return range ? CFI.joinIndir(base, CFI.fromRange(range)) : base
     }
     resolveCFI(cfi: string): ResolvedNavigation {
-        const book = this.#requireBook()
-        if (book.resolveCFI) return book.resolveCFI(cfi)
-        const parts = CFI.parse(cfi)
-        const parent = Array.isArray(parts) ? parts : parts.parent
-        const base = parent.shift()
-        if (!base) throw new Error('CFI has no section path')
-        const index = CFI.fake.toIndex(base)
-        return { index, anchor: doc => CFI.toRange(doc, parts) }
+        return resolveContentCFI(this.#requireBook(), cfi)
     }
     async resolveNavigation(target: NavigationTarget): Promise<ResolvedNavigation | undefined> {
         const book = this.#requireBook()

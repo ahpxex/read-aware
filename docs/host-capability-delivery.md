@@ -1330,3 +1330,47 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [文档] 三对 MD/HTML 同步契约、消费者和剩余缺口，既有九张 1440/1024/390 截图已检查。插件说明新条目曾位于 wrap 外，本轮修正后逐张复核三个视口，文本对齐、无横向溢出；无重复 ID/坏页内锚点。英文 annotation observation 和中文标注均命中观察条目，Escape 恢复 19 节。既有矩阵/模型中英搜索、抽屉 inert/恢复与主题保持已验；插件原无抽屉/主题。本轮 file:// 文档浏览器记录一条同文件 unique security origins 加载警告，不能宣称 console 全零；未见正文缺失，HTML 仍依赖 CDN，也不作为产品验收。所有自有文档页面已关闭。
 
 [剩余] 原生标注面板仍用旧 revision 接线、legacy subscribe 不是完整远端变化流；统一 Range、条件写迁移、最大载荷、长时/撤权/打包/跨平台仍需继续。其余双端部分/未接能力、全能力组合、完整 Agent 对话与真实跨设备验证尚未完成，整体目标保持进行中，未推送。
+
+## 2026-09-10：原生标注列表与正文标记共用观察
+
+[进度] 上轮 2d0421d9 提交 annotations 1.4 和 Annotation Desk 0.2，是有效进展。本轮连接剩余真实消费者，而非继续增加未消费的 API：原生 Notes、书籍详情和 Foliate 正文标记观察提交后的数据；不再依赖手动 annotationsRevisionAtom。整体目标仍是全部应开放能力与自由组合验收，未缩小为标注模块。
+
+[代码] AnnotationObserver 抽出宿主内部泛型快照交付方法，公共 page/inspect 的字段、权限、1–100 行、版本和行为不变。原生整书集合复用串行读取/去重/稳定错误/恢复/释放规则，单独的名额池避免插件耗尽公共 64 个名额时饿死原生阅读。annotations_list 新增可选 bookId，在 SQLite 解码和 IPC 前筛选；旧无参数全库读保留。Rust 测试证明另一书的损坏类型不影响本书读取，读取损坏书仍报 db/error，修复后恢复。原生整书载荷仍与本书标注数成正比，不声称有界 Worker 全书观察或负载已验。
+
+[生命周期/呈现] useBookAnnotations 在切书前即隐藏旧快照，effect 退订丢迟到读；显式刷新重新观察，失败清内容，后台恢复自动重显。读取失败透传稳定错误，计数在加载/失败时不冒充零；终端错误不提供虚假的重试按钮。Foliate 在视图生命周期内观察，取消安装和 load/create-overlay 回调有旧代 guard；移除旧 CFI、更新颜色/样式，删掉与笔记同范围的高亮后恢复笔记标记。相同范围取与菜单解析一致的首条高亮，覆盖层重建同样去重；顺序等待引擎操作，退休后不派发后续绘制，单个失效锚记录日志但不挡住其他标记。Navigator 独立 namespace 不受影响；变化的高亮关闭旧菜单，未改写打开的笔记草稿或旧保存策略。
+
+[原生/组合] [native-annotation-observation](./evidence/native-annotation-observation-2026-09-10.json) 使用隔离 macOS Tauri debug、真实 SQLite、每轮两个唯一 FB2 导入和一个真实 Worker。Agent-origin 域创建笔记，实际 get_annotations 查询；Worker 创建黄色高亮、条件改成蓝色下划线、修改笔记、删除高亮，Notes 和正文无需重开即更新，删除后重现虚线笔记标记。sync store applyRemote 改笔记后列表更新；切到第二本书时第一本的新标记不串入，回到原书时显示新状态。不是自主推理、网络 relay 或跨设备测试。
+
+[故障与修正] 自有笔记 created_at 在事务内临时改为 BLOB，SQL page/inspect/list 返回 db/error，原生列表与正文旧标记清空；恢复原时间后自动重现。注入/恢复均只临时移除 trg_annotations_fts_update 并在同一事务重建完全相同 DDL，不改 FTS 内容，最后复核原 DDL。首轮发现原生面板仍显示泛化错误和 0 计数；修正后独立第二轮实机验证本地化数据库文案、无假零计数、无错误重试按钮和自动恢复。原生高亮/列表、首轮错误、修正错误截图均已检查，无页面横向溢出；书籍详情共用 hook 但未独立 E2E，四个绘制回归含异步退休、共享范围/笔记恢复、局部绘制失败和 overlay 重建；最后一项是原生运行后补的单元证据。
+
+[结算与清理] 前两轮书/标注/FTS/文件 intent 已清零，但后续只读审计找到一项自有 pending 阅读桶。源码确认 close 回执不等待 tracker 的延迟结算；重启会恢复，不能把这个观察直接说成数据丢失，亦不能将 presentation ready 当所有持久化都已结算。夹具改为 close 后调用已有内部 flushReadingSessions，仅结算 owned book 的桶，再删除记录；第三轮 prepare/cleanup 验证六本自有 books、annotations、FTS、file intents、pending 均 0。未改生产关闭/删除与计时队列协调，不向插件开放伪造时长/强制 flush。事件日志和已结算阅读历史按既有规则保留。三个 driver 均停止，PGID 13122/14248/16455、exec 36835/16464/82472 均终态 143，未触碰既有 89360/9223、正式数据或配置密钥。
+
+[验证/重扫] 全仓 test 24/24（web 926 项/10121 断言/165 文件、Agent 429）、typecheck 27/27、production web build 1/1 通过。Rust lib 全套 157 通过、1 既有忽略、0 失败；test 构建 38 项既有警告，native dev 37 项及 block future-incompat 提示保留。库存/模型 11 项/35 断言、两生成器 --check、三 pair validator、git diff --check 通过；源码扫描不再有 annotationsRevisionAtom/bumpAnnotationsRevision。243 行/703 入口/30 单元/31 catalog/129 旧验收/32 场景，14 源码/6 内置插件不变。ANN09 的 Agent 标签从“自动”纠正为“部分”：get_annotations 是按需查询，不是常驻自动订阅；因此 Agent 部分 47/自动 16，其余数量不变，不是新增一个 API 就冒充语义完成。
+
+[文档] 三对 MD/HTML 同步现状与边界，九张 1440×1000、1024×768、390×844 截图逐张检查。矩阵移动端首次 scrollIntoView 把表格内部滚到行文字之下，复位内部滚动后重拍确认；表格仍以自身横向滚动呈现五列，页面无横向溢出。矩阵 native/切书命中 ANN09，模型 SQL/切书命中 D3（5/1 条），插件 Notes/切书命中观察节；Escape 恢复 243/57/19。矩阵/模型移动抽屉隔离 HEADER/MAIN、关闭恢复、主题刷新保持通过；插件原无主题/抽屉。三页无重复 ID/坏页内锚点/console error，观察 CDN 状态均 200，无 Mermaid，HTML 仍依赖网络；文档页已关闭，不算产品验证。
+
+[剩余] 原生编辑/菜单旧写仍需迁移条件提交，统一 Range 与完整内容版本、legacy 远端事件、最大整书载荷、长时/撤权/打包/Windows/Linux 未完成。关闭/删书与延迟阅读结算仍需按真实回执边界继续审查；不是本次改夹具就解决生产生命周期。其余双端部分/未接项、所有能力组合、完整 Agent 对话/自主推理和真实跨设备测试继续，整体目标未完成，未推送。
+
+[提交前复核] 移除原生 mutation callback 中的列表过滤和 refs/标记直写，避免晚到写回执覆盖已交付的新观察结果，而去重又不再重送同一快照；关闭后清空 hook 保留值，重开同一本书也不先闪旧内容。观察成为唯一集合呈现写者，原生写完成后仍按观察节奏呈现。第四轮实际进入原生笔记编辑器、输入并点击 Update，Agent 查询、Notes 和虚线标记一致；打开编辑器使用生产 show-annotation 事件，不是鼠标命中测试。未注入确定性的晚到写回执竞态，原生旧写条件化仍未解决。新增两本自有 books/annotations/FTS/intents 为 0，但最新 SQL 查到 pending 为 1：显式 flush 后 tracker 仍能晚到 accrue，夹具未等待真正退休，清理尚未完成；PGID 17579 / exec 93223 终态 143，driver 停止。全仓 test 24/24（web 仍 926）、typecheck 27/27 和 production web build 再次通过。末次未知错误不再默认给 retry，已知 db/error 的原生呈现证据仍适用；文档 MD 增补内部所有权与验证细节，不改变 HTML 既有共用观察/剩余边界裁决。
+
+[退休修复前检查点] 标注呈现与故障恢复已实现并取得证据，但第四轮当时暴露的延迟 accrual/flush 清理缺口尚未收尾，因此未提交。那次自有进程均终止，隔离数据库中留有上述自有书的 pending 桶；后续根因修复与最终清理见下一节，不能把当时的失败记录覆盖为成功。
+
+## 2026-09-10：双端关闭回执等待阅读持久化退休
+
+[进度] 上一条用户确认仅核对模型，没有实现进展。本轮继续实际目标，修复原生标注验收发现的生命周期缺口，不以“文档已经覆盖”替代双端实现。范围仍包括全部应开放的部分/未接项、能力组合插件、复扫与原生验收。
+
+[根因/代码] 时间写入原由每个 React tracker 实例独立排队，位置写入在队列外，关闭先发布 idle，卸载再延迟 1500 ms 猜是否重挂载。显式 fixture flush 不能阻止其后新的 accrual。现在 ReadingTraceCoordinator 按产品会话绑定身份，时间/位置共用跨代队列；最终采样后同步封闭写者、等待已接收写入、仅结算本书桶。同书重开先排旧退休再排新写；React 重挂载只转交采样器，不触发产品关闭；旧引擎 relocate 也核对 sessionId。没有向 Agent/插件增加伪造时长或强制 flush 权限。
+
+[回执/失败] shell close Promise 与真实会话释放共同决定完成；表面过渡共享在途 close，重开取消旧过渡等待，迟到退休不清新会话。关闭失败可释放 UI，但调用方必须拿到稳定错误，不能返回 completed；本地化 toast 告知用户，已存 pending 桶留待恢复。失败 tick 不假称已持久化，后续 flush 成功也不抹去那个失败；跨小时旧桶 flush 失败不丢新观测。取消/超时只放弃等待，不撤销已受理的退休；事件日志与已结算历史照旧保留。
+
+[原生证据] [reading-retirement](./evidence/reading-retirement-2026-09-10.json) 记录隔离 macOS Tauri debug 中三个新夹具周期（六本唯一 FB2），首周期重验 Worker 高亮/Agent 查询/正文标记和切书。正式 Worker close 与实际 navigate_reading(close) 均完成后立即 pending 为零。真实 sqlite3 BEGIN IMMEDIATE 写锁分别令 Worker、Agent 拒绝 db/locked；DOM 有本地化数据库忙文案，未结算桶仍在，释放锁后重开再关闭恢复。首次故障调用超出 bridge 的脚本等待层，未把工具超时当作操作终态；检查实际会话/日志后，改用显式 JS 在途状态分别捕获两端终态。一个早期夹具误从 library tools 找 navigate_reading，得到 undefined，修正为 buildReaderTools 后重跑，失败夹具已正式清理。
+
+[清理] fixture 的额外 flush 已删除，改为 close 后断言自有 pending 为空。旧第四轮遗留桶由本轮启动恢复；原生停止后只读 SQL 对前后共 14 本自有书核验 books/annotations/annotations_fts/book_removal_cleanup/reading_sessions_pending 全零，设备 pending 总数也为零。三次锁持有者均 ROLLBACK/.quit 终态；driver 9224 停止，PGID 20277 / exec 89339 终态 143，5184/9224 无监听；未操作既有 89360/9223、正式数据或密钥。旧证据保留历史 pending=1，新增 followup 指向本次结论，不改写失败历史。
+
+[验证/复扫] 29 项聚焦测试覆盖延迟时间+位置写、迟到回调、采样器转交、同书跨代、按书/小时结算、写/flush 失败、共享关闭、重开和调用方取消。全仓 test 24/24：web 935 项、10156 断言、167 文件；typecheck 27/27、production frontend build 通过。测试 harness 的可选 timer ID 类型错在最终 typecheck 前修正；构建既有大 chunk 警告保留。库存/模型 11 项/35 断言、两生成器 --check、三 pair validator 通过；243 行/703 入口/30 单元/31 catalog/129 验收/32 场景不变，14 源码插件/6 内置插件不变。原生观察仍 ANN09 部分，关闭接线没有用来冒充其他条目完成。
+
+[原生回归补验] 当前工作区 cargo test --lib 再跑 157 通过、1 既有忽略、0 失败；无新增 Rust 失败。旧 revision atom/bump、UNMOUNT_CLOSE_DELAY_MS/deferredClose 源码扫描均无匹配；产品时间/位置写统一进入 trace runtime，未保留旧直写调用。
+
+[文档] matrix/plugin HTML 新回执语义在 1440×1000、1024×768、390×844 检查；表格保持自身横向滚动，页面无横溢。矩阵 flush/结算搜索命中 READ02，Escape 恢复 243；插件 Reading/结算为 5/4 节，Escape 恢复 19。矩阵移动抽屉隔离与主题刷新保持通过；重复 ID/坏锚点未发现。初次矩阵出现一次 Chrome file-origin 安全诊断，fresh reload 后无 console error；插件无 error，观察 CDN 均 200，仍依赖网络。文档页已关闭，这不是产品 E2E 的替代证据。
+
+[剩余] 原生标注旧编辑/删除条件化、统一 Range、完整事件/资源/隐私与任务协议等双端缺口继续；真实模型自由组合、打包/Windows/Linux、跨设备、强杀和长时/最大载荷没有因本轮关闭。整体目标保持进行中，未推送。

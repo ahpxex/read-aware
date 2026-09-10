@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Notebook } from "@phosphor-icons/react";
-import { Body, Eyebrow, Popover, InlineError } from "@read-aware/ui";
+import { Body, Eyebrow, Popover, InlineError, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { formatNumber, useTranslation } from "../../../i18n";
+import { describeErrorCode } from "../../../i18n/describe-error";
 import { AnnotationRow } from "../../annotations/components/AnnotationRow";
 import type { Annotation } from "../../annotations/lib/annotation-types";
 import { normalizeHref } from "../lib/epub-utils";
@@ -12,6 +13,8 @@ type ReaderNotesPopoverProps = {
   annotations: Annotation[];
   /** The read failed — render an error state, never "no annotations yet". */
   loadFailed?: boolean;
+  loadErrorCode?: string;
+  isLoading?: boolean;
   onRetryLoad?: () => void;
   tocEntries: TocEntry[];
   onNavigate: (cfiRange: string) => void;
@@ -54,6 +57,8 @@ function groupByTocOrder(annotations: Annotation[], tocEntries: TocEntry[]): Gro
 export function ReaderNotesPopover({
   annotations,
   loadFailed = false,
+  loadErrorCode,
+  isLoading = false,
   onRetryLoad,
   tocEntries,
   onNavigate,
@@ -66,6 +71,7 @@ export function ReaderNotesPopover({
   const open = controlledOpen ?? uncontrolledOpen;
   const setOpen = onOpenChange ?? setUncontrolledOpen;
   const groups = groupByTocOrder(annotations, tocEntries);
+  const failure = describeErrorCode(loadErrorCode);
 
   return (
     <Popover
@@ -84,16 +90,18 @@ export function ReaderNotesPopover({
       <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-2.5">
         <Eyebrow as="span">{t("notes")}</Eyebrow>
         <span className="text-xs tabular-nums text-fg-subtle">
-          {formatNumber(annotations.length)}
+          {loadFailed || isLoading ? null : formatNumber(annotations.length)}
         </span>
       </div>
 
       {loadFailed ? (
         <div className="px-4 py-6">
-          <InlineError onRetry={onRetryLoad} retryLabel={t("common:errorBoundary.retry")}>
-            {t("common:errors.generic")}
+          <InlineError onRetry={failure?.retryable ? onRetryLoad : undefined} retryLabel={t("common:errorBoundary.retry")}>
+            {failure?.body ?? t("common:errors.generic")}
           </InlineError>
         </div>
+      ) : isLoading ? (
+        <div className="flex justify-center px-4 py-8"><Spinner size="sm" /></div>
       ) : annotations.length === 0 ? (
         <div className="px-4 py-8">
           <Body className="text-center text-sm text-fg-muted">

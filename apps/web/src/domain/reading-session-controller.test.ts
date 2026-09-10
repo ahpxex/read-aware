@@ -136,6 +136,36 @@ test("close resolves after the host actually clears its session", async () => {
   close(); await pending; expect(completed).toBe(true);
 });
 
+test("close also joins asynchronous shell retirement after idle and propagates persistence failure", async () => {
+  for (const fail of [false, true]) {
+    const { runtime } = fixture();
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    runtime.bindShell({ open() {}, close: async () => {
+      runtime.closed(); await gate;
+      if (fail) throw new AppError("db/locked", "flush failed");
+    } });
+    let done = false;
+    const close = runtime.close().then(() => { done = true; return "completed"; }, error => error);
+    await Promise.resolve(); expect(done).toBe(false);
+    release();
+    if (fail) expect(await close).toMatchObject({ code: "db/locked" });
+    else expect(await close).toBe("completed");
+  }
+});
+
+test("caller cancellation does not cancel an already accepted retirement", async () => {
+  const { runtime } = fixture(), abort = new AbortController();
+  let release!: () => void, retired = false;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  runtime.bindShell({ open() {}, close: async () => { await gate; retired = true; runtime.closed(); } });
+  const pending = runtime.close(abort.signal).catch(error => error);
+  abort.abort(new AppError("plugin/cancelled", "owner retired"));
+  expect(await pending).toMatchObject({ code: "plugin/cancelled" });
+  expect(retired).toBe(false); release(); await gate; await Promise.resolve();
+  expect(retired).toBe(true); expect(runtime.snapshot().status).toBe("idle");
+});
+
 test("a superseding book request does not wait for the old book's readiness timeout", async () => {
   const runtime = new ReadingSessionController();
   runtime.bindShell({ open: (bookId, intent) => {

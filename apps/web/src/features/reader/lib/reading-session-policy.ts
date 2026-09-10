@@ -10,7 +10,7 @@
  *  - the book changing;
  *  - reading pausing for `PAUSE_MS` (the moment another device may take
  *    over, so the position should be on its way);
- *  - the app hiding or the reader unmounting.
+ *  - the app hiding or the product reading session retiring.
  * None of these has to be exact: a close the device never observes (killed
  * in the background, power loss) is made up at the next boot, and the
  * projection's last-observed-wins rule means a late close can never
@@ -33,13 +33,6 @@ export const MAX_TICK_MS = TICK_MS * 2;
 /** Below this a "tick" is a remount artefact (cleanup firing a millisecond
  *  after the clocks reset), not reading; it never opens a bucket. */
 export const MIN_TICK_MS = 1_000;
-/**
- * A reader unmount closes the session only if nothing remounts for the same
- * book within this window — the workspace remounts on open, and closing the
- * bucket the first relocate just opened would mint an empty session per open.
- */
-export const UNMOUNT_CLOSE_DELAY_MS = 1_500;
-
 export type BucketKey = { bookId: string; localDay: string; localHour: number };
 
 export function bucketKeyAt(bookId: string, epochMs: number): BucketKey {

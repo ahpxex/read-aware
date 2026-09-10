@@ -6,6 +6,7 @@ import { Trans, formatPercent, useTranslation } from "../../../i18n";
 import { readingStatsAtom } from "../../../state/ui";
 import { formatReadingDuration, getBookReadingStats } from "../../reader/lib/reading-stats";
 import { useBookAnnotations } from "../../annotations/hooks/useBookAnnotations";
+import { describeErrorCode } from "../../../i18n/describe-error";
 import { HIGHLIGHT_COLORS } from "../../reader/lib/highlight-renderer";
 import type { Annotation, Highlight, Note } from "../../annotations/lib/annotation-types";
 import type { BookMetadataPatch, LibraryBook } from "../../library/lib/library-types";
@@ -67,7 +68,7 @@ export function BookDetailsDialog({ book, open, onClose, onUpdateMetadata }: Boo
   const store = useAtomValue(readingStatsAtom);
   const readingTime = formatReadingDuration(getBookReadingStats(store, book.id).totalMs);
   // Only read annotations while the dialog is open.
-  const { annotations, loadFailed: annotationsLoadFailed } = useBookAnnotations(open ? book.id : null);
+  const { annotations, loadFailed: annotationsLoadFailed, loadErrorCode, isLoading: annotationsLoading } = useBookAnnotations(open ? book.id : null);
   const highlightCount = annotations.filter((a) => a.type === "highlight").length;
   const noteCount = annotations.filter((a) => a.type === "note").length;
 
@@ -155,14 +156,14 @@ export function BookDetailsDialog({ book, open, onClose, onUpdateMetadata }: Boo
         {/* Headline figures */}
         <div className="grid grid-cols-3 gap-3 border-t border-border pt-4">
           <DetailStat label={t("details.fieldReading")} value={readingTime} />
-          <DetailStat label={t("details.highlights")} value={highlightCount} />
-          <DetailStat label={t("details.notes")} value={noteCount} />
+          <DetailStat label={t("details.highlights")} value={annotationsLoadFailed || annotationsLoading ? "-" : highlightCount} />
+          <DetailStat label={t("details.notes")} value={annotationsLoadFailed || annotationsLoading ? "-" : noteCount} />
         </div>
 
         {/* Highlights & notes preview */}
         {annotationsLoadFailed && (
           <div className="border-t border-border pt-4">
-            <InlineError compact>{t("common:errors.generic")}</InlineError>
+            <InlineError compact>{describeErrorCode(loadErrorCode)?.body ?? t("common:errors.generic")}</InlineError>
           </div>
         )}
         {annotations.length > 0 && (

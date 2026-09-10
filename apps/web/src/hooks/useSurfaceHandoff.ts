@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { LibraryBook } from "../features/library/lib/library-types";
 import type { ReaderLoadError } from "../features/reader/hooks/useReaderSession";
 import { prefersReducedMotion } from "../features/settings/lib/app-settings";
+import { AppError } from "@read-aware/core";
 
 /**
  * Orchestrates the shelf ⇄ reader surface handoff (see App.tsx for the
@@ -28,7 +29,7 @@ type ReaderSessionSlice = {
   currentPage: number;
   totalPages: number;
   openReader: (book: LibraryBook, navigationIntent?: number) => void;
-  closeReader: () => void;
+  closeReader: () => Promise<void>;
 };
 
 export type ShelfHandoff = "idle" | "holding" | "fading";
@@ -52,6 +53,7 @@ export function useSurfaceHandoff(reader: ReaderSessionSlice) {
   const [shelfHandoff, setShelfHandoff] = useState<ShelfHandoff>("idle");
   const [readerExiting, setReaderExiting] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
+  const closingRef = useRef<{ promise: Promise<void>; reject(error: unknown): void } | null>(null);
   const holdStartRef = useRef(0);
 
   const openBook = useCallback(
@@ -64,6 +66,8 @@ export function useSurfaceHandoff(reader: ReaderSessionSlice) {
         window.clearTimeout(closeTimeoutRef.current);
         closeTimeoutRef.current = null;
       }
+      closingRef.current?.reject(new AppError("reader/superseded", "Book reopened during close transition"));
+      closingRef.current = null;
       setReaderExiting(false);
       // Same-batch as openReader's state so the shelf never unmounts between
       // renders (a one-frame flash of the raw reader).
@@ -74,18 +78,30 @@ export function useSurfaceHandoff(reader: ReaderSessionSlice) {
   );
 
   const closeBook = useCallback(() => {
-    if (closeTimeoutRef.current !== null) return; // already closing
+    if (closingRef.current) return closingRef.current.promise;
     setShelfHandoff("idle");
-    if (prefersReducedMotion()) {
-      reader.closeReader();
-      return;
-    }
-    setReaderExiting(true);
-    closeTimeoutRef.current = window.setTimeout(() => {
+    let resolve!: () => void;
+    let reject!: (error: unknown) => void;
+    const promise = new Promise<void>((yes, no) => { resolve = yes; reject = no; });
+    const closing = { promise, reject };
+    closingRef.current = closing;
+    // UI event handlers do not await; persistence errors are presented by
+    // closeReader. Keep the original rejection observable to the runtime.
+    void promise.catch(() => {});
+    const finish = () => {
       closeTimeoutRef.current = null;
-      setReaderExiting(false);
-      reader.closeReader();
-    }, CLOSE_TEARDOWN_MS);
+      void reader.closeReader().then(resolve, reject).finally(() => {
+        if (closingRef.current !== closing) return;
+        closingRef.current = null;
+        setReaderExiting(false);
+      });
+    };
+    if (prefersReducedMotion()) finish();
+    else {
+      setReaderExiting(true);
+      closeTimeoutRef.current = window.setTimeout(finish, CLOSE_TEARDOWN_MS);
+    }
+    return promise;
   }, [reader.closeReader]);
 
   // The first relocate populates the page counters; a load failure shows the
@@ -152,6 +168,7 @@ export function useSurfaceHandoff(reader: ReaderSessionSlice) {
   useEffect(() => {
     return () => {
       if (closeTimeoutRef.current !== null) window.clearTimeout(closeTimeoutRef.current);
+      closingRef.current?.reject(new AppError("reader/unavailable", "Reader surface unmounted during close"));
     };
   }, []);
 

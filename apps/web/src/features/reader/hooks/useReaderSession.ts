@@ -6,7 +6,8 @@ import {
   resolveStoredBookFile,
   type BookFileMissingReason,
 } from "../../library/lib/library-db";
-import { noteReadingPosition } from "../../../platform/reading-session";
+import { readingTraces } from "../lib/reading-trace-runtime";
+import type { ReadingTrace } from "../lib/reading-trace";
 import { createLogger } from "../../../platform/logger";
 import { createProgressPatch, getReadingStatus } from "../../library/lib/library-progress";
 import type {
@@ -52,6 +53,8 @@ export function useReaderSession({
   // For localizing load-failure fallbacks (describeError's shelf fallback).
   const { t } = useTranslation(["shelf", "common"]);
   const [selectedBook, setSelectedBook] = useState<LibraryBook | null>(null);
+  const [trace, setTrace] = useState<ReadingTrace | null>(null);
+  const traceRef = useRef<ReadingTrace | null>(null);
   const [readerSource, setReaderSource] = useState<ReaderSource>(null);
   const [readerLoadError, setReaderLoadError] = useState<ReaderLoadError | null>(null);
   const [isReaderLoading, setIsReaderLoading] = useState(false);
@@ -105,10 +108,9 @@ export function useReaderSession({
   // — see useReadingTimeTracker / reading-session-policy.ts. The optimistic
   // patch keeps the shelf and header current meanwhile.
   const noteProgress = useCallback((bookId: string, progress: BookProgress) => {
-    if (!progress) return;
+    if (!progress || !trace?.accepting || trace.bookId !== bookId) return;
     const progressPercent = Math.max(0, Math.min(100, Math.round(progress.progressPercent)));
-    void noteReadingPosition(
-      bookId,
+    trace.position(
       {
         locator: progress.cfi ?? progress.href ?? "",
         chapterHref: progress.href ?? undefined,
@@ -118,13 +120,11 @@ export function useReaderSession({
         status: getReadingStatus(progressPercent),
       },
       Date.now(),
-    ).catch((error: unknown) => {
-      // The next turn (or the tick) carries the position; nothing to show.
-      log.warn("could not note the reading position", error);
-    });
-  }, []);
+    );
+  }, [trace]);
 
   const applyReaderProgress = useCallback((bookId: string, progress: BookProgress) => {
+    if (!trace?.accepting || trace.bookId !== bookId) return;
     applyOptimisticProgress(bookId, progress);
     setSelectedBook((currentBook) => (
       currentBook?.id === bookId
@@ -132,10 +132,13 @@ export function useReaderSession({
         : currentBook
     ));
     noteProgress(bookId, progress);
-  }, [applyOptimisticProgress, noteProgress]);
+  }, [applyOptimisticProgress, noteProgress, trace]);
 
   const openReader = useCallback((book: LibraryBook, navigationIntent?: number) => {
     const sessionId = readingRuntime.begin(book.id, navigationIntent);
+    const nextTrace = readingTraces.begin(sessionId, book.id);
+    traceRef.current = nextTrace;
+    setTrace(nextTrace);
     controlsBinding.current?.();
     controlsBinding.current = readingRuntime.bindControls(sessionId, controls);
     const requestId = readerLoadRequestIdRef.current + 1;
@@ -205,13 +208,30 @@ export function useReaderSession({
     })();
   }, [controls, replaceBookInState, reportError, resetReaderState, setShellVisible, t]);
 
-  const closeReader = useCallback(() => {
-    readingRuntime.closed();
+  const closeReader = useCallback(async () => {
+    const closing = traceRef.current;
+    const sessionId = readingRuntime.snapshot().sessionId;
     readerLoadRequestIdRef.current += 1;
-    setSelectedBook(null);
-    setShellVisible(false);
-    resetReaderState();
-  }, [resetReaderState, setShellVisible]);
+    try {
+      await closing?.retire();
+      if (readingRuntime.snapshot().sessionId !== sessionId) {
+        throw new AppError("reader/superseded", "A new session opened during persistence retirement");
+      }
+    } catch (error) {
+      reportError(error);
+      throw error;
+    } finally {
+      // A late close must never clear a replacement, including the same book.
+      if (readingRuntime.snapshot().sessionId === sessionId) {
+        readingRuntime.closed();
+        traceRef.current = null;
+        setTrace(null);
+        setSelectedBook(null);
+        setShellVisible(false);
+        resetReaderState();
+      }
+    }
+  }, [reportError, resetReaderState, setShellVisible]);
 
   const toggleShell = useCallback(() => {
     setShellVisible((visible) => !visible);

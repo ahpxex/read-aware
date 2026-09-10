@@ -5,7 +5,6 @@
  * `createAsk` is actor-guarded: asks are the agent runtime's passive traces,
  * so only the "agent" origin may record them.
  */
-import { getDefaultStore } from "jotai";
 import { AppError } from "@read-aware/core";
 import type {
   AnnotationItem,
@@ -36,16 +35,27 @@ import {
 } from "../features/annotations/lib/annotation-db";
 import type { Annotation } from "../features/annotations/lib/annotation-types";
 import { inspectAnnotation, commitAnnotationMutations } from "../features/annotations/lib/annotation-mutations";
-import { annotationsRevisionAtom } from "../features/annotations/state/annotations-revision";
 import { ANNOTATION_EVENTS, domainSubscribe, type DomainEventSubscribe } from "./events";
-import { AnnotationObserver } from "./annotation-observer";
+import { AnnotationObserver, type AnnotationQueryObservation } from "./annotation-observer";
 import { createLogger } from "../platform/logger";
 
 const log = createLogger("annotation-observation");
-const observer = new AnnotationObserver({
-  schedule: work => { const timer = setTimeout(work, 1000); return () => clearTimeout(timer); },
-  report: error => log.warn("Annotation observation failed", error),
-});
+const observationDeps = {
+  schedule: (work: () => void) => { const timer = setTimeout(work, 1000); return () => clearTimeout(timer); },
+  report: (error: unknown) => log.warn("Annotation observation failed", error),
+};
+const observer = new AnnotationObserver(observationDeps);
+// Plugin quota exhaustion must not prevent the user's own reader from observing.
+const nativeObserver = new AnnotationObserver(observationDeps);
+
+/** Native surfaces already need the whole book; do not enlarge the public Worker payload contract. */
+export function observeBookAnnotations(bookId: string, handler: (event: AnnotationQueryObservation<Annotation[]>) => unknown,
+  lifetime?: AbortSignal): () => void {
+  if (typeof bookId !== "string" || !bookId.trim() || bookId.length > 512) {
+    throw new AppError("annotations/invalid-input", "A book ID is required");
+  }
+  return nativeObserver.observeSnapshot(() => listAnnotations({ bookId }), handler, lifetime);
+}
 
 export function toAnnotationItem(annotation: Annotation): AnnotationItem {
   const anchor = annotation.cfiRange ?? undefined;
@@ -86,12 +96,6 @@ export function toAnnotationItem(annotation: Annotation): AnnotationItem {
     chapterHref,
     createdAt: annotation.createdAt,
   };
-}
-
-/** Reader/context annotation lists re-read on this revision counter. */
-function bumpAnnotationsRevision(): void {
-  const store = getDefaultStore();
-  store.set(annotationsRevisionAtom, store.get(annotationsRevisionAtom) + 1);
 }
 
 export type AnnotationQueries = {
@@ -196,7 +200,6 @@ export function createAnnotationsDomain(origin: EventOrigin, lifetime?: AbortSig
   const commands: AnnotationCommands = {
     applyChanges: async (changes, signal) => {
       const result = await commitAnnotationMutations(changes, origin, signal);
-      bumpAnnotationsRevision();
       return result;
     },
     createHighlight: async (input) => {
@@ -212,18 +215,15 @@ export function createAnnotationsDomain(origin: EventOrigin, lifetime?: AbortSig
         input.style ?? "highlight",
         origin,
       );
-      bumpAnnotationsRevision();
       return toAnnotationItem(highlight) as HighlightItem;
     },
     recolorHighlight: async (highlightId, color) => {
       const existing = await requireHighlight(highlightId);
       await recolorHighlight(existing, color, origin);
-      bumpAnnotationsRevision();
     },
     removeHighlight: async (highlightId) => {
       await requireHighlight(highlightId);
       await deleteAnnotation(String(highlightId), origin);
-      bumpAnnotationsRevision();
     },
     createNote: async (input) => {
       const note = await createNote(
@@ -234,18 +234,15 @@ export function createAnnotationsDomain(origin: EventOrigin, lifetime?: AbortSig
         String(input.body),
         origin,
       );
-      bumpAnnotationsRevision();
       return toAnnotationItem(note) as NoteItem;
     },
     updateNote: async (noteId, body) => {
       await requireNote(noteId);
       await updateNote(String(noteId), String(body), origin);
-      bumpAnnotationsRevision();
     },
     removeNote: async (noteId) => {
       await requireNote(noteId);
       await deleteAnnotation(String(noteId), origin);
-      bumpAnnotationsRevision();
     },
     createAsk: async (input) => {
       if (origin !== "agent") {
@@ -257,7 +254,6 @@ export function createAnnotationsDomain(origin: EventOrigin, lifetime?: AbortSig
         input.chapterHref ?? null,
         String(input.text),
       );
-      bumpAnnotationsRevision();
       return toAnnotationItem(ask) as AskItem;
     },
     removeAsk: async (askId) => {
@@ -266,7 +262,6 @@ export function createAnnotationsDomain(origin: EventOrigin, lifetime?: AbortSig
         throw new AppError("annotations/not-found", `ask not found: ${askId}`);
       }
       await deleteAnnotation(String(askId), origin);
-      bumpAnnotationsRevision();
     },
   };
 

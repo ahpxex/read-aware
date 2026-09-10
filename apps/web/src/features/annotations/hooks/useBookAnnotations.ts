@@ -1,51 +1,45 @@
 import { useCallback, useEffect, useState } from "react";
-import { useAtomValue } from "jotai";
+import { errorCode } from "@read-aware/core";
 import type { Annotation } from "../lib/annotation-types";
-import { listAnnotations } from "../lib/annotation-db";
 import { userDomain } from "../../../domain";
+import { observeBookAnnotations } from "../../../domain/annotations";
 import { createLogger } from "../../../platform/logger";
-import { annotationsRevisionAtom } from "../state/annotations-revision";
 
 const log = createLogger("annotations");
 
 export function useBookAnnotations(bookId: string | null | undefined) {
-  const [annotations, setAnnotations] = useState<Annotation[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  /** A failed READ must not masquerade as "no annotations" — surfaces render
-   *  an error state (with refresh as the retry) instead of an empty list. */
-  const [loadFailed, setLoadFailed] = useState(false);
-  // Re-read whenever annotations change anywhere (e.g. a mark made in the
-  // reader), so this list stays live without a remount.
-  const revision = useAtomValue(annotationsRevisionAtom);
-
-  const refresh = useCallback(async () => {
+  const [snapshot, setSnapshot] = useState<{ bookId: string | null; annotations: Annotation[]; isLoading: boolean; loadFailed: boolean; loadErrorCode?: string }>(
+    { bookId: null, annotations: [], isLoading: false, loadFailed: false },
+  );
+  const [request, setRequest] = useState(0);
+  const refresh = useCallback(() => setRequest(value => value + 1), []);
+  useEffect(() => {
     if (!bookId) {
-      setAnnotations([]);
+      setSnapshot({ bookId: null, annotations: [], isLoading: false, loadFailed: false });
       return;
     }
-    setIsLoading(true);
+    const lifetime = new AbortController();
+    setSnapshot({ bookId, annotations: [], isLoading: true, loadFailed: false });
     try {
-      const results = await listAnnotations({ bookId });
-      setAnnotations(results);
-      setLoadFailed(false);
+      observeBookAnnotations(bookId, event => {
+        setSnapshot({ bookId, annotations: event.status === "ready" ? event.result : [],
+          isLoading: false, loadFailed: event.status === "error", loadErrorCode: event.status === "error" ? event.errorCode : undefined });
+      }, lifetime.signal);
     } catch (error) {
-      log.error("listing annotations failed", error);
-      setAnnotations([]);
-      setLoadFailed(true);
-    } finally {
-      setIsLoading(false);
+      log.error("observing annotations failed", error);
+      setSnapshot({ bookId, annotations: [], isLoading: false, loadFailed: true, loadErrorCode: errorCode(error) ?? "annotations/observation-failed" });
     }
-  }, [bookId]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh, revision]);
+    return () => lifetime.abort();
+  }, [bookId, request]);
+  // Never display the preceding book while the new effect is being installed.
+  const { annotations, isLoading, loadFailed, loadErrorCode } = snapshot.bookId === bookId ? snapshot
+    : { annotations: [] as Annotation[], isLoading: !!bookId, loadFailed: false, loadErrorCode: undefined };
 
   const remove = useCallback(
     async (id: string) => {
       const target = annotations.find((a) => a.id === id);
       if (!target) return;
-      // Domain commands own the revision bump and the origin stamp.
+      // Domain commands own persistence and origin; observation converges all writers.
       if (target.type === "highlight") {
         await userDomain.annotations.commands.removeHighlight(id);
       } else if (target.type === "note") {
@@ -53,10 +47,9 @@ export function useBookAnnotations(bookId: string | null | undefined) {
       } else {
         await userDomain.annotations.commands.removeAsk(id);
       }
-      setAnnotations((prev) => prev.filter((a) => a.id !== id));
     },
-    [annotations],
+    [annotations, bookId],
   );
 
-  return { annotations, isLoading, loadFailed, refresh, remove };
+  return { annotations, isLoading, loadFailed, loadErrorCode, refresh, remove };
 }

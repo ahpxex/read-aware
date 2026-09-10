@@ -102,7 +102,7 @@ export async function listAnnotations(filters?: AnnotationFilters): Promise<Anno
       type: filters?.type,
     });
   }
-  const all = await invoke<Annotation[]>("annotations_list");
+  const all = await invoke<Annotation[]>("annotations_list", { bookId: filters?.bookId ?? null });
   return filterAndSortAnnotations(all, filters);
 }
 

@@ -1,0 +1,161 @@
+{
+  "date": "2026-09-10",
+  "scope": "Join reading time/position persistence at product-session retirement for both Agent and plugins",
+  "environment": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "platform": "macOS Tauri debug",
+    "frontend": 5184,
+    "bridge": 9224,
+    "worker": "real authorized module Worker",
+    "agent": "actual buildReaderTools navigate_reading tool; no autonomous inference",
+    "execSession": 89339,
+    "processGroup": 20277,
+    "terminalExit": 143
+  },
+  "code": [
+    "apps/web/src/features/reader/lib/reading-trace.ts",
+    "apps/web/src/features/reader/lib/reading-trace-runtime.ts",
+    "apps/web/src/features/reader/hooks/useReadingTimeTracker.ts",
+    "apps/web/src/features/reader/hooks/useReaderSession.ts",
+    "apps/web/src/hooks/useSurfaceHandoff.ts",
+    "apps/web/src/domain/reading-session-controller.ts"
+  ],
+  "dualActor": {
+    "agent": {
+      "closed": true,
+      "status": "completed"
+    },
+    "agentPending": [],
+    "agentStatus": "idle",
+    "seed": {
+      "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+      "bookId": "330023a8-7e90-4fb0-a90f-325a3b76cbbb",
+      "chapterHref": "",
+      "noteId": "73f37b17-e692-48e2-bb73-df9f163bfd10",
+      "otherBookId": "b8835cc4-704c-4921-8966-c96a354060bc"
+    },
+    "worker": {
+      "action": "close",
+      "completed": true
+    },
+    "workerPending": [],
+    "workerStatus": "idle"
+  },
+  "workerFailure": {
+    "status": "rejected",
+    "code": "db/locked",
+    "localizedErrorVisible": true,
+    "readerStatus": "idle",
+    "retainedBuckets": [
+      {
+        "bookId": "330023a8-7e90-4fb0-a90f-325a3b76cbbb",
+        "lastAt": 1789004450060,
+        "localDay": "2026-09-10",
+        "localHour": 9,
+        "ms": 0,
+        "positionAt": 1789004450060,
+        "progress": {
+          "chapterHref": "0",
+          "currentLocation": 0,
+          "locator": "epubcfi(/6/2!/4/2[first],/1:0,/6/1:89)",
+          "progressPercent": 100,
+          "status": "finished",
+          "totalLocations": 1
+        },
+        "startedAt": 1789004450054
+      }
+    ]
+  },
+  "agentFailure": {
+    "code": "db/locked",
+    "status": "rejected"
+  },
+  "recovery": {
+    "pending": [],
+    "result": {
+      "closed": true,
+      "status": "completed"
+    }
+  },
+  "finalRecoveryAndCleanup": {
+    "after": [],
+    "before": [
+      {
+        "bookId": "330023a8-7e90-4fb0-a90f-325a3b76cbbb",
+        "lastAt": 1789004527648,
+        "localDay": "2026-09-10",
+        "localHour": 9,
+        "ms": 20002,
+        "positionAt": 1789004507690,
+        "progress": {
+          "chapterHref": "0",
+          "currentLocation": 0,
+          "locator": "epubcfi(/6/2!/4/2[first],/1:0,/6/1:89)",
+          "progressPercent": 100,
+          "status": "finished",
+          "totalLocations": 1
+        },
+        "startedAt": 1789004507666
+      }
+    ],
+    "cleanup": {
+      "contributions": 0
+    },
+    "recovered": {
+      "action": "close",
+      "completed": true
+    }
+  },
+  "faultProtocol": {
+    "database": "isolated capability-e2e read-aware.db",
+    "operation": "sqlite3 BEGIN IMMEDIATE; no row/schema changes; ROLLBACK and .quit after outcome",
+    "sqliteBusyTimeoutMs": 5000,
+    "sessions": [
+      94280,
+      75094,
+      52540
+    ],
+    "terminal": true,
+    "note": "The initial awaited MCP execution exceeded its bridge script limit while a native write was blocked; the operation subsequently finished, but its return value was not retained. Repeated injections used an explicitly tracked asynchronous JS task and polled its terminal state before releasing the lock. They captured db/locked for both actors."
+  },
+  "cleanup": {
+    "ownedBookIds": [
+      "29866b1a-fe58-47e5-b224-b9f4bdac551a",
+      "9fcb5b31-411b-4ebb-934f-93f58577ab4d",
+      "6c9cda36-c11b-47e8-acdb-82c2d44430cf",
+      "10e340d4-bfbc-4986-a0f4-6857f2aeb557",
+      "c2b59f3a-6766-46e0-819d-97a880c71777",
+      "55a0f7f3-d3d9-406b-b707-de6df6cf3a0d",
+      "62df75fb-8869-4cfb-b890-c3362bce0b36",
+      "d7c1738d-828c-418a-942e-972f90c14d20",
+      "c6c058cf-a394-4500-b82d-ff424a0e2d34",
+      "84da91d5-847a-43c4-8f9e-e77c8c34ea41",
+      "1bca36f9-6ccd-4424-9a99-a2fd663ebbc5",
+      "5afc61d6-0974-40cf-a77b-8be55bf602b1",
+      "330023a8-7e90-4fb0-a90f-325a3b76cbbb",
+      "b8835cc4-704c-4921-8966-c96a354060bc"
+    ],
+    "postTerminationSql": "books|0\nannotations|0\nannotations_fts|0\nbook_removal_cleanup|0\nreading_sessions_pending|0",
+    "allPendingDeviceBuckets": 0,
+    "contributions": 0,
+    "fixtureExplicitFlushRemoved": true,
+    "ports5184And9224NoListeners": true,
+    "unownedPort9223Untouched": true,
+    "history": "Append-only events and settled reading history intentionally retained"
+  },
+  "validation": {
+    "focused": "29 tests: trace (6), controller (19), policy (3), React handoff (1)",
+    "fullTests": "24/24 tasks; web 935 tests, 10156 assertions, 167 files",
+    "typecheck": "27/27 tasks passed; test harness optional timer ID type fixed before final pass",
+    "build": "production frontend build passed; existing large-chunk warning remains",
+    "rust": "157 passed, 1 existing ignored, 0 failed; existing compiler warnings remain",
+    "inventory": "11 tests, 35 assertions; 243 rows, 703 inventory mappings, 30 units, 31 catalog members, 129 acceptance items, 32 scenarios",
+    "docs": "Three pair validators and both generated-document checks passed. Matrix and plugin HTML inspected at 1440x1000, 1024x768 and 390x844. No document overflow, duplicate IDs or broken anchors. Matrix flush/Chinese settlement search and plugin Reading/Chinese settlement search passed; Escape reset, matrix drawer isolation and theme reload passed. One initial Chrome file-origin console diagnostic disappeared on fresh reload; final pages had no console errors. Observed CDN responses were 200; HTML is not offline-independent. Owned documentation page closed."
+  },
+  "boundaries": [
+    "Stored-but-unflushed buckets survive failure; failed accrual/position writes are reported, not magically retried or claimed durable.",
+    "Same-book queue ordering, deterministic delayed writes and caller cancellation are unit/React evidence; native tests cover close/reopen, actual actor entries, real write locks and recovery.",
+    "No packaged, Windows/Linux, long-duration/maximum-load, forced-process-kill, autonomous inference or network/cross-device verification.",
+    "No public synthetic-time or force-flush permission added. Overall capability goal remains incomplete."
+  ]
+}

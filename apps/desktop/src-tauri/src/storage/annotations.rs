@@ -48,13 +48,16 @@ pub(crate) fn row_to_annotation(row: &rusqlite::Row) -> rusqlite::Result<Annotat
 }
 
 #[tauri::command]
-pub fn annotations_list(db: State<'_, Db>) -> Result<Vec<Annotation>, CommandError> {
+pub fn annotations_list(book_id: Option<String>, db: State<'_, Db>) -> Result<Vec<Annotation>, CommandError> {
     let conn = db.0.lock()?;
-    let mut stmt = conn
-        .prepare("SELECT * FROM annotations")
-        ?;
+    annotations_list_inner(&conn, book_id.as_deref())
+}
+
+pub(crate) fn annotations_list_inner(conn: &Connection, book_id: Option<&str>) -> Result<Vec<Annotation>, CommandError> {
+    let sql = if book_id.is_some() { "SELECT * FROM annotations WHERE book_id = ?1" } else { "SELECT * FROM annotations" };
+    let mut stmt = conn.prepare(sql)?;
     let rows = stmt
-        .query_map([], row_to_annotation)
+        .query_map(rusqlite::params_from_iter(book_id), row_to_annotation)
         ?;
     let mut out = Vec::new();
     for r in rows {
@@ -166,3 +169,32 @@ pub fn annotations_search(
     annotations_search_inner(&conn, &query, book_id.as_deref(), kind.as_deref())
 }
 
+#[cfg(test)]
+mod observation_tests {
+    use super::*;
+
+    fn database() -> Connection {
+        let mut conn = Connection::open_in_memory().unwrap();
+        apply_connection_pragmas(&conn).unwrap();
+        register_sql_functions(&conn).unwrap();
+        run_migrations(&mut conn).unwrap();
+        for (id, book) in [("a", "first"), ("b", "second"), ("c", "first")] {
+            conn.execute("INSERT INTO annotations(id,book_id,type,text,created_at,updated_at) VALUES (?1,?2,'note','body','2026-09-10','2026-09-10')", [id, book]).unwrap();
+        }
+        conn
+    }
+
+    #[test]
+    fn annotation_book_reads_are_scoped_before_rows_are_decoded() {
+        let conn = database();
+        assert_eq!(annotations_list_inner(&conn, None).unwrap().len(), 3);
+        assert_eq!(annotations_list_inner(&conn, Some("first")).unwrap().len(), 2);
+        assert!(annotations_list_inner(&conn, Some("missing")).unwrap().is_empty());
+        conn.execute("UPDATE annotations SET created_at=X'00' WHERE id='b'", []).unwrap();
+        assert_eq!(annotations_list_inner(&conn, Some("first")).unwrap().len(), 2);
+        assert_eq!(annotations_list_inner(&conn, Some("second")).unwrap_err().code, "db/error");
+        assert!(annotations_list_inner(&conn, None).is_err());
+        conn.execute("UPDATE annotations SET created_at='2026-09-10' WHERE id='b'", []).unwrap();
+        assert_eq!(annotations_list_inner(&conn, Some("second")).unwrap().len(), 1);
+    }
+}

@@ -66,10 +66,7 @@ import { ReaderCompletionScreen } from "./ReaderCompletionScreen";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
 import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
 import type { Note, Highlight } from "../../annotations/lib/annotation-types";
-import {
-  listHighlights,
-  listNotes,
-} from "../../annotations/lib/annotation-db";
+import { observeReaderAnnotations } from "../lib/observe-reader-annotations";
 import { hasCoarsePointer, isIOS, suppressNativeContextMenu } from "../../../platform/environment";
 import {
   forwardKeyDownToApp,
@@ -518,8 +515,6 @@ export function FoliateReaderView({
   // component) via this atom; the shell reveals the Chat tab and the chat panel
   // adopts the passage. Whether the action is offered follows the user's
   // conversational-Q&A preference, mirrored to a ref for the stable key handler.
-  // Notify annotation lists (TOC indicators, chapter flyout) to re-read when a
-  // mark is created/removed/recolored here, so they update live.
   const askAiEnabled = useAskAiEnabled();
   const askAiEnabledRef = useRef(askAiEnabled);
   useEffect(() => {
@@ -958,8 +953,6 @@ export function FoliateReaderView({
     setActiveAnnotation,
     textUnitNavigator,
     clearSelection,
-    viewRef,
-    highlightsRef,
     notesRef,
     currentChapterHrefRef,
   });
@@ -1946,7 +1939,7 @@ export function FoliateReaderView({
         }).catch(error => log.warn('Could not prepare chapter marks', error));
 
         const onRelocate = (event: Event) => {
-          if (cancelled) return;
+          if (cancelled || sessionId && readingRuntime.snapshot().sessionId !== sessionId) return;
           // Tell background pipelines (text extraction) the reader is busy —
           // the page being read must win the PDF worker and the blob channel.
           emitAppEvent("reader-demand-activity", {});
@@ -2014,6 +2007,7 @@ export function FoliateReaderView({
         };
 
         const onLoad = (event: Event) => {
+          if (cancelled) return;
           const { doc, index } = (event as CustomEvent<FoliateLoadDetail>).detail;
           // The fixed-layout renderer keeps section documents alive in its
           // spread cache and re-announces 'load' whenever one becomes current
@@ -2029,7 +2023,7 @@ export function FoliateReaderView({
         };
 
         const onCreateOverlay = () => {
-          if (!view) return;
+          if (!view || cancelled) return;
           applyHighlights(view, highlightsRef.current);
           applyNotes(view, notesRef.current, highlightsRef.current);
           textUnitNavigatorRef.current.handleOverlayReady();
@@ -2094,12 +2088,19 @@ export function FoliateReaderView({
         cleanups.push(() => view?.removeEventListener("show-annotation", onShowAnnotation));
         cleanups.push(() => view?.removeEventListener("link", onLink));
 
+        if (cancelled) return;
         if (selectedBook) {
           try {
-            highlightsRef.current = await listHighlights(selectedBook.id);
-            notesRef.current = await listNotes(selectedBook.id);
-          } catch {
-            // Non-critical: marks will be missing but reading continues.
+            cleanups.push(observeReaderAnnotations(selectedBook.id, view, highlightsRef, notesRef, items => {
+              setActiveAnnotation(current => {
+                if (!current) return null;
+                const next = items.find(item => item.id === current.highlight.id);
+                return next && JSON.stringify(next) === JSON.stringify(current.highlight) ? current : null;
+              });
+            }));
+          } catch (error) {
+            // Reading remains usable; the annotations panel has its own retry/error surface.
+            log.warn("Could not observe reader annotations", error);
           }
         }
 

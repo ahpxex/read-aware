@@ -209,7 +209,7 @@
         <details class="ep" data-search-section="annotation observation ANN09 标注 观察 同步 草稿"><summary>Annotations 1.4：列表观察变化，编辑草稿保持独立</summary><div class="ep-body">
           <p>events.observe(page/inspect) 提供初始快照、变化、错误与恢复，包含无本地广播的同步投影；读与回调结算后一秒重读，64 个订阅上限，关闭/退役释放。Agent 按需读取同源结果，不新增常驻模型订阅。</p>
           <p>Annotation Desk 0.2 实时浏览分页，故障清旧内容和操作，恢复后重新显示；编辑和批选仍冻结版本。真实 SQLite、四 Worker、Agent 查询与编译插件已验远端存储写、读故障/恢复、冲突草稿和删除。</p>
-          <p>不是完整事件日志或即时撤回；原生注释面板、legacy 远端事件、最大载荷与打包跨平台仍缺。书目单独变更不触发列表；慢读/回调无固定延迟保证。<a href="./plugin-system.md#annotation-query-observations">完整契约</a> · <a href="./evidence/annotation-observation-2026-09-10.json">原生证据</a></p>
+          <p>原生 Notes、书籍详情和正文标记已共用串行观察；SQL 先按书筛选，错误清旧内容且不显示零计数，恢复重画、切书释放，删高亮恢复同范围笔记标记。公共与原生名额分离；不是完整事件日志或即时撤回，原生旧写条件化、legacy 远端事件、整书载荷及打包跨平台仍缺。书目单独变更不触发插件列表；慢读/回调无固定延迟保证。<a href="./plugin-system.md#annotation-query-observations">完整契约</a> · <a href="./evidence/native-annotation-observation-2026-09-10.json">原生阅读证据</a></p>
         </div></details>
           <details class="ep" data-search-section="host commands observe open-book UI03 partial 宿主 命令 观察 开书 部分 回执"><summary>UI 1.6：18 个共享命令增加授权状态观察</summary><div class="ep-body">
             <p>Agent 按需查询同源状态；Library Desk 0.6 实时更新选中/可用状态，保留搜索，错误保留旧行并暂停操作。资源选择仍冻结点击时的 revision；书库写权限不替代字段或阅读权限。</p>
@@ -280,7 +280,7 @@
             <p>重新激活引入冲突时，全局、插件与阅读器统一暂停冲突绑定，重绑或停用后恢复。原生页标明冲突；conflicted 状态不因冲突方路径无权读取而消失，路径仍保密。不依赖监听顺序，不自动改写绑定。</p>
             <p>隔离 macOS debug 已验三端更新、冲突恢复与 SQLite 清理；正文 iframe 合成按键已验冲突不翻页、恢复后翻页、插件打开不重复翻页。失败持久化由 React/IPC 测试覆盖；全来源已提交观察另见 settings 1.6，来源身份完整性、真实模型、全键盘路由、打包及跨平台未完成，UI04 保持部分。<a href="./plugin-system.md#keyboard-shortcut-settings">契约与边界</a>。</p>
           </div></details>
-          <p>Reading v2 已提供当前会话快照、即时快照观察、版本化落点、有限可见文本与历史可用性。开书、跳转、前进后退、翻页返回完成回执，关闭等待真实会话释放；控制命令可带书籍/会话 guard。Agent 共用同一控制器。</p>
+          <p>Reading v2 已提供当前会话快照、即时快照观察、版本化落点、有限可见文本与历史可用性。开书、跳转、前进后退、翻页返回完成回执；关闭等待会话退休、已接收时间/位置写入及本书桶结算。失败可退出画面但拒绝成功回执，取消不回滚已发起的关闭；控制命令可带书籍/会话 guard。Agent 共用同一控制器。<a href="./evidence/reading-retirement-2026-09-10.json">原生双端与写锁恢复证据</a>，不代表打包/跨平台验收。</p>
           <p>Reading 2.5 已共享模式提供者选择、启停、单元步进/返回和朗读控制，Listening Desk 与 Agent 消费同一控制器；Jumper 与 Agent 已消费版本化精确搜索落点。通用选区/Range 编辑与临时强调仍未完整开放。文件 hash 识别过期位置；取消等待不代表撤销引擎移动。PDF 等待栅格绘制，后台 WKWebView 暂停绘制时可能超时。</p>
           <details class="ep"><summary>Reading 2.6：双端共享阅读控制层显示状态</summary><div class="ep-body"><p>Agent set_reader_controls、插件 setControls 和原生空格/点击/滚动共用同一状态；只读权限可查询和观察，写权限才能显示或隐藏。Listening Desk 0.8 按快照提供操作，成功后才关闭视图，不改变书页、偏好或播放。</p><p>完成表示 React DOM 提交，不代表动画或屏幕绘制结束。旧会话、新意图和退出使等待失效；取消丢弃未提交状态，十秒无提交报超时。单独调用的插件取消句柄、packaged 与跨平台仍未验收。<a href="./evidence/reader-controls-2026-09-09.json">验证与边界</a></p></div></details>
           <details class="ep"><summary>UI 1.1：四个阅读面板共用服务，不依赖菜单位置</summary><div class="ep-body"><p>Agent 查询/操作与插件 reader.snapshot / observe / setPanel 共用目录、注释、外观、聊天状态。reading:read 可观察，reading:write 才能操作；不开放 DOM 或面板内容。Listening Desk 0.9 组合四面板与阅读控制，旧会话操作失败后保留视图供刷新。</p><p>快照是已提交 UI，可能含待保存值；命令成功另等准确保存与新 DOM commit。窄窗目录/聊天互斥保存，失败回滚；初始意图等待 ready，完成后重开书不重复消费。外观移到 More 后仍可打开可滚动弹窗。不是动画、焦点或数据加载完成保证；取消不撤销已派发写。</p><p>macOS 隔离 debug 已验真实 Worker、数据库拒绝/重试、旧视图与窄宽窗/PDF 外观。滚轮 wheel-phase 改为文档内同步订阅/退订，原生投递固定脚本；20 次重开无原退订异常，200 个退休监听无回调。物理触控板输入/时序、单调用 Worker 取消、packaged/跨平台仍未验；native eval 成功不等于物理输入验收。<a href="./evidence/reader-panels-2026-09-09.json">面板证据</a> · <a href="./evidence/wheel-phase-lifetime-2026-09-09.json">滚轮证据与限制</a></p></div></details>

@@ -146,10 +146,12 @@ export function ReaderShellOverlay({
   });
 
   // The book's highlights and notes, shown in a popover opened from the header.
-  // Kept live as marks are made via the shared revision in useBookAnnotations.
+  // Observes committed annotation results, including plugin/Agent and remote writes.
   const {
     annotations,
     loadFailed: annotationsLoadFailed,
+    loadErrorCode: annotationsLoadErrorCode,
+    isLoading: annotationsLoading,
     refresh: refreshAnnotations,
     remove: removeAnnotation,
   } = useBookAnnotations(bookId);
@@ -367,6 +369,8 @@ export function ReaderShellOverlay({
             <ReaderNotesPopover
               annotations={annotations}
               loadFailed={annotationsLoadFailed}
+              loadErrorCode={annotationsLoadErrorCode}
+              isLoading={annotationsLoading}
               onRetryLoad={() => void refreshAnnotations()}
               tocEntries={tocEntries}
               onNavigate={(cfiRange) => onAnnotationSelect?.(cfiRange)}

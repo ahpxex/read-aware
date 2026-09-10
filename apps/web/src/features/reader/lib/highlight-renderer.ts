@@ -216,7 +216,12 @@ export function applyHighlight(view: FoliateView, highlight: Highlight): void {
 }
 
 export function applyHighlights(view: FoliateView, highlights: Highlight[]): void {
-  for (const highlight of highlights) applyHighlight(view, highlight);
+  const painted = new Set<string>();
+  for (const highlight of highlights) {
+    if (!highlight.cfiRange || painted.has(highlight.cfiRange)) continue;
+    painted.add(highlight.cfiRange);
+    applyHighlight(view, highlight);
+  }
 }
 
 export function removeHighlight(view: FoliateView, cfiRange: string): void {
@@ -248,6 +253,37 @@ export function applyNotes(view: FoliateView, notes: Note[], highlights: Highlig
   for (const note of notes) {
     if (!note.cfiRange || highlighted.has(note.cfiRange)) continue;
     applyNote(view, note);
+    highlighted.add(note.cfiRange);
+  }
+}
+
+/** Reconcile only stored marks, never the separate navigator overlay namespace. */
+export async function reconcileAnnotationMarks(view: Pick<FoliateView, "addAnnotation" | "deleteAnnotation">,
+  previous: Array<Highlight | Note>, next: Array<Highlight | Note>, signal: AbortSignal,
+  report: (error: unknown) => void): Promise<void> {
+  const desired = new Map<string, FoliateAnnotation>();
+  // A highlight owns a shared range; notes remain reachable through its menu.
+  for (const item of next) {
+    if (item.type !== "highlight") continue;
+    const mark = toFoliateAnnotation(item);
+    if (mark && !desired.has(mark.value)) desired.set(mark.value, mark);
+  }
+  for (const item of next) {
+    if (item.type === "note" && item.cfiRange && !desired.has(item.cfiRange)) {
+      desired.set(item.cfiRange, { value: item.cfiRange, id: item.id, color: NOTE_STROKE, style: "note" });
+    }
+  }
+  for (const value of new Set(previous.map(item => item.cfiRange).filter((value): value is string => !!value))) {
+    if (signal.aborted) return;
+    if (!desired.has(value)) {
+      try { await view.deleteAnnotation({ value }); }
+      catch (error) { if (!signal.aborted) report(error); }
+    }
+  }
+  for (const mark of desired.values()) {
+    if (signal.aborted) return;
+    try { await view.addAnnotation(mark); }
+    catch (error) { if (!signal.aborted) report(error); }
   }
 }
 

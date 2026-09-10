@@ -15,7 +15,6 @@
 import { useCallback, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
-import { annotationsRevisionAtom } from "../../annotations/state/annotations-revision";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
 import { selectionActionsAtom } from "../../plugins/state/plugin-store";
 import { runPluginContribution } from "../../plugins/lib/run-result";
@@ -32,8 +31,6 @@ import {
   setDefaultMarkColor,
 } from "../../annotations/lib/annotation-prefs";
 import type { Highlight, Note } from "../../annotations/lib/annotation-types";
-import { applyHighlight, applyNote, removeHighlight } from "../lib/highlight-renderer";
-import type { FoliateView } from "../lib/foliate-engine";
 import type { LibraryBook } from "../../library/lib/library-types";
 import type { SelectionOverlayRect } from "../lib/selection-overlay";
 import { useToast } from "@read-aware/ui";
@@ -72,8 +69,6 @@ type Options = {
   /** The guided-reading unit currently washed, if that mode is on. */
   textUnitNavigator: { current: { text: string; cfiRange: string | null } | null };
   clearSelection: () => void;
-  viewRef: RefObject<FoliateView | null>;
-  highlightsRef: RefObject<Highlight[]>;
   notesRef: RefObject<Note[]>;
   currentChapterHrefRef: RefObject<string | null>;
 };
@@ -93,8 +88,6 @@ export function useReaderTextActions({
   setActiveAnnotation,
   textUnitNavigator,
   clearSelection,
-  viewRef,
-  highlightsRef,
   notesRef,
   currentChapterHrefRef,
 }: Options) {
@@ -115,7 +108,6 @@ export function useReaderTextActions({
     });
   };
 
-  const bumpAnnotationsRevision = useSetAtom(annotationsRevisionAtom);
   const dispatchAskAi = useSetAtom(askAiRequestAtom);
   const pluginSelectionActions = useAtomValue(selectionActionsAtom);
   const lookupAction =
@@ -234,7 +226,7 @@ export function useReaderTextActions({
     ): Promise<boolean> => {
       if (!selectedBook) return false;
       try {
-        const highlight = await createHighlight(
+        await createHighlight(
           selectedBook.id,
           target.cfiRange,
           target.chapterHref,
@@ -242,11 +234,6 @@ export function useReaderTextActions({
           color,
           style,
         );
-        if (highlightsRef.current) {
-          highlightsRef.current = [...highlightsRef.current, highlight];
-        }
-        if (viewRef.current) applyHighlight(viewRef.current, highlight);
-        bumpAnnotationsRevision((c) => c + 1);
         return true;
       } catch (highlightError) {
         log.error("failed to save highlight", highlightError);
@@ -254,7 +241,7 @@ export function useReaderTextActions({
         return false;
       }
     },
-    [bumpAnnotationsRevision, highlightsRef, selectedBook, viewRef],
+    [selectedBook],
   );
 
   // ── Against the live selection ─────────────────────────────────────────────
@@ -328,22 +315,14 @@ export function useReaderTextActions({
       try {
         // Persist the default before recoloring; failed preferences use the same error surface.
         await setDefaultMarkColor(color);
-        const updated = await recolorHighlight(activeAnnotation.highlight, color);
-        if (highlightsRef.current) {
-          highlightsRef.current = highlightsRef.current.map((highlight) =>
-            highlight.id === updated.id ? updated : highlight,
-          );
-        }
-        // Re-adding under the same CFI replaces the drawn mark in the new color.
-        if (viewRef.current) applyHighlight(viewRef.current, updated);
-        bumpAnnotationsRevision((c) => c + 1);
+        await recolorHighlight(activeAnnotation.highlight, color);
       } catch (recolorError) {
         log.error("failed to recolor annotation", recolorError);
         failToastRef.current("annotations.updateFailed", recolorError);
       }
       setActiveAnnotation(null);
     },
-    [activeAnnotation, bumpAnnotationsRevision, highlightsRef, setActiveAnnotation, viewRef],
+    [activeAnnotation, setActiveAnnotation],
   );
 
   const handleRemoveAnnotation = useCallback(async () => {
@@ -351,19 +330,12 @@ export function useReaderTextActions({
     const { highlight } = activeAnnotation;
     try {
       await deleteAnnotation(highlight.id);
-      if (highlightsRef.current) {
-        highlightsRef.current = highlightsRef.current.filter((item) => item.id !== highlight.id);
-      }
-      if (viewRef.current && highlight.cfiRange) {
-        removeHighlight(viewRef.current, highlight.cfiRange);
-      }
-      bumpAnnotationsRevision((c) => c + 1);
     } catch (removeError) {
       log.error("failed to remove annotation", removeError);
       failToastRef.current("annotations.deleteFailed", removeError);
     }
     setActiveAnnotation(null);
-  }, [activeAnnotation, bumpAnnotationsRevision, highlightsRef, setActiveAnnotation, viewRef]);
+  }, [activeAnnotation, setActiveAnnotation]);
 
   const handleAddNoteForAnnotation = useCallback(() => {
     const target = activeAnnotationTarget();
@@ -447,32 +419,16 @@ export function useReaderTextActions({
       if (!noteTarget || !selectedBook) return;
       try {
         if (currentNote) {
-          const updated = await updateNote(currentNote.id, content);
-          if (updated && notesRef.current) {
-            notesRef.current = notesRef.current.map((note) =>
-              note.id === updated.id ? updated : note,
-            );
-          }
+          await updateNote(currentNote.id, content);
         } else {
-          const note = await createNote(
+          await createNote(
             selectedBook.id,
             noteTarget.cfiRange,
             noteTarget.chapterHref,
             noteTarget.text,
             content,
           );
-          if (notesRef.current) notesRef.current = [...notesRef.current, note];
-          // Draw the dashed marker unless the passage is already highlighted
-          // (the highlight is the visual there; see applyNotes).
-          if (
-            viewRef.current &&
-            note.cfiRange &&
-            !highlightsRef.current?.some((highlight) => highlight.cfiRange === note.cfiRange)
-          ) {
-            applyNote(viewRef.current, note);
-          }
         }
-        bumpAnnotationsRevision((c) => c + 1);
         setNoteEditorOpen(false);
         setNoteTarget(null);
         setCurrentNote(null);
@@ -484,14 +440,10 @@ export function useReaderTextActions({
       }
     },
     [
-      bumpAnnotationsRevision,
       clearSelection,
       currentNote,
-      highlightsRef,
       noteTarget,
-      notesRef,
       selectedBook,
-      viewRef,
     ],
   );
 

@@ -203,7 +203,7 @@ empty pages. Unknown read failures use `annotations/observation-failed`.
 both read and callback settle. Only changed results/errors and recovery are
 delivered. A rejected callback is not acknowledged, so the unchanged value is
 retried. Reads and deliveries never overlap for one observer. At most 64
-subscriptions exist across all owners; overflow is `annotations/observer-limit`.
+public subscriptions exist across all owners; overflow is `annotations/observer-limit`.
 Invalid input/callback is `annotations/invalid-input`; retired owners reject with
 `annotations/cancelled`. Disposal is idempotent, cancels the timer, releases the
 quota slot and drops late completions. Worker retirement owns the disposable.
@@ -221,8 +221,37 @@ Book metadata changes alone do not invalidate an unchanged annotation page.
 Editing and batch selection remain separate revision-frozen views; background
 updates must not replace a draft or silently rebase its write conditions.
 The Agent continues calling the same page/inspect read model on demand, not
-subscribing a model loop. Native annotation panels still use their previous
-revision wiring and are not claimed migrated by this plugin API.
+subscribing a model loop. This is on-demand access, not an automatic model subscription.
+
+[代码] Native Notes, book details and Foliate stored markers now reuse the same
+serialized observation implementation. Native whole-book collections have a
+separate quota from public subscriptions; they are not new unbounded Worker API
+results. `annotations_list` accepts optional `bookId` and filters in SQLite
+before decoding/IPC, so an unrelated book's invalid row cannot poison a scoped
+read. Native whole-book payloads are still proportional to that book's marks.
+The former manual Jotai revision counter and its write-site bumps are removed.
+Native mutation callbacks also no longer filter the displayed list or mutate
+the marker refs directly: observations alone own the presented collection.
+Otherwise a late write acknowledgement could replace a newer delivered state
+while observer deduplication suppressed the corrective identical snapshot.
+Closing a book clears the hook's retained snapshot, including reopening the
+same book; mutation completion still means persistence, not immediate painting.
+Book switches/disposal drop old reads; the hook also hides a previous book's
+snapshot before the new effect starts. A failed read clears native contents and
+stored markers, shows localized stable-code copy and no false zero count;
+recovery restores them. Unknown/terminal error codes do not gain a false retry
+promise. The book-details dialog also renders unknown counts while loading or
+failed, rather than inventing zero highlights/notes.
+
+[代码] Stored-marker reconciliation removes obsolete CFIs, redraws colors/styles
+and restores the note marker when the highlight sharing its range is removed.
+The first/newest highlight owns a shared range, matching the annotation menu;
+notes do not overwrite it. Operations are awaited in order, retirement prevents
+subsequent operations, and a failed anchor is logged without preventing other
+marks from rendering. Navigator overlays retain their own namespace. Changing
+the selected highlight closes its stale menu, but observation does not replace
+an open note editor's draft. Native legacy note/menu writes still need migration
+to conditional writes; this is not the plugin editor's existing conflict proof.
 
 [环境] The [native evidence](./evidence/annotation-observation-2026-09-10.json)
 covers real SQLite, four WebKit Workers, actual Agent queries and compiled
@@ -231,6 +260,67 @@ recovery, preserved conflicting drafts, deletion versus failure, and retirement.
 The book is metadata-only, not an import/render test; sync applyRemote is real
 but does not exercise a relay or another device. Long-duration/maximum-payload,
 packaged and Windows/Linux tests remain; ANN09 and the broader GAPs stay partial.
+
+[环境] Separate [native reader evidence](./evidence/native-annotation-observation-2026-09-10.json)
+uses uniquely imported FB2 files, a real Worker and actual Agent queries:
+creation/recolor/removal appear in both Notes and Foliate, removal restores the
+underlying note marker, remote-store note edits update the list, scoped SQL read
+faults clear contents/markers and recover, and switching books isolates updates.
+The first run exposed generic error copy and false zero counts; a second run
+verified their correction. Book details shares the hook but was not independently
+exercised. No autonomous inference, network sync, maximum-book load or packaged
+cross-platform verification is claimed.
+
+[环境] The first four native runs exposed a close/retirement race: even an
+explicit fixture flush could be followed by a late tracker accrual. The fourth
+run left one owned pending bucket. Startup recovery settled that historical
+bucket; the production lifecycle fix below replaces the fixture workaround.
+
+[环境] After the presentation-ownership review, a fourth native run entered and
+saved the original note editor, then verified the actual Agent query, Notes and
+marker agreed without imperative refresh. Opening used the production engine's
+show-annotation event rather than a pointer hit-test; typing and Update used the
+actual editor controls. The deterministic late-write-ack race was not injected.
+The historical fourth-run pending bucket is retained in that evidence file;
+the follow-up [retirement evidence](./evidence/reading-retirement-2026-09-10.json)
+records the fix and final zero-pending audit rather than rewriting that failure
+as a success.
+
+### Reading Retirement
+
+[代码] The existing Reading close command now joins product-session retirement,
+not only the animation or React teardown. `ReadingTraceCoordinator` owns one
+serial persistence queue across reading generations. Each trace captures its
+session/book identity, accepts both time and position observations, and samples
+its final partial tick before synchronously fencing further writes. It then
+waits for accepted writes and flushes only its own book's buckets. Rapid same-book
+replacement queues the old retirement before any new-generation writes. A view
+remount transfers the activity sampler without closing the product session;
+the old 1500-ms unmount heuristic is removed. Old engine relocate callbacks also
+check session identity before handing progress to current React callbacks.
+
+[代码] `useSurfaceHandoff.closeBook()` shares an awaitable close across concurrent
+callers; opening a new session rejects an old fade/retirement wait without clearing
+the replacement. `ReadingSessionController.close()` joins both the shell promise
+and session release. A failure can release the reader UI but rejects the actor's
+promise with the stable error and presents a localized toast. A successful flush
+does not hide an earlier failed time/position write; failed ticks are not claimed
+durable. Rollover flush failure does not discard subsequent observations. Pending
+stored buckets remain recoverable on a later open/close or startup. Cancellation
+or timeout abandons the caller's wait, not the already accepted retirement, and
+does not promise a rollback. No public force-flush or synthetic-time permission
+is added; the event log and settled reading history remain retained.
+
+[环境] macOS Tauri debug verified actual `navigate_reading(close)` and a real
+authorized Worker close, each followed immediately by zero pending buckets. A
+real SQLite `BEGIN IMMEDIATE` write lock made both actor calls reject `db/locked`;
+the UI showed localized database-busy text, stored buckets survived, and reopening
+then closing after lock release settled them. The fixture now asserts the close
+contract rather than flushing behind it. Unit/React tests additionally cover
+delayed accepted writes, sampler transfer, same-book replacement, scoped rollover,
+failure continuation, concurrent close, supersession and cancellation. This is
+not autonomous inference, relay/cross-device, process-kill, packaged,
+Windows/Linux or long-duration/maximum-load verification.
 
 ### Derived Text State
 

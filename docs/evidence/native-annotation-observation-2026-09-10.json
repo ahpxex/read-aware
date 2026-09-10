@@ -1,0 +1,216 @@
+{
+  "date": "2026-09-10",
+  "scope": "Native annotation lists and Foliate stored markers consume committed annotation observations",
+  "environment": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "platform": "macOS Tauri debug",
+    "frontend": 5184,
+    "bridge": 9224,
+    "workersPerRun": 1,
+    "format": "Two isolated, uniquely imported FB2 files per run",
+    "agent": "Actual get_annotations tool invoked programmatically; seed note via agent-origin domain, no autonomous inference"
+  },
+  "firstRun": {
+    "seed": {
+      "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+      "bookId": "29866b1a-fe58-47e5-b224-b9f4bdac551a",
+      "chapterHref": "",
+      "noteId": "31e5f50a-2f52-4797-bdc8-84e14053b252",
+      "otherBookId": "9fcb5b31-411b-4ebb-934f-93f58577ab4d"
+    },
+    "marked": {
+      "marks": [
+        "<svg style=\"position: absolute; top: 0px; left: 837px; width: 837px; height: 100%; pointer-events: none; margin: 0px;\"><g fill=\"#facc15\" style=\"opacity: var(--overlayer-highlight-opacity, .3); mix-blend-mode: var(--overlayer-highlight-blend-mode, normal);\"><rect x=\"55.5\" y=\"213\" height=\"20\" width=\"199\"></rect></g></svg>"
+      ],
+      "overflow": false,
+      "text": "\nShelf\n\nContents\n\nNotes\nNotes\n2\n\n“Shared annotation target”\nSep 10\n\n\n“Shared annotation target”\nInitial native note\nSep 10\n\nNative annotation observation 530a2059-f981-496c-999e-f3b0c1b10065\n0 / 1 · 100%\n\nRead by sentence or paragraph\n\nReading appearance\n\nChat\n\nMore\n\nShared annotations\nAsk about this book\nSelect a passage and choose Ask AI, or just start typing. This conversation stays with the book.\n\n"
+    },
+    "recolored": {
+      "marks": [
+        "<svg style=\"position: absolute; top: 0px; left: 837px; width: 837px; height: 100%; pointer-events: none; margin: 0px;\"><g fill=\"none\" stroke=\"#3b82f6\" stroke-width=\"2.5\" stroke-linecap=\"round\" style=\"opacity: 0.9;\"><line x1=\"56.25\" y1=\"229.8\" x2=\"253.75\" y2=\"229.8\"></line></g></svg>"
+      ],
+      "text": "\nShelf\n\nContents\n\nNotes\nNotes\n2\n\n“Shared annotation target”\nSep 10\n\n\n“Shared annotation target”\nWorker note changed\nSep 10\n\nNative annotation observation 530a2059-f981-496c-999e-f3b0c1b10065\n0 / 1 · 100%\n\nRead by sentence or paragraph\n\nReading appearance\n\nChat\n\nMore\n\nShared annotations\nAsk about this book\nSelect a passage and choose Ask AI, or just start typing. This conversation stays with the book.\n\n"
+    },
+    "removedHighlight": {
+      "marks": [
+        "<svg style=\"position: absolute; top: 0px; left: 837px; width: 837px; height: 100%; pointer-events: none; margin: 0px;\"><g fill=\"none\" stroke=\"#78716c\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-dasharray=\"2 3.5\" style=\"opacity: 0.85;\"><line x1=\"56.25\" y1=\"229.8\" x2=\"253.75\" y2=\"229.8\"></line></g></svg>"
+      ],
+      "text": "\nShelf\n\nContents\n\nNotes\nNotes\n1\n\n“Shared annotation target”\nWorker note changed\nSep 10\n\nNative annotation observation 530a2059-f981-496c-999e-f3b0c1b10065\n0 / 1 · 100%\n\nRead by sentence or paragraph\n\nReading appearance\n\nChat\n\nMore\n\nShared annotations\nAsk about this book\nSelect a passage and choose Ask AI, or just start typing. This conversation stays with the book.\n\n"
+    },
+    "readFault": {
+      "agent": "db/error",
+      "marks": [
+        "<svg style=\"position: absolute; top: 0px; left: 837px; width: 837px; height: 100%; pointer-events: none; margin: 0px;\"></svg>"
+      ],
+      "text": "\nShelf\n\nContents\n\nNotes\nNotes\n0\nTry again\nSomething went wrong. Details are in the app log.\nNative annotation observation 530a2059-f981-496c-999e-f3b0c1b10065\n0 / 1 · 100%\n\nRead by sentence or paragraph\n\nReading appearance\n\nChat\n\nMore\n\nShared annotations\nAsk about this book\nSelect a passage and choose Ask AI, or just start typing. This conversation stays with the book.\n\n"
+    },
+    "recovered": {
+      "marks": [
+        "<svg style=\"position: absolute; top: 0px; left: 837px; width: 837px; height: 100%; pointer-events: none; margin: 0px;\"><g fill=\"none\" stroke=\"#78716c\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-dasharray=\"2 3.5\" style=\"opacity: 0.85;\"><line x1=\"56.25\" y1=\"229.8\" x2=\"253.75\" y2=\"229.8\"></line></g></svg>"
+      ],
+      "text": "\nShelf\n\nContents\n\nNotes\nNotes\n1\n\n“Shared annotation target”\nRemote native note changed\nSep 10\n\nNative annotation observation 530a2059-f981-496c-999e-f3b0c1b10065\n0 / 1 · 100%\n\nRead by sentence or paragraph\n\nReading appearance\n\nChat\n\nMore\n\nShared annotations\nAsk about this book\nSelect a passage and choose Ask AI, or just start typing. This conversation stays with the book.\n\n"
+    },
+    "otherBook": {
+      "marks": [
+        "<svg style=\"position: absolute; top: 0px; left: 837px; width: 837px; height: 100%; pointer-events: none; margin: 0px;\"></svg>"
+      ],
+      "text": "\nShelf\n\nContents\n\nNotes\nOther annotation scope e8f6a0ea-fa09-4dbd-8f96-96ed52d98d97\n0 / 1 · 100%\n\nRead by sentence or paragraph\n\nReading appearance\n\nChat\n\nMore\n\nShared annotations\nAsk about this book\nSelect a passage and choose Ask AI, or just start typing. This conversation stays with the book.\n\n"
+    },
+    "returnedAndCleanup": {
+      "before": {
+        "agent": {
+          "consistency": "live",
+          "items": [
+            {
+              "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+              "bookId": "29866b1a-fe58-47e5-b224-b9f4bdac551a",
+              "chapterHref": "",
+              "color": "yellow",
+              "createdAt": "2026-09-10T01:01:53.909Z",
+              "id": "bb0f11fb-b190-45c3-a598-d21b389505fa",
+              "kind": "highlight",
+              "style": "highlight",
+              "text": "Shared annotation target",
+              "updatedAt": "2026-09-10T01:01:53.909Z"
+            },
+            {
+              "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+              "body": "Remote native note changed",
+              "bookId": "29866b1a-fe58-47e5-b224-b9f4bdac551a",
+              "createdAt": "2026-09-10T00:59:50.020Z",
+              "id": "31e5f50a-2f52-4797-bdc8-84e14053b252",
+              "kind": "note",
+              "quotedText": "Shared annotation target",
+              "updatedAt": "2026-09-10T01:01:23.228Z"
+            }
+          ],
+          "nextCursor": null
+        },
+        "marks": [
+          "<svg style=\"position: absolute; top: 0px; left: 837px; width: 837px; height: 100%; pointer-events: none; margin: 0px;\"><g fill=\"#facc15\" style=\"opacity: var(--overlayer-highlight-opacity, .3); mix-blend-mode: var(--overlayer-highlight-blend-mode, normal);\"><rect x=\"55.5\" y=\"213\" height=\"20\" width=\"199\"></rect></g></svg>"
+        ]
+      },
+      "cleanup": {
+        "contributions": 0
+      }
+    },
+    "pgid": 13122,
+    "execExit": 143
+  },
+  "finalErrorPresentation": {
+    "seed": {
+      "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+      "bookId": "6c9cda36-c11b-47e8-acdb-82c2d44430cf",
+      "chapterHref": "",
+      "noteId": "16201302-6896-4820-84cd-4d1d1b585d12",
+      "otherBookId": "10e340d4-bfbc-4986-a0f4-6857f2aeb557"
+    },
+    "fault": {
+      "marks": [
+        "<svg style=\"position: absolute; top: 0px; left: 837px; width: 837px; height: 100%; pointer-events: none; margin: 0px;\"></svg>"
+      ],
+      "overflow": false,
+      "text": "\nShelf\n\nContents\n\nNotes\nNotes\nThe local database ran into a problem.\nNative annotation observation 44a89869-eb36-4637-9983-6249e899d86d\n0 / 1 · 100%\n\nRead by sentence or paragraph\n\nReading appearance\n\nChat\n\nMore\n\nShared annotations\nAsk about this book\nSelect a passage and choose Ask AI, or just start typing. This conversation stays with the book.\n\n"
+    },
+    "recoveryAndCleanup": {
+      "cleanup": {
+        "contributions": 0
+      },
+      "recovery": {
+        "marks": [
+          "<svg style=\"position: absolute; top: 0px; left: 837px; width: 837px; height: 100%; pointer-events: none; margin: 0px;\"><g fill=\"none\" stroke=\"#78716c\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-dasharray=\"2 3.5\" style=\"opacity: 0.85;\"><line x1=\"56.25\" y1=\"229.8\" x2=\"253.75\" y2=\"229.8\"></line></g></svg>"
+        ],
+        "text": "\nShelf\n\nContents\n\nNotes\nNotes\n1\n\n“Shared annotation target”\nInitial native note\nSep 10\n\nNative annotation observation 44a89869-eb36-4637-9983-6249e899d86d\n0 / 1 · 100%\n\nRead by sentence or paragraph\n\nReading appearance\n\nChat\n\nMore\n\nShared annotations\nAsk about this book\nSelect a passage and choose Ask AI, or just start typing. This conversation stays with the book.\n\n"
+      }
+    },
+    "pgid": 14248,
+    "execExit": 143
+  },
+  "cleanup": {
+    "books": 0,
+    "annotations": 0,
+    "fileRemovalIntents": 0,
+    "triggerExactDDLRestored": true,
+    "driverStopped": true,
+    "ftsRows": 0,
+    "pendingReadingBuckets": 1,
+    "initialPendingBucket": 1,
+    "finalFlushRetest": {
+      "cleanup": {
+        "contributions": 0
+      },
+      "seed": {
+        "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+        "bookId": "c2b59f3a-6766-46e0-819d-97a880c71777",
+        "chapterHref": "",
+        "noteId": "cc111ef9-ece1-4d95-a301-7d7995c1c428",
+        "otherBookId": "55a0f7f3-d3d9-406b-b707-de6df6cf3a0d"
+      },
+      "pgid": 16455,
+      "execExit": 143
+    },
+    "pendingReadingBookId": "62df75fb-8869-4cfb-b890-c3362bce0b36"
+  },
+  "boundaries": [
+    "Remote note change uses the real sync store applyRemote, not another device or relay transport.",
+    "Each fault transaction temporarily drops only trg_annotations_fts_update, changes created_at of the exact owned annotation to BLOB, recreates the exact original trigger before commit. Finally restores the original timestamp; annotation text and FTS indexed content are unchanged.",
+    "The first run revealed generic read-error copy and a misleading zero count. Both were corrected; a separate native run verified localized db/error copy, no zero count, cleared markers, and automatic recovery.",
+    "Native lists and markers reuse the same serialized, one-second-after-settlement observation engine as public page/inspect. Native book collections have separate quota and are not exported as unbounded Worker observations. Existing native full-book reads remain full-book-sized, now filtered in SQLite before IPC/decoding.",
+    "No per-event delivery or fixed latency for hung read/paint operations, no universal marker/CAS migration, no packaged/Windows/Linux or maximum-book load test. Native note edit/save and legacy local mutation paths still need conditional-write migration.",
+    "Screenshots of native mark/list, initial failure and corrected failure were inspected at logical 900x650 (scaled captures). No page horizontal overflow was observed. Book details dialog uses the same hook, but was not independently exercised in this run.",
+    "Closing the reader acknowledges presentation/session release, not the tracker's deferred flush. A follow-up read-only audit found one owned pending bucket after termination; startup recovery flushed it. The fixture now explicitly awaits flushReadingSessions for owned buckets after close and before removal. A third native prepare/cleanup verified all six owned books, annotations, FTS, file intents and pending buckets absent. Production close/delete coordination with the tracker's delayed settlement was not changed; the append-only log and settled reading history are retained.",
+    "Final review removed imperative list filtering and direct ref/marker mutation from native create/recolor/remove/save callbacks. Observed snapshots are now the only presentation writer; otherwise a late write acknowledgement could overwrite an already delivered snapshot and never be corrected by deduplication. The native note editor was opened by dispatching the production engine show-annotation event (not a pointer hit-test); actual text input and Update button persisted the edit, actual Agent query and native Notes/marker converged. The fourth run's two owned books, annotations, FTS and intents were zero, but one pending reading bucket remained despite the explicit fixture flush. The fixture does not yet await the tracker's later accrual/retirement; this cleanup defect remains unresolved. No deterministic delayed-write-ack E2E race was injected."
+  ],
+  "presentationOwnershipRetest": {
+    "seed": {
+      "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+      "bookId": "62df75fb-8869-4cfb-b890-c3362bce0b36",
+      "chapterHref": "",
+      "noteId": "bf2786d1-119b-4f25-b38f-fc7baf1ffa2f",
+      "otherBookId": "d7c1738d-828c-418a-942e-972f90c14d20"
+    },
+    "result": {
+      "agent": {
+        "consistency": "live",
+        "items": [
+          {
+            "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+            "body": "Native editor owns persistence; observation owns presentation.",
+            "bookId": "62df75fb-8869-4cfb-b890-c3362bce0b36",
+            "createdAt": "2026-09-10T01:22:00.299Z",
+            "id": "bf2786d1-119b-4f25-b38f-fc7baf1ffa2f",
+            "kind": "note",
+            "quotedText": "Shared annotation target",
+            "updatedAt": "2026-09-10T01:22:23.294Z"
+          }
+        ],
+        "nextCursor": null
+      },
+      "marks": [
+        "<svg style=\"position: absolute; top: 0px; left: 837px; width: 837px; height: 100%; pointer-events: none; margin: 0px;\"><g fill=\"none\" stroke=\"#78716c\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-dasharray=\"2 3.5\" style=\"opacity: 0.85;\"><line x1=\"56.25\" y1=\"229.8\" x2=\"253.75\" y2=\"229.8\"></line></g></svg>"
+      ],
+      "overflow": false,
+      "text": "\nShelf\n\nContents\n\nNotes\nNotes\n1\n\n“Shared annotation target”\nNative editor owns persistence; observation owns presentation.\nSep 10\n\nNative annotation observation 04fe6b1c-0254-43f9-8338-dc1e68e0df26\n0 / 1 · 100%\n\nRead by sentence or paragraph\n\nReading appearance\n\nChat\n\nMore\n\nShared annotations\nAsk about this book\nSelect a passage and choose Ask AI, or just start typing. This conversation stays with the book.\n\n"
+    },
+    "cleanup": {
+      "contributions": 0
+    },
+    "pgid": 17579,
+    "execExit": 143,
+    "finalSql": {
+      "books": 0,
+      "annotations": 0,
+      "ftsRows": 0,
+      "intents": 0,
+      "pendingReadingBuckets": 1
+    }
+  },
+  "followup": {
+    "evidence": "reading-retirement-2026-09-10.json",
+    "status": "Production session retirement fixed and native dual-actor/SQLite-lock recovery verified",
+    "finalPendingReadingBuckets": 0,
+    "finalOwnedBooksAnnotationsFtsIntents": 0,
+    "allOwnedProcessesStopped": true,
+    "note": "Earlier cleanup and presentationOwnershipRetest values remain historical observations, not current unresolved state. Fixture explicit flush was removed and replaced by a post-close pending-bucket assertion."
+  }
+}

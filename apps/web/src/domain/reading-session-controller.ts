@@ -36,7 +36,7 @@ export type ReadingEngineAdapter = {
   step(direction: "next" | "previous"): Promise<ReadingLocation>;
 };
 type Session = { id: string; bookId: string; engine?: ReadingEngineAdapter; error?: unknown };
-type Shell = { open(bookId: string, intent: number): void | Promise<void>; close(): void };
+type Shell = { open(bookId: string, intent: number): void | Promise<void>; close(): void | Promise<void> };
 
 /** Owns session identity and completion, never DOM, rendering or persistence. */
 export class ReadingSessionController {
@@ -290,15 +290,21 @@ export class ReadingSessionController {
     for (const notify of [...this.changes]) notify();
     if (!session) return Promise.resolve();
     return new Promise((resolve, reject) => {
+      let shellCompleted = false;
       const finish = () => {
         if (signal?.aborted) { cleanup(); reject(signal.reason); }
-        else if (!this.session) { cleanup(); resolve(); }
-        else if (this.session !== session) { cleanup(); reject(new AppError("reader/superseded", "A new book opened before close completed")); }
+        else if (!this.session && shellCompleted) { cleanup(); resolve(); }
+        else if (this.session && this.session !== session) { cleanup(); reject(new AppError("reader/superseded", "A new book opened before close completed")); }
       };
       const timer = setTimeout(() => { cleanup(); reject(new AppError("reader/timeout", "Reader did not close")); }, this.deadlineMs);
       const cleanup = () => { clearTimeout(timer); this.changes.delete(finish); signal?.removeEventListener("abort", finish); };
       this.changes.add(finish); signal?.addEventListener("abort", finish, { once: true });
-      try { this.shell!.close(); finish(); } catch (error) { cleanup(); reject(error); }
+      try {
+        Promise.resolve(this.shell!.close()).then(() => {
+          shellCompleted = true;
+          finish();
+        }, error => { cleanup(); reject(error); });
+      } catch (error) { cleanup(); reject(error); }
     });
   }
 

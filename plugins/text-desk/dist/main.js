@@ -1,6 +1,8 @@
 // src/strings.ts
 var locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 var labels = {
+  searching: ["Searching", "搜索中", "搜尋中", "検索中", "Поиск", "Recherche en cours", "Suche läuft", "Buscando"],
+  searchCancelled: ["Search cancelled", "搜索已取消", "搜尋已取消", "検索をキャンセルしました", "Поиск отменён", "Recherche annulée", "Suche abgebrochen", "Búsqueda cancelada"],
   temporaryMarks: ["Temporary marks", "临时标记", "暫時標記", "一時マーク", "Временные отметки", "Marques temporaires", "Temporäre Markierungen", "Marcas temporales"],
   noTemporaryMarks: ["No temporary marks", "没有临时标记", "沒有暫時標記", "一時マークなし", "Нет временных отметок", "Aucune marque temporaire", "Keine temporären Markierungen", "Sin marcas temporales"],
   markResults: ["Mark these results", "标记本批结果", "標記這批結果", "この結果をマーク", "Отметить эти результаты", "Marquer ces résultats", "Diese Treffer markieren", "Marcar estos resultados"],
@@ -149,6 +151,92 @@ async function requestList(ctx, bookId, title) {
   }] };
 }
 
+// src/search-task.ts
+function textSearchTask(ctx, input, render) {
+  const controller = new AbortController, title = tr(ctx.locale, "searchResults");
+  let channel, revision = 0, started = false, pending = true;
+  const retry = {
+    id: "retry",
+    label: tr(ctx.locale, "search"),
+    icon: "magnifying-glass",
+    run: () => ({ view: textSearchTask(ctx, input, render), navigation: "replace" })
+  };
+  const stop = () => {
+    controller.abort();
+    if (pending) {
+      pending = false;
+      current = { kind: "list", title, items: [], emptyText: tr(ctx.locale, "searchCancelled"), actions: [retry] };
+    }
+  };
+  let current = { kind: "blocks", title, blocks: [
+    { kind: "progress", value: null, label: tr(ctx.locale, "searching"), cancel: {
+      id: "cancel",
+      label: tr(ctx.locale, "cancelRequest"),
+      run: async () => {
+        stop();
+        await publish();
+      }
+    } }
+  ] };
+  const publish = async () => {
+    if (!channel)
+      return;
+    const target = channel;
+    try {
+      const receipt = await ctx.services.ui.publishView(target, { revision: ++revision, view: current });
+      if (receipt.status === "inactive" && channel === target) {
+        channel = undefined;
+        stop();
+      }
+    } catch (error) {
+      console.warn("Text Desk search view publication failed", error);
+      if (channel === target) {
+        channel = undefined;
+        stop();
+      }
+    }
+  };
+  const search = async () => {
+    await publish();
+    if (controller.signal.aborted)
+      return;
+    try {
+      const hits = await ctx.domains.library.queries.books.searchText(input, { signal: controller.signal });
+      if (controller.signal.aborted)
+        return;
+      const result = await render(hits);
+      if (controller.signal.aborted)
+        return;
+      current = result;
+    } catch (error) {
+      if (controller.signal.aborted)
+        return;
+      const code = error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : "library/content-unavailable";
+      const retryable = ["db/locked", "library/text-extraction-failed", "library/text-busy"].includes(code);
+      current = { kind: "blocks", title, blocks: [
+        { kind: "error", code },
+        ...retryable ? [{ kind: "actions", actions: [retry] }] : []
+      ] };
+    }
+    pending = false;
+    await publish();
+  };
+  return { ...current, onClose: stop, live: { subscribe(next) {
+    channel = next;
+    if (!started) {
+      started = true;
+      search();
+    } else
+      publish();
+    return { dispose() {
+      if (channel === next) {
+        channel = undefined;
+        stop();
+      }
+    } };
+  } } };
+}
+
 // src/search-views.ts
 function textSearchForm(ctx, bookId) {
   return {
@@ -162,8 +250,7 @@ function textSearchForm(ctx, bookId) {
       if (!queries.length || queries.length > 12 || queries.some((query) => query.length > 1024)) {
         return { fieldErrors: { queries: tr(ctx.locale, "invalidQueries") } };
       }
-      const hits = await ctx.domains.library.queries.books.searchText({ queries, bookId, limit: 40 });
-      return { view: await textSearchResults(ctx, hits) };
+      return { view: textSearchTask(ctx, { queries, bookId, limit: 40 }, (hits) => textSearchResults(ctx, hits)) };
     }
   };
 }

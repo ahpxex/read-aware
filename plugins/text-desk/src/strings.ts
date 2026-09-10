@@ -1,5 +1,7 @@
 const locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 const labels = {
+  searching: ["Searching", "搜索中", "搜尋中", "検索中", "Поиск", "Recherche en cours", "Suche läuft", "Buscando"],
+  searchCancelled: ["Search cancelled", "搜索已取消", "搜尋已取消", "検索をキャンセルしました", "Поиск отменён", "Recherche annulée", "Suche abgebrochen", "Búsqueda cancelada"],
   temporaryMarks: ["Temporary marks", "临时标记", "暫時標記", "一時マーク", "Временные отметки", "Marques temporaires", "Temporäre Markierungen", "Marcas temporales"],
   noTemporaryMarks: ["No temporary marks", "没有临时标记", "沒有暫時標記", "一時マークなし", "Нет временных отметок", "Aucune marque temporaire", "Keine temporären Markierungen", "Sin marcas temporales"],
   markResults: ["Mark these results", "标记本批结果", "標記這批結果", "この結果をマーク", "Отметить эти результаты", "Marquer ces résultats", "Diese Treffer markieren", "Marcar estos resultados"],

@@ -56,6 +56,9 @@ function findChapters(entries, query, mode) {
 // src/strings.ts
 var locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 var strings = {
+  searching: ["Searching", "搜索中", "搜尋中", "検索中", "Поиск", "Recherche en cours", "Suche läuft", "Buscando"],
+  cancel: ["Cancel", "取消", "取消", "キャンセル", "Отмена", "Annuler", "Abbrechen", "Cancelar"],
+  cancelled: ["Search cancelled.", "搜索已取消。", "搜尋已取消。", "検索をキャンセルしました。", "Поиск отменён.", "Recherche annulée.", "Suche abgebrochen.", "Búsqueda cancelada."],
   mode: ["Search in", "查找范围", "查找範圍", "検索対象", "Искать в", "Rechercher dans", "Suchen in", "Buscar en"],
   chapter: ["Chapter", "章节", "章節", "章", "Глава", "Chapitre", "Kapitel", "Capítulo"],
   ordinal: ["TOC order", "目录序号", "目錄序號", "目次の順番", "Порядок оглавления", "Ordre du sommaire", "Inhaltsreihenfolge", "Orden del índice"],
@@ -82,6 +85,113 @@ function tr(locale, key) {
   return strings[key][exact >= 0 ? exact : base >= 0 ? base : 0];
 }
 
+// src/text-search.ts
+function textSearchView(ctx, input) {
+  const controller = new AbortController;
+  let channel, revision = 0, started = false, pending = true;
+  const retry = {
+    id: "retry",
+    label: tr(ctx.locale, "search"),
+    icon: "magnifying-glass",
+    run: () => ({ view: textSearchView(ctx, input), navigation: "replace" })
+  };
+  const cancelled = () => ({
+    kind: "list",
+    title: input.query,
+    items: [],
+    emptyText: tr(ctx.locale, "cancelled"),
+    actions: [retry]
+  });
+  const stop = () => {
+    controller.abort();
+    if (pending) {
+      pending = false;
+      current = cancelled();
+    }
+  };
+  let current = { kind: "blocks", title: input.query, blocks: [
+    { kind: "progress", value: null, label: tr(ctx.locale, "searching"), cancel: {
+      id: "cancel",
+      label: tr(ctx.locale, "cancel"),
+      run: async () => {
+        stop();
+        await publish();
+      }
+    } }
+  ] };
+  const publish = async () => {
+    if (!channel)
+      return;
+    const target = channel;
+    try {
+      const receipt = await ctx.services.ui.publishView(target, { revision: ++revision, view: current });
+      if (receipt.status === "inactive" && channel === target) {
+        channel = undefined;
+        stop();
+      }
+    } catch (error) {
+      console.warn("Jumper search view publication failed", error);
+      if (channel === target) {
+        channel = undefined;
+        stop();
+      }
+    }
+  };
+  const search = async () => {
+    await publish();
+    if (controller.signal.aborted)
+      return;
+    try {
+      const page = await ctx.domains.library.queries.books.searchLocations(input, { signal: controller.signal });
+      if (controller.signal.aborted)
+        return;
+      const result = {
+        kind: "list",
+        title: input.query,
+        emptyText: tr(ctx.locale, page.nextCursor ? "pending" : page.textStatus === "textless" ? "textless" : page.textStatus === "unsupported" || page.textStatus === "partial" ? "unsupported" : "noHits"),
+        items: page.hits.map((hit) => ({
+          id: hit.id,
+          title: hit.excerpt.pre + hit.excerpt.match + hit.excerpt.post,
+          icon: "magnifying-glass",
+          onSelect: async () => {
+            await ctx.domains.reading.commands.goTo(hit.location);
+            return { close: true };
+          }
+        })),
+        actions: page.nextCursor ? [{ id: "more", label: tr(ctx.locale, "more"), icon: "arrow-right", run: () => ({
+          view: textSearchView(ctx, { ...input, contentVersion: page.contentVersion, cursor: page.nextCursor })
+        }) }] : []
+      };
+      current = result;
+    } catch (error) {
+      if (controller.signal.aborted)
+        return;
+      const code = error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : "library/content-unavailable";
+      const retryable = ["db/locked", "library/text-extraction-failed", "library/text-busy"].includes(code);
+      current = { kind: "blocks", title: input.query, blocks: [
+        { kind: "error", code },
+        ...retryable ? [{ kind: "actions", actions: [retry] }] : []
+      ] };
+    }
+    pending = false;
+    await publish();
+  };
+  return { ...current, onClose: stop, live: { subscribe(next) {
+    channel = next;
+    if (!started) {
+      started = true;
+      search();
+    } else
+      publish();
+    return { dispose() {
+      if (channel === next) {
+        channel = undefined;
+        stop();
+      }
+    } };
+  } } };
+}
+
 // src/views.ts
 async function jump(ctx, location) {
   await ctx.domains.reading.commands.goTo(location);
@@ -95,23 +205,6 @@ function chapterResults(ctx, entries) {
     subtitle: `${tr(ctx.locale, "ordinal")}: ${entry.ordinal}`,
     ...entry.location ? { onSelect: () => jump(ctx, entry.location) } : { subtitle: tr(ctx.locale, "unavailable") }
   })) };
-}
-async function textResults(ctx, input) {
-  const page = await ctx.domains.library.queries.books.searchLocations(input);
-  return {
-    kind: "list",
-    title: input.query,
-    emptyText: tr(ctx.locale, page.nextCursor ? "pending" : page.textStatus === "textless" ? "textless" : page.textStatus === "unsupported" || page.textStatus === "partial" ? "unsupported" : "noHits"),
-    items: page.hits.map((hit) => ({
-      id: hit.id,
-      title: hit.excerpt.pre + hit.excerpt.match + hit.excerpt.post,
-      icon: "magnifying-glass",
-      onSelect: () => jump(ctx, hit.location)
-    })),
-    actions: page.nextCursor ? [{ id: "more", label: tr(ctx.locale, "more"), icon: "arrow-right", run: async () => ({
-      view: await textResults(ctx, { ...input, contentVersion: page.contentVersion, cursor: page.nextCursor })
-    }) }] : []
-  };
 }
 async function jumperView(ctx) {
   const session = await ctx.domains.reading.queries.session();
@@ -136,7 +229,7 @@ async function jumperView(ctx) {
       if (!query || query.length > 500)
         return { fieldErrors: { query: tr(ctx.locale, "invalid") } };
       if (values.mode === "text")
-        return { view: await textResults(ctx, {
+        return { view: textSearchView(ctx, {
           bookId,
           query,
           limit: 20,

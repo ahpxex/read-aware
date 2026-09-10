@@ -1,5 +1,6 @@
 import type { BookTextHit, PluginContext, PluginDetailView, PluginFormView, PluginListView } from "@read-aware/plugin-types";
 import { tr } from "./strings";
+import { textSearchTask } from "./search-task";
 
 export function textSearchForm(ctx: PluginContext, bookId?: string): PluginFormView {
   return { kind: "form", title: tr(ctx.locale, bookId ? "searchBook" : "searchShelf"),
@@ -9,8 +10,7 @@ export function textSearchForm(ctx: PluginContext, bookId?: string): PluginFormV
       if (!queries.length || queries.length > 12 || queries.some(query => query.length > 1024)) {
         return { fieldErrors: { queries: tr(ctx.locale, "invalidQueries") } };
       }
-      const hits = await ctx.domains.library!.queries.books.searchText({ queries, bookId, limit: 40 });
-      return { view: await textSearchResults(ctx, hits) };
+      return { view: textSearchTask(ctx, { queries, bookId, limit: 40 }, hits => textSearchResults(ctx, hits)) };
     } };
 }
 

@@ -1,7 +1,8 @@
-import type { BookLocationSearch, BookTocEntry, PluginAction, PluginFormView, PluginListView, PluginView, ReadingLocation } from "@read-aware/plugin-types";
+import type { BookTocEntry, PluginAction, PluginFormView, PluginListView, PluginView, ReadingLocation } from "@read-aware/plugin-types";
 import { findChapters } from "./chapters";
 import { tr } from "./strings";
 import type { JumperContext } from "./types";
+import { textSearchView } from "./text-search";
 
 async function jump(ctx: JumperContext, location: ReadingLocation) {
   await ctx.domains.reading.commands.goTo(location);
@@ -14,19 +15,6 @@ function chapterResults(ctx: JumperContext, entries: BookTocEntry[]): PluginList
     subtitle: `${tr(ctx.locale, "ordinal")}: ${entry.ordinal}`,
     ...(entry.location ? { onSelect: () => jump(ctx, entry.location!) } : { subtitle: tr(ctx.locale, "unavailable") }),
   })) };
-}
-
-async function textResults(ctx: JumperContext, input: BookLocationSearch): Promise<PluginListView> {
-  const page = await ctx.domains.library.queries.books.searchLocations(input);
-  return { kind: "list", title: input.query,
-    emptyText: tr(ctx.locale, page.nextCursor ? "pending" : page.textStatus === "textless" ? "textless"
-      : page.textStatus === "unsupported" || page.textStatus === "partial" ? "unsupported" : "noHits"),
-    items: page.hits.map(hit => ({ id: hit.id, title: hit.excerpt.pre + hit.excerpt.match + hit.excerpt.post,
-      icon: "magnifying-glass", onSelect: () => jump(ctx, hit.location) })),
-    actions: page.nextCursor ? [{ id: "more", label: tr(ctx.locale, "more"), icon: "arrow-right", run: async () => ({
-      view: await textResults(ctx, { ...input, contentVersion: page.contentVersion, cursor: page.nextCursor! }),
-    }) }] : [],
-  };
 }
 
 export async function jumperView(ctx: JumperContext): Promise<PluginView> {
@@ -47,7 +35,7 @@ export async function jumperView(ctx: JumperContext): Promise<PluginView> {
     onSubmit: async values => {
       const query = String(values.query ?? "").trim();
       if (!query || query.length > 500) return { fieldErrors: { query: tr(ctx.locale, "invalid") } };
-      if (values.mode === "text") return { view: await textResults(ctx, { bookId, query, limit: 20,
+      if (values.mode === "text") return { view: textSearchView(ctx, { bookId, query, limit: 20,
         matchCase: values.matchCase === true, wholeWords: values.wholeWords === true }) };
       const toc = await ctx.domains.library.queries.books.getNavigationToc(bookId);
       const entries = findChapters(toc.entries, query, values.mode === "ordinal" ? "ordinal" : "chapter");

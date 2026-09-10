@@ -5360,17 +5360,42 @@ adjacent distribution repository, not a fourteenth plugin in this checkout:
 | Text to Speech | voice/options providers, storage, secrets, network, settings schema |
 | Theme Schedule | Settings domain, options/commands, storage/UI, committed schedule, settings schema |
 | WebDAV Sync | sync transport, storage, secrets, network, settings schema |
-| Jumper | reader header, navigation TOC, precise search, shared locations/history |
+| Jumper | reader header, navigation TOC, cancellable live precise search (0.3), shared locations/history |
 | Annotation Desk | live paged annotations and error recovery (0.2), frozen conditional edits, export, views |
 | Listening Desk | reading mode/provider control, unit navigation, playback/history, environment offline hint |
 | Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |
 | Workspace Profiles | settled settings snapshots, exact path grants, atomic presets, private documents, shelf header/command views and Agent tool |
-| Text Desk | library text preparation/tasks, single/shelf multi-query search, snippets, paged status views, reader header/command and explicit book navigation |
+| Text Desk | library text preparation/tasks, cancellable live single/shelf multi-query search (0.9), snippets, paged status views, reader header/command and explicit book navigation |
 | Library Desk | workspace/collection navigation, live host-command discovery and guarded execution with typed resource pickers (0.6), command search, grouped native selection, live selection count, explicit batch review/removal, durable pending-file discovery and safe retry |
 | Memory Desk | memory search, protected chapter graphs, source navigation and conditional correction/pin/unpin/forget (0.2); shared Agent queries and manage_memory, no duplicate plugin tool |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs
 in their packages and registered capabilities.
+
+[代码] Jumper 0.3 and Text Desk 0.9 consume Library 1.17, UI 1.2 and Views 1.8
+without host changes. Valid search submission pushes a live indeterminate
+progress frame immediately; its first visible subscription starts the query
+with a fresh per-frame AbortController. Search does not run before mounting.
+The cancel action aborts only this call and publishes an explicit cancelled
+state, not an empty-success result. Hiding, back, close and retirement disposal
+also abort pending searches. Restoring a cancelled frame does not restart work;
+an explicit new search action creates a fresh frame/controller with the same
+query. Completed frames retain results across hide/restore without rereading.
+Late success/failure cannot overwrite cancellation or publish to a retired
+channel; an old subscription disposer cannot cancel its replacement.
+
+[代码] Jumper continuation preserves the host cursor/contentVersion and search
+options; result selection still waits for goTo before closing. Text Desk keeps
+the selected-book/shelf distinction, 40-hit limit and snippets; book-title reads
+begin only after a successful, uncancelled search, and late title reads are
+discarded if the frame closes. The title-list API has no per-call signal.
+Errors render a host-localized stable code, never the raw message. Only
+db/locked, library/text-extraction-failed and library/text-busy expose a retry
+of the same input; other failures use the host error surface and stack Back.
+Publication failure logs and stops the view's pending work. All eight locales
+have search/cancelled labels. Plugin source composition tests and builds are
+basic evidence, not compiled Worker/Tauri UI or native parser cancellation.
+No generic durable TaskRef, cross-page progress or physical rollback is implied.
 
 ## 14. Extension Procedure
 

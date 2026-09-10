@@ -238,7 +238,7 @@ export const evidence = [
 ];
 
 export const scenarios = [
-  ["Jumper", "D1 D2 C1 S3 V1 Q2 Q3", "已建第一方 Jumper：reader header/命令、分层目录与版本化精确搜索、共享会话/导航回执/历史。印刷章号、目录序号、标题匹配由插件区分；不存在章节不派发，歧义给候选。隔离 Tauri FB2 Worker 与实际 Agent 端口通过；WebView hidden 导致前台绘制/截图未通过，PDF、超大查询预算与逐调用取消仍未关闭。"],
+  ["Jumper", "D1 D2 C1 S3 V1 Q2 Q3", "第一方 Jumper0.3已建：reader header/命令、分层目录与版本化精确搜索、共享会话/导航回执/历史。印刷章号、目录序号、标题匹配由插件区分；不存在章节不派发，歧义给候选。0.3不改宿主，组合Library1.17单次signal和UI1.2/views1.8，首次显示启动、进度取消/隐藏/关闭中止、迟到结果不回写、续页保留版本；源码组合与构建通过。Text Desk0.9以同类API组合单书/书架多查询取消，不向Agent加工具。旧隔离 Tauri FB2 Worker 与实际 Agent 端口通过；WebView hidden 导致前台绘制/截图未通过，PDF、总扫描/内存预算、跨页TaskRef及新逐调用取消的真实Tauri组合仍未关闭。"],
   ["Dictionary", "D1 D2 C4 S1 S6 S7 V1", "查询/保存/检索及1.4新增global删词/CSV工具已接；删除由agentTools 1.2宿主确认，导出沿用保存对话框，当前文本上下文/存储持久屏障仍归宿主。真实批准/复制/导出组合待验。"],
   ["RSS/OPML", "D1 C2 C4 S1 S4 S5 S8", "订阅/刷新/经批准退订及0.11 OPML文本分批导入工具已接；原生UTF-8文件选择/分块读取/释放使用现有resources，先预填表单再提交，不因选文件就导入。OPML解析和逐源结果属于插件业务，非耐久任务或原子导入。正文版本更新不能把当前会话悄悄指向旧引用。"],
   ["句读与 TTS", "D2 C2 C3 D5 Q2", "reading 2.5 已共享朗读、模式快照/启停/单位配置、版本化返回、单元步进与模式提供者发现/选择；Listening Desk 组合模式表单、朗读、历史、Current passage 与上下单元。配置的书内状态/提供者偏好同批落盘，回执等待该请求精确持久结果，失败不被偏好回滚误报为 superseded；位置写在配置成功后复核 revision/key/unit。步进从 resting 继续并返回 moved/start-of-book/end-of-book，等待真实页面/分段/React 反馈与目标位置提交，不记跳转历史；返回同样等待持久完成。位置保存失败保留 db code，下一次明确操作可重试；自动朗读消费同一回执，书尾正常停止，保存失败则停止而非继续播下一段。隔离 macOS Tauri 已验跨节、慢 Worker、失败、取消、书尾及双端 SQLite 故障/恢复；空节/非线性/其他格式仍需桌面验证。模式选择通过 availableModes/selectModeKey，失效选择保留且不隐式替换，取消撤回未完成选择但不撤销所有已提交提供者偏好。旧偏好读取无副作用，迁移的新设置、书内配置和旧记录删除同批提交；不同所有者保留，删除失败两端拒绝且旧值保留。READ16 跟随和跨提供者取消补偿仍缺；release、其他系统、远端 TTS 未验。"],

@@ -47,6 +47,7 @@
     "noPermissions": "追加の権限なし",
     "scheduleLine": "スケジュール: {{label}} — アプリ起動中は{{minutes}}分ごとに実行",
     "permissionName": {
+      "service_sync": "同期",
       "reader_modes": "読書モード",
       "ui_themes": "テーマ",
       "library_read": "ライブラリの読み取り",
@@ -68,6 +69,7 @@
       "sync_transport": "同期バックエンド"
     },
     "permission": {
+      "service_sync": "同期状態とアカウント使用量の取得、同期の実行、接続設定の表示",
       "reader_modes": "アプリが描画するガイド付き読書モードの追加",
       "ui_themes": "アプリと本文ページのテーマ（同梱フォント付き）を提供。選択したときのみ適用",
       "library_read": "書籍・コレクション・メタデータ・本文の読み取り",

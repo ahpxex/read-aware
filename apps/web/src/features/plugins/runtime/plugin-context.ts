@@ -29,6 +29,7 @@ import { pluginDirectory } from "../../../services/plugin-directory";
 import { flushLocalKV, localKV } from "../../../platform/local-store";
 import { createLogger } from "../../../platform/logger";
 import { hostEnvironment } from "../../../platform/host-environment";
+import { hostSync } from "../../../services/sync";
 import {
   deletePluginSecret,
   getPluginSecret,
@@ -837,6 +838,17 @@ export function buildPluginContext(
   }
 
   // ─── Services ─────────────────────────────────────────────────────────────
+
+  if (canUseHostService("sync", permissions)) {
+    ctx.services.sync = {
+      snapshot: async () => { lifecycle.assertActive("services.sync.snapshot"); return hostSync.snapshot(); },
+      backlog: () => { lifecycle.assertActive("services.sync.backlog"); return hostSync.backlog(lifecycle.signal); },
+      account: () => { lifecycle.assertActive("services.sync.account"); return hostSync.account(lifecycle.signal); },
+      requestSync: () => { lifecycle.assertActive("services.sync.requestSync"); return hostSync.requestSync(lifecycle.signal); },
+      openSettings: () => { lifecycle.assertActive("services.sync.openSettings"); return hostSync.openSettings(lifecycle.signal); },
+      observe: handler => track(() => ({ dispose: hostSync.observe(handler) })),
+    };
+  }
 
   if (canUseHostService("network", permissions)) {
     ctx.services.network = {

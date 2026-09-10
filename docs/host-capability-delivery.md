@@ -18,6 +18,10 @@
 
 本意图批次验证：对话请求/权限/生命周期、Agent 作用域和工具表面及库存/模型共 32 项/554 断言；typecheck 27/27。矩阵 243 行、737 映射；工具 book 53/global 62。八语言确认栏文案、共享 hook 与事实文档同步，桌面实操/组合插件/异常下 UX 仍留到集中阶段；未启动桌面或浏览器、未推送。
 
+同步批次已接线：新增 services.sync 1.0，独立 service:sync 授权；snapshot/observe/backlog/account/requestSync/openSettings 共用现有 scheduler 和 workspace，不另建引擎。Agent 双 scope 接 get_sync_status/manage_sync，立即同步须批准，远端套餐用量按需读。状态不泄漏 email/accountId、密钥、blobKey、游标、账单 ticket 或 workspace 书籍选择；计数失败不当零。已运行周期返回 already-running，不冒充完成；连接操作/restart 换代和取消拒绝迟到回执，但不声称撤回共享同步。openSettings 仅确认同步页打开，定向连接/退出/删除账号/账单流程及最终回执仍缺，OPS01/03/06/07 保持部分。
+
+本同步批次验证：状态投影、换代、初始/串行/释放观察、权限、批准和工具表面及库存/模型共 29 项/567 断言，typecheck 27/27。catalog 33 项、矩阵 243 行/748 映射，Agent book 55/global 64。同步设置由既有原生界面承接，本批未启动桌面、未调用远端账号服务、未做文档 UI 截图；组合和跨设备验收集中执行。
+
 - [ ] D1–D6：书库/正文、阅读运行态、标注、对话、设置、授权记忆读及受控命令，两端接通。
 - [ ] C1–C5：动作/模式/内容/声音/Agent/主题/传输的注册、宿主消费、必要的受权复用全部可组合。
 - [ ] S1–S11：存储、密钥、UI、资源、网络、推理、剪贴板、调度、同步、插件目录、会话桥收敛。

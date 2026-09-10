@@ -388,11 +388,13 @@ export async function fetchRemoteBlob(key: string): Promise<RemoteBlobFetch> {
 // ── Scheduler lifecycle ──────────────────────────────────────────────────────
 
 let disposeScheduler: (() => void) | null = null;
+let connectionGeneration = 0;
+export const getSyncConnectionGeneration = () => connectionGeneration;
 
 /** Manual "sync now" (settings panel). Throws so the panel can toast failure. */
-export async function syncNow(): Promise<void> {
+export async function syncNow(): Promise<SyncCycleOutcome | null> {
   try {
-    await runCycle();
+    return await runCycle();
   } catch (error) {
     log.error("manual sync failed", error);
     setStatus({
@@ -411,6 +413,7 @@ export async function syncNow(): Promise<void> {
  * Returns the disposer (also stored, for restartSyncScheduler).
  */
 export function startSyncScheduler(): () => void {
+  connectionGeneration++;
   disposeScheduler?.();
   // Restarting is also the account-boundary transition. Clear the previous
   // account's live status synchronously while the persisted profile loads.

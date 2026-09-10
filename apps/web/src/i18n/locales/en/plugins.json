@@ -52,6 +52,7 @@
     },
     "scheduleLine": "Scheduled: {{label}} — at least every {{minutes}} min while the app is open",
     "permissionName": {
+      "service_sync": "Sync",
       "reader_modes": "Reading modes",
       "ui_themes": "Themes",
       "library_read": "Read library",
@@ -73,6 +74,7 @@
       "sync_transport": "Sync backend"
     },
     "permission": {
+      "service_sync": "Read sync status and account usage, request sync and open connection settings",
       "reader_modes": "Add a host-rendered reading mode that controls guided navigation",
       "ui_themes": "Offer app and reader themes, with bundled fonts, that apply only when you select them",
       "library_read": "Read your books, collections, metadata, and chapter text",

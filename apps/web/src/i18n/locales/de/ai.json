@@ -76,6 +76,11 @@
           "description": "Dadurch werden die importierte Quelldatei und die lokalen Lesedaten dauerhaft entfernt. Dies kann nicht rückgängig gemacht werden.",
           "approve": "Buch löschen"
         },
+        "syncNow": {
+          "question": "Jetzt synchronisieren?",
+          "description": "Dieses Gerät mit dem eingerichteten verschlüsselten Konto synchronisieren. Abbrechen macht abgeschlossene Übertragungen nicht rückgängig.",
+          "approve": "Jetzt synchronisieren"
+        },
         "clearConversation": {
           "question": "Diese Unterhaltung leeren?",
           "description": "{{subject}}\n\nStoppt die aktuelle Antwort und entfernt den Verlauf sowie zwischengespeicherte Zusammenfassungen. Langzeitgedächtnis, Ereignisverlauf und abgeschlossene Aktionen bleiben erhalten.",

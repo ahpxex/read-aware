@@ -1743,6 +1743,14 @@ export type PluginHostServices = {
     /** Initial page and changes; offset pages must be reloaded after directory changes. */
     observe(query: import("@read-aware/core").PluginDirectoryQuery, handler: (page: import("@read-aware/core").PluginDirectoryPage) => unknown): PluginDisposable;
   };
+  /** Requires service:sync; no keys, account identifiers, billing tickets or raw event access. */
+  sync?: Omit<import("@read-aware/core").HostSyncPort, "backlog" | "account" | "requestSync" | "openSettings"> & {
+    backlog(): ReturnType<import("@read-aware/core").HostSyncPort["backlog"]>;
+    account(): ReturnType<import("@read-aware/core").HostSyncPort["account"]>;
+    requestSync(): ReturnType<import("@read-aware/core").HostSyncPort["requestSync"]>;
+    openSettings(): ReturnType<import("@read-aware/core").HostSyncPort["openSettings"]>;
+    observe(handler: (snapshot: import("@read-aware/core").HostSyncSnapshot) => unknown): PluginDisposable;
+  };
   session: {
     /** Fresh non-sensitive metadata; contains no reading or account state. */
     environment(): Promise<import("@read-aware/core").HostEnvironmentSnapshot>;

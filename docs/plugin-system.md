@@ -3072,9 +3072,35 @@ The current host services are:
 | `schedules` | bind a manifest-declared periodic task | built in |
 | `session` | 2.0: environment snapshot/observation only; reading state requires the reading domain | built in |
 | `plugins` | 1.0: bounded installed public metadata list/observation | built in |
+| `sync` | 1.0: sanitized status, backlog, account quotas, sync request and host settings | `service:sync` |
 | `network` | host HTTP client | `service:network` |
 | `llm` | approved one-shot/structured model calls | `service:llm` |
 | `clipboard` | write text to clipboard | `service:clipboard` |
+
+[代码] Sync 1.0 exposes `snapshot()`, `observe(handler)`, `backlog()`, `account()`,
+`requestSync()`, and `openSettings()`. Its separate `service:sync` grant is not
+implied by network access or a sync transport contribution. Snapshot contains
+connection availability, scheduler phase/counters, last success/error code,
+cycle-start backlog and remaining backfill, never account/email IDs, keys,
+blob identities, raw cursors or tickets. `backlog()` queries current local counts;
+it is not the same sample as cycle-start totals. Observation sends an initial
+snapshot and coalesced changes serially (64 subscriptions maximum), not an event
+replay stream. Failures in local counts reject rather than returning zero.
+
+`account()` is an explicit remote query for relay tier, billing availability,
+usage and four quota limits; it returns null for disconnected/transport/preview
+states, not for network failures. It excludes all identity and key fields and
+rejects malformed quota values. Connection-operation/restart generations reject
+late account or cycle results after a connection change. `requestSync()` reuses
+the scheduler; disabled/unauthenticated/busy connections fail, `already-running`
+means no new cycle, and `completed` means that cycle ended, not that all devices
+or backfill have converged. Caller cancellation prevents dispatch or delivery,
+not shared physical sync or rollback. `openSettings()` waits for the host Data &
+Sync page and returns only `opened`, not workspace/library data or completed
+login, disconnect, deletion or purchase. Targeted flows and their final receipts
+remain unconnected. Agent `get_sync_status` and `manage_sync` share this service
+in both scopes; manual sync asks approval, account fetching is opt-in. Focused
+checks passed; new composition/native/cross-device acceptance remains pending.
 
 [代码] UI 1.7 adds `openExternal(url)` when `service:network` is granted.
 It accepts HTTP(S) only (up to 8192 characters), rejects credentials and control
@@ -3175,7 +3201,7 @@ The manifest permission vocabulary is derived from the catalogs:
   `annotations:read`, `annotations:write`, `conversations:read`, `conversations:write`, `memory:read`, `memory:write`.
 - Contributions: `reader:modes`, `agent:tools`, `agent:context`,
   `agent:retrieval`, `agent:memory`, `ui:themes`, `sync:transport`.
-- Services: `service:network`, `service:llm`, `service:clipboard`.
+- Services: `service:sync`, `service:network`, `service:llm`, `service:clipboard`.
 - Settings: exact `settingsAccess` grants rather than a broad permission.
 
 Write implies read within a domain. Permission-free contributions and services

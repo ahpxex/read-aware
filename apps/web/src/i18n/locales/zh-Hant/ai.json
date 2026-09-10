@@ -76,6 +76,11 @@
           "description": "這會永久移除匯入的原始檔案和本機閱讀資料，且無法復原。",
           "approve": "刪除書籍"
         },
+        "syncNow": {
+          "question": "立即同步？",
+          "description": "將此裝置與已設定的加密帳號同步。取消請求不會撤回已完成的傳輸。",
+          "approve": "立即同步"
+        },
         "clearConversation": {
           "question": "清空這段對話？",
           "description": "{{subject}}\n\n停止目前回覆，清除聊天記錄及快取的對話摘要。不會刪除長期記憶、事件歷史或撤銷已完成的操作。",

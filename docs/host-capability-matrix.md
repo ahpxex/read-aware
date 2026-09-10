@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 194、部分 43、待建 3、占位 2、非桌面 1。
-- Agent：接通 122、未接 39、部分 49、扩展 14、自动 14、内部 5。
-- 插件：接通 137、部分 75、未接 31。
+- Agent：接通 122、未接 35、部分 53、扩展 14、自动 14、内部 5。
+- 插件：接通 137、部分 78、未接 28。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -323,13 +323,13 @@
 
 | ID | 宿主能力 | 宿主现状 | Agent 当前与目标 | 插件当前与目标 | 实际消费者 | 缺口/边界 | 来源 | 旧基线 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="OPS01"></a>OPS01 | 同步连接/断开/立即同步/状态与积压 | 实装 | **未接**：无正式入口<br>[设计] 只读状态 + 用户批准操作 | **部分**：syncTransports 提供后端，不控制 scheduler<br>[设计] 只读状态/受控同步请求 | Data & Sync | 传输插件是 engine 被调用的 port，不是可以控制整套 sync 的服务 | [SYNC](../apps/web/src/platform/sync/sync-scheduler.ts) [SYNCCONNECT](../apps/web/src/platform/sync/connect.ts) [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [API](../packages/plugin-types/src/index.ts) | R04 |
+| <a id="OPS01"></a>OPS01 | 同步连接/断开/立即同步/状态与积压 | 实装 | **部分**：get_sync_status；manage_sync now/settings 双 scope<br>[设计] 状态与批准同步已接，定向连接流程待接 | **部分**：services.sync 1.0 snapshot/observe/backlog/requestSync/openSettings<br>[设计] 独立 service:sync 控制面 | Data & Sync；Agent 工具；插件正式入口 | 共享 scheduler，初始/变化串行观察最多 64；fresh outbox 与 cycleStartBacklog 分开，不泄漏书籍/blobKey/游标。未连接、凭据失效、连接管理中拒绝；already-running 不是完成，新周期等现有引擎结束才 completed。连接换代或调用者取消不返回旧成功，也不回滚已派发共享同步；不是独立可取消耐久任务。openSettings 只确认 Data & Sync 页面打开，不假称连接/断开完成；定向流程和完成回执仍待接。transport/network 权限不隐式获得 sync 管理。定向测试已验，新组合插件及 Tauri/跨设备验收待集中进行。 | [SYNC](../apps/web/src/platform/sync/sync-scheduler.ts) [SYNCCONNECT](../apps/web/src/platform/sync/connect.ts) [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [API](../packages/plugin-types/src/index.ts) [SYNCSERVICE](../apps/web/src/services/sync.ts) [SYNCCONTROLLER](../apps/web/src/services/sync-controller.ts) [SYNCTOOLS](../packages/agent/src/tools/sync-tools.ts) | R04 |
 | <a id="OPS02"></a>OPS02 | 事件/Blob E2E 加解密、游标、去重/确认与重试 | 实装 | **未接**：宿主内部同步<br>[设计] 不开放：原始密钥/ACK/游标写 | **部分**：只处理 SealedEventWire/密文字节<br>[设计] 只贡献传输 | Relay/WebDAV | 不得通过插件改变确认语义或读取其他插件/账号明文 | [SYNCENGINE](../apps/web/src/platform/sync/sync-engine.ts) [SYNC](../apps/web/src/platform/sync/sync-scheduler.ts) [SYNCTRANSPORT](../apps/web/src/platform/sync/transport-registry.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | 新增盘点 |
-| <a id="OPS03"></a>OPS03 | 检查点/投影恢复/事件历史回填 | 实装 | **未接**：宿主内部恢复<br>[设计] 只读健康状态/宿主修复流程 | **未接**：无正式入口<br>[设计] 只读健康状态/宿主修复流程 | checkpoint maintain/publish/bootstrap；backfill | 管理底层游标/投影不算通用插件写能力 | [RUST](../apps/desktop/src-tauri/src/lib.rs) [SYNCENGINE](../apps/web/src/platform/sync/sync-engine.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) | 新增盘点 |
+| <a id="OPS03"></a>OPS03 | 检查点/投影恢复/事件历史回填 | 实装 | **部分**：get_sync_status 的 phase/backfillRemaining/lastCycle<br>[设计] 恢复进展已接，诊断修复流程待接 | **部分**：sync 1.0 脱敏进度和观察<br>[设计] 只读回填进度 | checkpoint maintain/publish/bootstrap；backfill | 只提供阶段/计数，不开放游标/ACK/原始账本，也不把 remaining=0 当成投影校验通过。诊断/修复入口仍缺，集中验收待做。 | [RUST](../apps/desktop/src-tauri/src/lib.rs) [SYNCENGINE](../apps/web/src/platform/sync/sync-engine.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) [SYNCSERVICE](../apps/web/src/services/sync.ts) [SYNCCONTROLLER](../apps/web/src/services/sync-controller.ts) | 新增盘点 |
 | <a id="OPS04"></a>OPS04 | WebDAV 等自定义密文 transport | 实装 | **部分**：可改非敏感插件设置，不能连接<br>[设计] 宿主连接流程 | **接通**：syncTransports v2：register/open/session.close 与密文方法<br>[设计] 密文传输贡献 | WebDAV 0.2.0；隔离 Tauri 原生 HTTP 探针 | 宿主按注册/engine generation 关闭会话，失配与迟到 open 也释放；5 秒 close 上限及错误仍释放回调。桌面已证并发取消/停用不再发请求；真实连接 UI、跨设备与换代失败回滚未完整验收，GAP14 不整项关闭 | [API](../packages/plugin-types/src/index.ts) [WEBDAV](../plugins/webdav-sync/src/index.ts) [SYNCTRANSPORT](../apps/web/src/platform/sync/transport-registry.ts) [SYNCSESSION](../apps/web/src/platform/sync/transport-session.ts) [SYNCCACHE](../apps/web/src/platform/sync/transport-session-cache.ts) [SYNCPROBE](../apps/web/src/features/plugins/runtime/fixtures/desktop-transport-probe.ts) | N03 |
 | <a id="OPS05"></a>OPS05 | 偏好漫游/远端合并后的 UI 失效 | 部分 | **自动**：下一轮读取投影/配置<br>[设计] 一致快照与刷新 | **部分**：roaming KV 与 plugin docs 路径不等价<br>[设计] 授权 change feed + 同步策略 | 跨设备设置/书架/聊天刷新 | GAP09：远端应用缺逐领域订阅广播；不得让插件 replay 原始事件补洞 | [ROAM](../apps/web/src/platform/roaming-preferences.ts) [SYNC](../apps/web/src/platform/sync/sync-scheduler.ts) [APPEVENTS](../apps/web/src/platform/app-events.ts) [DOCS](../apps/web/src/features/plugins/runtime/plugin-backend.ts) | 新增盘点 |
-| <a id="OPS06"></a>OPS06 | 账号登录、连接 token、退出、删除账号 | 实装 | **未接**：无正式入口<br>[设计] 打开宿主账号流程 | **未接**：无正式入口<br>[设计] 打开宿主账号流程/匿名状态 | SyncAccountGroup | 删除远端账号和删除本地数据不同；身份 token 不向模型/插件公开 | [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [SYNCCONNECT](../apps/web/src/platform/sync/connect.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [EXTERNAL](../apps/web/src/platform/external-link.ts) | 新增盘点 |
-| <a id="OPS07"></a>OPS07 | 套餐/用量/购买/账单管理 | 实装 | **未接**：无正式入口<br>[设计] 只读非敏感状态/用户确认跳转 | **未接**：无正式入口<br>[设计] 非敏感状态/用户确认跳转 | 购买/账单 portal | 远端服务契约未在本次本地代码审计验证；不开放自动付款 | [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [EXTERNAL](../apps/web/src/platform/external-link.ts) | 新增盘点 |
+| <a id="OPS06"></a>OPS06 | 账号登录、连接 token、退出、删除账号 | 实装 | **部分**：get_sync_status connected/backend；manage_sync settings<br>[设计] 匿名状态及设置入口已接 | **部分**：sync 1.0 snapshot/openSettings<br>[设计] 独立授权的状态与宿主页 | SyncAccountGroup；双端设置入口 | 不返回 email、账号 ID、token/主密钥。打开页面后仍需用户操作宿主登录/退出/删除控件；定向流程请求及最终回执未接。删除远端账号不等于删除本地数据，桌面验收待集中进行。 | [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [SYNCCONNECT](../apps/web/src/platform/sync/connect.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [EXTERNAL](../apps/web/src/platform/external-link.ts) [SYNCSERVICE](../apps/web/src/services/sync.ts) [SYNCTOOLS](../packages/agent/src/tools/sync-tools.ts) | 新增盘点 |
+| <a id="OPS07"></a>OPS07 | 套餐/用量/购买/账单管理 | 实装 | **部分**：get_sync_status includeAccount；manage_sync settings<br>[设计] 只读套餐用量与设置入口 | **部分**：sync 1.0 account/openSettings<br>[设计] 按需远端脱敏读 | 购买/账单 portal；双端只读配额 | account 仅返回 tier/hasBilling/三项用量及四项额度，null 是非 relay/未连接而非零用量。显式读取才发请求，失败拒绝不伪装空值；换代/连接管理中的迟到结果拒绝，不返回 keys/email/accountId/ticket。购买/账单仍在宿主页，由用户操作；定向流程与完成反馈未接。定向测试不证明远端生产数据或购买成功，不开放自动付款。 | [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [EXTERNAL](../apps/web/src/platform/external-link.ts) [SYNCSERVICE](../apps/web/src/services/sync.ts) [SYNCCONTROLLER](../apps/web/src/services/sync-controller.ts) [SYNCTOOLS](../packages/agent/src/tools/sync-tools.ts) | 新增盘点 |
 | <a id="OPS08"></a>OPS08 | 备份导出与合并导入 | 部分 | **未接**：无正式入口<br>[设计] 宿主批准的备份任务 | **未接**：无正式入口<br>[设计] 仅自有数据；宿主批准的备份流程 | DataSyncPanel | v1 仅 KV/books/collections/annotations/files；独立 ai_chat/memories/plugin_docs/secret/event-log 未枚举，不能称全量备份；全量内存 JSON | [BACKUP](../apps/web/src/features/settings/lib/backup-io.ts) [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) | O06, R05 |
 | <a id="OPS09"></a>OPS09 | 删除本地全部数据 | 实装 | **未接**：无正式入口<br>[设计] 打开显式二次确认流程 | **未接**：无正式入口<br>[设计] 不开放：插件直接 wipe 用户全部数据 | DELETE 文字确认 | 清空本地与删账号不同；私有卸载清理不能升级成全局清空 | [WIPE](../apps/web/src/features/settings/lib/delete-all-data.ts) [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) | R05 |
 | <a id="OPS10"></a>OPS10 | 数据目录显示/Reveal | 占位 | **未接**：无正式入口<br>[设计] 待宿主实现后暴露意图 | **未接**：无正式入口<br>[设计] 待宿主实现后暴露意图 | disabled Reveal / PendingBadge | UI 占位不能计入宿主已实现，更不能计入 Agent 或插件覆盖 | [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) | 新增盘点 |
@@ -410,13 +410,13 @@
 
 ## 注册库存与覆盖反查
 
-- Agent global：62 个。
-- Agent book：53 个。
-- Plugin ctx：139 个。
+- Agent global：64 个。
+- Agent book：55 个。
+- Plugin ctx：145 个。
 - Plugin returned interface：25 个。
 - Capability domains：6 个。
 - Capability contributions：14 个。
-- Capability services：9 个。
+- Capability services：10 个。
 - Capability schemas：3 个。
 - Settings path：74 个。
 - Native command：146 个。
@@ -437,7 +437,7 @@
 - Plugin setting declaration：24 个。
 - Native bundled plugin：6 个。
 
-以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 139 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
+以下“已映射”只保证注册项可追到矩阵行，不意味着目标已实现。Plugin ctx 是授予当前全部 manifest 权限后的 145 个顶层可调用路径；返回的 collection/session 方法单列。Settings 74 路径是在 custom + 主/快模型配置的完整条件快照中生成，不表示未配置 AI 时也显示全部路径。Native command 包含 cfg/no-op 历史项，见 SYS18，不能算桌面能力全部对插件开放。
 
 ### Agent global
 
@@ -452,6 +452,8 @@
 | `copy_to_clipboard` | [SYS08](#SYS08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `export_text_file` | [SYS10](#SYS10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_external_url` | [SYS12](#SYS12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_sync_status` | [OPS01](#OPS01) [OPS03](#OPS03) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `manage_sync` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_books` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_book_overview` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_annotations` | [ANN01](#ANN01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -519,6 +521,8 @@
 | `copy_to_clipboard` | [SYS08](#SYS08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `export_text_file` | [SYS10](#SYS10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_external_url` | [SYS12](#SYS12) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `get_sync_status` | [OPS01](#OPS01) [OPS03](#OPS03) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `manage_sync` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_book_overview` | [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_annotations` | [ANN01](#ANN01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_reading_stats` | [STAT01](#STAT01) [STAT02](#STAT02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -692,6 +696,12 @@
 | `services.plugins.observe` | [EXT11](#EXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.session.environment` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.session.observeEnvironment` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.sync.snapshot` | [OPS01](#OPS01) [OPS03](#OPS03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.sync.backlog` | [OPS01](#OPS01) [OPS03](#OPS03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.sync.account` | [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.sync.requestSync` | [OPS01](#OPS01) [OPS03](#OPS03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.sync.openSettings` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.sync.observe` | [OPS01](#OPS01) [OPS03](#OPS03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.network.fetch` | [SYS06](#SYS06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.llm.ask` | [AI06](#AI06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.clipboard.writeText` | [SYS08](#SYS08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -778,6 +788,7 @@
 | `schedules` | [MORE01](#MORE01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `session` | [MORE03](#MORE03) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `plugins` | [EXT11](#EXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `sync` | [OPS01](#OPS01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `network` | [SYS06](#SYS06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `llm` | [AI06](#AI06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `clipboard` | [SYS08](#SYS08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

@@ -358,6 +358,13 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   const memoryManagement = createMemoryManagementFixture(stores.memories);
   const bookClassification = createBookClassificationFixture(books);
   const deps: RuntimeDeps = {
+    sync: {
+      snapshot: async () => ({ revision: 0, supported: true, connectionBusy: false, state: "disabled", connected: false, backend: null,
+        lastSyncAt: null, lastErrorCode: null, progress: null, cycleStartBacklog: null, lastCycle: null, backfillRemaining: 0 }),
+      backlog: async () => ({ events: 0, blobs: 0 }), account: async () => null,
+      requestSync: async () => { throw new AppError("ui/unavailable", "Connect a sync fixture"); },
+      openSettings: async () => ({ status: "opened", surface: "dataSync" }),
+    },
     conversationControl: {
       turnRequests: async () => [],
       requestTurn: async request => ({ id: "request-fixture", target: request.target, action: request.action, status: "pending", createdAt: 0 }),

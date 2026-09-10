@@ -6,7 +6,7 @@
 - 最后核验日期：2026-09-10。
 - 范围：当前 ReadAware Tauri 桌面宿主、已有第一方插件、产品内 Agent 工具与自动管线。排除外部 Coding Agent 的电脑权限、移动端遗留桥和未决定的新产品。
 - 事实源：本轮审计以 1d97e2e4 后工作区源码为准；目标源是 [host-capability-model.data.ts](./host-capability-model.data.ts)，接线源是 [host-capability-matrix.data.ts](./host-capability-matrix.data.ts)。
-- [代码] 243 条现状证据映射到 30 个责任单元；32 个当前 catalog 成员、129 个旧验收项、32 个旧场景全部反查。单元不是新 API 数，字段行不是独立产品功能。
+- [代码] 243 条现状证据映射到 30 个责任单元；33 个当前 catalog 成员、129 个旧验收项、32 个旧场景全部反查。单元不是新 API 数，字段行不是独立产品功能。
 - [设计] 本文所有目标操作与分组迁移均未冒充现有 SDK；新 namespace 需在实现时经 catalog/permission/version/schema 统一落地。
 
 ## 结论
@@ -288,17 +288,17 @@
 - [设计] 通过条件：长任务不重入、停用清理、失败不标成功；错过触发如何补跑有可复现行为。重启恢复仅对明确声明的计划，不恢复全部 Worker promise。
 - [代码] 现状证据：[MORE01](./host-capability-matrix.md#MORE01) · [MORE02](./host-capability-matrix.md#MORE02)。
 
-### <a id="S9"></a>S9 · Service · sync（目标新增控制面）
+### <a id="S9"></a>S9 · Service · sync
 
 **同步状态与用户请求**
 
-- 当前 catalog 身份：无对应现有 catalog 身份；目标责任或跨切边界，不是当前 API。
+- 当前 catalog 身份：`services.sync`。
 - [设计] 操作：受限状态：连接阶段、积压/错误、上次成功、本地可用性；用户意图 connect/disconnect/requestSync 由宿主 scheduler 执行，密文 transport 仍由 C5 提供。
-- [设计] Agent：只读状态或打开连接批准流程；不操纵事件游标/ACK/加密密钥。
-- [设计] 插件：普通插件可按授权了解非敏感 availability；transport 插件不因提供连接而获得全局同步管理权；连接配置走宿主 UI/secrets。
+- [设计] Agent：已接 get_sync_status 双 scope 状态/积压和按需远端套餐用量；manage_sync 经批准立即同步或打开 Data & Sync 页面。不操纵游标/ACK/密钥；打开页面不是连接、退出、购买或删除账号已完成。定向流程回执仍待接。
+- [设计] 插件：services.sync 1.0 需独立 service:sync，提供 snapshot/observe/backlog/account/requestSync/openSettings。transport/network 不隐式获权；投影不含 email/accountId、blobKey、密钥、ticket、游标或书架选择。连接换代/管理进行中不交付旧结果；已派发共享同步不随调用者取消而回滚。定向检查通过，组合与桌面验收待集中进行。
 - [设计] 限制/不建设：不把 checkpoint/replay/事件账本操作暴露为普通 API；健康修复由宿主流程。新控制面只覆盖现有真实同步行为，不建设第二套同步引擎。
 - [设计] 通过条件：断开/换 transport 关闭旧会话；本地/远端应用后的 D1–D6 快照可刷新；只看本地单元测试不能宣称跨设备正确。
-- [代码] 现状证据：[OPS01](./host-capability-matrix.md#OPS01) · [OPS02](./host-capability-matrix.md#OPS02) · [OPS03](./host-capability-matrix.md#OPS03) · [OPS04](./host-capability-matrix.md#OPS04) · [OPS05](./host-capability-matrix.md#OPS05)。
+- [代码] 现状证据：[OPS01](./host-capability-matrix.md#OPS01) · [OPS02](./host-capability-matrix.md#OPS02) · [OPS03](./host-capability-matrix.md#OPS03) · [OPS04](./host-capability-matrix.md#OPS04) · [OPS05](./host-capability-matrix.md#OPS05) · [OPS06](./host-capability-matrix.md#OPS06) · [OPS07](./host-capability-matrix.md#OPS07)。
 
 ### <a id="S10"></a>S10 · Service · plugins
 
@@ -468,7 +468,7 @@
 | RSS/OPML | [D1](#D1) · [C2](#C2) · [C4](#C4) · [S1](#S1) · [S4](#S4) · [S5](#S5) · [S8](#S8) | 订阅/刷新工具已有，退订/OPML 工具未贡献；文件选择为宿主漏接能力，OPML 解析为插件算法。正文版本更新不能把当前会话悄悄指向旧引用。 |
 | 句读与 TTS | [D2](#D2) · [C2](#C2) · [C3](#C3) · [D5](#D5) · [Q2](#Q2) | reading 2.5 已共享朗读、模式快照/启停/单位配置、版本化返回、单元步进与模式提供者发现/选择；Listening Desk 组合模式表单、朗读、历史、Current passage 与上下单元。配置的书内状态/提供者偏好同批落盘，回执等待该请求精确持久结果，失败不被偏好回滚误报为 superseded；位置写在配置成功后复核 revision/key/unit。步进从 resting 继续并返回 moved/start-of-book/end-of-book，等待真实页面/分段/React 反馈与目标位置提交，不记跳转历史；返回同样等待持久完成。位置保存失败保留 db code，下一次明确操作可重试；自动朗读消费同一回执，书尾正常停止，保存失败则停止而非继续播下一段。隔离 macOS Tauri 已验跨节、慢 Worker、失败、取消、书尾及双端 SQLite 故障/恢复；空节/非线性/其他格式仍需桌面验证。模式选择通过 availableModes/selectModeKey，失效选择保留且不隐式替换，取消撤回未完成选择但不撤销所有已提交提供者偏好。旧偏好读取无副作用，迁移的新设置、书内配置和旧记录删除同批提交；不同所有者保留，删除失败两端拒绝且旧值保留。READ16 跟随和跨提供者取消补偿仍缺；release、其他系统、远端 TTS 未验。 |
 | 主题与定时主题 | [D5](#D5) · [C5](#C5) · [S8](#S8) · [V3](#V3) | 主题/字体可组合，已有 settings 足以切换；短 clock 不要求耐久工作流。新增主题无需宿主改动，缺字体时回退。 |
-| WebDAV | [C5](#C5) · [S2](#S2) · [S5](#S5) · [S9](#S9) · [Q2](#Q2) | 密文传输 v2 已有 session.close、宿主会话所有权和原生请求取消；受控同步状态/连接面仍缺双端入口。连接 UI、真实跨设备与升级回滚仍待完整验收。 |
+| WebDAV | [C5](#C5) · [S2](#S2) · [S5](#S5) · [S9](#S9) · [Q2](#Q2) | 密文传输 v2 已有 session.close、宿主会话所有权和原生请求取消；sync 1.0 已接双端状态/积压/立即同步和设置页入口，独立授权不随 transport 自动授予。定向连接流程、跨设备与升级回滚仍待接线或集中验收。 |
 | 标注批改/导出 | [D3](#D3) · [S4](#S4) · [Q3](#Q3) | 补按 ID/分页/有需求的版本条件批次；插件组合 CSV/Markdown 格式，宿主无需对应每种导出格式。中途取消报告已完成项，不能宣称全部回滚。 |
 | 记忆与人物关系 | [D6](#D6) · [C4](#C4) · [Q1](#Q1) | memory 1.5 与 Memory Desk 0.6 已接检索/保护图谱及有版本条件的纠错/置顶/遗忘，Agent 共享检索与合并逻辑，双端任务控制与观察已接、失败重建目标保留；后台巩固/强化已接模型前快照与整批条件提交，空闲检查覆盖外部写/时间变化，事务回执与失败重试避免漏掉下一轮；按书授权、摘要来源版本、新事实去重/遗忘后再抽取与跨设备协调仍缺。画像投影与正式 bundle 尚未实现；候选来源和拒绝结果必须可辨，不开放原始投影写。 |
 | 设置自动化 | [D5](#D5) · [V2](#V2) · [Q3](#Q3) | 覆盖真实偏好、默认/覆盖/设备本地策略；无效果字段先禁用或修复消费者。禁止以保存成功证明隐私开关真的有效。 |
@@ -881,13 +881,13 @@
 | SYS16 | 检查/下载/安装更新与重启 / 实装 | 未接：无正式入口 | 未接：无正式入口 | 软件更新页；autoUpdate 检查；不开放：插件静默执行更新/重启；appVersion 不是更新状态 | [S3](#S3) | [UPDATE](../apps/web/src/features/update/lib/software-update.ts) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [API](../packages/plugin-types/src/index.ts) |
 | SYS17 | 窗口最小化/最大化/全屏/关闭/标题栏 / 实装 | 未接：无正式入口 | 未接：无正式入口 | Tauri window controls/macOS traffic lights；不开放任意窗口创建与 shell；关闭必须先等待持久化 flush | [S3](#S3) | [WINDOW](../apps/web/src/features/navigation/components/WindowCaptionControls.tsx) [APP](../apps/web/src/App.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) |
 | SYS18 | Android/iOS 遗留桥：状态栏/安全区/音量键/商店 / 非桌面 | 未接：无正式入口 | 未接：无正式入口 | cfg 分支或桌面 no-op；Android updater/book picker/background task 和 App Store storefront 不计为桌面插件缺口 | [B1](#B1) | [RUST](../apps/desktop/src-tauri/src/lib.rs) |
-| OPS01 | 同步连接/断开/立即同步/状态与积压 / 实装 | 未接：无正式入口 | 部分：syncTransports 提供后端，不控制 scheduler | Data & Sync；传输插件是 engine 被调用的 port，不是可以控制整套 sync 的服务 | [S9](#S9) | [SYNC](../apps/web/src/platform/sync/sync-scheduler.ts) [SYNCCONNECT](../apps/web/src/platform/sync/connect.ts) [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [API](../packages/plugin-types/src/index.ts) |
+| OPS01 | 同步连接/断开/立即同步/状态与积压 / 实装 | 部分：get_sync_status；manage_sync now/settings 双 scope | 部分：services.sync 1.0 snapshot/observe/backlog/requestSync/openSettings | Data & Sync；Agent 工具；插件正式入口；共享 scheduler，初始/变化串行观察最多 64；fresh outbox 与 cycleStartBacklog 分开，不泄漏书籍/blobKey/游标。未连接、凭据失效、连接管理中拒绝；already-running 不是完成，新周期等现有引擎结束才 completed。连接换代或调用者取消不返回旧成功，也不回滚已派发共享同步；不是独立可取消耐久任务。openSettings 只确认 Data & Sync 页面打开，不假称连接/断开完成；定向流程和完成回执仍待接。transport/network 权限不隐式获得 sync 管理。定向测试已验，新组合插件及 Tauri/跨设备验收待集中进行。 | [S9](#S9) | [SYNC](../apps/web/src/platform/sync/sync-scheduler.ts) [SYNCCONNECT](../apps/web/src/platform/sync/connect.ts) [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [API](../packages/plugin-types/src/index.ts) [SYNCSERVICE](../apps/web/src/services/sync.ts) [SYNCCONTROLLER](../apps/web/src/services/sync-controller.ts) [SYNCTOOLS](../packages/agent/src/tools/sync-tools.ts) |
 | OPS02 | 事件/Blob E2E 加解密、游标、去重/确认与重试 / 实装 | 未接：宿主内部同步 | 部分：只处理 SealedEventWire/密文字节 | Relay/WebDAV；不得通过插件改变确认语义或读取其他插件/账号明文 | [C5](#C5) · [S9](#S9) | [SYNCENGINE](../apps/web/src/platform/sync/sync-engine.ts) [SYNC](../apps/web/src/platform/sync/sync-scheduler.ts) [SYNCTRANSPORT](../apps/web/src/platform/sync/transport-registry.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) |
-| OPS03 | 检查点/投影恢复/事件历史回填 / 实装 | 未接：宿主内部恢复 | 未接：无正式入口 | checkpoint maintain/publish/bootstrap；backfill；管理底层游标/投影不算通用插件写能力 | [S9](#S9) | [RUST](../apps/desktop/src-tauri/src/lib.rs) [SYNCENGINE](../apps/web/src/platform/sync/sync-engine.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) |
+| OPS03 | 检查点/投影恢复/事件历史回填 / 实装 | 部分：get_sync_status 的 phase/backfillRemaining/lastCycle | 部分：sync 1.0 脱敏进度和观察 | checkpoint maintain/publish/bootstrap；backfill；只提供阶段/计数，不开放游标/ACK/原始账本，也不把 remaining=0 当成投影校验通过。诊断/修复入口仍缺，集中验收待做。 | [S9](#S9) | [RUST](../apps/desktop/src-tauri/src/lib.rs) [SYNCENGINE](../apps/web/src/platform/sync/sync-engine.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) [SYNCSERVICE](../apps/web/src/services/sync.ts) [SYNCCONTROLLER](../apps/web/src/services/sync-controller.ts) |
 | OPS04 | WebDAV 等自定义密文 transport / 实装 | 部分：可改非敏感插件设置，不能连接 | 接通：syncTransports v2：register/open/session.close 与密文方法 | WebDAV 0.2.0；隔离 Tauri 原生 HTTP 探针；宿主按注册/engine generation 关闭会话，失配与迟到 open 也释放；5 秒 close 上限及错误仍释放回调。桌面已证并发取消/停用不再发请求；真实连接 UI、跨设备与换代失败回滚未完整验收，GAP14 不整项关闭 | [C5](#C5) · [S9](#S9) | [API](../packages/plugin-types/src/index.ts) [WEBDAV](../plugins/webdav-sync/src/index.ts) [SYNCTRANSPORT](../apps/web/src/platform/sync/transport-registry.ts) [SYNCSESSION](../apps/web/src/platform/sync/transport-session.ts) [SYNCCACHE](../apps/web/src/platform/sync/transport-session-cache.ts) [SYNCPROBE](../apps/web/src/features/plugins/runtime/fixtures/desktop-transport-probe.ts) |
 | OPS05 | 偏好漫游/远端合并后的 UI 失效 / 部分 | 自动：下一轮读取投影/配置 | 部分：roaming KV 与 plugin docs 路径不等价 | 跨设备设置/书架/聊天刷新；GAP09：远端应用缺逐领域订阅广播；不得让插件 replay 原始事件补洞 | [S9](#S9) · [Q3](#Q3) | [ROAM](../apps/web/src/platform/roaming-preferences.ts) [SYNC](../apps/web/src/platform/sync/sync-scheduler.ts) [APPEVENTS](../apps/web/src/platform/app-events.ts) [DOCS](../apps/web/src/features/plugins/runtime/plugin-backend.ts) |
-| OPS06 | 账号登录、连接 token、退出、删除账号 / 实装 | 未接：无正式入口 | 未接：无正式入口 | SyncAccountGroup；删除远端账号和删除本地数据不同；身份 token 不向模型/插件公开 | [S3](#S3) | [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [SYNCCONNECT](../apps/web/src/platform/sync/connect.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [EXTERNAL](../apps/web/src/platform/external-link.ts) |
-| OPS07 | 套餐/用量/购买/账单管理 / 实装 | 未接：无正式入口 | 未接：无正式入口 | 购买/账单 portal；远端服务契约未在本次本地代码审计验证；不开放自动付款 | [S3](#S3) | [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [EXTERNAL](../apps/web/src/platform/external-link.ts) |
+| OPS06 | 账号登录、连接 token、退出、删除账号 / 实装 | 部分：get_sync_status connected/backend；manage_sync settings | 部分：sync 1.0 snapshot/openSettings | SyncAccountGroup；双端设置入口；不返回 email、账号 ID、token/主密钥。打开页面后仍需用户操作宿主登录/退出/删除控件；定向流程请求及最终回执未接。删除远端账号不等于删除本地数据，桌面验收待集中进行。 | [S3](#S3) · [S9](#S9) | [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [SYNCCONNECT](../apps/web/src/platform/sync/connect.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [EXTERNAL](../apps/web/src/platform/external-link.ts) [SYNCSERVICE](../apps/web/src/services/sync.ts) [SYNCTOOLS](../packages/agent/src/tools/sync-tools.ts) |
+| OPS07 | 套餐/用量/购买/账单管理 / 实装 | 部分：get_sync_status includeAccount；manage_sync settings | 部分：sync 1.0 account/openSettings | 购买/账单 portal；双端只读配额；account 仅返回 tier/hasBilling/三项用量及四项额度，null 是非 relay/未连接而非零用量。显式读取才发请求，失败拒绝不伪装空值；换代/连接管理中的迟到结果拒绝，不返回 keys/email/accountId/ticket。购买/账单仍在宿主页，由用户操作；定向流程与完成反馈未接。定向测试不证明远端生产数据或购买成功，不开放自动付款。 | [S3](#S3) · [S9](#S9) | [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [EXTERNAL](../apps/web/src/platform/external-link.ts) [SYNCSERVICE](../apps/web/src/services/sync.ts) [SYNCCONTROLLER](../apps/web/src/services/sync-controller.ts) [SYNCTOOLS](../packages/agent/src/tools/sync-tools.ts) |
 | OPS08 | 备份导出与合并导入 / 部分 | 未接：无正式入口 | 未接：无正式入口 | DataSyncPanel；v1 仅 KV/books/collections/annotations/files；独立 ai_chat/memories/plugin_docs/secret/event-log 未枚举，不能称全量备份；全量内存 JSON | [S3](#S3) | [BACKUP](../apps/web/src/features/settings/lib/backup-io.ts) [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) |
 | OPS09 | 删除本地全部数据 / 实装 | 未接：无正式入口 | 未接：无正式入口 | DELETE 文字确认；清空本地与删账号不同；私有卸载清理不能升级成全局清空 | [S3](#S3) · [B1](#B1) | [WIPE](../apps/web/src/features/settings/lib/delete-all-data.ts) [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) |
 | OPS10 | 数据目录显示/Reveal / 占位 | 未接：无正式入口 | 未接：无正式入口 | disabled Reveal / PendingBadge；UI 占位不能计入宿主已实现，更不能计入 Agent 或插件覆盖 | [S3](#S3) · [B1](#B1) | [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) |

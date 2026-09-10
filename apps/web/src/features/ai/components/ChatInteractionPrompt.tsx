@@ -17,11 +17,16 @@ const CUSTOM_CHOICE = "__read_aware_custom_answer__";
 const permissionKeys: Record<
   ChatPermissionAction,
   {
-    question: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation"}.question`;
-    description: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation"}.description`;
-    approve: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation"}.approve`;
+    question: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow"}.question`;
+    description: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow"}.description`;
+    approve: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow"}.approve`;
   }
 > = {
+  "sync-now": {
+    question: "chat.interaction.permission.syncNow.question",
+    description: "chat.interaction.permission.syncNow.description",
+    approve: "chat.interaction.permission.syncNow.approve",
+  },
   "clear-conversation": {
     question: "chat.interaction.permission.clearConversation.question",
     description: "chat.interaction.permission.clearConversation.description",

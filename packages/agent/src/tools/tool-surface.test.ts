@@ -69,6 +69,8 @@ function seed(): InMemorySeed {
  */
 const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   get_conversation_state: {},
+  get_sync_status: {},
+  manage_sync: { action: "settings" },
   manage_conversation: { action: "create" },
   request_conversation_turn: { action: "draft", target: { kind: "book", id: BOOK_ID }, text: "A question for review" },
   list_installed_plugins: {},

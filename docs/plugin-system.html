@@ -351,6 +351,10 @@
               <li>Network / LLM / Clipboard</li>
             </ul>
             <details class="ep"><summary>外链、复制、导出与插件目录：双端已接线，集中验收待做</summary><div class="ep-body"><p>Agent 新增 list_installed_plugins、copy_to_clipboard、export_text_file、open_external_url，共用宿主查询与效果实现。插件目录只返回公开安装元数据，不返回设置、路径、密钥或原始错误；enabled 是配置，不保证贡献健康。</p><p>UI 1.7 openExternal 要求 service:network，只允许无凭据的 HTTP(S)，不开放本机文件或自定义协议。剪贴板只写文本；导出通过原生保存对话框，取消不算成功，派发写入后不承诺回滚。类型与定向测试通过；组合插件和新路径桌面 E2E 留待集中阶段。</p></div></details>
+            <details class="ep"><summary>Sync 1.0：同步状态、积压、套餐用量和立即同步已接双端</summary><div class="ep-body">
+              <p>插件需独立 service:sync；transport/network 不自动获权。只读阶段、计数和额度，不返回账号/邮箱、密钥、书籍标识、游标或账单 ticket。初始/变化观察串行交付；当前积压与周期开始计数是不同采样。远端套餐用量按需读取，失败不伪装为零。</p>
+              <p>Agent 立即同步须批准；复用现有调度器，already-running 不冒充完成，取消不回滚已派发共享同步。连接换代拒绝迟到结果。openSettings 只确认宿主同步页打开，定向登录/断开/购买与最终回执仍待接。定向检查已过，组合插件和桌面/跨设备验收待集中进行。</p>
+            </div></details>
             <details class="ep">
               <summary>环境：双端共享元数据，网络提示不代表服务就绪</summary>
               <div class="ep-body"><p>Agent 的 get_host_environment 与插件 environment/observeEnvironment 共用带 revision 的平台、语言、时区与网络提示；首次立即快照，变化刷新，末个观察者释放监听。元数据不含书籍或账号，不绕过 reading 授权。</p><p>Listening Desk 0.7 按需显示离线提示，不禁用本地朗读。隔离 macOS debug 已验双端、零权限 Worker 和实际插件返回；网络切换为受控注入，不冒充真实断网。格式/账号/模型就绪和 packaged/跨平台仍缺。<a href="./evidence/host-environment-2026-09-09.json">环境证据</a></p></div>

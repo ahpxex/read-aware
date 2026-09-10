@@ -76,6 +76,11 @@
           "description": "这会永久移除导入的原始文件和本地阅读数据，且无法撤销。",
           "approve": "删除书籍"
         },
+        "syncNow": {
+          "question": "立即同步？",
+          "description": "将此设备与已配置的加密账号同步。取消请求不会撤回已完成的传输。",
+          "approve": "立即同步"
+        },
         "clearConversation": {
           "question": "清空这段对话？",
           "description": "{{subject}}\n\n停止当前回复，清除聊天记录及缓存的对话摘要。不会删除长期记忆、事件历史或撤销已完成的操作。",

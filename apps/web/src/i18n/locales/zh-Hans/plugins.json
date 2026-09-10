@@ -47,6 +47,7 @@
     "noPermissions": "无额外权限",
     "scheduleLine": "定时任务：{{label}} — 应用打开时至少每 {{minutes}} 分钟执行一次",
     "permissionName": {
+      "service_sync": "同步",
       "reader_modes": "阅读模式",
       "ui_themes": "主题",
       "library_read": "读取藏书库",
@@ -68,6 +69,7 @@
       "sync_transport": "同步后端"
     },
     "permission": {
+      "service_sync": "读取同步状态和账号用量、请求同步并打开连接设置",
       "reader_modes": "添加由应用渲染并控制引导导航的阅读模式",
       "ui_themes": "提供应用与阅读页主题（可附带字体），仅在你选用后生效",
       "library_read": "读取书籍、分组、元数据与章节全文",

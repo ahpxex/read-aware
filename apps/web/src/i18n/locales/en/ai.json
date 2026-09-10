@@ -76,6 +76,11 @@
           "description": "This permanently removes the imported source file and its local reading data. This cannot be undone.",
           "approve": "Delete book"
         },
+        "syncNow": {
+          "question": "Sync now?",
+          "description": "Sync this device with the configured encrypted account. Cancelling the request will not undo completed transfers.",
+          "approve": "Sync now"
+        },
         "clearConversation": {
           "question": "Clear this conversation?",
           "description": "{{subject}}\n\nStops its current reply and removes the transcript and cached conversation insights. Long-term memories, event history and completed actions are not erased.",

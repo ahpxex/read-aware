@@ -8,6 +8,8 @@
  */
 
 let operationInFlight = false;
+let operationRevision = 0;
+export const getSyncConnectionOperationRevision = () => operationRevision;
 const listeners = new Set<() => void>();
 
 export class SyncConnectionBusyError extends Error {
@@ -34,6 +36,7 @@ function setOperationInFlight(next: boolean): void {
 /** Run one credential/account operation; reject rather than queue duplicates. */
 export async function runSyncConnectionOperation<T>(operation: () => Promise<T>): Promise<T> {
   if (operationInFlight) throw new SyncConnectionBusyError();
+  operationRevision++;
   setOperationInFlight(true);
   try {
     return await operation();

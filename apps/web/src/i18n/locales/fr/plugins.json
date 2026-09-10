@@ -47,6 +47,7 @@
     "noPermissions": "Aucune autorisation supplémentaire",
     "scheduleLine": "Planifié : {{label}} — au moins toutes les {{minutes}} min quand l'app est ouverte",
     "permissionName": {
+      "service_sync": "Synchronisation",
       "reader_modes": "Modes de lecture",
       "ui_themes": "Thèmes",
       "library_read": "Lire la bibliothèque",
@@ -68,6 +69,7 @@
       "sync_transport": "Backend de synchronisation"
     },
     "permission": {
+      "service_sync": "Consulter la synchronisation et les quotas, synchroniser et ouvrir les paramètres de connexion",
       "reader_modes": "Ajouter un mode de lecture guidée rendu par l’application",
       "ui_themes": "Proposer des thèmes pour l’application et la lecture, avec polices incluses, appliqués uniquement à la sélection",
       "library_read": "Lire les livres, collections, métadonnées et textes des chapitres",

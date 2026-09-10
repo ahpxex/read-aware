@@ -3114,13 +3114,28 @@ offset and EOF; writing resources cannot be read or saved before commit.
 temporary file, syncs it and atomically replaces the target. Existing files are
 not first truncated on failure. `saved:false` means dialog cancellation. Suggested
 names are basenames, never path grants. Resources remain available after save.
-Legacy `ui.exportFile` still provides the existing 64 MiB convenience API; its
-migration is not finished. The current Worker bridge uses bounded structured
-cloning, not transferables. Persistent private resources, embedded book/cover
-assets, directory/drag-drop grants and direct resource-to-book import remain gaps.
+`ui.exportFile` retains the existing 64 MiB convenience API, but desktop exports
+now stage, seal, save and release through the same native resource backend.
+Binary input is snapshotted before asynchronous writes; cleanup errors are logged.
+Mobile legacy export and browser Storybook fallback are unchanged. The current
+Worker bridge uses bounded structured cloning, not transferables. Persistent
+private resources, embedded book/cover assets and directory/drag-drop grants remain gaps.
+
+[代码] Library 1.8 adds `commands.books.importResource(id)` with `library:write`.
+The ID must belong to this plugin activation and be sealed; no paths/native IDs
+cross the Worker boundary. The host holds the resource lease through the normal
+native import pipeline, uses content-hash deduplication (not name/size alone),
+and returns `{status:"imported"|"duplicate",book:BookSummary}`. Duplicate imports
+can repair missing local originals and notify the shelf too. Import does not
+open the reader, release the reference or modify the selected original. Imported
+library data follows existing sync settings. Cancellation prevents staging before
+acceptance; accepted staging is finalized even if the caller later retires or
+cancels, so a cancelled receipt is not proof that no book was imported.
 
 Agent tools are `pick_resource_files`, `open_book_resource`,
 `read_resource_text`, `save_resource`, and `release_resource`, in both scopes.
+Global threads also expose `import_resource_book`, requiring explicit import
+approval and a sealed reference owned by that conversation; book threads do not.
 Book threads can only acquire their own original, after explicit approval.
 Those references are export-only at the host port; their bytes cannot bypass
 spoiler-aware reading tools. Selected UTF-8 text reads are 4–16384 bytes (default

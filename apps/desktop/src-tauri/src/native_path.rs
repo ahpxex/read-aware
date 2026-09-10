@@ -54,6 +54,10 @@ pub(crate) fn materialize(app: &AppHandle, raw: &str) -> Result<MaterializedPath
         .map_err(|error| CommandError::context("Failed to open selected book", error))?;
     // Before Android 13, the default temp directory is /data/local/tmp,
     // which ordinary apps cannot write. Always resolve our private cache.
+    materialize_reader(app, source)
+}
+
+pub(crate) fn materialize_reader(app: &AppHandle, source: impl Read) -> Result<MaterializedPath, CommandError> {
     let cache_dir = app
         .path()
         .app_cache_dir()

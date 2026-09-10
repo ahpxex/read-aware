@@ -71,6 +71,15 @@ export class ResourceOwner implements ResourcePort {
     }, signal);
   }
   stat(id: string, signal?: AbortSignal) { return this.run(async () => ({ ...this.get(id).ref }), signal); }
+  /** Host domain consumers only: keep the sealed resource alive throughout an import. */
+  use<T>(id: string, consume: (resource: NativeResource) => Promise<T>, signal?: AbortSignal): Promise<T> {
+    return this.run(async () => {
+      const entry = this.get(id, true);
+      const result = await consume({ id: entry.nativeId, name: entry.ref.name, mimeType: entry.ref.mimeType, size: entry.ref.size });
+      this.guard(signal);
+      return result;
+    }, signal);
+  }
   read(id: string, offset: number, length: number, signal?: AbortSignal) {
     if (!Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(length) || length < 1 || length > RESOURCE_MAX_CHUNK) return Promise.reject(invalid());
     return this.run(async () => {

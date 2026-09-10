@@ -75,6 +75,8 @@ export type ImportBookOptions = {
   /** Shelf books already loaded — the free name+size duplicate check. */
   knownBooks: readonly LibraryBook[];
   origin?: EventOrigin;
+  /** Cancellation before native staging; accepted staging is finalized, never abandoned halfway. */
+  signal?: AbortSignal;
   /**
    * Called once the format is known and the id reserved, before the (possibly
    * long) copy — the UI can show the placeholder in its final slot.
@@ -94,6 +96,7 @@ export async function importBook(
   source: BookImportSource,
   options: ImportBookOptions,
 ): Promise<ImportOutcome> {
+  options.signal?.throwIfAborted();
   if (!isTauri()) {
     throw new Error("Importing a book is desktop-only — the browser build is a UI shell without storage.");
   }
@@ -103,10 +106,11 @@ export async function importBook(
   const byFile = options.knownBooks.find(
     (entry) => entry.fileName === file.name && entry.fileSize === file.size,
   );
-  if (byFile) return { status: "duplicate", book: byFile };
+  if (byFile && source.kind !== "native-resource") return { status: "duplicate", book: byFile };
 
   const startedAt = performance.now();
   const format = await detectBookFormat(source, options.t);
+  options.signal?.throwIfAborted();
   const bookId = crypto.randomUUID();
   const placeholder = pendingImportPlaceholder(bookId, source, format);
   options.onPrepared?.(placeholder);
@@ -127,7 +131,8 @@ export async function importBook(
       bookId,
       format,
       mimeType: file.type || null,
-      source: source.kind === "native-path" ? { kind: "path", path: source.path } : { kind: "blob" },
+      source: source.kind === "native-path" ? { kind: "path", path: source.path }
+        : source.kind === "native-resource" ? { kind: "resource", id: source.resourceId } : { kind: "blob" },
     },
   });
 

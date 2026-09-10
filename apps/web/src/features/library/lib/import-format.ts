@@ -13,6 +13,7 @@ export function sourceFileInfo(source: BookImportSource): {
   size: number;
   type: string;
 } {
+  if (source.kind === "native-resource") return { name: source.name, size: source.size, type: source.type };
   return source.kind === "native-path"
     ? { name: source.name, size: source.size, type: "" }
     : { name: source.file.name, size: source.file.size, type: source.file.type };
@@ -57,6 +58,10 @@ const SNIFF_HEAD_BYTES = 64 * 1024;
 async function sniffSource(source: BookImportSource, name: string): Promise<BookFormat | null> {
   if (source.kind === "file") return sniffBookFormat(source.file);
   if (!isTauri()) return null;
+  if (source.kind === "native-resource") {
+    const head = await invoke<ArrayBuffer>("resource_read", { id: source.resourceId, offset: 0, length: SNIFF_HEAD_BYTES });
+    return sniffBookFormat(new File([head], name));
+  }
   try {
     const head = await invoke<ArrayBuffer>("read_book_head", {
       path: source.path,

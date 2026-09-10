@@ -8,7 +8,7 @@ import { requestUserInteraction } from "./user-interaction";
 
 export function buildResourceTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const port = () => deps.resources(threadScopeKey(scope), scope.kind === "book" ? scope.bookId : undefined);
-  return [{
+  const tools: AgentTool[] = [{
     name: "pick_resource_files", label: "Choose files", executionMode: "sequential",
     description: "Ask the user to select local files with the native dialog, only in response to a file request. Returns metadata and opaque references, never paths or bytes. Cancelled is distinct from failure. At most 16 references/1 GiB per conversation, valid for one hour; release when finished. Files are immutable snapshots, not watched live. Does not import books, select directories or upload anything. Selected text may subsequently be read into this conversation.",
     parameters: Type.Object({ multiple: Type.Optional(Type.Boolean()), extensions: Type.Optional(Type.Array(Type.String({ pattern: "^[a-zA-Z0-9]{1,16}$" }), { maxItems: 32 })) }, { additionalProperties: false }),
@@ -64,4 +64,18 @@ export function buildResourceTools(scope: ThreadScope, deps: RuntimeDeps): Agent
       return textResult({ released: true });
     },
   }];
+  if (scope.kind === "global") tools.push({
+    name: "import_resource_book", label: "Import selected book", executionMode: "sequential",
+    description: "After user approval, import this conversation's sealed file resource into the shelf using the host's normal format detection, content-hash deduplication, metadata and event pipeline. No whole-file bytes enter the model or Worker. Returns imported or duplicate with the actual book. Unsupported or missing resources fail. Accepted native staging is finalized even if this tool is later cancelled; recheck the shelf rather than assuming rollback. Does not open the reader, delete the selected original or release the resource. Library data follows the user's existing sync settings.",
+    parameters: Type.Object({ id: Type.String({ minLength: 1, maxLength: 256 }) }, { additionalProperties: false }),
+    execute: async (toolCallId, params, signal, onUpdate) => {
+      const id = (params as { id: string }).id, resource = await port().stat(id, signal);
+      if (resource.state !== "ready") throw new AppError("ui/invalid-target", "Seal the resource before importing");
+      const { answer, details } = await requestUserInteraction({ deps, toolCallId, threadKey: threadScopeKey(scope), signal, onUpdate,
+        request: { kind: "permission", action: "import-resource", subject: resource.name } });
+      if (answer.cancelled || answer.optionId !== "approve") return { ...textResult({ imported: false }), details };
+      return { ...textResult(await deps.library.importResource(threadScopeKey(scope), id, signal)), details };
+    },
+  });
+  return tools;
 }

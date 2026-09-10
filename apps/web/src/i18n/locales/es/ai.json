@@ -76,6 +76,11 @@
           "description": "Esto elimina permanentemente el archivo importado y sus datos de lectura locales. No se puede deshacer.",
           "approve": "Eliminar libro"
         },
+        "importResource": {
+          "question": "¿Añadir este archivo a tu biblioteca?",
+          "description": "Importar {{subject}} mediante el proceso normal de la biblioteca. El original no cambia. Se aplica tu configuración de sincronización actual.",
+          "approve": "Importar libro"
+        },
         "accessBookFile": {
           "question": "¿Preparar el archivo original del libro?",
           "description": "Crear una referencia temporal de exportación para {{subject}}. El original no cambia. Elegirás el destino por separado; los bytes del libro no se envían al modelo.",

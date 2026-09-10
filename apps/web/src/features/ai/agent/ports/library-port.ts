@@ -7,6 +7,8 @@ import type { BookOverview, LibraryPort } from "@read-aware/agent";
 import type { BookStats, BookSummary, Id } from "@read-aware/core";
 import { createDomainApi } from "../../../../domain";
 import { classifyBookIfUnclassified } from "../../../../domain/book-classification";
+import { importResourceBook } from "../../../../domain/library-resource-import";
+import { agentResources } from "../../../../services/resources";
 
 function toOverview(book: BookSummary, state: BookStats | undefined): BookOverview {
   return {
@@ -39,6 +41,7 @@ export function createLibraryPort(): LibraryPort {
 
   return {
     listBooks: listOverviews,
+    importResource: (threadKey, id, signal) => importResourceBook(agentResources(threadKey), id, "agent", signal),
     listBookRemovalCleanup: query => library.queries.books.listRemovalCleanup(query),
     getBook: async (bookId) =>
       (await listOverviews()).find((book) => book.id === String(bookId)),

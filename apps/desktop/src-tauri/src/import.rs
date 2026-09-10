@@ -43,6 +43,7 @@ use crate::storage::{
 #[serde(rename_all = "camelCase", tag = "kind")]
 pub enum StageSource {
     Path { path: String },
+    Resource { id: String },
     Blob,
 }
 
@@ -133,8 +134,12 @@ fn stage_import(app: &AppHandle, request: StageImportRequest) -> Result<StagedIm
 
     // ── 1–3: bytes into the store, or a duplicate verdict ─────────────────
     let (sha256, byte_size, local_path) = match &request.source {
-        StageSource::Path { path } => {
-            let source = crate::native_path::materialize(app, path)?;
+        StageSource::Path { .. } | StageSource::Resource { .. } => {
+            let source = match &request.source {
+                StageSource::Path { path } => crate::native_path::materialize(app, path)?,
+                StageSource::Resource { id } => crate::native_path::materialize_reader(app, crate::resources::reader(app, id)?)?,
+                StageSource::Blob => unreachable!(),
+            };
             let (sha256, byte_size) = hash_file(&source.path)?;
             let existing = {
                 let conn = db.0.lock()?;

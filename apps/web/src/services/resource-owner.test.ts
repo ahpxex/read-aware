@@ -85,3 +85,19 @@ test("cancelled and failed writes never report success; export-only read policy 
     expect(await restricted.save(book!.id)).toEqual({ saved: false });
   } finally { await f.owner.dispose(); await restricted.dispose(); }
 });
+
+test("native domain consumption holds the sealed resource until accepted work settles", async () => {
+  const f = fixture(), gate = Promise.withResolvers<void>();
+  const ref = await f.owner.create({ name: "book.txt" });
+  await expect(f.owner.use(ref.id, async () => "no")).rejects.toMatchObject({ code: "ui/invalid-target" });
+  await f.owner.commit(ref.id);
+  let consumed = false;
+  const importing = f.owner.use(ref.id, async native => {
+    expect(native.id).toStartWith("native-"); await gate.promise; consumed = true; return "imported";
+  }).then(value => value, error => error);
+  await Bun.sleep(0);
+  const retiring = f.owner.dispose(); expect(f.files.size).toBe(1);
+  gate.resolve(); await retiring;
+  expect(consumed).toBe(true); expect(await importing).toMatchObject({ code: "ui/superseded" });
+  expect(f.files.size).toBe(0);
+});

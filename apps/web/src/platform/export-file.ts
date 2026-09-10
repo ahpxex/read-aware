@@ -1,6 +1,11 @@
 import { invoke } from "./ipc";
 import { save } from "@tauri-apps/plugin-dialog";
-import { isTauri } from "./environment";
+import { isTauri, isMobileOS } from "./environment";
+import { nativeResourceFiles } from "./resource-files";
+import { exportResourceBytes } from "./resource-export";
+import { createLogger } from "./logger";
+
+const log = createLogger("export");
 
 export type FileExport = {
   filename: string;
@@ -40,6 +45,11 @@ export async function exportTextFile(file: FileExport, signal?: AbortSignal): Pr
   signal?.throwIfAborted();
   const filename = safeBasename(file.filename);
   const binary = typeof file.content !== "string";
+
+  if (isTauri() && !isMobileOS()) {
+    return exportResourceBytes(nativeResourceFiles, filename, file.content,
+      error => log.warn("Temporary export cleanup failed", error), signal);
+  }
 
   if (isTauri()) {
     const extension = extensionOf(filename);

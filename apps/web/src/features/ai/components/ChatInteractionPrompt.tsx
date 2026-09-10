@@ -17,11 +17,16 @@ const CUSTOM_CHOICE = "__read_aware_custom_answer__";
 const permissionKeys: Record<
   ChatPermissionAction,
   {
-    question: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile"}.question`;
-    description: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile"}.description`;
-    approve: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile"}.approve`;
+    question: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource"}.question`;
+    description: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource"}.description`;
+    approve: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource"}.approve`;
   }
 > = {
+  "import-resource": {
+    question: "chat.interaction.permission.importResource.question",
+    description: "chat.interaction.permission.importResource.description",
+    approve: "chat.interaction.permission.importResource.approve",
+  },
   "access-book-file": {
     question: "chat.interaction.permission.accessBookFile.question",
     description: "chat.interaction.permission.accessBookFile.description",

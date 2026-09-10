@@ -32,6 +32,7 @@ import { hostEnvironment } from "../../../platform/host-environment";
 import { hostSync } from "../../../services/sync";
 import { hostMaintenance } from "../../../services/maintenance";
 import { createResourceOwner } from "../../../services/resources";
+import { importResourceBook } from "../../../domain/library-resource-import";
 import {
   deletePluginSecret,
   getPluginSecret,
@@ -692,6 +693,7 @@ export function buildPluginContext(
           prepareText: library.commands.books.prepareText,
           cancelTextTask: library.commands.books.cancelTextTask,
           importBook: library.commands.books.importBook,
+          importResource: (id: string) => importResourceBook(resources, id, selfOrigin, lifecycle.signal),
           editMetadata: library.commands.books.editMetadata,
           setStarred: library.commands.books.setStarred,
           remove: library.commands.books.remove,

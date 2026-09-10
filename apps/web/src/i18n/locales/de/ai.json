@@ -76,6 +76,11 @@
           "description": "Dadurch werden die importierte Quelldatei und die lokalen Lesedaten dauerhaft entfernt. Dies kann nicht rückgängig gemacht werden.",
           "approve": "Buch löschen"
         },
+        "importResource": {
+          "question": "Diese Datei zum Bücherregal hinzufügen?",
+          "description": "{{subject}} über den normalen Bibliotheksablauf importieren. Das Original bleibt unverändert. Ihre bisherigen Synchronisierungseinstellungen gelten weiterhin.",
+          "approve": "Buch importieren"
+        },
         "accessBookFile": {
           "question": "Originaldatei des Buchs vorbereiten?",
           "description": "Eine temporäre Exportreferenz für {{subject}} erstellen. Das Original bleibt unverändert. Den Speicherort wählen Sie separat; Buchdaten werden nicht an das Modell gesendet.",

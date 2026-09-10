@@ -38,6 +38,21 @@ fn invalid(message: &str) -> CommandError {
 fn missing() -> CommandError {
     CommandError::new("fs/not-found", "Resource expired or released")
 }
+
+/// A sealed file lease for native consumers; expiry/release cannot invalidate the cloned descriptor.
+pub(crate) fn reader(app: &tauri::AppHandle, id: &str) -> Result<File, CommandError> {
+    let resources = app.state::<ResourceFiles>();
+    let mut entries = resources.0.lock()?;
+    lease(&mut entries, id)
+}
+
+fn lease(entries: &mut HashMap<String, Entry>, id: &str) -> Result<File, CommandError> {
+    prune(entries);
+    let entry = entries.get_mut(id).ok_or_else(missing)?;
+    if !entry.ready { return Err(invalid("Seal the resource before importing")); }
+    entry.file.seek(SeekFrom::Start(0))?;
+    Ok(entry.file.try_clone()?)
+}
 fn quota() -> CommandError {
     CommandError::new("ui/unavailable", "Temporary resource quota exceeded")
 }
@@ -291,6 +306,19 @@ pub async fn resource_release(app: tauri::AppHandle, id: String) -> Result<(), C
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn importing_requires_a_sealed_lease_and_keeps_it_alive_after_release() {
+        let mut entries = HashMap::new();
+        let info = insert(&mut entries, None).unwrap();
+        append(&mut entries, &info.id, 0, b"import me").unwrap();
+        assert!(lease(&mut entries, &info.id).is_err());
+        entries.get_mut(&info.id).unwrap().ready = true;
+        let mut file = lease(&mut entries, &info.id).unwrap();
+        entries.remove(&info.id);
+        let mut bytes = Vec::new(); file.read_to_end(&mut bytes).unwrap();
+        assert_eq!(bytes, b"import me");
+        assert!(lease(&mut entries, &info.id).is_err());
+    }
     #[test]
     fn staged_bytes_are_bounded_sealed_and_atomically_exported() {
         let mut entries = HashMap::new();

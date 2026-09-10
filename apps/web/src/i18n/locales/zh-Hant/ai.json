@@ -76,6 +76,11 @@
           "description": "這會永久移除匯入的原始檔案和本機閱讀資料，且無法復原。",
           "approve": "刪除書籍"
         },
+        "importResource": {
+          "question": "將這個檔案加入書架？",
+          "description": "透過正常書庫流程匯入 {{subject}}，原檔案不會改變。書庫資料沿用你現有的同步設定。",
+          "approve": "匯入書籍"
+        },
         "accessBookFile": {
           "question": "準備匯出原書檔案？",
           "description": "為《{{subject}}》建立暫時匯出參照，原檔案不會改變。儲存位置由你另行選擇，書籍位元組不會傳送給模型。",

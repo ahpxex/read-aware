@@ -76,6 +76,11 @@
           "description": "这会永久移除导入的原始文件和本地阅读数据，且无法撤销。",
           "approve": "删除书籍"
         },
+        "importResource": {
+          "question": "将这个文件加入书架？",
+          "description": "通过正常书库流程导入 {{subject}}，原文件不会改变。书库数据沿用你现有的同步设置。",
+          "approve": "导入书籍"
+        },
         "accessBookFile": {
           "question": "准备导出原书文件？",
           "description": "为《{{subject}}》创建临时导出引用，原文件不会改变。保存位置由你另行选择，书籍字节不会发送给模型。",

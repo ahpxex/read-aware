@@ -8,6 +8,7 @@ export type { BookFormat };
  * do not expose a durable filesystem path to the frontend.
  */
 export type BookImportSource =
+  | { kind: "native-resource"; resourceId: string; name: string; size: number; type: string }
   | { kind: "native-path"; path: string; name: string; size: number }
   | { kind: "file"; file: File };
 

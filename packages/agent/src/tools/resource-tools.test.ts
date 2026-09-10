@@ -35,3 +35,18 @@ test("UTF-8 paging returns byte offsets without losing split codepoints and reje
   bytes[0] = 0;
   await expect(tool.execute("test", { id: "r" }, new AbortController().signal)).rejects.toMatchObject({ code: "ui/invalid-target" });
 });
+
+test("resource import is global-only, requires approval and preserves duplicate receipts", async () => {
+  const { deps, stores } = createInMemoryDeps(); let imported = 0;
+  deps.library.importResource = async (thread, id) => {
+    expect([thread, id]).toEqual(["global:thread", "selected"]); imported++;
+    return { status: "duplicate", book: { id: "book" as Id, title: "Existing", format: "txt", starred: false,
+      collectionId: null, addedAt: "2026-09-10T00:00:00Z", updatedAt: "2026-09-10T00:00:00Z" } };
+  };
+  const tool = buildResourceTools({ kind: "global", threadId: "thread" }, deps).find(t => t.name === "import_resource_book")!;
+  expect(buildResourceTools({ kind: "book", bookId: "book" as Id }, deps).some(t => t.name === tool.name)).toBe(false);
+  expect(JSON.stringify(await tool.execute("import", { id: "selected" }, new AbortController().signal))).toContain("duplicate");
+  expect(stores.interactions[0]).toMatchObject({ action: "import-resource", subject: "fixture.txt" });
+  deps.interactions.request = async () => ({ cancelled: false, optionId: "decline" });
+  await tool.execute("decline", { id: "selected" }, new AbortController().signal); expect(imported).toBe(1);
+});

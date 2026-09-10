@@ -411,6 +411,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     },
     environment: { snapshot: async () => ({ revision: 1, runtime: "desktop", platform: "macos", locale: "en", timeZone: "UTC", utcOffsetMinutes: 0, networkHint: "unknown" }) },
     library: {
+      importResource: async () => { throw new AppError("ui/unavailable", "Attach an import resource fixture"); },
       getReadingTime: async (query = {}) => ({ bookId: query.bookId ?? null, localDay: query.localDay ?? null,
         observedAtEpochMs: 0, settledMs: 0, pendingMs: 0, totalMs: 0, pendingBucketCount: 0, pending: [], nextCursor: null }),
       getReadingInsights: async (query = {}) => ({ bookId: query.bookId ?? null, source: "settled", asOfDay: query.asOfDay ?? "2026-09-09",

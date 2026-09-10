@@ -76,6 +76,7 @@ export interface TurnRecord {
 }
 
 export interface LibraryPort {
+  importResource(threadKey: string, id: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookImportReceipt>;
   listBooks(): Promise<BookOverview[]>;
   listBookRemovalCleanup(query?: import("@read-aware/core").BookRemovalCleanupQuery): Promise<import("@read-aware/core").BookRemovalCleanupPage>;
   getBook(bookId: Id): Promise<BookOverview | undefined>;
@@ -178,7 +179,7 @@ export interface UserInteractionOption {
 }
 
 export type UserPermissionAction =
-  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory" | "classify-book" | "generate-book-graph" | "clear-conversation" | "sync-now" | "manage-schedule" | "access-book-file";
+  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory" | "classify-book" | "generate-book-graph" | "clear-conversation" | "sync-now" | "manage-schedule" | "access-book-file" | "import-resource";
 
 type UserInteractionBase = {
   /** Globally unique for the lifetime of the tool call. */

@@ -1229,6 +1229,8 @@ export type PluginLibraryDomain = {
         fileName: string;
         data: ArrayBuffer | Uint8Array;
       }): Promise<PluginBook>;
+      /** Library 1.8: import this activation's sealed resource without transferring the whole file. */
+      importResource(id: string): Promise<import("@read-aware/core").BookImportReceipt>;
       editMetadata(bookId: string, patch: { title?: string; author?: string }): Promise<void>;
       setStarred(bookId: string, starred: boolean): Promise<void>;
       remove(bookId: string): Promise<void>;

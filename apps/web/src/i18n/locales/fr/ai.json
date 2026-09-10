@@ -76,6 +76,11 @@
           "description": "Le fichier source importé et ses données de lecture locales seront définitivement supprimés. Cette action est irréversible.",
           "approve": "Supprimer le livre"
         },
+        "importResource": {
+          "question": "Ajouter ce fichier à votre bibliothèque ?",
+          "description": "Importer {{subject}} via le processus habituel. L’original reste inchangé. Vos paramètres de synchronisation actuels s’appliquent.",
+          "approve": "Importer le livre"
+        },
         "accessBookFile": {
           "question": "Préparer le fichier original du livre ?",
           "description": "Créer une référence temporaire d’exportation pour {{subject}}. L’original reste inchangé. Vous choisirez la destination séparément ; les octets du livre ne sont pas envoyés au modèle.",

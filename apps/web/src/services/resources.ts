@@ -1,5 +1,6 @@
 import { AppError, RESOURCE_LIFETIME_MS, type ResourceCreateOptions, type ResourcePickOptions, type ResourceRef } from "@read-aware/core";
-import { open, save } from "@tauri-apps/plugin-dialog";
+import { open } from "@tauri-apps/plugin-dialog";
+import { nativeResourceFiles } from "../platform/resource-files";
 import { invoke } from "../platform/ipc";
 import { isTauri, isMobileOS } from "../platform/environment";
 import { createLogger } from "../platform/logger";
@@ -12,7 +13,7 @@ type NativeInfo = { id: string; size: number };
 function desktop() {
   if (!isTauri() || isMobileOS()) throw new AppError("ui/unavailable", "File resources require the desktop app");
 }
-const release = (id: string) => invoke<void>("resource_release", { id });
+const release = nativeResourceFiles.release;
 async function cleanup(values: NativeInfo[]) {
   for (const value of values) {
     try { await release(value.id); } catch (error) { log.warn("Resource cleanup failed", error); }
@@ -46,16 +47,14 @@ export const resourceAdapter: ResourceAdapter = {
   },
   async create(options: ResourceCreateOptions) {
     desktop();
-    return { ...await invoke<NativeInfo>("resource_create"), name: options.name, mimeType: options.mimeType ?? "application/octet-stream" };
+    return { ...await nativeResourceFiles.create(), name: options.name, mimeType: options.mimeType ?? "application/octet-stream" };
   },
-  read: (id, offset, length) => invoke<ArrayBuffer>("resource_read", { id, offset, length }),
-  append: (id, offset, bytes) => invoke<number>("resource_append", bytes, { headers: { "x-resource-id": id, "x-resource-offset": String(offset) } }),
-  commit: id => invoke<void>("resource_commit", { id }),
+  read: nativeResourceFiles.read,
+  append: nativeResourceFiles.append,
+  commit: nativeResourceFiles.commit,
   async save(id, filename, signal) {
     desktop(); signal?.throwIfAborted();
-    const path = await save({ defaultPath: filename });
-    signal?.throwIfAborted(); if (path === null) return false;
-    await invoke("resource_save", { id, path }); return true;
+    return nativeResourceFiles.save(id, filename, signal);
   },
   release,
 };

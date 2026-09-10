@@ -76,6 +76,11 @@
           "description": "This permanently removes the imported source file and its local reading data. This cannot be undone.",
           "approve": "Delete book"
         },
+        "importResource": {
+          "question": "Add this file to your shelf?",
+          "description": "Import {{subject}} through the normal library pipeline. The original stays unchanged. Library data follows your existing sync settings.",
+          "approve": "Import book"
+        },
         "accessBookFile": {
           "question": "Prepare the original book file?",
           "description": "Create a temporary export reference for {{subject}}. The original stays unchanged. You will choose the save destination separately; book bytes are not sent to the model.",

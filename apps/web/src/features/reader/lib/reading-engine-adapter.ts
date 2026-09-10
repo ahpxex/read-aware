@@ -2,6 +2,7 @@ import { AppError, type ReadingLocation } from "@read-aware/core";
 import { readingRuntime } from "../../../domain/reading-runtime";
 import { loadContentNavigation, type FoliateView } from "./foliate-engine";
 import type { ReadingEngineAdapter } from "../../../domain/reading-session-controller";
+import { adjacentTocEntry, flattenToc } from "./epub-utils";
 
 export async function waitForReadingPaint(view: FoliateView): Promise<void> {
   const renderer = view.renderer;
@@ -47,6 +48,12 @@ export function createReadingEngineAdapter(view: FoliateView, bookId: string, co
     step: async direction => {
       if (direction === "next") await view.next();
       else if (direction === "previous") await view.prev();
+      else if (direction === "next-chapter" || direction === "previous-chapter") {
+        const entry = adjacentTocEntry(flattenToc(view.book?.toc ?? []), view.lastLocation?.tocItem?.href ?? null,
+          direction === "next-chapter" ? 1 : -1);
+        if (!entry) return location();
+        if (!await view.goTo(entry.href)) throw new AppError("reader/target-not-found", "Adjacent TOC chapter could not be resolved");
+      }
       else if (direction === "start" || direction === "end") {
         if (!await view.goTo({ fraction: direction === "start" ? 0 : 1 })) throw new AppError("reader/target-not-found", "Book boundary could not be resolved");
       } else {

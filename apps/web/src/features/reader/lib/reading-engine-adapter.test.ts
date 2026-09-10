@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { createReadingEngineAdapter, waitForReadingPaint } from "./reading-engine-adapter";
 import type { FoliateView } from "./foliate-engine";
+import { adjacentTocEntry, flattenToc } from "./epub-utils";
 
 test("fixed-layout completion waits for its actual render promise", async () => {
   let finish!: () => void;
@@ -63,4 +64,40 @@ test("section navigation waits for renderer paint and propagates rendering failu
   await Promise.resolve(); expect(completed).toBe(false); paint.resolve(); await pending;
   f.value.renderer.waitForCurrentRender = async () => { throw Error("render failure"); };
   await expect(f.adapter.step("start")).rejects.toMatchObject({ code: "reader/render-failed" });
+});
+
+test("TOC chapter targets preserve fragments, nested order and native unknown-position fallback", () => {
+  const entries = flattenToc([{ href: "book.xhtml#part", label: "Part", subitems: [
+    { href: "book.xhtml#part", label: "Repeated heading" },
+    { href: "book.xhtml#one", label: "Chapter one" },
+    { href: "book.xhtml#two", label: "Chapter two" },
+  ] }]);
+  expect(adjacentTocEntry(entries, "book.xhtml#part", 1)?.href).toBe("book.xhtml#one");
+  expect(adjacentTocEntry(entries, "book.xhtml#one", 1)?.href).toBe("book.xhtml#two");
+  expect(adjacentTocEntry(entries, "book.xhtml#two", -1)?.href).toBe("book.xhtml#one");
+  expect(adjacentTocEntry(entries, "book.xhtml#two", 1)).toBeUndefined();
+  expect(adjacentTocEntry(entries, null, 1)?.href).toBe("book.xhtml#part");
+  expect(adjacentTocEntry(entries, null, -1)?.href).toBe("book.xhtml#two");
+  expect(adjacentTocEntry([], null, 1)).toBeUndefined();
+});
+
+test("chapter adapter uses TOC fragment targets, waits for paint and reports no movement at boundaries", async () => {
+  const calls: string[] = [], paint = Promise.withResolvers<void>();
+  let missing = false;
+  const view = { book: { toc: [{ href: "one.xhtml#first" }, { href: "one.xhtml#second" }] },
+    lastLocation: { tocItem: { href: "one.xhtml#first" }, cfi: "first", fraction: 0 },
+    renderer: { waitForCurrentRender: () => paint.promise },
+    goTo: async (href: string) => {
+      if (missing) return undefined;
+      calls.push(href); view.lastLocation = { tocItem: { href }, cfi: href, fraction: 0.5 }; return { index: 0 };
+    } };
+  const adapter = createReadingEngineAdapter(view as unknown as FoliateView, "book", "v1");
+  let completed = false;
+  const pending = adapter.step("next-chapter").then(value => { completed = true; return value; });
+  await Promise.resolve(); expect(completed).toBe(false);
+  paint.resolve(); expect((await pending).href).toBe("one.xhtml#second");
+  expect((await adapter.step("next-chapter")).href).toBe("one.xhtml#second"); expect(calls).toHaveLength(1);
+  expect((await adapter.step("previous-chapter")).href).toBe("one.xhtml#first");
+  missing = true;
+  await expect(adapter.step("next-chapter")).rejects.toMatchObject({ code: "reader/target-not-found" });
 });

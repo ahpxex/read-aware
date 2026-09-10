@@ -43,6 +43,17 @@ export function findTocIndexForHref(entries: TocEntry[], href: string | null) {
   return entries.findIndex((entry) => hrefMatches(entry.href, href));
 }
 
+/** Native chapter keys and public chapter steps share TOC order, not source
+ * section order. Repeated parent/child targets must not trap next-chapter. */
+export function adjacentTocEntry(entries: TocEntry[], href: string | null, direction: -1 | 1): TocEntry | undefined {
+  const current = findTocIndexForHref(entries, href);
+  if (current < 0) return direction === 1 ? entries[0] : entries.at(-1);
+  const target = canonicalHrefWithFragment(entries[current].href);
+  let index = current + direction;
+  while (entries[index] && canonicalHrefWithFragment(entries[index].href) === target) index += direction;
+  return entries[index];
+}
+
 export function flattenToc(
   items: TocNavItem[],
   depth = 0,

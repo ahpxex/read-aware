@@ -24,6 +24,10 @@ test("source section and boundary jumps preserve version, guards and history unl
     await expect(f.runtime.step("end", undefined, { sessionId: "old" })).rejects.toMatchObject({ code: "reader/superseded" });
     expect((await f.runtime.step("end")).location.cfi).toBe("end");
     expect((await f.runtime.back()).location.cfi).toBe("section-0");
+    for (const action of ["next-chapter", "previous-chapter"] as const) {
+      expect((await f.runtime.step(action, undefined, { sessionId: f.id })).location.cfi).toBe(action);
+      expect((await f.runtime.back()).location.cfi).toBe("section-0");
+    }
   } finally { f.detach(); }
 });
 

@@ -26,7 +26,9 @@ export type ReadingTarget = {
   sectionIndex?: number;
 };
 
-export type ReadingStep = "next" | "previous" | "next-section" | "previous-section" | "start" | "end";
+/** Chapter steps follow flattened TOC targets (including subsections); section
+ * steps follow linear source sections. Neither interprets printed chapter numbers. */
+export type ReadingStep = "next" | "previous" | "next-section" | "previous-section" | "next-chapter" | "previous-chapter" | "start" | "end";
 
 /** Optional execution preconditions, not a replacement for actor authorization. */
 export type ReadingSessionGuard = {

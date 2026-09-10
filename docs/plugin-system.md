@@ -243,7 +243,52 @@ not expand the Agent's original reading-text privacy or spoiler permission.
 the fixed-layout render wait remains intact. Real Tauri/Worker multi-format
 navigation is deferred to concentrated plugin E2E. Library 1.14 supplies the
 source/page-label catalog below, including PDF labels; reflowable screen-page
-counts and full native-link history unification remain separate gaps.
+counts remain separate gaps. TOC steps and native-link history are connected by
+reading 2.13 below; their actual desktop composition remains unverified.
+
+### TOC Steps and Native Jump History (Reading 2.13)
+
+[代码] `reading.commands.step` and both-scope Agent `navigate_reading` add
+`next-chapter` / `previous-chapter`. They follow the book's flattened TOC targets,
+including navigable parent/subsection nodes, rather than source sections,
+extracted text chapters or printed chapter numbers. Fragment identity is kept
+when chapters share one source file. Consecutive equivalent target URLs are
+skipped so repeated parent/child headings cannot trap the next-step command.
+The native chapter shortcuts now dispatch the same public controller step and
+use the same `adjacentTocEntry` helper as the engine adapter. With no matched
+current TOC position, next uses the first target and previous the last, preserving
+the existing native fallback. Missing TOC and reached boundaries return the
+unchanged actual location; an unresolvable next target fails, not guessed past.
+
+Chapter steps retain reading-write authorization, session/book guards, serialized
+renderer movement, timeout and actual fixed-layout paint completion. They join
+section/start/end and explicit goTo in the shared history. Native ordinary book
+links also use this history: the footnote handler first claims previews with
+synchronous preventDefault; unclaimed link events are then prevented from
+invoking Foliate's private navigation and routed through the host controller with
+book ID and content version. External-link handling is unchanged. No DOM or link
+handler is exposed to plugins or Agent. Native link failures use the existing
+localized reader error surface and do not fall back to direct engine navigation.
+The view owns pending link requests; disposal cancels them, stale clicks cannot
+reopen an older book, and superseded requests do not surface obsolete failures.
+Cancellation does not undo renderer work already dispatched.
+
+The completion screen's delayed passage revisit now uses the shared goTo path
+as well. It keeps its fade but captures view/session identity, cancels an older
+revisit timer, and clears the pending timer on unmount. A replaced book is never
+the target of that delayed callback. Ordinary page turns, internal text-unit
+positioning and startup restoration remain engine-local movements, not new
+explicit-jump history entries. Shared history still caps at 100 locations,
+updates only after success, and truncates forward entries on a new jump; none of
+this expands Agent reading-text privacy or the original spoiler fence.
+
+[验证] Focused TOC/adapter/paint, controller/history, native-link event routing,
+failure/supersession/retirement, plugin grant/lifecycle and Agent forwarding tests
+pass. The link tests use controlled events and renderer ports, not real book
+anchors or footnote rendering. Completion-screen wiring is source/type checked,
+not a mounted-animation proof. Real Tauri/Worker multi-format links, previews,
+chapter shortcuts, completion revisit and plugin back/forward stay in the
+concentrated composition E2E stage. READ04/READ06 are connected, not E2E-certified.
 
 ### Navigation Target Catalog (Library 1.14)
 

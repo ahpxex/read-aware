@@ -426,7 +426,7 @@ export class ReadingSessionController {
   }
 
   step(direction: ReadingStep, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReadingNavigationReceipt> {
-    if (!["next", "previous", "next-section", "previous-section", "start", "end"].includes(direction)) return Promise.reject(new AppError("reader/invalid-target", "Invalid navigation step"));
+    if (!["next", "previous", "next-section", "previous-section", "next-chapter", "previous-chapter", "start", "end"].includes(direction)) return Promise.reject(new AppError("reader/invalid-target", "Invalid navigation step"));
     const bookId = this.session?.bookId;
     if (!bookId) return Promise.reject(new AppError("reader/no-session", "No active reading session"));
     return this.run({ bookId }, signal, undefined, direction, guard);

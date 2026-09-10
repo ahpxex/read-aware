@@ -88,7 +88,7 @@ test("source sections and book boundaries use shared navigation with unchanged v
   }
   const session = await deps.reader.getSession();
   deps.reader.step = async (...args) => { passed = args; return receipt; };
-  for (const action of ["next-section", "previous-section", "start", "end"]) {
+  for (const action of ["next-section", "previous-section", "next-chapter", "previous-chapter", "start", "end"]) {
     await tool("navigate_reading").execute("step", { action }, abort.signal);
     expect(passed).toEqual([action, abort.signal, { sessionId: session.sessionId, bookId }]);
   }

@@ -18,7 +18,8 @@ import {
   type ReaderSelectionState,
   type SelectionOverlayRect,
 } from "../lib/selection-overlay";
-import { flattenToc, findTocIndexForHref } from "../lib/epub-utils";
+import { flattenToc, findTocIndexForHref, adjacentTocEntry } from "../lib/epub-utils";
+import { createNativeLinkNavigator } from "../lib/native-link-navigation";
 import { attachTocFractions } from "../lib/toc-fractions";
 import { chapterProgressAt, normalizeReadingCursorText } from "../lib/reading-cursor";
 import { relocateDismissesShell } from "../lib/shell-dismissal";
@@ -458,6 +459,7 @@ export function FoliateReaderView({
   const [completionMounted, setCompletionMounted] = useState(false);
   const [completionVisible, setCompletionVisible] = useState(false);
   const completionExitTimerRef = useRef<number | null>(null);
+  const completionRevisitTimerRef = useRef<number | null>(null);
 
   // Stable: these are dependencies of the pagination callbacks, and inline
   // arrows here rebuilt them on every render — enough to loop the reader's
@@ -477,16 +479,6 @@ export function FoliateReaderView({
       completionExitTimerRef.current = null;
     }, COMPLETION_FADE_MS);
   }, []);
-  const revisitFromCompletion = useCallback(
-    (cfiRange: string) => {
-      // Fade out first, then land on the passage — arriving mid-fade would show
-      // the jump happening behind the screen.
-      dismissCompletion();
-      window.setTimeout(() => void viewRef.current?.goTo(cfiRange)
-        .catch(error => setError(describeReaderFailure(error))), COMPLETION_FADE_MS);
-    },
-    [dismissCompletion],
-  );
   const [declaredFinished, setDeclaredFinished] = useState(
     selectedBook?.readingStatus === "finished",
   );
@@ -816,6 +808,18 @@ export function FoliateReaderView({
     }
   }, [clearSelection, selectedBook?.id]);
 
+  const revisitFromCompletion = useCallback((cfiRange: string) => {
+    const view = viewRef.current;
+    const sessionId = readingRuntime.snapshot().sessionId;
+    dismissCompletion();
+    if (completionRevisitTimerRef.current != null) window.clearTimeout(completionRevisitTimerRef.current);
+    // Keep the fade, but never apply an old completion card to a replacement book.
+    completionRevisitTimerRef.current = window.setTimeout(() => {
+      completionRevisitTimerRef.current = null;
+      if (viewRef.current === view && readingRuntime.snapshot().sessionId === sessionId) void goToChapter(cfiRange);
+    }, COMPLETION_FADE_MS);
+  }, [dismissCompletion, goToChapter]);
+
   /** Jump to a position in the book by fraction — the header progress bar's
    *  scrub target. The engine maps it back through its section sizes, so the
    *  landing spot matches the fraction it reports while reading. Behind the
@@ -843,17 +847,19 @@ export function FoliateReaderView({
   }, [clearSelection, crossTo, selectedBook?.id]);
 
   const goToAdjacentChapter = useCallback(async (direction: -1 | 1) => {
-    const entries = tocEntriesRef.current;
-    if (!entries.length) return;
-    const currentIndex = findTocIndexForHref(entries, currentChapterHrefRef.current);
-    if (currentIndex < 0) {
-      const fallback = direction === 1 ? entries[0] : entries[entries.length - 1];
-      if (fallback) await goToChapter(fallback.href);
-      return;
+    const session = readingRuntime.snapshot();
+    if (selectedBook && session.bookId === selectedBook.id && session.sessionId) {
+      setError(null);
+      clearSelection();
+      try {
+        await readingRuntime.step(direction === 1 ? "next-chapter" : "previous-chapter", undefined,
+          { bookId: selectedBook.id, sessionId: session.sessionId });
+      } catch (error) { setError(describeReaderFailure(error)); }
+    } else {
+      const next = adjacentTocEntry(tocEntriesRef.current, currentChapterHrefRef.current, direction);
+      if (next) await goToChapter(next.href);
     }
-    const nextEntry = entries[currentIndex + direction];
-    if (nextEntry) await goToChapter(nextEntry.href);
-  }, [goToChapter]);
+  }, [clearSelection, goToChapter, selectedBook?.id]);
 
   // ----- plugin-defined text-unit mode ----------------------------------------
 
@@ -1812,6 +1818,9 @@ export function FoliateReaderView({
       if (completionExitTimerRef.current != null) {
         window.clearTimeout(completionExitTimerRef.current);
       }
+      if (completionRevisitTimerRef.current != null) {
+        window.clearTimeout(completionRevisitTimerRef.current);
+      }
       if (suppressContentClickTimeoutRef.current != null) {
         window.clearTimeout(suppressContentClickTimeoutRef.current);
       }
@@ -2083,12 +2092,17 @@ export function FoliateReaderView({
         };
 
         // Footnote/endnote references open the popover; other links navigate.
+        const nativeLinks = sessionId && selectedBook ? createNativeLinkNavigator(readingRuntime,
+          { sessionId, bookId: selectedBook.id, contentVersion }, error => setError(describeReaderFailure(error)),
+          () => { setError(null); clearSelection(); }) : null;
+        if (nativeLinks) cleanups.push(nativeLinks.dispose);
         const onLink = (event: Event) => {
           const detail = (event as CustomEvent<FoliateLinkDetail>).detail;
           if (detail?.a) footnoteAnchorRectRef.current = anchorRectForElement(detail.a);
           const handler = footnoteHandlerRef.current;
           if (handler && book) void handler.handle(book, event as CustomEvent<FoliateLinkDetail>, beginNativeFootnote())
             ?.catch(error => log.warn('Could not render footnote', error));
+          void nativeLinks?.handle(event as CustomEvent<FoliateLinkDetail>);
         };
 
         view.addEventListener("relocate", onRelocate);

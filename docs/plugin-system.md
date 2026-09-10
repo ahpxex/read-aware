@@ -3073,14 +3073,14 @@ The current host services are:
 | `session` | 2.0: environment snapshot/observation only; reading state requires the reading domain | built in |
 | `plugins` | 1.0: bounded installed public metadata list/observation | built in |
 | `maintenance` | 1.0: updater snapshot/observation, release check and native maintenance controls | built in; check requires `service:network` |
-| `resources` | 1.0: native file selection, temporary snapshots, bounded read/write/seal/save/release | built in; book sources require `library:read` or write |
+| `resources` | 1.1: native file selection, original/cover snapshots, bounded read/write/seal/save/release | built in; book sources require `library:read` or write |
 | `sync` | 1.0: sanitized status, backlog, account quotas, sync request and host settings | `service:sync` |
 | `network` | host HTTP client | `service:network` |
 | `llm` | approved one-shot/structured model calls | `service:llm` |
-| `clipboard` | write text to clipboard | `service:clipboard` |
+| `clipboard` | 1.1: write text or a sealed raster image resource | `service:clipboard` |
 
-[代码] Resources 1.0 exposes `pick({multiple?,extensions?})`, optional
-`openBook(bookId)`, `create({name,mimeType?})`, `stat(id)`,
+[代码] Resources 1.1 exposes `pick({multiple?,extensions?})`, optional
+`openBook(bookId)` / `openCover(bookId)`, `create({name,mimeType?})`, `stat(id)`,
 `read(id,offset,length)`, `append(id,offset,data)`, `commit(id)`,
 `save(id,filename?)`, and `release(id)`. Desktop only; no arbitrary path or blob
 key enters the public API. Pick cancellation is `{cancelled:true,resources:[]}`;
@@ -3089,6 +3089,16 @@ anonymous temporary files, so later source edits do not alter the acquired
 snapshot. `openBook` needs library access; missing local originals return null,
 deleted books fail, and no remote download is triggered. An acquired snapshot
 is a separate temporary copy until released/expired, not a live book handle.
+
+`openCover` has the same library grant, actor ownership and book-thread scope.
+It resolves the book's projected ready cover and local blob only, returning null
+when not locally available; unknown books and storage failures reject. It never
+extracts, downloads or changes a cover. The `source:"cover"` reference contains
+the MIME hint and a `cover.<extension>` suggested basename, not a storage key.
+Plugins can read/save its bytes; Agent `open_book_cover` returns metadata only.
+Null does not distinguish never extracted, no cover, or not downloaded. A live
+cover-status observer, explicit extraction controls and resource-backed plugin
+view rendering are not implemented by this accessor.
 
 References contain opaque actor-local ID, basename, MIME hint, size, state,
 source and expiry. Each plugin activation/Agent conversation owns at most 16
@@ -3119,7 +3129,22 @@ now stage, seal, save and release through the same native resource backend.
 Binary input is snapshotted before asynchronous writes; cleanup errors are logged.
 Mobile legacy export and browser Storybook fallback are unchanged. The current
 Worker bridge uses bounded structured cloning, not transferables. Persistent
-private resources, embedded book/cover assets and directory/drag-drop grants remain gaps.
+private resources, embedded book images and directory/drag-drop grants remain gaps.
+
+[代码] Clipboard 1.1 `writeImage(resourceId)` requires `service:clipboard` and
+this activation's sealed reference; library permission alone never grants copying.
+Agent `copy_resource_image` uses the same owner queue, only on an explicit user
+request, with no clipboard reads or model image input. Original book references
+are rejected; picked/created/cover raster images are decoded natively by magic
+bytes, not trusted MIME or filename. PNG/JPEG/GIF/BMP/WebP are supported (default
+still image, not animation); SVG is not. Limits are 16 MiB encoded, 8192 per
+dimension, 16,777,216 pixels and 64 MiB decoder allocation. Success returns
+`{copied:true,width,height}` after the native clipboard write; invalid/oversized
+images fail before replacement, clipboard failure rejects. The reference remains
+usable; late cancellation cannot undo an accepted clipboard replacement. The
+desktop reader lightbox's PNG copy now uses the same resource staging/clipboard
+backend; mobile legacy and browser Storybook branches remain unchanged. Actual
+clipboard paste/reader/Worker composition remains for integrated Tauri E2E.
 
 [代码] Library 1.8 adds `commands.books.importResource(id)` with `library:write`.
 The ID must belong to this plugin activation and be sealed; no paths/native IDs

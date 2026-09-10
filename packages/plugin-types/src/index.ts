@@ -1762,6 +1762,8 @@ export type PluginHostServices = {
     pick(options?: import("@read-aware/core").ResourcePickOptions): Promise<{ cancelled: boolean; resources: import("@read-aware/core").ResourceRef[] }>;
     /** Requires library:read. Original local file only; no implicit remote download. */
     openBook?(bookId: string): Promise<import("@read-aware/core").ResourceRef | null>;
+    /** Resources 1.1; requires library:read. No extraction/download when the cover is unavailable. */
+    openCover?(bookId: string): Promise<import("@read-aware/core").ResourceRef | null>;
     create(options: import("@read-aware/core").ResourceCreateOptions): Promise<import("@read-aware/core").ResourceRef>;
     stat(id: string): Promise<import("@read-aware/core").ResourceRef>;
     read(id: string, offset: number, length: number): Promise<import("@read-aware/core").ResourceChunk>;
@@ -1811,6 +1813,8 @@ export type PluginHostServices = {
   };
   clipboard?: {
     writeText(text: string): Promise<void>;
+    /** Clipboard 1.1. This activation's sealed resource; raster decode stays in the host. */
+    writeImage(resourceId: string): Promise<import("@read-aware/core").ResourceImageReceipt>;
   };
 };
 

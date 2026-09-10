@@ -226,6 +226,37 @@ pub async fn resource_create(app: tauri::AppHandle) -> Result<ResourceInfo, Comm
     })
     .await
 }
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CoverResourceInfo {
+    #[serde(flatten)]
+    resource: ResourceInfo,
+    mime_type: String,
+}
+
+#[tauri::command]
+pub async fn resource_open_cover(app: tauri::AppHandle, book_id: String) -> Result<Option<CoverResourceInfo>, CommandError> {
+    crate::storage::blocking("resource_open_cover", move || {
+        let (file, mime_type) = {
+            use rusqlite::OptionalExtension;
+            let db = app.state::<crate::storage::Db>();
+            let conn = db.0.lock()?;
+            let cover: Option<(String, Option<String>)> = conn.query_row(
+                "SELECT cover_status, cover_blob_key FROM books WHERE id=?1", [&book_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            ).optional()?;
+            let (status, key) = cover.ok_or_else(|| CommandError::new("reader/book-not-found", "Book no longer exists"))?;
+            let Some(key) = key.filter(|_| status == "ready") else { return Ok(None); };
+            let data = app.state::<crate::storage::DataDir>();
+            let Some((path, info)) = crate::storage::get_blob_record_inner(&conn, &data.0, &key)? else { return Ok(None); };
+            (File::open(path)?, info.mime_type.unwrap_or_else(|| "application/octet-stream".into()))
+        };
+        let resources = app.state::<ResourceFiles>();
+        let mut entries = resources.0.lock()?;
+        Ok(Some(CoverResourceInfo { resource: insert(&mut entries, Some(file))?, mime_type }))
+    }).await
+}
 #[tauri::command]
 pub async fn resource_append(
     app: tauri::AppHandle,

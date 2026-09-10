@@ -359,7 +359,8 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   const bookClassification = createBookClassificationFixture(books);
   const deps: RuntimeDeps = {
     resources: () => ({
-      pick: async () => ({ cancelled: true, resources: [] }), openBook: async () => null,
+      pick: async () => ({ cancelled: true, resources: [] }), openBook: async () => null, openCover: async () => null,
+      copyImage: async () => { throw new AppError("ui/unavailable", "Attach an image clipboard fixture"); },
       create: async () => { throw new AppError("ui/unavailable", "Attach a resource fixture"); },
       stat: async id => ({ id, name: "fixture.txt", mimeType: "text/plain", size: 4, state: "ready", source: "picked", expiresAt: Date.now() + 60000 }),
       read: async () => ({ data: new Uint8Array([116, 101, 115, 116]).buffer, nextOffset: 4, eof: true }),

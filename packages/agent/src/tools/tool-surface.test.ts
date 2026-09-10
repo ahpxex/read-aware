@@ -74,6 +74,8 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   pick_resource_files: {},
   import_resource_book: { id: "resource-fixture" },
   open_book_resource: { bookId: BOOK_ID },
+  open_book_cover: { bookId: BOOK_ID },
+  copy_resource_image: { id: "resource-fixture" },
   read_resource_text: { id: "resource-fixture" },
   save_resource: { id: "resource-fixture" },
   release_resource: { id: "resource-fixture" },
@@ -192,6 +194,8 @@ describe("tool surface contract", () => {
         // 每个工具独立的 fixture：破坏性工具（fixture 自动批准权限）不得污染后续用例
         const { deps } = createInMemoryDeps(seed());
         deps.hostIO.writeClipboard = async () => {};
+        const resources = deps.resources("surface");
+        deps.resources = () => ({ ...resources, copyImage: async () => ({ copied: true, width: 2, height: 3 }) });
         deps.library.importResource = async () => ({ status: "duplicate", book: { id: BOOK_ID, title: "The Locked Room", format: "epub", starred: false,
           collectionId: null, addedAt: "2026-09-01T00:00:00Z", updatedAt: "2026-09-01T00:00:00Z" } });
         deps.hostIO.openExternal = async () => {};

@@ -627,6 +627,7 @@ export function buildPluginContext(
         pick: options => { lifecycle.assertActive("services.resources.pick"); return resources.pick(options, lifecycle.signal); },
         ...(permissions.has("library:read") || permissions.has("library:write") ? {
           openBook: (bookId: string) => { lifecycle.assertActive("services.resources.openBook"); return resources.openBook(bookId, lifecycle.signal); },
+          openCover: (bookId: string) => { lifecycle.assertActive("services.resources.openCover"); return resources.openCover(bookId, lifecycle.signal); },
         } : {}),
         create: options => { lifecycle.assertActive("services.resources.create"); return resources.create(options, lifecycle.signal); },
         stat: id => { lifecycle.assertActive("services.resources.stat"); return resources.stat(id, lifecycle.signal); },
@@ -931,6 +932,10 @@ export function buildPluginContext(
 
   if (canUseHostService("clipboard", permissions)) {
     ctx.services.clipboard = {
+      writeImage: id => {
+        lifecycle.assertActive("services.clipboard.writeImage");
+        return resources.copyImage(id, lifecycle.signal);
+      },
       writeText: (text) => {
         lifecycle.assertActive("services.clipboard.writeText");
         return hostIO.writeClipboard(text, lifecycle.signal);

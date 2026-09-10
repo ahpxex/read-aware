@@ -1,5 +1,6 @@
 import { save } from "@tauri-apps/plugin-dialog";
 import { invoke } from "./ipc";
+import type { ResourceImageReceipt } from "@read-aware/core";
 
 /** Private native IDs stay in the host; actor APIs translate them to scoped references. */
 export const nativeResourceFiles = {
@@ -9,6 +10,7 @@ export const nativeResourceFiles = {
     { headers: { "x-resource-id": id, "x-resource-offset": String(offset) } }),
   commit: (id: string) => invoke<void>("resource_commit", { id }),
   release: (id: string) => invoke<void>("resource_release", { id }),
+  copyImage: (id: string) => invoke<ResourceImageReceipt>("resource_copy_image", { id }),
   async save(id: string, filename: string, signal?: AbortSignal): Promise<boolean> {
     signal?.throwIfAborted();
     const extension = filename.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase();

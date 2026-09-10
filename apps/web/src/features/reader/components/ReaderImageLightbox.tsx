@@ -10,7 +10,9 @@ import {
 import { writeImage } from "@tauri-apps/plugin-clipboard-manager";
 import { Caption, IconButton } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
-import { isTauri } from "../../../platform/environment";
+import { isTauri, isMobileOS } from "../../../platform/environment";
+import { copyResourceImageBytes } from "../../../platform/resource-export";
+import { nativeResourceFiles } from "../../../platform/resource-files";
 import { createLogger } from "../../../platform/logger";
 import { useZoomPan } from "../hooks/useZoomPan";
 
@@ -108,7 +110,11 @@ export function ReaderImageLightbox({ src, alt, onClose }: ReaderImageLightboxPr
     };
     const write = isTauri()
       ? renderPng()
-          .then(async (blob) => writeImage(new Uint8Array(await blob.arrayBuffer())))
+          .then(async (blob) => {
+            const bytes = new Uint8Array(await blob.arrayBuffer());
+            return isMobileOS() ? writeImage(bytes)
+              : copyResourceImageBytes(nativeResourceFiles, bytes, error => log.warn("Image resource cleanup failed", error));
+          })
       : navigator.clipboard.write([
           new ClipboardItem({ "image/png": renderPng() }),
         ]);

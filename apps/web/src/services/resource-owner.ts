@@ -1,15 +1,17 @@
 import { AppError, RESOURCE_LIFETIME_MS, RESOURCE_MAX_CHUNK, RESOURCE_MAX_SIZE,
-  type ResourcePort, type ResourceRef, type ResourcePickOptions, type ResourceCreateOptions } from "@read-aware/core";
+  type ResourcePort, type ResourceRef, type ResourcePickOptions, type ResourceCreateOptions, type ResourceImageReceipt } from "@read-aware/core";
 
 export type NativeResource = { id: string; size: number; name: string; mimeType: string };
 export type ResourceAdapter = {
   pick(options: ResourcePickOptions, signal?: AbortSignal): Promise<NativeResource[]>;
   openBook(bookId: string, signal?: AbortSignal): Promise<NativeResource | null>;
+  openCover(bookId: string, signal?: AbortSignal): Promise<NativeResource | null>;
   create(options: ResourceCreateOptions): Promise<NativeResource>;
   read(id: string, offset: number, length: number): Promise<ArrayBuffer>;
   append(id: string, offset: number, bytes: Uint8Array): Promise<number>;
   commit(id: string): Promise<void>;
   save(id: string, filename: string, signal?: AbortSignal): Promise<boolean>;
+  copyImage(id: string): Promise<ResourceImageReceipt>;
   release(id: string): Promise<void>;
 };
 type Entry = { nativeId: string; ref: ResourceRef; timer: ReturnType<typeof setTimeout> };
@@ -52,12 +54,18 @@ export class ResourceOwner implements ResourcePort {
     }, signal);
   }
   openBook(bookId: string, signal?: AbortSignal) {
+    return this.openBookAsset(bookId, "book", signal);
+  }
+  openCover(bookId: string, signal?: AbortSignal) {
+    return this.openBookAsset(bookId, "cover", signal);
+  }
+  private openBookAsset(bookId: string, source: "book" | "cover", signal?: AbortSignal) {
     idValue(bookId); this.authorizeBook(bookId);
     return this.run(async () => {
       this.authorizeBook(bookId);
-      const value = await this.adapter.openBook(bookId, signal);
+      const value = await (source === "book" ? this.adapter.openBook(bookId, signal) : this.adapter.openCover(bookId, signal));
       if (!value) { this.guard(signal); return null; }
-      try { this.guard(signal); this.authorizeBook(bookId); this.capacity([value]); return this.register(value, "book", "ready"); }
+      try { this.guard(signal); this.authorizeBook(bookId); this.capacity([value]); return this.register(value, source, "ready"); }
       catch (error) { await this.cleanNative([value]); throw error; }
     }, signal);
   }
@@ -127,6 +135,14 @@ export class ResourceOwner implements ResourcePort {
   release(id: string): Promise<void> {
     idValue(id);
     return this.run(async () => { await this.remove(id); });
+  }
+  copyImage(id: string, signal?: AbortSignal): Promise<ResourceImageReceipt> {
+    return this.run(async () => {
+      const entry = this.get(id, true);
+      if (entry.ref.source === "book") throw new AppError("ui/invalid-target", "Original book files are not image resources");
+      const receipt = await this.adapter.copyImage(entry.nativeId);
+      this.guard(signal); return receipt;
+    }, signal);
   }
   async dispose(): Promise<void> {
     this.disposed = true;

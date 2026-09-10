@@ -20,6 +20,24 @@ test("Agent uses thread-owned references, approves original export and cannot re
   await call("open_book_resource", {}); expect(opened).toBe(1);
 });
 
+test("Agent cover and image tools pass only thread-scoped references and preserve unavailable/error receipts", async () => {
+  const { deps } = createInMemoryDeps(), original = deps.resources("test");
+  let covers = 0; const calls: unknown[] = [];
+  deps.resources = (...scope) => { calls.push(scope); return { ...original,
+    openCover: async id => { expect(id).toBe("book"); covers++; return null; },
+    copyImage: async id => { expect(id).toBe("own-image"); return { copied: true, width: 2, height: 3 }; },
+  }; };
+  const tools = buildResourceTools({ kind: "book", bookId: "book" as Id }, deps);
+  const call = (name: string, params: unknown) => tools.find(t => t.name === name)!.execute("test", params, new AbortController().signal);
+  expect(JSON.stringify(await call("open_book_cover", {}))).toContain("null");
+  await expect(call("open_book_cover", { bookId: "other" })).rejects.toMatchObject({ code: "memory/forbidden" });
+  expect(covers).toBe(1);
+  expect(JSON.stringify(await call("copy_resource_image", { id: "own-image" }))).toContain("copied");
+  expect(calls).toEqual([["book:book", "book"], ["book:book", "book"]]);
+  deps.resources = () => ({ ...original, openCover: async () => { throw new Error("load failed"); } });
+  await expect(call("open_book_cover", {})).rejects.toThrow("load failed");
+});
+
 test("UTF-8 paging returns byte offsets without losing split codepoints and rejects binary", async () => {
   const { deps } = createInMemoryDeps(), original = deps.resources("test");
   const bytes = new TextEncoder().encode("abc中文");

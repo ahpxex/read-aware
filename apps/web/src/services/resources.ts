@@ -49,6 +49,13 @@ export const resourceAdapter: ResourceAdapter = {
     desktop();
     return { ...await nativeResourceFiles.create(), name: options.name, mimeType: options.mimeType ?? "application/octet-stream" };
   },
+  async openCover(bookId, signal) {
+    desktop(); signal?.throwIfAborted();
+    const info = await invoke<(NativeInfo & { mimeType: string }) | null>("resource_open_cover", { bookId });
+    if (!info) return null;
+    const extension = ({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif", "image/bmp": "bmp" } as Record<string, string>)[info.mimeType] ?? "bin";
+    return { ...info, name: `cover.${extension}` };
+  },
   read: nativeResourceFiles.read,
   append: nativeResourceFiles.append,
   commit: nativeResourceFiles.commit,
@@ -57,6 +64,7 @@ export const resourceAdapter: ResourceAdapter = {
     return nativeResourceFiles.save(id, filename, signal);
   },
   release,
+  copyImage: nativeResourceFiles.copyImage,
 };
 
 export function createResourceOwner(authorizeBook?: (id: string) => void, authorizeRead?: (ref: ResourceRef) => void): ResourceOwner {

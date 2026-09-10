@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { RESOURCE_MAX_CHUNK } from "@read-aware/core";
-import { exportResourceBytes } from "./resource-export";
+import { exportResourceBytes, copyResourceImageBytes } from "./resource-export";
 
 function fixture() {
   const calls: string[] = [], chunks: Uint8Array[] = [], errors: unknown[] = [];
@@ -21,6 +21,19 @@ test("convenience export copies input, chunks, seals, saves and releases on user
   expect(f.calls).toEqual(["create", "append", "append", "commit", "save:notes.bin", "release"]);
   expect(f.chunks.map(chunk => chunk.length)).toEqual([RESOURCE_MAX_CHUNK, 3]);
   expect(f.chunks[0]![0]).toBe(7);
+});
+
+test("native reader image copy shares staging and releases on success or clipboard failure", async () => {
+  const f = fixture();
+  const io = { ...f.io, copyImage: async (id: string) => { expect(id).toBe("native"); f.calls.push("copy"); return { copied: true as const, width: 2, height: 3 }; } };
+  expect(await copyResourceImageBytes(io, new Uint8Array([1]), f.report)).toEqual({ copied: true, width: 2, height: 3 });
+  expect(f.calls).toEqual(["create", "append", "commit", "copy", "release"]);
+  io.copyImage = async () => { throw Error("clipboard unavailable"); };
+  await expect(copyResourceImageBytes(io, new Uint8Array([1]), f.report)).rejects.toThrow("clipboard unavailable");
+  expect(f.calls.at(-1)).toBe("release");
+  const before = f.calls.length;
+  await expect(copyResourceImageBytes(io, new Uint8Array(16 * 1024 * 1024 + 1), f.report)).rejects.toMatchObject({ code: "ui/invalid-target" });
+  expect(f.calls.length).toBe(before);
 });
 
 test("failed or cancelled writes are released and never advance to save", async () => {

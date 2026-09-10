@@ -1,6 +1,7 @@
 mod android_update;
 mod book_metadata;
 mod covers;
+mod resource_images;
 mod import;
 mod desktop_update;
 mod comic_metadata;
@@ -1018,6 +1019,8 @@ pub fn run() {
             write_export_file,
             resources::resource_open_file,
             resources::resource_open_book,
+            resources::resource_open_cover,
+            resource_images::resource_copy_image,
             resources::resource_create,
             resources::resource_append,
             resources::resource_commit,

@@ -10,6 +10,8 @@ function fixture(authorizeBook: (id: string) => void = () => {}) {
   };
   const adapter: ResourceAdapter = {
     pick: async () => [], openBook: async () => make("book.epub", new Uint8Array([1, 2, 3])),
+    openCover: async () => make("cover.png", new Uint8Array([1, 2, 3])),
+    copyImage: async () => ({ copied: true, width: 1, height: 1 }),
     create: async options => ({ ...make(options.name), mimeType: options.mimeType! }),
     append: async (id, offset, bytes) => {
       const previous = files.get(id)!; if (previous.length !== offset) throw Error("offset");
@@ -100,4 +102,40 @@ test("native domain consumption holds the sealed resource until accepted work se
   gate.resolve(); await retiring;
   expect(consumed).toBe(true); expect(await importing).toMatchObject({ code: "ui/superseded" });
   expect(f.files.size).toBe(0);
+});
+
+test("cover snapshots keep book authorization, isolation, null availability and retirement cleanup", async () => {
+  const f = fixture(id => { if (id !== "book") throw new AppError("memory/forbidden", "wrong book"); });
+  try {
+    expect(() => f.owner.openCover("other")).toThrow();
+    const cover = await f.owner.openCover("book");
+    expect(cover).toMatchObject({ source: "cover", state: "ready", name: "cover.png" });
+    expect(cover!.id).not.toStartWith("native-");
+    expect(new Uint8Array((await f.owner.read(cover!.id, 0, 3)).data)).toEqual(new Uint8Array([1, 2, 3]));
+    f.adapter.openCover = async () => null;
+    expect(await f.owner.openCover("book")).toBeNull();
+    const late = Promise.withResolvers<NativeResource>(); f.adapter.openCover = () => late.promise;
+    const pending = f.owner.openCover("book").catch(error => error);
+    await Bun.sleep(0); const retiring = f.owner.dispose();
+    late.resolve(f.make("late.png")); await retiring;
+    expect(await pending).toMatchObject({ code: "ui/superseded" }); expect(f.files.size).toBe(0);
+  } finally { await f.owner.dispose(); }
+});
+
+test("image copy requires own sealed non-book resource and preserves failures and cancellation", async () => {
+  const f = fixture(); let copies = 0;
+  f.adapter.copyImage = async () => { copies++; return { copied: true, width: 2, height: 3 }; };
+  try {
+    await expect(f.owner.copyImage("foreign")).rejects.toMatchObject({ code: "fs/not-found" });
+    const original = await f.owner.openBook("book");
+    await expect(f.owner.copyImage(original!.id)).rejects.toMatchObject({ code: "ui/invalid-target" });
+    const ref = await f.owner.create({ name: "image.png" });
+    await expect(f.owner.copyImage(ref.id)).rejects.toMatchObject({ code: "ui/invalid-target" });
+    await f.owner.commit(ref.id);
+    await expect(f.owner.copyImage(ref.id, AbortSignal.abort())).rejects.toBeDefined(); expect(copies).toBe(0);
+    expect(await f.owner.copyImage(ref.id)).toEqual({ copied: true, width: 2, height: 3 });
+    expect((await f.owner.stat(ref.id)).state).toBe("ready");
+    f.adapter.copyImage = async () => { throw new AppError("ui/unavailable", "clipboard"); };
+    await expect(f.owner.copyImage(ref.id)).rejects.toMatchObject({ code: "ui/unavailable" });
+  } finally { await f.owner.dispose(); }
 });

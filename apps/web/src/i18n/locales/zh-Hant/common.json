@@ -12,6 +12,8 @@
     "copied": "已複製"
   },
   "errors": {
+    "annotationObserverLimit": "標註訂閱數量已達上限。",
+    "annotationObservationFailed": "無法重新整理標註，請重試。",
     "memoryTaskNotFound": "此圖譜工作已無法使用，請建立新工作。",
     "memoryTaskLimit": "圖譜請求過多，請等待現有請求結束。",
     "memoryObserverLimit": "記憶訂閱數量已達上限。",

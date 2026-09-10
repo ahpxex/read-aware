@@ -1294,6 +1294,7 @@ export type PluginReadingDomain = {
   };
 };
 
+export type { AnnotationObservationQuery, AnnotationObservationResult, AnnotationObservation } from "@read-aware/core";
 /**
  * Annotations — highlights, notes, and asks. Ask creation belongs to the
  * agent runtime; authorized writers may erase the user's existing traces.
@@ -1337,7 +1338,12 @@ export type PluginAnnotationsDomain = {
     /** annotations >=1.1.0. Delete an existing ask; never creates a trace. */
     removeAsk(askId: string): Promise<void>;
   };
-  events: { subscribe: DomainSubscribe<AnnotationDomainEventType> };
+  events: {
+    subscribe: DomainSubscribe<AnnotationDomainEventType>;
+    /** Since 1.4. Initial authorized snapshot, then changed results/errors/recovery. Disposal ends polling. */
+    observe(query: import("@read-aware/core").AnnotationObservationQuery,
+      handler: (event: import("@read-aware/core").AnnotationObservation) => unknown): PluginDisposable;
+  };
 };
 
 /**

@@ -12,6 +12,8 @@
     "copied": "Copié"
   },
   "errors": {
+    "annotationObserverLimit": "Trop d'abonnements aux annotations sont actifs.",
+    "annotationObservationFailed": "Impossible d'actualiser les annotations. Réessayez.",
     "memoryTaskNotFound": "Cette tâche de graphe n'est plus disponible. Lancez une nouvelle tâche.",
     "memoryTaskLimit": "Trop de demandes de graphe sont actives. Attendez la fin d'une demande.",
     "memoryObserverLimit": "Trop d'abonnements aux souvenirs sont actifs.",

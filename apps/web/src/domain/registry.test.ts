@@ -39,6 +39,14 @@ describe("domain registry", () => {
     expect(DOMAIN_REGISTRY.reading.events).toContain("book.progressed");
     expect(DOMAIN_REGISTRY.reading.events).not.toContain("book.imported");
   });
+  test("annotation observation is read-authorized and follows actor retirement", () => {
+    expect(createActorDomainView("plugin:test", {}).annotations).toBeUndefined();
+    const life = new AbortController();
+    const read = createActorDomainView("plugin:test", { annotations: "read" }, life.signal).annotations!;
+    expect(read.commands).toBeUndefined(); expect(read.events.observe).toBeFunction();
+    life.abort();
+    expect(() => read.events.observe({ kind: "page" }, () => {})).toThrow(expect.objectContaining({ code: "annotations/cancelled" }));
+  });
   test("memory feedback requires write while inspect is read-only", () => {
     const denied = createActorDomainView("plugin:test", { library: "read" });
     expect(denied.memory).toBeUndefined();

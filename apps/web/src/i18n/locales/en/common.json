@@ -12,6 +12,8 @@
     "copied": "Copied"
   },
   "errors": {
+    "annotationObserverLimit": "Too many annotation subscriptions are active.",
+    "annotationObservationFailed": "Annotations could not be refreshed. Try again.",
     "memoryTaskNotFound": "This graph task is no longer available. Start a new task.",
     "memoryTaskLimit": "Too many graph requests are active. Wait for a request to finish.",
     "memoryObserverLimit": "Too many memory subscriptions are active.",

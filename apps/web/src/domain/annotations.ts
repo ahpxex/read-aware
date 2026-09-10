@@ -14,6 +14,8 @@ import type {
   AnnotationCommitResult,
   AnnotationPage,
   AnnotationPageQuery,
+  AnnotationObservation,
+  AnnotationObservationQuery,
   AskItem,
   EventOrigin,
   HighlightColor,
@@ -36,6 +38,14 @@ import type { Annotation } from "../features/annotations/lib/annotation-types";
 import { inspectAnnotation, commitAnnotationMutations } from "../features/annotations/lib/annotation-mutations";
 import { annotationsRevisionAtom } from "../features/annotations/state/annotations-revision";
 import { ANNOTATION_EVENTS, domainSubscribe, type DomainEventSubscribe } from "./events";
+import { AnnotationObserver } from "./annotation-observer";
+import { createLogger } from "../platform/logger";
+
+const log = createLogger("annotation-observation");
+const observer = new AnnotationObserver({
+  schedule: work => { const timer = setTimeout(work, 1000); return () => clearTimeout(timer); },
+  report: error => log.warn("Annotation observation failed", error),
+});
 
 export function toAnnotationItem(annotation: Annotation): AnnotationItem {
   const anchor = annotation.cfiRange ?? undefined;
@@ -136,10 +146,11 @@ export type AnnotationsDomain = {
   commands: AnnotationCommands;
   events: {
     subscribe: DomainEventSubscribe<(typeof ANNOTATION_EVENTS)[number]>;
+    observe(query: AnnotationObservationQuery, handler: (event: AnnotationObservation) => unknown): () => void;
   };
 };
 
-export function createAnnotationsDomain(origin: EventOrigin): AnnotationsDomain {
+export function createAnnotationsDomain(origin: EventOrigin, lifetime?: AbortSignal): AnnotationsDomain {
   const annotationId = (id: string) => {
     if (typeof id !== "string" || !id.trim()) throw new AppError("annotations/invalid-input", "A non-empty annotation ID is required");
     return id;
@@ -262,6 +273,9 @@ export function createAnnotationsDomain(origin: EventOrigin): AnnotationsDomain 
   return {
     queries,
     commands,
-    events: { subscribe: domainSubscribe(ANNOTATION_EVENTS, origin) },
+    events: { subscribe: domainSubscribe(ANNOTATION_EVENTS, origin),
+      observe: (query, handler) => observer.observe(query, async accepted => accepted.kind === "page"
+        ? { kind: "page", page: await queries.page(accepted.query) }
+        : { kind: "inspect", snapshot: await queries.inspect(accepted.annotationId) }, handler, lifetime) },
   };
 }

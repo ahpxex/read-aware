@@ -88,10 +88,12 @@ test("filter changes reset pagination, validate book/type/query and retain exact
   expect(f.queries[f.queries.length - 1]).toEqual({ bookId: "book", kind: "note", query: "中文 words", limit: 20 });
 });
 
-test("load errors propagate rather than appearing as an empty library", async () => {
+test("load errors render a live error surface rather than an empty library", async () => {
   const f = fixture();
   f.ctx.domains.annotations.queries.page = async () => { throw new Error("locked"); };
-  await expect(deskView(f.ctx)).rejects.toThrow("locked");
+  const view = await deskView(f.ctx);
+  expect(view).toMatchObject({ kind: "detail", content: [{ kind: "error", code: "annotations/observation-failed" }] });
+  expect(view.live).toBeDefined();
 });
 
 test("empty pages have filters/refresh but no invalid zero-item selection or export", async () => {
@@ -222,7 +224,7 @@ test("locale fallback distinguishes traditional Chinese and package declares all
   expect(tr("zh-TW", "title")).toBe("標註整理器");
   expect(tr("fr-CA", "book")).toBe("Livre");
   expect(tr("unknown", "book")).toBe("Book");
-  expect(manifest.requires.domains.annotations).toBe("^1.3.0");
+  expect(manifest.requires.domains.annotations).toBe("^1.4.0");
   expect(manifest.permissions).toEqual(["annotations:write", "library:read", "reading:write"]);
   const f = fixture();
   const headers: { surface: string; presentation: string }[] = [];

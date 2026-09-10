@@ -12,6 +12,8 @@
     "copied": "コピーしました"
   },
   "errors": {
+    "annotationObserverLimit": "注釈の購読数が上限に達しました。",
+    "annotationObservationFailed": "注釈を更新できませんでした。もう一度お試しください。",
     "memoryTaskNotFound": "このグラフのタスクは利用できません。新しいタスクを開始してください。",
     "memoryTaskLimit": "グラフのリクエストが多すぎます。処理が完了するまでお待ちください。",
     "memoryObserverLimit": "記憶の購読数が上限に達しました。",

@@ -771,7 +771,9 @@ export function buildPluginContext(
     const annotations = domain.annotations;
     ctx.domains.annotations = {
       queries: annotations.queries,
-      events: { subscribe: trackedOn(annotations.events.subscribe) },
+      events: { subscribe: trackedOn(annotations.events.subscribe),
+        observe: (query, handler) => track(() => ({ dispose: annotations.events.observe(query, handler) })),
+      },
     };
     if (annotations.commands) {
       ctx.domains.annotations.commands = guardMutationTree(

@@ -1310,3 +1310,23 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [文档/清理] 三对 MD/HTML 同步已实现章节预算及未完成 token/费用等边界，九张 1440×1000、1024×768、390×844 文档截图重新小批量检查，避免早先输出截断误算已看。矩阵 maxChapters/章节命中 1/12 行（含 MEM10），模型 service:llm/章节命中 1/5 条（含 D6），插件 manage_book_graph/章节命中 1/3 节；Escape 恢复 243/57/18。矩阵/模型抽屉隔离 HEADER/MAIN、关闭恢复与主题刷新保持通过；插件原无抽屉/主题。三页无页面溢出、重复 ID、坏页内锚点、无名按钮或 console error，观察 CDN 200，无 Mermaid。早先章节上限/maxChapters 对不含该字面值页面的零命中不计成功，改用实际存在词验证。文档仍依赖 CDN，不算产品证据；自有 Chrome 页面 3 已关闭。六 Worker/贡献清零、自有书 0、三记忆 forgotten、配置恢复且加密备份已移除；自有 native PGID 1951/exec 1158 与 model server PGID 1949/exec 28085 终态 143，5184/9224/19844 无监听，既有 89360/9223 未操作。
 
 [剩余] MEM10 输入/token/模型调用/费用预算、正文版本/租约及实体锚读集一致性、大报告分页、完整 Agent 对话与自主推理仍需继续；任务持久化并非本单元承诺。其他双端部分/未接项、全能力自由组合、长时/撤权/打包/Windows/Linux/真实跨设备验收尚未完成，整体目标继续，未推送。
+
+## 2026-09-10：标注查询观察与实时 Annotation Desk
+
+[进度/复核] de4958c8 后的标注观察单元已实现并取得原生证据，尚未提交；上一轮只确认建模口径，不算新增实现。本轮复核源码、证据、构建终态及文档后收尾。ANN09 保持两端部分，不将插件可观察误算为所有原生入口和旧事件流均已统一；全部双端应开放能力与自由组合验收的总目标不变。
+
+[代码] annotations 1.4 新增 events.observe(page/inspect)，复用现有授权查询；read 可观察且不能写，write 包含读，无授权不提供域。严格验证查询字段，page 默认 20/上限 100；订阅初始读取后，仅交付变化结果、稳定错误及恢复，inspect 删除返回 null。订阅 revision 仅表达本订阅交付顺序，不是 ann1 条件写令牌或跨查询原子快照。读与回调均结算后再等一秒，避免慢 Worker 积压；失败回调不确认，下一轮重试同值。输入、读取参数及交付值隔离复制；全局最多 64 个观察，取消幂等释放容量和 timer，丢弃迟到读/呈现。轮询能看到无本地域广播的同步投影，不保证每个中间事件、即时交付或挂起读/回调的固定延迟。Agent 按需工具读取同源结果，不新增常驻模型订阅。
+
+[组合] Annotation Desk 0.2 组合 annotations 1.4、UI 1.2、views 1.1 的实时列表：读故障清除旧内容与操作，恢复后自动显示新结果；编辑/批选仍冻结点击时版本，不能被后台观察覆盖。列表渲染还会读取书名，联合读取失败也清错并拒绝确认交付，使标注页未变化时仍能恢复；单独书名变化不触发列表更新。manifest、package、lock 和编译 dist 同步，未增加插件权限。
+
+[原生/失败] [annotation-observation](./evidence/annotation-observation-2026-09-10.json) 使用隔离 macOS Tauri debug、真实 SQLite、四个 Worker、实际 Agent get_annotations 与编译插件界面。远端路径为真实 sync store applyRemote 的受控事件，不是跨设备网络；Worker page/inspect 和 Agent 看到相同结果。另一 Worker 修改笔记后，真实编辑草稿保留；点击 Save 返回版本冲突且不丢草稿，返回列表显示新内容。自有记录 created_at 从 TEXT 临时改为 BLOB 后，两种观察和 Agent 返回 db/error，界面仅本地化错误和 Close；恢复原值后自动恢复原内容与操作。停止一个观察者后删除笔记，其结果不再变，另一观察者得到空页/null，界面无旧选择/导出操作；退休 Worker 贡献归零。无模型调用，书为无源文件字节的合成元数据记录，不证明导入、格式渲染或导航。
+
+[故障注入边界] 第一次外部 SQLite UPDATE 因 CLI 未注册 ra_fts_segment 而在修改前失败，已确认原值未变。随后注入和 finally 恢复均在 BEGIN IMMEDIATE 内暂移除唯一 trg_annotations_fts_update、只改自有记录非索引时间字段、重建完全相同 DDL 后提交；其他连接看不到缺失 trigger，索引文本未改，最终原时间与 trigger 均复核。未为产品新增 SQL/debug 权限。四张原生 900×650 截图已检查，未见页面横向溢出；慢回调、联合读恢复、配额和迟到读为单元证据，不冒充长时/最大载荷原生验证。
+
+[清理修复] 首次 fixture 删除记录后仍留一项原生文件清理 intent；未将记录归零算作完整清理。fixture 改用正式 library remove/retryRemovalCleanup，首次 App 终止后独立重启验证：启动恢复清掉旧 intent，新一轮四 Worker prepare/cleanup 后，两轮自有 books/annotations/intents/FTS SQL 均为 0。两次 native exec 22054/7903 均终态 143，driver 已停止；本轮再次确认 5184/9224 无监听。未操作既有 89360/9223、正式数据、AI 配置或密钥。
+
+[验证/重扫] 全仓 test 24/24（web 922 项/10112 断言/164 文件、Agent 429、Annotation Desk 18）、typecheck 27/27、production web build 1/1 通过，保留已有大 chunk 提示。Rust 未修改，本单元未重跑 Rust 全套；原生已有 37 项编译警告保留。库存/模型 11 项/35 断言、两生成器 --check、三个 pair validator、git diff --check 通过。243 行/703 入口/30 单元/31 catalog/129 旧验收/32 场景，14 源码插件/6 内置不变；状态分布未借新增一个入口升格。
+
+[文档] 三对 MD/HTML 同步契约、消费者和剩余缺口，既有九张 1440/1024/390 截图已检查。插件说明新条目曾位于 wrap 外，本轮修正后逐张复核三个视口，文本对齐、无横向溢出；无重复 ID/坏页内锚点。英文 annotation observation 和中文标注均命中观察条目，Escape 恢复 19 节。既有矩阵/模型中英搜索、抽屉 inert/恢复与主题保持已验；插件原无抽屉/主题。本轮 file:// 文档浏览器记录一条同文件 unique security origins 加载警告，不能宣称 console 全零；未见正文缺失，HTML 仍依赖 CDN，也不作为产品验收。所有自有文档页面已关闭。
+
+[剩余] 原生标注面板仍用旧 revision 接线、legacy subscribe 不是完整远端变化流；统一 Range、条件写迁移、最大载荷、长时/撤权/打包/跨平台仍需继续。其余双端部分/未接能力、全能力组合、完整 Agent 对话与真实跨设备验证尚未完成，整体目标保持进行中，未推送。

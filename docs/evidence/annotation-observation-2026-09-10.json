@@ -1,0 +1,286 @@
+{
+  "date": "2026-09-10",
+  "scope": "Annotation query observations and Annotation Desk 0.2 live browsing",
+  "environment": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "platform": "macOS Tauri debug",
+    "frontend": 5184,
+    "bridge": 9224,
+    "workers": 4,
+    "model": "No model calls; actual Agent tool invoked programmatically"
+  },
+  "seed": {
+    "bookId": "915f73d9-f862-4869-b8a3-32a4cb929b13",
+    "marker": "Annotation observation 7b678ab5-9705-44c7-9b28-8927ee5e0918",
+    "noteId": "b7945aae-3764-4537-b853-cbd06533c358"
+  },
+  "remote": {
+    "before": {
+      "result": {
+        "kind": "inspect",
+        "snapshot": {
+          "annotation": {
+            "body": "Annotation observation: Initial note",
+            "bookId": "915f73d9-f862-4869-b8a3-32a4cb929b13",
+            "createdAt": "2026-09-10T00:32:22.841Z",
+            "id": "b7945aae-3764-4537-b853-cbd06533c358",
+            "kind": "note",
+            "updatedAt": "2026-09-10T00:32:22.841Z"
+          },
+          "revision": "ann1:c3ae460b50669daee193747caa0273e5c9184bd428da1e56950ae06a3f2e23bc"
+        }
+      },
+      "revision": 1,
+      "status": "ready"
+    },
+    "page": {
+      "result": {
+        "kind": "page",
+        "page": {
+          "consistency": "live",
+          "items": [
+            {
+              "body": "Annotation observation: Remote changed",
+              "bookId": "915f73d9-f862-4869-b8a3-32a4cb929b13",
+              "createdAt": "2026-09-10T00:32:22.841Z",
+              "id": "b7945aae-3764-4537-b853-cbd06533c358",
+              "kind": "note",
+              "updatedAt": "2026-09-10T00:32:41.038Z"
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "revision": 2,
+      "status": "ready"
+    },
+    "inspect": {
+      "result": {
+        "kind": "inspect",
+        "snapshot": {
+          "annotation": {
+            "body": "Annotation observation: Remote changed",
+            "bookId": "915f73d9-f862-4869-b8a3-32a4cb929b13",
+            "createdAt": "2026-09-10T00:32:22.841Z",
+            "id": "b7945aae-3764-4537-b853-cbd06533c358",
+            "kind": "note",
+            "updatedAt": "2026-09-10T00:32:41.038Z"
+          },
+          "revision": "ann1:adbfd945a6fef26319a4b9bc4af2dae642d82cb8c70ebff2bbf28cbd90fe138c"
+        }
+      },
+      "revision": 2,
+      "status": "ready"
+    },
+    "agent": {
+      "consistency": "live",
+      "items": [
+        {
+          "body": "Annotation observation: Remote changed",
+          "bookId": "915f73d9-f862-4869-b8a3-32a4cb929b13",
+          "createdAt": "2026-09-10T00:32:22.841Z",
+          "id": "b7945aae-3764-4537-b853-cbd06533c358",
+          "kind": "note",
+          "updatedAt": "2026-09-10T00:32:41.038Z"
+        }
+      ],
+      "nextCursor": null,
+      "revision": "ann1:adbfd945a6fef26319a4b9bc4af2dae642d82cb8c70ebff2bbf28cbd90fe138c"
+    }
+  },
+  "desk": true,
+  "draft": {
+    "value": "Draft must survive observation",
+    "agentAfterExternalWrite": {
+      "consistency": "live",
+      "items": [
+        {
+          "body": "Annotation observation: Worker changed",
+          "bookId": "915f73d9-f862-4869-b8a3-32a4cb929b13",
+          "createdAt": "2026-09-10T00:32:22.841Z",
+          "id": "b7945aae-3764-4537-b853-cbd06533c358",
+          "kind": "note",
+          "updatedAt": "2026-09-10T00:33:11.879Z"
+        }
+      ],
+      "nextCursor": null,
+      "revision": "ann1:5e69ce1d22150bd617ee59bdcaba7fe5b68b22846bf52c93f7744c357c2ce83e"
+    },
+    "save": "Real Save click returned a version conflict and retained Draft must survive observation; Back revealed Worker changed"
+  },
+  "readFailure": {
+    "agent": "db/error",
+    "buttons": [
+      "Close"
+    ],
+    "lastInspect": {
+      "errorCode": "db/error",
+      "revision": 5,
+      "status": "error"
+    },
+    "lastPage": {
+      "errorCode": "db/error",
+      "revision": 5,
+      "status": "error"
+    },
+    "visible": "Annotation DeskAnnotation DeskThe local database ran into a problem.Close"
+  },
+  "recovery": {
+    "agent": {
+      "consistency": "live",
+      "items": [
+        {
+          "body": "Annotation observation: Worker changed",
+          "bookId": "915f73d9-f862-4869-b8a3-32a4cb929b13",
+          "createdAt": "2026-09-10T00:32:22.841Z",
+          "id": "b7945aae-3764-4537-b853-cbd06533c358",
+          "kind": "note",
+          "updatedAt": "2026-09-10T00:33:11.879Z"
+        }
+      ],
+      "nextCursor": null,
+      "revision": "ann1:5e69ce1d22150bd617ee59bdcaba7fe5b68b22846bf52c93f7744c357c2ce83e"
+    },
+    "lastInspect": {
+      "result": {
+        "kind": "inspect",
+        "snapshot": {
+          "annotation": {
+            "body": "Annotation observation: Worker changed",
+            "bookId": "915f73d9-f862-4869-b8a3-32a4cb929b13",
+            "createdAt": "2026-09-10T00:32:22.841Z",
+            "id": "b7945aae-3764-4537-b853-cbd06533c358",
+            "kind": "note",
+            "updatedAt": "2026-09-10T00:33:11.879Z"
+          },
+          "revision": "ann1:5e69ce1d22150bd617ee59bdcaba7fe5b68b22846bf52c93f7744c357c2ce83e"
+        }
+      },
+      "revision": 6,
+      "status": "ready"
+    },
+    "lastPage": {
+      "result": {
+        "kind": "page",
+        "page": {
+          "consistency": "live",
+          "items": [
+            {
+              "body": "Annotation observation: Worker changed",
+              "bookId": "915f73d9-f862-4869-b8a3-32a4cb929b13",
+              "createdAt": "2026-09-10T00:32:22.841Z",
+              "id": "b7945aae-3764-4537-b853-cbd06533c358",
+              "kind": "note",
+              "updatedAt": "2026-09-10T00:33:11.879Z"
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "revision": 6,
+      "status": "ready"
+    },
+    "visible": "Annotation DeskAll books · 1Apply filtersRefreshSelect annotationsExport this page (JSON)Export this page (CSV)Annotation observation: Worker changedAnnotation observation 7b678ab5-9705-44c7-9b28-8927ee5e0918 · NoteClose"
+  },
+  "deletion": {
+    "access": {
+      "empty": {
+        "status": "ok",
+        "value": {
+          "observe": false,
+          "write": false
+        }
+      },
+      "read": {
+        "status": "ok",
+        "value": {
+          "observe": true,
+          "write": false
+        }
+      },
+      "write": {
+        "status": "ok",
+        "value": {
+          "observe": true,
+          "write": true
+        }
+      }
+    },
+    "invalid": {
+      "code": "annotations/invalid-input",
+      "status": "error"
+    },
+    "lastInspect": {
+      "result": {
+        "kind": "inspect",
+        "snapshot": null
+      },
+      "revision": 7,
+      "status": "ready"
+    },
+    "lastPage": {
+      "result": {
+        "kind": "page",
+        "page": {
+          "consistency": "live",
+          "items": [],
+          "nextCursor": null
+        }
+      },
+      "revision": 7,
+      "status": "ready"
+    },
+    "overflow": false,
+    "retired": 0,
+    "stopStable": true,
+    "visible": "Annotation DeskAll books · 1Apply filtersRefreshNo annotationsClose"
+  },
+  "cleanup": {
+    "fixture": {
+      "contributions": 0,
+      "ownedBooks": 0
+    },
+    "books": 0,
+    "annotations": 0,
+    "ftsRows": 0,
+    "initialCleanupIntent": 1,
+    "nativeSessionExit": 143,
+    "nativePGID": 7142,
+    "originalIntentClearedOnRestart": true,
+    "retest": {
+      "cleanup": {
+        "contributions": 0,
+        "ownedBooks": 0
+      },
+      "seed": {
+        "bookId": "860e3d89-22b7-4e7b-a3c6-2f7318881b02",
+        "marker": "Annotation observation f2a1d99b-fff8-40a5-9f99-d8984e984771",
+        "noteId": "ab03e75c-efab-4ca0-9f9e-59e61a837175"
+      }
+    },
+    "finalSql": {
+      "books": 0,
+      "annotations": 0,
+      "intents": 0,
+      "ftsRows": 0
+    },
+    "retestPGID": 8536,
+    "retestExit": 143
+  },
+  "screenshots": [
+    "/tmp/annotation-observe-live.png",
+    "/tmp/annotation-observe-draft.png",
+    "/tmp/annotation-observe-error.png",
+    "/tmp/annotation-observe-empty.png"
+  ],
+  "boundaries": [
+    "Metadata-only synthetic book; no source bytes, import, navigation or format rendering tested.",
+    "Remote updates used the real sync store applyRemote with minted events, not network relay or another device.",
+    "Read fault changed only the owned annotation created_at from original TEXT to BLOB. Native page/inspect and Agent failed db/error; raw detail did not reach UI.",
+    "Initial external SQLite update failed before any mutation because ra_fts_segment is available only on native connections. For controlled non-indexed-column injection and restoration, BEGIN IMMEDIATE temporarily removed only trg_annotations_fts_update, updated the owned row, recreated exact original DDL, then committed. Index text/content never changed; no other connection could observe the trigger missing. Finally restored original created_at and verified trigger DDL.",
+    "Observers poll one second after prior read and delivery settle; revision is per-subscription, not an atomic cross-query snapshot/CAS token. No immediate event feed, every-intermediate-change guarantee, or bounded delivery time for hung native reads/callbacks.",
+    "Late-read/slow-callback/failed-delivery retry, quota and joined book-read recovery have unit evidence; long-duration and maximum payload native tests remain.",
+    "Native reader annotation panels still use their own revision wiring; legacy event subscribe does not become a complete remote change feed.",
+    "Initial cleanup removed records but left one native file-cleanup intent. Fixture was then corrected to use the library removal/cleanup commands; separate verification recorded below."
+  ]
+}

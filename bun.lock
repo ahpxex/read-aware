@@ -206,7 +206,7 @@
     },
     "plugins/annotation-desk": {
       "name": "@read-aware/plugin-annotation-desk",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "devDependencies": {
         "@read-aware/plugin-types": "workspace:*",
         "@read-aware/tsconfig": "workspace:*",

@@ -124,6 +124,8 @@ const CODE_COPY: Record<string, CopyEntry> = {
   "reader/segmentation-failed": { key: "readerSegmentationFailed", retryable: true },
   "annotations/conflict": { key: "annotationConflict", retryable: false },
   "annotations/unavailable": { key: "annotationUnavailable", retryable: false },
+  "annotations/observer-limit": { key: "annotationObserverLimit", retryable: false },
+  "annotations/observation-failed": { key: "annotationObservationFailed", retryable: true },
   "annotations/cancelled": { key: "annotationCancelled", retryable: false },
   "annotations/not-found": { key: "annotationNotFound", retryable: false },
   "annotations/invalid-input": { key: "annotationInvalidInput", retryable: false },

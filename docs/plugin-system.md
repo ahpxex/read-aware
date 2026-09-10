@@ -150,7 +150,7 @@ The current public roster is:
 | --- | --- | --- |
 | Library | books, source files, metadata, TOC, collections, import and removal | `library:read`, `library:write` |
 | Reading | active session, navigation, location, progress, reading time | `reading:read`, `reading:write` |
-| Annotations | highlights and notes | `annotations:read`, `annotations:write` |
+| Annotations 1.4 | highlights, notes, passive question traces and query observations | `annotations:read`, `annotations:write` |
 | Conversations | book/global threads and message summaries | `conversations:read` |
 | Settings | catalog, resolved values, targets, validation, change events | exact path grants |
 | Memory | active memory search, chapter graphs and conditional feedback | `memory:read`, `memory:write` (1.1) |
@@ -178,6 +178,59 @@ capabilities being absent.
 Engine work cannot yet be aborted per navigation; cancelling a waiter is not a
 promise that a physical move was undone. PDF completion waits for rasterization,
 which an occluded WKWebView may suspend until it is visible.
+
+### Annotation Query Observations
+
+[代码] Annotations 1.4 adds `events.observe(query, handler)` alongside the legacy
+`events.subscribe(event, handler)`. Read access exposes both; write implies read.
+No grant means no annotations domain. The new query is exactly one of:
+
+- `{ kind: "page", query?: AnnotationPageQuery }`: reuses page filters and live
+  keyset cursor, default 20 and maximum 100 rows. Cursor/filter validation stays
+  authoritative; query normalization rejects unknown fields.
+- `{ kind: "inspect", annotationId }`: exact item plus atomic conditional-write
+  revision, or `null` for absence. IDs must be nonblank strings of at most 512 characters.
+
+[代码] Observation is `{ revision, status: "ready", result }` or
+`{ revision, status: "error", errorCode }`. Results discriminate `page` with a
+`page` field and `inspect` with a `snapshot` field. Revision orders deliveries
+within this subscription only, not database state or a write precondition.
+Queries/results are copied before callbacks; caller mutation does not retarget
+the subscription. Storage errors are logged and surfaced as stable codes, not
+empty pages. Unknown read failures use `annotations/observation-failed`.
+
+[代码] The host reads immediately, then schedules another read one second after
+both read and callback settle. Only changed results/errors and recovery are
+delivered. A rejected callback is not acknowledged, so the unchanged value is
+retried. Reads and deliveries never overlap for one observer. At most 64
+subscriptions exist across all owners; overflow is `annotations/observer-limit`.
+Invalid input/callback is `annotations/invalid-input`; retired owners reject with
+`annotations/cancelled`. Disposal is idempotent, cancels the timer, releases the
+quota slot and drops late completions. Worker retirement owns the disposable.
+Polling reads actual committed projections, including sync/rebuild changes that
+did not emit local domain events. It does not replay every intermediate state,
+promise immediate revocation, interrupt a hung native read/callback, or provide a
+frozen snapshot across different queries. Legacy event subscribe is unchanged.
+
+[代码] Annotation Desk 0.2 combines annotations 1.4, UI 1.2 and views 1.1 for live
+browsing at 20 rows/page. Page/cursor history is captured per view; new filters
+reset it. Read failure replaces stale contents and actions with a localized
+error; recovery repopulates the list. A failed joined book-title lookup also
+leaves the callback unacknowledged so an unchanged annotation page can recover.
+Book metadata changes alone do not invalidate an unchanged annotation page.
+Editing and batch selection remain separate revision-frozen views; background
+updates must not replace a draft or silently rebase its write conditions.
+The Agent continues calling the same page/inspect read model on demand, not
+subscribing a model loop. Native annotation panels still use their previous
+revision wiring and are not claimed migrated by this plugin API.
+
+[环境] The [native evidence](./evidence/annotation-observation-2026-09-10.json)
+covers real SQLite, four WebKit Workers, actual Agent queries and compiled
+Annotation Desk: local/remote-store/Worker changes, SQLite read failure and
+recovery, preserved conflicting drafts, deletion versus failure, and retirement.
+The book is metadata-only, not an import/render test; sync applyRemote is real
+but does not exercise a relay or another device. Long-duration/maximum-payload,
+packaged and Windows/Linux tests remain; ANN09 and the broader GAPs stay partial.
 
 ### Derived Text State
 
@@ -2841,7 +2894,7 @@ adjacent distribution repository, not a fourteenth plugin in this checkout:
 | Theme Schedule | Settings domain, options/commands, storage/UI, committed schedule, settings schema |
 | WebDAV Sync | sync transport, storage, secrets, network, settings schema |
 | Jumper | reader header, navigation TOC, precise search, shared locations/history |
-| Annotation Desk | paged annotations, conditional edits, export, views |
+| Annotation Desk | live paged annotations and error recovery (0.2), frozen conditional edits, export, views |
 | Listening Desk | reading mode/provider control, unit navigation, playback/history, environment offline hint |
 | Reading Goals | book goals, context provider, opt-in memory candidates, exact host memory setting, durable storage/views |
 | Workspace Profiles | settled settings snapshots, exact path grants, atomic presets, private documents, shelf header/command views and Agent tool |

@@ -100,7 +100,17 @@ test("another book's viewport is neither exposed nor controlled by a book-scoped
   const panels = await tool("get_reader_panels").execute("test", {});
   expect(panels.content[0]).toMatchObject({ type: "text", text: "null" });
   await expect(tool("set_reader_panel").execute("test", { panel: "chat", open: true })).rejects.toMatchObject({ code: "reader/superseded" });
+  await expect(tool("set_reader_panel_width").execute("test", { panel: "chat", width: 400 })).rejects.toMatchObject({ code: "reader/superseded" });
   expect(stores.readerRequests).toHaveLength(count);
+});
+test("panel width tool preserves scope guards, cancellation and storage failure", async () => {
+  const { deps, tool } = fixture(); const abort = new AbortController();
+  const snapshot = await deps.reader.getPanels(); let passed: unknown;
+  deps.reader.setPanelWidth = async (...args) => { passed = args; return { status: "completed", panel: "chat", snapshot: snapshot! }; };
+  await tool("set_reader_panel_width").execute("test", { panel: "chat", width: 400 }, abort.signal);
+  expect(passed).toEqual(["chat", 400, abort.signal, { bookId, sessionId: snapshot!.sessionId }]);
+  deps.reader.setPanelWidth = async () => { throw new AppError("db/locked", "private"); };
+  await expect(tool("set_reader_panel_width").execute("test", { panel: "chat", width: 400 })).rejects.toMatchObject({ code: "db/locked" });
 });
 
 test("panel tools wait for the shared UI service, retain guards and forward errors and cancellation", async () => {

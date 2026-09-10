@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+面板宽度批次已接线：UI 1.9 reader.setWidth 与 Agent 双域 set_reader_panel_width，目录/聊天 240..640 整数 CSS px 首选宽度，共享跨书保存。snapshot/observe 增加 sizes 和 docked/exclusive；窄窗忽略首选值，不当成实际测量。沿用 reading 读写授权、会话 guard 与面板意图仲裁，保存成功后等匹配 DOM 提交；不打开面板、不显示控制层或改变焦点。原生拖拽释放共用有序 KV 补丁，订阅外部变化/回滚，不再静默忽略保存错误。
+
+本宽度批次定向 46 项/756 断言通过（React 隔离子套件另 15 项），typecheck 27/27。矩阵 243 行/846 映射，catalog 36，Agent book 73/global 90；READ11 从未接改部分，语义焦点恢复/插件视图关闭原因仍缺。只做接线期验证，未启动桌面或浏览器；真实 Worker、拖拽/窗口变化与组合插件留集中 Tauri E2E，未推送。
+
 原生引用预览批次已接线：UI 1.8 reader.previewReference/closeReferencePreview 与 Agent 双 scope show_book_reference/close_book_reference 共用当前书原生脚注浮层。只处理已打开的同版本书，查询与 Agent 来源/目标阅读边界不变；插件需 library 读取和 reading 写入。打开等待该请求 DOM 提交，非 resolved 不替换现有内容；关闭只认本激活/本线程的当前 ID，插件退休仅清自己。前景预览不被调用方插件 Dialog 遮住，分页以省略号表示，焦点恢复为尽力处理；原生异步脚注携带请求序号，旧原生结果也不能覆盖新 API 请求。
 
 本预览批次：27 项/672 断言通过，含服务所有权/替换/读取排空/会话变化、StrictMode DOM 提交/原生替换/旧结果/清理、权限以及 Agent 线程身份/原阅读边界；typecheck 27/27，Foliate 严格检查并生成 49 静态模块。矩阵 243 行/843 映射，catalog 36，Agent book 72/global 89。原生脚注主动开关缺口已接通，TXT11 保留 PDF 无 DOM 链接、脚注猜测与大型解析预算等缺口；真实 Worker/格式、前台绘制/焦点/键盘和组合验收仍集中进行。未启动桌面/浏览器、未推送，不把 DOM 夹具当成 Tauri E2E。

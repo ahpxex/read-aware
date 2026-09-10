@@ -80,6 +80,7 @@ const agentMap = pairs([
   ["set_reading_selection", "READ13"],
   ["manage_reading_emphasis", "READ14"],
   ["get_reader_panels set_reader_panel", "READ10"],
+  ["set_reader_panel_width", "READ11"],
   ["ask_user", "AI04"], ["get_settings update_settings", "CFG01"],
   ["reset_reading_settings", "CFG03"],
 ]);
@@ -149,6 +150,7 @@ const pluginMap = pairs([
   ["services.ui.exportFile", "SYS10"], ["services.schedules.bind", "MORE01"],
   ["services.ui.publishView", "MORE05"],
   ["services.ui.reader.snapshot services.ui.reader.observe services.ui.reader.setPanel", "READ10"],
+  ["services.ui.reader.setWidth", "READ11"],
   ["services.ui.workspace.snapshot services.ui.workspace.observe services.ui.workspace.navigate", "UI01 UI02"],
   ["services.ui.commands.list services.ui.commands.execute services.ui.commands.observe", "UI03"],
   ["services.network.fetch", "SYS06"], ["services.llm.ask", "AI06"], ["services.clipboard.writeText", "SYS08"],

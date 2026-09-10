@@ -803,6 +803,9 @@ export function buildPluginContext(
       ...(reading.commands ? { setPanel: (panel: import("@read-aware/core").ReaderPanel, open: boolean, guard?: import("@read-aware/core").ReadingSessionGuard) => {
         lifecycle.assertActive("services.ui.reader.setPanel");
         return readerPanels.setPanel(panel, open, lifecycle.signal, guard);
+      }, setWidth: (panel: import("@read-aware/core").ResizableReaderPanel, width: number, guard?: import("@read-aware/core").ReadingSessionGuard) => {
+        lifecycle.assertActive("services.ui.reader.setWidth");
+        return readerPanels.setWidth(panel, width, lifecycle.signal, guard);
       } } : {}),
       ...(reading.commands && domain.library ? {
         previewReference: (query: import("@read-aware/core").BookReferenceQuery, guard?: import("@read-aware/core").ReadingSessionGuard) => {

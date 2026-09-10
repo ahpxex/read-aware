@@ -153,6 +153,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   set_reading_selection: { action: "select", range: { bookId: BOOK_ID, contentVersion: "fixture", cfi: "epubcfi(/6/2!/4/2,/1:0,/1:6)" } },
   get_reader_panels: {},
   set_reader_panel: { panel: "toc", open: true },
+  set_reader_panel_width: { panel: "toc", width: 320 },
   ask_user: {
     question: "Which direction?",
     options: [

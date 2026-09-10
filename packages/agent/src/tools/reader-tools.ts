@@ -160,7 +160,7 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
   };
   const panelState: AgentTool = {
     name: "get_reader_panels", label: "Reader panels",
-    description: "Read which TOC, annotations, appearance and chat panels are selected and visible in the active reader. Returns no book content. Null means no ready panel surface; a book-scoped turn cannot inspect another book's panels.",
+    description: "Read which TOC, annotations, appearance and chat panels are selected and visible, their shared preferred TOC/chat widths, and docked/exclusive layout in the active reader. Preferred CSS-pixel widths are ignored in exclusive (narrow-window) layout. Returns no book content. Null means no ready panel surface; a book-scoped turn cannot inspect another book's panels.",
     parameters: Type.Object({}),
     execute: async () => {
       const snapshot = await deps.reader.getPanels();
@@ -180,5 +180,18 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
       return textResult(await deps.reader.setPanel(panel, open, signal, { bookId: current.bookId, sessionId: current.sessionId }));
     },
   };
-  return [openBook, session, control, playback, mode, controls, panelState, panelControl, ...buildSelectionTools(scope, deps), ...buildEmphasisTools(scope, deps)];
+  const panelWidth: AgentTool = {
+    name: "set_reader_panel_width", label: "Resize reader panel",
+    description: "Set a preferred TOC/chat width for an explicit user request. Integer 240..640 CSS pixels, shared across books and persisted on this device. Query get_reader_panels first. Completes after persistence and a matching UI commit; does not open the panel, reveal controls, move reading position or focus. Exclusive narrow-window layout ignores the saved width until docked layout resumes. Cancellation cannot undo an already dispatched write.",
+    parameters: Type.Object({ panel: Type.Union([Type.Literal("toc"), Type.Literal("chat")]), width: Type.Integer({ minimum: 240, maximum: 640 }) }, { additionalProperties: false }),
+    executionMode: "sequential",
+    execute: async (_id, params, signal) => {
+      const current = await deps.reader.getPanels();
+      if (!current) throw new AppError("reader/unavailable", "Reader panels are not attached");
+      if (scope.kind === "book" && current.bookId !== scope.bookId) throw new AppError("reader/superseded", "This book is not the active reader");
+      const { panel, width } = params as { panel: import("@read-aware/core").ResizableReaderPanel; width: number };
+      return textResult(await deps.reader.setPanelWidth(panel, width, signal, { bookId: current.bookId, sessionId: current.sessionId }));
+    },
+  };
+  return [openBook, session, control, playback, mode, controls, panelState, panelControl, panelWidth, ...buildSelectionTools(scope, deps), ...buildEmphasisTools(scope, deps)];
 }

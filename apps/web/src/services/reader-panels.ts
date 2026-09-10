@@ -2,14 +2,17 @@ import { AppError, type ReaderPanel, type ReaderPanelReceipt, type ReaderPanelsS
 import type { ReadingSessionController } from "../domain/reading-session-controller";
 import { readingRuntime } from "../domain/reading-runtime";
 import { createLogger } from "../platform/logger";
+import { assertReaderPanelWidth, type ResizableReaderPanel } from "@read-aware/core";
 
 type Adapter = {
   apply(panel: ReaderPanel, open: boolean, signal: AbortSignal): Promise<void>;
+  applyWidth(panel: ResizableReaderPanel, width: number, signal: AbortSignal): Promise<void>;
   requestCommit(token: number): void;
 };
 type Binding = { sessionId: string; bookId: string; adapter: Adapter; view: ReaderPanelsView; release(): void };
-type Pending = {
-  binding: Binding; token: number; panel: ReaderPanel; open: boolean; ready: boolean;
+type Operation = { panel: ReaderPanel; open: boolean; width?: never } | { panel: ResizableReaderPanel; width: number; open?: never };
+type Pending = Operation & {
+  binding: Binding; token: number; ready: boolean;
   controller: AbortController; resolve(receipt: ReaderPanelReceipt): void; reject(error: unknown): void; cleanup(): void;
 };
 const panels: readonly ReaderPanel[] = ["toc", "annotations", "appearance", "chat"];
@@ -64,7 +67,8 @@ export class ReaderPanelsService {
       let receipt: ReaderPanelReceipt | undefined;
       if (pending?.binding === binding && pending.ready && pending.token === token) {
         const state = view.panels[pending.panel];
-        if (state.open === pending.open && (!pending.open || state.visible)) {
+        if (pending.width !== undefined ? view.sizes[pending.panel as ResizableReaderPanel] === pending.width
+          : state.open === pending.open && (!pending.open || state.visible)) {
           this.pending = undefined; pending.cleanup();
           // Capture this commit before an observer can start another operation.
           receipt = { status: "completed", panel: pending.panel, snapshot: {
@@ -78,8 +82,17 @@ export class ReaderPanelsService {
   }
 
   setPanel(panel: ReaderPanel, open: boolean, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReaderPanelReceipt> {
-    if (signal?.aborted) return Promise.reject(signal.reason);
     if (!panels.includes(panel) || typeof open !== "boolean") return Promise.reject(new AppError("reader/invalid-target", "Invalid reader panel operation"));
+    return this.dispatch({ panel, open }, signal, guard);
+  }
+
+  setWidth(panel: ResizableReaderPanel, width: number, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReaderPanelReceipt> {
+    try { assertReaderPanelWidth(panel, width); } catch (error) { return Promise.reject(error); }
+    return this.dispatch({ panel, width }, signal, guard);
+  }
+
+  private dispatch(operation: Operation, signal?: AbortSignal, guard?: ReadingSessionGuard): Promise<ReaderPanelReceipt> {
+    if (signal?.aborted) return Promise.reject(signal.reason);
     try { this.checkGuard(guard); } catch (error) { return Promise.reject(error); }
     const binding = this.binding;
     if (!binding || !this.snapshot()) return Promise.reject(new AppError("reader/unavailable", "Reader panels are not attached"));
@@ -90,14 +103,15 @@ export class ReaderPanelsService {
         if (this.pending?.controller === controller) this.cancel(signal?.reason ?? new AppError("reader/timeout", "Reader panel did not commit"));
       };
       const timer = setTimeout(abort, this.deadlineMs);
-      const pending: Pending = { binding, panel, open, controller, token: ++this.token, ready: false, resolve, reject,
+      const pending: Pending = { ...operation, binding, controller, token: ++this.token, ready: false, resolve, reject,
         cleanup: () => { clearTimeout(timer); signal?.removeEventListener("abort", abort); } };
       this.pending = pending;
       signal?.addEventListener("abort", abort, { once: true });
       void (async () => {
-        if (open) await this.reading.setControls(true, controller.signal, { sessionId: binding.sessionId, bookId: binding.bookId });
+        if (operation.open) await this.reading.setControls(true, controller.signal, { sessionId: binding.sessionId, bookId: binding.bookId });
         controller.signal.throwIfAborted();
-        await binding.adapter.apply(panel, open, controller.signal);
+        if (operation.width !== undefined) await binding.adapter.applyWidth(operation.panel, operation.width, controller.signal);
+        else await binding.adapter.apply(operation.panel, operation.open, controller.signal);
         controller.signal.throwIfAborted();
         if (this.pending !== pending || this.binding !== binding) return;
         pending.ready = true;

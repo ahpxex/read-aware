@@ -22,6 +22,7 @@ test("panel actions preserve their displayed open/close intent and only close af
   const { ctx, state, calls } = fixture();
   let finish!: () => void;
   const panels = { sessionId: state.sessionId!, bookId: state.bookId!, revision: 1, controlsVisible: true,
+    sizes: { toc: 288, chat: 352 }, layout: "docked" as const,
     panels: { toc: { open: true, visible: true }, chat: { open: false, visible: false }, annotations: { open: false, visible: false }, appearance: { open: false, visible: false } } };
   ctx.services.ui = { showToast() {}, exportFile: async () => false, publishView: async () => ({ status: "inactive" }), reader: {
     snapshot: async () => panels, observe: () => ({ dispose() {} }),

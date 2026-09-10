@@ -15,5 +15,6 @@ export function createReaderPort(): ReaderPort {
     listEmphasis: reading.queries.emphasis,
     getPanels: async () => readerPanels.snapshot(),
     setPanel: (panel, open, signal, guard) => readerPanels.setPanel(panel, open, signal, guard),
+    setPanelWidth: (panel, width, signal, guard) => readerPanels.setWidth(panel, width, signal, guard),
   };
 }

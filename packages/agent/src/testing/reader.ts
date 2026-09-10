@@ -14,6 +14,7 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
   let selection: ReadingSelectionSnapshot | null = null;
   const emphasis = new Map<string, ReadingEmphasisSnapshot>();
   let controls = { visible: false };
+  const sizes = { toc: 288, chat: 352 };
   const panels = { toc: { open: false, visible: false }, chat: { open: false, visible: false }, annotations: { open: false, visible: false }, appearance: { open: false, visible: false } };
   const showControls = (visible: boolean) => {
     controls = { visible };
@@ -67,12 +68,17 @@ export function createMemoryReader(initialBookId: string | undefined, requests: 
       selection = null; revision++;
       return { status: "completed", sessionId: "fixture", selection: null };
     },
-    getPanels: async () => location ? { sessionId: "fixture", bookId: location.bookId, revision, controlsVisible: controls.visible, panels: structuredClone(panels) } : null,
+    getPanels: async () => location ? { sessionId: "fixture", bookId: location.bookId, revision, controlsVisible: controls.visible, sizes: { ...sizes }, layout: "docked", panels: structuredClone(panels) } : null,
+    setPanelWidth: async (panel, width, signal, guard) => {
+      checkSelection(signal, guard);
+      sizes[panel] = width; revision++;
+      return { status: "completed", panel, snapshot: { sessionId: "fixture", bookId: location!.bookId, revision, controlsVisible: controls.visible, sizes: { ...sizes }, layout: "docked", panels: structuredClone(panels) } };
+    },
     setPanel: async (panel, open) => {
       if (!location) throw new Error("No active fixture reader");
       if (open) showControls(true);
       panels[panel] = { open, visible: open && controls.visible }; revision++;
-      return { status: "completed", panel, snapshot: { sessionId: "fixture", bookId: location.bookId, revision, controlsVisible: controls.visible, panels: structuredClone(panels) } };
+      return { status: "completed", panel, snapshot: { sessionId: "fixture", bookId: location.bookId, revision, controlsVisible: controls.visible, sizes: { ...sizes }, layout: "docked", panels: structuredClone(panels) } };
     },
     getSession: async () => ({ revision, sessionId: location ? "fixture" : null, bookId: location?.bookId ?? null, status: location ? "ready" : "idle", location, visibleText: "", selection: structuredClone(selection), history: { canGoBack: false, canGoForward: false }, playback, mode, controls: location ? { ...controls } : null }),
     setControls: async visible => {

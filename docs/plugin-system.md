@@ -1324,6 +1324,31 @@ recorded in [reader controls evidence](./evidence/reader-controls-2026-09-09.jso
 
 ### Reader Panel Presentation
 
+[代码] UI 1.9 adds `reader.setWidth(panel, width, guard?)` for `toc | chat`,
+with `reading:write`; `reading:read` snapshot/observe additionally expose
+`sizes: { toc, chat }` and `layout: "docked" | "exclusive"`. Widths are preferred
+integer CSS pixels, 240 through 640 inclusive, shared across books and persisted
+on-device, not actual measured panel bounds. Narrow-window exclusive layout
+ignores the saved width until docked layout resumes. Invalid panels/nonfinite,
+fractional or out-of-range widths fail with `reader/invalid-target`.
+Agent `set_reader_panel_width` is available in both scopes, uses the same service
+and guards the active session/book. It is an explicit-user-intent tool.
+
+Width writes patch settled KV state in order and preserve the sibling panel's
+settled width. Native drag release uses this same persistence helper; mounted
+atoms subscribe to KV changes and rollbacks, including external preference
+updates. Failures propagate and the native control no longer silently ignores
+save errors. Success waits for the requested write and a matching fresh React
+commit. Snapshot widths may show optimistic or in-progress native drag values;
+they are not durability receipts. Width operations share panel-intent arbitration,
+session retirement and timeout, but do not open panels, reveal controls, move
+the reading position or focus. Cancellation cannot undo an accepted native write.
+Defaults remain TOC 288/chat 352; callers can request these values explicitly.
+[验证] Focused service/permission/Agent and mounted StrictMode hook tests cover
+the new widths, persistence failure and layout metadata. This addition has not
+yet had real Tauri/Worker/drag E2E; prior panel evidence below does not cover it.
+Semantic focus restoration and plugin-view close-reason receipts remain gaps.
+
 [代码] `services.ui` 1.1 adds the optional `reader` service. It is present only
 with `reading:read` (also implied by `reading:write`): `snapshot()` returns
 `ReaderPanelsSnapshot | null`, and `observe(handler)` immediately delivers the

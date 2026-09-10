@@ -16,6 +16,7 @@ import { readerPanelAcknowledgementsAtom, readerPanelIntentAtom } from "../state
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
 
 const key = "read-aware-reader-panels";
+const sizesKey = "read-aware-reader-panel-sizes";
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 
 if (process.env.PANEL_LAYOUT_CASE === "1") {
@@ -55,7 +56,7 @@ if (process.env.PANEL_LAYOUT_CASE === "1") {
       if (command !== "set_kv") return Promise.resolve();
       return new Promise<void>((resolve, reject) => {
         const commit = () => { disk.set(args.key, args.value); resolve(); };
-        if (hold && args.key === key) pending.push({ value: args.value, commit, reject }); else commit();
+        if (hold && [key, sizesKey].includes(args.key)) pending.push({ value: args.value, commit, reject }); else commit();
       });
     } } });
     hold = false;
@@ -63,6 +64,7 @@ if (process.env.PANEL_LAYOUT_CASE === "1") {
     getDefaultStore().set(readerPanelAcknowledgementsAtom, { panel: null, ask: null });
     getDefaultStore().set(askAiRequestAtom, null);
     await localKV.setItemAsync(key, JSON.stringify({ book: { tocOpen: false, notesOpen: false }, other: { tocOpen: true, notesOpen: true } }));
+    await localKV.setItemAsync(sizesKey, JSON.stringify({ toc: 288, chat: 352 }));
     open("book"); root = createRoot(dom.window.document.getElementById("root")!);
     await act(async () => { render(); await tick(); }); hold = true;
   });
@@ -83,6 +85,28 @@ if (process.env.PANEL_LAYOUT_CASE === "1") {
     await act(async () => { pending.shift()!.commit(); await tick(); });
     expect((await promise).snapshot.panels.toc).toEqual({ open: true, visible: true });
     expect(dom.window.document.querySelector('[aria-label="toc"]')!.hasAttribute("inert")).toBe(false);
+  });
+  test("width API commits through the mounted hook and reports narrow-window preferences honestly", async () => {
+    let settled = false;
+    const request = begin(() => readerPanels.setWidth("chat", 480)).then(result => { settled = true; return result; });
+    await flush(); expect(pending).toHaveLength(1); expect(settled).toBe(false);
+    expect(readerPanels.snapshot()?.sizes).toEqual({ toc: 288, chat: 480 });
+    expect(JSON.parse(disk.get(sizesKey)!).chat).toBe(352);
+    await act(async () => { pending.shift()!.commit(); await tick(); });
+    expect((await request).snapshot).toMatchObject({ layout: "docked", sizes: { chat: 480 }, controlsVisible: false });
+    await act(async () => { render("book", true); });
+    expect(readerPanels.snapshot()).toMatchObject({ layout: "exclusive", sizes: { chat: 480 } });
+    expect(state.chat).toBe(false); expect(state.chatFocusRequestId).toBe(0);
+  });
+  test("failed width writes roll back the atom and subsequent patches preserve settled sibling widths", async () => {
+    const first = begin(() => readerPanels.setWidth("toc", 400)).catch(error => error); await flush();
+    const next = begin(() => readerPanels.setWidth("chat", 500)); await flush();
+    expect(await first).toMatchObject({ code: "reader/superseded" });
+    await act(async () => { pending.shift()!.reject({ code: "db/locked", message: "private" }); await tick(); });
+    expect(JSON.parse(pending[0].value)).toEqual({ toc: 288, chat: 500 });
+    await act(async () => { pending.shift()!.commit(); await tick(); });
+    expect((await next).snapshot.sizes).toEqual({ toc: 288, chat: 500 });
+    expect(readerPanels.snapshot()?.sizes).toEqual({ toc: 288, chat: 500 });
   });
   test("failed native write rolls back and yields one translated notice plus the exact error code", async () => {
     const request = requestPanel("toc", true).catch(error => error); await flush();
@@ -200,6 +224,6 @@ if (process.env.PANEL_LAYOUT_CASE === "1") {
   test("isolated shared panel service, persistence and React lifecycle cases", async () => {
     const child = Bun.spawn([process.execPath, "test", import.meta.path], { env: { ...process.env, PANEL_LAYOUT_CASE: "1" }, stdout: "ignore", stderr: "pipe" });
     const output = await new Response(child.stderr).text();
-    expect(await child.exited, output).toBe(0); expect(output).toContain("13 pass");
+    expect(await child.exited, output).toBe(0); expect(output).toContain("15 pass");
   }, 30_000);
 }

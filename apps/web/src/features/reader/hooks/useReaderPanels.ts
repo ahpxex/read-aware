@@ -8,6 +8,7 @@ import { createLogger } from "../../../platform/logger";
 import { readingRuntime } from "../../../domain/reading-runtime";
 import { readerPanels } from "../../../services/reader-panels";
 import { getReaderPanelLayout, readerPanelLayoutStore, updateReaderPanelLayout } from "../lib/reader-panel-layout";
+import { readerPanelSizesAtom, updateReaderPanelWidth } from "../lib/reader-panel-sizes";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
 import { readerPanelAcknowledgementsAtom, readerPanelIntentAtom, type ReaderPanelIntent } from "../state/panel-intent";
 
@@ -41,6 +42,7 @@ function usePanelIntent(bookId: string, channel: "panel" | "ask", intent: Reader
 
 /** Native controls and external actors use the same bound presentation adapter. */
 export function useReaderPanels(bookId: string, visible: boolean, exclusive: boolean) {
+  const sizes = useAtomValue(readerPanelSizesAtom);
   const raw = useSyncExternalStore(readerPanelLayoutStore.subscribe, readerPanelLayoutStore.getSnapshot);
   const layout = useMemo(() => getReaderPanelLayout(bookId, raw), [bookId, raw]);
   const [transient, setTransient] = useState({ bookId, annotations: false, appearance: false });
@@ -56,7 +58,7 @@ export function useReaderPanels(bookId: string, visible: boolean, exclusive: boo
     appearance: visible && transient.bookId === bookId && transient.appearance };
   useLayoutEffect(() => {
     environment.current = { exclusive };
-    const view: ReaderPanelsView = { controlsVisible: visible, panels: {
+    const view: ReaderPanelsView = { controlsVisible: visible, sizes, layout: exclusive ? "exclusive" : "docked", panels: {
       toc: { open: selected.toc, visible: visible && selected.toc },
       chat: { open: selected.chat, visible: visible && selected.chat },
       annotations: { open: selected.annotations, visible: selected.annotations },
@@ -76,6 +78,7 @@ export function useReaderPanels(bookId: string, visible: boolean, exclusive: boo
       if (!id || !committed.current) return;
       boundBook.current = bookId;
       binding.current = readerPanels.bind(id, bookId, {
+        applyWidth: updateReaderPanelWidth,
         apply: async (panel, open, signal) => {
           signal.throwIfAborted();
           if (panel === "toc" || panel === "chat") {

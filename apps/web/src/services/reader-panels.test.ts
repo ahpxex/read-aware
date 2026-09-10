@@ -4,7 +4,7 @@ import { ReadingSessionController } from "../domain/reading-session-controller";
 import { ReaderPanelsService } from "./reader-panels";
 
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
-const initial = (): ReaderPanelsView => ({ controlsVisible: false, panels: {
+const initial = (): ReaderPanelsView => ({ controlsVisible: false, sizes: { toc: 288, chat: 352 }, layout: "docked", panels: {
   toc: { open: false, visible: false }, chat: { open: false, visible: false },
   annotations: { open: false, visible: false }, appearance: { open: false, visible: false },
 } });
@@ -20,6 +20,11 @@ function fixture(deadline = 1000) {
   reading.bindControls(id, { snapshot: () => ({ visible: view.controlsVisible }), observe: () => () => {},
     setVisible: async visible => { view.controlsVisible = visible; return { visible }; }, retire() {} });
   const binding = service.bind(id, "book", {
+    applyWidth: async (panel, width, passed) => {
+      applyCount++; signal = passed;
+      if (held) await new Promise<void>((resolve, reject) => { commitWrite = resolve; rejectWrite = reject; });
+      passed.throwIfAborted(); view.sizes[panel] = width;
+    },
     apply: async (panel, open, passed) => {
       applyCount++; signal = passed;
       if (held) await new Promise<void>((resolve, reject) => { commitWrite = resolve; rejectWrite = reject; });
@@ -42,6 +47,21 @@ test("panel receipt waits for durable apply and a matching fresh DOM commit", as
   f.commit(0); await tick(); expect(settled).toBe(false);
   f.commit(); expect(await promise).toMatchObject({ status: "completed", panel: "toc", snapshot: { sessionId: f.id, panels: { toc: { open: true, visible: true } } } });
   expect(f.reading.snapshot()).toEqual(before);
+  f.binding.dispose();
+});
+test("width changes share session arbitration and await persistence and commit without opening panels", async () => {
+  const f = fixture(); f.hold(); let settled = false;
+  const request = f.service.setWidth("toc", 420).then(result => { settled = true; return result; });
+  await tick(); f.commit(); expect(settled).toBe(false);
+  f.release(); await tick(); expect(settled).toBe(false);
+  f.commit(); expect((await request).snapshot).toMatchObject({ sizes: { toc: 420, chat: 352 }, controlsVisible: false, panels: { toc: { open: false } } });
+  for (const width of [NaN, Infinity, 239, 641, 300.5]) await expect(f.service.setWidth("chat", width)).rejects.toMatchObject({ code: "reader/invalid-target" });
+  await expect(f.service.setWidth("appearance" as "toc", 300)).rejects.toMatchObject({ code: "reader/invalid-target" });
+  await expect(f.service.setWidth("toc", 300, undefined, { sessionId: "old" })).rejects.toMatchObject({ code: "reader/superseded" });
+  f.hold(); const failed = f.service.setWidth("chat", 400).catch(error => error);
+  await tick(); f.reject(new AppError("db/locked", "private"));
+  expect(await failed).toMatchObject({ code: "db/locked" });
+  expect(f.service.snapshot()?.sizes.chat).toBe(352);
   f.binding.dispose();
 });
 test("same-value close still requires a new UI commit and does not reveal chrome", async () => {

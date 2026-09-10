@@ -686,6 +686,62 @@ annotations 2 migration removes the legacy public unconditional commands.
 
 Private document operations and blocking dispatch have separate contracts below.
 
+### Plugin Diagnostics (Logging 1.0)
+
+[代码] `services.logging.write(entry)` and `policy()` are an always-available,
+plugin-owned service, discoverable as `services.logging` version 1.0.0. There is
+no extra permission and no log-reading, clearing, filesystem or sending method.
+Agent gets no arbitrary logging tool; plugin business tools can record their own
+execution, and the existing host capability tool discovers the service version.
+
+[代码] An entry has `level:debug|info|warn|error`, required `event`, optional
+`errorCode` and `fields`. Event/error code must match
+`^[a-z][a-z0-9_./-]{0,95}$`; these are stable developer identifiers, not prose or
+raw exceptions. Fields are at most 12 named, finite numeric/boolean measurements;
+names match `^[a-z][a-zA-Z0-9_]{0,31}$`. String values, nested objects, arrays,
+raw message/stack and extra entry properties reject. The host copies the entry,
+adds the manifest version and current activation/migration/active phase, and
+logs under its own `plugin:<id>` prefix, never a caller-supplied identity. The
+serialized envelope is capped at 1500 UTF-16 units, below the existing logger's
+2000-character line limit for ordinary manifest identifiers. Invalid shape and
+over-budget entries use the existing localized `plugin/invalid-argument` and
+`plugin/quota-exceeded` codes.
+
+[代码] One host-owned rolling 60-second window accepts at most 60 records per
+plugin ID and 300 across all plugins. Activations of the same ID share allowance;
+disabling/re-enabling does not replenish it. The app-process restart resets it.
+There are at most 300 accepted timestamps in memory and no timer, retained body,
+waiting queue or automatic retry. A rejected attempt returns
+`{status:"rate-limited",retryAfterMs}` without emitting another log. The delay
+reflects the currently binding plugin/global windows, not a future reservation.
+`policy()` returns fresh copies of enabled levels, these limits, `maxFields`,
+`maxEntryChars` and `delivery:"best-effort"`, not global traffic or other IDs.
+
+[代码] Valid production debug calls return `{status:"disabled"}` without consuming
+allowance. Development debug uses only the console, never the host file. Info,
+warn and error use existing `createLogger`: console plus best-effort Tauri
+forwarding to the existing rotating file. `{status:"accepted"}` means handed to
+that logger, not durable flush, exported diagnostics or upload success. No file
+durability or completeness acknowledgement is added. Existing host diagnostic
+export/preview/send stays user initiated and unchanged; rotation/tail budgets may
+omit older records. No native log reader or network operation is exposed.
+
+[代码] Diagnostics may run while activating or migrating as well as active;
+cancelled/retired runtimes reject before emission. Restricted `PluginMigrationContext`
+adds only `logging` alongside private `storage`, not general services or domain
+authority. Already-forwarded records are not recalled on retirement. Raw sandbox
+infrastructure console failures retain their existing host error path.
+
+[环境] Focused normalization, phase/source, allowance, replacement/retirement,
+catalog/real context and Bun Worker ordinary/migration tests cover basic wiring.
+They do not prove real Tauri file persistence, packaged logging, actual diagnostic
+export or a business plugin's use of the service; these remain for concentrated
+end-to-end acceptance. Existing plugin console calls have not been migrated by
+this batch. Restricting the shape prevents accidental content dumps, not arbitrary
+data encoding: plugin authors must still never put user content or credentials
+into event names, error codes or numeric measurements. No automatic redaction
+or telemetry-upload guarantee is claimed.
+
 ### Private Document Pages And Transactions (Storage 2.1)
 
 [代码] `services.storage.collection(name).get/list` now return an opaque local
@@ -5013,7 +5069,8 @@ plugin package version. The host stores the last committed value in a
 host-owned namespace, outside plugin-writable KV.
 
 When the value changes, the candidate may export `migrate(ctx, change)`. The
-migration context exposes only plugin KV and document collections. It has no
+migration context exposes plugin KV/document collections and, since logging 1.0,
+own structured diagnostic logging. Its data authority remains storage-only. It has no
 domains, Settings commands, secrets, network, UI, contributions, or agent
 surface. `change` contains `fromVersion`, `toVersion`, and an explicit
 `upgrade` or `downgrade` direction.

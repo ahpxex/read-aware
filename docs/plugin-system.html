@@ -427,11 +427,16 @@
             <h2>Services</h2>
             <ul class="compact">
               <li>Storage 2.1：KV 持久确认、文档分页与条件事务 / Secrets</li>
+              <li>Logging 1.0：自有结构化诊断、来源标记与限流</li>
               <li>UI export / Toast</li>
               <li>Plugins 1.0：已安装公共目录与变化观察</li>
               <li>Schedules / Session 2.0：仅环境快照与观察；阅读状态统一归 Reading</li>
               <li>Network 2.1：显式访问范围、逐跳授权、分块下载 / LLM / Clipboard</li>
             </ul>
+            <details class="ep"><summary>插件诊断已接宿主日志，但不冒充落盘或上传成功</summary><div class="ep-body">
+              <p>Logging 1.0 只接受稳定事件名、错误码和最多12个数值或布尔指标，宿主标记插件ID、版本和阶段。每条1500字符，每插件60、全App300条滚动一分钟，重载不重置额度；限流直接回执，不排队、不自动重试。激活及迁移可用，退休拒绝。</p>
+              <p>生产debug禁用；info/warn/error进入既有最佳努力日志通道，accepted不是持久保存或诊断包发送完成。没有日志读取或任意模型写日志工具，不接收正文、文本字段和异常stack；作者仍不得把敏感数据伪装成标识符。基础接线测试通过，业务插件消费、Tauri落盘与诊断导出留集中验收。</p>
+            </div></details>
             <details class="ep"><summary>插件私有数据：分页、旧版本保护和多记录事务已接通</summary><div class="ep-body">
               <p>Storage 2.1 的 page 默认50、最多200条及4MiB正文；集合变化返回 stale-cursor，避免拼接不同版本。applyDocuments 一次比较并提交1至100条自有跨集合记录，支持保存、删除和只检查；任何旧版本冲突都不写，数据库失败全部回滚。单条4MiB、批次8MiB，旧接口和恢复写入同样产生新版本身份。</p>
               <p>已派发事务随插件退休排空，不自动重试或撤销。Agent 仍经插件业务工具访问，不直接读私有库；事务不包含KV、文件、核心领域或其他插件。全字段搜索与KV/文档联合恢复仍缺。基础测试与类型检查通过，真实组合插件和Tauri端到端验收集中后置。</p>

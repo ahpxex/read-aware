@@ -12,8 +12,8 @@
  * - Log MESSAGES must not contain user content (book titles, highlight or
  *   chat text) — ids and error text only. The diagnostics bundle is meant to
  *   be safe to share.
- * - Worker code (the plugin sandbox) has no Tauri IPC and must keep raw
- *   console; its errors reach this seam through the host's onerror handler.
+ * - Worker code has no Tauri IPC. Plugins use services.logging for bounded
+ *   structured events; sandbox infrastructure errors reach the host onerror.
  */
 import { isTauri } from "./environment";
 

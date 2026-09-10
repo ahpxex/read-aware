@@ -432,6 +432,7 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
         const migrationContext: PluginMigrationContext = {
           manifest: pluginContext.manifest,
           lifecycle: { phase: "migrating" },
+          logging: pluginContext.services.logging,
           storage: {
             get: pluginContext.services.storage.get,
             set: pluginContext.services.storage.set,

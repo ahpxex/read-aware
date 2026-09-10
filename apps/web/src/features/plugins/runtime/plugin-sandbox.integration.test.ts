@@ -28,7 +28,7 @@ function sandbox(scenario: string, fixture = "wire-probe.ts") {
     t: "boot", url: new URL(`./fixtures/${fixture}`, import.meta.url).href,
     manifest: { id: "wire-test", name: "Wire test", description: scenario, version: "1.0.0", schemaVersion: 1 },
     appVersion: "1.0.0", capabilities: {}, locale: "en", phase: "activating", storage: {},
-    shape: { services: { network: { fetch: "fn", openStream: "fn", readStream: "fn", closeStream: "fn" } }, contributions: { commands: { register: "fn" } }, __collection: { put: "fn", get: "fn", page: "fn" } },
+    shape: { services: { logging: { write: "fn", policy: "fn" }, network: { fetch: "fn", openStream: "fn", readStream: "fn", closeStream: "fn" } }, contributions: { commands: { register: "fn" } }, __collection: { put: "fn", get: "fn", page: "fn" } },
   });
   return { worker, messages, next };
 }
@@ -43,6 +43,20 @@ async function command(scenario: string, fixture?: string) {
   s.worker.postMessage({ t: "invoke", id: 900, handle, args: [] });
   return s;
 }
+
+test("Worker logging crosses normal and restricted migration contexts with structured receipts", async () => {
+  const s = sandbox("logging", "logging-probe.ts");
+  const activation = await s.next(message => message.method === "services.logging.write");
+  expect(data(activation.args!)).toEqual([{ level: "info", event: "activation.started", fields: { attempt: 1 } }]);
+  s.worker.postMessage({ t: "result", id: activation.id, ok: true, value: { status: "accepted" } });
+  await s.next(message => message.t === "ready");
+  s.worker.postMessage({ t: "sync", patch: { phase: "migrating" } });
+  s.worker.postMessage({ t: "migrate", id: 990, migration: { fromVersion: 1, toVersion: 2, direction: "upgrade" } });
+  const migration = await s.next(message => message.method === "services.logging.write");
+  expect(data(migration.args!)).toEqual([{ level: "warn", event: "migration.failed", errorCode: "db/locked" }]);
+  s.worker.postMessage({ t: "result", id: migration.id, ok: true, value: { status: "rate-limited", retryAfterMs: 1000 } });
+  expect(await s.next(message => message.t === "migrated")).toMatchObject({ id: 990, ok: true });
+});
 
 test("Worker storage override retains document pages and conditional transactions", async () => {
   const s = await command("documents", "document-probe.ts");

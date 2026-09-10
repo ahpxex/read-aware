@@ -66,19 +66,28 @@ describe("plugin capability negotiation", () => {
       assertPluginCapabilityRequirements(
         manifest({ requires: { services: { storage: "^1.0.0" } } }),
       ),
-    ).toThrow(/host provides 2.0.0/);
+    ).toThrow(/host provides 2.1.0/);
   });
 
   test("accepts the awaited storage contract", () => {
     expect(() => assertPluginCapabilityRequirements(manifest({ requires: { services: { storage: "^2.0.0" } } }))).not.toThrow();
+    expect(() => assertPluginCapabilityRequirements(manifest({ requires: { services: { storage: "^2.1.0" } } }))).not.toThrow();
+  });
+
+  test("logging needs no content grants and rejects an incompatible service version", () => {
+    expect(() => assertPluginCapabilityRequirements(manifest({ requires: { services: { logging: "^1.0.0" } } }))).not.toThrow();
+    expect(() => assertPluginCapabilityRequirements(manifest({ requires: { services: { logging: "^2.0.0" } } }))).toThrow(/host provides 1.0.0/);
+    const visible = resolvePluginCapabilities(manifest());
+    expect(visible.services.logging).toBe("1.0.0");
+    expect(visible.domains.library).toBeUndefined();
   });
 
   test("negotiates paged table, tree and image declarations without adding data permissions", () => {
-    for (const version of ["^1.5.0", "^1.6.0", "^1.7.0"]) {
+    for (const version of ["^1.5.0", "^1.6.0", "^1.7.0", "^1.8.0"]) {
       const request = manifest({ requires: { schemas: { views: version } } });
       expect(() => assertPluginCapabilityRequirements(request)).not.toThrow();
       const visible = resolvePluginCapabilities(request);
-      expect(visible.schemas.views).toBe("1.7.0");
+      expect(visible.schemas.views).toBe("1.8.0");
       expect(visible.domains.library).toBeUndefined();
       expect(visible.domains.reading).toBeUndefined();
     }

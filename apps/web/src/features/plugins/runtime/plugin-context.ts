@@ -76,6 +76,7 @@ import {
 import { registerSyncTransport } from "../../../platform/sync/transport-registry";
 import { releasePluginCallbacks } from "./plugin-callback-wire";
 import { createPluginDocuments } from "./plugin-documents";
+import { createPluginLogging } from "./plugin-logging";
 import {
   registerCommandContribution,
   registerContextActionContribution,
@@ -618,6 +619,7 @@ export function buildPluginContext(
         },
         observe: (query, handler) => track(() => ({ dispose: pluginDirectory.observe(query, handler) })),
       },
+      logging: createPluginLogging(manifest.id, manifest.version, lifecycle),
       maintenance: {
         snapshot: async () => { lifecycle.assertActive("services.maintenance.snapshot"); return hostMaintenance.snapshot(); },
         observe: handler => track(() => ({ dispose: hostMaintenance.observe(handler) })),

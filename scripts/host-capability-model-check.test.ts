@@ -6,7 +6,8 @@ describe("capability ownership audit", () => {
   test("covers every matrix row and runtime catalog entry", () => {
     const result = validateModel();
     expect(result.owners.size).toBe(result.rows.length);
-    expect(result.catalog.size).toBe(36);
+    expect(result.catalog.size).toBe(37);
+    expect(result.catalog.get("services.logging")).toBe("S12");
     expect(result.catalog.get("contributions.contextActions")).toBe("C1");
     expect(result.catalog.get("services.resources")).toBe("S4");
     expect(result.catalog.get("services.maintenance")).toBe("S3");

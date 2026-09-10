@@ -1684,6 +1684,8 @@ export type PluginMigrationContext = {
   readonly manifest: Readonly<PluginManifest>;
   readonly lifecycle: { readonly phase: "migrating" };
   readonly storage: PluginMigrationStorage;
+  /** Logging 1.0: own structured diagnostics only; no access to other services. */
+  readonly logging: PluginLoggingService;
 };
 
 export type PluginExportFile = {
@@ -1938,8 +1940,40 @@ export type PluginContributions = {
   };
 };
 
+export type PluginLogEntry = {
+  level: "debug" | "info" | "warn" | "error";
+  /** Stable developer event name, never user content, a URL, a path or a secret. */
+  event: string;
+  /** Stable machine-readable failure code, not error.message or stack. */
+  errorCode?: string;
+  /** Up to 12 numeric/boolean measurements; no text, arrays or nested objects. */
+  fields?: Record<string, number | boolean>;
+};
+
+export type PluginLogReceipt =
+  | { status: "accepted" }
+  | { status: "disabled" }
+  | { status: "rate-limited"; retryAfterMs: number };
+
+export type PluginLoggingService = {
+  /** Logging 1.0: accepted means forwarded to the best-effort host logger,
+   * not durably stored or uploaded. Allowed during activation and migration.
+   * Debug is development-console-only. Retired activations cannot write. */
+  write(entry: PluginLogEntry): Promise<PluginLogReceipt>;
+  policy(): Promise<{
+    levels: PluginLogEntry["level"][];
+    maxEntryChars: number;
+    maxFields: number;
+    perPluginLimit: number;
+    appLimit: number;
+    windowMs: number;
+    delivery: "best-effort";
+  }>;
+};
+
 export type PluginHostServices = {
   storage: PluginStorage;
+  logging: PluginLoggingService;
   secrets: {
     get(key: string): Promise<string | null>;
     set(key: string, value: string): Promise<void>;

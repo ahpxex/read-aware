@@ -12,6 +12,7 @@ export type ResourceAdapter = {
   commit(id: string): Promise<void>;
   save(id: string, filename: string, signal?: AbortSignal): Promise<boolean>;
   copyImage(id: string): Promise<ResourceImageReceipt>;
+  imagePreview(id: string): Promise<ArrayBuffer>;
   release(id: string): Promise<void>;
 };
 type Entry = { nativeId: string; ref: ResourceRef; timer: ReturnType<typeof setTimeout> };
@@ -172,6 +173,19 @@ export class ResourceOwner implements ResourcePort {
       if (entry.ref.source === "book") throw new AppError("ui/invalid-target", "Original book files are not image resources");
       const receipt = await this.adapter.copyImage(entry.nativeId);
       this.guard(signal); return receipt;
+    }, signal);
+  }
+  /** Host-rendered views only. Native decoding returns a bounded, inert PNG;
+   * original books stay export-only and source MIME hints are not trusted. */
+  imagePreview(id: string, signal?: AbortSignal): Promise<Blob> {
+    return this.run(async () => {
+      const entry = this.get(id, true);
+      if (entry.ref.source === "book" || !entry.ref.size || entry.ref.size > BOOK_IMAGE_MAX_BYTES) throw invalid();
+      this.authorizeRead({ ...entry.ref });
+      const bytes = await this.adapter.imagePreview(entry.nativeId);
+      this.guard(signal); this.get(id, true); this.authorizeRead({ ...entry.ref });
+      if (!bytes.byteLength || bytes.byteLength > 20 * 1024 * 1024) throw invalid();
+      return new Blob([bytes], { type: "image/png" });
     }, signal);
   }
   async dispose(): Promise<void> {

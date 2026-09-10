@@ -1140,8 +1140,8 @@ no additional data access and does not add Agent tools or executable model UI.
 negotiation, mounted React sort/open/busy/empty-pager tests pass. Interactive,
 empty, busy and narrow Storybook fixtures are available. Real Worker/Tauri
 composition, large datasets, narrow-window rendering and keyboard/focus flows
-remain for concentrated E2E. Tree is added in views 1.6 below; editor/resource-image
-schemas remain open under EXT06, so the whole row is not complete.
+remain for concentrated E2E. Tree is added in views 1.6 and resource raster images
+in views 1.7 below; editor schemas remain open, so EXT06 is not complete.
 
 ### Hierarchical Trees (Views 1.6)
 
@@ -1186,7 +1186,65 @@ typeahead, literal text, busy, live removal and empty paging checks pass. Defaul
 busy, empty, narrow and interactive stories are provided. Real Worker/Tauri,
 screen readers, narrow-window layout and composition E2E remain concentrated
 acceptance work; tests do not establish those results. EXT06 remains partial
-for editor/resource-image schemas and the stated verification gaps.
+for editor schemas and the stated verification gaps; resource raster images are
+added in views 1.7 below.
+
+### Resource Image Views (Views 1.7)
+
+[代码] `PluginImageView` (`kind: image`) is available at the root, in composed
+blocks/details/columns and in live content snapshots. It accepts this activation's
+sealed `resourceId` (nonblank, at most 256 code units), required `alt` (empty means
+decorative), optional `title`/plain-text `caption`, and optional finite
+`aspectRatio` from 0.25 through 4 (default 4/3). The box has a stable ratio through
+loading/failure/success and fits the complete image without cropping. Host load
+events reveal the image; failure is an InlineError with localized stable-code
+copy, never a raw exception or an empty success. Retry is offered only when
+`describeError` declares it retryable.
+
+The bridge's private activation identity binds normalized declarations to the
+same ResourceOwner used by `services.resources`. Resource IDs do not contain
+native IDs, paths or URLs; forged owner fields and supplied src/HTML do not bind
+an owner or load anything. Picked, created, cover and book-image resources are
+eligible once sealed. Original book resources are rejected, even if their bytes
+could decode as an image. Foreign IDs, expiry, unsealed data and read-policy
+failure reject. Existing acquisition grants apply: covers/book images still
+require library access, picked files still require the native picker. The schema
+itself adds no data grant, native clipboard permission or Agent tool.
+
+The host-only `ResourceOwner.imagePreview` serializes access with existing
+resource operations and calls native `resource_image_preview`; it is not exposed
+in `services.resources`. The existing Rust image decoder sniffs content rather
+than trusting MIME/name, accepts PNG/JPEG/GIF/BMP/WebP and rejects SVG/HTML/AVIF
+and unsupported encodings. Inputs are at most 16 MiB, 8192 pixels per edge,
+16 * 1024 * 1024 pixels and 64 MiB decoded allocation under the shared decoder limits.
+Previews are static PNGs, proportionally downscaled to at most 2048 pixels per
+edge and never upscaled. Animation, vector rendering and full-resolution preview
+are not offered; the original sealed resource remains unchanged for read/export.
+Cancellation and expiry are checked again after native work, but cannot preempt
+an already-dispatched native decoder.
+
+Each activation coalesces simultaneously mounted consumers of the same resource
+into one private object URL. There are at most 16 distinct preview entries and
+64 MiB of retained PNG payloads, with a 20 MiB per-preview response guard; this
+is not a cap on total browser bitmap/native decoder memory. The last component
+cleanup cancels pending acquisition and revokes its URL; activation retirement
+revokes all copies and rejects pending leases without waiting for decoding.
+Late results cannot allocate URLs. Same-resource live updates reuse the lease;
+replacement by another resource clears the old image immediately. Failed loads
+are not cached permanently. Releasing/expiring the original does not erase an
+already-created mounted preview copy, but subsequent acquisition after the last
+render lease ends must pass resource ownership/read checks again. No preview
+bytes or object URL are returned through the Worker bridge.
+
+[验证] Resource owner isolation/sealing/cancellation/expiry, view boundary and
+unforgeable bridge binding, coalescing/budgets/retirement/late results, and mounted
+StrictMode loading/load/error/source-change/unmount behavior are covered by
+focused tests. Native Rust tests decode actual PNG/JPEG bytes, verify pixel
+identity/no upscaling/proportional resizing, and reject malformed/oversized/SVG
+inputs. Stories use a trusted host fixture with the existing app PNG asset;
+they do not run the Tauri resource decoder. Real Worker/Tauri resource acquisition,
+packaged CSP, image rendering at narrow windows and composition E2E remain for
+concentrated acceptance. This is not Agent vision or completion of EXT06.
 
 ### Structured Error Toasts (UI 1.10 / Views 1.4)
 
@@ -1266,7 +1324,7 @@ evidence below does not validate the new close callback.
 [代码] `schemas.views` 1.1 adds optional `PluginView.live.subscribe(channel)`;
 `services.ui` 1.2 adds `publishView(channel, { revision, view })`. Existing static
 views are unchanged. `view` in an update is `PluginViewContent`: markdown, list,
-form, blocks, detail, table or (since views 1.6) tree, without another `live` or `onClose` declaration. This publishes a full
+form, blocks, detail, table, tree or (since views 1.7) image, without another `live` or `onClose` declaration. This publishes a full
 snapshot, not a patch, navigation result or new source. No DOM, React, Jotai,
 arbitrary host callback or additional domain permission is exposed. Agent tools
 continue to return structured data through their host renderer; this is not a

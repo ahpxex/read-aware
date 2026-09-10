@@ -556,6 +556,20 @@ export type PluginTreeView = {
   pagination?: PluginViewPagination;
 };
 
+/** Host-decoded preview of this activation's sealed resource. No URL, path,
+ * data URI, HTML or original book file. PNG/JPEG/GIF/BMP/WebP raster inputs;
+ * preview is a static PNG, at most 2048 px per edge, without upscaling. */
+export type PluginImageView = {
+  kind: "image";
+  resourceId: string;
+  title?: string;
+  /** Required alternative text; empty explicitly marks a decorative image. */
+  alt: string;
+  caption?: string;
+  /** Stable display box ratio, 0.25..4, default 4/3; image always fits uncropped. */
+  aspectRatio?: number;
+};
+
 /**
  * Shared field attributes. `agentHidden` keeps a declared setting out of the
  * reading agent's settings catalog (the Plugins panel still shows it); text
@@ -859,6 +873,7 @@ export type PluginBlock =
   | PluginListView
   | PluginTableView
   | PluginTreeView
+  | PluginImageView
   | PluginFormView;
 
 export type PluginColumnCell = {
@@ -882,6 +897,7 @@ export type PluginViewContent =
   | PluginListView
   | PluginTableView
   | PluginTreeView
+  | PluginImageView
   | PluginFormView
   | PluginBlocksView
   | PluginDetailView;

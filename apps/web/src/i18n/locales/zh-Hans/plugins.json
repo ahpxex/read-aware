@@ -1,5 +1,6 @@
 {
   "viewer": {
+    "imageFailed": "无法显示此图片。",
     "tree": { "expand": "展开 {{label}}", "collapse": "收起 {{label}}" },
     "pagination": {
       "previous": "上一页",

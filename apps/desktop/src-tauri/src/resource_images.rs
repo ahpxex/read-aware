@@ -2,7 +2,7 @@ use crate::error::CommandError;
 use image::ImageDecoder;
 use serde::Serialize;
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, Cursor};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 
 const MAX_ENCODED: u64 = 16 * 1024 * 1024;
@@ -12,8 +12,34 @@ const MAX_DECODED: u64 = 64 * 1024 * 1024;
 fn invalid() -> CommandError {
     CommandError::new(
         "ui/invalid-target",
-        "Image is unsupported, invalid or exceeds clipboard limits",
+        "Image is unsupported, invalid or exceeds resource image limits",
     )
+}
+
+fn preview(file: File) -> Result<Vec<u8>, CommandError> {
+    // Only decoded pixels cross into a plugin view, never active source content.
+    let image = image::DynamicImage::ImageRgba8(decode(file)?);
+    let image = if image.width() > 2048 || image.height() > 2048 {
+        image.thumbnail(2048, 2048)
+    } else {
+        image
+    };
+    let mut bytes = Cursor::new(Vec::new());
+    image
+        .write_to(&mut bytes, image::ImageFormat::Png)
+        .map_err(|_| invalid())?;
+    Ok(bytes.into_inner())
+}
+
+#[tauri::command]
+pub async fn resource_image_preview(
+    app: tauri::AppHandle,
+    id: String,
+) -> Result<tauri::ipc::Response, CommandError> {
+    crate::storage::blocking("resource_image_preview", move || {
+        preview(crate::resources::reader(&app, &id)?).map(tauri::ipc::Response::new)
+    })
+    .await
 }
 
 fn decode(file: File) -> Result<image::RgbaImage, CommandError> {
@@ -104,5 +130,27 @@ mod tests {
         assert!(decode(big).is_err());
         let wide = image::RgbaImage::new(8193, 1);
         assert!(decode(encoded(wide.into(), image::ImageFormat::Png)).is_err());
+    }
+
+    #[test]
+    fn previews_are_bounded_png_pixels_and_preserve_aspect_ratio() {
+        let small = image::RgbaImage::from_pixel(2, 3, image::Rgba([10, 20, 30, 40]));
+        let bytes = preview(encoded(small.clone().into(), image::ImageFormat::Png)).unwrap();
+        assert_eq!(
+            image::guess_format(&bytes).unwrap(),
+            image::ImageFormat::Png
+        );
+        let pixels = image::load_from_memory(&bytes).unwrap().to_rgba8();
+        assert_eq!(pixels.dimensions(), small.dimensions());
+        assert_eq!(pixels, small);
+        let wide = image::RgbImage::from_pixel(4096, 1024, image::Rgb([10, 20, 30]));
+        let bytes = preview(encoded(wide.into(), image::ImageFormat::Jpeg)).unwrap();
+        let pixels = image::load_from_memory(&bytes).unwrap();
+        assert_eq!((pixels.width(), pixels.height()), (2048, 512));
+        let mut svg = tempfile::tempfile().unwrap();
+        svg.write_all(b"<svg xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>")
+            .unwrap();
+        svg.seek(SeekFrom::Start(0)).unwrap();
+        assert!(preview(svg).is_err());
     }
 }

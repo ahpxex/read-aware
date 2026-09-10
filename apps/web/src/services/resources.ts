@@ -65,6 +65,7 @@ export const resourceAdapter: ResourceAdapter = {
   },
   release,
   copyImage: nativeResourceFiles.copyImage,
+  imagePreview: nativeResourceFiles.imagePreview,
 };
 
 export function createResourceOwner(authorizeBook?: (id: string) => void, authorizeRead?: (ref: ResourceRef) => void): ResourceOwner {

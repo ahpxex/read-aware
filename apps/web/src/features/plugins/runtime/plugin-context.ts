@@ -38,6 +38,7 @@ import { openBookImageResource } from "../../../domain/library-book-images";
 import { hostSync } from "../../../services/sync";
 import { hostMaintenance } from "../../../services/maintenance";
 import { createResourceOwner } from "../../../services/resources";
+import { registerPluginImageOwner } from "../lib/plugin-image-owner";
 import { importResourceBook } from "../../../domain/library-resource-import";
 import { inspectResourceBook } from "../../../domain/book-inspection";
 import {
@@ -192,6 +193,10 @@ export function buildPluginContext(
     if (!permissions.has("library:read") && !permissions.has("library:write")) throw new AppError("memory/forbidden", "Book resources require library access");
   });
   lifecycle.signal.addEventListener("abort", () => lifecycle.trackCleanup(resources.dispose()), { once: true });
+  registerPluginImageOwner(lifecycle.signal, (id, signal) => {
+    lifecycle.assertActive("views.image");
+    return resources.imagePreview(id, signal);
+  });
   const domain = createActorDomainView(
     selfOrigin,
     domainGrantsFromPermissions(manifest.permissions ?? []),

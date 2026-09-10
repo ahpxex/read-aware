@@ -67,12 +67,12 @@ describe("plugin capability negotiation", () => {
     expect(() => assertPluginCapabilityRequirements(manifest({ requires: { services: { storage: "^2.0.0" } } }))).not.toThrow();
   });
 
-  test("negotiates paged table and tree declarations without adding data permissions", () => {
-    for (const version of ["^1.5.0", "^1.6.0"]) {
+  test("negotiates paged table, tree and image declarations without adding data permissions", () => {
+    for (const version of ["^1.5.0", "^1.6.0", "^1.7.0"]) {
       const request = manifest({ requires: { schemas: { views: version } } });
       expect(() => assertPluginCapabilityRequirements(request)).not.toThrow();
       const visible = resolvePluginCapabilities(request);
-      expect(visible.schemas.views).toBe("1.6.0");
+      expect(visible.schemas.views).toBe("1.7.0");
       expect(visible.domains.library).toBeUndefined();
       expect(visible.domains.reading).toBeUndefined();
     }

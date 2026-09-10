@@ -16,11 +16,13 @@ import type {
   PluginTableRow,
   PluginTreeView,
   PluginTreeNode,
+  PluginImageView,
   PluginMetadataItem,
   PluginText,
   PluginView,
 } from "./plugin-types";
 import { isTimeOfDay } from "./time-of-day";
+import { bindPluginImageOwner } from "./plugin-image-owner";
 
 const MAX_DEPTH = 6;
 const MAX_BLOCKS = 120;
@@ -332,6 +334,17 @@ function normalizeTreeView(input: Record<string, unknown>, context: string): Plu
     actions: input.actions == null ? undefined : normalizeActions(input.actions, `${context}.actions`),
     emptyText: string(input.emptyText, `${context}.emptyText`, true),
     pagination: normalizePagination(input.pagination, `${context}.pagination`) };
+}
+
+function normalizeImageView(input: Record<string, unknown>, context: string): PluginImageView {
+  const resourceId = string(input.resourceId, `${context}.resourceId`)!;
+  if (!resourceId.trim() || resourceId.length > 256) throw new PluginViewError(`${context}.resourceId must be a bounded resource ID`);
+  const aspectRatio = input.aspectRatio == null ? 4 / 3 : finiteNumber(input.aspectRatio, `${context}.aspectRatio`);
+  if (aspectRatio < 0.25 || aspectRatio > 4) throw new PluginViewError(`${context}.aspectRatio must be 0.25..4`);
+  const view: PluginImageView = { kind: "image", resourceId, alt: string(input.alt, `${context}.alt`)!, aspectRatio,
+    title: string(input.title, `${context}.title`, true), caption: string(input.caption, `${context}.caption`, true) };
+  bindPluginImageOwner(input, view);
+  return view;
 }
 
 /**
@@ -805,6 +818,7 @@ function normalizeBlock(input: unknown, context: string, depth: number): PluginB
   if (kind === "list") return normalizeListView(value, context);
   if (kind === "table") return normalizeTableView(value, context);
   if (kind === "tree") return normalizeTreeView(value, context);
+  if (kind === "image") return normalizeImageView(value, context);
   if (kind === "form") return normalizeFormView(value, context);
   throw new PluginViewError(`${context}.kind "${kind}" is not supported`);
 }
@@ -839,7 +853,8 @@ export function normalizePluginView(input: unknown): PluginView {
   if (value.live == null) return view;
   const live = record(value.live, "view.live");
   if (typeof live.subscribe !== "function") throw new PluginViewError("view.live.subscribe must be a function");
-  return { ...view, live: { subscribe: live.subscribe as NonNullable<PluginView["live"]>["subscribe"] } };
+  view.live = { subscribe: live.subscribe as NonNullable<PluginView["live"]>["subscribe"] };
+  return view;
 }
 
 function normalizeViewContent(input: unknown): PluginView {
@@ -855,6 +870,7 @@ function normalizeViewContent(input: unknown): PluginView {
   if (kind === "list") return normalizeListView(value, "view");
   if (kind === "table") return normalizeTableView(value, "view");
   if (kind === "tree") return normalizeTreeView(value, "view");
+  if (kind === "image") return normalizeImageView(value, "view");
   if (kind === "form") return normalizeFormView(value, "view");
   if (kind === "blocks") {
     return {

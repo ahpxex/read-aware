@@ -1,5 +1,6 @@
 {
   "viewer": {
+    "imageFailed": "No se pudo mostrar esta imagen.",
     "tree": { "expand": "Expandir {{label}}", "collapse": "Contraer {{label}}" },
     "pagination": {
       "previous": "Página anterior",

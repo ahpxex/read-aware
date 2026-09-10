@@ -1,5 +1,6 @@
 {
   "viewer": {
+    "imageFailed": "この画像を表示できませんでした。",
     "tree": { "expand": "{{label}}を展開", "collapse": "{{label}}を折りたたむ" },
     "pagination": {
       "previous": "前のページ",

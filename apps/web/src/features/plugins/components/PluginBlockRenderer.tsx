@@ -28,6 +28,7 @@ import { PluginFormViewBody } from "./PluginFormViewBody";
 import { PluginListViewBody } from "./PluginListViewBody";
 import { PluginTableViewBody } from "./PluginTableViewBody";
 import { PluginTreeViewBody } from "./PluginTreeViewBody";
+import { PluginImageViewBody } from "./PluginImageViewBody";
 import type { PluginResultRunner } from "./plugin-view-types";
 
 type PluginBlocksProps = {
@@ -227,5 +228,6 @@ function PluginBlockRenderer({
   }
   if (block.kind === "table") return <PluginTableViewBody view={block} busy={busy} onResult={onResult} />;
   if (block.kind === "tree") return <PluginTreeViewBody view={block} busy={busy} onResult={onResult} />;
+  if (block.kind === "image") return <PluginImageViewBody view={block} />;
   return <PluginFormViewBody key={stackDepth} view={block} busy={busy} onResult={onResult} />;
 }

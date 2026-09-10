@@ -222,6 +222,7 @@ const nativeMap = pairs([
   ["resource_open_file", "SYS11"],
   ["resource_open_cover", "LIB09"],
   ["resource_copy_image", "SYS09"],
+  ["resource_image_preview", "EXT06"],
   ["resource_open_book", "LIB08"],
   ["resource_create resource_append resource_commit resource_read resource_release", "SYS13"],
   ["resource_save", "SYS10"],

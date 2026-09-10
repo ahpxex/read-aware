@@ -11,6 +11,7 @@ export const nativeResourceFiles = {
   commit: (id: string) => invoke<void>("resource_commit", { id }),
   release: (id: string) => invoke<void>("resource_release", { id }),
   copyImage: (id: string) => invoke<ResourceImageReceipt>("resource_copy_image", { id }),
+  imagePreview: (id: string) => invoke<ArrayBuffer>("resource_image_preview", { id }),
   async save(id: string, filename: string, signal?: AbortSignal): Promise<boolean> {
     signal?.throwIfAborted();
     const extension = filename.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase();

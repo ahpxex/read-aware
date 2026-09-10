@@ -12,6 +12,7 @@ function fixture(authorizeBook: (id: string) => void = () => {}) {
     pick: async () => [], openBook: async () => make("book.epub", new Uint8Array([1, 2, 3])),
     openCover: async () => make("cover.png", new Uint8Array([1, 2, 3])),
     copyImage: async () => ({ copied: true, width: 1, height: 1 }),
+    imagePreview: async () => new Uint8Array([1, 2, 3]).buffer,
     create: async options => ({ ...make(options.name), mimeType: options.mimeType! }),
     append: async (id, offset, bytes) => {
       const previous = files.get(id)!; if (previous.length !== offset) throw Error("offset");
@@ -24,6 +25,28 @@ function fixture(authorizeBook: (id: string) => void = () => {}) {
   const owner = new ResourceOwner(adapter, error => errors.push(error), authorizeBook, () => now);
   return { owner, adapter, files, released, errors, make, time: (value: number) => { now = value; } };
 }
+
+test("image previews use only owned sealed non-book resources and recheck expiry and cancellation", async () => {
+  const f = fixture(), other = fixture();
+  const calls: string[] = [];
+  f.adapter.imagePreview = async id => { calls.push(id); return new Uint8Array([1, 2, 3]).buffer; };
+  try {
+    const ref = await f.owner.create({ name: "image.bin" });
+    await expect(f.owner.imagePreview(ref.id)).rejects.toMatchObject({ code: "ui/invalid-target" });
+    await f.owner.append(ref.id, 0, new Uint8Array([3, 2, 1])); await f.owner.commit(ref.id);
+    await expect(other.owner.imagePreview(ref.id)).rejects.toMatchObject({ code: "fs/not-found" });
+    const book = await f.owner.openBook("book");
+    await expect(f.owner.imagePreview(book!.id)).rejects.toMatchObject({ code: "ui/invalid-target" });
+    const blob = await f.owner.imagePreview(ref.id);
+    expect(blob.type).toBe("image/png"); expect([...new Uint8Array(await blob.arrayBuffer())]).toEqual([1, 2, 3]);
+    expect(calls).toHaveLength(1); expect(calls[0]).toStartWith("native-");
+    const abort = new AbortController();
+    f.adapter.imagePreview = async () => { abort.abort(Error("cancelled")); return new ArrayBuffer(1); };
+    await expect(f.owner.imagePreview(ref.id, abort.signal)).rejects.toThrow("cancelled");
+    f.adapter.imagePreview = async () => { f.time(ref.expiresAt); return new ArrayBuffer(1); };
+    await expect(f.owner.imagePreview(ref.id)).rejects.toMatchObject({ code: "fs/not-found" });
+  } finally { await f.owner.dispose(); await other.owner.dispose(); }
+});
 
 test("image acquisition serializes source reads, seals chunks, checks scope and cleans failed copies", async () => {
   const f = fixture(id => { if (id !== "book") throw new AppError("memory/forbidden", "Wrong book"); });

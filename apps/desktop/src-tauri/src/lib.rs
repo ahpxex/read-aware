@@ -1025,6 +1025,7 @@ pub fn run() {
             resources::resource_open_book,
             resources::resource_open_cover,
             resource_images::resource_copy_image,
+            resource_images::resource_image_preview,
             resources::resource_create,
             resources::resource_append,
             resources::resource_commit,

@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { afterEach, expect, test } from "bun:test";
 import type { fetch as nativeFetch } from "@tauri-apps/plugin-http";
 import { validateManifest } from "../lib/manifest";
 import { parsePluginNetworkAccess } from "../lib/plugin-network-policy";
@@ -6,6 +6,12 @@ import { PluginLifecycleController } from "./plugin-lifecycle";
 import { createPluginNetworkService } from "./plugin-network";
 import { flattenPluginResponse, restorePluginResponse } from "./plugin-network-wire";
 import { buildPluginContext } from "./plugin-context";
+import { PLUGIN_NETWORK_LIMITS } from "./plugin-network-requests";
+
+const lifecycles: PluginLifecycleController[] = [];
+afterEach(async () => {
+  for (const lifecycle of lifecycles.splice(0)) { lifecycle.stop(); await lifecycle.drainCleanups(); }
+});
 
 test("native transport has no shared cookie feature and shipped network manifests opt in explicitly", async () => {
   const cargo = Bun.TOML.parse(await Bun.file(new URL("../../../../../desktop/src-tauri/Cargo.toml", import.meta.url)).text()) as {
@@ -24,6 +30,7 @@ test("native transport has no shared cookie feature and shipped network manifest
 function harness(origins = ["https://a.test"], respond: (url: string, init: Parameters<typeof nativeFetch>[1], index: number) => Response | Promise<Response> = () => new Response("ok")) {
   const calls: { url: string; init: Parameters<typeof nativeFetch>[1] }[] = [];
   const lifecycle = new PluginLifecycleController([]);
+  lifecycles.push(lifecycle);
   lifecycle.promote();
   const service = createPluginNetworkService({ origins }, lifecycle, async (input, init) => {
     const index = calls.length;
@@ -67,7 +74,7 @@ test("permission does not imply destinations; policy and manifest cannot widen a
   const h = harness(origins);
   origins.push("https://b.test");
   const snapshot = await h.service.policy(); snapshot.origins.push("https://c.test");
-  expect(await h.service.policy()).toEqual({ origins: ["https://a.test"], maxRedirects: 10, maxBodyBytes: 64 * 1024 * 1024, timeoutMs: 120_000 });
+  expect(await h.service.policy()).toEqual({ origins: ["https://a.test"], maxRedirects: 10, maxBodyBytes: 64 * 1024 * 1024, ...PLUGIN_NETWORK_LIMITS });
   for (const url of ["https://b.test", "https://c.test", "http://a.test", "https://a.test:8080", "https://sub.a.test", "file:///tmp/a"]) {
     await expect(h.service.fetch(url)).rejects.toMatchObject({ code: "plugin/network-denied" });
   }
@@ -91,6 +98,18 @@ test("every native hop is scoped, disables automatic redirects and drops caller 
   expect(new Headers(h.calls[0]!.init?.headers).has("host")).toBe(false);
   expect(new Headers(h.calls[0]!.init?.headers).has("content-length")).toBe(false);
   expect(released).toBe(1);
+});
+
+test("stream methods consume the same authoritative origin gate and preserve non-success responses", async () => {
+  const h = harness(["https://a.test"], () => new Response(new Uint8Array([0, 255, 2]), { status: 404, headers: { "x-test": "stream" } }));
+  await expect(h.service.openStream("https://outside.test")).rejects.toMatchObject({ code: "plugin/network-denied" });
+  expect(h.calls).toHaveLength(0);
+  const stream = await h.service.openStream("https://a.test");
+  expect(stream.status).toBe(404); expect(new Headers(stream.headers).get("x-test")).toBe("stream");
+  const chunk = await h.service.readStream(stream.id, 0, 2);
+  expect([...new Uint8Array(chunk.bytes)]).toEqual([0, 255]);
+  await h.service.closeStream(stream.id);
+  await expect(h.service.readStream(stream.id, 2)).rejects.toMatchObject({ code: "plugin/network-closed" });
 });
 
 test("allowed redirects replay 307 bytes and strip cross-origin standard credentials", async () => {

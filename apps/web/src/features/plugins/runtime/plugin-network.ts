@@ -4,6 +4,7 @@ import type { fetch as nativeFetch } from "@tauri-apps/plugin-http";
 import { authorizePluginNetworkUrl, parsePluginNetworkAccess } from "../lib/plugin-network-policy";
 import { flattenPluginRequest, MAX_PLUGIN_NETWORK_BODY_BYTES } from "./plugin-network-wire";
 import type { PluginLifecycleController } from "./plugin-lifecycle";
+import { PLUGIN_NETWORK_LIMITS, PluginNetworkRequests } from "./plugin-network-requests";
 
 const MAX_REDIRECTS = 10;
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
@@ -14,6 +15,7 @@ export function createPluginNetworkService(
   transport: typeof nativeFetch,
 ): NonNullable<PluginHostServices["network"]> {
   const { origins } = parsePluginNetworkAccess(access);
+  const requests = new PluginNetworkRequests(fetch, lifecycle.signal, pending => lifecycle.trackCleanup(pending));
 
   async function fetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
     // Flattening also strips native-only proxy/TLS options from untrusted init.
@@ -73,11 +75,23 @@ export function createPluginNetworkService(
   return {
     policy: async () => {
       lifecycle.assertActive("services.network.policy");
-      return { origins: [...origins], maxRedirects: MAX_REDIRECTS, maxBodyBytes: MAX_PLUGIN_NETWORK_BODY_BYTES, timeoutMs: 120_000 };
+      return { origins: [...origins], maxRedirects: MAX_REDIRECTS, maxBodyBytes: MAX_PLUGIN_NETWORK_BODY_BYTES, ...PLUGIN_NETWORK_LIMITS };
     },
     fetch: (input, init) => {
       lifecycle.assertActive("services.network.fetch");
-      return fetch(input, init);
+      return requests.fetch(input, init);
+    },
+    openStream: (input, init) => {
+      lifecycle.assertActive("services.network.openStream");
+      return requests.open(input, init);
+    },
+    readStream: (id, offset, maxBytes) => {
+      lifecycle.assertActive("services.network.readStream");
+      return requests.read(id, offset, maxBytes);
+    },
+    closeStream: id => {
+      lifecycle.assertActive("services.network.closeStream");
+      return requests.close(id);
     },
   };
 }

@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+网络流批次已接线：network 2.1 提供 openStream/readStream/closeStream，先响应头后按 offset 分块读取，默认64 KiB、最大1 MiB、总下载1 GiB；上传和普通fetch仍64 MiB。两者共用激活8/全部插件32个请求槽，120秒绝对寿命覆盖头、跳转、暂停与正文，槽等原生收尾后才释放。流仅本激活、单个在途读、不可重放，EOF/close/到期/停用清理；open的signal只负责开头，拿到句柄后显式close，fetch保留正文阶段取消。迟到原生结果不会复活响应，取消不撤销已保存字节或远端效果；不把原生/IPC缓冲和调用者保留字节冒充总内存配额。
+
+[验证] 响应owner的顺序/大小/双层并发/慢清理/取消/到期、正式授权/请求回归、真实Bun Worker分块桥接39 pass / 219 assertions；第一方RSS/TTS/WebDAV和矩阵/模型55 pass / 151 assertions，全仓typecheck 27/27、三文档对结构检查通过。SYS06插件侧按现有原生HTTP范围标接通；SYS07累计额度/重试协调及Agent受限入口仍未接。库存882映射，Agent工具数不变。真实大文件、慢网、Tauri组合和打包CSP留集中验收；本批没有启动桌面/浏览器，未推送，整体目标未完成。
+
 网络授权批次已接线：network 2.0 新增 networkAccess.origins 和 policy()，支持最多32个精确HTTP(S)来源或显式全网；未声明范围不再默许任意请求。安装/更新展示范围，声明必须排除旧1.x宿主。宿主逐跳检查来源并禁HTTPS降级，关闭原生自动跟随，最多10跳，保留方法/正文转换及最终URL/redirected；跨来源移除标准认证/Cookie/Referer，原生共享Cookie jar已禁用。RSS 0.8、TTS 0.6、WebDAV 0.3已迁移并重建；因用户自定义端点显式申请包含本地服务的全网，TTS密钥请求禁重定向，不冒充按配置地址隔离。
 
 [验证] 授权解析/版本协商、正式上下文拒绝、来源副本、重定向/认证/正文/取消和既有Worker桥接回归30 pass / 170 assertions；第一方RSS/TTS/WebDAV、设置与矩阵/模型回归67 pass / 176 assertions。全仓typecheck 27/27，cargo check --offline --lib通过（37项既有警告），三文档对结构通过；库存879映射，Agent工具数不变。SYS06/07仍为部分：下载流、独立网络并发/累计额度、受限Agent网络入口未接。真实重定向/无Cookie原生链路、第一方组合及打包CSP留集中Tauri验收；本批未启动桌面/浏览器、未推送，整体目标未完成。

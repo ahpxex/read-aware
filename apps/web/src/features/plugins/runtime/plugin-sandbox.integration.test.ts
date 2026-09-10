@@ -28,7 +28,7 @@ function sandbox(scenario: string, fixture = "wire-probe.ts") {
     t: "boot", url: new URL(`./fixtures/${fixture}`, import.meta.url).href,
     manifest: { id: "wire-test", name: "Wire test", description: scenario, version: "1.0.0", schemaVersion: 1 },
     appVersion: "1.0.0", capabilities: {}, locale: "en", phase: "activating", storage: {},
-    shape: { services: { network: { fetch: "fn" } }, contributions: { commands: { register: "fn" } }, __collection: { put: "fn", get: "fn" } },
+    shape: { services: { network: { fetch: "fn", openStream: "fn", readStream: "fn", closeStream: "fn" } }, contributions: { commands: { register: "fn" } }, __collection: { put: "fn", get: "fn" } },
   });
   return { worker, messages, next };
 }
@@ -58,6 +58,26 @@ test("real Worker preserves Request semantics, binary responses and authoritativ
   s.worker.postMessage({ t: "sync", patch: { storage: { result: '"stored"' } } });
   s.worker.postMessage({ t: "result", id: write.id, ok: true, value: null });
   expect(resultData(await s.next(message => message.t === "result" && message.id === 900))).toMatchObject({ ok: true, value: { toast: "stored" } });
+});
+
+test("real Worker opens a Request stream then pulls binary chunks and closes its handle", async () => {
+  const s = await command("stream");
+  const open = await s.next(message => message.method === "services.network.openStream");
+  const [url, init] = data(open.args!) as [string, RequestInit];
+  expect(url).toBe("https://example.test/file"); expect(init.method).toBe("PUT");
+  expect(new Headers(init.headers).get("x-token")).toBe("stream");
+  expect([...new Uint8Array(init.body as ArrayBuffer)]).toEqual([0, 255]);
+  s.worker.postMessage({ t: "result", id: open.id, ok: true, value: { id: "response-id", url, status: 200, statusText: "OK", headers: [], redirected: false, expiresAt: Date.now() + 120000 } });
+  const first = await s.next(message => message.method === "services.network.readStream");
+  expect(data(first.args!)).toEqual(["response-id", 0, 1024]);
+  s.worker.postMessage({ t: "result", id: first.id, ok: true, value: { offset: 0, bytes: new Uint8Array([0, 255, 3]).buffer, done: false } });
+  const second = await s.next(message => message.method === "services.network.readStream");
+  expect(data(second.args!)).toEqual(["response-id", 3, 1024]);
+  s.worker.postMessage({ t: "result", id: second.id, ok: true, value: { offset: 3, bytes: new ArrayBuffer(0), done: true } });
+  const close = await s.next(message => message.method === "services.network.closeStream");
+  expect(data(close.args!)).toEqual(["response-id"]);
+  s.worker.postMessage({ t: "result", id: close.id, ok: true, value: null });
+  expect(resultData(await s.next(message => message.t === "result" && message.id === 900))).toMatchObject({ ok: true, value: { toast: "200: 3 bytes" } });
 });
 
 test("real Worker transports marker data, awaitable disposables and explicit callback release", async () => {

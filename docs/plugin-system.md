@@ -130,7 +130,7 @@ disabled; network and durable state must use granted host services.
 
 RPC calls now have a 120-second deadline and a 256-pending-call limit per
 direction. Clone failures settle their pending call, and runtime errors reject
-waiting contribution invocations. Network v2.0 preserves Request inheritance,
+waiting contribution invocations. Network v2.1 preserves Request inheritance,
 headers and binary bodies, forwards cancellation to native HTTP, and buffers at
 most 64 MiB per body in each direction. Stopping a realm cancels its native HTTP
 requests. Cancellation does not undo server-side effects or already committed
@@ -172,10 +172,57 @@ automatically identifiable: TTS requests use `redirect: "error"` rather than ris
 forwarding vendor API keys. RSS 0.8, TTS 0.6 and WebDAV 0.3 declare `"*"` because
 their endpoints are user-configurable, including local HTTP. This is explicit
 broad authorization, not per-configured-endpoint confinement or DNS/IP isolation.
-No automatic retries, independent network concurrency/aggregate-byte quota,
-streaming download API or unrestricted Agent fetch tool is added. Native network
+No automatic retries, aggregate-byte/rate quota or unrestricted Agent fetch tool
+is added. Network 2.1 adds independent concurrency and streaming below. Native network
 behavior and first-party composition remain pending concentrated Tauri E2E;
 focused tests/compilation do not replace that evidence.
+
+### Network 2.1 Streaming
+
+[代码] `openStream(input, init?)` uses the same Request normalization, permission
+and per-redirect policy as `fetch`. It returns an activation-local opaque `id`,
+status/statusText/url/redirected, header pairs and `expiresAt`, without collecting
+the complete response. HTTP error statuses are normal responses, not transport
+exceptions. `readStream(id, offset, maxBytes?)` returns `{ offset, bytes, done }`;
+offset must equal the bytes already delivered. Reads are sequential, one pending
+read per response; default 64 KiB, maximum 1 MiB. A native chunk is split without
+publishing its unused tail. EOF may require an empty final read and releases the
+response. `closeStream(id)` releases early and is idempotent for unknown/closed IDs
+in this activation; foreign IDs cannot read or close another activation's response.
+
+[代码] Downloads permit 1 GiB cumulatively per stream. Uploads and ordinary fetch
+responses retain the 64 MiB limit; an individual native chunk over 64 MiB is also
+rejected. Fetch and streams share eight active requests per activation, 32 across
+all plugin activations (not the host's own inference/sync HTTP). Counts include
+opening, headers, body and native cleanup. The ninth/33rd request rejects with
+`plugin/network-busy`; no hidden queue or automatic retry. Policy also returns
+`maxStreamBytes`, `maxChunkBytes`, `maxConcurrentRequests` and
+`maxHostConcurrentRequests`. These bound operations/transfers, not total memory:
+native HTTP/IPC may prefetch, one native chunk may exceed one returned chunk, and
+caller-retained bytes are not counted by the owner.
+
+[代码] The owner starts a 120-second absolute deadline before native dispatch,
+covering headers, redirects, pauses between reads and response consumption. EOF,
+close, timeout and activation retirement cancel/dispose the native body. A slot
+is released only after already-dispatched native work and body reads settle;
+late results cannot reopen a retired response. Existing fetch retains caller
+AbortSignal cancellation through body consumption. For openStream, init.signal
+applies to opening only; after receiving a handle, use closeStream, including in
+finally when not reading to EOF. Lost open receipts expire automatically; a lost
+read receipt is not replayable, so close/restart deliberately rather than blindly
+retrying the old offset. Already-delivered bytes, saved resources and remote
+effects are never rolled back by cancellation.
+
+[代码/验证] Pending reads distinguish `plugin/network-timeout`,
+`plugin/network-closed`, `plugin/network-busy`, `plugin/network-read-invalid` and
+the existing `plugin/payload-too-large`; after disposal an expired/foreign ID is
+simply closed/unavailable. All have localized surfaces. Owner tests cover chunk
+ordering, bounds, shared slots, late cleanup, cancellation and expiry; a real Bun
+Worker probe checks Request input plus separate header/read/close RPCs. This is
+not a Tauri streaming-download, slow-link or large-file acceptance result. The
+resource service can consume each returned chunk; no new raw filesystem grant or
+Agent network tool is implied. Cumulative rate/byte budgets and retry coordination
+remain separate gaps, not an excuse to add a generic durable offline queue.
 
 ## 5. Domains
 
@@ -3940,7 +3987,7 @@ The current host services are:
 | `maintenance` | 1.0: updater snapshot/observation, release check and native maintenance controls | built in; check requires `service:network` |
 | `resources` | 1.1: native file selection, original/cover snapshots, bounded read/write/seal/save/release | built in; book sources require `library:read` or write |
 | `sync` | 1.0: sanitized status, backlog, account quotas, sync request and host settings | `service:sync` |
-| `network` | 2.0: scoped host HTTP client and policy discovery | `service:network` + `networkAccess.origins` for arbitrary fetch |
+| `network` | 2.1: scoped HTTP, bounded pull streams, shared concurrency and policy discovery | `service:network` + `networkAccess.origins` for arbitrary fetch |
 | `llm` | approved one-shot/structured model calls | `service:llm` |
 | `clipboard` | 1.1: write text or a sealed raster image resource | `service:clipboard` |
 

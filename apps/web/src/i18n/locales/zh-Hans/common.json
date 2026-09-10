@@ -12,6 +12,11 @@
     "copied": "已复制"
   },
   "errors": {
+    "pluginNetworkBusy": "此插件的网络请求过多，请等待正在进行的请求结束。",
+    "pluginNetworkClosed": "此网络响应已关闭、过期或不可用。",
+    "pluginNetworkReadInvalid": "插件请求了无效的网络读取。",
+    "pluginNetworkTimeout": "此网络请求已超时。",
+    "pluginNetworkBodyTooLarge": "此网络请求或响应超过了大小限制。",
     "pluginNetworkDenied": "此插件未获授权访问该网络地址。",
     "pluginNetworkRedirect": "此网络请求遇到了不允许或无效的重定向。",
     "capabilityQueryInvalid": "请检查能力目录的筛选条件和分页范围。",

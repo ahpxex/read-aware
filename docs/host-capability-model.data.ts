@@ -107,7 +107,7 @@ export const units: Unit[] = [
   unit("S5", "Service", "network", "有界 HTTP", "SYS06-07", "services.network",
     "保留 Request 的 method/headers/body/响应 status/headers/bytes；取消、超时、大小/并发限制、授权目的地与重定向检查；重试说明幂等性，离线明确报告。",
     "宿主推理/插件工具可使用，但不因此添加无限制 fetch 模型工具。",
-    "network 2.0 已接 networkAccess.origins 与 policy，最多32个精确HTTP(S)来源或单独*；缺省拒绝任意请求，声明须排除旧宿主，安装/更新展示范围。逐跳授权、禁HTTPS降级、最多10跳，关闭原生自动跟随与共享Cookie jar；跨来源删标准认证/Cookie/Referer，TTS密钥请求拒绝跳转。保留64 MiB正文与120秒RPC截止；独立并发/累计额度、下载流及受限Agent任务仍缺。RSS 0.8/TTS 0.6/WebDAV 0.3显式*支持自定义本地/远端地址，不宣称最小域名授权或DNS/IP隔离；协议、认证、业务缓存仍归插件。基础检查已过，新原生网络链路留集中Tauri验收。",
+    "network 2.1 在2.0显式来源/逐跳授权上接openStream/readStream/closeStream，先响应头后按offset拉取；单流单在途读，默认64 KiB/最大1 MiB片，总下载1 GiB，上传/fetch正文64 MiB。fetch与流共用激活8/全插件32个请求，120秒绝对寿命；EOF/close/到期/停用收尾后退槽，不能靠取消并立即重开绕过并发。open signal只管开头，收据后显式close；读不可重放，已保存字节/远端效果不回滚，不承诺总内存配额。policy含所有硬上限；累计额度/重试协调及受限Agent入口仍缺。最多32个精确来源或单独*，缺省拒绝；禁止HTTPS降级/共享Cookie，TTS密钥请求禁止跳转。第一方自定义地址明确全网含本地，不是DNS/IP隔离；基础及Worker分块测试通过，大文件/慢网/桌面组合留集中验收。",
     "不建设 WebSocket/TCP/通用离线耐久队列来修复现有 HTTP；中止请求不保证服务端没处理，更不等于撤销已付费操作。",
     "GAP04/05：Request 对象与 url+init 等价；预先 abort 不派发；途中 abort 到达 host fetch；流和重定向不能绕过额度/权限。"),
   unit("S6", "Service", "llm", "受预算约束的独立推理", "AI06-07 CFG08", "services.llm",

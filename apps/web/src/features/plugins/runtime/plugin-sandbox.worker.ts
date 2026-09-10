@@ -315,11 +315,12 @@ function buildContext(
   // data here; the response comes back flattened (body as ArrayBuffer, so
   // binary payloads survive) and is rebuilt into a real Response.
   const network = services.network as Record<string, unknown> | undefined;
-  if (network && typeof network.fetch === "function") {
-    network.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+  for (const operation of ["fetch", "openStream"] as const) {
+    if (!network || typeof network[operation] !== "function") continue;
+    network[operation] = async (input: RequestInfo | URL, init?: RequestInit) => {
       const request = await flattenPluginRequest(input, init);
-      const result = await callHost("services.network.fetch", [request.url, request.init], request.signal);
-      return restorePluginResponse(result as PluginNetworkResponse);
+      const result = await callHost(`services.network.${operation}`, [request.url, request.init], request.signal);
+      return operation === "fetch" ? restorePluginResponse(result as PluginNetworkResponse) : result;
     };
   }
 

@@ -12,6 +12,11 @@
     "copied": "Copiado"
   },
   "errors": {
+    "pluginNetworkBusy": "Este plugin tiene demasiadas solicitudes de red en curso. Espere a que termine alguna.",
+    "pluginNetworkClosed": "Esta respuesta de red está cerrada, ha caducado o no está disponible.",
+    "pluginNetworkReadInvalid": "El plugin solicitó una lectura de red no válida.",
+    "pluginNetworkTimeout": "Esta solicitud de red superó el tiempo límite.",
+    "pluginNetworkBodyTooLarge": "Esta solicitud o respuesta de red supera el límite de tamaño.",
     "pluginNetworkDenied": "Este plugin no tiene permiso para contactar con ese destino.",
     "pluginNetworkRedirect": "Esta solicitud encontró una redirección no permitida o no válida.",
     "capabilityQueryInvalid": "Revisa los filtros y los límites de paginación del catálogo de funciones.",

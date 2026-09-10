@@ -12,6 +12,11 @@
     "copied": "コピーしました"
   },
   "errors": {
+    "pluginNetworkBusy": "このプラグインのネットワークリクエストが多すぎます。完了するまでお待ちください。",
+    "pluginNetworkClosed": "このネットワーク応答は終了したか、期限切れか、利用できません。",
+    "pluginNetworkReadInvalid": "プラグインが無効なネットワーク読み取りを要求しました。",
+    "pluginNetworkTimeout": "このネットワークリクエストはタイムアウトしました。",
+    "pluginNetworkBodyTooLarge": "このネットワークリクエストまたは応答はサイズ制限を超えています。",
     "pluginNetworkDenied": "このプラグインはその接続先へのアクセスを許可されていません。",
     "pluginNetworkRedirect": "このリクエストで許可されていない、または無効なリダイレクトが発生しました。",
     "capabilityQueryInvalid": "機能一覧の絞り込み条件とページ範囲を確認してください。",

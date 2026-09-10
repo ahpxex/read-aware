@@ -12,6 +12,11 @@
     "copied": "Copié"
   },
   "errors": {
+    "pluginNetworkBusy": "Ce plugin a trop de requêtes réseau en cours. Attendez la fin de l’une d’elles.",
+    "pluginNetworkClosed": "Cette réponse réseau est fermée, expirée ou indisponible.",
+    "pluginNetworkReadInvalid": "Le plugin a demandé une lecture réseau invalide.",
+    "pluginNetworkTimeout": "Cette requête réseau a dépassé le délai autorisé.",
+    "pluginNetworkBodyTooLarge": "Cette requête ou réponse réseau dépasse la taille autorisée.",
     "pluginNetworkDenied": "Ce plugin n’est pas autorisé à contacter cette destination.",
     "pluginNetworkRedirect": "Cette requête a rencontré une redirection interdite ou invalide.",
     "capabilityQueryInvalid": "Vérifiez les filtres et les limites de pagination du catalogue de fonctionnalités.",

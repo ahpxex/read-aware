@@ -174,6 +174,25 @@ export type PluginNetworkAccess = {
   origins: string[];
 };
 
+export type PluginNetworkStream = {
+  /** Opaque, non-persistent response owned by this activation only. */
+  id: string;
+  status: number;
+  statusText: string;
+  url: string;
+  redirected: boolean;
+  headers: [string, string][];
+  /** Absolute deadline for headers and all subsequent reads, not refreshed by activity. */
+  expiresAt: number;
+};
+
+export type PluginNetworkChunk = {
+  offset: number;
+  bytes: ArrayBuffer;
+  /** EOF releases the response. The final non-empty chunk may precede an empty EOF read. */
+  done: boolean;
+};
+
 export type PluginManifest = {
   /** Directory name and namespace: lowercase, digits, hyphens. */
   id: string;
@@ -1979,7 +1998,11 @@ export type PluginHostServices = {
   network?: {
     /** Network 2.0: this activation's immutable authorization and transport limits.
      * All-origins authorization is ["*"], not a guarantee of endpoint reachability. */
-    policy(): Promise<PluginNetworkAccess & { maxRedirects: number; maxBodyBytes: number; timeoutMs: number }>;
+    policy(): Promise<PluginNetworkAccess & {
+      maxRedirects: number; maxBodyBytes: number; timeoutMs: number;
+      maxStreamBytes: number; maxChunkBytes: number;
+      maxConcurrentRequests: number; maxHostConcurrentRequests: number;
+    }>;
     /** Native HTTP; Request/init semantics and cancellation survive the Worker bridge.
      * Bodies are buffered up to 64 MiB per direction. Calls have a 120s deadline;
      * an abort does not undo a remote side effect already committed by the server.
@@ -1990,6 +2013,20 @@ export type PluginHostServices = {
      * plugin's responsibility (use redirect:error for authenticated endpoints).
      * Host/content-length are transport-owned. No implicit retry or cookie jar. */
     fetch(input: string | URL | Request, init?: RequestInit): Promise<Response>;
+    /** Network 2.1: headers first; download at most 1 GiB without buffering the
+     * whole response. Uploads remain capped at 64 MiB. 8 active requests per
+     * activation / 32 host-wide, shared with fetch; no hidden queue or retry.
+     * init.signal cancels OPENING only; after receipt use closeStream to cancel.
+     * Close in finally if not reading to EOF. 120s absolute lifetime, including
+     * headers/redirects/reads; unload cancels and drains native resources. */
+    openStream(input: string | URL | Request, init?: RequestInit): Promise<PluginNetworkStream>;
+    /** Sequential, non-replayable reads. offset must equal bytes already delivered.
+     * One outstanding read per stream; maxBytes defaults to 64 KiB, max 1 MiB.
+     * A lost read receipt is not safely retryable: close and restart explicitly. */
+    readStream(id: string, offset: number, maxBytes?: number): Promise<PluginNetworkChunk>;
+    /** Idempotent for this activation's released/unknown IDs. Aborts pending reads;
+     * does not undo remote effects or remove data already saved by the plugin. */
+    closeStream(id: string): Promise<void>;
   };
   llm?: {
     ask(input: {

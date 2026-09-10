@@ -7,6 +7,20 @@ export default {
       title: "Wire probe",
       run: async () => {
         const endpoint = ctx.services.storage.get<string>("endpoint");
+        if (ctx.manifest.description === "stream") {
+          const stream = await ctx.services.network!.openStream(new Request(endpoint ?? "https://example.test/file", {
+            method: "PUT", headers: { "x-token": "stream" }, body: new Uint8Array([0, 255]),
+          }));
+          let offset = 0;
+          try {
+            while (true) {
+              const chunk = await ctx.services.network!.readStream(stream.id, offset, 1024);
+              offset += chunk.bytes.byteLength;
+              if (chunk.done) break;
+            }
+          } finally { await ctx.services.network!.closeStream(stream.id); }
+          return { toast: `${stream.status}: ${offset} bytes` };
+        }
         if (ctx.manifest.description === "request-storage") {
           const response = await ctx.services.network!.fetch(new Request(endpoint ?? "https://example.test/file", {
             method: "PUT", headers: { "x-token": "test" }, body: new Uint8Array([0, 255]),

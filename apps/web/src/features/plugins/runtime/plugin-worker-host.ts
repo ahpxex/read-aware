@@ -471,7 +471,7 @@ export function startPluginWorker(
             // Registrations transfer this entire lease to their returned disposable.
             releaseArguments = retainPluginCallbacks(args);
             if (!Array.isArray(args)) throw new AppError("plugin/invalid-input", "Plugin call arguments must be an array");
-            if (message.method === "services.network.fetch") {
+            if (message.method === "services.network.fetch" || message.method === "services.network.openStream") {
               // Validate the body limit on the authoritative side too: a plugin
               // can send messages directly rather than use its friendly proxy.
               const request = await flattenPluginRequest(args[0] as RequestInfo | URL, { ...(args[1] as RequestInit | undefined), signal: controller.signal });

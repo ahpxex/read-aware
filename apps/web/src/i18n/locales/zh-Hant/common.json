@@ -12,6 +12,11 @@
     "copied": "已複製"
   },
   "errors": {
+    "pluginNetworkBusy": "此外掛的網路請求過多，請等待進行中的請求結束。",
+    "pluginNetworkClosed": "此網路回應已關閉、過期或無法使用。",
+    "pluginNetworkReadInvalid": "外掛要求了無效的網路讀取。",
+    "pluginNetworkTimeout": "此網路請求已逾時。",
+    "pluginNetworkBodyTooLarge": "此網路請求或回應超過了大小限制。",
     "pluginNetworkDenied": "此外掛未獲授權存取該網路位址。",
     "pluginNetworkRedirect": "此網路請求遇到了不允許或無效的重新導向。",
     "capabilityQueryInvalid": "請檢查能力目錄的篩選條件和分頁範圍。",

@@ -12,6 +12,11 @@
     "copied": "Copied"
   },
   "errors": {
+    "pluginNetworkBusy": "This plugin has too many network requests in progress. Wait for one to finish.",
+    "pluginNetworkClosed": "This network response is closed, expired, or unavailable.",
+    "pluginNetworkReadInvalid": "The plugin requested an invalid network read.",
+    "pluginNetworkTimeout": "This network request exceeded its time limit.",
+    "pluginNetworkBodyTooLarge": "This network request or response exceeds the size limit.",
     "pluginNetworkDenied": "This plugin is not authorized to contact that destination.",
     "pluginNetworkRedirect": "This network request encountered a disallowed or invalid redirect.",
     "capabilityQueryInvalid": "Check the capability catalog filters and page limits.",

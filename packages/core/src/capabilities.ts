@@ -40,7 +40,7 @@ export const HOST_SERVICE_CATALOG = {
   maintenance: { version: "1.1.0", permission: null },
   resources: { version: "1.2.0", permission: null },
   sync: { version: "1.0.0", permission: "service:sync" },
-  network: { version: "2.0.0", permission: "service:network" },
+  network: { version: "2.1.0", permission: "service:network" },
   llm: { version: "1.1.0", permission: "service:llm" },
   clipboard: { version: "1.1.0", permission: "service:clipboard" },
 } as const;

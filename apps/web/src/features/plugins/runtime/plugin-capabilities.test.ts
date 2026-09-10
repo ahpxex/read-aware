@@ -40,7 +40,7 @@ describe("plugin capability negotiation", () => {
     );
 
     expect(visible.domains).toEqual({ library: DOMAIN_CATALOG.library.version, settings: DOMAIN_CATALOG.settings.version });
-    expect(visible.services.network).toBe("2.0.0");
+    expect(visible.services.network).toBe("2.1.0");
     expect(visible.services.llm).toBeUndefined();
     expect(visible.contributions.themes).toBe("1.0.0");
     expect(visible.contributions.agentTools).toBeUndefined();
@@ -56,8 +56,9 @@ describe("plugin capability negotiation", () => {
   });
 
   test("network scopes require an explicit migration from the broad 1.x contract", () => {
-    expect(() => assertPluginCapabilityRequirements(manifest({ permissions: ["service:network"], requires: { services: { network: "^1.1.0" } } }))).toThrow(/host provides 2.0.0/);
+    expect(() => assertPluginCapabilityRequirements(manifest({ permissions: ["service:network"], requires: { services: { network: "^1.1.0" } } }))).toThrow(/host provides 2.1.0/);
     expect(() => assertPluginCapabilityRequirements(manifest({ permissions: ["service:network"], requires: { services: { network: "^2.0.0" } } }))).not.toThrow();
+    expect(() => assertPluginCapabilityRequirements(manifest({ permissions: ["service:network"], requires: { services: { network: "^2.1.0" } } }))).not.toThrow();
   });
 
   test("rejects an incompatible host capability version", () => {

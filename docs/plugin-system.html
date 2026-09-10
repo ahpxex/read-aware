@@ -411,7 +411,7 @@
               <li>UI export / Toast</li>
               <li>Plugins 1.0：已安装公共目录与变化观察</li>
               <li>Schedules / Session 2.0：仅环境快照与观察；阅读状态统一归 Reading</li>
-              <li>Network 2.0：显式访问范围、逐跳授权 / LLM / Clipboard</li>
+              <li>Network 2.1：显式访问范围、逐跳授权、分块下载 / LLM / Clipboard</li>
             </ul>
             <details class="ep"><summary>外链、复制、导出与插件目录：双端已接线，集中验收待做</summary><div class="ep-body"><p>Agent 新增 list_installed_plugins、copy_to_clipboard、export_text_file、open_external_url，共用宿主查询与效果实现。插件目录只返回公开安装元数据，不返回设置、路径、密钥或原始错误；enabled 是配置，不保证贡献健康。</p><p>UI 1.7 openExternal 要求 service:network，只允许无凭据的 HTTP(S)，不开放本机文件或自定义协议。剪贴板只写文本；导出通过原生保存对话框，取消不算成功，派发写入后不承诺回滚。类型与定向测试通过；组合插件和新路径桌面 E2E 留待集中阶段。</p></div></details>
             <details class="ep"><summary>Schedules 1.1：自有计划可查、可暂停恢复、可手动运行</summary><div class="ep-body">
@@ -541,8 +541,8 @@
         <div class="wrap">
           <h2>始终不开放</h2>
           <p class="intro">插件运行在 Worker 中，界面由宿主声明式渲染。</p>
-          <p>RPC 已有 120 秒截止与每方向 256 个等待调用上限；Network 2.0 保留 Request 参数、二进制与取消，每方向正文最多 64 MiB。networkAccess 声明最多32个精确来源或明确全网，缺省拒绝；安装和更新展示访问范围，旧宿主不能忽略该约束。policy 可查询本激活授权和现有限额。</p>
-          <p>每次重定向重新授权，最多10跳，拒绝 HTTPS 降级；跨来源移除标准认证与 Cookie，原生 HTTP 不共享 Cookie 登录状态。RSS 0.8、TTS 0.6、WebDAV 0.3 为自定义地址显式申请全网（包含本地服务），不是按配置地址隔离；TTS 密钥请求禁止重定向。独立并发/累计额度、下载流、受限 Agent 网络入口仍缺。</p>
+          <p>Network 2.1 提供先响应头、后分块拉取的下载流，每块最多1 MiB、每流最多1 GiB；普通fetch和上传仍最多64 MiB。两种请求共用每激活8个、全部插件32个并发槽和120秒绝对寿命，原生收尾结束才退槽；不是总内存预算。policy可查询授权和硬上限。</p>
+          <p>句柄仅本激活，读取必须顺序且不可重放；未读到结尾须显式关闭，开流的signal只管取得句柄之前。结束/关闭/到期/停用释放资源，不回滚已交付字节或服务端效果。来源范围仍缺省拒绝、逐跳检查，拒HTTPS降级、禁共享Cookie；第一方自定义端点显式全网含本地，TTS密钥请求禁跳转。累计额度、重试协调和受限Agent网络入口仍缺。</p>
           <p>基础检查不代表新原生链路已验；集中 Tauri 组合和生产 CSP 仍待验证。取消不撤销远端已发生的副作用，见 <a href="./host-capability-delivery.md">实现与桌面证据</a>。</p>
           <ul>
             <li>任意 React、HTML、CSS、DOM、iframe 或 WebView 注入</li>

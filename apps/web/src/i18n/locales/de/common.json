@@ -12,6 +12,11 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "pluginNetworkBusy": "Dieses Plugin hat zu viele laufende Netzwerkanfragen. Warten Sie, bis eine abgeschlossen ist.",
+    "pluginNetworkClosed": "Diese Netzwerkantwort ist geschlossen, abgelaufen oder nicht verfügbar.",
+    "pluginNetworkReadInvalid": "Das Plugin hat einen ungültigen Netzwerk-Lesevorgang angefordert.",
+    "pluginNetworkTimeout": "Diese Netzwerkanfrage hat das Zeitlimit überschritten.",
+    "pluginNetworkBodyTooLarge": "Diese Netzwerkanfrage oder Antwort überschreitet das Größenlimit.",
     "pluginNetworkDenied": "Dieses Plugin darf dieses Netzwerkziel nicht kontaktieren.",
     "pluginNetworkRedirect": "Diese Anfrage hat eine unzulässige oder ungültige Weiterleitung erhalten.",
     "capabilityQueryInvalid": "Prüfe die Filter und Seitengrenzen des Funktionskatalogs.",

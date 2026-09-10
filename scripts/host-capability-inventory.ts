@@ -166,6 +166,7 @@ const pluginMap = pairs([
   ["services.ui.workspace.snapshot services.ui.workspace.observe services.ui.workspace.navigate", "UI01 UI02"],
   ["services.ui.commands.list services.ui.commands.execute services.ui.commands.observe", "UI03"],
   ["services.network.fetch", "SYS06"], ["services.network.policy", "SYS07"], ["services.llm.ask", "AI06"], ["services.clipboard.writeText", "SYS08"],
+  ["services.network.openStream", "SYS07"], ["services.network.readStream", "SYS07"], ["services.network.closeStream", "SYS07"],
   ["services.session.environment services.session.observeEnvironment", "MORE03"],
   ["services.sync.snapshot services.sync.observe services.sync.backlog services.sync.requestSync", "OPS01 OPS03"],
   ["services.sync.account", "OPS06 OPS07"],

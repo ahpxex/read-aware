@@ -68,6 +68,8 @@ function seed(): InMemorySeed {
  * 完备性断言会指认漏网的名字。
  */
 const SURFACE_CASES: Record<string, Record<string, unknown>> = {
+  get_conversation_state: {},
+  manage_conversation: { action: "create" },
   list_installed_plugins: {},
   copy_to_clipboard: { text: "Requested text" },
   export_text_file: { filename: "reading.txt", content: "Requested text" },

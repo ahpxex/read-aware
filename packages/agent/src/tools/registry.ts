@@ -6,6 +6,7 @@ import { buildBookTextTools } from "./book-text-tools";
 import { buildGraphTools } from "./graph-tools";
 import { buildBookGraphTaskTool } from "./book-graph-task-tool";
 import { buildConversationTools } from "./conversation-tools";
+import { buildConversationControlTools } from "./conversation-control-tools";
 import { buildInteractionTools } from "./interaction-tools";
 import { buildThreadTools } from "./library-tools";
 import { buildMemoryTools } from "./memory-tools";
@@ -39,6 +40,7 @@ export function buildAgentTools(
     ...buildAnnotationTools(scope, deps),
     ...buildMemoryTools(scope, deps),
     ...buildConversationTools(scope, deps, turnState),
+    ...buildConversationControlTools(scope, deps),
     ...buildBookTextTools(scope, deps, turnState),
     ...buildGraphTools(scope, deps, turnState),
     buildBookGraphTaskTool(scope, deps),

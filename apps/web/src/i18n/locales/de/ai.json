@@ -68,6 +68,11 @@
           "description": "Dadurch werden die importierte Quelldatei und die lokalen Lesedaten dauerhaft entfernt. Dies kann nicht rückgängig gemacht werden.",
           "approve": "Buch löschen"
         },
+        "clearConversation": {
+          "question": "Diese Unterhaltung leeren?",
+          "description": "{{subject}}\n\nStoppt die aktuelle Antwort und entfernt den Verlauf sowie zwischengespeicherte Zusammenfassungen. Langzeitgedächtnis, Ereignisverlauf und abgeschlossene Aktionen bleiben erhalten.",
+          "approve": "Unterhaltung leeren"
+        },
         "deleteCollection": {
           "question": "Die Sammlung „{{subject}}“ löschen?",
           "description": "Die Sammlung wird entfernt. Ihre Bücher bleiben ohne Sammlung im Regal.",

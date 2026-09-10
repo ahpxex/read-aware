@@ -68,6 +68,11 @@
           "description": "This permanently removes the imported source file and its local reading data. This cannot be undone.",
           "approve": "Delete book"
         },
+        "clearConversation": {
+          "question": "Clear this conversation?",
+          "description": "{{subject}}\n\nStops its current reply and removes the transcript and cached conversation insights. Long-term memories, event history and completed actions are not erased.",
+          "approve": "Clear conversation"
+        },
         "deleteCollection": {
           "question": "Delete the collection “{{subject}}”?",
           "description": "The collection will be removed. Its books will stay on your shelf without a collection.",

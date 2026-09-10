@@ -25,6 +25,8 @@ function pairs(entries: Array<[string, string]>): Record<string, string[]> {
   return Object.fromEntries(entries.flatMap(([names, rows]) => words(names).map(name => [name, words(rows)])));
 }
 const agentMap = pairs([
+  ["get_conversation_state", "AI01 AI02 AI03"],
+  ["manage_conversation", "AI02 AI03"],
   ["list_installed_plugins", "EXT11"],
   ["copy_to_clipboard", "SYS08"],
   ["export_text_file", "SYS10"],
@@ -62,6 +64,9 @@ const agentMap = pairs([
   ["ask_user", "AI04"], ["get_settings update_settings", "CFG01"],
 ]);
 const pluginMap = pairs([
+  ["domains.conversations.queries.runtime domains.conversations.events.observeRuntime", "AI02 AI03"],
+  ["domains.conversations.commands.createThread domains.conversations.commands.selectThread domains.conversations.commands.clear", "AI02"],
+  ["domains.conversations.commands.stop", "AI03"],
   ["services.plugins.list services.plugins.observe", "EXT11"],
   ["services.ui.openExternal", "SYS12"],
   ["domains.settings.queries.snapshot domains.settings.queries.discover domains.settings.queries.read domains.settings.commands.update", "CFG01"],

@@ -178,7 +178,7 @@ export interface UserInteractionOption {
 }
 
 export type UserPermissionAction =
-  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory" | "classify-book" | "generate-book-graph";
+  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory" | "classify-book" | "generate-book-graph" | "clear-conversation";
 
 type UserInteractionBase = {
   /** Globally unique for the lifetime of the tool call. */
@@ -403,6 +403,14 @@ export interface RuntimeDeps {
   };
   readingContextPolicy?: import("./runtime/reading-context-policy").ReadingContextPolicy;
   environment: { snapshot(): Promise<import("@read-aware/core").HostEnvironmentSnapshot> };
+  conversationControl: {
+    snapshot(): Promise<import("@read-aware/core").ConversationRuntimeSnapshot>;
+    listThreads(): Promise<import("@read-aware/core").ThreadSummary[]>;
+    createThread(signal?: AbortSignal): Promise<import("@read-aware/core").ConversationControlReceipt & { draft: true }>;
+    selectThread(id: string, signal?: AbortSignal): Promise<import("@read-aware/core").ConversationControlReceipt>;
+    stop(target: import("@read-aware/core").ConversationTarget, signal?: AbortSignal): Promise<import("@read-aware/core").ConversationControlReceipt>;
+    clear(target: import("@read-aware/core").ConversationTarget, signal?: AbortSignal): Promise<import("@read-aware/core").ConversationControlReceipt>;
+  };
   hostIO: {
     listPlugins(query?: import("@read-aware/core").PluginDirectoryQuery): Promise<import("@read-aware/core").PluginDirectoryPage>;
     writeClipboard(text: string, signal?: AbortSignal): Promise<void>;

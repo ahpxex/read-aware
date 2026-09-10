@@ -1,12 +1,17 @@
 import { atom, getDefaultStore } from "jotai";
 import { onAppEvent } from "../../../platform/app-events";
-import { localKV } from "../../../platform/local-store";
+import { afterLocalKVWrites, localKV } from "../../../platform/local-store";
+import { createLogger } from "../../../platform/logger";
+import { isTauri } from "../../../platform/environment";
+import { normalizeConversationTarget, type EventOrigin } from "@read-aware/core";
 import { GLOBAL_CONVERSATION_ID, isGlobalThreadId } from "../lib/conversation-store";
 
 const ACTIVE_THREAD_KEY = "read-aware-active-global-thread";
 
 /** JSON-encoded (the roaming contract); legacy raw strings still readable. */
 function readStoredThreadId(): string {
+  // Non-DOM catalog/test consumers have no preview persistence backing.
+  if (!isTauri() && typeof localStorage === "undefined") return GLOBAL_CONVERSATION_ID;
   const stored = localKV.getItem(ACTIVE_THREAD_KEY);
   if (!stored) return GLOBAL_CONVERSATION_ID;
   let value = stored;
@@ -20,6 +25,16 @@ function readStoredThreadId(): string {
 }
 
 const baseAtom = atom<string>(readStoredThreadId());
+const log = createLogger("global-thread");
+
+export function selectGlobalThread(threadId: string, origin: EventOrigin = "user", signal?: AbortSignal): Promise<void> {
+  const target = normalizeConversationTarget({ kind: "global", id: threadId });
+  return afterLocalKVWrites(async () => {
+    signal?.throwIfAborted();
+    await localKV.setItemAsync(ACTIVE_THREAD_KEY, JSON.stringify(target.id), origin);
+    getDefaultStore().set(baseAtom, target.id);
+  });
+}
 
 /**
  * Context 页当前的全局线程 id（跨启动记住，写入即持久化，且跨设备漫游 ——
@@ -29,9 +44,8 @@ const baseAtom = atom<string>(readStoredThreadId());
  */
 export const activeGlobalThreadAtom = atom(
   (get) => get(baseAtom),
-  (_get, set, threadId: string) => {
-    set(baseAtom, threadId);
-    localKV.setItem(ACTIVE_THREAD_KEY, JSON.stringify(threadId));
+  (_get, _set, threadId: string) => {
+    void selectGlobalThread(threadId).catch(error => log.warn("Could not select conversation", error));
   },
 );
 

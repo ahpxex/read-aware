@@ -1356,17 +1356,27 @@ export type PluginAnnotationsDomain = {
 };
 
 /**
- * Conversations — read-only view over the user's AI threads (one persistent
- * thread per book, plus user-created global threads). Writes stay with the
- * chat runtime; its dual-write is what feeds `on`.
+ * Conversations 1.1 — authorized queries, global draft selection and stop/clear
+ * controls. Message generation stays with the host chat runtime.
  */
 export type PluginConversationsDomain = {
   queries: {
+    runtime(): Promise<import("@read-aware/core").ConversationRuntimeSnapshot>;
     getBookThread(bookId: string): Promise<PluginChatMessage[]>;
     listThreads(): Promise<PluginThreadSummary[]>;
     getThread(threadId: string): Promise<PluginChatMessage[]>;
   };
-  events: { subscribe: DomainSubscribe<ConversationDomainEventType> };
+  commands?: {
+    /** Creates and selects a global draft; no transcript row until the first message. Does not navigate the app. */
+    createThread(): Promise<import("@read-aware/core").ConversationControlReceipt & { draft: true }>;
+    selectThread(threadId: string): Promise<import("@read-aware/core").ConversationControlReceipt>;
+    /** Stops live UI turns and waits for their final transcript writes. Does not undo tool effects. */
+    stop(target: import("@read-aware/core").ConversationTarget): Promise<import("@read-aware/core").ConversationControlReceipt>;
+    /** Clears transcript/hidden thread state after draining turns, not long-term memory or event history. */
+    clear(target: import("@read-aware/core").ConversationTarget): Promise<import("@read-aware/core").ConversationControlReceipt>;
+  };
+  events: { subscribe: DomainSubscribe<ConversationDomainEventType>;
+    observeRuntime(handler: (snapshot: import("@read-aware/core").ConversationRuntimeSnapshot) => unknown): PluginDisposable };
 };
 
 export type PluginSettingsDomain = {

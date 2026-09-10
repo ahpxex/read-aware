@@ -3,7 +3,7 @@ import { errorCode } from "@read-aware/core";
 import { useTranslation } from "../../../i18n";
 import { onAppEvent } from "../../../platform/app-events";
 import { createLogger } from "../../../platform/logger";
-import { discardAgentThread } from "../agent/agent-runtime";
+import { conversationCommands, conversationRuntime } from "../../../domain/conversation-control";
 import { appendStreamChunk, finalizeParts, partsText } from "../lib/chat-stream";
 import { getChatTransport } from "../lib/chat-transport";
 import type {
@@ -13,7 +13,6 @@ import type {
   ChatReadingCursor,
 } from "../lib/chat-types";
 import {
-  clearConversation,
   loadConversation,
   saveConversation,
 } from "../lib/conversation-store";
@@ -78,6 +77,15 @@ export function useBookConversation(
   // Sampled at send time via a ref so `send` stays stable across page turns.
   const readingCursorRef = useRef<ChatReadingCursor | null>(readingCursor);
   readingCursorRef.current = readingCursor;
+  const bindingRef = useRef<ReturnType<typeof conversationRuntime.bind> | null>(null);
+  useEffect(() => {
+    const binding = conversationRuntime.bind({ kind: thread, id: bookId });
+    bindingRef.current = binding;
+    return () => { binding.dispose(); if (bindingRef.current === binding) bindingRef.current = null; };
+  }, [bookId, thread]);
+  useEffect(() => {
+    bindingRef.current?.update({ loading: isLoading, streaming: isStreaming, messageCount: messages.length });
+  }, [bookId, thread, isLoading, isStreaming, messages.length]);
 
   // (Re)load the persisted conversation when the book changes; abort any
   // in-flight turn from the previous book.
@@ -122,8 +130,8 @@ export function useBookConversation(
 
   const persist = useCallback(
     (next: ChatMessage[]) => {
-      setMessages(next);
-      return saveConversation(bookId, next); // best-effort internally
+      if (mountedIdRef.current === bookId) setMessages(next);
+      return saveConversation(bookId, next);
     },
     [bookId],
   );
@@ -147,7 +155,7 @@ export function useBookConversation(
       const controller = new AbortController();
       abortRef.current = controller;
 
-      void (async () => {
+      const work = (async () => {
         let assembled: ChatAssistantPart[] = [];
         let failure: string | null = null;
         let failureCode: string | undefined;
@@ -213,19 +221,23 @@ export function useBookConversation(
             };
             committed = persist([...withUser, assistantMessage]);
           }
-          setStreamingParts([]);
-          setStatus(null);
-          setIsStreaming(false);
-          abortRef.current = null;
-          inFlightRef.current = false;
+          if (abortRef.current === controller) {
+            setStreamingParts([]);
+            setStatus(null);
+            setIsStreaming(false);
+            abortRef.current = null;
+            inFlightRef.current = false;
+          }
           // A sync pull landed mid-turn: reload now that the turn's own
           // persist has the transcript on disk.
           if (pendingReloadRef.current) {
             pendingReloadRef.current = false;
-            void committed.then(reloadFromStore);
+            void committed.then(reloadFromStore).catch(error => log.warn("Deferred conversation reload failed", error));
           }
+          await committed;
         }
       })();
+      conversationRuntime.track(bookId, () => controller.abort(), work);
     },
     [bookId, bookTitle, thread, persist, reloadFromStore, t],
   );
@@ -234,7 +246,7 @@ export function useBookConversation(
     (text: string, attachments?: ChatAttachment[]) => {
       const trimmed = text.trim();
       const hasAttachment = !!attachments && attachments.length > 0;
-      if ((!trimmed && !hasAttachment) || isStreaming) return;
+      if ((!trimmed && !hasAttachment) || isLoading || inFlightRef.current || !conversationRuntime.canStart(bookId)) return;
 
       const userMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -245,11 +257,11 @@ export function useBookConversation(
       };
       runTurn(messagesRef.current, userMessage);
     },
-    [isStreaming, runTurn],
+    [bookId, isLoading, runTurn],
   );
 
   const retry = useCallback(() => {
-    if (isStreaming) return;
+    if (isLoading || inFlightRef.current || !conversationRuntime.canStart(bookId)) return;
     const current = messagesRef.current;
     let lastUserIndex = -1;
     for (let i = current.length - 1; i >= 0; i -= 1) {
@@ -261,16 +273,15 @@ export function useBookConversation(
     if (lastUserIndex < 0) return;
     // Same user message object — id, attachments and timestamp preserved.
     runTurn(current.slice(0, lastUserIndex), current[lastUserIndex], true);
-  }, [isStreaming, runTurn]);
+  }, [bookId, isLoading, runTurn]);
 
   const stop = useCallback(() => {
     abortRef.current?.abort();
   }, []);
 
   const clear = useCallback(async () => {
-    abortRef.current?.abort();
-    setMessages([]);
-    await Promise.all([discardAgentThread(thread, bookId), clearConversation(bookId)]);
+    await conversationCommands("user").clear({ kind: thread, id: bookId });
+    if (mountedIdRef.current === bookId) setMessages([]);
   }, [bookId, thread]);
 
   return { messages, isLoading, isStreaming, streamingParts, status, send, retry, stop, clear };

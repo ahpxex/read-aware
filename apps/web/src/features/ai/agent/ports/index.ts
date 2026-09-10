@@ -3,6 +3,7 @@ import type { RuntimeDeps } from "@read-aware/agent";
 import { createLogger } from "../../../../platform/logger";
 import { hostEnvironment } from "../../../../platform/host-environment";
 import { hostIO } from "../../../../services/host-io";
+import { createConversationsDomain } from "../../../../domain/conversations";
 import { workspace } from "../../../../services/workspace";
 import { trustedHostCommands } from "../../../../services/host-command-runtime";
 import {
@@ -29,7 +30,9 @@ import { agentBookGraphTasks } from "../../../../domain/book-graph-tasks";
 export { GLOBAL_CONVERSATION_ID } from "./conversation-port";
 
 export function buildRuntimeDeps(): RuntimeDeps {
+  const conversations = createConversationsDomain("agent");
   return {
+    conversationControl: { snapshot: conversations.queries.runtime, listThreads: conversations.queries.listThreads, ...conversations.commands },
     hostIO,
     bookGraphTasks: agentBookGraphTasks,
     bookClassification: { inspect: inspectBookClassification, change: (input, signal) => changeBookClassification(input, "agent", signal) },

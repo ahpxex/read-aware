@@ -68,6 +68,11 @@
           "description": "这会永久移除导入的原始文件和本地阅读数据，且无法撤销。",
           "approve": "删除书籍"
         },
+        "clearConversation": {
+          "question": "清空这段对话？",
+          "description": "{{subject}}\n\n停止当前回复，清除聊天记录及缓存的对话摘要。不会删除长期记忆、事件历史或撤销已完成的操作。",
+          "approve": "清空对话"
+        },
         "deleteCollection": {
           "question": "要删除分类“{{subject}}”吗？",
           "description": "分类会被删除，其中的书仍会保留在书架上，但不再属于任何分类。",

@@ -7,9 +7,11 @@
  */
 import { useEffect, useState } from "react";
 import { useAtom } from "jotai";
-import { discardAgentThread } from "../../ai/agent/agent-runtime";
+import { useToast } from "@read-aware/ui";
+import { describeError, useTranslation } from "../../../i18n";
+import { conversationCommands } from "../../../domain/conversation-control";
+import { createLogger } from "../../../platform/logger";
 import {
-  clearConversation,
   listGlobalThreads,
   newGlobalThreadId,
   type ConversationSummary,
@@ -18,6 +20,8 @@ import { activeGlobalThreadAtom } from "../../ai/state/global-thread";
 import { ThreadsPopoverView } from "./ThreadsPopoverView";
 
 export function ThreadsPopover() {
+  const { toast } = useToast();
+  const { t } = useTranslation("ai");
   const [open, setOpen] = useState(false);
   const [threads, setThreads] = useState<ConversationSummary[]>([]);
   const [activeThreadId, setActiveThreadId] = useAtom(activeGlobalThreadAtom);
@@ -28,10 +32,7 @@ export function ThreadsPopover() {
   }, [open]);
 
   const remove = async (threadId: string) => {
-    await Promise.all([
-      clearConversation(threadId),
-      discardAgentThread("global", threadId),
-    ]);
+    await conversationCommands("user").clear({ kind: "global", id: threadId });
     const remaining = threads.filter((thread) => thread.id !== threadId);
     setThreads(remaining);
     if (threadId === activeThreadId) {
@@ -46,7 +47,11 @@ export function ThreadsPopover() {
       threads={threads}
       activeThreadId={activeThreadId}
       onSelect={setActiveThreadId}
-      onDelete={(threadId) => void remove(threadId)}
+      onDelete={(threadId) => void remove(threadId).catch(error => {
+        createLogger("threads").warn("Could not clear conversation", error);
+        const description = describeError(error);
+        toast({ variant: "destructive", title: t("agent.threads.delete"), description: description.body });
+      })}
     />
   );
 }

@@ -1,8 +1,8 @@
 /**
- * Conversations domain — read-only view over the user's AI threads (one
+ * Conversations domain — authorized queries and controls over AI threads (one
  * persistent thread per book, keyed by the book id, plus user-created
- * global threads). Writes stay with the chat runtime (which dual-writes the
- * conversation events); other actors observe via `on`.
+ * global threads). Message generation stays with the chat runtime; controls
+ * share its turn drain rather than fabricating user/assistant messages.
  */
 import type { ChatMessageSummary, EventOrigin, ThreadSummary } from "@read-aware/core";
 import {
@@ -10,6 +10,7 @@ import {
   loadConversation,
 } from "../features/ai/lib/conversation-store";
 import { CONVERSATION_EVENTS, domainSubscribe, type DomainEventSubscribe } from "./events";
+import { conversationCommands, conversationSnapshot, observeConversations } from "./conversation-control";
 
 function toMessages(
   messages: Awaited<ReturnType<typeof loadConversation>>,
@@ -25,6 +26,7 @@ function toMessages(
 }
 
 export type ConversationQueries = {
+  runtime(): Promise<import("@read-aware/core").ConversationRuntimeSnapshot>;
   /** The book's persistent thread, oldest first; empty when none. */
   getBookThread(bookId: string): Promise<ChatMessageSummary[]>;
   /** User-created global (Context page) threads. */
@@ -34,8 +36,9 @@ export type ConversationQueries = {
 
 export type ConversationsDomain = {
   queries: ConversationQueries;
-  commands: Record<string, never>;
+  commands: ReturnType<typeof conversationCommands>;
   events: {
+    observeRuntime(handler: (snapshot: import("@read-aware/core").ConversationRuntimeSnapshot) => unknown): () => void;
     subscribe: DomainEventSubscribe<(typeof CONVERSATION_EVENTS)[number]>;
   };
 };
@@ -43,6 +46,7 @@ export type ConversationsDomain = {
 export function createConversationsDomain(origin: EventOrigin): ConversationsDomain {
   return {
     queries: {
+      runtime: async () => conversationSnapshot(),
       getBookThread: async (bookId) => toMessages(await loadConversation(String(bookId))),
       listThreads: async () =>
         (await listGlobalThreads()).map((thread) => ({
@@ -52,7 +56,7 @@ export function createConversationsDomain(origin: EventOrigin): ConversationsDom
         })),
       getThread: async (threadId) => toMessages(await loadConversation(String(threadId))),
     },
-    commands: {},
-    events: { subscribe: domainSubscribe(CONVERSATION_EVENTS, origin) },
+    commands: conversationCommands(origin),
+    events: { subscribe: domainSubscribe(CONVERSATION_EVENTS, origin), observeRuntime: observeConversations },
   };
 }

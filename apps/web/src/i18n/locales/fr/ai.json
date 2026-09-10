@@ -68,6 +68,11 @@
           "description": "Le fichier source importé et ses données de lecture locales seront définitivement supprimés. Cette action est irréversible.",
           "approve": "Supprimer le livre"
         },
+        "clearConversation": {
+          "question": "Effacer cette conversation ?",
+          "description": "{{subject}}\n\nArrête la réponse en cours et efface la transcription et les résumés en cache. Les souvenirs à long terme, l’historique des événements et les actions terminées sont conservés.",
+          "approve": "Effacer la conversation"
+        },
         "deleteCollection": {
           "question": "Supprimer la collection « {{subject}} » ?",
           "description": "La collection sera supprimée. Ses livres resteront dans votre bibliothèque sans collection.",

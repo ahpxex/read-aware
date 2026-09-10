@@ -68,6 +68,11 @@
           "description": "這會永久移除匯入的原始檔案和本機閱讀資料，且無法復原。",
           "approve": "刪除書籍"
         },
+        "clearConversation": {
+          "question": "清空這段對話？",
+          "description": "{{subject}}\n\n停止目前回覆，清除聊天記錄及快取的對話摘要。不會刪除長期記憶、事件歷史或撤銷已完成的操作。",
+          "approve": "清空對話"
+        },
         "deleteCollection": {
           "question": "要刪除分類「{{subject}}」嗎？",
           "description": "分類會被刪除，其中的書仍會保留在書架上，但不再屬於任何分類。",

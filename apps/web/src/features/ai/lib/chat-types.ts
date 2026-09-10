@@ -73,7 +73,7 @@ export interface ChatInteractionOption {
   description?: string;
 }
 
-export type ChatPermissionAction = "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory" | "classify-book" | "generate-book-graph";
+export type ChatPermissionAction = "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory" | "classify-book" | "generate-book-graph" | "clear-conversation";
 
 export type ChatInteractionRequest = {
   id: string;

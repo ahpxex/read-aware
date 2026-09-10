@@ -358,6 +358,14 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   const memoryManagement = createMemoryManagementFixture(stores.memories);
   const bookClassification = createBookClassificationFixture(books);
   const deps: RuntimeDeps = {
+    conversationControl: {
+      snapshot: async () => ({ revision: 0, selectedGlobalThreadId: "__global__", sessions: [] }),
+      listThreads: async () => [],
+      createThread: async () => ({ status: "completed", target: { kind: "global", id: `thread-${crypto.randomUUID()}` }, draft: true }),
+      selectThread: async id => ({ status: "completed", target: { kind: "global", id } }),
+      stop: async target => ({ status: "completed", target }),
+      clear: async target => { stores.turns.delete(`${target.kind}:${target.id}`); return { status: "completed", target }; },
+    },
     hostIO: {
       listPlugins: async () => ({ plugins: [], total: 0, offset: 0, nextOffset: null }),
       writeClipboard: async () => { throw new AppError("ui/unavailable", "Attach a clipboard fixture"); },

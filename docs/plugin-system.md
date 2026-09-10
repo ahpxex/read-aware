@@ -151,7 +151,7 @@ The current public roster is:
 | Library | books, source files, metadata, TOC, collections, import and removal | `library:read`, `library:write` |
 | Reading | active session, navigation, location, progress, reading time | `reading:read`, `reading:write` |
 | Annotations 2.0 | highlights, notes, passive question traces, conditional edits and query observations | `annotations:read`, `annotations:write` |
-| Conversations | book/global threads and message summaries | `conversations:read` |
+| Conversations 1.1 | threads, message summaries, live state and controlled thread management | `conversations:read`, `conversations:write` |
 | Settings | catalog, resolved values, targets, validation, change events | exact path grants |
 | Memory | active memory search, chapter graphs and conditional feedback | `memory:read`, `memory:write` (1.1) |
 
@@ -160,6 +160,21 @@ feature, menu, or route is not a domain merely because it has a name.
 
 There is no `shelf` domain. Library ownership and active reading behavior are
 separate. Do not restore `shelf` as an alias.
+
+Conversations 1.1 adds `queries.runtime()` and `events.observeRuntime(handler)`
+(initial snapshot plus changes), with mounted session identities, loading,
+streaming and message counts. `conversations:write` exposes `createThread`,
+`selectThread`, `stop`, and `clear`; plugin retirement aborts pending controls.
+Create persists the selected empty global draft; the first message creates its
+transcript row. Select requires an existing thread or the selected draft and
+does not navigate the app. Stop/clear block new turns and wait for in-flight
+turns' final persistence before completing. Clear also discards hidden Agent
+thread state and insights, not long-term memory, event history or completed
+tool effects; its multiple writes do not promise atomic rollback. Agent state
+queries are book-scoped or global; management is global-only, requires approval
+for clear, and refuses stop/clear of the executing thread. User-confirmed text
+drafts, send and retry are still unconnected. Focused checks passed; integrated
+plugin/Tauri acceptance is pending.
 
 Reading v2 exposes `queries.session()` and `events.observeSession(handler)`:
 an immediate snapshot followed by revisions, with session identity, loading
@@ -3140,7 +3155,7 @@ restored; it is not remote LLM, word-card rendering, or installation-upgrade E2E
 The manifest permission vocabulary is derived from the catalogs:
 
 - Domains: `library:read`, `library:write`, `reading:read`, `reading:write`,
-  `annotations:read`, `annotations:write`, `conversations:read`, `memory:read`, `memory:write`.
+  `annotations:read`, `annotations:write`, `conversations:read`, `conversations:write`, `memory:read`, `memory:write`.
 - Contributions: `reader:modes`, `agent:tools`, `agent:context`,
   `agent:retrieval`, `agent:memory`, `ui:themes`, `sync:transport`.
 - Services: `service:network`, `service:llm`, `service:clipboard`.

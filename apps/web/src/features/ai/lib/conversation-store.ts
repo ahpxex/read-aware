@@ -2,6 +2,7 @@ import { invoke } from "../../../platform/ipc";
 import { isTauri } from "../../../platform/environment";
 import { commitDomainEvents, type DomainEventDraft } from "../../../platform/domain-events";
 import { createLogger } from "../../../platform/logger";
+import type { EventOrigin } from "@read-aware/core";
 import type { ChatAssistantPart, ChatAttachment, ChatMessage } from "./chat-types";
 
 const log = createLogger("conversation-store");
@@ -209,13 +210,13 @@ export async function saveConversation(
     });
     knownEventIds.set(conversationId, new Set(eventable(messages).map((m) => m.id)));
   } catch (err) {
-    // Best-effort, like the kv store before it: a failed persist must not take
-    // down the live conversation; the next committed turn retries a full write.
+    // Keep the live transcript, but do not report durable completion on failure.
     log.error("persist failed", err);
+    throw err;
   }
 }
 
-export async function clearConversation(conversationId: string): Promise<void> {
+export async function clearConversation(conversationId: string, origin: EventOrigin = "user"): Promise<void> {
   if (!isTauri()) {
     memoryStore.delete(conversationId);
     return;
@@ -223,7 +224,7 @@ export async function clearConversation(conversationId: string): Promise<void> {
   // Applying the event drops the messages and tombstones the conversation;
   // `ai_chat_clear` additionally removes any error stubs, which are local-only
   // rows the log never described.
-  await commitDomainEvents({ type: "aiConversation.cleared", payload: { conversationId } });
+  await commitDomainEvents({ type: "aiConversation.cleared", payload: { conversationId }, origin });
   await invoke("ai_chat_clear", { conversationId });
   knownEventIds.set(conversationId, new Set());
 }

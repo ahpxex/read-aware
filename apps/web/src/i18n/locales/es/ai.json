@@ -68,6 +68,11 @@
           "description": "Esto elimina permanentemente el archivo importado y sus datos de lectura locales. No se puede deshacer.",
           "approve": "Eliminar libro"
         },
+        "clearConversation": {
+          "question": "¿Vaciar esta conversación?",
+          "description": "{{subject}}\n\nDetiene la respuesta actual y elimina la transcripción y los resúmenes en caché. No borra los recuerdos a largo plazo, el historial de eventos ni las acciones completadas.",
+          "approve": "Vaciar conversación"
+        },
         "deleteCollection": {
           "question": "¿Eliminar la colección «{{subject}}»?",
           "description": "La colección se eliminará. Sus libros seguirán en la estantería sin colección.",

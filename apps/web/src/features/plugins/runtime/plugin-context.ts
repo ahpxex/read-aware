@@ -798,8 +798,15 @@ export function buildPluginContext(
     ctx.domains.conversations = {
       queries: domain.conversations.queries,
       events: {
+        observeRuntime: handler => track(() => ({ dispose: domain.conversations!.events.observeRuntime(handler) })),
         subscribe: trackedOn(domain.conversations.events.subscribe),
       },
+      ...(domain.conversations.commands ? { commands: {
+        createThread: () => { lifecycle.assertActive("conversations.createThread"); return domain.conversations!.commands!.createThread(lifecycle.signal); },
+        selectThread: (id: string) => { lifecycle.assertActive("conversations.selectThread"); return domain.conversations!.commands!.selectThread(id, lifecycle.signal); },
+        stop: (target: import("@read-aware/core").ConversationTarget) => { lifecycle.assertActive("conversations.stop"); return domain.conversations!.commands!.stop(target, lifecycle.signal); },
+        clear: (target: import("@read-aware/core").ConversationTarget) => { lifecycle.assertActive("conversations.clear"); return domain.conversations!.commands!.clear(target, lifecycle.signal); },
+      } } : {}),
     };
   }
 

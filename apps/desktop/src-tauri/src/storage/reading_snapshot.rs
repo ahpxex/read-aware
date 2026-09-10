@@ -189,10 +189,14 @@ pub(crate) fn reading_time_snapshot_inner(
 }
 
 #[tauri::command]
-pub fn reading_time_snapshot(
+pub async fn reading_time_snapshot(
     query: ReadingTimeQuery,
-    db: tauri::State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<ReadingTimeSnapshot, CommandError> {
-    let mut conn = db.0.lock()?;
-    reading_time_snapshot_inner(&mut conn, query)
+    crate::storage::blocking("reading_time_snapshot", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        reading_time_snapshot_inner(&mut conn, query)
+    })
+    .await
 }

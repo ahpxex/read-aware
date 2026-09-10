@@ -943,9 +943,15 @@ pub fn checkpoint_schema_version() -> i64 {
 }
 
 #[tauri::command]
-pub fn checkpoint_list(db: State<'_, Db>) -> Result<Vec<CheckpointInfo>, CommandError> {
-    let conn = db.0.lock()?;
-    list_checkpoints(&conn)
+pub async fn checkpoint_list(
+    app: tauri::AppHandle,
+) -> Result<Vec<CheckpointInfo>, CommandError> {
+    crate::storage::blocking("checkpoint_list", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        list_checkpoints(&conn)
+    })
+    .await
 }
 
 /// Cut a local checkpoint if enough happened since the last one (see
@@ -977,9 +983,16 @@ pub async fn checkpoint_prepare_publish(app: AppHandle) -> Result<CheckpointInfo
 }
 
 #[tauri::command]
-pub fn checkpoint_mark_published(id: i64, db: State<'_, Db>) -> Result<(), CommandError> {
-    let conn = db.0.lock()?;
-    mark_checkpoint_published(&conn, id)
+pub async fn checkpoint_mark_published(
+    id: i64,
+    app: tauri::AppHandle,
+) -> Result<(), CommandError> {
+    crate::storage::blocking("checkpoint_mark_published", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        mark_checkpoint_published(&conn, id)
+    })
+    .await
 }
 
 #[tauri::command]
@@ -995,9 +1008,15 @@ pub async fn checkpoint_restore_bootstrap(blob_key: String, app: AppHandle) -> R
 }
 
 #[tauri::command]
-pub fn sync_backfill_status(db: State<'_, Db>) -> Result<Option<BackfillStatus>, CommandError> {
-    let conn = db.0.lock()?;
-    backfill_status(&conn)
+pub async fn sync_backfill_status(
+    app: tauri::AppHandle,
+) -> Result<Option<BackfillStatus>, CommandError> {
+    crate::storage::blocking("sync_backfill_status", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        backfill_status(&conn)
+    })
+    .await
 }
 
 #[tauri::command]

@@ -48,9 +48,16 @@ pub(crate) fn row_to_annotation(row: &rusqlite::Row) -> rusqlite::Result<Annotat
 }
 
 #[tauri::command]
-pub fn annotations_list(book_id: Option<String>, db: State<'_, Db>) -> Result<Vec<ObservedAnnotation>, CommandError> {
-    let mut conn = db.0.lock()?;
-    annotations_observe_inner(&mut conn, book_id.as_deref())
+pub async fn annotations_list(
+    book_id: Option<String>,
+    app: tauri::AppHandle,
+) -> Result<Vec<ObservedAnnotation>, CommandError> {
+    crate::storage::blocking("annotations_list", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        annotations_observe_inner(&mut conn, book_id.as_deref())
+    })
+    .await
 }
 
 #[derive(Debug, Serialize)]
@@ -87,24 +94,36 @@ pub(crate) fn annotations_list_inner(conn: &Connection, book_id: Option<&str>) -
 }
 
 #[tauri::command]
-pub fn annotation_get(id: String, db: State<'_, Db>) -> Result<Option<Annotation>, CommandError> {
-    let conn = db.0.lock()?;
-    match conn.query_row(
-        "SELECT * FROM annotations WHERE id = ?1",
-        params![id],
-        row_to_annotation,
-    ) {
-        Ok(a) => Ok(Some(a)),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-        Err(e) => Err(e.into()),
-    }
+pub async fn annotation_get(
+    id: String,
+    app: tauri::AppHandle,
+) -> Result<Option<Annotation>, CommandError> {
+    crate::storage::blocking("annotation_get", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        match conn.query_row(
+            "SELECT * FROM annotations WHERE id = ?1",
+            params![id],
+            row_to_annotation,
+        ) {
+            Ok(a) => Ok(Some(a)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn annotation_put(annotation: Annotation, db: State<'_, Db>) -> Result<(), CommandError> {
-    let conn = db.0.lock()?;
-    conn.execute(
-        "INSERT INTO annotations
+pub async fn annotation_put(
+    annotation: Annotation,
+    app: tauri::AppHandle,
+) -> Result<(), CommandError> {
+    crate::storage::blocking("annotation_put", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        conn.execute(
+            "INSERT INTO annotations
             (id, book_id, type, cfi_range, chapter_href, text, color, style, content,
              created_at, updated_at)
          VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)
@@ -113,30 +132,39 @@ pub fn annotation_put(annotation: Annotation, db: State<'_, Db>) -> Result<(), C
             chapter_href=excluded.chapter_href, text=excluded.text, color=excluded.color,
             style=excluded.style, content=excluded.content, created_at=excluded.created_at,
             updated_at=excluded.updated_at",
-        params![
-            annotation.id,
-            annotation.book_id,
-            annotation.kind,
-            annotation.cfi_range,
-            annotation.chapter_href,
-            annotation.text,
-            annotation.color,
-            annotation.style,
-            annotation.content,
-            annotation.created_at,
-            annotation.updated_at,
-        ],
-    )
-    ?;
-    Ok(())
+            params![
+                annotation.id,
+                annotation.book_id,
+                annotation.kind,
+                annotation.cfi_range,
+                annotation.chapter_href,
+                annotation.text,
+                annotation.color,
+                annotation.style,
+                annotation.content,
+                annotation.created_at,
+                annotation.updated_at,
+            ],
+        )
+        ?;
+        Ok(())
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn annotation_delete(id: String, db: State<'_, Db>) -> Result<(), CommandError> {
-    let conn = db.0.lock()?;
-    conn.execute("DELETE FROM annotations WHERE id = ?1", params![id])
-        ?;
-    Ok(())
+pub async fn annotation_delete(
+    id: String,
+    app: tauri::AppHandle,
+) -> Result<(), CommandError> {
+    crate::storage::blocking("annotation_delete", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        conn.execute("DELETE FROM annotations WHERE id = ?1", params![id])
+            ?;
+        Ok(())
+    })
+    .await
 }
 
 pub(crate) fn annotations_search_inner(
@@ -179,14 +207,18 @@ pub(crate) fn annotations_search_inner(
 /// segmented exactly like the indexed text (CJK bigrams + word prefixes), so
 /// 2-char Chinese words match exactly and English words match by prefix.
 #[tauri::command]
-pub fn annotations_search(
+pub async fn annotations_search(
     query: String,
     book_id: Option<String>,
     kind: Option<String>,
-    db: State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<Vec<Annotation>, CommandError> {
-    let conn = db.0.lock()?;
-    annotations_search_inner(&conn, &query, book_id.as_deref(), kind.as_deref())
+    crate::storage::blocking("annotations_search", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        annotations_search_inner(&conn, &query, book_id.as_deref(), kind.as_deref())
+    })
+    .await
 }
 
 #[cfg(test)]

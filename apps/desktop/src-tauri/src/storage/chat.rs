@@ -43,41 +43,54 @@ pub(crate) fn row_to_ai_message(row: &rusqlite::Row) -> rusqlite::Result<AiMessa
 }
 
 #[tauri::command]
-pub fn ai_chat_load(conversation_id: String, db: State<'_, Db>) -> Result<Vec<AiMessage>, CommandError> {
-    let conn = db.0.lock()?;
-    let mut stmt = conn
-        // seq alone is not unique across devices (each device numbers its own
-        // transcript); created_at then id break ties deterministically so
-        // merged conversations interleave the same way everywhere.
-        .prepare(
-            "SELECT * FROM ai_messages WHERE conversation_id = ?1
+pub async fn ai_chat_load(
+    conversation_id: String,
+    app: tauri::AppHandle,
+) -> Result<Vec<AiMessage>, CommandError> {
+    crate::storage::blocking("ai_chat_load", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        let mut stmt = conn
+            // seq alone is not unique across devices (each device numbers its own
+            // transcript); created_at then id break ties deterministically so
+            // merged conversations interleave the same way everywhere.
+            .prepare(
+                "SELECT * FROM ai_messages WHERE conversation_id = ?1
              ORDER BY seq, created_at, id",
-        )
-        ?;
-    let rows = stmt
-        .query_map(params![conversation_id], row_to_ai_message)
-        ?;
-    let mut out = Vec::new();
-    for r in rows {
-        out.push(r?);
-    }
-    Ok(out)
+            )
+            ?;
+        let rows = stmt
+            .query_map(params![conversation_id], row_to_ai_message)
+            ?;
+        let mut out = Vec::new();
+        for r in rows {
+            out.push(r?);
+        }
+        Ok(out)
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn ai_chat_load_all(db: State<'_, Db>) -> Result<Vec<AiMessage>, CommandError> {
-    let conn = db.0.lock()?;
-    let mut stmt = conn
-        .prepare("SELECT * FROM ai_messages ORDER BY conversation_id, seq, created_at, id")
-        ?;
-    let rows = stmt
-        .query_map([], row_to_ai_message)
-        ?;
-    let mut out = Vec::new();
-    for r in rows {
-        out.push(r?);
-    }
-    Ok(out)
+pub async fn ai_chat_load_all(
+    app: tauri::AppHandle,
+) -> Result<Vec<AiMessage>, CommandError> {
+    crate::storage::blocking("ai_chat_load_all", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        let mut stmt = conn
+            .prepare("SELECT * FROM ai_messages ORDER BY conversation_id, seq, created_at, id")
+            ?;
+        let rows = stmt
+            .query_map([], row_to_ai_message)
+            ?;
+        let mut out = Vec::new();
+        for r in rows {
+            out.push(r?);
+        }
+        Ok(out)
+    })
+    .await
 }
 
 /// Persist the saving device's view of a transcript WITHOUT claiming to be the
@@ -95,13 +108,17 @@ pub fn ai_chat_load_all(db: State<'_, Db>) -> Result<Vec<AiMessage>, CommandErro
 /// merge wrote peer messages underneath a mounted conversation, the next save
 /// silently wiped them from the projection.
 #[tauri::command]
-pub fn ai_chat_replace(
+pub async fn ai_chat_replace(
     conversation_id: String,
     messages: Vec<AiMessage>,
-    db: State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<(), CommandError> {
-    let mut conn = db.0.lock()?;
-    ai_chat_replace_inner(&mut conn, &conversation_id, &messages)
+    crate::storage::blocking("ai_chat_replace", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        ai_chat_replace_inner(&mut conn, &conversation_id, &messages)
+    })
+    .await
 }
 
 pub(crate) fn ai_chat_replace_inner(
@@ -164,11 +181,15 @@ pub struct AiChatSummary {
 }
 
 #[tauri::command]
-pub fn ai_chat_list(db: State<'_, Db>) -> Result<Vec<AiChatSummary>, CommandError> {
-    let conn = db.0.lock()?;
-    let mut stmt = conn
-        .prepare(
-            "SELECT c.id, c.updated_at, COUNT(m.id) AS message_count,
+pub async fn ai_chat_list(
+    app: tauri::AppHandle,
+) -> Result<Vec<AiChatSummary>, CommandError> {
+    crate::storage::blocking("ai_chat_list", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        let mut stmt = conn
+            .prepare(
+                "SELECT c.id, c.updated_at, COUNT(m.id) AS message_count,
                     (SELECT content FROM ai_messages
                      WHERE conversation_id = c.id AND role = 'user'
                      ORDER BY seq, created_at, id LIMIT 1) AS preview
@@ -177,43 +198,52 @@ pub fn ai_chat_list(db: State<'_, Db>) -> Result<Vec<AiChatSummary>, CommandErro
              GROUP BY c.id
              HAVING COUNT(m.id) > 0
              ORDER BY c.updated_at DESC",
-        )
-        ?;
-    let rows = stmt
-        .query_map([], |row| {
-            Ok(AiChatSummary {
-                id: row.get(0)?,
-                updated_at: row.get(1)?,
-                message_count: row.get(2)?,
-                preview: row.get(3)?,
+            )
+            ?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(AiChatSummary {
+                    id: row.get(0)?,
+                    updated_at: row.get(1)?,
+                    message_count: row.get(2)?,
+                    preview: row.get(3)?,
+                })
             })
-        })
-        ?;
-    let mut out = Vec::new();
-    for r in rows {
-        out.push(r?);
-    }
-    Ok(out)
+            ?;
+        let mut out = Vec::new();
+        for r in rows {
+            out.push(r?);
+        }
+        Ok(out)
+    })
+    .await
 }
 
 /// Clear = delete the messages, keep the conversation row with a `cleared_at`
 /// tombstone (cross-device clear semantics per docs/sqlite-schema.sql).
 #[tauri::command]
-pub fn ai_chat_clear(conversation_id: String, db: State<'_, Db>) -> Result<(), CommandError> {
-    let conn = db.0.lock()?;
-    conn.execute(
-        "DELETE FROM ai_messages WHERE conversation_id = ?1",
-        params![conversation_id],
-    )
-    ?;
-    conn.execute(
-        "UPDATE ai_conversations
+pub async fn ai_chat_clear(
+    conversation_id: String,
+    app: tauri::AppHandle,
+) -> Result<(), CommandError> {
+    crate::storage::blocking("ai_chat_clear", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        conn.execute(
+            "DELETE FROM ai_messages WHERE conversation_id = ?1",
+            params![conversation_id],
+        )
+        ?;
+        conn.execute(
+            "UPDATE ai_conversations
          SET cleared_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'),
              updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
          WHERE id = ?1",
-        params![conversation_id],
-    )
-    ?;
-    Ok(())
+            params![conversation_id],
+        )
+        ?;
+        Ok(())
+    })
+    .await
 }
 

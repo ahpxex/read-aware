@@ -165,16 +165,26 @@ pub(crate) fn commit_inner(
 }
 
 #[tauri::command]
-pub fn memories_snapshot(db: tauri::State<'_, Db>) -> Result<Vec<MemorySnapshot>, CommandError> {
-    let mut conn = db.0.lock()?;
-    snapshots_inner(&mut conn)
+pub async fn memories_snapshot(
+    app: tauri::AppHandle,
+) -> Result<Vec<MemorySnapshot>, CommandError> {
+    crate::storage::blocking("memories_snapshot", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        snapshots_inner(&mut conn)
+    })
+    .await
 }
 #[tauri::command]
-pub fn memory_maintenance_commit(
+pub async fn memory_maintenance_commit(
     conditions: Vec<MemoryCondition>,
     events: Vec<EventRow>,
-    db: tauri::State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<Vec<MemorySnapshot>, CommandError> {
-    let mut conn = db.0.lock()?;
-    commit_inner(&mut conn, &conditions, &events)
+    crate::storage::blocking("memory_maintenance_commit", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        commit_inner(&mut conn, &conditions, &events)
+    })
+    .await
 }

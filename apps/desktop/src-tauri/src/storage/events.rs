@@ -140,9 +140,16 @@ pub(crate) fn append_events_inner(conn: &mut Connection, events: &[EventRow]) ->
 /// applying would be redundant. Every path that changes state uses
 /// `commit_events` instead.
 #[tauri::command]
-pub fn append_events(events: Vec<EventRow>, db: State<'_, Db>) -> Result<(), CommandError> {
-    let mut conn = db.0.lock()?;
-    append_events_inner(&mut conn, &events)
+pub async fn append_events(
+    events: Vec<EventRow>,
+    app: tauri::AppHandle,
+) -> Result<(), CommandError> {
+    crate::storage::blocking("append_events", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        append_events_inner(&mut conn, &events)
+    })
+    .await
 }
 
 /// What a `commit_events` call did.
@@ -197,9 +204,16 @@ pub(crate) fn commit_events_in_transaction(
 /// two disagreeing with nothing to detect or repair it. Now the log leads and
 /// the tables derive from it: both land, or neither does.
 #[tauri::command]
-pub fn commit_events(events: Vec<EventRow>, db: State<'_, Db>) -> Result<CommitReport, CommandError> {
-    let mut conn = db.0.lock()?;
-    commit_events_inner(&mut conn, &events)
+pub async fn commit_events(
+    events: Vec<EventRow>,
+    app: tauri::AppHandle,
+) -> Result<CommitReport, CommandError> {
+    crate::storage::blocking("commit_events", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        commit_events_inner(&mut conn, &events)
+    })
+    .await
 }
 
 /// What a `apply_remote_events` call did.
@@ -469,71 +483,82 @@ pub async fn apply_remote_events(
 }
 
 #[tauri::command]
-pub fn read_events_since(after: Option<Hlc>, db: State<'_, Db>) -> Result<Vec<EventRow>, CommandError> {
-    let conn = db.0.lock()?;
-    let mut out = Vec::new();
-    match after {
-        Some(a) => {
-            let mut stmt = conn
-                .prepare(
-                    "SELECT * FROM domain_events
+pub async fn read_events_since(
+    after: Option<Hlc>,
+    app: tauri::AppHandle,
+) -> Result<Vec<EventRow>, CommandError> {
+    crate::storage::blocking("read_events_since", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        let mut out = Vec::new();
+        match after {
+            Some(a) => {
+                let mut stmt = conn
+                    .prepare(
+                        "SELECT * FROM domain_events
                      WHERE (hlc_wall_ms, hlc_counter, hlc_device) > (?1, ?2, ?3)
                      ORDER BY hlc_wall_ms, hlc_counter, hlc_device",
-                )
-                ?;
-            let iter = stmt
-                .query_map(params![a.wall_ms, a.counter, a.device_id], row_to_event)
-                ?;
-            for r in iter {
-                out.push(r?);
+                    )
+                    ?;
+                let iter = stmt
+                    .query_map(params![a.wall_ms, a.counter, a.device_id], row_to_event)
+                    ?;
+                for r in iter {
+                    out.push(r?);
+                }
             }
-        }
-        None => {
-            let mut stmt = conn
-                .prepare(
-                    "SELECT * FROM domain_events
+            None => {
+                let mut stmt = conn
+                    .prepare(
+                        "SELECT * FROM domain_events
                      ORDER BY hlc_wall_ms, hlc_counter, hlc_device",
-                )
-                ?;
-            let iter = stmt
-                .query_map([], row_to_event)
-                ?;
-            for r in iter {
-                out.push(r?);
+                    )
+                    ?;
+                let iter = stmt
+                    .query_map([], row_to_event)
+                    ?;
+                for r in iter {
+                    out.push(r?);
+                }
             }
         }
-    }
-    Ok(out)
+        Ok(out)
+    })
+    .await
 }
 
 /// Distinct aggregate ids that already have an event of one of the given types.
 /// Backs the boot-time genesis reconciliation: the frontend synthesizes
 /// creation events for projection rows whose aggregate never entered the log.
 #[tauri::command]
-pub fn list_event_aggregate_ids(
+pub async fn list_event_aggregate_ids(
     types: Vec<String>,
-    db: State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<Vec<String>, CommandError> {
-    if types.is_empty() {
-        return Ok(Vec::new());
-    }
-    let conn = db.0.lock()?;
-    let placeholders = vec!["?"; types.len()].join(", ");
-    let sql = format!(
-        "SELECT DISTINCT aggregate_id FROM domain_events
+    crate::storage::blocking("list_event_aggregate_ids", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        if types.is_empty() {
+            return Ok(Vec::new());
+        }
+        let conn = db.0.lock()?;
+        let placeholders = vec!["?"; types.len()].join(", ");
+        let sql = format!(
+            "SELECT DISTINCT aggregate_id FROM domain_events
          WHERE aggregate_id IS NOT NULL AND type IN ({placeholders})"
-    );
-    let mut stmt = conn.prepare(&sql)?;
-    let iter = stmt
-        .query_map(rusqlite::params_from_iter(types.iter()), |row| {
-            row.get::<_, String>(0)
-        })
-        ?;
-    let mut out = Vec::new();
-    for r in iter {
-        out.push(r?);
-    }
-    Ok(out)
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let iter = stmt
+            .query_map(rusqlite::params_from_iter(types.iter()), |row| {
+                row.get::<_, String>(0)
+            })
+            ?;
+        let mut out = Vec::new();
+        for r in iter {
+            out.push(r?);
+        }
+        Ok(out)
+    })
+    .await
 }
 
 // --- Replay: rebuild + verify (proves the log is authoritative) ---

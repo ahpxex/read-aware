@@ -212,20 +212,28 @@ pub(crate) fn book_digest_commit_inner(
     Ok(after)
 }
 #[tauri::command]
-pub fn book_digest_inspect(
+pub async fn book_digest_inspect(
     id: String,
     chapter_index: i64,
-    db: tauri::State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<Option<BookDigestSnapshot>, CommandError> {
-    let mut conn = db.0.lock()?;
-    book_digest_inspect_inner(&mut conn, &id, chapter_index)
+    crate::storage::blocking("book_digest_inspect", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        book_digest_inspect_inner(&mut conn, &id, chapter_index)
+    })
+    .await
 }
 #[tauri::command]
-pub fn book_digest_commit(
+pub async fn book_digest_commit(
     event: EventRow,
     expected_revision: String,
-    db: tauri::State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<BookDigestSnapshot, CommandError> {
-    let mut conn = db.0.lock()?;
-    book_digest_commit_inner(&mut conn, &event, &expected_revision)
+    crate::storage::blocking("book_digest_commit", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        book_digest_commit_inner(&mut conn, &event, &expected_revision)
+    })
+    .await
 }

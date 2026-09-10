@@ -14,6 +14,8 @@
 // there is no vector store in the default architecture.
 
 pub mod apply;
+mod execution;
+pub(crate) use execution::blocking;
 mod library;
 pub use library::*;
 mod library_cleanup;
@@ -64,7 +66,7 @@ use rusqlite::{params, Connection, Transaction};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager};
 
 /// Hybrid logical clock stamp. Mirrors `HlcStamp` in @read-aware/core.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -160,33 +162,39 @@ pub struct LocalDeviceInfo {
 }
 
 #[tauri::command]
-pub fn local_device_get(db: State<'_, Db>) -> Result<LocalDeviceInfo, CommandError> {
-    let conn = db.0.lock()?;
-    let device_id = ensure_local_device(&conn)?;
-    // The log's newest stamp — OR a restored checkpoint's frontier, which is
-    // newer than anything a still-backfilling log holds: the projections
-    // already reflect events up to it, so local stamps must sort after it.
-    let last = conn
-        .query_row(
-            "SELECT hlc_wall_ms, hlc_counter FROM (
+pub async fn local_device_get(
+    app: tauri::AppHandle,
+) -> Result<LocalDeviceInfo, CommandError> {
+    crate::storage::blocking("local_device_get", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        let device_id = ensure_local_device(&conn)?;
+        // The log's newest stamp — OR a restored checkpoint's frontier, which is
+        // newer than anything a still-backfilling log holds: the projections
+        // already reflect events up to it, so local stamps must sort after it.
+        let last = conn
+            .query_row(
+                "SELECT hlc_wall_ms, hlc_counter FROM (
                 SELECT hlc_wall_ms, hlc_counter FROM domain_events
                 UNION ALL
                 SELECT hlc_wall_ms, hlc_counter FROM projection_checkpoints
              )
              ORDER BY hlc_wall_ms DESC, hlc_counter DESC LIMIT 1",
-            [],
-            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
-        )
-        .map(Some)
-        .or_else(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => Ok(None),
-            other => Err(other.to_string()),
-        })?;
-    Ok(LocalDeviceInfo {
-        device_id,
-        last_hlc_wall_ms: last.map(|(wall, _)| wall),
-        last_hlc_counter: last.map(|(_, counter)| counter),
+                [],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+            )
+            .map(Some)
+            .or_else(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => Ok(None),
+                other => Err(other.to_string()),
+            })?;
+        Ok(LocalDeviceInfo {
+            device_id,
+            last_hlc_wall_ms: last.map(|(wall, _)| wall),
+            last_hlc_counter: last.map(|(_, counter)| counter),
+        })
     })
+    .await
 }
 
 // --- Device-local key/value config (backs the settings seam) ---
@@ -232,38 +240,52 @@ pub fn read_boot_theme(conn: &Connection) -> Option<&'static str> {
 /// Load the entire `app_kv` store as a `{ key: value_json }` map. Called once at
 /// boot to hydrate the synchronous in-memory snapshot the settings modules read.
 #[tauri::command]
-pub fn load_kv_all(db: State<'_, Db>) -> Result<std::collections::HashMap<String, String>, CommandError> {
-    let conn = db.0.lock()?;
-    let mut stmt = conn
-        .prepare("SELECT key, value_json FROM app_kv")
-        ?;
-    let rows = stmt
-        .query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        })
-        ?;
-    let mut map = std::collections::HashMap::new();
-    for row in rows {
-        let (key, value) = row?;
-        map.insert(key, value);
-    }
-    Ok(map)
+pub async fn load_kv_all(
+    app: tauri::AppHandle,
+) -> Result<std::collections::HashMap<String, String>, CommandError> {
+    crate::storage::blocking("load_kv_all", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        let mut stmt = conn
+            .prepare("SELECT key, value_json FROM app_kv")
+            ?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            ?;
+        let mut map = std::collections::HashMap::new();
+        for row in rows {
+            let (key, value) = row?;
+            map.insert(key, value);
+        }
+        Ok(map)
+    })
+    .await
 }
 
 /// Upsert one config key (write-through from `localKV.setItem`).
 #[tauri::command]
-pub fn set_kv(key: String, value: String, db: State<'_, Db>) -> Result<(), CommandError> {
-    let conn = db.0.lock()?;
-    conn.execute(
-        "INSERT INTO app_kv (key, value_json, updated_at)
+pub async fn set_kv(
+    key: String,
+    value: String,
+    app: tauri::AppHandle,
+) -> Result<(), CommandError> {
+    crate::storage::blocking("set_kv", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        conn.execute(
+            "INSERT INTO app_kv (key, value_json, updated_at)
          VALUES (?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
          ON CONFLICT(key) DO UPDATE SET
             value_json = excluded.value_json,
             updated_at = excluded.updated_at",
-        params![key, value],
-    )
-    ?;
-    Ok(())
+            params![key, value],
+        )
+        ?;
+        Ok(())
+    })
+    .await
 }
 
 pub(crate) fn set_kv_batch_inner(
@@ -290,21 +312,32 @@ pub(crate) fn set_kv_batch_inner(
 
 /// A settings command can span several preference records, but commits all or none.
 #[tauri::command]
-pub fn set_kv_batch(
+pub async fn set_kv_batch(
     entries: Vec<(String, Option<String>)>,
-    db: State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<(), CommandError> {
-    let mut conn = db.0.lock()?;
-    set_kv_batch_inner(&mut conn, entries)
+    crate::storage::blocking("set_kv_batch", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        set_kv_batch_inner(&mut conn, entries)
+    })
+    .await
 }
 
 /// Delete one config key (write-through from `localKV.removeItem`).
 #[tauri::command]
-pub fn delete_kv(key: String, db: State<'_, Db>) -> Result<(), CommandError> {
-    let conn = db.0.lock()?;
-    conn.execute("DELETE FROM app_kv WHERE key = ?1", params![key])
-        ?;
-    Ok(())
+pub async fn delete_kv(
+    key: String,
+    app: tauri::AppHandle,
+) -> Result<(), CommandError> {
+    crate::storage::blocking("delete_kv", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        conn.execute("DELETE FROM app_kv WHERE key = ?1", params![key])
+            ?;
+        Ok(())
+    })
+    .await
 }
 
 pub(crate) fn replace_kv_prefix_inner(
@@ -332,13 +365,17 @@ pub(crate) fn replace_kv_prefix_inner(
 /// Replace one namespaced KV snapshot in a single transaction. Plugin update
 /// recovery uses this instead of racing individual fire-and-forget writes.
 #[tauri::command]
-pub fn replace_kv_prefix(
+pub async fn replace_kv_prefix(
     prefix: String,
     entries: std::collections::HashMap<String, String>,
-    db: State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<(), CommandError> {
-    let mut conn = db.0.lock()?;
-    replace_kv_prefix_inner(&mut conn, &prefix, entries)
+    crate::storage::blocking("replace_kv_prefix", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        replace_kv_prefix_inner(&mut conn, &prefix, entries)
+    })
+    .await
 }
 
 #[cfg(test)]

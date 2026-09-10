@@ -155,19 +155,27 @@ pub(crate) fn memory_commit_inner(
     })
 }
 #[tauri::command]
-pub fn memory_inspect(
+pub async fn memory_inspect(
     id: String,
-    db: tauri::State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<Option<MemorySnapshot>, CommandError> {
-    let mut conn = db.0.lock()?;
-    memory_inspect_inner(&mut conn, &id)
+    crate::storage::blocking("memory_inspect", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        memory_inspect_inner(&mut conn, &id)
+    })
+    .await
 }
 #[tauri::command]
-pub fn memory_commit(
+pub async fn memory_commit(
     event: EventRow,
     expected_revision: String,
-    db: tauri::State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<MemoryMutationReceipt, CommandError> {
-    let mut conn = db.0.lock()?;
-    memory_commit_inner(&mut conn, &event, &expected_revision)
+    crate::storage::blocking("memory_commit", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        memory_commit_inner(&mut conn, &event, &expected_revision)
+    })
+    .await
 }

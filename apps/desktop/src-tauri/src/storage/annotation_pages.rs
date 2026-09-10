@@ -367,10 +367,14 @@ mod tests {
 }
 
 #[tauri::command]
-pub fn annotations_page(
+pub async fn annotations_page(
     input: AnnotationPageQuery,
-    db: tauri::State<'_, super::Db>,
+    app: tauri::AppHandle,
 ) -> Result<AnnotationPage, CommandError> {
-    let conn = db.0.lock()?;
-    annotations_page_inner(&conn, input)
+    crate::storage::blocking("annotations_page", move || {
+        let db = tauri::Manager::state::<super::Db>(&app);
+        let conn = db.0.lock()?;
+        annotations_page_inner(&conn, input)
+    })
+    .await
 }

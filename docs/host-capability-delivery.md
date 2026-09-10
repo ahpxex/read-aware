@@ -1394,3 +1394,23 @@ B1 的禁止权力与未来产品边界保留；自动管线/插件可组合不�
 [剩余] ANN08/ANN09 保留部分：整书读取及逐条事件令牌查询的最大载荷未验，旧公共单项无条件命令、统一 Range、完整远端事件和其他动作完成所有权仍在。243 行/703 入口/30 单元/31 catalog/129 验收/32 场景、14 源码插件/6 内置插件不变。本单元不新增插件；其余双端缺口、全能力组合、真实模型、打包/跨平台/跨设备、长时及最大载荷继续，整体目标未完成，未推送。
 
 [提交/后续诊断] 条件写单元已提交 571f00b3；两生成器 --check、三 pair validator、git diff --check 通过，5184/9224 无监听。随后核对 Cargo.lock 的 tauri-macros 2.6.2 本地源码：默认 Blocking 包装直接调用同步命令，并不因 JS 返回 Promise 而移到阻塞工作池。annotations_commit/inspect/list/page、commit_events 和阅读 accrue/position/flush 同步获取同一个 Db Mutex；连接 busy_timeout=5000。既有 rebuild_projections 明确使用 async + spawn_blocking 避免窗口冻结。这个执行路径与锁测试的现象相符，但尚未迁移或取得成功延迟回执证据；只异步化 commit 而保留主线程同步 Mutex 等待者仍不闭合。下一验收需覆盖共享数据库执行边界，以及真实锁等待中的 busy/Cancel/重开/释放后成功回执和阅读退休，不再以重复超时调整替代根因处理。详见同一 JSON 的 blockingPathFollowup。
+
+## 2026-09-10：存储执行不再占用 UI 调度
+
+[进度] 上轮 571f00b3/8f175091 是有效实现与诊断进展。本轮落实共享执行边界，而不是只给笔记保存换一个 async 标记。全部应开放的双端能力、组合插件及原生验收仍是总目标；本单元没有把内部命令数当作完成的产品能力数。
+
+[代码] 100 个原同步存储命令和两个封面命令显式使用 owned AppHandle，将状态读取、Mutex 等待、SQLite/文件工作置于 blocking pool；包括查询、标注/记忆、KV、同步 bookkeeping、聊天/插件文档、blob 分片与阅读累积/结算。已有导入/密钥/重放的 blocking pool 保留；仅返回常量的 schema-version 命令不迁移。rablob 协议异步响应，避免封面请求绕回 UI 等数据库。共享 helper 保留业务 CommandError，join/panic 记日志并返回 internal，不透出 panic payload。没有改 IPC 名称、参数载荷、结果、事件事务、插件授权，也没有暴露原生 SQL。
+
+[审查/门禁] 用临时 syn 工具按 Rust AST 定位迁移，不用字符串切括号；独立 token 比较发现缩进改变了多行 SQL 字面量，已还原原字节内容，再确认 98 个普通命令的业务语句和返回类型与 8f175091 完全一致。两个 raw-body 命令和两个封面命令手工复核，原始载荷在进入 owned task 前复制。源码 AST 回归扫描所有 storage 及 cover/import/secret 命令，要求 async、显式 blocking executor、锁不在执行边界之外；同步常量 getter 校验精确常量表达式。新增测试证明离开调用线程、稳定错误保留、panic 脱敏、放弃等待不会取消已受理写。KVWriteQueue 和 ReadingTraceCoordinator 保持自己的提交顺序；不承诺并发裸 IPC 的全局 FIFO。启动数据库初始化与窗口退出同步 flush 仍在，不外推为所有原生工作无阻塞。
+
+[原生成功竞态] [storage-execution](./evidence/storage-execution-2026-09-10.json) 记录隔离 macOS debug、真实 SQLite、真实 Worker 和实际 Agent 工具。锁由外部 sqlite3 BEGIN IMMEDIATE 持有，无行/模式修改。实际 Update 后 busy=true、按钮/输入禁用；实际 Cancel 后立即重开并输入替代草稿，锁中标注读取与封面请求仍排队但界面可交互。释放锁后旧保存确实成功，Agent 读取与排队查询均见旧保存正文，新草稿仍打开且内容完整；从该旧版本新草稿再保存得到 conflict，而非覆盖。检查了实际编辑器截图。
+
+[失败/恢复] 第一轮长锁等待用了 awaited requestAnimationFrame 循环，超过 bridge 脚本等待；释放后写入成功，不能算超时失败或重试证据。随后将 storage 之外的两条封面命令也迁移，再启动最终原生二进制。独立 50 ms heartbeat 在锁中 6292 ms 跳动 118 次，保存返回本地化数据库忙提示，草稿保留，释放锁后 Update 成功且编辑器关闭。实际 Worker 创建/条件改色/删除高亮与 Agent edit_annotation/get_annotations 成功。2x3 PNG 经 raw cover IPC 存储、rablob 200 返回并解码，RGBA 为 [180,35,65,255]；不是书架视觉或最大图像测试。
+
+[退休/清理] Worker close 与实际 Agent navigate_reading(close) 都返回完成，pending 立即为空；两轮共四本自有书通过正式域删除/文件清理，贡献归零。进程终止后只读 SQL 检查 books/annotations/FTS/removal intents/pending 和自有 live blob storage 均零，事件历史不删除。三个 sqlite 会话 ROLLBACK/.quit 均终态；两个原生 exec 93212/93161 均终态 143，driver 停止，5184/9224 无监听，未操作既有 89360/9223。第二次停止曾用错一个不存在的 PGID 并失败，随后使用 ps 已核实的 28965 正确停止，无其他进程被终止。
+
+[验证/复扫] Rust 全套 162 通过、1 既有忽略、0 失败，包括多行字面量恢复后的重跑；新增文件格式化后再跑执行边界聚焦测试。全仓 test 24/24（web 938）、typecheck 27/27、production frontend build 通过，既有编译/大 chunk 警告保留。库存/模型 11 项/35 断言、生成器与三 pair validator 检查；243 行/703 入口/30 单元/31 catalog/129 验收/32 场景未变，14 源码/6 内置插件不变。没有将本次真实 Worker 夹具算成新增可安装插件。
+
+[文档] matrix 与 plugin-system 两对更新，模型 MD 仅生成新增证据链接，HTML 无变化。两页各检查 1440×1000、1024×768、390×844 六张截图；矩阵表格自身横向滚动、页面无横溢。矩阵 busy/阻塞工作池命中 ANN05，Escape 恢复 243；移动抽屉 inert/恢复和 dark 刷新保持通过。插件 macOS/阻塞工作池为 15/2 节，Escape 恢复 19；原无抽屉/主题。无重复 ID/坏页内锚点/无名按钮/console error，观察 CDN 均 200，无图需验，自有页面关闭；HTML 仍依赖网络，非产品验收。
+
+[剩余] 线程池队列/内存上限、启动/退出生命周期、原生监听退订、原生其他动作完成所有权、旧公共无条件写、整书最大载荷与统一 Range 未因本单元关闭。其余双端部分/未接项、全能力组合、自主模型、打包/跨平台/真实跨设备、强杀和长时验收继续。整体目标未完成，未推送。

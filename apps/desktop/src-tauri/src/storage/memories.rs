@@ -45,40 +45,58 @@ pub(crate) fn row_to_memory(row: &rusqlite::Row) -> rusqlite::Result<Memory> {
 }
 
 #[tauri::command]
-pub fn memories_list_all(db: State<'_, Db>) -> Result<Vec<Memory>, CommandError> {
-    let conn = db.0.lock()?;
-    let mut stmt = conn
-        .prepare("SELECT * FROM memories")
-        ?;
-    let rows = stmt
-        .query_map([], row_to_memory)
-        ?;
-    let mut out = Vec::new();
-    for r in rows {
-        out.push(r?);
-    }
-    Ok(out)
+pub async fn memories_list_all(
+    app: tauri::AppHandle,
+) -> Result<Vec<Memory>, CommandError> {
+    crate::storage::blocking("memories_list_all", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        let mut stmt = conn
+            .prepare("SELECT * FROM memories")
+            ?;
+        let rows = stmt
+            .query_map([], row_to_memory)
+            ?;
+        let mut out = Vec::new();
+        for r in rows {
+            out.push(r?);
+        }
+        Ok(out)
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn memory_get(id: String, db: State<'_, Db>) -> Result<Option<Memory>, CommandError> {
-    let conn = db.0.lock()?;
-    match conn.query_row(
-        "SELECT * FROM memories WHERE id = ?1",
-        params![id],
-        row_to_memory,
-    ) {
-        Ok(m) => Ok(Some(m)),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-        Err(e) => Err(e.into()),
-    }
+pub async fn memory_get(
+    id: String,
+    app: tauri::AppHandle,
+) -> Result<Option<Memory>, CommandError> {
+    crate::storage::blocking("memory_get", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        match conn.query_row(
+            "SELECT * FROM memories WHERE id = ?1",
+            params![id],
+            row_to_memory,
+        ) {
+            Ok(m) => Ok(Some(m)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn memory_put(memory: Memory, db: State<'_, Db>) -> Result<(), CommandError> {
-    let conn = db.0.lock()?;
-    conn.execute(
-        "INSERT INTO memories
+pub async fn memory_put(
+    memory: Memory,
+    app: tauri::AppHandle,
+) -> Result<(), CommandError> {
+    crate::storage::blocking("memory_put", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        conn.execute(
+            "INSERT INTO memories
             (id, scope, kind, content, importance, evidence_count, pinned, status,
              created_at, updated_at)
          VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)
@@ -87,21 +105,23 @@ pub fn memory_put(memory: Memory, db: State<'_, Db>) -> Result<(), CommandError>
             importance=excluded.importance, evidence_count=excluded.evidence_count,
             pinned=excluded.pinned, status=excluded.status,
             created_at=excluded.created_at, updated_at=excluded.updated_at",
-        params![
-            memory.id,
-            memory.scope,
-            memory.kind,
-            memory.content,
-            memory.importance,
-            memory.evidence_count,
-            memory.pinned as i64,
-            memory.status,
-            memory.created_at,
-            memory.updated_at,
-        ],
-    )
-    ?;
-    Ok(())
+            params![
+                memory.id,
+                memory.scope,
+                memory.kind,
+                memory.content,
+                memory.importance,
+                memory.evidence_count,
+                memory.pinned as i64,
+                memory.status,
+                memory.created_at,
+                memory.updated_at,
+            ],
+        )
+        ?;
+        Ok(())
+    })
+    .await
 }
 
 
@@ -125,34 +145,41 @@ pub struct ChapterDigest {
 }
 
 #[tauri::command]
-pub fn chapter_digests_list(db: State<'_, Db>, book_id: String) -> Result<Vec<ChapterDigest>, CommandError> {
-    let conn = db.0.lock()?;
-    let mut stmt = conn
-        .prepare(
-            "SELECT book_id, chapter_index, chapter_href, summary,
+pub async fn chapter_digests_list(
+    book_id: String,
+    app: tauri::AppHandle,
+) -> Result<Vec<ChapterDigest>, CommandError> {
+    crate::storage::blocking("chapter_digests_list", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        let mut stmt = conn
+            .prepare(
+                "SELECT book_id, chapter_index, chapter_href, summary,
                     characters_json, relations_json, digest_version, flavor, updated_at
                FROM chapter_digests WHERE book_id = ?1
               ORDER BY chapter_index",
-        )
-        ?;
-    let rows = stmt
-        .query_map(params![book_id], |row| {
-            Ok(ChapterDigest {
-                book_id: row.get(0)?,
-                chapter_index: row.get(1)?,
-                chapter_href: row.get(2)?,
-                summary: row.get(3)?,
-                characters_json: row.get(4)?,
-                relations_json: row.get(5)?,
-                digest_version: row.get(6)?,
-                flavor: row.get(7)?,
-                updated_at: row.get(8)?,
+            )
+            ?;
+        let rows = stmt
+            .query_map(params![book_id], |row| {
+                Ok(ChapterDigest {
+                    book_id: row.get(0)?,
+                    chapter_index: row.get(1)?,
+                    chapter_href: row.get(2)?,
+                    summary: row.get(3)?,
+                    characters_json: row.get(4)?,
+                    relations_json: row.get(5)?,
+                    digest_version: row.get(6)?,
+                    flavor: row.get(7)?,
+                    updated_at: row.get(8)?,
+                })
             })
-        })
-        ?;
-    let mut out = Vec::new();
-    for r in rows {
-        out.push(r?);
-    }
-    Ok(out)
+            ?;
+        let mut out = Vec::new();
+        for r in rows {
+            out.push(r?);
+        }
+        Ok(out)
+    })
+    .await
 }

@@ -741,8 +741,11 @@ pub fn run() {
         })
         // Book covers: the shelf's <img src> reads straight from the blob
         // store (rablob://localhost/cover/<bookId>) — no base64 through IPC.
-        .register_uri_scheme_protocol("rablob", |ctx, request| {
-            covers::serve_blob(ctx.app_handle(), request)
+        .register_asynchronous_uri_scheme_protocol("rablob", |ctx, request, responder| {
+            let app = ctx.app_handle().clone();
+            tauri::async_runtime::spawn_blocking(move || {
+                responder.respond(covers::serve_blob(&app, request));
+            });
         })
         .manage(android_update::AndroidUpdateState::default())
         .manage(desktop_update::DesktopUpdateState::default())

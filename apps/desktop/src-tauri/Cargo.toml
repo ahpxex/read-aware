@@ -119,6 +119,7 @@ windows = { version = "0.61", features = [
 ] }
 
 [dev-dependencies]
+syn = { version = "2", features = ["full", "visit"] }
 
 # Tauri's third-party dependency graph dominates target/debug when every crate
 # carries full debug data. Keep ReadAware's own symbols, but omit dependency

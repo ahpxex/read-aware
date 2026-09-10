@@ -220,19 +220,27 @@ pub(crate) fn annotations_commit_inner(
 }
 
 #[tauri::command]
-pub fn annotation_inspect(
+pub async fn annotation_inspect(
     id: String,
-    db: tauri::State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<Option<AnnotationSnapshot>, CommandError> {
-    let mut conn = db.0.lock()?;
-    annotation_inspect_inner(&mut conn, &id)
+    crate::storage::blocking("annotation_inspect", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        annotation_inspect_inner(&mut conn, &id)
+    })
+    .await
 }
 #[tauri::command]
-pub fn annotations_commit(
+pub async fn annotations_commit(
     events: Vec<EventRow>,
     conditions: Vec<AnnotationCondition>,
-    db: tauri::State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<AnnotationCommitResult, CommandError> {
-    let mut conn = db.0.lock()?;
-    annotations_commit_inner(&mut conn, &events, &conditions)
+    crate::storage::blocking("annotations_commit", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        annotations_commit_inner(&mut conn, &events, &conditions)
+    })
+    .await
 }

@@ -1,0 +1,290 @@
+{
+  "date": "2026-09-10",
+  "scope": "Storage execution boundary, native lock responsiveness and independent draft completion",
+  "environment": {
+    "identifier": "com.readaware.app.capability-e2e",
+    "platform": "macOS Tauri debug",
+    "frontend": 5184,
+    "bridge": 9224,
+    "runs": [
+      {
+        "exec": 93212,
+        "pgid": 28092,
+        "exit": 143
+      },
+      {
+        "exec": 93161,
+        "pgid": 28965,
+        "exit": 143
+      }
+    ],
+    "externalLocks": [
+      47205,
+      61688,
+      86599
+    ]
+  },
+  "implementation": {
+    "migratedStorageCommands": 100,
+    "migratedCoverCommands": 2,
+    "mechanicalAudit": "98 ordinary storage command bodies and return types match HEAD 8f175091 as Rust tokens after restoring SQL literal indentation; two raw-body commands and two cover commands manually migrated.",
+    "contract": "AppHandle ownership enters the blocking pool before state lookup, mutex wait, SQLite and filesystem work. Existing transactions, payload names, results, authorization and cancellation-not-rollback remain. The cover URI protocol responds asynchronously. No new plugin/Agent native authority."
+  },
+  "busy": {
+    "busy": "true",
+    "disabled": true,
+    "draft": "Delayed native write committed after cancellation.",
+    "read": "pending",
+    "textareaDisabled": true
+  },
+  "beforeRelease": {
+    "cover": "pending",
+    "draft": "Replacement draft must survive the older completion.",
+    "read": "pending"
+  },
+  "completed": {
+    "agent": {
+      "consistency": "live",
+      "items": [
+        {
+          "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+          "body": "Delayed native write committed after cancellation.",
+          "bookId": "b36b4bba-e9dc-4846-bd1c-8d9ff70596a8",
+          "createdAt": "2026-09-10T02:26:47.483Z",
+          "id": "b21abd64-ecd4-4283-906a-da57d5d0ad06",
+          "kind": "note",
+          "quotedText": "Shared annotation target",
+          "updatedAt": "2026-09-10T02:27:29.538Z"
+        }
+      ],
+      "nextCursor": null
+    },
+    "cover": {
+      "state": "completed",
+      "status": 404
+    },
+    "draft": "Replacement draft must survive the older completion.",
+    "editorOpen": true,
+    "overflow": false,
+    "queuedRead": {
+      "rows": [
+        {
+          "bookId": "b36b4bba-e9dc-4846-bd1c-8d9ff70596a8",
+          "cfiRange": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+          "chapterHref": null,
+          "content": "Delayed native write committed after cancellation.",
+          "createdAt": "2026-09-10T02:26:47.483Z",
+          "id": "b21abd64-ecd4-4283-906a-da57d5d0ad06",
+          "revision": "ann1:bd6e4c5512a14a7e7bc2604f2430eba5e4cf21699e846cc784f03b67cbbdbd33",
+          "text": "Shared annotation target",
+          "type": "note",
+          "updatedAt": "2026-09-10T02:27:29.538Z"
+        }
+      ],
+      "state": "completed"
+    }
+  },
+  "replacementConflict": {
+    "agent": {
+      "consistency": "live",
+      "items": [
+        {
+          "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+          "body": "Delayed native write committed after cancellation.",
+          "bookId": "b36b4bba-e9dc-4846-bd1c-8d9ff70596a8",
+          "createdAt": "2026-09-10T02:26:47.483Z",
+          "id": "b21abd64-ecd4-4283-906a-da57d5d0ad06",
+          "kind": "note",
+          "quotedText": "Shared annotation target",
+          "updatedAt": "2026-09-10T02:27:29.538Z"
+        }
+      ],
+      "nextCursor": null
+    },
+    "draft": "Replacement draft must survive the older completion.",
+    "text": "\nEdit Note\n\n“Shared annotation target”\nYour note\n\nCancel\nUpdate\n\nShelf\n\nContents\n\nNotes\nNative annotation observation b4821647-bd0a-43f7-a66e-76560a5067da\n0 / 1 · 100%\n\nRead by sentence or paragraph\n\nReading appearance\n\nChat\n\nMore\n\nShared annotations\nAsk about this book\nSelect a passage and choose Ask AI, or just start typing. This conversation stays with the book.\n\nCouldn't save the note\nThis annotation changed. Read it again before applying your changes.\n"
+  },
+  "inconclusiveAttempt": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error: JavaScript execution failed: WebView execution failed: Script execution timeout"
+      }
+    ],
+    "isError": true
+  },
+  "finalSeed": {
+    "rows": [
+      {
+        "bookId": "af455552-d43e-4922-b731-9536fc7d4150",
+        "cfiRange": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+        "chapterHref": null,
+        "content": "Initial native note",
+        "createdAt": "2026-09-10T02:30:49.063Z",
+        "id": "f10563cd-4905-4d92-8dff-749ff8a616ab",
+        "revision": "ann1:ee1084163504ad225fe1f950ed595a7f41554a9b457e628e88fab74669deaade",
+        "text": "Shared annotation target",
+        "type": "note",
+        "updatedAt": "2026-09-10T02:30:49.063Z"
+      }
+    ],
+    "seed": {
+      "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+      "bookId": "af455552-d43e-4922-b731-9536fc7d4150",
+      "chapterHref": "",
+      "noteId": "f10563cd-4905-4d92-8dff-749ff8a616ab",
+      "otherBookId": "50446675-bd85-4f42-9743-fea3ef6b9838"
+    }
+  },
+  "timeout": {
+    "backlog": {
+      "count": 0,
+      "state": "completed"
+    },
+    "busy": false,
+    "draft": "A locked native save must preserve this draft.",
+    "elapsed": 6292,
+    "pulses": 118,
+    "text": "\nEdit Note\n\n“Shared annotation target”\nYour note\n\nCancel\nUpdate\n\nShelf\n\nContents\n\nNotes\nNative annotation observation 6f32b216-620b-43d2-909f-864376c72069\n0 / 1 · 100%\n\nRead by sentence or paragraph\n\nReading appearance\n\nChat\n\nMore\n\nShared annotations\nAsk about this book\nSelect a passage and choose Ask AI, or just start typing. This conversation stays with the book.\n\nCouldn't save the note\nThe local database is busy. Try again in a moment.\n"
+  },
+  "recovery": {
+    "agent": {
+      "consistency": "live",
+      "items": [
+        {
+          "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+          "body": "A locked native save must preserve this draft.",
+          "bookId": "af455552-d43e-4922-b731-9536fc7d4150",
+          "createdAt": "2026-09-10T02:30:49.063Z",
+          "id": "f10563cd-4905-4d92-8dff-749ff8a616ab",
+          "kind": "note",
+          "quotedText": "Shared annotation target",
+          "updatedAt": "2026-09-10T02:32:34.481Z"
+        }
+      ],
+      "nextCursor": null
+    },
+    "editorOpen": false
+  },
+  "actors": {
+    "after": {
+      "consistency": "live",
+      "items": [
+        {
+          "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+          "bookId": "af455552-d43e-4922-b731-9536fc7d4150",
+          "chapterHref": "",
+          "color": "blue",
+          "createdAt": "2026-09-10T02:32:34.678Z",
+          "id": "9688d197-0c73-415c-8b8f-1d83052a67d2",
+          "kind": "highlight",
+          "style": "underline",
+          "text": "Shared annotation target",
+          "updatedAt": "2026-09-10T02:32:35.684Z"
+        },
+        {
+          "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+          "body": "A locked native save must preserve this draft.",
+          "bookId": "af455552-d43e-4922-b731-9536fc7d4150",
+          "createdAt": "2026-09-10T02:30:49.063Z",
+          "id": "f10563cd-4905-4d92-8dff-749ff8a616ab",
+          "kind": "note",
+          "quotedText": "Shared annotation target",
+          "updatedAt": "2026-09-10T02:32:34.481Z"
+        }
+      ],
+      "nextCursor": null
+    },
+    "edited": {
+      "content": [
+        {
+          "text": "{\"updated\":true,\"annotationId\":\"f10563cd-4905-4d92-8dff-749ff8a616ab\",\"body\":\"Actual Agent tool after pooled storage execution.\"}",
+          "type": "text"
+        }
+      ]
+    },
+    "final": {
+      "consistency": "live",
+      "items": [
+        {
+          "anchor": "epubcfi(/6/2!/4/2[first]/4,/1:0,/1:24)",
+          "body": "Actual Agent tool after pooled storage execution.",
+          "bookId": "af455552-d43e-4922-b731-9536fc7d4150",
+          "createdAt": "2026-09-10T02:30:49.063Z",
+          "id": "f10563cd-4905-4d92-8dff-749ff8a616ab",
+          "kind": "note",
+          "quotedText": "Shared annotation target",
+          "updatedAt": "2026-09-10T02:32:35.692Z"
+        }
+      ],
+      "nextCursor": null
+    },
+    "mark": {
+      "action": "mark",
+      "highlightId": "9688d197-0c73-415c-8b8f-1d83052a67d2"
+    },
+    "recolor": {
+      "action": "recolor",
+      "highlightId": "9688d197-0c73-415c-8b8f-1d83052a67d2"
+    },
+    "removed": {
+      "action": "remove",
+      "highlightId": "9688d197-0c73-415c-8b8f-1d83052a67d2"
+    }
+  },
+  "cover": {
+    "height": 3,
+    "mime": "image/png",
+    "pixel": [
+      180,
+      35,
+      65,
+      255
+    ],
+    "status": 200,
+    "stored": {
+      "coverBlobKey": "cover:af455552-d43e-4922-b731-9536fc7d4150",
+      "sha256": "95285631e15018dfdf276b0559a4afc9fa69bcdfa54d4dd4afd80828cd148731"
+    },
+    "width": 2
+  },
+  "cleanup": {
+    "agentClose": {
+      "closed": true,
+      "status": "completed"
+    },
+    "cleanup": {
+      "contributions": 0
+    },
+    "pending": [],
+    "workerClose": {
+      "action": "close",
+      "completed": true
+    }
+  },
+  "boundaries": [
+    "First successful delayed completion used a native Update/Cancel click, production show-annotation event to reopen, and real textarea input. It was not a pointer hit-test on the stored note marker.",
+    "A first long-lock attempt used an awaited requestAnimationFrame loop and exceeded the bridge script timeout; releasing that lock let the pending write commit. It does not prove database timeout or retry. Covers commands were then also migrated and the final run sampled a nonblocking interval heartbeat separately.",
+    "Final lock sample after 6292 ms saw 118 heartbeat ticks, a preserved draft and localized database-busy message; recovery saved and closed the editor. SQL CLI injected only BEGIN IMMEDIATE/ROLLBACK, no row/schema mutations.",
+    "Final native binary includes the cover command migration; subsequent source-only repair restored multiline SQL literal indentation exactly to the prior source. Rust full suite was rerun afterward. No semantic operation body differences remained in the 98-command AST audit.",
+    "Native close success checked real Worker and actual Agent tool; no autonomous model inference. No newly created composition plugin in this unit. Existing real Worker fixture composed annotation and reading domains.",
+    "Boot initialization and native window-exit flush remain synchronous; this is not a claim that all native UI/FS/CPU work or OS-exit behavior is nonblocking. Blocking pool queue/memory bounds, maximum load, crash recovery, packaged, Windows/Linux and real multi-device sync remain unverified.",
+    "Whole-book annotation payload size, legacy unconditional mutation commands and the other matrix gaps remain. Overall goal is not complete."
+  ],
+  "validation": {
+    "rust": "162 passed / 1 existing ignored / 0 failed; post-literal-audit rerun",
+    "typescript": "24/24 tasks; web 938 tests (unchanged TS source)",
+    "typecheck": "27/27",
+    "build": "production frontend build passed",
+    "sourceGate": "AST scans all storage commands plus cover, import and secret command consumers; all except literal schema-version getter must be async with an explicit blocking executor and no direct mutex lock outside it.",
+    "documents": "Matrix and plugin-system: six screenshots at 1440x1000, 1024x768, 390x844; no document overflow. Matrix busy/Chinese search matched ANN05, Escape restored 243; drawer inert/restore and dark reload persistence passed. Plugin macOS/Chinese search returned 15/2 sections, Escape restored 19. No duplicate IDs, bad internal anchors, unnamed buttons or console errors; observed CDN requests all 200. Owned page 10 closed. Model HTML unchanged, generated MD source links and all three pair validators checked."
+  },
+  "cleanupSql": {
+    "books": 0,
+    "annotations": 0,
+    "pending": 0,
+    "removalIntents": 0,
+    "fts": 0,
+    "blobStorage": 0
+  }
+}

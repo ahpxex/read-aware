@@ -114,33 +114,46 @@ const BOOK_SELECT: &str = "SELECT b.id, b.title, b.author, b.format, b.file_name
    LEFT JOIN blob_objects bo ON bo.key = b.cover_blob_key AND bo.deleted_at IS NULL";
 
 #[tauri::command]
-pub fn library_load(db: State<'_, Db>) -> Result<Vec<LibraryBook>, CommandError> {
-    let conn = db.0.lock()?;
-    let mut stmt = conn
-        .prepare(BOOK_SELECT)
-        ?;
-    let rows = stmt
-        .query_map([], row_to_library_book)
-        ?;
-    let mut out = Vec::new();
-    for r in rows {
-        out.push(r?);
-    }
-    Ok(out)
+pub async fn library_load(
+    app: tauri::AppHandle,
+) -> Result<Vec<LibraryBook>, CommandError> {
+    crate::storage::blocking("library_load", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        let mut stmt = conn
+            .prepare(BOOK_SELECT)
+            ?;
+        let rows = stmt
+            .query_map([], row_to_library_book)
+            ?;
+        let mut out = Vec::new();
+        for r in rows {
+            out.push(r?);
+        }
+        Ok(out)
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn library_get_book(id: String, db: State<'_, Db>) -> Result<Option<LibraryBook>, CommandError> {
-    let conn = db.0.lock()?;
-    match conn.query_row(
-        &format!("{BOOK_SELECT} WHERE b.id = ?1"),
-        params![id],
-        row_to_library_book,
-    ) {
-        Ok(book) => Ok(Some(book)),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-        Err(e) => Err(e.into()),
-    }
+pub async fn library_get_book(
+    id: String,
+    app: tauri::AppHandle,
+) -> Result<Option<LibraryBook>, CommandError> {
+    crate::storage::blocking("library_get_book", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        match conn.query_row(
+            &format!("{BOOK_SELECT} WHERE b.id = ?1"),
+            params![id],
+            row_to_library_book,
+        ) {
+            Ok(book) => Ok(Some(book)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    })
+    .await
 }
 
 /// Upsert a row verbatim (id preserved) — backup restore and the legacy
@@ -149,38 +162,40 @@ pub fn library_get_book(id: String, db: State<'_, Db>) -> Result<Option<LibraryB
 /// inline data URL is lifted into the store first); anything else starts
 /// 'unchecked' and the engine job re-extracts from the book file.
 #[tauri::command]
-pub fn library_put_book(
+pub async fn library_put_book(
     book: LibraryBook,
-    db: State<'_, Db>,
-    data_dir: State<'_, DataDir>,
+    app: tauri::AppHandle,
 ) -> Result<(), CommandError> {
-    let conn = db.0.lock()?;
-    let progress_json = if book.progress.is_null() {
-        None
-    } else {
-        Some(book.progress.to_string())
-    };
-    let cover_key = crate::covers::cover_blob_key(&book.id);
-    let mut cover_present = get_blob_record_inner(&conn, &data_dir.0, &cover_key)?.is_some();
-    if !cover_present {
-        if let Some(cover) = book
-            .cover_url
-            .as_deref()
-            .and_then(crate::covers::cover_from_data_url)
-            .as_ref()
-            .and_then(crate::covers::normalize_cover)
-        {
-            crate::covers::store_cover(&conn, &data_dir.0, &book.id, &cover)?;
-            cover_present = true;
+    crate::storage::blocking("library_put_book", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let data_dir = tauri::Manager::state::<DataDir>(&app);
+        let conn = db.0.lock()?;
+        let progress_json = if book.progress.is_null() {
+            None
+        } else {
+            Some(book.progress.to_string())
+        };
+        let cover_key = crate::covers::cover_blob_key(&book.id);
+        let mut cover_present = get_blob_record_inner(&conn, &data_dir.0, &cover_key)?.is_some();
+        if !cover_present {
+            if let Some(cover) = book
+                .cover_url
+                .as_deref()
+                .and_then(crate::covers::cover_from_data_url)
+                .as_ref()
+                .and_then(crate::covers::normalize_cover)
+            {
+                crate::covers::store_cover(&conn, &data_dir.0, &book.id, &cover)?;
+                cover_present = true;
+            }
         }
-    }
-    let (cover_status, cover_blob_key) = if cover_present {
-        ("ready", Some(cover_key))
-    } else {
-        ("unchecked", None)
-    };
-    conn.execute(
-        "INSERT INTO books
+        let (cover_status, cover_blob_key) = if cover_present {
+            ("ready", Some(cover_key))
+        } else {
+            ("unchecked", None)
+        };
+        conn.execute(
+            "INSERT INTO books
             (id, title, author, format, file_name, mime_type, file_size, cover_status,
              cover_blob_key, created_at, updated_at, last_opened_at, progress_percent,
              reading_status, progress_json, starred, collection_id, narrativity)
@@ -194,65 +209,80 @@ pub fn library_put_book(
             progress_percent=excluded.progress_percent, reading_status=excluded.reading_status,
             progress_json=excluded.progress_json, starred=excluded.starred,
             collection_id=excluded.collection_id, narrativity=excluded.narrativity",
-        params![
-            book.id,
-            book.title,
-            book.author,
-            book.format,
-            book.file_name,
-            book.mime_type,
-            book.file_size,
-            cover_status,
-            cover_blob_key,
-            book.created_at,
-            book.updated_at,
-            book.last_opened_at,
-            book.progress_percent,
-            book.reading_status,
-            progress_json,
-            book.starred.unwrap_or(false) as i64,
-            book.collection_id,
-            book.narrativity,
-        ],
-    )
-    ?;
-    Ok(())
+            params![
+                book.id,
+                book.title,
+                book.author,
+                book.format,
+                book.file_name,
+                book.mime_type,
+                book.file_size,
+                cover_status,
+                cover_blob_key,
+                book.created_at,
+                book.updated_at,
+                book.last_opened_at,
+                book.progress_percent,
+                book.reading_status,
+                progress_json,
+                book.starred.unwrap_or(false) as i64,
+                book.collection_id,
+                book.narrativity,
+            ],
+        )
+        ?;
+        Ok(())
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn library_list_collections(db: State<'_, Db>) -> Result<Vec<Collection>, CommandError> {
-    let conn = db.0.lock()?;
-    let mut stmt = conn
-        .prepare("SELECT id, name, created_at FROM collections")
-        ?;
-    let rows = stmt
-        .query_map([], |row| {
-            Ok(Collection {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                created_at: row.get(2)?,
+pub async fn library_list_collections(
+    app: tauri::AppHandle,
+) -> Result<Vec<Collection>, CommandError> {
+    crate::storage::blocking("library_list_collections", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        let mut stmt = conn
+            .prepare("SELECT id, name, created_at FROM collections")
+            ?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(Collection {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    created_at: row.get(2)?,
+                })
             })
-        })
-        ?;
-    let mut out = Vec::new();
-    for r in rows {
-        out.push(r?);
-    }
-    Ok(out)
+            ?;
+        let mut out = Vec::new();
+        for r in rows {
+            out.push(r?);
+        }
+        Ok(out)
+    })
+    .await
 }
 
 /// Upsert a collection. On conflict the original `created_at` is preserved, so
 /// this doubles as rename.
 #[tauri::command]
-pub fn library_put_collection(collection: Collection, db: State<'_, Db>) -> Result<(), CommandError> {
-    let conn = db.0.lock()?;
-    conn.execute(
-        "INSERT INTO collections (id, name, created_at) VALUES (?1, ?2, ?3)
+pub async fn library_put_collection(
+    collection: Collection,
+    app: tauri::AppHandle,
+) -> Result<(), CommandError> {
+    crate::storage::blocking("library_put_collection", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        conn.execute(
+            "INSERT INTO collections (id, name, created_at) VALUES (?1, ?2, ?3)
          ON CONFLICT(id) DO UPDATE SET name = excluded.name",
-        params![collection.id, collection.name, collection.created_at],
-    )
-    ?;
-    Ok(())
+            params![collection.id, collection.name, collection.created_at],
+        )
+        ?;
+        Ok(())
+    })
+    .await
 }
 
 // Collection deletion has no command of its own: `collection.removed` describes
@@ -297,13 +327,15 @@ pub struct DuplicateBookEntry {
 /// the post-pull merge detector's input. Each group is ordered oldest-first
 /// then by id, so `group[0]` IS the deterministic keeper on every device.
 #[tauri::command]
-pub fn library_duplicate_book_groups(
-    db: State<'_, Db>,
+pub async fn library_duplicate_book_groups(
+    app: tauri::AppHandle,
 ) -> Result<Vec<Vec<DuplicateBookEntry>>, CommandError> {
-    let conn = db.0.lock()?;
-    let mut stmt = conn
-        .prepare(
-            "SELECT bo.sha256, b.id, b.created_at
+    crate::storage::blocking("library_duplicate_book_groups", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        let mut stmt = conn
+            .prepare(
+                "SELECT bo.sha256, b.id, b.created_at
              FROM books b
              JOIN blob_objects bo ON bo.key = 'bookfile:' || b.id
              WHERE bo.sha256 IS NOT NULL AND bo.sha256 != ''
@@ -313,25 +345,27 @@ pub fn library_duplicate_book_groups(
                  WHERE bo2.sha256 IS NOT NULL AND bo2.sha256 != ''
                  GROUP BY bo2.sha256 HAVING COUNT(*) > 1)
              ORDER BY bo.sha256, b.created_at, b.id",
-        )
-        ?;
-    let rows = stmt
-        .query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                DuplicateBookEntry { id: row.get(1)?, created_at: row.get(2)? },
-            ))
-        })
-        ?;
-    let mut groups: Vec<Vec<DuplicateBookEntry>> = Vec::new();
-    let mut current_sha: Option<String> = None;
-    for row in rows {
-        let (sha, entry) = row?;
-        if current_sha.as_deref() != Some(&sha) {
-            current_sha = Some(sha);
-            groups.push(Vec::new());
+            )
+            ?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    DuplicateBookEntry { id: row.get(1)?, created_at: row.get(2)? },
+                ))
+            })
+            ?;
+        let mut groups: Vec<Vec<DuplicateBookEntry>> = Vec::new();
+        let mut current_sha: Option<String> = None;
+        for row in rows {
+            let (sha, entry) = row?;
+            if current_sha.as_deref() != Some(&sha) {
+                current_sha = Some(sha);
+                groups.push(Vec::new());
+            }
+            groups.last_mut().expect("group pushed above").push(entry);
         }
-        groups.last_mut().expect("group pushed above").push(entry);
-    }
-    Ok(groups)
+        Ok(groups)
+    })
+    .await
 }

@@ -250,11 +250,15 @@ pub fn cover_backlog_inner(conn: &Connection) -> Result<Vec<CoverBacklogEntry>, 
 }
 
 #[tauri::command]
-pub fn library_cover_backlog(
-    db: tauri::State<'_, crate::storage::Db>,
+pub async fn library_cover_backlog(
+    app: tauri::AppHandle,
 ) -> Result<Vec<CoverBacklogEntry>, CommandError> {
-    let conn = db.0.lock()?;
-    cover_backlog_inner(&conn)
+    crate::storage::blocking("library_cover_backlog", move || {
+        let db = tauri::Manager::state::<crate::storage::Db>(&app);
+        let conn = db.0.lock()?;
+        cover_backlog_inner(&conn)
+    })
+    .await
 }
 
 /// Store a cover the webview produced (the engine cover job: PDFs off macOS,
@@ -263,10 +267,9 @@ pub fn library_cover_backlog(
 /// blob's identity, or `null` when the bytes were not a usable image — the
 /// caller then records `none` instead of `ready`.
 #[tauri::command]
-pub fn library_put_cover(
+pub async fn library_put_cover(
     request: tauri::ipc::Request<'_>,
-    db: tauri::State<'_, crate::storage::Db>,
-    data_dir: tauri::State<'_, crate::storage::DataDir>,
+    app: tauri::AppHandle,
 ) -> Result<Option<StoredCover>, CommandError> {
     let book_id = request
         .headers()
@@ -285,15 +288,20 @@ pub fn library_put_cover(
         tauri::ipc::InvokeBody::Json(value) => serde_json::from_value(value.clone())
             .map_err(|e| format!("library_put_cover: unsupported JSON body: {e}"))?,
     };
-    let Some(normalized) = normalize_cover(&CoverImage { bytes, mime }) else {
-        return Ok(None);
-    };
-    let conn = db.0.lock()?;
-    let stored = store_cover(&conn, &data_dir.0, &book_id, &normalized)?;
-    Ok(Some(StoredCover {
-        cover_blob_key: cover_blob_key(&book_id),
-        sha256: stored.sha256,
-    }))
+    crate::storage::blocking("library_put_cover", move || {
+        let Some(normalized) = normalize_cover(&CoverImage { bytes, mime }) else {
+            return Ok(None);
+        };
+        let db = tauri::Manager::state::<crate::storage::Db>(&app);
+        let data_dir = tauri::Manager::state::<crate::storage::DataDir>(&app);
+        let conn = db.0.lock()?;
+        let stored = store_cover(&conn, &data_dir.0, &book_id, &normalized)?;
+        Ok(Some(StoredCover {
+            cover_blob_key: cover_blob_key(&book_id),
+            sha256: stored.sha256,
+        }))
+    })
+    .await
 }
 
 #[derive(Debug, serde::Serialize)]

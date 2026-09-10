@@ -469,10 +469,9 @@ pub(crate) fn materialize_legacy_covers(conn: &Connection, data_dir: &Path) -> R
 // --- Blob commands (book files + derivatives) ---
 
 #[tauri::command]
-pub fn put_blob(
+pub async fn put_blob(
     request: tauri::ipc::Request<'_>,
-    db: State<'_, Db>,
-    data_dir: State<'_, DataDir>,
+    app: AppHandle,
 ) -> Result<BlobPutResult, CommandError> {
     let key = request
         .headers()
@@ -494,8 +493,13 @@ pub fn put_blob(
         tauri::ipc::InvokeBody::Json(value) => serde_json::from_value(value.clone())
             .map_err(|e| format!("put_blob: unsupported JSON body: {e}"))?,
     };
-    let conn = db.0.lock()?;
-    put_blob_inner(&conn, &data_dir.0, &key, mime_type.as_deref(), &data)
+    crate::storage::blocking("put_blob", move || {
+        let db = app.state::<Db>();
+        let data_dir = app.state::<DataDir>();
+        let conn = db.0.lock()?;
+        put_blob_inner(&conn, &data_dir.0, &key, mime_type.as_deref(), &data)
+    })
+    .await
 }
 
 /// Returns the blob's bytes as a raw (non-JSON) IPC response. A missing key
@@ -503,26 +507,34 @@ pub fn put_blob(
 /// (A raw `Response` cannot express `Option`, and no real payload here is
 /// zero-length: book files and derivatives are never empty.)
 #[tauri::command]
-pub fn get_blob(
+pub async fn get_blob(
     key: String,
-    db: State<'_, Db>,
-    data_dir: State<'_, DataDir>,
+    app: tauri::AppHandle,
 ) -> Result<tauri::ipc::Response, CommandError> {
-    let conn = db.0.lock()?;
-    get_blob_inner(&conn, &data_dir.0, &key).map(tauri::ipc::Response::new)
+    crate::storage::blocking("get_blob", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let data_dir = tauri::Manager::state::<DataDir>(&app);
+        let conn = db.0.lock()?;
+        get_blob_inner(&conn, &data_dir.0, &key).map(tauri::ipc::Response::new)
+    })
+    .await
 }
 
 
 /// Metadata-only lookup used to create a random-access book source in the
 /// webview without first transferring the whole file.
 #[tauri::command]
-pub fn get_blob_info(
+pub async fn get_blob_info(
     key: String,
-    db: State<'_, Db>,
-    data_dir: State<'_, DataDir>,
+    app: tauri::AppHandle,
 ) -> Result<Option<BlobInfo>, CommandError> {
-    let conn = db.0.lock()?;
-    Ok(get_blob_record_inner(&conn, &data_dir.0, &key)?.map(|(_, info)| info))
+    crate::storage::blocking("get_blob_info", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let data_dir = tauri::Manager::state::<DataDir>(&app);
+        let conn = db.0.lock()?;
+        Ok(get_blob_record_inner(&conn, &data_dir.0, &key)?.map(|(_, info)| info))
+    })
+    .await
 }
 
 /// Read only one byte range from a managed blob. PDF.js drives this through
@@ -547,13 +559,17 @@ pub async fn get_blob_range(
 }
 
 #[tauri::command]
-pub fn delete_blob(
+pub async fn delete_blob(
     key: String,
-    db: State<'_, Db>,
-    data_dir: State<'_, DataDir>,
+    app: tauri::AppHandle,
 ) -> Result<(), CommandError> {
-    let conn = db.0.lock()?;
-    delete_blob_inner(&conn, &data_dir.0, &key)
+    crate::storage::blocking("delete_blob", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let data_dir = tauri::Manager::state::<DataDir>(&app);
+        let conn = db.0.lock()?;
+        delete_blob_inner(&conn, &data_dir.0, &key)
+    })
+    .await
 }
 
 // --- Staged blob transfers (mobile) ---
@@ -578,85 +594,105 @@ pub struct BlobWriteSessions(Mutex<std::collections::HashMap<String, Vec<u8>>>);
 /// Stage a blob for chunked download and return its byte length.
 /// 0 = no such key (same convention as `get_blob`'s empty body).
 #[tauri::command]
-pub fn blob_read_open(
+pub async fn blob_read_open(
     key: String,
-    sessions: State<'_, BlobReadSessions>,
-    db: State<'_, Db>,
-    data_dir: State<'_, DataDir>,
+    app: tauri::AppHandle,
 ) -> Result<usize, CommandError> {
-    let bytes = {
-        let conn = db.0.lock()?;
-        get_blob_inner(&conn, &data_dir.0, &key)?
-    };
-    let len = bytes.len();
-    if len > 0 {
-        sessions
-            .0
-            .lock()
-            ?
-            .insert(key, bytes);
-    }
-    Ok(len)
+    crate::storage::blocking("blob_read_open", move || {
+        let sessions = tauri::Manager::state::<BlobReadSessions>(&app);
+        let db = tauri::Manager::state::<Db>(&app);
+        let data_dir = tauri::Manager::state::<DataDir>(&app);
+        let bytes = {
+            let conn = db.0.lock()?;
+            get_blob_inner(&conn, &data_dir.0, &key)?
+        };
+        let len = bytes.len();
+        if len > 0 {
+            sessions
+                .0
+                .lock()
+                ?
+                .insert(key, bytes);
+        }
+        Ok(len)
+    })
+    .await
 }
 
 /// Return one chunk of a staged blob as a raw binary response.
 #[tauri::command]
-pub fn blob_read_chunk(
+pub async fn blob_read_chunk(
     key: String,
     offset: usize,
     length: usize,
-    sessions: State<'_, BlobReadSessions>,
+    app: tauri::AppHandle,
 ) -> Result<tauri::ipc::Response, CommandError> {
-    let map = sessions.0.lock()?;
-    let bytes = map
-        .get(&key)
-        .ok_or_else(|| format!("blob_read_chunk: no open session for {key}"))?;
-    let start = offset.min(bytes.len());
-    let end = offset.saturating_add(length).min(bytes.len());
-    Ok(tauri::ipc::Response::new(bytes[start..end].to_vec()))
+    crate::storage::blocking("blob_read_chunk", move || {
+        let sessions = tauri::Manager::state::<BlobReadSessions>(&app);
+        let map = sessions.0.lock()?;
+        let bytes = map
+            .get(&key)
+            .ok_or_else(|| format!("blob_read_chunk: no open session for {key}"))?;
+        let start = offset.min(bytes.len());
+        let end = offset.saturating_add(length).min(bytes.len());
+        Ok(tauri::ipc::Response::new(bytes[start..end].to_vec()))
+    })
+    .await
 }
 
 /// Drop a staged download once the webview has pulled every chunk.
 #[tauri::command]
-pub fn blob_read_close(
+pub async fn blob_read_close(
     key: String,
-    sessions: State<'_, BlobReadSessions>,
+    app: tauri::AppHandle,
 ) -> Result<(), CommandError> {
-    sessions.0.lock()?.remove(&key);
-    Ok(())
+    crate::storage::blocking("blob_read_close", move || {
+        let sessions = tauri::Manager::state::<BlobReadSessions>(&app);
+        sessions.0.lock()?.remove(&key);
+        Ok(())
+    })
+    .await
 }
 
 /// Open (or reset) an upload buffer for `key`.
 #[tauri::command]
-pub fn blob_write_open(
+pub async fn blob_write_open(
     key: String,
-    sessions: State<'_, BlobWriteSessions>,
+    app: tauri::AppHandle,
 ) -> Result<(), CommandError> {
-    sessions
-        .0
-        .lock()
-        ?
-        .insert(key, Vec::new());
-    Ok(())
+    crate::storage::blocking("blob_write_open", move || {
+        let sessions = tauri::Manager::state::<BlobWriteSessions>(&app);
+        sessions
+            .0
+            .lock()
+            ?
+            .insert(key, Vec::new());
+        Ok(())
+    })
+    .await
 }
 
 /// Append one base64-encoded chunk to an open upload buffer.
 #[tauri::command]
-pub fn blob_write_chunk(
+pub async fn blob_write_chunk(
     key: String,
     chunk_base64: String,
-    sessions: State<'_, BlobWriteSessions>,
+    app: tauri::AppHandle,
 ) -> Result<(), CommandError> {
-    use base64::Engine;
-    let chunk = base64::engine::general_purpose::STANDARD
-        .decode(chunk_base64.as_bytes())
-        .map_err(|e| format!("blob_write_chunk: invalid base64: {e}"))?;
-    let mut map = sessions.0.lock()?;
-    let buffer = map
-        .get_mut(&key)
-        .ok_or_else(|| format!("blob_write_chunk: no open session for {key}"))?;
-    buffer.extend_from_slice(&chunk);
-    Ok(())
+    crate::storage::blocking("blob_write_chunk", move || {
+        let sessions = tauri::Manager::state::<BlobWriteSessions>(&app);
+        use base64::Engine;
+        let chunk = base64::engine::general_purpose::STANDARD
+            .decode(chunk_base64.as_bytes())
+            .map_err(|e| format!("blob_write_chunk: invalid base64: {e}"))?;
+        let mut map = sessions.0.lock()?;
+        let buffer = map
+            .get_mut(&key)
+            .ok_or_else(|| format!("blob_write_chunk: no open session for {key}"))?;
+        buffer.extend_from_slice(&chunk);
+        Ok(())
+    })
+    .await
 }
 
 /// Append one raw-body chunk to an open upload buffer. The desktop twin of
@@ -664,9 +700,9 @@ pub fn blob_write_chunk(
 /// thread for seconds, so large desktop uploads stream through this in slices
 /// (the key rides the same header as `put_blob`).
 #[tauri::command]
-pub fn blob_write_chunk_raw(
+pub async fn blob_write_chunk_raw(
     request: tauri::ipc::Request<'_>,
-    sessions: State<'_, BlobWriteSessions>,
+    app: AppHandle,
 ) -> Result<(), CommandError> {
     let key = request
         .headers()
@@ -679,39 +715,51 @@ pub fn blob_write_chunk_raw(
         tauri::ipc::InvokeBody::Json(value) => serde_json::from_value(value.clone())
             .map_err(|e| format!("blob_write_chunk_raw: unsupported JSON body: {e}"))?,
     };
-    let mut map = sessions.0.lock()?;
-    let buffer = map
-        .get_mut(&key)
-        .ok_or_else(|| format!("blob_write_chunk_raw: no open session for {key}"))?;
-    buffer.extend_from_slice(&chunk);
-    Ok(())
+    crate::storage::blocking("blob_write_chunk_raw", move || {
+        let sessions = app.state::<BlobWriteSessions>();
+        let mut map = sessions.0.lock()?;
+        let buffer = map
+            .get_mut(&key)
+            .ok_or_else(|| format!("blob_write_chunk_raw: no open session for {key}"))?;
+        buffer.extend_from_slice(&chunk);
+        Ok(())
+    })
+    .await
 }
 
 /// Persist an upload buffer through the regular blob store path.
 #[tauri::command]
-pub fn blob_write_commit(
+pub async fn blob_write_commit(
     key: String,
     mime_type: Option<String>,
-    sessions: State<'_, BlobWriteSessions>,
-    db: State<'_, Db>,
-    data_dir: State<'_, DataDir>,
+    app: tauri::AppHandle,
 ) -> Result<BlobPutResult, CommandError> {
-    let data = sessions
-        .0
-        .lock()
-        ?
-        .remove(&key)
-        .ok_or_else(|| format!("blob_write_commit: no open session for {key}"))?;
-    let conn = db.0.lock()?;
-    put_blob_inner(&conn, &data_dir.0, &key, mime_type.as_deref(), &data)
+    crate::storage::blocking("blob_write_commit", move || {
+        let sessions = tauri::Manager::state::<BlobWriteSessions>(&app);
+        let db = tauri::Manager::state::<Db>(&app);
+        let data_dir = tauri::Manager::state::<DataDir>(&app);
+        let data = sessions
+            .0
+            .lock()
+            ?
+            .remove(&key)
+            .ok_or_else(|| format!("blob_write_commit: no open session for {key}"))?;
+        let conn = db.0.lock()?;
+        put_blob_inner(&conn, &data_dir.0, &key, mime_type.as_deref(), &data)
+    })
+    .await
 }
 
 /// Discard an upload buffer after a failed transfer.
 #[tauri::command]
-pub fn blob_write_abort(
+pub async fn blob_write_abort(
     key: String,
-    sessions: State<'_, BlobWriteSessions>,
+    app: tauri::AppHandle,
 ) -> Result<(), CommandError> {
-    sessions.0.lock()?.remove(&key);
-    Ok(())
+    crate::storage::blocking("blob_write_abort", move || {
+        let sessions = tauri::Manager::state::<BlobWriteSessions>(&app);
+        sessions.0.lock()?.remove(&key);
+        Ok(())
+    })
+    .await
 }

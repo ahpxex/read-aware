@@ -1020,9 +1020,16 @@ fn wipeable_tables(conn: &Connection) -> Result<Vec<String>, CommandError> {
 /// caller reloads the webview afterwards — in-memory JS state is stale by
 /// definition once this returns.
 #[tauri::command]
-pub fn wipe_all_data(db: State<'_, Db>, data_dir: State<'_, DataDir>) -> Result<(), CommandError> {
-    let mut conn = db.0.lock()?;
-    wipe_all_data_inner(&mut conn, &data_dir.0)
+pub async fn wipe_all_data(
+    app: tauri::AppHandle,
+) -> Result<(), CommandError> {
+    crate::storage::blocking("wipe_all_data", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let data_dir = tauri::Manager::state::<DataDir>(&app);
+        let mut conn = db.0.lock()?;
+        wipe_all_data_inner(&mut conn, &data_dir.0)
+    })
+    .await
 }
 
 pub(crate) fn wipe_all_data_inner(conn: &mut Connection, data_dir: &Path) -> Result<(), CommandError> {

@@ -3,7 +3,6 @@ use crate::error::CommandError;
 use rusqlite::{params, Connection};
 use serde::Serialize;
 use std::path::Path;
-use tauri::State;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -69,15 +68,31 @@ pub(crate) fn release_book_files_inner(conn: &mut Connection, data_dir: &Path, i
 }
 
 #[tauri::command]
-pub fn library_list_removal_cleanup(after: Option<String>, limit: i64, db: State<'_, Db>) -> Result<BookRemovalCleanupPage, CommandError> {
-    let conn = db.0.lock()?;
-    list_removal_cleanup_inner(&conn, after.as_deref(), limit)
+pub async fn library_list_removal_cleanup(
+    after: Option<String>,
+    limit: i64,
+    app: tauri::AppHandle,
+) -> Result<BookRemovalCleanupPage, CommandError> {
+    crate::storage::blocking("library_list_removal_cleanup", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        list_removal_cleanup_inner(&conn, after.as_deref(), limit)
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn library_release_book_files(ids: Vec<String>, db: State<'_, Db>, data_dir: State<'_, DataDir>) -> Result<(), CommandError> {
-    let mut conn = db.0.lock()?;
-    release_book_files_inner(&mut conn, &data_dir.0, &ids)
+pub async fn library_release_book_files(
+    ids: Vec<String>,
+    app: tauri::AppHandle,
+) -> Result<(), CommandError> {
+    crate::storage::blocking("library_release_book_files", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let data_dir = tauri::Manager::state::<DataDir>(&app);
+        let mut conn = db.0.lock()?;
+        release_book_files_inner(&mut conn, &data_dir.0, &ids)
+    })
+    .await
 }
 
 /// One pass at boot. Failures stay durable, but do not starve later entries.

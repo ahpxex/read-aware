@@ -61,9 +61,15 @@ pub(crate) fn sync_profile_get_inner(conn: &Connection) -> Result<SyncProfile, C
 }
 
 #[tauri::command]
-pub fn sync_profile_get(db: State<'_, Db>) -> Result<SyncProfile, CommandError> {
-    let conn = db.0.lock()?;
-    sync_profile_get_inner(&conn)
+pub async fn sync_profile_get(
+    app: tauri::AppHandle,
+) -> Result<SyncProfile, CommandError> {
+    crate::storage::blocking("sync_profile_get", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        sync_profile_get_inner(&conn)
+    })
+    .await
 }
 
 pub(crate) fn sync_profile_set_inner(conn: &Connection, profile: &SyncProfile) -> Result<(), CommandError> {
@@ -92,31 +98,45 @@ pub(crate) fn sync_profile_set_inner(conn: &Connection, profile: &SyncProfile) -
 }
 
 #[tauri::command]
-pub fn sync_profile_set(profile: SyncProfile, db: State<'_, Db>) -> Result<(), CommandError> {
-    let conn = db.0.lock()?;
-    sync_profile_set_inner(&conn, &profile)
+pub async fn sync_profile_set(
+    profile: SyncProfile,
+    app: tauri::AppHandle,
+) -> Result<(), CommandError> {
+    crate::storage::blocking("sync_profile_set", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        sync_profile_set_inner(&conn, &profile)
+    })
+    .await
 }
 
 /// Stamp `last_push_at` / `last_pull_at` = now without racing a full
 /// profile write from another part of the loop.
 #[tauri::command]
-pub fn sync_profile_touch(field: String, db: State<'_, Db>) -> Result<(), CommandError> {
-    let column = match field.as_str() {
-        "push" => "last_push_at",
-        "pull" => "last_pull_at",
-        other => return Err(CommandError::internal(format!("sync_profile_touch: unknown field `{other}`"))),
-    };
-    let conn = db.0.lock()?;
-    conn.execute(
-        &format!(
-            "UPDATE sync_profile SET {column} = strftime('%Y-%m-%dT%H:%M:%fZ','now'),
+pub async fn sync_profile_touch(
+    field: String,
+    app: tauri::AppHandle,
+) -> Result<(), CommandError> {
+    crate::storage::blocking("sync_profile_touch", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let column = match field.as_str() {
+            "push" => "last_push_at",
+            "pull" => "last_pull_at",
+            other => return Err(CommandError::internal(format!("sync_profile_touch: unknown field `{other}`"))),
+        };
+        let conn = db.0.lock()?;
+        conn.execute(
+            &format!(
+                "UPDATE sync_profile SET {column} = strftime('%Y-%m-%dT%H:%M:%fZ','now'),
                     updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
               WHERE id = 1"
-        ),
-        [],
-    )
-    ?;
-    Ok(())
+            ),
+            [],
+        )
+        ?;
+        Ok(())
+    })
+    .await
 }
 
 // ── sync_cursors (per feed) ──────────────────────────────────────────────────
@@ -164,9 +184,16 @@ pub(crate) fn sync_cursor_get_inner(
 }
 
 #[tauri::command]
-pub fn sync_cursor_get(feed: String, db: State<'_, Db>) -> Result<Option<SyncCursor>, CommandError> {
-    let conn = db.0.lock()?;
-    sync_cursor_get_inner(&conn, &feed)
+pub async fn sync_cursor_get(
+    feed: String,
+    app: tauri::AppHandle,
+) -> Result<Option<SyncCursor>, CommandError> {
+    crate::storage::blocking("sync_cursor_get", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        sync_cursor_get_inner(&conn, &feed)
+    })
+    .await
 }
 
 pub(crate) fn sync_cursor_set_inner(conn: &Connection, cursor: &SyncCursor) -> Result<(), CommandError> {
@@ -193,9 +220,16 @@ pub(crate) fn sync_cursor_set_inner(conn: &Connection, cursor: &SyncCursor) -> R
 }
 
 #[tauri::command]
-pub fn sync_cursor_set(cursor: SyncCursor, db: State<'_, Db>) -> Result<(), CommandError> {
-    let conn = db.0.lock()?;
-    sync_cursor_set_inner(&conn, &cursor)
+pub async fn sync_cursor_set(
+    cursor: SyncCursor,
+    app: tauri::AppHandle,
+) -> Result<(), CommandError> {
+    crate::storage::blocking("sync_cursor_set", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        sync_cursor_set_inner(&conn, &cursor)
+    })
+    .await
 }
 
 // ── Event outbox ─────────────────────────────────────────────────────────────
@@ -227,9 +261,16 @@ pub(crate) fn sync_outbox_events_inner(
 }
 
 #[tauri::command]
-pub fn sync_outbox_events(limit: i64, db: State<'_, Db>) -> Result<Vec<EventRow>, CommandError> {
-    let conn = db.0.lock()?;
-    sync_outbox_events_inner(&conn, limit)
+pub async fn sync_outbox_events(
+    limit: i64,
+    app: tauri::AppHandle,
+) -> Result<Vec<EventRow>, CommandError> {
+    crate::storage::blocking("sync_outbox_events", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        sync_outbox_events_inner(&conn, limit)
+    })
+    .await
 }
 
 /// The relay confirmed these ids (with their assigned server_seq).
@@ -254,12 +295,16 @@ pub(crate) fn sync_mark_events_pushed_inner(
 }
 
 #[tauri::command]
-pub fn sync_mark_events_pushed(
+pub async fn sync_mark_events_pushed(
     assigned: Vec<(String, i64)>,
-    db: State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<(), CommandError> {
-    let mut conn = db.0.lock()?;
-    sync_mark_events_pushed_inner(&mut conn, &assigned)
+    crate::storage::blocking("sync_mark_events_pushed", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        sync_mark_events_pushed_inner(&mut conn, &assigned)
+    })
+    .await
 }
 
 pub(crate) fn sync_mark_events_failed_inner(
@@ -283,13 +328,17 @@ pub(crate) fn sync_mark_events_failed_inner(
 }
 
 #[tauri::command]
-pub fn sync_mark_events_failed(
+pub async fn sync_mark_events_failed(
     event_ids: Vec<String>,
     error: String,
-    db: State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<(), CommandError> {
-    let mut conn = db.0.lock()?;
-    sync_mark_events_failed_inner(&mut conn, &event_ids, &error)
+    crate::storage::blocking("sync_mark_events_failed", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        sync_mark_events_failed_inner(&mut conn, &event_ids, &error)
+    })
+    .await
 }
 
 // ── Blob outbox ──────────────────────────────────────────────────────────────
@@ -344,9 +393,16 @@ pub(crate) fn sync_outbox_blobs_inner(
 }
 
 #[tauri::command]
-pub fn sync_outbox_blobs(limit: i64, db: State<'_, Db>) -> Result<Vec<SyncBlobTask>, CommandError> {
-    let conn = db.0.lock()?;
-    sync_outbox_blobs_inner(&conn, limit)
+pub async fn sync_outbox_blobs(
+    limit: i64,
+    app: tauri::AppHandle,
+) -> Result<Vec<SyncBlobTask>, CommandError> {
+    crate::storage::blocking("sync_outbox_blobs", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        sync_outbox_blobs_inner(&conn, limit)
+    })
+    .await
 }
 
 pub(crate) fn sync_mark_blobs_inner(
@@ -379,9 +435,16 @@ pub(crate) fn sync_mark_blobs_inner(
 /// fetch lands through `put_blob` (which enqueues it), the puller immediately
 /// marks it synced.
 #[tauri::command]
-pub fn sync_mark_blobs_pushed(keys: Vec<String>, db: State<'_, Db>) -> Result<(), CommandError> {
-    let mut conn = db.0.lock()?;
-    sync_mark_blobs_inner(&mut conn, &keys, "synced", None)
+pub async fn sync_mark_blobs_pushed(
+    keys: Vec<String>,
+    app: tauri::AppHandle,
+) -> Result<(), CommandError> {
+    crate::storage::blocking("sync_mark_blobs_pushed", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        sync_mark_blobs_inner(&mut conn, &keys, "synced", None)
+    })
+    .await
 }
 
 /// Permanent refusal (over the size cap, quota exhausted, missing bytes):
@@ -389,13 +452,17 @@ pub fn sync_mark_blobs_pushed(keys: Vec<String>, db: State<'_, Db>) -> Result<()
 /// tens of megabytes into a guaranteed 413 every cycle. Re-enqueue happens
 /// naturally if the blob is ever re-put.
 #[tauri::command]
-pub fn sync_mark_blobs_rejected(
+pub async fn sync_mark_blobs_rejected(
     keys: Vec<String>,
     error: String,
-    db: State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<(), CommandError> {
-    let mut conn = db.0.lock()?;
-    sync_mark_blobs_inner(&mut conn, &keys, "rejected", Some(&error))
+    crate::storage::blocking("sync_mark_blobs_rejected", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        sync_mark_blobs_inner(&mut conn, &keys, "rejected", Some(&error))
+    })
+    .await
 }
 
 /// Blobs the relay turned away for lack of ROOM (`rejected` with
@@ -437,27 +504,44 @@ pub(crate) fn sync_quota_rejected_blobs_inner(
 }
 
 #[tauri::command]
-pub fn sync_quota_rejected_blobs(db: State<'_, Db>) -> Result<Vec<SyncBlobTask>, CommandError> {
-    let conn = db.0.lock()?;
-    sync_quota_rejected_blobs_inner(&conn)
+pub async fn sync_quota_rejected_blobs(
+    app: tauri::AppHandle,
+) -> Result<Vec<SyncBlobTask>, CommandError> {
+    crate::storage::blocking("sync_quota_rejected_blobs", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        sync_quota_rejected_blobs_inner(&conn)
+    })
+    .await
 }
 
 /// Put blobs back into the outbox (`pending`, error cleared) — the engine's
 /// answer to a quota refusal that no longer applies. Idempotent.
 #[tauri::command]
-pub fn sync_requeue_blobs(keys: Vec<String>, db: State<'_, Db>) -> Result<(), CommandError> {
-    let mut conn = db.0.lock()?;
-    sync_mark_blobs_inner(&mut conn, &keys, "pending", None)
+pub async fn sync_requeue_blobs(
+    keys: Vec<String>,
+    app: tauri::AppHandle,
+) -> Result<(), CommandError> {
+    crate::storage::blocking("sync_requeue_blobs", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        sync_mark_blobs_inner(&mut conn, &keys, "pending", None)
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn sync_mark_blobs_failed(
+pub async fn sync_mark_blobs_failed(
     keys: Vec<String>,
     error: String,
-    db: State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<(), CommandError> {
-    let mut conn = db.0.lock()?;
-    sync_mark_blobs_inner(&mut conn, &keys, "failed", Some(&error))
+    crate::storage::blocking("sync_mark_blobs_failed", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        sync_mark_blobs_inner(&mut conn, &keys, "failed", Some(&error))
+    })
+    .await
 }
 
 /// What still owes the relay a push — the backlog numbers the sync-progress
@@ -525,9 +609,15 @@ pub(crate) fn sync_outbox_counts_inner(conn: &Connection) -> Result<SyncOutboxCo
 }
 
 #[tauri::command]
-pub fn sync_outbox_counts(db: State<'_, Db>) -> Result<SyncOutboxCounts, CommandError> {
-    let conn = db.0.lock()?;
-    sync_outbox_counts_inner(&conn)
+pub async fn sync_outbox_counts(
+    app: tauri::AppHandle,
+) -> Result<SyncOutboxCounts, CommandError> {
+    crate::storage::blocking("sync_outbox_counts", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        sync_outbox_counts_inner(&conn)
+    })
+    .await
 }
 
 // ── Verification (the `unverified` state) ────────────────────────────────────
@@ -550,9 +640,16 @@ pub(crate) fn sync_unverified_events_inner(conn: &Connection, limit: i64) -> Res
 }
 
 #[tauri::command]
-pub fn sync_unverified_events(limit: i64, db: State<'_, Db>) -> Result<Vec<String>, CommandError> {
-    let conn = db.0.lock()?;
-    sync_unverified_events_inner(&conn, limit)
+pub async fn sync_unverified_events(
+    limit: i64,
+    app: tauri::AppHandle,
+) -> Result<Vec<String>, CommandError> {
+    crate::storage::blocking("sync_unverified_events", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        sync_unverified_events_inner(&conn, limit)
+    })
+    .await
 }
 
 /// The relay's answer for a batch of unverified ids: `known` ones are settled
@@ -589,27 +686,37 @@ pub(crate) fn sync_resolve_events_inner(
 }
 
 #[tauri::command]
-pub fn sync_resolve_events(
+pub async fn sync_resolve_events(
     known: Vec<(String, i64)>,
     missing: Vec<String>,
-    db: State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<(), CommandError> {
-    let mut conn = db.0.lock()?;
-    sync_resolve_events_inner(&mut conn, &known, &missing)
+    crate::storage::blocking("sync_resolve_events", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        sync_resolve_events_inner(&mut conn, &known, &missing)
+    })
+    .await
 }
 
 /// A transport that cannot answer "do you have these ids?" gets the
 /// pessimistic settlement: everything unverified owes a push.
 #[tauri::command]
-pub fn sync_assume_events_missing(db: State<'_, Db>) -> Result<i64, CommandError> {
-    let conn = db.0.lock()?;
-    let n = conn.execute(
-        "UPDATE event_sync_state
+pub async fn sync_assume_events_missing(
+    app: tauri::AppHandle,
+) -> Result<i64, CommandError> {
+    crate::storage::blocking("sync_assume_events_missing", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        let n = conn.execute(
+            "UPDATE event_sync_state
             SET push_state = 'pending', updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
           WHERE push_state = 'unverified'",
-        [],
-    )?;
-    Ok(n as i64)
+            [],
+        )?;
+        Ok(n as i64)
+    })
+    .await
 }
 
 /// Blobs whose mailbox status is unknown and that this device could push
@@ -639,9 +746,16 @@ pub(crate) fn sync_unverified_blobs_inner(conn: &Connection, limit: i64) -> Resu
 }
 
 #[tauri::command]
-pub fn sync_unverified_blobs(limit: i64, db: State<'_, Db>) -> Result<Vec<SyncBlobTask>, CommandError> {
-    let conn = db.0.lock()?;
-    sync_unverified_blobs_inner(&conn, limit)
+pub async fn sync_unverified_blobs(
+    limit: i64,
+    app: tauri::AppHandle,
+) -> Result<Vec<SyncBlobTask>, CommandError> {
+    crate::storage::blocking("sync_unverified_blobs", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        sync_unverified_blobs_inner(&conn, limit)
+    })
+    .await
 }
 
 /// Settle unverified blobs: `present` (the relay holds matching bytes) become
@@ -677,27 +791,37 @@ pub(crate) fn sync_resolve_blobs_inner(
 }
 
 #[tauri::command]
-pub fn sync_resolve_blobs(
+pub async fn sync_resolve_blobs(
     present: Vec<String>,
     absent: Vec<String>,
-    db: State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<(), CommandError> {
-    let mut conn = db.0.lock()?;
-    sync_resolve_blobs_inner(&mut conn, &present, &absent)
+    crate::storage::blocking("sync_resolve_blobs", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        sync_resolve_blobs_inner(&mut conn, &present, &absent)
+    })
+    .await
 }
 
 /// Pessimistic settlement for a transport without HEAD: every unverified
 /// blob owes a push.
 #[tauri::command]
-pub fn sync_assume_blobs_missing(db: State<'_, Db>) -> Result<i64, CommandError> {
-    let conn = db.0.lock()?;
-    let n = conn.execute(
-        "UPDATE blob_sync_state
+pub async fn sync_assume_blobs_missing(
+    app: tauri::AppHandle,
+) -> Result<i64, CommandError> {
+    crate::storage::blocking("sync_assume_blobs_missing", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        let n = conn.execute(
+            "UPDATE blob_sync_state
             SET push_state = 'pending', updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
           WHERE push_state = 'unverified'",
-        [],
-    )?;
-    Ok(n as i64)
+            [],
+        )?;
+        Ok(n as i64)
+    })
+    .await
 }
 
 /// One book whose file the relay doesn't (yet) hold, for the Data & Sync
@@ -718,11 +842,15 @@ pub struct SyncBookBacklogRow {
 }
 
 #[tauri::command]
-pub fn sync_book_backlog(db: State<'_, Db>) -> Result<Vec<SyncBookBacklogRow>, CommandError> {
-    let conn = db.0.lock()?;
-    let mut stmt = conn
-        .prepare(
-            "SELECT substr(bo.key, length('bookfile:') + 1),
+pub async fn sync_book_backlog(
+    app: tauri::AppHandle,
+) -> Result<Vec<SyncBookBacklogRow>, CommandError> {
+    crate::storage::blocking("sync_book_backlog", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        let mut stmt = conn
+            .prepare(
+                "SELECT substr(bo.key, length('bookfile:') + 1),
                     b.title,
                     bo.byte_size,
                     bs.push_state,
@@ -742,23 +870,25 @@ pub fn sync_book_backlog(db: State<'_, Db>) -> Result<Vec<SyncBookBacklogRow>, C
                          ELSE 2
                        END,
                        bo.byte_size DESC",
-        )
-        ?;
-    let rows = stmt
-        .query_map([], |row| {
-            Ok(SyncBookBacklogRow {
-                book_id: row.get(0)?,
-                title: row.get(1)?,
-                byte_size: row.get(2)?,
-                push_state: row.get(3)?,
-                last_error: row.get(4)?,
-                local_bytes: row.get(5)?,
+            )
+            ?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(SyncBookBacklogRow {
+                    book_id: row.get(0)?,
+                    title: row.get(1)?,
+                    byte_size: row.get(2)?,
+                    push_state: row.get(3)?,
+                    last_error: row.get(4)?,
+                    local_bytes: row.get(5)?,
+                })
             })
-        })
-        ?
-        .collect::<Result<Vec<_>, _>>()
-        ?;
-    Ok(rows)
+            ?
+            .collect::<Result<Vec<_>, _>>()
+            ?;
+        Ok(rows)
+    })
+    .await
 }
 
 // ── Account adoption (the bookkeeping ↔ account binding) ─────────────────────
@@ -829,7 +959,14 @@ pub(crate) fn sync_adopt_account_inner(
 }
 
 #[tauri::command]
-pub fn sync_adopt_account(account_id: String, db: State<'_, Db>) -> Result<bool, CommandError> {
-    let mut conn = db.0.lock()?;
-    sync_adopt_account_inner(&mut conn, &account_id)
+pub async fn sync_adopt_account(
+    account_id: String,
+    app: tauri::AppHandle,
+) -> Result<bool, CommandError> {
+    crate::storage::blocking("sync_adopt_account", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        sync_adopt_account_inner(&mut conn, &account_id)
+    })
+    .await
 }

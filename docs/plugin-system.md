@@ -289,16 +289,54 @@ pointer-driven menu or independent book-details E2E test. Rust verifies native
 list/inspect token identity and equal-millisecond ABA; React tests cover duplicate
 save, old callback/completion, replacement drafts and book change.
 
-[环境] Two real SQLite lock attempts returned `db/locked` and one exceeded the
-bridge script wait; they did NOT capture a successfully delayed save completion
-or painted busy state. That exact native cancellation/reopen race remains
-unverified despite the React regression. A dev reload also lost the first
+[环境] The initial two SQLite lock attempts did not capture a successfully
+delayed save completion or painted busy state; that historical evidence remains
+unchanged. The [storage execution follow-up](./evidence/storage-execution-2026-09-10.json)
+now verifies native busy controls, Cancel/reopen while a write is pending, and a
+successful old completion after lock release that leaves the replacement draft
+open and unchanged. Saving that old replacement snapshot then conflicts.
+Another held-lock test kept a 50 ms heartbeat responsive (118 ticks in 6292 ms),
+displayed localized database-busy copy, retained the draft, and saved after release.
+A dev reload during the initial CAS run also lost the first
 fixture's in-memory handles and logged a window-listener teardown rejection;
 its known owned rows were removed through domain commands before a fresh run.
 No autonomous inference, relay/cross-device, packaged, maximum-book-load or
 Windows/Linux claim is made. Native menu/selection completion ownership beyond
 the note editor, legacy public unconditional commands and unified Range remain
 separate unfinished work.
+
+### Storage Execution Boundary
+
+[代码] The 100 previously synchronous storage commands and two cover commands
+now accept an owned AppHandle and run state lookup, mutex acquisition, SQLite
+and filesystem work in the shared `storage/execution.rs` blocking executor.
+This includes readers, mutations, reading accrual/position/flush, private plugin
+documents, preferences, memory, sync bookkeeping and staged blob sessions.
+Existing asynchronous import, secret and replay commands retain their explicit
+blocking pools. The literal schema-version getter remains synchronous; it does
+not read storage. There are no new public commands, actor grants or SQL access.
+
+[代码] Command payload names, result/error shapes and transaction bodies remain
+unchanged. The executor logs a task-join failure and returns stable `internal`
+without the panic payload; ordinary CommandError codes pass through. Cancellation
+of a waiter does not cancel or roll back work already accepted by the pool.
+Raw request bytes are copied before crossing the owned task boundary; this is
+not an unbounded-input or memory-quota solution. The rablob URI handler also
+responds asynchronously so cover requests cannot wait on this mutex in UI
+dispatch. Boot initialization and native window-exit flush remain synchronous;
+this does not claim all native work or OS shutdown is nonblocking.
+
+[环境] Rust AST regression scans storage commands plus cover/import/secret
+consumers for async dispatch, explicit blocking execution and misplaced locks.
+An independent token comparison verified 98 mechanically migrated command
+bodies and return types unchanged; two raw-body and two cover handlers were
+reviewed separately. Actual Tauri tests cover native editing, real Worker
+annotation writes, actual Agent edit/query/close tools, successful reader
+retirement and cleanup. A generated 2x3 PNG passed raw cover storage and the
+rablob protocol, decoding the expected RGBA pixel. The first long-lock attempt
+used an awaited animation-frame loop and exceeded bridge wait; it is not the
+successful timeout evidence. No maximum pool load, packaged, Windows/Linux,
+real multi-device sync or autonomous model claim is made.
 
 [环境] The [native evidence](./evidence/annotation-observation-2026-09-10.json)
 covers real SQLite, four WebKit Workers, actual Agent queries and compiled

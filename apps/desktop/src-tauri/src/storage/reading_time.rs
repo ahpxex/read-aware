@@ -61,9 +61,15 @@ pub struct ReadingTimeWire {
 ///
 /// Idempotent: it does nothing once the log contains any `book.timeRecorded`.
 #[tauri::command]
-pub fn reading_time_genesis(db: State<'_, Db>) -> Result<usize, CommandError> {
-    let mut conn = db.0.lock()?;
-    reading_time_genesis_inner(&mut conn)
+pub async fn reading_time_genesis(
+    app: tauri::AppHandle,
+) -> Result<usize, CommandError> {
+    crate::storage::blocking("reading_time_genesis", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        reading_time_genesis_inner(&mut conn)
+    })
+    .await
 }
 
 /// Read the three reading-time tables into (daily, hourly, bounds) maps,
@@ -392,12 +398,18 @@ fn reading_time_genesis_pass(conn: &mut Connection, device_id: &str) -> Result<u
 }
 
 #[tauri::command]
-pub fn reading_time_load(db: State<'_, Db>) -> Result<ReadingTimeWire, CommandError> {
-    let mut conn = db.0.lock()?;
-    let tx = conn.transaction()?;
-    let wire = reading_time_load_conn(&tx, None)?;
-    tx.commit()?;
-    Ok(wire)
+pub async fn reading_time_load(
+    app: tauri::AppHandle,
+) -> Result<ReadingTimeWire, CommandError> {
+    crate::storage::blocking("reading_time_load", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        let tx = conn.transaction()?;
+        let wire = reading_time_load_conn(&tx, None)?;
+        tx.commit()?;
+        Ok(wire)
+    })
+    .await
 }
 
 pub(crate) fn reading_time_scope_inner(conn: &mut Connection, book_id: Option<String>) -> Result<ReadingTimeWire, CommandError> {
@@ -418,9 +430,16 @@ pub(crate) fn reading_time_scope_inner(conn: &mut Connection, book_id: Option<St
 }
 
 #[tauri::command]
-pub fn reading_time_scope(book_id: Option<String>, db: State<'_, Db>) -> Result<ReadingTimeWire, CommandError> {
-    let mut conn = db.0.lock()?;
-    reading_time_scope_inner(&mut conn, book_id)
+pub async fn reading_time_scope(
+    book_id: Option<String>,
+    app: tauri::AppHandle,
+) -> Result<ReadingTimeWire, CommandError> {
+    crate::storage::blocking("reading_time_scope", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        reading_time_scope_inner(&mut conn, book_id)
+    })
+    .await
 }
 
 fn reading_time_load_conn(conn: &Connection, book_id: Option<&str>) -> Result<ReadingTimeWire, CommandError> {
@@ -682,50 +701,78 @@ pub(crate) fn reading_session_flush_inner(
 
 /// One tracker tick: add `deltaMs` of active reading to its hour bucket.
 #[tauri::command]
-pub fn reading_session_accrue(
+pub async fn reading_session_accrue(
     book_id: String,
     local_day: String,
     local_hour: i64,
     delta_ms: i64,
     at_epoch_ms: i64,
-    db: State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<ReadingSessionBucket, CommandError> {
-    let conn = db.0.lock()?;
-    reading_session_accrue_inner(&conn, &book_id, &local_day, local_hour, delta_ms, at_epoch_ms)
+    crate::storage::blocking("reading_session_accrue", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        reading_session_accrue_inner(&conn, &book_id, &local_day, local_hour, delta_ms, at_epoch_ms)
+    })
+    .await
 }
 
 /// One page turn: the bucket's position becomes `progress`.
 #[tauri::command]
-pub fn reading_session_position(
+pub async fn reading_session_position(
     book_id: String,
     local_day: String,
     local_hour: i64,
     at_epoch_ms: i64,
     progress: Value,
-    db: State<'_, Db>,
+    app: tauri::AppHandle,
 ) -> Result<ReadingSessionBucket, CommandError> {
-    let conn = db.0.lock()?;
-    reading_session_position_inner(&conn, &book_id, &local_day, local_hour, at_epoch_ms, &progress)
+    crate::storage::blocking("reading_session_position", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        reading_session_position_inner(&conn, &book_id, &local_day, local_hour, at_epoch_ms, &progress)
+    })
+    .await
 }
 
 /// Every open bucket (boot recovery closes what a crash left).
 #[tauri::command]
-pub fn reading_sessions_pending(db: State<'_, Db>) -> Result<Vec<ReadingSessionBucket>, CommandError> {
-    let conn = db.0.lock()?;
-    reading_sessions_pending_inner(&conn)
+pub async fn reading_sessions_pending(
+    app: tauri::AppHandle,
+) -> Result<Vec<ReadingSessionBucket>, CommandError> {
+    crate::storage::blocking("reading_sessions_pending", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        reading_sessions_pending_inner(&conn)
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn reading_session_flush(events: Vec<EventRow>, db: State<'_, Db>) -> Result<CommitReport, CommandError> {
-    let mut conn = db.0.lock()?;
-    reading_session_flush_inner(&mut conn, &events)
+pub async fn reading_session_flush(
+    events: Vec<EventRow>,
+    app: tauri::AppHandle,
+) -> Result<CommitReport, CommandError> {
+    crate::storage::blocking("reading_session_flush", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        reading_session_flush_inner(&mut conn, &events)
+    })
+    .await
 }
 
 /// Bulk replace (one-time app_kv migration; the stats demo seed).
 #[tauri::command]
-pub fn reading_time_import(wire: ReadingTimeWire, db: State<'_, Db>) -> Result<(), CommandError> {
-    let mut conn = db.0.lock()?;
-    reading_time_import_inner(&mut conn, &wire)
+pub async fn reading_time_import(
+    wire: ReadingTimeWire,
+    app: tauri::AppHandle,
+) -> Result<(), CommandError> {
+    crate::storage::blocking("reading_time_import", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let mut conn = db.0.lock()?;
+        reading_time_import_inner(&mut conn, &wire)
+    })
+    .await
 }
 
 pub(crate) fn reading_time_import_inner(conn: &mut Connection, wire: &ReadingTimeWire) -> Result<(), CommandError> {

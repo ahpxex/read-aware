@@ -327,7 +327,7 @@
     "description": "ReadAware es local-first: tus datos residen en este dispositivo. La sincronización es un relé cifrado, no una fuente de verdad.",
     "noticeDone": "Listo",
     "noticeError": "Error",
-    "exportSuccess": "Todo se exportó a {{file}}.",
+    "exportSuccess": "Copia de seguridad de la biblioteca (v1) exportada.",
     "exportError": "No se pudieron exportar tus datos.",
     "importError": "No se pudo importar este archivo.",
     "merge": {

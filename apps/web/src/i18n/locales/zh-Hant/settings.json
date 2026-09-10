@@ -327,7 +327,7 @@
     "description": "ReadAware 以本機優先：你的資料存放於此裝置。同步僅是加密的中繼，並非真實資料來源。",
     "noticeDone": "完成",
     "noticeError": "錯誤",
-    "exportSuccess": "所有內容已匯出至 {{file}}。",
+    "exportSuccess": "書庫備份（v1）已匯出。",
     "exportError": "無法匯出你的資料。",
     "importError": "無法匯入此檔案。",
     "merge": {

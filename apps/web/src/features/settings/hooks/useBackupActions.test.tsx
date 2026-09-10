@@ -45,6 +45,10 @@ test("actor backup requests await a real host click, preserve cancellation and r
       await act(async () => { dom.window.document.querySelector("button")!.click(); await tick(); });
       expect(await request).toEqual({ action: "export", status: save ? "exported" : "cancelled" });
       expect(exports).toBe(before + 1); expect(flow.busy).toBe(false);
+      if (save) {
+        expect(dom.window.document.body.textContent).toContain("Library backup (v1) exported.");
+        expect(dom.window.document.body.textContent).not.toContain("readaware-backup.json");
+      }
     }
     await act(async () => { request = actor.context.services.maintenance.requestBackup("import"); await tick(); });
     expect(imports).toBe(0); await act(async () => { await flow.run("import"); });

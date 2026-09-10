@@ -13,7 +13,7 @@ export function PluginViewPagination({ pagination, busy, onResult }: {
   if (!pagination) return null;
   return (
     <Stack direction="horizontal" gap="sm" align="center" justify="end" className="min-h-9">
-      <Tooltip content={t("viewer.pagination.previous")}>
+      <Tooltip content={t("viewer.pagination.previous")} align="start">
         <IconButton label={t("viewer.pagination.previous")} size="sm"
           icon={<CaretLeft size={16} aria-hidden="true" />}
           disabled={busy || !pagination.onPrevious}
@@ -24,7 +24,7 @@ export function PluginViewPagination({ pagination, busy, onResult }: {
           ? t("viewer.pagination.page", { page: pagination.page })
           : t("viewer.pagination.pageOf", { page: pagination.page, total: pagination.pageCount })}
       </Caption>
-      <Tooltip content={t("viewer.pagination.next")}>
+      <Tooltip content={t("viewer.pagination.next")} align="end">
         <IconButton label={t("viewer.pagination.next")} size="sm"
           icon={<CaretRight size={16} aria-hidden="true" />}
           disabled={busy || !pagination.onNext}

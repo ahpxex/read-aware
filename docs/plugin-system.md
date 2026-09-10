@@ -5171,8 +5171,9 @@ manifest requires settings 1.9, maintenance 1.3, diagnostics 1.1, UI 1.2,
 logging 1.0 and views 1.8; grants are `service:network`, `service:diagnostics`
 and discover-only `ai.connection.primaryModel`. No current configuration,
 credentials, book data, backup bytes, paths or diagnostic bundle is read.
-The source roster is fifteen; Rust BUNDLED remains six. This plugin is built
-but not bundled, auto-installed or published.
+The source roster is fifteen; Rust BUNDLED remains six. Maintenance Desk is not
+in that release roster or published. Debug `RepoDist` discovers all built checkout
+plugins as builtin, including this one; that is not a normal user installation.
 
 - Catalog provider choices are twelve explicit public IDs, not the active
   account: openai, anthropic, openrouter, google, deepseek, xai, groq, mistral,
@@ -5212,6 +5213,45 @@ catalog revision paging and explicit refresh. The build and production manifest
 validator are checked separately. These are not actual Worker/Tauri/native-file,
 provider-network or desktop E2E results; concentrated desktop acceptance remains
 pending. No host API was added for this consumer.
+
+[环境/验证] The subsequent [macOS debug acceptance](./evidence/maintenance-desk-2026-09-11.json)
+uses the real compiled Worker and production host in isolated
+`com.readaware.app.capability-e2e`, not a plain browser. Explicit public-catalog
+refresh returned 39 OpenAI rows and two pages. AI test handoff and wait cancellation
+worked without inference. Real projection verification reported 1906 replayed
+events and one drifted table (one live-only and one replay-only row); this is a
+detected existing difference, not a repaired or healthy database claim.
+
+Actual macOS Save produced two v1 files under chosen temporary names and the
+plugin retained `exported`. Actual Open-panel cancellation returned `cancelled`.
+Both diagnostic directions opened their respective preview and final action,
+then cancellation returned to the plugin; neither report was sent/exported.
+The test-owned backup files were removed after JSON metadata checks. Existing
+isolated books and the formal user profile were untouched. Cleanup retired the
+Worker and restored its original enabled state; test app/driver/frontend stopped.
+
+Two UI defects were fixed from this run: existing start/end tooltip alignment
+prevents pagination's hidden labels widening its scroll area (402 -> 379 px,
+matching clientWidth); export success no longer asserts a default filename the
+user may have changed, or says everything was backed up. All eight locales now
+name the v1 library backup. The corrected save toast was observed in native CUA.
+List geometry was checked at 900x650 and 1280x800; a usable wide screenshot confirms
+the catalog. Some stacked-dialog/animation MCP captures are blank or stale and
+are excluded from visual proof. Actual backup merge, inference, report delivery,
+Agent execution, release packaging/CSP and cross-platform verification remain
+unverified; this does not close the overall capability goal.
+
+Reproduction: start the existing `tauri.capability-e2e.conf.json` debug config,
+then import the guarded `runtime/fixtures/desktop-maintenance-desk.ts` module in
+the Tauri WebView and call `prepareMaintenanceDesk()` / `openMaintenanceDesk()`.
+Use the mounted plugin/native buttons, not synthetic receipt handlers. For CUA
+native dialogs, the bare CLI executable was not discoverable; the same debug
+binary was placed in a temporary `.app` with matching `CFBundleExecutable`,
+`CFBundleIdentifier`, `CFBundleName`, package type APPL, version and high-resolution
+flag in `Contents/Info.plist`. It still uses port 5184 and the same isolated data,
+not release assets. Quit the bare instance before launching that wrapper. Call
+`cleanupMaintenanceDesk()` after pending native actions settle; it restores the
+original enabled state and does not uninstall debug RepoDist or delete books.
 
 ### Native AI Connection Test (Maintenance 1.3)
 

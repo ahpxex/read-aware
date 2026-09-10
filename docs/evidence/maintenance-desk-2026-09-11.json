@@ -1,0 +1,71 @@
+{
+  "date": "2026-09-11",
+  "scope": "Maintenance Desk 0.1.0 concentrated macOS debug acceptance; not complete host capability acceptance",
+  "environment": {
+    "appIdentifier": "com.readaware.app.capability-e2e",
+    "frontendPort": 5184,
+    "bridgePort": 9224,
+    "formalDataTouched": false,
+    "compiledWorker": "plugins/maintenance-desk/dist/main.js via native debug RepoDist and production plugin host",
+    "launch": "CARGO_NET_OFFLINE=true bun run --filter @read-aware/desktop tauri dev --config src-tauri/tauri.capability-e2e.conf.json --no-watch",
+    "nativeDialogs": "Bare debug executable was not discoverable by CUA. After stopping that app, copied the same debug executable into /tmp/readaware-maintenance-acceptance.app/Contents/MacOS/read-aware-desktop with a minimal Info.plist (APPL, matching bundle identifier and executable). Launched through CUA against the separately restarted port-5184 frontend. No product permissions, APIs or IPC results were patched.",
+    "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-maintenance-desk.ts",
+    "entry": "prepareMaintenanceDesk / openMaintenanceDesk use the real registered command; subsequent form and action clicks use the mounted UI",
+    "discovery": "Debug RepoDist discovers all built checkout plugins as builtin; not evidence that Maintenance Desk is in the six-entry release BUNDLED roster or that a user installation was tested"
+  },
+  "observations": [
+    {
+      "case": "Model catalog through the real Worker and HTTP service",
+      "result": "Initial cached OpenAI catalog empty; explicit UI refresh returned 39 public model rows and a checked timestamp. Next/previous navigated two pages with the public revision contract. No account credentials or inference were required. Does not prove every provider or model is callable."
+    },
+    {
+      "case": "AI connection request and cancellation",
+      "result": "Plugin review closed its own dialog and opened native AI settings. Test Connection remained disabled for the incomplete form; no inference was triggered. Reopening the registered plugin command showed Awaiting host result. Cancel wait crossed the Worker bridge and the live result changed to cancelled. No successful model response was tested."
+    },
+    {
+      "case": "Real native projection verification",
+      "result": { "eventsReplayed": 1906, "driftedTables": 1, "onlyLiveRows": 1, "onlyReplayedRows": 1 },
+      "presentation": "Plugin live result showed Projection differences found and the returned counts, not a false healthy result. No repair was attempted and the pre-existing drift was not diagnosed in this batch."
+    },
+    {
+      "case": "Native backup export, chosen filename and Worker receipt",
+      "result": "Clicked the revealed host Export button, then used the actual macOS Save panel via CUA. Saved two uniquely named files under /tmp across the original and corrected-copy runs. JSON files were 76912 and 76913 bytes, app=read-aware, kind=backup, version=1, books=2. Reopening the plugin showed Exported. Files were deleted after metadata verification; no backup payload is committed."
+    },
+    {
+      "case": "Native backup import cancellation",
+      "result": "Plugin request revealed the host Import button. Clicking it opened the actual macOS Open panel. CUA Cancel closed it and the plugin's retained result was cancelled. No data was imported or overwritten; this is not a restore/merge success test."
+    },
+    {
+      "case": "Diagnostic export and send previews",
+      "result": "Both public request directions opened their correct native host previews with a prepared 256205-character report and distinct Export / Send final buttons. Cancelling each preview returned cancelled to the retained plugin result. The report was not exported or sent, and its contents are not included in this evidence."
+    },
+    {
+      "case": "Retirement and cleanup",
+      "result": "After operations settled, cleanup disabled the production Worker and restored its original enabled state. Plugin dialog count was zero and the expected command/header contributions returned to two. Existing two test books were not removed or modified. Isolated app quit, driver stopped, frontend exec 22057 ended 143; initial desktop exec 8786 ended 0 after deliberate app termination. Ports 5184/9224 closed; original app on 9223 remained live."
+    }
+  ],
+  "fixes": [
+    {
+      "issue": "Hidden centered pagination tooltips extended beyond the list viewport and created a horizontal scrollbar.",
+      "change": "Use the existing Tooltip start/end alignment for previous/next pagination controls, shared by list/table/tree views.",
+      "nativeVerification": "At 900x650, scrollWidth fell from 402 to clientWidth 379. At 1280x800 both remained 379. After an actual scroll to the footer, Next page lay at y=490..518 inside the viewport and clicking it displayed Page 2 of 2 without horizontal overflow."
+    },
+    {
+      "issue": "Successful native Save under a custom filename still claimed Everything exported to readaware-backup.json, overstating both filename and backup coverage.",
+      "change": "Removed the assumed filename interpolation and changed all eight locale success strings to library backup v1 exported.",
+      "nativeVerification": "Repeated the actual native save under a different filename; CUA observed Done Library backup (v1) exported. The file existed and the Worker received exported."
+    }
+  ],
+  "captures": {
+    "usable": ["/tmp/readaware-maintenance-catalog.png", "/tmp/readaware-maintenance-list.png", "/tmp/readaware-maintenance-wide.png"],
+    "limit": "Some MCP screenshots of stacked dialogs or animation frames captured blank/stale content. Those receipt/page2 images are not treated as visual proof. Native file-dialog actions and corrected toast were observed through CUA accessibility; numeric geometry and Worker outcomes through the live Tauri DOM."
+  },
+  "validation": { "tests": 29, "assertions": 147, "typecheckTasks": "28/28", "locales": 8, "pairedDocuments": 3, "diffCheck": "passed", "documentationVisualCheck": "not repeated" },
+  "limits": [
+    "No paid inference, report upload, backup merge/restore, credentials, account change or production user data.",
+    "No Agent-model execution, release bundle/CSP, signed build, cross-platform or cross-device proof.",
+    "No claimed durability across restart; the first uncompleted Save-panel attempt was deliberately ended when changing the automation launch method, not counted as successful export or clean cancellation.",
+    "Debug build retains 37 existing Rust warnings and the MCP 0.12/0.13 version warning; bridge operations worked without changing dependencies.",
+    "Full capability omission sweep and remaining combined desktop scenarios are still outstanding."
+  ]
+}

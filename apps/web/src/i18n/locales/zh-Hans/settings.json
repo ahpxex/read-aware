@@ -327,7 +327,7 @@
     "description": "ReadAware 采用本地优先：你的数据保存在本设备上。同步只是加密中继，而非事实来源。",
     "noticeDone": "完成",
     "noticeError": "错误",
-    "exportSuccess": "已全部导出至 {{file}}。",
+    "exportSuccess": "书库备份（v1）已导出。",
     "exportError": "无法导出你的数据。",
     "importError": "无法导入此文件。",
     "merge": {

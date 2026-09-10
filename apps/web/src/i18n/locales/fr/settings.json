@@ -327,7 +327,7 @@
     "description": "ReadAware est local d’abord : vos données résident sur cet appareil. La synchronisation est un relais chiffré, pas une source de vérité.",
     "noticeDone": "Terminé",
     "noticeError": "Erreur",
-    "exportSuccess": "Tout a été exporté vers {{file}}.",
+    "exportSuccess": "Sauvegarde de la bibliothèque (v1) exportée.",
     "exportError": "Impossible d’exporter vos données.",
     "importError": "Impossible d’importer ce fichier.",
     "merge": {

@@ -327,7 +327,7 @@
     "description": "ReadAwareはローカルファースト：データはこの端末に保存されます。同期は暗号化された中継であり、信頼できる情報源ではありません。",
     "noticeDone": "完了",
     "noticeError": "エラー",
-    "exportSuccess": "すべてを{{file}}にエクスポートしました。",
+    "exportSuccess": "ライブラリのバックアップ（v1）をエクスポートしました。",
     "exportError": "データをエクスポートできませんでした。",
     "importError": "このファイルをインポートできませんでした。",
     "merge": {

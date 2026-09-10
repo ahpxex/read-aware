@@ -327,7 +327,7 @@
     "description": "ReadAware ist lokal-first: Deine Daten liegen auf diesem Gerät. Sync ist ein verschlüsseltes Relay, keine Quelle der Wahrheit.",
     "noticeDone": "Fertig",
     "noticeError": "Fehler",
-    "exportSuccess": "Alles nach {{file}} exportiert.",
+    "exportSuccess": "Bibliothekssicherung (v1) exportiert.",
     "exportError": "Deine Daten konnten nicht exportiert werden.",
     "importError": "Diese Datei konnte nicht importiert werden.",
     "merge": {

@@ -4,7 +4,7 @@ import { useToast } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { createLogger } from "../../../platform/logger";
 import { hostBackupFlows, hostMaintenance } from "../../../services/maintenance";
-import { backupFileActions, BACKUP_FILENAME } from "../lib/backup-file-actions";
+import { backupFileActions } from "../lib/backup-file-actions";
 import type { BackupImportResult } from "../lib/backup-io";
 
 const log = createLogger("backup-actions");
@@ -45,7 +45,7 @@ export function useBackupActions(blocked = false) {
       }
       if (!result || owner?.signal.aborted) return;
       toast({ variant: "success", title: t("dataSync.noticeDone"), description: typeof result === "boolean"
-        ? t("dataSync.exportSuccess", { file: BACKUP_FILENAME })
+        ? t("dataSync.exportSuccess")
         : t("dataSync.merge.summary", {
           books: t("dataSync.merge.books", { count: result.books }), annotations: t("dataSync.merge.annotations", { count: result.annotations }),
           collections: t("dataSync.merge.collections", { count: result.collections }), settings: t("dataSync.merge.settings", { count: result.settings }),

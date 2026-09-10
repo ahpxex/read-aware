@@ -29,6 +29,10 @@ test("mounted table exposes semantic sorting, row commands, busy controls and re
     expect(dom.window.document.querySelector("tbody b")).toBeNull();
     expect(dom.window.document.querySelector("td")?.textContent).toBe("<b>Book one</b>");
     expect(button("Next page").disabled).toBe(true);
+    const previousTip = dom.window.document.getElementById(button("Previous page").getAttribute("aria-describedby")!);
+    const nextTip = dom.window.document.getElementById(button("Next page").getAttribute("aria-describedby")!);
+    expect(previousTip?.classList.contains("left-0")).toBe(true);
+    expect(nextTip?.classList.contains("right-0")).toBe(true);
     await act(async () => { dom.window.document.querySelector<HTMLButtonElement>("th button")!.click(); });
     await act(async () => { button("Open Book one").click(); button("Previous page").click(); });
     expect(calls).toEqual([{ column: "title", direction: "descending" }, "open", "previous"]);

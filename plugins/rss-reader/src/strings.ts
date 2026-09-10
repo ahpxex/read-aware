@@ -6,6 +6,45 @@
 type Localized = { default: string; [locale: string]: string };
 
 const STRINGS = {
+  chooseOpmlFile: {
+    default: "Choose OPML file", "zh-Hans": "选择 OPML 文件", "zh-Hant": "選擇 OPML 檔案", ja: "OPMLファイルを選択",
+    ru: "Выбрать файл OPML", fr: "Choisir un fichier OPML", de: "OPML-Datei auswählen", es: "Elegir archivo OPML",
+  },
+  importNext: {
+    default: "Import next batch", "zh-Hans": "导入下一批", "zh-Hant": "匯入下一批", ja: "次のバッチをインポート",
+    ru: "Импортировать следующую группу", fr: "Importer le lot suivant", de: "Nächsten Stapel importieren", es: "Importar el siguiente lote",
+  },
+  subscriptions: {
+    default: "Subscriptions", "zh-Hans": "订阅列表", "zh-Hant": "訂閱清單", ja: "購読一覧",
+    ru: "Подписки", fr: "Abonnements", de: "Abonnements", es: "Suscripciones",
+  },
+  importAdded: {
+    default: "Added", "zh-Hans": "已添加", "zh-Hant": "已新增", ja: "追加済み",
+    ru: "Добавлено", fr: "Ajouté", de: "Hinzugefügt", es: "Añadido",
+  },
+  importFailed: {
+    default: "Failed", "zh-Hans": "失败", "zh-Hant": "失敗", ja: "失敗",
+    ru: "Ошибка", fr: "Échec", de: "Fehlgeschlagen", es: "Error",
+  },
+  pendingPublication: {
+    default: "Source update notification is pending. Refresh this subscription to retry.",
+    "zh-Hans": "来源更新通知尚未完成，可刷新此订阅重试。", "zh-Hant": "來源更新通知尚未完成，可重新整理此訂閱重試。",
+    ja: "ソース更新の通知が保留中です。購読を更新して再試行してください。",
+    ru: "Уведомление об обновлении ожидает отправки. Обновите подписку для повтора.",
+    fr: "La notification de mise à jour est en attente. Actualisez cet abonnement pour réessayer.",
+    de: "Die Quellenbenachrichtigung steht aus. Aktualisieren Sie das Abonnement erneut.",
+    es: "La notificación de actualización está pendiente. Actualiza esta suscripción para reintentar.",
+  },
+  importSummary: {
+    default: "{from}-{to} of {total}: {added} added, {existing} already subscribed, {failed} failed",
+    "zh-Hans": "第 {from}-{to} 项，共 {total} 项：新增 {added}，已有 {existing}，失败 {failed}",
+    "zh-Hant": "第 {from}-{to} 項，共 {total} 項：新增 {added}，已有 {existing}，失敗 {failed}",
+    ja: "全{total}件中{from}-{to}件: 追加{added}、購読済み{existing}、失敗{failed}",
+    ru: "{from}-{to} из {total}: добавлено {added}, уже есть {existing}, ошибок {failed}",
+    fr: "{from}-{to} sur {total} : {added} ajoutés, {existing} déjà abonnés, {failed} échecs",
+    de: "{from}-{to} von {total}: {added} hinzugefügt, {existing} bereits abonniert, {failed} fehlgeschlagen",
+    es: "{from}-{to} de {total}: {added} añadidos, {existing} ya suscritos, {failed} errores",
+  },
   addFeed: {
     default: "Add feed", "zh-Hans": "添加订阅", "zh-Hant": "新增訂閱", ja: "フィードを追加",
     ru: "Добавить ленту", fr: "Ajouter un flux", de: "Feed hinzufügen", es: "Añadir fuente",

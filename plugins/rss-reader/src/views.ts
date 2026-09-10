@@ -14,6 +14,8 @@ import type {
 import { isHttpFeedUrl } from "./feed";
 import { openFeed, subscribe, unsubscribeFeed } from "./feed-library";
 import { feedUrlsFromOpml } from "./opml";
+import { importOpml, type OpmlImportResult } from "./opml-import";
+import { pickOpmlText } from "./opml-file";
 import { articlesTag, tr } from "./strings";
 import { getFeed, loadFeeds } from "./storage";
 import type { FeedSubscription, RssPluginContext } from "./types";
@@ -93,7 +95,7 @@ export function addFeedView(ctx: RssPluginContext): PluginFormView {
   };
 }
 
-export function importOpmlView(ctx: RssPluginContext): PluginFormView {
+export function importOpmlView(ctx: RssPluginContext, initialText = ""): PluginFormView {
   return {
     kind: "form",
     title: tr(ctx.locale, "importOpml"),
@@ -102,6 +104,7 @@ export function importOpmlView(ctx: RssPluginContext): PluginFormView {
         kind: "textarea",
         id: "opml",
         label: "OPML",
+        value: initialText,
         rows: 8,
         placeholder: "<opml version=\"2.0\">…",
         helperText: tr(ctx.locale, "opmlHelper"),
@@ -117,22 +120,31 @@ export function importOpmlView(ctx: RssPluginContext): PluginFormView {
         return { fieldErrors: { opml: tr(ctx.locale, "noUrlsInOpml") } };
       }
 
-      let added = 0;
-      for (const url of urls) {
-        if (await getFeed(ctx, url)) continue;
-        try {
-          await subscribe(ctx, url);
-          added += 1;
-        } catch {
-          // Report the aggregate result; inaccessible feeds remain unmodified.
-        }
-      }
-      return {
-        toast: tr(ctx.locale, "importedFeeds", { added, total: urls.length }),
-        view: await rssPageView(ctx),
-        navigation: "reset",
-      };
+      return { view: opmlResultView(ctx, text, await importOpml(ctx, text)), navigation: "replace" };
     },
+  };
+}
+
+function opmlResultView(ctx: RssPluginContext, text: string, result: OpmlImportResult): PluginDetailView {
+  return {
+    kind: "detail", title: tr(ctx.locale, "importOpml"),
+    content: [
+      { kind: "text", text: tr(ctx.locale, "importSummary", { added: result.added, existing: result.existing, failed: result.failed,
+        from: result.offset + 1, to: result.offset + result.items.length, total: result.total }) },
+      { kind: "list", items: result.items.map(item => ({
+        id: item.url, title: item.url,
+        subtitle: tr(ctx.locale, item.status === "added" ? "importAdded" : item.status === "existing" ? "alreadySubscribed" : "importFailed"),
+        onSelect: () => ({ view: { kind: "detail", title: item.url, content: item.status === "failed"
+          ? [{ kind: "error", code: item.errorCode }]
+          : [{ kind: "text", text: item.title }, ...(item.contentPending ? [{ kind: "text" as const, text: tr(ctx.locale, "pendingPublication") }] : [])] } }),
+      })) },
+    ],
+    actions: [
+      ...(result.nextOffset !== null ? [{ id: "next", icon: "arrow-right", label: tr(ctx.locale, "importNext"),
+        run: async () => ({ view: opmlResultView(ctx, text, await importOpml(ctx, text, result.nextOffset!)), navigation: "replace" as const }),
+      }] : []),
+      { id: "done", icon: "list", label: tr(ctx.locale, "subscriptions"), run: async () => ({ view: await rssPageView(ctx), navigation: "reset" }) },
+    ],
   };
 }
 
@@ -254,6 +266,13 @@ export async function rssPageView(ctx: RssPluginContext): Promise<PluginListView
         label: tr(ctx.locale, "importOpml"),
         icon: "download-simple",
         run: () => ({ view: importOpmlView(ctx) }),
+      },
+      {
+        id: "import-file", label: tr(ctx.locale, "chooseOpmlFile"), icon: "file",
+        run: async () => {
+          const text = await pickOpmlText(ctx);
+          return text === null ? undefined : { view: importOpmlView(ctx, text) };
+        },
       },
       ...(feeds.length > 0
         ? [

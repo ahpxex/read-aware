@@ -336,7 +336,7 @@
           </div></details>
           <details class="ep" data-search-section="approval confirmation 插件 确认 删词 退订"><summary>AgentTools 1.2：插件工具可要求宿主逐次确认</summary><div class="ep-body">
             <p>声明 required 后，宿主先展示插件身份、工具说明和完整参数，再执行获准的参数快照。拒绝、取消、过期或注册失效不调用插件；确认不增加权限，也不回滚已经执行的写入。</p>
-            <p>Dictionary 1.4 已补删词与 CSV 导出，RSS 0.10 已补退订；删除工具需要确认，导出使用系统保存对话框。OPML Agent 导入及通用任务进度仍缺。基础测试通过，真实 Worker/Tauri 组合留集中验收。<a href="./plugin-system.md#plugin-tool-confirmation-agenttools-12">契约与边界</a></p>
+            <p>Dictionary 1.4 已补删词与 CSV 导出，RSS 已补退订；删除工具需要确认，导出使用系统保存对话框。RSS 0.11 还接上本地 OPML 文件预填与经确认的 Agent 文本导入，分批报告新增、已有和失败，不自动处理下一批。通用任务进度仍缺。基础测试通过，真实 Worker/Tauri 组合留集中验收。<a href="./plugin-system.md#plugin-tool-confirmation-agenttools-12">确认契约</a> · <a href="./plugin-system.md#rss-opml-import-011">OPML 与边界</a></p>
           </div></details>
           <details class="ep" data-search-section="action state updateState Jumper 动态 状态 禁用 勾选"><summary>交互贡献 1.1：菜单、快捷键和插件 Agent 工具共用动态状态</summary><div class="ep-body">
             <p>commands、headerActions、selectionActions、agentTools 的注册句柄可更新完整可见、可用、勾选状态。旧版本报 stale，旧注册不能修改同名新注册。宿主每次执行都复核，缓存工具也不能绕过禁用；checked 只呈现，不增加权限。</p>

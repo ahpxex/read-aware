@@ -46,6 +46,16 @@ export function subscribe(ctx: RssPluginContext, rawUrl: string): Promise<FeedSu
   return serial(ctx, url, () => saveRefresh(ctx, url, true));
 }
 
+/** Imports never refresh an existing subscription, even when two imports race. */
+export function subscribeIfMissing(ctx: RssPluginContext, url: string): Promise<{ created: boolean; feed: FeedSubscription }> {
+  if (!isHttpFeedUrl(url)) return Promise.reject(Object.assign(new Error("Invalid feed URL"), { code: "plugin/invalid-input" }));
+  return serial(ctx, url, async () => {
+    const existing = await getFeed(ctx, url);
+    if (existing) return { created: false, feed: existing };
+    return { created: true, feed: await saveRefresh(ctx, url, true) };
+  });
+}
+
 export function ensureBook(ctx: RssPluginContext, input: FeedSubscription): Promise<FeedSubscription> {
   return serial(ctx, input.url, async () => {
     const feed = await getFeed(ctx, input.url);

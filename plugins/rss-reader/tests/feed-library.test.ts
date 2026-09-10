@@ -5,6 +5,8 @@ import { parseFeed } from "../src/feed";
 import { forgetRemovedBook, loadFeedContent, openFeed, subscribe, unsubscribeFeed } from "../src/feed-library";
 import { getFeed } from "../src/storage";
 import type { RssPluginContext } from "../src/types";
+import { importOpml } from "../src/opml-import";
+import { importOpmlView } from "../src/views";
 
 const url = "https://example.com/feed";
 const xml = (items: string) => `<rss><channel><title>Feed</title>${items}</channel></rss>`;
@@ -14,7 +16,7 @@ function fixture() {
   const tools: PluginToolDefinition[] = [];
   const tables = new Map<string, Map<string, unknown>>();
   const table = (name: string) => { let values = tables.get(name); if (!values) { values = new Map(); tables.set(name, values); } return values; };
-  const state = { xml: xml(item("one")), fetches: 0, notifications: 0, offline: false, failIndex: false, failNotify: false,
+  const state = { xml: xml(item("one")), fetches: 0, notifications: 0, offline: false, failIndex: false, failNotify: false, failedUrls: new Set<string>(),
     bookId: "book-1", failRemove: false, sourceRevision: "new", readingRevision: "old", readingBook: "book-1", events: [] as string[], hold: undefined as Promise<void> | undefined };
   let provider: ((key: string) => Promise<PluginBookContent>) | undefined;
   const ctx = {
@@ -29,7 +31,7 @@ function fixture() {
         delete: async (id: string) => { table(name).delete(id); },
         list: async () => [...table(name)].map(([id, data]) => ({ id, data: structuredClone(data), updatedAt: "" })),
       }) },
-      network: { fetch: async () => { state.fetches++; if (state.hold) await state.hold; if (state.offline) throw Error("Offline"); return new Response(state.xml); } },
+      network: { fetch: async (url: string) => { state.fetches++; if (state.hold) await state.hold; if (state.offline || state.failedUrls.has(url)) throw Object.assign(Error("Offline"), { code: "plugin/network-timeout" }); return new Response(state.xml); } },
       ui: { showToast: () => {} }, schedules: { bind: () => ({ dispose() {} }) },
     },
     domains: {
@@ -37,9 +39,9 @@ function fixture() {
         commands: { books: {
           addVirtualBook: async () => ({ id: state.bookId }),
           removeVirtualBook: async () => { if (state.failRemove) throw Object.assign(new Error("Removal failed"), { code: "db/locked" }); },
-          invalidateVirtualBook: async () => {
+          invalidateVirtualBook: async ({ key }: { key: string }) => {
             state.notifications++;
-            const feed = await getFeed(ctx, url);
+            const feed = await getFeed(ctx, key);
             expect(feed?.contentId).toBeDefined(); expect(table("feed-content").has(feed!.contentId!)).toBe(true);
             if (state.failNotify) throw Object.assign(Error("Notification failed"), { code: "plugin/unavailable" });
             return { bookId: state.bookId, revision: "invalidated" };
@@ -65,6 +67,41 @@ function fixture() {
   } as unknown as RssPluginContext;
   return { ctx, state, table, tools, provider: () => provider! };
 }
+
+const opml = (urls: string[]) => `<opml><body>${urls.map(url => `<outline xmlUrl="${url}"/>`).join("")}</body></opml>`;
+
+test("OPML pages distinguish existing, added and failed entries and never refresh existing feeds", async () => {
+  const f = fixture(); await plugin.activate(f.ctx); await subscribe(f.ctx, url);
+  const urls = [url, ...Array.from({ length: 11 }, (_, index) => `${url}/${index}`)];
+  f.state.failedUrls.add(urls[1]!);
+  const input = opml(urls);
+  const importer = f.tools.find(tool => tool.name === "import_opml")!;
+  expect(importer.approval).toBe("required"); expect(importer.contexts).toEqual(["global"]);
+  const page = await importer.execute({ opml: input });
+  expect(page).toMatchObject({ total: 12, offset: 0, nextOffset: 10, added: 8, existing: 1, failed: 1 });
+  expect((page as Awaited<ReturnType<typeof importOpml>>).items.map(item => item.url)).toEqual(urls.slice(0, 10));
+  expect(f.state.fetches).toBe(10);
+  expect(await importOpml(f.ctx, input, 10)).toMatchObject({ nextOffset: null, added: 2, failed: 0 });
+  const failed = (page as Awaited<ReturnType<typeof importOpml>>).items[1]!;
+  expect(failed).toEqual({ url: urls[1]!, status: "failed", errorCode: "plugin/network-timeout" });
+  const before = f.state.fetches;
+  await expect(importOpml(f.ctx, input, -1)).rejects.toMatchObject({ code: "plugin/invalid-input" });
+  await expect(importOpml(f.ctx, input, 0, 21)).rejects.toMatchObject({ code: "plugin/invalid-input" });
+  await expect(importOpml(f.ctx, "<opml/>")).rejects.toMatchObject({ code: "plugin/invalid-input" });
+  expect(f.state.fetches).toBe(before);
+});
+
+test("concurrent OPML imports create each subscription once and UI returns a paged outcome", async () => {
+  const f = fixture(), input = opml([url]);
+  const results = await Promise.all([importOpml(f.ctx, input), importOpml(f.ctx, input)]);
+  expect(results.map(result => result.added).sort()).toEqual([0, 1]); expect(f.state.fetches).toBe(1);
+  const form = importOpmlView(f.ctx, input);
+  expect(form.fields[0]).toMatchObject({ value: input });
+  expect(await form.onSubmit({ opml: "" })).toHaveProperty("fieldErrors.opml");
+  const result = await form.onSubmit({ opml: input });
+  expect(result).toMatchObject({ navigation: "replace", view: { kind: "detail", title: "Import OPML" } });
+  expect(JSON.stringify(result)).toContain("already subscribed");
+});
 
 test("RSS unsubscribe tool requires approval, refuses changed bindings and preserves failed removals", async () => {
   const f = fixture(); await plugin.activate(f.ctx); const feed = await subscribe(f.ctx, url);

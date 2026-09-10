@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+RSS OPML 批次已接线：0.11仅消费现有resources 1.0/views 1.2/agentTools 1.2，不改宿主。本地UTF-8 OPML/XML文件选择后分块读入表单，不因选文件就创建订阅，成功/失败释放引用。原生输入1MiB/1000个去重HTTP(S)源，每URL至多2048字符；超界拒绝整份，不截断。UI与新增global import_opml共用每批默认10/最大20、最多4并发的导入逻辑，逐项报告added/existing/failed与下一页；同URL队列内判断已有订阅，不隐式刷新。Agent每批确认文本/offset/limit，XML最多8000字符并受宿主批准预算限制。新八语言结果与下一批操作已接，没有自动续跑或持久任务。
+
+[验证] RSS源码注册/导入/并发/资源分块/失败/释放与原有功能、宿主批准适配、矩阵模型共40 pass / 283 assertions；全仓typecheck 27/27（25缓存），RSS构建和三文档对结构检查通过。库存895映射，RSS共5个global工具。本批无桌面/浏览器启动；真实文件选择器、编译Worker、批准和完整导入留集中Tauri验收。导入非原子，失败可能已保存书/缓存或留通知意图，不承诺已派发副作用取消；UTF-8以外编码、OPML文件夹到书架集合映射不支持。整体目标未完成，未推送；下方历史“OPML Agent工具未接”由本批限定覆盖取代。
+
 插件工具确认批次已接线：agentTools 1.2 approval=required 复用已有 Agent InteractionPort/聊天批准界面，宿主展示注册来源及完整JSON参数后只执行获准快照。缺交互端口拒绝，参数/提示有界，五分钟截止，等待期间取消/退休/替换/隐藏/禁用不调用插件；不增加数据权限，不等于可复用批准票据或已派发工作的取消。八语言提示已接。Dictionary 1.4新增global delete_saved_word/export_vocabulary，删词需要确认，CSV沿用系统保存对话框；RSS 0.10新增global unsubscribe_feed，需要确认URL/bookId，队列内重验绑定。没有新增宿主词汇/RSS领域。
 
 [验证] 宿主工具适配、确认参数快照/拒绝/注册/取消/版本边界、交互转换与八语言、两插件源码工作流、矩阵模型合计53 pass / 289 assertions；全仓typecheck 27/27、两插件构建和三文档对结构检查通过。库存894映射，Dictionary共5工具+1检索，RSS共4个global工具。本批无桌面/浏览器启动，确认界面、Worker、保存对话框和真实删除组合留集中原生验收；OPML Agent工具、通用任务进度/取消/批准票据仍缺，整体目标未完成，未推送。下方历史“Agent删词/CSV/退订工具未接”由本批取代。

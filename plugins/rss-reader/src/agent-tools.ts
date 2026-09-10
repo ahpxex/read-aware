@@ -1,6 +1,7 @@
 import { subscribe, unsubscribeFeed } from "./feed-library";
 import { getFeed, loadFeeds } from "./storage";
 import type { RssPluginContext } from "./types";
+import { importOpml } from "./opml-import";
 
 export function feedToolLimit(value: unknown): number {
   return typeof value === "number" && value > 0
@@ -9,6 +10,20 @@ export function feedToolLimit(value: unknown): number {
 }
 
 export function registerAgentTools(ctx: RssPluginContext): void {
+  ctx.contributions.agentTools.register({
+    name: "import_opml", label: "Import OPML", contexts: ["global"], approval: "required",
+    description: "Import one page of RSS/Atom subscriptions from user-provided OPML XML after host approval. Fetches the selected feed URLs and adds virtual books with cached articles. Existing subscriptions are skipped, not refreshed. Each page is separately approved; pass the unchanged XML and returned nextOffset to continue. Results distinguish added/existing/failed; failures may have persisted a subscription or pending source notification, so this is not an atomic transaction. XML input is at most 8000 characters for the confirmation surface; larger files use the RSS plugin's native file-import action. Does not open a book, change the current reading position or remove existing subscriptions.",
+    parameters: { type: "object", properties: {
+      opml: { type: "string", minLength: 1, maxLength: 8000 },
+      offset: { type: "integer", minimum: 0 }, limit: { type: "integer", minimum: 1, maximum: 20 },
+    }, required: ["opml"], additionalProperties: false },
+    execute: async params => {
+      if (typeof params.opml !== "string" || !params.opml.trim() || params.opml.length > 8000) {
+        throw Object.assign(new Error("Invalid OPML tool input"), { code: "plugin/invalid-input" });
+      }
+      return importOpml(ctx, params.opml, params.offset === undefined ? 0 : params.offset as number, params.limit === undefined ? 10 : params.limit as number);
+    },
+  });
   ctx.contributions.agentTools.register({
     name: "unsubscribe_feed", label: "Unsubscribe from RSS", contexts: ["global"], approval: "required",
     description: "Unsubscribe from this exact RSS URL and bookId returned by list_feeds. Removes the virtual book, its associated reading data and plugin-cached articles. This cannot be undone. A recreated subscription with a different bookId is refused.",

@@ -2068,7 +2068,7 @@ getContentState, and reloads a non-ready or outdated existing session before ope
 and navigating by the stable href with the current contentVersion. Reload keeps the
 host's from-start semantics rather than applying an old CFI. Ordinary shelf opens
 still follow the host's stored-position behavior. RSS 0.10 additionally exposes
-approved Agent unsubscribe (see below); an OPML Agent tool remains absent.
+approved Agent unsubscribe (see below); RSS 0.11 adds OPML import as described below.
 
 [环境] Fifteen RSS tests cover parser identity, source-plugin activation, offline
 cache consumption, failure/retry, same-feed serialization and explicit navigation
@@ -4185,7 +4185,7 @@ RSS 0.10 adds global `unsubscribe_feed` with required approval of URL plus bookI
 the existing per-URL queue rechecks bookId before deletion and refuses a recreated
 binding with `reader/superseded`. Both use existing private storage/library APIs;
 no host Dictionary/RSS domain is introduced. Dictionary now has five tools plus
-one retrieval provider; RSS has four global tools. OPML Agent import remains absent.
+one retrieval provider; RSS 0.11 has five global tools including OPML import below.
 
 [环境] Focused tests exercise host approval/decline, immutable arguments,
 registration replacement/disable, cancellation, missing ports, input/version bounds,
@@ -4193,6 +4193,45 @@ localized request conversion and source-plugin delete/export workflows. Build an
 types are checked separately. These are basic checks, not real Worker/Tauri/model
 acceptance; save-dialog, approval-card and deletion composition remain for the
 concentrated native phase. General task progress/cancellation stays unfinished.
+
+### RSS OPML Import (0.11)
+
+[代码] RSS consumes existing resources 1.0, views 1.2 and agentTools 1.2; no host
+API or permission is added. `opml-file.ts` picks one `.opml`/`.xml` file, reads
+64 KiB chunks through the opaque resource handle and decodes UTF-8 incrementally.
+The file is staged in the existing form, not subscribed on selection. Cancel leaves
+the surface unchanged; success/failure releases every returned handle, logging a
+release failure. Native import is limited to 1 MiB UTF-8 (also checked while reading);
+non-UTF-8 bytes reject. The shared fast-xml-parser path validates XML and traverses
+outline folders iteratively, preserving first-occurrence URL order and deduplicating
+exact URLs. Only HTTP(S) URLs are retained; at most 1000 unique feeds and 2048 code
+units per URL. Excess size/count rejects before any subscriptions, never truncates.
+
+[代码] `opml-import.ts` owns one explicit page: default 10, max 20 URLs, with at
+most four concurrent imports. Per-URL serialization checks for an existing
+subscription inside the queue, so repeated/concurrent imports skip rather than
+refresh it. Results retain input order and distinguish added/existing/failed,
+including title/bookId/pending-source-notification or a stable error code, plus
+total/offset/nextOffset. UI shows page outcomes and a separate next-batch action;
+failed rows expose the host-localized error, never raw exception text. Counts are
+per page, not cumulative. No automatic retry or loop through all pages is implied.
+
+[代码] Global `import_opml` requires host approval of OPML text, offset and limit
+on each call. Its XML argument is 1..8000 UTF-16 code units, additionally subject
+to the host's encoded approval-argument budget; larger UTF-8 files use the plugin
+file-import action. Continue with unchanged XML and returned nextOffset; no hidden
+import plan or durable cursor exists. It returns structured page outcomes, not
+selected file contents or paths. Five global RSS tools are now contributed.
+
+[环境] Native-form, file-picker and Agent paths share the same parser/importer.
+Tests use controlled resources, network and storage to verify multi-chunk UTF-8,
+release/error/cancel, bounds, partial outcomes, repeat/concurrent import and tool
+registration. Not a native picker, built Worker or real Agent approval E2E result.
+Import is non-atomic: failure can follow persisted book/cache/index writes or leave
+a pending source notification. Re-reading is required after lost receipts; no
+rollback, durable task recovery or cancellation of dispatched imports is promised.
+OPML folder names are not turned into library collections. Real Tauri composition
+remains in the concentrated acceptance phase.
 
 ### Sync transports
 

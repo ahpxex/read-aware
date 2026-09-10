@@ -3808,6 +3808,16 @@ function subscribe(ctx, rawUrl) {
     return Promise.reject(new Error("Enter a valid http(s) feed URL"));
   return serial(ctx, url, () => saveRefresh(ctx, url, true));
 }
+function subscribeIfMissing(ctx, url) {
+  if (!isHttpFeedUrl(url))
+    return Promise.reject(Object.assign(new Error("Invalid feed URL"), { code: "plugin/invalid-input" }));
+  return serial(ctx, url, async () => {
+    const existing = await getFeed(ctx, url);
+    if (existing)
+      return { created: false, feed: existing };
+    return { created: true, feed: await saveRefresh(ctx, url, true) };
+  });
+}
 function ensureBook(ctx, input) {
   return serial(ctx, input.url, async () => {
     const feed = await getFeed(ctx, input.url);
@@ -3877,11 +3887,109 @@ async function openFeed(ctx, input, articleId) {
     await ctx.domains.reading.commands.goTo({ bookId: feed.bookId, href: articleId, contentVersion: session.location?.contentVersion });
 }
 
+// src/opml.ts
+var MAX_OPML_BYTES = 1024 * 1024;
+var MAX_OPML_FEEDS = 1000;
+var xmlParser2 = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: "@_",
+  parseTagValue: false
+});
+function collectFeedUrls(node, urls) {
+  const pending = [node];
+  while (pending.length) {
+    const outline = pending.pop();
+    if (Array.isArray(outline)) {
+      for (let i = outline.length - 1;i >= 0; i--)
+        pending.push(outline[i]);
+      continue;
+    }
+    if (!outline || typeof outline !== "object")
+      continue;
+    const record = outline;
+    const url = record["@_xmlUrl"];
+    if (typeof url === "string" && url.trim())
+      urls.push(url.trim());
+    pending.push(record.outline);
+  }
+}
+function feedUrlsFromOpml(text) {
+  if (new TextEncoder().encode(text).byteLength > MAX_OPML_BYTES)
+    throw Object.assign(new Error("OPML exceeds 1 MiB"), { code: "plugin/payload-too-large" });
+  if (XMLValidator.validate(text) !== true)
+    return [];
+  let doc;
+  try {
+    doc = xmlParser2.parse(text);
+  } catch {
+    return [];
+  }
+  const body = doc.opml?.body;
+  const urls = [];
+  collectFeedUrls(body?.outline, urls);
+  const feeds = [...new Set(urls)].filter(isHttpFeedUrl);
+  if (feeds.length > MAX_OPML_FEEDS || feeds.some((url) => url.length > 2048)) {
+    throw Object.assign(new Error("OPML exceeds feed count or URL size limit"), { code: "plugin/payload-too-large" });
+  }
+  return feeds;
+}
+
+// src/opml-import.ts
+async function importOpml(ctx, text, offset = 0, limit = 10) {
+  const urls = feedUrlsFromOpml(text);
+  if (!urls.length || !Number.isSafeInteger(offset) || offset < 0 || offset >= urls.length || !Number.isInteger(limit) || limit < 1 || limit > 20) {
+    throw Object.assign(new Error("Invalid OPML or import page"), { code: "plugin/invalid-input" });
+  }
+  const batch = urls.slice(offset, offset + limit);
+  const items = new Array(batch.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(4, batch.length) }, async () => {
+    while (next < batch.length) {
+      const index = next++, url = batch[index];
+      try {
+        const { created, feed } = await subscribeIfMissing(ctx, url);
+        items[index] = { url, status: created ? "added" : "existing", title: feed.title, bookId: feed.bookId, contentPending: feed.contentPending === true };
+      } catch (error) {
+        console.warn("RSS OPML entry import failed", error);
+        const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
+        items[index] = { url, status: "failed", errorCode: typeof code === "string" && /^[a-z0-9-]+\/[a-z0-9-]+$/.test(code) ? code : "ipc/unknown" };
+      }
+    }
+  }));
+  return {
+    total: urls.length,
+    offset,
+    nextOffset: offset + batch.length < urls.length ? offset + batch.length : null,
+    added: items.filter((item) => item.status === "added").length,
+    existing: items.filter((item) => item.status === "existing").length,
+    failed: items.filter((item) => item.status === "failed").length,
+    items
+  };
+}
+
 // src/agent-tools.ts
 function feedToolLimit(value) {
   return typeof value === "number" && value > 0 ? Math.min(30, Math.floor(value)) : 10;
 }
 function registerAgentTools(ctx) {
+  ctx.contributions.agentTools.register({
+    name: "import_opml",
+    label: "Import OPML",
+    contexts: ["global"],
+    approval: "required",
+    description: "Import one page of RSS/Atom subscriptions from user-provided OPML XML after host approval. Fetches the selected feed URLs and adds virtual books with cached articles. Existing subscriptions are skipped, not refreshed. Each page is separately approved; pass the unchanged XML and returned nextOffset to continue. Results distinguish added/existing/failed; failures may have persisted a subscription or pending source notification, so this is not an atomic transaction. XML input is at most 8000 characters for the confirmation surface; larger files use the RSS plugin's native file-import action. Does not open a book, change the current reading position or remove existing subscriptions.",
+    parameters: { type: "object", properties: {
+      opml: { type: "string", minLength: 1, maxLength: 8000 },
+      offset: { type: "integer", minimum: 0 },
+      limit: { type: "integer", minimum: 1, maximum: 20 }
+    }, required: ["opml"], additionalProperties: false },
+    execute: async (params) => {
+      if (typeof params.opml !== "string" || !params.opml.trim() || params.opml.length > 8000) {
+        throw Object.assign(new Error("Invalid OPML tool input"), { code: "plugin/invalid-input" });
+      }
+      return importOpml(ctx, params.opml, params.offset === undefined ? 0 : params.offset, params.limit === undefined ? 10 : params.limit);
+    }
+  });
   ctx.contributions.agentTools.register({
     name: "unsubscribe_feed",
     label: "Unsubscribe from RSS",
@@ -3995,6 +4103,76 @@ function registerAgentTools(ctx) {
 
 // src/strings.ts
 var STRINGS = {
+  chooseOpmlFile: {
+    default: "Choose OPML file",
+    "zh-Hans": "选择 OPML 文件",
+    "zh-Hant": "選擇 OPML 檔案",
+    ja: "OPMLファイルを選択",
+    ru: "Выбрать файл OPML",
+    fr: "Choisir un fichier OPML",
+    de: "OPML-Datei auswählen",
+    es: "Elegir archivo OPML"
+  },
+  importNext: {
+    default: "Import next batch",
+    "zh-Hans": "导入下一批",
+    "zh-Hant": "匯入下一批",
+    ja: "次のバッチをインポート",
+    ru: "Импортировать следующую группу",
+    fr: "Importer le lot suivant",
+    de: "Nächsten Stapel importieren",
+    es: "Importar el siguiente lote"
+  },
+  subscriptions: {
+    default: "Subscriptions",
+    "zh-Hans": "订阅列表",
+    "zh-Hant": "訂閱清單",
+    ja: "購読一覧",
+    ru: "Подписки",
+    fr: "Abonnements",
+    de: "Abonnements",
+    es: "Suscripciones"
+  },
+  importAdded: {
+    default: "Added",
+    "zh-Hans": "已添加",
+    "zh-Hant": "已新增",
+    ja: "追加済み",
+    ru: "Добавлено",
+    fr: "Ajouté",
+    de: "Hinzugefügt",
+    es: "Añadido"
+  },
+  importFailed: {
+    default: "Failed",
+    "zh-Hans": "失败",
+    "zh-Hant": "失敗",
+    ja: "失敗",
+    ru: "Ошибка",
+    fr: "Échec",
+    de: "Fehlgeschlagen",
+    es: "Error"
+  },
+  pendingPublication: {
+    default: "Source update notification is pending. Refresh this subscription to retry.",
+    "zh-Hans": "来源更新通知尚未完成，可刷新此订阅重试。",
+    "zh-Hant": "來源更新通知尚未完成，可重新整理此訂閱重試。",
+    ja: "ソース更新の通知が保留中です。購読を更新して再試行してください。",
+    ru: "Уведомление об обновлении ожидает отправки. Обновите подписку для повтора.",
+    fr: "La notification de mise à jour est en attente. Actualisez cet abonnement pour réessayer.",
+    de: "Die Quellenbenachrichtigung steht aus. Aktualisieren Sie das Abonnement erneut.",
+    es: "La notificación de actualización está pendiente. Actualiza esta suscripción para reintentar."
+  },
+  importSummary: {
+    default: "{from}-{to} of {total}: {added} added, {existing} already subscribed, {failed} failed",
+    "zh-Hans": "第 {from}-{to} 项，共 {total} 项：新增 {added}，已有 {existing}，失败 {failed}",
+    "zh-Hant": "第 {from}-{to} 項，共 {total} 項：新增 {added}，已有 {existing}，失敗 {failed}",
+    ja: "全{total}件中{from}-{to}件: 追加{added}、購読済み{existing}、失敗{failed}",
+    ru: "{from}-{to} из {total}: добавлено {added}, уже есть {existing}, ошибок {failed}",
+    fr: "{from}-{to} sur {total} : {added} ajoutés, {existing} déjà abonnés, {failed} échecs",
+    de: "{from}-{to} von {total}: {added} hinzugefügt, {existing} bereits abonniert, {failed} fehlgeschlagen",
+    es: "{from}-{to} de {total}: {added} añadidos, {existing} ya suscritos, {failed} errores"
+  },
   addFeed: {
     default: "Add feed",
     "zh-Hans": "添加订阅",
@@ -4312,36 +4490,44 @@ function articlesTag(locale, count) {
   return count === 1 ? tr(locale, "articlesTagOne") : tr(locale, "articlesTag", { n: count });
 }
 
-// src/opml.ts
-var xmlParser2 = new XMLParser({
-  ignoreAttributes: false,
-  attributeNamePrefix: "@_",
-  parseTagValue: false
-});
-function collectFeedUrls(node, urls) {
-  for (const outline of Array.isArray(node) ? node : node == null ? [] : [node]) {
-    if (!outline || typeof outline !== "object")
-      continue;
-    const record = outline;
-    const url = record["@_xmlUrl"];
-    if (typeof url === "string" && url.trim())
-      urls.push(url.trim());
-    collectFeedUrls(record.outline, urls);
-  }
-}
-function feedUrlsFromOpml(text) {
-  if (XMLValidator.validate(text) !== true)
-    return [];
-  let doc;
+// src/opml-file.ts
+async function pickOpmlText(ctx) {
+  const picked = await ctx.services.resources.pick({ multiple: false, extensions: ["opml", "xml"] });
   try {
-    doc = xmlParser2.parse(text);
-  } catch {
-    return [];
+    if (picked.cancelled)
+      return null;
+    if (picked.resources.length !== 1)
+      throw Object.assign(new Error("Expected one OPML file"), { code: "plugin/invalid-input" });
+    const resource = picked.resources[0];
+    if (resource.size > MAX_OPML_BYTES)
+      throw Object.assign(new Error("OPML exceeds 1 MiB"), { code: "plugin/payload-too-large" });
+    const decoder = new TextDecoder("utf-8", { fatal: true });
+    let offset = 0, text = "";
+    for (;; ) {
+      const chunk = await ctx.services.resources.read(resource.id, offset, Math.min(64 * 1024, MAX_OPML_BYTES - offset + 1));
+      if (chunk.nextOffset !== offset + chunk.data.byteLength || !chunk.eof && chunk.nextOffset <= offset) {
+        throw Object.assign(new Error("Invalid OPML resource chunk"), { code: "plugin/invalid-input" });
+      }
+      offset = chunk.nextOffset;
+      if (offset > MAX_OPML_BYTES)
+        throw Object.assign(new Error("OPML exceeds 1 MiB"), { code: "plugin/payload-too-large" });
+      try {
+        text += decoder.decode(chunk.data, { stream: !chunk.eof });
+      } catch {
+        throw Object.assign(new Error("OPML must be UTF-8"), { code: "plugin/invalid-input" });
+      }
+      if (chunk.eof)
+        return text;
+    }
+  } finally {
+    for (const resource of picked.resources) {
+      try {
+        await ctx.services.resources.release(resource.id);
+      } catch (error) {
+        console.warn("RSS OPML resource release failed", error);
+      }
+    }
   }
-  const body = doc.opml?.body;
-  const urls = [];
-  collectFeedUrls(body?.outline, urls);
-  return [...new Set(urls)].filter(isHttpFeedUrl);
 }
 
 // src/views.ts
@@ -4409,7 +4595,7 @@ function addFeedView(ctx) {
     }
   };
 }
-function importOpmlView(ctx) {
+function importOpmlView(ctx, initialText = "") {
   return {
     kind: "form",
     title: tr(ctx.locale, "importOpml"),
@@ -4418,6 +4604,7 @@ function importOpmlView(ctx) {
         kind: "textarea",
         id: "opml",
         label: "OPML",
+        value: initialText,
         rows: 8,
         placeholder: '<opml version="2.0">…',
         helperText: tr(ctx.locale, "opmlHelper")
@@ -4432,21 +4619,39 @@ function importOpmlView(ctx) {
       if (urls.length === 0) {
         return { fieldErrors: { opml: tr(ctx.locale, "noUrlsInOpml") } };
       }
-      let added = 0;
-      for (const url of urls) {
-        if (await getFeed(ctx, url))
-          continue;
-        try {
-          await subscribe(ctx, url);
-          added += 1;
-        } catch {}
-      }
-      return {
-        toast: tr(ctx.locale, "importedFeeds", { added, total: urls.length }),
-        view: await rssPageView(ctx),
-        navigation: "reset"
-      };
+      return { view: opmlResultView(ctx, text, await importOpml(ctx, text)), navigation: "replace" };
     }
+  };
+}
+function opmlResultView(ctx, text, result) {
+  return {
+    kind: "detail",
+    title: tr(ctx.locale, "importOpml"),
+    content: [
+      { kind: "text", text: tr(ctx.locale, "importSummary", {
+        added: result.added,
+        existing: result.existing,
+        failed: result.failed,
+        from: result.offset + 1,
+        to: result.offset + result.items.length,
+        total: result.total
+      }) },
+      { kind: "list", items: result.items.map((item) => ({
+        id: item.url,
+        title: item.url,
+        subtitle: tr(ctx.locale, item.status === "added" ? "importAdded" : item.status === "existing" ? "alreadySubscribed" : "importFailed"),
+        onSelect: () => ({ view: { kind: "detail", title: item.url, content: item.status === "failed" ? [{ kind: "error", code: item.errorCode }] : [{ kind: "text", text: item.title }, ...item.contentPending ? [{ kind: "text", text: tr(ctx.locale, "pendingPublication") }] : []] } })
+      })) }
+    ],
+    actions: [
+      ...result.nextOffset !== null ? [{
+        id: "next",
+        icon: "arrow-right",
+        label: tr(ctx.locale, "importNext"),
+        run: async () => ({ view: opmlResultView(ctx, text, await importOpml(ctx, text, result.nextOffset)), navigation: "replace" })
+      }] : [],
+      { id: "done", icon: "list", label: tr(ctx.locale, "subscriptions"), run: async () => ({ view: await rssPageView(ctx), navigation: "reset" }) }
+    ]
   };
 }
 function feedDetailView(ctx, feed) {
@@ -4558,6 +4763,15 @@ async function rssPageView(ctx) {
         label: tr(ctx.locale, "importOpml"),
         icon: "download-simple",
         run: () => ({ view: importOpmlView(ctx) })
+      },
+      {
+        id: "import-file",
+        label: tr(ctx.locale, "chooseOpmlFile"),
+        icon: "file",
+        run: async () => {
+          const text = await pickOpmlText(ctx);
+          return text === null ? undefined : { view: importOpmlView(ctx, text) };
+        }
       },
       ...feeds.length > 0 ? [
         {

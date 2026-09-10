@@ -1770,6 +1770,8 @@ export type PluginHostServices = {
     snapshot(): Promise<import("@read-aware/core").HostMaintenanceSnapshot>;
     observe(handler: (snapshot: import("@read-aware/core").HostMaintenanceSnapshot) => unknown): PluginDisposable;
     /** Reveals the host's controls only; export/send/install still require native user actions. */
+    /** Maintenance 1.1: reveal updates/diagnostics/plugins/backup-import/backup-export/delete-data.
+     * Does not click controls, open file dialogs, approve installation or bypass typed DELETE. */
     openSettings(surface: import("@read-aware/core").HostMaintenanceSurface): ReturnType<import("@read-aware/core").HostMaintenancePort["openSettings"]>;
     /** Requires service:network. Uses the host release feed; no caller-supplied URL or silent installation. */
     checkForUpdates?(): Promise<import("@read-aware/core").HostMaintenanceSnapshot>;

@@ -21,8 +21,8 @@
 ## 计数与口径
 
 - 宿主：实装 194、部分 43、待建 3、占位 2、非桌面 1。
-- Agent：接通 130、部分 56、扩展 13、未接 26、自动 14、内部 4。
-- 插件：接通 144、部分 79、未接 20。
+- Agent：接通 132、部分 57、扩展 13、未接 23、自动 14、内部 4。
+- 插件：接通 146、部分 80、未接 17。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -294,7 +294,7 @@
 | <a id="EXT09"></a>EXT09 | 词典查询/收藏/复习列表/CSV 导出 | 实装 | **扩展**：lookup_word/get_vocabulary/save_word<br>[设计] 插件工具 | **接通**：Dictionary 私有 storage + LLM + views/export<br>[设计] 现有原语组合 | Dictionary | Agent 无删词/CSV 导出工具；不应把词汇领域搬回宿主 | [DICT](../plugins/dictionary/src/index.ts) [DICTTOOLS](../plugins/dictionary/src/agent-tools.ts) [DICTVIEWS](../plugins/dictionary/src/views.ts) [DICTEXPORT](../plugins/dictionary/src/export.ts) | 新增盘点 |
 | <a id="EXT10"></a>EXT10 | RSS 订阅/刷新/退订/OPML/阅读文章 | 实装 | **扩展**：list_feeds/subscribe_feed/refresh_feed[全局]<br>[设计] 插件工具 | **接通**：RSS 私有 collection + content provider<br>[设计] 现有原语组合 | RSS | 退订与 OPML 无 Agent 工具；刷新正在读的版本仍见 LIB14 | [RSS](../plugins/rss-reader/src/index.ts) [RSSTOOLS](../plugins/rss-reader/src/agent-tools.ts) [RSSVIEWS](../plugins/rss-reader/src/views.ts) [RSSFEED](../plugins/rss-reader/src/feed.ts) | 新增盘点 |
 | <a id="EXT11"></a>EXT11 | 本地 marketplace 插件清单与启用状态 | 实装 | **接通**：list_installed_plugins[双域]<br>[设计] 只读插件目录/能力查询工具 | **接通**：services.plugins 1.0 list/observe<br>[设计] 自有与受控公共目录 | 插件管理页；双端公共目录 | 有界查询 installed ID/name/version/builtin/enabled/activationFailed，初始快照与安装态变化观察；不返回设置、路径、凭据或原始错误。enabled 是配置而非健康保证；分页变化需重查，不承诺稳定游标。具体贡献发现/跨插件调用另列 MORE06。接线与定向测试完成，组合插件及桌面验收待集中进行。 | [HOST](../apps/web/src/features/plugins/runtime/plugin-host.ts) [MARKET](../apps/web/src/features/plugins/runtime/marketplace.ts) [API](../packages/plugin-types/src/index.ts) [PLUGINDIRECTORY](../apps/web/src/services/plugin-directory.ts) [HOSTIOTOOLS](../packages/agent/src/tools/host-io-tools.ts) | 新增盘点 |
-| <a id="EXT12"></a>EXT12 | 安装/授权/启停/更新/回滚/卸载插件 | 实装 | **未接**：无正式入口<br>[设计] 打开宿主审批流程 | **未接**：无正式入口<br>[设计] 自管理申请，不得静默控制其他插件 | Plugins settings | 不开放：插件静默授予自己权限/安装代码；Agent 操作也应经宿主批准 | [HOST](../apps/web/src/features/plugins/runtime/plugin-host.ts) [MARKET](../apps/web/src/features/plugins/runtime/marketplace.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) | O05, R05 |
+| <a id="EXT12"></a>EXT12 | 安装/授权/启停/更新/回滚/卸载插件 | 实装 | **接通**：open_maintenance_settings(plugins)[双域]<br>[设计] 打开宿主管理入口 | **接通**：maintenance 1.1 openSettings(plugins)<br>[设计] 打开宿主管理入口 | Plugins settings，真实挂载标题定位 | 只打开并定位宿主插件管理页，不预选目标/点击/安装/授权/启停/卸载；不新增宿主尚无的回滚实现。用户继续使用既有宿主控件及安装授权确认，不开放静默控制自己或其他插件。opened 不代表操作成功，最终任务回执和实际 Tauri 管理组合待集中验收。 | [HOST](../apps/web/src/features/plugins/runtime/plugin-host.ts) [MARKET](../apps/web/src/features/plugins/runtime/marketplace.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) | O05, R05 |
 
 ### 存储、网络与原生资源
 
@@ -330,8 +330,8 @@
 | <a id="OPS05"></a>OPS05 | 偏好漫游/远端合并后的 UI 失效 | 部分 | **自动**：下一轮读取投影/配置<br>[设计] 一致快照与刷新 | **部分**：roaming KV 与 plugin docs 路径不等价<br>[设计] 授权 change feed + 同步策略 | 跨设备设置/书架/聊天刷新 | GAP09：远端应用缺逐领域订阅广播；不得让插件 replay 原始事件补洞 | [ROAM](../apps/web/src/platform/roaming-preferences.ts) [SYNC](../apps/web/src/platform/sync/sync-scheduler.ts) [APPEVENTS](../apps/web/src/platform/app-events.ts) [DOCS](../apps/web/src/features/plugins/runtime/plugin-backend.ts) | 新增盘点 |
 | <a id="OPS06"></a>OPS06 | 账号登录、连接 token、退出、删除账号 | 实装 | **部分**：get_sync_status connected/backend；manage_sync settings<br>[设计] 匿名状态及设置入口已接 | **部分**：sync 1.0 snapshot/openSettings<br>[设计] 独立授权的状态与宿主页 | SyncAccountGroup；双端设置入口 | 不返回 email、账号 ID、token/主密钥。打开页面后仍需用户操作宿主登录/退出/删除控件；定向流程请求及最终回执未接。删除远端账号不等于删除本地数据，桌面验收待集中进行。 | [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [SYNCCONNECT](../apps/web/src/platform/sync/connect.ts) [RUST](../apps/desktop/src-tauri/src/lib.rs) [EXTERNAL](../apps/web/src/platform/external-link.ts) [SYNCSERVICE](../apps/web/src/services/sync.ts) [SYNCTOOLS](../packages/agent/src/tools/sync-tools.ts) | 新增盘点 |
 | <a id="OPS07"></a>OPS07 | 套餐/用量/购买/账单管理 | 实装 | **部分**：get_sync_status includeAccount；manage_sync settings<br>[设计] 只读套餐用量与设置入口 | **部分**：sync 1.0 account/openSettings<br>[设计] 按需远端脱敏读 | 购买/账单 portal；双端只读配额 | account 仅返回 tier/hasBilling/三项用量及四项额度，null 是非 relay/未连接而非零用量。显式读取才发请求，失败拒绝不伪装空值；换代/连接管理中的迟到结果拒绝，不返回 keys/email/accountId/ticket。购买/账单仍在宿主页，由用户操作；定向流程与完成反馈未接。定向测试不证明远端生产数据或购买成功，不开放自动付款。 | [ACCOUNTUI](../apps/web/src/features/settings/sections/SyncAccountGroup.tsx) [EXTERNAL](../apps/web/src/platform/external-link.ts) [SYNCSERVICE](../apps/web/src/services/sync.ts) [SYNCCONTROLLER](../apps/web/src/services/sync-controller.ts) [SYNCTOOLS](../packages/agent/src/tools/sync-tools.ts) | 新增盘点 |
-| <a id="OPS08"></a>OPS08 | 备份导出与合并导入 | 部分 | **未接**：无正式入口<br>[设计] 宿主批准的备份任务 | **未接**：无正式入口<br>[设计] 仅自有数据；宿主批准的备份流程 | DataSyncPanel | v1 仅 KV/books/collections/annotations/files；独立 ai_chat/memories/plugin_docs/secret/event-log 未枚举，不能称全量备份；全量内存 JSON | [BACKUP](../apps/web/src/features/settings/lib/backup-io.ts) [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) | O06, R05 |
-| <a id="OPS09"></a>OPS09 | 删除本地全部数据 | 实装 | **未接**：无正式入口<br>[设计] 打开显式二次确认流程 | **未接**：无正式入口<br>[设计] 不开放：插件直接 wipe 用户全部数据 | DELETE 文字确认 | 清空本地与删账号不同；私有卸载清理不能升级成全局清空 | [WIPE](../apps/web/src/features/settings/lib/delete-all-data.ts) [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) | R05 |
+| <a id="OPS08"></a>OPS08 | 备份导出与合并导入 | 部分 | **部分**：open_maintenance_settings(backup-import/backup-export)[双域]<br>[设计] 打开宿主备份控件 | **部分**：maintenance 1.1 openSettings(backup-import/backup-export)<br>[设计] 打开宿主备份控件 | DataSyncPanel 原有导入/导出按钮定位 | 入口已接，不点击按钮/自动打开文件选择器，不传入备份字节或路径；opened 不是导入/导出完成。v1 仍仅 KV/books/collections/annotations/files；独立 ai_chat/memories/plugin_docs/secret/event-log 未枚举，不能称全量备份；全量内存 JSON、原有导出实现及最终任务回执未改，实际桌面效果留待集中验收。 | [BACKUP](../apps/web/src/features/settings/lib/backup-io.ts) [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) | O06, R05 |
+| <a id="OPS09"></a>OPS09 | 删除本地全部数据 | 实装 | **接通**：open_maintenance_settings(delete-data)[双域]<br>[设计] 打开宿主危险操作入口 | **接通**：maintenance 1.1 openSettings(delete-data)<br>[设计] 只定位，禁止直接 wipe | DataSyncPanel 原有删除入口与 DELETE 文字确认 | 只定位已挂载入口按钮，不打开确认框、不填 DELETE、不批准或执行删除；用户须自行点击并完成宿主文字确认。opened 不代表删除完成；清空本地与删账号不同，私有卸载不升级成全局 wipe。条件/取消/生命周期定向测试通过，真实 Tauri 确认流程待集中验收。 | [WIPE](../apps/web/src/features/settings/lib/delete-all-data.ts) [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) [RUST](../apps/desktop/src-tauri/src/lib.rs) [HOSTMAINTENANCE](../apps/web/src/services/maintenance.ts) [MAINTENANCETOOLS](../packages/agent/src/tools/maintenance-tools.ts) | R05 |
 | <a id="OPS10"></a>OPS10 | 数据目录显示/Reveal | 占位 | **未接**：无正式入口<br>[设计] 待宿主实现后暴露意图 | **未接**：无正式入口<br>[设计] 待宿主实现后暴露意图 | disabled Reveal / PendingBadge | UI 占位不能计入宿主已实现，更不能计入 Agent 或插件覆盖 | [DATAUI](../apps/web/src/features/settings/sections/DataSyncPanel.tsx) | 新增盘点 |
 | <a id="OPS11"></a>OPS11 | 事件写入、重建/验证投影、历史 genesis | 实装 | **内部**：领域端口提交业务事件<br>[设计] 只走有语义领域命令 | **部分**：公开领域命令内部 commit<br>[设计] 只走有语义领域命令 | commit_events/rebuild_projections/verify_projections | 不开放：任意 SQL/事件 append/投影写；旧日志未记录的变更不可凭空恢复 | [EVENTS](../apps/web/src/platform/domain-events.ts) [APPLY](../apps/desktop/src-tauri/src/storage/apply.rs) [RUST](../apps/desktop/src-tauri/src/lib.rs) | 新增盘点 |
 
@@ -455,7 +455,7 @@
 | `get_sync_status` | [OPS01](#OPS01) [OPS03](#OPS03) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_sync` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_software_update` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
-| `open_maintenance_settings` | [SYS15](#SYS15) [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `open_maintenance_settings` | [SYS15](#SYS15) [SYS16](#SYS16) [EXT12](#EXT12) [OPS08](#OPS08) [OPS09](#OPS09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_book_formats` | [LIB07](#LIB07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `pick_resource_files` | [SYS11](#SYS11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_book_resource` | [LIB08](#LIB08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -544,7 +544,7 @@
 | `get_sync_status` | [OPS01](#OPS01) [OPS03](#OPS03) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `manage_sync` | [OPS01](#OPS01) [OPS04](#OPS04) [OPS06](#OPS06) [OPS07](#OPS07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `get_software_update` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
-| `open_maintenance_settings` | [SYS15](#SYS15) [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `open_maintenance_settings` | [SYS15](#SYS15) [SYS16](#SYS16) [EXT12](#EXT12) [OPS08](#OPS08) [OPS09](#OPS09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `list_book_formats` | [LIB07](#LIB07) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `pick_resource_files` | [SYS11](#SYS11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `open_book_resource` | [LIB08](#LIB08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -741,7 +741,7 @@
 | `services.plugins.observe` | [EXT11](#EXT11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.maintenance.snapshot` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.maintenance.observe` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
-| `services.maintenance.openSettings` | [SYS15](#SYS15) [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `services.maintenance.openSettings` | [SYS15](#SYS15) [SYS16](#SYS16) [EXT12](#EXT12) [OPS08](#OPS08) [OPS09](#OPS09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.maintenance.checkForUpdates` | [SYS16](#SYS16) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.resources.pick` | [SYS11](#SYS11) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `services.resources.openBook` | [LIB08](#LIB08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

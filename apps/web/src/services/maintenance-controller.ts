@@ -1,10 +1,17 @@
-import { AppError, type HostMaintenancePort, type HostMaintenanceSnapshot, type HostMaintenanceSurface } from "@read-aware/core";
+import { AppError, HOST_MAINTENANCE_SURFACES, type HostMaintenancePort, type HostMaintenanceSnapshot, type HostMaintenanceSurface, type WorkspaceSettingsSection } from "@read-aware/core";
+
+export function maintenanceSection(surface: HostMaintenanceSurface): WorkspaceSettingsSection {
+  if (!HOST_MAINTENANCE_SURFACES.includes(surface)) throw new AppError("ui/invalid-target", "Unknown maintenance surface");
+  if (surface === "plugins") return "plugins";
+  if (surface === "backup-import" || surface === "backup-export" || surface === "delete-data") return "dataSync";
+  return "about";
+}
 
 type Adapter = {
   snapshot(): HostMaintenanceSnapshot;
   check(signal?: AbortSignal): Promise<HostMaintenanceSnapshot>;
   subscribe(handler: () => void): () => void;
-  navigate(signal?: AbortSignal): Promise<unknown>;
+  navigate(section: WorkspaceSettingsSection, signal?: AbortSignal): Promise<unknown>;
 };
 
 export class HostMaintenanceService implements HostMaintenancePort {
@@ -22,9 +29,9 @@ export class HostMaintenanceService implements HostMaintenancePort {
   }
 
   async openSettings(surface: HostMaintenanceSurface, signal?: AbortSignal) {
-    if (surface !== "updates" && surface !== "diagnostics") throw new AppError("ui/invalid-target", "Unknown maintenance surface");
+    const section = maintenanceSection(surface);
     signal?.throwIfAborted();
-    await this.adapter.navigate(signal);
+    await this.adapter.navigate(section, signal);
     signal?.throwIfAborted();
     const reveal = this.surfaces.get(surface);
     if (!reveal) throw new AppError("ui/unavailable", "Maintenance controls are not mounted");

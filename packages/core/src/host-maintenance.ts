@@ -7,7 +7,8 @@ export type HostUpdateState = {
   progress: number | null;
   errorStage: "check" | "install" | null;
 };
-export type HostMaintenanceSurface = "updates" | "diagnostics";
+export const HOST_MAINTENANCE_SURFACES = ["updates", "diagnostics", "plugins", "backup-import", "backup-export", "delete-data"] as const;
+export type HostMaintenanceSurface = typeof HOST_MAINTENANCE_SURFACES[number];
 export type HostMaintenanceSnapshot = HostUpdateState & {
   supported: boolean;
   channel: "stable" | "beta";
@@ -18,6 +19,6 @@ export type HostMaintenancePort = {
   snapshot(): Promise<HostMaintenanceSnapshot>;
   /** Checks the host release feed only. Never downloads, installs or restarts. */
   checkForUpdates(signal?: AbortSignal): Promise<HostMaintenanceSnapshot>;
-  /** Reveals native controls. No diagnostics, paths, logs or report contents leave the host. */
+  /** Reveals mounted host controls, never clicks them. No install, backup or wipe executes. */
   openSettings(surface: HostMaintenanceSurface, signal?: AbortSignal): Promise<{ status: "opened"; surface: HostMaintenanceSurface }>;
 };

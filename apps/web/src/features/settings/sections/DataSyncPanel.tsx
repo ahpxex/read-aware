@@ -10,6 +10,7 @@ import { PendingBadge } from "../components/PendingBadge";
 import { deleteAllData } from "../lib/delete-all-data";
 import { exportBackup, importBackup } from "../lib/backup-io";
 import { SyncAccountGroup } from "./SyncAccountGroup";
+import { useMaintenanceSurface } from "../hooks/useMaintenanceSurface";
 
 const log = createLogger("data-sync");
 
@@ -22,6 +23,9 @@ const BACKUP_FILENAME = "readaware-backup.json";
 const DELETE_CONFIRM_PHRASE = "DELETE";
 
 export function DataSyncPanel() {
+  const importControlRef = useMaintenanceSurface("backup-import");
+  const exportControlRef = useMaintenanceSurface("backup-export");
+  const deleteControlRef = useMaintenanceSurface("delete-data");
   const { t } = useTranslation("settings");
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -146,6 +150,7 @@ export function DataSyncPanel() {
           control={
             <span className="flex items-center gap-2">
               <Button
+                ref={importControlRef}
                 variant="outline"
                 size="sm"
                 disabled={busy}
@@ -153,7 +158,7 @@ export function DataSyncPanel() {
               >
                 {t("dataSync.import")}
               </Button>
-              <Button size="sm" disabled={busy} onClick={() => void handleExport()}>
+              <Button ref={exportControlRef} size="sm" disabled={busy} onClick={() => void handleExport()}>
                 {busy ? t("dataSync.working") : t("dataSync.export")}
               </Button>
               <input
@@ -178,7 +183,7 @@ export function DataSyncPanel() {
           title={t("dataSync.deleteAll.title")}
           description={t("dataSync.deleteAll.description")}
           control={
-            <Button variant="danger" size="sm" onClick={() => setDeleteOpen(true)}>
+            <Button ref={deleteControlRef} variant="danger" size="sm" onClick={() => setDeleteOpen(true)}>
               {t("dataSync.deleteAll.button")}
             </Button>
           }

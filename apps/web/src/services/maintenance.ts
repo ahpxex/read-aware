@@ -14,5 +14,5 @@ export const hostMaintenance = new HostMaintenanceService({
     const state = getDefaultStore().sub(softwareUpdateAtom, handler), channel = subscribeUpdateChannel(handler);
     return () => { state(); channel(); };
   },
-  navigate: signal => workspace.navigate({ surface: "settings", section: "about" }, undefined, signal),
+  navigate: (section, signal) => workspace.navigate({ surface: "settings", section }, undefined, signal),
 }, error => log.warn("Maintenance observer failed", error));

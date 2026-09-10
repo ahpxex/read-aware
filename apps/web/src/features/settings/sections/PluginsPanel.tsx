@@ -29,10 +29,12 @@ import { createLogger } from "../../../platform/logger";
 import { PluginManifestError } from "../../plugins/lib/manifest";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
+import { useMaintenanceSurface } from "../hooks/useMaintenanceSurface";
 
 const log = createLogger("plugins");
 
 export function PluginsPanel() {
+  const headingRef = useMaintenanceSurface("plugins");
   const { t } = useTranslation("plugins");
   const { toast } = useToast();
   const installed = useAtomValue(installedPluginsAtom);
@@ -238,7 +240,7 @@ export function PluginsPanel() {
   );
 
   return (
-    <SettingsPage title={t("settings.title")} description={t("settings.trustWarning")}>
+    <SettingsPage headingRef={headingRef} title={t("settings.title")} description={t("settings.trustWarning")}>
       <Tabs
         ariaLabel={t("settings.title")}
         activeIndex={activeTab}

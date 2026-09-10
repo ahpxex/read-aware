@@ -4,7 +4,7 @@ import { hostMaintenance } from "../../../services/maintenance";
 
 /** Callback-ref cleanup retires the exact mounted control, including StrictMode remounts. */
 export function useMaintenanceSurface(surface: HostMaintenanceSurface) {
-  return useCallback((element: HTMLButtonElement | null) => {
+  return useCallback((element: HTMLElement | null) => {
     if (!element) return;
     return hostMaintenance.bindSurface(surface, () => {
       element.scrollIntoView({ block: "center" });

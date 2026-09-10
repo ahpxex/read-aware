@@ -1,6 +1,6 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
-import { AppError } from "@read-aware/core";
+import { AppError, HOST_MAINTENANCE_SURFACES, type HostMaintenanceSurface } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import { textResult } from "./tool-result";
 
@@ -17,11 +17,11 @@ export function buildMaintenanceTools(deps: RuntimeDeps): AgentTool[] {
     },
   }, {
     name: "open_maintenance_settings", label: "Open maintenance controls", executionMode: "sequential",
-    description: "In response to the user's request, reveal the host software update or diagnostics controls. opened means the target controls are mounted and revealed, NOT that an update was installed, a diagnostics file exported or a report sent. The user must act on the native controls; reports retain host preview and explicit send confirmation. No raw logs, paths, report payloads or silent restart authority are returned.",
-    parameters: Type.Object({ surface: Type.Union([Type.Literal("updates"), Type.Literal("diagnostics")]) }, { additionalProperties: false }),
+    description: "In response to the user's request, reveal the host update, diagnostics, plugin management, backup import/export or local data deletion controls. opened means the target controls are mounted and revealed, NOT that anything was installed, enabled, uninstalled, exported, imported, deleted or sent. The user must act on the host controls: plugin install permissions, file selection, diagnostics confirmation and the typed DELETE data-wipe confirmation cannot be bypassed. delete-data reveals the entry button; it does not open or approve the dialog. Backup is the existing v1 subset, not a complete event-log/AI/secret backup. No raw paths, payloads or silent destructive authority are returned.",
+    parameters: Type.Object({ surface: Type.Union(HOST_MAINTENANCE_SURFACES.map(surface => Type.Literal(surface))) }, { additionalProperties: false }),
     execute: async (_id, params, signal) => {
-      const surface = (params as { surface: string }).surface;
-      if (surface !== "updates" && surface !== "diagnostics") throw new AppError("ui/invalid-target", "Unknown maintenance surface");
+      const surface = (params as { surface: HostMaintenanceSurface }).surface;
+      if (!HOST_MAINTENANCE_SURFACES.includes(surface)) throw new AppError("ui/invalid-target", "Unknown maintenance surface");
       return textResult(await deps.maintenance.openSettings(surface, signal));
     },
   }];

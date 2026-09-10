@@ -3282,8 +3282,8 @@ untrusted content. Native filesystem unit tests and focused actor tests passed;
 real Tauri dialogs, Worker compositions, large-file/device faults and restart
 acceptance remain for the integrated phase.
 
-[代码] Maintenance 1.0 exposes `snapshot()`, `observe(handler)`,
-`openSettings("updates"|"diagnostics")`, and optional `checkForUpdates()` when
+[代码] Maintenance 1.1 exposes `snapshot()`, `observe(handler)`,
+`openSettings(surface)`, and optional `checkForUpdates()` when
 `service:network` is granted. State includes support, phase, nullable versions,
 progress, error stage and selected/last-successfully-checked channel. Local
 snapshot/observation never checks the network. Observers are initial and serial,
@@ -3295,9 +3295,18 @@ not an up-to-date result; raw details stay in host logs. Cancellation before
 acceptance prevents dispatch; after acceptance it only cancels the caller's
 delivery, not another caller's shared check. Unsupported checks reject.
 
-`openSettings` waits for About page acknowledgement and a mounted target control,
-then scrolls/focuses it and returns `{status:"opened",surface}` only. It does not
-assemble/export/send a diagnostic bundle or download/install/restart the app.
+`openSettings` accepts updates/diagnostics (About), plugins (Plugins),
+backup-import/backup-export/delete-data (Data & Sync). It waits for the matching
+settings page acknowledgement and a mounted target, then scrolls/focuses it and
+returns `{status:"opened",surface}` only. Plugins targets the page heading; backup
+and deletion target their existing entry buttons, which may still be busy/disabled.
+It does not click controls, select a plugin, change permissions, open a file picker,
+start a backup, open the delete confirmation, type DELETE or wipe data.
+Installation consent, manual controls and the typed deletion confirmation remain
+mandatory. Existing backup v1 coverage and implementation are unchanged; it is
+not a complete event-log/AI/memory/plugin-doc/secret backup. No operation-complete
+receipt is implied by opening these controls.
+It also does not assemble/export/send a diagnostic bundle or download/install/restart the app.
 Those actions remain host UI-owned, including report preview and explicit send
 confirmation. No log contents, paths, report IDs, credentials or raw payloads
 are exposed. Agent `get_software_update` and `open_maintenance_settings` use the

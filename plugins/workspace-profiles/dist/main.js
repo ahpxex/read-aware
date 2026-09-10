@@ -270,6 +270,95 @@ async function fontCatalog(ctx, path, search = "", offsets = [0], revision) {
   };
 }
 
+// src/window.ts
+var en2 = {
+  title: "Window",
+  minimized: "Minimized",
+  maximized: "Maximized",
+  fullscreen: "Full screen",
+  focused: "Focused",
+  yes: "Yes",
+  no: "No",
+  unavailable: "Window controls unavailable",
+  refresh: "Refresh",
+  minimize: "Minimize",
+  maximize: "Maximize",
+  restore: "Restore window",
+  enter: "Enter full screen",
+  leave: "Exit full screen",
+  requested: "Window change requested"
+};
+var zh2 = {
+  title: "窗口",
+  minimized: "已最小化",
+  maximized: "已最大化",
+  fullscreen: "全屏",
+  focused: "已聚焦",
+  yes: "是",
+  no: "否",
+  unavailable: "窗口控制不可用",
+  refresh: "刷新",
+  minimize: "最小化",
+  maximize: "最大化",
+  restore: "还原窗口",
+  enter: "进入全屏",
+  leave: "退出全屏",
+  requested: "已请求窗口变更"
+};
+var windowCopy = (locale) => locale.startsWith("zh") ? zh2 : en2;
+async function windowView(ctx) {
+  const window = ctx.services.ui.window, t = windowCopy(ctx.locale);
+  if (!window)
+    throw Object.assign(Error("Window service unavailable"), { code: "ui/unavailable" });
+  let snapshot = await window.snapshot();
+  let error;
+  const render = () => {
+    const available = snapshot.supported && !error;
+    const fullscreen = snapshot.supported && snapshot.fullscreen;
+    const request = async (input) => {
+      await window.control(input);
+      return { toast: t.requested };
+    };
+    return {
+      kind: "detail",
+      title: t.title,
+      content: error ? [{ kind: "error", code: error }] : !snapshot.supported ? [{ kind: "text", text: t.unavailable }] : [{ kind: "keyValue", rows: ["minimized", "maximized", "fullscreen", "focused"].map((key) => ({ label: t[key], value: snapshot.supported && snapshot[key] ? t.yes : t.no })) }],
+      actions: [
+        ...available ? [
+          { id: "minimize", label: t.minimize, run: () => request({ action: "minimize" }) },
+          { id: "maximize", label: t.maximize, run: () => request({ action: "maximize" }) },
+          { id: "restore", label: t.restore, run: () => request({ action: "restore" }) },
+          {
+            id: fullscreen ? "exit-fullscreen" : "enter-fullscreen",
+            label: fullscreen ? t.leave : t.enter,
+            run: () => request({ action: "fullscreen", enabled: !fullscreen })
+          }
+        ] : [],
+        { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await windowView(ctx), navigation: "replace" }) }
+      ]
+    };
+  };
+  return { ...render(), live: { subscribe(channel) {
+    let active = true, revision = 0;
+    const subscription = window.observe(async (value) => {
+      if (!active)
+        return;
+      if (value.status === "ready") {
+        snapshot = value.snapshot;
+        error = undefined;
+      } else
+        error = value.code;
+      await ctx.services.ui.publishView(channel, { revision: ++revision, view: render() });
+    });
+    return { dispose() {
+      if (!active)
+        return;
+      active = false;
+      subscription.dispose();
+    } };
+  } } };
+}
+
 // src/views.ts
 function saveView(ctx) {
   const t = copy(ctx.locale);
@@ -315,6 +404,7 @@ async function profilesView(ctx) {
     { id: "save", label: t.save, icon: "plus", run: () => ({ view: saveView(ctx) }) },
     { id: "current", label: t.current, icon: "rows", run: async () => ({ view: await currentWorkspaceView(ctx) }) },
     { id: "fonts", label: t.fonts, icon: "text-aa", run: async () => ({ view: await fontsView(ctx) }) },
+    { id: "window", label: windowCopy(ctx.locale).title, icon: "rows", run: async () => ({ view: await windowView(ctx) }) },
     { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await profilesView(ctx), navigation: "replace" }) },
     { id: "shortcut", label: t.shortcut, icon: "rows", run: async () => ({ view: await shortcutView(ctx) }) }
   ], items: profiles.map((doc) => ({

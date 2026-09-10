@@ -1762,6 +1762,26 @@ response-budget tests pass, with desktop grants checked against local Tauri ACL.
 This is not native Window-manager, actual Worker, packaged or cross-platform E2E;
 those remain for concentrated composition testing.
 
+[代码] Workspace Profiles 0.5 consumes this existing UI 1.11 service from its
+shelf header and registered command. Its separate Window view reads the four
+flags, observes updates while mounted, and offers explicit minimize, maximize,
+restore and enter/exit-fullscreen actions. The full-screen boolean is captured
+from the displayed action, not recalculated as a toggle on dispatch. Read errors
+replace stale values and controls with a stable error plus refresh; unsupported
+hosts show no window commands. Leaving the view disposes its observation and
+late deliveries are ignored. Successful control returns only "Window change
+requested", with no extra query that could turn an accepted command into a
+refresh failure. Window flags are not saved into presets; existing ten-setting
+v2 and seven-setting v1 presets and Agent tools are unchanged. No new host API,
+permission or Agent tool is introduced. New labels use simplified Chinese or
+English fallback, following this plugin's existing convention.
+
+[验证] 24 Workspace Profiles tests / 94 assertions, plugin build and typecheck
+pass, including compiled header/command callbacks and all window intents.
+These use controlled service responses, not native window-manager behavior.
+Actual Worker/Tauri animations, restoration, focus and packaged behavior remain
+for concentrated desktop acceptance; documentation visual checks are deferred.
+
 ### Paged Lists and Tables (Views 1.5)
 
 [代码] `schemas.views` 1.5 adds `PluginListView.pagination` and `PluginTableView`

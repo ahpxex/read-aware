@@ -2,6 +2,18 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：第一段 SET05 Windows 运行时关联注册
+
+[进度/设计] 上轮 c50159d1 已推送，是有效进展。本轮继续第一段，先补充 file-associations-design.md 的 Windows 所有权/迁移/补偿设计。审查 Tauri 官方 NSIS 模板发现其自动关联写通用 EPUB 等类并覆盖默认值；发布工作流实际只发布 NSIS，因此 Windows 平台配置明确 currentUser NSIS 并关闭自动关联，避免运行时开关之外残留另一套注册。
+
+[实现] 新原生 file_associations 模块管理 HKCU/Software/Classes/<identifier>.Book 与 14 个扩展的自有 OpenWithProgids 值；启停都接一般设置持久化协调器，启动按持久开关协调并刷新安装路径。先准备逐值前后快照，写后复核、shell 通知，再提交 SQLite/队列策略；部分写、通知或 SQLite 失败补偿，观察到外部改动不覆盖，补偿失败不假报回滚。不修改 UserChoice 或其他默认值。旧 NSIS 通用条目只在命令/图标/Open-with 标签证明归属时退休，备份默认只在当前仍指向旧类时恢复。机器级旧关联明确拒绝并要求安装器迁移，不静默吞掉权限边界。
+
+[安装/文案] 自有注册首次运行创建；卸载前按 owner 清理 OpenWith 和 ProgID，清理拒绝时停止删除程序文件。八语言增加 Windows 说明：注册为可选打开方式、不改变默认应用。macOS 接收语义不变；Linux 运行时注册尚未实现，SET05 仍为部分。设计和第三段清单保留实际安装/升级/ACL/迁移验证，不将本轮编译测试当系统行为已验。
+
+[验证] 注册表计划/逐步失败补偿/真实内存 SQLite 故障/身份隔离/旧类迁移/实际 Tauri Windows 配置合并共 12 项原生定向测试通过。生产 Windows adapter 和 registry 源文件在临时薄错误类型壳下通过 x86_64-pc-windows-gnu 类型检查，仅证明该适配器编译，不冒称整个 Tauri Windows 编译。web 含桌面脚本类型通过，17 项/54 断言的库存/模型及隔离接收/启动/持久性套件通过。新增 Windows CI 编译真实完整 Rust crate、跑定向单元测试并只编译 NSIS hook，不安装或启动桌面；推送后跟踪其结果。HTML 不重复生成，其他未提交改动保留。
+
+[燃尽] 剩余部分/未接行数 86；未覆盖行数 240；未验收插件数 15（包含 9 个组合桌面插件）。
+
 ## 2026-09-11：第一段 SET05 原生文件接收与导入准入
 
 [进度/设计] 上轮 6fd886e7 已推送。本组先按 file-associations-design.md 分开系统注册与文件接收，不将后者冒充前者；仍在第一段，没有启动桌面、操作系统文件关联或开展第二段插件覆盖。

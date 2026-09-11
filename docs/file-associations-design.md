@@ -27,6 +27,32 @@ leave partial. This design does not change the three-stage delivery goal.
 
 ## Platform Registration
 
+### Windows Ownership And Commit
+
+The shipped Windows installer is NSIS (the release workflow publishes only its
+setup.exe). Stop its generated file-association writes: those use generic class
+names such as EPUB and overwrite extension defaults. Runtime registration owns
+`HKCU/Software/Classes/<bundle identifier>.Book` plus only that ProgID's values in
+each extension's OpenWithProgids. The installer must remove this namespace on
+uninstall, and use current-user installation. Registration starts on first launch
+and reconciles on later launches, so an update or moved executable refreshes its
+command while respecting the durable toggle. It does not select a default app.
+
+Prepare a complete value-level change list before touching the registry. Reject
+unreadable or foreign-owned targets. Apply and read back every change, notify the
+shell, then persist SQLite and publish intake. Any registry or SQLite failure
+restores the exact previous values; failed compensation must be reported. Do not
+hold the intake queue lock while making OS calls. Compensation only restores a
+value still equal to this operation's write, rather than overwriting an observed
+external edit. This is compensation, not an OS/SQLite distributed transaction.
+
+Legacy generic NSIS entries may be retired only when their command, icon and
+Open-with label match this installation. Restore its recorded previous extension
+default only if the current default still names that legacy class. Never touch
+UserChoice, another handler's values or an unproven legacy class. Machine-wide
+legacy registrations cannot be silently treated as removable by a per-user app;
+detect and reject that migration, with the original settings left intact.
+
 - macOS: bundled Info.plist association remains. Toggle only accepts/rejects file
   deliveries; copy must say that macOS association itself is not removed.
 - Windows: register/unregister application-owned per-user ProgIDs and

@@ -6,6 +6,7 @@ mod import;
 mod desktop_update;
 mod desktop_startup;
 mod desktop_preferences;
+mod file_associations;
 mod comic_metadata;
 mod diagnostics;
 mod error;

@@ -34,7 +34,8 @@
       "fileAssociations": {
         "title": "Asociaciones de archivos",
         "description": "Aceptar los libros que el sistema abra con ReadAware.",
-        "descriptionMac": "Aceptar archivos enviados por macOS. Desactivar esta opción no elimina las asociaciones de archivos de ReadAware en macOS."
+        "descriptionMac": "Aceptar archivos enviados por macOS. Desactivar esta opción no elimina las asociaciones de archivos de ReadAware en macOS.",
+        "descriptionWindows": "Registrar ReadAware como opción para abrir archivos de libros compatibles. Tus aplicaciones predeterminadas no cambian."
       },
       "autoUpdate": {
         "title": "Buscar actualizaciones automáticamente",

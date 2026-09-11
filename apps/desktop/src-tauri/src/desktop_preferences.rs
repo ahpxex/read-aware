@@ -56,8 +56,9 @@ pub(crate) fn initialize(app: &tauri::AppHandle, conn: &Connection) -> Result<()
         )
         .optional()?;
     let enabled = parse(stored.as_deref())?.file_associations;
-    app.state::<crate::external_open::ExternalOpenQueue>()
-        .publish(enabled)?;
+    crate::file_associations::commit(app, enabled, || {
+        app.state::<crate::external_open::ExternalOpenQueue>().publish(enabled)
+    })?;
     Ok(())
 }
 
@@ -80,7 +81,7 @@ pub(crate) fn commit_entries<T>(
     return crate::desktop_startup::commit(
         &crate::desktop_startup::NativeStartup(app),
         desired.launch_at_startup,
-        publish,
+        || crate::file_associations::commit(app, desired.file_associations, publish),
     );
     #[cfg(not(desktop))]
     {

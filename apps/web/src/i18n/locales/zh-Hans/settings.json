@@ -34,7 +34,8 @@
       "fileAssociations": {
         "title": "文件关联",
         "description": "接受系统通过 ReadAware 打开的书籍文件。",
-        "descriptionMac": "接受 macOS 转交的书籍文件。关闭此项不会移除 macOS 中 ReadAware 的文件关联。"
+        "descriptionMac": "接受 macOS 转交的书籍文件。关闭此项不会移除 macOS 中 ReadAware 的文件关联。",
+        "descriptionWindows": "将 ReadAware 注册为支持的书籍文件的打开方式，不更改默认应用。"
       },
       "autoUpdate": {
         "title": "自动检查更新",

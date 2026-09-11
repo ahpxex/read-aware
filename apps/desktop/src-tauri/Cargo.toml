@@ -116,9 +116,11 @@ block = "0.1"
 # reader's font picker. Same `windows` version wry/tao already lock — the
 # feature flags are additive, no second copy in the graph.
 [target.'cfg(target_os = "windows")'.dependencies]
+winreg = "0.55"
 windows = { version = "0.61", features = [
   "Win32_Graphics_DirectWrite",
   "Win32_Globalization",
+  "Win32_UI_Shell",
 ] }
 
 [dev-dependencies]

@@ -3948,6 +3948,7 @@ dependencies = [
  "uuid",
  "webpki-roots",
  "windows 0.61.3",
+ "winreg 0.55.0",
  "zip 2.4.2",
 ]
 

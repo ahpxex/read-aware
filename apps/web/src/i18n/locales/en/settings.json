@@ -34,7 +34,8 @@
       "fileAssociations": {
         "title": "File associations",
         "description": "Accept book files opened with ReadAware by your system.",
-        "descriptionMac": "Accept files sent by macOS. Turning this off does not remove ReadAware from macOS file associations."
+        "descriptionMac": "Accept files sent by macOS. Turning this off does not remove ReadAware from macOS file associations.",
+        "descriptionWindows": "Register ReadAware as an option for opening supported book files. Your default apps stay unchanged."
       },
       "autoUpdate": {
         "title": "Automatically check for updates",

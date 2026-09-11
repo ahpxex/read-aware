@@ -1,0 +1,410 @@
+{
+  "date": "2026-09-11",
+  "sourceCommit": "5748a763",
+  "environment": {
+    "app": "ReadAware macOS debug Tauri",
+    "profile": "com.readaware.app.capability-e2e",
+    "plugin": "Compiled RepoDist RSS Reader 0.12.0 Worker",
+    "frontendPort": 5184,
+    "bridgePort": 9224,
+    "serverPort": 19846
+  },
+  "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-rss-schedule-composition.tsx",
+  "server": "scripts/fixtures/rss-composition-server.ts",
+  "method": "Actual plugin command and view controls, existing global schedule Agent tools and production ChatInteractionPrompt mounted in the isolated fixture. Native webview DOM automation; no LLM invocation.",
+  "observation": {
+    "agent": {
+      "declined": {
+        "answer": {
+          "optionId": "decline",
+          "text": "Declined"
+        },
+        "result": {
+          "changed": false
+        },
+        "status": "done"
+      },
+      "overlap": {
+        "answer": {
+          "optionId": "approve",
+          "text": "Approved"
+        },
+        "result": {
+          "schedule": {
+            "everyMinutes": 60,
+            "id": "refresh-feeds",
+            "label": "Refresh subscribed feeds",
+            "lastErrorCode": null,
+            "lastFinishedAt": 1789085702221,
+            "lastOutcome": "running",
+            "lastStartedAt": 1789086401819,
+            "lastSuccessAt": 1789085702221,
+            "paused": true,
+            "pluginId": "rss-reader",
+            "running": true
+          },
+          "status": "already-running"
+        },
+        "status": "done"
+      },
+      "recoveredTool": {
+        "answer": {
+          "optionId": "approve",
+          "text": "Approved"
+        },
+        "result": {
+          "schedule": {
+            "everyMinutes": 60,
+            "id": "refresh-feeds",
+            "label": "Refresh subscribed feeds",
+            "lastErrorCode": null,
+            "lastFinishedAt": 1789086531309,
+            "lastOutcome": "succeeded",
+            "lastStartedAt": 1789086530468,
+            "lastSuccessAt": 1789086531309,
+            "paused": true,
+            "pluginId": "rss-reader",
+            "running": false
+          },
+          "status": "completed"
+        },
+        "status": "done"
+      },
+      "resumed": {
+        "answer": {
+          "optionId": "approve",
+          "text": "Approved"
+        },
+        "result": {
+          "schedule": {
+            "everyMinutes": 60,
+            "id": "refresh-feeds",
+            "label": "Refresh subscribed feeds",
+            "lastErrorCode": "ipc/unknown",
+            "lastFinishedAt": 1789086451086,
+            "lastOutcome": "failed",
+            "lastStartedAt": 1789086451070,
+            "lastSuccessAt": 1789086438185,
+            "paused": false,
+            "pluginId": "rss-reader",
+            "running": false
+          },
+          "status": "completed"
+        },
+        "status": "done"
+      }
+    },
+    "bookId": "e7c6081e-7a69-48d2-89de-9459de5ab053",
+    "feeds": {
+      "after": {
+        "addedAt": "2026-09-11T00:25:49.039Z",
+        "articles": [
+          {
+            "id": "article-04e79c11a1d20bcb30e6f2d9ee5499ebc95677270fc00882fc20604fa2a245b7",
+            "publishedAt": "2026-09-11T01:00:00Z",
+            "publishedAtIso": "2026-09-11T01:00:00.000Z",
+            "title": "New article"
+          },
+          {
+            "id": "article-cb76e6c321ab52e2c78b1aa200438dc4e70da8fd9e7f5c79c1b177c6c5ed8b8b",
+            "publishedAt": "2026-09-11T00:00:00Z",
+            "publishedAtIso": "2026-09-11T00:00:00.000Z",
+            "title": "Stable article"
+          },
+          {
+            "id": "article-ae3020a59b76959dd30526ff632451e8acddf7350258a402c4ea726f845f2509",
+            "publishedAt": "2026-09-10T00:00:00Z",
+            "publishedAtIso": "2026-09-10T00:00:00.000Z",
+            "title": "Second article"
+          }
+        ],
+        "bookId": "e7c6081e-7a69-48d2-89de-9459de5ab053",
+        "contentId": "139b1fc8b9ebb59c9547eee180fb8b8c27459e13a909c3eab2f22fe65ec50123",
+        "lastFetched": "2026-09-11T00:27:18.172Z",
+        "title": "RSS Composition 19846",
+        "url": "http://127.0.0.1:19846/feed.atom"
+      },
+      "before": {
+        "addedAt": "2026-09-11T00:25:49.039Z",
+        "articles": [
+          {
+            "id": "article-cb76e6c321ab52e2c78b1aa200438dc4e70da8fd9e7f5c79c1b177c6c5ed8b8b",
+            "publishedAt": "2026-09-11T00:00:00Z",
+            "publishedAtIso": "2026-09-11T00:00:00.000Z",
+            "title": "Stable article"
+          },
+          {
+            "id": "article-ae3020a59b76959dd30526ff632451e8acddf7350258a402c4ea726f845f2509",
+            "publishedAt": "2026-09-10T00:00:00Z",
+            "publishedAtIso": "2026-09-10T00:00:00.000Z",
+            "title": "Second article"
+          }
+        ],
+        "bookId": "e7c6081e-7a69-48d2-89de-9459de5ab053",
+        "contentId": "2e59cd0e937d2235497e619d3b65a6c755a8e664909aaa3b0806cd3081cedf6c",
+        "lastFetched": "2026-09-11T00:25:49.039Z",
+        "title": "RSS Composition 19846",
+        "url": "http://127.0.0.1:19846/feed.atom"
+      },
+      "failedCacheUnchanged": true,
+      "failedUnchanged": true
+    },
+    "prepared": {
+      "original": {
+        "enabled": true,
+        "raw": "{\"refresh-feeds\":{\"paused\":false,\"lastStartedAt\":1789085702213,\"lastFinishedAt\":1789085702221,\"lastSuccessAt\":1789085702221,\"lastOutcome\":\"succeeded\",\"lastErrorCode\":null}}"
+      },
+      "schedules": {
+        "nextOffset": null,
+        "schedules": [
+          {
+            "everyMinutes": 60,
+            "id": "refresh-feeds",
+            "label": "Refresh subscribed feeds",
+            "lastErrorCode": null,
+            "lastFinishedAt": 1789085702221,
+            "lastOutcome": "succeeded",
+            "lastStartedAt": 1789085702213,
+            "lastSuccessAt": 1789085702221,
+            "paused": false,
+            "pluginId": "rss-reader",
+            "running": false
+          }
+        ],
+        "total": 1
+      },
+      "url": "http://127.0.0.1:19846/feed.atom",
+      "version": "0.12.0",
+      "wasEnabled": true
+    },
+    "query": {
+      "nextOffset": null,
+      "schedules": [
+        {
+          "everyMinutes": 60,
+          "id": "refresh-feeds",
+          "label": "Refresh subscribed feeds",
+          "lastErrorCode": null,
+          "lastFinishedAt": 1789086438185,
+          "lastOutcome": "succeeded",
+          "lastStartedAt": 1789086438149,
+          "lastSuccessAt": 1789086438185,
+          "paused": true,
+          "pluginId": "rss-reader",
+          "running": false
+        }
+      ],
+      "total": 1
+    },
+    "schedules": {
+      "failed": {
+        "everyMinutes": 60,
+        "id": "refresh-feeds",
+        "label": "Refresh subscribed feeds",
+        "lastErrorCode": "ipc/unknown",
+        "lastFinishedAt": 1789086451086,
+        "lastOutcome": "failed",
+        "lastStartedAt": 1789086451070,
+        "lastSuccessAt": 1789086438185,
+        "paused": true,
+        "pluginId": "rss-reader",
+        "running": false
+      },
+      "paused": {
+        "everyMinutes": 60,
+        "id": "refresh-feeds",
+        "label": "Refresh subscribed feeds",
+        "lastErrorCode": null,
+        "lastFinishedAt": 1789085702221,
+        "lastOutcome": "succeeded",
+        "lastStartedAt": 1789085702213,
+        "lastSuccessAt": 1789085702221,
+        "paused": true,
+        "pluginId": "rss-reader",
+        "running": false
+      },
+      "recovered": {
+        "everyMinutes": 60,
+        "id": "refresh-feeds",
+        "label": "Refresh subscribed feeds",
+        "lastErrorCode": null,
+        "lastFinishedAt": 1789086531309,
+        "lastOutcome": "succeeded",
+        "lastStartedAt": 1789086530468,
+        "lastSuccessAt": 1789086531309,
+        "paused": true,
+        "pluginId": "rss-reader",
+        "running": false
+      },
+      "restartedFailed": {
+        "everyMinutes": 60,
+        "id": "refresh-feeds",
+        "label": "Refresh subscribed feeds",
+        "lastErrorCode": "ipc/unknown",
+        "lastFinishedAt": 1789086451086,
+        "lastOutcome": "failed",
+        "lastStartedAt": 1789086451070,
+        "lastSuccessAt": 1789086438185,
+        "paused": true,
+        "pluginId": "rss-reader",
+        "running": false
+      },
+      "restartedPaused": {
+        "everyMinutes": 60,
+        "id": "refresh-feeds",
+        "label": "Refresh subscribed feeds",
+        "lastErrorCode": null,
+        "lastFinishedAt": 1789085702221,
+        "lastOutcome": "succeeded",
+        "lastStartedAt": 1789085702213,
+        "lastSuccessAt": 1789085702221,
+        "paused": true,
+        "pluginId": "rss-reader",
+        "running": false
+      },
+      "resumedState": {
+        "everyMinutes": 60,
+        "id": "refresh-feeds",
+        "label": "Refresh subscribed feeds",
+        "lastErrorCode": "ipc/unknown",
+        "lastFinishedAt": 1789086451086,
+        "lastOutcome": "failed",
+        "lastStartedAt": 1789086451070,
+        "lastSuccessAt": 1789086438185,
+        "paused": false,
+        "pluginId": "rss-reader",
+        "running": false
+      },
+      "running": {
+        "everyMinutes": 60,
+        "id": "refresh-feeds",
+        "label": "Refresh subscribed feeds",
+        "lastErrorCode": null,
+        "lastFinishedAt": 1789085702221,
+        "lastOutcome": "running",
+        "lastStartedAt": 1789086401819,
+        "lastSuccessAt": 1789085702221,
+        "paused": true,
+        "pluginId": "rss-reader",
+        "running": true
+      },
+      "succeeded": {
+        "everyMinutes": 60,
+        "id": "refresh-feeds",
+        "label": "Refresh subscribed feeds",
+        "lastErrorCode": null,
+        "lastFinishedAt": 1789086438185,
+        "lastOutcome": "succeeded",
+        "lastStartedAt": 1789086438149,
+        "lastSuccessAt": 1789086438185,
+        "paused": true,
+        "pluginId": "rss-reader",
+        "running": false
+      },
+      "timedOut": {
+        "everyMinutes": 60,
+        "id": "refresh-feeds",
+        "label": "Refresh subscribed feeds",
+        "lastErrorCode": "ipc/unknown",
+        "lastFinishedAt": 1789086413853,
+        "lastOutcome": "failed",
+        "lastStartedAt": 1789086401819,
+        "lastSuccessAt": 1789085702221,
+        "paused": true,
+        "pluginId": "rss-reader",
+        "running": false
+      }
+    },
+    "ui": {
+      "recovered": "RSS Reader\n\nAutomatic refresh\nSchedule\nPaused\nInterval (minutes)\n60\nLast attempt\nSucceeded\nLast started\n9/11/2026, 8:28:50 AM\nLast finished\n9/11/2026, 8:28:51 AM\nLast successful refresh\n9/11/2026, 8:28:51 AM\nResume\nRun now\nRefresh status\nClose",
+      "resumed": "RSS Reader\n\nAutomatic refresh\nSchedule\nEnabled\nInterval (minutes)\n60\nLast attempt\nFailed\nLast started\n9/11/2026, 8:27:31 AM\nLast finished\n9/11/2026, 8:27:31 AM\nLast successful refresh\n9/11/2026, 8:27:18 AM\nSomething went wrong. Details are in the app log.\nPause\nRun now\nRefresh status\nClose"
+    }
+  },
+  "network": {
+    "requests": 5,
+    "sequence": [
+      "Subscribe: revision 1, two articles",
+      "UI Run now while paused: 15000ms delayed response; concurrent approved Agent run returned already-running, only one request; delayed attempt failed without changing last success",
+      "UI retry without delay: revision 2, three articles, succeeded while still paused",
+      "UI Run now: HTTP 503, failed; same feed JSON and cached content, prior last success retained",
+      "Approved Agent Run after recovery: completed; new last success, cleared error, still paused"
+    ]
+  },
+  "persistence": {
+    "source": "sqlite3 -readonly app_kv",
+    "failureRecord": {
+      "paused": true,
+      "lastStartedAt": 1789086451070,
+      "lastFinishedAt": 1789086451086,
+      "lastSuccessAt": 1789086438185,
+      "lastOutcome": "failed",
+      "lastErrorCode": "ipc/unknown"
+    },
+    "workerRestarts": [
+      "Paused state retained",
+      "Paused/failed state and prior successful timestamp retained"
+    ]
+  },
+  "visuals": {
+    "foreground": true,
+    "logicalViewports": [
+      [
+        900,
+        750
+      ],
+      [
+        600,
+        750
+      ]
+    ],
+    "screenshots": [
+      "rss-schedule-running-2026-09-11.png",
+      "rss-schedule-failed-2026-09-11.png",
+      "rss-schedule-recovered-2026-09-11.png"
+    ],
+    "result": "Running visible behind the host action's busy overlay; failed and recovery state observed without Refresh status. Narrow view scrolls its content, keeping controls reachable."
+  },
+  "cleanup": {
+    "unsubscribe": "Owned feed, virtual book and content cache removed",
+    "readOnlySqlCounts": {
+      "ownedBook": 0,
+      "ownedRssDocuments": 0,
+      "ownedPendingReading": 0
+    },
+    "scheduleState": "Original raw app_kv value restored exactly and verified with SQL",
+    "originalPluginEnabled": true,
+    "restoredPluginEnabled": true,
+    "window": [
+      900,
+      750
+    ],
+    "remainingBooks": [
+      "Reading Capability Probe",
+      "Reading Paint Probe"
+    ],
+    "appPidStopped": 67705,
+    "driverStopped": 9224,
+    "frontendSession": 11559,
+    "frontendExit": 0,
+    "serverSession": 8329,
+    "serverExit": 130,
+    "noListeners": [
+      5184,
+      9224,
+      19846
+    ],
+    "original9223Untouched": true
+  },
+  "validation": [
+    "Web typecheck passed",
+    "Native composition completed without production code changes"
+  ],
+  "limits": [
+    "The initial delayed request produced ipc/unknown; this evidence does not identify which transport deadline caused it.",
+    "HTTP 503 also becomes ipc/unknown because the RSS fetch path throws an unclassified Error; failure is truthful but the message is generic.",
+    "Agent confirmation was fixture-mounted, not a complete model conversation or keyboard/focus test.",
+    "No application-process restart, OS scheduled job, real 60-minute cadence, multi-feed partial failure, interrupted-run recovery, real remote feeds, packaged build or cross-platform proof.",
+    "A paused manual run is not evidence that a full cadence interval elapsed without automatic requests.",
+    "Document visual acceptance and overall capability completion remain pending."
+  ]
+}

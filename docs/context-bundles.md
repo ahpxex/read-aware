@@ -71,9 +71,41 @@ derived content. It uses the existing profile-context snapshot and `pctx1` sourc
 identity. This does not export raw profile traits, all memories, or entity tables.
 The stored-conversation recipe is also wired internally as described below.
 The reading-intention producer is wired through opted-in active providers below;
-the book-memory producer, public actor operations and file export remain required.
+the book-memory producer below is also wired. Public actor operations and file
+export remain required.
 
 ## Actor And Export Boundary
+
+### Book Memory Sources
+
+The implemented book recipe reads one durable, book-scoped SQLite snapshot: active book
+memories, annotations and chapter digests, together with classification, saved
+position and source/derived-text blob hashes. It never queries user/global memory
+or conversation messages. The host verifies derived-text bytes against the
+captured registry hash and uses the existing v5 parser only for chapter hrefs;
+it does not extract text or start inference. A new local source-clock migration
+tracks blob-registry writes too, including replacement and deletion. A failed
+blob replacement that leaves bytes inconsistent with the registry must reject.
+
+Narrative books expose only completed chapters before the current chapter;
+finished or expository books have no chapter fence. The active reader overrides
+the persisted position, including loading/unknown state. A session/position/source
+change invalidates capture through dispatch, including move-away-and-back.
+Memories have no chapter provenance, so they are omitted while a narrative fence
+is in force. Unlocated annotations are likewise omitted; flavor-mismatched
+digests are unavailable. This is a provenance fence, not a semantic proof that a
+note or model summary cannot mention later events. All omissions are counted.
+Historical digests have href/index provenance but no edition hash; the artifact
+must not misrepresent them as content-version-verified source passages.
+
+The recipe retains complete selected text and structured digest entities and
+relations. Stable IDs and content hashes, not timestamps or mutable row order,
+identify its sources. Oversized source sets/artifacts fail explicitly, never
+silently truncate. The native source snapshot is bounded to 8192 rows and 8 MiB
+of source text before materialization; the final artifact retains its 512-item,
+1-MiB limit. `bitem1` hashes identify selected items and `bctx1` identifies the
+scope, classification, edition hash, fence, chapter mapping, selected revisions
+and counted omissions. Native actor authorization and export remain separate gates.
 
 ### Reading Intention Sources
 
@@ -146,9 +178,8 @@ There will be no plugin-specific duplicate model tools for the same recipes.
 ## Delivery Boundaries
 
 The immutable-artifact contract, native event-sourced version history, conditional
-publication and internal user-profile, stored-conversation and reading-intention
-producers are implemented. MEM13 remains partial until the book-memory source
-assembler, authorized history/read/export,
+publication and all four internal recipe producers are implemented. MEM13
+remains partial until authorized history/read/export,
 Agent tools, native user flow and ResourceRef lifecycle are wired with focused tests.
 Reading Goals provider intent uses its own durable documents and private legacy
 promotion; book spoiler boundaries must also use their real owner. Stored conversation bundles use a narrow

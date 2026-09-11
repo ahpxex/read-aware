@@ -47,6 +47,15 @@ fn revision(conn: &Connection) -> Result<String, CommandError> {
     Ok(format!("cbsource1:{generation}:{counter}"))
 }
 
+pub(super) fn install_blob_source_clock(conn: &Connection) -> Result<(), CommandError> {
+    for action in ["INSERT", "UPDATE", "DELETE"] {
+        conn.execute_batch(&format!("CREATE TRIGGER context_source_blob_objects_{action} AFTER {action} ON blob_objects
+            BEGIN INSERT INTO context_bundle_source_clock(id,generation,counter) VALUES(1,lower(hex(randomblob(16))),1)
+            ON CONFLICT(id) DO UPDATE SET counter=counter+1; END;"))?;
+    }
+    Ok(())
+}
+
 pub(crate) fn context_bundle_source_revision_inner(
     conn: &mut Connection,
 ) -> Result<String, CommandError> {

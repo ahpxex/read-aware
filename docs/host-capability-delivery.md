@@ -2,6 +2,20 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：第一段 context bundle 书内记忆真实来源
+
+[进度/设计] 上轮9e9affb8阅读意图/真实私有来源已推送且landing CI通过，是有效进展。本组先在context-bundles写清书内recipe的来源、章节定位与读集保护，再接第四个内部生产者；不提前开展第二段组合插件或第三段桌面验收。
+
+[来源/剧透] 新book_context_snapshot在单个SQLite读事务中读取目标书的active记忆、标注、digest及分类/持久位置/blob哈希；不查询其他scope或转录，忘记/替代记忆不返回。源集先检查8192行/8MiB正文上限，超限拒绝不截短。宿主只从hash吻合的持久v5派生文本取章节href，不发起提取、不导出整书正文；旧版/不完整/不同edition映射不能建立fence，坏JSON/实际读失败不伪造成功。活动reader优先于保存位置，loading/不匹配edition不能回退到较晚进度。叙事before当前章，未知无正文；memory没有章节来源故在fence内计数省略，未定位标注同理，finished/expository无fence，错flavor的digest标unavailable。实体和关系结构完整保留；旧digest只有href/index来源，不补造edition hash，也不声称标注/模型内容语义上绝无后文。
+
+[一致性] bitem1按选中正文及来源属性hash，bctx1绑定scope/分类/edition/fence/章节映射/选中版本和省略计数；行顺序、时间戳不制造版本差异。v37给blob_objects增加三条源clock触发器，重写/删除/ABA拒绝旧捕获，回滚保持clock，升级失败整批回滚；若文件覆盖后registry写失败，字节与捕获hash不符则拒绝。观察真实reader的session/status/位置/source，移开再回来也失效；捕获到mint后、派发前仍检查信号，派发后保留实际发布回执，所有出口释放观察者。并未把本地时钟当公共授权或隐私票据。
+
+[验证] 55项定向TS测试/354断言通过，含四recipe回归、原生共享Unicode来源夹具、完整图内容、章节/未知/已读/说明性边界、片段歧义、复制/排序/hash、超限/坏数据、blob哈希错配、reader倒退/loading/换源/ABA、取消/失败及派发后真实回执。storage原生203项通过，既有百万事件压力1项默认忽略；新增5项覆盖真实SQLite来源隔离/坏数据/限额、blob重写/删除/回滚与v36→v37升级/故障回滚。首次原生测试夹具错误移除初始化所需app_kv、遗漏FTS函数注册，已修正后复跑；Array.isArray收窄导致的隐式any已用显式readonly类型修正。core及Web（Foliate、迁出桌面脚本）类型检查通过。未启动桌面/浏览器或完整构建，保留既有Rust警告与用户表单工作。
+
+[剩余] 四个内部recipe生产者已实现，MEM13仍部分、双端未接：继续双端授权历史/读取/封口ResourceRef导出、Agent及原生用户入口、文本隐私/撤权和完整持久结果边界。源矩阵/统一模型/设计/数据模型同步，HTML仍每日集中，本组独立提交并push；真实Tauri/正式插件/跨设备/packaged证据留第三段。
+
+[燃尽] 剩余部分/未接行数81；未覆盖行数240；未验收插件数15（包含9个组合桌面插件）。
+
 ## 2026-09-11：第一段 context bundle 阅读意图与真实私有来源
 
 [进度/设计] 上轮1c522fff对话纪要生产链已推送且landing CI通过，是有效进展。本组继续MEM13第三个recipe，先写意图来源/生命周期设计，再实现agentContextProviders1.1的显式readingIntent声明：user/book scope、准备步骤及有版本的持久只读快照。不是通用prompt provide结果转存，也不扫描禁用插件私有数据或猜测全局preference记忆。不扩展第二段组合插件。

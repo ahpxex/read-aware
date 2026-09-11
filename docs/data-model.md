@@ -331,8 +331,16 @@ prepares its own legacy migration, reads a durable private document, and carries
 its revision (including tombstones). A frozen registration set and host-owned
 realm lifetime complement the SQLite source clock. The `rint1` identity records
 scope, stable provider IDs, versions and text, not registry order or display names.
-The book-memory producer, authorized queries, resource export and
-user-facing consumers are not wired yet; MEM13 remains partial. See
+The book-memory producer reads `book_context_snapshot` (active book-only memories,
+annotations and digests), verifies persisted v5 chapter metadata against captured
+blob hashes and applies the live-reader/saved-position fence. Unlocated sources
+are omitted while a narrative fence applies; finished/expository books are unfenced.
+`bitem1` and `bctx1` identify the selected durable evidence and omissions. v37 adds
+blob-registry source-clock triggers; an observed reader-position/source change
+also invalidates a capture before dispatch. Legacy digests retain only their
+original href/index provenance, not a retroactively invented edition hash.
+Authorized queries, resource export and user-facing consumers are not wired yet;
+MEM13 remains partial. See
 [context-bundles](./context-bundles.md) for the contract and closing conditions.
 
 ### 5.4 Blob registry

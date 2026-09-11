@@ -1,0 +1,7 @@
+{
+  "bookId": "book-one", "readingStatus": "reading", "flavor": null, "href": "c2.xhtml#saved", "format": "epub",
+  "contentHash": null, "textHash": null,
+  "memories": [{ "id": "m1", "kind": "insight", "text": "Book observation" }],
+  "annotations": [{ "id": "a1", "kind": "note", "href": "c1.xhtml#note", "quote": "Quoted passage", "note": "读者的笔记 📖" }],
+  "digests": [{ "index": 0, "href": "c1.xhtml", "flavor": null, "summary": "Opening chapter", "characters": "[{\"name\":\"Alice\",\"aliases\":[\"A\"],\"note\":\"Introduced\"}]", "relations": "[{\"from\":\"Alice\",\"kind\":\"knows\",\"to\":\"Bob\"}]", "version": 2 }]
+}

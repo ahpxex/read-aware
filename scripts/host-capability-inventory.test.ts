@@ -72,6 +72,8 @@ test("bundle publication is an event projection foundation, not a public export 
   expect(native.every(item => item.family === "Native command" && item.rows.length === 1 && item.rows[0] === "MEM13")).toBe(true);
   expect(collectInventory().find(item => item.name === "storage::conversation_insights_snapshot"))
     .toMatchObject({ family: "Native command", rows: ["MEM13"] });
+  expect(collectInventory().find(item => item.name === "storage::book_context_snapshot"))
+    .toMatchObject({ family: "Native command", rows: ["MEM13"] });
 });
 
 test("durable private source reads are explicit inventory entries, not raw global KV for actors", () => {

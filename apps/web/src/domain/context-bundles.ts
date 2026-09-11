@@ -6,11 +6,13 @@ import { createLogger } from "../platform/logger";
 import { initializeUserProfile } from "./user-profile";
 import { loadConversationInsightsSnapshot, prepareConversationInsightsSnapshot } from "../features/ai/lib/conversation-insights-store";
 import { readingIntentSources } from "../features/plugins/runtime/plugin-reading-intents";
+import { bookContextSources } from "./book-context-sources";
 
 type Receipt = { version: string; changed: boolean; persistence: "event-log" };
 type Host = { invoke: typeof invoke; mint: typeof mintEventRows; broadcast: typeof broadcastDomainEventDrafts;
   insights: { prepare: typeof prepareConversationInsightsSnapshot; read: typeof loadConversationInsightsSnapshot };
   intents: typeof readingIntentSources;
+  books: typeof bookContextSources;
   initialize(): Promise<void>; warn(message: string): void };
 
 /** Internal producer. Actor authorization and file export are separate consumers. */
@@ -36,6 +38,11 @@ export function createContextBundleService(host: Host) {
     return { bundle, receipt };
   };
   return {
+    async captureBook(bookId: string, origin: EventOrigin, signal?: AbortSignal) {
+      const sources = host.books.open(bookId, signal);
+      try { return await capture(origin, sources.read, sources.signal); }
+      finally { sources.dispose(); }
+    },
     async captureIntent(input: ReadingIntentScope, origin: EventOrigin, signal?: AbortSignal) {
       const scope = normalizeReadingIntentScope(input), sources = host.intents.open(scope, signal);
       try { return await capture(origin, async () => readingIntentContextBundle(scope, await sources.read()), sources.signal, sources.prepare); }
@@ -64,4 +71,5 @@ export function createContextBundleService(host: Host) {
 export const contextBundles = createContextBundleService({ invoke, mint: mintEventRows, broadcast: broadcastDomainEventDrafts,
   insights: { prepare: prepareConversationInsightsSnapshot, read: loadConversationInsightsSnapshot },
   intents: readingIntentSources,
+  books: bookContextSources,
   initialize: initializeUserProfile, warn: message => createLogger("context-bundle").warn(message) });

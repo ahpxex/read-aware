@@ -38,6 +38,8 @@ mod context_bundle_publication;
 pub use context_bundle_publication::*;
 mod conversation_insights;
 pub use conversation_insights::*;
+mod book_context;
+pub use book_context::*;
 mod entity_registry;
 mod entity_queries;
 pub use entity_queries::*;

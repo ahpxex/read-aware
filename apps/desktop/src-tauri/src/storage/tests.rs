@@ -11,6 +11,8 @@ mod context_bundle_tests;
 mod context_bundle_publication_tests;
 #[path = "conversation_insights_tests.rs"]
 mod conversation_insights_tests;
+#[path = "book_context_tests.rs"]
+mod book_context_tests;
 
 #[test]
 fn durable_kv_single_key_reads_exact_committed_bytes_and_propagates_read_failure() {

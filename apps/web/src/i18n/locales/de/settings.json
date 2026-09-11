@@ -356,7 +356,9 @@
     "dataLocation": {
       "title": "Speicherort",
       "descTauri": "Im ReadAware-Anwendungsdatenordner auf diesem Gerät gespeichert.",
-      "descWeb": "In diesem Browser gespeichert. Die Desktop-App bewahrt Daten in einem lokalen Ordner auf, den du kontrollierst."
+      "descWeb": "Der Datenordner ist in der Desktop-App verfügbar.",
+      "loadFailed": "Der Datenordner konnte nicht ermittelt werden.",
+      "revealFailed": "Der Datenordner konnte nicht angezeigt werden."
     },
     "desktopBadge": "Desktop",
     "reveal": "Anzeigen",

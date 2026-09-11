@@ -360,7 +360,9 @@
     "dataLocation": {
       "title": "Ubicación de los datos",
       "descTauri": "Se guardan en la carpeta de datos de la aplicación ReadAware en este dispositivo.",
-      "descWeb": "Se guardan en este navegador. La app de escritorio mantiene los datos en una carpeta local que tú controlas."
+      "descWeb": "La carpeta de datos está disponible en la aplicación de escritorio.",
+      "loadFailed": "No se pudo obtener la ubicación de la carpeta de datos.",
+      "revealFailed": "No se pudo mostrar la carpeta de datos."
     },
     "desktopBadge": "Escritorio",
     "reveal": "Mostrar",

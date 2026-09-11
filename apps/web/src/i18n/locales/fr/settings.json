@@ -360,7 +360,9 @@
     "dataLocation": {
       "title": "Emplacement des données",
       "descTauri": "Stocké dans le dossier de données de l’application ReadAware sur cet appareil.",
-      "descWeb": "Stocké dans ce navigateur. L’application de bureau conserve les données dans un dossier local que vous contrôlez."
+      "descWeb": "Le dossier de données est disponible dans l’application de bureau.",
+      "loadFailed": "Impossible de lire l’emplacement du dossier de données.",
+      "revealFailed": "Impossible d’afficher le dossier de données."
     },
     "desktopBadge": "Bureau",
     "reveal": "Afficher",

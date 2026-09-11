@@ -1,6 +1,6 @@
 /** Source-audited facts. Generated Markdown/HTML must not be edited independently. */
 export type HostState = "实装" | "部分" | "引擎" | "占位" | "待建" | "非桌面";
-export type ActorState = "接通" | "部分" | "自动" | "内部" | "扩展" | "未接";
+export type ActorState = "接通" | "接通（待 E2E）" | "部分" | "自动" | "内部" | "扩展" | "未接";
 export type Actor = { state: ActorState; via: string; target: string };
 export type Capability = {
   id: string; name: string; host: HostState; agent: Actor; plugin: Actor;
@@ -79,6 +79,9 @@ export const sources: Record<string, string> = {
   ENRICHTOOLS: "packages/agent/src/tools/enrichment-tools.ts",
   RESOURCETOOLS: "packages/agent/src/tools/resource-tools.ts",
   HOSTMAINTENANCE: "apps/web/src/services/maintenance.ts",
+  DATALOCATION: "apps/web/src/platform/data-location.ts",
+  DATALOCATIONUI: "apps/web/src/features/settings/sections/DataLocationGroup.tsx",
+  DATALOCATIONTEST: "apps/web/tests/data-location.test.tsx",
   MAINTENANCEDESKNATIVE: "docs/evidence/maintenance-desk-2026-09-11.json",
   MAINTENANCEADMIN: "plugins/maintenance-desk/src/plugin-directory.ts",
   MAINTENANCEUPDATES: "plugins/maintenance-desk/src/updates.ts",
@@ -738,7 +741,7 @@ groups.push(
     cap("OPS07", "套餐/用量/购买/账单管理", "实装", actor("接通", "get_sync_status includeAccount；manage_sync upgrade/billing", "套餐用量与外部流程交接回执"), actor("接通", "sync 1.1 account/requestFlow", "按需脱敏读及宿主购买入口"), ["ACCOUNTUI","EXTERNAL","SYNCSERVICE","SYNCCONTROLLER","SYNCFLOWS","SYNCFLOWUI","SYNCTOOLS","MAINTENANCESYNC","MAINTENANCESYNCPROOF"], "购买/账单portal；双端配额与流程；Maintenance Desk 0.3", "account仅返回tier/hasBilling/三项用量及四项额度，null是非relay/未连接而非零用量；失败和换代拒绝。upgrade/billing直接复用宿主外链操作，保留平台购买限制与账号资格，打开前复查取消/连接代；不返回URL/ticket/keys/email/accountId。external-opened只证明外部交接，不是支付或订阅变更完成；购买仍由用户在外部页面完成，不开放自动付款。Maintenance Desk 0.3已组合按需联网用量查询、null/0额度、资格账单入口、原生交接与真实状态日志；不轮询账户或把外链当付款完成。基础与编译入口通过，真实远端套餐、系统浏览器和购买结果留集中Tauri验收。"),
     cap("OPS08", "备份导出与合并导入", "部分", actor("部分", "request_backup / open_maintenance_settings[双域]", "原生备份请求及最终回执已接"), actor("部分", "maintenance 1.2 requestBackup / openSettings", "原生备份请求及最终回执已接"), ["BACKUP","BACKUPFLOW","BACKUPFLOWUI","BACKUPFLOWPROOF","DATAUI","RUST","HOSTMAINTENANCE","MAINTENANCETOOLS","MAINTENANCEDESKNATIVE"], "DataSyncPanel 原有按钮、原生文件服务与 HostActionFlow", "requestBackup 只定位，用户点击及选择文件后返回 imported/exported/cancelled；openSettings 的 opened 仍非完成。不交出字节/路径/计数，无新增授权或自我批准。单次 signal 已接，未开始可取消，已开始合并不回滚；无耐久回执，imported 不证明重载/genesis完成。v1仅KV/books/collections/annotations/本地files，独立聊天/记忆/插件文档/密钥库/event-log未枚举；KV可能含个人数据，整份JSON驻内存、验证不完整、可覆盖及部分写入，故仍部分。八语言已纠正全量备份保证。基础调用/受控文件/挂载通过；Maintenance Desk真实Worker/Tauri已完成另存为临时文件和exported回执，实际Open选择取消返回cancelled。八语言成功文案不再误称默认文件名或全量。合并恢复/跨重启与完整Agent组合仍待验。"),
     cap("OPS09", "删除本地全部数据", "实装", actor("接通", "open_maintenance_settings(delete-data)[双域]", "打开宿主危险操作入口"), actor("接通", "maintenance 1.1 openSettings(delete-data)", "只定位，禁止直接 wipe"), ["WIPE","DATAUI","RUST","HOSTMAINTENANCE","MAINTENANCETOOLS"], "DataSyncPanel 原有删除入口与 DELETE 文字确认", "只定位已挂载入口按钮，不打开确认框、不填 DELETE、不批准或执行删除；用户须自行点击并完成宿主文字确认。opened 不代表删除完成；清空本地与删账号不同，私有卸载不升级成全局 wipe。条件/取消/生命周期定向测试通过，真实 Tauri 确认流程待集中验收。"),
-    cap("OPS10", "数据目录显示/Reveal", "占位", absent("待宿主实现后暴露意图"), absent("待宿主实现后暴露意图"), ["DATAUI"], "disabled Reveal / PendingBadge", "UI 占位不能计入宿主已实现，更不能计入 Agent 或插件覆盖"),
+    cap("OPS10", "数据目录显示/Reveal", "实装", actor("接通（待 E2E）", "open_maintenance_settings(data-location)[双域]", "定位宿主目录显示及 Reveal 控件"), actor("接通（待 E2E）", "maintenance 1.4 openSettings(data-location)", "定位宿主目录显示及 Reveal 控件"), ["DATAUI","DATALOCATION","DATALOCATIONUI","DATALOCATIONTEST","HOSTMAINTENANCE","MAINTENANCETOOLS"], "DataLocationGroup 实际目录/原生 Reveal；Agent/插件维护入口", "实现关闭条件：原生 appDataDir 与 SQLite init_db 共用 app_data_dir 解析器，设置显示真实路径，用户点击 Reveal 调用既有系统 opener；已满足。目录读取失败显示 InlineError、不返回空路径，诚实重试；打开失败日志及本地化 destructive toast，八语言齐全。只给宿主 UI 路径，两端仅定位控件并返回 opened/surface，不自动点击、不返回路径、不授予任意 FS；插件退休和 Agent 取消阻止迟到定位。双击共用当前 UI 在途操作，关闭前未派发的原生打开可取消，已打开文件管理器不自动关闭。定向真实公共 JS API→受控 native IPC、挂载 UI/Agent/插件权限测试已验；第三段清单见 host-capability-stage-three.md：隔离 Tauri 的真实目录、系统文件管理器、失败/并发/撤权及打包安装流程需用完整插件轮次证据关闭，当前不称已 E2E。"),
     cap("OPS11", "事件写入、重建/验证投影、历史 genesis", "实装", actor("部分", "领域端口提交业务事件；verify_local_data[双域]", "语义命令与只读诊断"), actor("部分", "领域命令内部commit；diagnostics1.0 verifyProjections", "只走有语义领域命令"), ["EVENTS","APPLY","RUST","DIAGNOSTICS","DIAGNOSTICSCONTROLLER","DIAGNOSTICSPROOF","MAINTENANCEDESKNATIVE"], "commit_events/rebuild_projections/verify_projections", "只读校验汇总已开放，不暴露记录样本或表名；共用原生verify_projections，重放检查最终回滚，回填不完整拒绝。没有开放重建/修复、任意SQL/事件append/投影写或伪造genesis；旧日志未记录的变更不可凭空恢复。Maintenance Desk真实Worker/Tauri已验只读差异计数；重建/修复、Agent完整组合和跨平台仍待验"),
   ] },
   { name: "跨能力协议与明确边界", rows: [

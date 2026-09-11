@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { Button, Dialog, TextField, useToast } from "@read-aware/ui";
-import { isTauri } from "../../../platform/environment";
 import { createLogger } from "../../../platform/logger";
 import { useTranslation } from "../../../i18n";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
-import { PendingBadge } from "../components/PendingBadge";
 import { deleteAllData } from "../lib/delete-all-data";
 import { useBackupActions } from "../hooks/useBackupActions";
 import { SyncAccountGroup } from "./SyncAccountGroup";
 import { useMaintenanceSurface } from "../hooks/useMaintenanceSurface";
+import { DataLocationGroup } from "./DataLocationGroup";
 
 const log = createLogger("data-sync");
 
@@ -64,23 +63,7 @@ export function DataSyncPanel() {
     >
       <SyncAccountGroup />
 
-      <SettingsGroup title={t("dataSync.storage")}>
-        <SettingsRow
-          borderless
-          title={t("dataSync.dataLocation.title")}
-          description={
-            isTauri() ? t("dataSync.dataLocation.descTauri") : t("dataSync.dataLocation.descWeb")
-          }
-          control={
-            <span className="flex items-center gap-2">
-              <PendingBadge>{t("dataSync.desktopBadge")}</PendingBadge>
-              <Button variant="outline" size="sm" disabled>
-                {t("dataSync.reveal")}
-              </Button>
-            </span>
-          }
-        />
-      </SettingsGroup>
+      <DataLocationGroup />
 
       <SettingsGroup
         title={t("dataSync.backup.title")}

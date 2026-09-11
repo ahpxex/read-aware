@@ -37,6 +37,7 @@ const definitions = [
   ["宿主 实装", "存在产品调用链。只表示本地源码接线，不承诺本次 Tauri/生产验证。"],
   ["宿主 部分 / 引擎 / 占位 / 待建 / 非桌面", "分别是语义缺环、仅引擎实现、声明/禁用 UI/无投影、当前无通用实现、排除出桌面产品。"],
   ["Agent/插件 接通", "当前正式入口覆盖该行明确限定的操作，且有宿主调用链。授权、数据与配置仍需满足。"],
+  ["接通（待 E2E）", "实现与接线关闭条件已满足；第三段真实插件轮次的原生证据尚未完成，不能当成已验收。"],
   ["部分", "有入口或有替代组合，但该行指出的参数、行为、生命周期或效果缺失。不是 0.5 个功能。"],
   ["自动 / 内部", "自动是运行时实际调用而非模型工具；内部是端口/函数/底层事件存在但未发现同等产品入口。"],
   ["扩展", "只在对应插件已安装且启用、scope 匹配时，由插件工具/检索贡献进入模型。"],
@@ -68,7 +69,7 @@ const resources = `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fo
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1" integrity="sha384-OT3qnPBOZ0Z1BVC2R6WSI4cjBlIoSMeeZAUY8gZqaP1TgAJHbuo2gIM6KzQ8/viI" crossorigin="anonymous"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/lucide@0.561.0/dist/umd/lucide.min.js" integrity="sha384-YS1lRbKthC7/Oeyl8nPDTO0vZvejeFLnQJuye5QwYDdJD/2toIxMci9LbHst3SGQ" crossorigin="anonymous"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.16.0/dist/mermaid.min.js" integrity="sha384-T/0lMUdJpd2S1ZHtRiofG3htU3xPCrFVeAQ1UUE2TJwlEJSV5NUwn30kP28n238E" crossorigin="anonymous"></script>`;
-const actorHtml = (a: Actor) => `<b class="state s-${a.state}">${a.state}</b><p>${escape(a.via)}</p><details class="ep"><summary>目标边界</summary><p class="ep-body">${escape(a.target)}</p></details>`;
+const actorHtml = (a: Actor) => `<b class="state s-${a.state === "接通（待 E2E）" ? "部分" : a.state}">${a.state}</b><p>${escape(a.via)}</p><details class="ep"><summary>目标边界</summary><p class="ep-body">${escape(a.target)}</p></details>`;
 const sourceHtml = (keys:string[]) => keys.map(key=>`<a href="../${sources[key]}">${key}</a>`).join(" · ");
 const options = (values:string[]) => `<option value="">全部</option>${values.map(v=>`<option>${escape(v)}</option>`).join("")}`;
 const htmlRows = groups.flatMap(group=>group.rows.map(row=>`<tr id="${row.id}" data-group="${escape(group.name)}" data-host="${row.host}" data-agent="${row.agent.state}" data-plugin="${row.plugin.state}" data-search-section="${escape([row.id,row.name,group.name,row.agent.via,row.plugin.via,row.consumers,row.gap,row.agent.target,row.plugin.target,...row.baseline].join(" ").toLowerCase())}"><th scope="row"><a href="#${row.id}">${row.id}</a><br><span class="state s-${row.host}">${row.host}</span></th><td><strong>${escape(row.name)}</strong><p class="muted">${escape(group.name)}</p></td><td>${actorHtml(row.agent)}</td><td>${actorHtml(row.plugin)}</td><td>${escape(row.gap)}<details class="ep"><summary>消费者与来源</summary><p class="ep-body">${escape(row.consumers)}<br>${sourceHtml(row.sources)}<br>旧基线：${row.baseline.join(", ") || "新增盘点"}</p></details></td></tr>`));

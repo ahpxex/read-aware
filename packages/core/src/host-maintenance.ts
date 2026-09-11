@@ -7,7 +7,7 @@ export type HostUpdateState = {
   progress: number | null;
   errorStage: "check" | "install" | null;
 };
-export const HOST_MAINTENANCE_SURFACES = ["updates", "diagnostics", "plugins", "backup-import", "backup-export", "delete-data", "ai-connection"] as const;
+export const HOST_MAINTENANCE_SURFACES = ["updates", "diagnostics", "plugins", "backup-import", "backup-export", "delete-data", "ai-connection", "data-location"] as const;
 export type HostMaintenanceSurface = typeof HOST_MAINTENANCE_SURFACES[number];
 export type BackupAction = "import" | "export";
 export type BackupReceipt = { action: BackupAction; status: "imported" | "exported" | "cancelled" };

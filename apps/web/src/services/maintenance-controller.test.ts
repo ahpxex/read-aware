@@ -40,7 +40,7 @@ test("maintenance observation is initial, coalesced, serial and released with no
 test("all management intents route to their real section and reveal only the registered entry", async () => {
   const f = fixture(), calls: unknown[] = [], signal = new AbortController().signal;
   f.adapter.navigate = async (section, received) => { calls.push([section, received]); };
-  const expected = ["about", "about", "plugins", "dataSync", "dataSync", "dataSync", "ai"];
+  const expected = ["about", "about", "plugins", "dataSync", "dataSync", "dataSync", "ai", "dataSync"];
   for (const [index, surface] of HOST_MAINTENANCE_SURFACES.entries()) {
     const off = f.service.bindSurface(surface, () => { calls.push(surface); });
     expect(await f.service.openSettings(surface, signal)).toEqual({ status: "opened", surface });

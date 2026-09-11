@@ -352,7 +352,9 @@
     "dataLocation": {
       "title": "資料位置",
       "descTauri": "儲存在本裝置的 ReadAware 應用程式資料夾中。",
-      "descWeb": "儲存在此瀏覽器中。桌面應用程式會將資料存放於你可掌控的本機資料夾。"
+      "descWeb": "資料目錄僅在桌面應用程式中可用。",
+      "loadFailed": "無法讀取資料目錄。",
+      "revealFailed": "無法在檔案管理員中顯示資料目錄。"
     },
     "desktopBadge": "桌面版",
     "reveal": "顯示位置",

@@ -2,6 +2,18 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：第一段 OPS10 数据目录显示与 Reveal 接通
+
+[进度/设计] 上轮 de94f69f 完成迁移、验证和推送，属于 progress。本组继续第一段，不做第二段插件消费或启动桌面。复用现有 maintenance 设置定位协议：两端可进入数据目录设置，路径只给原生 UI；用户点击 Reveal 才打开系统文件管理器。不为一个目录入口增加模型工具、权限、可任意传入的路径、配额或任务系统。
+
+[实现] maintenance1.4 增加 data-location surface，双域 open_maintenance_settings 与插件 openSettings 共用挂载/定位/退休边界，只返回 opened/surface。新增 DataLocationGroup/useDataLocation/nativeDataLocation，删除 disabled Reveal 和 PendingBadge 占位。Tauri 公开 appDataDir 与 storage::init_db 使用同一 app_data_dir 解析器，实际 Reveal 使用现有 opener；无新原生权限或 Rust 命令。读取失败不当空目录，InlineError 只对可重试错误显示重试；打开失败 destructive toast，原始原因只进日志。八语言完善错误/不支持文案并去掉浏览器存储的错误保证，长路径可折行。
+
+[验证] 26 项针对性测试/172 断言通过，覆盖实际公共 JS API 到受控 native IPC、路径选择、预取消/等待取消、空路径/读失败/打开失败、StrictMode 真实组件挂载、双击排重、错误恢复/旧挂载迟到结果、零权限插件只定位不拿路径和退休拒绝、Agent 同源入口、库存与模型归属。web 类型检查（含已迁移桌面脚本）及 plugin-types 类型通过。Agent 全包类型检查被既有未提交 interaction-tools.test.ts:79 的 ToolCall 缺 type 阻断；HEAD 中没有该新增测试，本组未改它，不称全包通过。React 检查确认 UI/异步 hook/原生适配职责分开，卸载取消与长路径布局已覆盖代码/挂载检查，视觉未验。
+
+[状态/第三段] OPS10 由占位/未接改为接通（待 E2E），实现关闭条件写在该行。新建 host-capability-stage-three.md 逐条列出真实隔离目录、文件管理器、失败/并发/撤权及 packaged 插件轮次所需证据；现有 JSDOM 和受控 IPC 不代替它。只更新矩阵事实源，HTML 生成/视觉仍按每日一次集中执行，本组未运行。验证后单独提交并推送，Agent 表单未完成改动不混入。
+
+[燃尽] 剩余部分/未接行数 87；未覆盖行数 240（第二段行→插件/流程尚未建立）；未验收插件数 15（包含 9 个组合桌面插件，按完整映射轮次计，旧局部证据不抵扣）。
+
 ## 2026-09-11：按三段目标恢复执行，验收代码迁出产品目录
 
 [顺序] 重新读取本轮附件的完整三段要求；以现有源码和 fetch 后的远端为准，不沿用历史账本中交错做插件/桌面、长期不推送的节奏。当前处于第一段：实现与接线；第二段行级组合覆盖和第三段真实 Tauri 验收尚未开始按新完成定义关闭。已有未提交 Agent 表单单元保留，不混入本组提交。

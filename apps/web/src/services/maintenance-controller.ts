@@ -4,7 +4,7 @@ export function maintenanceSection(surface: HostMaintenanceSurface): WorkspaceSe
   if (!HOST_MAINTENANCE_SURFACES.includes(surface)) throw new AppError("ui/invalid-target", "Unknown maintenance surface");
   if (surface === "plugins") return "plugins";
   if (surface === "ai-connection") return "ai";
-  if (surface === "backup-import" || surface === "backup-export" || surface === "delete-data") return "dataSync";
+  if (surface === "backup-import" || surface === "backup-export" || surface === "delete-data" || surface === "data-location") return "dataSync";
   return "about";
 }
 

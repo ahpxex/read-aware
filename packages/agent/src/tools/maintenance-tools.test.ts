@@ -42,7 +42,7 @@ test("Agent maintenance reads locally by default, propagates check failures and 
   const result = await call("open_maintenance_settings", { surface: "diagnostics" });
   expect(JSON.stringify(result)).toContain("opened"); expect(JSON.stringify(result)).not.toContain("completed");
   expect(calls).toEqual([signal, ["diagnostics", signal]]);
-  for (const surface of ["plugins", "backup-import", "backup-export", "delete-data"]) {
+  for (const surface of ["plugins", "backup-import", "backup-export", "delete-data", "data-location"]) {
     const result = await call("open_maintenance_settings", { surface });
     expect(JSON.stringify(result)).toContain("opened");
     expect(calls[calls.length - 1]).toEqual([surface, signal]);

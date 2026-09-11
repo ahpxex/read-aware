@@ -356,7 +356,9 @@
     "dataLocation": {
       "title": "Data location",
       "descTauri": "Stored in the ReadAware application data folder on this device.",
-      "descWeb": "Stored in this browser. The desktop app keeps data in a local folder you control."
+      "descWeb": "The data directory is available in the desktop app.",
+      "loadFailed": "Could not read the data directory.",
+      "revealFailed": "Could not reveal the data directory."
     },
     "desktopBadge": "Desktop",
     "reveal": "Reveal",

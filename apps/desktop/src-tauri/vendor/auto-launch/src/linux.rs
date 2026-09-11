@@ -68,8 +68,12 @@ impl AutoLaunch {
     /// Check whether the AutoLaunch setting is enabled
     pub fn is_enabled(&self) -> Result<bool> {
         match fs::read_to_string(self.get_file()) {
-            Ok(data) => Ok(data.lines().any(|line| line == format!("Exec={}", crate::command_line::desktop(&self.app_path, &self.args)))
-                && !data.lines().any(|line| line == "Hidden=true" || line == "X-GNOME-Autostart-enabled=false")),
+            Ok(data) => {
+                if !data.lines().any(|line| line.strip_prefix("Exec=").is_some_and(|value| !value.trim().is_empty())) {
+                    return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Missing startup command").into());
+                }
+                Ok(!data.lines().any(|line| line == "Hidden=true" || line == "X-GNOME-Autostart-enabled=false"))
+            }
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
             Err(error) => Err(error.into()),
         }

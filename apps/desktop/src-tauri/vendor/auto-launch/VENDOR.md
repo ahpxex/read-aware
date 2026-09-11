@@ -9,10 +9,12 @@ Cargo resolves this audited source through the root crate's patch.crates-io.
 
 ReadAware changes:
 - macOS LaunchAgent uses the plist serializer rather than raw XML interpolation;
-  complete writes; reads parse and match the owned registration, propagating errors.
+  complete writes; reads parse the identifier-owned registration, propagating errors.
 - Windows quotes the executable and each argument, including trailing backslashes.
 - Linux quotes Exec tokens with both Desktop Entry escape layers and percent
   escaping, writes all bytes, uses XDG config dir, and checks command/disabled flags.
+- Existing registrations remain visible after an installation move or added OS
+  metadata; differing executable paths must not prevent disabling the old entry.
 - Parent directories are created recursively on macOS/Linux.
 - Pure unit tests cover serialization. Upstream integration tests were not copied:
   they operate on actual startup entries. No startup entries are written by our tests.

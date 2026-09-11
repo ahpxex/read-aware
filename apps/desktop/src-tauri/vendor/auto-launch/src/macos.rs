@@ -144,9 +144,7 @@ impl AutoLaunch {
             match fs::read(self.get_file()) {
                 Ok(data) => {
                     let value = plist::Value::from_reader(std::io::Cursor::new(data)).map_err(std::io::Error::other)?;
-                    let mut args = vec![self.app_path.clone()];
-                    args.extend_from_slice(&self.args);
-                    Ok(value == launch_agent(&self.app_name, args))
+                    registered(&value, &self.app_name)
                 }
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
                 Err(error) => Err(error.into()),
@@ -178,6 +176,19 @@ fn launch_agent(label: &str, args: Vec<String>) -> plist::Value {
     plist::Value::Dictionary(dictionary)
 }
 
+fn registered(value: &plist::Value, label: &str) -> Result<bool> {
+    let invalid = || std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid owned startup registration");
+    let fields = value.as_dictionary().ok_or_else(invalid)?;
+    let args = fields.get("ProgramArguments").and_then(plist::Value::as_array).ok_or_else(invalid)?;
+    if fields.get("Label").and_then(plist::Value::as_string) != Some(label)
+        || args.is_empty() || args.iter().any(|value| value.as_string().is_none()) {
+        return Err(invalid().into());
+    }
+    // Moving/updating the installation must not make an existing login entry
+    // invisible: it still needs to be switchable off by this application ID.
+    fields.get("RunAtLoad").and_then(plist::Value::as_boolean).ok_or_else(|| invalid().into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -191,6 +202,16 @@ mod tests {
         let decoded = plist::Value::from_reader(std::io::Cursor::new(bytes)).unwrap();
         assert_eq!(decoded, value);
         assert_eq!(decoded.as_dictionary().unwrap()["ProgramArguments"], plist::Value::Array(args.into_iter().map(plist::Value::String).collect()));
+    }
+
+    #[test]
+    fn registration_survives_install_moves_and_unrelated_metadata() {
+        let mut value = launch_agent("com.readaware.test", vec!["/old/ReadAware.app/Contents/MacOS/app".into()]);
+        value.as_dictionary_mut().unwrap().insert("WorkingDirectory".into(), "/tmp".into());
+        assert!(registered(&value, "com.readaware.test").unwrap());
+        assert!(registered(&value, "another.app").is_err());
+        value.as_dictionary_mut().unwrap().insert("RunAtLoad".into(), false.into());
+        assert!(!registered(&value, "com.readaware.test").unwrap());
     }
 }
 

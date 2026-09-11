@@ -82,8 +82,10 @@ impl AutoLaunch {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
             Err(error) => return Err(error.into()),
         };
-        Ok(command == crate::command_line::windows(&self.app_path, &self.args)
-            && self.task_manager_enabled(hkcu)?)
+        if command.trim().is_empty() {
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Empty startup command").into());
+        }
+        self.task_manager_enabled(hkcu)
     }
 
     fn task_manager_enabled(&self, hkcu: RegKey) -> Result<bool> {

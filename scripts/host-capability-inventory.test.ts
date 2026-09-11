@@ -54,6 +54,12 @@ test("profile transaction commands are native foundations, not new public actor 
   expect(native.find(item => item.name === "storage::profile_restore")?.rows).toContain("OPS11");
 });
 
+test("entity registry native foundations have explicit MEM08 mappings", () => {
+  const native = collectInventory().filter(item => item.family === "Native command" && item.name.startsWith("storage::entity_"));
+  expect(native.map(item => item.name).sort()).toEqual(["storage::entity_commit", "storage::entity_query"]);
+  expect(native.every(item => item.rows.length === 1 && item.rows[0] === "MEM08")).toBe(true);
+});
+
 test("memory query and consumer inventories stay distinct from bundled or model tools", () => {
   const inventory = collectInventory();
   expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.queries.search")?.rows).toEqual(["MEM01"]);

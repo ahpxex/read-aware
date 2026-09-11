@@ -1,0 +1,392 @@
+{
+  "date": "2026-09-11",
+  "sourceCommit": "39e44823",
+  "environment": {
+    "product": "ReadAware macOS debug Tauri",
+    "profile": "com.readaware.app.capability-e2e",
+    "frontendPort": 5184,
+    "bridgePort": 9224,
+    "plugins": {
+      "workspace-profiles": "0.6.0",
+      "reading-goals": "0.4.0"
+    },
+    "viewports": [
+      [
+        900,
+        750
+      ],
+      [
+        600,
+        750
+      ]
+    ],
+    "foreground": true
+  },
+  "method": "Compiled RepoDist plugin Workers, production Agent tool adapter and ChatInteractionPrompt mounted by the isolated fixture. DOM automation clicks the actual confirmation and plugin controls. No LLM invocation or persistent chat thread.",
+  "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-profile-goal-composition.tsx",
+  "observed": {
+    "appliedLayout": "grid",
+    "approvals": {
+      "declinedClear": {
+        "answer": {
+          "optionId": "decline",
+          "text": "Declined"
+        },
+        "status": "done",
+        "value": {
+          "executed": false,
+          "reason": "declined"
+        }
+      },
+      "declinedDelete": {
+        "answer": {
+          "optionId": "decline",
+          "text": "Declined"
+        },
+        "status": "done",
+        "value": {
+          "executed": false,
+          "reason": "declined"
+        }
+      },
+      "deleted": {
+        "answer": {
+          "optionId": "approve",
+          "text": "Approved"
+        },
+        "status": "done",
+        "value": {
+          "id": "5dc6c489-c8a2-44e8-b53f-11f105e49f9f",
+          "status": "deleted"
+        }
+      },
+      "goalSaved": {
+        "answer": {
+          "optionId": "approve",
+          "text": "Approved"
+        },
+        "status": "done",
+        "value": {
+          "bookId": "36edfcd1-9073-4a93-8174-1fbdbf1c590a",
+          "status": "saved"
+        }
+      },
+      "saved": {
+        "answer": {
+          "optionId": "approve",
+          "text": "Approved"
+        },
+        "status": "done",
+        "value": {
+          "id": "5dc6c489-c8a2-44e8-b53f-11f105e49f9f",
+          "name": "Composition b742a913 workspace",
+          "status": "saved"
+        }
+      },
+      "staleSave": {
+        "answer": {
+          "optionId": "approve",
+          "text": "Approved"
+        },
+        "status": "done",
+        "value": {
+          "status": "stale-workspace"
+        }
+      }
+    },
+    "contexts": {
+      "cleared": {
+        "candidates": [],
+        "context": []
+      },
+      "legacy": {
+        "candidates": [],
+        "context": [
+          {
+            "content": "Composition legacy goal",
+            "source": "Reading Goals (reading-goals/reading-goal)",
+            "title": "Reading Goals"
+          }
+        ]
+      },
+      "updated": {
+        "candidates": [
+          {
+            "content": "Composition approved Agent goal",
+            "kind": "preference",
+            "scope": "book:36edfcd1-9073-4a93-8174-1fbdbf1c590a"
+          }
+        ],
+        "context": [
+          {
+            "content": "Composition approved Agent goal",
+            "source": "Reading Goals (reading-goals/reading-goal)",
+            "title": "Reading Goals"
+          }
+        ]
+      }
+    },
+    "current": {
+      "changes": [
+        {
+          "path": "shelf.layout",
+          "target": {
+            "kind": "global"
+          },
+          "value": "grid"
+        },
+        {
+          "path": "shelf.group",
+          "target": {
+            "kind": "global"
+          },
+          "value": "none"
+        },
+        {
+          "path": "shelf.sort",
+          "target": {
+            "kind": "global"
+          },
+          "value": "recent"
+        },
+        {
+          "path": "appearance.theme",
+          "target": {
+            "kind": "global"
+          },
+          "value": "system"
+        },
+        {
+          "path": "appearance.motion",
+          "target": {
+            "kind": "global"
+          },
+          "value": "system"
+        },
+        {
+          "path": "reading.fontSize",
+          "target": {
+            "kind": "global"
+          },
+          "value": "medium"
+        },
+        {
+          "path": "reading.lineSpacing",
+          "target": {
+            "kind": "global"
+          },
+          "value": "comfortable"
+        },
+        {
+          "path": "reading.fontFamily",
+          "target": {
+            "kind": "global"
+          },
+          "value": "curated:inter"
+        },
+        {
+          "path": "appearance.contentTypography.fontFamily",
+          "target": {
+            "kind": "global"
+          },
+          "value": null
+        },
+        {
+          "path": "appearance.contentTypography.followReader",
+          "target": {
+            "kind": "global"
+          },
+          "value": true
+        }
+      ],
+      "workspaceToken": "wp1:e2f7a47264786a3483a72561c726bcb9bc858fe3cda56267c5579d6765fee8cb"
+    },
+    "declinedDeleteProfileCount": 1,
+    "goalAfterStaleUI": {
+      "anchor": null,
+      "bookId": "36edfcd1-9073-4a93-8174-1fbdbf1c590a",
+      "id": "36edfcd1-9073-4a93-8174-1fbdbf1c590a",
+      "json": "{\"version\":1,\"goal\":{\"text\":\"Composition approved Agent goal\",\"suggestMemory\":true}}",
+      "revision": "1a2e07246ea18358e6992f59671d83e9",
+      "updatedAt": "2026-09-11T00:19:27.181Z"
+    },
+    "legacyGoal": {
+      "bookId": "36edfcd1-9073-4a93-8174-1fbdbf1c590a",
+      "goal": {
+        "suggestMemory": false,
+        "text": "Composition legacy goal"
+      },
+      "revision": "21baab132083204688ab5e58aae80f9d"
+    },
+    "profile": {
+      "id": "5dc6c489-c8a2-44e8-b53f-11f105e49f9f",
+      "profile": {
+        "changes": [
+          {
+            "path": "shelf.layout",
+            "target": {
+              "kind": "global"
+            },
+            "value": "grid"
+          },
+          {
+            "path": "shelf.group",
+            "target": {
+              "kind": "global"
+            },
+            "value": "none"
+          },
+          {
+            "path": "shelf.sort",
+            "target": {
+              "kind": "global"
+            },
+            "value": "recent"
+          },
+          {
+            "path": "appearance.theme",
+            "target": {
+              "kind": "global"
+            },
+            "value": "system"
+          },
+          {
+            "path": "appearance.motion",
+            "target": {
+              "kind": "global"
+            },
+            "value": "system"
+          },
+          {
+            "path": "reading.fontSize",
+            "target": {
+              "kind": "global"
+            },
+            "value": "medium"
+          },
+          {
+            "path": "reading.lineSpacing",
+            "target": {
+              "kind": "global"
+            },
+            "value": "comfortable"
+          },
+          {
+            "path": "reading.fontFamily",
+            "target": {
+              "kind": "global"
+            },
+            "value": "curated:inter"
+          },
+          {
+            "path": "appearance.contentTypography.fontFamily",
+            "target": {
+              "kind": "global"
+            },
+            "value": null
+          },
+          {
+            "path": "appearance.contentTypography.followReader",
+            "target": {
+              "kind": "global"
+            },
+            "value": true
+          }
+        ],
+        "name": "Composition b742a913 workspace",
+        "version": 2
+      },
+      "revision": "fe046be3337cd29a25d67cff9dd02024",
+      "status": "ready"
+    },
+    "restartedGoal": {
+      "bookId": "36edfcd1-9073-4a93-8174-1fbdbf1c590a",
+      "goal": null,
+      "revision": "051b8f10c9b325d3f0c7b804205fff89"
+    },
+    "staleProfileUI": {
+      "layout": "list",
+      "profiles": 0
+    },
+    "staleSaveProfileCount": 1
+  },
+  "ui": [
+    {
+      "surface": "workspace-profiles",
+      "action": "Apply a saved grid preset after changing the host shelf to list",
+      "result": "Dialog closed; actual shelf returned to grid."
+    },
+    {
+      "surface": "workspace-profiles",
+      "action": "Keep detail open, approve Agent deletion, then click old Apply",
+      "result": "The profile changed. Refresh before trying again. Shelf remained list."
+    },
+    {
+      "surface": "reading-goals",
+      "action": "Type a draft, approve Agent replacement, then submit the old form",
+      "result": "The goal changed. Refresh before trying again. SQLite retained the approved Agent goal."
+    },
+    {
+      "surface": "reading-goals",
+      "action": "Submit Clear goal without checking confirmation",
+      "result": "Confirm clearing first. Revision unchanged."
+    },
+    {
+      "surface": "reading-goals",
+      "action": "Check confirmation and clear",
+      "result": "Persisted null tombstone; subsequent context and memory-candidate queries empty."
+    }
+  ],
+  "sqliteChecks": {
+    "mode": "sqlite3 -readonly",
+    "goalRevisions": [
+      "21baab132083204688ab5e58aae80f9d",
+      "1a2e07246ea18358e6992f59671d83e9",
+      "051b8f10c9b325d3f0c7b804205fff89"
+    ],
+    "finalGoal": {
+      "version": 1,
+      "goal": null
+    },
+    "workspacePreset": {
+      "id": "5dc6c489-c8a2-44e8-b53f-11f105e49f9f",
+      "revision": "fe046be3337cd29a25d67cff9dd02024",
+      "changes": 10
+    }
+  },
+  "screenshots": [
+    "profile-goal-workspace-conflict-2026-09-11.png",
+    "profile-goal-reading-conflict-2026-09-11.png"
+  ],
+  "cleanup": {
+    "ownedBooks": 0,
+    "ownedDocuments": 0,
+    "ownedAnnotations": 0,
+    "ownedReadingSessionPending": 0,
+    "legacyGoal": null,
+    "bookFiles": "released",
+    "allTenSettings": "restored and queried",
+    "pluginEnablement": "restored",
+    "window": [
+      900,
+      750
+    ],
+    "ownedAppPid": 66671,
+    "ownedApp": "stopped",
+    "driver9224": "stopped",
+    "frontend5184": "stopped; exec exit 0",
+    "ports5184And9224": "no listeners",
+    "original9223": "not operated"
+  },
+  "limitations": [
+    "Legacy KV was seeded on the owned test book before Worker activation; this is not an installer/permission upgrade test.",
+    "Only the Reading Goals Worker was restarted, not the application process.",
+    "Agent approval UI was mounted by the fixture, not a complete model conversation in the main chat surface.",
+    "No accepted-memory write, real inference, cross-device sync, per-book setting override, full pagination, all locales, keyboard/focus or packaged cross-platform proof.",
+    "Agent apply/approved clear and UI profile creation/deletion were not exercised in this composition; UI apply, Agent save/delete, Agent set/declined clear and UI confirmed clear were."
+  ],
+  "validation": {
+    "webTypecheck": "passed",
+    "nativeComposition": "passed"
+  }
+}

@@ -1651,8 +1651,16 @@ export type PluginDomains = {
   reading?: PluginReadingDomain;
   annotations?: PluginAnnotationsDomain;
   conversations?: PluginConversationsDomain;
-  /** Memory 2.2. Graph generation additionally requires service:llm; handles belong to this activation. */
+  /** Memory 2.3. Graph generation additionally requires service:llm; handles belong to this activation. */
   memory?: { queries: {
+    /** Memory 2.3: inspect the generated summary and provenance, separately from curated profile().
+     * Summary pages count UTF-16 units (4000 default, 16000 max); provenance pages count rows
+     * (25 default, 100 max; historical ID sizes are unbounded). Pin every page kind to pctx1.
+     * Stale text is inspectable, never current context. Invalid blocks expose no content.
+     * Current means source-consistent, not semantic verification or completed consolidation.
+     * entityEvidence IDs include proposed no-ops, not proof of emitted events. Read grant;
+     * no source text, transcripts, raw traits, registry writes or automatic inference. */
+    profileContext(query?: import("@read-aware/core").ProfileInspectionQuery, options?: PluginCallOptions): Promise<import("@read-aware/core").ProfileInspectionPage>;
     /** Global explicit identities, not book-digest characters. Row-bounded, revision-pinned pages.
      * Memory 2.2 adds canonicalDefinition from the same snapshot. Historical field sizes are not bounded. Aborted/retired callers receive no late page. */
     entities(query?: import("@read-aware/core").EntityQuery, options?: PluginCallOptions): Promise<import("@read-aware/core").EntityPage>;

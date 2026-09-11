@@ -1,6 +1,6 @@
 import { AppError, errorCode, normalizeMemoryQuery, validateMemoryId, type MemoryObservation, type MemoryObservationQuery, type MemoryObservationResult } from "@read-aware/core";
 import { normalizeBookGraphQuery } from "@read-aware/agent";
-import { normalizeUserProfileQuery, normalizeMemoryPageQuery } from "@read-aware/core";
+import { normalizeUserProfileQuery, normalizeMemoryPageQuery, normalizeProfileInspectionQuery } from "@read-aware/core";
 
 export function normalizeMemoryObservation(input: MemoryObservationQuery): MemoryObservationQuery {
   const fail = (): never => { throw new AppError("memory/invalid-query", "Invalid memory observation query"); };
@@ -12,6 +12,10 @@ export function normalizeMemoryObservation(input: MemoryObservationQuery): Memor
   if (input.kind === "profile") {
     if (Object.keys(input).some(key => !["kind", "query"].includes(key))) return fail();
     return { kind: input.kind, query: normalizeUserProfileQuery(input.query) };
+  }
+  if (input.kind === "profileContext") {
+    if (Object.keys(input).some(key => !["kind", "query"].includes(key))) return fail();
+    return { kind: input.kind, query: normalizeProfileInspectionQuery(input.query) };
   }
   const keys = input.kind === "search" ? ["kind", "query"] : input.kind === "inspect" ? ["kind", "memoryId"] : input.kind === "graphTask" ? ["kind", "bookId", "taskId"] : input.kind === "classification" || input.kind === "graphTasks" ? ["kind", "bookId"] : ["kind", "bookId", "query"];
   if (Object.keys(input).some(key => !keys.includes(key))) return fail();

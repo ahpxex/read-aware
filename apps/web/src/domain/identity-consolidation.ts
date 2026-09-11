@@ -1,4 +1,4 @@
-import { identityProfileContext, normalizeIdentityConsolidationPlan,
+import { identityProfileContext, normalizeIdentityConsolidationPlan, normalizeProfileInspectionQuery, profileInspectionPage, type ProfileInspectionQuery,
   type IdentityConsolidationPort, type IdentityConsolidationReceipt, type IdentityConsolidationSnapshot, type ProfileContextSnapshot } from "@read-aware/core";
 import { invoke } from "../platform/ipc";
 import { broadcastDomainEventDrafts, mintEventRows, type DomainEventDraft } from "../platform/domain-events";
@@ -46,19 +46,31 @@ export function createIdentityConsolidationService(host: IdentityHost) {
     if (changed.length) host.broadcast(changed);
     return receipt;
   };
-  return { snapshot, commit, context: async (signal?: AbortSignal) => {
+  const readContextSnapshot = async (signal?: AbortSignal) => {
     signal?.throwIfAborted();
     await host.initialize();
     signal?.throwIfAborted();
     const observed = await host.invoke<ProfileContextSnapshot>("profile_context");
     signal?.throwIfAborted();
+    return observed;
+  };
+  const checkContext = (observed: ProfileContextSnapshot) => {
     const result = identityProfileContext(observed);
     if (result.derivedStatus === "invalid") host.warn("Invalid consolidated profile omitted from context");
     return result;
-  } };
+  };
+  return { snapshot, commit, context: async (signal?: AbortSignal) => checkContext(await readContextSnapshot(signal)),
+    inspect: async (input?: ProfileInspectionQuery, signal?: AbortSignal) => {
+      const query = normalizeProfileInspectionQuery(input);
+      const result = await profileInspectionPage(await readContextSnapshot(signal), query);
+      signal?.throwIfAborted();
+      if (result.derivedStatus === "invalid") host.warn("Invalid consolidated profile omitted from inspection");
+      return result;
+    } };
 }
 
 const service = createIdentityConsolidationService({ invoke, mint: mintEventRows, broadcast: broadcastDomainEventDrafts,
   initialize: initializeUserProfile, warn: message => createLogger("identity-consolidation").warn(message) });
 export const identityConsolidationPort: IdentityConsolidationPort = { snapshot: service.snapshot, commit: service.commit };
 export const readProfileContext = service.context;
+export const inspectProfileContext = service.inspect;

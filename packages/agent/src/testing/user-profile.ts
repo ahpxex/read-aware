@@ -1,4 +1,4 @@
-import { AppError, normalizeUserProfileChange, userProfilePage, userProfileRevision } from "@read-aware/core";
+import { AppError, normalizeUserProfileChange, userProfilePage, userProfileRevision, normalizeProfileInspectionQuery, profileInspectionPage } from "@read-aware/core";
 import type { ProfilePort } from "../ports";
 
 export function createProfileFixture(state: { summary: string | undefined }): ProfilePort {
@@ -20,6 +20,13 @@ export function createProfileFixture(state: { summary: string | undefined }): Pr
   };
   return {
     getProfileContext: async () => ({ curated: state.summary ?? null, consolidated: null, derivedStatus: "absent" }),
+    inspectProfileContext: async (input, signal) => {
+      const query = normalizeProfileInspectionQuery(input);
+      signal?.throwIfAborted();
+      const page = await profileInspectionPage({ profile: await snapshot(), derived: null, sourceConditions: [] }, query);
+      signal?.throwIfAborted();
+      return page;
+    },
     updateProfile,
     getProfileSummary: async () => state.summary,
     readProfile: async (query, signal) => {

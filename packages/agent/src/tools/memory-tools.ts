@@ -14,6 +14,7 @@ import { runMemoryBuild } from "../memory/build-policy";
 import { buildMemoryManagementTool } from "./memory-management-tool";
 import { buildBookClassificationTool } from "./book-classification-tool";
 import { buildEntityTools } from "./entity-tools";
+import { buildProfileInspectionTool } from "./profile-inspection-tool";
 
 /** 线程默认可见的 scope 集合（doc §3 的检索默认值）。 */
 export function visibleScopes(scope: ThreadScope): MemoryScope[] {
@@ -103,5 +104,5 @@ export function buildMemoryTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
     },
   };
 
-  return [searchMemory, remember, profile, buildProfileWriteTool(scope, deps), buildMemoryManagementTool(scope, deps), ...buildEntityTools(scope, deps), buildBookClassificationTool(scope, deps)];
+  return [searchMemory, remember, profile, buildProfileInspectionTool(deps), buildProfileWriteTool(scope, deps), buildMemoryManagementTool(scope, deps), ...buildEntityTools(scope, deps), buildBookClassificationTool(scope, deps)];
 }

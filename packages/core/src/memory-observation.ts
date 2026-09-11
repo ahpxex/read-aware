@@ -5,10 +5,12 @@ import type { MemoryQuery, MemoryRecord } from "./memory-query";
 import type { BookGraphTaskSnapshot } from "./book-graph-task";
 import type { UserProfilePage, UserProfileQuery } from "./user-profile";
 import type { MemoryPage, MemoryPageQuery } from "./memory-page";
+import type { ProfileInspectionPage, ProfileInspectionQuery } from "./profile-inspection";
 
 /** Query filters do not expand the actor's memory grant or spoiler boundary. */
 export type MemoryObservationQuery =
   | { kind: "profile"; query?: UserProfileQuery }
+  | { kind: "profileContext"; query?: ProfileInspectionQuery }
   | { kind: "search"; query: MemoryQuery }
   | { kind: "page"; query: MemoryPageQuery }
   | { kind: "inspect"; memoryId: string }
@@ -18,6 +20,7 @@ export type MemoryObservationQuery =
   | { kind: "bookGraph"; bookId: string; query?: BookGraphQuery };
 export type MemoryObservationResult =
   | { kind: "profile"; profile: UserProfilePage }
+  | { kind: "profileContext"; page: ProfileInspectionPage }
   | { kind: "search"; memories: MemoryRecord[] }
   | { kind: "page"; page: MemoryPage }
   | { kind: "inspect"; snapshot: MemorySnapshot | null }

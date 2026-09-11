@@ -136,6 +136,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   delete_annotation: { annotationId: "hl-1" },
   search_memory: {},
   get_user_profile: {},
+  inspect_user_profile: {},
   query_entities: { kind: "identities" },
   manage_entity: { op: "resolve", entityId: "surface-entity", kind: "person", canonicalName: "Alice" },
   update_user_profile: { summary: "Prefers concise explanations." },

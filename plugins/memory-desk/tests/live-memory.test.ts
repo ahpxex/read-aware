@@ -3,8 +3,28 @@ import type { MemoryObservation, MemoryObservationQuery, MemorySnapshot, MemoryR
 import { memories } from "../src/views";
 import { memoryDetail } from "../src/management";
 import { graphView } from "../src/graph";
+import { liveMemoryView } from "../src/live-memory";
 
 const page = (items: MemoryRecord[]) => ({ items, total: items.length, offset: 0, nextOffset: null, revision: `mpg1:${"a".repeat(64)}` });
+
+test("shared observation adapter routes profileContext to its matching query, never the graph fallback", async () => {
+  const f = fixture(), queries: unknown[] = [];
+  f.ctx.domains.memory!.queries.profileContext = async query => {
+    queries.push(query);
+    return { kind: "summary", text: "Inferred", totalLength: 8, offset: 0, nextOffset: null,
+      revision: `pctx1:${"a".repeat(64)}`, curatedRevision: `profile2:${"a".repeat(64)}`, curatedExists: true, derivedStatus: "current" };
+  };
+  const query = { kind: "profileContext" as const, query: { kind: "summary" as const, limit: 100 } };
+  const view = await liveMemoryView(f.ctx, query, "Test", result => {
+    if (result.kind !== "profileContext" || result.page.kind !== "summary") throw Error("Unexpected result");
+    return { kind: "detail", title: "Test", content: [{ kind: "text", text: result.page.text ?? "" }] };
+  });
+  expect(view).toMatchObject({ content: [{ kind: "text", text: "Inferred" }] });
+  expect(queries).toEqual([query.query]);
+  const subscription = await view.live!.subscribe({ id: "channel" });
+  expect(f.requests).toEqual([query]); subscription.dispose();
+  expect(f.writes).toHaveLength(0);
+});
 
 function fixture() {
   let handler!: (event: MemoryObservation) => unknown, stopped = 0;

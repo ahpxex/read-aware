@@ -14,6 +14,7 @@ import { createLogger } from "../platform/logger";
 import { createBookGraphTasks } from "./book-graph-tasks";
 import { changeUserProfile } from "./user-profile";
 import { decideEntity, queryEntities } from "./entity-registry";
+import { inspectProfileContext } from "./identity-consolidation";
 import type { MemoryObservation, MemoryObservationQuery, MemoryObservationResult } from "@read-aware/core";
 
 const log = createLogger("memory-observation");
@@ -27,6 +28,7 @@ export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal, 
   const entitySignal = (signal?: AbortSignal) => lifetime && signal ? AbortSignal.any([lifetime, signal]) : lifetime ?? signal;
   const memory = createMemoryPort(), bookMemory = createBookMemoryPort();
   const profile = (query?: import("@read-aware/core").UserProfileQuery) => createProfilePort().readProfile(query, lifetime);
+  const profileContext = (query?: import("@read-aware/core").ProfileInspectionQuery, signal?: AbortSignal) => inspectProfileContext(query, entitySignal(signal));
   const tasks = createBookGraphTasks(lifetime);
   const queries = createMemoryQueries({ search: memory.searchMemories, page: memory.pageMemories, graph: async bookId => {
     const digests = await bookMemory.listDigests(bookId);
@@ -38,6 +40,7 @@ export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal, 
   } }, lifetime);
   const read = async (query: MemoryObservationQuery): Promise<MemoryObservationResult> => {
     if (query.kind === "profile") return { kind: query.kind, profile: await profile(query.query) };
+    if (query.kind === "profileContext") return { kind: query.kind, page: await profileContext(query.query) };
     if (query.kind === "search") return { kind: query.kind, memories: await queries.search(query.query) };
     if (query.kind === "page") return { kind: query.kind, page: await queries.page(query.query) };
     if (query.kind === "inspect") return { kind: query.kind, snapshot: await inspectMemory(query.memoryId, lifetime) };
@@ -46,7 +49,7 @@ export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal, 
     if (query.kind === "graphTask") return { kind: query.kind, task: await tasks.get(query.bookId, query.taskId) };
     return { kind: query.kind, graph: await queries.bookGraph(query.bookId, query.query) };
   };
-  return { queries: { ...queries, profile,
+  return { queries: { ...queries, profile, profileContext,
       entities: (query?: import("@read-aware/core").EntityQuery, signal?: AbortSignal) => queryEntities(query, entitySignal(signal)),
       inspect: (id: string) => inspectMemory(id, lifetime), classification: (bookId: string) => inspectBookClassification(bookId, lifetime),
       listGraphTasks: (bookId: string) => tasks.list(bookId), getGraphTask: (bookId: string, taskId: string) => tasks.get(bookId, taskId) },

@@ -26,6 +26,7 @@ import {
   canUseHostService,
   domainGrantsFromPermissions,
   normalizeEntityQuery,
+  normalizeProfileInspectionQuery,
   type DomainEventType,
   type SettingsAccessPolicy,
 } from "@read-aware/core";
@@ -933,6 +934,9 @@ export function buildPluginContext(
     ctx.domains.memory = { queries: { ...memory.queries, entities: (input, options) => {
       const query = normalizeEntityQuery(input);
       return lifecycle.read("memory.entities", signal => memory.queries.entities(query, signal), callSignal(options));
+    }, profileContext: (input, options) => {
+      const query = normalizeProfileInspectionQuery(input);
+      return lifecycle.read("memory.profileContext", signal => memory.queries.profileContext(query, signal), callSignal(options));
     } },
       events: { observe: (query, handler) => track(() => ({ dispose: memory.events.observe(query, handler) })) },
       ...(memory.commands ? { commands: { mutate: input => {

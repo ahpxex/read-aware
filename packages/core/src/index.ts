@@ -57,5 +57,6 @@ export * from "./sync";
 export * from "./user-profile";
 export * from "./entity-registry";
 export * from "./identity-consolidation";
+export * from "./profile-inspection";
 export * from "./memory-candidate";
 export * from "./memory-page";

@@ -739,6 +739,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     },
   };
   deps.profile.getProfileContext = identityConsolidation.context;
+  deps.profile.inspectProfileContext = identityConsolidation.inspect;
   return { deps, stores };
 }
 import { createMemoryReader, type ReaderRequest } from "./reader";

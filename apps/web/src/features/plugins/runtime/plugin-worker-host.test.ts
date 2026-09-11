@@ -12,6 +12,8 @@ import type { PluginPermission } from "@read-aware/core";
 import * as contentNavigation from "../../library/lib/book-content-navigation";
 import { readingRuntime } from "../../../domain/reading-runtime";
 import * as entityDomain from "../../../domain/entity-registry";
+import * as identityDomain from "../../../domain/identity-consolidation";
+import { identityHost } from "../../../../tests/helpers/identity-host";
 import { deferred, entityHost, entityRevision } from "../../../../tests/helpers/entity-host";
 
 test.each(["read", "before-write", "committed", "conflict"])("entity Worker RPC %s keeps cancellation and native receipt boundaries", async mode => {
@@ -40,6 +42,24 @@ test.each(["read", "before-write", "committed", "conflict"])("entity Worker RPC 
 });
 
 type WireMessage = { t: string; id?: number; handle?: string; handles?: string[]; disposable?: string; [key: string]: unknown };
+
+test.each(["read", "cancel", "denied"])("profile inspection Worker RPC %s uses actor grants and request cancellation", async mode => {
+  const host = identityHost(), entered = deferred(), gate = deferred();
+  if (mode === "cancel") host.controls.beforeRead = () => { entered.resolve(); return gate.promise; };
+  const spy = spyOn(identityDomain, "inspectProfileContext").mockImplementation(host.service.inspect);
+  const { worker, close } = await hostFixture(mode === "denied" ? [] : ["memory:read"]);
+  try {
+    const pending = worker.deliver({ t: "call", id: 996, method: "domains.memory.queries.profileContext",
+      args: worker.callbacks.encode([{ kind: "summary" }, { signal: { forged: true } }]) });
+    if (mode === "cancel") { await entered.promise; await worker.deliver({ t: "cancel", id: 996 }); gate.resolve(); }
+    await pending;
+    const result = worker.sent.find(message => message.t === "result" && message.id === 996);
+    expect(result).toMatchObject(mode === "read" ? { ok: true, value: { derivedStatus: "absent", text: null } }
+      : { ok: false, code: mode === "denied" ? "plugin/unavailable" : "plugin/cancelled" });
+    expect(host.calls).toHaveLength(mode === "denied" ? 0 : 1);
+    expect(host.minted).toHaveLength(0);
+  } finally { gate.resolve(); await close(); spy.mockRestore(); }
+});
 
 /** Deterministic transport faults, with the real host context and registration path. */
 class FaultWorker {

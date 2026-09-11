@@ -4,10 +4,11 @@
 
 Native snapshot/conditional commit, the v34 local checkpoint, typed host service,
 bounded automatic inference/idle production and evidence-validated prompt
-consumption are implemented. These are internal ports, not new model or plugin
-methods. MEM08 remains partial for resumable large-input handling and public
-derived-profile inspection; no partial pass is labelled complete. Existing
-curated profile APIs retain their meaning.
+consumption are implemented. Public inspection now uses `inspect_user_profile`
+and memory 2.3 `queries.profileContext` / `events.observe(kind=profileContext)`.
+The producer ports remain internal. MEM08 remains partial for resumable
+large-input handling; no partial pass is labelled complete. Existing curated
+profile APIs retain their meaning.
 
 ## Ownership
 
@@ -21,8 +22,9 @@ Automatic profile synthesis must not replace the user's curated summary or
 display name. Its event-backed output occupies the reserved
 `user_profile.traits.consolidated` block: version 1, summary, source memory
 IDs/revisions and evidence for this batch's entity events. The prompt and public
-readers must distinguish this derived layer from the curated summary, and
-discard it when its evidence is no longer current. Entity decisions use the
+readers must distinguish this derived layer from the curated summary. Prompt
+readers discard stale claims; explicit inspection labels retained stale content
+as historical, not usable current context. Entity decisions use the
 same original-member/keeper semantics as explicit management. All source
 material is data, never instructions; identity matches require evidence, not
 merely identical spelling. Book digest characters are not an input source.
@@ -112,10 +114,51 @@ policy as extraction/digests. Explicit inference output caps and source-tracking
 options survive the policy wrapper, and its signal combines caller cancellation.
 The source, validation and execution modules are separate from runtime scheduling.
 Required next work: resumable bounded partitions for a store exceeding one full
-input, plus a public derived-profile inspection contract. Oversized or incomplete
+input. Oversized or incomplete
 model work stays pending with logged diagnostics, not a fake successful pass.
 Curated profile edits win by separation and read-set conflict checks. Forgotten
 or superseded evidence invalidates the derived layer before regeneration.
+
+## Public Inspection
+
+The shared host service reuses the `profile_context` read transaction; it does
+not expose the internal producer snapshot, raw traits, source text or registry.
+Agent `inspect_user_profile` is available in both scopes, including when
+automatic memory building is disabled. The plugin method and observation reuse
+`memory:read` (implied by write), not a new authority or an inference grant.
+Curated `get_user_profile` / `queries.profile` and editing remain unchanged.
+
+Inspection has three page kinds: `summary` (default 4000, max 16000 UTF-16 units,
+never splitting a surrogate pair), `sources` (saved memory IDs/revisions and
+current eligible revision, or null), and flattened `entityEvidence` pairs
+(proposed event ID, memory ID). Provenance pages default to 25, at most 100 rows;
+historical ID sizes and the internal full read set remain unbounded. Flattening
+is paged rather than returning an unbounded nested array per event. Proposed
+event IDs include no-ops; they are not mutation receipts or verified identities.
+
+Every page reports absent/current/stale/invalid and the curated profile revision
+and existence, without repeating curated text. Absent/invalid summary is null;
+valid empty text is an empty string. Invalid blocks never expose raw content and
+are logged. Stale well-formed content and provenance are inspectable, but cannot
+be injected by the prompt selector. Current only means source-consistent, not
+semantic verification or a fully settled maintenance pass. A null current source
+revision means no longer eligible, not necessarily deleted. New eligible sources
+also invalidate the saved complete read set, even if every old source still exists.
+
+The `pctx1` SHA-256 token binds all page kinds to the same captured profile,
+derived block and current source conditions. Continuations require it; cross-kind
+reads can pin it too. Profile edits, source-only changes and equal-byte new memory
+events reject old tokens rather than mixing generations. The query is copied
+before initialization or scheduling. Plugin caller cancellation and retirement
+reject the consumer promptly while draining its dispatched native query; Worker
+RPC injects the real per-call signal, not untrusted serialized options. Observation
+uses the existing serial bounded poller, with stable errors, recovery and no late
+delivery to a retired actor. Inspection itself neither writes nor starts inference;
+the existing one-time profile initialization remains shared host housekeeping.
+
+Core pagination/invalidity tests, actual Agent tool/production port with scripted
+IPC, plugin grants/lifecycle and fault Worker RPC tests cover these contracts.
+They do not prove real Tauri, SQLite replay or model semantic correctness.
 
 Native tests cover conflict, rollback, source/authority validation, batch limits,
 replay, migration, two-connection changes and restart. Core/host tests cover

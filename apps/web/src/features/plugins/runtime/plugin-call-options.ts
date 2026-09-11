@@ -5,6 +5,7 @@ import type { PluginCallOptions } from "@read-aware/plugin-types";
  * Transport metadata is not authority: the host still resolves the actor's method. */
 export const PLUGIN_CALL_OPTIONS = {
   "domains.memory.queries.entities": 1,
+  "domains.memory.queries.profileContext": 1,
   "domains.memory.commands.decideEntity": 1,
   "services.maintenance.requestConnectionTest": 0,
   "domains.settings.commands.refreshModelCatalog": 1,

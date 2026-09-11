@@ -68,10 +68,10 @@ test("entity registry native, Agent and plugin entrypoints have explicit MEM08 m
   const native = inventory.filter(item => item.family === "Native command" && item.name.startsWith("storage::entity_"));
   expect(native.map(item => item.name).sort()).toEqual(["storage::entity_commit", "storage::entity_query"]);
   expect(native.every(item => item.rows.length === 1 && item.rows[0] === "MEM08")).toBe(true);
-  for (const name of ["domains.memory.queries.entities", "domains.memory.commands.decideEntity"]) {
+  for (const name of ["domains.memory.queries.entities", "domains.memory.queries.profileContext", "domains.memory.commands.decideEntity"]) {
     expect(inventory.find(item => item.family === "Plugin ctx" && item.name === name)?.rows).toEqual(["MEM08"]);
   }
-  for (const family of ["Agent global", "Agent book"]) for (const name of ["query_entities", "manage_entity"]) {
+  for (const family of ["Agent global", "Agent book"]) for (const name of ["query_entities", "manage_entity", "inspect_user_profile"]) {
     expect(inventory.find(item => item.family === family && item.name === name)?.rows).toEqual(["MEM08"]);
   }
 });
@@ -82,7 +82,7 @@ test("memory query and consumer inventories stay distinct from bundled or model 
   expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.queries.bookGraph")?.rows).toEqual(["MEM11"]);
   expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.queries.inspect")?.rows).toEqual(["MEM01", "MEM05"]);
   expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.commands.mutate")?.rows).toEqual(["MEM04", "MEM05"]);
-  expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.events.observe")?.rows).toEqual(["MEM01", "MEM04", "MEM05", "MEM09", "MEM10", "MEM11"]);
+  expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.events.observe")?.rows).toEqual(["MEM01", "MEM04", "MEM05", "MEM06", "MEM08", "MEM09", "MEM10", "MEM11"]);
   for (const name of ["domains.memory.queries.getGraphTask", "domains.memory.queries.listGraphTasks", "domains.memory.commands.startGraphTask", "domains.memory.commands.cancelGraphTask", "domains.memory.commands.retryGraphTask"]) {
     expect(inventory.find(item => item.family === "Plugin ctx" && item.name === name)?.rows).toEqual(["MEM10"]);
   }

@@ -308,6 +308,7 @@ export interface ConversationPort {
 /** Event-backed profile summary; not a versioned context bundle. Absence is undefined. */
 export interface ProfilePort {
   getProfileContext(): Promise<import("@read-aware/core").ProfileContext>;
+  inspectProfileContext(query?: import("@read-aware/core").ProfileInspectionQuery, signal?: AbortSignal): Promise<import("@read-aware/core").ProfileInspectionPage>;
   updateProfile(input: import("@read-aware/core").UserProfileChange, signal?: AbortSignal): Promise<import("@read-aware/core").UserProfileReceipt>;
   getProfileSummary(): Promise<string | undefined>;
   readProfile(query?: import("@read-aware/core").UserProfileQuery, signal?: AbortSignal): Promise<import("@read-aware/core").UserProfilePage>;

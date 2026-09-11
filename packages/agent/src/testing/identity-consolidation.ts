@@ -1,9 +1,11 @@
-import { AppError, identityProfileContext, normalizeIdentityConsolidationPlan, type IdentityConsolidationPort, type IdentityConsolidationSnapshot, type ProfileContext } from "@read-aware/core";
+import { AppError, identityProfileContext, normalizeIdentityConsolidationPlan, normalizeProfileInspectionQuery, profileInspectionPage, type IdentityConsolidationPort, type IdentityConsolidationSnapshot, type ProfileContext } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { EntityRegistryFixture } from "./entity-registry";
 
 /** In-process source-change/commit fixture. Native tests own SQLite/HLC/outbox proof. */
-export function createIdentityConsolidationFixture(deps: () => RuntimeDeps, registry: EntityRegistryFixture): IdentityConsolidationPort & { context(): Promise<ProfileContext> } {
+export function createIdentityConsolidationFixture(deps: () => RuntimeDeps, registry: EntityRegistryFixture): IdentityConsolidationPort & {
+  context(): Promise<ProfileContext>; inspect: RuntimeDeps["profile"]["inspectProfileContext"];
+} {
   let derived: unknown = null, settled: string | null = null, sequence = 0;
   const readSources = async () => (await deps().memory.snapshotMemories()).filter(({ memory }) => (memory.scope === "user" || memory.scope === "global")
     && (memory.evidenceCount >= 3 || memory.pinned)).sort((a, b) => a.memory.id < b.memory.id ? -1 : a.memory.id > b.memory.id ? 1 : 0);
@@ -22,10 +24,17 @@ export function createIdentityConsolidationFixture(deps: () => RuntimeDeps, regi
     signal?.throwIfAborted();
     return { ...value, revision: key, settled: key === settled };
   };
-  return { snapshot, context: async () => identityProfileContext({
+  const contextSnapshot = async () => ({
     profile: { summary: await deps().profile.getProfileSummary() ?? null, revision: (await deps().profile.readProfile()).revision }, derived,
     sourceConditions: derived === null ? [] : (await readSources()).map(source => ({ memoryId: source.memory.id, revision: source.revision })),
-  }), commit: async (raw, signal) => {
+  });
+  return { snapshot, context: async () => identityProfileContext(await contextSnapshot()), inspect: async (input, signal) => {
+    const query = normalizeProfileInspectionQuery(input);
+    signal?.throwIfAborted();
+    const page = await profileInspectionPage(await contextSnapshot(), query);
+    signal?.throwIfAborted();
+    return page;
+  }, commit: async (raw, signal) => {
     const input = normalizeIdentityConsolidationPlan(raw), before = await snapshot(signal);
     const check = (current: IdentityConsolidationSnapshot) => {
       if (input.expectedRevision !== current.revision || input.entitiesRevision !== current.entitiesRevision

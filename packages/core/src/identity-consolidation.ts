@@ -87,7 +87,7 @@ export function normalizeIdentityConsolidationPlan(input: IdentityConsolidationP
     summary: input.summary, sources: captured, decisions, complete: input.complete };
 }
 
-function consolidated(value: unknown): ConsolidatedProfile {
+export function parseConsolidatedProfile(value: unknown): ConsolidatedProfile {
   if (!record(value) || !fields(value, ["version", "summary", "sources", "entityEvidence"]) || value.version !== 1
     || typeof value.summary !== "string" || value.summary.length > 16_000
     || !Array.isArray(value.entityEvidence) || value.entityEvidence.length > 32) return invalid();
@@ -107,7 +107,7 @@ export function identityProfileContext(snapshot: ProfileContextSnapshot): Profil
   const base = { curated: snapshot.profile.summary, consolidated: null };
   if (snapshot.derived === null || snapshot.derived === undefined) return { ...base, derivedStatus: "absent" };
   let derived: ConsolidatedProfile;
-  try { derived = consolidated(snapshot.derived); }
+  try { derived = parseConsolidatedProfile(snapshot.derived); }
   catch {
     // Historical/remote blocks may predate this contract; callers log this verdict.
     return { ...base, derivedStatus: "invalid" };

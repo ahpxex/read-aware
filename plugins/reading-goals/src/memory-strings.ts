@@ -1,0 +1,17 @@
+const en = {
+  title: "Goal memory result", noBook: "No book is open.", none: "No result for this goal in this plugin session.",
+  pending: "Awaiting host result", saved: "Saved to memory", rejected: "Not saved", skipped: "Not attempted", failed: "Save failed",
+  invalid: "Invalid candidate", scope: "Outside this conversation's memory scope", duplicate: "Matching content already known", limit: "Candidate limit reached", refresh: "Refresh",
+};
+type Copy = typeof en;
+const translations: Record<string, Copy> = {
+  en,
+  "zh-Hans": { title: "目标记忆结果", noBook: "尚未打开书籍。", none: "本次插件运行中尚无此目标的处理结果。", pending: "等待宿主结果", saved: "已存入记忆", rejected: "未存入", skipped: "未尝试写入", failed: "写入失败", invalid: "候选无效", scope: "不在本次对话的记忆范围内", duplicate: "已有相同内容", limit: "已达候选数量上限", refresh: "刷新" },
+  "zh-Hant": { title: "目標記憶結果", noBook: "尚未開啟書籍。", none: "本次外掛執行中尚無此目標的處理結果。", pending: "等待宿主結果", saved: "已存入記憶", rejected: "未存入", skipped: "未嘗試寫入", failed: "寫入失敗", invalid: "候選無效", scope: "不在本次對話的記憶範圍內", duplicate: "已有相同內容", limit: "已達候選數量上限", refresh: "重新整理" },
+  ja: { title: "目標の記憶結果", noBook: "本が開かれていません。", none: "今回のプラグイン起動中、この目標の結果はありません。", pending: "ホストの結果を待機中", saved: "記憶に保存済み", rejected: "未保存", skipped: "保存未実行", failed: "保存失敗", invalid: "無効な候補", scope: "この会話の記憶範囲外", duplicate: "同じ内容が記憶済み", limit: "候補数の上限に到達", refresh: "更新" },
+  ru: { title: "Результат памяти цели", noBook: "Книга не открыта.", none: "В этом сеансе плагина нет результата для этой цели.", pending: "Ожидание результата приложения", saved: "Сохранено в память", rejected: "Не сохранено", skipped: "Запись не выполнялась", failed: "Ошибка записи", invalid: "Недопустимое предложение", scope: "Вне области памяти этого разговора", duplicate: "Совпадающее содержание уже известно", limit: "Достигнут лимит предложений", refresh: "Обновить" },
+  de: { title: "Ergebnis der Zielerinnerung", noBook: "Kein Buch geöffnet.", none: "In dieser Plugin-Sitzung liegt kein Ergebnis für dieses Ziel vor.", pending: "Host-Ergebnis ausstehend", saved: "Als Erinnerung gespeichert", rejected: "Nicht gespeichert", skipped: "Nicht versucht", failed: "Speichern fehlgeschlagen", invalid: "Ungültiger Vorschlag", scope: "Außerhalb des Erinnerungsbereichs dieses Gesprächs", duplicate: "Passender Inhalt bereits bekannt", limit: "Vorschlagslimit erreicht", refresh: "Aktualisieren" },
+  fr: { title: "Résultat de mémoire de l'objectif", noBook: "Aucun livre ouvert.", none: "Aucun résultat pour cet objectif dans cette session du plugin.", pending: "En attente du résultat de l'hôte", saved: "Enregistré en mémoire", rejected: "Non enregistré", skipped: "Non tenté", failed: "Échec de l'enregistrement", invalid: "Proposition invalide", scope: "Hors du périmètre mémoire de cette conversation", duplicate: "Contenu correspondant déjà connu", limit: "Limite de propositions atteinte", refresh: "Actualiser" },
+  es: { title: "Resultado de memoria del objetivo", noBook: "No hay ningún libro abierto.", none: "No hay resultado para este objetivo en esta sesión del complemento.", pending: "Esperando el resultado del anfitrión", saved: "Guardado en memoria", rejected: "No guardado", skipped: "No intentado", failed: "Error al guardar", invalid: "Propuesta no válida", scope: "Fuera del ámbito de memoria de esta conversación", duplicate: "Contenido coincidente ya conocido", limit: "Límite de propuestas alcanzado", refresh: "Actualizar" },
+};
+export function memoryCopy(locale: string): Copy { return translations[locale] ?? translations[locale.split("-")[0]!] ?? en; }

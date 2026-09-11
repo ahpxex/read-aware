@@ -1822,14 +1822,22 @@ export type PluginMemoryCandidate = {
   content: string;
 };
 
+export type PluginMemoryCandidateReceipt = import("@read-aware/core").MemoryCandidateReceipt;
+
 export type PluginMemoryCandidateProvider = {
   id: string;
   contexts?: Array<PluginAgentScope["kind"]>;
   propose(input: {
+    requestId: string;
     scope: PluginAgentScope;
     userText: string;
     assistantText: string;
   }): PluginMemoryCandidate[] | Promise<PluginMemoryCandidate[]>;
+  /** Best-effort, once per settled proposal batch while this registration is active.
+   * Saved means the host write succeeded, not that memory will never be changed.
+   * No callback is guaranteed after retirement, process exit, or a failed propose.
+   */
+  onResult?(receipt: PluginMemoryCandidateReceipt): void | Promise<void>;
 };
 
 // ─── Sync transports (`sync:transport`) ──────────────────────────────────────

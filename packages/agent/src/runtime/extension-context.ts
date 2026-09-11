@@ -39,6 +39,7 @@ export function normalizeExternalMemoryCandidates(input: {
   scope: ThreadScope;
   candidates: ExternalMemoryCandidate[];
   existing: MemoryRecord[];
+  onReject?: (candidate: ExternalMemoryCandidate, reason: "invalid" | "scope" | "duplicate" | "limit") => void;
 }): ExternalMemoryCandidate[] {
   const allowedScopes = new Set(
     input.scope.kind === "book"
@@ -48,15 +49,15 @@ export function normalizeExternalMemoryCandidates(input: {
   const kinds = new Set(["fact", "preference", "insight", "summary"]);
   const seen = new Set(input.existing.map((memory) => memory.content.trim().toLocaleLowerCase()));
   const accepted: ExternalMemoryCandidate[] = [];
-  for (const candidate of input.candidates.slice(0, MAX_MEMORY_CANDIDATES)) {
+  for (const [index, candidate] of input.candidates.entries()) {
     const content = cleanText(candidate.content, MAX_MEMORY_CONTENT);
     const fingerprint = content.toLocaleLowerCase();
-    if (
-      !content ||
-      !allowedScopes.has(candidate.scope) ||
-      !kinds.has(candidate.kind) ||
-      seen.has(fingerprint)
-    ) {
+    const reason = index >= MAX_MEMORY_CANDIDATES ? "limit"
+      : !content || !kinds.has(candidate.kind) ? "invalid"
+      : !allowedScopes.has(candidate.scope) ? "scope"
+      : seen.has(fingerprint) ? "duplicate" : null;
+    if (reason) {
+      input.onReject?.(candidate, reason);
       continue;
     }
     seen.add(fingerprint);

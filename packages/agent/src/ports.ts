@@ -408,12 +408,16 @@ export interface ExternalMemoryCandidate {
   scope: MemoryScope;
   kind: MemoryKind;
   content: string;
+  /** Host-only registration guard and callback; never persisted as memory fields. */
+  available?: () => boolean;
+  report?: (outcome: import("@read-aware/core").MemoryCandidateOutcome) => void;
 }
 
 export interface ExternalMemoryCandidateRequest {
   scope: ThreadScope;
   userText: string;
   assistantText: string;
+  signal?: AbortSignal;
 }
 
 export interface RuntimeDeps {

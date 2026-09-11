@@ -28,7 +28,7 @@ test("context and opt-in candidates use the requested book, never the active rea
   const { ctx, state, context, candidates } = fixture();
   const [form] = await forms(ctx);
   await form!.onSubmit({ goal: "Compare evidence", suggestMemory: false });
-  const input = { scope: { kind: "book" as const, bookId: "book-1" }, userText: "question", assistantText: "answer" };
+  const input = { requestId: "request-1", scope: { kind: "book" as const, bookId: "book-1" }, userText: "question", assistantText: "answer" };
   state.bookId = "book-2";
   expect(await context.provide(input)).toEqual([{ title: "Reading Goals", content: "Compare evidence" }]);
   expect(await candidates.propose(input)).toEqual([]);

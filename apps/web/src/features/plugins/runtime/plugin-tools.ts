@@ -31,6 +31,8 @@ import { contributionText } from "../lib/plugin-i18n";
 import { actionEnabled } from "../lib/plugin-action-state";
 import { confirmPluginTool } from "./plugin-tool-confirmation";
 import { pluginBookCardResult } from "./plugin-book-cards";
+import { proposePluginMemories } from "./plugin-memory-candidates";
+import { createLogger } from "../../../platform/logger";
 
 /**
  * A card-carrying tool result (PluginToolWordCards in the contract): the
@@ -87,7 +89,7 @@ const RETRIEVAL_PARAMETERS = {
 const MAX_PROVIDER_CONTEXT_BLOCKS = 3;
 const MAX_RETRIEVAL_ITEMS = 10;
 const MAX_RETRIEVAL_CONTENT = 2_000;
-const MAX_MEMORY_CANDIDATES_PER_PROVIDER = 3;
+const memoryLog = createLogger("plugin-memory-candidates");
 
 function pluginScope(scope: ThreadScope): PluginAgentScope {
   return scope.kind === "book"
@@ -219,23 +221,11 @@ export async function getPluginMemoryCandidates(
     supportsScope(provider.contexts, request.scope)
   );
   const settled = await Promise.allSettled(
-    providers.map(async (provider) => {
-      const candidates = await provider.propose({
-        scope: pluginScope(request.scope),
-        userText: request.userText,
-        assistantText: request.assistantText,
-      });
-      return (Array.isArray(candidates) ? candidates : [])
-        .slice(0, MAX_MEMORY_CANDIDATES_PER_PROVIDER)
-        .flatMap((candidate): ExternalMemoryCandidate[] => {
-          const scope = candidate.scope === "book" && request.scope.kind === "book"
-            ? (`book:${request.scope.bookId}` as const)
-            : candidate.scope === "user" || candidate.scope === "global"
-              ? candidate.scope
-              : null;
-          return scope ? [{ ...candidate, scope }] : [];
-        });
-    }),
+    providers.map(provider => proposePluginMemories(provider, request)),
   );
-  return settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
+  return settled.flatMap(result => {
+    if (result.status === "fulfilled") return result.value;
+    memoryLog.warn("Plugin memory proposal failed", result.reason);
+    return [];
+  });
 }

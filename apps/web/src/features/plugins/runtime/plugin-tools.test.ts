@@ -245,7 +245,7 @@ describe("plugin agent providers", () => {
         assistantText: "answer",
       }),
     ).toEqual([
-      { scope: "book:book-1", kind: "insight", content: "remember this link" },
+      expect.objectContaining({ scope: "book:book-1", kind: "insight", content: "remember this link" }),
     ]);
   });
 });

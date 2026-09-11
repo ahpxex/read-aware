@@ -39,10 +39,8 @@ import {
   turnRecordsToMessages,
 } from "./history";
 import { buildGroundingContext } from "./grounding-context";
-import {
-  normalizeExternalMemoryCandidates,
-  renderExtensionContext,
-} from "./extension-context";
+import { renderExtensionContext } from "./extension-context";
+import { persistExtensionMemory } from "./extension-memory";
 import {
   inspectNarrativeEvidence,
   loadNarrativeBookIndex,
@@ -949,24 +947,21 @@ export class AgentThread {
         scope: this.scope,
         userText,
         assistantText,
+        signal: operation.signal,
       }).catch((error) => {
         deps.log?.warn("plugin memory candidate providers failed", error);
         return [];
       });
       if (!this.disposed && proposed?.length) {
-        const candidates = normalizeExternalMemoryCandidates({
+        await persistExtensionMemory({
           scope: this.scope,
           candidates: proposed,
           existing: knownForExtensions,
+          sourceThreadKey: this.key,
+          memory: this.deps.memory,
+          operation,
+          log: deps.log,
         });
-        for (const candidate of candidates) {
-          const saved = await deps.memory.saveMemory({
-            ...candidate,
-            origin: "plugin",
-            sourceThreadKey: this.key,
-          });
-          knownForExtensions.push(saved);
-        }
       }
 
       const previous = previousInsights ?? bootstrapped;

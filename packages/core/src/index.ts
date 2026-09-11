@@ -55,3 +55,4 @@ export * from "./settings-options";
 export * from "./book-content-state";
 export * from "./sync";
 export * from "./user-profile";
+export * from "./memory-candidate";

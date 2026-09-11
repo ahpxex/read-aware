@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { PluginModule, PluginMigrationContext } from "@read-aware/plugin-types";
+import type { PluginModule, PluginMigrationContext, PluginMemoryCandidateProvider, PluginCommand } from "@read-aware/plugin-types";
 import { fixture } from "./fixture";
 import { readGoal, readGoalState, writeGoal } from "../src/goals";
 import { goalsView } from "../src/views";
@@ -16,12 +16,22 @@ test("all three tools register in both scopes, with writes requiring host approv
   expect(f.tools.get("clear_reading_goal")!.approval).toBe("required");
   expect(manifest.requires.contributions.agentTools).toBe("^1.2.0");
   expect(manifest.requires.services.storage).toBe("^2.1.0");
+  expect(manifest.requires.contributions.memoryCandidateProviders).toBe("^1.1.0");
   expect(manifest.permissions).toContain("agent:tools");
   const built = await Bun.build({ entrypoints: [new URL("../src/index.ts", import.meta.url).pathname], target: "browser" });
   expect(built.success).toBe(true);
   const compiled = (await import(`data:text/javascript;base64,${Buffer.from(await built.outputs[0]!.text()).toString("base64")}`)).default as PluginModule;
+  let candidates!: PluginMemoryCandidateProvider;
+  const commands = new Map<string, PluginCommand>();
+  f.ctx.contributions.memoryCandidateProviders!.register = value => { candidates = value; return { dispose() {} }; };
+  f.ctx.contributions.commands.register = value => { commands.set(value.id, value); return { dispose() {}, updateState: async () => ({ status: "applied" }) }; };
   f.tools.clear(); await compiled.activate(f.ctx);
   expect(f.tools.size).toBe(3); expect(f.tools.get("clear_reading_goal")!.approval).toBe("required");
+  await f.tools.get("set_reading_goal")!.execute({ bookId: "book-1", text: "Compiled goal", suggestMemory: true, expectedRevision: null });
+  expect(await candidates.propose({ requestId: "compiled", scope: { kind: "book", bookId: "book-1" }, userText: "q", assistantText: "a" }))
+    .toEqual([{ scope: "book", kind: "preference", content: "Compiled goal" }]);
+  await candidates.onResult!({ requestId: "compiled", discarded: 0, results: [{ index: 0, outcome: { status: "saved" } }] });
+  expect(JSON.stringify(await commands.get("memory-status")!.run())).toContain("Saved to memory");
 });
 
 test("Agent writes feed the same next-turn context and opt-in candidates as UI", async () => {
@@ -29,7 +39,7 @@ test("Agent writes feed the same next-turn context and opt-in candidates as UI",
   expect(await f.tools.get("get_reading_goal")!.execute({ bookId: "book-1" })).toEqual({ bookId: "book-1", goal: null, revision: null });
   f.state.bookId = "book-2";
   expect(await set.execute({ bookId: "book-1", text: "  Compare evidence  ", suggestMemory: false, expectedRevision: null })).toMatchObject({ status: "saved" });
-  const input = { scope: { kind: "book" as const, bookId: "book-1" }, userText: "question", assistantText: "answer" };
+  const input = { requestId: "request-1", scope: { kind: "book" as const, bookId: "book-1" }, userText: "question", assistantText: "answer" };
   expect(await f.context.provide(input)).toEqual([{ title: "Reading Goals", content: "Compare evidence" }]);
   expect(await f.candidates.propose(input)).toEqual([]);
   const original = await readGoalState(f.ctx, "book-1");

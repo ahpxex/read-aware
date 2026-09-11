@@ -17,7 +17,7 @@ export const CONTRIBUTION_CATALOG = {
   agentTools: { version: "1.3.0", permission: "agent:tools" },
   agentContextProviders: { version: "1.0.0", permission: "agent:context" },
   agentRetrievalProviders: { version: "1.0.0", permission: "agent:retrieval" },
-  memoryCandidateProviders: { version: "1.0.0", permission: "agent:memory" },
+  memoryCandidateProviders: { version: "1.1.0", permission: "agent:memory" },
   themes: { version: "1.0.0", permission: "ui:themes" },
   fonts: { version: "1.0.0", permission: "ui:themes" },
   syncTransports: { version: "2.0.0", permission: "sync:transport" },

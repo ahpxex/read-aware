@@ -7,6 +7,7 @@ import { timeCopy } from "./time-strings";
 import { readingInsightsForm } from "./insights-view";
 import { insightsCopy } from "./insights-strings";
 import { registerGoalTools } from "./tools";
+import { registerGoalMemory } from "./memory-status";
 
 export default {
   activate(ctx) {
@@ -23,10 +24,7 @@ export default {
       const goal = scope.kind === "book" ? await readGoal(ctx, scope.bookId) : null;
       return goal ? [{ title, content: goal.text }] : [];
     } });
-    memoryCandidateProviders.register({ id: "reading-goal", contexts: ["book"], propose: async ({ scope }) => {
-      const goal = scope.kind === "book" ? await readGoal(ctx, scope.bookId) : null;
-      return goal?.suggestMemory ? [{ scope: "book", kind: "preference", content: goal.text }] : [];
-    } });
+    registerGoalMemory(ctx);
   },
   migrate(_ctx, migration) {
     // v2 promotes per-book v1 KV lazily; downgrade would hide newer document edits.

@@ -73,7 +73,7 @@ export async function runMemoryBuild<T>(
   }
 }
 
-interface MemoryBuildOperation {
+export interface MemoryBuildOperation {
   signal: AbortSignal;
   assertAllowed(): void;
   guard<A extends unknown[], R>(fn: (...args: A) => Promise<R>): (...args: A) => Promise<R>;

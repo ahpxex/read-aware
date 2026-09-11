@@ -317,7 +317,16 @@ fn windows_installer_does_not_create_a_competing_registration_and_uninstall_cove
     }
     assert!(hook.contains("ReadAwareOwner"));
     assert_eq!(hook.matches("!insertmacro READ_AWARE_ABORT_UNINSTALL").count(), 3);
-    assert!(hook.contains("!macro READ_AWARE_ABORT_UNINSTALL\n  Pop $2\n  Pop $1\n  Pop $R0\n  Abort\n!macroend"));
+    let restores_stack = |source: &str| {
+        let expected = ["!macro READ_AWARE_ABORT_UNINSTALL", "Pop $2", "Pop $1", "Pop $R0", "Abort", "!macroend"];
+        source.lines().map(str::trim).collect::<Vec<_>>()
+            .windows(expected.len()).any(|lines| lines == expected)
+    };
+    for newline in ["\n", "\r\n"] {
+        let source = hook.lines().collect::<Vec<_>>().join(newline);
+        assert!(restores_stack(&source));
+        assert!(!restores_stack(&source.replace("Pop $1", "Pop $R1")));
+    }
     assert!(!hook.contains("UserChoice"));
     assert!(!hook.contains("HKLM"));
 }

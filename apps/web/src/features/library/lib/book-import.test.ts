@@ -46,6 +46,31 @@ test("native resource duplicate receipt points to the existing book without anot
   expect(put).not.toHaveBeenCalled();
 });
 
+test("external paths carry native admission epochs while manual paths do not", async () => {
+  const { invoke } = setup();
+  const path: BookImportSource = { kind: "native-path", path: "/books/book.txt", name: "book.txt", size: 7 };
+  await importBook({ ...path, externalOpenEpoch: "accepted-batch" }, { t, knownBooks: [] });
+  expect(invoke).toHaveBeenCalledWith("library_stage_import", { request: {
+    bookId: expect.any(String), format: "txt", mimeType: null,
+    externalOpenEpoch: "accepted-batch", source: { kind: "path", path: path.path },
+  } });
+  invoke.mockClear();
+  await importBook(path, { t, knownBooks: [] });
+  expect(invoke).toHaveBeenCalledWith("library_stage_import", { request: {
+    bookId: expect.any(String), format: "txt", mimeType: null,
+    source: { kind: "path", path: path.path },
+  } });
+});
+
+test("revoked native admission cannot commit an import event", async () => {
+  const { invoke, commit } = setup();
+  const error = { code: "ui/unavailable", message: "External request revoked" };
+  invoke.mockRejectedValue(error);
+  await expect(importBook({ kind: "native-path", path: "/books/book.txt", name: "book.txt", size: 7,
+    externalOpenEpoch: "revoked-batch" }, { t, knownBooks: [] })).rejects.toBe(error);
+  expect(commit).not.toHaveBeenCalled();
+});
+
 test("cancellation prevents native staging but does not abandon an already accepted import", async () => {
   const { invoke, commit } = setup();
   await expect(importBook(source, { t, knownBooks: [], signal: AbortSignal.abort() })).rejects.toBeDefined();

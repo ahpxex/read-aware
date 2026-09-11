@@ -1,6 +1,7 @@
 import { ChoiceGroup, InlineError, Select, Spinner, Toggle } from "@read-aware/ui";
 import { describeError } from "../../../i18n/describe-error";
 import { useGeneralSettings } from "../hooks/useGeneralSettings";
+import { isMacOS } from "../../../platform/environment";
 import { LOCALES, LOCALE_LABELS, useLocale, useTranslation } from "../../../i18n";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
@@ -62,7 +63,9 @@ export function GeneralPanel() {
         />
         <SettingsRow
           title={t("general.desktopIntegration.fileAssociations.title")}
-          description={t("general.desktopIntegration.fileAssociations.description")}
+          description={isMacOS()
+            ? t("general.desktopIntegration.fileAssociations.descriptionMac")
+            : t("general.desktopIntegration.fileAssociations.description")}
           control={
             <Toggle
               aria-label={t("general.desktopIntegration.fileAssociations.title")}

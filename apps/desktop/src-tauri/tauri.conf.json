@@ -114,6 +114,16 @@
         "description": "Plain text book",
         "mimeType": "text/plain",
         "role": "Viewer"
+      },
+      {
+        "ext": [
+          "html",
+          "htm"
+        ],
+        "name": "HTML",
+        "description": "HTML document",
+        "mimeType": "text/html",
+        "role": "Viewer"
       }
     ],
     "android": {

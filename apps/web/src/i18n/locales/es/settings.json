@@ -33,7 +33,8 @@
       },
       "fileAssociations": {
         "title": "Asociaciones de archivos",
-        "description": "Abrir archivos EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML y PDF con ReadAware."
+        "description": "Aceptar los libros que el sistema abra con ReadAware.",
+        "descriptionMac": "Aceptar archivos enviados por macOS. Desactivar esta opción no elimina las asociaciones de archivos de ReadAware en macOS."
       },
       "autoUpdate": {
         "title": "Buscar actualizaciones automáticamente",

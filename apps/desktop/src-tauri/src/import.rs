@@ -54,6 +54,8 @@ pub struct StageImportRequest {
     pub format: String,
     #[serde(default)]
     pub mime_type: Option<String>,
+    #[serde(default)]
+    pub external_open_epoch: Option<String>,
     pub source: StageSource,
 }
 
@@ -126,6 +128,10 @@ pub(crate) fn hash_file(path: &Path) -> Result<(String, i64), CommandError> {
 }
 
 fn stage_import(app: &AppHandle, request: StageImportRequest) -> Result<StagedImport, CommandError> {
+    if let Some(epoch) = &request.external_open_epoch {
+        app.state::<crate::external_open::ExternalOpenQueue>()
+            .admit(epoch)?;
+    }
     let started = std::time::Instant::now();
     let data_dir: PathBuf = app.state::<DataDir>().0.clone();
     let db = app.state::<Db>();

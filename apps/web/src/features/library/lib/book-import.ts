@@ -131,6 +131,8 @@ export async function importBook(
       bookId,
       format,
       mimeType: file.type || null,
+      ...(source.kind === "native-path" && source.externalOpenEpoch !== undefined
+        ? { externalOpenEpoch: source.externalOpenEpoch } : {}),
       source: source.kind === "native-path" ? { kind: "path", path: source.path }
         : source.kind === "native-resource" ? { kind: "resource", id: source.resourceId } : { kind: "blob" },
     },

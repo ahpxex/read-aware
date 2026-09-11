@@ -5,6 +5,7 @@ mod resource_images;
 mod import;
 mod desktop_update;
 mod desktop_startup;
+mod desktop_preferences;
 mod comic_metadata;
 mod diagnostics;
 mod error;
@@ -752,7 +753,7 @@ pub fn run() {
         })
         .manage(android_update::AndroidUpdateState::default())
         .manage(desktop_update::DesktopUpdateState::default())
-        .manage(external_open::ExternalOpenQueue(Mutex::new(launch_open_paths)))
+        .manage(external_open::ExternalOpenQueue::new(launch_open_paths))
         .manage(storage::BlobReadSessions::default())
         .manage(storage::BlobWriteSessions::default())
         .manage(resources::ResourceFiles::default())
@@ -769,7 +770,10 @@ pub fn run() {
             {
                 use tauri_plugin_deep_link::DeepLinkExt;
                 let handle = app.handle().clone();
-                app.deep_link().on_open_url(move |_event| {
+                app.deep_link().on_open_url(move |event| {
+                    if !event.urls().iter().any(|url| external_open::is_app_link_scheme(url.scheme())) {
+                        return;
+                    }
                     if let Some(window) = handle.get_webview_window("main") {
                         let _ = window.show();
                         let _ = window.unminimize();
@@ -799,6 +803,10 @@ pub fn run() {
             // honors the in-app setting, not just the OS scheme. `None` means
             // "system" (or nothing stored): follow the OS.
             let boot_theme = storage::read_boot_theme(&conn);
+            desktop_preferences::initialize(app.handle(), &conn).map_err(|error| {
+                log::error!("desktop preferences initialization failed: {error}");
+                error
+            })?;
             app.manage(storage::Db(Mutex::new(conn)));
             app.manage(storage::DataDir(data_dir));
 
@@ -1023,6 +1031,7 @@ pub fn run() {
             storage::reading_session_flush,
             storage::reading_time_import,
             external_open::external_open_take,
+            external_open::external_open_is_current,
             diagnostics::diagnostics_read_logs,
             diagnostics::diagnostics_log_dir,
             book_file_size,

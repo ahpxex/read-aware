@@ -1029,9 +1029,9 @@ pub async fn wipe_all_data(
         let db = tauri::Manager::state::<Db>(&app);
         let data_dir = tauri::Manager::state::<DataDir>(&app);
         let mut conn = db.0.lock()?;
-        crate::desktop_startup::commit_entries(
+        crate::desktop_preferences::commit_entries(
             &app,
-            &[(crate::desktop_startup::GENERAL_KEY.to_string(), None)],
+            &[(crate::desktop_preferences::GENERAL_KEY.to_string(), None)],
             || wipe_all_data_inner(&mut conn, &data_dir.0),
         )
     })

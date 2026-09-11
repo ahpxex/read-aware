@@ -9,7 +9,7 @@ export type { BookFormat };
  */
 export type BookImportSource =
   | { kind: "native-resource"; resourceId: string; name: string; size: number; type: string }
-  | { kind: "native-path"; path: string; name: string; size: number }
+  | { kind: "native-path"; path: string; name: string; size: number; externalOpenEpoch?: string }
   | { kind: "file"; file: File };
 
 export type ReadingStatus = "unread" | "reading" | "finished";

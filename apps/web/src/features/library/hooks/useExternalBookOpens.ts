@@ -2,11 +2,15 @@ import { useEffect, useRef } from "react";
 import { isTauri } from "../../../platform/environment";
 import {
   onExternalOpenRequest,
+  isExternalOpenBatchCurrent,
   sourcesFromNativePaths,
   takeExternalOpenPaths,
 } from "../lib/external-open";
 import type { BookImportSource, LibraryBook } from "../lib/library-types";
 import type { ImportOutcome } from "./useLibraryController";
+import { createLogger } from "../../../platform/logger";
+
+const log = createLogger("external-book-opens");
 
 type ExternalBookOpensOptions = {
   /**
@@ -47,6 +51,7 @@ export function useExternalBookOpens({
     let pinged = false;
 
     async function drain() {
+      if (disposed) return;
       // A ping during a drain marks a re-run instead of racing the importer:
       // two concurrent drains would both read the shelf before either commits,
       // letting the same file land twice.
@@ -58,21 +63,28 @@ export function useExternalBookOpens({
       try {
         do {
           pinged = false;
-          const paths = await takeExternalOpenPaths();
-          if (disposed || paths.length === 0) continue;
-          const outcomes = await importRef.current(await sourcesFromNativePaths(paths));
+          const batch = await takeExternalOpenPaths();
+          if (disposed || batch.paths.length === 0) continue;
+          const sources = await sourcesFromNativePaths(batch.paths, batch.epoch);
+          if (disposed) continue;
+          if (!(await isExternalOpenBatchCurrent(batch)) || disposed) continue;
+          const outcomes = await importRef.current(sources);
           if (disposed || outcomes.length === 0) continue;
+          if (!(await isExternalOpenBatchCurrent(batch)) || disposed) continue;
           openRef.current(outcomes[outcomes.length - 1].book);
         } while (pinged && !disposed);
       } catch (error) {
-        reportRef.current(error);
+        log.error("Processing external file requests failed", error);
+        if (!disposed) reportRef.current(error);
       } finally {
         draining = false;
+        if (pinged && !disposed) void drain();
       }
     }
 
-    const dispose = onExternalOpenRequest(() => void drain());
-    void drain();
+    const dispose = onExternalOpenRequest(() => void drain(), error => reportRef.current(error));
+    // StrictMode's abandoned mount must not consume the native cold-start queue.
+    queueMicrotask(() => { if (!disposed) void drain(); });
     return () => {
       disposed = true;
       dispose();

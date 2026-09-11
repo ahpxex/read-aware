@@ -280,7 +280,7 @@ pub async fn set_kv(
         let db = tauri::Manager::state::<Db>(&app);
         let mut conn = db.0.lock()?;
         let entries = vec![(key, Some(value))];
-        crate::desktop_startup::commit_entries(&app, &entries, || set_kv_batch_inner(&mut conn, entries.clone()))
+        crate::desktop_preferences::commit_entries(&app, &entries, || set_kv_batch_inner(&mut conn, entries.clone()))
     })
     .await
 }
@@ -316,7 +316,7 @@ pub async fn set_kv_batch(
     crate::storage::blocking("set_kv_batch", move || {
         let db = tauri::Manager::state::<Db>(&app);
         let mut conn = db.0.lock()?;
-        crate::desktop_startup::commit_entries(&app, &entries, || set_kv_batch_inner(&mut conn, entries.clone()))
+        crate::desktop_preferences::commit_entries(&app, &entries, || set_kv_batch_inner(&mut conn, entries.clone()))
     })
     .await
 }
@@ -331,7 +331,7 @@ pub async fn delete_kv(
         let db = tauri::Manager::state::<Db>(&app);
         let mut conn = db.0.lock()?;
         let entries = vec![(key, None)];
-        crate::desktop_startup::commit_entries(&app, &entries, || set_kv_batch_inner(&mut conn, entries.clone()))
+        crate::desktop_preferences::commit_entries(&app, &entries, || set_kv_batch_inner(&mut conn, entries.clone()))
     })
     .await
 }
@@ -369,10 +369,10 @@ pub async fn replace_kv_prefix(
     crate::storage::blocking("replace_kv_prefix", move || {
         let db = tauri::Manager::state::<Db>(&app);
         let mut conn = db.0.lock()?;
-        let startup = if let Some(suffix) = crate::desktop_startup::GENERAL_KEY.strip_prefix(&prefix) {
-            vec![(crate::desktop_startup::GENERAL_KEY.to_string(), entries.get(suffix).cloned())]
+        let general = if let Some(suffix) = crate::desktop_preferences::GENERAL_KEY.strip_prefix(&prefix) {
+            vec![(crate::desktop_preferences::GENERAL_KEY.to_string(), entries.get(suffix).cloned())]
         } else { vec![] };
-        crate::desktop_startup::commit_entries(&app, &startup, || replace_kv_prefix_inner(&mut conn, &prefix, entries))
+        crate::desktop_preferences::commit_entries(&app, &general, || replace_kv_prefix_inner(&mut conn, &prefix, entries))
     })
     .await
 }

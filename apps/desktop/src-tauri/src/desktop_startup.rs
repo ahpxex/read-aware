@@ -3,8 +3,6 @@
 //! OS change, and a failed compensation is reported instead of claiming rollback.
 use crate::error::CommandError;
 
-pub const GENERAL_KEY: &str = "read-aware-general-settings";
-
 pub(crate) trait Startup {
     fn enabled(&self) -> Result<bool, CommandError>;
     fn set_enabled(&self, enabled: bool) -> Result<(), CommandError>;
@@ -59,30 +57,9 @@ impl Startup for NativeStartup<'_> {
     }
 }
 
-pub(crate) fn preference(value: Option<&str>) -> Result<bool, CommandError> {
-    let Some(value) = value else {
-        return Ok(false);
-    };
-    let parsed: serde_json::Value = serde_json::from_str(value).map_err(|error| {
-        CommandError::new(
-            "plugin/invalid-argument",
-            format!("Invalid general settings: {error}"),
-        )
-    })?;
-    let fields = parsed.as_object().ok_or_else(|| {
-        CommandError::new(
-            "plugin/invalid-argument",
-            "General settings must be an object",
-        )
-    })?;
-    match fields.get("launchAtStartup") {
-        None => Ok(false),
-        Some(serde_json::Value::Bool(value)) => Ok(*value),
-        _ => Err(CommandError::new(
-            "plugin/invalid-argument",
-            "launchAtStartup must be a boolean",
-        )),
-    }
+#[cfg(test)]
+fn preference(value: Option<&str>) -> Result<bool, CommandError> {
+    Ok(crate::desktop_preferences::parse(value)?.launch_at_startup)
 }
 
 fn apply(startup: &impl Startup, enabled: bool) -> Result<(), CommandError> {
@@ -117,30 +94,6 @@ pub(crate) fn commit<T>(
         }
     }
     result
-}
-
-pub(crate) fn commit_entries<T>(
-    app: &tauri::AppHandle,
-    entries: &[(String, Option<String>)],
-    persist: impl FnOnce() -> Result<T, CommandError>,
-) -> Result<T, CommandError> {
-    let Some((_, value)) = entries.iter().rev().find(|(key, _)| key == GENERAL_KEY) else {
-        return persist();
-    };
-    let desired = preference(value.as_deref())?;
-    #[cfg(desktop)]
-    return commit(&NativeStartup(app), desired, persist);
-    #[cfg(not(desktop))]
-    {
-        let _ = app;
-        if desired {
-            return Err(CommandError::new(
-                "ui/unavailable",
-                "Startup registration requires desktop",
-            ));
-        }
-        persist()
-    }
 }
 
 #[tauri::command]

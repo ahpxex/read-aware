@@ -33,7 +33,8 @@
       },
       "fileAssociations": {
         "title": "文件关联",
-        "description": "用 ReadAware 打开 EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML 和 PDF 文件。"
+        "description": "接受系统通过 ReadAware 打开的书籍文件。",
+        "descriptionMac": "接受 macOS 转交的书籍文件。关闭此项不会移除 macOS 中 ReadAware 的文件关联。"
       },
       "autoUpdate": {
         "title": "自动检查更新",

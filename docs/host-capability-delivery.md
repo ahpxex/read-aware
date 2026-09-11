@@ -2,6 +2,18 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：第一段画像迁移与条件写事务
+
+[进度/设计] 上轮 86edd2ae 已推送原生画像/实体投影，是有效进展。本组先明确旧摘要优先级、profile2 事件身份版本、普通编辑与历史备份恢复边界，再实现原生事务。仅完成消费者迁移所需的宿主基础，不把已注册 IPC 冒充前端接通；MEM08 仍为部分。
+
+[实现] profile_initialize 只接收 system 空载荷事件 envelope，在立即事务内读取 durable KV 原文；已有 summary 事件（包括 null 清除）优先，displayName/traits-only 事件不阻止旧摘要导入。事件、投影、outbox 与旧键删除同提交，重复初始化不多写；不完整历史、stale 投影或需写入时的旧时钟均拒绝。profile_inspect 遇到未退休 KV/stale 返回错误而非空画像。profile_commit 用所见 profile2 版本在 SQLite 内 CAS，摘要相同的 no-op 也先校验版本；版本含投影保存的最后事件 ID，拒绝 ABA/同摘要其他画像字段变化，checkpoint bootstrap 无日志时仍一致。新 envelope 必须属于本机、ID 未用、HLC 晚于日志及检查点。正常写限制 16000 UTF-16；独立 user-origin profile_restore 保留较长历史文本，同样 CAS，不向 actor 暴露越限开关。origin 是来源记录，不是授权证明。
+
+[验证] 完整 native storage 定向套件 151 通过、1 个既有 stress 忽略，包含本组 16 项迁移优先级/空值/长历史文本/投影和 outbox 与退休故障回滚/两 SQLite 连接版本冲突/ABA/UTF-16/JS 哈希兼容/真实 checkpoint blob 导入与 bootstrap 恢复/重放回归。首版 bootstrap 夹具漏注册目标设备 blob 而失败，改为正式 put_blob + restore_bootstrap_checkpoint 路径后通过；库存断言首版误用了入口分类名，核对实际 Native command/限定名称后修正。库存/模型最终 15 项/51 断言通过；web 及迁出桌面脚本类型通过。完整 macOS native crate 编译，保留既有 Rust 警告；没有 Windows/Linux 本单元执行、桌面启动、第二段插件扩展或第三段 E2E。
+
+[剩余] 下一单元必须协调切换启动迁移与 KV 快照清理、ProfilePort/提示词/onboarding/公共分页与编辑/观察、v1 备份摘要抽取恢复及 memory 2 契约；现有运行消费者仍为 profile1/KV。随后补实体有界查询、条件 resolve/merge 及双端授权/取消/退休/失败路径。矩阵记录具体关闭条件，AGENTS 实现状态不再声称事件投影为空。只更新文档事实源，HTML 依每日集中规则后置。本组独立提交并 push，既有 Agent 表单改动不混入。
+
+[燃尽] 剩余部分/未接行数 85；未覆盖行数 240；未验收插件数 15（包含 9 个组合桌面插件）。
+
 ## 2026-09-11：第一段 MEM08 原生画像与实体投影
 
 [进度/设计] 上轮 a855da63 已推送且 SET05 两平台 CI 成功，是有效进展。本组先写 profile-entity-projections-design.md，明确画像补丁、实体成员定义/别名、根身份合并、升级与尚缺的公开消费者；仍在第一段，没有启动桌面或扩展组合插件。

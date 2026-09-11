@@ -47,6 +47,13 @@ test("annotation edits and removals have one conditional public inventory entry"
   expect(commands.find(item => item.name.endsWith("applyChanges"))!.rows).toEqual(["ANN04", "ANN05", "ANN06", "ANN08"]);
 });
 
+test("profile transaction commands are native foundations, not new public actor entrypoints", () => {
+  const native = collectInventory().filter(item => item.family === "Native command" && item.name.startsWith("storage::profile_"));
+  expect(native.map(item => item.name).sort()).toEqual(["storage::profile_commit", "storage::profile_initialize", "storage::profile_inspect", "storage::profile_restore"]);
+  expect(native.every(item => item.rows.includes("MEM08"))).toBe(true);
+  expect(native.find(item => item.name === "storage::profile_restore")?.rows).toContain("OPS11");
+});
+
 test("memory query and consumer inventories stay distinct from bundled or model tools", () => {
   const inventory = collectInventory();
   expect(inventory.find(item => item.family === "Plugin ctx" && item.name === "domains.memory.queries.search")?.rows).toEqual(["MEM01"]);

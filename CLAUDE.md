@@ -40,8 +40,11 @@
 >   turns land in the `reading_sessions_pending` scratch pad, one
 >   `book.sessionRecorded` (time + position, last-observed-wins) per closed
 >   hour bucket — `book.progressed` / `book.timeRecorded` are legacy.
-> - Not built yet: the consolidation pipeline behind profile/entity events
->   (they are logged but project to nothing).
+> - **Profile/entity projections are live** (schema 33): profile field patches,
+>   retained entity definitions/aliases and flat merge redirects participate in
+>   replay and checkpoints. Native profile initialization/CAS/restore commands
+>   exist, but current summary consumers still use KV pending their coordinated
+>   migration. Entity consumers and the consolidation pipeline are not built yet.
 > - **Book memory v1 is live**: `book.chapterDigested` events project to
 >   `chapter_digests` (per-finished-chapter summary + entity registry,
 >   names spelled as THIS edition spells them), filled by an idle pipeline

@@ -28,6 +28,8 @@ mod annotation_mutations;
 pub use annotation_mutations::*;
 mod memory_mutations;
 pub use memory_mutations::*;
+mod user_profile;
+pub use user_profile::*;
 mod book_classification;
 pub use book_classification::*;
 mod book_merge;

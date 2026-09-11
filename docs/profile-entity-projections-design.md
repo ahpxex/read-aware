@@ -45,6 +45,42 @@ historical event rolls back the migration rather than marking it applied.
 
 ## Remaining Consumer Work
 
+### Summary Migration Contract
+
+Native `profile_initialize`, `profile_inspect`, `profile_commit` and
+`profile_restore` now implement the transaction side below. They are registered
+internal IPC commands, not new plugin/model authority. The frontend consumers
+still use profile1/KV until the coordinated contract migration lands; the
+remaining paragraphs describe that migration, not its completed runtime wiring.
+
+The host will initialize the summary with a system-origin event envelope minted by
+the existing frontend HLC service. Native code supplies the actual durable KV
+value inside the same transaction that deletes the legacy key. A prior summary
+event, including an explicit null clear, takes precedence; displayName-only
+events do not prevent importing the old summary. Incomplete/stale history cannot
+decide this precedence. Initialization retries after failure and never publishes
+a second independently writable summary cache.
+
+Profile revisions become `profile2:` hashes of `[summary, lastProfileEventId]`.
+Native writes compare the observed revision inside an immediate transaction;
+an A-to-B-to-A change invalidates an old decision. Normal edits remain limited
+to 16000 UTF-16 units. Internal v1 backup restore preserves larger historical
+summaries through a separate host-only restore entry, not an actor override flag.
+Both use profile.updated and reject stale event clocks before committing.
+Memory domain 2 will record the persistence contract as event-log, not device-local.
+
+The native reader refuses unretired legacy KV or stale projections instead of
+reporting an empty summary. Commit requires a fresh local-device envelope after
+the entire log/checkpoint frontier and rejects duplicate IDs. Equal text is a
+no-op only after the observed revision and envelope pass validation. Origin is
+provenance, not authorization: the host must keep restore/initialization outside
+the Agent/plugin bridge and retain existing grants for normal profile edits.
+
+The v1 backup wire format remains the same subset: export materializes the
+current summary under its historical KV key, import removes that key from raw
+KV restoration and conditionally writes the profile event instead. This does
+not turn v1 into a full profile/entity/event-log backup or a context bundle.
+
 The interim app_kv summary must migrate through an event exactly once, with
 existing event-backed summary taking precedence. Onboarding, prompt reads,
 conditional profile edits, backup/restore and observations must all move to the

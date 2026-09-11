@@ -35,7 +35,7 @@
         "title": "檔案關聯",
         "description": "接受系統透過 ReadAware 開啟的書籍檔案。",
         "descriptionMac": "接受 macOS 轉交的書籍檔案。關閉此項不會移除 macOS 中 ReadAware 的檔案關聯。",
-        "descriptionWindows": "將 ReadAware 註冊為支援的書籍檔案的開啟方式，不變更預設應用程式。"
+        "descriptionRegistration": "將 ReadAware 註冊為支援的書籍檔案的開啟方式，不變更預設應用程式。"
       },
       "autoUpdate": {
         "title": "自動檢查更新",

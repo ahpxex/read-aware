@@ -1,0 +1,10 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "fileAssociations": [],
+    "linux": {
+      "deb": { "depends": ["xdg-utils", "shared-mime-info", "desktop-file-utils"] },
+      "rpm": { "depends": ["xdg-utils", "shared-mime-info", "desktop-file-utils"] }
+    }
+  }
+}

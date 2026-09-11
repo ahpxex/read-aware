@@ -2,6 +2,16 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：第一段 SET05 Linux 用户级关联接线
+
+[实现] 复用 Tauri 的 productName.desktop 身份创建用户级覆盖，不增加第二个启动器；旧条目需 Name/Exec 归属证明，带 owner 的条目允许安装路径更新，AppImage 使用持久 APPIMAGE 路径。支持的 MIME/14 个扩展来自同一打包目录；真实 xdg-mime 用户模式安装/移除自有 XML，修改 desktop MimeType 和 mimeapps.list 中自有 Added/Removed 关联，保留其他处理器顺序、默认选择、登录 scheme、翻译名称与其他动作。Linux 打包关闭自动书籍关联，DEB/RPM 声明 xdg/数据库工具依赖；八语言 Windows/Linux 共用注册说明，macOS 明确保留关联。
+
+[一致性] 三文件预读/归属校验、原子写与读回、MIME/desktop 数据库刷新完成后才持久化 SQLite/发布接收策略。失败按原始字节补偿并重建两种缓存；外部改动或补偿失败明确报错，不覆盖用户新值、不假报回滚。固定工具子进程有 15 秒截止，超时终止进程组并等待退出后才补偿；读错误、符号链接、命令缺失/失败不当作空成功。%U 交付的 file URL 通过 URL 库解码后走原生接收准入。
+
+[验证] 本地完整 macOS crate 的关联定向 25 项、desktop_ 10 项（含 Linux 编码/配置测试）、接收 11 项通过；类型检查 web/迁出的桌面脚本通过，库存/模型 14 项/48 断言通过，隔离挂载入口 2 项内部另跑接收 6 项/启动 5 项。新增 Linux CI 将编译完整原生 crate，并在临时 XDG 根目录运行实际工具安装/注销/重新启用/SQLite 失败补偿及缓存/默认值校验；当前尚待该平台结果，不提前声称 Linux 编译/工具行为通过，SET05 暂保留部分。无桌面启动或第二/三段工作，HTML 本批不重复生成。
+
+[燃尽] 剩余部分/未接行数 86；未覆盖行数 240；未验收插件数 15（包含 9 个组合桌面插件）。
+
 ## 2026-09-11：SET05 Windows CI 通过
 
 [验证] a9356c8f 已推送，[Windows CI 34563019449](https://github.com/ahpxex/read-aware/actions/runs/34563019449) 最终 success：真实完整桌面 Rust crate 编译，关联 12 项、桌面偏好/启动 7 项、外部接收 10 项全部通过；生产 NSIS hook 也通过编译。前两次失败及修正记录保留如下，不覆盖成一次成功。所有测试均未启动 ReadAware，NSIS 产物未安装/执行；这不是系统注册行为、真实插件或 packaged Tauri E2E 证据。矩阵仍保留 Linux 注册/注销、安装条目协调与补偿测试的实现关闭条件，SET05 未改绿。

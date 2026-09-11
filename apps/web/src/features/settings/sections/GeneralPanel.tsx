@@ -1,7 +1,7 @@
 import { ChoiceGroup, InlineError, Select, Spinner, Toggle } from "@read-aware/ui";
 import { describeError } from "../../../i18n/describe-error";
 import { useGeneralSettings } from "../hooks/useGeneralSettings";
-import { isMacOS, isWindows } from "../../../platform/environment";
+import { isLinux, isMacOS, isWindows } from "../../../platform/environment";
 import { LOCALES, LOCALE_LABELS, useLocale, useTranslation } from "../../../i18n";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
@@ -65,7 +65,7 @@ export function GeneralPanel() {
           title={t("general.desktopIntegration.fileAssociations.title")}
           description={isMacOS()
             ? t("general.desktopIntegration.fileAssociations.descriptionMac")
-            : isWindows() ? t("general.desktopIntegration.fileAssociations.descriptionWindows")
+            : isWindows() || isLinux() ? t("general.desktopIntegration.fileAssociations.descriptionRegistration")
             : t("general.desktopIntegration.fileAssociations.description")}
           control={
             <Toggle

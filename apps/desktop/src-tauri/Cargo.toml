@@ -125,6 +125,11 @@ windows = { version = "0.61", features = [
 
 [dev-dependencies]
 syn = { version = "2", features = ["full", "visit"] }
+rust-ini = "0.21.3"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+rust-ini = "0.21.3"
+libc = "0.2"
 
 # Tauri's third-party dependency graph dominates target/debug when every crate
 # carries full debug data. Keep ReadAware's own symbols, but omit dependency

@@ -35,7 +35,7 @@
         "title": "ファイルの関連付け",
         "description": "システムから ReadAware に渡された書籍ファイルを受け入れます。",
         "descriptionMac": "macOS から渡された書籍ファイルを受け入れます。オフにしても macOS の ReadAware のファイル関連付けは削除されません。",
-        "descriptionWindows": "対応する書籍ファイルを開く選択肢として ReadAware を登録します。既定のアプリは変更されません。"
+        "descriptionRegistration": "対応する書籍ファイルを開く選択肢として ReadAware を登録します。既定のアプリは変更されません。"
       },
       "autoUpdate": {
         "title": "アップデートを自動確認",

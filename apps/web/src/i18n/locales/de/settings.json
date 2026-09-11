@@ -35,7 +35,7 @@
         "title": "Dateizuordnungen",
         "description": "Vom System mit ReadAware geöffnete Buchdateien annehmen.",
         "descriptionMac": "Von macOS übergebene Dateien annehmen. Das Ausschalten entfernt ReadAware nicht aus den macOS-Dateizuordnungen.",
-        "descriptionWindows": "ReadAware als Option zum Öffnen unterstützter Buchdateien registrieren. Ihre Standard-Apps bleiben unverändert."
+        "descriptionRegistration": "ReadAware als Option zum Öffnen unterstützter Buchdateien registrieren. Ihre Standard-Apps bleiben unverändert."
       },
       "autoUpdate": {
         "title": "Automatisch nach Updates suchen",

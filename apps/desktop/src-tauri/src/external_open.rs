@@ -149,7 +149,14 @@ where
             if arg.is_empty() || arg.starts_with('-') {
                 return None;
             }
-            let raw = PathBuf::from(arg);
+            let raw = if arg
+                .get(..5)
+                .is_some_and(|prefix| prefix.eq_ignore_ascii_case("file:"))
+            {
+                tauri::Url::parse(arg).ok()?.to_file_path().ok()?
+            } else {
+                PathBuf::from(arg)
+            };
             let path = match (raw.is_absolute(), cwd) {
                 (false, Some(cwd)) => cwd.join(raw),
                 _ => raw,
@@ -205,13 +212,35 @@ mod tests {
     use super::*;
 
     #[test]
+    fn desktop_url_field_codes_deliver_decoded_local_file_paths() {
+        let dir = tempfile::tempdir().unwrap();
+        let book = dir.path().join("100% new book.epub");
+        std::fs::write(&book, b"test").unwrap();
+        let uri = tauri::Url::from_file_path(&book).unwrap();
+        assert_eq!(
+            collect_book_paths(
+                [
+                    uri.as_str(),
+                    "https://example.com/book.epub",
+                    "file:////missing.epub"
+                ],
+                None
+            ),
+            vec![book.to_string_lossy().to_string()]
+        );
+    }
+
+    #[test]
     fn native_import_admission_rejects_revoked_batches_even_after_reopening() {
         let queue = ExternalOpenQueue::new(vec!["cold.epub".into()]);
         queue.publish(true).unwrap();
         let batch = queue.take().unwrap();
         queue.admit(&batch.epoch).unwrap();
         queue.commit(false, false, || Ok(())).unwrap();
-        assert_eq!(queue.admit(&batch.epoch).unwrap_err().code, "ui/unavailable");
+        assert_eq!(
+            queue.admit(&batch.epoch).unwrap_err().code,
+            "ui/unavailable"
+        );
         queue.commit(true, false, || Ok(())).unwrap();
         assert!(queue.admit(&batch.epoch).is_err());
         queue.admit(&queue.take().unwrap().epoch).unwrap();

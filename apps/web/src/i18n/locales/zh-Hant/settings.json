@@ -162,11 +162,11 @@
       },
       "defineTerm": {
         "label": "定義詞語",
-        "description": "為選取的字詞提供行內定義。"
+        "description": "在本書聊天中解釋選取的字詞。"
       },
       "translate": {
         "label": "翻譯",
-        "description": "將選取內容翻譯成你的閱讀語言。"
+        "description": "將選取內容翻譯成你的介面語言。"
       },
       "summarizeChapter": {
         "label": "摘要本章",

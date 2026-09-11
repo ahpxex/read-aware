@@ -424,6 +424,7 @@ export interface ExternalMemoryCandidateRequest {
 }
 
 export interface RuntimeDeps {
+  readingAiActions: import("@read-aware/core").ReadingAiPort;
   schedules: {
     list(query?: import("@read-aware/core").PluginScheduleQuery): Promise<import("@read-aware/core").PluginSchedulePage>;
     control(input: import("@read-aware/core").PluginScheduleControl, signal?: AbortSignal): Promise<import("@read-aware/core").PluginScheduleReceipt>;

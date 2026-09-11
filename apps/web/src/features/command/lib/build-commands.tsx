@@ -42,7 +42,7 @@ export type CommandItem = {
   coverUrl?: string | null;
   disabled?: boolean;
   checked?: boolean;
-} & ({ hostCommand: HostCommandRequest; perform?: never } | { hostCommand?: never; perform: () => void });
+} & ({ hostCommand: HostCommandRequest; perform?: never } | { hostCommand?: never; perform: (signal?: AbortSignal) => unknown | Promise<unknown> });
 
 /** Fixed section order in the palette. */
 export const GROUP_ORDER: readonly CommandGroupKey[] = [

@@ -364,6 +364,14 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   const entityRegistry = createEntityRegistryFixture();
   const identityConsolidation = createIdentityConsolidationFixture(() => deps, entityRegistry);
   const deps: RuntimeDeps = {
+    readingAiActions: {
+      enabled: () => ["explainSelection", "defineTerm", "translate", "summarizeChapter"],
+      run: async (action, bookId, signal) => {
+        signal?.throwIfAborted();
+        return bookId ? { status: "context", context: { action, bookId, prompt: "Use the captured reading context." } }
+          : { status: "started", action, bookId: "book-1" };
+      },
+    },
     downloadResource: async () => { throw new AppError("ui/unavailable", "Attach a download fixture"); },
     resources: () => ({
       pick: async () => ({ cancelled: true, resources: [] }), openBook: async () => null, openCover: async () => null,

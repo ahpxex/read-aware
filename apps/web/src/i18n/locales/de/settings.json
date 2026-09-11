@@ -162,11 +162,11 @@
       },
       "defineTerm": {
         "label": "Begriff definieren",
-        "description": "Inline-Definitionen für ein ausgewähltes Wort oder eine Phrase."
+        "description": "Ein ausgewähltes Wort oder eine Phrase im Buchchat erklären."
       },
       "translate": {
         "label": "Übersetzen",
-        "description": "Eine Auswahl in deine Lesesprache übersetzen."
+        "description": "Eine Auswahl in die Sprache deiner Benutzeroberfläche übersetzen."
       },
       "summarizeChapter": {
         "label": "Kapitel zusammenfassen",

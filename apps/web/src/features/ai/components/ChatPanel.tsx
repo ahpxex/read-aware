@@ -7,6 +7,7 @@ import { ChatComposer, type ChatComposerHandle } from "./ChatComposer";
 import { ChatTranscript } from "./ChatTranscript";
 import { ChatTurnRequest } from "./ChatTurnRequest";
 import { useConversationTurnRequests } from "../hooks/useConversationTurnRequests";
+import { useReadingAiSurface } from "../hooks/useReadingAiSurface";
 
 /**
  * The book's AI conversation, rendered as panel content (the note panel owns the
@@ -33,6 +34,7 @@ export function ChatPanel({
   readingCursor?: ChatReadingCursor | null;
 }) {
   const conversation = useBookConversation(bookId, bookTitle, "book", readingCursor);
+  useReadingAiSurface(bookId, conversation);
   const askAiRequest = useAtomValue(askAiRequestAtom);
   const lastConsumedIdRef = useRef<string | null>(null);
   const [pendingAttachment, setPendingAttachment] =

@@ -9,6 +9,7 @@ import { useAtom } from "jotai";
 import { commandQueryAtom } from "../../../state/ui";
 import { WorkspaceCommit } from "../../../components/WorkspaceCommit";
 import { useCommandExecution, type NativeCommandExecutor } from "../hooks/useCommandExecution";
+import { useReadingAiCommands } from "../hooks/useReadingAiCommands";
 
 type CommandPaletteProps = {
   isOpen: boolean;
@@ -32,9 +33,10 @@ export function CommandPalette({ isOpen, onClose, ctx, extraItems, workspaceToke
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const { run, dismiss, busy } = useCommandExecution(isOpen, onClose, executeHost);
+  const readingAiCommands = useReadingAiCommands(isOpen);
 
   const items = useMemo(
-    () => (isOpen ? [...buildCommands(ctx, t), ...(extraItems ?? [])] : []),
+    () => (isOpen ? [...buildCommands(ctx, t), ...readingAiCommands, ...(extraItems ?? [])] : []),
     // Rebuild when the underlying data changes (actions are stable setters) or
     // the language switches (labels/keywords are translated).
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -47,6 +49,7 @@ export function CommandPalette({ isOpen, onClose, ctx, extraItems, workspaceToke
       ctx.books,
       ctx.importBook,
       extraItems,
+      readingAiCommands,
       t,
     ],
   );

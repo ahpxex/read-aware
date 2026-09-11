@@ -162,11 +162,11 @@
       },
       "defineTerm": {
         "label": "Définir un terme",
-        "description": "Définitions en ligne pour un mot ou une expression sélectionnés."
+        "description": "Définir un mot ou une expression sélectionnés dans le chat du livre."
       },
       "translate": {
         "label": "Traduire",
-        "description": "Traduire une sélection dans votre langue de lecture."
+        "description": "Traduire une sélection dans la langue de votre interface."
       },
       "summarizeChapter": {
         "label": "Résumer le chapitre",

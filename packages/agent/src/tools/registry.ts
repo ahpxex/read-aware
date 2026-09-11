@@ -32,6 +32,7 @@ import { buildBookContentTools } from "./book-content-tools";
 import { buildBookMergeTools } from "./book-merge-tools";
 import { buildScheduleTools } from "./schedule-tools";
 import { buildShelfTools } from "./shelf-tools";
+import { buildReadingAiTools } from "./reading-ai-tools";
 import type { AgentTurnState } from "./turn-state";
 
 export type { AgentTurnState, SpoilerFence } from "./turn-state";
@@ -44,6 +45,7 @@ export function buildAgentTools(
   turnState?: AgentTurnState,
 ): AgentTool[] {
   const hostTools: AgentTool[] = [
+    ...buildReadingAiTools(scope, deps),
     ...buildEnvironmentTools(deps),
     ...buildWindowTools(deps),
     ...buildImageViewerTools(scope, deps),

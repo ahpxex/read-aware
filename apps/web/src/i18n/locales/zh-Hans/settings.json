@@ -162,11 +162,11 @@
       },
       "defineTerm": {
         "label": "释义术语",
-        "description": "为选中的词或短语提供内嵌释义。"
+        "description": "在本书聊天中解释选中的词或短语。"
       },
       "translate": {
         "label": "翻译",
-        "description": "将选中内容翻译为你的阅读语言。"
+        "description": "将选中内容翻译为你的界面语言。"
       },
       "summarizeChapter": {
         "label": "总结章节",

@@ -65,11 +65,30 @@ test("palette waits, isolates frames, reports truthful failures and cancels expl
     await act(async () => { api.dismiss(); }); expect(dismissed.signal.aborted).toBe(true); expect(closed).toBe(2);
     await act(async () => { dismissed.resolve(completed); await run; }); expect(closed).toBe(2);
 
+    const callbacks: { signal: AbortSignal; resolve(): void; reject(error: unknown): void }[] = [];
+    const asyncItem: CommandItem = { id: "reading-ai", title: "Explain", kind: "action", group: "goto", icon: null,
+      perform: signal => new Promise<void>((resolve, reject) => { callbacks.push({ signal: signal!, resolve, reject }); }) };
+    await render(false); await render(true);
+    await act(async () => { run = api.run(asyncItem); });
+    expect(api.busy).toBe(true); expect(closed).toBe(2);
+    await act(async () => { callbacks.shift()!.reject(new AppError("ui/unavailable", "private action failure")); await run; });
+    expect(api.busy).toBe(false); expect(closed).toBe(2);
+    expect(dom.window.document.body.textContent).not.toContain("private action failure");
+    await act(async () => { run = api.run(asyncItem); });
+    const oldCallback = callbacks.shift()!;
+    await render(false); await render(true);
+    expect(oldCallback.signal.aborted).toBe(false);
+    await act(async () => { oldCallback.resolve(); await run; }); expect(closed).toBe(2);
+    await act(async () => { run = api.run(asyncItem); });
+    const cancelledCallback = callbacks.shift()!;
+    await act(async () => { api.dismiss(); }); expect(cancelledCallback.signal.aborted).toBe(true);
+    await act(async () => { cancelledCallback.resolve(); await run; }); expect(closed).toBe(3);
+
     await render(false); await render(true);
     await act(async () => { run = api.run(item); });
     const unmounted = pending.shift()!;
     await act(async () => { root.unmount(); }); expect(unmounted.signal.aborted).toBe(true);
-    unmounted.resolve(completed); await run; expect(closed).toBe(2);
+    unmounted.resolve(completed); await run; expect(closed).toBe(3);
   } finally {
     for (const task of pending.splice(0)) task.resolve(completed);
     await act(async () => { root.unmount(); }); dom.window.close();

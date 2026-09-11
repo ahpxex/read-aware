@@ -63,6 +63,14 @@ test("identity consolidation foundations are mapped without inventing public act
   expect(entries.every(item => item.family === "Native command" && item.rows.length === 1 && item.rows[0] === "MEM08")).toBe(true);
 });
 
+test("reading AI actions have explicit per-feature mappings in both Agent scopes", () => {
+  const inventory = collectInventory();
+  const actions = { explain_selection: "SET18", define_term: "SET19", translate_selection: "SET20", summarize_chapter: "SET21" };
+  for (const family of ["Agent global", "Agent book"]) for (const [name, row] of Object.entries(actions)) {
+    expect(inventory.find(item => item.family === family && item.name === name)?.rows).toEqual([row]);
+  }
+});
+
 test("entity registry native, Agent and plugin entrypoints have explicit MEM08 mappings", () => {
   const inventory = collectInventory();
   const native = inventory.filter(item => item.family === "Native command" && item.name.startsWith("storage::entity_"));

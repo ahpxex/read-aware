@@ -13,6 +13,12 @@ export const cap = (id: string, name: string, host: HostState, agent: Actor, plu
   ({ id, name, host, agent, plugin, sources, consumers, gap, baseline: [] });
 
 export const sources: Record<string, string> = {
+  READINGAIACTIONS: "apps/web/src/services/reading-ai-actions.ts",
+  READINGAIRUNTIME: "apps/web/src/services/reading-ai-runtime.ts",
+  READINGAITOOLS: "packages/agent/src/tools/reading-ai-tools.ts",
+  READINGAIPROOF: "apps/web/src/services/reading-ai-actions.test.ts",
+  READINGAISURFACES: "apps/web/src/features/ai/hooks/reading-ai-surfaces.test.tsx",
+  READINGAIPORTPROOF: "apps/web/src/features/ai/agent/ports/reading-ai-port.test.ts",
   DOCSEARCH: "apps/desktop/src-tauri/src/storage/plugin_document_search.rs",
   CONVERSATIONINSIGHTS: "apps/web/src/features/ai/lib/conversation-insights-store.ts",
   CONVERSATIONINSIGHTSPROOF: "apps/web/src/domain/conversation-insights.test.ts",
@@ -840,16 +846,20 @@ export const staticSettingPaths = [
   "shortcuts.next-chapter", "shortcuts.prev-chapter", "shortcuts.toggle-controls", "shortcuts.reader-mode-next-unit", "shortcuts.reader-mode-prev-unit",
   "shortcuts.selection-copy", "shortcuts.selection-highlight", "shortcuts.selection-underline", "shortcuts.selection-add-note", "shortcuts.selection-look-up", "shortcuts.selection-ask-ai",
 ];
-export const ineffectiveSettings = new Set([
-  "ai.preferences.features.explainSelection", "ai.preferences.features.defineTerm",
-  "ai.preferences.features.translate", "ai.preferences.features.summarizeChapter",
-]);
+export const ineffectiveSettings = new Set<string>();
+const readingAiTools: Record<string, string> = {
+  "ai.preferences.features.explainSelection": "explain_selection",
+  "ai.preferences.features.defineTerm": "define_term",
+  "ai.preferences.features.translate": "translate_selection",
+  "ai.preferences.features.summarizeChapter": "summarize_chapter",
+};
 export const readOnlySettings = new Set([
   "ai.connection.configured", "ai.connection.credentialConfigured", "ai.connection.provider",
   "ai.connection.custom.endpointConfigured",
 ]);
 groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.length} 个具体路径）`, rows: staticSettingPaths.map((path, i) => {
   const ineffective = ineffectiveSettings.has(path);
+  const readingAi = readingAiTools[path];
   const startup = path === "general.launchAtStartup";
   const fileAssociations = path === "general.fileAssociations";
   const localOnly = path === "ai.preferences.localOnly";
@@ -859,6 +869,7 @@ groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.len
   const readonly = readOnlySettings.has(path);
   const effect = ineffective
     ? "保存值有实现；全生产源码扫描未找到对应效果消费者。不能算行为已实现或端到端覆盖。"
+    : readingAi ? "实现关闭条件已满足，接通（待 E2E）：四动作共用生产 ReadingAiActions，选区 More 菜单、命令面板和双 scope Agent 工具随对应开关显示/移除，缓存工具执行再次复核，独立于 askConversation。固定当前书/会话/来源版本与选区或章节；完整选区最多32000 UTF-16，预览不足按版本化 Range 续读，缺失/过长拒绝不截断。章节意图固定提取章节序号，要求既有 Agent 读取整章而非视口；翻译跟随界面语言。原生/全局入口打开本书聊天，等待真实 send 接受；loading 可等，忙/取消/目标失效/关闭不可迟到发送，同步已接受回执不被晚取消覆盖。书内 Agent 返回上下文并在当前回合回答，不递归发送。文本隐私和 localOnly 同一执行门控，等待中 off/on 永久作废旧调用，已接受推理沿用聊天停止/错误/重试。定向服务、实际端口、挂载 UI 和 Agent 请求间发现测试通过，不是模型效果证明；正式插件设置持久/撤权、真实 Tauri 菜单/命令/对话、全格式整章/长选区、失败并发和 packaged 依 host-capability-stage-three.md 验收。"
     : fileAssociations ? "实现关闭条件已满足，接通（待 E2E）。冷启动 argv、第二实例 argv、macOS Opened 共用原生队列；持久提交才发布接收策略，关闭清队列/换 epoch，重开不重放。原生导入准入再次校验 epoch，已准入导入可完成但迟到导航被抑制，不撤销已派发导航；StrictMode 试挂载不吞冷启动队列，读失败不当空成功。macOS 保留 Info.plist 的 14 扩展声明，八语言如实说明。Windows 真实管理 HKCU/<identifier>.Book、14 个 OpenWithProgids 与 shell 通知；不写 UserChoice/其他默认，逐值核验和 SQLite 失败补偿；currentUser NSIS 首启注册、owner 卸载清理，旧通用类只按证明归属迁移，机器级旧类明确拒绝。Linux 使用同一 productName.desktop 的用户覆盖与 owner XML，真实 xdg-mime 用户级安装/注销、MIME/desktop 缓存刷新，按身份更新安装路径，AppImage 使用持久路径；只改自有 Added/Removed 关联，保留其他处理器、默认选择和登录 scheme。三个文件预读/读回、失败补偿与外部冲突拒绝，子进程截止/终止后才补偿；DEB/RPM 声明工具依赖。无原始 OS/path 插件权限。平台原生编译、定向权限/SQLite/临时 XDG 工具测试不等于产品验收：真实冷/热打开、实际处理器列表、安装/升级/卸载、并发/撤权与 packaged 正式插件完整轮次仍按 host-capability-stage-three.md 执行。"
     : startup ? "实现关闭条件已满足：tauri-plugin-autostart 按应用 identifier 管理设备本地启动注册；原生 KV 单项/批量/删除/前缀恢复/清空在同一 DB 锁下先应用并核验 OS 注册，再提交 SQLite，失败补偿，补偿失败如实拒绝并记录。UI/Agent/授权插件读取实际注册，不把历史占位值当生效值；一般设置按字段提交，不恢复系统中已关闭的旧值；原生失败回滚前端持久镜像。无 Worker 原始 autostart 权限或路径参数；排队取消在原生读取后再检查。UI loading/error/busy、focus 和外部持久提交刷新、局部授权与退休均有定向测试。审计的 auto-launch Cargo patch 修复三平台安装路径/参数序列化及 macOS/Linux 完整写入，纯测试不安装启动项。状态表示本应用注册，不承诺绕过 OS 登录策略。第三段 host-capability-stage-three.md 规定隔离 Tauri、真实登录启动、系统外部控制、SQLite/OS 故障及 packaged 插件轮次，尚未执行。"
     : localOnly ? "宿主模型调用已有实时执行策略：Agent smart/fast、后台补全、Worker llm.ask 普通/结构化/流式及连接测试同源拒绝 ai/local-only；进行中调用取消，迟到结果/重试被抑制，恢复只允许新调用。当前无本地模型后端，Custom loopback 也拒绝。隔离 macOS debug 双端/取消/持久失败回滚/原生连接 UI 已验；任意插件 HTTP、TTS、同步不受此策略约束，完整隐私边界与 packaged/跨平台仍未完成，保留部分。"
@@ -869,10 +880,11 @@ groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.len
         : path.startsWith("menus.") ? "只影响菜单排列/显示，不调用菜单动作。"
           : "目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。";
   return cap(`SET${String(i + 1).padStart(2, "0")}`, path, partial ? "部分" : "实装",
-    actor(partial ? "部分" : startup || fileAssociations ? "接通（待 E2E）" : "接通", readonly ? "get_settings" : "get_settings/update_settings", "类型化设置工具"),
-    actor(partial ? "部分" : startup || fileAssociations ? "接通（待 E2E）" : "接通", readonly ? "settings discover/read（需路径授权）" : "settings discover/read/update（需路径授权）", "类型化设置领域"),
+    actor(partial ? "部分" : startup || fileAssociations || readingAi ? "接通（待 E2E）" : "接通", readingAi ? `get_settings/update_settings + ${readingAi}（双scope）` : readonly ? "get_settings" : "get_settings/update_settings", "类型化设置工具"),
+    actor(partial ? "部分" : startup || fileAssociations || readingAi ? "接通（待 E2E）" : "接通", readonly ? "settings discover/read（需路径授权）" : "settings discover/read/update（需路径授权）", "类型化设置领域"),
     ["SETTINGS","SETDOMAIN","SETTOOLS", ...(localOnly ? ["AIPREFS", "INFERENCEPOLICY", "HOSTINFERENCEPOLICY", "INFERENCEEVIDENCE"]
       : startup ? ["DESKTOPSTARTUP", "DESKTOPPREFERENCES", "STARTUPUI", "STARTUPTEST", "STARTUPDEPENDENCY"]
+      : readingAi ? ["READINGAIACTIONS", "READINGAIRUNTIME", "READINGAITOOLS", "READINGAIPROOF", "READINGAISURFACES", "READINGAIPORTPROOF"]
       : fileAssociations ? ["DESKTOPPREFERENCES", "EXTERNALOPENQUEUE", "EXTERNALOPENHOOK", "EXTERNALOPENPROOF", "GENERAL", "FILEASSOCIATIONS", "WINASSOCIATIONS", "ASSOCIATIONPROOF", "ASSOCIATIONINSTALLER", "LINUXASSOCIATIONS", "LINUXASSOCIATIONNATIVE", "LINUXASSOCIATIONPROOF"]
       : buildMemory ? ["MEMORYPOLICY", "HOSTMEMORYPOLICY", "READINGGOALS", "MEMORYPOLICYPROOF"]
       : readingContext ? ["READINGCONTEXTPOLICY", "HOSTREADINGCONTEXTPOLICY", "READINGCONTEXTPROOF", "STRUCTUREDREADING", "STRUCTUREDREADINGPROOF", "THREAD", "READTOOLS"]
@@ -880,7 +892,7 @@ groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.len
       : path === "annotations.defaultColor" ? ["MARKPREFS", "TEXTACTIONS"]
         : path === "general.updateChannel" ? ["UPDATECHANNEL", "ABOUT"]
           : [path.startsWith("ai.preferences") ? "AIPREFS" : path.startsWith("general") ? "GENERAL" : path.startsWith("reading") ? "PREFS" : path.startsWith("menus") ? "MENUSTATE" : "UI"])],
-    ineffective ? "仅设置页/设置存储/目录；效果未接" : "设置页；Agent；授权插件可调用（不代表每个插件实际调用）",
+    ineffective ? "仅设置页/设置存储/目录；效果未接" : readingAi ? "设置页/授权设置插件；选区菜单/命令面板/Agent动作；既有本书聊天" : "设置页；Agent；授权插件可调用（不代表每个插件实际调用）",
     effect);
 }) });
 

@@ -162,11 +162,11 @@
       },
       "defineTerm": {
         "label": "用語を定義",
-        "description": "選択した単語やフレーズのインライン定義。"
+        "description": "本のチャットで選択した単語やフレーズを説明します。"
       },
       "translate": {
         "label": "翻訳",
-        "description": "選択範囲を読書言語に翻訳します。"
+        "description": "選択範囲をインターフェースの言語に翻訳します。"
       },
       "summarizeChapter": {
         "label": "章を要約",

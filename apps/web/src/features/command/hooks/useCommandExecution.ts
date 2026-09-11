@@ -40,7 +40,7 @@ export function useCommandExecution(isOpen: boolean, onClose: () => void, execut
           if (!owner.controller.signal.aborted) toast({ variant: "destructive", title: t("partial"), description: describeError(failure).body });
           return;
         }
-      } else item.perform();
+      } else await item.perform(owner.controller.signal);
       // Workspace navigation may already have closed this frame. A late result
       // must never close a newer palette, nor cancel its own destination commit.
       if (owner.frame === frame.current && !owner.controller.signal.aborted) onClose();

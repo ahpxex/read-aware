@@ -26,6 +26,35 @@ describe("live model tool snapshots", () => {
   let faux: FauxProviderRegistration;
   afterEach(() => faux?.unregister());
 
+  for (const scope of [{ kind: "book", bookId: "book" }, { kind: "global", threadId: "reading-features" }] satisfies ThreadScope[]) {
+    test(`${scope.kind}: disabled reading actions disappear on the next request and retained definitions cannot execute`, async () => {
+      faux = registerFauxProvider({ tokensPerSecond: 100_000 });
+      const { deps } = createInMemoryDeps({ books: [{ id: "book", title: "Book", progressPercent: 0 }] });
+      const enabled = deps.readingAiActions.enabled;
+      let visible = true, calls = 0;
+      deps.readingAiActions.enabled = () => visible ? enabled() : [];
+      deps.readingAiActions.run = async action => { calls++; return { status: "started", action, bookId: "book" }; };
+      const seen: string[][] = [];
+      const thread = new AgentThread({ scope, deps, resolveModel: () => faux.getModel() as Model<Api>, getApiKey: () => "test",
+        completeFn: async () => fauxAssistantMessage('{"new": [], "reinforced": []}'),
+        streamFn: (model, context, options) => {
+          seen.push(context.tools?.map(tool => tool.name) ?? []);
+          visible = false;
+          return streamSimple(model, context, options);
+        },
+      });
+      faux.setResponses([fauxAssistantMessage([fauxToolCall("explain_selection", {})], { stopReason: "toolUse" }), fauxAssistantMessage("Disabled.")]);
+      try {
+        const chunks = await collect(thread.sendTurn({ text: "Explain the selection" }));
+        for (const name of ["explain_selection", "define_term", "translate_selection", "summarize_chapter"]) {
+          expect(seen[0]).toContain(name); expect(seen[1]).not.toContain(name);
+        }
+        expect(chunks.find(chunk => chunk.type === "tool-step" && chunk.phase === "end")).toMatchObject({ isError: true });
+        expect(calls).toBe(0);
+      } finally { await thread.flushBackgroundWork(); thread.dispose(); }
+    });
+  }
+
   for (const scope of [
     { kind: "book", bookId: "book" as Id },
     { kind: "global", threadId: "refresh" },

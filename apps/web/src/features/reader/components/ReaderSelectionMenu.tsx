@@ -27,6 +27,8 @@ import { selectionActionsAtom } from "../../plugins/state/plugin-store";
 import { useAnchoredMenuPosition } from "../hooks/useAnchoredMenuPosition";
 import type { ReaderSelectionState } from "../lib/selection-overlay";
 import { contributionText } from "../../plugins/lib/plugin-i18n";
+import { useReadingAiControls } from "../../ai/hooks/useReadingAiControls";
+import { READING_AI_ICONS } from "../../ai/lib/reading-ai-icons";
 
 /**
  * 菜单只消费选区的锚点/文本/CFI —— 收窄类型后，逐句模式可以把静息句
@@ -34,7 +36,7 @@ import { contributionText } from "../../plugins/lib/plugin-i18n";
  */
 export type ReaderSelectionMenuTarget = Pick<
   ReaderSelectionState,
-  "anchorRect" | "cfiRange" | "text"
+  "anchorRect" | "cfiRange" | "text" | "captured"
 > & { context?: string };
 
 type ReaderSelectionMenuProps = {
@@ -45,7 +47,7 @@ type ReaderSelectionMenuProps = {
   onUnderline?: () => void;
   onAddNote?: () => void;
   onAskAI?: () => void;
-  /** When false (e.g. fixed-layout PDF) only the copy action is offered. */
+  /** When false, legacy core actions other than copy are hidden. */
   allowAnnotations?: boolean;
   /** Selection context for plugin-contributed actions (null hides them). */
   pluginInput?: SelectionActionInput | null;
@@ -76,6 +78,7 @@ export function ReaderSelectionMenu({
   const copyResetTimeoutRef = useRef<number | null>(null);
   const [copied, setCopied] = useState(false);
   const askEnabled = useAskAiEnabled();
+  const readingAi = useReadingAiControls(!!selection, selection?.captured?.id ?? null);
   const menuConfig = useAtomValue(menuConfigAtom);
   const pluginActions = useAtomValue(selectionActionsAtom).filter(action => action.state?.visible !== false);
 
@@ -244,7 +247,6 @@ export function ReaderSelectionMenu({
   return (
     <div
       ref={containerRef}
-      aria-hidden="true"
       className="pointer-events-none absolute inset-0 z-20 overflow-hidden"
     >
       <div
@@ -285,7 +287,12 @@ export function ReaderSelectionMenu({
           const node = coreNodes[id];
           return node ? <span key={id} className="contents">{node}</span> : null;
         })}
-        <MenuOverflow entries={overflowEntries} size="sm" />
+        <MenuOverflow entries={[...overflowEntries, ...readingAi.actions.map(action => {
+          const Icon = READING_AI_ICONS[action];
+          return { id: `reading-ai:${action}`, label: tMenus(`ai.featureList.${action}.label`),
+            icon: <Icon size={15} weight="regular" aria-hidden="true" />, disabled: readingAi.disabled(action),
+            run: () => { void readingAi.run(action).catch(readingAi.report); } };
+        })]} size="sm" />
       </div>
     </div>
   );

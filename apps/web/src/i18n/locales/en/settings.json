@@ -162,11 +162,11 @@
       },
       "defineTerm": {
         "label": "Define term",
-        "description": "Inline definitions for a selected word or phrase."
+        "description": "Define a selected word or phrase in the book chat."
       },
       "translate": {
         "label": "Translate",
-        "description": "Translate a selection into your reading language."
+        "description": "Translate a selection into your interface language."
       },
       "summarizeChapter": {
         "label": "Summarize chapter",

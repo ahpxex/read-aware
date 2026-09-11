@@ -35,6 +35,7 @@ import { inspectMemory, mutateMemory } from "../../../../domain/memory-managemen
 import { inspectBookClassification, changeBookClassification } from "../../../../domain/book-classification";
 import { agentBookGraphTasks } from "../../../../domain/book-graph-tasks";
 import { identityConsolidationPort } from "../../../../domain/identity-consolidation";
+import { readingAiActions } from "../../../../services/reading-ai-runtime";
 
 export { GLOBAL_CONVERSATION_ID } from "./conversation-port";
 
@@ -42,6 +43,7 @@ export function buildRuntimeDeps(): RuntimeDeps {
   const conversations = createConversationsDomain("agent");
   const interactions = createUserInteractionPort();
   return {
+    readingAiActions,
     schedules: { list: async query => pluginSchedules.list(query), control: (input, signal) => pluginSchedules.control(input, signal) },
     sync: hostSync,
     maintenance: hostMaintenance,

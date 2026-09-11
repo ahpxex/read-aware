@@ -2,6 +2,14 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：第一段陈旧行复核与有意边界声明
+
+[进度/设计] 上轮2b8039a0已推送。接手后重扫全部80个未关闭行（排除CON11/12/SYS18），先处理两类不需要新代码的行：gap文字已落后于源码的行，以及目标列本身写明"不开放/由宿主呈现"的行。后者按矩阵图例"未接：目标列为不开放的行是有意边界，不是应补权力"保持未接，本组起从燃尽口径中明确排除，不再当作缺口：READ15(agent)、ANN07(plugin)、STAT04(双端)、SYS03(agent)、SYS04(agent)、OPS02(agent)、EXT02/EXT03/EXT04/EXT06/MORE04(agent)。这些行的宿主/插件侧若仍标部分（EXT06编辑器schema、SYS03联合恢复），缺口保留。
+
+[复核] 逐行对照源码后改状态：EXT05 全部字段种类的 fieldErrors 已接宿主控件 error 属性（PluginFormViewBody text/textarea/time/number/secret/select/choice/checkbox/toggle），Agent 另有 ask_user_form（d0a05178），双端改接通（待 E2E）；READ03 find_book_locations/searchLocations 已产出版本化 location 并可交给 open_book/goTo，旧"正文搜索尚不产出可导航 Range"失效，双端改接通（待 E2E）；EXT01 Agent 有 SET18–21 语义动作工具，改接通；EXT08 Agent 经 get_setting_options/update_settings 选择含插件声明项的主题/字体，改接通；CFG07 双端经 open_maintenance_settings / maintenance.openSettings(ai-connection) 定位宿主敏感配置流程且只读非敏感状态，改接通；MEM02 插件经 memoryCandidateProviders 提候选、宿主裁决，目标即如此，改接通；AI08 插件 context/retrieval providers 补充受限上下文，改接通；AI09 插件正文读取按 library 域授权、有意不设模型剧透审批，改接通。未改任何产品代码。
+
+[验证] 矩阵/模型重生成并 --check 通过，scripts 20 项通过。剩余（排除上述有意边界与 CON11/12/SYS18）：72 行仍有真实实现缺口或仅缺第三段证据，后续按组接线。
+
 ## 2026-09-11：第一段 MEM13 原生用户入口
 
 [进度/设计] 上轮46906c45双端公开gate已推送，是有效进展。本组补上MEM13最后一个第一段缺口：产品UI的原生入口。放在设置→数据（与备份/数据目录同页）新增 Context bundles 组，以 user origin 通过同一 contextBundleAccess gate（FULL_DOMAIN_GRANTS），不为UI另造授权/披露逻辑。行改接通（待 E2E）。

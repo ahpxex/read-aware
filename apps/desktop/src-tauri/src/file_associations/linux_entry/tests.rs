@@ -69,6 +69,32 @@ fn owned_entry_can_move_but_foreign_or_ambiguous_entries_cannot_be_overwritten()
 }
 
 #[test]
+fn default_tauri_launcher_without_file_arguments_is_adopted() {
+    let id = identity();
+    // tauri-cli 2.11.2 freedesktop/main.desktop uses Exec={{exec}}, without %U.
+    for exec in [
+        "read-aware",
+        "\"read-aware\"",
+        "\"/opt/Read Aware/read-aware\"",
+    ] {
+        let original = format!(
+            "[Desktop Entry]\nName=ReadAware Dev\nExec={exec}\nType=Application\nIcon=read-aware\n"
+        );
+        let updated = desktop(&id, Some(original.as_bytes()), true).unwrap();
+        assert_eq!(
+            parse(&updated)
+                .unwrap()
+                .get_from(Some("Desktop Entry"), "Exec"),
+            Some("\"/opt/Read Aware/read-aware\" %U")
+        );
+    }
+    for exec in ["read-aware --unexpected", "", "/foreign/read-aware"] {
+        let original = format!("[Desktop Entry]\nName=ReadAware Dev\nExec={exec}\n");
+        assert!(desktop(&id, Some(original.as_bytes()), true).is_err());
+    }
+}
+
+#[test]
 fn mimeapps_removes_only_our_associations_and_preserves_default_order() {
     let id = identity();
     let old = b"[Default Applications]\napplication/pdf=Other.desktop;ReadAware Dev.desktop;Last.desktop;\n[Added Associations]\napplication/pdf=First.desktop;ReadAware Dev.desktop;Last.desktop;\ntext/html=Browser.desktop;\n[Removed Associations]\napplication/pdf=Excluded.desktop;\n[Unrelated]\nKey=Value\n";

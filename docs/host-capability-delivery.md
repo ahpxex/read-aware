@@ -2,6 +2,12 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：SET05 Linux 默认打包条目识别
+
+[修正] 3d082f79 已推送，CI 34564701586 正在运行。复核锁定的 tauri-cli 2.11.2 官方默认 desktop 模板，Exec 不带文件字段参数；初版迁移识别只允许带 %U 等后缀，会误拒绝本应用打包条目。现允许完全匹配的无参数命令，以及已知文件字段后缀，仍拒绝任意额外参数、空命令和外部路径；新增回归覆盖裸 binary、带引号 binary/绝对路径及负例。该修正验证后单独提交推送，不掩盖初版缺陷；第三段实际安装验收仍未执行。
+
+[燃尽] 剩余部分/未接行数 86；未覆盖行数 240；未验收插件数 15（包含 9 个组合桌面插件）。
+
 ## 2026-09-11：第一段 SET05 Linux 用户级关联接线
 
 [实现] 复用 Tauri 的 productName.desktop 身份创建用户级覆盖，不增加第二个启动器；旧条目需 Name/Exec 归属证明，带 owner 的条目允许安装路径更新，AppImage 使用持久 APPIMAGE 路径。支持的 MIME/14 个扩展来自同一打包目录；真实 xdg-mime 用户模式安装/移除自有 XML，修改 desktop MimeType 和 mimeapps.list 中自有 Added/Removed 关联，保留其他处理器顺序、默认选择、登录 scheme、翻译名称与其他动作。Linux 打包关闭自动书籍关联，DEB/RPM 声明 xdg/数据库工具依赖；八语言 Windows/Linux 共用注册说明，macOS 明确保留关联。

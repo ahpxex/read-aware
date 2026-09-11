@@ -158,12 +158,12 @@ pub(super) fn desktop(
                 let matches = [&identity.executable, &identity.binary_name]
                     .iter()
                     .any(|path| {
-                        ["%U", "%u", "%F", "%f"].iter().any(|field| {
-                            exec == format!("{} {field}", executable(path))
+                        ["", " %U", " %u", " %F", " %f"].iter().any(|suffix| {
+                            exec == format!("{}{suffix}", executable(path))
                                 || (!path
                                     .chars()
                                     .any(|c| c.is_whitespace() || "\\\"'`$%;&|<>".contains(c))
-                                    && exec == format!("{path} {field}"))
+                                    && exec == format!("{path}{suffix}"))
                         })
                     });
                 if section.get("Name") != Some(identity.name.as_str()) || !matches {

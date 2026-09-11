@@ -35,6 +35,9 @@ Disable automatic bundled book MIME declarations on Linux; preserve the separate
 deep-link handler and any non-book MIME types already in the launcher. Accept an
 unmarked older launcher only when its Name and generated Exec match this build;
 otherwise reject the collision. An owned marker allows later executable moves.
+The [pinned tauri-cli 2.11.2 template](https://github.com/tauri-apps/tauri/blob/tauri-cli-v2.11.2/crates/tauri-bundler/src/bundle/linux/freedesktop/main.desktop)
+has a bare Exec with no file field code. Accept that exact generated command as
+well as the known file-field variants; never arbitrary extra arguments.
 AppImage Exec must use the persistent APPIMAGE path, never its temporary mount.
 File URLs delivered by `%U` must be decoded with the URL library at native intake.
 

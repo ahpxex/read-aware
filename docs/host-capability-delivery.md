@@ -2,6 +2,16 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：按三段目标恢复执行，验收代码迁出产品目录
+
+[顺序] 重新读取本轮附件的完整三段要求；以现有源码和 fetch 后的远端为准，不沿用历史账本中交错做插件/桌面、长期不推送的节奏。当前处于第一段：实现与接线；第二段行级组合覆盖和第三段真实 Tauri 验收尚未开始按新完成定义关闭。已有未提交 Agent 表单单元保留，不混入本组提交。
+
+[迁移] 原 runtime/fixtures 的 107 个 TS/TSX 验收模块全部迁至 apps/web/tests/desktop，479 处相对导入/Worker URL 按 TypeScript AST 迁移，源文件其余字节与目标身份逐个对照 HEAD 验证不变。Bun Worker 集成测试入口同步；新增独立 tsconfig 并接回常规 web typecheck，避免移出 src 后丢失类型检查。新增路径、生产代码不得依赖验收代码、持续类型门禁三个回归测试及可重复命令说明。矩阵源码与已有生成文档只机械更新七处来源路径及相应链接，未重新生成 HTML 或重复视觉复查；历史 JSON 证据保留当时路径。
+
+[验证/边界] desktop-contracts 22 项/7353 断言通过，包含真实 Bun Worker 取消、晚结果、回执、文档、网络和回调释放；模型来源校验 7 项/16 断言通过，独立桌面脚本类型检查通过。没有启动应用、没有将探针冒充正式可安装插件，也没有将本次路径检查冒充原生 E2E。可复用完整插件轮次仍需在第二/三段完成，本组不改矩阵行状态。fetch 后 main 比 origin/main 超前 203 个历史提交；本组验证完成后连同已提交历史一起推送，不再继续积攒。
+
+[燃尽] 剩余部分/未接行数 88（任一 host/actor 为部分、未接、占位、待建；仅排除 CON11/CON12/SYS18）；未覆盖行数 240（当前 scenarioCoverage 只有场景→单元，没有一条行→插件/流程映射）；未验收插件数 15（现有正式 manifest 源码插件，包括 9 个组合桌面插件；没有一个以新要求的完整映射轮次关闭，旧局部证据不抵扣）。
+
 ## 完成条件
 
 2026-09-11 动态设置选项整组已接：settings1.10让Agent既有get_setting_options和插件queries.options调用已声明的settingsOptions提供者，TTS等插件的声音目录不再只供原生表单使用；snapshot/discover标明dynamicOptions，选择仍走update_settings，不新增声音专用模型工具或声源优先级选择器。精确路径发现授权，源插件有network权时调用者另需service:network；提供者仅收到自己的已保存非secret/password字段及默认值，不接受调用者指定目的地。

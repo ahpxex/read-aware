@@ -25,7 +25,7 @@ function sandbox(scenario: string, fixture = "wire-probe.ts") {
     listeners.add(check); check();
   });
   worker.postMessage({
-    t: "boot", url: new URL(`./fixtures/${fixture}`, import.meta.url).href,
+    t: "boot", url: new URL(`../../../../tests/desktop/${fixture}`, import.meta.url).href,
     manifest: { id: "wire-test", name: "Wire test", description: scenario, version: "1.0.0", schemaVersion: 1 },
     appVersion: "1.0.0", capabilities: {}, locale: "en", phase: "activating", storage: {},
     shape: { domains: { library: { queries: { books: { searchLocations: "fn" } } }, reading: { commands: { step: "fn" } } }, services: { llm: { ask: "fn", askDetailed: "fn", policy: "fn", getRequest: "fn", listRequests: "fn", cancelRequest: "fn" }, logging: { write: "fn", policy: "fn" }, network: { fetch: "fn", openStream: "fn", readStream: "fn", closeStream: "fn" } }, contributions: { commands: { register: "fn" } }, __collection: { put: "fn", get: "fn", page: "fn" } },

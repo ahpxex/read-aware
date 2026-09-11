@@ -2,6 +2,12 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：SET05 Windows CI 通过
+
+[验证] a9356c8f 已推送，[Windows CI 34563019449](https://github.com/ahpxex/read-aware/actions/runs/34563019449) 最终 success：真实完整桌面 Rust crate 编译，关联 12 项、桌面偏好/启动 7 项、外部接收 10 项全部通过；生产 NSIS hook 也通过编译。前两次失败及修正记录保留如下，不覆盖成一次成功。所有测试均未启动 ReadAware，NSIS 产物未安装/执行；这不是系统注册行为、真实插件或 packaged Tauri E2E 证据。矩阵仍保留 Linux 注册/注销、安装条目协调与补偿测试的实现关闭条件，SET05 未改绿。
+
+[燃尽] 剩余部分/未接行数 86；未覆盖行数 240；未验收插件数 15（包含 9 个组合桌面插件）。
+
 ## 2026-09-11：SET05 Windows 换行回归
 
 [验证/修正] 732f3b5c 已推送，CI 34562302024 的 NSIS hook 编译通过；完整 Rust crate 也编译成功，但新加的栈恢复源码断言硬编码 LF，在 Windows CRLF checkout 下失败（registry/tests.rs:320）。改为逐行验证完整 Pop/Abort 序列，明确同时测试 LF、CRLF，并对错误 Pop 寄存器加入负例，未删除或跳过栈恢复要求。原生定向测试复跑后单独提交推送并再查 Windows CI；真实 Tauri/系统文件关联轮次仍不在本段执行。

@@ -5,8 +5,8 @@
  * memories 投影因此可从日志重放，写决策本身成为可同步事实
  * （docs/data-model.md：consolidation as events）。
  */
-import { matchesMemoryQuery, type MemoryPort, type MemoryRecord } from "@read-aware/agent";
-import { normalizeMemoryQuery } from "@read-aware/core";
+import { matchesMemoryQuery, pageMemoryRows, selectMemoryRows, type MemoryPort, type MemoryRecord } from "@read-aware/agent";
+import { normalizeMemoryPageQuery, normalizeMemoryQuery } from "@read-aware/core";
 import { commitDomainEvents } from "../../../../platform/domain-events";
 import { listAllMemoryRows } from "./memory-store";
 import { applyMemoryChanges, reinforceMemory, snapshotMemories } from "./memory-maintenance";
@@ -26,21 +26,11 @@ export function createMemoryPort(): MemoryPort {
   return {
     searchMemories: async (filter) => {
       const query = normalizeMemoryQuery(filter);
-      const scopes = new Set<string>(query.scopes);
-      return (await listAllMemoryRows())
-        .filter(
-          (memory) =>
-            isActive(memory) &&
-            scopes.has(memory.scope) &&
-            (!query.query || matchesMemoryQuery(memory.content, query.query)),
-        )
-        .sort(
-          (a, b) =>
-            Number(b.pinned ?? false) - Number(a.pinned ?? false) ||
-            b.importance - a.importance ||
-            b.updatedAt.localeCompare(a.updatedAt),
-        )
-        .slice(0, query.limit);
+      return selectMemoryRows(await listAllMemoryRows(), query).slice(0, query.limit);
+    },
+    pageMemories: async input => {
+      const query = normalizeMemoryPageQuery(input);
+      return pageMemoryRows(await listAllMemoryRows(), query);
     },
     listMemories: async () => (await listAllMemoryRows()).filter(isActive),
     saveMemory: async (input) => {

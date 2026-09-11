@@ -26,7 +26,7 @@ export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal, 
   const memory = createMemoryPort(), bookMemory = createBookMemoryPort();
   const profile = (query?: import("@read-aware/core").UserProfileQuery) => createProfilePort().readProfile(query, lifetime);
   const tasks = createBookGraphTasks(lifetime);
-  const queries = createMemoryQueries({ search: memory.searchMemories, graph: async bookId => {
+  const queries = createMemoryQueries({ search: memory.searchMemories, page: memory.pageMemories, graph: async bookId => {
     const digests = await bookMemory.listDigests(bookId);
     const chapters = await getPersistedBookText(bookId);
     const book = await getBookRecord(bookId);
@@ -37,6 +37,7 @@ export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal, 
   const read = async (query: MemoryObservationQuery): Promise<MemoryObservationResult> => {
     if (query.kind === "profile") return { kind: query.kind, profile: await profile(query.query) };
     if (query.kind === "search") return { kind: query.kind, memories: await queries.search(query.query) };
+    if (query.kind === "page") return { kind: query.kind, page: await queries.page(query.query) };
     if (query.kind === "inspect") return { kind: query.kind, snapshot: await inspectMemory(query.memoryId, lifetime) };
     if (query.kind === "classification") return { kind: query.kind, snapshot: await inspectBookClassification(query.bookId, lifetime) };
     if (query.kind === "graphTasks") return { kind: query.kind, tasks: await tasks.list(query.bookId) };

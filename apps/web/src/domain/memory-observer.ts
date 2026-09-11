@@ -1,10 +1,14 @@
 import { AppError, errorCode, normalizeMemoryQuery, validateMemoryId, type MemoryObservation, type MemoryObservationQuery, type MemoryObservationResult } from "@read-aware/core";
 import { normalizeBookGraphQuery } from "@read-aware/agent";
-import { normalizeUserProfileQuery } from "@read-aware/core";
+import { normalizeUserProfileQuery, normalizeMemoryPageQuery } from "@read-aware/core";
 
 export function normalizeMemoryObservation(input: MemoryObservationQuery): MemoryObservationQuery {
   const fail = (): never => { throw new AppError("memory/invalid-query", "Invalid memory observation query"); };
   if (!input || typeof input !== "object" || Array.isArray(input)) return fail();
+  if (input.kind === "page") {
+    if (Object.keys(input).some(key => !["kind", "query"].includes(key))) return fail();
+    return { kind: input.kind, query: normalizeMemoryPageQuery(input.query) };
+  }
   if (input.kind === "profile") {
     if (Object.keys(input).some(key => !["kind", "query"].includes(key))) return fail();
     return { kind: input.kind, query: normalizeUserProfileQuery(input.query) };

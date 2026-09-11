@@ -1,14 +1,15 @@
-import type { MemoryObservationQuery, MemoryObservationResult, PluginContext, PluginView, PluginDetailView, PluginListView } from "@read-aware/plugin-types";
+import type { MemoryObservationQuery, MemoryObservationResult, PluginContext, PluginView, PluginDetailView, PluginListView, PluginAction } from "@read-aware/plugin-types";
 
 export type MemoryDeskView = (PluginDetailView | PluginListView) & Pick<PluginView, "live">;
 
 /** A failed read clears stale content/actions; forms are separate, frozen views. */
 export async function liveMemoryView(ctx: PluginContext, query: MemoryObservationQuery, title: string,
-  render: (result: MemoryObservationResult) => PluginDetailView | PluginListView): Promise<MemoryDeskView> {
+  render: (result: MemoryObservationResult) => PluginDetailView | PluginListView, recovery: PluginAction[] = []): Promise<MemoryDeskView> {
   const memory = ctx.domains.memory!;
   let sample: MemoryObservationResult | undefined, failure: string | undefined;
   try {
     sample = query.kind === "search" ? { kind: query.kind, memories: await memory.queries.search(query.query) }
+      : query.kind === "page" ? { kind: query.kind, page: await memory.queries.page(query.query) }
       : query.kind === "profile" ? { kind: query.kind, profile: await memory.queries.profile(query.query) }
       : query.kind === "inspect" ? { kind: query.kind, snapshot: await memory.queries.inspect(query.memoryId) }
       : query.kind === "classification" ? { kind: query.kind, snapshot: await memory.queries.classification(query.bookId) }
@@ -20,7 +21,7 @@ export async function liveMemoryView(ctx: PluginContext, query: MemoryObservatio
     failure = error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : "memory/observation-failed";
   }
   const content = (): PluginDetailView | PluginListView => failure || !sample
-    ? { kind: "detail", title, content: [{ kind: "error", code: failure ?? "memory/observation-failed" }] }
+    ? { kind: "detail", title, content: [{ kind: "error", code: failure ?? "memory/observation-failed" }], ...(recovery.length ? { actions: recovery } : {}) }
     : render(sample);
   return { ...content(), live: { subscribe(channel) {
     let disposed = false, revision = 0;

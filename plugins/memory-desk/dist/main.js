@@ -13,15 +13,15 @@ var locales = {
 var strings = (locale) => locales[locale] ?? locales[locale.split("-")[0]] ?? en;
 
 // src/live-memory.ts
-async function liveMemoryView(ctx, query, title, render) {
+async function liveMemoryView(ctx, query, title, render, recovery = []) {
   const memory = ctx.domains.memory;
   let sample, failure;
   try {
-    sample = query.kind === "search" ? { kind: query.kind, memories: await memory.queries.search(query.query) } : query.kind === "profile" ? { kind: query.kind, profile: await memory.queries.profile(query.query) } : query.kind === "inspect" ? { kind: query.kind, snapshot: await memory.queries.inspect(query.memoryId) } : query.kind === "classification" ? { kind: query.kind, snapshot: await memory.queries.classification(query.bookId) } : query.kind === "graphTasks" ? { kind: query.kind, tasks: await memory.queries.listGraphTasks(query.bookId) } : query.kind === "graphTask" ? { kind: query.kind, task: await memory.queries.getGraphTask(query.bookId, query.taskId) } : { kind: query.kind, graph: await memory.queries.bookGraph(query.bookId, query.query) };
+    sample = query.kind === "search" ? { kind: query.kind, memories: await memory.queries.search(query.query) } : query.kind === "page" ? { kind: query.kind, page: await memory.queries.page(query.query) } : query.kind === "profile" ? { kind: query.kind, profile: await memory.queries.profile(query.query) } : query.kind === "inspect" ? { kind: query.kind, snapshot: await memory.queries.inspect(query.memoryId) } : query.kind === "classification" ? { kind: query.kind, snapshot: await memory.queries.classification(query.bookId) } : query.kind === "graphTasks" ? { kind: query.kind, tasks: await memory.queries.listGraphTasks(query.bookId) } : query.kind === "graphTask" ? { kind: query.kind, task: await memory.queries.getGraphTask(query.bookId, query.taskId) } : { kind: query.kind, graph: await memory.queries.bookGraph(query.bookId, query.query) };
   } catch (error) {
     failure = error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : "memory/observation-failed";
   }
-  const content = () => failure || !sample ? { kind: "detail", title, content: [{ kind: "error", code: failure ?? "memory/observation-failed" }] } : render(sample);
+  const content = () => failure || !sample ? { kind: "detail", title, content: [{ kind: "error", code: failure ?? "memory/observation-failed" }], ...recovery.length ? { actions: recovery } : {} } : render(sample);
   return { ...content(), live: { subscribe(channel) {
     let disposed = false, revision = 0;
     const subscription = memory.events.observe(query, async (event) => {
@@ -774,17 +774,30 @@ async function booksView(ctx, page = 0) {
     ]
   };
 }
-async function memories(ctx, scope, query) {
+async function memories(ctx, scope, query, offsets = [0], expectedRevision) {
   const t = strings(ctx.locale), title = t[scope === "user" ? 1 : scope === "global" ? 2 : 5];
-  return liveMemoryView(ctx, { kind: "search", query: { scopes: [scope], query, limit: 100 } }, title, (result) => {
-    if (result.kind !== "search")
+  const refresh = { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await memories(ctx, scope, query), navigation: "replace" }) };
+  return liveMemoryView(ctx, { kind: "page", query: {
+    scopes: [scope],
+    query,
+    limit: 20,
+    offset: offsets[offsets.length - 1],
+    ...expectedRevision === undefined ? {} : { expectedRevision }
+  } }, title, (result) => {
+    if (result.kind !== "page")
       throw Error("Unexpected memory observation result");
-    const rows = result.memories;
+    const page = result.page, rows = page.items;
+    const go = async (next) => ({ view: await memories(ctx, scope, query, next, page.revision), navigation: "replace" });
     return {
       kind: "list",
       title,
-      searchable: true,
       emptyText: t[8],
+      pagination: {
+        page: offsets.length,
+        pageCount: Math.max(1, Math.ceil(page.total / 20)),
+        ...offsets.length > 1 ? { onPrevious: () => go(offsets.slice(0, -1)) } : {},
+        ...page.nextOffset === null ? {} : { onNext: () => go([...offsets, page.nextOffset]) }
+      },
       items: rows.map((row) => ({
         id: row.id,
         title: row.content,
@@ -793,7 +806,7 @@ async function memories(ctx, scope, query) {
         onSelect: async () => ({ view: await memoryDetail(ctx, row.id, () => memories(ctx, scope, query)) })
       })),
       actions: [
-        { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await memories(ctx, scope, query), navigation: "replace" }) },
+        refresh,
         { id: "search", label: t[6], icon: "magnifying-glass", run: () => ({ view: { kind: "form", title: t[6], fields: [
           { id: "query", kind: "text", label: t[22], value: query ?? "" }
         ], onSubmit: async (values) => {
@@ -804,7 +817,7 @@ async function memories(ctx, scope, query) {
         } } }) }
       ]
     };
-  });
+  }, [refresh]);
 }
 
 // src/index.ts

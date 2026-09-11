@@ -56,3 +56,4 @@ export * from "./book-content-state";
 export * from "./sync";
 export * from "./user-profile";
 export * from "./memory-candidate";
+export * from "./memory-page";

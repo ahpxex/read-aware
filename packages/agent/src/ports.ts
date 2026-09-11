@@ -264,6 +264,7 @@ export type MemoryChange =
  */
 export interface MemoryPort {
   searchMemories(filter: MemoryQuery): Promise<MemoryRecord[]>;
+  pageMemories(query: import("@read-aware/core").MemoryPageQuery): Promise<import("@read-aware/core").MemoryPage>;
   /** 全量 active 记忆 —— 巩固批处理的输入。 */
   listMemories(): Promise<MemoryRecord[]>;
   /** Read revisions before model work; feedback must never be rebased onto a newer row. */

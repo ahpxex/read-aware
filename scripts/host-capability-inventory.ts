@@ -122,6 +122,7 @@ const pluginMap = pairs([
   ["services.maintenance.requestConnectionTest", "CFG08"],
   ["domains.settings.events.subscribe domains.settings.queries.observe services.storage.onChange", "CFG10"],
   ["domains.memory.queries.search", "MEM01"],
+  ["domains.memory.queries.page", "MEM01"],
   ["domains.memory.queries.profile", "MEM06"],
   ["domains.memory.commands.updateProfile", "MEM07"],
   ["domains.memory.queries.bookGraph", "MEM11"],

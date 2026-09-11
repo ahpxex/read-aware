@@ -38,6 +38,7 @@ import type {
   AgentSettingsSnapshot,
 } from "../settings";
 import { matchesMemoryQuery } from "../memory/query-match";
+import { pageMemoryRows } from "../memory/query-page";
 import { searchChapters, searchTurnRecords } from "../text/search";
 import { createMemoryBookNavigation } from "./book-navigation";
 import { createMemoryTextPreparation } from "./book-text-preparation";
@@ -647,6 +648,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       },
     },
     memory: {
+      pageMemories: input => pageMemoryRows(stores.memories, input),
       searchMemories: async (filter) => {
         const scopes = new Set<string>(filter.scopes);
         return stores.memories

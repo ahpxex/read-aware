@@ -9,7 +9,7 @@ function fixture() {
   const calls: unknown[] = [];
   const ctx = { locale: "en", domains: {
     library: { queries: { books: { list: async () => Array.from({ length: 41 }, (_, index) => ({ id: `b${index}`, title: `Book ${index}` })) } } },
-    memory: { queries: { search: async (query: unknown) => { calls.push(query); return []; }, bookGraph: async (id: string, query: unknown) => { calls.push({ id, query }); return graph; } } },
+    memory: { queries: { page: async (query: unknown) => { calls.push(query); return { items: [], total: 0, offset: 0, nextOffset: null, revision: `mpg1:${"a".repeat(64)}` }; }, bookGraph: async (id: string, query: unknown) => { calls.push({ id, query }); return graph; } } },
     reading: { commands: { goTo: async (target: unknown) => { calls.push(target); } } },
   } } as unknown as PluginContext;
   return { ctx, calls, setGraph: (value: BookGraphResult) => { graph = value; } };
@@ -18,7 +18,7 @@ describe("Memory Desk public composition", () => {
   test("home and scoped memory queries stay within explicit scopes", async () => {
     const { ctx, calls } = fixture();
     expect((await memoryDesk(ctx)).items.map(item => item.id)).toEqual(["profile", "user", "global", "books"]);
-    await memories(ctx, "book:b", "Ada"); expect(calls).toEqual([{ scopes: ["book:b"], query: "Ada", limit: 100 }]);
+    await memories(ctx, "book:b", "Ada"); expect(calls).toEqual([{ scopes: ["book:b"], query: "Ada", limit: 20, offset: 0 }]);
   });
   test("book pagination clamps after library shrink", async () => {
     const { ctx } = fixture();
@@ -47,10 +47,10 @@ describe("Memory Desk public composition", () => {
     f.setGraph({ graph: "chapter", chapterIndex: 0, summary: "Legacy", entities: [], relations: [] });
     const view = await graphView(f.ctx, "b") as PluginDetailView;
     expect(await view.actions!.find(action => action.id === "source")!.run()).toHaveProperty("view");
-    f.ctx.domains.memory!.queries.search = async () => { throw Error("read refused"); };
+    f.ctx.domains.memory!.queries.page = async () => { throw Error("read refused"); };
     const failure = await memories(f.ctx, "user") as PluginDetailView;
     expect(failure.content).toEqual([{ kind: "error", code: "memory/observation-failed" }]);
-    expect(failure.actions).toBeUndefined();
+    expect(failure.actions?.map(action => action.id)).toEqual(["refresh"]);
   });
   test("profiles preserve provenance chapter actions and bounded-result notices", async () => {
     const f = fixture(); f.setGraph({ graph: "profiles", profiles: [{ name: "Ada", appearsInChapters: [2], relations: [], relationsTruncated: true }], notFound: ["Ben"], truncated: true, note: "" });

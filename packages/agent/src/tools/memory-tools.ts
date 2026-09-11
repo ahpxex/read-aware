@@ -5,7 +5,7 @@
  */
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
-import { normalizeUserProfileQuery, type UserProfileQuery } from "@read-aware/core";
+import { AppError, normalizeMemoryPageQuery, normalizeUserProfileQuery, type UserProfileQuery, type MemoryPageQuery } from "@read-aware/core";
 import { buildProfileWriteTool } from "./user-profile-write-tool";
 import type { MemoryKind, MemoryScope, RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
@@ -31,18 +31,27 @@ export function buildMemoryTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
     name: "search_memory",
     label: "Search memory",
     description:
-      "Search your long-term memory about this reader (their preferences, past insights, book takeaways). Omit query to list the strongest memories.",
+      "Search long-term memory about this reader (preferences, insights, book takeaways). Omit query to list the strongest memories. Returns items, total, revision and nextOffset; follow nextOffset with the same filters and expectedRevision to read beyond the first page. If results changed, restart at offset 0 without expectedRevision. The page revision is not a token for editing memory. A book thread cannot query another book via bookId.",
     parameters: Type.Object({
       query: Type.Optional(Type.String({ description: "Text filter; omit to list top memories" })),
       bookId: Type.Optional(
-        Type.String({ description: "Restrict to one book's memories (global thread only)" }),
+        Type.String({ description: "Include this book along with personal and cross-book memories (global thread only)" }),
       ),
-    }),
+      limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
+      offset: Type.Optional(Type.Integer({ minimum: 0 })),
+      expectedRevision: Type.Optional(Type.String({ pattern: "^mpg1:[a-f0-9]{64}$" })),
+    }, { additionalProperties: false }),
     execute: async (_id, params) => {
-      const { query, bookId } = params as { query?: string; bookId?: string };
+      if (!params || typeof params !== "object" || Array.isArray(params)
+        || Object.keys(params).some(key => !["query", "bookId", "limit", "offset", "expectedRevision"].includes(key))) {
+        throw new AppError("memory/invalid-query", "Invalid memory search parameters");
+      }
+      const { bookId, ...page } = params as Omit<MemoryPageQuery, "scopes"> & { bookId?: string };
+      if (bookId !== undefined && (typeof bookId !== "string" || !bookId.trim() || bookId.length > 256
+        || scope.kind === "book" && bookId !== scope.bookId)) throw new AppError("memory/invalid-query", "Invalid memory book scope");
       const scopes: MemoryScope[] =
         bookId && scope.kind === "global" ? [`book:${bookId}`, "user", "global"] : visibleScopes(scope);
-      return textResult(await deps.memory.searchMemories({ scopes, query, limit: 20 }));
+      return textResult(await deps.memory.pageMemories(normalizeMemoryPageQuery({ ...page, scopes })));
     },
   };
 

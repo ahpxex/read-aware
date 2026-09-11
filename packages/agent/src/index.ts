@@ -53,6 +53,7 @@ export { type ReadingCursor } from "./runtime/reading-cursor";
 export { AgentRuntime, createAgentRuntime, type AgentRuntimeOptions } from "./runtime/runtime";
 export type { OneShotInput } from "./runtime/one-shot";
 export { matchesMemoryQuery } from "./memory/query-match";
+export { pageMemoryRows, selectMemoryRows } from "./memory/query-page";
 export { chapterMemoryPolicy } from "./memory/book-memory-policy";
 
 // eval viewer 的数据源：套件目录（场景定义本身就是可序列化的）。

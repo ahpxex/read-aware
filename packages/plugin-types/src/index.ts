@@ -47,6 +47,7 @@ export type { ReadingEmphasisWrite, ReadingEmphasisRef, ReadingEmphasisStyle, Re
 export type { WorkspaceTarget, WorkspaceQuery, WorkspaceSnapshot, WorkspaceReceipt, WorkspaceSettingsSection } from "@read-aware/core";
 export type { SettingsObservation, SettingsObservationCause } from "@read-aware/core";
 export type { MemoryRecord, MemoryScope, MemoryQuery, BookGraphQuery, BookGraphResult, BookGraphProfile } from "@read-aware/core";
+export type { MemoryPage, MemoryPageQuery } from "@read-aware/core";
 export type { MemorySnapshot, MemoryMutation, MemoryMutationReceipt } from "@read-aware/core";
 export type { BookClassificationSnapshot, BookClassificationChange, BookClassificationReceipt } from "@read-aware/core";
 export type { MemoryObservationQuery, MemoryObservationResult, MemoryObservation } from "@read-aware/core";
@@ -1649,6 +1650,7 @@ export type PluginDomains = {
     getGraphTask(bookId: string, taskId: string): Promise<import("@read-aware/core").BookGraphTaskSnapshot>;
     listGraphTasks(bookId: string): Promise<import("@read-aware/core").BookGraphTaskSnapshot[]>;
     search(input: import("@read-aware/core").MemoryQuery): Promise<import("@read-aware/core").MemoryRecord[]>;
+    page(input: import("@read-aware/core").MemoryPageQuery): Promise<import("@read-aware/core").MemoryPage>;
     bookGraph(bookId: string, query?: import("@read-aware/core").BookGraphQuery): Promise<import("@read-aware/core").BookGraphResult>;
   }; commands?: {
     /** Replace the device-local summary using the observed profile revision.

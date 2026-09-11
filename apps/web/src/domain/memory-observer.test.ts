@@ -12,6 +12,8 @@ function fixture() {
 }
 test("observation validates and copies only supported bounded query authority", () => {
   expect(normalizeMemoryObservation({ kind: "profile" })).toEqual({ kind: "profile", query: { offset: 0, limit: 4000 } });
+  expect(normalizeMemoryObservation({ kind: "page", query: { scopes: ["user"] } })).toEqual({ kind: "page", query: { scopes: ["user"], offset: 0, limit: 20 } });
+  expect(() => normalizeMemoryObservation({ kind: "page", query: { scopes: ["user"], offset: 20 } })).toThrow();
   expect(() => normalizeMemoryObservation({ kind: "profile", query: { offset: 2 } })).toThrow();
   expect(() => normalizeMemoryObservation({ kind: "profile", bookId: "b" } as never)).toThrow();
   expect(normalizeMemoryObservation({ kind: "classification", bookId: "b" })).toEqual({ kind: "classification", bookId: "b" });

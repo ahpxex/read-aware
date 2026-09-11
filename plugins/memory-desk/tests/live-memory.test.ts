@@ -1,8 +1,10 @@
 import { expect, test } from "bun:test";
-import type { MemoryObservation, MemoryObservationQuery, MemorySnapshot, PluginContext, PluginDetailView, PluginFormView, PluginViewUpdate } from "@read-aware/plugin-types";
+import type { MemoryObservation, MemoryObservationQuery, MemorySnapshot, MemoryRecord, PluginContext, PluginDetailView, PluginFormView, PluginViewUpdate } from "@read-aware/plugin-types";
 import { memories } from "../src/views";
 import { memoryDetail } from "../src/management";
 import { graphView } from "../src/graph";
+
+const page = (items: MemoryRecord[]) => ({ items, total: items.length, offset: 0, nextOffset: null, revision: `mpg1:${"a".repeat(64)}` });
 
 function fixture() {
   let handler!: (event: MemoryObservation) => unknown, stopped = 0;
@@ -11,7 +13,7 @@ function fixture() {
     memory: { id: "m", scope: "user", kind: "fact", content, importance: 0.5, evidenceCount: 1, createdAt: "now", updatedAt: "now", pinned } });
   const original = snapshot("Original", "mem1:a");
   const ctx = { locale: "en", domains: { memory: {
-    queries: { inspect: async () => original, search: async () => [original.memory], bookGraph: async () => ({ graph: "chapter", chapterIndex: 2, chapterHref: "two", summary: "Visible chapter", entities: [], relations: [] }) },
+    queries: { inspect: async () => original, page: async () => page([original.memory]), bookGraph: async () => ({ graph: "chapter", chapterIndex: 2, chapterHref: "two", summary: "Visible chapter", entities: [], relations: [] }) },
     commands: { mutate: async (input: unknown) => { writes.push(input); } },
     events: { observe: (query: MemoryObservationQuery, callback: typeof handler) => { requests.push(query); handler = callback; return { dispose() { stopped++; } }; } },
   } }, services: { ui: { publishView: async (_: unknown, update: PluginViewUpdate) => { updates.push(update); return { status: "applied" }; } } } } as unknown as PluginContext;
@@ -20,12 +22,13 @@ function fixture() {
 test("live search changes results, clears failed content/actions and recovers without an empty-state lie", async () => {
   const f = fixture(), view = await memories(f.ctx, "user", "term");
   const subscription = await view.live!.subscribe({ id: "channel" });
-  expect(f.requests).toEqual([{ kind: "search", query: { scopes: ["user"], query: "term", limit: 100 } }]);
-  await f.emit({ revision: 1, status: "ready", result: { kind: "search", memories: [f.snapshot("Changed", "mem1:b").memory] } });
+  expect(f.requests).toEqual([{ kind: "page", query: { scopes: ["user"], query: "term", limit: 20, offset: 0 } }]);
+  await f.emit({ revision: 1, status: "ready", result: { kind: "page", page: page([f.snapshot("Changed", "mem1:b").memory]) } });
   expect(f.updates[f.updates.length - 1]?.view).toMatchObject({ kind: "list", items: [{ title: "Changed" }] });
   await f.emit({ revision: 2, status: "error", errorCode: "db/locked" });
-  expect(f.updates[f.updates.length - 1]?.view).toEqual({ kind: "detail", title: "Personal memory", content: [{ kind: "error", code: "db/locked" }] });
-  await f.emit({ revision: 3, status: "ready", result: { kind: "search", memories: [] } });
+  expect(f.updates[f.updates.length - 1]?.view).toMatchObject({ kind: "detail", title: "Personal memory", content: [{ kind: "error", code: "db/locked" }] });
+  expect((f.updates[f.updates.length - 1]?.view as PluginDetailView).actions?.map(action => action.id)).toEqual(["refresh"]);
+  await f.emit({ revision: 3, status: "ready", result: { kind: "page", page: page([]) } });
   expect(f.updates[f.updates.length - 1]?.view).toMatchObject({ kind: "list", items: [] });
   subscription.dispose(); const count = f.updates.length;
   await f.emit({ revision: 4, status: "error", errorCode: "late" });

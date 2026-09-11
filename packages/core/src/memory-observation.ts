@@ -4,11 +4,13 @@ import type { BookClassificationSnapshot } from "./book-classification";
 import type { MemoryQuery, MemoryRecord } from "./memory-query";
 import type { BookGraphTaskSnapshot } from "./book-graph-task";
 import type { UserProfilePage, UserProfileQuery } from "./user-profile";
+import type { MemoryPage, MemoryPageQuery } from "./memory-page";
 
 /** Query filters do not expand the actor's memory grant or spoiler boundary. */
 export type MemoryObservationQuery =
   | { kind: "profile"; query?: UserProfileQuery }
   | { kind: "search"; query: MemoryQuery }
+  | { kind: "page"; query: MemoryPageQuery }
   | { kind: "inspect"; memoryId: string }
   | { kind: "classification"; bookId: string }
   | { kind: "graphTasks"; bookId: string }
@@ -17,6 +19,7 @@ export type MemoryObservationQuery =
 export type MemoryObservationResult =
   | { kind: "profile"; profile: UserProfilePage }
   | { kind: "search"; memories: MemoryRecord[] }
+  | { kind: "page"; page: MemoryPage }
   | { kind: "inspect"; snapshot: MemorySnapshot | null }
   | { kind: "classification"; snapshot: BookClassificationSnapshot | null }
   | { kind: "graphTasks"; tasks: BookGraphTaskSnapshot[] }

@@ -15,7 +15,7 @@ describe("memory public query boundary", () => {
   test("copies input and rejects late and retained queries after retirement", async () => {
     const controller = new AbortController(); let release!: (rows: MemoryRecord[]) => void;
     let captured: unknown;
-    const api = createMemoryQueries({ search: async query => { captured = query; return new Promise(resolve => { release = resolve; }); }, graph: async () => ({ digests: [], boundary: { kind: "all" } }) }, controller.signal);
+    const api = createMemoryQueries({ page: async () => { throw Error("unused"); }, search: async query => { captured = query; return new Promise(resolve => { release = resolve; }); }, graph: async () => ({ digests: [], boundary: { kind: "all" } }) }, controller.signal);
     const input = { scopes: ["user"] as const }; const scopes: ("user" | "global")[] = [...input.scopes];
     const pending = api.search({ scopes }); scopes[0] = "global";
     expect(captured).toEqual({ scopes: ["user"], limit: 20 });
@@ -25,8 +25,9 @@ describe("memory public query boundary", () => {
   });
   test("does not convert native read failure into empty memory", async () => {
     const error = Error("database locked");
-    const api = createMemoryQueries({ search: async () => { throw error; }, graph: async () => { throw error; } });
+    const api = createMemoryQueries({ page: async () => { throw error; }, search: async () => { throw error; }, graph: async () => { throw error; } });
     await expect(api.search({ scopes: ["user"] })).rejects.toBe(error);
+    await expect(api.page({ scopes: ["user"] })).rejects.toBe(error);
     await expect(api.bookGraph("book")).rejects.toBe(error);
     await expect(api.bookGraph("book", { confirmSpoiler: true } as never)).rejects.toMatchObject({ code: "memory/invalid-query" });
   });

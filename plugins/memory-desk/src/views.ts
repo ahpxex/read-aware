@@ -38,15 +38,22 @@ export async function booksView(ctx: PluginContext, page = 0): Promise<PluginLis
       })),
     ] };
 }
-export async function memories(ctx: PluginContext, scope: MemoryScope, query?: string): Promise<MemoryDeskView> {
+export async function memories(ctx: PluginContext, scope: MemoryScope, query?: string, offsets = [0], expectedRevision?: string): Promise<MemoryDeskView> {
   const t = strings(ctx.locale), title = t[scope === "user" ? 1 : scope === "global" ? 2 : 5];
-  return liveMemoryView(ctx, { kind: "search", query: { scopes: [scope], query, limit: 100 } }, title, result => {
-    if (result.kind !== "search") throw Error("Unexpected memory observation result");
-    const rows = result.memories;
-    return { kind: "list", title, searchable: true, emptyText: t[8],
+  const refresh = { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await memories(ctx, scope, query), navigation: "replace" as const }) };
+  return liveMemoryView(ctx, { kind: "page", query: { scopes: [scope], query, limit: 20, offset: offsets[offsets.length - 1]!,
+    ...(expectedRevision === undefined ? {} : { expectedRevision }) } }, title, result => {
+    if (result.kind !== "page") throw Error("Unexpected memory observation result");
+    const page = result.page, rows = page.items;
+    const go = async (next: number[]) => ({ view: await memories(ctx, scope, query, next, page.revision), navigation: "replace" as const });
+    return { kind: "list", title, emptyText: t[8],
+    pagination: { page: offsets.length, pageCount: Math.max(1, Math.ceil(page.total / 20)),
+      ...(offsets.length > 1 ? { onPrevious: () => go(offsets.slice(0, -1)) } : {}),
+      ...(page.nextOffset === null ? {} : { onNext: () => go([...offsets, page.nextOffset!]) }),
+    },
     items: rows.map(row => ({ id: row.id, title: row.content, subtitle: row.updatedAt, icon: "brain",
       onSelect: async () => ({ view: await memoryDetail(ctx, row.id, () => memories(ctx, scope, query)) }) })), actions: [
-      { id: "refresh", label: t[7], icon: "arrows-clockwise", run: async () => ({ view: await memories(ctx, scope, query), navigation: "replace" }) },
+      refresh,
       { id: "search", label: t[6], icon: "magnifying-glass", run: () => ({ view: { kind: "form", title: t[6], fields: [
         { id: "query", kind: "text", label: t[22], value: query ?? "" },
       ], onSubmit: async values => {
@@ -55,5 +62,5 @@ export async function memories(ctx: PluginContext, scope: MemoryScope, query?: s
         return { view: await memories(ctx, scope, value) };
       } } satisfies PluginFormView }) },
     ] };
-  });
+  }, [refresh]);
 }

@@ -1,6 +1,6 @@
 use super::{entity_registry as registry, events, local_event_guard, Db, EventRow};
 use crate::error::CommandError;
-use rusqlite::{params, Connection, TransactionBehavior};
+use rusqlite::{params, Connection, Transaction, TransactionBehavior};
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -73,11 +73,7 @@ fn resolve_changes(
     Ok(false)
 }
 
-pub(crate) fn entity_commit_inner(
-    conn: &mut Connection,
-    event: &EventRow,
-    expected_revision: &str,
-) -> Result<EntityMutationReceipt, CommandError> {
+fn target(event: &EventRow) -> Result<&str, CommandError> {
     let p = event.payload.as_object().ok_or_else(invalid)?;
     let id = match event.event_type.as_str() {
         "entity.resolved" => {
@@ -97,23 +93,20 @@ pub(crate) fn entity_commit_inner(
         }
         _ => return Err(invalid()),
     };
-    if !registry::valid_revision(expected_revision)
-        || event.aggregate_type.as_deref() != Some("entity")
+    if event.aggregate_type.as_deref() != Some("entity")
         || event.aggregate_id.as_deref() != Some(id)
     {
         return Err(invalid());
     }
-    let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
-    registry::require_fresh(&tx)?;
-    if registry::revision(&tx)? != expected_revision {
-        return Err(CommandError::new(
-            "memory/conflict",
-            "Entity registry changed since the decision was prepared",
-        ));
-    }
-    local_event_guard::validate_new_event(&tx, event)?;
+    Ok(id)
+}
+
+pub(super) fn apply_decision(tx: &Transaction<'_>, event: &EventRow) -> Result<bool, CommandError> {
+    let id = target(event)?;
+    let p = event.payload.as_object().ok_or_else(invalid)?;
+    local_event_guard::validate_new_event(tx, event)?;
     let changed = if event.event_type == "entity.resolved" {
-        resolve_changes(&tx, id, p)?
+        resolve_changes(tx, id, p)?
     } else {
         let missing = || {
             CommandError::new(
@@ -121,21 +114,39 @@ pub(crate) fn entity_commit_inner(
                 "Merge requires two known classes with resolved keepers",
             )
         };
-        let keep = registry::root(&tx, id)?.ok_or_else(missing)?;
-        let merged = registry::root(&tx, text(p, "mergedId", 256)?)?.ok_or_else(missing)?;
-        if registry::definition(&tx, &keep)?.is_none()
-            || registry::definition(&tx, &merged)?.is_none()
+        let keep = registry::root(tx, id)?.ok_or_else(missing)?;
+        let merged = registry::root(tx, text(p, "mergedId", 256)?)?.ok_or_else(missing)?;
+        if registry::definition(tx, &keep)?.is_none()
+            || registry::definition(tx, &merged)?.is_none()
         {
             return Err(missing());
         }
         keep != merged
     };
     if changed {
-        let report = events::commit_events_in_transaction(&tx, std::slice::from_ref(event))?;
+        let report = events::commit_events_in_transaction(tx, std::slice::from_ref(event))?;
         if report.appended != 1 || report.applied != 1 {
             return Err(CommandError::internal("Incomplete entity decision commit"));
         }
     }
+    Ok(changed)
+}
+
+pub(crate) fn entity_commit_inner(
+    conn: &mut Connection,
+    event: &EventRow,
+    expected_revision: &str,
+) -> Result<EntityMutationReceipt, CommandError> {
+    let id = target(event)?;
+    if !registry::valid_revision(expected_revision) {
+        return Err(invalid());
+    }
+    let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+    registry::require_fresh(&tx)?;
+    if registry::revision(&tx)? != expected_revision {
+        return Err(CommandError::new("memory/conflict", "Entity registry changed since the decision was prepared"));
+    }
+    let changed = apply_decision(&tx, event)?;
     let canonical_id = registry::root(&tx, id)?
         .ok_or_else(|| CommandError::internal("Entity decision did not produce an identity"))?;
     let revision = registry::revision(&tx)?;

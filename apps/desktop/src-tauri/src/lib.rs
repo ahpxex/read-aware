@@ -1004,6 +1004,8 @@ pub fn run() {
             storage::profile_restore,
             storage::entity_query,
             storage::entity_commit,
+            storage::identity_consolidation_snapshot,
+            storage::identity_consolidation_commit,
             storage::book_classification_inspect,
             storage::book_classification_commit,
             storage::book_digest_inspect,

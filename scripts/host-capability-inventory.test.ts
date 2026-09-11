@@ -54,6 +54,14 @@ test("profile transaction commands are native foundations, not new public actor 
   expect(native.find(item => item.name === "storage::profile_restore")?.rows).toContain("OPS11");
 });
 
+test("identity consolidation foundations are mapped without inventing public actor tools", () => {
+  const entries = collectInventory().filter(item => item.name.includes("identity_consolidation"));
+  expect(entries.map(item => item.name).sort()).toEqual([
+    "storage::identity_consolidation_commit", "storage::identity_consolidation_snapshot",
+  ]);
+  expect(entries.every(item => item.family === "Native command" && item.rows.length === 1 && item.rows[0] === "MEM08")).toBe(true);
+});
+
 test("entity registry native, Agent and plugin entrypoints have explicit MEM08 mappings", () => {
   const inventory = collectInventory();
   const native = inventory.filter(item => item.family === "Native command" && item.name.startsWith("storage::entity_"));

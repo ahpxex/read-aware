@@ -60,7 +60,7 @@ fn legacy_summary(conn: &Connection) -> Result<Option<String>, CommandError> {
         .optional()?)
 }
 
-fn require_initialized(conn: &Connection) -> Result<(), CommandError> {
+pub(super) fn require_initialized(conn: &Connection) -> Result<(), CommandError> {
     require_fresh(conn)?;
     let legacy: bool = conn.query_row(
         "SELECT EXISTS(SELECT 1 FROM app_kv WHERE key=?1)",
@@ -73,7 +73,7 @@ fn require_initialized(conn: &Connection) -> Result<(), CommandError> {
     Ok(())
 }
 
-fn read_snapshot(conn: &Connection) -> Result<ProfileSnapshot, CommandError> {
+pub(super) fn read_snapshot(conn: &Connection) -> Result<ProfileSnapshot, CommandError> {
     let (summary, event): (Option<String>, Option<String>) = conn
         .query_row(
             "SELECT summary,updated_event_id FROM user_profile WHERE id='local'",

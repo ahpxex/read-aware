@@ -759,6 +759,7 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
     ),
     (32, "plugin_document_revisions", include_str!("plugin_docs_v32.sql")),
     (33, "profile_entity_projections", include_str!("profile_entities_v33.sql")),
+    (34, "identity_consolidation_checkpoint", "CREATE TABLE identity_consolidation_checkpoint (id INTEGER PRIMARY KEY CHECK(id=1), revision TEXT NOT NULL);"),
 ];
 
 /// Rebuild the annotation FTS index from the table. Required after any VACUUM
@@ -777,7 +778,7 @@ pub(crate) fn rebuild_annotations_fts(conn: &Connection) -> Result<(), CommandEr
 /// The schema version a projection checkpoint is stamped with. Restoring one
 /// is only sound when the derived tables' shapes match exactly, so a
 /// checkpoint from a different version is ignored in favour of the log.
-pub(crate) const SCHEMA_VERSION: i64 = 33;
+pub(crate) const SCHEMA_VERSION: i64 = 34;
 
 /// The migration after which `materialize_legacy_covers` must run: the cover
 /// projection columns exist, the inline data-URL column still does.

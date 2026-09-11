@@ -244,7 +244,7 @@ fn checkpoints_restore_all_identity_tables_without_cascading_away_aliases() {
     let before = snapshot(&mut conn);
     let info =
         super::super::checkpoints::create_checkpoint(&mut conn, dir.path(), "local", None).unwrap();
-    assert_eq!(info.schema_version, 33);
+    assert_eq!(info.schema_version, super::super::schema::SCHEMA_VERSION);
     commit_events_inner(&mut conn, &[resolve("new", 2000, "a", "Newer")]).unwrap();
     let tx = conn.transaction().unwrap();
     super::super::checkpoints::restore_checkpoint(&tx, dir.path(), &info).unwrap();

@@ -929,14 +929,12 @@ export class AgentThread {
         existing,
       });
       if (this.disposed) return;
-      const knownForExtensions = [...existing];
       for (const candidate of result.newMemories) {
-        const saved = await deps.memory.saveMemory({
+        await deps.memory.saveMemory({
           ...candidate,
           origin: "extraction",
           sourceThreadKey: this.key,
         });
-        knownForExtensions.push(saved);
       }
       for (const id of result.reinforcedIds) {
         const snapshot = snapshots.find(item => item.memory.id === id);
@@ -956,7 +954,6 @@ export class AgentThread {
         await persistExtensionMemory({
           scope: this.scope,
           candidates: proposed,
-          existing: knownForExtensions,
           sourceThreadKey: this.key,
           memory: this.deps.memory,
           operation,

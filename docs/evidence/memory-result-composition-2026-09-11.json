@@ -1,0 +1,111 @@
+{
+  "date": "2026-09-11",
+  "fixture": "apps/web/src/features/plugins/runtime/fixtures/desktop-memory-result-composition.ts",
+  "environment": {
+    "shell": "native Tauri macOS",
+    "identifier": "com.readaware.app.capability-e2e",
+    "frontend": "http://localhost:5184/",
+    "bridge": 9224,
+    "plugins": {
+      "readingGoals": "0.5.0",
+      "memoryDesk": "0.10.0"
+    },
+    "storage": "real isolated SQLite, synthetic FB2 and 105 seeded memory events"
+  },
+  "beforeFix": {
+    "bookId": "a6b1eedb-3d59-4fed-a514-94f288e93c07",
+    "count": 107,
+    "goalRows": [
+      {
+        "content": "Compare evidence across chapters for the synthetic composition.",
+        "id": "3b222221-802d-40f7-ba2e-aaae4c48ff6d"
+      },
+      {
+        "content": "Compare evidence across chapters for the synthetic composition.",
+        "id": "33bd4021-3073-4ddc-8db6-83ef1a3b82a8"
+      }
+    ],
+    "marker": "Composition memory c5cb7060-9bc8-4929-a00a-7f739c9ed5b1",
+    "versions": {
+      "desk": "0.10.0",
+      "goals": "0.5.0"
+    }
+  },
+  "afterFix": {
+    "agentPages": {
+      "counts": [
+        20,
+        20,
+        20,
+        20,
+        20,
+        6
+      ],
+      "ownCount": 106,
+      "uniqueOwnCount": 106
+    },
+    "bookId": "02e19d51-e25a-4f58-a74d-40279c696619",
+    "conflictText": "Memory Desk\nBook memory\nThis memory changed. Refresh it before editing.\nRefresh\nClose",
+    "duplicateText": "Reading Goals\nGoal memory result\nComposition memory fd81ea89-6624-4dcf-a7ed-3b4d07352eab\nNot saved\nMatching content already known\nRefresh\nClose",
+    "lastPage": {
+      "nextDisabled": true,
+      "text": "Memory Desk\nBook memory\n\nRefresh\n\nSearch\n\nComposition memory item 041\n2026-09-11T01:30:13.031Z\n\nComposition memory item 075\n2026-09-11T01:30:13.031Z\n\nComposition memory item 019\n2026-09-11T01:30:13.031Z\n\nComposition memory item 048\n2026-09-11T01:30:13.031Z\n\nComposition memory item 010\n2026-09-11T01:30:13.031Z\n\nCompare evidence across chapters for the synthetic composition.\n2026-09-11T01:30:22.592Z\n\nPrevious page\nPage 6 of 6\n\nNext page\nClose"
+    },
+    "pluginPages": [
+      "Page 1 of 6",
+      "Page 2 of 6",
+      "Page 3 of 6",
+      "Page 4 of 6",
+      "Page 5 of 6",
+      "Page 6 of 6"
+    ],
+    "recoveredPage": "Page 1 of 6",
+    "search": {
+      "query": "041",
+      "text": "Memory Desk\n\nBook memory\n\nRefresh\n\nSearch\n\nComposition memory item 041\n2026-09-11T01:30:13.031Z\n\nPrevious page\nPage 1 of 1\n\nNext page\nClose",
+      "viewport": [
+        600,
+        750
+      ],
+      "visibility": "visible"
+    }
+  },
+  "fix": {
+    "cause": "Deduplication used the strongest 20 prompt memories, excluding a previously saved lower-weight goal.",
+    "change": "Read authoritative active memory before normalization; filter to user/global/current-book scopes. Failed reads and cancellation skip proposals without writing.",
+    "firstSaveCount": 106,
+    "secondSaveCount": 106,
+    "secondGoalRows": 1
+  },
+  "validation": {
+    "tests": 30,
+    "assertions": 141,
+    "agentTypecheck": "passed",
+    "webTypecheck": "passed",
+    "screenshots": [
+      "memory-composition-page-2026-09-11.png",
+      "memory-composition-search-2026-09-11.png"
+    ]
+  },
+  "cleanup": {
+    "booksRemoved": true,
+    "activeOwnedMemories": 0,
+    "ownedWorkerContributions": 0,
+    "goalDocumentsRemoved": true,
+    "windowRestored": [
+      900,
+      750
+    ],
+    "appPid73516": "stopped",
+    "frontendSession61102": "exit 0",
+    "ports5184and9224": "no listeners",
+    "originalAppPid12565": "untouched and live",
+    "history": "Test memories were forgotten using domain events. Inactive rows and event history intentionally remain in the isolated profile."
+  },
+  "limits": [
+    "Compiled Workers and production candidate pipeline/native ports were invoked through a development fixture; no full model/chat turn was run.",
+    "UI controls were automated, not physical keyboard acceptance. Search uses the existing OR-token semantics; query 041 finds a record formerly on page six.",
+    "No new packaged build, app-restart persistence, cross-device, atomic concurrent deduplication or database-level pagination claim.",
+    "An initial fixture method typo and HMR reload required cleanup of the first synthetic book before rerunning."
+  ]
+}

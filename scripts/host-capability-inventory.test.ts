@@ -49,7 +49,8 @@ test("annotation edits and removals have one conditional public inventory entry"
 
 test("profile transaction commands are native foundations, not new public actor entrypoints", () => {
   const native = collectInventory().filter(item => item.family === "Native command" && item.name.startsWith("storage::profile_"));
-  expect(native.map(item => item.name).sort()).toEqual(["storage::profile_commit", "storage::profile_initialize", "storage::profile_inspect", "storage::profile_restore"]);
+  expect(native.map(item => item.name).sort()).toEqual(["storage::profile_commit", "storage::profile_context", "storage::profile_initialize", "storage::profile_inspect", "storage::profile_restore"]);
+  expect(native.find(item => item.name === "storage::profile_context")?.rows).toEqual(["MEM06", "MEM08"]);
   expect(native.every(item => item.rows.includes("MEM08"))).toBe(true);
   expect(native.find(item => item.name === "storage::profile_restore")?.rows).toContain("OPS11");
 });

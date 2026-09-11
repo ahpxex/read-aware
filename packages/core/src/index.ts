@@ -56,5 +56,6 @@ export * from "./book-content-state";
 export * from "./sync";
 export * from "./user-profile";
 export * from "./entity-registry";
+export * from "./identity-consolidation";
 export * from "./memory-candidate";
 export * from "./memory-page";

@@ -307,10 +307,11 @@ export interface ConversationPort {
 
 /** Event-backed profile summary; not a versioned context bundle. Absence is undefined. */
 export interface ProfilePort {
+  getProfileContext(): Promise<import("@read-aware/core").ProfileContext>;
   updateProfile(input: import("@read-aware/core").UserProfileChange, signal?: AbortSignal): Promise<import("@read-aware/core").UserProfileReceipt>;
   getProfileSummary(): Promise<string | undefined>;
   readProfile(query?: import("@read-aware/core").UserProfileQuery, signal?: AbortSignal): Promise<import("@read-aware/core").UserProfilePage>;
-  /** Internal onboarding write; current host persists device-local KV, not an event projection. */
+  /** Internal onboarding write to the curated event-backed summary. */
   putProfileSummary(summary: string): Promise<void>;
 }
 

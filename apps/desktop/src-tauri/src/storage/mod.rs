@@ -30,6 +30,8 @@ mod memory_mutations;
 pub use memory_mutations::*;
 mod user_profile;
 pub use user_profile::*;
+mod profile_context;
+pub use profile_context::*;
 mod local_event_guard;
 mod entity_registry;
 mod entity_queries;

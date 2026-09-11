@@ -75,16 +75,7 @@ pub(super) fn read_snapshot(
     user_profile::require_initialized(conn)?;
     let profile = user_profile::read_snapshot(conn)?;
     let entities_revision = entity_registry::revision(conn)?;
-    let ids = conn.prepare("SELECT id FROM memories WHERE status='active' AND scope IN ('user','global') AND (evidence_count>=3 OR pinned=1) ORDER BY id")?
-        .query_map([], |row| row.get::<_, String>(0))?.collect::<Result<Vec<_>, _>>()?;
-    let sources = ids
-        .iter()
-        .map(|id| {
-            memory_mutations::read_snapshot(conn, id)?.ok_or_else(|| {
-                CommandError::internal("Identity source disappeared inside its snapshot")
-            })
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+    let sources = read_sources(conn)?;
     let bytes = serde_json::to_vec(&(
         &profile.revision,
         &entities_revision,
@@ -107,6 +98,20 @@ pub(super) fn read_snapshot(
         sources,
         settled,
     })
+}
+
+pub(super) fn read_sources(
+    conn: &Connection,
+) -> Result<Vec<memory_mutations::MemorySnapshot>, CommandError> {
+    let ids = conn.prepare("SELECT id FROM memories WHERE status='active' AND scope IN ('user','global') AND (evidence_count>=3 OR pinned=1) ORDER BY id")?
+        .query_map([], |row| row.get::<_, String>(0))?.collect::<Result<Vec<_>, _>>()?;
+    ids.iter()
+        .map(|id| {
+            memory_mutations::read_snapshot(conn, id)?.ok_or_else(|| {
+                CommandError::internal("Identity source disappeared inside its snapshot")
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()
 }
 
 pub(crate) fn identity_snapshot_inner(

@@ -2,10 +2,11 @@
 
 ## Current Status
 
-Native snapshot/conditional commit and the v34 local checkpoint are implemented.
-They are internal Tauri commands, not new model or plugin methods. The automatic
-producer and derived-profile consumers below are still required; MEM08 remains
-partial. This foundation does not start inference or change existing prompts.
+Native snapshot/conditional commit, the v34 local checkpoint, typed host service
+and evidence-validated prompt consumption are implemented. These are internal
+ports, not new model or plugin methods. The automatic inference/idle producer
+below is still required; MEM08 remains partial. No automatic inference starts
+from these bindings alone. Existing curated profile APIs retain their meaning.
 
 ## Ownership
 
@@ -63,16 +64,38 @@ revisions; rerunning is preferable to hiding unseen source changes.
 
 ## Producer And Consumers
 
+Prompt reads use a dedicated read transaction over curated profile, the derived
+block and its current eligible memory set. They must not hash or load the entity
+registry on every chat turn. With no derived block, no evidence scan is needed.
+Only source IDs/revisions cross this prompt IPC, not the memory contents.
+The TypeScript selector validates the versioned block and exact source revisions;
+missing, changed or newly eligible evidence drops generated context before any
+replacement is ready. Invalid historical blocks are omitted with a warning.
+Curated retrieval/editing stays separate, and an inferred profile does not count
+as completing the user's onboarding interview.
+
+The host service copies and validates the plan before any asynchronous work.
+Each entity decision must name the snapshot's registry revision. The host mints
+entity event IDs/HLCs, then the profile envelope with their evidence links; the
+model cannot select origins, event IDs or HLCs. It checks cancellation after
+initialization and each mint, before dispatch. Dispatched transactions return
+their actual receipt or error and broadcast only the receipt's emitted events.
+No conflict is automatically retried with a replacement version.
+
 Required next bindings: model-facing bounded input assembly and strict structured
-output with source attribution, deterministic event minting/ID ownership,
-native snapshot/commit ports, live-policy cancellation/drain, durable idle skip,
-and explicit derived-profile readers/prompt injection. Oversized or incomplete
+output with source attribution, stable entity-ID ownership, automatic runtime
+ports, live-policy cancellation/drain and durable idle skip. Oversized or incomplete
 model work stays pending with logged diagnostics, not a fake successful pass.
 Curated profile edits win by separation and read-set conflict checks. Forgotten
 or superseded evidence invalidates the derived layer before regeneration.
 
 Native tests cover conflict, rollback, source/authority validation, batch limits,
-replay, migration, two-connection changes and restart. Producer/consumer policy
-tests remain required. Stage two adds real composition workflows; stage three
+replay, migration, two-connection changes and restart. Core/host tests cover
+candidate copying, malformed source/authority rejection, mint ordering, partial
+receipts, cancellation and failure propagation. Real AgentThread orchestration
+with a scripted model checks both scopes, same-chapter prompt refresh, stale and
+invalid exclusion, curated precedence and interview preservation; this is not
+Tauri or model-quality evidence. Automatic producer/policy tests remain required.
+Stage two adds real composition workflows; stage three
 proves real Tauri/Worker/inference, revocation and cross-device replay. Native
 foundations alone do not close MEM08 or count as those consumer workflows.

@@ -247,6 +247,7 @@ const nativeMap = pairs([
   ["memories_list_all memory_get memory_put", "MEM01 MEM02 MEM04"], ["chapter_digests_list", "MEM10 MEM11"],
   ["memory_inspect memory_commit", "MEM01 MEM04 MEM05"],
   ["profile_inspect profile_initialize profile_commit", "MEM06 MEM07 MEM08"],
+  ["profile_context", "MEM06 MEM08"],
   ["profile_restore", "MEM07 MEM08 OPS11"],
   ["entity_query entity_commit", "MEM08"],
   ["identity_consolidation_snapshot identity_consolidation_commit", "MEM08"],

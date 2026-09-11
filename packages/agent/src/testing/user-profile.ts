@@ -19,6 +19,7 @@ export function createProfileFixture(state: { summary: string | undefined }): Pr
     return { changed, revision: nextRevision, persistence: "event-log" };
   };
   return {
+    getProfileContext: async () => ({ curated: state.summary ?? null, consolidated: null, derivedStatus: "absent" }),
     updateProfile,
     getProfileSummary: async () => state.summary,
     readProfile: async (query, signal) => {

@@ -147,6 +147,13 @@ fn complete_read_set_excludes_book_and_weak_memories_but_includes_explicit_pins(
     assert_eq!(after.revision, receipt.revision);
     assert_ne!(before.revision, after.revision);
     assert_eq!(after.profile.summary.as_deref(), Some("Handwritten"));
+    let context = super::super::profile_context::profile_context_inner(&mut conn).unwrap();
+    assert_eq!(context.source_conditions, source_conditions(&after.sources));
+    assert_eq!(context.profile.summary, after.profile.summary);
+    assert_eq!(context.derived, after.derived);
+    let wire = serde_json::to_value(context).unwrap();
+    assert!(wire.get("sources").is_none());
+    assert!(wire.get("entitiesRevision").is_none());
     assert_eq!(
         after.derived.unwrap(),
         proposed.payload["traits"]["consolidated"]

@@ -1,5 +1,7 @@
 import { expect, spyOn, test } from "bun:test";
 import * as domain from "../../../../domain/user-profile";
+import * as identity from "../../../../domain/identity-consolidation";
+import { identityHost } from "../../../../../tests/helpers/identity-host";
 import { createProfilePort } from "./profile-port";
 import { buildPluginContext } from "../../../plugins/runtime/plugin-context";
 import type { PluginPermission } from "@read-aware/plugin-types";
@@ -57,4 +59,19 @@ test("prompt, onboarding, plugin pages and observations share the profile servic
     for (const runtime of runtimes) runtime.lifecycle.stop();
     for (const spy of spies) spy.mockRestore();
   }
+});
+
+test("production profile context uses dedicated evidence reads without changing curated page or write semantics", async () => {
+  const host = identityHost();
+  const spy = spyOn(identity, "readProfileContext").mockImplementation(host.service.context);
+  try {
+    const port = createProfilePort();
+    expect(await port.getProfileContext()).toEqual({ curated: "Curated", consolidated: null, derivedStatus: "absent" });
+    host.controls.snapshot.derived = { version: 1, summary: "Valid inference", sources: [{ memoryId: "a", revision: host.controls.snapshot.sources[0]!.revision }], entityEvidence: [] };
+    expect(await port.getProfileContext()).toMatchObject({ derivedStatus: "current", consolidated: { summary: "Valid inference" } });
+    host.controls.snapshot.sources = [];
+    expect(await port.getProfileContext()).toEqual({ curated: "Curated", consolidated: null, derivedStatus: "stale" });
+    expect(host.calls.map(call => call.command)).toEqual(["profile_context", "profile_context", "profile_context"]);
+    expect(host.minted).toHaveLength(0);
+  } finally { spy.mockRestore(); }
 });

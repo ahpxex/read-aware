@@ -8,7 +8,7 @@
 import { Agent, type AgentEvent, type ThinkingLevel } from "@earendil-works/pi-agent-core";
 import type { Usage } from "@earendil-works/pi-ai";
 import type { ThreadChunk } from "../chunks";
-import { errorCode, ERR_AI_MEMORY_DISABLED } from "@read-aware/core";
+import { errorCode, ERR_AI_MEMORY_DISABLED, profileContextText, type ProfileContext } from "@read-aware/core";
 import { runMemoryBuild } from "../memory/build-policy";
 import { buildSystemPrompt } from "../context/system-prompt";
 import { extractMemories, extractMemoriesFromTranscript } from "../memory/extraction";
@@ -341,7 +341,7 @@ export class AgentThread {
 
   private async refreshSystemPrompt(
     agent: Agent,
-    profile: string | undefined,
+    profile: ProfileContext,
     bookContext?: { book?: BookOverview; chapter?: { index: number; title?: string } },
   ): Promise<boolean> {
     let digestsUnavailable = false;
@@ -361,13 +361,13 @@ export class AgentThread {
       book: bookContext?.book,
       currentChapter: bookContext?.chapter,
       chapterDigests: digests,
-      profile,
+      profile: profileContextText(profile),
       shelfSize: shelf?.length,
       memories,
       conversationSummary,
       // 全局线程首次使用且画像为空 → 访谈模式（onboarding 的对话半场，doc §9）
       onboardingInterview:
-        this.scope.kind === "global" && !profile && agent.state.messages.length === 0,
+        this.scope.kind === "global" && !profile.curated && agent.state.messages.length === 0,
     });
     agent.state.systemPrompt = this.transformSystemPrompt
       ? this.transformSystemPrompt(systemPrompt, this.scope)
@@ -482,7 +482,7 @@ export class AgentThread {
       })));
       call.assertAllowed();
       const agent = await call.wait(this.ensureAgent(call));
-      const profile = await call.wait(this.deps.profile.getProfileSummary());
+      const profile = await call.wait(this.deps.profile.getProfileContext());
       // 本轮所在章节：选区的章节优先于阅读位置（问哪段话,会话就属于哪章）。
       // 仅决定对话会话；纪要的阅读边界始终来自当前游标。
       const turnChapter = localInput.attachments?.[0]?.chapter ?? cursor?.chapter;
@@ -498,7 +498,7 @@ export class AgentThread {
           turnChapter !== undefined &&
           this.sessionChapter !== undefined &&
           turnChapter !== this.sessionChapter;
-        const policyKey = JSON.stringify({ profile: profile ?? null, classification: currentBook?.narrativity ?? null, status: currentBook?.status ?? null, chapterIndex: cursor?.chapterIndex ?? null,
+        const policyKey = JSON.stringify({ profile: profileContextText(profile) ?? null, classification: currentBook?.narrativity ?? null, status: currentBook?.status ?? null, chapterIndex: cursor?.chapterIndex ?? null,
           policy: chapterMemoryPolicy(currentBook, cursor?.chapterIndex) });
         const newSession = !this.sessionStarted || crossedChapter;
         if (newSession || policyKey !== this.sessionMemoryPolicy) {

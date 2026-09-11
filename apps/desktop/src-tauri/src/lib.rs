@@ -999,6 +999,7 @@ pub fn run() {
             storage::memory_inspect,
             storage::memory_commit,
             storage::profile_inspect,
+            storage::profile_context,
             storage::profile_initialize,
             storage::profile_commit,
             storage::profile_restore,

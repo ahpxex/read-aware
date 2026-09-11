@@ -19,6 +19,7 @@ export * from "./events";
 export * from "./read-models";
 export * from "./reading-session";
 export * from "./reading-ai-action";
+export * from "./context-bundle";
 export * from "./reading-emphasis";
 export * from "./host-io";
 export * from "./conversation-control";

@@ -325,6 +325,7 @@ export type DomainEvent =
     >
   | DomainEventEnvelope<"aiConversation.cleared", { conversationId: Id }>
   // --- Profile + memory ------------------------------------------------
+  | DomainEventEnvelope<"context.bundlePublished", import("./context-bundle").ContextBundle>
   | DomainEventEnvelope<
       "profile.updated",
       { displayName?: string | null; summary?: string | null; traits?: Record<string, unknown> }

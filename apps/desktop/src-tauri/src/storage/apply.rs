@@ -44,6 +44,7 @@
 
 mod profile;
 mod entities;
+mod context_bundles;
 
 use crate::error::CommandError;
 use rusqlite::{params, Transaction};
@@ -833,6 +834,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandE
             ?;
         }
         "profile.updated" => return profile::apply(tx, p, &at, &ev.id),
+        "context.bundlePublished" => return context_bundles::publish(tx, p, &at, &ev.id),
         "entity.resolved" => return entities::resolve(tx, p, &at, &ev.id),
         "entity.merged" => return entities::merge(tx, p, &at, &ev.id),
 
@@ -1034,6 +1036,8 @@ pub struct DiffSpec {
 /// clears exactly these — device-local state (app_kv, local_device, the blob
 /// registry, plugin documents) is NOT derived from the log and must survive.
 pub const DERIVED_TABLES: &[&str] = &[
+    "context_bundle_items",
+    "context_bundles",
     "entity_aliases",
     "entity_redirects",
     "entities",
@@ -1053,6 +1057,8 @@ pub const DERIVED_TABLES: &[&str] = &[
 ];
 
 pub const DIFF_SPECS: &[DiffSpec] = &[
+    DiffSpec { table: "context_bundles", local_columns: &[], domain_rows: None },
+    DiffSpec { table: "context_bundle_items", local_columns: &[], domain_rows: None },
     DiffSpec { table: "user_profile", local_columns: &[], domain_rows: None },
     DiffSpec { table: "entities", local_columns: &[], domain_rows: None },
     DiffSpec { table: "entity_aliases", local_columns: &[], domain_rows: None },

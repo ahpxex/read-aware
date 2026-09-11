@@ -26,6 +26,8 @@
 --   memory/entity/vector/context 子系统（user_profile、entities、entity_aliases、memories、memory_evidence、working_memory、
 --   context_bundles、context_bundle_items、vector_documents、embedding_jobs）以及 sync_* 远端中继表——它们目前都还没有生产者，
 --   等 consolidation/同步管线落地时再启用。
+-- 2026-09-11 context bundle补充：上段是历史状态，不代表现行实现。
+--   v35已建下面两张context投影表并接context.bundlePublished重放；实际来源生产/查询/导出尚待接。
 --
 -- 当前持久化来源：read-aware-library IndexedDB 的 books/files/collections 迁移到 books/blob_objects/collections/book_collection_memberships。
 -- 当前持久化来源：read-aware-annotations IndexedDB 的 highlights/notes 迁移到 highlights/notes，并由 domain_events 重放生成。
@@ -576,30 +578,25 @@ CREATE TABLE working_memory ( -- [projection] 当前阅读会话的短期工作�
 CREATE INDEX ix_working_memory_book ON working_memory (book_id, salience); -- 阅读某本书时按 salience 取短期工作记忆。
 CREATE INDEX ix_working_memory_expires ON working_memory (expires_at); -- 清理过期 working memory 时使用。
 
-CREATE TABLE context_bundles ( -- [projection] 可导出的结构化上下文包；用于外部 agent 或系统，而不是拼接 prompt 字符串。前瞻，暂无生产者。
-  id TEXT NOT NULL PRIMARY KEY, -- context bundle 版本 ID；每次 assembly 生成一个不可变版本。
-  bundle_key TEXT NOT NULL, -- 稳定 bundle key，例如 user_profile_context 或 book_memory:<bookId>。
-  type TEXT NOT NULL, -- bundle 类型：user_profile_context、reading_intent_context、book_memory_context、conversation_insights_context。
-  scope_id TEXT, -- bundle 作用域 ID；book_memory_context 通常是 book_id，用户级 bundle 可为空。
-  version INTEGER NOT NULL, -- 同一个 bundle_key 下递增版本号；导出和复现时能精确引用某一版。
-  content_json TEXT NOT NULL, -- 结构化上下文包 JSON；外部 agent 读取它而不是读取原始聊天 transcript。
-  checksum TEXT NOT NULL, -- content_json 的哈希；用于去重、导出完整性和判断 bundle 是否变化。
-  assembled_from_hlc_wall_ms INTEGER, -- assembly 时 event log 已消费到的 HLC wallMs，说明该 bundle 覆盖到哪个事实时间点。
-  assembled_from_hlc_counter INTEGER, -- assembly 时 event log 已消费到的 HLC counter。
-  assembled_from_hlc_device TEXT, -- assembly 时 event log 已消费到的 HLC deviceId。
-  assembled_at TEXT NOT NULL -- 该版本上下文包生成时间。
+CREATE TABLE context_bundles ( -- [projection] v35已建；来源生产/公开导出尚未接。
+  version TEXT PRIMARY KEY, -- cb1固定元组SHA256；不是每设备自增序号。
+  kind TEXT NOT NULL, -- 四类recipe。
+  scope_kind TEXT NOT NULL, -- user/book/conversation。
+  scope_id TEXT, -- user无ID；book/conversation固定实际目标。
+  content_json TEXT NOT NULL, -- 不可变结构化内容，含来源版本/排序和计数省略原因，不含原始转录。
+  created_at TEXT NOT NULL, -- 首个按HLC重放的发布事件时间；不参与内容hash。
+  created_event_id TEXT NOT NULL -- 历史元数据，不是内容版本的一部分。
 ); -- context_bundles 表结束。
 
-CREATE UNIQUE INDEX ix_context_bundles_key_version ON context_bundles (bundle_key, version); -- 保证同一 bundle_key 的版本号唯一并支持按版本导出。
-CREATE INDEX ix_context_bundles_type_scope ON context_bundles (type, scope_id); -- 按 bundle 类型和作用域查当前可导出上下文。
+CREATE INDEX ix_context_bundles_history ON context_bundles (kind, scope_kind, scope_id, created_at, version);
 
-CREATE TABLE context_bundle_items ( -- [projection] 上下文包引用的具体来源清单；让导出的 bundle 可解释、可审计、可局部刷新。前瞻，暂无生产者。
-  bundle_id TEXT NOT NULL REFERENCES context_bundles(id) ON DELETE CASCADE, -- 所属 context bundle 版本 ID。
-  source_kind TEXT NOT NULL, -- 来源类型：memory、highlight、note、book、ai_message、profile。
-  source_id TEXT NOT NULL, -- 来源对象 ID；用于从 bundle 反查原始事实。
-  rank INTEGER NOT NULL, -- 该来源在 bundle 里的排序；越小越靠前。
-  score REAL, -- 组装时的综合分数；可由语义相似度、重要性、recency、用户反馈混合得到。
-  PRIMARY KEY (bundle_id, source_kind, source_id) -- 同一 bundle 版本里同一来源只出现一次。
+CREATE TABLE context_bundle_items ( -- [projection] v35已建，记录有序来源身份，不声称来源目前仍可读。
+  bundle_version TEXT NOT NULL REFERENCES context_bundles(version) ON DELETE CASCADE,
+  rank INTEGER NOT NULL CHECK (rank >= 0),
+  source_kind TEXT NOT NULL,
+  source_id TEXT NOT NULL,
+  source_revision TEXT NOT NULL,
+  PRIMARY KEY (bundle_version, rank)
 ); -- context_bundle_items 表结束。
 
 CREATE TABLE vector_documents ( -- [local index] SQLite 侧的向量索引 manifest；真正 embedding 向量在 LanceDB，这里只记录来源、hash 和索引状态。前瞻，暂无生产者。

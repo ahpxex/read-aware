@@ -63,6 +63,12 @@ test("identity consolidation foundations are mapped without inventing public act
   expect(entries.every(item => item.family === "Native command" && item.rows.length === 1 && item.rows[0] === "MEM08")).toBe(true);
 });
 
+test("bundle publication is an event projection foundation, not a public export entrypoint", () => {
+  const entries = collectInventory().filter(item => item.name === "context.bundlePublished");
+  expect(entries).toHaveLength(1);
+  expect(entries[0]).toMatchObject({ family: "Canonical event", rows: ["MEM13"] });
+});
+
 test("reading AI actions have explicit per-feature mappings in both Agent scopes", () => {
   const inventory = collectInventory();
   const actions = { explain_selection: "SET18", define_term: "SET19", translate_selection: "SET20", summarize_chapter: "SET21" };

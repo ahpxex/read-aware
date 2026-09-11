@@ -1,0 +1,16 @@
+{
+  "version": "cb1:299553b9edd1eefaa24a39e5c8a1f27bf56a118af24029ec14f40a76348331ee",
+  "content": {
+    "format": "readaware.context",
+    "schemaVersion": 1,
+    "recipeVersion": 1,
+    "kind": "book_memory_context",
+    "scope": { "kind": "book", "id": "book:one" },
+    "sourceRevision": "source:one",
+    "items": [
+      { "kind": "annotation", "id": "note:one", "revision": "event:one", "label": "Note", "text": "\u4e2d\u6587 \ud83d\udcd6\n\"quote\" \\ /\t\u2028" },
+      { "kind": "memory", "id": "memory:one", "revision": "mem:one", "label": "", "text": "A reading observation." }
+    ],
+    "omissions": [{ "kind": "chapter_digest", "reason": "spoiler", "count": 2 }]
+  }
+}

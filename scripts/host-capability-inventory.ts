@@ -403,6 +403,7 @@ export function collectInventory(): Inventory[] {
     ["note.created note.updated note.removed", "ANN05"],["ask.recorded ask.removed", "ANN06 ANN07"],
     ["aiConversation.started aiMessage.appended aiMessage.removed aiConversation.cleared", "AI01 AI02 AI03"],
     ["profile.updated entity.resolved entity.merged", "MEM08"],["memory.promoted", "MEM02 MEM03"],
+    ["context.bundlePublished", "MEM13"],
     ["memory.revised memory.superseded memory.forgotten", "MEM04"],["memory.feedback", "MEM05"],["preference.changed", "OPS05 CFG01"],
   ]);
   function visitEvent(node: import("../apps/web/node_modules/typescript").Node) {

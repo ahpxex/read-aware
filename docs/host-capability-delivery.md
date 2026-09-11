@@ -2,6 +2,20 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：第一段 context bundle 不可变版本与原生投影
+
+[进度/设计] 上轮8db8643b已推送SET18–21四动作，是有效进展。本组继续明确要求的MEM13，先写context-bundles设计：四recipe的真实上下文包，不是v1备份或转录拼接。先交付可重放版本历史基础；不把只建表当成宿主导出已完成，也不扩大第二段插件工作。
+
+[契约] TS/Rust共同校验schemaVersion/recipeVersion=1，recipe/scope相容、允许的来源类别、来源ID/版本/标签/正文及明确计数的privacy/spoiler/unavailable省略。人工与派生画像分型，无原始消息类别、密钥/路径字段、任意JSON或外加事件权限字段。cb1 SHA256固定元组编码涵盖完整内容、顺序、scope、来源集版本和省略；不是对象插入顺序或各设备自增数。Unicode golden覆盖中文、非BMP字符、引号、控制转义和分隔符，两实现版本相同。最多512项/1MiB规范UTF-8，过长拒绝不截断；同类重复source ID和重复省略计数拒绝。来源结构合法与hash一致不证明内容语义/授权/当前一致，真实生产者仍待接。
+
+[存储] v35加入context_bundles和ranked context_bundle_items，只有apply的context.bundlePublished分支写投影；已纳入DERIVED_TABLES/DIFF_SPECS、checkpoint、重放和wipe。相同内容去重，不同版本保留，历史时间/事件ID不进入内容hash；晚到重复发布按HLC回放可改变首个发布元数据但不改内容。类型化事件已有宿主aggregate路由及库存MEM13映射，不新增公共模型/插件写口。升级从旧日志恢复曾被忽略的事件，坏事件使迁移整批回滚，不完整bootstrap仍stale到backfill完成；不重写其他未记录的旧行。
+
+[验证] 原生storage定向184项通过，1项既有百万日志压力默认忽略；新增8项含共享golden/四recipe、不可变历史/来源排序、重复与逆序remote重放、版本/字段/体积拒绝、三处投影/outbox故障原子回滚、checkpoint/漂移修复/wipe、v34升级/失败回滚/未完成回填和SQLite重开。core及库存模型22项117断言通过。core与Web（含Foliate和迁出桌面脚本）类型通过；沿用上组已导出的已提交Agent源码/共享tsconfig及现有依赖检查新core契约，全Agent类型通过，不算干净安装。首次类型检查发现JSON测试fixture的字面量宽化和新增事件缺aggregate路由，已修正并复跑。Cargo初始锁等待后同一进程正常完成，保留既有Rust警告。未启动桌面/浏览器、打包、正式插件或远端模型；用户表单变更未改/未夹带。
+
+[剩余] MEM13由待建变为部分，Agent/插件仍未接：下一实现关闭条件是四recipe真实来源组装、固定读集条件发布、授权历史/检查/ResourceRef导出及原生/Agent消费者，包含取消/撤权/持久回执和真实来源隐私/剧透。之后按第三段正式插件/Tauri流程验收，不能借存储基础修改为待E2E。源模型/矩阵、数据模型和SQL参考同步；HTML每日集中。本组独立提交并push。
+
+[燃尽] 剩余部分/未接行数81；未覆盖行数240；未验收插件数15（包含9个组合桌面插件）。
+
 ## 2026-09-11：第一段四个阅读 AI 动作
 
 [进度/实现] 上轮af9ca6b3已推送派生画像公开检查，是有效进展；MEM08可恢复大输入分批仍保留明确实现缺口。本组先写reading-ai-actions设计，再将SET18–21接到真实选区More、命令面板和Agent双scope工具，共用ReadingAiActions与生产RuntimeDeps。不依赖askConversation，不增加第二个Agent或伪造助手消息。对应开关移除两UI和下一次模型请求中的工具，旧工具执行再次复核；插件沿用现有精确路径settings授权，不为小功能加新插件域。

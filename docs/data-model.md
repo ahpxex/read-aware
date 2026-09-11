@@ -309,10 +309,16 @@ the Producer status note above; the rest are forward-looking, no producer yet):
 
 ### 5.3 Context bundles (versioned, exportable)
 
-**`context_bundles`** keeps a version history per `bundle_key` (`type` +
-`scope_id`), so exports are reproducible; **`context_bundle_items`** records the
-ranked sources behind each version. External agents read the structured
-`content_json`, never the raw transcript. (Forward-looking.)
+**`context_bundles`** now has the v35 native projection foundation: immutable
+`cb1:<sha256>` content versions, indexed by recipe and scope, with publication
+metadata separate from the artifact. **`context_bundle_items`** records ordered
+source identities and revisions per version. Both derive exclusively from
+`context.bundlePublished` and participate in replay, verification and checkpoints.
+Content hashing uses the shared fixed-tuple encoding, not local integer counters
+or object key order. External consumers will read structured `content_json`, not
+raw transcripts. Actual source assembly, conditional publication, authorized
+queries and resource export are not wired yet; MEM13 remains partial. See
+[context-bundles](./context-bundles.md) for the contract and closing conditions.
 
 ### 5.4 Blob registry
 

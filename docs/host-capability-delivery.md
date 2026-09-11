@@ -2,6 +2,16 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：第一段 MEM13 原生用户入口
+
+[进度/设计] 上轮46906c45双端公开gate已推送，是有效进展。本组补上MEM13最后一个第一段缺口：产品UI的原生入口。放在设置→数据（与备份/数据目录同页）新增 Context bundles 组，以 user origin 通过同一 contextBundleAccess gate（FULL_DOMAIN_GRANTS），不为UI另造授权/披露逻辑。行改接通（待 E2E）。
+
+[实现] settings/lib/context-bundle-settings.ts 纯函数：各recipe允许的scope种类、scope选项（书来自书库、对话来自全局线程）、选择器解析（陈旧选择返回null）、默认scope与捕获摘要。hooks/useContextBundles.ts：可注入的 contextBundleSettingsHost（supported/books/threads/capture/history/export/createOwner），挂载加载书与线程、选择器变化或发布后重载最近20个版本、capture成功toast报版本/条目/省略数或"未变化"、save 经 UI 自有 ResourceOwner export→原生保存对话框→无论结果 release，失败走 describeError 稳定文案，卸载中止并 dispose owner，同一时间只允许一个操作。sections/ContextBundlesGroup.tsx：recipe/scope Select、立即捕获、版本列表（短版本+本地化时间+保存），非桌面只显示说明并禁用；DataSyncPanel 接入。八语言 settings.json 新增 dataSync.contextBundles.*。
+
+[验证] tests/context-bundles-settings.test.tsx 三条JSDOM测试经子进程隔离通过（scope按recipe解析与历史刷新、失败文案不泄原文；保存导出/保存/释放顺序、取消无成功提示、权限与未知错误、未保留版本、并发与卸载释放；组渲染、点击捕获/保存、非桌面禁用）；settings目录58项通过，useShortcutPreferences 1项失败在HEAD同样失败（与本组无关，未修）；web与desktop tsconfig类型通过；scripts 20项、矩阵与模型生成器--check均通过，模型md/html本次重生成。未启动Tauri：原生保存对话框、真实书库/线程与文件字节留第三段（已写入stage-three MEM13节）。
+
+[剩余] MEM13第一段关闭；第二段需为本行指定正式插件流程，第三段按清单验收。源矩阵/模型/设计同步，本组独立提交并push。
+
 ## 2026-09-11：第一段 MEM13 双端公开接线
 
 [进度/设计] 上轮4ddf37df原生来源准入已推送，是有效进展。本组接通MEM13的公共actor层：一个宿主gate（domain/context-bundle-access.ts）同时服务插件与Agent，按recipe真实读取域检查授权（全部需memory；book_memory_context另需annotations+library；book scope需library；conversation_insights_context需conversations；capture需memory:write），selector不能扩权、版本ID不授权。旧版本披露按设计文档"无法建立围栏即扣留"落地：书内recipe读取当前durable快照与已验章节映射得出现围栏，再对每个候选围栏重算bctx1反推留存围栏，现围栏all全放行，before N只交付before M≤N或unknown，edition/章节映射/flavor不符或hash不可重现者稳定memory/forbidden，不裁剪artifact。四recipe不含实时选区/视窗正文，两个文本发送开关对其条目不适用，设计文档如实写明。仍是第一段，不开桌面、不扩第二段插件流程。

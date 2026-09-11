@@ -10,6 +10,7 @@ import { useBackupActions } from "../hooks/useBackupActions";
 import { SyncAccountGroup } from "./SyncAccountGroup";
 import { useMaintenanceSurface } from "../hooks/useMaintenanceSurface";
 import { DataLocationGroup } from "./DataLocationGroup";
+import { ContextBundlesGroup } from "./ContextBundlesGroup";
 
 const log = createLogger("data-sync");
 
@@ -91,6 +92,8 @@ export function DataSyncPanel() {
           }
         />
       </SettingsGroup>
+
+      <ContextBundlesGroup />
 
       <SettingsGroup title={t("dataSync.dangerZone")}>
         <SettingsRow

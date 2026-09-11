@@ -68,8 +68,14 @@
 ## MEM13 双端 context bundle 公开链
 
 第一段已接 memory 2.4 `queries.context.history/read/export`、
-`commands.context.capture` 与 Agent 四个工具；原生用户入口未接，行仍为部分。
-第二段须为本行指定正式插件流程，第三段该插件整轮须检查：
+`commands.context.capture`、Agent 四个工具与设置→数据的 Context bundles 组，
+行为接通（待 E2E）。第二段须为本行指定正式插件流程，第三段该插件整轮须检查：
+
+- 原生入口：真实书库/全局线程出现在 scope 选择器；捕获后 toast 与版本列表
+  一致，再次捕获报未变化且不新增版本；点击保存弹出真实系统对话框，取消不
+  写文件也无成功提示，确认后文件字节与 read 返回的 artifact 逐字节一致
+  （尾随换行）；保存期间修改来源或阅读位置后再次保存必须失败并释放句柄；
+  关闭设置页释放全部句柄；非桌面构建只显示说明。
 
 - 四 recipe 各自的域授权：只有 memory:read 的插件对 book_memory_context /
   conversation_insights_context / book scope 的 history、read、export 必须

@@ -71,8 +71,8 @@ derived content. It uses the existing profile-context snapshot and `pctx1` sourc
 identity. This does not export raw profile traits, all memories, or entity tables.
 The stored-conversation recipe is also wired internally as described below.
 The reading-intention producer is wired through opted-in active providers below;
-the book-memory producer below is also wired. The public actor operations in
-"Actor Operations" below are wired as well; a native user entry remains required.
+the book-memory producer below is also wired, as are the public actor operations
+in "Actor Operations" below and the native settings entry described there.
 
 ## Actor And Export Boundary
 
@@ -145,6 +145,15 @@ chapter map or flavor is withheld with a stable error instead of being redacted.
 Other recipes have no chapter provenance and are gated by grants alone; none of
 the four recipes exports live selection or viewport text, so the reading-context
 privacy toggles do not apply to their items.
+
+The product UI reaches the same gate as the user: Settings → Data gains a
+"Context bundles" group whose recipe/scope pickers (books from the library,
+conversations from the global threads), "Capture now" action, twenty-version
+history and per-version "Save…" all go through the memory domain with the
+host's full grants. Saving exports into a settings-owned ResourceOwner, opens
+the native save dialog and releases the handle whatever the outcome; outside
+the desktop app the group only explains that it needs it. There is no second
+authorization or disclosure path for the UI.
 
 `export` captures the durable source clock before the archive read, performs
 the same fence check, then hands the sealed transport a lease whose revocation
@@ -308,9 +317,8 @@ The immutable-artifact contract, native event-sourced version history, condition
 publication, all four internal recipe producers, scoped history pagination,
 integrity-checked pinned reads, the sealed export transport with durable source
 admission, and the public actor gate for plugins (Memory 2.4) and the Agent (four
-tools) are implemented with focused tests. MEM13 remains partial until a native
-user flow (capture / history / save from the product UI) is wired with its own
-tests; only then does the row move to "wired (pending E2E)". Reading Goals
+tools) and the native settings entry are implemented with focused tests, so
+MEM13 is wired pending stage-three acceptance. Reading Goals
 provider intent uses its own durable documents and private legacy promotion;
 book spoiler boundaries use their real owner both at capture and at disclosure.
 Stored conversation bundles use a narrow native read through the existing

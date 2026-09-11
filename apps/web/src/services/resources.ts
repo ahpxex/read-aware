@@ -73,6 +73,12 @@ export function createResourceOwner(authorizeBook?: (id: string) => void, author
   return new ResourceOwner(resourceAdapter, error => log.warn("Resource cleanup failed", error), authorizeBook, Date.now, authorizeRead);
 }
 
+/** Bytes the model may read: books stay behind the spoiler-aware tools, context bundles behind their fence-checked read. */
+export function agentResourceReadPolicy(ref: ResourceRef): void {
+  if (ref.source === "book") throw new AppError("memory/forbidden", "Original book resources are export-only for the Agent; read through the spoiler-aware book tools");
+  if (ref.source === "context") throw new AppError("memory/forbidden", "Context bundle resources are export-only for the Agent; read through read_context_bundle");
+}
+
 /** Agent handles are isolated by conversation, not shared with plugins or other threads. */
 const agentOwners = new Map<string, { owner: ResourceOwner; usedAt: number }>();
 export function agentResources(threadKey: string, bookId?: string): ResourceOwner {
@@ -88,8 +94,6 @@ export function agentResources(threadKey: string, bookId?: string): ResourceOwne
   if (agentOwners.size >= 64) throw new AppError("ui/unavailable", "Too many active resource owners");
   const owner = createResourceOwner(id => {
     if (bookId !== undefined && id !== bookId) throw new AppError("memory/forbidden", "Resource belongs to another book");
-  }, ref => {
-    if (ref.source === "book") throw new AppError("memory/forbidden", "Original book resources are export-only for the Agent; read through the spoiler-aware book tools");
-  });
+  }, agentResourceReadPolicy);
   agentOwners.set(threadKey, { owner, usedAt: now }); return owner;
 }

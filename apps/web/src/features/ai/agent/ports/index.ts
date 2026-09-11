@@ -25,6 +25,7 @@ import { createLibraryPort } from "./library-port";
 import { createMemoryPort } from "./memory-port";
 import { createProfilePort } from "./profile-port";
 import { createEntityRegistryPort } from "./entity-registry-port";
+import { createContextBundlePort } from "./context-bundle-port";
 import { createReaderPort } from "./reader-port";
 import { createSettingsPort } from "./settings-port";
 import { createUserInteractionPort } from "./user-interaction-port";
@@ -69,6 +70,7 @@ export function buildRuntimeDeps(): RuntimeDeps {
     conversations: createConversationPort(),
     profile: createProfilePort(),
     entityRegistry: createEntityRegistryPort(),
+    contextBundles: createContextBundlePort(),
     identityConsolidation: identityConsolidationPort,
     memory: createMemoryPort(),
     bookText: createBookTextPort(),

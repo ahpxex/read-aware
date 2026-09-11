@@ -7,6 +7,10 @@ export const PLUGIN_CALL_OPTIONS = {
   "domains.memory.queries.entities": 1,
   "domains.memory.queries.profileContext": 1,
   "domains.memory.commands.decideEntity": 1,
+  "domains.memory.queries.context.history": 1,
+  "domains.memory.queries.context.read": 1,
+  "domains.memory.queries.context.export": 1,
+  "domains.memory.commands.context.capture": 1,
   "services.maintenance.requestConnectionTest": 0,
   "domains.settings.commands.refreshModelCatalog": 1,
   "services.maintenance.requestBackup": 1,
@@ -44,7 +48,7 @@ export const PLUGIN_CALL_OPTIONS = {
 /** These conditional writes arbitrate cancellation at dispatch, not in the proxy.
  * A deadline or lost realm still leaves the outcome unknown; never retry blindly. */
 export function pluginCallDrainsCancellation(method: string): boolean {
-  return method === "domains.memory.commands.decideEntity";
+  return method === "domains.memory.commands.decideEntity" || method === "domains.memory.commands.context.capture";
 }
 
 function position(method: string): number | undefined {

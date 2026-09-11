@@ -1,4 +1,4 @@
-import { AppError, type EventOrigin } from "@read-aware/core";
+import { AppError, FULL_DOMAIN_GRANTS, type DomainGrants, type EventOrigin } from "@read-aware/core";
 import { createBookMemoryPort } from "../features/ai/agent/ports/book-memory-port";
 import { createMemoryPort } from "../features/ai/agent/ports/memory-port";
 import { createProfilePort } from "../features/ai/agent/ports/profile-port";
@@ -15,6 +15,8 @@ import { createBookGraphTasks } from "./book-graph-tasks";
 import { changeUserProfile } from "./user-profile";
 import { decideEntity, queryEntities } from "./entity-registry";
 import { inspectProfileContext } from "./identity-consolidation";
+import { contextBundleAccess } from "./context-bundle-access";
+import type { ResourceOwner } from "../services/resource-owner";
 import type { MemoryObservation, MemoryObservationQuery, MemoryObservationResult } from "@read-aware/core";
 
 const log = createLogger("memory-observation");
@@ -23,9 +25,11 @@ const observer = new MemoryObserver({
   report: error => log.warn("Memory observation failed", error),
 });
 
-/** Memory reads do not import books, construct digests, or grant raw projection writes. */
-export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal, trackCleanup?: (work: Promise<void>) => void) {
+/** Memory reads do not import books, construct digests, or grant raw projection writes.
+ * Context bundles also check the recipe's other source domains against the actor's grants. */
+export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal, trackCleanup?: (work: Promise<void>) => void, grants: DomainGrants = FULL_DOMAIN_GRANTS) {
   const entitySignal = (signal?: AbortSignal) => lifetime && signal ? AbortSignal.any([lifetime, signal]) : lifetime ?? signal;
+  const context = contextBundleAccess({ origin, grants, lifetime });
   const memory = createMemoryPort(), bookMemory = createBookMemoryPort();
   const profile = (query?: import("@read-aware/core").UserProfileQuery) => createProfilePort().readProfile(query, lifetime);
   const profileContext = (query?: import("@read-aware/core").ProfileInspectionQuery, signal?: AbortSignal) => inspectProfileContext(query, entitySignal(signal));
@@ -52,8 +56,19 @@ export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal, 
   return { queries: { ...queries, profile, profileContext,
       entities: (query?: import("@read-aware/core").EntityQuery, signal?: AbortSignal) => queryEntities(query, entitySignal(signal)),
       inspect: (id: string) => inspectMemory(id, lifetime), classification: (bookId: string) => inspectBookClassification(bookId, lifetime),
-      listGraphTasks: (bookId: string) => tasks.list(bookId), getGraphTask: (bookId: string, taskId: string) => tasks.get(bookId, taskId) },
+      listGraphTasks: (bookId: string) => tasks.list(bookId), getGraphTask: (bookId: string, taskId: string) => tasks.get(bookId, taskId),
+      context: {
+        history: (query: import("@read-aware/core").ContextBundleHistoryQuery, signal?: AbortSignal) => context.history(query, signal),
+        read: (query: import("@read-aware/core").ContextBundleReadQuery, signal?: AbortSignal) => context.read(query, signal),
+        export: (query: import("@read-aware/core").ContextBundleReadQuery, owner: ResourceOwner, signal?: AbortSignal) => context.export(query, owner, signal),
+      } },
     commands: { mutate: (input: import("@read-aware/core").MemoryMutation) => mutateMemory(input, origin, lifetime),
+      context: { capture: (selector: import("@read-aware/core").ContextBundleSelector, signal?: AbortSignal) => {
+        const work = context.capture(selector, signal);
+        // Publication dispatched to native drains to its real receipt even when the caller retires.
+        trackCleanup?.(work.then(() => {}, () => {}));
+        return work;
+      } },
       updateProfile: (input: import("@read-aware/core").UserProfileChange) => {
         const work = changeUserProfile(input, origin, lifetime);
         trackCleanup?.(work.then(() => {}, () => {}));

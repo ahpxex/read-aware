@@ -91,3 +91,44 @@ test("source failures propagate and scope mismatches never yield a recipe", asyn
   const failed = h.owner.open("book-one");
   await expect(failed.read()).rejects.toThrow("read failure"); failed.dispose();
 });
+
+test("retained book text is disclosed only behind a fence the current reader state admits; editions and rewinds withhold", async () => {
+  const h = await host(); h.open("c2.xhtml");
+  const lease = h.owner.open(h.source.bookId), fenced = await lease.read(); lease.dispose();
+  expect(fenced.content.items).toHaveLength(2);
+  await h.owner.disclose(fenced);
+  h.open("c1.xhtml");
+  await expect(h.owner.disclose(fenced)).rejects.toMatchObject({ code: "memory/forbidden", message: expect.stringContaining("boundary") });
+  h.reader.begin("other");
+  await h.owner.disclose(fenced);
+  h.source.readingStatus = "finished";
+  await h.owner.disclose(fenced);
+  const full = (await (async () => { const l = h.owner.open(h.source.bookId); try { return await l.read(); } finally { l.dispose(); } })());
+  expect(full.content.items).toHaveLength(3);
+  h.source.readingStatus = "reading"; h.open("c2.xhtml");
+  await expect(h.owner.disclose(full)).rejects.toMatchObject({ code: "memory/forbidden" });
+  h.source.contentHash = "b".repeat(64); h.record.contentVersion = `sha256:${h.source.contentHash}`; await h.store(h.record);
+  await expect(h.owner.disclose(fenced)).rejects.toMatchObject({ code: "memory/forbidden", message: expect.stringContaining("edition") });
+  await expect(h.owner.disclose({ ...fenced, content: { ...fenced.content, kind: "user_profile_context", scope: { kind: "user" } } })).rejects.toMatchObject({ code: "memory/invalid-query" });
+  const caller = new AbortController(); caller.abort(new Error("gone"));
+  await expect(h.owner.disclose(fenced, caller.signal)).rejects.toMatchObject({ message: "gone" });
+});
+
+test("position observation reports changes of the observed book's session state and stops on dispose", async () => {
+  const h = await host(), session = h.open("c2.xhtml"), changes: string[] = [];
+  const stop = h.owner.observePosition(h.source.bookId, error => { changes.push(error.code); });
+  h.reader.relocate(session, { bookId: h.source.bookId, contentVersion: h.record.contentVersion, href: "c2.xhtml" }, "");
+  expect(changes).toEqual([]);
+  h.reader.relocate(session, { bookId: h.source.bookId, contentVersion: h.record.contentVersion, href: "c1.xhtml" }, "");
+  expect(changes).toEqual(["memory/conflict"]);
+  stop();
+  h.reader.begin("other");
+  expect(changes).toEqual(["memory/conflict"]); expect(h.observers()).toBe(0);
+  // With no session for that book, only a session of that book (not another one) counts as a change.
+  const idle = await host(), idleChanges: string[] = [];
+  const stopIdle = idle.owner.observePosition(idle.source.bookId, error => { idleChanges.push(error.code); });
+  idle.reader.begin("other"); expect(idleChanges).toEqual([]);
+  // Opening that book reports both the new session and its first location; the lease is invalid either way.
+  idle.open("c1.xhtml"); expect(idleChanges).toEqual(["memory/conflict", "memory/conflict"]);
+  stopIdle(); expect(idle.observers()).toBe(0);
+});

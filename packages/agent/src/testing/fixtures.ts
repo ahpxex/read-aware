@@ -15,6 +15,7 @@ import { AppError, pageSettingOptions } from "@read-aware/core";
 import { createProfileFixture } from "./user-profile";
 import { createEntityRegistryFixture } from "./entity-registry";
 import { createIdentityConsolidationFixture } from "./identity-consolidation";
+import { createContextBundleFixture } from "./context-bundles";
 import type {
   BookStats,
   CollectionSummary,
@@ -363,7 +364,9 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   const bookClassification = createBookClassificationFixture(books);
   const entityRegistry = createEntityRegistryFixture();
   const identityConsolidation = createIdentityConsolidationFixture(() => deps, entityRegistry);
+  const contextBundles = createContextBundleFixture(() => deps);
   const deps: RuntimeDeps = {
+    contextBundles,
     readingAiActions: {
       enabled: () => ["explainSelection", "defineTerm", "translate", "summarizeChapter"],
       run: async (action, bookId, signal) => {

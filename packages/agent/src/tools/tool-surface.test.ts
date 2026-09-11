@@ -177,6 +177,11 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   set_reader_panel: { panel: "toc", open: true },
   set_reader_panel_width: { panel: "toc", width: 320 },
   focus_reader: { target: "content" },
+  ask_user_form: { title: "Reading plan", fields: [{ id: "pace", kind: "text", label: "Pages per day" }] },
+  capture_context_bundle: { kind: "user_profile_context" },
+  list_context_bundles: { kind: "user_profile_context" },
+  read_context_bundle: { kind: "user_profile_context", version: `cb1:${"0".repeat(64)}` },
+  export_context_bundle: { kind: "conversation_insights_context", version: `cb1:${"0".repeat(64)}` },
   ask_user: {
     question: "Which direction?",
     options: [
@@ -289,6 +294,10 @@ describe("tool surface contract", () => {
         }
         if (name === "update_user_profile") params.expectedRevision = (await deps.profile.readProfile()).revision;
         if (name === "manage_entity") params.expectedRevision = (await deps.entityRegistry.query()).revision;
+        if (name === "export_context_bundle" || name === "read_context_bundle") {
+          const selector = { kind: "user_profile_context" as const, scope: { kind: "user" as const } };
+          params.kind = selector.kind; params.version = (await deps.contextBundles.capture(selector)).bundle.version;
+        }
         const tool = buildAgentTools(scope, deps).find(
           (candidate: AgentTool) => candidate.name === name,
         );

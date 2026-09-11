@@ -51,6 +51,8 @@ export type { MemoryPage, MemoryPageQuery } from "@read-aware/core";
 export type { MemorySnapshot, MemoryMutation, MemoryMutationReceipt } from "@read-aware/core";
 export type { BookClassificationSnapshot, BookClassificationChange, BookClassificationReceipt } from "@read-aware/core";
 export type { MemoryObservationQuery, MemoryObservationResult, MemoryObservation } from "@read-aware/core";
+export type { ContextBundle, ContextBundleContent, ContextBundleItem, ContextBundleOmission, ContextBundleKind, ContextBundleScope, ContextBundleSelector,
+  ContextBundleHistoryQuery, ContextBundleHistoryPage, ContextBundleHistoryEntry, ContextBundleReadQuery, ContextBundleCaptureReceipt } from "@read-aware/core";
 export type { HostCommandId, HostCommandRequest, HostCommandDescriptor, HostCommandSnapshot, HostCommandReceipt, HostCommandObservation } from "@read-aware/core";
 import type {
   AnnotationItem,
@@ -1651,8 +1653,22 @@ export type PluginDomains = {
   reading?: PluginReadingDomain;
   annotations?: PluginAnnotationsDomain;
   conversations?: PluginConversationsDomain;
-  /** Memory 2.3. Graph generation additionally requires service:llm; handles belong to this activation. */
+  /** Memory 2.4. Graph generation additionally requires service:llm; handles belong to this activation. */
   memory?: { queries: {
+    /** Memory 2.4: the versioned context-bundle archive (`docs/context-bundles.md`). Every recipe also needs
+     * read access to the domains it draws on: book_memory_context needs annotations and library, book scopes
+     * need library, conversation_insights_context needs conversations. History pages carry versions and
+     * publication times only. A pinned read delivers the exact immutable cb1 artifact; a retained
+     * book_memory_context is delivered only when the host can place its recorded fence within the reader's
+     * current boundary, otherwise it fails rather than being redacted. export seals the same artifact into this
+     * activation's resource queue as a read-only `context` ResourceRef bound to the durable source clock: any
+     * later tracked source change, reading-position change or retirement revokes reads/saves of that handle,
+     * while a native write already dispatched keeps its receipt. Aborted/retired callers receive no late result. */
+    context: {
+      history(query: import("@read-aware/core").ContextBundleHistoryQuery, options?: PluginCallOptions): Promise<import("@read-aware/core").ContextBundleHistoryPage>;
+      read(query: import("@read-aware/core").ContextBundleReadQuery, options?: PluginCallOptions): Promise<import("@read-aware/core").ContextBundle | null>;
+      export(query: import("@read-aware/core").ContextBundleReadQuery, options?: PluginCallOptions): Promise<import("@read-aware/core").ResourceRef>;
+    };
     /** Memory 2.3: inspect the generated summary and provenance, separately from curated profile().
      * Summary pages count UTF-16 units (4000 default, 16000 max); provenance pages count rows
      * (25 default, 100 max; historical ID sizes are unbounded). Pin every page kind to pctx1.
@@ -1680,6 +1696,13 @@ export type PluginDomains = {
      * prevents dispatch only; dispatched writes drain to their actual receipt. A transport
      * timeout or lost Worker leaves the outcome unknown: reread, never retry blindly. */
     decideEntity(input: import("@read-aware/core").EntityDecision, options?: PluginCallOptions): Promise<import("@read-aware/core").EntityDecisionReceipt>;
+    /** Memory 2.4: assemble one recipe from its current durable sources behind the host's own scope, privacy
+     * and spoiler authority, publish it as an immutable `context.bundlePublished` version and return the
+     * artifact. Requires memory:write plus read access to the recipe's source domains. changed=false means the
+     * identical content version already existed. Concurrent source changes reject assembly instead of mixing
+     * reads; cancellation before native dispatch prevents publication, afterwards the call drains to the real
+     * receipt. This is a versioned export artifact, not a backup, transcript or prompt. May sync. */
+    context: { capture(selector: import("@read-aware/core").ContextBundleSelector, options?: PluginCallOptions): Promise<import("@read-aware/core").ContextBundleCaptureReceipt>; };
     /** Replace the event-backed summary using the observed profile2 revision.
      * Present the complete candidate for user confirmation before calling.
      * Empty text clears the summary, not memories or historical copies. */

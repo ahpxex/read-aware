@@ -33,6 +33,7 @@ import { buildBookMergeTools } from "./book-merge-tools";
 import { buildScheduleTools } from "./schedule-tools";
 import { buildShelfTools } from "./shelf-tools";
 import { buildReadingAiTools } from "./reading-ai-tools";
+import { buildContextBundleTools } from "./context-bundle-tools";
 import type { AgentTurnState } from "./turn-state";
 
 export type { AgentTurnState, SpoilerFence } from "./turn-state";
@@ -65,6 +66,7 @@ export function buildAgentTools(
     ...buildShelfTools(scope, deps),
     ...buildAnnotationTools(scope, deps),
     ...buildMemoryTools(scope, deps),
+    ...buildContextBundleTools(scope, deps),
     ...buildConversationTools(scope, deps, turnState),
     ...buildConversationControlTools(scope, deps),
     ...buildBookTextTools(scope, deps, turnState),

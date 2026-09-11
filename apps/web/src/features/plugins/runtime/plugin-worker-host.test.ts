@@ -13,6 +13,8 @@ import * as contentNavigation from "../../library/lib/book-content-navigation";
 import { readingRuntime } from "../../../domain/reading-runtime";
 import * as entityDomain from "../../../domain/entity-registry";
 import * as identityDomain from "../../../domain/identity-consolidation";
+import * as contextAccess from "../../../domain/context-bundle-access";
+import { AppError } from "@read-aware/core";
 import { identityHost } from "../../../../tests/helpers/identity-host";
 import { deferred, entityHost, entityRevision } from "../../../../tests/helpers/entity-host";
 
@@ -58,6 +60,30 @@ test.each(["read", "cancel", "denied"])("profile inspection Worker RPC %s uses a
       : { ok: false, code: mode === "denied" ? "plugin/unavailable" : "plugin/cancelled" });
     expect(host.calls).toHaveLength(mode === "denied" ? 0 : 1);
     expect(host.minted).toHaveLength(0);
+  } finally { gate.resolve(); await close(); spy.mockRestore(); }
+});
+
+test.each(["read", "cancel", "denied"])("context bundle Worker RPC %s resolves the nested memory path with actor grants and cancellation", async mode => {
+  const entered = deferred(), gate = deferred(), signals: AbortSignal[] = [];
+  const spy = spyOn(contextAccess, "contextBundleAccess").mockImplementation(() => ({
+    capture: async () => { throw new AppError("ui/unavailable", "unexpected"); },
+    history: async (query, signal) => {
+      signals.push(signal!); entered.resolve(); if (mode === "cancel") await gate.promise;
+      return { selector: { kind: query.kind, scope: query.scope }, items: [], offset: 0, nextOffset: null, total: 0, revision: `cbhist1:${"a".repeat(64)}` };
+    },
+    read: async () => null, export: async () => { throw new AppError("ui/unavailable", "unexpected"); },
+  }));
+  const { worker, close } = await hostFixture(mode === "denied" ? [] : ["memory:read"]);
+  try {
+    const pending = worker.deliver({ t: "call", id: 997, method: "domains.memory.queries.context.history",
+      args: worker.callbacks.encode([{ kind: "user_profile_context", scope: { kind: "user" } }, { signal: { forged: true } }]) });
+    if (mode === "cancel") { await entered.promise; await worker.deliver({ t: "cancel", id: 997 }); gate.resolve(); }
+    await pending;
+    const result = worker.sent.find(message => message.t === "result" && message.id === 997);
+    expect(result).toMatchObject(mode === "read" ? { ok: true, value: { total: 0, nextOffset: null } }
+      : { ok: false, code: mode === "denied" ? "plugin/unavailable" : "plugin/cancelled" });
+    expect(signals).toHaveLength(mode === "denied" ? 0 : 1);
+    if (mode === "cancel") expect(signals[0]!.aborted).toBe(true);
   } finally { gate.resolve(); await close(); spy.mockRestore(); }
 });
 

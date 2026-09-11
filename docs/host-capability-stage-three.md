@@ -65,6 +65,35 @@
   退休中原生迟到、Worker取消、读失败/观察恢复分别验证，无自动写入或推理。
 - 当前只有定向替身和原生事务证据。本节没有真实插件轮次通过记录，不启动桌面。
 
+## MEM13 双端 context bundle 公开链
+
+第一段已接 memory 2.4 `queries.context.history/read/export`、
+`commands.context.capture` 与 Agent 四个工具；原生用户入口未接，行仍为部分。
+第二段须为本行指定正式插件流程，第三段该插件整轮须检查：
+
+- 四 recipe 各自的域授权：只有 memory:read 的插件对 book_memory_context /
+  conversation_insights_context / book scope 的 history、read、export 必须
+  收到 memory/forbidden；capture 无 memory:write 拒绝；撤权/升级后旧激活
+  与新激活分别核对，退休中迟到结果不交付。Worker 真实 RPC 走嵌套
+  `domains.memory.*.context.*` 路径与末位 options 槽，取消在 capture 派发前
+  阻止发布、派发后排空真实回执。
+- 真实 SQLite 归档：多次 capture 后 history 分页、cbhist1 续页冲突、
+  重放/checkpoint bootstrap 后同一版本可读且 hash 一致；read 对未保留版本
+  返回 null，损坏行报错不当空。
+- 书内 recipe 的旧版本披露：在第 k 章捕获后倒退到更早章节，read/export
+  必须 memory/forbidden；前进后可读；标记读完后所有版本可读；换版本（重新
+  导入同书不同文件）后旧版本以 edition 拒绝；解除读完标记回到围栏后拒绝
+  曾经 all 的版本。核对错误码而非空内容，不得出现被裁剪的 artifact。
+- export 句柄：插件 services.resources.stat/read/save 可用；导出后修改任一
+  来源表（标注、记忆、画像、纪要、私有文档、blob）或改变该书阅读位置后，
+  read/save 必须失败并释放；已经确认的保存文件保留；退休释放全部句柄；
+  Agent 的 read_resource_text 对 context 句柄拒绝而 save_resource 可用。
+- Agent 双 scope：书内对话 bookId 越书拒绝、默认当前书；全局对话
+  book_memory_context 缺 bookId 拒绝、conversation 默认本线程；模型实际
+  收到的 artifact 与归档 read 逐字节一致；工具描述不诱导模型自行选 scope。
+- 上述结果与真实模型输入/输出、原生日志和 SQLite 快照一并归档；当前仅有
+  定向 TS 测试、进程内 Worker 与受控 IPC，不启动桌面或正式插件构建。
+
 ## MEM06 画像摘要及已接通的编辑/备份链
 
 memory 2 的摘要链已接通；MEM07 完整访谈编排与 MEM08 可恢复大输入巩固仍有

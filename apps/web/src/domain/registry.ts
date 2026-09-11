@@ -25,7 +25,7 @@ type DomainSurface = {
 
 type DomainDefinition<TSurface extends DomainSurface = DomainSurface> = {
   events: readonly string[];
-  create(origin: EventOrigin, lifetime?: AbortSignal, trackCleanup?: (work: Promise<void>) => void): TSurface;
+  create(origin: EventOrigin, lifetime?: AbortSignal, trackCleanup?: (work: Promise<void>) => void, grants?: DomainGrants): TSurface;
 };
 
 export const DOMAIN_REGISTRY = {
@@ -66,11 +66,12 @@ export type ActorDomainView = Partial<{
   [K in DomainId]: DomainView<DomainApi[K]>;
 }>;
 
-export function createDomainApi(origin: EventOrigin, lifetime?: AbortSignal, trackCleanup?: (work: Promise<void>) => void): DomainApi {
+/** Without explicit grants a caller is the host itself and acts with every domain. */
+export function createDomainApi(origin: EventOrigin, lifetime?: AbortSignal, trackCleanup?: (work: Promise<void>) => void, grants?: DomainGrants): DomainApi {
   return Object.fromEntries(
     Object.entries(DOMAIN_REGISTRY).map(([id, definition]) => [
       id,
-      (definition as DomainDefinition).create(origin, lifetime, trackCleanup),
+      (definition as DomainDefinition).create(origin, lifetime, trackCleanup, grants),
     ]),
   ) as DomainApi;
 }
@@ -87,7 +88,7 @@ export function createActorDomainView(
   lifetime?: AbortSignal,
   trackCleanup?: (work: Promise<void>) => void,
 ): ActorDomainView {
-  const domains = createDomainApi(origin, lifetime, trackCleanup);
+  const domains = createDomainApi(origin, lifetime, trackCleanup, grants);
   const view: ActorDomainView = {};
   const mutableView = view as Record<string, unknown>;
   for (const id of Object.keys(DOMAIN_REGISTRY) as DomainId[]) {

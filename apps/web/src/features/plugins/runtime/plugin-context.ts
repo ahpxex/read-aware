@@ -944,12 +944,20 @@ export function buildPluginContext(
     }, profileContext: (input, options) => {
       const query = normalizeProfileInspectionQuery(input);
       return lifecycle.read("memory.profileContext", signal => memory.queries.profileContext(query, signal), callSignal(options));
+    }, context: {
+      history: (query, options) => lifecycle.read("memory.context.history", signal => memory.queries.context.history(query, signal), callSignal(options)),
+      read: (query, options) => lifecycle.read("memory.context.read", signal => memory.queries.context.read(query, signal), callSignal(options)),
+      // The sealed handle joins this activation's resource queue; retirement releases it with the rest.
+      export: (query, options) => lifecycle.read("memory.context.export", signal => memory.queries.context.export(query, resources, signal), callSignal(options)),
     } },
       events: { observe: (query, handler) => track(() => ({ dispose: memory.events.observe(query, handler) })) },
       ...(memory.commands ? { commands: { mutate: input => {
       lifecycle.assertActive("domains.memory.commands.mutate");
       return memory.commands!.mutate(input);
-    }, updateProfile: input => {
+    }, context: { capture: (selector, options) => {
+      lifecycle.assertActive("domains.memory.commands.context.capture");
+      return memory.commands!.context.capture(selector, callSignal(options));
+    } }, updateProfile: input => {
       lifecycle.assertActive("domains.memory.commands.updateProfile");
       return memory.commands!.updateProfile(input);
     }, decideEntity: (input, options) => {

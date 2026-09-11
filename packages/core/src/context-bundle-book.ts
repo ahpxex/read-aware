@@ -1,5 +1,5 @@
 import { AppError } from "./errors";
-import { createContextBundle, type ContextBundleItem, type ContextBundleOmission } from "./context-bundle";
+import { createContextBundle, type ContextBundle, type ContextBundleItem, type ContextBundleOmission } from "./context-bundle";
 import type { DigestFlavor } from "./book-memory";
 
 export type BookContextSnapshot = {
@@ -125,4 +125,34 @@ export async function bookMemoryContextBundle(input: BookContextSnapshot, inputB
     chapters, items.map(row => [row.kind, row.id, row.revision]), omissions.map(row => [row.kind, row.reason, row.count])])}`;
   return createContextBundle({ format: "readaware.context", schemaVersion: 1, recipeVersion: 1, kind: "book_memory_context",
     scope: { kind: "book", id: source.bookId }, sourceRevision, items, omissions });
+}
+
+export type BookContextFacts = { bookId: string; flavor: DigestFlavor | null; contentHash: string | null; chapters: readonly (readonly string[])[] | null };
+
+/** Recover the fence a retained artifact was assembled behind from its own provenance hash.
+ * null means the current edition/chapter map cannot establish it, so its text must be withheld. */
+export async function establishBookContextBoundary(bundle: ContextBundle, facts: BookContextFacts): Promise<BookContextBoundary | null> {
+  const content = bundle.content;
+  if (content.kind !== "book_memory_context" || content.scope.kind !== "book" || content.scope.id !== facts.bookId) return null;
+  const items = content.items.map(row => [row.kind, row.id, row.revision]), omissions = content.omissions.map(row => [row.kind, row.reason, row.count]);
+  const chapters = facts.chapters === null ? null : facts.chapters.map(hrefs => [...hrefs]);
+  const candidates: BookContextBoundary[] = [{ kind: "all" }, { kind: "unknown" }];
+  for (let index = 0; index <= (chapters?.length ?? 0); ++index) candidates.push({ kind: "before", chapterIndex: index });
+  for (const boundary of candidates) {
+    for (const map of chapters === null ? [null] : [null, chapters]) {
+      if (boundary.kind === "before" && map === null) continue;
+      const before = boundary.kind === "before" ? boundary.chapterIndex : null;
+      const hash = await bookContextHash([facts.bookId, facts.flavor ?? "narrative", facts.contentHash, boundary.kind, before, map, items, omissions]);
+      if (`bctx1:${hash}` === content.sourceRevision) return boundary;
+    }
+  }
+  return null;
+}
+
+/** A retained fence is disclosable only when the host's current fence covers every included row. */
+export function bookContextBoundaryAdmits(current: BookContextBoundary, retained: BookContextBoundary): boolean {
+  if (current.kind === "all") return true;
+  if (retained.kind === "unknown") return true;
+  if (current.kind === "unknown" || retained.kind !== "before") return false;
+  return retained.chapterIndex <= current.chapterIndex;
 }

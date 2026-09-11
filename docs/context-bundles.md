@@ -71,8 +71,8 @@ derived content. It uses the existing profile-context snapshot and `pctx1` sourc
 identity. This does not export raw profile traits, all memories, or entity tables.
 The stored-conversation recipe is also wired internally as described below.
 The reading-intention producer is wired through opted-in active providers below;
-the book-memory producer below is also wired. Public actor operations and file
-export remain required.
+the book-memory producer below is also wired. The public actor operations in
+"Actor Operations" below are wired as well; a native user entry remains required.
 
 ## Actor And Export Boundary
 
@@ -100,8 +100,60 @@ drained and returned: a completed external write must not be reported as cancell
 Already delivered bytes or completed external files cannot be recalled.
 
 This transport does not provide a permissive default lease, public actor grant,
-or retrospective spoiler proof. Actor recipe grants, policy observers and the
-native/Agent disclosure flows must supply those separately before public wiring.
+or retrospective spoiler proof. The actor gate below supplies recipe grants, the
+current reading authority and the lease; the native user flow is still pending.
+
+### Actor Operations
+
+One host gate (`domain/context-bundle-access.ts`) serves both actors. It takes
+the actor's origin, its domain grants and its lifetime signal, and exposes
+`capture`, `history`, `read` and `export` over the internal producers, archive
+and sealed transport. Every operation first normalizes the recipe/scope selector
+and checks the domains that recipe actually reads: every recipe needs `memory`,
+`book_memory_context` also needs `annotations` and `library`, any book scope
+needs `library`, and `conversation_insights_context` needs `conversations`.
+Publication (`capture`) additionally requires `memory` write. A selector can
+therefore never widen a grant, and a version ID alone never authorizes a read.
+
+Plugins reach the gate as Memory 2.4: `domains.memory.queries.context.{history,
+read, export}` with `memory:read`, and `domains.memory.commands.context.capture`
+with `memory:write`. The Worker proxy carries the trailing call-options slot for
+each of the four methods; capture drains cancellation to the real receipt like
+other conditional writes, while reads reject the consumer promptly and let the
+host operation finish under its own lifetime. `export` seals into the
+activation's own ResourceOwner, so the handle follows the activation's quota,
+expiry and retirement. The Agent reaches the same gate with the host's full
+grants through `capture_context_bundle`, `list_context_bundles`,
+`read_context_bundle` and `export_context_bundle`; a book conversation is
+fenced to its own book and a global conversation names books explicitly, so the
+model never chooses a scope the host did not resolve. The Agent's resource owner
+treats `context` handles as export-only: their bytes are not readable through
+`read_resource_text`, the fence-checked `read_context_bundle` is the only path
+into the model.
+
+Retained `book_memory_context` versions are disclosed only behind a fence the
+current reader state admits. The host reads the same durable book snapshot and
+verified chapter map the producer uses, resolves the current fence (all /
+before N / unknown, with the active reader overriding the persisted position),
+and then recovers the fence the retained artifact was assembled behind by
+recomputing its `bctx1` provenance hash against every candidate fence of the
+current edition. A finished or expository book (current fence `all`) discloses
+every retained version; otherwise a version is delivered only if its recovered
+fence is `before M` with `M ≤ N` (or `unknown`, which carries no text). A
+retained artifact whose hash cannot be reproduced against the current edition,
+chapter map or flavor is withheld with a stable error instead of being redacted.
+Other recipes have no chapter provenance and are gated by grants alone; none of
+the four recipes exports live selection or viewport text, so the reading-context
+privacy toggles do not apply to their items.
+
+`export` captures the durable source clock before the archive read, performs
+the same fence check, then hands the sealed transport a lease whose revocation
+signal fires on actor retirement and, for book bundles, on any change of that
+book's reader session or position; `dispose` stops those observers. Native
+sealing rejects the handle if any tracked source committed between the proof
+and the seal, and every later native read/save rechecks it. A caller cancelled
+after the seal completed has its orphaned handle released rather than leaking it
+until expiry; a handle already delivered belongs to the caller.
 
 ### Durable Resource Admission
 
@@ -253,13 +305,16 @@ There will be no plugin-specific duplicate model tools for the same recipes.
 ## Delivery Boundaries
 
 The immutable-artifact contract, native event-sourced version history, conditional
-publication and all four internal recipe producers are implemented. MEM13
-also has scoped native history pagination and integrity-checked pinned reads with
-a cancelling host adapter. MEM13 remains partial until authorized history/read/export,
-Agent tools, native user flow and ResourceRef lifecycle are wired with focused tests.
-Reading Goals provider intent uses its own durable documents and private legacy
-promotion; book spoiler boundaries must also use their real owner. Stored conversation bundles use a narrow
-native read through the existing summary owner, not its optimistic KV mirror.
+publication, all four internal recipe producers, scoped history pagination,
+integrity-checked pinned reads, the sealed export transport with durable source
+admission, and the public actor gate for plugins (Memory 2.4) and the Agent (four
+tools) are implemented with focused tests. MEM13 remains partial until a native
+user flow (capture / history / save from the product UI) is wired with its own
+tests; only then does the row move to "wired (pending E2E)". Reading Goals
+provider intent uses its own durable documents and private legacy promotion;
+book spoiler boundaries use their real owner both at capture and at disclosure.
+Stored conversation bundles use a narrow native read through the existing
+summary owner, not its optimistic KV mirror.
 
 After those implementation conditions close, stage three must verify a formal
 plugin's full capture/history/export flow in isolated Tauri, including source

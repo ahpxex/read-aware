@@ -436,6 +436,8 @@ export interface RuntimeDeps {
   maintenance: import("@read-aware/core").HostMaintenancePort;
   diagnostics: import("@read-aware/core").HostDiagnosticsPort;
   resources(threadKey: string, bookId?: string): import("@read-aware/core").ResourcePort;
+  /** Versioned context bundles (MEM13). Scope and spoiler authority are host-resolved per call. */
+  contextBundles: import("@read-aware/core").ContextBundlePort;
   downloadResource(threadKey: string, input: import("@read-aware/core").ResourceDownloadInput, signal?: AbortSignal): Promise<import("@read-aware/core").ResourceDownloadReceipt>;
   bookGraphTasks: import("@read-aware/core").BookGraphTaskPort;
   bookClassification: {

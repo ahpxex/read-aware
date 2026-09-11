@@ -2,6 +2,20 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：第一段 MEM13 双端公开接线
+
+[进度/设计] 上轮4ddf37df原生来源准入已推送，是有效进展。本组接通MEM13的公共actor层：一个宿主gate（domain/context-bundle-access.ts）同时服务插件与Agent，按recipe真实读取域检查授权（全部需memory；book_memory_context另需annotations+library；book scope需library；conversation_insights_context需conversations；capture需memory:write），selector不能扩权、版本ID不授权。旧版本披露按设计文档"无法建立围栏即扣留"落地：书内recipe读取当前durable快照与已验章节映射得出现围栏，再对每个候选围栏重算bctx1反推留存围栏，现围栏all全放行，before N只交付before M≤N或unknown，edition/章节映射/flavor不符或hash不可重现者稳定memory/forbidden，不裁剪artifact。四recipe不含实时选区/视窗正文，两个文本发送开关对其条目不适用，设计文档如实写明。仍是第一段，不开桌面、不扩第二段插件流程。
+
+[实现] core新增context-bundle-access（recipe域清单、授权断言、ContextBundlePort）与establishBookContextBoundary/bookContextBoundaryAdmits；DOMAIN_CATALOG memory升2.4.0并加FULL_DOMAIN_GRANTS。registry的create接收grants，memory域新增queries.context.history/read/export与commands.context.capture（capture经trackCleanup排空真实回执）。book-context-sources拆出inspect/fence，新增disclose与observePosition。插件：plugin-context接四方法，PLUGIN_CALL_OPTIONS登记四个末位options槽，capture加入drain清单，export封入本激活ResourceOwner；plugin-types声明Memory 2.4并再导出bundle类型。Agent：RuntimeDeps.contextBundles端口、capture/list/read/export四工具（书内固定本书、越书拒绝；全局显式bookId、conversation默认本线程），agentResourceReadPolicy对context句柄拒绝read_resource_text。export先取源clock再读归档与围栏检查，lease在退休及该书session/位置变化时撤销，封口后调用者已取消的孤儿句柄立即释放。
+
+[消费边界] 不新增模型工具以外的写口，不开放原始事件；插件history页只有版本与时间，read返回完整不可变artifact或null；未保留版本export报fs/not-found。ResourceOwner既有context句柄规则（禁导入/图片/追加、保存前复核）不变。库存映射：四个Agent工具与四条插件路径映射MEM13。
+
+[验证] core 64项/616断言通过（新增4项/39断言：域清单、授权矩阵、围栏反推含edition/flavor/章节图/篡改拒绝、admits矩阵）；web四目录分跑：domain 220、plugins/runtime 207、services 108、ai 67项全部通过，其中新增context-bundle-access 4项（路由/授权/披露顺序/lease撤销/孤儿释放）、book-context-sources +2（披露矩阵与位置观察）、plugin-context-bundles 3项（授权分层、options取消、退休排空、export用本激活owner）、Worker RPC嵌套路径3种模式、Agent读策略1项；agent 541项/3549断言通过（新增tools测试3项、registry 106/124、surface新增五个用例）；scripts 20项通过，矩阵--check通过，HTML 282行。core/agent/plugin-types/web（含desktop tsconfig）类型通过。未改Rust、未启动桌面或浏览器。
+
+[发现/边界] HEAD原有三处过时断言随d0a05178未更新（registry工具数101/119实为102/120、tool-surface缺ask_user_form用例、PLUGIN_CALL_OPTIONS槽数34实为35），本组一并修正。另发现bun一次跑src/domain与marketplace.test.ts会因conversation-permissions.test以defineProperty重定义localStorage而报"readonly property"，HEAD同样如此，分目录跑不受影响；未在本组修复。矩阵md/html自09-10以来累积的行状态漂移（SET04/05/18–21、MEM06–08、OPS10、SYS01及库存）随本次生成一并落盘。
+
+[剩余] MEM13仍部分：原生用户入口（产品UI里的捕获/历史/保存）未接，接通后才改待E2E；正式插件轮次、真实Tauri、跨设备与packaged证据属第三段，已在stage-three登记验收清单。源矩阵/模型/设计同步，本组独立提交并push。
+
 ## 2026-09-11：第一段 context 资源原生来源准入
 
 [进度/设计] 上轮761f8b2d封口资源与句柄授权已推送且CI通过，是有效进展。本组继续披露链时确认：单靠JS当前predicate/撤销观察，不能证明另一SQLite连接已提交的来源变更在原生读文件前被看见。因此先写明持久来源准入设计，再把来源clock绑定到原生资源，避免以后公共接线绕过这条边界；仍是第一段，不开展插件构建或桌面验收。

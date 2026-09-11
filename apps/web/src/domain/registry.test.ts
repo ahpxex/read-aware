@@ -51,8 +51,11 @@ describe("domain registry", () => {
     const denied = createActorDomainView("plugin:test", { library: "read" });
     expect(denied.memory).toBeUndefined();
     const granted = createActorDomainView("plugin:test", { memory: "read" });
-    expect(Object.keys(granted.memory!.queries)).toEqual(["page", "search", "bookGraph", "profile", "entities", "inspect", "classification", "listGraphTasks", "getGraphTask"]);
+    expect(Object.keys(granted.memory!.queries)).toEqual(["page", "search", "bookGraph", "profile", "profileContext", "entities", "inspect", "classification", "listGraphTasks", "getGraphTask", "context"]);
+    expect(Object.keys(granted.memory!.queries.context)).toEqual(["history", "read", "export"]);
     expect(granted.memory!.commands).toBeUndefined();
-    expect(Object.keys(createActorDomainView("plugin:test", { memory: "write" }).memory!.commands!)).toEqual(["mutate", "updateProfile", "decideEntity", "classify", "startGraphTask", "cancelGraphTask", "retryGraphTask"]);
+    const writer = createActorDomainView("plugin:test", { memory: "write" }).memory!.commands!;
+    expect(Object.keys(writer)).toEqual(["mutate", "context", "updateProfile", "decideEntity", "classify", "startGraphTask", "cancelGraphTask", "retryGraphTask"]);
+    expect(Object.keys(writer.context)).toEqual(["capture"]);
   });
 });

@@ -5,7 +5,7 @@ export const DOMAIN_CATALOG = {
   annotations: { version: "2.0.0", pluginAccess: ["read", "write"] },
   conversations: { version: "1.4.0", pluginAccess: ["read", "write"] },
   settings: { version: "1.10.0", pluginAccess: [] },
-  memory: { version: "2.3.0", pluginAccess: ["read", "write"] },
+  memory: { version: "2.4.0", pluginAccess: ["read", "write"] },
 } as const;
 
 export type DomainId = keyof typeof DOMAIN_CATALOG;
@@ -32,6 +32,11 @@ export const DOMAIN_PERMISSIONS = Object.entries(DOMAIN_CATALOG).flatMap(
 );
 
 export type DomainGrants = Partial<Record<DomainId, DomainAccess>>;
+
+/** The host's own surface; product UI and the Agent act with every grant. */
+export const FULL_DOMAIN_GRANTS: Readonly<DomainGrants> = Object.freeze(Object.fromEntries(
+  Object.keys(DOMAIN_CATALOG).map(id => [id, "write"]),
+) as DomainGrants);
 
 /** Write implies read; duplicate declarations collapse to the stronger grant. */
 export function domainGrantsFromPermissions(

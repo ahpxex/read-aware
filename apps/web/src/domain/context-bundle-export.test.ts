@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { createContextBundle, RESOURCE_MAX_CHUNK, type ContextBundle } from "@read-aware/core";
 import { ResourceOwner, type ResourceAdapter } from "../services/resource-owner";
-import type { ResourceAccess } from "../services/resource-access";
+import type { ContextResourceAccess } from "../services/resource-access";
 import { saveResourceFile } from "../platform/resource-save";
 import { exportContextBundle } from "./context-bundle-export";
 
@@ -21,6 +21,9 @@ function fixture() {
       files.set(id, next); return next.length;
     },
     commit: async id => { sealed.add(id); },
+    commitContext: async (id, revision) => {
+      expect(revision).toBe(`cbsource1:${"a".repeat(32)}:1`); sealed.add(id);
+    },
     read: async (id, offset, length) => files.get(id)!.slice(offset, offset + length).buffer,
     save: (id, filename, signal, beforeWrite) => saveResourceFile(async () => filename, async () => {
       expect(sealed.has(id)).toBe(true); writes++;
@@ -29,7 +32,8 @@ function fixture() {
     imagePreview: async () => { throw Error("Unexpected image decode"); },
     release: async id => { files.delete(id); sealed.delete(id); },
   };
-  const access: ResourceAccess = { signal: revoke.signal, isAllowed: () => allowed, dispose: () => { disposed++; } };
+  const access: ContextResourceAccess = { sourceRevision: `cbsource1:${"a".repeat(32)}:1`,
+    signal: revoke.signal, isAllowed: () => allowed, dispose: () => { disposed++; } };
   const owner = new ResourceOwner(adapter, error => errors.push(error), () => {}, () => now);
   return { owner, adapter, files, sealed, errors, access, revoke,
     deny: () => { allowed = false; }, time: (value: number) => { now = value; },
@@ -105,7 +109,7 @@ test("failed validation, denial, cancellation, sealing and late native acquisiti
       if (failure === "invalid") bundle.version = `cb1:${"0".repeat(64)}`;
       if (failure === "denied") f.deny();
       if (failure === "cancelled") abort.abort(Error("Cancelled"));
-      if (failure === "seal") f.adapter.commit = async () => { throw Error("Seal failed"); };
+      if (failure === "seal") f.adapter.commitContext = async () => { throw Error("Seal failed"); };
       if (failure === "append") f.adapter.append = async () => 999;
       if (failure === "create") {
         const create = f.adapter.create;
@@ -217,4 +221,25 @@ test("revocation cleanup cannot be refused by a saturated actor queue", async ()
     expect((await Promise.all(queued)).every(result => result instanceof Error)).toBe(true);
     await Bun.sleep(0); expect(f.files.size).toBe(0); expect(f.disposed).toBe(1);
   } finally { gate.resolve(new ArrayBuffer(1)); await f.owner.dispose(); }
+});
+
+test("native source binding is mandatory, copied before queueing and cannot fall back to generic sealing", async () => {
+  for (const mode of ["copied", "invalid", "native-conflict"] as const) {
+    const f = fixture();
+    try {
+      f.adapter.commit = async () => { throw Error("Generic seal must not be used"); };
+      if (mode === "invalid") f.access.sourceRevision = "cb1:not-a-source-proof";
+      if (mode === "native-conflict") f.adapter.commitContext = async () => { throw new Error("Native source changed"); };
+      const pending = exportContextBundle(f.owner, await artifact(), f.access);
+      f.access.sourceRevision = "changed-after-call";
+      if (mode === "copied") {
+        const ref = await pending;
+        expect(ref.state).toBe("ready");
+        await f.owner.release(ref.id);
+      } else {
+        await expect(pending).rejects.toBeDefined();
+      }
+      expect(f.files.size).toBe(0); expect(f.disposed).toBe(1);
+    } finally { await f.owner.dispose(); }
+  }
 });

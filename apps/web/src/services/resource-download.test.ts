@@ -9,7 +9,7 @@ function files() {
     pick: async () => [], openBook: async () => null, openCover: async () => null,
     create: async input => { const id = `file-${++next}`; data.set(id, new Uint8Array()); return { id, size: 0, name: input.name, mimeType: input.mimeType! }; },
     append: async (id, offset, bytes) => { if (failWrite) throw new Error("Write failed"); const value = new Uint8Array(offset + bytes.length); value.set(data.get(id)!); value.set(bytes, offset); data.set(id, value); return value.length; },
-    commit: async () => {}, save: async () => true,
+    commit: async () => {}, commitContext: async () => { throw Error("Unexpected context seal"); }, save: async () => true,
     read: async (id, offset, length) => data.get(id)!.slice(offset, offset + length).buffer,
     release: async id => { data.delete(id); }, copyImage: async () => ({ copied: true, width: 1, height: 1 }), imagePreview: async () => new ArrayBuffer(0),
   };

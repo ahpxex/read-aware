@@ -7,6 +7,9 @@ export type ResourceAccess = {
   dispose(): void;
 };
 
+/** Captured around the authorized durable source proof, not the artifact hash. */
+export type ContextResourceAccess = ResourceAccess & { sourceRevision: string };
+
 export function retainResourceAccess(input: ResourceAccess, report: (error: unknown) => void) {
   const signal = input.signal, isAllowed = input.isAllowed.bind(input), release = input.dispose.bind(input);
   let disposed = false;

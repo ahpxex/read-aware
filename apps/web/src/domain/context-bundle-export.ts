@@ -1,9 +1,9 @@
 import { validateContextBundle, type ResourceRef } from "@read-aware/core";
-import type { ResourceAccess } from "../services/resource-access";
+import type { ContextResourceAccess } from "../services/resource-access";
 import type { ResourceOwner } from "../services/resource-owner";
 
 /** Internal transport only. The host must prove disclosure authority for this exact artifact. */
-export function exportContextBundle(owner: ResourceOwner, input: unknown, access: ResourceAccess, signal?: AbortSignal): Promise<ResourceRef> {
+export function exportContextBundle(owner: ResourceOwner, input: unknown, access: ContextResourceAccess, signal?: AbortSignal): Promise<ResourceRef> {
   // Start validation synchronously to copy content before the actor queue can yield.
   const validated = validateContextBundle(input);
   // A rejected queue may never call load; its validation failure is still observed.

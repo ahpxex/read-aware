@@ -1062,6 +1062,7 @@ pub fn run() {
             resources::resource_create,
             resources::resource_append,
             resources::resource_commit,
+            resources::resource_commit_context,
             resources::resource_read,
             resources::resource_save,
             resources::resource_release,

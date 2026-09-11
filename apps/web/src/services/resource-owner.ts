@@ -1,6 +1,6 @@
 import { AppError, BOOK_IMAGE_MAX_BYTES, RESOURCE_LIFETIME_MS, RESOURCE_MAX_CHUNK, RESOURCE_MAX_SIZE,
   type ResourcePort, type ResourceRef, type ResourcePickOptions, type ResourceCreateOptions, type ResourceImageReceipt } from "@read-aware/core";
-import { retainResourceAccess, type ResourceAccess } from "./resource-access";
+import { retainResourceAccess, type ContextResourceAccess } from "./resource-access";
 
 export type NativeResource = { id: string; size: number; name: string; mimeType: string };
 export type ResourceAdapter = {
@@ -11,6 +11,7 @@ export type ResourceAdapter = {
   read(id: string, offset: number, length: number): Promise<ArrayBuffer>;
   append(id: string, offset: number, bytes: Uint8Array): Promise<number>;
   commit(id: string): Promise<void>;
+  commitContext(id: string, expectedReadRevision: string): Promise<void>;
   /** Must run beforeWrite immediately before dispatch, after any dialog. */
   save(id: string, filename: string, signal?: AbortSignal, beforeWrite?: () => void): Promise<boolean>;
   copyImage(id: string): Promise<ResourceImageReceipt>;
@@ -64,11 +65,13 @@ export class ResourceOwner implements ResourcePort {
     return this.openBookAsset(bookId, "cover", signal);
   }
   /** Host-only context transport. Ownership of the disclosure lease transfers on call. */
-  importContext(load: () => Promise<{ name: string; bytes: Uint8Array }>, authority: ResourceAccess, signal?: AbortSignal): Promise<ResourceRef> {
+  importContext(load: () => Promise<{ name: string; bytes: Uint8Array }>, authority: ContextResourceAccess, signal?: AbortSignal): Promise<ResourceRef> {
+    const sourceRevision = authority.sourceRevision;
     const access = retainResourceAccess(authority, this.report);
     const check = () => { this.guard(signal); access.check(); };
     return this.run(async () => {
       check();
+      if (!/^cbsource1:[a-f0-9]{32}:(0|[1-9][0-9]*)$/.test(sourceRevision)) throw invalid();
       this.capacity([{ id: "", size: 0, name: "context.json", mimeType: "application/json" }]);
       const data = await load();
       check();
@@ -82,7 +85,7 @@ export class ResourceOwner implements ResourcePort {
           const size = await this.adapter.append(value.id, offset, chunk);
           if (size !== offset + chunk.length) throw new AppError("internal", "Unexpected context resource size");
         }
-        check(); await this.adapter.commit(value.id); check();
+        check(); await this.adapter.commitContext(value.id, sourceRevision); check();
         return this.register({ ...value, name, mimeType, size: bytes.length }, "context", "ready", access);
       } catch (error) { await this.cleanNative([value]); throw error; }
     }, signal).catch(error => { access.dispose(); throw error; });

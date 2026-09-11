@@ -11,6 +11,8 @@ use std::{
     time::{Duration, Instant},
 };
 use tauri::Manager;
+#[path = "resources_context.rs"]
+mod context;
 
 const MAX_FILE: u64 = 1024 * 1024 * 1024;
 const MAX_TOTAL: u64 = 2 * MAX_FILE;
@@ -23,6 +25,7 @@ struct Entry {
     size: u64,
     ready: bool,
     created: Instant,
+    context_revision: Option<String>,
 }
 #[derive(Default)]
 pub struct ResourceFiles(Mutex<HashMap<String, Entry>>);
@@ -49,6 +52,7 @@ pub(crate) fn reader(app: &tauri::AppHandle, id: &str) -> Result<File, CommandEr
 fn lease(entries: &mut HashMap<String, Entry>, id: &str) -> Result<File, CommandError> {
     prune(entries);
     let entry = entries.get_mut(id).ok_or_else(missing)?;
+    if entry.context_revision.is_some() { return Err(invalid("Context resources cannot be consumed as generic native files")); }
     if !entry.ready { return Err(invalid("Seal the resource before importing")); }
     entry.file.seek(SeekFrom::Start(0))?;
     Ok(entry.file.try_clone()?)
@@ -98,6 +102,7 @@ fn insert(
             size,
             ready,
             created: Instant::now(),
+            context_revision: None,
         },
     );
     Ok(ResourceInfo { id, size })
@@ -299,6 +304,16 @@ pub async fn resource_commit(app: tauri::AppHandle, id: String) -> Result<(), Co
     .await
 }
 #[tauri::command]
+pub async fn resource_commit_context(app: tauri::AppHandle, id: String, expected_read_revision: String) -> Result<(), CommandError> {
+    crate::storage::blocking("resource_commit_context", move || {
+        let resources = app.state::<ResourceFiles>();
+        let mut entries = resources.0.lock()?;
+        let db = app.state::<crate::storage::Db>();
+        let mut conn = db.0.lock()?;
+        context::seal(&mut conn, &mut entries, &id, &expected_read_revision)
+    }).await
+}
+#[tauri::command]
 pub async fn resource_read(
     app: tauri::AppHandle,
     id: String,
@@ -308,7 +323,8 @@ pub async fn resource_read(
     crate::storage::blocking("resource_read", move || {
         let resources = app.state::<ResourceFiles>();
         let mut entries = resources.0.lock()?;
-        read(&mut entries, &id, offset, length).map(tauri::ipc::Response::new)
+        context::admit(&app, &mut entries, &id, |entries| read(entries, &id, offset, length))
+            .map(tauri::ipc::Response::new)
     })
     .await
 }
@@ -321,7 +337,7 @@ pub async fn resource_save(
     crate::storage::blocking("resource_save", move || {
         let resources = app.state::<ResourceFiles>();
         let mut entries = resources.0.lock()?;
-        save(&mut entries, &id, Path::new(&path))
+        context::admit(&app, &mut entries, &id, |entries| save(entries, &id, Path::new(&path)))
     })
     .await
 }

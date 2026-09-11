@@ -47,6 +47,23 @@ fn revision(conn: &Connection) -> Result<String, CommandError> {
     Ok(format!("cbsource1:{generation}:{counter}"))
 }
 
+/// Read-only admission for retained context resources. Never recreate a missing clock.
+pub(crate) fn require_context_source_revision(conn: &Connection, expected: &str) -> Result<(), CommandError> {
+    use rusqlite::OptionalExtension;
+    user_profile::require_initialized(conn)?;
+    let current: Option<(String, i64)> = conn.query_row(
+        "SELECT generation,counter FROM context_bundle_source_clock WHERE id=1", [],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    ).optional()?;
+    if let Some((generation, counter)) = current {
+        if generation.len() == 32 && generation.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            && counter >= 0 && format!("cbsource1:{generation}:{counter}") == expected {
+            return Ok(());
+        }
+    }
+    Err(CommandError::new("memory/conflict", "Context source proof is no longer current"))
+}
+
 pub(super) fn install_blob_source_clock(conn: &Connection) -> Result<(), CommandError> {
     for action in ["INSERT", "UPDATE", "DELETE"] {
         conn.execute_batch(&format!("CREATE TRIGGER context_source_blob_objects_{action} AFTER {action} ON blob_objects

@@ -10,6 +10,7 @@ export const nativeResourceFiles = {
   append: (id: string, offset: number, data: Uint8Array) => invoke<number>("resource_append", data,
     { headers: { "x-resource-id": id, "x-resource-offset": String(offset) } }),
   commit: (id: string) => invoke<void>("resource_commit", { id }),
+  commitContext: (id: string, expectedReadRevision: string) => invoke<void>("resource_commit_context", { id, expectedReadRevision }),
   release: (id: string) => invoke<void>("resource_release", { id }),
   copyImage: (id: string) => invoke<ResourceImageReceipt>("resource_copy_image", { id }),
   imagePreview: (id: string) => invoke<ArrayBuffer>("resource_image_preview", { id }),

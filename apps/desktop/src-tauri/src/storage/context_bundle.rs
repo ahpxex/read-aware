@@ -172,3 +172,9 @@ pub(super) fn validate(value: &Value) -> Result<Bundle, CommandError> {
     }
     Ok(bundle)
 }
+
+pub(crate) fn validate_context_resource(bytes: &[u8]) -> Result<(), CommandError> {
+    let value = serde_json::from_slice(bytes).map_err(|_| invalid())?;
+    validate(&value)?;
+    Ok(())
+}

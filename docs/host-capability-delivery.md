@@ -2,6 +2,20 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：第一段 context 资源原生来源准入
+
+[进度/设计] 上轮761f8b2d封口资源与句柄授权已推送且CI通过，是有效进展。本组继续披露链时确认：单靠JS当前predicate/撤销观察，不能证明另一SQLite连接已提交的来源变更在原生读文件前被看见。因此先写明持久来源准入设计，再把来源clock绑定到原生资源，避免以后公共接线绕过这条边界；仍是第一段，不开展插件构建或桌面验收。
+
+[实现] ContextResourceAccess强制携带授权来源证明时的cbsource1，宿主在入队前复制，且只能调用专用resource_commit_context，不能回退普通seal。原生在同一读事务内要求投影fresh/画像已初始化/clock存在且精确匹配，读取全部临时JSON并复核artifact契约及hash后才封口绑定。规范tuple仍1MiB；含字段名JSON的原生读取上限2MiB用于容纳固定结构开销，不提高artifact正文上限。已经ready的资源不能绑定或换绑clock，通用commit不会移除已有绑定。
+
+[消费边界] resource_read/resource_save对context文件在原生SQLite快照内重新验绑定clock；普通资源不查询数据库。其他连接写入、改回原值、缺失/损坏clock、stale与wipe均拒绝旧证明，rollback不使其失效；缺clock不偷偷重建。通用native reader拒绝context克隆描述符，因而原生图片/书导入也不能绕过。原生release仍无条件。准入后并发来源提交不召回已派发保存，后续使用拒绝；只读事务结束不覆盖已经完成的外部写回执。全局clock允许因无关来源变化而保守失效，必须重新授权获取，不给旧句柄续签。
+
+[验证] 85项定向TS测试/688断言通过，含来源证明强制/入队前复制/专用native seal失败清理与原资源/四recipe/历史回归。原生resources 8项通过，其中新增5项覆盖完整golden、不可换绑/普通消费拒绝、假hash/坏JSON/过大JSON/封口前来源变化、旧目标文件保持、rollback/ABA/缺clock/坏clock/读失败、第二真实SQLite连接WAL写及重开、stale/wipe和无条件释放；storage 209项通过、既有百万事件压力1项默认忽略。初次新增测试数据库遗漏FTS函数注册，按生产schema所需函数初始化修正后复跑全部通过。core/Web（含Foliate及迁出桌面脚本）类型通过，保留既有Rust警告。没有启动桌面/浏览器或完整构建。
+
+[工作区/剩余] 并行用户表单工作已自行提交d0a05178，保留该提交、不改写历史；该提交同时包含本组新增native命令的库存映射，其余本组文件单独提交。MEM13仍部分、双端未接：还需真实授权来源证明编排、公共recipe/旧版本披露政策、隐私与阅读/provider观察绑定、Agent/原生入口及持久结果全链。原生clock是来源一致性而非Actor权限，不以此声称披露授权或E2E完成。源矩阵/模型/设计同步，HTML按每日集中，本组完成后push。
+
+[燃尽] 剩余部分/未接行数81；未覆盖行数240；未验收插件数15（包含9个组合桌面插件）。
+
 ## 2026-09-11：第一段 context bundle 封口资源与持续授权
 
 [进度/设计] 上轮ca0a2957固定版本归档已推送且landing CI通过，是有效进展。本组先写清资源交付、当前授权与不可撤回的外部写入边界，再接内部exportContextBundle；继续第一段，不启动桌面、不扩展第二段插件。归档hash只证明内容身份，仍不授予公共Actor披露权。

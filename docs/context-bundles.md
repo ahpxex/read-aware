@@ -103,6 +103,26 @@ This transport does not provide a permissive default lease, public actor grant,
 or retrospective spoiler proof. Actor recipe grants, policy observers and the
 native/Agent disclosure flows must supply those separately before public wiring.
 
+### Durable Resource Admission
+
+JavaScript observers alone cannot detect a source write from another SQLite
+connection before resource delivery. A context resource therefore also binds the
+device-local source revision captured around its authorized source proof. Native
+context sealing validates the complete artifact and checks that revision in a
+SQLite transaction. Subsequent native reads and saves repeat the check against
+the attached revision; callers cannot refresh it by resealing a ready resource.
+Generic native consumers reject context files rather than cloning an unguarded
+descriptor. Release is unconditional. Ordinary resources retain their existing
+behavior and do not acquire a database dependency.
+
+This is admission against a committed source snapshot, not a native actor grant:
+the host still supplies recipe/scope/privacy/reading authority. A source commit
+after a read/save has been admitted does not recall dispatched work; a later
+operation must fail. Rollback preserves validity, while ABA, wipe, stale
+projections and missing/corrupt clock state deny use. Any tracked source change
+may conservatively invalidate a resource, including an unrelated change; it must
+be reacquired through current authorization, never rebound in place.
+
 ### Pinned History Reads
 
 The implemented internal history queries select exactly one recipe and scope, never a version ID alone or

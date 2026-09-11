@@ -19,7 +19,7 @@ function fixture(authorizeBook: (id: string) => void = () => {}) {
       const next = new Uint8Array(offset + bytes.length); next.set(previous); next.set(bytes, offset); files.set(id, next); return next.length;
     },
     read: async (id, offset, length) => new Uint8Array(files.get(id)!.slice(offset, offset + length)).buffer,
-    commit: async () => {}, save: async () => false,
+    commit: async () => {}, commitContext: async () => { throw Error("Unexpected context seal"); }, save: async () => false,
     release: async id => { released.push(id); files.delete(id); },
   };
   const owner = new ResourceOwner(adapter, error => errors.push(error), authorizeBook, () => now);

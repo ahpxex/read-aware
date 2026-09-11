@@ -94,6 +94,9 @@ export const sources: Record<string, string> = {
   WINASSOCIATIONS: "apps/desktop/src-tauri/src/file_associations/windows.rs",
   ASSOCIATIONPROOF: "apps/desktop/src-tauri/src/file_associations/registry/tests.rs",
   ASSOCIATIONINSTALLER: "apps/desktop/src-tauri/windows/file-associations.nsh",
+  LINUXASSOCIATIONS: "apps/desktop/src-tauri/src/file_associations/linux.rs",
+  LINUXASSOCIATIONNATIVE: "apps/desktop/src-tauri/src/file_associations/linux_native.rs",
+  LINUXASSOCIATIONPROOF: "apps/desktop/src-tauri/src/file_associations/linux_native/tests.rs",
   MAINTENANCEDESKNATIVE: "docs/evidence/maintenance-desk-2026-09-11.json",
   MAINTENANCEADMIN: "plugins/maintenance-desk/src/plugin-directory.ts",
   MAINTENANCEUPDATES: "plugins/maintenance-desk/src/updates.ts",
@@ -813,11 +816,11 @@ groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.len
   const localOnly = path === "ai.preferences.localOnly";
   const buildMemory = path === "ai.preferences.buildMemory";
   const readingContext = path === "ai.preferences.sendHighlightedText" || path === "ai.preferences.sendSurroundingContext";
-  const partial = ineffective || localOnly || readingContext || fileAssociations;
+  const partial = ineffective || localOnly || readingContext;
   const readonly = readOnlySettings.has(path);
   const effect = ineffective
     ? "保存值有实现；全生产源码扫描未找到对应效果消费者。不能算行为已实现或端到端覆盖。"
-    : fileAssociations ? "macOS 接收门控已接线：RunEvent::Opened、冷启动 argv、第二实例 argv 共用原生队列；启动时读取 SQLite 设置，成功持久化同一 general 记录才发布接收策略，失败保留旧队列/策略。关闭清空排队文件并更换 epoch，重开不重放；前端在文件信息读取后及导入后复核 epoch；原生 staging 在导入开始前再次按同一队列锁准入，关闭后旧批次不能通过准入，已准入导入可完成但迟到导航请求被抑制；已派发导航不承诺撤销。StrictMode 试挂载不消费冷启动队列，读取/订阅失败不当空成功。macOS 八语言明确不会移除 Info.plist 文件关联；补齐 html/htm 声明并校验 14 个扩展。Windows 已接 HKCU/<identifier>.Book 与 14 个 OpenWithProgids 值的真实注册/注销及 shell 通知；启动按持久设置协调、更新可执行路径；逐值预读/核验和 SQLite 失败补偿，不写 UserChoice 或其他默认值。NSIS 不再自动写通用类/默认关联，明确只发 currentUser NSIS，首次运行注册、卸载按 owner 清理；旧通用类仅确认命令/图标/标签归属后恢复仍属于它的备份默认，机器级旧关联明确拒绝，需安装器迁移。纯注册表计划/补偿与 Windows 配置合并测试通过，真实 Windows 注册/安装仍待第三段。尚缺的实现关闭条件：Linux 用户级 xdg-mime/desktop 注册/注销、打包条目身份/升级去重、其他默认处理器保护、失败补偿及权限测试。SET05 保留部分。真实冷/热打开、切换、故障、并发/撤权、平台与 packaged 插件轮次另在第三段清单执行。"
+    : fileAssociations ? "实现关闭条件已满足，接通（待 E2E）。冷启动 argv、第二实例 argv、macOS Opened 共用原生队列；持久提交才发布接收策略，关闭清队列/换 epoch，重开不重放。原生导入准入再次校验 epoch，已准入导入可完成但迟到导航被抑制，不撤销已派发导航；StrictMode 试挂载不吞冷启动队列，读失败不当空成功。macOS 保留 Info.plist 的 14 扩展声明，八语言如实说明。Windows 真实管理 HKCU/<identifier>.Book、14 个 OpenWithProgids 与 shell 通知；不写 UserChoice/其他默认，逐值核验和 SQLite 失败补偿；currentUser NSIS 首启注册、owner 卸载清理，旧通用类只按证明归属迁移，机器级旧类明确拒绝。Linux 使用同一 productName.desktop 的用户覆盖与 owner XML，真实 xdg-mime 用户级安装/注销、MIME/desktop 缓存刷新，按身份更新安装路径，AppImage 使用持久路径；只改自有 Added/Removed 关联，保留其他处理器、默认选择和登录 scheme。三个文件预读/读回、失败补偿与外部冲突拒绝，子进程截止/终止后才补偿；DEB/RPM 声明工具依赖。无原始 OS/path 插件权限。平台原生编译、定向权限/SQLite/临时 XDG 工具测试不等于产品验收：真实冷/热打开、实际处理器列表、安装/升级/卸载、并发/撤权与 packaged 正式插件完整轮次仍按 host-capability-stage-three.md 执行。"
     : startup ? "实现关闭条件已满足：tauri-plugin-autostart 按应用 identifier 管理设备本地启动注册；原生 KV 单项/批量/删除/前缀恢复/清空在同一 DB 锁下先应用并核验 OS 注册，再提交 SQLite，失败补偿，补偿失败如实拒绝并记录。UI/Agent/授权插件读取实际注册，不把历史占位值当生效值；一般设置按字段提交，不恢复系统中已关闭的旧值；原生失败回滚前端持久镜像。无 Worker 原始 autostart 权限或路径参数；排队取消在原生读取后再检查。UI loading/error/busy、focus 和外部持久提交刷新、局部授权与退休均有定向测试。审计的 auto-launch Cargo patch 修复三平台安装路径/参数序列化及 macOS/Linux 完整写入，纯测试不安装启动项。状态表示本应用注册，不承诺绕过 OS 登录策略。第三段 host-capability-stage-three.md 规定隔离 Tauri、真实登录启动、系统外部控制、SQLite/OS 故障及 packaged 插件轮次，尚未执行。"
     : localOnly ? "宿主模型调用已有实时执行策略：Agent smart/fast、后台补全、Worker llm.ask 普通/结构化/流式及连接测试同源拒绝 ai/local-only；进行中调用取消，迟到结果/重试被抑制，恢复只允许新调用。当前无本地模型后端，Custom loopback 也拒绝。隔离 macOS debug 双端/取消/持久失败回滚/原生连接 UI 已验；任意插件 HTTP、TTS、同步不受此策略约束，完整隐私边界与 packaged/跨平台仍未完成，保留部分。"
     : buildMemory ? "实时控制宿主记忆构建：显式 remember、轮后抽取/强化/插件候选/旧历史领养/摘要、巩固、章节 digest/自动叙事分类及 onboarding seed 均受约束。关闭返回 ai/memory-disabled，取消在途模型调用和已排队任务，重开不复活旧任务。普通聊天/历史、旧记忆检索、用户删除和插件自有目标保存不受影响；重开后的新任务可处理保留历史。摘要写入/清除等待持久回执；已派发底层写不保证撤销，但七类受保护写的回执全部收束后外层才结束取消；迟到失败记日志，退役 guard 不可复用，读/模型物理 IO 不在保证内。隔离 macOS debug 双端、真实 UI 聊天、候选入库、取消和 SQLite 失败已验；packaged/跨平台未验。"
@@ -827,11 +830,11 @@ groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.len
         : path.startsWith("menus.") ? "只影响菜单排列/显示，不调用菜单动作。"
           : "目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。";
   return cap(`SET${String(i + 1).padStart(2, "0")}`, path, partial ? "部分" : "实装",
-    actor(partial ? "部分" : startup ? "接通（待 E2E）" : "接通", readonly ? "get_settings" : "get_settings/update_settings", "类型化设置工具"),
-    actor(partial ? "部分" : startup ? "接通（待 E2E）" : "接通", readonly ? "settings discover/read（需路径授权）" : "settings discover/read/update（需路径授权）", "类型化设置领域"),
+    actor(partial ? "部分" : startup || fileAssociations ? "接通（待 E2E）" : "接通", readonly ? "get_settings" : "get_settings/update_settings", "类型化设置工具"),
+    actor(partial ? "部分" : startup || fileAssociations ? "接通（待 E2E）" : "接通", readonly ? "settings discover/read（需路径授权）" : "settings discover/read/update（需路径授权）", "类型化设置领域"),
     ["SETTINGS","SETDOMAIN","SETTOOLS", ...(localOnly ? ["AIPREFS", "INFERENCEPOLICY", "HOSTINFERENCEPOLICY", "INFERENCEEVIDENCE"]
       : startup ? ["DESKTOPSTARTUP", "DESKTOPPREFERENCES", "STARTUPUI", "STARTUPTEST", "STARTUPDEPENDENCY"]
-      : fileAssociations ? ["DESKTOPPREFERENCES", "EXTERNALOPENQUEUE", "EXTERNALOPENHOOK", "EXTERNALOPENPROOF", "GENERAL", "FILEASSOCIATIONS", "WINASSOCIATIONS", "ASSOCIATIONPROOF", "ASSOCIATIONINSTALLER"]
+      : fileAssociations ? ["DESKTOPPREFERENCES", "EXTERNALOPENQUEUE", "EXTERNALOPENHOOK", "EXTERNALOPENPROOF", "GENERAL", "FILEASSOCIATIONS", "WINASSOCIATIONS", "ASSOCIATIONPROOF", "ASSOCIATIONINSTALLER", "LINUXASSOCIATIONS", "LINUXASSOCIATIONNATIVE", "LINUXASSOCIATIONPROOF"]
       : buildMemory ? ["MEMORYPOLICY", "HOSTMEMORYPOLICY", "READINGGOALS", "MEMORYPOLICYPROOF"]
       : readingContext ? ["READINGCONTEXTPOLICY", "HOSTREADINGCONTEXTPOLICY", "READINGCONTEXTPROOF", "STRUCTUREDREADING", "STRUCTUREDREADINGPROOF", "THREAD", "READTOOLS"]
       : path.startsWith("appearance.contentTypography.") ? ["TYPOGRAPHY", "TYPOGRAPHYEFFECT"]

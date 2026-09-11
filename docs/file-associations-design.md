@@ -102,9 +102,9 @@ detect and reject that migration, with the original settings left intact.
   tools. Verify results and preserve other handlers/default choices. Account for
   packaged desktop IDs and upgrades so disabling cannot leave a second active
   registration behind. Missing tools/failed commands must reject, not save success.
-- Windows/Linux registration and packaging ownership need their own targeted
-  tests. Until connected, SET05 stays partial with that explicit closure condition;
-  intake gating is not represented as equivalent to registration/unregistration.
+- Windows/Linux registration and packaging ownership have targeted native tests.
+  SET05 is connected pending E2E; intake gating is not represented as equivalent
+  to registration/unregistration, and command tests are not desktop UI evidence.
 
 Stage one uses native pure/SQLite tests, isolated XDG commands and controlled IPC only. Stage three must
 exercise real cold/warm file opens, enable/disable/re-enable, in-flight revocation,

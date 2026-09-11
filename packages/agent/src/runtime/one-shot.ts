@@ -1,4 +1,4 @@
-import type { Api, Model } from "@earendil-works/pi-ai";
+import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
 import type { InferenceAttemptReceipt, InferenceResult, ModelReadingContext } from "@read-aware/core";
 import type { CompleteFn, StreamFn, InferenceSourceTracking } from "../models/complete";
 import { classifyModelFailure } from "../models/failure";
@@ -18,6 +18,9 @@ export type OneShotInput = InferenceSourceTracking & {
   signal?: AbortSignal;
   /** Requested output cap for each attempt, not a total cost/token budget. */
   maxOutputTokens?: number;
+  /** Host-only terminal attempt metadata, including late provider settlement after cancellation.
+   * Never carries generated text. The callback must not throw. */
+  onAttempt?: (receipt: InferenceAttemptReceipt) => void;
 };
 
 type OneShotDeps = {
@@ -51,22 +54,38 @@ export async function askOneShotDetailed(input: OneShotInput, deps: OneShotDeps)
       const maxTokens = input.maxOutputTokens === undefined ? undefined
         : Math.min(input.maxOutputTokens, Number.isSafeInteger(model.maxTokens) && model.maxTokens > 0 ? model.maxTokens : input.maxOutputTokens);
       const context = { systemPrompt: system, messages: [{ role: "user" as const, content: prompt, timestamp: Date.now() }] };
+      let recorded = false;
+      const record = (message?: AssistantMessage) => {
+        if (recorded) return;
+        recorded = true;
+        const receipt = inferenceReceipt(model, message, maxTokens);
+        attempts.push(receipt);
+        input.onAttempt?.(structuredClone(receipt));
+      };
+      const trackSource = (source: Promise<unknown>) => {
+        // Observe the SDK's terminal result, not a policy wrapper's early abort.
+        const receiptSource = source.then(message => {
+          if (message && typeof message === "object" && "stopReason" in message) record(message as AssistantMessage);
+        }, () => record());
+        input.trackSource?.(source);
+        input.trackSource?.(receiptSource);
+      };
       const run = async () => {
         let message;
         if (input.onText) {
-          const stream = deps.streamFns[role](model, context, { signal: call.signal, trackSource: input.trackSource, maxTokens });
+          const stream = deps.streamFns[role](model, context, { signal: call.signal, trackSource, maxTokens });
           for await (const event of stream) {
             call?.assertAllowed();
             if (event.type === "text_delta") await call.wait(Promise.resolve(input.onText!(event.delta)));
           }
           message = await stream.result();
         } else {
-          message = await deps.completeFns[role](model, context, { signal: call.signal, trackSource: input.trackSource, maxTokens });
+          message = await deps.completeFns[role](model, context, { signal: call.signal, trackSource, maxTokens });
         }
+        record(message);
         call?.assertAllowed();
         if (message.stopReason === "error") throw classifyModelFailure(message.errorMessage ?? "ask failed");
         if (message.stopReason === "aborted") throw new Error(message.errorMessage ?? "ask aborted");
-        attempts.push(inferenceReceipt(model, message, maxTokens));
         return message.content.filter((block): block is { type: "text"; text: string } => block.type === "text")
           .map(block => block.text).join("");
       };

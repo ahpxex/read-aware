@@ -26,3 +26,16 @@ export type InferenceResult<T = unknown> = {
    * Successful calls only; failures/cancellation still reject without a final receipt. */
   attempts: InferenceAttemptReceipt[];
 };
+
+/** Activation-local metadata only. No prompt, output, credential or provider error prose. */
+export type InferenceRequestReceipt = {
+  requestId: string;
+  revision: number;
+  status: "running" | "completed" | "failed" | "cancelled" | "timed-out";
+  /** All known provider promises have settled. Not proof of remote billing finality. */
+  settled: boolean;
+  createdAt: string;
+  updatedAt: string;
+  errorCode: string | null;
+  attempts: InferenceAttemptReceipt[];
+};

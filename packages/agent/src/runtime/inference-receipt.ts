@@ -4,8 +4,8 @@ import type { InferenceAttemptReceipt } from "@read-aware/core";
 const counter = (value: unknown): number | null =>
   typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : null;
 
-export function inferenceReceipt(model: Model<Api>, message: AssistantMessage, maxOutputTokens?: number): InferenceAttemptReceipt {
-  const raw = message.usage;
+export function inferenceReceipt(model: Model<Api>, message: AssistantMessage | undefined, maxOutputTokens?: number): InferenceAttemptReceipt {
+  const raw = message?.usage;
   const counts = {
     input: counter(raw?.input), output: counter(raw?.output),
     cacheRead: counter(raw?.cacheRead), cacheWrite: counter(raw?.cacheWrite),
@@ -17,7 +17,7 @@ export function inferenceReceipt(model: Model<Api>, message: AssistantMessage, m
   const priced = Object.values(model.cost ?? {}).some(value => Number.isFinite(value) && value > 0);
   const cost = raw?.cost?.total;
   return {
-    model: { id: model.id, provider: model.provider }, stopReason: message.stopReason,
+    model: { id: model.id, provider: model.provider }, stopReason: message?.stopReason ?? "error",
     maxOutputTokens: maxOutputTokens ?? null, usage,
     estimatedCostUsd: usage && priced && typeof cost === "number" && Number.isFinite(cost) && cost >= 0 ? cost : null,
   };

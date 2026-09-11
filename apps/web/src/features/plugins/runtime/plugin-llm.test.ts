@@ -127,3 +127,51 @@ test("global slots bound different plugin owners and service remains permission 
   expect(built.context.services.llm).toBeUndefined();
   built.lifecycle.stop();
 });
+
+test("named requests retain cancellation metadata until late provider settlement, not output", async () => {
+  const f = fixture();
+  const pending = f.api.ask({ prompt: "PRIVATE_PROMPT", requestId: "named" });
+  const outcome = Promise.allSettled([pending]);
+  await tick();
+  expect(await f.api.getRequest("named")).toMatchObject({ status: "running", settled: false, attempts: [] });
+  await expect(f.api.ask({ prompt: "duplicate", requestId: "named" })).rejects.toMatchObject({ code: "plugin/invalid-argument" });
+  expect(f.calls).toHaveLength(1);
+  await f.api.cancelRequest("named");
+  expect(await outcome).toMatchObject([{ status: "rejected", reason: { code: "ai/request-cancelled" } }]);
+  expect(await f.api.getRequest("named")).toMatchObject({ status: "cancelled", settled: false, errorCode: "ai/request-cancelled" });
+  const receipt = { model: { id: "probe", provider: "openai" }, stopReason: "aborted" as const,
+    maxOutputTokens: null, usage: null, estimatedCostUsd: null };
+  f.calls[0].input.onAttempt?.(receipt);
+  receipt.model.id = "mutated";
+  f.calls[0].finish("PRIVATE_OUTPUT"); await f.lifecycle.drainCleanups();
+  const saved = (await f.api.getRequest("named"))!;
+  expect(saved).toMatchObject({ status: "cancelled", settled: true, attempts: [{ model: { id: "probe" } }] });
+  saved.attempts.length = 0;
+  expect((await f.api.getRequest("named"))?.attempts).toHaveLength(1);
+  expect(JSON.stringify(await f.api.listRequests())).not.toContain("PRIVATE");
+  const other = fixture();
+  expect(await other.api.getRequest("named")).toBeNull();
+  expect(await other.api.cancelRequest("named")).toBeNull();
+  f.lifecycle.stop(); other.lifecycle.stop();
+  await expect(f.api.listRequests()).rejects.toThrow("stopped");
+});
+
+test("named receipts cover timeouts, pre-dispatch failures and bounded oldest-settled eviction", async () => {
+  const f = fixture();
+  const pending = f.api.askDetailed({ prompt: "p", requestId: "timeout", timeoutMs: 5 });
+  await expect(pending).rejects.toMatchObject({ code: "ai/request-timeout" });
+  expect(await f.api.getRequest("timeout")).toMatchObject({ status: "timed-out", settled: false });
+  f.calls[0].finish("late"); await f.lifecycle.drainCleanups();
+  expect((await f.api.getRequest("timeout"))?.settled).toBe(true);
+  await expect(f.api.ask({ prompt: "p", requestId: "invalid id" })).rejects.toMatchObject({ code: "plugin/invalid-argument" });
+  const lifecycle = new PluginLifecycleController([]); lifecycle.promote();
+  const api = createPluginLlm("unconfigured", lifecycle, () => null);
+  for (let i = 0; i < 65; i++) await expect(api.ask({ prompt: "p", requestId: `id-${i}` })).rejects.toMatchObject({ code: "ai/not-configured" });
+  expect(await api.getRequest("id-0")).toBeNull();
+  expect(await api.getRequest("id-64")).toMatchObject({ status: "failed", settled: true, errorCode: "ai/not-configured", attempts: [] });
+  expect(await api.listRequests()).toHaveLength(64);
+  const controller = new AbortController(); controller.abort();
+  await expect(api.ask({ prompt: "p", requestId: "pre", signal: controller.signal })).rejects.toMatchObject({ code: "ai/request-cancelled" });
+  expect(await api.getRequest("pre")).toMatchObject({ status: "cancelled", settled: true });
+  lifecycle.stop(); f.lifecycle.stop();
+});

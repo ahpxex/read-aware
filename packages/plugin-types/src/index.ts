@@ -2034,6 +2034,10 @@ export type PluginLoggingService = {
 
 export type PluginInferenceInput = {
   prompt: string;
+  /** llm 1.4: optional caller-generated ID (1..64 ASCII letters/digits/_/-).
+   * Retains metadata independently of the cancellable RPC. IDs must be unique
+   * among retained requests; this is not a retry/idempotency key. */
+  requestId?: string;
   system?: string;
   model?: "fast" | "smart";
   /** Keep book fragments here: host privacy filtering and live revocation apply. */
@@ -2225,6 +2229,16 @@ export type PluginHostServices = {
      * Includes structured retries; failure/cancellation rejects, not a billing receipt. */
     askDetailed(input: PluginInferenceInput & { schema?: never; onText?: (delta: string) => void }): Promise<import("@read-aware/core").InferenceResult<string>>;
     askDetailed(input: PluginInferenceInput & { schema: Record<string, unknown>; onText?: never }): Promise<import("@read-aware/core").InferenceResult>;
+    /** llm 1.4: this activation's last 64 named requests, oldest settled first
+     * on eviction. No output/prompt is retained. Missing/evicted IDs return null.
+     * After cancellation, settled=false until original provider promises finish;
+     * attempts may arrive later. Missing counters are unknown, never zero cost.
+     * Unload clears this ledger; it is not durable history or a billing record. */
+    getRequest(requestId: string): Promise<import("@read-aware/core").InferenceRequestReceipt | null>;
+    listRequests(): Promise<import("@read-aware/core").InferenceRequestReceipt[]>;
+    /** Requests cancellation independently of the ask RPC. The returned snapshot
+     * may still be running; query again for its outcome and provider settlement. */
+    cancelRequest(requestId: string): Promise<import("@read-aware/core").InferenceRequestReceipt | null>;
   };
   clipboard?: {
     writeText(text: string): Promise<void>;

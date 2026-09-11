@@ -52,6 +52,54 @@ test("detailed streaming exposes length termination, unknown usage/pricing and n
   expect(JSON.stringify(result)).not.toContain("PRIVATE_RESPONSE_ID");
 });
 
+test("terminal attempt metadata survives provider errors, structured failure and late cancellation", async () => {
+  const receipts: import("@read-aware/core").InferenceAttemptReceipt[] = [];
+  const onAttempt = (receipt: import("@read-aware/core").InferenceAttemptReceipt) => { receipts.push(receipt); };
+  const failure = fauxAssistantMessage("PRIVATE_OUTPUT");
+  failure.stopReason = "error"; failure.errorMessage = "PRIVATE_PROVIDER_ERROR";
+  failure.usage.input = 21;
+  const failed = fixture(async () => failure);
+  await expect(askOneShotDetailed({ prompt: "p", onAttempt }, failed.deps)).rejects.toThrow();
+  expect(receipts).toHaveLength(1);
+  expect(receipts[0]).toMatchObject({ stopReason: "error", usage: { input: 21 } });
+  expect(JSON.stringify(receipts)).not.toContain("PRIVATE");
+  receipts.length = 0;
+  const invalid = fixture(async () => fauxAssistantMessage("not JSON"));
+  await expect(askOneShotDetailed({ prompt: "p", schema: { type: "object" }, onAttempt }, invalid.deps)).rejects.toThrow("schema validation");
+  expect(receipts).toHaveLength(2);
+
+  receipts.length = 0;
+  let finish!: (message: ReturnType<typeof fauxAssistantMessage>) => void;
+  const sources: Promise<unknown>[] = [];
+  const late = fixture((_model, _context, options) => {
+    const source = new Promise<ReturnType<typeof fauxAssistantMessage>>(resolve => { finish = resolve; });
+    options?.trackSource?.(source);
+    return new Promise((resolve, reject) => {
+      options?.signal?.addEventListener("abort", () => reject(options.signal?.reason), { once: true });
+      void source.then(resolve);
+    });
+  });
+  const controller = new AbortController();
+  const pending = askOneShotDetailed({ prompt: "p", signal: controller.signal, onAttempt, trackSource: source => { sources.push(source); } }, late.deps);
+  controller.abort(new Error("stopped"));
+  await expect(pending).rejects.toThrow("stopped");
+  expect(receipts).toHaveLength(0);
+  finish(failure); await Promise.allSettled(sources);
+  expect(receipts).toHaveLength(1);
+  expect(receipts[0].usage?.input).toBe(21);
+});
+
+test("rejected SDK sources publish unknown usage without leaking error details", async () => {
+  const receipts: import("@read-aware/core").InferenceAttemptReceipt[] = [];
+  const f = fixture((_model, _context, options) => {
+    const source = Promise.reject(new Error("PRIVATE_ENDPOINT"));
+    options?.trackSource?.(source);
+    return source;
+  });
+  await expect(askOneShotDetailed({ prompt: "p", onAttempt: receipt => { receipts.push(receipt); } }, f.deps)).rejects.toThrow("PRIVATE_ENDPOINT");
+  expect(receipts).toEqual([{ model: { id: "probe", provider: "openai" }, stopReason: "error", maxOutputTokens: null, usage: null, estimatedCostUsd: null }]);
+});
+
 test("detailed inference rejects invalid caps, does not invent missing cost, and retains cancellation", async () => {
   let calls = 0;
   const f = fixture(async () => {

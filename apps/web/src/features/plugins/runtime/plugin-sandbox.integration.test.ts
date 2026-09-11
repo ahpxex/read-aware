@@ -28,7 +28,7 @@ function sandbox(scenario: string, fixture = "wire-probe.ts") {
     t: "boot", url: new URL(`./fixtures/${fixture}`, import.meta.url).href,
     manifest: { id: "wire-test", name: "Wire test", description: scenario, version: "1.0.0", schemaVersion: 1 },
     appVersion: "1.0.0", capabilities: {}, locale: "en", phase: "activating", storage: {},
-    shape: { domains: { library: { queries: { books: { searchLocations: "fn" } } }, reading: { commands: { step: "fn" } } }, services: { llm: { ask: "fn", askDetailed: "fn", policy: "fn" }, logging: { write: "fn", policy: "fn" }, network: { fetch: "fn", openStream: "fn", readStream: "fn", closeStream: "fn" } }, contributions: { commands: { register: "fn" } }, __collection: { put: "fn", get: "fn", page: "fn" } },
+    shape: { domains: { library: { queries: { books: { searchLocations: "fn" } } }, reading: { commands: { step: "fn" } } }, services: { llm: { ask: "fn", askDetailed: "fn", policy: "fn", getRequest: "fn", listRequests: "fn", cancelRequest: "fn" }, logging: { write: "fn", policy: "fn" }, network: { fetch: "fn", openStream: "fn", readStream: "fn", closeStream: "fn" } }, contributions: { commands: { register: "fn" } }, __collection: { put: "fn", get: "fn", page: "fn" } },
   });
   return { worker, messages, next };
 }
@@ -80,6 +80,18 @@ test("Worker detailed inference carries a plain output cap and receives the meta
   expect(data(call.args!)).toEqual([{ prompt: "probe", maxOutputTokens: 128 }]);
   s.worker.postMessage({ t: "result", id: call.id, ok: true, value: { value: "ok", attempts: [{ usage: null, estimatedCostUsd: null }] } });
   expect(resultData(await s.next(message => message.t === "result" && message.id === 900))).toMatchObject({ ok: true, value: { toast: "ok:1" } });
+});
+
+test("Worker cancelled inference can independently retrieve its named request receipt", async () => {
+  const s = await command("receipt", "llm-probe.ts");
+  const call = await s.next(message => message.method === "services.llm.ask");
+  expect(data(call.args!)).toEqual([{ prompt: "probe", requestId: "probe-request" }]);
+  expect(await s.next(message => message.t === "cancel")).toMatchObject({ id: call.id });
+  const query = await s.next(message => message.method === "services.llm.getRequest");
+  expect(data(query.args!)).toEqual(["probe-request"]);
+  s.worker.postMessage({ t: "result", id: query.id, ok: true, value: { requestId: "probe-request", status: "cancelled", settled: false } });
+  expect(resultData(await s.next(message => message.t === "result" && message.id === 900)))
+    .toMatchObject({ ok: true, value: { toast: "cancelled:false" } });
 });
 
 test("Worker logging crosses normal and restricted migration contexts with structured receipts", async () => {

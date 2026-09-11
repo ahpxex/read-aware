@@ -13,6 +13,7 @@ import { getAgentRuntime, discardAgentThread } from "../../../ai/agent/agent-run
 import { pluginCommandsAtom } from "../../state/plugin-store";
 import { inspectContributions } from "../../state/contribution-registry";
 import { startPluginWorker } from "../plugin-worker-host";
+import { pluginDocsDelete, pluginDocsGet } from "../plugin-backend";
 
 const bookKey = "capability-memory-probe.book";
 const disposables: PluginDisposable[] = [];
@@ -61,7 +62,7 @@ export async function memoryProbeSnapshot() {
   return { memories: await deps.memory.searchMemories({ scopes: [`book:${bookId()}`] }),
     insights: await deps.conversations.getInsights(`book:${bookId()}`),
     turns: (await deps.conversations.load(`book:${bookId()}`)).length,
-    goal: localKV.getItem(`read-aware-plugin.reading-goals.goal:${bookId()}`) };
+    goal: await pluginDocsGet("reading-goals", "goals", bookId()) };
 }
 export async function memoryProbeTurn() {
   await assertIsolated();
@@ -92,6 +93,7 @@ export async function cleanupMemoryProbe() {
     for (const memory of memories) await commitDomainEvents({ type: "memory.forgotten", payload: { memoryId: memory.id, reason: "user" }, origin: "user" });
     await discardAgentThread("book", id);
     await localKV.removeItemAsync(`read-aware-plugin.reading-goals.goal:${id}`);
+    await pluginDocsDelete("reading-goals", "goals", id);
     if (book) await library.commands.books.remove(id);
     await localKV.removeItemAsync(bookKey);
   }

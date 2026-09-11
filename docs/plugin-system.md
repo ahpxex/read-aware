@@ -4979,8 +4979,8 @@ book-scoped private durable storage, context and memory candidate contributions,
 and exact `ai.preferences.buildMemory` access. Context follows the request's book,
 not whichever book is currently open; memory suggestion is opt-in. Clear removes
 the private goal, not already promoted memories. Forms capture their target book
-and save goal and host policy independently. No dedicated Agent goal-editing tool
-is registered; no new host domain or plugin-ID branch was needed.
+and save goal and host policy independently. Version 0.4 also registers the goal
+tools described below; no new host domain or plugin-ID branch was needed.
 
 [环境] The real Worker, native chat UI and controlled loopback inference verified
 goal context, candidate promotion, disabled memory with retained chat history,
@@ -4990,6 +4990,46 @@ marketplace install/restart, packaged CSP, remote inference semantics and other
 desktop platforms were not tested for this plugin. Narrow-window body scrolling
 exists; keyboard focus traversal and every off-screen control remain unverified.
 See [structured evidence](./evidence/memory-build-policy-2026-09-09.json).
+
+### Reading Goals Agent Operations
+
+[代码] Reading Goals 0.4 adds `get_reading_goal`, `set_reading_goal` and
+`clear_reading_goal` in book/global scopes. All take an explicit bookId rather than
+recapturing the active reader. Set/clear require AgentTools ^1.2 host approval of
+the exact arguments; a new `agent:tools` grant is required on upgrade. Set requires
+explicit text (trimmed 1..500 characters), suggestMemory and expectedRevision.
+The latter is null only when get returned an absent record. Clear also compares
+the observed revision, can clear a removed book's private goal, and does not erase
+already accepted memories or cancel an in-flight turn. Set checks book existence;
+book deletion and private-document writes are not a joint transaction.
+
+[代码] Storage ^2.1 `goals` documents use bookId as ID and provenance index with
+`{version:1, goal: {text, suggestMemory} | null}`. UI and Agent write through the
+same applyDocuments conditional operation. UI captures its displayed revision,
+requires confirmation for clear, and presents the save/clear receipt before any
+subsequent read. Conflicts never overwrite a newer goal. Cleared records retain a
+revisioned null tombstone rather than reusing absence. Context and candidates read
+the same document on subsequent requests; suggestMemory is only eligibility for
+the existing host-reviewed pipeline, not direct memory writing or a policy change.
+
+[代码] Schema version 2 uses lazy per-book promotion of v1 `goal:<bookId>` KV,
+because migration storage has no key-enumeration API. The upgrade hook accepts
+0/1 -> 2 without scanning books; other migration requests reject. First access
+waits for KV writes, validates the old value, creates the document only if absent,
+then reads the winning revision. Existing documents/tombstones take precedence.
+Legacy KV cleanup is awaited after a valid document exists; failure rejects and
+the next read retries without importing old text again. Malformed legacy data is
+preserved and reported as an error. This is not a joint KV/document transaction,
+full restore reconciliation, cross-device migration or an all-goal enumeration.
+Even get/context reads can perform this one-time promotion and cleanup.
+
+[环境] Plugin tests cover compiled tool registration, conditional save/clear,
+UI/Agent conflicts, subsequent context and opt-in candidates, orphan clearing,
+legacy promotion races/cleanup retry, failures and eight-language feedback.
+Build/types/manifests and existing host approval tests are separate basic checks.
+Services are controlled; 0.4 native Worker/SQLite/approval UI, actual upgrade and
+model-driven edit -> next-turn context/memory acceptance remain for concentrated
+Tauri E2E. Earlier memory-policy evidence does not prove this new storage protocol.
 
 Plugin access is declared in `settingsAccess` with exact paths or explicit
 `section.*` groups. `discover`, `read`, and `write` are separate grants. An app

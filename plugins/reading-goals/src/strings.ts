@@ -14,4 +14,17 @@ const copies: Record<string, Copy> = {
   es: { title: "Objetivos de lectura", goal: "Objetivo de lectura", remember: "Proponer este objetivo como memoria del libro", save: "Guardar objetivo", clear: "Borrar objetivo", memory: "Crear memoria a largo plazo", apply: "Aplicar", noBook: "No hay ningún libro abierto.", invalid: "Escribe un objetivo de entre 1 y 500 caracteres.", refresh: "Actualizar" },
   ru: { title: "Цели чтения", goal: "Цель чтения", remember: "Предложить цель для памяти книги", save: "Сохранить цель", clear: "Удалить цель", memory: "Создавать долговременную память", apply: "Применить", noBook: "Книга не открыта.", invalid: "Введите цель длиной от 1 до 500 символов.", refresh: "Обновить" },
 };
-export function copy(locale: string): Copy { return copies[locale] ?? copies[locale.split("-")[0]!] ?? en; }
+const feedbackEn = { saved: "Goal saved", cleared: "Goal cleared", conflict: "The goal changed. Refresh before trying again.", confirm: "Clear this reading goal", required: "Confirm clearing first." };
+const feedback: Record<string, typeof feedbackEn> = {
+  en: feedbackEn,
+  "zh-Hans": { saved: "目标已保存", cleared: "目标已清除", conflict: "目标已变化，请刷新后再试。", confirm: "清除此阅读目标", required: "请先确认清除。" },
+  "zh-Hant": { saved: "目標已儲存", cleared: "目標已清除", conflict: "目標已變更，請重新整理後再試。", confirm: "清除此閱讀目標", required: "請先確認清除。" },
+  ja: { saved: "目標を保存しました", cleared: "目標を削除しました", conflict: "目標が変更されました。更新してから再試行してください。", confirm: "この読書目標を削除", required: "削除を確認してください。" },
+  de: { saved: "Ziel gespeichert", cleared: "Ziel gelöscht", conflict: "Das Ziel wurde geändert. Bitte zuerst aktualisieren.", confirm: "Dieses Leseziel löschen", required: "Bitte das Löschen bestätigen." },
+  fr: { saved: "Objectif enregistré", cleared: "Objectif effacé", conflict: "L'objectif a changé. Actualisez avant de réessayer.", confirm: "Effacer cet objectif de lecture", required: "Confirmez d'abord la suppression." },
+  es: { saved: "Objetivo guardado", cleared: "Objetivo borrado", conflict: "El objetivo ha cambiado. Actualiza antes de reintentar.", confirm: "Borrar este objetivo de lectura", required: "Confirma primero el borrado." },
+  ru: { saved: "Цель сохранена", cleared: "Цель удалена", conflict: "Цель изменилась. Сначала обновите данные.", confirm: "Удалить эту цель чтения", required: "Сначала подтвердите удаление." },
+};
+export function copy(locale: string): Copy & typeof feedbackEn {
+  return { ...(copies[locale] ?? copies[locale.split("-")[0]!] ?? en), ...(feedback[locale] ?? feedback[locale.split("-")[0]!] ?? feedbackEn) };
+}

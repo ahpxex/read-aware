@@ -1,18 +1,70 @@
 // src/goals.ts
 var key = (bookId) => `goal:${bookId}`;
-function readGoal(ctx, bookId) {
-  const value = ctx.services.storage.get(key(bookId));
-  if (value === null)
-    return null;
-  if (typeof value.text !== "string" || typeof value.suggestMemory !== "boolean")
-    throw new Error("Invalid stored reading goal");
+var invalid = () => {
+  throw Object.assign(Error("Invalid reading goal"), { code: "plugin/invalid-input" });
+};
+function goalBookId(value) {
+  if (typeof value !== "string" || !value.trim() || value.length > 512)
+    return invalid();
   return value;
 }
-function saveGoal(ctx, bookId, goal) {
-  return ctx.services.storage.set(key(bookId), goal);
+function parseGoal(value) {
+  if (!value || typeof value !== "object")
+    return invalid();
+  const goal = value;
+  if (typeof goal.text !== "string" || !goal.text.trim() || goal.text.trim().length > 500 || typeof goal.suggestMemory !== "boolean")
+    return invalid();
+  return { text: goal.text.trim(), suggestMemory: goal.suggestMemory };
 }
-function clearGoal(ctx, bookId) {
-  return ctx.services.storage.remove(key(bookId));
+async function readGoalState(ctx, input) {
+  const bookId = goalBookId(input), storage = ctx.services.storage, collection = storage.collection("goals");
+  let doc = await collection.get(bookId);
+  if (!doc) {
+    await storage.flush();
+    const legacy = storage.get(key(bookId));
+    if (legacy !== null) {
+      const goal2 = parseGoal(legacy);
+      await storage.applyDocuments([{
+        kind: "put",
+        collection: "goals",
+        id: bookId,
+        bookId,
+        data: { version: 1, goal: goal2 },
+        expectedRevision: null
+      }]);
+      doc = await collection.get(bookId);
+      if (!doc)
+        throw Object.assign(Error("Goal promotion disappeared"), { code: "plugin/unavailable" });
+    }
+  }
+  if (!doc)
+    return { bookId, goal: null, revision: null };
+  if (doc.data?.version !== 1)
+    return invalid();
+  const goal = doc.data.goal === null ? null : parseGoal(doc.data.goal);
+  if (storage.get(key(bookId)) !== null)
+    await storage.remove(key(bookId));
+  return { bookId, goal, revision: doc.revision };
+}
+async function readGoal(ctx, bookId) {
+  return (await readGoalState(ctx, bookId)).goal;
+}
+async function writeGoal(ctx, input, goal, expectedRevision) {
+  const bookId = goalBookId(input), value = goal === null ? null : parseGoal(goal);
+  if (expectedRevision !== null && (typeof expectedRevision !== "string" || !expectedRevision.trim() || expectedRevision.length > 512))
+    return invalid();
+  if (value !== null && !await ctx.domains.library.queries.books.get(bookId)) {
+    throw Object.assign(Error("Goal book is no longer available"), { code: "library/book-not-found" });
+  }
+  const receipt = await ctx.services.storage.applyDocuments([{
+    kind: "put",
+    collection: "goals",
+    id: bookId,
+    bookId,
+    data: { version: 1, goal: value },
+    expectedRevision
+  }]);
+  return { status: receipt.status === "conflict" ? "conflict" : value === null ? "cleared" : "saved", bookId };
 }
 
 // src/strings.ts
@@ -38,8 +90,19 @@ var copies = {
   es: { title: "Objetivos de lectura", goal: "Objetivo de lectura", remember: "Proponer este objetivo como memoria del libro", save: "Guardar objetivo", clear: "Borrar objetivo", memory: "Crear memoria a largo plazo", apply: "Aplicar", noBook: "No hay ningún libro abierto.", invalid: "Escribe un objetivo de entre 1 y 500 caracteres.", refresh: "Actualizar" },
   ru: { title: "Цели чтения", goal: "Цель чтения", remember: "Предложить цель для памяти книги", save: "Сохранить цель", clear: "Удалить цель", memory: "Создавать долговременную память", apply: "Применить", noBook: "Книга не открыта.", invalid: "Введите цель длиной от 1 до 500 символов.", refresh: "Обновить" }
 };
+var feedbackEn = { saved: "Goal saved", cleared: "Goal cleared", conflict: "The goal changed. Refresh before trying again.", confirm: "Clear this reading goal", required: "Confirm clearing first." };
+var feedback = {
+  en: feedbackEn,
+  "zh-Hans": { saved: "目标已保存", cleared: "目标已清除", conflict: "目标已变化，请刷新后再试。", confirm: "清除此阅读目标", required: "请先确认清除。" },
+  "zh-Hant": { saved: "目標已儲存", cleared: "目標已清除", conflict: "目標已變更，請重新整理後再試。", confirm: "清除此閱讀目標", required: "請先確認清除。" },
+  ja: { saved: "目標を保存しました", cleared: "目標を削除しました", conflict: "目標が変更されました。更新してから再試行してください。", confirm: "この読書目標を削除", required: "削除を確認してください。" },
+  de: { saved: "Ziel gespeichert", cleared: "Ziel gelöscht", conflict: "Das Ziel wurde geändert. Bitte zuerst aktualisieren.", confirm: "Dieses Leseziel löschen", required: "Bitte das Löschen bestätigen." },
+  fr: { saved: "Objectif enregistré", cleared: "Objectif effacé", conflict: "L'objectif a changé. Actualisez avant de réessayer.", confirm: "Effacer cet objectif de lecture", required: "Confirmez d'abord la suppression." },
+  es: { saved: "Objetivo guardado", cleared: "Objetivo borrado", conflict: "El objetivo ha cambiado. Actualiza antes de reintentar.", confirm: "Borrar este objetivo de lectura", required: "Confirma primero el borrado." },
+  ru: { saved: "Цель сохранена", cleared: "Цель удалена", conflict: "Цель изменилась. Сначала обновите данные.", confirm: "Удалить эту цель чтения", required: "Сначала подтвердите удаление." }
+};
 function copy(locale) {
-  return copies[locale] ?? copies[locale.split("-")[0]] ?? en;
+  return { ...copies[locale] ?? copies[locale.split("-")[0]] ?? en, ...feedback[locale] ?? feedback[locale.split("-")[0]] ?? feedbackEn };
 }
 
 // src/time-strings.ts
@@ -271,6 +334,12 @@ async function readingTimeView(ctx, query = {}) {
 }
 
 // src/views.ts
+function receiptView(ctx, bookId, text) {
+  const t = copy(ctx.locale);
+  return { kind: "detail", title: t.title, content: [{ kind: "text", text }], actions: [
+    { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await goalsView(ctx, bookId), navigation: "replace" }) }
+  ] };
+}
 async function goalsView(ctx, bookId) {
   const t = copy(ctx.locale);
   const target = bookId ?? (await ctx.domains.reading.queries.session()).bookId;
@@ -279,7 +348,7 @@ async function goalsView(ctx, bookId) {
   const book = await ctx.domains.library.queries.books.get(target);
   if (!book)
     return { kind: "blocks", blocks: [{ kind: "text", text: t.noBook }] };
-  const goal = readGoal(ctx, target);
+  const { goal, revision } = await readGoalState(ctx, target);
   const setting = await ctx.domains.settings.queries.read("ai.preferences.buildMemory");
   const refresh = async () => ({ view: await goalsView(ctx, target), navigation: "replace" });
   const goalForm = {
@@ -296,10 +365,8 @@ async function goalsView(ctx, bookId) {
         return { fieldErrors: { goal: t.invalid } };
       if (typeof values.suggestMemory !== "boolean")
         return { fieldErrors: { suggestMemory: t.invalid } };
-      if (!await ctx.domains.library.queries.books.get(target))
-        throw new Error("Goal book is no longer available");
-      await saveGoal(ctx, target, { text, suggestMemory: values.suggestMemory });
-      return refresh();
+      const result = await writeGoal(ctx, target, { text, suggestMemory: values.suggestMemory }, revision);
+      return { view: receiptView(ctx, target, result.status === "saved" ? t.saved : t.conflict), navigation: "replace" };
     }
   };
   const policyForm = {
@@ -320,14 +387,85 @@ async function goalsView(ctx, bookId) {
     { kind: "text", text: "ReadAware" },
     policyForm,
     { kind: "actions", actions: [
-      ...goal ? [{ id: "clear", label: t.clear, icon: "trash", run: async () => {
-        await clearGoal(ctx, target);
-        return refresh();
-      } }] : [],
+      ...goal ? [{ id: "clear", label: t.clear, icon: "trash", run: () => ({ view: {
+        kind: "form",
+        title: book.title,
+        submitLabel: t.clear,
+        fields: [{ kind: "checkbox", id: "confirm", label: t.confirm, value: false }],
+        onSubmit: async (values) => {
+          if (values.confirm !== true)
+            return { fieldErrors: { confirm: t.required } };
+          const result = await writeGoal(ctx, target, null, revision);
+          return { view: receiptView(ctx, target, result.status === "cleared" ? t.cleared : t.conflict), navigation: "replace" };
+        }
+      } }) }] : [],
       { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: refresh },
       { id: "time", label: timeCopy(ctx.locale).title, icon: "clock", run: async () => ({ view: await readingTimeView(ctx, { bookId: target }) }) }
     ] }
   ] };
+}
+
+// src/tools.ts
+var invalid2 = () => {
+  throw Object.assign(Error("Invalid reading goal tool input"), { code: "plugin/invalid-input" });
+};
+function fields(params, allowed) {
+  if (Object.keys(params).some((key2) => !allowed.includes(key2)))
+    invalid2();
+}
+var bookIdSchema = { type: "string", minLength: 1, maxLength: 512 };
+var revisionSchema = { anyOf: [bookIdSchema, { type: "null" }] };
+function revision(value) {
+  if (value === null)
+    return null;
+  if (typeof value !== "string" || !value.trim() || value.length > 512)
+    return invalid2();
+  return value;
+}
+function registerGoalTools(ctx) {
+  if (!ctx.contributions.agentTools)
+    throw Error("Reading Goals requires agent:tools");
+  const t = copy(ctx.locale);
+  ctx.contributions.agentTools.register({
+    name: "get_reading_goal",
+    label: t.title,
+    contexts: ["book", "global"],
+    description: "Read this plugin's saved goal and revision for an exact bookId, independent of the currently open reader. A null goal means no active goal; preserve its returned revision, including null, for subsequent writes. Legacy goals are promoted into versioned private documents on first access. Does not retrieve book text or create user memory.",
+    parameters: { type: "object", properties: { bookId: bookIdSchema }, required: ["bookId"], additionalProperties: false },
+    execute: async (params) => {
+      fields(params, ["bookId"]);
+      return readGoalState(ctx, goalBookId(params.bookId));
+    }
+  });
+  ctx.contributions.agentTools.register({
+    name: "set_reading_goal",
+    label: t.save,
+    contexts: ["book", "global"],
+    approval: "required",
+    description: "Save or replace a book's private reading goal after host approval of the exact text, bookId and suggestMemory flag. First get_reading_goal and pass its expectedRevision (null only for an absent record). Changed records return conflict. Text is 1..500 characters. suggestMemory must be explicit: true only opts this goal into the existing host-reviewed memory-candidate pipeline; it does not directly write memory or enable Build memory. The goal supplies context on subsequent book turns. Never edits the book, reading history, privacy settings or existing memories.",
+    parameters: { type: "object", properties: { bookId: bookIdSchema, text: { type: "string", minLength: 1, maxLength: 500 }, suggestMemory: { type: "boolean" }, expectedRevision: revisionSchema }, required: ["bookId", "text", "suggestMemory", "expectedRevision"], additionalProperties: false },
+    execute: async (params) => {
+      fields(params, ["bookId", "text", "suggestMemory", "expectedRevision"]);
+      const bookId = goalBookId(params.bookId), expectedRevision = revision(params.expectedRevision);
+      const goal = parseGoal({ text: params.text, suggestMemory: params.suggestMemory });
+      await readGoalState(ctx, bookId);
+      return writeGoal(ctx, bookId, goal, expectedRevision);
+    }
+  });
+  ctx.contributions.agentTools.register({
+    name: "clear_reading_goal",
+    label: t.clear,
+    contexts: ["book", "global"],
+    approval: "required",
+    description: "Clear one private reading goal after host approval. First get_reading_goal and pass its exact expectedRevision; conflicts do not erase newer edits. A cleared record retains a versioned tombstone to prevent legacy goal resurrection. Stops future goal context/candidates but does not retract memory already accepted by the host or cancel a running turn. Can clear an orphaned goal after its book has been removed. Does not remove the book or change memory policy.",
+    parameters: { type: "object", properties: { bookId: bookIdSchema, expectedRevision: revisionSchema }, required: ["bookId", "expectedRevision"], additionalProperties: false },
+    execute: async (params) => {
+      fields(params, ["bookId", "expectedRevision"]);
+      const bookId = goalBookId(params.bookId), expectedRevision = revision(params.expectedRevision);
+      await readGoalState(ctx, bookId);
+      return writeGoal(ctx, bookId, null, expectedRevision);
+    }
+  });
 }
 
 // src/index.ts
@@ -342,14 +480,19 @@ var src_default = {
     ctx.contributions.headerActions.register({ id: "reading-time", title: timeCopy(ctx.locale).title, icon: "clock", surface: "shelf", presentation: "popup", view: () => readingTimeView(ctx) });
     ctx.contributions.commands.register({ id: "time", title: timeCopy(ctx.locale).title, icon: "clock", run: async () => ({ view: await readingTimeView(ctx) }) });
     ctx.contributions.commands.register({ id: "insights", title: insightsCopy(ctx.locale).title, icon: "chart-line-up", run: () => ({ view: readingInsightsForm(ctx) }) });
-    agentContextProviders.register({ id: "reading-goal", contexts: ["book"], provide: ({ scope }) => {
-      const goal = scope.kind === "book" ? readGoal(ctx, scope.bookId) : null;
+    registerGoalTools(ctx);
+    agentContextProviders.register({ id: "reading-goal", contexts: ["book"], provide: async ({ scope }) => {
+      const goal = scope.kind === "book" ? await readGoal(ctx, scope.bookId) : null;
       return goal ? [{ title, content: goal.text }] : [];
     } });
-    memoryCandidateProviders.register({ id: "reading-goal", contexts: ["book"], propose: ({ scope }) => {
-      const goal = scope.kind === "book" ? readGoal(ctx, scope.bookId) : null;
+    memoryCandidateProviders.register({ id: "reading-goal", contexts: ["book"], propose: async ({ scope }) => {
+      const goal = scope.kind === "book" ? await readGoal(ctx, scope.bookId) : null;
       return goal?.suggestMemory ? [{ scope: "book", kind: "preference", content: goal.text }] : [];
     } });
+  },
+  migrate(_ctx, migration) {
+    if (migration.direction !== "upgrade" || migration.fromVersion > 1 || migration.toVersion !== 2)
+      throw Error("Unsupported Reading Goals schema migration");
   }
 };
 export {

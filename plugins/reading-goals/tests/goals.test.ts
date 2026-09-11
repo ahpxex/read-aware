@@ -1,36 +1,8 @@
 import { expect, test } from "bun:test";
-import type { PluginAgentContextProvider, PluginContext, PluginFormView, PluginMemoryCandidateProvider } from "@read-aware/plugin-types";
-import plugin from "../src/index";
+import type { PluginContext, PluginFormView } from "@read-aware/plugin-types";
 import { goalsView } from "../src/views";
-
-function fixture() {
-  const saved = new Map<string, unknown>();
-  const state = { bookId: "book-1" as string | null, memory: true, failSave: false, failSettings: false };
-  let context!: PluginAgentContextProvider, candidates!: PluginMemoryCandidateProvider;
-  const ctx = {
-    locale: "en",
-    domains: {
-      reading: { queries: { session: async () => ({ bookId: state.bookId }) } },
-      library: { queries: { books: { get: async (id: string) => ({ id, title: id }) } } },
-      settings: { queries: { read: async () => ({ value: state.memory }) }, commands: { update: async (changes: { path: string; value: boolean }[]) => {
-        expect(changes[0]?.path).toBe("ai.preferences.buildMemory");
-        if (state.failSettings) throw new Error("settings failed"); state.memory = changes[0]!.value;
-      } } },
-    },
-    services: { storage: {
-      get: (key: string) => saved.get(key) ?? null,
-      set: async (key: string, value: unknown) => { if (state.failSave) throw new Error("storage failed"); saved.set(key, value); },
-      remove: async (key: string) => { saved.delete(key); },
-    } },
-    contributions: {
-      headerActions: { register() {} }, commands: { register() {} },
-      agentContextProviders: { register(value: PluginAgentContextProvider) { context = value; } },
-      memoryCandidateProviders: { register(value: PluginMemoryCandidateProvider) { candidates = value; } },
-    },
-  } as unknown as PluginContext;
-  plugin.activate(ctx);
-  return { ctx, state, saved, context, candidates };
-}
+import { readGoal } from "../src/goals";
+import { fixture } from "./fixture";
 
 async function forms(ctx: PluginContext): Promise<PluginFormView[]> {
   const view = await goalsView(ctx);
@@ -39,17 +11,17 @@ async function forms(ctx: PluginContext): Promise<PluginFormView[]> {
 }
 
 test("goal forms validate, await storage, and retain the displayed book when reading moves", async () => {
-  const { ctx, state, saved } = fixture();
+  const { ctx, state, documents } = fixture();
   const [form] = await forms(ctx);
   for (const goal of [" ", "x".repeat(501)]) expect(await form!.onSubmit({ goal, suggestMemory: false })).toHaveProperty("fieldErrors.goal");
-  expect(saved.size).toBe(0);
+  expect(documents.size).toBe(0);
   state.bookId = "book-2";
   await form!.onSubmit({ goal: "  Understand the argument  ", suggestMemory: true });
-  expect(saved.get("goal:book-1")).toEqual({ text: "Understand the argument", suggestMemory: true });
-  expect(saved.has("goal:book-2")).toBe(false);
+  expect(await readGoal(ctx, "book-1")).toEqual({ text: "Understand the argument", suggestMemory: true });
+  expect(documents.has("book-2")).toBe(false);
   state.failSave = true;
   await expect(form!.onSubmit({ goal: "replacement", suggestMemory: false })).rejects.toThrow("storage failed");
-  expect(saved.get("goal:book-1")).toHaveProperty("text", "Understand the argument");
+  expect(await readGoal(ctx, "book-1")).toHaveProperty("text", "Understand the argument");
 });
 
 test("context and opt-in candidates use the requested book, never the active reader or another scope", async () => {
@@ -60,7 +32,9 @@ test("context and opt-in candidates use the requested book, never the active rea
   state.bookId = "book-2";
   expect(await context.provide(input)).toEqual([{ title: "Reading Goals", content: "Compare evidence" }]);
   expect(await candidates.propose(input)).toEqual([]);
-  await form!.onSubmit({ goal: "Compare evidence", suggestMemory: true });
+  state.bookId = "book-1";
+  await (await forms(ctx))[0]!.onSubmit({ goal: "Compare evidence", suggestMemory: true });
+  state.bookId = "book-2";
   expect(await candidates.propose(input)).toEqual([{ scope: "book", kind: "preference", content: "Compare evidence" }]);
   expect(await context.provide({ ...input, scope: { kind: "book", bookId: "book-2" } })).toEqual([]);
   expect(await candidates.propose({ ...input, scope: { kind: "global", threadId: "x" } })).toEqual([]);
@@ -84,8 +58,12 @@ test("clear removes only this book's goal and no-book is an explicit state", asy
   if (view.kind !== "blocks") throw new Error("Expected blocks");
   const actions = view.blocks.find(block => block.kind === "actions");
   if (actions?.kind !== "actions") throw new Error("Expected actions");
-  await actions.actions.find(action => action.id === "clear")!.run();
-  expect(saved.has("goal:book-1")).toBe(false); expect(saved.has("goal:book-2")).toBe(true);
+  const result = await actions.actions.find(action => action.id === "clear")!.run();
+  if (result?.view?.kind !== "form") throw Error("Expected clear confirmation");
+  expect(await result.view.onSubmit({ confirm: false })).toHaveProperty("fieldErrors.confirm");
+  expect(await readGoal(ctx, "book-1")).not.toBeNull();
+  await result.view.onSubmit({ confirm: true });
+  expect(await readGoal(ctx, "book-1")).toBeNull(); expect(saved.has("goal:book-2")).toBe(true);
   state.bookId = null;
   expect(JSON.stringify(await goalsView(ctx))).toContain("No book is open");
 });

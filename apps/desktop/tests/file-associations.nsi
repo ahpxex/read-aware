@@ -1,7 +1,7 @@
 ; Compile-only test of the production uninstall hook. Never run this installer.
 !include LogicLib.nsh
 !define BUNDLEID "com.readaware.app.capability-e2e"
-!include "../src-tauri/windows/file-associations.nsh"
+!include "${HOOK}"
 Name "ReadAware association hook compile test"
 OutFile "${OUTPUT}"
 RequestExecutionLevel user

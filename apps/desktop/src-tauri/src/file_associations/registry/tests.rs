@@ -316,6 +316,8 @@ fn windows_installer_does_not_create_a_competing_registration_and_uninstall_cove
         assert!(paths.iter().any(|line| line.ends_with(&format!("\"{ext}\""))));
     }
     assert!(hook.contains("ReadAwareOwner"));
+    assert_eq!(hook.matches("!insertmacro READ_AWARE_ABORT_UNINSTALL").count(), 3);
+    assert!(hook.contains("!macro READ_AWARE_ABORT_UNINSTALL\n  Pop $2\n  Pop $1\n  Pop $R0\n  Abort\n!macroend"));
     assert!(!hook.contains("UserChoice"));
     assert!(!hook.contains("HKLM"));
 }

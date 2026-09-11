@@ -1,5 +1,12 @@
 ; Runtime owns per-user handlers. The installer must not select file defaults.
 ; BUNDLEID is supplied by Tauri, including isolated development/test identities.
+!macro READ_AWARE_ABORT_UNINSTALL
+  Pop $2
+  Pop $1
+  Pop $R0
+  Abort
+!macroend
+
 !macro READ_AWARE_REMOVE_OPEN_WITH EXT
   System::Call 'advapi32::RegOpenKeyExW(p 0x80000001, w "Software\Classes\.${EXT}\OpenWithProgids", i 0, i 2, *p .r1) i .r2'
   ${If} $2 == 0
@@ -9,7 +16,7 @@
   ${If} $2 != 0
   ${AndIf} $2 != 2
     MessageBox MB_OK|MB_ICONSTOP "Could not remove ReadAware file associations (Windows error $2). No application files have been removed."
-    Abort
+    !insertmacro READ_AWARE_ABORT_UNINSTALL
   ${EndIf}
 !macroend
 
@@ -22,7 +29,7 @@
     System::Call 'advapi32::RegCloseKey(p r1)'
   ${ElseIf} $2 != 2
     MessageBox MB_OK|MB_ICONSTOP "Could not inspect ReadAware's file handler (Windows error $2). No application files have been removed."
-    Abort
+    !insertmacro READ_AWARE_ABORT_UNINSTALL
   ${EndIf}
   ReadRegStr $R0 HKCU "Software\Classes\${BUNDLEID}.Book" "ReadAwareOwner"
   ${If} $R0 == "${BUNDLEID}"
@@ -44,7 +51,7 @@
     DeleteRegKey HKCU "Software\Classes\${BUNDLEID}.Book"
     ${If} ${Errors}
       MessageBox MB_OK|MB_ICONSTOP "Could not remove ReadAware's file handler. No application files have been removed."
-      Abort
+      !insertmacro READ_AWARE_ABORT_UNINSTALL
     ${EndIf}
     System::Call "shell32::SHChangeNotify(i,i,p,p) (0x08000000, 0, 0, 0)"
   ${EndIf}

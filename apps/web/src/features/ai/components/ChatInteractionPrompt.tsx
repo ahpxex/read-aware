@@ -17,15 +17,20 @@ const CUSTOM_CHOICE = "__read_aware_custom_answer__";
 const permissionKeys: Record<
   ChatPermissionAction,
   {
-    question: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource" | "mergeBooks" | "pluginTool" | "downloadResource" | "updateProfile"}.question`;
-    description: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource" | "mergeBooks" | "pluginTool" | "downloadResource" | "updateProfile"}.description`;
-    approve: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource" | "mergeBooks" | "pluginTool" | "downloadResource" | "updateProfile"}.approve`;
+    question: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource" | "mergeBooks" | "pluginTool" | "downloadResource" | "updateProfile" | "manageEntity"}.question`;
+    description: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource" | "mergeBooks" | "pluginTool" | "downloadResource" | "updateProfile" | "manageEntity"}.description`;
+    approve: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource" | "mergeBooks" | "pluginTool" | "downloadResource" | "updateProfile" | "manageEntity"}.approve`;
   }
 > = {
   "download-resource": {
     question: "chat.interaction.permission.downloadResource.question",
     description: "chat.interaction.permission.downloadResource.description",
     approve: "chat.interaction.permission.downloadResource.approve",
+  },
+  "manage-entity": {
+    question: "chat.interaction.permission.manageEntity.question",
+    description: "chat.interaction.permission.manageEntity.description",
+    approve: "chat.interaction.permission.manageEntity.approve",
   },
   "update-profile": {
     question: "chat.interaction.permission.updateProfile.question",

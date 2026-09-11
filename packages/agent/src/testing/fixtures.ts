@@ -13,6 +13,7 @@ import { BookGraphTaskOwner } from "../memory/book-graph-tasks";
 import { createMemoryMaintenanceFixture } from "./memory-maintenance";
 import { AppError, pageSettingOptions } from "@read-aware/core";
 import { createProfileFixture } from "./user-profile";
+import { createEntityRegistryFixture } from "./entity-registry";
 import type {
   BookStats,
   CollectionSummary,
@@ -627,6 +628,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       },
     },
     profile: createProfileFixture(stores.profile),
+    entityRegistry: createEntityRegistryFixture(),
     memory: {
       pageMemories: input => pageMemoryRows(stores.memories, input),
       searchMemories: async (filter) => {

@@ -1651,10 +1651,10 @@ export type PluginDomains = {
   reading?: PluginReadingDomain;
   annotations?: PluginAnnotationsDomain;
   conversations?: PluginConversationsDomain;
-  /** Memory 2.1. Graph generation additionally requires service:llm; handles belong to this activation. */
+  /** Memory 2.2. Graph generation additionally requires service:llm; handles belong to this activation. */
   memory?: { queries: {
     /** Global explicit identities, not book-digest characters. Row-bounded, revision-pinned pages.
-     * Historical field sizes are not bounded. Aborted/retired callers receive no late page. */
+     * Memory 2.2 adds canonicalDefinition from the same snapshot. Historical field sizes are not bounded. Aborted/retired callers receive no late page. */
     entities(query?: import("@read-aware/core").EntityQuery, options?: PluginCallOptions): Promise<import("@read-aware/core").EntityPage>;
     /** The event-backed summary projection; read grant, bounded revision-pinned pages. */
     profile(query?: import("@read-aware/core").UserProfileQuery): Promise<import("@read-aware/core").UserProfilePage>;

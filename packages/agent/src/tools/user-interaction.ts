@@ -16,6 +16,7 @@ export const INTERACTIVE_TOOL_NAMES = [
   "delete_collection",
   "delete_annotation",
   "manage_memory",
+  "manage_entity",
   "classify_book",
   "manage_book_graph",
 ] as const;

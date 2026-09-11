@@ -8,6 +8,7 @@
     "./spike": "./src/spike.ts",
     "./evals": "./src/evals/index.ts",
     "./testing": "./src/testing/fixtures.ts",
+    "./testing/scripted-thread": "./src/testing/scripted-thread.ts",
     "./testing/tool-refresh-probe": "./src/testing/tool-refresh-probe.ts"
   },
   "scripts": {

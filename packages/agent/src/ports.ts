@@ -196,7 +196,7 @@ export interface UserInteractionOption {
 }
 
 export type UserPermissionAction =
-  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory" | "classify-book" | "generate-book-graph" | "clear-conversation" | "sync-now" | "manage-schedule" | "access-book-file" | "import-resource" | "merge-books" | "plugin-tool" | "download-resource" | "update-profile";
+  "delete-book" | "delete-books" | "delete-collection" | "delete-annotation" | "manage-memory" | "classify-book" | "generate-book-graph" | "clear-conversation" | "sync-now" | "manage-schedule" | "access-book-file" | "import-resource" | "merge-books" | "plugin-tool" | "download-resource" | "update-profile" | "manage-entity";
 
 type UserInteractionBase = {
   /** Globally unique for the lifetime of the tool call. */
@@ -439,6 +439,10 @@ export interface RuntimeDeps {
   memoryManagement: {
     inspect(id: string, signal?: AbortSignal): Promise<import("@read-aware/core").MemorySnapshot | null>;
     mutate(input: import("@read-aware/core").MemoryMutation, signal?: AbortSignal): Promise<import("@read-aware/core").MemoryMutationReceipt>;
+  };
+  entityRegistry: {
+    query(input?: import("@read-aware/core").EntityQuery, signal?: AbortSignal): Promise<import("@read-aware/core").EntityPage>;
+    decide(input: import("@read-aware/core").EntityDecision, signal?: AbortSignal): Promise<import("@read-aware/core").EntityDecisionReceipt>;
   };
   hostCommands: {
     list(signal?: AbortSignal): Promise<import("@read-aware/core").HostCommandSnapshot>;

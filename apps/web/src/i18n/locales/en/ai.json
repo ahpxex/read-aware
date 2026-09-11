@@ -76,6 +76,11 @@
           "description": "This permanently removes the imported source file and its local reading data. This cannot be undone.",
           "approve": "Delete book"
         },
+        "manageEntity": {
+          "question": "Change this identity?",
+          "description": "Apply the exact entity decision below. Resolve edits the named original member; merge keeps the displayed canonical identity. Original definitions and aliases remain, and merges cannot be split here. These global changes may sync to your other devices. Approve only identities you recognize.\n\n{{subject}}",
+          "approve": "Apply entity change"
+        },
         "updateProfile": {
           "question": "Replace your profile?",
           "description": "Replace your profile summary with the text below. Empty text clears the summary. This affects future conversations and, when sync is enabled, your other devices. It does not remove memories, transcripts or backups.\n\n{{subject}}",

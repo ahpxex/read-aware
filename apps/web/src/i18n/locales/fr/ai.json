@@ -76,6 +76,11 @@
           "description": "Le fichier source importé et ses données de lecture locales seront définitivement supprimés. Cette action est irréversible.",
           "approve": "Supprimer le livre"
         },
+        "manageEntity": {
+          "question": "Modifier cette identité ?",
+          "description": "Appliquer la décision exacte ci-dessous. Résoudre modifie le membre original indiqué ; fusionner conserve l’identité canonique affichée. Les définitions et alias d’origine sont conservés ; les fusions ne peuvent pas être séparées ici. Ces changements globaux peuvent être synchronisés avec vos autres appareils. N’approuvez que les identités que vous reconnaissez.\n\n{{subject}}",
+          "approve": "Appliquer la modification"
+        },
         "updateProfile": {
           "question": "Remplacer votre profil ?",
           "description": "Remplacez le résumé du profil par le texte ci-dessous. Un texte vide efface le résumé. Cela affecte les prochaines conversations et, si la synchronisation est activée, vos autres appareils, sans supprimer les souvenirs, les historiques ni les sauvegardes.\n\n{{subject}}",

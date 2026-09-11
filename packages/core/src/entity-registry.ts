@@ -8,7 +8,7 @@ export type EntityQuery = EntityPaging & (
   | { kind: "identities"; search?: string }
   | { kind: "members" | "aliases"; entityId: string }
 );
-type EntityPageBase = { canonicalId: string | null; offset: number; nextOffset: number | null; total: number; revision: string };
+type EntityPageBase = { canonicalId: string | null; canonicalDefinition: EntityDefinition | null; offset: number; nextOffset: number | null; total: number; revision: string };
 export type EntityPage = EntityPageBase & (
   | { kind: "identities" | "members"; items: EntityIdentity[] }
   | { kind: "aliases"; items: EntityAlias[] }

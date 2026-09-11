@@ -76,6 +76,11 @@
           "description": "Esto elimina permanentemente el archivo importado y sus datos de lectura locales. No se puede deshacer.",
           "approve": "Eliminar libro"
         },
+        "manageEntity": {
+          "question": "¿Cambiar esta identidad?",
+          "description": "Aplicar la decisión exacta que se muestra abajo. Resolver modifica el miembro original indicado; fusionar conserva la identidad canónica mostrada. Las definiciones y los alias originales se conservan; aquí no se puede deshacer una fusión. Estos cambios globales pueden sincronizarse con otros dispositivos. Aprueba solo las identidades que reconozcas.\n\n{{subject}}",
+          "approve": "Aplicar cambio"
+        },
         "updateProfile": {
           "question": "¿Reemplazar tu perfil?",
           "description": "Reemplaza el resumen del perfil con el texto siguiente. Un texto vacío borra el resumen. Esto afecta a futuras conversaciones y, si la sincronización está activada, a tus otros dispositivos. No elimina recuerdos, historiales ni copias de seguridad.\n\n{{subject}}",

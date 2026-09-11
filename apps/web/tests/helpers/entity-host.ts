@@ -13,7 +13,7 @@ export function deferred() {
 export function entityHost() {
   const calls: { command: string; args: unknown }[] = [], broadcasts: DomainEventDraft[] = [], minted: DomainEventDraft[] = [];
   const controls = {
-    page: { kind: "identities", canonicalId: null, items: [], offset: 0, nextOffset: null, total: 0, revision: entityRevision } as EntityPage,
+    page: { kind: "identities", canonicalId: null, canonicalDefinition: null, items: [], offset: 0, nextOffset: null, total: 0, revision: entityRevision } as EntityPage,
     receipt: { entityId: "one", canonicalId: "one", changed: true, revision: `entities1:${"b".repeat(64)}` } as EntityDecisionReceipt,
     beforeMint: async () => {}, beforeRead: async () => {}, beforeCommit: async () => {},
   };

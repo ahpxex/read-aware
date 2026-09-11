@@ -30,6 +30,7 @@ pub enum EntityItem {
 pub struct EntityPage {
     pub kind: String,
     pub canonical_id: Option<String>,
+    pub canonical_definition: Option<registry::EntityDefinition>,
     pub items: Vec<EntityItem>,
     pub offset: i64,
     pub next_offset: Option<i64>,
@@ -200,10 +201,16 @@ pub(crate) fn entity_query_inner(
         rows.collect::<Result<Vec<_>, _>>()?
     };
     let end = query.offset + items.len() as i64;
+    let canonical_definition = canonical_id
+        .as_deref()
+        .map(|id| registry::definition(&tx, id))
+        .transpose()?
+        .flatten();
     tx.commit()?;
     Ok(EntityPage {
         kind: query.kind.into(),
         canonical_id,
+        canonical_definition,
         items,
         offset: query.offset,
         next_offset: (end < total).then_some(end),

@@ -76,6 +76,11 @@
           "description": "Dadurch werden die importierte Quelldatei und die lokalen Lesedaten dauerhaft entfernt. Dies kann nicht rückgängig gemacht werden.",
           "approve": "Buch löschen"
         },
+        "manageEntity": {
+          "question": "Diese Identität ändern?",
+          "description": "Die unten gezeigte Änderung anwenden. Auflösen bearbeitet das genannte ursprüngliche Mitglied; Zusammenführen behält die angezeigte kanonische Identität. Ursprüngliche Definitionen und Aliasse bleiben erhalten. Zusammenführungen lassen sich hier nicht aufteilen. Diese globalen Änderungen können mit anderen Geräten synchronisiert werden. Nur bekannte Identitäten bestätigen.\n\n{{subject}}",
+          "approve": "Identität ändern"
+        },
         "updateProfile": {
           "question": "Profil ersetzen?",
           "description": "Die Profilzusammenfassung durch den folgenden Text ersetzen. Leerer Text löscht die Zusammenfassung. Dies gilt für künftige Gespräche und bei aktivierter Synchronisierung auch für andere Geräte. Erinnerungen, Gesprächsverläufe und Backups bleiben erhalten.\n\n{{subject}}",

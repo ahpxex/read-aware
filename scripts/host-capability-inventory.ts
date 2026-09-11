@@ -67,6 +67,7 @@ const agentMap = pairs([
   ["apply_annotation_changes", "ANN04 ANN05 ANN06 ANN08"],
   ["delete_annotation", "ANN04 ANN05 ANN06"], ["search_memory", "MEM01"], ["remember", "MEM02"],
   ["manage_memory", "MEM01 MEM04 MEM05"],
+  ["query_entities manage_entity", "MEM08"],
   ["manage_book_graph", "MEM10"],
   ["search_conversation get_recent_turns", "AI01"], ["get_conversation_insights", "MEM12"],
   ["get_toc", "TXT01"], ["read_chapter", "TXT03"], ["search_book_text", "TXT06"],

@@ -128,6 +128,16 @@ fn members_keep_original_definitions_and_alias_pages_keep_ownership() {
     let members = page(&mut conn, json!({"kind":"members","entityId":"a"}));
     assert_eq!(members["canonicalId"], "b");
     assert_eq!(
+        members["canonicalDefinition"],
+        json!({"kind":"person","canonicalName":"Keeper"})
+    );
+    let first = page(
+        &mut conn,
+        json!({"kind":"members","entityId":"a","limit":1}),
+    );
+    assert_eq!(first["items"][0]["id"], "a");
+    assert_eq!(first["canonicalDefinition"], members["canonicalDefinition"]);
+    assert_eq!(
         members["items"],
         json!([
             {"id":"a","definition":{"kind":"person","canonicalName":"Late member name"}},
@@ -139,6 +149,10 @@ fn members_keep_original_definitions_and_alias_pages_keep_ownership() {
         json!({"kind":"aliases","entityId":"a","limit":2}),
     );
     assert_eq!(aliases["total"], 5);
+    assert_eq!(
+        aliases["canonicalDefinition"],
+        members["canonicalDefinition"]
+    );
     assert_eq!(aliases["nextOffset"], 2);
     let rest = page(
         &mut conn,
@@ -162,6 +176,7 @@ fn pending_roots_are_explicit_but_unknown_queries_never_invent_identities() {
         json!([{"id":"pending","definition":null}])
     );
     let members = page(&mut conn, json!({"kind":"members","entityId":"member"}));
+    assert!(members["canonicalDefinition"].is_null());
     assert_eq!(
         members["items"],
         json!([{"id":"member","definition":null},{"id":"pending","definition":null}])
@@ -169,6 +184,7 @@ fn pending_roots_are_explicit_but_unknown_queries_never_invent_identities() {
     for kind in ["members", "aliases"] {
         let unknown = page(&mut conn, json!({"kind":kind,"entityId":"unknown"}));
         assert!(unknown["canonicalId"].is_null());
+        assert!(unknown["canonicalDefinition"].is_null());
         assert_eq!(unknown["items"], json!([]));
         assert_eq!(unknown["total"], 0);
     }

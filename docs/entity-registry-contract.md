@@ -2,10 +2,11 @@
 
 MEM08 needs consumers of the identity projection, not merely event names.
 Native entity_query/entity_commit, core query/decision types and the shared host
-service now implement the foundation below. Memory 2.1 exposes plugin entity
+service now implement the foundation below. Memory 2.2 exposes plugin entity
 queries and conditional decisions through the existing memory grants. Agent
-tools/approval and consolidation remain to be connected in stage one. This
-document is not evidence that those consumers or desktop rounds are done.
+query/decision tools now use that host service and explicit chat approval.
+Consolidation remains to be connected in stage one. This document is not
+evidence that desktop rounds are done.
 
 ## Reads
 
@@ -36,6 +37,19 @@ stale projections reject reads and writes until replay completes.
 
 ## Decisions
 
+Agent approval binding: member/alias pages also return canonicalDefinition from
+the same native read transaction, null for unknown/pending roots and identity
+lists. This avoids scanning all member pages merely to name the keeper in an
+approval prompt. Memory 2.2 advertises this additional result contract. The
+Agent's two tools query_entities/manage_entity share one explicit entity port;
+manage_entity freezes the full candidate, pins both merge-class inspections to
+its revision, then shows candidate plus current canonical names/IDs and member
+counts in host confirmation. Merge rejects unknown/pending classes before
+asking. Resolve may define a new original member; resolving an already-merged
+member never claims to rename its keeper. Native CAS arbitrates changes after
+approval, with no retry or implicit approval. This binding is independent of
+automatic memory-building policy and does not import book digest characters.
+
 Resolve updates the specified original member definition and adds aliases;
 it does not silently edit the keeper when supplied a merged member ID. A new
 ID can be defined after reading the current registry version. Merge requires
@@ -56,8 +70,8 @@ The plugin bindings stay within memory: queries.entities requires memory:read
 activation. Both accept per-call cancellation; the Worker strips local signals
 and injects a host-owned signal. Entity reads use the existing shared 32-read
 capacity and retain source ownership until IPC settles, even after cancellation.
-Agent decisions must show the exact proposed identity change and require host
-approval (not implemented yet); book-local digest
+Agent decisions show the exact proposed identity change and require host
+approval; book-local digest
 characters are not automatically imported or matched by spelling. These are
 global, explicitly resolved identities, not a way around book spoiler scopes.
 Cancellation before dispatch prevents the candidate event; dispatched native
@@ -72,10 +86,10 @@ conflicts and no-ops do not emit fake success events.
 
 ## Closure
 
-Native queries/mutations, core validation, the shared host service, plugin grants
-and targeted lifecycle/Worker transport tests have landed. Agent tools/ports and
-host approval must still land before this chain counts as dual-actor wired.
-Entity consolidation remains a separate producer gap,
+Native queries/mutations, core validation, the shared host service, plugin grants,
+Agent tools/ports and host approval are wired, with targeted lifecycle/Worker
+transport and in-process AgentThread/chat tests. They do not prove desktop E2E.
+Profile/entity consolidation remains a separate producer gap,
 not something manual resolve/merge claims to implement. Stage two adds actual
 composition workflows; stage three proves real Worker/Tauri/merge/bootstrap,
 failure/revocation and packaged behavior. Neither is replaced by unit tests.

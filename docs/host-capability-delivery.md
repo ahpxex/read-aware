@@ -2,6 +2,20 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：第一段 context bundle 固定版本归档读取
+
+[进度/设计] 上轮c5f55dcd第四个书内recipe已推送且landing CI通过，是有效进展。本组继续正式导出所需的版本历史/读取链，先明确精确selector、分页一致性及旧版本披露边界，再实现原生与宿主适配。归档存在不等于当前有权读取；不提前开放一个只有版本ID就能绕过scope/隐私/剧透的Actor入口，不开展第二段组合插件或第三段桌面验收。
+
+[实现] context_bundle_history只查一个recipe+scope的版本/发布时间元数据，按时间及version降序，默认20/最多100；cbhist1用JSON分帧流式hash完整有序元数据集，内存只保留请求页，不装载所有artifact正文。offset续页必须提供同一revision，增删/重排变化拒绝而非混页；其他scope发布不影响身份，同内容重复发布不增加历史。context_bundle_read强制同一selector+精确cb1，跨scope/recipe或缺失均null；对存在结果复核正文canonical hash、索引列scope/recipe和每条rank/source kind/id/revision。损坏、真实读失败及stale投影拒绝，不变成空历史或空正文。只用既有v35索引，无新projection writer/缓存/schema迁移，不读取/迁移源owner或要求原书仍存在。
+
+[宿主] 独立内部archive适配器复制调用参数、规范化page及artifact返回，核验selector/version，不接受latest或裸版本、不自动重试；预取消不派发，读后取消不交付迟到正文/元数据。它尚不属于Agent/插件公共面，查询revision不是授权票据。历史body不会被静默改写后继续冒用原版本；后续公开读取/资源生命周期必须复核当前权限与可证明的历史来源边界，无法建立当前fence的历史正文不能猜测放行。
+
+[验证] 62项定向TS测试/432断言通过，含四个生产者回归、共享history golden/规范化、全部recipe/scope、坏返回/跨scope/取消。storage原生209项通过，既有百万事件压力1项默认忽略；新增6项覆盖105版本/时间并列/17项与100项分页、续页变化/其他scope隔离/重复发布、完整内容和来源索引校验、坏输入/失败/stale、无live sources归档、重放/checkpoint/wipe、第二连接及重开。初次原生编译的MutexGuard临时借用已按既有显式conn模式修正；测试夹具的重复HLC counter、sync_profile必填时间及TS字面量宽化断言已修正，定向和完整storage测试复跑通过。core及Web（Foliate、迁出桌面脚本）类型通过。未启动桌面/浏览器、完整构建或正式插件，保留既有Rust警告与用户表单工作。
+
+[剩余] MEM13仍部分、双端未接：已有四个内部producer及归档读链；还需完整的公共recipe授权、旧版本披露/文本隐私/撤权、封口ResourceRef及后续使用授权、Agent与原生用户入口和持久结果边界。源矩阵/统一模型/设计/数据模型同步；HTML仍每日集中，本组独立提交并push，不把内部查询和定向测试当公开导出完成或真实E2E。
+
+[燃尽] 剩余部分/未接行数81；未覆盖行数240；未验收插件数15（包含9个组合桌面插件）。
+
 ## 2026-09-11：第一段 context bundle 书内记忆真实来源
 
 [进度/设计] 上轮9e9affb8阅读意图/真实私有来源已推送且landing CI通过，是有效进展。本组先在context-bundles写清书内recipe的来源、章节定位与读集保护，再接第四个内部生产者；不提前开展第二段组合插件或第三段桌面验收。

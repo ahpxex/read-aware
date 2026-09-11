@@ -252,6 +252,7 @@ const nativeMap = pairs([
   ["profile_inspect profile_initialize profile_commit", "MEM06 MEM07 MEM08"],
   ["profile_context", "MEM06 MEM08"],
   ["context_bundle_source_revision context_bundle_publish", "MEM13"],
+  ["context_bundle_history context_bundle_read", "MEM13"],
   ["conversation_insights_snapshot", "MEM13"],
   ["book_context_snapshot", "MEM13"],
   ["get_kv", "SYS01 MEM13"],

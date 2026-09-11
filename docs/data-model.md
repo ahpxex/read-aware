@@ -339,6 +339,14 @@ are omitted while a narrative fence applies; finished/expository books are unfen
 blob-registry source-clock triggers; an observed reader-position/source change
 also invalidates a capture before dispatch. Legacy digests retain only their
 original href/index provenance, not a retroactively invented edition hash.
+Internal `context_bundle_history` streams the exact recipe/scope metadata index
+into `cbhist1`, requiring a matching revision on continuation; each page contains
+only version/publication-time metadata. `context_bundle_read` requires that same
+selector plus an exact version and revalidates content hashing, scope columns and
+ranked source-index rows. It reads retained archives independently of live source
+existence, while stale projections and corrupt reads reject. The host adapter
+validates returned shapes/scope and withholds late cancelled results. These tokens
+do not authorize historical disclosure; public actor policy is still required.
 Authorized queries, resource export and user-facing consumers are not wired yet;
 MEM13 remains partial. See
 [context-bundles](./context-bundles.md) for the contract and closing conditions.

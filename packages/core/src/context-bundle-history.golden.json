@@ -1,0 +1,6 @@
+{
+  "selector": { "kind": "book_memory_context", "scope": { "kind": "book", "id": "book:one" } },
+  "items": [{ "version": "cb1:299553b9edd1eefaa24a39e5c8a1f27bf56a118af24029ec14f40a76348331ee", "publishedAt": "1970-01-01T00:00:01.000Z" }],
+  "offset": 0, "nextOffset": null, "total": 1,
+  "revision": "cbhist1:26d84bff0cbd018f29ff60b0d9b6773cde14dffd422c2580419d7f7ff786a427"
+}

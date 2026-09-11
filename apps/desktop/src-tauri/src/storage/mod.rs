@@ -40,6 +40,8 @@ mod conversation_insights;
 pub use conversation_insights::*;
 mod book_context;
 pub use book_context::*;
+mod context_bundle_history;
+pub use context_bundle_history::*;
 mod entity_registry;
 mod entity_queries;
 pub use entity_queries::*;

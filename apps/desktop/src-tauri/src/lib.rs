@@ -1005,6 +1005,8 @@ pub fn run() {
             storage::context_bundle_publish,
             storage::conversation_insights_snapshot,
             storage::book_context_snapshot,
+            storage::context_bundle_history,
+            storage::context_bundle_read,
             storage::profile_initialize,
             storage::profile_commit,
             storage::profile_restore,

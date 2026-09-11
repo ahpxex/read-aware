@@ -87,26 +87,30 @@ fn allows(recipe: &str, kind: &str) -> bool {
     }
 }
 
+pub(super) fn valid_selector(kind: &str, scope: &Scope) -> bool {
+    let (scope, id) = scope.parts();
+    if id.is_some_and(|id| !text(id, 256, false)) {
+        return false;
+    }
+    match kind {
+        "user_profile_context" => scope == "user",
+        "reading_intent_context" => scope == "user" || scope == "book",
+        "book_memory_context" => scope == "book",
+        "conversation_insights_context" => scope == "book" || scope == "conversation",
+        _ => false,
+    }
+}
+
 pub(super) fn canonical(content: &Content) -> Result<String, CommandError> {
     let (scope, id) = content.scope.parts();
     if content.format != "readaware.context"
         || content.schema_version != 1
         || content.recipe_version != 1
         || !text(&content.source_revision, 256, false)
-        || id.is_some_and(|id| !text(id, 256, false))
+        || !valid_selector(&content.kind, &content.scope)
         || content.items.len() > 512
         || content.omissions.len() > 24
     {
-        return Err(invalid());
-    }
-    let scope_allowed = match content.kind.as_str() {
-        "user_profile_context" => scope == "user",
-        "reading_intent_context" => scope == "user" || scope == "book",
-        "book_memory_context" => scope == "book",
-        "conversation_insights_context" => scope == "book" || scope == "conversation",
-        _ => false,
-    };
-    if !scope_allowed {
         return Err(invalid());
     }
     let mut seen = HashSet::new();

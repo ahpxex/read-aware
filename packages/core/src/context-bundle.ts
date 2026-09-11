@@ -5,6 +5,7 @@ export type ContextBundleKind = typeof CONTEXT_BUNDLE_KINDS[number];
 export const CONTEXT_BUNDLE_ITEM_KINDS = ["curated_profile", "derived_profile", "reading_goal", "memory", "annotation", "chapter_digest", "conversation_insight", "entity"] as const;
 export type ContextBundleItemKind = typeof CONTEXT_BUNDLE_ITEM_KINDS[number];
 export type ContextBundleScope = { kind: "user" } | { kind: "book" | "conversation"; id: string };
+export type ContextBundleSelector = { kind: ContextBundleKind; scope: ContextBundleScope };
 export type ContextBundleItem = { kind: ContextBundleItemKind; id: string; revision: string; label: string; text: string };
 export type ContextBundleOmission = { kind: ContextBundleItemKind; reason: "privacy" | "spoiler" | "unavailable"; count: number };
 export type ContextBundleContent = {
@@ -42,11 +43,10 @@ const RECIPE_ITEMS: Record<ContextBundleKind, readonly ContextBundleItemKind[]> 
   conversation_insights_context: ["conversation_insight", "memory"],
 };
 
-/** A copied, schema-closed artifact. Source authorization belongs to the producer. */
-export function normalizeContextBundleContent(input: unknown): ContextBundleContent {
-  const p = object(input, ["format", "schemaVersion", "recipeVersion", "kind", "scope", "sourceRevision", "items", "omissions"]);
-  if (p.format !== "readaware.context" || p.schemaVersion !== 1 || p.recipeVersion !== 1
-    || !CONTEXT_BUNDLE_KINDS.includes(p.kind as ContextBundleKind)) return invalid();
+/** The same recipe/scope rules apply to artifacts and archive selectors. */
+export function contextBundleSelector(input: unknown): ContextBundleSelector {
+  const p = object(input, ["kind", "scope"]);
+  if (!CONTEXT_BUNDLE_KINDS.includes(p.kind as ContextBundleKind)) return invalid();
   const rawScope = object(p.scope, (p.scope as ContextBundleScope)?.kind === "user" ? ["kind"] : ["kind", "id"]);
   let scope: ContextBundleScope;
   if (rawScope.kind === "user") scope = { kind: "user" };
@@ -57,6 +57,14 @@ export function normalizeContextBundleContent(input: unknown): ContextBundleCont
     || kind === "book_memory_context" && scope.kind !== "book"
     || kind === "reading_intent_context" && scope.kind === "conversation"
     || kind === "conversation_insights_context" && scope.kind === "user") return invalid();
+  return { kind, scope };
+}
+
+/** A copied, schema-closed artifact. Source authorization belongs to the producer. */
+export function normalizeContextBundleContent(input: unknown): ContextBundleContent {
+  const p = object(input, ["format", "schemaVersion", "recipeVersion", "kind", "scope", "sourceRevision", "items", "omissions"]);
+  if (p.format !== "readaware.context" || p.schemaVersion !== 1 || p.recipeVersion !== 1) return invalid();
+  const { kind, scope } = contextBundleSelector({ kind: p.kind, scope: p.scope });
   if (!Array.isArray(p.items) || p.items.length > 512 || !Array.isArray(p.omissions) || p.omissions.length > 24) return invalid();
   const identities = new Set<string>(), omitted = new Set<string>();
   const items = p.items.map(value => {

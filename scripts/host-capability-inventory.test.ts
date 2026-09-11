@@ -68,7 +68,7 @@ test("bundle publication is an event projection foundation, not a public export 
   expect(entries).toHaveLength(1);
   expect(entries[0]).toMatchObject({ family: "Canonical event", rows: ["MEM13"] });
   const native = collectInventory().filter(item => item.name.startsWith("storage::context_bundle_"));
-  expect(native.map(item => item.name).sort()).toEqual(["storage::context_bundle_publish", "storage::context_bundle_source_revision"]);
+  expect(native.map(item => item.name).sort()).toEqual(["storage::context_bundle_history", "storage::context_bundle_publish", "storage::context_bundle_read", "storage::context_bundle_source_revision"]);
   expect(native.every(item => item.family === "Native command" && item.rows.length === 1 && item.rows[0] === "MEM13")).toBe(true);
   expect(collectInventory().find(item => item.name === "storage::conversation_insights_snapshot"))
     .toMatchObject({ family: "Native command", rows: ["MEM13"] });

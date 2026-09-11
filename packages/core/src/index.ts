@@ -24,6 +24,7 @@ export * from "./context-bundle-profile";
 export * from "./context-bundle-insights";
 export * from "./context-bundle-intent";
 export * from "./context-bundle-book";
+export * from "./context-bundle-history";
 export * from "./reading-emphasis";
 export * from "./host-io";
 export * from "./conversation-control";

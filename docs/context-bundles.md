@@ -76,6 +76,34 @@ export remain required.
 
 ## Actor And Export Boundary
 
+### Pinned History Reads
+
+The implemented internal history queries select exactly one recipe and scope, never a version ID alone or
+an unfiltered all-user index. Pages contain version IDs and publication times,
+not source text. They are newest-first, ordered by publication time and version.
+A `cbhist1` revision binds the complete ordered metadata set and selector;
+continuation requires that revision and rejects changes rather than mixing pages.
+The history index is streamed for the revision; a page does not load every stored
+artifact body. A pinned read must repeat the selector and validate the stored
+artifact hash, scope/recipe columns and ordered source-index rows before delivery.
+Absent is null; stale projections, broken storage and invalid artifacts are errors.
+These reads do not migrate source owners or require the original book to still
+exist: this is a durable archive, not a current-source query. Metadata discovery
+does not load or certify every artifact body; pinned reads perform that integrity
+check. Public authorization must separately determine whether a retained version
+may still be disclosed. The existing v35 index serves these queries; no additional
+projection writer, history cache or schema migration is introduced.
+
+These native reads and their host adapter remain internal until the actor gates
+are wired. A history revision is a consistency token, not a grant. In particular,
+an old bundle can contain text that current privacy, source-provider or reading
+boundaries no longer allow. Artifact immutability does not authorize disclosure:
+public consumers must check current grants before and after asynchronous reads,
+and must not rewrite/redact an old artifact while retaining its original version.
+Where historical provenance cannot establish the current fence, text delivery
+must be withheld rather than inferred from a version ID. File export also needs
+an actor-owned resource whose later use rechecks the applicable policy.
+
 ### Book Memory Sources
 
 The implemented book recipe reads one durable, book-scoped SQLite snapshot: active book
@@ -179,7 +207,8 @@ There will be no plugin-specific duplicate model tools for the same recipes.
 
 The immutable-artifact contract, native event-sourced version history, conditional
 publication and all four internal recipe producers are implemented. MEM13
-remains partial until authorized history/read/export,
+also has scoped native history pagination and integrity-checked pinned reads with
+a cancelling host adapter. MEM13 remains partial until authorized history/read/export,
 Agent tools, native user flow and ResourceRef lifecycle are wired with focused tests.
 Reading Goals provider intent uses its own durable documents and private legacy
 promotion; book spoiler boundaries must also use their real owner. Stored conversation bundles use a narrow

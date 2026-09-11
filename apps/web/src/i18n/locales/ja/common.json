@@ -26,6 +26,7 @@
     "settingsOptionsInvalid": "設定の選択肢の検索が無効です。",
     "settingsOptionsForbidden": "このプラグインには、この設定の選択肢を表示する権限がありません。",
     "settingsOptionsStale": "設定の選択肢が変更されました。もう一度検索してください。",
+    "settingsOptionsUnavailable": "プラグインの設定候補を取得できません。しばらくしてから再試行してください。",
     "settingsFontEnumerationFailed": "インストール済みフォントを取得できませんでした。",
     "pluginNetworkBusy": "このプラグインのネットワークリクエストが多すぎます。完了するまでお待ちください。",
     "pluginNetworkClosed": "このネットワーク応答は終了したか、期限切れか、利用できません。",

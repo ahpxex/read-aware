@@ -1614,7 +1614,17 @@ export type PluginSettingsDomain = {
     observe(query: SettingsQuery, handler: (observation: import("@read-aware/core").SettingsObservation) => unknown): PluginDisposable;
     discover(query?: SettingsQuery): Promise<SettingCatalogEntry[]>;
     /** Settings 1.8: bounded options; same path grants as discover. Includes
-     * installed system families for reading/content fonts without font paths or bytes. */
+     * installed system families for reading/content fonts without font paths or bytes.
+     * Since 1.10, dynamicOptions fields invoke the registered owning provider with
+     * saved non-secret form values, never caller-supplied values. Network-enabled
+     * providers additionally require this caller's service:network permission.
+     * Results are cached for 60 seconds, at most 16 lists / 2000 options per list,
+     * 512 characters per label/value and 1 MiB of label/value JSON. Pages retain
+     * the returned revision; changed settings/provider or expiry require restart.
+     * Four provider loads host-wide, 10-second wait; already-started provider work
+     * is not cancelled by this deadline or caller retirement. No writes/synthesis.
+     * Plugin-owned option queries require the caller's active phase, not activation/migration.
+     * Empty results still allow manual values; provider failures remain failures. */
     options(query: import("@read-aware/core").SettingsOptionsQuery): Promise<import("@read-aware/core").SettingsOptionsPage>;
     read(path: string, target?: SettingsQueryTarget): Promise<SettingReadResult>;
   };

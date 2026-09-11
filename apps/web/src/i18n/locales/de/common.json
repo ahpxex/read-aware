@@ -26,6 +26,7 @@
     "settingsOptionsInvalid": "Diese Abfrage von Einstellungsoptionen ist ungültig.",
     "settingsOptionsForbidden": "Dieses Plugin darf die Optionen dieser Einstellung nicht auflisten.",
     "settingsOptionsStale": "Die Optionen haben sich geändert. Starten Sie die Suche erneut.",
+    "settingsOptionsUnavailable": "Die Einstellungsoptionen des Plugins sind nicht verfügbar. Versuchen Sie es gleich erneut.",
     "settingsFontEnumerationFailed": "Installierte Schriftarten konnten nicht aufgelistet werden.",
     "pluginNetworkBusy": "Dieses Plugin hat zu viele laufende Netzwerkanfragen. Warten Sie, bis eine abgeschlossen ist.",
     "pluginNetworkClosed": "Diese Netzwerkantwort ist geschlossen, abgelaufen oder nicht verfügbar.",

@@ -56,6 +56,8 @@ export interface SettingDescriptor {
   };
   nullable?: boolean;
   options?: SettingOption[];
+  /** Runtime plugin catalog. options() may invoke its registered provider. */
+  dynamicOptions?: boolean;
   supportedTargets?: Array<SettingsTarget["kind"]>;
   /** Read-only metadata for key-chord values. Null writes restore the default. */
   shortcut?: {
@@ -103,7 +105,8 @@ export interface SettingsOptionsQuery {
   search?: string;
   offset?: number;
   limit?: number;
-  /** Required after the first page. Catalog changes require restarting at zero. */
+  /** Required after the first page. Catalog changes require restarting at zero.
+   * Dynamic plugin pages pin a 60-second result snapshot, not the settings revision. */
   revision?: number;
 }
 

@@ -15,10 +15,13 @@ import type {
   SettingsOptionsQuery,
   SettingsOptionsPage,
 } from "@read-aware/core";
-import { AppError, pageSettingOptions, validateSettingsOptionsQuery } from "@read-aware/core";
+import { AppError, validateSettingsOptionsQuery } from "@read-aware/core";
 import { listSystemFonts } from "../../features/settings/lib/system-fonts";
 import { isFontSetting, systemFontOptions } from "./font-options";
 import { queryModelCatalog, refreshModelCatalog } from "./model-catalog";
+import { DynamicOptionsCache } from "./dynamic-options";
+import { pluginOptionSource } from "./plugin-option-source";
+import { onAppEvent } from "../../platform/app-events";
 import { readingResetPaths, resetReadingDraft } from "./reading-reset";
 import { getDefaultStore } from "jotai";
 import { createLogger } from "../../platform/logger";
@@ -58,6 +61,8 @@ import {
 } from "./catalog-runtime";
 
 const log = createLogger("settings-domain");
+const dynamicOptions = new DynamicOptionsCache(error => log.warn("Dynamic setting options failed", error));
+onAppEvent("plugin-storage-changed", ({ pluginId }) => dynamicOptions.invalidate(pluginId));
 const listeners = new Set<(event: SettingsChangedEvent) => void>();
 
 const FULL_ACCESS: SettingsAccessPolicy = {
@@ -215,7 +220,7 @@ export type SettingsDomain = {
     snapshot(query?: SettingsQuery): Promise<SettingsSnapshot>;
     observe(query: SettingsQuery, handler: (observation: SettingsObservation) => unknown): () => void;
     discover(query?: SettingsQuery): Promise<SettingCatalogEntry[]>;
-    options(query: SettingsOptionsQuery): Promise<SettingsOptionsPage>;
+    options(query: SettingsOptionsQuery, signal?: AbortSignal): Promise<SettingsOptionsPage>;
     read(path: string, target?: SettingsQueryTarget): Promise<SettingReadResult>;
   };
   commands: {
@@ -261,7 +266,8 @@ export function createSettingsDomain(
           .filter((setting) => canAccess(policy, "discover", setting.path))
           .map(({ value: _value, shortcut: _shortcut, reading: _reading, ...definition }) => ({ ...definition, writable: definition.writable && canAccess(policy, "write", definition.path) }));
       },
-      options: async query => {
+      options: async (query, signal) => {
+        signal?.throwIfAborted();
         const accepted = validateSettingsOptionsQuery(structuredClone(query));
         if (!canAccess(policy, "discover", accepted.path)) {
           throw new AppError("settings/options-forbidden", "Setting option discovery is not granted");
@@ -269,9 +275,11 @@ export function createSettingsDomain(
         const system = isFontSetting(accepted.path) ? systemFontOptions(await listSystemFonts()) : [];
         await updateTail;
         const snapshot = await afterSettingsWrites(() => settingsSnapshot({ target: accepted.target }));
+        signal?.throwIfAborted();
         const setting = snapshot.settings.find(entry => entry.path === accepted.path);
         if (!setting) throw new AppError("settings/options-invalid", "Setting is unavailable for this target");
-        return pageSettingOptions([...(setting.options ?? []), ...system], snapshot.revision, accepted);
+        if (setting.dynamicOptions) return dynamicOptions.query(accepted, pluginOptionSource(accepted.path, networkAllowed), signal);
+        return dynamicOptions.staticPage([...(setting.options ?? []), ...system], snapshot.revision, accepted);
       },
       read: async (path, target) => {
         const normalizedPath = String(path);

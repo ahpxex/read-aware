@@ -153,6 +153,7 @@ const CODE_COPY: Record<string, CopyEntry> = {
   "settings/options-invalid": { key: "settingsOptionsInvalid", retryable: false },
   "settings/options-forbidden": { key: "settingsOptionsForbidden", retryable: false },
   "settings/options-stale": { key: "settingsOptionsStale", retryable: false },
+  "settings/options-unavailable": { key: "settingsOptionsUnavailable", retryable: true },
   "settings/font-enumeration-failed": { key: "settingsFontEnumerationFailed", retryable: true },
   "settings/shortcut-conflict": { key: "settingsShortcutConflict", retryable: false },
   "reader/playback-failed": { key: "readerPlaybackFailed", retryable: true },

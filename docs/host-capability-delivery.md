@@ -4,6 +4,10 @@
 
 ## 完成条件
 
+2026-09-11 动态设置选项整组已接：settings1.10让Agent既有get_setting_options和插件queries.options调用已声明的settingsOptions提供者，TTS等插件的声音目录不再只供原生表单使用；snapshot/discover标明dynamicOptions，选择仍走update_settings，不新增声音专用模型工具或声源优先级选择器。精确路径发现授权，源插件有network权时调用者另需service:network；提供者仅收到自己的已保存非secret/password字段及默认值，不接受调用者指定目的地。
+
+[验证/边界] 34项定向测试/161断言及Agent/web/plugin-types类型通过，覆盖105项跨页/搜索、共享缓存、过期/替换/凭据失效、取消、忙/超时不提前退槽、授权与激活隔离。选项revision独立于设置快照，避免静态/动态切换混页；16列表、2000项/表、1MiB已解析标签/值JSON、4个提供者调用、10秒等待和60秒快照。超时不能中止已派发源；源自己吞错返回空表仍无法区分失败，通用跨插件权限交集broker没有因此完成。READ17的Agent现有声音配置标为接通而非E2E已验；真实Worker、TTS供应商与桌面组合、HTML视觉集中后置。本轮未启动应用或推送，整体目标继续。
+
 2026-09-11 推理失败回执已接线：llm1.4的ask/askDetailed可附requestId，getRequest/listRequests独立查询本激活元数据，cancelRequest独立取消；失败、取消、超时不再因原RPC结束而丢失后续已知用量。共享AgentRuntime增加宿主onAttempt终局回调，包含结构化失败的尝试与SDK晚结算；不新增模型工具或另建推理执行器。取消状态与settled分开，后者等待原提供者promise，未知用量保持null，不等同免费或服务商账单。
 
 [验证/边界] 53项定向测试/371断言与14项库存模型检查/48断言通过，Agent/web/plugin-types类型通过，含真实Bun Worker取消后独立查询、失败与晚用量、命名空间、重名拒绝和64条逐出。只保留元数据、不保留输入输出，停用清空；Worker本地预取消未派发无条目，旧ask仍返回原值/抛错。累计预算、耐久历史、聊天账本和统一TaskRef仍缺，AI07不冒充整体完成；业务插件/真实提供者/Tauri集中验收后置，本轮未启动应用或HTML视觉复扫，未推送。

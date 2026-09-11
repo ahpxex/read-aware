@@ -265,9 +265,9 @@ export function buildPluginContext(
             lifecycle.signal.throwIfAborted(); return result;
           },
           options: async query => {
-            lifecycle.signal.throwIfAborted();
-            const result = await settingsDomain.queries.options(query);
-            lifecycle.signal.throwIfAborted(); return result;
+            // A plugin-owned list can invoke a provider, unlike static catalog reads.
+            if (typeof query?.path === "string" && query.path.startsWith("plugins.")) lifecycle.assertActive("settings.options");
+            return lifecycle.read("settings.options", signal => settingsDomain.queries.options(query, signal));
           },
           read: async (path, target) => {
             lifecycle.signal.throwIfAborted();

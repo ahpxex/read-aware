@@ -71,6 +71,7 @@ export function settingsSnapshotFromDraft(
           ? { description: definition.description }
           : {}),
         kind: definition.kind,
+        ...(definition.dynamicOptions ? { dynamicOptions: true } : {}),
         value: definition.read(draft, target),
         writable: Boolean(definition.write),
         ...(definition.section === "reading" && definition.supportedTargets?.includes("book") ? {

@@ -130,7 +130,7 @@ export function buildSettingsTools(scope: ThreadScope, deps: RuntimeDeps): Agent
   const getSettingOptions: AgentTool = {
     name: "get_setting_options",
     label: "Find setting options",
-    description: "Search and page through one exact setting's available options without reading its current value. reading.fontFamily and appearance.contentTypography.fontFamily include installed system fonts as well as curated and enabled plugin fonts. Copy the returned value into update_settings; do not invent family names. This lists names, not font files or render readiness, and does not download fonts. Retain the same path/search/target and revision for later pages; restart at offset zero if stale. Installing system fonts requires restarting the app to refresh its session cache.",
+    description: "Search and page through one exact setting's available options without reading its current value. For dynamicOptions plugin fields, invokes the owning plugin's registered catalog (such as TTS voices) using saved settings/credentials; may contact its configured provider, but never synthesizes audio or returns credentials/settings. The list is a 60-second snapshot; empty means the provider offered no suggestions, not that manual values are forbidden. reading.fontFamily and appearance.contentTypography.fontFamily include installed system fonts as well as curated and enabled plugin fonts. Copy the returned value into update_settings; do not invent family names. This lists names, not font files or render readiness, and does not download fonts. Retain the same path/search/target and revision for later pages; restart at offset zero if stale. Installing system fonts requires restarting the app to refresh its session cache.",
     parameters: Type.Object({
       path: Type.String({ minLength: 1, maxLength: 256 }),
       search: Type.Optional(Type.String({ maxLength: 120 })),
@@ -146,7 +146,7 @@ export function buildSettingsTools(scope: ThreadScope, deps: RuntimeDeps): Agent
         throw new AppError("settings/options-invalid", "Choose at most 50 options per page");
       }
       const target = await normalizeTarget(deps, scope, query.target) as AgentSettingsQueryTarget | undefined;
-      const result = await deps.settings.getSettingOptions({ ...query, target, limit: query.limit ?? 20 });
+      const result = await deps.settings.getSettingOptions({ ...query, target, limit: query.limit ?? 20 }, signal);
       signal?.throwIfAborted();
       return textResult(result);
     },

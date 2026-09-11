@@ -369,7 +369,7 @@ export interface SettingsPort {
   refreshModelCatalog(provider: string, signal?: AbortSignal): Promise<import("@read-aware/core").ModelCatalogPage>;
   resetReading(request: import("@read-aware/core").ReadingSettingsReset, signal?: AbortSignal): Promise<AgentSettingsUpdateResult>;
   getSettings(query?: AgentSettingsQuery): Promise<AgentSettingsSnapshot>;
-  getSettingOptions(query: import("@read-aware/core").SettingsOptionsQuery): Promise<import("@read-aware/core").SettingsOptionsPage>;
+  getSettingOptions(query: import("@read-aware/core").SettingsOptionsQuery, signal?: AbortSignal): Promise<import("@read-aware/core").SettingsOptionsPage>;
   updateSettings(
     changes: AgentSettingChange[],
   ): Promise<AgentSettingsUpdateResult>;

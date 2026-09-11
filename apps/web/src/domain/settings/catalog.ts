@@ -96,6 +96,7 @@ export type SettingDefinition = {
   description?: string;
   kind: SettingDescriptor["kind"];
   nullable?: boolean;
+  dynamicOptions?: boolean;
   options?:
     SettingOption[] | ((draft: SettingsDraft) => SettingOption[]);
   supportedTargets?: SettingsTarget["kind"][];
@@ -538,6 +539,7 @@ function pluginFieldDefinition(
         ? { description: "A time of day as HH:MM (24-hour)." }
         : {}),
     kind,
+    ...(dynamicSelect ? { dynamicOptions: true } : {}),
     ...(hasDefault ? {} : { nullable: true }),
     ...(kind === "enum" && "options" in field
       ? {

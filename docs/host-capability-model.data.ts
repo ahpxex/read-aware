@@ -197,7 +197,7 @@ export const units: Unit[] = [
   unit("B1", "Boundary", "future/internal", "明确排除与宿主尚未建成部分", "CON11-12 SYS18 MEM07-08 MEM13 OPS09-11", "",
     "禁止任意 SQL/FS/shell/DOM、宿主秘密、原始事件 append、伪造历史、静默付款/授权；新格式/OCR/任意编辑/实时协作/新平台在宿主能力更新时再纳入。",
     "Agent 和插件都不能用更高权限工具绕过产品策略；宿主内部投影修复不是普通模型行为。",
-    "可以组合已授权读模型产生导出/插件算法，但不能把尚无的产品能力标成漏一条导出 API。MEM13现已有四recipe不可变契约、cb1固定编码版本和v35 context.bundlePublished历史投影；两张派生表纳入重放/漂移/checkpoint/wipe，共享Unicode golden与事务故障测试。尚缺实际来源组装/条件发布、授权查询/历史/ResourceRef导出及原生/Agent消费者，不把投影当成产品已实现。",
+    "可以组合已授权读模型产生导出/插件算法，但不能把尚无的产品能力标成漏一条导出 API。MEM13现已有四recipe不可变契约、cb1固定编码版本和v35 context.bundlePublished历史投影；两张派生表纳入重放/漂移/checkpoint/wipe。v36本地源clock以触发器保护持久读集，immediate条件事务校验来源未改及新事件，内部画像producer用pctx1只组装人工和当前有效派生摘要；取消/回滚/ABA/去重有定向测试。仍缺其他三recipe真实owner快照/生命周期、授权查询/历史/ResourceRef导出及原生/Agent消费者，不把内部生产者当成产品已实现。",
     "本轮明确范围包含画像实体、正式context bundle、完整备份与Reveal的宿主建设/修复；它们不能借未来产品标签退出第一段。移动端遗留no-op不计桌面缺口，仅CON11/12与SYS18维持设计不开放。",
     "需求评审能指出新增的宿主原语才算 host 更新；若只是编号规则、CSV 格式、HTTP 来源或主题内容，则应由已有原语组合。"),
 ];

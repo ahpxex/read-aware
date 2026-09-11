@@ -761,6 +761,7 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
     (33, "profile_entity_projections", include_str!("profile_entities_v33.sql")),
     (34, "identity_consolidation_checkpoint", "CREATE TABLE identity_consolidation_checkpoint (id INTEGER PRIMARY KEY CHECK(id=1), revision TEXT NOT NULL);"),
     (35, "context_bundle_versions", include_str!("context_bundles_v35.sql")),
+    (36, "context_bundle_source_clock", ""),
 ];
 
 /// Rebuild the annotation FTS index from the table. Required after any VACUUM
@@ -779,7 +780,7 @@ pub(crate) fn rebuild_annotations_fts(conn: &Connection) -> Result<(), CommandEr
 /// The schema version a projection checkpoint is stamped with. Restoring one
 /// is only sound when the derived tables' shapes match exactly, so a
 /// checkpoint from a different version is ignored in favour of the log.
-pub(crate) const SCHEMA_VERSION: i64 = 35;
+pub(crate) const SCHEMA_VERSION: i64 = 36;
 
 /// The migration after which `materialize_legacy_covers` must run: the cover
 /// projection columns exist, the inline data-URL column still does.
@@ -807,6 +808,7 @@ pub(crate) fn run_migrations_up_to(conn: &mut Connection, max_version: i64) -> R
         if *version > current && *version <= max_version {
             let tx = conn.transaction()?;
             tx.execute_batch(sql)?;
+            if *version == 36 { super::context_bundle_publication::install_source_clock(&tx)?; }
             if *version == 33 {
                 // Recover formerly ignored facts without rewriting unrelated
                 // legacy projections. An incomplete bootstrap must finish replay.
@@ -1064,7 +1066,8 @@ pub(crate) fn wipe_all_data_inner(conn: &mut Connection, data_dir: &Path) -> Res
     let mut tables = wipeable_tables(conn)?;
     // Deleting books produces cleanup intents; wipe those after their producer,
     // regardless of sqlite_master enumeration order.
-    tables.sort_by_key(|table| table == "book_removal_cleanup" || table == "plugin_document_generations");
+    tables.sort_by_key(|table| if table == "context_bundle_source_clock" { 2 }
+        else if table == "book_removal_cleanup" || table == "plugin_document_generations" { 1 } else { 0 });
     let tx = conn.transaction()?;
     // FK order problems are sidestepped wholesale: defer enforcement to commit,
     // by which point every referencing row is gone too.

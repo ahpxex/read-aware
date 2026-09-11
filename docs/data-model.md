@@ -316,8 +316,14 @@ source identities and revisions per version. Both derive exclusively from
 `context.bundlePublished` and participate in replay, verification and checkpoints.
 Content hashing uses the shared fixed-tuple encoding, not local integer counters
 or object key order. External consumers will read structured `content_json`, not
-raw transcripts. Actual source assembly, conditional publication, authorized
-queries and resource export are not wired yet; MEM13 remains partial. See
+raw transcripts. The internal user-profile producer reads the durable profile
+snapshot and publishes conditionally against the v36 device-local
+`context_bundle_source_clock`: source-table triggers increment a generation/counter
+token, rollback preserves it, and wipe retires its generation. This guard is not
+synced or projected and is separate from the artifact's stable source identity;
+rebuild/restore invalidates in-flight captures, while scratch verification rolls
+its changes back. Other recipe producers, authorized queries, resource export and
+user-facing consumers are not wired yet; MEM13 remains partial. See
 [context-bundles](./context-bundles.md) for the contract and closing conditions.
 
 ### 5.4 Blob registry

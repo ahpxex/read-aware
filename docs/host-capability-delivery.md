@@ -2,6 +2,20 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：第一段 context bundle 一致来源发布与画像生产者
+
+[进度/设计] 上轮f6df15a3不可变版本投影已推送且landing CI通过，是有效进展。本组在既有context-bundles设计中先明确来源一致性：跨多次IPC读取不能只靠内容hash，发布必须检查实际持久读集未在中途改变。采用本机源clock，而不是把全库事件数塞进artifact版本；不把该clock当授权票据或插件生命周期保护，也不提前做第二段插件。
+
+[原生] v36对14张实际源表安装42个写触发器，包括画像/记忆/书/标注/digest/会话、持久app_kv、plugin documents及generation、同步偏好。clock为随机generation+递增counter，回滚同步撤销推进，整数溢出拒绝源写而不绕回；wipe最后删除clock并更换generation。它不属于派生表或同步数据；scratch验证回滚不变，真实重放/checkpoint restore使旧capture失效。读取clock与发布均要求画像旧KV已初始化及投影fresh，发布immediate事务复核clock、本机新事件/HLC与artifact哈希，沿用事件+投影+outbox原子写。同内容版本回执changed=false，不append、不广播、不自我推进clock；无自动重试。
+
+[生产者] 内部contextBundles.captureProfile先初始化、捕获clock，再读取durable profile_context；纯recipe冻结快照，以pctx1为源集身份，保留人工摘要优先及仅当前有效派生摘要。不存在与显式空区分，stale/invalid派生用计数unavailable省略，损坏降级日志不含正文；不输出raw traits、来源记忆正文或整个实体注册表，超长旧摘要按artifact上限拒绝而非截断。调用origin进入正式事件；派发前各异步边界取消不写，派发后排空原生成功/失败，只有真实新增广播，坏回执拒绝。
+
+[验证] storage定向191项通过，1项既有百万日志压力默认忽略；新增7项涵盖触发器名单、KV/私有文档与画像ABA、回滚/clock故障/溢出、重复发布、投影/outbox三处故障、跨SQLite连接、重开、重建/restore/wipe、v35迁移及失败回滚、未初始化/stale和伪造/旧事件。新增画像ABA断言后7项单独复跑通过。core、宿主编排及库存/模型37项263断言通过；core及Web（含Foliate/迁出桌面脚本）类型通过。首次Rust过滤器误匹配0项，随后使用storage::执行实际191项，不将空跑计为验证。未启动桌面、浏览器、完整构建或正式插件；保留既有Rust警告，不包含用户表单变更。
+
+[剩余] MEM13仍部分，双端仍未接：其他三recipe需Reading Goals/对话纪要/书内剧透真实owner持久快照与生命周期；随后授权历史/读取/ResourceRef封口导出、Agent及原生入口、撤权边界。源clock只能保护已落盘来源，不能使乐观镜像或回调provider自动一致。全部调用链接通后才改待E2E，真实插件/Tauri/跨设备/packaged仍归第三段。源模型、矩阵与数据模型同步，HTML继续每日集中，本组独立提交并push。
+
+[燃尽] 剩余部分/未接行数81；未覆盖行数240；未验收插件数15（包含9个组合桌面插件）。
+
 ## 2026-09-11：第一段 context bundle 不可变版本与原生投影
 
 [进度/设计] 上轮8db8643b已推送SET18–21四动作，是有效进展。本组继续明确要求的MEM13，先写context-bundles设计：四recipe的真实上下文包，不是v1备份或转录拼接。先交付可重放版本历史基础；不把只建表当成宿主导出已完成，也不扩大第二段插件工作。

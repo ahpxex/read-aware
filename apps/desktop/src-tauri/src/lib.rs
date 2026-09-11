@@ -1000,6 +1000,8 @@ pub fn run() {
             storage::memory_commit,
             storage::profile_inspect,
             storage::profile_context,
+            storage::context_bundle_source_revision,
+            storage::context_bundle_publish,
             storage::profile_initialize,
             storage::profile_commit,
             storage::profile_restore,

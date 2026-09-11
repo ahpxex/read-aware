@@ -46,6 +46,31 @@ mix pages. Publication must return the real transaction result after dispatch;
 cancel before dispatch prevents publication. None of these producer guarantees
 can be inferred merely from the projector accepting an event.
 
+### Consistent Publication
+
+Assembly uses a device-local source clock, separate from the artifact's content
+revision. SQLite triggers advance it for committed changes to the source tables
+(including legacy insights KV and private plugin documents), so a write followed
+by an identical rewrite cannot evade the guard. The clock is not synced, is not a
+projection, and is not itself an authorization ticket. Rollback also rolls back
+its advance; wipe retires its random generation. Projection verification rolls
+back scratch changes, while a real rebuild/restore invalidates in-flight reads.
+
+The host flushes/initializes its source owners before capturing the clock, reads
+durable sources, assembles an artifact, and publishes in an immediate transaction
+only if the same generation/counter is still current and projections are fresh.
+Unrelated tracked writes may conservatively reject assembly. The content revision
+still describes the actual recipe sources, not this global clock: retrying after
+an unrelated write can deduplicate to the existing content version. Callback-only
+or optimistic in-memory sources are not made consistent by this mechanism; their
+owner must provide a durable snapshot and lifecycle guard before integration.
+
+The first wired recipe is the user profile: curated summary plus only a current,
+validated derived summary, with an explicit unavailable omission for stale/invalid
+derived content. It uses the existing profile-context snapshot and `pctx1` source
+identity. This does not export raw profile traits, all memories, or entity tables.
+The other three recipes, public actor operations and file export remain required.
+
 ## Actor And Export Boundary
 
 The public operation will select a recipe/scope, not SQL, KV keys, paths or raw
@@ -59,10 +84,10 @@ There will be no plugin-specific duplicate model tools for the same recipes.
 
 ## Delivery Boundaries
 
-The first unit implements the shared immutable-artifact contract and native
-event-sourced version history only. MEM13 remains partial until the actual source
-assemblers, conditional publication, authorized history/read/export, Agent tools,
-native user flow and ResourceRef lifecycle are wired and have focused tests.
+The immutable-artifact contract, native event-sourced version history, conditional
+publication and internal user-profile producer are implemented. MEM13 remains
+partial until the other three source assemblers, authorized history/read/export,
+Agent tools, native user flow and ResourceRef lifecycle are wired with focused tests.
 Reading Goals provider intent, rolling conversation insights and book spoiler
 boundaries must use their real owners rather than broad raw KV reads.
 

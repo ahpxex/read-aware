@@ -180,6 +180,7 @@ const pluginMap = pairs([
   ["domains.conversations.queries.getBookThread domains.conversations.queries.listThreads domains.conversations.queries.getThread", "AI01"],
   ["services.storage.get services.storage.set services.storage.remove", "SYS01"], ["services.storage.collection", "SYS02"],
   ["services.storage.flush", "SYS01"],
+  ["services.storage.observeDocuments", "SYS02 CON07"],
   ["services.storage.applyDocuments", "SYS02"],
   ["services.logging.write services.logging.policy", "SYS15"],
   ["services.llm.policy", "AI07"],

@@ -81,3 +81,22 @@ test("accepted document transactions drain on retirement; activation cannot writ
     await drain; expect(drained).toBe(true);
   } finally { invoke.mockRestore(); }
 });
+
+test("document observation snapshots its validated query and preserves private namespace", async () => {
+  const lifecycle = new PluginLifecycleController([]), docs = createPluginDocuments("owner", lifecycle);
+  const invoke = spyOn(ipc, "invoke").mockResolvedValue({ status: "stale-cursor" });
+  const events: unknown[] = [], filter = { bookId: "book", cursor: "seen", limit: 3 };
+  try {
+    for (const query of [{ kind: "page", collection: "../other" }, { kind: "get", collection: "words", id: "" },
+      { kind: "page", collection: "words", filter: { limit: 201 } }, { kind: "get", collection: "words", id: "word", pluginId: "other" }]) {
+      expect(() => docs.observeDocuments(query as never, () => {})).toThrow();
+    }
+    const handle = docs.observeDocuments({ kind: "page", collection: "words", filter }, event => { events.push(event); });
+    filter.bookId = "changed"; filter.cursor = "new";
+    expect(invoke).not.toHaveBeenCalled(); lifecycle.promote();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(invoke).toHaveBeenCalledWith("plugin_docs_page", { pluginId: "owner", collection: "words", query: { bookId: "book", cursor: "seen", limit: 3, oldestFirst: undefined } });
+    expect(events).toEqual([{ sequence: 1, status: "ready", result: { kind: "page", page: { status: "stale-cursor" } } }]);
+    handle.dispose();
+  } finally { lifecycle.stop(); await lifecycle.drainCleanups(); invoke.mockRestore(); }
+});

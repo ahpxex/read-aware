@@ -1692,6 +1692,11 @@ export type PluginStorage = {
    * Every expected revision is checked before any write. Does not include KV,
    * core domain events, files, or another plugin's documents. */
   applyDocuments(changes: PluginDocumentChange[]): Promise<PluginDocumentCommit>;
+  /** Storage 2.2: initial and changed private document query snapshots, including
+   * errors/recovery. At most 64 active observers per activation; reads and
+   * callbacks settle before the next one-second poll. Not a replayable write
+   * stream. Dispose or plugin retirement stops delivery; sequence is not CAS. */
+  observeDocuments<T = unknown>(query: PluginDocumentObservationQuery, handler: (event: PluginDocumentObservation<T>) => unknown): PluginDisposable;
   /**
    * Fires when this plugin's namespace is written from OUTSIDE the plugin —
    * its settings page, the reading agent, another surface editing the same
@@ -1702,7 +1707,7 @@ export type PluginStorage = {
   onChange(handler: () => void): PluginDisposable;
 };
 
-export type PluginMigrationStorage = Omit<PluginStorage, "onChange">;
+export type PluginMigrationStorage = Omit<PluginStorage, "onChange" | "observeDocuments">;
 
 export type PluginLifecyclePhase = "activating" | "migrating" | "active";
 
@@ -1761,6 +1766,19 @@ export type PluginDocumentPage<T = unknown> =
   | { status: "stale-cursor" }
   | { status: "ready"; items: PluginDocument<T>[]; nextCursor: string | null };
 
+export type PluginDocumentPageFilter = { bookId?: string; limit?: number; oldestFirst?: boolean; cursor?: string };
+export type PluginDocumentObservationQuery = { collection: string } & (
+  | { kind: "get"; id: string }
+  | { kind: "page"; filter?: PluginDocumentPageFilter }
+);
+export type PluginDocumentObservationResult<T = unknown> =
+  | { kind: "get"; document: PluginDocument<T> | null }
+  | { kind: "page"; page: PluginDocumentPage<T> };
+export type PluginDocumentObservation<T = unknown> = { sequence: number } & (
+  | { status: "ready"; result: PluginDocumentObservationResult<T> }
+  | { status: "error"; errorCode: string }
+);
+
 export type PluginDocumentCollection = {
   put(id: string, data: unknown, options?: { bookId?: string; anchor?: string }): Promise<void>;
   get<T = unknown>(id: string): Promise<PluginDocument<T> | null>;
@@ -1774,12 +1792,7 @@ export type PluginDocumentCollection = {
   /** Storage 2.1: 1..200 rows (default 50), 4 MiB JSON per page.
    * Cursors bind namespace/filter/order and expire on any collection write.
    * On stale-cursor restart rather than combining different snapshots. */
-  page<T = unknown>(filter?: {
-    bookId?: string;
-    limit?: number;
-    oldestFirst?: boolean;
-    cursor?: string;
-  }): Promise<PluginDocumentPage<T>>;
+  page<T = unknown>(filter?: PluginDocumentPageFilter): Promise<PluginDocumentPage<T>>;
 };
 
 export type PluginAgentScope =

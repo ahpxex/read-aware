@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { PluginDetailView, PluginDocument, PluginDocumentChange, PluginFormView, PluginListView, PluginModule, PluginView, PluginViewResult, ReadingSessionSnapshot } from "@read-aware/plugin-types";
+import type { PluginDetailView, PluginDocument, PluginDocumentChange, PluginDocumentObservation, PluginDocumentObservationQuery, PluginFormView, PluginListView, PluginModule, PluginView, PluginViewResult, ReadingSessionSnapshot } from "@read-aware/plugin-types";
 import { bookmarkDetail, bookmarksView, saveBookmarkView } from "../src/bookmark-views";
 import { captureBookmark, parseBookmark, type Bookmark } from "../src/bookmarks";
 import type { JumperContext } from "../src/types";
@@ -10,6 +10,8 @@ function fixture() {
   const documents = new Map<string, PluginDocument>();
   let revision = 0, generation = 0, missing = false, failWrite = false;
   const writes: PluginDocumentChange[][] = [], moves: unknown[] = [], pages: unknown[] = [];
+  const observers = new Set<{ query: PluginDocumentObservationQuery; handler: (event: PluginDocumentObservation) => unknown }>();
+  const updates: PluginView[] = [];
   const session = { status: "ready", sessionId: "session-a", bookId: "book-a", location: structuredClone(location), selection: null,
     history: { canGoBack: false, canGoForward: false },
   } as ReadingSessionSnapshot;
@@ -28,7 +30,11 @@ function fixture() {
     reading: { queries: { session: async () => session }, commands: { goTo: async (target: unknown) => { moves.push(target); return { status: "completed" }; } },
       events: { observeSession: () => ({ dispose() {} }) } },
     library: { queries: { books: { get: async (id: string) => missing ? null : { id, title: id === "book-a" ? "Book A" : "Book B" } } } },
-  }, services: { storage: {
+  }, services: { ui: { publishView: async (_channel: unknown, update: { view: PluginView }) => { updates.push(update.view); return { status: "applied" }; } }, storage: {
+    observeDocuments: (query: PluginDocumentObservationQuery, handler: (event: PluginDocumentObservation) => unknown) => {
+      const entry = { query: structuredClone(query), handler }; observers.add(entry);
+      return { dispose() { observers.delete(entry); } };
+    },
     collection: (name: string) => { expect(name).toBe("bookmarks"); return collection; },
     applyDocuments: async (changes: PluginDocumentChange[]) => {
       if (failWrite) throw Object.assign(Error("private sqlite details"), { code: "db/locked" });
@@ -45,9 +51,22 @@ function fixture() {
     },
   } } } as unknown as JumperContext;
   const seed = (id: string, data: unknown = sample) => { documents.set(id, { id, data: structuredClone(data), bookId: "book-a", revision: `r${++revision}`, updatedAt: "2026-09-11T00:00:00.000Z" }); generation++; };
-  return { ctx, documents, writes, moves, pages, session, seed, missing: () => { missing = true; }, fail: () => { failWrite = true; } };
+  const emit = async (errorCode?: string) => {
+    for (const { query, handler } of observers) {
+      const event = errorCode ? { status: "error", errorCode, sequence: 1 } : { status: "ready", sequence: 1,
+        result: query.kind === "get" ? { kind: "get", document: await collection.get(query.id) }
+          : { kind: "page", page: await collection.page({ limit: 40, ...query.filter }) } };
+      await handler(event as PluginDocumentObservation);
+    }
+  };
+  return { ctx, documents, writes, moves, pages, session, seed, emit, observers, updates, missing: () => { missing = true; }, fail: () => { failWrite = true; } };
 }
 const view = (result: PluginViewResult) => result!.view!;
+function latest(updates: PluginView[]) {
+  const result = updates[updates.length - 1];
+  if (!result || result.kind !== "detail" && result.kind !== "list") throw Error("Expected read view");
+  return result;
+}
 async function action(value: PluginListView | PluginDetailView, id: string) { return (await value.actions!.find(item => item.id === id)!.run())!; }
 function form(value: PluginView): PluginFormView {
   if (value.kind === "form") return value;
@@ -165,6 +184,39 @@ test("write failure is not a saved result and does not close or drop the naming 
   expect(f.documents.size).toBe(0); expect(f.writes).toHaveLength(0);
 });
 
+test("live bookmark detail reflects rename, failure, recovery and deletion without rebasing open forms", async () => {
+  const f = fixture(); f.seed("saved");
+  const detail = await bookmarkDetail(f.ctx, "saved"), edit = form(view(await action(detail, "rename")));
+  const subscription = await detail.live!.subscribe("channel" as never);
+  f.seed("saved", { ...sample, name: "Changed by agent" }); await f.emit();
+  expect(latest(f.updates).title).toBe("Changed by agent");
+  const staleSave = await edit.onSubmit({ name: "Old draft" });
+  expect(JSON.stringify(staleSave)).toContain("changed");
+  expect(f.documents.get("saved")?.data).toHaveProperty("name", "Changed by agent");
+  await f.emit("db/locked");
+  expect(JSON.stringify(latest(f.updates))).toContain("db/locked");
+  expect(latest(f.updates).actions?.map(a => a.id)).toEqual(["refresh"]);
+  await f.emit(); expect(latest(f.updates).title).toBe("Changed by agent");
+  f.documents.delete("saved"); await f.emit();
+  expect(JSON.stringify(latest(f.updates))).toContain("Bookmark no longer exists");
+  subscription.dispose(); expect(f.observers.size).toBe(0);
+  const count = f.updates.length; await f.emit(); expect(f.updates).toHaveLength(count);
+});
+
+test("live bookmark lists update from document queries and expired continuation clears old rows", async () => {
+  const f = fixture(); for (let i = 0; i < 41; i++) f.seed(`bookmark-${i}`);
+  const first = await bookmarksView(f.ctx) as PluginListView & Pick<PluginView, "live">;
+  const second = view(await first.pagination!.onNext!());
+  const subscription = await second.live!.subscribe("channel" as never);
+  f.seed("new"); await f.emit();
+  expect(latest(f.updates).kind).toBe("detail");
+  expect(JSON.stringify(latest(f.updates))).toContain("changed");
+  expect(latest(f.updates)).not.toHaveProperty("items");
+  subscription.dispose();
+  const refreshed = view(await action(latest(f.updates), "refresh"));
+  expect(refreshed.kind).toBe("list");
+});
+
 test("compiled bookmark command works without an open reader, while the reader menu exposes the same list", async () => {
   const f = fixture(); f.seed("saved");
   const commands = new Map<string, () => Promise<PluginViewResult>>();
@@ -177,9 +229,13 @@ test("compiled bookmark command works without an open reader, while the reader m
   const plugin = (await import(new URL("../dist/main.js", import.meta.url).href)).default as PluginModule;
   await plugin.activate(f.ctx);
   f.session.status = "idle"; f.session.bookId = null; f.session.location = null;
-  const list = view(await commands.get("bookmarks")!()) as PluginListView;
+  const list = view(await commands.get("bookmarks")!()) as PluginListView & Pick<PluginView, "live">;
   expect(list.items.map(item => item.id)).toEqual(["saved"]);
   expect(list.actions!.map(item => item.id)).toEqual(["refresh"]);
+  const subscription = await list.live!.subscribe("channel" as never);
+  f.seed("saved", { ...sample, name: "Compiled live bookmark" }); await f.emit();
+  expect((latest(f.updates) as PluginListView).items[0]?.title).toBe("Compiled live bookmark");
+  subscription.dispose(); expect(f.observers.size).toBe(0);
   f.session.status = "ready"; f.session.bookId = "book-a"; f.session.location = location;
   const root = view(await commands.get("open")!());
   if (root.kind !== "blocks") throw Error("Expected Jumper root");
@@ -187,6 +243,6 @@ test("compiled bookmark command works without an open reader, while the reader m
   if (menu?.kind !== "actions") throw Error("Expected bookmark action");
   expect((view(await menu.actions.find(a => a.id === "bookmarks")!.run()) as PluginListView).items).toHaveLength(1);
   const manifest = await Bun.file(new URL("../dist/manifest.json", import.meta.url)).json();
-  expect(manifest.requires.services.storage).toBe("^2.1.0");
+  expect(manifest.requires.services.storage).toBe("^2.2.0");
   expect(manifest.permissions).toEqual(["library:read", "reading:write", "agent:tools"]);
 });

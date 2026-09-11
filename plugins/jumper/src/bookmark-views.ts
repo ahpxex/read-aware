@@ -1,7 +1,8 @@
 import type { PluginDetailView, PluginDocument, PluginFormView, PluginListView, PluginView } from "@read-aware/plugin-types";
-import { bookmarkCollection, bookmarkName, captureBookmark, openBookmark, parseBookmark, removeBookmark, writeBookmark, type Bookmark } from "./bookmarks";
+import { BOOKMARKS, bookmarkCollection, bookmarkName, captureBookmark, openBookmark, parseBookmark, removeBookmark, writeBookmark, type Bookmark } from "./bookmarks";
 import { bookmarkCopy } from "./bookmark-strings";
 import type { JumperContext } from "./types";
+import { liveBookmarks, type BookmarkReadView } from "./live-bookmarks";
 
 function message(ctx: JumperContext, text: string): PluginDetailView {
   const t = bookmarkCopy(ctx.locale);
@@ -39,8 +40,12 @@ function deleteForm(ctx: JumperContext, doc: PluginDocument): PluginFormView {
     } };
 }
 
-export async function bookmarkDetail(ctx: JumperContext, id: string): Promise<PluginDetailView> {
-  const doc = await bookmarkCollection(ctx).get(id), t = bookmarkCopy(ctx.locale);
+export async function bookmarkDetail(ctx: JumperContext, id: string): Promise<BookmarkReadView> {
+  const t = bookmarkCopy(ctx.locale);
+  return liveBookmarks(ctx, { kind: "get", collection: BOOKMARKS, id },
+    async () => ({ kind: "get", document: await bookmarkCollection(ctx).get(id) }), async result => {
+  if (result.kind !== "get") throw Error("Expected bookmark document");
+  const doc = result.document;
   if (!doc) return message(ctx, t.missing);
   const bookmark = parseBookmark(doc.data);
   return { kind: "detail", title: bookmark?.name ?? t.invalid,
@@ -55,11 +60,16 @@ export async function bookmarkDetail(ctx: JumperContext, id: string): Promise<Pl
       { id: "remove", label: t.remove, icon: "trash", run: () => ({ view: deleteForm(ctx, doc) }) },
       { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await bookmarkDetail(ctx, id), navigation: "replace" }) },
     ] };
+  });
 }
 
 export async function bookmarksView(ctx: JumperContext, bookId?: string, cursors: (string | undefined)[] = [undefined]): Promise<PluginView> {
   const t = bookmarkCopy(ctx.locale);
-  const page = await bookmarkCollection(ctx).page({ bookId, limit: 40, cursor: cursors[cursors.length - 1] });
+  const filter = { bookId, limit: 40, cursor: cursors[cursors.length - 1] };
+  return liveBookmarks(ctx, { kind: "page", collection: BOOKMARKS, filter },
+    async () => ({ kind: "page", page: await bookmarkCollection(ctx).page(filter) }), async result => {
+  if (result.kind !== "page") throw Error("Expected bookmark page");
+  const page = result.page;
   if (page.status === "stale-cursor") return message(ctx, t.stale);
   const session = await ctx.domains.reading.queries.session();
   const ready = session.status === "ready" && session.location && session.bookId;
@@ -80,4 +90,5 @@ export async function bookmarksView(ctx: JumperContext, bookId?: string, cursors
       ...(page.nextCursor ? { onNext: () => next([...cursors, page.nextCursor!]) } : {}),
     },
   } satisfies PluginListView;
+  });
 }

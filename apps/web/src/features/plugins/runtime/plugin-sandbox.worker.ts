@@ -302,6 +302,8 @@ function buildContext(
     // reads from is already fresh. The plugin's own writes do not echo.
     onChange: (handler: () => void) =>
       callHost("services.storage.onChange", [handler]),
+    observeDocuments: (query: import("@read-aware/plugin-types").PluginDocumentObservationQuery, handler: (event: import("@read-aware/plugin-types").PluginDocumentObservation) => unknown) =>
+      callHost("services.storage.observeDocuments", [query, handler]),
     collection: (name: string) =>
       remoteNamespace(
         `services.storage.collection(${name})`,

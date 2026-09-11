@@ -122,6 +122,17 @@ test("Worker migration storage exposes conditional document commits and waits fo
   expect(await s.next(message => message.t === "migrated")).toMatchObject({ id: 903, ok: true });
 });
 
+test("Worker private document observations carry callbacks and dispose the host registration", async () => {
+  const s = await command("observe-documents", "document-probe.ts");
+  const observation = await s.next(message => message.method === "services.storage.observeDocuments");
+  const [query, callback] = data(observation.args!) as [unknown, () => string];
+  expect(query).toEqual({ kind: "get", collection: "words", id: "word" });
+  s.worker.postMessage({ t: "result", id: observation.id, ok: true, value: null, disposable: "observer" });
+  s.worker.postMessage({ t: "invoke", id: 901, handle: callback(), args: [{ sequence: 1, status: "ready", result: { kind: "get", document: null } }] });
+  expect(resultData(await s.next(message => message.t === "result" && message.id === 900))).toMatchObject({ ok: true, value: { toast: "ready:1" } });
+  expect(await s.next(message => message.t === "dispose")).toMatchObject({ handle: "observer" });
+});
+
 test("real Worker preserves Request semantics, binary responses and authoritative storage acknowledgements", async () => {
   const s = await command("request-storage");
   const fetch = await s.next(message => message.method === "services.network.fetch");

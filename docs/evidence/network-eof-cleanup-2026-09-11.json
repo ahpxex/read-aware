@@ -1,0 +1,23 @@
+{
+  "date": "2026-09-11",
+  "baseCommit": "e50fbe42",
+  "scope": "Do not abort or cancel a network response after EOF; still release its reader and accounting slot.",
+  "checks": { "tests": 26, "assertions": 167, "webTypecheck": "passed" },
+  "native": {
+    "application": "com.readaware.app.capability-e2e",
+    "plugin": "rss-reader@0.12.1",
+    "requests": ["HTTP 503 with localized error", "HTTP 200 subscribe", "HTTP 200 refresh"],
+    "unhandledRejections": [],
+    "fileLogBaselineLines": 3212,
+    "newInvalidResourceErrors": 0,
+    "expectedBusinessErrorLogged": "AppError: Feed returned 503",
+    "cleanup": {
+      "bookId": "253235ec-8eb0-479d-8e63-d4880d09b63a",
+      "remainingOwnedBooks": 0,
+      "remainingOwnedDocuments": 0,
+      "pluginEnabledStatePreserved": true,
+      "ownedPortsStopped": [5184, 9224, 19846]
+    }
+  },
+  "limitations": ["No claim about other native SDK cancellation races or null-body ownership.", "Targeted integration recheck, not a full plugin or platform acceptance pass."]
+}

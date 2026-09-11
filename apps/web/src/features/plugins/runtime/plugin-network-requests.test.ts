@@ -22,6 +22,29 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
+test("EOF releases accounting without aborting or cancelling a completed native response", async () => {
+  for (const status of [200, 503]) {
+    let aborts = 0, cancellations = 0;
+    const h = owner(async (_input, init) => {
+      init.signal!.addEventListener("abort", () => { aborts++; });
+      return new Response(new ReadableStream({
+        start(controller) { controller.enqueue(new Uint8Array([7, 8])); controller.close(); },
+        cancel() { cancellations++; },
+      }), { status });
+    }, { maxConcurrentRequests: 1 });
+    const response = await h.api.fetch("https://a.test");
+    expect(response.status).toBe(status);
+    expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([7, 8]);
+    await Promise.all(h.cleanups);
+    expect(aborts).toBe(0); expect(cancellations).toBe(0);
+    const next = await h.api.open("https://a.test");
+    await h.api.close(next.id);
+    expect(aborts).toBe(1);
+    h.controller.abort(); await Promise.all(h.cleanups);
+    expect(aborts).toBe(1);
+  }
+});
+
 test("native transport and body failures carry network codes while structured failures survive", async () => {
   for (const failure of [new TypeError("Private transport detail"), "private native failure"]) {
     const { api, cleanups } = owner(async () => { throw failure; });

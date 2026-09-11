@@ -147,7 +147,7 @@ export class PluginNetworkRequests {
         const next: ReadableStreamReadResult<Uint8Array> = entry.reader ? await entry.reader.read() : { done: true, value: undefined };
         this.assertOpen(entry);
         if (next.done) {
-          this.retire(entry);
+          this.retire(entry, undefined, true);
           return { offset: entry.offset, bytes: new ArrayBuffer(0), done: true };
         }
         entry.received += next.value.byteLength;
@@ -182,19 +182,23 @@ export class PluginNetworkRequests {
     entry.controller.signal.throwIfAborted();
   }
 
-  private retire(entry: Entry, error?: unknown): Promise<void> {
+  private retire(entry: Entry, error?: unknown, completed = false): Promise<void> {
     if (entry.closed) return entry.cleanup!;
     entry.closed = true;
     entry.error = error ?? new AppError("plugin/network-closed", "Network response is closed");
     clearTimeout(entry.timer);
     entry.detach();
-    entry.controller.abort(entry.error);
+    // EOF already releases the native body. Aborting then would run the SDK's
+    // cancellation handlers against that released resource a second time.
+    if (!completed) entry.controller.abort(entry.error);
     // Keep the slot until even an abort-ignoring native operation has settled.
     const cleanup = Promise.resolve().then(async () => {
       const response = await entry.opening.catch(() => undefined);
       try {
-        if (entry.reader) await entry.reader.cancel(entry.error);
-        else await response?.body?.cancel(entry.error);
+        if (!completed) {
+          if (entry.reader) await entry.reader.cancel(entry.error);
+          else await response?.body?.cancel(entry.error);
+        }
       } catch {
         // Aborting native fetch may already have errored and disposed its body.
       } finally {

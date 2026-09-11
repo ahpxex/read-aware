@@ -1,12 +1,12 @@
 <div align="center">
   <img src="apps/landing/public/favicon.png" alt="ReadAware" width="72" height="72" />
   <h1>ReadAware</h1>
-  <p><strong>Reading that remembers.</strong></p>
+  <p><strong>自己進化するエージェントを備えた電子書籍リーダー。</strong></p>
   <p>
-    エージェントファーストのリーダー、その中核はプラグインシステム。
-    あなたの本、注釈、何度も立ち返る考えを理解するエージェントが、
-    拡張されるために生まれたアプリの中に住んでいます——いずれその拡張を
-    担うのは、エージェント自身かもしれません。
+    本をまたいであなたの読書を記憶し、プラグインはリーダーとエージェントの
+    両方を拡張します。その土台は、EPUB、MOBI、AZW3、FB2、PDF などを開ける
+    静かで丁寧に作られたリーダー。AI の有無にかかわらず、完全オフラインで
+    使えます。
   </p>
   <p>
     <a href="https://readaware.app">公式サイト</a> ·
@@ -98,7 +98,7 @@ ReadAware は macOS、Windows、Linux、Android、iOS で使える無料のオ�
 | Android | 利用可能 |
 | Windows | 利用可能。実環境でのテスト歓迎 |
 | Linux | 利用可能。実環境でのテスト歓迎 |
-| iOS | 対応済み。App Store での配布は未提供 |
+| iOS | 対応済み。公開 [TestFlight ベータ](https://testflight.apple.com/join/Za2HV7kF)から入手可能。App Store での配布は未提供 |
 
 ## デバイス間同期
 
@@ -169,7 +169,7 @@ ReadAware アプリ
 | `packages/core` | ドメインエンティティ、イベント、ストレージ契約 |
 | `packages/ui` | 共有デザインシステムと同居する Storybook ストーリー |
 | `packages/plugin-types` | 公開プラグイン API サーフェス |
-| `plugins/` | ファーストパーティプラグイン：辞書、テーマ、RSS、読み上げボイス、WebDAV 同期 |
+| `plugins/` | ファーストパーティプラグイン：辞書、読み上げボイス、テーマ、RSS、文単位リーダー、Jumper、読書目標、ワークスペースプロファイル、WebDAV 同期、そして注釈 / ライブラリ / 記憶 / テキスト / リスニング / メンテナンスの各デスク |
 
 アーキテクチャの決定と目標データ契約は
 [`docs/agent-architecture.md`](docs/agent-architecture.md) と
@@ -181,7 +181,7 @@ ReadAware アプリ
 ## リリース
 
 バージョンタグを打つと `.github/workflows/release.yml` が macOS、Windows、
-Linux、Android のアーティファクトをビルドします。最新のダウンロードと
+Linux、Android、iOS（未署名・サイドロード用）のアーティファクトをビルドします。最新のダウンロードと
 インストールファイルは
 [latest release](https://github.com/ahpxex/read-aware/releases/latest) を
 参照してください。

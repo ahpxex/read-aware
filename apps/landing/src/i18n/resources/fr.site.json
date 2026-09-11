@@ -57,7 +57,7 @@
     "pluginAlt": "Le panneau de plugins de ReadAware — dictionnaire, thèmes et lecteur RSS, chacun dans son bac à sable, certains confiant de nouveaux outils à l'assistant.",
     "pluginCaption": "Voix, dictionnaires, thèmes, flux — et des outils que l'assistant adopte.",
     "syncTitle": "Votre lecture vous suit",
-    "syncBody": "La synchronisation optionnelle, chiffrée de bout en bout, transporte livres, surlignages, notes, position de lecture et mémoire entre appareils. Les comptes gratuits incluent 50 Mo ; les formules payantes augmentent la capacité. Le relais de synchronisation ne stocke que du contenu chiffré. Disponible sur ordinateur et Android ; iOS est en préparation.",
+    "syncBody": "La synchronisation optionnelle, chiffrée de bout en bout, transporte livres, surlignages, notes, position de lecture et mémoire entre appareils. Les comptes gratuits incluent 50 Mo ; les formules payantes augmentent la capacité. Le relais de synchronisation ne stocke que du contenu chiffré. Disponible sur ordinateur, Android et iOS.",
     "inShortTitle": "En bref",
     "notes": [
       {

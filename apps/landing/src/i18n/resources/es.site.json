@@ -57,7 +57,7 @@
     "pluginAlt": "El panel de plugins de ReadAware: diccionario, temas y lector RSS, cada uno en su sandbox; algunos ponen nuevas herramientas en manos del asistente.",
     "pluginCaption": "Voces, diccionarios, temas, fuentes — y herramientas que el asistente adopta.",
     "syncTitle": "Tu lectura te sigue",
-    "syncBody": "La sincronización opcional con cifrado de extremo a extremo lleva libros, subrayados, notas, posición de lectura y memoria entre dispositivos. Las cuentas gratuitas incluyen 50 MB; los planes de pago amplían el almacenamiento. El relay de sincronización solo guarda texto cifrado. Disponible en escritorio y Android; iOS está en preparación.",
+    "syncBody": "La sincronización opcional con cifrado de extremo a extremo lleva libros, subrayados, notas, posición de lectura y memoria entre dispositivos. Las cuentas gratuitas incluyen 50 MB; los planes de pago amplían el almacenamiento. El relay de sincronización solo guarda texto cifrado. Disponible en escritorio, Android e iOS.",
     "inShortTitle": "En resumen",
     "notes": [
       {

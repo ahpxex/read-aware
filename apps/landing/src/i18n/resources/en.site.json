@@ -57,7 +57,7 @@
     "pluginAlt": "The ReadAware plugin panel — dictionary, themes, and RSS reader installed, each in its own sandbox, some handing the assistant new tools.",
     "pluginCaption": "Voices, dictionaries, themes, feeds — and tools the assistant picks up.",
     "syncTitle": "Your reading follows you",
-    "syncBody": "Optional end-to-end encrypted sync carries books, highlights, notes, reading position, and memory between devices. Free accounts include 50 MB; paid plans expand storage. The sync relay stores ciphertext. Desktop and Android today; iOS is on the way.",
+    "syncBody": "Optional end-to-end encrypted sync carries books, highlights, notes, reading position, and memory between devices. Free accounts include 50 MB; paid plans expand storage. The sync relay stores ciphertext. Available on desktop, Android, and iOS.",
     "inShortTitle": "In short",
     "notes": [
       {

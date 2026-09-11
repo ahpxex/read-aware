@@ -1,11 +1,11 @@
 <div align="center">
   <img src="apps/landing/public/favicon.png" alt="ReadAware" width="72" height="72" />
   <h1>ReadAware</h1>
-  <p><strong>Reading that remembers.</strong></p>
+  <p><strong>An ebook reader with a self-evolving agent.</strong></p>
   <p>
-    An agent-first reader with a plugin system at its core: one agent that
-    understands your books, your annotations, and the ideas you keep returning
-    to — inside an app built to be extended, eventually by the agent itself.
+    It remembers your reading across books, and plugins extend the reader and
+    the agent alike. Underneath is a quiet, carefully made reader for EPUB,
+    MOBI, AZW3, FB2, PDF, and more that works fully offline, with or without AI.
   </p>
   <p>
     <a href="https://readaware.app">Website</a> ·
@@ -96,7 +96,7 @@ not the chrome.
 | Android | Available |
 | Windows | Available; broader real-world testing is welcome |
 | Linux | Available; broader real-world testing is welcome |
-| iOS | Supported; App Store distribution is not available yet |
+| iOS | Supported via the public [TestFlight beta](https://testflight.apple.com/join/Za2HV7kF); App Store distribution is not available yet |
 
 ## Cross-device sync
 
@@ -165,7 +165,7 @@ The repository itself is a Bun workspace monorepo orchestrated by Turborepo.
 | `packages/core` | Domain entities, events, and storage contracts |
 | `packages/ui` | Shared design system and co-located Storybook stories |
 | `packages/plugin-types` | The public plugin API surface |
-| `plugins/` | First-party plugins: dictionary, themes, RSS, read-aloud voices, WebDAV sync |
+| `plugins/` | First-party plugins: dictionary, TTS voices, themes, RSS reader, sentence reader, jumper, reading goals, workspace profiles, WebDAV sync, and the annotation / library / memory / text / listening / maintenance desks |
 
 Architecture decisions and target data contracts live in
 [`docs/agent-architecture.md`](docs/agent-architecture.md) and
@@ -175,8 +175,8 @@ publishing guide live at
 
 ## Releases
 
-Version tags build macOS, Windows, Linux, and Android artifacts through
-`.github/workflows/release.yml`. See the
+Version tags build macOS, Windows, Linux, Android, and iOS (unsigned, for
+sideloading) artifacts through `.github/workflows/release.yml`. See the
 [latest release](https://github.com/ahpxex/read-aware/releases/latest) for
 current downloads and installation files.
 

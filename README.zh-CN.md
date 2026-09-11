@@ -1,11 +1,11 @@
 <div align="center">
   <img src="apps/landing/public/favicon.png" alt="ReadAware" width="72" height="72" />
   <h1>ReadAware</h1>
-  <p><strong>Reading that remembers.</strong></p>
+  <p><strong>一款带自进化 agent 的电子书阅读器。</strong></p>
   <p>
-    一款 agent-first 的阅读器，插件系统是它的核心：一个真正理解你的书、
-    你的批注、以及你反复回到的那些想法的 agent，住在一个生来就能被扩展的
-    应用里——未来，动手扩展它的可以就是 agent 自己。
+    它记得你跨书籍读过的一切，插件既扩展阅读器，也扩展这个 agent。底下是一个
+    安静、精心打磨的阅读器，支持 EPUB、MOBI、AZW3、FB2、PDF 等格式，完全离线
+    可用，有没有 AI 都一样。
   </p>
   <p>
     <a href="https://readaware.app">官网</a> ·
@@ -84,7 +84,7 @@ iOS。它的中心是一个 agent——能调用工具、结合上下文回答�
 | Android | 可用 |
 | Windows | 可用；欢迎更多真实环境的测试 |
 | Linux | 可用；欢迎更多真实环境的测试 |
-| iOS | 已支持；App Store 分发暂未上线 |
+| iOS | 已支持，可通过公开 [TestFlight 测试](https://testflight.apple.com/join/Za2HV7kF)安装；App Store 分发暂未上线 |
 
 ## 跨设备同步
 
@@ -142,7 +142,7 @@ Source of truth 在本地。原始领域事件构成可同步的记录；记忆�
 | `packages/core` | 领域实体、事件与存储契约 |
 | `packages/ui` | 共享设计系统与并置的 Storybook stories |
 | `packages/plugin-types` | 公开的插件 API 面 |
-| `plugins/` | 一方插件：词典、主题、RSS、朗读音色、WebDAV 同步 |
+| `plugins/` | 一方插件：词典、朗读音色、主题、RSS、逐句阅读、Jumper、阅读目标、工作区配置、WebDAV 同步，以及批注 / 书库 / 记忆 / 文本 / 听读 / 维护各工作台 |
 
 架构决策与目标数据契约见
 [`docs/agent-architecture.md`](docs/agent-architecture.md) 和
@@ -151,8 +151,8 @@ Source of truth 在本地。原始领域事件构成可同步的记录；记忆�
 
 ## 发布
 
-版本 tag 会通过 `.github/workflows/release.yml` 构建 macOS、Windows、Linux
-和 Android 产物。最新下载与安装文件见
+版本 tag 会通过 `.github/workflows/release.yml` 构建 macOS、Windows、Linux、
+Android 和 iOS（未签名，供自签安装）产物。最新下载与安装文件见
 [latest release](https://github.com/ahpxex/read-aware/releases/latest)。
 
 ## 赞助商

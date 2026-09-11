@@ -57,7 +57,7 @@
     "pluginAlt": "Das Plugin-Panel von ReadAware — Wörterbuch, Themes und RSS-Reader, jedes in seiner Sandbox, manche geben dem Assistenten neue Werkzeuge.",
     "pluginCaption": "Stimmen, Wörterbücher, Themes, Feeds — und Werkzeuge für den Assistenten.",
     "syncTitle": "Dein Lesen folgt dir",
-    "syncBody": "Optionaler Ende-zu-Ende-verschlüsselter Sync überträgt Bücher, Markierungen, Notizen, Leseposition und Gedächtnis zwischen Geräten. Kostenlose Konten enthalten 50 MB; bezahlte Tarife erweitern den Speicher. Das Sync-Relay speichert nur Chiffretext. Verfügbar für Desktop und Android; iOS ist in Vorbereitung.",
+    "syncBody": "Optionaler Ende-zu-Ende-verschlüsselter Sync überträgt Bücher, Markierungen, Notizen, Leseposition und Gedächtnis zwischen Geräten. Kostenlose Konten enthalten 50 MB; bezahlte Tarife erweitern den Speicher. Das Sync-Relay speichert nur Chiffretext. Verfügbar für Desktop, Android und iOS.",
     "inShortTitle": "Kurz gesagt",
     "notes": [
       {

@@ -106,6 +106,13 @@ export class ReadingTraceCoordinator {
     return this.active?.bookId === bookId && this.active.accepting ? this.active : undefined;
   }
 
+  /** Retire the live session and wait for every queued flush; used by coordinated shutdown. */
+  async settle(): Promise<void> {
+    const active = this.active;
+    if (active?.accepting) await active.retire();
+    await this.tail;
+  }
+
   begin(id: string, bookId: string): ReadingTrace {
     if (this.active) void this.active.retire().catch(error => this.store.report(error));
     const trace = new ReadingTrace(id, bookId, this.store, work => {

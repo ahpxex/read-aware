@@ -10,6 +10,7 @@ mod file_associations;
 mod comic_metadata;
 mod diagnostics;
 mod error;
+mod exit_coordination;
 mod external_open;
 mod fb2_metadata;
 mod metadata;
@@ -754,6 +755,7 @@ pub fn run() {
         })
         .manage(android_update::AndroidUpdateState::default())
         .manage(desktop_update::DesktopUpdateState::default())
+        .manage(exit_coordination::ExitCoordination::default())
         .manage(external_open::ExternalOpenQueue::new(launch_open_paths))
         .manage(storage::BlobReadSessions::default())
         .manage(storage::BlobWriteSessions::default())
@@ -1070,6 +1072,7 @@ pub fn run() {
             android_update::android_update_install,
             desktop_update::desktop_update_check,
             desktop_startup::desktop_startup_enabled,
+            exit_coordination::app_exit_confirm,
             desktop_update::desktop_update_install,
             set_status_bar_hidden,
             sync_safe_area,
@@ -1108,6 +1111,13 @@ pub fn run() {
     app.run(|_app_handle, _event| {
         #[cfg(desktop)]
         window_state::on_app_event(_app_handle, &_event);
+
+        // A system exit request waits once for the webview's coordinated flush.
+        if let tauri::RunEvent::ExitRequested { code, api, .. } = &_event {
+            if !exit_coordination::on_exit_requested(_app_handle, *code) {
+                api.prevent_exit();
+            }
+        }
 
         // macOS file associations deliver documents as Apple Events (cold and
         // warm start alike), never as argv — park them like every other path.

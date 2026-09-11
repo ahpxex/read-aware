@@ -2,6 +2,16 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：第一段 SYS17 关闭/退出保存协调
+
+[进度/设计] 上轮07e5112c已推送。SYS17 唯一实现缺口是"关闭/退出的统一保存协调"，close/quit 对 actor 不开放是既定边界。本组只做宿主协调，不给 Agent/插件增加 close。
+
+[实现] services/shutdown.ts：ShutdownCoordinator 注册 settle/persist 两阶段 owner（≤64），prepare 共享在途、期限默认 8 秒，逐 owner 报 flushed/failed/timed-out 与稳定 code，失败/超时只降级为 degraded，调用者取消则无回执。platform/write-settlement.ts 跟踪已派发的 commit_events/append_events/reading_session_flush 回执（不改变结果），platform/shutdown-owners.ts 注册阅读会话 settle（ReadingTraceCoordinator.settle 退休活动会话并等队列）、插件 quiesce（plugin-host.shutdownPlugins 逐插件 deactivate 排空 Worker 写，失败各自记录）、已派发事件回执、KV 队列。platform/window-close.ts：主窗口 onCloseRequested 先 preventDefault，冲刷后 destroy；冲刷期间重复请求被吸收；冲刷失败仍关闭，原生 close 失败重新开放协调。Rust exit_coordination.rs：系统 ExitRequested（code=None）首次 prevent_exit 并 emit app-exit-requested，app_exit_confirm 命令确认后 app.exit(0)（code=Some 放行），10 秒兜底线程强制退出，无主窗口或 emit 失败直接放行；main.tsx 挂载后注册 owner 并安装原生协调，pagehide 兜底保留。
+
+[验证] 新增 shutdown 3 项、write-settlement 1 项、window-close 2 项、reading-trace settle 1 项；src/platform、reader/lib、plugin-host 目录 307 项通过；web 类型通过；cargo check 通过，exit_coordination 单元测试通过。未启动 Tauri：真实关闭/退出、10 秒兜底与跨平台路径写入 stage-three。
+
+[剩余] SYS17 改接通（待 E2E）。
+
 ## 2026-09-11：第一段陈旧行复核与有意边界声明
 
 [进度/设计] 上轮2b8039a0已推送。接手后重扫全部80个未关闭行（排除CON11/12/SYS18），先处理两类不需要新代码的行：gap文字已落后于源码的行，以及目标列本身写明"不开放/由宿主呈现"的行。后者按矩阵图例"未接：目标列为不开放的行是有意边界，不是应补权力"保持未接，本组起从燃尽口径中明确排除，不再当作缺口：READ15(agent)、ANN07(plugin)、STAT04(双端)、SYS03(agent)、SYS04(agent)、OPS02(agent)、EXT02/EXT03/EXT04/EXT06/MORE04(agent)。这些行的宿主/插件侧若仍标部分（EXT06编辑器schema、SYS03联合恢复），缺口保留。

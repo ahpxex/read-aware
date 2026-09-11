@@ -22,6 +22,7 @@ import { broadcastDomainEventDrafts, mintEventRows, type DomainEventDraft } from
 import { isTauri } from "./environment";
 import { invoke } from "./ipc";
 import { createLogger } from "./logger";
+import { durableWrites } from "./write-settlement";
 
 const log = createLogger("reading-session");
 
@@ -140,7 +141,7 @@ export async function flushReadingSessions(
   if (!isTauri() || worth.length === 0) return { appended: 0, applied: 0 };
   const drafts = worth.map(draftFor);
   const events = await mintEventRows(drafts);
-  const report = await invoke<CommitReport>("reading_session_flush", { events });
+  const report = await durableWrites.track(invoke<CommitReport>("reading_session_flush", { events }));
   // In-app observers (plugins) see the events the store accepted.
   broadcastDomainEventDrafts(drafts);
   return report;

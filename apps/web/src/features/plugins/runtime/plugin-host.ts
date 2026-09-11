@@ -152,11 +152,19 @@ export async function initializePlugins(): Promise<void> {
   // binding, or the registry leaks dead entries.
   onAppEvent("book-removed", ({ bookId }) => unbindVirtualBook(bookId));
 
-  // Best-effort teardown on app quit — disposables run synchronously; async
-  // deactivate() work races the process, which is the platform's nature.
+  // Fallback teardown for an uncoordinated exit — disposables run synchronously;
+  // async deactivate() work races the process. The coordinated path is shutdownPlugins().
   window.addEventListener("pagehide", () => {
     for (const id of [...active.keys()]) void deactivatePlugin(id);
   });
+}
+
+/** Coordinated shutdown: quiesce every active plugin so Worker writes reach native storage
+ * before the process ends. Failures are logged per plugin and never block the others. */
+export async function shutdownPlugins(signal?: AbortSignal): Promise<void> {
+  signal?.throwIfAborted();
+  const results = await Promise.allSettled([...active.keys()].map(id => deactivatePlugin(id)));
+  for (const result of results) if (result.status === "rejected") log.warn("plugin shutdown failed", result.reason);
 }
 
 /**

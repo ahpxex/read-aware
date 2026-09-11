@@ -110,3 +110,15 @@ test("flush failure retains buckets and still banks new observations", async () 
   expect((await f.store.pending()).map(b => b.ms)).toEqual([1000, 2000]);
   expect(f.errors).toContain(error);
 });
+
+test("settle retires the live session and waits for every queued flush before resolving", async () => {
+  const f = fixture(), coordinator = new ReadingTraceCoordinator(f.store);
+  await coordinator.settle();
+  const trace = coordinator.begin("s1", "book-1");
+  trace.accrue(1000, at);
+  expect(trace.accepting).toBe(true);
+  await coordinator.settle();
+  expect(trace.accepting).toBe(false);
+  expect(f.events.some(bucket => bucket.bookId === "book-1" && bucket.ms === 1000)).toBe(true);
+  expect(coordinator.current("book-1")).toBeUndefined();
+});

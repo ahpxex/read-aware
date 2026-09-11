@@ -29,6 +29,7 @@ import type {
 import { isTauri } from "./environment";
 import { createHlcClock } from "./hlc";
 import { createLogger } from "./logger";
+import { durableWrites } from "./write-settlement";
 
 const log = createLogger("domain-events");
 
@@ -226,7 +227,7 @@ export async function appendDomainEvents(drafts: DomainEventDraft[]): Promise<vo
   if (!isTauri() || drafts.length === 0) return;
   const { deviceId } = await getDeviceInfo();
   const events = drafts.map((draft) => toEventRow(draft, deviceId));
-  await invoke("append_events", { events });
+  await durableWrites.track(invoke("append_events", { events }));
 }
 
 /** What the store did with a commit — see the Rust `CommitReport`. */
@@ -257,7 +258,7 @@ export async function commitDomainEvents(
   }
   const { deviceId } = await getDeviceInfo();
   const events = drafts.map((draft) => toEventRow(draft, deviceId));
-  const report = await invoke<CommitReport>("commit_events", { events });
+  const report = await durableWrites.track(invoke<CommitReport>("commit_events", { events }));
   // Broadcast only after the write succeeded — in-app observers must never see
   // a change the store rejected.
   broadcastDomainEvents(drafts);

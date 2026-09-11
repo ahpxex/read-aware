@@ -100,6 +100,20 @@
 - 上述结果与真实模型输入/输出、原生日志和 SQLite 快照一并归档；当前仅有
   定向 TS 测试、进程内 Worker 与受控 IPC，不启动桌面或正式插件构建。
 
+## SYS17 关闭/退出保存协调
+
+第一段已接 ShutdownCoordinator、原生 onCloseRequested 拦截与 Rust ExitRequested 一次
+延迟；close/quit 对 Agent/插件仍不开放。第三段真实 Tauri 须检查：
+
+- 阅读中点击红色关闭按钮：窗口先不关闭，SQLite 中该小时桶的阅读时间与位置
+  已落库后窗口才消失；重启后进度/时间一致。插件（RSS/Jumper）在关闭前排队的
+  文档/KV 写在重启后可见；日志有各 owner 的 flushed/failed/timed-out 回执。
+- Cmd+Q / 应用菜单退出：进程不立即结束，webview 冲刷后 app_exit_confirm 退出；
+  注入 webview 无响应时 10 秒兜底退出；退出后无孤儿 Worker/进程。
+- 冲刷中再次点击关闭或重复 Cmd+Q 不触发第二次冲刷；SQLite 拒写时仍在期限内
+  关闭且回执 degraded，日志不含用户内容。Windows/Linux 的关闭与 Alt+F4/SIGTERM
+  路径分别实测，不从 macOS 外推。
+
 ## MEM06 画像摘要及已接通的编辑/备份链
 
 memory 2 的摘要链已接通；MEM07 完整访谈编排与 MEM08 可恢复大输入巩固仍有

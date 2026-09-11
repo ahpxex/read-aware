@@ -70,6 +70,15 @@ void (async () => {
   mountApp();
   log.info("mounted");
 
+  // Coordinated close/quit: the native close button and app exit wait for reading
+  // traces, plugin quiescence, dispatched events and the KV queue before the window goes.
+  const [{ registerShutdownOwners }, { installNativeCloseCoordination }] = await Promise.all([
+    import("./platform/shutdown-owners"), import("./platform/window-close"),
+  ]);
+  registerShutdownOwners();
+  await installNativeCloseCoordination();
+  log.info("shutdown coordination installed");
+
   // The agent chat transport reads its config per-send, so registering just
   // after mount is safe — and it keeps the agent runtime (a heavy dependency
   // tree) off the boot-critical path entirely.

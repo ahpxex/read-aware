@@ -282,7 +282,7 @@ const nativeMap = pairs([
   ["resource_create resource_append resource_commit resource_read resource_release", "SYS13"],
   ["resource_save", "SYS10"],
   ["resource_commit_context", "MEM13"],
-  ["desktop_update_check desktop_update_install", "SYS16"], ["set_traffic_lights_visible", "SYS17"], ["list_system_fonts", "SYS14"],
+  ["desktop_update_check desktop_update_install", "SYS16"], ["set_traffic_lights_visible app_exit_confirm", "SYS17"], ["list_system_fonts", "SYS14"],
   ["desktop_startup_enabled", "SET04"],
   ["plugins_list plugins_stage_dir plugins_stage_zip plugins_stage_files plugins_commit_candidate plugins_discard_candidate plugins_rollback plugins_uninstall", "EXT11 EXT12 SYS03"],
 ]);

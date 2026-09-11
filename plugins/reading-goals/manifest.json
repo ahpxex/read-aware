@@ -11,8 +11,8 @@
   "settingsAccess": { "read": ["ai.preferences.buildMemory"], "write": ["ai.preferences.buildMemory"] },
   "requires": {
     "domains": { "reading": "^2.8.0", "library": "^1.1.0", "settings": "^1.2.0" },
-    "contributions": { "headerActions": "^1.0.0", "commands": "^1.0.0", "agentContextProviders": "^1.0.0", "memoryCandidateProviders": "^1.1.0", "agentTools": "^1.2.0" },
-    "services": { "storage": "^2.1.0", "ui": "^1.2.0" },
+    "contributions": { "headerActions": "^1.0.0", "commands": "^1.0.0", "agentContextProviders": "^1.1.0", "memoryCandidateProviders": "^1.1.0", "agentTools": "^1.2.0" },
+    "services": { "storage": "^2.4.0", "ui": "^1.2.0" },
     "schemas": { "views": "^1.2.0" }
   }
 }

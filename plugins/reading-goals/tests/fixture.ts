@@ -21,6 +21,7 @@ export function fixture() {
     },
     services: { storage: {
       get: (key: string) => saved.get(key) ?? null,
+      getDurable: async (key: string) => { if (state.failRead) throw Error("read failed"); return saved.get(key) ?? null; },
       set: async (key: string, value: unknown) => { if (state.failSave) throw new Error("storage failed"); saved.set(key, value); },
       remove: async (key: string) => { if (state.failRemove) throw Error("cleanup failed"); saved.delete(key); },
       flush: async () => {},

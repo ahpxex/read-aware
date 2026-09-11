@@ -1,14 +1,16 @@
-import { AppError, conversationContextBundle, normalizeConversationTarget, profileContextBundle,
-  type ContextBundle, type ConversationTarget, type EventOrigin, type ProfileContextSnapshot } from "@read-aware/core";
+import { AppError, conversationContextBundle, normalizeConversationTarget, normalizeReadingIntentScope, profileContextBundle, readingIntentContextBundle,
+  type ContextBundle, type ConversationTarget, type EventOrigin, type ProfileContextSnapshot, type ReadingIntentScope } from "@read-aware/core";
 import { invoke } from "../platform/ipc";
 import { broadcastDomainEventDrafts, mintEventRows, type DomainEventDraft } from "../platform/domain-events";
 import { createLogger } from "../platform/logger";
 import { initializeUserProfile } from "./user-profile";
 import { loadConversationInsightsSnapshot, prepareConversationInsightsSnapshot } from "../features/ai/lib/conversation-insights-store";
+import { readingIntentSources } from "../features/plugins/runtime/plugin-reading-intents";
 
 type Receipt = { version: string; changed: boolean; persistence: "event-log" };
 type Host = { invoke: typeof invoke; mint: typeof mintEventRows; broadcast: typeof broadcastDomainEventDrafts;
   insights: { prepare: typeof prepareConversationInsightsSnapshot; read: typeof loadConversationInsightsSnapshot };
+  intents: typeof readingIntentSources;
   initialize(): Promise<void>; warn(message: string): void };
 
 /** Internal producer. Actor authorization and file export are separate consumers. */
@@ -34,6 +36,11 @@ export function createContextBundleService(host: Host) {
     return { bundle, receipt };
   };
   return {
+    async captureIntent(input: ReadingIntentScope, origin: EventOrigin, signal?: AbortSignal) {
+      const scope = normalizeReadingIntentScope(input), sources = host.intents.open(scope, signal);
+      try { return await capture(origin, async () => readingIntentContextBundle(scope, await sources.read()), sources.signal, sources.prepare); }
+      finally { sources.dispose(); }
+    },
     async captureProfile(origin: EventOrigin, signal?: AbortSignal): Promise<{ bundle: ContextBundle; receipt: Receipt }> {
       return capture(origin, async () => {
         const snapshot = await host.invoke<ProfileContextSnapshot>("profile_context");
@@ -56,4 +63,5 @@ export function createContextBundleService(host: Host) {
 
 export const contextBundles = createContextBundleService({ invoke, mint: mintEventRows, broadcast: broadcastDomainEventDrafts,
   insights: { prepare: prepareConversationInsightsSnapshot, read: loadConversationInsightsSnapshot },
+  intents: readingIntentSources,
   initialize: initializeUserProfile, warn: message => createLogger("context-bundle").warn(message) });

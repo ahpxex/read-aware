@@ -1,11 +1,14 @@
 import type { PluginModule } from "@read-aware/plugin-types";
+import { readingGoalSource } from "../../../../plugins/reading-goals/src/context-source";
 
 export default {
   activate(ctx) {
+    if (ctx.manifest.description === "intention-source") ctx.contributions.agentContextProviders!.register({ id: "goal", provide: () => [], readingIntent: readingGoalSource(ctx) });
     ctx.contributions.commands.register({
       id: "test",
       title: "Wire probe",
       run: async () => {
+        if (ctx.manifest.description === "durable-storage") return { toast: await ctx.services.storage.getDurable<string>("result") ?? "missing" };
         const endpoint = ctx.services.storage.get<string>("endpoint");
         if (["pre-timeout", "live-timeout", "network-failure"].includes(ctx.manifest.description ?? "")) {
           const controller = new AbortController();

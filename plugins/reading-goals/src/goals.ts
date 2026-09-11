@@ -20,7 +20,7 @@ export async function readGoalState(ctx: PluginContext, input: string): Promise<
   let doc = await collection.get<GoalRecord>(bookId);
   if (!doc) {
     await storage.flush();
-    const legacy = storage.get(key(bookId));
+    const legacy = await storage.getDurable(key(bookId));
     if (legacy !== null) {
       const goal = parseGoal(legacy);
       // Promote on first access: the migration context cannot enumerate old KV keys.
@@ -35,7 +35,7 @@ export async function readGoalState(ctx: PluginContext, input: string): Promise<
   const goal = doc.data.goal === null ? null : parseGoal(doc.data.goal);
   // New records, including cleared tombstones, always supersede old KV values.
   // A failed cleanup rejects; the next read retries without reimporting old text.
-  if (storage.get(key(bookId)) !== null) await storage.remove(key(bookId));
+  if (await storage.getDurable(key(bookId)) !== null) await storage.remove(key(bookId));
   return { bookId, goal, revision: doc.revision };
 }
 export async function readGoal(ctx: PluginContext, bookId: string): Promise<Goal | null> {

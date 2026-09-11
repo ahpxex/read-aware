@@ -15,7 +15,7 @@ export const CONTRIBUTION_CATALOG = {
   contentProviders: { version: "1.0.0", permission: null },
   readerModes: { version: "1.1.0", permission: "reader:modes" },
   agentTools: { version: "1.3.0", permission: "agent:tools" },
-  agentContextProviders: { version: "1.0.0", permission: "agent:context" },
+  agentContextProviders: { version: "1.1.0", permission: "agent:context" },
   agentRetrievalProviders: { version: "1.0.0", permission: "agent:retrieval" },
   memoryCandidateProviders: { version: "1.1.0", permission: "agent:memory" },
   themes: { version: "1.0.0", permission: "ui:themes" },
@@ -31,7 +31,7 @@ export type ContributionPermission = Exclude<
 
 /** Bounded host facilities. Core local services need no additional consent. */
 export const HOST_SERVICE_CATALOG = {
-  storage: { version: "2.3.0", permission: null },
+  storage: { version: "2.4.0", permission: null },
   secrets: { version: "1.0.0", permission: null },
   ui: { version: "1.14.0", permission: null },
   schedules: { version: "1.1.0", permission: null },

@@ -1,5 +1,7 @@
 import { assertToolApproval } from "../lib/plugin-tool-approval";
 import { resolvePluginBookCards } from "./plugin-book-cards";
+import { wrapReadingIntent } from "./plugin-reading-intents";
+import { pluginDurableKV } from "./plugin-durable-kv";
 /**
  * Builds the `ctx` handed to a plugin's activate(). This is a POLICY shell:
  * the data surface itself is the shared domain layer (src/domain), built
@@ -459,14 +461,18 @@ export function buildPluginContext(
         : undefined,
       agentContextProviders: canUseContribution("agentContextProviders", permissions)
         ? {
-            register: (provider) =>
-              track(() =>
+            register: (provider) => {
+              const readingIntent = wrapReadingIntent(provider.readingIntent, lifecycle);
+              return track(() =>
                 registerAgentContextProviderContribution({
                   ...provider,
                   ...brand,
                   key: contributionKey(manifest.id, provider.id),
+                  readingIntent,
+                  readingIntentLifetime: lifecycle.signal,
                 }),
-              ),
+              );
+            },
           }
         : undefined,
       agentRetrievalProviders: canUseContribution("agentRetrievalProviders", permissions)
@@ -527,6 +533,7 @@ export function buildPluginContext(
     },
     services: {
       storage: {
+        getDurable: pluginDurableKV(lifecycle, storagePrefix),
         get: (key) => {
           const raw = localKV.getItem(storagePrefix + key);
           if (raw == null) return null;

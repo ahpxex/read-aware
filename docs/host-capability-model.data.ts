@@ -197,7 +197,7 @@ export const units: Unit[] = [
   unit("B1", "Boundary", "future/internal", "明确排除与宿主尚未建成部分", "CON11-12 SYS18 MEM07-08 MEM13 OPS09-11", "",
     "禁止任意 SQL/FS/shell/DOM、宿主秘密、原始事件 append、伪造历史、静默付款/授权；新格式/OCR/任意编辑/实时协作/新平台在宿主能力更新时再纳入。",
     "Agent 和插件都不能用更高权限工具绕过产品策略；宿主内部投影修复不是普通模型行为。",
-    "可以组合已授权读模型产生导出/插件算法，但不能把尚无的产品能力标成漏一条导出 API。MEM13已有四recipe不可变契约、cb1版本及v35事件历史投影，纳入重放/漂移/checkpoint/wipe；v36源clock保护durable读集与immediate条件发布。内部画像producer用pctx1组装人工和当前有效派生摘要；对话producer等待owner写队列后读固定native snapshot，以cins1绑定目标/已存纪要/可用性，不读转录或乐观镜像，孤立/cleared摘要省略。纪要可能落后转录且无逐章来源，不虚构完整性或倒退阅读剧透过滤。仍缺意图/书内记忆recipe的真实owner快照/剧透/生命周期，以及授权查询/历史/ResourceRef导出和原生/Agent入口/隐私撤权，不把内部生产者当成产品已实现。",
+    "可以组合授权读模型，但不把内部基础当成产品导出已完成。MEM13已有四recipe不可变cb1契约、v35事件历史、v36源clock条件发布及重放/漂移/checkpoint/wipe。内部画像pctx1和已存对话cins1接durable来源；纪要不承诺覆盖最新转录或倒退后的剧透过滤。阅读意图rint1已接agentContextProviders1.1声明来源及Reading Goals真实版本文档：迁移准备在clock前，读在后，注册集/realm退休保护，失败不截短；storage2.4 getDurable避免legacy迁移读镜像。仍缺书内记忆recipe真实来源/剧透/生命周期，及授权查询/历史/ResourceRef导出、原生/Agent入口和隐私撤权。",
     "本轮明确范围包含画像实体、正式context bundle、完整备份与Reveal的宿主建设/修复；它们不能借未来产品标签退出第一段。移动端遗留no-op不计桌面缺口，仅CON11/12与SYS18维持设计不开放。",
     "需求评审能指出新增的宿主原语才算 host 更新；若只是编号规则、CSV 格式、HTTP 来源或主题内容，则应由已有原语组合。"),
 ];

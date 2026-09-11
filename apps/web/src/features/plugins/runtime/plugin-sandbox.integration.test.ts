@@ -28,7 +28,7 @@ function sandbox(scenario: string, fixture = "wire-probe.ts") {
     t: "boot", url: new URL(`../../../../tests/desktop/${fixture}`, import.meta.url).href,
     manifest: { id: "wire-test", name: "Wire test", description: scenario, version: "1.0.0", schemaVersion: 1 },
     appVersion: "1.0.0", capabilities: {}, locale: "en", phase: "activating", storage: {},
-    shape: { domains: { library: { queries: { books: { searchLocations: "fn" } } }, reading: { commands: { step: "fn" } } }, services: { llm: { ask: "fn", askDetailed: "fn", policy: "fn", getRequest: "fn", listRequests: "fn", cancelRequest: "fn" }, logging: { write: "fn", policy: "fn" }, network: { fetch: "fn", openStream: "fn", readStream: "fn", closeStream: "fn" } }, contributions: { commands: { register: "fn" } }, __collection: { put: "fn", get: "fn", page: "fn" } },
+    shape: { domains: { library: { queries: { books: { searchLocations: "fn" } } }, reading: { commands: { step: "fn" } } }, services: { llm: { ask: "fn", askDetailed: "fn", policy: "fn", getRequest: "fn", listRequests: "fn", cancelRequest: "fn" }, logging: { write: "fn", policy: "fn" }, network: { fetch: "fn", openStream: "fn", readStream: "fn", closeStream: "fn" } }, contributions: { commands: { register: "fn" }, agentContextProviders: { register: "fn" } }, __collection: { put: "fn", get: "fn", page: "fn" } },
   });
   return { worker, messages, next };
 }
@@ -43,6 +43,35 @@ async function command(scenario: string, fixture?: string) {
   s.worker.postMessage({ t: "invoke", id: 900, handle, args: [] });
   return s;
 }
+
+test("Worker durable KV bypasses its mirror and Reading Goals nested source callbacks use real RPC", async () => {
+  const durable = await command("durable-storage");
+  const call = await durable.next(message => message.method === "services.storage.getDurable");
+  expect(data(call.args!)).toEqual(["result"]);
+  durable.worker.postMessage({ t: "sync", patch: { storage: { result: '"stale mirror"' } } });
+  durable.worker.postMessage({ t: "result", id: call.id, ok: true, value: "durable value" });
+  expect(resultData(await durable.next(message => message.t === "result" && message.id === 900))).toMatchObject({ value: { toast: "durable value" } });
+  const s = sandbox("intention-source"), registration = await s.next(message => message.method === "contributions.agentContextProviders.register");
+  const source = (data(registration.args!) as { readingIntent: { prepare: () => string; read: () => string } }[])[0]!.readingIntent;
+  s.worker.postMessage({ t: "result", id: registration.id, ok: true, value: null, disposable: "provider" });
+  const cmd = await s.next(message => message.method === "contributions.commands.register");
+  s.worker.postMessage({ t: "result", id: cmd.id, ok: true, value: null, disposable: "command" });
+  await s.next(message => message.t === "ready"); s.worker.postMessage({ t: "sync", patch: { phase: "active" } });
+  const doc = { id: "one", bookId: "one", revision: "doc:1", data: { version: 1, goal: { text: "Stored goal", suggestMemory: false } }, updatedAt: "now" };
+  for (const [id, handle] of [[901, source.prepare()], [902, source.read()]] as const) {
+    s.worker.postMessage({ t: "invoke", id, handle, args: [{ kind: "book", id: "one" }] });
+    const get = await s.next(message => message.method === "services.storage.collection(goals).get");
+    expect(data(get.args!)).toEqual(["one"]); s.worker.postMessage({ t: "result", id: get.id, ok: true, value: doc });
+    if (id === 901) {
+      const legacy = await s.next(message => message.method === "services.storage.getDurable");
+      expect(data(legacy.args!)).toEqual(["goal:one"]); s.worker.postMessage({ t: "result", id: legacy.id, ok: true, value: null });
+      const flush = await s.next(message => message.method === "services.storage.flush"); s.worker.postMessage({ t: "result", id: flush.id, ok: true, value: null });
+    }
+    const result = resultData(await s.next(message => message.t === "result" && message.id === id));
+    expect(result.ok).toBe(true);
+    if (id === 902) expect(result.value).toEqual({ revision: "doc:1", text: "Stored goal" });
+  }
+});
 
 test.each(["query", "navigation"])("Worker %s cancellation strips options, preserves guards and drops late results", async kind => {
   const method = kind === "query" ? "domains.library.queries.books.searchLocations" : "domains.reading.commands.step";

@@ -326,7 +326,12 @@ its changes back. The conversation producer also reads the selected durable
 rolling summary through `conversation_insights_snapshot`, with a target/content
 `cins1` identity, exact legacy-global fallback and unavailable orphan/cleared
 summaries; it never reads raw messages or implies full transcript coverage.
-Reading-intention and book-memory producers, authorized queries, resource export and
+Reading intentions now compose active opted-in provider snapshots: Reading Goals
+prepares its own legacy migration, reads a durable private document, and carries
+its revision (including tombstones). A frozen registration set and host-owned
+realm lifetime complement the SQLite source clock. The `rint1` identity records
+scope, stable provider IDs, versions and text, not registry order or display names.
+The book-memory producer, authorized queries, resource export and
 user-facing consumers are not wired yet; MEM13 remains partial. See
 [context-bundles](./context-bundles.md) for the contract and closing conditions.
 

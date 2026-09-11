@@ -292,6 +292,7 @@ function buildContext(
       void call.then(() => storageSnapshot.settle(id), () => storageSnapshot.settle(id));
       return call as Promise<void>;
     },
+    getDurable: <T = unknown>(key: string) => callHost("services.storage.getDurable", [key]) as Promise<T | null>,
     flush: () => callHost("services.storage.flush", []),
     applyDocuments: (changes: import("@read-aware/plugin-types").PluginDocumentChange[]) => {
       assertLocalStorageWrite();
@@ -455,6 +456,7 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
           logging: pluginContext.services.logging,
           storage: {
             get: pluginContext.services.storage.get,
+            getDurable: pluginContext.services.storage.getDurable,
             set: pluginContext.services.storage.set,
             remove: pluginContext.services.storage.remove,
             flush: pluginContext.services.storage.flush,

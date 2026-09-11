@@ -74,6 +74,12 @@ test("bundle publication is an event projection foundation, not a public export 
     .toMatchObject({ family: "Native command", rows: ["MEM13"] });
 });
 
+test("durable private source reads are explicit inventory entries, not raw global KV for actors", () => {
+  const inventory = collectInventory();
+  expect(inventory.find(item => item.name === "services.storage.getDurable")?.rows).toEqual(["SYS01", "MEM13"]);
+  expect(inventory.find(item => item.name === "storage::get_kv")?.rows).toEqual(["SYS01", "MEM13"]);
+});
+
 test("reading AI actions have explicit per-feature mappings in both Agent scopes", () => {
   const inventory = collectInventory();
   const actions = { explain_selection: "SET18", define_term: "SET19", translate_selection: "SET20", summarize_chapter: "SET21" };

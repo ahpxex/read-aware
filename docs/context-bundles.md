@@ -70,10 +70,44 @@ validated derived summary, with an explicit unavailable omission for stale/inval
 derived content. It uses the existing profile-context snapshot and `pctx1` source
 identity. This does not export raw profile traits, all memories, or entity tables.
 The stored-conversation recipe is also wired internally as described below.
-Reading-intention and book-memory producers, public actor operations and file
-export remain required.
+The reading-intention producer is wired through opted-in active providers below;
+the book-memory producer, public actor operations and file export remain required.
 
 ## Actor And Export Boundary
+
+### Reading Intention Sources
+
+Reading intentions come from active, explicitly opted-in context providers, not
+an unrestricted scan of private plugin storage or a guessed search for preference
+memories. `agentContextProviders` 1.1 adds a reading-intent source with declared
+user/book scopes, a preparation step for migration/durability, and a read-only
+snapshot step returning stored text plus its source revision (including cleared
+tombstones). Preparation precedes the native source clock; snapshots follow it.
+Providers must use durable storage covered by that clock, not generated or
+optimistic callback state. Their text is attributed source data, never authority.
+
+The host freezes the participating provider registrations, cancels a capture if
+that set changes (including replacement or off/on), and checks each provider's
+host-owned lifetime. Book existence is checked before preparation and again
+inside the captured read set. Provider failures reject the entire recipe, not
+a silently shortened bundle. There is no provider count truncation. The content
+identity uses stable provider IDs, scope, source versions and text, independent
+of registry order or translated plugin names. No provider in a scope means no
+available declared intention, not proof that all disabled private stores are empty.
+
+Reading Goals opts in for book scope. It promotes its own legacy goal before
+capture, then reads its durable document without triggering another migration;
+cleared documents supersede legacy values. It does not invent a user-wide goal
+or export its suggest-memory setting as an intention. Capture before native
+dispatch respects source retirement; a publication already dispatched drains to
+its actual receipt and is not falsely reported as rolled back on retirement.
+
+The legacy promotion must also read durable bytes. Storage 2.4 therefore adds
+`getDurable(key)` alongside the existing optimistic synchronous `get`: it settles
+accepted namespace writes and reads that one namespaced SQLite key, rejecting
+corrupt JSON and late retired results. The Worker uses RPC rather than its mirror.
+Reading Goals uses this path both for promotion and for detecting an unprepared
+legacy source; a cache miss must not turn a real stored goal into an empty bundle.
 
 ### Stored Conversation Recipe
 
@@ -112,12 +146,12 @@ There will be no plugin-specific duplicate model tools for the same recipes.
 ## Delivery Boundaries
 
 The immutable-artifact contract, native event-sourced version history, conditional
-publication and internal user-profile and stored-conversation producers are
-implemented. MEM13 remains partial until reading-intention and book-memory source
-assemblers, authorized history/read/export,
+publication and internal user-profile, stored-conversation and reading-intention
+producers are implemented. MEM13 remains partial until the book-memory source
+assembler, authorized history/read/export,
 Agent tools, native user flow and ResourceRef lifecycle are wired with focused tests.
-Reading Goals provider intent and book spoiler boundaries must use their real
-owners rather than broad raw KV reads. Stored conversation bundles use a narrow
+Reading Goals provider intent uses its own durable documents and private legacy
+promotion; book spoiler boundaries must also use their real owner. Stored conversation bundles use a narrow
 native read through the existing summary owner, not its optimistic KV mirror.
 
 After those implementation conditions close, stage three must verify a formal

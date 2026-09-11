@@ -15,7 +15,7 @@ test("all three tools register in both scopes, with writes requiring host approv
   expect(f.tools.get("set_reading_goal")!.approval).toBe("required");
   expect(f.tools.get("clear_reading_goal")!.approval).toBe("required");
   expect(manifest.requires.contributions.agentTools).toBe("^1.2.0");
-  expect(manifest.requires.services.storage).toBe("^2.1.0");
+  expect(manifest.requires.services.storage).toBe("^2.4.0");
   expect(manifest.requires.contributions.memoryCandidateProviders).toBe("^1.1.0");
   expect(manifest.permissions).toContain("agent:tools");
   const built = await Bun.build({ entrypoints: [new URL("../src/index.ts", import.meta.url).pathname], target: "browser" });

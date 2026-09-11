@@ -1702,6 +1702,9 @@ export type PluginDomains = {
 
 export type PluginStorage = {
   get<T = unknown>(key: string): T | null;
+  /** 2.4: keys up to 1024 UTF-16 units, no NUL. Settle accepted writes, then read this private key from SQLite, not
+   * the optimistic mirror. Corrupt JSON rejects; null means absent or JSON null. */
+  getDurable<T = unknown>(key: string): Promise<T | null>;
   /** Reads update optimistically; resolve only after the write is durable. */
   set(key: string, value: unknown): Promise<void>;
   remove(key: string): Promise<void>;
@@ -1842,6 +1845,14 @@ export type PluginAgentContextBlock = {
 export type PluginAgentContextProvider = {
   id: string;
   contexts?: Array<PluginAgentScope["kind"]>;
+  /** 1.1: explicit durable intention source for context bundles, not prompt text.
+   * Preparation settles migrations/writes; read must use committed storage and
+   * must not generate text or return an optimistic cache. */
+  readingIntent?: {
+    scopes: Array<"user" | "book">;
+    prepare(scope: import("@read-aware/core").ReadingIntentScope): Promise<void>;
+    read(scope: import("@read-aware/core").ReadingIntentScope): Promise<import("@read-aware/core").ReadingIntentSnapshot>;
+  };
   provide(input: {
     scope: PluginAgentScope;
     userText: string;

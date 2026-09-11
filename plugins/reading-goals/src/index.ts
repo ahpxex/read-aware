@@ -8,6 +8,7 @@ import { readingInsightsForm } from "./insights-view";
 import { insightsCopy } from "./insights-strings";
 import { registerGoalTools } from "./tools";
 import { registerGoalMemory } from "./memory-status";
+import { readingGoalSource } from "./context-source";
 
 export default {
   activate(ctx) {
@@ -20,7 +21,7 @@ export default {
     ctx.contributions.commands.register({ id: "time", title: timeCopy(ctx.locale).title, icon: "clock", run: async () => ({ view: await readingTimeView(ctx) }) });
     ctx.contributions.commands.register({ id: "insights", title: insightsCopy(ctx.locale).title, icon: "chart-line-up", run: () => ({ view: readingInsightsForm(ctx) }) });
     registerGoalTools(ctx);
-    agentContextProviders.register({ id: "reading-goal", contexts: ["book"], provide: async ({ scope }) => {
+    agentContextProviders.register({ id: "reading-goal", contexts: ["book"], readingIntent: readingGoalSource(ctx), provide: async ({ scope }) => {
       const goal = scope.kind === "book" ? await readGoal(ctx, scope.bookId) : null;
       return goal ? [{ title, content: goal.text }] : [];
     } });

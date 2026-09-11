@@ -5,6 +5,7 @@ import { deferred } from "../../tests/helpers/profile-host";
 import type { DomainEventDraft } from "../platform/domain-events";
 import insightsGolden from "../../../../packages/core/src/context-bundle-insights.golden.json";
 import type { ConversationInsightsSnapshot, ConversationTarget } from "@read-aware/core";
+import { createReadingIntentSources } from "../features/plugins/runtime/plugin-reading-intents";
 
 function fixture() {
   const calls: string[] = [], broadcasts: DomainEventDraft[] = [], warnings: string[] = [];
@@ -12,9 +13,15 @@ function fixture() {
   const controls = { before: async (_step: string) => {}, changed: true, badReceipt: false };
   const insights = structuredClone(insightsGolden) as ConversationInsightsSnapshot;
   let readTarget: ConversationTarget | undefined;
+  const intentLifetime = new AbortController(); let intentObservers = 0;
   let publication: { event: { payload: ContextBundle; origin: string }; expectedReadRevision: string } | undefined;
   async function step(name: string) { calls.push(name); await controls.before(name); }
+  const intentProvider = { id: "goal", key: "owner:goal", pluginId: "owner", pluginName: "Owner", provide: () => [],
+    readingIntentLifetime: intentLifetime.signal, readingIntent: { scopes: ["book", "user"] as Array<"book" | "user">,
+      prepare: () => step("prepare-intents"), read: async () => { await step("read-intents"); return { text: "Read carefully", revision: "doc:1" }; } } };
   const service = createContextBundleService({
+    intents: createReadingIntentSources({ list: () => [intentProvider],
+      observe: () => { intentObservers++; return () => { intentObservers--; }; }, requireBook: () => step("intent-book") }),
     initialize: () => step("initialize"), warn: message => { warnings.push(message); },
     insights: { prepare: () => step("prepare-insights"), read: async target => {
       readTarget = structuredClone(target); await step("read-insights"); return structuredClone(insights);
@@ -30,7 +37,8 @@ function fixture() {
       return { version: controls.badReceipt ? "wrong" : publication!.event.payload.version, changed: controls.changed, persistence: "event-log" } as T;
     },
   });
-  return { service, calls, broadcasts, warnings, snapshot, insights, controls, publication: () => publication, readTarget: () => readTarget };
+  return { service, calls, broadcasts, warnings, snapshot, insights, controls, intentLifetime, intentObservers: () => intentObservers,
+    publication: () => publication, readTarget: () => readTarget };
 }
 
 test("capture initializes durable sources, fences before reads, publishes origin and broadcasts only actual changes", async () => {
@@ -116,5 +124,24 @@ test("conversation owner failures and cancellation at every boundary never publi
     host.controls.before = async step => { if (step === fail) throw error; };
     await expect(host.service.captureConversation({ kind: "book", id: "book:one" }, "user")).rejects.toBe(error);
     expect(host.calls.filter(step => step === fail)).toHaveLength(1); expect(host.broadcasts).toHaveLength(0);
+  }
+});
+
+test("intention capture prepares before the native clock, reads within it and cleans up its lease", async () => {
+  const host = fixture(), scope = { kind: "book" as const, id: "one" };
+  const pending = host.service.captureIntent(scope, "user"); scope.id = "other";
+  const result = await pending;
+  expect(host.calls).toEqual(["initialize", "intent-book", "prepare-intents", "context_bundle_source_revision", "intent-book", "read-intents", "mint", "context_bundle_publish", "broadcast"]);
+  expect(result.bundle.content).toMatchObject({ kind: "reading_intent_context", scope: { kind: "book", id: "one" }, items: [{ text: "Read carefully", revision: "doc:1" }] });
+  expect(host.intentObservers()).toBe(0);
+});
+
+test("source retirement prevents undispatched publication but preserves actual dispatched receipt", async () => {
+  for (const pause of ["prepare-intents", "read-intents", "mint", "context_bundle_publish"]) {
+    const host = fixture(); host.controls.before = async step => { if (step === pause) host.intentLifetime.abort(); };
+    const pending = host.service.captureIntent({ kind: "user" }, "user");
+    if (pause === "context_bundle_publish") { expect((await pending).receipt.changed).toBe(true); expect(host.broadcasts).toHaveLength(1); }
+    else { await expect(pending).rejects.toBeDefined(); expect(host.calls).not.toContain("context_bundle_publish"); }
+    expect(host.intentObservers()).toBe(0);
   }
 });

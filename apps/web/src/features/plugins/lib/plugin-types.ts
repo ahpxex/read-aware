@@ -96,6 +96,8 @@ export type RegisteredAgentContextProvider = PluginAgentContextProvider & {
   key: ContributionKey;
   pluginId: string;
   pluginName: string;
+  /** Host-owned realm guard; plugin-supplied values are never retained. */
+  readingIntentLifetime?: AbortSignal;
 };
 
 export type RegisteredAgentRetrievalProvider = PluginAgentRetrievalProvider & {

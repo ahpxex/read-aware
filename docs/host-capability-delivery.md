@@ -2,6 +2,20 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：第一段 context bundle 阅读意图与真实私有来源
+
+[进度/设计] 上轮1c522fff对话纪要生产链已推送且landing CI通过，是有效进展。本组继续MEM13第三个recipe，先写意图来源/生命周期设计，再实现agentContextProviders1.1的显式readingIntent声明：user/book scope、准备步骤及有版本的持久只读快照。不是通用prompt provide结果转存，也不扫描禁用插件私有数据或猜测全局preference记忆。不扩展第二段组合插件。
+
+[来源/接线] Reading Goals声明book来源，准备阶段自行迁移legacy并等待持久化，源clock之后只读真实版本文档；tombstone压过旧KV，未准备legacy拒绝，不虚构user-wide意图。rint1按scope及稳定plugin/provider ID、版本和正文排序hash，注册顺序/翻译名称不影响版本；无provider、来源不存在和已清空可区分。冻结来源注册集并观察替换/off-on，宿主覆盖插件伪造的realm信号；准备及读集内两次验证书存在，错误不缩短bundle。调用者取消可立即放弃挂起回调，底层仍按lifecycle排空，退休后的非取消源错误记录日志。捕获到派发前信号失效不写，派发后保留实际写回执，观察最终释放。
+
+[持久缺口修复] 核对发现legacy迁移的storage.get依然来自Worker/宿主镜像，不能作durable来源。storage2.4新增getDurable：等待已接受namespace写与flush，经宿主固定前缀调用单键get_kv SQLite查询；不导出全库，不解析路径，最长1024 UTF-16键且禁NUL。坏JSON/读失败拒绝，空键值JSON null与缺失均null，退休不交付迟到读。Worker与storage-only迁移上下文都走RPC；Reading Goals迁移和未准备检查均改用真实持久读。原同步get语义不变，manifest仅要求新能力版本；正式插件构建仍后置，未将现有dist当新源码产物。
+
+[验证] 83项定向TS测试/646断言通过，含原画像/对话capture回归、Reading Goals全套、核心版本化、生产注册/来源集ABA/退休、命名空间durable KV和真实Bun Worker的嵌套prepare/read回调与单键RPC。storage原生198项通过，既有百万事件压力1项默认忽略，新增单键精确读取/回滚/失败测试；既有跨连接源clock和文档事务测试也通过。core、plugin-types、Reading Goals、Web（Foliate及迁出桌面脚本）类型通过。初次测试发现旧manifest断言与同步拒绝断言不匹配，以及退休后多余assertActive制造假清理错误；已用原生realm取消原因修正并复跑。未启动桌面/浏览器、完整构建或正式插件，保留既有Rust警告及用户表单工作。
+
+[剩余] MEM13仍部分、双端未接：只剩书内记忆recipe生产者尚待接入真实来源/剧透/生命周期；还需双端授权历史/读取/封口ResourceRef导出、Agent及原生入口、文本隐私/撤权和完整持久结果边界。SYS01新增持久单键读记接通（待E2E），真实Tauri和正式插件全部仍第三段。来源契约要求provider实际使用durable存储，不把类型检查或回调声明当恶意插件语义证明；安装信任边界不变。源矩阵/模型/设计/数据模型同步，HTML每日集中，本组独立提交并push。
+
+[燃尽] 剩余部分/未接行数81；未覆盖行数240；未验收插件数15（包含9个组合桌面插件）。
+
 ## 2026-09-11：第一段 context bundle 对话纪要真实来源
 
 [进度/设计] 上轮94a959d9一致源条件发布与画像生产者已推送且CI通过，是有效进展。本组继续MEM13第二个实际recipe，先明确已存滚动纪要契约：不是转录dump、不调用模型重做、不声称覆盖最新消息，也不凭无章节来源的纪要声称倒退阅读后已重新过滤剧透。不新增第二段组合插件。

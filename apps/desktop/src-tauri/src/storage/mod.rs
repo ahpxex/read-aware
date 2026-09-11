@@ -288,6 +288,21 @@ pub async fn load_kv_all(
     .await
 }
 
+/// Read one durable key without exporting the rest of the store.
+pub(crate) fn get_kv_inner(conn: &Connection, key: &str) -> Result<Option<String>, CommandError> {
+    use rusqlite::OptionalExtension;
+    Ok(conn.query_row("SELECT value_json FROM app_kv WHERE key=?1", [key], |row| row.get(0)).optional()?)
+}
+
+#[tauri::command]
+pub async fn get_kv(app: tauri::AppHandle, key: String) -> Result<Option<String>, CommandError> {
+    blocking("get_kv", move || {
+        let db = tauri::Manager::state::<Db>(&app);
+        let conn = db.0.lock()?;
+        get_kv_inner(&conn, &key)
+    }).await
+}
+
 /// Upsert one config key (write-through from `localKV.setItem`).
 #[tauri::command]
 pub async fn set_kv(

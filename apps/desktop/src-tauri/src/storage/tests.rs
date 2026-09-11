@@ -12,6 +12,21 @@ mod context_bundle_publication_tests;
 #[path = "conversation_insights_tests.rs"]
 mod conversation_insights_tests;
 
+#[test]
+fn durable_kv_single_key_reads_exact_committed_bytes_and_propagates_read_failure() {
+    let mut conn = migrated_conn();
+    conn.execute("INSERT INTO app_kv(key,value_json,updated_at) VALUES('owner:key','\"own\"','now'),('other:key','\"private\"','now')", []).unwrap();
+    assert_eq!(get_kv_inner(&conn, "owner:key").unwrap().as_deref(), Some("\"own\""));
+    assert_eq!(get_kv_inner(&conn, "owner:../other:key").unwrap(), None);
+    {
+        let tx = conn.transaction().unwrap();
+        tx.execute("UPDATE app_kv SET value_json='\"rolled-back\"' WHERE key='owner:key'", []).unwrap();
+    }
+    assert_eq!(get_kv_inner(&conn, "owner:key").unwrap().as_deref(), Some("\"own\""));
+    conn.execute_batch("ALTER TABLE app_kv RENAME TO unavailable_kv").unwrap();
+    assert!(get_kv_inner(&conn, "owner:key").is_err());
+}
+
 fn test_conn() -> Connection {
     let conn = Connection::open_in_memory().expect("open in-memory db");
     apply_connection_pragmas(&conn).expect("pragmas");

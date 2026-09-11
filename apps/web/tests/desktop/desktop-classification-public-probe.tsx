@@ -22,7 +22,7 @@ export async function prepareClassificationPublicProbe() {
   seed = await prepareMemoryDomainProbe();
   for (const role of ["empty", "read", "write"] as const) {
     const manifest: PluginManifest = { id: `capability-classification-${role}`, name: "Classification probe", version: "1.0.0", schemaVersion: 1,
-      description: JSON.stringify({ bookId: seed.bookId }), permissions: role === "empty" ? [] : [role === "read" ? "memory:read" : "memory:write"], requires: { domains: { memory: "^1.3.0" } } };
+      description: JSON.stringify({ bookId: seed.bookId }), permissions: role === "empty" ? [] : [role === "read" ? "memory:read" : "memory:write"], requires: { domains: { memory: "^2.0.0" } } };
     const worker = await startPluginWorker(manifest, "0.5.4", owned, { moduleUrl: new URL("./classification-domain-probe.ts", import.meta.url).href });
     workers.push(worker); await worker.checkHealth(); worker.promote();
   }

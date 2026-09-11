@@ -58,7 +58,7 @@ export async function prepareBookGraphTaskProbe() {
   for (const role of ["read", "write", "llm"] as const) {
     const declaration: PluginManifest = { id: `capability-graph-task-${role}`, name: "Graph task probe", version: "1.0.0", schemaVersion: 1,
       description: JSON.stringify({ bookId: seed.bookId }), permissions: role === "read" ? ["memory:read"] : role === "write" ? ["memory:write"] : ["memory:write", "service:llm"],
-      requires: { domains: { memory: "^1.5.0" } } };
+      requires: { domains: { memory: "^2.0.0" } } };
     const worker = await startPluginWorker(declaration, "0.5.4", owned, { moduleUrl: new URL("./book-graph-task-probe.ts", import.meta.url).href });
     workers.set(role, worker); await worker.checkHealth(); worker.promote();
   }

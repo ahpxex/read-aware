@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { DOMAIN_CATALOG } from "@read-aware/core";
+import { DOMAIN_CATALOG, HOST_SERVICE_CATALOG } from "@read-aware/core";
 import type { PluginManifest } from "../lib/plugin-types";
 import {
   assertPluginCapabilityRequirements,
@@ -18,6 +18,13 @@ function manifest(patch: Partial<PluginManifest> = {}): PluginManifest {
 }
 
 describe("plugin capability negotiation", () => {
+  test("memory 2 rejects profile1 clients rather than silently changing their persistence contract", () => {
+    for (const permission of ["memory:read", "memory:write"] as const) {
+      expect(resolvePluginCapabilities(manifest({ permissions: [permission] })).domains.memory).toBe("2.0.0");
+      expect(() => assertPluginCapabilityRequirements(manifest({ permissions: [permission], requires: { domains: { memory: "^1.8.0" } } }))).toThrow(/host provides 2.0.0/);
+      expect(() => assertPluginCapabilityRequirements(manifest({ permissions: [permission], requires: { domains: { memory: "^2.0.0" } } }))).not.toThrow();
+    }
+  });
   test("annotation 2 requires conditional edits and rejects clients expecting legacy aliases", () => {
     for (const permission of ["annotations:read", "annotations:write"] as const) {
       expect(resolvePluginCapabilities(manifest({ permissions: [permission] })).domains.annotations).toBe("2.0.0");
@@ -66,7 +73,7 @@ describe("plugin capability negotiation", () => {
       assertPluginCapabilityRequirements(
         manifest({ requires: { services: { storage: "^1.0.0" } } }),
       ),
-    ).toThrow(/host provides 2.1.0/);
+    ).toThrow(`host provides ${HOST_SERVICE_CATALOG.storage.version}`);
   });
 
   test("accepts the awaited storage contract", () => {

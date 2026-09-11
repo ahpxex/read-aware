@@ -1653,7 +1653,7 @@ export type PluginDomains = {
   conversations?: PluginConversationsDomain;
   /** Memory 1.7. Graph generation additionally requires service:llm; handles belong to this activation. */
   memory?: { queries: {
-    /** The user's existing device-local plain-text summary; read grant, bounded revision-pinned pages. */
+    /** The event-backed summary projection; read grant, bounded revision-pinned pages. */
     profile(query?: import("@read-aware/core").UserProfileQuery): Promise<import("@read-aware/core").UserProfilePage>;
     inspect(id: string): Promise<import("@read-aware/core").MemorySnapshot | null>;
     classification(bookId: string): Promise<import("@read-aware/core").BookClassificationSnapshot | null>;
@@ -1663,7 +1663,7 @@ export type PluginDomains = {
     page(input: import("@read-aware/core").MemoryPageQuery): Promise<import("@read-aware/core").MemoryPage>;
     bookGraph(bookId: string, query?: import("@read-aware/core").BookGraphQuery): Promise<import("@read-aware/core").BookGraphResult>;
   }; commands?: {
-    /** Replace the device-local summary using the observed profile revision.
+    /** Replace the event-backed summary using the observed profile2 revision.
      * Present the complete candidate for user confirmation before calling.
      * Empty text clears the summary, not memories or historical copies. */
     updateProfile(input: import("@read-aware/core").UserProfileChange): Promise<import("@read-aware/core").UserProfileReceipt>;

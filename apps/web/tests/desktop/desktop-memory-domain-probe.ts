@@ -48,7 +48,7 @@ export async function prepareMemoryDomainProbe() {
     await commitDomainEvents({ type: "memory.promoted", origin: "agent", payload: { memoryId, kind: "preference", scope: scope.startsWith("book:") ? "book" : scope as "user" | "global", ...(scope.startsWith("book:") ? { bookId: bookId as Id } : {}), content: `${marker}: ${scope} evidence`, importance: 0.5 } });
   }
   for (const granted of [false, true]) await start({ id: `capability-memory-domain-${granted ? "read" : "empty"}`, name: "Memory domain probe", version: "1.0.0", schemaVersion: 1,
-    description: JSON.stringify({ bookId, marker }), permissions: granted ? ["memory:read"] : [], requires: { domains: { memory: "^1.0.0" } } }, new URL("./memory-domain-probe.ts", import.meta.url).href);
+    description: JSON.stringify({ bookId, marker }), permissions: granted ? ["memory:read"] : [], requires: { domains: { memory: "^2.0.0" } } }, new URL("./memory-domain-probe.ts", import.meta.url).href);
   await start({ ...manifest, id: "capability-memory-domain-desk" } as PluginManifest, new URL("../../../../plugins/memory-desk/dist/main.js", import.meta.url).href);
   return { path, bookId, marker, memoryIds, chapters: chapters.map((chapter, index) => ({ index, hrefs: chapter.hrefs })) };
 }

@@ -8,7 +8,7 @@ export async function profileView(ctx: PluginContext, offsets = [0], expectedRev
   return { kind: "detail", title: t.profile, content: [
     { kind: "text", text: page.text || (page.exists ? t.empty : t.absent) },
     { kind: "text", variant: "caption", text: `${page.totalLength ? page.offset + 1 : 0}-${page.offset + page.text.length} / ${page.totalLength}` },
-  ], metadata: [{ kind: "label", label: t.profile, value: t.local }], actions: [
+  ], metadata: [{ kind: "label", label: t.profile, value: t.syncable }], actions: [
     { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await profileView(ctx), navigation: "replace" }) },
     ...pageActions(ctx.locale, offsets, page.nextOffset, next => profileView(ctx, next, page.revision)),
     ...(memory.commands && page.totalLength <= 16000 ? [{ id: "edit", label: t.edit, icon: "pencil-simple",

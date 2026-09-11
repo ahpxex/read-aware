@@ -78,7 +78,7 @@
         },
         "updateProfile": {
           "question": "Replace your profile?",
-          "description": "Replace your entire device-local profile with the text below. Empty text clears the summary. This affects future conversations, but does not remove memories, transcripts or backups.\n\n{{subject}}",
+          "description": "Replace your profile summary with the text below. Empty text clears the summary. This affects future conversations and, when sync is enabled, your other devices. It does not remove memories, transcripts or backups.\n\n{{subject}}",
           "approve": "Save profile"
         },
         "downloadResource": {

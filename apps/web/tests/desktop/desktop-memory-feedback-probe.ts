@@ -15,7 +15,7 @@ export async function prepareMemoryFeedbackProbe() {
   seed = await prepareMemoryDomainProbe();
   for (const write of [false, true]) {
     const manifest: PluginManifest = { id: `capability-memory-feedback-${write ? "write" : "read"}`, name: "Memory feedback probe", version: "1.0.0", schemaVersion: 1,
-      description: JSON.stringify({ memoryId: seed.memoryIds[0] }), permissions: [write ? "memory:write" : "memory:read"], requires: { domains: { memory: "^1.1.0" } } };
+      description: JSON.stringify({ memoryId: seed.memoryIds[0] }), permissions: [write ? "memory:write" : "memory:read"], requires: { domains: { memory: "^2.0.0" } } };
     const worker = await startPluginWorker(manifest, "0.5.4", owned, { moduleUrl: new URL("./memory-feedback-probe.ts", import.meta.url).href });
     workers.push(worker); await worker.checkHealth(); worker.promote();
   }

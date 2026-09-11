@@ -1,66 +1,87 @@
-import { expect, spyOn, test } from "bun:test";
-import { userProfilePage } from "@read-aware/core";
-import * as store from "../platform/local-store";
-import { KVWriteQueue } from "../platform/kv-write-queue";
-import { changeUserProfile } from "./user-profile";
-import { buildPluginContext } from "../features/plugins/runtime/plugin-context";
-import type { PluginPermission } from "@read-aware/plugin-types";
+import { expect, test } from "bun:test";
+import { AppError } from "@read-aware/core";
+import { deferred, profileHost } from "../../tests/helpers/profile-host";
 
-test("conditional profile writes share the durable KV queue, reject competing edits and preserve failed values", async () => {
-  let value: string | null = "Original", durable = value;
-  let persist: () => Promise<void> = async () => {};
-  const actors: unknown[] = [];
-  const queue = new KVWriteQueue({ read: () => value, mirror: (_key, next) => { value = next; },
-    persist: async () => {}, committed: () => {}, failed: () => {}, settled: commit => { actors.push(commit.actor); } });
-  const read = spyOn(store.localKV, "getItem").mockImplementation(key => key === "read-aware-agent-profile" ? value : null);
-  const barrier = spyOn(store, "afterLocalKVWrites").mockImplementation(operation => queue.afterPending(operation));
-  const write = spyOn(store, "setLocalKVBatch").mockImplementation((entries, actor, source, owner) =>
-    queue.batch(entries, async () => { await persist(); durable = [...entries.values()][0]!; }, actor, source, owner));
-  const runtimes: ReturnType<typeof buildPluginContext>[] = [];
-  const actor = (permissions: PluginPermission[]) => {
-    const runtime = buildPluginContext({ id: "profile-write", name: "Profile", version: "1.0.0", schemaVersion: 1,
-      requires: { domains: { memory: "^1.7.0" } }, permissions }, "0.5.4", []);
-    runtime.lifecycle.promote(); runtimes.push(runtime); return runtime;
-  };
-  try {
-    expect(actor([]).context.domains.memory).toBeUndefined();
-    expect(actor(["memory:read"]).context.domains.memory?.commands).toBeUndefined();
-    const runtime = actor(["memory:write"]), memory = runtime.context.domains.memory!;
-    const input = { summary: "Candidate", expectedRevision: (await memory.queries.profile()).revision };
-    let start!: () => void, release!: () => void;
-    const started = new Promise<void>(resolve => { start = resolve; });
-    persist = () => { start(); return new Promise(resolve => { release = resolve; }); };
-    let finished = false;
-    const pending = memory.commands!.updateProfile(input).then(receipt => { finished = true; return receipt; });
-    input.summary = "Mutated caller input";
-    await started;
-    expect(finished).toBe(false); expect(durable).toBe("Original");
-    runtime.lifecycle.stop();
-    let drained = false;
-    const draining = runtime.lifecycle.drainCleanups().then(() => { drained = true; });
-    await Promise.resolve(); expect(drained).toBe(false);
-    release();
-    expect(await pending).toMatchObject({ changed: true, persistence: "device-local" });
-    await draining; expect(durable).toBe("Candidate"); expect(actors).toEqual(["plugin:profile-write"]);
-    expect(() => memory.commands!.updateProfile(input)).toThrow();
+test("initialization retries failure, shares in-flight work and broadcasts only actual migrated bytes", async () => {
+  const host = await profileHost("Durable legacy");
+  host.controls.initializationFailure = new AppError("db/locked", "retry");
+  await expect(host.service.read()).rejects.toMatchObject({ code: "db/locked" });
+  expect(host.broadcasts).toHaveLength(0);
+  host.controls.initializationFailure = undefined; host.controls.migrated = true;
+  expect(await Promise.all([host.service.read(), host.service.read()])).toEqual(["Durable legacy", "Durable legacy"]);
+  expect(host.calls.filter(call => call.command === "profile_initialize")).toHaveLength(2);
+  expect(host.calls.filter(call => call.command === "profile_initialize")[1]).toMatchObject({ args: { event: { origin: "system", payload: {} } } });
+  expect(host.broadcasts).toEqual([{ type: "profile.updated", payload: { summary: "Durable legacy" }, origin: "system" }]);
+});
 
-    persist = async () => {};
-    const expectedRevision = (await userProfilePage(value ?? undefined)).revision;
-    const results = await Promise.allSettled([
-      changeUserProfile({ expectedRevision, summary: "First" }, "agent"),
-      changeUserProfile({ expectedRevision, summary: "Second" }, "agent"),
-    ]);
-    expect(results.filter(result => result.status === "fulfilled")).toHaveLength(1);
-    expect(results.find(result => result.status === "rejected")).toMatchObject({ reason: { code: "memory/conflict" } });
-    expect(value).toBe(durable);
-    const committed = value, revision = (await userProfilePage(value ?? undefined)).revision;
-    persist = async () => { throw new Error("disk failure"); };
-    await expect(changeUserProfile({ expectedRevision: revision, summary: "Failed" }, "agent")).rejects.toThrow("disk failure");
-    expect(value).toBe(committed); expect(durable).toBe(committed);
-    await expect(changeUserProfile({ expectedRevision: revision, summary: "Cancelled" }, "agent", AbortSignal.abort())).rejects.toBeDefined();
-    expect(value).toBe(committed);
-  } finally {
-    for (const runtime of runtimes) runtime.lifecycle.stop();
-    read.mockRestore(); barrier.mockRestore(); write.mockRestore();
-  }
+test("reads always inspect the projection, propagate failures and cancel late results", async () => {
+  const host = await profileHost();
+  const first = await host.service.page();
+  await host.remote("Changed remotely");
+  expect(await host.service.read()).toBe("Changed remotely");
+  await expect(host.service.page({ expectedRevision: first.revision })).rejects.toMatchObject({ code: "memory/conflict" });
+  host.controls.readFailure = new AppError("db/locked", "private details");
+  await expect(host.service.read()).rejects.toMatchObject({ code: "db/locked" });
+  host.controls.readFailure = undefined;
+  const entered = deferred(), gate = deferred(), controller = new AbortController();
+  host.controls.beforeRead = () => { entered.resolve(); return gate.promise; };
+  const pending = host.service.page({}, controller.signal);
+  await entered.promise; controller.abort(); gate.resolve();
+  await expect(pending).rejects.toBeDefined();
+});
+
+test("writes carry immutable candidate, origin and observed native revision, and drain after dispatch", async () => {
+  const host = await profileHost(), old = host.current();
+  await host.service.initialize();
+  const entered = deferred(), gate = deferred(), controller = new AbortController();
+  host.controls.beforeCommit = () => { entered.resolve(); return gate.promise; };
+  const input = { summary: "Candidate", expectedRevision: old.revision };
+  const pending = host.service.change(input, "plugin:profile", controller.signal);
+  input.summary = "Mutated";
+  await entered.promise;
+  expect(host.current()).toEqual(old); expect(host.broadcasts).toHaveLength(0);
+  controller.abort(); gate.resolve();
+  expect(await pending).toMatchObject({ changed: true, persistence: "event-log" });
+  expect(host.current().summary).toBe("Candidate");
+  expect(host.calls.at(-1)).toMatchObject({ command: "profile_commit", args: { expectedRevision: old.revision, event: { origin: "plugin:profile", payload: { summary: "Candidate" } } } });
+  expect(host.broadcasts).toEqual([{ type: "profile.updated", payload: { summary: "Candidate" }, origin: "plugin:profile" }]);
+});
+
+test("conflicting and failed transactions do not publish success or silently retry", async () => {
+  const host = await profileHost();
+  const input = { summary: "First", expectedRevision: host.current().revision };
+  const results = await Promise.allSettled([host.service.change(input, "agent"), host.service.change({ ...input, summary: "Second" }, "agent")]);
+  expect(results.filter(result => result.status === "fulfilled")).toHaveLength(1);
+  expect(results.find(result => result.status === "rejected")).toMatchObject({ reason: { code: "memory/conflict" } });
+  expect(host.broadcasts).toHaveLength(1);
+  const committed = host.current();
+  host.controls.beforeCommit = async () => { throw new AppError("db/locked", "fault"); };
+  await expect(host.service.change({ summary: "Failed", expectedRevision: committed.revision }, "agent")).rejects.toMatchObject({ code: "db/locked" });
+  expect(host.current()).toEqual(committed); expect(host.broadcasts).toHaveLength(1);
+});
+
+test("cancellation before dispatch prevents the candidate write; no-op does not broadcast", async () => {
+  const host = await profileHost(); await host.service.initialize();
+  const input = { summary: "Cancelled", expectedRevision: host.current().revision };
+  await expect(host.service.change(input, "agent", AbortSignal.abort())).rejects.toBeDefined();
+  const entered = deferred(), gate = deferred(), controller = new AbortController();
+  host.controls.beforeMint = () => { entered.resolve(); return gate.promise; };
+  const pending = host.service.change(input, "agent", controller.signal);
+  await entered.promise; controller.abort(); gate.resolve();
+  await expect(pending).rejects.toBeDefined();
+  expect(host.calls.some(call => call.command === "profile_commit")).toBe(false);
+  host.controls.beforeMint = async () => {};
+  expect(await host.service.change({ ...input, summary: "Original" }, "agent")).toMatchObject({ changed: false });
+  expect(host.broadcasts).toHaveLength(0);
+});
+
+test("onboarding and host-only archive restore both use conditional event writes", async () => {
+  const host = await profileHost();
+  await host.service.put("Onboarding");
+  expect(host.current().summary).toBe("Onboarding");
+  const summary = "x".repeat(16001), observed = host.current().revision;
+  await expect(host.service.change({ summary, expectedRevision: observed }, "agent")).rejects.toMatchObject({ code: "memory/invalid-input" });
+  await host.service.restore(summary, observed);
+  expect(host.calls.at(-1)).toMatchObject({ command: "profile_restore", args: { expectedRevision: observed, event: { origin: "user", payload: { summary } } } });
+  expect(host.current().summary).toBe(summary);
 });

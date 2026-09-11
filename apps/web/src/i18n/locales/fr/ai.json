@@ -78,7 +78,7 @@
         },
         "updateProfile": {
           "question": "Remplacer votre profil ?",
-          "description": "Remplacez tout le profil local par le texte ci-dessous. Un texte vide efface le résumé. Cela affecte les prochaines conversations, sans supprimer les souvenirs, les historiques ni les sauvegardes.\n\n{{subject}}",
+          "description": "Remplacez le résumé du profil par le texte ci-dessous. Un texte vide efface le résumé. Cela affecte les prochaines conversations et, si la synchronisation est activée, vos autres appareils, sans supprimer les souvenirs, les historiques ni les sauvegardes.\n\n{{subject}}",
           "approve": "Enregistrer le profil"
         },
         "downloadResource": {

@@ -32,6 +32,7 @@ import { reconcileGenesisEvents } from "./event-genesis";
 import { hydrateInterimProjections } from "./interim-projections";
 import { createLogger } from "./logger";
 import { hydrateSecrets } from "./secret-store";
+import { initializeUserProfile, LEGACY_PROFILE_KEY } from "../domain/user-profile";
 import { KVWriteQueue, type KVWriteOrigin, type KVCommit, type KVFailureOwner } from "./kv-write-queue";
 export type { KVCommit } from "./kv-write-queue";
 
@@ -278,6 +279,14 @@ export async function hydrateLocalStore(): Promise<void> {
   // for the OS credential store, and the in-memory snapshot the synchronous
   // config readers use is filled.
   await hydrateSecrets();
+
+  // The old summary is no longer a settings snapshot, even when migration must retry.
+  snapshot?.delete(LEGACY_PROFILE_KEY);
+  try {
+    await initializeUserProfile();
+  } catch (err) {
+    log.error("profile initialization failed; profile operations will retry", err);
+  }
 
   // Off the boot-critical path: synthesize creation events for projection rows
   // the event log has never seen (pre-event-era data, v1 backup restores,

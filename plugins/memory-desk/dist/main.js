@@ -342,7 +342,7 @@ var en2 = {
   edit: "Edit profile",
   summary: "Summary",
   save: "Save",
-  confirm: "Confirm replacing the profile, including clearing it if empty",
+  confirm: "Confirm replacing the summary, including clearing it if empty. Changes can sync to other devices.",
   required: "Confirm this change first",
   tooLong: "Maximum 16,000 characters",
   absent: "No profile yet",
@@ -358,14 +358,15 @@ var en2 = {
   noSummary: "No stored summary",
   emptySummary: "Empty summary",
   bookSummary: "Conversation summary",
-  local: "Device-local"
+  local: "Device-local",
+  syncable: "Syncable"
 };
 var zh = {
   profile: "用户画像",
   edit: "编辑画像",
   summary: "摘要",
   save: "保存",
-  confirm: "确认替换画像；内容为空时清空画像",
+  confirm: "确认替换摘要；内容为空时清空摘要。变更可同步至其他设备。",
   required: "请先确认此修改",
   tooLong: "最多 16,000 个字符",
   absent: "尚无画像",
@@ -381,7 +382,8 @@ var zh = {
   noSummary: "尚无已存摘要",
   emptySummary: "摘要为空",
   bookSummary: "对话摘要",
-  local: "仅本机"
+  local: "仅本机",
+  syncable: "可同步"
 };
 var contextWords = (locale) => locale === "zh-Hans" ? zh : en2;
 
@@ -408,7 +410,7 @@ async function profileView(ctx, offsets = [0], expectedRevision) {
   return { kind: "detail", title: t.profile, content: [
     { kind: "text", text: page.text || (page.exists ? t.empty : t.absent) },
     { kind: "text", variant: "caption", text: `${page.totalLength ? page.offset + 1 : 0}-${page.offset + page.text.length} / ${page.totalLength}` }
-  ], metadata: [{ kind: "label", label: t.profile, value: t.local }], actions: [
+  ], metadata: [{ kind: "label", label: t.profile, value: t.syncable }], actions: [
     { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await profileView(ctx), navigation: "replace" }) },
     ...pageActions(ctx.locale, offsets, page.nextOffset, (next) => profileView(ctx, next, page.revision)),
     ...memory.commands && page.totalLength <= 16000 ? [{

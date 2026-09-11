@@ -78,7 +78,7 @@
         },
         "updateProfile": {
           "question": "替换用户画像？",
-          "description": "用下方文本替换本机的完整画像摘要。空文本会清空摘要。这会影响之后的对话，但不会删除记忆、对话记录或备份。\n\n{{subject}}",
+          "description": "用下方文本替换完整画像摘要。空文本会清空摘要。这会影响之后的对话；启用同步时，变更也会同步至其他设备，但不会删除记忆、对话记录或备份。\n\n{{subject}}",
           "approve": "保存画像"
         },
         "downloadResource": {

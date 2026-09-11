@@ -22,9 +22,9 @@ export function visibleScopes(scope: ThreadScope): MemoryScope[] {
 export function buildMemoryTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const profile: AgentTool = {
     name: "get_user_profile", label: "Read user profile",
-    description: "Read the existing user profile summary used by the assistant, as bounded plain text. This is device-local interim profile text, not a structured or event-sourced profile. Does not infer fields, start onboarding, write memory or read transcripts. Both thread scopes see the same user profile. Missing is exists=false; empty stored text is exists=true. Follow nextOffset with the returned expectedRevision to avoid mixing revisions; on conflict restart at offset 0. Offsets/lengths count UTF-16 units, not bytes.",
+    description: "Read the existing event-backed user profile summary used by the assistant, as bounded plain text. This does not expose other structured profile fields, infer fields, start onboarding, write memory or read transcripts. Both thread scopes see the same user profile. Missing is exists=false; empty stored text is exists=true. Follow nextOffset with the returned expectedRevision to avoid mixing revisions; on conflict restart at offset 0. Offsets/lengths count UTF-16 units, not bytes.",
     parameters: Type.Object({ offset: Type.Optional(Type.Integer({ minimum: 0 })), limit: Type.Optional(Type.Integer({ minimum: 2, maximum: 16000 })),
-      expectedRevision: Type.Optional(Type.String({ pattern: "^profile1:[a-f0-9]{64}$" })) }, { additionalProperties: false }),
+      expectedRevision: Type.Optional(Type.String({ pattern: "^profile2:[a-f0-9]{64}$" })) }, { additionalProperties: false }),
     execute: async (_id, params, signal) => textResult(await deps.profile.readProfile(normalizeUserProfileQuery(params as UserProfileQuery), signal)),
   };
   const searchMemory: AgentTool = {

@@ -305,7 +305,7 @@ export interface ConversationPort {
   clearInsights(threadKey: string): Promise<void>;
 }
 
-/** 用户画像摘要（user_profile_context bundle 的 v0：一段文本，无则 undefined）。 */
+/** Event-backed profile summary; not a versioned context bundle. Absence is undefined. */
 export interface ProfilePort {
   updateProfile(input: import("@read-aware/core").UserProfileChange, signal?: AbortSignal): Promise<import("@read-aware/core").UserProfileReceipt>;
   getProfileSummary(): Promise<string | undefined>;

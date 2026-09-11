@@ -1,6 +1,8 @@
 /**
  * Legacy v1 subset: KV, books, collections, annotations and locally available
- * original files. Independent chats, memories, plugin documents, secrets and
+ * original files. The profile summary occupies its legacy KV wire key but is
+ * read/restored through the event projection, not raw KV. Other profile fields,
+ * entities, independent chats, memories, plugin documents, secrets and
  * the event log are NOT included. This is not a whole-device backup.
  * Import upserts preserved keys/IDs and may overwrite existing records; its
  * sequential writes are not transactional. Boot-time genesis reconciles new
@@ -8,6 +10,7 @@
  * remains in memory; native file transport does not make this a streamed archive.
  */
 import { dumpLocalKV, restoreLocalKV } from "../../../platform/local-store";
+import { LEGACY_PROFILE_KEY, readUserProfileSnapshot, restoreUserProfile } from "../../../domain/user-profile";
 import {
   getStoredBookBlob,
   listCollections,
@@ -22,7 +25,7 @@ import type { Annotation } from "../../annotations/lib/annotation-types";
 export const BACKUP_VERSION = 1;
 
 // Machine-local bookkeeping — never travels in a portable backup.
-const EXCLUDED_KV_KEYS = new Set(["read-aware-migrated-v1"]);
+const EXCLUDED_KV_KEYS = new Set(["read-aware-migrated-v1", LEGACY_PROFILE_KEY]);
 
 type Backup = {
   app: "read-aware";
@@ -63,17 +66,19 @@ function base64ToBytes(base64: string): Uint8Array {
 
 /** Serialize the v1 backup subset into one portable JSON string. */
 export async function exportBackup(): Promise<string> {
-  const [kvAll, books, collections, annotations] = await Promise.all([
+  const [kvAll, books, collections, annotations, profile] = await Promise.all([
     dumpLocalKV(),
     listLibraryBooks(),
     listCollections(),
     listAnnotations(),
+    readUserProfileSnapshot(),
   ]);
 
   const kv: Record<string, string> = {};
   for (const [key, value] of Object.entries(kvAll)) {
     if (!EXCLUDED_KV_KEYS.has(key)) kv[key] = value;
   }
+  if (profile.summary !== null) kv[LEGACY_PROFILE_KEY] = profile.summary;
 
   const files: Record<string, string> = {};
   for (const book of books) {
@@ -107,11 +112,18 @@ export async function importBackup(json: string): Promise<BackupImportResult> {
   }
 
   const files = (parsed.files ?? {}) as Record<string, string>;
-  const kv = (parsed.kv ?? {}) as Record<string, string>;
+  const kv = { ...(parsed.kv ?? {}) } as Record<string, string>;
+  const settings = Object.keys(kv).length;
+  const hasProfile = Object.hasOwn(kv, LEGACY_PROFILE_KEY);
+  const summary = kv[LEGACY_PROFILE_KEY];
+  if (hasProfile && typeof summary !== "string") throw new Error("Invalid backup profile summary");
+  delete kv[LEGACY_PROFILE_KEY];
+  const profile = hasProfile ? await readUserProfileSnapshot() : null;
   const collections = parsed.collections ?? [];
   const annotations = parsed.annotations ?? [];
 
   await restoreLocalKV(kv);
+  if (profile) await restoreUserProfile(summary!, profile.revision);
   // Collections first so book membership resolves against existing rows.
   for (const collection of collections) await restoreCollection(collection);
   for (const book of parsed.books) {
@@ -121,7 +133,7 @@ export async function importBackup(json: string): Promise<BackupImportResult> {
   for (const annotation of annotations) await saveAnnotation(annotation);
 
   return {
-    settings: Object.keys(kv).length,
+    settings,
     books: parsed.books.length,
     annotations: annotations.length,
     collections: collections.length,

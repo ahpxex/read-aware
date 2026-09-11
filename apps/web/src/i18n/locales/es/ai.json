@@ -78,7 +78,7 @@
         },
         "updateProfile": {
           "question": "¿Reemplazar tu perfil?",
-          "description": "Reemplaza todo el perfil local con el texto siguiente. Un texto vacío borra el resumen. Esto afecta a futuras conversaciones, pero no elimina recuerdos, historiales ni copias de seguridad.\n\n{{subject}}",
+          "description": "Reemplaza el resumen del perfil con el texto siguiente. Un texto vacío borra el resumen. Esto afecta a futuras conversaciones y, si la sincronización está activada, a tus otros dispositivos. No elimina recuerdos, historiales ni copias de seguridad.\n\n{{subject}}",
           "approve": "Guardar perfil"
         },
         "downloadResource": {

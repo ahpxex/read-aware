@@ -1,14 +1,14 @@
 {
   "id": "memory-desk",
   "name": "Memory Desk",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "schemaVersion": 1,
   "description": "Review and edit your profile, read conversation summaries, and explore reading memories and chapter graphs.",
   "author": "ReadAware",
   "main": "main.js",
   "permissions": ["memory:write", "library:read", "reading:write", "conversations:write", "service:llm"],
   "requires": {
-    "domains": { "memory": "^1.8.0", "library": "^1.0.0", "reading": "^2.0.0", "conversations": "^1.4.0" },
+    "domains": { "memory": "^2.0.0", "library": "^1.0.0", "reading": "^2.0.0", "conversations": "^1.4.0" },
     "contributions": { "commands": "^1.0.0", "headerActions": "^1.2.0" },
     "schemas": { "views": "^1.8.0" },
     "services": { "ui": "^1.2.0" }

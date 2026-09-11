@@ -11,7 +11,8 @@ import { createBookClassificationFixture } from "./book-classification";
 import { createBookMemoryFixture } from "./book-memory";
 import { BookGraphTaskOwner } from "../memory/book-graph-tasks";
 import { createMemoryMaintenanceFixture } from "./memory-maintenance";
-import { AppError, normalizeUserProfileChange, userProfilePage, pageSettingOptions } from "@read-aware/core";
+import { AppError, pageSettingOptions } from "@read-aware/core";
+import { createProfileFixture } from "./user-profile";
 import type {
   BookStats,
   CollectionSummary,
@@ -625,28 +626,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         stores.insights.delete(key);
       },
     },
-    profile: {
-      updateProfile: async (raw, signal) => {
-        const input = normalizeUserProfileChange(raw);
-        const captured = stores.profile.summary;
-        await userProfilePage(captured, { expectedRevision: input.expectedRevision });
-        const next = await userProfilePage(input.summary);
-        signal?.throwIfAborted();
-        if (stores.profile.summary !== captured) throw new AppError("memory/conflict", "Profile changed");
-        stores.profile.summary = input.summary;
-        return { changed: captured !== input.summary, revision: next.revision, persistence: "device-local" };
-      },
-      getProfileSummary: async () => stores.profile.summary,
-      readProfile: async (query, signal) => {
-        signal?.throwIfAborted();
-        const page = await userProfilePage(stores.profile.summary, query);
-        signal?.throwIfAborted();
-        return page;
-      },
-      putProfileSummary: async (summary) => {
-        stores.profile.summary = summary;
-      },
-    },
+    profile: createProfileFixture(stores.profile),
     memory: {
       pageMemories: input => pageMemoryRows(stores.memories, input),
       searchMemories: async (filter) => {

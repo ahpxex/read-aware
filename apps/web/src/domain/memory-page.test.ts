@@ -11,7 +11,7 @@ test("public page uses the production memory port with domain authorization and 
   const runtimes: ReturnType<typeof buildPluginContext>[] = [];
   const actor = (permissions: PluginPermission[]) => {
     const runtime = buildPluginContext({ id: "memory-page-test", name: "Memory Page", version: "1.0.0", schemaVersion: 1,
-      requires: { domains: { memory: "^1.8.0" } }, permissions }, "0.5.4", []);
+      requires: { domains: { memory: "^2.0.0" } }, permissions }, "0.5.4", []);
     runtime.lifecycle.promote(); runtimes.push(runtime); return runtime;
   };
   try {

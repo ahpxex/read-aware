@@ -6,7 +6,7 @@ import { textPage } from "../src/context-pagination";
 import { contextWords } from "../src/context-strings";
 import { booksView } from "../src/views";
 
-const revision = `profile1:${"a".repeat(64)}`;
+const revision = `profile2:${"a".repeat(64)}`;
 function fixture() {
   let summary: string | undefined = "Original profile", version = revision, insights: string | null = "Stored conversation summary";
   let readFailure = false, writeFailure = false, count = 41;
@@ -19,12 +19,12 @@ function fixture() {
       const start = q.offset ?? 0, end = Math.min((summary ?? "").length, start + (q.limit ?? 4000));
       return { text: (summary ?? "").slice(start, end), exists: summary !== undefined, offset: start,
         nextOffset: end < (summary ?? "").length ? end : null, totalLength: (summary ?? "").length, revision: version,
-        format: "plain-text", persistence: "device-local" };
+        format: "plain-text", persistence: "event-log" };
     } }, commands: { updateProfile: async (input: { summary: string; expectedRevision: string }) => {
       if (input.expectedRevision !== version) throw Object.assign(Error("stale"), { code: "memory/conflict" });
       if (writeFailure) throw Object.assign(Error("disk"), { code: "db/error" });
       writes.push(input); const changed = summary !== input.summary; summary = input.summary;
-      return { changed, revision: version, persistence: "device-local" };
+      return { changed, revision: version, persistence: "event-log" };
     } } },
     conversations: { queries: {
       listThreads: async () => Array.from({ length: count }, (_, i) => ({ id: `t${i}`, title: `Thread ${i}` })),
@@ -34,7 +34,7 @@ function fixture() {
     reading: { commands: {} },
   } } as unknown as PluginContext;
   return { ctx, calls, writes, setSummary: (s: string | undefined) => { summary = s; },
-    setVersion: () => { version = `profile1:${"b".repeat(64)}`; },
+    setVersion: () => { version = `profile2:${"b".repeat(64)}`; },
     setInsights: (s: string | null) => { insights = s; }, failRead: () => { readFailure = true; },
     failWrite: () => { writeFailure = true; }, setCount: (n: number) => { count = n; } };
 }

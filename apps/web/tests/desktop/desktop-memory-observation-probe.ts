@@ -16,7 +16,7 @@ export async function prepareMemoryObservationProbe() {
   for (const role of ["empty", "read", "write"] as const) {
     const manifest: PluginManifest = { id: `capability-memory-observation-${role}`, name: "Memory observation probe", version: "1.0.0", schemaVersion: 1,
       description: JSON.stringify({ bookId: seed.bookId, memoryId: seed.memoryIds[0], marker: seed.marker }),
-      permissions: role === "empty" ? [] : [role === "read" ? "memory:read" : "memory:write"], requires: { domains: { memory: "^1.2.0" } } };
+      permissions: role === "empty" ? [] : [role === "read" ? "memory:read" : "memory:write"], requires: { domains: { memory: "^2.0.0" } } };
     const worker = await startPluginWorker(manifest, "0.5.4", owned, { moduleUrl: new URL("./memory-observation-probe.ts", import.meta.url).href });
     workers.set(role, worker); await worker.checkHealth(); worker.promote();
   }

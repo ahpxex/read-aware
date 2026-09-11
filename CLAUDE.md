@@ -42,9 +42,10 @@
 >   hour bucket — `book.progressed` / `book.timeRecorded` are legacy.
 > - **Profile/entity projections are live** (schema 33): profile field patches,
 >   retained entity definitions/aliases and flat merge redirects participate in
->   replay and checkpoints. Native profile initialization/CAS/restore commands
->   exist, but current summary consumers still use KV pending their coordinated
->   migration. Entity consumers and the consolidation pipeline are not built yet.
+>   replay and checkpoints. The summary migrates from KV through a transaction;
+>   prompt reads, onboarding, memory 2 profile queries/conditional edits and v1
+>   backup summary restore share this projection. Entity consumers and the
+>   consolidation pipeline are not built yet.
 > - **Book memory v1 is live**: `book.chapterDigested` events project to
 >   `chapter_digests` (per-finished-chapter summary + entity registry,
 >   names spelled as THIS edition spells them), filled by an idle pipeline

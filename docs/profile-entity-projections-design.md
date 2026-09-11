@@ -49,11 +49,13 @@ historical event rolls back the migration rather than marking it applied.
 
 Native `profile_initialize`, `profile_inspect`, `profile_commit` and
 `profile_restore` now implement the transaction side below. They are registered
-internal IPC commands, not new plugin/model authority. The frontend consumers
-still use profile1/KV until the coordinated contract migration lands; the
-remaining paragraphs describe that migration, not its completed runtime wiring.
+internal IPC commands, not new plugin/model authority. Startup now invokes
+initialization, removes the legacy settings mirror and logs migration failure;
+profile operations retry initialization rather than reading a stale KV fallback.
+ProfilePort, prompt assembly, onboarding, public pages/edits/observations and v1
+backup summary handling now share this projection through memory domain 2.
 
-The host will initialize the summary with a system-origin event envelope minted by
+The host initializes the summary with a system-origin event envelope minted by
 the existing frontend HLC service. Native code supplies the actual durable KV
 value inside the same transaction that deletes the legacy key. A prior summary
 event, including an explicit null clear, takes precedence; displayName-only
@@ -67,7 +69,7 @@ an A-to-B-to-A change invalidates an old decision. Normal edits remain limited
 to 16000 UTF-16 units. Internal v1 backup restore preserves larger historical
 summaries through a separate host-only restore entry, not an actor override flag.
 Both use profile.updated and reject stale event clocks before committing.
-Memory domain 2 will record the persistence contract as event-log, not device-local.
+Memory domain 2 records the persistence contract as event-log, not device-local.
 
 The native reader refuses unretired legacy KV or stale projections instead of
 reporting an empty summary. Commit requires a fresh local-device envelope after
@@ -80,13 +82,19 @@ The v1 backup wire format remains the same subset: export materializes the
 current summary under its historical KV key, import removes that key from raw
 KV restoration and conditionally writes the profile event instead. This does
 not turn v1 into a full profile/entity/event-log backup or a context bundle.
+An absent historical key leaves the current summary alone; an empty string
+restores an intentionally empty summary. The archive observes the current
+revision before restoring other KV, then submits it to conditional profile
+restore. Conflicts fail visibly; earlier sequential archive writes do not roll
+back. Normal onboarding takes a fresh snapshot and uses the same conditional
+summary write; its subsequent memory seeds remain separate transactions.
 
-The interim app_kv summary must migrate through an event exactly once, with
-existing event-backed summary taking precedence. Onboarding, prompt reads,
-conditional profile edits, backup/restore and observations must all move to the
-same projection, not dual independent summaries. Public reads remain bounded and
-writes conditional on the observed revision; entity resolve/merge additionally
-need explicit memory write authorization and ownership/cancellation checks.
+Public reads remain bounded and writes conditional on the observed revision.
+The existing Memory Desk consumer now requires memory 2; this is a coordinated
+breaking contract, not an adapter that silently accepts profile1 decisions.
+Entity resolve/merge still need bounded read/conditional write APIs with explicit
+memory authorization and ownership/cancellation checks. Full interview/seed
+orchestration and consolidation are not implemented by summary migration.
 
 Stage one uses native transactional/replay tests and targeted permission/type
 checks only. Formal composition plugins belong to stage two; actual Tauri,

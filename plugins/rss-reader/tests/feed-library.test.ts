@@ -7,6 +7,7 @@ import { getFeed } from "../src/storage";
 import type { RssPluginContext } from "../src/types";
 import { importOpml } from "../src/opml-import";
 import { importOpmlView } from "../src/views";
+import { refreshAllFeeds, REFRESH_SCHEDULE } from "../src/refresh";
 
 const url = "https://example.com/feed";
 const xml = (items: string) => `<rss><channel><title>Feed</title>${items}</channel></rss>`;
@@ -19,6 +20,7 @@ function fixture() {
   const state = { xml: xml(item("one")), fetches: 0, notifications: 0, offline: false, failIndex: false, failNotify: false, failedUrls: new Set<string>(),
     bookId: "book-1", failRemove: false, sourceRevision: "new", readingRevision: "old", readingBook: "book-1", events: [] as string[], hold: undefined as Promise<void> | undefined };
   let provider: ((key: string) => Promise<PluginBookContent>) | undefined;
+  let scheduled: (() => void | Promise<void>) | undefined;
   const ctx = {
     locale: "en",
     services: {
@@ -32,7 +34,7 @@ function fixture() {
         list: async () => [...table(name)].map(([id, data]) => ({ id, data: structuredClone(data), updatedAt: "" })),
       }) },
       network: { fetch: async (url: string) => { state.fetches++; if (state.hold) await state.hold; if (state.offline || state.failedUrls.has(url)) throw Object.assign(Error("Offline"), { code: "plugin/network-timeout" }); return new Response(state.xml); } },
-      ui: { showToast: () => {} }, schedules: { bind: () => ({ dispose() {} }) },
+      ui: { showToast: () => {} }, schedules: { bind: (id: string, run: () => void | Promise<void>) => { expect(id).toBe(REFRESH_SCHEDULE); scheduled = run; return { dispose() {} }; } },
     },
     domains: {
       library: {
@@ -65,8 +67,36 @@ function fixture() {
       headerActions: { register: () => ({ dispose() {} }) }, commands: { register: () => ({ dispose() {} }) }, agentTools: { register: (tool: PluginToolDefinition) => { tools.push(tool); return { dispose() {} }; } },
     },
   } as unknown as RssPluginContext;
-  return { ctx, state, table, tools, provider: () => provider! };
+  return { ctx, state, table, tools, provider: () => provider!, scheduled: () => scheduled!() };
 }
+
+test("registered schedule rejects partial/all feed failures instead of reporting success", async () => {
+  const f = fixture(); await plugin.activate(f.ctx);
+  await subscribe(f.ctx, url); await subscribe(f.ctx, `${url}/second`);
+  f.state.failedUrls.add(url);
+  const start = f.state.fetches;
+  expect(await refreshAllFeeds(f.ctx)).toContain("1");
+  expect(f.state.fetches - start).toBe(2);
+  await expect(Promise.resolve(f.scheduled())).rejects.toMatchObject({ code: "plugin/network-timeout" });
+  expect(f.state.fetches - start).toBe(4);
+  f.state.offline = true;
+  await expect(Promise.resolve(f.scheduled())).rejects.toMatchObject({ code: "plugin/network-timeout" });
+  f.state.offline = false; f.state.failedUrls.clear();
+  await f.scheduled();
+  expect(f.table("feeds").size).toBe(2);
+});
+
+test("scheduled refresh handles an empty collection and keeps four-request batching", async () => {
+  const f = fixture(); await plugin.activate(f.ctx); await f.scheduled();
+  expect(f.state.fetches).toBe(0);
+  for (let index = 0; index < 9; index++) await subscribe(f.ctx, `${url}/${index}`);
+  let release!: () => void;
+  f.state.hold = new Promise<void>(resolve => { release = resolve; });
+  const start = f.state.fetches, running = f.scheduled();
+  await Bun.sleep(0); expect(f.state.fetches - start).toBe(4);
+  release(); await running;
+  expect(f.state.fetches - start).toBe(9);
+});
 
 const opml = (urls: string[]) => `<opml><body>${urls.map(url => `<outline xmlUrl="${url}"/>`).join("")}</body></opml>`;
 

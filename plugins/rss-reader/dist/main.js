@@ -4530,6 +4530,144 @@ async function pickOpmlText(ctx) {
   }
 }
 
+// src/refresh.ts
+var REFRESH_SCHEDULE = "refresh-feeds";
+var REFRESH_CONCURRENCY = 4;
+async function refreshFeeds(ctx) {
+  const queue = await loadFeeds(ctx), total = queue.length;
+  let refreshed = 0, failed = 0, firstError;
+  await Promise.all(Array.from({ length: Math.min(REFRESH_CONCURRENCY, total) }, async () => {
+    for (let feed = queue.shift();feed; feed = queue.shift()) {
+      try {
+        await subscribe(ctx, feed.url);
+        refreshed++;
+      } catch (error) {
+        if (failed === 0)
+          firstError = error;
+        failed++;
+        console.warn("RSS background refresh failed", error);
+      }
+    }
+  }));
+  return { total, refreshed, failed, firstError };
+}
+async function refreshAllFeeds(ctx) {
+  const result = await refreshFeeds(ctx);
+  return result.failed === 0 ? tr(ctx.locale, "refreshedAll", { n: result.refreshed }) : tr(ctx.locale, "refreshedSome", { ok: result.refreshed, total: result.total });
+}
+async function refreshScheduledFeeds(ctx) {
+  const result = await refreshFeeds(ctx);
+  if (result.failed > 0)
+    throw result.firstError ?? new Error("RSS refresh failed");
+}
+
+// src/schedule-strings.ts
+var en = {
+  title: "Automatic refresh",
+  enabled: "Enabled",
+  paused: "Paused",
+  running: "Running",
+  state: "Schedule",
+  attempt: "Last attempt",
+  started: "Last started",
+  finished: "Last finished",
+  succeededAt: "Last successful refresh",
+  interval: "Interval (minutes)",
+  none: "None",
+  succeeded: "Succeeded",
+  failed: "Failed",
+  cancelled: "Cancelled",
+  interrupted: "Interrupted",
+  unavailable: "Schedule unavailable",
+  pause: "Pause",
+  resume: "Resume",
+  run: "Run now",
+  refresh: "Refresh status",
+  pausedReceipt: "Automatic refresh paused",
+  resumedReceipt: "Automatic refresh resumed",
+  completed: "Scheduled refresh completed",
+  alreadyRunning: "Refresh is already running"
+};
+var copies = {
+  en,
+  "zh-Hans": { title: "自动刷新", enabled: "已启用", paused: "已暂停", running: "运行中", state: "计划", attempt: "上次执行", started: "上次开始", finished: "上次结束", succeededAt: "上次成功刷新", interval: "间隔（分钟）", none: "无", succeeded: "成功", failed: "失败", cancelled: "已取消", interrupted: "已中断", unavailable: "计划不可用", pause: "暂停", resume: "恢复", run: "立即运行", refresh: "刷新状态", pausedReceipt: "自动刷新已暂停", resumedReceipt: "自动刷新已恢复", completed: "计划刷新已完成", alreadyRunning: "刷新已在运行" },
+  "zh-Hant": { title: "自動重新整理", enabled: "已啟用", paused: "已暫停", running: "執行中", state: "排程", attempt: "上次執行", started: "上次開始", finished: "上次結束", succeededAt: "上次成功重新整理", interval: "間隔（分鐘）", none: "無", succeeded: "成功", failed: "失敗", cancelled: "已取消", interrupted: "已中斷", unavailable: "排程無法使用", pause: "暫停", resume: "恢復", run: "立即執行", refresh: "重新整理狀態", pausedReceipt: "已暫停自動重新整理", resumedReceipt: "已恢復自動重新整理", completed: "排程重新整理已完成", alreadyRunning: "重新整理正在執行" },
+  ja: { title: "自動更新", enabled: "有効", paused: "一時停止", running: "実行中", state: "スケジュール", attempt: "前回の実行", started: "前回の開始", finished: "前回の終了", succeededAt: "前回の更新成功", interval: "間隔（分）", none: "なし", succeeded: "成功", failed: "失敗", cancelled: "キャンセル済み", interrupted: "中断", unavailable: "スケジュールは利用できません", pause: "一時停止", resume: "再開", run: "今すぐ実行", refresh: "状態を更新", pausedReceipt: "自動更新を一時停止しました", resumedReceipt: "自動更新を再開しました", completed: "定期更新が完了しました", alreadyRunning: "更新は実行中です" },
+  de: { title: "Automatische Aktualisierung", enabled: "Aktiviert", paused: "Pausiert", running: "Läuft", state: "Zeitplan", attempt: "Letzter Versuch", started: "Zuletzt gestartet", finished: "Zuletzt beendet", succeededAt: "Letzte erfolgreiche Aktualisierung", interval: "Intervall (Minuten)", none: "Keine", succeeded: "Erfolgreich", failed: "Fehlgeschlagen", cancelled: "Abgebrochen", interrupted: "Unterbrochen", unavailable: "Zeitplan nicht verfügbar", pause: "Pausieren", resume: "Fortsetzen", run: "Jetzt ausführen", refresh: "Status aktualisieren", pausedReceipt: "Automatische Aktualisierung pausiert", resumedReceipt: "Automatische Aktualisierung fortgesetzt", completed: "Geplante Aktualisierung abgeschlossen", alreadyRunning: "Aktualisierung läuft bereits" },
+  fr: { title: "Actualisation automatique", enabled: "Activée", paused: "En pause", running: "En cours", state: "Planification", attempt: "Dernière tentative", started: "Dernier démarrage", finished: "Dernière fin", succeededAt: "Dernière actualisation réussie", interval: "Intervalle (minutes)", none: "Aucune", succeeded: "Réussie", failed: "Échouée", cancelled: "Annulée", interrupted: "Interrompue", unavailable: "Planification indisponible", pause: "Suspendre", resume: "Reprendre", run: "Exécuter maintenant", refresh: "Actualiser l'état", pausedReceipt: "Actualisation automatique suspendue", resumedReceipt: "Actualisation automatique reprise", completed: "Actualisation planifiée terminée", alreadyRunning: "Actualisation déjà en cours" },
+  es: { title: "Actualización automática", enabled: "Activada", paused: "En pausa", running: "En curso", state: "Programación", attempt: "Último intento", started: "Último inicio", finished: "Última finalización", succeededAt: "Última actualización correcta", interval: "Intervalo (minutos)", none: "Ninguno", succeeded: "Correcto", failed: "Fallido", cancelled: "Cancelado", interrupted: "Interrumpido", unavailable: "Programación no disponible", pause: "Pausar", resume: "Reanudar", run: "Ejecutar ahora", refresh: "Actualizar estado", pausedReceipt: "Actualización automática pausada", resumedReceipt: "Actualización automática reanudada", completed: "Actualización programada completada", alreadyRunning: "La actualización ya está en curso" },
+  ru: { title: "Автообновление", enabled: "Включено", paused: "Приостановлено", running: "Выполняется", state: "Расписание", attempt: "Последняя попытка", started: "Последний запуск", finished: "Последнее завершение", succeededAt: "Последнее успешное обновление", interval: "Интервал (минуты)", none: "Нет", succeeded: "Успешно", failed: "Ошибка", cancelled: "Отменено", interrupted: "Прервано", unavailable: "Расписание недоступно", pause: "Приостановить", resume: "Возобновить", run: "Запустить сейчас", refresh: "Обновить статус", pausedReceipt: "Автообновление приостановлено", resumedReceipt: "Автообновление возобновлено", completed: "Плановое обновление завершено", alreadyRunning: "Обновление уже выполняется" }
+};
+var scheduleCopy = (locale) => copies[locale] ?? copies[locale.split("-")[0]] ?? en;
+
+// src/schedule-view.ts
+function when(time, locale, none) {
+  if (time === null)
+    return none;
+  const date = new Date(time);
+  try {
+    return date.toLocaleString(locale);
+  } catch {
+    return date.toISOString();
+  }
+}
+async function refreshScheduleView(ctx) {
+  const t = scheduleCopy(ctx.locale), query = { limit: 64 };
+  let schedule = (await ctx.services.schedules.list(query)).schedules.find((item) => item.id === REFRESH_SCHEDULE);
+  const render = () => {
+    const current = schedule;
+    const refresh = {
+      id: "refresh",
+      label: t.refresh,
+      icon: "arrows-clockwise",
+      run: async () => ({ view: await refreshScheduleView(ctx), navigation: "replace" })
+    };
+    if (!current)
+      return { kind: "detail", title: t.title, content: [{ kind: "text", text: t.unavailable }], actions: [refresh] };
+    const action = current.paused ? "resume" : "pause";
+    return { kind: "detail", title: t.title, content: [
+      { kind: "keyValue", rows: [
+        { label: t.state, value: current.paused ? t.paused : t.enabled },
+        { label: t.interval, value: String(current.everyMinutes) },
+        { label: t.attempt, value: current.running ? t.running : current.lastOutcome ? t[current.lastOutcome] : t.none },
+        { label: t.started, value: when(current.lastStartedAt, ctx.locale, t.none) },
+        { label: t.finished, value: when(current.lastFinishedAt, ctx.locale, t.none) },
+        { label: t.succeededAt, value: when(current.lastSuccessAt, ctx.locale, t.none) }
+      ] },
+      ...current.lastErrorCode ? [{ kind: "error", code: current.lastErrorCode }] : []
+    ], actions: [
+      { id: action, label: t[action], icon: action === "pause" ? "pause" : "play", run: async () => {
+        await ctx.services.schedules.control(REFRESH_SCHEDULE, action);
+        return { toast: action === "pause" ? t.pausedReceipt : t.resumedReceipt };
+      } },
+      { id: "run", label: t.run, icon: "arrows-clockwise", run: async () => {
+        const result = await ctx.services.schedules.control(REFRESH_SCHEDULE, "run");
+        return { toast: result.status === "already-running" ? t.alreadyRunning : t.completed };
+      } },
+      refresh
+    ] };
+  };
+  return { ...render(), live: { subscribe(channel) {
+    let active = true, revision = 0;
+    const subscription = ctx.services.schedules.observe(query, async (page) => {
+      if (!active)
+        return;
+      schedule = page.schedules.find((item) => item.id === REFRESH_SCHEDULE);
+      try {
+        await ctx.services.ui.publishView(channel, { revision: ++revision, view: render() });
+      } catch (error) {
+        console.warn("RSS schedule view publication failed", error);
+      }
+    });
+    return { dispose() {
+      if (!active)
+        return;
+      active = false;
+      subscription.dispose();
+    } };
+  } } };
+}
+
 // src/views.ts
 function formatWhen(ctx, iso, style) {
   if (!iso)
@@ -4545,23 +4683,6 @@ function formatWhen(ctx, iso, style) {
   } catch {
     return iso.slice(0, 10);
   }
-}
-var REFRESH_CONCURRENCY = 4;
-async function refreshAllFeeds(ctx) {
-  const queue = await loadFeeds(ctx);
-  const total = queue.length;
-  let refreshed = 0;
-  await Promise.all(Array.from({ length: Math.min(REFRESH_CONCURRENCY, queue.length) }, async () => {
-    for (let feed = queue.shift();feed; feed = queue.shift()) {
-      try {
-        await subscribe(ctx, feed.url);
-        refreshed += 1;
-      } catch (error) {
-        console.warn("RSS background refresh failed", error);
-      }
-    }
-  }));
-  return refreshed === total ? tr(ctx.locale, "refreshedAll", { n: refreshed }) : tr(ctx.locale, "refreshedSome", { ok: refreshed, total });
 }
 function addFeedView(ctx) {
   return {
@@ -4758,6 +4879,7 @@ async function rssPageView(ctx) {
         icon: "plus",
         run: () => ({ view: addFeedView(ctx) })
       },
+      { id: "schedule", label: scheduleCopy(ctx.locale).title, icon: "clock", run: async () => ({ view: await refreshScheduleView(ctx) }) },
       {
         id: "import",
         label: tr(ctx.locale, "importOpml"),
@@ -4822,9 +4944,7 @@ var plugin = {
       keywords: "rss atom feed subscribe",
       run: async () => ({ view: await rssPageView(ctx) })
     });
-    ctx.services.schedules.bind("refresh-feeds", async () => {
-      await refreshAllFeeds(ctx);
-    });
+    ctx.services.schedules.bind(REFRESH_SCHEDULE, () => refreshScheduledFeeds(ctx));
     registerAgentTools(ctx);
   },
   async migrate(ctx, migration) {

@@ -5,7 +5,8 @@ import { forgetRemovedBook, loadFeedContent } from "./feed-library";
 import { tr } from "./strings";
 import { migrateLegacyFeeds } from "./storage";
 import { assertPluginCapabilities, PROVIDER_ID } from "./types";
-import { refreshAllFeeds, rssPageView } from "./views";
+import { rssPageView } from "./views";
+import { REFRESH_SCHEDULE, refreshScheduledFeeds } from "./refresh";
 
 const plugin: PluginModule = {
   async activate(ctx) {
@@ -39,9 +40,7 @@ const plugin: PluginModule = {
 
     // Declared in manifest.schedules: subscribed feeds stay fresh without a
     // manual refresh — hourly while the app is open, catch-up on launch.
-    ctx.services.schedules.bind("refresh-feeds", async () => {
-      await refreshAllFeeds(ctx);
-    });
+    ctx.services.schedules.bind(REFRESH_SCHEDULE, () => refreshScheduledFeeds(ctx));
 
     registerAgentTools(ctx);
   },

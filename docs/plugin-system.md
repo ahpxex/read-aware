@@ -6058,6 +6058,38 @@ releases scheduler timers. Global Agent `list_plugin_schedules` and
 book scope has neither tool. Focused checks passed; composition/Tauri lifecycle
 acceptance remains pending.
 
+[代码] RSS 0.12 now composes Schedules ^1.1 and UI ^1.2 in an Automatic refresh
+detail reachable from the subscriptions list, even with no feeds. It reads and
+observes the plugin's bound `refresh-feeds` declaration, displays pause/running
+state, cadence and the host's latest attempt/finish/success/error, and offers
+explicit pause/resume/run. Controls use the displayed pause intent, not a later
+inverted value; `already-running` does not claim a second completed refresh.
+Missing bindings remove controls, failed initial reads reject, and leaving the
+live view disposes observation and ignores late frames. Closing this view or
+pausing does not cancel an already-started feed batch. No new permissions, host
+APIs or plugin Agent tools: global list/manage_plugin_schedule already control
+this same declaration, with host approval.
+
+[代码] The refresh workflow moved out of the view module. Four concurrent workers
+still finish the whole subscribed-feed batch. The ordinary Refresh all action
+retains its partial-success summary, while the scheduled callback now rejects
+with the first captured failure if any feed failed, including a persistence or
+invalidation failure. Previously its fulfilled summary string made partial/total
+failure look successful to the scheduler. Future scheduled failures therefore
+retain the prior lastSuccessAt and record failed/error through the existing host
+controller. Already-updated feeds are not rolled back; old success records are not
+rewritten. Manual per-feed/Refresh all actions remain separate from scheduled
+attempt records and do not acquire the scheduler's cross-batch flight.
+
+[环境] RSS tests cover the compiled command's new entry, live state/cleanup,
+explicit control receipts, error propagation, eight locales, scheduled callback
+failure/recovery, empty subscriptions and four-request batching. Host scheduler
+durability/ownership tests pass separately. Network/storage/controller ports are
+controlled, not native Worker/Tauri schedule or real network evidence; the earlier
+RSS 0.11 offline composition does not cover this new view or outcome protocol.
+Actual pause persistence, restart/interrupted state, long batches and the Agent
+control -> RSS -> persisted-outcome composition remain for concentrated E2E.
+
 [代码] UI 1.7 adds `openExternal(url)` when `service:network` is granted.
 It accepts HTTP(S) only (up to 8192 characters), rejects credentials and control
 characters, and delegates to the system opener. Completion means OS dispatch,

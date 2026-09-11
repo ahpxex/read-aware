@@ -19,6 +19,9 @@ import { pickOpmlText } from "./opml-file";
 import { articlesTag, tr } from "./strings";
 import { getFeed, loadFeeds } from "./storage";
 import type { FeedSubscription, RssPluginContext } from "./types";
+import { refreshAllFeeds } from "./refresh";
+import { refreshScheduleView } from "./schedule-view";
+import { scheduleCopy } from "./schedule-strings";
 
 function formatWhen(
   ctx: RssPluginContext,
@@ -36,30 +39,6 @@ function formatWhen(
   } catch {
     return iso.slice(0, 10);
   }
-}
-
-const REFRESH_CONCURRENCY = 4;
-
-/** Refresh every subscription — a few at a time, tolerating failures. */
-export async function refreshAllFeeds(ctx: RssPluginContext): Promise<string> {
-  const queue = await loadFeeds(ctx);
-  const total = queue.length;
-  let refreshed = 0;
-  await Promise.all(
-    Array.from({ length: Math.min(REFRESH_CONCURRENCY, queue.length) }, async () => {
-      for (let feed = queue.shift(); feed; feed = queue.shift()) {
-        try {
-          await subscribe(ctx, feed.url);
-          refreshed += 1;
-        } catch (error) {
-          console.warn("RSS background refresh failed", error);
-        }
-      }
-    }),
-  );
-  return refreshed === total
-    ? tr(ctx.locale, "refreshedAll", { n: refreshed })
-    : tr(ctx.locale, "refreshedSome", { ok: refreshed, total });
 }
 
 export function addFeedView(ctx: RssPluginContext): PluginFormView {
@@ -261,6 +240,7 @@ export async function rssPageView(ctx: RssPluginContext): Promise<PluginListView
         icon: "plus",
         run: () => ({ view: addFeedView(ctx) }),
       },
+      { id: "schedule", label: scheduleCopy(ctx.locale).title, icon: "clock", run: async () => ({ view: await refreshScheduleView(ctx) }) },
       {
         id: "import",
         label: tr(ctx.locale, "importOpml"),

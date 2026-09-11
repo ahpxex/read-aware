@@ -101,7 +101,8 @@ export async function createContextBundle(input: unknown): Promise<ContextBundle
   return { version: `cb1:${Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, "0")).join("")}`, content };
 }
 export async function validateContextBundle(input: unknown): Promise<ContextBundle> {
-  const value = object(input, ["version", "content"]), bundle = await createContextBundle(value.content);
-  if (value.version !== bundle.version) return invalid();
+  const value = object(input, ["version", "content"]), version = value.version;
+  const bundle = await createContextBundle(value.content);
+  if (version !== bundle.version) return invalid();
   return bundle;
 }

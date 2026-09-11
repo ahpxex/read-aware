@@ -1,5 +1,6 @@
 import { AppError, BOOK_IMAGE_MAX_BYTES, RESOURCE_LIFETIME_MS, RESOURCE_MAX_CHUNK, RESOURCE_MAX_SIZE,
   type ResourcePort, type ResourceRef, type ResourcePickOptions, type ResourceCreateOptions, type ResourceImageReceipt } from "@read-aware/core";
+import { retainResourceAccess, type ResourceAccess } from "./resource-access";
 
 export type NativeResource = { id: string; size: number; name: string; mimeType: string };
 export type ResourceAdapter = {
@@ -10,12 +11,14 @@ export type ResourceAdapter = {
   read(id: string, offset: number, length: number): Promise<ArrayBuffer>;
   append(id: string, offset: number, bytes: Uint8Array): Promise<number>;
   commit(id: string): Promise<void>;
-  save(id: string, filename: string, signal?: AbortSignal): Promise<boolean>;
+  /** Must run beforeWrite immediately before dispatch, after any dialog. */
+  save(id: string, filename: string, signal?: AbortSignal, beforeWrite?: () => void): Promise<boolean>;
   copyImage(id: string): Promise<ResourceImageReceipt>;
   imagePreview(id: string): Promise<ArrayBuffer>;
   release(id: string): Promise<void>;
 };
-type Entry = { nativeId: string; ref: ResourceRef; timer: ReturnType<typeof setTimeout> };
+type Entry = { nativeId: string; ref: ResourceRef; timer: ReturnType<typeof setTimeout>;
+  access?: ReturnType<typeof retainResourceAccess>; stopObserving?: () => void };
 const invalid = () => new AppError("ui/invalid-target", "Invalid resource input");
 export function resourceName(value: unknown): string {
   if (typeof value !== "string" || !value.trim() || value.length > 256 || /[\\/\u0000-\u001f\u007f]/.test(value) || value === "." || value === "..") throw invalid();
@@ -59,6 +62,30 @@ export class ResourceOwner implements ResourcePort {
   }
   openCover(bookId: string, signal?: AbortSignal) {
     return this.openBookAsset(bookId, "cover", signal);
+  }
+  /** Host-only context transport. Ownership of the disclosure lease transfers on call. */
+  importContext(load: () => Promise<{ name: string; bytes: Uint8Array }>, authority: ResourceAccess, signal?: AbortSignal): Promise<ResourceRef> {
+    const access = retainResourceAccess(authority, this.report);
+    const check = () => { this.guard(signal); access.check(); };
+    return this.run(async () => {
+      check();
+      this.capacity([{ id: "", size: 0, name: "context.json", mimeType: "application/json" }]);
+      const data = await load();
+      check();
+      const name = resourceName(data.name), mimeType = "application/json", bytes = data.bytes.slice();
+      this.capacity([{ id: "", size: bytes.byteLength, name, mimeType }]);
+      const value = await this.adapter.create({ name, mimeType });
+      try {
+        for (let offset = 0; offset < bytes.length; offset += RESOURCE_MAX_CHUNK) {
+          check();
+          const chunk = bytes.slice(offset, offset + RESOURCE_MAX_CHUNK);
+          const size = await this.adapter.append(value.id, offset, chunk);
+          if (size !== offset + chunk.length) throw new AppError("internal", "Unexpected context resource size");
+        }
+        check(); await this.adapter.commit(value.id); check();
+        return this.register({ ...value, name, mimeType, size: bytes.length }, "context", "ready", access);
+      } catch (error) { await this.cleanNative([value]); throw error; }
+    }, signal).catch(error => { access.dispose(); throw error; });
   }
   /** Host-only acquisition: parse and copy within the actor's queue, never through Worker bytes. */
   importImage(bookId: string, load: () => Promise<Blob | null>, signal?: AbortSignal): Promise<ResourceRef | null> {
@@ -114,6 +141,7 @@ export class ResourceOwner implements ResourcePort {
   use<T>(id: string, consume: (resource: NativeResource) => Promise<T>, signal?: AbortSignal): Promise<T> {
     return this.run(async () => {
       const entry = this.get(id, true);
+      if (entry.ref.source === "context") throw invalid();
       const result = await consume({ id: entry.nativeId, name: entry.ref.name, mimeType: entry.ref.mimeType, size: entry.ref.size });
       this.guard(signal);
       return result;
@@ -126,7 +154,7 @@ export class ResourceOwner implements ResourcePort {
       this.authorizeRead({ ...entry.ref });
       if (offset > entry.ref.size) throw invalid();
       const data = await this.adapter.read(entry.nativeId, offset, length);
-      this.guard(signal); this.get(id, true);
+      this.guard(signal); this.get(id, true); this.authorizeRead({ ...entry.ref });
       if (data.byteLength !== Math.min(length, entry.ref.size - offset)) throw new AppError("fs/not-found", "Resource contents changed");
       return { data, nextOffset: offset + data.byteLength, eof: offset + data.byteLength === entry.ref.size };
     }, signal);
@@ -150,6 +178,7 @@ export class ResourceOwner implements ResourcePort {
   commit(id: string, signal?: AbortSignal) {
     return this.run(async () => {
       const entry = this.get(id);
+      if (entry.ref.source === "context") return { ...entry.ref };
       await this.adapter.commit(entry.nativeId);
       entry.ref.state = "ready";
       this.guard(signal); return { ...entry.ref };
@@ -159,8 +188,10 @@ export class ResourceOwner implements ResourcePort {
     if (filename !== undefined) resourceName(filename);
     return this.run(async () => {
       const entry = this.get(id, true);
-      const saved = await this.adapter.save(entry.nativeId, resourceName(filename ?? entry.ref.name), signal);
-      this.guard(signal); return { saved };
+      const saved = await this.adapter.save(entry.nativeId, resourceName(filename ?? entry.ref.name), signal,
+        () => { this.guard(signal); this.get(id, true); });
+      // External writes cannot be recalled after dispatch; preserve their actual receipt.
+      return { saved };
     }, signal);
   }
   release(id: string): Promise<void> {
@@ -170,7 +201,7 @@ export class ResourceOwner implements ResourcePort {
   copyImage(id: string, signal?: AbortSignal): Promise<ResourceImageReceipt> {
     return this.run(async () => {
       const entry = this.get(id, true);
-      if (entry.ref.source === "book") throw new AppError("ui/invalid-target", "Original book files are not image resources");
+      if (entry.ref.source === "book" || entry.ref.source === "context") throw new AppError("ui/invalid-target", "Resource is not an image input");
       const receipt = await this.adapter.copyImage(entry.nativeId);
       this.guard(signal); return receipt;
     }, signal);
@@ -180,7 +211,7 @@ export class ResourceOwner implements ResourcePort {
   imagePreview(id: string, signal?: AbortSignal): Promise<Blob> {
     return this.run(async () => {
       const entry = this.get(id, true);
-      if (entry.ref.source === "book" || !entry.ref.size || entry.ref.size > BOOK_IMAGE_MAX_BYTES) throw invalid();
+      if (entry.ref.source === "book" || entry.ref.source === "context" || !entry.ref.size || entry.ref.size > BOOK_IMAGE_MAX_BYTES) throw invalid();
       this.authorizeRead({ ...entry.ref });
       const bytes = await this.adapter.imagePreview(entry.nativeId);
       this.guard(signal); this.get(id, true); this.authorizeRead({ ...entry.ref });
@@ -190,6 +221,7 @@ export class ResourceOwner implements ResourcePort {
   }
   async dispose(): Promise<void> {
     this.disposed = true;
+    for (const entry of this.entries.values()) entry.stopObserving?.();
     // Rejected queued work is already owned by its caller; cleanup must still run.
     await this.tail.catch(() => {});
     const failures: unknown[] = [];
@@ -201,6 +233,7 @@ export class ResourceOwner implements ResourcePort {
   }
   private async remove(id: string) {
     const entry = this.entries.get(id); if (!entry) return;
+    entry.stopObserving?.(); entry.access?.dispose();
     await this.adapter.release(entry.nativeId);
     clearTimeout(entry.timer); this.entries.delete(id);
   }
@@ -209,12 +242,19 @@ export class ResourceOwner implements ResourcePort {
       try { await this.adapter.release(value.id); } catch (error) { this.report(error); }
     }
   }
-  private register(value: NativeResource, source: ResourceRef["source"], state: ResourceRef["state"]): ResourceRef {
+  private register(value: NativeResource, source: ResourceRef["source"], state: ResourceRef["state"], access?: ReturnType<typeof retainResourceAccess>): ResourceRef {
     const id = crypto.randomUUID(), expiresAt = this.now() + RESOURCE_LIFETIME_MS;
     const ref: ResourceRef = { id, size: value.size, name: value.name, mimeType: value.mimeType, source, state, expiresAt };
     const timer = setTimeout(() => { void this.release(id).catch(this.report); }, RESOURCE_LIFETIME_MS);
     if (typeof timer === "object" && "unref" in timer) timer.unref();
-    this.entries.set(id, { nativeId: value.id, ref, timer });
+    const revoke = () => {
+      // Cleanup is not actor work: queue saturation must not prevent revocation cleanup.
+      const cleanup = this.tail.then(() => this.remove(id));
+      this.tail = cleanup.catch(this.report);
+    };
+    this.entries.set(id, { nativeId: value.id, ref, timer, access,
+      stopObserving: access ? () => access.signal.removeEventListener("abort", revoke) : undefined });
+    access?.signal.addEventListener("abort", revoke, { once: true });
     return { ...ref };
   }
   private bytes() { return [...this.entries.values()].reduce((sum, entry) => sum + entry.ref.size, 0); }
@@ -228,6 +268,7 @@ export class ResourceOwner implements ResourcePort {
     idValue(id);
     const entry = this.entries.get(id);
     if (!entry || entry.ref.expiresAt <= this.now()) throw new AppError("fs/not-found", "Resource expired or belongs to another actor");
+    entry.access?.check();
     if (ready && entry.ref.state !== "ready") throw invalid();
     return entry;
   }

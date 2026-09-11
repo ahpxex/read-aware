@@ -76,6 +76,33 @@ export remain required.
 
 ## Actor And Export Boundary
 
+### Sealed Resource Disclosure
+
+The export transport must not turn archive integrity into authorization. Its
+host-only entry point validates and copies the exact artifact, then writes and
+seals deterministic UTF-8 JSON in the existing actor ResourceOwner. Only the
+ready, actor-local reference is returned; no native ID or writable intermediate
+handle crosses the actor boundary. Serialization preserves the complete version
+and content, without rehashing a redacted variant under the old version.
+
+Every context resource owns a mandatory host disclosure lease: a synchronous
+current-policy predicate, a revocation signal, and observer cleanup. Acquisition,
+metadata access and each byte read check that lease; asynchronous reads recheck
+before delivering bytes. Revocation schedules serialized native cleanup and
+prevents further access even if cleanup fails. Release remains possible without
+permission. Context resources cannot be used as generic book-import inputs or
+image-decoding/clipboard inputs, and cannot be appended to after sealing.
+
+Saving rechecks authority, expiry and owner lifetime after the native dialog,
+immediately before dispatching the filesystem write. Cancellation or revocation
+before dispatch prevents the copy. After dispatch, the real write receipt is
+drained and returned: a completed external write must not be reported as cancelled.
+Already delivered bytes or completed external files cannot be recalled.
+
+This transport does not provide a permissive default lease, public actor grant,
+or retrospective spoiler proof. Actor recipe grants, policy observers and the
+native/Agent disclosure flows must supply those separately before public wiring.
+
 ### Pinned History Reads
 
 The implemented internal history queries select exactly one recipe and scope, never a version ID alone or

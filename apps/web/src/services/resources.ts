@@ -59,9 +59,9 @@ export const resourceAdapter: ResourceAdapter = {
   read: nativeResourceFiles.read,
   append: nativeResourceFiles.append,
   commit: nativeResourceFiles.commit,
-  async save(id, filename, signal) {
+  async save(id, filename, signal, beforeWrite) {
     desktop(); signal?.throwIfAborted();
-    return nativeResourceFiles.save(id, filename, signal);
+    return nativeResourceFiles.save(id, filename, signal, beforeWrite);
   },
   release,
   copyImage: nativeResourceFiles.copyImage,

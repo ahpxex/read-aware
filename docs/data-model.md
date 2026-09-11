@@ -322,7 +322,11 @@ snapshot and publishes conditionally against the v36 device-local
 token, rollback preserves it, and wipe retires its generation. This guard is not
 synced or projected and is separate from the artifact's stable source identity;
 rebuild/restore invalidates in-flight captures, while scratch verification rolls
-its changes back. Other recipe producers, authorized queries, resource export and
+its changes back. The conversation producer also reads the selected durable
+rolling summary through `conversation_insights_snapshot`, with a target/content
+`cins1` identity, exact legacy-global fallback and unavailable orphan/cleared
+summaries; it never reads raw messages or implies full transcript coverage.
+Reading-intention and book-memory producers, authorized queries, resource export and
 user-facing consumers are not wired yet; MEM13 remains partial. See
 [context-bundles](./context-bundles.md) for the contract and closing conditions.
 

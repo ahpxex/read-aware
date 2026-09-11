@@ -2,6 +2,20 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：第一段 context bundle 对话纪要真实来源
+
+[进度/设计] 上轮94a959d9一致源条件发布与画像生产者已推送且CI通过，是有效进展。本组继续MEM13第二个实际recipe，先明确已存滚动纪要契约：不是转录dump、不调用模型重做、不声称覆盖最新消息，也不凭无章节来源的纪要声称倒退阅读后已重新过滤剧透。不新增第二段组合插件。
+
+[来源] 既有conversation-insights-store增加owner准备与固定native snapshot入口：先等待已接受写操作结束，再捕获源clock并读取SQLite原始持久值，不读取乐观镜像或接受任意KV key。原生严格校验目标/字段，书需存在、global需持久会话，只原始__global__可回退legacy global键，显式空优先；不存在与空文本区分。孤立或clear墓碑后的残留纪要标unavailable，不带正文；墓碑保守保留到会话owner重新打开。坏JSON/非字符串值/读失败拒绝，不伪造空；超长或非法选中文本拒绝不截断。只返回当前目标的summary/status/cins1版本，不扫描原始消息、记忆或实体，不返回其他线程文本。
+
+[接线] cins1固定元组包含目标、可用性和选定已存纪要，TS/Rust共享Unicode golden，TS在组包前复核身份；不依赖整个KV映射或修改时间，其他线程内容不进入artifact身份。captureConversation冻结目标并与captureProfile共用原生条件发布/取消/真实回执编排；owner准备在clock之前，源读取在其后，清空、删书及改回原值仍被源clock拒绝。全局映射conversation scope，本书映射book scope，保留完整文本或明确计数省略；无新公共Agent/插件写口。
+
+[验证] storage定向197项通过，既有百万日志压力1项默认忽略；新增6项覆盖shared golden、无message扫描、其他线程隔离、legacy/空/缺失/孤立/clear、目标注入/删书、坏数据/限长/失败、snapshot到publication竞争、第二SQLite连接和重开。core/宿主/真实owner seam/既有Agent与插件纪要回归/库存模型45项289断言通过；core及Web（含Foliate/迁出桌面脚本）类型通过。首次Web测试fixture相对路径及JSON字面量宽化问题已修正并复跑；Cargo锁等待后原进程正常完成，未因观察等待重启。未启动桌面、浏览器、完整构建或模型，不含用户表单工作。
+
+[剩余] MEM13仍部分、双端未接：继续Reading Goals意图与书内记忆的真实owner快照、剧透/生命周期；随后授权历史/读取/封口ResourceRef导出、原生与Agent入口、文本隐私/撤权与完整持久结果边界。内部recipe完成不等于公开导出能力关闭，更不是Tauri E2E。源矩阵/模型/设计与数据模型同步，HTML每日集中。本组独立提交并push。
+
+[燃尽] 剩余部分/未接行数81；未覆盖行数240；未验收插件数15（包含9个组合桌面插件）。
+
 ## 2026-09-11：第一段 context bundle 一致来源发布与画像生产者
 
 [进度/设计] 上轮f6df15a3不可变版本投影已推送且landing CI通过，是有效进展。本组在既有context-bundles设计中先明确来源一致性：跨多次IPC读取不能只靠内容hash，发布必须检查实际持久读集未在中途改变。采用本机源clock，而不是把全库事件数塞进artifact版本；不把该clock当授权票据或插件生命周期保护，也不提前做第二段插件。

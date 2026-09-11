@@ -9,6 +9,8 @@ mod profile_entities_tests;
 mod context_bundle_tests;
 #[path = "context_bundle_publication_tests.rs"]
 mod context_bundle_publication_tests;
+#[path = "conversation_insights_tests.rs"]
+mod conversation_insights_tests;
 
 fn test_conn() -> Connection {
     let conn = Connection::open_in_memory().expect("open in-memory db");

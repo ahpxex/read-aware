@@ -1002,6 +1002,7 @@ pub fn run() {
             storage::profile_context,
             storage::context_bundle_source_revision,
             storage::context_bundle_publish,
+            storage::conversation_insights_snapshot,
             storage::profile_initialize,
             storage::profile_commit,
             storage::profile_restore,

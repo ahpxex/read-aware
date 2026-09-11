@@ -1,0 +1,6 @@
+{
+  "target": { "kind": "book", "id": "book:one" },
+  "status": "present",
+  "summary": "Stored 😀 summary\n中文",
+  "revision": "cins1:176435c9bcb6b7fffcd5483cda2f8cd10d31575a86bf6331e1e490a4b029479f"
+}

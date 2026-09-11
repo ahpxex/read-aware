@@ -36,6 +36,8 @@ mod local_event_guard;
 mod context_bundle;
 mod context_bundle_publication;
 pub use context_bundle_publication::*;
+mod conversation_insights;
+pub use conversation_insights::*;
 mod entity_registry;
 mod entity_queries;
 pub use entity_queries::*;

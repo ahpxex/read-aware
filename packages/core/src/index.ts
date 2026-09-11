@@ -21,6 +21,7 @@ export * from "./reading-session";
 export * from "./reading-ai-action";
 export * from "./context-bundle";
 export * from "./context-bundle-profile";
+export * from "./context-bundle-insights";
 export * from "./reading-emphasis";
 export * from "./host-io";
 export * from "./conversation-control";

@@ -69,9 +69,36 @@ The first wired recipe is the user profile: curated summary plus only a current,
 validated derived summary, with an explicit unavailable omission for stale/invalid
 derived content. It uses the existing profile-context snapshot and `pctx1` source
 identity. This does not export raw profile traits, all memories, or entity tables.
-The other three recipes, public actor operations and file export remain required.
+The stored-conversation recipe is also wired internally as described below.
+Reading-intention and book-memory producers, public actor operations and file
+export remain required.
 
 ## Actor And Export Boundary
+
+### Stored Conversation Recipe
+
+The conversation recipe exports the selected thread's stored rolling summary,
+not a regenerated summary or an assertion that it covers the latest transcript.
+The source owner settles accepted local writes before capture; a narrow native
+snapshot then reads durable SQLite bytes and validates the entire legacy summary
+map without returning unrelated entries. Only the original `__global__` thread
+may fall back to the historical `global` key, and an explicit empty string wins
+over that fallback. Book targets must name an existing book; global targets must
+name a persisted conversation. A missing book conversation is a valid empty
+source, but a leftover summary without its conversation or behind a clear
+tombstone is unavailable, never silently resurrected. A conservative clear
+tombstone remains unavailable until the conversation owner reopens the thread.
+
+The `cins1` source identity covers target, availability and selected summary,
+not the entire KV map or transcript. The existing local clock still fences
+concurrent clears, deletion, source rewrites and ABA during publication. Absent
+summary and explicit empty summary remain distinct; corrupt storage and read
+failures reject rather than produce an empty bundle. Oversized source text is
+rejected rather than truncated. No raw message scan, memory search, model call,
+local path or arbitrary KV key is part of this recipe. Historical summary text
+has no chapter provenance, so this recipe does not claim to recalculate spoilers
+after a reading-position rewind; public consumers must apply their actual grants
+and text/privacy policy before capture and delivery.
 
 The public operation will select a recipe/scope, not SQL, KV keys, paths or raw
 events. Each recipe must require the domains it actually reads; historical bundle
@@ -85,11 +112,13 @@ There will be no plugin-specific duplicate model tools for the same recipes.
 ## Delivery Boundaries
 
 The immutable-artifact contract, native event-sourced version history, conditional
-publication and internal user-profile producer are implemented. MEM13 remains
-partial until the other three source assemblers, authorized history/read/export,
+publication and internal user-profile and stored-conversation producers are
+implemented. MEM13 remains partial until reading-intention and book-memory source
+assemblers, authorized history/read/export,
 Agent tools, native user flow and ResourceRef lifecycle are wired with focused tests.
-Reading Goals provider intent, rolling conversation insights and book spoiler
-boundaries must use their real owners rather than broad raw KV reads.
+Reading Goals provider intent and book spoiler boundaries must use their real
+owners rather than broad raw KV reads. Stored conversation bundles use a narrow
+native read through the existing summary owner, not its optimistic KV mirror.
 
 After those implementation conditions close, stage three must verify a formal
 plugin's full capture/history/export flow in isolated Tauri, including source

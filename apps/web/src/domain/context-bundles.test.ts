@@ -3,15 +3,22 @@ import { AppError, type ContextBundle, type ProfileContextSnapshot } from "@read
 import { createContextBundleService } from "./context-bundles";
 import { deferred } from "../../tests/helpers/profile-host";
 import type { DomainEventDraft } from "../platform/domain-events";
+import insightsGolden from "../../../../packages/core/src/context-bundle-insights.golden.json";
+import type { ConversationInsightsSnapshot, ConversationTarget } from "@read-aware/core";
 
 function fixture() {
   const calls: string[] = [], broadcasts: DomainEventDraft[] = [], warnings: string[] = [];
   const snapshot: ProfileContextSnapshot = { profile: { summary: "Reader", revision: `profile2:${"a".repeat(64)}` }, derived: null, sourceConditions: [] };
   const controls = { before: async (_step: string) => {}, changed: true, badReceipt: false };
+  const insights = structuredClone(insightsGolden) as ConversationInsightsSnapshot;
+  let readTarget: ConversationTarget | undefined;
   let publication: { event: { payload: ContextBundle; origin: string }; expectedReadRevision: string } | undefined;
   async function step(name: string) { calls.push(name); await controls.before(name); }
   const service = createContextBundleService({
     initialize: () => step("initialize"), warn: message => { warnings.push(message); },
+    insights: { prepare: () => step("prepare-insights"), read: async target => {
+      readTarget = structuredClone(target); await step("read-insights"); return structuredClone(insights);
+    } },
     mint: async drafts => { await step("mint"); return drafts.map(draft => ({ ...draft, id: "minted", hlc: { wallMs: 1, counter: 0, deviceId: "local" } })); },
     broadcast: drafts => { calls.push("broadcast"); broadcasts.push(...structuredClone(drafts)); },
     invoke: async <T>(command: string, args?: unknown): Promise<T> => {
@@ -23,7 +30,7 @@ function fixture() {
       return { version: controls.badReceipt ? "wrong" : publication!.event.payload.version, changed: controls.changed, persistence: "event-log" } as T;
     },
   });
-  return { service, calls, broadcasts, warnings, snapshot, controls, publication: () => publication };
+  return { service, calls, broadcasts, warnings, snapshot, insights, controls, publication: () => publication, readTarget: () => readTarget };
 }
 
 test("capture initializes durable sources, fences before reads, publishes origin and broadcasts only actual changes", async () => {
@@ -81,4 +88,33 @@ test("degraded derived content logs without private bytes; invalid receipts neve
   host.controls.badReceipt = true;
   await expect(host.service.captureProfile("user")).rejects.toMatchObject({ code: "db/error" });
   expect(host.broadcasts).toHaveLength(1);
+});
+
+test("conversation recipe settles the real source owner before the clock and cannot be retargeted while awaiting", async () => {
+  const host = fixture(), target: ConversationTarget = { kind: "book", id: "book:one" };
+  const pending = host.service.captureConversation(target, "plugin:context"); target.id = "different";
+  const result = await pending;
+  expect(host.calls).toEqual(["initialize", "prepare-insights", "context_bundle_source_revision", "read-insights", "mint", "context_bundle_publish", "broadcast"]);
+  expect(host.readTarget()).toEqual({ kind: "book", id: "book:one" });
+  expect(result.bundle.content).toMatchObject({ kind: "conversation_insights_context", scope: insightsGolden.target,
+    sourceRevision: insightsGolden.revision, items: [{ text: insightsGolden.summary }] });
+  expect(host.publication()).toMatchObject({ event: { origin: "plugin:context" }, expectedReadRevision: "cbsource1:observed:1" });
+  host.insights.target.id = "different";
+  await expect(host.service.captureConversation({ kind: "book", id: "book:one" }, "user")).rejects.toMatchObject({ code: "memory/invalid-input" });
+  expect(host.broadcasts).toHaveLength(1);
+});
+
+test("conversation owner failures and cancellation at every boundary never publish a partial recipe", async () => {
+  for (const pause of ["initialize", "prepare-insights", "context_bundle_source_revision", "read-insights", "mint"]) {
+    const host = fixture(), controller = new AbortController();
+    host.controls.before = async step => { if (step === pause) controller.abort(); };
+    await expect(host.service.captureConversation({ kind: "book", id: "book:one" }, "user", controller.signal)).rejects.toBeDefined();
+    expect(host.calls).not.toContain("context_bundle_publish"); expect(host.broadcasts).toHaveLength(0);
+  }
+  for (const fail of ["prepare-insights", "read-insights", "context_bundle_publish"]) {
+    const host = fixture(), error = new AppError("db/locked", "source failure");
+    host.controls.before = async step => { if (step === fail) throw error; };
+    await expect(host.service.captureConversation({ kind: "book", id: "book:one" }, "user")).rejects.toBe(error);
+    expect(host.calls.filter(step => step === fail)).toHaveLength(1); expect(host.broadcasts).toHaveLength(0);
+  }
 });

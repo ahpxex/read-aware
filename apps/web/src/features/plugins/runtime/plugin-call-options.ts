@@ -4,6 +4,8 @@ import type { PluginCallOptions } from "@read-aware/plugin-types";
 /** Final options argument positions shared by the Worker proxy and host RPC.
  * Transport metadata is not authority: the host still resolves the actor's method. */
 export const PLUGIN_CALL_OPTIONS = {
+  "domains.memory.queries.entities": 1,
+  "domains.memory.commands.decideEntity": 1,
   "services.maintenance.requestConnectionTest": 0,
   "domains.settings.commands.refreshModelCatalog": 1,
   "services.maintenance.requestBackup": 1,
@@ -37,6 +39,12 @@ export const PLUGIN_CALL_OPTIONS = {
   "domains.reading.commands.returnToMode": 1,
   "domains.reading.commands.stepMode": 2,
 } as const;
+
+/** These conditional writes arbitrate cancellation at dispatch, not in the proxy.
+ * A deadline or lost realm still leaves the outcome unknown; never retry blindly. */
+export function pluginCallDrainsCancellation(method: string): boolean {
+  return method === "domains.memory.commands.decideEntity";
+}
 
 function position(method: string): number | undefined {
   return Object.hasOwn(PLUGIN_CALL_OPTIONS, method) ? PLUGIN_CALL_OPTIONS[method as keyof typeof PLUGIN_CALL_OPTIONS] : undefined;

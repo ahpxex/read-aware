@@ -13,6 +13,7 @@ import { MemoryObserver } from "./memory-observer";
 import { createLogger } from "../platform/logger";
 import { createBookGraphTasks } from "./book-graph-tasks";
 import { changeUserProfile } from "./user-profile";
+import { decideEntity, queryEntities } from "./entity-registry";
 import type { MemoryObservation, MemoryObservationQuery, MemoryObservationResult } from "@read-aware/core";
 
 const log = createLogger("memory-observation");
@@ -23,6 +24,7 @@ const observer = new MemoryObserver({
 
 /** Memory reads do not import books, construct digests, or grant raw projection writes. */
 export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal, trackCleanup?: (work: Promise<void>) => void) {
+  const entitySignal = (signal?: AbortSignal) => lifetime && signal ? AbortSignal.any([lifetime, signal]) : lifetime ?? signal;
   const memory = createMemoryPort(), bookMemory = createBookMemoryPort();
   const profile = (query?: import("@read-aware/core").UserProfileQuery) => createProfilePort().readProfile(query, lifetime);
   const tasks = createBookGraphTasks(lifetime);
@@ -44,11 +46,19 @@ export function createMemoryDomain(origin: EventOrigin, lifetime?: AbortSignal, 
     if (query.kind === "graphTask") return { kind: query.kind, task: await tasks.get(query.bookId, query.taskId) };
     return { kind: query.kind, graph: await queries.bookGraph(query.bookId, query.query) };
   };
-  return { queries: { ...queries, profile, inspect: (id: string) => inspectMemory(id, lifetime), classification: (bookId: string) => inspectBookClassification(bookId, lifetime),
+  return { queries: { ...queries, profile,
+      entities: (query?: import("@read-aware/core").EntityQuery, signal?: AbortSignal) => queryEntities(query, entitySignal(signal)),
+      inspect: (id: string) => inspectMemory(id, lifetime), classification: (bookId: string) => inspectBookClassification(bookId, lifetime),
       listGraphTasks: (bookId: string) => tasks.list(bookId), getGraphTask: (bookId: string, taskId: string) => tasks.get(bookId, taskId) },
     commands: { mutate: (input: import("@read-aware/core").MemoryMutation) => mutateMemory(input, origin, lifetime),
       updateProfile: (input: import("@read-aware/core").UserProfileChange) => {
         const work = changeUserProfile(input, origin, lifetime);
+        trackCleanup?.(work.then(() => {}, () => {}));
+        return work;
+      },
+      decideEntity: (input: import("@read-aware/core").EntityDecision, signal?: AbortSignal) => {
+        const work = decideEntity(input, origin, entitySignal(signal));
+        // The caller owns write errors; retirement still waits for the native transaction.
         trackCleanup?.(work.then(() => {}, () => {}));
         return work;
       },

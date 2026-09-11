@@ -21,7 +21,7 @@ import type {
   PluginManifest,
 } from "@read-aware/plugin-types";
 import { AppError, errorCode } from "@read-aware/core";
-import { injectPluginCallSignal } from "./plugin-call-options";
+import { injectPluginCallSignal, pluginCallDrainsCancellation } from "./plugin-call-options";
 import { buildPluginContext, currentAppLocale, pluginStoragePrefix } from "./plugin-context";
 import { pluginModuleUrl } from "./plugin-backend";
 import { i18n } from "../../../i18n";
@@ -523,7 +523,7 @@ export function startPluginWorker(
             }
             worker.postMessage({ t: "result", id: message.id, ok: true, value: value ?? null });
           } catch (error) {
-            const failure = controller.signal.aborted ? controller.signal.reason : error;
+            const failure = controller.signal.aborted && !pluginCallDrainsCancellation(message.method) ? controller.signal.reason : error;
             if (message.method.startsWith("services.network.") && !controller.signal.aborted) {
               log.warn("Plugin network request failed", manifest.id, message.method, failure);
             }

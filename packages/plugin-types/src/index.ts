@@ -1651,8 +1651,11 @@ export type PluginDomains = {
   reading?: PluginReadingDomain;
   annotations?: PluginAnnotationsDomain;
   conversations?: PluginConversationsDomain;
-  /** Memory 1.7. Graph generation additionally requires service:llm; handles belong to this activation. */
+  /** Memory 2.1. Graph generation additionally requires service:llm; handles belong to this activation. */
   memory?: { queries: {
+    /** Global explicit identities, not book-digest characters. Row-bounded, revision-pinned pages.
+     * Historical field sizes are not bounded. Aborted/retired callers receive no late page. */
+    entities(query?: import("@read-aware/core").EntityQuery, options?: PluginCallOptions): Promise<import("@read-aware/core").EntityPage>;
     /** The event-backed summary projection; read grant, bounded revision-pinned pages. */
     profile(query?: import("@read-aware/core").UserProfileQuery): Promise<import("@read-aware/core").UserProfilePage>;
     inspect(id: string): Promise<import("@read-aware/core").MemorySnapshot | null>;
@@ -1663,6 +1666,12 @@ export type PluginDomains = {
     page(input: import("@read-aware/core").MemoryPageQuery): Promise<import("@read-aware/core").MemoryPage>;
     bookGraph(bookId: string, query?: import("@read-aware/core").BookGraphQuery): Promise<import("@read-aware/core").BookGraphResult>;
   }; commands?: {
+    /** Memory 2.1: resolve an original member or merge known resolved classes using an observed
+     * entities1 revision. Present the exact change for confirmation first. Retains original
+     * definitions/aliases, may sync to other devices. No blind conflict retry. Cancellation
+     * prevents dispatch only; dispatched writes drain to their actual receipt. A transport
+     * timeout or lost Worker leaves the outcome unknown: reread, never retry blindly. */
+    decideEntity(input: import("@read-aware/core").EntityDecision, options?: PluginCallOptions): Promise<import("@read-aware/core").EntityDecisionReceipt>;
     /** Replace the event-backed summary using the observed profile2 revision.
      * Present the complete candidate for user confirmation before calling.
      * Empty text clears the summary, not memories or historical copies. */

@@ -1,10 +1,11 @@
 # Entity Registry Contract
 
 MEM08 needs consumers of the identity projection, not merely event names.
-Native entity_query/entity_commit and the shared core query/decision types now
-implement the foundation below. The host/Agent/plugin bindings remain to be
-connected in stage one; these commands are not new model or Worker authority.
-This document is not evidence that those consumers or desktop rounds are done.
+Native entity_query/entity_commit, core query/decision types and the shared host
+service now implement the foundation below. Memory 2.1 exposes plugin entity
+queries and conditional decisions through the existing memory grants. Agent
+tools/approval and consolidation remain to be connected in stage one. This
+document is not evidence that those consumers or desktop rounds are done.
 
 ## Reads
 
@@ -50,19 +51,31 @@ blind conflict retries: reread and renew the decision. Local transactions are
 not distributed CAS; offline devices merge their event logs in canonical HLC
 order under the existing replay rules.
 
-The intended public bindings stay within memory: reads require memory:read
-(write implies read), decisions require memory:write. Agent decisions show the
-exact proposed identity change and require host approval; book-local digest
+The plugin bindings stay within memory: queries.entities requires memory:read
+(write implies read), commands.decideEntity requires memory:write and an active
+activation. Both accept per-call cancellation; the Worker strips local signals
+and injects a host-owned signal. Entity reads use the existing shared 32-read
+capacity and retain source ownership until IPC settles, even after cancellation.
+Agent decisions must show the exact proposed identity change and require host
+approval (not implemented yet); book-local digest
 characters are not automatically imported or matched by spelling. These are
 global, explicitly resolved identities, not a way around book spoiler scopes.
 Cancellation before dispatch prevents the candidate event; dispatched native
-work drains to its real receipt. Retired consumers cannot receive late pages.
+work drains to its real receipt. The entity-write Worker proxy sends cancellation
+but waits for host arbitration, retaining its pending-call slot. Native failure
+codes are not overwritten by a concurrent cancellation. The existing RPC deadline
+and Worker loss still bound waiting: either leaves an unknown write outcome, not
+proof of rollback, and must not trigger a blind retry. Retirement waits for the
+native source transaction but cannot promise delivery into a terminated Worker.
+Retired consumers cannot receive late pages. Changed transactions alone broadcast;
+conflicts and no-ops do not emit fake success events.
 
 ## Closure
 
-Native queries/mutations, bounded core validation, the shared host service,
-Agent tools/ports, plugin grants and lifecycle tests must all land before this
-chain counts as wired. Entity consolidation remains a separate producer gap,
+Native queries/mutations, core validation, the shared host service, plugin grants
+and targeted lifecycle/Worker transport tests have landed. Agent tools/ports and
+host approval must still land before this chain counts as dual-actor wired.
+Entity consolidation remains a separate producer gap,
 not something manual resolve/merge claims to implement. Stage two adds actual
 composition workflows; stage three proves real Worker/Tauri/merge/bootstrap,
 failure/revocation and packaged behavior. Neither is replaced by unit tests.

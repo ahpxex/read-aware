@@ -125,6 +125,7 @@ const pluginMap = pairs([
   ["domains.memory.queries.page", "MEM01"],
   ["domains.memory.queries.profile", "MEM06"],
   ["domains.memory.commands.updateProfile", "MEM07"],
+  ["domains.memory.queries.entities domains.memory.commands.decideEntity", "MEM08"],
   ["domains.memory.queries.bookGraph", "MEM11"],
   ["domains.memory.queries.inspect", "MEM01 MEM05"],
   ["domains.memory.commands.mutate", "MEM04 MEM05"],

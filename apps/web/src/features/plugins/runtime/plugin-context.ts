@@ -25,6 +25,7 @@ import {
   canUseContribution,
   canUseHostService,
   domainGrantsFromPermissions,
+  normalizeEntityQuery,
   type DomainEventType,
   type SettingsAccessPolicy,
 } from "@read-aware/core";
@@ -929,7 +930,10 @@ export function buildPluginContext(
 
   if (domain.memory) {
     const memory = domain.memory;
-    ctx.domains.memory = { queries: memory.queries,
+    ctx.domains.memory = { queries: { ...memory.queries, entities: (input, options) => {
+      const query = normalizeEntityQuery(input);
+      return lifecycle.read("memory.entities", signal => memory.queries.entities(query, signal), callSignal(options));
+    } },
       events: { observe: (query, handler) => track(() => ({ dispose: memory.events.observe(query, handler) })) },
       ...(memory.commands ? { commands: { mutate: input => {
       lifecycle.assertActive("domains.memory.commands.mutate");
@@ -937,6 +941,9 @@ export function buildPluginContext(
     }, updateProfile: input => {
       lifecycle.assertActive("domains.memory.commands.updateProfile");
       return memory.commands!.updateProfile(input);
+    }, decideEntity: (input, options) => {
+      lifecycle.assertActive("domains.memory.commands.decideEntity");
+      return memory.commands!.decideEntity(input, callSignal(options));
     }, classify: input => {
       lifecycle.assertActive("domains.memory.commands.classify");
       return memory.commands!.classify(input);

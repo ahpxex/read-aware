@@ -1,5 +1,36 @@
 import { expect, test } from "bun:test";
 import { PluginRpcPending } from "./plugin-rpc-pending";
+import { pluginCallDrainsCancellation } from "./plugin-call-options";
+
+test("conditional entity cancellation requests host arbitration, retains capacity and returns the real outcome", async () => {
+  expect(pluginCallDrainsCancellation("domains.memory.commands.decideEntity")).toBe(true);
+  expect(pluginCallDrainsCancellation("domains.memory.queries.entities")).toBe(false);
+  for (const ok of [true, false]) {
+    const rpc = new PluginRpcPending(120_000, 1), controller = new AbortController();
+    let id = 0, cancelled = 0, settled = false;
+    const pending = rpc.call(value => { id = value; }, { signal: controller.signal, drainCancellation: true, cancel: () => { cancelled++; } });
+    const observed = pending.then(value => { settled = true; return value; }, error => { settled = true; return error; });
+    controller.abort(); await Promise.resolve();
+    expect(settled).toBe(false); expect(rpc.size).toBe(1); expect(cancelled).toBe(1);
+    await expect(rpc.call(() => {})).rejects.toMatchObject({ code: "plugin/busy" });
+    const result = ok ? { changed: true } : new Error("Native conflict");
+    rpc.settle(id, ok, result);
+    expect(await observed).toBe(result); expect(rpc.size).toBe(0);
+  }
+});
+
+test("drained cancellation still rejects pre-aborted calls, deadlines and lost realms", async () => {
+  const rpc = new PluginRpcPending(5), controller = new AbortController();
+  let cancelled = 0;
+  const pending = rpc.call(() => {}, { signal: controller.signal, drainCancellation: true, cancel: () => { cancelled++; } });
+  controller.abort();
+  await expect(rpc.call(() => { throw Error("must not dispatch"); }, { signal: controller.signal, drainCancellation: true })).rejects.toBeDefined();
+  await expect(pending).rejects.toMatchObject({ code: "plugin/timeout", retryable: false });
+  expect(cancelled).toBe(1); expect(rpc.size).toBe(0);
+  const live = rpc.call(() => {}, { drainCancellation: true });
+  rpc.close(new Error("Worker lost"));
+  await expect(live).rejects.toThrow("Worker lost");
+});
 
 test("RPC settlement and late responses are bounded", async () => {
   const rpc = new PluginRpcPending(); let id = 0;

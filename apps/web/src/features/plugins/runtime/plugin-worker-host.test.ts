@@ -11,6 +11,33 @@ import type { AgentRuntime, OneShotInput } from "@read-aware/agent";
 import type { PluginPermission } from "@read-aware/core";
 import * as contentNavigation from "../../library/lib/book-content-navigation";
 import { readingRuntime } from "../../../domain/reading-runtime";
+import * as entityDomain from "../../../domain/entity-registry";
+import { deferred, entityHost, entityRevision } from "../../../../tests/helpers/entity-host";
+
+test.each(["read", "before-write", "committed", "conflict"])("entity Worker RPC %s keeps cancellation and native receipt boundaries", async mode => {
+  const host = entityHost(), entered = deferred(), gate = deferred();
+  const wait = () => { entered.resolve(); return gate.promise; };
+  if (mode === "read") host.controls.beforeRead = wait;
+  else if (mode === "before-write") host.controls.beforeMint = wait;
+  else host.controls.beforeCommit = async () => {
+    await wait();
+    if (mode === "conflict") throw Object.assign(new Error("Native conflict"), { code: "memory/conflict" });
+  };
+  const spies = [spyOn(entityDomain, "queryEntities").mockImplementation(host.service.query), spyOn(entityDomain, "decideEntity").mockImplementation(host.service.decide)];
+  const { worker, close } = await hostFixture(["memory:write"]);
+  try {
+    const method = mode === "read" ? "domains.memory.queries.entities" : "domains.memory.commands.decideEntity";
+    const input = mode === "read" ? { kind: "identities" } : { op: "merge", keepId: "one", mergedId: "two", expectedRevision: entityRevision };
+    const call = worker.deliver({ t: "call", id: 995, method, args: worker.callbacks.encode([input, { signal: { forged: true } }]) });
+    await entered.promise; await worker.deliver({ t: "cancel", id: 995 });
+    gate.resolve(); await call;
+    const response = worker.sent.find(message => message.t === "result" && message.id === 995);
+    if (mode === "committed") expect(response).toMatchObject({ ok: true, value: host.controls.receipt });
+    else expect(response).toMatchObject({ ok: false, code: mode === "conflict" ? "memory/conflict" : "plugin/cancelled" });
+    expect(host.broadcasts).toHaveLength(mode === "committed" ? 1 : 0);
+    if (mode === "before-write") expect(host.calls).toHaveLength(0);
+  } finally { gate.resolve(); await close(); for (const spy of spies) spy.mockRestore(); }
+});
 
 type WireMessage = { t: string; id?: number; handle?: string; handles?: string[]; disposable?: string; [key: string]: unknown };
 

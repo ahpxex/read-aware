@@ -20,7 +20,7 @@ export class PluginRpcPending {
 
   call(
     send: (id: number) => void,
-    options: { signal?: AbortSignal; cancel?: (id: number) => void } = {},
+    options: { signal?: AbortSignal; cancel?: (id: number) => void; drainCancellation?: boolean } = {},
   ): Promise<unknown> {
     if (this.closed) return Promise.reject(this.closed);
     if (options.signal?.aborted) return Promise.reject(options.signal.reason ?? new AppError("plugin/cancelled", "Plugin call cancelled"));
@@ -28,12 +28,21 @@ export class PluginRpcPending {
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
       let sent = false;
+      let cancelSent = false;
+      const notifyCancel = () => {
+        if (!sent || cancelSent) return;
+        cancelSent = true;
+        options.cancel?.(id);
+      };
       const cancel = (error: unknown) => {
         if (!this.settle(id, false, error)) return;
-        if (sent) options.cancel?.(id);
+        notifyCancel();
       };
-      const onAbort = () => cancel(options.signal?.reason ?? new AppError("plugin/cancelled", "Plugin call cancelled"));
-      const timeout = setTimeout(() => cancel(new AppError("plugin/timeout", "Plugin call timed out", { retryable: true })), this.timeoutMs);
+      const onAbort = () => {
+        if (options.drainCancellation && sent && this.has(id)) notifyCancel();
+        else cancel(options.signal?.reason ?? new AppError("plugin/cancelled", "Plugin call cancelled"));
+      };
+      const timeout = setTimeout(() => cancel(new AppError("plugin/timeout", "Plugin call timed out", { retryable: !options.drainCancellation })), this.timeoutMs);
       this.pending.set(id, {
         resolve, reject,
         cleanup: () => { clearTimeout(timeout); options.signal?.removeEventListener("abort", onAbort); },

@@ -324,10 +324,10 @@ export type DomainEvent =
       { messageId: Id; conversationId: Id }
     >
   | DomainEventEnvelope<"aiConversation.cleared", { conversationId: Id }>
-  // --- Profile + memory (forward-looking; pipeline not yet built) --------
+  // --- Profile + memory ------------------------------------------------
   | DomainEventEnvelope<
       "profile.updated",
-      { displayName?: string; traits?: Record<string, unknown> }
+      { displayName?: string | null; summary?: string | null; traits?: Record<string, unknown> }
     >
   | DomainEventEnvelope<
       "entity.resolved",

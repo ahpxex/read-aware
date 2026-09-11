@@ -758,6 +758,7 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
          END;",
     ),
     (32, "plugin_document_revisions", include_str!("plugin_docs_v32.sql")),
+    (33, "profile_entity_projections", include_str!("profile_entities_v33.sql")),
 ];
 
 /// Rebuild the annotation FTS index from the table. Required after any VACUUM
@@ -776,7 +777,7 @@ pub(crate) fn rebuild_annotations_fts(conn: &Connection) -> Result<(), CommandEr
 /// The schema version a projection checkpoint is stamped with. Restoring one
 /// is only sound when the derived tables' shapes match exactly, so a
 /// checkpoint from a different version is ignored in favour of the log.
-pub(crate) const SCHEMA_VERSION: i64 = 29;
+pub(crate) const SCHEMA_VERSION: i64 = 33;
 
 /// The migration after which `materialize_legacy_covers` must run: the cover
 /// projection columns exist, the inline data-URL column still does.
@@ -804,6 +805,17 @@ pub(crate) fn run_migrations_up_to(conn: &mut Connection, max_version: i64) -> R
         if *version > current && *version <= max_version {
             let tx = conn.transaction()?;
             tx.execute_batch(sql)?;
+            if *version == 33 {
+                // Recover formerly ignored facts without rewriting unrelated
+                // legacy projections. An incomplete bootstrap must finish replay.
+                super::events::for_each_event_after(&tx, None, |event| {
+                    if matches!(event.event_type.as_str(), "profile.updated" | "entity.resolved" | "entity.merged") {
+                        super::apply::apply_event(&tx, event)?;
+                    }
+                    Ok(())
+                })?;
+                tx.execute("UPDATE sync_profile SET projections_stale=1 WHERE log_complete=0", [])?;
+            }
             tx.execute(
                 "INSERT INTO schema_migrations (version, name) VALUES (?1, ?2)",
                 params![version, name],

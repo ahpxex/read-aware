@@ -391,7 +391,15 @@ fn restore_tables_from_file(tx: &Transaction<'_>, file: &Connection) -> Result<(
                 format!("checkpoint table `{table}` has a different shape than this build"),
             ));
         }
+    }
+    // Delete children first, then restore parents first. Interleaving each
+    // table's delete/insert would cascade away newly restored alias rows.
+    for table in apply::DERIVED_TABLES {
         tx.execute(&format!("DELETE FROM \"{table}\""), [])?;
+    }
+    for table in apply::DERIVED_TABLES.iter().rev() {
+        let live_cols = table_columns(tx, table)?;
+        let file_cols = table_columns(file, table)?;
         let mut select = file.prepare(&format!("SELECT {} FROM \"{table}\"", quoted(&file_cols)))?;
         let mut insert = tx.prepare(&format!(
             "INSERT INTO \"{table}\" ({}) VALUES ({})",

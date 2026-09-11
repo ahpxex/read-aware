@@ -2,6 +2,20 @@
 
 目标：实现统一模型中 Agent / 插件尚未接通或只部分接通的应开放能力，完成遗漏重扫，使用真实组合插件和 Tauri 桌面端到端验收。此文件是执行账本，不替代[统一模型](./host-capability-model.md)或[当前矩阵](./host-capability-matrix.md)。
 
+## 2026-09-11：第一段 MEM08 原生画像与实体投影
+
+[进度/设计] 上轮 a855da63 已推送且 SET05 两平台 CI 成功，是有效进展。本组先写 profile-entity-projections-design.md，明确画像补丁、实体成员定义/别名、根身份合并、升级与尚缺的公开消费者；仍在第一段，没有启动桌面或扩展组合插件。
+
+[实现] v33 增加 user_profile/entities/entity_aliases/entity_redirects，三个事件不再 no-op，所有写入由 apply.rs 子模块进入日志事务。画像省略保留、null 清除、空字符串保留；traits 仅合并顶层键。实体解析保留历史名字与显式别名，合并扁平化整个等价类，反向/重复不成环；成员晚到解析不替换 keeper 名称，未定义 keeper 不伪造资料。四表纳入重放、漂移核验、checkpoint 和 wipe。迁移按 HLC 只投影此前忽略的事件，不重写其他历史行，也没有私自将旧 KV 摘要视为已迁移；未完成 bootstrap 标 stale 等待现有 backfill/replay，坏历史事件回滚整个迁移。
+
+[检查点] checkpoint schema 改为 33，旧形状不能冒充完整新投影。新增别名 FK 暴露了原恢复算法逐表 delete/insert 的级联风险；现先核验全部形状，清空子表后再按父表优先恢复。回归同时覆盖空目标及已有成员/别名目标，不只检查文件可生成。
+
+[验证] 完整 native storage 定向套件 135 通过、1 个既有 stress 忽略，含 10 项新投影/历史迁移/坏事件整批回滚及 outbox/逆序远端/重放/漂移/检查点/清空/bootstrap 测试。开发期两次新迁移夹具 SQL 错用了 app_kv/collections 列，按实际 schema 修正后重跑通过，未跳过测试。core、web 及迁出桌面脚本类型通过；现有画像行为和库存/模型 18 项/89 断言通过。保留既有 Rust 警告，不宣称全 Agent 类型、Windows/Linux 本单元执行或任何真实 E2E。
+
+[剩余] MEM08 从占位改为部分，仍未闭合：旧 KV 摘要的一次性事件迁移，onboarding/提示词/条件编辑/备份恢复/观察迁到同一投影；实体有界查询与条件决策；Agent/插件授权、取消/退休和错误反馈。关闭条件写入矩阵，不把原生表完成算双端接通。仅更新事实源，HTML 按每日集中规则后置。本组独立提交推送，既有 Agent 表单改动不混入。
+
+[燃尽] 剩余部分/未接行数 85；未覆盖行数 240；未验收插件数 15（包含 9 个组合桌面插件）。
+
 ## 2026-09-11：SET05 三平台接线关闭，保留真实 E2E
 
 [验证] 14027c6a 已推送，[CI 34564865782](https://github.com/ahpxex/read-aware/actions/runs/34564865782) 最终 success。Linux 完整原生 crate 编译及关联 29 项、desktop_ 10 项、外部接收 11 项通过；其中实际 xdg-mime/update-mime-database/update-desktop-database 在临时 XDG 根目录运行，验证启停/重新启用、真实缓存处理器增删、默认选择保留和 SQLite 失败补偿。Windows 完整 crate、关联 26 项、desktop_ 10 项、外部接收 11 项与 NSIS hook 编译全部通过。初版 CI 34564701586 也成功，但其测试未覆盖后来补上的裸 Exec 缺陷，不能替代最终版本回归。所有轮次均未启动 ReadAware、未执行安装器或桌面管理器交互。

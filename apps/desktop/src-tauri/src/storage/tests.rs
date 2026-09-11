@@ -3,6 +3,8 @@
 use super::*;
 #[path = "reading_snapshot_tests.rs"]
 mod reading_snapshot_tests;
+#[path = "profile_entities_tests.rs"]
+mod profile_entities_tests;
 
 fn test_conn() -> Connection {
     let conn = Connection::open_in_memory().expect("open in-memory db");
@@ -1099,7 +1101,7 @@ fn unknown_and_unprojected_events_are_accepted_but_change_nothing() {
         &[
             // A type only a newer build knows about.
             ev("e1", 1_000, "book.teleported", serde_json::json!({ "bookId": "b9" })),
-            ev("e2", 1_001, "profile.updated", serde_json::json!({ "displayName": "破晓" })),
+            ev("e2", 1_001, "profile.futureFieldUpdated", serde_json::json!({ "displayName": "破晓" })),
             ev(
                 "e3",
                 1_002,

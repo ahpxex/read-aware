@@ -39,9 +39,11 @@
 //!     for a cover the importing device already ruled out. The bytes stay in
 //!     the device-local blob registry (`blob_objects`), outside rebuild's wipe.
 //!
-//! `profile.updated` / `entity.*` likewise apply to nothing: they are accepted
-//! into the log, but the consolidation pipeline that would own their projection
-//! is not built yet.
+//! Profile patches and entity identity decisions are projected by the child
+//! modules below; they never infer new facts from names or chat text.
+
+mod profile;
+mod entities;
 
 use crate::error::CommandError;
 use rusqlite::{params, Transaction};
@@ -132,7 +134,7 @@ fn require(p: &Value, key: &str, event_type: &str) -> Result<String, CommandErro
 /// Apply one event to the projections inside `tx`.
 ///
 /// Returns `Ok(false)` when the event type has no projection (forward-compatible
-/// unknowns, and the not-yet-projected profile/entity family), `Ok(true)` when
+/// unknowns or decisions that leave an equivalence class unchanged), `Ok(true)` when
 /// it was handled.
 /// `merged_id → keep_id`, single hop (merge flattens chains at write time).
 fn resolve_book_alias(tx: &Transaction<'_>, id: &str) -> Result<Option<String>, CommandError> {
@@ -830,8 +832,9 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandE
             )
             ?;
         }
-        // profile/entity: no projection table until the consolidation pipeline.
-        "profile.updated" | "entity.resolved" | "entity.merged" => return Ok(false),
+        "profile.updated" => return profile::apply(tx, p, &at, &ev.id),
+        "entity.resolved" => return entities::resolve(tx, p, &at, &ev.id),
+        "entity.merged" => return entities::merge(tx, p, &at, &ev.id),
 
         // ── Forward compatibility ───────────────────────────────────────────
         // Skipping is the contract (an older build must accept a newer log),
@@ -1031,6 +1034,10 @@ pub struct DiffSpec {
 /// clears exactly these — device-local state (app_kv, local_device, the blob
 /// registry, plugin documents) is NOT derived from the log and must survive.
 pub const DERIVED_TABLES: &[&str] = &[
+    "entity_aliases",
+    "entity_redirects",
+    "entities",
+    "user_profile",
     "annotations",
     "books",
     "collections",
@@ -1046,6 +1053,10 @@ pub const DERIVED_TABLES: &[&str] = &[
 ];
 
 pub const DIFF_SPECS: &[DiffSpec] = &[
+    DiffSpec { table: "user_profile", local_columns: &[], domain_rows: None },
+    DiffSpec { table: "entities", local_columns: &[], domain_rows: None },
+    DiffSpec { table: "entity_aliases", local_columns: &[], domain_rows: None },
+    DiffSpec { table: "entity_redirects", local_columns: &[], domain_rows: None },
     DiffSpec {
         table: "annotations",
         local_columns: &[],

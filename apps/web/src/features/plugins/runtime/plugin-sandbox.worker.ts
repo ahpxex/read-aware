@@ -36,6 +36,7 @@ import type {
 } from "@read-aware/plugin-types";
 import { PluginStorageMirror } from "./plugin-storage-mirror";
 import { flattenPluginRequest, restorePluginResponse, type PluginNetworkResponse } from "./plugin-network-wire";
+import { pluginNetworkAbort, pluginNetworkError } from "./plugin-network-error";
 import { PluginRpcPending } from "./plugin-rpc-pending";
 import { PluginCallbackRegistry, type PluginCallbackWire } from "./plugin-callback-wire";
 
@@ -327,8 +328,12 @@ function buildContext(
     if (!network || typeof network[operation] !== "function") continue;
     network[operation] = async (input: RequestInfo | URL, init?: RequestInit) => {
       const request = await flattenPluginRequest(input, init);
-      const result = await callHost(`services.network.${operation}`, [request.url, request.init], request.signal);
-      return operation === "fetch" ? restorePluginResponse(result as PluginNetworkResponse) : result;
+      try {
+        const result = await callHost(`services.network.${operation}`, [request.url, request.init], request.signal);
+        return operation === "fetch" ? restorePluginResponse(result as PluginNetworkResponse) : result;
+      } catch (error) {
+        throw request.signal.aborted ? pluginNetworkAbort(request.signal.reason) : pluginNetworkError(error);
+      }
     };
   }
 

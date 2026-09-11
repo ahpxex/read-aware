@@ -12,6 +12,12 @@
     "copied": "Copié"
   },
   "errors": {
+    "pluginNetworkFailed": "La requête réseau a échoué. Vérifiez votre connexion et réessayez.",
+    "pluginHttpAuth": "Le serveur a refusé l’accès. Vérifiez l’adresse et les conditions d’accès.",
+    "pluginHttpNotFound": "L’adresse demandée est introuvable ou n’est plus disponible.",
+    "pluginHttpRateLimited": "Le serveur reçoit trop de requêtes. Réessayez plus tard.",
+    "pluginHttpServer": "Le serveur n’a pas pu traiter la requête. Réessayez plus tard.",
+    "pluginHttpRejected": "Le serveur a rejeté la requête. Vérifiez l’adresse et les détails de la requête.",
     "aiRequestCancelled": "Cette requête IA a été annulée.",
     "aiRequestTimeout": "Cette requête IA a expiré. Le fournisseur peut néanmoins l’avoir traitée.",
     "aiBusy": "Les requêtes IA des plugins sont occupées. Attendez qu’une requête se termine.",

@@ -22,6 +22,38 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
+test("native transport and body failures carry network codes while structured failures survive", async () => {
+  for (const failure of [new TypeError("Private transport detail"), "private native failure"]) {
+    const { api, cleanups } = owner(async () => { throw failure; });
+    await expect(api.open("https://a.test")).rejects.toMatchObject({ code: "plugin/network-failed", retryable: true, cause: failure });
+    await Promise.all(cleanups);
+  }
+  const denied = Object.assign(new Error("Not granted"), { code: "plugin/network-denied" });
+  const h = owner(async () => { throw denied; });
+  await expect(h.api.open("https://a.test")).rejects.toBe(denied);
+  const failure = new TypeError("Private body failure");
+  const body = owner(async () => new Response(new ReadableStream({ pull() { throw failure; } }, { highWaterMark: 0 })));
+  const response = await body.api.fetch("https://a.test");
+  await expect(response.text()).rejects.toMatchObject({ code: "plugin/network-failed", cause: failure });
+});
+
+test("caller deadlines and cancellation are distinct before and during transport", async () => {
+  for (const name of ["TimeoutError", "AbortError"]) {
+    const code = name === "TimeoutError" ? "plugin/network-timeout" : "plugin/cancelled";
+    const before = new AbortController(); before.abort(new DOMException("private reason", name));
+    const h = owner(async () => new Response());
+    await expect(h.api.fetch("https://a.test", { signal: before.signal })).rejects.toMatchObject({ code });
+    const started = deferred<void>(), done = deferred<Response>(), controller = new AbortController();
+    const live = owner(async () => { started.resolve(); return done.promise; });
+    const request = live.api.open("https://a.test", { signal: controller.signal });
+    await started.promise;
+    controller.abort(new DOMException("private reason", name));
+    await expect(request).rejects.toMatchObject({ code });
+    done.resolve(new Response());
+    await Promise.all(live.cleanups);
+  }
+});
+
 test("pull reads return bounded exact bytes with sequential offsets, no replay or foreign handles", async () => {
   let pulls = 0;
   const { api, cleanups } = owner(async () => new Response(new ReadableStream({

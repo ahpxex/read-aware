@@ -1,3 +1,5 @@
+import { pluginNetworkAbort } from "./plugin-network-error";
+
 /** Network bodies cross the sandbox as bytes; platform Request/Response objects do not clone. */
 export const MAX_PLUGIN_NETWORK_BODY_BYTES = 64 * 1024 * 1024;
 
@@ -11,7 +13,7 @@ export type PluginNetworkResponse = {
 };
 
 function aborted(signal?: AbortSignal | null): void {
-  if (signal?.aborted) throw signal.reason ?? new DOMException("Operation aborted", "AbortError");
+  if (signal?.aborted) throw pluginNetworkAbort(signal.reason);
 }
 
 async function readBody(

@@ -1,6 +1,7 @@
 import { AppError } from "@read-aware/core";
 import type { PluginNetworkChunk, PluginNetworkStream } from "@read-aware/plugin-types";
 import { MAX_PLUGIN_NETWORK_BODY_BYTES } from "./plugin-network-wire";
+import { pluginNetworkAbort, pluginNetworkError } from "./plugin-network-error";
 
 export const PLUGIN_NETWORK_LIMITS: Readonly<{
   timeoutMs: number;
@@ -46,14 +47,14 @@ export class PluginNetworkRequests {
     private readonly limits = PLUGIN_NETWORK_LIMITS,
   ) {
     signal.addEventListener("abort", () => {
-      for (const entry of this.entries.values()) this.retire(entry, signal.reason);
+      for (const entry of this.entries.values()) this.retire(entry, pluginNetworkAbort(signal.reason));
     }, { once: true });
   }
 
   async open(input: RequestInfo | URL, init?: RequestInit, limit = this.limits.maxStreamBytes): Promise<PluginNetworkStream> {
-    this.signal.throwIfAborted();
+    if (this.signal.aborted) throw pluginNetworkAbort(this.signal.reason);
     const initial = new Request(input, init);
-    initial.signal.throwIfAborted();
+    if (initial.signal.aborted) throw pluginNetworkAbort(initial.signal.reason);
     if (this.entries.size >= this.limits.maxConcurrentRequests || hostRequests >= this.limits.maxHostConcurrentRequests) {
       throw new AppError("plugin/network-busy", "Concurrent network request limit reached", { retryable: true });
     }
@@ -68,7 +69,7 @@ export class PluginNetworkRequests {
       timer: setTimeout(() => this.retire(entry, new AppError("plugin/network-timeout", "Network response lifetime expired")), this.limits.timeoutMs),
       expiresAt, closed: false, offset: 0, received: 0, limit, buffered: new Uint8Array(0), detach: () => {},
     };
-    const abort = () => this.retire(entry, initial.signal.reason);
+    const abort = () => this.retire(entry, pluginNetworkAbort(initial.signal.reason));
     initial.signal.addEventListener("abort", abort, { once: true });
     entry.detach = () => initial.signal.removeEventListener("abort", abort);
     this.entries.set(entry.id, entry);
@@ -88,8 +89,9 @@ export class PluginNetworkRequests {
       return { id: entry.id, status: response.status, statusText: response.statusText,
         url: response.url, redirected: response.redirected, headers: [...response.headers], expiresAt };
     } catch (error) {
-      this.retire(entry, error);
-      throw entry.error ?? error;
+      const failure = entry.closed ? entry.error ?? error : pluginNetworkError(error);
+      this.retire(entry, failure);
+      throw failure;
     } finally {
       controller.signal.removeEventListener("abort", stopWaiting);
     }
@@ -100,7 +102,7 @@ export class PluginNetworkRequests {
     const info = await this.open(initial, undefined, MAX_PLUGIN_NETWORK_BODY_BYTES);
     const entry = this.entries.get(info.id);
     if (!entry) throw new AppError("plugin/network-closed", "Network response has already closed");
-    const abort = () => this.retire(entry, initial.signal.reason);
+    const abort = () => this.retire(entry, pluginNetworkAbort(initial.signal.reason));
     initial.signal.addEventListener("abort", abort, { once: true });
     entry.detach = () => initial.signal.removeEventListener("abort", abort);
     if (initial.signal.aborted) abort();
@@ -162,7 +164,7 @@ export class PluginNetworkRequests {
       entry.offset += size;
       return { offset, bytes: bytes.buffer, done: false };
     } catch (error) {
-      const failure = entry.closed ? entry.error ?? error : error;
+      const failure = entry.closed ? entry.error ?? error : pluginNetworkError(error);
       this.retire(entry, failure);
       throw failure;
     }

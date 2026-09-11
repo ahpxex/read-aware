@@ -7,6 +7,18 @@ export default {
       title: "Wire probe",
       run: async () => {
         const endpoint = ctx.services.storage.get<string>("endpoint");
+        if (["pre-timeout", "live-timeout", "network-failure"].includes(ctx.manifest.description ?? "")) {
+          const controller = new AbortController();
+          if (ctx.manifest.description === "pre-timeout") controller.abort(new DOMException("private deadline", "TimeoutError"));
+          try {
+            await ctx.services.network!.fetch(endpoint ?? "https://example.test/", {
+              signal: ctx.manifest.description === "live-timeout" ? AbortSignal.timeout(20) : controller.signal,
+            });
+          } catch (error) {
+            if (error && typeof error === "object" && "code" in error && typeof error.code === "string") return { toast: error.code };
+            throw error;
+          }
+        }
         if (ctx.manifest.description === "stream") {
           const stream = await ctx.services.network!.openStream(new Request(endpoint ?? "https://example.test/file", {
             method: "PUT", headers: { "x-token": "stream" }, body: new Uint8Array([0, 255]),

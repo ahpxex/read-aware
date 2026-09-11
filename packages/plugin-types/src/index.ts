@@ -2164,7 +2164,11 @@ export type PluginHostServices = {
      * the 3xx response, error rejects. Cross-origin hops drop authorization,
      * proxy-authorization, cookie and referer; custom secret headers are the
      * plugin's responsibility (use redirect:error for authenticated endpoints).
-     * Host/content-length are transport-owned. No implicit retry or cookie jar. */
+     * Host/content-length are transport-owned. No implicit retry or cookie jar.
+     * Transport failures carry plugin/network-failed; explicit deadlines carry
+     * plugin/network-timeout, aborts plugin/cancelled. Existing structured codes
+     * survive unchanged. Unclassified native errors are not guessed from prose.
+     * HTTP error statuses still return Response; the consumer decides success. */
     fetch(input: string | URL | Request, init?: RequestInit): Promise<Response>;
     /** Network 2.1: headers first; download at most 1 GiB without buffering the
      * whole response. Uploads remain capped at 64 MiB. 8 active requests per

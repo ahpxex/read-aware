@@ -1,0 +1,59 @@
+{
+  "date": "2026-09-11",
+  "baseCommit": "869f5fe1",
+  "pluginVersion": "0.12.1",
+  "environment": "macOS debug Tauri, com.readaware.app.capability-e2e, real compiled RepoDist Worker and native HTTP",
+  "changes": [
+    "Classify native request/body failures as plugin/network-failed without guessing from native prose",
+    "Preserve structured codes; classify explicit timeout and cancellation at host, serialization and Worker boundaries",
+    "RSS classifies HTTP 401/403, 404/410, 429, 5xx and other rejected statuses; releases rejected response bodies",
+    "Localize the six new codes in all eight languages and retain raw transport causes in the host file log"
+  ],
+  "nativeChecks": [
+    {
+      "action": "RSS Add feed -> Subscribe to loopback fixture returning HTTP 503",
+      "result": "The server could not complete the request. Try again later.",
+      "screenshot": "rss-http-error-2026-09-11.png",
+      "rawHttpStatusInUserText": false,
+      "subscriptionCreated": false
+    },
+    {
+      "action": "Stop fixture server process, then repeat Subscribe to the same URL",
+      "result": "The network request failed. Check your connection and try again.",
+      "screenshot": "rss-network-error-2026-09-11.png",
+      "hostLog": "Plugin network request failed; cause retained: error sending request for url (http://127.0.0.1:19846/feed.atom)",
+      "subscriptionCreated": false
+    }
+  ],
+  "validation": {
+    "tests": 72,
+    "assertions": 750,
+    "failures": 0,
+    "coverage": "RSS tests; host request/stream/policy/wire regressions; real Bun Worker cancellation/deadline integration; eight-locale error mapping",
+    "webTypecheck": "passed",
+    "rssTypecheck": "passed",
+    "rssBuild": "passed"
+  },
+  "cleanup": {
+    "feed": null,
+    "source": null,
+    "cachedContent": [],
+    "remainingBooks": ["Reading Capability Probe", "Reading Paint Probe"],
+    "rssEnablementUnchanged": true,
+    "windowUnchanged": [900, 750],
+    "foreground": true,
+    "ownedAppPidStopped": 69486,
+    "driverStopped": 9224,
+    "frontendSession": 95572,
+    "frontendExitCode": 0,
+    "serverSession": 2895,
+    "serverExitCode": 130,
+    "noListeners": [5184, 9224, 19846],
+    "original9223Untouched": true
+  },
+  "remaining": [
+    "Native HTTP resource-id-invalid unhandled rejections also occur on response disposal. The same log signature exists before this change, including 07:28:50 and 07:30:25. Installed SDK abort handlers invoke fetch_cancel/dropBody without observing rejection; cleanup ownership needs a separate fix.",
+    "Typed deadline and cancellation classification is covered by host and actual Bun Worker tests, not a new native timeout run. Bare native timeout strings remain generic transport failures rather than being classified by message matching.",
+    "Historical schedule error codes are not rewritten. This targeted native check does not repeat the previous full schedule composition, model approval, packaged or cross-platform acceptance."
+  ]
+}

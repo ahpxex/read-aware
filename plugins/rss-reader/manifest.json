@@ -1,7 +1,7 @@
 {
   "id": "rss-reader",
   "name": "RSS Reader",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "schemaVersion": 1,
   "minAppVersion": "0.3.0",
   "requires": {

@@ -217,6 +217,23 @@ test("real Worker forwards in-flight cancellation and ignores a late response", 
   expect(await s.next(message => message.t === "healthy")).toMatchObject({ id: 902 });
 });
 
+test("real Worker preserves network classification including a locally expired signal", async () => {
+  const pre = await command("pre-timeout");
+  expect(resultData(await pre.next(message => message.t === "result" && message.id === 900)))
+    .toMatchObject({ ok: true, value: { toast: "plugin/network-timeout" } });
+  expect(pre.messages.some(message => message.method === "services.network.fetch")).toBe(false);
+  const live = await command("live-timeout");
+  const call = await live.next(message => message.method === "services.network.fetch");
+  expect(await live.next(message => message.t === "cancel")).toMatchObject({ id: call.id });
+  expect(resultData(await live.next(message => message.t === "result" && message.id === 900)))
+    .toMatchObject({ ok: true, value: { toast: "plugin/network-timeout" } });
+  const failed = await command("network-failure");
+  const request = await failed.next(message => message.method === "services.network.fetch");
+  failed.worker.postMessage({ t: "result", id: request.id, ok: false, error: "Private native transport rejection" });
+  expect(resultData(await failed.next(message => message.t === "result" && message.id === 900)))
+    .toMatchObject({ ok: true, value: { toast: "plugin/network-failed" } });
+});
+
 test("real Worker migration drains unawaited storage calls before returning migrated", async () => {
   const s = sandbox("migration");
   const registration = await s.next(message => message.method === "contributions.commands.register");

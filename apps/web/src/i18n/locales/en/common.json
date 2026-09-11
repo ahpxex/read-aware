@@ -12,6 +12,12 @@
     "copied": "Copied"
   },
   "errors": {
+    "pluginNetworkFailed": "The network request failed. Check your connection and try again.",
+    "pluginHttpAuth": "The server denied access. Check the address and access requirements.",
+    "pluginHttpNotFound": "The requested address was not found or is no longer available.",
+    "pluginHttpRateLimited": "The server is receiving too many requests. Try again later.",
+    "pluginHttpServer": "The server could not complete the request. Try again later.",
+    "pluginHttpRejected": "The server rejected the request. Check the address and request details.",
     "aiRequestCancelled": "This AI request was cancelled.",
     "aiRequestTimeout": "This AI request timed out. The provider may still have processed it.",
     "aiBusy": "Plugin AI requests are busy. Wait for one to finish.",

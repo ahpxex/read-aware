@@ -12,6 +12,12 @@
     "copied": "已複製"
   },
   "errors": {
+    "pluginNetworkFailed": "網路請求失敗，請檢查連線後重試。",
+    "pluginHttpAuth": "伺服器拒絕存取，請檢查位址和存取要求。",
+    "pluginHttpNotFound": "請求的位址不存在或已不再提供服務。",
+    "pluginHttpRateLimited": "伺服器收到的請求過多，請稍後重試。",
+    "pluginHttpServer": "伺服器未能完成請求，請稍後重試。",
+    "pluginHttpRejected": "伺服器拒絕了請求，請檢查位址和請求內容。",
     "aiRequestCancelled": "本次 AI 請求已取消。",
     "aiRequestTimeout": "本次 AI 請求已逾時，服務商仍可能已處理該請求。",
     "aiBusy": "插件 AI 請求忙碌中，請等待現有請求結束。",

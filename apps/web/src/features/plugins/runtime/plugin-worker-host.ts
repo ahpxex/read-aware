@@ -524,6 +524,9 @@ export function startPluginWorker(
             worker.postMessage({ t: "result", id: message.id, ok: true, value: value ?? null });
           } catch (error) {
             const failure = controller.signal.aborted ? controller.signal.reason : error;
+            if (message.method.startsWith("services.network.") && !controller.signal.aborted) {
+              log.warn("Plugin network request failed", manifest.id, message.method, failure);
+            }
             worker.postMessage({
               t: "result",
               id: message.id,

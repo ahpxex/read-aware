@@ -12,6 +12,12 @@
     "copied": "已复制"
   },
   "errors": {
+    "pluginNetworkFailed": "网络请求失败，请检查连接后重试。",
+    "pluginHttpAuth": "服务器拒绝访问，请检查地址和访问要求。",
+    "pluginHttpNotFound": "请求的地址不存在或已不再提供服务。",
+    "pluginHttpRateLimited": "服务器收到的请求过多，请稍后重试。",
+    "pluginHttpServer": "服务器未能完成请求，请稍后重试。",
+    "pluginHttpRejected": "服务器拒绝了请求，请检查地址和请求内容。",
     "aiRequestCancelled": "本次 AI 请求已取消。",
     "aiRequestTimeout": "本次 AI 请求已超时，服务商仍可能已处理该请求。",
     "aiBusy": "插件 AI 请求繁忙，请等待现有请求结束。",

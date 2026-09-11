@@ -12,6 +12,12 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "pluginNetworkFailed": "Die Netzwerkanfrage ist fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+    "pluginHttpAuth": "Der Server hat den Zugriff verweigert. Prüfen Sie die Adresse und die Zugriffsanforderungen.",
+    "pluginHttpNotFound": "Die angeforderte Adresse wurde nicht gefunden oder ist nicht mehr verfügbar.",
+    "pluginHttpRateLimited": "Der Server erhält zu viele Anfragen. Versuchen Sie es später erneut.",
+    "pluginHttpServer": "Der Server konnte die Anfrage nicht abschließen. Versuchen Sie es später erneut.",
+    "pluginHttpRejected": "Der Server hat die Anfrage abgelehnt. Prüfen Sie die Adresse und die Angaben zur Anfrage.",
     "aiRequestCancelled": "Diese KI-Anfrage wurde abgebrochen.",
     "aiRequestTimeout": "Diese KI-Anfrage hat das Zeitlimit erreicht. Der Anbieter hat sie möglicherweise dennoch verarbeitet.",
     "aiBusy": "Die KI-Anfragen der Plugins sind ausgelastet. Warten Sie, bis eine Anfrage beendet ist.",

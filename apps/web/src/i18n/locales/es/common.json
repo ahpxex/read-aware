@@ -12,6 +12,12 @@
     "copied": "Copiado"
   },
   "errors": {
+    "pluginNetworkFailed": "La solicitud de red falló. Compruebe su conexión e inténtelo de nuevo.",
+    "pluginHttpAuth": "El servidor denegó el acceso. Compruebe la dirección y los requisitos de acceso.",
+    "pluginHttpNotFound": "La dirección solicitada no se encontró o ya no está disponible.",
+    "pluginHttpRateLimited": "El servidor está recibiendo demasiadas solicitudes. Inténtelo más tarde.",
+    "pluginHttpServer": "El servidor no pudo completar la solicitud. Inténtelo más tarde.",
+    "pluginHttpRejected": "El servidor rechazó la solicitud. Compruebe la dirección y los detalles de la solicitud.",
     "aiRequestCancelled": "Esta solicitud de IA se ha cancelado.",
     "aiRequestTimeout": "Esta solicitud de IA ha agotado el tiempo de espera. Es posible que el proveedor la haya procesado.",
     "aiBusy": "Las solicitudes de IA de los plugins están ocupadas. Espere a que termine alguna.",

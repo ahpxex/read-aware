@@ -3645,8 +3645,16 @@ async function parseFeed(xmlText, feedUrl, limit = MAX_ARTICLES) {
 }
 async function fetchFeed(ctx, url) {
   const response = await ctx.services.network.fetch(url, { signal: AbortSignal.timeout(15000) });
-  if (!response.ok)
-    throw new Error(`Feed returned ${response.status}`);
+  if (!response.ok) {
+    const status = response.status;
+    const code = status === 401 || status === 403 ? "plugin/http-auth" : status === 404 || status === 410 ? "plugin/http-not-found" : status === 429 ? "plugin/http-rate-limited" : status >= 500 ? "plugin/http-server" : "plugin/http-rejected";
+    try {
+      await response.body?.cancel();
+    } catch (error) {
+      console.warn("RSS rejected response cleanup failed", error);
+    }
+    throw Object.assign(new Error(`Feed returned ${status}`), { code, retryable: status === 429 || status >= 500 });
+  }
   return parseFeed(await response.text(), url, articleLimit(ctx));
 }
 

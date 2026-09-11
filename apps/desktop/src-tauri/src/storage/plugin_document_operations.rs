@@ -31,6 +31,7 @@ fn validate_collection(value: &str) -> Result<(), CommandError> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PluginDocumentPageQuery {
     pub book_id: Option<String>,
+    pub query: Option<String>,
     pub limit: Option<usize>,
     pub oldest_first: Option<bool>,
     pub cursor: Option<String>,
@@ -43,6 +44,8 @@ struct DocumentCursor {
     plugin_id: String,
     collection: String,
     book_id: Option<String>,
+    #[serde(default)]
+    query: Option<String>,
     oldest_first: bool,
     generation: String,
     updated_at: String,
@@ -77,6 +80,12 @@ pub(crate) fn plugin_docs_page_inner(
     validate_key(plugin_id, 128)?;
     validate_collection(collection)?;
     if let Some(book_id) = &query.book_id { validate_key(book_id, 1024)?; }
+    let search = query.query.as_deref().map(|text| {
+        if text.len() > 1024 || text.chars().any(char::is_control) {
+            return Err(invalid("Document search must be at most 1024 UTF-8 bytes without control characters"));
+        }
+        Ok(text.trim().to_lowercase())
+    }).transpose()?.filter(|text| !text.is_empty());
     let limit = query.limit.unwrap_or(50);
     if !(1..=200).contains(&limit) { return Err(invalid("Document page limit must be 1..200")); }
     let oldest = query.oldest_first.unwrap_or(false);
@@ -87,7 +96,7 @@ pub(crate) fn plugin_docs_page_inner(
     }).transpose()?;
     if let Some(cursor) = &cursor {
         if cursor.version != 1 || cursor.plugin_id != plugin_id || cursor.collection != collection
-            || cursor.book_id != query.book_id || cursor.oldest_first != oldest {
+            || cursor.book_id != query.book_id || cursor.query != search || cursor.oldest_first != oldest {
             return Err(invalid("Document cursor belongs to a different query"));
         }
     }
@@ -106,11 +115,13 @@ pub(crate) fn plugin_docs_page_inner(
     let book_filter = if query.book_id.is_some() { "AND book_id = :book" } else { "AND :book IS NULL" };
     let sql = format!("SELECT id, json, book_id, anchor, updated_at, revision FROM plugin_documents
         WHERE plugin_id=:plugin AND collection=:collection {book_filter}
+        AND (:search IS NULL OR ra_plugin_document_matches(json, :search))
         AND (:updated IS NULL OR (updated_at, id) {comparison} (:updated, :id))
         ORDER BY updated_at {order}, id {order} LIMIT :limit");
     let mut stmt = tx.prepare(&sql)?;
     let mut rows = stmt.query(rusqlite::named_params! {
         ":plugin": plugin_id, ":collection": collection, ":book": query.book_id,
+        ":search": search,
         ":updated": cursor.as_ref().map(|c| &c.updated_at), ":id": cursor.as_ref().map(|c| &c.id),
         ":limit": (limit + 1) as i64,
     })?;
@@ -133,7 +144,7 @@ pub(crate) fn plugin_docs_page_inner(
         let last = items.last().expect("nonempty bounded page");
         Some(URL_SAFE_NO_PAD.encode(serde_json::to_vec(&DocumentCursor {
             version: 1, plugin_id: plugin_id.into(), collection: collection.into(),
-            book_id: query.book_id, oldest_first: oldest,
+            book_id: query.book_id, query: search, oldest_first: oldest,
             generation: generation.ok_or_else(|| CommandError::new("db/error", "Missing document generation"))?,
             updated_at: last.updated_at.clone(), id: last.id.clone(),
         })?))

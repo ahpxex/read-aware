@@ -57,6 +57,17 @@ test("inspection has no side effects; save matches the exact inspected target be
   expect(f.moves).toHaveLength(0);
 });
 
+test("Agent bookmark search passes the complete query with its cursor and rejects invalid input before dispatch", async () => {
+  const f = fixture(); f.seed();
+  await f.call("list_bookmarks", { bookId: "book", query: " École 中文 ", cursor: "seen", limit: 2 });
+  expect(f.queries[0]).toEqual({ bookId: "book", query: "École 中文", cursor: "seen", limit: 2 });
+  for (const query of ["中".repeat(342), "bad\nquery", 5]) {
+    await expect(f.call("list_bookmarks", { query })).rejects.toMatchObject({ code: "plugin/invalid-input" });
+  }
+  expect(f.queries).toHaveLength(1);
+  expect(f.writes).toHaveLength(0);
+});
+
 test("selection tokens include version and disambiguating quote; no viewport fallback", async () => {
   const f = fixture(); f.session.selection = { id: "selected", text: "Chosen", textLength: 6,
     range: { ...f.session.location!, cfi: "epubcfi(/6/4)", textQuote: { exact: "Chosen", prefix: "Before" } } };

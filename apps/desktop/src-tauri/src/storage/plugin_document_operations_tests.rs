@@ -120,6 +120,7 @@ fn plugin_documents_invalid_input_and_byte_bounded_pages() {
 #[test]
 fn plugin_documents_migrate_legacy_rows_and_wipe_generations() {
     let mut conn = Connection::open_in_memory().unwrap();
+    register_sql_functions(&conn).unwrap();
     conn.execute_batch(MIGRATIONS.iter().find(|(v, _, _)| *v == 10).unwrap().2).unwrap();
     conn.execute("INSERT INTO plugin_documents VALUES ('sample','a','legacy','{}',NULL,NULL,'old')", []).unwrap();
     conn.execute_batch(include_str!("plugin_docs_v32.sql")).unwrap();
@@ -131,4 +132,64 @@ fn plugin_documents_migrate_legacy_rows_and_wipe_generations() {
     let count: i64 = conn.query_row("SELECT count(*) FROM plugin_document_generations", [], |r| r.get(0)).unwrap();
     assert_eq!(count, 0);
     apply(&mut conn, vec![change("a", "x", None, "put")]);
+}
+
+fn search_page(conn: &mut Connection, query: &str, cursor: Option<String>) -> Result<PluginDocumentPageResult, CommandError> {
+    plugin_docs_page_inner(conn, "sample", "search", PluginDocumentPageQuery {
+        query: Some(query.into()), limit: Some(2), oldest_first: Some(true), cursor, ..Default::default()
+    })
+}
+
+#[test]
+fn plugin_documents_search_precedes_paging_and_binds_the_cursor() {
+    let mut conn = database();
+    for index in 0..108 {
+        let mut entry = change("search", &format!("item-{index:03}"), None, "put");
+        entry.operation = PluginDocumentOperation::Put {
+            json: serde_json::json!({"nested": [{"title": if index >= 101 { "ÉCOLE 中文" } else { "unrelated" }}]}).to_string(),
+            book_id: Some("book".into()), anchor: None,
+        };
+        apply(&mut conn, vec![entry]);
+    }
+    let mut cursor = None;
+    let mut ids = Vec::new();
+    let mut sizes = Vec::new();
+    loop {
+        let PluginDocumentPageResult::Ready { items, next_cursor } = search_page(&mut conn, " école 中文 ", cursor).unwrap() else { panic!("ready"); };
+        sizes.push(items.len()); ids.extend(items.iter().map(|item| item.id.clone()));
+        if next_cursor.is_none() { break; }
+        assert_eq!(search_page(&mut conn, "unrelated", next_cursor.clone()).unwrap_err().code, "plugin/invalid-argument");
+        cursor = next_cursor;
+    }
+    assert_eq!(sizes, [2, 2, 2, 1]);
+    assert_eq!(ids, (101..108).map(|i| format!("item-{i:03}")).collect::<Vec<_>>());
+    let PluginDocumentPageResult::Ready { next_cursor, .. } = search_page(&mut conn, "école 中文", None).unwrap() else { panic!("ready"); };
+    apply(&mut conn, vec![change("search", "new", None, "put")]);
+    assert!(matches!(search_page(&mut conn, "ÉCOLE 中文", next_cursor).unwrap(), PluginDocumentPageResult::StaleCursor));
+    let other = plugin_docs_page_inner(&mut conn, "other", "search", PluginDocumentPageQuery { query: Some("école 中文".into()), ..Default::default() }).unwrap();
+    assert!(matches!(other, PluginDocumentPageResult::Ready { items, .. } if items.is_empty()));
+    let book = plugin_docs_page_inner(&mut conn, "sample", "search", PluginDocumentPageQuery { query: Some("école 中文".into()), book_id: Some("another".into()), ..Default::default() }).unwrap();
+    assert!(matches!(book, PluginDocumentPageResult::Ready { items, .. } if items.is_empty()));
+}
+
+#[test]
+fn plugin_documents_searches_decoded_keys_and_scalar_values_without_sql_wildcards() {
+    let mut conn = database();
+    let mut entry = change("search", "one", None, "put");
+    entry.operation = PluginDocumentOperation::Put {
+        json: r#"{"École":{"nested":["\u4e2d\u6587",42,true,null,"100%_literal","quote\"slash\\"]}}"#.into(),
+        book_id: None, anchor: None,
+    };
+    apply(&mut conn, vec![entry]);
+    for query in ["éCOLE", "中文", "42", "true", "null", "%_", "quote\"slash\\", "  "] {
+        assert!(matches!(search_page(&mut conn, query, None).unwrap(), PluginDocumentPageResult::Ready { items, .. } if items.len() == 1), "{query}");
+    }
+    for query in ["missing", "ecole", "中文 42", "' OR 1=1 --", "one"] {
+        assert!(matches!(search_page(&mut conn, query, None).unwrap(), PluginDocumentPageResult::Ready { items, .. } if items.is_empty()), "{query}");
+    }
+    for query in ["x".repeat(1025), "中".repeat(342), "bad\nquery".into()] {
+        assert_eq!(search_page(&mut conn, &query, None).unwrap_err().code, "plugin/invalid-argument");
+    }
+    conn.execute("UPDATE plugin_documents SET json='broken' WHERE collection='search'", []).unwrap();
+    assert_eq!(search_page(&mut conn, "missing", None).unwrap_err().code, "db/error");
 }

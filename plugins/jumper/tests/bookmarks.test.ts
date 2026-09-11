@@ -17,11 +17,12 @@ function fixture() {
   } as ReadingSessionSnapshot;
   const collection = {
     get: async (id: string) => structuredClone(documents.get(id) ?? null),
-    page: async (query: { bookId?: string; limit: number; cursor?: string }) => {
+    page: async (query: { bookId?: string; limit: number; cursor?: string; query?: string }) => {
       pages.push(query);
       const [version, offset] = query.cursor?.split(":").map(Number) ?? [generation, 0];
       if (version !== generation) return { status: "stale-cursor" };
-      const filtered = [...documents.values()].filter(doc => !query.bookId || doc.bookId === query.bookId);
+      const filtered = [...documents.values()].filter(doc => (!query.bookId || doc.bookId === query.bookId)
+        && (!query.query || JSON.stringify(doc.data).toLowerCase().includes(query.query.toLowerCase())));
       return { status: "ready", items: structuredClone(filtered.slice(offset, offset + query.limit)),
         nextCursor: offset + query.limit < filtered.length ? `${generation}:${offset + query.limit}` : null };
     },
@@ -231,7 +232,7 @@ test("compiled bookmark command works without an open reader, while the reader m
   f.session.status = "idle"; f.session.bookId = null; f.session.location = null;
   const list = view(await commands.get("bookmarks")!()) as PluginListView & Pick<PluginView, "live">;
   expect(list.items.map(item => item.id)).toEqual(["saved"]);
-  expect(list.actions!.map(item => item.id)).toEqual(["refresh"]);
+  expect(list.actions!.map(item => item.id)).toEqual(["refresh", "search"]);
   const subscription = await list.live!.subscribe("channel" as never);
   f.seed("saved", { ...sample, name: "Compiled live bookmark" }); await f.emit();
   expect((latest(f.updates) as PluginListView).items[0]?.title).toBe("Compiled live bookmark");
@@ -243,6 +244,33 @@ test("compiled bookmark command works without an open reader, while the reader m
   if (menu?.kind !== "actions") throw Error("Expected bookmark action");
   expect((view(await menu.actions.find(a => a.id === "bookmarks")!.run()) as PluginListView).items).toHaveLength(1);
   const manifest = await Bun.file(new URL("../dist/manifest.json", import.meta.url)).json();
-  expect(manifest.requires.services.storage).toBe("^2.2.0");
+  expect(manifest.requires.services.storage).toBe("^2.3.0");
   expect(manifest.permissions).toEqual(["library:read", "reading:write", "agent:tools"]);
+});
+
+test("bookmark search queries the full collection and carries filters through pages, observation and stale refresh", async () => {
+  const f = fixture();
+  for (let i = 0; i < 105; i++) f.seed(`other-${i}`, { ...sample, name: `Other ${i}` });
+  for (let i = 0; i < 42; i++) f.seed(`found-${i}`, { ...sample, name: `Needle ${i}` });
+  const initial = await bookmarksView(f.ctx, "book-a") as PluginListView;
+  expect(initial.searchable).not.toBe(true);
+  const search = form(view(await action(initial, "search")));
+  expect(await search.onSubmit({ query: "中".repeat(342) })).toHaveProperty("fieldErrors.query");
+  const found = view(await search.onSubmit({ query: " Needle " })) as PluginListView & Pick<PluginView, "live">;
+  expect(found.items).toHaveLength(40);
+  expect(found.items[0]?.title).toBe("Needle 0");
+  const second = view(await found.pagination!.onNext!()) as PluginListView & Pick<PluginView, "live">;
+  expect(second.items.map(item => item.title)).toEqual(["Needle 40", "Needle 41"]);
+  expect(f.pages[f.pages.length - 1]).toMatchObject({ bookId: "book-a", query: "Needle" });
+  const subscription = await second.live!.subscribe("channel" as never);
+  expect([...f.observers][0]?.query).toMatchObject({ kind: "page", filter: { query: "Needle", bookId: "book-a" } });
+  f.seed("new", { ...sample, name: "Needle new" }); await f.emit();
+  const recovered = view(await action(latest(f.updates), "refresh")) as PluginListView;
+  expect(recovered.pagination?.page).toBe(1);
+  expect(f.pages[f.pages.length - 1]).toEqual({ bookId: "book-a", query: "Needle", limit: 40, cursor: undefined });
+  subscription.dispose();
+  const clear = view(await action(recovered, "clear-search")) as PluginListView;
+  expect(clear.items[0]?.title).toBe("Other 0");
+  const empty = view(await form(view(await action(clear, "search"))).onSubmit({ query: "absent" })) as PluginListView;
+  expect(empty.items).toHaveLength(0); expect(empty.emptyText).toBe("No matches.");
 });

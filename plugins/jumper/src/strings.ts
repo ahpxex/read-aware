@@ -1,5 +1,8 @@
 const locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"] as const;
 const strings = {
+  searchQuery: ["Search", "搜索", "搜尋", "検索", "Поиск", "Recherche", "Suche", "Búsqueda"],
+  invalidSearch: ["Search is too long or contains control characters.", "搜索内容过长或含控制字符。", "搜尋內容過長或含控制字元。", "検索文字列が長すぎるか、制御文字が含まれています。", "Запрос слишком длинный или содержит управляющие символы.", "La recherche est trop longue ou contient des caractères de contrôle.", "Die Suche ist zu lang oder enthält Steuerzeichen.", "La búsqueda es demasiado larga o contiene caracteres de control."],
+  clearSearch: ["Clear search", "清除搜索", "清除搜尋", "検索をクリア", "Очистить поиск", "Effacer la recherche", "Suche löschen", "Borrar búsqueda"],
   searching: ["Searching", "搜索中", "搜尋中", "検索中", "Поиск", "Recherche en cours", "Suche läuft", "Buscando"],
   cancel: ["Cancel", "取消", "取消", "キャンセル", "Отмена", "Annuler", "Abbrechen", "Cancelar"],
   cancelled: ["Search cancelled.", "搜索已取消。", "搜尋已取消。", "検索をキャンセルしました。", "Поиск отменён.", "Recherche annulée.", "Suche abgebrochen.", "Búsqueda cancelada."],

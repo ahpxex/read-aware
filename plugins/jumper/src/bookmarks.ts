@@ -11,6 +11,11 @@ export function bookmarkName(value: unknown): string | null {
   return text(value, 120) ? value.trim() : null;
 }
 
+export function bookmarkSearchQuery(value: unknown): string | null {
+  return typeof value === "string" && new TextEncoder().encode(value).length <= 1024
+    && !/[\u0000-\u001f\u007f-\u009f]/u.test(value) ? value.trim() : null;
+}
+
 function targetOf(raw: unknown): ReadingLocation | null {
   if (!object(raw) || !text(raw.bookId, 512) || !text(raw.contentVersion, 256)) return null;
   const target: ReadingLocation = { bookId: raw.bookId, contentVersion: raw.contentVersion };

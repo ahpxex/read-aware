@@ -1766,7 +1766,15 @@ export type PluginDocumentPage<T = unknown> =
   | { status: "stale-cursor" }
   | { status: "ready"; items: PluginDocument<T>[]; nextCursor: string | null };
 
-export type PluginDocumentPageFilter = { bookId?: string; limit?: number; oldestFirst?: boolean; cursor?: string };
+export type PluginDocumentPageFilter = {
+  bookId?: string; limit?: number; oldestFirst?: boolean; cursor?: string;
+  /** Storage 2.3: literal substring of any JSON key/scalar value, including
+   * nested arrays/objects. Unicode lowercase matching, no tokenization,
+   * regex, accent folding or metadata search. Trimmed empty means no filter.
+   * Max 1024 UTF-8 bytes, no control characters. Search precedes pagination;
+   * cursors bind the normalized query. Also supported by observeDocuments. */
+  query?: string;
+};
 export type PluginDocumentObservationQuery = { collection: string } & (
   | { kind: "get"; id: string }
   | { kind: "page"; filter?: PluginDocumentPageFilter }

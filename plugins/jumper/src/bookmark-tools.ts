@@ -1,4 +1,4 @@
-import { bookmarkCollection, bookmarkName, captureBookmark, openBookmark, parseBookmark, removeBookmark, writeBookmark, type Bookmark } from "./bookmarks";
+import { bookmarkCollection, bookmarkName, bookmarkSearchQuery, captureBookmark, openBookmark, parseBookmark, removeBookmark, writeBookmark, type Bookmark } from "./bookmarks";
 import type { JumperContext } from "./types";
 
 const invalid = (): never => { throw Object.assign(Error("Invalid bookmark tool input"), { code: "plugin/invalid-input" }); };
@@ -23,13 +23,16 @@ const string = (maxLength = 512) => ({ type: "string", minLength: 1, maxLength }
 export function registerBookmarkTools(ctx: JumperContext): void {
   if (!ctx.contributions.agentTools) throw Error("Jumper requires agent:tools");
   ctx.contributions.agentTools.register({ name: "list_bookmarks", label: "List bookmarks", contexts: ["global"],
-      description: "List a bounded page of Jumper bookmarks, optionally for an exact bookId. Returns ids and revisions for subsequent approved operations, not source text or raw locators. Keep the same book filter and returned cursor when paging. Any collection write invalidates the cursor: restart on stale-cursor. Invalid entries may be explicitly deleted, not opened or renamed.",
-      parameters: { type: "object", properties: { bookId: string(), cursor: string(8192), limit: { type: "integer", minimum: 1, maximum: 20 } }, additionalProperties: false },
+      description: "List a bounded page of Jumper bookmarks, optionally for an exact bookId and query. Query is a literal substring of any stored JSON key or scalar value (including nested fields), with Unicode lowercase matching, not regex, tokenization or accent folding. Maximum 1024 UTF-8 bytes, no controls; empty means unfiltered. Search runs over the whole collection before pagination. Returns ids and revisions for subsequent approved operations, not source text or raw locators. Keep the same book/query filters and returned cursor when paging. Any collection write invalidates the cursor: restart on stale-cursor. Invalid entries may be explicitly deleted, not opened or renamed.",
+      parameters: { type: "object", properties: { bookId: string(), query: { type: "string", maxLength: 1024 }, cursor: string(8192), limit: { type: "integer", minimum: 1, maximum: 20 } }, additionalProperties: false },
       execute: async params => {
-        fields(params, ["bookId", "cursor", "limit"]);
+        fields(params, ["bookId", "cursor", "limit", "query"]);
+        const query = params.query === undefined ? undefined : bookmarkSearchQuery(params.query);
+        if (query === null) return invalid();
         const limit = params.limit ?? 10;
         if (typeof limit !== "number" || !Number.isInteger(limit) || limit < 1 || limit > 20) return invalid();
         const page = await bookmarkCollection(ctx).page({ limit,
+          ...(query === undefined ? {} : { query }),
           ...(params.bookId === undefined ? {} : { bookId: text(params.bookId) }),
           ...(params.cursor === undefined ? {} : { cursor: text(params.cursor, 8192) }),
         });

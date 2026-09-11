@@ -121,7 +121,7 @@ export function pluginDocsList(
   });
 }
 
-export type PluginDocumentPageFilter = { bookId?: string; limit?: number; oldestFirst?: boolean; cursor?: string };
+export type PluginDocumentPageFilter = import("@read-aware/plugin-types").PluginDocumentPageFilter;
 export type PluginDocumentPageRow =
   | { status: "stale-cursor" }
   | { status: "ready"; items: PluginDocumentRow[]; nextCursor: string | null };

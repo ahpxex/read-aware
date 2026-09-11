@@ -56,6 +56,9 @@ test("private document context projects page data, conflict and corruption witho
     await expect(docs.collection("words").get("broken")).rejects.toMatchObject({ code: "db/error" });
     expect(() => docs.collection("words").page({ limit: 201 })).toThrow();
     expect(() => docs.collection("words").page({ cursor: "" })).toThrow();
+    for (const query of ["x".repeat(1025), "中".repeat(342), "bad\nquery", 1]) {
+      expect(() => docs.collection("words").page({ query } as never)).toThrow();
+    }
   } finally { lifecycle.stop(); await lifecycle.drainCleanups(); invoke.mockRestore(); }
 });
 
@@ -85,17 +88,17 @@ test("accepted document transactions drain on retirement; activation cannot writ
 test("document observation snapshots its validated query and preserves private namespace", async () => {
   const lifecycle = new PluginLifecycleController([]), docs = createPluginDocuments("owner", lifecycle);
   const invoke = spyOn(ipc, "invoke").mockResolvedValue({ status: "stale-cursor" });
-  const events: unknown[] = [], filter = { bookId: "book", cursor: "seen", limit: 3 };
+  const events: unknown[] = [], filter = { bookId: "book", cursor: "seen", limit: 3, query: "École 中文" };
   try {
     for (const query of [{ kind: "page", collection: "../other" }, { kind: "get", collection: "words", id: "" },
       { kind: "page", collection: "words", filter: { limit: 201 } }, { kind: "get", collection: "words", id: "word", pluginId: "other" }]) {
       expect(() => docs.observeDocuments(query as never, () => {})).toThrow();
     }
     const handle = docs.observeDocuments({ kind: "page", collection: "words", filter }, event => { events.push(event); });
-    filter.bookId = "changed"; filter.cursor = "new";
+    filter.bookId = "changed"; filter.cursor = "new"; filter.query = "changed";
     expect(invoke).not.toHaveBeenCalled(); lifecycle.promote();
     await new Promise(resolve => setTimeout(resolve, 0));
-    expect(invoke).toHaveBeenCalledWith("plugin_docs_page", { pluginId: "owner", collection: "words", query: { bookId: "book", cursor: "seen", limit: 3, oldestFirst: undefined } });
+    expect(invoke).toHaveBeenCalledWith("plugin_docs_page", { pluginId: "owner", collection: "words", query: { bookId: "book", cursor: "seen", limit: 3, oldestFirst: undefined, query: "École 中文" } });
     expect(events).toEqual([{ sequence: 1, status: "ready", result: { kind: "page", page: { status: "stale-cursor" } } }]);
     handle.dispose();
   } finally { lifecycle.stop(); await lifecycle.drainCleanups(); invoke.mockRestore(); }

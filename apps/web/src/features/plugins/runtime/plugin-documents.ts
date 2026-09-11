@@ -64,11 +64,14 @@ export function normalizeDocumentChanges(changes: PluginDocumentChange[]): Plugi
 
 function pageFilter(filter?: PluginDocumentPageFilter) {
   if (filter !== undefined && (!filter || typeof filter !== "object" || Array.isArray(filter)
-    || Object.keys(filter).some(key => !["limit", "oldestFirst", "bookId", "cursor"].includes(key)))) return invalid("Invalid document page filter");
+    || Object.keys(filter).some(key => !["limit", "oldestFirst", "bookId", "cursor", "query"].includes(key)))) return invalid("Invalid document page filter");
   const limit = filter?.limit ?? 50;
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 200) return invalid("Document page limit must be 1..200");
   if (filter?.oldestFirst !== undefined && typeof filter.oldestFirst !== "boolean") return invalid("Invalid document page order");
+  if (filter?.query !== undefined && (typeof filter.query !== "string" || encoder.encode(filter.query).length > 1024
+    || /[\u0000-\u001f\u007f-\u009f]/u.test(filter.query))) return invalid("Invalid document search query");
   return { limit, oldestFirst: filter?.oldestFirst,
+    ...(filter?.query === undefined ? {} : { query: filter.query }),
     bookId: filter?.bookId === undefined ? undefined : key(filter.bookId, 1024),
     cursor: filter?.cursor === undefined ? undefined : key(filter.cursor, 8192) };
 }

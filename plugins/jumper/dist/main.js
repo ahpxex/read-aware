@@ -56,6 +56,9 @@ function findChapters(entries, query, mode) {
 // src/strings.ts
 var locales = ["en", "zh-Hans", "zh-Hant", "ja", "ru", "fr", "de", "es"];
 var strings = {
+  searchQuery: ["Search", "搜索", "搜尋", "検索", "Поиск", "Recherche", "Suche", "Búsqueda"],
+  invalidSearch: ["Search is too long or contains control characters.", "搜索内容过长或含控制字符。", "搜尋內容過長或含控制字元。", "検索文字列が長すぎるか、制御文字が含まれています。", "Запрос слишком длинный или содержит управляющие символы.", "La recherche est trop longue ou contient des caractères de contrôle.", "Die Suche ist zu lang oder enthält Steuerzeichen.", "La búsqueda es demasiado larga o contiene caracteres de control."],
+  clearSearch: ["Clear search", "清除搜索", "清除搜尋", "検索をクリア", "Очистить поиск", "Effacer la recherche", "Suche löschen", "Borrar búsqueda"],
   searching: ["Searching", "搜索中", "搜尋中", "検索中", "Поиск", "Recherche en cours", "Suche läuft", "Buscando"],
   cancel: ["Cancel", "取消", "取消", "キャンセル", "Отмена", "Annuler", "Abbrechen", "Cancelar"],
   cancelled: ["Search cancelled.", "搜索已取消。", "搜尋已取消。", "検索をキャンセルしました。", "Поиск отменён.", "Recherche annulée.", "Suche abgebrochen.", "Búsqueda cancelada."],
@@ -350,6 +353,9 @@ var text = (value, max) => typeof value === "string" && Boolean(value.trim()) &&
 function bookmarkName(value) {
   return text(value, 120) ? value.trim() : null;
 }
+function bookmarkSearchQuery(value) {
+  return typeof value === "string" && new TextEncoder().encode(value).length <= 1024 && !/[\u0000-\u001f\u007f-\u009f]/u.test(value) ? value.trim() : null;
+}
 function targetOf(raw) {
   if (!object(raw) || !text(raw.bookId, 512) || !text(raw.contentVersion, 256))
     return null;
@@ -537,10 +543,10 @@ async function liveBookmarks(ctx, query, read, render) {
 }
 
 // src/bookmark-views.ts
-function message(ctx, text2) {
+function message(ctx, text2, refresh = () => bookmarksView(ctx)) {
   const t = bookmarkCopy(ctx.locale);
   return { kind: "detail", title: t.title, content: [{ kind: "text", text: text2 }], actions: [
-    { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await bookmarksView(ctx), navigation: "reset" }) }
+    { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: async () => ({ view: await refresh(), navigation: "reset" }) }
   ] };
 }
 function nameForm(ctx, data, id, expectedRevision) {
@@ -609,23 +615,22 @@ async function bookmarkDetail(ctx, id) {
     };
   });
 }
-async function bookmarksView(ctx, bookId, cursors = [undefined]) {
+async function bookmarksView(ctx, bookId, cursors = [undefined], query) {
   const t = bookmarkCopy(ctx.locale);
-  const filter = { bookId, limit: 40, cursor: cursors[cursors.length - 1] };
+  const filter = { bookId, limit: 40, cursor: cursors[cursors.length - 1], ...query ? { query } : {} };
   return liveBookmarks(ctx, { kind: "page", collection: BOOKMARKS, filter }, async () => ({ kind: "page", page: await bookmarkCollection(ctx).page(filter) }), async (result) => {
     if (result.kind !== "page")
       throw Error("Expected bookmark page");
     const page = result.page;
     if (page.status === "stale-cursor")
-      return message(ctx, t.stale);
+      return message(ctx, t.stale, () => bookmarksView(ctx, bookId, [undefined], query));
     const session = await ctx.domains.reading.queries.session();
     const ready = session.status === "ready" && session.location && session.bookId;
-    const next = async (values) => ({ view: await bookmarksView(ctx, bookId, values), navigation: "replace" });
+    const next = async (values) => ({ view: await bookmarksView(ctx, bookId, values, query), navigation: "replace" });
     return {
       kind: "list",
       title: t.title,
-      emptyText: t.empty,
-      searchable: true,
+      emptyText: query ? tr(ctx.locale, "noHits") : t.empty,
       items: page.items.map((doc) => {
         const bookmark = parseBookmark(doc.data);
         return {
@@ -639,11 +644,24 @@ async function bookmarksView(ctx, bookId, cursors = [undefined]) {
       }),
       actions: [
         { id: "refresh", label: t.refresh, icon: "arrows-clockwise", run: () => next([undefined]) },
+        { id: "search", label: tr(ctx.locale, "search"), icon: "magnifying-glass", run: () => ({ view: {
+          kind: "form",
+          title: t.title,
+          submitLabel: tr(ctx.locale, "search"),
+          fields: [{ kind: "text", id: "query", label: tr(ctx.locale, "searchQuery"), value: query ?? "" }],
+          onSubmit: async (values) => {
+            const search = bookmarkSearchQuery(values.query);
+            if (search === null)
+              return { fieldErrors: { query: tr(ctx.locale, "invalidSearch") } };
+            return { view: await bookmarksView(ctx, bookId, [undefined], search || undefined), navigation: "replace" };
+          }
+        } }) },
+        ...query ? [{ id: "clear-search", label: tr(ctx.locale, "clearSearch"), icon: "x", run: async () => ({ view: await bookmarksView(ctx, bookId), navigation: "replace" }) }] : [],
         ...ready ? [
           { id: "save-location", label: t.current, icon: "plus", run: async () => ({ view: await saveBookmarkView(ctx, "location") }) },
           ...session.selection?.range ? [{ id: "save-selection", label: t.selection, icon: "highlighter", run: async () => ({ view: await saveBookmarkView(ctx, "selection") }) }] : []
         ] : [],
-        ...bookId ? [{ id: "all", label: t.all, icon: "books", run: async () => ({ view: await bookmarksView(ctx), navigation: "replace" }) }] : ready ? [{ id: "this-book", label: t.thisBook, icon: "book-open", run: async () => ({ view: await bookmarksView(ctx, session.bookId), navigation: "replace" }) }] : []
+        ...bookId ? [{ id: "all", label: t.all, icon: "books", run: async () => ({ view: await bookmarksView(ctx, undefined, [undefined], query), navigation: "replace" }) }] : ready ? [{ id: "this-book", label: t.thisBook, icon: "book-open", run: async () => ({ view: await bookmarksView(ctx, session.bookId, [undefined], query), navigation: "replace" }) }] : []
       ],
       pagination: {
         page: cursors.length,
@@ -768,15 +786,19 @@ function registerBookmarkTools(ctx) {
     name: "list_bookmarks",
     label: "List bookmarks",
     contexts: ["global"],
-    description: "List a bounded page of Jumper bookmarks, optionally for an exact bookId. Returns ids and revisions for subsequent approved operations, not source text or raw locators. Keep the same book filter and returned cursor when paging. Any collection write invalidates the cursor: restart on stale-cursor. Invalid entries may be explicitly deleted, not opened or renamed.",
-    parameters: { type: "object", properties: { bookId: string(), cursor: string(8192), limit: { type: "integer", minimum: 1, maximum: 20 } }, additionalProperties: false },
+    description: "List a bounded page of Jumper bookmarks, optionally for an exact bookId and query. Query is a literal substring of any stored JSON key or scalar value (including nested fields), with Unicode lowercase matching, not regex, tokenization or accent folding. Maximum 1024 UTF-8 bytes, no controls; empty means unfiltered. Search runs over the whole collection before pagination. Returns ids and revisions for subsequent approved operations, not source text or raw locators. Keep the same book/query filters and returned cursor when paging. Any collection write invalidates the cursor: restart on stale-cursor. Invalid entries may be explicitly deleted, not opened or renamed.",
+    parameters: { type: "object", properties: { bookId: string(), query: { type: "string", maxLength: 1024 }, cursor: string(8192), limit: { type: "integer", minimum: 1, maximum: 20 } }, additionalProperties: false },
     execute: async (params) => {
-      fields(params, ["bookId", "cursor", "limit"]);
+      fields(params, ["bookId", "cursor", "limit", "query"]);
+      const query = params.query === undefined ? undefined : bookmarkSearchQuery(params.query);
+      if (query === null)
+        return invalid();
       const limit = params.limit ?? 10;
       if (typeof limit !== "number" || !Number.isInteger(limit) || limit < 1 || limit > 20)
         return invalid();
       const page = await bookmarkCollection(ctx).page({
         limit,
+        ...query === undefined ? {} : { query },
         ...params.bookId === undefined ? {} : { bookId: text2(params.bookId) },
         ...params.cursor === undefined ? {} : { cursor: text2(params.cursor, 8192) }
       });

@@ -99,7 +99,7 @@ test("Worker logging crosses normal and restricted migration contexts with struc
 test("Worker storage override retains document pages and conditional transactions", async () => {
   const s = await command("documents", "document-probe.ts");
   const page = await s.next(message => message.method === "services.storage.collection(words).page");
-  expect(data(page.args!)).toEqual([{ limit: 1 }]);
+  expect(data(page.args!)).toEqual([{ limit: 1, query: "École 中文" }]);
   s.worker.postMessage({ t: "result", id: page.id, ok: true, value: { status: "ready", items: [{ id: "word", revision: "a".repeat(32), data: {} }], nextCursor: null } });
   const apply = await s.next(message => message.method === "services.storage.applyDocuments");
   expect(data(apply.args!)).toEqual([[{ kind: "check", collection: "words", id: "word", expectedRevision: "a".repeat(32) }]]);

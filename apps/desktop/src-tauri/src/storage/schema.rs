@@ -964,6 +964,7 @@ pub(crate) fn fts_match_expr(query: &str) -> Option<String> {
 /// (v4's initial populate and the FTS triggers call `ra_fts_segment`).
 pub fn register_sql_functions(conn: &Connection) -> Result<(), CommandError> {
     use rusqlite::functions::FunctionFlags;
+    super::plugin_document_search::register(conn)?;
     conn.create_scalar_function(
         "ra_fts_segment",
         1,

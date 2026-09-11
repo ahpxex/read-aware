@@ -1,6 +1,6 @@
-import { useAtom } from "jotai";
-import { ChoiceGroup, Select, Toggle } from "@read-aware/ui";
-import { generalSettingsAtom } from "../../../state/ui";
+import { ChoiceGroup, InlineError, Select, Spinner, Toggle } from "@read-aware/ui";
+import { describeError } from "../../../i18n/describe-error";
+import { useGeneralSettings } from "../hooks/useGeneralSettings";
 import { LOCALES, LOCALE_LABELS, useLocale, useTranslation } from "../../../i18n";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
@@ -15,8 +15,9 @@ const LANGUAGE_OPTIONS = LOCALES.map((locale) => ({
 }));
 
 export function GeneralPanel() {
-  const { t } = useTranslation("settings");
-  const [settings, setSettings] = useAtom(generalSettingsAtom);
+  const { t } = useTranslation(["settings", "common"]);
+  const { settings, startup, busy, update, retry } = useGeneralSettings();
+  const failure = startup.status === "failed" ? describeError(startup.error) : null;
   const activeLocale = useLocale();
 
   const startViewOptions = START_VIEW_VALUES.map((value) => ({
@@ -34,7 +35,8 @@ export function GeneralPanel() {
           label={t("general.startView")}
           value={settings.startView}
           options={startViewOptions}
-          onChange={(startView) => setSettings({ ...settings, startView })}
+          disabled={busy}
+          onChange={(startView) => void update("startView", startView)}
         />
       </SettingsGroup>
 
@@ -45,12 +47,16 @@ export function GeneralPanel() {
         <SettingsRow
           borderless
           title={t("general.desktopIntegration.launchAtStartup.title")}
-          description={t("general.desktopIntegration.launchAtStartup.description")}
+          description={failure
+            ? <InlineError compact onRetry={failure.retryable && !busy ? retry : undefined} retryLabel={t("common:errorBoundary.retry")}>{failure.body}</InlineError>
+            : t("general.desktopIntegration.launchAtStartup.description")}
           control={
-            <Toggle
+            startup.status === "loading" ? <Spinner size="sm" /> : <Toggle
               aria-label={t("general.desktopIntegration.launchAtStartup.title")}
-              checked={settings.launchAtStartup}
-              onChange={(launchAtStartup) => setSettings({ ...settings, launchAtStartup })}
+              checked={startup.status === "ready" && startup.enabled}
+              disabled={busy || startup.status !== "ready"}
+              aria-busy={busy}
+              onChange={(launchAtStartup) => void update("launchAtStartup", launchAtStartup)}
             />
           }
         />
@@ -61,7 +67,8 @@ export function GeneralPanel() {
             <Toggle
               aria-label={t("general.desktopIntegration.fileAssociations.title")}
               checked={settings.fileAssociations}
-              onChange={(fileAssociations) => setSettings({ ...settings, fileAssociations })}
+              disabled={busy}
+              onChange={(fileAssociations) => void update("fileAssociations", fileAssociations)}
             />
           }
         />
@@ -72,7 +79,8 @@ export function GeneralPanel() {
             <Toggle
               aria-label={t("general.desktopIntegration.autoUpdate.title")}
               checked={settings.autoUpdate}
-              onChange={(autoUpdate) => setSettings({ ...settings, autoUpdate })}
+              disabled={busy}
+              onChange={(autoUpdate) => void update("autoUpdate", autoUpdate)}
             />
           }
         />
@@ -83,8 +91,9 @@ export function GeneralPanel() {
             <Toggle
               aria-label={t("general.desktopIntegration.whatsNewDialog.title")}
               checked={settings.whatsNewDialog}
+              disabled={busy}
               onChange={(whatsNewDialog) =>
-                setSettings({ ...settings, whatsNewDialog })
+                void update("whatsNewDialog", whatsNewDialog)
               }
             />
           }
@@ -96,9 +105,10 @@ export function GeneralPanel() {
           <Select
             label={t("general.language")}
             value={settings.language ?? activeLocale}
+            disabled={busy}
             onChange={(language) => {
               const next = language as (typeof LOCALES)[number];
-              setSettings({ ...settings, language: next });
+              void update("language", next);
             }}
             options={LANGUAGE_OPTIONS}
           />
@@ -111,7 +121,8 @@ export function GeneralPanel() {
             <Toggle
               aria-label={t("general.crashPrompt.title")}
               checked={settings.crashPrompt}
-              onChange={(crashPrompt) => setSettings({ ...settings, crashPrompt })}
+              disabled={busy}
+              onChange={(crashPrompt) => void update("crashPrompt", crashPrompt)}
             />
           }
         />

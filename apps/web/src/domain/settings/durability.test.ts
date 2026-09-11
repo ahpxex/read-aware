@@ -25,6 +25,7 @@ beforeEach(async () => {
   Object.defineProperty(globalThis, "window", { configurable: true, value: {
     __TAURI_INTERNALS__: {
       invoke: (command: string, args: { key: string; value: string; entries: [string, string][] }) => {
+        if (command === "desktop_startup_enabled") return Promise.resolve(false);
         if (command === "local_device_get") return Promise.resolve({ deviceId: "settings-test", lastHlcWallMs: null, lastHlcCounter: null });
         if (command !== "set_kv" && command !== "set_kv_batch") return Promise.resolve();
         const entries: [string, string][] = command === "set_kv" ? [[args.key, args.value]] : args.entries;

@@ -7,6 +7,8 @@ type ToggleProps = {
   /** Accessible name used when no visible `label` is rendered. */
   "aria-label"?: string;
   checked: boolean;
+  disabled?: boolean;
+  "aria-busy"?: boolean;
   onChange: (checked: boolean) => void;
   className?: string;
   error?: string;
@@ -15,6 +17,8 @@ type ToggleProps = {
 export function Toggle({
   label,
   checked,
+  disabled = false,
+  "aria-busy": ariaBusy,
   onChange,
   className,
   error,
@@ -29,6 +33,8 @@ export function Toggle({
       <button
         type="button"
         role="switch"
+        disabled={disabled}
+        aria-busy={ariaBusy}
         aria-checked={checked}
         aria-labelledby={hasLabel ? labelId : undefined}
         aria-label={hasLabel ? undefined : ariaLabel}
@@ -36,7 +42,7 @@ export function Toggle({
         aria-describedby={error ? `${id}-error` : undefined}
         onClick={() => onChange(!checked)}
         className={cn(
-          "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
+          "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg disabled:cursor-not-allowed disabled:opacity-50",
           checked ? "bg-fg" : "bg-fill-strong",
         )}
       >
@@ -51,7 +57,7 @@ export function Toggle({
         <span
           id={labelId}
           className="font-sans text-sm text-fg select-none cursor-pointer"
-          onClick={() => onChange(!checked)}
+          onClick={() => { if (!disabled) onChange(!checked); }}
         >
           {label}
         </span>

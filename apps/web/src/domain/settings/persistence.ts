@@ -16,13 +16,15 @@ import type { SettingsDraft } from "./catalog-runtime";
 import type { EventOrigin } from "@read-aware/core";
 
 /** Only validated catalog edits reach this host-owned transaction. Secrets are never written here. */
-export function commitSettingsDraft(before: SettingsDraft, next: SettingsDraft, origin: EventOrigin): Promise<void> {
+export function commitSettingsDraft(before: SettingsDraft, next: SettingsDraft, origin: EventOrigin, applyStartup = false): Promise<void> {
   const entries = new Map<string, string>();
   const record = (key: string, previous: unknown, value: unknown) => {
     const encoded = JSON.stringify(value);
     if (JSON.stringify(previous) !== encoded) entries.set(key, encoded);
   };
   record(GENERAL_SETTINGS_KEY, before.general, next.general);
+  // The desired boolean can match SQLite while differing from OS registration.
+  if (applyStartup) entries.set(GENERAL_SETTINGS_KEY, JSON.stringify(next.general));
   record(SHELF_VIEW_KEY, before.shelf, next.shelf);
   record(SHORTCUT_BINDINGS_KEY, before.shortcuts.bindings, next.shortcuts.bindings);
   record(APP_SETTINGS_KEY, before.appearance, next.appearance);

@@ -4,6 +4,7 @@ mod covers;
 mod resource_images;
 mod import;
 mod desktop_update;
+mod desktop_startup;
 mod comic_metadata;
 mod diagnostics;
 mod error;
@@ -756,6 +757,10 @@ pub fn run() {
         .manage(storage::BlobWriteSessions::default())
         .manage(resources::ResourceFiles::default())
         .setup(|app| {
+            #[cfg(desktop)]
+            app.handle().plugin(tauri_plugin_autostart::Builder::new()
+                .app_name(app.config().identifier.clone())
+                .build())?;
             // A deep link landing while the app runs should bring the window
             // forward — the user just clicked a sign-in link in their browser
             // or mail client. The URLs themselves are consumed by the
@@ -1037,6 +1042,7 @@ pub fn run() {
             android_update::android_update_check,
             android_update::android_update_install,
             desktop_update::desktop_update_check,
+            desktop_startup::desktop_startup_enabled,
             desktop_update::desktop_update_install,
             set_status_bar_hidden,
             sync_safe_area,

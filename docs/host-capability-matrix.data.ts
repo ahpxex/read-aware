@@ -82,6 +82,10 @@ export const sources: Record<string, string> = {
   DATALOCATION: "apps/web/src/platform/data-location.ts",
   DATALOCATIONUI: "apps/web/src/features/settings/sections/DataLocationGroup.tsx",
   DATALOCATIONTEST: "apps/web/tests/data-location.test.tsx",
+  DESKTOPSTARTUP: "apps/desktop/src-tauri/src/desktop_startup.rs",
+  STARTUPUI: "apps/web/src/features/settings/hooks/useGeneralSettings.ts",
+  STARTUPTEST: "apps/web/tests/desktop-startup.test.tsx",
+  STARTUPDEPENDENCY: "apps/desktop/src-tauri/vendor/auto-launch/VENDOR.md",
   MAINTENANCEDESKNATIVE: "docs/evidence/maintenance-desk-2026-09-11.json",
   MAINTENANCEADMIN: "plugins/maintenance-desk/src/plugin-directory.ts",
   MAINTENANCEUPDATES: "plugins/maintenance-desk/src/updates.ts",
@@ -787,7 +791,7 @@ export const staticSettingPaths = [
   "shortcuts.selection-copy", "shortcuts.selection-highlight", "shortcuts.selection-underline", "shortcuts.selection-add-note", "shortcuts.selection-look-up", "shortcuts.selection-ask-ai",
 ];
 export const ineffectiveSettings = new Set([
-  "general.launchAtStartup", "general.fileAssociations",
+  "general.fileAssociations",
   "ai.preferences.features.explainSelection", "ai.preferences.features.defineTerm",
   "ai.preferences.features.translate", "ai.preferences.features.summarizeChapter",
 ]);
@@ -797,6 +801,7 @@ export const readOnlySettings = new Set([
 ]);
 groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.length} 个具体路径）`, rows: staticSettingPaths.map((path, i) => {
   const ineffective = ineffectiveSettings.has(path);
+  const startup = path === "general.launchAtStartup";
   const localOnly = path === "ai.preferences.localOnly";
   const buildMemory = path === "ai.preferences.buildMemory";
   const readingContext = path === "ai.preferences.sendHighlightedText" || path === "ai.preferences.sendSurroundingContext";
@@ -804,6 +809,7 @@ groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.len
   const readonly = readOnlySettings.has(path);
   const effect = ineffective
     ? "保存值有实现；全生产源码扫描未找到对应效果消费者。不能算行为已实现或端到端覆盖。"
+    : startup ? "实现关闭条件已满足：tauri-plugin-autostart 按应用 identifier 管理设备本地启动注册；原生 KV 单项/批量/删除/前缀恢复/清空在同一 DB 锁下先应用并核验 OS 注册，再提交 SQLite，失败补偿，补偿失败如实拒绝并记录。UI/Agent/授权插件读取实际注册，不把历史占位值当生效值；一般设置按字段提交，不恢复系统中已关闭的旧值；原生失败回滚前端持久镜像。无 Worker 原始 autostart 权限或路径参数；排队取消在原生读取后再检查。UI loading/error/busy、focus 和外部持久提交刷新、局部授权与退休均有定向测试。审计的 auto-launch Cargo patch 修复三平台安装路径/参数序列化及 macOS/Linux 完整写入，纯测试不安装启动项。状态表示本应用注册，不承诺绕过 OS 登录策略。第三段 host-capability-stage-three.md 规定隔离 Tauri、真实登录启动、系统外部控制、SQLite/OS 故障及 packaged 插件轮次，尚未执行。"
     : localOnly ? "宿主模型调用已有实时执行策略：Agent smart/fast、后台补全、Worker llm.ask 普通/结构化/流式及连接测试同源拒绝 ai/local-only；进行中调用取消，迟到结果/重试被抑制，恢复只允许新调用。当前无本地模型后端，Custom loopback 也拒绝。隔离 macOS debug 双端/取消/持久失败回滚/原生连接 UI 已验；任意插件 HTTP、TTS、同步不受此策略约束，完整隐私边界与 packaged/跨平台仍未完成，保留部分。"
     : buildMemory ? "实时控制宿主记忆构建：显式 remember、轮后抽取/强化/插件候选/旧历史领养/摘要、巩固、章节 digest/自动叙事分类及 onboarding seed 均受约束。关闭返回 ai/memory-disabled，取消在途模型调用和已排队任务，重开不复活旧任务。普通聊天/历史、旧记忆检索、用户删除和插件自有目标保存不受影响；重开后的新任务可处理保留历史。摘要写入/清除等待持久回执；已派发底层写不保证撤销，但七类受保护写的回执全部收束后外层才结束取消；迟到失败记日志，退役 guard 不可复用，读/模型物理 IO 不在保证内。隔离 macOS debug 双端、真实 UI 聊天、候选入库、取消和 SQLite 失败已验；packaged/跨平台未验。"
     : readingContext ? "已有真实 Agent 消费者：selection 关闭过滤自动附件与历史附件检索/匹配；任一文本开关关闭都移除可能重叠的 viewport；surrounding 关闭不装配 grounding。保留本地附件和手写问题，get_reading_session 同样过滤文本；切策略重建缓存上下文。收紧返回 ai/context-changed，取消在途/准备中回合和排队记忆任务，重开不复活旧请求。Agent 设置与授权 Worker 设置写入、四组合请求、SQLite 历史保留和在途传输取消已在隔离 macOS debug 验证。LLM 1.1 readingContext 已将结构化正文纳入同一过滤/取消，Dictionary 1.3 已迁移，必需字段被禁止时报 ai/context-withheld；双端三模式四组合、实际缓存/拒绝、重试及三并发取消有桌面证据。插件本地 selection/lookup 回调、任意自行组装 prompt/HTTP/TTS、独立正文/标注检索与旧回答/记忆/纪要不因此清除或禁用；完整隐私、packaged/跨平台仍未闭合，保留部分。"
@@ -812,9 +818,10 @@ groups.splice(5, 0, { name: `设置字段逐项覆盖（${staticSettingPaths.len
         : path.startsWith("menus.") ? "只影响菜单排列/显示，不调用菜单动作。"
           : "目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。";
   return cap(`SET${String(i + 1).padStart(2, "0")}`, path, partial ? "部分" : "实装",
-    actor(partial ? "部分" : "接通", readonly ? "get_settings" : "get_settings/update_settings", "类型化设置工具"),
-    actor(partial ? "部分" : "接通", readonly ? "settings discover/read（需路径授权）" : "settings discover/read/update（需路径授权）", "类型化设置领域"),
+    actor(partial ? "部分" : startup ? "接通（待 E2E）" : "接通", readonly ? "get_settings" : "get_settings/update_settings", "类型化设置工具"),
+    actor(partial ? "部分" : startup ? "接通（待 E2E）" : "接通", readonly ? "settings discover/read（需路径授权）" : "settings discover/read/update（需路径授权）", "类型化设置领域"),
     ["SETTINGS","SETDOMAIN","SETTOOLS", ...(localOnly ? ["AIPREFS", "INFERENCEPOLICY", "HOSTINFERENCEPOLICY", "INFERENCEEVIDENCE"]
+      : startup ? ["DESKTOPSTARTUP", "STARTUPUI", "STARTUPTEST", "STARTUPDEPENDENCY"]
       : buildMemory ? ["MEMORYPOLICY", "HOSTMEMORYPOLICY", "READINGGOALS", "MEMORYPOLICYPROOF"]
       : readingContext ? ["READINGCONTEXTPOLICY", "HOSTREADINGCONTEXTPOLICY", "READINGCONTEXTPROOF", "STRUCTUREDREADING", "STRUCTUREDREADINGPROOF", "THREAD", "READTOOLS"]
       : path.startsWith("appearance.contentTypography.") ? ["TYPOGRAPHY", "TYPOGRAPHYEFFECT"]

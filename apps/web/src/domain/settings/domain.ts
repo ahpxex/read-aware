@@ -17,6 +17,7 @@ import type {
 } from "@read-aware/core";
 import { AppError, validateSettingsOptionsQuery } from "@read-aware/core";
 import { listSystemFonts } from "../../features/settings/lib/system-fonts";
+import { desktopStartup } from "../../platform/desktop-startup";
 import { isFontSetting, systemFontOptions } from "./font-options";
 import { queryModelCatalog, refreshModelCatalog } from "./model-catalog";
 import { DynamicOptionsCache } from "./dynamic-options";
@@ -147,18 +148,22 @@ function settingsSnapshot(query?: SettingsQuery): SettingsSnapshot {
   return { ...settingsSnapshotFromDraft(readDraft(), query), revision: settingsObservation.revision };
 }
 
-function visibleSnapshot(
+async function visibleSnapshot(
   policy: SettingsAccessPolicy,
   query?: SettingsQuery,
-): SettingsSnapshot {
-  return filterSnapshot(policy, settingsSnapshot(query));
+): Promise<SettingsSnapshot> {
+  const snapshot = filterSnapshot(policy, settingsSnapshot(query));
+  const startup = snapshot.settings.find(setting => setting.path === "general.launchAtStartup");
+  if (startup) startup.value = desktopStartup.supported() ? await desktopStartup.read() : false;
+  return snapshot;
 }
 
 function filterSnapshot(policy: SettingsAccessPolicy, snapshot: SettingsSnapshot): SettingsSnapshot {
   return {
     ...snapshot,
     settings: snapshot.settings.filter(setting => canAccess(policy, "read", setting.path)).map(setting => ({
-      ...setting, writable: setting.writable && canAccess(policy, "write", setting.path),
+      ...setting, writable: setting.writable && canAccess(policy, "write", setting.path)
+        && (setting.path !== "general.launchAtStartup" || desktopStartup.supported()),
       ...(setting.shortcut ? { shortcut: { ...setting.shortcut, conflicts: setting.shortcut.conflicts.filter(path => canAccess(policy, "read", path)) } } : {}),
     })),
     overrides: snapshot.overrides
@@ -173,14 +178,28 @@ function filterSnapshot(policy: SettingsAccessPolicy, snapshot: SettingsSnapshot
 async function applySettingsChanges(
   origin: EventOrigin,
   changes: SettingChange[],
+  policy: SettingsAccessPolicy,
+  signal?: AbortSignal,
 ): Promise<SettingsUpdateResult> {
   const before = readDraft();
+  // An old inert preference or a change in OS Settings must not be replayed by
+  // a language/start-view patch. Resolve the system field before validation.
+  const touchesGeneral = changes.some(change => change.path.startsWith("general."));
+  const storedGeneral = before.general;
+  if (touchesGeneral || canAccess(policy, "read", "general.launchAtStartup")) {
+    before.general = { ...before.general, launchAtStartup: desktopStartup.supported() ? await desktopStartup.read() : false };
+  }
+  if (changes.some(change => change.path === "general.launchAtStartup") && !desktopStartup.supported()) {
+    throw new AppError("ui/unavailable", "Startup registration requires desktop");
+  }
+  signal?.throwIfAborted();
   const result = applySettingChangesToDraft(before, changes);
+  if (touchesGeneral) before.general = storedGeneral;
   return commitResult(origin, before, result);
 }
 
 async function commitResult(origin: EventOrigin, before: SettingsDraft, result: { draft: SettingsDraft; changed: SettingChange[] }, query?: SettingsQuery): Promise<SettingsUpdateResult> {
-  await commitSettingsDraft(before, result.draft, origin);
+  await commitSettingsDraft(before, result.draft, origin, result.changed.some(change => change.path === "general.launchAtStartup"));
   if (result.changed.length > 0) {
     const event: SettingsChangedEvent = {
       type: "settings.changed",
@@ -204,11 +223,11 @@ async function commitResult(origin: EventOrigin, before: SettingsDraft, result: 
 // Read each patch from the settled predecessor, not from a failed optimistic
 // record. Different actors share this order, including after rejected writes.
 let updateTail: Promise<unknown> = Promise.resolve();
-function enqueueSettingsChanges(origin: EventOrigin, changes: SettingChange[], signal?: AbortSignal): Promise<SettingsUpdateResult> {
+function enqueueSettingsChanges(origin: EventOrigin, changes: SettingChange[], policy: SettingsAccessPolicy, signal?: AbortSignal): Promise<SettingsUpdateResult> {
   const accepted = structuredClone(changes);
   const result = updateTail.then(() => afterSettingsWrites(() => {
     signal?.throwIfAborted();
-    return applySettingsChanges(origin, accepted);
+    return applySettingsChanges(origin, accepted, policy, signal);
   }));
   updateTail = result.then(() => {}, () => {});
   return result;
@@ -264,7 +283,9 @@ export function createSettingsDomain(
         const snapshot = await afterSettingsWrites(() => settingsSnapshot(accepted));
         return snapshot.settings
           .filter((setting) => canAccess(policy, "discover", setting.path))
-          .map(({ value: _value, shortcut: _shortcut, reading: _reading, ...definition }) => ({ ...definition, writable: definition.writable && canAccess(policy, "write", definition.path) }));
+          .map(({ value: _value, shortcut: _shortcut, reading: _reading, ...definition }) => ({ ...definition,
+            writable: definition.writable && canAccess(policy, "write", definition.path)
+              && (definition.path !== "general.launchAtStartup" || desktopStartup.supported()) }));
       },
       options: async (query, signal) => {
         signal?.throwIfAborted();
@@ -287,7 +308,8 @@ export function createSettingsDomain(
           throw new Error(`settings read is not permitted: ${normalizedPath}`);
         }
         const resolvedTarget = target ?? { kind: "global" as const };
-        const descriptor = (await settledSnapshot({ target: resolvedTarget })).settings.find(
+        await updateTail;
+        const descriptor = (await afterSettingsWrites(() => visibleSnapshot({ read: [normalizedPath] }, { target: resolvedTarget }))).settings.find(
           (setting) => setting.path === normalizedPath,
         );
         if (!descriptor) throw new Error(`unknown setting: ${normalizedPath}`);
@@ -328,7 +350,7 @@ export function createSettingsDomain(
             throw new Error(`settings write is not permitted: ${change.path}`);
           }
         }
-        const result = await enqueueSettingsChanges(origin, changes, signal);
+        const result = await enqueueSettingsChanges(origin, changes, policy, signal);
         return { ...result, settings: filterSnapshot(policy, result.settings) };
       },
     },

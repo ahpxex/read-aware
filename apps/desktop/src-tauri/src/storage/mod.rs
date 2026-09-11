@@ -278,17 +278,9 @@ pub async fn set_kv(
 ) -> Result<(), CommandError> {
     crate::storage::blocking("set_kv", move || {
         let db = tauri::Manager::state::<Db>(&app);
-        let conn = db.0.lock()?;
-        conn.execute(
-            "INSERT INTO app_kv (key, value_json, updated_at)
-         VALUES (?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-         ON CONFLICT(key) DO UPDATE SET
-            value_json = excluded.value_json,
-            updated_at = excluded.updated_at",
-            params![key, value],
-        )
-        ?;
-        Ok(())
+        let mut conn = db.0.lock()?;
+        let entries = vec![(key, Some(value))];
+        crate::desktop_startup::commit_entries(&app, &entries, || set_kv_batch_inner(&mut conn, entries.clone()))
     })
     .await
 }
@@ -324,7 +316,7 @@ pub async fn set_kv_batch(
     crate::storage::blocking("set_kv_batch", move || {
         let db = tauri::Manager::state::<Db>(&app);
         let mut conn = db.0.lock()?;
-        set_kv_batch_inner(&mut conn, entries)
+        crate::desktop_startup::commit_entries(&app, &entries, || set_kv_batch_inner(&mut conn, entries.clone()))
     })
     .await
 }
@@ -337,10 +329,9 @@ pub async fn delete_kv(
 ) -> Result<(), CommandError> {
     crate::storage::blocking("delete_kv", move || {
         let db = tauri::Manager::state::<Db>(&app);
-        let conn = db.0.lock()?;
-        conn.execute("DELETE FROM app_kv WHERE key = ?1", params![key])
-            ?;
-        Ok(())
+        let mut conn = db.0.lock()?;
+        let entries = vec![(key, None)];
+        crate::desktop_startup::commit_entries(&app, &entries, || set_kv_batch_inner(&mut conn, entries.clone()))
     })
     .await
 }
@@ -378,7 +369,10 @@ pub async fn replace_kv_prefix(
     crate::storage::blocking("replace_kv_prefix", move || {
         let db = tauri::Manager::state::<Db>(&app);
         let mut conn = db.0.lock()?;
-        replace_kv_prefix_inner(&mut conn, &prefix, entries)
+        let startup = if let Some(suffix) = crate::desktop_startup::GENERAL_KEY.strip_prefix(&prefix) {
+            vec![(crate::desktop_startup::GENERAL_KEY.to_string(), entries.get(suffix).cloned())]
+        } else { vec![] };
+        crate::desktop_startup::commit_entries(&app, &startup, || replace_kv_prefix_inner(&mut conn, &prefix, entries))
     })
     .await
 }

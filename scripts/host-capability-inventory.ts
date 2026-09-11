@@ -236,7 +236,7 @@ const nativeMap = pairs([
   ["preferences_load_all", "OPS05"], ["wipe_all_data", "OPS09"],
   ["put_blob get_blob get_blob_info get_blob_range delete_blob blob_read_open blob_read_chunk blob_read_close blob_write_open blob_write_chunk blob_write_chunk_raw blob_write_commit blob_write_abort", "SYS13"],
   ["secret_get secret_keys secret_set secret_delete", "SYS04 CFG07"],
-  ["load_kv_all set_kv set_kv_batch delete_kv replace_kv_prefix", "SYS01 CFG01"],
+  ["load_kv_all set_kv set_kv_batch delete_kv replace_kv_prefix", "SYS01 CFG01 SET04"],
   ["library_load library_get_book library_put_book", "LIB01 LIB02 OPS11"], ["library_release_book_files", "LIB04 LIB05 LIB13"],
   ["library_list_removal_cleanup", "LIB05 LIB13"],
   ["library_list_collections library_put_collection", "LIB15 LIB16 LIB17 LIB18"], ["library_duplicate_book_groups", "LIB11"],
@@ -265,6 +265,7 @@ const nativeMap = pairs([
   ["resource_create resource_append resource_commit resource_read resource_release", "SYS13"],
   ["resource_save", "SYS10"],
   ["desktop_update_check desktop_update_install", "SYS16"], ["set_traffic_lights_visible", "SYS17"], ["list_system_fonts", "SYS14"],
+  ["desktop_startup_enabled", "SET04"],
   ["plugins_list plugins_stage_dir plugins_stage_zip plugins_stage_files plugins_commit_candidate plugins_discard_candidate plugins_rollback plugins_uninstall", "EXT11 EXT12 SYS03"],
 ]);
 
@@ -366,7 +367,7 @@ export function collectInventory(): Inventory[] {
     const name = qualified.split("::").at(-1)!;
     add("Native command", qualified, nativeMap[name], "[代码] 内部 IPC 能力证据；不是插件或模型授权入口");
   }
-  const nativePluginMap = pairs([["single_instance decorum", "SYS17 SYS12"],["log", "SYS15"],["updater process", "SYS16"],["dialog fs", "SYS11"],["deep_link opener", "SYS12"],["clipboard_manager", "SYS08 SYS09"],["http", "SYS06"]]);
+  const nativePluginMap = pairs([["single_instance decorum", "SYS17 SYS12"],["autostart", "SET04"],["log", "SYS15"],["updater process", "SYS16"],["dialog fs", "SYS11"],["deep_link opener", "SYS12"],["clipboard_manager", "SYS08 SYS09"],["http", "SYS06"]]);
   for (const name of new Set([...rust.matchAll(/\.plugin\(tauri_plugin_([a-z_]+)::/g)].map(m=>m[1]))) add("Native plugin", name, nativePluginMap[name]);
   add("Native plugin", "log (build_log_plugin)", ["SYS15"]);
   const menuMap = pairs([["core:library core:agent core:stats core:settings", "UI01"],["core:search", "UI03"],["core:import", "LIB06"],["core:viewControl", "UI02"],["core:navigator core:appearance core:chat", "READ10"],["core:copy", "SYS08"],["core:highlight", "ANN02"],["core:underline", "ANN03"],["core:addNote", "ANN05"],["core:askAI", "AI03"]]);

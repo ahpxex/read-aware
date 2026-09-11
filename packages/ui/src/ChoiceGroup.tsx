@@ -12,6 +12,7 @@ type ChoiceGroupProps<T extends string> = {
   label?: string;
   value: T;
   options: ChoiceOption<T>[];
+  disabled?: boolean;
   onChange: (value: T) => void;
   className?: string;
   error?: string;
@@ -26,13 +27,14 @@ export function ChoiceGroup<T extends string>({
   label,
   value,
   options,
+  disabled = false,
   onChange,
   className,
   error,
 }: ChoiceGroupProps<T>) {
   const id = useId();
   return (
-    <fieldset className={cn("min-w-0", className)} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined}>
+    <fieldset disabled={disabled} className={cn("min-w-0 disabled:opacity-50", className)} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined}>
       {label && (
         <legend className="mb-2 font-sans text-[13px] font-medium text-fg-muted">
           {label}

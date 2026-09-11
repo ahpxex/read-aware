@@ -80,6 +80,7 @@ tauri-plugin-deep-link = "2"
 # Desktop only: window-chrome helpers and the dev-time MCP bridge. Neither
 # compiles for (or makes sense on) Android/iOS, where the webview is fullscreen.
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-autostart = "2.5.1"
 # File associations: double-clicking a book while the app runs must reach the
 # EXISTING instance (two processes would race the SQLite db). The callback
 # relays the second launch's argv to external_open.
@@ -180,3 +181,6 @@ rustls = { version = "0.23", default-features = false, features = ["ring"] }
 webpki-roots = "1"
 semver = "1"
 tao = "0.35"
+
+[patch.crates-io]
+auto-launch = { path = "vendor/auto-launch" }

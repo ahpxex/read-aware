@@ -14,6 +14,7 @@ import { createMemoryMaintenanceFixture } from "./memory-maintenance";
 import { AppError, pageSettingOptions } from "@read-aware/core";
 import { createProfileFixture } from "./user-profile";
 import { createEntityRegistryFixture } from "./entity-registry";
+import { createIdentityConsolidationFixture } from "./identity-consolidation";
 import type {
   BookStats,
   CollectionSummary,
@@ -360,6 +361,8 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
 
   const memoryManagement = createMemoryManagementFixture(stores.memories);
   const bookClassification = createBookClassificationFixture(books);
+  const entityRegistry = createEntityRegistryFixture();
+  const identityConsolidation = createIdentityConsolidationFixture(() => deps, entityRegistry);
   const deps: RuntimeDeps = {
     downloadResource: async () => { throw new AppError("ui/unavailable", "Attach a download fixture"); },
     resources: () => ({
@@ -628,7 +631,8 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       },
     },
     profile: createProfileFixture(stores.profile),
-    entityRegistry: createEntityRegistryFixture(),
+    entityRegistry,
+    identityConsolidation,
     memory: {
       pageMemories: input => pageMemoryRows(stores.memories, input),
       searchMemories: async (filter) => {
@@ -734,6 +738,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       },
     },
   };
+  deps.profile.getProfileContext = identityConsolidation.context;
   return { deps, stores };
 }
 import { createMemoryReader, type ReaderRequest } from "./reader";

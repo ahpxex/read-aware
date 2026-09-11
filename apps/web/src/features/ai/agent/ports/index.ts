@@ -34,6 +34,7 @@ import { readingContextPolicy } from "../reading-context-policy";
 import { inspectMemory, mutateMemory } from "../../../../domain/memory-management";
 import { inspectBookClassification, changeBookClassification } from "../../../../domain/book-classification";
 import { agentBookGraphTasks } from "../../../../domain/book-graph-tasks";
+import { identityConsolidationPort } from "../../../../domain/identity-consolidation";
 
 export { GLOBAL_CONVERSATION_ID } from "./conversation-port";
 
@@ -66,6 +67,7 @@ export function buildRuntimeDeps(): RuntimeDeps {
     conversations: createConversationPort(),
     profile: createProfilePort(),
     entityRegistry: createEntityRegistryPort(),
+    identityConsolidation: identityConsolidationPort,
     memory: createMemoryPort(),
     bookText: createBookTextPort(),
     bookMemory: createBookMemoryPort(),

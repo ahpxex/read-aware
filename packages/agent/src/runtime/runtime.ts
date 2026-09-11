@@ -7,6 +7,7 @@ import { digestBookCatchUp, digestBookTick } from "../memory/graph-upkeep";
 import type { DigestReport } from "../memory/digest-run";
 import { runConsolidationPass, type ConsolidationReport } from "../memory/consolidation";
 import { ConsolidationCheckpoint } from "../memory/consolidation-checkpoint";
+import { runIdentityConsolidation } from "../memory/identity-consolidation";
 import { runMemoryBuild } from "../memory/build-policy";
 import {
   accountCredential,
@@ -260,18 +261,23 @@ export class AgentRuntime {
       await operation.guard(() => this.flushBackgroundWork())();
       const snapshots = await operation.guard(() => this.options.deps.memory.snapshotMemories())();
       const now = this.options.now?.() ?? Date.now();
-      if (!force && !this.consolidationCheckpoint.needed(snapshots, now)) return null;
-      const pass = await operation.guard(() => runConsolidationPass({
-        log: this.options.deps.log,
-        memory: operation.protect(this.options.deps).memory,
-        complete: operation.complete(this.completeFns.fast),
-        model: this.resolveModel("fast"),
-        snapshots,
-        now,
-      }))();
-      // Use the transaction receipt, not a later read that could hide new work.
-      this.consolidationCheckpoint.settle(pass.snapshots, pass.judgmentSucceeded);
-      return pass.report;
+      let report: ConsolidationReport | null = null;
+      if (force || this.consolidationCheckpoint.needed(snapshots, now)) {
+        const pass = await operation.guard(() => runConsolidationPass({
+          log: this.options.deps.log,
+          memory: operation.protect(this.options.deps).memory,
+          complete: operation.complete(this.completeFns.fast),
+          model: this.resolveModel("fast"),
+          snapshots,
+          now,
+        }))();
+        // Use the transaction receipt, not a later read that could hide new work.
+        this.consolidationCheckpoint.settle(pass.snapshots, pass.judgmentSucceeded);
+        report = pass.report;
+      }
+      const identity = await runIdentityConsolidation({ deps: operation.protect(this.options.deps),
+        complete: operation.complete(this.completeFns.fast), model: this.resolveModel("fast"), signal: operation.signal });
+      return identity.status === "skipped" ? report : { ...report ?? { decayed: 0, forgotten: 0, merged: 0, promoted: 0 }, identity };
     }).finally(() => {
       this.consolidationWork = null;
     });

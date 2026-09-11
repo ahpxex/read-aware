@@ -86,7 +86,8 @@ describe("memory build policy", () => {
     expect(reads).toBe(0);
     state.set(true);
     expect(await runtime.consolidateIfNeeded()).not.toBeNull();
-    expect(reads).toBe(1); expect(state.count()).toBe(0);
+    // Ordinary snapshot plus the identity fixture's snapshot and two commit checks.
+    expect(reads).toBe(4); expect(state.count()).toBe(0);
   });
 
   test("a cancelled consolidation cannot mark a dirty revision clean after a late read", async () => {
@@ -109,7 +110,7 @@ describe("memory build policy", () => {
     state.set(true); release();
     await new Promise(resolve => setTimeout(resolve, 0));
     expect(await runtime.consolidateIfNeeded()).not.toBeNull();
-    expect(reads).toBe(2);
+    expect(reads).toBe(5);
     expect(state.count()).toBe(0);
   });
 });

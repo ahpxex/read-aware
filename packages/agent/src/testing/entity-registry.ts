@@ -2,9 +2,10 @@ import { AppError, normalizeEntityDecision, normalizeEntityQuery, type EntityDef
 import type { RuntimeDeps } from "../ports";
 
 /** Agent fixture for explicit decisions, not native replay/checkpoint/hash evidence. */
-export function createEntityRegistryFixture(): RuntimeDeps["entityRegistry"] {
-  const definitions = new Map<string, EntityDefinition>(), aliases = new Map<string, Set<string>>(), roots = new Map<string, string>();
-  let version = 0;
+type State = { definitions: Map<string, EntityDefinition>; aliases: Map<string, Set<string>>; roots: Map<string, string>; version: number };
+export type EntityRegistryFixture = RuntimeDeps["entityRegistry"] & { fork(): EntityRegistryFixture; state(): State; adopt(other: EntityRegistryFixture, expectedRevision: string): void };
+export function createEntityRegistryFixture(seed?: State): EntityRegistryFixture {
+  let { definitions, aliases, roots, version } = structuredClone(seed ?? { definitions: new Map<string, EntityDefinition>(), aliases: new Map<string, Set<string>>(), roots: new Map<string, string>(), version: 0 });
   const revision = () => `entities1:${version.toString(16).padStart(64, "0")}`;
   const check = (expected?: string) => {
     if (expected !== undefined && expected !== revision()) throw new AppError("memory/conflict", "Entity registry changed");
@@ -12,6 +13,9 @@ export function createEntityRegistryFixture(): RuntimeDeps["entityRegistry"] {
   const sort = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
   const lower = (text: string) => text.replace(/[A-Z]/g, char => char.toLowerCase());
   return {
+    state: () => structuredClone({ definitions, aliases, roots, version }),
+    fork: () => createEntityRegistryFixture({ definitions, aliases, roots, version }),
+    adopt: (other, expectedRevision) => { check(expectedRevision); ({ definitions, aliases, roots, version } = other.state()); },
     query: async (raw, signal) => {
       const query = normalizeEntityQuery(raw); signal?.throwIfAborted(); check(query.expectedRevision);
       const canonicalId = query.kind === "identities" ? null : roots.get(query.entityId) ?? null;

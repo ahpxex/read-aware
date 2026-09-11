@@ -445,6 +445,7 @@ export interface RuntimeDeps {
     query(input?: import("@read-aware/core").EntityQuery, signal?: AbortSignal): Promise<import("@read-aware/core").EntityPage>;
     decide(input: import("@read-aware/core").EntityDecision, signal?: AbortSignal): Promise<import("@read-aware/core").EntityDecisionReceipt>;
   };
+  identityConsolidation: import("@read-aware/core").IdentityConsolidationPort;
   hostCommands: {
     list(signal?: AbortSignal): Promise<import("@read-aware/core").HostCommandSnapshot>;
     execute(request: import("@read-aware/core").HostCommandRequest, signal?: AbortSignal): Promise<import("@read-aware/core").HostCommandReceipt>;

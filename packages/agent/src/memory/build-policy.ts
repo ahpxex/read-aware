@@ -47,7 +47,8 @@ export async function runMemoryBuild<T>(
       assertAllowed,
       guard,
       commit,
-      complete: complete => (model, context) => guard(() => complete(model, context, { signal: call.signal }))(),
+      complete: complete => (model, context, options) => guard(() => complete(model, context, { ...options,
+        signal: options?.signal ? AbortSignal.any([options.signal, call.signal]) : call.signal }))(),
       protect: original => ({
         ...original,
         memory: { ...original.memory,
@@ -56,6 +57,11 @@ export async function runMemoryBuild<T>(
           applyMemoryChanges: commit((changes, snapshots) => original.memory.applyMemoryChanges(changes, snapshots, call.signal)) },
         conversations: { ...original.conversations, putInsights: commit(original.conversations.putInsights) },
         profile: { ...original.profile, putProfileSummary: commit(original.profile.putProfileSummary) },
+        identityConsolidation: {
+          snapshot: guard(() => original.identityConsolidation.snapshot(call.signal)),
+          commit: commit(input => original.identityConsolidation.commit(input, call.signal)),
+        },
+        entityRegistry: { ...original.entityRegistry, query: guard(query => original.entityRegistry.query(query, call.signal)) },
         bookMemory: { ...original.bookMemory,
           listDigests: guard(original.bookMemory.listDigests),
           inspectDigest: guard((bookId, index) => original.bookMemory.inspectDigest(bookId, index, call.signal)),

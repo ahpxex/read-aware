@@ -2,11 +2,12 @@
 
 ## Current Status
 
-Native snapshot/conditional commit, the v34 local checkpoint, typed host service
-and evidence-validated prompt consumption are implemented. These are internal
-ports, not new model or plugin methods. The automatic inference/idle producer
-below is still required; MEM08 remains partial. No automatic inference starts
-from these bindings alone. Existing curated profile APIs retain their meaning.
+Native snapshot/conditional commit, the v34 local checkpoint, typed host service,
+bounded automatic inference/idle production and evidence-validated prompt
+consumption are implemented. These are internal ports, not new model or plugin
+methods. MEM08 remains partial for resumable large-input handling and public
+derived-profile inspection; no partial pass is labelled complete. Existing
+curated profile APIs retain their meaning.
 
 ## Ownership
 
@@ -64,6 +65,30 @@ revisions; rerunning is preferable to hiding unseen source changes.
 
 ## Producer And Consumers
 
+The first automatic producer uses one complete, revision-pinned input per pass,
+not a silently truncated prefix. It reads all eligible memories and the registry
+classes/members/aliases into a JSON data envelope. Input is capped at 48000 UTF-8
+bytes and further constrained by the selected model window after output/framing
+reserves; output is capped at 4096 tokens. Exceeding the input bound leaves the
+pass pending and logs the reason. This is an explicit capacity limitation, not
+evidence that a large store was processed; resumable partitioning remains work.
+
+The strict model result contains summary, complete, resolutions and merges.
+Existing resolution IDs and merge roots must occur in the captured registry;
+merges require resolved roots and cannot share endpoints. New resolution IDs
+are derived by code from kind, name and sorted evidence IDs, never minted by the
+model. Equal names alone do not identify a person; the prompt requires explicit
+evidence and conservative abstention. This deterministic proposal key prevents
+duplicate retries, not a proof of real-world identity. A partial result can
+commit but does not settle. Invalid/truncated/refused output cannot commit.
+
+Existing memory decay/promotion runs first when due. The identity producer then
+independently checks the durable native completion revision, even when the
+ordinary memory pass has nothing to do. It uses the existing automatic-building
+policy and single-flight runtime operation; reads/inference may be cancelled,
+while dispatched writes drain. A failure is logged and remains eligible for a
+later idle tick, never retried blindly with a freshly substituted revision.
+
 Prompt reads use a dedicated read transaction over curated profile, the derived
 block and its current eligible memory set. They must not hash or load the entity
 registry on every chat turn. With no derived block, no evidence scan is needed.
@@ -82,9 +107,12 @@ initialization and each mint, before dispatch. Dispatched transactions return
 their actual receipt or error and broadcast only the receipt's emitted events.
 No conflict is automatically retried with a replacement version.
 
-Required next bindings: model-facing bounded input assembly and strict structured
-output with source attribution, stable entity-ID ownership, automatic runtime
-ports, live-policy cancellation/drain and durable idle skip. Oversized or incomplete
+The runtime now uses the production identity port under the same automatic-memory
+policy as extraction/digests. Explicit inference output caps and source-tracking
+options survive the policy wrapper, and its signal combines caller cancellation.
+The source, validation and execution modules are separate from runtime scheduling.
+Required next work: resumable bounded partitions for a store exceeding one full
+input, plus a public derived-profile inspection contract. Oversized or incomplete
 model work stays pending with logged diagnostics, not a fake successful pass.
 Curated profile edits win by separation and read-set conflict checks. Forgotten
 or superseded evidence invalidates the derived layer before regeneration.
@@ -95,7 +123,13 @@ candidate copying, malformed source/authority rejection, mint ordering, partial
 receipts, cancellation and failure propagation. Real AgentThread orchestration
 with a scripted model checks both scopes, same-chapter prompt refresh, stale and
 invalid exclusion, curated precedence and interview preservation; this is not
-Tauri or model-quality evidence. Automatic producer/policy tests remain required.
+Tauri or model-quality evidence. Automatic producer tests cover qualification,
+strict output, IDs, unknown references, disjoint merge roots, multi-page classes
+and aliases, capacity refusal, conflicts and policy cancellation/drain. Runtime
+tests exercise the actual HTTP adapter with scripted SSE responses and observe
+the output cap, single flight, independent completion gate and runtime recreation.
+The web assembly test goes through actual RuntimeDeps, inference and host minting
+with scripted IPC receipts; only native tests prove SQLite transaction semantics.
 Stage two adds real composition workflows; stage three
 proves real Tauri/Worker/inference, revocation and cross-device replay. Native
 foundations alone do not close MEM08 or count as those consumer workflows.

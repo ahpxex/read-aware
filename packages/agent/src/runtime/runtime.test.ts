@@ -26,10 +26,10 @@ describe("AgentRuntime maintenance", () => {
 
     expect(await runtime.consolidateIfNeeded()).not.toBeNull();
     expect(await runtime.consolidateIfNeeded()).toBeNull();
-    expect(memoryLists()).toBe(2);
+    expect(memoryLists()).toBe(6); // Identity source capture and fixture commit checks also read memories.
 
     await runtime.consolidate();
-    expect(memoryLists()).toBe(3);
+    expect(memoryLists()).toBe(8);
   });
 
   test("external insert, correction and forgetting invalidate the durable checkpoint", async () => {

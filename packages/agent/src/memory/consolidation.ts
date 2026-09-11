@@ -150,6 +150,7 @@ async function judgementChanges(
 // ---- 入口 -------------------------------------------------------------------
 
 export interface ConsolidationReport {
+  identity?: import("./identity-consolidation").IdentityReport;
   decayed: number;
   forgotten: number;
   merged: number;

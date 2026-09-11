@@ -143,6 +143,7 @@ export function createPiChatTransport(): ChatTransport {
                 phase: "response",
                 id: chunk.id,
                 answer: {
+                  ...(chunk.answer.values === undefined ? {} : { values: structuredClone(chunk.answer.values) }),
                   optionId: chunk.answer.optionId,
                   text: chunk.answer.text,
                   cancelled: chunk.answer.cancelled,

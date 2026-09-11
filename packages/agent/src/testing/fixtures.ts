@@ -608,6 +608,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         if (request.kind === "permission") {
           return { optionId: "approve", text: "Approved" };
         }
+        if (request.kind === "form") return { cancelled: true };
         const option = request.options[0];
         return { optionId: option?.id, text: option?.label };
       },

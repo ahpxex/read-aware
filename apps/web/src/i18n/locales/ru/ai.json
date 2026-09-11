@@ -55,6 +55,11 @@
       "failed": "не удалось"
     },
     "interaction": {
+      "form": {
+        "required": "Заполните это поле.",
+        "invalid": "Проверьте значение.",
+        "choose": "Выберите вариант"
+      },
       "customAnswer": "Другой ответ",
       "customAnswerLabel": "Ваш ответ",
       "customAnswerPlaceholder": "Введите другой ответ…",

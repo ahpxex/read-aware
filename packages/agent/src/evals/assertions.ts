@@ -20,8 +20,8 @@ export interface AgentTraceExpectation {
     maxCalls?: number;
   };
   interactions?: {
-    requiredKinds?: Array<"question" | "permission">;
-    forbiddenKinds?: Array<"question" | "permission">;
+    requiredKinds?: Array<import("../ports").UserInteractionRequest["kind"]>;
+    forbiddenKinds?: Array<import("../ports").UserInteractionRequest["kind"]>;
   };
   maxRounds?: number;
 }

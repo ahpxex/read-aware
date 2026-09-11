@@ -73,7 +73,7 @@ export interface EvalToolCall {
 export interface EvalInteraction {
   turn: number;
   phase: "request" | "response";
-  kind?: "question" | "permission";
+  kind?: import("../ports").UserInteractionRequest["kind"];
   id: string;
   value: JsonValue;
 }

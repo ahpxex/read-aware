@@ -55,6 +55,11 @@
       "failed": "falló"
     },
     "interaction": {
+      "form": {
+        "required": "Completa este campo.",
+        "invalid": "Revisa este valor.",
+        "choose": "Elige una opción"
+      },
       "customAnswer": "Otra respuesta",
       "customAnswerLabel": "Tu respuesta",
       "customAnswerPlaceholder": "Escribe una respuesta diferente…",

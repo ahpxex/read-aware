@@ -21,6 +21,7 @@
     "aiRequestCancelled": "本次 AI 請求已取消。",
     "aiRequestTimeout": "本次 AI 請求已逾時，服務商仍可能已處理該請求。",
     "aiBusy": "插件 AI 請求忙碌中，請等待現有請求結束。",
+    "aiInvalidInteraction": "這個表單請求無效，請讓助理重新提問。",
     "pluginInvalidArgument": "此插件請求包含無效參數。",
     "pluginQuotaExceeded": "此插件請求超出資料限制，請縮小批次。",
     "settingsOptionsInvalid": "設定選項查詢無效。",

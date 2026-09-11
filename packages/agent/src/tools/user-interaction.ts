@@ -10,6 +10,7 @@ import type {
 
 export const INTERACTIVE_TOOL_NAMES = [
   "ask_user",
+  "ask_user_form",
   "delete_book",
   "delete_books",
   "merge_duplicate_books",

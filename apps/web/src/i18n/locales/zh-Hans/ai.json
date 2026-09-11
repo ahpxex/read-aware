@@ -55,6 +55,11 @@
       "failed": "失败"
     },
     "interaction": {
+      "form": {
+        "required": "请填写此项。",
+        "invalid": "请检查此值。",
+        "choose": "请选择"
+      },
       "customAnswer": "其他答案",
       "customAnswerLabel": "你的答案",
       "customAnswerPlaceholder": "输入不同的答案…",

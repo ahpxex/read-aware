@@ -4,6 +4,7 @@ import { cn } from "@read-aware/ui/cn";
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "../../../i18n";
 import { respondToUserInteraction } from "../agent/ports/user-interaction-port";
+import { ChatInteractionForm } from "./ChatInteractionForm";
 import type {
   ChatInteractionAnswer,
   ChatInteractionPart,
@@ -127,7 +128,9 @@ function SettledInteraction({
       ? t("chat.interaction.permission.declined")
       : part.request.kind === "permission"
         ? t("chat.interaction.permission.approved")
-        : part.answer?.text || t("chat.interaction.answered");
+        : part.request.kind === "form" && part.answer?.values
+          ? part.request.fields.map(field => `${field.label}: ${part.answer!.values![field.id] === null ? "-" : String(part.answer!.values![field.id])}`).join("\n")
+          : part.answer?.text || t("chat.interaction.answered");
   const status = cancelled
     ? t("chat.interaction.skipped")
     : declined
@@ -167,7 +170,7 @@ function SettledInteraction({
           <span className="block">
             <span className="text-fg-subtle">q:</span> {title}
           </span>
-          <span className="block">
+          <span className="block whitespace-pre-wrap break-words">
             <span className="text-fg-subtle">a:</span> {answer}
           </span>
         </Caption>
@@ -316,7 +319,7 @@ export function ChatInteractionPrompt({
   const title =
     part.request.kind === "permission"
       ? t(permissionKeys[part.request.action].question, { subject: part.request.subject })
-      : part.request.question;
+      : part.request.kind === "form" ? part.request.title : part.request.question;
 
   if (part.state !== "pending") {
     return <SettledInteraction part={part} title={title} />;
@@ -336,11 +339,13 @@ export function ChatInteractionPrompt({
         </div>
       ) : (
         <>
-          <Body as="h3" className="text-sm font-medium leading-5 text-fg">
+          <Body as="h3" className="break-words text-sm font-medium leading-5 text-fg">
             {title}
           </Body>
           <div className="mt-3">
-            <QuestionPrompt part={part} onRespond={onRespond} />
+            {part.request.kind === "form"
+              ? <ChatInteractionForm key={part.id} form={part.request} respond={answer => onRespond(part.id, answer)} />
+              : <QuestionPrompt part={part} onRespond={onRespond} />}
           </div>
         </>
       )}

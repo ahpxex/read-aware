@@ -206,6 +206,7 @@ type UserInteractionBase = {
 
 export type UserInteractionRequest = UserInteractionBase &
   (
+    | ({ kind: "form" } & import("@read-aware/core").InteractionForm)
     | {
         kind: "question";
         question: string;
@@ -223,6 +224,8 @@ export type UserInteractionRequest = UserInteractionBase &
   );
 
 export interface UserInteractionAnswer {
+  /** Structured form answers only. These are data, never approval tickets. */
+  values?: import("@read-aware/core").InteractionFormValues;
   /** One of the request option ids, `approve`/`decline`, or absent for custom text. */
   optionId?: string;
   text?: string;

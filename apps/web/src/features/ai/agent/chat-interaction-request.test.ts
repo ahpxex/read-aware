@@ -17,6 +17,7 @@ test("graph approval keeps its chapter limit through chat presentation without a
 test("all graph approval translations disclose the subject and resolved chapter limit", async () => {
   for (const locale of ["en", "zh-Hans", "zh-Hant", "ja", "de", "fr", "es", "ru"]) {
     const json = await Bun.file(new URL(`../../../i18n/locales/${locale}/ai.json`, import.meta.url)).json();
+    for (const key of ["required", "invalid", "choose"]) expect(json.chat.interaction.form[key].length).toBeGreaterThan(0);
     const description = json.chat.interaction.permission.generateBookGraph.description;
     expect(description).toContain("{{subject}}");
     expect(description).toContain("{{maxChapters}}");
@@ -28,4 +29,13 @@ test("all graph approval translations disclose the subject and resolved chapter 
     expect(json.chat.interaction.permission.updateProfile.description).toContain("{{subject}}");
     expect(json.chat.interaction.permission.updateProfile.approve.length).toBeGreaterThan(0);
   }
+});
+
+test("structured form requests are copied into presentation without losing field constraints", () => {
+  const request = { kind: "form" as const, id: "f", threadKey: "global:t", title: "Plan",
+    fields: [{ kind: "number" as const, id: "minutes", label: "Minutes", min: 1, max: 120, required: true }] };
+  const presentation = toChatInteractionRequest(request);
+  expect(presentation).toEqual(request);
+  request.fields[0]!.min = 100;
+  expect(presentation).toMatchObject({ fields: [{ min: 1 }] });
 });

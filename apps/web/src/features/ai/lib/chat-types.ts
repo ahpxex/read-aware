@@ -80,6 +80,7 @@ export type ChatInteractionRequest = {
   threadKey: string;
 } &
   (
+    | ({ kind: "form" } & import("@read-aware/core").InteractionForm)
     | {
         kind: "question";
         question: string;
@@ -95,6 +96,7 @@ export type ChatInteractionRequest = {
   );
 
 export interface ChatInteractionAnswer {
+  values?: import("@read-aware/core").InteractionFormValues;
   optionId?: string;
   text?: string;
   cancelled?: boolean;

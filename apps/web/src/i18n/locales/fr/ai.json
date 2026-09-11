@@ -55,6 +55,11 @@
       "failed": "échec"
     },
     "interaction": {
+      "form": {
+        "required": "Remplissez ce champ.",
+        "invalid": "Vérifiez cette valeur.",
+        "choose": "Choisissez une option"
+      },
       "customAnswer": "Autre réponse",
       "customAnswerLabel": "Votre réponse",
       "customAnswerPlaceholder": "Saisissez une autre réponse…",

@@ -55,6 +55,11 @@
       "failed": "失敗"
     },
     "interaction": {
+      "form": {
+        "required": "請填寫此項。",
+        "invalid": "請檢查此值。",
+        "choose": "請選擇"
+      },
       "customAnswer": "其他答案",
       "customAnswerLabel": "你的答案",
       "customAnswerPlaceholder": "輸入不同的答案…",

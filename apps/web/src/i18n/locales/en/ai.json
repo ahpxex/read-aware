@@ -55,6 +55,11 @@
       "failed": "failed"
     },
     "interaction": {
+      "form": {
+        "required": "Complete this field.",
+        "invalid": "Check this value.",
+        "choose": "Choose an option"
+      },
       "customAnswer": "Something else",
       "customAnswerLabel": "Your answer",
       "customAnswerPlaceholder": "Type a different answer…",

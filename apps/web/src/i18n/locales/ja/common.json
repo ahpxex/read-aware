@@ -21,6 +21,7 @@
     "aiRequestCancelled": "この AI リクエストはキャンセルされました。",
     "aiRequestTimeout": "この AI リクエストはタイムアウトしました。プロバイダー側では処理された可能性があります。",
     "aiBusy": "プラグインの AI リクエストが混み合っています。完了するまでお待ちください。",
+    "aiInvalidInteraction": "フォームの要求が無効です。アシスタントに再度質問を依頼してください。",
     "pluginInvalidArgument": "このプラグインのリクエストに無効なパラメータが含まれています。",
     "pluginQuotaExceeded": "このプラグインのリクエストはデータ制限を超えています。処理する件数を減らしてください。",
     "settingsOptionsInvalid": "設定の選択肢の検索が無効です。",

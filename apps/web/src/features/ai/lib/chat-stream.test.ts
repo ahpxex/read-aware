@@ -15,6 +15,13 @@ const question: ChatInteractionRequest = {
 };
 
 describe("chat interaction stream assembly", () => {
+  test("structured answers survive timeline assembly and JSON persistence", () => {
+    let parts = appendStreamChunk([], { type: "interaction", phase: "request", request: { id: "f", threadKey: "global:t", kind: "form", title: "Plan",
+      fields: [{ id: "minutes", kind: "number", label: "Minutes" }] } });
+    parts = appendStreamChunk(parts, { type: "interaction", phase: "response", id: "f", answer: { values: { minutes: 20 } } });
+    expect(JSON.parse(JSON.stringify(finalizeParts(parts))))
+      .toMatchObject([{ type: "interaction", state: "answered", request: { kind: "form" }, answer: { values: { minutes: 20 } } }]);
+  });
   test("pairs request and response into one persistent timeline part", () => {
     let parts: ChatAssistantPart[] = [];
     parts = appendStreamChunk(parts, {

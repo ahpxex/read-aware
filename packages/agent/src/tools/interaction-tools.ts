@@ -7,6 +7,7 @@ import { interactionGrantsSpoilerPermission } from "./spoiler-permission";
 import { textResult } from "./tool-result";
 import type { AgentTurnState } from "./turn-state";
 import { requestUserInteraction } from "./user-interaction";
+import { buildInteractionFormTool } from "./interaction-form-tool";
 
 const optionSchema = Type.Object({
   id: Type.String({ description: "Short stable id, such as summarize or compare" }),
@@ -84,5 +85,5 @@ export function buildInteractionTools(
     },
   };
 
-  return [askUser];
+  return [askUser, buildInteractionFormTool(scope, deps)];
 }

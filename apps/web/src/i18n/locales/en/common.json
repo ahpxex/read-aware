@@ -21,6 +21,7 @@
     "aiRequestCancelled": "This AI request was cancelled.",
     "aiRequestTimeout": "This AI request timed out. The provider may still have processed it.",
     "aiBusy": "Plugin AI requests are busy. Wait for one to finish.",
+    "aiInvalidInteraction": "This form request is invalid. Ask the assistant to try again.",
     "pluginInvalidArgument": "This plugin request contains invalid parameters.",
     "pluginQuotaExceeded": "This plugin request exceeds the data limit. Use a smaller batch.",
     "settingsOptionsInvalid": "This setting option query is invalid.",

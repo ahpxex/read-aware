@@ -55,6 +55,11 @@
       "failed": "失敗"
     },
     "interaction": {
+      "form": {
+        "required": "この項目を入力してください。",
+        "invalid": "値を確認してください。",
+        "choose": "選択してください"
+      },
       "customAnswer": "別の回答",
       "customAnswerLabel": "あなたの回答",
       "customAnswerPlaceholder": "別の回答を入力…",

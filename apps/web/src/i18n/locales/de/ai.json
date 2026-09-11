@@ -55,6 +55,11 @@
       "failed": "fehlgeschlagen"
     },
     "interaction": {
+      "form": {
+        "required": "Füllen Sie dieses Feld aus.",
+        "invalid": "Prüfen Sie diesen Wert.",
+        "choose": "Option auswählen"
+      },
       "customAnswer": "Etwas anderes",
       "customAnswerLabel": "Deine Antwort",
       "customAnswerPlaceholder": "Andere Antwort eingeben…",

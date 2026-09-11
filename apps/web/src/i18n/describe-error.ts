@@ -139,6 +139,7 @@ const CODE_COPY: Record<string, CopyEntry> = {
   [ERR_AI_REQUEST_CANCELLED]: { key: "aiRequestCancelled", retryable: false },
   [ERR_AI_REQUEST_TIMEOUT]: { key: "aiRequestTimeout", retryable: false },
   [ERR_AI_BUSY]: { key: "aiBusy", retryable: true },
+  "ai/invalid-interaction": { key: "aiInvalidInteraction", retryable: false },
   "plugin/network-closed": { key: "pluginNetworkClosed", retryable: false },
   "plugin/network-read-invalid": { key: "pluginNetworkReadInvalid", retryable: false },
   "plugin/network-timeout": { key: "pluginNetworkTimeout", retryable: false },

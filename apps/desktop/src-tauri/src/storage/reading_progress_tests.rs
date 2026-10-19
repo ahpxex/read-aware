@@ -127,6 +127,144 @@ fn last_observed_position_converges_in_both_orders_and_survives_replay() {
     }
 }
 
+fn resting(cfi: &str) -> Value {
+    json!({"modeKey":"sentence-reader:guided-reading","unitId":"sentence","contentVersion":"v1","cfi":cfi})
+}
+
+fn with_mode(mut progress: Value, mode: Value) -> Value {
+    progress["readingMode"] = mode;
+    progress
+}
+
+#[test]
+fn the_reading_mode_resting_unit_travels_with_the_winning_position() {
+    // The phone stepped on to a sentence on page 300; the computer had last
+    // rested on a sentence on page 200, observed earlier.
+    let phone = session_event(
+        "phone",
+        3000,
+        "b1",
+        40000,
+        (2000, 3000),
+        10,
+        Some(observed(
+            with_mode(at(300), resting("epubcfi(/6/2!/4/2,/1:300,/1:340)")),
+            3000,
+        )),
+    );
+    let computer = session_event(
+        "computer",
+        2000,
+        "b1",
+        40000,
+        (1000, 2000),
+        10,
+        Some(observed(
+            with_mode(at(200), resting("epubcfi(/6/2!/4/2,/1:200,/1:240)")),
+            2000,
+        )),
+    );
+    for (local, remote) in [(&computer, &phone), (&phone, &computer)] {
+        let (mut conn, dir) = conn_with_dir();
+        commit_events_inner(&mut conn, &[imported("import", 1000, "b1", "Latest")]).unwrap();
+        commit_events_inner(&mut conn, std::slice::from_ref(local)).unwrap();
+        super::super::events::apply_remote_events_inner(
+            &mut conn,
+            &dir,
+            std::slice::from_ref(remote),
+            None,
+        )
+        .unwrap();
+        assert_eq!(saved(&conn)["currentLocation"], 300);
+        assert_eq!(
+            saved(&conn)["readingMode"]["cfi"],
+            "epubcfi(/6/2!/4/2,/1:300,/1:340)",
+            "the mode resumes on the unit observed with the winning position"
+        );
+    }
+
+    let (mut conn, _dir) = conn_with_dir();
+    commit_events_inner(&mut conn, &[imported("import", 1000, "b1", "Latest")]).unwrap();
+    commit_events_inner(&mut conn, std::slice::from_ref(&phone)).unwrap();
+    // A later observation without a resting unit (mode off) clears it; one
+    // from a build that predates the field says nothing about the mode.
+    let off = session_event(
+        "off",
+        4000,
+        "b1",
+        1000,
+        (3500, 4000),
+        11,
+        Some(observed(with_mode(at(310), Value::Null), 4000)),
+    );
+    commit_events_inner(&mut conn, &[off]).unwrap();
+    assert_eq!(saved(&conn)["readingMode"], Value::Null);
+    let legacy = session_event(
+        "legacy",
+        5000,
+        "b1",
+        1000,
+        (4500, 5000),
+        12,
+        Some(observed(at(320), 5000)),
+    );
+    commit_events_inner(&mut conn, &[legacy]).unwrap();
+    assert!(saved(&conn).get("readingMode").is_none());
+    // A malformed unit is not stored as one.
+    let malformed = session_event(
+        "malformed",
+        6000,
+        "b1",
+        1000,
+        (5500, 6000),
+        13,
+        Some(observed(
+            with_mode(at(330), json!({"cfi":"epubcfi(/6/2!/4/2/1:0)"})),
+            6000,
+        )),
+    );
+    commit_events_inner(&mut conn, &[malformed]).unwrap();
+    assert_eq!(saved(&conn)["currentLocation"], 330);
+    assert!(saved(&conn).get("readingMode").is_none());
+    let before = saved(&conn);
+    let tx = conn.transaction().unwrap();
+    replay_into(&tx).unwrap();
+    tx.commit().unwrap();
+    assert_eq!(saved(&conn), before, "a full replay lands on the same unit");
+}
+
+#[test]
+fn a_step_within_the_page_keeps_the_pending_session_open_until_flushed() {
+    let mut conn = migrated_conn();
+    commit_events_inner(&mut conn, &[imported("import", 1000, "b1", "Latest")]).unwrap();
+    let first = with_mode(at(300), resting("epubcfi(/6/2!/4/2,/1:300,/1:340)"));
+    let next = with_mode(at(300), resting("epubcfi(/6/2!/4/2,/1:340,/1:380)"));
+    reading_session_position_inner(&conn, "b1", "2026-09-07", 10, 3000, &first).unwrap();
+    let flush = session_event(
+        "flush",
+        4000,
+        "b1",
+        0,
+        (3000, 3000),
+        10,
+        Some(observed(first, 3000)),
+    );
+    // The step lands while the flush of the previous unit is in flight, on
+    // the same page and (coarse clock) at the same instant.
+    reading_session_position_inner(&conn, "b1", "2026-09-07", 10, 3000, &next).unwrap();
+    reading_session_flush_inner(&mut conn, &[flush]).unwrap();
+    let pending = reading_sessions_pending_inner(&conn).unwrap();
+    assert_eq!(
+        pending.len(),
+        1,
+        "the newer unit is not retired with the older one"
+    );
+    assert_eq!(
+        pending[0].progress["readingMode"]["cfi"],
+        "epubcfi(/6/2!/4/2,/1:340,/1:380)"
+    );
+}
+
 #[test]
 fn pending_session_keeps_the_latest_page_and_a_flush_race_cannot_erase_it() {
     let mut conn = migrated_conn();

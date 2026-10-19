@@ -2,7 +2,7 @@ import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } fro
 import type { TFunction } from "i18next";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Spinner, useToast } from "@read-aware/ui";
-import { AppError } from "@read-aware/core";
+import { AppError, type ReadingModeResume } from "@read-aware/core";
 import { cn } from "@read-aware/ui/cn";
 import { ReaderFailureView } from "./ReaderFailureView";
 import { describeError, useTranslation } from "../../../i18n";
@@ -420,6 +420,24 @@ export function FoliateReaderView({
   useEffect(() => {
     onContentScrollRef.current = onContentScroll;
   }, [onContentScroll]);
+  // The position last reported for the open book. A text-unit mode's resting
+  // unit can move without a relocate (a step within the page); it re-reports
+  // this position carrying the new unit, so the recorded — and synced —
+  // position always says where the mode rests.
+  const reportedProgressRef = useRef<{ bookId: string; progress: ReaderProgress } | null>(null);
+  const onProgressChangeRef = useRef(onProgressChange);
+  const reportingBookIdRef = useRef(selectedBookId);
+  useEffect(() => {
+    onProgressChangeRef.current = onProgressChange;
+    reportingBookIdRef.current = selectedBookId;
+  }, [onProgressChange, selectedBookId]);
+  const reportReadingModeResume = useCallback((readingMode: ReadingModeResume | null) => {
+    const reported = reportedProgressRef.current;
+    if (!reported || reported.bookId !== reportingBookIdRef.current) return;
+    const progress = { ...reported.progress, readingMode };
+    reportedProgressRef.current = { bookId: reported.bookId, progress };
+    onProgressChangeRef.current?.(progress);
+  }, []);
   const sessionTimerActivityRef = useRef<(() => void) | null>(null);
   const emitContentClick = useEffectEvent(() => onContentClick?.());
   const emitReadingActivity = useEffectEvent(() => {
@@ -436,6 +454,7 @@ export function FoliateReaderView({
     }) => {
       onPageChange?.(location.current, location.total);
       onFractionChange?.(location.fraction);
+      reportedProgressRef.current = selectedBook ? { bookId: selectedBook.id, progress: location.progress } : null;
       onProgressChange?.(location.progress);
       onReadingCursorChange?.(location.cursor);
     },
@@ -946,6 +965,7 @@ export function FoliateReaderView({
     viewRef,
     readerRootRef,
     veilColor: readerPalette.bg,
+    onResumeChange: reportReadingModeResume,
   });
   useEffect(
     () => modeController?.bindPositionWaiter(textUnitNavigator.waitForPosition),
@@ -2133,6 +2153,7 @@ export function FoliateReaderView({
     // Drop the previous book's position so its first relocate only sets a fresh
     // baseline instead of reading as a page turn.
     prevReadingLocationRef.current = null;
+    reportedProgressRef.current = null;
     resetShellScrollTravel();
     resetPageTurnQueue();
     resetCrossing();
@@ -2237,11 +2258,20 @@ export function FoliateReaderView({
           );
         const chapterStarts = readerChapterStarts(parsedBook, await chapterMapFor(parsedBook));
         if (session.closed) return;
-        if (selectedBook)
-          // oxlint-disable-next-line react-hooks/rules-of-hooks -- openEngine runs inside useReaderEngineSession's effect event
-          currentTextUnitNavigator().handleContentVersion(selectedBook.id, contentVersion, openingActor);
         await view.open(parsedBook);
         if (session.closed) return;
+        const resetPosition = initialBook.resetPosition && resetPositionSourceRef.current !== initialBook;
+        // After open, so the opened position's resting unit resolves against
+        // this book; before the first navigation, so its section load finds it.
+        // Starting over leaves no unit to rest on.
+        if (selectedBook)
+          // oxlint-disable-next-line react-hooks/rules-of-hooks -- openEngine runs inside useReaderEngineSession's effect event
+          currentTextUnitNavigator().handleContentVersion(
+            selectedBook.id,
+            contentVersion,
+            openingActor,
+            resetPosition ? null : initialProgress?.readingMode,
+          );
         if (view.renderer) view.renderer.inputBridge = readingNativeInput;
         if (view.renderer && "setChapterStarts" in view.renderer) view.renderer.setChapterStarts(chapterStarts);
 
@@ -2359,6 +2389,8 @@ export function FoliateReaderView({
               progressPercent,
               cfi,
               href,
+              // oxlint-disable-next-line react-hooks/rules-of-hooks -- openEngine runs inside useReaderEngineSession's effect event
+              readingMode: currentTextUnitNavigator().resume(),
             },
             cursor: {
               ...(cfi ? { anchor: cfi } : {}),
@@ -2503,7 +2535,6 @@ export function FoliateReaderView({
           }
         }
 
-        const resetPosition = initialBook.resetPosition && resetPositionSourceRef.current !== initialBook;
         await restoreReadingPosition(view, {
           virtual: !!initialBook.virtual,
           reset: !!resetPosition,

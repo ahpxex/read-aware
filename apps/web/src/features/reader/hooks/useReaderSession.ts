@@ -122,6 +122,7 @@ export function useReaderSession({
           totalLocations: progress.totalLocations,
           progressPercent,
           status: getReadingStatus(progressPercent),
+          ...(progress.readingMode !== undefined ? { readingMode: progress.readingMode } : {}),
         },
         Date.now(),
       );

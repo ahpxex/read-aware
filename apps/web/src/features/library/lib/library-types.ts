@@ -1,4 +1,4 @@
-import type { BookFormat } from "@read-aware/core";
+import type { BookFormat, ReadingModeResume } from "@read-aware/core";
 
 export type { BookFormat };
 
@@ -41,6 +41,11 @@ export type ReaderProgress = {
   progressPercent: number;
   cfi: string | null;
   href: string | null;
+  /** Where a text-unit reading mode rested when this position was observed
+   *  (null: no resting unit; absent: recorded before positions carried it).
+   *  It travels with the position, so the mode resumes wherever the reader
+   *  resumes — including on another device. */
+  readingMode?: ReadingModeResume | null;
 };
 
 export type BookProgress = ReaderProgress | null;

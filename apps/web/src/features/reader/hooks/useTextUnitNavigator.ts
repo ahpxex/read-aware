@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import type { RefObject } from "react";
-import { AppError, errorCode, type ReadingModePosition } from "@read-aware/core";
+import { AppError, errorCode, type ReadingModePosition, type ReadingModeResume } from "@read-aware/core";
 import { useToast } from "@read-aware/ui";
 import { describeError } from "../../../i18n";
 import { createLogger } from "../../../platform/logger";
@@ -17,12 +17,7 @@ import type { RegisteredReaderMode } from "../../plugins/lib/plugin-types";
 import { useVolumeKeySteps } from "./useVolumeKeySteps";
 import type { FoliateRelocateDetail, FoliateView } from "../lib/foliate-engine";
 import { applyNavigatorHighlight, removeNavigatorHighlight } from "../lib/highlight-renderer";
-import {
-  isTextUnitModeStateCompatible,
-  readTextUnitModeState,
-  writeTextUnitModeState,
-  type TextUnitResting,
-} from "../lib/text-unit-mode-state";
+import { readTextUnitModeState, writeTextUnitModeState, type TextUnitResting } from "../lib/text-unit-mode-state";
 import {
   anchorTextUnitIndex,
   buildTextUnitRanges,
@@ -65,10 +60,22 @@ export type TextUnitNavigator = {
    *  wash there and keeps the abandoned unit as a return point until the
    *  reader goes back to it or leaves the mode. */
   hasReturnPoint: boolean;
+  /** The resting unit as the reading position records it: what a progress
+   *  observation made now carries (null when the mode has no resting unit). */
+  resume: () => ReadingModeResume | null;
   /** Engine bridges — invoke from the reader's `load` / `relocate` handlers.
    *  Section loads settle once segmentation lands; failures surface as status. */
   handleSectionLoad: (doc: Document, index: number, origin?: DomainActor) => Promise<void>;
-  handleContentVersion: (bookId: string, contentVersion: string, origin?: DomainActor) => void;
+  /** Invoke once the opened book's view can resolve CFIs, before its first
+   *  navigation. `resume` is the `readingMode` of the position the reader
+   *  opens at — possibly observed on another device — and decides where the
+   *  mode resumes; `undefined` means that position predates the field. */
+  handleContentVersion: (
+    bookId: string,
+    contentVersion: string,
+    origin?: DomainActor,
+    resume?: ReadingModeResume | null,
+  ) => void;
   handleRelocate: (detail: FoliateRelocateDetail) => void;
   /** Invoke from the reader's `create-overlay` handler: the engine rebuilds a
    *  section's overlayer from scratch on re-layout (style injection, resize,
@@ -107,6 +114,10 @@ type UseTextUnitNavigatorOptions = {
   /** The reader's page color — the fill of the dimming veil drawn around the
    *  resting unit so the rest of the page recedes while navigating. */
   veilColor: string;
+  /** The resting unit moved (or was let go): the reading position the reader
+   *  last observed should be recorded again with the new `resume()`, so a
+   *  step that stays on the page still reaches the synced position. */
+  onResumeChange?: (resume: ReadingModeResume | null) => void;
 };
 
 const normalizeText = (value: string) => value.replace(/\s+/g, " ").trim();
@@ -145,9 +156,12 @@ export function useTextUnitNavigator({
   viewRef,
   readerRootRef,
   veilColor,
+  onResumeChange,
 }: UseTextUnitNavigatorOptions): TextUnitNavigator {
   const onPersistenceRef = useRef(onPersistence);
   onPersistenceRef.current = onPersistence;
+  const onResumeChangeRef = useRef(onResumeChange);
+  onResumeChangeRef.current = onResumeChange;
   const { toast } = useToast();
   const toastRef = useRef(toast);
   toastRef.current = toast;
@@ -195,11 +209,22 @@ export function useTextUnitNavigator({
   const layoutReadyRef = useRef(false);
   // Unit to land on once the relocate that follows a section load fires
   // (layout is settled there; at `load` time the overlayer doesn't exist yet).
-  const pendingAnchorRef = useRef<{ index: number; scroll: boolean; origin: DomainActor } | null>(null);
+  const pendingAnchorRef = useRef<{ index: number; scroll: boolean; origin: DomainActor; verify: boolean } | null>(
+    null,
+  );
   // Where the navigator rests, by section + ordinal — remembered across
   // section unloads so flipping away and back restores the wash in place.
   // Persisted per book, so it also survives closing and reopening the book.
   const restingRef = useRef<TextUnitResting | null>(null);
+  // False while the resting unit comes from this device's own record of a
+  // position that predates carrying it: another device may have read on since,
+  // so it resumes only if it is on the page the reader opened at.
+  const restingVerifiedRef = useRef(true);
+  // The resting unit as an address, kept while the mode is on (or suspended)
+  // even when no section index exists yet — an unregistered plugin resumes
+  // from it on registration. Only a verified address reaches the position.
+  const retainedRef = useRef<{ address: ReadingModeResume; verified: boolean } | null>(null);
+  const publishedRef = useRef<ReadingModeResume | null>(null);
   const bookIdRef = useRef(bookId);
   const contentVersionRef = useRef<string | null>(null);
   const modeKeyRef = useRef(modeKey);
@@ -223,10 +248,48 @@ export function useTextUnitNavigator({
     applyNavigatorHighlight(view, cfi, veilColor);
   }, [veilColor, viewRef]);
 
-  const setResting = useCallback((resting: TextUnitResting | null) => {
+  const setResting = useCallback((resting: TextUnitResting | null, verified = true) => {
     restingRef.current = resting;
+    restingVerifiedRef.current = verified;
     setCanReturn(resting != null);
   }, []);
+
+  const retain = useCallback((retained: { address: ReadingModeResume; verified: boolean } | null) => {
+    retainedRef.current = retained;
+    const published = retained?.verified ? retained.address : null;
+    const previous = publishedRef.current;
+    if (
+      previous === published ||
+      (previous &&
+        published &&
+        previous.cfi === published.cfi &&
+        previous.modeKey === published.modeKey &&
+        previous.unitId === published.unitId &&
+        previous.contentVersion === published.contentVersion)
+    )
+      return;
+    publishedRef.current = published;
+    onResumeChangeRef.current?.(published);
+  }, []);
+
+  const resume = useCallback(() => publishedRef.current, []);
+
+  /** The address resolved against the open book. A CFI addresses content, so
+   *  it resumes under any mode or unit; the unit containing it is found once
+   *  its section is indexed. */
+  const restingFromAddress = useCallback(
+    (address: ReadingModeResume): TextUnitResting | null => {
+      const view = viewRef.current;
+      if (!view) return null;
+      try {
+        return { sectionIndex: view.resolveCFI(address.cfi).index, ordinal: null, cfiRange: address.cfi };
+      } catch (error) {
+        log.warn("discarding unresolvable reading mode address", error);
+        return null;
+      }
+    },
+    [viewRef],
+  );
 
   // Drop outgoing document references before activation. Persisted positions
   // are restored only after the loader supplies the actual content version.
@@ -248,7 +311,8 @@ export function useTextUnitNavigator({
     // the actual content identity (file hash or virtual-content version).
     setResting(null);
     setReturnPoint(null);
-  }, [bookId, buildSession, setResting, setReturnPoint]);
+    retain(null);
+  }, [bookId, buildSession, setResting, setReturnPoint, retain]);
 
   useEffect(
     () => () => {
@@ -259,34 +323,50 @@ export function useTextUnitNavigator({
     [buildSession, positionWaiter],
   );
 
-  const persistState = useCallback((origin: DomainActor) => {
-    const id = bookIdRef.current;
-    const currentModeKey = modeKeyRef.current;
-    // A disabled/unavailable plugin must not overwrite its retained state with
-    // an anonymous placeholder before it can register again.
-    if (!id || !currentModeKey || !contentVersionRef.current) return;
-    const state = {
-      active: persistedActiveRef.current,
-      resting: restingRef.current,
-      modeKey: currentModeKey,
-      unitId: unitIdRef.current,
-      contentVersion: contentVersionRef.current,
-    };
-    const write = () => writeTextUnitModeState(id, state, origin);
-    const position = state.resting?.cfiRange
-      ? {
-          modeKey: state.modeKey,
-          unitId: state.unitId,
-          location: { bookId: id, contentVersion: state.contentVersion, cfi: state.resting.cfiRange },
-        }
-      : null;
-    if (onPersistenceRef.current)
-      onPersistenceRef.current(configurationRef.current, state.modeKey, state.unitId, write, position);
-    else void write();
-  }, []);
+  const persistState = useCallback(
+    (origin: DomainActor) => {
+      const id = bookIdRef.current;
+      const currentModeKey = modeKeyRef.current;
+      // A disabled/unavailable plugin must not overwrite its retained state with
+      // an anonymous placeholder before it can register again.
+      if (!id || !currentModeKey || !contentVersionRef.current) return;
+      const state = {
+        active: persistedActiveRef.current,
+        resting: restingRef.current,
+        modeKey: currentModeKey,
+        unitId: unitIdRef.current,
+        contentVersion: contentVersionRef.current,
+      };
+      retain(
+        state.active && state.resting?.cfiRange
+          ? {
+              address: {
+                modeKey: state.modeKey,
+                unitId: state.unitId,
+                contentVersion: state.contentVersion,
+                cfi: state.resting.cfiRange,
+              },
+              verified: restingVerifiedRef.current,
+            }
+          : null,
+      );
+      const write = () => writeTextUnitModeState(id, state, origin);
+      const position = state.resting?.cfiRange
+        ? {
+            modeKey: state.modeKey,
+            unitId: state.unitId,
+            location: { bookId: id, contentVersion: state.contentVersion, cfi: state.resting.cfiRange },
+          }
+        : null;
+      if (onPersistenceRef.current)
+        onPersistenceRef.current(configurationRef.current, state.modeKey, state.unitId, write, position);
+      else void write();
+    },
+    [retain],
+  );
 
   const handleContentVersion = useCallback(
-    (id: string, version: string, origin: DomainActor = "system") => {
+    (id: string, version: string, origin: DomainActor = "system", synced?: ReadingModeResume | null) => {
       if (id !== bookIdRef.current || !version) return;
       origin = causalActor(origin);
       buildSession.invalidate();
@@ -300,18 +380,38 @@ export function useTextUnitNavigator({
       contentVersionRef.current = version;
       clearUnit(origin);
       setStatus(activeRef.current ? "building" : "inactive");
-      const saved = readTextUnitModeState(id);
-      const key = modeKeyRef.current;
-      setResting(
-        persistedActiveRef.current && key && isTextUnitModeStateCompatible(saved, key, unitIdRef.current, version)
-          ? saved.resting
-          : null,
-      );
+      // The mode resumes where the reading position says it rested — the
+      // position the reader opens at, wherever it was observed. Only a position
+      // recorded before it carried the unit falls back to this device's own
+      // record, which must then prove itself on the opened page.
+      let retained: { address: ReadingModeResume; verified: boolean } | null = null;
+      if (persistedActiveRef.current) {
+        if (synced !== undefined) {
+          retained = synced?.contentVersion === version ? { address: synced, verified: true } : null;
+        } else {
+          const saved = readTextUnitModeState(id);
+          retained =
+            saved.resting?.cfiRange && saved.modeKey && saved.unitId && saved.contentVersion === version
+              ? {
+                  address: {
+                    modeKey: saved.modeKey,
+                    unitId: saved.unitId,
+                    contentVersion: version,
+                    cfi: saved.resting.cfiRange,
+                  },
+                  verified: false,
+                }
+              : null;
+        }
+      }
+      const resting = retained && modeKeyRef.current ? restingFromAddress(retained.address) : null;
+      setResting(resting, retained?.verified ?? true);
+      retain(resting || !modeKeyRef.current ? retained : null);
       setReturnPoint(null);
       // An exit while the file was loading could not yet persist its preference.
       persistState(origin);
     },
-    [buildSession, clearUnit, setResting, setReturnPoint, persistState],
+    [buildSession, clearUnit, setResting, setReturnPoint, persistState, restingFromAddress, retain],
   );
 
   const waitForPosition = useCallback(
@@ -359,6 +459,15 @@ export function useTextUnitNavigator({
     },
     [viewRef, setResting, persistState],
   );
+
+  /** A resting unit from this device's legacy record resumes only on the page
+   *  the reader opened at; anywhere else the position moved on without it. */
+  const verifiedIndex = useCallback((units: Range[], index: number): number => {
+    if (restingVerifiedRef.current) return index;
+    const visible = visibleRangeRef.current;
+    const unit = units[index];
+    return unit && textUnitOnPage(unit, visible) ? index : anchorTextUnitIndex(units, visible);
+  }, []);
 
   /** Remove only the navigator's independent overlay at the resting CFI. */
   const clearWash = useCallback(() => {
@@ -727,22 +836,28 @@ export function useTextUnitNavigator({
       // section the navigator rests in re-draws the wash on
       // its remembered unit, in place. Any other section leaves the
       // navigator where it was — the wash simply isn't here.
+      // An unverified resting unit outside this section is not on the page
+      // the reader opened at, so the mode starts from that page instead.
       const resting = restingRef.current;
+      const unverified = resting != null && !restingVerifiedRef.current;
       pendingAnchorRef.current =
         resting?.sectionIndex === index
-          ? { index: restoredIndex(units, doc, index, origin), scroll: false, origin }
-          : !resting
-            ? { index: anchorTextUnitIndex(units, visibleRangeRef.current), scroll: false, origin }
+          ? { index: restoredIndex(units, doc, index, origin), scroll: false, origin, verify: unverified }
+          : !resting || unverified
+            ? { index: anchorTextUnitIndex(units, visibleRangeRef.current), scroll: false, origin, verify: false }
             : null;
       if (pendingAnchorRef.current == null) clearUnit(origin);
       // Worker segmentation can finish after relocate, not only before it.
       const pending = pendingAnchorRef.current;
       if (layoutReadyRef.current && pending) {
         pendingAnchorRef.current = null;
-        applyIndex(pending.index, { scroll: pending.scroll, origin: pending.origin });
+        applyIndex(pending.verify ? verifiedIndex(units, pending.index) : pending.index, {
+          scroll: pending.scroll,
+          origin: pending.origin,
+        });
       }
     },
-    [applyIndex, buildSession, buildUnits, clearUnit, restoredIndex],
+    [applyIndex, buildSession, buildUnits, clearUnit, restoredIndex, verifiedIndex],
   );
 
   // Manual moves never displace the navigator; relocates only feed the visible
@@ -767,11 +882,14 @@ export function useTextUnitNavigator({
       const pendingAnchor = pendingAnchorRef.current;
       if (pendingAnchor != null) {
         pendingAnchorRef.current = null;
-        applyIndex(pendingAnchor.index, { scroll: pendingAnchor.scroll, origin: pendingAnchor.origin });
+        applyIndex(pendingAnchor.verify ? verifiedIndex(unitsRef.current, pendingAnchor.index) : pendingAnchor.index, {
+          scroll: pendingAnchor.scroll,
+          origin: pendingAnchor.origin,
+        });
       }
       positionWaiter.notify();
     },
-    [applyIndex, handleSectionLoad, positionWaiter],
+    [applyIndex, handleSectionLoad, positionWaiter, verifiedIndex],
   );
 
   // Activation: index the loaded section and rest on the persisted unit if
@@ -801,15 +919,18 @@ export function useTextUnitNavigator({
       if (changedPolicy) setResting(null);
       modeKeyRef.current = requestedModeKey;
       unitIdRef.current = requestedUnitId;
-      if (!restingRef.current && wasPersistedActive) {
-        const id = bookIdRef.current;
-        const persisted = id ? readTextUnitModeState(id) : null;
-        if (
-          persisted &&
-          isTextUnitModeStateCompatible(persisted, requestedModeKey, requestedUnitId, contentVersionRef.current)
-        ) {
-          setResting(persisted.resting);
-        }
+      // Resume from the retained address (the opened position's resting unit,
+      // kept while the plugin was unavailable) unless a live unit re-anchors.
+      const retained = retainedRef.current;
+      if (
+        !restingRef.current &&
+        wasPersistedActive &&
+        !reanchor &&
+        retained &&
+        retained.address.contentVersion === contentVersionRef.current
+      ) {
+        const restored = restingFromAddress(retained.address);
+        if (restored) setResting(restored, retained.verified);
       }
       persistState(origin);
       if (!sectionRef.current) {
@@ -825,7 +946,7 @@ export function useTextUnitNavigator({
         const resting = restingRef.current;
         const index =
           resting?.sectionIndex === section.index
-            ? restoredIndex(units, section.doc, section.index, origin)
+            ? verifiedIndex(units, restoredIndex(units, section.doc, section.index, origin))
             : anchorTextUnitIndex(units, reanchor ?? visibleRangeRef.current);
         if (index >= 0) applyIndex(index, { scroll: false, origin });
         else clearUnit(origin);
@@ -856,6 +977,8 @@ export function useTextUnitNavigator({
     setResting,
     setReturnPoint,
     restoredIndex,
+    restingFromAddress,
+    verifiedIndex,
   ]);
 
   // Mode or unit switch: re-segment the loaded section under the new plugin
@@ -1035,6 +1158,7 @@ export function useTextUnitNavigator({
     returnToCurrent,
     canReturn,
     hasReturnPoint,
+    resume,
     handleSectionLoad,
     handleContentVersion,
     handleRelocate,

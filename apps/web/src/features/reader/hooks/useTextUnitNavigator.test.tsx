@@ -6,10 +6,11 @@ import { ToastProvider } from "@read-aware/ui";
 import { useTextUnitNavigator, type TextUnitNavigator } from "./useTextUnitNavigator";
 import type { FoliateRelocateDetail, FoliateView } from "../lib/foliate-engine";
 import { readTextUnitModeState, writeTextUnitModeState } from "../lib/text-unit-mode-state";
+import type { ReadingModeResume } from "@read-aware/core";
 import { actorCause, actorOrigin, eventCause, reactionActor, stampEventCause } from "../../../platform/domain-actor";
 import { onLocalKVCommit, type KVCommit } from "../../../platform/local-store";
 
-test("navigator handles both event orders, same-index replacements, provider failure and retirement", async () => {
+function installDom() {
   const dom = new JSDOM("<!doctype html><div id='root'></div>", { url: "http://localhost" });
   const globals = {
     window: dom.window,
@@ -25,6 +26,20 @@ test("navigator handles both event orders, same-index replacements, provider fai
   const saved = new Map(Object.keys(globals).map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   for (const [key, value] of Object.entries(globals))
     Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  return {
+    dom,
+    restore() {
+      dom.window.close();
+      for (const [key, descriptor] of saved) {
+        if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+        else Reflect.deleteProperty(globalThis, key);
+      }
+    },
+  };
+}
+
+test("navigator handles both event orders, same-index replacements, provider failure and retirement", async () => {
+  const { dom, restore } = installDom();
   const root = createRoot(dom.window.document.getElementById("root")!);
   const actor = reactionActor("plugin:mode-test", "select-mode", eventCause(stampEventCause({}))!);
   const navigationActor = reactionActor("plugin:mode-test", "navigate-mode", eventCause(stampEventCause({}))!);
@@ -525,10 +540,153 @@ test("navigator handles both event orders, same-index replacements, provider fai
     await act(async () => {
       root.unmount();
     });
-    dom.window.close();
-    for (const [key, descriptor] of saved) {
-      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
-      else Reflect.deleteProperty(globalThis, key);
+    restore();
+  }
+});
+
+test("the mode resumes on the unit the opened reading position rested on, wherever it was read", async () => {
+  const { dom, restore } = installDom();
+  const modeKey = "sentence-reader:guided-reading";
+  const doc = new dom.window.DOMParser().parseFromString("<p>One.</p><p>Two.</p><p>Three.</p>", "text/html");
+  const paragraph = (text: string) => [...doc.querySelectorAll("p")].find((p) => p.textContent === text)!;
+  const view = {
+    getCFI: (_index: number, range: Range) => range.toString(),
+    resolveCFI: (cfi: string) => ({
+      index: 0,
+      anchor: (target: Document) => {
+        const node = [...target.querySelectorAll("p")].find((p) => p.textContent === cfi)?.firstChild;
+        if (!node) throw new Error("Missing test CFI");
+        const range = target.createRange();
+        range.selectNodeContents(node);
+        return range;
+      },
+    }),
+    addAnnotation: async () => {},
+    deleteAnnotation: async () => {},
+    book: { sections: [{ id: "only" }] },
+  } as unknown as FoliateView;
+  const viewRef = { current: view };
+  const readerRootRef = { current: null };
+  // Stable, like a registered plugin's: a new identity is a new segmentation policy.
+  const byParagraph: Parameters<typeof useTextUnitNavigator>[0]["segmentText"] = async ({ text }) => [
+    { start: 0, end: text.length },
+  ];
+  const address = (cfi: string, overrides: Partial<ReadingModeResume> = {}): ReadingModeResume => ({
+    modeKey,
+    unitId: "sentence",
+    contentVersion: "v1",
+    cfi,
+    ...overrides,
+  });
+  type Opening = {
+    /** This device's own record of where the mode rested. */
+    local?: string;
+    /** The opened position's `readingMode` (undefined: a pre-field position). */
+    synced?: ReadingModeResume | null;
+    /** The paragraphs on the page the reader opens at. */
+    page: string[];
+    suspended?: boolean;
+  };
+  const open = async (bookId: string, opening: Opening) => {
+    if (opening.local)
+      void writeTextUnitModeState(bookId, {
+        active: true,
+        modeKey,
+        unitId: "sentence",
+        contentVersion: "v1",
+        resting: { sectionIndex: 0, ordinal: 0, cfiRange: opening.local },
+      });
+    const container = dom.window.document.createElement("div");
+    dom.window.document.body.append(container);
+    const root = createRoot(container);
+    const reported: (ReadingModeResume | null)[] = [];
+    let state!: TextUnitNavigator;
+    function Harness({ suspended }: { suspended: boolean }) {
+      state = useTextUnitNavigator({
+        active: !suspended,
+        suspended,
+        bookId,
+        modeKey: suspended ? null : modeKey,
+        unitId: "sentence",
+        segmentText: byParagraph,
+        viewRef,
+        readerRootRef,
+        veilColor: "white",
+        onResumeChange: (resume) => reported.push(resume),
+      });
+      return null;
     }
+    const render = (suspended: boolean) =>
+      root.render(
+        <ToastProvider>
+          <Harness suspended={suspended} />
+        </ToastProvider>,
+      );
+    await act(async () => {
+      render(!!opening.suspended);
+    });
+    await act(async () => {
+      state.handleContentVersion(bookId, "v1", "system", opening.synced);
+    });
+    await act(async () => {
+      void state.handleSectionLoad(doc, 0);
+      const page = doc.createRange();
+      page.setStartBefore(paragraph(opening.page[0]!));
+      page.setEndAfter(paragraph(opening.page.at(-1)!));
+      state.handleRelocate({ range: page } as FoliateRelocateDetail);
+    });
+    if (opening.suspended)
+      await act(async () => {
+        render(false);
+      });
+    await act(async () => {});
+    const result = { current: state.current?.text, resume: state.resume(), reported };
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+    return result;
+  };
+  try {
+    // Another device read on: its position carries the unit it rested on —
+    // even one segmented by paragraph — and that wins over this device's record.
+    const remote = await open("synced-unit", {
+      local: "One.",
+      synced: address("Three.", { unitId: "paragraph" }),
+      page: ["Three."],
+    });
+    expect(remote.current).toBe("Three.");
+    expect(remote.resume).toEqual(address("Three."));
+    expect(remote.reported.at(-1)).toEqual(address("Three."));
+
+    // The position was observed with the mode off (or without a resting
+    // unit): the stale local unit is dropped; the mode starts on the page.
+    const off = await open("synced-none", { local: "Three.", synced: null, page: ["Two.", "Three."] });
+    expect(off.current).toBe("Two.");
+
+    // A unit for other content cannot address this one.
+    const otherContent = await open("synced-other-content", {
+      local: "One.",
+      synced: address("Three.", { contentVersion: "v0" }),
+      page: ["Two."],
+    });
+    expect(otherContent.current).toBe("Two.");
+
+    // Positions recorded before they carried the unit: this device's own unit
+    // resumes only when it is on the opened page — anywhere else, another
+    // device may have read on since.
+    const ownPage = await open("legacy-on-page", { local: "Three.", page: ["Two.", "Three."] });
+    expect(ownPage.current).toBe("Three.");
+    expect(ownPage.reported.at(-1)).toEqual(address("Three."));
+    const movedOn = await open("legacy-elsewhere", { local: "One.", page: ["Three."] });
+    expect(movedOn.current).toBe("Three.");
+    // Unverified, the legacy unit never reached the recorded position.
+    expect(movedOn.reported).not.toContainEqual(address("One."));
+
+    // The plugin registers after the book opened: the retained address resumes.
+    const late = await open("late-plugin", { synced: address("Two."), page: ["One.", "Two."], suspended: true });
+    expect(late.current).toBe("Two.");
+  } finally {
+    restore();
   }
 });

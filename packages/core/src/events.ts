@@ -73,6 +73,19 @@ export interface DomainEventEnvelope<T extends string = string, P = unknown> {
   payload: P;
 }
 
+/**
+ * Where a text-unit reading mode (sentence-by-sentence, paragraph-by-paragraph)
+ * rests within the reading position it was observed with. The CFI addresses
+ * content, so any device holding the same `contentVersion` can resume on the
+ * unit that contains it, whichever mode or unit it reads with.
+ */
+export type ReadingModeResume = {
+  modeKey: string;
+  unitId: string;
+  contentVersion: string;
+  cfi: string;
+};
+
 // Append new variants below; never repurpose or mutate an existing variant's
 // shape (it breaks replay). Projection timestamps (created_at / updated_at /
 // last_opened_at …) are derived from the envelope `createdAt` (which defaults
@@ -256,6 +269,11 @@ export type DomainEvent =
           totalLocations?: number;
           progressPercent?: number;
           status?: ReadingStatus;
+          /** The reading mode's resting unit at this observation, so the
+           *  mode resumes in step with the position on every device. Null:
+           *  observed with no resting unit (mode off). Absent: recorded by a
+           *  build that predates the field — unknown. */
+          readingMode?: ReadingModeResume | null;
         };
       }
     >

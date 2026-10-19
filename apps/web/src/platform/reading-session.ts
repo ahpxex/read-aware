@@ -16,7 +16,7 @@
  * Buckets are keyed by the day/hour the time was READ in, in this device's
  * timezone — the event contract (`book.sessionRecorded` in @read-aware/core).
  */
-import { errorCode, type ReadingStatus } from "@read-aware/core";
+import { errorCode, type ReadingModeResume, type ReadingStatus } from "@read-aware/core";
 import type { CommitReport } from "./domain-events";
 import {
   broadcastDomainEventDrafts,
@@ -41,6 +41,8 @@ export type SessionPosition = {
   totalLocations?: number;
   progressPercent?: number;
   status?: ReadingStatus;
+  /** The reading mode's resting unit at this observation (see `book.sessionRecorded`). */
+  readingMode?: ReadingModeResume | null;
 };
 
 /** One open bucket as the store holds it (mirrors `ReadingSessionBucket`). */

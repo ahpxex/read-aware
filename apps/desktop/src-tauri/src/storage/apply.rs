@@ -918,13 +918,20 @@ fn apply_position(
     let chapter_href = str_of(p, "chapterHref");
     // The projection stores ReaderProgress verbatim as JSON; `cfi` and
     // `href` are the two anchor shapes the reader understands.
-    let progress = serde_json::json!({
+    let mut progress = serde_json::json!({
         "currentLocation": i64_of(p, "currentLocation").unwrap_or(0),
         "totalLocations": i64_of(p, "totalLocations").unwrap_or(0),
         "progressPercent": json_number(f64_of(p, "progressPercent").unwrap_or(0.0)),
         "cfi": if locator.is_empty() { Value::Null } else { Value::String(locator) },
         "href": chapter_href.map_or(Value::Null, Value::String),
     });
+    // The reading mode's resting unit travels with the position it was
+    // observed with, so whichever observation wins also decides where the
+    // mode resumes. Absent stays absent: an older build's observation says
+    // nothing about the mode.
+    if let Some(mode) = super::reading_progress::reading_mode(p) {
+        progress["readingMode"] = mode;
+    }
     // last_opened_at moves with progress too: the shelf orders by it, and
     // making progress IS reading the book. `book.opened` covers the case
     // where a book is opened without any progress landing. `reading_status`

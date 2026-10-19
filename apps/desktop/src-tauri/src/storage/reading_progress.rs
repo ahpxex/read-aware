@@ -81,9 +81,38 @@ fn cfi_start(value: &str) -> Option<Vec<Vec<(u64, u64)>>> {
         .collect()
 }
 
+/// The reading mode's resting unit observed with a position (`readingMode` in
+/// `book.sessionRecorded`). `Some(Null)` records "no resting unit"; `None`
+/// means the observation predates the field or carries a malformed one, so
+/// the projection stores nothing and readers treat the unit as unknown.
+pub(crate) fn reading_mode(p: &Value) -> Option<Value> {
+    let mode = p.get("readingMode")?;
+    if mode.is_null() {
+        return Some(Value::Null);
+    }
+    let field = |name: &str| {
+        mode.get(name)
+            .and_then(Value::as_str)
+            .filter(|value| !value.is_empty())
+            .map(|value| Value::String(value.to_owned()))
+    };
+    Some(serde_json::json!({
+        "modeKey": field("modeKey")?,
+        "unitId": field("unitId")?,
+        "contentVersion": field("contentVersion")?,
+        "cfi": field("cfi")?,
+    }))
+}
+
+fn reading_mode_cfi(p: &Value) -> &str {
+    p["readingMode"]["cfi"].as_str().unwrap_or("")
+}
+
 /// A total, arrival-independent order. Location counts are more precise than
 /// rounded percentages; CFI starts distinguish positions in the same location.
-/// Opaque locators only break otherwise indistinguishable ties.
+/// Opaque locators only break otherwise indistinguishable ties; the reading
+/// mode's resting unit last, so two observations of one page that rest on
+/// different units still converge, and a step within a page is a new position.
 pub(crate) fn compare(left: &Value, right: &Value) -> Ordering {
     fraction(left)
         .total_cmp(&fraction(right))
@@ -107,5 +136,11 @@ pub(crate) fn compare(left: &Value, right: &Value) -> Ordering {
                         .unwrap_or("")
                         .encode_utf16(),
                 )
+        })
+        .then_with(|| cfi_start(reading_mode_cfi(left)).cmp(&cfi_start(reading_mode_cfi(right))))
+        .then_with(|| {
+            reading_mode_cfi(left)
+                .encode_utf16()
+                .cmp(reading_mode_cfi(right).encode_utf16())
         })
 }

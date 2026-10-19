@@ -77,7 +77,14 @@ export function compareReadingProgress(left: NonNullable<BookProgress>, right: N
   const precise = a && b ? comparePath(a, b) : Number(!!a) - Number(!!b);
   if (precise) return precise;
   const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
-  return compare(leftLocator, rightLocator) || compare(left.href ?? "", right.href ?? "");
+  const anchors = compare(leftLocator, rightLocator) || compare(left.href ?? "", right.href ?? "");
+  if (anchors) return anchors;
+  // The reading mode's resting unit breaks the last tie, as natively.
+  const leftUnit = left.readingMode?.cfi ?? "",
+    rightUnit = right.readingMode?.cfi ?? "";
+  const c = cfiStart(leftUnit),
+    d = cfiStart(rightUnit);
+  return (c && d ? comparePath(c, d) : Number(!!c) - Number(!!d)) || compare(leftUnit, rightUnit);
 }
 
 export function getReadingStatus(progressPercent: number): ReadingStatus {

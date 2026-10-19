@@ -6,6 +6,13 @@
  * preferences, and floating control positions. Existing
  * `read-aware-navigator-*` storage keys stay stable so the refactor does not
  * lose anyone's reading place.
+ *
+ * Where the mode resumes is NOT decided by this device-local record: the
+ * resting unit travels with the reading position (`readingMode` on
+ * `book.sessionRecorded`), so it follows the position across devices. The
+ * stored `resting` remains this device's durable copy (the receipt mode
+ * commands wait for) and the fallback for positions recorded before they
+ * carried the unit.
  */
 
 import { afterLocalKVWrites, localKV, onLocalKVCommit, setLocalKVBatch } from "../../../platform/local-store";
@@ -23,7 +30,8 @@ function observedWrite(write: Promise<void>): Promise<void> {
 
 export type TextUnitResting = {
   sectionIndex: number;
-  ordinal: number;
+  /** Null until a unit restored from its address is indexed in its section. */
+  ordinal: number | null;
   cfiRange: string | null;
 };
 
@@ -84,11 +92,10 @@ export function normalizeTextUnitModeState(value: unknown): PersistedTextUnitMod
       resting &&
       Number.isSafeInteger(resting.sectionIndex) &&
       resting.sectionIndex! >= 0 &&
-      Number.isSafeInteger(resting.ordinal) &&
-      resting.ordinal! >= 0
+      (resting.ordinal === null || (Number.isSafeInteger(resting.ordinal) && resting.ordinal! >= 0))
         ? {
             sectionIndex: resting.sectionIndex!,
-            ordinal: resting.ordinal!,
+            ordinal: resting.ordinal ?? null,
             cfiRange: typeof resting.cfiRange === "string" ? resting.cfiRange : null,
           }
         : null,

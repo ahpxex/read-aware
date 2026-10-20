@@ -73,7 +73,6 @@ export function FontList({ className, ...options }: FontListProps) {
                     {!font.bytesLocal && <CloudArrowDown size={16} aria-hidden="true" className="text-fg-subtle" />}
                     <IconButton
                       size="sm"
-                      tone="danger"
                       icon={<Trash size={15} />}
                       label={t("font.remove")}
                       onClick={(event) => {

@@ -42,7 +42,6 @@ export function FontField({ className, ...options }: FontFieldProps) {
             <span className="text-[11px]">{fontMeta(font, t("font.syncing"))}</span>
             <IconButton
               size="sm"
-              tone="danger"
               icon={<Trash size={13} />}
               label={t("font.remove")}
               onClick={(event) => {

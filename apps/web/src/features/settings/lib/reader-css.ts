@@ -4,7 +4,9 @@ import {
   READER_FONT_WEIGHTS,
   resolveReaderFontWeight,
   isPluginFont,
+  isUserFont,
   systemFontFamily,
+  userFontId,
   type ReaderFontFamily,
   type ReaderFontSize,
   type ReaderFontWeight,
@@ -61,6 +63,14 @@ export function resolveReaderFontStack(
     const safe = pluginFont ? sanitizeFamily(pluginFont.family) : "";
     if (safe) return `"${safe}", ${curatedFallback(pluginFont?.kind ?? "serif")}`;
     return DEFAULT_FONT_STACK;
+  }
+  // Imported fonts resolve through a generated family name (`ra-user-<sha>`)
+  // so an imported "Inter" never shadows the curated/system Inter. The
+  // @font-face behind the name comes from `userFontFaceCss` — a font whose
+  // registry row or bytes are absent simply falls through to the fallback.
+  const importedId = userFontId(fontFamily);
+  if (importedId && isUserFont(fontFamily)) {
+    return `"ra-user-${importedId}", ${SYSTEM_FONT_FALLBACK}`;
   }
   const family = systemFontFamily(fontFamily);
   if (family) {

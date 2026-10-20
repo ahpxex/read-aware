@@ -22,6 +22,7 @@ import { invoke } from "../ipc";
 import { isTauri } from "../environment";
 import { emitAppEvent } from "../app-events";
 import { hydrateMissingCovers, stopCoverHydration } from "./cover-hydrator";
+import { hydrateMissingFonts, stopFontHydration } from "./font-hydrator";
 import { reconcileDuplicateBooks } from "../book-dedupe";
 import { localDeviceId, observeRemoteHlcStamps, onDomainEventBroadcast } from "../domain-events";
 import { localKV, flushLocalKV } from "../local-store";
@@ -286,6 +287,9 @@ async function runAcceptedCycle(origin: DomainActor): Promise<SyncCycleOutcome |
     // Runs after EVERY cycle (not just pulls) because the peer's cover upload
     // produces no event to pull — only its bytes appearing on the relay.
     void hydrateMissingCovers(fetchRemoteBlob, { reset: pulled > 0 || bootstrapped, origin });
+    // Imported fonts converge the same way: fetch missing bytes, release
+    // bytes a pulled removal queued up.
+    void hydrateMissingFonts(fetchRemoteBlob, { reset: pulled > 0 || bootstrapped, origin });
     return outcome;
   } finally {
     progressSink = undefined;
@@ -538,6 +542,7 @@ export function startSyncScheduler(origin: DomainActor = "system"): () => void {
         // the relay itself is unreachable: that pass could only fail too.
         if (classifySyncError(error) !== ERR_SYNC_NETWORK) {
           void hydrateMissingCovers(fetchRemoteBlob, { origin });
+          void hydrateMissingFonts(fetchRemoteBlob, { origin });
         }
         setStatus(
           {
@@ -685,6 +690,7 @@ export function startSyncScheduler(origin: DomainActor = "system"): () => void {
     watchSocket = null;
     offBroadcast?.();
     stopCoverHydration();
+    stopFontHydration();
     window.removeEventListener("focus", onFocus);
     document.removeEventListener("visibilitychange", onVisible);
     disposeScheduler = null;

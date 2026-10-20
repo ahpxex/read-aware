@@ -34,7 +34,7 @@ export function wrapSectionHtml(html: string, title: string | undefined, languag
   // regex strip above is bypassed. Inline styles stay allowed (foliate
   // injects the reader's styles as <style> elements); images may load.
   const csp =
-    "default-src 'none'; img-src data: https: http:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'";
+    "default-src 'none'; img-src data: https: http:; style-src 'unsafe-inline'; font-src rablob: http://rablob.localhost; base-uri 'none'; form-action 'none'";
   return `<!DOCTYPE html>
 <html lang="${lang}">
 <head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}">${title ? `<title>${escapeHtml(title)}</title>` : ""}${extraStyle ? `<style>${extraStyle}</style>` : ""}</head>

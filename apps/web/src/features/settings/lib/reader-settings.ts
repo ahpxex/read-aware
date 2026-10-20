@@ -21,18 +21,21 @@ export type ReaderTheme = BuiltinReaderTheme | `plugin:${string}`;
 /** Stored page-color preference — `auto` follows the resolved app theme. */
 export type ReaderThemePreference = ReaderTheme | "auto";
 /**
- * The reader's body font. Three sources:
+ * The reader's body font. Four sources:
  * - `curated:<id>` — one of our curated reading fonts, fetched and cached on
  *   demand the first time it's used (see `curated-font-loader`).
  * - `system:<family>` — a specific family installed on the user's device.
  * - `plugin:<pluginId>:<fontId>` — a font bundled by an enabled plugin,
  *   served straight from its folder.
+ * - `user:<sha256>` — a font file the user imported into the app (mobile's
+ *   custom-font story; the registry + bytes sync, see domain/fonts.ts).
  */
-export type ReaderFontFamily = `curated:${string}` | `system:${string}` | `plugin:${string}`;
+export type ReaderFontFamily = `curated:${string}` | `system:${string}` | `plugin:${string}` | `user:${string}`;
 
 export const CURATED_FONT_PREFIX = "curated:";
 export const SYSTEM_FONT_PREFIX = "system:";
 export const PLUGIN_FONT_PREFIX = "plugin:";
+export const USER_FONT_PREFIX = "user:";
 
 /** True when `font` is one of the curated reading fonts. */
 export function isCuratedFont(font: ReaderFontFamily): font is `curated:${string}` {
@@ -59,6 +62,16 @@ export function systemFontFamily(font: ReaderFontFamily): string | null {
   return isSystemFont(font) ? font.slice(SYSTEM_FONT_PREFIX.length) : null;
 }
 
+/** True when `font` names an imported (user-supplied) font file. */
+export function isUserFont(font: ReaderFontFamily): font is `user:${string}` {
+  return font.startsWith(USER_FONT_PREFIX);
+}
+
+/** The content-hash id behind a `user:` font, or `null` otherwise. */
+export function userFontId(font: ReaderFontFamily): string | null {
+  return isUserFont(font) ? font.slice(USER_FONT_PREFIX.length) : null;
+}
+
 /** Tag a curated font id as a reader font selection. */
 export function toCuratedFont(id: string): `curated:${string}` {
   return `${CURATED_FONT_PREFIX}${id}`;
@@ -67,6 +80,11 @@ export function toCuratedFont(id: string): `curated:${string}` {
 /** Tag an installed family name as a reader font selection. */
 export function toSystemFont(family: string): `system:${string}` {
   return `${SYSTEM_FONT_PREFIX}${family}`;
+}
+
+/** Tag an imported font's content-hash id as a reader font selection. */
+export function toUserFont(fontId: string): `user:${string}` {
+  return `${USER_FONT_PREFIX}${fontId}`;
 }
 export type ReaderFontSize =
   | "xx-small"
@@ -280,6 +298,10 @@ export function normalizeFontFamily(value: unknown): ReaderFontFamily {
     }
     if (value.startsWith(SYSTEM_FONT_PREFIX) && value.length > SYSTEM_FONT_PREFIX.length) {
       return value as `system:${string}`;
+    }
+    // Imported fonts key by content hash; anything else under the prefix is junk.
+    if (value.startsWith(USER_FONT_PREFIX) && /^[0-9a-f]{64}$/.test(value.slice(USER_FONT_PREFIX.length))) {
+      return value as `user:${string}`;
     }
     if (isPluginRef(value)) return value;
   }

@@ -201,7 +201,11 @@
     "searchProvider": "検索サービスから予期しない応答が返されました。",
     "searchFetchFailed": "このページを読み取れません。ログインが必要か、自動アクセスが拒否されています。",
     "searchTooLarge": "ページが大きすぎます。小さい資料をお試しください。",
-    "bookFolderTooLarge": "このフォルダには 5,000 冊を超える本があります。小さなフォルダを選んで分けて読み込んでください。"
+    "bookFolderTooLarge": "このフォルダには 5,000 冊を超える本があります。小さなフォルダを選んで分けて読み込んでください。",
+    "fontInvalid": "このファイルは対応していないフォントです（TTF、OTF、TTC、WOFF、WOFF2 に対応）。",
+    "fontTooLarge": "このフォントファイルは大きすぎます（上限は 128 MB です）。",
+    "fontStillPresent": "このフォントはまだインポートされています。",
+    "fontCleanupStale": "フォントの復元がまだ進行中です — しばらくしてから再試行してください。"
   },
   "crashPrompt": {
     "title": "前回 ReadAware に問題が発生しました",

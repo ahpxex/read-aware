@@ -201,7 +201,11 @@
     "searchProvider": "搜尋服務商傳回了異常回應。",
     "searchFetchFailed": "無法讀取此網頁，可能需要登入或不允許自動存取。",
     "searchTooLarge": "此網頁過大，請嘗試更小的資料來源。",
-    "bookFolderTooLarge": "這個資料夾裡的書超過 5000 本，請選擇較小的資料夾分批匯入。"
+    "bookFolderTooLarge": "這個資料夾裡的書超過 5000 本，請選擇較小的資料夾分批匯入。",
+    "fontInvalid": "這個檔案不是受支援的字體（TTF、OTF、TTC、WOFF 或 WOFF2）。",
+    "fontTooLarge": "這個字體檔案過大（上限為 128 MB）。",
+    "fontStillPresent": "這個字體仍在使用中。",
+    "fontCleanupStale": "字體仍在還原中——請稍後再試。"
   },
   "crashPrompt": {
     "title": "ReadAware 上次執行發生了問題",

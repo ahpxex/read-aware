@@ -203,7 +203,11 @@
     "searchTooLarge": "This page is too large to read. Try a smaller source.",
     "localApiBind": "The Local API port is in use. Close the other service using this port, then start the API again.",
     "localApiUnavailable": "Local API is not ready. Keep ReadAware open and try again.",
-    "bookFolderTooLarge": "This folder holds more than 5,000 books. Choose a smaller folder and import it in parts."
+    "bookFolderTooLarge": "This folder holds more than 5,000 books. Choose a smaller folder and import it in parts.",
+    "fontInvalid": "This file is not a supported font (TTF, OTF, TTC, WOFF or WOFF2).",
+    "fontTooLarge": "This font file is too large (the limit is 128 MB).",
+    "fontStillPresent": "This font is still imported.",
+    "fontCleanupStale": "Fonts are still being restored — try again shortly."
   },
   "crashPrompt": {
     "title": "ReadAware had a problem last time",

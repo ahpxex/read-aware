@@ -201,7 +201,11 @@
     "searchProvider": "El proveedor devolvió una respuesta inesperada.",
     "searchFetchFailed": "No se pudo leer esta página. Puede requerir iniciar sesión o bloquear el acceso automático.",
     "searchTooLarge": "Esta página es demasiado grande. Prueba una fuente más pequeña.",
-    "bookFolderTooLarge": "Esta carpeta tiene más de 5000 libros. Elige una carpeta más pequeña e impórtala por partes."
+    "bookFolderTooLarge": "Esta carpeta tiene más de 5000 libros. Elige una carpeta más pequeña e impórtala por partes.",
+    "fontInvalid": "Este archivo no es una fuente compatible (TTF, OTF, TTC, WOFF o WOFF2).",
+    "fontTooLarge": "Este archivo de fuente es demasiado grande (el límite es 128 MB).",
+    "fontStillPresent": "Esta fuente sigue importada.",
+    "fontCleanupStale": "Las fuentes aún se están restaurando — inténtalo de nuevo en breve."
   },
   "crashPrompt": {
     "title": "ReadAware tuvo un problema la última vez",

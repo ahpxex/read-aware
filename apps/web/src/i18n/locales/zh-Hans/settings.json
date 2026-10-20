@@ -344,7 +344,20 @@
     "placeholderCustom": "选择一款已安装的字体",
     "downloading": "正在下载字体 · {{percent}}%",
     "downloadFailed": "字体下载失败——请检查网络。",
-    "retry": "重试"
+    "retry": "重试",
+    "import": "导入字体…",
+    "importTitle": "选择字体文件",
+    "importFilter": "字体文件",
+    "installed": "本机已安装",
+    "remove": "移除字体",
+    "removeTitle": "移除这个字体？",
+    "removeBody": "<strong>{{name}}</strong>将从你的所有设备上移除。使用它的书籍将回退到默认字体。",
+    "importFailed": "无法导入这个字体文件。",
+    "removeFailed": "无法移除这个字体。",
+    "syncing": "同步中…",
+    "emptyCustom": "这里还没有字体。导入字体文件（TTF、OTF、WOFF…）即可在阅读器中使用。",
+    "cancel": "取消",
+    "removeConfirm": "移除"
   },
   "pendingBadge": {
     "comingSoon": "即将推出"

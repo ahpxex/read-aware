@@ -344,7 +344,20 @@
     "placeholderCustom": "Elige una fuente instalada",
     "downloading": "Descargando fuente · {{percent}}%",
     "downloadFailed": "No se pudo descargar la fuente — revisa tu red.",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "import": "Importar fuente…",
+    "importTitle": "Elegir archivos de fuente",
+    "importFilter": "Archivos de fuente",
+    "installed": "Instaladas en este dispositivo",
+    "remove": "Eliminar fuente",
+    "removeTitle": "¿Eliminar esta fuente?",
+    "removeBody": "<strong>{{name}}</strong> se eliminará de todos tus dispositivos. Los libros que la usen volverán a la fuente predeterminada.",
+    "importFailed": "No se pudo importar este archivo de fuente.",
+    "removeFailed": "No se pudo eliminar esta fuente.",
+    "syncing": "Sincronizando…",
+    "emptyCustom": "Todavía no hay fuentes aquí. Importa un archivo de fuente (TTF, OTF, WOFF…) para usarlo en el lector.",
+    "cancel": "Cancelar",
+    "removeConfirm": "Eliminar"
   },
   "pendingBadge": {
     "comingSoon": "Próximamente"

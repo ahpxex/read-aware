@@ -44,6 +44,14 @@ pub const CODE_UPDATE_INVALID_RELEASE: &str = "update/invalid-release";
 pub const CODE_UPDATE_INSTALL_FAILED: &str = "update/install-failed";
 /// A save target that the native save dialog did not issue (or that expired).
 pub const CODE_EXPORT_TARGET_INVALID: &str = "export/target-invalid";
+/// A picked file is not a parseable/supported font.
+pub const CODE_FONT_INVALID: &str = "font/invalid";
+/// A picked font file exceeds the size cap.
+pub const CODE_FONT_TOO_LARGE: &str = "font/too-large";
+/// A byte release was refused because the registry row still exists.
+pub const CODE_FONT_STILL_PRESENT: &str = "font/still-present";
+/// A byte release raced with projection recovery — retry after it settles.
+pub const CODE_FONT_CLEANUP_STALE: &str = "font/cleanup-stale";
 
 #[derive(Debug, Clone, Serialize)]
 pub struct CommandError {

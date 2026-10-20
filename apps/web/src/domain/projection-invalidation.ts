@@ -90,3 +90,7 @@ export const observeConversationInvalidation = createProjectionInvalidationObser
     type === "book.removed",
   ["conversations-changed"],
 );
+export const observeFontInvalidation = createProjectionInvalidationObserver(
+  (type) => type.startsWith("userFont."),
+  ["user-fonts-changed"],
+);

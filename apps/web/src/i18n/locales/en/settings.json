@@ -344,7 +344,20 @@
     "placeholderCustom": "Choose an installed font",
     "downloading": "Downloading font · {{percent}}%",
     "downloadFailed": "Font download failed — check your network.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "import": "Import font…",
+    "importTitle": "Choose font files",
+    "importFilter": "Font files",
+    "installed": "Installed on this device",
+    "remove": "Remove font",
+    "removeTitle": "Remove this font?",
+    "removeBody": "<strong>{{name}}</strong> will be removed from all your devices. Books using it will fall back to the default font.",
+    "importFailed": "Could not import this font file.",
+    "removeFailed": "Could not remove this font.",
+    "syncing": "Syncing…",
+    "emptyCustom": "No fonts here yet. Import a font file (TTF, OTF, WOFF…) to use it in the reader.",
+    "cancel": "Cancel",
+    "removeConfirm": "Remove"
   },
   "pendingBadge": {
     "comingSoon": "Coming soon"

@@ -8,16 +8,17 @@
  * in a hook rather than among the engine, selection, and annotation effects.
  */
 import { useCallback, useEffect, useRef, type RefObject } from "react";
-import { useAtomValue } from "jotai";
+import { getDefaultStore, useAtomValue } from "jotai";
 import {
   buildReaderContentCss,
   computeReaderMaxInlineSize,
   readerFontWeightsNeeded,
   readerLayoutSpacing,
 } from "../../settings/lib/reader-css";
-import { curatedFontId, isPluginFont } from "../../settings/lib/reader-settings";
+import { curatedFontId, isPluginFont, userFontId } from "../../settings/lib/reader-settings";
 import type { ReaderSettings, ReadingMode } from "../../settings/lib/reader-settings";
 import { ensureCuratedFontFaceCss, localCuratedFontFaceCss } from "../../settings/lib/curated-font-loader";
+import { findUserFont, userFontFaceCss, userFontsAtom } from "../../settings";
 import { resolveReaderPalette } from "../../settings/lib/reader-theme";
 import { pluginFontFaceCss } from "../../settings/hooks/usePluginFonts";
 import { findRegisteredByRef, isPluginRef } from "../../plugins/lib/plugin-theme";
@@ -136,6 +137,7 @@ export function useReaderTypography({
   // font. Subscribing here re-injects when a plugin (de)activates mid-read.
   const pluginThemes = useAtomValue(pluginThemesAtom);
   const pluginFonts = useAtomValue(pluginFontsAtom);
+  const userFonts = useAtomValue(userFontsAtom);
   const font = useRegisteredContribution(
     pluginFontsAtom,
     isPluginFont(readerSettings.fontFamily) ? readerSettings.fontFamily.slice(7) : "",
@@ -144,8 +146,18 @@ export function useReaderTypography({
     pluginThemesAtom,
     isPluginRef(readerSettings.theme) ? readerSettings.theme.slice(7) : "",
   );
+  // The registry row behind a `user:` selection — its `bytesLocal` flip is
+  // what re-injects once the synced font file lands on this device.
+  const userFont = findUserFont(readerSettings.fontFamily, userFonts);
   const previousInputs = useRef<
-    { settings: ReaderSettings; font: typeof font; theme: typeof theme; origin: DomainActor } | undefined
+    | {
+        settings: ReaderSettings;
+        font: typeof font;
+        theme: typeof theme;
+        userFont: typeof userFont;
+        origin: DomainActor;
+      }
+    | undefined
   >(undefined);
 
   /**
@@ -189,6 +201,16 @@ export function useReaderTypography({
         styled.resolve();
       };
       const run = async () => {
+        // An imported font ships its @font-face pointing at the blob store
+        // straight away — no download seam: bytes already local render now,
+        // bytes still syncing render the fallback until `user-fonts-changed`
+        // re-injects.
+        const userId = userFontId(settings.fontFamily);
+        if (userId) {
+          const entry = findUserFont(settings.fontFamily, getDefaultStore().get(userFontsAtom));
+          if (owns()) apply(entry?.bytesLocal ? userFontFaceCss(entry) : "");
+          return;
+        }
         const id = curatedFontId(settings.fontFamily);
         if (!id) {
           if (owns()) apply(pluginFont ? pluginFontFaceCss(pluginFont) : "");
@@ -239,9 +261,13 @@ export function useReaderTypography({
     // change to the already selected registration contributes its own cause.
     if (previous?.settings.fontFamily === readerSettings.fontFamily && previous.font !== font) sources.push(font);
     if (previous?.settings.theme === readerSettings.theme && previous.theme !== theme) sources.push(theme);
+    // A `user:` font's registry row arriving (import on another device) or its
+    // `bytesLocal` flipping (bytes landed from the relay) changes the CSS.
+    if (previous?.settings.fontFamily === readerSettings.fontFamily && previous.userFont !== userFont)
+      sources.push(stampEventCause({}));
     if (!sources.length && !needsStyles.current) return;
     const origin = sources.length ? actorFromEvent(mergeEventCauses(sources, {})) : previous!.origin;
-    previousInputs.current = { settings: readerSettings, font, theme, origin };
+    previousInputs.current = { settings: readerSettings, font, theme, userFont, origin };
     needsStyles.current = false;
     settingsRef.current = readerSettings;
     injectStyles(readerSettings, undefined, origin).catch((error: unknown) =>
@@ -249,7 +275,7 @@ export function useReaderTypography({
     );
     applyMaxInlineSize(origin);
     applyPageColors(readerSettings, undefined, origin);
-  }, [readerSettings, font, theme, applyMaxInlineSize, injectStyles, applyPageColors]);
+  }, [readerSettings, font, theme, userFont, applyMaxInlineSize, injectStyles, applyPageColors]);
 
   return { settingsRef, applyMaxInlineSize, injectStyles, prepareStyles, applyPageColors };
 }

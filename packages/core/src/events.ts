@@ -21,6 +21,7 @@ import type {
   Id,
   MemoryFeedbackSignal,
   ReadingStatus,
+  UserFontFormat,
 } from "./entities";
 
 /**
@@ -203,6 +204,43 @@ export type DomainEvent =
   | DomainEventEnvelope<"collection.removed", { collectionId: Id }>
   | DomainEventEnvelope<"book.addedToCollection", { bookId: Id; collectionId: Id }>
   | DomainEventEnvelope<"book.removedFromCollection", { bookId: Id; collectionId: Id }>
+  // --- User fonts (imported font files; the registry syncs, bytes ride the blob)
+  /**
+   * A font file the user imported into the app — how mobile gets custom
+   * fonts (mobile platforms cannot enumerate installed families). `fontId`
+   * is the file's content hash: the same file imported on two devices is
+   * the same font, so concurrent imports converge on one row and replay is
+   * idempotent. `name` is the family/display name parsed from the font's
+   * name table — never the file name. Applying the event also leaves a
+   * `blob_objects` manifest row for `blobKey`, so a fresh device learns the
+   * bytes exist before they arrive.
+   */
+  | DomainEventEnvelope<
+      "userFont.imported",
+      {
+        fontId: Id;
+        name: string;
+        format: UserFontFormat;
+        /** Original picked file name (display secondary/diagnostics). */
+        fileName: string;
+        mimeType: string;
+        byteSize: number;
+        sha256: string;
+        /** Blob key of the font bytes (`userfont:<sha256>`). */
+        blobKey: string;
+        /** OS/2 usWeightClass of the default instance (100–900). */
+        weight: number;
+        /** Variable fonts: the fvar `wght` axis upper bound, when present. */
+        weightMax?: number;
+        italic: boolean;
+      }
+    >
+  /**
+   * The user removed an imported font. `blobKey` rides along so the log
+   * stays self-contained even though the cleanup trigger captures the same
+   * key from the deleted projection row.
+   */
+  | DomainEventEnvelope<"userFont.removed", { fontId: Id; blobKey: string }>
   // --- Reading facts (book aggregate; the shelf domain's stats face) ------
   // Renamed from `reading.progressed` / `reading.timeRecorded` when the
   // reading domain folded into shelf (schema migration 11 rewrote the log).

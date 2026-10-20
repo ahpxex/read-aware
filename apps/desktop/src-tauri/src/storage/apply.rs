@@ -460,6 +460,55 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandE
             tx.execute("DELETE FROM collections WHERE id = ?1", params![id])?;
         }
 
+        // ── User fonts (imported font files; bytes live in `userfont:` blobs) ──
+        "userFont.imported" => {
+            let id = require(p, "fontId", t)?;
+            let blob_key = require(p, "blobKey", t)?;
+            tx.execute(
+                "INSERT INTO user_fonts
+                    (id, name, format, file_name, mime_type, byte_size, sha256,
+                     blob_key, weight, weight_max, italic, created_at)
+                 VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)
+                 ON CONFLICT(id) DO UPDATE SET
+                    name=excluded.name, format=excluded.format,
+                    file_name=excluded.file_name, mime_type=excluded.mime_type,
+                    byte_size=excluded.byte_size, sha256=excluded.sha256,
+                    blob_key=excluded.blob_key, weight=excluded.weight,
+                    weight_max=excluded.weight_max, italic=excluded.italic",
+                params![
+                    id,
+                    require(p, "name", t)?,
+                    require(p, "format", t)?,
+                    str_of(p, "fileName").unwrap_or_default(),
+                    str_of(p, "mimeType").unwrap_or_default(),
+                    i64_of(p, "byteSize").unwrap_or(0),
+                    str_of(p, "sha256").unwrap_or_default(),
+                    blob_key,
+                    i64_of(p, "weight").unwrap_or(400),
+                    i64_of(p, "weightMax"),
+                    bool_of(p, "italic").unwrap_or(false) as i64,
+                    at,
+                ],
+            )?;
+            ensure_blob_manifest(
+                tx,
+                &blob_key,
+                str_of(p, "mimeType").as_deref(),
+                i64_of(p, "byteSize"),
+                str_of(p, "sha256").as_deref(),
+                &at,
+            )?;
+        }
+        "userFont.removed" => {
+            // The AFTER DELETE trigger enqueues the blob's release into
+            // user_font_removal_cleanup — the importing device releases it
+            // right after commit, others at boot / next release pass.
+            tx.execute(
+                "DELETE FROM user_fonts WHERE id = ?1",
+                params![require(p, "fontId", t)?],
+            )?;
+        }
+
         // ── Reading ─────────────────────────────────────────────────────────
         "book.progressed" => {
             // Legacy positions participate in the same last-observed rule,
@@ -1152,6 +1201,7 @@ pub const DERIVED_TABLES: &[&str] = &[
     "synced_preferences",
     "book_aliases",
     "chapter_digests",
+    "user_fonts",
 ];
 
 pub const DIFF_SPECS: &[DiffSpec] = &[
@@ -1253,6 +1303,11 @@ pub const DIFF_SPECS: &[DiffSpec] = &[
     },
     DiffSpec {
         table: "book_aliases",
+        local_columns: &[],
+        domain_rows: None,
+    },
+    DiffSpec {
+        table: "user_fonts",
         local_columns: &[],
         domain_rows: None,
     },

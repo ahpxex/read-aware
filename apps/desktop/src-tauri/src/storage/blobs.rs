@@ -35,6 +35,8 @@ pub(crate) fn blob_kind(key: &str) -> (&'static str, bool) {
         Some("cover") => ("cover_image", true),
         Some("pluginasset") => ("plugin_asset", false),
         Some("font") => ("font_face", false),
+        // User-imported font files — real user data, synced like book sources.
+        Some("userfont") => ("user_font", true),
         // Extracted text cache — derivable from the book file, never synced.
         Some("booktext") => ("book_text", false),
         // Projection checkpoints (storage/checkpoints.rs): device-local by

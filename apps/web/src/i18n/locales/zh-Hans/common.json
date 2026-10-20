@@ -203,7 +203,11 @@
     "searchTooLarge": "此网页过大，请尝试更小的资料来源。",
     "localApiBind": "本地 API 端口已被占用。请关闭占用此端口的服务，然后重新启动 API。",
     "localApiUnavailable": "本地 API 尚未就绪。请保持 ReadAware 开启后重试。",
-    "bookFolderTooLarge": "这个文件夹里的书超过 5000 本，请选择更小的文件夹分批导入。"
+    "bookFolderTooLarge": "这个文件夹里的书超过 5000 本，请选择更小的文件夹分批导入。",
+    "fontInvalid": "这个文件不是受支持的字体（TTF、OTF、TTC、WOFF 或 WOFF2）。",
+    "fontTooLarge": "这个字体文件过大（上限为 128 MB）。",
+    "fontStillPresent": "这个字体仍在使用中。",
+    "fontCleanupStale": "字体仍在恢复中——请稍后再试。"
   },
   "crashPrompt": {
     "title": "ReadAware 上次运行出了问题",

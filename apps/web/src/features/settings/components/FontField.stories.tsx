@@ -3,7 +3,15 @@ import { useState } from "react";
 import { seed, withAtoms } from "../../../story-support/atoms";
 import { pluginFontsAtom } from "../../plugins/state/plugin-store";
 import { CURATED_FONTS } from "../lib/curated-fonts";
-import { toCuratedFont, toSystemFont, type ReaderFontFamily, type ReaderFontWeight } from "../lib/reader-settings";
+import {
+  toCuratedFont,
+  toSystemFont,
+  toUserFont,
+  type ReaderFontFamily,
+  type ReaderFontWeight,
+} from "../lib/reader-settings";
+import { userFontsAtom } from "../lib/user-fonts";
+import type { UserFontEntry } from "../../../domain/fonts";
 import { FontField } from "./FontField";
 
 /**
@@ -108,6 +116,48 @@ export const StalePluginFont: Story = {
 /** A heavier weight preset, which changes which curated weights get fetched. */
 export const BoldWeightPreset: Story = {
   args: { fontWeight: "bold" },
+};
+
+const sampleUserFonts: UserFontEntry[] = [
+  {
+    id: "a".repeat(64),
+    name: "Alegreya Sans",
+    format: "ttf",
+    fileName: "AlegreyaSans-Regular.ttf",
+    mimeType: "font/ttf",
+    byteSize: 482_048,
+    sha256: "a".repeat(64),
+    blobKey: `userfont:${"a".repeat(64)}`,
+    weight: 400,
+    italic: false,
+    createdAt: "2025-01-01T00:00:00Z",
+    bytesLocal: true,
+  },
+  {
+    id: "b".repeat(64),
+    name: "Source Han Serif SC",
+    format: "otf",
+    fileName: "SourceHanSerifSC.otf",
+    mimeType: "font/otf",
+    byteSize: 24_180_736,
+    sha256: "b".repeat(64),
+    blobKey: `userfont:${"b".repeat(64)}`,
+    weight: 400,
+    italic: false,
+    createdAt: "2025-01-02T00:00:00Z",
+    // Bytes still syncing — the row shows its pending badge.
+    bytesLocal: false,
+  },
+];
+
+/**
+ * Imported fonts lead the custom list and carry the manage block: each row
+ * offers removal, and a font whose bytes have not synced yet shows a cloud
+ * badge rather than pretending to render.
+ */
+export const ImportedFonts: Story = {
+  args: { value: toUserFont("a".repeat(64)) },
+  decorators: [withAtoms(seed(userFontsAtom, sampleUserFonts))],
 };
 
 /** Wired up, so switching fonts (and any curated download) can be watched. */

@@ -108,3 +108,38 @@ export interface Note {
   createdAt: IsoDate;
   updatedAt: IsoDate;
 }
+
+/**
+ * Font containers the import accepts, detected from magic bytes — never
+ * from the file's extension. `ttc` is a TrueType/OpenType collection; the
+ * reader renders its first face, which is also the face metadata describes.
+ */
+export type UserFontFormat = "ttf" | "otf" | "ttc" | "woff" | "woff2";
+
+/**
+ * A font file the user imported into the app — the mobile replacement for
+ * enumerating OS-installed families (which mobile platforms cannot do).
+ * Bytes travel as a synced blob; this entity is the synchronized registry.
+ * The same file imported on two devices is the same font: `id` is its
+ * content hash, so concurrent imports converge and re-import is idempotent.
+ */
+export interface UserFont {
+  /** Content hash (sha256 hex) — the font's identity and dedup key. */
+  id: Id;
+  /** Parsed family/display name from the font's name table. */
+  name: string;
+  format: UserFontFormat;
+  /** Original picked file name (secondary label/diagnostics). */
+  fileName: string;
+  mimeType: string;
+  byteSize: number;
+  sha256: string;
+  /** Blob-store key of the font bytes (`userfont:<sha256>`). */
+  blobKey: string;
+  /** OS/2 usWeightClass of the default instance (100–900). */
+  weight: number;
+  /** Variable fonts: the fvar `wght` axis upper bound, when present. */
+  weightMax?: number;
+  italic: boolean;
+  createdAt: IsoDate;
+}

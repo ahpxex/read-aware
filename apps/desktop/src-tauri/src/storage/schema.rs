@@ -934,6 +934,41 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
     // `book.imported.sourcePath` (folder imports). No earlier event carries
     // it, so existing rows need no backfill.
     (55, "book_source_path", "ALTER TABLE books ADD COLUMN source_path TEXT;"),
+    // Imported font files: the synced registry behind the reader's `user:<id>`
+    // font references (`userFont.imported`/`userFont.removed` events project it;
+    // the bytes are a `userfont:` blob). `id` is the file's sha256 — content
+    // addressing makes the same file imported on two devices converge and
+    // re-import idempotent.
+    (56, "user_fonts", "CREATE TABLE user_fonts (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        format TEXT NOT NULL,
+        file_name TEXT NOT NULL DEFAULT '',
+        mime_type TEXT NOT NULL DEFAULT '',
+        byte_size INTEGER NOT NULL DEFAULT 0,
+        sha256 TEXT NOT NULL DEFAULT '',
+        blob_key TEXT NOT NULL,
+        weight INTEGER NOT NULL DEFAULT 400,
+        weight_max INTEGER,
+        italic INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
+    );
+    -- Device-local recovery intent (book_removal_cleanup's pattern): a row
+    -- deleted on ANY device — the user's delete or a replayed remote one —
+    -- enqueues its blob key for release; re-inserting the font cancels it.
+    CREATE TABLE user_font_removal_cleanup (
+        font_id TEXT PRIMARY KEY,
+        blob_key TEXT NOT NULL,
+        removed_at TEXT NOT NULL
+    );
+    CREATE TRIGGER trg_user_font_removal_cleanup_delete AFTER DELETE ON user_fonts BEGIN
+       INSERT INTO user_font_removal_cleanup (font_id, blob_key, removed_at)
+       VALUES (old.id, old.blob_key, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+       ON CONFLICT(font_id) DO UPDATE SET blob_key=excluded.blob_key, removed_at=excluded.removed_at;
+    END;
+    CREATE TRIGGER trg_user_font_removal_cleanup_restore AFTER INSERT ON user_fonts BEGIN
+       DELETE FROM user_font_removal_cleanup WHERE font_id=new.id;
+    END;"),
 ];
 
 /// Rebuild the annotation FTS index from the table. Required after any VACUUM
@@ -952,7 +987,7 @@ pub(crate) fn rebuild_annotations_fts(conn: &Connection) -> Result<(), CommandEr
 /// The schema version a projection checkpoint is stamped with. Restoring one
 /// is only sound when the derived tables' shapes match exactly, so a
 /// checkpoint from a different version is ignored in favour of the log.
-pub(crate) const SCHEMA_VERSION: i64 = 55;
+pub(crate) const SCHEMA_VERSION: i64 = 56;
 
 /// The migration after which `materialize_legacy_covers` must run: the cover
 /// projection columns exist, the inline data-URL column still does.

@@ -41,6 +41,7 @@ import { PluginPageHost } from "./features/plugins/components/PluginPageHost";
 import { PluginToastBridge } from "./features/plugins/components/PluginToastBridge";
 import { usePluginCommandItems } from "./features/plugins/hooks/usePluginCommandItems";
 import { initializePlugins } from "./features/plugins/runtime/plugin-host";
+import { initializeUserFonts } from "./features/settings/lib/user-fonts";
 import { pluginsReadyAtom } from "./features/plugins/state/plugin-store";
 import { updatePluginsFromMarketplace } from "./features/plugins/runtime/plugin-updates";
 import { useReadingRuntimeShell } from "./features/reader/hooks/useReadingRuntimeShell";
@@ -108,6 +109,8 @@ function App() {
     dismissBootSplash();
     scheduleIdleWarmup();
     const pluginsInitialized = initializePlugins();
+    // Imported-font registry: populate + keep it observing its events.
+    initializeUserFonts();
     // No-ops until an account is connected (Data & Sync); off the boot path.
     const stopSync = startSyncScheduler();
     // Off the boot path: plugin updates read the installed list, so they wait

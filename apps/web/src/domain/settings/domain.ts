@@ -18,8 +18,9 @@ import type {
 } from "@read-aware/core";
 import { AppError, validateSettingsOptionsQuery } from "@read-aware/core";
 import { listSystemFonts } from "../../features/settings/lib/system-fonts";
+import { listUserFonts } from "../fonts";
 import { desktopStartup } from "../../platform/desktop-startup";
-import { isFontSetting, systemFontOptions } from "./font-options";
+import { isFontSetting, systemFontOptions, userFontOptions } from "./font-options";
 import { queryModelCatalog, refreshModelCatalog, modelCatalogRefreshConditions } from "./model-catalog";
 import { DynamicOptionsCache } from "./dynamic-options";
 import { pluginOptionSource } from "./plugin-option-source";
@@ -372,6 +373,9 @@ export function createSettingsDomain(
           throw new AppError("settings/options-forbidden", "Setting option discovery is not granted");
         }
         const system = isFontSetting(accepted.path) ? systemFontOptions(await listSystemFonts()) : [];
+        // Imported font files are catalog-like options too (the registry is
+        // device-shared, not per-setting); they ride the same dynamic seam.
+        const imported = isFontSetting(accepted.path) ? userFontOptions(await listUserFonts()) : [];
         await updateTail;
         const snapshot = await afterSettingsWrites(() => settingsSnapshot({ target: accepted.target }));
         signal?.throwIfAborted();
@@ -379,7 +383,11 @@ export function createSettingsDomain(
         if (!setting) throw new AppError("settings/options-invalid", "Setting is unavailable for this target");
         if (setting.dynamicOptions)
           return dynamicOptions.query(accepted, pluginOptionSource(accepted.path, networkAllowed), signal);
-        return dynamicOptions.staticPage([...(setting.options ?? []), ...system], snapshot.revision, accepted);
+        return dynamicOptions.staticPage(
+          [...(setting.options ?? []), ...imported, ...system],
+          snapshot.revision,
+          accepted,
+        );
       },
       read: async (path, target) => {
         const normalizedPath = String(path);

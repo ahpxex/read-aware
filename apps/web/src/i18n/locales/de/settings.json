@@ -344,7 +344,20 @@
     "placeholderCustom": "Installierte Schriftart wählen",
     "downloading": "Schriftart wird geladen · {{percent}} %",
     "downloadFailed": "Schriftart konnte nicht geladen werden — Netzwerk prüfen.",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "import": "Schrift importieren…",
+    "importTitle": "Schriftdateien wählen",
+    "importFilter": "Schriftdateien",
+    "installed": "Auf diesem Gerät installiert",
+    "remove": "Schrift entfernen",
+    "removeTitle": "Diese Schrift entfernen?",
+    "removeBody": "<strong>{{name}}</strong> wird von all deinen Geräten entfernt. Bücher, die sie verwenden, fallen auf die Standardschrift zurück.",
+    "importFailed": "Diese Schriftdatei konnte nicht importiert werden.",
+    "removeFailed": "Diese Schrift konnte nicht entfernt werden.",
+    "syncing": "Synchronisiert…",
+    "emptyCustom": "Hier gibt es noch keine Schriften. Importiere eine Schriftdatei (TTF, OTF, WOFF…), um sie im Reader zu verwenden.",
+    "cancel": "Abbrechen",
+    "removeConfirm": "Entfernen"
   },
   "pendingBadge": {
     "comingSoon": "Demnächst"

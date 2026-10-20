@@ -201,7 +201,11 @@
     "searchProvider": "Der Suchanbieter hat eine unerwartete Antwort geliefert.",
     "searchFetchFailed": "Die Seite konnte nicht gelesen werden. Sie erfordert möglicherweise eine Anmeldung oder blockiert automatisierte Zugriffe.",
     "searchTooLarge": "Die Seite ist zu groß. Versuchen Sie eine kleinere Quelle.",
-    "bookFolderTooLarge": "Dieser Ordner enthält mehr als 5.000 Bücher. Wähle einen kleineren Ordner und importiere in Teilen."
+    "bookFolderTooLarge": "Dieser Ordner enthält mehr als 5.000 Bücher. Wähle einen kleineren Ordner und importiere in Teilen.",
+    "fontInvalid": "Diese Datei ist keine unterstützte Schrift (TTF, OTF, TTC, WOFF oder WOFF2).",
+    "fontTooLarge": "Diese Schriftdatei ist zu groß (das Limit ist 128 MB).",
+    "fontStillPresent": "Diese Schrift ist noch importiert.",
+    "fontCleanupStale": "Schriften werden noch wiederhergestellt — versuche es gleich erneut."
   },
   "crashPrompt": {
     "title": "ReadAware hatte beim letzten Mal ein Problem",

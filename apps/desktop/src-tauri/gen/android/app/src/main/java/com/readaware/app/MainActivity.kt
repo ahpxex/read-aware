@@ -26,6 +26,8 @@ class MainActivity : TauriActivity() {
     private const val BOOK_PICK_REQUEST = 51733
     /** The folder (SAF tree) picker for folder imports. */
     private const val FOLDER_PICK_REQUEST = 51734
+    /** The font-file picker (custom reading fonts). */
+    private const val FONT_PICK_REQUEST = 51735
     /** Mirrors `MAX_FOLDER_BOOKS` / `MAX_FOLDER_DEPTH` in book_folders.rs. */
     private const val FOLDER_PICK_MAX_BOOKS = 5000
     private const val FOLDER_PICK_MAX_DEPTH = 32
@@ -56,6 +58,11 @@ class MainActivity : TauriActivity() {
    *  (`set_volume_key_capture`) while the web layer holds a claim on the keys,
    *  so media volume works normally otherwise. */
   @Volatile private var volumeKeysCaptured = false
+  /** Generation of the font pick currently in flight; 0 = none. */
+  @Volatile private var fontPickGeneration = 0
+  /** Parked font-pick result in [bookPickResult]'s wire shape — collected by
+   *  polling (`font_pick_poll`) for exactly the same reliability reason. */
+  @Volatile private var fontPickResult: String? = null
   /** Generation of the folder pick in flight; 0 = none. */
   @Volatile private var folderPickGeneration = 0
   /** Parked folder-pick outcome as JSON (see book_folders.rs), collected by
@@ -288,6 +295,66 @@ class MainActivity : TauriActivity() {
     return result
   }
 
+  /** Called from Rust (`font_pick_start`) or the webview JS bridge: launch
+   *  the system document picker for font files. Result parks in
+   *  [fontPickResult]; the webview polls (`font_pick_poll`). */
+  @JavascriptInterface
+  fun startFontPick(generation: Int) {
+    fontPickGeneration = generation
+    fontPickResult = null
+    runOnUiThread {
+      try {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+          addCategory(Intent.CATEGORY_OPENABLE)
+          type = "*/*"
+          putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+          putExtra(
+            Intent.EXTRA_MIME_TYPES,
+            // Font MIME types are notoriously inconsistent across providers
+            // (font/*, application/x-font-*, octet-stream all appear in the
+            // wild); the broad list keeps real font files ungreyed. Actual
+            // validation is the native magic-byte parse in fonts.rs.
+            arrayOf(
+              "font/ttf",
+              "font/otf",
+              "font/woff",
+              "font/woff2",
+              "font/collection",
+              "font/sfnt",
+              "application/x-font-ttf",
+              "application/x-font-otf",
+              "application/x-font-ttc",
+              "application/x-font-opentype",
+              "application/x-font-truetype",
+              "application/x-font-woff",
+              "application/x-font-woff2",
+              "application/vnd.ms-opentype",
+              "application/font-sfnt",
+              "application/octet-stream",
+            ),
+          )
+        }
+        @Suppress("DEPRECATION")
+        startActivityForResult(intent, FONT_PICK_REQUEST)
+      } catch (error: Throwable) {
+        fontPickResult = listOf(
+          generation.toString(),
+          "__ERROR__:${error.message ?: error.javaClass.name}",
+        ).joinToString("\n")
+        fontPickGeneration = 0
+      }
+    }
+  }
+
+  /** Called from Rust (`font_pick_poll`) or the webview JS bridge: hand over
+   *  (and clear) the parked pick result, or null while it is still open. */
+  @JavascriptInterface
+  fun takeFontPickResult(): String? {
+    val result = fontPickResult
+    if (result != null) fontPickResult = null
+    return result
+  }
+
   /** Called from Rust (`book_folder_pick_start`): open the system folder
    *  picker. Once the user picks, the granted tree is walked off the UI
    *  thread and the outcome parked in [folderPickResult]. */
@@ -412,6 +479,21 @@ class MainActivity : TauriActivity() {
     super.onActivityResult(requestCode, resultCode, data)
     if (requestCode == FOLDER_PICK_REQUEST) {
       onFolderPicked(resultCode, data)
+      return
+    }
+    if (requestCode == FONT_PICK_REQUEST) {
+      val uris = mutableListOf<Uri>()
+      if (resultCode == RESULT_OK && data != null) {
+        val clip = data.clipData
+        if (clip != null) {
+          for (i in 0 until clip.itemCount) uris.add(clip.getItemAt(i).uri)
+        } else {
+          data.data?.let { uris.add(it) }
+        }
+      }
+      val picks = uris.map { uri -> describePick(uri) }
+      fontPickResult = (listOf(fontPickGeneration.toString()) + picks).joinToString("\n")
+      fontPickGeneration = 0
       return
     }
     if (requestCode != BOOK_PICK_REQUEST) return

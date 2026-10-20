@@ -187,8 +187,15 @@ pub fn serve_blob(
     }
 
     let path = request.uri().path().trim_start_matches('/');
-    // Only covers are reachable through the scheme: `cover/<bookId>`. Book
-    // ids are UUIDs, so anything outside that alphabet is not a lookup key.
+    // Two resources share the scheme: `cover/<bookId>` for shelf artwork and
+    // `font/<sha256>` for imported font files (the reader's @font-face src).
+    if let Some(font_id) = path.strip_prefix("font/") {
+        return match crate::fonts::serve_font_blob(app, font_id) {
+            Some((bytes, mime)) => respond(200, &mime, bytes),
+            None => not_found(),
+        };
+    }
+    // Book ids are UUIDs, so anything outside that alphabet is not a lookup key.
     let Some(book_id) = path.strip_prefix("cover/") else {
         return not_found();
     };

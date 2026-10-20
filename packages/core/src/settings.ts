@@ -21,7 +21,7 @@ export type SettingKind = "boolean" | "enum" | "string" | "integer" | "number" |
 export interface SettingOption {
   value: SettingValue;
   label: string;
-  source?: "builtin" | "plugin" | "system";
+  source?: "builtin" | "plugin" | "system" | "user";
   pluginName?: string;
   polarity?: "light" | "dark";
 }

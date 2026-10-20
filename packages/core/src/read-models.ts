@@ -9,7 +9,15 @@ import type { BookTextRange } from "./book-range";
 // views from them — so shape drift between the surfaces is a type error,
 // not a code-review hope.
 
-import type { BookFormat, HighlightColor, HighlightStyle, Id, IsoDate, ReadingStatus } from "./entities";
+import type {
+  BookFormat,
+  HighlightColor,
+  HighlightStyle,
+  Id,
+  IsoDate,
+  ReadingStatus,
+  UserFontFormat,
+} from "./entities";
 
 /** A shelf book as the books domain lists it. */
 export interface BookSummary {
@@ -40,6 +48,23 @@ export interface BookSummary {
 export interface CollectionSummary {
   id: Id;
   name: string;
+  createdAt: IsoDate;
+}
+
+/** A user-imported font as the settings domain lists it (no blob internals). */
+export interface UserFontSummary {
+  id: Id;
+  /** Parsed family/display name from the font's name table. */
+  name: string;
+  format: UserFontFormat;
+  /** Original picked file name (secondary label). */
+  fileName: string;
+  byteSize: number;
+  /** OS/2 usWeightClass of the default instance (100–900). */
+  weight: number;
+  /** Variable fonts: the fvar `wght` axis upper bound, when present. */
+  weightMax?: number;
+  italic: boolean;
   createdAt: IsoDate;
 }
 

@@ -65,6 +65,8 @@ const AGGREGATE_ROUTES: Record<DomainEventType, { type: string; idKey: string } 
   "collection.removed": { type: "collection", idKey: "collectionId" },
   "book.addedToCollection": { type: "book", idKey: "bookId" },
   "book.removedFromCollection": { type: "book", idKey: "bookId" },
+  "userFont.imported": { type: "userFont", idKey: "fontId" },
+  "userFont.removed": { type: "userFont", idKey: "fontId" },
   "book.progressed": { type: "book", idKey: "bookId" },
   "book.timeRecorded": { type: "book", idKey: "bookId" },
   "book.sessionRecorded": { type: "book", idKey: "bookId" },

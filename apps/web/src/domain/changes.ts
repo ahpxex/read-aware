@@ -41,6 +41,7 @@ group(
   ],
   ["library"],
 );
+group(["userFont.imported", "userFont.removed"], ["settings"]);
 group(
   [
     "highlight.created",

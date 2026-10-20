@@ -201,7 +201,11 @@
     "searchProvider": "Le fournisseur de recherche a renvoyé une réponse inattendue.",
     "searchFetchFailed": "Cette page est illisible. Elle peut nécessiter une connexion ou bloquer l’accès automatisé.",
     "searchTooLarge": "Cette page est trop volumineuse. Essayez une source plus petite.",
-    "bookFolderTooLarge": "Ce dossier contient plus de 5 000 livres. Choisissez un dossier plus petit et importez en plusieurs fois."
+    "bookFolderTooLarge": "Ce dossier contient plus de 5 000 livres. Choisissez un dossier plus petit et importez en plusieurs fois.",
+    "fontInvalid": "Ce fichier n'est pas une police prise en charge (TTF, OTF, TTC, WOFF ou WOFF2).",
+    "fontTooLarge": "Ce fichier de police est trop volumineux (la limite est de 128 Mo).",
+    "fontStillPresent": "Cette police est toujours importée.",
+    "fontCleanupStale": "Les polices sont encore en cours de restauration — réessayez dans un instant."
   },
   "crashPrompt": {
     "title": "ReadAware a rencontré un problème la dernière fois",

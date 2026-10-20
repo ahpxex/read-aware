@@ -33,4 +33,6 @@
     public void setVolumeKeyCapture(boolean);
     public void startBookPick(int);
     public java.lang.String takeBookPickResult();
+    public void startFontPick(int);
+    public java.lang.String takeFontPickResult();
 }

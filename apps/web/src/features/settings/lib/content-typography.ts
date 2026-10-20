@@ -108,7 +108,10 @@ function normalizeLineSpacing(value: unknown): ReaderLineSpacing {
 
 function normalizeFontFamily(value: unknown): ReaderFontFamily | null {
   return typeof value === "string" &&
-    (value.startsWith("curated:") || value.startsWith("system:") || value.startsWith("plugin:"))
+    (value.startsWith("curated:") ||
+      value.startsWith("system:") ||
+      value.startsWith("plugin:") ||
+      /^user:[0-9a-f]{64}$/.test(value))
     ? (value as ReaderFontFamily)
     : null;
 }

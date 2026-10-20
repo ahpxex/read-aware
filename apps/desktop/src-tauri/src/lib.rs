@@ -14,6 +14,7 @@ mod export_file;
 mod external_open;
 mod fb2_metadata;
 mod file_associations;
+mod fonts;
 mod import;
 mod local_api;
 mod metadata;
@@ -347,6 +348,77 @@ async fn book_pick_poll(app: tauri::AppHandle) -> Result<Option<String>, Command
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
 fn book_pick_poll() -> Option<String> {
+    None
+}
+
+/// Same parked-result picker for font files (`MainActivity.startFontPick`).
+/// Single-purpose twin of the book pick commands rather than a generalized
+/// one, because the result lands in an activity field the request code owns.
+#[cfg(target_os = "android")]
+#[tauri::command]
+async fn font_pick_start(app: tauri::AppHandle, generation: i32) -> Result<(), CommandError> {
+    on_main_thread(&app, move || {
+        use tao::platform::android::prelude::main_android_context;
+        let Some(ctx) = main_android_context() else {
+            log::warn!("fontPickStart: no android context yet");
+            return;
+        };
+        let Ok(vm) = (unsafe { jni::JavaVM::from_raw(ctx.java_vm.cast()) }) else {
+            return;
+        };
+        let Ok(mut env) = vm.attach_current_thread() else {
+            return;
+        };
+        let activity = unsafe { jni::objects::JObject::from_raw(ctx.context_jobject.cast()) };
+        if let Err(err) = env.call_method(
+            &activity,
+            "startFontPick",
+            "(I)V",
+            &[jni::objects::JValue::Int(generation)],
+        ) {
+            log::error!("startFontPick JNI call failed: {err}");
+            let _ = env.exception_clear();
+        }
+    })
+    .await
+}
+
+#[cfg(not(target_os = "android"))]
+#[tauri::command]
+fn font_pick_start(_generation: i32) {}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+async fn font_pick_poll(app: tauri::AppHandle) -> Result<Option<String>, CommandError> {
+    on_main_thread(&app, move || {
+        (|| -> Option<String> {
+            use tao::platform::android::prelude::main_android_context;
+            let ctx = main_android_context()?;
+            let vm = unsafe { jni::JavaVM::from_raw(ctx.java_vm.cast()) }.ok()?;
+            let mut env = vm.attach_current_thread().ok()?;
+            let activity = unsafe { jni::objects::JObject::from_raw(ctx.context_jobject.cast()) };
+            let value = env
+                .call_method(&activity, "takeFontPickResult", "()Ljava/lang/String;", &[])
+                .map_err(|err| {
+                    log::error!("takeFontPickResult JNI call failed: {err}");
+                    let _ = env.exception_clear();
+                })
+                .ok()?;
+            let obj = value.l().ok()?;
+            if obj.is_null() {
+                return None;
+            }
+            let jstr = jni::objects::JString::from(obj);
+            let text = env.get_string(&jstr).ok()?;
+            Some(text.into())
+        })()
+    })
+    .await
+}
+
+#[cfg(not(target_os = "android"))]
+#[tauri::command]
+fn font_pick_poll() -> Option<String> {
     None
 }
 
@@ -882,6 +954,9 @@ pub fn run() {
                     if let Err(error) = cleanup {
                         log::warn!("book removal recovery deferred: {error}");
                     }
+                    if let Err(error) = fonts::recover_user_font_removal_cleanup(&db, &data_dir.0) {
+                        log::warn!("user font removal recovery deferred: {error}");
+                    }
                     if let Err(error) = storage::recover_import_cleanup(&db, &data_dir.0, &handle.state::<storage::ImportSession>().0) {
                         log::warn!("interrupted import recovery deferred: {error}");
                     }
@@ -967,6 +1042,13 @@ pub fn run() {
             covers::library_put_cover,
             covers::library_cover_backlog,
             covers::library_restore_local_cover,
+            fonts::font_import_stage,
+            fonts::user_fonts_list,
+            fonts::user_font_blob_backlog,
+            fonts::user_fonts_removal_backlog,
+            fonts::user_fonts_release_files,
+            font_pick_start,
+            font_pick_poll,
             storage::append_events,
             storage::commit_events,
             storage::durable_agent_job_owners,

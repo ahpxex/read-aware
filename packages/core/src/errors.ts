@@ -130,6 +130,15 @@ export const ERR_AI_REQUEST_CANCELLED = "ai/request-cancelled";
 export const ERR_AI_REQUEST_TIMEOUT = "ai/request-timeout";
 export const ERR_AI_BUSY = "ai/busy";
 
+/** Imported font file is not a parseable/supported font. */
+export const ERR_FONT_INVALID = "font/invalid";
+/** Imported font file exceeds the size cap. */
+export const ERR_FONT_TOO_LARGE = "font/too-large";
+/** Byte release was requested for a font still in the registry. */
+export const ERR_FONT_STILL_PRESENT = "font/still-present";
+/** Projections are mid-rebuild; releasing files must wait for recovery. */
+export const ERR_FONT_CLEANUP_STALE = "font/cleanup-stale";
+
 export type AppErrorOptions = {
   retryable?: boolean;
   cause?: unknown;

@@ -5,9 +5,11 @@ import {
   curatedFontId,
   isPluginFont,
   isSystemFont,
+  isUserFont,
   systemFontFamily,
   toCuratedFont,
   toSystemFont,
+  toUserFont,
   type ReaderFontFamily,
   type ReaderFontWeight,
 } from "../lib/reader-settings";
@@ -15,6 +17,8 @@ import { CURATED_FONTS } from "../lib/curated-fonts";
 import { useSystemFonts } from "./useSystemFonts";
 import { useCuratedFontFace } from "./useCuratedFontFace";
 import { usePluginFontFace } from "./usePluginFonts";
+import { useUserFontFace } from "./useUserFontFace";
+import { userFontsAtom } from "../lib/user-fonts";
 import { toPluginRef, parsePluginRef } from "../../plugins/lib/plugin-theme";
 import { pluginFontsAtom } from "../../plugins/state/plugin-store";
 
@@ -64,16 +68,19 @@ export function useFontChoices({ value, onChange, defaultLabel, fontWeight }: Fo
   const { fonts: systemFonts, error: systemError, loading: systemLoading, retry: retrySystemFonts } = useSystemFonts();
   const systemFailure = systemError ? describeError(systemError) : null;
   const pluginFonts = useAtomValue(pluginFontsAtom);
+  const userFonts = useAtomValue(userFontsAtom);
   // A null value is the surface's own default — neither loader owns it.
   const loaded = value ?? NO_FONT;
   // Open on the source the value came from. A null value belongs to the
   // curated list (that is where its "default" option lives), so it must not
   // read the `system:` placeholder above and open on Custom.
-  const [custom, setCustom] = useState(value !== null && isSystemFont(value));
+  const [custom, setCustom] = useState(value !== null && (isSystemFont(value) || isUserFont(value)));
   // Download + inject the active curated font so the preview/UI render it.
   const fontFace = useCuratedFontFace(loaded, fontWeight);
   // Plugin fonts need no download — inject their folder-served faces directly.
   usePluginFontFace(loaded);
+  // Imported fonts point at the synced blob store — no download either.
+  useUserFontFace(loaded);
 
   const systemOptions = useMemo(() => {
     const opts = systemFonts.map((family) => ({ value: toSystemFont(family), label: family }));
@@ -83,6 +90,23 @@ export function useFontChoices({ value, onChange, defaultLabel, fontWeight }: Fo
     }
     return opts;
   }, [systemFonts, value]);
+
+  /**
+   * Imported fonts lead the custom list — they are the user's own picks,
+   * named by the family the file declares (never the file name). The device
+   * enumeration follows on desktop; on mobile it is simply absent.
+   */
+  const userOptions = useMemo(
+    () =>
+      userFonts.map((font) => ({
+        value: toUserFont(font.id),
+        label: font.name,
+        font,
+      })),
+    [userFonts],
+  );
+
+  const customOptions = useMemo(() => [...userOptions, ...systemOptions], [userOptions, systemOptions]);
 
   // Plugin-bundled fonts share the curated dropdown (both are app-offered,
   // as opposed to the device-enumerated "custom" list).
@@ -104,10 +128,10 @@ export function useFontChoices({ value, onChange, defaultLabel, fontWeight }: Fo
     return opts;
   }, [defaultLabel, pluginFonts, value]);
 
-  const options = custom ? systemOptions : curatedOptions;
+  const options = custom ? customOptions : curatedOptions;
   // Reflect the value only when it belongs to the active source.
   const selectValue: string = custom
-    ? value && isSystemFont(value)
+    ? value && (isSystemFont(value) || isUserFont(value))
       ? value
       : ""
     : value === null
@@ -124,7 +148,7 @@ export function useFontChoices({ value, onChange, defaultLabel, fontWeight }: Fo
     (onChange as (v: ReaderFontFamily | null) => void)(next === DEFAULT_OPTION ? null : (next as ReaderFontFamily));
 
   return {
-    /** Listing the device's installed fonts rather than the curated set. */
+    /** Listing imported + installed fonts rather than the curated set. */
     custom,
     setCustom,
     options,
@@ -136,5 +160,7 @@ export function useFontChoices({ value, onChange, defaultLabel, fontWeight }: Fo
     retrySystemFonts,
     /** The chosen curated font's download: status, progress, retry. */
     fontFace,
+    /** The imported-font registry rows the picker manages (empty off-Tauri). */
+    userFonts,
   };
 }

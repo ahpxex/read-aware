@@ -47,6 +47,9 @@ export const CONVERSATION_EVENTS = [
   "aiConversation.cleared",
 ] as const;
 
+/** The imported-font registry (bytes are blobs, not events). */
+export const FONT_EVENTS = ["userFont.imported", "userFont.removed"] as const;
+
 /** A domain event as observers receive it (canonical type + payload + origin). */
 export type ObservedDomainEvent<K extends DomainEventType = DomainEventType> = Extract<
   DomainEventBroadcast,

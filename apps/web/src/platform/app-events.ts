@@ -36,6 +36,12 @@ export type AppEventMap = {
   "book-changed": { bookId: string };
   /** Derived text availability changed, including shared extraction lease transitions. */
   "book-text-changed": { bookId: string };
+  /**
+   * An imported font's bytes arrived from the relay (or a local import
+   * landed). Open readers retry that font's @font-face; the settings list
+   * re-reads `bytes_local`.
+   */
+  "user-fonts-changed": { fontId: string };
   /** A plugin's namespaced KV was written on the HOST side (settings change). */
   "plugin-storage-changed": { pluginId: string };
   /** A sync pull moved roaming preference namespaces (see platform/roaming-preferences). */

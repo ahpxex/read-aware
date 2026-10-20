@@ -344,7 +344,20 @@
     "placeholderCustom": "インストール済みフォントを選択",
     "downloading": "フォントをダウンロード中 · {{percent}}%",
     "downloadFailed": "フォントのダウンロードに失敗しました。ネットワークをご確認ください。",
-    "retry": "再試行"
+    "retry": "再試行",
+    "import": "フォントをインポート…",
+    "importTitle": "フォントファイルを選択",
+    "importFilter": "フォントファイル",
+    "installed": "このデバイスにインストール済み",
+    "remove": "フォントを削除",
+    "removeTitle": "このフォントを削除しますか？",
+    "removeBody": "<strong>{{name}}</strong>はすべてのデバイスから削除されます。使用中の書籍はデフォルトフォントに戻ります。",
+    "importFailed": "このフォントファイルをインポートできませんでした。",
+    "removeFailed": "このフォントを削除できませんでした。",
+    "syncing": "同期中…",
+    "emptyCustom": "まだフォントがありません。フォントファイル（TTF、OTF、WOFF…）をインポートするとリーダーで使えます。",
+    "cancel": "キャンセル",
+    "removeConfirm": "削除"
   },
   "pendingBadge": {
     "comingSoon": "近日公開"

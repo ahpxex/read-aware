@@ -344,7 +344,20 @@
     "placeholderCustom": "Choisir une police installée",
     "downloading": "Téléchargement de la police · {{percent}} %",
     "downloadFailed": "Échec du téléchargement de la police — vérifiez votre réseau.",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "import": "Importer une police…",
+    "importTitle": "Choisir des fichiers de police",
+    "importFilter": "Fichiers de police",
+    "installed": "Installées sur cet appareil",
+    "remove": "Supprimer la police",
+    "removeTitle": "Supprimer cette police ?",
+    "removeBody": "<strong>{{name}}</strong> sera supprimée de tous vos appareils. Les livres qui l'utilisent reviendront à la police par défaut.",
+    "importFailed": "Impossible d'importer ce fichier de police.",
+    "removeFailed": "Impossible de supprimer cette police.",
+    "syncing": "Synchronisation…",
+    "emptyCustom": "Aucune police pour l'instant. Importez un fichier de police (TTF, OTF, WOFF…) pour l'utiliser dans le lecteur.",
+    "cancel": "Annuler",
+    "removeConfirm": "Supprimer"
   },
   "pendingBadge": {
     "comingSoon": "Bientôt disponible"

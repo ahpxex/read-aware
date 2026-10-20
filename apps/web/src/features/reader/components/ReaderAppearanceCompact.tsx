@@ -19,6 +19,7 @@ import { resolveReaderFontWeight } from "../../settings/lib/reader-settings";
 import { readerFontLabel } from "../../settings/lib/reader-font-label";
 import { usePluginReaderThemeOptions } from "../../settings/hooks/usePluginReaderThemeOptions";
 import { pluginFontsAtom, pluginThemesAtom } from "../../plugins/state/plugin-store";
+import { userFontsAtom } from "../../settings";
 import { FontList } from "../../settings/components/FontList";
 import { useReaderAppearance } from "../hooks/useReaderAppearance";
 import { FixedLayoutFitChoice } from "./FixedLayoutZoomControls";
@@ -50,6 +51,7 @@ export function ReaderAppearanceCompact({ bookId, fixedLayout = false }: ReaderA
   const { scope, prefs, setScope, updatePrefs } = useReaderAppearance(bookId);
   const pluginThemes = useAtomValue(pluginThemesAtom);
   const pluginFonts = useAtomValue(pluginFontsAtom);
+  const userFonts = useAtomValue(userFontsAtom);
   const pluginThemeOptions = usePluginReaderThemeOptions();
   const [page, setPage] = useState<Page>("main");
 
@@ -205,7 +207,7 @@ export function ReaderAppearanceCompact({ bookId, fixedLayout = false }: ReaderA
               title={t("settings:font.label")}
               accessories={
                 <span className="max-w-[10rem] truncate font-sans text-sm text-fg-subtle">
-                  {readerFontLabel(prefs.fontFamily, pluginFonts)}
+                  {readerFontLabel(prefs.fontFamily, pluginFonts, userFonts)}
                 </span>
               }
               onClick={() => setPage("font")}

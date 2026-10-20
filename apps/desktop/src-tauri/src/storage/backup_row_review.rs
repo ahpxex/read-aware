@@ -8,7 +8,9 @@ use rusqlite::{params, params_from_iter, types::ValueRef, Connection};
 use serde::{Deserialize, Serialize};
 
 const CHUNK_BYTES: usize = 4096;
-const MAX_SAFE: usize = 9_007_199_254_740_991;
+// Values crossing the IPC boundary must stay below JS's safe-integer ceiling;
+// the bound is about JSON, not pointer width, so it is u64 not usize.
+const MAX_SAFE: u64 = 9_007_199_254_740_991;
 fn invalid() -> CommandError {
     CommandError::new("backup/invalid-archive", "Invalid backup record review")
 }
@@ -193,7 +195,7 @@ impl RowPlan {
     ) -> Result<RowFieldPage, CommandError> {
         check()?;
         let id = self.review_identity(&table, entry_id)?;
-        if !id.readable() || column.len() > 256 || offset > MAX_SAFE {
+        if !id.readable() || column.len() > 256 || offset as u64 > MAX_SAFE {
             return Err(invalid());
         }
         let columns = self.review_columns(&table, &id)?;

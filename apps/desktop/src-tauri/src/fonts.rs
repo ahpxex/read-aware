@@ -189,23 +189,27 @@ const WOFF2_KNOWN_TAGS: [[u8; 4]; 63] = [
     *b"opbd", *b"prop", *b"trak", *b"Zapf", *b"Silf", *b"Glat", *b"Gloc", *b"Feat", *b"Sill",
 ];
 
-/// A WOFF2 directory length field (255Base16 varint).
-fn read_base255(data: &[u8], pos: &mut usize) -> Option<u32> {
-    let first = *data.get(*pos)? as u32;
-    *pos += 1;
-    match first {
-        255 => {
-            let value = be_u16(data, *pos)? as u32;
-            *pos += 2;
-            Some(value)
+/// A WOFF2 directory length field (UIntBase128): up to five bytes, high bit
+/// set on every byte but the last, value in the low seven bits. Leading-zero
+/// encodings (a first byte of 0x80) and values that would overflow u32 are
+/// rejected per spec.
+fn read_base128(data: &[u8], pos: &mut usize) -> Option<u32> {
+    let mut accum: u32 = 0;
+    for i in 0..5 {
+        let byte = *data.get(*pos)? as u32;
+        *pos += 1;
+        if i == 0 && byte == 0x80 {
+            return None;
         }
-        254 | 253 => {
-            let next = *data.get(*pos)? as u32;
-            *pos += 1;
-            Some(if first == 254 { next + 506 } else { next + 253 })
+        if accum & 0xFE00_0000 != 0 {
+            return None;
         }
-        _ => Some(first),
+        accum = (accum << 7) | (byte & 0x7F);
+        if byte & 0x80 == 0 {
+            return Some(accum);
+        }
     }
+    None
 }
 
 /// Unpack a WOFF2 container into the SFNT tables that carry metadata. The
@@ -247,7 +251,7 @@ fn unpack_woff2(data: &[u8]) -> Result<Vec<u8>, CommandError> {
         };
         let transform_version = flags >> 6;
         let orig_len =
-            read_base255(data, &mut pos).ok_or_else(|| font_invalid("Truncated WOFF2 length"))?;
+            read_base128(data, &mut pos).ok_or_else(|| font_invalid("Truncated WOFF2 length"))?;
         // Spec: transforms only ever apply to glyf/loca (version 0) and hmtx
         // (version 1); every other table stores verbatim bytes.
         let transformed = match &tag.to_be_bytes() {
@@ -257,7 +261,7 @@ fn unpack_woff2(data: &[u8]) -> Result<Vec<u8>, CommandError> {
         };
         let transform_len = if transformed {
             Some(
-                read_base255(data, &mut pos)
+                read_base128(data, &mut pos)
                     .ok_or_else(|| font_invalid("Truncated WOFF2 transform length"))?,
             )
         } else {

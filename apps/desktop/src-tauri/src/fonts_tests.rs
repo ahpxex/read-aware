@@ -141,6 +141,18 @@ fn woff_wrap(sfnt: &[u8], compress_name: bool) -> Vec<u8> {
     out
 }
 
+/// Encode a directory length as UIntBase128 (high bit continues, last byte
+/// clear) — the shortest-form encoding real encoders emit.
+fn write_base128(out: &mut Vec<u8>, value: u32) {
+    let mut bytes = vec![(value & 0x7F) as u8];
+    let mut rest = value >> 7;
+    while rest > 0 {
+        bytes.push(((rest & 0x7F) as u8) | 0x80);
+        rest >>= 7;
+    }
+    out.extend(bytes.iter().rev());
+}
+
 /// Wrap a face's tables in a WOFF2 container: the whole table block travels
 /// as one Brotli stream (untransformed — metadata tables never transform).
 fn woff2_wrap(sfnt: &[u8]) -> Vec<u8> {
@@ -174,12 +186,17 @@ fn woff2_wrap(sfnt: &[u8]) -> Vec<u8> {
     out.extend_from_slice(&(compressed.len() as u32).to_be_bytes());
     out.extend_from_slice(&[0; 24]); // compressed size + version + meta/blocks
     for (tag, _, len) in &entries {
-        let index = WOFF2_KNOWN_TAGS
+        match WOFF2_KNOWN_TAGS
             .iter()
             .position(|known| u32::from_be_bytes(*known) == *tag)
-            .unwrap();
-        out.push(index as u8); // flags: known tag, no transform
-        out.push(*len as u8); // lengths here stay < 253 → one-byte base255
+        {
+            Some(index) => out.push(index as u8), // flags: known tag, no transform
+            None => {
+                out.push(0x3F); // flags: literal tag follows
+                out.extend_from_slice(&tag.to_be_bytes());
+            }
+        }
+        write_base128(&mut out, *len as u32);
     }
     out.extend_from_slice(&compressed);
     let total = (out.len() as u32).to_be_bytes();
@@ -248,6 +265,30 @@ fn woff2_roundtrips_metadata() {
     assert_eq!(meta.format, "woff2");
     assert_eq!(meta.name.as_deref(), Some("Reader Two"));
     assert_eq!(meta.weight, 300);
+}
+
+#[test]
+fn woff2_reads_multibyte_directory_lengths() {
+    // Real fonts encode lengths as UIntBase128 — a table past 127 bytes needs
+    // two bytes (the `glyf` table of any real font is far larger). A custom
+    // tag exercises the literal-tag form at the same time.
+    let sfnt = assemble_sfnt(
+        0x0001_0000,
+        &[
+            (TAG_HEAD, head_table(false)),
+            (TAG_HHEA, hhea_table()),
+            (TAG_MAXP, maxp_table()),
+            (
+                TAG_NAME,
+                name_table(&[(3, 1, 0x0409, 1, &utf16be("Reader Three"))]),
+            ),
+            (TAG_OS2, os2_table(500, false)),
+            (u32::from_be_bytes(*b"ZZZZ"), vec![7u8; 300]),
+        ],
+    );
+    let meta = parse_font_metadata(&woff2_wrap(&sfnt)).unwrap();
+    assert_eq!(meta.name.as_deref(), Some("Reader Three"));
+    assert_eq!(meta.weight, 500);
 }
 
 #[test]

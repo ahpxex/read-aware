@@ -2,23 +2,13 @@ import { Check, CloudArrowDown, Plus, Trash } from "@phosphor-icons/react";
 import { Caption, IconButton, ItemList, Spinner, Toggle } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { isUserFont, toUserFont } from "../lib/reader-settings";
+import { fontMeta } from "../lib/font-meta";
 import { useFontChoices, type FontChoicesOptions } from "../hooks/useFontChoices";
 import { useUserFontManager } from "../hooks/useUserFontManager";
 import { FontChoiceStatus } from "./FontField";
 import { UserFontRemoveDialog } from "./UserFontRemoveDialog";
-import type { UserFontEntry } from "../../../domain/fonts";
 
 type FontListProps = FontChoicesOptions & { className?: string };
-
-/** "TTF · 1.4 MB" — the file facts under an imported font's parsed name. */
-function fontMeta(font: UserFontEntry, syncing: string): string {
-  const size =
-    font.byteSize >= 1024 * 1024
-      ? `${(font.byteSize / (1024 * 1024)).toFixed(1)} MB`
-      : `${Math.max(1, Math.round(font.byteSize / 1024))} KB`;
-  const base = `${font.format.toUpperCase()} · ${size}`;
-  return font.bytesLocal ? base : `${base} · ${syncing}`;
-}
 
 /**
  * Body-font picker as a list: every choice on its own line, the current one

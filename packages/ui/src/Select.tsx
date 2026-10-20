@@ -1,4 +1,5 @@
 import { useRef, useEffect, useLayoutEffect, useId, useCallback } from "react";
+import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { CaretDown } from "@phosphor-icons/react";
 import { useLocalAtom } from "./lib/useLocalAtom";
@@ -21,7 +22,12 @@ type MenuPosition = {
   offset: number;
 };
 
-type SelectOption = { label: string; value: string };
+type SelectOption = {
+  label: string;
+  value: string;
+  /** Right-aligned content inside the option — badges, hints, inline actions. */
+  accessory?: ReactNode;
+};
 
 type SelectProps = {
   /**
@@ -43,6 +49,12 @@ type SelectProps = {
   disabled?: boolean;
   name?: string;
   className?: string;
+  /**
+   * Content pinned above the option list — an action row such as
+   * "Import font…". Rendered as a function so the row can close the popup
+   * after firing its own action.
+   */
+  popupHeader?: (close: () => void) => ReactNode;
 };
 
 export function Select({
@@ -59,6 +71,7 @@ export function Select({
   disabled,
   name,
   className,
+  popupHeader,
 }: SelectProps) {
   const id = useId();
   const hasError = !!error;
@@ -265,30 +278,31 @@ export function Select({
               }}
               className={cn("ra-motion-overlay-pop", position.placeBelow ? "origin-top" : "origin-bottom")}
             >
-              <ScrollArea
-                style={{ maxHeight: position.maxHeight }}
-                className="w-full rounded-md border border-border bg-[var(--ra-main-surface-color)] p-1"
-              >
-                <ul ref={listboxRef} id={`${id}-listbox`} role="listbox" aria-labelledby={`${id}-label`}>
-                  {options.map((opt, i) => (
-                    <li
-                      key={opt.value}
-                      id={`${id}-option-${i}`}
-                      role="option"
-                      aria-selected={opt.value === currentValue}
-                      onMouseEnter={() => setActiveIndex(i)}
-                      onClick={() => select(opt.value)}
-                      className={cn(
-                        "cursor-pointer rounded-md px-2.5 py-1.5 text-sm transition-colors",
-                        i === activeIndex && "bg-fill",
-                        opt.value === currentValue ? "font-medium text-fg" : "text-fg-muted",
-                      )}
-                    >
-                      {opt.label}
-                    </li>
-                  ))}
-                </ul>
-              </ScrollArea>
+              <div className="w-full rounded-md border border-border bg-[var(--ra-main-surface-color)] p-1">
+                {popupHeader?.(() => setOpen(false))}
+                <ScrollArea style={{ maxHeight: position.maxHeight }} className="w-full">
+                  <ul ref={listboxRef} id={`${id}-listbox`} role="listbox" aria-labelledby={`${id}-label`}>
+                    {options.map((opt, i) => (
+                      <li
+                        key={opt.value}
+                        id={`${id}-option-${i}`}
+                        role="option"
+                        aria-selected={opt.value === currentValue}
+                        onMouseEnter={() => setActiveIndex(i)}
+                        onClick={() => select(opt.value)}
+                        className={cn(
+                          "flex cursor-pointer items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                          i === activeIndex && "bg-fill",
+                          opt.value === currentValue ? "font-medium text-fg" : "text-fg-muted",
+                        )}
+                      >
+                        <span className="truncate">{opt.label}</span>
+                        {opt.accessory}
+                      </li>
+                    ))}
+                  </ul>
+                </ScrollArea>
+              </div>
             </div>,
             document.body,
           )}

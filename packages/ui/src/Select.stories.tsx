@@ -98,6 +98,38 @@ export const Disabled: Story = {
   },
 };
 
+/**
+ * A header row pinned above the options and an accessory inside each option —
+ * the shape a picker uses for "Import…" plus per-row file facts.
+ */
+export const WithPopupHeaderAndAccessories: Story = {
+  args: {
+    label: "Font",
+    defaultValue: "serif",
+    options: [
+      {
+        label: "JetBrains Mono",
+        value: "mono",
+        accessory: <span className="text-[11px] text-fg-subtle">WOFF · 27 KB</span>,
+      },
+      {
+        label: "Source Serif 4",
+        value: "serif",
+        accessory: <span className="text-[11px] text-fg-subtle">OTF · 236 KB</span>,
+      },
+    ],
+    popupHeader: (close) => (
+      <button
+        type="button"
+        onClick={close}
+        className="mb-1 flex w-full items-center gap-2 rounded-md border-b border-border px-2.5 pb-2 pt-1.5 text-left text-sm text-fg-muted transition-colors hover:bg-fill hover:text-fg"
+      >
+        Import font…
+      </button>
+    ),
+  },
+};
+
 /** Pointer opening and keyboard opening start on the same selected option. */
 export const KeyboardAfterPointerOpen: Story = {
   args: { label: "Sort by", options: sampleOptions, defaultValue: "date" },

@@ -151,9 +151,10 @@ const sampleUserFonts: UserFontEntry[] = [
 ];
 
 /**
- * Imported fonts lead the custom list and carry the manage block: each row
- * offers removal, and a font whose bytes have not synced yet shows a cloud
- * badge rather than pretending to render.
+ * Imported fonts lead the custom list: the popup header holds the import
+ * action, and each imported option carries its file facts and a removal
+ * button — a font whose bytes have not synced yet shows a cloud badge rather
+ * than pretending to render.
  */
 export const ImportedFonts: Story = {
   args: { value: toUserFont("a".repeat(64)) },

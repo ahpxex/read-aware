@@ -1,7 +1,10 @@
+import { useMemo } from "react";
 import { CloudArrowDown, Plus, Trash } from "@phosphor-icons/react";
 import { Button, Caption, IconButton, InlineError, Select, Spinner, Toggle } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
+import { userFontId, type ReaderFontFamily } from "../lib/reader-settings";
+import { fontMeta } from "../lib/font-meta";
 import { useFontChoices, type FontChoicesOptions } from "../hooks/useFontChoices";
 import { useUserFontManager } from "../hooks/useUserFontManager";
 import { UserFontRemoveDialog } from "./UserFontRemoveDialog";
@@ -12,15 +15,46 @@ type FontFieldProps = FontChoicesOptions & { className?: string };
  * Body-font picker as a dropdown (see useFontChoices for what it offers).
  * Flip the "Custom" switch and the dropdown instead lists this device's
  * fonts — the user's imported font files (mobile's only custom-font path)
- * ahead of the installed families — and an import/manage block opens below.
- * Shared by the Reading panel, the in-reader popover, and the content
- * typography controls.
+ * ahead of the installed families. Imported options carry their file facts
+ * and a removal button inside the same list, and the popup's header row is
+ * the import action, so everything the user can do with a font lives in the
+ * one control. Shared by the Reading panel, the in-reader popover, and the
+ * content typography controls.
  */
 export function FontField({ className, ...options }: FontFieldProps) {
   const { t } = useTranslation("settings");
   const fonts = useFontChoices(options);
   const manager = useUserFontManager();
   const { custom, setCustom } = fonts;
+
+  const userFontsById = useMemo(() => new Map(manager.userFonts.map((font) => [font.id, font])), [manager.userFonts]);
+
+  const selectOptions = useMemo(() => {
+    if (!custom) return fonts.options;
+    return fonts.options.map((option) => {
+      const font = userFontsById.get(userFontId(option.value as ReaderFontFamily) ?? "");
+      if (!font) return option;
+      return {
+        ...option,
+        accessory: (
+          <span className="flex shrink-0 items-center gap-2 text-fg-subtle">
+            {!font.bytesLocal && <CloudArrowDown size={14} aria-hidden="true" />}
+            <span className="text-[11px]">{fontMeta(font, t("font.syncing"))}</span>
+            <IconButton
+              size="sm"
+              tone="danger"
+              icon={<Trash size={13} />}
+              label={t("font.remove")}
+              onClick={(event) => {
+                event.stopPropagation();
+                manager.askRemoval(font);
+              }}
+            />
+          </span>
+        ),
+      };
+    });
+  }, [custom, fonts.options, userFontsById, manager, t]);
 
   return (
     <div className={cn("relative", className)}>
@@ -31,50 +65,32 @@ export function FontField({ className, ...options }: FontFieldProps) {
       <Select
         label={t("font.label")}
         value={fonts.selectValue}
-        options={fonts.options}
+        options={selectOptions}
         placeholder={custom ? t("font.placeholderCustom") : t("font.placeholderCurated")}
         onChange={fonts.choose}
+        helperText={custom && selectOptions.length === 0 && !fonts.systemLoading ? t("font.emptyCustom") : undefined}
+        popupHeader={
+          custom && manager.canImport
+            ? (close) => (
+                <>
+                  {/* oxlint-disable-next-line react/forbid-elements -- an action row inside the listbox popup must render like an option, not like a Button variant */}
+                  <button
+                    type="button"
+                    disabled={manager.importing}
+                    onClick={() => {
+                      close();
+                      void manager.importFonts();
+                    }}
+                    className="mb-1 flex w-full items-center gap-2 rounded-md border-b border-border px-2.5 pb-2 pt-1.5 text-left text-sm text-fg-muted transition-colors hover:bg-fill hover:text-fg"
+                  >
+                    {manager.importing ? <Spinner size="sm" className="h-3.5 w-3.5" /> : <Plus size={15} />}
+                    {t("font.import")}
+                  </button>
+                </>
+              )
+            : undefined
+        }
       />
-      {custom && (
-        <div className="mt-2">
-          <Button
-            size="sm"
-            variant="link"
-            className="inline-flex items-center gap-1.5"
-            onClick={() => void manager.importFonts()}
-            disabled={!manager.canImport || manager.importing}
-          >
-            {manager.importing ? <Spinner size="sm" className="h-3 w-3" /> : <Plus size={13} />}
-            {t("font.import")}
-          </Button>
-          {manager.userFonts.map((font) => (
-            <div key={font.id} className="flex items-center gap-2 px-1 py-1">
-              <span className="min-w-0 flex-1 truncate font-sans text-[13px] text-fg">{font.name}</span>
-              {!font.bytesLocal && (
-                <span className="inline-flex items-center gap-1 text-fg-subtle">
-                  <CloudArrowDown size={14} aria-hidden="true" />
-                  <Caption as="span">{t("font.syncing")}</Caption>
-                </span>
-              )}
-              <Caption as="span" className="shrink-0 text-fg-subtle">
-                {font.format.toUpperCase()}
-              </Caption>
-              <IconButton
-                size="sm"
-                tone="danger"
-                icon={<Trash size={14} />}
-                label={t("font.remove")}
-                onClick={() => manager.askRemoval(font)}
-              />
-            </div>
-          ))}
-          {manager.userFonts.length === 0 && fonts.options.length === 0 && !fonts.systemLoading && (
-            <Caption as="span" className="mt-1 block text-fg-subtle">
-              {t("font.emptyCustom")}
-            </Caption>
-          )}
-        </div>
-      )}
       <FontChoiceStatus fonts={fonts} />
       <UserFontRemoveDialog
         font={manager.pendingRemoval}

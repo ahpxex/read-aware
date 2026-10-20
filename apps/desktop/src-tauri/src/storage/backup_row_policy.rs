@@ -114,6 +114,7 @@ pub(super) fn table(name: &str) -> Result<RowPolicy, CommandError> {
         | "plugin_document_generations"
         | "projection_checkpoints"
         | "book_removal_cleanup"
+        | "user_font_removal_cleanup"
         | "blobs"
         | "annotations_fts"
         | "annotations_fts_data"

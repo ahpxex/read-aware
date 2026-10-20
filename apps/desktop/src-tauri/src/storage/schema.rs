@@ -1318,7 +1318,10 @@ pub(crate) fn wipe_all_data_inner(
     tables.sort_by_key(|table| {
         if table == "context_bundle_source_clock" {
             2
-        } else if table == "book_removal_cleanup" || table == "plugin_document_generations" {
+        } else if table == "book_removal_cleanup"
+            || table == "user_font_removal_cleanup"
+            || table == "plugin_document_generations"
+        {
             1
         } else {
             0

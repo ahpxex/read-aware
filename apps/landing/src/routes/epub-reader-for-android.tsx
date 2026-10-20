@@ -58,9 +58,9 @@ export const Route = createFileRoute("/epub-reader-for-android")({
       </p>
       <p>
         See the <Link to="/docs/install/">installation guide</Link> for setup details and{" "}
-        <Link to="/pricing/">plans and pricing</Link> for optional sync and built-in AI. Offline reading does not require
-        a subscription. AI requests need an internet connection and send the relevant context to your selected provider;
-        see the <Link to="/privacy/">privacy policy</Link>.
+        <Link to="/pricing/">plans and pricing</Link> for optional sync and built-in AI. Offline reading does not
+        require a subscription. AI requests need an internet connection and send the relevant context to your selected
+        provider; see the <Link to="/privacy/">privacy policy</Link>.
       </p>
     </TopicPage>
   ),

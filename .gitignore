@@ -42,3 +42,4 @@ target
 *.sln
 *.sw?
 demo
+.devin/

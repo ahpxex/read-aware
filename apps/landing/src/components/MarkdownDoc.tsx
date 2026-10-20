@@ -22,7 +22,8 @@ function DocLink({ href = "", children }: { href?: string; children?: ReactNode 
   const locale = useRouterState({
     select: (state) => localeFromPathname(state.location.pathname),
   });
-  if (href.startsWith("/") && !href.startsWith("//")) return <a href={servedHref(localizePath(href, locale))}>{children}</a>;
+  if (href.startsWith("/") && !href.startsWith("//"))
+    return <a href={servedHref(localizePath(href, locale))}>{children}</a>;
   if (href.startsWith("#")) return <a href={href}>{children}</a>;
   return (
     <a href={href} target="_blank" rel="noopener noreferrer">

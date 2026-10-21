@@ -7101,3 +7101,14 @@ actual EPUB. Android retained both themes, the new selection and 25% image opaci
 after a full process restart. These flows used controlled file-selection results
 with real native resources, plugin Workers, private assets and persistence; the
 system-picker, iOS and HarmonyOS acceptance boundaries above remain open.
+
+2026-10-21 iOS follow-up: the latest debug simulator app on iPhone 17 Pro
+(iOS 26.0 runtime) completed the real system Photos picker flow, without a
+substituted picker result. Its separate plugin settings created `Evening` from
+Nocturne and `og.jpeg` at 25% opacity / 0% dimming; native SQLite retained that
+configuration. Saving left the existing warm Reading preview unchanged. Selecting
+the image theme in the in-book appearance picker applied its image, Nocturne
+colors and typography to an actual EPUB. After terminating and relaunching the
+process, reopening the book restored the same image theme. This closes the iOS
+simulator create/select/render/restart path; physical iOS devices, Android's full
+system-picker selection and HarmonyOS hardware remain unverified.

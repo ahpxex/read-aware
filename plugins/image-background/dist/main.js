@@ -441,6 +441,6 @@ var plugin = {
 };
 var src_default = plugin;
 export {
-  backgroundTheme,
-  src_default as default
+  src_default as default,
+  backgroundTheme
 };

@@ -171,6 +171,57 @@
     "leadIn": " : ",
     "entries": [
       {
+        "version": "0.6.8",
+        "date": "2026-10-21",
+        "codename": "Cambria",
+        "summary": "Cette version de Cambria ajoute des fonds d'image pour la lecture, des zones tactiles et des touches de volume pour tourner les pages, l'importation de dossiers entiers et vos propres fichiers de polices sur toutes les plateformes.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Fonds d'image pour la lecture",
+                "body": "L'extension intégrée Fond d'image transforme un fichier PNG, JPEG ou WebP local en thème de lecture. Prévisualisez l'image, choisissez un thème de base pour les couleurs et la typographie, puis réglez son opacité et son assombrissement. Vous pouvez basculer entre les thèmes d'image et les couleurs de page habituelles directement depuis la page de l'extension."
+              },
+              {
+                "title": "Zones tactiles et touches de volume pour tourner les pages",
+                "body": "Réglages → Lecture → Changement de page permet désormais de tourner la page en touchant les côtés, ou via une zone d'avancement à une main, et sur Android avec les touches de volume. Les deux options sont désactivées par défaut, et l'Agent peut les modifier pour vous."
+              },
+              {
+                "title": "Importer un dossier entier",
+                "body": "Ajoutez tous les livres d'un dossier en une fois sur ordinateur, Android et iOS, ou déposez un dossier sur la fenêtre sur ordinateur. Chaque livre mémorise son dossier, vous pouvez donc demander à l'Agent de regrouper votre bibliothèque par dossier."
+              },
+              {
+                "title": "Vos propres polices sur toutes les plateformes",
+                "body": "Importez des fichiers TTF, OTF, WOFF, WOFF2 ou TTC depuis le menu de police de lecture sur ordinateur, Android et iOS. Les polices importées se synchronisent sur vos autres appareils."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Un seul menu déroulant pour les polices de lecture",
+                "body": "L'importation et la suppression des polices se font désormais dans le menu déroulant des polices plutôt que dans une liste séparée en dessous."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Le mode phrase suit vos autres appareils",
+                "body": "Après une synchronisation, les modes phrase et paragraphe reprennent là où vous aviez arrêté votre lecture sur l'autre appareil, au lieu de revenir à un ancien chapitre."
+              },
+              {
+                "title": "Retour par balayage dans Réglages sur iOS",
+                "body": "Le balayage depuis le bord permet de revenir d'un niveau dans Réglages sur iPhone et iPad."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.7",
         "date": "2026-10-13",
         "codename": "Cambria",

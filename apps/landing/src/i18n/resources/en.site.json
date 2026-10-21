@@ -171,6 +171,57 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.6.8",
+        "date": "2026-10-21",
+        "codename": "Cambria",
+        "summary": "This Cambria release adds image backgrounds for reading, tap zones and volume keys for turning pages, whole-folder import and your own font files on every platform.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Image backgrounds for reading",
+                "body": "The built-in Image Background plugin turns a local PNG, JPEG or WebP into a reading theme. Preview the image, choose a base theme for colors and typography, and set its opacity and dimming. You can switch between image themes and regular page colors right from the plugin page."
+              },
+              {
+                "title": "Tap zones and volume keys turn pages",
+                "body": "Settings → Reading → Page Turning adds tapping the sides of the page, or a one-handed forward zone, and on Android the volume keys. Both are off by default, and the Agent can change them for you."
+              },
+              {
+                "title": "Import a whole folder",
+                "body": "Add every book in a folder at once on desktop, Android and iOS, or drop a folder onto the window on desktop. Each book remembers its folder, so you can ask the Agent to group your shelf by it."
+              },
+              {
+                "title": "Your own fonts on every platform",
+                "body": "Import TTF, OTF, WOFF, WOFF2 or TTC files from the reading font menu on desktop, Android and iOS. Imported fonts sync to your other devices."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "One dropdown for reading fonts",
+                "body": "Importing and removing fonts happens inside the font dropdown instead of a separate list below it."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Sentence mode follows your other devices",
+                "body": "After a sync, sentence and paragraph mode resume where you stopped reading on the other device instead of jumping back to an old chapter."
+              },
+              {
+                "title": "Swipe back in iOS Settings",
+                "body": "The edge-swipe gesture goes back a level in Settings on iPhone and iPad."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.7",
         "date": "2026-10-13",
         "codename": "Cambria",

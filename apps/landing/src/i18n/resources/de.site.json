@@ -171,6 +171,57 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.6.8",
+        "date": "2026-10-21",
+        "codename": "Cambria",
+        "summary": "Dieses Cambria-Release fügt Bildhintergründe fürs Lesen, Tippzonen und Lautstärketasten fürs Umblättern, den Import ganzer Ordner und eigene Schriftdateien auf jeder Plattform hinzu.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Bildhintergründe fürs Lesen",
+                "body": "Das eingebaute Bildhintergrund-Plugin macht aus einem lokalen PNG, JPEG oder WebP ein Lesethema. Sieh dir das Bild in der Vorschau an, wähle ein Basisthema für Farben und Typografie und stelle seine Deckkraft und Abdunklung ein. Zwischen Bildthemen und normalen Seitenfarben wechselst du direkt auf der Plugin-Seite."
+              },
+              {
+                "title": "Tippzonen und Lautstärketasten blättern die Seite um",
+                "body": "Einstellungen → Lesen → Seitenwechsel ergänzt das Tippen auf die Seitenränder oder eine Einhand-Zone zum Weiterblättern sowie auf Android die Lautstärketasten. Beide sind standardmäßig aus, und der Agent kann sie für dich ändern."
+              },
+              {
+                "title": "Einen ganzen Ordner importieren",
+                "body": "Füge auf Desktop, Android und iOS alle Bücher eines Ordners auf einmal hinzu oder ziehe auf dem Desktop einen Ordner auf das Fenster. Jedes Buch merkt sich seinen Ordner, sodass du den Agent bitten kannst, dein Regal danach zu gruppieren."
+              },
+              {
+                "title": "Eigene Schriften auf jeder Plattform",
+                "body": "Importiere TTF-, OTF-, WOFF-, WOFF2- oder TTC-Dateien im Leseschrift-Menü auf Desktop, Android und iOS. Importierte Schriften werden mit deinen anderen Geräten synchronisiert."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Ein Dropdown für Leseschriften",
+                "body": "Das Importieren und Entfernen von Schriften läuft jetzt im Schriften-Dropdown statt in einer separaten Liste darunter."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Satzmodus folgt deinen anderen Geräten",
+                "body": "Nach einem Sync machen Satz- und Absatzmodus dort weiter, wo du auf dem anderen Gerät aufgehört hast zu lesen, statt zu einem alten Kapitel zurückzuspringen."
+              },
+              {
+                "title": "Die Wischgeste geht in den iOS-Einstellungen zurück",
+                "body": "Die Geste vom Bildschirmrand geht in den Einstellungen auf iPhone und iPad eine Ebene zurück."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.7",
         "date": "2026-10-13",
         "codename": "Cambria",

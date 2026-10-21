@@ -171,6 +171,57 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.6.8",
+        "date": "2026-10-21",
+        "codename": "Cambria",
+        "summary": "Esta versión de Cambria añade fondos de imagen para la lectura, zonas de toque y teclas de volumen para pasar página, importación de carpetas enteras y tus propios archivos de fuentes en todas las plataformas.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Fondos de imagen para la lectura",
+                "body": "El complemento integrado Fondo de imagen convierte un PNG, JPEG o WebP local en un tema de lectura. Previsualiza la imagen, elige un tema base para los colores y la tipografía, y ajusta su opacidad y atenuación. Puedes alternar entre temas de imagen y los colores de página normales directamente desde la página del complemento."
+              },
+              {
+                "title": "Las zonas de toque y las teclas de volumen pasan la página",
+                "body": "Ajustes → Lectura → Paso de página añade tocar los laterales de la página, o una zona de avance a una sola mano, y en Android las teclas de volumen. Ambas opciones están desactivadas por defecto, y el Agente puede cambiarlas por ti."
+              },
+              {
+                "title": "Importa una carpeta entera",
+                "body": "Añade de una vez todos los libros de una carpeta en escritorio, Android e iOS, o suelta una carpeta sobre la ventana en el escritorio. Cada libro recuerda su carpeta, así que puedes pedirle al Agente que agrupe tu estantería por ella."
+              },
+              {
+                "title": "Tus propias fuentes en todas las plataformas",
+                "body": "Importa archivos TTF, OTF, WOFF, WOFF2 o TTC desde el menú de fuentes de lectura en escritorio, Android e iOS. Las fuentes importadas se sincronizan con tus otros dispositivos."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Un solo desplegable para las fuentes de lectura",
+                "body": "Importar y eliminar fuentes se hace ahora dentro del desplegable de fuentes, en lugar de en una lista separada debajo."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "El modo frase sigue a tus otros dispositivos",
+                "body": "Tras una sincronización, los modos frase y párrafo se reanudan donde dejaste la lectura en el otro dispositivo, en lugar de saltar a un capítulo antiguo."
+              },
+              {
+                "title": "Volver con un deslizamiento en Ajustes de iOS",
+                "body": "El gesto de deslizar desde el borde retrocede un nivel en Ajustes en iPhone y iPad."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.7",
         "date": "2026-10-13",
         "codename": "Cambria",

@@ -6477,6 +6477,8 @@ inline row and one "More" overflow menu:
 - With no explicit priorities and at most three actions, everything stays inline.
 - Otherwise unprioritized actions fill the remaining inline slots (two in total,
   counting primaries) in declaration order; the rest overflow in declaration order.
+- A lone overflow action moves back inline at its declaration position; the
+  "More" menu never holds a single action.
 
 Priority only decides placement. It does not change enablement, confirmation,
 busy handling, keyboard access or focus, which the host owns for both the row and
@@ -7068,19 +7070,25 @@ form on that surface; existing manifest-only forms remain unchanged. Registratio
 is staged and owned by activation; replacement/disable retires callbacks and
 open views. Failed loading surfaces a localized error rather than an empty page.
 
-The bundled `image-background` plugin (1.2) manages up to twelve named themes in
-its own Settings section and requires views 1.7. New theme opens the local
-PNG/JPEG/WebP picker first, then shows the picked image preview above name, base,
-opacity and dimming fields. Theme details show a preview of the stored image
-together with the saved base, opacity, dimming and file values; edit, replace
-image and delete operate on one theme. The `image` and `sliders-horizontal` names
-were added to the host icon catalog for these surfaces, following the earlier
-`push-pin`/`pencil-simple` precedent. Saving never changes reading preferences:
-select the saved theme in Reading using the existing theme picker. Each theme
-stores a snapshot of the base palette/typography, not a live dependency on the
-source theme. Images and configuration are private local assets/documents,
-survive restart and full backup, and do not roam. Legacy single-picture data
-retains its `picture` theme id and
+The bundled `image-background` plugin (1.3) manages up to twelve named themes in
+its own Settings section and requires views 1.7 and `domains.settings` 1.6. The
+page opens with a Page color select listing Auto, every `themes.readerBases()`
+entry and the saved image themes; it writes the global `reading.theme` shared
+with Reading settings under an exact `settingsAccess` read/write grant, and a
+live `queries.observe` subscription republishes the root on outside changes.
+Image themes sit in their own section; the current selection carries an "In
+use" marker. New theme opens the local PNG/JPEG/WebP picker first, then shows
+the picked image preview above name, base, opacity and dimming fields. Theme
+details show a preview of the stored image together with the saved base,
+opacity, dimming and file values; edit and replace image sit in the toolbar
+while delete is a destructive action at the bottom of the page. The `image` and
+`sliders-horizontal` names were added to the host icon catalog for these
+surfaces, following the earlier `push-pin`/`pencil-simple` precedent. Saving a
+theme never changes the selection: only the explicit Page color control writes
+`reading.theme`. Each theme stores a snapshot of the base palette/typography,
+not a live dependency on the source theme. Images and configuration are private
+local assets/documents, survive restart and full backup, and do not roam. Legacy
+single-picture data retains its `picture` theme id and
 is converted to the named collection on the next edit, without an activation write.
 
 Resources 1.6 allows file picking on Android/iOS as well as desktop. Android

@@ -1,10 +1,10 @@
 {
   "id": "image-background",
   "name": "Image Background",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "schemaVersion": 1,
   "minAppVersion": "0.6.7",
-  "description": "Create reading themes from a base theme and a local background image. Adjust opacity and dimming, then select your theme in Reading settings.",
+  "description": "Create reading themes from a base theme and a local background image. Adjust opacity and dimming, then select your theme here or in Reading settings.",
   "author": "ReadAware",
   "main": "main.js",
   "permissions": [
@@ -18,10 +18,22 @@
     },
     "services": {
       "resources": "^1.6.0",
-      "storage": "^2.1.0"
+      "storage": "^2.1.0",
+      "ui": "^1.2.0"
     },
     "schemas": {
       "views": "^1.7.0"
+    },
+    "domains": {
+      "settings": "^1.6.0"
     }
+  },
+  "settingsAccess": {
+    "read": [
+      "reading.theme"
+    ],
+    "write": [
+      "reading.theme"
+    ]
   }
 }

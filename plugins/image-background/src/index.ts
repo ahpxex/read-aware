@@ -143,9 +143,9 @@ const plugin: PluginModule = {
         await store({ ...draft, image }, previous);
         if (previous) await removeAsset(previous.image);
         return {
-          view: list(),
+          view: await root(),
           navigation: "reset" as const,
-          toast: text("已保存，可在阅读设置中选择此主题", "Saved. Select this theme in Reading settings."),
+          toast: text("已保存，可在上方「页面颜色」中选择此主题", "Saved. Select this theme under Page color above."),
         };
       } catch (error) {
         if (image && !saved.some((entry) => entry.image.key === image!.key)) await removeAsset(image);
@@ -242,7 +242,7 @@ const plugin: PluginModule = {
             const checked = checkFields(values, bases, previous);
             if ("errors" in checked) return { fieldErrors: checked.errors };
             await store({ ...checked.draft, image: previous.image }, previous);
-            return { view: list(), navigation: "reset" as const, toast: text("已保存主题", "Theme saved") };
+            return { view: await root(), navigation: "reset" as const, toast: text("已保存主题", "Theme saved") };
           }),
       };
     };
@@ -303,6 +303,34 @@ const plugin: PluginModule = {
               { label: text("图片文件", "Image file"), value: value.image.name },
             ],
           },
+          { kind: "divider" },
+          {
+            kind: "actions",
+            align: "start",
+            actions: [
+              {
+                id: "remove",
+                label: text("删除主题", "Delete theme"),
+                icon: "trash",
+                variant: "danger",
+                run: () =>
+                  exclusive(async () => {
+                    assertCurrent(value);
+                    const next = saved.filter((entry) => entry.id !== value.id);
+                    await persist(next);
+                    registrations.get(value.id)?.dispose();
+                    registrations.delete(value.id);
+                    saved = next;
+                    await removeAsset(value.image);
+                    return {
+                      view: await root(),
+                      navigation: "reset" as const,
+                      toast: text("已删除主题", "Theme deleted"),
+                    };
+                  }),
+              },
+            ],
+          },
         ],
         actions: [
           {
@@ -319,82 +347,150 @@ const plugin: PluginModule = {
             priority: "primary",
             run: () => exclusive(() => saveWithImage(value, value)),
           },
-          {
-            id: "remove",
-            label: text("删除主题", "Delete theme"),
-            icon: "trash",
-            variant: "danger",
-            priority: "secondary",
-            run: () =>
-              exclusive(async () => {
-                assertCurrent(value);
-                const next = saved.filter((entry) => entry.id !== value.id);
-                await persist(next);
-                registrations.get(value.id)?.dispose();
-                registrations.delete(value.id);
-                saved = next;
-                await removeAsset(value.image);
-                return {
-                  view: list(),
-                  navigation: "reset" as const,
-                  toast: text("已删除主题", "Theme deleted"),
-                };
-              }),
-          },
         ],
         onClose: previewId ? () => ctx.services.resources.release(previewId).catch(releaseFailed) : undefined,
       };
     };
-    const list = (): PluginView => ({
-      kind: "detail",
-      title: text("图片背景", "Image Background"),
-      content: [
-        {
-          kind: "list",
-          items: saved.map((entry) => ({
-            id: entry.id,
-            title: entry.name,
-            subtitle: `${label(entry.base.name)} · ${text("不透明度", "Opacity")} ${Math.round(
-              entry.opacity * 100,
-            )}% · ${text("暗度", "Dimming")} ${Math.round(entry.dim * 100)}%`,
-            icon: "image",
-            onSelect: async () => ({ view: await detail(entry) }),
-          })),
-          emptyText: text(
-            "还没有图片主题。新建后，到「阅读」设置中选择。",
-            "No image themes yet. Create one, then select it in Reading settings.",
-          ),
-        },
-      ],
-      actions:
-        saved.length < maxThemes
-          ? [
+    const imageThemeRef = (entry: Background) => `plugin:image-background:${entry.id}`;
+    const list = async (): Promise<PluginView> => {
+      const bases = await themes.readerBases();
+      let current: string | undefined;
+      let pageColor: PluginBlock;
+      try {
+        current = String((await ctx.domains.settings.queries.read("reading.theme", { kind: "global" })).value);
+        const options = [
+          { value: "auto", label: text("自动", "Auto") },
+          ...bases.map((base) => ({ value: base.ref, label: label(base.name) })),
+          ...saved.map((entry) => ({ value: imageThemeRef(entry), label: entry.name })),
+        ];
+        if (!options.some((option) => option.value === current))
+          options.push({ value: current, label: text("当前主题（不可用）", "Current theme (unavailable)") });
+        pageColor = {
+          kind: "form",
+          submitMode: "change",
+          fields: [
+            {
+              id: "theme",
+              kind: "select",
+              label: text("页面颜色", "Page color"),
+              helperText: text(
+                "与「阅读」设置中的页面颜色是同一项；「自动」跟随应用主题。",
+                "Same as Page Color in Reading settings. Auto follows the app theme.",
+              ),
+              value: current,
+              options,
+            },
+          ],
+          onSubmit: async (values) => {
+            try {
+              await ctx.domains.settings.commands.update([
+                { path: "reading.theme", value: String(values.theme), target: { kind: "global" } },
+              ]);
+              return null;
+            } catch (error) {
+              await ctx.services.logging.write({ level: "warn", event: "background.theme-select-failed" });
+              return {
+                view: await root(),
+                navigation: "replace" as const,
+                toast: { kind: "error" as const, code: code(error) },
+              };
+            }
+          },
+        };
+      } catch (error) {
+        pageColor = { kind: "error", code: code(error) };
+      }
+      return {
+        kind: "detail",
+        title: text("图片背景", "Image Background"),
+        content: [
+          pageColor,
+          {
+            kind: "section",
+            title: text("图片主题", "Image themes"),
+            blocks: [
               {
-                id: "create",
-                label: text("新建主题", "New theme"),
-                icon: "plus",
-                priority: "primary",
-                run: async () => {
-                  const resource = (await pickImage()).resources[0];
-                  if (!resource) return null;
-                  try {
-                    return { view: await draft(resource) };
-                  } catch (error) {
-                    // The draft view never mounted, so its onClose cannot release the pick.
-                    await ctx.services.resources.release(resource.id).catch(releaseFailed);
-                    throw error;
-                  }
-                },
+                kind: "list",
+                items: saved.map((entry) => ({
+                  id: entry.id,
+                  title: entry.name,
+                  subtitle: `${label(entry.base.name)} · ${text("不透明度", "Opacity")} ${Math.round(
+                    entry.opacity * 100,
+                  )}% · ${text("暗度", "Dimming")} ${Math.round(entry.dim * 100)}%`,
+                  icon: "image",
+                  accessories:
+                    current === imageThemeRef(entry)
+                      ? [{ kind: "text" as const, text: text("使用中", "In use") }]
+                      : undefined,
+                  onSelect: async () => ({ view: await detail(entry) }),
+                })),
+                emptyText: text(
+                  "还没有图片主题。新建后，可在上方「页面颜色」中选择。",
+                  "No image themes yet. Create one, then select it under Page color above.",
+                ),
+                actions:
+                  saved.length < maxThemes
+                    ? [
+                        {
+                          id: "create",
+                          label: text("新建主题", "New theme"),
+                          icon: "plus",
+                          priority: "primary" as const,
+                          run: async () => {
+                            const resource = (await pickImage()).resources[0];
+                            if (!resource) return null;
+                            try {
+                              return { view: await draft(resource) };
+                            } catch (error) {
+                              // The draft view never mounted, so its onClose cannot release the pick.
+                              await ctx.services.resources.release(resource.id).catch(releaseFailed);
+                              throw error;
+                            }
+                          },
+                        },
+                      ]
+                    : [],
               },
-            ]
-          : [],
+            ],
+          },
+        ],
+      };
+    };
+    const root = async (): Promise<PluginView> => ({
+      ...(await list()),
+      live: {
+        subscribe(channel) {
+          let active = true,
+            revision = 0;
+          const subscription = ctx.domains.settings.queries.observe(
+            { section: "reading", target: { kind: "global" } },
+            async (_observation, delivery) => {
+              if (!active) return;
+              const reaction = ctx.withEvent(delivery);
+              try {
+                const view = await list();
+                if (active) await reaction.services.ui.publishView(channel, { revision: ++revision, view });
+              } catch {
+                await reaction.services.logging.write({ level: "warn", event: "background.theme-publish-failed" });
+              }
+            },
+          );
+          return {
+            dispose() {
+              if (!active) return;
+              active = false;
+              subscription.dispose();
+            },
+          };
+        },
+      },
     });
-    settingsPage.register({ view: list });
+    settingsPage.register({ view: root });
     ctx.contributions.commands.register({
       id: "open",
       title: text("图片背景", "Image Background"),
       icon: "image",
-      run: () => ({ view: list() }),
+      run: async () => ({ view: await root() }),
     });
   },
 };

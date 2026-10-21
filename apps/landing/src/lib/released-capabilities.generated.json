@@ -1,7 +1,7 @@
 {
-  "appVersion": "0.6.7",
-  "ref": "v0.6.7",
-  "commit": "b732e07dd511af05d24663c3a879d60273d5fabe",
+  "appVersion": "0.6.8",
+  "ref": "v0.6.8",
+  "commit": "3da6800c3fafd3ae6d1d01fe28bbc6c5169668eb",
   "permissions": [
     "library:read",
     "library:write",
@@ -56,7 +56,7 @@
         ]
       },
       "settings": {
-        "version": "1.10.0",
+        "version": "1.11.0",
         "permissions": []
       },
       "memory": {
@@ -89,6 +89,10 @@
         "permissions": []
       },
       "settingsOptions": {
+        "version": "1.0.0",
+        "permissions": []
+      },
+      "settingsPage": {
         "version": "1.0.0",
         "permissions": []
       },
@@ -125,7 +129,7 @@
         ]
       },
       "themes": {
-        "version": "1.0.0",
+        "version": "1.2.0",
         "permissions": [
           "ui:themes"
         ]
@@ -195,7 +199,7 @@
         "permissions": []
       },
       "resources": {
-        "version": "1.5.0",
+        "version": "1.6.0",
         "permissions": []
       },
       "sync": {
@@ -268,6 +272,7 @@
     "globe",
     "graduation-cap",
     "highlighter",
+    "image",
     "lightbulb",
     "link",
     "list-bullets",
@@ -283,6 +288,7 @@
     "quotes",
     "rows",
     "share",
+    "sliders-horizontal",
     "sparkle",
     "speaker",
     "star",

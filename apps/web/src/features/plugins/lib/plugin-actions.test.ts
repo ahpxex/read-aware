@@ -50,10 +50,10 @@ describe("splitToolbarActions", () => {
     expect(ids(demoted.overflow)).toEqual(["c", "apply"]);
   });
 
-  test("any explicit priority disables the keep-all-inline shortcut", () => {
+  test("any explicit priority disables the keep-all-inline shortcut, though a lone overflow still moves inline", () => {
     const split = splitToolbarActions([action("a", { priority: "secondary" }), action("b")]);
-    expect(ids(split.inline)).toEqual(["b"]);
-    expect(ids(split.overflow)).toEqual(["a"]);
+    expect(ids(split.inline)).toEqual(["a", "b"]);
+    expect(split.overflow).toEqual([]);
   });
 
   test("more primaries than slots all stay inline and leave nothing for the rest", () => {
@@ -62,8 +62,37 @@ describe("splitToolbarActions", () => {
       action("y", { priority: "primary" }),
       action("z", { priority: "primary" }),
       action("w"),
+      action("v"),
     ]);
     expect(ids(split.inline)).toEqual(["x", "y", "z"]);
-    expect(ids(split.overflow)).toEqual(["w"]);
+    expect(ids(split.overflow)).toEqual(["w", "v"]);
+  });
+
+  test("a lone overflow action moves back inline at its declaration position", () => {
+    const split = splitToolbarActions([
+      action("x", { priority: "primary" }),
+      action("s", { priority: "secondary" }),
+      action("y", { priority: "primary" }),
+    ]);
+    expect(ids(split.inline)).toEqual(["x", "s", "y"]);
+    expect(split.overflow).toEqual([]);
+
+    const unprioritized = splitToolbarActions([
+      action("x", { priority: "primary" }),
+      action("y", { priority: "primary" }),
+      action("w"),
+    ]);
+    expect(ids(unprioritized.inline)).toEqual(["x", "y", "w"]);
+    expect(unprioritized.overflow).toEqual([]);
+  });
+
+  test("two secondaries still overflow together", () => {
+    const split = splitToolbarActions([
+      action("x", { priority: "primary" }),
+      action("a", { priority: "secondary" }),
+      action("b", { priority: "secondary" }),
+    ]);
+    expect(ids(split.inline)).toEqual(["x"]);
+    expect(ids(split.overflow)).toEqual(["a", "b"]);
   });
 });

@@ -581,7 +581,9 @@ export type PluginAction = {
    * inline as labeled buttons; `secondary` ones fold into the host's "More"
    * menu. Unset actions fill the remaining inline slots in declaration order
    * (a `solid` action counts as primary), so a view should mark at most two
-   * actions primary and leave housekeeping such as refresh secondary.
+   * actions primary and leave housekeeping such as refresh secondary. A lone
+   * overflow action renders inline at its declaration position — the menu
+   * never holds a single action.
    */
   priority?: "primary" | "secondary";
   /**

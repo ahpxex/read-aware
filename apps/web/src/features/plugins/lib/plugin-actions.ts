@@ -31,6 +31,8 @@ const isPrimary = (action: PluginAction) =>
  *   actions, everything stays inline.
  * - Otherwise unprioritized actions fill inline slots up to
  *   {@link TOOLBAR_INLINE_LIMIT} (counting primaries) and the rest overflow.
+ * - A lone overflow action moves back inline at its declaration position;
+ *   the "More" menu never holds a single action.
  */
 export function splitToolbarActions(actions: readonly PluginAction[]): ToolbarActions {
   const explicit = actions.some((action) => action.priority !== undefined);
@@ -48,5 +50,6 @@ export function splitToolbarActions(actions: readonly PluginAction[]): ToolbarAc
       slots -= 1;
     } else overflow.push(action);
   }
+  if (overflow.length === 1) return { inline: [...actions], overflow: [] };
   return { inline, overflow };
 }

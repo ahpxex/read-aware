@@ -5,12 +5,13 @@ import { pluginThemesAtom } from "../../plugins/state/plugin-store";
 import { effectiveReaderSettingsAtom, pageTurnSettingsAtom, readerPreferencesAtom } from "../../../state/ui";
 import { isAndroid } from "../../../platform/environment";
 import { FontField } from "../components/FontField";
+import { ReaderBackgroundLayer } from "../components/ReaderBackgroundLayer";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
 import { getReaderPreviewStyle } from "../lib/reader-css";
 import { resolveReaderFontWeight } from "../lib/reader-settings";
-import { applyReaderThemeSelection } from "../lib/reader-theme";
+import { applyReaderThemeSelection, type ReaderPalette } from "../lib/reader-theme";
 import type {
   PageTurnTapZoneWidth,
   PageTurnTapZones,
@@ -50,6 +51,7 @@ export function ReadingPanel() {
           scroll underneath. */}
       <div className="sticky top-0 z-10 -mx-6 bg-[var(--ra-main-surface-color)] px-6 pb-4 sm:-mx-10 sm:px-10">
         <ReadingPreview
+          palette={previewPalette}
           style={getReaderPreviewStyle(effective, {
             palette: previewPalette,
             pluginFont: previewPluginFont,
@@ -191,12 +193,13 @@ function PageTurnGroup() {
   );
 }
 
-function ReadingPreview({ style }: { style: React.CSSProperties }) {
+function ReadingPreview({ style, palette }: { style: React.CSSProperties; palette: ReaderPalette }) {
   const { t } = useTranslation("settings");
   return (
     <div className="overflow-hidden rounded-md border border-border" aria-label={t("reading.previewLabel")}>
-      <div className="px-6 py-5 transition-colors" style={style}>
-        <blockquote className="m-0">
+      <div className="relative px-6 py-5 transition-colors" style={style}>
+        <ReaderBackgroundLayer palette={palette} />
+        <blockquote className="relative m-0">
           <p className="m-0">{t("reading.previewText")}</p>
           <p className="m-0" style={{ marginBlockStart: "var(--ra-reader-preview-paragraph-spacing)" }}>
             {t("reading.previewTextSecondary")}

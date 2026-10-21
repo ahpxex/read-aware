@@ -3,7 +3,7 @@ import { AppError, type WorkspaceTarget } from "@read-aware/core";
 import type { createStore } from "jotai";
 import { readingRuntime } from "../domain/reading-runtime";
 import { listCollections, listLibraryBooks } from "../features/library/lib/library-db";
-import { installedPluginsAtom } from "../features/plugins/state/plugin-store";
+import { installedPluginsAtom, pluginSettingsPagesAtom } from "../features/plugins/state/plugin-store";
 import { libraryBooksAtom, libraryCollectionsAtom, libraryReadyAtom } from "../features/library/state/library-store";
 import {
   activeCollectionAtom,
@@ -21,7 +21,14 @@ async function validateTargetData(store: Store, target: WorkspaceTarget, signal:
   if (target.surface === "settings" && target.section?.startsWith("plugin:")) {
     const id = target.section.slice(7);
     if (
-      !store.get(installedPluginsAtom).some((p) => p.manifest.id === id && p.enabled && p.manifest.settings?.length)
+      !store
+        .get(installedPluginsAtom)
+        .some(
+          (p) =>
+            p.manifest.id === id &&
+            p.enabled &&
+            (p.manifest.settings?.length || store.get(pluginSettingsPagesAtom).some((page) => page.pluginId === id)),
+        )
     ) {
       throw new AppError("ui/target-not-found", "Plugin settings section is unavailable");
     }

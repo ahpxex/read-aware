@@ -1,9 +1,11 @@
 /**
- * One enabled plugin's declared settings as a first-class settings section —
- * the same form the Plugins-panel dialog shows, rendered inline. The section
- * exists only while the plugin is enabled and declares settings.
+ * One enabled plugin's settings section: its registered custom page or the
+ * declarative form from its manifest, with any registered sync transport.
  */
 import { useEffect, useMemo, useReducer, useSyncExternalStore } from "react";
+import { InlineError } from "@read-aware/ui";
+import { useTranslation } from "../../../i18n";
+import { usePluginSettingsPage } from "../hooks/usePluginSettingsPage";
 import { onAppEvent } from "../../../platform/app-events";
 import { listSyncTransports, onSyncTransportsChanged } from "../../../platform/sync/transport-registry";
 import { PluginViewRenderer } from "../../plugins/components/PluginViewRenderer";
@@ -13,6 +15,8 @@ import { SettingsPage } from "../components/SettingsPage";
 import { TransportSyncGroup } from "./TransportSyncGroup";
 
 export function PluginSettingsSectionPanel({ manifest }: { manifest: PluginManifest }) {
+  const custom = usePluginSettingsPage(manifest.id);
+  const { t } = useTranslation("plugins");
   // Rebuild the settings view when the plugin's storage changes — an agent
   // write or another surface editing the same settings must reach an open
   // form (which then adopts the fresh values for fields without a live
@@ -44,13 +48,28 @@ export function PluginSettingsSectionPanel({ manifest }: { manifest: PluginManif
   );
   return (
     <SettingsPage title={manifest.name} description={manifest.description}>
-      {view && (
-        <PluginViewRenderer
-          view={view}
-          viewStateKey={`plugin-settings:${manifest.id}`}
-          // The settings dialog's own viewport scrolls this panel.
-          scroll="flow"
-        />
+      {custom.page ? (
+        custom.failed ? (
+          <InlineError>{t("viewer.liveFailed")}</InlineError>
+        ) : (
+          <PluginViewRenderer
+            view={custom.view}
+            onRequestRefresh={custom.refresh}
+            onClose={custom.refresh}
+            viewStateKey={`plugin-settings:${manifest.id}`}
+            containerTitle={manifest.name}
+            scroll="flow"
+          />
+        )
+      ) : (
+        view && (
+          <PluginViewRenderer
+            view={view}
+            viewStateKey={`plugin-settings:${manifest.id}`}
+            // The settings dialog's own viewport scrolls this panel.
+            scroll="flow"
+          />
+        )
       )}
       {providesTransport && <TransportSyncGroup pluginId={manifest.id} />}
     </SettingsPage>

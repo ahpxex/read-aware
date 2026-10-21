@@ -5,6 +5,7 @@ import { Spinner, useToast } from "@read-aware/ui";
 import { AppError, type ReadingModeResume } from "@read-aware/core";
 import { cn } from "@read-aware/ui/cn";
 import { ReaderFailureView } from "./ReaderFailureView";
+import { ReaderBackgroundLayer } from "../../settings";
 import { describeError, useTranslation } from "../../../i18n";
 import { pageTurnSettingsAtom, textUnitModeSettingsAtom } from "../../../state/ui";
 import { appShortcutForEvent, isAppSurfaceShortcut } from "../../settings/lib/shortcut-dispatch";
@@ -2640,22 +2641,7 @@ export function FoliateReaderView({
 
   return (
     <section ref={readerRootRef} className="relative h-full w-full overflow-hidden">
-      {readerPalette.background && (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
-          style={{ backgroundColor: readerPalette.bg }}
-        >
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage: `url("${readerPalette.background.url}")`,
-              opacity: readerPalette.background.opacity,
-              filter: `brightness(${1 - readerPalette.background.dim})`,
-            }}
-          />
-        </div>
-      )}
+      <ReaderBackgroundLayer palette={readerPalette} />
       <div
         ref={viewportRef}
         aria-label={selectedBook?.title ?? initialBook?.fileName ?? t("readerLabel")}

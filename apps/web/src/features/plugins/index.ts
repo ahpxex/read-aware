@@ -10,3 +10,6 @@ export { PluginActivationError } from "./components/PluginActivationError";
 export { useOutdatedPluginUpdates } from "./hooks/useOutdatedPluginUpdates";
 // Install failures from a folder or zip share the marketplace's copy.
 export { describePluginInstallFailure } from "./lib/install-failure";
+
+export { pluginSettingsPagesAtom } from "./state/plugin-store";
+export { usePluginViewSource } from "./hooks/usePluginViewSource";

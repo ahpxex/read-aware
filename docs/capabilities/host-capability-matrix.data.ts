@@ -2907,10 +2907,10 @@ groups.push(
           "get_setting_options/update_settings 选择 appearance.theme / reading.fontFamily 等含插件声明项",
           "选择工具，不注册代码资产",
         ),
-        actor("接通", "manifest themes/fonts；themes 1.1 register", "声明式主题/字体与私有图片背景"),
+        actor("接通", "manifest themes/fonts；themes 1.2 readerBases/register", "声明式主题/字体与私有图片背景"),
         ["THEMES", "API", "SETTINGS"],
         "editorial-themes；Agent/插件设置选择",
-        "manifest字体/主题已纳入Worker同一生命周期，延迟注册、推广回滚和致命错误清理共用资源所有权；启动与本次停用/换代/失败来源分别保留，既有定向关闭与回滚检查通过，真实Tauri待验。能力 catalog 含 themes/fonts，themes 1.1 新增运行时 register，图片引用本插件私有资产的精确 revision，由宿主有界解码并持有 URL，选中主题后渲染，停用回退；图片背景插件复用 resources 1.6 移动端选文件、私有资产和本地文档。无 URL/CSS 注入，图片不漫游；选项目录随插件安装/停用刷新（CFG10）",
+        "manifest字体/主题已纳入Worker同一生命周期，延迟注册、推广回滚和致命错误清理共用资源所有权；启动与本次停用/换代/失败来源分别保留，既有定向关闭与回滚检查通过，真实Tauri待验。能力 catalog 含 themes/fonts，themes 1.2 提供基础主题样式快照和运行时 register，图片引用本插件私有资产的精确 revision，由宿主有界解码并持有 URL，选中主题后渲染，停用回退；图片背景 1.1 通过 settingsPage 1.0 独立设置页管理多个具名主题，复制基础主题配色/排版后选图；保存不切换阅读设置，由 Reading 主题选择器应用。复用 resources 1.6 移动端选文件、私有资产和本地文档。无 URL/CSS 注入，图片不漫游；选项目录随插件安装/停用刷新（CFG10）",
       ),
       cap(
         "EXT09",

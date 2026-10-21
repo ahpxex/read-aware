@@ -2563,10 +2563,27 @@ export type PluginRuntimeTheme = PluginThemeContribution & {
   };
 };
 
+/** A snapshot of a selectable base's palette and typography, without image
+ * URLs or assets. Fonts remain references to their owning plugin. */
+export type PluginReaderThemeBase = {
+  ref: string;
+  name: PluginText;
+  polarity: PluginThemePolarity;
+  reader: NonNullable<PluginThemeContribution["reader"]>;
+};
+
 export type PluginContributions = {
+  /** One custom settings page per plugin. Uses the ordinary declarative view
+   * renderer, with the same activation/callback ownership as header actions. */
+  settingsPage?: {
+    register(page: { view(): PluginView | Promise<PluginView> }): PluginDisposable;
+  };
   /** Themes 1.1: staged, activation-owned themes; replacing an id replaces its
    * image too. Invalid/missing assets reject before replacing the live theme. */
   themes?: {
+    /** Themes 1.2: built-in and active plugin reader bases, excluding image
+     * themes. Saved copies do not change when the original theme changes. */
+    readerBases(): Promise<PluginReaderThemeBase[]>;
     register(theme: PluginRuntimeTheme): Promise<PluginDisposable>;
   };
   uriHandlers: {

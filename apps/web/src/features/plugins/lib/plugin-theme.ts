@@ -217,7 +217,11 @@ export function validateFontContributions(raw: unknown): PluginFontContribution[
  * ids, so a typography default may reference its own fonts as
  * `plugin:<fontId>`.
  */
-export function validateThemeContributions(raw: unknown, fontIds: ReadonlySet<string>): PluginThemeContribution[] {
+export function validateThemeContributions(
+  raw: unknown,
+  fontIds: ReadonlySet<string>,
+  options: { qualifiedFontRefs?: boolean } = {},
+): PluginThemeContribution[] {
   if (!Array.isArray(raw)) throw new Error("manifest.themes must be an array");
   if (raw.length > MAX_THEMES) {
     throw new Error(`manifest.themes allows at most ${MAX_THEMES} themes`);
@@ -297,7 +301,10 @@ export function validateThemeContributions(raw: unknown, fontIds: ReadonlySet<st
         const t = readerRecord.typography as Record<string, unknown>;
         typography = {};
         if (t.fontFamily != null) {
-          if (typeof t.fontFamily !== "string" || !isThemeFontFamily(t.fontFamily, fontIds)) {
+          if (
+            typeof t.fontFamily !== "string" ||
+            !(isThemeFontFamily(t.fontFamily, fontIds) || (options.qualifiedFontRefs && isPluginRef(t.fontFamily)))
+          ) {
             throw new Error(
               `theme "${id}" typography fontFamily must be "plugin:<declared fontId>", "curated:<id>", or "system:<family>"`,
             );

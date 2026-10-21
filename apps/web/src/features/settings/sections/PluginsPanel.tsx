@@ -24,7 +24,7 @@ import {
   updatePluginBookAccess,
   uninstallPlugin,
 } from "../../plugins/runtime/plugin-host";
-import { installedPluginsAtom, requestInstallConsent } from "../../plugins/state/plugin-store";
+import { installedPluginsAtom, pluginSettingsPagesAtom, requestInstallConsent } from "../../plugins/state/plugin-store";
 import { createLogger } from "../../../platform/logger";
 import { PluginActivationError, describePluginInstallFailure, useOutdatedPluginUpdates } from "../../plugins";
 import { SettingsPage } from "../components/SettingsPage";
@@ -38,6 +38,7 @@ export function PluginsPanel() {
   const { t } = useTranslation(["plugins", "common"]);
   const { toast } = useToast();
   const installed = useAtomValue(installedPluginsAtom);
+  const pluginPages = useAtomValue(pluginSettingsPagesAtom);
   const libraryBooks = useAtomValue(libraryBooksAtom);
   const setSectionRequest = useSetAtom(settingsSectionRequestAtom);
   const [activeTab, setActiveTab] = useState(0);
@@ -223,14 +224,16 @@ export function PluginsPanel() {
                 }
                 control={
                   <span className="flex shrink-0 items-center gap-2">
-                    {plugin.enabled && manifest.settings && manifest.settings.length > 0 && (
-                      // Jump to the plugin's own settings section — the same
-                      // sidebar entry, not a duplicate dialog. Disabled
-                      // plugins have no section, so no button either.
-                      <Button size="sm" variant="ghost" onClick={() => setSectionRequest(`plugin:${manifest.id}`)}>
-                        {t("settings.configure")}
-                      </Button>
-                    )}
+                    {plugin.enabled &&
+                      (Boolean(manifest.settings?.length) ||
+                        pluginPages.some((page) => page.pluginId === manifest.id)) && (
+                        // Jump to the plugin's own settings section — the same
+                        // sidebar entry, not a duplicate dialog. Disabled
+                        // plugins have no section, so no button either.
+                        <Button size="sm" variant="ghost" onClick={() => setSectionRequest(`plugin:${manifest.id}`)}>
+                          {t("settings.configure")}
+                        </Button>
+                      )}
                     <Button size="sm" variant="ghost" onClick={() => setEditingBookAccessId(manifest.id)}>
                       {t("settings.bookAccess.change")}
                     </Button>

@@ -37,7 +37,7 @@ import {
   type DomainActor,
 } from "../../platform/domain-actor";
 import { workspace } from "../../services/workspace";
-import { installedPluginsAtom } from "../plugins/state/plugin-store";
+import { installedPluginsAtom, pluginSettingsPagesAtom } from "../plugins/state/plugin-store";
 import type { PluginManifest } from "../plugins/lib/plugin-types";
 import { AboutPanel } from "./sections/AboutPanel";
 import { PluginSettingsSectionPanel } from "./sections/PluginSettingsSectionPanel";
@@ -114,10 +114,15 @@ export function SettingsDialog({ open, onClose, workspaceToken = 0 }: SettingsDi
   const [indicatorY, setIndicatorY] = useState<number | null>(null);
 
   const installedPlugins = useAtomValue(installedPluginsAtom);
+  const pluginPages = useAtomValue(pluginSettingsPagesAtom);
   const entries: NavEntry[] = [
     ...SECTIONS.map((section): NavEntry => ({ kind: "core", section })),
     ...installedPlugins
-      .filter((plugin) => plugin.enabled && plugin.manifest.settings?.length)
+      .filter(
+        (plugin) =>
+          plugin.enabled &&
+          (plugin.manifest.settings?.length || pluginPages.some((page) => page.pluginId === plugin.manifest.id)),
+      )
       .map((plugin): NavEntry => ({ kind: "plugin", manifest: plugin.manifest })),
   ];
   const entryLabel = (entry: NavEntry) =>

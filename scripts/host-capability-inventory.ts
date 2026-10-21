@@ -371,6 +371,7 @@ const catalogMap: Record<string, Record<string, string[]>> = {
     contextActions: ["MORE04"],
     commands: ["UI03"],
     settingsOptions: ["CFG09"],
+    settingsPage: ["CFG09"],
     voiceProviders: ["READ17"],
     contentProviders: ["LIB14"],
     readerModes: ["READ15"],

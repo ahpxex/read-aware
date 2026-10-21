@@ -1,4 +1,4 @@
-import { prepareRuntimeTheme } from "./plugin-runtime-theme";
+import { prepareRuntimeTheme, readerThemeBases } from "./plugin-runtime-theme";
 import { observeSnapshot } from "../../../domain/snapshot-observation";
 import { createPluginJobs } from "./plugin-jobs";
 import { createPluginChanges } from "./plugin-changes";
@@ -115,6 +115,7 @@ import { PluginDocumentObserver } from "./plugin-document-observer";
 import { createPluginLogging } from "./plugin-logging";
 import {
   registerThemeContribution,
+  registerSettingsPageContribution,
   registerCommandContribution,
   registerContextActionContribution,
   registerAgentContextProviderContribution,
@@ -578,9 +579,20 @@ export function buildPluginContext(
         },
       },
       contributions: {
+        settingsPage: {
+          register: (page) =>
+            trackContribution((source) =>
+              registerSettingsPageContribution(
+                { ...brand, key: contributionKey(manifest.id, "settings"), view: page.view },
+                source,
+              ),
+            ),
+        },
         ...(canUseContribution("themes", permissions)
           ? {
               themes: {
+                readerBases: () =>
+                  lifecycle.read("themes.readerBases", async () => readerThemeBases(), lifecycle.signal),
                 register: async (input) => {
                   const prepared = await prepareRuntimeTheme(input, manifest, lifecycle, resources);
                   return trackContribution((source) => {

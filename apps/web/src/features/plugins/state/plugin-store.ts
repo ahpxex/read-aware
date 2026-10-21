@@ -47,6 +47,12 @@ const selectionActionsRegistry = createInteractiveContributionRegistry<Registere
   "run",
 );
 const headerActionsRegistry = createInteractiveContributionRegistry<RegisteredHeaderAction>("headerActions", "view");
+const settingsPageRegistry = createInteractiveContributionRegistry<{
+  key: ContributionKey;
+  pluginId: string;
+  pluginName: string;
+  view(): PluginView | Promise<PluginView>;
+}>("settingsPage", "view");
 const contextActionsRegistry = createInteractiveContributionRegistry<RegisteredContextAction>("contextActions", "run");
 const readerModesRegistry = createContributionRegistry<RegisteredReaderMode>("readerModes");
 const commandsRegistry = createInteractiveContributionRegistry<RegisteredCommand>("commands", "run");
@@ -63,6 +69,8 @@ const voiceProvidersRegistry = createContributionRegistry<RegisteredVoiceProvide
 
 export const selectionActionsAtom = selectionActionsRegistry.atom;
 export const headerActionsAtom = headerActionsRegistry.atom;
+export const pluginSettingsPagesAtom = settingsPageRegistry.atom;
+export const registerSettingsPageContribution = settingsPageRegistry.register;
 export const contextActionsAtom = contextActionsRegistry.atom;
 export const readerModesAtom = readerModesRegistry.atom;
 export const pluginCommandsAtom = commandsRegistry.atom;

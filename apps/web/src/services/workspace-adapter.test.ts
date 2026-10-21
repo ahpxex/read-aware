@@ -15,12 +15,34 @@ import {
 import { activeCollectionAtom, shelfSelectionAtom } from "../state/ui";
 import { libraryBooksAtom, libraryCollectionsAtom, libraryReadyAtom } from "../features/library/state/library-store";
 import { applyWorkspaceTarget, validateWorkspaceTarget } from "./workspace-adapter";
+import { installedPluginsAtom, pluginSettingsPagesAtom } from "../features/plugins/state/plugin-store";
 
 const cleanup: (() => void)[] = [];
 afterEach(() => {
   for (const dispose of cleanup.splice(0).reverse()) dispose();
 });
 const signal = () => new AbortController().signal;
+test("custom plugin settings pages are valid navigation targets only while enabled and registered", async () => {
+  const store = createStore();
+  const plugin = {
+    enabled: true,
+    manifest: { id: "picture", name: "Picture", version: "1.0.0", schemaVersion: 1, requires: {} },
+  };
+  store.set(installedPluginsAtom, [plugin]);
+  const target = { surface: "settings", section: "plugin:picture" } as const;
+  await expect(validateWorkspaceTarget(store, target, signal())).rejects.toMatchObject({ code: "ui/target-not-found" });
+  store.set(pluginSettingsPagesAtom, [
+    {
+      key: "picture:settings",
+      pluginId: "picture",
+      pluginName: "Picture",
+      view: () => ({ kind: "detail", content: [] }),
+    },
+  ]);
+  await validateWorkspaceTarget(store, target, signal());
+  store.set(installedPluginsAtom, [{ ...plugin, enabled: false }]);
+  await expect(validateWorkspaceTarget(store, target, signal())).rejects.toMatchObject({ code: "ui/target-not-found" });
+});
 test("adapter validates collection and selected membership before changing any state", async () => {
   const store = createStore(),
     s = signal();

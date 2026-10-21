@@ -12,3 +12,6 @@ export { prefersReducedMotion } from "./lib/app-settings";
 // imported-font registry and emits its @font-face; the compact appearance
 // popover labels it.
 export { findUserFont, userFontFaceCss, userFontsAtom } from "./lib/user-fonts";
+
+export { BUILTIN_READER_PALETTES } from "./lib/reader-theme";
+export { ReaderBackgroundLayer } from "./components/ReaderBackgroundLayer";

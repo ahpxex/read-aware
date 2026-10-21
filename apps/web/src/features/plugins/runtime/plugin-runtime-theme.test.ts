@@ -3,7 +3,7 @@ import { getDefaultStore } from "jotai";
 import type { PluginManifest, PluginRuntimeTheme } from "@read-aware/plugin-types";
 import { ResourceOwner } from "../../../services/resource-owner";
 import * as ipc from "../../../platform/ipc";
-import { pluginThemesAtom } from "../state/plugin-store";
+import { pluginThemesAtom, pluginSettingsPagesAtom, registerThemeContribution } from "../state/plugin-store";
 import { buildPluginContext } from "./plugin-context";
 import { resolveReaderPalette } from "../../settings/lib/reader-theme";
 import { describeContext } from "./plugin-worker-host";
@@ -134,4 +134,62 @@ test("retirement during decoding prevents late publication", async () => {
   await runtime.lifecycle.drainCleanups();
   expect(mocks.create).not.toHaveBeenCalled();
   expect(mocks.release).toHaveBeenCalledWith("owned");
+});
+
+test("reader bases copy palettes and qualified font references without disclosing image assets", async () => {
+  const runtime = fixture();
+  const registration = registerThemeContribution({
+    ...input,
+    id: "base",
+    key: "base-plugin:base",
+    pluginId: "base-plugin",
+    pluginName: "Base",
+    readerBackground: undefined,
+    reader: { palette: input.reader!.palette, typography: { fontFamily: "plugin:base-plugin:serif" } },
+  });
+  cleanups.push(() => registration.dispose());
+  images();
+  runtime.lifecycle.promote();
+  await runtime.context.contributions.themes!.register(input);
+  const bases = await runtime.context.contributions.themes!.readerBases();
+  expect(bases.slice(0, 3).map((base) => base.ref)).toEqual(["light", "warm", "dark"]);
+  expect(bases.some((base) => base.ref === "plugin:background-test:picture")).toBe(false);
+  const base = bases.find((entry) => entry.ref === "plugin:base-plugin:base")!;
+  expect(JSON.stringify(base)).not.toContain("assetKey");
+  await runtime.context.contributions.themes!.register({ ...input, reader: base.reader });
+  const theme = getDefaultStore()
+    .get(pluginThemesAtom)
+    .find((entry) => entry.pluginId === manifest.id)!;
+  expect(theme.reader?.typography?.fontFamily).toBe("plugin:base-plugin:serif");
+  base.reader.palette.bg = "#123";
+  expect(
+    (await runtime.context.contributions.themes!.readerBases()).find((entry) => entry.ref === base.ref)?.reader.palette
+      .bg,
+  ).toBe("#fff");
+});
+
+test("custom settings pages are staged, replaceable and retired with their callbacks", async () => {
+  const runtime = fixture([]);
+  expect(JSON.stringify(describeContext(runtime.context))).toContain("settingsPage");
+  const page = () =>
+    getDefaultStore()
+      .get(pluginSettingsPagesAtom)
+      .find((entry) => entry.pluginId === manifest.id);
+  const first = runtime.context.contributions.settingsPage!.register({
+    view: () => ({ kind: "detail", title: "First", content: [] }),
+  });
+  expect(page()).toBeUndefined();
+  runtime.lifecycle.promote();
+  const old = page()!;
+  expect((await old.view()).title).toBe("First");
+  runtime.context.contributions.settingsPage!.register({
+    view: () => ({ kind: "detail", title: "Second", content: [] }),
+  });
+  first.dispose();
+  expect((await page()!.view()).title).toBe("Second");
+  expect(() => old.view()).toThrow();
+  const current = page()!;
+  runtime.lifecycle.stop();
+  expect(page()).toBeUndefined();
+  expect(() => current.view()).toThrow();
 });

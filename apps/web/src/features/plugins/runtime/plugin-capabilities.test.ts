@@ -111,7 +111,7 @@ describe("plugin capability negotiation", () => {
     });
     expect(visible.services.network).toBe("2.2.0");
     expect(visible.services.llm).toBeUndefined();
-    expect(visible.contributions.themes).toBe("1.1.0");
+    expect(visible.contributions.themes).toBe("1.2.0");
     expect(visible.contributions.agentTools).toBeUndefined();
     expect(visible.schemas.themes).toBe("1.0.0");
   });

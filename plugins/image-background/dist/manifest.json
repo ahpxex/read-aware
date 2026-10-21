@@ -1,0 +1,38 @@
+{
+  "id": "image-background",
+  "name": "图片背景",
+  "version": "1.0.0",
+  "schemaVersion": 1,
+  "minAppVersion": "0.6.7",
+  "description": "选择本地图片作为阅读背景，调整图片透明度和暗度。图片仅保存在本机。",
+  "author": "ReadAware",
+  "main": "main.js",
+  "permissions": [
+    "ui:themes"
+  ],
+  "settingsAccess": {
+    "read": [
+      "reading.theme"
+    ],
+    "write": [
+      "reading.theme"
+    ]
+  },
+  "requires": {
+    "domains": {
+      "settings": "^1.2.0"
+    },
+    "contributions": {
+      "themes": "^1.1.0",
+      "headerActions": "^1.0.0",
+      "commands": "^1.0.0"
+    },
+    "services": {
+      "resources": "^1.6.0",
+      "storage": "^2.1.0"
+    },
+    "schemas": {
+      "views": "^1.0.0"
+    }
+  }
+}

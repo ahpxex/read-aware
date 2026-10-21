@@ -1,3 +1,4 @@
+import { prepareRuntimeTheme } from "./plugin-runtime-theme";
 import { observeSnapshot } from "../../../domain/snapshot-observation";
 import { createPluginJobs } from "./plugin-jobs";
 import { createPluginChanges } from "./plugin-changes";
@@ -113,6 +114,7 @@ import { createPluginDocuments } from "./plugin-documents";
 import { PluginDocumentObserver } from "./plugin-document-observer";
 import { createPluginLogging } from "./plugin-logging";
 import {
+  registerThemeContribution,
   registerCommandContribution,
   registerContextActionContribution,
   registerAgentContextProviderContribution,
@@ -576,6 +578,40 @@ export function buildPluginContext(
         },
       },
       contributions: {
+        ...(canUseContribution("themes", permissions)
+          ? {
+              themes: {
+                register: async (input) => {
+                  const prepared = await prepareRuntimeTheme(input, manifest, lifecycle, resources);
+                  return trackContribution((source) => {
+                    const background = prepared.background;
+                    const url = background ? URL.createObjectURL(background.blob) : undefined;
+                    try {
+                      const registration = registerThemeContribution(
+                        {
+                          ...prepared.theme,
+                          ...brand,
+                          key: contributionKey(manifest.id, prepared.theme.id),
+                          readerBackground:
+                            background && url ? { url, opacity: background.opacity, dim: background.dim } : undefined,
+                        },
+                        source,
+                      );
+                      return {
+                        dispose: (origin) => {
+                          registration.dispose(origin);
+                          if (url) URL.revokeObjectURL(url);
+                        },
+                      };
+                    } catch (error) {
+                      if (url) URL.revokeObjectURL(url);
+                      throw error;
+                    }
+                  });
+                },
+              },
+            }
+          : {}),
         uriHandlers: {
           register: (handler) => {
             if (

@@ -28,6 +28,7 @@ class MainActivity : TauriActivity() {
     private const val FOLDER_PICK_REQUEST = 51734
     /** The font-file picker (custom reading fonts). */
     private const val FONT_PICK_REQUEST = 51735
+    private const val RESOURCE_PICK_REQUEST = 51736
     /** Mirrors `MAX_FOLDER_BOOKS` / `MAX_FOLDER_DEPTH` in book_folders.rs. */
     private const val FOLDER_PICK_MAX_BOOKS = 5000
     private const val FOLDER_PICK_MAX_DEPTH = 32
@@ -38,6 +39,9 @@ class MainActivity : TauriActivity() {
       ".cbz", ".cbr", ".txt", ".text", ".html", ".htm", ".xhtml", ".pdf",
     )
   }
+
+  @Volatile private var resourcePickGeneration = 0
+  @Volatile private var resourcePickResult: String? = null
 
   /** Generation of the pick currently in flight; 0 = none. */
   @Volatile private var bookPickGeneration = 0
@@ -295,6 +299,35 @@ class MainActivity : TauriActivity() {
     return result
   }
 
+  /** Plugin resource picker: park the result across webview suspension. */
+  @JavascriptInterface
+  fun startResourcePick(generation: Int, multiple: Boolean) {
+    if (resourcePickGeneration != 0) return
+    resourcePickGeneration = generation
+    resourcePickResult = null
+    runOnUiThread {
+      try {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+          addCategory(Intent.CATEGORY_OPENABLE)
+          type = "*/*"
+          putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multiple)
+        }
+        @Suppress("DEPRECATION")
+        startActivityForResult(intent, RESOURCE_PICK_REQUEST)
+      } catch (error: Throwable) {
+        resourcePickResult = "$generation\n__ERROR__:${error.message ?: error.javaClass.name}"
+        resourcePickGeneration = 0
+      }
+    }
+  }
+
+  @JavascriptInterface
+  fun takeResourcePickResult(): String? {
+    val result = resourcePickResult
+    if (result != null) resourcePickResult = null
+    return result
+  }
+
   /** Called from Rust (`font_pick_start`) or the webview JS bridge: launch
    *  the system document picker for font files. Result parks in
    *  [fontPickResult]; the webview polls (`font_pick_poll`). */
@@ -479,6 +512,20 @@ class MainActivity : TauriActivity() {
     super.onActivityResult(requestCode, resultCode, data)
     if (requestCode == FOLDER_PICK_REQUEST) {
       onFolderPicked(resultCode, data)
+      return
+    }
+    if (requestCode == RESOURCE_PICK_REQUEST) {
+      val uris = mutableListOf<Uri>()
+      if (resultCode == RESULT_OK && data != null) {
+        val clip = data.clipData
+        if (clip != null) {
+          for (i in 0 until clip.itemCount) uris.add(clip.getItemAt(i).uri)
+        } else {
+          data.data?.let { uris.add(it) }
+        }
+      }
+      resourcePickResult = (listOf(resourcePickGeneration.toString()) + uris.map { describePick(it) }).joinToString("\n")
+      resourcePickGeneration = 0
       return
     }
     if (requestCode == FONT_PICK_REQUEST) {

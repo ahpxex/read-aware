@@ -21,6 +21,7 @@ import type {
 
 /** The palette a reader theme paints book pages with. */
 export type ReaderPalette = {
+  background?: { url: string; opacity: number; dim: number };
   bg: string;
   text: string;
   selection: string;
@@ -72,7 +73,10 @@ export function resolveReaderPalette(
   pluginThemes: readonly RegisteredPluginTheme[],
 ): ReaderPalette {
   if (isPluginRef(theme)) {
-    return findPluginReaderTheme(theme, pluginThemes)?.reader?.palette ?? BUILTIN_READER_PALETTES.warm;
+    const entry = findPluginReaderTheme(theme, pluginThemes);
+    return entry?.reader
+      ? { ...entry.reader.palette, background: entry.readerBackground }
+      : BUILTIN_READER_PALETTES.warm;
   }
   return BUILTIN_READER_PALETTES[theme];
 }

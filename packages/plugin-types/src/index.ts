@@ -2550,7 +2550,25 @@ export type PluginUriHandler = {
   open(request: PluginUriRequest): PluginViewResult | Promise<PluginViewResult>;
 };
 
+/** Runtime theme images are owned private assets, never URLs or CSS. The host
+ * decodes a bounded raster copy. Only selecting this theme applies it. */
+export type PluginRuntimeTheme = PluginThemeContribution & {
+  readerBackground?: {
+    assetKey: string;
+    assetRevision: string;
+    /** 0 = invisible, 1 = opaque. */
+    opacity: number;
+    /** Black overlay on the image only: 0 = unchanged, 1 = black. */
+    dim: number;
+  };
+};
+
 export type PluginContributions = {
+  /** Themes 1.1: staged, activation-owned themes; replacing an id replaces its
+   * image too. Invalid/missing assets reject before replacing the live theme. */
+  themes?: {
+    register(theme: PluginRuntimeTheme): Promise<PluginDisposable>;
+  };
   uriHandlers: {
     register(handler: PluginUriHandler): PluginActionRegistration;
   };

@@ -17,7 +17,8 @@
     "@read-aware/plugin-jumper": "workspace:*",
     "@read-aware/plugin-rss-reader": "workspace:*",
     "@read-aware/plugin-sentence-reader": "workspace:*",
-    "@read-aware/plugin-tts": "workspace:*"
+    "@read-aware/plugin-tts": "workspace:*",
+    "@read-aware/plugin-image-background": "workspace:*"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.9.1"

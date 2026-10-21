@@ -138,6 +138,8 @@ export type RegisteredVoiceProvider = PluginVoiceProvider & {
 };
 
 export type RegisteredPluginTheme = PluginThemeContribution & {
+  /** Host-created raster URL, scoped to this exact registration. */
+  readerBackground?: { url: string; opacity: number; dim: number };
   key: ContributionKey;
   pluginId: string;
   pluginName: string;

@@ -2640,6 +2640,22 @@ export function FoliateReaderView({
 
   return (
     <section ref={readerRootRef} className="relative h-full w-full overflow-hidden">
+      {readerPalette.background && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{ backgroundColor: readerPalette.bg }}
+        >
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage: `url("${readerPalette.background.url}")`,
+              opacity: readerPalette.background.opacity,
+              filter: `brightness(${1 - readerPalette.background.dim})`,
+            }}
+          />
+        </div>
+      )}
       <div
         ref={viewportRef}
         aria-label={selectedBook?.title ?? initialBook?.fileName ?? t("readerLabel")}
@@ -2647,7 +2663,7 @@ export function FoliateReaderView({
           // Safe-area padding keeps the book content clear of the display
           // cutout (Dynamic Island / punch-hole) and the home indicator while
           // the reader runs immersive; env() resolves to 0 on desktop.
-          "h-full w-full pt-[var(--ra-safe-top)] pb-[var(--ra-safe-bottom)] transition-opacity ease-out",
+          "relative h-full w-full pt-[var(--ra-safe-top)] pb-[var(--ra-safe-bottom)] transition-opacity ease-out",
           isCrossing ? "duration-150" : "duration-500",
           (isLoading || !!error || isCrossing) && "opacity-0",
         )}

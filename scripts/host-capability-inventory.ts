@@ -511,7 +511,10 @@ const nativeMap = pairs([
   ["resource_commit_context", "MEM13"],
   ["desktop_update_check desktop_update_install", "SYS16"],
   ["set_traffic_lights_visible app_exit_confirm window_input_revision", "SYS17"],
-  ["list_system_fonts", "SYS14"],
+  [
+    "list_system_fonts font_import_stage user_fonts_list user_font_blob_backlog user_fonts_removal_backlog user_fonts_release_files font_pick_start font_pick_poll",
+    "SYS14",
+  ],
   ["desktop_startup_enabled", "SET04"],
   [
     "plugins_list plugins_stage_dir plugins_stage_zip plugins_stage_files plugins_commit_candidate plugins_discard_candidate plugins_rollback plugins_uninstall",
@@ -802,6 +805,7 @@ export function collectInventory(): Inventory[] {
     ))
       add("Shortcut", name, shortcutMap[name]);
   const eventMap = pairs([
+    ["user-fonts-changed", "SYS14"],
     ["reader-demand-activity", "TXT05"],
     ["book-text-changed", "TXT05 MEM11 CON07"],
     ["book-removed library-changed book-changed", "CON07 LIB01"],
@@ -855,6 +859,7 @@ export function collectInventory(): Inventory[] {
     ["memory.revised memory.superseded memory.forgotten", "MEM04"],
     ["memory.feedback", "MEM05"],
     ["preference.changed", "OPS05 CFG01"],
+    ["userFont.imported userFont.removed", "SYS14"],
   ]);
   function visitEvent(node: import("../apps/web/node_modules/typescript").Node) {
     if (ts.isTypeReferenceNode(node) && node.typeName.getText() === "DomainEventEnvelope") {
@@ -904,6 +909,7 @@ export function collectInventory(): Inventory[] {
     ["dictionary", "EXT09 AI12 READ07 LIB01"],
     ["rss-reader", "EXT10"],
     ["editorial-themes", "EXT08"],
+    ["image-background", "EXT08 SYS11 MORE07"],
     ["sentence-reader", "READ15 READ16"],
     ["tts", "READ17 READ18"],
     ["webdav-sync", "OPS04"],

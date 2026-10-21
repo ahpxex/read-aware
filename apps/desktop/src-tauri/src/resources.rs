@@ -193,12 +193,13 @@ pub async fn resource_open_file(
     path: String,
 ) -> Result<ResourceInfo, CommandError> {
     crate::storage::blocking("resource_open_file", move || {
-        if !std::fs::metadata(&path)?.is_file() {
+        let source = crate::native_path::materialize(&app, &path)?;
+        if !std::fs::metadata(&source.path)?.is_file() {
             return Err(invalid("Resource must be a regular file"));
         }
         let resources = app.state::<ResourceFiles>();
         let mut entries = resources.0.lock()?;
-        insert(&mut entries, Some(File::open(path)?))
+        insert(&mut entries, Some(File::open(&source.path)?))
     })
     .await
 }

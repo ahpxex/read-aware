@@ -1,3 +1,4 @@
+import { pickResourceFiles } from "../platform/pick-resource-files";
 import {
   AppError,
   RESOURCE_LIFETIME_MS,
@@ -31,7 +32,7 @@ async function cleanup(values: NativeInfo[]) {
   }
 }
 export const resourceAdapter: ResourceAdapter = {
-  supported: () => isTauri() && !isMobileOS(),
+  supported: () => isTauri(),
   directories: {
     async pick(signal) {
       desktop();
@@ -51,35 +52,22 @@ export const resourceAdapter: ResourceAdapter = {
     release: (id) => invoke("resource_release_directory", { id }),
   },
   async pick(options: ResourcePickOptions, signal) {
-    desktop();
-    signal?.throwIfAborted();
-    // Native dialogs filter by final suffix. Keep compound filters exact when
-    // admitting the selected paths, before opening any resource leases.
-    const extensions = options.extensions?.map((extension) => extension.toLowerCase());
-    const hasCompoundFilter = extensions?.some((extension) => extension.includes("."));
-    const nativeExtensions = extensions && [...new Set(extensions.map((extension) => extension.split(".").at(-1)!))];
-    const selected = await open({
-      multiple: options.multiple ?? false,
-      directory: false,
-      ...(nativeExtensions?.length ? { filters: [{ name: "Files", extensions: nativeExtensions }] } : {}),
-    });
-    signal?.throwIfAborted();
-    const paths = selected === null ? [] : Array.isArray(selected) ? selected : [selected];
+    if (!isTauri()) throw new AppError("ui/unavailable", "File resources require the native app");
+    const paths = await pickResourceFiles(options, signal);
     if (paths.length > 16) throw new AppError("ui/invalid-target", "Choose at most 16 files");
+    const extensions = options.extensions?.map((extension) => extension.toLowerCase());
     if (
-      hasCompoundFilter &&
-      paths.some(
-        (path) => !extensions!.some((extension) => fileNameFromPath(path).toLowerCase().endsWith(`.${extension}`)),
-      )
+      extensions?.length &&
+      paths.some(({ name }) => !extensions.some((ext) => name.toLowerCase().endsWith(`.${ext}`)))
     ) {
       throw new AppError("ui/invalid-target", "Selected file does not match the requested extensions");
     }
     const result: NativeResource[] = [];
     try {
-      for (const path of paths) {
+      for (const { path, name } of paths) {
         signal?.throwIfAborted();
         const info = await invoke<NativeInfo>("resource_open_file", { path });
-        result.push({ ...info, name: fileNameFromPath(path), mimeType: "application/octet-stream" });
+        result.push({ ...info, name, mimeType: "application/octet-stream" });
       }
       signal?.throwIfAborted();
       return result;

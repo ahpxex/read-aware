@@ -7,7 +7,9 @@ import type { BookImportSource } from "./library-types";
 type AndroidBookPickBridge = {
   startBookPick?: (generation: number) => void;
   takeBookPickResult?: () => string | null;
-  // The font picker's parked methods on the same MainActivity JS bridge.
+  // Parked resource and font pickers on the same MainActivity JS bridge.
+  startResourcePick?: (generation: number, multiple: boolean) => void;
+  takeResourcePickResult?: () => string | null;
   startFontPick?: (generation: number) => void;
   takeFontPickResult?: () => string | null;
 };

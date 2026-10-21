@@ -278,14 +278,14 @@ export function buildReaderContentCss(settings: ReaderSettings, assets: ReaderCo
     @namespace epub url("http://www.idpf.org/2007/ops");
     ${fontFaceCss}
     html {
-      background: ${theme.bg} !important;
+      background: ${theme.background ? "transparent" : theme.bg} !important;
     }
 
     body {
       box-sizing: border-box !important;
       padding: ${bodyPadding} !important;
       color: ${theme.text} !important;
-      background: ${theme.bg} !important;
+      background: ${theme.background ? "transparent" : theme.bg} !important;
       font-family: ${fontFamily} !important;
       font-size: ${fontSize} !important;
       font-weight: ${fontWeight} !important;

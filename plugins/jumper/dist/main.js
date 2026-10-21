@@ -289,7 +289,7 @@ var CONTRIBUTION_CATALOG = {
   agentContextProviders: { version: "1.1.0", permission: "agent:context" },
   agentRetrievalProviders: { version: "1.0.0", permission: "agent:retrieval" },
   memoryCandidateProviders: { version: "1.1.0", permission: "agent:memory" },
-  themes: { version: "1.0.0", permission: "ui:themes" },
+  themes: { version: "1.1.0", permission: "ui:themes" },
   fonts: { version: "1.0.0", permission: "ui:themes" },
   syncTransports: { version: "2.0.0", permission: "sync:transport" }
 };
@@ -306,7 +306,7 @@ var HOST_SERVICE_CATALOG = {
   maintenance: { version: "1.5.0", permission: null },
   diagnostics: { version: "1.2.0", permission: "service:diagnostics" },
   logging: { version: "1.0.0", permission: null },
-  resources: { version: "1.5.0", permission: null },
+  resources: { version: "1.6.0", permission: null },
   sync: { version: "1.2.0", permission: "service:sync" },
   network: { version: "2.2.0", permission: "service:network" },
   llm: { version: "1.6.0", permission: "service:llm" },

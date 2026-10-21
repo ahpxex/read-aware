@@ -7033,3 +7033,43 @@ pending concentrated acceptance; these limits are not a system-wide URI sandbox.
 任务在插件激活后恢复，退出时等待已派发工作收尾；暂停、取消和显式恢复意图持久保存。
 未知执行结果先核对，不能把取消当回滚。图谱重建保存章节计划与生成结果，恢复核对事件回执并复用条件提交；真实桌面重启验收尚待补齐。
 后台任务目前要求激活根上下文，服务 Worker 与反应上下文不开放此入口；完整因果续接待补。Agent 已接同类任务工具，启动及恢复须逐次批准完整语义计划，书会话仅能操作本书。
+
+### Reader image themes (themes 1.1, resources 1.6)
+
+`ctx.contributions.themes.register(theme)` requires `ui:themes` and returns an
+awaited, activation-owned disposable. It accepts the existing theme declaration
+plus an optional `readerBackground` with `assetKey`, `assetRevision`, `opacity`
+and `dim` (both finite values from 0 to 1). A reader palette is required when
+using a background. The asset must belong to the registering plugin; URLs,
+filesystem paths and CSS are not accepted. Manifest themes and fonts remain
+unchanged.
+
+The host opens the exact private asset revision, decodes it through the existing
+bounded raster preview path (16 MiB encoded, 16 megapixels, at most 2048 pixels
+per side), then publishes the theme. Invalid images do not replace a working
+registration. Activation stages publication; disposal, disable and shutdown
+release the registration's image URL. The user must select the theme through
+the settings domain. Reflowable pages show the image behind transparent page
+surfaces; fixed-layout pages retain their own artwork, with the image around
+them. Text opacity is never changed.
+
+The bundled `image-background` plugin, displayed as **图片背景**, supplies local
+PNG/JPEG/WebP selection, replacement, opacity/dimming controls and removal.
+It stores configuration in private documents and images in private assets;
+these survive restart and full backup but do not roam. Applying from the reader
+sets the global theme and the current book's theme; other book overrides remain.
+It does not change fonts or paragraph layout.
+
+Resources 1.6 allows file picking on Android/iOS as well as desktop. Android
+parks the document-picker result while the WebView is suspended; native resource
+opening materializes content URIs without sending source bytes across JS.
+Directory, original-book and save operations retain their existing platform
+restrictions. API tests and native runtime evidence are distinct; HarmonyOS
+hardware acceptance is still required for issue #42.
+
+2026-10-21 acceptance: desktop Tauri and the Android debug APK rendered a
+selected image and applied opacity/dimming through the real plugin Worker,
+private assets and settings. Android retained 40% opacity / 35% dimming after
+process restart. File selection was controlled for these tests; Android used a
+real content URI and separately launched the system document picker. Completing
+selection in the system picker, iOS runtime and HarmonyOS hardware remain unverified.

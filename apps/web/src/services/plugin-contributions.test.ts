@@ -21,6 +21,7 @@ test("every current contribution point is discoverable without invoking or expos
     registry.registerContextActionContribution,
     registry.registerCommandContribution,
     registry.registerSettingsOptionsContribution,
+    registry.registerSettingsPageContribution,
     registry.registerVoiceProviderContribution,
     registry.registerContentProviderContribution,
     registry.registerReaderModeContribution,
@@ -74,7 +75,7 @@ test("every current contribution point is discoverable without invoking or expos
   try {
     const page = await actor.context.services.plugins.contributions({ pluginId: "discovery" });
     expect(Object.keys(CONTRIBUTION_CATALOG).sort()).toEqual(page.contributions.map((item) => item.point).sort());
-    expect(page.total).toBe(16);
+    expect(page.total).toBe(17);
     expect(calls).toBe(0);
     expect(JSON.stringify(page)).not.toMatch(/PRIVATE|secret|\/private\/|execute|synthesize|label/);
     expect(page.contributions.find((item) => item.point === "syncTransports")?.key).toBe("plugin:discovery:main");

@@ -35,6 +35,7 @@ const TOPICS: Record<CapabilityKey, CapabilityTopic[]> = {
   "contributions:contextActions": ["library", "interface"],
   "contributions:commands": ["interface", "automation"],
   "contributions:settingsOptions": ["interface"],
+  "contributions:settingsPage": ["interface"],
   "contributions:voiceProviders": ["reading", "integration"],
   "contributions:contentProviders": ["library", "integration"],
   "contributions:readerModes": ["reading"],

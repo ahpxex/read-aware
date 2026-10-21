@@ -6,7 +6,7 @@
         "(input: { providerId: string; key: string; title: string; author?: string; }): Promise<BookSummary>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1727
+      "line": 1729
     },
     {
       "path": "ctx.domains.library.commands.books.cancelImportTask",
@@ -14,7 +14,7 @@
         "(taskId: string): Promise<BookImportTaskSnapshot>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1719
+      "line": 1721
     },
     {
       "path": "ctx.domains.library.commands.books.cancelTextTask",
@@ -23,7 +23,7 @@
       ],
       "doc": "Cancels only this activation's request; shared work or dispatched writes may continue.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1698
+      "line": 1700
     },
     {
       "path": "ctx.domains.library.commands.books.editMetadata",
@@ -31,7 +31,7 @@
         "(bookId: string, patch: { title?: string; author?: string; }): Promise<void>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1720
+      "line": 1722
     },
     {
       "path": "ctx.domains.library.commands.books.importBook",
@@ -39,7 +39,7 @@
         "(input: { fileName: string; data: ArrayBuffer | Uint8Array; }, options?: PluginCallOptions): Promise<BookSummary>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1699
+      "line": 1701
     },
     {
       "path": "ctx.domains.library.commands.books.importResource",
@@ -48,7 +48,7 @@
       ],
       "doc": "Library 1.19 adds per-call cancellation. Before the first durable write, cancellation prevents admission; afterward await the actual imported/duplicate receipt or failure. No whole-file transfer, opening or resource release.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1709
+      "line": 1711
     },
     {
       "path": "ctx.domains.library.commands.books.invalidateVirtualBook",
@@ -57,7 +57,7 @@
       ],
       "doc": "Announce already-saved source changes. Does not reload or move the reader. revision is a process-local invalidation fence, not a content hash. Library 1.15.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1731
+      "line": 1733
     },
     {
       "path": "ctx.domains.library.commands.books.mergeDuplicates",
@@ -66,7 +66,7 @@
       ],
       "doc": "Conditional record merge with the host's deterministic keeper; not file deletion or undo.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1685
+      "line": 1687
     },
     {
       "path": "ctx.domains.library.commands.books.pauseTextTask",
@@ -74,7 +74,7 @@
         "(bookId: string, taskId: string): Promise<BookTextTaskSnapshot>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1694
+      "line": 1696
     },
     {
       "path": "ctx.domains.library.commands.books.prepareText",
@@ -83,7 +83,7 @@
       ],
       "doc": "Library 1.31: starts an actor-owned background request. A receipt is not completion. Current-book grants fence admission and the lease through pause/resume; switching books cancels only this request, without undoing accepted writes.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1678
+      "line": 1680
     },
     {
       "path": "ctx.domains.library.commands.books.remove",
@@ -91,7 +91,7 @@
         "(bookId: string): Promise<void>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1722
+      "line": 1724
     },
     {
       "path": "ctx.domains.library.commands.books.removeMany",
@@ -100,7 +100,7 @@
       ],
       "doc": "1-1000 IDs, deduplicated. Atomic record deletion; local file release is separately reported.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1724
+      "line": 1726
     },
     {
       "path": "ctx.domains.library.commands.books.removeVirtualBook",
@@ -108,7 +108,7 @@
         "(input: { providerId: string; key: string; expectedBookId?: string; }): Promise<void>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1728
+      "line": 1730
     },
     {
       "path": "ctx.domains.library.commands.books.resumeTextTask",
@@ -117,7 +117,7 @@
       ],
       "doc": "Library 1.21: reacquires this paused request using saved checkpoints and the same handle.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1696
+      "line": 1698
     },
     {
       "path": "ctx.domains.library.commands.books.retryEnrichment",
@@ -126,7 +126,7 @@
       ],
       "doc": "Retry unchecked covers and missing/filename-derived metadata using the shared queue, without forcing replacement or download.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1683
+      "line": 1685
     },
     {
       "path": "ctx.domains.library.commands.books.retryRemovalCleanup",
@@ -135,7 +135,7 @@
       ],
       "doc": "Retry file release only. Refuses any ID now present in the library; never deletes records.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1726
+      "line": 1728
     },
     {
       "path": "ctx.domains.library.commands.books.setStarred",
@@ -143,7 +143,7 @@
         "(bookId: string, starred: boolean): Promise<void>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1721
+      "line": 1723
     },
     {
       "path": "ctx.domains.library.commands.books.setTextTaskPriority",
@@ -152,7 +152,7 @@
       ],
       "doc": "Library 1.21: pauses only this request by releasing its lease; other consumers and dispatched I/O may continue.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1689
+      "line": 1691
     },
     {
       "path": "ctx.domains.library.commands.books.startImport",
@@ -161,7 +161,7 @@
       ],
       "doc": "Start a task over owned sealed resources or <=64 MiB file bytes (wire limits still apply). Queued is not imported. options.signal cancels admission only; use cancelImportTask after the receipt. At most 2 physical task executions per activation, 4 in the app; direct imports/picker jobs are outside this task quota. Tasks do not resume after restart. Accepted writes finish despite cancellation.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1715
+      "line": 1717
     },
     {
       "path": "ctx.domains.library.commands.collections.assignBooks",
@@ -169,7 +169,7 @@
         "(bookIds: string[], collectionId: string | null): Promise<void>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1737
+      "line": 1739
     },
     {
       "path": "ctx.domains.library.commands.collections.create",
@@ -177,7 +177,7 @@
         "(name: string): Promise<CollectionSummary>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1734
+      "line": 1736
     },
     {
       "path": "ctx.domains.library.commands.collections.remove",
@@ -185,7 +185,7 @@
         "(collectionId: string): Promise<void>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1736
+      "line": 1738
     },
     {
       "path": "ctx.domains.library.commands.collections.rename",
@@ -193,7 +193,7 @@
         "(collectionId: string, name: string): Promise<void>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1735
+      "line": 1737
     },
     {
       "path": "ctx.domains.library.events.observeContentState",
@@ -201,7 +201,7 @@
         "(bookId: string, handler: PluginObservationHandler<BookContentObservation>, options?: { ruleId?: string; }): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1760
+      "line": 1762
     },
     {
       "path": "ctx.domains.library.events.observeEnrichment",
@@ -209,7 +209,7 @@
         "(bookId: string, handler: PluginObservationHandler<BookEnrichmentObservation>, options?: { ruleId?: string; }): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1755
+      "line": 1757
     },
     {
       "path": "ctx.domains.library.events.observeImportTask",
@@ -218,7 +218,7 @@
       ],
       "doc": "Initial snapshot and coalesced monotonic revisions, including terminal failures.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1750
+      "line": 1752
     },
     {
       "path": "ctx.domains.library.events.observeInvalidation",
@@ -227,7 +227,7 @@
       ],
       "doc": "Initial and coalesced reload hints, including remote projection changes. Re-query authorized data; not an event log or a conditional-write token.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1767
+      "line": 1769
     },
     {
       "path": "ctx.domains.library.events.observeTextTask",
@@ -236,7 +236,7 @@
       ],
       "doc": "Library 1.32: serial reaction deliveries retain task and history-write sources.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1743
+      "line": 1745
     },
     {
       "path": "ctx.domains.library.events.subscribe",
@@ -244,7 +244,7 @@
         "<K>(event: K, handler: (event: PluginDomainEvent<K>) => unknown, options?: { ignoreSelf?: boolean; ruleId?: string; }): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1741
+      "line": 1743
     },
     {
       "path": "ctx.domains.library.queries.books.get",
@@ -252,7 +252,7 @@
         "(bookId: string): Promise<BookSummary | null>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1599
+      "line": 1601
     },
     {
       "path": "ctx.domains.library.queries.books.getChapterText",
@@ -260,7 +260,7 @@
         "(bookId: string, chapterIndex: number): Promise<string | null>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1625
+      "line": 1627
     },
     {
       "path": "ctx.domains.library.queries.books.getContentState",
@@ -269,7 +269,7 @@
       ],
       "doc": "Source metadata only; never loads a provider or reveals reading state. Library 1.16.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1606
+      "line": 1608
     },
     {
       "path": "ctx.domains.library.queries.books.getEnrichment",
@@ -278,7 +278,7 @@
       ],
       "doc": "Library 1.9: local cover/source state and the latest process-local enrichment attempt.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1604
+      "line": 1606
     },
     {
       "path": "ctx.domains.library.queries.books.getImportTask",
@@ -287,7 +287,7 @@
       ],
       "doc": "waitMs (0..30000) waits for terminal state or returns current progress at the deadline. Cancelling this query stops observation only.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1619
+      "line": 1621
     },
     {
       "path": "ctx.domains.library.queries.books.getNavigationToc",
@@ -295,7 +295,7 @@
         "(bookId: string, options?: PluginCallOptions): Promise<BookNavigationToc>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1626
+      "line": 1628
     },
     {
       "path": "ctx.domains.library.queries.books.getTextState",
@@ -304,7 +304,7 @@
       ],
       "doc": "Read-only derived-text state. Never starts parsing, fetching, or extraction.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1602
+      "line": 1604
     },
     {
       "path": "ctx.domains.library.queries.books.getTextTask",
@@ -312,7 +312,7 @@
         "(bookId: string, taskId: string): Promise<BookTextTaskSnapshot>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1614
+      "line": 1616
     },
     {
       "path": "ctx.domains.library.queries.books.getToc",
@@ -320,7 +320,7 @@
         "(bookId: string): Promise<ChapterRef[]>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1600
+      "line": 1602
     },
     {
       "path": "ctx.domains.library.queries.books.inspectResource",
@@ -329,7 +329,7 @@
       ],
       "doc": "Initialize this activation's sealed resource with the reader parser; no import.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1587
+      "line": 1589
     },
     {
       "path": "ctx.domains.library.queries.books.list",
@@ -337,7 +337,7 @@
         "(): Promise<BookSummary[]>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1583
+      "line": 1585
     },
     {
       "path": "ctx.domains.library.queries.books.listDuplicates",
@@ -346,7 +346,7 @@
       ],
       "doc": "Library 1.10: same-content groups; live offset pages, limit 1-50.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1589
+      "line": 1591
     },
     {
       "path": "ctx.domains.library.queries.books.listFormats",
@@ -355,7 +355,7 @@
       ],
       "doc": "Library 1.11: import routing hints; extensions alone do not prove readability.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1585
+      "line": 1587
     },
     {
       "path": "ctx.domains.library.queries.books.listImages",
@@ -364,7 +364,7 @@
       ],
       "doc": "Library 1.29: section-local img/SVG, srcset/authored CSS and PDF image candidates. No remote fetch; PDF operator inspection can decode objects.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1649
+      "line": 1651
     },
     {
       "path": "ctx.domains.library.queries.books.listImportTasks",
@@ -372,7 +372,7 @@
         "(): Promise<BookImportTaskSnapshot[]>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1624
+      "line": 1626
     },
     {
       "path": "ctx.domains.library.queries.books.listNavigationTargets",
@@ -381,7 +381,7 @@
       ],
       "doc": "Library 1.14: bounded source-section or author-supplied page-label catalog; not screen page counts.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1631
+      "line": 1633
     },
     {
       "path": "ctx.domains.library.queries.books.listReferences",
@@ -390,7 +390,7 @@
       ],
       "doc": "Library 1.12: versioned section references, not extracted chapter indices.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1644
+      "line": 1646
     },
     {
       "path": "ctx.domains.library.queries.books.listRemovalCleanup",
@@ -399,7 +399,7 @@
       ],
       "doc": "Durable device-local pending file cleanup, including after view/plugin restart. Live keyset page, limit 1-100 (default 50).",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1596
+      "line": 1598
     },
     {
       "path": "ctx.domains.library.queries.books.listTextTaskHistory",
@@ -407,7 +407,7 @@
         "(bookId: string, query?: BookTextTaskHistoryQuery): Promise<BookTextTaskHistoryPage>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1610
+      "line": 1612
     },
     {
       "path": "ctx.domains.library.queries.books.listTextTasks",
@@ -415,7 +415,7 @@
         "(bookId: string): Promise<BookTextTaskSnapshot[]>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1615
+      "line": 1617
     },
     {
       "path": "ctx.domains.library.queries.books.openImageResource",
@@ -424,7 +424,7 @@
       ],
       "doc": "Seal an embedded image as this activation's ResourceRef; does not display it or decode pixels.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1654
+      "line": 1656
     },
     {
       "path": "ctx.domains.library.queries.books.previewMerge",
@@ -432,7 +432,7 @@
         "(bookId: string): Promise<BookMergePreview | null>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1592
+      "line": 1594
     },
     {
       "path": "ctx.domains.library.queries.books.readRange",
@@ -440,7 +440,7 @@
         "(input: BookRangeQuery, options?: PluginCallOptions): Promise<BookRangePage>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1639
+      "line": 1641
     },
     {
       "path": "ctx.domains.library.queries.books.readReference",
@@ -449,7 +449,7 @@
       ],
       "doc": "Plain-text preview and resolved navigation location; never fetches or opens an external URL.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1658
+      "line": 1660
     },
     {
       "path": "ctx.domains.library.queries.books.resolveId",
@@ -458,7 +458,7 @@
       ],
       "doc": "Current book ID or merge redirect, null if neither points to a living book.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1594
+      "line": 1596
     },
     {
       "path": "ctx.domains.library.queries.books.searchLocations",
@@ -466,7 +466,7 @@
         "(input: BookLocationSearch, options?: PluginCallOptions): Promise<BookLocationSearchPage>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1635
+      "line": 1637
     },
     {
       "path": "ctx.domains.library.queries.books.searchText",
@@ -475,7 +475,7 @@
       ],
       "doc": "Multi-query derived prose search. Single-book may prepare text; shelf search never does. Results are not navigation locations.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1663
+      "line": 1665
     },
     {
       "path": "ctx.domains.library.queries.collections.booksIn",
@@ -483,7 +483,7 @@
         "(collectionId: string): Promise<string[]>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1670
+      "line": 1672
     },
     {
       "path": "ctx.domains.library.queries.collections.list",
@@ -491,7 +491,7 @@
         "(): Promise<CollectionSummary[]>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1669
+      "line": 1671
     }
   ],
   "domains:reading": [
@@ -501,7 +501,7 @@
         "(guard?: ReadingSessionGuard, options?: PluginCallOptions): Promise<ReadingNavigationReceipt>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1832
+      "line": 1834
     },
     {
       "path": "ctx.domains.reading.commands.clearSelection",
@@ -510,7 +510,7 @@
       ],
       "doc": "Clears only the observed selection ID; a replacement selection is never silently cleared.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1815
+      "line": 1817
     },
     {
       "path": "ctx.domains.reading.commands.close",
@@ -518,7 +518,7 @@
         "(guard?: ReadingSessionGuard, options?: PluginCallOptions): Promise<void>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1851
+      "line": 1853
     },
     {
       "path": "ctx.domains.reading.commands.configureMode",
@@ -527,7 +527,7 @@
       ],
       "doc": "Configure the host mode; modeKey guards the current provider, selectModeKey selects from session().mode.availableModes. Resolves after real indexing (ready/empty) or deactivation. Failed indexing rejects. Disabling the caller cancels an unfinished change; completed mode preferences remain.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1861
+      "line": 1863
     },
     {
       "path": "ctx.domains.reading.commands.controlPlayback",
@@ -536,7 +536,7 @@
       ],
       "doc": "Start resolves on actual audio start. Stop is idempotent; disabling the initiating plugin stops its playback.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1853
+      "line": 1855
     },
     {
       "path": "ctx.domains.reading.commands.forward",
@@ -544,7 +544,7 @@
         "(guard?: ReadingSessionGuard, options?: PluginCallOptions): Promise<ReadingNavigationReceipt>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1836
+      "line": 1838
     },
     {
       "path": "ctx.domains.reading.commands.goTo",
@@ -552,7 +552,7 @@
         "(target: ReadingTarget, options?: PluginCallOptions): Promise<ReadingNavigationReceipt>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1828
+      "line": 1830
     },
     {
       "path": "ctx.domains.reading.commands.openBook",
@@ -560,7 +560,7 @@
         "(bookId: string, options?: PluginCallOptions): Promise<ReadingNavigationReceipt>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1827
+      "line": 1829
     },
     {
       "path": "ctx.domains.reading.commands.putEmphasis",
@@ -569,7 +569,7 @@
       ],
       "doc": "Temporary owned marks, not annotations. No navigation; replacement requires an observed revision.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1798
+      "line": 1800
     },
     {
       "path": "ctx.domains.reading.commands.reload",
@@ -578,7 +578,7 @@
       ],
       "doc": "Reading 2.21: reopen source; virtual sections with identical stable identity/content preserve their location across reorder. Stale/legacy virtual locators restart at the beginning; files still restart. Whole-book contentVersion guards remain strict.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1847
+      "line": 1849
     },
     {
       "path": "ctx.domains.reading.commands.removeEmphasis",
@@ -586,7 +586,7 @@
         "(input: ReadingEmphasisRef, guard?: ReadingSessionGuard, options?: PluginCallOptions): Promise<ReadingEmphasisRemoval>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1803
+      "line": 1805
     },
     {
       "path": "ctx.domains.reading.commands.returnToMode",
@@ -595,7 +595,7 @@
       ],
       "doc": "Return to the versioned resting unit; wait for renderer navigation and unit restoration before committing history.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1867
+      "line": 1869
     },
     {
       "path": "ctx.domains.reading.commands.selectRange",
@@ -604,7 +604,7 @@
       ],
       "doc": "Requires this book to be open; validates its source range, navigates, then waits for the selection overlay commit.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1809
+      "line": 1811
     },
     {
       "path": "ctx.domains.reading.commands.setControls",
@@ -613,7 +613,7 @@
       ],
       "doc": "Set reader chrome visibility; completes after UI commit. Does not alter panel preferences or playback.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1821
+      "line": 1823
     },
     {
       "path": "ctx.domains.reading.commands.setFinished",
@@ -621,7 +621,7 @@
         "(bookId: string, finished: boolean): Promise<void>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1826
+      "line": 1828
     },
     {
       "path": "ctx.domains.reading.commands.step",
@@ -630,7 +630,7 @@
       ],
       "doc": "Reading 2.12: page, source-section and book-boundary navigation; section/boundary jumps enter history.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1841
+      "line": 1843
     },
     {
       "path": "ctx.domains.reading.commands.stepMode",
@@ -639,7 +639,7 @@
       ],
       "doc": "Step one configured text unit, across sections if necessary; reports book boundaries explicitly.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1872
+      "line": 1874
     },
     {
       "path": "ctx.domains.reading.events.observeEmphasis",
@@ -647,7 +647,7 @@
         "(handler: (snapshot: ReadingEmphasisSnapshot[], delivery?: PluginReactionEvent) => void | Promise<void>): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1889
+      "line": 1891
     },
     {
       "path": "ctx.domains.reading.events.observeSession",
@@ -656,7 +656,7 @@
       ],
       "doc": "Immediate and subsequent snapshots carry a live reaction lease. Use withEvent for automatic writes; keep the original context for later user actions. A stable ruleId can resume job causality across activations.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1882
+      "line": 1884
     },
     {
       "path": "ctx.domains.reading.events.observeTime",
@@ -665,7 +665,7 @@
       ],
       "doc": "Immediate sample then a 1s minimum gap after each delivery. Errors are explicit; dispose stops further delivery. Reading 2.24: delivery retains sampling subscription ancestry across timers. It does not identify historical writers of the aggregate.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1898
+      "line": 1900
     },
     {
       "path": "ctx.domains.reading.events.subscribe",
@@ -673,7 +673,7 @@
         "<K>(event: K, handler: (event: PluginDomainEvent<K>) => unknown, options?: { ignoreSelf?: boolean; ruleId?: string; }): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1879
+      "line": 1881
     },
     {
       "path": "ctx.domains.reading.queries.emphasis",
@@ -682,7 +682,7 @@
       ],
       "doc": "This activation's temporary marks only; attached does not mean visible in the viewport.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1781
+      "line": 1783
     },
     {
       "path": "ctx.domains.reading.queries.session",
@@ -690,7 +690,7 @@
         "(): Promise<ReadingSessionSnapshot>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1782
+      "line": 1784
     },
     {
       "path": "ctx.domains.reading.queries.stats.forBook",
@@ -698,7 +698,7 @@
         "(bookId: string): Promise<BookStats | null>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1791
+      "line": 1793
     },
     {
       "path": "ctx.domains.reading.queries.stats.insights",
@@ -706,7 +706,7 @@
         "(query?: ReadingInsightsQuery): Promise<ReadingInsights>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1788
+      "line": 1790
     },
     {
       "path": "ctx.domains.reading.queries.stats.list",
@@ -714,7 +714,7 @@
         "(): Promise<BookStats[]>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1792
+      "line": 1794
     },
     {
       "path": "ctx.domains.reading.queries.stats.overview",
@@ -722,7 +722,7 @@
         "(): Promise<StatsOverview>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1793
+      "line": 1795
     },
     {
       "path": "ctx.domains.reading.queries.stats.time",
@@ -731,7 +731,7 @@
       ],
       "doc": "Atomic settled + pending time, with native sampling clock. Reading >=2.7.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1785
+      "line": 1787
     }
   ],
   "domains:annotations": [
@@ -742,7 +742,7 @@
       ],
       "doc": "Since 2.0 this is the only edit/delete entry. Use the revision observed before the user's decision; 1..100 distinct items, all commit or none.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1933
+      "line": 1935
     },
     {
       "path": "ctx.domains.annotations.commands.createHighlight",
@@ -751,7 +751,7 @@
       ],
       "doc": "annotations >=2.1: range validates and preserves the captured source; requires library:read.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1937
+      "line": 1939
     },
     {
       "path": "ctx.domains.annotations.commands.createNote",
@@ -759,7 +759,7 @@
         "(input: { range?: BookTextRange; bookId: string; body: string; quotedText?: string; anchor?: string | null; chapterHref?: string | null; }): Promise<NoteItem>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1946
+      "line": 1948
     },
     {
       "path": "ctx.domains.annotations.events.observe",
@@ -768,7 +768,7 @@
       ],
       "doc": "Since 1.4. Initial authorized snapshot, then changed results/errors/recovery. Disposal ends polling.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1958
+      "line": 1960
     },
     {
       "path": "ctx.domains.annotations.events.subscribe",
@@ -776,7 +776,7 @@
         "<K>(event: K, handler: (event: PluginDomainEvent<K>) => unknown, options?: { ignoreSelf?: boolean; ruleId?: string; }): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1956
+      "line": 1958
     },
     {
       "path": "ctx.domains.annotations.queries.get",
@@ -785,7 +785,7 @@
       ],
       "doc": "annotations >=1.1.0. Missing IDs return null; read failures reject.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1923
+      "line": 1925
     },
     {
       "path": "ctx.domains.annotations.queries.inspect",
@@ -794,7 +794,7 @@
       ],
       "doc": "annotations >=1.3.0. Read an item and its conditional-write token atomically.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1919
+      "line": 1921
     },
     {
       "path": "ctx.domains.annotations.queries.list",
@@ -802,7 +802,7 @@
         "(filter?: { bookId?: string; kind?: \"highlight\" | \"note\" | \"ask\"; query?: string; }): Promise<AnnotationItem[]>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1924
+      "line": 1926
     },
     {
       "path": "ctx.domains.annotations.queries.page",
@@ -811,7 +811,7 @@
       ],
       "doc": "annotations >=1.2.0. Live keyset page, not a frozen snapshot across calls.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1921
+      "line": 1923
     }
   ],
   "domains:conversations": [
@@ -821,7 +821,7 @@
         "(id: string): Promise<ConversationTurnRequestSnapshot>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1999
+      "line": 2001
     },
     {
       "path": "ctx.domains.conversations.commands.clear",
@@ -830,7 +830,7 @@
       ],
       "doc": "Clears transcript/hidden thread state after draining turns, not long-term memory or event history.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2008
+      "line": 2010
     },
     {
       "path": "ctx.domains.conversations.commands.createThread",
@@ -839,7 +839,7 @@
       ],
       "doc": "Creates and selects a global draft; no transcript row until the first message. Does not navigate the app.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2001
+      "line": 2003
     },
     {
       "path": "ctx.domains.conversations.commands.requestTurn",
@@ -848,7 +848,7 @@
       ],
       "doc": "Requires a mounted conversation. Only a host UI confirmation can adopt/send/retry; receipt is not a completed turn.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1996
+      "line": 1998
     },
     {
       "path": "ctx.domains.conversations.commands.selectThread",
@@ -856,7 +856,7 @@
         "(threadId: string): Promise<ConversationControlReceipt>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2002
+      "line": 2004
     },
     {
       "path": "ctx.domains.conversations.commands.stop",
@@ -865,7 +865,7 @@
       ],
       "doc": "Stops live UI turns and waits for their final transcript writes. Does not undo tool effects.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2004
+      "line": 2006
     },
     {
       "path": "ctx.domains.conversations.events.observeInvalidation",
@@ -873,7 +873,7 @@
         "(handler: PluginObservationHandler<ProjectionInvalidation>): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2014
+      "line": 2016
     },
     {
       "path": "ctx.domains.conversations.events.observeRuntime",
@@ -882,7 +882,7 @@
       ],
       "doc": "Conversations 1.6: serial reaction deliveries, with an optional stable rule ID.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2018
+      "line": 2020
     },
     {
       "path": "ctx.domains.conversations.events.subscribe",
@@ -890,7 +890,7 @@
         "<K>(event: K, handler: (event: PluginDomainEvent<K>) => unknown, options?: { ignoreSelf?: boolean; ruleId?: string; }): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2013
+      "line": 2015
     },
     {
       "path": "ctx.domains.conversations.queries.getBookThread",
@@ -898,7 +898,7 @@
         "(bookId: string): Promise<ChatMessageSummary[]>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1990
+      "line": 1992
     },
     {
       "path": "ctx.domains.conversations.queries.getInsights",
@@ -907,7 +907,7 @@
       ],
       "doc": "Conversations 1.4: stored rolling summary of a book/global thread, or null. No generation, freshness guarantee, raw runtime state or summary writes.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1986
+      "line": 1988
     },
     {
       "path": "ctx.domains.conversations.queries.getThread",
@@ -915,7 +915,7 @@
         "(threadId: string): Promise<ChatMessageSummary[]>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1992
+      "line": 1994
     },
     {
       "path": "ctx.domains.conversations.queries.listThreads",
@@ -923,7 +923,7 @@
         "(): Promise<ThreadSummary[]>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1991
+      "line": 1993
     },
     {
       "path": "ctx.domains.conversations.queries.runtime",
@@ -931,7 +931,7 @@
         "(): Promise<PluginConversationRuntimeSnapshot>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1989
+      "line": 1991
     },
     {
       "path": "ctx.domains.conversations.queries.turnRequests",
@@ -940,7 +940,7 @@
       ],
       "doc": "Up to 128 recently retained host requests, filtered to this actor; no text or other actors' requests.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 1988
+      "line": 1990
     }
   ],
   "domains:settings": [
@@ -951,7 +951,7 @@
       ],
       "doc": "Settings 1.9: additionally requires service:network. Shared native refresh, not a connection test.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2058
+      "line": 2060
     },
     {
       "path": "ctx.domains.settings.commands.resetReading",
@@ -960,7 +960,7 @@
       ],
       "doc": "Settings 1.7: reset the whole reader-preference bundle; every reading path must be writable. defaults restores built-ins; inherit deletes active and remembered book overrides.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2065
+      "line": 2067
     },
     {
       "path": "ctx.domains.settings.commands.update",
@@ -968,7 +968,7 @@
         "(changes: SettingChange[]): Promise<SettingsUpdateResult>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2062
+      "line": 2064
     },
     {
       "path": "ctx.domains.settings.events.subscribe",
@@ -976,7 +976,7 @@
         "(handler: (event: SettingsChangedEvent & PluginReactionEvent) => unknown, options?: { ignoreSelf?: boolean; ruleId?: string; }): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2068
+      "line": 2070
     },
     {
       "path": "ctx.domains.settings.queries.discover",
@@ -984,7 +984,7 @@
         "(query?: SettingsQuery): Promise<SettingCatalogEntry[]>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2038
+      "line": 2040
     },
     {
       "path": "ctx.domains.settings.queries.modelCatalog",
@@ -993,7 +993,7 @@
       ],
       "doc": "Settings 1.9: cached public model metadata; discover access to primaryModel or fastModel. No network.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2028
+      "line": 2030
     },
     {
       "path": "ctx.domains.settings.queries.observe",
@@ -1002,7 +1002,7 @@
       ],
       "doc": "Settled snapshots after native, domain, remote, restore and catalog changes. Coalesces slow callbacks.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2034
+      "line": 2036
     },
     {
       "path": "ctx.domains.settings.queries.options",
@@ -1011,7 +1011,7 @@
       ],
       "doc": "Settings 1.8: bounded options; same path grants as discover. Includes installed system families for reading/content fonts without font paths or bytes. Since 1.10, dynamicOptions fields invoke the registered owning provider with saved non-secret form values, never caller-supplied values. Network-enabled providers additionally require this caller's service:network permission. Results are cached for 60 seconds, at most 16 lists / 2000 options per list, 512 characters per label/value and 1 MiB of label/value JSON. Pages retain the returned revision; changed settings/provider or expiry require restart. Four provider loads host-wide, 10-second wait; already-started provider work is not cancelled by this deadline or caller retirement. No writes/synthesis. Plugin-owned option queries require the caller's active phase, not activation/migration. Empty results still allow manual values; provider failures remain failures.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2051
+      "line": 2053
     },
     {
       "path": "ctx.domains.settings.queries.read",
@@ -1019,7 +1019,7 @@
         "(path: string, target?: SettingsQueryTarget): Promise<SettingReadResult>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2054
+      "line": 2056
     },
     {
       "path": "ctx.domains.settings.queries.snapshot",
@@ -1028,7 +1028,7 @@
       ],
       "doc": "Since settings 1.3: one host snapshot after prior queued writes settle, filtered by exact path grants.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2032
+      "line": 2034
     }
   ],
   "domains:memory": [
@@ -1038,7 +1038,7 @@
         "(bookId: string, taskId: string): Promise<BookGraphTaskSnapshot>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2193
+      "line": 2195
     },
     {
       "path": "ctx.domains.memory.commands.classify",
@@ -1046,7 +1046,7 @@
         "(input: BookClassificationChange): Promise<BookClassificationReceipt>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2185
+      "line": 2187
     },
     {
       "path": "ctx.domains.memory.commands.completeOnboarding",
@@ -1055,7 +1055,7 @@
       ],
       "doc": "Memory 2.5: confirm the full summary AND seeds before calling. Reuse the same owner-local submissionId and exact candidate after a lost receipt; a different candidate requires a new id and renewed confirmation. Atomic, event-backed.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2178
+      "line": 2180
     },
     {
       "path": "ctx.domains.memory.commands.context.capture",
@@ -1063,7 +1063,7 @@
         "(selector: ContextBundleSelector, options?: PluginCallOptions): Promise<ContextBundleCaptureReceipt>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2164
+      "line": 2166
     },
     {
       "path": "ctx.domains.memory.commands.decideEntity",
@@ -1072,7 +1072,7 @@
       ],
       "doc": "Memory 2.1: resolve an original member or merge known resolved classes using an observed entities1 revision. Present the exact change for confirmation first. Retains original definitions/aliases, may sync to other devices. No blind conflict retry. Cancellation prevents dispatch only; dispatched writes drain to their actual receipt. A transport timeout or lost Worker leaves the outcome unknown: reread, never retry blindly.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2153
+      "line": 2155
     },
     {
       "path": "ctx.domains.memory.commands.mutate",
@@ -1080,7 +1080,7 @@
         "(input: MemoryMutation): Promise<MemoryMutationReceipt>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2182
+      "line": 2184
     },
     {
       "path": "ctx.domains.memory.commands.retryGraphTask",
@@ -1088,7 +1088,7 @@
         "(bookId: string, taskId: string, options?: BookGraphTaskOptions): Promise<BookGraphTaskSnapshot>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2194
+      "line": 2196
     },
     {
       "path": "ctx.domains.memory.commands.startGraphTask",
@@ -1096,7 +1096,7 @@
         "(bookId: string, mode: \"catch-up\" | \"rebuild\", options?: BookGraphTaskOptions): Promise<BookGraphTaskSnapshot>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2188
+      "line": 2190
     },
     {
       "path": "ctx.domains.memory.commands.updateProfile",
@@ -1105,7 +1105,7 @@
       ],
       "doc": "Replace the event-backed summary using the observed profile2 revision. Present the complete candidate for user confirmation before calling. Empty text clears the summary, not memories or historical copies.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2172
+      "line": 2174
     },
     {
       "path": "ctx.domains.memory.events.observe",
@@ -1114,7 +1114,7 @@
       ],
       "doc": "Initial snapshot, then changed results/errors; bounded polling, not an event log. Plugins 1.5 supplies a separate reaction delivery, including graph task updates.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2203
+      "line": 2205
     },
     {
       "path": "ctx.domains.memory.queries.bookGraph",
@@ -1123,7 +1123,7 @@
       ],
       "doc": "memory >=2.6 only exposes current-source digests; chapter results carry contentVersion for navigation.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2142
+      "line": 2144
     },
     {
       "path": "ctx.domains.memory.queries.classification",
@@ -1131,7 +1131,7 @@
         "(bookId: string): Promise<BookClassificationSnapshot | null>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2136
+      "line": 2138
     },
     {
       "path": "ctx.domains.memory.queries.context.export",
@@ -1139,7 +1139,7 @@
         "(query: ContextBundleReadQuery, options?: PluginCallOptions): Promise<ResourceRef>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2111
+      "line": 2113
     },
     {
       "path": "ctx.domains.memory.queries.context.history",
@@ -1147,7 +1147,7 @@
         "(query: ContextBundleHistoryQuery, options?: PluginCallOptions): Promise<ContextBundleHistoryPage>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2103
+      "line": 2105
     },
     {
       "path": "ctx.domains.memory.queries.context.read",
@@ -1155,7 +1155,7 @@
         "(query: ContextBundleReadQuery, options?: PluginCallOptions): Promise<ContextBundle | null>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2107
+      "line": 2109
     },
     {
       "path": "ctx.domains.memory.queries.entities",
@@ -1164,7 +1164,7 @@
       ],
       "doc": "Global explicit identities, not book-digest characters. Row-bounded, revision-pinned pages. Memory 2.2 adds canonicalDefinition from the same snapshot. Historical field sizes are not bounded. Aborted/retired callers receive no late page.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2129
+      "line": 2131
     },
     {
       "path": "ctx.domains.memory.queries.getGraphTask",
@@ -1172,7 +1172,7 @@
         "(bookId: string, taskId: string): Promise<BookGraphTaskSnapshot>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2137
+      "line": 2139
     },
     {
       "path": "ctx.domains.memory.queries.inspect",
@@ -1180,7 +1180,7 @@
         "(id: string): Promise<MemorySnapshot | null>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2135
+      "line": 2137
     },
     {
       "path": "ctx.domains.memory.queries.listGraphTasks",
@@ -1188,7 +1188,7 @@
         "(bookId: string): Promise<BookGraphTaskSnapshot[]>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2138
+      "line": 2140
     },
     {
       "path": "ctx.domains.memory.queries.page",
@@ -1196,7 +1196,7 @@
         "(input: MemoryPageQuery): Promise<MemoryPage>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2140
+      "line": 2142
     },
     {
       "path": "ctx.domains.memory.queries.profile",
@@ -1205,7 +1205,7 @@
       ],
       "doc": "The event-backed summary projection; read grant, bounded revision-pinned pages.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2134
+      "line": 2136
     },
     {
       "path": "ctx.domains.memory.queries.profileContext",
@@ -1214,7 +1214,7 @@
       ],
       "doc": "Memory 2.3: inspect the generated summary and provenance, separately from curated profile(). Summary pages count UTF-16 units (4000 default, 16000 max); provenance pages count rows (25 default, 100 max; historical ID sizes are unbounded). Pin every page kind to pctx1. Stale text is inspectable, never current context. Invalid blocks expose no content. Current means source-consistent, not semantic verification or completed consolidation. entityEvidence IDs include proposed no-ops, not proof of emitted events. Read grant; no source text, transcripts, raw traits, registry writes or automatic inference.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2123
+      "line": 2125
     },
     {
       "path": "ctx.domains.memory.queries.search",
@@ -1222,7 +1222,7 @@
         "(input: MemoryQuery): Promise<MemoryRecord[]>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2139
+      "line": 2141
     }
   ],
   "contributions:uriHandlers": [
@@ -1232,7 +1232,7 @@
         "(handler: PluginUriHandler): PluginActionRegistration"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2555
+      "line": 2592
     }
   ],
   "contributions:selectionActions": [
@@ -1242,7 +1242,7 @@
         "(action: PluginSelectionAction): PluginActionRegistration"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2558
+      "line": 2595
     }
   ],
   "contributions:headerActions": [
@@ -1252,7 +1252,7 @@
         "(action: PluginHeaderAction): PluginActionRegistration"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2561
+      "line": 2598
     }
   ],
   "contributions:contextActions": [
@@ -1262,7 +1262,7 @@
         "(action: PluginContextAction): PluginActionRegistration"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2564
+      "line": 2601
     }
   ],
   "contributions:commands": [
@@ -1272,7 +1272,7 @@
         "(command: PluginCommand): PluginActionRegistration"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2567
+      "line": 2604
     }
   ],
   "contributions:settingsOptions": [
@@ -1282,7 +1282,17 @@
         "(fieldId: string, provider: (values: PluginFormValues) => PluginSelectOption[] | Promise<PluginSelectOption[]>): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2570
+      "line": 2607
+    }
+  ],
+  "contributions:settingsPage": [
+    {
+      "path": "ctx.contributions.settingsPage.register",
+      "signatures": [
+        "(page: { view(): PluginView | Promise<PluginView>; }): PluginDisposable"
+      ],
+      "source": "packages/plugin-types/src/index.ts",
+      "line": 2581
     }
   ],
   "contributions:voiceProviders": [
@@ -1292,7 +1302,7 @@
         "(provider: PluginVoiceProvider): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2576
+      "line": 2613
     }
   ],
   "contributions:contentProviders": [
@@ -1302,7 +1312,7 @@
         "(provider: { id: string; load(key: string): Promise<PluginBookContent>; }): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2579
+      "line": 2616
     }
   ],
   "contributions:readerModes": [
@@ -1312,7 +1322,7 @@
         "(mode: PluginReaderMode): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2582
+      "line": 2619
     }
   ],
   "contributions:agentTools": [
@@ -1322,7 +1332,7 @@
         "(tool: PluginToolDefinition): PluginActionRegistration"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2585
+      "line": 2622
     }
   ],
   "contributions:agentContextProviders": [
@@ -1332,7 +1342,7 @@
         "(provider: PluginAgentContextProvider): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2588
+      "line": 2625
     }
   ],
   "contributions:agentRetrievalProviders": [
@@ -1342,7 +1352,7 @@
         "(provider: PluginAgentRetrievalProvider): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2591
+      "line": 2628
     }
   ],
   "contributions:memoryCandidateProviders": [
@@ -1352,10 +1362,28 @@
         "(provider: PluginMemoryCandidateProvider): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2594
+      "line": 2631
     }
   ],
-  "contributions:themes": [],
+  "contributions:themes": [
+    {
+      "path": "ctx.contributions.themes.readerBases",
+      "signatures": [
+        "(): Promise<PluginReaderThemeBase[]>"
+      ],
+      "doc": "Themes 1.2: built-in and active plugin reader bases, excluding image themes. Saved copies do not change when the original theme changes.",
+      "source": "packages/plugin-types/src/index.ts",
+      "line": 2588
+    },
+    {
+      "path": "ctx.contributions.themes.register",
+      "signatures": [
+        "(theme: PluginRuntimeTheme): Promise<PluginDisposable>"
+      ],
+      "source": "packages/plugin-types/src/index.ts",
+      "line": 2589
+    }
+  ],
   "contributions:fonts": [],
   "contributions:syncTransports": [
     {
@@ -1364,7 +1392,7 @@
         "(transport: PluginSyncTransport): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2597
+      "line": 2634
     }
   ],
   "services:storage": [
@@ -1375,7 +1403,7 @@
       ],
       "doc": "Storage 2.1: atomically compare and apply 1..100 private document changes. Every expected revision is checked before any write. Does not include KV, core domain events, files, or another plugin's documents.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2279
+      "line": 2281
     },
     {
       "path": "ctx.services.storage.collection",
@@ -1384,7 +1412,7 @@
       ],
       "doc": "A named document collection — structured plugin-private data one tier above the KV (queryable, per-document, optionally book-anchored). Backed by the app's local store; lifecycle belongs to the plugin (uninstall clears it). `bookId`/`anchor` are provenance INDEXES, not ownership — documents survive the referenced book's deletion.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2275
+      "line": 2277
     },
     {
       "path": "ctx.services.storage.documents(collection).delete",
@@ -1392,7 +1420,7 @@
         "(id: string): Promise<void>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2382
+      "line": 2384
     },
     {
       "path": "ctx.services.storage.documents(collection).get",
@@ -1400,7 +1428,7 @@
         "<T>(id: string): Promise<PluginDocument<T> | null>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2381
+      "line": 2383
     },
     {
       "path": "ctx.services.storage.documents(collection).list",
@@ -1409,7 +1437,7 @@
       ],
       "doc": "Newest-first by default.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2384
+      "line": 2386
     },
     {
       "path": "ctx.services.storage.documents(collection).page",
@@ -1418,7 +1446,7 @@
       ],
       "doc": "Storage 2.1: 1..200 rows (default 50), 4 MiB JSON per page. Cursors bind namespace/filter/order and expire on any collection write. On stale-cursor restart rather than combining different snapshots.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2388
+      "line": 2390
     },
     {
       "path": "ctx.services.storage.documents(collection).put",
@@ -1426,7 +1454,7 @@
         "(id: string, data: unknown, options?: { bookId?: string; anchor?: string; }): Promise<void>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2380
+      "line": 2382
     },
     {
       "path": "ctx.services.storage.flush",
@@ -1435,7 +1463,7 @@
       ],
       "doc": "Wait for outstanding writes in this plugin's namespace.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2267
+      "line": 2269
     },
     {
       "path": "ctx.services.storage.get",
@@ -1443,7 +1471,7 @@
         "<T>(key: string): T | null"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2259
+      "line": 2261
     },
     {
       "path": "ctx.services.storage.getDurable",
@@ -1452,7 +1480,7 @@
       ],
       "doc": "2.4: keys up to 1024 UTF-16 units, no NUL. Settle accepted writes, then read this private key from SQLite, not the optimistic mirror. Corrupt JSON rejects; null means absent or JSON null.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2262
+      "line": 2264
     },
     {
       "path": "ctx.services.storage.observeDocuments",
@@ -1461,7 +1489,7 @@
       ],
       "doc": "Storage 2.2: initial and changed private document query snapshots, including errors/recovery. At most 64 active observers per activation; reads and callbacks settle before the next one-second poll. Not a replayable write stream. Dispose or plugin retirement stops delivery; sequence is not CAS.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2284
+      "line": 2286
     },
     {
       "path": "ctx.services.storage.onChange",
@@ -1470,7 +1498,7 @@
       ],
       "doc": "Fires when this plugin's namespace is written from OUTSIDE the plugin — its settings page, the reading agent, another surface editing the same object. Settings-key changes can also echo after own writes. Serial callbacks receive a reaction credential; use withEvent to preserve causes. No initial callback; intermediate changes coalesce. Use it to re-read (or re-derive from) settings you would otherwise have cached at activate().",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2297
+      "line": 2299
     },
     {
       "path": "ctx.services.storage.policy",
@@ -1479,7 +1507,7 @@
       ],
       "doc": "Storage 2.5: own persisted usage and actual per-store policy. Null quota means no enforced total limit, not unlimited disk. Call flush first when awaiting this activation's pending writes. No names or secret values. Complete backup refers to full app backup, not reading/OPML exports.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2258
+      "line": 2260
     },
     {
       "path": "ctx.services.storage.remove",
@@ -1487,7 +1515,7 @@
         "(key: string): Promise<void>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2265
+      "line": 2267
     },
     {
       "path": "ctx.services.storage.set",
@@ -1496,7 +1524,7 @@
       ],
       "doc": "Reads update optimistically; resolve only after the write is durable.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2264
+      "line": 2266
     }
   ],
   "services:secrets": [
@@ -1506,7 +1534,7 @@
         "(key: string): Promise<string | null>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2666
+      "line": 2703
     },
     {
       "path": "ctx.services.secrets.remove",
@@ -1514,7 +1542,7 @@
         "(key: string): Promise<void>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2668
+      "line": 2705
     },
     {
       "path": "ctx.services.secrets.set",
@@ -1522,7 +1550,7 @@
         "(key: string, value: string): Promise<void>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2667
+      "line": 2704
     }
   ],
   "services:ui": [
@@ -1533,7 +1561,7 @@
       ],
       "doc": "Library write plus each command's setting grant; opening/leaving a reader needs reading:write.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2692
+      "line": 2729
     },
     {
       "path": "ctx.services.ui.commands.list",
@@ -1541,7 +1569,7 @@
         "(): Promise<HostCommandSnapshot>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2685
+      "line": 2722
     },
     {
       "path": "ctx.services.ui.commands.observe",
@@ -1550,7 +1578,7 @@
       ],
       "doc": "UI 1.16: serial/coalesced snapshots with a reaction delivery and optional stable ruleId.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2687
+      "line": 2724
     },
     {
       "path": "ctx.services.ui.exportFile",
@@ -1558,7 +1586,7 @@
         "(file: PluginExportFile): Promise<boolean>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2718
+      "line": 2755
     },
     {
       "path": "ctx.services.ui.openExternal",
@@ -1567,7 +1595,7 @@
       ],
       "doc": "UI 1.7, requires service:network. Explicit user intent only; HTTP(S), no credentials or local schemes.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2720
+      "line": 2757
     },
     {
       "path": "ctx.services.ui.publishView",
@@ -1576,7 +1604,7 @@
       ],
       "doc": "Updates only this activation's visible frame. Revision is a nonnegative, increasing safe integer. Receipt confirms host acceptance, not paint; updates cannot navigate or replace the subscription.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2723
+      "line": 2760
     },
     {
       "path": "ctx.services.ui.reader.closeReferencePreview",
@@ -1585,7 +1613,7 @@
       ],
       "doc": "Only this activation's current preview ID; never closes a native or other owner's note.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2772
+      "line": 2809
     },
     {
       "path": "ctx.services.ui.reader.focus",
@@ -1594,7 +1622,7 @@
       ],
       "doc": "UI 1.14, reading:write. Focus an already visible semantic target, without opening or dismissing UI. not-focused is not success; close your own dialog before returning focus.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2762
+      "line": 2799
     },
     {
       "path": "ctx.services.ui.reader.image.control",
@@ -1603,7 +1631,7 @@
       ],
       "doc": "reading:write; exact current viewer ID required. Pan deltas are fractions of its viewport.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2734
+      "line": 2771
     },
     {
       "path": "ctx.services.ui.reader.image.observe",
@@ -1612,7 +1640,7 @@
       ],
       "doc": "Plugins 1.6 supplies a separate reaction delivery, including closed/null snapshots.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2730
+      "line": 2767
     },
     {
       "path": "ctx.services.ui.reader.image.open",
@@ -1621,7 +1649,7 @@
       ],
       "doc": "UI 1.13: library read + reading write; opens an embedded image in the current book.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2738
+      "line": 2775
     },
     {
       "path": "ctx.services.ui.reader.image.snapshot",
@@ -1629,7 +1657,7 @@
         "(): Promise<ReaderImageSnapshot | null>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2728
+      "line": 2765
     },
     {
       "path": "ctx.services.ui.reader.observe",
@@ -1638,7 +1666,7 @@
       ],
       "doc": "Plugins 1.6 supplies a separate reaction delivery; callbacks are serial and coalesced.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2745
+      "line": 2782
     },
     {
       "path": "ctx.services.ui.reader.previewReference",
@@ -1647,7 +1675,7 @@
       ],
       "doc": "UI 1.8: also needs library:read. Open book only; resolved preview waits for DOM commit.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2767
+      "line": 2804
     },
     {
       "path": "ctx.services.ui.reader.setPanel",
@@ -1656,7 +1684,7 @@
       ],
       "doc": "Requires reading:write. Opening reveals controls; completion waits for persistence and DOM commit.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2749
+      "line": 2786
     },
     {
       "path": "ctx.services.ui.reader.setWidth",
@@ -1665,7 +1693,7 @@
       ],
       "doc": "Persist a shared TOC/chat width (integer 240..640 CSS px); does not open it or focus.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2755
+      "line": 2792
     },
     {
       "path": "ctx.services.ui.reader.snapshot",
@@ -1673,7 +1701,7 @@
         "(): Promise<ReaderPanelsSnapshot | null>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2743
+      "line": 2780
     },
     {
       "path": "ctx.services.ui.showToast",
@@ -1681,7 +1709,7 @@
         "(message: PluginToast): void"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2717
+      "line": 2754
     },
     {
       "path": "ctx.services.ui.window.control",
@@ -1689,7 +1717,7 @@
         "(request: HostWindowRequest): Promise<HostWindowReceipt>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2679
+      "line": 2716
     },
     {
       "path": "ctx.services.ui.window.observe",
@@ -1698,7 +1726,7 @@
       ],
       "doc": "UI 1.17: reaction delivery remains valid until the callback settles.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2675
+      "line": 2712
     },
     {
       "path": "ctx.services.ui.window.snapshot",
@@ -1706,7 +1734,7 @@
         "(): Promise<HostWindowSnapshot>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2673
+      "line": 2710
     },
     {
       "path": "ctx.services.ui.workspace.navigate",
@@ -1715,7 +1743,7 @@
       ],
       "doc": "Library write grant; leaving an active reader additionally requires reading:write.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2712
+      "line": 2749
     },
     {
       "path": "ctx.services.ui.workspace.observe",
@@ -1724,7 +1752,7 @@
       ],
       "doc": "UI 1.16: use the separate reaction delivery even for null/retired snapshots.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2706
+      "line": 2743
     },
     {
       "path": "ctx.services.ui.workspace.snapshot",
@@ -1732,7 +1760,7 @@
         "(query?: WorkspaceQuery): Promise<WorkspaceSnapshot>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2702
+      "line": 2739
     }
   ],
   "services:schedules": [
@@ -1742,7 +1770,7 @@
         "(scheduleId: string, run: (context: PluginScheduleRun, delivery?: PluginReactionEvent) => void | Promise<void>): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2776
+      "line": 2813
     },
     {
       "path": "ctx.services.schedules.cancelDeferred",
@@ -1751,7 +1779,7 @@
       ],
       "doc": "Cancel exactly the queued ID, not an in-flight callback or a replacement request.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2793
+      "line": 2830
     },
     {
       "path": "ctx.services.schedules.control",
@@ -1760,7 +1788,7 @@
       ],
       "doc": "Pause/resume persist; run bypasses pause/cadence once. Neither pause nor cancellation undoes dispatched callback effects.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2808
+      "line": 2845
     },
     {
       "path": "ctx.services.schedules.defer",
@@ -1769,7 +1797,7 @@
       ],
       "doc": "Schedules 2: enqueue one declared deferred task. Persists before acknowledgement. 1 second..7 days; idle means 5 seconds without host input. Never runs while closed. The most recent request ID is retained for retry; changed input conflicts, another queued ID is busy. A dispatched request is never automatically replayed after a crash. Inspect interrupted and decide explicitly.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2787
+      "line": 2824
     },
     {
       "path": "ctx.services.schedules.list",
@@ -1778,7 +1806,7 @@
       ],
       "doc": "Bound schedules owned by this plugin only, with the latest persisted attempt/outcome.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2799
+      "line": 2836
     },
     {
       "path": "ctx.services.schedules.observe",
@@ -1786,7 +1814,7 @@
         "(query: Omit<PluginScheduleQuery, \"pluginId\">, handler: PluginObservationHandler<PluginSchedulePage>, options?: { ruleId?: string; }): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2802
+      "line": 2839
     }
   ],
   "services:jobs": [
@@ -1796,7 +1824,7 @@
         "(id: string, action: DurableJobControl, options?: PluginCallOptions): Promise<DurableJobSnapshot>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2989
+      "line": 3026
     },
     {
       "path": "ctx.services.jobs.get",
@@ -1804,7 +1832,7 @@
         "(id: string, options?: PluginCallOptions): Promise<DurableJobSnapshot>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2984
+      "line": 3021
     },
     {
       "path": "ctx.services.jobs.list",
@@ -1812,7 +1840,7 @@
         "(query?: { offset?: number; limit?: number; }, options?: PluginCallOptions): Promise<{ jobs: DurableJobSnapshot[]; nextOffset: number | null; }>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2985
+      "line": 3022
     },
     {
       "path": "ctx.services.jobs.start",
@@ -1821,7 +1849,7 @@
       ],
       "doc": "jobs 1.1: event-bound starts preserve their source through restart. Every causal event subscription must have a stable ruleId. Unnamed reactions and isolated service invocations cannot create saved jobs.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2980
+      "line": 3017
     }
   ],
   "services:changes": [
@@ -1832,7 +1860,7 @@
       ],
       "doc": "Open before loading a baseline. Persist the returned cursor only after processing each page. Expired cursors require a new baseline. Notices are conservative reload hints, not events or values; settings hints cover the authorized requested paths in a shared storage namespace.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2968
+      "line": 3005
     },
     {
       "path": "ctx.services.changes.read",
@@ -1840,7 +1868,7 @@
         "(query: ChangesQuery, cursor: string, limit?: number, options?: PluginCallOptions): Promise<ChangesPage>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2969
+      "line": 3006
     }
   ],
   "services:transactions": [
@@ -1850,7 +1878,7 @@
         "(previewId: string, options?: PluginCallOptions): Promise<AtomicReceipt>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3002
+      "line": 3039
     },
     {
       "path": "ctx.services.transactions.preview",
@@ -1858,7 +1886,7 @@
         "(operations: AtomicOperation[], options?: PluginCallOptions): Promise<AtomicPreview>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2998
+      "line": 3035
     },
     {
       "path": "ctx.services.transactions.previewUndo",
@@ -1866,7 +1894,7 @@
         "(receiptId: string, options?: PluginCallOptions): Promise<AtomicPreview>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3003
+      "line": 3040
     },
     {
       "path": "ctx.services.transactions.receipt",
@@ -1874,7 +1902,7 @@
         "(receiptId: string, options?: PluginCallOptions): Promise<AtomicReceipt | null>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3004
+      "line": 3041
     }
   ],
   "services:session": [
@@ -1885,7 +1913,7 @@
       ],
       "doc": "Fresh non-sensitive metadata; contains no reading or account state.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3015
+      "line": 3052
     },
     {
       "path": "ctx.services.session.observeEnvironment",
@@ -1894,7 +1922,7 @@
       ],
       "doc": "Session 2.7: locale effects retain their requester; other system facts keep independent sources.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3018
+      "line": 3055
     },
     {
       "path": "ctx.services.session.operationAvailability",
@@ -1903,7 +1931,7 @@
       ],
       "doc": "Session 2.11: inspect host command permissions/workspace guards and plugin service contract/authority/capacity (Agent approval remains required), export metadata/save entry and clipboard/browser entry availability (no OS access probe), window support/capacity/target state, sync connection/credentials/provider, inference, book-targeted playback/mode, text preparation and graph prerequisites without executing or probing. Missing permission returns only the permission condition. Unknown remote health is not a local refusal or a success guarantee.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3010
+      "line": 3047
     }
   ],
   "services:plugins": [
@@ -1914,7 +1942,7 @@
       ],
       "doc": "Executes one declared export in a fresh restricted Worker. No live-root closures, callbacks, binary handles, automatic retries, or resources surviving the call.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2818
+      "line": 2855
     },
     {
       "path": "ctx.services.plugins.contributions",
@@ -1923,7 +1951,7 @@
       ],
       "doc": "Registered identities across extension points, never provider callbacks, data, settings or a grant to invoke another plugin. Offset pages may change.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2824
+      "line": 2861
     },
     {
       "path": "ctx.services.plugins.list",
@@ -1932,7 +1960,7 @@
       ],
       "doc": "Public installed metadata only, no settings, paths, secrets or raw errors.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2833
+      "line": 2870
     },
     {
       "path": "ctx.services.plugins.listServices",
@@ -1941,7 +1969,7 @@
       ],
       "doc": "Plugins 1.8: authorized service contracts; discovery does not execute providers.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2812
+      "line": 2849
     },
     {
       "path": "ctx.services.plugins.observe",
@@ -1950,7 +1978,7 @@
       ],
       "doc": "Plugins 1.10: serial reaction deliveries with stable rule IDs; reload offset pages after changes.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2837
+      "line": 2874
     },
     {
       "path": "ctx.services.plugins.observeContributions",
@@ -1958,7 +1986,7 @@
         "(query: PluginContributionQuery, handler: PluginObservationHandler<PluginContributionPage>, options?: { ruleId?: string; }): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2827
+      "line": 2864
     }
   ],
   "services:maintenance": [
@@ -1969,7 +1997,7 @@
       ],
       "doc": "Requires service:network. Uses the host release feed; no caller-supplied URL or silent installation.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2867
+      "line": 2904
     },
     {
       "path": "ctx.services.maintenance.observe",
@@ -1977,7 +2005,7 @@
         "(handler: PluginObservationHandler<HostMaintenanceSnapshot>, options?: { ruleId?: string; }): PluginDisposable"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2855
+      "line": 2892
     },
     {
       "path": "ctx.services.maintenance.openSettings",
@@ -1986,7 +2014,7 @@
       ],
       "doc": "Maintenance 1.4 adds data-location: shows the directory in host UI, never returns its path or opens the file manager. Also reveals updates/diagnostics/plugins/backup-import/backup-export/delete-data/ai-connection. Does not click controls, open file dialogs, approve installation or bypass typed DELETE.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2863
+      "line": 2900
     },
     {
       "path": "ctx.services.maintenance.requestBackup",
@@ -1995,7 +2023,7 @@
       ],
       "doc": "Reveals a host backup button and awaits the user's click and file dialog. Both directions use the complete encrypted archive (host-only password); import adds host review and confirmation, then reload. Retired v1 JSON library backups are rejected. No passwords, bytes or paths are returned.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2850
+      "line": 2887
     },
     {
       "path": "ctx.services.maintenance.requestConnectionTest",
@@ -2004,7 +2032,7 @@
       ],
       "doc": "Maintenance 1.3: reveal native AI test controls; only the user's click starts inference.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2845
+      "line": 2882
     },
     {
       "path": "ctx.services.maintenance.snapshot",
@@ -2012,7 +2040,7 @@
         "(): Promise<HostMaintenanceSnapshot>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2854
+      "line": 2891
     }
   ],
   "services:diagnostics": [
@@ -2023,7 +2051,7 @@
       ],
       "doc": "Diagnostics 1.2: opens host confirmation; a committed repair requires reload.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2872
+      "line": 2909
     },
     {
       "path": "ctx.services.diagnostics.requestReport",
@@ -2031,7 +2059,7 @@
         "(action: DiagnosticsReportAction, options?: PluginCallOptions): Promise<DiagnosticsReportReceipt>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2873
+      "line": 2910
     },
     {
       "path": "ctx.services.diagnostics.verifyProjections",
@@ -2039,7 +2067,7 @@
         "(options?: PluginCallOptions): Promise<ProjectionVerification>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2877
+      "line": 2914
     }
   ],
   "services:logging": [
@@ -2049,7 +2077,7 @@
         "(): Promise<{ levels: PluginLogEntry[\"level\"][]; maxEntryChars: number; maxFields: number; perPluginLimit: number; appLimit: number; windowMs: number; delivery: \"best-effort\"; }>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2621
+      "line": 2658
     },
     {
       "path": "ctx.services.logging.write",
@@ -2058,7 +2086,7 @@
       ],
       "doc": "Logging 1.0: accepted means forwarded to the best-effort host logger, not durably stored or uploaded. Allowed during activation and migration. Debug is development-console-only. Retired activations cannot write.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2620
+      "line": 2657
     }
   ],
   "services:resources": [
@@ -2068,7 +2096,7 @@
         "(id: string, offset: number, data: ArrayBuffer | Uint8Array<ArrayBufferLike>): Promise<ResourceRef>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2924
+      "line": 2961
     },
     {
       "path": "ctx.services.resources.assets.delete",
@@ -2076,7 +2104,7 @@
         "(key: string, expectedRevision: string, options?: PluginCallOptions): Promise<{ deleted: true; cleanupPending: boolean; }>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2908
+      "line": 2945
     },
     {
       "path": "ctx.services.resources.assets.get",
@@ -2084,7 +2112,7 @@
         "(key: string, options?: PluginCallOptions): Promise<PluginAsset | null>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2897
+      "line": 2934
     },
     {
       "path": "ctx.services.resources.assets.list",
@@ -2092,7 +2120,7 @@
         "(query?: PluginAssetQuery, options?: PluginCallOptions): Promise<PluginAssetPage>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2893
+      "line": 2930
     },
     {
       "path": "ctx.services.resources.assets.open",
@@ -2100,7 +2128,7 @@
         "(key: string, expectedRevision: string, options?: PluginCallOptions): Promise<ResourceRef>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2903
+      "line": 2940
     },
     {
       "path": "ctx.services.resources.assets.policy",
@@ -2108,7 +2136,7 @@
         "(options?: PluginCallOptions): Promise<PluginAssetPolicy>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2892
+      "line": 2929
     },
     {
       "path": "ctx.services.resources.assets.store",
@@ -2116,7 +2144,7 @@
         "(resourceId: string, input: PluginAssetWrite, options?: PluginCallOptions): Promise<PluginAssetReceipt>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2898
+      "line": 2935
     },
     {
       "path": "ctx.services.resources.commit",
@@ -2124,7 +2152,7 @@
         "(id: string): Promise<ResourceRef>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2925
+      "line": 2962
     },
     {
       "path": "ctx.services.resources.create",
@@ -2132,7 +2160,7 @@
         "(options: ResourceCreateOptions): Promise<ResourceRef>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2921
+      "line": 2958
     },
     {
       "path": "ctx.services.resources.listDirectory",
@@ -2140,7 +2168,7 @@
         "(id: string, query?: ResourceDirectoryQuery): Promise<ResourceDirectoryPage>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2883
+      "line": 2920
     },
     {
       "path": "ctx.services.resources.openAssociated",
@@ -2149,7 +2177,7 @@
       ],
       "doc": "Resources 1.5: host confirmation then OS association for a temporary document/media copy. No edit-back, arbitrary program/path, or context bundles. True is dispatch, not rendering.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2929
+      "line": 2966
     },
     {
       "path": "ctx.services.resources.openBook",
@@ -2158,7 +2186,7 @@
       ],
       "doc": "Requires library:read. Original local file only; no implicit remote download.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2918
+      "line": 2955
     },
     {
       "path": "ctx.services.resources.openCover",
@@ -2167,7 +2195,7 @@
       ],
       "doc": "Resources 1.1; requires library:read. No extraction/download when the cover is unavailable.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2920
+      "line": 2957
     },
     {
       "path": "ctx.services.resources.openDirectoryFile",
@@ -2175,7 +2203,7 @@
         "(id: string, relativePath: string): Promise<ResourceRef>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2887
+      "line": 2924
     },
     {
       "path": "ctx.services.resources.pick",
@@ -2183,7 +2211,7 @@
         "(options?: ResourcePickOptions): Promise<{ cancelled: boolean; resources: ResourceRef[]; }>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2914
+      "line": 2951
     },
     {
       "path": "ctx.services.resources.pickDirectory",
@@ -2192,7 +2220,7 @@
       ],
       "doc": "Resources 1.4: reader-selected, read-only directory grants; four per activation, one hour. No ambient paths. Listings are live; openDirectoryFile seals the current file bytes.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2882
+      "line": 2919
     },
     {
       "path": "ctx.services.resources.read",
@@ -2200,7 +2228,7 @@
         "(id: string, offset: number, length: number): Promise<ResourceChunk>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2923
+      "line": 2960
     },
     {
       "path": "ctx.services.resources.release",
@@ -2209,7 +2237,7 @@
       ],
       "doc": "Also aborts uncommitted writes.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2931
+      "line": 2968
     },
     {
       "path": "ctx.services.resources.releaseDirectory",
@@ -2217,7 +2245,7 @@
         "(id: string): Promise<void>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2888
+      "line": 2925
     },
     {
       "path": "ctx.services.resources.save",
@@ -2225,7 +2253,7 @@
         "(id: string, filename?: string): Promise<{ saved: boolean; }>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2926
+      "line": 2963
     },
     {
       "path": "ctx.services.resources.stat",
@@ -2233,7 +2261,7 @@
         "(id: string): Promise<ResourceRef>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2922
+      "line": 2959
     }
   ],
   "services:sync": [
@@ -2244,7 +2272,7 @@
       ],
       "doc": "Explicit remote read of the account's tier, usage and limits; null without an account. No email, account ID, keys, session or billing ticket.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2942
+      "line": 2979
     },
     {
       "path": "ctx.services.sync.backlog",
@@ -2253,7 +2281,7 @@
       ],
       "doc": "Events and blobs waiting to be pushed.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2939
+      "line": 2976
     },
     {
       "path": "ctx.services.sync.connectionOptions",
@@ -2271,7 +2299,7 @@
       ],
       "doc": "Delivers each new sync snapshot (state, progress, completed cycles) while the handle lives.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2957
+      "line": 2994
     },
     {
       "path": "ctx.services.sync.openSettings",
@@ -2280,7 +2308,7 @@
       ],
       "doc": "Opens the host Data & Sync page; not a login, disconnect or purchase.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2949
+      "line": 2986
     },
     {
       "path": "ctx.services.sync.requestFlow",
@@ -2289,7 +2317,7 @@
       ],
       "doc": "Host-owned connect, disconnect, account deletion, upgrade or billing flow. Waits for the final local outcome or external handoff; cancellation cannot undo a started operation.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2952
+      "line": 2989
     },
     {
       "path": "ctx.services.sync.requestSync",
@@ -2298,7 +2326,7 @@
       ],
       "doc": "Runs one sync round on the configured backend (relay or a transport plugin such as WebDAV) and resolves when it has finished: `completed`, or `already-running` when a round was in progress (not queued again). Rejects with a coded error when no round can start (`ui/unavailable`) or the round fails (classified failures carry `sync/*` codes).",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 2947
+      "line": 2984
     },
     {
       "path": "ctx.services.sync.snapshot",
@@ -2318,7 +2346,7 @@
       ],
       "doc": "Idempotent for this activation's released/unknown IDs. Aborts pending reads; does not undo remote effects or remove data already saved by the plugin.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3087
+      "line": 3124
     },
     {
       "path": "ctx.services.network.fetch",
@@ -2327,7 +2355,7 @@
       ],
       "doc": "Native HTTP; Request/init semantics and cancellation survive the Worker bridge. Bodies are buffered up to 64 MiB per direction. Calls have a 120s deadline; an abort does not undo a remote side effect already committed by the server. Network 2.0 requires networkAccess for the initial URL and each redirect. HTTPS -> HTTP redirects are denied. At most 10 redirects; manual returns the 3xx response, error rejects. Cross-origin hops drop authorization, proxy-authorization, cookie and referer; custom secret headers are the plugin's responsibility (use redirect:error for authenticated endpoints). Host/content-length are transport-owned. No implicit retry or cookie jar. Network 2.2: options.retry=\"safe\" opts GET/HEAD without a body into at most two retries across the whole redirect chain, before response headers are returned. Other methods and all body reads are never replayed. The original deadline includes backoff; Retry-After above 30s returns the HTTP response. Attempts/uploads/read chunks share per-owner and host cumulative quotas; reactivation does not reset owner debt. policy() reports exact limits. Transport failures carry plugin/network-failed; explicit deadlines carry plugin/network-timeout, aborts plugin/cancelled. Existing structured codes survive unchanged. Unclassified native errors are not guessed from prose. HTTP error statuses still return Response; the consumer decides success.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3068
+      "line": 3105
     },
     {
       "path": "ctx.services.network.openStream",
@@ -2336,7 +2364,7 @@
       ],
       "doc": "Network 2.1: headers first; download at most 1 GiB without buffering the whole response. Uploads remain capped at 64 MiB. 8 active requests per activation / 32 host-wide, shared with fetch; no hidden durable queue. Optional safe retry applies only before this opening receipt, as in fetch. init.signal cancels OPENING only; after receipt use closeStream to cancel. Close in finally if not reading to EOF. 120s absolute lifetime, including headers/redirects/reads; unload cancels and drains native resources.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3076
+      "line": 3113
     },
     {
       "path": "ctx.services.network.policy",
@@ -2345,7 +2373,7 @@
       ],
       "doc": "Network 2.0: this activation's immutable authorization and transport limits. All-origins authorization is [\"*\"], not a guarantee of endpoint reachability.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3029
+      "line": 3066
     },
     {
       "path": "ctx.services.network.readStream",
@@ -2354,7 +2382,7 @@
       ],
       "doc": "Sequential, non-replayable reads. offset must equal bytes already delivered. One outstanding read per stream; maxBytes defaults to 64 KiB, max 1 MiB. A lost read receipt is not safely retryable: close and restart explicitly.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3084
+      "line": 3121
     }
   ],
   "services:llm": [
@@ -2365,7 +2393,7 @@
         "(input: PluginInferenceInput & { schema: Record<string, unknown>; onText?: never; }): Promise<unknown>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3104
+      "line": 3141
     },
     {
       "path": "ctx.services.llm.askDetailed",
@@ -2375,7 +2403,7 @@
       ],
       "doc": "llm 1.3: same execution as ask, with per-attempt metadata on success. Includes structured retries; failure/cancellation rejects, not a billing receipt.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3108
+      "line": 3145
     },
     {
       "path": "ctx.services.llm.cancelRequest",
@@ -2384,7 +2412,7 @@
       ],
       "doc": "Requests cancellation independently of the ask RPC. The returned snapshot may still be running; query again for its outcome and provider settlement.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3125
+      "line": 3162
     },
     {
       "path": "ctx.services.llm.getRequest",
@@ -2393,7 +2421,7 @@
       ],
       "doc": "llm 1.6: last 64 named requests in this plugin's local private storage. Initial metadata commits before inference dispatch; no prompt/output is retained. Includes backup/rollback and uninstall cleanup, not roaming or billing history. requestAvailable identifies this activation's handle. An older unsettled record has interrupted=true: status is last observed, not proof it still runs remotely. No automatic retry/resume; historical IDs cannot control another activation. Late terminal usage is persisted; unknown/evicted IDs return null.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3121
+      "line": 3158
     },
     {
       "path": "ctx.services.llm.listRequests",
@@ -2401,7 +2429,7 @@
         "(): Promise<InferenceRequestReceipt[]>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3122
+      "line": 3159
     },
     {
       "path": "ctx.services.llm.policy",
@@ -2410,7 +2438,7 @@
       ],
       "doc": "Plugin inference limits, not billing quotas. maxOutputTokensLimit since 1.3.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3091
+      "line": 3128
     }
   ],
   "services:clipboard": [
@@ -2421,7 +2449,7 @@
       ],
       "doc": "Clipboard 1.1. This activation's sealed resource; raster decode stays in the host.",
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3130
+      "line": 3167
     },
     {
       "path": "ctx.services.clipboard.writeText",
@@ -2429,7 +2457,7 @@
         "(text: string): Promise<void>"
       ],
       "source": "packages/plugin-types/src/index.ts",
-      "line": 3128
+      "line": 3165
     }
   ],
   "schemas:views": [],

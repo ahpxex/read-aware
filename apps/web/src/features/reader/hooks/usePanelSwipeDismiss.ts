@@ -19,6 +19,10 @@ type Options = {
   enabled: boolean;
   /** The side the sheet slides out to when it closes. */
   exit: Exclude<SwipeExit, "down">;
+  /** Navigation pages accept only a rightward swipe from the left edge. */
+  edgeOnly?: boolean;
+  /** Changes when a back swipe reveals another page without closing the sheet. */
+  navigationKey?: string | number | null;
   onDismiss: () => void;
 };
 
@@ -66,7 +70,7 @@ function clearInlineMotion(el: HTMLElement): void {
 }
 
 /**
- * Swipe-to-dismiss for a phone reader sheet (see lib/panel-swipe.ts for the
+ * Swipe-to-dismiss for a phone sheet (see lib/panel-swipe.ts for the
  * gesture rules). While a gesture holds the sheet, it moves by inline
  * transform. The sheet's own open/closed classes keep owning its resting
  * state, and the inline motion is cleared once that state has taken over.
@@ -75,10 +79,12 @@ function clearInlineMotion(el: HTMLElement): void {
  * position is on the left. It then leaves invisibly: the inline position is
  * held, faded out, until React commits the closed state, and only then is the
  * inline motion cleared without a transition (see the layout effect below).
+ * Settings reuses this motion in edge-only mode: navigationKey clears the held
+ * position when a deeper page returns to the list while the sheet stays open.
  */
 export function usePanelSwipeDismiss<T extends HTMLElement>(
   ref: RefObject<T | null>,
-  { open, enabled, exit, onDismiss }: Options,
+  { open, enabled, exit, edgeOnly = false, navigationKey, onDismiss }: Options,
 ): void {
   const dismissRef = useRef(onDismiss);
   dismissRef.current = onDismiss;
@@ -86,42 +92,53 @@ export function usePanelSwipeDismiss<T extends HTMLElement>(
 
   useLayoutEffect(() => {
     const el = ref.current;
-    if (!el || open || !awaitingClose.current) return;
+    if (!el || !awaitingClose.current) return;
     awaitingClose.current = false;
-    // The closed classes are applied; drop the held position without
-    // animating across the screen, then hand transitions back to the classes.
+    // The closed classes or the previous page are applied; drop the held
+    // position without animating back across the screen.
     el.style.transition = "none";
     el.style.transform = "";
     el.style.opacity = "";
     void el.offsetWidth;
     el.style.transition = "";
     el.style.willChange = "";
-  }, [open, ref]);
+  }, [open, navigationKey, ref]);
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || !enabled) return;
+    if (!el || !enabled || !open) return;
     let gesture: Gesture | null = null;
     let settling = false;
+    let cancelSettle = () => {};
 
     const touchOf = (event: TouchEvent, id: number) =>
       Array.from(event.changedTouches).find((touch) => touch.identifier === id) ??
       Array.from(event.touches).find((touch) => touch.identifier === id);
 
     const settle = (to: number, done: () => void) => {
+      cancelSettle();
       // Already there (released at rest, or dragged fully out): no transition
       // would run, so no transitionend would ever arrive.
-      if (el.style.transform === `translateX(${to}px)`) {
+      if (
+        el.style.transform === `translateX(${to}px)` ||
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ) {
         done();
         return;
       }
       settling = true;
-      const finish = (event: TransitionEvent) => {
-        if (event.target !== el || event.propertyName !== "transform") return;
+      const finish = (event?: TransitionEvent) => {
+        if (event && (event.target !== el || event.propertyName !== "transform")) return;
+        cancelSettle();
+        done();
+      };
+      // A backgrounded WebView can omit transitionend. Never strand navigation.
+      const timer = window.setTimeout(() => finish(), SETTLE_MS + 50);
+      cancelSettle = () => {
+        window.clearTimeout(timer);
         el.removeEventListener("transitionend", finish);
         el.removeEventListener("transitioncancel", finish);
         settling = false;
-        done();
       };
       el.addEventListener("transitionend", finish);
       el.addEventListener("transitioncancel", finish);
@@ -130,13 +147,19 @@ export function usePanelSwipeDismiss<T extends HTMLElement>(
     };
 
     const onStart = (event: TouchEvent) => {
+      // Native listeners do not receive events from portaled dialogs/menus.
+      // Inline nested dialogs must likewise own their own gestures.
+      const target = event.target instanceof Element ? event.target : null;
+      if (target && (!el.contains(target) || target.closest('[role="dialog"]') !== el.closest('[role="dialog"]')))
+        return;
       if (settling || event.touches.length !== 1) {
+        if (gesture?.lock.kind === "edge-back" || gesture?.lock.kind === "drag") settle(0, () => clearInlineMotion(el));
         gesture = null;
         return;
       }
       const touch = event.touches[0];
-      const target = event.target instanceof Element ? event.target : null;
       const atEdge = touch.clientX <= EDGE_BACK_ZONE_PX;
+      if (edgeOnly && (!atEdge || isTextEntry(target) || hasSelectionIn(el))) return;
       gesture = {
         touchId: touch.identifier,
         startX: touch.clientX,
@@ -171,6 +194,7 @@ export function usePanelSwipeDismiss<T extends HTMLElement>(
         // anything that scrolls sideways under the finger.
         if (
           lock.kind === "release" ||
+          (edgeOnly && lock.kind !== "edge-back") ||
           (lock.kind === "drag" && (current.guarded || scrollsHorizontally(current.target, el, dx)))
         ) {
           gesture = null;
@@ -193,6 +217,7 @@ export function usePanelSwipeDismiss<T extends HTMLElement>(
       if (!current || !touchOf(event, current.touchId)) return;
       gesture = null;
       if (current.lock.kind !== "edge-back" && current.lock.kind !== "drag") return;
+      if (event.cancelable) event.preventDefault();
       const { direction } = current.lock;
       const leave =
         event.type === "touchend" &&
@@ -220,8 +245,9 @@ export function usePanelSwipeDismiss<T extends HTMLElement>(
       el.removeEventListener("touchmove", onMove);
       el.removeEventListener("touchend", onEnd);
       el.removeEventListener("touchcancel", onEnd);
+      cancelSettle();
       // Disabled mid-gesture (the chrome hid): let the classes take over.
       if (!awaitingClose.current) clearInlineMotion(el);
     };
-  }, [enabled, exit, ref]);
+  }, [open, enabled, exit, edgeOnly, navigationKey, ref]);
 }

@@ -13,3 +13,6 @@ export {
   type SectionHeading,
   type SectionOutline,
 } from "./lib/toc-synthesis";
+
+// Settings uses the same touch motion for its mobile back navigation.
+export { usePanelSwipeDismiss } from "./hooks/usePanelSwipeDismiss";

@@ -19,6 +19,8 @@ import { IconButton, ScrollArea } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { usePhoneViewport } from "@read-aware/ui/media";
 import { useBackInterceptor } from "../../hooks/useBackInterceptor";
+import { isIOS } from "../../platform/environment";
+import { usePanelSwipeDismiss } from "../reader";
 import { useTranslation } from "../../i18n";
 import {
   activeSettingsSectionAtom,
@@ -97,6 +99,7 @@ export function SettingsDialog({ open, onClose, workspaceToken = 0 }: SettingsDi
   const titleId = useId();
   const closeTimerRef = useRef<number | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
+  const phonePageRef = useRef<HTMLElement | null>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const isPhone = usePhoneViewport();
   const [isPresent, setIsPresent] = useState(open);
@@ -133,13 +136,29 @@ export function SettingsDialog({ open, onClose, workspaceToken = 0 }: SettingsDi
   const returnedFromPanelRef = useRef(false);
   const [sectionRequest, setSectionRequest] = useAtom(settingsSectionRequestAtom);
 
+  function returnToSectionList() {
+    returnedFromPanelRef.current = true;
+    setPhoneSectionIndex(null);
+  }
+
+  usePanelSwipeDismiss(phonePageRef, {
+    open: open && isPresent,
+    enabled: isPhone && isIOS(),
+    exit: "right",
+    edgeOnly: true,
+    navigationKey: phoneSectionIndex,
+    onDismiss: () => {
+      if (phoneSectionIndex !== null) returnToSectionList();
+      else onClose();
+    },
+  });
+
   // Android back gesture: a drilled-in section is a deeper layer, so back
   // returns to the section list; at the list level the event falls through and
   // the app-level handler closes the dialog itself.
   useBackInterceptor(() => {
     if (!open || !isPhone || phoneSectionIndex == null) return false;
-    returnedFromPanelRef.current = true;
-    setPhoneSectionIndex(null);
+    returnToSectionList();
     return true;
   });
 
@@ -295,10 +314,11 @@ export function SettingsDialog({ open, onClose, workspaceToken = 0 }: SettingsDi
         )}
       >
         <section
+          ref={phonePageRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
-          className="flex h-full w-full flex-col text-fg"
+          className="flex h-full w-full flex-col bg-[var(--ra-main-surface-color)] text-fg"
         >
           {/* Top bar: back (inside a section) + current title + close. */}
           <div
@@ -314,10 +334,7 @@ export function SettingsDialog({ open, onClose, workspaceToken = 0 }: SettingsDi
               <IconButton
                 label={t("dialog.title")}
                 size="sm"
-                onClick={() => {
-                  returnedFromPanelRef.current = true;
-                  setPhoneSectionIndex(null);
-                }}
+                onClick={returnToSectionList}
                 className="shrink-0 text-fg-muted"
                 icon={<CaretLeft size={18} weight="regular" aria-hidden="true" />}
               />

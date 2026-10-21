@@ -19,7 +19,7 @@ const palette = {
 export function backgroundTheme(value: Background): PluginRuntimeTheme {
   return {
     id: "picture",
-    name: "图片背景",
+    name: { default: "Image Background", translations: { "zh-Hans": "图片背景", "zh-Hant": "圖片背景" } },
     polarity: "light",
     reader: { palette },
     readerBackground: { assetKey: value.key, assetRevision: value.revision, opacity: value.opacity, dim: value.dim },

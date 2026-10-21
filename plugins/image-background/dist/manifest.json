@@ -1,10 +1,10 @@
 {
   "id": "image-background",
-  "name": "图片背景",
+  "name": "Image Background",
   "version": "1.0.0",
   "schemaVersion": 1,
   "minAppVersion": "0.6.7",
-  "description": "选择本地图片作为阅读背景，调整图片透明度和暗度。图片仅保存在本机。",
+  "description": "Use a local image as your reading background and adjust its opacity and dimming. Images stay on this device.",
   "author": "ReadAware",
   "main": "main.js",
   "permissions": [

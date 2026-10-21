@@ -25,8 +25,12 @@ function fixture(initial: unknown = null) {
   let picked = true,
     failWrite = false,
     failImage = false;
+  let openFailure: unknown = null;
   const deleted: string[] = [],
-    released: string[] = [];
+    released: string[] = [],
+    storedAssets: string[] = [],
+    logged: { level: string; event: string }[] = [];
+  const assetNames = new Map<string, string>();
   const handles: { disposed: boolean }[] = [];
   let sequence = 0;
   const ctx = {
@@ -81,14 +85,28 @@ function fixture(initial: unknown = null) {
         },
         assets: {
           async store(_id: string, options: { key: string; name: string }) {
+            storedAssets.push(options.key);
+            assetNames.set(options.key, options.name);
             return { asset: { ...options, revision: (++sequence).toString(16).padStart(32, "0") } };
+          },
+          async open(key: string, _revision: string) {
+            if (openFailure) {
+              const error = openFailure;
+              openFailure = null;
+              throw error;
+            }
+            return { id: `asset:${key}`, name: assetNames.get(key) ?? key };
           },
           async delete(key: string) {
             deleted.push(key);
           },
         },
       },
-      logging: { async write() {} },
+      logging: {
+        async write(entry: { level: string; event: string }) {
+          logged.push(entry);
+        },
+      },
     },
   } as unknown as PluginContext;
   return {
@@ -97,6 +115,8 @@ function fixture(initial: unknown = null) {
     handles,
     deleted,
     released,
+    storedAssets,
+    logged,
     root: () => page.view(),
     get document() {
       return document;
@@ -110,6 +130,9 @@ function fixture(initial: unknown = null) {
     failImage() {
       failImage = true;
     },
+    failOpen(error: unknown) {
+      openFailure = error;
+    },
     retire() {
       active.clear();
     },
@@ -121,8 +144,10 @@ async function action(view: PluginView, id: string) {
 }
 async function create(f: ReturnType<typeof fixture>, name: string, baseRef = "warm") {
   const result = await action(await f.root(), "create");
-  if (result?.view?.kind !== "form") throw new Error("Expected form");
-  return result.view.onSubmit({ name, base: baseRef, opacity: 40, dim: 35 });
+  if (result?.view?.kind !== "blocks") throw new Error("Expected draft blocks");
+  const [image, form] = result.view.blocks;
+  if (image?.kind !== "image" || form?.kind !== "form") throw new Error("Expected image and form blocks");
+  return form.onSubmit({ name, base: baseRef, opacity: 40, dim: 35 });
 }
 async function detail(f: ReturnType<typeof fixture>, name: string) {
   const root = await f.root();
@@ -155,10 +180,111 @@ test("cancel and invalid fields do not create assets or publish a theme", async 
   await plugin.activate(f.ctx);
   expect(await create(f, " ")).toMatchObject({ fieldErrors: { name: expect.any(String) } });
   f.cancel();
-  await create(f, "Cancelled");
+  expect(await action(await f.root(), "create")).toBeNull();
   expect(f.document).toBeNull();
   expect(f.active.size).toBe(0);
   expect(f.handles).toHaveLength(0);
+});
+
+test("a cancelled picker stays on the list and publishes nothing", async () => {
+  const f = fixture();
+  await plugin.activate(f.ctx);
+  f.cancel();
+  expect(await action(await f.root(), "create")).toBeNull();
+  expect(f.document).toBeNull();
+  expect(f.active.size).toBe(0);
+  expect(f.released).toHaveLength(0);
+  expect(f.storedAssets).toHaveLength(0);
+});
+
+test("the draft shows the picked image, prefills its name and releases the resource exactly once", async () => {
+  const f = fixture();
+  await plugin.activate(f.ctx);
+  const result = await action(await f.root(), "create");
+  if (result?.view?.kind !== "blocks") throw new Error("Expected draft blocks");
+  expect(result.view.blocks[0]).toMatchObject({ kind: "image", resourceId: "picked", alt: "background.png" });
+  const form = result.view.blocks[1];
+  if (form?.kind !== "form") throw new Error("Expected form");
+  expect(form.fields.find((field) => field.id === "name")).toMatchObject({ value: "background" });
+  expect(await form.onSubmit({ name: " ", base: "warm", opacity: 40, dim: 35 })).toMatchObject({
+    fieldErrors: { name: expect.any(String) },
+  });
+  expect(f.released).toHaveLength(0);
+  expect(await form.onSubmit({ name: "Fresh", base: "warm", opacity: 40, dim: 35 })).toMatchObject({
+    navigation: "reset",
+  });
+  expect(f.released).toEqual(["picked"]);
+  expect(f.document).toMatchObject({ version: 2, themes: [{ name: "Fresh" }] });
+  await result.view.onClose?.({ reason: "reset" });
+  expect(f.released).toEqual(["picked"]);
+});
+
+test("closing the draft without saving releases the picked resource once and stores nothing", async () => {
+  const f = fixture();
+  await plugin.activate(f.ctx);
+  const result = await action(await f.root(), "create");
+  if (result?.view?.kind !== "blocks") throw new Error("Expected draft blocks");
+  await result.view.onClose?.({ reason: "closed" });
+  await result.view.onClose?.({ reason: "closed" });
+  expect(f.released).toEqual(["picked"]);
+  expect(f.document).toBeNull();
+  expect(f.active.size).toBe(0);
+  expect(f.storedAssets).toHaveLength(0);
+});
+
+test("the list subtitle shows base, opacity and dimming rather than the file name", async () => {
+  const f = fixture();
+  await plugin.activate(f.ctx);
+  await create(f, "Paper");
+  const root = await f.root();
+  if (root.kind !== "detail") throw new Error("Expected detail");
+  const list = root.content.find((block) => block.kind === "list");
+  if (list?.kind !== "list") throw new Error("Expected list");
+  expect(root.content.some((block) => block.kind === "text")).toBe(false);
+  const item = list.items.find((entry) => entry.title === "Paper")!;
+  expect(item.subtitle).toBe("warm · Opacity 40% · Dimming 35%");
+  expect(item.subtitle).not.toContain("background.png");
+});
+
+test("the detail shows an image preview and saved values, delete is destructive and closing releases the preview", async () => {
+  const f = fixture();
+  await plugin.activate(f.ctx);
+  await create(f, "Paper");
+  const view = await detail(f, "Paper");
+  if (view.kind !== "detail") throw new Error("Expected detail");
+  const preview = view.content[0];
+  if (preview?.kind !== "image") throw new Error("Expected image preview");
+  const key = [...f.storedAssets][0]!;
+  expect(preview).toMatchObject({ resourceId: `asset:${key}`, alt: "background.png" });
+  const facts = view.content[1];
+  if (facts?.kind !== "keyValue") throw new Error("Expected keyValue");
+  expect(facts.layout).toBe("inline");
+  expect(facts.rows).toEqual([
+    { label: "Base theme", value: "warm" },
+    { label: "Image opacity", value: "40%" },
+    { label: "Dimming", value: "35%" },
+    { label: "Image file", value: "background.png" },
+  ]);
+  expect(view.content.some((block) => block.kind === "text")).toBe(false);
+  const remove = view.actions!.find((entry) => entry.id === "remove")!;
+  expect(remove.variant).toBe("danger");
+  expect(remove.priority).toBe("secondary");
+  await view.onClose?.({ reason: "closed" });
+  expect(f.released[f.released.length - 1]).toBe(`asset:${key}`);
+});
+
+test("a failed preview renders a localized error and closes without releasing", async () => {
+  const f = fixture();
+  await plugin.activate(f.ctx);
+  await create(f, "Paper");
+  f.failOpen({ code: "plugin/asset-conflict" });
+  const view = await detail(f, "Paper");
+  if (view.kind !== "detail") throw new Error("Expected detail");
+  expect(view.content[0]).toEqual({ kind: "error", code: "plugin/asset-conflict" });
+  expect(f.logged).toContainEqual({ level: "warn", event: "background.preview-failed" });
+  const released = f.released.length;
+  await view.onClose?.({ reason: "closed" });
+  expect(f.released).toHaveLength(released);
 });
 
 test("failed persistence and corrupt image replacements keep the saved theme and release new resources", async () => {

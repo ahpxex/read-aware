@@ -7068,14 +7068,19 @@ form on that surface; existing manifest-only forms remain unchanged. Registratio
 is staged and owned by activation; replacement/disable retires callbacks and
 open views. Failed loading surfaces a localized error rather than an empty page.
 
-The bundled `image-background` plugin (1.1) manages up to twelve named themes in
-its own Settings section. Create a theme by choosing a base, entering a name and
-opacity/dimming, then choosing a local PNG/JPEG/WebP. Edit, replace image and delete
-operate on one theme. Saving never changes reading preferences: select the saved
-theme in Reading using the existing theme picker. Each theme stores a snapshot of
-the base palette/typography, not a live dependency on the source theme. Images and
-configuration are private local assets/documents, survive restart and full backup,
-and do not roam. Legacy single-picture data retains its `picture` theme id and
+The bundled `image-background` plugin (1.2) manages up to twelve named themes in
+its own Settings section and requires views 1.7. New theme opens the local
+PNG/JPEG/WebP picker first, then shows the picked image preview above name, base,
+opacity and dimming fields. Theme details show a preview of the stored image
+together with the saved base, opacity, dimming and file values; edit, replace
+image and delete operate on one theme. The `image` and `sliders-horizontal` names
+were added to the host icon catalog for these surfaces, following the earlier
+`push-pin`/`pencil-simple` precedent. Saving never changes reading preferences:
+select the saved theme in Reading using the existing theme picker. Each theme
+stores a snapshot of the base palette/typography, not a live dependency on the
+source theme. Images and configuration are private local assets/documents,
+survive restart and full backup, and do not roam. Legacy single-picture data
+retains its `picture` theme id and
 is converted to the named collection on the next edit, without an activation write.
 
 Resources 1.6 allows file picking on Android/iOS as well as desktop. Android

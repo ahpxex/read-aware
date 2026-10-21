@@ -1,7 +1,7 @@
 {
   "id": "image-background",
   "name": "Image Background",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "schemaVersion": 1,
   "minAppVersion": "0.6.7",
   "description": "Create reading themes from a base theme and a local background image. Adjust opacity and dimming, then select your theme in Reading settings.",
@@ -21,7 +21,7 @@
       "storage": "^2.1.0"
     },
     "schemas": {
-      "views": "^1.0.0"
+      "views": "^1.7.0"
     }
   }
 }

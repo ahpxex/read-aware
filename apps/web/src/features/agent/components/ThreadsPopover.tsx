@@ -15,7 +15,7 @@ import { listGlobalThreads, newGlobalThreadId, type ConversationSummary } from "
 import { activeGlobalThreadAtom } from "../../ai/state/global-thread";
 import { ThreadsPopoverView } from "./ThreadsPopoverView";
 
-export function ThreadsPopover() {
+export function ThreadsPopover({ menuItem = false }: { menuItem?: boolean }) {
   const { toast } = useToast();
   const { t } = useTranslation("ai");
   const [open, setOpen] = useState(false);
@@ -38,6 +38,7 @@ export function ThreadsPopover() {
 
   return (
     <ThreadsPopoverView
+      menuItem={menuItem}
       open={open}
       onOpenChange={setOpen}
       threads={threads}

@@ -12,9 +12,10 @@ import { describeErrorCode, formatNumber, useTranslation } from "../../../i18n";
 import { AnnotationRow } from "../../annotations/components/AnnotationRow";
 import type { Annotation } from "../../annotations/lib/annotation-types";
 import type { LibraryBook } from "../../library/lib/library-types";
-import { agentHeaderActionClass } from "../lib/agent-header-action";
+import { agentHeaderActionClass, agentMenuActionClass } from "../lib/agent-header-action";
 
 type AnnotationsPopoverViewProps = {
+  menuItem?: boolean;
   books: LibraryBook[];
   annotations: Annotation[];
   /** The read failed — render an error state, never an empty list. */
@@ -29,6 +30,7 @@ type AnnotationsPopoverViewProps = {
 };
 
 export function AnnotationsPopoverView({
+  menuItem = false,
   books,
   annotations,
   loadFailed = false,
@@ -56,11 +58,17 @@ export function AnnotationsPopoverView({
       open={open}
       onOpenChange={onOpenChange}
       align="right"
+      className={menuItem ? "block" : undefined}
       triggerLabel={t("agent.annotations.title")}
-      triggerTooltip={t("agent.annotations.title")}
+      triggerTooltip={menuItem ? undefined : t("agent.annotations.title")}
       triggerTooltipAlign="end"
-      triggerClassName={cn(agentHeaderActionClass, open && "text-fg")}
-      trigger={<Notebook size={16} weight={open ? "fill" : "regular"} aria-hidden="true" />}
+      triggerClassName={cn(menuItem ? agentMenuActionClass : agentHeaderActionClass, open && "text-fg")}
+      trigger={
+        <>
+          <Notebook size={16} weight={open ? "fill" : "regular"} aria-hidden="true" className="shrink-0" />
+          {menuItem && <span className="min-w-0 flex-1 truncate">{t("agent.annotations.title")}</span>}
+        </>
+      }
       panelClassName="flex max-h-[min(28rem,70vh)] w-[clamp(18rem,28vw,26rem)] flex-col overflow-hidden p-0"
     >
       <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-2.5">

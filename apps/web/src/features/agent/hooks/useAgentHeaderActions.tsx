@@ -70,9 +70,10 @@ export function useAgentHeaderActions({
         id: "context:threads",
         label: t("agent.threads.title"),
         icon: <ChatsCircle size={16} weight="regular" aria-hidden="true" />,
+        nodeLayout: "row",
         node: (
           <Suspense fallback={null}>
-            <ThreadsPopover />
+            <ThreadsPopover menuItem />
           </Suspense>
         ),
       },
@@ -88,9 +89,10 @@ export function useAgentHeaderActions({
         id: "context:annotations",
         label: t("agent.annotations.title"),
         icon: <Notebook size={16} weight="regular" aria-hidden="true" />,
+        nodeLayout: "row",
         node: (
           <Suspense fallback={null}>
-            <AnnotationsPopover books={books} onOpenBook={onOpenBook} />
+            <AnnotationsPopover books={books} onOpenBook={onOpenBook} menuItem />
           </Suspense>
         ),
       },

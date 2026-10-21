@@ -8,13 +8,14 @@ import type { LibraryBook } from "../../library/lib/library-types";
 import { AnnotationsPopoverView } from "./AnnotationsPopoverView";
 
 type AnnotationsPopoverProps = {
+  menuItem?: boolean;
   books: LibraryBook[];
   onOpenBook: (book: LibraryBook) => void;
 };
 
 const log = createLogger("annotations");
 
-export function AnnotationsPopover({ books, onOpenBook }: AnnotationsPopoverProps) {
+export function AnnotationsPopover({ books, onOpenBook, menuItem = false }: AnnotationsPopoverProps) {
   const [open, setOpen] = useState(false);
   const { annotations, isLoading, loadFailed, loadErrorCode, refresh, remove } = useAnnotations(
     open ? { kind: "all" } : null,
@@ -31,6 +32,7 @@ export function AnnotationsPopover({ books, onOpenBook }: AnnotationsPopoverProp
   };
   return (
     <AnnotationsPopoverView
+      menuItem={menuItem}
       books={books}
       annotations={annotations}
       loadFailed={loadFailed}

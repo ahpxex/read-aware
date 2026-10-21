@@ -12,9 +12,10 @@ import { Eyebrow, IconButton, Popover } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import type { ConversationSummary } from "../../ai/lib/conversation-store";
-import { agentHeaderActionClass } from "../lib/agent-header-action";
+import { agentHeaderActionClass, agentMenuActionClass } from "../lib/agent-header-action";
 
 type ThreadsPopoverViewProps = {
+  menuItem?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   threads: ConversationSummary[];
@@ -24,6 +25,7 @@ type ThreadsPopoverViewProps = {
 };
 
 export function ThreadsPopoverView({
+  menuItem = false,
   open,
   onOpenChange,
   threads,
@@ -45,11 +47,17 @@ export function ThreadsPopoverView({
       open={open}
       onOpenChange={onOpenChange}
       align="right"
+      className={menuItem ? "block" : undefined}
       triggerLabel={t("agent.threads.title")}
-      triggerTooltip={t("agent.threads.title")}
+      triggerTooltip={menuItem ? undefined : t("agent.threads.title")}
       triggerTooltipAlign="end"
-      triggerClassName={cn(agentHeaderActionClass, open && "text-fg")}
-      trigger={<ChatsCircle size={16} weight={open ? "fill" : "regular"} aria-hidden="true" />}
+      triggerClassName={cn(menuItem ? agentMenuActionClass : agentHeaderActionClass, open && "text-fg")}
+      trigger={
+        <>
+          <ChatsCircle size={16} weight={open ? "fill" : "regular"} aria-hidden="true" className="shrink-0" />
+          {menuItem && <span className="min-w-0 flex-1 truncate">{t("agent.threads.title")}</span>}
+        </>
+      }
       panelClassName="flex max-h-[min(24rem,60vh)] w-[clamp(16rem,24vw,22rem)] flex-col overflow-hidden p-0"
     >
       <div className="flex shrink-0 items-center border-b border-border px-4 py-2.5">

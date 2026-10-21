@@ -16,9 +16,11 @@ export type MenuOverflowEntry = {
   icon?: ReactNode;
   /** Plain action: runs and closes the menu. */
   run?: () => void;
-  /** Widget row: rendered as-is (label + the widget's own trigger); its
-   *  popover opens inside this panel, so the menu stays open. */
+  /** Widget with its own trigger; its popover opens inside this panel, so the
+   *  menu stays open. By default the widget sits beside the entry's label. */
   node?: ReactNode;
+  /** A single-trigger widget can own the whole row, including its icon/label. */
+  nodeLayout?: "accessory" | "row";
   /** Renders the row inert (e.g. import while an import is running). */
   disabled?: boolean;
   checked?: boolean;
@@ -66,7 +68,9 @@ export function MenuOverflow({ entries, className, align = "right", size = "md" 
       <ul className="flex flex-col">
         {entries.map((entry) => (
           <li key={entry.id}>
-            {entry.node ? (
+            {entry.node && entry.nodeLayout === "row" ? (
+              entry.node
+            ) : entry.node ? (
               // Keep the widget's real trigger visible and keyboard reachable.
               // Some widgets contain multiple actions (e.g. reader modes), so
               // relaying a click to their first DOM button loses behavior.

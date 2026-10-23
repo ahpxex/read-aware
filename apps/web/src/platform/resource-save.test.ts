@@ -8,6 +8,7 @@ test("cancelled dialogs do not write and native write failures are not hidden", 
       async () => null,
       async () => {
         writes++;
+        return true;
       },
     ),
   ).toBe(false);
@@ -27,7 +28,7 @@ test("cancelled dialogs do not write and native write failures are not hidden", 
         opened = true;
         return "target";
       },
-      async () => {},
+      async () => true,
       AbortSignal.abort(),
     ),
   ).rejects.toBeDefined();

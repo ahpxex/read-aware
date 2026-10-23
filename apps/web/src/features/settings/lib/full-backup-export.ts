@@ -46,7 +46,9 @@ export const exportFullBackup = createFullBackupExport({
         ),
       signal,
     ),
-  write: (taskId, password) => invoke("backup_export_write", { taskId, password }),
+  // iOS picks the destination in the export picker at write time; false there
+  // is a cancel, exactly like a null destination choice.
+  write: (taskId, password) => invoke<boolean>("backup_export_write", { taskId, password }),
   cancel: (taskId) => invoke("backup_export_cancel", { taskId }),
   warn: (message, error) => log.warn(message, error),
 });

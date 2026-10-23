@@ -20,8 +20,10 @@ type Dependencies = {
     progress: (update: FullBackupProgress) => void,
     signal?: AbortSignal,
   ): Promise<FullBackupCaptureReceipt>;
-  /** Writes to the destination bound by `selectDestination`, consuming it. */
-  write(taskId: string, password: string): Promise<void>;
+  /** Writes to the destination bound by `selectDestination`, consuming it.
+   * Resolves `false` when the user cancelled at the iOS export picker — the
+   * real destination choice on that platform. */
+  write(taskId: string, password: string): Promise<boolean>;
   /** Also releases an unused destination binding. */
   cancel(taskId: string): Promise<void>;
   warn(message: string, error: unknown): void;
@@ -81,7 +83,7 @@ export function createFullBackupExport(deps: Dependencies) {
       }
       progress({ phase: "encrypting" });
       signal?.throwIfAborted();
-      await deps.write(taskId, password);
+      if (!(await deps.write(taskId, password))) return false;
       // A successful atomic publication remains success even if abort raced
       // with the native reply. Do not claim the saved file was rolled back.
       return true;

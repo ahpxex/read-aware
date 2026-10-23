@@ -12,7 +12,7 @@ use std::time::Instant;
 use tauri::Manager;
 
 use crate::error::CommandError;
-use crate::save_targets::{self, SaveIo, SaveTargets};
+use crate::save_targets::{self, Delivery, SaveIo, SaveTargets};
 use crate::storage::blocking;
 
 /// Open the native save dialog. `None` when the user cancels.
@@ -33,14 +33,15 @@ pub async fn export_choose_target(
 
 /// Write exported content to the target the user chose in
 /// `export_choose_target`. `base64: true` marks binary content that crossed
-/// the IPC encoded.
+/// the IPC encoded. `false` when the user cancelled at the iOS export picker
+/// (where the real destination choice happens).
 #[tauri::command]
 pub async fn write_export_file(
     app: tauri::AppHandle,
     token: String,
     content: String,
     base64: Option<bool>,
-) -> Result<(), CommandError> {
+) -> Result<bool, CommandError> {
     blocking("write_export_file", move || {
         let target = app.state::<SaveTargets>().redeem(&token, Instant::now())?;
         let bytes: Vec<u8> = if base64.unwrap_or(false) {
@@ -53,7 +54,11 @@ pub async fn write_export_file(
         } else {
             content.into_bytes()
         };
-        app.publish(target, Box::new(|file| Ok(file.write_all(&bytes)?)))
+        match app.publish(target, Box::new(|file| Ok(file.write_all(&bytes)?)))? {
+            Delivery::Done => Ok(true),
+            // iOS: hand the staged file to the export picker; false = cancelled.
+            Delivery::Export(staged) => staged.present(&app),
+        }
     })
     .await
 }

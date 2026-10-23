@@ -11,6 +11,8 @@ mod diagnostics;
 mod error;
 mod exit_coordination;
 mod export_file;
+#[cfg(target_os = "ios")]
+mod export_pick;
 mod external_open;
 mod fb2_metadata;
 mod file_associations;
@@ -850,6 +852,18 @@ pub fn run() {
         .setup(|app| {
             if let Err(error) = resources::external::initialize(app.handle()) {
                 log::warn!("External resource startup cleanup pending: {error}");
+            }
+            // Staged exports left by a process killed mid-picker are removed
+            // once here; the staging root is never purged while the app runs
+            // because a second export's picker may still be copying its stage.
+            #[cfg(target_os = "ios")]
+            match app.path().app_cache_dir() {
+                Ok(cache_dir) => {
+                    if let Err(error) = save_targets::purge_export_staging(&cache_dir) {
+                        log::warn!("Export staging cleanup failed: {error}");
+                    }
+                }
+                Err(error) => log::warn!("Export staging cleanup failed: {error}"),
             }
             #[cfg(desktop)]
             app.handle().plugin(tauri_plugin_autostart::Builder::new()

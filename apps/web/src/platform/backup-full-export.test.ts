@@ -30,6 +30,7 @@ if (process.env.FULL_EXPORT_PROOF === "1") {
       expect(args.taskId).toBe(chosenFor);
       writing.resolve();
       await releaseWrite.promise;
+      return true;
     }
     if (["reading_sessions_pending", "backup_close_reading_sessions", "secret_keys"].includes(command)) return [];
     return undefined;

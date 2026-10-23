@@ -3,7 +3,7 @@
 use super::backup_tasks::{cancelled, missing, BackupTasks, Phase, PreparedBackup};
 use super::{backup_archive, backup_snapshot, backup_staging::BackupStaging, DataDir, Db};
 use crate::error::CommandError;
-use crate::save_targets::{self, SaveIo, SaveTargets};
+use crate::save_targets::{self, Delivery, SaveIo, SaveTarget, SaveTargets};
 use age::secrecy::SecretString;
 use std::path::Path;
 use tauri::Manager;
@@ -156,8 +156,12 @@ pub async fn backup_export_choose_destination(
     let Some(target) = picked else {
         return Ok(None);
     };
-    // For display only; no command accepts it back as a destination.
-    let location = target.to_string();
+    // For display only; no command accepts it back as a destination. On iOS
+    // the real choice happens later in the export picker; show the filename.
+    let location = match &target {
+        SaveTarget::Picked(path) => path.to_string(),
+        SaveTarget::Export { filename } => filename.clone(),
+    };
     app.state::<SaveTargets>()
         .bind_session(window.label(), &task_id, target)?;
     Ok(Some(location))
@@ -171,7 +175,7 @@ fn write(
     password: SecretString,
     io: &impl SaveIo,
     data_dir: &Path,
-) -> Result<(), CommandError> {
+) -> Result<bool, CommandError> {
     // Any write attempt spends the task's destination grant.
     let target = targets.redeem_session(owner, id);
     let (lease, prepared) = tasks.take(owner, id, Phase::Export)?;
@@ -181,7 +185,7 @@ fn write(
     let result = (|| {
         lease.check()?;
         let target = target?;
-        if let FilePath::Path(destination) = &target {
+        if let SaveTarget::Picked(FilePath::Path(destination)) = &target {
             if !destination.is_absolute() {
                 return Err(CommandError::new(
                     "backup/invalid-archive",
@@ -205,7 +209,13 @@ fn write(
     })();
     drop(snapshot); // Retain admission until private files are actually released.
     drop(lease);
-    result
+    match result {
+        Err(error) => Err(error),
+        Ok(Delivery::Done) => Ok(true),
+        // iOS only: present the export picker after the lease and snapshot are
+        // gone. `false` = the user cancelled at the picker.
+        Ok(Delivery::Export(staged)) => staged.present(io),
+    }
 }
 #[tauri::command]
 pub async fn backup_export_write(
@@ -213,7 +223,7 @@ pub async fn backup_export_write(
     window: tauri::WebviewWindow,
     task_id: String,
     password: String,
-) -> Result<(), CommandError> {
+) -> Result<bool, CommandError> {
     let tasks = app.state::<BackupTasks>().inner().clone();
     let owner = window.label().to_owned();
     let password = SecretString::from(password);

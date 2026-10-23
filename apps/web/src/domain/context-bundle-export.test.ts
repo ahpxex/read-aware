@@ -47,6 +47,7 @@ function fixture() {
         async () => {
           expect(sealed.has(id)).toBe(true);
           writes++;
+          return true;
         },
         signal,
         beforeWrite,
@@ -253,6 +254,7 @@ test("save rechecks policy, cancellation, expiry and owner retirement after its 
           () => dialog.promise,
           async () => {
             writes++;
+            return true;
           },
           signal,
           check,
@@ -283,9 +285,10 @@ test("a dispatched external save drains its real receipt even after revocation a
     f.adapter.save = (_id, _name, signal, check) =>
       saveResourceFile(
         async () => "chosen.json",
-        () => {
+        async () => {
           dispatched = true;
-          return write.promise;
+          await write.promise;
+          return true;
         },
         signal,
         check,

@@ -16,6 +16,7 @@ function fixture() {
     },
     write: async (_id: string, _password: string) => {
       calls.push("write");
+      return true;
     },
     cancel: async (_id: string) => {
       calls.push("cancel");
@@ -45,6 +46,7 @@ test("full export resolves user input before capture, validates password, and on
   deps.write = async (...args: unknown[]) => {
     expect(args).toEqual(["task", password]);
     calls.push("write");
+    return true;
   };
   expect(
     await run(password, undefined, (update) => {
@@ -128,6 +130,7 @@ test("cancel during encryption retains physical result, including a successful a
   deps.write = async () => {
     entered.resolve();
     await release.promise;
+    return true;
   };
   const pending = run(password, controller.signal).then((value) => {
     finished = true;

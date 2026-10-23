@@ -20,7 +20,7 @@ export const nativeResourceFiles = {
     const extension = filename.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase() ?? null;
     return saveResourceFile(
       () => invoke<string | null>("export_choose_target", { filename, extension }),
-      (token) => invoke("resource_save", { id, token }),
+      (token) => invoke<boolean>("resource_save", { id, token }),
       signal,
       beforeWrite,
     );

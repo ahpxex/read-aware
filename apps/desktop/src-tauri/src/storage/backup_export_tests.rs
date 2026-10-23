@@ -1,6 +1,6 @@
 use super::*;
 use crate::error::CODE_EXPORT_TARGET_INVALID;
-use crate::save_targets::LocalFiles;
+use crate::save_targets::{LocalFiles, SaveTarget};
 use crate::storage::backup_tasks::IDLE_LIMIT;
 use std::time::Instant;
 #[test]
@@ -109,7 +109,11 @@ fn backup_export_writes_only_encrypted_output_then_retires_the_private_snapshot_
     let destination = out.path().join("backup.age");
     let targets = SaveTargets::default();
     targets
-        .bind_session("main", &task_id, FilePath::Path(destination.clone()))
+        .bind_session(
+            "main",
+            &task_id,
+            SaveTarget::Picked(FilePath::Path(destination.clone())),
+        )
         .unwrap();
     write(
         &tasks,
@@ -117,7 +121,7 @@ fn backup_export_writes_only_encrypted_output_then_retires_the_private_snapshot_
         "main",
         &task_id,
         SecretString::from("a real export task password".to_owned()),
-        &LocalFiles,
+        &LocalFiles::paths(),
         data.path(),
     )
     .unwrap();
@@ -139,7 +143,11 @@ fn backup_export_rejects_managed_destinations_and_failures_consume_ready_tasks()
     lease.publish(snapshot).unwrap();
     let targets = SaveTargets::default();
     targets
-        .bind_session("main", &task_id, FilePath::Path(data.path().join("db")))
+        .bind_session(
+            "main",
+            &task_id,
+            SaveTarget::Picked(FilePath::Path(data.path().join("db"))),
+        )
         .unwrap();
     assert_eq!(
         write(
@@ -148,7 +156,7 @@ fn backup_export_rejects_managed_destinations_and_failures_consume_ready_tasks()
             "main",
             &task_id,
             SecretString::from("a real export task password".to_owned()),
-            &LocalFiles,
+            &LocalFiles::paths(),
             data.path()
         )
         .unwrap_err()
@@ -190,7 +198,7 @@ fn backup_export_writes_only_to_the_dialog_grant_of_its_own_window_and_task_once
             "main",
             task_id,
             password(),
-            &LocalFiles,
+            &LocalFiles::paths(),
             data.path(),
         )
     };
@@ -208,10 +216,18 @@ fn backup_export_writes_only_to_the_dialog_grant_of_its_own_window_and_task_once
     let task_id = id();
     ready(&task_id);
     targets
-        .bind_session("other", &task_id, FilePath::Path(destination.clone()))
+        .bind_session(
+            "other",
+            &task_id,
+            SaveTarget::Picked(FilePath::Path(destination.clone())),
+        )
         .unwrap();
     targets
-        .bind_session("main", &id(), FilePath::Path(destination.clone()))
+        .bind_session(
+            "main",
+            &id(),
+            SaveTarget::Picked(FilePath::Path(destination.clone())),
+        )
         .unwrap();
     assert_eq!(
         attempt(&task_id).unwrap_err().code,
@@ -223,7 +239,11 @@ fn backup_export_writes_only_to_the_dialog_grant_of_its_own_window_and_task_once
     let task_id = id();
     ready(&task_id);
     targets
-        .bind_session("main", &task_id, FilePath::Path(destination.clone()))
+        .bind_session(
+            "main",
+            &task_id,
+            SaveTarget::Picked(FilePath::Path(destination.clone())),
+        )
         .unwrap();
     attempt(&task_id).unwrap();
     assert!(std::fs::read(&destination)
@@ -236,7 +256,11 @@ fn backup_export_writes_only_to_the_dialog_grant_of_its_own_window_and_task_once
 
     // A failed write attempt (task gone) still spends the grant.
     targets
-        .bind_session("main", &task_id, FilePath::Path(destination.clone()))
+        .bind_session(
+            "main",
+            &task_id,
+            SaveTarget::Picked(FilePath::Path(destination.clone())),
+        )
         .unwrap();
     assert!(attempt(&task_id).is_err());
     assert!(targets.redeem_session("main", &task_id).is_err());

@@ -1,7 +1,8 @@
 //! Ephemeral, unsynced resource snapshots. Only the trusted host calls these
 //! commands; Workers receive owner-scoped public references, never paths/IDs.
 use crate::error::CommandError;
-use crate::save_targets::{SaveIo, SaveTargets};
+use crate::save_targets::SaveTarget;
+use crate::save_targets::{Delivery, SaveIo, SaveTargets};
 use serde::Serialize;
 use std::{
     collections::HashMap,
@@ -11,6 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tauri::Manager;
+#[cfg(test)]
 use tauri_plugin_dialog::FilePath;
 #[path = "resources_context.rs"]
 mod context;
@@ -169,8 +171,8 @@ fn save(
     entries: &mut HashMap<String, Entry>,
     id: &str,
     io: &impl SaveIo,
-    target: FilePath,
-) -> Result<(), CommandError> {
+    target: SaveTarget,
+) -> Result<Delivery, CommandError> {
     prune(entries);
     let entry = entries.get_mut(id).ok_or_else(missing)?;
     if !entry.ready {
@@ -376,16 +378,24 @@ pub async fn resource_save(
     app: tauri::AppHandle,
     id: String,
     token: String,
-) -> Result<(), CommandError> {
+) -> Result<bool, CommandError> {
     crate::storage::blocking("resource_save", move || {
         // `token` is `export_choose_target`'s single-use grant; any write
         // attempt spends it.
         let target = app.state::<SaveTargets>().redeem(&token, Instant::now())?;
         let resources = app.state::<ResourceFiles>();
-        let mut entries = resources.0.lock()?;
-        context::admit(&app, &mut entries, &id, |entries| {
-            save(entries, &id, &app, target)
-        })
+        let delivery = {
+            let mut entries = resources.0.lock()?;
+            context::admit(&app, &mut entries, &id, |entries| {
+                save(entries, &id, &app, target)
+            })?
+        };
+        // iOS only: the export picker must not open while the resource lock is
+        // held. `false` = the user cancelled at the picker.
+        match delivery {
+            Delivery::Done => Ok(true),
+            Delivery::Export(staged) => staged.present(&app),
+        }
     })
     .await
 }
@@ -430,19 +440,22 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("output.txt");
         std::fs::write(&path, "previous").unwrap();
-        save(
-            &mut entries,
-            &info.id,
-            &LocalFiles,
-            FilePath::Path(path.clone()),
-        )
-        .unwrap();
+        assert!(matches!(
+            save(
+                &mut entries,
+                &info.id,
+                &LocalFiles::paths(),
+                SaveTarget::Picked(FilePath::Path(path.clone())),
+            )
+            .unwrap(),
+            Delivery::Done
+        ));
         assert_eq!(std::fs::read(&path).unwrap(), b"hello");
         assert!(save(
             &mut entries,
             &info.id,
-            &LocalFiles,
-            FilePath::Path(dir.path().join("missing/output"))
+            &LocalFiles::paths(),
+            SaveTarget::Picked(FilePath::Path(dir.path().join("missing/output")))
         )
         .is_err());
         assert_eq!(std::fs::read(&path).unwrap(), b"hello");

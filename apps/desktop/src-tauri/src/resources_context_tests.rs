@@ -1,5 +1,6 @@
 use super::*;
-use crate::save_targets::LocalFiles;
+use crate::save_targets::{LocalFiles, SaveTarget};
+use tauri_plugin_dialog::FilePath;
 
 fn database() -> Connection {
     let mut conn = Connection::open_in_memory().unwrap();
@@ -99,8 +100,8 @@ fn invalid_json_hash_and_stale_sources_never_seal_or_replace_output() {
     assert!(with_revision(&mut conn, &current, || save(
         &mut entries,
         &info.id,
-        &LocalFiles,
-        FilePath::Path(path.clone())
+        &LocalFiles::paths(),
+        SaveTarget::Picked(FilePath::Path(path.clone()))
     ))
     .is_err());
     assert_eq!(std::fs::read(&path).unwrap(), b"previous");
@@ -165,8 +166,8 @@ fn second_connection_changes_are_checked_at_native_admission_and_not_only_in_js(
         save(
             &mut entries,
             &info.id,
-            &LocalFiles,
-            FilePath::Path(output.clone()),
+            &LocalFiles::paths(),
+            SaveTarget::Picked(FilePath::Path(output.clone())),
         )
     })
     .unwrap();

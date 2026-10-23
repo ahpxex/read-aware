@@ -2,7 +2,7 @@
  * `choose` resolves to an opaque native save grant, never a writable path. */
 export async function saveResourceFile(
   choose: () => Promise<string | null>,
-  write: (target: string) => Promise<unknown>,
+  write: (target: string) => Promise<boolean>,
   signal?: AbortSignal,
   beforeWrite?: () => void,
 ): Promise<boolean> {
@@ -12,6 +12,7 @@ export async function saveResourceFile(
   signal?.throwIfAborted();
   beforeWrite?.();
   if (target === null) return false;
-  await write(target);
-  return true;
+  // iOS picks the destination in the export picker at write time; `false`
+  // means the user cancelled there — the same outcome as a null pick.
+  return write(target);
 }

@@ -64,16 +64,16 @@ export async function exportTextFile(file: FileExport, signal?: AbortSignal): Pr
     });
     signal?.throwIfAborted();
     if (token === null) return false;
+    // iOS picks the real destination in the export picker at write time;
+    // `false` there means the user cancelled — same as cancelling the dialog.
     if (binary) {
-      await invoke("write_export_file", {
+      return invoke<boolean>("write_export_file", {
         token,
         content: bytesToBase64(toBytes(file.content as Uint8Array | ArrayBuffer)),
         base64: true,
       });
-    } else {
-      await invoke("write_export_file", { token, content: file.content });
     }
-    return true;
+    return invoke<boolean>("write_export_file", { token, content: file.content });
   }
 
   const blobPart = binary ? toBytes(file.content as Uint8Array | ArrayBuffer) : file.content;

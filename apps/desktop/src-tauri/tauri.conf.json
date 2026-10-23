@@ -132,6 +132,9 @@
     "android": {
       "versionCode": 6000011
     },
+    "iOS": {
+      "minimumSystemVersion": "16.0"
+    },
     "macOS": {
       "dmg": {
         "background": "./dmg/background.png",

@@ -1,11 +1,12 @@
 name: read-aware-desktop
 options:
   bundleIdPrefix: com.readaware.app
-  # 15.0: App Store Connect warns (90068) that Spring 2027 makes 15.0 the
-  # upload floor; iOS 15 also guarantees StoreKit's storefront API used by
-  # the purchase gate.
+  # 16.0 matches the web build's Safari 16 syntax floor (Vite 7's default
+  # target); newer runtime APIs are filled by apps/web/src/platform/polyfills.ts
+  # or feature-guarded (issue #41). Still above App Store Connect's upload
+  # floor and the StoreKit storefront need the purchase gate relies on.
   deploymentTarget:
-    iOS: 15.0
+    iOS: 16.0
 fileGroups: [../../src]
 configs:
   debug: debug

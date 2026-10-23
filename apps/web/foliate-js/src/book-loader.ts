@@ -15,8 +15,11 @@ const hasExtension = (file: BookFile, ...extensions: string[]) =>
   extensions.some((extension) => file.name?.toLowerCase().endsWith(extension));
 
 const makeZipLoader = async (file: BookFile) => {
-  const { configure, ZipReader, BlobReader, TextWriter, BlobWriter } = await import("./vendor/zip.js");
-  configure({ useWebWorkers: false });
+  const [{ configure, ZipReader, BlobReader, TextWriter, BlobWriter }, { RawInflateStream }] = await Promise.all([
+    import("./vendor/zip.js"),
+    import("./inflate-stream.js"),
+  ]);
+  configure({ useWebWorkers: false, DecompressionStreamZlib: RawInflateStream });
   // ZIP needs a Blob reader; PDF keeps its native random-access file below.
   const blob = file instanceof Blob ? file : new Blob([await file.arrayBuffer()], { type: file.type });
   const reader = new ZipReader(new BlobReader(blob));

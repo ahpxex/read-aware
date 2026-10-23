@@ -37,6 +37,8 @@ jobs:
       - name: Formatting (Biome)
         run: bun run format:check
       - run: bun run test
+      - name: Web build (runs the dist engine-syntax guard for issue #41)
+        run: bun run build
       - name: Dependency boundaries (ratchet against the recorded baseline)
         run: bun run lint:deps
       - run: bun run check:docs

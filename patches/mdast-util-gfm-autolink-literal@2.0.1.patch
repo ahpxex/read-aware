@@ -1,0 +1,31 @@
+diff --git a/lib/index.js b/lib/index.js
+index c5ca771c24dd914e342f791716a822431ee32b3a..65b9b960be7ca77742697a0f8bf843d16f232aa1 100644
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -132,7 +132,7 @@ function transformGfmAutolinkLiterals(tree) {
+     tree,
+     [
+       [/(https?:\/\/|www(?=\.))([-.\w]+)([^ \t\r\n]*)/gi, findUrl],
+-      [/(?<=^|\s|\p{P}|\p{S})([-.\w+]+)@([-\w]+(?:\.[-\w]+)+)/gu, findEmail]
++      [/([-.\w+]+)@([-\w]+(?:\.[-\w]+)+)/gu, findEmail]
+     ],
+     {ignore: ['link', 'linkReference']}
+   )
+@@ -195,6 +195,17 @@ function findUrl(_, protocol, domain, path, match) {
+  * @returns {Link | false}
+  */
+ function findEmail(_, atext, label, match) {
++  // The lookbehind the pattern used to carry — `(?<=^|\s|\p{P}|\p{S})` —
++  // checked inline instead: engines without lookbehind (Safari < 16.4) would
++  // fail to parse the regex. `findAndReplace` retries every start position
++  // when a handler returns false, so rejecting here is equivalent.
++  if (
++    match.index !== 0 &&
++    !/[\s\p{P}\p{S}]$/u.test(match.input.slice(Math.max(0, match.index - 2), match.index))
++  ) {
++    return false
++  }
++
+   if (
+     // Not an expected previous character.
+     !previous(match, true) ||

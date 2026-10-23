@@ -1,0 +1,52 @@
+diff --git a/internal/utils/path.js b/internal/utils/path.js
+index 1c9f620109228d66b9b97eaeb84394c9dc30fae7..27de41790b0bfe7cafd72f06a1a20012be5e7ba4 100644
+--- a/internal/utils/path.js
++++ b/internal/utils/path.js
+@@ -46,14 +46,17 @@ const createPathTagFunction = (pathEncoder = encodeURIPath) => function path(sta
+         return previousValue + currentValue + (index === params.length ? '' : encoded);
+     }, '');
+     const pathOnly = path.split(/[?#]/, 1)[0];
+-    const invalidSegmentPattern = /(?<=^|\/)(?:\.|%2e){1,2}(?=\/|$)/gi;
++    // `(?<=^|/)` as a group instead of a lookbehind: engines without
++    // lookbehind (Safari < 16.4) cannot parse it. The match then includes the
++    // boundary character, so the reported segment starts after `match[1]`.
++    const invalidSegmentPattern = /(^|\/)((?:\.|%2e){1,2})(?=\/|$)/gi;
+     let match;
+     // Find all invalid segments
+     while ((match = invalidSegmentPattern.exec(pathOnly)) !== null) {
+         invalidSegments.push({
+-            start: match.index,
+-            length: match[0].length,
+-            error: `Value "${match[0]}" can\'t be safely passed as a path parameter`,
++            start: match.index + match[1].length,
++            length: match[2].length,
++            error: `Value "${match[2]}" can\'t be safely passed as a path parameter`,
+         });
+     }
+     invalidSegments.sort((a, b) => a.start - b.start);
+diff --git a/internal/utils/path.mjs b/internal/utils/path.mjs
+index 0586cbe150dcf28d32c6b08dfdef781c7c6f4a74..14f02a7251a291a5c6c869990a283af476eac055 100644
+--- a/internal/utils/path.mjs
++++ b/internal/utils/path.mjs
+@@ -42,14 +42,17 @@ export const createPathTagFunction = (pathEncoder = encodeURIPath) => function p
+         return previousValue + currentValue + (index === params.length ? '' : encoded);
+     }, '');
+     const pathOnly = path.split(/[?#]/, 1)[0];
+-    const invalidSegmentPattern = /(?<=^|\/)(?:\.|%2e){1,2}(?=\/|$)/gi;
++    // `(?<=^|/)` as a group instead of a lookbehind: engines without
++    // lookbehind (Safari < 16.4) cannot parse it. The match then includes the
++    // boundary character, so the reported segment starts after `match[1]`.
++    const invalidSegmentPattern = /(^|\/)((?:\.|%2e){1,2})(?=\/|$)/gi;
+     let match;
+     // Find all invalid segments
+     while ((match = invalidSegmentPattern.exec(pathOnly)) !== null) {
+         invalidSegments.push({
+-            start: match.index,
+-            length: match[0].length,
+-            error: `Value "${match[0]}" can\'t be safely passed as a path parameter`,
++            start: match.index + match[1].length,
++            length: match[2].length,
++            error: `Value "${match[2]}" can\'t be safely passed as a path parameter`,
+         });
+     }
+     invalidSegments.sort((a, b) => a.start - b.start);

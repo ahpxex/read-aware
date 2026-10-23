@@ -8,7 +8,7 @@
     "check:foliate": "bun scripts/build-foliate.ts --check",
     "watch:foliate": "bun scripts/build-foliate.ts --watch",
     "dev": "bun run build:foliate && concurrently --kill-others --names foliate,vite --passthrough-arguments \"bun run watch:foliate\" \"vite dev {@}\" --",
-    "build": "bun run build:foliate && vite build && tsc --noEmit",
+    "build": "bun run build:foliate && vite build && bun scripts/check-engine-compat.ts && tsc --noEmit",
     "test": "bun run build:foliate && bun test",
     "preview": "vite preview",
     "typecheck": "bun run check:foliate && tsc --noEmit && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p scripts && bun run typecheck:tests && bun run typecheck:desktop && tsc --noEmit -p .storybook",
@@ -20,7 +20,9 @@
     "build-storybook": "bun run build:foliate && storybook build",
     "i18n:extract": "i18next -c i18next-parser.config.js",
     "lint:deps": "bun ../../scripts/check-dependency-baseline.ts",
-    "lint:deps:baseline": "bun ../../scripts/check-dependency-baseline.ts --update"
+    "lint:deps:baseline": "bun ../../scripts/check-dependency-baseline.ts --update",
+    "vendor:fflate": "bun scripts/vendor-fflate.ts",
+    "check:engine": "bun scripts/check-engine-compat.ts"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
@@ -69,6 +71,7 @@
     "@vitejs/plugin-react": "^4.6.0",
     "concurrently": "^10.0.5",
     "dependency-cruiser": "^18.4.0",
+    "fflate": "0.8.3",
     "i18next-parser": "^9.4.0",
     "jsdom": "^30.0.1",
     "pdf-lib": "^1.17.1",

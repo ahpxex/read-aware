@@ -22,4 +22,13 @@ export class ZipReader {
   getEntries(): Promise<ZipEntry[]>;
 }
 
-export function configure(options: { useWebWorkers: boolean }): void;
+export function configure(options: {
+  useWebWorkers: boolean;
+  /** Fallback inflate implementation for engines without `DecompressionStream`
+   * (iOS 16.0–16.3, issue #41). zip.js prefers the native constructor and uses
+   * this otherwise — or when the native one throws. */
+  DecompressionStreamZlib?: new (
+    format: string,
+    options?: unknown,
+  ) => TransformStream<Uint8Array, Uint8Array>;
+}): void;

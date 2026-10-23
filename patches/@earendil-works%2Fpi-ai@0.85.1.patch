@@ -1,0 +1,18 @@
+diff --git a/dist/utils/sanitize-unicode.js b/dist/utils/sanitize-unicode.js
+index d52c4b9e8b960be6b81e1e9c6d9aa6572f11ecd6..bc82ee94ec6d5531af74968a36d897db41b2be3c 100644
+--- a/dist/utils/sanitize-unicode.js
++++ b/dist/utils/sanitize-unicode.js
+@@ -19,8 +19,9 @@
+  * sanitizeSurrogates(`Text ${unpaired} here`) // => "Text  here"
+  */
+ export function sanitizeSurrogates(text) {
+-    // Replace unpaired high surrogates (0xD800-0xDBFF not followed by low surrogate)
+-    // Replace unpaired low surrogates (0xDC00-0xDFFF not preceded by high surrogate)
+-    return text.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "");
++    // `\p{Surrogate}` with the `u` flag matches only LONE surrogates — a
++    // paired high+low reads as one supplementary code point — which is exactly
++    // the previous lookbehind formulation, but parseable on Safari < 16.4.
++    return text.replace(/\p{Surrogate}/gu, "");
+ }
+ //# sourceMappingURL=sanitize-unicode.js.map
+\ No newline at end of file

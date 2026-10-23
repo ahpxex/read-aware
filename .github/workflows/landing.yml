@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - name: Install
         run: bun install --frozen-lockfile
@@ -43,7 +43,7 @@ jobs:
         working-directory: apps/landing
         run: bun run test:static
       - name: Restore last acknowledged IndexNow manifest
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ${{ runner.temp }}/readaware-search-ack.json
           key: readaware-indexnow-${{ github.run_id }}-${{ github.run_attempt }}
@@ -52,7 +52,7 @@ jobs:
         working-directory: apps/landing
         run: bun scripts/indexnow.mjs snapshot "$RUNNER_TEMP/readaware-search-before.json" "$RUNNER_TEMP/readaware-search-ack.json"
       - name: Keep notification snapshot for recovery
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: indexnow-before-${{ github.run_attempt }}
           path: ${{ runner.temp }}/readaware-search-before.json
@@ -67,7 +67,7 @@ jobs:
         working-directory: apps/landing
         run: bun scripts/indexnow.mjs submit "$RUNNER_TEMP/readaware-search-before.json" "$RUNNER_TEMP/readaware-search-ack.json"
       - name: Save acknowledged IndexNow manifest
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ${{ runner.temp }}/readaware-search-ack.json
           key: readaware-indexnow-${{ github.run_id }}-${{ github.run_attempt }}

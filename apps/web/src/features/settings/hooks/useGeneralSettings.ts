@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
 import { useToast } from "@read-aware/ui";
-import { AppError } from "@read-aware/core";
 import { createSettingsDomain } from "../../../domain/settings/domain";
 import { generalSettingsAtom } from "../../../state/ui";
 import { describeError } from "../../../i18n/describe-error";
@@ -13,6 +12,8 @@ import { GENERAL_SETTINGS_KEY, type GeneralSettings } from "../lib/general-setti
 type StartupState =
   | { status: "loading" }
   | { status: "ready"; enabled: boolean }
+  /** Mobile and browser shells have no startup registration to fail on. */
+  | { status: "unsupported" }
   | { status: "failed"; error: unknown };
 const domain = createSettingsDomain("user");
 const log = createLogger("general-settings");
@@ -34,7 +35,10 @@ export function useGeneralSettings() {
       const current = ++request;
       setStartup({ status: "loading" });
       try {
-        if (!desktopStartup.supported()) throw new AppError("ui/unavailable", "Startup registration requires desktop");
+        if (!desktopStartup.supported()) {
+          if (!owner.signal.aborted && current === request) setStartup({ status: "unsupported" });
+          return;
+        }
         const result = await domain.queries.read("general.launchAtStartup");
         if (!owner.signal.aborted && current === request)
           setStartup({ status: "ready", enabled: result.value === true });

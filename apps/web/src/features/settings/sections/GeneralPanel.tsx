@@ -42,36 +42,39 @@ export function GeneralPanel() {
         title={t("general.desktopIntegration.title")}
         description={t("general.desktopIntegration.description")}
       >
-        <SettingsRow
-          borderless
-          title={t("general.desktopIntegration.launchAtStartup.title")}
-          description={
-            failure ? (
-              <InlineError
-                compact
-                onRetry={failure.retryable && !busy ? retry : undefined}
-                retryLabel={t("common:errorBoundary.retry")}
-              >
-                {failure.body}
-              </InlineError>
-            ) : (
-              t("general.desktopIntegration.launchAtStartup.description")
-            )
-          }
-          control={
-            startup.status === "loading" ? (
-              <Spinner size="sm" />
-            ) : (
-              <Toggle
-                aria-label={t("general.desktopIntegration.launchAtStartup.title")}
-                checked={startup.status === "ready" && startup.enabled}
-                disabled={busy || startup.status !== "ready"}
-                aria-busy={busy}
-                onChange={(launchAtStartup) => void update("launchAtStartup", launchAtStartup)}
-              />
-            )
-          }
-        />
+        {/* Mobile and browser shells have no startup registration at all. */}
+        {startup.status !== "unsupported" && (
+          <SettingsRow
+            borderless
+            title={t("general.desktopIntegration.launchAtStartup.title")}
+            description={
+              failure ? (
+                <InlineError
+                  compact
+                  onRetry={failure.retryable && !busy ? retry : undefined}
+                  retryLabel={t("common:errorBoundary.retry")}
+                >
+                  {failure.body}
+                </InlineError>
+              ) : (
+                t("general.desktopIntegration.launchAtStartup.description")
+              )
+            }
+            control={
+              startup.status === "loading" ? (
+                <Spinner size="sm" />
+              ) : (
+                <Toggle
+                  aria-label={t("general.desktopIntegration.launchAtStartup.title")}
+                  checked={startup.status === "ready" && startup.enabled}
+                  disabled={busy || startup.status !== "ready"}
+                  aria-busy={busy}
+                  onChange={(launchAtStartup) => void update("launchAtStartup", launchAtStartup)}
+                />
+              )
+            }
+          />
+        )}
         <SettingsRow
           title={t("general.desktopIntegration.fileAssociations.title")}
           description={

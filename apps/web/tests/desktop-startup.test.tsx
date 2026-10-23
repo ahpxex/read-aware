@@ -278,6 +278,37 @@ if (process.env.DESKTOP_STARTUP_CASE === "1") {
     }
   });
 
+  test("a shell without startup registration hides the launch-at-startup control without failing", async () => {
+    const f = environment(),
+      root = createRoot(f.dom.window.document.getElementById("root")!);
+    try {
+      await initI18n("en");
+      // No __TAURI_INTERNALS__, like mobile and plain browser shells: startup
+      // registration is absent, not broken.
+      Reflect.deleteProperty(f.dom.window, "__TAURI_INTERNALS__");
+      await act(async () => {
+        root.render(
+          <StrictMode>
+            <ToastProvider>
+              <GeneralPanel />
+            </ToastProvider>
+          </StrictMode>,
+        );
+        await tick();
+      });
+      const doc = f.dom.window.document;
+      expect(doc.querySelector('[role=switch][aria-label="Launch at startup"]')).toBeNull();
+      expect(doc.body.textContent).not.toContain("Launch at startup");
+      expect(doc.querySelector("[role=alert]")).toBeNull();
+      expect(doc.body.textContent).toContain("File associations");
+    } finally {
+      await act(async () => {
+        root.unmount();
+      });
+      f.close();
+    }
+  });
+
   test("shared disabled controls reject both button and label clicks", async () => {
     const f = environment(),
       root = createRoot(f.dom.window.document.getElementById("root")!);
@@ -314,6 +345,6 @@ if (process.env.DESKTOP_STARTUP_CASE === "1") {
     });
     const output = await new Response(child.stderr).text();
     expect(await child.exited, output).toBe(0);
-    expect(output).toContain("5 pass");
+    expect(output).toContain("6 pass");
   }, 30_000);
 }

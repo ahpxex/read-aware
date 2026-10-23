@@ -1,5 +1,6 @@
 /**
- * ECMAScript built-ins the app may call that its oldest supported engines lack.
+ * ECMAScript built-ins and Web APIs the app may call that its oldest supported
+ * engines lack.
  *
  * The compile floor is Vite's default target (Chrome/Edge 107, Firefox 104,
  * Safari 16), which decides which *syntax* gets lowered; runtime APIs are never
@@ -18,6 +19,12 @@
  * FIRST import of every entry point: `main.tsx` and the plugin sandbox worker
  * (its own realm). Workers with their own polyfills (pdf.js's legacy worker
  * build) need nothing.
+ *
+ * The same gap exists for Web APIs, not just ECMAScript built-ins:
+ * `AbortSignal.any` (Safari 17.4, Chrome 116) is called across the app and by
+ * plugins, and issue #41 is its iOS 16.0–16.3 casualty. It is filled here too
+ * — with the spec's weak-source semantics, so `any` over app-lifetime signals
+ * does not leak listeners.
  *
  * Deliberately not covered: ES2024 resizable `ArrayBuffer` and
  * `ArrayBuffer.prototype.transfer` (not shimmable without wrapping every typed
@@ -184,6 +191,55 @@ export function stringToWellFormed(this: unknown): string {
   return String(this).replace(loneSurrogates, "�");
 }
 
+// ----- Web API: AbortSignal.any (Safari 17.4+) -----
+
+/**
+ * `source` listeners referencing a dependent `AbortSignal.any` result. Kept
+ * out of the signal itself so a collected dependent lets the registry drop
+ * the listeners — an app-lifetime signal combined repeatedly must not
+ * accumulate them (the native spec keeps the dependent signal weakly held by
+ * its sources for the same reason).
+ */
+interface SourceListener {
+  source: AbortSignal;
+  listener: () => void;
+}
+
+/** The controller able to abort each dependent signal; the map holds it only
+ * as long as the signal lives, since a controller strongly owns its signal. */
+const dependentControllers = new WeakMap<AbortSignal, AbortController>();
+
+const collectedDependents = new FinalizationRegistry<SourceListener[]>((listeners) => {
+  for (const { source, listener } of listeners) source.removeEventListener("abort", listener);
+});
+
+export function abortSignalAny(this: typeof AbortSignal, signals: Iterable<AbortSignal>): AbortSignal {
+  const dependent = new AbortController();
+  const listeners: SourceListener[] = [];
+  const detach = () => {
+    for (const { source, listener } of listeners) source.removeEventListener("abort", listener);
+    listeners.length = 0;
+  };
+  for (const source of signals) {
+    if (source.aborted) {
+      detach();
+      return AbortSignal.abort(source.reason);
+    }
+    const weak = new WeakRef(dependent.signal);
+    const listener = () => {
+      // First source to abort wins; every listener leaves the sources then.
+      detach();
+      const signal = weak.deref();
+      if (signal) dependentControllers.get(signal)?.abort(source.reason);
+    };
+    listeners.push({ source, listener });
+    source.addEventListener("abort", listener);
+  }
+  dependentControllers.set(dependent.signal, dependent);
+  collectedDependents.register(dependent.signal, listeners);
+  return dependent.signal;
+}
+
 // ----- Installation -----
 
 type Host = Record<PropertyKey, unknown>;
@@ -212,6 +268,8 @@ export interface PolyfillGlobals {
   Map: Host;
   Array: { prototype: Host };
   String: { prototype: Host };
+  /** The `AbortSignal` constructor; absent in realms that predate it. */
+  AbortSignal?: Host;
 }
 
 /** Install every missing built-in into `globals`. Returns the names that were
@@ -238,6 +296,7 @@ export function installEcmaScriptPolyfills(globals: PolyfillGlobals): string[] {
   }
   fill(globals.String.prototype, "isWellFormed", stringIsWellFormed, "String.prototype.isWellFormed");
   fill(globals.String.prototype, "toWellFormed", stringToWellFormed, "String.prototype.toWellFormed");
+  if (globals.AbortSignal) fill(globals.AbortSignal, "any", abortSignalAny, "AbortSignal.any");
   return installed;
 }
 

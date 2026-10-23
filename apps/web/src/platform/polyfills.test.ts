@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  abortSignalAny,
   arrayToReversed,
   arrayToSorted,
   arrayToSpliced,
@@ -31,6 +32,7 @@ function bareGlobals(): PolyfillGlobals {
     Map: {},
     Array: { prototype: arrayPrototype },
     String: { prototype: {} },
+    AbortSignal: {},
   };
 }
 
@@ -149,6 +151,67 @@ describe("well-formed strings", () => {
   });
 });
 
+describe("AbortSignal.any", () => {
+  const listenerCount = (controller: AbortController) => {
+    let count = 0;
+    const signal = controller.signal;
+    const add = signal.addEventListener.bind(signal);
+    const remove = signal.removeEventListener.bind(signal);
+    signal.addEventListener = ((type: string, ...rest: never[]) => {
+      if (type === "abort") count += 1;
+      return add(type, ...(rest as [never, never]));
+    }) as typeof signal.addEventListener;
+    signal.removeEventListener = ((type: string, ...rest: never[]) => {
+      if (type === "abort") count -= 1;
+      return remove(type, ...(rest as [never, never]));
+    }) as typeof signal.removeEventListener;
+    return () => count;
+  };
+
+  test("an already-aborted input aborts the result, first in iteration order", () => {
+    const reason = new Error("gone");
+    const combined = abortSignalAny.call(AbortSignal, [AbortSignal.abort(reason), AbortSignal.abort("later")]);
+    expect(combined.aborted).toBe(true);
+    expect(combined.reason).toBe(reason);
+    const pending = new AbortController();
+    expect(abortSignalAny.call(AbortSignal, [pending.signal, AbortSignal.abort("early")]).reason).toBe("early");
+    expect(pending.signal.aborted).toBe(false);
+  });
+
+  test("the first source to abort aborts the dependent signal with its reason", () => {
+    const one = new AbortController();
+    const two = new AbortController();
+    const combined = abortSignalAny.call(AbortSignal, [one.signal, two.signal]);
+    expect(combined.aborted).toBe(false);
+    const reason = new Error("two fired");
+    two.abort(reason);
+    expect(combined.aborted).toBe(true);
+    expect(combined.reason).toBe(reason);
+    one.abort("late");
+    expect(combined.reason).toBe(reason);
+  });
+
+  test("an abort removes the dependent's listeners from every source", () => {
+    const one = new AbortController();
+    const two = new AbortController();
+    const oneCount = listenerCount(one);
+    const twoCount = listenerCount(two);
+    const combined = abortSignalAny.call(AbortSignal, [one.signal, two.signal]);
+    expect(oneCount()).toBe(1);
+    expect(twoCount()).toBe(1);
+    two.abort();
+    expect(combined.aborted).toBe(true);
+    expect(oneCount()).toBe(0);
+    expect(twoCount()).toBe(0);
+  });
+
+  test("an empty iterable produces a signal that never aborts", () => {
+    const combined = abortSignalAny.call(AbortSignal, []);
+    expect(combined.aborted).toBe(false);
+    expect(combined.reason).toBeUndefined();
+  });
+});
+
 describe("installEcmaScriptPolyfills", () => {
   test("fills every missing built-in as a non-enumerable method and reports it", () => {
     const globals = bareGlobals();
@@ -163,6 +226,7 @@ describe("installEcmaScriptPolyfills", () => {
       "Array.prototype.with",
       "String.prototype.isWellFormed",
       "String.prototype.toWellFormed",
+      "AbortSignal.any",
     ]);
     expect(typeof globals.Promise.withResolvers).toBe("function");
     expect(Object.getOwnPropertyDescriptor(globals.Array.prototype, "toSorted")).toMatchObject({
@@ -181,6 +245,15 @@ describe("installEcmaScriptPolyfills", () => {
       globals.Promise as unknown as PromiseConstructor,
     );
     expect(promise).toBeInstanceOf(globals.Promise as unknown as PromiseConstructor);
+  });
+
+  test("installs AbortSignal.any only where the constructor lacks it", () => {
+    const globals = bareGlobals();
+    installEcmaScriptPolyfills(globals);
+    expect(globals.AbortSignal?.any).toBe(abortSignalAny);
+    const withNative = { ...bareGlobals(), AbortSignal: { any: () => "native" } };
+    expect(installEcmaScriptPolyfills(withNative)).not.toContain("AbortSignal.any");
+    expect(withNative.AbortSignal.any()).toBe("native");
   });
 
   test("never replaces a native and installs nothing twice", () => {

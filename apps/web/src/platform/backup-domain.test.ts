@@ -45,6 +45,7 @@ if (process.env.BACKUP_DOMAIN_PROOF === "1") {
     if (command === "backup_export_choose_destination") return "/synthetic/backup.age";
     if (command === "backup_export_sources") return [];
     if (command === "backup_export_capture") return { taskId: args.taskId, format: 2 };
+    if (command === "backup_export_write") return true;
     return undefined;
   };
   Object.defineProperty(globalThis, "localStorage", { configurable: true, value: { getItem: () => null } });

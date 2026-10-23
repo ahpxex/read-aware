@@ -28,8 +28,8 @@ test("RawInflateStream inflates raw DEFLATE across chunk boundaries and errors l
         controller.close();
       },
     }).pipeThrough(new RawInflateStream("deflate-raw")),
-  ).bytes();
-  expect(inflated).toEqual(source);
+  ).arrayBuffer();
+  expect(new Uint8Array(inflated)).toEqual(new Uint8Array(source));
 
   expect(() => new RawInflateStream("deflate64-raw")).toThrow(TypeError);
   expect(() => new RawInflateStream("gzip")).toThrow(TypeError);
@@ -40,7 +40,7 @@ test("RawInflateStream inflates raw DEFLATE across chunk boundaries and errors l
       controller.close();
     },
   }).pipeThrough(new RawInflateStream("deflate-raw"));
-  await expect(new Response(corrupt).bytes()).rejects.toThrow();
+  await expect(new Response(corrupt).arrayBuffer()).rejects.toThrow();
 });
 
 test("makeBook opens a deflated EPUB on an engine with no DecompressionStream", () =>

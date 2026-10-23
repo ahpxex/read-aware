@@ -10,6 +10,7 @@ if (process.env.BACKUP_SCHEDULES_PROOF === "1") {
     }
     if (command === "local_device_get")
       return { deviceId: "schedule-proof", lastHlcWallMs: null, lastHlcCounter: null };
+    if (command === "backup_export_write") return true;
     if (
       [
         "backup_export_sources",

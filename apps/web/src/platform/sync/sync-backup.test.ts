@@ -39,6 +39,7 @@ if (process.env.SYNC_BACKUP_PROOF === "1") {
           if (command === "backup_export_choose_destination") return "/synthetic/backup.age";
           if (command === "plugin:dialog|open") return "/synthetic/source.age";
           if (command === "backup_export_sources") return exportSources;
+          if (command === "backup_export_write") return true;
           if (command === "backup_export_capture") {
             order.push("backup-read");
             return { taskId: args.taskId, format: 2 };

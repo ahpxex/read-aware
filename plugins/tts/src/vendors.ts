@@ -1,7 +1,8 @@
 /**
  * Request shaping per TTS vendor — pure, so it is testable without network.
- * Every vendor resolves to one POST returning encoded audio bytes; mp3 is
- * requested everywhere since every webview decodes it.
+ * Every vendor resolves to one POST; all but MiMo answer with encoded audio
+ * bytes directly (mp3 everywhere, since every webview decodes it), while MiMo
+ * wraps base64 audio in a chat.completion (see extractJsonAudio).
  *
  * Settings persist as ONE object holding a value set per vendor
  * (`elevenlabsVoice`, `openaiModel`, `customEndpoint`, …) — switching the
@@ -10,7 +11,7 @@
  * the flat shape the request builders consume.
  */
 
-export const VENDORS = ["elevenlabs", "fishaudio", "openai", "custom"] as const;
+export const VENDORS = ["elevenlabs", "fishaudio", "openai", "mimo", "custom"] as const;
 export type Vendor = (typeof VENDORS)[number];
 
 /** The active vendor's resolved configuration. */
@@ -38,6 +39,7 @@ export const VENDOR_LABELS: Record<Vendor, string> = {
   elevenlabs: "ElevenLabs",
   fishaudio: "Fish Audio",
   openai: "OpenAI",
+  mimo: "MiMo",
   custom: "Custom endpoint",
 };
 
@@ -45,6 +47,14 @@ export const VENDOR_LABELS: Record<Vendor, string> = {
 export function vendorNeedsKey(vendor: Vendor): boolean {
   return vendor !== "custom";
 }
+
+/**
+ * MiMo synthesizes through a chat completion: the user turn steers delivery,
+ * the assistant turn is the text to speak. A neutral narration instruction
+ * keeps reading aloud steady regardless of the passage's own tone.
+ */
+const MIMO_NARRATION_PROMPT =
+  "Read the assistant message aloud exactly as written, in a natural, neutral narrator voice.";
 
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -103,6 +113,19 @@ export function buildSpeechRequest(settings: TtsSettings, apiKey: string | null,
           input: text,
           voice: settings.voiceId || "alloy",
           response_format: "mp3",
+        }),
+      };
+    case "mimo":
+      return {
+        url: "https://api.xiaomimimo.com/v1/chat/completions",
+        headers: { ...json, authorization: `Bearer ${apiKey ?? ""}` },
+        body: JSON.stringify({
+          model: settings.model || "mimo-v2.5-tts",
+          messages: [
+            { role: "user", content: MIMO_NARRATION_PROMPT },
+            { role: "assistant", content: text },
+          ],
+          audio: { format: "mp3", voice: settings.voiceId || "mimo_default" },
         }),
       };
     case "custom": {
@@ -167,6 +190,10 @@ export function buildVoiceListRequests(
       ];
     case "openai":
       return [];
+    case "mimo":
+      // Like OpenAI, MiMo's preset voices are a fixed catalog — declared
+      // statically in the manifest, never enumerated over the wire.
+      return [];
     case "custom": {
       const endpoint = text(settings.endpoint);
       const match = endpoint.match(/^(.*)\/audio\/speech\/?(?:[?#].*)?$/);
@@ -214,4 +241,32 @@ export function parseVoiceList(payload: unknown): VoiceOption[] {
     options.push(option);
   }
   return options;
+}
+
+// ─── MiMo's JSON-bound audio ─────────────────────────────────────────────────
+//
+// Every vendor above answers the synthesis POST with the encoded audio bytes
+// themselves. MiMo alone answers with a chat.completion whose audio rides
+// base64-encoded in choices[0].message.audio.data — the caller must branch
+// on the vendor before reading the body.
+
+/** True when the vendor's synthesis response is JSON, not raw audio bytes. */
+export function vendorReturnsJson(vendor: Vendor): boolean {
+  return vendor === "mimo";
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
+}
+
+/** Bytes from a MiMo chat.completion payload; throws when no audio is present. */
+export function extractJsonAudio(payload: unknown): ArrayBuffer {
+  const choices = asRecord(payload)?.choices;
+  const message = Array.isArray(choices) ? asRecord(choices[0])?.message : undefined;
+  const encoded = asRecord(asRecord(message)?.audio)?.data;
+  if (typeof encoded !== "string" || encoded.length === 0) throw new Error("no audio data");
+  const binary = atob(encoded);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return bytes.buffer;
 }

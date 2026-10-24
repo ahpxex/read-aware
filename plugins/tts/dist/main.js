@@ -50,6 +50,16 @@ var STRINGS = {
     de: "{vendor} hat {status} zurückgegeben",
     es: "{vendor} devolvió {status}"
   },
+  audioMalformed: {
+    default: "{vendor} returned no playable audio",
+    "zh-Hans": "{vendor} 未返回可播放的音频",
+    "zh-Hant": "{vendor} 未回傳可播放的音訊",
+    ja: "{vendor} が再生可能な音声を返しませんでした",
+    ru: "{vendor} не вернул воспроизводимое аудио",
+    fr: "{vendor} n'a renvoyé aucun audio lisible",
+    de: "{vendor} hat keine abspielbaren Audiodaten zurückgegeben",
+    es: "{vendor} no devolvió audio reproducible"
+  },
   endpointMissing: {
     default: "Set the custom endpoint URL in Settings → TTS Voices",
     "zh-Hans": "请到 设置 → TTS Voices 填写自定义端点地址",
@@ -75,16 +85,18 @@ function tr(locale, key, params) {
 }
 
 // src/vendors.ts
-var VENDORS = ["elevenlabs", "fishaudio", "openai", "custom"];
+var VENDORS = ["elevenlabs", "fishaudio", "openai", "mimo", "custom"];
 var VENDOR_LABELS = {
   elevenlabs: "ElevenLabs",
   fishaudio: "Fish Audio",
   openai: "OpenAI",
+  mimo: "MiMo",
   custom: "Custom endpoint"
 };
 function vendorNeedsKey(vendor) {
   return vendor !== "custom";
 }
+var MIMO_NARRATION_PROMPT = "Read the assistant message aloud exactly as written, in a natural, neutral narrator voice.";
 function text(value) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -138,6 +150,19 @@ function buildSpeechRequest(settings, apiKey, text2) {
           response_format: "mp3"
         })
       };
+    case "mimo":
+      return {
+        url: "https://api.xiaomimimo.com/v1/chat/completions",
+        headers: { ...json, authorization: `Bearer ${apiKey ?? ""}` },
+        body: JSON.stringify({
+          model: settings.model || "mimo-v2.5-tts",
+          messages: [
+            { role: "user", content: MIMO_NARRATION_PROMPT },
+            { role: "assistant", content: text2 }
+          ],
+          audio: { format: "mp3", voice: settings.voiceId || "mimo_default" }
+        })
+      };
     case "custom": {
       if (!settings.endpoint) {
         throw new Error("Set the custom endpoint URL in the plugin's settings");
@@ -179,6 +204,8 @@ function buildVoiceListRequests(vendor, settings, apiKey) {
         }
       ];
     case "openai":
+      return [];
+    case "mimo":
       return [];
     case "custom": {
       const endpoint = text(settings.endpoint);
@@ -224,6 +251,24 @@ function parseVoiceList(payload) {
     options.push(option);
   }
   return options;
+}
+function vendorReturnsJson(vendor) {
+  return vendor === "mimo";
+}
+function asRecord(value) {
+  return typeof value === "object" && value !== null ? value : null;
+}
+function extractJsonAudio(payload) {
+  const choices = asRecord(payload)?.choices;
+  const message = Array.isArray(choices) ? asRecord(choices[0])?.message : undefined;
+  const encoded = asRecord(asRecord(message)?.audio)?.data;
+  if (typeof encoded !== "string" || encoded.length === 0)
+    throw new Error("no audio data");
+  const binary = atob(encoded);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0;index < binary.length; index += 1)
+    bytes[index] = binary.charCodeAt(index);
+  return bytes.buffer;
 }
 
 // src/index.ts
@@ -305,7 +350,13 @@ var plugin = {
             status: response.status
           }));
         }
-        return await response.arrayBuffer();
+        if (!vendorReturnsJson(settings.vendor))
+          return await response.arrayBuffer();
+        try {
+          return extractJsonAudio(await response.json());
+        } catch {
+          throw new Error(tr(ctx.locale, "audioMalformed", { vendor: VENDOR_LABELS[settings.vendor] }));
+        }
       }
     });
     for (const { vendor, fieldId } of DYNAMIC_VOICE_FIELDS) {

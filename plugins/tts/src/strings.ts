@@ -62,6 +62,17 @@ const STRINGS = {
     de: "{vendor} hat {status} zurückgegeben",
     es: "{vendor} devolvió {status}",
   },
+  /** `{vendor}` — a 200 response that carries no decodable audio. */
+  audioMalformed: {
+    default: "{vendor} returned no playable audio",
+    "zh-Hans": "{vendor} 未返回可播放的音频",
+    "zh-Hant": "{vendor} 未回傳可播放的音訊",
+    ja: "{vendor} が再生可能な音声を返しませんでした",
+    ru: "{vendor} не вернул воспроизводимое аудио",
+    fr: "{vendor} n'a renvoyé aucun audio lisible",
+    de: "{vendor} hat keine abspielbaren Audiodaten zurückgegeben",
+    es: "{vendor} no devolvió audio reproducible",
+  },
   /** The custom provider needs its endpoint before it can speak. */
   endpointMissing: {
     default: "Set the custom endpoint URL in Settings → TTS Voices",

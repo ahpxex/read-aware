@@ -1,5 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { buildSpeechRequest, buildVoiceListRequests, normalizeSettings, parseVoiceList } from "../src/vendors";
+import {
+  buildSpeechRequest,
+  buildVoiceListRequests,
+  extractJsonAudio,
+  normalizeSettings,
+  parseVoiceList,
+  vendorReturnsJson,
+} from "../src/vendors";
 
 describe("normalizeSettings", () => {
   test("defends unknown vendors and non-string fields", () => {
@@ -36,6 +43,12 @@ describe("normalizeSettings", () => {
       voiceId: "",
       model: "",
       endpoint: "http://127.0.0.1:8880/v1/audio/speech",
+    });
+    expect(normalizeSettings({ ...stored, vendor: "mimo", mimoVoice: "冰糖", mimoModel: "mimo-v2.5-tts" })).toEqual({
+      vendor: "mimo",
+      voiceId: "冰糖",
+      model: "mimo-v2.5-tts",
+      endpoint: "",
     });
   });
 
@@ -110,6 +123,25 @@ describe("buildSpeechRequest", () => {
       voice: "v",
     });
   });
+
+  test("mimo: chat-completion shape with the text as the assistant turn", () => {
+    const request = buildSpeechRequest({ vendor: "mimo", voiceId: "", model: "", endpoint: "" }, "KEY", "你好。");
+    expect(request.url).toBe("https://api.xiaomimimo.com/v1/chat/completions");
+    expect(request.headers.authorization).toBe("Bearer KEY");
+    const body = JSON.parse(request.body);
+    expect(body.model).toBe("mimo-v2.5-tts");
+    expect(body.messages).toHaveLength(2);
+    expect(body.messages[0].role).toBe("user");
+    expect(body.messages[1]).toEqual({ role: "assistant", content: "你好。" });
+    expect(body.audio).toEqual({ format: "mp3", voice: "mimo_default" });
+  });
+
+  test("mimo: preset voice ids (Chinese names) pass through untouched", () => {
+    const body = JSON.parse(
+      buildSpeechRequest({ vendor: "mimo", voiceId: "冰糖", model: "", endpoint: "" }, "KEY", "Hi.").body,
+    );
+    expect(body.audio.voice).toBe("冰糖");
+  });
 });
 
 describe("buildVoiceListRequests", () => {
@@ -127,6 +159,10 @@ describe("buildVoiceListRequests", () => {
 
   test("openai has no listing — its voices are declared statically", () => {
     expect(buildVoiceListRequests("openai", {}, "KEY")).toEqual([]);
+  });
+
+  test("mimo has no listing — its preset voices are declared statically", () => {
+    expect(buildVoiceListRequests("mimo", {}, "KEY")).toEqual([]);
   });
 
   test("custom probes both voices routes around an …/audio/speech URL", () => {
@@ -185,5 +221,38 @@ describe("parseVoiceList", () => {
     expect(parseVoiceList("nope")).toEqual([]);
     expect(parseVoiceList({ voices: "nope" })).toEqual([]);
     expect(parseVoiceList({ data: [42, {}] })).toEqual([]);
+  });
+});
+
+describe("MiMo JSON audio", () => {
+  test("only MiMo answers with JSON", () => {
+    for (const vendor of ["elevenlabs", "fishaudio", "openai", "custom"] as const) {
+      expect(vendorReturnsJson(vendor)).toBe(false);
+    }
+    expect(vendorReturnsJson("mimo")).toBe(true);
+  });
+
+  test("decodes the base64 audio out of a chat.completion", () => {
+    const payload = {
+      choices: [
+        {
+          message: {
+            role: "assistant",
+            audio: { id: "a1", data: "AAECAwQF", expires_at: null, transcript: null },
+          },
+        },
+      ],
+      object: "chat.completion",
+    };
+    const bytes = new Uint8Array(extractJsonAudio(payload));
+    expect(Array.from(bytes)).toEqual([0, 1, 2, 3, 4, 5]);
+  });
+
+  test("payloads without usable audio throw", () => {
+    expect(() => extractJsonAudio(null)).toThrow();
+    expect(() => extractJsonAudio({})).toThrow();
+    expect(() => extractJsonAudio({ choices: [] })).toThrow();
+    expect(() => extractJsonAudio({ choices: [{ message: { audio: { data: 42 } } }] })).toThrow();
+    expect(() => extractJsonAudio({ choices: [{ message: { audio: { data: "" } } }] })).toThrow();
   });
 });

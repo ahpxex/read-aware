@@ -1,12 +1,13 @@
 import { TextAa } from "@phosphor-icons/react";
 import { useAtomValue } from "jotai";
-import { Caption, ChoiceGroup, Divider, Popover } from "@read-aware/ui";
+import { Caption, ChoiceGroup, Divider, Popover, Select } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import {
   fixedLayoutColorOptions,
   pageColorOptions,
   readingModeOptions,
 } from "../../settings/lib/reader-setting-options";
+import type { ReaderThemePreference } from "../../settings/lib/reader-settings";
 import { applyReaderThemeSelection } from "../../settings/lib/reader-theme";
 import { usePluginReaderThemeOptions } from "../../settings/hooks/usePluginReaderThemeOptions";
 import { pluginThemesAtom } from "../../plugins/state/plugin-store";
@@ -77,11 +78,13 @@ export function ReaderAppearanceFields({
 
       <Divider />
 
-      <ChoiceGroup
+      <Select
         label={t("pageColor")}
         value={prefs.theme}
         options={[...pageColorOptions(t), ...pluginThemeOptions]}
-        onChange={(theme) => updatePrefs(applyReaderThemeSelection(prefs, theme, pluginThemes))}
+        onChange={(theme) =>
+          updatePrefs(applyReaderThemeSelection(prefs, theme as ReaderThemePreference, pluginThemes))
+        }
       />
       {/* Typography — reflowable books only. A fixed-layout book is a
             sequence of pages the publisher already typeset: the engine has no

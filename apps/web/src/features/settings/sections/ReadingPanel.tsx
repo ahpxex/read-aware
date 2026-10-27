@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue } from "jotai";
-import { ChoiceGroup, Stack, Toggle } from "@read-aware/ui";
+import { ChoiceGroup, Select, Stack, Toggle } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { pluginThemesAtom } from "../../plugins/state/plugin-store";
 import { effectiveReaderSettingsAtom, pageTurnSettingsAtom, readerPreferencesAtom } from "../../../state/ui";
@@ -12,6 +12,7 @@ import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
 import { getReaderPreviewStyle } from "../lib/reader-css";
 import { applyReaderThemeSelection, type ReaderPalette } from "../lib/reader-theme";
+import type { ReaderThemePreference } from "../lib/reader-settings";
 import type {
   PageTurnTapZoneWidth,
   PageTurnTapZones,
@@ -75,10 +76,11 @@ export function ReadingPanel() {
       <PageTurnGroup />
 
       <SettingsGroup title={t("reading.pageColor.title")} description={t("reading.pageColor.description")}>
-        <ChoiceGroup
+        <Select
+          ariaLabel={t("reading.pageColor.title")}
           value={prefs.theme}
           options={[...pageColorOptions(tReader), ...pluginThemeOptions]}
-          onChange={(theme) => setPrefs(applyReaderThemeSelection(prefs, theme, pluginThemes))}
+          onChange={(theme) => setPrefs(applyReaderThemeSelection(prefs, theme as ReaderThemePreference, pluginThemes))}
         />
       </SettingsGroup>
     </SettingsPage>

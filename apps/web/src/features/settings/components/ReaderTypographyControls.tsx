@@ -47,6 +47,25 @@ export function ReaderTypographyControls({ prefs, onChange, showFontSize = true 
     });
   const limits = READER_CUSTOM_TYPOGRAPHY_LIMITS;
 
+  // Choice groups stay grouped ahead of sliders in either mode, so the shared
+  // ones are elements reused across both branches rather than duplicated JSX.
+  const fontWeightChoice = (
+    <ChoiceGroup
+      label={t("fontWeight")}
+      value={resolveReaderFontWeight(prefs.fontWeight, prefs.fontFamily)}
+      options={fontWeightOptions(t, prefs.fontFamily)}
+      onChange={(fontWeight) => onChange({ ...prefs, fontWeight })}
+    />
+  );
+  const textAlignChoice = (
+    <ChoiceGroup
+      label={t("textAlign")}
+      value={prefs.textAlign}
+      options={textAlignOptions(t)}
+      onChange={(textAlign) => onChange({ ...prefs, textAlign })}
+    />
+  );
+
   return (
     <>
       <div>
@@ -58,78 +77,47 @@ export function ReaderTypographyControls({ prefs, onChange, showFontSize = true 
           {t(custom ? "typographyAdvancedHintCustom" : "typographyAdvancedHintPreset")}
         </Caption>
       </div>
-      {showFontSize &&
-        (custom ? (
-          <Slider
-            label={t("fontSize")}
-            value={values.fontSizePx}
-            min={limits.fontSizePx.min}
-            max={limits.fontSizePx.max}
-            step={limits.fontSizePx.step}
-            onChange={(fontSizePx) => setCustom({ fontSizePx })}
-            formatValue={(value) => t("fontSizeValue", { value })}
-          />
-        ) : (
-          <ChoiceGroup
-            label={t("fontSize")}
-            value={prefs.fontSize}
-            options={fontSizeOptions(t)}
-            onChange={(fontSize) => onChange({ ...prefs, fontSize })}
-          />
-        ))}
-      <ChoiceGroup
-        label={t("fontWeight")}
-        value={resolveReaderFontWeight(prefs.fontWeight, prefs.fontFamily)}
-        options={fontWeightOptions(t, prefs.fontFamily)}
-        onChange={(fontWeight) => onChange({ ...prefs, fontWeight })}
-      />
       {custom ? (
-        <Slider
-          label={t("lineSpacing")}
-          value={values.lineHeight}
-          min={limits.lineHeight.min}
-          max={limits.lineHeight.max}
-          step={limits.lineHeight.step}
-          onChange={(lineHeight) => setCustom({ lineHeight })}
-          formatValue={(value) => value.toFixed(2)}
-        />
-      ) : (
-        <ChoiceGroup
-          label={t("lineSpacing")}
-          value={prefs.lineSpacing}
-          options={lineSpacingOptions(t)}
-          onChange={(lineSpacing) => onChange({ ...prefs, lineSpacing })}
-        />
-      )}
-      {custom ? (
-        <Slider
-          label={t("paragraphSpacing")}
-          value={values.paragraphSpacingEm}
-          min={limits.paragraphSpacingEm.min}
-          max={limits.paragraphSpacingEm.max}
-          step={limits.paragraphSpacingEm.step}
-          onChange={(paragraphSpacingEm) => setCustom({ paragraphSpacingEm })}
-          formatValue={(value) => t("emValue", { value })}
-        />
-      ) : (
-        <ChoiceGroup
-          label={t("paragraphSpacing")}
-          value={prefs.paragraphSpacing}
-          options={paragraphSpacingOptions(t)}
-          onChange={(paragraphSpacing) => onChange({ ...prefs, paragraphSpacing })}
-        />
-      )}
-      {custom ? (
-        <div>
+        <>
+          {fontWeightChoice}
+          {textAlignChoice}
           <ChoiceGroup
             label={t("textIndent")}
             value={values.textIndentEm === null ? "book" : "custom"}
             options={customTextIndentOptions(t)}
             onChange={(choice) => setCustom({ textIndentEm: choice === "book" ? null : (values.textIndentEm ?? 2) })}
           />
+          {showFontSize && (
+            <Slider
+              label={t("fontSize")}
+              value={values.fontSizePx}
+              min={limits.fontSizePx.min}
+              max={limits.fontSizePx.max}
+              step={limits.fontSizePx.step}
+              onChange={(fontSizePx) => setCustom({ fontSizePx })}
+              formatValue={(value) => t("fontSizeValue", { value })}
+            />
+          )}
+          <Slider
+            label={t("lineSpacing")}
+            value={values.lineHeight}
+            min={limits.lineHeight.min}
+            max={limits.lineHeight.max}
+            step={limits.lineHeight.step}
+            onChange={(lineHeight) => setCustom({ lineHeight })}
+            formatValue={(value) => value.toFixed(2)}
+          />
+          <Slider
+            label={t("paragraphSpacing")}
+            value={values.paragraphSpacingEm}
+            min={limits.paragraphSpacingEm.min}
+            max={limits.paragraphSpacingEm.max}
+            step={limits.paragraphSpacingEm.step}
+            onChange={(paragraphSpacingEm) => setCustom({ paragraphSpacingEm })}
+            formatValue={(value) => t("emValue", { value })}
+          />
           {values.textIndentEm !== null && (
             <Slider
-              className="mt-3"
               label={t("textIndentAmount")}
               value={values.textIndentEm}
               min={limits.textIndentEm.min}
@@ -139,38 +127,53 @@ export function ReaderTypographyControls({ prefs, onChange, showFontSize = true 
               formatValue={(value) => t("indentValue", { value })}
             />
           )}
-        </div>
+          <Slider
+            label={t("pageMargins")}
+            value={values.pageMarginPercent}
+            min={limits.pageMarginPercent.min}
+            max={limits.pageMarginPercent.max}
+            step={limits.pageMarginPercent.step}
+            onChange={(pageMarginPercent) => setCustom({ pageMarginPercent })}
+            formatValue={(value) => t("percentValue", { value })}
+          />
+        </>
       ) : (
-        <ChoiceGroup
-          label={t("textIndent")}
-          value={prefs.textIndent}
-          options={textIndentOptions(t)}
-          onChange={(textIndent) => onChange({ ...prefs, textIndent })}
-        />
-      )}
-      <ChoiceGroup
-        label={t("textAlign")}
-        value={prefs.textAlign}
-        options={textAlignOptions(t)}
-        onChange={(textAlign) => onChange({ ...prefs, textAlign })}
-      />
-      {custom ? (
-        <Slider
-          label={t("pageMargins")}
-          value={values.pageMarginPercent}
-          min={limits.pageMarginPercent.min}
-          max={limits.pageMarginPercent.max}
-          step={limits.pageMarginPercent.step}
-          onChange={(pageMarginPercent) => setCustom({ pageMarginPercent })}
-          formatValue={(value) => t("percentValue", { value })}
-        />
-      ) : (
-        <ChoiceGroup
-          label={t("pageMargins")}
-          value={prefs.pageMargins}
-          options={pageMarginsOptions(t)}
-          onChange={(pageMargins) => onChange({ ...prefs, pageMargins })}
-        />
+        <>
+          {showFontSize && (
+            <ChoiceGroup
+              label={t("fontSize")}
+              value={prefs.fontSize}
+              options={fontSizeOptions(t)}
+              onChange={(fontSize) => onChange({ ...prefs, fontSize })}
+            />
+          )}
+          {fontWeightChoice}
+          <ChoiceGroup
+            label={t("lineSpacing")}
+            value={prefs.lineSpacing}
+            options={lineSpacingOptions(t)}
+            onChange={(lineSpacing) => onChange({ ...prefs, lineSpacing })}
+          />
+          <ChoiceGroup
+            label={t("paragraphSpacing")}
+            value={prefs.paragraphSpacing}
+            options={paragraphSpacingOptions(t)}
+            onChange={(paragraphSpacing) => onChange({ ...prefs, paragraphSpacing })}
+          />
+          <ChoiceGroup
+            label={t("textIndent")}
+            value={prefs.textIndent}
+            options={textIndentOptions(t)}
+            onChange={(textIndent) => onChange({ ...prefs, textIndent })}
+          />
+          {textAlignChoice}
+          <ChoiceGroup
+            label={t("pageMargins")}
+            value={prefs.pageMargins}
+            options={pageMarginsOptions(t)}
+            onChange={(pageMargins) => onChange({ ...prefs, pageMargins })}
+          />
+        </>
       )}
     </>
   );

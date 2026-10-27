@@ -401,5 +401,62 @@ export async function runPaginatorRegressions(PaginatorClass: typeof Paginator):
       dispose(renderer, [image, vertical, rtl]);
     }
   });
+  for (const flow of ["paginated", "scrolled"]) {
+    await check(`${flow} section reveal waits for the fonts its text uses`, async () => {
+      const fontUrl = URL.createObjectURL(
+        new Blob(
+          [await (await fetch("/foliate-js/vendor/pdfjs/standard_fonts/LiberationSans-Regular.ttf")).arrayBuffer()],
+          {
+            type: "font/ttf",
+          },
+        ),
+      );
+      const urls = [page("First ".repeat(50)), page("Second ".repeat(50))];
+      const renderer = mount();
+      try {
+        renderer.setAttribute("flow", flow);
+        renderer.setStyles(
+          `@font-face{font-family:"RA Reveal Test";font-display:swap;src:url("${fontUrl}") format("truetype")}` +
+            `body{font-family:"RA Reveal Test", serif !important}`,
+        );
+        renderer.open({ sections: urls.map((url, id) => ({ id, size: 1000, load: () => url })) });
+        await renderer.goTo({ index: 0 });
+        await renderer.goTo({ index: 1 });
+        // Synchronously after goTo: the shown document's fonts are settled and
+        // the iframe is revealed — no leftover visibility override.
+        const doc = renderer.getContents().find((content) => content.index === 1)!.doc;
+        equal(doc.fonts.status, "loaded");
+        const face = [...doc.fonts].find((f) => f.family === "RA Reveal Test");
+        equal(face?.status, "loaded");
+        const frame = doc.defaultView?.frameElement as HTMLElement | null;
+        equal(frame?.style.visibility ?? "", "");
+      } finally {
+        dispose(renderer, urls);
+        URL.revokeObjectURL(fontUrl);
+      }
+    });
+    await check(`${flow} section reveal still resolves when a font fails`, async () => {
+      const badUrl = URL.createObjectURL(new Blob(["not a font"], { type: "font/ttf" }));
+      URL.revokeObjectURL(badUrl);
+      const urls = [page("First ".repeat(50)), page("Second ".repeat(50))];
+      const renderer = mount();
+      try {
+        renderer.setAttribute("flow", flow);
+        renderer.setStyles(
+          `@font-face{font-family:"RA Reveal Broken";font-display:swap;src:url("${badUrl}") format("truetype")}` +
+            `body{font-family:"RA Reveal Broken", serif !important}`,
+        );
+        renderer.open({ sections: urls.map((url, id) => ({ id, size: 1000, load: () => url })) });
+        await renderer.goTo({ index: 0 });
+        // A failed face is a fallback, not a load error: goTo still resolves.
+        await renderer.goTo({ index: 1 });
+        const doc = renderer.getContents().find((content) => content.index === 1)!.doc;
+        const frame = doc.defaultView?.frameElement as HTMLElement | null;
+        equal(frame?.style.visibility ?? "", "");
+      } finally {
+        dispose(renderer, urls);
+      }
+    });
+  }
   return results;
 }

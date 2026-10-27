@@ -16,6 +16,26 @@ export type Layout = {
 
 export type BeforeRender = { vertical: boolean; rtl: boolean; background?: string };
 
+/** A slow or broken font must not hold the page: past this, the section
+    reveals in its fallback and swaps late, exactly as before. */
+export const FONT_REVEAL_TIMEOUT_MS = 1000;
+
+/**
+ * Resolves when `doc.fonts.ready` settles or the timeout elapses, whichever
+ * comes first. Never rejects — a failed face means fallback text, not a
+ * failed load.
+ */
+export function waitForDocumentFonts(doc: Document, timeoutMs: number): Promise<void> {
+  return new Promise((resolve) => {
+    const done = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(done, timeoutMs);
+    doc.fonts.ready.then(done, done);
+  });
+}
+
 export class SectionView {
   readonly container: HTMLElement;
   readonly onExpand: () => void;
@@ -96,16 +116,23 @@ export class SectionView {
     if (typeof src !== "string") throw new TypeError(`Expected a string source, got ${typeof src}`);
     if (this.#destroyed) throw new DOMException("Page view was destroyed", "AbortError");
     return new Promise<void>((resolve, reject) => {
-      const cleanup = () => {
-        this.#cancelLoad = undefined;
+      let cancelled = false;
+      const removeListeners = () => {
         this.#iframe.removeEventListener("load", onLoad);
         this.#iframe.removeEventListener("error", onError);
+      };
+      const cleanup = () => {
+        this.#cancelLoad = undefined;
+        removeListeners();
       };
       const onError = () => {
         cleanup();
         reject(new Error("Could not load page document"));
       };
       const onLoad = () => {
+        // The document is here — drop the listeners now. The cancel hook
+        // stays armed through the font wait below.
+        removeListeners();
         try {
           const doc = this.#iframe.contentDocument;
           if (!doc) throw new Error("Page document is inaccessible");
@@ -124,22 +151,35 @@ export class SectionView {
           this.#rtl = rtl;
           this.#contentRange.selectNodeContents(doc.body);
           const layout = beforeRender?.({ vertical, rtl, background });
+          // Reveal only once the fonts the laid-out text uses have arrived.
+          // visibility, not display: layout runs and the loads are triggered.
           this.#iframe.style.display = "block";
+          this.#iframe.style.visibility = "hidden";
           this.render(layout);
           this.#observer.observe(doc.body);
+          // Force layout so the face loads start now, not on first paint.
+          void doc.documentElement.getBoundingClientRect();
 
           // Firefox's iframe resize observer can miss font-driven changes.
           void doc.fonts.ready
             .then(() => this.refreshStyles())
             .catch((error: unknown) => console.warn("Could not refresh styles after fonts loaded", error));
-          resolve();
+
+          void waitForDocumentFonts(doc, FONT_REVEAL_TIMEOUT_MS).then(() => {
+            // A superseded or destroyed load must not reveal or resolve.
+            if (cancelled || this.#destroyed || this.#iframe.contentDocument !== doc) return;
+            this.#iframe.style.visibility = "";
+            this.#cancelLoad = undefined;
+            resolve();
+          });
         } catch (error) {
-          reject(error);
-        } finally {
           cleanup();
+          reject(error);
         }
       };
       this.#cancelLoad = () => {
+        cancelled = true;
+        this.#iframe.style.visibility = "";
         cleanup();
         reject(new DOMException("Page load was cancelled", "AbortError"));
       };

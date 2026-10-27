@@ -14,9 +14,8 @@ import { customTypographyFromPresets, READER_CUSTOM_TYPOGRAPHY_LIMITS } from "..
 import { readerFontLabel } from "../../settings/lib/reader-font-label";
 import { usePluginReaderThemeOptions } from "../../settings/hooks/usePluginReaderThemeOptions";
 import { pluginFontsAtom, pluginThemesAtom } from "../../plugins/state/plugin-store";
-import { userFontsAtom } from "../../settings";
+import { ReaderTypographyControls, userFontsAtom } from "../../settings";
 import { FontList } from "../../settings/components/FontList";
-import { ReaderTypographyControls } from "../../settings/components/ReaderTypographyControls";
 import { useReaderAppearance } from "../hooks/useReaderAppearance";
 import { FixedLayoutFitChoice } from "./FixedLayoutZoomControls";
 

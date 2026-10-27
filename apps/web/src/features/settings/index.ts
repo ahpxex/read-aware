@@ -15,3 +15,6 @@ export { findUserFont, userFontFaceCss, userFontsAtom } from "./lib/user-fonts";
 
 export { BUILTIN_READER_PALETTES } from "./lib/reader-theme";
 export { ReaderBackgroundLayer } from "./components/ReaderBackgroundLayer";
+// The reader's appearance popovers embed the same typography controls as the
+// Reading settings panel.
+export { ReaderTypographyControls } from "./components/ReaderTypographyControls";

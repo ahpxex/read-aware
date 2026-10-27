@@ -12,7 +12,7 @@ import { applyReaderThemeSelection } from "../../settings/lib/reader-theme";
 import { usePluginReaderThemeOptions } from "../../settings/hooks/usePluginReaderThemeOptions";
 import { pluginThemesAtom } from "../../plugins/state/plugin-store";
 import { FontField } from "../../settings/components/FontField";
-import { ReaderTypographyControls } from "../../settings/components/ReaderTypographyControls";
+import { ReaderTypographyControls } from "../../settings";
 import { useReaderAppearance, type ReaderAppearanceScope } from "../hooks/useReaderAppearance";
 import { FixedLayoutFitChoice } from "./FixedLayoutZoomControls";
 

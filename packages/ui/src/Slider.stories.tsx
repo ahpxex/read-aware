@@ -1,39 +1,27 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { useState } from "react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { type ComponentProps, useState } from "react";
 import { Slider } from "./Slider";
+
+function StatefulSlider(args: ComponentProps<typeof Slider>) {
+  const [value, setValue] = useState(args.value);
+  return <Slider {...args} value={value} onChange={setValue} />;
+}
 
 const meta = {
   title: "Components/Slider",
   component: Slider,
-  args: { label: "Font size", min: 12, max: 40, step: 1, value: 18 },
+  args: { label: "Font size", min: 12, max: 40, step: 1, value: 18, onChange: () => {} },
+  render: (args) => <StatefulSlider {...args} />,
 } satisfies Meta<typeof Slider>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-function DefaultDemo() {
-  const [value, setValue] = useState(18);
-  return <Slider label="Font size" value={value} min={12} max={40} step={1} onChange={setValue} />;
-}
+export const Default: Story = {};
 
-export const Default: Story = { render: () => <DefaultDemo /> };
-
-function UnitsDemo() {
-  const [value, setValue] = useState(8);
-  return (
-    <Slider
-      label="Page margins"
-      value={value}
-      min={0}
-      max={25}
-      step={1}
-      onChange={setValue}
-      formatValue={(v) => `${v}%`}
-    />
-  );
-}
-
-export const WithUnits: Story = { render: () => <UnitsDemo /> };
+export const WithUnits: Story = {
+  args: { label: "Page margins", min: 0, max: 25, value: 8, formatValue: (v) => `${v}%` },
+};
 
 export const Disabled: Story = {
   args: { disabled: true, value: 22 },

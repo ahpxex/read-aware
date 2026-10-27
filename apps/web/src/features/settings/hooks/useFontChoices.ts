@@ -1,11 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useAtomValue } from "jotai";
 import { describeError } from "../../../i18n";
 import {
-  curatedFontId,
   isPluginFont,
   isSystemFont,
-  isUserFont,
   systemFontFamily,
   toCuratedFont,
   toSystemFont,
@@ -51,12 +49,11 @@ export type FontChoicesOptions = {
 
 /**
  * The font choices a body-font picker offers, whatever it looks like (the
- * FontField dropdown, the phone's FontList): our curated reading fonts plus
- * plugin fonts — each downloaded and cached on demand the first time it is
- * chosen — or, with `custom` on, every font installed on this device.
- * Switching source is non-destructive: the current font stays until a new one
- * is picked. Also owns loading the chosen face, and reports the download and
- * device-list states a picker must show.
+ * FontField dropdown, the phone's FontList): one list in three sections —
+ * our curated reading fonts plus plugin fonts (each downloaded and cached on
+ * demand the first time it is chosen), then the user's imported font files,
+ * then every font installed on this device. Also owns loading the chosen
+ * face, and reports the download and device-list states a picker must show.
  *
  * `defaultLabel` opts a caller into a null selection — the leading choice in
  * the curated list, meaning "whatever this surface uses by default". Content
@@ -71,10 +68,6 @@ export function useFontChoices({ value, onChange, defaultLabel, fontWeight }: Fo
   const userFonts = useAtomValue(userFontsAtom);
   // A null value is the surface's own default — neither loader owns it.
   const loaded = value ?? NO_FONT;
-  // Open on the source the value came from. A null value belongs to the
-  // curated list (that is where its "default" option lives), so it must not
-  // read the `system:` placeholder above and open on Custom.
-  const [custom, setCustom] = useState(value !== null && (isSystemFont(value) || isUserFont(value)));
   // Download + inject the active curated font so the preview/UI render it.
   const fontFace = useCuratedFontFace(loaded, fontWeight);
   // Plugin fonts need no download — inject their folder-served faces directly.
@@ -82,7 +75,7 @@ export function useFontChoices({ value, onChange, defaultLabel, fontWeight }: Fo
   // Imported fonts point at the synced blob store — no download either.
   useUserFontFace(loaded);
 
-  const systemOptions = useMemo(() => {
+  const installedOptions = useMemo(() => {
     const opts = systemFonts.map((family) => ({ value: toSystemFont(family), label: family }));
     // Keep the current pick visible before the list resolves, or if uninstalled.
     if (value && isSystemFont(value) && !opts.some((option) => option.value === value)) {
@@ -92,11 +85,10 @@ export function useFontChoices({ value, onChange, defaultLabel, fontWeight }: Fo
   }, [systemFonts, value]);
 
   /**
-   * Imported fonts lead the custom list — they are the user's own picks,
-   * named by the family the file declares (never the file name). The device
-   * enumeration follows on desktop; on mobile it is simply absent.
+   * The user's own picks, named by the family the file declares (never the
+   * file name).
    */
-  const userOptions = useMemo(
+  const importedOptions = useMemo(
     () =>
       userFonts.map((font) => ({
         value: toUserFont(font.id),
@@ -106,10 +98,8 @@ export function useFontChoices({ value, onChange, defaultLabel, fontWeight }: Fo
     [userFonts],
   );
 
-  const customOptions = useMemo(() => [...userOptions, ...systemOptions], [userOptions, systemOptions]);
-
-  // Plugin-bundled fonts share the curated dropdown (both are app-offered,
-  // as opposed to the device-enumerated "custom" list).
+  // Plugin-bundled fonts share the leading section with the curated set —
+  // both are app-offered rather than device-enumerated.
   const curatedOptions = useMemo(() => {
     const opts = [
       // The default choice leads: it is where the surface started, so it reads
@@ -128,19 +118,13 @@ export function useFontChoices({ value, onChange, defaultLabel, fontWeight }: Fo
     return opts;
   }, [defaultLabel, pluginFonts, value]);
 
-  const options = custom ? customOptions : curatedOptions;
-  // Reflect the value only when it belongs to the active source.
-  const selectValue: string = custom
-    ? value && (isSystemFont(value) || isUserFont(value))
-      ? value
-      : ""
-    : value === null
-      ? defaultLabel
-        ? DEFAULT_OPTION
-        : ""
-      : curatedFontId(value) || isPluginFont(value)
-        ? value
-        : "";
+  const options = useMemo(
+    () => [...curatedOptions, ...importedOptions, ...installedOptions],
+    [curatedOptions, importedOptions, installedOptions],
+  );
+  // Every source lives in the one list, so the stored ref is always the
+  // select's value — only the null surface default maps to its sentinel.
+  const selectValue: string = value === null ? (defaultLabel ? DEFAULT_OPTION : "") : value;
 
   const choose = (next: string) =>
     // The union guarantees a null-accepting handler whenever the default
@@ -148,11 +132,12 @@ export function useFontChoices({ value, onChange, defaultLabel, fontWeight }: Fo
     (onChange as (v: ReaderFontFamily | null) => void)(next === DEFAULT_OPTION ? null : (next as ReaderFontFamily));
 
   return {
-    /** Listing imported + installed fonts rather than the curated set. */
-    custom,
-    setCustom,
     options,
-    /** The option matching the value in the active source, or "" for none. */
+    /** The three sections, for pickers that render their own group labels. */
+    curatedOptions,
+    importedOptions,
+    installedOptions,
+    /** The option matching the value, or "" for none. */
     selectValue,
     choose,
     systemLoading,

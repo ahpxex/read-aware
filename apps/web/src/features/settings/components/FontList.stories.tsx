@@ -16,8 +16,8 @@ type FontListArgs = {
 
 /**
  * The font choices as a list, for a page of its own (the phone's appearance
- * drawer): the current font checked, and "Custom" switching the list to the
- * fonts installed on this device.
+ * drawer): the current font checked, in three sections — curated and plugin
+ * fonts, imported files, then the fonts installed on this device.
  */
 const meta = {
   title: "Interface/Settings/FontList",
@@ -71,8 +71,8 @@ const sampleUserFonts: UserFontEntry[] = [
   },
 ];
 
-/** The custom list on mobile: imported files first, deletable inline, then
- *  whatever the device enumeration offers (empty in Storybook). */
+/** Imported files under their own section header, deletable inline; the
+ *  installed section follows (the device enumeration is empty in Storybook). */
 export const ImportedFonts: Story = {
   args: { value: toUserFont("a".repeat(64)) },
   decorators: [withAtoms(seed(userFontsAtom, sampleUserFonts))],

@@ -130,6 +130,39 @@ export const WithPopupHeaderAndAccessories: Story = {
   },
 };
 
+/**
+ * Options split into labeled sections — consecutive options sharing a `group`
+ * collapse under one heading with a divider — plus an action row pinned below
+ * the scrollable list.
+ */
+export const GroupedWithFooter: Story = {
+  args: {
+    label: "Font",
+    defaultValue: "serif",
+    options: [
+      { label: "Literata", value: "literata" },
+      { label: "Source Serif 4", value: "serif" },
+      {
+        label: "Alegreya Sans",
+        value: "alegreya",
+        group: "Imported fonts",
+        accessory: <span className="text-[11px] text-fg-subtle">TTF · 471 KB</span>,
+      },
+      { label: "Iowan Old Style", value: "iowan", group: "Installed on this device" },
+      { label: "Avenir Next", value: "avenir", group: "Installed on this device" },
+    ],
+    popupFooter: (close) => (
+      <button
+        type="button"
+        onClick={close}
+        className="mt-1 flex w-full items-center gap-2 rounded-md border-t border-border px-2.5 pb-1.5 pt-2 text-left text-sm text-fg-muted transition-colors hover:bg-fill hover:text-fg"
+      >
+        Import font…
+      </button>
+    ),
+  },
+};
+
 /** Pointer opening and keyboard opening start on the same selected option. */
 export const KeyboardAfterPointerOpen: Story = {
   args: { label: "Sort by", options: sampleOptions, defaultValue: "date" },

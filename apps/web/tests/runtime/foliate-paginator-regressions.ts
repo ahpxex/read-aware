@@ -364,6 +364,32 @@ export async function runPaginatorRegressions(PaginatorClass: typeof Paginator):
       },
     );
 
+  await check("paginated margins count space the host already reserved instead of stacking on it", async () => {
+    const urls = [page("Edge to edge ".repeat(800))],
+      renderer = mount();
+    const bands = () => {
+      const host = renderer.getBoundingClientRect();
+      const frame = (
+        renderer.getContents()[0]?.doc.defaultView?.frameElement as HTMLElement | null
+      )?.getBoundingClientRect();
+      if (!frame) throw new Error("Missing section frame");
+      return `${Math.round(frame.top - host.top)}/${Math.round(host.bottom - frame.bottom)}`;
+    };
+    try {
+      renderer.setAttribute("flow", "paginated");
+      renderer.setAttribute("margin", "48px");
+      renderer.open({ sections: [{ id: 0, size: 1000, load: () => urls[0] }] });
+      await renderer.goTo({ index: 0 });
+      equal(bands(), "48/48");
+      renderer.style.setProperty("--foliate-reserved-top", "62px");
+      renderer.style.setProperty("--foliate-reserved-bottom", "34px");
+      renderer.render();
+      equal(bands(), "0/14");
+    } finally {
+      dispose(renderer, urls);
+    }
+  });
+
   await check("scrolled images have finite limits and vertical/RTL pages retain readable geometry", async () => {
     const canvas = document.createElement("canvas");
     canvas.width = 1000;

@@ -2655,6 +2655,10 @@ export function FoliateReaderView({
           // cutout (Dynamic Island / punch-hole) and the home indicator while
           // the reader runs immersive; env() resolves to 0 on desktop.
           "relative h-full w-full pt-[var(--ra-safe-top)] pb-[var(--ra-safe-bottom)] transition-opacity ease-out",
+          // The paginator counts that padding toward its own top/bottom page
+          // margin rather than adding the full margin inside it, which left a
+          // phone's paginated pages ~80px of blank below the last line.
+          "[--foliate-reserved-top:var(--ra-safe-top)] [--foliate-reserved-bottom:var(--ra-safe-bottom)]",
           isCrossing ? "duration-150" : "duration-500",
           (isLoading || !!error || isCrossing) && "opacity-0",
         )}

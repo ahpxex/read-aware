@@ -132,6 +132,34 @@ export function resolveReaderFontWeight(preferred: ReaderFontWeight, fontFamily?
 }
 export type ReaderLineSpacing = "compact" | "comfortable" | "relaxed";
 export type ReaderParagraphSpacing = "tight" | "normal" | "loose";
+
+/** The rem behind each font-size preset. Consumed by the reader stylesheet
+ * (`reader-css.ts`) and by custom-typography seeding. */
+export const READER_FONT_SIZE_REM = {
+  "xx-small": "0.8125rem",
+  "x-small": "0.875rem",
+  small: "0.9375rem",
+  medium: "1.0625rem",
+  large: "1.1875rem",
+  "x-large": "1.3125rem",
+  "xx-large": "1.5rem",
+  "xxx-large": "1.75rem",
+} as const;
+
+/** Unitless line-height behind each line-spacing preset. */
+export const READER_LINE_HEIGHT = {
+  compact: "1.55",
+  comfortable: "1.85",
+  relaxed: "2.15",
+} as const;
+
+/** The margin-bottom behind each paragraph-spacing preset. */
+export const READER_PARAGRAPH_SPACING_REM = {
+  tight: "0.6rem",
+  normal: "1.25rem",
+  loose: "1.9rem",
+} as const;
+
 /**
  * Page margin presets — each drives the text measure, the paginator gap, and
  * the body padding together (see `reader-css.ts`). The default is
@@ -139,6 +167,95 @@ export type ReaderParagraphSpacing = "tight" | "normal" | "loose";
  * roomier editorial measure on desktop.
  */
 export type ReaderPageMargins = "narrow" | "medium" | "wide";
+
+/**
+ * Whether the four typography settings are preset tiers (`preset`, today's
+ * choices) or exact numbers (`custom`). Switching modes never discards
+ * `customTypography`: a first switch seeds it from the live presets, later
+ * switches keep the user's numbers.
+ */
+export type ReaderTypographyMode = "preset" | "custom";
+
+/**
+ * Preset first-line indent: `book` follows the publisher (the default —
+ * forcing an indent flattens publisher hanging indents on notes), `none`
+ * forces zero, `two` forces a 2em indent.
+ */
+export type ReaderTextIndent = "book" | "none" | "two";
+
+/** Exact typography values, used while `typographyMode` is `custom`. */
+export type ReaderCustomTypography = {
+  fontSizePx: number;
+  lineHeight: number;
+  paragraphSpacingEm: number;
+  /** Outer side margin, % of the reader width. */
+  pageMarginPercent: number;
+  /** null = follow the book's own indent. */
+  textIndentEm: number | null;
+};
+
+export const READER_CUSTOM_TYPOGRAPHY_LIMITS = {
+  fontSizePx: { min: 12, max: 40, step: 1 },
+  lineHeight: { min: 1, max: 3, step: 0.05 },
+  paragraphSpacingEm: { min: 0, max: 3, step: 0.1 },
+  pageMarginPercent: { min: 0, max: 25, step: 1 },
+  textIndentEm: { min: 0, max: 4, step: 0.5 },
+} as const;
+
+const roundToStep = (value: number, { min, max, step }: { min: number; max: number; step: number }): number => {
+  const clamped = Math.min(max, Math.max(min, value));
+  const decimals = String(step).split(".")[1]?.length ?? 0;
+  return Number((Math.round(clamped / step) * step).toFixed(decimals));
+};
+
+/** Clamp + snap one custom-typography field to its limits — the single rule
+ *  shared by storage normalization and the agent settings catalog. */
+export function snapCustomTypographyValue(key: keyof typeof READER_CUSTOM_TYPOGRAPHY_LIMITS, value: number): number {
+  return roundToStep(value, READER_CUSTOM_TYPOGRAPHY_LIMITS[key]);
+}
+
+/** Coerce a persisted custom-typography object: every field must exist and be
+ *  finite (textIndentEm may be null); values are clamped and snapped to their
+ *  step so no float noise persists. Anything else drops the whole object. */
+export function normalizeCustomTypography(value: unknown): ReaderCustomTypography | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  const num = (key: keyof typeof READER_CUSTOM_TYPOGRAPHY_LIMITS): number | undefined => {
+    const raw = record[key];
+    return typeof raw === "number" && Number.isFinite(raw) ? snapCustomTypographyValue(key, raw) : undefined;
+  };
+  const fontSizePx = num("fontSizePx");
+  const lineHeight = num("lineHeight");
+  const paragraphSpacingEm = num("paragraphSpacingEm");
+  const pageMarginPercent = num("pageMarginPercent");
+  const textIndentEm = record.textIndentEm === null ? null : num("textIndentEm");
+  if (
+    fontSizePx === undefined ||
+    lineHeight === undefined ||
+    paragraphSpacingEm === undefined ||
+    pageMarginPercent === undefined ||
+    textIndentEm === undefined
+  )
+    return undefined;
+  return { fontSizePx, lineHeight, paragraphSpacingEm, pageMarginPercent, textIndentEm };
+}
+
+/** Seed custom values from the live presets, so switching modes does not move
+ *  the text: same size, same leading, same measure, same indent intent. */
+export function customTypographyFromPresets(
+  settings: Pick<ReaderSettings, "fontSize" | "lineSpacing" | "paragraphSpacing" | "pageMargins" | "textIndent">,
+): ReaderCustomTypography {
+  const fontSizePx = Math.round(parseFloat(READER_FONT_SIZE_REM[settings.fontSize]) * 16);
+  return {
+    fontSizePx,
+    lineHeight: parseFloat(READER_LINE_HEIGHT[settings.lineSpacing]),
+    paragraphSpacingEm:
+      Math.round(((parseFloat(READER_PARAGRAPH_SPACING_REM[settings.paragraphSpacing]) * 16) / fontSizePx) * 10) / 10,
+    // The preset tiers measured against a desktop-width reader.
+    pageMarginPercent: { narrow: 2, medium: 8, wide: 14 }[settings.pageMargins],
+    textIndentEm: { book: null, none: 0, two: 2 }[settings.textIndent],
+  };
+}
 /**
  * How the book is laid out and navigated:
  * - `scroll` — continuous vertical scroll, lazily loading sections as you go.
@@ -190,6 +307,10 @@ export type ReaderSettings = {
   paragraphSpacing: ReaderParagraphSpacing;
   pageMargins: ReaderPageMargins;
   textAlign: ReaderTextAlign;
+  textIndent: ReaderTextIndent;
+  typographyMode: ReaderTypographyMode;
+  /** Exact values for `custom` mode; absent until that mode is first used. */
+  customTypography?: ReaderCustomTypography;
   readingMode: ReadingMode;
   /**
    * Fixed-layout books (PDF, comics) carry their own mode axis: their pages
@@ -268,6 +389,8 @@ export const DEFAULT_READER_SETTINGS: ReaderSettings = {
   lineSpacing: "comfortable",
   paragraphSpacing: "normal",
   textAlign: "book",
+  textIndent: "book",
+  typographyMode: "preset",
   // Touch screens read with mobile-typical tight margins by default; desktop
   // keeps the roomier editorial measure. Evaluated once — it's a device trait.
   pageMargins: hasCoarsePointer() ? "narrow" : "wide",
@@ -363,6 +486,18 @@ export function normalizeTextAlign(value: unknown): ReaderTextAlign {
   return DEFAULT_READER_SETTINGS.textAlign;
 }
 
+/** Coerce a persisted first-line-indent preset to a valid value. */
+export function normalizeTextIndent(value: unknown): ReaderTextIndent {
+  if (value === "book" || value === "none" || value === "two") return value;
+  return DEFAULT_READER_SETTINGS.textIndent;
+}
+
+/** Coerce a persisted typography mode to a valid value. */
+export function normalizeTypographyMode(value: unknown): ReaderTypographyMode {
+  if (value === "preset" || value === "custom") return value;
+  return DEFAULT_READER_SETTINGS.typographyMode;
+}
+
 /** Coerce a persisted font-weight preset to a valid value. */
 export function normalizeFontWeight(value: unknown): ReaderFontWeight {
   if (typeof value === "string" && Object.hasOwn(READER_FONT_WEIGHTS, value)) {
@@ -377,6 +512,7 @@ export function getReaderPreferences(): ReaderSettingsPreferences {
     if (!raw) return DEFAULT_READER_PREFERENCES;
     const parsed = JSON.parse(raw) as Partial<ReaderSettingsPreferences>;
     const languageFonts = normalizeLanguageFonts(parsed.languageFonts);
+    const customTypography = normalizeCustomTypography(parsed.customTypography);
     return {
       ...(languageFonts ? { languageFonts } : {}),
       theme: normalizeReaderTheme(parsed.theme),
@@ -387,6 +523,11 @@ export function getReaderPreferences(): ReaderSettingsPreferences {
       paragraphSpacing: parsed.paragraphSpacing ?? DEFAULT_READER_PREFERENCES.paragraphSpacing,
       pageMargins: normalizePageMargins(parsed.pageMargins),
       textAlign: normalizeTextAlign(parsed.textAlign),
+      textIndent: normalizeTextIndent(parsed.textIndent),
+      typographyMode: normalizeTypographyMode(parsed.typographyMode),
+      // Optional until custom mode is first used; junk drops the object, not
+      // the surrounding preferences.
+      ...(customTypography ? { customTypography } : {}),
       readingMode: normalizeReadingMode(parsed.readingMode) ?? DEFAULT_READER_PREFERENCES.readingMode,
       // Absent in every store written before the split — which is exactly the
       // migration: existing installs' PDFs adopt continuous scroll, and only

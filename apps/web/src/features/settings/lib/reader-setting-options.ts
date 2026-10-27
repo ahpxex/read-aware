@@ -8,6 +8,7 @@ import type {
   ReaderPageMargins,
   ReaderParagraphSpacing,
   ReaderTextAlign,
+  ReaderTextIndent,
   ReaderThemePreference,
   ReadingMode,
 } from "./reader-settings";
@@ -58,6 +59,21 @@ export function pageMarginsOptions(t: TFunction<"reader">): { value: ReaderPageM
   return (["narrow", "medium", "wide"] as const).map((value) => ({
     value,
     label: t(`pageMarginsOption.${value}`),
+  }));
+}
+
+export function textIndentOptions(t: TFunction<"reader">): { value: ReaderTextIndent; label: string }[] {
+  return (["book", "none", "two"] as const).map((value) => ({
+    value,
+    label: t(`textIndentOption.${value}`),
+  }));
+}
+
+/** The custom mode's indent choice: follow the book, or an exact em value. */
+export function customTextIndentOptions(t: TFunction<"reader">): { value: "book" | "custom"; label: string }[] {
+  return (["book", "custom"] as const).map((value) => ({
+    value,
+    label: t(`textIndentOption.${value}`),
   }));
 }
 

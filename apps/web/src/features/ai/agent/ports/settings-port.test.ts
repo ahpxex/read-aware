@@ -570,3 +570,62 @@ describe("agent plugin settings", () => {
     expect(snapshot.settings).toHaveLength(0);
   });
 });
+
+describe("custom typography settings", () => {
+  const global = { kind: "global" } as const;
+
+  test("reading.typographyMode and reading.textIndent validate as enums", async () => {
+    const port = createSettingsPort();
+    await port.updateSettings([
+      { path: "reading.typographyMode", value: "custom", target: global },
+      { path: "reading.textIndent", value: "two", target: global },
+    ]);
+    const snapshot = await port.getSettings();
+    expect(setting(snapshot.settings, "reading.typographyMode").value).toBe("custom");
+    expect(setting(snapshot.settings, "reading.textIndent").value).toBe("two");
+    await expect(
+      port.updateSettings([{ path: "reading.typographyMode", value: "fancy", target: global }]),
+    ).rejects.toThrow("reading.typographyMode must be one of");
+  });
+
+  test("a custom value write seeds from presets and does not flip the mode", async () => {
+    const port = createSettingsPort();
+    await port.updateSettings([{ path: "reading.custom.fontSize", value: 22, target: global }]);
+    const snapshot = await port.getSettings();
+    expect(setting(snapshot.settings, "reading.custom.fontSize").value).toBe(22);
+    // Writing a custom value is not a mode switch.
+    expect(setting(snapshot.settings, "reading.typographyMode").value).toBe("preset");
+    // The rest of the object was seeded from the live presets, not dropped.
+    expect(setting(snapshot.settings, "reading.custom.pageMargins").value).toBe(14);
+  });
+
+  test("custom paths validate their range and snap to the step", async () => {
+    const port = createSettingsPort();
+    await expect(port.updateSettings([{ path: "reading.custom.fontSize", value: 99, target: global }])).rejects.toThrow(
+      "reading.custom.fontSize must be between 12 and 40",
+    );
+    await expect(
+      port.updateSettings([{ path: "reading.custom.pageMargins", value: -1, target: global }]),
+    ).rejects.toThrow("reading.custom.pageMargins must be between 0 and 25");
+    await port.updateSettings([{ path: "reading.custom.lineHeight", value: 1.234, target: global }]);
+    const snapshot = await port.getSettings();
+    expect(setting(snapshot.settings, "reading.custom.lineHeight").value).toBe(1.25);
+  });
+
+  test("custom textIndent accepts null to follow the book", async () => {
+    const port = createSettingsPort();
+    await port.updateSettings([{ path: "reading.custom.textIndent", value: null, target: global }]);
+    const snapshot = await port.getSettings();
+    expect(setting(snapshot.settings, "reading.custom.textIndent").value).toBeNull();
+  });
+
+  test("null is rejected for the non-nullable custom paths", async () => {
+    const port = createSettingsPort();
+    await expect(
+      port.updateSettings([{ path: "reading.custom.fontSize", value: null, target: global }]),
+    ).rejects.toThrow("reading.custom.fontSize cannot be null");
+    await expect(
+      port.updateSettings([{ path: "reading.custom.pageMargins", value: null, target: global }]),
+    ).rejects.toThrow("reading.custom.pageMargins cannot be null");
+  });
+});

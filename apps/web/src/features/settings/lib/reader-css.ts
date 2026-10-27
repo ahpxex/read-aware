@@ -1,14 +1,17 @@
 import type { CSSProperties } from "react";
 import {
   curatedFontId,
+  customTypographyFromPresets,
+  READER_FONT_SIZE_REM,
   READER_FONT_WEIGHTS,
+  READER_LINE_HEIGHT,
+  READER_PARAGRAPH_SPACING_REM,
   resolveReaderFontWeight,
   isPluginFont,
   isUserFont,
   systemFontFamily,
   userFontId,
   type ReaderFontFamily,
-  type ReaderFontSize,
   type ReaderFontWeight,
   type ReaderPageMargins,
   type ReaderSettings,
@@ -86,37 +89,9 @@ export function readerFontWeightsNeeded(fontWeight: ReaderFontWeight, fontFamily
   return [...new Set([weight, 400, 700])].sort((a, b) => a - b);
 }
 
-const FONT_SIZE_MAP = {
-  "xx-small": "0.8125rem",
-  "x-small": "0.875rem",
-  small: "0.9375rem",
-  medium: "1.0625rem",
-  large: "1.1875rem",
-  "x-large": "1.3125rem",
-  "xx-large": "1.5rem",
-  "xxx-large": "1.75rem",
-} as const;
-
-/**
- * The numeric rem behind a reading size preset. Exposed so the app's content
- * typography can scale off the book's size when it follows it — see
- * `content-typography.ts`.
- */
-export function readerFontSizeRem(fontSize: ReaderFontSize): number {
-  return Number.parseFloat(FONT_SIZE_MAP[fontSize]);
-}
-
-const LINE_HEIGHT_MAP = {
-  compact: "1.55",
-  comfortable: "1.85",
-  relaxed: "2.15",
-} as const;
-
-const PARAGRAPH_SPACING_MAP = {
-  tight: "0.6rem",
-  normal: "1.25rem",
-  loose: "1.9rem",
-} as const;
+const FONT_SIZE_MAP = READER_FONT_SIZE_REM;
+const LINE_HEIGHT_MAP = READER_LINE_HEIGHT;
+const PARAGRAPH_SPACING_MAP = READER_PARAGRAPH_SPACING_REM;
 
 // Responsive text measure. foliate's paginator caps the column to its
 // `max-inline-size` (a px value it parses from the attribute) and writes that
@@ -160,6 +135,96 @@ const READER_SPREAD_MARGIN_PRESETS = {
   wide: { gap: "3%", horizontalPadding: "0.75rem" },
 } as const satisfies Record<ReaderPageMargins, { gap: string; horizontalPadding: string }>;
 
+/** The settings fields typography resolution reads — preset tiers or the
+ * custom numbers behind `typographyMode`. */
+export type ReaderTypographySettings = Pick<
+  ReaderSettings,
+  "fontSize" | "lineSpacing" | "paragraphSpacing" | "pageMargins" | "textIndent" | "typographyMode" | "customTypography"
+>;
+
+export type ResolvedReaderTypography = {
+  /** CSS font-size for the body rule (`rem` preset, `px` custom). */
+  fontSize: string;
+  fontSizeRem: number;
+  lineHeight: string;
+  /** CSS margin-bottom for paragraphs (`rem` preset, `em` custom). */
+  paragraphSpacing: string;
+  /** CSS text-indent, or null to leave the publisher's alone. */
+  textIndent: string | null;
+  margins: {
+    measureFraction: number | "fill";
+    gap: string;
+    horizontalPadding: string;
+    spreadGap: string;
+    spreadHorizontalPadding: string;
+    /**
+     * The requested outer side margin as a reader-width fraction — custom
+     * mode only; presets carry `null` and keep their tuned gap strings.
+     * Measured against the real paginator: the visible outer margin lands at
+     * `g` of the width in paginated flow and `g / (1 - g)` in scrolled flow
+     * (the gap attribute becomes half-gap columns at the outer edges plus a
+     * scaled column gap inside the frame), plus the body padding below — so
+     * `readerLayoutSpacing` writes `g = p` for paginated and `g = p/(1 + p)`
+     * for scroll. The 0.75rem/0.25rem padding is a small floor on top of `p`
+     * so `0%` never touches the window chrome.
+     */
+    outerFraction: number | null;
+  };
+};
+
+/**
+ * The single place preset tiers and custom numbers become CSS values. Every
+ * consumer — the injected stylesheet, the paginator layout attributes, the
+ * settings preview and content typography — resolves through here so the two
+ * modes can never drift apart.
+ */
+export function resolveReaderTypography(settings: ReaderTypographySettings): ResolvedReaderTypography {
+  if (settings.typographyMode === "custom") {
+    const custom = settings.customTypography ?? customTypographyFromPresets(settings);
+    return {
+      fontSize: `${custom.fontSizePx}px`,
+      fontSizeRem: custom.fontSizePx / 16,
+      lineHeight: String(custom.lineHeight),
+      paragraphSpacing: `${custom.paragraphSpacingEm}em`,
+      textIndent: custom.textIndentEm === null ? null : `${custom.textIndentEm}em`,
+      margins: {
+        measureFraction: "fill",
+        gap: `${custom.pageMarginPercent}%`,
+        spreadGap: `${custom.pageMarginPercent}%`,
+        horizontalPadding: "0.75rem",
+        spreadHorizontalPadding: "0.25rem",
+        outerFraction: custom.pageMarginPercent / 100,
+      },
+    };
+  }
+  const preset = READER_MARGIN_PRESETS[settings.pageMargins];
+  const spread = READER_SPREAD_MARGIN_PRESETS[settings.pageMargins];
+  return {
+    fontSize: FONT_SIZE_MAP[settings.fontSize],
+    fontSizeRem: Number.parseFloat(FONT_SIZE_MAP[settings.fontSize]),
+    lineHeight: LINE_HEIGHT_MAP[settings.lineSpacing],
+    paragraphSpacing: PARAGRAPH_SPACING_MAP[settings.paragraphSpacing],
+    textIndent: { book: null, none: "0", two: "2em" }[settings.textIndent],
+    margins: {
+      measureFraction: preset.measureFraction,
+      gap: preset.gap,
+      horizontalPadding: preset.horizontalPadding,
+      spreadGap: spread.gap,
+      spreadHorizontalPadding: spread.horizontalPadding,
+      outerFraction: null,
+    },
+  };
+}
+
+/**
+ * The numeric rem behind the resolved reading size. Exposed so the app's
+ * content typography can scale off the book's size when it follows it — see
+ * `content-typography.ts`.
+ */
+export function readerFontSizeRem(settings: ReaderTypographySettings): number {
+  return resolveReaderTypography(settings).fontSizeRem;
+}
+
 /** Map a reading mode to the foliate renderer's `flow` + column attributes. */
 export function layoutForReadingMode(mode: ReadingMode): {
   flow: "scrolled" | "paginated";
@@ -177,13 +242,26 @@ export function layoutForReadingMode(mode: ReadingMode): {
 }
 
 /** Keep the paginator's outer spacing and injected body padding in sync. */
-export function readerLayoutSpacing(margins: ReaderPageMargins, mode: ReadingMode) {
+export function readerLayoutSpacing(settings: ReaderTypographySettings, mode: ReadingMode) {
+  const resolved = resolveReaderTypography(settings).margins;
   const spread = mode === "paginated-double";
-  const preset = spread ? READER_SPREAD_MARGIN_PRESETS[margins] : READER_MARGIN_PRESETS[margins];
+  const horizontalPadding = spread ? resolved.spreadHorizontalPadding : resolved.horizontalPadding;
+  // Custom mode asks for an outer side margin of p·width. The paginator turns
+  // its gap attribute into half-gap columns at the outer edges plus a scaled
+  // inner column gap, so the visible margin lands at g·W paginated and
+  // g/(1−g)·W scrolled — scroll gets the inverse fraction of the request.
+  const gap =
+    resolved.outerFraction === null
+      ? spread
+        ? resolved.spreadGap
+        : resolved.gap
+      : mode === "scroll"
+        ? `${(resolved.outerFraction / (1 + resolved.outerFraction)) * 100}%`
+        : `${resolved.outerFraction * 100}%`;
   return {
-    gap: preset.gap,
+    gap,
     margin: spread ? "20px" : "48px",
-    bodyPadding: spread ? `1rem ${preset.horizontalPadding} 1.5rem` : `2rem ${preset.horizontalPadding} 4rem`,
+    bodyPadding: spread ? `1rem ${horizontalPadding} 1.5rem` : `2rem ${horizontalPadding} 4rem`,
   };
 }
 
@@ -198,11 +276,11 @@ export function readerLayoutSpacing(margins: ReaderPageMargins, mode: ReadingMod
  * measure would collapse two-page mode to a single column.
  */
 export function computeReaderMaxInlineSize(
+  settings: ReaderTypographySettings,
   containerWidthPx: number,
-  margins: ReaderPageMargins,
   columnCount = 1,
 ): number {
-  const { measureFraction } = READER_MARGIN_PRESETS[margins];
+  const { measureFraction } = resolveReaderTypography(settings).margins;
   const preferred =
     measureFraction === "fill" ? containerWidthPx / Math.max(1, columnCount) : measureFraction * containerWidthPx;
   const clamped = Math.max(MEASURE_MIN_REM * REM_PX, Math.min(preferred, MEASURE_MAX_REM * REM_PX));
@@ -241,6 +319,25 @@ function textAlignCss(align: ReaderTextAlign): string {
 }
 
 /**
+ * First-line indent rules, or nothing at all.
+ *
+ * `book` — the resolved `null` — emits no rule and lets the publisher decide.
+ * That restraint is deliberate, for the same reason as alignment: publishers
+ * use text-indent for paragraph rhythm AND for negative hanging indents on
+ * notes and verse, so a blanket `p { text-indent }` flattens every hanging
+ * indent in the book. Forcing an indent means paying that cost, so it exists
+ * only as an explicit user choice (`none`/`two`, or a custom em value).
+ */
+function textIndentCss(indent: string | null): string {
+  if (indent === null) return "";
+  return `
+    body :where(p) {
+      text-indent: ${indent} !important;
+    }
+`;
+}
+
+/**
  * Everything registry-dependent a reader stylesheet needs, resolved by the
  * caller: the palette behind the (possibly plugin-contributed) theme, any
  * `@font-face` rules to inline (curated download blobs or plugin folder
@@ -263,11 +360,12 @@ export type ReaderContentAssets = {
 export function buildReaderContentCss(settings: ReaderSettings, assets: ReaderContentAssets): string {
   const fontFaceCss = assets.fontFaceCss ?? "";
   const fontFamily = resolveReaderFontStack(settings.fontFamily, assets.pluginFont);
-  const fontSize = FONT_SIZE_MAP[settings.fontSize];
+  const typography = resolveReaderTypography(settings);
+  const fontSize = typography.fontSize;
   const fontWeight = READER_FONT_WEIGHTS[resolveReaderFontWeight(settings.fontWeight, settings.fontFamily)];
-  const lineHeight = LINE_HEIGHT_MAP[settings.lineSpacing];
-  const paragraphSpacing = PARAGRAPH_SPACING_MAP[settings.paragraphSpacing];
-  const { bodyPadding } = readerLayoutSpacing(settings.pageMargins, settings.readingMode);
+  const lineHeight = typography.lineHeight;
+  const paragraphSpacing = typography.paragraphSpacing;
+  const { bodyPadding } = readerLayoutSpacing(settings, settings.readingMode);
   const theme = assets.palette;
 
   // Must lead the sheet: @namespace is only honored before style rules (after
@@ -291,7 +389,7 @@ export function buildReaderContentCss(settings: ReaderSettings, assets: ReaderCo
       font-weight: ${fontWeight} !important;
       line-height: ${lineHeight} !important;
     }
-${textAlignCss(settings.textAlign)}
+${textAlignCss(settings.textAlign)}${textIndentCss(typography.textIndent)}
     ${
       fontWeight > 700
         ? `
@@ -653,16 +751,23 @@ ${textAlignCss(settings.textAlign)}
 export function getReaderPreviewStyle(
   settings: ReaderSettings,
   assets: Pick<ReaderContentAssets, "palette" | "pluginFont">,
-): CSSProperties & { "--ra-reader-preview-paragraph-spacing": string } {
+): CSSProperties & {
+  "--ra-reader-preview-paragraph-spacing": string;
+  "--ra-reader-preview-text-indent": string;
+} {
   const theme = assets.palette;
+  const typography = resolveReaderTypography(settings);
   return {
-    "--ra-reader-preview-paragraph-spacing": PARAGRAPH_SPACING_MAP[settings.paragraphSpacing],
+    "--ra-reader-preview-paragraph-spacing": typography.paragraphSpacing,
+    // "0" when the publisher's own indent is followed — the preview text is
+    // ours, so following it means no indent here either way.
+    "--ra-reader-preview-text-indent": typography.textIndent ?? "0",
     backgroundColor: theme.bg,
     color: theme.text,
     fontFamily: resolveReaderFontStack(settings.fontFamily, assets.pluginFont),
-    fontSize: FONT_SIZE_MAP[settings.fontSize],
+    fontSize: typography.fontSize,
     fontWeight: READER_FONT_WEIGHTS[resolveReaderFontWeight(settings.fontWeight, settings.fontFamily)],
-    lineHeight: LINE_HEIGHT_MAP[settings.lineSpacing],
+    lineHeight: typography.lineHeight,
     // The preview text is ours, so `book` — "whatever the publisher chose" —
     // has no publisher to defer to; it shows the unforced default.
     textAlign: settings.textAlign === "justify" ? "justify" : "start",

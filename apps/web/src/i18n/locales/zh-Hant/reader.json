@@ -150,6 +150,21 @@
     "start": "靠左對齊",
     "justify": "左右對齊"
   },
+  "typographyAdvanced": "進階排版",
+  "typographyAdvancedHintPreset": "以預設檔位調整字號、行距等排版。",
+  "typographyAdvancedHintCustom": "以精確數值調整字號、行距、段距、縮排與頁邊距。",
+  "textIndent": "首行縮排",
+  "textIndentOption": {
+    "book": "跟隨書籍",
+    "none": "不縮排",
+    "two": "2 字",
+    "custom": "自訂"
+  },
+  "textIndentAmount": "縮排量",
+  "fontSizeValue": "{{value}} px",
+  "emValue": "{{value}} em",
+  "indentValue": "{{value}} 字",
+  "percentValue": "{{value}}%",
   "pageMargins": "頁邊距",
   "pageMarginsOption": {
     "narrow": "窄",

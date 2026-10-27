@@ -6,21 +6,17 @@ import { useTranslation } from "../../../i18n";
 import {
   fixedLayoutColorOptions,
   fontSizeOptions,
-  fontWeightOptions,
-  lineSpacingOptions,
   pageColorOptions,
-  pageMarginsOptions,
-  paragraphSpacingOptions,
   readingModeOptions,
-  textAlignOptions,
 } from "../../settings/lib/reader-setting-options";
 import { applyReaderThemeSelection, readerThemeSwatch } from "../../settings/lib/reader-theme";
-import { resolveReaderFontWeight } from "../../settings/lib/reader-settings";
+import { customTypographyFromPresets, READER_CUSTOM_TYPOGRAPHY_LIMITS } from "../../settings/lib/reader-settings";
 import { readerFontLabel } from "../../settings/lib/reader-font-label";
 import { usePluginReaderThemeOptions } from "../../settings/hooks/usePluginReaderThemeOptions";
 import { pluginFontsAtom, pluginThemesAtom } from "../../plugins/state/plugin-store";
 import { userFontsAtom } from "../../settings";
 import { FontList } from "../../settings/components/FontList";
+import { ReaderTypographyControls } from "../../settings/components/ReaderTypographyControls";
 import { useReaderAppearance } from "../hooks/useReaderAppearance";
 import { FixedLayoutFitChoice } from "./FixedLayoutZoomControls";
 
@@ -71,36 +67,7 @@ export function ReaderAppearanceCompact({ bookId, fixedLayout = false }: ReaderA
     return (
       <Subpage title={t("appearanceMoreLayout")} backLabel={t("readingAppearance")} onBack={() => setPage("main")}>
         <div className="flex flex-col gap-5">
-          <ChoiceGroup
-            label={t("fontWeight")}
-            value={resolveReaderFontWeight(prefs.fontWeight, prefs.fontFamily)}
-            options={fontWeightOptions(t, prefs.fontFamily)}
-            onChange={(fontWeight) => updatePrefs({ ...prefs, fontWeight })}
-          />
-          <ChoiceGroup
-            label={t("lineSpacing")}
-            value={prefs.lineSpacing}
-            options={lineSpacingOptions(t)}
-            onChange={(lineSpacing) => updatePrefs({ ...prefs, lineSpacing })}
-          />
-          <ChoiceGroup
-            label={t("paragraphSpacing")}
-            value={prefs.paragraphSpacing}
-            options={paragraphSpacingOptions(t)}
-            onChange={(paragraphSpacing) => updatePrefs({ ...prefs, paragraphSpacing })}
-          />
-          <ChoiceGroup
-            label={t("textAlign")}
-            value={prefs.textAlign}
-            options={textAlignOptions(t)}
-            onChange={(textAlign) => updatePrefs({ ...prefs, textAlign })}
-          />
-          <ChoiceGroup
-            label={t("pageMargins")}
-            value={prefs.pageMargins}
-            options={pageMarginsOptions(t)}
-            onChange={(pageMargins) => updatePrefs({ ...prefs, pageMargins })}
-          />
+          <ReaderTypographyControls prefs={prefs} onChange={updatePrefs} showFontSize={false} />
         </div>
       </Subpage>
     );
@@ -111,7 +78,17 @@ export function ReaderAppearanceCompact({ bookId, fixedLayout = false }: ReaderA
     0,
     sizes.findIndex((option) => option.value === prefs.fontSize),
   );
+  // Custom mode steps exact px instead of the preset ladder — same gesture,
+  // the numbers behind it.
+  const customSize = prefs.typographyMode === "custom";
+  const customValues = prefs.customTypography ?? customTypographyFromPresets(prefs);
+  const pxLimits = READER_CUSTOM_TYPOGRAPHY_LIMITS.fontSizePx;
   const stepSize = (by: number) => {
+    if (customSize) {
+      const fontSizePx = Math.min(pxLimits.max, Math.max(pxLimits.min, customValues.fontSizePx + by));
+      updatePrefs({ ...prefs, customTypography: { ...customValues, fontSizePx } });
+      return;
+    }
     const next = sizes[sizeIndex + by];
     if (next) updatePrefs({ ...prefs, fontSize: next.value });
   };
@@ -126,9 +103,11 @@ export function ReaderAppearanceCompact({ bookId, fixedLayout = false }: ReaderA
         {!fixedLayout && (
           <Stepper
             label={t("fontSize")}
-            valueText={sizes[sizeIndex]?.label ?? ""}
-            canDecrement={sizeIndex > 0}
-            canIncrement={sizeIndex < sizes.length - 1}
+            valueText={
+              customSize ? t("fontSizeValue", { value: customValues.fontSizePx }) : (sizes[sizeIndex]?.label ?? "")
+            }
+            canDecrement={customSize ? customValues.fontSizePx > pxLimits.min : sizeIndex > 0}
+            canIncrement={customSize ? customValues.fontSizePx < pxLimits.max : sizeIndex < sizes.length - 1}
             onDecrement={() => stepSize(-1)}
             onIncrement={() => stepSize(1)}
             decrementLabel={t("fontSizeSmaller")}

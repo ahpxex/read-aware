@@ -75,7 +75,7 @@ export async function runDocumentLayoutRegressions(ViewClass: typeof View): Prom
       const renderer = view.renderer;
       if (!renderer || !("setStyles" in renderer)) throw new Error("Missing paginator");
       renderer.setChapterStarts(starts);
-      const spacing = readerLayoutSpacing("wide", mode);
+      const spacing = readerLayoutSpacing({ ...DEFAULT_READER_SETTINGS, pageMargins: "wide" }, mode);
       renderer.setLayoutAttributes({
         flow: mode === "scroll" ? "scrolled" : "paginated",
         margin: spacing.margin,

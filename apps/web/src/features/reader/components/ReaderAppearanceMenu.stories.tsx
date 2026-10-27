@@ -116,3 +116,19 @@ export const WenKaiWeights: Story = {
 export const HeavyWeights: Story = {
   decorators: [appearance({ fontFamily: "curated:inter", fontWeight: "black" })],
 };
+
+/** Custom-typography mode: sliders with exact values, incl. the indent row. */
+export const CustomMode: Story = {
+  decorators: [
+    appearance({
+      typographyMode: "custom",
+      customTypography: {
+        fontSizePx: 18,
+        lineHeight: 1.75,
+        paragraphSpacingEm: 0.8,
+        pageMarginPercent: 10,
+        textIndentEm: 2,
+      },
+    }),
+  ],
+};

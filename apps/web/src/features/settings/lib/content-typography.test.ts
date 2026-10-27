@@ -63,6 +63,43 @@ describe("resolveContentTypography", () => {
     expect(resolved.lineHeight).toBe("1.9");
   });
 
+  test("following a custom reader mode scales font size and derives line height", () => {
+    const resolved = resolveContentTypography(DEFAULT_CONTENT_TYPOGRAPHY, {
+      ...reader,
+      typographyMode: "custom",
+      customTypography: {
+        fontSizePx: 21,
+        lineHeight: 2.2,
+        paragraphSpacingEm: 0.8,
+        pageMarginPercent: 10,
+        textIndentEm: 2,
+      },
+    });
+
+    expect(Number.parseFloat(resolved.fontSize)).toBeGreaterThan(0.875);
+    // 2.2 × 1.65 / 1.85 ≈ 1.96, inside the clamp band.
+    expect(resolved.lineHeight).toBe("1.96");
+  });
+
+  test("custom follow clamps the derived line height and seeds an absent object", () => {
+    const clamped = resolveContentTypography(DEFAULT_CONTENT_TYPOGRAPHY, {
+      ...reader,
+      typographyMode: "custom",
+      customTypography: {
+        fontSizePx: 17,
+        lineHeight: 3,
+        paragraphSpacingEm: 0.5,
+        pageMarginPercent: 5,
+        textIndentEm: null,
+      },
+    });
+    const seeded = resolveContentTypography(DEFAULT_CONTENT_TYPOGRAPHY, { ...reader, typographyMode: "custom" });
+
+    expect(clamped.lineHeight).toBe("2.1");
+    // No stored object → seeded from presets: comfortable maps back to 1.65.
+    expect(seeded.lineHeight).toBe("1.65");
+  });
+
   test("a detached setting ignores the reader entirely", () => {
     const resolved = resolveContentTypography(detached({ fontSize: "x-large", lineSpacing: "compact" }), {
       ...reader,

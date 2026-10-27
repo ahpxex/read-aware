@@ -75,7 +75,7 @@ export async function runMediaRegressions(PaginatorClass: typeof Paginator): Pro
       ),
     );
     try {
-      const spacing = readerLayoutSpacing("wide", mode);
+      const spacing = readerLayoutSpacing({ ...DEFAULT_READER_SETTINGS, pageMargins: "wide" }, mode);
       renderer.setLayoutAttributes({
         flow: mode === "scroll" ? "scrolled" : "paginated",
         margin: spacing.margin,

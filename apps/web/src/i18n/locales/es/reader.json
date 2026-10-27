@@ -150,6 +150,21 @@
     "start": "Izquierda",
     "justify": "Justificado"
   },
+  "typographyAdvanced": "Tipografía avanzada",
+  "typographyAdvancedHintPreset": "La tipografía se ajusta con niveles predefinidos.",
+  "typographyAdvancedHintCustom": "Ajusta tamaño, interlineado, espacio entre párrafos, sangría y márgenes con valores exactos.",
+  "textIndent": "Sangría de primera línea",
+  "textIndentOption": {
+    "book": "Según la edición",
+    "none": "Ninguna",
+    "two": "2 caracteres",
+    "custom": "Personalizado"
+  },
+  "textIndentAmount": "Sangría",
+  "fontSizeValue": "{{value}} px",
+  "emValue": "{{value}} em",
+  "indentValue": "{{value}} em",
+  "percentValue": "{{value}}%",
   "pageMargins": "Márgenes de página",
   "pageMarginsOption": {
     "narrow": "Estrechos",

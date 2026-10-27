@@ -4,20 +4,14 @@ import { Caption, ChoiceGroup, Divider, Popover } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import {
   fixedLayoutColorOptions,
-  fontSizeOptions,
-  fontWeightOptions,
-  lineSpacingOptions,
   pageColorOptions,
-  pageMarginsOptions,
-  paragraphSpacingOptions,
   readingModeOptions,
-  textAlignOptions,
 } from "../../settings/lib/reader-setting-options";
 import { applyReaderThemeSelection } from "../../settings/lib/reader-theme";
-import { resolveReaderFontWeight } from "../../settings/lib/reader-settings";
 import { usePluginReaderThemeOptions } from "../../settings/hooks/usePluginReaderThemeOptions";
 import { pluginThemesAtom } from "../../plugins/state/plugin-store";
 import { FontField } from "../../settings/components/FontField";
+import { ReaderTypographyControls } from "../../settings/components/ReaderTypographyControls";
 import { useReaderAppearance, type ReaderAppearanceScope } from "../hooks/useReaderAppearance";
 import { FixedLayoutFitChoice } from "./FixedLayoutZoomControls";
 
@@ -125,42 +119,7 @@ export function ReaderAppearanceFields({
             fontWeight={prefs.fontWeight}
             onChange={(fontFamily) => updatePrefs({ ...prefs, fontFamily })}
           />
-          <ChoiceGroup
-            label={t("fontSize")}
-            value={prefs.fontSize}
-            options={fontSizeOptions(t)}
-            onChange={(fontSize) => updatePrefs({ ...prefs, fontSize })}
-          />
-          <ChoiceGroup
-            label={t("fontWeight")}
-            value={resolveReaderFontWeight(prefs.fontWeight, prefs.fontFamily)}
-            options={fontWeightOptions(t, prefs.fontFamily)}
-            onChange={(fontWeight) => updatePrefs({ ...prefs, fontWeight })}
-          />
-          <ChoiceGroup
-            label={t("lineSpacing")}
-            value={prefs.lineSpacing}
-            options={lineSpacingOptions(t)}
-            onChange={(lineSpacing) => updatePrefs({ ...prefs, lineSpacing })}
-          />
-          <ChoiceGroup
-            label={t("paragraphSpacing")}
-            value={prefs.paragraphSpacing}
-            options={paragraphSpacingOptions(t)}
-            onChange={(paragraphSpacing) => updatePrefs({ ...prefs, paragraphSpacing })}
-          />
-          <ChoiceGroup
-            label={t("textAlign")}
-            value={prefs.textAlign}
-            options={textAlignOptions(t)}
-            onChange={(textAlign) => updatePrefs({ ...prefs, textAlign })}
-          />
-          <ChoiceGroup
-            label={t("pageMargins")}
-            value={prefs.pageMargins}
-            options={pageMarginsOptions(t)}
-            onChange={(pageMargins) => updatePrefs({ ...prefs, pageMargins })}
-          />
+          <ReaderTypographyControls prefs={prefs} onChange={updatePrefs} />
         </>
       )}
 

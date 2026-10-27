@@ -73,3 +73,19 @@ export const BookScope: Story = { decorators: [appearance({ theme: "dark", fontS
 
 /** A fixed-layout book: no text size or font, its own page rendering line. */
 export const FixedLayout: Story = { args: { fixedLayout: true } };
+
+/** Custom-typography mode: the layout subpage shows exact-value sliders. */
+export const CustomMode: Story = {
+  decorators: [
+    appearance({
+      typographyMode: "custom",
+      customTypography: {
+        fontSizePx: 18,
+        lineHeight: 1.75,
+        paragraphSpacingEm: 0.8,
+        pageMarginPercent: 10,
+        textIndentEm: 2,
+      },
+    }),
+  ],
+};

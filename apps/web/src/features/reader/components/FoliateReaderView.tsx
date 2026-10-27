@@ -2333,14 +2333,13 @@ export function FoliateReaderView({
           const width = readerRootRef.current?.clientWidth ?? window.innerWidth;
           const height = readerRootRef.current?.clientHeight ?? window.innerHeight;
           const effectiveColumns = width > height ? maxColumnCount : 1;
-          const margins = readerSettingsRef.current.pageMargins;
-          const { gap, margin } = readerLayoutSpacing(margins, readingMode);
+          const { gap, margin } = readerLayoutSpacing(readerSettingsRef.current, readingMode);
           if (view.renderer && "setLayoutAttributes" in view.renderer)
             view.renderer.setLayoutAttributes(
               {
                 gap,
                 margin,
-                "max-inline-size": `${computeReaderMaxInlineSize(width, margins, effectiveColumns)}px`,
+                "max-inline-size": `${computeReaderMaxInlineSize(readerSettingsRef.current, width, effectiveColumns)}px`,
               },
               openingContext,
             );

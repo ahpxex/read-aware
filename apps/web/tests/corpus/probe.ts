@@ -446,12 +446,12 @@ async function prepareRender(requested?: string): Promise<RenderSetup> {
       renderer.setLayoutAttributes({ flow, "max-column-count": String(maxColumnCount) });
     const { width, height } = stage.getBoundingClientRect();
     const columns = width > height ? maxColumnCount : 1;
-    const { gap, margin } = readerLayoutSpacing(settings.pageMargins, mode);
+    const { gap, margin } = readerLayoutSpacing(settings, mode);
     if ("setLayoutAttributes" in renderer)
       renderer.setLayoutAttributes({
         gap,
         margin,
-        "max-inline-size": `${computeReaderMaxInlineSize(width, settings.pageMargins, columns)}px`,
+        "max-inline-size": `${computeReaderMaxInlineSize(settings, width, columns)}px`,
       });
     if ("setStyles" in renderer)
       renderer.setStyles(

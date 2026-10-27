@@ -36,6 +36,7 @@ import {
 import { parseBookFile } from "../../src/features/reader/lib/parse-book";
 import {
   markReaderChapterStarts,
+  markReaderInlineMedia,
   normalizeReaderTextSizes,
   readerChapterStarts,
 } from "../../src/features/reader/lib/reader-document-layout";
@@ -432,6 +433,7 @@ async function prepareRender(requested?: string): Promise<RenderSetup> {
       if (fixedLayout) return;
       const { doc, index } = (event as CustomEvent<FoliateLoadDetail>).detail;
       markReaderChapterStarts(doc, index, chapterStarts);
+      markReaderInlineMedia(doc);
       normalizeReaderTextSizes(doc);
     });
     await next.open(parsed);

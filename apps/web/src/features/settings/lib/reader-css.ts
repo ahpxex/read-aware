@@ -426,10 +426,12 @@ ${textAlignCss(settings.textAlign)}
       line-height: 1.18 !important;
     }
 
-    img,
-    svg,
-    video,
-    canvas {
+    /* Media sitting on a text line — publisher glyph substitutes ("补字图"),
+       inline icons — is marked data-ra-inline-media by the document pass and
+       keeps the publisher's display and em sizing; only standalone artwork
+       gets the block illustration treatment. :where() keeps zero specificity
+       so later rules below (and test/publisher overrides) win as before. */
+    :where(img, svg, video, canvas):where(:not([data-ra-inline-media])) {
       display: block !important;
       width: auto !important;
       max-width: min(100%, 32rem) !important;

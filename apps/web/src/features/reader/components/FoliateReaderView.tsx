@@ -127,7 +127,12 @@ import { detectBookLanguage } from "../lib/book-language";
 import { rememberReaderBookLanguage } from "../../settings/lib/reader-languages";
 import { getReaderPreferences, readerPreferencesForLanguage } from "../../settings/lib/reader-settings";
 import { getReaderOverrides } from "../../settings/lib/reader-overrides";
-import { readerChapterStarts, markReaderChapterStarts, normalizeReaderTextSizes } from "../lib/reader-document-layout";
+import {
+  readerChapterStarts,
+  markReaderChapterStarts,
+  markReaderInlineMedia,
+  normalizeReaderTextSizes,
+} from "../lib/reader-document-layout";
 import {
   framePointAnchorInRoot,
   framePointToRoot,
@@ -2439,6 +2444,7 @@ export function FoliateReaderView({
           const { doc, index } = (event as CustomEvent<FoliateLoadDetail>).detail;
           if (!fixedLayout) {
             markReaderChapterStarts(doc, index, chapterStarts);
+            markReaderInlineMedia(doc);
             normalizeReaderTextSizes(doc);
           }
           // The fixed-layout renderer keeps section documents alive in its

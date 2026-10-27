@@ -58,7 +58,8 @@ export function SwatchGroup<T extends string>({
       className={cn("min-w-0 disabled:opacity-50", className)}
     >
       {label && (
-        <legend id={`${id}-label`} className="mb-2 font-sans text-[13px] font-medium text-fg-muted">
+        // Floated for the same WebKit flex-item legend gap as ChoiceGroup.
+        <legend id={`${id}-label`} className="float-left mb-2 w-full font-sans text-[13px] font-medium text-fg-muted">
           {label}
         </legend>
       )}
@@ -67,7 +68,7 @@ export function SwatchGroup<T extends string>({
           off at the edge is the cue that the row goes on. */}
       <div
         className={cn(
-          "-mx-1 flex gap-3 overflow-x-auto px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          "-mx-1 clear-both flex gap-3 overflow-x-auto px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
           spread && "justify-between",
         )}
       >

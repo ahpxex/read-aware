@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { CloudArrowDown, Plus, Trash } from "@phosphor-icons/react";
-import { Button, Caption, IconButton, InlineError, Select, Spinner } from "@read-aware/ui";
+import { Button, Caption, IconButton, InlineError, SearchSelect, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { fontMeta } from "../lib/font-meta";
@@ -11,7 +11,7 @@ import { UserFontRemoveDialog } from "./UserFontRemoveDialog";
 type FontFieldProps = FontChoicesOptions & { className?: string };
 
 /**
- * Body-font picker as a dropdown — one list in three sections (see
+ * Body-font picker as a searchable dropdown — one list in three sections (see
  * useFontChoices): curated and plugin fonts, then the user's imported font
  * files (each carrying its file facts and a removal button), then the fonts
  * installed on this device. The popup's pinned footer row is the import
@@ -54,13 +54,16 @@ export function FontField({ className, ...options }: FontFieldProps) {
 
   return (
     <div className={cn("relative", className)}>
-      <Select
+      <SearchSelect
         label={t("font.label")}
         value={fonts.selectValue}
         options={selectOptions}
-        placeholder={t("font.placeholder")}
         onChange={fonts.choose}
-        popupFooter={
+        matchValue={false}
+        searchLabel={t("font.search")}
+        emptyText={t("font.noMatch")}
+        placeholder={t("font.placeholder")}
+        footer={
           manager.canImport
             ? (close) => (
                 <>
@@ -72,7 +75,7 @@ export function FontField({ className, ...options }: FontFieldProps) {
                       close();
                       void manager.importFonts();
                     }}
-                    className="mt-1 flex w-full items-center gap-2 rounded-md border-t border-border px-2.5 pb-1.5 pt-2 text-left text-sm text-fg-muted transition-colors hover:bg-fill hover:text-fg"
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-fg-muted transition-colors hover:bg-fill hover:text-fg"
                   >
                     {manager.importing ? <Spinner size="sm" className="h-3.5 w-3.5" /> : <Plus size={15} />}
                     {t("font.import")}

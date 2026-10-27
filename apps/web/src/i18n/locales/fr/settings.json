@@ -339,6 +339,8 @@
   "font": {
     "label": "Police",
     "placeholder": "Choisir une police",
+    "search": "Rechercher une police",
+    "noMatch": "Aucune police correspondante",
     "downloading": "Téléchargement de la police · {{percent}} %",
     "downloadFailed": "Échec du téléchargement de la police — vérifiez votre réseau.",
     "retry": "Réessayer",

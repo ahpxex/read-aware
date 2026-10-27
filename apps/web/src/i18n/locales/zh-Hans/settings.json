@@ -339,6 +339,8 @@
   "font": {
     "label": "字体",
     "placeholder": "选择字体",
+    "search": "搜索字体",
+    "noMatch": "没有匹配的字体",
     "downloading": "正在下载字体 · {{percent}}%",
     "downloadFailed": "字体下载失败——请检查网络。",
     "retry": "重试",

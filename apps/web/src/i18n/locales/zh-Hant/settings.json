@@ -339,6 +339,8 @@
   "font": {
     "label": "字型",
     "placeholder": "選擇字型",
+    "search": "搜尋字型",
+    "noMatch": "沒有符合的字型",
     "downloading": "正在下載字型 · {{percent}}%",
     "downloadFailed": "字型下載失敗——請檢查網路。",
     "retry": "重試",

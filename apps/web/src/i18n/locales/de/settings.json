@@ -339,6 +339,8 @@
   "font": {
     "label": "Schriftart",
     "placeholder": "Schriftart wählen",
+    "search": "Schriften suchen",
+    "noMatch": "Keine passenden Schriften",
     "downloading": "Schriftart wird geladen · {{percent}} %",
     "downloadFailed": "Schriftart konnte nicht geladen werden — Netzwerk prüfen.",
     "retry": "Erneut versuchen",

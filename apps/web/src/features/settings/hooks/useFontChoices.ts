@@ -122,9 +122,18 @@ export function useFontChoices({ value, onChange, defaultLabel, fontWeight }: Fo
     () => [...curatedOptions, ...importedOptions, ...installedOptions],
     [curatedOptions, importedOptions, installedOptions],
   );
-  // Every source lives in the one list, so the stored ref is always the
-  // select's value — only the null surface default maps to its sentinel.
-  const selectValue: string = value === null ? (defaultLabel ? DEFAULT_OPTION : "") : value;
+  // Every source lives in the one list, so the stored ref is the select's
+  // value — unless it belongs to no section (an imported font removed on
+  // another device), in which case the picker shows its placeholder rather
+  // than the raw ref. The null surface default maps to its sentinel.
+  const selectValue: string =
+    value === null
+      ? defaultLabel
+        ? DEFAULT_OPTION
+        : ""
+      : options.some((option) => option.value === value)
+        ? value
+        : "";
 
   const choose = (next: string) =>
     // The union guarantees a null-accepting handler whenever the default

@@ -339,6 +339,8 @@
   "font": {
     "label": "フォント",
     "placeholder": "フォントを選択",
+    "search": "フォントを検索",
+    "noMatch": "一致するフォントがありません",
     "downloading": "フォントをダウンロード中 · {{percent}}%",
     "downloadFailed": "フォントのダウンロードに失敗しました。ネットワークをご確認ください。",
     "retry": "再試行",

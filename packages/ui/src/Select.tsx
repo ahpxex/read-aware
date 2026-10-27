@@ -27,12 +27,6 @@ type SelectOption = {
   value: string;
   /** Right-aligned content inside the option — badges, hints, inline actions. */
   accessory?: ReactNode;
-  /**
-   * Section this option belongs to. Consecutive options sharing a `group`
-   * render under one heading in the listbox; options without one stay
-   * unlabeled. When no option sets a group, the list renders flat as before.
-   */
-  group?: string;
 };
 
 type SelectProps = {
@@ -61,8 +55,6 @@ type SelectProps = {
    * after firing its own action.
    */
   popupHeader?: (close: () => void) => ReactNode;
-  /** Same as `popupHeader`, pinned below the scrollable option list. */
-  popupFooter?: (close: () => void) => ReactNode;
 };
 
 export function Select({
@@ -80,7 +72,6 @@ export function Select({
   name,
   className,
   popupHeader,
-  popupFooter,
 }: SelectProps) {
   const id = useId();
   const hasError = !!error;
@@ -169,13 +160,12 @@ export function Select({
     };
   }, [open, updatePosition]);
 
-  // scroll active option into view — looked up by id, since grouped options
-  // are no longer the listbox's direct children.
+  // scroll active option into view
   useEffect(() => {
     if (!open || activeIndex < 0) return;
-    const item = document.getElementById(`${id}-option-${activeIndex}`);
+    const item = listboxRef.current?.children[activeIndex] as HTMLElement | undefined;
     item?.scrollIntoView({ block: "nearest" });
-  }, [open, activeIndex, id]);
+  }, [open, activeIndex]);
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (disabled) return;
@@ -209,44 +199,6 @@ export function Select({
   }
 
   const activeDescendant = open && activeIndex >= 0 ? `${id}-option-${activeIndex}` : undefined;
-
-  const renderOption = (opt: SelectOption, i: number) => (
-    <li
-      key={opt.value}
-      id={`${id}-option-${i}`}
-      role="option"
-      aria-selected={opt.value === currentValue}
-      onMouseEnter={() => setActiveIndex(i)}
-      onClick={() => select(opt.value)}
-      className={cn(
-        "flex cursor-pointer items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors",
-        i === activeIndex && "bg-fill",
-        opt.value === currentValue ? "font-medium text-fg" : "text-fg-muted",
-      )}
-    >
-      <span className="truncate">{opt.label}</span>
-      {opt.accessory}
-    </li>
-  );
-
-  // Consecutive options sharing a `group` collapse into one section. Sections
-  // only exist once at least one option names a group — a fully ungrouped
-  // list keeps the flat DOM it always had.
-  const sections: { label?: string; headingId?: string; items: { option: SelectOption; index: number }[] }[] = [];
-  if (options.some((option) => option.group !== undefined)) {
-    for (const [index, option] of options.entries()) {
-      const last = sections[sections.length - 1];
-      if (last && last.label === option.group) {
-        last.items.push({ option, index });
-      } else {
-        sections.push({
-          label: option.group,
-          headingId: option.group !== undefined ? `${id}-group-${sections.length}` : undefined,
-          items: [{ option, index }],
-        });
-      }
-    }
-  }
 
   return (
     <div ref={containerRef} className={cn("flex flex-col gap-1.5", className)}>
@@ -330,30 +282,26 @@ export function Select({
                 {popupHeader?.(() => setOpen(false))}
                 <ScrollArea style={{ maxHeight: position.maxHeight }} className="w-full">
                   <ul ref={listboxRef} id={`${id}-listbox`} role="listbox" aria-labelledby={`${id}-label`}>
-                    {sections.length > 0
-                      ? sections.map((section, sectionIndex) => (
-                          <li
-                            key={section.headingId ?? `section-${sectionIndex}`}
-                            role="group"
-                            aria-labelledby={section.headingId}
-                            className={cn(sectionIndex > 0 && "mt-1 border-t border-border pt-1")}
-                          >
-                            {section.headingId && (
-                              <div
-                                id={section.headingId}
-                                role="presentation"
-                                className="px-2.5 pb-1 pt-2 text-[11px] text-fg-subtle"
-                              >
-                                {section.label}
-                              </div>
-                            )}
-                            <ul role="none">{section.items.map(({ option, index }) => renderOption(option, index))}</ul>
-                          </li>
-                        ))
-                      : options.map((option, index) => renderOption(option, index))}
+                    {options.map((opt, i) => (
+                      <li
+                        key={opt.value}
+                        id={`${id}-option-${i}`}
+                        role="option"
+                        aria-selected={opt.value === currentValue}
+                        onMouseEnter={() => setActiveIndex(i)}
+                        onClick={() => select(opt.value)}
+                        className={cn(
+                          "flex cursor-pointer items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                          i === activeIndex && "bg-fill",
+                          opt.value === currentValue ? "font-medium text-fg" : "text-fg-muted",
+                        )}
+                      >
+                        <span className="truncate">{opt.label}</span>
+                        {opt.accessory}
+                      </li>
+                    ))}
                   </ul>
                 </ScrollArea>
-                {popupFooter?.(() => setOpen(false))}
               </div>
             </div>,
             document.body,

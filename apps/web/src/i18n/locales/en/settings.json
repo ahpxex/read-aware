@@ -339,6 +339,8 @@
   "font": {
     "label": "Font",
     "placeholder": "Choose a font",
+    "search": "Search fonts",
+    "noMatch": "No matching fonts",
     "downloading": "Downloading font · {{percent}}%",
     "downloadFailed": "Font download failed — check your network.",
     "retry": "Retry",

@@ -38,7 +38,8 @@ if (process.env.ROAMING_PREFERENCE_WRITE_PROOF === "1") {
   });
   const failures: unknown[] = [];
   onAppEvent("local-write-failed", (failure) => failures.push(failure));
-  const since = (start: number) => calls.slice(start).filter((call) => call.command !== "local_device_get");
+  const since = (start: number) =>
+    calls.slice(start).filter((call) => call.command !== "local_device_get" && !call.command.startsWith("plugin:log|"));
 
   test("a roaming save commits its KV bytes and preference event in one native write", async () => {
     const start = calls.length;

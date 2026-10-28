@@ -54,6 +54,13 @@ import {
   type PageTurnTapZones,
   type VolumeKeyDirection,
 } from "./page-turn-settings";
+import {
+  HEADER_FOOTER_ITEMS,
+  HEADER_FOOTER_SLOTS,
+  type HeaderFooterItem,
+  type HeaderFooterSettings,
+  type HeaderFooterSlot,
+} from "./header-footer-settings";
 import { shortcutPreferenceDefinitions } from "./shortcut-preferences";
 import type { ShortcutEnvironment } from "../../features/settings/lib/shortcut-catalog";
 import type { ShortcutBindings } from "../../features/settings/lib/shortcuts";
@@ -69,6 +76,8 @@ export type SettingsDraft = {
   readerOverrides: ReaderOverrides;
   /** Device-local tap-zone and volume-key page turning (global-only). */
   pageTurn: PageTurnSettings;
+  /** Device-local reader header/footer strips (global-only). */
+  headerFooter: HeaderFooterSettings;
   /** Derived source-language hints, not writable settings. */
   bookLanguages?: ReaderBookLanguages;
   contentTypography: ContentTypographySettings;
@@ -396,6 +405,55 @@ function pageTurnDefinitions(): SettingDefinition[] {
         };
       },
     },
+  ];
+}
+
+const HEADER_FOOTER_DEVICE_LOCAL =
+  "Device-local reader header/footer; applies to every book and is never overridden per book.";
+
+const HEADER_FOOTER_ITEM_LABELS: Record<HeaderFooterItem, string> = {
+  chapter: "Chapter title",
+  bookTitle: "Book title",
+  progress: "Reading progress",
+  pages: "Page numbers",
+  time: "Clock time",
+  battery: "Battery level",
+};
+
+/** Header/footer info strips. Paths sit with the reader settings but are
+ *  global-only: display habits belong to the device, not to one book. */
+function headerFooterDefinitions(): SettingDefinition[] {
+  return [
+    {
+      path: "reading.headerFooter.enabled",
+      section: "reading",
+      label: "Header and footer strips",
+      description: `${HEADER_FOOTER_DEVICE_LOCAL} Thin info strips above and below the page; on Android/iOS they stand in for the system status bar the immersive reader hides. Defaults on for Android/iOS and off on desktop.`,
+      kind: "boolean",
+      supportedTargets: ["global"],
+      read: (state) => state.headerFooter.enabled,
+      write: (state, value) => {
+        state.headerFooter = { ...state.headerFooter, enabled: value as boolean };
+      },
+    },
+    ...HEADER_FOOTER_ITEMS.map(
+      (item): SettingDefinition => ({
+        path: `reading.headerFooter.items.${item}`,
+        section: "reading",
+        label: `Header/footer: ${HEADER_FOOTER_ITEM_LABELS[item]}`,
+        description: `${HEADER_FOOTER_DEVICE_LOCAL} Where ${HEADER_FOOTER_ITEM_LABELS[item].toLowerCase()} appears — hidden or one of the six header/footer slots; items sharing a slot join in catalog order. battery has no effect on desktop, which never reports a battery.`,
+        kind: "enum",
+        supportedTargets: ["global"],
+        options: HEADER_FOOTER_SLOTS.map((value) => ({ value, label: value })),
+        read: (state) => state.headerFooter.items[item],
+        write: (state, value) => {
+          state.headerFooter = {
+            ...state.headerFooter,
+            items: { ...state.headerFooter.items, [item]: value as HeaderFooterSlot },
+          };
+        },
+      }),
+    ),
   ];
 }
 
@@ -785,6 +843,7 @@ export function buildSettingDefinitions(draft: SettingsDraft): SettingDefinition
       });
     }),
     ...pageTurnDefinitions(),
+    ...headerFooterDefinitions(),
     ...AI_FEATURE_KEYS.map((key) =>
       globalDefinition({
         path: `ai.preferences.features.${key}`,

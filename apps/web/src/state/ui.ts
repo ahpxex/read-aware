@@ -61,6 +61,12 @@ import {
   savePageTurnSettings,
   type PageTurnSettings,
 } from "../domain/settings/page-turn-settings";
+import {
+  HEADER_FOOTER_SETTINGS_KEY,
+  getHeaderFooterSettings,
+  saveHeaderFooterSettings,
+  type HeaderFooterSettings,
+} from "../domain/settings/header-footer-settings";
 import { getShortcutBindings, SHORTCUT_BINDINGS_KEY } from "../features/settings/lib/shortcut-bindings";
 import type { ShortcutBindings } from "../features/settings/lib/shortcuts";
 import { onLocalKVChange } from "../platform/local-store";
@@ -271,6 +277,9 @@ onLocalKVChange((key, _value, origin) => {
     case PAGE_TURN_SETTINGS_KEY:
       store.set(pageTurnSettingsBaseAtom, getPageTurnSettings());
       break;
+    case HEADER_FOOTER_SETTINGS_KEY:
+      store.set(headerFooterSettingsBaseAtom, getHeaderFooterSettings());
+      break;
     case SHORTCUT_BINDINGS_KEY:
       store.set(shortcutBindingsBaseAtom, getShortcutBindings());
       break;
@@ -340,6 +349,17 @@ export const pageTurnSettingsAtom = atom(
   (_get, set, next: PageTurnSettings) => {
     set(pageTurnSettingsBaseAtom, next);
     savePageTurnSettings(next);
+  },
+);
+
+const headerFooterSettingsBaseAtom = atom<HeaderFooterSettings>(getHeaderFooterSettings());
+
+/** Reader header/footer info strips. Device-local, never per book. */
+export const headerFooterSettingsAtom = atom(
+  (get) => get(headerFooterSettingsBaseAtom),
+  (_get, set, next: HeaderFooterSettings) => {
+    set(headerFooterSettingsBaseAtom, next);
+    saveHeaderFooterSettings(next);
   },
 );
 

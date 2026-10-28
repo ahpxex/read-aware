@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { TFunction } from "i18next";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Spinner, useToast } from "@read-aware/ui";
@@ -140,6 +140,7 @@ import {
   visibleFrameRectInRoot,
 } from "../lib/frame-geometry";
 import { resolvePageTurnTap, type PageTurnTap } from "../lib/page-turn-tap";
+import { READER_STRIP_HEIGHT_PX } from "../lib/header-footer-layout";
 import { useVolumeKeySteps } from "../hooks/useVolumeKeySteps";
 import type { ReaderEngineSession } from "../lib/reader-engine-session";
 import { useReaderEngineSession } from "../hooks/useReaderEngineSession";
@@ -151,6 +152,10 @@ type FoliateReaderViewProps = {
   /** Whether the reader shell (header overlay) is currently open. Lets the view
    *  reset its scroll-dismissal distance each time the shell appears. */
   shellVisible?: boolean;
+  /** Reader header/footer strips are active on a side: reserve their height in
+   *  the viewport padding AND the paginator's reserved margin so they borrow
+   *  from the page margin instead of reflowing or covering text. */
+  stripSpace?: { top: boolean; bottom: boolean };
   /** Leave the reader for the shelf — offered on the end-of-book screen. */
   onCloseReader?: () => void;
   onRetryOpen?: () => void;
@@ -324,6 +329,7 @@ export function FoliateReaderView({
   initialBook = null,
   readerSettings = DEFAULT_READER_SETTINGS,
   shellVisible = false,
+  stripSpace = { top: false, bottom: false },
   onCloseReader,
   onRetryOpen,
   onContentClick,
@@ -2644,6 +2650,16 @@ export function FoliateReaderView({
   // Single-page mode retains its explicit edge controls.
   const showPageTurnControls = readingMode === "paginated-single" && !isLoading && !error;
 
+  // Each strip adds its height to the side it sits on — padding holds the
+  // content back while the matching `--foliate-reserved-*` lets the paginator
+  // take the space out of the page margin instead of the text column.
+  const stripTopInset = stripSpace.top
+    ? `calc(var(--ra-safe-top) + ${READER_STRIP_HEIGHT_PX}px)`
+    : "var(--ra-safe-top)";
+  const stripBottomInset = stripSpace.bottom
+    ? `calc(var(--ra-safe-bottom) + ${READER_STRIP_HEIGHT_PX}px)`
+    : "var(--ra-safe-bottom)";
+
   return (
     <section ref={readerRootRef} className="relative h-full w-full overflow-hidden">
       <ReaderBackgroundLayer palette={readerPalette} />
@@ -2653,15 +2669,26 @@ export function FoliateReaderView({
         className={cn(
           // Safe-area padding keeps the book content clear of the display
           // cutout (Dynamic Island / punch-hole) and the home indicator while
-          // the reader runs immersive; env() resolves to 0 on desktop.
-          "relative h-full w-full pt-[var(--ra-safe-top)] pb-[var(--ra-safe-bottom)] transition-opacity ease-out",
-          // The paginator counts that padding toward its own top/bottom page
-          // margin rather than adding the full margin inside it, which left a
-          // phone's paginated pages ~80px of blank below the last line.
-          "[--foliate-reserved-top:var(--ra-safe-top)] [--foliate-reserved-bottom:var(--ra-safe-bottom)]",
+          // the reader runs immersive; env() resolves to 0 on desktop. An
+          // active header/footer strip adds its height on that side.
+          "relative h-full w-full transition-opacity ease-out",
           isCrossing ? "duration-150" : "duration-500",
           (isLoading || !!error || isCrossing) && "opacity-0",
         )}
+        style={
+          // The paginator counts `--foliate-reserved-*` toward its own
+          // top/bottom page margin rather than adding the full margin inside
+          // it, which left a phone's paginated pages ~80px of blank below the
+          // last line. The strips borrow the same margin seam: reserved space
+          // on their side grows by the strip height, so enabling one never
+          // reflows text that already fit.
+          {
+            paddingTop: stripTopInset,
+            paddingBottom: stripBottomInset,
+            "--foliate-reserved-top": stripTopInset,
+            "--foliate-reserved-bottom": stripBottomInset,
+          } as CSSProperties
+        }
       />
       <ReaderPageTurnControls
         visible={showPageTurnControls}

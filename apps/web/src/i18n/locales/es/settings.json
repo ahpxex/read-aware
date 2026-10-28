@@ -129,6 +129,31 @@
         "downForward": "Bajar volumen avanza",
         "upForward": "Subir volumen avanza"
       }
+    },
+    "headerFooter": {
+      "title": "Encabezado y pie",
+      "description": "Finas franjas de información en la parte superior e inferior de la página. Se guardan en este dispositivo y se aplican a todos los libros.",
+      "enabled": {
+        "title": "Mostrar encabezado y pie",
+        "description": "En teléfonos y tabletas, las franjas sustituyen a la barra de estado del sistema oculta."
+      },
+      "items": {
+        "chapter": "Título del capítulo",
+        "bookTitle": "Título del libro",
+        "progress": "Progreso de lectura",
+        "pages": "Números de página",
+        "time": "Hora",
+        "battery": "Batería"
+      },
+      "slots": {
+        "hidden": "Oculto",
+        "headerLeft": "Encabezado izquierda",
+        "headerCenter": "Encabezado centro",
+        "headerRight": "Encabezado derecha",
+        "footerLeft": "Pie izquierda",
+        "footerCenter": "Pie centro",
+        "footerRight": "Pie derecha"
+      }
     }
   },
   "shortcuts": {

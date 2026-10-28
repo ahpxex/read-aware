@@ -8,6 +8,7 @@ import { APP_SETTINGS_KEY } from "../../features/settings/lib/app-settings";
 import { GENERAL_SETTINGS_KEY } from "../../features/settings/lib/general-settings";
 import { SHELF_VIEW_KEY } from "../../features/shelf/lib/shelf-view";
 import { PAGE_TURN_SETTINGS_KEY } from "./page-turn-settings";
+import { HEADER_FOOTER_SETTINGS_KEY } from "./header-footer-settings";
 import { SHORTCUT_BINDINGS_KEY } from "../../features/settings/lib/shortcut-bindings";
 import { AI_PREFERENCES_KEY } from "../../features/settings/lib/ai-preferences";
 import { READER_PREFERENCES_KEY } from "../../features/settings/lib/reader-settings";
@@ -36,6 +37,7 @@ const keys = new Set([
   GENERAL_SETTINGS_KEY,
   SHELF_VIEW_KEY,
   PAGE_TURN_SETTINGS_KEY,
+  HEADER_FOOTER_SETTINGS_KEY,
   SHORTCUT_BINDINGS_KEY,
   AI_PREFERENCES_KEY,
   READER_PREFERENCES_KEY,

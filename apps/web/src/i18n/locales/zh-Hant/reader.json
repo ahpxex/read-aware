@@ -223,5 +223,10 @@
   },
   "openErrorTitle": "暫時無法開啟這本書",
   "navigationErrorTitle": "無法跳轉到該位置",
-  "continueReading": "繼續閱讀"
+  "continueReading": "繼續閱讀",
+  "headerFooter": {
+    "pages": "{{page}} / {{total}}",
+    "headerLabel": "頁首",
+    "footerLabel": "頁尾"
+  }
 }

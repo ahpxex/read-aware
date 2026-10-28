@@ -223,5 +223,10 @@
   },
   "openErrorTitle": "Не удалось открыть книгу",
   "navigationErrorTitle": "Не удалось перейти к этому месту",
-  "continueReading": "Продолжить чтение"
+  "continueReading": "Продолжить чтение",
+  "headerFooter": {
+    "pages": "{{page}} / {{total}}",
+    "headerLabel": "Верхний колонтитул",
+    "footerLabel": "Нижний колонтитул"
+  }
 }

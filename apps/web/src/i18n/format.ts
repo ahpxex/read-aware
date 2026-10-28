@@ -33,6 +33,14 @@ export function formatNumber(value: number, options?: Intl.NumberFormatOptions):
   return new Intl.NumberFormat(currentLocale(), options).format(value);
 }
 
+/** Wall-clock time, hour/minute in the locale's own cycle — like a status-bar clock. */
+export function formatTime(value: number | Date): string {
+  return new Intl.DateTimeFormat(currentLocale(), {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(toDate(value));
+}
+
 /** Format a `0`–`100` value as a locale-correct percentage (`42%` / `42 %`). */
 export function formatPercent(value0to100: number, fractionDigits = 0): string {
   return new Intl.NumberFormat(currentLocale(), {

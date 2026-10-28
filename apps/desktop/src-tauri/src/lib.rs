@@ -454,6 +454,97 @@ fn set_status_bar_hidden(hidden: bool) {
 #[tauri::command]
 fn set_status_bar_hidden(_hidden: bool) {}
 
+/// A battery snapshot for the reader header/footer strips: `level` is a 0..1
+/// fraction. `None` where the host can't report one (desktops, simulators).
+#[derive(Debug, serde::Serialize)]
+struct BatteryStatus {
+    level: f64,
+    charging: bool,
+}
+
+/// Battery pull API for the reader header/footer strips. `MainActivity` reads
+/// `BatteryManager` — a system-service query needing neither a permission nor
+/// the UI thread, so the command attaches to the JVM on the thread it already
+/// runs on. JNI failure or an unreadable battery reads as `None`; the web
+/// layer renders nothing for the item.
+#[cfg(target_os = "android")]
+#[tauri::command]
+async fn battery_status() -> Result<Option<BatteryStatus>, CommandError> {
+    use tao::platform::android::prelude::main_android_context;
+    let Some(ctx) = main_android_context() else {
+        log::warn!("batteryStatus: no android context yet");
+        return Ok(None);
+    };
+    let status = (|| -> Option<BatteryStatus> {
+        let vm = unsafe { jni::JavaVM::from_raw(ctx.java_vm.cast()) }.ok()?;
+        let mut env = vm.attach_current_thread().ok()?;
+        let activity = unsafe { jni::objects::JObject::from_raw(ctx.context_jobject.cast()) };
+        let percent = env
+            .call_method(&activity, "batteryLevelPercent", "()I", &[])
+            .and_then(|value| value.i())
+            .map_err(|err| {
+                log::error!("batteryLevelPercent JNI call failed: {err}");
+                let _ = env.exception_clear();
+            })
+            .ok()?;
+        if !(0..=100).contains(&percent) {
+            return None;
+        }
+        let charging = env
+            .call_method(&activity, "batteryCharging", "()Z", &[])
+            .and_then(|value| value.z())
+            .map_err(|err| {
+                log::error!("batteryCharging JNI call failed: {err}");
+                let _ = env.exception_clear();
+            })
+            .unwrap_or(false);
+        Some(BatteryStatus {
+            level: f64::from(percent) / 100.0,
+            charging,
+        })
+    })();
+    Ok(status)
+}
+
+/// iOS fills the snapshot through `BatteryBridge.m` — the same load-time
+/// constructor registration as StatusBarBridge.m, since release builds strip
+/// the export table dlsym would need. The command is deliberately sync so it
+/// runs on the main thread `UIDevice` requires (the bridge still checks the
+/// thread itself). `None` when the level is unreadable, like the simulator.
+#[cfg(target_os = "ios")]
+static BATTERY_BRIDGE: std::sync::OnceLock<extern "C" fn(*mut f32, *mut bool)> =
+    std::sync::OnceLock::new();
+
+#[cfg(target_os = "ios")]
+#[no_mangle]
+pub extern "C" fn ra_register_battery_bridge(bridge: extern "C" fn(*mut f32, *mut bool)) {
+    let _ = BATTERY_BRIDGE.set(bridge);
+}
+
+#[cfg(target_os = "ios")]
+#[tauri::command]
+fn battery_status() -> Option<BatteryStatus> {
+    let bridge = BATTERY_BRIDGE.get()?;
+    let mut level: f32 = -1.0;
+    let mut charging = false;
+    bridge(&mut level, &mut charging);
+    if !(0.0..=1.0).contains(&level) {
+        return None;
+    }
+    Some(BatteryStatus {
+        level: f64::from(level),
+        charging,
+    })
+}
+
+/// Desktop has no pull API for battery state; the command still resolves for
+/// `generate_handler!` and the web layer never offers the item off mobile.
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+#[tauri::command]
+fn battery_status() -> Option<BatteryStatus> {
+    None
+}
+
 /// Show or hide the macOS traffic-light window buttons.
 ///
 /// Gives the reader a clean immersive view: when the overlay header is dismissed
@@ -1281,6 +1372,7 @@ pub fn run() {
             desktop_update::desktop_update_install,
             set_status_bar_hidden,
             sync_safe_area,
+            battery_status,
             set_volume_key_capture,
             storefront::app_store_storefront,
             move_task_to_back,

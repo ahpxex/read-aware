@@ -2,6 +2,7 @@ package com.readaware.app
 
 import android.content.Intent
 import android.net.Uri
+import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -173,6 +174,23 @@ class MainActivity : TauriActivity() {
   /** Called from Rust (the `set_volume_key_capture` command). */
   fun setVolumeKeyCapture(captured: Boolean) {
     volumeKeysCaptured = captured
+  }
+
+  /**
+   * Battery percentage 0–100, or -1 when the system can't report it. Called
+   * from Rust (the `battery_status` command) for the reader's header/footer
+   * strips — `BatteryManager` queries need no permission and no UI thread.
+   */
+  fun batteryLevelPercent(): Int {
+    val manager = getSystemService(BatteryManager::class.java) ?: return -1
+    val level = manager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+    return if (level in 0..100) level else -1
+  }
+
+  /** Whether the battery is currently charging (or full on a charger). */
+  fun batteryCharging(): Boolean {
+    val manager = getSystemService(BatteryManager::class.java) ?: return false
+    return manager.isCharging
   }
 
   /** Current Android build number, used to reject non-upgrade release APKs. */

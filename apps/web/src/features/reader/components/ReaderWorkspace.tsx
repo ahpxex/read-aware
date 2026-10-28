@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Spinner } from "@read-aware/ui";
+import { useAtomValue } from "jotai";
 import { useTranslation } from "../../../i18n";
 import type { BookFormat, LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import type { ReaderLoadError } from "../hooks/useReaderSession";
@@ -12,7 +13,12 @@ import { useReaderFocusTarget } from "../hooks/useReaderFocusTarget";
 import { useReadingTimeTracker } from "../hooks/useReadingTimeTracker";
 import { FoliateReaderView } from "./FoliateReaderView";
 import { ReaderShellOverlay } from "./ReaderShellOverlay";
+import { ReaderHeaderFooter } from "./ReaderHeaderFooter";
 import { ReaderFailureView } from "./ReaderFailureView";
+import { resolveHeaderFooterLayout } from "../lib/header-footer-layout";
+import { findTocIndexForHref } from "../lib/epub-utils";
+import { headerFooterSettingsAtom } from "../../../state/ui";
+import { isMobileOS } from "../../../platform/environment";
 import { readerRecoveryAction } from "../lib/reader-failure";
 import type { LoadedBook, ReadingCursor, TocEntry } from "../lib/reader-types";
 import type { FoliateBook } from "../lib/foliate-engine";
@@ -98,7 +104,20 @@ export function ReaderWorkspace({
   const contentFocus = useRef<HTMLDivElement | null>(null);
   useReaderFocusTarget(selectedBook.id, "content", contentFocus);
   const { effective: readerSettings } = useReaderAppearance(selectedBook.id);
-  const themeBg = useReaderPalette(readerSettings.theme).bg;
+  const readerPalette = useReaderPalette(readerSettings.theme);
+  const themeBg = readerPalette.bg;
+  // The header/footer strips paint with the page palette and stand in for the
+  // status bar the immersive mobile reader hides. Battery is offered only
+  // where the host can report one.
+  const headerFooterSettings = useAtomValue(headerFooterSettingsAtom);
+  const headerFooterLayout = useMemo(
+    () => resolveHeaderFooterLayout(headerFooterSettings, { batteryAvailable: isMobileOS() }),
+    [headerFooterSettings],
+  );
+  const headerFooterChapterTitle = useMemo(() => {
+    const index = findTocIndexForHref(readerToc, currentChapterHref);
+    return index >= 0 ? (readerToc[index]?.label ?? null) : null;
+  }, [readerToc, currentChapterHref]);
   const recovery = readerLoadError ? readerRecoveryAction(readerLoadError) : null;
   const recoveryAction =
     recovery === "retry"
@@ -177,6 +196,7 @@ export function ReaderWorkspace({
           initialBook={readerSource.data}
           readerSettings={readerSettings}
           shellVisible={overlayVisible}
+          stripSpace={{ top: headerFooterLayout.header != null, bottom: headerFooterLayout.footer != null }}
           onCloseReader={onCloseReader}
           onRetryOpen={() => onRetryOpen(selectedBook)}
           onContentClick={onToggleShell}
@@ -222,6 +242,19 @@ export function ReaderWorkspace({
             showSourceLoader && <Spinner size="md" label={t("opening", { name: selectedBook.title })} />
           )}
         </div>
+      )}
+
+      {readerSource && (
+        <ReaderHeaderFooter
+          layout={headerFooterLayout}
+          palette={readerPalette}
+          dimmed={headerVisible}
+          bookTitle={selectedBook.title}
+          chapterTitle={headerFooterChapterTitle}
+          progress={readerProgress}
+          currentPage={currentPage}
+          totalPages={totalPages}
+        />
       )}
 
       <ReaderShellOverlay

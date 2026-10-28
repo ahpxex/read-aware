@@ -223,5 +223,10 @@
   },
   "openErrorTitle": "この本を開けませんでした",
   "navigationErrorTitle": "指定した位置へ移動できませんでした",
-  "continueReading": "読書を続ける"
+  "continueReading": "読書を続ける",
+  "headerFooter": {
+    "pages": "{{page}} / {{total}}",
+    "headerLabel": "ヘッダー",
+    "footerLabel": "フッター"
+  }
 }

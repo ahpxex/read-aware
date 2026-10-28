@@ -223,5 +223,10 @@
   },
   "openErrorTitle": "Could not open this book",
   "navigationErrorTitle": "Could not go to that location",
-  "continueReading": "Continue reading"
+  "continueReading": "Continue reading",
+  "headerFooter": {
+    "pages": "{{page}} / {{total}}",
+    "headerLabel": "Header",
+    "footerLabel": "Footer"
+  }
 }

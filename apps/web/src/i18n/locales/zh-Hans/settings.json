@@ -129,6 +129,31 @@
         "downForward": "音量减往后读",
         "upForward": "音量加往后读"
       }
+    },
+    "headerFooter": {
+      "title": "页眉页脚",
+      "description": "页面顶部和底部的细长信息条。保存在此设备上，对所有书籍生效。",
+      "enabled": {
+        "title": "显示页眉页脚",
+        "description": "在手机和平板上，信息条可替代被隐藏的系统状态栏。"
+      },
+      "items": {
+        "chapter": "章节名",
+        "bookTitle": "书名",
+        "progress": "阅读进度",
+        "pages": "页码",
+        "time": "时间",
+        "battery": "电量"
+      },
+      "slots": {
+        "hidden": "隐藏",
+        "headerLeft": "页眉左",
+        "headerCenter": "页眉中",
+        "headerRight": "页眉右",
+        "footerLeft": "页脚左",
+        "footerCenter": "页脚中",
+        "footerRight": "页脚右"
+      }
     }
   },
   "shortcuts": {

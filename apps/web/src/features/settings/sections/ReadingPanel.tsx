@@ -2,8 +2,13 @@ import { useAtom, useAtomValue } from "jotai";
 import { ChoiceGroup, Select, Stack, Toggle } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { pluginThemesAtom } from "../../plugins/state/plugin-store";
-import { effectiveReaderSettingsAtom, pageTurnSettingsAtom, readerPreferencesAtom } from "../../../state/ui";
-import { isAndroid } from "../../../platform/environment";
+import {
+  effectiveReaderSettingsAtom,
+  headerFooterSettingsAtom,
+  pageTurnSettingsAtom,
+  readerPreferencesAtom,
+} from "../../../state/ui";
+import { isAndroid, isMobileOS } from "../../../platform/environment";
 import { FontField } from "../components/FontField";
 import { ReaderTypographyControls } from "../components/ReaderTypographyControls";
 import { ReaderBackgroundLayer } from "../components/ReaderBackgroundLayer";
@@ -18,6 +23,11 @@ import type {
   PageTurnTapZones,
   VolumeKeyDirection,
 } from "../../../domain/settings/page-turn-settings";
+import {
+  HEADER_FOOTER_ITEMS,
+  HEADER_FOOTER_SLOTS,
+  type HeaderFooterSlot,
+} from "../../../domain/settings/header-footer-settings";
 import { useReaderPalette } from "../hooks/useReaderPalette";
 import { useRegisteredPluginFont } from "../hooks/usePluginFonts";
 import { usePluginReaderThemeOptions } from "../hooks/usePluginReaderThemeOptions";
@@ -74,6 +84,8 @@ export function ReadingPanel() {
       </SettingsGroup>
 
       <PageTurnGroup />
+
+      <HeaderFooterGroup />
 
       <SettingsGroup title={t("reading.pageColor.title")} description={t("reading.pageColor.description")}>
         <Select
@@ -147,6 +159,64 @@ function PageTurnGroup() {
           </>
         )}
       </Stack>
+    </SettingsGroup>
+  );
+}
+
+const HEADER_FOOTER_SLOT_KEYS = {
+  hidden: "reading.headerFooter.slots.hidden",
+  "header-left": "reading.headerFooter.slots.headerLeft",
+  "header-center": "reading.headerFooter.slots.headerCenter",
+  "header-right": "reading.headerFooter.slots.headerRight",
+  "footer-left": "reading.headerFooter.slots.footerLeft",
+  "footer-center": "reading.headerFooter.slots.footerCenter",
+  "footer-right": "reading.headerFooter.slots.footerRight",
+} as const satisfies Record<HeaderFooterSlot, string>;
+
+/** Header/footer info strips: device-local display habits, never per book. */
+function HeaderFooterGroup() {
+  const { t } = useTranslation("settings");
+  const [headerFooter, setHeaderFooter] = useAtom(headerFooterSettingsAtom);
+  const slotOptions: { value: HeaderFooterSlot; label: string }[] = HEADER_FOOTER_SLOTS.map((slot) => ({
+    value: slot,
+    label: t(HEADER_FOOTER_SLOT_KEYS[slot]),
+  }));
+
+  return (
+    <SettingsGroup title={t("reading.headerFooter.title")} description={t("reading.headerFooter.description")}>
+      <SettingsRow
+        borderless
+        className="py-0"
+        title={t("reading.headerFooter.enabled.title")}
+        description={t("reading.headerFooter.enabled.description")}
+        control={
+          <Toggle
+            aria-label={t("reading.headerFooter.enabled.title")}
+            checked={headerFooter.enabled}
+            onChange={(enabled) => setHeaderFooter({ ...headerFooter, enabled })}
+          />
+        }
+      />
+      {HEADER_FOOTER_ITEMS.filter((item) => item !== "battery" || isMobileOS()).map((item) => (
+        <SettingsRow
+          key={item}
+          title={t(`reading.headerFooter.items.${item}`)}
+          control={
+            <Select
+              ariaLabel={t(`reading.headerFooter.items.${item}`)}
+              value={headerFooter.items[item]}
+              options={slotOptions}
+              disabled={!headerFooter.enabled}
+              onChange={(slot) =>
+                setHeaderFooter({
+                  ...headerFooter,
+                  items: { ...headerFooter.items, [item]: slot as HeaderFooterSlot },
+                })
+              }
+            />
+          }
+        />
+      ))}
     </SettingsGroup>
   );
 }

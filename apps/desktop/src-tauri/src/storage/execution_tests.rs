@@ -80,6 +80,10 @@ const SYNC_COMMANDS: &[(&str, &str)] = &[
         "iOS: the ObjC bridge hops to the main queue itself",
     ),
     (
+        "battery_status",
+        "iOS: a UIDevice property read via the ObjC bridge, kept on the main thread",
+    ),
+    (
         "book_folder_pick_start",
         "iOS: the ObjC bridge hops to the main queue itself",
     ),
@@ -111,6 +115,10 @@ const ASYNC_ONLY: &[(&str, &str)] = &[
     (
         "android_update_install",
         "async HTTP; JNI round trips go through on_main_thread",
+    ),
+    (
+        "battery_status",
+        "Android: JNI attach plus BatteryManager property reads; no UI-thread state",
     ),
     (
         "local_api_status",

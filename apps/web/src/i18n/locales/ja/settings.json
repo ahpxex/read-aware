@@ -129,6 +129,31 @@
         "downForward": "音量−で先へ進む",
         "upForward": "音量＋で先へ進む"
       }
+    },
+    "headerFooter": {
+      "title": "ヘッダーとフッター",
+      "description": "ページの上下に表示される細い情報バーです。このデバイスに保存され、すべての本に適用されます。",
+      "enabled": {
+        "title": "ヘッダーとフッターを表示",
+        "description": "スマートフォンやタブレットでは、非表示になるシステムステータスバーの代わりになります。"
+      },
+      "items": {
+        "chapter": "章タイトル",
+        "bookTitle": "書名",
+        "progress": "読書の進捗",
+        "pages": "ページ番号",
+        "time": "時刻",
+        "battery": "バッテリー"
+      },
+      "slots": {
+        "hidden": "非表示",
+        "headerLeft": "ヘッダー左",
+        "headerCenter": "ヘッダー中央",
+        "headerRight": "ヘッダー右",
+        "footerLeft": "フッター左",
+        "footerCenter": "フッター中央",
+        "footerRight": "フッター右"
+      }
     }
   },
   "shortcuts": {

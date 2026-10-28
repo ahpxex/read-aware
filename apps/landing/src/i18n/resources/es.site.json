@@ -171,6 +171,65 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.6.9",
+        "date": "2026-10-28",
+        "codename": "Cambria",
+        "summary": "Esta versión de Cambria añade un encabezado y un pie de página personalizables para el lector, tipografía avanzada, un selector de fuentes con búsqueda y voces Xiaomi MiMo para la lectura en voz alta.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Encabezado y pie de página del lector",
+                "body": "Muestra el capítulo, el título del libro, el progreso, los números de página, la hora y la batería en franjas finas encima y debajo de la página, y organízalos arrastrando en Ajustes → Personalizar. Están activados por defecto en Android e iOS, donde el lector oculta la barra de estado del sistema."
+              },
+              {
+                "title": "Tipografía avanzada",
+                "body": "Fija valores exactos de tamaño de fuente, interlineado, espaciado entre párrafos, márgenes y grosor en lugar de escalones predefinidos. La sangría de primera línea puede seguir la del libro, desactivarse o ajustarla tú."
+              },
+              {
+                "title": "Selector de fuentes con búsqueda",
+                "body": "Las fuentes seleccionadas, de complementos, importadas e instaladas comparten una sola lista con títulos de sección, y puedes buscar en ella por nombre."
+              },
+              {
+                "title": "Voces Xiaomi MiMo para la lectura en voz alta",
+                "body": "Xiaomi MiMo está disponible como proveedor de texto a voz para leer en voz alta."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Más texto por página en el móvil",
+                "body": "El área segura alrededor del notch y el indicador de inicio cuenta como parte de los márgenes de la página, así que los iPhone ya no pierden unas tres líneas por página."
+              },
+              {
+                "title": "Sin parpadeo de fuente entre capítulos",
+                "body": "Un capítulo nuevo aparece solo cuando su fuente ha cargado, en lugar de mostrar brevemente una fuente de reserva."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Exportar en iOS",
+                "body": "Exportar archivos en iPhone y iPad ya no produce archivos vacíos ni falla."
+              },
+              {
+                "title": "Versiones anteriores de iOS y Safari",
+                "body": "La aplicación y la carga de EPUB funcionan en iOS de la 16.0 a la 16.3. La versión mínima de iOS compatible ahora es la 16.0."
+              },
+              {
+                "title": "Las imágenes en línea usadas como glifos se quedan en la frase",
+                "body": "Las imágenes pequeñas usadas como caracteres sustitutos en libros CJK se mantienen en su línea de texto."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.8",
         "date": "2026-10-21",
         "codename": "Cambria",

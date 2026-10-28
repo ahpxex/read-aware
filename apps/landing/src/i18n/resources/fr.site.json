@@ -171,6 +171,65 @@
     "leadIn": " : ",
     "entries": [
       {
+        "version": "0.6.9",
+        "date": "2026-10-28",
+        "codename": "Cambria",
+        "summary": "Cette version de Cambria ajoute un en-tête et un pied de page personnalisables dans le lecteur, une typographie avancée, un sélecteur de polices avec recherche et des voix Xiaomi MiMo pour la lecture à voix haute.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "En-tête et pied de page du lecteur",
+                "body": "Affichez le chapitre, le titre du livre, la progression, les numéros de page, l'heure et la batterie dans de fines bandes au-dessus et en dessous de la page, puis réorganisez-les par glisser-déposer dans Réglages → Personnaliser. Elles sont activées par défaut sur Android et iOS, où le lecteur masque la barre d'état système."
+              },
+              {
+                "title": "Typographie avancée",
+                "body": "Réglez des valeurs exactes pour la taille de police, l'interligne, l'espacement des paragraphes, les marges et la graisse au lieu de paliers prédéfinis. L'alinéa de première ligne peut suivre le livre, être désactivé ou être défini manuellement."
+              },
+              {
+                "title": "Sélecteur de polices avec recherche",
+                "body": "Les polices sélectionnées, issues d'extensions, importées et installées partagent une même liste avec des titres de section, et vous pouvez y effectuer une recherche par nom."
+              },
+              {
+                "title": "Voix Xiaomi MiMo pour la lecture à voix haute",
+                "body": "Xiaomi MiMo est disponible en tant que fournisseur de synthèse vocale pour la lecture à voix haute."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Plus de texte par page sur téléphone",
+                "body": "La zone de sécurité autour de l'encoche et de l'indicateur d'accueil compte désormais dans les marges de page, si bien que les iPhone ne perdent plus environ trois lignes par page."
+              },
+              {
+                "title": "Plus de flash de police entre les chapitres",
+                "body": "Un nouveau chapitre n'apparaît qu'une fois sa police chargée, au lieu de montrer brièvement une police de substitution."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Exportations sur iOS",
+                "body": "L'exportation de fichiers sur iPhone et iPad ne produit plus de fichiers vides et n'échoue plus."
+              },
+              {
+                "title": "Versions antérieures d'iOS et de Safari",
+                "body": "L'application et le chargement des EPUB fonctionnent d'iOS 16.0 à 16.3. La version minimale d'iOS prise en charge est désormais 16.0."
+              },
+              {
+                "title": "Les images de glyphes intégrées restent dans la phrase",
+                "body": "Les petites images servant de caractères de remplacement dans les livres CJK restent sur leur ligne de texte."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.8",
         "date": "2026-10-21",
         "codename": "Cambria",

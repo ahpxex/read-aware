@@ -171,6 +171,65 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.6.9",
+        "date": "2026-10-28",
+        "codename": "Cambria",
+        "summary": "Dieses Cambria-Release fügt eine anpassbare Kopf- und Fußleiste im Reader, erweiterte Typografie, eine durchsuchbare Schriftauswahl und Xiaomi-MiMo-Vorlesestimmen hinzu.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Kopf- und Fußleiste im Reader",
+                "body": "Zeige Kapitel, Buchtitel, Fortschritt, Seitenzahlen, Uhrzeit und Akkustand in schmalen Leisten über und unter der Seite an und ordne sie unter Einstellungen → Anpassen per Ziehen an. Auf Android und iOS sind sie standardmäßig an; dort blendet der Reader die Systemstatusleiste aus."
+              },
+              {
+                "title": "Erweiterte Typografie",
+                "body": "Stelle exakte Werte für Schriftgröße, Zeilenhöhe, Absatzabstand, Seitenränder und Schriftstärke ein, statt die vorgegebenen Stufen zu verwenden. Der Erstzeileneinzug kann dem Buch folgen, ausgeschaltet oder selbst festgelegt werden."
+              },
+              {
+                "title": "Durchsuchbare Schriftauswahl",
+                "body": "Kuratierte, Plugin-, importierte und installierte Schriften stehen in einer gemeinsamen Liste mit Abschnittsüberschriften, und du kannst sie nach Namen durchsuchen."
+              },
+              {
+                "title": "Xiaomi-MiMo-Vorlesestimmen",
+                "body": "Xiaomi MiMo steht als Sprachausgabe-Anbieter fürs Vorlesen zur Verfügung."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Mehr Text pro Seite auf dem Handy",
+                "body": "Der sichere Bereich um Notch und Home-Balken zählt jetzt zu den Seitenrändern, sodass iPhones nicht mehr etwa drei Zeilen pro Seite verlieren."
+              },
+              {
+                "title": "Kein Schriftflackern beim Kapitelwechsel",
+                "body": "Ein neues Kapitel erscheint erst, wenn seine Schrift geladen ist, statt kurz eine Ersatzschrift anzuzeigen."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Exporte auf iOS",
+                "body": "Der Export von Dateien auf iPhone und iPad erzeugt keine leeren Dateien mehr und schlägt nicht mehr fehl."
+              },
+              {
+                "title": "Ältere iOS- und Safari-Versionen",
+                "body": "Die App und das Laden von EPUBs funktionieren auf iOS 16.0 bis 16.3. Die mindestens unterstützte iOS-Version ist jetzt 16.0."
+              },
+              {
+                "title": "Eingebettete Glyphenbilder bleiben im Satz",
+                "body": "Kleine Bilder, die in CJK-Büchern als Ersatzzeichen dienen, bleiben in ihrer Textzeile."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.8",
         "date": "2026-10-21",
         "codename": "Cambria",

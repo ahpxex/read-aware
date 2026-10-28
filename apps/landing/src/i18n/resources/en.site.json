@@ -171,6 +171,65 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.6.9",
+        "date": "2026-10-28",
+        "codename": "Cambria",
+        "summary": "This Cambria release adds a customizable reader header and footer, advanced typography, a searchable font picker and Xiaomi MiMo read-aloud voices.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Reader header and footer",
+                "body": "Show the chapter, book title, progress, page numbers, time and battery in thin strips above and below the page, and arrange them by dragging in Settings → Customize. They are on by default on Android and iOS, where the reader hides the system status bar."
+              },
+              {
+                "title": "Advanced typography",
+                "body": "Set exact values for font size, line height, paragraph spacing, margins and weight instead of preset steps. First-line indent can follow the book, be turned off or be set yourself."
+              },
+              {
+                "title": "Searchable font picker",
+                "body": "Curated, plugin, imported and installed fonts share one list with section headings, and you can search it by name."
+              },
+              {
+                "title": "Xiaomi MiMo read-aloud voices",
+                "body": "Xiaomi MiMo is available as a text-to-speech provider for reading aloud."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "More text per page on phones",
+                "body": "The safe area around the notch and home indicator counts toward the page margins, so iPhones no longer lose about three lines per page."
+              },
+              {
+                "title": "No font flash between chapters",
+                "body": "A new chapter appears only after its font has loaded instead of briefly showing a fallback font."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Exports on iOS",
+                "body": "Exporting files on iPhone and iPad no longer produces empty files or fails."
+              },
+              {
+                "title": "Older iOS and Safari versions",
+                "body": "The app and EPUB loading work on iOS 16.0 to 16.3. The minimum supported iOS version is now 16.0."
+              },
+              {
+                "title": "Inline glyph images stay in the sentence",
+                "body": "Small images used as substitute characters in CJK books stay on their line of text."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.8",
         "date": "2026-10-21",
         "codename": "Cambria",

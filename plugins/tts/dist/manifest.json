@@ -1,7 +1,7 @@
 {
   "id": "tts",
   "name": "TTS Voices",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "schemaVersion": 1,
   "minAppVersion": "0.3.0",
   "requires": {

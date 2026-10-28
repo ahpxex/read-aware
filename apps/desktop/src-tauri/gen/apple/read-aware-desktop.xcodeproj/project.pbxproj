@@ -13,6 +13,7 @@
 		4A12475C1416AB923AD065D2 /* StatusBarBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 8EB76D97869CAEE9CE62CCCC /* StatusBarBridge.m */; };
 		4A12475C1416AB923AD065D3 /* FolderPickBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 8EB76D97869CAEE9CE62CCCD /* FolderPickBridge.m */; };
 		4A12475C1416AB923AD065D4 /* ExportPickBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 8EB76D97869CAEE9CE62CCCE /* ExportPickBridge.m */; };
+		4A12475C1416AB923AD065D5 /* BatteryBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 8EB76D97869CAEE9CE62CCCF /* BatteryBridge.m */; };
 		4CDC2CA84B7E28E5F01ACE05 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = E9E54330BBC53503FC062EB8 /* main.mm */; };
 		4F9E33CCF781F045E9A75D99 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = A56A034A5C62A4A142838976 /* assets */; };
 		8F62EB0E27B8B4025E51B164 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8752B87697F8220799BB13E8 /* Metal.framework */; };
@@ -37,6 +38,7 @@
 		8EB76D97869CAEE9CE62CCCC /* StatusBarBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = StatusBarBridge.m; sourceTree = "<group>"; };
 		8EB76D97869CAEE9CE62CCCD /* FolderPickBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FolderPickBridge.m; sourceTree = "<group>"; };
 		8EB76D97869CAEE9CE62CCCE /* ExportPickBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ExportPickBridge.m; sourceTree = "<group>"; };
+		8EB76D97869CAEE9CE62CCCF /* BatteryBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BatteryBridge.m; sourceTree = "<group>"; };
 		9007086C0316C5D10BFD5572 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		99B3E6DD7281927706328695 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A56A034A5C62A4A142838976 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = SOURCE_ROOT; };
@@ -89,6 +91,7 @@
 				E9E54330BBC53503FC062EB8 /* main.mm */,
 				8EB76D97869CAEE9CE62CCCD /* FolderPickBridge.m */,
 				8EB76D97869CAEE9CE62CCCE /* ExportPickBridge.m */,
+				8EB76D97869CAEE9CE62CCCF /* BatteryBridge.m */,
 				8EB76D97869CAEE9CE62CCCC /* StatusBarBridge.m */,
 				9CDD7A92070BBE3EDC8CB180 /* bindings */,
 			);
@@ -256,6 +259,7 @@
 			files = (
 				4A12475C1416AB923AD065D3 /* FolderPickBridge.m in Sources */,
 				4A12475C1416AB923AD065D4 /* ExportPickBridge.m in Sources */,
+				4A12475C1416AB923AD065D5 /* BatteryBridge.m in Sources */,
 				4A12475C1416AB923AD065D2 /* StatusBarBridge.m in Sources */,
 				4CDC2CA84B7E28E5F01ACE05 /* main.mm in Sources */,
 			);

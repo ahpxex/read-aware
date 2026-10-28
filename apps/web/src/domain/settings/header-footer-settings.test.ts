@@ -17,13 +17,13 @@ const disk = new Map<string, string>();
 installFileGlobals({ localStorage: memoryStorage(disk) });
 const store = getDefaultStore();
 const PATHS = [
-  "reading.headerFooter.enabled",
-  "reading.headerFooter.items.chapter",
-  "reading.headerFooter.items.bookTitle",
-  "reading.headerFooter.items.progress",
-  "reading.headerFooter.items.pages",
-  "reading.headerFooter.items.time",
-  "reading.headerFooter.items.battery",
+  "menus.headerFooter.enabled",
+  "menus.headerFooter.header-left",
+  "menus.headerFooter.header-center",
+  "menus.headerFooter.header-right",
+  "menus.headerFooter.footer-left",
+  "menus.headerFooter.footer-center",
+  "menus.headerFooter.footer-right",
 ];
 
 beforeEach(async () => {
@@ -31,29 +31,27 @@ beforeEach(async () => {
   await localKV.setItemAsync(READER_OVERRIDES_KEY, JSON.stringify({}));
 });
 
-test("the Agent discovers header/footer paths as global-only reading settings", async () => {
-  const snapshot = await createSettingsDomain("agent").queries.snapshot({ section: "reading" });
-  const headerFooter = snapshot.settings.filter((setting) => setting.path.startsWith("reading.headerFooter."));
+test("the Agent discovers header/footer paths as global-only menu settings", async () => {
+  const snapshot = await createSettingsDomain("agent").queries.snapshot({ section: "menus" });
+  const headerFooter = snapshot.settings.filter((setting) => setting.path.startsWith("menus.headerFooter."));
   expect(headerFooter.map((setting) => [setting.path, setting.kind, setting.supportedTargets])).toEqual([
-    ["reading.headerFooter.enabled", "boolean", ["global"]],
-    ["reading.headerFooter.items.chapter", "enum", ["global"]],
-    ["reading.headerFooter.items.bookTitle", "enum", ["global"]],
-    ["reading.headerFooter.items.progress", "enum", ["global"]],
-    ["reading.headerFooter.items.pages", "enum", ["global"]],
-    ["reading.headerFooter.items.time", "enum", ["global"]],
-    ["reading.headerFooter.items.battery", "enum", ["global"]],
+    ["menus.headerFooter.enabled", "boolean", ["global"]],
+    ["menus.headerFooter.header-left", "id-list", ["global"]],
+    ["menus.headerFooter.header-center", "id-list", ["global"]],
+    ["menus.headerFooter.header-right", "id-list", ["global"]],
+    ["menus.headerFooter.footer-left", "id-list", ["global"]],
+    ["menus.headerFooter.footer-center", "id-list", ["global"]],
+    ["menus.headerFooter.footer-right", "id-list", ["global"]],
   ]);
-  const slotValues = [
-    "hidden",
-    "header-left",
-    "header-center",
-    "header-right",
-    "footer-left",
-    "footer-center",
-    "footer-right",
-  ];
   for (const setting of headerFooter.slice(1)) {
-    expect(setting.options?.map((option) => option.value)).toEqual(slotValues);
+    expect(setting.options?.map((option) => option.value)).toEqual([
+      "chapter",
+      "bookTitle",
+      "progress",
+      "pages",
+      "time",
+      "battery",
+    ]);
     // Device-local chrome is not book-scoped, so it carries no book-override metadata.
     expect(setting.reading).toBeUndefined();
   }
@@ -61,16 +59,21 @@ test("the Agent discovers header/footer paths as global-only reading settings", 
 
 test("an Agent update persists every path and reaches the live atom", async () => {
   await createSettingsDomain("agent").commands.update([
-    { path: "reading.headerFooter.enabled", value: true },
-    { path: "reading.headerFooter.items.chapter", value: "header-center" },
-    { path: "reading.headerFooter.items.battery", value: "footer-right" },
+    { path: "menus.headerFooter.enabled", value: true },
+    { path: "menus.headerFooter.header-center", value: ["chapter", "bookTitle"] },
+    { path: "menus.headerFooter.footer-right", value: ["battery", "progress"] },
   ]);
   const expected: HeaderFooterSettings = {
     enabled: true,
-    items: {
-      ...defaultHeaderFooterSettings().items,
-      chapter: "header-center",
-      battery: "footer-right",
+    slots: {
+      // Adopting chapter into header-center moves it out of header-left;
+      // adopting battery/progress into footer-right empties footer-left of them.
+      "header-left": [],
+      "header-center": ["chapter", "bookTitle"],
+      "header-right": [],
+      "footer-left": ["time"],
+      "footer-center": [],
+      "footer-right": ["battery", "progress"],
     },
   };
   expect(store.get(headerFooterSettingsAtom)).toEqual(expected);
@@ -84,34 +87,36 @@ test("invalid values, book targets and ungranted plugins leave the settings unch
   const before = store.get(headerFooterSettingsAtom);
   const agent = createSettingsDomain("agent");
   await expect(
-    agent.commands.update([{ path: "reading.headerFooter.items.chapter", value: "header-middle" }]),
+    agent.commands.update([{ path: "menus.headerFooter.header-left", value: "header-middle" }]),
   ).rejects.toThrow();
-  await expect(agent.commands.update([{ path: "reading.headerFooter.enabled", value: "yes" }])).rejects.toThrow();
+  await expect(agent.commands.update([{ path: "menus.headerFooter.header-left", value: ["bogus"] }])).rejects.toThrow();
+  await expect(
+    agent.commands.update([{ path: "menus.headerFooter.header-left", value: ["time", "time"] }]),
+  ).rejects.toThrow();
+  await expect(agent.commands.update([{ path: "menus.headerFooter.enabled", value: "yes" }])).rejects.toThrow();
   await expect(
     agent.commands.update([
       {
-        path: "reading.headerFooter.items.time",
-        value: "footer-left",
+        path: "menus.headerFooter.footer-left",
+        value: ["time"],
         target: { kind: "book", bookId: "one" },
       },
     ]),
   ).rejects.toThrow();
   await expect(
-    agent.commands.update([{ path: "reading.headerFooter.enabled", value: true, target: { kind: "all-books" } }]),
+    agent.commands.update([{ path: "menus.headerFooter.enabled", value: true, target: { kind: "all-books" } }]),
   ).rejects.toThrow();
   await expect(
-    createSettingsDomain("plugin:none").commands.update([
-      { path: "reading.headerFooter.items.chapter", value: "hidden" },
-    ]),
+    createSettingsDomain("plugin:none").commands.update([{ path: "menus.headerFooter.footer-left", value: [] }]),
   ).rejects.toThrow();
   expect(store.get(headerFooterSettingsAtom)).toEqual(before);
 });
 
 test("a granted plugin can change the strips through the same catalog", async () => {
-  await createSettingsDomain("plugin:input", { write: ["reading.headerFooter.*"] }).commands.update([
-    { path: "reading.headerFooter.items.bookTitle", value: "header-right" },
+  await createSettingsDomain("plugin:input", { write: ["menus.headerFooter.*"] }).commands.update([
+    { path: "menus.headerFooter.header-right", value: ["bookTitle"] },
   ]);
-  expect(store.get(headerFooterSettingsAtom).items.bookTitle).toBe("header-right");
+  expect(store.get(headerFooterSettingsAtom).slots["header-right"]).toEqual(["bookTitle"]);
 });
 
 test("book overrides never claim to shadow header/footer paths", async () => {
@@ -124,24 +129,44 @@ test("book overrides never claim to shadow header/footer paths", async () => {
 
 test("a reading reset keeps header/footer preferences", async () => {
   const agent = createSettingsDomain("agent");
-  await agent.commands.update([{ path: "reading.headerFooter.items.time", value: "header-right" }]);
+  await agent.commands.update([{ path: "menus.headerFooter.header-right", value: ["time"] }]);
   await agent.commands.resetReading({ action: "defaults", target: { kind: "global" } });
-  expect(store.get(headerFooterSettingsAtom).items.time).toBe("header-right");
+  expect(store.get(headerFooterSettingsAtom).slots["header-right"]).toEqual(["time"]);
 });
 
 test("external persisted writes refresh the atom, and corrupt records read as defaults", async () => {
   const defaults = defaultHeaderFooterSettings();
   await localKV.setItemAsync(
     HEADER_FOOTER_SETTINGS_KEY,
-    JSON.stringify({ enabled: true, items: { chapter: "footer-left", pages: "footer-center" } }),
+    JSON.stringify({
+      enabled: true,
+      slots: { "footer-left": ["chapter", "time"], "footer-center": ["pages"] },
+    }),
   );
   expect(store.get(headerFooterSettingsAtom)).toEqual({
     enabled: true,
-    items: { ...defaults.items, chapter: "footer-left", pages: "footer-center" },
+    slots: {
+      "header-left": [],
+      "header-center": [],
+      "header-right": [],
+      "footer-left": ["chapter", "time"],
+      "footer-center": ["pages"],
+      "footer-right": [],
+    },
   });
   await localKV.setItemAsync(
     HEADER_FOOTER_SETTINGS_KEY,
-    JSON.stringify({ enabled: "always", items: { chapter: "sideways" } }),
+    JSON.stringify({ enabled: "always", slots: { "header-left": ["sideways"] } }),
   );
-  expect(store.get(headerFooterSettingsAtom)).toEqual(defaults);
+  expect(store.get(headerFooterSettingsAtom)).toEqual({
+    ...defaults,
+    slots: {
+      "header-left": [],
+      "header-center": [],
+      "header-right": [],
+      "footer-left": [],
+      "footer-center": [],
+      "footer-right": [],
+    },
+  });
 });

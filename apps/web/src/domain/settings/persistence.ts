@@ -40,7 +40,7 @@ export async function settingsChangeKeys(
     else if (path.startsWith("shelf.")) key = SHELF_VIEW_KEY;
     else if (path.startsWith("shortcuts.")) key = SHORTCUT_BINDINGS_KEY;
     else if (path.startsWith("reading.pageTurn.")) key = PAGE_TURN_SETTINGS_KEY;
-    else if (path.startsWith("reading.headerFooter.")) key = HEADER_FOOTER_SETTINGS_KEY;
+    else if (path.startsWith("menus.headerFooter.")) key = HEADER_FOOTER_SETTINGS_KEY;
     else if (path.startsWith("reading.")) {
       key = READER_PREFERENCES_KEY;
       if (bookId) {

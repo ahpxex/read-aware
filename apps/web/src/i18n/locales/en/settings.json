@@ -129,31 +129,6 @@
         "downForward": "Volume down reads on",
         "upForward": "Volume up reads on"
       }
-    },
-    "headerFooter": {
-      "title": "Header & Footer",
-      "description": "Thin info strips at the top and bottom of the page. Saved on this device and used for every book.",
-      "enabled": {
-        "title": "Show header and footer",
-        "description": "On phones and tablets the strips stand in for the hidden system status bar."
-      },
-      "items": {
-        "chapter": "Chapter title",
-        "bookTitle": "Book title",
-        "progress": "Reading progress",
-        "pages": "Page numbers",
-        "time": "Time",
-        "battery": "Battery"
-      },
-      "slots": {
-        "hidden": "Hidden",
-        "headerLeft": "Header left",
-        "headerCenter": "Header center",
-        "headerRight": "Header right",
-        "footerLeft": "Footer left",
-        "footerCenter": "Footer center",
-        "footerRight": "Footer right"
-      }
     }
   },
   "shortcuts": {
@@ -794,7 +769,7 @@
   },
   "menus": {
     "title": "Customize",
-    "description": "Arrange the header bars and the selection menu: drag items between Shown and the overflow menu, and reorder them.",
+    "description": "Arrange the header bars, the selection menu, and the reader header & footer: drag items into position, reorder them, or tuck them away.",
     "more": "More",
     "shown": "Shown",
     "overflow": "Overflow menu",
@@ -826,6 +801,33 @@
       "addNote": "Add note",
       "askAI": "Ask AI",
       "importFolder": "Import folder"
+    },
+    "headerFooter": {
+      "title": "Reader header & footer",
+      "description": "Choose which items appear above and below the page, and where.",
+      "enabled": {
+        "title": "Show header and footer",
+        "description": "On phones and tablets, the header and footer stand in for the hidden system status bar."
+      },
+      "items": {
+        "chapter": "Chapter title",
+        "bookTitle": "Book title",
+        "progress": "Reading progress",
+        "pages": "Page numbers",
+        "time": "Time",
+        "battery": "Battery"
+      },
+      "positions": {
+        "header-left": "Header left",
+        "header-center": "Header center",
+        "header-right": "Header right",
+        "footer-left": "Footer left",
+        "footer-center": "Footer center",
+        "footer-right": "Footer right"
+      },
+      "notShown": "Not shown",
+      "hideItem": "Hide {{item}}",
+      "showItem": "Show {{item}}"
     }
   },
   "search": {

@@ -129,31 +129,6 @@
         "downForward": "音量−で先へ進む",
         "upForward": "音量＋で先へ進む"
       }
-    },
-    "headerFooter": {
-      "title": "ヘッダーとフッター",
-      "description": "ページの上下に表示される細い情報バーです。このデバイスに保存され、すべての本に適用されます。",
-      "enabled": {
-        "title": "ヘッダーとフッターを表示",
-        "description": "スマートフォンやタブレットでは、非表示になるシステムステータスバーの代わりになります。"
-      },
-      "items": {
-        "chapter": "章タイトル",
-        "bookTitle": "書名",
-        "progress": "読書の進捗",
-        "pages": "ページ番号",
-        "time": "時刻",
-        "battery": "バッテリー"
-      },
-      "slots": {
-        "hidden": "非表示",
-        "headerLeft": "ヘッダー左",
-        "headerCenter": "ヘッダー中央",
-        "headerRight": "ヘッダー右",
-        "footerLeft": "フッター左",
-        "footerCenter": "フッター中央",
-        "footerRight": "フッター右"
-      }
     }
   },
   "shortcuts": {
@@ -703,7 +678,7 @@
   },
   "menus": {
     "title": "カスタマイズ",
-    "description": "ヘッダーバーと選択メニューをカスタマイズ:項目を「表示」とオーバーフローの間でドラッグし、並べ替えます。",
+    "description": "ヘッダーバー、選択メニュー、ヘッダー/フッターをカスタマイズ：項目をドラッグして配置・並べ替え・非表示にします。",
     "more": "その他",
     "shown": "表示",
     "overflow": "オーバーフローメニュー",
@@ -735,6 +710,33 @@
       "addNote": "ノート追加",
       "askAI": "AI に聞く",
       "importFolder": "フォルダを読み込む"
+    },
+    "headerFooter": {
+      "title": "ヘッダーとフッター",
+      "description": "ページの上下に表示する情報とその位置を選びます。",
+      "enabled": {
+        "title": "ヘッダーとフッターを表示",
+        "description": "スマートフォンやタブレットでは、ヘッダーとフッターが非表示になるシステムステータスバーの代わりに情報を表示します。"
+      },
+      "items": {
+        "chapter": "章タイトル",
+        "bookTitle": "書名",
+        "progress": "読書進捗",
+        "pages": "ページ番号",
+        "time": "時刻",
+        "battery": "バッテリー"
+      },
+      "positions": {
+        "header-left": "ヘッダー左",
+        "header-center": "ヘッダー中央",
+        "header-right": "ヘッダー右",
+        "footer-left": "フッター左",
+        "footer-center": "フッター中央",
+        "footer-right": "フッター右"
+      },
+      "notShown": "非表示",
+      "hideItem": "{{item}}を非表示",
+      "showItem": "{{item}}を表示"
     }
   },
   "search": {

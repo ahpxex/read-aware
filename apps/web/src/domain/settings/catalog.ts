@@ -56,10 +56,10 @@ import {
 } from "./page-turn-settings";
 import {
   HEADER_FOOTER_ITEMS,
-  HEADER_FOOTER_SLOTS,
+  HEADER_FOOTER_POSITIONS,
   type HeaderFooterItem,
+  type HeaderFooterPosition,
   type HeaderFooterSettings,
-  type HeaderFooterSlot,
 } from "./header-footer-settings";
 import { shortcutPreferenceDefinitions } from "./shortcut-preferences";
 import type { ShortcutEnvironment } from "../../features/settings/lib/shortcut-catalog";
@@ -420,13 +420,14 @@ const HEADER_FOOTER_ITEM_LABELS: Record<HeaderFooterItem, string> = {
   battery: "Battery level",
 };
 
-/** Header/footer info strips. Paths sit with the reader settings but are
+/** Header/footer info strips. Paths sit with the menu surfaces but are
  *  global-only: display habits belong to the device, not to one book. */
 function headerFooterDefinitions(): SettingDefinition[] {
+  const knownIds = new Set<string>(HEADER_FOOTER_ITEMS);
   return [
     {
-      path: "reading.headerFooter.enabled",
-      section: "reading",
+      path: "menus.headerFooter.enabled",
+      section: "menus",
       label: "Header and footer strips",
       description: `${HEADER_FOOTER_DEVICE_LOCAL} Thin info strips above and below the page; on Android/iOS they stand in for the system status bar the immersive reader hides. Defaults on for Android/iOS and off on desktop.`,
       kind: "boolean",
@@ -436,21 +437,34 @@ function headerFooterDefinitions(): SettingDefinition[] {
         state.headerFooter = { ...state.headerFooter, enabled: value as boolean };
       },
     },
-    ...HEADER_FOOTER_ITEMS.map(
-      (item): SettingDefinition => ({
-        path: `reading.headerFooter.items.${item}`,
-        section: "reading",
-        label: `Header/footer: ${HEADER_FOOTER_ITEM_LABELS[item]}`,
-        description: `${HEADER_FOOTER_DEVICE_LOCAL} Where ${HEADER_FOOTER_ITEM_LABELS[item].toLowerCase()} appears — hidden or one of the six header/footer slots; items sharing a slot join in catalog order. battery has no effect on desktop, which never reports a battery.`,
-        kind: "enum",
+    ...HEADER_FOOTER_POSITIONS.map(
+      (position): SettingDefinition => ({
+        path: `menus.headerFooter.${position}`,
+        section: "menus",
+        label: `Header/footer: ${position}`,
+        description: `${HEADER_FOOTER_DEVICE_LOCAL} Ordered item ids placed in the ${position} strip position; listing an item here removes it from every other position, and an item in no list is hidden. battery has no effect on desktop, which never reports a battery.`,
+        kind: "id-list",
         supportedTargets: ["global"],
-        options: HEADER_FOOTER_SLOTS.map((value) => ({ value, label: value })),
-        read: (state) => state.headerFooter.items[item],
+        options: HEADER_FOOTER_ITEMS.map((item) => ({ value: item, label: HEADER_FOOTER_ITEM_LABELS[item] })),
+        read: (state) => state.headerFooter.slots[position],
+        validate: (value) => {
+          const ids = menuListValue(`menus.headerFooter.${position}`, value);
+          const unknown = ids.filter((id) => !knownIds.has(id));
+          if (unknown.length > 0) {
+            throw new Error(
+              `menus.headerFooter.${position}: unknown ids ${unknown.join(", ")} — use ids from this path's options`,
+            );
+          }
+          return ids;
+        },
         write: (state, value) => {
-          state.headerFooter = {
-            ...state.headerFooter,
-            items: { ...state.headerFooter.items, [item]: value as HeaderFooterSlot },
-          };
+          const ids = value as HeaderFooterItem[];
+          const adopted = new Set(ids);
+          const slots = {} as Record<HeaderFooterPosition, HeaderFooterItem[]>;
+          for (const p of HEADER_FOOTER_POSITIONS) {
+            slots[p] = p === position ? ids : state.headerFooter.slots[p].filter((id) => !adopted.has(id));
+          }
+          state.headerFooter = { ...state.headerFooter, slots };
         },
       }),
     ),

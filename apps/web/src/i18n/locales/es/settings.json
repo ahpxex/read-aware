@@ -129,31 +129,6 @@
         "downForward": "Bajar volumen avanza",
         "upForward": "Subir volumen avanza"
       }
-    },
-    "headerFooter": {
-      "title": "Encabezado y pie",
-      "description": "Finas franjas de información en la parte superior e inferior de la página. Se guardan en este dispositivo y se aplican a todos los libros.",
-      "enabled": {
-        "title": "Mostrar encabezado y pie",
-        "description": "En teléfonos y tabletas, las franjas sustituyen a la barra de estado del sistema oculta."
-      },
-      "items": {
-        "chapter": "Título del capítulo",
-        "bookTitle": "Título del libro",
-        "progress": "Progreso de lectura",
-        "pages": "Números de página",
-        "time": "Hora",
-        "battery": "Batería"
-      },
-      "slots": {
-        "hidden": "Oculto",
-        "headerLeft": "Encabezado izquierda",
-        "headerCenter": "Encabezado centro",
-        "headerRight": "Encabezado derecha",
-        "footerLeft": "Pie izquierda",
-        "footerCenter": "Pie centro",
-        "footerRight": "Pie derecha"
-      }
     }
   },
   "shortcuts": {
@@ -703,7 +678,7 @@
   },
   "menus": {
     "title": "Personalizar",
-    "description": "Personaliza las barras y el menú de selección: arrastra elementos entre zonas y reordénalos.",
+    "description": "Personaliza las barras, el menú de selección y el encabezado y pie: arrastra elementos a su posición, reordénalos u ocúltalos.",
     "more": "Más",
     "shown": "Mostrados",
     "overflow": "Menú de desbordamiento",
@@ -735,6 +710,33 @@
       "addNote": "Añadir nota",
       "askAI": "Preguntar a la IA",
       "importFolder": "Importar carpeta"
+    },
+    "headerFooter": {
+      "title": "Encabezado y pie de página",
+      "description": "Elige qué datos aparecen sobre y bajo la página, y dónde.",
+      "enabled": {
+        "title": "Mostrar encabezado y pie",
+        "description": "En teléfonos y tabletas, el encabezado y el pie sustituyen a la barra de estado oculta del sistema."
+      },
+      "items": {
+        "chapter": "Título del capítulo",
+        "bookTitle": "Título del libro",
+        "progress": "Progreso de lectura",
+        "pages": "Números de página",
+        "time": "Hora",
+        "battery": "Batería"
+      },
+      "positions": {
+        "header-left": "Encabezado izquierda",
+        "header-center": "Encabezado centro",
+        "header-right": "Encabezado derecha",
+        "footer-left": "Pie izquierda",
+        "footer-center": "Pie centro",
+        "footer-right": "Pie derecha"
+      },
+      "notShown": "No mostrados",
+      "hideItem": "Ocultar {{item}}",
+      "showItem": "Mostrar {{item}}"
     }
   },
   "search": {

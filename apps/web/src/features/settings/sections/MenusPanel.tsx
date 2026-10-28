@@ -1,10 +1,12 @@
 /**
  * Settings → Menus: arrange the customizable surfaces (primary navigation,
- * shelf header, reader header, the phone reader toolbar, selection menu) by dragging items between
- * Shown and the overflow menu — core and plugin items alike
+ * shelf header, reader header, the phone reader toolbar, selection menu) and
+ * the reader header/footer strips by dragging items between zones.
  * (docs/plugins/plugin-system.md §7).
  */
+import { Fragment } from "react";
 import { useTranslation } from "../../../i18n";
+import { HeaderFooterEditor } from "../../menus";
 import { MenuSurfaceEditor } from "../../menus/components/MenuSurfaceEditor";
 import type { MenuSurface } from "../../menus/state/menu-config";
 import { SettingsGroup } from "../components/SettingsGroup";
@@ -17,9 +19,16 @@ export function MenusPanel() {
   return (
     <SettingsPage title={t("menus.title")} description={t("menus.description")}>
       {SURFACES.map((surface) => (
-        <SettingsGroup key={surface} title={t(`menus.surface.${surface}` as never)}>
-          <MenuSurfaceEditor surface={surface} />
-        </SettingsGroup>
+        <Fragment key={surface}>
+          <SettingsGroup title={t(`menus.surface.${surface}` as never)}>
+            <MenuSurfaceEditor surface={surface} />
+          </SettingsGroup>
+          {surface === "readerToolbar" && (
+            <SettingsGroup title={t("menus.headerFooter.title")} description={t("menus.headerFooter.description")}>
+              <HeaderFooterEditor />
+            </SettingsGroup>
+          )}
+        </Fragment>
       ))}
     </SettingsPage>
   );

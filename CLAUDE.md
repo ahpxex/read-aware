@@ -159,3 +159,13 @@ output; if your local Bun differs, rebuild plugins with `bunx bun@1.3.13 run bui
 docs, the runtime suites, and rustfmt/clippy. `lint:deps` only accepts a shrinking
 `.dependency-cruiser-known-violations.json`; after fixing violations, run
 `bun run lint:deps:baseline` in that workspace and commit the smaller file.
+
+Mobile runtime checks on this machine (run from `apps/desktop`; port 5173 must be
+free because `beforeDevCommand` starts Vite):
+- Android: SDK at `/opt/homebrew/share/android-commandlinetools`, AVD `ReadAware_Phone`.
+  Gradle needs JDK 21, not 25: `ANDROID_HOME=… ANDROID_SDK_ROOT=… NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358
+  JAVA_HOME=/opt/homebrew/opt/openjdk@21 bun run tauri android dev`. Battery: `adb emu power capacity <n>`.
+- iOS: `bun run tauri ios dev "iPhone 17 Pro"` (device name, not UDID). Do not run
+  `xcodegen`; it churns the committed project. Add new `gen/apple/Sources` files to
+  `project.pbxproj` by hand, as with `ExportPickBridge.m`/`BatteryBridge.m`.
+- `tauri dev` rebuilds plugin `dist`; revert that drift before committing.

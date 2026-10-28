@@ -85,7 +85,12 @@ function cloneDraft(draft: SettingsDraft): SettingsDraft {
     appearance: { ...draft.appearance },
     reading: { ...draft.reading },
     pageTurn: { ...draft.pageTurn },
-    headerFooter: { ...draft.headerFooter, items: { ...draft.headerFooter.items } },
+    headerFooter: {
+      ...draft.headerFooter,
+      slots: Object.fromEntries(
+        Object.entries(draft.headerFooter.slots).map(([k, v]) => [k, [...v]]),
+      ) as typeof draft.headerFooter.slots,
+    },
     bookLanguages: draft.bookLanguages,
     contentTypography: { ...draft.contentTypography },
     defaultMarkColor: draft.defaultMarkColor,

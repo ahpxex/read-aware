@@ -129,31 +129,6 @@
         "downForward": "Leiser liest weiter",
         "upForward": "Lauter liest weiter"
       }
-    },
-    "headerFooter": {
-      "title": "Kopf- und Fußzeile",
-      "description": "Schmale Infoleisten am oberen und unteren Seitenrand. Auf diesem Gerät gespeichert und für jedes Buch verwendet.",
-      "enabled": {
-        "title": "Kopf- und Fußzeile anzeigen",
-        "description": "Auf Smartphones und Tablets ersetzen die Leisten die ausgeblendete Systemstatusleiste."
-      },
-      "items": {
-        "chapter": "Kapiteltitel",
-        "bookTitle": "Buchtitel",
-        "progress": "Lesefortschritt",
-        "pages": "Seitenzahlen",
-        "time": "Uhrzeit",
-        "battery": "Akkustand"
-      },
-      "slots": {
-        "hidden": "Ausgeblendet",
-        "headerLeft": "Kopfzeile links",
-        "headerCenter": "Kopfzeile mittig",
-        "headerRight": "Kopfzeile rechts",
-        "footerLeft": "Fußzeile links",
-        "footerCenter": "Fußzeile mittig",
-        "footerRight": "Fußzeile rechts"
-      }
     }
   },
   "shortcuts": {
@@ -703,7 +678,7 @@
   },
   "menus": {
     "title": "Anpassen",
-    "description": "Kopfleisten und Auswahlmenü anpassen: Einträge zwischen Sichtbar und Überlaufmenü ziehen und ordnen.",
+    "description": "Kopfleisten, Auswahlmenü und Kopf-/Fußzeile anpassen: Einträge an Position ziehen, ordnen oder ausblenden.",
     "more": "Mehr",
     "shown": "Sichtbar",
     "overflow": "Überlaufmenü",
@@ -735,6 +710,33 @@
       "addNote": "Notiz",
       "askAI": "KI fragen",
       "importFolder": "Ordner importieren"
+    },
+    "headerFooter": {
+      "title": "Kopf- und Fußzeile",
+      "description": "Wähle, welche Angaben über und unter der Seite erscheinen, und wo.",
+      "enabled": {
+        "title": "Kopf- und Fußzeile anzeigen",
+        "description": "Auf Telefonen und Tablets übernehmen Kopf- und Fußzeile die Anzeige der ausgeblendeten Statusleiste."
+      },
+      "items": {
+        "chapter": "Kapiteltitel",
+        "bookTitle": "Buchtitel",
+        "progress": "Lesefortschritt",
+        "pages": "Seitenzahlen",
+        "time": "Zeit",
+        "battery": "Akkustand"
+      },
+      "positions": {
+        "header-left": "Kopfzeile links",
+        "header-center": "Kopfzeile Mitte",
+        "header-right": "Kopfzeile rechts",
+        "footer-left": "Fußzeile links",
+        "footer-center": "Fußzeile Mitte",
+        "footer-right": "Fußzeile rechts"
+      },
+      "notShown": "Nicht angezeigt",
+      "hideItem": "{{item}} ausblenden",
+      "showItem": "{{item}} anzeigen"
     }
   },
   "search": {

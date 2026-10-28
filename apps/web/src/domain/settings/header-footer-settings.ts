@@ -6,9 +6,8 @@ export const HEADER_FOOTER_SETTINGS_KEY = "read-aware-reader-header-footer";
 /** A piece of reading status the strips can show. */
 export type HeaderFooterItem = "chapter" | "bookTitle" | "progress" | "pages" | "time" | "battery";
 
-/** Where an item lands: one of six strip positions, or nowhere. */
-export type HeaderFooterSlot =
-  | "hidden"
+/** One of the six strip positions an item can occupy. */
+export type HeaderFooterPosition =
   | "header-left"
   | "header-center"
   | "header-right"
@@ -16,13 +15,26 @@ export type HeaderFooterSlot =
   | "footer-center"
   | "footer-right";
 
-/** Thin always-visible info strips above and below the page. Device-local. */
+export const HEADER_FOOTER_POSITIONS: readonly HeaderFooterPosition[] = [
+  "header-left",
+  "header-center",
+  "header-right",
+  "footer-left",
+  "footer-center",
+  "footer-right",
+];
+
+/**
+ * Thin always-visible info strips above and below the page. Device-local.
+ * Each position holds an ordered list of items; an item in no position is
+ * hidden.
+ */
 export type HeaderFooterSettings = {
   enabled: boolean;
-  items: Record<HeaderFooterItem, HeaderFooterSlot>;
+  slots: Record<HeaderFooterPosition, HeaderFooterItem[]>;
 };
 
-/** The catalog order — also the order items join within one slot. */
+/** The catalog order — also the order items are offered in pickers. */
 export const HEADER_FOOTER_ITEMS: readonly HeaderFooterItem[] = [
   "chapter",
   "bookTitle",
@@ -32,23 +44,23 @@ export const HEADER_FOOTER_ITEMS: readonly HeaderFooterItem[] = [
   "battery",
 ];
 
-export const HEADER_FOOTER_SLOTS: readonly HeaderFooterSlot[] = [
-  "hidden",
-  "header-left",
-  "header-center",
-  "header-right",
-  "footer-left",
-  "footer-center",
-  "footer-right",
-];
-
-const DEFAULT_ITEMS: Record<HeaderFooterItem, HeaderFooterSlot> = {
+/** Where "show" places a hidden item of each kind. */
+export const HEADER_FOOTER_SHOW_POSITION: Record<HeaderFooterItem, HeaderFooterPosition> = {
   chapter: "header-left",
-  bookTitle: "hidden",
+  bookTitle: "header-center",
   progress: "footer-right",
-  pages: "hidden",
+  pages: "footer-center",
   time: "footer-left",
   battery: "footer-left",
+};
+
+const DEFAULT_SLOTS: Record<HeaderFooterPosition, HeaderFooterItem[]> = {
+  "header-left": ["chapter"],
+  "header-center": [],
+  "header-right": [],
+  "footer-left": ["time", "battery"],
+  "footer-center": [],
+  "footer-right": ["progress"],
 };
 
 /**
@@ -58,23 +70,32 @@ const DEFAULT_ITEMS: Record<HeaderFooterItem, HeaderFooterSlot> = {
  * never carries one platform's default onto another.
  */
 export function defaultHeaderFooterSettings(): HeaderFooterSettings {
-  return { enabled: isMobileOS(), items: { ...DEFAULT_ITEMS } };
+  return { enabled: isMobileOS(), slots: { ...DEFAULT_SLOTS } };
 }
 
 export function normalizeHeaderFooterSettings(raw: unknown, defaults: HeaderFooterSettings): HeaderFooterSettings {
-  const stored =
-    raw && typeof raw === "object"
-      ? (raw as { enabled?: unknown; items?: Partial<Record<HeaderFooterItem, unknown>> })
-      : {};
-  const storedItems = stored.items && typeof stored.items === "object" ? stored.items : {};
-  const items = { ...defaults.items };
-  for (const item of HEADER_FOOTER_ITEMS) {
-    const slot = storedItems[item];
-    items[item] = HEADER_FOOTER_SLOTS.includes(slot as HeaderFooterSlot) ? (slot as HeaderFooterSlot) : items[item];
+  // Anything that is not a settings object reads as the defaults untouched.
+  if (!raw || typeof raw !== "object") return defaults;
+  const stored = raw as { enabled?: unknown; slots?: Partial<Record<HeaderFooterPosition, unknown>> };
+  const storedSlots = stored.slots && typeof stored.slots === "object" ? stored.slots : {};
+  const seen = new Set<HeaderFooterItem>();
+  const slots = {} as Record<HeaderFooterPosition, HeaderFooterItem[]>;
+  // First occurrence wins, position order then array order.
+  for (const position of HEADER_FOOTER_POSITIONS) {
+    const list = storedSlots[position];
+    slots[position] = Array.isArray(list)
+      ? list.filter(
+          (id): id is HeaderFooterItem =>
+            typeof id === "string" &&
+            HEADER_FOOTER_ITEMS.includes(id as HeaderFooterItem) &&
+            !seen.has(id as HeaderFooterItem) &&
+            (seen.add(id as HeaderFooterItem), true),
+        )
+      : [];
   }
   return {
     enabled: typeof stored.enabled === "boolean" ? stored.enabled : defaults.enabled,
-    items,
+    slots,
   };
 }
 

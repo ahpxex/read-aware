@@ -129,31 +129,6 @@
         "downForward": "Volume − pour avancer",
         "upForward": "Volume + pour avancer"
       }
-    },
-    "headerFooter": {
-      "title": "En-tête et pied de page",
-      "description": "Fines bandes d'information en haut et en bas de la page. Enregistrées sur cet appareil et utilisées pour tous les livres.",
-      "enabled": {
-        "title": "Afficher l'en-tête et le pied de page",
-        "description": "Sur téléphone et tablette, les bandes remplacent la barre d'état système masquée."
-      },
-      "items": {
-        "chapter": "Titre du chapitre",
-        "bookTitle": "Titre du livre",
-        "progress": "Progression de lecture",
-        "pages": "Numéros de page",
-        "time": "Heure",
-        "battery": "Batterie"
-      },
-      "slots": {
-        "hidden": "Masqué",
-        "headerLeft": "En-tête gauche",
-        "headerCenter": "En-tête centre",
-        "headerRight": "En-tête droite",
-        "footerLeft": "Pied gauche",
-        "footerCenter": "Pied centre",
-        "footerRight": "Pied droite"
-      }
     }
   },
   "shortcuts": {
@@ -703,7 +678,7 @@
   },
   "menus": {
     "title": "Personnaliser",
-    "description": "Personnalisez les barres et le menu de sélection : glissez les éléments entre Affichés et le menu de dépassement.",
+    "description": "Personnalisez les barres, le menu de sélection et l'en-tête/pied de page : glissez les éléments en place, réordonnez-les ou masquez-les.",
     "more": "Plus",
     "shown": "Affichés",
     "overflow": "Menu de dépassement",
@@ -735,6 +710,33 @@
       "addNote": "Ajouter une note",
       "askAI": "Demander à l IA",
       "importFolder": "Importer un dossier"
+    },
+    "headerFooter": {
+      "title": "En-tête et pied de page",
+      "description": "Choisissez les informations affichées au-dessus et en dessous de la page, et leur position.",
+      "enabled": {
+        "title": "Afficher l'en-tête et le pied de page",
+        "description": "Sur téléphone et tablette, l'en-tête et le pied de page remplacent la barre d'état masquée."
+      },
+      "items": {
+        "chapter": "Titre du chapitre",
+        "bookTitle": "Titre du livre",
+        "progress": "Progression",
+        "pages": "Numéros de page",
+        "time": "Heure",
+        "battery": "Batterie"
+      },
+      "positions": {
+        "header-left": "En-tête gauche",
+        "header-center": "En-tête centre",
+        "header-right": "En-tête droite",
+        "footer-left": "Pied de page gauche",
+        "footer-center": "Pied de page centre",
+        "footer-right": "Pied de page droite"
+      },
+      "notShown": "Non affichés",
+      "hideItem": "Masquer {{item}}",
+      "showItem": "Afficher {{item}}"
     }
   },
   "search": {

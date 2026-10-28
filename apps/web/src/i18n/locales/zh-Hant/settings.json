@@ -129,31 +129,6 @@
         "downForward": "音量減往後讀",
         "upForward": "音量加往後讀"
       }
-    },
-    "headerFooter": {
-      "title": "頁首頁尾",
-      "description": "頁面頂部和底部的細長資訊列。儲存在此裝置上，對所有書籍生效。",
-      "enabled": {
-        "title": "顯示頁首頁尾",
-        "description": "在手機和平板上，資訊列可替代被隱藏的系統狀態列。"
-      },
-      "items": {
-        "chapter": "章節名",
-        "bookTitle": "書名",
-        "progress": "閱讀進度",
-        "pages": "頁碼",
-        "time": "時間",
-        "battery": "電量"
-      },
-      "slots": {
-        "hidden": "隱藏",
-        "headerLeft": "頁首左",
-        "headerCenter": "頁首中",
-        "headerRight": "頁首右",
-        "footerLeft": "頁尾左",
-        "footerCenter": "頁尾中",
-        "footerRight": "頁尾右"
-      }
     }
   },
   "shortcuts": {
@@ -703,7 +678,7 @@
   },
   "menus": {
     "title": "自訂",
-    "description": "自訂頂欄與選取選單:在「顯示」與「更多選單」之間拖曳項目並調整順序。",
+    "description": "自訂頂欄、選取選單與頁首頁尾：拖曳項目到指定位置、調整順序或將其隱藏。",
     "more": "更多",
     "shown": "顯示",
     "overflow": "更多選單",
@@ -735,6 +710,33 @@
       "addNote": "新增筆記",
       "askAI": "問 AI",
       "importFolder": "匯入資料夾"
+    },
+    "headerFooter": {
+      "title": "頁首頁尾",
+      "description": "選擇頁面頂部與底部顯示的資訊及其位置。",
+      "enabled": {
+        "title": "顯示頁首頁尾",
+        "description": "在手機與平板上，頁首頁尾會代替被隱藏的系統狀態列，顯示時間與電量等資訊。"
+      },
+      "items": {
+        "chapter": "章節名",
+        "bookTitle": "書名",
+        "progress": "閱讀進度",
+        "pages": "頁碼",
+        "time": "時間",
+        "battery": "電量"
+      },
+      "positions": {
+        "header-left": "頁首左",
+        "header-center": "頁首中",
+        "header-right": "頁首右",
+        "footer-left": "頁尾左",
+        "footer-center": "頁尾中",
+        "footer-right": "頁尾右"
+      },
+      "notShown": "未顯示",
+      "hideItem": "隱藏{{item}}",
+      "showItem": "顯示{{item}}"
     }
   },
   "search": {

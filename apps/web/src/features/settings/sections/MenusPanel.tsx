@@ -4,7 +4,6 @@
  * the reader header/footer strips by dragging items between zones.
  * (docs/plugins/plugin-system.md §7).
  */
-import { Fragment } from "react";
 import { useTranslation } from "../../../i18n";
 import { HeaderFooterEditor } from "../../menus";
 import { MenuSurfaceEditor } from "../../menus/components/MenuSurfaceEditor";
@@ -19,17 +18,13 @@ export function MenusPanel() {
   return (
     <SettingsPage title={t("menus.title")} description={t("menus.description")}>
       {SURFACES.map((surface) => (
-        <Fragment key={surface}>
-          <SettingsGroup title={t(`menus.surface.${surface}` as never)}>
-            <MenuSurfaceEditor surface={surface} />
-          </SettingsGroup>
-          {surface === "readerToolbar" && (
-            <SettingsGroup title={t("menus.headerFooter.title")} description={t("menus.headerFooter.description")}>
-              <HeaderFooterEditor />
-            </SettingsGroup>
-          )}
-        </Fragment>
+        <SettingsGroup key={surface} title={t(`menus.surface.${surface}` as never)}>
+          <MenuSurfaceEditor surface={surface} />
+        </SettingsGroup>
       ))}
+      <SettingsGroup title={t("menus.headerFooter.title")} description={t("menus.headerFooter.description")}>
+        <HeaderFooterEditor />
+      </SettingsGroup>
     </SettingsPage>
   );
 }

@@ -47,6 +47,19 @@ pub(crate) fn parse(value: Option<&str>) -> Result<DesktopPreferences, CommandEr
     )
 }
 
+/// Boot-time read degrades a malformed persisted blob to defaults — the
+/// frontend parser does the same for its own copy — instead of refusing to
+/// start over a settings value.
+fn stored_file_associations(value: Option<&str>) -> bool {
+    match parse(value) {
+        Ok(preferences) => preferences.file_associations,
+        Err(error) => {
+            log::warn!("Stored desktop preferences are invalid, using defaults: {error}");
+            DesktopPreferences::default().file_associations
+        }
+    }
+}
+
 pub(crate) fn initialize(app: &tauri::AppHandle, conn: &Connection) -> Result<(), CommandError> {
     let stored: Option<String> = conn
         .query_row(
@@ -55,11 +68,17 @@ pub(crate) fn initialize(app: &tauri::AppHandle, conn: &Connection) -> Result<()
             |row| row.get(0),
         )
         .optional()?;
-    let enabled = parse(stored.as_deref())?.file_associations;
-    crate::file_associations::commit(app, enabled, || {
-        app.state::<crate::external_open::ExternalOpenQueue>()
-            .publish(enabled)
-    })?;
+    let enabled = stored_file_associations(stored.as_deref());
+    let queue = app.state::<crate::external_open::ExternalOpenQueue>();
+    // OS registration must not hold boot hostage: a registry/conflict failure
+    // leaves our ProgID unwritten, but external opens can still arrive through
+    // associations the user created themselves — publish the intake policy.
+    if let Err(error) = crate::file_associations::commit(app, enabled, || queue.publish(enabled)) {
+        log::error!("File association registration failed: {error}");
+        if let Err(error) = queue.publish(enabled) {
+            log::error!("External file intake policy could not be published: {error}");
+        }
+    }
     Ok(())
 }
 
@@ -123,5 +142,15 @@ mod tests {
                 "plugin/invalid-argument"
             );
         }
+    }
+
+    #[test]
+    fn malformed_stored_preferences_fall_back_to_defaults_at_boot() {
+        assert!(stored_file_associations(None));
+        assert!(stored_file_associations(Some("{not json")));
+        assert!(stored_file_associations(Some(r#"{"fileAssociations":1}"#)));
+        assert!(!stored_file_associations(Some(
+            r#"{"fileAssociations":false}"#
+        )));
     }
 }

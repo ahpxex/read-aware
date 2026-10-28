@@ -713,10 +713,8 @@
     },
     "headerFooter": {
       "title": "Encabezado y pie de página",
-      "description": "Elige qué datos aparecen sobre y bajo la página, y dónde.",
       "enabled": {
-        "title": "Mostrar encabezado y pie",
-        "description": "En teléfonos y tabletas, el encabezado y el pie sustituyen a la barra de estado oculta del sistema."
+        "title": "Mostrar encabezado y pie"
       },
       "items": {
         "chapter": "Título del capítulo",

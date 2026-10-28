@@ -26,7 +26,6 @@ import {
   showHeaderFooterItem,
 } from "../lib/header-footer-arrangement";
 import { useHeaderFooterDrag, type HfDragTarget } from "../hooks/useHeaderFooterDrag";
-import { SettingsRow } from "../../settings";
 
 const ITEM_ICONS: Record<HeaderFooterItem, ReactNode> = {
   chapter: <BookOpenText size={13} aria-hidden="true" />,
@@ -36,6 +35,20 @@ const ITEM_ICONS: Record<HeaderFooterItem, ReactNode> = {
   time: <Clock size={13} aria-hidden="true" />,
   battery: <BatteryHigh size={13} aria-hidden="true" />,
 };
+
+/** The strips' on/off switch, shown beside the Customize group title. */
+export function HeaderFooterEnabledToggle() {
+  const { t } = useTranslation("settings");
+  const [settings, setSettings] = useAtom(headerFooterSettingsAtom);
+  return (
+    <Toggle
+      className="ml-auto"
+      aria-label={t("menus.headerFooter.enabled.title")}
+      checked={settings.enabled}
+      onChange={(enabled) => setSettings({ ...settings, enabled })}
+    />
+  );
+}
 
 export function HeaderFooterEditor() {
   const { t } = useTranslation("settings");
@@ -95,20 +108,6 @@ export function HeaderFooterEditor() {
 
   return (
     <div ref={rootRef} className="flex flex-col gap-3">
-      <SettingsRow
-        borderless
-        className="py-0"
-        title={t("menus.headerFooter.enabled.title")}
-        description={t("menus.headerFooter.enabled.description")}
-        control={
-          <Toggle
-            aria-label={t("menus.headerFooter.enabled.title")}
-            checked={settings.enabled}
-            onChange={(enabled) => setSettings({ ...settings, enabled })}
-          />
-        }
-      />
-
       <div aria-disabled={disabled} className={cn("flex flex-col gap-2", disabled && "pointer-events-none opacity-50")}>
         {/* Miniature page: header band, body, footer band. */}
         <div className="rounded-lg border border-border bg-[var(--ra-main-surface-color)] p-1.5">

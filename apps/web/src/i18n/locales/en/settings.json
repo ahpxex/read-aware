@@ -804,10 +804,8 @@
     },
     "headerFooter": {
       "title": "Reader header & footer",
-      "description": "Choose which items appear above and below the page, and where.",
       "enabled": {
-        "title": "Show header and footer",
-        "description": "On phones and tablets, the header and footer stand in for the hidden system status bar."
+        "title": "Show header and footer"
       },
       "items": {
         "chapter": "Chapter title",

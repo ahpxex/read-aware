@@ -5,4 +5,4 @@
  */
 
 // Settings → Customize embeds the header/footer strip arrangement editor.
-export { HeaderFooterEditor } from "./components/HeaderFooterEditor";
+export { HeaderFooterEditor, HeaderFooterEnabledToggle } from "./components/HeaderFooterEditor";

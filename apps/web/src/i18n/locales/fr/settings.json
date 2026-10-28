@@ -713,10 +713,8 @@
     },
     "headerFooter": {
       "title": "En-tête et pied de page",
-      "description": "Choisissez les informations affichées au-dessus et en dessous de la page, et leur position.",
       "enabled": {
-        "title": "Afficher l'en-tête et le pied de page",
-        "description": "Sur téléphone et tablette, l'en-tête et le pied de page remplacent la barre d'état masquée."
+        "title": "Afficher l'en-tête et le pied de page"
       },
       "items": {
         "chapter": "Titre du chapitre",

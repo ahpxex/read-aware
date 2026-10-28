@@ -5,7 +5,7 @@
  * (docs/plugins/plugin-system.md §7).
  */
 import { useTranslation } from "../../../i18n";
-import { HeaderFooterEditor } from "../../menus";
+import { HeaderFooterEditor, HeaderFooterEnabledToggle } from "../../menus";
 import { MenuSurfaceEditor } from "../../menus/components/MenuSurfaceEditor";
 import type { MenuSurface } from "../../menus/state/menu-config";
 import { SettingsGroup } from "../components/SettingsGroup";
@@ -22,7 +22,7 @@ export function MenusPanel() {
           <MenuSurfaceEditor surface={surface} />
         </SettingsGroup>
       ))}
-      <SettingsGroup title={t("menus.headerFooter.title")} description={t("menus.headerFooter.description")}>
+      <SettingsGroup title={t("menus.headerFooter.title")} aside={<HeaderFooterEnabledToggle />}>
         <HeaderFooterEditor />
       </SettingsGroup>
     </SettingsPage>

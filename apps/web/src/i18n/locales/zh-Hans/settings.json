@@ -804,10 +804,8 @@
     },
     "headerFooter": {
       "title": "页眉页脚",
-      "description": "选择页面顶部和底部显示的信息及其位置。",
       "enabled": {
-        "title": "显示页眉页脚",
-        "description": "在手机和平板上，页眉页脚会代替被隐藏的系统状态栏，显示时间和电量等信息。"
+        "title": "显示页眉页脚"
       },
       "items": {
         "chapter": "章节名",

@@ -713,10 +713,8 @@
     },
     "headerFooter": {
       "title": "Kopf- und Fußzeile",
-      "description": "Wähle, welche Angaben über und unter der Seite erscheinen, und wo.",
       "enabled": {
-        "title": "Kopf- und Fußzeile anzeigen",
-        "description": "Auf Telefonen und Tablets übernehmen Kopf- und Fußzeile die Anzeige der ausgeblendeten Statusleiste."
+        "title": "Kopf- und Fußzeile anzeigen"
       },
       "items": {
         "chapter": "Kapiteltitel",

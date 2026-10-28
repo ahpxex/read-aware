@@ -19,6 +19,3 @@ export { ReaderBackgroundLayer } from "./components/ReaderBackgroundLayer";
 // The reader's appearance popovers embed the same typography controls as the
 // Reading settings panel.
 export { ReaderTypographyControls } from "./components/ReaderTypographyControls";
-
-// The header/footer strip editor shares the Reading panel's row chrome.
-export { SettingsRow } from "./components/SettingsRow";

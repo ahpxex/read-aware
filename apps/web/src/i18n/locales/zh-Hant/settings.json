@@ -713,10 +713,8 @@
     },
     "headerFooter": {
       "title": "頁首頁尾",
-      "description": "選擇頁面頂部與底部顯示的資訊及其位置。",
       "enabled": {
-        "title": "顯示頁首頁尾",
-        "description": "在手機與平板上，頁首頁尾會代替被隱藏的系統狀態列，顯示時間與電量等資訊。"
+        "title": "顯示頁首頁尾"
       },
       "items": {
         "chapter": "章節名",

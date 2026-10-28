@@ -1,0 +1,6 @@
+#!/bin/sh
+# Runs the local mirror of the ci workflow's TypeScript job before every push
+# (see the "ci" script in package.json). Enabled when core.hooksPath points at
+# .githooks, which the root "prepare" script wires during `bun install`;
+# `git push --no-verify` skips it.
+exec bun run ci

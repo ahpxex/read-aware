@@ -144,7 +144,10 @@ historical material, not current status or an automatic work queue.
 Use bun from the repo root. Available scripts include `bun run dev` (Tauri),
 `bun run dev:web`, `bun run dev:landing`, `bun run storybook`, `bun run test`,
 `bun run typecheck`, `bun run lint`, `bun run format`, `bun run lint:deps`, `bun run build`,
-`bun run build:desktop`, and `bun run check:docs`. Select relevant commands; package
+`bun run build:desktop`, and `bun run check:docs`. `bun run ci` mirrors the `ci`
+workflow's TypeScript job end to end; run it before pushing (`git push` runs it
+automatically once `core.hooksPath` is set to `.githooks`, which the root
+`prepare` script wires on `bun install`). Select relevant commands; package
 scripts provide focused checks, such as `test:runtime` in `apps/web` for the reader
 suites in headless Chrome. `bun run lint` is type-aware oxlint (`.oxlintrc.json`)
 plus a check that no promise rejection is discarded without a log or a comment.

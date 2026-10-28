@@ -21,6 +21,8 @@
     "check:marketplace": "bun scripts/check-marketplace-contract.ts",
     "check:capabilities": "bun scripts/check-capabilities.ts",
     "check:docs": "bun scripts/check-docs.ts",
+    "ci": "bun install --frozen-lockfile && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build && bun run lint:deps && bun run check:docs && git diff --exit-code",
+    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck && bun run typecheck:repo",
     "typecheck:repo": "tsc --noEmit -p scripts && tsc --noEmit -p docs/capabilities",

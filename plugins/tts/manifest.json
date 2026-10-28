@@ -1,7 +1,7 @@
 {
   "id": "tts",
   "name": "TTS Voices",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "schemaVersion": 1,
   "minAppVersion": "0.3.0",
   "requires": {
@@ -16,7 +16,7 @@
     },
     "schemas": { "settings": "^1.0.0" }
   },
-  "description": "Read-aloud voices from cloud and local TTS engines: ElevenLabs, Fish Audio, OpenAI, or any OpenAI-compatible endpoint (Kokoro, Piper, LocalAI…).",
+  "description": "Read-aloud voices from cloud and local TTS engines: ElevenLabs, Fish Audio, OpenAI, MiMo, or any OpenAI-compatible endpoint (Kokoro, Piper, LocalAI…).",
   "author": "ReadAware",
   "permissions": [
     "service:network"
@@ -52,6 +52,10 @@
         {
           "value": "openai",
           "label": "OpenAI"
+        },
+        {
+          "value": "mimo",
+          "label": "MiMo"
         },
         {
           "value": "custom",
@@ -393,6 +397,195 @@
       "visibleWhen": {
         "field": "vendor",
         "equals": "openai"
+      }
+    },
+    {
+      "kind": "secret",
+      "id": "mimo-api-key",
+      "label": {
+        "default": "API key",
+        "translations": {
+          "zh-Hans": "API 密钥",
+          "zh-Hant": "API 金鑰",
+          "ja": "APIキー",
+          "ru": "Ключ API",
+          "fr": "Clé API",
+          "de": "API-Schlüssel",
+          "es": "Clave de API"
+        }
+      },
+      "helperText": {
+        "default": "Stored in the encrypted secret store, never in plain settings.",
+        "translations": {
+          "zh-Hans": "保存在加密的密钥存储中，绝不落入明文设置。",
+          "zh-Hant": "保存在加密的金鑰儲存中，絕不落入明文設定。",
+          "ja": "暗号化されたシークレットストアに保存され、平文設定には入りません。",
+          "ru": "Хранится в зашифрованном хранилище секретов, никогда — в открытых настройках.",
+          "fr": "Stockée dans le coffre chiffré, jamais dans les réglages en clair.",
+          "de": "Im verschlüsselten Geheimnisspeicher abgelegt, nie in Klartext-Einstellungen.",
+          "es": "Se guarda en el almacén cifrado de secretos, nunca en ajustes en claro."
+        }
+      },
+      "visibleWhen": {
+        "field": "vendor",
+        "equals": "mimo"
+      }
+    },
+    {
+      "kind": "select",
+      "id": "mimoVoice",
+      "label": {
+        "default": "Voice",
+        "translations": {
+          "zh-Hans": "声音",
+          "zh-Hant": "聲音",
+          "ja": "ボイス",
+          "ru": "Голос",
+          "fr": "Voix",
+          "de": "Stimme",
+          "es": "Voz"
+        }
+      },
+      "value": "mimo_default",
+      "options": [
+        {
+          "value": "mimo_default",
+          "label": {
+            "default": "Default (follows the server cluster)",
+            "translations": {
+              "zh-Hans": "默认（跟随服务端集群）",
+              "zh-Hant": "預設（跟隨伺服器叢集）"
+            }
+          }
+        },
+        {
+          "value": "冰糖",
+          "label": {
+            "default": "Bingtang · Chinese, female",
+            "translations": {
+              "zh-Hans": "冰糖 · 中文女声",
+              "zh-Hant": "冰糖 · 中文女聲"
+            }
+          }
+        },
+        {
+          "value": "茉莉",
+          "label": {
+            "default": "Moli · Chinese, female",
+            "translations": {
+              "zh-Hans": "茉莉 · 中文女声",
+              "zh-Hant": "茉莉 · 中文女聲"
+            }
+          }
+        },
+        {
+          "value": "苏打",
+          "label": {
+            "default": "Suda · Chinese, male",
+            "translations": {
+              "zh-Hans": "苏打 · 中文男声",
+              "zh-Hant": "蘇打 · 中文男聲"
+            }
+          }
+        },
+        {
+          "value": "白桦",
+          "label": {
+            "default": "Baihua · Chinese, male",
+            "translations": {
+              "zh-Hans": "白桦 · 中文男声",
+              "zh-Hant": "白樺 · 中文男聲"
+            }
+          }
+        },
+        {
+          "value": "Mia",
+          "label": {
+            "default": "Mia · English, female",
+            "translations": {
+              "zh-Hans": "Mia · 英文女声",
+              "zh-Hant": "Mia · 英文女聲"
+            }
+          }
+        },
+        {
+          "value": "Chloe",
+          "label": {
+            "default": "Chloe · English, female",
+            "translations": {
+              "zh-Hans": "Chloe · 英文女声",
+              "zh-Hant": "Chloe · 英文女聲"
+            }
+          }
+        },
+        {
+          "value": "Milo",
+          "label": {
+            "default": "Milo · English, male",
+            "translations": {
+              "zh-Hans": "Milo · 英文男声",
+              "zh-Hant": "Milo · 英文男聲"
+            }
+          }
+        },
+        {
+          "value": "Dean",
+          "label": {
+            "default": "Dean · English, male",
+            "translations": {
+              "zh-Hans": "Dean · 英文男声",
+              "zh-Hant": "Dean · 英文男聲"
+            }
+          }
+        }
+      ],
+      "helperText": {
+        "default": "MiMo preset voices; mimo_default follows the server cluster's own default.",
+        "translations": {
+          "zh-Hans": "MiMo 预置音色；mimo_default 跟随服务端集群的默认音色。",
+          "zh-Hant": "MiMo 預設音色；mimo_default 跟隨伺服器叢集的預設音色。",
+          "ja": "MiMoのプリセットボイス。mimo_default はサーバークラスターの既定に従います。",
+          "ru": "Предустановленные голоса MiMo; mimo_default следует умолчанию серверного кластера.",
+          "fr": "Voix prédéfinies de MiMo ; mimo_default suit la valeur par défaut du cluster serveur.",
+          "de": "MiMo-Voreinstellungsstimmen; mimo_default folgt dem Standard des Serverclusters.",
+          "es": "Voces predefinidas de MiMo; mimo_default sigue el valor predeterminado del clúster del servidor."
+        }
+      },
+      "visibleWhen": {
+        "field": "vendor",
+        "equals": "mimo"
+      }
+    },
+    {
+      "kind": "text",
+      "id": "mimoModel",
+      "label": {
+        "default": "Model",
+        "translations": {
+          "zh-Hans": "模型",
+          "zh-Hant": "模型",
+          "ja": "モデル",
+          "ru": "Модель",
+          "fr": "Modèle",
+          "de": "Modell",
+          "es": "Modelo"
+        }
+      },
+      "helperText": {
+        "default": "Optional. Defaults to mimo-v2.5-tts; voice design and clone variants are not supported.",
+        "translations": {
+          "zh-Hans": "可选。默认 mimo-v2.5-tts；不支持音色设计与音色克隆变体。",
+          "zh-Hant": "可選。預設 mimo-v2.5-tts；不支援音色設計與音色複製變體。",
+          "ja": "任意。既定は mimo-v2.5-tts。音声デザイン・クローン系の派生モデルには対応していません。",
+          "ru": "Необязательно. По умолчанию mimo-v2.5-tts; варианты дизайна и клонирования голоса не поддерживаются.",
+          "fr": "Facultatif. Par défaut mimo-v2.5-tts ; les variantes de conception et de clonage de voix ne sont pas prises en charge.",
+          "de": "Optional. Standardmäßig mimo-v2.5-tts; Varianten für Stimmdesign und Klonen werden nicht unterstützt.",
+          "es": "Opcional. Por defecto mimo-v2.5-tts; las variantes de diseño y clonación de voz no son compatibles."
+        }
+      },
+      "visibleWhen": {
+        "field": "vendor",
+        "equals": "mimo"
       }
     },
     {

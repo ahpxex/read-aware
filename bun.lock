@@ -310,7 +310,7 @@
     },
     "plugins/tts": {
       "name": "@read-aware/plugin-tts",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "devDependencies": {
         "@read-aware/plugin-types": "workspace:*",
         "@read-aware/tsconfig": "workspace:*",

@@ -1587,7 +1587,7 @@
 | `jumper` | [TXT02](#TXT02) [TXT07](#TXT07) [READ01](#READ01) [READ05](#READ05) [READ06](#READ06) [READ07](#READ07) [READ13](#READ13) [EXT02](#EXT02) [SYS02](#SYS02) [AI05](#AI05) | [代码] 源码版本 0.13.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `rss-reader` | [EXT10](#EXT10) | [代码] 源码版本 0.24.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `sentence-reader` | [READ15](#READ15) [READ16](#READ16) | [代码] 源码版本 1.1.0；源码存在不等于打包、安装、启用或模型可调用 |
-| `tts` | [READ17](#READ17) [READ18](#READ18) | [代码] 源码版本 0.6.0；源码存在不等于打包、安装、启用或模型可调用 |
+| `tts` | [READ17](#READ17) [READ18](#READ18) | [代码] 源码版本 0.7.0；源码存在不等于打包、安装、启用或模型可调用 |
 | `webdav-sync` | [OPS04](#OPS04) | [代码] 源码版本 0.3.0；源码存在不等于打包、安装、启用或模型可调用 |
 
 ### Plugin Agent contribution
@@ -1631,6 +1631,9 @@
 | `plugins.tts.openai-api-key` | [SYS04](#SYS04) | secret；不进入 Agent/普通 settings catalog |
 | `plugins.tts.openaiVoice` | [CFG09](#CFG09) | select；非敏感配置；字段存在不等于其功能有 Agent 工具 |
 | `plugins.tts.openaiModel` | [CFG09](#CFG09) | text；非敏感配置；字段存在不等于其功能有 Agent 工具 |
+| `plugins.tts.mimo-api-key` | [SYS04](#SYS04) | secret；不进入 Agent/普通 settings catalog |
+| `plugins.tts.mimoVoice` | [CFG09](#CFG09) | select；非敏感配置；字段存在不等于其功能有 Agent 工具 |
+| `plugins.tts.mimoModel` | [CFG09](#CFG09) | text；非敏感配置；字段存在不等于其功能有 Agent 工具 |
 | `plugins.tts.custom-api-key` | [SYS04](#SYS04) | secret；不进入 Agent/普通 settings catalog |
 | `plugins.tts.customEndpoint` | [CFG09](#CFG09) | text；非敏感配置；字段存在不等于其功能有 Agent 工具 |
 | `plugins.tts.customVoice` | [CFG09](#CFG09) | select；非敏感配置；字段存在不等于其功能有 Agent 工具 |

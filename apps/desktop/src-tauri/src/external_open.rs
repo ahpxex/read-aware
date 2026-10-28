@@ -6,6 +6,7 @@
 //! again on every `external-open-request` ping, so no ordering between the two
 //! sides can drop a request.
 
+use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
@@ -145,24 +146,28 @@ pub fn is_app_link_scheme(scheme: &str) -> bool {
 /// Book files among raw launch/relaunch args. Skips flags and anything that is
 /// not an existing file; relative paths resolve against `cwd` (the SECOND
 /// instance's working directory when relayed by single-instance, not ours).
+/// Accepts `args_os`-shaped values: a non-Unicode name parks as a lossy path
+/// (its import fails with an error) instead of panicking `env::args`' caller.
 pub fn collect_book_paths<I, S>(args: I, cwd: Option<&Path>) -> Vec<String>
 where
     I: IntoIterator<Item = S>,
-    S: AsRef<str>,
+    S: AsRef<OsStr>,
 {
     args.into_iter()
         .filter_map(|arg| {
             let arg = arg.as_ref();
-            if arg.is_empty() || arg.starts_with('-') {
+            if arg.is_empty() || arg.as_encoded_bytes().starts_with(b"-") {
                 return None;
             }
-            let raw = if arg
-                .get(..5)
-                .is_some_and(|prefix| prefix.eq_ignore_ascii_case("file:"))
-            {
-                tauri::Url::parse(arg).ok()?.to_file_path().ok()?
-            } else {
-                PathBuf::from(arg)
+            let raw = match arg.to_str() {
+                Some(text)
+                    if text
+                        .get(..5)
+                        .is_some_and(|prefix| prefix.eq_ignore_ascii_case("file:")) =>
+                {
+                    tauri::Url::parse(text).ok()?.to_file_path().ok()?
+                }
+                _ => PathBuf::from(arg),
             };
             let path = match (raw.is_absolute(), cwd) {
                 (false, Some(cwd)) => cwd.join(raw),
@@ -367,6 +372,38 @@ mod tests {
             ],
             None,
         );
+        assert_eq!(collected, vec![book.to_string_lossy().into_owned()]);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn collect_skips_a_non_unicode_argv_without_panicking() {
+        use std::os::unix::ffi::OsStringExt;
+        let weird = std::ffi::OsString::from_vec(b"lost \xff book.epub".to_vec());
+        // The path does not exist, so it filters out like any other — the
+        // point is that iterating an OsStr arg never unwraps into a panic.
+        assert!(collect_book_paths([weird], None).is_empty());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn collect_skips_a_non_unicode_argv_without_panicking() {
+        use std::os::windows::ffi::OsStringExt;
+        let weird = std::ffi::OsString::from_wide(&[0xD800, 0x002E, 0x0065]);
+        assert!(collect_book_paths([weird], None).is_empty());
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn collect_parks_non_unicode_names_as_lossy_paths_instead_of_panicking() {
+        use std::os::unix::ffi::OsStringExt;
+        let dir = tempfile::tempdir().unwrap();
+        let book = dir.path().join(std::ffi::OsString::from_vec(
+            b"lost \xff book.epub".to_vec(),
+        ));
+        std::fs::write(&book, b"x").unwrap();
+
+        let collected = collect_book_paths([book.clone().into_os_string()], None);
         assert_eq!(collected, vec![book.to_string_lossy().into_owned()]);
     }
 

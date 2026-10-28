@@ -776,7 +776,7 @@ pub fn run() {
     // RunEvent::Opened instead — see the run-loop callback at the bottom.
     #[cfg(desktop)]
     let launch_open_paths = external_open::collect_book_paths(
-        std::env::args().skip(1),
+        std::env::args_os().skip(1),
         std::env::current_dir().ok().as_deref(),
     );
     #[cfg(not(desktop))]
@@ -792,7 +792,7 @@ pub fn run() {
         external_open::park(
             app,
             external_open::collect_book_paths(
-                args.iter().skip(1).map(String::as_str),
+                args.iter().skip(1),
                 Some(std::path::Path::new(&cwd)),
             ),
         );

@@ -77,3 +77,31 @@ export const OpensUpward: Story = {
     side: "top",
   },
 };
+
+/**
+ * Default `side="auto"`: the same trigger near the viewport's bottom edge
+ * flips upward on its own because the content cannot fit below.
+ */
+export const AutoFlipsUpward: Story = {
+  render: (args) => (
+    <div className="flex h-[26rem] items-end">
+      <Popover {...args} />
+    </div>
+  ),
+  args: {
+    trigger: (
+      <Button variant="outline" size="sm">
+        More
+      </Button>
+    ),
+    children: (
+      <ul className="flex flex-col text-sm">
+        {Array.from({ length: 12 }, (_, index) => (
+          <li key={index} className="rounded-md px-2 py-1.5">
+            Menu item {index + 1}
+          </li>
+        ))}
+      </ul>
+    ),
+  },
+};

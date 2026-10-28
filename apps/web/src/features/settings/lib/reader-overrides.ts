@@ -1,9 +1,12 @@
 import {
   DEFAULT_READER_PREFERENCES,
+  normalizeCustomTypography,
   normalizeFontFamily,
   normalizeFontSize,
   normalizeFontWeight,
   normalizeReaderTheme,
+  normalizeTextIndent,
+  normalizeTypographyMode,
   type ReaderSettingsPreferences,
 } from "./reader-settings";
 
@@ -43,6 +46,9 @@ function normalizeSettings(value: Partial<ReaderSettingsPreferences> | undefined
     fontFamily: normalizeFontFamily(merged.fontFamily),
     fontSize: normalizeFontSize(merged.fontSize),
     fontWeight: normalizeFontWeight(merged.fontWeight),
+    textIndent: normalizeTextIndent(merged.textIndent),
+    typographyMode: normalizeTypographyMode(merged.typographyMode),
+    customTypography: normalizeCustomTypography(merged.customTypography),
   };
 }
 

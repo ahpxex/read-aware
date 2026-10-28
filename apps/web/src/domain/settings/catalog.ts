@@ -16,7 +16,12 @@ import { AI_FEATURE_KEYS } from "../../features/settings/lib/ai-preferences";
 import type { GeneralSettings } from "../../features/settings/lib/general-settings";
 import type { ReaderOverrides } from "../../features/settings/lib/reader-overrides";
 import type { ReaderBookLanguages } from "../../features/settings/lib/reader-languages";
-import { readerPreferencesForLanguage } from "../../features/settings/lib/reader-settings";
+import {
+  customTypographyFromPresets,
+  READER_CUSTOM_TYPOGRAPHY_LIMITS,
+  readerPreferencesForLanguage,
+  snapCustomTypographyValue,
+} from "../../features/settings/lib/reader-settings";
 import type {
   ReaderFontFamily,
   ReaderSettingsPreferences,
@@ -688,6 +693,8 @@ export function buildSettingDefinitions(draft: SettingsDraft): SettingDefinition
     ...(
       [
         ["reading.textAlign", "Text alignment", "textAlign", ["book", "start", "justify"]],
+        ["reading.textIndent", "First-line indent", "textIndent", ["book", "none", "two"]],
+        ["reading.typographyMode", "Typography values", "typographyMode", ["preset", "custom"]],
         ["reading.fixedLayoutColor", "Fixed-layout page colors", "fixedLayoutColor", ["theme", "original"]],
         [
           "reading.fontSize",
@@ -727,6 +734,56 @@ export function buildSettingDefinitions(draft: SettingsDraft): SettingDefinition
         },
       }),
     ),
+    // Exact typography values: applied only while reading.typographyMode is
+    // "custom" — writing one seeds the custom object from the live presets
+    // when absent, but never flips the mode itself.
+    ...(
+      [
+        ["reading.custom.fontSize", "Custom font size (px)", "fontSizePx", "px"],
+        ["reading.custom.lineHeight", "Custom line height", "lineHeight", ""],
+        ["reading.custom.paragraphSpacing", "Custom paragraph spacing (em)", "paragraphSpacingEm", "em"],
+        ["reading.custom.pageMargins", "Custom page margins (%)", "pageMarginPercent", "%"],
+        ["reading.custom.textIndent", "Custom first-line indent (em)", "textIndentEm", "em"],
+      ] as const
+    ).map(([path, label, key, unit]) => {
+      const limits = READER_CUSTOM_TYPOGRAPHY_LIMITS[key];
+      const range = `${limits.min}–${limits.max}${unit ? ` ${unit}` : ""}, step ${limits.step}`;
+      return readingDefinition({
+        path,
+        label,
+        description: `Applies only while reading.typographyMode is "custom". Range ${range}.`,
+        kind: "number",
+        nullable: key === "textIndentEm",
+        read: (state, target) => {
+          const prefs = readingPrefs(state, target);
+          return (prefs.customTypography ?? customTypographyFromPresets(prefs))[key];
+        },
+        validate: (value) => {
+          if (value === null) {
+            if (key === "textIndentEm") return null;
+            throw new Error(`${path} must be a number`);
+          }
+          const violation = numberSettingViolation(limits, value);
+          if (violation) {
+            throw new Error(
+              violation.kind === "not-a-number"
+                ? `${path} must be a number${key === "textIndentEm" ? " or null" : ""}`
+                : `${path} must be between ${limits.min} and ${limits.max}`,
+            );
+          }
+          return snapCustomTypographyValue(key, value as number);
+        },
+        write: (state, value, target) => {
+          writeReading(state, target, (current) => ({
+            ...current,
+            customTypography: {
+              ...(current.customTypography ?? customTypographyFromPresets(current)),
+              [key]: value,
+            },
+          }));
+        },
+      });
+    }),
     ...pageTurnDefinitions(),
     ...AI_FEATURE_KEYS.map((key) =>
       globalDefinition({

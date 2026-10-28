@@ -3949,6 +3949,13 @@ export const staticSettingPaths = [
   "reading.pageTurn.tapZoneWidth",
   "reading.pageTurn.volumeKeys",
   "reading.pageTurn.volumeKeyDirection",
+  "reading.textIndent",
+  "reading.typographyMode",
+  "reading.custom.fontSize",
+  "reading.custom.lineHeight",
+  "reading.custom.paragraphSpacing",
+  "reading.custom.pageMargins",
+  "reading.custom.textIndent",
 ];
 const retiredSettingSlot = 25;
 export const settingPathId = (path: string): string => {

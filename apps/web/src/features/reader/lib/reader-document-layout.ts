@@ -45,6 +45,90 @@ export function markReaderChapterStarts(doc: Document, index: number, starts: Ch
   }
 }
 
+const mediaElements = "img, svg, video, canvas";
+
+/** Publisher glyph substitutes ("补字图" images standing in for a rare
+ * character) and inline icons share a line with real text; the reader
+ * stylesheet's block illustration treatment would tear the sentence into
+ * centered strips and discard their em-based sizing (height: 1em,
+ * vertical-align). Media on a text line is marked with data-ra-inline-media
+ * so the publisher's CSS governs it; standalone artwork keeps the block
+ * rules. Runs on load like the other markers and stays idempotent. */
+export function markReaderInlineMedia(doc: Document): void {
+  const win = doc.defaultView;
+  if (!win || !doc.body) return;
+  const styles = new Map<Element, CSSStyleDeclaration>();
+  const style = (el: Element) => {
+    let value = styles.get(el);
+    if (!value) {
+      value = win.getComputedStyle(el);
+      styles.set(el, value);
+    }
+    return value;
+  };
+  const inlineLevel = (el: Element) => {
+    const display = style(el).display;
+    return display === "contents" || display.startsWith("inline") || display.startsWith("ruby");
+  };
+  for (const el of doc.body.querySelectorAll(mediaElements)) {
+    if (el.parentElement?.closest("svg")) {
+      el.removeAttribute("data-ra-inline-media");
+      continue;
+    }
+    // The containing block: nearest ancestor outside the element's own inline
+    // formatting context (display: contents generates no box, so it is not one).
+    let block: Element | null = el.parentElement;
+    while (block && block !== doc.body && inlineLevel(block)) block = block.parentElement;
+    let inline = false;
+    if (block) {
+      // Split the block's inline flow at line boundaries — <br> and nested
+      // non-inline-level boxes — and check whether the segment containing the
+      // media element carries non-whitespace text.
+      let segment = 0;
+      let mediaSegment = -1;
+      let hasText = false;
+      let done = false;
+      const boundary = () => {
+        if (mediaSegment < 0) {
+          segment++;
+          hasText = false;
+        } else done = true;
+      };
+      const visit = (parent: Element) => {
+        for (const node of parent.childNodes) {
+          if (done) return;
+          if (node.nodeType === Node.TEXT_NODE) {
+            // Text inside media (svg glyphs, video fallback) or script/style
+            // is not line text; trim() also drops bare &nbsp; runs.
+            if (!node.parentElement?.closest("svg, video, canvas, script, style") && node.textContent?.trim()) {
+              hasText = true;
+              if (segment === mediaSegment) inline = true;
+            }
+            continue;
+          }
+          if (node.nodeType !== Node.ELEMENT_NODE) continue;
+          const element = node as Element;
+          if (element === el) {
+            mediaSegment = segment;
+            inline = hasText;
+          } else if (
+            element.tagName === "BR" ||
+            (!element.matches(`${mediaElements}, script, style`) && !inlineLevel(element))
+          ) {
+            boundary();
+          } else if (!element.matches(mediaElements)) {
+            // Inline-level content joins the line; other media are line
+            // participants themselves, not boundaries.
+            visit(element);
+          }
+        }
+      };
+      visit(block);
+    }
+    el.toggleAttribute("data-ra-inline-media", inline);
+  }
+}
+
 const scriptOrGraphic = "sup, sub, rt, rp, svg, math, pre, code, kbd, samp";
 
 /** Keep publisher emphasis and larger type, but do not let malformed relative

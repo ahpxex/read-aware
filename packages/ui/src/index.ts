@@ -50,6 +50,7 @@ export { DropdownMenu } from "./DropdownMenu";
 export { Popover } from "./Popover";
 export { ChoiceGroup } from "./ChoiceGroup";
 export { Stepper } from "./Stepper";
+export { Slider } from "./Slider";
 export { SwatchGroup, type SwatchColors } from "./SwatchGroup";
 export { ScrollArea } from "./ScrollArea";
 export { VirtualRows, type VirtualRow, type VirtualRowsHandle } from "./VirtualRows";

@@ -5,7 +5,7 @@
 - 状态：**源码能力盘点；接线与真实验收分别记录**。
 - 文档整理日期：2026-09-15（不代表本日重新验收每行）。
 - 范围：当前 Tauri 桌面宿主及必要组合协议；Agent 指 ReadAware 产品内的模型工具与自动管线，不是外部 Coding Agent 的电脑控制能力。
-- [代码] 253 行 / 13 组，129 个既有验收项全部有对应行。字段行是可核对设置清单，不能与功能族相加当产品功能数量。
+- [代码] 260 行 / 13 组，129 个既有验收项全部有对应行。字段行是可核对设置清单，不能与功能族相加当产品功能数量。
 - [设计] 两个目标列是建议开放方式/刻意拒绝方式，尚未实现的目标不混入当前状态。
 - 修改事实源 [host-capability-matrix.data.ts](./host-capability-matrix.data.ts)，再运行 [生成器](../../scripts/build-host-capability-matrix.ts)；不要分别手改生成的 MD/HTML。
 
@@ -17,9 +17,9 @@
 
 ## 计数与口径
 
-- 宿主：实装 221、部分 29、占位 1、非桌面 1、待建 1。
-- Agent：接通 161、接通（待 E2E） 24、扩展 10、部分 30、自动 13、未接 15。
-- 插件：接通 177、接通（待 E2E） 29、部分 41、未接 6。
+- 宿主：实装 228、部分 29、占位 1、非桌面 1、待建 1。
+- Agent：接通 168、接通（待 E2E） 24、扩展 10、部分 30、自动 13、未接 15。
+- 插件：接通 184、接通（待 E2E） 29、部分 41、未接 6。
 
 不提供一个虚假的“整体覆盖率”：这里既有功能族也有逐字段行，且自动管线、插件条件扩展、禁止开放、宿主未建不应混为一个分母。上面的数量是本表状态分布，不是通过率。当前可调用具体入口的库存另列，入口数也不代表语义完整。
 
@@ -152,7 +152,7 @@
 | <a id="CFG12"></a>CFG12 | 新标注默认颜色 | 实装 | **接通**：annotations.defaultColor<br>[设计] 结构化设置工具 | **接通**：settings 1.2；annotations section<br>[设计] 路径授权设置领域 | 一键高亮/下划线；recolor 更新后续默认色 | yellow/green/blue/pink，默认 yellow；宿主动作即时读取当前偏好，不再捕获挂载时颜色；不重染已有标注 | [MARKPREFS](../../apps/web/src/features/annotations/lib/annotation-prefs.ts) [TEXTACTIONS](../../apps/web/src/features/reader/hooks/useReaderTextActions.ts) [SETTINGS](../../apps/web/src/domain/settings/catalog.ts) | 新增盘点 |
 | <a id="CFG13"></a>CFG13 | 软件更新通道 stable/beta | 实装 | **接通**：general.updateChannel<br>[设计] 设备本地设置工具 | **接通**：settings 1.2；全局枚举字段<br>[设计] 路径授权设置领域 | AboutPanel；软件更新查询 | 设备本地且不漫游；已打开 About 控件跟随 KV 更新/回滚；修改通道只影响后续检查，不批准下载、安装或重启 | [UPDATECHANNEL](../../apps/web/src/features/update/lib/update-channel.ts) [ABOUT](../../apps/web/src/features/settings/sections/AboutPanel.tsx) [UPDATE](../../apps/web/src/features/update/lib/software-update.ts) [SETTINGS](../../apps/web/src/domain/settings/catalog.ts) | 新增盘点 |
 
-### 设置字段逐项覆盖（83 个活动路径；SET26 为历史占位）
+### 设置字段逐项覆盖（90 个活动路径；SET26 为历史占位）
 
 | ID | 宿主能力 | 宿主现状 | Agent 当前与目标 | 插件当前与目标 | 实际消费者 | 缺口/边界 | 来源 | 旧基线 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -240,6 +240,13 @@
 | <a id="SET82"></a>SET82 | reading.pageTurn.tapZoneWidth | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | settings 1.11：设备本地、仅 global 的翻页输入偏好，不进入书级覆盖/阅读重置。阅读器点击区按阅读根宽度分侧（RTL 镜像、FXL 先平移、书末进完成页），音量键经 claimVolumeKeys 仲裁（文本单元模式占用时让位，输入框聚焦归还）；音量键两项仅 Android 生效。目录/Agent/插件与解析器定向测试通过，真实 Android 按键与触屏点击待集中验收。 | [SETTINGS](../../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../../packages/agent/src/tools/settings-tools.ts) [PAGETURNPREFS](../../apps/web/src/domain/settings/page-turn-settings.ts) [PAGETURNTAP](../../apps/web/src/features/reader/lib/page-turn-tap.ts) [VOLUMEKEYS](../../apps/web/src/platform/volume-keys.ts) [VOLUMEKEYSTEPS](../../apps/web/src/features/reader/hooks/useVolumeKeySteps.ts) | 新增盘点 |
 | <a id="SET83"></a>SET83 | reading.pageTurn.volumeKeys | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | settings 1.11：设备本地、仅 global 的翻页输入偏好，不进入书级覆盖/阅读重置。阅读器点击区按阅读根宽度分侧（RTL 镜像、FXL 先平移、书末进完成页），音量键经 claimVolumeKeys 仲裁（文本单元模式占用时让位，输入框聚焦归还）；音量键两项仅 Android 生效。目录/Agent/插件与解析器定向测试通过，真实 Android 按键与触屏点击待集中验收。 | [SETTINGS](../../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../../packages/agent/src/tools/settings-tools.ts) [PAGETURNPREFS](../../apps/web/src/domain/settings/page-turn-settings.ts) [PAGETURNTAP](../../apps/web/src/features/reader/lib/page-turn-tap.ts) [VOLUMEKEYS](../../apps/web/src/platform/volume-keys.ts) [VOLUMEKEYSTEPS](../../apps/web/src/features/reader/hooks/useVolumeKeySteps.ts) | 新增盘点 |
 | <a id="SET84"></a>SET84 | reading.pageTurn.volumeKeyDirection | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | settings 1.11：设备本地、仅 global 的翻页输入偏好，不进入书级覆盖/阅读重置。阅读器点击区按阅读根宽度分侧（RTL 镜像、FXL 先平移、书末进完成页），音量键经 claimVolumeKeys 仲裁（文本单元模式占用时让位，输入框聚焦归还）；音量键两项仅 Android 生效。目录/Agent/插件与解析器定向测试通过，真实 Android 按键与触屏点击待集中验收。 | [SETTINGS](../../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../../packages/agent/src/tools/settings-tools.ts) [PAGETURNPREFS](../../apps/web/src/domain/settings/page-turn-settings.ts) [PAGETURNTAP](../../apps/web/src/features/reader/lib/page-turn-tap.ts) [VOLUMEKEYS](../../apps/web/src/platform/volume-keys.ts) [VOLUMEKEYSTEPS](../../apps/web/src/features/reader/hooks/useVolumeKeySteps.ts) | 新增盘点 |
+| <a id="SET85"></a>SET85 | reading.textIndent | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../../packages/agent/src/tools/settings-tools.ts) [PREFS](../../apps/web/src/features/settings/lib/reader-settings.ts) | 新增盘点 |
+| <a id="SET86"></a>SET86 | reading.typographyMode | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../../packages/agent/src/tools/settings-tools.ts) [PREFS](../../apps/web/src/features/settings/lib/reader-settings.ts) | 新增盘点 |
+| <a id="SET87"></a>SET87 | reading.custom.fontSize | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../../packages/agent/src/tools/settings-tools.ts) [PREFS](../../apps/web/src/features/settings/lib/reader-settings.ts) | 新增盘点 |
+| <a id="SET88"></a>SET88 | reading.custom.lineHeight | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../../packages/agent/src/tools/settings-tools.ts) [PREFS](../../apps/web/src/features/settings/lib/reader-settings.ts) | 新增盘点 |
+| <a id="SET89"></a>SET89 | reading.custom.paragraphSpacing | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../../packages/agent/src/tools/settings-tools.ts) [PREFS](../../apps/web/src/features/settings/lib/reader-settings.ts) | 新增盘点 |
+| <a id="SET90"></a>SET90 | reading.custom.pageMargins | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../../packages/agent/src/tools/settings-tools.ts) [PREFS](../../apps/web/src/features/settings/lib/reader-settings.ts) | 新增盘点 |
+| <a id="SET91"></a>SET91 | reading.custom.textIndent | 实装 | **接通**：get_settings/update_settings<br>[设计] 类型化设置工具 | **接通**：settings discover/read/update（需路径授权）<br>[设计] 类型化设置领域 | 设置页；Agent；授权插件可调用（不代表每个插件实际调用） | 目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。 | [SETTINGS](../../apps/web/src/domain/settings/catalog.ts) [SETDOMAIN](../../apps/web/src/domain/settings/domain.ts) [SETTOOLS](../../packages/agent/src/tools/settings-tools.ts) [PREFS](../../apps/web/src/features/settings/lib/reader-settings.ts) | 新增盘点 |
 
 ### 对话、Agent 交互与推理
 
@@ -1021,6 +1028,8 @@
 | `reading.theme` | [SET09](#SET09) | [代码] 目录可读写；实际效果见主表 |
 | `reading.fontFamily` | [SET10](#SET10) | [代码] 目录可读写；实际效果见主表 |
 | `reading.textAlign` | [SET47](#SET47) | [代码] 目录可读写；实际效果见主表 |
+| `reading.textIndent` | [SET85](#SET85) | [代码] 目录可读写；实际效果见主表 |
+| `reading.typographyMode` | [SET86](#SET86) | [代码] 目录可读写；实际效果见主表 |
 | `reading.fixedLayoutColor` | [SET48](#SET48) | [代码] 目录可读写；实际效果见主表 |
 | `reading.fontSize` | [SET11](#SET11) | [代码] 目录可读写；实际效果见主表 |
 | `reading.fontWeight` | [SET12](#SET12) | [代码] 目录可读写；实际效果见主表 |
@@ -1029,6 +1038,11 @@
 | `reading.pageMargins` | [SET15](#SET15) | [代码] 目录可读写；实际效果见主表 |
 | `reading.readingMode` | [SET16](#SET16) | [代码] 目录可读写；实际效果见主表 |
 | `reading.fixedLayoutReadingMode` | [SET17](#SET17) | [代码] 目录可读写；实际效果见主表 |
+| `reading.custom.fontSize` | [SET87](#SET87) | [代码] 目录可读写；实际效果见主表 |
+| `reading.custom.lineHeight` | [SET88](#SET88) | [代码] 目录可读写；实际效果见主表 |
+| `reading.custom.paragraphSpacing` | [SET89](#SET89) | [代码] 目录可读写；实际效果见主表 |
+| `reading.custom.pageMargins` | [SET90](#SET90) | [代码] 目录可读写；实际效果见主表 |
+| `reading.custom.textIndent` | [SET91](#SET91) | [代码] 目录可读写；实际效果见主表 |
 | `reading.pageTurn.tapZones` | [SET81](#SET81) | [代码] 目录可读写；实际效果见主表 |
 | `reading.pageTurn.tapZoneWidth` | [SET82](#SET82) | [代码] 目录可读写；实际效果见主表 |
 | `reading.pageTurn.volumeKeys` | [SET83](#SET83) | [代码] 目录可读写；实际效果见主表 |

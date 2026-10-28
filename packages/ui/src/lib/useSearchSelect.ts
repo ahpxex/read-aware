@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import {
   autoUpdate,
   flip,
@@ -12,13 +12,28 @@ import {
   useInteractions,
 } from "@floating-ui/react";
 
-export type SearchSelectOption = { value: string; label: string; description?: string; detail?: string };
+export type SearchSelectOption = {
+  value: string;
+  label: string;
+  description?: string;
+  detail?: string;
+  /** Right-aligned content before the selection check — badges, inline actions. */
+  accessory?: ReactNode;
+  /**
+   * Section this option belongs to. Consecutive filtered rows sharing a
+   * `group` render under one heading; options without one stay unlabeled.
+   * When no option sets a group, the list renders flat as before.
+   */
+  group?: string;
+};
 
 export function useSearchSelect(
   options: readonly SearchSelectOption[],
   value: string,
   onChange: (value: string) => void,
   allowCustom: boolean,
+  /** True (default): the query also matches option values. False: label + description only. */
+  matchValue = true,
 ) {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -29,7 +44,10 @@ export function useSearchSelect(
   const selected = options.find((option) => option.value === value);
   const all = value && !selected ? [{ value, label: value }, ...options] : options;
   const needle = query.trim().toLowerCase();
-  const filtered = all.filter((option) => `${option.value} ${option.label}`.toLowerCase().includes(needle));
+  const filtered = all.filter((option) => {
+    const haystack = matchValue ? `${option.value} ${option.label}` : `${option.label} ${option.description ?? ""}`;
+    return haystack.toLowerCase().includes(needle);
+  });
   const customValue =
     allowCustom && query.trim() && !all.some((option) => option.value === query.trim()) ? query.trim() : null;
   const rows = customValue ? [...filtered, { value: customValue, label: customValue }] : filtered;
@@ -82,14 +100,19 @@ export function useSearchSelect(
       for (const scroller of scrollers) scroller.removeEventListener("scroll", closeWhenScrolledAway);
     };
   }, [open, anchor]);
+  // scroll active row into view — looked up by id, since grouped rows are no
+  // longer the listbox's direct children.
   useEffect(() => {
-    if (open) listRef.current?.children[active]?.scrollIntoView({ block: "nearest" });
-  }, [open, active]);
+    if (open) document.getElementById(`${id}-list-${active}`)?.scrollIntoView({ block: "nearest" });
+  }, [open, active, id]);
 
-  const choose = (next: string) => {
-    onChange(next);
+  const close = () => {
     setOpen(false);
     setQuery("");
+  };
+  const choose = (next: string) => {
+    onChange(next);
+    close();
   };
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.nativeEvent.isComposing || event.keyCode === 229) return;
@@ -112,6 +135,7 @@ export function useSearchSelect(
     rows,
     customValue,
     choose,
+    close,
     onKeyDown,
     setActiveIndex,
     search: (text: string) => {

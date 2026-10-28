@@ -150,6 +150,21 @@
     "start": "Linksbündig",
     "justify": "Blocksatz"
   },
+  "typographyAdvanced": "Erweiterte Typografie",
+  "typographyAdvancedHintPreset": "Typografie wird mit Stufen angepasst.",
+  "typographyAdvancedHintCustom": "Schriftgröße, Zeilenabstand, Absatzabstand, Einzug und Seitenränder mit exakten Werten anpassen.",
+  "textIndent": "Erstzeileneinzug",
+  "textIndentOption": {
+    "book": "Wie publiziert",
+    "none": "Keiner",
+    "two": "2 Zeichen",
+    "custom": "Benutzerdefiniert"
+  },
+  "textIndentAmount": "Einzug",
+  "fontSizeValue": "{{value}} px",
+  "emValue": "{{value}} em",
+  "indentValue": "{{value}} em",
+  "percentValue": "{{value}}%",
   "pageMargins": "Seitenränder",
   "pageMarginsOption": {
     "narrow": "Schmal",

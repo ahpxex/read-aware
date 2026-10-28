@@ -166,6 +166,15 @@ export class Paginator extends HTMLElement {
             --_half-gap: calc(var(--_gap) / 2);
             --_max-width: calc(var(--_max-inline-size) * var(--_max-column-count-spread));
             --_max-height: var(--_max-block-size);
+            /* ReadAware patch: a host that already keeps an edge of the view
+               clear (a phone's safe-area padding around the reader) declares
+               it through the inherited --foliate-reserved-top / -bottom. The
+               page margin is then measured from the outer edge of that
+               reserved space, so the reservation counts toward the margin
+               instead of stacking on it: a 48px margin over a 34px
+               home-indicator inset adds 14px, not 48px. */
+            --_margin-top: max(0px, calc(var(--_margin) - var(--foliate-reserved-top, 0px)));
+            --_margin-bottom: max(0px, calc(var(--_margin) - var(--foliate-reserved-bottom, 0px)));
             display: grid;
             grid-template-columns:
                 minmax(var(--_half-gap), 1fr)
@@ -174,9 +183,9 @@ export class Paginator extends HTMLElement {
                 var(--_half-gap)
                 minmax(var(--_half-gap), 1fr);
             grid-template-rows:
-                minmax(var(--_margin), 1fr)
+                minmax(var(--_margin-top), 1fr)
                 minmax(0, var(--_max-height))
-                minmax(var(--_margin), 1fr);
+                minmax(var(--_margin-bottom), 1fr);
             &.vertical {
                 --_max-column-count-spread: var(--_max-column-count-portrait);
                 --_max-width: var(--_max-block-size);
@@ -235,15 +244,16 @@ export class Paginator extends HTMLElement {
         #header {
             grid-column: 3 / 4;
             grid-row: 1;
+            height: var(--_margin-top);
         }
         #footer {
             grid-column: 3 / 4;
             grid-row: 3;
             align-self: end;
+            height: var(--_margin-bottom);
         }
         #header, #footer {
             display: grid;
-            height: var(--_margin);
         }
         :is(#header, #footer) > * {
             display: flex;

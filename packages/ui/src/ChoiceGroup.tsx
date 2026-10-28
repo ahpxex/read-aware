@@ -49,8 +49,18 @@ export function ChoiceGroup<T extends string>({
       aria-invalid={error ? true : undefined}
       aria-describedby={error ? `${id}-error` : undefined}
     >
-      {label && <legend className="mb-2 font-sans text-[13px] font-medium text-fg-muted">{label}</legend>}
-      <div className={layout === "list" ? "-mx-1.5 flex flex-col" : "flex flex-wrap items-center gap-x-6 gap-y-2"}>
+      {/* Floated so it lays out as an ordinary block: WebKit counts a rendered
+          legend's height twice when the fieldset is a flex item, opening a
+          gap under every group in a flex column. Still the fieldset's name. */}
+      {label && (
+        <legend className="float-left mb-2 w-full font-sans text-[13px] font-medium text-fg-muted">{label}</legend>
+      )}
+      <div
+        className={cn(
+          "clear-both",
+          layout === "list" ? "-mx-1.5 flex flex-col" : "flex flex-wrap items-center gap-x-6 gap-y-2",
+        )}
+      >
         {options.map((option) => {
           const active = option.value === value;
           if (layout === "list")

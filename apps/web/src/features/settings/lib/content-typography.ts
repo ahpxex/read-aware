@@ -21,6 +21,7 @@ import { localKV } from "../../../platform/local-store";
 import { readerFontSizeRem, resolveReaderFontStack } from "./reader-css";
 import type { PluginFontStackSource } from "./reader-css";
 import {
+  customTypographyFromPresets,
   DEFAULT_READER_SETTINGS,
   type ReaderFontFamily,
   type ReaderLineSpacing,
@@ -65,7 +66,7 @@ const CONTENT_LINE_HEIGHT: Record<ReaderLineSpacing, string> = {
  * default (`medium`, 0.875rem) — following changes nothing until you move the
  * reading size, which is what "follow" should feel like on first run.
  */
-const FOLLOW_RATIO = CONTENT_FONT_SIZE_REM.medium / readerFontSizeRem(DEFAULT_READER_SETTINGS.fontSize);
+const FOLLOW_RATIO = CONTENT_FONT_SIZE_REM.medium / readerFontSizeRem(DEFAULT_READER_SETTINGS);
 
 /** Clamp for the followed size, so an extreme book size stays usable in chrome. */
 const FOLLOW_MIN_REM = CONTENT_FONT_SIZE_REM["x-small"];
@@ -168,14 +169,31 @@ export function resolveContentTypography(
     };
   }
 
-  const followed = readerFontSizeRem(reader.fontSize) * FOLLOW_RATIO;
+  const followed = readerFontSizeRem(reader) * FOLLOW_RATIO;
   const clamped = Math.min(FOLLOW_MAX_REM, Math.max(FOLLOW_MIN_REM, followed));
+  // Custom mode has no named tier to look up — scale the exact line-height
+  // off the comfortable preset's 1.85↔1.65 relationship and keep the result
+  // inside the content ladder's usable band.
+  const lineHeight =
+    reader.typographyMode === "custom"
+      ? String(
+          Math.min(
+            2.1,
+            Math.max(
+              1.3,
+              Math.round(
+                (((reader.customTypography ?? customTypographyFromPresets(reader)).lineHeight * 1.65) / 1.85) * 100,
+              ) / 100,
+            ),
+          ),
+        )
+      : CONTENT_LINE_HEIGHT[reader.lineSpacing];
   return {
     fontFamily,
     // Trimmed to 4 decimals: the ratio is irrational-ish and the raw value
     // would write a 17-digit custom property on every settings change.
     fontSize: `${Number(clamped.toFixed(4))}rem`,
-    lineHeight: CONTENT_LINE_HEIGHT[reader.lineSpacing],
+    lineHeight,
   };
 }
 

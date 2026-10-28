@@ -127,7 +127,12 @@ import { detectBookLanguage } from "../lib/book-language";
 import { rememberReaderBookLanguage } from "../../settings/lib/reader-languages";
 import { getReaderPreferences, readerPreferencesForLanguage } from "../../settings/lib/reader-settings";
 import { getReaderOverrides } from "../../settings/lib/reader-overrides";
-import { readerChapterStarts, markReaderChapterStarts, normalizeReaderTextSizes } from "../lib/reader-document-layout";
+import {
+  readerChapterStarts,
+  markReaderChapterStarts,
+  markReaderInlineMedia,
+  normalizeReaderTextSizes,
+} from "../lib/reader-document-layout";
 import {
   framePointAnchorInRoot,
   framePointToRoot,
@@ -2328,14 +2333,13 @@ export function FoliateReaderView({
           const width = readerRootRef.current?.clientWidth ?? window.innerWidth;
           const height = readerRootRef.current?.clientHeight ?? window.innerHeight;
           const effectiveColumns = width > height ? maxColumnCount : 1;
-          const margins = readerSettingsRef.current.pageMargins;
-          const { gap, margin } = readerLayoutSpacing(margins, readingMode);
+          const { gap, margin } = readerLayoutSpacing(readerSettingsRef.current, readingMode);
           if (view.renderer && "setLayoutAttributes" in view.renderer)
             view.renderer.setLayoutAttributes(
               {
                 gap,
                 margin,
-                "max-inline-size": `${computeReaderMaxInlineSize(width, margins, effectiveColumns)}px`,
+                "max-inline-size": `${computeReaderMaxInlineSize(readerSettingsRef.current, width, effectiveColumns)}px`,
               },
               openingContext,
             );
@@ -2439,6 +2443,7 @@ export function FoliateReaderView({
           const { doc, index } = (event as CustomEvent<FoliateLoadDetail>).detail;
           if (!fixedLayout) {
             markReaderChapterStarts(doc, index, chapterStarts);
+            markReaderInlineMedia(doc);
             normalizeReaderTextSizes(doc);
           }
           // The fixed-layout renderer keeps section documents alive in its
@@ -2650,6 +2655,10 @@ export function FoliateReaderView({
           // cutout (Dynamic Island / punch-hole) and the home indicator while
           // the reader runs immersive; env() resolves to 0 on desktop.
           "relative h-full w-full pt-[var(--ra-safe-top)] pb-[var(--ra-safe-bottom)] transition-opacity ease-out",
+          // The paginator counts that padding toward its own top/bottom page
+          // margin rather than adding the full margin inside it, which left a
+          // phone's paginated pages ~80px of blank below the last line.
+          "[--foliate-reserved-top:var(--ra-safe-top)] [--foliate-reserved-bottom:var(--ra-safe-bottom)]",
           isCrossing ? "duration-150" : "duration-500",
           (isLoading || !!error || isCrossing) && "opacity-0",
         )}

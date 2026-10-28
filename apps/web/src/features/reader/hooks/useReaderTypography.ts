@@ -116,9 +116,8 @@ export function useReaderTypography({
       // max-column-count, so size the measure for the columns that will
       // actually show — halving it in portrait would just shrink the one column.
       const effectiveColumns = width > height ? maxColumnCount : 1;
-      const margins = settingsRef.current.pageMargins;
-      const { gap, margin } = readerLayoutSpacing(margins, readingModeRef.current);
-      const px = computeReaderMaxInlineSize(width, margins, effectiveColumns);
+      const { gap, margin } = readerLayoutSpacing(settingsRef.current, readingModeRef.current);
+      const px = computeReaderMaxInlineSize(settingsRef.current, width, effectiveColumns);
       if ("setLayoutAttributes" in renderer)
         renderer.setLayoutAttributes(
           {

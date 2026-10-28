@@ -1,17 +1,18 @@
 import { useAtom, useAtomValue } from "jotai";
-import { ChoiceGroup, Stack, Toggle } from "@read-aware/ui";
+import { ChoiceGroup, Select, Stack, Toggle } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { pluginThemesAtom } from "../../plugins/state/plugin-store";
 import { effectiveReaderSettingsAtom, pageTurnSettingsAtom, readerPreferencesAtom } from "../../../state/ui";
 import { isAndroid } from "../../../platform/environment";
 import { FontField } from "../components/FontField";
+import { ReaderTypographyControls } from "../components/ReaderTypographyControls";
 import { ReaderBackgroundLayer } from "../components/ReaderBackgroundLayer";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
 import { getReaderPreviewStyle } from "../lib/reader-css";
-import { resolveReaderFontWeight } from "../lib/reader-settings";
 import { applyReaderThemeSelection, type ReaderPalette } from "../lib/reader-theme";
+import type { ReaderThemePreference } from "../lib/reader-settings";
 import type {
   PageTurnTapZoneWidth,
   PageTurnTapZones,
@@ -20,16 +21,7 @@ import type {
 import { useReaderPalette } from "../hooks/useReaderPalette";
 import { useRegisteredPluginFont } from "../hooks/usePluginFonts";
 import { usePluginReaderThemeOptions } from "../hooks/usePluginReaderThemeOptions";
-import {
-  fontSizeOptions,
-  fontWeightOptions,
-  lineSpacingOptions,
-  pageColorOptions,
-  pageMarginsOptions,
-  paragraphSpacingOptions,
-  readingModeOptions,
-  textAlignOptions,
-} from "../lib/reader-setting-options";
+import { pageColorOptions, readingModeOptions } from "../lib/reader-setting-options";
 
 export function ReadingPanel() {
   const { t } = useTranslation("settings");
@@ -66,36 +58,7 @@ export function ReadingPanel() {
             fontWeight={prefs.fontWeight}
             onChange={(fontFamily) => setPrefs({ ...prefs, fontFamily })}
           />
-          <ChoiceGroup
-            label={t("reading.fontSize")}
-            value={prefs.fontSize}
-            options={fontSizeOptions(tReader)}
-            onChange={(fontSize) => setPrefs({ ...prefs, fontSize })}
-          />
-          <ChoiceGroup
-            label={t("reading.fontWeight")}
-            value={resolveReaderFontWeight(prefs.fontWeight, prefs.fontFamily)}
-            options={fontWeightOptions(tReader, prefs.fontFamily)}
-            onChange={(fontWeight) => setPrefs({ ...prefs, fontWeight })}
-          />
-          <ChoiceGroup
-            label={t("reading.lineSpacing")}
-            value={prefs.lineSpacing}
-            options={lineSpacingOptions(tReader)}
-            onChange={(lineSpacing) => setPrefs({ ...prefs, lineSpacing })}
-          />
-          <ChoiceGroup
-            label={t("reading.paragraphSpacing")}
-            value={prefs.paragraphSpacing}
-            options={paragraphSpacingOptions(tReader)}
-            onChange={(paragraphSpacing) => setPrefs({ ...prefs, paragraphSpacing })}
-          />
-          <ChoiceGroup
-            label={t("reading.textAlign")}
-            value={prefs.textAlign}
-            options={textAlignOptions(tReader)}
-            onChange={(textAlign) => setPrefs({ ...prefs, textAlign })}
-          />
+          <ReaderTypographyControls prefs={prefs} onChange={setPrefs} />
         </Stack>
       </SettingsGroup>
 
@@ -107,22 +70,17 @@ export function ReadingPanel() {
             options={readingModeOptions(tReader)}
             onChange={(readingMode) => setPrefs({ ...prefs, readingMode })}
           />
-          <ChoiceGroup
-            label={t("reading.pageMargins")}
-            value={prefs.pageMargins}
-            options={pageMarginsOptions(tReader)}
-            onChange={(pageMargins) => setPrefs({ ...prefs, pageMargins })}
-          />
         </Stack>
       </SettingsGroup>
 
       <PageTurnGroup />
 
       <SettingsGroup title={t("reading.pageColor.title")} description={t("reading.pageColor.description")}>
-        <ChoiceGroup
+        <Select
+          ariaLabel={t("reading.pageColor.title")}
           value={prefs.theme}
           options={[...pageColorOptions(tReader), ...pluginThemeOptions]}
-          onChange={(theme) => setPrefs(applyReaderThemeSelection(prefs, theme, pluginThemes))}
+          onChange={(theme) => setPrefs(applyReaderThemeSelection(prefs, theme as ReaderThemePreference, pluginThemes))}
         />
       </SettingsGroup>
     </SettingsPage>
@@ -200,8 +158,16 @@ function ReadingPreview({ style, palette }: { style: React.CSSProperties; palett
       <div className="relative px-6 py-5 transition-colors" style={style}>
         <ReaderBackgroundLayer palette={palette} />
         <blockquote className="relative m-0">
-          <p className="m-0">{t("reading.previewText")}</p>
-          <p className="m-0" style={{ marginBlockStart: "var(--ra-reader-preview-paragraph-spacing)" }}>
+          <p className="m-0" style={{ textIndent: "var(--ra-reader-preview-text-indent)" }}>
+            {t("reading.previewText")}
+          </p>
+          <p
+            className="m-0"
+            style={{
+              marginBlockStart: "var(--ra-reader-preview-paragraph-spacing)",
+              textIndent: "var(--ra-reader-preview-text-indent)",
+            }}
+          >
             {t("reading.previewTextSecondary")}
           </p>
           <footer className="mt-3 font-sans text-caption leading-5 opacity-60">{t("reading.previewSource")}</footer>

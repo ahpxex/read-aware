@@ -4,6 +4,7 @@ import type { View } from "../../foliate-js/src/view";
 import type { LoadDetail } from "../../foliate-js/src/renderer";
 import {
   markReaderChapterStarts,
+  markReaderInlineMedia,
   normalizeReaderTextSizes,
   readerChapterStarts,
 } from "../../src/features/reader/lib/reader-document-layout";
@@ -67,13 +68,14 @@ export async function runDocumentLayoutRegressions(ViewClass: typeof View): Prom
         const { doc, index } = (event as CustomEvent<LoadDetail>).detail;
         cfiBefore = view.getCFI(index, quoteRange(doc));
         markReaderChapterStarts(doc, index, starts);
+        markReaderInlineMedia(doc);
         normalizeReaderTextSizes(doc);
       });
       await view.open(book);
       const renderer = view.renderer;
       if (!renderer || !("setStyles" in renderer)) throw new Error("Missing paginator");
       renderer.setChapterStarts(starts);
-      const spacing = readerLayoutSpacing("wide", mode);
+      const spacing = readerLayoutSpacing({ ...DEFAULT_READER_SETTINGS, pageMargins: "wide" }, mode);
       renderer.setLayoutAttributes({
         flow: mode === "scroll" ? "scrolled" : "paginated",
         margin: spacing.margin,

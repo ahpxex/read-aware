@@ -36,6 +36,7 @@ import {
 import { parseBookFile } from "../../src/features/reader/lib/parse-book";
 import {
   markReaderChapterStarts,
+  markReaderInlineMedia,
   normalizeReaderTextSizes,
   readerChapterStarts,
 } from "../../src/features/reader/lib/reader-document-layout";
@@ -432,6 +433,7 @@ async function prepareRender(requested?: string): Promise<RenderSetup> {
       if (fixedLayout) return;
       const { doc, index } = (event as CustomEvent<FoliateLoadDetail>).detail;
       markReaderChapterStarts(doc, index, chapterStarts);
+      markReaderInlineMedia(doc);
       normalizeReaderTextSizes(doc);
     });
     await next.open(parsed);
@@ -444,12 +446,12 @@ async function prepareRender(requested?: string): Promise<RenderSetup> {
       renderer.setLayoutAttributes({ flow, "max-column-count": String(maxColumnCount) });
     const { width, height } = stage.getBoundingClientRect();
     const columns = width > height ? maxColumnCount : 1;
-    const { gap, margin } = readerLayoutSpacing(settings.pageMargins, mode);
+    const { gap, margin } = readerLayoutSpacing(settings, mode);
     if ("setLayoutAttributes" in renderer)
       renderer.setLayoutAttributes({
         gap,
         margin,
-        "max-inline-size": `${computeReaderMaxInlineSize(width, settings.pageMargins, columns)}px`,
+        "max-inline-size": `${computeReaderMaxInlineSize(settings, width, columns)}px`,
       });
     if ("setStyles" in renderer)
       renderer.setStyles(

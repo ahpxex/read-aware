@@ -40,10 +40,11 @@ const curated = toCuratedFont(CURATED_FONTS[0].id);
  * The font selector shared by the reader's typography controls and the content
  * typography settings.
  *
- * It draws from three sources: the curated list (downloaded on demand — the
- * field owns that progress), fonts installed on the machine, and any faces a
- * plugin contributes. System fonts are enumerated over Tauri IPC, so in
- * Storybook that group is empty; the curated and plugin paths render fully.
+ * One list in three sections: the curated fonts (downloaded on demand — the
+ * field owns that progress) plus plugin-contributed faces, then the user's
+ * imported files, then the fonts installed on the machine. System fonts are
+ * enumerated over Tauri IPC, so in Storybook that section holds only a stored
+ * system pick kept visible; the curated, plugin and imported paths render fully.
  *
  * `defaultLabel` is what opts a caller into a null selection, meaning
  * "whatever this surface uses by default". The reader has no such state, so
@@ -151,13 +152,23 @@ const sampleUserFonts: UserFontEntry[] = [
 ];
 
 /**
- * Imported fonts lead the custom list: the popup header holds the import
- * action, and each imported option carries its file facts and a removal
- * button — a font whose bytes have not synced yet shows a cloud badge rather
- * than pretending to render.
+ * Imported fonts sit in their own section: each option carries its file
+ * facts and a removal button — a font whose bytes have not synced yet shows
+ * a cloud badge rather than pretending to render. The popup's pinned footer
+ * row holds the import action (desktop shells only).
  */
 export const ImportedFonts: Story = {
   args: { value: toUserFont("a".repeat(64)) },
+  decorators: [withAtoms(seed(userFontsAtom, sampleUserFonts))],
+};
+
+/**
+ * All three sections populated: curated fonts, imported files, and the
+ * installed list — which outside the desktop shell holds only the stored
+ * system pick kept visible rather than silently dropping it.
+ */
+export const AllSections: Story = {
+  args: { value: toSystemFont("Iowan Old Style") },
   decorators: [withAtoms(seed(userFontsAtom, sampleUserFonts))],
 };
 

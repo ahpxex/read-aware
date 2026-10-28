@@ -1,4 +1,5 @@
 import type { Paginator } from "../../foliate-js/src/paginator";
+import { markReaderInlineMedia } from "../../src/features/reader/lib/reader-document-layout";
 import { buildReaderContentCss, readerLayoutSpacing } from "../../src/features/settings/lib/reader-css";
 import { DEFAULT_READER_SETTINGS, type ReadingMode } from "../../src/features/settings/lib/reader-settings";
 import { BUILTIN_READER_PALETTES } from "../../src/features/settings/lib/reader-theme";
@@ -74,7 +75,7 @@ export async function runMediaRegressions(PaginatorClass: typeof Paginator): Pro
       ),
     );
     try {
-      const spacing = readerLayoutSpacing("wide", mode);
+      const spacing = readerLayoutSpacing({ ...DEFAULT_READER_SETTINGS, pageMargins: "wide" }, mode);
       renderer.setLayoutAttributes({
         flow: mode === "scroll" ? "scrolled" : "paginated",
         margin: spacing.margin,
@@ -157,6 +158,68 @@ export async function runMediaRegressions(PaginatorClass: typeof Paginator): Pro
       renderer.render();
       renderer.render();
       assert(limit() === current, "Repeated layout progressively shrinks the image");
+    },
+  );
+  // 补字图: a ~34×37 JPEG standing in for a rare glyph inside a line of text
+  // (葛兆光《唐诗选注》, publisher rule img.pic-s { height: 1em; vertical-align:
+  // middle }). Forcing it into a centered block tears the sentence apart.
+  const glyphCanvas = document.createElement("canvas");
+  glyphCanvas.width = 34;
+  glyphCanvas.height = 37;
+  glyphCanvas.getContext("2d")?.fillRect(0, 0, 34, 37);
+  const glyph = glyphCanvas.toDataURL();
+  await run(
+    "inline glyph images keep publisher sizing and stay on the text line",
+    `<style>img.pic-s { height: 1em; vertical-align: middle; }</style>
+    <p id="prose">淑气催黄鸟，晴光转绿<img class="pic-s" alt="" src="${glyph}">指绿色的<img class="pic-s" alt="" src="${glyph}">草，梁代诗人江淹有“东风转绿”句。</p>
+    <p id="solo"><img alt="" src="${source}"></p>
+    <p id="separated">Caption above<br><img alt="" src="${source}"></p>`,
+    "paginated-double",
+    async (_renderer, doc) => {
+      const win = doc.defaultView!;
+      const prose = doc.getElementById("prose")!;
+      const glyphs = [...prose.querySelectorAll("img.pic-s")];
+      assert(glyphs.length === 2, "Missing glyph fixture");
+      markReaderInlineMedia(doc);
+      const marked = () => doc.querySelectorAll("[data-ra-inline-media]").length;
+      const count = marked();
+      markReaderInlineMedia(doc);
+      assert(marked() === count, "Repeated inline-media marking changed the classification");
+      const fontSize = parseFloat(win.getComputedStyle(prose).fontSize);
+      const sharesLine = (img: Element) => {
+        const rect = img.getBoundingClientRect();
+        for (const sibling of [img.previousSibling, img.nextSibling]) {
+          if (sibling?.nodeType !== Node.TEXT_NODE || !sibling.textContent?.trim()) continue;
+          const range = doc.createRange();
+          range.selectNodeContents(sibling);
+          for (const text of range.getClientRects()) {
+            const sameLine = text.top < rect.bottom && text.bottom > rect.top;
+            const abuts =
+              (text.left < rect.left && rect.left - text.right < fontSize) ||
+              (text.left >= rect.right && text.left - rect.right < fontSize);
+            if (sameLine && abuts) return true;
+          }
+        }
+        return false;
+      };
+      for (const img of glyphs) {
+        assert(img.hasAttribute("data-ra-inline-media"), "Glyph image on a text line was not marked");
+        assert(
+          win.getComputedStyle(img).display === "inline",
+          `Inline glyph was still forced into a block: ${win.getComputedStyle(img).display}`,
+        );
+        const rect = img.getBoundingClientRect();
+        assert(
+          Math.abs(rect.height - fontSize) <= 1,
+          `Publisher em sizing lost: height ${rect.height} vs font-size ${fontSize}`,
+        );
+        assert(sharesLine(img), "Inline glyph was split off its text line");
+      }
+      for (const id of ["solo", "separated"]) {
+        const img = doc.getElementById(id)!.querySelector("img")!;
+        assert(!img.hasAttribute("data-ra-inline-media"), `Illustration in #${id} was mistaken for inline media`);
+        assert(win.getComputedStyle(img).display === "block", `Illustration in #${id} lost its block treatment`);
+      }
     },
   );
   return results;

@@ -150,6 +150,21 @@
     "start": "左揃え",
     "justify": "両端揃え"
   },
+  "typographyAdvanced": "詳細なタイポグラフィ",
+  "typographyAdvancedHintPreset": "プリセットでフォントサイズや行間を調整します。",
+  "typographyAdvancedHintCustom": "フォントサイズ・行間・段落間隔・字下げ・余白を正確な数値で調整します。",
+  "textIndent": "一字下げ",
+  "textIndentOption": {
+    "book": "書籍に従う",
+    "none": "なし",
+    "two": "2 字",
+    "custom": "カスタム"
+  },
+  "textIndentAmount": "字下げ量",
+  "fontSizeValue": "{{value}} px",
+  "emValue": "{{value}} em",
+  "indentValue": "{{value}} 字",
+  "percentValue": "{{value}}%",
   "pageMargins": "余白",
   "pageMarginsOption": {
     "narrow": "狭い",

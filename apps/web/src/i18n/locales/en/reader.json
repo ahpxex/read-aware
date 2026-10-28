@@ -150,6 +150,21 @@
     "start": "Left",
     "justify": "Justified"
   },
+  "typographyAdvanced": "Advanced typography",
+  "typographyAdvancedHintPreset": "Typography is adjusted with preset tiers.",
+  "typographyAdvancedHintCustom": "Adjust font size, line spacing, paragraph spacing, indent, and margins with exact values.",
+  "textIndent": "First-line indent",
+  "textIndentOption": {
+    "book": "As published",
+    "none": "None",
+    "two": "2 chars",
+    "custom": "Custom"
+  },
+  "textIndentAmount": "Indent",
+  "fontSizeValue": "{{value}} px",
+  "emValue": "{{value}} em",
+  "indentValue": "{{value}} em",
+  "percentValue": "{{value}}%",
   "pageMargins": "Page margins",
   "pageMarginsOption": {
     "narrow": "Narrow",

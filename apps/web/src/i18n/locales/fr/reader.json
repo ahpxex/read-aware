@@ -150,6 +150,21 @@
     "start": "À gauche",
     "justify": "Justifié"
   },
+  "typographyAdvanced": "Typographie avancée",
+  "typographyAdvancedHintPreset": "La typographie se règle par paliers.",
+  "typographyAdvancedHintCustom": "Ajustez la taille, l'interligne, l'espacement, le retrait et les marges avec des valeurs exactes.",
+  "textIndent": "Retrait de première ligne",
+  "textIndentOption": {
+    "book": "Comme publié",
+    "none": "Aucun",
+    "two": "2 caractères",
+    "custom": "Personnalisé"
+  },
+  "textIndentAmount": "Retrait",
+  "fontSizeValue": "{{value}} px",
+  "emValue": "{{value}} em",
+  "indentValue": "{{value}} em",
+  "percentValue": "{{value}}%",
   "pageMargins": "Marges de page",
   "pageMarginsOption": {
     "narrow": "Étroites",

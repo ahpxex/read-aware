@@ -150,6 +150,21 @@
     "start": "По левому краю",
     "justify": "По ширине"
   },
+  "typographyAdvanced": "Расширенная типографика",
+  "typographyAdvancedHintPreset": "Типографика настраивается пресетами.",
+  "typographyAdvancedHintCustom": "Точные значения размера шрифта, интерлиньяжа, абзацного отступа и полей.",
+  "textIndent": "Абзацный отступ",
+  "textIndentOption": {
+    "book": "Как в книге",
+    "none": "Нет",
+    "two": "2 знака",
+    "custom": "Свой"
+  },
+  "textIndentAmount": "Отступ",
+  "fontSizeValue": "{{value}} px",
+  "emValue": "{{value}} em",
+  "indentValue": "{{value}} em",
+  "percentValue": "{{value}}%",
   "pageMargins": "Поля страницы",
   "pageMarginsOption": {
     "narrow": "Узкие",

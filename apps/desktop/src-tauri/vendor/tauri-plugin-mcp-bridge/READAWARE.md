@@ -9,8 +9,12 @@ version 0.13.0, with the local revisions already used by ReadAware:
 - `d0c6543`: decode screenshots once before encoding.
 
 The snapshot was copied from local revision `56b206b` (whose additional changes
-only concern workspace tooling). `Cargo.toml`, `build.rs`, `src`, `permissions`,
-the upstream README, and the MIT license are retained without changes.
+only concern workspace tooling). `build.rs`, `src`, `permissions`, the upstream
+README, and the MIT license are retained without changes. `Cargo.toml` differs
+only in its Windows dependencies, raised to `webview2-com` 0.39.1 and
+`windows`/`windows-core` 0.62.2 for Tauri 2.12 — the same versions upstream
+0.13.2 uses — because the screenshot code passes these types to the
+`ICoreWebView2` that wry provides.
 
 Keeping this source in the repository lets a clean checkout build on every
 desktop platform without depending on a developer's filesystem or unpublished

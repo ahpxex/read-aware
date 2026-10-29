@@ -145,7 +145,7 @@ block = "0.1"
 # feature flags are additive, no second copy in the graph.
 [target.'cfg(target_os = "windows")'.dependencies]
 winreg = "0.55"
-windows = { version = "0.61", features = [
+windows = { version = "0.62.2", features = [
   "Win32_Graphics_DirectWrite",
   "Win32_Globalization",
   "Win32_UI_Shell",
@@ -224,7 +224,7 @@ rustls = { version = "0.23", default-features = false, features = ["ring"] }
 # against these bundled Mozilla roots instead.
 webpki-roots = "1"
 semver = "1"
-tao = "0.35"
+tao = "0.37"
 
 [lints.rust]
 # objc 0.2's msg_send!/sel! expand `cfg(feature = "cargo-clippy")` inside this

@@ -61,9 +61,9 @@ objc2-ui-kit = { version = "0.2", features = ["UIImage"] }
 objc2-web-kit = { version = "0.2", features = ["WKSnapshotConfiguration", "block2"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-webview2-com = "0.38"
-windows = { version = "0.61", features = ["Win32_System_Com", "Win32_System_Com_StructuredStorage", "Win32_Foundation"] }
-windows-core = "0.61"
+webview2-com = "0.39.1"
+windows = { version = "0.62.2", features = ["Win32_System_Com", "Win32_System_Com_StructuredStorage", "Win32_Foundation"] }
+windows-core = "0.62.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 webkit2gtk = "2.0"

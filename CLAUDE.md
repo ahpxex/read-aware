@@ -158,7 +158,8 @@ output; if your local Bun differs, rebuild plugins with `bunx bun@1.3.13 run bui
 `.github/workflows/ci.yml` gates PRs and `main` on typecheck, lint, formatting, tests, `lint:deps`,
 docs, the runtime suites, rustfmt/clippy, and the native Rust tests on macOS, Linux and
 Windows. `bun run check:capabilities` (capability-matrix bookkeeping) is a manual audit,
-not a gate. `lint:deps` only accepts a shrinking
+not a gate: `check:docs` and `typecheck` skip `docs/capabilities`, its archived baseline
+and the audit scripts, which it checks itself. `lint:deps` only accepts a shrinking
 `.dependency-cruiser-known-violations.json`; after fixing violations, run
 `bun run lint:deps:baseline` in that workspace and commit the smaller file.
 

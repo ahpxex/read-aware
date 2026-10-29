@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["build-host-capability-*.ts", "check-capabilities*.ts", "host-capability-*.ts"],
+  "exclude": []
+}

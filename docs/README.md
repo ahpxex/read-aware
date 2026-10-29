@@ -72,9 +72,10 @@ bun scripts/build-host-capability-matrix.ts
 bun scripts/build-host-capability-model.ts
 bun scripts/build-host-capability-matrix.ts --check
 bun scripts/build-host-capability-model.ts --check
-bun run check:docs
+bun scripts/check-docs.ts --with-capabilities
 ```
 
 盘点宿主/Agent/插件能力覆盖时手动运行 `bun run check:capabilities`，它核对能力矩阵
 与代码库存并包含更广的契约与类型检查；它不是 CI 门禁，日常提交不保证矩阵同步。
+默认的 `check:docs` 与 `typecheck` 跳过 `docs/capabilities`、`docs/archive/capabilities` 和审计脚本，只有这个命令检查它们。
 普通文档整理只运行受影响的生成与链接检查。

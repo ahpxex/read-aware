@@ -2,8 +2,10 @@ import { resolve } from "node:path";
 
 /** Separate processes keep module mocks and browser globals out of sibling suites. */
 export const capabilityChecks = [
-  { name: "Documentation links", args: ["scripts/check-docs.ts"] },
+  { name: "Documentation links", args: ["scripts/check-docs.ts", "--with-capabilities"] },
   { name: "Prepare generated Foliate runtime", args: ["run", "--filter", "@read-aware/web", "build:foliate"] },
+  { name: "Capability audit script types", args: ["x", "tsc", "--noEmit", "-p", "scripts/tsconfig.capabilities.json"] },
+  { name: "Capability data types", args: ["x", "tsc", "--noEmit", "-p", "docs/capabilities"] },
   { name: "Matrix source and generated evidence", args: ["scripts/build-host-capability-matrix.ts", "--check"] },
   { name: "Ownership model and generated evidence", args: ["scripts/build-host-capability-model.ts", "--check"] },
   { name: "Inventory omission and ownership guards", args: ["test", "scripts"] },

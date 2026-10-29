@@ -5,5 +5,8 @@
     "types": ["bun"],
     "moduleDetection": "force"
   },
-  "include": ["**/*.ts"]
+  "include": ["**/*.ts"],
+  // The capability audit imports app internals; check:capabilities typechecks it
+  // through tsconfig.capabilities.json so refactors do not fail the CI typecheck.
+  "exclude": ["build-host-capability-*.ts", "check-capabilities*.ts", "host-capability-*.ts"]
 }

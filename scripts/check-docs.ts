@@ -1,6 +1,6 @@
 /** Check authored local file and fragment links in docs and repository entrypoints. */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { dirname, extname, join, resolve } from "node:path";
+import { dirname, extname, join, resolve, sep } from "node:path";
 
 function documents(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -37,7 +37,19 @@ function documentAnchors(path: string): Set<string> {
   return ids;
 }
 
-const files = [...documents("docs"), "README.md", "README.zh-CN.md", "README.ja.md", "CLAUDE.md"];
+// The capability matrix and its archived baseline belong to the manual capability
+// audit (`check:capabilities` passes --with-capabilities): they link hundreds of
+// source files and are not kept current on every commit, so a rename must not
+// fail CI here.
+const capabilityDocs = [join("docs", "capabilities") + sep, join("docs", "archive", "capabilities") + sep];
+const withCapabilities = process.argv.includes("--with-capabilities");
+const files = [
+  ...documents("docs").filter((path) => withCapabilities || !capabilityDocs.some((dir) => path.startsWith(dir))),
+  "README.md",
+  "README.zh-CN.md",
+  "README.ja.md",
+  "CLAUDE.md",
+];
 const errors: string[] = [];
 let checked = 0;
 for (const file of files) {

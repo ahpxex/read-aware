@@ -25,7 +25,7 @@
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck && bun run typecheck:repo",
-    "typecheck:repo": "tsc --noEmit -p scripts && tsc --noEmit -p docs/capabilities",
+    "typecheck:repo": "tsc --noEmit -p scripts",
     "eval:agent": "bun packages/agent/src/eval-run.ts",
     "eval:all": "bun packages/agent/src/eval-all-run.ts",
     "eval:rescore": "bun packages/agent/src/eval-rescore-run.ts",

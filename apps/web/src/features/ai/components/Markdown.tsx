@@ -1,7 +1,7 @@
 import { Streamdown, type PluginConfig } from "streamdown";
 import { cjk } from "@streamdown/cjk";
 import { cn } from "@read-aware/ui/cn";
-import { MARKDOWN_REPLY_CLASS } from "../lib/markdown-fragment";
+import { MARKDOWN_REPLY_CLASS, replyRehypePlugins } from "../lib/markdown-fragment";
 import { MarkdownLink } from "./MarkdownLink";
 
 const components = {
@@ -25,6 +25,8 @@ export function Markdown({ children, className }: { children: string; className?
       controls={false}
       lineNumbers={false}
       plugins={plugins}
+      // Model-written HTML ids and names stay clobber-prefixed (markdown-fragment).
+      rehypePlugins={replyRehypePlugins}
       // Links confirm before leaving the app and footnotes jump within the
       // reply (MarkdownLink). Retrieved images use source-backed reference
       // cards; prose must not invent remote image requests (even mid-stream).

@@ -8,7 +8,7 @@ test("recognizes in-reply fragments but not external or empty hrefs", () => {
   expect(isFragmentHref("streamdown:incomplete-link")).toBe(false);
 });
 
-test("maps a footnote href to its id verbatim, without decoding it", () => {
-  expect(fragmentTargetId("#user-content-fn-1")).toBe("user-content-fn-1");
-  expect(fragmentTargetId("#user-content-fnref-%E6%B3%A81")).toBe("user-content-fnref-%E6%B3%A81");
+test("maps a footnote href to the sanitizer's re-prefixed id without decoding it", () => {
+  expect(fragmentTargetId("#user-content-fn-1")).toBe("user-content-user-content-fn-1");
+  expect(fragmentTargetId("#user-content-fnref-%E6%B3%A81")).toBe("user-content-user-content-fnref-%E6%B3%A81");
 });

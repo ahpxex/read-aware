@@ -10,6 +10,8 @@ import { describe, expect, test } from "bun:test";
 const through = (specifier: string, importer: string) => Bun.resolveSync(specifier, importer);
 const streamdown = through("streamdown", new URL("./probe.ts", import.meta.url).pathname);
 
+// remend dropped the lookbehind upstream in 1.4.0 (same rewrite as our former
+// patch); these keep pinning the behavior the app relies on.
 describe("remend (via streamdown)", () => {
   const remend = async () => (await import(through("remend", streamdown))).default as (input: string) => string;
 

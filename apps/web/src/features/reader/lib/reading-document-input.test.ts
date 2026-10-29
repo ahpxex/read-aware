@@ -93,12 +93,19 @@ test("exact focus events and their changed selection keep the caller; nested foc
   );
   f.a.addEventListener("focus", () => focusWithReadingSource(f.b, inner));
   f.b.addEventListener("focus", () => f.select(f.b));
+  // Some engines finish outer's default caret movement after nested focus
+  // listeners return. JSDOM collapses the selection before dispatching focus
+  // (since 30.1), so that later DOM effect is controlled here.
+  const native = f.a.focus.bind(f.a);
+  f.a.focus = (options) => {
+    native(options);
+    f.doc.getSelection()!.collapse(f.a.firstChild, 0);
+  };
   try {
     f.select(f.a);
     focusWithReadingSource(f.a, outer);
     expect(f.doc.activeElement).toBe(f.b);
     expect(actorCause(readingRenderActor(observed.find((row) => row.id === "b")!.context))).toBe(actorCause(inner));
-    // JSDOM finishes outer's default caret movement after the nested focus.
     // That distinct final DOM effect must not become an independent user root.
     expect(actorCause(f.change().origin)).toBe(actorCause(outer));
     f.b.blur();

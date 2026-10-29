@@ -1,4 +1,4 @@
-// ../../node_modules/.bun/fast-xml-parser@5.10.1/node_modules/fast-xml-parser/src/util.js
+// ../../node_modules/.bun/fast-xml-parser@5.11.2/node_modules/fast-xml-parser/src/util.js
 var nameStartChar = ":A-Za-z_\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u02FF\\u0370-\\u037D\\u037F-\\u1FFF\\u200C-\\u200D\\u2070-\\u218F\\u2C00-\\u2FEF\\u3001-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFFD";
 var nameChar = nameStartChar + "\\-.\\d\\u00B7\\u0300-\\u036F\\u203F-\\u2040";
 var nameRegexp = "[" + nameStartChar + "][" + nameChar + "]*";
@@ -36,7 +36,7 @@ var DANGEROUS_PROPERTY_NAMES = [
 ];
 var criticalProperties = ["__proto__", "constructor", "prototype"];
 
-// ../../node_modules/.bun/fast-xml-parser@5.10.1/node_modules/fast-xml-parser/src/validator.js
+// ../../node_modules/.bun/fast-xml-parser@5.11.2/node_modules/fast-xml-parser/src/validator.js
 var defaultOptions = {
   allowBooleanAttributes: false,
   unpairedTags: []
@@ -255,9 +255,60 @@ function readAttributeStr(xmlData, i) {
     tagClosed
   };
 }
-var validAttrStrRegxp = new RegExp(`(\\s*)([^\\s=]+)(\\s*=)?(\\s*(['"])(([\\s\\S])*?)\\5)?`, "g");
+function scanAttributeTokens(attrStr) {
+  const tokens = [];
+  const len = attrStr.length;
+  let i = 0;
+  while (i < len) {
+    const tokenStart = i;
+    while (i < len && isWhiteSpace(attrStr[i]))
+      i++;
+    if (i >= len)
+      break;
+    if (attrStr[i] === "=") {
+      i = tokenStart + 1;
+      continue;
+    }
+    const leadingWs = attrStr.slice(tokenStart, i);
+    const nameStart = i;
+    while (i < len && !isWhiteSpace(attrStr[i]) && attrStr[i] !== "=")
+      i++;
+    const name = attrStr.slice(nameStart, i);
+    let equalsGroup;
+    let j = i;
+    while (j < len && isWhiteSpace(attrStr[j]))
+      j++;
+    if (j < len && attrStr[j] === "=") {
+      equalsGroup = attrStr.slice(i, j + 1);
+      i = j + 1;
+    }
+    let quoteChar;
+    let value;
+    let k = i;
+    while (k < len && isWhiteSpace(attrStr[k]))
+      k++;
+    if (k < len && (attrStr[k] === '"' || attrStr[k] === "'")) {
+      const valueStart = k + 1;
+      const closeIdx = attrStr.indexOf(attrStr[k], valueStart);
+      if (closeIdx !== -1) {
+        quoteChar = attrStr[k];
+        value = attrStr.slice(valueStart, closeIdx);
+        i = closeIdx + 1;
+      }
+    }
+    const token = { startIndex: tokenStart };
+    token[1] = leadingWs;
+    token[2] = name;
+    token[3] = equalsGroup;
+    token[4] = quoteChar !== undefined ? true : undefined;
+    token[5] = quoteChar;
+    token[6] = value;
+    tokens.push(token);
+  }
+  return tokens;
+}
 function validateAttributeString(attrStr, options) {
-  const matches = getAllMatches(attrStr, validAttrStrRegxp);
+  const matches = scanAttributeTokens(attrStr);
   const attrNames = {};
   for (let i = 0;i < matches.length; i++) {
     if (matches[i][1].length === 0) {
@@ -338,7 +389,7 @@ function getPositionFromMatch(match) {
   return match.startIndex + match[1].length;
 }
 
-// ../../node_modules/.bun/@nodable+entities@3.0.0/node_modules/@nodable/entities/src/entities.js
+// ../../node_modules/.bun/@nodable+entities@3.1.0/node_modules/@nodable/entities/src/entities.js
 var CURRENCY = {
   cent: "¢",
   pound: "£",
@@ -386,7 +437,7 @@ var COMMON_HTML = {
   frac34: "¾"
 };
 
-// ../../node_modules/.bun/@nodable+entities@3.0.0/node_modules/@nodable/entities/src/EntityDecoder.js
+// ../../node_modules/.bun/@nodable+entities@3.1.0/node_modules/@nodable/entities/src/EntityDecoder.js
 var ENTITY_ACTION = Object.freeze({
   ALLOW: "allow",
   BLOCK: "block",
@@ -676,7 +727,7 @@ class EntityDecoder {
     return this._applyNCRAction(effective, token, cp);
   }
 }
-// ../../node_modules/.bun/fast-xml-parser@5.10.1/node_modules/fast-xml-parser/src/xmlparser/OptionsBuilder.js
+// ../../node_modules/.bun/fast-xml-parser@5.11.2/node_modules/fast-xml-parser/src/xmlparser/OptionsBuilder.js
 var defaultOnDangerousProperty = (name) => {
   if (DANGEROUS_PROPERTY_NAMES.includes(name)) {
     return "__" + name;
@@ -799,7 +850,7 @@ var buildOptions = function(options) {
   return built;
 };
 
-// ../../node_modules/.bun/fast-xml-parser@5.10.1/node_modules/fast-xml-parser/src/xmlparser/xmlNode.js
+// ../../node_modules/.bun/fast-xml-parser@5.11.2/node_modules/fast-xml-parser/src/xmlparser/xmlNode.js
 var METADATA_SYMBOL;
 if (typeof Symbol !== "function") {
   METADATA_SYMBOL = "@@xmlMetadata";
@@ -826,8 +877,17 @@ class XmlNode {
     } else {
       this.child.push({ [node.tagname]: node.child });
     }
+    this.addStartIndex(startIndex);
+  }
+  addStartIndex(startIndex) {
     if (startIndex !== undefined) {
       this.child[this.child.length - 1][METADATA_SYMBOL] = { startIndex };
+    }
+  }
+  addEndIndex(endIndex) {
+    const lastChild = this.child[this.child.length - 1];
+    if (lastChild !== undefined && lastChild[METADATA_SYMBOL] !== undefined && lastChild[METADATA_SYMBOL].endIndex === undefined) {
+      lastChild[METADATA_SYMBOL].endIndex = endIndex;
     }
   }
   static getMetaDataSymbol() {
@@ -864,7 +924,7 @@ var getRegexes = (xmlVersion = "1.0", asciiOnly = false) => {
 };
 var qName = (str, { xmlVersion = "1.0", asciiOnly = false } = {}) => getRegexes(xmlVersion, asciiOnly).qName.test(str);
 
-// ../../node_modules/.bun/fast-xml-parser@5.10.1/node_modules/fast-xml-parser/src/xmlparser/DocTypeReader.js
+// ../../node_modules/.bun/fast-xml-parser@5.11.2/node_modules/fast-xml-parser/src/xmlparser/DocTypeReader.js
 class DocTypeReader {
   constructor(options, xmlVersion) {
     this.suppressValidationErr = !options;
@@ -881,8 +941,20 @@ class DocTypeReader {
       i = i + 9;
       let angleBracketsCount = 1;
       let hasBody = false, comment = false;
+      let quoteChar = null;
       let exp = "";
       for (;i < xmlData.length; i++) {
+        if (quoteChar !== null) {
+          if (xmlData[i] === quoteChar)
+            quoteChar = null;
+          exp += xmlData[i];
+          continue;
+        }
+        if (!hasBody && !comment && (xmlData[i] === '"' || xmlData[i] === "'")) {
+          quoteChar = xmlData[i];
+          exp += xmlData[i];
+          continue;
+        }
         if (xmlData[i] === "<" && !comment) {
           if (hasBody && hasSeq(xmlData, "!ENTITY", i)) {
             i += 7;
@@ -929,7 +1001,7 @@ class DocTypeReader {
           exp += xmlData[i];
         }
       }
-      if (angleBracketsCount !== 0) {
+      if (quoteChar !== null || angleBracketsCount !== 0) {
         throw new Error(`Unclosed DOCTYPE`);
       }
     } else {
@@ -1310,7 +1382,7 @@ function anynum(str) {
 }
 var anynum_default = anynum;
 
-// ../../node_modules/.bun/strnum@2.4.1/node_modules/strnum/strnum.js
+// ../../node_modules/.bun/strnum@2.5.1/node_modules/strnum/strnum.js
 var hexRegex = /^[-+]?0x[a-fA-F0-9]+$/;
 var binRegex = /^0b[01]+$/;
 var octRegex = /^0o[0-7]+$/;
@@ -1348,7 +1420,10 @@ function toNumber(str, options = {}) {
   } else if (options.octal && octRegex.test(trimmedStr)) {
     return parse_int(trimmedStr, 8);
   } else if (!isFinite(trimmedStr)) {
-    return handleInfinity(str, Number(trimmedStr), options);
+    const num = Number(trimmedStr);
+    if (Number.isNaN(num))
+      return str;
+    return handleInfinity(str, num, options);
   } else if (trimmedStr.includes("e") || trimmedStr.includes("E")) {
     return resolveEnotation(str, trimmedStr, options);
   } else {
@@ -1357,7 +1432,7 @@ function toNumber(str, options = {}) {
       const sign = match[1] || "";
       const leadingZeros = match[2];
       let numTrimmedByZeros = trimZeros(match[3]);
-      const decimalAdjacentToLeadingZeros = sign ? str[leadingZeros.length + 1] === "." : str[leadingZeros.length] === ".";
+      const decimalAdjacentToLeadingZeros = sign ? trimmedStr[leadingZeros.length + 1] === "." : trimmedStr[leadingZeros.length] === ".";
       if (!options.leadingZeros && (leadingZeros.length > 1 || leadingZeros.length === 1 && !decimalAdjacentToLeadingZeros)) {
         return str;
       } else {
@@ -1401,14 +1476,13 @@ function resolveEnotation(str, trimmedStr, options) {
     let sign = notation[1] || "";
     const eChar = notation[3].indexOf("e") === -1 ? "E" : "e";
     const leadingZeros = notation[2];
-    const eAdjacentToLeadingZeros = sign ? str[leadingZeros.length + 1] === eChar : str[leadingZeros.length] === eChar;
+    const eAdjacentToLeadingZeros = sign ? trimmedStr[leadingZeros.length + 1] === eChar : trimmedStr[leadingZeros.length] === eChar;
     if (leadingZeros.length > 1 && eAdjacentToLeadingZeros)
       return str;
     else if (leadingZeros.length === 1 && (notation[3].startsWith(`.${eChar}`) || notation[3][0] === eChar)) {
       return Number(trimmedStr);
     } else if (leadingZeros.length > 0) {
       if (options.leadingZeros && !eAdjacentToLeadingZeros) {
-        trimmedStr = (notation[1] || "") + notation[3];
         return Number(trimmedStr);
       } else
         return str;
@@ -1421,7 +1495,10 @@ function resolveEnotation(str, trimmedStr, options) {
 }
 function trimZeros(numStr) {
   if (numStr && numStr.indexOf(".") !== -1) {
-    numStr = numStr.replace(/0+$/, "");
+    let end = numStr.length;
+    while (end > 0 && numStr.charCodeAt(end - 1) === 48)
+      end--;
+    numStr = numStr.slice(0, end);
     if (numStr === ".")
       numStr = "0";
     else if (numStr[0] === ".")
@@ -1460,7 +1537,7 @@ function handleInfinity(str, num, options) {
   }
 }
 
-// ../../node_modules/.bun/fast-xml-parser@5.10.1/node_modules/fast-xml-parser/src/ignoreAttributes.js
+// ../../node_modules/.bun/fast-xml-parser@5.11.2/node_modules/fast-xml-parser/src/ignoreAttributes.js
 function getIgnoreAttributesFn(ignoreAttributes) {
   if (typeof ignoreAttributes === "function") {
     return ignoreAttributes;
@@ -2713,7 +2790,7 @@ function isUnsafe(value, context) {
   return false;
 }
 
-// ../../node_modules/.bun/fast-xml-parser@5.10.1/node_modules/fast-xml-parser/src/xmlparser/OrderedObjParser.js
+// ../../node_modules/.bun/fast-xml-parser@5.11.2/node_modules/fast-xml-parser/src/xmlparser/OrderedObjParser.js
 function extractRawAttributes(prefixedAttrs, options) {
   if (!prefixedAttrs)
     return {};
@@ -2946,7 +3023,10 @@ var parseXml = function(xmlData) {
         }
         this.matcher.pop();
         this.isCurrentNodeStopNode = false;
-        currentNode = this.tagsNodeStack.pop();
+        currentNode = this.tagsNodeStack.pop() || xmlObj;
+        if (options.captureMetaData && currentNode) {
+          currentNode.addEndIndex(closeIndex + 1);
+        }
         textData = "";
         i = closeIndex;
       } else if (c1 === 63) {
@@ -2967,6 +3047,9 @@ var parseXml = function(xmlData) {
             childNode[":@"] = attsMap;
           }
           this.addChild(currentNode, childNode, this.readonlyMatcher, i);
+          if (options.captureMetaData) {
+            currentNode.addEndIndex(tagData.closeIndex + 2);
+          }
         }
         i = tagData.closeIndex + 1;
       } else if (c1 === 33 && xmlData.charCodeAt(i + 2) === 45 && xmlData.charCodeAt(i + 3) === 45) {
@@ -3071,6 +3154,9 @@ var parseXml = function(xmlData) {
           this.matcher.pop();
           this.isCurrentNodeStopNode = false;
           this.addChild(currentNode, childNode, this.readonlyMatcher, startIndex);
+          if (options.captureMetaData) {
+            currentNode.addEndIndex(i + 1);
+          }
         } else {
           if (isSelfClosing) {
             ({ tagName, tagExp } = transformTagName(options.transformTagName, tagName, tagExp, options));
@@ -3079,6 +3165,9 @@ var parseXml = function(xmlData) {
               childNode[":@"] = prefixedAttrs;
             }
             this.addChild(currentNode, childNode, this.readonlyMatcher, startIndex);
+            if (options.captureMetaData) {
+              currentNode.addEndIndex(closeIndex + 1);
+            }
             this.matcher.pop();
             this.isCurrentNodeStopNode = false;
           } else if (options.unpairedTagsSet.has(tagName)) {
@@ -3087,6 +3176,9 @@ var parseXml = function(xmlData) {
               childNode[":@"] = prefixedAttrs;
             }
             this.addChild(currentNode, childNode, this.readonlyMatcher, startIndex);
+            if (options.captureMetaData) {
+              currentNode.addEndIndex(result.closeIndex + 1);
+            }
             this.matcher.pop();
             this.isCurrentNodeStopNode = false;
             i = result.closeIndex;
@@ -3313,7 +3405,7 @@ function sanitizeName(name, options) {
   return name;
 }
 
-// ../../node_modules/.bun/fast-xml-parser@5.10.1/node_modules/fast-xml-parser/src/xmlparser/node2json.js
+// ../../node_modules/.bun/fast-xml-parser@5.11.2/node_modules/fast-xml-parser/src/xmlparser/node2json.js
 var METADATA_SYMBOL2 = XmlNode.getMetaDataSymbol();
 function stripAttributePrefix(attrs, prefix) {
   if (!attrs || typeof attrs !== "object")
@@ -3431,7 +3523,7 @@ function isLeafTag(obj, options) {
   return false;
 }
 
-// ../../node_modules/.bun/fast-xml-parser@5.10.1/node_modules/fast-xml-parser/src/xmlparser/XMLParser.js
+// ../../node_modules/.bun/fast-xml-parser@5.11.2/node_modules/fast-xml-parser/src/xmlparser/XMLParser.js
 class XMLParser {
   constructor(options) {
     this.externalEntities = {};
@@ -3439,7 +3531,11 @@ class XMLParser {
   }
   parse(xmlData, validationOption) {
     if (typeof xmlData !== "string" && xmlData.toString) {
-      xmlData = xmlData.toString();
+      if (xmlData instanceof Uint8Array && !(typeof Buffer !== "undefined" && Buffer.isBuffer(xmlData))) {
+        xmlData = new TextDecoder("utf-8", { ignoreBOM: true }).decode(xmlData);
+      } else {
+        xmlData = xmlData.toString();
+      }
     } else if (typeof xmlData !== "string") {
       throw new Error("XML data is accepted in String or Bytes[] form.");
     }

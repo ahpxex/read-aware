@@ -3,10 +3,10 @@ name = "read-aware-desktop"
 version = "0.1.0"
 description = "ReadAware desktop shell"
 edition = "2021"
-# The locked dependency graph needs 1.88 (image 0.25.10, time 0.3.47, plist
-# 1.9, darling 0.23); our own code needs 1.82 (Option::is_none_or, LazyLock).
+# The locked dependency graph needs 1.90 (tauri 2.12 and its plugins, muda
+# 0.20); our own code needs 1.82 (Option::is_none_or, LazyLock).
 # Re-derive after a lockfile bump: the max `rust_version` in `cargo metadata`.
-rust-version = "1.88"
+rust-version = "1.90"
 
 [lib]
 # The `_lib` suffix avoids a name collision with the binary on Windows.

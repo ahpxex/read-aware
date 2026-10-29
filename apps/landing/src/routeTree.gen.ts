@@ -9,173 +9,138 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as OpenSourceEbookReaderRouteImport } from './routes/open-source-ebook-reader'
-import { Route as EpubReaderForWindowsRouteImport } from './routes/epub-reader-for-windows'
-import { Route as EpubReaderForAndroidRouteImport } from './routes/epub-reader-for-android'
-import { Route as DocsRouteImport } from './routes/docs'
-import { Route as ChangelogRouteImport } from './routes/changelog'
-import { Route as CbzCbrReaderRouteImport } from './routes/cbz-cbr-reader'
-import { Route as BlogRouteImport } from './routes/blog'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ZhIndexRouteImport } from './routes/zh/index'
-import { Route as ZhHantIndexRouteImport } from './routes/zh-hant/index'
-import { Route as RuIndexRouteImport } from './routes/ru/index'
-import { Route as JaIndexRouteImport } from './routes/ja/index'
-import { Route as FrIndexRouteImport } from './routes/fr/index'
-import { Route as EsIndexRouteImport } from './routes/es/index'
-import { Route as DocsIndexRouteImport } from './routes/docs/index'
-import { Route as DeIndexRouteImport } from './routes/de/index'
+import { Route as BlogRouteImport } from './routes/blog'
+import { Route as CbzCbrReaderRouteImport } from './routes/cbz-cbr-reader'
+import { Route as ChangelogRouteImport } from './routes/changelog'
+import { Route as DocsRouteImport } from './routes/docs'
+import { Route as EpubReaderForAndroidRouteImport } from './routes/epub-reader-for-android'
+import { Route as EpubReaderForWindowsRouteImport } from './routes/epub-reader-for-windows'
+import { Route as OpenSourceEbookReaderRouteImport } from './routes/open-source-ebook-reader'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
-import { Route as ZhPrivacyRouteImport } from './routes/zh/privacy'
-import { Route as ZhPricingRouteImport } from './routes/zh/pricing'
-import { Route as ZhEpubReaderForWindowsRouteImport } from './routes/zh/epub-reader-for-windows'
-import { Route as ZhEpubReaderForAndroidRouteImport } from './routes/zh/epub-reader-for-android'
-import { Route as ZhDocsRouteImport } from './routes/zh/docs'
-import { Route as ZhChangelogRouteImport } from './routes/zh/changelog'
-import { Route as ZhBlogRouteImport } from './routes/zh/blog'
-import { Route as ZhHantPrivacyRouteImport } from './routes/zh-hant/privacy'
-import { Route as ZhHantPricingRouteImport } from './routes/zh-hant/pricing'
-import { Route as ZhHantDocsRouteImport } from './routes/zh-hant/docs'
-import { Route as ZhHantChangelogRouteImport } from './routes/zh-hant/changelog'
-import { Route as RuPrivacyRouteImport } from './routes/ru/privacy'
-import { Route as RuPricingRouteImport } from './routes/ru/pricing'
-import { Route as RuDocsRouteImport } from './routes/ru/docs'
-import { Route as RuChangelogRouteImport } from './routes/ru/changelog'
-import { Route as JaPrivacyRouteImport } from './routes/ja/privacy'
-import { Route as JaPricingRouteImport } from './routes/ja/pricing'
-import { Route as JaDocsRouteImport } from './routes/ja/docs'
-import { Route as JaChangelogRouteImport } from './routes/ja/changelog'
-import { Route as JaBlogRouteImport } from './routes/ja/blog'
-import { Route as FrPrivacyRouteImport } from './routes/fr/privacy'
-import { Route as FrPricingRouteImport } from './routes/fr/pricing'
-import { Route as FrDocsRouteImport } from './routes/fr/docs'
-import { Route as FrChangelogRouteImport } from './routes/fr/changelog'
-import { Route as EsPrivacyRouteImport } from './routes/es/privacy'
-import { Route as EsPricingRouteImport } from './routes/es/pricing'
-import { Route as EsDocsRouteImport } from './routes/es/docs'
-import { Route as EsChangelogRouteImport } from './routes/es/changelog'
-import { Route as DocsInstallRouteImport } from './routes/docs/install'
-import { Route as DocsGettingStartedRouteImport } from './routes/docs/getting-started'
-import { Route as DePrivacyRouteImport } from './routes/de/privacy'
-import { Route as DePricingRouteImport } from './routes/de/pricing'
-import { Route as DeDocsRouteImport } from './routes/de/docs'
-import { Route as DeChangelogRouteImport } from './routes/de/changelog'
-import { Route as BlogReadingThatRemembersRouteImport } from './routes/blog/reading-that-remembers'
-import { Route as BlogPluginsV1RouteImport } from './routes/blog/plugins-v1'
-import { Route as BlogLocalFirstRouteImport } from './routes/blog/local-first'
 import { Route as BlogLakeBaikalRouteImport } from './routes/blog/lake-baikal'
-import { Route as ZhDocsIndexRouteImport } from './routes/zh/docs/index'
-import { Route as ZhBlogIndexRouteImport } from './routes/zh/blog/index'
-import { Route as ZhHantDocsIndexRouteImport } from './routes/zh-hant/docs/index'
-import { Route as RuDocsIndexRouteImport } from './routes/ru/docs/index'
-import { Route as JaDocsIndexRouteImport } from './routes/ja/docs/index'
-import { Route as JaBlogIndexRouteImport } from './routes/ja/blog/index'
-import { Route as FrDocsIndexRouteImport } from './routes/fr/docs/index'
-import { Route as EsDocsIndexRouteImport } from './routes/es/docs/index'
-import { Route as DocsPluginsIndexRouteImport } from './routes/docs/plugins/index'
+import { Route as BlogLocalFirstRouteImport } from './routes/blog/local-first'
+import { Route as BlogPluginsV1RouteImport } from './routes/blog/plugins-v1'
+import { Route as BlogReadingThatRemembersRouteImport } from './routes/blog/reading-that-remembers'
+import { Route as DeIndexRouteImport } from './routes/de/index'
+import { Route as DeChangelogRouteImport } from './routes/de/changelog'
+import { Route as DeDocsRouteImport } from './routes/de/docs'
+import { Route as DePricingRouteImport } from './routes/de/pricing'
+import { Route as DePrivacyRouteImport } from './routes/de/privacy'
+import { Route as DocsIndexRouteImport } from './routes/docs/index'
+import { Route as DocsGettingStartedRouteImport } from './routes/docs/getting-started'
+import { Route as DocsInstallRouteImport } from './routes/docs/install'
+import { Route as EsIndexRouteImport } from './routes/es/index'
+import { Route as EsChangelogRouteImport } from './routes/es/changelog'
+import { Route as EsDocsRouteImport } from './routes/es/docs'
+import { Route as EsPricingRouteImport } from './routes/es/pricing'
+import { Route as EsPrivacyRouteImport } from './routes/es/privacy'
+import { Route as FrIndexRouteImport } from './routes/fr/index'
+import { Route as FrChangelogRouteImport } from './routes/fr/changelog'
+import { Route as FrDocsRouteImport } from './routes/fr/docs'
+import { Route as FrPricingRouteImport } from './routes/fr/pricing'
+import { Route as FrPrivacyRouteImport } from './routes/fr/privacy'
+import { Route as JaIndexRouteImport } from './routes/ja/index'
+import { Route as JaBlogRouteImport } from './routes/ja/blog'
+import { Route as JaChangelogRouteImport } from './routes/ja/changelog'
+import { Route as JaDocsRouteImport } from './routes/ja/docs'
+import { Route as JaPricingRouteImport } from './routes/ja/pricing'
+import { Route as JaPrivacyRouteImport } from './routes/ja/privacy'
+import { Route as RuIndexRouteImport } from './routes/ru/index'
+import { Route as RuChangelogRouteImport } from './routes/ru/changelog'
+import { Route as RuDocsRouteImport } from './routes/ru/docs'
+import { Route as RuPricingRouteImport } from './routes/ru/pricing'
+import { Route as RuPrivacyRouteImport } from './routes/ru/privacy'
+import { Route as ZhHantIndexRouteImport } from './routes/zh-hant/index'
+import { Route as ZhHantChangelogRouteImport } from './routes/zh-hant/changelog'
+import { Route as ZhHantDocsRouteImport } from './routes/zh-hant/docs'
+import { Route as ZhHantPricingRouteImport } from './routes/zh-hant/pricing'
+import { Route as ZhHantPrivacyRouteImport } from './routes/zh-hant/privacy'
+import { Route as ZhIndexRouteImport } from './routes/zh/index'
+import { Route as ZhBlogRouteImport } from './routes/zh/blog'
+import { Route as ZhChangelogRouteImport } from './routes/zh/changelog'
+import { Route as ZhDocsRouteImport } from './routes/zh/docs'
+import { Route as ZhEpubReaderForAndroidRouteImport } from './routes/zh/epub-reader-for-android'
+import { Route as ZhEpubReaderForWindowsRouteImport } from './routes/zh/epub-reader-for-windows'
+import { Route as ZhPricingRouteImport } from './routes/zh/pricing'
+import { Route as ZhPrivacyRouteImport } from './routes/zh/privacy'
 import { Route as DeDocsIndexRouteImport } from './routes/de/docs/index'
-import { Route as ZhDocsInstallRouteImport } from './routes/zh/docs/install'
-import { Route as ZhDocsGettingStartedRouteImport } from './routes/zh/docs/getting-started'
-import { Route as ZhBlogReadingThatRemembersRouteImport } from './routes/zh/blog/reading-that-remembers'
-import { Route as ZhBlogPluginsV1RouteImport } from './routes/zh/blog/plugins-v1'
-import { Route as ZhBlogLocalFirstRouteImport } from './routes/zh/blog/local-first'
-import { Route as ZhBlogLakeBaikalRouteImport } from './routes/zh/blog/lake-baikal'
-import { Route as ZhHantDocsInstallRouteImport } from './routes/zh-hant/docs/install'
-import { Route as ZhHantDocsGettingStartedRouteImport } from './routes/zh-hant/docs/getting-started'
-import { Route as RuDocsInstallRouteImport } from './routes/ru/docs/install'
-import { Route as RuDocsGettingStartedRouteImport } from './routes/ru/docs/getting-started'
-import { Route as JaDocsInstallRouteImport } from './routes/ja/docs/install'
-import { Route as JaDocsGettingStartedRouteImport } from './routes/ja/docs/getting-started'
-import { Route as JaBlogReadingThatRemembersRouteImport } from './routes/ja/blog/reading-that-remembers'
-import { Route as JaBlogPluginsV1RouteImport } from './routes/ja/blog/plugins-v1'
-import { Route as JaBlogLocalFirstRouteImport } from './routes/ja/blog/local-first'
-import { Route as JaBlogLakeBaikalRouteImport } from './routes/ja/blog/lake-baikal'
-import { Route as FrDocsInstallRouteImport } from './routes/fr/docs/install'
-import { Route as FrDocsGettingStartedRouteImport } from './routes/fr/docs/getting-started'
-import { Route as EsDocsInstallRouteImport } from './routes/es/docs/install'
-import { Route as EsDocsGettingStartedRouteImport } from './routes/es/docs/getting-started'
-import { Route as DocsPluginsPublishingRouteImport } from './routes/docs/plugins/publishing'
-import { Route as DocsPluginsDevelopRouteImport } from './routes/docs/plugins/develop'
-import { Route as DocsPluginsCapabilitiesRouteImport } from './routes/docs/plugins/capabilities'
-import { Route as DocsPluginsApiRouteImport } from './routes/docs/plugins/api'
-import { Route as DeDocsInstallRouteImport } from './routes/de/docs/install'
 import { Route as DeDocsGettingStartedRouteImport } from './routes/de/docs/getting-started'
-import { Route as ZhDocsPluginsIndexRouteImport } from './routes/zh/docs/plugins/index'
-import { Route as ZhHantDocsPluginsIndexRouteImport } from './routes/zh-hant/docs/plugins/index'
-import { Route as RuDocsPluginsIndexRouteImport } from './routes/ru/docs/plugins/index'
-import { Route as JaDocsPluginsIndexRouteImport } from './routes/ja/docs/plugins/index'
-import { Route as FrDocsPluginsIndexRouteImport } from './routes/fr/docs/plugins/index'
-import { Route as EsDocsPluginsIndexRouteImport } from './routes/es/docs/plugins/index'
+import { Route as DeDocsInstallRouteImport } from './routes/de/docs/install'
+import { Route as DocsPluginsIndexRouteImport } from './routes/docs/plugins/index'
+import { Route as DocsPluginsApiRouteImport } from './routes/docs/plugins/api'
+import { Route as DocsPluginsCapabilitiesRouteImport } from './routes/docs/plugins/capabilities'
+import { Route as DocsPluginsDevelopRouteImport } from './routes/docs/plugins/develop'
+import { Route as DocsPluginsPublishingRouteImport } from './routes/docs/plugins/publishing'
+import { Route as EsDocsIndexRouteImport } from './routes/es/docs/index'
+import { Route as EsDocsGettingStartedRouteImport } from './routes/es/docs/getting-started'
+import { Route as EsDocsInstallRouteImport } from './routes/es/docs/install'
+import { Route as FrDocsIndexRouteImport } from './routes/fr/docs/index'
+import { Route as FrDocsGettingStartedRouteImport } from './routes/fr/docs/getting-started'
+import { Route as FrDocsInstallRouteImport } from './routes/fr/docs/install'
+import { Route as JaBlogIndexRouteImport } from './routes/ja/blog/index'
+import { Route as JaBlogLakeBaikalRouteImport } from './routes/ja/blog/lake-baikal'
+import { Route as JaBlogLocalFirstRouteImport } from './routes/ja/blog/local-first'
+import { Route as JaBlogPluginsV1RouteImport } from './routes/ja/blog/plugins-v1'
+import { Route as JaBlogReadingThatRemembersRouteImport } from './routes/ja/blog/reading-that-remembers'
+import { Route as JaDocsIndexRouteImport } from './routes/ja/docs/index'
+import { Route as JaDocsGettingStartedRouteImport } from './routes/ja/docs/getting-started'
+import { Route as JaDocsInstallRouteImport } from './routes/ja/docs/install'
+import { Route as RuDocsIndexRouteImport } from './routes/ru/docs/index'
+import { Route as RuDocsGettingStartedRouteImport } from './routes/ru/docs/getting-started'
+import { Route as RuDocsInstallRouteImport } from './routes/ru/docs/install'
+import { Route as ZhHantDocsIndexRouteImport } from './routes/zh-hant/docs/index'
+import { Route as ZhHantDocsGettingStartedRouteImport } from './routes/zh-hant/docs/getting-started'
+import { Route as ZhHantDocsInstallRouteImport } from './routes/zh-hant/docs/install'
+import { Route as ZhBlogIndexRouteImport } from './routes/zh/blog/index'
+import { Route as ZhBlogLakeBaikalRouteImport } from './routes/zh/blog/lake-baikal'
+import { Route as ZhBlogLocalFirstRouteImport } from './routes/zh/blog/local-first'
+import { Route as ZhBlogPluginsV1RouteImport } from './routes/zh/blog/plugins-v1'
+import { Route as ZhBlogReadingThatRemembersRouteImport } from './routes/zh/blog/reading-that-remembers'
+import { Route as ZhDocsIndexRouteImport } from './routes/zh/docs/index'
+import { Route as ZhDocsGettingStartedRouteImport } from './routes/zh/docs/getting-started'
+import { Route as ZhDocsInstallRouteImport } from './routes/zh/docs/install'
 import { Route as DeDocsPluginsIndexRouteImport } from './routes/de/docs/plugins/index'
-import { Route as ZhDocsPluginsPublishingRouteImport } from './routes/zh/docs/plugins/publishing'
-import { Route as ZhDocsPluginsDevelopRouteImport } from './routes/zh/docs/plugins/develop'
-import { Route as ZhDocsPluginsCapabilitiesRouteImport } from './routes/zh/docs/plugins/capabilities'
-import { Route as ZhDocsPluginsApiRouteImport } from './routes/zh/docs/plugins/api'
-import { Route as ZhHantDocsPluginsPublishingRouteImport } from './routes/zh-hant/docs/plugins/publishing'
-import { Route as ZhHantDocsPluginsDevelopRouteImport } from './routes/zh-hant/docs/plugins/develop'
-import { Route as ZhHantDocsPluginsCapabilitiesRouteImport } from './routes/zh-hant/docs/plugins/capabilities'
-import { Route as ZhHantDocsPluginsApiRouteImport } from './routes/zh-hant/docs/plugins/api'
-import { Route as RuDocsPluginsPublishingRouteImport } from './routes/ru/docs/plugins/publishing'
-import { Route as RuDocsPluginsDevelopRouteImport } from './routes/ru/docs/plugins/develop'
-import { Route as RuDocsPluginsCapabilitiesRouteImport } from './routes/ru/docs/plugins/capabilities'
-import { Route as RuDocsPluginsApiRouteImport } from './routes/ru/docs/plugins/api'
-import { Route as JaDocsPluginsPublishingRouteImport } from './routes/ja/docs/plugins/publishing'
-import { Route as JaDocsPluginsDevelopRouteImport } from './routes/ja/docs/plugins/develop'
-import { Route as JaDocsPluginsCapabilitiesRouteImport } from './routes/ja/docs/plugins/capabilities'
-import { Route as JaDocsPluginsApiRouteImport } from './routes/ja/docs/plugins/api'
-import { Route as FrDocsPluginsPublishingRouteImport } from './routes/fr/docs/plugins/publishing'
-import { Route as FrDocsPluginsDevelopRouteImport } from './routes/fr/docs/plugins/develop'
-import { Route as FrDocsPluginsCapabilitiesRouteImport } from './routes/fr/docs/plugins/capabilities'
-import { Route as FrDocsPluginsApiRouteImport } from './routes/fr/docs/plugins/api'
-import { Route as EsDocsPluginsPublishingRouteImport } from './routes/es/docs/plugins/publishing'
-import { Route as EsDocsPluginsDevelopRouteImport } from './routes/es/docs/plugins/develop'
-import { Route as EsDocsPluginsCapabilitiesRouteImport } from './routes/es/docs/plugins/capabilities'
-import { Route as EsDocsPluginsApiRouteImport } from './routes/es/docs/plugins/api'
-import { Route as DeDocsPluginsPublishingRouteImport } from './routes/de/docs/plugins/publishing'
-import { Route as DeDocsPluginsDevelopRouteImport } from './routes/de/docs/plugins/develop'
-import { Route as DeDocsPluginsCapabilitiesRouteImport } from './routes/de/docs/plugins/capabilities'
 import { Route as DeDocsPluginsApiRouteImport } from './routes/de/docs/plugins/api'
+import { Route as DeDocsPluginsCapabilitiesRouteImport } from './routes/de/docs/plugins/capabilities'
+import { Route as DeDocsPluginsDevelopRouteImport } from './routes/de/docs/plugins/develop'
+import { Route as DeDocsPluginsPublishingRouteImport } from './routes/de/docs/plugins/publishing'
+import { Route as EsDocsPluginsIndexRouteImport } from './routes/es/docs/plugins/index'
+import { Route as EsDocsPluginsApiRouteImport } from './routes/es/docs/plugins/api'
+import { Route as EsDocsPluginsCapabilitiesRouteImport } from './routes/es/docs/plugins/capabilities'
+import { Route as EsDocsPluginsDevelopRouteImport } from './routes/es/docs/plugins/develop'
+import { Route as EsDocsPluginsPublishingRouteImport } from './routes/es/docs/plugins/publishing'
+import { Route as FrDocsPluginsIndexRouteImport } from './routes/fr/docs/plugins/index'
+import { Route as FrDocsPluginsApiRouteImport } from './routes/fr/docs/plugins/api'
+import { Route as FrDocsPluginsCapabilitiesRouteImport } from './routes/fr/docs/plugins/capabilities'
+import { Route as FrDocsPluginsDevelopRouteImport } from './routes/fr/docs/plugins/develop'
+import { Route as FrDocsPluginsPublishingRouteImport } from './routes/fr/docs/plugins/publishing'
+import { Route as JaDocsPluginsIndexRouteImport } from './routes/ja/docs/plugins/index'
+import { Route as JaDocsPluginsApiRouteImport } from './routes/ja/docs/plugins/api'
+import { Route as JaDocsPluginsCapabilitiesRouteImport } from './routes/ja/docs/plugins/capabilities'
+import { Route as JaDocsPluginsDevelopRouteImport } from './routes/ja/docs/plugins/develop'
+import { Route as JaDocsPluginsPublishingRouteImport } from './routes/ja/docs/plugins/publishing'
+import { Route as RuDocsPluginsIndexRouteImport } from './routes/ru/docs/plugins/index'
+import { Route as RuDocsPluginsApiRouteImport } from './routes/ru/docs/plugins/api'
+import { Route as RuDocsPluginsCapabilitiesRouteImport } from './routes/ru/docs/plugins/capabilities'
+import { Route as RuDocsPluginsDevelopRouteImport } from './routes/ru/docs/plugins/develop'
+import { Route as RuDocsPluginsPublishingRouteImport } from './routes/ru/docs/plugins/publishing'
+import { Route as ZhHantDocsPluginsIndexRouteImport } from './routes/zh-hant/docs/plugins/index'
+import { Route as ZhHantDocsPluginsApiRouteImport } from './routes/zh-hant/docs/plugins/api'
+import { Route as ZhHantDocsPluginsCapabilitiesRouteImport } from './routes/zh-hant/docs/plugins/capabilities'
+import { Route as ZhHantDocsPluginsDevelopRouteImport } from './routes/zh-hant/docs/plugins/develop'
+import { Route as ZhHantDocsPluginsPublishingRouteImport } from './routes/zh-hant/docs/plugins/publishing'
+import { Route as ZhDocsPluginsIndexRouteImport } from './routes/zh/docs/plugins/index'
+import { Route as ZhDocsPluginsApiRouteImport } from './routes/zh/docs/plugins/api'
+import { Route as ZhDocsPluginsCapabilitiesRouteImport } from './routes/zh/docs/plugins/capabilities'
+import { Route as ZhDocsPluginsDevelopRouteImport } from './routes/zh/docs/plugins/develop'
+import { Route as ZhDocsPluginsPublishingRouteImport } from './routes/zh/docs/plugins/publishing'
 
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OpenSourceEbookReaderRoute = OpenSourceEbookReaderRouteImport.update({
-  id: '/open-source-ebook-reader',
-  path: '/open-source-ebook-reader',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EpubReaderForWindowsRoute = EpubReaderForWindowsRouteImport.update({
-  id: '/epub-reader-for-windows',
-  path: '/epub-reader-for-windows',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EpubReaderForAndroidRoute = EpubReaderForAndroidRouteImport.update({
-  id: '/epub-reader-for-android',
-  path: '/epub-reader-for-android',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsRoute = DocsRouteImport.update({
-  id: '/docs',
-  path: '/docs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChangelogRoute = ChangelogRouteImport.update({
-  id: '/changelog',
-  path: '/changelog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbzCbrReaderRoute = CbzCbrReaderRouteImport.update({
-  id: '/cbz-cbr-reader',
-  path: '/cbz-cbr-reader',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogRoute = BlogRouteImport.update({
@@ -183,49 +148,44 @@ const BlogRoute = BlogRouteImport.update({
   path: '/blog',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const CbzCbrReaderRoute = CbzCbrReaderRouteImport.update({
+  id: '/cbz-cbr-reader',
+  path: '/cbz-cbr-reader',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ZhIndexRoute = ZhIndexRouteImport.update({
-  id: '/zh/',
-  path: '/zh/',
+const ChangelogRoute = ChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ZhHantIndexRoute = ZhHantIndexRouteImport.update({
-  id: '/zh-hant/',
-  path: '/zh-hant/',
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RuIndexRoute = RuIndexRouteImport.update({
-  id: '/ru/',
-  path: '/ru/',
+const EpubReaderForAndroidRoute = EpubReaderForAndroidRouteImport.update({
+  id: '/epub-reader-for-android',
+  path: '/epub-reader-for-android',
   getParentRoute: () => rootRouteImport,
 } as any)
-const JaIndexRoute = JaIndexRouteImport.update({
-  id: '/ja/',
-  path: '/ja/',
+const EpubReaderForWindowsRoute = EpubReaderForWindowsRouteImport.update({
+  id: '/epub-reader-for-windows',
+  path: '/epub-reader-for-windows',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FrIndexRoute = FrIndexRouteImport.update({
-  id: '/fr/',
-  path: '/fr/',
+const OpenSourceEbookReaderRoute = OpenSourceEbookReaderRouteImport.update({
+  id: '/open-source-ebook-reader',
+  path: '/open-source-ebook-reader',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EsIndexRoute = EsIndexRouteImport.update({
-  id: '/es/',
-  path: '/es/',
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DocsIndexRoute = DocsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => DocsRoute,
-} as any)
-const DeIndexRoute = DeIndexRouteImport.update({
-  id: '/de/',
-  path: '/de/',
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
@@ -233,185 +193,9 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
   path: '/',
   getParentRoute: () => BlogRoute,
 } as any)
-const ZhPrivacyRoute = ZhPrivacyRouteImport.update({
-  id: '/zh/privacy',
-  path: '/zh/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ZhPricingRoute = ZhPricingRouteImport.update({
-  id: '/zh/pricing',
-  path: '/zh/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ZhEpubReaderForWindowsRoute = ZhEpubReaderForWindowsRouteImport.update({
-  id: '/zh/epub-reader-for-windows',
-  path: '/zh/epub-reader-for-windows',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ZhEpubReaderForAndroidRoute = ZhEpubReaderForAndroidRouteImport.update({
-  id: '/zh/epub-reader-for-android',
-  path: '/zh/epub-reader-for-android',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ZhDocsRoute = ZhDocsRouteImport.update({
-  id: '/zh/docs',
-  path: '/zh/docs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ZhChangelogRoute = ZhChangelogRouteImport.update({
-  id: '/zh/changelog',
-  path: '/zh/changelog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ZhBlogRoute = ZhBlogRouteImport.update({
-  id: '/zh/blog',
-  path: '/zh/blog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ZhHantPrivacyRoute = ZhHantPrivacyRouteImport.update({
-  id: '/zh-hant/privacy',
-  path: '/zh-hant/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ZhHantPricingRoute = ZhHantPricingRouteImport.update({
-  id: '/zh-hant/pricing',
-  path: '/zh-hant/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ZhHantDocsRoute = ZhHantDocsRouteImport.update({
-  id: '/zh-hant/docs',
-  path: '/zh-hant/docs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ZhHantChangelogRoute = ZhHantChangelogRouteImport.update({
-  id: '/zh-hant/changelog',
-  path: '/zh-hant/changelog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RuPrivacyRoute = RuPrivacyRouteImport.update({
-  id: '/ru/privacy',
-  path: '/ru/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RuPricingRoute = RuPricingRouteImport.update({
-  id: '/ru/pricing',
-  path: '/ru/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RuDocsRoute = RuDocsRouteImport.update({
-  id: '/ru/docs',
-  path: '/ru/docs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RuChangelogRoute = RuChangelogRouteImport.update({
-  id: '/ru/changelog',
-  path: '/ru/changelog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JaPrivacyRoute = JaPrivacyRouteImport.update({
-  id: '/ja/privacy',
-  path: '/ja/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JaPricingRoute = JaPricingRouteImport.update({
-  id: '/ja/pricing',
-  path: '/ja/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JaDocsRoute = JaDocsRouteImport.update({
-  id: '/ja/docs',
-  path: '/ja/docs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JaChangelogRoute = JaChangelogRouteImport.update({
-  id: '/ja/changelog',
-  path: '/ja/changelog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JaBlogRoute = JaBlogRouteImport.update({
-  id: '/ja/blog',
-  path: '/ja/blog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FrPrivacyRoute = FrPrivacyRouteImport.update({
-  id: '/fr/privacy',
-  path: '/fr/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FrPricingRoute = FrPricingRouteImport.update({
-  id: '/fr/pricing',
-  path: '/fr/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FrDocsRoute = FrDocsRouteImport.update({
-  id: '/fr/docs',
-  path: '/fr/docs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FrChangelogRoute = FrChangelogRouteImport.update({
-  id: '/fr/changelog',
-  path: '/fr/changelog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EsPrivacyRoute = EsPrivacyRouteImport.update({
-  id: '/es/privacy',
-  path: '/es/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EsPricingRoute = EsPricingRouteImport.update({
-  id: '/es/pricing',
-  path: '/es/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EsDocsRoute = EsDocsRouteImport.update({
-  id: '/es/docs',
-  path: '/es/docs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EsChangelogRoute = EsChangelogRouteImport.update({
-  id: '/es/changelog',
-  path: '/es/changelog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsInstallRoute = DocsInstallRouteImport.update({
-  id: '/install',
-  path: '/install',
-  getParentRoute: () => DocsRoute,
-} as any)
-const DocsGettingStartedRoute = DocsGettingStartedRouteImport.update({
-  id: '/getting-started',
-  path: '/getting-started',
-  getParentRoute: () => DocsRoute,
-} as any)
-const DePrivacyRoute = DePrivacyRouteImport.update({
-  id: '/de/privacy',
-  path: '/de/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DePricingRoute = DePricingRouteImport.update({
-  id: '/de/pricing',
-  path: '/de/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DeDocsRoute = DeDocsRouteImport.update({
-  id: '/de/docs',
-  path: '/de/docs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DeChangelogRoute = DeChangelogRouteImport.update({
-  id: '/de/changelog',
-  path: '/de/changelog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BlogReadingThatRemembersRoute =
-  BlogReadingThatRemembersRouteImport.update({
-    id: '/reading-that-remembers',
-    path: '/reading-that-remembers',
-    getParentRoute: () => BlogRoute,
-  } as any)
-const BlogPluginsV1Route = BlogPluginsV1RouteImport.update({
-  id: '/plugins-v1',
-  path: '/plugins-v1',
+const BlogLakeBaikalRoute = BlogLakeBaikalRouteImport.update({
+  id: '/lake-baikal',
+  path: '/lake-baikal',
   getParentRoute: () => BlogRoute,
 } as any)
 const BlogLocalFirstRoute = BlogLocalFirstRouteImport.update({
@@ -419,95 +203,356 @@ const BlogLocalFirstRoute = BlogLocalFirstRouteImport.update({
   path: '/local-first',
   getParentRoute: () => BlogRoute,
 } as any)
-const BlogLakeBaikalRoute = BlogLakeBaikalRouteImport.update({
-  id: '/lake-baikal',
-  path: '/lake-baikal',
+const BlogPluginsV1Route = BlogPluginsV1RouteImport.update({
+  id: '/plugins-v1',
+  path: '/plugins-v1',
   getParentRoute: () => BlogRoute,
 } as any)
-const ZhDocsIndexRoute = ZhDocsIndexRouteImport.update({
+const BlogReadingThatRemembersRoute =
+  BlogReadingThatRemembersRouteImport.update({
+    id: '/reading-that-remembers',
+    path: '/reading-that-remembers',
+    getParentRoute: () => BlogRoute,
+  } as any)
+const DeIndexRoute = DeIndexRouteImport.update({
+  id: '/de/',
+  path: '/de/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeChangelogRoute = DeChangelogRouteImport.update({
+  id: '/de/changelog',
+  path: '/de/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeDocsRoute = DeDocsRouteImport.update({
+  id: '/de/docs',
+  path: '/de/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DePricingRoute = DePricingRouteImport.update({
+  id: '/de/pricing',
+  path: '/de/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DePrivacyRoute = DePrivacyRouteImport.update({
+  id: '/de/privacy',
+  path: '/de/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsIndexRoute = DocsIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => ZhDocsRoute,
-} as any)
-const ZhBlogIndexRoute = ZhBlogIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ZhBlogRoute,
-} as any)
-const ZhHantDocsIndexRoute = ZhHantDocsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ZhHantDocsRoute,
-} as any)
-const RuDocsIndexRoute = RuDocsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => RuDocsRoute,
-} as any)
-const JaDocsIndexRoute = JaDocsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => JaDocsRoute,
-} as any)
-const JaBlogIndexRoute = JaBlogIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => JaBlogRoute,
-} as any)
-const FrDocsIndexRoute = FrDocsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => FrDocsRoute,
-} as any)
-const EsDocsIndexRoute = EsDocsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => EsDocsRoute,
-} as any)
-const DocsPluginsIndexRoute = DocsPluginsIndexRouteImport.update({
-  id: '/plugins/',
-  path: '/plugins/',
   getParentRoute: () => DocsRoute,
+} as any)
+const DocsGettingStartedRoute = DocsGettingStartedRouteImport.update({
+  id: '/getting-started',
+  path: '/getting-started',
+  getParentRoute: () => DocsRoute,
+} as any)
+const DocsInstallRoute = DocsInstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => DocsRoute,
+} as any)
+const EsIndexRoute = EsIndexRouteImport.update({
+  id: '/es/',
+  path: '/es/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EsChangelogRoute = EsChangelogRouteImport.update({
+  id: '/es/changelog',
+  path: '/es/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EsDocsRoute = EsDocsRouteImport.update({
+  id: '/es/docs',
+  path: '/es/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EsPricingRoute = EsPricingRouteImport.update({
+  id: '/es/pricing',
+  path: '/es/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EsPrivacyRoute = EsPrivacyRouteImport.update({
+  id: '/es/privacy',
+  path: '/es/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FrIndexRoute = FrIndexRouteImport.update({
+  id: '/fr/',
+  path: '/fr/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FrChangelogRoute = FrChangelogRouteImport.update({
+  id: '/fr/changelog',
+  path: '/fr/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FrDocsRoute = FrDocsRouteImport.update({
+  id: '/fr/docs',
+  path: '/fr/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FrPricingRoute = FrPricingRouteImport.update({
+  id: '/fr/pricing',
+  path: '/fr/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FrPrivacyRoute = FrPrivacyRouteImport.update({
+  id: '/fr/privacy',
+  path: '/fr/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JaIndexRoute = JaIndexRouteImport.update({
+  id: '/ja/',
+  path: '/ja/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JaBlogRoute = JaBlogRouteImport.update({
+  id: '/ja/blog',
+  path: '/ja/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JaChangelogRoute = JaChangelogRouteImport.update({
+  id: '/ja/changelog',
+  path: '/ja/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JaDocsRoute = JaDocsRouteImport.update({
+  id: '/ja/docs',
+  path: '/ja/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JaPricingRoute = JaPricingRouteImport.update({
+  id: '/ja/pricing',
+  path: '/ja/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JaPrivacyRoute = JaPrivacyRouteImport.update({
+  id: '/ja/privacy',
+  path: '/ja/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RuIndexRoute = RuIndexRouteImport.update({
+  id: '/ru/',
+  path: '/ru/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RuChangelogRoute = RuChangelogRouteImport.update({
+  id: '/ru/changelog',
+  path: '/ru/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RuDocsRoute = RuDocsRouteImport.update({
+  id: '/ru/docs',
+  path: '/ru/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RuPricingRoute = RuPricingRouteImport.update({
+  id: '/ru/pricing',
+  path: '/ru/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RuPrivacyRoute = RuPrivacyRouteImport.update({
+  id: '/ru/privacy',
+  path: '/ru/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhHantIndexRoute = ZhHantIndexRouteImport.update({
+  id: '/zh-hant/',
+  path: '/zh-hant/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhHantChangelogRoute = ZhHantChangelogRouteImport.update({
+  id: '/zh-hant/changelog',
+  path: '/zh-hant/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhHantDocsRoute = ZhHantDocsRouteImport.update({
+  id: '/zh-hant/docs',
+  path: '/zh-hant/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhHantPricingRoute = ZhHantPricingRouteImport.update({
+  id: '/zh-hant/pricing',
+  path: '/zh-hant/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhHantPrivacyRoute = ZhHantPrivacyRouteImport.update({
+  id: '/zh-hant/privacy',
+  path: '/zh-hant/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhIndexRoute = ZhIndexRouteImport.update({
+  id: '/zh/',
+  path: '/zh/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhBlogRoute = ZhBlogRouteImport.update({
+  id: '/zh/blog',
+  path: '/zh/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhChangelogRoute = ZhChangelogRouteImport.update({
+  id: '/zh/changelog',
+  path: '/zh/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhDocsRoute = ZhDocsRouteImport.update({
+  id: '/zh/docs',
+  path: '/zh/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhEpubReaderForAndroidRoute = ZhEpubReaderForAndroidRouteImport.update({
+  id: '/zh/epub-reader-for-android',
+  path: '/zh/epub-reader-for-android',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhEpubReaderForWindowsRoute = ZhEpubReaderForWindowsRouteImport.update({
+  id: '/zh/epub-reader-for-windows',
+  path: '/zh/epub-reader-for-windows',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhPricingRoute = ZhPricingRouteImport.update({
+  id: '/zh/pricing',
+  path: '/zh/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhPrivacyRoute = ZhPrivacyRouteImport.update({
+  id: '/zh/privacy',
+  path: '/zh/privacy',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DeDocsIndexRoute = DeDocsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => DeDocsRoute,
 } as any)
-const ZhDocsInstallRoute = ZhDocsInstallRouteImport.update({
-  id: '/install',
-  path: '/install',
-  getParentRoute: () => ZhDocsRoute,
-} as any)
-const ZhDocsGettingStartedRoute = ZhDocsGettingStartedRouteImport.update({
+const DeDocsGettingStartedRoute = DeDocsGettingStartedRouteImport.update({
   id: '/getting-started',
   path: '/getting-started',
-  getParentRoute: () => ZhDocsRoute,
+  getParentRoute: () => DeDocsRoute,
 } as any)
-const ZhBlogReadingThatRemembersRoute =
-  ZhBlogReadingThatRemembersRouteImport.update({
-    id: '/reading-that-remembers',
-    path: '/reading-that-remembers',
-    getParentRoute: () => ZhBlogRoute,
-  } as any)
-const ZhBlogPluginsV1Route = ZhBlogPluginsV1RouteImport.update({
-  id: '/plugins-v1',
-  path: '/plugins-v1',
-  getParentRoute: () => ZhBlogRoute,
-} as any)
-const ZhBlogLocalFirstRoute = ZhBlogLocalFirstRouteImport.update({
-  id: '/local-first',
-  path: '/local-first',
-  getParentRoute: () => ZhBlogRoute,
-} as any)
-const ZhBlogLakeBaikalRoute = ZhBlogLakeBaikalRouteImport.update({
-  id: '/lake-baikal',
-  path: '/lake-baikal',
-  getParentRoute: () => ZhBlogRoute,
-} as any)
-const ZhHantDocsInstallRoute = ZhHantDocsInstallRouteImport.update({
+const DeDocsInstallRoute = DeDocsInstallRouteImport.update({
   id: '/install',
   path: '/install',
+  getParentRoute: () => DeDocsRoute,
+} as any)
+const DocsPluginsIndexRoute = DocsPluginsIndexRouteImport.update({
+  id: '/plugins/',
+  path: '/plugins/',
+  getParentRoute: () => DocsRoute,
+} as any)
+const DocsPluginsApiRoute = DocsPluginsApiRouteImport.update({
+  id: '/plugins/api',
+  path: '/plugins/api',
+  getParentRoute: () => DocsRoute,
+} as any)
+const DocsPluginsCapabilitiesRoute = DocsPluginsCapabilitiesRouteImport.update({
+  id: '/plugins/capabilities',
+  path: '/plugins/capabilities',
+  getParentRoute: () => DocsRoute,
+} as any)
+const DocsPluginsDevelopRoute = DocsPluginsDevelopRouteImport.update({
+  id: '/plugins/develop',
+  path: '/plugins/develop',
+  getParentRoute: () => DocsRoute,
+} as any)
+const DocsPluginsPublishingRoute = DocsPluginsPublishingRouteImport.update({
+  id: '/plugins/publishing',
+  path: '/plugins/publishing',
+  getParentRoute: () => DocsRoute,
+} as any)
+const EsDocsIndexRoute = EsDocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EsDocsRoute,
+} as any)
+const EsDocsGettingStartedRoute = EsDocsGettingStartedRouteImport.update({
+  id: '/getting-started',
+  path: '/getting-started',
+  getParentRoute: () => EsDocsRoute,
+} as any)
+const EsDocsInstallRoute = EsDocsInstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => EsDocsRoute,
+} as any)
+const FrDocsIndexRoute = FrDocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => FrDocsRoute,
+} as any)
+const FrDocsGettingStartedRoute = FrDocsGettingStartedRouteImport.update({
+  id: '/getting-started',
+  path: '/getting-started',
+  getParentRoute: () => FrDocsRoute,
+} as any)
+const FrDocsInstallRoute = FrDocsInstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => FrDocsRoute,
+} as any)
+const JaBlogIndexRoute = JaBlogIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => JaBlogRoute,
+} as any)
+const JaBlogLakeBaikalRoute = JaBlogLakeBaikalRouteImport.update({
+  id: '/lake-baikal',
+  path: '/lake-baikal',
+  getParentRoute: () => JaBlogRoute,
+} as any)
+const JaBlogLocalFirstRoute = JaBlogLocalFirstRouteImport.update({
+  id: '/local-first',
+  path: '/local-first',
+  getParentRoute: () => JaBlogRoute,
+} as any)
+const JaBlogPluginsV1Route = JaBlogPluginsV1RouteImport.update({
+  id: '/plugins-v1',
+  path: '/plugins-v1',
+  getParentRoute: () => JaBlogRoute,
+} as any)
+const JaBlogReadingThatRemembersRoute =
+  JaBlogReadingThatRemembersRouteImport.update({
+    id: '/reading-that-remembers',
+    path: '/reading-that-remembers',
+    getParentRoute: () => JaBlogRoute,
+  } as any)
+const JaDocsIndexRoute = JaDocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => JaDocsRoute,
+} as any)
+const JaDocsGettingStartedRoute = JaDocsGettingStartedRouteImport.update({
+  id: '/getting-started',
+  path: '/getting-started',
+  getParentRoute: () => JaDocsRoute,
+} as any)
+const JaDocsInstallRoute = JaDocsInstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => JaDocsRoute,
+} as any)
+const RuDocsIndexRoute = RuDocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => RuDocsRoute,
+} as any)
+const RuDocsGettingStartedRoute = RuDocsGettingStartedRouteImport.update({
+  id: '/getting-started',
+  path: '/getting-started',
+  getParentRoute: () => RuDocsRoute,
+} as any)
+const RuDocsInstallRoute = RuDocsInstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => RuDocsRoute,
+} as any)
+const ZhHantDocsIndexRoute = ZhHantDocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => ZhHantDocsRoute,
 } as any)
 const ZhHantDocsGettingStartedRoute =
@@ -516,268 +561,60 @@ const ZhHantDocsGettingStartedRoute =
     path: '/getting-started',
     getParentRoute: () => ZhHantDocsRoute,
   } as any)
-const RuDocsInstallRoute = RuDocsInstallRouteImport.update({
+const ZhHantDocsInstallRoute = ZhHantDocsInstallRouteImport.update({
   id: '/install',
   path: '/install',
-  getParentRoute: () => RuDocsRoute,
-} as any)
-const RuDocsGettingStartedRoute = RuDocsGettingStartedRouteImport.update({
-  id: '/getting-started',
-  path: '/getting-started',
-  getParentRoute: () => RuDocsRoute,
-} as any)
-const JaDocsInstallRoute = JaDocsInstallRouteImport.update({
-  id: '/install',
-  path: '/install',
-  getParentRoute: () => JaDocsRoute,
-} as any)
-const JaDocsGettingStartedRoute = JaDocsGettingStartedRouteImport.update({
-  id: '/getting-started',
-  path: '/getting-started',
-  getParentRoute: () => JaDocsRoute,
-} as any)
-const JaBlogReadingThatRemembersRoute =
-  JaBlogReadingThatRemembersRouteImport.update({
-    id: '/reading-that-remembers',
-    path: '/reading-that-remembers',
-    getParentRoute: () => JaBlogRoute,
-  } as any)
-const JaBlogPluginsV1Route = JaBlogPluginsV1RouteImport.update({
-  id: '/plugins-v1',
-  path: '/plugins-v1',
-  getParentRoute: () => JaBlogRoute,
-} as any)
-const JaBlogLocalFirstRoute = JaBlogLocalFirstRouteImport.update({
-  id: '/local-first',
-  path: '/local-first',
-  getParentRoute: () => JaBlogRoute,
-} as any)
-const JaBlogLakeBaikalRoute = JaBlogLakeBaikalRouteImport.update({
-  id: '/lake-baikal',
-  path: '/lake-baikal',
-  getParentRoute: () => JaBlogRoute,
-} as any)
-const FrDocsInstallRoute = FrDocsInstallRouteImport.update({
-  id: '/install',
-  path: '/install',
-  getParentRoute: () => FrDocsRoute,
-} as any)
-const FrDocsGettingStartedRoute = FrDocsGettingStartedRouteImport.update({
-  id: '/getting-started',
-  path: '/getting-started',
-  getParentRoute: () => FrDocsRoute,
-} as any)
-const EsDocsInstallRoute = EsDocsInstallRouteImport.update({
-  id: '/install',
-  path: '/install',
-  getParentRoute: () => EsDocsRoute,
-} as any)
-const EsDocsGettingStartedRoute = EsDocsGettingStartedRouteImport.update({
-  id: '/getting-started',
-  path: '/getting-started',
-  getParentRoute: () => EsDocsRoute,
-} as any)
-const DocsPluginsPublishingRoute = DocsPluginsPublishingRouteImport.update({
-  id: '/plugins/publishing',
-  path: '/plugins/publishing',
-  getParentRoute: () => DocsRoute,
-} as any)
-const DocsPluginsDevelopRoute = DocsPluginsDevelopRouteImport.update({
-  id: '/plugins/develop',
-  path: '/plugins/develop',
-  getParentRoute: () => DocsRoute,
-} as any)
-const DocsPluginsCapabilitiesRoute = DocsPluginsCapabilitiesRouteImport.update({
-  id: '/plugins/capabilities',
-  path: '/plugins/capabilities',
-  getParentRoute: () => DocsRoute,
-} as any)
-const DocsPluginsApiRoute = DocsPluginsApiRouteImport.update({
-  id: '/plugins/api',
-  path: '/plugins/api',
-  getParentRoute: () => DocsRoute,
-} as any)
-const DeDocsInstallRoute = DeDocsInstallRouteImport.update({
-  id: '/install',
-  path: '/install',
-  getParentRoute: () => DeDocsRoute,
-} as any)
-const DeDocsGettingStartedRoute = DeDocsGettingStartedRouteImport.update({
-  id: '/getting-started',
-  path: '/getting-started',
-  getParentRoute: () => DeDocsRoute,
-} as any)
-const ZhDocsPluginsIndexRoute = ZhDocsPluginsIndexRouteImport.update({
-  id: '/plugins/',
-  path: '/plugins/',
-  getParentRoute: () => ZhDocsRoute,
-} as any)
-const ZhHantDocsPluginsIndexRoute = ZhHantDocsPluginsIndexRouteImport.update({
-  id: '/plugins/',
-  path: '/plugins/',
   getParentRoute: () => ZhHantDocsRoute,
 } as any)
-const RuDocsPluginsIndexRoute = RuDocsPluginsIndexRouteImport.update({
-  id: '/plugins/',
-  path: '/plugins/',
-  getParentRoute: () => RuDocsRoute,
+const ZhBlogIndexRoute = ZhBlogIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ZhBlogRoute,
 } as any)
-const JaDocsPluginsIndexRoute = JaDocsPluginsIndexRouteImport.update({
-  id: '/plugins/',
-  path: '/plugins/',
-  getParentRoute: () => JaDocsRoute,
+const ZhBlogLakeBaikalRoute = ZhBlogLakeBaikalRouteImport.update({
+  id: '/lake-baikal',
+  path: '/lake-baikal',
+  getParentRoute: () => ZhBlogRoute,
 } as any)
-const FrDocsPluginsIndexRoute = FrDocsPluginsIndexRouteImport.update({
-  id: '/plugins/',
-  path: '/plugins/',
-  getParentRoute: () => FrDocsRoute,
+const ZhBlogLocalFirstRoute = ZhBlogLocalFirstRouteImport.update({
+  id: '/local-first',
+  path: '/local-first',
+  getParentRoute: () => ZhBlogRoute,
 } as any)
-const EsDocsPluginsIndexRoute = EsDocsPluginsIndexRouteImport.update({
-  id: '/plugins/',
-  path: '/plugins/',
-  getParentRoute: () => EsDocsRoute,
+const ZhBlogPluginsV1Route = ZhBlogPluginsV1RouteImport.update({
+  id: '/plugins-v1',
+  path: '/plugins-v1',
+  getParentRoute: () => ZhBlogRoute,
+} as any)
+const ZhBlogReadingThatRemembersRoute =
+  ZhBlogReadingThatRemembersRouteImport.update({
+    id: '/reading-that-remembers',
+    path: '/reading-that-remembers',
+    getParentRoute: () => ZhBlogRoute,
+  } as any)
+const ZhDocsIndexRoute = ZhDocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ZhDocsRoute,
+} as any)
+const ZhDocsGettingStartedRoute = ZhDocsGettingStartedRouteImport.update({
+  id: '/getting-started',
+  path: '/getting-started',
+  getParentRoute: () => ZhDocsRoute,
+} as any)
+const ZhDocsInstallRoute = ZhDocsInstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => ZhDocsRoute,
 } as any)
 const DeDocsPluginsIndexRoute = DeDocsPluginsIndexRouteImport.update({
   id: '/plugins/',
   path: '/plugins/',
   getParentRoute: () => DeDocsRoute,
 } as any)
-const ZhDocsPluginsPublishingRoute = ZhDocsPluginsPublishingRouteImport.update({
-  id: '/plugins/publishing',
-  path: '/plugins/publishing',
-  getParentRoute: () => ZhDocsRoute,
-} as any)
-const ZhDocsPluginsDevelopRoute = ZhDocsPluginsDevelopRouteImport.update({
-  id: '/plugins/develop',
-  path: '/plugins/develop',
-  getParentRoute: () => ZhDocsRoute,
-} as any)
-const ZhDocsPluginsCapabilitiesRoute =
-  ZhDocsPluginsCapabilitiesRouteImport.update({
-    id: '/plugins/capabilities',
-    path: '/plugins/capabilities',
-    getParentRoute: () => ZhDocsRoute,
-  } as any)
-const ZhDocsPluginsApiRoute = ZhDocsPluginsApiRouteImport.update({
+const DeDocsPluginsApiRoute = DeDocsPluginsApiRouteImport.update({
   id: '/plugins/api',
   path: '/plugins/api',
-  getParentRoute: () => ZhDocsRoute,
-} as any)
-const ZhHantDocsPluginsPublishingRoute =
-  ZhHantDocsPluginsPublishingRouteImport.update({
-    id: '/plugins/publishing',
-    path: '/plugins/publishing',
-    getParentRoute: () => ZhHantDocsRoute,
-  } as any)
-const ZhHantDocsPluginsDevelopRoute =
-  ZhHantDocsPluginsDevelopRouteImport.update({
-    id: '/plugins/develop',
-    path: '/plugins/develop',
-    getParentRoute: () => ZhHantDocsRoute,
-  } as any)
-const ZhHantDocsPluginsCapabilitiesRoute =
-  ZhHantDocsPluginsCapabilitiesRouteImport.update({
-    id: '/plugins/capabilities',
-    path: '/plugins/capabilities',
-    getParentRoute: () => ZhHantDocsRoute,
-  } as any)
-const ZhHantDocsPluginsApiRoute = ZhHantDocsPluginsApiRouteImport.update({
-  id: '/plugins/api',
-  path: '/plugins/api',
-  getParentRoute: () => ZhHantDocsRoute,
-} as any)
-const RuDocsPluginsPublishingRoute = RuDocsPluginsPublishingRouteImport.update({
-  id: '/plugins/publishing',
-  path: '/plugins/publishing',
-  getParentRoute: () => RuDocsRoute,
-} as any)
-const RuDocsPluginsDevelopRoute = RuDocsPluginsDevelopRouteImport.update({
-  id: '/plugins/develop',
-  path: '/plugins/develop',
-  getParentRoute: () => RuDocsRoute,
-} as any)
-const RuDocsPluginsCapabilitiesRoute =
-  RuDocsPluginsCapabilitiesRouteImport.update({
-    id: '/plugins/capabilities',
-    path: '/plugins/capabilities',
-    getParentRoute: () => RuDocsRoute,
-  } as any)
-const RuDocsPluginsApiRoute = RuDocsPluginsApiRouteImport.update({
-  id: '/plugins/api',
-  path: '/plugins/api',
-  getParentRoute: () => RuDocsRoute,
-} as any)
-const JaDocsPluginsPublishingRoute = JaDocsPluginsPublishingRouteImport.update({
-  id: '/plugins/publishing',
-  path: '/plugins/publishing',
-  getParentRoute: () => JaDocsRoute,
-} as any)
-const JaDocsPluginsDevelopRoute = JaDocsPluginsDevelopRouteImport.update({
-  id: '/plugins/develop',
-  path: '/plugins/develop',
-  getParentRoute: () => JaDocsRoute,
-} as any)
-const JaDocsPluginsCapabilitiesRoute =
-  JaDocsPluginsCapabilitiesRouteImport.update({
-    id: '/plugins/capabilities',
-    path: '/plugins/capabilities',
-    getParentRoute: () => JaDocsRoute,
-  } as any)
-const JaDocsPluginsApiRoute = JaDocsPluginsApiRouteImport.update({
-  id: '/plugins/api',
-  path: '/plugins/api',
-  getParentRoute: () => JaDocsRoute,
-} as any)
-const FrDocsPluginsPublishingRoute = FrDocsPluginsPublishingRouteImport.update({
-  id: '/plugins/publishing',
-  path: '/plugins/publishing',
-  getParentRoute: () => FrDocsRoute,
-} as any)
-const FrDocsPluginsDevelopRoute = FrDocsPluginsDevelopRouteImport.update({
-  id: '/plugins/develop',
-  path: '/plugins/develop',
-  getParentRoute: () => FrDocsRoute,
-} as any)
-const FrDocsPluginsCapabilitiesRoute =
-  FrDocsPluginsCapabilitiesRouteImport.update({
-    id: '/plugins/capabilities',
-    path: '/plugins/capabilities',
-    getParentRoute: () => FrDocsRoute,
-  } as any)
-const FrDocsPluginsApiRoute = FrDocsPluginsApiRouteImport.update({
-  id: '/plugins/api',
-  path: '/plugins/api',
-  getParentRoute: () => FrDocsRoute,
-} as any)
-const EsDocsPluginsPublishingRoute = EsDocsPluginsPublishingRouteImport.update({
-  id: '/plugins/publishing',
-  path: '/plugins/publishing',
-  getParentRoute: () => EsDocsRoute,
-} as any)
-const EsDocsPluginsDevelopRoute = EsDocsPluginsDevelopRouteImport.update({
-  id: '/plugins/develop',
-  path: '/plugins/develop',
-  getParentRoute: () => EsDocsRoute,
-} as any)
-const EsDocsPluginsCapabilitiesRoute =
-  EsDocsPluginsCapabilitiesRouteImport.update({
-    id: '/plugins/capabilities',
-    path: '/plugins/capabilities',
-    getParentRoute: () => EsDocsRoute,
-  } as any)
-const EsDocsPluginsApiRoute = EsDocsPluginsApiRouteImport.update({
-  id: '/plugins/api',
-  path: '/plugins/api',
-  getParentRoute: () => EsDocsRoute,
-} as any)
-const DeDocsPluginsPublishingRoute = DeDocsPluginsPublishingRouteImport.update({
-  id: '/plugins/publishing',
-  path: '/plugins/publishing',
-  getParentRoute: () => DeDocsRoute,
-} as any)
-const DeDocsPluginsDevelopRoute = DeDocsPluginsDevelopRouteImport.update({
-  id: '/plugins/develop',
-  path: '/plugins/develop',
   getParentRoute: () => DeDocsRoute,
 } as any)
 const DeDocsPluginsCapabilitiesRoute =
@@ -786,10 +623,173 @@ const DeDocsPluginsCapabilitiesRoute =
     path: '/plugins/capabilities',
     getParentRoute: () => DeDocsRoute,
   } as any)
-const DeDocsPluginsApiRoute = DeDocsPluginsApiRouteImport.update({
+const DeDocsPluginsDevelopRoute = DeDocsPluginsDevelopRouteImport.update({
+  id: '/plugins/develop',
+  path: '/plugins/develop',
+  getParentRoute: () => DeDocsRoute,
+} as any)
+const DeDocsPluginsPublishingRoute = DeDocsPluginsPublishingRouteImport.update({
+  id: '/plugins/publishing',
+  path: '/plugins/publishing',
+  getParentRoute: () => DeDocsRoute,
+} as any)
+const EsDocsPluginsIndexRoute = EsDocsPluginsIndexRouteImport.update({
+  id: '/plugins/',
+  path: '/plugins/',
+  getParentRoute: () => EsDocsRoute,
+} as any)
+const EsDocsPluginsApiRoute = EsDocsPluginsApiRouteImport.update({
   id: '/plugins/api',
   path: '/plugins/api',
-  getParentRoute: () => DeDocsRoute,
+  getParentRoute: () => EsDocsRoute,
+} as any)
+const EsDocsPluginsCapabilitiesRoute =
+  EsDocsPluginsCapabilitiesRouteImport.update({
+    id: '/plugins/capabilities',
+    path: '/plugins/capabilities',
+    getParentRoute: () => EsDocsRoute,
+  } as any)
+const EsDocsPluginsDevelopRoute = EsDocsPluginsDevelopRouteImport.update({
+  id: '/plugins/develop',
+  path: '/plugins/develop',
+  getParentRoute: () => EsDocsRoute,
+} as any)
+const EsDocsPluginsPublishingRoute = EsDocsPluginsPublishingRouteImport.update({
+  id: '/plugins/publishing',
+  path: '/plugins/publishing',
+  getParentRoute: () => EsDocsRoute,
+} as any)
+const FrDocsPluginsIndexRoute = FrDocsPluginsIndexRouteImport.update({
+  id: '/plugins/',
+  path: '/plugins/',
+  getParentRoute: () => FrDocsRoute,
+} as any)
+const FrDocsPluginsApiRoute = FrDocsPluginsApiRouteImport.update({
+  id: '/plugins/api',
+  path: '/plugins/api',
+  getParentRoute: () => FrDocsRoute,
+} as any)
+const FrDocsPluginsCapabilitiesRoute =
+  FrDocsPluginsCapabilitiesRouteImport.update({
+    id: '/plugins/capabilities',
+    path: '/plugins/capabilities',
+    getParentRoute: () => FrDocsRoute,
+  } as any)
+const FrDocsPluginsDevelopRoute = FrDocsPluginsDevelopRouteImport.update({
+  id: '/plugins/develop',
+  path: '/plugins/develop',
+  getParentRoute: () => FrDocsRoute,
+} as any)
+const FrDocsPluginsPublishingRoute = FrDocsPluginsPublishingRouteImport.update({
+  id: '/plugins/publishing',
+  path: '/plugins/publishing',
+  getParentRoute: () => FrDocsRoute,
+} as any)
+const JaDocsPluginsIndexRoute = JaDocsPluginsIndexRouteImport.update({
+  id: '/plugins/',
+  path: '/plugins/',
+  getParentRoute: () => JaDocsRoute,
+} as any)
+const JaDocsPluginsApiRoute = JaDocsPluginsApiRouteImport.update({
+  id: '/plugins/api',
+  path: '/plugins/api',
+  getParentRoute: () => JaDocsRoute,
+} as any)
+const JaDocsPluginsCapabilitiesRoute =
+  JaDocsPluginsCapabilitiesRouteImport.update({
+    id: '/plugins/capabilities',
+    path: '/plugins/capabilities',
+    getParentRoute: () => JaDocsRoute,
+  } as any)
+const JaDocsPluginsDevelopRoute = JaDocsPluginsDevelopRouteImport.update({
+  id: '/plugins/develop',
+  path: '/plugins/develop',
+  getParentRoute: () => JaDocsRoute,
+} as any)
+const JaDocsPluginsPublishingRoute = JaDocsPluginsPublishingRouteImport.update({
+  id: '/plugins/publishing',
+  path: '/plugins/publishing',
+  getParentRoute: () => JaDocsRoute,
+} as any)
+const RuDocsPluginsIndexRoute = RuDocsPluginsIndexRouteImport.update({
+  id: '/plugins/',
+  path: '/plugins/',
+  getParentRoute: () => RuDocsRoute,
+} as any)
+const RuDocsPluginsApiRoute = RuDocsPluginsApiRouteImport.update({
+  id: '/plugins/api',
+  path: '/plugins/api',
+  getParentRoute: () => RuDocsRoute,
+} as any)
+const RuDocsPluginsCapabilitiesRoute =
+  RuDocsPluginsCapabilitiesRouteImport.update({
+    id: '/plugins/capabilities',
+    path: '/plugins/capabilities',
+    getParentRoute: () => RuDocsRoute,
+  } as any)
+const RuDocsPluginsDevelopRoute = RuDocsPluginsDevelopRouteImport.update({
+  id: '/plugins/develop',
+  path: '/plugins/develop',
+  getParentRoute: () => RuDocsRoute,
+} as any)
+const RuDocsPluginsPublishingRoute = RuDocsPluginsPublishingRouteImport.update({
+  id: '/plugins/publishing',
+  path: '/plugins/publishing',
+  getParentRoute: () => RuDocsRoute,
+} as any)
+const ZhHantDocsPluginsIndexRoute = ZhHantDocsPluginsIndexRouteImport.update({
+  id: '/plugins/',
+  path: '/plugins/',
+  getParentRoute: () => ZhHantDocsRoute,
+} as any)
+const ZhHantDocsPluginsApiRoute = ZhHantDocsPluginsApiRouteImport.update({
+  id: '/plugins/api',
+  path: '/plugins/api',
+  getParentRoute: () => ZhHantDocsRoute,
+} as any)
+const ZhHantDocsPluginsCapabilitiesRoute =
+  ZhHantDocsPluginsCapabilitiesRouteImport.update({
+    id: '/plugins/capabilities',
+    path: '/plugins/capabilities',
+    getParentRoute: () => ZhHantDocsRoute,
+  } as any)
+const ZhHantDocsPluginsDevelopRoute =
+  ZhHantDocsPluginsDevelopRouteImport.update({
+    id: '/plugins/develop',
+    path: '/plugins/develop',
+    getParentRoute: () => ZhHantDocsRoute,
+  } as any)
+const ZhHantDocsPluginsPublishingRoute =
+  ZhHantDocsPluginsPublishingRouteImport.update({
+    id: '/plugins/publishing',
+    path: '/plugins/publishing',
+    getParentRoute: () => ZhHantDocsRoute,
+  } as any)
+const ZhDocsPluginsIndexRoute = ZhDocsPluginsIndexRouteImport.update({
+  id: '/plugins/',
+  path: '/plugins/',
+  getParentRoute: () => ZhDocsRoute,
+} as any)
+const ZhDocsPluginsApiRoute = ZhDocsPluginsApiRouteImport.update({
+  id: '/plugins/api',
+  path: '/plugins/api',
+  getParentRoute: () => ZhDocsRoute,
+} as any)
+const ZhDocsPluginsCapabilitiesRoute =
+  ZhDocsPluginsCapabilitiesRouteImport.update({
+    id: '/plugins/capabilities',
+    path: '/plugins/capabilities',
+    getParentRoute: () => ZhDocsRoute,
+  } as any)
+const ZhDocsPluginsDevelopRoute = ZhDocsPluginsDevelopRouteImport.update({
+  id: '/plugins/develop',
+  path: '/plugins/develop',
+  getParentRoute: () => ZhDocsRoute,
+} as any)
+const ZhDocsPluginsPublishingRoute = ZhDocsPluginsPublishingRouteImport.update({
+  id: '/plugins/publishing',
+  path: '/plugins/publishing',
+  getParentRoute: () => ZhDocsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -1608,60 +1608,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/open-source-ebook-reader': {
-      id: '/open-source-ebook-reader'
-      path: '/open-source-ebook-reader'
-      fullPath: '/open-source-ebook-reader'
-      preLoaderRoute: typeof OpenSourceEbookReaderRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/epub-reader-for-windows': {
-      id: '/epub-reader-for-windows'
-      path: '/epub-reader-for-windows'
-      fullPath: '/epub-reader-for-windows'
-      preLoaderRoute: typeof EpubReaderForWindowsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/epub-reader-for-android': {
-      id: '/epub-reader-for-android'
-      path: '/epub-reader-for-android'
-      fullPath: '/epub-reader-for-android'
-      preLoaderRoute: typeof EpubReaderForAndroidRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs': {
-      id: '/docs'
-      path: '/docs'
-      fullPath: '/docs'
-      preLoaderRoute: typeof DocsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/changelog': {
-      id: '/changelog'
-      path: '/changelog'
-      fullPath: '/changelog'
-      preLoaderRoute: typeof ChangelogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cbz-cbr-reader': {
-      id: '/cbz-cbr-reader'
-      path: '/cbz-cbr-reader'
-      fullPath: '/cbz-cbr-reader'
-      preLoaderRoute: typeof CbzCbrReaderRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog': {
@@ -1671,67 +1622,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/cbz-cbr-reader': {
+      id: '/cbz-cbr-reader'
+      path: '/cbz-cbr-reader'
+      fullPath: '/cbz-cbr-reader'
+      preLoaderRoute: typeof CbzCbrReaderRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/zh/': {
-      id: '/zh/'
-      path: '/zh'
-      fullPath: '/zh/'
-      preLoaderRoute: typeof ZhIndexRouteImport
+    '/changelog': {
+      id: '/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof ChangelogRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/zh-hant/': {
-      id: '/zh-hant/'
-      path: '/zh-hant'
-      fullPath: '/zh-hant/'
-      preLoaderRoute: typeof ZhHantIndexRouteImport
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/ru/': {
-      id: '/ru/'
-      path: '/ru'
-      fullPath: '/ru/'
-      preLoaderRoute: typeof RuIndexRouteImport
+    '/epub-reader-for-android': {
+      id: '/epub-reader-for-android'
+      path: '/epub-reader-for-android'
+      fullPath: '/epub-reader-for-android'
+      preLoaderRoute: typeof EpubReaderForAndroidRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/ja/': {
-      id: '/ja/'
-      path: '/ja'
-      fullPath: '/ja/'
-      preLoaderRoute: typeof JaIndexRouteImport
+    '/epub-reader-for-windows': {
+      id: '/epub-reader-for-windows'
+      path: '/epub-reader-for-windows'
+      fullPath: '/epub-reader-for-windows'
+      preLoaderRoute: typeof EpubReaderForWindowsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/fr/': {
-      id: '/fr/'
-      path: '/fr'
-      fullPath: '/fr/'
-      preLoaderRoute: typeof FrIndexRouteImport
+    '/open-source-ebook-reader': {
+      id: '/open-source-ebook-reader'
+      path: '/open-source-ebook-reader'
+      fullPath: '/open-source-ebook-reader'
+      preLoaderRoute: typeof OpenSourceEbookReaderRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/es/': {
-      id: '/es/'
-      path: '/es'
-      fullPath: '/es/'
-      preLoaderRoute: typeof EsIndexRouteImport
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/docs/': {
-      id: '/docs/'
-      path: '/'
-      fullPath: '/docs/'
-      preLoaderRoute: typeof DocsIndexRouteImport
-      parentRoute: typeof DocsRoute
-    }
-    '/de/': {
-      id: '/de/'
-      path: '/de'
-      fullPath: '/de/'
-      preLoaderRoute: typeof DeIndexRouteImport
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/': {
@@ -1741,256 +1685,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogIndexRouteImport
       parentRoute: typeof BlogRoute
     }
-    '/zh/privacy': {
-      id: '/zh/privacy'
-      path: '/zh/privacy'
-      fullPath: '/zh/privacy'
-      preLoaderRoute: typeof ZhPrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/zh/pricing': {
-      id: '/zh/pricing'
-      path: '/zh/pricing'
-      fullPath: '/zh/pricing'
-      preLoaderRoute: typeof ZhPricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/zh/epub-reader-for-windows': {
-      id: '/zh/epub-reader-for-windows'
-      path: '/zh/epub-reader-for-windows'
-      fullPath: '/zh/epub-reader-for-windows'
-      preLoaderRoute: typeof ZhEpubReaderForWindowsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/zh/epub-reader-for-android': {
-      id: '/zh/epub-reader-for-android'
-      path: '/zh/epub-reader-for-android'
-      fullPath: '/zh/epub-reader-for-android'
-      preLoaderRoute: typeof ZhEpubReaderForAndroidRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/zh/docs': {
-      id: '/zh/docs'
-      path: '/zh/docs'
-      fullPath: '/zh/docs'
-      preLoaderRoute: typeof ZhDocsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/zh/changelog': {
-      id: '/zh/changelog'
-      path: '/zh/changelog'
-      fullPath: '/zh/changelog'
-      preLoaderRoute: typeof ZhChangelogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/zh/blog': {
-      id: '/zh/blog'
-      path: '/zh/blog'
-      fullPath: '/zh/blog'
-      preLoaderRoute: typeof ZhBlogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/zh-hant/privacy': {
-      id: '/zh-hant/privacy'
-      path: '/zh-hant/privacy'
-      fullPath: '/zh-hant/privacy'
-      preLoaderRoute: typeof ZhHantPrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/zh-hant/pricing': {
-      id: '/zh-hant/pricing'
-      path: '/zh-hant/pricing'
-      fullPath: '/zh-hant/pricing'
-      preLoaderRoute: typeof ZhHantPricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/zh-hant/docs': {
-      id: '/zh-hant/docs'
-      path: '/zh-hant/docs'
-      fullPath: '/zh-hant/docs'
-      preLoaderRoute: typeof ZhHantDocsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/zh-hant/changelog': {
-      id: '/zh-hant/changelog'
-      path: '/zh-hant/changelog'
-      fullPath: '/zh-hant/changelog'
-      preLoaderRoute: typeof ZhHantChangelogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ru/privacy': {
-      id: '/ru/privacy'
-      path: '/ru/privacy'
-      fullPath: '/ru/privacy'
-      preLoaderRoute: typeof RuPrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ru/pricing': {
-      id: '/ru/pricing'
-      path: '/ru/pricing'
-      fullPath: '/ru/pricing'
-      preLoaderRoute: typeof RuPricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ru/docs': {
-      id: '/ru/docs'
-      path: '/ru/docs'
-      fullPath: '/ru/docs'
-      preLoaderRoute: typeof RuDocsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ru/changelog': {
-      id: '/ru/changelog'
-      path: '/ru/changelog'
-      fullPath: '/ru/changelog'
-      preLoaderRoute: typeof RuChangelogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ja/privacy': {
-      id: '/ja/privacy'
-      path: '/ja/privacy'
-      fullPath: '/ja/privacy'
-      preLoaderRoute: typeof JaPrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ja/pricing': {
-      id: '/ja/pricing'
-      path: '/ja/pricing'
-      fullPath: '/ja/pricing'
-      preLoaderRoute: typeof JaPricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ja/docs': {
-      id: '/ja/docs'
-      path: '/ja/docs'
-      fullPath: '/ja/docs'
-      preLoaderRoute: typeof JaDocsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ja/changelog': {
-      id: '/ja/changelog'
-      path: '/ja/changelog'
-      fullPath: '/ja/changelog'
-      preLoaderRoute: typeof JaChangelogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ja/blog': {
-      id: '/ja/blog'
-      path: '/ja/blog'
-      fullPath: '/ja/blog'
-      preLoaderRoute: typeof JaBlogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/fr/privacy': {
-      id: '/fr/privacy'
-      path: '/fr/privacy'
-      fullPath: '/fr/privacy'
-      preLoaderRoute: typeof FrPrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/fr/pricing': {
-      id: '/fr/pricing'
-      path: '/fr/pricing'
-      fullPath: '/fr/pricing'
-      preLoaderRoute: typeof FrPricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/fr/docs': {
-      id: '/fr/docs'
-      path: '/fr/docs'
-      fullPath: '/fr/docs'
-      preLoaderRoute: typeof FrDocsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/fr/changelog': {
-      id: '/fr/changelog'
-      path: '/fr/changelog'
-      fullPath: '/fr/changelog'
-      preLoaderRoute: typeof FrChangelogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/es/privacy': {
-      id: '/es/privacy'
-      path: '/es/privacy'
-      fullPath: '/es/privacy'
-      preLoaderRoute: typeof EsPrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/es/pricing': {
-      id: '/es/pricing'
-      path: '/es/pricing'
-      fullPath: '/es/pricing'
-      preLoaderRoute: typeof EsPricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/es/docs': {
-      id: '/es/docs'
-      path: '/es/docs'
-      fullPath: '/es/docs'
-      preLoaderRoute: typeof EsDocsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/es/changelog': {
-      id: '/es/changelog'
-      path: '/es/changelog'
-      fullPath: '/es/changelog'
-      preLoaderRoute: typeof EsChangelogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/install': {
-      id: '/docs/install'
-      path: '/install'
-      fullPath: '/docs/install'
-      preLoaderRoute: typeof DocsInstallRouteImport
-      parentRoute: typeof DocsRoute
-    }
-    '/docs/getting-started': {
-      id: '/docs/getting-started'
-      path: '/getting-started'
-      fullPath: '/docs/getting-started'
-      preLoaderRoute: typeof DocsGettingStartedRouteImport
-      parentRoute: typeof DocsRoute
-    }
-    '/de/privacy': {
-      id: '/de/privacy'
-      path: '/de/privacy'
-      fullPath: '/de/privacy'
-      preLoaderRoute: typeof DePrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/de/pricing': {
-      id: '/de/pricing'
-      path: '/de/pricing'
-      fullPath: '/de/pricing'
-      preLoaderRoute: typeof DePricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/de/docs': {
-      id: '/de/docs'
-      path: '/de/docs'
-      fullPath: '/de/docs'
-      preLoaderRoute: typeof DeDocsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/de/changelog': {
-      id: '/de/changelog'
-      path: '/de/changelog'
-      fullPath: '/de/changelog'
-      preLoaderRoute: typeof DeChangelogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/blog/reading-that-remembers': {
-      id: '/blog/reading-that-remembers'
-      path: '/reading-that-remembers'
-      fullPath: '/blog/reading-that-remembers'
-      preLoaderRoute: typeof BlogReadingThatRemembersRouteImport
-      parentRoute: typeof BlogRoute
-    }
-    '/blog/plugins-v1': {
-      id: '/blog/plugins-v1'
-      path: '/plugins-v1'
-      fullPath: '/blog/plugins-v1'
-      preLoaderRoute: typeof BlogPluginsV1RouteImport
+    '/blog/lake-baikal': {
+      id: '/blog/lake-baikal'
+      path: '/lake-baikal'
+      fullPath: '/blog/lake-baikal'
+      preLoaderRoute: typeof BlogLakeBaikalRouteImport
       parentRoute: typeof BlogRoute
     }
     '/blog/local-first': {
@@ -2000,256 +1699,319 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogLocalFirstRouteImport
       parentRoute: typeof BlogRoute
     }
-    '/blog/lake-baikal': {
-      id: '/blog/lake-baikal'
-      path: '/lake-baikal'
-      fullPath: '/blog/lake-baikal'
-      preLoaderRoute: typeof BlogLakeBaikalRouteImport
+    '/blog/plugins-v1': {
+      id: '/blog/plugins-v1'
+      path: '/plugins-v1'
+      fullPath: '/blog/plugins-v1'
+      preLoaderRoute: typeof BlogPluginsV1RouteImport
       parentRoute: typeof BlogRoute
     }
-    '/zh/docs/': {
-      id: '/zh/docs/'
-      path: '/'
-      fullPath: '/zh/docs/'
-      preLoaderRoute: typeof ZhDocsIndexRouteImport
-      parentRoute: typeof ZhDocsRoute
+    '/blog/reading-that-remembers': {
+      id: '/blog/reading-that-remembers'
+      path: '/reading-that-remembers'
+      fullPath: '/blog/reading-that-remembers'
+      preLoaderRoute: typeof BlogReadingThatRemembersRouteImport
+      parentRoute: typeof BlogRoute
     }
-    '/zh/blog/': {
-      id: '/zh/blog/'
-      path: '/'
-      fullPath: '/zh/blog/'
-      preLoaderRoute: typeof ZhBlogIndexRouteImport
-      parentRoute: typeof ZhBlogRoute
+    '/de/': {
+      id: '/de/'
+      path: '/de'
+      fullPath: '/de/'
+      preLoaderRoute: typeof DeIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/zh-hant/docs/': {
-      id: '/zh-hant/docs/'
-      path: '/'
-      fullPath: '/zh-hant/docs/'
-      preLoaderRoute: typeof ZhHantDocsIndexRouteImport
-      parentRoute: typeof ZhHantDocsRoute
+    '/de/changelog': {
+      id: '/de/changelog'
+      path: '/de/changelog'
+      fullPath: '/de/changelog'
+      preLoaderRoute: typeof DeChangelogRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/ru/docs/': {
-      id: '/ru/docs/'
-      path: '/'
-      fullPath: '/ru/docs/'
-      preLoaderRoute: typeof RuDocsIndexRouteImport
-      parentRoute: typeof RuDocsRoute
+    '/de/docs': {
+      id: '/de/docs'
+      path: '/de/docs'
+      fullPath: '/de/docs'
+      preLoaderRoute: typeof DeDocsRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/ja/docs/': {
-      id: '/ja/docs/'
-      path: '/'
-      fullPath: '/ja/docs/'
-      preLoaderRoute: typeof JaDocsIndexRouteImport
-      parentRoute: typeof JaDocsRoute
+    '/de/pricing': {
+      id: '/de/pricing'
+      path: '/de/pricing'
+      fullPath: '/de/pricing'
+      preLoaderRoute: typeof DePricingRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/ja/blog/': {
-      id: '/ja/blog/'
-      path: '/'
-      fullPath: '/ja/blog/'
-      preLoaderRoute: typeof JaBlogIndexRouteImport
-      parentRoute: typeof JaBlogRoute
+    '/de/privacy': {
+      id: '/de/privacy'
+      path: '/de/privacy'
+      fullPath: '/de/privacy'
+      preLoaderRoute: typeof DePrivacyRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/fr/docs/': {
-      id: '/fr/docs/'
+    '/docs/': {
+      id: '/docs/'
       path: '/'
-      fullPath: '/fr/docs/'
-      preLoaderRoute: typeof FrDocsIndexRouteImport
-      parentRoute: typeof FrDocsRoute
-    }
-    '/es/docs/': {
-      id: '/es/docs/'
-      path: '/'
-      fullPath: '/es/docs/'
-      preLoaderRoute: typeof EsDocsIndexRouteImport
-      parentRoute: typeof EsDocsRoute
-    }
-    '/docs/plugins/': {
-      id: '/docs/plugins/'
-      path: '/plugins'
-      fullPath: '/docs/plugins/'
-      preLoaderRoute: typeof DocsPluginsIndexRouteImport
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsIndexRouteImport
       parentRoute: typeof DocsRoute
+    }
+    '/docs/getting-started': {
+      id: '/docs/getting-started'
+      path: '/getting-started'
+      fullPath: '/docs/getting-started'
+      preLoaderRoute: typeof DocsGettingStartedRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/docs/install': {
+      id: '/docs/install'
+      path: '/install'
+      fullPath: '/docs/install'
+      preLoaderRoute: typeof DocsInstallRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/es/': {
+      id: '/es/'
+      path: '/es'
+      fullPath: '/es/'
+      preLoaderRoute: typeof EsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/es/changelog': {
+      id: '/es/changelog'
+      path: '/es/changelog'
+      fullPath: '/es/changelog'
+      preLoaderRoute: typeof EsChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/es/docs': {
+      id: '/es/docs'
+      path: '/es/docs'
+      fullPath: '/es/docs'
+      preLoaderRoute: typeof EsDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/es/pricing': {
+      id: '/es/pricing'
+      path: '/es/pricing'
+      fullPath: '/es/pricing'
+      preLoaderRoute: typeof EsPricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/es/privacy': {
+      id: '/es/privacy'
+      path: '/es/privacy'
+      fullPath: '/es/privacy'
+      preLoaderRoute: typeof EsPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fr/': {
+      id: '/fr/'
+      path: '/fr'
+      fullPath: '/fr/'
+      preLoaderRoute: typeof FrIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fr/changelog': {
+      id: '/fr/changelog'
+      path: '/fr/changelog'
+      fullPath: '/fr/changelog'
+      preLoaderRoute: typeof FrChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fr/docs': {
+      id: '/fr/docs'
+      path: '/fr/docs'
+      fullPath: '/fr/docs'
+      preLoaderRoute: typeof FrDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fr/pricing': {
+      id: '/fr/pricing'
+      path: '/fr/pricing'
+      fullPath: '/fr/pricing'
+      preLoaderRoute: typeof FrPricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fr/privacy': {
+      id: '/fr/privacy'
+      path: '/fr/privacy'
+      fullPath: '/fr/privacy'
+      preLoaderRoute: typeof FrPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ja/': {
+      id: '/ja/'
+      path: '/ja'
+      fullPath: '/ja/'
+      preLoaderRoute: typeof JaIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ja/blog': {
+      id: '/ja/blog'
+      path: '/ja/blog'
+      fullPath: '/ja/blog'
+      preLoaderRoute: typeof JaBlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ja/changelog': {
+      id: '/ja/changelog'
+      path: '/ja/changelog'
+      fullPath: '/ja/changelog'
+      preLoaderRoute: typeof JaChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ja/docs': {
+      id: '/ja/docs'
+      path: '/ja/docs'
+      fullPath: '/ja/docs'
+      preLoaderRoute: typeof JaDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ja/pricing': {
+      id: '/ja/pricing'
+      path: '/ja/pricing'
+      fullPath: '/ja/pricing'
+      preLoaderRoute: typeof JaPricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ja/privacy': {
+      id: '/ja/privacy'
+      path: '/ja/privacy'
+      fullPath: '/ja/privacy'
+      preLoaderRoute: typeof JaPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ru/': {
+      id: '/ru/'
+      path: '/ru'
+      fullPath: '/ru/'
+      preLoaderRoute: typeof RuIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ru/changelog': {
+      id: '/ru/changelog'
+      path: '/ru/changelog'
+      fullPath: '/ru/changelog'
+      preLoaderRoute: typeof RuChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ru/docs': {
+      id: '/ru/docs'
+      path: '/ru/docs'
+      fullPath: '/ru/docs'
+      preLoaderRoute: typeof RuDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ru/pricing': {
+      id: '/ru/pricing'
+      path: '/ru/pricing'
+      fullPath: '/ru/pricing'
+      preLoaderRoute: typeof RuPricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ru/privacy': {
+      id: '/ru/privacy'
+      path: '/ru/privacy'
+      fullPath: '/ru/privacy'
+      preLoaderRoute: typeof RuPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh-hant/': {
+      id: '/zh-hant/'
+      path: '/zh-hant'
+      fullPath: '/zh-hant/'
+      preLoaderRoute: typeof ZhHantIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh-hant/changelog': {
+      id: '/zh-hant/changelog'
+      path: '/zh-hant/changelog'
+      fullPath: '/zh-hant/changelog'
+      preLoaderRoute: typeof ZhHantChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh-hant/docs': {
+      id: '/zh-hant/docs'
+      path: '/zh-hant/docs'
+      fullPath: '/zh-hant/docs'
+      preLoaderRoute: typeof ZhHantDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh-hant/pricing': {
+      id: '/zh-hant/pricing'
+      path: '/zh-hant/pricing'
+      fullPath: '/zh-hant/pricing'
+      preLoaderRoute: typeof ZhHantPricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh-hant/privacy': {
+      id: '/zh-hant/privacy'
+      path: '/zh-hant/privacy'
+      fullPath: '/zh-hant/privacy'
+      preLoaderRoute: typeof ZhHantPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh/': {
+      id: '/zh/'
+      path: '/zh'
+      fullPath: '/zh/'
+      preLoaderRoute: typeof ZhIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh/blog': {
+      id: '/zh/blog'
+      path: '/zh/blog'
+      fullPath: '/zh/blog'
+      preLoaderRoute: typeof ZhBlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh/changelog': {
+      id: '/zh/changelog'
+      path: '/zh/changelog'
+      fullPath: '/zh/changelog'
+      preLoaderRoute: typeof ZhChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh/docs': {
+      id: '/zh/docs'
+      path: '/zh/docs'
+      fullPath: '/zh/docs'
+      preLoaderRoute: typeof ZhDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh/epub-reader-for-android': {
+      id: '/zh/epub-reader-for-android'
+      path: '/zh/epub-reader-for-android'
+      fullPath: '/zh/epub-reader-for-android'
+      preLoaderRoute: typeof ZhEpubReaderForAndroidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh/epub-reader-for-windows': {
+      id: '/zh/epub-reader-for-windows'
+      path: '/zh/epub-reader-for-windows'
+      fullPath: '/zh/epub-reader-for-windows'
+      preLoaderRoute: typeof ZhEpubReaderForWindowsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh/pricing': {
+      id: '/zh/pricing'
+      path: '/zh/pricing'
+      fullPath: '/zh/pricing'
+      preLoaderRoute: typeof ZhPricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh/privacy': {
+      id: '/zh/privacy'
+      path: '/zh/privacy'
+      fullPath: '/zh/privacy'
+      preLoaderRoute: typeof ZhPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/de/docs/': {
       id: '/de/docs/'
       path: '/'
       fullPath: '/de/docs/'
       preLoaderRoute: typeof DeDocsIndexRouteImport
-      parentRoute: typeof DeDocsRoute
-    }
-    '/zh/docs/install': {
-      id: '/zh/docs/install'
-      path: '/install'
-      fullPath: '/zh/docs/install'
-      preLoaderRoute: typeof ZhDocsInstallRouteImport
-      parentRoute: typeof ZhDocsRoute
-    }
-    '/zh/docs/getting-started': {
-      id: '/zh/docs/getting-started'
-      path: '/getting-started'
-      fullPath: '/zh/docs/getting-started'
-      preLoaderRoute: typeof ZhDocsGettingStartedRouteImport
-      parentRoute: typeof ZhDocsRoute
-    }
-    '/zh/blog/reading-that-remembers': {
-      id: '/zh/blog/reading-that-remembers'
-      path: '/reading-that-remembers'
-      fullPath: '/zh/blog/reading-that-remembers'
-      preLoaderRoute: typeof ZhBlogReadingThatRemembersRouteImport
-      parentRoute: typeof ZhBlogRoute
-    }
-    '/zh/blog/plugins-v1': {
-      id: '/zh/blog/plugins-v1'
-      path: '/plugins-v1'
-      fullPath: '/zh/blog/plugins-v1'
-      preLoaderRoute: typeof ZhBlogPluginsV1RouteImport
-      parentRoute: typeof ZhBlogRoute
-    }
-    '/zh/blog/local-first': {
-      id: '/zh/blog/local-first'
-      path: '/local-first'
-      fullPath: '/zh/blog/local-first'
-      preLoaderRoute: typeof ZhBlogLocalFirstRouteImport
-      parentRoute: typeof ZhBlogRoute
-    }
-    '/zh/blog/lake-baikal': {
-      id: '/zh/blog/lake-baikal'
-      path: '/lake-baikal'
-      fullPath: '/zh/blog/lake-baikal'
-      preLoaderRoute: typeof ZhBlogLakeBaikalRouteImport
-      parentRoute: typeof ZhBlogRoute
-    }
-    '/zh-hant/docs/install': {
-      id: '/zh-hant/docs/install'
-      path: '/install'
-      fullPath: '/zh-hant/docs/install'
-      preLoaderRoute: typeof ZhHantDocsInstallRouteImport
-      parentRoute: typeof ZhHantDocsRoute
-    }
-    '/zh-hant/docs/getting-started': {
-      id: '/zh-hant/docs/getting-started'
-      path: '/getting-started'
-      fullPath: '/zh-hant/docs/getting-started'
-      preLoaderRoute: typeof ZhHantDocsGettingStartedRouteImport
-      parentRoute: typeof ZhHantDocsRoute
-    }
-    '/ru/docs/install': {
-      id: '/ru/docs/install'
-      path: '/install'
-      fullPath: '/ru/docs/install'
-      preLoaderRoute: typeof RuDocsInstallRouteImport
-      parentRoute: typeof RuDocsRoute
-    }
-    '/ru/docs/getting-started': {
-      id: '/ru/docs/getting-started'
-      path: '/getting-started'
-      fullPath: '/ru/docs/getting-started'
-      preLoaderRoute: typeof RuDocsGettingStartedRouteImport
-      parentRoute: typeof RuDocsRoute
-    }
-    '/ja/docs/install': {
-      id: '/ja/docs/install'
-      path: '/install'
-      fullPath: '/ja/docs/install'
-      preLoaderRoute: typeof JaDocsInstallRouteImport
-      parentRoute: typeof JaDocsRoute
-    }
-    '/ja/docs/getting-started': {
-      id: '/ja/docs/getting-started'
-      path: '/getting-started'
-      fullPath: '/ja/docs/getting-started'
-      preLoaderRoute: typeof JaDocsGettingStartedRouteImport
-      parentRoute: typeof JaDocsRoute
-    }
-    '/ja/blog/reading-that-remembers': {
-      id: '/ja/blog/reading-that-remembers'
-      path: '/reading-that-remembers'
-      fullPath: '/ja/blog/reading-that-remembers'
-      preLoaderRoute: typeof JaBlogReadingThatRemembersRouteImport
-      parentRoute: typeof JaBlogRoute
-    }
-    '/ja/blog/plugins-v1': {
-      id: '/ja/blog/plugins-v1'
-      path: '/plugins-v1'
-      fullPath: '/ja/blog/plugins-v1'
-      preLoaderRoute: typeof JaBlogPluginsV1RouteImport
-      parentRoute: typeof JaBlogRoute
-    }
-    '/ja/blog/local-first': {
-      id: '/ja/blog/local-first'
-      path: '/local-first'
-      fullPath: '/ja/blog/local-first'
-      preLoaderRoute: typeof JaBlogLocalFirstRouteImport
-      parentRoute: typeof JaBlogRoute
-    }
-    '/ja/blog/lake-baikal': {
-      id: '/ja/blog/lake-baikal'
-      path: '/lake-baikal'
-      fullPath: '/ja/blog/lake-baikal'
-      preLoaderRoute: typeof JaBlogLakeBaikalRouteImport
-      parentRoute: typeof JaBlogRoute
-    }
-    '/fr/docs/install': {
-      id: '/fr/docs/install'
-      path: '/install'
-      fullPath: '/fr/docs/install'
-      preLoaderRoute: typeof FrDocsInstallRouteImport
-      parentRoute: typeof FrDocsRoute
-    }
-    '/fr/docs/getting-started': {
-      id: '/fr/docs/getting-started'
-      path: '/getting-started'
-      fullPath: '/fr/docs/getting-started'
-      preLoaderRoute: typeof FrDocsGettingStartedRouteImport
-      parentRoute: typeof FrDocsRoute
-    }
-    '/es/docs/install': {
-      id: '/es/docs/install'
-      path: '/install'
-      fullPath: '/es/docs/install'
-      preLoaderRoute: typeof EsDocsInstallRouteImport
-      parentRoute: typeof EsDocsRoute
-    }
-    '/es/docs/getting-started': {
-      id: '/es/docs/getting-started'
-      path: '/getting-started'
-      fullPath: '/es/docs/getting-started'
-      preLoaderRoute: typeof EsDocsGettingStartedRouteImport
-      parentRoute: typeof EsDocsRoute
-    }
-    '/docs/plugins/publishing': {
-      id: '/docs/plugins/publishing'
-      path: '/plugins/publishing'
-      fullPath: '/docs/plugins/publishing'
-      preLoaderRoute: typeof DocsPluginsPublishingRouteImport
-      parentRoute: typeof DocsRoute
-    }
-    '/docs/plugins/develop': {
-      id: '/docs/plugins/develop'
-      path: '/plugins/develop'
-      fullPath: '/docs/plugins/develop'
-      preLoaderRoute: typeof DocsPluginsDevelopRouteImport
-      parentRoute: typeof DocsRoute
-    }
-    '/docs/plugins/capabilities': {
-      id: '/docs/plugins/capabilities'
-      path: '/plugins/capabilities'
-      fullPath: '/docs/plugins/capabilities'
-      preLoaderRoute: typeof DocsPluginsCapabilitiesRouteImport
-      parentRoute: typeof DocsRoute
-    }
-    '/docs/plugins/api': {
-      id: '/docs/plugins/api'
-      path: '/plugins/api'
-      fullPath: '/docs/plugins/api'
-      preLoaderRoute: typeof DocsPluginsApiRouteImport
-      parentRoute: typeof DocsRoute
-    }
-    '/de/docs/install': {
-      id: '/de/docs/install'
-      path: '/install'
-      fullPath: '/de/docs/install'
-      preLoaderRoute: typeof DeDocsInstallRouteImport
       parentRoute: typeof DeDocsRoute
     }
     '/de/docs/getting-started': {
@@ -2259,47 +2021,243 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DeDocsGettingStartedRouteImport
       parentRoute: typeof DeDocsRoute
     }
-    '/zh/docs/plugins/': {
-      id: '/zh/docs/plugins/'
-      path: '/plugins'
-      fullPath: '/zh/docs/plugins/'
-      preLoaderRoute: typeof ZhDocsPluginsIndexRouteImport
-      parentRoute: typeof ZhDocsRoute
+    '/de/docs/install': {
+      id: '/de/docs/install'
+      path: '/install'
+      fullPath: '/de/docs/install'
+      preLoaderRoute: typeof DeDocsInstallRouteImport
+      parentRoute: typeof DeDocsRoute
     }
-    '/zh-hant/docs/plugins/': {
-      id: '/zh-hant/docs/plugins/'
+    '/docs/plugins/': {
+      id: '/docs/plugins/'
       path: '/plugins'
-      fullPath: '/zh-hant/docs/plugins/'
-      preLoaderRoute: typeof ZhHantDocsPluginsIndexRouteImport
-      parentRoute: typeof ZhHantDocsRoute
+      fullPath: '/docs/plugins/'
+      preLoaderRoute: typeof DocsPluginsIndexRouteImport
+      parentRoute: typeof DocsRoute
     }
-    '/ru/docs/plugins/': {
-      id: '/ru/docs/plugins/'
-      path: '/plugins'
-      fullPath: '/ru/docs/plugins/'
-      preLoaderRoute: typeof RuDocsPluginsIndexRouteImport
-      parentRoute: typeof RuDocsRoute
+    '/docs/plugins/api': {
+      id: '/docs/plugins/api'
+      path: '/plugins/api'
+      fullPath: '/docs/plugins/api'
+      preLoaderRoute: typeof DocsPluginsApiRouteImport
+      parentRoute: typeof DocsRoute
     }
-    '/ja/docs/plugins/': {
-      id: '/ja/docs/plugins/'
-      path: '/plugins'
-      fullPath: '/ja/docs/plugins/'
-      preLoaderRoute: typeof JaDocsPluginsIndexRouteImport
-      parentRoute: typeof JaDocsRoute
+    '/docs/plugins/capabilities': {
+      id: '/docs/plugins/capabilities'
+      path: '/plugins/capabilities'
+      fullPath: '/docs/plugins/capabilities'
+      preLoaderRoute: typeof DocsPluginsCapabilitiesRouteImport
+      parentRoute: typeof DocsRoute
     }
-    '/fr/docs/plugins/': {
-      id: '/fr/docs/plugins/'
-      path: '/plugins'
-      fullPath: '/fr/docs/plugins/'
-      preLoaderRoute: typeof FrDocsPluginsIndexRouteImport
+    '/docs/plugins/develop': {
+      id: '/docs/plugins/develop'
+      path: '/plugins/develop'
+      fullPath: '/docs/plugins/develop'
+      preLoaderRoute: typeof DocsPluginsDevelopRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/docs/plugins/publishing': {
+      id: '/docs/plugins/publishing'
+      path: '/plugins/publishing'
+      fullPath: '/docs/plugins/publishing'
+      preLoaderRoute: typeof DocsPluginsPublishingRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/es/docs/': {
+      id: '/es/docs/'
+      path: '/'
+      fullPath: '/es/docs/'
+      preLoaderRoute: typeof EsDocsIndexRouteImport
+      parentRoute: typeof EsDocsRoute
+    }
+    '/es/docs/getting-started': {
+      id: '/es/docs/getting-started'
+      path: '/getting-started'
+      fullPath: '/es/docs/getting-started'
+      preLoaderRoute: typeof EsDocsGettingStartedRouteImport
+      parentRoute: typeof EsDocsRoute
+    }
+    '/es/docs/install': {
+      id: '/es/docs/install'
+      path: '/install'
+      fullPath: '/es/docs/install'
+      preLoaderRoute: typeof EsDocsInstallRouteImport
+      parentRoute: typeof EsDocsRoute
+    }
+    '/fr/docs/': {
+      id: '/fr/docs/'
+      path: '/'
+      fullPath: '/fr/docs/'
+      preLoaderRoute: typeof FrDocsIndexRouteImport
       parentRoute: typeof FrDocsRoute
     }
-    '/es/docs/plugins/': {
-      id: '/es/docs/plugins/'
-      path: '/plugins'
-      fullPath: '/es/docs/plugins/'
-      preLoaderRoute: typeof EsDocsPluginsIndexRouteImport
-      parentRoute: typeof EsDocsRoute
+    '/fr/docs/getting-started': {
+      id: '/fr/docs/getting-started'
+      path: '/getting-started'
+      fullPath: '/fr/docs/getting-started'
+      preLoaderRoute: typeof FrDocsGettingStartedRouteImport
+      parentRoute: typeof FrDocsRoute
+    }
+    '/fr/docs/install': {
+      id: '/fr/docs/install'
+      path: '/install'
+      fullPath: '/fr/docs/install'
+      preLoaderRoute: typeof FrDocsInstallRouteImport
+      parentRoute: typeof FrDocsRoute
+    }
+    '/ja/blog/': {
+      id: '/ja/blog/'
+      path: '/'
+      fullPath: '/ja/blog/'
+      preLoaderRoute: typeof JaBlogIndexRouteImport
+      parentRoute: typeof JaBlogRoute
+    }
+    '/ja/blog/lake-baikal': {
+      id: '/ja/blog/lake-baikal'
+      path: '/lake-baikal'
+      fullPath: '/ja/blog/lake-baikal'
+      preLoaderRoute: typeof JaBlogLakeBaikalRouteImport
+      parentRoute: typeof JaBlogRoute
+    }
+    '/ja/blog/local-first': {
+      id: '/ja/blog/local-first'
+      path: '/local-first'
+      fullPath: '/ja/blog/local-first'
+      preLoaderRoute: typeof JaBlogLocalFirstRouteImport
+      parentRoute: typeof JaBlogRoute
+    }
+    '/ja/blog/plugins-v1': {
+      id: '/ja/blog/plugins-v1'
+      path: '/plugins-v1'
+      fullPath: '/ja/blog/plugins-v1'
+      preLoaderRoute: typeof JaBlogPluginsV1RouteImport
+      parentRoute: typeof JaBlogRoute
+    }
+    '/ja/blog/reading-that-remembers': {
+      id: '/ja/blog/reading-that-remembers'
+      path: '/reading-that-remembers'
+      fullPath: '/ja/blog/reading-that-remembers'
+      preLoaderRoute: typeof JaBlogReadingThatRemembersRouteImport
+      parentRoute: typeof JaBlogRoute
+    }
+    '/ja/docs/': {
+      id: '/ja/docs/'
+      path: '/'
+      fullPath: '/ja/docs/'
+      preLoaderRoute: typeof JaDocsIndexRouteImport
+      parentRoute: typeof JaDocsRoute
+    }
+    '/ja/docs/getting-started': {
+      id: '/ja/docs/getting-started'
+      path: '/getting-started'
+      fullPath: '/ja/docs/getting-started'
+      preLoaderRoute: typeof JaDocsGettingStartedRouteImport
+      parentRoute: typeof JaDocsRoute
+    }
+    '/ja/docs/install': {
+      id: '/ja/docs/install'
+      path: '/install'
+      fullPath: '/ja/docs/install'
+      preLoaderRoute: typeof JaDocsInstallRouteImport
+      parentRoute: typeof JaDocsRoute
+    }
+    '/ru/docs/': {
+      id: '/ru/docs/'
+      path: '/'
+      fullPath: '/ru/docs/'
+      preLoaderRoute: typeof RuDocsIndexRouteImport
+      parentRoute: typeof RuDocsRoute
+    }
+    '/ru/docs/getting-started': {
+      id: '/ru/docs/getting-started'
+      path: '/getting-started'
+      fullPath: '/ru/docs/getting-started'
+      preLoaderRoute: typeof RuDocsGettingStartedRouteImport
+      parentRoute: typeof RuDocsRoute
+    }
+    '/ru/docs/install': {
+      id: '/ru/docs/install'
+      path: '/install'
+      fullPath: '/ru/docs/install'
+      preLoaderRoute: typeof RuDocsInstallRouteImport
+      parentRoute: typeof RuDocsRoute
+    }
+    '/zh-hant/docs/': {
+      id: '/zh-hant/docs/'
+      path: '/'
+      fullPath: '/zh-hant/docs/'
+      preLoaderRoute: typeof ZhHantDocsIndexRouteImport
+      parentRoute: typeof ZhHantDocsRoute
+    }
+    '/zh-hant/docs/getting-started': {
+      id: '/zh-hant/docs/getting-started'
+      path: '/getting-started'
+      fullPath: '/zh-hant/docs/getting-started'
+      preLoaderRoute: typeof ZhHantDocsGettingStartedRouteImport
+      parentRoute: typeof ZhHantDocsRoute
+    }
+    '/zh-hant/docs/install': {
+      id: '/zh-hant/docs/install'
+      path: '/install'
+      fullPath: '/zh-hant/docs/install'
+      preLoaderRoute: typeof ZhHantDocsInstallRouteImport
+      parentRoute: typeof ZhHantDocsRoute
+    }
+    '/zh/blog/': {
+      id: '/zh/blog/'
+      path: '/'
+      fullPath: '/zh/blog/'
+      preLoaderRoute: typeof ZhBlogIndexRouteImport
+      parentRoute: typeof ZhBlogRoute
+    }
+    '/zh/blog/lake-baikal': {
+      id: '/zh/blog/lake-baikal'
+      path: '/lake-baikal'
+      fullPath: '/zh/blog/lake-baikal'
+      preLoaderRoute: typeof ZhBlogLakeBaikalRouteImport
+      parentRoute: typeof ZhBlogRoute
+    }
+    '/zh/blog/local-first': {
+      id: '/zh/blog/local-first'
+      path: '/local-first'
+      fullPath: '/zh/blog/local-first'
+      preLoaderRoute: typeof ZhBlogLocalFirstRouteImport
+      parentRoute: typeof ZhBlogRoute
+    }
+    '/zh/blog/plugins-v1': {
+      id: '/zh/blog/plugins-v1'
+      path: '/plugins-v1'
+      fullPath: '/zh/blog/plugins-v1'
+      preLoaderRoute: typeof ZhBlogPluginsV1RouteImport
+      parentRoute: typeof ZhBlogRoute
+    }
+    '/zh/blog/reading-that-remembers': {
+      id: '/zh/blog/reading-that-remembers'
+      path: '/reading-that-remembers'
+      fullPath: '/zh/blog/reading-that-remembers'
+      preLoaderRoute: typeof ZhBlogReadingThatRemembersRouteImport
+      parentRoute: typeof ZhBlogRoute
+    }
+    '/zh/docs/': {
+      id: '/zh/docs/'
+      path: '/'
+      fullPath: '/zh/docs/'
+      preLoaderRoute: typeof ZhDocsIndexRouteImport
+      parentRoute: typeof ZhDocsRoute
+    }
+    '/zh/docs/getting-started': {
+      id: '/zh/docs/getting-started'
+      path: '/getting-started'
+      fullPath: '/zh/docs/getting-started'
+      preLoaderRoute: typeof ZhDocsGettingStartedRouteImport
+      parentRoute: typeof ZhDocsRoute
+    }
+    '/zh/docs/install': {
+      id: '/zh/docs/install'
+      path: '/install'
+      fullPath: '/zh/docs/install'
+      preLoaderRoute: typeof ZhDocsInstallRouteImport
+      parentRoute: typeof ZhDocsRoute
     }
     '/de/docs/plugins/': {
       id: '/de/docs/plugins/'
@@ -2308,186 +2266,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DeDocsPluginsIndexRouteImport
       parentRoute: typeof DeDocsRoute
     }
-    '/zh/docs/plugins/publishing': {
-      id: '/zh/docs/plugins/publishing'
-      path: '/plugins/publishing'
-      fullPath: '/zh/docs/plugins/publishing'
-      preLoaderRoute: typeof ZhDocsPluginsPublishingRouteImport
-      parentRoute: typeof ZhDocsRoute
-    }
-    '/zh/docs/plugins/develop': {
-      id: '/zh/docs/plugins/develop'
-      path: '/plugins/develop'
-      fullPath: '/zh/docs/plugins/develop'
-      preLoaderRoute: typeof ZhDocsPluginsDevelopRouteImport
-      parentRoute: typeof ZhDocsRoute
-    }
-    '/zh/docs/plugins/capabilities': {
-      id: '/zh/docs/plugins/capabilities'
-      path: '/plugins/capabilities'
-      fullPath: '/zh/docs/plugins/capabilities'
-      preLoaderRoute: typeof ZhDocsPluginsCapabilitiesRouteImport
-      parentRoute: typeof ZhDocsRoute
-    }
-    '/zh/docs/plugins/api': {
-      id: '/zh/docs/plugins/api'
+    '/de/docs/plugins/api': {
+      id: '/de/docs/plugins/api'
       path: '/plugins/api'
-      fullPath: '/zh/docs/plugins/api'
-      preLoaderRoute: typeof ZhDocsPluginsApiRouteImport
-      parentRoute: typeof ZhDocsRoute
-    }
-    '/zh-hant/docs/plugins/publishing': {
-      id: '/zh-hant/docs/plugins/publishing'
-      path: '/plugins/publishing'
-      fullPath: '/zh-hant/docs/plugins/publishing'
-      preLoaderRoute: typeof ZhHantDocsPluginsPublishingRouteImport
-      parentRoute: typeof ZhHantDocsRoute
-    }
-    '/zh-hant/docs/plugins/develop': {
-      id: '/zh-hant/docs/plugins/develop'
-      path: '/plugins/develop'
-      fullPath: '/zh-hant/docs/plugins/develop'
-      preLoaderRoute: typeof ZhHantDocsPluginsDevelopRouteImport
-      parentRoute: typeof ZhHantDocsRoute
-    }
-    '/zh-hant/docs/plugins/capabilities': {
-      id: '/zh-hant/docs/plugins/capabilities'
-      path: '/plugins/capabilities'
-      fullPath: '/zh-hant/docs/plugins/capabilities'
-      preLoaderRoute: typeof ZhHantDocsPluginsCapabilitiesRouteImport
-      parentRoute: typeof ZhHantDocsRoute
-    }
-    '/zh-hant/docs/plugins/api': {
-      id: '/zh-hant/docs/plugins/api'
-      path: '/plugins/api'
-      fullPath: '/zh-hant/docs/plugins/api'
-      preLoaderRoute: typeof ZhHantDocsPluginsApiRouteImport
-      parentRoute: typeof ZhHantDocsRoute
-    }
-    '/ru/docs/plugins/publishing': {
-      id: '/ru/docs/plugins/publishing'
-      path: '/plugins/publishing'
-      fullPath: '/ru/docs/plugins/publishing'
-      preLoaderRoute: typeof RuDocsPluginsPublishingRouteImport
-      parentRoute: typeof RuDocsRoute
-    }
-    '/ru/docs/plugins/develop': {
-      id: '/ru/docs/plugins/develop'
-      path: '/plugins/develop'
-      fullPath: '/ru/docs/plugins/develop'
-      preLoaderRoute: typeof RuDocsPluginsDevelopRouteImport
-      parentRoute: typeof RuDocsRoute
-    }
-    '/ru/docs/plugins/capabilities': {
-      id: '/ru/docs/plugins/capabilities'
-      path: '/plugins/capabilities'
-      fullPath: '/ru/docs/plugins/capabilities'
-      preLoaderRoute: typeof RuDocsPluginsCapabilitiesRouteImport
-      parentRoute: typeof RuDocsRoute
-    }
-    '/ru/docs/plugins/api': {
-      id: '/ru/docs/plugins/api'
-      path: '/plugins/api'
-      fullPath: '/ru/docs/plugins/api'
-      preLoaderRoute: typeof RuDocsPluginsApiRouteImport
-      parentRoute: typeof RuDocsRoute
-    }
-    '/ja/docs/plugins/publishing': {
-      id: '/ja/docs/plugins/publishing'
-      path: '/plugins/publishing'
-      fullPath: '/ja/docs/plugins/publishing'
-      preLoaderRoute: typeof JaDocsPluginsPublishingRouteImport
-      parentRoute: typeof JaDocsRoute
-    }
-    '/ja/docs/plugins/develop': {
-      id: '/ja/docs/plugins/develop'
-      path: '/plugins/develop'
-      fullPath: '/ja/docs/plugins/develop'
-      preLoaderRoute: typeof JaDocsPluginsDevelopRouteImport
-      parentRoute: typeof JaDocsRoute
-    }
-    '/ja/docs/plugins/capabilities': {
-      id: '/ja/docs/plugins/capabilities'
-      path: '/plugins/capabilities'
-      fullPath: '/ja/docs/plugins/capabilities'
-      preLoaderRoute: typeof JaDocsPluginsCapabilitiesRouteImport
-      parentRoute: typeof JaDocsRoute
-    }
-    '/ja/docs/plugins/api': {
-      id: '/ja/docs/plugins/api'
-      path: '/plugins/api'
-      fullPath: '/ja/docs/plugins/api'
-      preLoaderRoute: typeof JaDocsPluginsApiRouteImport
-      parentRoute: typeof JaDocsRoute
-    }
-    '/fr/docs/plugins/publishing': {
-      id: '/fr/docs/plugins/publishing'
-      path: '/plugins/publishing'
-      fullPath: '/fr/docs/plugins/publishing'
-      preLoaderRoute: typeof FrDocsPluginsPublishingRouteImport
-      parentRoute: typeof FrDocsRoute
-    }
-    '/fr/docs/plugins/develop': {
-      id: '/fr/docs/plugins/develop'
-      path: '/plugins/develop'
-      fullPath: '/fr/docs/plugins/develop'
-      preLoaderRoute: typeof FrDocsPluginsDevelopRouteImport
-      parentRoute: typeof FrDocsRoute
-    }
-    '/fr/docs/plugins/capabilities': {
-      id: '/fr/docs/plugins/capabilities'
-      path: '/plugins/capabilities'
-      fullPath: '/fr/docs/plugins/capabilities'
-      preLoaderRoute: typeof FrDocsPluginsCapabilitiesRouteImport
-      parentRoute: typeof FrDocsRoute
-    }
-    '/fr/docs/plugins/api': {
-      id: '/fr/docs/plugins/api'
-      path: '/plugins/api'
-      fullPath: '/fr/docs/plugins/api'
-      preLoaderRoute: typeof FrDocsPluginsApiRouteImport
-      parentRoute: typeof FrDocsRoute
-    }
-    '/es/docs/plugins/publishing': {
-      id: '/es/docs/plugins/publishing'
-      path: '/plugins/publishing'
-      fullPath: '/es/docs/plugins/publishing'
-      preLoaderRoute: typeof EsDocsPluginsPublishingRouteImport
-      parentRoute: typeof EsDocsRoute
-    }
-    '/es/docs/plugins/develop': {
-      id: '/es/docs/plugins/develop'
-      path: '/plugins/develop'
-      fullPath: '/es/docs/plugins/develop'
-      preLoaderRoute: typeof EsDocsPluginsDevelopRouteImport
-      parentRoute: typeof EsDocsRoute
-    }
-    '/es/docs/plugins/capabilities': {
-      id: '/es/docs/plugins/capabilities'
-      path: '/plugins/capabilities'
-      fullPath: '/es/docs/plugins/capabilities'
-      preLoaderRoute: typeof EsDocsPluginsCapabilitiesRouteImport
-      parentRoute: typeof EsDocsRoute
-    }
-    '/es/docs/plugins/api': {
-      id: '/es/docs/plugins/api'
-      path: '/plugins/api'
-      fullPath: '/es/docs/plugins/api'
-      preLoaderRoute: typeof EsDocsPluginsApiRouteImport
-      parentRoute: typeof EsDocsRoute
-    }
-    '/de/docs/plugins/publishing': {
-      id: '/de/docs/plugins/publishing'
-      path: '/plugins/publishing'
-      fullPath: '/de/docs/plugins/publishing'
-      preLoaderRoute: typeof DeDocsPluginsPublishingRouteImport
-      parentRoute: typeof DeDocsRoute
-    }
-    '/de/docs/plugins/develop': {
-      id: '/de/docs/plugins/develop'
-      path: '/plugins/develop'
-      fullPath: '/de/docs/plugins/develop'
-      preLoaderRoute: typeof DeDocsPluginsDevelopRouteImport
+      fullPath: '/de/docs/plugins/api'
+      preLoaderRoute: typeof DeDocsPluginsApiRouteImport
       parentRoute: typeof DeDocsRoute
     }
     '/de/docs/plugins/capabilities': {
@@ -2497,12 +2280,229 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DeDocsPluginsCapabilitiesRouteImport
       parentRoute: typeof DeDocsRoute
     }
-    '/de/docs/plugins/api': {
-      id: '/de/docs/plugins/api'
-      path: '/plugins/api'
-      fullPath: '/de/docs/plugins/api'
-      preLoaderRoute: typeof DeDocsPluginsApiRouteImport
+    '/de/docs/plugins/develop': {
+      id: '/de/docs/plugins/develop'
+      path: '/plugins/develop'
+      fullPath: '/de/docs/plugins/develop'
+      preLoaderRoute: typeof DeDocsPluginsDevelopRouteImport
       parentRoute: typeof DeDocsRoute
+    }
+    '/de/docs/plugins/publishing': {
+      id: '/de/docs/plugins/publishing'
+      path: '/plugins/publishing'
+      fullPath: '/de/docs/plugins/publishing'
+      preLoaderRoute: typeof DeDocsPluginsPublishingRouteImport
+      parentRoute: typeof DeDocsRoute
+    }
+    '/es/docs/plugins/': {
+      id: '/es/docs/plugins/'
+      path: '/plugins'
+      fullPath: '/es/docs/plugins/'
+      preLoaderRoute: typeof EsDocsPluginsIndexRouteImport
+      parentRoute: typeof EsDocsRoute
+    }
+    '/es/docs/plugins/api': {
+      id: '/es/docs/plugins/api'
+      path: '/plugins/api'
+      fullPath: '/es/docs/plugins/api'
+      preLoaderRoute: typeof EsDocsPluginsApiRouteImport
+      parentRoute: typeof EsDocsRoute
+    }
+    '/es/docs/plugins/capabilities': {
+      id: '/es/docs/plugins/capabilities'
+      path: '/plugins/capabilities'
+      fullPath: '/es/docs/plugins/capabilities'
+      preLoaderRoute: typeof EsDocsPluginsCapabilitiesRouteImport
+      parentRoute: typeof EsDocsRoute
+    }
+    '/es/docs/plugins/develop': {
+      id: '/es/docs/plugins/develop'
+      path: '/plugins/develop'
+      fullPath: '/es/docs/plugins/develop'
+      preLoaderRoute: typeof EsDocsPluginsDevelopRouteImport
+      parentRoute: typeof EsDocsRoute
+    }
+    '/es/docs/plugins/publishing': {
+      id: '/es/docs/plugins/publishing'
+      path: '/plugins/publishing'
+      fullPath: '/es/docs/plugins/publishing'
+      preLoaderRoute: typeof EsDocsPluginsPublishingRouteImport
+      parentRoute: typeof EsDocsRoute
+    }
+    '/fr/docs/plugins/': {
+      id: '/fr/docs/plugins/'
+      path: '/plugins'
+      fullPath: '/fr/docs/plugins/'
+      preLoaderRoute: typeof FrDocsPluginsIndexRouteImport
+      parentRoute: typeof FrDocsRoute
+    }
+    '/fr/docs/plugins/api': {
+      id: '/fr/docs/plugins/api'
+      path: '/plugins/api'
+      fullPath: '/fr/docs/plugins/api'
+      preLoaderRoute: typeof FrDocsPluginsApiRouteImport
+      parentRoute: typeof FrDocsRoute
+    }
+    '/fr/docs/plugins/capabilities': {
+      id: '/fr/docs/plugins/capabilities'
+      path: '/plugins/capabilities'
+      fullPath: '/fr/docs/plugins/capabilities'
+      preLoaderRoute: typeof FrDocsPluginsCapabilitiesRouteImport
+      parentRoute: typeof FrDocsRoute
+    }
+    '/fr/docs/plugins/develop': {
+      id: '/fr/docs/plugins/develop'
+      path: '/plugins/develop'
+      fullPath: '/fr/docs/plugins/develop'
+      preLoaderRoute: typeof FrDocsPluginsDevelopRouteImport
+      parentRoute: typeof FrDocsRoute
+    }
+    '/fr/docs/plugins/publishing': {
+      id: '/fr/docs/plugins/publishing'
+      path: '/plugins/publishing'
+      fullPath: '/fr/docs/plugins/publishing'
+      preLoaderRoute: typeof FrDocsPluginsPublishingRouteImport
+      parentRoute: typeof FrDocsRoute
+    }
+    '/ja/docs/plugins/': {
+      id: '/ja/docs/plugins/'
+      path: '/plugins'
+      fullPath: '/ja/docs/plugins/'
+      preLoaderRoute: typeof JaDocsPluginsIndexRouteImport
+      parentRoute: typeof JaDocsRoute
+    }
+    '/ja/docs/plugins/api': {
+      id: '/ja/docs/plugins/api'
+      path: '/plugins/api'
+      fullPath: '/ja/docs/plugins/api'
+      preLoaderRoute: typeof JaDocsPluginsApiRouteImport
+      parentRoute: typeof JaDocsRoute
+    }
+    '/ja/docs/plugins/capabilities': {
+      id: '/ja/docs/plugins/capabilities'
+      path: '/plugins/capabilities'
+      fullPath: '/ja/docs/plugins/capabilities'
+      preLoaderRoute: typeof JaDocsPluginsCapabilitiesRouteImport
+      parentRoute: typeof JaDocsRoute
+    }
+    '/ja/docs/plugins/develop': {
+      id: '/ja/docs/plugins/develop'
+      path: '/plugins/develop'
+      fullPath: '/ja/docs/plugins/develop'
+      preLoaderRoute: typeof JaDocsPluginsDevelopRouteImport
+      parentRoute: typeof JaDocsRoute
+    }
+    '/ja/docs/plugins/publishing': {
+      id: '/ja/docs/plugins/publishing'
+      path: '/plugins/publishing'
+      fullPath: '/ja/docs/plugins/publishing'
+      preLoaderRoute: typeof JaDocsPluginsPublishingRouteImport
+      parentRoute: typeof JaDocsRoute
+    }
+    '/ru/docs/plugins/': {
+      id: '/ru/docs/plugins/'
+      path: '/plugins'
+      fullPath: '/ru/docs/plugins/'
+      preLoaderRoute: typeof RuDocsPluginsIndexRouteImport
+      parentRoute: typeof RuDocsRoute
+    }
+    '/ru/docs/plugins/api': {
+      id: '/ru/docs/plugins/api'
+      path: '/plugins/api'
+      fullPath: '/ru/docs/plugins/api'
+      preLoaderRoute: typeof RuDocsPluginsApiRouteImport
+      parentRoute: typeof RuDocsRoute
+    }
+    '/ru/docs/plugins/capabilities': {
+      id: '/ru/docs/plugins/capabilities'
+      path: '/plugins/capabilities'
+      fullPath: '/ru/docs/plugins/capabilities'
+      preLoaderRoute: typeof RuDocsPluginsCapabilitiesRouteImport
+      parentRoute: typeof RuDocsRoute
+    }
+    '/ru/docs/plugins/develop': {
+      id: '/ru/docs/plugins/develop'
+      path: '/plugins/develop'
+      fullPath: '/ru/docs/plugins/develop'
+      preLoaderRoute: typeof RuDocsPluginsDevelopRouteImport
+      parentRoute: typeof RuDocsRoute
+    }
+    '/ru/docs/plugins/publishing': {
+      id: '/ru/docs/plugins/publishing'
+      path: '/plugins/publishing'
+      fullPath: '/ru/docs/plugins/publishing'
+      preLoaderRoute: typeof RuDocsPluginsPublishingRouteImport
+      parentRoute: typeof RuDocsRoute
+    }
+    '/zh-hant/docs/plugins/': {
+      id: '/zh-hant/docs/plugins/'
+      path: '/plugins'
+      fullPath: '/zh-hant/docs/plugins/'
+      preLoaderRoute: typeof ZhHantDocsPluginsIndexRouteImport
+      parentRoute: typeof ZhHantDocsRoute
+    }
+    '/zh-hant/docs/plugins/api': {
+      id: '/zh-hant/docs/plugins/api'
+      path: '/plugins/api'
+      fullPath: '/zh-hant/docs/plugins/api'
+      preLoaderRoute: typeof ZhHantDocsPluginsApiRouteImport
+      parentRoute: typeof ZhHantDocsRoute
+    }
+    '/zh-hant/docs/plugins/capabilities': {
+      id: '/zh-hant/docs/plugins/capabilities'
+      path: '/plugins/capabilities'
+      fullPath: '/zh-hant/docs/plugins/capabilities'
+      preLoaderRoute: typeof ZhHantDocsPluginsCapabilitiesRouteImport
+      parentRoute: typeof ZhHantDocsRoute
+    }
+    '/zh-hant/docs/plugins/develop': {
+      id: '/zh-hant/docs/plugins/develop'
+      path: '/plugins/develop'
+      fullPath: '/zh-hant/docs/plugins/develop'
+      preLoaderRoute: typeof ZhHantDocsPluginsDevelopRouteImport
+      parentRoute: typeof ZhHantDocsRoute
+    }
+    '/zh-hant/docs/plugins/publishing': {
+      id: '/zh-hant/docs/plugins/publishing'
+      path: '/plugins/publishing'
+      fullPath: '/zh-hant/docs/plugins/publishing'
+      preLoaderRoute: typeof ZhHantDocsPluginsPublishingRouteImport
+      parentRoute: typeof ZhHantDocsRoute
+    }
+    '/zh/docs/plugins/': {
+      id: '/zh/docs/plugins/'
+      path: '/plugins'
+      fullPath: '/zh/docs/plugins/'
+      preLoaderRoute: typeof ZhDocsPluginsIndexRouteImport
+      parentRoute: typeof ZhDocsRoute
+    }
+    '/zh/docs/plugins/api': {
+      id: '/zh/docs/plugins/api'
+      path: '/plugins/api'
+      fullPath: '/zh/docs/plugins/api'
+      preLoaderRoute: typeof ZhDocsPluginsApiRouteImport
+      parentRoute: typeof ZhDocsRoute
+    }
+    '/zh/docs/plugins/capabilities': {
+      id: '/zh/docs/plugins/capabilities'
+      path: '/plugins/capabilities'
+      fullPath: '/zh/docs/plugins/capabilities'
+      preLoaderRoute: typeof ZhDocsPluginsCapabilitiesRouteImport
+      parentRoute: typeof ZhDocsRoute
+    }
+    '/zh/docs/plugins/develop': {
+      id: '/zh/docs/plugins/develop'
+      path: '/plugins/develop'
+      fullPath: '/zh/docs/plugins/develop'
+      preLoaderRoute: typeof ZhDocsPluginsDevelopRouteImport
+      parentRoute: typeof ZhDocsRoute
+    }
+    '/zh/docs/plugins/publishing': {
+      id: '/zh/docs/plugins/publishing'
+      path: '/plugins/publishing'
+      fullPath: '/zh/docs/plugins/publishing'
+      preLoaderRoute: typeof ZhDocsPluginsPublishingRouteImport
+      parentRoute: typeof ZhDocsRoute
     }
   }
 }

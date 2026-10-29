@@ -17,7 +17,6 @@ test("session time pauses on idle/background, resumes from iframe activity, and 
   let nextId = 0;
   const spies = [
     spyOn(performance, "now").mockImplementation(() => time),
-    spyOn(dom.window.document, "hasFocus").mockImplementation(() => focused),
     spyOn(dom.window, "setInterval").mockImplementation(((callback: () => void) => {
       const id = ++nextId;
       callbacks.set(id, callback);
@@ -27,6 +26,9 @@ test("session time pauses on idle/background, resumes from iframe activity, and 
       callbacks.delete(id!);
     }),
   ];
+  // JSDOM's document is a Proxy (since 30.1) that spyOn cannot patch;
+  // own properties go through its defineProperty trap.
+  Object.defineProperty(dom.window.document, "hasFocus", { configurable: true, value: () => focused });
   Object.defineProperty(dom.window.document, "visibilityState", {
     configurable: true,
     get: () => (hidden ? "hidden" : "visible"),

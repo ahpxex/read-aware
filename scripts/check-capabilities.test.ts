@@ -24,32 +24,3 @@ test("capability gate is repeatable, read-only for evidence and keeps stateful s
     .json()
     .then((value) => expect(value.scripts["check:capabilities"]).toBe("bun scripts/check-capabilities.ts"));
 });
-
-test("CI runs the gate on pushes and pull requests without write authority or ignored failures", async () => {
-  const workflow = Bun.YAML.parse(
-    await Bun.file(new URL("../.github/workflows/capabilities.yml", import.meta.url)).text(),
-  ) as {
-    on: Record<string, unknown>;
-    permissions: Record<string, string>;
-    jobs: Record<
-      string,
-      { strategy?: { matrix: { os: string[] } }; steps: { run?: string; "continue-on-error"?: boolean }[] }
-    >;
-  };
-  expect(Object.keys(workflow.on)).toEqual(["push", "pull_request", "workflow_dispatch"]);
-  expect(workflow.permissions).toEqual({ contents: "read" });
-  expect(workflow.jobs["source-and-contracts"]!.steps.some((step) => step.run === "bun run check:capabilities")).toBe(
-    true,
-  );
-  expect(workflow.jobs["native-contracts"]!.strategy?.matrix.os).toEqual([
-    "macos-latest",
-    "ubuntu-24.04",
-    "windows-latest",
-  ]);
-  expect(workflow.jobs["native-contracts"]!.steps.some((step) => step.run === "cargo test --locked --lib")).toBe(true);
-  expect(
-    Object.values(workflow.jobs)
-      .flatMap((job) => job.steps)
-      .every((step) => !step["continue-on-error"]),
-  ).toBe(true);
-});

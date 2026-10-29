@@ -75,5 +75,6 @@ bun scripts/build-host-capability-model.ts --check
 bun run check:docs
 ```
 
-修改能力实现时另运行 `bun run check:capabilities`，它包含更广的契约与类型检查；
+盘点宿主/Agent/插件能力覆盖时手动运行 `bun run check:capabilities`，它核对能力矩阵
+与代码库存并包含更广的契约与类型检查；它不是 CI 门禁，日常提交不保证矩阵同步。
 普通文档整理只运行受影响的生成与链接检查。

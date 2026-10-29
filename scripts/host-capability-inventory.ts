@@ -24,14 +24,18 @@ const ts = createRequire(new URL("../apps/web/package.json", import.meta.url))(
 const ids = new Set(groups.flatMap((g) => g.rows.map((r) => r.id)));
 export type Inventory = { family: string; name: string; rows: string[]; note: string };
 const inventory: Inventory[] = [];
+// Collected rather than thrown one at a time, so an audit reports every gap at once.
+const unmapped: string[] = [];
 function add(
   family: string,
   name: string,
   rows: string[] | undefined,
   note = "[代码] 注册库存已映射，不表示产品 E2E 通过",
 ) {
-  if (!rows?.length || rows.some((id) => !ids.has(id)))
-    throw new Error(`Unmapped ${family}: ${name} -> ${rows?.join(",") ?? "(none)"}`);
+  if (!rows?.length || rows.some((id) => !ids.has(id))) {
+    unmapped.push(`Unmapped ${family}: ${name} -> ${rows?.join(",") ?? "(none)"}`);
+    return;
+  }
   inventory.push({ family, name, rows, note });
 }
 const words = (s: string) => s.split(/\s+/).filter(Boolean);
@@ -495,7 +499,7 @@ const nativeMap = pairs([
   ["book_file_size read_book_head book_folder_pick", "LIB06 SYS11"],
   ["write_export_file export_choose_target", "SYS10"],
   [
-    "android_update_check android_update_install set_status_bar_hidden sync_safe_area set_volume_key_capture app_store_storefront move_task_to_back book_pick_start book_pick_poll book_folder_pick_start book_folder_pick_poll book_folder_release",
+    "android_update_check android_update_install set_status_bar_hidden sync_safe_area set_volume_key_capture app_store_storefront move_task_to_back book_pick_start book_pick_poll book_folder_pick_start book_folder_pick_poll book_folder_release battery_status",
     "SYS18",
   ],
   [
@@ -622,6 +626,7 @@ export function assertUniqueSourceKeys(
 export function collectInventory(): Inventory[] {
   assertUniqueSourceKeys();
   inventory.length = 0;
+  unmapped.length = 0;
   const { deps } = createInMemoryDeps();
   const noJobExecution = async (): Promise<never> => {
     throw new Error("Inventory does not execute jobs");
@@ -726,8 +731,14 @@ export function collectInventory(): Inventory[] {
     ...snapshot,
     shortcuts: { bindings: {}, commands: [], modeAvailable: false, lookupAvailable: false },
   } as never);
-  if (JSON.stringify(settings.map((s) => s.path).sort()) !== JSON.stringify([...staticSettingPaths].sort()))
-    throw new Error("Static settings roster drift");
+  const declaredPaths = new Set(settings.map((s) => s.path));
+  const registeredPaths = new Set<string>(staticSettingPaths);
+  const unregistered = [...declaredPaths].filter((path) => !registeredPaths.has(path));
+  const stale = [...registeredPaths].filter((path) => !declaredPaths.has(path));
+  if (unregistered.length || stale.length)
+    throw new Error(
+      `Static settings roster drift: unregistered [${unregistered.join(", ")}], stale [${stale.join(", ")}]`,
+    );
   for (const setting of settings) {
     if (!!setting.write === readOnlySettings.has(setting.path))
       throw new Error(`Setting mutability drift: ${setting.path}`);
@@ -991,5 +1002,6 @@ export function collectInventory(): Inventory[] {
   assertRoster("Agent global", Object.keys(agentMap));
   assertRoster("Native command", Object.keys(nativeMap));
   assertRoster("Plugin ctx", Object.keys(pluginMap));
+  if (unmapped.length) throw new Error(`${unmapped.length} inventory entries unmapped:\n  ${unmapped.join("\n  ")}`);
   return inventory;
 }

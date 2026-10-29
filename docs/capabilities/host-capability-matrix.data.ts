@@ -92,7 +92,6 @@ export const sources: Record<string, string> = {
   ANNRANGEPROOF: "apps/web/tests/annotation-range.test.ts",
   CAPABILITYCHECK: "scripts/check-capabilities.ts",
   CAPABILITYCHECKPROOF: "scripts/check-capabilities.test.ts",
-  CAPABILITYCI: ".github/workflows/capabilities.yml",
   WORKERPROTOCOL: "apps/web/src/features/plugins/runtime/plugin-worker-protocol.ts",
   WORKERPROTOCOLPROOF: "apps/web/src/features/plugins/runtime/plugin-worker-protocol.test.ts",
   HOSTPROTOCOL: "apps/web/src/features/plugins/runtime/plugin-host-protocol.ts",
@@ -3837,9 +3836,9 @@ groups.push(
         "部分",
         actor("部分", "registry/tool-surface + check:capabilities", "host 行为映射门禁"),
         actor("部分", "catalog/ctx/Worker + check:capabilities", "双端一致性/失败时序测试"),
-        ["CATALOG", "REGISTRY", "API", "WIRE", "CAPABILITYCHECK", "CAPABILITYCHECKPROOF", "CAPABILITYCI"],
-        "本地统一门禁；main push/PR CI 配置",
-        "bun run check:capabilities 串行隔离运行矩阵/模型 --check、库存防遗漏、core/Agent/domain/runtime、真实Bun Worker及原生迁移桥契约和双端类型；任一步失败即非零退出，不重写文档掩盖漂移。CI 只读权限、锁文件安装、无 continue-on-error，main push/PR 均触发；三桌面平台另跑 cargo test --locked --lib。macOS 本地统一门禁在 Bun1.3.13/1.4 通过，原生312通过/1个显式压力测试忽略；尚未推送、首次远端CI未验，不称跨平台通过。GAP18仍需全部用户流程语义证据；库存不自动发现任意React闭包行为，CI成功不替代Tauri/真实模型/消费者验收",
+        ["CATALOG", "REGISTRY", "API", "WIRE", "CAPABILITYCHECK", "CAPABILITYCHECKPROOF"],
+        "本地手动审计命令；不是 CI 门禁",
+        "bun run check:capabilities 串行隔离运行矩阵/模型 --check、库存防遗漏、core/Agent/domain/runtime、真实Bun Worker及原生迁移桥契约和双端类型；任一步失败即非零退出，不重写文档掩盖漂移。2026-10-29 起不再作为 push/PR 门禁（capabilities.yml 已移除），只在盘点宿主/Agent/插件覆盖时手动运行，日常提交不保证矩阵与库存同步；三桌面平台 cargo test --locked --lib 已并入 ci.yml。GAP18仍需全部用户流程语义证据；库存不自动发现任意React闭包行为，CI成功不替代Tauri/真实模型/消费者验收",
       ),
       cap(
         "CON11",
@@ -3956,6 +3955,13 @@ export const staticSettingPaths = [
   "reading.custom.paragraphSpacing",
   "reading.custom.pageMargins",
   "reading.custom.textIndent",
+  "menus.headerFooter.enabled",
+  "menus.headerFooter.header-left",
+  "menus.headerFooter.header-center",
+  "menus.headerFooter.header-right",
+  "menus.headerFooter.footer-left",
+  "menus.headerFooter.footer-center",
+  "menus.headerFooter.footer-right",
 ];
 const retiredSettingSlot = 25;
 export const settingPathId = (path: string): string => {
@@ -4004,9 +4010,11 @@ const settingRows = staticSettingPaths.map((path) => {
                   ? "settings 1.11：设备本地、仅 global 的翻页输入偏好，不进入书级覆盖/阅读重置。阅读器点击区按阅读根宽度分侧（RTL 镜像、FXL 先平移、书末进完成页），音量键经 claimVolumeKeys 仲裁（文本单元模式占用时让位，输入框聚焦归还）；音量键两项仅 Android 生效。目录/Agent/插件与解析器定向测试通过，真实 Android 按键与触屏点击待集中验收。"
                   : path === "general.autoUpdate"
                     ? "实际消费者只控制自动检查，不表示无批准自动安装。"
-                    : path.startsWith("menus.")
-                      ? "只影响菜单排列/显示，不调用菜单动作。"
-                      : "目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。";
+                    : path.startsWith("menus.headerFooter.")
+                      ? "只控制阅读器页眉/页脚信息条的开关与六个槽位显示的条目，不调用菜单动作，不改变正文排版。"
+                      : path.startsWith("menus.")
+                        ? "只影响菜单排列/显示，不调用菜单动作。"
+                        : "目录有读写且存在产品消费者；仍受格式、配置、scope、授权与持久化契约约束。";
   return cap(
     settingPathId(path),
     path,

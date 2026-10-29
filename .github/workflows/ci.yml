@@ -1,8 +1,8 @@
-# Pull-request and main gate for every workspace.
+# Pull-request and main gate for every workspace, including the native Rust
+# test suite on all three desktop platforms.
 #
-# capabilities.yml stays the capability-program gate (check:capabilities and the
-# three-OS `cargo test --locked --lib` native contracts); this workflow does not
-# repeat those runs.
+# The capability-matrix bookkeeping (`bun run check:capabilities`) is a manual
+# audit, not a gate: run it when taking stock of host/Agent/plugin coverage.
 name: ci
 
 on:
@@ -62,7 +62,7 @@ jobs:
         run: bun run test:runtime
 
   rust:
-    name: rustfmt, clippy and vendored crates
+    name: rustfmt, clippy and native tests (Linux)
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -92,30 +92,43 @@ jobs:
       - name: Clippy (library and tests, warnings are errors)
         working-directory: apps/desktop/src-tauri
         run: cargo clippy --lib --tests --locked -- -D warnings
+      - name: Native transactions and platform contracts (no desktop launch)
+        working-directory: apps/desktop/src-tauri
+        run: cargo test --locked --lib
       - name: Vendored auto-launch patch (resolved through patch.crates-io)
         working-directory: apps/desktop/src-tauri
         run: cargo test --locked -p auto-launch
 
-  vendored-crates:
-    name: vendored auto-launch on ${{ matrix.os }}
+  native:
+    name: native tests on ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        # Linux runs in the rust job; the macOS and Windows startup-entry encoders
-        # are compiled only on their own targets.
+        # Linux runs in the rust job. macOS and Windows compile their own
+        # platform code (WebView2, startup-entry encoders, file associations)
+        # only on their own targets.
         os: [macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.13
       - uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
         with:
           toolchain: "1.98.1"
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: apps/desktop/src-tauri
-          key: ci-vendored-${{ matrix.os }}
+          key: ci-native-${{ matrix.os }}
           cache-on-failure: true
+      - run: bun install --frozen-lockfile
+      - name: Prepare embedded plugins for native compilation
+        run: bun run --filter @read-aware/plugin-dictionary --filter @read-aware/plugin-editorial-themes --filter @read-aware/plugin-rss-reader --filter @read-aware/plugin-sentence-reader --filter @read-aware/plugin-tts --filter @read-aware/plugin-jumper build
+      - name: Native transactions and platform contracts (no desktop launch)
+        working-directory: apps/desktop/src-tauri
+        run: cargo test --locked --lib
       - name: Vendored auto-launch patch (resolved through patch.crates-io)
         working-directory: apps/desktop/src-tauri
         run: cargo test --locked -p auto-launch

@@ -156,7 +156,9 @@ pinned in `rust-toolchain.toml` (bump it together with the workflows' `toolchain
 CI pins Bun to `packageManager` (1.3.13) and rejects drift in committed plugin `dist`
 output; if your local Bun differs, rebuild plugins with `bunx bun@1.3.13 run build`.
 `.github/workflows/ci.yml` gates PRs and `main` on typecheck, lint, formatting, tests, `lint:deps`,
-docs, the runtime suites, and rustfmt/clippy. `lint:deps` only accepts a shrinking
+docs, the runtime suites, rustfmt/clippy, and the native Rust tests on macOS, Linux and
+Windows. `bun run check:capabilities` (capability-matrix bookkeeping) is a manual audit,
+not a gate. `lint:deps` only accepts a shrinking
 `.dependency-cruiser-known-violations.json`; after fixing violations, run
 `bun run lint:deps:baseline` in that workspace and commit the smaller file.
 

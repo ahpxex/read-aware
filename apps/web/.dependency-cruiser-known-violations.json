@@ -1666,34 +1666,6 @@
   },
   {
     "type": "dependency",
-    "from": "src/features/plugins/runtime/plugin-context.ts",
-    "to": "src/features/ai/agent/agent-runtime.ts",
-    "unresolvedTo": "../../ai/agent/agent-runtime",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/plugins/runtime/plugin-context.ts",
-    "to": "src/features/library/lib/book-images.ts",
-    "unresolvedTo": "../../library/lib/book-images",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
     "from": "src/features/plugins/runtime/plugin-host.ts",
     "to": "src/features/library/lib/library-db.ts",
     "unresolvedTo": "../../library/lib/library-db",
@@ -2181,6 +2153,7 @@
     "unresolvedTo": "../../settings/lib/reader-settings",
     "dependencyTypes": [
       "local",
+      "type-only",
       "import"
     ],
     "rule": {
@@ -9944,7 +9917,7 @@
   {
     "type": "dependency",
     "from": "src/domain/book-content-state.ts",
-    "to": "../../node_modules/.bun/jotai@2.18.0+954e20c3fac4a6c3/node_modules/jotai/esm/index.d.mts",
+    "to": "../../node_modules/.bun/jotai@2.20.3+a22b4f1a0777c771/node_modules/jotai/esm/index.d.mts",
     "unresolvedTo": "jotai",
     "dependencyTypes": [
       "npm",
@@ -9958,7 +9931,7 @@
   {
     "type": "dependency",
     "from": "src/domain/conversation-control.ts",
-    "to": "../../node_modules/.bun/jotai@2.18.0+954e20c3fac4a6c3/node_modules/jotai/esm/index.d.mts",
+    "to": "../../node_modules/.bun/jotai@2.20.3+a22b4f1a0777c771/node_modules/jotai/esm/index.d.mts",
     "unresolvedTo": "jotai",
     "dependencyTypes": [
       "npm",
@@ -9972,7 +9945,7 @@
   {
     "type": "dependency",
     "from": "src/domain/settings/domain.ts",
-    "to": "../../node_modules/.bun/jotai@2.18.0+954e20c3fac4a6c3/node_modules/jotai/esm/index.d.mts",
+    "to": "../../node_modules/.bun/jotai@2.20.3+a22b4f1a0777c771/node_modules/jotai/esm/index.d.mts",
     "unresolvedTo": "jotai",
     "dependencyTypes": [
       "npm",
@@ -9986,7 +9959,7 @@
   {
     "type": "dependency",
     "from": "src/domain/settings/observation-sources.ts",
-    "to": "../../node_modules/.bun/jotai@2.18.0+954e20c3fac4a6c3/node_modules/jotai/esm/index.d.mts",
+    "to": "../../node_modules/.bun/jotai@2.20.3+a22b4f1a0777c771/node_modules/jotai/esm/index.d.mts",
     "unresolvedTo": "jotai",
     "dependencyTypes": [
       "npm",
@@ -10000,7 +9973,7 @@
   {
     "type": "dependency",
     "from": "src/domain/settings/plugin-option-source.ts",
-    "to": "../../node_modules/.bun/jotai@2.18.0+954e20c3fac4a6c3/node_modules/jotai/esm/index.d.mts",
+    "to": "../../node_modules/.bun/jotai@2.20.3+a22b4f1a0777c771/node_modules/jotai/esm/index.d.mts",
     "unresolvedTo": "jotai",
     "dependencyTypes": [
       "npm",

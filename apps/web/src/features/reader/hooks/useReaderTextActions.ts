@@ -61,6 +61,9 @@ type Options = {
   clearSelection: () => void;
   notesRef: RefObject<Note[]>;
   currentChapterHrefRef: RefObject<string | null>;
+  /** Receives the stored row of a mark this reader just saved, so it is drawn
+   *  without waiting for the next annotation snapshot. */
+  onMarkSaved: (highlight: Highlight) => void;
 };
 
 async function copyText(text: string) {
@@ -80,6 +83,7 @@ export function useReaderTextActions({
   clearSelection,
   notesRef,
   currentChapterHrefRef,
+  onMarkSaved,
 }: Options) {
   const { toast } = useToast();
   const { t: tErrors } = useTranslation(["reader", "common"]);
@@ -97,6 +101,9 @@ export function useReaderTextActions({
       description: describeError(error).body,
     });
   };
+
+  const onMarkSavedRef = useRef(onMarkSaved);
+  onMarkSavedRef.current = onMarkSaved;
 
   const dispatchAskAi = useSetAtom(askAiRequestAtom);
   const pluginSelectionActions = useAtomValue(selectionActionsAtom);
@@ -214,14 +221,16 @@ export function useReaderTextActions({
       style: NonNullable<Highlight["style"]>,
     ): Promise<boolean> => {
       if (!selectedBook) return false;
+      let saved: Highlight;
       try {
-        await createHighlight(selectedBook.id, target.cfiRange, target.chapterHref, target.text, color, style);
-        return true;
+        saved = await createHighlight(selectedBook.id, target.cfiRange, target.chapterHref, target.text, color, style);
       } catch (highlightError) {
         log.error("failed to save highlight", highlightError);
         failToastRef.current("annotations.saveFailed", highlightError);
         return false;
       }
+      onMarkSavedRef.current(saved);
+      return true;
     },
     [selectedBook],
   );

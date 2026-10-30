@@ -73,7 +73,7 @@ import { ReaderCompletionScreen } from "./ReaderCompletionScreen";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
 import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
 import type { Note, Highlight } from "../../annotations/lib/annotation-types";
-import { observeReaderAnnotations } from "../lib/observe-reader-annotations";
+import { observeReaderAnnotations, type ReaderAnnotationMarks } from "../lib/observe-reader-annotations";
 import { hasCoarsePointer, isIOS, suppressNativeContextMenu } from "../../../platform/environment";
 import { localKV } from "../../../platform/local-store";
 import { ReaderHoldMenu } from "./ReaderHoldMenu";
@@ -387,6 +387,8 @@ export function FoliateReaderView({
   const pendingShellToggleTimerRef = useRef<number | null>(null);
   const highlightsRef = useRef<Highlight[]>([]);
   const notesRef = useRef<Note[]>([]);
+  // The open session's stored marks; the reader's own saves are drawn through it.
+  const annotationMarksRef = useRef<ReaderAnnotationMarks | null>(null);
   // New one-click marks use this colour; recoloring a mark updates it (persisted).
   const isFixedLayoutRef = useRef(false);
 
@@ -1055,6 +1057,7 @@ export function FoliateReaderView({
     clearSelection,
     notesRef,
     currentChapterHrefRef,
+    onMarkSaved: (highlight) => annotationMarksRef.current?.adopt(highlight),
   });
 
   // The engine's listeners outlive this render; they reach the navigator
@@ -2534,15 +2537,18 @@ export function FoliateReaderView({
         if (session.closed) return;
         if (selectedBook) {
           try {
-            defer(
-              observeReaderAnnotations(selectedBook.id, view, highlightsRef, notesRef, (items) => {
-                setActiveAnnotation((current) => {
-                  if (!current) return null;
-                  const next = items.find((item) => item.id === current.highlight.id);
-                  return next && JSON.stringify(next) === JSON.stringify(current.highlight) ? current : null;
-                });
-              }),
-            );
+            const marks = observeReaderAnnotations(selectedBook.id, view, highlightsRef, notesRef, (items) => {
+              setActiveAnnotation((current) => {
+                if (!current) return null;
+                const next = items.find((item) => item.id === current.highlight.id);
+                return next && JSON.stringify(next) === JSON.stringify(current.highlight) ? current : null;
+              });
+            });
+            annotationMarksRef.current = marks;
+            defer(() => {
+              if (annotationMarksRef.current === marks) annotationMarksRef.current = null;
+              marks.dispose();
+            });
           } catch (error) {
             // Reading remains usable; the annotations panel has its own retry/error surface.
             log.warn("Could not observe reader annotations", error);

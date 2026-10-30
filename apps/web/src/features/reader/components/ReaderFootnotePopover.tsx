@@ -78,18 +78,17 @@ export function ReaderFootnotePopover({
         className="absolute flex max-h-[min(45vh,22rem)] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border border-border bg-[var(--ra-main-surface-color)] shadow-[0_8px_28px_-8px_rgba(28,25,23,0.32)]"
         style={position}
       >
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/70 py-1 pl-3 pr-1">
-          <span className="font-sans text-eyebrow uppercase tracking-wide text-fg-subtle">{label}</span>
-          <IconButton
-            label={t("closeNote")}
-            size="sm"
-            onClick={onClose}
-            icon={<X size={14} weight="regular" aria-hidden="true" />}
-          />
-        </div>
-        <div className="min-h-0 overflow-y-auto px-3.5 py-3">
+        <div className="min-h-0 overflow-y-auto py-3 pl-3.5 pr-9">
           <p className="font-serif text-[0.9375rem] leading-relaxed text-fg-muted">{text}</p>
         </div>
+        {/* Outside the scroller so it stays put while a long note scrolls. */}
+        <IconButton
+          label={t("closeNote")}
+          size="sm"
+          onClick={onClose}
+          className="absolute right-1 top-1.5"
+          icon={<X size={14} weight="regular" aria-hidden="true" />}
+        />
       </div>
     </div>
   );

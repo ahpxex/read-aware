@@ -591,8 +591,7 @@ export function FoliateReaderView({
     };
     const onRender = (event: Event) => {
       const detail = (event as CustomEvent<FoliateFootnoteRenderDetail>).detail;
-      const doc = detail.view.renderer?.getContents?.()?.[0]?.doc;
-      const text = (doc?.body?.textContent ?? "")
+      const text = (detail.doc.body?.textContent ?? "")
         .replace(/\s+/g, " ")
         .trim()
         // Drop the leading marker the source repeats ("[150]", "150.", "12) ")…
@@ -603,7 +602,10 @@ export function FoliateReaderView({
       // Done with the engine's view — detach it from the stage and tear it down.
       footnoteStageRef.current?.replaceChildren();
       void detail.view.close().catch((error) => log.warn("Could not close footnote view", error));
-      if (!text) return;
+      if (!text) {
+        log.warn("Footnote target has no text", { type: detail.type });
+        return;
+      }
       setFootnote(
         {
           anchorRect: footnoteAnchorRectRef.current,

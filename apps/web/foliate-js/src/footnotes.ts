@@ -58,6 +58,10 @@ export type FootnoteBeforeRenderDetail = { view: View };
 export type FootnoteRenderDetail = {
   requestId?: number;
   view: View;
+  /** The note's own document, its body reduced to the extracted note. The
+   * event fires from the section's `load`, before the renderer lays the
+   * document out, so `view.renderer.getContents()` does not list it yet. */
+  doc: Document;
   href: string;
   type: FootnoteType | null;
   hidden: boolean;
@@ -96,7 +100,7 @@ export class FootnoteHandler extends EventTarget {
               doc.body.replaceChildren(range.extractContents());
               this.dispatchEvent(
                 new CustomEvent<FootnoteRenderDetail>("render", {
-                  detail: { view, href, type, hidden, target, requestId },
+                  detail: { view, doc, href, type, hidden, target, requestId },
                 }),
               );
               resolve();

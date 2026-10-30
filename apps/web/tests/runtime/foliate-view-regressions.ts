@@ -253,7 +253,8 @@ export async function runViewRegressions(modules: Modules): Promise<Result[]> {
     });
     handler.addEventListener("render", (event) => {
       const detail = (event as CustomEvent<FootnoteRenderDetail>).detail;
-      text = detail.target?.ownerDocument.body.textContent ?? "";
+      text = detail.doc.body.textContent ?? "";
+      equal(detail.target?.ownerDocument, detail.doc);
       equal(detail.type, "footnote");
       rendered++;
     });

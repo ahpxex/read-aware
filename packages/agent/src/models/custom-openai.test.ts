@@ -285,6 +285,35 @@ describe("Custom OpenAI-compatible wire format", () => {
     expect(result).toBe("ok");
   });
 
+  // Gateways that serialize absent optionals explicitly send `tool_calls: null`
+  // on every chunk (ModelScope does). It means "no tool call" — never a call to
+  // wrap, and never an entry that may reach the provider stream as null.
+  test("reads an explicit null tool_calls as no tool call", async () => {
+    const body = [
+      'data: {"id":"chat-null","model":"gateway-model","choices":[{"index":0,"delta":{"role":"assistant","content":"ok","tool_calls":null,"function_calls":null},"finish_reason":"stop"}]}',
+      "",
+      "data: [DONE]",
+      "",
+    ].join("\n");
+
+    const result = await withCompletionSse(body, (account) => testLlmConnection(account, "gateway-model"));
+
+    expect(result).toBe("ok");
+  });
+
+  test("drops null entries from a tool_calls array", async () => {
+    const body = [
+      'data: {"id":"chat-null-entry","model":"gateway-model","choices":[{"index":0,"delta":{"content":"ok","tool_calls":[null]},"finish_reason":"stop"}]}',
+      "",
+      "data: [DONE]",
+      "",
+    ].join("\n");
+
+    const result = await withCompletionSse(body, (account) => testLlmConnection(account, "gateway-model"));
+
+    expect(result).toBe("ok");
+  });
+
   test("accepts a complete JSON response when streaming is ignored", async () => {
     const body = JSON.stringify({
       id: "chat-json",

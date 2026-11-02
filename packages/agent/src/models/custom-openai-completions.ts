@@ -187,8 +187,15 @@ function normalizeCompletionChunk(data: string, state: CompletionStreamState): s
         },
       ];
       delete delta.function_call;
-    } else if (delta.tool_calls !== undefined && !Array.isArray(delta.tool_calls)) {
+    } else if (delta.tool_calls !== undefined && delta.tool_calls !== null && !Array.isArray(delta.tool_calls)) {
       delta.tool_calls = [delta.tool_calls];
+    }
+
+    // Gateways that signal "no tool call" with an explicit null must not reach the
+    // provider stream: a null entry is dereferenced as `toolCall.index` and fails
+    // the whole turn. An array may also carry null entries ([null] / [null, call]).
+    if (Array.isArray(delta.tool_calls)) {
+      delta.tool_calls = delta.tool_calls.filter((toolCall) => toolCall !== null && toolCall !== undefined);
     }
 
     if (typeof delta.content === "string" && delta.content.length > 0) {

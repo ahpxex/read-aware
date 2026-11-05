@@ -69,10 +69,32 @@ function generatedToolCallId(): string {
   return `call_${crypto.randomUUID().replace(/-/g, "")}`;
 }
 
-function normalizeToolCall(value: unknown, position: number, state: CompletionStreamState): unknown {
-  const source = asRecord(value);
-  if (!source) return value;
+/**
+ * Reads a delta's tool calls as the array of call objects the provider stream
+ * iterates. Gateways disagree on how they say "no call": OpenAI omits the field,
+ * while others send `null` (ModelScope does on every chunk), a placeholder scalar
+ * or null array entries. Only objects are calls — pi-ai dereferences every entry
+ * as one, so a null entry fails the turn and a scalar becomes a nameless call. A
+ * lone call object is lifted into an array, and the legacy `function_call` is read
+ * when no call object is present.
+ */
+function deltaToolCalls(delta: Record<string, unknown>): Record<string, unknown>[] {
+  const entries = Array.isArray(delta.tool_calls) ? delta.tool_calls : [delta.tool_calls];
+  const calls = entries.flatMap((entry) => {
+    const call = asRecord(entry);
+    return call ? [call] : [];
+  });
+  if (calls.length > 0) return calls;
 
+  const legacyFunctionCall = asRecord(delta.function_call);
+  return legacyFunctionCall ? [{ index: 0, type: "function", function: legacyFunctionCall }] : [];
+}
+
+function normalizeToolCall(
+  source: Record<string, unknown>,
+  position: number,
+  state: CompletionStreamState,
+): Record<string, unknown> {
   const numericIndex =
     typeof source.index === "number"
       ? source.index
@@ -177,25 +199,16 @@ function normalizeCompletionChunk(data: string, state: CompletionStreamState): s
       delta.content = normalizeContent(delta.content);
     }
 
-    const legacyFunctionCall = asRecord(delta.function_call);
-    if (!Array.isArray(delta.tool_calls) && legacyFunctionCall) {
-      delta.tool_calls = [
-        {
-          index: 0,
-          type: "function",
-          function: legacyFunctionCall,
-        },
-      ];
-      delete delta.function_call;
-    } else if (delta.tool_calls !== undefined && delta.tool_calls !== null && !Array.isArray(delta.tool_calls)) {
-      delta.tool_calls = [delta.tool_calls];
-    }
-
-    // Gateways that signal "no tool call" with an explicit null must not reach the
-    // provider stream: a null entry is dereferenced as `toolCall.index` and fails
-    // the whole turn. An array may also carry null entries ([null] / [null, call]).
-    if (Array.isArray(delta.tool_calls)) {
-      delta.tool_calls = delta.tool_calls.filter((toolCall) => toolCall !== null && toolCall !== undefined);
+    // `tool_calls` becomes the only representation the provider stream reads:
+    // the call objects, or no field at all.
+    const toolCalls = deltaToolCalls(delta);
+    delete delta.function_call;
+    if (toolCalls.length > 0) {
+      state.sawOutput = true;
+      state.sawToolCall = true;
+      delta.tool_calls = toolCalls.map((toolCall, index) => normalizeToolCall(toolCall, index, state));
+    } else {
+      delete delta.tool_calls;
     }
 
     if (typeof delta.content === "string" && delta.content.length > 0) {
@@ -205,11 +218,6 @@ function normalizeCompletionChunk(data: string, state: CompletionStreamState): s
       if (typeof delta[field] === "string" && delta[field].length > 0) {
         state.sawOutput = true;
       }
-    }
-    if (Array.isArray(delta.tool_calls) && delta.tool_calls.length > 0) {
-      state.sawOutput = true;
-      state.sawToolCall = true;
-      delta.tool_calls = delta.tool_calls.map((toolCall, index) => normalizeToolCall(toolCall, index, state));
     }
   }
 

@@ -218,6 +218,29 @@ async function withCompletionSse<T>(
   }
 }
 
+/** Runs one completion that offers a single `lookup` tool against the account. */
+function completeLookup(account: CustomOpenAIAccount) {
+  const registry = buildProviderRegistry();
+  const resolveModel = createModelResolver(account, { smart: "gateway-model", fast: "gateway-model" }, registry);
+  const complete = createCompleteFn(registry, account);
+  return complete(resolveModel("smart"), {
+    messages: [
+      {
+        role: "user",
+        content: "Look up Ulysses.",
+        timestamp: Date.now(),
+      },
+    ],
+    tools: [
+      {
+        name: "lookup",
+        description: "Look up a term",
+        parameters: Type.Object({ term: Type.String() }),
+      },
+    ],
+  });
+}
+
 describe("Custom OpenAI-compatible wire format", () => {
   test("uses Chat Completions and omits inferred compatibility fields", async () => {
     const { request, error } = await captureRejectedRequest("openai-completions");
@@ -314,6 +337,62 @@ describe("Custom OpenAI-compatible wire format", () => {
     expect(result).toBe("ok");
   });
 
+  // Only call objects are tool calls. A gateway placeholder in their place (an
+  // empty string, a boolean, scalar or null array entries) must neither crash the
+  // provider stream nor surface as a nameless tool call.
+  test.each([
+    ["an empty string", '""'],
+    ["false", "false"],
+    ["an array of scalars and nulls", '["x",0,null]'],
+  ])("reads %s in tool_calls as no tool call", async (_label, toolCalls) => {
+    const body = [
+      `data: {"id":"chat-placeholder","model":"gateway-model","choices":[{"index":0,"delta":{"role":"assistant","content":"ok","tool_calls":${toolCalls}},"finish_reason":"stop"}]}`,
+      "",
+      "data: [DONE]",
+      "",
+    ].join("\n");
+
+    const message = await withCompletionSse(body, completeLookup);
+
+    expect(message.stopReason).toBe("stop");
+    expect(message.content).toEqual([{ type: "text", text: "ok" }]);
+  });
+
+  test("keeps the call objects next to null entries in tool_calls", async () => {
+    const body = [
+      'data: {"id":"chat-mixed","model":"gateway-model","choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[null,{"index":0,"id":"call-1","type":"function","function":{"name":"lookup","arguments":"{\\\"term\\\":\\\"Ulysses\\\"}"}}]},"finish_reason":null}]}',
+      "",
+      "data: [DONE]",
+      "",
+    ].join("\n");
+
+    const message = await withCompletionSse(body, completeLookup);
+
+    expect(message.stopReason).toBe("toolUse");
+    expect(message.content).toEqual([
+      { type: "toolCall", id: "call-1", name: "lookup", arguments: { term: "Ulysses" } },
+    ]);
+  });
+
+  test("reads a legacy function_call when tool_calls holds no call object", async () => {
+    const body = [
+      'data: {"id":"chat-legacy-null","model":"gateway-model","choices":[{"index":0,"delta":{"tool_calls":[null],"function_call":{"name":"lookup","arguments":{"term":"Ulysses"}}},"finish_reason":null}]}',
+      "",
+      "data: [DONE]",
+      "",
+    ].join("\n");
+
+    const message = await withCompletionSse(body, completeLookup);
+
+    expect(message.stopReason).toBe("toolUse");
+    expect(message.content).toContainEqual({
+      type: "toolCall",
+      id: expect.stringMatching(/^call_/),
+      name: "lookup",
+      arguments: { term: "Ulysses" },
+    });
+  });
+
   test("accepts a complete JSON response when streaming is ignored", async () => {
     const body = JSON.stringify({
       id: "chat-json",
@@ -350,27 +429,7 @@ describe("Custom OpenAI-compatible wire format", () => {
       "",
     ].join("\n");
 
-    const message = await withCompletionSse(body, async (account) => {
-      const registry = buildProviderRegistry();
-      const resolveModel = createModelResolver(account, { smart: "gateway-model", fast: "gateway-model" }, registry);
-      const complete = createCompleteFn(registry, account);
-      return complete(resolveModel("smart"), {
-        messages: [
-          {
-            role: "user",
-            content: "Look up Ulysses.",
-            timestamp: Date.now(),
-          },
-        ],
-        tools: [
-          {
-            name: "lookup",
-            description: "Look up a term",
-            parameters: Type.Object({ term: Type.String() }),
-          },
-        ],
-      });
-    });
+    const message = await withCompletionSse(body, completeLookup);
 
     expect(message.stopReason).toBe("toolUse");
     expect(message.content).toContainEqual({
@@ -389,27 +448,7 @@ describe("Custom OpenAI-compatible wire format", () => {
       "",
     ].join("\n");
 
-    const message = await withCompletionSse(body, async (account) => {
-      const registry = buildProviderRegistry();
-      const resolveModel = createModelResolver(account, { smart: "gateway-model", fast: "gateway-model" }, registry);
-      const complete = createCompleteFn(registry, account);
-      return complete(resolveModel("smart"), {
-        messages: [
-          {
-            role: "user",
-            content: "Look up Ulysses.",
-            timestamp: Date.now(),
-          },
-        ],
-        tools: [
-          {
-            name: "lookup",
-            description: "Look up a term",
-            parameters: Type.Object({ term: Type.String() }),
-          },
-        ],
-      });
-    });
+    const message = await withCompletionSse(body, completeLookup);
 
     expect(message.stopReason).toBe("toolUse");
     expect(message.content).toContainEqual({

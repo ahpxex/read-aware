@@ -38,8 +38,11 @@ export const confirmSpoilerSchema = opt(
  * Parameters of a tool that can cross the narrative reading fence.
  *
  * confirmSpoiler is advertised only after the host has verified reader consent
- * for a fenced current-book turn. Without that, a call that still sends it on
- * the current book is a self-grant attempt rather than a schema slip: the guard
+ * in a book thread. With consent it stays advertised even when no fence exists
+ * (an unknown reading position): the answer check still treats the whole book
+ * as unread there, and a call that exercises the grant is what lets the answer
+ * keep the requested later material. Without consent, a call that still sends
+ * it on the current book is a self-grant attempt rather than a schema slip: the guard
  * rejects it with the permission explanation and marks the turn before schema
  * validation would report a bare unknown field. A value aimed at another book
  * carries no grant and is dropped. The execute path still validates raw calls.
@@ -53,7 +56,7 @@ export function spoilerParameters<const P extends Properties>(
   // confirmSpoiler is optional in the arguments either way; only the advertised schema differs.
   const advertised = obj({ ...properties, confirmSpoiler: confirmSpoilerSchema });
   type Args = Static<typeof advertised>;
-  if (scope.kind === "book" && turnState?.spoilerPermissionGranted === true && turnState.spoilerFence !== undefined) {
+  if (scope.kind === "book" && turnState?.spoilerPermissionGranted === true) {
     return { parameters: advertised };
   }
   return {

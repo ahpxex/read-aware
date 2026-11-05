@@ -132,3 +132,15 @@ test("an advertised confirmSpoiler reaches validation unchanged", () => {
   const tools = affectedTools(scope, deps, state);
   expect(tools.every((tool) => exposesSpoilerArgument(tool) && tool.prepareArguments === undefined)).toBe(true);
 });
+
+test("consent without a fence keeps confirmSpoiler, so an unknown position can still record the exercised grant", async () => {
+  const { deps, scope, state } = fixture();
+  state.spoilerFence = undefined;
+  state.spoilerPermissionGranted = true;
+  const tools = affectedTools(scope, deps, state);
+  expect(tools.every((tool) => exposesSpoilerArgument(tool) && tool.prepareArguments === undefined)).toBe(true);
+  const readChapter = tools.find((tool) => tool.name === "read_chapter");
+  if (!readChapter) throw new Error("read_chapter was not registered");
+  await readChapter.execute("granted", { chapterIndex: 1, confirmSpoiler: true });
+  expect(state.spoilerGranted).toBe(true);
+});

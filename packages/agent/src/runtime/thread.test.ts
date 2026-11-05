@@ -272,7 +272,7 @@ describe("AgentThread", () => {
     expect(captured?.reasoning).toBe("high");
   });
 
-  test("sends no provider attribution headers", async () => {
+  test("attributes its requests to ReadAware, not pi", async () => {
     const { faux, model } = makeFaux();
     let identity: ClientIdentity | undefined;
     faux.setResponses([
@@ -293,10 +293,12 @@ describe("AgentThread", () => {
 
     await collect(thread.sendTurn({ text: "hi" }));
 
-    expect(identity?.attribution).toBeNull();
     expect(
       getAttributionHeaders({ provider: "openrouter", baseUrl: "https://openrouter.ai/api/v1" }, identity),
-    ).toEqual({});
+    ).toEqual({
+      "HTTP-Referer": "https://readaware.app",
+      "X-OpenRouter-Title": "ReadAware",
+    });
   });
 
   test("refreshes model metadata between turns without replacing the selected ID", async () => {

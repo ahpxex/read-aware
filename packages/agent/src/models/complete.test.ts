@@ -1,5 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import type { Api, AssistantMessageEventStream, Context, Model, SimpleStreamOptions } from "@earendil-works/pi-ai";
+import {
+  getAttributionHeaders,
+  PI_ATTRIBUTION,
+  type Api,
+  type AssistantMessageEventStream,
+  type Context,
+  type Model,
+  type SimpleStreamOptions,
+} from "@earendil-works/pi-ai";
 import { fauxAssistantMessage } from "@earendil-works/pi-ai/providers/faux";
 import type { LlmAccount } from "./accounts";
 import { createCompleteFn, createStreamFn } from "./complete";
@@ -74,6 +82,29 @@ describe("createCompleteFn", () => {
         });
       }
     }
+  });
+
+  test("attributes background and streamed requests to ReadAware over pi's Agent default", async () => {
+    const openRouter = { provider: "openrouter", baseUrl: "https://openrouter.ai/api/v1" };
+    const readaware = { "HTTP-Referer": "https://readaware.app", "X-OpenRouter-Title": "ReadAware" };
+    let completeOptions!: SimpleStreamOptions;
+    await createCompleteFn(
+      stubRegistry((value) => {
+        completeOptions = value as SimpleStreamOptions;
+      }),
+      ACCOUNT,
+    )(MODEL, CONTEXT);
+    expect(getAttributionHeaders(openRouter, completeOptions.identity)).toEqual(readaware);
+
+    let streamOptions!: SimpleStreamOptions;
+    createStreamFn(
+      stubStreamRegistry((value) => {
+        streamOptions = value as SimpleStreamOptions;
+      }),
+      ACCOUNT,
+    )(MODEL, CONTEXT, { identity: { attribution: PI_ATTRIBUTION, userAgent: "short" } });
+    expect(getAttributionHeaders(openRouter, streamOptions.identity)).toEqual(readaware);
+    expect(streamOptions.identity?.userAgent).toBe("short");
   });
 
   test("passes the thinking effort through as reasoning", async () => {

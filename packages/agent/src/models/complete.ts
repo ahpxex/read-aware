@@ -1,8 +1,17 @@
 /** 单次非流式补全的 seam：后台管道（提炼等）用，测试可注入假实现。 */
-import type { Api, AssistantMessage, Context, FetchFunction, Model, SimpleStreamOptions } from "@earendil-works/pi-ai";
+import {
+  mergeClientIdentity,
+  type Api,
+  type AssistantMessage,
+  type Context,
+  type FetchFunction,
+  type Model,
+  type SimpleStreamOptions,
+} from "@earendil-works/pi-ai";
 import type { AssistantMessageEventStream } from "@earendil-works/pi-ai";
 import { isCustomOpenAIAccount, type LlmAccount } from "./accounts";
 import { sanitizeCustomOpenAIPayload } from "./custom-openai";
+import { READAWARE_IDENTITY } from "./identity";
 import type { ProviderRegistry } from "./registry";
 import type { ThinkingLevel } from "./roles";
 import { asProviderFetch, type AgentFetch } from "./transport";
@@ -53,6 +62,8 @@ function requestOptions(
     reasoning: thinking === undefined ? base.reasoning : asReasoning(thinking),
     fetch: fetch ?? base.fetch,
     onPayload,
+    // Every request, background pipelines included, is attributed to ReadAware.
+    identity: mergeClientIdentity(base.identity, READAWARE_IDENTITY),
   };
 }
 

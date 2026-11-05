@@ -24,6 +24,7 @@ import { chapterMemoryPolicy, needsSpoilerProtection } from "../memory/book-memo
 import { bootstrapSummaryFromHistory, formatTurnsForFolding, updateRollingSummary } from "../memory/rolling-summary";
 import type { CompleteFn, StreamFn } from "../models/complete";
 import { classifyModelFailure } from "../models/failure";
+import { READAWARE_IDENTITY } from "../models/identity";
 import type { ResolveModel } from "../models/roles";
 import type { BookOverview, RuntimeDeps, TurnAttachment, TurnRecord, TurnImage } from "../ports";
 import { prepareImageInputs } from "./image-input";
@@ -373,9 +374,8 @@ export class AgentThread {
         tools: [],
         messages: turnRecordsToMessages(permittedTurnRecords(records, call.permissions), model),
       },
-      // pi's Agent attributes requests to pi by default (OpenRouter's HTTP-Referer and
-      // title, gateway origin headers). ReadAware's traffic is not pi's; send none.
-      identity: { attribution: null },
+      // pi's Agent attributes requests to pi by default; they are ReadAware's.
+      identity: READAWARE_IDENTITY,
       transformContext: async (messages) => {
         const context = elideStaleToolResults(windowByTurns(messages, this.maxWindowTurns));
         // Also applies to a retry checkpoint captured with a different model.

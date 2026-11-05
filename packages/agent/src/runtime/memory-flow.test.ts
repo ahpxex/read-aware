@@ -1,6 +1,7 @@
 /** 记忆写路径的线程级集成测试：提炼落库、强化、ask-note、注入、remember 工具。 */
 import { afterEach, describe, expect, test } from "bun:test";
-import type { Api, Context, Model } from "@earendil-works/pi-ai";
+import { modelRequestView, type ModelRequestView } from "./transcript";
+import type { Api, Model } from "@earendil-works/pi-ai";
 import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import {
   fauxAssistantMessage,
@@ -99,10 +100,10 @@ describe("memory write path", () => {
 
   test("stored memories are injected into the system prompt", async () => {
     const model = makeFaux();
-    let captured: Context | undefined;
+    let captured: ModelRequestView | undefined;
     faux.setResponses([
       (context) => {
-        captured = context;
+        captured = modelRequestView(context);
         return fauxAssistantMessage("好的");
       },
     ]);

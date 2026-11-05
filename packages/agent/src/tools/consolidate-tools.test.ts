@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
-import { Type } from "@earendil-works/pi-ai";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { consolidateHostTools } from "./consolidate-tools";
 import { setToolAvailability } from "./tool-availability";
 import { createInMemoryDeps } from "../testing/fixtures";
 import { buildAgentTools } from "./registry";
+import { obj, str } from "@earendil-works/pi-schema";
 
 const parsed = (result: any) => JSON.parse(result.content[0].text);
 
@@ -14,7 +14,7 @@ test("group schemas reject wrong operations, missing fields, and foreign branch 
     name: "pause_book_text_task",
     label: "Pause",
     description: "Pause this request",
-    parameters: Type.Object({ taskId: Type.String({ minLength: 1 }) }),
+    parameters: obj({ taskId: str({ minLength: 1 }) }),
     execute: async () => {
       calls++;
       return { content: [{ type: "text", text: "ok" }], details: {} };
@@ -47,7 +47,7 @@ test("unavailable operations disappear from the schema while the enabled handler
     name: "get_reader_panels",
     label: "Panels",
     description: "Inspect",
-    parameters: Type.Object({}),
+    parameters: obj({}),
     execute: async (...args) => {
       received = args;
       return { content: [], details: {} };

@@ -3,16 +3,16 @@
  * Model consent is checked here; the pure read model never grants spoilers.
  */
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import { AppError, type BookGraphQuery } from "@read-aware/core";
 import { MAX_GRAPH_NAMES, normalizeBookGraphQuery, queryBookGraph, type BookGraphBoundary } from "../memory/book-graph";
 import { chapterMemoryPolicy } from "../memory/book-memory-policy";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
-import { assertSpoilerPermission, withSpoilerArgument, spoilerGranted } from "./book-text-tools";
-import { resolveBookId } from "./current-book";
+import { assertSpoilerPermission, spoilerParameters, spoilerGranted } from "./book-text-tools";
+import { isCurrentBookArg, resolveBookId } from "./current-book";
 import { textResult } from "./tool-result";
 import type { AgentTurnState } from "./turn-state";
+import { arr, int, opt, str } from "@earendil-works/pi-schema";
 
 export function buildGraphTools(scope: ThreadScope, deps: RuntimeDeps, turnState?: AgentTurnState): AgentTool[] {
   return [
@@ -21,18 +21,15 @@ export function buildGraphTools(scope: ThreadScope, deps: RuntimeDeps, turnState
       label: "Query book graph",
       description:
         "Query this edition's distilled chapter memory: characters or concepts, aliases, relationships and zero-based provenance chapter indices. In replies use original chapter titles from get_toc, not these raw indices. FIRST STOP for identity/relationship questions. This graph is a summary, not source text; verify quotations with read_chapter/search_book_text at the provenance chapter. Pass names for profiles, chapterIndex for one chapter, or neither for an overview. bookId defaults to the current book. Missing or withheld digests are not proof that an entity does not occur in the book.",
-      parameters: Type.Object(
-        withSpoilerArgument(
-          scope,
-          {
-            names: Type.Optional(
-              Type.Array(Type.String({ minLength: 1, maxLength: 256 }), { minItems: 1, maxItems: MAX_GRAPH_NAMES }),
-            ),
-            chapterIndex: Type.Optional(Type.Integer({ minimum: 0 })),
-            bookId: Type.Optional(Type.String()),
-          },
-          turnState,
-        ),
+      ...spoilerParameters(
+        scope,
+        {
+          names: opt(arr(str({ minLength: 1, maxLength: 256 }), { minItems: 1, maxItems: MAX_GRAPH_NAMES })),
+          chapterIndex: opt(int({ minimum: 0 })),
+          bookId: opt(str()),
+        },
+        turnState,
+        (args) => isCurrentBookArg(scope, args.bookId),
       ),
       execute: async (_id, params) => {
         const raw = params as BookGraphQuery & { bookId?: string; confirmSpoiler?: unknown };

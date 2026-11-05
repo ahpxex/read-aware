@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { Api, Model } from "@earendil-works/pi-ai";
+import { getCurrentSystemPrompt, type Api, type Model } from "@earendil-works/pi-ai";
 import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import { fauxAssistantMessage, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import { createInMemoryDeps } from "../testing/fixtures";
@@ -39,7 +39,7 @@ test("legacy factual narrative is classified before its first answer; later text
   const prompts: string[] = [];
   faux.setResponses([
     (context) => {
-      prompts.push(context.systemPrompt ?? "");
+      prompts.push(getCurrentSystemPrompt(context.messages));
       return fauxAssistantMessage([fauxToolCall("read_chapter", { chapterIndex: 1 })]);
     },
     (context) => {
@@ -47,7 +47,7 @@ test("legacy factual narrative is classified before its first answer; later text
       return fauxAssistantMessage("The 1992 journey accelerated reform.");
     },
     (context) => {
-      prompts.push(context.systemPrompt ?? "");
+      prompts.push(getCurrentSystemPrompt(context.messages));
       return fauxAssistantMessage("Later reforms.");
     },
   ]);

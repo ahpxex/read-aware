@@ -1,5 +1,4 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import {
   AppError,
   normalizeConversationTarget,
@@ -11,6 +10,7 @@ import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { requestUserInteraction } from "./user-interaction";
 import { textResult } from "./tool-result";
+import { obj, oneOf, opt, str } from "@earendil-works/pi-schema";
 
 export function buildConversationControlTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const tools: AgentTool[] = [
@@ -19,7 +19,7 @@ export function buildConversationControlTools(scope: ThreadScope, deps: RuntimeD
       label: "Conversation state",
       description:
         "Read live mounted conversation loading/streaming state and selected global draft identity. Book scope sees only its own session. Global scope also lists up to 100 persisted non-empty threads; empty drafts have no transcript row. Selection does not mean the conversation page is visible. No message text or private settings are returned.",
-      parameters: Type.Object({}, { additionalProperties: false }),
+      parameters: obj({}),
       execute: async (_id, _params, signal) => {
         signal?.throwIfAborted();
         const state = await deps.conversationControl.snapshot();
@@ -50,26 +50,15 @@ export function buildConversationControlTools(scope: ThreadScope, deps: RuntimeD
       executionMode: "sequential",
       description:
         "Create a selected empty global draft, select an existing global thread, stop another live conversation, or clear a transcript after user approval. Creating/selecting changes the saved selection, not app navigation; use navigate_app to show the Context page. This management tool is available only in global scope. Stop/clear of the thread executing this tool is refused to prevent self-cancellation or deadlock; use the host chat controls for that. Clear drains live turns before removal, clears hidden thread state/insights, but does not erase long-term memories, event history, or completed tool effects. Never sends or fabricates a user message.",
-      parameters: Type.Object(
-        {
-          action: Type.Union([
-            Type.Literal("create"),
-            Type.Literal("select"),
-            Type.Literal("stop"),
-            Type.Literal("clear"),
-          ]),
-          target: Type.Optional(
-            Type.Object(
-              {
-                kind: Type.Union([Type.Literal("book"), Type.Literal("global")]),
-                id: Type.String({ minLength: 1, maxLength: 256 }),
-              },
-              { additionalProperties: false },
-            ),
-          ),
-        },
-        { additionalProperties: false },
-      ),
+      parameters: obj({
+        action: oneOf(["create", "select", "stop", "clear"]),
+        target: opt(
+          obj({
+            kind: oneOf(["book", "global"]),
+            id: str({ minLength: 1, maxLength: 256 }),
+          }),
+        ),
+      }),
       execute: async (toolCallId, params, signal, onUpdate) => {
         signal?.throwIfAborted();
         const input = params as { action: string; target?: ConversationTarget };
@@ -119,28 +108,17 @@ export function buildConversationControlTools(scope: ThreadScope, deps: RuntimeD
       executionMode: "sequential",
       description:
         "Propose text for an empty composer, a new send, or retry of the last user turn in a mounted conversation. Nothing is sent until the user confirms on the host chat surface. Draft adoption never overwrites typed text. Send/retry require an idle unchanged transcript; retry preserves the original user message and attachments and does not undo tool effects. Requests expire after five minutes or on surface close/actor cancellation. Receipt pending is not user acceptance; started is not a finished model reply. Use get_conversation_state to read your request outcomes and cancel with requestId. Book scope is restricted to this book. Never claim a request was sent merely because it was proposed.",
-      parameters: Type.Object(
-        {
-          action: Type.Union([
-            Type.Literal("draft"),
-            Type.Literal("send"),
-            Type.Literal("retry"),
-            Type.Literal("cancel"),
-          ]),
-          target: Type.Optional(
-            Type.Object(
-              {
-                kind: Type.Union([Type.Literal("book"), Type.Literal("global")]),
-                id: Type.String({ minLength: 1, maxLength: 256 }),
-              },
-              { additionalProperties: false },
-            ),
-          ),
-          text: Type.Optional(Type.String({ minLength: 1, maxLength: 65_536 })),
-          requestId: Type.Optional(Type.String({ minLength: 1 })),
-        },
-        { additionalProperties: false },
-      ),
+      parameters: obj({
+        action: oneOf(["draft", "send", "retry", "cancel"]),
+        target: opt(
+          obj({
+            kind: oneOf(["book", "global"]),
+            id: str({ minLength: 1, maxLength: 256 }),
+          }),
+        ),
+        text: opt(str({ minLength: 1, maxLength: 65_536 })),
+        requestId: opt(str({ minLength: 1 })),
+      }),
       execute: async (_id, params, signal) => {
         signal?.throwIfAborted();
         const input = params as { action: string; target?: ConversationTarget; text?: string; requestId?: string };

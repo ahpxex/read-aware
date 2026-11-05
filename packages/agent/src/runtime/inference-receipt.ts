@@ -1,5 +1,15 @@
-import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
+import type { Api, AssistantMessage, Model, ModelCost } from "@earendil-works/pi-ai";
 import type { InferenceAttemptReceipt } from "@read-aware/core";
+
+/** Whether the catalog prices any token class, at the base rate or in a long-context tier. */
+const isPriced = (cost: ModelCost | undefined): boolean =>
+  [cost, ...(cost?.tiers ?? [])].some(
+    (rates) =>
+      rates !== undefined &&
+      [rates.input, rates.output, rates.cacheRead, rates.cacheWrite].some(
+        (value) => Number.isFinite(value) && value > 0,
+      ),
+  );
 
 const counter = (value: unknown): number | null =>
   typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : null;
@@ -21,7 +31,7 @@ export function inferenceReceipt(
   // Several adapters initialize unavailable usage and prices to zero. Do not
   // turn those placeholders into a claim of free inference.
   const usage = Object.values(counts).some((value) => value !== null && value > 0) ? counts : null;
-  const priced = Object.values(model.cost ?? {}).some((value) => Number.isFinite(value) && value > 0);
+  const priced = isPriced(model.cost);
   const cost = raw?.cost?.total;
   return {
     model: { id: model.id, provider: model.provider },

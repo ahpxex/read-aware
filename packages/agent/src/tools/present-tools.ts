@@ -6,9 +6,9 @@
  * 端口之上的本地函数，不走网络，执行近乎即时（UI 侧抑制其活动行）。
  */
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import type { BookReference, ReferencePayload } from "../chunks";
 import type { RuntimeDeps } from "../ports";
+import { arr, obj, str } from "@earendil-works/pi-schema";
 
 export const PRESENT_TOOL_NAMES = ["present_books", "present_web_images"] as const;
 
@@ -65,8 +65,8 @@ export function buildPresentTools(deps: RuntimeDeps, turnState?: PresentTurnStat
     label: "Show books",
     description:
       "Show the reader books from their shelf as visual cards inside your reply. Use it whenever your answer lists, recommends, or discusses shelf books — including \"what's on my shelf\", where you present the whole shelf in one call. Get ids from a fresh list_books call in this conversation (ids remembered from earlier go stale). The cards render at the point of the call, between your paragraphs — keep prose mentions brief; don't repeat the list as text. Call it at most once per reply with every book batched in; a book already presented this reply is dropped automatically (skippedRepeat).",
-    parameters: Type.Object({
-      bookIds: Type.Array(Type.String({ description: "Book id, as returned by list_books / get_book_overview" }), {
+    parameters: obj({
+      bookIds: arr(str({ description: "Book id, as returned by list_books / get_book_overview" }), {
         minItems: 1,
       }),
     }),

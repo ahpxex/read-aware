@@ -1,10 +1,10 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import { AppError, normalizeMemoryMutation, validateMemoryId, type MemoryMutation } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { textResult } from "./tool-result";
 import { requestUserInteraction } from "./user-interaction";
+import { bool, obj, oneOf, opt, str } from "@earendil-works/pi-schema";
 
 export function buildMemoryManagementTool(scope: ThreadScope, deps: RuntimeDeps): AgentTool {
   return {
@@ -13,21 +13,13 @@ export function buildMemoryManagementTool(scope: ThreadScope, deps: RuntimeDeps)
     executionMode: "sequential",
     description:
       "Inspect, correct, pin/unpin, or forget an existing memory identified by search_memory. Inspect first and supply that revision for changes; conflicts require a fresh read and renewed user decision, never blind retry. Every mutation asks the user to approve the exact change. Forget excludes this record from active retrieval but does not erase event history or other copies. No scope, ranking weight or evidence-count edits. Book threads may manage user/global memories and their own book, not other books. Memory building disabled does not prevent managing existing memories.",
-    parameters: Type.Object(
-      {
-        action: Type.Union([
-          Type.Literal("inspect"),
-          Type.Literal("correct"),
-          Type.Literal("setPinned"),
-          Type.Literal("forget"),
-        ]),
-        memoryId: Type.String({ minLength: 1, maxLength: 256 }),
-        expectedRevision: Type.Optional(Type.String()),
-        content: Type.Optional(Type.String({ minLength: 1, maxLength: 16000 })),
-        pinned: Type.Optional(Type.Boolean()),
-      },
-      { additionalProperties: false },
-    ),
+    parameters: obj({
+      action: oneOf(["inspect", "correct", "setPinned", "forget"]),
+      memoryId: str({ minLength: 1, maxLength: 256 }),
+      expectedRevision: opt(str()),
+      content: opt(str({ minLength: 1, maxLength: 16000 })),
+      pinned: opt(bool()),
+    }),
     execute: async (toolCallId, params, signal, onUpdate) => {
       const raw = params as {
         action: string;

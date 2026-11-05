@@ -1,5 +1,4 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { resolveBookId } from "./current-book";
@@ -10,6 +9,7 @@ import { readingContextCall } from "../runtime/reading-context-policy";
 import { buildSelectionTools } from "./selection-tools";
 import { buildEmphasisTools } from "./emphasis-tools";
 import { buildReaderFocusTool } from "./reader-focus-tool";
+import { bool, int, num, obj, oneOf, opt, str } from "@earendil-works/pi-schema";
 
 /**
  * A selection is host-captured context.  Keep it available through the
@@ -40,28 +40,28 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
     label: "Open book",
     description:
       "Open a shelf book in the reader. Optionally jump to an annotation, extracted chapter index, CFI anchor, chapter href, fraction (0 to 1), or source sectionIndex. sectionIndex is zero-based original reading order, not TOC ordinal or printed page label; requires contentVersion and no other locator. For PDF/comics each source section is one page. Pass contentVersion when reusing a reported location. bookId defaults to the current book. Returns actual completion.",
-    parameters: Type.Object({
-      bookId: Type.Optional(Type.String()),
-      annotationId: Type.Optional(Type.String()),
-      chapterIndex: Type.Optional(Type.Number()),
-      sectionIndex: Type.Optional(Type.Integer({ minimum: 0 })),
-      anchor: Type.Optional(Type.String()),
-      chapterHref: Type.Optional(Type.String()),
-      fraction: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
-      contentVersion: Type.Optional(Type.String()),
-      location: Type.Optional(
-        Type.Object(
+    parameters: obj({
+      bookId: opt(str()),
+      annotationId: opt(str()),
+      chapterIndex: opt(num()),
+      sectionIndex: opt(int({ minimum: 0 })),
+      anchor: opt(str()),
+      chapterHref: opt(str()),
+      fraction: opt(num({ minimum: 0, maximum: 1 })),
+      contentVersion: opt(str()),
+      location: opt(
+        obj(
           {
-            bookId: Type.String(),
-            contentVersion: Type.String(),
-            cfi: Type.Optional(Type.String()),
-            href: Type.Optional(Type.String()),
-            fraction: Type.Optional(Type.Number()),
-            textQuote: Type.Optional(
-              Type.Object({
-                exact: Type.String(),
-                prefix: Type.Optional(Type.String()),
-                suffix: Type.Optional(Type.String()),
+            bookId: str(),
+            contentVersion: str(),
+            cfi: opt(str()),
+            href: opt(str()),
+            fraction: opt(num()),
+            textQuote: opt(
+              obj({
+                exact: str(),
+                prefix: opt(str()),
+                suffix: opt(str()),
               }),
             ),
           },
@@ -169,7 +169,7 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
     label: "Reading session",
     description:
       "Read the actual active reader status, versioned location, visible text, selection, history availability and current pagination. change reports the origin and reason of the last host publication; command acknowledgements are stamped by the host, while unattributed renderer or lifecycle feedback uses system. It describes a coalescible snapshot update, not human presence, a complete causal audit or replayable events; sessionId is the generation identity. readerDemand reports recent render/relocation activity and its 1.5-second idleAt deadline; it is the same signal used to yield background text extraction, not proof of human presence or a durable event log. visibleTextState distinguishes available, rendered empty, and unavailable text; PDF text includes intersecting text runs, not OCR or exact glyph/overlay visibility. truncated means the preview is incomplete. pagination.section is zero-based source order including non-linear sections. pagination.screen counts viewport/spread steps only within the current reflowable section, not columns, printed page labels or whole-book pages; null for fixed layout, continuous scroll or transient geometry. It changes with window/font/layout and is not a persistent navigation target. selection.range can be passed unchanged to read_book_range. A book-scoped turn does not expose another book's viewport or selection.",
-    parameters: Type.Object({}),
+    parameters: obj({}),
     execute: async (_id, _params, signal) => {
       const call = readingContextCall(deps.readingContextPolicy, signal, state?.readingContextPermissions);
       try {
@@ -206,26 +206,24 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
     label: "Navigate reading",
     description:
       "Move back/forward through explicit jumps and ordinary in-book links; turn next/previous page; next-chapter/previous-chapter follows flattened TOC targets (including subsections), while next-section/previous-section follows linear source sections; start/end jumps to book boundaries. Chapter steps skip consecutive duplicate targets, stay put at TOC boundaries or without a TOC; an unknown current TOC position uses first/last target. These are not printed chapter numbers. Section steps skip non-linear notes. Chapter/section/start/end jumps enter shared history; ordinary page and unit steps do not. next-unit/previous-unit continues the active text mode, reporting moved/start-of-book/end-of-book; return-to-unit requires get_reading_session.mode.position. close closes reading. reload reopens the current source in a new session and clears selection. Virtual sections preserve a source-verified unchanged location across reorder; changed/missing/legacy locations and file sources restart at the beginning; use only for an explicit refresh request. A virtual provider may fetch new content, but reload does not itself refresh its private cache. Returns the actual completed location, not dispatch acknowledgement or permission to read spoilers. Use open_book for a specific target.",
-    parameters: Type.Object({
-      action: Type.Union(
-        [
-          "back",
-          "forward",
-          "next",
-          "previous",
-          "next-section",
-          "previous-section",
-          "next-chapter",
-          "previous-chapter",
-          "start",
-          "end",
-          "next-unit",
-          "previous-unit",
-          "return-to-unit",
-          "close",
-          "reload",
-        ].map((value) => Type.Literal(value)),
-      ),
+    parameters: obj({
+      action: oneOf([
+        "back",
+        "forward",
+        "next",
+        "previous",
+        "next-section",
+        "previous-section",
+        "next-chapter",
+        "previous-chapter",
+        "start",
+        "end",
+        "next-unit",
+        "previous-unit",
+        "return-to-unit",
+        "close",
+        "reload",
+      ]),
     }),
     executionMode: "sequential",
     execute: async (_id, params, signal) => {
@@ -269,7 +267,7 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
     label: "Control read aloud",
     description:
       "Start or stop read aloud in the active text-unit reading mode. Inspect get_reading_session.playback first; an inactive mode or missing unit/voice is unavailable. Start completes only when audio starts, not when synthesis is requested. Does not grant access to passage text. Stop does not rewind the reading position.",
-    parameters: Type.Object({ action: Type.Union([Type.Literal("start"), Type.Literal("stop")]) }),
+    parameters: obj({ action: oneOf(["start", "stop"]) }),
     executionMode: "sequential",
     execute: async (_id, params, signal) => {
       const current = await deps.reader.getSession();
@@ -289,11 +287,11 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
     label: "Configure reading mode",
     description:
       "Enable or disable a text-unit reading mode. Discover registered providers and their units in get_reading_session.mode.availableModes. selectModeKey chooses one of those keys; modeKey is only a precondition for the previously selected provider. Without unitId a new provider uses its saved/default unit. Selection preserves no old provider's ordinal and waits for actual indexing (or inactive cleanup); empty means no units, failure rejects. It never installs providers or starts audio.",
-    parameters: Type.Object({
-      active: Type.Boolean(),
-      modeKey: Type.Optional(Type.String()),
-      selectModeKey: Type.Optional(Type.String()),
-      unitId: Type.Optional(Type.String()),
+    parameters: obj({
+      active: bool(),
+      modeKey: opt(str()),
+      selectModeKey: opt(str()),
+      unitId: opt(str()),
     }),
     executionMode: "sequential",
     execute: async (_id, params, signal) => {
@@ -313,7 +311,7 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
     label: "Reader controls",
     description:
       "Show or hide the current reader's header and docked panels. Query get_reading_session.controls first. This changes only chrome visibility: it does not open/close a book, change saved panel choices, start/stop audio, or move the reading position. Completes when the UI commits. Use only for an explicit user request.",
-    parameters: Type.Object({ visible: Type.Boolean() }),
+    parameters: obj({ visible: bool() }),
     executionMode: "sequential",
     execute: async (_id, params, signal) => {
       const current = await deps.reader.getSession();
@@ -332,7 +330,7 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
     label: "Reader panels",
     description:
       "Read which TOC, annotations, appearance and chat panels are selected and visible, their shared preferred TOC/chat widths, and docked/exclusive layout in the active reader. Preferred CSS-pixel widths are ignored in exclusive (narrow-window) layout. Returns no book content. Null means no ready panel surface; a book-scoped turn cannot inspect another book's panels.",
-    parameters: Type.Object({}),
+    parameters: obj({}),
     execute: async () => {
       const snapshot = await deps.reader.getPanels();
       return textResult(scope.kind === "book" && snapshot?.bookId !== scope.bookId ? null : snapshot);
@@ -343,14 +341,9 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
     label: "Set reader panel",
     description:
       "Explicitly open or close toc, annotations, appearance or chat for a user request. Query get_reader_panels first. Opening also reveals reader controls; In docked layout TOC/chat choices persist per book; in exclusive (narrow-window) layout they are transient full-screen sheets, only one open at a time, and close when controls hide. Annotations/appearance are always transient. Completes after required persistence and a UI commit, not animation or data loading. Does not change reading position or start an AI turn.",
-    parameters: Type.Object({
-      panel: Type.Union([
-        Type.Literal("toc"),
-        Type.Literal("annotations"),
-        Type.Literal("appearance"),
-        Type.Literal("chat"),
-      ]),
-      open: Type.Boolean(),
+    parameters: obj({
+      panel: oneOf(["toc", "annotations", "appearance", "chat"]),
+      open: bool(),
     }),
     executionMode: "sequential",
     execute: async (_id, params, signal) => {
@@ -369,13 +362,10 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
     label: "Resize reader panel",
     description:
       "Set a preferred TOC/chat width for an explicit user request. Integer 240..640 CSS pixels, shared across books and persisted on this device. Query get_reader_panels first. Completes after persistence and a matching UI commit; does not open the panel, reveal controls, move reading position or focus. Exclusive narrow-window layout ignores the saved width until docked layout resumes. Cancellation cannot undo an already dispatched write.",
-    parameters: Type.Object(
-      {
-        panel: Type.Union([Type.Literal("toc"), Type.Literal("chat")]),
-        width: Type.Integer({ minimum: 240, maximum: 640 }),
-      },
-      { additionalProperties: false },
-    ),
+    parameters: obj({
+      panel: oneOf(["toc", "chat"]),
+      width: int({ minimum: 240, maximum: 640 }),
+    }),
     executionMode: "sequential",
     execute: async (_id, params, signal) => {
       const current = await deps.reader.getPanels();

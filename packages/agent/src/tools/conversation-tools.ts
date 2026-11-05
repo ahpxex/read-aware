@@ -6,7 +6,6 @@
  *   什么"的接口，而不是把子线程转录塞进上下文。
  */
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import { AppError, normalizeConversationTarget } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import { turnsForModel } from "../runtime/history";
@@ -15,6 +14,7 @@ import { normalizeBookIdParam } from "./current-book";
 import { textResult } from "./tool-result";
 import { readingContextCall, permittedTurnRecords } from "../runtime/reading-context-policy";
 import type { AgentTurnState } from "./turn-state";
+import { arr, bool, num, obj, opt, str } from "@earendil-works/pi-schema";
 
 export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps, state?: AgentTurnState): AgentTool[] {
   const searchConversation: AgentTool = {
@@ -22,13 +22,13 @@ export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps, st
     label: "Search past turns",
     description:
       "Search the verbatim conversation history. Use when the reader asks what was said earlier — quote the actual turns, never reconstruct them from memory. Pass SEVERAL phrasings/synonyms in `queries` in this ONE call (results are merged); recall depends on wording and each retry costs a whole round trip.",
-    parameters: Type.Object({
-      queries: Type.Array(Type.String(), {
+    parameters: obj({
+      queries: arr(str(), {
         minItems: 1,
         description: "Query variants, searched together. 2-4 focused variants beat one broad phrase.",
       }),
-      allThreads: Type.Optional(
-        Type.Boolean({
+      allThreads: opt(
+        bool({
           description:
             "Search every thread instead of only this one (default false; the global thread always searches all)",
         }),
@@ -60,9 +60,9 @@ export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps, st
     label: "Recent turns",
     description:
       'Rewind: fetch the last N verbatim messages of this conversation. Your context only carries the immediately previous exchange — when the user follows up on anything older ("你上次说的那个…", "back to your earlier point"), call this FIRST instead of answering from guesswork. bookId reads another book thread\'s tail (global thread only).',
-    parameters: Type.Object({
-      n: Type.Optional(Type.Number({ description: "How many recent messages to fetch (default 6, max 20)" })),
-      bookId: Type.Optional(Type.String({ description: "Book id (global thread only)" })),
+    parameters: obj({
+      n: opt(num({ description: "How many recent messages to fetch (default 6, max 20)" })),
+      bookId: opt(str({ description: "Book id (global thread only)" })),
     }),
     execute: async (_id, params, signal) => {
       const { n = 6, bookId } = params as { n?: number; bookId?: string };
@@ -86,15 +86,10 @@ export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps, st
     label: "Conversation summary",
     description:
       "Read a stored rolling conversation summary, not verbatim history or a freshly generated summary. Choose bookId or threadId (global thread id), never both; omit both for this conversation. null means no stored summary, not no conversation. Summaries can lag recent turns. Available in global scope only; book scopes already receive their own rolling context.",
-    parameters: Type.Object(
-      {
-        bookId: Type.Optional(Type.String({ minLength: 1, maxLength: 256, description: "Book id" })),
-        threadId: Type.Optional(
-          Type.String({ minLength: 1, maxLength: 256, description: "Global thread id from get_conversation_state" }),
-        ),
-      },
-      { additionalProperties: false },
-    ),
+    parameters: obj({
+      bookId: opt(str({ minLength: 1, maxLength: 256, description: "Book id" })),
+      threadId: opt(str({ minLength: 1, maxLength: 256, description: "Global thread id from get_conversation_state" })),
+    }),
     execute: async (_id, params, signal) => {
       signal?.throwIfAborted();
       const input = params as { bookId?: string; threadId?: string };

@@ -22,9 +22,15 @@ function primitiveSchemaType(value: unknown): string | undefined {
   return undefined;
 }
 
+/** The one primitive type every listed value has, if they share one. */
+function sharedPrimitiveType(values: unknown[]): string | undefined {
+  const types = values.map(primitiveSchemaType);
+  return types.length > 0 && types.every((type) => type && type === types[0]) ? types[0] : undefined;
+}
+
 /**
- * Preserve common TypeBox schemas while translating constructs that many
- * OpenAI-compatible gateways validate as the smaller OpenAPI 3.0 subset.
+ * Translate JSON Schema constructs that many OpenAI-compatible gateways
+ * validate as the smaller OpenAPI 3.0 subset.
  */
 function downlevelSchema(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(downlevelSchema);
@@ -38,6 +44,11 @@ function downlevelSchema(value: unknown): unknown {
   if (Object.prototype.hasOwnProperty.call(next, "const")) {
     next.enum = [next.const];
     delete next.const;
+  }
+  // JSON Schema lets `enum` stand alone; the OpenAPI subset expects its type.
+  if (next.type === undefined && Array.isArray(next.enum)) {
+    const type = sharedPrimitiveType(next.enum);
+    if (type) next.type = type;
   }
 
   const patterns = asRecord(next.patternProperties);
@@ -67,10 +78,10 @@ function downlevelSchema(value: unknown): unknown {
       }
     } else {
       const literals = variants.map(literalValue);
-      const types = literals.map(primitiveSchemaType);
-      if (literals.every((literal) => literal !== undefined) && types.every((type) => type && type === types[0])) {
+      const type = sharedPrimitiveType(literals);
+      if (literals.every((literal) => literal !== undefined) && type) {
         delete next.anyOf;
-        next.type = types[0];
+        next.type = type;
         next.enum = literals;
       }
     }

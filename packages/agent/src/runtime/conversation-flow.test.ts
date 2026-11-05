@@ -1,6 +1,7 @@
 /** Phase 3 部件的线程级测试：滚动摘要、原话检索、跨书洞察工具。 */
 import { afterEach, describe, expect, test } from "bun:test";
-import type { Api, Context, Model } from "@earendil-works/pi-ai";
+import { modelRequestView, type ModelRequestView } from "./transcript";
+import type { Api, Model } from "@earendil-works/pi-ai";
 import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import {
   fauxAssistantMessage,
@@ -56,11 +57,11 @@ describe("conversation flow", () => {
 
   test("rolling summary is stored after the turn and injected at the next session start", async () => {
     const model = makeFaux();
-    let captured: Context | undefined;
+    let captured: ModelRequestView | undefined;
     faux.setResponses([
       fauxAssistantMessage("回答一"),
       (context) => {
-        captured = context;
+        captured = modelRequestView(context);
         return fauxAssistantMessage("回答二");
       },
     ]);
@@ -149,10 +150,10 @@ describe("conversation flow", () => {
 
   test("book thread is stateless: prompt carries only the one-turn tail, not the full history", async () => {
     const model = makeFaux();
-    let captured: Context | undefined;
+    let captured: ModelRequestView | undefined;
     faux.setResponses([
       (context) => {
-        captured = context;
+        captured = modelRequestView(context);
         return fauxAssistantMessage("好的");
       },
     ]);

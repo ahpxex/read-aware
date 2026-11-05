@@ -1,5 +1,6 @@
 import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import { fauxAssistantMessage, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
+import type { JsonObject } from "@earendil-works/pi-ai";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { AgentThread } from "../runtime/thread";
@@ -8,7 +9,7 @@ import { AgentThread } from "../runtime/thread";
 export function createScriptedThread(
   scope: ThreadScope,
   deps: RuntimeDeps,
-  calls: { name: string; arguments: Record<string, unknown> }[],
+  calls: { name: string; arguments: JsonObject }[],
 ) {
   const provider = registerFauxProvider({ tokensPerSecond: 100_000 });
   provider.setResponses([

@@ -1,0 +1,30 @@
+diff --git a/dist/formats/typebox/idn_email.js b/dist/formats/typebox/idn_email.js
+index fc05c61877295639a024d3d6066262c00da19190..33dc2224b615b30cc7fc1848ddb02c396ba11822 100644
+--- a/dist/formats/typebox/idn_email.js
++++ b/dist/formats/typebox/idn_email.js
+@@ -25,7 +25,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+ 
+ ---------------------------------------------------------------------------*/
+-const IdnEmail = /^(?:[A-Za-z0-9!#$%&'*+/=?^_`{|}~\u{0080}-\u{10FFFF}-]+(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~\u{0080}-\u{10FFFF}-]+)*|"(?:[^"\\]|\\.)*")@[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,62})(?<!-)(?:\.[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,62})(?<!-))*$/iu;
++// A domain label is 1-63 letters, digits or hyphens that starts and ends with a letter or digit. Written with an
++// explicit last character instead of a trailing `(?<!-)` lookbehind, which Safari < 16.4 cannot parse.
++const IdnEmail = /^(?:[A-Za-z0-9!#$%&'*+/=?^_`{|}~\u{0080}-\u{10FFFF}-]+(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~\u{0080}-\u{10FFFF}-]+)*|"(?:[^"\\]|\\.)*")@[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?(?:\.[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?)*$/iu;
+ /**
+  * Returns true if the value is an IdnEmail
+  * @specification https://datatracker.ietf.org/doc/html/rfc4952
+diff --git a/dist/formats/typebox/idna/pattern/pattern.js b/dist/formats/typebox/idna/pattern/pattern.js
+index 75312a8a3eb4f8231660c7473e8cd121ee17c386..8660317924dce3f0f50355eb23c790a62b82f943 100644
+--- a/dist/formats/typebox/idna/pattern/pattern.js
++++ b/dist/formats/typebox/idna/pattern/pattern.js
+@@ -29,7 +29,9 @@ THE SOFTWARE.
+ // -------------------------------------------------------------------
+ // Validation Rules
+ // -------------------------------------------------------------------
+-export const RE_RULE_HYPHEN_PLACEMENT = /^(?!-).*(?<!-)$/;
++// No leading or trailing hyphen. `(?!.*-$)` instead of a trailing `(?<!-)` lookbehind, which Safari < 16.4
++// cannot parse; `.*$` still requires a single line, so the accepted strings are the same.
++export const RE_RULE_HYPHEN_PLACEMENT = /^(?!-)(?!.*-$).*$/;
+ export const RE_RULE_NOT_RESERVED_ACE = /^(?!..--)/;
+ export const RE_ASCII_LDH = /^[a-zA-Z0-9-]*$/;
+ // -------------------------------------------------------------------

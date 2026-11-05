@@ -12,7 +12,6 @@ import {
   fauxToolCall,
   type FauxProviderRegistration,
 } from "@earendil-works/pi-ai/providers/faux";
-import { Type } from "@earendil-works/pi-ai";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { DictionaryEntrySnapshot, Id } from "@read-aware/core";
 import type { ThreadChunk, WordReference } from "../chunks";
@@ -20,6 +19,7 @@ import type { BookOverview, RuntimeDeps } from "../ports";
 import { createInMemoryDeps } from "../testing/fixtures";
 import type { ThreadScope } from "../thread-scope";
 import { AgentThread } from "./thread";
+import { obj, opt, str } from "@earendil-works/pi-schema";
 
 const BOOKS: BookOverview[] = [
   { id: "b1" as Id, title: "Debt: The First 5000 Years", author: "David Graeber" },
@@ -85,7 +85,7 @@ describe("present flow", () => {
         name: "plugin_books_show",
         label: "Show",
         description: "Show a book",
-        parameters: Type.Object({}),
+        parameters: obj({}),
         execute: async () => ({
           content: [{ type: "text" as const, text: "Shown" }],
           details: { reference: { kind: "books", books: [{ bookId: "b1", title: BOOKS[0]!.title }] } },
@@ -185,9 +185,9 @@ describe("present flow", () => {
       name: "plugin_dictionary_lookup_word",
       label: "Look up word",
       description: "Look up a word and show the reader a word card.",
-      parameters: Type.Object({
-        term: Type.String(),
-        context: Type.Optional(Type.String()),
+      parameters: obj({
+        term: str(),
+        context: opt(str()),
       }),
       execute: async (_id, params) => {
         const { term } = params as { term: string };

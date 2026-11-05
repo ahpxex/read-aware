@@ -27,8 +27,8 @@ test("both Agent scopes discover and execute the same finite commands with guard
       JSON.stringify(await execute.execute("test", { id: "layout-list", expectedWorkspaceRevision: 4 }, abort.signal)),
     ).toContain("partial");
     expect(calls).toEqual([abort.signal, [{ id: "layout-list", expectedWorkspaceRevision: 4 }, abort.signal]]);
-    const schema = execute.parameters as { properties: { id: { anyOf: { const: string }[] } } };
-    expect(schema.properties.id.anyOf.map((v) => v.const)).toEqual([...HOST_COMMAND_IDS]);
+    const schema = execute.parameters as { properties: { id: { enum: string[] } } };
+    expect(schema.properties.id.enum).toEqual([...HOST_COMMAND_IDS]);
     await expect(execute.execute("test", { id: "import" })).rejects.toMatchObject({ code: "ui/invalid-target" });
     const error = new AppError("plugin/cancelled", "cancelled");
     abort.abort(error);

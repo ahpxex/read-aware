@@ -1,4 +1,14 @@
-import type { Api, Context, Model, SimpleStreamOptions } from "@earendil-works/pi-ai";
+import {
+  getSystemMessageText,
+  normalizeContext,
+  withoutInitialSystemMessage,
+  type Api,
+  type Context,
+  type Model,
+  type SimpleStreamOptions,
+  type SystemMessage,
+} from "@earendil-works/pi-ai";
+import { modelRequestView } from "../runtime/transcript";
 import type { ThreadChunk } from "../chunks";
 import { toJsonObject, toJsonValue } from "./json";
 import type {
@@ -34,11 +44,29 @@ function snapshotContent(value: unknown): JsonValue {
   return Object.fromEntries(Object.entries(record).map(([key, entry]) => [key, snapshotContent(entry)]));
 }
 
-export function snapshotModelContext(context: Context): JsonObject {
+/** A mid-conversation system message, with tool changes reduced to names (full schemas are in `tools`). */
+function snapshotSystemUpdate(message: SystemMessage): JsonObject {
+  const text = getSystemMessageText(message);
   return {
-    ...(context.systemPrompt ? { systemPrompt: context.systemPrompt } : {}),
-    messages: context.messages.map((message) => snapshotContent(message)),
-    tools: (context.tools ?? []).map((tool) => ({
+    role: "system",
+    ...(text ? { content: text } : {}),
+    ...(message.toolsAdded?.length ? { toolsAdded: message.toolsAdded.map((tool) => tool.name) } : {}),
+    ...(message.toolsRemoved?.length ? { toolsRemoved: message.toolsRemoved.map((tool) => tool.name) } : {}),
+  };
+}
+
+/**
+ * The request as the model saw it: the replayed prompt and tool set, then the
+ * conversation with any later system messages (tool changes) in place.
+ */
+export function snapshotModelContext(context: Context): JsonObject {
+  const view = modelRequestView(context);
+  return {
+    ...(view.systemPrompt ? { systemPrompt: view.systemPrompt } : {}),
+    messages: withoutInitialSystemMessage(normalizeContext(context).messages).map((message) =>
+      message.role === "system" ? snapshotSystemUpdate(message) : snapshotContent(message),
+    ),
+    tools: view.tools.map((tool) => ({
       name: tool.name,
       description: tool.description,
       parameters: snapshotContent(tool.parameters),

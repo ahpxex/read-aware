@@ -1,5 +1,4 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import {
   AppError,
   normalizeBookClassification,
@@ -10,6 +9,7 @@ import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { requestUserInteraction } from "./user-interaction";
 import { textResult } from "./tool-result";
+import { bool, obj, oneOf, opt, str } from "@earendil-works/pi-schema";
 
 export function buildBookClassificationTool(scope: ThreadScope, deps: RuntimeDeps): AgentTool {
   return {
@@ -18,16 +18,13 @@ export function buildBookClassificationTool(scope: ThreadScope, deps: RuntimeDep
     executionMode: "sequential",
     description:
       "Inspect or explicitly change a book's narrative/expository classification. Inspect first and pass that exact revision; every change requires user approval. Narrativity controls people/events versus concept digests. The independent spoilerSensitive flag protects fictional plot revelations; factual history, politics, biography and memoir default to false even when narrative. Classification affects future graph/prompt assembly, does not instantly rebuild digests, cancel in-flight work or erase past answers. Never reclassify just to bypass a spoiler fence. Book threads may only manage the current book; global threads require a discovered book ID. Conflicts require fresh inspection and renewed approval, never blind retry. Manual correction is allowed when automatic memory building is disabled.",
-    parameters: Type.Object(
-      {
-        action: Type.Union([Type.Literal("inspect"), Type.Literal("classify")]),
-        bookId: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })),
-        spoilerSensitive: Type.Optional(Type.Boolean()),
-        narrativity: Type.Optional(Type.Union([Type.Literal("narrative"), Type.Literal("expository")])),
-        expectedRevision: Type.Optional(Type.String()),
-      },
-      { additionalProperties: false },
-    ),
+    parameters: obj({
+      action: oneOf(["inspect", "classify"]),
+      bookId: opt(str({ minLength: 1, maxLength: 256 })),
+      spoilerSensitive: opt(bool()),
+      narrativity: opt(oneOf(["narrative", "expository"])),
+      expectedRevision: opt(str()),
+    }),
     execute: async (toolCallId, params, signal, onUpdate) => {
       if (!params || typeof params !== "object" || Array.isArray(params))
         throw new AppError("memory/invalid-input", "Expected a classification request");

@@ -1,5 +1,4 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import {
   validateModelImages,
   MODEL_IMAGES_MAX_COUNT,
@@ -14,28 +13,24 @@ import {
 import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import type { AgentTurnState } from "./turn-state";
-import { assertSpoilerPermission, withSpoilerArgument, spoilerGranted } from "./book-text-tools";
-import { resolveBookId } from "./current-book";
+import { assertSpoilerPermission, spoilerParameters, spoilerGranted } from "./book-text-tools";
+import { isCurrentBookArg, nestedBookIdArg, resolveBookId } from "./current-book";
 import { resourceTextResult as textResult } from "./tool-result";
+import { int, obj, opt, str } from "@earendil-works/pi-schema";
 
 function imageParameters(scope: ThreadScope, state?: AgentTurnState) {
-  return Type.Object(
-    withSpoilerArgument(
-      scope,
-      {
-        image: Type.Object(
-          {
-            bookId: Type.String({ minLength: 1, maxLength: 512 }),
-            contentVersion: Type.String({ minLength: 1, maxLength: 256 }),
-            sectionIndex: Type.Integer({ minimum: 0 }),
-            index: Type.Integer({ minimum: 0 }),
-          },
-          { additionalProperties: false },
-        ),
-      },
-      state,
-    ),
-    { additionalProperties: false },
+  return spoilerParameters(
+    scope,
+    {
+      image: obj({
+        bookId: str({ minLength: 1, maxLength: 512 }),
+        contentVersion: str({ minLength: 1, maxLength: 256 }),
+        sectionIndex: int({ minimum: 0 }),
+        index: int({ minimum: 0 }),
+      }),
+    },
+    state,
+    (args) => isCurrentBookArg(scope, nestedBookIdArg(args, "image")),
   );
 }
 
@@ -77,18 +72,16 @@ export function buildBookImageTools(scope: ThreadScope, deps: RuntimeDeps, state
       label: "Book illustrations",
       description:
         "List authored image candidates in one versioned book section without navigating or fetching remote URLs; PDF operator inspection may decode embedded objects. First call get_navigation_toc for sectionIndex/contentVersion, not extracted chapter numbering; never invent these values. In a book conversation omit bookId to use the current book. Returns up to 20 bounded alt labels, source locations and opaque image descriptors; continue with nextOffset. Covers img/SVG, srcset/picture alternatives, authored CSS image URLs and PDF embedded bitmaps. CSS candidates are declarations, not the active viewport/cascade. PDF masks depending on page paint state return unsupported when read. Footnote marker images are excluded. Unsupported and access failure are distinct from an empty supported section. Current narrative sections remain behind the reading fence.",
-      parameters: Type.Object(
-        withSpoilerArgument(
-          scope,
-          {
-            bookId: Type.Optional(Type.String()),
-            contentVersion: Type.String({ minLength: 1, maxLength: 256 }),
-            sectionIndex: Type.Integer({ minimum: 0 }),
-            offset: Type.Optional(Type.Integer({ minimum: 0 })),
-          },
-          state,
-        ),
-        { additionalProperties: false },
+      ...spoilerParameters(
+        scope,
+        {
+          bookId: opt(str()),
+          contentVersion: str({ minLength: 1, maxLength: 256 }),
+          sectionIndex: int({ minimum: 0 }),
+          offset: opt(int({ minimum: 0 })),
+        },
+        state,
+        (args) => isCurrentBookArg(scope, args.bookId),
       ),
       execute: async (_id, params, signal) => {
         signal?.throwIfAborted();
@@ -112,7 +105,7 @@ export function buildBookImageTools(scope: ThreadScope, deps: RuntimeDeps, state
       executionMode: "sequential",
       description:
         "Copy one embedded image from list_book_images into this conversation's temporary sealed resource. Copy the descriptor unchanged. Rechecks source section/version and narrative reading fence before loading; no network requests or original-book export bypass. Returns ready/missing/external/unsupported; ready means bytes copied, NOT decoded pixels or visual understanding. No image bytes, source URL or paths enter the model, and no viewer opens. Max 16 MiB; references last one hour and share existing resource quotas. Use save_resource or copy_resource_image only on user intent; clipboard decoding may reject unsupported formats. Release the reference when finished.",
-      parameters: imageParameters(scope, state),
+      ...imageParameters(scope, state),
       execute: async (_id, params, signal) => {
         signal?.throwIfAborted();
         const { confirmSpoiler, ...input } = params as BookImageQuery & { confirmSpoiler?: unknown };
@@ -132,7 +125,7 @@ export function buildBookImageTools(scope: ThreadScope, deps: RuntimeDeps, state
       executionMode: "sequential",
       description:
         "On explicit user intent, open an embedded image from list_book_images in the currently open book's native lightbox. Copy its versioned descriptor unchanged; open that book first. Preserves the narrative reading fence and does not fetch remote images or navigate. Opened means the matching viewer committed, not successful pixel decoding or model vision. Returns not-opened for missing/external/unsupported images. Use the returned snapshot.id with control_reader_image to zoom, pan, rotate, reset or close. No temporary resource handle is created; viewer bytes are released on replacement/close. A later user click, request or book change supersedes a pending opening.",
-      parameters: imageParameters(scope, state),
+      ...imageParameters(scope, state),
       execute: async (_id, params, signal) => {
         signal?.throwIfAborted();
         const { confirmSpoiler, ...input } = params as BookImageQuery & { confirmSpoiler?: unknown };
@@ -159,7 +152,7 @@ export function buildBookImageTools(scope: ThreadScope, deps: RuntimeDeps, state
       executionMode: "sequential",
       description:
         "Inspect one versioned illustration from list_book_images with the current vision model. Rechecks original source/version and narrative fence; no remote image fetch or original-book bypass. The host decodes a bounded PNG and returns an actual image block to the model. Missing/external/unsupported remain explicit. Maximum 4 images/16 MiB per turn, 8 MiB per image; source decoding also has dimension limits. The temporary resource is released automatically. Image blocks are omitted from later turns; reread a descriptor when needed. This does not open a viewer or guarantee semantic recognition.",
-      parameters: imageParameters(scope, state),
+      ...imageParameters(scope, state),
       execute: async (_id, params, signal) => {
         signal?.throwIfAborted();
         const { confirmSpoiler, ...input } = params as BookImageQuery & { confirmSpoiler?: unknown };

@@ -1,5 +1,4 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import {
   AppError,
   normalizeOnboardingChange,
@@ -10,12 +9,13 @@ import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { requestUserInteraction } from "./user-interaction";
 import { textResult } from "./tool-result";
+import { obj, str } from "@earendil-works/pi-schema";
 
 const labels = {
-  goals: Type.String({ minLength: 1, maxLength: 200 }),
-  background: Type.String({ minLength: 1, maxLength: 200 }),
-  explanationDepth: Type.String({ minLength: 1, maxLength: 200 }),
-  language: Type.String({ minLength: 1, maxLength: 200 }),
+  goals: str({ minLength: 1, maxLength: 200 }),
+  background: str({ minLength: 1, maxLength: 200 }),
+  explanationDepth: str({ minLength: 1, maxLength: 200 }),
+  language: str({ minLength: 1, maxLength: 200 }),
 };
 
 /** One conversation tool owns collection, complete review, and the atomic decision.
@@ -27,13 +27,10 @@ export function buildOnboardingTool(scope: ThreadScope, deps: RuntimeDeps): Agen
     executionMode: "sequential",
     description:
       "Offer this optional interview in a global conversation when the reader has no profile and wants to introduce their reading preferences. Provide a warm title and four short labels in the reader's language for goals, background, explanationDepth, language. The host collects the actual answers, shows the entire profile and every seed memory for explicit approval, then saves everything atomically. No answers are inferred or prefilled. Skipping or declining writes nothing. Existing nonempty profiles are not replaced: use get_user_profile/update_user_profile for corrections. No separate remember calls for these answers. A concurrent profile edit requires restarting and renewed confirmation. The event-backed receipt includes stable memory IDs; this is not a guarantee about remote sync or model quality.",
-    parameters: Type.Object(
-      {
-        title: Type.String({ minLength: 1, maxLength: 300 }),
-        labels: Type.Object(labels, { additionalProperties: false }),
-      },
-      { additionalProperties: false },
-    ),
+    parameters: obj({
+      title: str({ minLength: 1, maxLength: 300 }),
+      labels: obj(labels),
+    }),
     execute: async (toolCallId, params, signal, onUpdate) => {
       if (scope.kind !== "global")
         throw new AppError("memory/forbidden", "Onboarding belongs to the global conversation");

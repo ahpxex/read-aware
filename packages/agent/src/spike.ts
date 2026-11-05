@@ -7,10 +7,11 @@
  * spike 结论落地后此文件删除，不要在产品代码里引用。
  */
 import { Agent, type AgentTool } from "@earendil-works/pi-agent-core";
-import { Type, type Api, type Model } from "@earendil-works/pi-ai";
+import { type Api, type Model } from "@earendil-works/pi-ai";
 import { streamSimple } from "@earendil-works/pi-ai/compat";
 import type { KnownProviderId, ProviderRegistry } from "./models/registry";
 import { buildBuiltinProviderRegistry } from "./evals/builtin-registry";
+import { obj } from "@earendil-works/pi-schema";
 
 export interface SpikeConfig {
   provider: KnownProviderId;
@@ -85,7 +86,7 @@ export async function runPiSpike(
     name: "list_books",
     label: "List books",
     description: "List the books on the user's shelf.",
-    parameters: Type.Object({}),
+    parameters: obj({}),
     execute: async () => {
       toolCalled = true;
       log("[spike] tool list_books executed");

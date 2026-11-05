@@ -165,8 +165,8 @@ export function getPluginAgentTools(scope: ThreadScope, interactions?: UserInter
         label: tool.label ? contributionText(tool.label) : `${tool.pluginName} · ${tool.name}`,
         // Provenance stays visible to the model; plugins describe only behavior.
         description: `[Plugin: ${tool.pluginName}] ${tool.description}`,
-        // pi passes the schema through to the provider without TypeBox runtime
-        // validation, so plain JSON Schema is the honest input type here.
+        // pi validates the arguments against any JSON Schema (coercing loosely
+        // typed values first), so plain JSON Schema is the honest input type here.
         parameters: (tool.parameters ?? EMPTY_PARAMETERS) as AgentTool["parameters"],
         executionMode: tool.approval === "required" ? "sequential" : undefined,
         execute: async (toolCallId, params, signal, onUpdate) => {

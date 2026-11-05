@@ -108,3 +108,27 @@ test("a forged confirmSpoiler remains rejected when the schema is withheld", asy
   );
   expect(state.spoilerPermissionDenied).toBe(true);
 });
+
+test("an unadvertised confirmSpoiler on the current book is rejected as a self-grant before validation", () => {
+  const { deps, scope, state } = fixture();
+  const tools = affectedTools(scope, deps, state);
+  expect(tools).toHaveLength(AFFECTED_TOOL_NAMES.length);
+  const ids = (bookId: string) => ({ bookId, range: { bookId }, image: { bookId }, reference: { bookId } });
+  for (const tool of tools) {
+    state.spoilerPermissionDenied = false;
+    expect(() => tool.prepareArguments?.({ ...ids(BOOK), confirmSpoiler: true })).toThrow("not explicitly granted");
+    expect(state.spoilerPermissionDenied).toBe(true);
+
+    // Aimed at another book, the argument carries no grant: it is dropped, not reported.
+    state.spoilerPermissionDenied = false;
+    expect(tool.prepareArguments?.({ ...ids("other-book"), confirmSpoiler: true })).toEqual(ids("other-book"));
+    expect(state.spoilerPermissionDenied).toBe(false);
+  }
+});
+
+test("an advertised confirmSpoiler reaches validation unchanged", () => {
+  const { deps, scope, state } = fixture();
+  state.spoilerPermissionGranted = true;
+  const tools = affectedTools(scope, deps, state);
+  expect(tools.every((tool) => exposesSpoilerArgument(tool) && tool.prepareArguments === undefined)).toBe(true);
+});

@@ -1,5 +1,4 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import { AppError, type Id, type ReadingSettingsReset, type SettingsOptionsQuery } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type {
@@ -12,86 +11,70 @@ import type {
 import type { ThreadScope } from "../thread-scope";
 import { textResult } from "./tool-result";
 import { buildModelCatalogTools } from "./model-catalog-tools";
+import { arr, bool, int, lit, nul, num, obj, oneOf, opt, str, union } from "@earendil-works/pi-schema";
 
-const sectionSchema = Type.Union([
-  Type.Literal("general", { description: "General application behavior" }),
-  Type.Literal("appearance", {
+const sectionSchema = union([
+  lit("general", { description: "General application behavior" }),
+  lit("appearance", {
     description: "Application appearance and chat/note content typography, not reader pages",
   }),
-  Type.Literal("reading", {
+  lit("reading", {
     description:
       "Reader pages: theme, font, and reading mode; plus device-local page-turn input (tap zones, volume keys), which is global-only",
   }),
-  Type.Literal("annotations", { description: "Preferences for new highlights and underlines" }),
-  Type.Literal("shelf", {
+  lit("annotations", { description: "Preferences for new highlights and underlines" }),
+  lit("shelf", {
     description: "Device-local shelf layout, grouping and sort order, not book data or selection",
   }),
-  Type.Literal("shortcuts", {
+  lit("shortcuts", {
     description: "Current keyboard bindings, registered defaults, overrides and conflicting paths",
   }),
-  Type.Literal("ai", { description: "Non-sensitive AI behavior preferences" }),
-  Type.Literal("menus", {
+  lit("ai", { description: "Non-sensitive AI behavior preferences" }),
+  lit("menus", {
     description:
       "User-arranged menu surfaces (primary navigation, header bars, selection menu): ordered visible/overflow item lists",
   }),
-  Type.Literal("plugins", {
+  lit("plugins", {
     description: "Settings declared by enabled plugins, path form plugins.<pluginId>.<field>",
   }),
 ]);
 
-const globalTargetSchema = Type.Object({ kind: Type.Literal("global") }, { additionalProperties: false });
+const globalTargetSchema = obj({ kind: lit("global") });
 
 function bookTargetSchema(scope: ThreadScope) {
-  return Type.Object(
-    {
-      kind: Type.Literal("book"),
-      bookId:
-        scope.kind === "book"
-          ? Type.Optional(
-              Type.String({
-                minLength: 1,
-                description: "Defaults to the current book in an in-book agent",
-              }),
-            )
-          : Type.String({ minLength: 1 }),
-    },
-    { additionalProperties: false },
-  );
+  return obj({
+    kind: lit("book"),
+    bookId:
+      scope.kind === "book"
+        ? opt(
+            str({
+              minLength: 1,
+              description: "Defaults to the current book in an in-book agent",
+            }),
+          )
+        : str({ minLength: 1 }),
+  });
 }
 
 function queryTargetSchema(scope: ThreadScope) {
-  return Type.Union([globalTargetSchema, bookTargetSchema(scope)]);
+  return union([globalTargetSchema, bookTargetSchema(scope)]);
 }
 
 function writeTargetSchema(scope: ThreadScope) {
-  return Type.Union([
-    globalTargetSchema,
-    bookTargetSchema(scope),
-    Type.Object({ kind: Type.Literal("all-books") }, { additionalProperties: false }),
-  ]);
+  return union([globalTargetSchema, bookTargetSchema(scope), obj({ kind: lit("all-books") })]);
 }
 
-const settingValueSchema = Type.Union([
-  Type.Null(),
-  Type.Boolean(),
-  Type.Number(),
-  Type.String(),
-  // Ordered id lists (kind=id-list paths, e.g. menu surface layouts).
-  Type.Array(Type.String({ minLength: 1 }), { maxItems: 64 }),
-]);
+const settingValueSchema = union([nul(), bool(), num(), str(), arr(str({ minLength: 1 }), { maxItems: 64 })]);
 
 function settingChangeSchema(scope: ThreadScope) {
-  return Type.Object(
-    {
-      path: Type.String({
-        minLength: 3,
-        description: "An exact writable path returned by get_settings.",
-      }),
-      value: settingValueSchema,
-      target: Type.Optional(writeTargetSchema(scope)),
-    },
-    { additionalProperties: false },
-  );
+  return obj({
+    path: str({
+      minLength: 3,
+      description: "An exact writable path returned by get_settings.",
+    }),
+    value: settingValueSchema,
+    target: opt(writeTargetSchema(scope)),
+  });
 }
 
 async function normalizeTarget(
@@ -133,17 +116,14 @@ export function buildSettingsTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     label: "Find setting options",
     description:
       "Search and page through one exact setting's available options without reading its current value. For dynamicOptions plugin fields, invokes the owning plugin's registered catalog (such as TTS voices) using saved settings/credentials; may contact its configured provider, but never synthesizes audio or returns credentials/settings. The list is a 60-second snapshot; empty means the provider offered no suggestions, not that manual values are forbidden. reading.fontFamily and appearance.contentTypography.fontFamily include installed system fonts as well as curated and enabled plugin fonts. Copy the returned value into update_settings; do not invent family names. This lists names, not font files or render readiness, and does not download fonts. Retain the same path/search/target and revision for later pages; restart at offset zero if stale. Installing system fonts requires restarting the app to refresh its session cache.",
-    parameters: Type.Object(
-      {
-        path: Type.String({ minLength: 1, maxLength: 256 }),
-        search: Type.Optional(Type.String({ maxLength: 120 })),
-        offset: Type.Optional(Type.Integer({ minimum: 0 })),
-        limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 50 })),
-        revision: Type.Optional(Type.Integer({ minimum: 0 })),
-        target: Type.Optional(queryTargetSchema(scope)),
-      },
-      { additionalProperties: false },
-    ),
+    parameters: obj({
+      path: str({ minLength: 1, maxLength: 256 }),
+      search: opt(str({ maxLength: 120 })),
+      offset: opt(int({ minimum: 0 })),
+      limit: opt(int({ minimum: 1, maximum: 50 })),
+      revision: opt(int({ minimum: 0 })),
+      target: opt(queryTargetSchema(scope)),
+    }),
     execute: async (_id, params, signal) => {
       const query = structuredClone(params) as SettingsOptionsQuery;
       signal?.throwIfAborted();
@@ -161,13 +141,10 @@ export function buildSettingsTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     label: "Read settings",
     description:
       "Read the host's current non-sensitive settings catalog. Each entry provides an exact path, current value, value kind, valid options, writability, and supportedTargets. Use get_setting_options to search larger option lists or installed system fonts; those fonts are not included in this compact snapshot. Reader page theme/font/mode live in section=reading; section=appearance is application appearance and chat/note content typography. section=annotations includes the default color for new marks, not edits to existing annotations. Use target=book to inspect one book; inside a book agent its bookId defaults to the current book. overrides reports scoped values that shadow global defaults. API keys and Custom endpoint values are never exposed.",
-    parameters: Type.Object(
-      {
-        section: Type.Optional(sectionSchema),
-        target: Type.Optional(queryTargetSchema(scope)),
-      },
-      { additionalProperties: false },
-    ),
+    parameters: obj({
+      section: opt(sectionSchema),
+      target: opt(queryTargetSchema(scope)),
+    }),
     execute: async (_id, params) => {
       const raw = params as Omit<AgentSettingsQuery, "target"> & {
         target?: { kind: string; bookId?: string };
@@ -183,12 +160,9 @@ export function buildSettingsTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     label: "Update settings",
     description:
       "Update ordinary settings only when the user explicitly asks. Always call get_settings first, then copy exact writable paths and values/options from its catalog. Never invent paths. For kind=id-list (menus), write the COMPLETE ordered array using available options. For kind=key-chord (shortcuts), write optional mod/alt/shift tokens followed by one KeyboardEvent.key, e.g. [mod,shift,k]; null restores the registered default, not unbind. Read shortcut metadata for defaults, overrides, availability and conflicts; swap conflicting bindings in ONE batch. A setting with multiple supportedTargets requires an explicit target; call ask_user when scope is ambiguous. Global-only settings may omit target. Global changes may be shadowed by book overrides. This tool cannot access API keys, Custom endpoint destinations, destructive data actions or plugin lifecycle.",
-    parameters: Type.Object(
-      {
-        changes: Type.Array(settingChangeSchema(scope), { minItems: 1, maxItems: 50 }),
-      },
-      { additionalProperties: false },
-    ),
+    parameters: obj({
+      changes: arr(settingChangeSchema(scope), { minItems: 1, maxItems: 50 }),
+    }),
     executionMode: "sequential",
     execute: async (_id, params) => {
       const { changes: rawChanges } = params as {
@@ -224,10 +198,7 @@ export function buildSettingsTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     executionMode: "sequential",
     description:
       "Only on explicit user request, reset the WHOLE reader-preference bundle after reading get_settings. target is required; ask_user if scope is ambiguous. action=defaults with global restores built-in global preferences but retains book overrides; with book stores built-in defaults as that book's active override; with all-books resets global and deletes all active/remembered overrides. action=inherit with book deletes its override and follows future global changes; with all-books deletes every override without changing global values. inherit is invalid for global. Equal values are not the same as removing an override. get_settings reading metadata exposes source, active/inactive/absent override and built-in defaultValue. This does not reset general/AI/plugin preferences, positions or book data. Cancellation before persistence prevents the reset; dispatched writes are not rolled back by later cancellation.",
-    parameters: Type.Object(
-      { action: Type.Union([Type.Literal("defaults"), Type.Literal("inherit")]), target: writeTargetSchema(scope) },
-      { additionalProperties: false },
-    ),
+    parameters: obj({ action: oneOf(["defaults", "inherit"]), target: writeTargetSchema(scope) }),
     execute: async (_id, params, signal) => {
       const accepted = structuredClone(params) as {
         action: "defaults" | "inherit";

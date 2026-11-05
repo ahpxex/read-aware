@@ -55,8 +55,9 @@
   },
   "patchedDependencies": {
     "mdast-util-gfm-autolink-literal@2.0.1": "patches/mdast-util-gfm-autolink-literal@2.0.1.patch",
-    "openai@6.40.0": "patches/openai@6.40.0.patch",
-    "@anthropic-ai/sdk@0.123.0": "patches/@anthropic-ai%2Fsdk@0.123.0.patch",
-    "@earendil-works/pi-ai@0.85.1": "patches/@earendil-works%2Fpi-ai@0.85.1.patch"
+    "@earendil-works/pi-ai@1.5.0": "patches/@earendil-works%2Fpi-ai@1.5.0.patch",
+    "@earendil-works/pi-schema@1.5.0": "patches/@earendil-works%2Fpi-schema@1.5.0.patch",
+    "openai@7.19.0": "patches/openai@7.19.0.patch",
+    "@anthropic-ai/sdk@0.129.0": "patches/@anthropic-ai%2Fsdk@0.129.0.patch"
   }
 }

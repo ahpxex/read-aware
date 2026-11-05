@@ -1,5 +1,4 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import { AppError, type Id } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
@@ -11,13 +10,14 @@ import { requestUserInteraction } from "./user-interaction";
 import { buildDeleteBooksTool, buildListBookRemovalCleanupTool } from "./delete-books";
 import { buildReadingTimeTool } from "./reading-time";
 import { buildReadingInsightsTool } from "./reading-insights";
+import { arr, bool, nul, obj, oneOf, opt, str, union } from "@earendil-works/pi-schema";
 
 export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const listCollections: AgentTool = {
     name: "list_collections",
     label: "List collections",
     description: "List the user's shelf collections and the book ids currently assigned to each one.",
-    parameters: Type.Object({}),
+    parameters: obj({}),
     execute: async () => {
       const collections = await deps.library.listCollections();
       const memberships = await Promise.all(
@@ -35,9 +35,9 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
     label: "Reading stats",
     description:
       "Get SETTLED reading history and progress, with durations already formatted for the reader. For current time including unfinished sessions, use get_reading_time instead. Quote formatted durations as given. Call only for reading time, streaks, or progress, not content questions. With bookId returns that book; otherwise the whole-shelf aggregate and every book's stats. In a book thread defaults to the current book; allBooks=true requests the aggregate.",
-    parameters: Type.Object({
-      bookId: Type.Optional(Type.String()),
-      allBooks: Type.Optional(Type.Boolean({ description: "Return the whole-shelf aggregate even in a book thread" })),
+    parameters: obj({
+      bookId: opt(str()),
+      allBooks: opt(bool({ description: "Return the whole-shelf aggregate even in a book thread" })),
     }),
     execute: async (_id, params) => {
       const { bookId, allBooks = false } = params as { bookId?: string; allBooks?: boolean };
@@ -71,12 +71,12 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
     label: "Update book",
     description:
       "Update a shelf book when the user explicitly asks: change title/author, star or unstar it, mark it finished or back to reading. Pass only the fields the user asked to change. bookId defaults to the current book.",
-    parameters: Type.Object({
-      bookId: Type.Optional(Type.String()),
-      title: Type.Optional(Type.String({ description: "New title" })),
-      author: Type.Optional(Type.String({ description: "New author" })),
-      starred: Type.Optional(Type.Boolean({ description: "Add to / remove from favorites" })),
-      finished: Type.Optional(Type.Boolean({ description: "Mark finished, or false to resume reading" })),
+    parameters: obj({
+      bookId: opt(str()),
+      title: opt(str({ description: "New title" })),
+      author: opt(str({ description: "New author" })),
+      starred: opt(bool({ description: "Add to / remove from favorites" })),
+      finished: opt(bool({ description: "Mark finished, or false to resume reading" })),
     }),
     executionMode: "sequential",
     execute: async (_id, params) => {
@@ -123,17 +123,17 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
     label: "Manage collections",
     description:
       "Create, rename, or fill shelf collections. action=create needs name; action=rename needs collectionId + name; action=assign needs bookIds + collectionId (null collectionId removes the books from any collection). Deleting a collection is a separate tool.",
-    parameters: Type.Object({
-      action: Type.Union([Type.Literal("create"), Type.Literal("rename"), Type.Literal("assign")], {
+    parameters: obj({
+      action: oneOf(["create", "rename", "assign"], {
         description: "Which collection operation to perform",
       }),
-      name: Type.Optional(Type.String({ description: "Collection name (create / rename)" })),
-      collectionId: Type.Optional(
-        Type.Union([Type.String(), Type.Null()], {
+      name: opt(str({ description: "Collection name (create / rename)" })),
+      collectionId: opt(
+        union([str(), nul()], {
           description: "Target collection (rename / assign); null in assign ungroups the books",
         }),
       ),
-      bookIds: Type.Optional(Type.Array(Type.String(), { minItems: 1, maxItems: 100, description: "Books to assign" })),
+      bookIds: opt(arr(str(), { minItems: 1, maxItems: 100, description: "Books to assign" })),
     }),
     executionMode: "sequential",
     execute: async (_id, params) => {
@@ -186,7 +186,7 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
     label: "Delete book",
     description:
       "Permanently remove a book and its imported source file. The host ALWAYS asks the user for permission before deletion; never ask separately or claim success before this tool returns. bookId defaults to the current book.",
-    parameters: Type.Object({ bookId: Type.Optional(Type.String()) }),
+    parameters: obj({ bookId: opt(str()) }),
     executionMode: "sequential",
     execute: async (toolCallId, params, signal, onUpdate) => {
       const target = resolveBookId(scope, (params as { bookId?: string }).bookId);
@@ -212,7 +212,7 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
     label: "Delete collection",
     description:
       "Delete a shelf collection; its books stay on the shelf ungrouped. The host ALWAYS asks the user for permission before deletion.",
-    parameters: Type.Object({ collectionId: Type.String() }),
+    parameters: obj({ collectionId: str() }),
     executionMode: "sequential",
     execute: async (toolCallId, params, signal, onUpdate) => {
       const { collectionId } = params as { collectionId: string };

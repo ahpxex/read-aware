@@ -1,10 +1,10 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import { AppError, validateClassificationBookId, normalizeBookGraphTaskOptions } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { requestUserInteraction } from "./user-interaction";
 import { textResult } from "./tool-result";
+import { int, obj, oneOf, opt, str } from "@earendil-works/pi-schema";
 
 export function buildBookGraphTaskTool(scope: ThreadScope, deps: RuntimeDeps): AgentTool {
   return {
@@ -13,17 +13,14 @@ export function buildBookGraphTaskTool(scope: ThreadScope, deps: RuntimeDeps): A
     executionMode: "sequential",
     description:
       "List/get graph generation tasks, start missing-chapter catch-up, rebuild existing digests, cancel, or retry an unfinished terminal task. Start/rebuild/retry each require user approval and may incur model charges. maxChapters bounds attempted chapters including failed/empty chapters (1-1000, start default 20, retry inherits the prior limit). Classification may require an additional model call; this is NOT a token or billing cap. A limited pass remains partial with its remaining chapters available for a newly approved retry. Read task status after acceptance; do not repeatedly poll or automatically retry to bypass the approved limit. Cancellation may remain cancelling until dispatched writes settle and never undoes committed digests or provider charges. Failed rebuilds preserve old digests; retry retains unfinished targets. Handles are Agent-owned for this app session, not plugin tasks or automatic upkeep. Generation obeys the live host reading boundary (including global threads), never caller-supplied spoiler overrides. Book threads may manage only their book. Automatic memory/privacy settings still apply.",
-    parameters: Type.Object(
-      {
-        action: Type.Union(["list", "get", "start", "rebuild", "cancel", "retry"].map((value) => Type.Literal(value))),
-        bookId: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })),
-        taskId: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })),
-        maxChapters: Type.Optional(Type.Integer({ minimum: 1, maximum: 1000 })),
-        offset: Type.Optional(Type.Integer({ minimum: 0 })),
-        limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 20 })),
-      },
-      { additionalProperties: false },
-    ),
+    parameters: obj({
+      action: oneOf(["list", "get", "start", "rebuild", "cancel", "retry"]),
+      bookId: opt(str({ minLength: 1, maxLength: 256 })),
+      taskId: opt(str({ minLength: 1, maxLength: 256 })),
+      maxChapters: opt(int({ minimum: 1, maximum: 1000 })),
+      offset: opt(int({ minimum: 0 })),
+      limit: opt(int({ minimum: 1, maximum: 20 })),
+    }),
     execute: async (toolCallId, params, signal, onUpdate) => {
       if (!params || typeof params !== "object" || Array.isArray(params))
         throw new AppError("memory/invalid-input", "Expected a graph task request");

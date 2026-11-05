@@ -1,4 +1,4 @@
-import type { Api, Model } from "@earendil-works/pi-ai";
+import { getCurrentSystemPrompt, type Api, type Model } from "@earendil-works/pi-ai";
 import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import { fauxAssistantMessage } from "@earendil-works/pi-ai/providers/faux";
 import type { RuntimeDeps } from "../ports";
@@ -11,12 +11,12 @@ export function chapterMemoryThreadProbe(deps: RuntimeDeps, bookId: string) {
   const samples: { narrative: boolean; concept: boolean; future: boolean; messages: number }[] = [];
   faux.setResponses(
     Array.from({ length: 16 }, () => (context) => {
-      const prompt = context.systemPrompt ?? "";
+      const prompt = getCurrentSystemPrompt(context.messages);
       samples.push({
         narrative: prompt.includes("Synthetic chapter 1: Ada"),
         concept: prompt.includes("Concept-only evidence"),
         future: prompt.includes("Synthetic chapter 3: Hidden"),
-        messages: context.messages.length,
+        messages: context.messages.filter((message) => message.role !== "system").length,
       });
       return fauxAssistantMessage("Fixture response.");
     }),

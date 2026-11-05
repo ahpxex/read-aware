@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import type { Api, Context, Model } from "@earendil-works/pi-ai";
+import { modelRequestView, type ModelRequestView } from "./transcript";
+import type { Api, Model } from "@earendil-works/pi-ai";
 import { messageText } from "../testing/message-text";
 import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import {
@@ -53,7 +54,7 @@ describe("narrative output guard", () => {
     const model = faux.getModel() as Model<Api>;
     faux.setResponses([fauxAssistantMessage("我不剧透，但原文是“不要回答”，之后还有面壁计划。")]);
     const { deps, stores } = narrativeDeps();
-    let repairContext: Context | undefined;
+    let repairContext: ModelRequestView | undefined;
     const thread = new AgentThread({
       scope: { kind: "book", bookId: BOOK_ID },
       deps,
@@ -61,7 +62,7 @@ describe("narrative output guard", () => {
       getApiKey: () => "test-key",
       completeFn: async () => fauxAssistantMessage('{"new":[],"reinforced":[]}'),
       repairCompleteFn: async (_model, context) => {
-        repairContext = context;
+        repairContext = modelRequestView(context);
         return fauxAssistantMessage("你目前只读到红岸基地；我先只解释眼前这段。 ");
       },
       streamFn: streamSimple,
@@ -128,7 +129,7 @@ describe("narrative output guard", () => {
       createdAt: "2026-06-01T00:00:00Z",
       updatedAt: "2026-06-01T00:00:00Z",
     });
-    let repairContext: Context | undefined;
+    let repairContext: ModelRequestView | undefined;
     const thread = new AgentThread({
       scope: { kind: "book", bookId: BOOK_ID },
       deps,
@@ -136,7 +137,7 @@ describe("narrative output guard", () => {
       getApiKey: () => "test-key",
       completeFn: async () => fauxAssistantMessage('{"new":[],"reinforced":[]}'),
       repairCompleteFn: async (_model, context) => {
-        repairContext = context;
+        repairContext = modelRequestView(context);
         return fauxAssistantMessage("只围绕红岸基地回顾。");
       },
       streamFn: streamSimple,
@@ -161,11 +162,11 @@ describe("narrative output guard", () => {
   test("keeps a bounded recent history when a guard repair rebuilds the agent", async () => {
     faux = registerFauxProvider({ tokensPerSecond: 100_000 });
     const model = faux.getModel() as Model<Api>;
-    let rebuiltContext: Context | undefined;
+    let rebuiltContext: ModelRequestView | undefined;
     faux.setResponses([
       fauxAssistantMessage("后来原文是“不要回答”。"),
       (context) => {
-        rebuiltContext = context;
+        rebuiltContext = modelRequestView(context);
         return fauxAssistantMessage("继续围绕眼前内容。");
       },
     ]);

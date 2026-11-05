@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { Type } from "@earendil-works/pi-ai";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { CustomOpenAIAccount } from "./accounts";
 import { createModelResolver } from "./accounts";
@@ -15,6 +14,7 @@ import { buildProviderRegistry } from "./registry";
 import { testLlmConnection } from "./test-connection";
 import { createAgentRuntime } from "../runtime/runtime";
 import { createInMemoryDeps } from "../testing/fixtures";
+import { lit, obj, str } from "@earendil-works/pi-schema";
 
 describe("Custom OpenAI-compatible models", () => {
   test("uses the configured model metadata instead of cloning a catalog model", () => {
@@ -101,6 +101,8 @@ describe("Custom OpenAI-compatible models", () => {
               type: "object",
               properties: {
                 mode: { const: "exact" },
+                view: { enum: ["chapters", "navigation"] },
+                mixed: { enum: ["one", 1] },
                 term: {
                   anyOf: [{ type: "string" }, { type: "null" }],
                 },
@@ -127,7 +129,9 @@ describe("Custom OpenAI-compatible models", () => {
           parameters: {
             type: "object",
             properties: {
-              mode: { enum: ["exact"] },
+              mode: { type: "string", enum: ["exact"] },
+              view: { type: "string", enum: ["chapters", "navigation"] },
+              mixed: { enum: ["one", 1] },
               term: { type: "string", nullable: true },
               source: { type: "string", enum: ["book", "notes"] },
               labels: {
@@ -235,7 +239,7 @@ function completeLookup(account: CustomOpenAIAccount) {
       {
         name: "lookup",
         description: "Look up a term",
-        parameters: Type.Object({ term: Type.String() }),
+        parameters: obj({ term: str() }),
       },
     ],
   });
@@ -526,7 +530,7 @@ describe("Custom OpenAI-compatible wire format", () => {
       name: "schema_probe",
       label: "Schema probe",
       description: "A test-only tool with a literal parameter.",
-      parameters: Type.Object({ mode: Type.Literal("exact") }),
+      parameters: obj({ mode: lit("exact") }),
       execute: async () => ({
         content: [{ type: "text", text: "ok" }],
         details: {},

@@ -4,12 +4,12 @@
  * 落地时加在这里的兄弟模块里。
  */
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import { AppError, type Id } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { normalizeBookIdParam } from "./current-book";
 import { textResult } from "./tool-result";
+import { int, obj, oneOf, opt, str } from "@earendil-works/pi-schema";
 
 export function buildThreadTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const defaultBookId = scope.kind === "book" ? scope.bookId : undefined;
@@ -19,7 +19,7 @@ export function buildThreadTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
     label: "List books",
     description:
       "List every book on the user's shelf with title, author, collection, and reading progress. Books imported from a folder carry sourcePath (the picked folder's name plus the path below it, e.g. Books/Sci-fi/Dune.epub): use it to group them by their original folders with manage_collection when the user asks.",
-    parameters: Type.Object({}),
+    parameters: obj({}),
     execute: async () => textResult(await deps.library.listBooks()),
   };
 
@@ -32,11 +32,11 @@ export function buildThreadTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
         : "Get one book's metadata and reading progress. bookId is required; resolve it with list_books first.",
     parameters:
       scope.kind === "book"
-        ? Type.Object({
-            bookId: Type.Optional(Type.String({ description: "Book id; defaults to the current book" })),
+        ? obj({
+            bookId: opt(str({ description: "Book id; defaults to the current book" })),
           })
-        : Type.Object({
-            bookId: Type.String({ description: "Book id from list_books" }),
+        : obj({
+            bookId: str({ description: "Book id from list_books" }),
           }),
     execute: async (_id, params) => {
       const { bookId } = params as { bookId?: string };
@@ -53,16 +53,14 @@ export function buildThreadTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
     label: "Annotations",
     description:
       "Read a page of the user's highlights, notes, and recorded questions: {items,nextCursor,consistency}. bookId defaults to the current book. Follow nextCursor with the SAME bookId/kind/query to continue. Newest first; live pages are not a frozen export snapshot. Byte limits can produce shorter pages; always follow nextCursor. Oversized individual annotations reject with annotations/read-budget-exceeded, never truncated text. Pass annotationId for one exact ID (zero or one items) plus its revision token, required for editing/batch changes; do not combine it with query/cursor. kind filters the annotation type. Omit query to browse without a text filter.",
-    parameters: Type.Object({
-      bookId: Type.Optional(Type.String({ description: "Book id; defaults to the current book" })),
-      annotationId: Type.Optional(
-        Type.String({ description: "Exact annotation ID; does not scan the annotation list" }),
-      ),
-      kind: Type.Optional(Type.Union([Type.Literal("highlight"), Type.Literal("note"), Type.Literal("ask")])),
-      limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, description: "Rows per page, default 20" })),
-      cursor: Type.Optional(Type.String({ description: "Opaque nextCursor from the preceding page" })),
-      query: Type.Optional(
-        Type.String({
+    parameters: obj({
+      bookId: opt(str({ description: "Book id; defaults to the current book" })),
+      annotationId: opt(str({ description: "Exact annotation ID; does not scan the annotation list" })),
+      kind: opt(oneOf(["highlight", "note", "ask"])),
+      limit: opt(int({ minimum: 1, maximum: 100, description: "Rows per page, default 20" })),
+      cursor: opt(str({ description: "Opaque nextCursor from the preceding page" })),
+      query: opt(
+        str({
           description:
             "Exact text filter over annotation contents. Omit to list all annotations (recommended default).",
         }),

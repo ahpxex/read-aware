@@ -1,10 +1,10 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import { AppError, normalizeReadingTimeQuery, type ReadingTimeQuery } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { normalizeBookIdParam } from "./current-book";
 import { textResult } from "./tool-result";
+import { bool, int, obj, opt, str } from "@earendil-works/pi-schema";
 
 export function buildReadingTimeTool(scope: ThreadScope, deps: RuntimeDeps): AgentTool {
   return {
@@ -12,16 +12,16 @@ export function buildReadingTimeTool(scope: ThreadScope, deps: RuntimeDeps): Age
     label: "Live reading time",
     description:
       "Read settled AND pending active reading time atomically. Use for current reading time, including the unfinished hour. This is locally persisted sampled time, not an extrapolated stopwatch or proof that all devices synced. localDay filters the calendar label recorded by sessions, not a timezone conversion. In book scope defaults to the current book; allBooks=true requests aggregate. Totals cover the full scope even when the pending-bucket list is paged; never sum totals across pages. No writes or forced flush.",
-    parameters: Type.Object({
-      bookId: Type.Optional(Type.String()),
-      allBooks: Type.Optional(Type.Boolean()),
-      localDay: Type.Optional(Type.String()),
-      limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 10 })),
-      after: Type.Optional(
-        Type.Object({
-          bookId: Type.String(),
-          localDay: Type.String(),
-          localHour: Type.Integer({ minimum: 0, maximum: 23 }),
+    parameters: obj({
+      bookId: opt(str()),
+      allBooks: opt(bool()),
+      localDay: opt(str()),
+      limit: opt(int({ minimum: 1, maximum: 10 })),
+      after: opt(
+        obj({
+          bookId: str(),
+          localDay: str(),
+          localHour: int({ minimum: 0, maximum: 23 }),
         }),
       ),
     }),

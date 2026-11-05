@@ -56,6 +56,7 @@ import {
 import { formatPromptTurn, type ReadingCursor } from "./reading-cursor";
 import { toolResultText } from "./tool-trace";
 import { windowByTurns } from "./windowing";
+import { hasConversation, withConversation, withSystemPrompt } from "./transcript";
 import {
   readingContextCall,
   permittedReadingCursor,
@@ -430,11 +431,12 @@ export class AgentThread {
       memories,
       conversationSummary,
       // 全局线程首次使用且画像为空 → 访谈模式（onboarding 的对话半场，doc §9）
-      onboardingInterview: this.scope.kind === "global" && !profile.curated && agent.state.messages.length === 0,
+      onboardingInterview: this.scope.kind === "global" && !profile.curated && !hasConversation(agent.state.messages),
     });
-    agent.state.systemPrompt = this.transformSystemPrompt
-      ? this.transformSystemPrompt(systemPrompt, this.scope)
-      : systemPrompt;
+    agent.state.messages = withSystemPrompt(
+      agent.state.messages,
+      this.transformSystemPrompt ? this.transformSystemPrompt(systemPrompt, this.scope) : systemPrompt,
+    );
     return !digestsUnavailable;
   }
 
@@ -668,9 +670,12 @@ export class AgentThread {
         if (newSession) {
           const records = historyBeforeTurn(await call.wait(this.deps.conversations.load(this.key)), input.turnId);
           const tailTurns = this.preserveRecentHistoryOnRebuild ? REBUILD_HISTORY_TURNS : 1;
-          agent.state.messages = turnRecordsToMessages(
-            permittedTurnRecords(lastTurnTail(records, tailTurns), call.permissions),
-            this.resolveModel("smart"),
+          agent.state.messages = withConversation(
+            agent.state.messages,
+            turnRecordsToMessages(
+              permittedTurnRecords(lastTurnTail(records, tailTurns), call.permissions),
+              this.resolveModel("smart"),
+            ),
           );
           this.sessionStarted = true;
           this.preserveRecentHistoryOnRebuild = false;
@@ -684,7 +689,8 @@ export class AgentThread {
         throw new AppError("ai/context-changed", "Reading context changed since the failed step", { retryable: true });
       }
       if (resume) {
-        agent.state.messages = resume.messages;
+        // The checkpoint keeps its tool declarations; the prompt is the one just refreshed.
+        agent.state.messages = withSystemPrompt(resume.messages, agent.state.systemPrompt);
         // Replay presentation only: completed tools and their side effects do not run again.
         for (const chunk of resume.chunks) yield chunk;
       }

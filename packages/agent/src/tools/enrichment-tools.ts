@@ -1,9 +1,9 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import { AppError } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { textResult } from "./tool-result";
+import { obj, opt, str } from "@earendil-works/pi-schema";
 
 export function buildEnrichmentTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const bookId = (params: unknown) => {
@@ -14,10 +14,7 @@ export function buildEnrichmentTools(scope: ThreadScope, deps: RuntimeDeps): Age
       throw new AppError("memory/forbidden", "Enrichment belongs to another book");
     return id;
   };
-  const parameters = Type.Object(
-    { bookId: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })) },
-    { additionalProperties: false },
-  );
+  const parameters = obj({ bookId: opt(str({ minLength: 1, maxLength: 256 })) });
   return [
     {
       name: "get_book_enrichment",

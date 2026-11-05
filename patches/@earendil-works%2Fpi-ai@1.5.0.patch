@@ -1,3 +1,18 @@
+diff --git a/dist/utils/retry.js b/dist/utils/retry.js
+index d33b8069b80bc454b0db59a221aba9332d522bf3..b54e17c2d4da813624630a816a8a155544432e1d 100644
+--- a/dist/utils/retry.js
++++ b/dist/utils/retry.js
+@@ -36,7 +36,9 @@ const RETRYABLE_PROVIDER_ERROR_PATTERN = buildProviderErrorPattern([
+     "rate.?limit",
+     "too many requests",
+     // Status codes must not be part of a longer word or number, e.g. a request id or byte count (#11057).
+-    "(?<![a-z0-9])(?:429|500|502|503|504|520|524)(?![a-z0-9])",
++    // A consumed boundary instead of the `(?<![a-z0-9])` lookbehind, which Safari < 16.4 cannot parse;
++    // the pattern is only tested, never matched for its text, so the two are equivalent.
++    "(?:^|[^a-z0-9])(?:429|500|502|503|504|520|524)(?![a-z0-9])",
+     // Also matches "The service is temporarily unavailable" (#10965).
+     "service.?(?:is.?)?(?:temporarily.?)?unavailable",
+     "server.?error",
 diff --git a/dist/utils/sanitize-unicode.js b/dist/utils/sanitize-unicode.js
 index d52c4b9e8b960be6b81e1e9c6d9aa6572f11ecd6..bc82ee94ec6d5531af74968a36d897db41b2be3c 100644
 --- a/dist/utils/sanitize-unicode.js

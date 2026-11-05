@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { modelRequestView, type ModelRequestView } from "./transcript";
 import type { Api, Context, Model } from "@earendil-works/pi-ai";
 import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import {
@@ -181,7 +182,7 @@ describe("AgentThread", () => {
       warnings: string[] = [];
     faux.setResponses(
       [0, 1].map(() => (context: Context) => {
-        prompts.push(context.systemPrompt ?? "");
+        prompts.push(modelRequestView(context).systemPrompt);
         return fauxAssistantMessage("Ready.");
       }),
     );
@@ -315,10 +316,10 @@ describe("AgentThread", () => {
 
   test("hydrates persisted history and assembles the system prompt", async () => {
     const { faux, model } = makeFaux();
-    let captured: Context | undefined;
+    let captured: ModelRequestView | undefined;
     faux.setResponses([
       (context) => {
-        captured = context;
+        captured = modelRequestView(context);
         return fauxAssistantMessage("ok");
       },
     ]);
@@ -339,10 +340,10 @@ describe("AgentThread", () => {
 
   test("consumes bounded extension context and routes memory candidates through the host port", async () => {
     const { faux, model } = makeFaux();
-    let captured: Context | undefined;
+    let captured: ModelRequestView | undefined;
     faux.setResponses([
       (context) => {
-        captured = context;
+        captured = modelRequestView(context);
         return fauxAssistantMessage("A useful answer.");
       },
     ]);
@@ -493,10 +494,10 @@ describe("AgentThread", () => {
 
   test("rehydrates a previous selection with its quoted text and chapter", async () => {
     const { faux, model } = makeFaux();
-    let captured: Context | undefined;
+    let captured: ModelRequestView | undefined;
     faux.setResponses([
       (context) => {
-        captured = context;
+        captured = modelRequestView(context);
         return fauxAssistantMessage("ok");
       },
     ]);
@@ -528,10 +529,10 @@ describe("AgentThread", () => {
 
   test("windows the context to the last N user turns", async () => {
     const { faux, model } = makeFaux();
-    let captured: Context | undefined;
+    let captured: ModelRequestView | undefined;
     faux.setResponses([
       (context) => {
-        captured = context;
+        captured = modelRequestView(context);
         return fauxAssistantMessage("ok");
       },
     ]);
@@ -551,10 +552,10 @@ describe("AgentThread", () => {
 
   test("selection attachments are quoted into the user message", async () => {
     const { faux, model } = makeFaux();
-    let captured: Context | undefined;
+    let captured: ModelRequestView | undefined;
     faux.setResponses([
       (context) => {
-        captured = context;
+        captured = modelRequestView(context);
         return fauxAssistantMessage("ok");
       },
     ]);
@@ -583,10 +584,10 @@ describe("AgentThread", () => {
 
   test("grounds the reading position in the system prompt via the chapter href", async () => {
     const { faux, model } = makeFaux();
-    let captured: Context | undefined;
+    let captured: ModelRequestView | undefined;
     faux.setResponses([
       (context) => {
-        captured = context;
+        captured = modelRequestView(context);
         return fauxAssistantMessage("ok");
       },
     ]);
@@ -613,14 +614,14 @@ describe("AgentThread", () => {
 
   test("adds the latest cursor at the new-turn suffix without invalidating the cached prefix", async () => {
     const { faux, model } = makeFaux();
-    const contexts: Context[] = [];
+    const contexts: ModelRequestView[] = [];
     faux.setResponses([
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("a1");
       },
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("a2");
       },
     ]);
@@ -670,15 +671,15 @@ describe("AgentThread", () => {
     const prompts: (string | undefined)[] = [];
     faux.setResponses([
       (context) => {
-        prompts.push(context.systemPrompt);
+        prompts.push(modelRequestView(context).systemPrompt);
         return fauxAssistantMessage("a1");
       },
       (context) => {
-        prompts.push(context.systemPrompt);
+        prompts.push(modelRequestView(context).systemPrompt);
         return fauxAssistantMessage("a2");
       },
       (context) => {
-        prompts.push(context.systemPrompt);
+        prompts.push(modelRequestView(context).systemPrompt);
         return fauxAssistantMessage("a3");
       },
     ]);
@@ -710,18 +711,18 @@ describe("AgentThread", () => {
 
   test("chapter session: turns in the same chapter share the accumulated context", async () => {
     const { faux, model } = makeFaux();
-    const contexts: Context[] = [];
+    const contexts: ModelRequestView[] = [];
     faux.setResponses([
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("a1");
       },
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("a2");
       },
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("a3");
       },
     ]);
@@ -738,22 +739,22 @@ describe("AgentThread", () => {
 
   test("chapter session: first message from another chapter resets to the one-turn tail", async () => {
     const { faux, model } = makeFaux();
-    const contexts: Context[] = [];
+    const contexts: ModelRequestView[] = [];
     faux.setResponses([
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("a1");
       },
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("a2");
       },
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("a3");
       },
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("a4");
       },
     ]);
@@ -772,18 +773,18 @@ describe("AgentThread", () => {
 
   test("chapter session: a turn without chapter info stays in the current session", async () => {
     const { faux, model } = makeFaux();
-    const contexts: Context[] = [];
+    const contexts: ModelRequestView[] = [];
     faux.setResponses([
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("a1");
       },
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("a2");
       },
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("a3");
       },
     ]);
@@ -799,18 +800,18 @@ describe("AgentThread", () => {
 
   test("chapter session: the selection attachment's chapter is the boundary signal", async () => {
     const { faux, model } = makeFaux();
-    const contexts: Context[] = [];
+    const contexts: ModelRequestView[] = [];
     faux.setResponses([
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("a1");
       },
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("a2");
       },
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("a3");
       },
     ]);
@@ -832,11 +833,11 @@ describe("AgentThread", () => {
 
   test("a failed turn does not pollute the next turn's context (global thread)", async () => {
     const { faux, model } = makeFaux();
-    let captured: Context | undefined;
+    let captured: ModelRequestView | undefined;
     faux.setResponses([
       fauxAssistantMessage("", { stopReason: "error", errorMessage: "boom" }),
       (context) => {
-        captured = context;
+        captured = modelRequestView(context);
         return fauxAssistantMessage("ok");
       },
     ]);
@@ -965,14 +966,14 @@ describe("AgentThread", () => {
 
   test("reset discards the in-memory session and rebuilds from the persisted transcript", async () => {
     const { faux, model } = makeFaux();
-    const contexts: Context[] = [];
+    const contexts: ModelRequestView[] = [];
     faux.setResponses([
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("a1");
       },
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("a2");
       },
     ]);
@@ -997,10 +998,10 @@ describe("AgentThread", () => {
 
   test("a pre-persisted current user message is not double-fed (global hydration)", async () => {
     const { faux, model } = makeFaux();
-    let captured: Context | undefined;
+    let captured: ModelRequestView | undefined;
     faux.setResponses([
       (context) => {
-        captured = context;
+        captured = modelRequestView(context);
         return fauxAssistantMessage("ok");
       },
     ]);
@@ -1028,10 +1029,10 @@ describe("AgentThread", () => {
 
   test("the host turn id separates this turn from an identical earlier question (global hydration)", async () => {
     const { faux, model } = makeFaux();
-    let captured: Context | undefined;
+    let captured: ModelRequestView | undefined;
     faux.setResponses([
       (context) => {
-        captured = context;
+        captured = modelRequestView(context);
         return fauxAssistantMessage("ok");
       },
     ]);

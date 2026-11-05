@@ -44,4 +44,33 @@ describe("windowByTurns", () => {
   test("zero window yields nothing", () => {
     expect(windowByTurns(transcript, 0)).toEqual([]);
   });
+
+  test("system messages cut from the window fold into the leading message; later ones stay in place", () => {
+    const tool = (name: string) => ({ name, description: name, parameters: { type: "object", properties: {} } });
+    const withSystem: AgentMessage[] = [
+      { role: "system", content: "prompt", toolsAdded: [tool("a")], timestamp: 0 },
+      user("q1"),
+      assistant("a1"),
+      { role: "system", content: "", toolsAdded: [tool("b")], timestamp: 0 },
+      user("q2"),
+      assistant("a2"),
+      { role: "system", content: "", toolsRemoved: [{ name: "a" }], timestamp: 0 },
+      user("q3"),
+    ];
+    expect(windowByTurns(withSystem, 2)).toEqual([
+      { role: "system", content: "prompt", toolsAdded: [tool("a"), tool("b")], timestamp: 0 },
+      user("q2"),
+      assistant("a2"),
+      withSystem[6]!,
+      user("q3"),
+    ]);
+    expect(windowByTurns(withSystem, 1)).toEqual([
+      { role: "system", content: "prompt", toolsAdded: [tool("b")], timestamp: 0 },
+      user("q3"),
+    ]);
+    expect(windowByTurns(withSystem, 0)).toEqual([
+      { role: "system", content: "prompt", toolsAdded: [tool("b")], timestamp: 0 },
+    ]);
+    expect(windowByTurns(withSystem, 3)).toEqual(withSystem);
+  });
 });

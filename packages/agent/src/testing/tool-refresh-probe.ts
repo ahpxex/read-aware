@@ -1,4 +1,5 @@
 import { createAssistantMessageEventStream, type Api, type AssistantMessage, type Model } from "@earendil-works/pi-ai";
+import { modelRequestView } from "../runtime/transcript";
 import type { RuntimeDeps } from "../ports";
 import { AgentThread } from "../runtime/thread";
 import { createInMemoryDeps } from "./fixtures";
@@ -65,7 +66,7 @@ export async function runToolRefreshLoop(options: {
       const pending = responses[0]?.content.find((block) => block.type === "toolCall");
       if (
         pending?.type === "toolCall" &&
-        !context.tools?.some((tool) => tool.name === pending.name) &&
+        !modelRequestView(context).tools.some((tool) => tool.name === pending.name) &&
         !discoveredForStep
       ) {
         discoveredForStep = true;
@@ -90,7 +91,7 @@ export async function runToolRefreshLoop(options: {
       }
       discoveredForStep = false;
       snapshots.push({
-        tools: context.tools?.map((tool) => tool.name) ?? [],
+        tools: modelRequestView(context).tools.map((tool) => tool.name),
         messages: JSON.stringify(context.messages),
       });
       const output = createAssistantMessageEventStream();

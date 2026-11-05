@@ -1,27 +1,24 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import { AppError, type BookMergeRequest, type DuplicateBookQuery } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { requestUserInteraction } from "./user-interaction";
 import { textResult } from "./tool-result";
+import { int, obj, opt, str } from "@earendil-works/pi-schema";
 
 export function buildBookMergeTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   if (scope.kind !== "global") return [];
-  const id = Type.String({ minLength: 1, maxLength: 256 });
+  const id = str({ minLength: 1, maxLength: 256 });
   return [
     {
       name: "list_duplicate_books",
       label: "Find duplicate books",
       description:
         "List groups with identical source-file hashes, not similar titles or editions. The deterministic keeper is oldest createdAt then smallest ID. This is a live offset page; reload after changes. No records change. Preview a group before proposing a merge.",
-      parameters: Type.Object(
-        {
-          offset: Type.Optional(Type.Integer({ minimum: 0, maximum: 1000000 })),
-          limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 50 })),
-        },
-        { additionalProperties: false },
-      ),
+      parameters: obj({
+        offset: opt(int({ minimum: 0, maximum: 1000000 })),
+        limit: opt(int({ minimum: 1, maximum: 50 })),
+      }),
       execute: async (_id, params, signal) =>
         textResult(await deps.library.listDuplicates(params as DuplicateBookQuery, signal)),
     },
@@ -30,7 +27,7 @@ export function buildBookMergeTools(scope: ThreadScope, deps: RuntimeDeps): Agen
       label: "Preview duplicate merge",
       description:
         "Preview the deterministic keeper and duplicate IDs for a same-content group, plus its revision. null means no duplicate group. Shows at most 50 duplicate members with total count; the approval UI shows the full target list. Keeper metadata wins; annotations, reading totals/progress, stars and digests fold according to host rules. Chat transcripts and provenance are not combined into a single thread. Alias assets remain pinned while the keeper exists; this is not disk cleanup. No undo or arbitrary keeper selection.",
-      parameters: Type.Object({ bookId: id }, { additionalProperties: false }),
+      parameters: obj({ bookId: id }),
       execute: async (_id, params, signal) => {
         const preview = await deps.library.previewMerge((params as { bookId: string }).bookId, signal);
         return textResult(
@@ -51,10 +48,7 @@ export function buildBookMergeTools(scope: ThreadScope, deps: RuntimeDeps): Agen
       executionMode: "sequential",
       description:
         "Requires a current preview revision and host user approval. Merge the exact same-content group using the host's keeper, never arbitrary books. Membership or displayed metadata changes reject as superseded; preview and obtain fresh approval again. Records/events commit atomically; dispatched writes are not rolled back by later cancellation. Returns committed ID redirects (first 50 and total); resolve_book_reference resolves any old ID later. Existing sync policy applies. Does not merge chat transcripts, open a reader or promise immediate file reclamation.",
-      parameters: Type.Object(
-        { bookId: id, expectedRevision: Type.String({ pattern: "^bmg1:[a-f0-9]{64}$" }) },
-        { additionalProperties: false },
-      ),
+      parameters: obj({ bookId: id, expectedRevision: str({ pattern: "^bmg1:[a-f0-9]{64}$" }) }),
       execute: async (toolCallId, params, signal, onUpdate) => {
         const input = { ...(params as BookMergeRequest) };
         const preview = await deps.library.previewMerge(input.bookId, signal);
@@ -87,7 +81,7 @@ export function buildBookMergeTools(scope: ThreadScope, deps: RuntimeDeps): Agen
       label: "Resolve book reference",
       description:
         "Resolve an old book ID through committed merge aliases to the current living book. Returns null for unknown/deleted targets; does not resurrect, import or open anything.",
-      parameters: Type.Object({ bookId: id }, { additionalProperties: false }),
+      parameters: obj({ bookId: id }),
       execute: async (_id, params, signal) =>
         textResult({ bookId: await deps.library.resolveBookId((params as { bookId: string }).bookId, signal) }),
     },

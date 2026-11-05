@@ -1,9 +1,9 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import { AppError, type ReadingAiAction } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { textResult } from "./tool-result";
+import { obj } from "@earendil-works/pi-schema";
 
 const TOOLS: Record<ReadingAiAction, { name: string; label: string; intent: string }> = {
   explainSelection: {
@@ -33,7 +33,7 @@ export function buildReadingAiTools(scope: ThreadScope, deps: RuntimeDeps): Agen
     name: TOOLS[action].name,
     label: TOOLS[action].label,
     description: `${TOOLS[action].intent}. Use only on the user's request. Targets the live reader, never invented text or a different book. In a book thread, context is returned: answer here using the supplied task and passage; for a chapter, read that chapter with the existing tools, respecting spoiler boundaries. Never call this tool recursively to carry out the returned task. In a global thread, starts the action in the active book chat; started is not a completed model answer. Feature and privacy gates are rechecked, stale selections reject.`,
-    parameters: Type.Object({}, { additionalProperties: false }),
+    parameters: obj({}),
     executionMode: "sequential",
     execute: async (_id, input, signal) => {
       if (!input || typeof input !== "object" || Array.isArray(input) || Object.keys(input).length)

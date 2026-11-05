@@ -1,11 +1,11 @@
 import { expect, test } from "bun:test";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import { HOST_CAPABILITY_CATALOG } from "@read-aware/core";
 import type { ThreadScope } from "../thread-scope";
 import { createInMemoryDeps } from "../testing/fixtures";
 import { buildAgentTools } from "./registry";
 import { buildCapabilityTool } from "./capability-tools";
+import { obj } from "@earendil-works/pi-schema";
 
 type Entry = {
   name?: string;
@@ -38,7 +38,7 @@ const extension = (name: string, description = "Extension metadata"): AgentTool 
   name,
   description,
   label: "Extension",
-  parameters: Type.Object({}),
+  parameters: obj({}),
   execute: async () => {
     throw new Error("Discovery must not execute tools");
   },

@@ -1,10 +1,10 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import { AppError, type HostSyncFlowRequest } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { textResult } from "./tool-result";
 import { requestUserInteraction } from "./user-interaction";
+import { bool, obj, oneOf, opt, str } from "@earendil-works/pi-schema";
 
 export function buildSyncTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   return [
@@ -13,10 +13,7 @@ export function buildSyncTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool
       label: "Sync status",
       description:
         "Read non-sensitive sync availability, progress, last success and local queued counts. includeAccount optionally fetches current relay plan/usage; null means no relay account, not zero usage. includeConnections lists registered backend refs and display labels for manage_sync(connect); omit transportRef there for relay sign-in. No email, account IDs, keys, blob identities or raw cursors. Cycle-start backlog and current backlog are different samples; neither proves every device is up to date.",
-      parameters: Type.Object(
-        { includeAccount: Type.Optional(Type.Boolean()), includeConnections: Type.Optional(Type.Boolean()) },
-        { additionalProperties: false },
-      ),
+      parameters: obj({ includeAccount: opt(bool()), includeConnections: opt(bool()) }),
       execute: async (_id, params, signal) => {
         signal?.throwIfAborted();
         const snapshot = await deps.sync.snapshot();
@@ -42,21 +39,10 @@ export function buildSyncTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool
       executionMode: "sequential",
       description:
         "On explicit user intent, request a host-owned connect, disconnect, delete-account, upgrade or billing flow and wait for its outcome. Identity, secrets and destructive confirmation stay in the native UI; never supply credentials or approve for the user. transportRef selects a registered backend from get_sync_status(includeConnections); omit it for relay sign-in. external-opened only confirms browser handoff, not a purchase or billing change. settings only opens the page; now starts a sync cycle after user approval (already-running is not completion). Cancellation ends waiting/unconfirmed flows, never rolls back an already confirmed operation or a shared sync cycle.",
-      parameters: Type.Object(
-        {
-          action: Type.Union([
-            Type.Literal("settings"),
-            Type.Literal("now"),
-            Type.Literal("connect"),
-            Type.Literal("disconnect"),
-            Type.Literal("delete-account"),
-            Type.Literal("upgrade"),
-            Type.Literal("billing"),
-          ]),
-          transportRef: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })),
-        },
-        { additionalProperties: false },
-      ),
+      parameters: obj({
+        action: oneOf(["settings", "now", "connect", "disconnect", "delete-account", "upgrade", "billing"]),
+        transportRef: opt(str({ minLength: 1, maxLength: 256 })),
+      }),
       execute: async (toolCallId, params, signal, onUpdate) => {
         signal?.throwIfAborted();
         const { action, transportRef } = params as

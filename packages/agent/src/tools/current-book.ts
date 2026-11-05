@@ -20,3 +20,15 @@ export function resolveBookId(scope: ThreadScope, raw?: string): Id {
   if (!target) throw new Error("bookId is required in the global thread");
   return target;
 }
+
+/** Whether a raw, unvalidated bookId argument names the book of a book thread. */
+export function isCurrentBookArg(scope: ThreadScope, raw: unknown): boolean {
+  if (scope.kind !== "book") return false;
+  return (normalizeBookIdParam(typeof raw === "string" ? raw : undefined) ?? scope.bookId) === scope.bookId;
+}
+
+/** The raw bookId inside a nested descriptor argument (a range, image or reference). */
+export function nestedBookIdArg(args: Record<string, unknown>, key: string): unknown {
+  const nested = args[key];
+  return typeof nested === "object" && nested !== null ? (nested as Record<string, unknown>).bookId : undefined;
+}

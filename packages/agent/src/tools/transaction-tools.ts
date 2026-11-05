@@ -1,25 +1,22 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import { AppError, normalizeAtomicOperations } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { textResult } from "./tool-result";
 import { requestUserInteraction } from "./user-interaction";
+import { arr, obj, str, unknown } from "@earendil-works/pi-schema";
 
 export function buildTransactionTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const port = deps.transactions?.(scope);
   if (!port) return [];
-  const identity = Type.Object({ id: Type.String({ minLength: 1, maxLength: 128 }) }, { additionalProperties: false });
+  const identity = obj({ id: str({ minLength: 1, maxLength: 128 }) });
   return [
     {
       name: "preview_atomic_transaction",
       label: "Preview transaction",
       description:
         "Preview local changes that must commit together. Operations: {kind:'book.metadata',bookId,patch:{title?,author?}} or {kind:'settings',changes:[{path,value,target?}]}. Book conversations may only target their book and its settings. No file/network/plugin callback operations. Does not write. Inspect the returned preview; commit requires user approval. Previews expire in five minutes.",
-      parameters: Type.Object(
-        { operations: Type.Array(Type.Unknown(), { minItems: 1, maxItems: 100 }) },
-        { additionalProperties: false },
-      ),
+      parameters: obj({ operations: arr(unknown(), { minItems: 1, maxItems: 100 }) }),
       execute: async (_id, raw, signal) =>
         textResult(await port.preview(normalizeAtomicOperations((raw as { operations: unknown }).operations), signal)),
     },

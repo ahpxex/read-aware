@@ -1,5 +1,4 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import {
   normalizeBookRangeQuery,
   normalizeBookNavigationTargetsQuery,
@@ -8,11 +7,12 @@ import {
 } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
-import { assertSpoilerPermission, withSpoilerArgument, spoilerGranted } from "./book-text-tools";
-import { resolveBookId } from "./current-book";
+import { assertSpoilerPermission, spoilerParameters, spoilerGranted } from "./book-text-tools";
+import { isCurrentBookArg, nestedBookIdArg, resolveBookId } from "./current-book";
 import { textResult } from "./tool-result";
 import type { AgentTurnState } from "./turn-state";
 import { bookRangeSchema } from "./book-range-schema";
+import { bool, int, obj, oneOf, opt, str } from "@earendil-works/pi-schema";
 
 export function buildNavigationTools(scope: ThreadScope, deps: RuntimeDeps, state?: AgentTurnState): AgentTool[] {
   return [
@@ -21,16 +21,13 @@ export function buildNavigationTools(scope: ThreadScope, deps: RuntimeDeps, stat
       label: "Book navigation targets",
       description:
         "List up to 20 versioned source sections (kind=sections) or book-provided page labels (kind=pages). Get contentVersion from get_toc(view=navigation) first; continue with nextOffset. Source index is zero-based reading order, not TOC ordinal or extracted chapter number. Sections include non-linear notes; PDF/comics use one source section per page. Pages are only an existing page-list, never invented printed numbers or screen page counts. Optional label matches the exact source page label, preserving duplicates; an available empty result means no match, absent means no page-list. Null location is not navigable. Copy a returned location to open_book. Reads navigation metadata only, not passage text, and does not grant spoiler access.",
-      parameters: Type.Object(
-        {
-          bookId: Type.Optional(Type.String()),
-          contentVersion: Type.String({ minLength: 1, maxLength: 256 }),
-          kind: Type.Union([Type.Literal("sections"), Type.Literal("pages")]),
-          offset: Type.Optional(Type.Integer({ minimum: 0 })),
-          label: Type.Optional(Type.String({ minLength: 1, maxLength: 300 })),
-        },
-        { additionalProperties: false },
-      ),
+      parameters: obj({
+        bookId: opt(str()),
+        contentVersion: str({ minLength: 1, maxLength: 256 }),
+        kind: oneOf(["sections", "pages"]),
+        offset: opt(int({ minimum: 0 })),
+        label: opt(str({ minLength: 1, maxLength: 300 })),
+      }),
       execute: async (_id, params, signal) => {
         signal?.throwIfAborted();
         const input = params as Omit<BookNavigationTargetsQuery, "bookId"> & { bookId?: string };
@@ -49,19 +46,18 @@ export function buildNavigationTools(scope: ThreadScope, deps: RuntimeDeps, stat
       label: "Find book locations",
       description:
         "Find exact text matches and return versioned locations suitable for open_book. Unlike search_book_text this does not use token fallback. Pagination is bounded by matches and scanned sections; follow nextCursor to continue, including when a batch has no hits. Narrative searches stay behind the reading fence unless the reader explicitly grants spoilers.",
-      parameters: Type.Object(
-        withSpoilerArgument(
-          scope,
-          {
-            bookId: Type.Optional(Type.String()),
-            query: Type.String({ minLength: 1, maxLength: 500 }),
-            matchCase: Type.Optional(Type.Boolean()),
-            wholeWords: Type.Optional(Type.Boolean()),
-            cursor: Type.Optional(Type.String()),
-            contentVersion: Type.Optional(Type.String()),
-          },
-          state,
-        ),
+      ...spoilerParameters(
+        scope,
+        {
+          bookId: opt(str()),
+          query: str({ minLength: 1, maxLength: 500 }),
+          matchCase: opt(bool()),
+          wholeWords: opt(bool()),
+          cursor: opt(str()),
+          contentVersion: opt(str()),
+        },
+        state,
+        (args) => isCurrentBookArg(scope, args.bookId),
       ),
       execute: async (_id, params, signal) => {
         const raw = params as {
@@ -101,18 +97,16 @@ export function buildNavigationTools(scope: ThreadScope, deps: RuntimeDeps, stat
       label: "Read a book range",
       description:
         "Read a versioned range returned by find_book_locations, without opening or moving the reader. Do not invent or rewrite its bookId, contentVersion or CFI. Returns bounded text, same-section context and nextOffset for continuation. A stale/missing range requires a fresh search. The current narrative book's original reading fence still applies, even to a known range.",
-      parameters: Type.Object(
-        withSpoilerArgument(
-          scope,
-          {
-            range: bookRangeSchema,
-            offset: Type.Optional(Type.Integer({ minimum: 0 })),
-            limit: Type.Optional(Type.Integer({ minimum: 2, maximum: 12000 })),
-            contextChars: Type.Optional(Type.Integer({ minimum: 0, maximum: 2000 })),
-          },
-          state,
-        ),
-        { additionalProperties: false },
+      ...spoilerParameters(
+        scope,
+        {
+          range: bookRangeSchema,
+          offset: opt(int({ minimum: 0 })),
+          limit: opt(int({ minimum: 2, maximum: 12000 })),
+          contextChars: opt(int({ minimum: 0, maximum: 2000 })),
+        },
+        state,
+        (args) => isCurrentBookArg(scope, nestedBookIdArg(args, "range")),
       ),
       execute: async (_id, params, signal) => {
         const { confirmSpoiler: rawGrant, ...input } = params as BookRangeQuery & { confirmSpoiler?: unknown };

@@ -1,5 +1,4 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import {
   AppError,
   normalizeBookRangeQuery,
@@ -17,11 +16,9 @@ import { requestUserInteraction } from "./user-interaction";
 import { bookRangeSchema } from "./book-range-schema";
 import type { AgentTurnState } from "./turn-state";
 import { buildAnnotationBatchTool } from "./annotation-batch-tool";
+import { obj, oneOf, opt, str } from "@earendil-works/pi-schema";
 
-const highlightColorSchema = Type.Union(
-  [Type.Literal("yellow"), Type.Literal("green"), Type.Literal("blue"), Type.Literal("pink")],
-  { description: "Highlight color" },
-);
+const highlightColorSchema = oneOf(["yellow", "green", "blue", "pink"], { description: "Highlight color" });
 
 function annotationSubject(annotation: AnnotationItem): string {
   if (annotation.kind === "note") return annotation.body.slice(0, 80) || "Untitled note";
@@ -55,29 +52,29 @@ export function buildAnnotationTools(scope: ThreadScope, deps: RuntimeDeps, stat
     label: "Create annotation",
     description:
       'Create a note or a highlight when the user explicitly asks. When the reader asks to note something down ("记条笔记", "note this", "帮我记一下"), THIS is the tool — the note must land in the book\'s annotation list where the reader can see it; the remember tool (invisible long-term memory) is never a substitute for a requested note. kind=note needs body (quotedText optional); kind=highlight needs text (the exact quoted passage, color optional). For a selected passage or a quoted attachment, first obtain its complete source range from get_reading_session. If no matching active selection exists, find_book_locations must search the entire quoted passage including punctuation; copy the returned range unchanged for both the highlight and its attached note. A match range covers only the query match, not surrounding excerpt text: textQuote cannot extend it. Never shorten the requested passage or rewrite its CFI to make a write succeed. Supply the complete exact source text and do not pass separate anchor/chapterHref with range. The source version and quote are validated and preserved. Unanchored notes are for standalone notes without a requested source attachment; an unanchored write does not fulfill a request to mark or attach a note to a passage and must not be reported as attached. Legacy anchor inputs remain supported. bookId defaults to the current book.',
-    parameters: Type.Object({
-      kind: Type.Union([Type.Literal("note"), Type.Literal("highlight")], {
+    parameters: obj({
+      kind: oneOf(["note", "highlight"], {
         description: "note = the user's own words; highlight = exact book text",
       }),
-      body: Type.Optional(
-        Type.String({
+      body: opt(
+        str({
           description:
             "Note body (kind=note). When the user dictates the note text, preserve their words and punctuation exactly; compose or rewrite only when requested.",
         }),
       ),
-      text: Type.Optional(Type.String({ description: "Exact quoted book text (kind=highlight)" })),
-      quotedText: Type.Optional(Type.String({ description: "Book text the note refers to (kind=note)" })),
-      color: Type.Optional(highlightColorSchema),
-      style: Type.Optional(
-        Type.Union([Type.Literal("highlight"), Type.Literal("underline")], {
+      text: opt(str({ description: "Exact quoted book text (kind=highlight)" })),
+      quotedText: opt(str({ description: "Book text the note refers to (kind=note)" })),
+      color: opt(highlightColorSchema),
+      style: opt(
+        oneOf(["highlight", "underline"], {
           description:
             "Mark style (kind=highlight); defaults to highlight. Use underline when the user requests underlining.",
         }),
       ),
-      range: Type.Optional(bookRangeSchema),
-      bookId: Type.Optional(Type.String()),
-      anchor: Type.Optional(Type.String()),
-      chapterHref: Type.Optional(Type.String()),
+      range: opt(bookRangeSchema),
+      bookId: opt(str()),
+      anchor: opt(str()),
+      chapterHref: opt(str()),
     }),
     executionMode: "sequential",
     execute: async (_id, params, signal) => {
@@ -176,7 +173,7 @@ export function buildAnnotationTools(scope: ThreadScope, deps: RuntimeDeps, stat
     label: "Delete annotation",
     description:
       "Permanently delete a note, highlight, or recorded question. The host ALWAYS asks the user for permission before deletion.",
-    parameters: Type.Object({ annotationId: Type.String() }),
+    parameters: obj({ annotationId: str() }),
     executionMode: "sequential",
     execute: async (toolCallId, params, signal, onUpdate) => {
       const { annotationId } = params as { annotationId: string };

@@ -1,5 +1,4 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import type { RuntimeDeps, UserInteractionOption } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { threadScopeKey } from "../thread-scope";
@@ -8,11 +7,12 @@ import { textResult } from "./tool-result";
 import type { AgentTurnState } from "./turn-state";
 import { requestUserInteraction } from "./user-interaction";
 import { buildInteractionFormTool } from "./interaction-form-tool";
+import { arr, obj, opt, str } from "@earendil-works/pi-schema";
 
-const optionSchema = Type.Object({
-  id: Type.String({ description: "Short stable id, such as summarize or compare" }),
-  label: Type.String({ description: "Concise choice label in the user's language" }),
-  description: Type.Optional(Type.String({ description: "One short sentence explaining this choice" })),
+const optionSchema = obj({
+  id: str({ description: "Short stable id, such as summarize or compare" }),
+  label: str({ description: "Concise choice label in the user's language" }),
+  description: opt(str({ description: "One short sentence explaining this choice" })),
 });
 
 /** A first-class pause in the current tool loop, resolved by the in-chat UI. */
@@ -22,9 +22,9 @@ export function buildInteractionTools(scope: ThreadScope, deps: RuntimeDeps, tur
     label: "Ask the user",
     description:
       "Pause and ask one concise clarifying question when materially different interpretations remain after using available read tools. Supply 2-4 useful choices in the user's language; the UI also lets them type a custom answer. Do not use this for rhetorical or ordinary conversational questions.",
-    parameters: Type.Object({
-      question: Type.String({ description: "One direct question in the user's language" }),
-      options: Type.Array(optionSchema, {
+    parameters: obj({
+      question: str({ description: "One direct question in the user's language" }),
+      options: arr(optionSchema, {
         minItems: 2,
         maxItems: 4,
         description: "Mutually distinct, actionable choices",

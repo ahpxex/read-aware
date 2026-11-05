@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { modelRequestView } from "./transcript";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type, type Api, type Model } from "@earendil-works/pi-ai";
+import { type Api, type Model } from "@earendil-works/pi-ai";
 import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import {
   fauxAssistantMessage,
@@ -12,6 +13,7 @@ import type { ThreadChunk } from "../chunks";
 import type { ThreadScope } from "../thread-scope";
 import { createInMemoryDeps } from "../testing/fixtures";
 import { AgentThread } from "./thread";
+import { obj } from "@earendil-works/pi-schema";
 
 async function collect(events: AsyncIterable<ThreadChunk>) {
   const chunks: ThreadChunk[] = [];
@@ -27,7 +29,7 @@ function tool(name: string, run: () => string): AgentTool {
     name,
     label: name,
     description: name,
-    parameters: Type.Object({}),
+    parameters: obj({}),
     execute: async () => ({ content: [{ type: "text", text: run() }], details: undefined }),
   };
 }
@@ -69,7 +71,7 @@ describe("live model tool snapshots", () => {
         getApiKey: () => "test",
         completeFn: async () => fauxAssistantMessage('{"new": [], "reinforced": []}'),
         streamFn: (model, context, options) => {
-          seen.push(context.tools?.map((tool) => tool.name) ?? []);
+          seen.push(modelRequestView(context).tools.map((tool) => tool.name));
           history.push(JSON.stringify(context.messages));
           if (seen.length === 2) ready = false;
           return streamSimple(model, context, options);
@@ -122,7 +124,7 @@ describe("live model tool snapshots", () => {
         getApiKey: () => "test",
         completeFn: async () => fauxAssistantMessage('{"new": [], "reinforced": []}'),
         streamFn: (model, context, options) => {
-          seen.push(context.tools?.map((tool) => tool.name) ?? []);
+          seen.push(modelRequestView(context).tools.map((tool) => tool.name));
           if (seen.length === 2) visible = false;
           return streamSimple(model, context, options);
         },
@@ -186,7 +188,7 @@ describe("live model tool snapshots", () => {
         completeFn: async () => fauxAssistantMessage('{"new": [], "reinforced": []}'),
         streamFn: (model, context, options) => {
           seen.push({
-            names: context.tools?.map((tool) => tool.name) ?? [],
+            names: modelRequestView(context).tools.map((tool) => tool.name),
             messages: JSON.stringify(context.messages),
           });
           return streamSimple(model, context, options);
@@ -212,6 +214,11 @@ describe("live model tool snapshots", () => {
         expect(seen[2]!.messages).toContain("target enabled");
         expect(seen[4]!.messages).toContain("target evidence");
         expect(calls).toEqual(["target"]);
+        // A loadout change is declared in place, so each request of the turn extends the previous transcript.
+        for (let round = 1; round <= 4; round++) {
+          const previous = JSON.parse(seen[round - 1]!.messages) as unknown[];
+          expect((JSON.parse(seen[round]!.messages) as unknown[]).slice(0, previous.length)).toEqual(previous);
+        }
         const toolEnds = chunks.filter((chunk) => chunk.type === "tool-step").filter((chunk) => chunk.phase === "end");
         expect(toolEnds).toHaveLength(4);
         expect(toolEnds.every((chunk) => !chunk.isError)).toBe(true);

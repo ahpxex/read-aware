@@ -5,37 +5,68 @@
  * 换词重试和逐片翻页每次都是一个完整的 LLM round trip。
  */
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type, type TSchema } from "@earendil-works/pi-ai";
 import { AppError, type Id } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
-import { normalizeBookIdParam, resolveBookId as resolveScopedBookId } from "./current-book";
+import { isCurrentBookArg, normalizeBookIdParam, resolveBookId as resolveScopedBookId } from "./current-book";
 import { textResult } from "./tool-result";
 import type { AgentTurnState } from "./turn-state";
 import { buildBookTextTaskTools } from "./book-text-task-tools";
+import {
+  arr,
+  bool,
+  num,
+  obj,
+  oneOf,
+  opt,
+  str,
+  type Properties,
+  type Schema,
+  type Static,
+} from "@earendil-works/pi-schema";
 
 const CHAPTER_PART_CHARS = 12000;
 
-export const confirmSpoilerSchema = Type.Optional(
-  Type.Boolean({
+export const confirmSpoilerSchema = opt(
+  bool({
     description:
       "Set true ONLY when the reader explicitly asked for spoilers in this conversation; lifts the narrative reading-position fence for this call. NEVER set it to widen search coverage, on expository/technical books (they have no fence), or 'just in case' — setting it without the reader's explicit grant is a policy violation.",
   }),
 );
 
 /**
- * Only expose the spoiler capability after the host has verified reader consent
- * for a fenced current-book turn. The execute path still validates raw calls.
+ * Parameters of a tool that can cross the narrative reading fence.
+ *
+ * confirmSpoiler is advertised only after the host has verified reader consent
+ * for a fenced current-book turn. Without that, a call that still sends it on
+ * the current book is a self-grant attempt rather than a schema slip: the guard
+ * rejects it with the permission explanation and marks the turn before schema
+ * validation would report a bare unknown field. A value aimed at another book
+ * carries no grant and is dropped. The execute path still validates raw calls.
  */
-export function withSpoilerArgument(
+export function spoilerParameters<const P extends Properties>(
   scope: ThreadScope,
-  properties: Record<string, TSchema>,
-  turnState?: AgentTurnState,
-): Record<string, TSchema> {
+  properties: P,
+  turnState: AgentTurnState | undefined,
+  isCurrentBook: (args: Record<string, unknown>) => boolean,
+) {
+  // confirmSpoiler is optional in the arguments either way; only the advertised schema differs.
+  const advertised = obj({ ...properties, confirmSpoiler: confirmSpoilerSchema });
+  type Args = Static<typeof advertised>;
   if (scope.kind === "book" && turnState?.spoilerPermissionGranted === true && turnState.spoilerFence !== undefined) {
-    properties.confirmSpoiler = confirmSpoilerSchema;
+    return { parameters: advertised };
   }
-  return properties;
+  return {
+    parameters: obj(properties) as Schema as typeof advertised,
+    // A shim before validation: it hands the arguments on unvalidated, as prepareArguments always does.
+    prepareArguments: (args: unknown): Args => {
+      if (typeof args !== "object" || args === null || Array.isArray(args) || !("confirmSpoiler" in args))
+        return args as Args;
+      const { confirmSpoiler, ...rest } = args as Record<string, unknown>;
+      assertSpoilerPermission(spoilerGranted(confirmSpoiler), turnState, isCurrentBook(rest));
+      return rest as Args;
+    },
+  };
 }
 
 /**
@@ -80,10 +111,10 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
     label: "Table of contents",
     description:
       "Read table of contents. view=navigation returns the original hierarchical TOC with versioned locations for open_book; ordinal is TOC order, never a read_chapter coordinate. Null locations are non-navigable headings. Default view=chapters returns the indexed table of contents. Each entry carries chapterIndex (an internal tool coordinate, NOT a printed chapter number) and the original title. Match the reader's chapter number/name against the title, including any part/volume; copy its chapterIndex without arithmetic. Front matter and unnumbered sections also have indices. In replies cite the title; never invent a chapter number from the index. chars = text length (one read_chapter part covers 12000 chars). A TOC does not prove whether a topic appears in the prose: if the reader asks you to check coverage, continue with search_book_text or read_chapter in this same turn instead of offering to look later. Empty results carry textState on current hosts (legacy hosts use textStatus). Only ready plus textless proves every required section was read successfully with no extractable text; available text can have no indexed chapters. Preparing, unsupported and unavailable are not textless. Partial or failed preparation returns an error. Use get_book_text_status for a read-only check without starting extraction. bookId defaults to the current book.",
-    parameters: Type.Object({
-      bookId: Type.Optional(Type.String()),
-      view: Type.Optional(
-        Type.Union([Type.Literal("chapters"), Type.Literal("navigation")], {
+    parameters: obj({
+      bookId: opt(str()),
+      view: opt(
+        oneOf(["chapters", "navigation"], {
           description:
             "chapters (default): indexed chapter titles/coordinates for read_chapter. navigation: original nested TOC with versioned locations for open_book; source section indices are NOT chapterIndex.",
         }),
@@ -162,19 +193,18 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
     label: "Read chapter",
     description:
       "Read one chapter's actual text, windowed into parts of 12000 chars (most chapters fit in one part). Start at part 0; the result tells you totalParts. IMPORTANT: this returns the chapter's full text and cannot stop at the newest reading cursor. When a narrative book has cursor.visible_text and the reader did not request spoilers, NEVER call read_chapter on the current chapter, even to gather or verify clues the reader has already seen; the cursor already contains the safe current material. After reading an allowed chapter, complete the reader's requested answer in this turn. Need several chapters? Issue the read_chapter calls together in one batch — they run in parallel. bookId defaults to the current book.",
-    parameters: Type.Object(
-      withSpoilerArgument(
-        scope,
-        {
-          chapterIndex: Type.Number({
-            description:
-              "Internal chapterIndex copied from get_toc or search_book_text. Match printed chapter numbers against the title, not array order. Cite the returned chapterTitle in replies; an index is never a printed chapter number.",
-          }),
-          part: Type.Optional(Type.Number({ description: "Window index, default 0" })),
-          bookId: Type.Optional(Type.String()),
-        },
-        turnState,
-      ),
+    ...spoilerParameters(
+      scope,
+      {
+        chapterIndex: num({
+          description:
+            "Internal chapterIndex copied from get_toc or search_book_text. Match printed chapter numbers against the title, not array order. Cite the returned chapterTitle in replies; an index is never a printed chapter number.",
+        }),
+        part: opt(num({ description: "Window index, default 0" })),
+        bookId: opt(str()),
+      },
+      turnState,
+      (args) => isCurrentBookArg(scope, args.bookId),
     ),
     execute: async (_id, params) => {
       const raw = params as {
@@ -235,26 +265,25 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
     label: "Search book text",
     description:
       'Full-text search inside the books\' actual prose. For who/what/relation/arc questions, query_book_graph first — it answers those directly and names the provenance chapters, turning this from a blind sweep into a targeted fetch; use THIS tool for exact wording, quotes, and anything the graph does not carry. Pass SEVERAL phrasings/synonyms in `queries` in this ONE call (results are merged and deduped) instead of retrying one query at a time — recall depends on wording and each retry costs a whole round trip. Exact matches come first; token-level fallback matches are marked "partial". Each hit reports the read_chapter `part` it falls in, so you can jump straight to it. throughChapterIndex is an inclusive chapter ceiling, but it cannot hide unread text later inside that same chapter. When a narrative book has cursor.visible_text and the reader did not request spoilers, NEVER search the current or later chapters, even to gather or verify clues the reader has already seen; use visible_text for the current passage and search only earlier chapters. bookId defaults to the current book; omit bookId in the global thread to search the whole shelf.',
-    parameters: Type.Object(
-      withSpoilerArgument(
-        scope,
-        {
-          queries: Type.Array(Type.String({ minLength: 1, maxLength: 1024 }), {
-            minItems: 1,
+    ...spoilerParameters(
+      scope,
+      {
+        queries: arr(str({ minLength: 1, maxLength: 1024 }), {
+          minItems: 1,
+          description:
+            "Query variants, searched together. 2-5 focused variants beat a broad sweep; anything past 12 is ignored.",
+        }),
+        bookId: opt(str()),
+        throughChapterIndex: opt(
+          num({
+            minimum: 0,
             description:
-              "Query variants, searched together. 2-5 focused variants beat a broad sweep; anything past 12 is ignored.",
+              "Inclusive last chapter to search. For an unfinished narrative chapter, use the previous chapter as the ceiling and rely on reading_cursor.visible_text for the current passage; explicit spoiler requests may use later chapters.",
           }),
-          bookId: Type.Optional(Type.String()),
-          throughChapterIndex: Type.Optional(
-            Type.Number({
-              minimum: 0,
-              description:
-                "Inclusive last chapter to search. For an unfinished narrative chapter, use the previous chapter as the ceiling and rely on reading_cursor.visible_text for the current passage; explicit spoiler requests may use later chapters.",
-            }),
-          ),
-        },
-        turnState,
-      ),
+        ),
+      },
+      turnState,
+      (args) => isCurrentBookArg(scope, args.bookId),
     ),
     execute: async (_id, params, signal) => {
       const {
@@ -315,7 +344,7 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
     label: "Book text status",
     description:
       "Read the local derived-text preparation state without starting extraction or downloading the book. Reports preparing, partial, unsupported, unavailable, error, or ready separately from actual text presence and indexed chapter count. Progress counts source sections, not chapters; available text may have no indexed chapters. bookId defaults to the current book. This status does not describe live location search or the book's knowledge graph.",
-    parameters: Type.Object({ bookId: Type.Optional(Type.String()) }),
+    parameters: obj({ bookId: opt(str()) }),
     execute: async (_id, params) =>
       textResult(await deps.bookText.getTextState!(resolveBookId((params as { bookId?: string }).bookId))),
   };

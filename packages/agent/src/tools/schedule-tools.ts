@@ -1,10 +1,10 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import { AppError, type PluginScheduleControl, type PluginScheduleQuery } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { textResult } from "./tool-result";
 import { requestUserInteraction } from "./user-interaction";
+import { int, obj, oneOf, opt, str } from "@earendil-works/pi-schema";
 
 export function buildScheduleTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   if (scope.kind !== "global") return [];
@@ -14,14 +14,11 @@ export function buildScheduleTools(scope: ThreadScope, deps: RuntimeDeps): Agent
       label: "Plugin schedules",
       description:
         "List currently bound manifest schedules and their latest persisted attempt, success or failure. everyMinutes=null identifies a deferred task; deferred describes its most recent named request, not an execution archive. queued is not completed, and interrupted must not be retried blindly. Results are bounded and contain no plugin settings. Paused schedules do not run automatically; running tasks do not overlap. Nothing runs while the app is closed; this is not an OS job or complete execution history.",
-      parameters: Type.Object(
-        {
-          pluginId: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })),
-          offset: Type.Optional(Type.Integer({ minimum: 0 })),
-          limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
-        },
-        { additionalProperties: false },
-      ),
+      parameters: obj({
+        pluginId: opt(str({ minLength: 1, maxLength: 256 })),
+        offset: opt(int({ minimum: 0 })),
+        limit: opt(int({ minimum: 1, maximum: 100 })),
+      }),
       execute: async (_id, params, signal) => {
         signal?.throwIfAborted();
         const page = await deps.schedules.list(params as PluginScheduleQuery);
@@ -35,14 +32,11 @@ export function buildScheduleTools(scope: ThreadScope, deps: RuntimeDeps): Agent
       executionMode: "sequential",
       description:
         "Pause, resume, or run one already-bound plugin schedule after user approval. Pause/resume are persisted locally; pause does not abort an in-flight task. Run bypasses pause and cadence once without resuming automatic execution. already-running is not successful completion. Cancelling cannot undo callback side effects already dispatched; only a completed callback and saved outcome return completed. Does not install plugins, change cadence or create arbitrary scripts.",
-      parameters: Type.Object(
-        {
-          pluginId: Type.String({ minLength: 1, maxLength: 256 }),
-          id: Type.String({ minLength: 1, maxLength: 256 }),
-          action: Type.Union([Type.Literal("pause"), Type.Literal("resume"), Type.Literal("run")]),
-        },
-        { additionalProperties: false },
-      ),
+      parameters: obj({
+        pluginId: str({ minLength: 1, maxLength: 256 }),
+        id: str({ minLength: 1, maxLength: 256 }),
+        action: oneOf(["pause", "resume", "run"]),
+      }),
       execute: async (toolCallId, params, signal, onUpdate) => {
         signal?.throwIfAborted();
         const input = params as PluginScheduleControl;

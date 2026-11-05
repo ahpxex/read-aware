@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { Api, Model } from "@earendil-works/pi-ai";
+import { getCurrentSystemPrompt, type Api, type Model } from "@earendil-works/pi-ai";
 import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import { fauxAssistantMessage } from "@earendil-works/pi-ai/providers/faux";
 import { createInMemoryDeps } from "../testing/fixtures";
@@ -13,8 +13,8 @@ function fixture() {
     messageCounts: number[] = [];
   faux.setResponses(
     Array.from({ length: 8 }, () => (context) => {
-      prompts.push(context.systemPrompt ?? "");
-      messageCounts.push(context.messages.length);
+      prompts.push(getCurrentSystemPrompt(context.messages));
+      messageCounts.push(context.messages.filter((message) => message.role !== "system").length);
       return fauxAssistantMessage("Ready.");
     }),
   );

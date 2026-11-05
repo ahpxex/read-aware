@@ -1,6 +1,7 @@
 /** Onboarding runtime 侧：快选落库 + 全局线程首次使用的访谈模式。 */
 import { afterEach, describe, expect, test } from "bun:test";
-import type { Api, Context, Model } from "@earendil-works/pi-ai";
+import { modelRequestView, type ModelRequestView } from "./transcript";
+import type { Api, Model } from "@earendil-works/pi-ai";
 import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import { fauxAssistantMessage, type FauxProviderRegistration } from "@earendil-works/pi-ai/providers/faux";
 import type { CompleteFn } from "../models/complete";
@@ -39,14 +40,14 @@ describe("onboarding", () => {
   test("global thread enters interview mode only when the profile is empty and history is fresh", async () => {
     faux = registerFauxProvider({ tokensPerSecond: 100_000 });
     const model = faux.getModel() as Model<Api>;
-    const contexts: Context[] = [];
+    const contexts: ModelRequestView[] = [];
     faux.setResponses([
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("你好！先聊聊你想读什么？");
       },
       (context) => {
-        contexts.push(context);
+        contexts.push(modelRequestView(context));
         return fauxAssistantMessage("明白了。");
       },
     ]);
@@ -75,10 +76,10 @@ describe("onboarding", () => {
   test("a filled profile suppresses interview mode from the start", async () => {
     faux = registerFauxProvider({ tokensPerSecond: 100_000 });
     const model = faux.getModel() as Model<Api>;
-    let captured: Context | undefined;
+    let captured: ModelRequestView | undefined;
     faux.setResponses([
       (context) => {
-        captured = context;
+        captured = modelRequestView(context);
         return fauxAssistantMessage("好的");
       },
     ]);

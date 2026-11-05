@@ -1,8 +1,9 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type, validateToolArguments, type TSchema } from "@earendil-works/pi-ai";
+import { validateToolArguments, type JsonObject } from "@earendil-works/pi-ai";
 import { AppError } from "@read-aware/core";
 import { TOOL_FAMILIES, rewriteToolReferences } from "./tool-families";
 import { setToolAvailability, toolAvailability } from "./tool-availability";
+import { lit, obj, union } from "@earendil-works/pi-schema";
 
 /** Compose the existing guarded domain handlers into typed, resource-specific
  * tools. No generic tool-name dispatcher, legacy aliases or bypass of guards.
@@ -29,30 +30,27 @@ export function consolidateHostTools(all: AgentTool[]): { all: AgentTool[]; enab
       members.some(({ tool }) => tool.executionMode === "sequential")
         ? { executionMode: "sequential" as const }
         : {}),
-      parameters: Type.Object(
-        {
-          request: Type.Union(
-            selected.map(({ operation, tool }) => {
-              const schema = tool.parameters as TSchema & {
-                type?: string;
-                properties?: Record<string, TSchema>;
-                required?: string[];
-              };
-              if (schema.type !== "object" || !schema.properties || "operation" in schema.properties) {
-                throw new Error(`Cannot group non-object or conflicting parameters: ${tool.name}`);
-              }
-              return {
-                ...schema,
-                properties: { operation: Type.Literal(operation), ...schema.properties },
-                required: ["operation", ...(schema.required ?? [])],
-                additionalProperties: false,
-                description: rewriteToolReferences(tool.description),
-              };
-            }),
-          ),
-        },
-        { additionalProperties: false },
-      ),
+      parameters: obj({
+        request: union(
+          selected.map(({ operation, tool }) => {
+            const schema = tool.parameters as {
+              type?: unknown;
+              properties?: Record<string, object>;
+              required?: string[];
+            };
+            if (schema.type !== "object" || !schema.properties || "operation" in schema.properties) {
+              throw new Error(`Cannot group non-object or conflicting parameters: ${tool.name}`);
+            }
+            return {
+              ...schema,
+              properties: { operation: lit(operation), ...schema.properties },
+              required: ["operation", ...(schema.required ?? [])],
+              additionalProperties: false,
+              description: rewriteToolReferences(tool.description),
+            };
+          }),
+        ),
+      }),
       execute: async (id, input, signal, onUpdate) => {
         signal?.throwIfAborted();
         if (!input || typeof input !== "object" || Array.isArray(input))
@@ -61,7 +59,7 @@ export function consolidateHostTools(all: AgentTool[]): { all: AgentTool[]; enab
           type: "toolCall",
           id,
           name: grouped.name,
-          arguments: input as Record<string, unknown>,
+          arguments: input as JsonObject,
         }) as { request: { operation: string; [key: string]: unknown } };
         const { operation, ...args } = request;
         const member = active.find((item) => item.operation === operation);

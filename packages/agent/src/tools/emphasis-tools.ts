@@ -1,5 +1,4 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import {
   AppError,
   normalizeReadingEmphasisRef,
@@ -10,6 +9,7 @@ import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { bookRangeSchema } from "./book-range-schema";
 import { textResult } from "./tool-result";
+import { arr, int, obj, oneOf, opt, str } from "@earendil-works/pi-schema";
 
 export function buildEmphasisTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   return [
@@ -18,16 +18,13 @@ export function buildEmphasisTools(scope: ThreadScope, deps: RuntimeDeps): Agent
       label: "Temporary reading marks",
       description:
         "List, put or remove the core Agent's temporary reading marks, separate from saved annotations and plugin-owned marks. Put copies 1-64 versioned ranges from search or range reads; it never navigates or selects text. Omit id/revision to create, supply both observed values to replace or remove. Marks survive page changes but end with the reader renderer; attached counts document attachments, not on-screen visibility. Returns metadata only, never extra passage or spoiler access. Query list after reopening or a conflict. Use for an explicit visual reading request.",
-      parameters: Type.Object(
-        {
-          action: Type.Union([Type.Literal("list"), Type.Literal("put"), Type.Literal("remove")]),
-          id: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })),
-          expectedRevision: Type.Optional(Type.Integer({ minimum: 1 })),
-          ranges: Type.Optional(Type.Array(bookRangeSchema, { minItems: 1, maxItems: 64 })),
-          style: Type.Optional(Type.Union([Type.Literal("highlight"), Type.Literal("underline")])),
-        },
-        { additionalProperties: false },
-      ),
+      parameters: obj({
+        action: oneOf(["list", "put", "remove"]),
+        id: opt(str({ minLength: 1, maxLength: 256 })),
+        expectedRevision: opt(int({ minimum: 1 })),
+        ranges: opt(arr(bookRangeSchema, { minItems: 1, maxItems: 64 })),
+        style: opt(oneOf(["highlight", "underline"])),
+      }),
       executionMode: "sequential",
       execute: async (_id, params, signal) => {
         signal?.throwIfAborted();

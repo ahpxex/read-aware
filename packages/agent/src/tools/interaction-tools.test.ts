@@ -3,7 +3,7 @@ import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import { createInMemoryDeps } from "../testing/fixtures";
 import { buildInteractionTools } from "./interaction-tools";
 import type { UserInteractionToolDetails } from "./user-interaction";
-import { validateToolArguments } from "@earendil-works/pi-ai";
+import { validateToolArguments, type JsonObject } from "@earendil-works/pi-ai";
 
 describe("ask_user", () => {
   test("suspends until the host resolves the in-chat question", async () => {
@@ -75,7 +75,7 @@ test("ask_user_form suspends in both scopes and returns typed data, not an appro
   ]) {
     const { deps, stores } = createInMemoryDeps();
     const tool = buildInteractionTools(scope, deps).find((item) => item.name === "ask_user_form")!;
-    const params = {
+    const params: JsonObject = {
       title: "Reading plan",
       fields: [
         { id: "minutes", kind: "number", label: "Minutes", min: 1, required: true },

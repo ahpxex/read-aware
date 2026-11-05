@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
+import { modelRequestView } from "./transcript";
 import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import { fauxAssistantMessage, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
-import type { Api, Model } from "@earendil-works/pi-ai";
+import type { Api, JsonObject, Model } from "@earendil-works/pi-ai";
 import type { ThreadChunk } from "../chunks";
 import { createInMemoryDeps } from "../testing/fixtures";
 import { hostTurn } from "../testing/transcript-host";
@@ -13,7 +14,7 @@ const collect = async (stream: AsyncIterable<ThreadChunk>) => {
   for await (const chunk of stream) chunks.push(chunk);
   return chunks;
 };
-const call = (name: string, args: Record<string, unknown>) =>
+const call = (name: string, args: JsonObject) =>
   fauxAssistantMessage([fauxToolCall(name, args)], { stopReason: "toolUse" });
 const failure = () =>
   fauxAssistantMessage("INCOMPLETE DRAFT", { stopReason: "error", errorMessage: "Connection error." });
@@ -148,7 +149,7 @@ for (const action of ["new-message", "regenerate", "invalidate", "context-change
     faux.setResponses([
       failure(),
       (context) => {
-        captured = JSON.stringify(context.messages);
+        captured = JSON.stringify(modelRequestView(context).messages);
         return fauxAssistantMessage("Fresh answer.");
       },
     ]);

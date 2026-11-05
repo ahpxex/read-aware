@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
+import { getCurrentSystemPrompt } from "@earendil-works/pi-ai";
 import { fauxAssistantMessage } from "@earendil-works/pi-ai/providers/faux";
 import { identityProfileContext, type IdentityConsolidationSnapshot } from "@read-aware/core";
 import { createInMemoryDeps, seedMemory } from "../testing/fixtures";
@@ -14,8 +15,8 @@ test.each(["book", "global"] as const)(
       lengths: number[] = [];
     provider.setResponses(
       Array.from({ length: 4 }, () => (context) => {
-        prompts.push(context.systemPrompt ?? "");
-        lengths.push(context.messages.length);
+        prompts.push(getCurrentSystemPrompt(context.messages));
+        lengths.push(context.messages.filter((message) => message.role !== "system").length);
         return fauxAssistantMessage("Response.");
       }),
     );
@@ -96,7 +97,7 @@ test("inferred context alone does not suppress the first-session interview", asy
   let prompt = "";
   provider.setResponses([
     (context) => {
-      prompt = context.systemPrompt ?? "";
+      prompt = getCurrentSystemPrompt(context.messages);
       return fauxAssistantMessage("Hello");
     },
   ]);

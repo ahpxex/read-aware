@@ -1,10 +1,10 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
 import type { Id } from "@read-aware/core";
 import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../../assertions";
 import { defineAgentEvalScenario, type AgentEvalScenario } from "../../agent-harness";
 import { textResult } from "../../../tools/tool-result";
 import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../../types";
+import { obj } from "@earendil-works/pi-schema";
 
 const TOOL_BOOK_ID = "eval-tool-book" as Id;
 const PLUGIN_TOOL = "plugin_recommend_passage";
@@ -72,7 +72,7 @@ function pluginTool(): AgentTool {
     name: PLUGIN_TOOL,
     label: "Recommend passage",
     description: "返回插件为读者推荐的段落。",
-    parameters: Type.Object({}),
+    parameters: obj({}),
     execute: async () => textResult({ passage: "The opening paragraph" }),
   };
 }

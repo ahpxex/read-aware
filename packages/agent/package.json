@@ -31,8 +31,9 @@
     "lint:deps:baseline": "bun ../../scripts/check-dependency-baseline.ts --update"
   },
   "dependencies": {
-    "@earendil-works/pi-agent-core": "^0.85.1",
-    "@earendil-works/pi-ai": "^0.85.1",
+    "@earendil-works/pi-agent-core": "^1.5.0",
+    "@earendil-works/pi-ai": "^1.5.0",
+    "@earendil-works/pi-schema": "^1.5.0",
     "@read-aware/core": "workspace:*"
   },
   "devDependencies": {

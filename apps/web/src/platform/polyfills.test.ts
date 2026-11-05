@@ -11,6 +11,7 @@ import {
   promiseWithResolvers,
   stringIsWellFormed,
   stringToWellFormed,
+  urlCanParse,
   type PolyfillGlobals,
 } from "./polyfills";
 
@@ -33,6 +34,7 @@ function bareGlobals(): PolyfillGlobals {
     Array: { prototype: arrayPrototype },
     String: { prototype: {} },
     AbortSignal: {},
+    URL: {},
   };
 }
 
@@ -212,6 +214,22 @@ describe("AbortSignal.any", () => {
   });
 });
 
+describe("URL.canParse", () => {
+  test("answers whether the URL constructor accepts the input, with and without a base", () => {
+    expect(urlCanParse("https://example.com/a?b#c")).toBe(true);
+    expect(urlCanParse("/relative")).toBe(false);
+    expect(urlCanParse("/relative", "https://example.com")).toBe(true);
+    expect(urlCanParse("relative", new URL("https://example.com/dir/"))).toBe(true);
+    expect(urlCanParse("https://exa mple.com")).toBe(false);
+    expect(urlCanParse("https://example.com", "not a base")).toBe(false);
+    // Detached from URL, like the native static method.
+    const { canParse } = { canParse: urlCanParse };
+    expect(canParse("mailto:reader@example.com")).toBe(true);
+    for (const input of ["https://example.com", "/x", "x:", "http://[::1]", "http://a b"])
+      expect(urlCanParse(input)).toBe(URL.canParse(input));
+  });
+});
+
 describe("installEcmaScriptPolyfills", () => {
   test("fills every missing built-in as a non-enumerable method and reports it", () => {
     const globals = bareGlobals();
@@ -227,6 +245,7 @@ describe("installEcmaScriptPolyfills", () => {
       "String.prototype.isWellFormed",
       "String.prototype.toWellFormed",
       "AbortSignal.any",
+      "URL.canParse",
     ]);
     expect(typeof globals.Promise.withResolvers).toBe("function");
     expect(Object.getOwnPropertyDescriptor(globals.Array.prototype, "toSorted")).toMatchObject({

@@ -24,7 +24,8 @@
  * `AbortSignal.any` (Safari 17.4, Chrome 116) is called across the app and by
  * plugins, and issue #41 is its iOS 16.0–16.3 casualty. It is filled here too
  * — with the spec's weak-source semantics, so `any` over app-lifetime signals
- * does not leak listeners.
+ * does not leak listeners. `URL.canParse` (Chrome 120, Safari 17) is filled
+ * for the agent runtime: pi's schema validator checks URL formats with it.
  *
  * Deliberately not covered: ES2024 resizable `ArrayBuffer` and
  * `ArrayBuffer.prototype.transfer` (not shimmable without wrapping every typed
@@ -240,6 +241,20 @@ export function abortSignalAny(this: typeof AbortSignal, signals: Iterable<Abort
   return dependent.signal;
 }
 
+// ----- Web API: URL.canParse (Chrome 120+, Safari 17+) -----
+
+/** Whether `new URL(url, base)` would succeed. The static method ignores its
+ * receiver, like the native, so it also works detached from `URL`. */
+export function urlCanParse(url: string | URL, base?: string | URL): boolean {
+  try {
+    new URL(url, base);
+    return true;
+  } catch {
+    // The constructor's TypeError is exactly the "cannot parse" answer.
+    return false;
+  }
+}
+
 // ----- Installation -----
 
 type Host = Record<PropertyKey, unknown>;
@@ -270,6 +285,8 @@ export interface PolyfillGlobals {
   String: { prototype: Host };
   /** The `AbortSignal` constructor; absent in realms that predate it. */
   AbortSignal?: Host;
+  /** The `URL` constructor; absent in realms without the URL API. */
+  URL?: Host;
 }
 
 /** Install every missing built-in into `globals`. Returns the names that were
@@ -297,6 +314,7 @@ export function installEcmaScriptPolyfills(globals: PolyfillGlobals): string[] {
   fill(globals.String.prototype, "isWellFormed", stringIsWellFormed, "String.prototype.isWellFormed");
   fill(globals.String.prototype, "toWellFormed", stringToWellFormed, "String.prototype.toWellFormed");
   if (globals.AbortSignal) fill(globals.AbortSignal, "any", abortSignalAny, "AbortSignal.any");
+  if (globals.URL) fill(globals.URL, "canParse", urlCanParse, "URL.canParse");
   return installed;
 }
 

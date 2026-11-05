@@ -373,6 +373,9 @@ export class AgentThread {
         tools: [],
         messages: turnRecordsToMessages(permittedTurnRecords(records, call.permissions), model),
       },
+      // pi's Agent attributes requests to pi by default (OpenRouter's HTTP-Referer and
+      // title, gateway origin headers). ReadAware's traffic is not pi's; send none.
+      identity: { attribution: null },
       transformContext: async (messages) => {
         const context = elideStaleToolResults(windowByTurns(messages, this.maxWindowTurns));
         // Also applies to a retry checkpoint captured with a different model.

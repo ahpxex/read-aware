@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { modelRequestView, type ModelRequestView } from "./transcript";
-import type { Api, Context, Model } from "@earendil-works/pi-ai";
+import { getAttributionHeaders, type Api, type ClientIdentity, type Context, type Model } from "@earendil-works/pi-ai";
 import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import {
   fauxAssistantMessage,
@@ -270,6 +270,33 @@ describe("AgentThread", () => {
     await collect(thread.sendTurn({ text: "hi" }));
 
     expect(captured?.reasoning).toBe("high");
+  });
+
+  test("sends no provider attribution headers", async () => {
+    const { faux, model } = makeFaux();
+    let identity: ClientIdentity | undefined;
+    faux.setResponses([
+      (_context, options) => {
+        identity = (options as { identity?: ClientIdentity } | undefined)?.identity;
+        return fauxAssistantMessage("ok");
+      },
+    ]);
+    const { deps } = makeDeps();
+    const thread = new AgentThread({
+      scope: { kind: "book", bookId: "b1" as Id },
+      deps,
+      resolveModel: () => model,
+      getApiKey: () => "test-key",
+      completeFn: noopComplete,
+      streamFn: streamSimple,
+    });
+
+    await collect(thread.sendTurn({ text: "hi" }));
+
+    expect(identity?.attribution).toBeNull();
+    expect(
+      getAttributionHeaders({ provider: "openrouter", baseUrl: "https://openrouter.ai/api/v1" }, identity),
+    ).toEqual({});
   });
 
   test("refreshes model metadata between turns without replacing the selected ID", async () => {

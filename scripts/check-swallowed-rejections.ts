@@ -21,6 +21,7 @@ const IGNORED = [
   /^apps\/web\/public\//,
   /^apps\/web\/foliate-js\/src\/vendor\//,
   /^apps\/desktop\/src-tauri\//,
+  /^apps\/desktop\/vendor\//,
   /routeTree\.gen\.ts$/,
 ];
 

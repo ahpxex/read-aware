@@ -13,12 +13,19 @@
       "dependsOn": [
         "^build"
       ],
+      "outputs": [
+        "dist/**"
+      ]
+    },
+    "@read-aware/desktop#build": {
+      "dependsOn": [
+        "^build"
+      ],
       "passThroughEnv": [
         "TAURI_SIGNING_PRIVATE_KEY",
         "TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
       ],
       "outputs": [
-        "dist/**",
         "$TURBO_ROOT$/target/**",
         "src-tauri/gen/**"
       ]

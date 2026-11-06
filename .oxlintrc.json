@@ -111,6 +111,7 @@
     "apps/web/public/**",
     "apps/web/foliate-js/src/vendor/**",
     "apps/desktop/src-tauri/**",
+    "apps/desktop/vendor/**",
     "marketing/pitch-video/out/**"
   ]
 }

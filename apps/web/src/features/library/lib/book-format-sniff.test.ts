@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { sniffBookFormat } from "./book-format-sniff";
+import sniffCases from "../../../../../../crates/store/src/import_cases/import_sniff_cases.json";
+import formatNameCases from "../../../../../../crates/store/src/import_cases/import_format_name_cases.json";
+import { formatFromName } from "./import-format";
 
 /**
  * These exercise the extension-less path: what an Android SAF pick or a
@@ -122,4 +125,20 @@ describe("format sniffing without an extension", () => {
     bytes.fill(0x01);
     expect(await sniffBookFormat(file(bytes))).toBeNull();
   });
+});
+
+// The native import (crates/store/src/book_format.rs) decides formats with a
+// port of these functions; both run the same shared cases.
+
+test("shared sniff cases agree with the native import", async () => {
+  for (const { label, base64, format } of sniffCases) {
+    const bytes = Uint8Array.from(Buffer.from(base64, "base64"));
+    expect([label, await sniffBookFormat(new File([bytes as BlobPart], "opaque"))]).toEqual([label, format]);
+  }
+});
+
+test("shared name and MIME cases agree with the native import", () => {
+  for (const { name, mime, format } of formatNameCases) {
+    expect([name, mime, formatFromName(name, mime)]).toEqual([name, mime, format]);
+  }
 });

@@ -220,6 +220,17 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandE
                     params![id, source_path],
                 )?;
             }
+            // Like sourcePath, this only ever adds information: an import that
+            // carries no status (older devices, genesis backfill) leaves the
+            // column alone, and only the two declared states are recorded.
+            if let Some(status) = str_of(p, "metadataStatus")
+                .filter(|status| status == "deferred" || status == "settled")
+            {
+                tx.execute(
+                    "UPDATE books SET metadata_status = ?2 WHERE id = ?1",
+                    params![id, status],
+                )?;
+            }
             if let Some(key) = str_of(p, "sourceBlobKey") {
                 ensure_blob_manifest(
                     tx,
@@ -230,6 +241,13 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandE
                     &at,
                 )?;
             }
+        }
+        "book.metadataSettled" => {
+            let id = require(p, "bookId", t)?;
+            tx.execute(
+                "UPDATE books SET metadata_status = 'settled' WHERE id = ?1",
+                params![id],
+            )?;
         }
         "book.metadataEdited" => {
             let id = require(p, "bookId", t)?;

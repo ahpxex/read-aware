@@ -121,9 +121,22 @@ export type DomainEvent =
          * absolute device path. Absent for single-file imports — additive field.
          */
         sourcePath?: string;
+        /**
+         * Whether the title/author still wait on the reading engine (every
+         * PDF, RAR comics, containers the native extractor could not parse):
+         * `book.metadataSettled` closes a `deferred` one. Absent on imports
+         * that predate it — additive field.
+         */
+        metadataStatus?: "deferred" | "settled";
       }
     >
   | DomainEventEnvelope<"book.metadataEdited", { bookId: Id; title?: string; author?: string }>
+  /**
+   * The reading engine finished its metadata pass for a book imported with
+   * `metadataStatus: "deferred"`, whether or not it found anything to edit
+   * (a `book.metadataEdited` carries what it found). Host bookkeeping only.
+   */
+  | DomainEventEnvelope<"book.metadataSettled", { bookId: Id }>
   | DomainEventEnvelope<"book.coverExtracted", { bookId: Id; status: CoverStatus; coverBlobKey?: string }>
   /**
    * 章节读毕提炼（book_memory 投影的原料）：读者读完一章后，后台管线从

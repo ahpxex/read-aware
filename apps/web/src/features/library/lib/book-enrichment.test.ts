@@ -12,6 +12,7 @@ import {
   enrichFromOpenBook,
   enrichmentQueue,
   metadataNeedsEnrichment,
+  metadataPending,
   scheduleCatchUpEnrichment,
 } from "./book-enrichment";
 import type { FoliateBook } from "../../reader/lib/foliate-engine";
@@ -192,4 +193,29 @@ test("a missing cover only the engine can read is extracted by the engine job an
   expect(f.changed).toContain(f.book.id);
   expect(f.commit).not.toHaveBeenCalled();
   expect(destroyed.value).toBe(true);
+});
+
+test("a deferred import settles once the engine pass ran, without touching custom fields", async () => {
+  const f = fixture();
+  f.book.coverStatus = "none";
+  const latest = { ...f.book, title: "My title", author: "My author", metadataStatus: "deferred" as const };
+  f.get.mockResolvedValue(latest);
+  const parsed = { metadata: { title: "Parsed title" }, sections: [] } as unknown as FoliateBook;
+  await enrichFromOpenBook(latest, parsed);
+  expect(f.commit).toHaveBeenCalledTimes(1);
+  // Settled, and the user's title is left alone (no metadataEdited).
+  expect(f.commit.mock.calls[0]).toHaveLength(1);
+  expect(f.commit.mock.calls[0]?.[0]).toMatchObject({
+    type: "book.metadataSettled",
+    payload: { bookId: f.book.id },
+  });
+});
+
+test("metadata waits on the engine by recorded status, and by the file-name heuristic only for older books", () => {
+  const { book } = fixture();
+  // The placeholder's title is the file-name guess.
+  expect(metadataPending({ ...book, metadataStatus: "settled" })).toBe(false);
+  expect(metadataPending({ ...book, metadataStatus: "deferred", title: "Real title" })).toBe(true);
+  expect(metadataPending({ ...book, metadataStatus: null })).toBe(true);
+  expect(metadataPending({ ...book, metadataStatus: null, title: "Real title" })).toBe(false);
 });

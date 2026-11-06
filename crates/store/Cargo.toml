@@ -31,6 +31,8 @@ aes-gcm = "0.10"
 chacha20poly1305 = "0.10"
 zeroize = "1"
 tempfile = "3"
+# File-name title guesses (file_name.rs), ported from the web placeholder.
+regex = "1"
 
 # macOS only: PDF covers render through PDFKit (pdf_metadata.rs).
 [target.'cfg(target_os = "macos")'.dependencies]

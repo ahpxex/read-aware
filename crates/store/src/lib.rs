@@ -6,12 +6,14 @@
 //! the desktop crate wraps these functions in IPC commands and owns every OS
 //! and webview integration.
 
+pub mod book_format;
 pub mod book_metadata;
 pub mod comic_metadata;
 pub mod covers;
 pub mod desktop_preferences;
 pub mod error;
 pub mod fb2_metadata;
+pub mod file_name;
 pub mod import;
 pub mod metadata;
 pub mod mobi_metadata;

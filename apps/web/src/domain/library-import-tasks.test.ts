@@ -41,22 +41,32 @@ function fixture() {
   const list = spyOn(library, "listLibraryBooks").mockResolvedValue([]);
   const get = spyOn(library, "getBookRecord").mockResolvedValue(book);
   const put = spyOn(blobs, "putDesktopBlob").mockResolvedValue({ sha256: "hash", byteSize: 4 });
+  /** What `library_import` answers for a committed import. */
   const staged = {
-    sha256: "hash",
-    byteSize: 4,
-    duplicateOf: null,
-    title: "Book",
-    author: null,
+    status: "imported",
     cover: "none",
     metadataDeferred: false,
+    events: [
+      {
+        type: "book.imported",
+        hlc: { wallMs: 1_700_000_000_000, counter: 0, deviceId: "device-a" },
+        payload: { bookId: "actual-book", title: "Book" },
+      },
+    ],
   };
   // A mounted library observer also refreshes reading statistics after import.
-  // Keep its projection response distinct from the native staging receipt.
+  // Keep its projection response distinct from the native import receipt.
   const invoke = spyOn(ipc, "invoke").mockImplementation(
-    async (command) => (command === "reading_time_load" ? { totals: [], daily: [], hourly: [] } : staged) as never,
+    async (command) =>
+      (command === "reading_time_load"
+        ? { totals: [], daily: [], hourly: [] }
+        : command === "library_import"
+          ? staged
+          : undefined) as never,
   );
-  const commit = spyOn(events, "commitDomainEvents").mockResolvedValue({ appended: 2, applied: 2 });
-  for (const spy of [native, list, get, put, invoke, commit]) restore.push(() => spy.mockRestore());
+  const commit = spyOn(events, "broadcastDomainEventDrafts").mockImplementation(() => {});
+  const observe = spyOn(events, "observeCommittedStamps").mockImplementation(() => {});
+  for (const spy of [native, list, get, put, invoke, commit, observe]) restore.push(() => spy.mockRestore());
   return {
     tasks,
     resources,
@@ -78,6 +88,7 @@ test("resource task milestones follow native staging and commit; cancellation ca
     finish = Promise.withResolvers<void>();
   f.invoke.mockImplementation(async (command) => {
     if (command === "reading_time_load") return { totals: [], daily: [], hourly: [] } as never;
+    if (command !== "library_import") return undefined as never;
     entered.resolve();
     await finish.promise;
     return f.staged as never;
@@ -106,8 +117,9 @@ test("resource task milestones follow native staging and commit; cancellation ca
     });
     expect(phases).toContain("staging");
     expect(phases.at(-1)).toBe("completed");
-    expect(f.commit.mock.calls[0][0]).toMatchObject({ type: "book.imported" });
-    expect(actorOrigin(f.commit.mock.calls[0][0].origin!)).toBe("plugin:import-test");
+    // The native import committed it; the host announces it with the task's actor.
+    expect(f.commit.mock.calls[0]?.[0]?.[0]).toMatchObject({ type: "book.imported" });
+    expect(actorOrigin(f.commit.mock.calls[0]![0][0]!.origin!)).toBe("plugin:import-test");
     expect(f.released).toBe(true);
   } finally {
     finish.resolve();

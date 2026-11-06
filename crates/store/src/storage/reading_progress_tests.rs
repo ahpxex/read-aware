@@ -427,9 +427,11 @@ fn upgrade_defers_incomplete_log_replay_and_ignores_old_checkpoints() {
         .is_none());
     // Upgrade an actual incomplete v53 schema. Do not erase its checkpoint-derived books.
     // Every schema-changing migration >= 54 must be reverted here, so v54+
-    // runs again on the v53 shape: v55's column and v56's font tables/triggers.
+    // runs again on the v53 shape: v55's column, v56's font tables/triggers
+    // and v57's column.
     conn.execute_batch(
-        "ALTER TABLE books DROP COLUMN source_path;
+        "ALTER TABLE books DROP COLUMN metadata_status;
+         ALTER TABLE books DROP COLUMN source_path;
          DROP TRIGGER trg_user_font_removal_cleanup_delete;
          DROP TRIGGER trg_user_font_removal_cleanup_restore;
          DROP TABLE user_font_removal_cleanup;

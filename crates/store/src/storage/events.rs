@@ -9,6 +9,7 @@
 //! scope, so this is a move rather than a rewrite.
 use super::*;
 use crate::error::CommandError;
+use rusqlite::OptionalExtension;
 
 pub fn row_to_event(row: &rusqlite::Row) -> rusqlite::Result<EventRow> {
     let payload_str: String = row.get("payload_json")?;
@@ -29,6 +30,54 @@ pub fn row_to_event(row: &rusqlite::Row) -> rusqlite::Result<EventRow> {
         created_at: row.get("created_at")?,
         payload,
     })
+}
+
+// --- Local HLC stamps minted natively ---
+
+/// The newest stamp the log holds, from any device, or a restored checkpoint's
+/// frontier when that is newer (a still-backfilling log): every new local
+/// stamp must sort after it.
+pub fn log_frontier(conn: &Connection) -> Result<Option<(i64, i64)>, CommandError> {
+    Ok(conn
+        .query_row(
+            "SELECT hlc_wall_ms, hlc_counter FROM (
+                SELECT hlc_wall_ms, hlc_counter FROM domain_events
+                UNION ALL
+                SELECT hlc_wall_ms, hlc_counter FROM projection_checkpoints
+             )
+             ORDER BY hlc_wall_ms DESC, hlc_counter DESC LIMIT 1",
+            [],
+            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+        )
+        .optional()?)
+}
+
+/// Stamps for `count` new events of this device, strictly after the log
+/// frontier — the HLC send rule the web clock follows. Call inside the write
+/// transaction that appends them (`BEGIN IMMEDIATE`): no other writer can then
+/// take the same stamps between this read and the insert.
+pub fn next_local_stamps(tx: &Transaction<'_>, count: usize) -> Result<Vec<Hlc>, CommandError> {
+    let device_id = ensure_local_device(tx)?;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|error| CommandError::internal(format!("system clock before 1970: {error}")))?
+        .as_millis() as i64;
+    // Same millisecond as (or a clock behind) the frontier: continue its
+    // counter; otherwise start the current millisecond fresh.
+    let (wall, mut counter) = match log_frontier(tx)? {
+        Some((wall, counter)) if wall >= now => (wall, counter),
+        _ => (now, -1),
+    };
+    let mut stamps = Vec::with_capacity(count);
+    for _ in 0..count {
+        counter += 1;
+        stamps.push(Hlc {
+            wall_ms: wall,
+            counter,
+            device_id: device_id.clone(),
+        });
+    }
+    Ok(stamps)
 }
 
 // --- Event log (the sync unit) ---

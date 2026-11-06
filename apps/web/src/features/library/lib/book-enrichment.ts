@@ -70,6 +70,15 @@ export function metadataStillFromFileName(book: LibraryBook): boolean {
   return book.format === "pdf" && book.title === parseFileName(book.fileName).title;
 }
 
+/**
+ * Title/author still wait on the engine: recorded per import since imports
+ * carry `metadataStatus`; books imported before that keep the file-name
+ * heuristic.
+ */
+export function metadataPending(book: LibraryBook): boolean {
+  return book.metadataStatus === "deferred" || (book.metadataStatus == null && metadataStillFromFileName(book));
+}
+
 /** Retry eligibility is broader than the automatic PDF catch-up policy. */
 export function metadataNeedsEnrichment(book: LibraryBook): boolean {
   const fromFile = parseFileName(book.fileName);
@@ -101,7 +110,8 @@ const restoreTried = new Set<string>();
 
 /**
  * Boot / reload pass: every shelf book with an open question whose file is
- * here gets a job — a missing cover verdict, or PDF metadata never filled.
+ * here gets a job — a missing cover verdict, or metadata still waiting on the
+ * engine (recorded per import; older PDFs by the file-name heuristic).
  * Legacy rows (imported before verdicts were recorded) and interrupted
  * imports are caught up this way; so are covers on record but missing here,
  * first with the import's native extractors and then, for the formats only
@@ -116,7 +126,7 @@ export function scheduleCatchUpEnrichment(books: readonly LibraryBook[]): void {
     if (!ENRICHMENT_FORMATS.has(book.format)) continue;
     if (attempted.has(book.id)) continue;
     const cover = book.coverStatus === "unchecked";
-    const metadata = metadataStillFromFileName(book);
+    const metadata = metadataPending(book);
     if (cover || metadata) scheduleBookEnrichment({ bookId: book.id, cover, metadata });
   }
 }
@@ -139,7 +149,7 @@ async function restoreLocalCover(book: LibraryBook): Promise<void> {
  */
 export async function enrichFromOpenBook(book: LibraryBook, parsed: FoliateBook): Promise<void> {
   const cover = book.coverStatus === "unchecked";
-  const metadata = metadataStillFromFileName(book);
+  const metadata = metadataPending(book);
   if (!cover && !metadata) return;
   if (!ENRICHMENT_FORMATS.has(book.format)) return;
   attempted.add(book.id);
@@ -202,6 +212,15 @@ async function applyParsedBook(request: EnrichmentRequest, parsed: FoliateBook):
           type: "book.metadataEdited" as const,
           payload: { bookId: request.bookId, ...patch },
           // Parsed-metadata enrichment is app machinery, not a user edit.
+          origin: request.origin ?? ("system" as const),
+        });
+      }
+      // The engine pass ran to the end, found something or not: close the
+      // import's open question so no device asks it again.
+      if (current.metadataStatus === "deferred") {
+        events.push({
+          type: "book.metadataSettled" as const,
+          payload: { bookId: request.bookId },
           origin: request.origin ?? ("system" as const),
         });
       }

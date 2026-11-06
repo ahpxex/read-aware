@@ -1,0 +1,162 @@
+[
+ {
+  "name": "a.epub",
+  "mime": "",
+  "format": "epub"
+ },
+ {
+  "name": "A.EPUB",
+  "mime": "",
+  "format": "epub"
+ },
+ {
+  "name": "a.pdf",
+  "mime": "",
+  "format": "pdf"
+ },
+ {
+  "name": "a.mobi",
+  "mime": "",
+  "format": "mobi"
+ },
+ {
+  "name": "a.prc",
+  "mime": "",
+  "format": "mobi"
+ },
+ {
+  "name": "a.azw3",
+  "mime": "",
+  "format": "azw3"
+ },
+ {
+  "name": "a.azw",
+  "mime": "",
+  "format": "azw3"
+ },
+ {
+  "name": "a.kf8",
+  "mime": "",
+  "format": "azw3"
+ },
+ {
+  "name": "a.fb2",
+  "mime": "",
+  "format": "fb2"
+ },
+ {
+  "name": "a.fb2.zip",
+  "mime": "",
+  "format": "fb2"
+ },
+ {
+  "name": "a.fbz",
+  "mime": "",
+  "format": "fb2"
+ },
+ {
+  "name": "a.cbz",
+  "mime": "",
+  "format": "cbz"
+ },
+ {
+  "name": "a.cbr",
+  "mime": "",
+  "format": "cbr"
+ },
+ {
+  "name": "a.txt",
+  "mime": "",
+  "format": "txt"
+ },
+ {
+  "name": "a.text",
+  "mime": "",
+  "format": "txt"
+ },
+ {
+  "name": "a.html",
+  "mime": "",
+  "format": "html"
+ },
+ {
+  "name": "a.htm",
+  "mime": "",
+  "format": "html"
+ },
+ {
+  "name": "a.xhtml",
+  "mime": "",
+  "format": "html"
+ },
+ {
+  "name": "a.zip",
+  "mime": "",
+  "format": null
+ },
+ {
+  "name": "a",
+  "mime": "",
+  "format": null
+ },
+ {
+  "name": "a",
+  "mime": "application/epub+zip",
+  "format": "epub"
+ },
+ {
+  "name": "a",
+  "mime": "application/pdf",
+  "format": "pdf"
+ },
+ {
+  "name": "a",
+  "mime": "application/x-fictionbook+xml",
+  "format": "fb2"
+ },
+ {
+  "name": "a",
+  "mime": "application/vnd.comicbook+zip",
+  "format": "cbz"
+ },
+ {
+  "name": "a",
+  "mime": "application/vnd.comicbook-rar",
+  "format": "cbr"
+ },
+ {
+  "name": "a",
+  "mime": "text/plain",
+  "format": "txt"
+ },
+ {
+  "name": "a",
+  "mime": "text/html",
+  "format": "html"
+ },
+ {
+  "name": "a",
+  "mime": "application/octet-stream",
+  "format": null
+ },
+ {
+  "name": "a.pdf",
+  "mime": "text/plain",
+  "format": "pdf"
+ },
+ {
+  "name": "a.unknown",
+  "mime": "application/pdf",
+  "format": "pdf"
+ },
+ {
+  "name": "epub",
+  "mime": "",
+  "format": null
+ },
+ {
+  "name": "a.epub.bak",
+  "mime": "",
+  "format": null
+ }
+]

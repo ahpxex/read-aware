@@ -4846,6 +4846,7 @@ dependencies = [
  "objc",
  "percent-encoding",
  "quick-xml 0.39.4",
+ "regex",
  "rusqlite",
  "serde",
  "serde_json",

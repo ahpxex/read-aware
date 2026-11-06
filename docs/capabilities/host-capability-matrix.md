@@ -1096,7 +1096,7 @@
 
 | 当前注册项 | 矩阵行 | 说明 |
 | --- | --- | --- |
-| `import::library_stage_import` | [LIB06](#LIB06) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
+| `import::library_import` | [LIB06](#LIB06) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `storage::library_begin_import` | [LIB06](#LIB06) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `storage::library_finish_import` | [LIB06](#LIB06) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
 | `web_image_cache::web_image_cache_get` | [SYS13](#SYS13) | [代码] 内部 IPC 能力证据；不是插件或模型授权入口 |
@@ -1434,6 +1434,7 @@
 | 当前注册项 | 矩阵行 | 说明 |
 | --- | --- | --- |
 | `projections-invalidated` | [CON07](#CON07) [OPS05](#OPS05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `store-changed-externally` | [CON07](#CON07) [OPS05](#OPS05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `reader-demand-activity` | [TXT05](#TXT05) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `book-removed` | [CON07](#CON07) [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `library-changed` | [CON07](#CON07) [LIB01](#LIB01) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
@@ -1483,6 +1484,7 @@
 | `backup.restored` | [OPS08](#OPS08) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `book.imported` | [LIB06](#LIB06) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `book.metadataEdited` | [LIB02](#LIB02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
+| `book.metadataSettled` | [LIB02](#LIB02) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `book.coverExtracted` | [LIB09](#LIB09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `book.chapterDigested` | [MEM10](#MEM10) | [代码] 注册库存已映射，不表示产品 E2E 通过 |
 | `book.narrativityClassified` | [MEM09](#MEM09) | [代码] 注册库存已映射，不表示产品 E2E 通过 |

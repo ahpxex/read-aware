@@ -7,13 +7,7 @@ pub async fn library_load(app: tauri::AppHandle) -> Result<Vec<LibraryBook>, Com
     crate::storage::blocking("library_load", move || {
         let db = tauri::Manager::state::<Db>(&app);
         let conn = db.0.lock()?;
-        let mut stmt = conn.prepare(BOOK_SELECT)?;
-        let rows = stmt.query_map([], row_to_library_book)?;
-        let mut out = Vec::new();
-        for r in rows {
-            out.push(r?);
-        }
-        Ok(out)
+        list_books_inner(&conn)
     })
     .await
 }
@@ -26,15 +20,7 @@ pub async fn library_get_book(
     crate::storage::blocking("library_get_book", move || {
         let db = tauri::Manager::state::<Db>(&app);
         let conn = db.0.lock()?;
-        match conn.query_row(
-            &format!("{BOOK_SELECT} WHERE b.id = ?1"),
-            params![id],
-            row_to_library_book,
-        ) {
-            Ok(book) => Ok(Some(book)),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(e.into()),
-        }
+        get_book_inner(&conn, &id)
     })
     .await
 }

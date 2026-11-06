@@ -20,6 +20,7 @@ group(
   [
     "book.imported",
     "book.metadataEdited",
+    "book.metadataSettled",
     "book.coverExtracted",
     "book.starred",
     "book.opened",

@@ -11,22 +11,7 @@ pub async fn local_device_get(app: tauri::AppHandle) -> Result<LocalDeviceInfo, 
         // The log's newest stamp — OR a restored checkpoint's frontier, which is
         // newer than anything a still-backfilling log holds: the projections
         // already reflect events up to it, so local stamps must sort after it.
-        let last = conn
-            .query_row(
-                "SELECT hlc_wall_ms, hlc_counter FROM (
-                SELECT hlc_wall_ms, hlc_counter FROM domain_events
-                UNION ALL
-                SELECT hlc_wall_ms, hlc_counter FROM projection_checkpoints
-             )
-             ORDER BY hlc_wall_ms DESC, hlc_counter DESC LIMIT 1",
-                [],
-                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
-            )
-            .map(Some)
-            .or_else(|e| match e {
-                rusqlite::Error::QueryReturnedNoRows => Ok(None),
-                other => Err(other.to_string()),
-            })?;
+        let last = log_frontier(&conn)?;
         Ok(LocalDeviceInfo {
             device_id,
             last_hlc_wall_ms: last.map(|(wall, _)| wall),

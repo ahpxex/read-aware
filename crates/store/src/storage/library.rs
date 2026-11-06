@@ -8,6 +8,7 @@
 //! scope, so this is a move rather than a rewrite.
 use super::*;
 use crate::error::CommandError;
+use rusqlite::OptionalExtension;
 
 // --- Library projection (books + collections; book-file bytes via blob store) ---
 
@@ -61,6 +62,11 @@ pub struct LibraryBook {
     /// relative to the picked folder. Read-only (events own it).
     #[serde(default)]
     pub source_path: Option<String>,
+    /// Whether title/author still wait on the reading engine: 'deferred',
+    /// 'settled', or None for a book imported before this was recorded.
+    /// Read-only (events own it).
+    #[serde(default)]
+    pub metadata_status: Option<String>,
 }
 
 fn default_cover_status() -> String {
@@ -107,6 +113,7 @@ pub fn row_to_library_book(row: &rusqlite::Row) -> rusqlite::Result<LibraryBook>
         narrativity: row.get("narrativity")?,
         spoiler_sensitive: row.get("spoiler_sensitive")?,
         source_path: row.get("source_path")?,
+        metadata_status: row.get("metadata_status")?,
     })
 }
 
@@ -118,9 +125,27 @@ pub const BOOK_SELECT: &str = "SELECT b.id, b.title, b.author, b.format, b.file_
         (bo.storage_uri IS NOT NULL) AS cover_local, bo.sha256 AS cover_version,
         b.created_at, b.updated_at, b.last_opened_at, b.progress_percent,
         b.reading_status, b.progress_json, b.starred, b.collection_id, b.narrativity, b.spoiler_sensitive,
-        b.source_path
+        b.source_path, b.metadata_status
    FROM books b
    LEFT JOIN blob_objects bo ON bo.key = b.cover_blob_key AND bo.deleted_at IS NULL";
+
+/// Every shelf book, in no particular order.
+pub fn list_books_inner(conn: &Connection) -> Result<Vec<LibraryBook>, CommandError> {
+    let mut statement = conn.prepare(BOOK_SELECT)?;
+    let rows = statement.query_map([], row_to_library_book)?;
+    Ok(rows.collect::<Result<Vec<_>, _>>()?)
+}
+
+/// One shelf book, or None when no book has this id.
+pub fn get_book_inner(conn: &Connection, id: &str) -> Result<Option<LibraryBook>, CommandError> {
+    Ok(conn
+        .query_row(
+            &format!("{BOOK_SELECT} WHERE b.id = ?1"),
+            params![id],
+            row_to_library_book,
+        )
+        .optional()?)
+}
 
 // Collection deletion has no command of its own: `collection.removed` describes
 // it, and applying that event drops the row and clears its books' membership.

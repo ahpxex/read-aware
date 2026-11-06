@@ -1,10 +1,14 @@
-import type { DomainActor } from "../../../platform/domain-actor";
 import { runDomainWrite } from "../../../platform/domain-write-gate";
-import type { BookImportPhase } from "@read-aware/core";
+import type { BookImportPhase, HlcStamp } from "@read-aware/core";
 import type { TFunction } from "i18next";
 import { invoke } from "../../../platform/ipc";
 import { putDesktopBlob } from "../../../platform/blob-store";
-import { commitDomainEvents } from "../../../platform/domain-events";
+import {
+  broadcastDomainEventDrafts,
+  observeCommittedStamps,
+  type DomainEventDraft,
+} from "../../../platform/domain-events";
+import { actorOrigin, type DomainActor } from "../../../platform/domain-actor";
 import { isTauri } from "../../../platform/environment";
 import { createLogger } from "../../../platform/logger";
 import { parseFileName } from "./book-file-name";
@@ -24,16 +28,16 @@ export type ImportOutcome = {
   book: LibraryBook;
 };
 
-/** What `library_stage_import` hands back (see import.rs). */
-type StagedImport = {
-  sha256: string;
-  byteSize: number;
-  duplicateOf: string | null;
-  title: string | null;
-  author: string | null;
-  cover: "ready" | "none" | "deferred";
-  metadataDeferred: boolean;
-};
+/** What `library_import` hands back (see crates/store/src/import.rs). */
+type NativeImportOutcome =
+  | {
+      status: "imported";
+      cover: "ready" | "none" | "deferred";
+      metadataDeferred: boolean;
+      /** The committed events, stamped natively inside the import transaction. */
+      events: { type: DomainEventDraft["type"]; hlc: HlcStamp; payload: unknown }[];
+    }
+  | { status: "duplicate"; book: { id: string } };
 
 /**
  * The shelf entry the picker can show BEFORE the file is durable: it carries
@@ -86,12 +90,13 @@ export type ImportBookOptions = {
 };
 
 /**
- * Import one source. Everything heavy happens in ONE native round trip
- * (`library_stage_import`: hash → dedupe → copy → extract → cover), then the
- * `book.imported` event commits with the real title/author and the cover
- * verdict. Whatever the native extractors could not settle (PDF metadata,
- * PDF covers off macOS, RAR comics) is handed to the engine job, which fills
- * the tile in a moment later — the shelf never waits on it.
+ * Import one source. The whole pipeline is ONE native call, `library_import`
+ * (crates/store/src/import.rs, shared with the `ra` CLI): dedupe by name and
+ * content, format, intent, copy, native metadata and cover, and the commit of
+ * `book.imported` (+ `book.coverExtracted`). Whatever the native extractors
+ * could not settle (PDF metadata, PDF covers off macOS, RAR comics) is handed
+ * to the engine job, which fills the tile in a moment later — the shelf never
+ * waits on it.
  */
 export async function importBook(source: BookImportSource, options: ImportBookOptions): Promise<ImportOutcome> {
   options.signal?.throwIfAborted();
@@ -108,11 +113,14 @@ export async function importBook(source: BookImportSource, options: ImportBookOp
   };
   progress("preparing");
 
-  // Cheap pass: the identical file (same name + size) is already imported.
+  // Cheap pass over the shelf already in memory: the identical file (same
+  // name + size) is already imported. The native pipeline checks again.
   const byFile = options.knownBooks.find((entry) => entry.fileName === file.name && entry.fileSize === file.size);
   if (byFile && source.kind !== "native-resource") return { status: "duplicate", book: byFile };
 
   const startedAt = performance.now();
+  // The placeholder's format; the native pipeline decides the stored one with
+  // the same rules (crates/store/src/import_cases pins both).
   const format = await detectBookFormat(source, options.t);
   options.signal?.throwIfAborted();
   const bookId = crypto.randomUUID();
@@ -123,8 +131,9 @@ export async function importBook(source: BookImportSource, options: ImportBookOp
     let began = false;
     try {
       // In-memory sources (drag-and-drop, plugin importBook, mobile picks that
-      // arrive as Files) stream into the blob store first; native paths are
-      // copied by Rust without ever entering the webview.
+      // arrive as Files) stream into the blob store first, under an intent
+      // recorded here; native paths are read by Rust without ever entering
+      // the webview, and the native pipeline records their intent itself.
       if (source.kind === "file") {
         const bytes = new Uint8Array(await source.file.arrayBuffer());
         options.signal?.throwIfAborted();
@@ -137,15 +146,15 @@ export async function importBook(source: BookImportSource, options: ImportBookOp
         options.signal?.throwIfAborted();
         options.beforeWrite?.();
         progress("staging");
-        await invoke("library_begin_import", { bookId });
-        began = true;
       }
-      const stagingAt = performance.now();
-      const staged = await invoke<StagedImport>("library_stage_import", {
+      const outcome = await invoke<NativeImportOutcome>("library_import", {
         request: {
           bookId,
-          format,
+          fileName: file.name,
           mimeType: file.type || null,
+          sourcePath: source.kind !== "native-resource" && source.sourcePath ? source.sourcePath : null,
+          origin: options.origin === undefined ? null : actorOrigin(options.origin),
+          dedupeByName: source.kind !== "native-resource",
           ...(source.kind === "native-path" && source.externalOpenEpoch !== undefined
             ? { externalOpenEpoch: source.externalOpenEpoch }
             : {}),
@@ -158,73 +167,34 @@ export async function importBook(source: BookImportSource, options: ImportBookOp
         },
       });
 
-      if (staged.duplicateOf) {
-        // The content gate caught what the name couldn't: this exact file is
-        // already on the shelf (possibly synced in under a different title, or
-        // sitting there as a shell whose bytes the pick just supplied).
+      if (outcome.status === "duplicate") {
+        // The native gate caught what the shelf list couldn't: this exact file
+        // is already on the shelf (possibly synced in under a different title,
+        // or sitting there as a shell whose bytes the pick just supplied).
         const existing =
-          options.knownBooks.find((entry) => entry.id === staged.duplicateOf) ??
-          (await getBookRecord(staged.duplicateOf));
-        if (!existing) {
-          // The registry matched a sha whose book row is gone; the staging step
-          // kept nothing for this id, so there is no book to show either way.
-          throw new Error(`Duplicate of an unknown book ${staged.duplicateOf}`);
-        }
+          options.knownBooks.find((entry) => entry.id === outcome.book.id) ?? (await getBookRecord(outcome.book.id));
+        if (!existing) throw new Error(`Duplicate of an unknown book ${outcome.book.id}`);
         return { status: "duplicate", book: existing };
       }
 
-      const title = staged.title?.trim() || placeholder.title;
-      const author = staged.author?.trim() || placeholder.author;
       progress("committing");
-      await commitDomainEvents(
-        {
-          type: "book.imported",
-          payload: {
-            bookId,
-            title,
-            author,
-            format,
-            fileName: file.name,
-            mimeType: file.type || undefined,
-            fileSize: staged.byteSize,
-            sourceBlobKey: bookFileKey(bookId),
-            sourceSha256: staged.sha256,
-            ...(source.kind !== "native-resource" && source.sourcePath ? { sourcePath: source.sourcePath } : {}),
-          },
-          origin: options.origin,
-        },
-        ...(staged.cover === "ready"
-          ? [
-              {
-                type: "book.coverExtracted" as const,
-                payload: { bookId, status: "ready" as const, coverBlobKey: `cover:${bookId}` },
-                origin: options.origin,
-              },
-            ]
-          : staged.cover === "none"
-            ? [
-                {
-                  type: "book.coverExtracted" as const,
-                  payload: { bookId, status: "none" as const },
-                  origin: options.origin,
-                },
-              ]
-            : []),
+      observeCommittedStamps(outcome.events.map((event) => event.hlc));
+      broadcastDomainEventDrafts(
+        outcome.events.map(
+          (event) => ({ type: event.type, payload: event.payload, origin: options.origin }) as DomainEventDraft,
+        ),
       );
-
       const book = await getBookRecord(bookId);
       if (!book) throw new Error("Imported book was not persisted");
 
-      const stagedMs = Math.round(performance.now() - stagingAt);
-      const totalMs = Math.round(performance.now() - startedAt);
       log.info(
-        `imported ${format} ${bookId}: ${totalMs} ms total (native staging ${stagedMs} ms, cover ${staged.cover})`,
+        `imported ${book.format} ${bookId}: ${Math.round(performance.now() - startedAt)} ms total (cover ${outcome.cover})`,
       );
-      if (staged.cover === "deferred" || staged.metadataDeferred) {
+      if (outcome.cover === "deferred" || outcome.metadataDeferred) {
         scheduleBookEnrichment({
           bookId,
-          cover: staged.cover === "deferred",
-          metadata: staged.metadataDeferred,
+          cover: outcome.cover === "deferred",
+          metadata: outcome.metadataDeferred,
         });
       }
       return { status: "imported", book };

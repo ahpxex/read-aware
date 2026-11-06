@@ -969,6 +969,11 @@ pub const MIGRATIONS: &[(i64, &str, &str)] = &[
     CREATE TRIGGER trg_user_font_removal_cleanup_restore AFTER INSERT ON user_fonts BEGIN
        DELETE FROM user_font_removal_cleanup WHERE font_id=new.id;
     END;"),
+    // Whether a book's title/author still waits on the reading engine.
+    // `book.imported.metadataStatus` sets it, `book.metadataSettled` closes
+    // it; NULL is a book imported before either existed (its catch-up keeps
+    // the old file-name heuristic).
+    (57, "book_metadata_status", "ALTER TABLE books ADD COLUMN metadata_status TEXT;"),
 ];
 
 /// Rebuild the annotation FTS index from the table. Required after any VACUUM
@@ -987,7 +992,7 @@ pub fn rebuild_annotations_fts(conn: &Connection) -> Result<(), CommandError> {
 /// The schema version a projection checkpoint is stamped with. Restoring one
 /// is only sound when the derived tables' shapes match exactly, so a
 /// checkpoint from a different version is ignored in favour of the log.
-pub const SCHEMA_VERSION: i64 = 56;
+pub const SCHEMA_VERSION: i64 = 57;
 
 /// The migration after which `materialize_legacy_covers` must run: the cover
 /// projection columns exist, the inline data-URL column still does.

@@ -10,7 +10,7 @@ use super::{
 };
 use crate::error::CommandError;
 use base64::{engine::general_purpose::STANDARD, Engine};
-use rusqlite::{Connection, OptionalExtension, Transaction};
+use rusqlite::{Connection, Transaction};
 use sha2::{Digest, Sha256};
 
 struct Writer<'a, 'conn> {
@@ -94,7 +94,7 @@ pub(crate) fn reconcile(
 ) -> Result<RestoreFacts, CommandError> {
     check()?;
     let device_id = super::ensure_local_device(tx)?;
-    let (mut wall, mut counter) = tx.query_row("SELECT hlc_wall_ms,hlc_counter FROM (SELECT hlc_wall_ms,hlc_counter FROM domain_events UNION ALL SELECT hlc_wall_ms,hlc_counter FROM projection_checkpoints) ORDER BY hlc_wall_ms DESC,hlc_counter DESC LIMIT 1", [], |r| Ok((r.get::<_, i64>(0)?,r.get::<_, i64>(1)?))).optional()?.unwrap_or((0, 0));
+    let (mut wall, mut counter) = super::events::log_frontier(tx)?.unwrap_or((0, 0));
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()

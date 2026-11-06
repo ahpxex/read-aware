@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { parseFileName } from "./book-file-name";
+import nameCases from "../../../../../../crates/store/src/import_cases/import_file_name_cases.json";
 
 describe("parseFileName", () => {
   test("splits Title - Author and title-cases", () => {
@@ -44,4 +45,13 @@ describe("parseFileName", () => {
     expect(parseFileName("三体【精校版】.epub").title).toBe("三体");
     expect(parseFileName("Clean Code [OCR] [retail].pdf").title).toBe("Clean Code");
   });
+});
+
+// The native import (crates/store/src/file_name.rs) guesses titles with a
+// port of this function; both run the same shared cases.
+
+test("shared file-name cases agree with the native import", () => {
+  for (const { fileName, title, author } of nameCases) {
+    expect(parseFileName(fileName)).toEqual({ title, author });
+  }
 });

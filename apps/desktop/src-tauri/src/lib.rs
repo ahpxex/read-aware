@@ -1158,7 +1158,7 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
-            import::library_stage_import,
+            import::library_import,
             storage::library_begin_import,
             storage::library_finish_import,
             web_image_cache::web_image_cache_get,

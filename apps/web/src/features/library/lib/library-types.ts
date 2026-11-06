@@ -61,6 +61,12 @@ export interface LibraryBookRow {
   fileSize: number;
   /** Folder-relative origin of a folder import; null/absent otherwise. */
   sourcePath?: string | null;
+  /**
+   * Whether title/author still wait on the reading engine: `deferred` until
+   * `book.metadataSettled`, null for a book imported before this was recorded
+   * (its catch-up keeps the file-name heuristic).
+   */
+  metadataStatus?: "deferred" | "settled" | null;
   coverStatus: CoverStatus;
   /** Blob key of the cover (`cover:<id>`) when `coverStatus` is `ready`. */
   coverBlobKey: string | null;

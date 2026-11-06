@@ -61,6 +61,7 @@ const AGGREGATE_ROUTES: Record<DomainEventType, { type: string; idKey: string } 
   "book.imported": { type: "book", idKey: "bookId" },
   "book.metadataEdited": { type: "book", idKey: "bookId" },
   "book.coverExtracted": { type: "book", idKey: "bookId" },
+  "book.metadataSettled": { type: "book", idKey: "bookId" },
   "book.chapterDigested": { type: "book", idKey: "bookId" },
   "book.narrativityClassified": { type: "book", idKey: "bookId" },
   "book.merged": { type: "book", idKey: "keepId" },
@@ -373,6 +374,15 @@ export async function commitDomainEventBatch<R = CommitReport>(
  * `local_device_get` seeding from the whole log.)
  */
 export function observeRemoteHlcStamps(stamps: HlcStamp[]): void {
+  for (const stamp of stamps) clock.observe(stamp);
+}
+
+/**
+ * Move the clock past stamps a native committer minted for this device (the
+ * shared import pipeline mints inside its own write transaction), so the next
+ * web-minted event sorts after them.
+ */
+export function observeCommittedStamps(stamps: HlcStamp[]): void {
   for (const stamp of stamps) clock.observe(stamp);
 }
 

@@ -414,7 +414,7 @@ const nativeMap = pairs([
   ["local_api_status local_api_set_enabled", "SYS06 CFG01"],
   ["local_api_token local_api_rotate_token", "SYS04"],
   ["local_api_attach local_api_complete", "SYS06 CON03"],
-  ["library_begin_import library_stage_import library_finish_import", "LIB06"],
+  ["library_begin_import library_import library_finish_import", "LIB06"],
   ["library_put_cover library_cover_backlog library_restore_local_cover", "LIB09 LIB10"],
   ["library_duplicate_groups library_merge_preview library_merge_commit library_resolve_book", "LIB11"],
   [
@@ -824,6 +824,7 @@ export function collectInventory(): Inventory[] {
     ["plugin-storage-changed local-write-failed", "SYS01 CFG10"],
     ["roaming-preferences-changed", "OPS05"],
     ["projections-invalidated", "CON07 OPS05"],
+    ["store-changed-externally", "CON07 OPS05"],
     ["conversations-changed", "AI01 OPS05"],
   ]);
   for (const name of typeMembers("apps/web/src/platform/app-events.ts", "AppEventMap"))
@@ -846,7 +847,7 @@ export function collectInventory(): Inventory[] {
   const domainMap = pairs([
     ["backup.restoreChunk backup.restored", "OPS08"],
     ["book.imported", "LIB06"],
-    ["book.metadataEdited", "LIB02"],
+    ["book.metadataEdited book.metadataSettled", "LIB02"],
     ["book.coverExtracted", "LIB09"],
     ["book.chapterDigested", "MEM10"],
     ["book.narrativityClassified", "MEM09"],

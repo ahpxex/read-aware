@@ -1,7 +1,7 @@
 //! Folder imports: the importable books below a folder the user picked.
 //!
 //! Each platform enumerates on its own side of the picker, and every result
-//! lands in the same per-file import pipeline (`library_stage_import` reads a
+//! lands in the same per-file import pipeline (`library_import` reads a
 //! path or `content://` URI directly, so no book bytes cross the IPC bridge):
 //! - desktop: `book_folder_pick` opens the folder dialog and walks the
 //!   picked folder here — the webview never names a path, so it cannot list

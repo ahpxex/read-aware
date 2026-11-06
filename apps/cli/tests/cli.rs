@@ -150,24 +150,80 @@ fn a_library_held_for_maintenance_is_reported_not_waited_on() {
     assert!(ra(&library, &["books", "list"]).status.success());
 }
 
+/// No character in `text` other than line breaks and tabs is a control
+/// character a terminal could act on.
+fn terminal_safe(text: &str) -> bool {
+    !text
+        .chars()
+        .any(|c| c.is_control() && !matches!(c, '\n' | '\r' | '\t'))
+}
+
+/// A minimal EPUB whose metadata is whatever the file says.
+fn epub(path: &Path, title: &str, author: &str) {
+    use std::io::Write;
+    use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
+    let mut writer = ZipWriter::new(std::fs::File::create(path).unwrap());
+    let options = SimpleFileOptions::default().compression_method(CompressionMethod::Stored);
+    writer.start_file("mimetype", options).unwrap();
+    writer.write_all(b"application/epub+zip").unwrap();
+    writer
+        .start_file("META-INF/container.xml", options)
+        .unwrap();
+    writer
+        .write_all(
+            br#"<container><rootfiles><rootfile full-path="content.opf"/></rootfiles></container>"#,
+        )
+        .unwrap();
+    writer.start_file("content.opf", options).unwrap();
+    write!(
+        writer,
+        r#"<package><metadata><dc:title xmlns:dc="dc">{title}</dc:title><dc:creator xmlns:dc="dc">{author}</dc:creator></metadata><manifest/></package>"#
+    )
+    .unwrap();
+    writer.finish().unwrap();
+}
+
 #[test]
-fn library_text_cannot_drive_the_terminal() {
+fn book_metadata_cannot_drive_the_terminal() {
     let dir = tempfile::tempdir().unwrap();
     let library = dir.path().join("library");
     assert!(ra(&library, &["init"]).status.success());
-    // A title is whatever the file says; this one carries an ANSI escape.
+    // U+009B is the 8-bit control sequence introducer: valid in XML, and a
+    // title or author can carry it.
+    let book = dir.path().join("hostile.epub");
+    epub(&book, "Evil\u{9b}2JTitle", "\u{9b}31mAuthor");
+    let imported = ra(&library, &["import", book.to_str().unwrap()]);
+    assert!(imported.status.success(), "{}", stderr(&imported));
+    let id = json(&ra(&library, &["--json", "books", "list"]))["books"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    for output in [
+        imported,
+        ra(&library, &["books", "list"]),
+        ra(&library, &["books", "show", &id]),
+    ] {
+        assert!(terminal_safe(&stdout(&output)), "{:?}", stdout(&output));
+        assert!(terminal_safe(&stderr(&output)), "{:?}", stderr(&output));
+    }
+    // JSON keeps the real value, escaped.
+    let listed = ra(&library, &["--json", "books", "list"]);
+    assert_eq!(json(&listed)["books"][0]["title"], "Evil\u{9b}2JTitle");
+}
+
+/// Unix file names may carry control characters; Windows refuses them.
+#[cfg(unix)]
+#[test]
+fn file_names_cannot_drive_the_terminal() {
+    let dir = tempfile::tempdir().unwrap();
+    let library = dir.path().join("library");
+    assert!(ra(&library, &["init"]).status.success());
     let hostile = dir.path().join("evil\u{1b}[2Jtitle.txt");
     std::fs::write(&hostile, PROSE).unwrap();
     let imported = ra(&library, &["import", hostile.to_str().unwrap()]);
     assert!(imported.status.success(), "{}", stderr(&imported));
     for output in [imported, ra(&library, &["books", "list"])] {
-        assert!(!stdout(&output).contains('\u{1b}'), "{:?}", stdout(&output));
-        assert!(!stderr(&output).contains('\u{1b}'));
+        assert!(terminal_safe(&stdout(&output)), "{:?}", stdout(&output));
+        assert!(terminal_safe(&stderr(&output)), "{:?}", stderr(&output));
     }
-    // JSON keeps the real value, escaped.
-    let listed = ra(&library, &["--json", "books", "list"]);
-    assert!(json(&listed)["books"][0]["fileName"]
-        .as_str()
-        .unwrap()
-        .contains('\u{1b}'));
 }

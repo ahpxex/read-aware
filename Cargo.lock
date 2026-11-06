@@ -4893,6 +4893,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "uuid",
+ "zip 2.6.1",
 ]
 
 [[package]]

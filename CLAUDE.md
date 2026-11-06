@@ -20,7 +20,9 @@ TanStack Router, Jotai, Tailwind CSS v4, Vite, and Tauri 2.
 - The shipping app is desktop-only. `apps/web` supplies Tauri's frontend and local
   dev/Storybook; `apps/landing` is the separate public marketing site.
 - `apps/cli` is a headless ReadAware without the agent: it reads and writes the
-  desktop app's data and imports books, under the same storage contract below.
+  desktop app's data and imports books, under the same storage contract below. It
+  works standalone, opening the same SQLite store directly whether or not the app
+  is running; there is one CLI and one data path, not a separate IPC mode.
 - Data and retrieval stay on-device: SQLite is the source of truth, with FTS and
   structured retrieval. No embeddings/vector store in the default architecture.
   Local reading and data operations work offline; LLM inference uses remote BYO

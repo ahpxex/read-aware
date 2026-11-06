@@ -24,7 +24,9 @@ Options:
   -v, --version  Show the version`);
   }
 } catch (error) {
-  console.error(toError(error));
-  console.error("Invalid arguments. Run read-aware --help for usage.");
+  // Print only the message: logging the Error object makes Bun dump a source
+  // frame and stack trace, which is debugging output rather than a CLI message.
+  console.error(`read-aware: ${toError(error).message}`);
+  console.error("Run read-aware --help for usage.");
   process.exitCode = 1;
 }

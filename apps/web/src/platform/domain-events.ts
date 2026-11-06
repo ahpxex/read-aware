@@ -19,7 +19,15 @@
  * the browser shell has no event log, and its IndexedDB paths are dev scaffolding.
  */
 import { invoke } from "./ipc";
-import type { DomainEvent, DomainEventEnvelope, DomainEventType, EventOrigin, HlcStamp } from "@read-aware/core";
+import {
+  ERR_EVENT_HLC_CONFLICT,
+  errorCode,
+  type DomainEvent,
+  type DomainEventEnvelope,
+  type DomainEventType,
+  type EventOrigin,
+  type HlcStamp,
+} from "@read-aware/core";
 import { isTauri } from "./environment";
 import { createHlcClock } from "./hlc";
 import { createLogger } from "./logger";
@@ -149,6 +157,49 @@ export async function mintEventRowsAfterCurrentFrontier(drafts: DomainEventDraft
   const info = await invoke<LocalDeviceInfo>("local_device_get");
   clock.seed(info.lastHlcWallMs, info.lastHlcCounter);
   return drafts.map((draft) => toEventRow(draft, info.deviceId));
+}
+
+/** How many times a write runs when another process keeps taking its stamps. */
+const STAMP_CONFLICT_ATTEMPTS = 3;
+
+/**
+ * Move the clock past every stamp the log holds now, whoever wrote it. The
+ * app and the `ra` CLI share this device's id, so stamps the CLI committed are
+ * invisible to the in-memory clock until this runs.
+ */
+export async function reseedClockFromFrontier(): Promise<void> {
+  const info = await invoke<LocalDeviceInfo>("local_device_get");
+  clock.seed(info.lastHlcWallMs, info.lastHlcCounter);
+}
+
+/**
+ * Run a write that mints events (through `mintEventRows`) and commits them.
+ * When another ReadAware process on this device already took one of its HLC
+ * stamps, the store rejects the whole transaction with `event/hlc-conflict`
+ * (nothing was written); the clock then moves past the log frontier and the
+ * write runs again, minting fresh ids and stamps. `write` must therefore mint
+ * inside itself and be safe to repeat.
+ */
+export async function retryStampConflicts<T>(write: () => Promise<T>): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await write();
+    } catch (error) {
+      if (errorCode(error) !== ERR_EVENT_HLC_CONFLICT || attempt >= STAMP_CONFLICT_ATTEMPTS) throw error;
+      log.warn("Event stamps taken by another ReadAware process; re-minting past the log frontier", {
+        attempt,
+      });
+      await reseedClockFromFrontier();
+    }
+  }
+}
+
+/** Mint `drafts` and commit them through `send`, re-minting on a stamp conflict. */
+export function dispatchMinted<T>(
+  drafts: DomainEventDraft[],
+  send: (events: EventRowWire[]) => Promise<T>,
+): Promise<T> {
+  return retryStampConflicts(async () => send(await mintEventRows(drafts)));
 }
 
 function toEventRow(draft: DomainEventDraft, deviceId: string): EventRowWire {
@@ -301,10 +352,11 @@ export async function commitDomainEventBatch<R = CommitReport>(
     options.dispatch ?? ((events: EventRowWire[]) => invoke<CommitReport>("commit_events", { events }) as Promise<R>);
   return runDomainWrite(async () => {
     signal?.throwIfAborted();
-    const events = await mintEventRows(drafts);
-    await beforeDispatch?.();
-    signal?.throwIfAborted();
-    const result = await dispatch(events);
+    const result = await dispatchMinted(drafts, async (events) => {
+      await beforeDispatch?.();
+      signal?.throwIfAborted();
+      return dispatch(events);
+    });
     // Broadcast only after the write succeeded — in-app observers must never see
     // a change the store rejected.
     broadcastDomainEventDrafts(drafts);

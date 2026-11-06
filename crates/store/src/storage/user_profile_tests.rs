@@ -458,7 +458,7 @@ fn stale_projections_duplicate_ids_and_past_log_clocks_cannot_commit() {
             profile_commit_inner(&mut conn, &past, &revision)
                 .unwrap_err()
                 .code,
-            "memory/conflict"
+            crate::error::CODE_EVENT_HLC_CONFLICT
         );
     }
     assert_eq!(count(&conn, "domain_events"), 1);
@@ -493,7 +493,7 @@ fn bootstrap_snapshot_keeps_revision_and_rejects_events_before_its_frontier() {
         profile_commit_inner(&mut target, &past, &committed.revision)
             .unwrap_err()
             .code,
-        "memory/conflict"
+        crate::error::CODE_EVENT_HLC_CONFLICT
     );
     let next = event("next", json!({"summary":"Next"}), 4);
     assert!(
@@ -517,7 +517,7 @@ fn migration_rejects_old_clock_without_retiring_the_durable_key() {
         profile_initialize_inner(&mut conn, &event("migration", json!({}), 4))
             .unwrap_err()
             .code,
-        "memory/conflict"
+        crate::error::CODE_EVENT_HLC_CONFLICT
     );
     assert_eq!(legacy_summary(&conn).unwrap().as_deref(), Some("Legacy"));
     assert_eq!(count(&conn, "domain_events"), 1);

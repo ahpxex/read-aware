@@ -11,7 +11,7 @@ import {
 } from "@read-aware/core";
 import { invoke } from "../platform/ipc";
 import { isTauri } from "../platform/environment";
-import { broadcastDomainEventDrafts, mintEventRows, type DomainEventDraft } from "../platform/domain-events";
+import { broadcastDomainEventDrafts, dispatchMinted, type DomainEventDraft } from "../platform/domain-events";
 
 function assertLive(signal?: AbortSignal) {
   if (!isTauri()) throw new AppError("memory/unavailable", "Book classification requires desktop storage");
@@ -34,10 +34,11 @@ async function commit(
 ): Promise<BookClassificationReceipt> {
   return runDomainWrite(async () => {
     assertLive(signal);
-    const [event] = await mintEventRows([draft]);
-    assertLive(signal);
     // Cancellation after native dispatch is not a rollback of the durable verdict.
-    const result = await invoke<BookClassificationReceipt>("book_classification_commit", { event, expectedRevision });
+    const result = await dispatchMinted([draft], ([event]) => {
+      assertLive(signal);
+      return invoke<BookClassificationReceipt>("book_classification_commit", { event, expectedRevision });
+    });
     if (result.changed) broadcastDomainEventDrafts([draft]);
     return result;
   });

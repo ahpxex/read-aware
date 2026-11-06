@@ -159,14 +159,14 @@ pub fn accept_plugin_update(
     }
     for event in events {
         local_event_guard::validate_new_event(&tx, event).map_err(|error| {
-            CommandError::new(
-                if error.code == "memory/conflict" {
-                    "plugin/data-busy"
-                } else {
-                    "plugin/invalid-argument"
-                },
-                error.message,
-            )
+            // A stale clock (another process moved the log frontier) surfaces
+            // as-is so the host re-mints past it; anything else is a malformed
+            // publication.
+            if error.code == crate::error::CODE_EVENT_HLC_CONFLICT {
+                error
+            } else {
+                CommandError::new("plugin/invalid-argument", error.message)
+            }
         })?;
         let key = event
             .payload

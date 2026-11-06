@@ -2,7 +2,12 @@ import type { DomainActor } from "../platform/domain-actor";
 import { runDomainWrite } from "../platform/domain-write-gate";
 import { AppError, normalizeOnboardingChange, type OnboardingChange, type OnboardingReceipt } from "@read-aware/core";
 import { invoke } from "../platform/ipc";
-import { broadcastDomainEventDrafts, mintEventRows, type DomainEventDraft } from "../platform/domain-events";
+import {
+  broadcastDomainEventDrafts,
+  mintEventRows,
+  retryStampConflicts,
+  type DomainEventDraft,
+} from "../platform/domain-events";
 import { initializeUserProfile } from "./user-profile";
 import { getAIPreferences } from "../features/settings/lib/ai-preferences";
 
@@ -24,16 +29,18 @@ export function createOnboardingService(host: Host) {
     await host.initialize();
     signal?.throwIfAborted();
     const draft: DomainEventDraft = { type: "profile.onboarded", payload: accepted, origin };
-    return runDomainWrite(async () => {
-      const [event] = await host.mint([draft]);
-      signal?.throwIfAborted();
-      allowed();
-      const receipt = await host.invoke<OnboardingReceipt>("onboarding_commit", { event });
-      // A lost reply can be retried with the same candidate/id. It acknowledges
-      // the original commit, not the current profile, and emits no second change.
-      if (receipt.status === "completed") host.broadcast([draft]);
-      return receipt;
-    });
+    return runDomainWrite(() =>
+      retryStampConflicts(async () => {
+        const [event] = await host.mint([draft]);
+        signal?.throwIfAborted();
+        allowed();
+        const receipt = await host.invoke<OnboardingReceipt>("onboarding_commit", { event });
+        // A lost reply can be retried with the same candidate/id. It acknowledges
+        // the original commit, not the current profile, and emits no second change.
+        if (receipt.status === "completed") host.broadcast([draft]);
+        return receipt;
+      }),
+    );
   };
 }
 

@@ -17,7 +17,12 @@ import {
   type ProfileContextSnapshot,
 } from "@read-aware/core";
 import { invoke } from "../platform/ipc";
-import { broadcastDomainEventDrafts, mintEventRows, type DomainEventDraft } from "../platform/domain-events";
+import {
+  broadcastDomainEventDrafts,
+  mintEventRows,
+  retryStampConflicts,
+  type DomainEventDraft,
+} from "../platform/domain-events";
 import { createLogger } from "../platform/logger";
 import { initializeUserProfile } from "./user-profile";
 
@@ -89,42 +94,44 @@ export function createIdentityConsolidationService(host: IdentityHost) {
           }
         : { type: "entity.merged", origin: "agent", payload: { keepId: decision.keepId, mergedId: decision.mergedId } },
     );
-    return runDomainWrite(async () => {
-      const entityEvents = entityDrafts.length ? await host.mint(entityDrafts) : [];
-      signal?.throwIfAborted();
-      const profileDraft: DomainEventDraft = {
-        type: "profile.updated",
-        origin: "agent",
-        payload: {
-          traits: {
-            consolidated: {
-              version: 1,
-              summary: input.summary,
-              sources: input.sources,
-              entityEvidence: entityEvents.map((event, index) => ({
-                eventId: event.id,
-                memoryIds: input.decisions[index]!.memoryIds,
-              })),
+    return runDomainWrite(() =>
+      retryStampConflicts(async () => {
+        const entityEvents = entityDrafts.length ? await host.mint(entityDrafts) : [];
+        signal?.throwIfAborted();
+        const profileDraft: DomainEventDraft = {
+          type: "profile.updated",
+          origin: "agent",
+          payload: {
+            traits: {
+              consolidated: {
+                version: 1,
+                summary: input.summary,
+                sources: input.sources,
+                entityEvidence: entityEvents.map((event, index) => ({
+                  eventId: event.id,
+                  memoryIds: input.decisions[index]!.memoryIds,
+                })),
+              },
             },
           },
-        },
-      };
-      // Profile provenance needs minted entity IDs and must follow their HLCs.
-      const [profileEvent] = await host.mint([profileDraft]);
-      signal?.throwIfAborted();
-      const receipt = await host.invoke<IdentityConsolidationReceipt>("identity_consolidation_commit", {
-        expectedRevision: input.expectedRevision,
-        profileEvent,
-        entityEvents,
-        complete: input.complete,
-      });
-      // Dispatch owns the actual result, including when cancellation arrives meanwhile.
-      const emitted = new Set(receipt.emittedEventIds);
-      const events = [...entityEvents, profileEvent!];
-      const changed = [...entityDrafts, profileDraft].filter((_, index) => emitted.has(events[index]!.id));
-      if (changed.length) host.broadcast(changed);
-      return receipt;
-    });
+        };
+        // Profile provenance needs minted entity IDs and must follow their HLCs.
+        const [profileEvent] = await host.mint([profileDraft]);
+        signal?.throwIfAborted();
+        const receipt = await host.invoke<IdentityConsolidationReceipt>("identity_consolidation_commit", {
+          expectedRevision: input.expectedRevision,
+          profileEvent,
+          entityEvents,
+          complete: input.complete,
+        });
+        // Dispatch owns the actual result, including when cancellation arrives meanwhile.
+        const emitted = new Set(receipt.emittedEventIds);
+        const events = [...entityEvents, profileEvent!];
+        const changed = [...entityDrafts, profileDraft].filter((_, index) => emitted.has(events[index]!.id));
+        if (changed.length) host.broadcast(changed);
+        return receipt;
+      }),
+    );
   };
   const readContextSnapshot = async (signal?: AbortSignal) => {
     signal?.throwIfAborted();

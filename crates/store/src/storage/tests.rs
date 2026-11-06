@@ -554,6 +554,60 @@ fn append_events_fills_envelope_and_outbox_once() {
 }
 
 #[test]
+fn a_local_event_at_a_used_stamp_fails_the_batch_instead_of_vanishing() {
+    let mut conn = migrated_conn();
+    commit_events_inner(&mut conn, &[imported("e1", 1_700_000_000_000, "b1", "One")]).unwrap();
+    // Redelivering the same event stays the idempotent no-op it always was.
+    let again =
+        commit_events_inner(&mut conn, &[imported("e1", 1_700_000_000_000, "b1", "One")]).unwrap();
+    assert_eq!(again.appended, 0);
+    // A different event at that stamp (another process on this device minted
+    // it) used to be dropped while the commit reported success.
+    let clash = commit_events_inner(
+        &mut conn,
+        &[
+            imported("e0", 1_699_999_999_000, "b0", "Zero"),
+            imported("e2", 1_700_000_000_000, "b2", "Two"),
+        ],
+    )
+    .unwrap_err();
+    assert_eq!(clash.code, crate::error::CODE_EVENT_HLC_CONFLICT);
+    // The whole batch rolled back: no log row, projection or outbox entry.
+    assert_eq!(
+        scalar::<i64>(&conn, "SELECT COUNT(*) FROM domain_events"),
+        1
+    );
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM books"), 1);
+    assert_eq!(
+        scalar::<i64>(&conn, "SELECT COUNT(*) FROM event_sync_state"),
+        1
+    );
+}
+
+#[test]
+fn a_pulled_event_at_a_used_stamp_is_skipped_without_failing_the_pull() {
+    let mut conn = migrated_conn();
+    commit_events_inner(&mut conn, &[imported("e1", 1_700_000_000_000, "b1", "One")]).unwrap();
+    let report = apply_remote_events_inner(
+        &mut conn,
+        &[
+            imported("r1", 1_700_000_000_000, "b2", "Two"),
+            imported("r2", 1_700_000_000_500, "b3", "Three"),
+        ],
+    )
+    .unwrap();
+    assert_eq!(report.appended, 1);
+    assert_eq!(
+        scalar::<i64>(&conn, "SELECT COUNT(*) FROM domain_events WHERE id='r1'"),
+        0
+    );
+    assert_eq!(
+        scalar::<i64>(&conn, "SELECT COUNT(*) FROM domain_events WHERE id='r2'"),
+        1
+    );
+}
+
+#[test]
 fn ensure_local_device_is_stable() {
     let conn = migrated_conn();
     let first = ensure_local_device(&conn).expect("first");
@@ -3800,6 +3854,15 @@ fn reading_time_genesis_runs_once_per_device_until_an_import_reopens_it() {
         reading_time_genesis_inner(&mut conn).unwrap(),
         1,
         "the 120s deficit becomes one event"
+    );
+    // Both passes stamp the same historical wall time; the second event must
+    // still land in the log (it used to collide with the first and vanish).
+    assert_eq!(
+        scalar::<i64>(
+            &conn,
+            "SELECT COUNT(*) FROM domain_events WHERE type='book.timeRecorded'"
+        ),
+        2
     );
     assert_eq!(reading_time_genesis_inner(&mut conn).unwrap(), 0);
 }

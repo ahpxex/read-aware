@@ -182,7 +182,7 @@ fn publication_rejects_stale_uninitialized_and_forged_or_old_envelopes() {
         context_bundle_publish_inner(&mut conn, &old, &fresh)
             .unwrap_err()
             .code,
-        "memory/conflict"
+        crate::error::CODE_EVENT_HLC_CONFLICT
     );
 }
 

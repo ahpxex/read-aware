@@ -3,7 +3,7 @@ import { planMemoryMaintenance, type MemoryChange } from "@read-aware/agent";
 import { AppError, type MemorySnapshot } from "@read-aware/core";
 import { invoke } from "../../../../platform/ipc";
 import { isTauri } from "../../../../platform/environment";
-import { broadcastDomainEventDrafts, mintEventRows, type DomainEventDraft } from "../../../../platform/domain-events";
+import { broadcastDomainEventDrafts, dispatchMinted, type DomainEventDraft } from "../../../../platform/domain-events";
 
 function assertAllowed(signal?: AbortSignal) {
   if (!isTauri()) throw new AppError("memory/unavailable", "Memory maintenance requires desktop storage");
@@ -21,9 +21,10 @@ async function commitMaintenance(
   assertAllowed(signal);
   if (!drafts.length) return [];
   return runDomainWrite(async () => {
-    const events = await mintEventRows(drafts);
-    assertAllowed(signal);
-    const committed = await invoke<MemorySnapshot[]>("memory_maintenance_commit", { conditions, events });
+    const committed = await dispatchMinted(drafts, (events) => {
+      assertAllowed(signal);
+      return invoke<MemorySnapshot[]>("memory_maintenance_commit", { conditions, events });
+    });
     broadcastDomainEventDrafts(drafts);
     return committed;
   });

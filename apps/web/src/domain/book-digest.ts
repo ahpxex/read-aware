@@ -2,10 +2,22 @@ import type { DomainActor } from "../platform/domain-actor";
 import { getBookContentState } from "./book-content-state";
 import { getVirtualTextSource } from "../features/library/lib/virtual-text-source";
 import { runDomainWrite } from "../platform/domain-write-gate";
-import { AppError, validateClassificationBookId, type BookDigestSnapshot, type ChapterDigest } from "@read-aware/core";
+import {
+  AppError,
+  ERR_EVENT_HLC_CONFLICT,
+  errorCode,
+  validateClassificationBookId,
+  type BookDigestSnapshot,
+  type ChapterDigest,
+} from "@read-aware/core";
 import { invoke } from "../platform/ipc";
 import { isTauri } from "../platform/environment";
-import { broadcastDomainEventDrafts, mintEventRows, type DomainEventDraft } from "../platform/domain-events";
+import {
+  broadcastDomainEventDrafts,
+  dispatchMinted,
+  mintEventRows,
+  type DomainEventDraft,
+} from "../platform/domain-events";
 
 function assertLive(signal?: AbortSignal) {
   if (!isTauri()) throw new AppError("memory/unavailable", "Digest storage requires desktop");
@@ -75,10 +87,11 @@ export async function saveBookDigest(
     // conditional write is rejected before it can read native state or mint an
     // event, just like every other domain writer.
     await checkSource();
-    const [event] = await mintEventRows([draft]);
-    assertLive(signal);
-    await checkSource();
-    await invoke<BookDigestSnapshot>("book_digest_commit", { event, expectedRevision });
+    await dispatchMinted([draft], async ([event]) => {
+      assertLive(signal);
+      await checkSource();
+      return invoke<BookDigestSnapshot>("book_digest_commit", { event, expectedRevision });
+    });
     broadcastDomainEventDrafts([draft]);
   });
 }
@@ -125,8 +138,27 @@ export async function commitDurableDigestWrite(
     try {
       await invoke("book_digest_commit", { event: copy.event, expectedRevision: copy.expectedRevision });
     } catch (error) {
-      // A concurrent retry or a lost reply may have committed this exact event.
-      if (!(await durableDigestReceipt(copy))) throw error;
+      if (errorCode(error) === ERR_EVENT_HLC_CONFLICT) {
+        // The prepared stamp was taken by another ReadAware process on this
+        // device (the CLI) before this write landed; nothing was written.
+        // Commit the same digest under fresh stamps. A lost reply to this
+        // re-mint cannot be matched by the prepared event's receipt, so a
+        // later retry would stop at the revision check instead of writing a
+        // second digest.
+        await dispatchMinted(
+          [
+            {
+              type: "book.chapterDigested",
+              origin,
+              payload: { ...copy.digest, bookId: copy.bookId, flavor: copy.digest.flavor ?? "narrative" },
+            },
+          ],
+          ([event]) => invoke("book_digest_commit", { event, expectedRevision: copy.expectedRevision }),
+        );
+      } else if (!(await durableDigestReceipt(copy))) {
+        // A concurrent retry or a lost reply may have committed this exact event.
+        throw error;
+      }
     }
     broadcastDomainEventDrafts([
       {

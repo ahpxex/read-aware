@@ -1,7 +1,7 @@
 import { AppError, errorCode } from "@read-aware/core";
 import { invoke } from "../../../platform/ipc";
 import { flushLocalKV, restoreLocalKVTransaction } from "../../../platform/local-store";
-import { mintEventRows, broadcastDomainEventDrafts, type DomainEventDraft } from "../../../platform/domain-events";
+import { dispatchMinted, broadcastDomainEventDrafts, type DomainEventDraft } from "../../../platform/domain-events";
 import { createLogger } from "../../../platform/logger";
 import { PluginPreferencePublication } from "../../../platform/plugin-preference-publication";
 import { PLUGIN_SCHEMA_KEY_PREFIX, snapshotPluginData, type PluginDataSnapshot } from "./plugin-data-snapshot";
@@ -65,15 +65,16 @@ export async function acceptPluginUpdate(journal: PluginUpdateJournal): Promise<
   for (let attempt = 0; attempt < 3; attempt++) {
     const snapshot = await snapshotPluginData(journal.pluginId);
     const drafts = pluginPreferenceChanges(journal.baseline, snapshot);
-    const events = await mintEventRows(drafts);
     let result: PluginUpdateJournal;
     try {
-      result = await invoke("plugins_update_accept", {
-        updateId: journal.updateId,
-        expectedKv: snapshot.kv,
-        expectedSchema: snapshot.schema,
-        events,
-      });
+      result = await dispatchMinted(drafts, (events) =>
+        invoke<PluginUpdateJournal>("plugins_update_accept", {
+          updateId: journal.updateId,
+          expectedKv: snapshot.kv,
+          expectedSchema: snapshot.schema,
+          events,
+        }),
+      );
     } catch (error) {
       const decision = await invoke<PluginUpdateJournal | null>("plugins_update_get", {
         updateId: journal.updateId,

@@ -14,7 +14,7 @@ import { getContentProvider, type RegisteredContentProvider } from "../state/plu
 
 import { invoke } from "../../../platform/ipc";
 import { runDomainWrite } from "../../../platform/domain-write-gate";
-import { mintEventRows, broadcastDomainEventDrafts, type DomainEventDraft } from "../../../platform/domain-events";
+import { dispatchMinted, broadcastDomainEventDrafts, type DomainEventDraft } from "../../../platform/domain-events";
 import { settled } from "../../../platform/write-settlement";
 
 const REGISTRY_KEY = "read-aware-virtual-books";
@@ -144,24 +144,25 @@ export async function commitBoundVirtualBook(
   const origin: EventOrigin = `plugin:${binding.pluginId}`;
   return runDomainWrite(async () => {
     signal?.throwIfAborted();
-    const events = await mintEventRows(drafts);
-    await afterLocalKVWrites(() => {
-      signal?.throwIfAborted();
-      const expectedRegistry = localKV.getItem(REGISTRY_KEY),
-        registry = readRegistry();
-      if (registry[bookId] || findVirtualBookId(binding))
-        throw new AppError("library/content-unavailable", "Virtual book binding changed");
-      registry[bookId] = { ...binding };
-      const replacementRegistry = JSON.stringify(registry);
-      return commitLocalKVTransaction(
-        new Map([[REGISTRY_KEY, replacementRegistry]]),
-        async () => {
-          signal?.throwIfAborted();
-          await invoke("virtual_book_create", { bookId, binding, events, expectedRegistry, replacementRegistry });
-        },
-        origin,
-      );
-    });
+    await dispatchMinted(drafts, (events) =>
+      afterLocalKVWrites(() => {
+        signal?.throwIfAborted();
+        const expectedRegistry = localKV.getItem(REGISTRY_KEY),
+          registry = readRegistry();
+        if (registry[bookId] || findVirtualBookId(binding))
+          throw new AppError("library/content-unavailable", "Virtual book binding changed");
+        registry[bookId] = { ...binding };
+        const replacementRegistry = JSON.stringify(registry);
+        return commitLocalKVTransaction(
+          new Map([[REGISTRY_KEY, replacementRegistry]]),
+          async () => {
+            signal?.throwIfAborted();
+            await invoke("virtual_book_create", { bookId, binding, events, expectedRegistry, replacementRegistry });
+          },
+          origin,
+        );
+      }),
+    );
     broadcastDomainEventDrafts(drafts);
   });
 }

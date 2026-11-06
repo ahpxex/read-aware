@@ -22,6 +22,17 @@ use serde::Serialize;
 pub const CODE_INTERNAL: &str = "internal";
 pub const CODE_DB_ERROR: &str = "db/error";
 pub const CODE_DB_LOCKED: &str = "db/locked";
+/// Another ReadAware process on this device (the app and the CLI share one
+/// device id) already logged a different event at the same HLC stamp. The
+/// whole batch rolled back; the caller re-mints from the current log frontier
+/// and retries.
+pub const CODE_EVENT_HLC_CONFLICT: &str = "event/hlc-conflict";
+/// The library is open in another ReadAware process and this operation
+/// (migration, full restore, wipe) needs it alone.
+pub const CODE_STORE_IN_USE: &str = "store/in-use";
+/// The library was written by a newer ReadAware; this build cannot read it
+/// without risking the data.
+pub const CODE_STORE_SCHEMA_NEWER: &str = "store/schema-newer";
 pub const CODE_FS_NOT_FOUND: &str = "fs/not-found";
 pub const CODE_FS_PERMISSION: &str = "fs/permission";
 pub const CODE_FS_NO_SPACE: &str = "fs/no-space";

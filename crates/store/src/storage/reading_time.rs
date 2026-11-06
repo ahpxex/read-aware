@@ -350,8 +350,28 @@ fn reading_time_genesis_pass(
     // these events exist so a future replay can arrive at the same place.
     // Applying them here would add the deficit on top of the sums it was
     // computed from.
+    //
+    // The stamps sit at historical wall times, so a later pass (an import
+    // reopens genesis) lands on wall times an earlier pass already used. Each
+    // counter therefore continues after the highest one this device holds at
+    // that wall time, assigned inside the write transaction.
     let tx = conn.transaction()?;
-    for event in &events {
+    let mut next_counter: std::collections::HashMap<i64, i64> = std::collections::HashMap::new();
+    for event in &mut events {
+        let wall_ms = event.hlc.wall_ms;
+        let counter = match next_counter.get(&wall_ms) {
+            Some(counter) => *counter,
+            None => {
+                tx.query_row(
+                    "SELECT COALESCE(MAX(hlc_counter), -1) FROM domain_events
+                     WHERE hlc_device = ?1 AND hlc_wall_ms = ?2",
+                    params![device_id, wall_ms],
+                    |row| row.get::<_, i64>(0),
+                )? + 1
+            }
+        };
+        event.hlc.counter = counter;
+        next_counter.insert(wall_ms, counter + 1);
         insert_event_row(&tx, event, EventSource::Local)?;
     }
     tx.commit()?;

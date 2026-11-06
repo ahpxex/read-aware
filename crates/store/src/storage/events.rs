@@ -44,8 +44,9 @@ pub enum EventSource {
 }
 
 /// Insert one envelope into the log. Returns whether the row was NEW — dedup by
-/// event id (and by the unique HLC index) makes redelivery a no-op, and callers
-/// use the answer to avoid applying an event to the projections twice.
+/// event id makes redelivery a no-op, and callers use the answer to avoid
+/// applying an event to the projections twice. A local event whose HLC stamp is
+/// already held by a different event fails with `event/hlc-conflict`.
 pub fn insert_event_row(
     tx: &Transaction<'_>,
     ev: &EventRow,
@@ -93,6 +94,34 @@ pub fn insert_event_row_with_seq(
             ev.created_at,
         ],
     )?;
+    if inserted == 0 {
+        // Ignored for one of two reasons. The same event redelivered (its id
+        // is already logged) is the idempotent case callers rely on. A
+        // different event at an already-used stamp is not: the unique HLC
+        // index refused it, and skipping it would lose the write while the
+        // caller reports success. Locally that means a second process on this
+        // device (the CLI) minted the same stamp, so the batch must fail.
+        let logged: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM domain_events WHERE id = ?1)",
+            [&ev.id],
+            |row| row.get(0),
+        )?;
+        if !logged {
+            if source == EventSource::Local {
+                return Err(CommandError::new(
+                    crate::error::CODE_EVENT_HLC_CONFLICT,
+                    "another event already holds this HLC stamp",
+                ));
+            }
+            log::warn!(
+                "remote event {} reuses HLC stamp {}:{}:{} of a logged event; skipped",
+                ev.id,
+                ev.hlc.wall_ms,
+                ev.hlc.counter,
+                ev.hlc.device_id
+            );
+        }
+    }
     // Locally-appended events enter the push outbox; ignored duplicates
     // (already logged, possibly already pushed) must not re-enter it.
     if inserted > 0 && source == EventSource::Local {

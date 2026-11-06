@@ -26,6 +26,15 @@ export const ERR_FS_PERMISSION = "fs/permission";
 export const ERR_FS_NO_SPACE = "fs/no-space";
 export const ERR_DB_LOCKED = "db/locked";
 export const ERR_DB_ERROR = "db/error";
+/** Another ReadAware process on this device (the app and the `ra` CLI share
+ *  one device id) already logged a different event at the same HLC stamp.
+ *  Writers re-mint from the log frontier and retry before surfacing this. */
+export const ERR_EVENT_HLC_CONFLICT = "event/hlc-conflict";
+/** The library is open in another ReadAware process and this operation
+ *  (migration, full restore, wipe) needs it alone. */
+export const ERR_STORE_IN_USE = "store/in-use";
+/** The library was written by a newer ReadAware than this build. */
+export const ERR_STORE_SCHEMA_NEWER = "store/schema-newer";
 /** Local read-only HTTP transport. */
 export const ERR_LOCAL_API_BIND = "local-api/bind";
 export const ERR_LOCAL_API_UNAVAILABLE = "local-api/unavailable";

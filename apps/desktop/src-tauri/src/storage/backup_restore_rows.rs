@@ -60,7 +60,13 @@ impl RowPlan {
             check()?;
             let id: String = row.get(0)?;
             let event = source.query_row([id], events::row_to_event)?;
-            if !events::insert_event_row(tx, &event, events::EventSource::Local)? {
+            // A source event the target already holds, or one whose stamp a
+            // different target event took, both mean the source moved on.
+            let inserted = match events::insert_event_row(tx, &event, events::EventSource::Local) {
+                Err(error) if error.code == crate::error::CODE_EVENT_HLC_CONFLICT => false,
+                result => result?,
+            };
+            if !inserted {
                 return Err(CommandError::new(
                     "backup/changed",
                     "Source event identity changed during restore",

@@ -7,7 +7,7 @@
  */
 import { type MemoryPort, type MemoryRecord } from "@read-aware/agent";
 import { normalizeMemoryPageQuery, normalizeMemoryQuery } from "@read-aware/core";
-import { broadcastDomainEventDrafts, mintEventRows, type DomainEventDraft } from "../../../../platform/domain-events";
+import { broadcastDomainEventDrafts, dispatchMinted, type DomainEventDraft } from "../../../../platform/domain-events";
 import { runDomainWrite } from "../../../../platform/domain-write-gate";
 import { invoke } from "../../../../platform/ipc";
 import { pageMemoryRows } from "./memory-store";
@@ -58,11 +58,12 @@ export function createMemoryPort(): MemoryPort {
         origin: "agent",
       };
       return runDomainWrite(async () => {
-        const [event] = await mintEventRows([draft]);
-        const result = await invoke<{ memory: MemoryRecord; inserted: boolean }>("memory_create", {
-          event,
-          automatic: input.origin === "extraction" || input.origin === "plugin",
-        });
+        const result = await dispatchMinted([draft], ([event]) =>
+          invoke<{ memory: MemoryRecord; inserted: boolean }>("memory_create", {
+            event,
+            automatic: input.origin === "extraction" || input.origin === "plugin",
+          }),
+        );
         if (result.inserted) broadcastDomainEventDrafts([draft]);
         return result.memory;
       });

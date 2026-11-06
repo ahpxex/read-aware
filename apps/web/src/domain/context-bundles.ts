@@ -13,7 +13,12 @@ import {
   type ReadingIntentScope,
 } from "@read-aware/core";
 import { invoke } from "../platform/ipc";
-import { broadcastDomainEventDrafts, mintEventRows, type DomainEventDraft } from "../platform/domain-events";
+import {
+  broadcastDomainEventDrafts,
+  mintEventRows,
+  retryStampConflicts,
+  type DomainEventDraft,
+} from "../platform/domain-events";
 import { createLogger } from "../platform/logger";
 import { initializeUserProfile } from "./user-profile";
 import {
@@ -55,22 +60,24 @@ export function createContextBundleService(host: Host) {
     const bundle = await assemble();
     signal?.throwIfAborted();
     const draft: DomainEventDraft = { type: "context.bundlePublished", payload: bundle, origin };
-    return runDomainWrite(async () => {
-      const [event] = await host.mint([draft]);
-      signal?.throwIfAborted();
-      const receipt = await host.invoke<Receipt>("context_bundle_publish", { event, expectedReadRevision });
-      // Native dispatch owns the real result, including cancellation after dispatch.
-      if (
-        !receipt ||
-        receipt.version !== bundle.version ||
-        typeof receipt.changed !== "boolean" ||
-        receipt.persistence !== "event-log"
-      ) {
-        throw new AppError("db/error", "Invalid context publication receipt");
-      }
-      if (receipt.changed) host.broadcast([draft]);
-      return { bundle, receipt };
-    });
+    return runDomainWrite(() =>
+      retryStampConflicts(async () => {
+        const [event] = await host.mint([draft]);
+        signal?.throwIfAborted();
+        const receipt = await host.invoke<Receipt>("context_bundle_publish", { event, expectedReadRevision });
+        // Native dispatch owns the real result, including cancellation after dispatch.
+        if (
+          !receipt ||
+          receipt.version !== bundle.version ||
+          typeof receipt.changed !== "boolean" ||
+          receipt.persistence !== "event-log"
+        ) {
+          throw new AppError("db/error", "Invalid context publication receipt");
+        }
+        if (receipt.changed) host.broadcast([draft]);
+        return { bundle, receipt };
+      }),
+    );
   };
   return {
     async captureBook(bookId: string, origin: DomainActor, signal?: AbortSignal) {

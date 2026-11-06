@@ -43,7 +43,7 @@ import { createLogger } from "./logger";
 import { hydrateSecrets } from "./secret-store";
 import { initializeUserProfile, LEGACY_PROFILE_KEY } from "../domain/user-profile";
 import { KVWriteQueue, type KVWriteOrigin, type KVCommit, type KVFailureOwner } from "./kv-write-queue";
-import { broadcastDomainEventDrafts, mintEventRows, type DomainEventDraft } from "./domain-events";
+import { broadcastDomainEventDrafts, dispatchMinted, type DomainEventDraft } from "./domain-events";
 import { clearWebviewStorage } from "./clear-webview-storage";
 export type { KVCommit } from "./kv-write-queue";
 
@@ -148,8 +148,7 @@ async function persistLocalEntries(
 ): Promise<void> {
   const drafts = localKVEventDrafts(values, actor);
   if (!drafts.length) return plain();
-  const events = await mintEventRows(drafts);
-  await invoke<void>("set_kv_batch", { entries: [...values], events });
+  await dispatchMinted(drafts, (events) => invoke<void>("set_kv_batch", { entries: [...values], events }));
   // Observers see only events the store accepted.
   broadcastDomainEventDrafts(drafts);
 }

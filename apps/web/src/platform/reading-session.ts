@@ -20,7 +20,7 @@ import { errorCode, type ReadingModeResume, type ReadingStatus } from "@read-awa
 import type { CommitReport } from "./domain-events";
 import {
   broadcastDomainEventDrafts,
-  mintEventRows,
+  dispatchMinted,
   mintEventRowsAfterCurrentFrontier,
   type DomainEventDraft,
 } from "./domain-events";
@@ -146,8 +146,7 @@ export async function flushReadingSessions(buckets: ReadingSessionBucket[]): Pro
   if (!isTauri() || worth.length === 0) return { appended: 0, applied: 0 };
   return durableWrites.run(async () => {
     const drafts = worth.map(draftFor);
-    const events = await mintEventRows(drafts);
-    const report = await invoke<CommitReport>("reading_session_flush", { events });
+    const report = await dispatchMinted(drafts, (events) => invoke<CommitReport>("reading_session_flush", { events }));
     // In-app observers (plugins) see the events the store accepted.
     broadcastDomainEventDrafts(drafts);
     return report;

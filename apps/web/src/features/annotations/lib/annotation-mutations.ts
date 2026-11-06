@@ -8,7 +8,7 @@ import {
 } from "@read-aware/core";
 import { invoke } from "../../../platform/ipc";
 import { isTauri } from "../../../platform/environment";
-import { broadcastDomainEventDrafts, mintEventRows, type DomainEventDraft } from "../../../platform/domain-events";
+import { broadcastDomainEventDrafts, dispatchMinted, type DomainEventDraft } from "../../../platform/domain-events";
 import type { Annotation } from "./annotation-types";
 
 export async function inspectAnnotation(
@@ -50,9 +50,10 @@ export async function commitAnnotationMutations(
   const conditions = changes.map(({ annotationId, expectedRevision }) => ({ annotationId, expectedRevision }));
   if (signal?.aborted) throw new AppError("annotations/cancelled", "Cancelled before annotation commit");
   return runDomainWrite(async () => {
-    const events = await mintEventRows(drafts);
-    if (signal?.aborted) throw new AppError("annotations/cancelled", "Cancelled before annotation commit");
-    const result = await invoke<AnnotationCommitResult>("annotations_commit", { events, conditions });
+    const result = await dispatchMinted(drafts, (events) => {
+      if (signal?.aborted) throw new AppError("annotations/cancelled", "Cancelled before annotation commit");
+      return invoke<AnnotationCommitResult>("annotations_commit", { events, conditions });
+    });
     broadcastDomainEventDrafts(drafts);
     return result;
   });

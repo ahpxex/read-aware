@@ -10,7 +10,7 @@ import {
 } from "@read-aware/core";
 import { invoke } from "../platform/ipc";
 import { isTauri } from "../platform/environment";
-import { broadcastDomainEventDrafts, mintEventRows, type DomainEventDraft } from "../platform/domain-events";
+import { broadcastDomainEventDrafts, dispatchMinted, type DomainEventDraft } from "../platform/domain-events";
 
 const assertDesktop = () => {
   if (!isTauri()) throw new AppError("memory/unavailable", "Memory management requires desktop storage");
@@ -47,12 +47,13 @@ export async function mutateMemory(
   assertLive(signal);
   const draft = memoryMutationDraft(change, origin);
   return runDomainWrite(async () => {
-    const [event] = await mintEventRows([draft]);
-    assertLive(signal);
     // After dispatch, return the committed receipt even if the caller cancels; cancellation is not undo.
-    const result = await invoke<MemoryMutationReceipt>("memory_commit", {
-      event,
-      expectedRevision: change.expectedRevision,
+    const result = await dispatchMinted([draft], ([event]) => {
+      assertLive(signal);
+      return invoke<MemoryMutationReceipt>("memory_commit", {
+        event,
+        expectedRevision: change.expectedRevision,
+      });
     });
     broadcastDomainEventDrafts([draft]);
     return result;

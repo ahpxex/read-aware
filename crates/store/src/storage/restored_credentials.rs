@@ -127,7 +127,7 @@ pub fn publish(
         } // Another drain already committed this slot.
         local_event_guard::validate_new_event(&tx, event).map_err(|error| {
             match error.code.as_str() {
-                "memory/conflict" => CommandError::new(
+                crate::error::CODE_EVENT_HLC_CONFLICT => CommandError::new(
                     "backup/changed",
                     "credential publication clock must follow the current log and checkpoint",
                 ),

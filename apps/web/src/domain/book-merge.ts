@@ -10,7 +10,7 @@ import {
 } from "@read-aware/core";
 import { invoke } from "../platform/ipc";
 import { isTauri } from "../platform/environment";
-import { mintEventRows, broadcastDomainEventDrafts, type DomainEventDraft } from "../platform/domain-events";
+import { dispatchMinted, broadcastDomainEventDrafts, type DomainEventDraft } from "../platform/domain-events";
 import { emitAppEvent } from "../platform/app-events";
 
 function live(signal?: AbortSignal) {
@@ -85,9 +85,10 @@ export async function mergeDuplicateBooks(
     payload: { keepId: preview.keep.id, mergedId: member.id },
   }));
   return runDomainWrite(async () => {
-    const events = await mintEventRows(drafts);
-    live(signal);
-    const receipt = await invoke<BookMergeReceipt>("library_merge_commit", { bookId, expectedRevision, events });
+    const receipt = await dispatchMinted(drafts, (events) => {
+      live(signal);
+      return invoke<BookMergeReceipt>("library_merge_commit", { bookId, expectedRevision, events });
+    });
     broadcastDomainEventDrafts(drafts);
     emitAppEvent("library-changed", {}, origin);
     return receipt;

@@ -138,7 +138,7 @@ pub fn close(conn: &mut Connection, input: Vec<EventRow>) -> Result<Vec<EventRow
         };
         super::local_event_guard::validate_new_event(&tx, &event).map_err(|error| {
             match error.code.as_str() {
-                "memory/conflict" | "memory/invalid-input" => changed(),
+                crate::error::CODE_EVENT_HLC_CONFLICT | "memory/invalid-input" => changed(),
                 _ => error,
             }
         })?;

@@ -10,7 +10,12 @@ import {
   type UserProfileSnapshot,
 } from "@read-aware/core";
 import { invoke } from "../platform/ipc";
-import { broadcastDomainEventDrafts, mintEventRows, type DomainEventDraft } from "../platform/domain-events";
+import {
+  broadcastDomainEventDrafts,
+  mintEventRows,
+  retryStampConflicts,
+  type DomainEventDraft,
+} from "../platform/domain-events";
 
 export const LEGACY_PROFILE_KEY = "read-aware-agent-profile";
 type ProfileHost = { invoke: typeof invoke; mint: typeof mintEventRows; broadcast: typeof broadcastDomainEventDrafts };
@@ -19,14 +24,18 @@ type ProfileHost = { invoke: typeof invoke; mint: typeof mintEventRows; broadcas
 export function createUserProfileService(host: ProfileHost) {
   let initialization: Promise<void> | undefined;
   const initialize = (): Promise<void> =>
-    (initialization ??= runDomainWrite(async () => {
-      const [event] = await host.mint([{ type: "profile.updated", payload: {}, origin: "system" }]);
-      const result = await host.invoke<{ migrated: boolean; snapshot: UserProfileSnapshot }>("profile_initialize", {
-        event,
-      });
-      if (result.migrated)
-        host.broadcast([{ type: "profile.updated", payload: { summary: result.snapshot.summary }, origin: "system" }]);
-    }).catch((error) => {
+    (initialization ??= runDomainWrite(() =>
+      retryStampConflicts(async () => {
+        const [event] = await host.mint([{ type: "profile.updated", payload: {}, origin: "system" }]);
+        const result = await host.invoke<{ migrated: boolean; snapshot: UserProfileSnapshot }>("profile_initialize", {
+          event,
+        });
+        if (result.migrated)
+          host.broadcast([
+            { type: "profile.updated", payload: { summary: result.snapshot.summary }, origin: "system" },
+          ]);
+      }),
+    ).catch((error) => {
       initialization = undefined;
       throw error;
     }));
@@ -45,14 +54,16 @@ export function createUserProfileService(host: ProfileHost) {
     await initialize();
     signal?.throwIfAborted();
     const draft: DomainEventDraft = { type: "profile.updated", payload: { summary }, origin };
-    return runDomainWrite(async () => {
-      const [event] = await host.mint([draft]);
-      signal?.throwIfAborted();
-      const receipt = await host.invoke<UserProfileReceipt>("profile_commit", { event, expectedRevision });
-      // Dispatched transactions drain to their real result, even if the actor retires.
-      if (receipt.changed) host.broadcast([draft]);
-      return receipt;
-    });
+    return runDomainWrite(() =>
+      retryStampConflicts(async () => {
+        const [event] = await host.mint([draft]);
+        signal?.throwIfAborted();
+        const receipt = await host.invoke<UserProfileReceipt>("profile_commit", { event, expectedRevision });
+        // Dispatched transactions drain to their real result, even if the actor retires.
+        if (receipt.changed) host.broadcast([draft]);
+        return receipt;
+      }),
+    );
   };
   return {
     initialize,

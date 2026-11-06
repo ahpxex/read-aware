@@ -60,8 +60,12 @@ pub fn validate_new_event(conn: &Connection, event: &EventRow) -> Result<(), Com
         )
         .optional()?;
     if frontier.is_some_and(|key| checkpoints::hlc_key_of(&event.hlc) <= key) {
+        // The stamp is not past the log frontier: another writer on this
+        // device (the CLI, or a restored checkpoint) moved it. Re-minting
+        // from the current frontier is the fix, so this is a clock conflict,
+        // not a data conflict.
         return Err(CommandError::new(
-            "memory/conflict",
+            crate::error::CODE_EVENT_HLC_CONFLICT,
             "Decision clock must follow the current log and checkpoint",
         ));
     }

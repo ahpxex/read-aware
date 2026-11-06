@@ -465,7 +465,7 @@ fn stale_projections_duplicate_ids_and_old_clocks_do_not_write() {
             )
             .unwrap_err()
             .code,
-            "memory/conflict"
+            crate::error::CODE_EVENT_HLC_CONFLICT
         );
     }
     assert_eq!(count(&conn, "domain_events"), 1);
@@ -545,7 +545,7 @@ fn bootstrap_uses_projection_revision_before_backfill_and_rejects_pre_frontier_w
         entity_commit_inner(&mut target, &resolve("past", "c", "C", 2), &expected)
             .unwrap_err()
             .code,
-        "memory/conflict"
+        crate::error::CODE_EVENT_HLC_CONFLICT
     );
     assert!(
         entity_commit_inner(&mut target, &resolve("future", "c", "C", 4), &expected)

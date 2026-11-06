@@ -230,7 +230,12 @@ async fn download_apk(
     let update_dir = app
         .path()
         .app_cache_dir()
-        .map_err(|err| CommandError::context("Failed to locate the Android update cache", err))?
+        .map_err(|err| {
+            CommandError::context(
+                "Failed to locate the Android update cache",
+                crate::tauri_error::tauri_error(err),
+            )
+        })?
         .join("updates");
     let apk_path = update_dir.join(format!("ReadAware-v{}-android-arm64.apk", manifest.version));
 

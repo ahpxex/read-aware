@@ -53,8 +53,14 @@ pub(crate) fn commit<T>(
                 .and_then(|name| name.to_str())
                 .ok_or_else(|| linux_entry::error("Invalid binary name"))?,
         )?;
-        let system =
-            linux_native::NativeSystem::new(app.path().data_dir()?, app.path().config_dir()?)?;
+        let system = linux_native::NativeSystem::new(
+            app.path()
+                .data_dir()
+                .map_err(crate::tauri_error::tauri_error)?,
+            app.path()
+                .config_dir()
+                .map_err(crate::tauri_error::tauri_error)?,
+        )?;
         let plan = linux::prepare(&system, &identity, enabled)?;
         linux::commit(&system, &plan, persist)
     }

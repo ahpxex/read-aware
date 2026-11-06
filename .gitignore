@@ -24,7 +24,7 @@ storybook-static
 .wrangler
 
 # Tauri / Rust
-apps/desktop/src-tauri/target
+/target
 # Generated IPC permission schemas only — gen/android and gen/apple are the
 # mobile project templates and are meant to be committed (each carries its own
 # .gitignore for build outputs).

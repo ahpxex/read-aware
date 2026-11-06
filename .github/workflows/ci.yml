@@ -80,7 +80,7 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          workspaces: apps/desktop/src-tauri
+          workspaces: ". -> target"
           key: ci-rust
           cache-on-failure: true
       - name: Formatting
@@ -132,7 +132,7 @@ jobs:
           toolchain: "1.98.1"
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          workspaces: apps/desktop/src-tauri
+          workspaces: ". -> target"
           key: ci-native-${{ matrix.os }}
           cache-on-failure: true
       - run: bun install --frozen-lockfile

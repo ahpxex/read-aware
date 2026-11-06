@@ -149,7 +149,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          workspaces: apps/desktop/src-tauri
+          workspaces: ". -> target"
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -236,7 +236,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          workspaces: apps/desktop/src-tauri
+          workspaces: ". -> target"
           key: aarch64-apple-ios
 
       - name: Install dependencies
@@ -319,7 +319,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          workspaces: apps/desktop/src-tauri
+          workspaces: ". -> target"
           key: ${{ matrix.target }}
 
       - name: Install dependencies
@@ -381,8 +381,8 @@ jobs:
       - name: Verify signature and notarization
         if: startsWith(matrix.platform, 'macos')
         run: |
-          APP="apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/macos/ReadAware.app"
-          DMG=(apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg)
+          APP="target/${{ matrix.target }}/release/bundle/macos/ReadAware.app"
+          DMG=(target/${{ matrix.target }}/release/bundle/dmg/*.dmg)
           codesign --verify --deep --strict --verbose=2 "$APP"
           xcrun stapler validate "$APP"
           spctl --assess --type execute --verbose=2 "$APP"
@@ -403,7 +403,7 @@ jobs:
       - name: Collect release assets
         shell: bash
         run: |
-          BUNDLE="apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle"
+          BUNDLE="target/${{ matrix.target }}/release/bundle"
           BASE="ReadAware-${{ env.RELEASE_TAG }}-${{ matrix.platform }}"
           mkdir -p release-assets
           case "${{ matrix.platform }}" in
@@ -426,7 +426,7 @@ jobs:
               cp "$BUNDLE"/nsis/*-setup.exe.sig "release-assets/$BASE-setup.exe.sig"
               # The exe in target/ keeps its cargo name; only the installers
               # ship it renamed. Restage it as ReadAware.exe for the zip.
-              EXE_DIR="apps/desktop/src-tauri/target/${{ matrix.target }}/release"
+              EXE_DIR="target/${{ matrix.target }}/release"
               if [ ! -f "$EXE_DIR/read-aware-desktop.exe" ]; then
                 echo "portable exe not found; contents of $EXE_DIR:" >&2
                 ls "$EXE_DIR" >&2

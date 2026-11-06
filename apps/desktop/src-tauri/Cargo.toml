@@ -103,8 +103,8 @@ axum = { version = "0.8", default-features = false, features = ["http1", "tokio"
 # Desktop only: window-chrome helpers and the dev-time MCP bridge. Neither
 # compiles for (or makes sense on) Android/iOS, where the webview is fullscreen.
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
-# Exact pin: vendor/auto-launch patches the auto-launch 0.5.0 this release
-# depends on (see vendor/auto-launch/VENDOR.md). A caret upgrade could move to
+# Exact pin: the vendored auto-launch patches the auto-launch 0.5.0 this release
+# depends on (see apps/desktop/vendor/auto-launch/VENDOR.md). A caret upgrade could move to
 # another auto-launch version and silently bypass the audited patch.
 tauri-plugin-autostart = "=2.5.1"
 # File associations: double-clicking a book while the app runs must reach the
@@ -125,8 +125,8 @@ url = "2"
 # Linked in all desktop builds (so its capability permission resolves) but only
 # initialized under debug_assertions — see lib.rs.
 # Vendored fork preserves background automation on clean CI checkouts.
-# See vendor/tauri-plugin-mcp-bridge/READAWARE.md for provenance.
-tauri-plugin-mcp-bridge = { version = "0.13.0", path = "vendor/tauri-plugin-mcp-bridge" }
+# See apps/desktop/vendor/tauri-plugin-mcp-bridge/READAWARE.md for provenance.
+tauri-plugin-mcp-bridge = { version = "0.13.0", path = "../vendor/tauri-plugin-mcp-bridge" }
 # Windows: snap overlay for the custom maximize button. Do not initialize on
 # macOS; Tauri's trafficLightPosition owns traffic-light placement there.
 tauri-plugin-decorum = "1"
@@ -161,44 +161,6 @@ rust-ini = "0.21.3"
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
-# Tauri's third-party dependency graph dominates target/debug when every crate
-# carries full debug data. Keep ReadAware's own symbols, but omit dependency
-# debug info to make local builds substantially smaller.
-[profile.dev.package."*"]
-debug = 0
-
-# Hashing large imported books is user-facing even in `tauri dev`. Optimizing
-# only sha2 keeps normal debug compilation fast while avoiding a 10x+ debug-mode
-# penalty that made an 88 MB import take seconds instead of milliseconds.
-[profile.dev.package.sha2]
-opt-level = 3
-
-# The backup KDF keeps its production work factor in dev builds. Optimize the
-# CPU-heavy scrypt/Salsa20 loops so debug compilation does not multiply its cost.
-[profile.dev.package.scrypt]
-opt-level = 3
-[profile.dev.package.salsa20]
-opt-level = 3
-
-# Same reasoning for cover normalization (covers.rs): decoding a
-# print-resolution cover and resampling it to shelf size is tens of megapixels
-# of arithmetic, which unoptimized dependency code turns from ~50 ms into
-# seconds on every import in `tauri dev`.
-[profile.dev.package.image]
-opt-level = 3
-[profile.dev.package.zune-jpeg]
-opt-level = 3
-[profile.dev.package.zune-core]
-opt-level = 3
-[profile.dev.package.png]
-opt-level = 3
-[profile.dev.package.fdeflate]
-opt-level = 3
-[profile.dev.package.miniz_oxide]
-opt-level = 3
-[profile.dev.package.flate2]
-opt-level = 3
-
 # Android only: reach MainActivity over JNI to toggle the system status bar
 # for the reader's immersive view. `tao` (already in tauri's tree, same
 # version) exposes the activity's JavaVM/jobject via main_android_context —
@@ -230,6 +192,3 @@ tao = "0.37"
 # objc 0.2's msg_send!/sel! expand `cfg(feature = "cargo-clippy")` inside this
 # crate; the value belongs to that macro, not to a feature we could declare.
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("cargo-clippy"))'] }
-
-[patch.crates-io]
-auto-launch = { path = "vendor/auto-launch" }

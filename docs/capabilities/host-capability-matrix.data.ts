@@ -271,7 +271,7 @@ export const sources: Record<string, string> = {
   DESKTOPSTARTUP: "apps/desktop/src-tauri/src/desktop_startup.rs",
   STARTUPUI: "apps/web/src/features/settings/hooks/useGeneralSettings.ts",
   STARTUPTEST: "apps/web/tests/desktop-startup.test.tsx",
-  STARTUPDEPENDENCY: "apps/desktop/src-tauri/vendor/auto-launch/VENDOR.md",
+  STARTUPDEPENDENCY: "apps/desktop/vendor/auto-launch/VENDOR.md",
   DESKTOPPREFERENCES: "apps/desktop/src-tauri/src/desktop_preferences.rs",
   EXTERNALOPENQUEUE: "apps/desktop/src-tauri/src/external_open.rs",
   EXTERNALOPENHOOK: "apps/web/src/features/library/hooks/useExternalBookOpens.ts",

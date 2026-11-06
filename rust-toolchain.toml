@@ -1,8 +1,8 @@
 # One Rust toolchain for local builds and every workflow, so rustc/clippy lints
 # are reproducible: a floating `stable` let CI pick up new lints that local
 # builds never saw. Bump deliberately (here and in the workflows' `toolchain:`),
-# then fix whatever the new clippy reports. The MSRV is `rust-version` in
-# apps/desktop/src-tauri/Cargo.toml and is a separate, lower floor.
+# then fix whatever the new clippy reports. The MSRV is each crate's
+# `rust-version` (see apps/desktop/src-tauri/Cargo.toml) and is a separate, lower floor.
 [toolchain]
 channel = "1.98.1"
 components = ["clippy", "rustfmt"]

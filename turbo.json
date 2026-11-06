@@ -19,7 +19,7 @@
       ],
       "outputs": [
         "dist/**",
-        "src-tauri/target/**",
+        "$TURBO_ROOT$/target/**",
         "src-tauri/gen/**"
       ]
     },

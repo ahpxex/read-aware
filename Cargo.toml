@@ -1,0 +1,55 @@
+# Cargo workspace for every Rust crate in the repository. Profiles, patches and
+# the single Cargo.lock live here: Cargo ignores [profile.*] and [patch.*] in a
+# member's manifest, so they must not move back into a member.
+[workspace]
+resolver = "2"
+members = ["apps/desktop/src-tauri"]
+# Vendored forks are path dependencies, not members: workspace commands must
+# not lint, format or test third-party code as if it were ours.
+exclude = [
+  "apps/desktop/vendor/auto-launch",
+  "apps/desktop/vendor/tauri-plugin-mcp-bridge",
+]
+
+[patch.crates-io]
+# Audited fork; tauri-plugin-autostart is pinned exactly so this patch keeps
+# applying (see apps/desktop/vendor/auto-launch/VENDOR.md).
+auto-launch = { path = "apps/desktop/vendor/auto-launch" }
+
+# Tauri's third-party dependency graph dominates target/debug when every crate
+# carries full debug data. Keep ReadAware's own symbols, but omit dependency
+# debug info to make local builds substantially smaller.
+[profile.dev.package."*"]
+debug = 0
+
+# Hashing large imported books is user-facing even in `tauri dev`. Optimizing
+# only sha2 keeps normal debug compilation fast while avoiding a 10x+ debug-mode
+# penalty that made an 88 MB import take seconds instead of milliseconds.
+[profile.dev.package.sha2]
+opt-level = 3
+
+# The backup KDF keeps its production work factor in dev builds. Optimize the
+# CPU-heavy scrypt/Salsa20 loops so debug compilation does not multiply its cost.
+[profile.dev.package.scrypt]
+opt-level = 3
+[profile.dev.package.salsa20]
+opt-level = 3
+
+# Same reasoning for cover normalization (covers.rs): decoding a
+# print-resolution cover and resampling it to shelf size is tens of megapixels
+# of arithmetic, which unoptimized dependency code turns from ~50 ms into
+# seconds on every import in `tauri dev`.
+[profile.dev.package.image]
+opt-level = 3
+[profile.dev.package.zune-jpeg]
+opt-level = 3
+[profile.dev.package.zune-core]
+opt-level = 3
+[profile.dev.package.png]
+opt-level = 3
+[profile.dev.package.fdeflate]
+opt-level = 3
+[profile.dev.package.miniz_oxide]
+opt-level = 3
+[profile.dev.package.flate2]
+opt-level = 3

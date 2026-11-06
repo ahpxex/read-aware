@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="ReadAware 命令行设计稿：独立运行、直接读写同一个 SQLite、与桌面 app 共用存储与导入实现。" />
+<title>命令行 ReadAware 设计</title>
+<style>
+  :root {
+    --paper: #f7f4ee;
+    --surface: #fffdf9;
+    --ink: #1c1917;
+    --body: #44403c;
+    --muted: #57534e;
+    --line: #d6d3d1;
+    --soft: #efebe4;
+    --accent: #7c2d12;
+    --accent-soft: #f5e9e2;
+    --ok: #365314;
+    --ok-soft: #ecf2e1;
+    --code: #ece8e1;
+    --serif: "Songti SC", "Noto Serif SC", "Source Han Serif SC", Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #1c1a17;
+      --surface: #24211d;
+      --ink: #f5f5f4;
+      --body: #d6d3d1;
+      --muted: #a8a29e;
+      --line: #44403c;
+      --soft: #2c2925;
+      --accent: #fdba74;
+      --accent-soft: #3a2a1f;
+      --ok: #bef264;
+      --ok-soft: #26301b;
+      --code: #2f2b26;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--body);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.8;
+  }
+  .wrap { width: min(calc(100% - 32px), 860px); margin: 0 auto; }
+  header { padding: 64px 0 36px; border-bottom: 1px solid var(--line); }
+  .eyebrow { margin: 0 0 14px; color: var(--accent); font-size: 12px; font-weight: 650; letter-spacing: .08em; }
+  h1, h2, h3 { color: var(--ink); font-family: var(--serif); font-weight: 700; line-height: 1.3; }
+  h1 { margin: 0 0 18px; font-size: 40px; }
+  h2 { margin: 0 0 18px; font-size: 26px; }
+  h3 { margin: 28px 0 10px; font-size: 18px; }
+  .lede { margin: 0; color: var(--muted); font-size: 18px; }
+  .meta { margin-top: 22px; color: var(--muted); font-size: 13px; }
+  nav.toc { padding: 22px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  nav.toc ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 32px; }
+  nav.toc li { margin: 3px 0; break-inside: avoid; }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  section { padding: 44px 0; border-bottom: 1px solid var(--line); }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin: 6px 0; }
+  strong { color: var(--ink); }
+  code { padding: 1px 5px; border-radius: 3px; background: var(--code); font-family: var(--mono); font-size: .86em; }
+  pre { margin: 0 0 16px; padding: 16px 18px; overflow-x: auto; border-radius: 4px; background: var(--code); font-family: var(--mono); font-size: 13px; line-height: 1.65; }
+  pre code { padding: 0; background: none; }
+  .table-shell { margin: 0 0 16px; overflow-x: auto; border: 1px solid var(--line); background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  th, td { padding: 11px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-size: 12.5px; font-weight: 600; background: var(--soft); }
+  tr:last-child td { border-bottom: 0; }
+  .note { margin: 18px 0; padding: 14px 18px; border-left: 3px solid var(--accent); background: var(--accent-soft); }
+  .note p:last-child, .note ul:last-child { margin-bottom: 0; }
+  .decide { margin: 18px 0; padding: 14px 18px; border: 1px solid var(--line); background: var(--surface); }
+  .decide h3 { margin-top: 0; }
+  .tag { display: inline-block; margin-right: 6px; padding: 0 7px; border-radius: 3px; font-size: 12px; font-weight: 650; vertical-align: 1px; }
+  .tag.risk { color: var(--accent); background: var(--accent-soft); }
+  .tag.ok { color: var(--ok); background: var(--ok-soft); }
+  figure { margin: 8px 0 20px; padding: 18px; border: 1px solid var(--line); background: var(--surface); }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption { margin-top: 10px; color: var(--muted); font-size: 13px; }
+  .svg-box { fill: var(--soft); stroke: var(--line); }
+  .svg-core { fill: var(--accent-soft); stroke: var(--accent); }
+  .svg-t { fill: var(--ink); font-family: var(--sans); font-size: 14px; font-weight: 650; }
+  .svg-s { fill: var(--muted); font-family: var(--sans); font-size: 12px; }
+  .svg-line { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+  .phases { counter-reset: p; list-style: none; padding: 0; }
+  .phases li { counter-increment: p; position: relative; margin: 0 0 14px; padding: 12px 16px 12px 52px; border: 1px solid var(--line); background: var(--surface); }
+  .phases li::before { content: counter(p); position: absolute; left: 16px; top: 12px; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: var(--paper); font-size: 13px; font-weight: 700; line-height: 24px; text-align: center; }
+  footer { padding: 32px 0 64px; color: var(--muted); font-size: 13px; }
+  @media (max-width: 640px) {
+    h1 { font-size: 30px; }
+    h2 { font-size: 22px; }
+    nav.toc ol { columns: 1; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <p class="eyebrow">设计已确认 · 2026-11-06</p>
+    <h1>命令行 ReadAware</h1>
+    <p class="lede">一个没有 Agent 的无界面 ReadAware。桌面 app 开着或关着都能用，直接读写同一份书库、导入书籍，和 app 遵守同一套写入规则。</p>
+    <p class="meta">完整版（给 agent 与仓库用）：<a href="./cli.md">cli.md</a>　现状：<code>apps/cli</code> 只有 Bun 写的骨架，本设计会用 Rust 替换它。</p>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <ol>
+      <li><a href="#goal">目标与边界</a></li>
+      <li><a href="#rust">为什么是纯 Rust</a></li>
+      <li><a href="#structure">代码结构</a></li>
+      <li><a href="#import">只有一个导入实现</a></li>
+      <li><a href="#concurrency">两个进程共用一个库</a></li>
+      <li><a href="#enrich">元数据补全</a></li>
+      <li><a href="#datadir">数据目录与身份</a></li>
+      <li><a href="#commands">第一期命令</a></li>
+      <li><a href="#phases">实施阶段与验收</a></li>
+      <li><a href="#decide">已确认的决定</a></li>
+    </ol>
+  </div>
+</nav>
+
+<main>
+<section id="goal">
+  <div class="wrap">
+    <h2>1. 目标与边界</h2>
+    <ul>
+      <li><strong>独立运行。</strong>app 没开也能用；app 开着时也是同一个 CLI、同一条路径，直接打开同一个 SQLite 数据库。不做"app 在线走 IPC、离线直连"两种模式。</li>
+      <li><strong>同一套写入规则。</strong>每次写入都是"追加事件 + 更新投影"在同一个事务里完成，和 app 完全一致。CLI 不直接改书架表，也不另写一份写入逻辑。</li>
+      <li><strong>这一期不做：</strong>Agent、模型和 API 密钥；同步推送（由 app 负责，CLI 写的事件进入同一个待推送队列）；移动端；阅读引擎相关功能（需要网页视图）；CLI 的安装与分发。</li>
+    </ul>
+  </div>
+</section>
+
+<section id="rust">
+  <div class="wrap">
+    <h2>2. 为什么是纯 Rust</h2>
+    <p>写入链路上最重的东西本来就在 Rust 里：写入与投影规则、数据库升级、文件存储、各格式的元数据和封面提取、封面压缩，存储层约 4.8 万行。这些代码对 Tauri 的依赖基本只在最外层很薄的命令包装上，可以原样拆出来，让 app 和 CLI 共用。</p>
+    <p>如果用 Bun 写 CLI，仍然得挂一个 Rust 子进程或动态库，就成了两个运行时、两套分发。用 Rust 写，产物是一个独立的可执行文件。</p>
+  </div>
+</section>
+
+<section id="structure">
+  <div class="wrap">
+    <h2>3. 代码结构</h2>
+    <figure>
+      <svg viewBox="0 0 760 230" role="img" aria-label="桌面端和 CLI 都依赖共享的存储 crate">
+        <rect class="svg-box" x="20" y="20" width="300" height="76" rx="4" />
+        <text class="svg-t" x="40" y="50">桌面 app（apps/desktop/src-tauri）</text>
+        <text class="svg-s" x="40" y="74">Tauri 外壳 · 命令包装 · 系统集成</text>
+        <rect class="svg-box" x="440" y="20" width="300" height="76" rx="4" />
+        <text class="svg-t" x="460" y="50">命令行（apps/cli）</text>
+        <text class="svg-s" x="460" y="74">可执行文件 ra</text>
+        <rect class="svg-core" x="180" y="140" width="400" height="74" rx="4" />
+        <text class="svg-t" x="200" y="170">共享存储（crates/store）</text>
+        <text class="svg-s" x="200" y="194">打开数据库 · 事件与投影 · 文件存储 · 导入 · 元数据提取</text>
+        <path class="svg-line" d="M170 96 L300 140" />
+        <path class="svg-line" d="M590 96 L460 140" />
+      </svg>
+      <figcaption>仓库根目录新增一个 Cargo workspace，三个包共用一份依赖锁和编译目录。共享存储包不允许依赖 Tauri，CI 会检查。</figcaption>
+    </figure>
+
+    <h3>搬进共享存储包的</h3>
+    <ul>
+      <li>打开数据库的全过程：数据库设置、自定义 SQL 函数（批注全文索引依赖它）、启动时的恢复检查、数据库升级、本机设备身份。</li>
+      <li>事件写入与投影规则（<code>apply.rs</code>）以及它们依赖的模块。</li>
+      <li>文件存储、书架读取、导入核心（算哈希、去重、复制、提取元数据和封面）。</li>
+      <li>统一的错误类型 <code>CommandError</code>。</li>
+    </ul>
+    <h3>留在桌面端的</h3>
+    <ul>
+      <li>所有 Tauri 命令包装；安卓文件路径处理、外部打开、封面图片协议；开机启动、文件关联这类系统副作用；插件、备份对话框、本机只读 API、API 密钥。</li>
+    </ul>
+    <h3>构建上要跟着改的</h3>
+    <ul>
+      <li>编译目录从 <code>apps/desktop/src-tauri/target</code> 移到仓库根，发版流程里写死的产物路径、CI 缓存配置都要改。</li>
+      <li>审计过的 <code>auto-launch</code> 补丁和几个依赖的优化等级必须搬到根配置。留在原地会被 Cargo 静默忽略。</li>
+      <li>安卓和 iOS 构建要实测一遍，Tauri 2 早期版本在 workspace 下出过问题。</li>
+      <li>删掉现在的 Bun 骨架，重新生成 <code>bun.lock</code>。</li>
+    </ul>
+  </div>
+</section>
+
+<section id="import">
+  <div class="wrap">
+    <h2>4. 只有一个导入实现</h2>
+    <p>现在导入分两半：Rust 负责算哈希、复制文件、提取封面；"导入了一本书"这条事件由网页端的 TypeScript 组装并提交。CLI 如果在 Rust 里再写一遍，就成了两份实现，迟早会走偏。</p>
+    <p><strong>设计：</strong>把整个导入收进共享存储包里的一个函数 <code>import_book</code>，从记录导入意图、判断格式、去重、复制、提取，到组装事件、提交，一气呵成。桌面 app 改为调用它，网页端只服务于导入的那部分 TypeScript 逻辑随之删除；CLI 直接调用同一个函数。</p>
+    <ul>
+      <li>极少数两边都得有的纯逻辑（例如从文件名推断书名和作者，元数据补全时也会用到），沿用项目里阅读进度规则的做法：一份共享的用例表，两种语言的测试都跑它，保证结果一致。</li>
+      <li>导入函数和"补齐同步过来但缺文件的书"这条路径目前都没有直接测试，这次补上。</li>
+    </ul>
+  </div>
+</section>
+
+<section id="concurrency">
+  <div class="wrap">
+    <h2>5. 两个进程共用一个库</h2>
+    <p>现在的代码默认只有一个进程会打开数据库。CLI 要写入，以下五件事得先做完。</p>
+
+    <h3><span class="tag risk">必须先修</span>事件可能被静默丢掉</h3>
+    <p>每条事件都带一个排序用的时钟戳，数据库规定同一台设备的戳不能重复。现在插入时遇到重复会悄悄跳过，界面仍显示成功，事件却没存下来。app 的时钟只在启动时校准一次，看不到 CLI 后来写的戳，而两者用的是同一个设备身份，所以两边真有可能撞上。</p>
+    <ul>
+      <li>区分两种"重复"：同一条事件被再次提交属于正常情况，照旧跳过；不同事件撞了同一个戳，就报错并整笔回滚。</li>
+      <li>app 收到这个错误，重新校准时钟、换新戳，再提交一次。</li>
+      <li>Rust 端自己生成戳的地方，都在独占写事务里先读最新戳再往后排。</li>
+    </ul>
+
+    <h3>进程锁</h3>
+    <p>数据目录里放一把锁。app 和 CLI 打开书库时都持有<strong>共享锁</strong>。升级数据库、从备份恢复、清空数据、压缩数据库这几类大操作需要<strong>独占锁</strong>，拿不到就明确报"另一个 ReadAware 进程正在使用书库"，不会在别人写到一半时动手。</p>
+
+    <h3>版本保护</h3>
+    <div class="table-shell">
+      <table>
+        <thead><tr><th>书库版本</th><th>app</th><th>CLI</th></tr></thead>
+        <tbody>
+          <tr><td>和程序一致</td><td>正常打开</td><td>正常打开</td></tr>
+          <tr><td>比程序旧</td><td>拿到独占锁后升级</td><td>拿到独占锁后升级；app 开着就提示先退出 app 或更新</td></tr>
+          <tr><td>比程序新</td><td>拒绝打开，提示更新 app</td><td>拒绝打开，提示更新 CLI</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>"比程序新"这一行目前没有任何保护，会静默继续运行。这次一并修掉。</p>
+
+    <h3>导入一半的文件不被误删</h3>
+    <p>app 启动时会清理"上次没导入完"的残留文件，判断标准是"不是我这个进程留下的"。如果 CLI 正在导入时 app 启动，CLI 的文件会被当成残留删掉。改为每个进程持有一把属于自己的锁，只清理锁已经释放（进程已退出或崩溃）的残留。</p>
+
+    <h3>app 能看到 CLI 写进来的东西</h3>
+    <p>现在 app 只在自己写完后刷新界面，CLI 导入一本书，开着的 app 不会显示。改为 app 每秒查一次 SQLite 自带的"别的连接是否提交过"计数器。这个计数器只在别的进程写入后才变，开销极小。一旦发现变化，app 走一遍同步拉取后的那套刷新（书架、对话、偏好），同时重新校准时钟，并尽快推送 CLI 新写的事件。</p>
+  </div>
+</section>
+
+<section id="enrich">
+  <div class="wrap">
+    <h2>6. 元数据补全</h2>
+    <p>有些格式要靠阅读引擎才能拿到书名、作者或封面：所有 PDF 的书名和作者、非 macOS 上的 PDF 封面、cbr 漫画。CLI 没有阅读引擎，只能等 app 打开时补。</p>
+    <ul>
+      <li><span class="tag ok">没问题</span>封面：app 按数据库里记录的"封面待检查"状态挑书去补。</li>
+      <li><span class="tag risk">有缺口</span>书名和作者：app 只挑"书名仍等于文件名"的 PDF 去补，所以 cbr 漫画的元数据永远补不上，PDF 拿到书名但缺作者时也补不上。在 app 里导入时会当场补，这条规则只是兜底；而 CLI 导入的书每次都会落进这个缺口。</li>
+    </ul>
+    <div class="decide">
+      <h3>已确认：把"元数据待补"记进数据库</h3>
+      <p>导入事件里加一个"元数据待补"标记（旧事件视为已补完，兼容同步），app 按这个标记挑书去补，补完提交一条结论清掉它。这样 CLI 导入和 app 导入的结果完全一样。随第 3 阶段（统一导入）一起做。</p>
+    </div>
+  </div>
+</section>
+
+<section id="datadir">
+  <div class="wrap">
+    <h2>7. 数据目录与身份</h2>
+    <ul>
+      <li>默认使用 app 的书库目录：macOS 是 <code>~/Library/Application Support/com.readaware.app</code>，Windows 是 <code>%APPDATA%\com.readaware.app</code>，Linux 是 <code>~/.local/share/com.readaware.app</code>。</li>
+      <li><code>--dev</code> 指向开发版书库；<code>--data-dir</code> 或环境变量 <code>READAWARE_DATA_DIR</code> 可以指定任意目录。</li>
+      <li>目录里没有书库时直接报错，不会因为路径打错就凭空建一份空书库。要新建，就显式运行 <code>ra init</code>。</li>
+      <li>CLI 使用和 app 相同的本机设备身份，它写的事件同步出去，和 app 写的没有区别。</li>
+    </ul>
+  </div>
+</section>
+
+<section id="commands">
+  <div class="wrap">
+    <h2>8. 第一期命令</h2>
+<pre><code>ra [--data-dir &lt;路径&gt; | --dev] [--json] [-v] &lt;命令&gt;
+
+  books list            列出书架：书名、作者、格式、阅读进度、封面状态
+  books show &lt;id&gt;       查看一本书的详情
+  import &lt;文件&gt;...       导入一个或多个文件，逐个报告：新增 / 已存在 / 补齐文件 / 失败
+  init                  在指定目录新建书库</code></pre>
+    <ul>
+      <li>默认输出给人看；加 <code>--json</code> 输出固定结构，方便脚本处理，出错时带稳定的错误码。</li>
+      <li>退出码：0 成功，1 运行出错（批量导入中有任何一个失败也算），2 参数用错。</li>
+      <li>不会把程序内部的报错堆栈打给用户；加 <code>-v</code> 才输出诊断日志。</li>
+    </ul>
+  </div>
+</section>
+
+<section id="phases">
+  <div class="wrap">
+    <h2>9. 实施阶段与验收</h2>
+    <p>每个阶段单独提交，前一阶段验收通过再开始下一阶段。</p>
+    <ol class="phases">
+      <li><strong>拆出共享存储包，行为不变。</strong>三个平台的原生测试全过；桌面开发版、正式构建、安卓构建、iOS 构建都能跑通；发版产物路径核对无误。</li>
+      <li><strong>打好两个进程共存的基础。</strong>第 5 节五件事全部落地，用"两个连接 / 两个进程"的测试覆盖：时钟冲突、锁、版本保护、导入残留归属。</li>
+      <li><strong>统一导入。</strong>app 改用共享的导入函数，删掉重复的 TypeScript 逻辑，补上共享用例表和缺失的测试。</li>
+      <li><strong>CLI 第一期命令。</strong>第 8 节的四个命令，CI 里跑 CLI 测试。</li>
+      <li><strong>在真实运行的 app 上验收。</strong>
+        <ul>
+          <li>app 关着时用 CLI 导入 epub 和 pdf，再打开 app，书架、封面、PDF 元数据都齐全；</li>
+          <li>app 开着时用 CLI 导入，一两秒内书架上出现新书，之后在 app 里导入、做批注都正常；</li>
+          <li>CLI 导入过程中在 app 里点恢复备份，app 明确提示书库被占用，数据无损；</li>
+          <li>开着同步时，CLI 导入的书能同步到另一台设备。</li>
+        </ul>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section id="decide">
+  <div class="wrap">
+    <h2>10. 已确认的决定</h2>
+    <ol>
+      <li><strong>元数据补全</strong>：把"元数据待补"记进数据库。</li>
+      <li><strong>命令名</strong>是 <code>ra</code>，提供 <code>init</code>。</li>
+      <li><strong>分发方式</strong>等功能做完再定。在此之前只保证在仓库里能运行。</li>
+    </ol>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">ReadAware · docs/architecture/cli.html · 与 cli.md 内容同步</div>
+</footer>
+</body>
+</html>

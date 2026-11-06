@@ -21,6 +21,7 @@
 - [同步引擎](./architecture/sync-engine.md)：加密传输、合并、文件、检查点和新设备引导。
 - [画像与实体身份](./architecture/identity-and-profile.md)：画像投影、人物别名与合并、自动整理。
 - [上下文包](./architecture/context-bundles.md)：有来源版本和授权边界的阅读上下文归档。
+- [命令行 ReadAware](./architecture/cli.md) / [网页版](./architecture/cli.html)：无 Agent 的 `ra`，独立直连同一书库，与 app 共用存储与导入实现。
 
 ## 功能契约
 

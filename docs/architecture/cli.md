@@ -59,7 +59,7 @@ desktop → store ← cli
 - 根 `Cargo.toml` 接管 `[patch.crates-io]`（vendored `auto-launch`）、各 `[profile.*]`（sha2、image 等 `opt-level = 3`）和唯一的 `Cargo.lock`。成员 manifest 里的 profile 和 patch 会被 Cargo 忽略，所以必须搬，否则审计过的补丁会静默失效。
 - `target/` 移到仓库根：`release.yml` 里写死的 `apps/desktop/src-tauri/target/<triple>/release/...` 路径、`turbo.json` 的 build outputs、`Swatinem/rust-cache` 的 `workspaces:` 都要跟着改。
 - CI 的 rust job 改为 `cargo fmt --all --check`，`clippy` 和 `test` 按 `-p` 逐个包运行，不扫 `vendor/`。macOS 和 Windows 的 native job 加上 store 与 CLI 的测试。
-- 加 `.taurignore`，避免 `tauri dev` 因 CLI 改动重编 app。
+- `tauri dev` 只监听桌面 crate 及其路径依赖（`crates/store`），CLI 改动不会触发重编，不需要 `.taurignore`（已实测）。
 - 搬文件时注意相对 `include_str!` 路径：`plugin_sandbox_policy.rs`、`external_open.rs`、`file_associations` 的测试。
 - 移动端：`tauri android build` 和 `tauri ios build --no-sign` 通过 `cargo metadata` 定位 target。Tauri 2 早期版本在 workspace 下有过问题，这一阶段必须实测两端构建。
 - 删除 Bun 骨架（`apps/cli/package.json`、`tsconfig.json`、`src/*.ts`）并重新生成 `bun.lock`。
@@ -180,6 +180,11 @@ ra [--data-dir <path> | --dev] [--json] [-v] <command>
    - CLI 导入过程中在 app 里发起恢复，得到 `store/in-use`，数据无损；
    - 同步开着时，CLI 导入的书被推送到另一台设备。
 
+   2026-11-07 在开发版书库上实测的结果：
+   - app 关闭时 `ra` 导入一本 epub 和一本 pdf（书库同时由 v56 迁移到 v57）；打开 app 后两本都在书架上、封面在本地，pdf 的书名与作者由补全流程填上，状态变为 `settled`。
+   - app 开着时 `ra` 导入，书架在 3 秒内出现新书；随后 app 自己提交的事件时钟戳排在 CLI 事件之后，没有冲突，全部进入推送队列。
+   - 用持有共享锁的进程模拟正在运行的 CLI，app 发起备份采集得到 `store/in-use`，之后 app 重新持有共享锁。（恢复与清空用同一把独占锁，由单元测试覆盖，未在开发版书库上实测。）
+   - 推送：CLI 写入后 app 按 3 秒防抖发起同步，本机没有可用的中继，未验证到达另一台设备。
 ## 10. 已确认的决定（2026-11-06）
 
 1. 第 6 节：持久化元数据"待补"状态。

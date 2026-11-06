@@ -161,6 +161,7 @@ The repository itself is a Bun workspace monorepo orchestrated by Turborepo.
 | `apps/web` | React 19 interface, TanStack Router, Jotai, Tailwind CSS v4 |
 | `apps/desktop` | Tauri 2 shell and native storage/platform commands |
 | `apps/landing` | Public website and release downloads |
+| `apps/cli` | Headless ReadAware without the agent: reads and writes the desktop app's data and imports books |
 | `packages/agent` | Agent runtime, model adapters, retrieval, and memory pipelines |
 | `packages/core` | Domain entities, events, and storage contracts |
 | `packages/ui` | Shared design system and co-located Storybook stories |

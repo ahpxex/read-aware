@@ -40,7 +40,16 @@ fn restart_recovers_only_prior_uncommitted_imports_and_keeps_current_writer() {
     let abandoned = id();
     let current = id();
     let committed = id();
-    for (id, owner) in [(&abandoned, "old"), (&current, "new"), (&committed, "old")] {
+    // This process's live session, and a process that has since exited.
+    let session = ImportSession::claim(dir.path()).unwrap();
+    let exited = ImportSession::claim(dir.path()).unwrap();
+    let old = exited.owner().to_string();
+    drop(exited);
+    for (id, owner) in [
+        (&abandoned, old.as_str()),
+        (&current, session.owner()),
+        (&committed, old.as_str()),
+    ] {
         begin_inner(&conn, dir.path(), id, owner).unwrap();
         put_blob_inner(&conn, dir.path(), &format!("bookfile:{id}"), None, b"book").unwrap();
         put_blob_inner(&conn, dir.path(), &format!("cover:{id}"), None, b"cover").unwrap();
@@ -49,7 +58,7 @@ fn restart_recovers_only_prior_uncommitted_imports_and_keeps_current_writer() {
     assert!(!pending(&conn, &committed));
     drop(conn);
     let db = Db::new(open(&path));
-    recover_import_cleanup(&db, dir.path(), "new").unwrap();
+    recover_import_cleanup(&db, dir.path()).unwrap();
     let conn = db.0.lock().unwrap();
     assert!(!pending(&conn, &abandoned));
     assert!(pending(&conn, &current));
@@ -145,7 +154,40 @@ fn recovery_releases_owned_unregistered_files_and_temporary_copies_only() {
     std::fs::write(&keep, b"retain").unwrap();
     assert!(begin_inner(&conn, dir.path(), &unowned, "new").is_err());
     let db = Db::new(conn);
-    recover_import_cleanup(&db, dir.path(), "new").unwrap();
+    recover_import_cleanup(&db, dir.path()).unwrap();
     assert!(paths(dir.path(), &abandoned).iter().all(|p| !p.exists()));
     assert_eq!(std::fs::read(keep).unwrap(), b"retain");
+}
+
+#[test]
+fn recovery_leaves_another_live_processs_import_alone() {
+    let dir = tempfile::tempdir().unwrap();
+    let conn = open(&dir.path().join("db"));
+    // The CLI is mid-import while the app starts and runs recovery.
+    let cli = ImportSession::claim(dir.path()).unwrap();
+    let importing = id();
+    begin_inner(&conn, dir.path(), &importing, cli.owner()).unwrap();
+    put_blob_inner(
+        &conn,
+        dir.path(),
+        &format!("bookfile:{importing}"),
+        None,
+        b"book",
+    )
+    .unwrap();
+    let db = Db::new(conn);
+    recover_import_cleanup(&db, dir.path()).unwrap();
+    {
+        let conn = db.0.lock().unwrap();
+        assert!(pending(&conn, &importing));
+        assert_eq!(
+            get_blob_inner(&conn, dir.path(), &format!("bookfile:{importing}")).unwrap(),
+            b"book"
+        );
+    }
+    // Once that process exits without finishing, the next recovery reclaims it.
+    drop(cli);
+    recover_import_cleanup(&db, dir.path()).unwrap();
+    let conn = db.0.lock().unwrap();
+    assert!(!pending(&conn, &importing));
 }

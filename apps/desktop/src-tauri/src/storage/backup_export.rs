@@ -101,6 +101,15 @@ pub async fn backup_export_capture(
     let lease = tasks.begin(window.label(), &task_id)?;
     super::blocking("backup_export_capture", move || {
         let bundled = crate::plugins::backup_programs(&app)?;
+        // The capture copies the database and the blob files in turn; another
+        // process (the `ra` CLI) writing in between would leave rows that
+        // name files the archive never copied.
+        let lock = app.state::<super::StoreLock>();
+        let _alone = lock.exclusive(super::Wait::Fail)?.ok_or_else(|| {
+            super::store_lock::in_use(
+                "The library is open in another ReadAware process, such as the ra command line",
+            )
+        })?;
         let db = app.state::<Db>();
         let mut conn = db.0.lock()?;
         let snapshot = backup_snapshot::capture(

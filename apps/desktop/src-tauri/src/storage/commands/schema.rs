@@ -11,14 +11,19 @@ use crate::storage::*;
 #[tauri::command]
 pub async fn wipe_all_data(app: tauri::AppHandle) -> Result<(), CommandError> {
     crate::storage::blocking("wipe_all_data", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let data_dir = tauri::Manager::state::<DataDir>(&app);
-        let mut conn = db.0.lock()?;
-        crate::desktop_preferences::commit_entries(
-            &app,
-            &[(crate::desktop_preferences::GENERAL_KEY.to_string(), None)],
-            || wipe_all_data_inner(&mut conn, &data_dir.0),
-        )
+        // Deleting every row and blob file under another process (the `ra`
+        // CLI) would leave it writing into a library that no longer exists.
+        let lock = tauri::Manager::state::<StoreLock>(&app);
+        lock.with_exclusive(|| {
+            let db = tauri::Manager::state::<Db>(&app);
+            let data_dir = tauri::Manager::state::<DataDir>(&app);
+            let mut conn = db.0.lock()?;
+            crate::desktop_preferences::commit_entries(
+                &app,
+                &[(crate::desktop_preferences::GENERAL_KEY.to_string(), None)],
+                || wipe_all_data_inner(&mut conn, &data_dir.0),
+            )
+        })
     })
     .await
 }

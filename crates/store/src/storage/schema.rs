@@ -993,6 +993,37 @@ pub const SCHEMA_VERSION: i64 = 56;
 /// projection columns exist, the inline data-URL column still does.
 pub const COVER_PROJECTION_VERSION: i64 = 24;
 
+/// The highest applied migration, or 0 for a database no migration touched.
+pub fn schema_version(conn: &Connection) -> Result<i64, CommandError> {
+    let tracked: bool = conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='schema_migrations')",
+        [],
+        |row| row.get(0),
+    )?;
+    if !tracked {
+        return Ok(0);
+    }
+    Ok(conn.query_row(
+        "SELECT COALESCE(MAX(version), 0) FROM schema_migrations",
+        [],
+        |row| row.get(0),
+    )?)
+}
+
+/// A database a newer build migrated has tables and rules this build does not
+/// know; reading or writing it could silently corrupt projections.
+pub fn ensure_schema_supported(version: i64) -> Result<(), CommandError> {
+    if version > SCHEMA_VERSION {
+        return Err(CommandError::new(
+            crate::error::CODE_STORE_SCHEMA_NEWER,
+            format!(
+                "library schema v{version} is newer than this build supports (v{SCHEMA_VERSION})"
+            ),
+        ));
+    }
+    Ok(())
+}
+
 /// Apply migrations newer than the highest recorded version, up to `max_version`
 /// (`i64::MAX` in production; tests use lower caps to stage old databases).
 pub fn run_migrations_up_to(conn: &mut Connection, max_version: i64) -> Result<(), CommandError> {
@@ -1008,6 +1039,7 @@ pub fn run_migrations_up_to(conn: &mut Connection, max_version: i64) -> Result<(
         [],
         |row| row.get(0),
     )?;
+    ensure_schema_supported(current)?;
     for (version, name, sql) in MIGRATIONS {
         if *version > current && *version <= max_version {
             let tx = conn.transaction()?;

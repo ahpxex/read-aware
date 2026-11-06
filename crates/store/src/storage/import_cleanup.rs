@@ -1,15 +1,26 @@
 //! Device-local intent recorded before an import writes its first blob.
-//! Recovery only considers previous processes; the current process may still
-//! be copying bytes while startup recovery finishes replaying remote events.
-use super::{events::projections_stale_conn, library_cleanup::release_book_files_inner, Db};
+//! Each intent names the process that recorded it (its presence lock id).
+//! Recovery reclaims only intents whose process has exited: the app and the
+//! CLI may both be importing into the same library, and the current process
+//! may still be copying bytes while startup recovery runs.
+use super::{
+    events::projections_stale_conn, library_cleanup::release_book_files_inner, process_alive, Db,
+    ProcessPresence,
+};
 use crate::error::CommandError;
 use rusqlite::{params, Connection};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-pub struct ImportSession(pub String);
-impl Default for ImportSession {
-    fn default() -> Self {
-        Self(uuid::Uuid::new_v4().to_string())
+/// This process's identity on the import intents it records: its presence
+/// lock, held until the process exits.
+pub struct ImportSession(ProcessPresence);
+impl ImportSession {
+    pub fn claim(dir: &Path) -> Result<Self, CommandError> {
+        Ok(Self(ProcessPresence::claim(dir)?))
+    }
+    pub fn owner(&self) -> &str {
+        &self.0.id
     }
 }
 
@@ -116,18 +127,19 @@ pub fn finish_inner(
     Ok(())
 }
 
-pub fn recover_import_cleanup(
-    db: &Db,
-    dir: &Path,
-    current_owner: &str,
-) -> Result<(), CommandError> {
+/// Release every intent whose recording process has exited. Intents of live
+/// processes, this one included, are left to their owners.
+pub fn recover_import_cleanup(db: &Db, dir: &Path) -> Result<(), CommandError> {
+    let mut alive: HashMap<String, bool> = HashMap::new();
     let mut after = String::new();
     loop {
         let rows = {
             let conn = db.0.lock()?;
-            let mut query = conn.prepare("SELECT book_id,owner FROM book_import_cleanup WHERE owner<>?1 AND book_id>?2 ORDER BY book_id LIMIT 100")?;
+            let mut query = conn.prepare(
+                "SELECT book_id,owner FROM book_import_cleanup WHERE book_id>?1 ORDER BY book_id LIMIT 100",
+            )?;
             let rows = query
-                .query_map(params![current_owner, after], |row| {
+                .query_map(params![after], |row| {
                     Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
                 })?
                 .collect::<Result<Vec<_>, _>>()?;
@@ -138,6 +150,17 @@ pub fn recover_import_cleanup(
         }
         for (id, owner) in rows {
             after = id.clone();
+            let live = match alive.get(&owner) {
+                Some(live) => *live,
+                None => {
+                    let live = process_alive(dir, &owner)?;
+                    alive.insert(owner.clone(), live);
+                    live
+                }
+            };
+            if live {
+                continue;
+            }
             let mut conn = db.0.lock()?;
             if let Err(error) = finish_inner(&mut conn, dir, &id, &owner) {
                 log::warn!("Interrupted import cleanup remains pending: {error}");

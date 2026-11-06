@@ -114,6 +114,8 @@ pub use preferences::*;
 pub mod checkpoints;
 pub use checkpoints::*;
 pub mod archive_member;
+pub mod store_lock;
+pub use store_lock::{process_alive, ProcessPresence, StoreLock, Wait};
 pub mod backup_restore_files;
 
 use crate::error::CommandError;

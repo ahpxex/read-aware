@@ -1010,8 +1010,21 @@ pub fn run() {
                 log::error!("app data directory is unavailable: {error}");
                 error
             })?;
-            let mut conn = storage::init_db(&data_dir).map_err(|error| {
-                log::error!("database initialization failed: {error}");
+            // The `ra` CLI may have this library open too. Hold it shared for
+            // the app's whole life; maintenance waits for other processes to
+            // close it rather than failing the launch.
+            let store_lock =
+                storage::StoreLock::acquire(&data_dir, storage::Wait::Block).map_err(|error| {
+                    log::error!("library lock unavailable: {error}");
+                    error
+                })?;
+            let mut conn =
+                storage::init_db(&data_dir, &store_lock, storage::Wait::Block).map_err(|error| {
+                    log::error!("database initialization failed: {error}");
+                    error
+                })?;
+            let import_session = storage::ImportSession::claim(&data_dir).map_err(|error| {
+                log::error!("process presence lock unavailable: {error}");
                 error
             })?;
             // No IPC/Worker or background sync is running yet. Restore both
@@ -1029,7 +1042,8 @@ pub fn run() {
             })?;
             app.manage(storage::Db::new(conn));
             app.manage(storage::DataDir(data_dir));
-            app.manage(storage::ImportSession::default());
+            app.manage(import_session);
+            app.manage(store_lock);
 
             // A previous session may have died between staging pulled events
             // and the finishing replay (see `stage_remote_events`) — the
@@ -1062,7 +1076,7 @@ pub fn run() {
                     if let Err(error) = fonts::recover_user_font_removal_cleanup(&db, &data_dir.0) {
                         log::warn!("user font removal recovery deferred: {error}");
                     }
-                    if let Err(error) = storage::recover_import_cleanup(&db, &data_dir.0, &handle.state::<storage::ImportSession>().0) {
+                    if let Err(error) = storage::recover_import_cleanup(&db, &data_dir.0) {
                         log::warn!("interrupted import recovery deferred: {error}");
                     }
                 });

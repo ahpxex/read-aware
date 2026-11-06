@@ -385,29 +385,60 @@ pub fn externalize_inline_blobs(conn: &Connection, data_dir: &Path) -> Result<()
     Ok(())
 }
 
-/// Open (creating if needed) the app database, apply the connection PRAGMA
-/// baseline (WAL et al — see `apply_connection_pragmas`), run migrations,
-/// externalize any pre-v3 inline blobs, and ensure the device identity row.
-/// `dir` is the data directory the blob store roots at (the desktop app passes
-/// its OS app-data dir; the CLI passes the library it was pointed at).
-pub fn init_db(dir: &Path) -> Result<Connection, CommandError> {
+/// Open (creating if needed) the library database in `dir` (the desktop app
+/// passes its OS app-data dir; the CLI the library it was pointed at), apply
+/// the connection PRAGMA baseline (WAL et al — see `apply_connection_pragmas`),
+/// and ensure the device identity row.
+///
+/// Startup maintenance (finishing an interrupted full restore, migrations, the
+/// legacy cover and inline-blob passes) rewrites the schema and blob files, so
+/// it runs only with the library to this process alone: `lock` is taken
+/// exclusively for it, waiting for other ReadAware processes or failing with
+/// `store/in-use` per `wait`. With nothing due, the database opens beside
+/// other processes. A database a newer build migrated is refused with
+/// `store/schema-newer`.
+pub fn init_db(
+    dir: &Path,
+    lock: &super::StoreLock,
+    wait: super::Wait,
+) -> Result<Connection, CommandError> {
     std::fs::create_dir_all(dir)?;
     let mut conn = Connection::open(dir.join("read-aware.db"))?;
     apply_connection_pragmas(&conn)?;
     register_sql_functions(&conn)?;
-    // Resolve an interrupted full restore before migration helpers can read or
-    // rewrite its blob files, and before the frontend hydrates local settings.
-    super::backup_restore_files::recover(&mut conn, dir).map_err(|error| {
-        log::error!("full backup file recovery failed: {error}");
-        error
-    })?;
-    // Covers moved out of the books table (v24/v25). The data-URL rows must
-    // be lifted into the blob store while both column sets exist, so the
-    // migrations pause at v24 for that pass and finish afterwards.
-    run_migrations_up_to(&mut conn, COVER_PROJECTION_VERSION)?;
-    materialize_legacy_covers(&conn, dir)?;
-    run_migrations(&mut conn)?;
-    externalize_inline_blobs(&conn, dir)?;
+    let version = schema_version(&conn)?;
+    ensure_schema_supported(version)?;
+    if version < SCHEMA_VERSION || super::backup_restore_files::recovery_pending(dir)? {
+        let alone = match lock.exclusive(super::Wait::Fail)? {
+            Some(alone) => alone,
+            None if wait == super::Wait::Block => {
+                log::warn!(
+                    "library maintenance is waiting for other ReadAware processes to close it"
+                );
+                lock.exclusive(super::Wait::Block)?
+                    .ok_or_else(|| CommandError::internal("blocking exclusive lock returned none"))?
+            }
+            None => {
+                return Err(super::store_lock::in_use(
+                    "The library needs maintenance (an update or an interrupted restore) and is open in another ReadAware process",
+                ))
+            }
+        };
+        // Resolve an interrupted full restore before migration helpers can read
+        // or rewrite its blob files, and before the frontend hydrates settings.
+        super::backup_restore_files::recover(&mut conn, dir).map_err(|error| {
+            log::error!("full backup file recovery failed: {error}");
+            error
+        })?;
+        // Covers moved out of the books table (v24/v25). The data-URL rows must
+        // be lifted into the blob store while both column sets exist, so the
+        // migrations pause at v24 for that pass and finish afterwards.
+        run_migrations_up_to(&mut conn, COVER_PROJECTION_VERSION)?;
+        materialize_legacy_covers(&conn, dir)?;
+        run_migrations(&mut conn)?;
+        externalize_inline_blobs(&conn, dir)?;
+        drop(alone);
+    }
     ensure_local_device(&conn)?;
     Ok(conn)
 }

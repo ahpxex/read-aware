@@ -16,7 +16,7 @@ pub async fn library_begin_import(
             &conn,
             &app.state::<DataDir>().0,
             &book_id,
-            &app.state::<ImportSession>().0,
+            app.state::<ImportSession>().owner(),
         )
     })
     .await
@@ -34,7 +34,7 @@ pub async fn library_finish_import(
             &mut conn,
             &app.state::<DataDir>().0,
             &book_id,
-            &app.state::<ImportSession>().0,
+            app.state::<ImportSession>().owner(),
         )
     })
     .await

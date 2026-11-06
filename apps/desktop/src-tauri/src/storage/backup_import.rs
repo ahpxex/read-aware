@@ -120,18 +120,22 @@ pub async fn backup_import_apply(
     let tasks = app.state::<BackupTasks>().inner().clone();
     let owner = window.label().to_owned();
     super::blocking("backup_import_apply", move || {
-        let db = app.state::<Db>();
-        let mut conn = db.0.lock()?;
-        let data_dir = app.state::<DataDir>();
-        execute_plan(
-            &tasks,
-            &owner,
-            task_id,
-            &mut conn,
-            &data_dir.0,
-            request,
-            |phase| progress.send(phase).map_err(|_| cancelled()),
-        )
+        // A full restore replaces rows, blob files, plugins and the secret
+        // key; no other process may hold the library open meanwhile.
+        app.state::<super::StoreLock>().with_exclusive(|| {
+            let db = app.state::<Db>();
+            let mut conn = db.0.lock()?;
+            let data_dir = app.state::<DataDir>();
+            execute_plan(
+                &tasks,
+                &owner,
+                task_id,
+                &mut conn,
+                &data_dir.0,
+                request,
+                |phase| progress.send(phase).map_err(|_| cancelled()),
+            )
+        })
     })
     .await
 }

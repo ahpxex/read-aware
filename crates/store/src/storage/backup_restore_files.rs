@@ -363,6 +363,23 @@ impl FileRestore {
 
 /// Called before hydration/IPC and after the owning restore transaction ends.
 /// An error retains the journal and prevents normal startup over mixed files.
+/// Whether an interrupted full restore left a journal for `recover` to finish.
+/// Retired journals are only garbage and do not count.
+pub fn recovery_pending(root: &Path) -> Result<bool, CommandError> {
+    let parent = root.join(DIRECTORY);
+    let entries = match fs::read_dir(&parent) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(e) => return Err(e.into()),
+        Ok(entries) => entries,
+    };
+    for entry in entries {
+        if !entry?.file_name().to_string_lossy().starts_with("retired-") {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 pub fn recover(conn: &mut Connection, root: &Path) -> Result<(), CommandError> {
     let parent = root.join(DIRECTORY);
     match fs::symlink_metadata(&parent) {

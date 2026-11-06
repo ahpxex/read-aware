@@ -194,6 +194,16 @@ function writeLocal<T>(
   );
 }
 
+/**
+ * Adopt KV values another ReadAware process (the `ra` CLI) committed to this
+ * library since hydration; resolves with the keys that changed. Writes this
+ * process has queued keep precedence.
+ */
+export async function reloadLocalKVFromStore(): Promise<string[]> {
+  if (!isTauri() || !hydrated) return [];
+  return writes.reconcile(loadKvSnapshot, () => snapshot?.keys() ?? []);
+}
+
 /** A durability barrier for writes already accepted by this process. */
 export async function flushLocalKV(prefix = ""): Promise<void> {
   if (isTauri()) await writes.flush(prefix);

@@ -351,3 +351,58 @@ describe("durable KV write queue", () => {
     expect(mirror.get("second")).toBe("newer");
   });
 });
+
+describe("reconcile", () => {
+  const known = (mirror: Map<string, string>) => () => mirror.keys();
+
+  test("adopts what another process committed as remote values, persisting nothing", async () => {
+    const f = fixture();
+    f.disk.set("cli.added", "1");
+    f.disk.set("plugin.key", "changed elsewhere");
+    const keys = await f.queue.reconcile(async () => new Map(f.disk), known(f.mirror));
+    expect(keys.sort()).toEqual(["cli.added", "plugin.key"]);
+    expect(f.mirror.get("plugin.key")).toBe("changed elsewhere");
+    expect(f.pending).toHaveLength(0);
+    expect(f.origins).toEqual(["remote", "remote"]);
+    expect(f.transactions.at(-1)?.source).toBe("remote");
+    f.disk.delete("cli.added");
+    expect(await f.queue.reconcile(async () => new Map(f.disk), known(f.mirror))).toEqual(["cli.added"]);
+    expect(f.mirror.has("cli.added")).toBe(false);
+    expect(await f.queue.reconcile(async () => new Map(f.disk), known(f.mirror))).toEqual([]);
+  });
+
+  test("reads after this process's earlier writes and leaves newer ones in place", async () => {
+    const f = fixture();
+    const earlier = f.queue.write("plugin.key", "local edit");
+    let release!: (values: Map<string, string>) => void;
+    const loaded = new Promise<Map<string, string>>((resolve) => {
+      release = resolve;
+    });
+    let reading = false;
+    const reconciled = f.queue.reconcile(() => {
+      reading = true;
+      return loaded;
+    }, known(f.mirror));
+    await Promise.resolve();
+    expect(reading).toBe(false);
+    f.pending.shift()!.resolve();
+    await earlier;
+    for (let turn = 0; turn < 10 && !reading; turn++) await Promise.resolve();
+    expect(reading).toBe(true);
+    // A write accepted while the native read is in flight wins over it.
+    const later = f.queue.write("plugin.key", "newer local edit");
+    release(
+      new Map([
+        ["plugin.key", "stale read"],
+        ["cli.key", "x"],
+      ]),
+    );
+    expect(await reconciled).toEqual(["cli.key"]);
+    expect(f.mirror.get("plugin.key")).toBe("newer local edit");
+    // The newer write persists once the reconcile leaves the queue.
+    for (let turn = 0; turn < 10 && !f.pending.length; turn++) await Promise.resolve();
+    f.pending.shift()!.resolve();
+    await later;
+    expect(f.disk.get("plugin.key")).toBe("newer local edit");
+  });
+});

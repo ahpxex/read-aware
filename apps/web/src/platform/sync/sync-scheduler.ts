@@ -20,7 +20,7 @@ import { flushRestoredCredentialPublications } from "../restored-credential-publ
 import { AppError, ERR_SYNC_NETWORK, type OperationCondition } from "@read-aware/core";
 import { invoke } from "../ipc";
 import { isTauri } from "../environment";
-import { emitAppEvent } from "../app-events";
+import { emitAppEvent, onAppEvent } from "../app-events";
 import { hydrateMissingCovers, stopCoverHydration } from "./cover-hydrator";
 import { hydrateMissingFonts, stopFontHydration } from "./font-hydrator";
 import { reconcileDuplicateBooks } from "../book-dedupe";
@@ -619,6 +619,7 @@ export function startSyncScheduler(origin: DomainActor = "system"): () => void {
   // must not wake a cycle that can only fail with "no master key".
   const pushCauses = new ObservationCauses();
   let offBroadcast: (() => void) | null = null;
+  let offExternal: (() => void) | null = null;
   const onFocus = () => tick();
   // Mobile lifecycle: a backgrounded webview pauses timers, so a scheduled
   // retry can sleep indefinitely. Coming back to the foreground resumes the
@@ -672,6 +673,14 @@ export function startSyncScheduler(origin: DomainActor = "system"): () => void {
       pushCauses.add(event);
       pushDebounce = window.setTimeout(() => tick(actorFromEvent(pushCauses.take({}))), PUSH_DEBOUNCE_MS);
     });
+    // The `ra` CLI's writes land in the same outbox on this device; push them
+    // on the same debounce instead of waiting for the next periodic tick.
+    offExternal = onAppEvent("store-changed-externally", (event) => {
+      if (disposed) return;
+      if (pushDebounce !== null) window.clearTimeout(pushDebounce);
+      pushCauses.add(event);
+      pushDebounce = window.setTimeout(() => tick(actorFromEvent(pushCauses.take({}))), PUSH_DEBOUNCE_MS);
+    });
     // The doorbell socket is a relay feature.
     void openWatch();
     tick(origin);
@@ -689,6 +698,7 @@ export function startSyncScheduler(origin: DomainActor = "system"): () => void {
     watchSocket?.close();
     watchSocket = null;
     offBroadcast?.();
+    offExternal?.();
     stopCoverHydration();
     stopFontHydration();
     window.removeEventListener("focus", onFocus);

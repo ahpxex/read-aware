@@ -30,6 +30,7 @@ import { useSyncLoginDeepLink } from "./features/settings/hooks/useSyncLoginDeep
 import { usePluginCommandShortcuts } from "./features/plugins/hooks/usePluginCommandShortcuts";
 import { useSurfaceHandoff } from "./hooks/useSurfaceHandoff";
 import { startSyncScheduler } from "./platform/sync/sync-scheduler";
+import { watchExternalStoreChanges } from "./platform/external-store-changes";
 import { BACK_REQUEST_EVENT, sendAppToBackground } from "./platform/back-navigation";
 import { CommandPalette } from "./features/command/components/CommandPalette";
 import { FeatureErrorBoundary } from "./components/FeatureErrorBoundary";
@@ -113,6 +114,8 @@ function App() {
     initializeUserFonts();
     // No-ops until an account is connected (Data & Sync); off the boot path.
     const stopSync = startSyncScheduler();
+    // The `ra` CLI may write this library while the app runs.
+    const stopExternalChanges = watchExternalStoreChanges();
     // Off the boot path: plugin updates read the installed list, so they wait
     // for initialization as well as the delay.
     const updateCheck = window.setTimeout(
@@ -147,6 +150,7 @@ function App() {
       stopAgentMaintenance?.();
       stopModelCatalog?.();
       stopSync();
+      stopExternalChanges();
     };
   }, []);
 

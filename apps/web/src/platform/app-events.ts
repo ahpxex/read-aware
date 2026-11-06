@@ -15,7 +15,13 @@ const log = createLogger("app-events");
 
 export type AppEventMap = {
   /** Projection transactions with no local business-event broadcast. No row data. */
-  "projections-invalidated": { source: "remote" | "restore" };
+  "projections-invalidated": { source: "remote" | "restore" | "host" };
+  /**
+   * Another ReadAware process on this device (the `ra` CLI) committed to the
+   * library; the clock, KV mirror and projections were refreshed. Local
+   * outbox rows it left are pushed like this process's own writes.
+   */
+  "store-changed-externally": Record<string, never>;
   /**
    * The reader just did demand-driven work (a relocation, a page render).
    * Background pipelines that share the reader's resources — the PDF worker,

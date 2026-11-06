@@ -25,6 +25,9 @@ mod save_targets;
 mod secrets;
 mod storage;
 mod storefront;
+// Only the desktop shares its library with the `ra` CLI.
+#[cfg(desktop)]
+mod store_watch;
 mod tauri_error;
 mod web_image_cache;
 #[cfg(target_os = "macos")]
@@ -1044,6 +1047,8 @@ pub fn run() {
             app.manage(storage::DataDir(data_dir));
             app.manage(import_session);
             app.manage(store_lock);
+            #[cfg(desktop)]
+            store_watch::start(app.handle().clone());
 
             // A previous session may have died between staging pulled events
             // and the finishing replay (see `stage_remote_events`) — the

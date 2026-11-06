@@ -139,6 +139,41 @@ export class KVWriteQueue {
     return done;
   }
 
+  /**
+   * Adopt values another process (the `ra` CLI) already committed natively.
+   * Queued like a write, so `load` reads after every earlier write of this
+   * process persisted; a key with a write queued since keeps it, because that
+   * newer local write persists afterwards and wins. Adopted values persist
+   * nothing and report as `remote`, so nothing republishes them. Resolves
+   * with the keys whose value changed.
+   */
+  reconcile(load: () => Promise<ReadonlyMap<string, string>>, known: () => Iterable<string>): Promise<string[]> {
+    const done = this.tail.then(async () => {
+      const fresh = await load();
+      const cause = causalActor("system");
+      const changed: { key: string; value: string | null }[] = [];
+      for (const key of new Set([...known(), ...fresh.keys()])) {
+        if (this.keys.has(key)) continue;
+        const value = fresh.get(key) ?? null;
+        if (this.deps.read(key) !== value) changed.push({ key, value });
+      }
+      for (const { key, value } of changed) {
+        this.deps.mirror(key, value, cause);
+        this.deps.committed(key, value, "remote", cause);
+      }
+      if (changed.length)
+        this.deps.settled?.(stampEventCause({ entries: changed, source: "remote", actor: null }, cause));
+      return changed.map(({ key }) => key);
+    });
+    // The queue stays usable after a failed reconcile; the returned promise
+    // carries the failure to the caller, which logs it.
+    this.tail = done.then(
+      () => {},
+      () => {},
+    );
+    return done;
+  }
+
   async flush(prefix = ""): Promise<void> {
     const errors: unknown[] = [];
     while (true) {

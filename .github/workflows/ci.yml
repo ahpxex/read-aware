@@ -84,7 +84,7 @@ jobs:
           key: ci-rust
           cache-on-failure: true
       - name: Formatting
-        run: cargo fmt --check -p read-aware-store -p read-aware-desktop
+        run: cargo fmt --check -p read-aware-store -p read-aware-desktop -p read-aware-cli
       - name: The shared store stays Tauri-free
         run: |
           if cargo tree --locked -p read-aware-store -e normal --prefix none | grep -i '^tauri'; then
@@ -96,8 +96,12 @@ jobs:
         run: bun run --filter @read-aware/plugin-dictionary --filter @read-aware/plugin-editorial-themes --filter @read-aware/plugin-rss-reader --filter @read-aware/plugin-sentence-reader --filter @read-aware/plugin-tts --filter @read-aware/plugin-jumper build
       - name: Clippy (library and tests, warnings are errors)
         run: cargo clippy -p read-aware-store -p read-aware-desktop --lib --tests --locked -- -D warnings
+      - name: Clippy for the ra CLI (binary and tests, warnings are errors)
+        run: cargo clippy -p read-aware-cli --bins --tests --locked -- -D warnings
       - name: Native transactions and platform contracts (no desktop launch)
         run: cargo test --locked --lib -p read-aware-store -p read-aware-desktop
+      - name: The ra CLI against a temporary library
+        run: cargo test --locked -p read-aware-cli
       - name: Vendored auto-launch patch (resolved through patch.crates-io)
         run: cargo test --locked -p auto-launch
 
@@ -142,5 +146,7 @@ jobs:
         run: bun run --filter @read-aware/plugin-dictionary --filter @read-aware/plugin-editorial-themes --filter @read-aware/plugin-rss-reader --filter @read-aware/plugin-sentence-reader --filter @read-aware/plugin-tts --filter @read-aware/plugin-jumper build
       - name: Native transactions and platform contracts (no desktop launch)
         run: cargo test --locked --lib -p read-aware-store -p read-aware-desktop
+      - name: The ra CLI against a temporary library
+        run: cargo test --locked -p read-aware-cli
       - name: Vendored auto-launch patch (resolved through patch.crates-io)
         run: cargo test --locked -p auto-launch

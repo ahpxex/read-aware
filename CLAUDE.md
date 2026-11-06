@@ -19,8 +19,9 @@ TanStack Router, Jotai, Tailwind CSS v4, Vite, and Tauri 2.
 
 - The shipping app is desktop-only. `apps/web` supplies Tauri's frontend and local
   dev/Storybook; `apps/landing` is the separate public marketing site.
-- `apps/cli` is a headless ReadAware without the agent: it reads and writes the
-  desktop app's data and imports books, under the same storage contract below. It
+- `apps/cli` is a headless ReadAware without the agent (`ra`, a Rust binary on
+  `crates/store`): it reads and writes the desktop app's data and imports books
+  through the same import pipeline, under the same storage contract below. It
   works standalone, opening the same SQLite store directly whether or not the app
   is running; there is one CLI and one data path, not a separate IPC mode.
 - Data and retrieval stay on-device: SQLite is the source of truth, with FTS and
@@ -128,7 +129,7 @@ TanStack Router, Jotai, Tailwind CSS v4, Vite, and Tauri 2.
   metadata extraction. It must never depend on Tauri.
 - `apps/desktop/src-tauri`: Tauri shell: IPC command wrappers over the store, OS
   and webview integration, and the full-backup pipeline.
-- `apps/cli`: headless command-line entry point over the same data.
+- `apps/cli`: the `ra` binary (Rust), a thin command layer over `crates/store`.
 - `packages/core`: contracts, entities, events and `StorageAdapter`.
 - `packages/agent`: agent runtime, tools, memory and context assembly.
 - `packages/plugin-types` and `plugins`: public plugin API and first-party consumers.
@@ -162,6 +163,9 @@ suites in headless Chrome. `bun run lint` is type-aware oxlint (`.oxlintrc.json`
 plus a check that no promise rejection is discarded without a log or a comment.
 `bun run format` applies Biome (`biome.json`); Rust uses `cargo fmt` with the toolchain
 pinned in `rust-toolchain.toml` (bump it together with the workflows' `toolchain:`).
+The Rust crates form one Cargo workspace at the repo root (build output in `target/`):
+run the CLI with `cargo run -p read-aware-cli -- <command>` and test a crate with
+`cargo test -p read-aware-store` (or `read-aware-desktop`, `read-aware-cli`).
 CI pins Bun to `packageManager` (1.3.13) and rejects drift in committed plugin `dist`
 output; if your local Bun differs, rebuild plugins with `bunx bun@1.3.13 run build`.
 `.github/workflows/ci.yml` gates PRs and `main` on typecheck, lint, formatting, tests, `lint:deps`,

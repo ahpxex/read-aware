@@ -1,7 +1,7 @@
 # 命令行 ReadAware（设计已确认）
 
-> 状态：2026-11-06 设计已确认，按第 9 节分阶段实施。用户可读版见 [cli.html](./cli.html)。
-> 现状：`apps/cli` 只有 Bun 写的 `--help` / `--version` 骨架（PR #47），本设计会用 Rust 替换它。
+> 状态：第 1–4 阶段已实现（2026-11-07）：`crates/store` 共享存储、两进程协调、统一原生导入、Rust 版 `ra`（`cargo run -p read-aware-cli -- <命令>`）。第 5 阶段的运行时验收见第 9 节。用户可读版见 [cli.html](./cli.html)。
+> 下文的"现状"描述的是设计时（实施前）的代码。
 
 ## 1. 目标与边界
 

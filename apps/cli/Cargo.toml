@@ -1,0 +1,28 @@
+[package]
+name = "read-aware-cli"
+version = "0.1.0"
+description = "ra: headless ReadAware without the agent. Reads and writes the desktop app's library and imports books, whether or not the app is running."
+edition = "2021"
+# Same floor as the store crate it links.
+rust-version = "1.90"
+publish = false
+
+[[bin]]
+name = "ra"
+path = "src/main.rs"
+
+[dependencies]
+# The library itself: the same schema, event log, projections and import
+# pipeline the desktop app runs.
+read-aware-store = { path = "../../crates/store" }
+clap = { version = "4", features = ["derive"] }
+# The OS data directory, resolved exactly as Tauri's `app_data_dir` does
+# (Tauri depends on the same major version).
+dirs = "7"
+log = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+
+[dev-dependencies]
+tempfile = "3"

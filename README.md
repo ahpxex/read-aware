@@ -162,7 +162,7 @@ The repository itself is a Bun workspace monorepo orchestrated by Turborepo.
 | `apps/desktop` | Tauri 2 shell: IPC commands, OS integration and full backups |
 | `crates/store` | On-device store shared by the app and the CLI: SQLite, event log, projections, blobs, import |
 | `apps/landing` | Public website and release downloads |
-| `apps/cli` | Headless ReadAware without the agent: reads and writes the desktop app's data and imports books, with or without the app running |
+| `apps/cli` | `ra`, headless ReadAware without the agent: reads and writes the desktop app's library and imports books, with or without the app running (`cargo run -p read-aware-cli -- --help`) |
 | `packages/agent` | Agent runtime, model adapters, retrieval, and memory pipelines |
 | `packages/core` | Domain entities, events, and storage contracts |
 | `packages/ui` | Shared design system and co-located Storybook stories |

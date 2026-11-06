@@ -149,3 +149,25 @@ fn a_library_held_for_maintenance_is_reported_not_waited_on() {
     holder.unlock().unwrap();
     assert!(ra(&library, &["books", "list"]).status.success());
 }
+
+#[test]
+fn library_text_cannot_drive_the_terminal() {
+    let dir = tempfile::tempdir().unwrap();
+    let library = dir.path().join("library");
+    assert!(ra(&library, &["init"]).status.success());
+    // A title is whatever the file says; this one carries an ANSI escape.
+    let hostile = dir.path().join("evil\u{1b}[2Jtitle.txt");
+    std::fs::write(&hostile, PROSE).unwrap();
+    let imported = ra(&library, &["import", hostile.to_str().unwrap()]);
+    assert!(imported.status.success(), "{}", stderr(&imported));
+    for output in [imported, ra(&library, &["books", "list"])] {
+        assert!(!stdout(&output).contains('\u{1b}'), "{:?}", stdout(&output));
+        assert!(!stderr(&output).contains('\u{1b}'));
+    }
+    // JSON keeps the real value, escaped.
+    let listed = ra(&library, &["--json", "books", "list"]);
+    assert!(json(&listed)["books"][0]["fileName"]
+        .as_str()
+        .unwrap()
+        .contains('\u{1b}'));
+}

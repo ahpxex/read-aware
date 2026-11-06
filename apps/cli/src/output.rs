@@ -3,6 +3,23 @@
 use read_aware_store::error::CommandError;
 use std::process::ExitCode;
 
+/// Text safe to print to a terminal. Book titles, authors and file names come
+/// from untrusted files; a control character in one (an ANSI escape sequence)
+/// would otherwise drive the terminal. JSON output is escaped by serde.
+pub fn plain(value: impl std::fmt::Display) -> String {
+    value
+        .to_string()
+        .chars()
+        .map(|c| {
+            if c.is_control() {
+                char::REPLACEMENT_CHARACTER
+            } else {
+                c
+            }
+        })
+        .collect()
+}
+
 pub struct Output {
     pub json: bool,
 }
@@ -28,7 +45,7 @@ impl Output {
                 serde_json::json!({ "error": { "code": error.code, "message": error.message } })
             );
         } else {
-            eprintln!("ra: {}", error.message);
+            eprintln!("ra: {}", plain(&error.message));
         }
         ExitCode::FAILURE
     }
@@ -44,7 +61,7 @@ impl log::Log for StderrLogger {
     }
     fn log(&self, record: &log::Record) {
         if self.enabled(record.metadata()) {
-            eprintln!("[{}] {}", record.level(), record.args());
+            eprintln!("[{}] {}", record.level(), plain(record.args()));
         }
     }
     fn flush(&self) {}

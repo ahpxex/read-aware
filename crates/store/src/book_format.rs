@@ -90,7 +90,9 @@ pub fn detect_format(name: &str, mime: &str, path: &Path) -> Result<&'static str
         Ok(Some(format)) => Ok(format),
         Ok(None) => Err(unsupported(name)),
         Err(error) => {
-            log::warn!("unable to sniff the format of {name}: {error}");
+            // The name is user content: it reaches the caller in the error,
+            // never the log.
+            log::warn!("unable to sniff the format of an imported file: {error}");
             Err(unsupported(name))
         }
     }

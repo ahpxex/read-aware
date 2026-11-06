@@ -1,6 +1,6 @@
 //! The `ra` commands.
 use crate::library;
-use crate::output::Output;
+use crate::output::{plain, Output};
 use read_aware_store::error::CommandError;
 use read_aware_store::import::{
     import_book, ImportBookOutcome, ImportBookRequest, ImportIntent, StageFrom,
@@ -46,25 +46,30 @@ pub fn books_show(dir: &Path, id: &str, out: &Output) -> Result<ExitCode, Comman
         }
     };
     out.emit(&json!({ "book": book }), || {
-        println!("{}", book.title);
-        println!("  author    {}", book.author);
-        println!("  id        {}", book.id);
-        println!("  format    {}", book.format);
-        println!("  file      {} ({} bytes)", book.file_name, book.file_size);
+        println!("{}", plain(&book.title));
+        println!("  author    {}", plain(&book.author));
+        println!("  id        {}", plain(&book.id));
+        println!("  format    {}", plain(&book.format));
+        println!(
+            "  file      {} ({} bytes)",
+            plain(&book.file_name),
+            book.file_size
+        );
         if let Some(source_path) = &book.source_path {
-            println!("  folder    {source_path}");
+            println!("  folder    {}", plain(source_path));
         }
         println!(
             "  status    {}, {:.0}% read",
-            book.reading_status, book.progress_percent
+            plain(&book.reading_status),
+            book.progress_percent
         );
-        println!("  cover     {}", book.cover_status);
+        println!("  cover     {}", plain(&book.cover_status));
         if book.metadata_status.as_deref() == Some("deferred") {
             println!("  metadata  waiting for the ReadAware app to read it");
         }
-        println!("  added     {}", book.created_at);
+        println!("  added     {}", plain(&book.created_at));
         if let Some(opened) = &book.last_opened_at {
-            println!("  opened    {opened}");
+            println!("  opened    {}", plain(opened));
         }
     });
     Ok(ExitCode::SUCCESS)
@@ -119,10 +124,14 @@ pub fn import(dir: &Path, files: &[PathBuf], out: &Output) -> Result<ExitCode, C
                         "duplicate  {}  {}  ← {}",
                         short_id(&book.id),
                         summary(book),
-                        path.display()
+                        plain(path.display())
                     );
                 }
-                Err(error) => eprintln!("failed     {}: {}", path.display(), error.message),
+                Err(error) => eprintln!(
+                    "failed     {}: {}",
+                    plain(path.display()),
+                    plain(&error.message)
+                ),
             }
         }
         failed |= result.is_err();
@@ -217,18 +226,21 @@ pub fn init(dir: &Path, out: &Output) -> Result<ExitCode, CommandError> {
             if existed {
                 println!(
                     "A ReadAware library already exists at {} ({books} books).",
-                    dir.display()
+                    plain(dir.display())
                 );
             } else {
-                println!("Created an empty ReadAware library at {}.", dir.display());
+                println!(
+                    "Created an empty ReadAware library at {}.",
+                    plain(dir.display())
+                );
             }
         },
     );
     Ok(ExitCode::SUCCESS)
 }
 
-fn short_id(id: &str) -> &str {
-    id.get(..8).unwrap_or(id)
+fn short_id(id: &str) -> String {
+    plain(id.get(..8).unwrap_or(id))
 }
 
 fn summary(book: &LibraryBook) -> String {
@@ -239,6 +251,8 @@ fn summary(book: &LibraryBook) -> String {
     };
     format!(
         "{} — {}  [{}{progress}]",
-        book.title, book.author, book.format
+        plain(&book.title),
+        plain(&book.author),
+        plain(&book.format)
     )
 }

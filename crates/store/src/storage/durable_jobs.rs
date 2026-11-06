@@ -23,7 +23,7 @@ pub struct DurableJobRecord {
     created_at: String,
     updated_at: String,
 }
-pub(crate) fn durable_job_get_inner(
+pub fn durable_job_get_inner(
     conn: &Connection,
     owner: &str,
     id: &str,
@@ -46,21 +46,8 @@ pub(crate) fn durable_job_get_inner(
     })
     .transpose()
 }
-#[tauri::command]
-pub async fn durable_job_get(
-    owner: String,
-    id: String,
-    app: tauri::AppHandle,
-) -> Result<Option<DurableJobRecord>, CommandError> {
-    crate::storage::blocking("durable_job_get", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let conn = db.0.lock()?;
-        durable_job_get_inner(&conn, &owner, &id)
-    })
-    .await
-}
 
-pub(crate) fn validate_source(source: &Value) -> Result<(), CommandError> {
+pub fn validate_source(source: &Value) -> Result<(), CommandError> {
     let text = |value: &Value, max: usize| {
         value.as_str().is_some_and(|s| {
             !s.is_empty() && s.encode_utf16().count() <= max && !s.chars().any(char::is_control)
@@ -107,7 +94,7 @@ pub(crate) fn validate_source(source: &Value) -> Result<(), CommandError> {
     }
     Ok(())
 }
-pub(crate) fn durable_job_create_with_source_inner(
+pub fn durable_job_create_with_source_inner(
     conn: &mut Connection,
     owner: &str,
     id: &str,
@@ -162,23 +149,8 @@ pub(crate) fn durable_job_create_with_source_inner(
     tx.commit()?;
     Ok(record)
 }
-#[tauri::command]
-pub async fn durable_job_create(
-    owner: String,
-    id: String,
-    plan: Value,
-    source: Option<Value>,
-    app: tauri::AppHandle,
-) -> Result<DurableJobRecord, CommandError> {
-    crate::storage::blocking("durable_job_create", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        durable_job_create_with_source_inner(&mut conn, &owner, &id, plan, source)
-    })
-    .await
-}
 
-pub(crate) fn durable_job_checkpoint_inner(
+pub fn durable_job_checkpoint_inner(
     conn: &mut Connection,
     owner: &str,
     id: &str,
@@ -294,38 +266,31 @@ pub(crate) fn durable_job_checkpoint_inner(
     tx.commit()?;
     Ok(record)
 }
-#[tauri::command]
-pub async fn durable_job_checkpoint(
-    owner: String,
-    id: String,
-    expected_revision: String,
-    state: Value,
-    app: tauri::AppHandle,
-) -> Result<DurableJobRecord, CommandError> {
-    crate::storage::blocking("durable_job_checkpoint", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        durable_job_checkpoint_inner(&mut conn, &owner, &id, &expected_revision, state)
-    })
-    .await
-}
-#[tauri::command]
-pub async fn durable_job_list(
-    owner: String,
+
+/// One page of an owner's jobs, newest first.
+pub fn durable_job_list_inner(
+    conn: &mut Connection,
+    owner: &str,
     offset: usize,
     limit: usize,
-    app: tauri::AppHandle,
 ) -> Result<Vec<DurableJobRecord>, CommandError> {
-    identity(&owner, "list")?;
+    identity(owner, "list")?;
     if limit == 0 || limit > 50 || offset > 256 {
         return Err(invalid("Invalid job page"));
     }
-    crate::storage::blocking("durable_job_list", move || {
-        let db = tauri::Manager::state::<Db>(&app); let mut conn = db.0.lock()?; let tx = conn.transaction()?;
-        let ids = { let mut stmt = tx.prepare("SELECT id FROM durable_jobs WHERE owner=?1 ORDER BY created_at DESC,id DESC LIMIT ?2 OFFSET ?3")?;
-            let rows = stmt.query_map(params![owner,limit,offset], |row| row.get::<_,String>(0))?.collect::<Result<Vec<_>,_>>()?; rows };
-        ids.iter().map(|id| durable_job_get_inner(&tx, &owner, id)?.ok_or_else(|| invalid("Job page lost its row"))).collect()
-    }).await
+    let tx = conn.transaction()?;
+    let ids = {
+        let mut stmt = tx.prepare("SELECT id FROM durable_jobs WHERE owner=?1 ORDER BY created_at DESC,id DESC LIMIT ?2 OFFSET ?3")?;
+        let rows = stmt
+            .query_map(params![owner, limit, offset], |row| row.get::<_, String>(0))?
+            .collect::<Result<Vec<_>, _>>()?;
+        rows
+    };
+    ids.iter()
+        .map(|id| {
+            durable_job_get_inner(&tx, owner, id)?.ok_or_else(|| invalid("Job page lost its row"))
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -422,15 +387,4 @@ mod tests {
         )
         .is_err());
     }
-}
-
-/// Startup discovery is host-only and reveals no plans or plugin owners.
-#[tauri::command]
-pub async fn durable_agent_job_owners(app: tauri::AppHandle) -> Result<Vec<String>, CommandError> {
-    crate::storage::blocking("durable_agent_job_owners", move || {
-        let db = tauri::Manager::state::<Db>(&app); let conn = db.0.lock()?;
-        let mut stmt = conn.prepare("SELECT DISTINCT owner FROM durable_jobs WHERE owner LIKE 'agent:%' AND json_extract(state_json,'$.status') IN ('queued','running') ORDER BY owner LIMIT 256")?;
-        let owners = stmt.query_map([], |row| row.get::<_, String>(0))?.collect::<Result<Vec<_>,_>>()?;
-        Ok(owners)
-    }).await
 }

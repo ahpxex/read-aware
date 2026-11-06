@@ -12,7 +12,7 @@ fn invalid() -> CommandError {
     )
 }
 
-pub(super) fn source_json(payload: &Value, book_id: &str) -> Result<Option<String>, CommandError> {
+pub fn source_json(payload: &Value, book_id: &str) -> Result<Option<String>, CommandError> {
     let Some(range) = payload.get("range").filter(|v| !v.is_null()) else {
         return Ok(None);
     };
@@ -59,10 +59,7 @@ pub(super) fn source_json(payload: &Value, book_id: &str) -> Result<Option<Strin
     Ok(Some(serde_json::to_string(range)?))
 }
 
-pub(super) fn validate_local_source(
-    conn: &Connection,
-    event: &EventRow,
-) -> Result<(), CommandError> {
+pub fn validate_local_source(conn: &Connection, event: &EventRow) -> Result<(), CommandError> {
     if !["highlight.created", "note.created"].contains(&event.event_type.as_str()) {
         return Ok(());
     }

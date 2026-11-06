@@ -33,7 +33,7 @@ fn registry(raw: Option<&str>) -> Result<Registry, CommandError> {
     };
     if value.iter().any(|(id, binding)| {
         id.is_empty()
-            || !crate::plugins::valid_plugin_id(&binding.plugin_id)
+            || !crate::plugin_id::valid_plugin_id(&binding.plugin_id)
             || binding.provider_id.trim().is_empty()
             || binding.provider_id.len() > 1024
             || binding.key.is_empty()
@@ -57,7 +57,7 @@ fn save(tx: &Transaction<'_>, raw: &str) -> Result<(), CommandError> {
     tx.execute("INSERT INTO app_kv(key,value_json,updated_at) VALUES (?1,?2,strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,updated_at=excluded.updated_at", params![KEY,raw])?;
     Ok(())
 }
-fn create_inner(
+pub fn create_inner(
     conn: &mut Connection,
     events: &[EventRow],
     book_id: &str,
@@ -118,7 +118,7 @@ fn create_inner(
     tx.commit()?;
     Ok(report)
 }
-fn prune_inner(
+pub fn prune_inner(
     conn: &mut Connection,
     ids: &[String],
     expected: Option<&str>,
@@ -153,48 +153,6 @@ fn prune_inner(
     save(&tx, replacement)?;
     tx.commit()?;
     Ok(())
-}
-#[tauri::command]
-pub async fn virtual_book_create(
-    events: Vec<EventRow>,
-    book_id: String,
-    binding: VirtualBinding,
-    expected_registry: Option<String>,
-    replacement_registry: String,
-    app: tauri::AppHandle,
-) -> Result<CommitReport, CommandError> {
-    blocking("virtual_book_create", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        create_inner(
-            &mut conn,
-            &events,
-            &book_id,
-            &binding,
-            expected_registry.as_deref(),
-            &replacement_registry,
-        )
-    })
-    .await
-}
-#[tauri::command]
-pub async fn virtual_book_prune(
-    book_ids: Vec<String>,
-    expected_registry: Option<String>,
-    replacement_registry: String,
-    app: tauri::AppHandle,
-) -> Result<(), CommandError> {
-    blocking("virtual_book_prune", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        prune_inner(
-            &mut conn,
-            &book_ids,
-            expected_registry.as_deref(),
-            &replacement_registry,
-        )
-    })
-    .await
 }
 
 #[cfg(test)]

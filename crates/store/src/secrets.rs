@@ -43,13 +43,10 @@ use std::sync::Mutex;
 use aes_gcm::aead::{Aead, KeyInit, OsRng};
 use aes_gcm::{AeadCore, Aes256Gcm, Key, Nonce};
 use base64::Engine;
-use rusqlite::{params, OptionalExtension};
-use tauri::Manager;
-
-use crate::storage::{DataDir, Db};
+use rusqlite::params;
 
 /// `app_kv` prefix for stored secrets. Values are sealed, never plaintext.
-const KV_PREFIX: &str = "read-aware-secret:";
+pub const KV_PREFIX: &str = "read-aware-secret:";
 
 fn key_path(data_dir: &Path) -> PathBuf {
     data_dir.join("secret.key")
@@ -119,14 +116,14 @@ fn cipher(data_dir: &Path) -> Result<Aes256Gcm, CommandError> {
 /// `base64(nonce ‖ ciphertext)` — a fresh random nonce per write, stored
 /// alongside, which is how GCM expects to be used.
 ///
-/// `pub(crate)` only so the storage tests can exercise the crypto directly; the
+/// `pub` only so the storage tests can exercise the crypto directly; the
 /// commands below are the supported entry points.
-pub(crate) fn encrypt(data_dir: &Path, plaintext: &str) -> Result<String, CommandError> {
+pub fn encrypt(data_dir: &Path, plaintext: &str) -> Result<String, CommandError> {
     encrypt_with_cipher(cipher(data_dir)?, plaintext)
 }
 
 /// Pure preparation for atomic restore: never create or replace a live key.
-pub(crate) fn encrypt_with_key(key: &[u8], plaintext: &str) -> Result<String, CommandError> {
+pub fn encrypt_with_key(key: &[u8], plaintext: &str) -> Result<String, CommandError> {
     let cipher = Aes256Gcm::new_from_slice(key).map_err(|_| {
         CommandError::new(
             crate::error::CODE_SECRETS_UNAVAILABLE,
@@ -146,13 +143,13 @@ fn encrypt_with_cipher(cipher: Aes256Gcm, plaintext: &str) -> Result<String, Com
     Ok(base64::engine::general_purpose::STANDARD.encode(packed))
 }
 
-pub(crate) fn decrypt(data_dir: &Path, packed: &str) -> Result<String, CommandError> {
+pub fn decrypt(data_dir: &Path, packed: &str) -> Result<String, CommandError> {
     decrypt_with_cipher(packed, || cipher(data_dir))
 }
 
 /// Read-only verification of a backup's credential store. Never create or repair
 /// a key in an imported directory, including when its key is missing or invalid.
-pub(crate) fn decrypt_existing(data_dir: &Path, packed: &str) -> Result<String, CommandError> {
+pub fn decrypt_existing(data_dir: &Path, packed: &str) -> Result<String, CommandError> {
     let bytes = std::fs::read(key_path(data_dir)).map_err(|error| {
         CommandError::context_coded(
             crate::error::CODE_SECRETS_UNAVAILABLE,
@@ -194,22 +191,9 @@ fn decrypt_with_cipher(
 
 // ─── Commands ────────────────────────────────────────────────────────────────
 
-fn set_inner(
-    app: &tauri::AppHandle,
-    key: &str,
-    value: &str,
-    roam: bool,
-    source: Option<&serde_json::Value>,
-) -> Result<(), CommandError> {
-    let sealed = encrypt(&app.state::<DataDir>().0, value)?;
-    let db = app.state::<Db>();
-    let mut conn = db.0.lock()?;
-    write_sealed_with_source(&mut conn, key, Some(&sealed), roam, source)
-}
-
 /// The encrypted value/deletion and publication obligation commit together.
 /// Remote projection overlays cannot replace a newer unpublished local choice.
-pub(crate) fn write_sealed_with_source(
+pub fn write_sealed_with_source(
     conn: &mut rusqlite::Connection,
     key: &str,
     sealed: Option<&str>,
@@ -242,96 +226,4 @@ pub(crate) fn write_sealed_with_source(
     }
     tx.commit()?;
     Ok(())
-}
-
-fn get_inner(app: &tauri::AppHandle, key: &str) -> Result<Option<String>, CommandError> {
-    let sealed: Option<String> = {
-        let db = app.state::<Db>();
-        let conn = db.0.lock()?;
-        conn.query_row(
-            "SELECT value_json FROM app_kv WHERE key = ?1",
-            params![format!("{KV_PREFIX}{key}")],
-            |row| row.get(0),
-        )
-        .optional()?
-    };
-    match sealed {
-        Some(value) => decrypt(&app.state::<DataDir>().0, &value).map(Some),
-        None => Ok(None),
-    }
-}
-
-fn delete_inner(
-    app: &tauri::AppHandle,
-    key: &str,
-    roam: bool,
-    source: Option<&serde_json::Value>,
-) -> Result<(), CommandError> {
-    let db = app.state::<Db>();
-    let mut conn = db.0.lock()?;
-    write_sealed_with_source(&mut conn, key, None, roam, source)
-}
-
-#[tauri::command]
-pub async fn secret_set(
-    app: tauri::AppHandle,
-    key: String,
-    value: String,
-    roam: Option<bool>,
-    source: Option<serde_json::Value>,
-) -> Result<(), CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
-        set_inner(&app, &key, &value, roam.unwrap_or(true), source.as_ref())
-    })
-    .await
-    .map_err(|e| format!("secret_set task failed: {e}"))?
-}
-
-#[tauri::command]
-pub async fn secret_get(
-    app: tauri::AppHandle,
-    key: String,
-) -> Result<Option<String>, CommandError> {
-    tauri::async_runtime::spawn_blocking(move || get_inner(&app, &key))
-        .await
-        .map_err(|e| format!("secret_get task failed: {e}"))?
-}
-
-#[tauri::command]
-pub async fn secret_delete(
-    app: tauri::AppHandle,
-    key: String,
-    roam: Option<bool>,
-    source: Option<serde_json::Value>,
-) -> Result<(), CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
-        delete_inner(&app, &key, roam.unwrap_or(true), source.as_ref())
-    })
-    .await
-    .map_err(|e| format!("secret_delete task failed: {e}"))?
-}
-
-fn keys_inner(app: &tauri::AppHandle, prefix: &str) -> Result<Vec<String>, CommandError> {
-    let db = app.state::<Db>();
-    let conn = db.0.lock()?;
-    let mut stmt = conn.prepare("SELECT key FROM app_kv WHERE key LIKE ?1 ORDER BY key")?;
-    let like = format!("{KV_PREFIX}{prefix}%");
-    let keys = stmt
-        .query_map(params![like], |row| row.get::<_, String>(0))?
-        .filter_map(|row| row.ok())
-        .filter_map(|key| key.strip_prefix(KV_PREFIX).map(str::to_string))
-        .collect();
-    Ok(keys)
-}
-
-/// Stored secret key names under a prefix (names only, never values) —
-/// lets hydration discover per-provider slots without a hardcoded roster.
-#[tauri::command]
-pub async fn secret_keys(
-    app: tauri::AppHandle,
-    prefix: String,
-) -> Result<Vec<String>, CommandError> {
-    tauri::async_runtime::spawn_blocking(move || keys_inner(&app, &prefix))
-        .await
-        .map_err(|e| format!("secret_keys task failed: {e}"))?
 }

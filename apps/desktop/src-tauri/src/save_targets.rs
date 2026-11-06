@@ -17,6 +17,7 @@
 //! and permanent, and also covers every file the user ever OPENED (picked
 //! books), so it cannot express "this save, once".
 
+use crate::tauri_error::tauri_error;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Seek, SeekFrom, Write};
@@ -304,7 +305,11 @@ impl SaveIo for tauri::AppHandle {
             // or cancelled producer never truncates the chosen document.
             SaveTarget::Picked(FilePath::Url(url)) => {
                 use tauri_plugin_fs::{FsExt, OpenOptions};
-                let staging = self.path().app_cache_dir()?.join("save-staging");
+                let staging = self
+                    .path()
+                    .app_cache_dir()
+                    .map_err(tauri_error)?
+                    .join("save-staging");
                 std::fs::create_dir_all(&staging)?;
                 let mut staged = tempfile::NamedTempFile::new_in(&staging)?;
                 produce(staged.as_file_mut())?;
@@ -319,7 +324,11 @@ impl SaveIo for tauri::AppHandle {
                 Ok(Delivery::Done)
             }
             SaveTarget::Export { filename } => {
-                let root = self.path().app_cache_dir()?.join("export-staging");
+                let root = self
+                    .path()
+                    .app_cache_dir()
+                    .map_err(tauri_error)?
+                    .join("export-staging");
                 stage_export(root, filename, produce).map(Delivery::Export)
             }
         }

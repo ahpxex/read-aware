@@ -30,7 +30,7 @@ fn keys(plugin_id: &str) -> Result<(String, String), CommandError> {
     ))
 }
 
-pub(crate) fn plugin_data_snapshot_inner(
+pub fn plugin_data_snapshot_inner(
     conn: &mut Connection,
     plugin_id: &str,
 ) -> Result<PluginDataSnapshot, CommandError> {
@@ -40,14 +40,14 @@ pub(crate) fn plugin_data_snapshot_inner(
     Ok(snapshot)
 }
 
-pub(crate) fn plugin_data_snapshot_tx(
+pub fn plugin_data_snapshot_tx(
     tx: &Transaction,
     plugin_id: &str,
 ) -> Result<PluginDataSnapshot, CommandError> {
     plugin_data_snapshot_conn(tx, plugin_id)
 }
 
-pub(crate) fn plugin_data_snapshot_conn(
+pub fn plugin_data_snapshot_conn(
     tx: &Connection,
     plugin_id: &str,
 ) -> Result<PluginDataSnapshot, CommandError> {
@@ -76,7 +76,7 @@ pub(crate) fn plugin_data_snapshot_conn(
     })
 }
 
-pub(crate) fn plugin_data_restore_inner(
+pub fn plugin_data_restore_inner(
     conn: &mut Connection,
     plugin_id: &str,
     snapshot: PluginDataSnapshot,
@@ -86,7 +86,7 @@ pub(crate) fn plugin_data_restore_inner(
     Ok(tx.commit()?)
 }
 
-pub(crate) fn plugin_data_restore_tx(
+pub fn plugin_data_restore_tx(
     tx: &Transaction,
     plugin_id: &str,
     snapshot: PluginDataSnapshot,
@@ -111,33 +111,6 @@ pub(crate) fn plugin_data_restore_tx(
     }
     plugin_docs::replace_plugin_documents(tx, plugin_id, snapshot.documents)?;
     Ok(())
-}
-
-#[tauri::command]
-pub async fn plugin_data_snapshot(
-    plugin_id: String,
-    app: AppHandle,
-) -> Result<PluginDataSnapshot, CommandError> {
-    blocking("plugin_data_snapshot", move || {
-        let db = app.state::<Db>();
-        let mut conn = db.0.lock()?;
-        plugin_data_snapshot_inner(&mut conn, &plugin_id)
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn plugin_data_restore(
-    plugin_id: String,
-    snapshot: PluginDataSnapshot,
-    app: AppHandle,
-) -> Result<(), CommandError> {
-    blocking("plugin_data_restore", move || {
-        let db = app.state::<Db>();
-        let mut conn = db.0.lock()?;
-        plugin_data_restore_inner(&mut conn, &plugin_id, snapshot)
-    })
-    .await
 }
 
 #[cfg(test)]

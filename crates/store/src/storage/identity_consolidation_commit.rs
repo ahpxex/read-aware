@@ -1,6 +1,6 @@
 //! Apply derived profile/entity decisions and idle completion in one transaction.
 use super::{
-    entity_mutations, events, identity_consolidation as identity, local_event_guard, Db, EventRow,
+    entity_mutations, events, identity_consolidation as identity, local_event_guard, EventRow,
 };
 use crate::error::CommandError;
 use rusqlite::{Connection, TransactionBehavior};
@@ -86,7 +86,7 @@ fn validate_profile<'a>(
     Ok(block)
 }
 
-pub(crate) fn identity_commit_inner(
+pub fn identity_commit_inner(
     conn: &mut Connection,
     expected_revision: &str,
     profile_event: &EventRow,
@@ -144,26 +144,4 @@ pub(crate) fn identity_commit_inner(
         emitted_event_ids,
         settled: complete,
     })
-}
-
-#[tauri::command]
-pub async fn identity_consolidation_commit(
-    expected_revision: String,
-    profile_event: EventRow,
-    entity_events: Vec<EventRow>,
-    complete: bool,
-    app: tauri::AppHandle,
-) -> Result<IdentityConsolidationReceipt, CommandError> {
-    super::blocking("identity_consolidation_commit", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        identity_commit_inner(
-            &mut conn,
-            &expected_revision,
-            &profile_event,
-            &entity_events,
-            complete,
-        )
-    })
-    .await
 }

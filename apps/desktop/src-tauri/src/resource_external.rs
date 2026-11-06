@@ -2,6 +2,7 @@
 //! and the resource lease; only the system association is used, never a program argument.
 use super::{invalid, ResourceFiles, LIFETIME, MAX_FILE, MAX_TOTAL};
 use crate::error::CommandError;
+use crate::tauri_error::tauri_error;
 use std::{
     collections::HashMap,
     fs::File,
@@ -27,7 +28,11 @@ struct PreviewState {
 #[derive(Default)]
 pub struct ExternalPreviews(Mutex<PreviewState>);
 pub fn initialize(app: &tauri::AppHandle) -> Result<(), CommandError> {
-    let root = app.path().app_cache_dir()?.join("resource-previews");
+    let root = app
+        .path()
+        .app_cache_dir()
+        .map_err(tauri_error)?
+        .join("resource-previews");
     app.state::<ExternalPreviews>().0.lock()?.initialize(&root)
 }
 
@@ -181,7 +186,11 @@ pub async fn resource_open_associated(
             let mut entries = resources.0.lock()?;
             super::lease(&mut entries, &id)?
         };
-        let root = app.path().app_cache_dir()?.join("resource-previews");
+        let root = app
+            .path()
+            .app_cache_dir()
+            .map_err(tauri_error)?
+            .join("resource-previews");
         let state = app.state::<ExternalPreviews>();
         let mut previews = state.0.lock()?;
         handoff(&mut previews, &root, source, &filename, |target| {

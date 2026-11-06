@@ -1,7 +1,7 @@
 //! Scoped metadata pagination and pinned artifact reads, not actor grants.
 use super::{
     context_bundle::{self, Scope},
-    events, Db,
+    events,
 };
 use crate::error::CommandError;
 use rusqlite::{params, Connection, OptionalExtension};
@@ -56,7 +56,7 @@ fn fresh(conn: &Connection) -> Result<(), CommandError> {
     Ok(())
 }
 
-pub(crate) fn context_bundle_history_inner(
+pub fn context_bundle_history_inner(
     conn: &mut Connection,
     input: Value,
 ) -> Result<Value, CommandError> {
@@ -142,7 +142,7 @@ pub(crate) fn context_bundle_history_inner(
     Ok(result)
 }
 
-pub(crate) fn context_bundle_read_inner(
+pub fn context_bundle_read_inner(
     conn: &mut Connection,
     input: Value,
 ) -> Result<Value, CommandError> {
@@ -191,29 +191,4 @@ pub(crate) fn context_bundle_read_inner(
     }
     tx.commit()?;
     Ok(value)
-}
-
-#[tauri::command]
-pub async fn context_bundle_history(
-    app: tauri::AppHandle,
-    query: Value,
-) -> Result<Value, CommandError> {
-    super::blocking("context_bundle_history", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        context_bundle_history_inner(&mut conn, query)
-    })
-    .await
-}
-#[tauri::command]
-pub async fn context_bundle_read(
-    app: tauri::AppHandle,
-    query: Value,
-) -> Result<Value, CommandError> {
-    super::blocking("context_bundle_read", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        context_bundle_read_inner(&mut conn, query)
-    })
-    .await
 }

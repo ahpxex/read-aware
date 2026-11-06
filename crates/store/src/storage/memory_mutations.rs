@@ -1,5 +1,5 @@
 //! User feedback changes only existing active memories, inside the event transaction.
-use super::{events::commit_events_in_transaction, Db, EventRow, Memory};
+use super::{events::commit_events_in_transaction, EventRow, Memory};
 use crate::error::CommandError;
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
 use serde::Serialize;
@@ -55,7 +55,7 @@ pub(crate) fn read_snapshot(
         revision: format!("mem1:{:x}", Sha256::digest(bytes)),
     }))
 }
-pub(crate) fn memory_inspect_inner(
+pub fn memory_inspect_inner(
     conn: &mut Connection,
     id: &str,
 ) -> Result<Option<MemorySnapshot>, CommandError> {
@@ -114,7 +114,7 @@ fn target(event: &EventRow) -> Result<&str, CommandError> {
     }
     Ok(id)
 }
-pub(crate) fn memory_commit_inner(
+pub fn memory_commit_inner(
     conn: &mut Connection,
     event: &EventRow,
     expected_revision: &str,
@@ -155,29 +155,4 @@ pub(crate) fn memory_commit_inner(
         memory_id: id.into(),
         revision,
     })
-}
-#[tauri::command]
-pub async fn memory_inspect(
-    id: String,
-    app: tauri::AppHandle,
-) -> Result<Option<MemorySnapshot>, CommandError> {
-    crate::storage::blocking("memory_inspect", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        memory_inspect_inner(&mut conn, &id)
-    })
-    .await
-}
-#[tauri::command]
-pub async fn memory_commit(
-    event: EventRow,
-    expected_revision: String,
-    app: tauri::AppHandle,
-) -> Result<MemoryMutationReceipt, CommandError> {
-    crate::storage::blocking("memory_commit", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        memory_commit_inner(&mut conn, &event, &expected_revision)
-    })
-    .await
 }

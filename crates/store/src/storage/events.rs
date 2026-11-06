@@ -10,7 +10,7 @@
 use super::*;
 use crate::error::CommandError;
 
-pub(crate) fn row_to_event(row: &rusqlite::Row) -> rusqlite::Result<EventRow> {
+pub fn row_to_event(row: &rusqlite::Row) -> rusqlite::Result<EventRow> {
     let payload_str: String = row.get("payload_json")?;
     let payload: Value = serde_json::from_str(&payload_str).unwrap_or(Value::Null);
     Ok(EventRow {
@@ -38,7 +38,7 @@ pub(crate) fn row_to_event(row: &rusqlite::Row) -> rusqlite::Result<EventRow> {
 /// relay are already there, and re-enqueueing them would echo every pull
 /// straight back as a push.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum EventSource {
+pub enum EventSource {
     Local,
     Remote,
 }
@@ -46,7 +46,7 @@ pub(crate) enum EventSource {
 /// Insert one envelope into the log. Returns whether the row was NEW — dedup by
 /// event id (and by the unique HLC index) makes redelivery a no-op, and callers
 /// use the answer to avoid applying an event to the projections twice.
-pub(crate) fn insert_event_row(
+pub fn insert_event_row(
     tx: &Transaction<'_>,
     ev: &EventRow,
     source: EventSource,
@@ -61,7 +61,7 @@ pub(crate) fn insert_event_row(
 /// `unverified` row after an account adoption). This is what makes a pull
 /// double as verification: nothing the relay just handed back ever needs to
 /// be pushed again.
-pub(crate) fn insert_event_row_with_seq(
+pub fn insert_event_row_with_seq(
     tx: &Transaction<'_>,
     ev: &EventRow,
     source: EventSource,
@@ -120,35 +120,13 @@ pub(crate) fn insert_event_row_with_seq(
     Ok(inserted > 0)
 }
 
-pub(crate) fn append_events_inner(
-    conn: &mut Connection,
-    events: &[EventRow],
-) -> Result<(), CommandError> {
+pub fn append_events_inner(conn: &mut Connection, events: &[EventRow]) -> Result<(), CommandError> {
     let tx = conn.transaction()?;
     for ev in events {
         insert_event_row(&tx, ev, EventSource::Local)?;
     }
     tx.commit()?;
     Ok(())
-}
-
-/// Append events WITHOUT touching the projections.
-///
-/// The one caller is the boot-time genesis backfill, which synthesizes creation
-/// events for pre-event-era rows: the projection already holds that state, so
-/// applying would be redundant. Every path that changes state uses
-/// `commit_events` instead.
-#[tauri::command]
-pub async fn append_events(
-    events: Vec<EventRow>,
-    app: tauri::AppHandle,
-) -> Result<(), CommandError> {
-    crate::storage::blocking("append_events", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        append_events_inner(&mut conn, &events)
-    })
-    .await
 }
 
 /// What a `commit_events` call did.
@@ -162,7 +140,7 @@ pub struct CommitReport {
     pub applied: usize,
 }
 
-pub(crate) fn commit_events_inner(
+pub fn commit_events_inner(
     conn: &mut Connection,
     events: &[EventRow],
 ) -> Result<CommitReport, CommandError> {
@@ -172,7 +150,7 @@ pub(crate) fn commit_events_inner(
     Ok(report)
 }
 
-pub(crate) fn commit_events_in_transaction(
+pub fn commit_events_in_transaction(
     tx: &Transaction<'_>,
     events: &[EventRow],
 ) -> Result<CommitReport, CommandError> {
@@ -194,26 +172,6 @@ pub(crate) fn commit_events_in_transaction(
         }
     }
     Ok(report)
-}
-
-/// THE write path: append events and apply them to the projections in ONE
-/// transaction.
-///
-/// Before this existed the frontend wrote the projection itself and appended
-/// the event next to it, fire-and-forget — so a failure on either side left the
-/// two disagreeing with nothing to detect or repair it. Now the log leads and
-/// the tables derive from it: both land, or neither does.
-#[tauri::command]
-pub async fn commit_events(
-    events: Vec<EventRow>,
-    app: tauri::AppHandle,
-) -> Result<CommitReport, CommandError> {
-    crate::storage::blocking("commit_events", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        commit_events_inner(&mut conn, &events)
-    })
-    .await
 }
 
 /// What a `apply_remote_events` call did.
@@ -261,7 +219,7 @@ fn seq_of(seqs: Option<&[i64]>, index: usize) -> Option<i64> {
     seqs.and_then(|s| s.get(index).copied())
 }
 
-pub(crate) fn apply_remote_events_inner(
+pub fn apply_remote_events_inner(
     conn: &mut Connection,
     data_dir: &Path,
     events: &[EventRow],
@@ -339,7 +297,7 @@ fn projections_stale(tx: &Transaction<'_>) -> Result<bool, CommandError> {
     projections_stale_conn(tx)
 }
 
-pub(crate) fn projections_stale_conn(conn: &Connection) -> Result<bool, CommandError> {
+pub fn projections_stale_conn(conn: &Connection) -> Result<bool, CommandError> {
     conn.query_row(
         "SELECT projections_stale FROM sync_profile WHERE id = 1",
         [],
@@ -356,10 +314,7 @@ fn set_projections_stale(tx: &Transaction<'_>, stale: bool) -> Result<(), Comman
     set_projections_stale_conn(tx, stale)
 }
 
-pub(crate) fn set_projections_stale_conn(
-    conn: &Connection,
-    stale: bool,
-) -> Result<(), CommandError> {
+pub fn set_projections_stale_conn(conn: &Connection, stale: bool) -> Result<(), CommandError> {
     conn.execute(
         "INSERT INTO sync_profile (id, projections_stale, updated_at)
          VALUES (1, ?1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
@@ -382,7 +337,7 @@ pub(crate) fn set_projections_stale_conn(
 /// Durability: staged events are committed to the log before the cursor
 /// advances, and the stale marker survives a crash — recovery (boot and the
 /// start of every pull) finalizes whatever a previous session left behind.
-pub(crate) fn stage_remote_events_inner(
+pub fn stage_remote_events_inner(
     conn: &mut Connection,
     data_dir: &Path,
     events: &[EventRow],
@@ -411,27 +366,11 @@ pub(crate) fn stage_remote_events_inner(
     Ok(appended)
 }
 
-#[tauri::command]
-pub async fn stage_remote_events(
-    events: Vec<EventRow>,
-    seqs: Option<Vec<i64>>,
-    app: AppHandle,
-) -> Result<usize, CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let db = app.state::<Db>();
-        let data_dir = app.state::<DataDir>();
-        let mut conn = db.0.lock()?;
-        stage_remote_events_inner(&mut conn, &data_dir.0, &events, seqs.as_deref())
-    })
-    .await
-    .map_err(|e| format!("stage_remote_events task failed: {e}"))?
-}
-
 /// Bring the projections up to date with everything staged: one full replay,
 /// then clear the marker — atomically, so a crash mid-replay leaves the marker
 /// set and recovery runs it again. A no-op (None) when nothing is staged,
 /// which makes it safe to call defensively.
-pub(crate) fn finalize_staged_events_inner(
+pub fn finalize_staged_events_inner(
     conn: &mut Connection,
     data_dir: &Path,
 ) -> Result<Option<RebuildReport>, CommandError> {
@@ -447,88 +386,6 @@ pub(crate) fn finalize_staged_events_inner(
     set_projections_stale(&tx, false)?;
     tx.commit()?;
     Ok(Some(report))
-}
-
-#[tauri::command]
-pub async fn finalize_staged_events(app: AppHandle) -> Result<Option<RebuildReport>, CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let db = app.state::<Db>();
-        let data_dir = app.state::<DataDir>();
-        let mut conn = db.0.lock()?;
-        finalize_staged_events_inner(&mut conn, &data_dir.0)
-    })
-    .await
-    .map_err(|e| format!("finalize_staged_events task failed: {e}"))?
-}
-
-/// The sync engine's merge entry point: append events pulled from the relay
-/// and bring the projections up to date, in ONE transaction.
-///
-/// Differs from `commit_events` in exactly two ways: merged events do NOT enter
-/// the push outbox (they came from the relay — echoing them back would loop
-/// forever), and out-of-HLC-order arrivals fall back to a full replay rather
-/// than applying incrementally (see `apply_remote_events_inner`). The caller
-/// (the pull loop) is responsible for `hlc.observe()`-ing every stamp BEFORE
-/// invoking this, and for advancing `sync_cursors` after it returns.
-#[tauri::command]
-pub async fn apply_remote_events(
-    events: Vec<EventRow>,
-    seqs: Option<Vec<i64>>,
-    app: AppHandle,
-) -> Result<MergeReport, CommandError> {
-    // Same threading note as `rebuild_projections`: the replay fallback is
-    // unbounded work and must stay off the main thread.
-    tauri::async_runtime::spawn_blocking(move || {
-        let db = app.state::<Db>();
-        let data_dir = app.state::<DataDir>();
-        let mut conn = db.0.lock()?;
-        apply_remote_events_inner(&mut conn, &data_dir.0, &events, seqs.as_deref())
-    })
-    .await
-    .map_err(|e| format!("apply_remote_events task failed: {e}"))?
-}
-
-/// Distinct aggregate ids that already have an event of one of the given types.
-/// Backs the boot-time genesis reconciliation: the frontend synthesizes
-/// creation events for projection rows whose aggregate never entered the log.
-#[tauri::command]
-pub async fn list_event_aggregate_ids(
-    types: Vec<String>,
-    app: tauri::AppHandle,
-) -> Result<Vec<String>, CommandError> {
-    crate::storage::blocking("list_event_aggregate_ids", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        if types.is_empty() {
-            return Ok(Vec::new());
-        }
-        let conn = db.0.lock()?;
-        let placeholders = vec!["?"; types.len()].join(", ");
-        let sql = format!(
-            "SELECT DISTINCT aggregate_id FROM domain_events
-         WHERE aggregate_id IS NOT NULL AND type IN ({placeholders})"
-        );
-        let mut stmt = conn.prepare(&sql)?;
-        let iter = stmt.query_map(rusqlite::params_from_iter(types.iter()), |row| {
-            row.get::<_, String>(0)
-        })?;
-        let mut out = Vec::new();
-        for r in iter {
-            out.push(r?);
-        }
-        if types.iter().any(|kind| kind == "memory.promoted") {
-            // Onboarding seeds have one compound creation event. Their receipt
-            // survives checkpoints and prevents genesis from minting them again.
-            let mut seeds = conn.prepare(
-                "SELECT DISTINCT value FROM onboarding_receipts, json_each(memory_ids_json)",
-            )?;
-            let rows = seeds.query_map([], |row| row.get::<_, String>(0))?;
-            for id in rows {
-                out.push(id?);
-            }
-        }
-        Ok(out)
-    })
-    .await
 }
 
 // --- Replay: rebuild + verify (proves the log is authoritative) ---
@@ -550,7 +407,7 @@ pub struct RebuildReport {
 /// Walk the log in HLC order from just past `after` (None = from the start),
 /// one bounded page at a time, so a replay's memory does not scale with the
 /// log. Returns how many events the callback saw.
-pub(crate) fn for_each_event_after<F>(
+pub fn for_each_event_after<F>(
     tx: &Transaction<'_>,
     after: Option<&checkpoints::HlcKey>,
     mut f: F,
@@ -618,7 +475,7 @@ fn derived_row_counts(
 /// at live in the device-local blob registry, which the wipe never touches.
 /// This is the ground truth `verify_projections` diffs against; ordinary
 /// merges go through `replay_projections`, which starts from a checkpoint.
-pub(crate) fn replay_into(tx: &Transaction<'_>) -> Result<RebuildReport, CommandError> {
+pub fn replay_into(tx: &Transaction<'_>) -> Result<RebuildReport, CommandError> {
     for table in apply::DERIVED_TABLES {
         tx.execute(&format!("DELETE FROM {table}"), [])?;
     }
@@ -647,7 +504,7 @@ pub(crate) fn replay_into(tx: &Transaction<'_>) -> Result<RebuildReport, Command
 /// mid-backfill whose bootstrap checkpoint a straggler just invalidated):
 /// replaying a partial log would produce wrong tables, so the caller leaves
 /// the projections stale until the backfill completes.
-pub(crate) fn replay_projections(
+pub fn replay_projections(
     tx: &Transaction<'_>,
     data_dir: &Path,
 ) -> Result<Option<RebuildReport>, CommandError> {
@@ -685,28 +542,7 @@ pub(crate) fn replay_projections(
     Ok(Some(replay_into(tx)?))
 }
 
-/// Discard the derived tables and rebuild them from the event log.
-///
-/// This is what makes `domain_events` the source of truth rather than a claim:
-/// disaster recovery, and the restore half of a future multi-device bootstrap.
-///
-/// `async` + `spawn_blocking`: a full replay is unbounded work (it scales with
-/// the log), and a synchronous command would run it on the main thread and
-/// freeze the window for its duration.
-#[tauri::command]
-pub async fn rebuild_projections(app: AppHandle) -> Result<RebuildReport, CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let db = app.state::<Db>();
-        let mut conn = db.0.lock()?;
-        rebuild_projections_inner(&mut conn)
-    })
-    .await
-    .map_err(|e| format!("rebuild_projections task failed: {e}"))?
-}
-
-pub(crate) fn rebuild_projections_inner(
-    conn: &mut Connection,
-) -> Result<RebuildReport, CommandError> {
+pub fn rebuild_projections_inner(conn: &mut Connection) -> Result<RebuildReport, CommandError> {
     require_complete_log(conn)?;
     let tx = conn.transaction()?;
     let report = replay_into(&tx)?;
@@ -754,7 +590,7 @@ fn value_to_json(v: rusqlite::types::ValueRef<'_>) -> Value {
 /// (serde_json sorts object keys, so the encoding is stable regardless of column
 /// order). Local-only columns and rows are excluded per the spec — comparing
 /// them would report drift that no write path could ever fix.
-pub(crate) fn snapshot_table(
+pub fn snapshot_table(
     tx: &Transaction<'_>,
     spec: &apply::DiffSpec,
 ) -> Result<std::collections::BTreeMap<String, i64>, CommandError> {
@@ -779,21 +615,6 @@ pub(crate) fn snapshot_table(
     Ok(out)
 }
 
-/// Replay the log into scratch state and diff it against the live projections,
-/// then roll everything back.
-///
-/// A clean result is the only real evidence that the log is complete enough to
-/// sync — the projections and the events agree on every row. Drift points at
-/// exactly which table (and which rows) a write path failed to record.
-/// Same threading note as `rebuild_projections`: this replays the whole log
-/// (twice over, counting the snapshots), so it must stay off the main thread.
-#[tauri::command]
-pub async fn verify_projections(app: AppHandle) -> Result<VerifyReport, CommandError> {
-    tauri::async_runtime::spawn_blocking(move || verify_inner(&app))
-        .await
-        .map_err(|e| format!("verify_projections task failed: {e}"))?
-}
-
 /// Full-log operations (rebuild from empty, verify) are meaningless while the
 /// pre-frontier log is still backfilling behind a bootstrap checkpoint.
 fn require_complete_log(conn: &Connection) -> Result<(), CommandError> {
@@ -807,8 +628,7 @@ fn require_complete_log(conn: &Connection) -> Result<(), CommandError> {
     }
 }
 
-pub(crate) fn verify_inner(app: &AppHandle) -> Result<VerifyReport, CommandError> {
-    let db = app.state::<Db>();
+pub fn verify_inner(db: &Db) -> Result<VerifyReport, CommandError> {
     let mut conn = db.0.lock()?;
     require_complete_log(&conn)?;
     let tx = conn.transaction()?;

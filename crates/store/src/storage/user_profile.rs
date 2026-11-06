@@ -1,6 +1,6 @@
 //! Conditional summary writes and retirement of the pre-event KV summary.
 use super::local_event_guard::validate_new_event;
-use super::{checkpoints, events, Db, EventRow};
+use super::{checkpoints, events, EventRow};
 use crate::error::CommandError;
 use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior};
 use serde::Serialize;
@@ -60,7 +60,7 @@ fn legacy_summary(conn: &Connection) -> Result<Option<String>, CommandError> {
         .optional()?)
 }
 
-pub(super) fn require_initialized(conn: &Connection) -> Result<(), CommandError> {
+pub fn require_initialized(conn: &Connection) -> Result<(), CommandError> {
     require_fresh(conn)?;
     let legacy: bool = conn.query_row(
         "SELECT EXISTS(SELECT 1 FROM app_kv WHERE key=?1)",
@@ -73,7 +73,7 @@ pub(super) fn require_initialized(conn: &Connection) -> Result<(), CommandError>
     Ok(())
 }
 
-pub(super) fn read_snapshot(conn: &Connection) -> Result<ProfileSnapshot, CommandError> {
+pub fn read_snapshot(conn: &Connection) -> Result<ProfileSnapshot, CommandError> {
     let (summary, event): (Option<String>, Option<String>) = conn
         .query_row(
             "SELECT summary,updated_event_id FROM user_profile WHERE id='local'",
@@ -109,9 +109,7 @@ fn append(tx: &Transaction<'_>, event: &EventRow) -> Result<(), CommandError> {
     Ok(())
 }
 
-pub(crate) fn profile_inspect_inner(
-    conn: &mut Connection,
-) -> Result<ProfileSnapshot, CommandError> {
+pub fn profile_inspect_inner(conn: &mut Connection) -> Result<ProfileSnapshot, CommandError> {
     let tx = conn.transaction()?;
     require_initialized(&tx)?;
     let snapshot = read_snapshot(&tx)?;
@@ -119,7 +117,7 @@ pub(crate) fn profile_inspect_inner(
     Ok(snapshot)
 }
 
-pub(crate) fn profile_initialize_inner(
+pub fn profile_initialize_inner(
     conn: &mut Connection,
     envelope: &EventRow,
 ) -> Result<ProfileInitializationReceipt, CommandError> {
@@ -204,47 +202,10 @@ fn commit_summary(
     })
 }
 
-pub(crate) fn profile_commit_inner(
+pub fn profile_commit_inner(
     conn: &mut Connection,
     event: &EventRow,
     expected_revision: &str,
 ) -> Result<ProfileMutationReceipt, CommandError> {
     commit_summary(conn, event, expected_revision)
-}
-
-#[tauri::command]
-pub async fn profile_inspect(app: tauri::AppHandle) -> Result<ProfileSnapshot, CommandError> {
-    super::blocking("profile_inspect", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        profile_inspect_inner(&mut conn)
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn profile_initialize(
-    event: EventRow,
-    app: tauri::AppHandle,
-) -> Result<ProfileInitializationReceipt, CommandError> {
-    super::blocking("profile_initialize", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        profile_initialize_inner(&mut conn, &event)
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn profile_commit(
-    event: EventRow,
-    expected_revision: String,
-    app: tauri::AppHandle,
-) -> Result<ProfileMutationReceipt, CommandError> {
-    super::blocking("profile_commit", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        profile_commit_inner(&mut conn, &event, &expected_revision)
-    })
-    .await
 }

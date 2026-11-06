@@ -10,7 +10,7 @@
 | --- | --- |
 | 编排事件推送、拉取、文件和检查点 | [sync-engine.ts](../../apps/web/src/platform/sync/sync-engine.ts) |
 | 定时及唤醒调度 | [sync-scheduler.ts](../../apps/web/src/platform/sync/sync-scheduler.ts) |
-| SQLite 与原生存储适配 | [sync-store.ts](../../apps/web/src/platform/sync/sync-store.ts)、[storage/sync.rs](../../apps/desktop/src-tauri/src/storage/sync.rs) |
+| SQLite 与原生存储适配 | [sync-store.ts](../../apps/web/src/platform/sync/sync-store.ts)、[storage/sync.rs](../../crates/store/src/storage/sync.rs) |
 | 默认中继协议访问 | [relay-client.ts](../../apps/web/src/platform/sync/relay-client.ts) |
 | 传输提供者注册及会话 | [transport-registry.ts](../../apps/web/src/platform/sync/transport-registry.ts)、[transport-session.ts](../../apps/web/src/platform/sync/transport-session.ts) |
 | 加密信封 | [sync-envelope.ts](../../apps/web/src/platform/sync-envelope.ts) |

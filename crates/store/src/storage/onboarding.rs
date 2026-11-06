@@ -1,5 +1,5 @@
 //! One replayable decision owns the confirmed profile, seed memories and retry receipt.
-use super::{events, local_event_guard, user_profile, Db, EventRow};
+use super::{events, local_event_guard, user_profile, EventRow};
 use crate::error::CommandError;
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use serde::{Deserialize, Serialize};
@@ -11,18 +11,18 @@ mod tests;
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub(super) struct Seed {
-    pub(super) kind: String,
-    pub(super) content: String,
+pub struct Seed {
+    pub kind: String,
+    pub content: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(super) struct Change {
-    pub(super) submission_id: String,
-    pub(super) expected_revision: String,
-    pub(super) summary: String,
-    pub(super) seeds: Vec<Seed>,
+pub struct Change {
+    pub submission_id: String,
+    pub expected_revision: String,
+    pub summary: String,
+    pub seeds: Vec<Seed>,
 }
 
 #[derive(Debug, Serialize)]
@@ -45,7 +45,7 @@ fn conflict() -> CommandError {
     )
 }
 
-pub(super) fn parse(event: &EventRow) -> Result<(Change, String, String), CommandError> {
+pub fn parse(event: &EventRow) -> Result<(Change, String, String), CommandError> {
     let input: Change = serde_json::from_value(event.payload.clone()).map_err(|_| invalid())?;
     let owner = event.origin.as_deref().ok_or_else(invalid)?;
     let revision = input
@@ -91,7 +91,7 @@ pub(super) fn parse(event: &EventRow) -> Result<(Change, String, String), Comman
     Ok((input, owner.to_owned(), hash))
 }
 
-pub(super) fn retained(
+pub fn retained(
     conn: &Connection,
     input: &Change,
     owner: &str,
@@ -115,7 +115,7 @@ pub(super) fn retained(
     .transpose()
 }
 
-pub(crate) fn onboarding_commit_inner(
+pub fn onboarding_commit_inner(
     conn: &mut Connection,
     event: &EventRow,
 ) -> Result<OnboardingReceipt, CommandError> {
@@ -143,17 +143,4 @@ pub(crate) fn onboarding_commit_inner(
     receipt.status = "completed";
     tx.commit()?;
     Ok(receipt)
-}
-
-#[tauri::command]
-pub async fn onboarding_commit(
-    event: EventRow,
-    app: tauri::AppHandle,
-) -> Result<OnboardingReceipt, CommandError> {
-    super::blocking("onboarding_commit", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        onboarding_commit_inner(&mut conn, &event)
-    })
-    .await
 }

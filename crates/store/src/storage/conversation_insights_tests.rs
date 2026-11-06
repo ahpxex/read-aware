@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 const KEY: &str = "read-aware-agent-insights";
 fn golden() -> Value {
     serde_json::from_str(include_str!(
-        "../../../../../packages/core/src/context-bundle-insights.golden.json"
+        "../../../../packages/core/src/context-bundle-insights.golden.json"
     ))
     .unwrap()
 }

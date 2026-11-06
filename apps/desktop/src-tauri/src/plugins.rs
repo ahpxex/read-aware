@@ -6,6 +6,7 @@
 //! validation here is what filesystem safety requires (id shape, path
 //! containment, no symlink following on install).
 
+use crate::tauri_error::tauri_error;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -53,7 +54,11 @@ fn built_in(id: &str, action: &str) -> CommandError {
 }
 
 pub(crate) fn plugins_dir(app: &tauri::AppHandle) -> Result<PathBuf, CommandError> {
-    let dir = app.path().app_data_dir()?.join("plugins");
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(tauri_error)?
+        .join("plugins");
     fs::create_dir_all(&dir)?;
     Ok(dir)
 }
@@ -201,16 +206,7 @@ fn list_plugin_dirs(dir: &Path, builtin: bool, entries: &mut Vec<PluginEntry>) {
     }
 }
 
-/// Same shape the web-side manifest validator enforces: lowercase ASCII,
-/// digits, hyphens; no leading hyphen; max 64 chars.
-pub(crate) fn valid_plugin_id(id: &str) -> bool {
-    !id.is_empty()
-        && id.len() <= 64
-        && !id.starts_with('-')
-        && id
-            .chars()
-            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
-}
+pub(crate) use read_aware_store::plugin_id::valid_plugin_id;
 
 fn is_bundled(app: &tauri::AppHandle, id: &str) -> bool {
     bundled_root(app).is_some_and(|root| root.plugin_dir(id).join("manifest.json").is_file())

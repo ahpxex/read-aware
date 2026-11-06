@@ -4777,14 +4777,12 @@ checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
 name = "read-aware-desktop"
 version = "0.1.0"
 dependencies = [
- "aes-gcm",
  "age",
  "axum",
  "base64 0.22.1",
  "block",
  "brotli 8.0.4",
  "cap-std",
- "chacha20poly1305",
  "cocoa",
  "image",
  "include_dir",
@@ -4795,8 +4793,8 @@ dependencies = [
  "objc",
  "objc2-foundation 0.2.2",
  "objc2-store-kit",
- "percent-encoding",
  "quick-xml 0.39.4",
+ "read-aware-store",
  "reqwest 0.13.5",
  "rusqlite",
  "rust-ini 0.21.3",
@@ -4831,6 +4829,29 @@ dependencies = [
  "webpki-roots",
  "windows 0.62.2",
  "winreg 0.55.0",
+ "zeroize",
+ "zip 2.6.1",
+]
+
+[[package]]
+name = "read-aware-store"
+version = "0.1.0"
+dependencies = [
+ "aes-gcm",
+ "base64 0.22.1",
+ "chacha20poly1305",
+ "cocoa",
+ "image",
+ "log",
+ "objc",
+ "percent-encoding",
+ "quick-xml 0.39.4",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "uuid",
  "zeroize",
  "zip 2.6.1",
 ]

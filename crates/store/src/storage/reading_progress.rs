@@ -85,7 +85,7 @@ fn cfi_start(value: &str) -> Option<Vec<Vec<(u64, u64)>>> {
 /// `book.sessionRecorded`). `Some(Null)` records "no resting unit"; `None`
 /// means the observation predates the field or carries a malformed one, so
 /// the projection stores nothing and readers treat the unit as unknown.
-pub(crate) fn reading_mode(p: &Value) -> Option<Value> {
+pub fn reading_mode(p: &Value) -> Option<Value> {
     let mode = p.get("readingMode")?;
     if mode.is_null() {
         return Some(Value::Null);
@@ -113,7 +113,7 @@ fn reading_mode_cfi(p: &Value) -> &str {
 /// Opaque locators only break otherwise indistinguishable ties; the reading
 /// mode's resting unit last, so two observations of one page that rest on
 /// different units still converge, and a step within a page is a new position.
-pub(crate) fn compare(left: &Value, right: &Value) -> Ordering {
+pub fn compare(left: &Value, right: &Value) -> Ordering {
     fraction(left)
         .total_cmp(&fraction(right))
         .then_with(|| cfi_start(locator(left)).cmp(&cfi_start(locator(right))))

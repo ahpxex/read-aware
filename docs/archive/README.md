@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | [Agent 初始设计](./designs/agent-architecture.md) | 含“实现未开始”和早期阶段计划 | [当前 Agent 架构](../architecture/agent-architecture.md) |
 | [数据模型初始设计](./designs/data-model.md) | 表结构、迁移版本和双写说明停留在旧实现 | [本地数据](../architecture/data-model.md) |
-| [SQLite 目标草图](./designs/sqlite-schema.sql) | 已不是运行时 schema 的权威来源 | [原生迁移](../../apps/desktop/src-tauri/src/storage/schema.rs) |
+| [SQLite 目标草图](./designs/sqlite-schema.sql) | 已不是运行时 schema 的权威来源 | [原生迁移](../../crates/store/src/storage/schema.rs) |
 | [同步初始设计及演进](./designs/sync-engine.md) | 含旧实施阶段、部署配置与历史性能数据 | [当前同步说明](../architecture/sync-engine.md) · [relay 配置](../../apps/relay/wrangler.jsonc) |
 
 ## 历史审查

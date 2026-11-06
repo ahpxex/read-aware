@@ -5,7 +5,7 @@ import type { BookTextRange } from "./book-range";
 // See CLAUDE.md > Memory and docs/architecture/data-model.md.
 //
 // This file is the CANONICAL event registry. Runtime migrations in
-// apps/desktop/src-tauri/src/storage/schema.rs and docs/architecture/data-model.md
+// crates/store/src/storage/schema.rs and docs/architecture/data-model.md
 // must agree with the variants declared here. Every column
 // a projection table marks NOT NULL has to be derivable from some event payload
 // (or from the envelope's HLC wall time), or the projection cannot be rebuilt.

@@ -42,10 +42,10 @@ fn invalid_cursor() -> CommandError {
     )
 }
 
-pub(crate) const ANNOTATION_ITEM_BYTES: usize = 512 * 1024;
+pub const ANNOTATION_ITEM_BYTES: usize = 512 * 1024;
 const ANNOTATION_PAGE_BYTES: usize = 1024 * 1024;
 
-pub(crate) fn annotation_budget_error() -> CommandError {
+pub fn annotation_budget_error() -> CommandError {
     CommandError::new(
         "annotations/read-budget-exceeded",
         "Annotation read exceeds its payload budget",
@@ -53,7 +53,7 @@ pub(crate) fn annotation_budget_error() -> CommandError {
 }
 
 /// Inspect borrowed SQLite values before copying text or parsing range JSON.
-pub(crate) fn bounded_annotation(row: &rusqlite::Row) -> Result<(Annotation, usize), CommandError> {
+pub fn bounded_annotation(row: &rusqlite::Row) -> Result<(Annotation, usize), CommandError> {
     let mut bytes = 0usize;
     for index in 0..row.as_ref().column_count() {
         if let rusqlite::types::ValueRef::Text(value) | rusqlite::types::ValueRef::Blob(value) =
@@ -75,7 +75,7 @@ pub(crate) fn bounded_annotation(row: &rusqlite::Row) -> Result<(Annotation, usi
     Ok((annotation, bytes))
 }
 
-pub(crate) fn bounded_annotation_get(
+pub fn bounded_annotation_get(
     conn: &Connection,
     id: &str,
 ) -> Result<Option<Annotation>, CommandError> {
@@ -87,7 +87,7 @@ pub(crate) fn bounded_annotation_get(
         .map(|item| item.map(|(item, _)| item))
 }
 
-pub(crate) fn annotations_page_inner(
+pub fn annotations_page_inner(
     conn: &Connection,
     mut input: AnnotationPageQuery,
 ) -> Result<AnnotationPage, CommandError> {
@@ -482,17 +482,4 @@ mod tests {
         assert!(plan.contains("ix_annotations_book_kind_page"), "{plan}");
         assert!(!plan.contains("TEMP B-TREE"), "{plan}");
     }
-}
-
-#[tauri::command]
-pub async fn annotations_page(
-    input: AnnotationPageQuery,
-    app: tauri::AppHandle,
-) -> Result<AnnotationPage, CommandError> {
-    crate::storage::blocking("annotations_page", move || {
-        let db = tauri::Manager::state::<super::Db>(&app);
-        let conn = db.0.lock()?;
-        annotations_page_inner(&conn, input)
-    })
-    .await
 }

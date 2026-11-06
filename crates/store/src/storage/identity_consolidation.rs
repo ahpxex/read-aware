@@ -1,5 +1,5 @@
 //! Complete native read set and device-local completion state for identity synthesis.
-use super::{entity_registry, memory_mutations, user_profile, Db};
+use super::{entity_registry, memory_mutations, user_profile};
 use crate::error::CommandError;
 use rusqlite::{Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
@@ -45,9 +45,7 @@ pub struct IdentityConsolidationSnapshot {
     pub settled: bool,
 }
 
-pub(super) fn source_conditions(
-    sources: &[memory_mutations::MemorySnapshot],
-) -> Vec<IdentitySource> {
+pub fn source_conditions(sources: &[memory_mutations::MemorySnapshot]) -> Vec<IdentitySource> {
     sources
         .iter()
         .map(|source| IdentitySource {
@@ -57,7 +55,7 @@ pub(super) fn source_conditions(
         .collect()
 }
 
-pub(super) fn read_derived(conn: &Connection) -> Result<Option<Value>, CommandError> {
+pub fn read_derived(conn: &Connection) -> Result<Option<Value>, CommandError> {
     let traits: Option<String> = conn
         .query_row(
             "SELECT traits_json FROM user_profile WHERE id='local'",
@@ -100,7 +98,7 @@ pub(super) fn read_snapshot(
     })
 }
 
-pub(super) fn read_sources(
+pub fn read_sources(
     conn: &Connection,
 ) -> Result<Vec<memory_mutations::MemorySnapshot>, CommandError> {
     let ids = conn.prepare("SELECT id FROM memories WHERE status='active' AND scope IN ('user','global') AND (evidence_count>=3 OR pinned=1) ORDER BY id")?
@@ -114,23 +112,11 @@ pub(super) fn read_sources(
         .collect::<Result<Vec<_>, _>>()
 }
 
-pub(crate) fn identity_snapshot_inner(
+pub fn identity_snapshot_inner(
     conn: &mut Connection,
 ) -> Result<IdentityConsolidationSnapshot, CommandError> {
     let tx = conn.transaction()?;
     let snapshot = read_snapshot(&tx)?;
     tx.commit()?;
     Ok(snapshot)
-}
-
-#[tauri::command]
-pub async fn identity_consolidation_snapshot(
-    app: tauri::AppHandle,
-) -> Result<IdentityConsolidationSnapshot, CommandError> {
-    super::blocking("identity_consolidation_snapshot", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        identity_snapshot_inner(&mut conn)
-    })
-    .await
 }

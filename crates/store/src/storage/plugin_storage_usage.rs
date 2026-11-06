@@ -15,8 +15,8 @@ pub struct PluginStorageUsage {
     assets: PluginDataUsage,
 }
 
-fn usage(conn: &Connection, id: &str) -> Result<PluginStorageUsage, CommandError> {
-    if !crate::plugins::valid_plugin_id(id) {
+pub fn usage(conn: &Connection, id: &str) -> Result<PluginStorageUsage, CommandError> {
+    if !crate::plugin_id::valid_plugin_id(id) {
         return Err(CommandError::new(
             "plugin/invalid-argument",
             "Invalid storage owner",
@@ -36,22 +36,6 @@ fn usage(conn: &Connection, id: &str) -> Result<PluginStorageUsage, CommandError
             value_bytes,
         },
     })
-}
-
-#[tauri::command]
-pub async fn plugin_storage_usage(
-    app: tauri::AppHandle,
-    plugin_id: String,
-) -> Result<PluginStorageUsage, CommandError> {
-    blocking("plugin_storage_usage", move || {
-        let db = app.state::<Db>();
-        let mut conn = db.0.lock()?;
-        let tx = conn.transaction()?;
-        let result = usage(&tx, &plugin_id)?;
-        tx.commit()?;
-        Ok(result)
-    })
-    .await
 }
 
 #[cfg(test)]

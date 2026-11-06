@@ -61,7 +61,7 @@ fn invalid(message: &str) -> CommandError {
 
 /// Event IDs are immutable and include local and merged writes. Hash every ID,
 /// rather than MAX(HLC): an older merged event can still change the projection.
-pub(crate) fn atomic_aggregate_revision(
+pub fn atomic_aggregate_revision(
     conn: &Connection,
     kind: &str,
     id: &str,
@@ -79,7 +79,7 @@ pub(crate) fn atomic_aggregate_revision(
     Ok(format!("{:x}", hash.finalize()))
 }
 
-pub(crate) fn atomic_commit_inner(
+pub fn atomic_commit_inner(
     conn: &mut Connection,
     input: AtomicCommitInput,
 ) -> Result<AtomicCommitResult, CommandError> {
@@ -309,23 +309,10 @@ pub(crate) fn atomic_commit_inner(
     Ok(result)
 }
 
-#[tauri::command]
-pub async fn atomic_commit(
-    input: AtomicCommitInput,
-    app: tauri::AppHandle,
-) -> Result<AtomicCommitResult, CommandError> {
-    crate::storage::blocking("atomic_commit", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        atomic_commit_inner(&mut conn, input)
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn atomic_aggregate_revisions(
-    aggregates: Vec<(String, String)>,
-    app: tauri::AppHandle,
+/// Current revision of each named aggregate, read in one transaction.
+pub fn atomic_aggregate_revisions_inner(
+    conn: &mut Connection,
+    aggregates: &[(String, String)],
 ) -> Result<Vec<String>, CommandError> {
     if aggregates.len() > 100
         || aggregates.iter().any(|(kind, id)| {
@@ -334,39 +321,30 @@ pub async fn atomic_aggregate_revisions(
     {
         return Err(invalid("Invalid aggregate revision query"));
     }
-    crate::storage::blocking("atomic_aggregate_revisions", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        let tx = conn.transaction()?;
-        aggregates
-            .iter()
-            .map(|(kind, id)| atomic_aggregate_revision(&tx, kind, id))
-            .collect()
-    })
-    .await
+    let tx = conn.transaction()?;
+    aggregates
+        .iter()
+        .map(|(kind, id)| atomic_aggregate_revision(&tx, kind, id))
+        .collect()
+}
+
+/// The stored receipt of one committed atomic transaction, if any.
+pub fn atomic_receipt_get_inner(
+    conn: &Connection,
+    owner: &str,
+    id: &str,
+) -> Result<Option<Value>, CommandError> {
+    if owner.is_empty() || owner.len() > 512 || id.is_empty() || id.len() > 128 {
+        return Err(invalid("Invalid transaction identity"));
+    }
+    let stored: Option<(String, String, String)> = conn.query_row("SELECT metadata_json,receipt_json,revisions_json FROM atomic_receipts WHERE owner=?1 AND id=?2",
+        params![owner,id], |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?))).optional()?;
+    stored.map(|(metadata,receipt,revisions)| Ok(serde_json::json!({
+        "id":id, "metadata":serde_json::from_str::<Value>(&metadata)?,
+        "receipt":serde_json::from_str::<Value>(&receipt)?, "revisions":serde_json::from_str::<Value>(&revisions)?
+    }))).transpose()
 }
 
 #[cfg(test)]
 #[path = "atomic_commit_tests.rs"]
 mod tests;
-
-#[tauri::command]
-pub async fn atomic_receipt_get(
-    owner: String,
-    id: String,
-    app: tauri::AppHandle,
-) -> Result<Option<Value>, CommandError> {
-    if owner.is_empty() || owner.len() > 512 || id.is_empty() || id.len() > 128 {
-        return Err(invalid("Invalid transaction identity"));
-    }
-    crate::storage::blocking("atomic_receipt_get", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let conn = db.0.lock()?;
-        let stored: Option<(String, String, String)> = conn.query_row("SELECT metadata_json,receipt_json,revisions_json FROM atomic_receipts WHERE owner=?1 AND id=?2",
-            params![owner,id], |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?))).optional()?;
-        stored.map(|(metadata,receipt,revisions)| Ok(serde_json::json!({
-            "id":id, "metadata":serde_json::from_str::<Value>(&metadata)?,
-            "receipt":serde_json::from_str::<Value>(&receipt)?, "revisions":serde_json::from_str::<Value>(&revisions)?
-        }))).transpose()
-    }).await
-}

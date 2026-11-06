@@ -11,13 +11,13 @@ use rusqlite::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-pub(crate) const CHUNK_BYTES: usize = 16 * 1024;
+pub const CHUNK_BYTES: usize = 16 * 1024;
 // Preflight bounds a SQLite row to 64 MiB; base64 plus the typed row envelope.
 const MAX_ROW_BYTES: usize = 96 * 1024 * 1024;
 fn invalid() -> CommandError {
     CommandError::new("backup/invalid-archive", "Invalid full-backup restore fact")
 }
-pub(crate) fn quoted(name: &str) -> String {
+pub fn quoted(name: &str) -> String {
     format!("\"{}\"", name.replace('"', "\"\""))
 }
 
@@ -28,7 +28,7 @@ pub(crate) fn quoted(name: &str) -> String {
     rename_all = "camelCase",
     deny_unknown_fields
 )]
-pub(crate) enum Cell {
+pub enum Cell {
     Null,
     Integer(String),
     Real(String),
@@ -36,7 +36,7 @@ pub(crate) enum Cell {
     Blob(String),
 }
 impl Cell {
-    pub(crate) fn from_ref(value: ValueRef<'_>) -> Self {
+    pub fn from_ref(value: ValueRef<'_>) -> Self {
         match value {
             ValueRef::Null => Self::Null,
             ValueRef::Integer(v) => Self::Integer(v.to_string()),
@@ -81,13 +81,13 @@ impl ToSql for Bound {
 }
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(crate) struct RowPatch {
+pub struct RowPatch {
     pub table: String,
     pub columns: Vec<String>,
     pub values: Vec<Cell>,
     pub delete: bool,
 }
-pub(crate) fn columns(
+pub fn columns(
     conn: &Connection,
     spec: &DiffSpec,
     keys: bool,
@@ -214,7 +214,7 @@ fn identity(ev: &EventRow, id: &str) -> Result<(), CommandError> {
     }
     Ok(())
 }
-pub(crate) fn chunk(ev: &EventRow) -> Result<(), CommandError> {
+pub fn chunk(ev: &EventRow) -> Result<(), CommandError> {
     let c: Chunk = serde_json::from_value(ev.payload.clone()).map_err(|_| invalid())?;
     identity(ev, &c.restore_id)?;
     if c.data.len() > CHUNK_BYTES.div_ceil(3) * 4 {
@@ -226,7 +226,7 @@ pub(crate) fn chunk(ev: &EventRow) -> Result<(), CommandError> {
     }
     Ok(())
 }
-pub(crate) fn apply(tx: &Transaction<'_>, ev: &EventRow) -> Result<(), CommandError> {
+pub fn apply(tx: &Transaction<'_>, ev: &EventRow) -> Result<(), CommandError> {
     let manifest: Manifest = serde_json::from_value(ev.payload.clone()).map_err(|_| invalid())?;
     identity(ev, &manifest.restore_id)?;
     if manifest.format != 1 {

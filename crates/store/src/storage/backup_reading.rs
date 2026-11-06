@@ -1,11 +1,10 @@
 //! Close this device's reading facts before portable capture or merge planning.
 //! A pending bucket has no portable identity. Never infer overlap by timestamps
 //! or invent an identity after copying it to a second device.
-use super::{Db, EventRow, ReadingSessionBucket};
+use super::{EventRow, ReadingSessionBucket};
 use crate::error::CommandError;
 use rusqlite::{Connection, TransactionBehavior};
 use std::collections::BTreeMap;
-use tauri::Manager;
 
 type BucketKey = (String, String, i64);
 fn changed() -> CommandError {
@@ -17,7 +16,7 @@ fn changed() -> CommandError {
 fn invalid() -> CommandError {
     CommandError::new("backup/incomplete", "invalid reading closure for backup")
 }
-pub(crate) fn require_closed(conn: &Connection) -> Result<(), CommandError> {
+pub fn require_closed(conn: &Connection) -> Result<(), CommandError> {
     if conn.query_row(
         "SELECT EXISTS(SELECT 1 FROM reading_sessions_pending)",
         [],
@@ -79,10 +78,7 @@ fn payload(bucket: &ReadingSessionBucket) -> Result<serde_json::Value, CommandEr
 /// Caller owns the native Db lock and has paused reader writes through capture.
 /// Returned events contain ACTUAL closed facts, not the caller's older snapshot.
 /// If export subsequently fails, these legitimate reading facts stay committed.
-pub(crate) fn close(
-    conn: &mut Connection,
-    input: Vec<EventRow>,
-) -> Result<Vec<EventRow>, CommandError> {
+pub fn close(conn: &mut Connection, input: Vec<EventRow>) -> Result<Vec<EventRow>, CommandError> {
     if input.len() > 100_000 {
         return Err(invalid());
     }
@@ -154,18 +150,6 @@ pub(crate) fn close(
     require_closed(&tx)?;
     tx.commit()?;
     Ok(committed)
-}
-#[tauri::command]
-pub async fn backup_close_reading_sessions(
-    app: tauri::AppHandle,
-    events: Vec<EventRow>,
-) -> Result<Vec<EventRow>, CommandError> {
-    super::blocking("backup_close_reading_sessions", move || {
-        let db = app.state::<Db>();
-        let mut conn = db.0.lock()?;
-        close(&mut conn, events)
-    })
-    .await
 }
 #[cfg(test)]
 #[path = "backup_reading_tests.rs"]

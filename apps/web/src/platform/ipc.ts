@@ -11,7 +11,7 @@
  * the wrong branch for IPC failures. This wrapper normalizes every rejection
  * into an `IpcError` (an `AppError` with a stable code):
  *
- * - Commands migrated to the structured Rust error type (src-tauri/src/error.rs)
+ * - Commands migrated to the structured Rust error type (crates/store/src/error.rs)
  *   reject with `{ code, message }` — the code is carried through verbatim
  *   (e.g. `fs/not-found`, `db/locked`).
  * - Legacy string rejections become `ipc/unknown` with the string as message.

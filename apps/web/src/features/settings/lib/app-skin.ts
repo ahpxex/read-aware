@@ -18,7 +18,7 @@ import type { DomainActor } from "../../../platform/domain-actor";
 import { buildAppSkinCss, toPluginRef } from "../../plugins/lib/plugin-theme";
 import type { RegisteredPluginTheme } from "../../plugins/lib/plugin-types";
 
-/** Key/shape mirrored by `read_boot_theme` in src-tauri/src/storage/mod.rs. */
+/** Key/shape mirrored by `read_boot_theme` in crates/store/src/storage/mod.rs. */
 const SNAPSHOT_KEY = "read-aware-app-skin";
 const STYLE_ID = "ra-app-skin";
 

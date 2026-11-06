@@ -84,19 +84,21 @@ jobs:
           key: ci-rust
           cache-on-failure: true
       - name: Formatting
-        working-directory: apps/desktop/src-tauri
-        run: cargo fmt --check
+        run: cargo fmt --check -p read-aware-store -p read-aware-desktop
+      - name: The shared store stays Tauri-free
+        run: |
+          if cargo tree --locked -p read-aware-store -e normal --prefix none | grep -i '^tauri'; then
+            echo "read-aware-store must not depend on Tauri (it is shared with the CLI)" >&2
+            exit 1
+          fi
       - run: bun install --frozen-lockfile
       - name: Prepare embedded plugins for native compilation
         run: bun run --filter @read-aware/plugin-dictionary --filter @read-aware/plugin-editorial-themes --filter @read-aware/plugin-rss-reader --filter @read-aware/plugin-sentence-reader --filter @read-aware/plugin-tts --filter @read-aware/plugin-jumper build
       - name: Clippy (library and tests, warnings are errors)
-        working-directory: apps/desktop/src-tauri
-        run: cargo clippy --lib --tests --locked -- -D warnings
+        run: cargo clippy -p read-aware-store -p read-aware-desktop --lib --tests --locked -- -D warnings
       - name: Native transactions and platform contracts (no desktop launch)
-        working-directory: apps/desktop/src-tauri
-        run: cargo test --locked --lib
+        run: cargo test --locked --lib -p read-aware-store -p read-aware-desktop
       - name: Vendored auto-launch patch (resolved through patch.crates-io)
-        working-directory: apps/desktop/src-tauri
         run: cargo test --locked -p auto-launch
 
   native:
@@ -139,8 +141,6 @@ jobs:
       - name: Prepare embedded plugins for native compilation
         run: bun run --filter @read-aware/plugin-dictionary --filter @read-aware/plugin-editorial-themes --filter @read-aware/plugin-rss-reader --filter @read-aware/plugin-sentence-reader --filter @read-aware/plugin-tts --filter @read-aware/plugin-jumper build
       - name: Native transactions and platform contracts (no desktop launch)
-        working-directory: apps/desktop/src-tauri
-        run: cargo test --locked --lib
+        run: cargo test --locked --lib -p read-aware-store -p read-aware-desktop
       - name: Vendored auto-launch patch (resolved through patch.crates-io)
-        working-directory: apps/desktop/src-tauri
         run: cargo test --locked -p auto-launch

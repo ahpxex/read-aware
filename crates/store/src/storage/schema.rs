@@ -14,7 +14,7 @@ use crate::error::CommandError;
 /// evolve the schema by appending a new `(version, ...)` entry. Statements are
 /// `IF NOT EXISTS` so first-run on a database created by the old ad-hoc
 /// `init_db` (bare `events`/`blobs`) is idempotent and never wipes data.
-pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
+pub const MIGRATIONS: &[(i64, &str, &str)] = &[
     (
         1,
         "core_local_first_tables",
@@ -974,7 +974,7 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
 /// Rebuild the annotation FTS index from the table. Required after any VACUUM
 /// of the main database (implicit rowids may be renumbered, and the FTS rows
 /// are keyed by rowid since v29); also the repair recipe for a corrupt index.
-pub(crate) fn rebuild_annotations_fts(conn: &Connection) -> Result<(), CommandError> {
+pub fn rebuild_annotations_fts(conn: &Connection) -> Result<(), CommandError> {
     conn.execute_batch(
         "DELETE FROM annotations_fts;
          INSERT INTO annotations_fts (rowid, id, book_id, type, text, content)
@@ -987,18 +987,15 @@ pub(crate) fn rebuild_annotations_fts(conn: &Connection) -> Result<(), CommandEr
 /// The schema version a projection checkpoint is stamped with. Restoring one
 /// is only sound when the derived tables' shapes match exactly, so a
 /// checkpoint from a different version is ignored in favour of the log.
-pub(crate) const SCHEMA_VERSION: i64 = 56;
+pub const SCHEMA_VERSION: i64 = 56;
 
 /// The migration after which `materialize_legacy_covers` must run: the cover
 /// projection columns exist, the inline data-URL column still does.
-pub(crate) const COVER_PROJECTION_VERSION: i64 = 24;
+pub const COVER_PROJECTION_VERSION: i64 = 24;
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`
 /// (`i64::MAX` in production; tests use lower caps to stage old databases).
-pub(crate) fn run_migrations_up_to(
-    conn: &mut Connection,
-    max_version: i64,
-) -> Result<(), CommandError> {
+pub fn run_migrations_up_to(conn: &mut Connection, max_version: i64) -> Result<(), CommandError> {
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS schema_migrations (
             version    INTEGER PRIMARY KEY,
@@ -1072,7 +1069,7 @@ pub(crate) fn run_migrations_up_to(
     Ok(())
 }
 
-pub(crate) fn run_migrations(conn: &mut Connection) -> Result<(), CommandError> {
+pub fn run_migrations(conn: &mut Connection) -> Result<(), CommandError> {
     run_migrations_up_to(conn, i64::MAX)
 }
 
@@ -1084,7 +1081,7 @@ pub(crate) fn run_migrations(conn: &mut Connection) -> Result<(), CommandError> 
 ///   - busy_timeout: a second process (or a checkpoint) briefly holding the
 ///     lock waits instead of failing with SQLITE_BUSY.
 ///   - foreign_keys: per-connection flag; the schema's FKs are inert without it.
-pub(crate) fn apply_connection_pragmas(conn: &Connection) -> Result<(), CommandError> {
+pub fn apply_connection_pragmas(conn: &Connection) -> Result<(), CommandError> {
     // journal_mode returns the resulting mode as a row, so query it.
     conn.query_row("PRAGMA journal_mode = WAL", [], |row| {
         row.get::<_, String>(0)
@@ -1161,7 +1158,7 @@ fn fts_tokens(text: &str) -> Vec<String> {
 }
 
 /// The `ra_fts_segment` SQL function body: index-side segmentation.
-pub(crate) fn fts_segment(text: &str) -> String {
+pub fn fts_segment(text: &str) -> String {
     fts_tokens(text).join(" ")
 }
 
@@ -1171,7 +1168,7 @@ pub(crate) fn fts_segment(text: &str) -> String {
 /// prefix token (`"hab"*` matches "habits", `"习"*` matches the bigram 习惯).
 /// Quoting every token also neutralizes fts5 operators (AND/OR/NEAR/parens) in
 /// user input. Returns None when the query has no indexable tokens.
-pub(crate) fn fts_match_expr(query: &str) -> Option<String> {
+pub fn fts_match_expr(query: &str) -> Option<String> {
     fn quote(token: &str) -> String {
         format!("\"{}\"", token.replace('"', "\"\""))
     }
@@ -1287,31 +1284,7 @@ fn wipeable_tables(conn: &Connection) -> Result<Vec<String>, CommandError> {
         .collect())
 }
 
-/// Delete ALL user data on this device: every table row (log, projections,
-/// registries, app_kv — which includes the sealed secrets), the blob files,
-/// and the local encryption key. The schema survives; the device identity is
-/// re-minted inside the same transaction so the very next write works. The
-/// caller reloads the webview afterwards — in-memory JS state is stale by
-/// definition once this returns.
-#[tauri::command]
-pub async fn wipe_all_data(app: tauri::AppHandle) -> Result<(), CommandError> {
-    crate::storage::blocking("wipe_all_data", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let data_dir = tauri::Manager::state::<DataDir>(&app);
-        let mut conn = db.0.lock()?;
-        crate::desktop_preferences::commit_entries(
-            &app,
-            &[(crate::desktop_preferences::GENERAL_KEY.to_string(), None)],
-            || wipe_all_data_inner(&mut conn, &data_dir.0),
-        )
-    })
-    .await
-}
-
-pub(crate) fn wipe_all_data_inner(
-    conn: &mut Connection,
-    data_dir: &Path,
-) -> Result<(), CommandError> {
+pub fn wipe_all_data_inner(conn: &mut Connection, data_dir: &Path) -> Result<(), CommandError> {
     let mut tables = wipeable_tables(conn)?;
     // Deleting books produces cleanup intents; wipe those after their producer,
     // regardless of sqlite_master enumeration order.

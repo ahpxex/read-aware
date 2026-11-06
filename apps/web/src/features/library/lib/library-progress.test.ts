@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import cases from "../../../../../desktop/src-tauri/src/storage/reading_progress_cases.json";
+import cases from "../../../../../../crates/store/src/storage/reading_progress_cases.json";
 import { compareReadingProgress, createProgressPatch } from "./library-progress";
 import type { LibraryBook, ReaderProgress } from "./library-types";
 

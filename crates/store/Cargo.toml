@@ -1,0 +1,43 @@
+[package]
+name = "read-aware-store"
+version = "0.1.0"
+description = "ReadAware's on-device store: SQLite schema, event log and projections, blobs, import and metadata extraction. Shared by the desktop app and the CLI; must not depend on Tauri."
+edition = "2021"
+# Same floor as the desktop crate; re-derive from `cargo metadata` after a
+# lockfile bump.
+rust-version = "1.90"
+publish = false
+
+[dependencies]
+# Bundled SQLite — no system dependency. `functions` registers the custom SQL
+# functions the schema's triggers and projections call (ra_fts_segment et al).
+rusqlite = { version = "0.32", features = ["bundled", "functions", "backup", "hooks", "limits"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+log = "0.4"
+base64 = "0.22"
+# Content hashes for the blob registry (dedupe, integrity, sync reconciliation).
+sha2 = "0.10"
+# Stable per-install device id (HLC tiebreaker + sync attribution).
+uuid = { version = "1", features = ["v4"] }
+# Cover normalization: every extracted cover is bounded to a shelf-sized JPEG.
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "bmp", "webp"] }
+# EPUB/CBZ metadata are a few small ZIP entries read in place.
+zip = { version = "2.2", default-features = false, features = ["deflate"] }
+quick-xml = "0.39"
+percent-encoding = "2"
+# Sealed credentials (secrets.rs) and the sync-envelope v1 wire format.
+aes-gcm = "0.10"
+chacha20poly1305 = "0.10"
+zeroize = "1"
+tempfile = "3"
+
+# macOS only: PDF covers render through PDFKit (pdf_metadata.rs).
+[target.'cfg(target_os = "macos")'.dependencies]
+cocoa = "0.25"
+objc = "0.2"
+
+[lints.rust]
+# objc 0.2's msg_send!/sel! expand `cfg(feature = "cargo-clippy")` inside this
+# crate; the value belongs to that macro, not to a feature we could declare.
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("cargo-clippy"))'] }

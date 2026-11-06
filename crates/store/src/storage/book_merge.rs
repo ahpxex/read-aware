@@ -1,14 +1,13 @@
 use super::{
     blobs::{copy_blob_file, get_blob_record_inner, register_blob_inner},
     events::{commit_events_in_transaction, projections_stale_conn},
-    DataDir, Db, EventRow,
+    EventRow,
 };
 use crate::error::CommandError;
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::path::Path;
-use tauri::Manager;
 
 fn invalid() -> CommandError {
     CommandError::new("ui/invalid-target", "Invalid duplicate book operation")
@@ -16,13 +15,13 @@ fn invalid() -> CommandError {
 fn conflict() -> CommandError {
     CommandError::new("ui/superseded", "Duplicate books changed; preview again")
 }
-fn validate(id: &str) -> Result<(), CommandError> {
+pub fn validate(id: &str) -> Result<(), CommandError> {
     if id.trim().is_empty() || id.encode_utf16().count() > 256 {
         return Err(invalid());
     }
     Ok(())
 }
-fn current(conn: &Connection) -> Result<(), CommandError> {
+pub fn current(conn: &Connection) -> Result<(), CommandError> {
     if projections_stale_conn(conn)? {
         return Err(conflict());
     }
@@ -70,10 +69,7 @@ pub struct MergeReceipt {
     redirects: Vec<BookRedirect>,
 }
 
-pub(crate) fn merge_preview(
-    conn: &Connection,
-    id: &str,
-) -> Result<Option<MergePreview>, CommandError> {
+pub fn merge_preview(conn: &Connection, id: &str) -> Result<Option<MergePreview>, CommandError> {
     validate(id)?;
     current(conn)?;
     let source: Option<Option<String>> = conn.query_row(
@@ -131,7 +127,7 @@ pub(crate) fn merge_preview(
     }))
 }
 
-fn duplicate_page(
+pub fn duplicate_page(
     conn: &Connection,
     offset: usize,
     limit: usize,
@@ -166,7 +162,7 @@ fn duplicate_page(
     })
 }
 
-pub(crate) fn merge_commit(
+pub fn merge_commit(
     conn: &mut Connection,
     data_dir: &Path,
     id: &str,
@@ -233,59 +229,6 @@ pub(crate) fn merge_commit(
         keep_id: preview.keep.id,
         redirects,
     })
-}
-
-#[tauri::command]
-pub async fn library_merge_preview(
-    app: tauri::AppHandle,
-    book_id: String,
-) -> Result<Option<MergePreview>, CommandError> {
-    super::blocking("library_merge_preview", move || {
-        let db = app.state::<Db>();
-        let mut conn = db.0.lock()?;
-        let tx = conn.transaction()?;
-        let result = merge_preview(&tx, &book_id)?;
-        tx.commit()?;
-        Ok(result)
-    })
-    .await
-}
-#[tauri::command]
-pub async fn library_duplicate_groups(
-    app: tauri::AppHandle,
-    offset: usize,
-    limit: usize,
-) -> Result<DuplicatePage, CommandError> {
-    super::blocking("library_duplicate_groups", move || {
-        let db = app.state::<Db>();
-        let conn = db.0.lock()?;
-        duplicate_page(&conn, offset, limit)
-    })
-    .await
-}
-#[tauri::command]
-pub async fn library_resolve_book(
-    app: tauri::AppHandle,
-    book_id: String,
-) -> Result<Option<String>, CommandError> {
-    super::blocking("library_resolve_book", move || { validate(&book_id)?; let db = app.state::<Db>(); let conn = db.0.lock()?; current(&conn)?;
-        conn.query_row("SELECT id FROM books WHERE id=?1 UNION ALL SELECT a.keep_id FROM book_aliases a JOIN books b ON b.id=a.keep_id WHERE a.merged_id=?1 LIMIT 1",
-            [&book_id], |row| row.get(0)).optional().map_err(Into::into) }).await
-}
-#[tauri::command]
-pub async fn library_merge_commit(
-    app: tauri::AppHandle,
-    book_id: String,
-    expected_revision: String,
-    events: Vec<EventRow>,
-) -> Result<MergeReceipt, CommandError> {
-    super::blocking("library_merge_commit", move || {
-        let db = app.state::<Db>();
-        let data = app.state::<DataDir>();
-        let mut conn = db.0.lock()?;
-        merge_commit(&mut conn, &data.0, &book_id, &expected_revision, &events)
-    })
-    .await
 }
 
 #[cfg(test)]

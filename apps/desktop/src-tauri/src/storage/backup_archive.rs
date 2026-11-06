@@ -32,11 +32,12 @@ pub(crate) use event_plan::{RestoreReceipt, RestoreRequest};
 const MAX_FILES: usize = 100_000;
 const MAX_BYTES: u64 = 512 * 1024 * 1024 * 1024;
 const MAX_MANIFEST: u64 = 32 * 1024 * 1024;
-const MAX_PATH: usize = 8192;
 const MAX_ARCHIVE: u64 = MAX_BYTES + 2 * 1024 * 1024 * 1024;
 const CHUNK: usize = 1024 * 1024;
 const WORK_FACTOR: u8 = 18;
-pub(crate) const CODE_INVALID: &str = "backup/invalid-archive";
+pub(crate) use read_aware_store::storage::archive_member::{
+    member_path, CODE_INVALID, MAX_MEMBER_PATH as MAX_PATH,
+};
 pub(crate) const CODE_UNLOCK: &str = "backup/unlock-failed";
 pub(crate) const CODE_PASSWORD: &str = "backup/password-policy";
 /// The source is a retired v1 JSON library backup. That format can no longer
@@ -89,52 +90,6 @@ fn password_policy(password: &SecretString) -> Result<(), CommandError> {
     Ok(())
 }
 
-/// A portable, normalized relative path. The extractor never honors tar links,
-/// permissions, absolute paths, metadata extensions or filesystem aliases.
-pub(in crate::storage) fn member_path(path: &str) -> Result<(), CommandError> {
-    if path.is_empty()
-        || path.len() > MAX_PATH
-        || path.contains('\\')
-        || path.chars().any(char::is_control)
-    {
-        return Err(invalid("invalid archive member path"));
-    }
-    for part in path.split('/') {
-        let device = part.split('.').next().unwrap_or("").to_ascii_uppercase();
-        if part.is_empty()
-            || part == "."
-            || part == ".."
-            || part
-                .chars()
-                .any(|c| matches!(c, ':' | '*' | '?' | '"' | '<' | '>' | '|'))
-            || part.ends_with(['.', ' '])
-            || matches!(
-                device.as_str(),
-                "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$" | "CLOCK$"
-            )
-            || device
-                .strip_prefix("COM")
-                .or_else(|| device.strip_prefix("LPT"))
-                .is_some_and(|suffix| {
-                    matches!(
-                        suffix,
-                        "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³"
-                    )
-                })
-        {
-            return Err(invalid("non-portable archive member path"));
-        }
-    }
-    if path != "database.sqlite"
-        && path != "secret.key"
-        && !path.starts_with("blobs/")
-        && !path.starts_with("plugins/")
-        && !path.starts_with("bundled-plugins/")
-    {
-        return Err(invalid("unexpected archive member namespace"));
-    }
-    Ok(())
-}
 fn manifest_members(
     manifest: &BackupManifest,
 ) -> Result<BTreeMap<String, CapturedFile>, CommandError> {

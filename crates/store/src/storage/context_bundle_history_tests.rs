@@ -4,13 +4,13 @@ use serde_json::{json, Value};
 
 fn golden() -> Value {
     serde_json::from_str(include_str!(
-        "../../../../../packages/core/src/context-bundle.golden.json"
+        "../../../../packages/core/src/context-bundle.golden.json"
     ))
     .unwrap()
 }
 fn history_golden() -> Value {
     serde_json::from_str(include_str!(
-        "../../../../../packages/core/src/context-bundle-history.golden.json"
+        "../../../../packages/core/src/context-bundle-history.golden.json"
     ))
     .unwrap()
 }

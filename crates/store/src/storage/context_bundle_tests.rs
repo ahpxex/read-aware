@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 fn golden() -> Value {
     serde_json::from_str(include_str!(
-        "../../../../../packages/core/src/context-bundle.golden.json"
+        "../../../../packages/core/src/context-bundle.golden.json"
     ))
     .unwrap()
 }

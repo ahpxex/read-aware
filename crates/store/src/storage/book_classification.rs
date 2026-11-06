@@ -1,5 +1,5 @@
 //! Classification is conditional state, not an unconditional late LLM write.
-use super::{events::commit_events_in_transaction, Db, EventRow};
+use super::{events::commit_events_in_transaction, EventRow};
 use crate::error::CommandError;
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
 use serde::Serialize;
@@ -32,7 +32,7 @@ fn invalid() -> CommandError {
 fn valid_id(id: &str) -> bool {
     !id.trim().is_empty() && id.encode_utf16().count() <= 256
 }
-pub(super) fn read_snapshot(
+pub fn read_snapshot(
     conn: &Connection,
     id: &str,
 ) -> Result<Option<BookClassificationSnapshot>, CommandError> {
@@ -74,7 +74,7 @@ pub(super) fn read_snapshot(
         revision: format!("bcl1:{:x}", Sha256::digest(bytes)),
     }))
 }
-pub(crate) fn book_classification_inspect_inner(
+pub fn book_classification_inspect_inner(
     conn: &mut Connection,
     id: &str,
 ) -> Result<Option<BookClassificationSnapshot>, CommandError> {
@@ -86,7 +86,7 @@ pub(crate) fn book_classification_inspect_inner(
     tx.commit()?;
     Ok(result)
 }
-pub(crate) fn book_classification_commit_inner(
+pub fn book_classification_commit_inner(
     conn: &mut Connection,
     event: &EventRow,
     expected_revision: Option<&str>,
@@ -194,29 +194,4 @@ pub(crate) fn book_classification_commit_inner(
         snapshot,
         changed: true,
     })
-}
-#[tauri::command]
-pub async fn book_classification_inspect(
-    id: String,
-    app: tauri::AppHandle,
-) -> Result<Option<BookClassificationSnapshot>, CommandError> {
-    crate::storage::blocking("book_classification_inspect", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        book_classification_inspect_inner(&mut conn, &id)
-    })
-    .await
-}
-#[tauri::command]
-pub async fn book_classification_commit(
-    event: EventRow,
-    expected_revision: Option<String>,
-    app: tauri::AppHandle,
-) -> Result<BookClassificationReceipt, CommandError> {
-    crate::storage::blocking("book_classification_commit", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        book_classification_commit_inner(&mut conn, &event, expected_revision.as_deref())
-    })
-    .await
 }

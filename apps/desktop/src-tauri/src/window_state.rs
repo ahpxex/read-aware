@@ -2,6 +2,7 @@
 //! normal bounds separate from display mode so maximization/fullscreen never
 //! overwrite the rectangle to which the user can restore the window.
 
+use crate::tauri_error::tauri_error;
 use std::sync::{
     atomic::{AtomicBool, AtomicU64, Ordering},
     Arc, Mutex,
@@ -134,7 +135,7 @@ fn observe(window: &WebviewWindow) -> tauri::Result<Option<Observation>> {
 }
 
 fn save(window: &WebviewWindow, tracker: &Tracker, revision: u64) -> Result<(), CommandError> {
-    let observation = observe(window)?;
+    let observation = observe(window).map_err(tauri_error)?;
     let mut placement = tracker.placement.lock()?;
     if tracker.revision.load(Ordering::SeqCst) != revision {
         return Ok(());

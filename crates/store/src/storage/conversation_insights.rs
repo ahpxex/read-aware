@@ -1,5 +1,5 @@
 //! Durable, target-scoped rolling summaries. Never loads message contents.
-use super::{user_profile, Db};
+use super::user_profile;
 use crate::error::CommandError;
 use rusqlite::{Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
@@ -28,7 +28,7 @@ fn invalid_target() -> CommandError {
     CommandError::new("ui/invalid-target", "Invalid conversation insights target")
 }
 
-pub(crate) fn conversation_insights_snapshot_inner(
+pub fn conversation_insights_snapshot_inner(
     conn: &mut Connection,
     input: Value,
 ) -> Result<ConversationInsightsSnapshot, CommandError> {
@@ -117,17 +117,4 @@ pub(crate) fn conversation_insights_snapshot_inner(
         summary,
         revision,
     })
-}
-
-#[tauri::command]
-pub async fn conversation_insights_snapshot(
-    app: tauri::AppHandle,
-    target: Value,
-) -> Result<ConversationInsightsSnapshot, CommandError> {
-    super::blocking("conversation_insights_snapshot", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        conversation_insights_snapshot_inner(&mut conn, target)
-    })
-    .await
 }

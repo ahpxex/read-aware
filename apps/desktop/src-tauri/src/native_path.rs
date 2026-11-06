@@ -8,6 +8,7 @@
 //! temp file in the app's private cache that lives exactly as long as the
 //! returned guard.
 
+use crate::tauri_error::tauri_error;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
@@ -64,7 +65,9 @@ pub(crate) fn materialize_reader(
     let cache_dir = app
         .path()
         .app_cache_dir()
-        .map_err(|error| CommandError::context("Failed to locate the import cache", error))?
+        .map_err(|error| {
+            CommandError::context("Failed to locate the import cache", tauri_error(error))
+        })?
         .join("book-imports");
     stage_reader(source, &cache_dir)
 }

@@ -17,6 +17,10 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+# The on-device store (SQLite, event log, projections, blobs, import and
+# metadata extraction), shared with the `ra` CLI. This crate wraps it in IPC
+# commands and owns every OS and webview integration.
+read-aware-store = { path = "../../../crates/store" }
 # image-png: decode the PNG bytes the webview hands to clipboard writeImage.
 tauri = { version = "2", features = ["image-png"] }
 # The app's only production trace: a rotating log file in the OS log dir
@@ -39,12 +43,6 @@ sha2 = "0.10"
 # shelf-sized JPEG before it is stored or synced. Same crate tauri already
 # pulls for its PNG handling; only the decoders covers can arrive in.
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "bmp", "webp"] }
-# Authenticated encryption for the stored API key (see secrets.rs). Pure Rust,
-# no system dependency and no OS credential store — that trade is explained in
-# the module header.
-aes-gcm = "0.10"
-# Existing sync-envelope v1 wire compatibility during native backup restore.
-chacha20poly1305 = "0.10"
 zeroize = "1"
 # EPUB metadata is a few small ZIP entries (container.xml, OPF, cover). Reading
 # those directly avoids opening the whole book in the webview just to paint a
@@ -56,7 +54,6 @@ zip = { version = "2.2", default-features = false, features = ["deflate"] }
 # cannot carry them — the binary is the only root that exists everywhere.
 include_dir = "0.7"
 quick-xml = "0.39"
-percent-encoding = "2"
 # Stable per-install device id (HLC tiebreaker + sync attribution).
 uuid = { version = "1", features = ["v4"] }
 # Native OS file dialog for book import — the webview ignores HTML <input accept>.

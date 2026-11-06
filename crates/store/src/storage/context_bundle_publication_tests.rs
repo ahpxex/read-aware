@@ -3,7 +3,7 @@ use serde_json::json;
 
 fn candidate(conn: &Connection, id: &str, wall: i64) -> EventRow {
     let payload: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../../../packages/core/src/context-bundle.golden.json"
+        "../../../../packages/core/src/context-bundle.golden.json"
     ))
     .unwrap();
     let mut event = ev(id, wall, "context.bundlePublished", payload);

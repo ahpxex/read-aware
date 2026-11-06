@@ -1,5 +1,5 @@
 //! Conditional annotation writes share the event log's transaction and outbox.
-use super::{events::commit_events_in_transaction, row_to_annotation, Annotation, Db, EventRow};
+use super::{events::commit_events_in_transaction, row_to_annotation, Annotation, EventRow};
 use crate::error::CommandError;
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
 use serde::{Deserialize, Serialize};
@@ -32,7 +32,7 @@ fn read_snapshot(conn: &Connection, id: &str) -> Result<Option<AnnotationSnapsho
     snapshot_for_annotation(conn, annotation).map(Some)
 }
 
-pub(crate) fn snapshot_for_annotation(
+pub fn snapshot_for_annotation(
     conn: &Connection,
     annotation: Annotation,
 ) -> Result<AnnotationSnapshot, CommandError> {
@@ -51,7 +51,7 @@ pub(crate) fn snapshot_for_annotation(
     })
 }
 
-pub(crate) fn annotation_inspect_inner(
+pub fn annotation_inspect_inner(
     conn: &mut Connection,
     id: &str,
 ) -> Result<Option<AnnotationSnapshot>, CommandError> {
@@ -61,7 +61,7 @@ pub(crate) fn annotation_inspect_inner(
     annotation_inspect_with_budget(conn, id, false)
 }
 
-fn annotation_inspect_with_budget(
+pub fn annotation_inspect_with_budget(
     conn: &mut Connection,
     id: &str,
     bounded: bool,
@@ -160,7 +160,7 @@ fn target(event: &EventRow) -> Result<(&str, &str), CommandError> {
     Ok((kind, id))
 }
 
-pub(crate) fn annotations_commit_inner(
+pub fn annotations_commit_inner(
     conn: &mut Connection,
     events: &[EventRow],
     conditions: &[AnnotationCondition],
@@ -234,35 +234,4 @@ pub(crate) fn annotations_commit_inner(
         atomic: true,
         changes,
     })
-}
-
-#[tauri::command]
-pub async fn annotation_inspect(
-    id: String,
-    bounded: Option<bool>,
-    app: tauri::AppHandle,
-) -> Result<Option<AnnotationSnapshot>, CommandError> {
-    crate::storage::blocking("annotation_inspect", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        if bounded.unwrap_or(false) {
-            annotation_inspect_with_budget(&mut conn, &id, true)
-        } else {
-            annotation_inspect_inner(&mut conn, &id)
-        }
-    })
-    .await
-}
-#[tauri::command]
-pub async fn annotations_commit(
-    events: Vec<EventRow>,
-    conditions: Vec<AnnotationCondition>,
-    app: tauri::AppHandle,
-) -> Result<AnnotationCommitResult, CommandError> {
-    crate::storage::blocking("annotations_commit", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        annotations_commit_inner(&mut conn, &events, &conditions)
-    })
-    .await
 }

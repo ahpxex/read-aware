@@ -1,10 +1,10 @@
 //! A local source clock fences multi-read assembly, not plugin authority.
-use super::{context_bundle, events, local_event_guard, user_profile, Db, EventRow};
+use super::{context_bundle, events, local_event_guard, user_profile, EventRow};
 use crate::error::CommandError;
 use rusqlite::{params, Connection, TransactionBehavior};
 use serde::Serialize;
 
-pub(super) const SOURCE_TABLES: &[&str] = &[
+pub const SOURCE_TABLES: &[&str] = &[
     "user_profile",
     "entities",
     "entity_aliases",
@@ -21,7 +21,7 @@ pub(super) const SOURCE_TABLES: &[&str] = &[
     "synced_preferences",
 ];
 
-pub(super) fn install_source_clock(conn: &Connection) -> Result<(), CommandError> {
+pub fn install_source_clock(conn: &Connection) -> Result<(), CommandError> {
     conn.execute_batch(
         "CREATE TABLE context_bundle_source_clock (
         id INTEGER PRIMARY KEY CHECK(id=1), generation TEXT NOT NULL,
@@ -48,7 +48,7 @@ fn revision(conn: &Connection) -> Result<String, CommandError> {
 }
 
 /// Read-only admission for retained context resources. Never recreate a missing clock.
-pub(crate) fn require_context_source_revision(
+pub fn require_context_source_revision(
     conn: &Connection,
     expected: &str,
 ) -> Result<(), CommandError> {
@@ -78,7 +78,7 @@ pub(crate) fn require_context_source_revision(
     ))
 }
 
-pub(super) fn install_blob_source_clock(conn: &Connection) -> Result<(), CommandError> {
+pub fn install_blob_source_clock(conn: &Connection) -> Result<(), CommandError> {
     for action in ["INSERT", "UPDATE", "DELETE"] {
         conn.execute_batch(&format!("CREATE TRIGGER context_source_blob_objects_{action} AFTER {action} ON blob_objects
             BEGIN INSERT INTO context_bundle_source_clock(id,generation,counter) VALUES(1,lower(hex(randomblob(16))),1)
@@ -91,14 +91,12 @@ pub(super) fn install_blob_source_clock(conn: &Connection) -> Result<(), Command
 /// leaves the clock row absent so retained resource proofs fail closed until a
 /// fresh source revision is explicitly acquired; source writes can still
 /// lazily mint a new generation through their triggers.
-pub(super) fn retire_source_clock(conn: &Connection) -> Result<(), CommandError> {
+pub fn retire_source_clock(conn: &Connection) -> Result<(), CommandError> {
     conn.execute("DELETE FROM context_bundle_source_clock", [])?;
     Ok(())
 }
 
-pub(crate) fn context_bundle_source_revision_inner(
-    conn: &mut Connection,
-) -> Result<String, CommandError> {
+pub fn context_bundle_source_revision_inner(conn: &mut Connection) -> Result<String, CommandError> {
     let tx = conn.transaction()?;
     user_profile::require_initialized(&tx)?;
     let value = revision(&tx)?;
@@ -114,7 +112,7 @@ pub struct BundlePublicationReceipt {
     pub persistence: &'static str,
 }
 
-pub(crate) fn context_bundle_publish_inner(
+pub fn context_bundle_publish_inner(
     conn: &mut Connection,
     event: &EventRow,
     expected_read_revision: &str,
@@ -156,28 +154,4 @@ pub(crate) fn context_bundle_publish_inner(
         changed: !exists,
         persistence: "event-log",
     })
-}
-
-#[tauri::command]
-pub async fn context_bundle_source_revision(app: tauri::AppHandle) -> Result<String, CommandError> {
-    super::blocking("context_bundle_source_revision", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        context_bundle_source_revision_inner(&mut conn)
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn context_bundle_publish(
-    app: tauri::AppHandle,
-    event: EventRow,
-    expected_read_revision: String,
-) -> Result<BundlePublicationReceipt, CommandError> {
-    super::blocking("context_bundle_publish", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        context_bundle_publish_inner(&mut conn, &event, &expected_read_revision)
-    })
-    .await
 }

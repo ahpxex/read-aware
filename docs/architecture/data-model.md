@@ -8,10 +8,10 @@ ReadAware 的结构化数据保存在桌面 SQLite，书籍和其他大文件放
 
 | 内容 | 维护位置 |
 | --- | --- |
-| 数据库迁移、表结构与 schema 版本 | [storage/schema.rs](../../apps/desktop/src-tauri/src/storage/schema.rs) |
+| 数据库迁移、表结构与 schema 版本 | [storage/schema.rs](../../crates/store/src/storage/schema.rs) |
 | 事件类型与载荷 | [core/events.ts](../../packages/core/src/events.ts) |
 | 共享实体类型 | [core/entities.ts](../../packages/core/src/entities.ts) |
-| 事件如何更新业务投影 | [storage/apply.rs](../../apps/desktop/src-tauri/src/storage/apply.rs) |
+| 事件如何更新业务投影 | [storage/apply.rs](../../crates/store/src/storage/apply.rs) |
 | 原生存储入口与重建协调 | [storage/mod.rs](../../apps/desktop/src-tauri/src/storage/mod.rs) |
 | 前端业务命令与查询 | [web/domain](../../apps/web/src/domain/) |
 

@@ -1,4 +1,4 @@
-use super::{events::projections_stale_conn, Db};
+use super::events::projections_stale_conn;
 use crate::error::CommandError;
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
@@ -59,7 +59,7 @@ fn valid_day(conn: &Connection, day: &str) -> Result<bool, CommandError> {
     )?)
 }
 
-pub(crate) fn reading_time_snapshot_inner(
+pub fn reading_time_snapshot_inner(
     conn: &mut Connection,
     query: ReadingTimeQuery,
 ) -> Result<ReadingTimeSnapshot, CommandError> {
@@ -186,17 +186,4 @@ pub(crate) fn reading_time_snapshot_inner(
         pending,
         next_cursor,
     })
-}
-
-#[tauri::command]
-pub async fn reading_time_snapshot(
-    query: ReadingTimeQuery,
-    app: tauri::AppHandle,
-) -> Result<ReadingTimeSnapshot, CommandError> {
-    crate::storage::blocking("reading_time_snapshot", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        reading_time_snapshot_inner(&mut conn, query)
-    })
-    .await
 }

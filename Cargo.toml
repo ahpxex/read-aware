@@ -3,7 +3,7 @@
 # member's manifest, so they must not move back into a member.
 [workspace]
 resolver = "2"
-members = ["apps/desktop/src-tauri"]
+members = ["apps/desktop/src-tauri", "crates/store"]
 # Vendored forks are path dependencies, not members: workspace commands must
 # not lint, format or test third-party code as if it were ours.
 exclude = [

@@ -1,13 +1,10 @@
 //! Device-local intent recorded before an import writes its first blob.
 //! Recovery only considers previous processes; the current process may still
 //! be copying bytes while startup recovery finishes replaying remote events.
-use super::{
-    events::projections_stale_conn, library_cleanup::release_book_files_inner, DataDir, Db,
-};
+use super::{events::projections_stale_conn, library_cleanup::release_book_files_inner, Db};
 use crate::error::CommandError;
 use rusqlite::{params, Connection};
 use std::path::{Path, PathBuf};
-use tauri::Manager;
 
 pub struct ImportSession(pub String);
 impl Default for ImportSession {
@@ -29,7 +26,12 @@ fn paths(dir: &Path, id: &str) -> Vec<PathBuf> {
         .collect()
 }
 
-fn begin_inner(conn: &Connection, dir: &Path, id: &str, owner: &str) -> Result<(), CommandError> {
+pub fn begin_inner(
+    conn: &Connection,
+    dir: &Path,
+    id: &str,
+    owner: &str,
+) -> Result<(), CommandError> {
     if uuid::Uuid::parse_str(id).is_err() {
         return Err(CommandError::new(
             "library/invalid-query",
@@ -68,7 +70,7 @@ fn begin_inner(conn: &Connection, dir: &Path, id: &str, owner: &str) -> Result<(
     Ok(())
 }
 
-fn finish_inner(
+pub fn finish_inner(
     conn: &mut Connection,
     dir: &Path,
     id: &str,
@@ -142,42 +144,6 @@ pub fn recover_import_cleanup(
             }
         }
     }
-}
-
-#[tauri::command]
-pub async fn library_begin_import(
-    app: tauri::AppHandle,
-    book_id: String,
-) -> Result<(), CommandError> {
-    super::blocking("library_begin_import", move || {
-        let db = app.state::<Db>();
-        let conn = db.0.lock()?;
-        begin_inner(
-            &conn,
-            &app.state::<DataDir>().0,
-            &book_id,
-            &app.state::<ImportSession>().0,
-        )
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn library_finish_import(
-    app: tauri::AppHandle,
-    book_id: String,
-) -> Result<(), CommandError> {
-    super::blocking("library_finish_import", move || {
-        let db = app.state::<Db>();
-        let mut conn = db.0.lock()?;
-        finish_inner(
-            &mut conn,
-            &app.state::<DataDir>().0,
-            &book_id,
-            &app.state::<ImportSession>().0,
-        )
-    })
-    .await
 }
 
 #[cfg(test)]

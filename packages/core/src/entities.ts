@@ -1,7 +1,7 @@
 // Core domain entities for the local-first reading model.
 // These are plain, platform-agnostic types — no React, no storage, no I/O.
 // Field names and nullability follow the runtime migrations in
-// apps/desktop/src-tauri/src/storage/schema.rs
+// crates/store/src/storage/schema.rs
 // (the authoritative DDL) and the event payloads in events.ts.
 
 export type Id = string;

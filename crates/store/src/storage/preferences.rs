@@ -12,9 +12,7 @@ pub struct PreferenceRow {
     pub value_json: String,
 }
 
-pub(crate) fn preferences_load_all_inner(
-    conn: &Connection,
-) -> Result<Vec<PreferenceRow>, CommandError> {
+pub fn preferences_load_all_inner(conn: &Connection) -> Result<Vec<PreferenceRow>, CommandError> {
     let mut stmt = conn
         .prepare("SELECT key, value_json FROM synced_preferences WHERE NOT EXISTS (SELECT 1 FROM restored_credential_publications r WHERE r.slot=substr(synced_preferences.key,8) AND synced_preferences.key='secret:'||r.slot) ORDER BY key")
         ?;
@@ -29,16 +27,4 @@ pub(crate) fn preferences_load_all_inner(
         out.push(row?);
     }
     Ok(out)
-}
-
-#[tauri::command]
-pub async fn preferences_load_all(
-    app: tauri::AppHandle,
-) -> Result<Vec<PreferenceRow>, CommandError> {
-    crate::storage::blocking("preferences_load_all", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let conn = db.0.lock()?;
-        preferences_load_all_inner(&conn)
-    })
-    .await
 }

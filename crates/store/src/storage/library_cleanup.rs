@@ -1,4 +1,4 @@
-use super::{blobs::delete_blob_inner, events::projections_stale_conn, DataDir, Db};
+use super::{blobs::delete_blob_inner, events::projections_stale_conn, Db};
 use crate::error::CommandError;
 use rusqlite::{params, Connection};
 use serde::Serialize;
@@ -29,7 +29,7 @@ fn require_current_projections(conn: &Connection) -> Result<(), CommandError> {
     Ok(())
 }
 
-pub(crate) fn list_removal_cleanup_inner(
+pub fn list_removal_cleanup_inner(
     conn: &Connection,
     after: Option<&str>,
     limit: i64,
@@ -67,7 +67,7 @@ pub(crate) fn list_removal_cleanup_inner(
     Ok(BookRemovalCleanupPage { items, next_cursor })
 }
 
-pub(crate) fn release_book_files_inner(
+pub fn release_book_files_inner(
     conn: &mut Connection,
     data_dir: &Path,
     ids: &[String],
@@ -103,34 +103,6 @@ pub(crate) fn release_book_files_inner(
     }
     tx.commit()?;
     Ok(())
-}
-
-#[tauri::command]
-pub async fn library_list_removal_cleanup(
-    after: Option<String>,
-    limit: i64,
-    app: tauri::AppHandle,
-) -> Result<BookRemovalCleanupPage, CommandError> {
-    crate::storage::blocking("library_list_removal_cleanup", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let conn = db.0.lock()?;
-        list_removal_cleanup_inner(&conn, after.as_deref(), limit)
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn library_release_book_files(
-    ids: Vec<String>,
-    app: tauri::AppHandle,
-) -> Result<(), CommandError> {
-    crate::storage::blocking("library_release_book_files", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let data_dir = tauri::Manager::state::<DataDir>(&app);
-        let mut conn = db.0.lock()?;
-        release_book_files_inner(&mut conn, &data_dir.0, &ids)
-    })
-    .await
 }
 
 /// One pass at boot. Failures stay durable, but do not starve later entries.

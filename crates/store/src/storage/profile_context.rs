@@ -1,5 +1,5 @@
 //! Prompt-only read set: no entity registry scan and no evidence text over IPC.
-use super::{identity_consolidation as identity, user_profile, Db};
+use super::{identity_consolidation as identity, user_profile};
 use crate::error::CommandError;
 use rusqlite::Connection;
 use serde::Serialize;
@@ -12,7 +12,7 @@ pub struct ProfileContextSnapshot {
     pub source_conditions: Vec<identity::IdentitySource>,
 }
 
-pub(crate) fn profile_context_inner(
+pub fn profile_context_inner(
     conn: &mut Connection,
 ) -> Result<ProfileContextSnapshot, CommandError> {
     let tx = conn.transaction()?;
@@ -30,18 +30,6 @@ pub(crate) fn profile_context_inner(
         derived,
         source_conditions,
     })
-}
-
-#[tauri::command]
-pub async fn profile_context(
-    app: tauri::AppHandle,
-) -> Result<ProfileContextSnapshot, CommandError> {
-    super::blocking("profile_context", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        profile_context_inner(&mut conn)
-    })
-    .await
 }
 
 #[cfg(test)]

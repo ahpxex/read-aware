@@ -30,7 +30,7 @@ TanStack Router, Jotai, Tailwind CSS v4, Vite, and Tauri 2.
 - Business state writes use domain commands and `commit_events`. Event append and
   projection updates share one transaction; native committers follow the same
   contract. Use the existing `StorageAdapter` and domain seams. Rebuild projections
-  with the shared rules in `apps/desktop/src-tauri/src/storage/apply.rs`; device-local
+  with the shared rules in `crates/store/src/storage/apply.rs`; device-local
   settings, chat presentation, task state and legacy data have separate retention
   rules, so not every SQLite row can be rebuilt from events.
 - Sync relays E2E-encrypted events and blobs. Business logic and projections stay
@@ -87,7 +87,7 @@ TanStack Router, Jotai, Tailwind CSS v4, Vite, and Tauri 2.
 ## Errors and IPC
 
 - Use `AppError` / `CommandError` and stable additive error codes from
-  `packages/core/src/errors.ts` and `apps/desktop/src-tauri/src/error.rs`.
+  `packages/core/src/errors.ts` and `crates/store/src/error.rs`.
   Do not rename persisted codes. Import `invoke` through `platform/ipc`, which
   normalizes native failures, rather than directly from the Tauri API.
 - Log raw errors; show localized messages through `describeError` or
@@ -123,7 +123,11 @@ TanStack Router, Jotai, Tailwind CSS v4, Vite, and Tauri 2.
 
 - `apps/web/src/domain`: shared reads, commands and subscriptions.
 - `apps/web/src/features`: feature UI and orchestration; `platform/ipc` is the IPC seam.
-- `apps/desktop/src-tauri`: native commands, SQLite, filesystem and shell.
+- `crates/store`: the Tauri-free on-device store shared by the desktop app and the
+  CLI: SQLite schema and migrations, event log and projections, blobs, import and
+  metadata extraction. It must never depend on Tauri.
+- `apps/desktop/src-tauri`: Tauri shell: IPC command wrappers over the store, OS
+  and webview integration, and the full-backup pipeline.
 - `apps/cli`: headless command-line entry point over the same data.
 - `packages/core`: contracts, entities, events and `StorageAdapter`.
 - `packages/agent`: agent runtime, tools, memory and context assembly.

@@ -2,7 +2,7 @@
 //! SQLite orders scoped candidates; native code streams matching rows into the
 //! result identity and retains only the requested page. Exact content identity
 //! still requires a scan: this is not a constant-time or durable snapshot API.
-use super::{memories::bounded_memory_row, Db, Memory};
+use super::{memories::bounded_memory_row, Memory};
 use crate::error::CommandError;
 use rusqlite::{params, Connection};
 use serde::Serialize;
@@ -12,7 +12,7 @@ use sha2::{Digest, Sha256};
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MemoryPage {
-    pub(crate) items: Vec<Memory>,
+    pub items: Vec<Memory>,
     offset: usize,
     next_offset: Option<usize>,
     total: usize,
@@ -137,20 +137,14 @@ fn hash_value(hash: &mut Sha256, value: &impl Serialize) -> Result<(), CommandEr
     Ok(())
 }
 
-pub(crate) fn memory_page_inner(
-    conn: &mut Connection,
-    input: &Value,
-) -> Result<MemoryPage, CommandError> {
+pub fn memory_page_inner(conn: &mut Connection, input: &Value) -> Result<MemoryPage, CommandError> {
     let tx = conn.transaction()?;
     let result = memory_page_read(&tx, input)?;
     tx.commit()?;
     Ok(result)
 }
 
-pub(crate) fn memory_page_read(
-    conn: &Connection,
-    input: &Value,
-) -> Result<MemoryPage, CommandError> {
+pub fn memory_page_read(conn: &Connection, input: &Value) -> Result<MemoryPage, CommandError> {
     let query = normalize(input)?;
     let terms = search_terms(&query.query);
     let mut hash = Sha256::new();
@@ -225,19 +219,6 @@ pub(crate) fn memory_page_read(
         total,
         revision,
     })
-}
-
-#[tauri::command]
-pub async fn memories_page(
-    query: Value,
-    app: tauri::AppHandle,
-) -> Result<MemoryPage, CommandError> {
-    super::blocking("memories_page", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        memory_page_inner(&mut conn, &query)
-    })
-    .await
 }
 
 #[cfg(test)]

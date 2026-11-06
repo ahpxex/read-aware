@@ -1,10 +1,32 @@
 //! A digest is committed against the classification and chapter observed before inference.
-use super::{book_classification, events::commit_events_in_transaction, Db, EventRow};
+use super::{book_classification, events::commit_events_in_transaction, EventRow};
 use crate::error::CommandError;
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
+
+/// Whether the log holds exactly this `book.chapterDigested` event. Host
+/// checkpoint reconciliation checks an immutable event, never an old projection.
+pub fn book_digest_receipt_inner(
+    conn: &Connection,
+    event: &EventRow,
+) -> Result<bool, CommandError> {
+    if event.event_type != "book.chapterDigested"
+        || event.id.is_empty()
+        || event.id.len() > 128
+        || event.payload.to_string().len() > 128 * 1024
+    {
+        return Err(invalid());
+    }
+    let raw: Option<String> = conn.query_row("SELECT payload_json FROM domain_events WHERE id=?1 AND type='book.chapterDigested' AND aggregate_type='book' AND aggregate_id=?2",
+        params![event.id, event.aggregate_id], |row| row.get(0)).optional()?;
+    Ok(raw
+        .map(|value| serde_json::from_str::<Value>(&value))
+        .transpose()?
+        .as_ref()
+        == Some(&event.payload))
+}
 
 #[cfg(test)]
 #[path = "book_digest_tests.rs"]
@@ -53,10 +75,7 @@ fn read_digest(conn: &Connection, id: &str, index: i64) -> Result<Option<DigestR
     }
     Ok(conn.query_row("SELECT chapter_href,summary,characters_json,relations_json,digest_version,flavor,updated_at,content_version FROM chapter_digests WHERE book_id=?1 AND chapter_index=?2", params![id,index], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?,r.get(6)?,r.get(7)?))).optional()?)
 }
-pub(crate) fn file_content_version(
-    conn: &Connection,
-    id: &str,
-) -> Result<Option<String>, CommandError> {
+pub fn file_content_version(conn: &Connection, id: &str) -> Result<Option<String>, CommandError> {
     Ok(conn
         .query_row(
             "SELECT sha256 FROM blob_objects WHERE key=?1 AND deleted_at IS NULL",
@@ -98,7 +117,7 @@ fn snapshot(
         revision: format!("bdg1:{:x}", Sha256::digest(bytes)),
     }))
 }
-pub(crate) fn book_digest_inspect_inner(
+pub fn book_digest_inspect_inner(
     conn: &mut Connection,
     id: &str,
     index: i64,
@@ -145,7 +164,7 @@ fn valid_entities(value: &Value, relation: bool) -> bool {
             })
     })
 }
-pub(crate) fn book_digest_commit_inner(
+pub fn book_digest_commit_inner(
     conn: &mut Connection,
     event: &EventRow,
     expected_revision: &str,
@@ -269,51 +288,4 @@ pub(crate) fn book_digest_commit_inner(
     }
     tx.commit()?;
     Ok(after)
-}
-#[tauri::command]
-pub async fn book_digest_inspect(
-    id: String,
-    chapter_index: i64,
-    app: tauri::AppHandle,
-) -> Result<Option<BookDigestSnapshot>, CommandError> {
-    crate::storage::blocking("book_digest_inspect", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        book_digest_inspect_inner(&mut conn, &id, chapter_index)
-    })
-    .await
-}
-#[tauri::command]
-pub async fn book_digest_commit(
-    event: EventRow,
-    expected_revision: String,
-    app: tauri::AppHandle,
-) -> Result<BookDigestSnapshot, CommandError> {
-    crate::storage::blocking("book_digest_commit", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        book_digest_commit_inner(&mut conn, &event, &expected_revision)
-    })
-    .await
-}
-
-/// Host checkpoint reconciliation checks an immutable event, never an old projection.
-#[tauri::command]
-pub async fn book_digest_receipt(
-    event: EventRow,
-    app: tauri::AppHandle,
-) -> Result<bool, CommandError> {
-    if event.event_type != "book.chapterDigested"
-        || event.id.is_empty()
-        || event.id.len() > 128
-        || event.payload.to_string().len() > 128 * 1024
-    {
-        return Err(invalid());
-    }
-    crate::storage::blocking("book_digest_receipt", move || {
-        let db = tauri::Manager::state::<Db>(&app); let conn = db.0.lock()?;
-        let raw: Option<String> = conn.query_row("SELECT payload_json FROM domain_events WHERE id=?1 AND type='book.chapterDigested' AND aggregate_type='book' AND aggregate_id=?2",
-            params![event.id, event.aggregate_id], |row| row.get(0)).optional()?;
-        Ok(raw.map(|value| serde_json::from_str::<Value>(&value)).transpose()?.as_ref() == Some(&event.payload))
-    }).await
 }

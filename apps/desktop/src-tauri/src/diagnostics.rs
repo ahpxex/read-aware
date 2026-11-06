@@ -3,6 +3,7 @@
 //! bundle — exported to a file or sent to the relay, always explicitly, never
 //! automatically. Read-only: nothing here writes or deletes.
 
+use crate::tauri_error::tauri_error;
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
@@ -34,7 +35,7 @@ pub struct LogFileTail {
 fn log_dir(app: &tauri::AppHandle) -> Result<PathBuf, CommandError> {
     app.path()
         .app_log_dir()
-        .map_err(|error| CommandError::context("log directory unavailable", error))
+        .map_err(|error| CommandError::context("log directory unavailable", tauri_error(error)))
 }
 
 /// The log directory path, for the settings surface ("open log folder").

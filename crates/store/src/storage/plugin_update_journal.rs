@@ -16,7 +16,7 @@ pub struct PluginUpdateJournal {
     pub accepted: Option<PluginDataSnapshot>,
 }
 
-pub(crate) fn read_plugin_update(
+pub fn read_plugin_update(
     conn: &Connection,
     update_id: &str,
 ) -> Result<Option<PluginUpdateJournal>, CommandError> {
@@ -41,9 +41,7 @@ pub(crate) fn read_plugin_update(
     .transpose()
 }
 
-pub(crate) fn list_plugin_updates(
-    conn: &Connection,
-) -> Result<Vec<PluginUpdateJournal>, CommandError> {
+pub fn list_plugin_updates(conn: &Connection) -> Result<Vec<PluginUpdateJournal>, CommandError> {
     let mut stmt =
         conn.prepare("SELECT update_id FROM plugin_update_journal ORDER BY update_id")?;
     let ids = stmt
@@ -57,7 +55,7 @@ pub(crate) fn list_plugin_updates(
         .collect()
 }
 
-pub(crate) fn begin_plugin_update(
+pub fn begin_plugin_update(
     conn: &mut Connection,
     update_id: &str,
     plugin_id: &str,
@@ -104,7 +102,7 @@ pub(crate) fn begin_plugin_update(
 
 /// Native recomputation prevents a caller from publishing another namespace,
 /// partial candidate values, non-preference events or invented payloads.
-pub(crate) fn plugin_preference_changes(
+pub fn plugin_preference_changes(
     before: &PluginDataSnapshot,
     after: &PluginDataSnapshot,
 ) -> BTreeMap<String, Value> {
@@ -128,7 +126,7 @@ pub(crate) fn plugin_preference_changes(
         .collect()
 }
 
-pub(crate) fn accept_plugin_update(
+pub fn accept_plugin_update(
     conn: &mut Connection,
     update_id: &str,
     expected_kv: BTreeMap<String, String>,
@@ -209,10 +207,7 @@ pub(crate) fn accept_plugin_update(
 
 /// Files have already been restored from their retained immutable copy. The
 /// baseline and journal deletion are one SQLite transaction, safe to repeat.
-pub(crate) fn rollback_plugin_update(
-    conn: &mut Connection,
-    update_id: &str,
-) -> Result<(), CommandError> {
+pub fn rollback_plugin_update(conn: &mut Connection, update_id: &str) -> Result<(), CommandError> {
     let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
     let journal = read_plugin_update(&tx, update_id)?.ok_or_else(|| {
         CommandError::new(
@@ -234,7 +229,7 @@ pub(crate) fn rollback_plugin_update(
     Ok(tx.commit()?)
 }
 
-pub(crate) fn finish_plugin_update(conn: &Connection, update_id: &str) -> Result<(), CommandError> {
+pub fn finish_plugin_update(conn: &Connection, update_id: &str) -> Result<(), CommandError> {
     conn.execute(
         "DELETE FROM plugin_update_journal WHERE update_id=?1 AND phase='accepted'",
         [update_id],

@@ -37,13 +37,13 @@ use rusqlite::OpenFlags;
 use std::path::Path;
 
 /// The checkpoint file's own format version (independent of the schema).
-pub(crate) const CHECKPOINT_FORMAT: i64 = 1;
+pub const CHECKPOINT_FORMAT: i64 = 1;
 /// Applied events past the newest checkpoint before a fresh local one is cut.
-pub(crate) const CHECKPOINT_EVERY_EVENTS: i64 = 2_000;
+pub const CHECKPOINT_EVERY_EVENTS: i64 = 2_000;
 /// Local checkpoints kept per device (newest first); older ones are pruned.
-pub(crate) const CHECKPOINTS_KEPT: i64 = 3;
+pub const CHECKPOINTS_KEPT: i64 = 3;
 /// Events read per replay page — bounds memory at any log size.
-pub(crate) const REPLAY_PAGE: usize = 2_000;
+pub const REPLAY_PAGE: usize = 2_000;
 
 /// Error codes this module raises (mirrored in @read-aware/core errors.ts).
 pub const CODE_SYNC_LOG_INCOMPLETE: &str = "sync/log-incomplete";
@@ -71,9 +71,9 @@ pub struct CheckpointInfo {
     pub created_at: String,
 }
 
-pub(crate) type HlcKey = (i64, i64, String);
+pub type HlcKey = (i64, i64, String);
 
-pub(crate) fn hlc_key_of(h: &Hlc) -> HlcKey {
+pub fn hlc_key_of(h: &Hlc) -> HlcKey {
     (h.wall_ms, h.counter, h.device_id.clone())
 }
 
@@ -96,7 +96,7 @@ fn row_to_info(row: &rusqlite::Row) -> rusqlite::Result<CheckpointInfo> {
     })
 }
 
-pub(crate) fn list_checkpoints(conn: &Connection) -> Result<Vec<CheckpointInfo>, CommandError> {
+pub fn list_checkpoints(conn: &Connection) -> Result<Vec<CheckpointInfo>, CommandError> {
     let mut stmt = conn.prepare(
         "SELECT * FROM projection_checkpoints
          ORDER BY hlc_wall_ms DESC, hlc_counter DESC, hlc_device DESC, id DESC",
@@ -108,7 +108,7 @@ pub(crate) fn list_checkpoints(conn: &Connection) -> Result<Vec<CheckpointInfo>,
 }
 
 /// The newest usable checkpoint: matching schema, newest frontier.
-pub(crate) fn newest_checkpoint(conn: &Connection) -> Result<Option<CheckpointInfo>, CommandError> {
+pub fn newest_checkpoint(conn: &Connection) -> Result<Option<CheckpointInfo>, CommandError> {
     conn.query_row(
         "SELECT * FROM projection_checkpoints
           WHERE schema_version = ?1
@@ -126,7 +126,7 @@ pub(crate) fn newest_checkpoint(conn: &Connection) -> Result<Option<CheckpointIn
 
 // ─── Log completeness (sync_profile.log_complete) ────────────────────────────
 
-pub(crate) fn log_complete(conn: &Connection) -> Result<bool, CommandError> {
+pub fn log_complete(conn: &Connection) -> Result<bool, CommandError> {
     conn.query_row(
         "SELECT log_complete FROM sync_profile WHERE id = 1",
         [],
@@ -139,7 +139,7 @@ pub(crate) fn log_complete(conn: &Connection) -> Result<bool, CommandError> {
     })
 }
 
-pub(crate) fn set_log_complete(conn: &Connection, complete: bool) -> Result<(), CommandError> {
+pub fn set_log_complete(conn: &Connection, complete: bool) -> Result<(), CommandError> {
     conn.execute(
         "INSERT INTO sync_profile (id, log_complete, updated_at)
          VALUES (1, ?1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
@@ -186,7 +186,7 @@ fn backfill_frontier(conn: &Connection) -> Result<Option<i64>, CommandError> {
 /// proves it WAS in the log when the checkpoint was cut (the backfill behind a
 /// bootstrap re-inserts exactly such events). Invalid checkpoints are deleted,
 /// file and row; replay falls through to the next older one.
-pub(crate) fn invalidate_checkpoints_behind(
+pub fn invalidate_checkpoints_behind(
     conn: &Connection,
     data_dir: &Path,
     key: &HlcKey,
@@ -217,7 +217,7 @@ pub(crate) fn invalidate_checkpoints_behind(
     Ok(removed)
 }
 
-pub(crate) fn delete_checkpoint(
+pub fn delete_checkpoint(
     conn: &Connection,
     data_dir: &Path,
     id: i64,
@@ -331,7 +331,7 @@ fn write_checkpoint_file(
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct CheckpointFileMeta {
+pub struct CheckpointFileMeta {
     pub format: i64,
     pub schema_version: i64,
     pub hlc: Hlc,
@@ -347,7 +347,7 @@ fn open_checkpoint_file(path: &Path) -> Result<Connection, CommandError> {
     )?)
 }
 
-pub(crate) fn read_checkpoint_meta(file: &Connection) -> Result<CheckpointFileMeta, CommandError> {
+pub fn read_checkpoint_meta(file: &Connection) -> Result<CheckpointFileMeta, CommandError> {
     let mut stmt = file.prepare(&format!("SELECT key, value FROM \"{META_TABLE}\""))?;
     let pairs: std::collections::BTreeMap<String, String> = stmt
         .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
@@ -459,7 +459,7 @@ fn restore_tables_from_file(tx: &Transaction<'_>, file: &Connection) -> Result<(
 
 /// Restore a registered checkpoint's tables into the live projection. The
 /// caller replays the tail after `info.hlc` afterwards.
-pub(crate) fn restore_checkpoint(
+pub fn restore_checkpoint(
     tx: &Transaction<'_>,
     data_dir: &Path,
     info: &CheckpointInfo,
@@ -511,7 +511,7 @@ fn events_cursor_seq(conn: &Connection) -> Result<Option<i64>, CommandError> {
 /// `remote_seq` is the caller's claim about mailbox coverage (see
 /// `CheckpointInfo::remote_seq`); the file, the blob row and the registry row
 /// land together or not at all.
-pub(crate) fn create_checkpoint(
+pub fn create_checkpoint(
     conn: &mut Connection,
     data_dir: &Path,
     origin: &str,
@@ -605,7 +605,7 @@ pub(crate) fn create_checkpoint(
 /// prune the oldest beyond `CHECKPOINTS_KEPT`. Skipped while the projections
 /// are stale (a checkpoint of a half-merged state would be wrong by
 /// construction). Returns the checkpoint cut, if any.
-pub(crate) fn maintain_checkpoints(
+pub fn maintain_checkpoints(
     conn: &mut Connection,
     data_dir: &Path,
 ) -> Result<Option<CheckpointInfo>, CommandError> {
@@ -634,7 +634,7 @@ pub(crate) fn maintain_checkpoints(
 /// Keep the `CHECKPOINTS_KEPT` newest checkpoints; the bootstrap checkpoint
 /// is kept as long as the log behind it is incomplete (it is the only valid
 /// replay base until then).
-pub(crate) fn prune_checkpoints(conn: &Connection, data_dir: &Path) -> Result<usize, CommandError> {
+pub fn prune_checkpoints(conn: &Connection, data_dir: &Path) -> Result<usize, CommandError> {
     let complete = log_complete(conn)?;
     let all = list_checkpoints(conn)?;
     let mut removed = 0usize;
@@ -656,7 +656,7 @@ pub(crate) fn prune_checkpoints(conn: &Connection, data_dir: &Path) -> Result<us
 /// confirmed seq at or below the pull cursor — then the file equals exactly
 /// `replay(mailbox[1..=cursor])`, which is what a bootstrapping device will
 /// assume. `frontier_seq` comes back as `remote_seq`.
-pub(crate) fn create_publish_checkpoint(
+pub fn create_publish_checkpoint(
     conn: &mut Connection,
     data_dir: &Path,
 ) -> Result<CheckpointInfo, CommandError> {
@@ -699,7 +699,7 @@ pub(crate) fn create_publish_checkpoint(
     create_checkpoint(conn, data_dir, "publish", Some(cursor))
 }
 
-pub(crate) fn mark_checkpoint_published(conn: &Connection, id: i64) -> Result<(), CommandError> {
+pub fn mark_checkpoint_published(conn: &Connection, id: i64) -> Result<(), CommandError> {
     conn.execute(
         "UPDATE projection_checkpoints SET published = 1 WHERE id = ?1",
         params![id],
@@ -737,7 +737,7 @@ const BACKFILL_FEED: &str = "events-backfill";
 ///
 /// Sets the pull cursor to the checkpoint's frontier, registers it as the
 /// replay base, and opens the backfill (`log_complete = 0`).
-pub(crate) fn restore_bootstrap_checkpoint(
+pub fn restore_bootstrap_checkpoint(
     conn: &mut Connection,
     data_dir: &Path,
     blob_key: &str,
@@ -858,7 +858,7 @@ pub(crate) fn restore_bootstrap_checkpoint(
     Ok(info)
 }
 
-pub(crate) fn backfill_status(conn: &Connection) -> Result<Option<BackfillStatus>, CommandError> {
+pub fn backfill_status(conn: &Connection) -> Result<Option<BackfillStatus>, CommandError> {
     if log_complete(conn)? {
         return Ok(None);
     }
@@ -894,7 +894,7 @@ pub struct BackfillReport {
 /// nothing is applied and no checkpoint is invalidated; each row is marked
 /// confirmed at its seq. Reaching the frontier completes the log and settles
 /// any replay a straggler had deferred.
-pub(crate) fn backfill_remote_events(
+pub fn backfill_remote_events(
     conn: &mut Connection,
     data_dir: &Path,
     events_in: &[EventRow],
@@ -961,7 +961,7 @@ pub(crate) fn backfill_remote_events(
 /// The pull loop's shortcut for a device whose backfill finished by other
 /// means (the tail pull ran past the frontier while the backfill cursor sat
 /// at it): re-evaluate completeness from the cursors alone.
-pub(crate) fn settle_backfill(
+pub fn settle_backfill(
     conn: &mut Connection,
     data_dir: &Path,
 ) -> Result<Option<BackfillStatus>, CommandError> {
@@ -994,102 +994,3 @@ fn now_iso() -> String {
 }
 
 // ─── Tauri commands ──────────────────────────────────────────────────────────
-
-/// The schema version this build cuts and accepts checkpoints under.
-#[tauri::command]
-pub fn checkpoint_schema_version() -> i64 {
-    SCHEMA_VERSION
-}
-
-/// Cut a local checkpoint if enough happened since the last one (see
-/// `maintain_checkpoints`). Off the main thread: it copies every derived table.
-#[tauri::command]
-pub async fn checkpoint_maintain(app: AppHandle) -> Result<Option<CheckpointInfo>, CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let db = app.state::<Db>();
-        let data_dir = app.state::<DataDir>();
-        let mut conn = db.0.lock()?;
-        maintain_checkpoints(&mut conn, &data_dir.0)
-    })
-    .await
-    .map_err(|e| format!("checkpoint_maintain task failed: {e}"))?
-}
-
-#[tauri::command]
-pub async fn checkpoint_prepare_publish(app: AppHandle) -> Result<CheckpointInfo, CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let db = app.state::<Db>();
-        let data_dir = app.state::<DataDir>();
-        let mut conn = db.0.lock()?;
-        let info = create_publish_checkpoint(&mut conn, &data_dir.0)?;
-        prune_checkpoints(&conn, &data_dir.0)?;
-        Ok(info)
-    })
-    .await
-    .map_err(|e| format!("checkpoint_prepare_publish task failed: {e}"))?
-}
-
-#[tauri::command]
-pub async fn checkpoint_mark_published(id: i64, app: tauri::AppHandle) -> Result<(), CommandError> {
-    crate::storage::blocking("checkpoint_mark_published", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let conn = db.0.lock()?;
-        mark_checkpoint_published(&conn, id)
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn checkpoint_restore_bootstrap(
-    blob_key: String,
-    app: AppHandle,
-) -> Result<CheckpointInfo, CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let db = app.state::<Db>();
-        let data_dir = app.state::<DataDir>();
-        let mut conn = db.0.lock()?;
-        restore_bootstrap_checkpoint(&mut conn, &data_dir.0, &blob_key)
-    })
-    .await
-    .map_err(|e| format!("checkpoint_restore_bootstrap task failed: {e}"))?
-}
-
-#[tauri::command]
-pub async fn sync_backfill_status(
-    app: tauri::AppHandle,
-) -> Result<Option<BackfillStatus>, CommandError> {
-    crate::storage::blocking("sync_backfill_status", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let conn = db.0.lock()?;
-        backfill_status(&conn)
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn sync_backfill_events(
-    events: Vec<EventRow>,
-    seqs: Vec<i64>,
-    app: AppHandle,
-) -> Result<BackfillReport, CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let db = app.state::<Db>();
-        let data_dir = app.state::<DataDir>();
-        let mut conn = db.0.lock()?;
-        backfill_remote_events(&mut conn, &data_dir.0, &events, &seqs)
-    })
-    .await
-    .map_err(|e| format!("sync_backfill_events task failed: {e}"))?
-}
-
-#[tauri::command]
-pub async fn sync_backfill_settle(app: AppHandle) -> Result<Option<BackfillStatus>, CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let db = app.state::<Db>();
-        let data_dir = app.state::<DataDir>();
-        let mut conn = db.0.lock()?;
-        settle_backfill(&mut conn, &data_dir.0)
-    })
-    .await
-    .map_err(|e| format!("sync_backfill_settle task failed: {e}"))?
-}

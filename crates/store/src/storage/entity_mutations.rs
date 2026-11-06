@@ -1,4 +1,4 @@
-use super::{entity_registry as registry, events, local_event_guard, Db, EventRow};
+use super::{entity_registry as registry, events, local_event_guard, EventRow};
 use crate::error::CommandError;
 use rusqlite::{params, Connection, Transaction, TransactionBehavior};
 use serde::Serialize;
@@ -101,7 +101,7 @@ fn target(event: &EventRow) -> Result<&str, CommandError> {
     Ok(id)
 }
 
-pub(super) fn apply_decision(tx: &Transaction<'_>, event: &EventRow) -> Result<bool, CommandError> {
+pub fn apply_decision(tx: &Transaction<'_>, event: &EventRow) -> Result<bool, CommandError> {
     let id = target(event)?;
     let p = event.payload.as_object().ok_or_else(invalid)?;
     local_event_guard::validate_new_event(tx, event)?;
@@ -132,7 +132,7 @@ pub(super) fn apply_decision(tx: &Transaction<'_>, event: &EventRow) -> Result<b
     Ok(changed)
 }
 
-pub(crate) fn entity_commit_inner(
+pub fn entity_commit_inner(
     conn: &mut Connection,
     event: &EventRow,
     expected_revision: &str,
@@ -160,18 +160,4 @@ pub(crate) fn entity_commit_inner(
         changed,
         revision,
     })
-}
-
-#[tauri::command]
-pub async fn entity_commit(
-    event: EventRow,
-    expected_revision: String,
-    app: tauri::AppHandle,
-) -> Result<EntityMutationReceipt, CommandError> {
-    super::blocking("entity_commit", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        entity_commit_inner(&mut conn, &event, &expected_revision)
-    })
-    .await
 }

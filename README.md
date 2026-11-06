@@ -159,7 +159,8 @@ The repository itself is a Bun workspace monorepo orchestrated by Turborepo.
 | Path | Responsibility |
 | --- | --- |
 | `apps/web` | React 19 interface, TanStack Router, Jotai, Tailwind CSS v4 |
-| `apps/desktop` | Tauri 2 shell and native storage/platform commands |
+| `apps/desktop` | Tauri 2 shell: IPC commands, OS integration and full backups |
+| `crates/store` | On-device store shared by the app and the CLI: SQLite, event log, projections, blobs, import |
 | `apps/landing` | Public website and release downloads |
 | `apps/cli` | Headless ReadAware without the agent: reads and writes the desktop app's data and imports books, with or without the app running |
 | `packages/agent` | Agent runtime, model adapters, retrieval, and memory pipelines |

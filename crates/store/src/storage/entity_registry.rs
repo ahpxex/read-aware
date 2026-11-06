@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 #[path = "entity_registry_tests.rs"]
 mod tests;
 
-pub(super) const MEMBERSHIP: &str = "WITH known(id) AS (
+pub const MEMBERSHIP: &str = "WITH known(id) AS (
     SELECT id FROM entities UNION SELECT merged_id FROM entity_redirects UNION SELECT keep_id FROM entity_redirects
 ), membership(id,root_id) AS (
     SELECT k.id,COALESCE(r.keep_id,k.id) FROM known k LEFT JOIN entity_redirects r ON r.merged_id=k.id
@@ -22,11 +22,11 @@ pub struct EntityDefinition {
     pub canonical_name: String,
 }
 
-pub(super) fn valid_text(value: &str, max: usize) -> bool {
+pub fn valid_text(value: &str, max: usize) -> bool {
     !value.trim().is_empty() && value.encode_utf16().count() <= max
 }
 
-pub(super) fn require_fresh(conn: &Connection) -> Result<(), CommandError> {
+pub fn require_fresh(conn: &Connection) -> Result<(), CommandError> {
     if events::projections_stale_conn(conn)? {
         return Err(CommandError::new(
             "memory/conflict",
@@ -36,7 +36,7 @@ pub(super) fn require_fresh(conn: &Connection) -> Result<(), CommandError> {
     Ok(())
 }
 
-pub(super) fn valid_revision(value: &str) -> bool {
+pub fn valid_revision(value: &str) -> bool {
     value.strip_prefix("entities1:").is_some_and(|hash| {
         hash.len() == 64
             && hash
@@ -45,7 +45,7 @@ pub(super) fn valid_revision(value: &str) -> bool {
     })
 }
 
-pub(super) fn revision(conn: &Connection) -> Result<String, CommandError> {
+pub fn revision(conn: &Connection) -> Result<String, CommandError> {
     let mut hash = Sha256::new();
     for (table, query) in [
         ("entities", "SELECT json_array(id,kind,canonical_name,updated_event_id) FROM entities ORDER BY id"),
@@ -66,7 +66,7 @@ pub(super) fn revision(conn: &Connection) -> Result<String, CommandError> {
     Ok(format!("entities1:{:x}", hash.finalize()))
 }
 
-pub(super) fn root(conn: &Connection, id: &str) -> Result<Option<String>, CommandError> {
+pub fn root(conn: &Connection, id: &str) -> Result<Option<String>, CommandError> {
     Ok(conn
         .query_row(
             &format!("{MEMBERSHIP} SELECT root_id FROM membership WHERE id=?1"),
@@ -76,10 +76,7 @@ pub(super) fn root(conn: &Connection, id: &str) -> Result<Option<String>, Comman
         .optional()?)
 }
 
-pub(super) fn definition(
-    conn: &Connection,
-    id: &str,
-) -> Result<Option<EntityDefinition>, CommandError> {
+pub fn definition(conn: &Connection, id: &str) -> Result<Option<EntityDefinition>, CommandError> {
     Ok(conn
         .query_row(
             "SELECT kind,canonical_name FROM entities WHERE id=?1",

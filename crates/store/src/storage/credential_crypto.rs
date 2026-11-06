@@ -8,14 +8,14 @@ use rusqlite::{Connection, OptionalExtension};
 use std::{fs, io::Read, path::Path};
 use zeroize::Zeroizing;
 
-pub(super) const MAX_VALUE: usize = 64 * 1024 * 1024;
-pub(super) fn unavailable() -> CommandError {
+pub const MAX_VALUE: usize = 64 * 1024 * 1024;
+pub fn unavailable() -> CommandError {
     CommandError::new(
         "secrets/unavailable",
         "backup credential cannot be opened with its owning key",
     )
 }
-pub(super) fn read_key(root: &Path) -> Result<Option<Zeroizing<Vec<u8>>>, CommandError> {
+pub fn read_key(root: &Path) -> Result<Option<Zeroizing<Vec<u8>>>, CommandError> {
     let path = root.join("secret.key");
     let metadata = match fs::symlink_metadata(&path) {
         Ok(metadata) => metadata,
@@ -32,14 +32,10 @@ pub(super) fn read_key(root: &Path) -> Result<Option<Zeroizing<Vec<u8>>>, Comman
     }
     Ok(Some(key))
 }
-pub(super) fn generate_key() -> Zeroizing<Vec<u8>> {
+pub fn generate_key() -> Zeroizing<Vec<u8>> {
     Zeroizing::new(aes_gcm::Aes256Gcm::generate_key(OsRng).to_vec())
 }
-pub(super) fn value(
-    conn: &Connection,
-    table: &str,
-    key: &str,
-) -> Result<Option<String>, CommandError> {
+pub fn value(conn: &Connection, table: &str, key: &str) -> Result<Option<String>, CommandError> {
     let sql = match table {
         "app_kv" => "SELECT value_json FROM app_kv WHERE key=?1",
         "synced_preferences" => "SELECT value_json FROM synced_preferences WHERE key=?1",
@@ -51,7 +47,7 @@ pub(super) fn value(
     }
     Ok(value)
 }
-pub(super) fn local(
+pub fn local(
     conn: &Connection,
     root: &Path,
     slot: &str,
@@ -60,10 +56,7 @@ pub(super) fn local(
         .map(|packed| crate::secrets::decrypt_existing(root, &packed).map(Zeroizing::new))
         .transpose()
 }
-pub(super) fn master(
-    conn: &Connection,
-    root: &Path,
-) -> Result<Option<Zeroizing<Vec<u8>>>, CommandError> {
+pub fn master(conn: &Connection, root: &Path) -> Result<Option<Zeroizing<Vec<u8>>>, CommandError> {
     local(conn, root, "sync.master-key")?
         .map(|text| {
             let bytes = Zeroizing::new(
@@ -78,11 +71,7 @@ pub(super) fn master(
         })
         .transpose()
 }
-pub(super) fn open(
-    key: &[u8],
-    slot: &str,
-    packed: &str,
-) -> Result<Zeroizing<String>, CommandError> {
+pub fn open(key: &[u8], slot: &str, packed: &str) -> Result<Zeroizing<String>, CommandError> {
     if packed.len() > MAX_VALUE {
         return Err(unavailable());
     }
@@ -109,7 +98,7 @@ pub(super) fn open(
         .unwrap_or(&plaintext);
     Ok(Zeroizing::new(String::from_utf8_lossy(bytes).into_owned()))
 }
-pub(super) fn seal(key: &[u8], slot: &str, plaintext: &str) -> Result<String, CommandError> {
+pub fn seal(key: &[u8], slot: &str, plaintext: &str) -> Result<String, CommandError> {
     if plaintext.len() > MAX_VALUE {
         return Err(unavailable());
     }

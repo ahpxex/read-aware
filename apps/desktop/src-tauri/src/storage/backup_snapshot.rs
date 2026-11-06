@@ -265,6 +265,12 @@ pub(crate) fn capture(
 }
 
 #[cfg(test)]
+#[path = "backup_snapshot_plugin_assets_tests.rs"]
+mod plugin_assets_tests;
+#[cfg(test)]
+#[path = "backup_snapshot_reading_tests.rs"]
+mod reading_tests;
+#[cfg(test)]
 #[path = "backup_snapshot_tests.rs"]
 mod tests;
 

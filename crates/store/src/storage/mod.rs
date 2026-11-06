@@ -14,118 +14,107 @@
 // there is no vector store in the default architecture.
 
 pub mod apply;
-mod connection;
+pub mod connection;
 pub use connection::SharedConnection;
-mod execution;
-mod reading_progress;
-pub(crate) use execution::blocking;
-// Only AppKit (macOS) and the Android activity need the UI thread.
-#[cfg(any(target_os = "macos", target_os = "android"))]
-pub(crate) use execution::on_main_thread;
-mod library;
+pub mod library;
+pub mod reading_progress;
 pub use library::*;
-mod library_cleanup;
+pub mod library_cleanup;
 pub use library_cleanup::*;
-mod import_cleanup;
+pub mod import_cleanup;
 pub use import_cleanup::*;
-mod annotation_range;
-mod annotations;
+pub mod annotation_range;
+pub mod annotations;
 pub use annotations::*;
-mod annotation_pages;
+pub mod annotation_pages;
 pub use annotation_pages::*;
-mod annotation_mutations;
+pub mod annotation_mutations;
 pub use annotation_mutations::*;
-mod memory_mutations;
+pub mod memory_mutations;
 pub use memory_mutations::*;
-mod user_profile;
+pub mod user_profile;
 pub use user_profile::*;
-mod onboarding;
+pub mod onboarding;
 pub use onboarding::*;
-mod profile_context;
+pub mod profile_context;
 pub use profile_context::*;
-mod context_bundle;
-mod context_bundle_publication;
-mod local_event_guard;
-pub(crate) use context_bundle::validate_context_resource;
+pub mod context_bundle;
+pub mod context_bundle_publication;
+pub mod local_event_guard;
+pub use context_bundle::validate_context_resource;
 pub use context_bundle_publication::*;
-mod conversation_insights;
+pub mod conversation_insights;
 pub use conversation_insights::*;
-mod book_context;
+pub mod book_context;
 pub use book_context::*;
-mod context_bundle_history;
+pub mod context_bundle_history;
 pub use context_bundle_history::*;
-mod entity_queries;
-mod entity_registry;
+pub mod entity_queries;
+pub mod entity_registry;
 pub use entity_queries::*;
-mod entity_mutations;
+pub mod entity_mutations;
 pub use entity_mutations::*;
-mod book_classification;
+pub mod book_classification;
 pub use book_classification::*;
-mod book_merge;
+pub mod book_merge;
 pub use book_merge::*;
-mod book_digest;
+pub mod book_digest;
 pub use book_digest::*;
-mod memory_creation;
+pub mod memory_creation;
 pub use memory_creation::*;
-mod memory_maintenance;
+pub mod memory_maintenance;
 pub use memory_maintenance::*;
-mod identity_consolidation;
+pub mod identity_consolidation;
 pub use identity_consolidation::*;
-mod identity_consolidation_commit;
+pub mod identity_consolidation_commit;
 pub use identity_consolidation_commit::*;
-mod identity_work;
+pub mod identity_work;
 pub use identity_work::*;
-mod memories;
-mod memory_page;
+pub mod memories;
+pub mod memory_page;
 pub use memories::*;
 pub use memory_page::*;
-mod chat;
+pub mod chat;
 pub use chat::*;
-pub(crate) mod plugin_assets;
-mod plugin_docs;
+pub mod plugin_assets;
+pub mod plugin_docs;
 pub mod plugin_storage_usage;
-pub(crate) mod virtual_books;
+pub mod virtual_books;
 pub use plugin_docs::*;
-mod plugin_data;
+pub mod plugin_data;
 pub use plugin_data::*;
-pub(crate) mod backup_reading;
-pub(crate) mod backup_staging;
-pub(crate) use backup_reading::*;
-mod credential_crypto;
-pub(crate) mod restored_credentials;
-pub(crate) use restored_credentials::*;
-mod plugin_update_journal;
-pub(crate) use plugin_update_journal::*;
-mod atomic_commit;
-mod durable_jobs;
-mod plugin_document_operations;
+pub mod backup_reading;
+pub use backup_reading::*;
+pub mod credential_crypto;
+pub mod restored_credentials;
+pub use restored_credentials::*;
+pub mod plugin_update_journal;
+pub use plugin_update_journal::*;
+pub mod atomic_commit;
+pub mod durable_jobs;
+pub mod plugin_document_operations;
 pub use atomic_commit::*;
 pub use durable_jobs::*;
-mod plugin_document_search;
+pub mod plugin_document_search;
 pub use plugin_document_operations::*;
-mod schema;
+pub mod schema;
 pub use schema::*;
-mod blobs;
+pub mod blobs;
 pub use blobs::*;
-mod events;
+pub mod events;
 pub use events::*;
-mod sync;
+pub mod sync;
 pub use sync::*;
-mod reading_time;
+pub mod reading_time;
 pub use reading_time::*;
-mod reading_snapshot;
+pub mod reading_snapshot;
 pub use reading_snapshot::*;
-mod preferences;
+pub mod preferences;
 pub use preferences::*;
-mod checkpoints;
+pub mod checkpoints;
 pub use checkpoints::*;
-pub(crate) mod backup_archive;
-pub(crate) mod backup_export;
-pub(crate) mod backup_import;
-mod backup_restore_events;
-pub(crate) mod backup_restore_files;
-pub(crate) mod backup_snapshot;
-pub(crate) mod backup_tasks;
+pub mod archive_member;
+pub mod backup_restore_files;
 
 use crate::error::CommandError;
 use std::io::{Read, Seek, SeekFrom};
@@ -136,7 +125,6 @@ use rusqlite::{params, Connection, Transaction};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use tauri::{AppHandle, Manager};
 
 /// Hybrid logical clock stamp. Mirrors `HlcStamp` in @read-aware/core.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -235,40 +223,6 @@ pub struct LocalDeviceInfo {
     pub last_hlc_counter: Option<i64>,
 }
 
-#[tauri::command]
-pub async fn local_device_get(app: tauri::AppHandle) -> Result<LocalDeviceInfo, CommandError> {
-    crate::storage::blocking("local_device_get", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let conn = db.0.lock()?;
-        let device_id = ensure_local_device(&conn)?;
-        // The log's newest stamp — OR a restored checkpoint's frontier, which is
-        // newer than anything a still-backfilling log holds: the projections
-        // already reflect events up to it, so local stamps must sort after it.
-        let last = conn
-            .query_row(
-                "SELECT hlc_wall_ms, hlc_counter FROM (
-                SELECT hlc_wall_ms, hlc_counter FROM domain_events
-                UNION ALL
-                SELECT hlc_wall_ms, hlc_counter FROM projection_checkpoints
-             )
-             ORDER BY hlc_wall_ms DESC, hlc_counter DESC LIMIT 1",
-                [],
-                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
-            )
-            .map(Some)
-            .or_else(|e| match e {
-                rusqlite::Error::QueryReturnedNoRows => Ok(None),
-                other => Err(other.to_string()),
-            })?;
-        Ok(LocalDeviceInfo {
-            device_id,
-            last_hlc_wall_ms: last.map(|(wall, _)| wall),
-            last_hlc_counter: last.map(|(_, counter)| counter),
-        })
-    })
-    .await
-}
-
 // --- Device-local key/value config (backs the settings seam) ---
 
 /// The persisted app theme preference, read straight off the connection during
@@ -309,31 +263,8 @@ pub fn read_boot_theme(conn: &Connection) -> Option<&'static str> {
     }
 }
 
-/// Load the entire `app_kv` store as a `{ key: value_json }` map. Called once at
-/// boot to hydrate the synchronous in-memory snapshot the settings modules read.
-#[tauri::command]
-pub async fn load_kv_all(
-    app: tauri::AppHandle,
-) -> Result<std::collections::HashMap<String, String>, CommandError> {
-    crate::storage::blocking("load_kv_all", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let conn = db.0.lock()?;
-        let mut stmt = conn.prepare("SELECT key, value_json FROM app_kv")?;
-        let rows = stmt.query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        })?;
-        let mut map = std::collections::HashMap::new();
-        for row in rows {
-            let (key, value) = row?;
-            map.insert(key, value);
-        }
-        Ok(map)
-    })
-    .await
-}
-
 /// Read one durable key without exporting the rest of the store.
-pub(crate) fn get_kv_inner(conn: &Connection, key: &str) -> Result<Option<String>, CommandError> {
+pub fn get_kv_inner(conn: &Connection, key: &str) -> Result<Option<String>, CommandError> {
     use rusqlite::OptionalExtension;
     Ok(conn
         .query_row("SELECT value_json FROM app_kv WHERE key=?1", [key], |row| {
@@ -342,31 +273,7 @@ pub(crate) fn get_kv_inner(conn: &Connection, key: &str) -> Result<Option<String
         .optional()?)
 }
 
-#[tauri::command]
-pub async fn get_kv(app: tauri::AppHandle, key: String) -> Result<Option<String>, CommandError> {
-    blocking("get_kv", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let conn = db.0.lock()?;
-        get_kv_inner(&conn, &key)
-    })
-    .await
-}
-
-/// Upsert one config key (write-through from `localKV.setItem`).
-#[tauri::command]
-pub async fn set_kv(key: String, value: String, app: tauri::AppHandle) -> Result<(), CommandError> {
-    crate::storage::blocking("set_kv", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        let entries = vec![(key, Some(value))];
-        crate::desktop_preferences::commit_entries(&app, &entries, || {
-            set_kv_batch_inner(&mut conn, entries.clone())
-        })
-    })
-    .await
-}
-
-pub(crate) fn set_kv_batch_inner(
+pub fn set_kv_batch_inner(
     conn: &mut Connection,
     entries: Vec<(String, Option<String>)>,
 ) -> Result<(), CommandError> {
@@ -375,7 +282,7 @@ pub(crate) fn set_kv_batch_inner(
     Ok(tx.commit()?)
 }
 
-pub(crate) fn set_kv_batch_in_transaction(
+pub fn set_kv_batch_in_transaction(
     tx: &rusqlite::Transaction<'_>,
     entries: Vec<(String, Option<String>)>,
 ) -> Result<(), CommandError> {
@@ -400,7 +307,7 @@ pub(crate) fn set_kv_batch_in_transaction(
 /// transaction, so a roaming save never lands in KV without its event (or the
 /// reverse). Only preference events for keys written by this same batch are
 /// accepted; this is not a general event-commit entry.
-pub(crate) fn set_kv_batch_with_preferences_inner(
+pub fn set_kv_batch_with_preferences_inner(
     conn: &mut Connection,
     entries: Vec<(String, Option<String>)>,
     events: &[EventRow],
@@ -426,41 +333,7 @@ pub(crate) fn set_kv_batch_with_preferences_inner(
     Ok(tx.commit()?)
 }
 
-/// A settings command can span several preference records, but commits all or
-/// none. Roaming keys pass their `preference.changed` events so the log entry
-/// commits with the KV write.
-#[tauri::command]
-pub async fn set_kv_batch(
-    entries: Vec<(String, Option<String>)>,
-    events: Option<Vec<EventRow>>,
-    app: tauri::AppHandle,
-) -> Result<(), CommandError> {
-    crate::storage::blocking("set_kv_batch", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        let events = events.unwrap_or_default();
-        crate::desktop_preferences::commit_entries(&app, &entries, || {
-            set_kv_batch_with_preferences_inner(&mut conn, entries.clone(), &events)
-        })
-    })
-    .await
-}
-
-/// Delete one config key (write-through from `localKV.removeItem`).
-#[tauri::command]
-pub async fn delete_kv(key: String, app: tauri::AppHandle) -> Result<(), CommandError> {
-    crate::storage::blocking("delete_kv", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        let entries = vec![(key, None)];
-        crate::desktop_preferences::commit_entries(&app, &entries, || {
-            set_kv_batch_inner(&mut conn, entries.clone())
-        })
-    })
-    .await
-}
-
-pub(crate) fn replace_kv_prefix_inner(
+pub fn replace_kv_prefix_inner(
     conn: &mut Connection,
     prefix: &str,
     entries: std::collections::HashMap<String, String>,
@@ -480,35 +353,8 @@ pub(crate) fn replace_kv_prefix_inner(
     Ok(tx.commit()?)
 }
 
-/// Replace one namespaced KV snapshot in a single transaction. Plugin update
-/// recovery uses this instead of racing individual fire-and-forget writes.
-#[tauri::command]
-pub async fn replace_kv_prefix(
-    prefix: String,
-    entries: std::collections::HashMap<String, String>,
-    app: tauri::AppHandle,
-) -> Result<(), CommandError> {
-    crate::storage::blocking("replace_kv_prefix", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        let general =
-            if let Some(suffix) = crate::desktop_preferences::GENERAL_KEY.strip_prefix(&prefix) {
-                vec![(
-                    crate::desktop_preferences::GENERAL_KEY.to_string(),
-                    entries.get(suffix).cloned(),
-                )]
-            } else {
-                vec![]
-            };
-        crate::desktop_preferences::commit_entries(&app, &general, || {
-            replace_kv_prefix_inner(&mut conn, &prefix, entries)
-        })
-    })
-    .await
-}
-
 #[cfg(test)]
 mod tests;
 
-mod capability_changes;
+pub mod capability_changes;
 pub use capability_changes::*;

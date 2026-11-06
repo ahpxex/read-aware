@@ -1,5 +1,5 @@
 //! Book-scoped durable source data. Authorization and spoiler selection are host-owned.
-use super::{user_profile, Db};
+use super::user_profile;
 use crate::error::CommandError;
 use rusqlite::{Connection, OptionalExtension};
 use serde_json::{json, Value};
@@ -8,14 +8,14 @@ fn invalid() -> CommandError {
     CommandError::new("memory/invalid-input", "Invalid book context source")
 }
 
-pub(crate) fn book_context_snapshot_inner(
+pub fn book_context_snapshot_inner(
     conn: &mut Connection,
     book_id: &str,
 ) -> Result<Value, CommandError> {
     book_context_snapshot_versioned(conn, book_id, None)
 }
 
-fn book_context_snapshot_versioned(
+pub fn book_context_snapshot_versioned(
     conn: &mut Connection,
     book_id: &str,
     version: Option<&str>,
@@ -112,22 +112,4 @@ fn book_context_snapshot_versioned(
         "memories":memories, "annotations":annotations, "digests":digests});
     tx.commit()?;
     Ok(result)
-}
-
-#[tauri::command]
-pub async fn book_context_snapshot(
-    app: tauri::AppHandle,
-    book_id: String,
-    content_version: Option<String>,
-) -> Result<Value, CommandError> {
-    super::blocking("book_context_snapshot", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        if content_version.is_some() {
-            book_context_snapshot_versioned(&mut conn, &book_id, content_version.as_deref())
-        } else {
-            book_context_snapshot_inner(&mut conn, &book_id)
-        }
-    })
-    .await
 }

@@ -19,7 +19,7 @@ const ITEM_KINDS: &[&str] = &[
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(super) struct Content {
+pub struct Content {
     format: String,
     schema_version: u32,
     recipe_version: u32,
@@ -31,7 +31,7 @@ pub(super) struct Content {
 }
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "lowercase", deny_unknown_fields)]
-pub(super) enum Scope {
+pub enum Scope {
     User,
     Book { id: String },
     Conversation { id: String },
@@ -47,7 +47,7 @@ impl Scope {
 }
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(super) struct Item {
+pub struct Item {
     pub kind: String,
     pub id: String,
     pub revision: String,
@@ -63,7 +63,7 @@ struct Omission {
 }
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(super) struct Bundle {
+pub struct Bundle {
     pub version: String,
     pub content: Content,
 }
@@ -87,7 +87,7 @@ fn allows(recipe: &str, kind: &str) -> bool {
     }
 }
 
-pub(super) fn valid_selector(kind: &str, scope: &Scope) -> bool {
+pub fn valid_selector(kind: &str, scope: &Scope) -> bool {
     let (scope, id) = scope.parts();
     if id.is_some_and(|id| !text(id, 256, false)) {
         return false;
@@ -101,7 +101,7 @@ pub(super) fn valid_selector(kind: &str, scope: &Scope) -> bool {
     }
 }
 
-pub(super) fn canonical(content: &Content) -> Result<String, CommandError> {
+pub fn canonical(content: &Content) -> Result<String, CommandError> {
     let (scope, id) = content.scope.parts();
     if content.format != "readaware.context"
         || content.schema_version != 1
@@ -164,7 +164,7 @@ pub(super) fn canonical(content: &Content) -> Result<String, CommandError> {
     Ok(encoded)
 }
 
-pub(super) fn validate(value: &Value) -> Result<Bundle, CommandError> {
+pub fn validate(value: &Value) -> Result<Bundle, CommandError> {
     let bundle: Bundle = serde_json::from_value(value.clone()).map_err(|_| invalid())?;
     let bytes = canonical(&bundle.content)?;
     if bundle.version != format!("cb1:{:x}", Sha256::digest(bytes.as_bytes())) {
@@ -173,7 +173,7 @@ pub(super) fn validate(value: &Value) -> Result<Bundle, CommandError> {
     Ok(bundle)
 }
 
-pub(crate) fn validate_context_resource(bytes: &[u8]) -> Result<(), CommandError> {
+pub fn validate_context_resource(bytes: &[u8]) -> Result<(), CommandError> {
     let value = serde_json::from_slice(bytes).map_err(|_| invalid())?;
     validate(&value)?;
     Ok(())

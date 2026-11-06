@@ -145,12 +145,6 @@ impl<T> From<std::sync::PoisonError<T>> for CommandError {
     }
 }
 
-impl From<tauri::Error> for CommandError {
-    fn from(error: tauri::Error) -> Self {
-        Self::internal(error.to_string())
-    }
-}
-
 /// Bare-string errors from validation/`format!` sites that predate the typed
 /// error: honest fallback is the unclassified `internal` code. New code should
 /// prefer `CommandError::new`/`context` with a real code.

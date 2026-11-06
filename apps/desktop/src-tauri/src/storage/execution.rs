@@ -31,7 +31,8 @@ pub(crate) async fn on_main_thread<T: Send + 'static>(
     app.run_on_main_thread(move || {
         // The waiter may have gone away; the task still ran to completion.
         let _ = sender.send(task());
-    })?;
+    })
+    .map_err(crate::tauri_error::tauri_error)?;
     receiver
         .await
         .map_err(|_| CommandError::internal("main-thread task was dropped before it ran"))

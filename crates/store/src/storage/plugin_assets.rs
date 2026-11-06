@@ -8,8 +8,8 @@ use std::{
     io::{Read, Write},
 };
 
-pub(crate) const COLLECTION: &str = "_host_assets";
-pub(crate) const MAX_BYTES: u64 = 64 * 1024 * 1024;
+pub const COLLECTION: &str = "_host_assets";
+pub const MAX_BYTES: u64 = 64 * 1024 * 1024;
 const TOTAL_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_COUNT: usize = 256;
 
@@ -71,7 +71,7 @@ fn conflict() -> CommandError {
     )
 }
 fn owner(id: &str) -> Result<(), CommandError> {
-    if crate::plugins::valid_plugin_id(id) {
+    if crate::plugin_id::valid_plugin_id(id) {
         Ok(())
     } else {
         Err(invalid("Invalid asset owner"))
@@ -145,7 +145,7 @@ fn rows(conn: &Connection, id: &str) -> Result<Vec<PluginDocumentRow>, CommandEr
         Some(true),
     )
 }
-pub(crate) fn totals(conn: &Connection, id: &str) -> Result<(usize, u64), CommandError> {
+pub fn totals(conn: &Connection, id: &str) -> Result<(usize, u64), CommandError> {
     let rows = rows(conn, id)?;
     let bytes = rows
         .iter()
@@ -158,7 +158,7 @@ pub(crate) fn totals(conn: &Connection, id: &str) -> Result<(usize, u64), Comman
     }
     Ok((rows.len(), bytes))
 }
-pub(crate) fn assert_mutable(conn: &Connection, id: &str) -> Result<(), CommandError> {
+pub fn assert_mutable(conn: &Connection, id: &str) -> Result<(), CommandError> {
     owner(id)?;
     let updating: bool = conn.query_row(
         "SELECT EXISTS(SELECT 1 FROM plugin_update_journal WHERE plugin_id=?1)",
@@ -191,7 +191,7 @@ fn expected(
     }
     Ok(current)
 }
-pub(crate) fn get_inner(
+pub fn get_inner(
     conn: &Connection,
     id: &str,
     name: &str,
@@ -205,7 +205,7 @@ pub(crate) fn get_inner(
 
 /// Called only while the native DB mutex is held. Incomplete update journals
 /// retain all old asset files until their namespace decision is recovered.
-pub(crate) fn reclaim(conn: &Connection, dir: &Path, id: &str) -> Result<(), CommandError> {
+pub fn reclaim(conn: &Connection, dir: &Path, id: &str) -> Result<(), CommandError> {
     assert_mutable(conn, id)?;
     let metadata_rows = rows(conn, id)?;
     if metadata_rows.len() > MAX_COUNT {
@@ -276,13 +276,13 @@ fn cleanup_pending(conn: &Connection, dir: &Path, id: &str) -> bool {
 }
 
 /// The bytes to store and the labels they are served with.
-pub(crate) struct AssetInput<'a> {
+pub struct AssetInput<'a> {
     pub filename: &'a str,
     pub mime: &'a str,
     pub source: File,
 }
 
-pub(crate) fn store_inner(
+pub fn store_inner(
     conn: &mut Connection,
     dir: &Path,
     id: &str,
@@ -393,7 +393,7 @@ pub(crate) fn store_inner(
     }
 }
 
-pub(crate) fn open_inner(
+pub fn open_inner(
     conn: &Connection,
     dir: &Path,
     id: &str,
@@ -419,7 +419,7 @@ pub(crate) fn open_inner(
     Ok((File::open(path)?, info(row)?))
 }
 
-pub(crate) fn delete_inner(
+pub fn delete_inner(
     conn: &mut Connection,
     dir: &Path,
     id: &str,
@@ -437,103 +437,10 @@ pub(crate) fn delete_inner(
     })
 }
 
-#[tauri::command]
-pub async fn plugin_asset_get(
-    app: AppHandle,
-    plugin_id: String,
-    key: String,
-) -> Result<Option<PluginAsset>, CommandError> {
-    blocking("plugin_asset_get", move || {
-        let db = app.state::<Db>();
-        let conn = db.0.lock()?;
-        get_inner(&conn, &plugin_id, &key)
-    })
-    .await
-}
-#[tauri::command]
-pub async fn plugin_asset_list(
-    app: AppHandle,
-    plugin_id: String,
-    after: Option<String>,
-    limit: Option<usize>,
-) -> Result<PluginAssetPage, CommandError> {
-    blocking("plugin_asset_list", move || {
-        owner(&plugin_id)?;
-        if let Some(after) = &after {
-            key(after)?;
-        }
-        let limit = limit.unwrap_or(50);
-        if !(1..=100).contains(&limit) {
-            return Err(invalid("Asset page limit must be 1..100"));
-        }
-        let db = app.state::<Db>();
-        let conn = db.0.lock()?;
-        let mut rows = rows(&conn, &plugin_id)?;
-        if rows.len() > MAX_COUNT {
-            return Err(invalid("Asset namespace exceeds count quota"));
-        }
-        rows.sort_by(|a, b| a.id.cmp(&b.id));
-        let mut items = rows
-            .into_iter()
-            .filter(|r| after.as_ref().is_none_or(|after| r.id > *after))
-            .take(limit + 1)
-            .map(info)
-            .collect::<Result<Vec<_>, _>>()?;
-        let more = items.len() > limit;
-        items.truncate(limit);
-        Ok(PluginAssetPage {
-            next_after: if more {
-                items.last().map(|r| r.key.clone())
-            } else {
-                None
-            },
-            items,
-        })
-    })
-    .await
-}
-#[tauri::command]
-pub async fn plugin_asset_policy(
-    app: AppHandle,
-    plugin_id: String,
-) -> Result<PluginAssetPolicy, CommandError> {
-    blocking("plugin_asset_policy", move || {
-        let db = app.state::<Db>();
-        let conn = db.0.lock()?;
-        let (used_assets, used_bytes) = totals(&conn, &plugin_id)?;
-        Ok(PluginAssetPolicy {
-            storage: "local",
-            backup: "complete",
-            uninstall: "delete",
-            max_assets: MAX_COUNT,
-            max_bytes: TOTAL_BYTES,
-            max_asset_bytes: MAX_BYTES,
-            used_assets,
-            used_bytes,
-        })
-    })
-    .await
-}
-#[tauri::command]
-pub async fn plugin_asset_delete(
-    app: AppHandle,
-    plugin_id: String,
-    key: String,
-    expected_revision: String,
-) -> Result<PluginAssetDeletion, CommandError> {
-    blocking("plugin_asset_delete", move || {
-        let db = app.state::<Db>();
-        let mut conn = db.0.lock()?;
-        let dir = app.state::<DataDir>();
-        delete_inner(&mut conn, &dir.0, &plugin_id, &key, &expected_revision)
-    })
-    .await
-}
-
 /// Startup recovery also sees immutable files whose publishing transaction did
 /// not commit. Each owner is recovered independently; a damaged namespace must
 /// not cause another owner's live files to be removed or block healthy startup.
-pub(crate) fn recover_all(conn: &Connection, dir: &Path) {
+pub fn recover_all(conn: &Connection, dir: &Path) {
     let entries = match fs::read_dir(dir.join("blobs")) {
         Ok(entries) => entries,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return,
@@ -557,7 +464,7 @@ pub(crate) fn recover_all(conn: &Connection, dir: &Path) {
             .strip_prefix("pluginasset%3A")
             .and_then(|s| s.split_once("%3A"))
         {
-            if crate::plugins::valid_plugin_id(id) {
+            if crate::plugin_id::valid_plugin_id(id) {
                 owners.insert(id.to_owned());
             }
         } else if let Some((length, rest)) = name
@@ -567,7 +474,7 @@ pub(crate) fn recover_all(conn: &Connection, dir: &Path) {
             if let Ok(length) = length.parse::<usize>() {
                 if let Some(id) = rest.get(..length) {
                     if rest.as_bytes().get(length) == Some(&b'-')
-                        && crate::plugins::valid_plugin_id(id)
+                        && crate::plugin_id::valid_plugin_id(id)
                     {
                         owners.insert(id.to_owned());
                     }
@@ -580,7 +487,7 @@ pub(crate) fn recover_all(conn: &Connection, dir: &Path) {
     }
 }
 
-pub(crate) fn validate_namespaces(conn: &Connection) -> Result<(), CommandError> {
+pub fn validate_namespaces(conn: &Connection) -> Result<(), CommandError> {
     let mut stmt =
         conn.prepare("SELECT DISTINCT plugin_id FROM plugin_documents WHERE collection=?1")?;
     let owners = stmt
@@ -596,6 +503,59 @@ pub(crate) fn validate_namespaces(conn: &Connection) -> Result<(), CommandError>
         }
     }
     Ok(())
+}
+
+/// One page of a plugin's assets, ordered by id, after an optional cursor.
+pub fn list_inner(
+    conn: &Connection,
+    plugin_id: &str,
+    after: Option<&str>,
+    limit: Option<usize>,
+) -> Result<PluginAssetPage, CommandError> {
+    owner(plugin_id)?;
+    if let Some(after) = after {
+        key(after)?;
+    }
+    let limit = limit.unwrap_or(50);
+    if !(1..=100).contains(&limit) {
+        return Err(invalid("Asset page limit must be 1..100"));
+    }
+    let mut rows = rows(conn, plugin_id)?;
+    if rows.len() > MAX_COUNT {
+        return Err(invalid("Asset namespace exceeds count quota"));
+    }
+    rows.sort_by(|a, b| a.id.cmp(&b.id));
+    let mut items = rows
+        .into_iter()
+        .filter(|r| after.is_none_or(|after| r.id.as_str() > after))
+        .take(limit + 1)
+        .map(info)
+        .collect::<Result<Vec<_>, _>>()?;
+    let more = items.len() > limit;
+    items.truncate(limit);
+    Ok(PluginAssetPage {
+        next_after: if more {
+            items.last().map(|r| r.key.clone())
+        } else {
+            None
+        },
+        items,
+    })
+}
+
+/// The asset quota policy and a plugin's current use of it.
+pub fn policy_inner(conn: &Connection, plugin_id: &str) -> Result<PluginAssetPolicy, CommandError> {
+    let (used_assets, used_bytes) = totals(conn, plugin_id)?;
+    Ok(PluginAssetPolicy {
+        storage: "local",
+        backup: "complete",
+        uninstall: "delete",
+        max_assets: MAX_COUNT,
+        max_bytes: TOTAL_BYTES,
+        max_asset_bytes: MAX_BYTES,
+        used_assets,
+        used_bytes,
+    })
 }
 
 #[cfg(test)]

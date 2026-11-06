@@ -1,5 +1,5 @@
 //! Device-local immutable inference pages, conditionally appended against the complete source set.
-use super::{identity_consolidation, Db};
+use super::identity_consolidation;
 use crate::error::CommandError;
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
 use serde::Serialize;
@@ -73,7 +73,7 @@ fn header(conn: &Connection) -> Result<Option<WorkHeader>, CommandError> {
         .optional()?)
 }
 
-pub(crate) fn identity_work_read_inner(
+pub fn identity_work_read_inner(
     conn: &mut Connection,
     revision: &str,
     index: i64,
@@ -110,7 +110,7 @@ pub(crate) fn identity_work_read_inner(
     })
 }
 
-pub(crate) fn identity_work_append_inner(
+pub fn identity_work_append_inner(
     conn: &mut Connection,
     revision: &str,
     index: i64,
@@ -182,37 +182,9 @@ pub(crate) fn identity_work_append_inner(
     })
 }
 
-#[tauri::command]
-pub async fn identity_work_read(
-    expected_revision: String,
-    index: i64,
-    app: tauri::AppHandle,
-) -> Result<IdentityWorkPage, CommandError> {
-    super::blocking("identity_work_read", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        identity_work_read_inner(&mut conn, &expected_revision, index)
-    })
-    .await
-}
-#[tauri::command]
-pub async fn identity_work_append(
-    expected_revision: String,
-    index: i64,
-    json: String,
-    app: tauri::AppHandle,
-) -> Result<IdentityWorkReceipt, CommandError> {
-    super::blocking("identity_work_append", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        identity_work_append_inner(&mut conn, &expected_revision, index, &json)
-    })
-    .await
-}
-
 /// Tail comparison prevents a stale compactor from deleting a newer page. The monotonic
 /// index is never reset within a source revision, so old append retries cannot cause ABA.
-pub(crate) fn identity_work_compact_inner(
+pub fn identity_work_compact_inner(
     conn: &mut Connection,
     revision: &str,
     expected_page_count: i64,
@@ -261,19 +233,4 @@ pub(crate) fn identity_work_compact_inner(
         page_count: count,
         status: "compacted",
     })
-}
-
-#[tauri::command]
-pub async fn identity_work_compact(
-    expected_revision: String,
-    expected_page_count: i64,
-    json: String,
-    app: tauri::AppHandle,
-) -> Result<IdentityWorkReceipt, CommandError> {
-    super::blocking("identity_work_compact", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        identity_work_compact_inner(&mut conn, &expected_revision, expected_page_count, &json)
-    })
-    .await
 }

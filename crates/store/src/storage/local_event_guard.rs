@@ -7,7 +7,7 @@ fn invalid() -> CommandError {
     CommandError::new("memory/invalid-input", "Invalid local decision envelope")
 }
 
-pub(super) fn validate_envelope(event: &EventRow) -> Result<(), CommandError> {
+pub fn validate_envelope(event: &EventRow) -> Result<(), CommandError> {
     let valid_origin = event.origin.as_deref().is_some_and(|origin| {
         matches!(origin, "user" | "agent" | "system")
             || origin
@@ -31,7 +31,7 @@ pub(super) fn validate_envelope(event: &EventRow) -> Result<(), CommandError> {
     Ok(())
 }
 
-pub(super) fn validate_new_event(conn: &Connection, event: &EventRow) -> Result<(), CommandError> {
+pub fn validate_new_event(conn: &Connection, event: &EventRow) -> Result<(), CommandError> {
     validate_envelope(event)?;
     let device: Option<String> = conn
         .query_row("SELECT device_id FROM local_device WHERE id=1", [], |row| {

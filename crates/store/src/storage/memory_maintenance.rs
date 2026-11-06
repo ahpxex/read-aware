@@ -2,7 +2,7 @@
 use super::{
     events::commit_events_in_transaction,
     memory_mutations::{read_snapshot, MemorySnapshot},
-    Db, EventRow,
+    EventRow,
 };
 use crate::error::CommandError;
 use rusqlite::{Connection, TransactionBehavior};
@@ -27,11 +27,11 @@ fn conflict() -> CommandError {
     CommandError::new("memory/conflict", "Memory maintenance read set changed")
 }
 
-pub(crate) fn snapshots_inner(conn: &mut Connection) -> Result<Vec<MemorySnapshot>, CommandError> {
+pub fn snapshots_inner(conn: &mut Connection) -> Result<Vec<MemorySnapshot>, CommandError> {
     snapshots_query_inner(conn, None)
 }
 
-fn snapshots_query_inner(
+pub fn snapshots_query_inner(
     conn: &mut Connection,
     query: Option<serde_json::Value>,
 ) -> Result<Vec<MemorySnapshot>, CommandError> {
@@ -76,7 +76,7 @@ fn snapshots_query_inner(
     Ok(snapshots)
 }
 
-pub(crate) fn commit_inner(
+pub fn commit_inner(
     conn: &mut Connection,
     conditions: &[MemoryCondition],
     events: &[EventRow],
@@ -197,34 +197,4 @@ pub(crate) fn commit_inner(
         .collect();
     tx.commit()?;
     Ok(committed)
-}
-
-#[tauri::command]
-pub async fn memories_snapshot(
-    query: Option<serde_json::Value>,
-    app: tauri::AppHandle,
-) -> Result<Vec<MemorySnapshot>, CommandError> {
-    crate::storage::blocking("memories_snapshot", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        if query.is_some() {
-            snapshots_query_inner(&mut conn, query)
-        } else {
-            snapshots_inner(&mut conn)
-        }
-    })
-    .await
-}
-#[tauri::command]
-pub async fn memory_maintenance_commit(
-    conditions: Vec<MemoryCondition>,
-    events: Vec<EventRow>,
-    app: tauri::AppHandle,
-) -> Result<Vec<MemorySnapshot>, CommandError> {
-    crate::storage::blocking("memory_maintenance_commit", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        commit_inner(&mut conn, &conditions, &events)
-    })
-    .await
 }

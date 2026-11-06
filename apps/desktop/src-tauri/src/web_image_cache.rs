@@ -1,6 +1,7 @@
 //! Disposable web illustrations: app cache only. No SQLite, blob store, event,
 //! backup or sync registration. Keys are URL hashes, never caller-provided paths.
 use crate::error::CommandError;
+use crate::tauri_error::tauri_error;
 use std::{
     io::Write,
     path::Path,
@@ -122,7 +123,14 @@ pub async fn web_image_cache_get(
 ) -> Result<tauri::ipc::Response, CommandError> {
     crate::storage::blocking("web_image_cache_get", move || {
         let _guard = LOCK.lock()?;
-        get(&app.path().app_cache_dir()?.join("web-images"), &key).map(tauri::ipc::Response::new)
+        get(
+            &app.path()
+                .app_cache_dir()
+                .map_err(tauri_error)?
+                .join("web-images"),
+            &key,
+        )
+        .map(tauri::ipc::Response::new)
     })
     .await
 }
@@ -155,7 +163,10 @@ pub async fn web_image_cache_put(
     crate::storage::blocking("web_image_cache_put", move || {
         let _guard = LOCK.lock()?;
         put(
-            &app.path().app_cache_dir()?.join("web-images"),
+            &app.path()
+                .app_cache_dir()
+                .map_err(tauri_error)?
+                .join("web-images"),
             &key,
             &mime,
             &bytes,

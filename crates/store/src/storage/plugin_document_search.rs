@@ -12,7 +12,7 @@ fn matches(value: &Value, query: &str) -> bool {
     }
 }
 
-pub(super) fn register(conn: &Connection) -> rusqlite::Result<()> {
+pub fn register(conn: &Connection) -> rusqlite::Result<()> {
     conn.create_scalar_function(
         "ra_plugin_document_matches",
         2,

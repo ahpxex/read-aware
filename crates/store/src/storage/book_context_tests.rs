@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 
 fn fixture() -> Value {
     serde_json::from_str(include_str!(
-        "../../../../../packages/core/src/context-bundle-book.fixture.json"
+        "../../../../packages/core/src/context-bundle-book.fixture.json"
     ))
     .unwrap()
 }
@@ -130,7 +130,7 @@ fn blob_registry_changes_including_aba_and_removal_fence_publication_and_rollbac
     let after = context_bundle_source_revision_inner(&mut conn).unwrap();
     assert_ne!(before, after);
     let payload: Value = serde_json::from_str(include_str!(
-        "../../../../../packages/core/src/context-bundle.golden.json"
+        "../../../../packages/core/src/context-bundle.golden.json"
     ))
     .unwrap();
     let mut event = ev("bundle", 1000, "context.bundlePublished", payload);

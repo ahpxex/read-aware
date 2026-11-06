@@ -20,7 +20,7 @@
 /** IPC rejection that carried no structured code (legacy `Result<T, String>`). */
 export const ERR_IPC_UNKNOWN = "ipc/unknown";
 
-/** Well-known codes produced by the desktop backend (see src-tauri error.rs). */
+/** Well-known codes produced by the desktop backend (see crates/store/src/error.rs). */
 export const ERR_FS_NOT_FOUND = "fs/not-found";
 export const ERR_FS_PERMISSION = "fs/permission";
 export const ERR_FS_NO_SPACE = "fs/no-space";

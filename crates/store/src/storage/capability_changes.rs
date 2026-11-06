@@ -88,11 +88,11 @@ fn epoch(conn: &Connection) -> Result<String, CommandError> {
         |r| r.get(0),
     )?)
 }
-pub(crate) fn invalidate(conn: &Connection) -> Result<(), CommandError> {
+pub fn invalidate(conn: &Connection) -> Result<(), CommandError> {
     conn.execute("INSERT INTO capability_change_state(id,epoch) VALUES(1,lower(hex(randomblob(24)))) ON CONFLICT(id) DO UPDATE SET epoch=excluded.epoch", [])?;
     Ok(())
 }
-pub(crate) fn reset_after_wipe(conn: &Connection) -> Result<(), CommandError> {
+pub fn reset_after_wipe(conn: &Connection) -> Result<(), CommandError> {
     // Delete-trigger producers may have recreated notices during the wipe.
     conn.execute("DELETE FROM capability_changes", [])?;
     conn.execute("DELETE FROM capability_change_cursors", [])?;
@@ -110,7 +110,7 @@ fn cursor(
     conn.execute("DELETE FROM capability_change_cursors WHERE owner=?1 AND rowid NOT IN (SELECT rowid FROM capability_change_cursors WHERE owner=?1 ORDER BY rowid DESC LIMIT 256)", [owner])?;
     Ok(token)
 }
-pub(crate) fn capability_changes_open_inner(
+pub fn capability_changes_open_inner(
     conn: &mut Connection,
     owner: &str,
     mut selector: ChangeSelector,
@@ -126,7 +126,7 @@ pub(crate) fn capability_changes_open_inner(
     tx.commit()?;
     Ok(token)
 }
-pub(crate) fn capability_changes_read_inner(
+pub fn capability_changes_read_inner(
     conn: &mut Connection,
     owner: &str,
     mut selector: ChangeSelector,
@@ -207,34 +207,6 @@ pub(crate) fn capability_changes_read_inner(
         cursor: next,
         has_more,
     })
-}
-#[tauri::command]
-pub async fn capability_changes_open(
-    owner: String,
-    selector: ChangeSelector,
-    app: tauri::AppHandle,
-) -> Result<String, CommandError> {
-    crate::storage::blocking("capability_changes_open", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        capability_changes_open_inner(&mut conn, &owner, selector)
-    })
-    .await
-}
-#[tauri::command]
-pub async fn capability_changes_read(
-    owner: String,
-    selector: ChangeSelector,
-    cursor: String,
-    limit: usize,
-    app: tauri::AppHandle,
-) -> Result<CapabilityChangePage, CommandError> {
-    crate::storage::blocking("capability_changes_read", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        capability_changes_read_inner(&mut conn, &owner, selector, &cursor, limit)
-    })
-    .await
 }
 
 #[cfg(test)]

@@ -52,7 +52,7 @@
 //! Profile patches and entity identity decisions are projected by the child
 //! modules below; they never infer new facts from names or chat text.
 
-pub(crate) mod backup_restore;
+pub mod backup_restore;
 mod context_bundles;
 mod entities;
 mod onboarding;
@@ -1019,7 +1019,7 @@ fn apply_position(
 /// under the current rule (v54: a later observation replaces the furthest
 /// page v53 had kept). An incomplete bootstrap remains stale until its normal
 /// backfill/full replay.
-pub(crate) fn recover_logged_progress(tx: &Transaction<'_>) -> Result<(), CommandError> {
+pub fn recover_logged_progress(tx: &Transaction<'_>) -> Result<(), CommandError> {
     super::events::for_each_event_after(tx, None, |ev| {
         let (position, observed_at, at) = match ev.event_type.as_str() {
             "book.progressed" => (&ev.payload, ev.hlc.wall_ms, event_time(ev)),

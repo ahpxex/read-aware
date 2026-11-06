@@ -1,28 +1,21 @@
 mod android_update;
 mod app_environment;
 mod book_folders;
-mod book_metadata;
-mod comic_metadata;
 mod covers;
 mod desktop_preferences;
 mod desktop_startup;
 mod desktop_update;
 mod diagnostics;
-mod error;
 mod exit_coordination;
 mod export_file;
 #[cfg(target_os = "ios")]
 mod export_pick;
 mod external_open;
-mod fb2_metadata;
 mod file_associations;
 mod fonts;
 mod import;
 mod local_api;
-mod metadata;
-mod mobi_metadata;
 mod native_path;
-mod pdf_metadata;
 mod plugin_sandbox_policy;
 mod plugin_updates;
 mod plugins;
@@ -32,6 +25,7 @@ mod save_targets;
 mod secrets;
 mod storage;
 mod storefront;
+mod tauri_error;
 mod web_image_cache;
 #[cfg(target_os = "macos")]
 mod wheel_phase;
@@ -39,6 +33,8 @@ mod window_input;
 #[cfg(desktop)]
 mod window_state;
 
+// Modules that live in the shared store crate keep their `crate::` paths.
+use read_aware_store::{error, metadata};
 use tauri::Manager;
 
 use error::CommandError;
@@ -1010,7 +1006,11 @@ pub fn run() {
             // A failed migration or unreadable database is the most likely
             // real-world "app dies at launch" cause — make sure it is the
             // first thing the log file explains before the process goes down.
-            let (mut conn, data_dir) = storage::init_db(app.handle()).map_err(|error| {
+            let data_dir = app.path().app_data_dir().map_err(|error| {
+                log::error!("app data directory is unavailable: {error}");
+                error
+            })?;
+            let mut conn = storage::init_db(&data_dir).map_err(|error| {
                 log::error!("database initialization failed: {error}");
                 error
             })?;
@@ -1166,8 +1166,8 @@ pub fn run() {
             storage::atomic_commit,
             storage::atomic_receipt_get,
             storage::atomic_aggregate_revisions,
-            storage::virtual_books::virtual_book_create,
-            storage::virtual_books::virtual_book_prune,
+            storage::virtual_book_create,
+            storage::virtual_book_prune,
             storage::apply_remote_events,
             storage::stage_remote_events,
             storage::finalize_staged_events,
@@ -1296,7 +1296,7 @@ pub fn run() {
             storage::ai_chat_list,
             storage::ai_chat_replace,
             storage::ai_chat_commit,
-            storage::plugin_storage_usage::plugin_storage_usage,
+            storage::plugin_storage_usage,
             storage::plugin_docs_put,
             storage::plugin_docs_get,
             storage::plugin_docs_delete,
@@ -1351,10 +1351,10 @@ pub fn run() {
             resources::resource_open_cover,
             resources::resource_store_plugin_asset,
             resources::resource_open_plugin_asset,
-            storage::plugin_assets::plugin_asset_get,
-            storage::plugin_assets::plugin_asset_list,
-            storage::plugin_assets::plugin_asset_policy,
-            storage::plugin_assets::plugin_asset_delete,
+            storage::plugin_asset_get,
+            storage::plugin_asset_list,
+            storage::plugin_asset_policy,
+            storage::plugin_asset_delete,
             resource_images::resource_copy_image,
             resource_images::resource_image_preview,
             resources::resource_create,

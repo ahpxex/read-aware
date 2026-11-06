@@ -1,4 +1,4 @@
-use super::{entity_registry as registry, Db};
+use super::entity_registry as registry;
 use crate::error::CommandError;
 use rusqlite::{params, Connection};
 use serde::Serialize;
@@ -135,7 +135,7 @@ fn identity(row: &rusqlite::Row<'_>) -> rusqlite::Result<EntityItem> {
     }))
 }
 
-pub(crate) fn entity_query_inner(
+pub fn entity_query_inner(
     conn: &mut Connection,
     input: &Value,
 ) -> Result<EntityPage, CommandError> {
@@ -217,14 +217,4 @@ pub(crate) fn entity_query_inner(
         total,
         revision,
     })
-}
-
-#[tauri::command]
-pub async fn entity_query(query: Value, app: tauri::AppHandle) -> Result<EntityPage, CommandError> {
-    super::blocking("entity_query", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        entity_query_inner(&mut conn, &query)
-    })
-    .await
 }

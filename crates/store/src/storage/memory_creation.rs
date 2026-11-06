@@ -1,6 +1,6 @@
 //! Admission for new local memory: authoritative deduplication and user-forgetting
 //! checks share the event/projection transaction. No network or fuzzy matching.
-use super::{events::commit_events_in_transaction, row_to_memory, Db, EventRow, Memory};
+use super::{events::commit_events_in_transaction, row_to_memory, EventRow, Memory};
 use crate::error::CommandError;
 use rusqlite::{Connection, TransactionBehavior};
 use serde::Serialize;
@@ -23,7 +23,7 @@ fn canonical(value: &str) -> String {
         .to_lowercase()
 }
 
-pub(crate) fn memory_create_inner(
+pub fn memory_create_inner(
     conn: &mut Connection,
     event: &EventRow,
     automatic: bool,
@@ -156,20 +156,6 @@ pub(crate) fn memory_create_inner(
         memory,
         inserted: true,
     })
-}
-
-#[tauri::command]
-pub async fn memory_create(
-    event: EventRow,
-    automatic: bool,
-    app: tauri::AppHandle,
-) -> Result<MemoryCreation, CommandError> {
-    super::blocking("memory_create", move || {
-        let db = tauri::Manager::state::<Db>(&app);
-        let mut conn = db.0.lock()?;
-        memory_create_inner(&mut conn, &event, automatic)
-    })
-    .await
 }
 
 #[cfg(test)]

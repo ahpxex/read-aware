@@ -20,16 +20,16 @@ const MARKER: &str = "read-aware-backup-restore-accepted:";
 const MAX_MANIFEST: u64 = 96 * 1024 * 1024;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct FileDigest {
+pub struct FileDigest {
     pub bytes: u64,
     pub sha256: String,
 }
-pub(crate) enum FileSource {
+pub enum FileSource {
     File { path: PathBuf, digest: FileDigest },
     // Only a freshly generated local credential key uses in-memory bytes.
     Key(Zeroizing<Vec<u8>>),
 }
-pub(crate) struct FileChange {
+pub struct FileChange {
     pub path: String,
     pub before: Option<FileDigest>,
     pub after: Option<FileSource>,
@@ -48,7 +48,7 @@ struct Manifest {
     id: String,
     entries: Vec<Entry>,
 }
-pub(crate) struct FileRestore {
+pub struct FileRestore {
     root: PathBuf,
     directory: PathBuf,
     manifest: Manifest,
@@ -106,11 +106,13 @@ fn private_dir(path: &Path) -> Result<(), CommandError> {
     Ok(())
 }
 fn valid_path(relative: &str) -> Result<(), CommandError> {
-    super::backup_archive::member_path(relative)?;
+    super::archive_member::member_path(relative)?;
     let parts: Vec<_> = relative.split('/').collect();
     let allowed = relative == "secret.key"
         || (parts.len() == 2 && parts[0] == "blobs")
-        || (parts.len() >= 3 && parts[0] == "plugins" && crate::plugins::valid_plugin_id(parts[1]));
+        || (parts.len() >= 3
+            && parts[0] == "plugins"
+            && crate::plugin_id::valid_plugin_id(parts[1]));
     if !allowed {
         return Err(invalid("Restore file is outside the managed restore scope"));
     }
@@ -141,7 +143,7 @@ fn destination(root: &Path, relative: &str, create: bool) -> Result<PathBuf, Com
     regular(&path)?;
     Ok(path)
 }
-pub(crate) fn copy_checked(
+pub fn copy_checked(
     source: &Path,
     target: &Path,
     expected: &FileDigest,
@@ -187,7 +189,7 @@ pub(crate) fn copy_checked(
 impl FileRestore {
     /// Call within the IMMEDIATE transaction that will commit the restore.
     /// Preparation touches private files only; `install` requires a sealed plan.
-    pub(crate) fn prepare(
+    pub fn prepare(
         tx: &Transaction<'_>,
         root: &Path,
         changes: Vec<FileChange>,
@@ -307,7 +309,7 @@ impl FileRestore {
             manifest,
         })
     }
-    pub(crate) fn install(
+    pub fn install(
         &self,
         mut check: impl FnMut() -> Result<(), CommandError>,
     ) -> Result<(), CommandError> {
@@ -337,7 +339,7 @@ impl FileRestore {
         }
         Ok(())
     }
-    pub(crate) fn accept(&self, tx: &Transaction<'_>) -> Result<(), CommandError> {
+    pub fn accept(&self, tx: &Transaction<'_>) -> Result<(), CommandError> {
         tx.execute("INSERT INTO app_kv(key,value_json,updated_at) VALUES (?1,'true',strftime('%Y-%m-%dT%H:%M:%fZ','now'))",[format!("{MARKER}{}",self.manifest.id)])?;
         Ok(())
     }
@@ -361,7 +363,7 @@ impl FileRestore {
 
 /// Called before hydration/IPC and after the owning restore transaction ends.
 /// An error retains the journal and prevents normal startup over mixed files.
-pub(crate) fn recover(conn: &mut Connection, root: &Path) -> Result<(), CommandError> {
+pub fn recover(conn: &mut Connection, root: &Path) -> Result<(), CommandError> {
     let parent = root.join(DIRECTORY);
     match fs::symlink_metadata(&parent) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),

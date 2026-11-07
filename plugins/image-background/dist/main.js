@@ -96,7 +96,7 @@ var plugin = {
       await ctx.services.logging.write({ level: "warn", event: "background.preview-release-failed" });
     };
     const pickImage = () => ctx.services.resources.pick({ extensions: ["png", "jpg", "jpeg", "webp"], multiple: false });
-    const saveFromResource = async (resource, draft2, previous) => {
+    const saveFromResource = async (resource, draft, previous) => {
       let image;
       try {
         const receipt = await ctx.services.resources.assets.store(resource.id, {
@@ -105,7 +105,7 @@ var plugin = {
           name: resource.name
         });
         image = { key: receipt.asset.key, revision: receipt.asset.revision, name: receipt.asset.name };
-        await store({ ...draft2, image }, previous);
+        await store({ ...draft, image }, previous);
         if (previous)
           await removeAsset(previous.image);
         return {
@@ -119,13 +119,13 @@ var plugin = {
         throw error;
       }
     };
-    const saveWithImage = async (draft2, previous) => {
+    const saveWithImage = async (draft, previous) => {
       assertCurrent(previous);
       const resource = (await pickImage()).resources[0];
       if (!resource)
         return;
       try {
-        return await saveFromResource(resource, draft2, previous);
+        return await saveFromResource(resource, draft, previous);
       } finally {
         await ctx.services.resources.release(resource.id);
       }
@@ -441,6 +441,6 @@ var plugin = {
 };
 var src_default = plugin;
 export {
-  src_default as default,
-  backgroundTheme
+  backgroundTheme,
+  src_default as default
 };

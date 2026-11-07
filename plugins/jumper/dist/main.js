@@ -802,13 +802,13 @@ async function jumperView(ctx) {
       return chapters.map(chapterItem);
     const byId = new Map(chapters.map((chapter) => [chapter.entry.id, chapter]));
     const matched = matchChapters(toc.entries, query).map((entry) => chapterItem(byId.get(entry.id) ?? { entry, parent: null }));
-    const search2 = {
+    const search = {
       id: "search",
       title: tr(ctx.locale, "searchText").replace("{q}", query),
       icon: "magnifying-glass",
       onSelect: () => ({ view: textSearchView(ctx, { bookId, query, limit: 20, matchCase: /\p{Lu}/u.test(query) }) })
     };
-    return [...matched, ...await pageItems(query), search2];
+    return [...matched, ...await pageItems(query), search];
   };
   const search = {
     placeholder: tr(ctx.locale, "goTo"),
@@ -1173,10 +1173,10 @@ var bookmarkCopy = (locale) => translations[locale] ?? translations[locale.split
 
 // src/live-bookmarks.ts
 async function liveBookmarks(ctx, query, read, render) {
-  const failure = (errorCode2) => ({
+  const failure = (errorCode) => ({
     kind: "detail",
     title: bookmarkCopy(ctx.locale).title,
-    content: [{ kind: "error", code: errorCode2 }],
+    content: [{ kind: "error", code: errorCode }],
     actions: [
       {
         id: "refresh",
@@ -1225,12 +1225,12 @@ async function liveBookmarks(ctx, query, read, render) {
 }
 
 // src/bookmark-views.ts
-function message(ctx, text2, refresh = () => bookmarksView(ctx)) {
+function message(ctx, text, refresh = () => bookmarksView(ctx)) {
   const t = bookmarkCopy(ctx.locale);
   return {
     kind: "detail",
     title: t.title,
-    content: [{ kind: "text", text: text2 }],
+    content: [{ kind: "text", text }],
     actions: [
       {
         id: "refresh",

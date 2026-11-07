@@ -166,8 +166,10 @@ pinned in `rust-toolchain.toml` (bump it together with the workflows' `toolchain
 The Rust crates form one Cargo workspace at the repo root (build output in `target/`):
 run the CLI with `cargo run -p read-aware-cli -- <command>` and test a crate with
 `cargo test -p read-aware-store` (or `read-aware-desktop`, `read-aware-cli`).
-CI pins Bun to `packageManager` (1.3.13) and rejects drift in committed plugin `dist`
-output; if your local Bun differs, rebuild plugins with `bunx bun@1.3.13 run build`.
+Every workflow takes Bun from `packageManager` (1.4.4), so a Bun bump edits that field
+and the workspaces' `@types/bun`, nothing in `.github/workflows`. CI rejects drift in
+committed plugin `dist` output, so keep local Bun at the same version (Bun builds
+differ between releases, and nested `bun run` calls ignore a `bunx bun@…` wrapper).
 `.github/workflows/ci.yml` gates PRs and `main` on typecheck, lint, formatting, tests, `lint:deps`,
 docs, the runtime suites, rustfmt/clippy, and the native Rust tests on macOS, Linux and
 Windows. `bun run check:capabilities` (capability-matrix bookkeeping) is a manual audit,

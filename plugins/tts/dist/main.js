@@ -111,7 +111,7 @@ function normalizeSettings(raw) {
     endpoint: vendor === "custom" ? pick("customEndpoint", record.endpoint) : ""
   };
 }
-function buildSpeechRequest(settings, apiKey, text2) {
+function buildSpeechRequest(settings, apiKey, text) {
   const json = { "content-type": "application/json" };
   switch (settings.vendor) {
     case "elevenlabs": {
@@ -120,7 +120,7 @@ function buildSpeechRequest(settings, apiKey, text2) {
         url: `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voice)}?output_format=mp3_44100_128`,
         headers: { ...json, "xi-api-key": apiKey ?? "" },
         body: JSON.stringify({
-          text: text2,
+          text,
           model_id: settings.model || "eleven_multilingual_v2"
         })
       };
@@ -134,7 +134,7 @@ function buildSpeechRequest(settings, apiKey, text2) {
           ...settings.model ? { model: settings.model } : {}
         },
         body: JSON.stringify({
-          text: text2,
+          text,
           format: "mp3",
           ...settings.voiceId ? { reference_id: settings.voiceId } : {}
         })
@@ -145,7 +145,7 @@ function buildSpeechRequest(settings, apiKey, text2) {
         headers: { ...json, authorization: `Bearer ${apiKey ?? ""}` },
         body: JSON.stringify({
           model: settings.model || "tts-1",
-          input: text2,
+          input: text,
           voice: settings.voiceId || "alloy",
           response_format: "mp3"
         })
@@ -158,7 +158,7 @@ function buildSpeechRequest(settings, apiKey, text2) {
           model: settings.model || "mimo-v2.5-tts",
           messages: [
             { role: "user", content: MIMO_NARRATION_PROMPT },
-            { role: "assistant", content: text2 }
+            { role: "assistant", content: text }
           ],
           audio: { format: "mp3", voice: settings.voiceId || "mimo_default" }
         })
@@ -174,7 +174,7 @@ function buildSpeechRequest(settings, apiKey, text2) {
           ...apiKey ? { authorization: `Bearer ${apiKey}` } : {}
         },
         body: JSON.stringify({
-          input: text2,
+          input: text,
           response_format: "mp3",
           ...settings.model ? { model: settings.model } : {},
           ...settings.voiceId ? { voice: settings.voiceId } : {}
@@ -222,8 +222,8 @@ function buildVoiceListRequests(vendor, settings, apiKey) {
 }
 function optionFrom(entry) {
   if (typeof entry === "string") {
-    const value2 = entry.trim();
-    return value2 ? { value: value2, label: value2 } : null;
+    const value = entry.trim();
+    return value ? { value, label: value } : null;
   }
   if (typeof entry !== "object" || entry === null)
     return null;
@@ -327,7 +327,7 @@ var plugin = {
       id: "voices",
       label: "TTS",
       listVoices: async () => [{ id: "default", label: await voiceLabel(ctx, network, readSettings(ctx)) }],
-      synthesize: async ({ text: text2 }) => {
+      synthesize: async ({ text }) => {
         const settings = readSettings(ctx);
         const apiKey = await ctx.services.secrets.get(secretName(settings.vendor));
         if (vendorNeedsKey(settings.vendor) && !apiKey) {
@@ -336,7 +336,7 @@ var plugin = {
         if (settings.vendor === "custom" && !settings.endpoint) {
           throw new Error(tr(ctx.locale, "endpointMissing"));
         }
-        const request = buildSpeechRequest(settings, apiKey, text2);
+        const request = buildSpeechRequest(settings, apiKey, text);
         const response = await network.fetch(request.url, {
           method: "POST",
           redirect: "error",

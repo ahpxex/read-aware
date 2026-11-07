@@ -1100,11 +1100,11 @@ class DocTypeReader {
       i += 2;
     else if (xmlData[i] === "(") {
       i++;
-      const startIndex2 = i;
+      const startIndex = i;
       while (i < xmlData.length && xmlData[i] !== ")") {
         i++;
       }
-      contentModel = xmlData.substring(startIndex2, i);
+      contentModel = xmlData.substring(startIndex, i);
       if (xmlData[i] !== ")") {
         throw new Error("Unterminated content model");
       }
@@ -1146,11 +1146,11 @@ class DocTypeReader {
       i++;
       let allowedNotations = [];
       while (i < xmlData.length && xmlData[i] !== ")") {
-        const startIndex2 = i;
+        const startIndex = i;
         while (i < xmlData.length && xmlData[i] !== "|" && xmlData[i] !== ")") {
           i++;
         }
-        let notation = xmlData.substring(startIndex2, i);
+        let notation = xmlData.substring(startIndex, i);
         notation = notation.trim();
         if (!validateEntityName2(notation, { xmlVersion: this.xmlVersion })) {
           throw new Error(`Invalid notation name: "${notation}"`);
@@ -1167,11 +1167,11 @@ class DocTypeReader {
       i++;
       attributeType += " (" + allowedNotations.join("|") + ")";
     } else {
-      const startIndex2 = i;
+      const startIndex = i;
       while (i < xmlData.length && !/\s/.test(xmlData[i])) {
         i++;
       }
-      attributeType += xmlData.substring(startIndex2, i);
+      attributeType += xmlData.substring(startIndex, i);
       const validTypes = ["CDATA", "ID", "IDREF", "IDREFS", "ENTITY", "ENTITIES", "NMTOKEN", "NMTOKENS"];
       if (!this.suppressValidationErr && !validTypes.includes(attributeType.toUpperCase())) {
         throw new Error(`Invalid attribute type: "${attributeType}"`);
@@ -1360,9 +1360,9 @@ function anynum(str) {
         const low = str.charCodeAt(i + 1);
         if (low >= 56320 && low <= 57343) {
           const cp = 65536 + (cc - 55296 << 10) + (low - 56320);
-          const d2 = HIGH_MAP.get(cp);
-          if (d2 !== undefined) {
-            chars.push(String.fromCharCode(d2 + 48));
+          const d = HIGH_MAP.get(cp);
+          if (d !== undefined) {
+            chars.push(String.fromCharCode(d + 48));
             i++;
             continue;
           }
@@ -1700,12 +1700,12 @@ class ExpressionSet {
       return this;
     this._patterns.add(expression.pattern);
     if (expression.hasDeepWildcard()) {
-      const lastSeg2 = expression.segments[expression.segments.length - 1];
-      if (lastSeg2 && lastSeg2.type !== "deep-wildcard" && lastSeg2.tag !== "*") {
-        const tag2 = lastSeg2.tag;
-        if (!this._deepByTerminalTag.has(tag2))
-          this._deepByTerminalTag.set(tag2, []);
-        this._deepByTerminalTag.get(tag2).push(expression);
+      const lastSeg = expression.segments[expression.segments.length - 1];
+      if (lastSeg && lastSeg.type !== "deep-wildcard" && lastSeg.tag !== "*") {
+        const tag = lastSeg.tag;
+        if (!this._deepByTerminalTag.has(tag))
+          this._deepByTerminalTag.set(tag, []);
+        this._deepByTerminalTag.get(tag).push(expression);
       } else {
         this._deepWildcards.push(expression);
       }
@@ -3140,11 +3140,11 @@ var parseXml = function(xmlData) {
           } else if (options.unpairedTagsSet.has(tagName)) {
             i = result.closeIndex;
           } else {
-            const result2 = this.readStopNodeData(xmlData, rawTagName, closeIndex + 1);
-            if (!result2)
+            const result = this.readStopNodeData(xmlData, rawTagName, closeIndex + 1);
+            if (!result)
               throw new Error(`Unexpected end of ${rawTagName}`);
-            i = result2.i;
-            tagContent = result2.tagContent;
+            i = result.i;
+            tagContent = result.tagContent;
           }
           const childNode = new XmlNode(tagName);
           if (prefixedAttrs) {
@@ -4103,7 +4103,7 @@ function unsubscribeFeed(ctx, url, expectedBookId) {
   });
 }
 async function forgetRemovedBook(ctx, bookId) {
-  const feed = (await loadFeeds(ctx)).find((feed2) => feed2.bookId === bookId);
+  const feed = (await loadFeeds(ctx)).find((feed) => feed.bookId === bookId);
   if (!feed)
     return null;
   return serial(ctx, feed.url, async () => {

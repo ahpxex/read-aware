@@ -49,7 +49,7 @@ function MetadataLabel({ title, value, icon }: MetadataLabelProps) {
         {icon && <span className="shrink-0 text-fg-subtle">{icon}</span>}
         <Stack direction="horizontal" gap="xs" align="baseline" className="min-w-0">
           <Caption className="shrink-0 text-fg-subtle">{title}</Caption>
-          <Body className="min-w-0 text-sm leading-6 text-fg">{value}</Body>
+          <Body className="min-w-0 text-sm text-fg">{value}</Body>
         </Stack>
       </Stack>
     );
@@ -60,7 +60,7 @@ function MetadataLabel({ title, value, icon }: MetadataLabelProps) {
       <Caption className="text-fg-subtle">{title}</Caption>
       <Stack direction="horizontal" gap="sm" align="center">
         {icon && <span className="shrink-0 text-fg-subtle">{icon}</span>}
-        <Body className="min-w-0 text-sm leading-6 text-fg">{value}</Body>
+        <Body className="min-w-0 text-sm text-fg">{value}</Body>
       </Stack>
     </Stack>
   );

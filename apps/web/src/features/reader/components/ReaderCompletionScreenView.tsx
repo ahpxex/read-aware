@@ -231,7 +231,7 @@ export function ReaderCompletionScreenView({
             </Button>
           ) : null}
 
-          <Display className="mt-6 text-[2rem] leading-[1.12] text-current">{book.title}</Display>
+          <Display className="mt-6 text-[2rem] text-current">{book.title}</Display>
           {book.author ? (
             <Body className="mt-2" style={{ color: palette.muted }}>
               {book.author}

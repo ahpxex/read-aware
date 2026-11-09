@@ -335,7 +335,7 @@ export function ChatInteractionPrompt({
       {permission ? (
         <div className="grid grid-cols-[18px_minmax(0,1fr)] gap-x-2.5">
           <Warning size={18} className="self-center text-fg-muted" aria-hidden="true" />
-          <Body as="h3" className="min-w-0 text-sm font-medium leading-5 text-fg">
+          <Body as="h3" className="min-w-0 text-sm font-medium text-fg">
             {title}
           </Body>
           <div className="col-start-2 mt-3 min-w-0">
@@ -344,7 +344,7 @@ export function ChatInteractionPrompt({
         </div>
       ) : (
         <>
-          <Body as="h3" className="break-words text-sm font-medium leading-5 text-fg">
+          <Body as="h3" className="break-words text-sm font-medium text-fg">
             {title}
           </Body>
           <div className="mt-3">

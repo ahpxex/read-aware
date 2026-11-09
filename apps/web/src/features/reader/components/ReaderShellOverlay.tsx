@@ -93,8 +93,9 @@ type ReaderShellOverlayProps = {
 
 const log = createLogger("reader");
 
-/** A contents row label's type; its toggle slot shares it to align with the first line. */
-const TOC_LABEL_TYPE = "text-sm leading-6";
+/** A contents row label's type (Body's own line height); its toggle slot
+ * shares it to align with the first line. */
+const TOC_LABEL_TYPE = "text-sm";
 
 export function ReaderShellOverlay({
   visible,
@@ -570,8 +571,8 @@ export function ReaderShellOverlay({
         const toggleLabel = t(open ? "tocCollapse" : "tocExpand", { label: entry.label });
         return {
           key: entry.id,
-          // One line of text-sm/leading-6 plus the row's vertical padding.
-          size: 36,
+          // One line of Body's line height (2rem) plus the row's vertical padding.
+          size: 44,
           content: (
             <div className="relative">
               {branch && (

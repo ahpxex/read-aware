@@ -22,10 +22,10 @@ export function ReaderFailureView({ title, bookTitle, message, action, onBack }:
       <div className="w-full max-w-lg space-y-5">
         <div className="space-y-2">
           <Heading className="font-serif font-normal leading-display">{title}</Heading>
-          {bookTitle && <Body className="break-words text-sm leading-6 text-fg-muted">{bookTitle}</Body>}
+          {bookTitle && <Body className="break-words text-sm text-fg-muted">{bookTitle}</Body>}
         </div>
         <InlineError>
-          <Body className="text-sm leading-6 text-fg-muted">{message}</Body>
+          <Body className="text-sm text-fg-muted">{message}</Body>
         </InlineError>
         <div className="flex flex-wrap items-center gap-3">
           {action && (

@@ -7,6 +7,7 @@ import { describeErrorCode } from "../../../i18n/describe-error";
 import { AnnotationRow } from "../../annotations/components/AnnotationRow";
 import type { Annotation } from "../../annotations/lib/annotation-types";
 import { normalizeHref } from "../lib/epub-utils";
+import { ReaderBookmarkSection, type ReaderBookmarks } from "./ReaderBookmarkList";
 import type { TocEntry } from "../lib/reader-types";
 
 type ReaderNotesPopoverProps = {
@@ -19,6 +20,8 @@ type ReaderNotesPopoverProps = {
   tocEntries: TocEntry[];
   onNavigate: (cfiRange: string) => void;
   onDelete: (id: string) => void;
+  /** The book's bookmarks, listed first. */
+  bookmarks?: ReaderBookmarks;
   /** 受控开合（导航条的面板意图需要外部打开）；不传则保持自管状态。 */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -63,6 +66,7 @@ export function ReaderNotesPopover({
   tocEntries,
   onNavigate,
   onDelete,
+  bookmarks,
   open: controlledOpen,
   onOpenChange,
 }: ReaderNotesPopoverProps) {
@@ -94,6 +98,15 @@ export function ReaderNotesPopover({
           setOpen(false);
         }}
         onDelete={onDelete}
+        bookmarks={
+          bookmarks && {
+            ...bookmarks,
+            onOpen: (bookmark) => {
+              bookmarks.onOpen(bookmark);
+              setOpen(false);
+            },
+          }
+        }
       />
     </Popover>
   );
@@ -109,6 +122,7 @@ type ReaderNotesContentProps = Pick<
   | "tocEntries"
   | "onNavigate"
   | "onDelete"
+  | "bookmarks"
 > & {
   /** Show the "Notes" eyebrow and count; a host with its own title omits it. */
   heading?: boolean;
@@ -127,6 +141,7 @@ export function ReaderNotesContent({
   tocEntries,
   onNavigate,
   onDelete,
+  bookmarks,
   heading = true,
 }: ReaderNotesContentProps) {
   const { t } = useTranslation(["reader", "common"]);
@@ -144,27 +159,26 @@ export function ReaderNotesContent({
         </div>
       )}
 
-      {loadFailed ? (
-        <div className="px-4 py-6">
-          <InlineError
-            onRetry={failure?.retryable ? onRetryLoad : undefined}
-            retryLabel={t("common:errorBoundary.retry")}
-          >
-            {failure?.body ?? t("common:errors.generic")}
-          </InlineError>
-        </div>
-      ) : isLoading ? (
-        <div className="flex justify-center px-4 py-8">
-          <Spinner size="sm" />
-        </div>
-      ) : annotations.length === 0 ? (
-        <div className="px-4 py-8">
-          <Body className="text-center text-sm text-fg-muted">{t("emptyNotes")}</Body>
-        </div>
-      ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div data-swipe-reveal-scope className="flex flex-col gap-3 px-3 pb-3">
-            {groups.map((group, index) => (
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div data-swipe-reveal-scope className="flex flex-col gap-3 px-3 pb-3">
+          {bookmarks && <ReaderBookmarkSection {...bookmarks} />}
+          {loadFailed ? (
+            <div className="px-1 py-3">
+              <InlineError
+                onRetry={failure?.retryable ? onRetryLoad : undefined}
+                retryLabel={t("common:errorBoundary.retry")}
+              >
+                {failure?.body ?? t("common:errors.generic")}
+              </InlineError>
+            </div>
+          ) : isLoading ? (
+            <div className="flex justify-center py-6">
+              <Spinner size="sm" />
+            </div>
+          ) : annotations.length === 0 ? (
+            <Body className="px-1 py-6 text-center text-sm text-fg-muted">{t("emptyNotes")}</Body>
+          ) : (
+            groups.map((group, index) => (
               <div key={group.label ?? `__rest__${index}`}>
                 {/* Pinned while its chapter's notes scroll past. It needs the
                     host's surface color to cover them: a host other than a
@@ -185,10 +199,10 @@ export function ReaderNotesContent({
                   ))}
                 </div>
               </div>
-            ))}
-          </div>
+            ))
+          )}
         </div>
-      )}
+      </div>
     </>
   );
 }

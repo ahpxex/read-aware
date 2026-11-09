@@ -1,27 +1,36 @@
 import { useState } from "react";
+import { BookmarkSimple, DotsThree } from "@phosphor-icons/react";
 import type { Bookmark } from "@read-aware/core";
-import { DotsThree } from "@phosphor-icons/react";
-import { Body, Caption, DropdownMenu, InlineError, Spinner, TextField, iconButtonClassName } from "@read-aware/ui";
+import { DropdownMenu, IconButton, InlineError, TextField, Tooltip, iconButtonClassName } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { formatDate, useTranslation } from "../../../i18n";
 
-/** The row look shared with the contents list: edge to edge, inset text. */
-export const CONTENTS_ROW =
-  "w-full border-l-2 border-transparent py-1.5 pr-3 pl-7 text-left text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg";
+export type ReaderBookmarks = {
+  bookmarks: Bookmark[] | null;
+  failed: boolean;
+  /** The chapter a bookmark is in, when its target says. */
+  chapterOf?: (bookmark: Bookmark) => string | undefined;
+  onAdd: () => void;
+  onOpen: (bookmark: Bookmark) => void;
+  onRename: (bookmark: Bookmark, name: string) => void;
+  onRemove: (bookmark: Bookmark) => void;
+};
 
+/**
+ * One bookmark, in the notes list's look: a marker where an annotation has
+ * its color rule, the name, then chapter or date. Rename happens in place;
+ * the actions sit in a menu that touch can reach too.
+ */
 function BookmarkRow({
   bookmark,
-  subtitle,
+  chapter,
   onOpen,
   onRename,
   onRemove,
 }: {
   bookmark: Bookmark;
-  subtitle?: string;
-  onOpen: (bookmark: Bookmark) => void;
-  onRename: (bookmark: Bookmark, name: string) => void;
-  onRemove: (bookmark: Bookmark) => void;
-}) {
+  chapter?: string;
+} & Pick<ReaderBookmarks, "onOpen" | "onRename" | "onRemove">) {
   const { t } = useTranslation("reader");
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(bookmark.name);
@@ -32,7 +41,7 @@ function BookmarkRow({
   };
   if (editing)
     return (
-      <div className="py-1 pr-3 pl-7">
+      <div className="py-1 pl-2">
         <TextField
           label={t("bookmarkName")}
           hideLabel
@@ -54,84 +63,93 @@ function BookmarkRow({
       </div>
     );
   return (
-    <div className="group flex items-start">
-      {/* oxlint-disable-next-line react/forbid-elements -- contents-panel row: a full-width jump target styled with the contents list */}
-      <button type="button" onClick={() => onOpen(bookmark)} className={cn(CONTENTS_ROW, "min-w-0 flex-1")}>
-        <Body as="span" className="block min-w-0 break-words text-sm text-inherit">
-          {bookmark.name}
-        </Body>
-        <Caption as="span" className="block text-fg-subtle">
-          {subtitle ?? formatDate(new Date(bookmark.createdAt))}
-        </Caption>
+    <div className="group flex items-start gap-1 rounded-md transition-colors hover:bg-fg/5">
+      {/* oxlint-disable-next-line react/forbid-elements -- bookmark list row that navigates to its place */}
+      <button
+        type="button"
+        onClick={() => onOpen(bookmark)}
+        className="flex min-w-0 flex-1 gap-3 rounded-md py-2 pl-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+      >
+        <BookmarkSimple size={14} weight="fill" aria-hidden="true" className="mt-[3px] shrink-0 text-fg-subtle" />
+        <div className="min-w-0 flex-1 font-sans">
+          <p className="line-clamp-2 text-[13px] leading-relaxed text-fg">{bookmark.name}</p>
+          <p className="mt-1 text-[11px] text-fg-subtle">
+            {chapter ?? formatDate(new Date(bookmark.createdAt), { month: "short", day: "numeric" })}
+          </p>
+        </div>
       </button>
-      <div className="shrink-0 pt-1.5 pr-2">
-        <DropdownMenu
-          triggerLabel={t("bookmarkActions", { name: bookmark.name })}
-          align="right"
-          trigger={
-            <span className={iconButtonClassName({ size: "sm" })}>
-              <DotsThree size={16} weight="bold" aria-hidden="true" />
-            </span>
-          }
-          items={[
-            {
-              label: t("renameBookmark"),
-              onClick: () => {
-                setDraft(bookmark.name);
-                setEditing(true);
-              },
+      <DropdownMenu
+        // Like the notes' delete control: shown on hover or focus for a mouse,
+        // always for touch.
+        className="mt-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100"
+        triggerLabel={t("bookmarkActions", { name: bookmark.name })}
+        align="right"
+        trigger={
+          <span className={cn(iconButtonClassName({ size: "sm" }), "text-fg-subtle")}>
+            <DotsThree size={16} weight="bold" aria-hidden="true" />
+          </span>
+        }
+        items={[
+          {
+            label: t("renameBookmark"),
+            onClick: () => {
+              setDraft(bookmark.name);
+              setEditing(true);
             },
-            { label: t("deleteBookmark"), destructive: true, onClick: () => onRemove(bookmark) },
-          ]}
-        />
-      </div>
+          },
+          { label: t("deleteBookmark"), destructive: true, onClick: () => onRemove(bookmark) },
+        ]}
+      />
     </div>
   );
 }
 
-/** The book's bookmarks, oldest first, each opening, renaming or deleting in place. */
-export function ReaderBookmarkList({
+/**
+ * The book's bookmarks as the first group of the notes list: its label with
+ * an add button, then one row per bookmark (oldest first).
+ */
+export function ReaderBookmarkSection({
   bookmarks,
   failed,
-  subtitleOf,
+  chapterOf,
+  onAdd,
   onOpen,
   onRename,
   onRemove,
-}: {
-  bookmarks: Bookmark[] | null;
-  failed: boolean;
-  subtitleOf?: (bookmark: Bookmark) => string | undefined;
-  onOpen: (bookmark: Bookmark) => void;
-  onRename: (bookmark: Bookmark, name: string) => void;
-  onRemove: (bookmark: Bookmark) => void;
-}) {
+}: ReaderBookmarks) {
   const { t } = useTranslation("reader");
-  if (failed)
-    return (
-      <div className="px-5 py-2">
-        <InlineError compact>{t("bookmarksLoadFailed")}</InlineError>
-      </div>
-    );
-  if (bookmarks === null)
-    return (
-      <div className="flex justify-center py-6">
-        <Spinner />
-      </div>
-    );
-  if (bookmarks.length === 0) return <Body className="px-5 py-2 text-sm text-fg-muted">{t("noBookmarks")}</Body>;
   return (
-    <ul>
-      {bookmarks.map((bookmark) => (
-        <li key={bookmark.id}>
-          <BookmarkRow
-            bookmark={bookmark}
-            subtitle={subtitleOf?.(bookmark)}
-            onOpen={onOpen}
-            onRename={onRename}
-            onRemove={onRemove}
+    <div>
+      <div className="sticky top-0 z-[1] flex items-center justify-between bg-[var(--ra-panel-surface,var(--ra-main-surface-color))] pl-2">
+        <p className="py-1.5 font-sans text-xs font-medium text-fg-subtle">{t("bookmarksTab")}</p>
+        <Tooltip content={t("addBookmark")} side="bottom">
+          <IconButton
+            size="sm"
+            label={t("addBookmark")}
+            onClick={onAdd}
+            className="text-fg-subtle"
+            icon={<BookmarkSimple size={14} />}
           />
-        </li>
-      ))}
-    </ul>
+        </Tooltip>
+      </div>
+      {failed ? (
+        <div className="px-2 py-1">
+          <InlineError compact>{t("bookmarksLoadFailed")}</InlineError>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {bookmarks?.map((bookmark) => (
+            <BookmarkRow
+              key={bookmark.id}
+              bookmark={bookmark}
+              chapter={chapterOf?.(bookmark)}
+              onOpen={onOpen}
+              onRename={onRename}
+              onRemove={onRemove}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

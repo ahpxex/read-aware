@@ -7,7 +7,10 @@ import type { Annotation } from "../../annotations";
 import type { ContentsSearchState } from "../hooks/useContentsSearch";
 import { TEXT_HIT_LIMIT } from "../hooks/useContentsSearch";
 import type { TocEntry } from "../lib/reader-types";
-import { CONTENTS_ROW } from "./ReaderBookmarkList";
+
+/** The row look shared with the contents list: edge to edge, inset text. */
+const CONTENTS_ROW =
+  "w-full border-l-2 border-transparent py-1.5 pr-3 pl-7 text-left text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg";
 
 export type ContentsMatches = {
   chapters: number[];

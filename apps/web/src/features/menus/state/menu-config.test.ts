@@ -109,7 +109,7 @@ describe("phone reader toolbar", () => {
       ...CORE_MENU_DEFAULTS.readerToolbar,
       "plugin:tts:speak",
     ]);
-    expect(layout.visible).toEqual(["core:toc", "core:chat", "core:navigator", "core:appearance"]);
+    expect(layout.visible).toEqual(["core:toc", "core:chat", "core:find", "core:navigator", "core:appearance"]);
     expect(layout.overflow).toEqual(["core:notes", "plugin:tts:speak"]);
   });
 });

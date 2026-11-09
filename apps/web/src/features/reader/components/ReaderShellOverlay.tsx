@@ -1,8 +1,16 @@
 import type { DomainActor } from "../../../platform/domain-actor";
-import { useId, useMemo, useRef, type CSSProperties, type ReactNode } from "react";
+import { useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useAtomValue } from "jotai";
 import type { ReadingModeSnapshot } from "@read-aware/core";
-import { CaretLeft, ChatCircle, ListBullets, ListChecks, Notebook, TextAa } from "@phosphor-icons/react";
+import {
+  CaretLeft,
+  ChatCircle,
+  ListBullets,
+  ListChecks,
+  MagnifyingGlass,
+  Notebook,
+  TextAa,
+} from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { useReaderResponsiveLayout } from "../hooks/useReaderResponsiveLayout";
 import { Body, Dialog, IconButton, Tooltip, useToast } from "@read-aware/ui";
@@ -30,6 +38,9 @@ import { useReaderModeSelection } from "../hooks/useReaderModeSelection";
 import type { TocEntry } from "../lib/reader-types";
 import { ReaderNotesContent, ReaderNotesPopover } from "./ReaderNotesPopover";
 import { ReaderContentsPanel } from "./ReaderContentsPanel";
+import { type ReaderBookmarks } from "./ReaderBookmarkList";
+import { useReaderBookmarks } from "../hooks/useReaderBookmarks";
+import { useReaderBookmarkActions } from "../hooks/useReaderBookmarkActions";
 import { ReaderProgressScrubber } from "./ReaderProgressScrubber";
 import { ReaderResizeHandle } from "./ReaderResizeHandle";
 import { ReaderAppearanceFields, ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
@@ -144,7 +155,19 @@ export function ReaderShellOverlay({
 
   // Phone-width: the side docks become full-screen sheets (below the top bar),
   // so only one can be open at a time and resizing is meaningless.
-  const toggleToc = () => setTocOpen(!tocOpen);
+  const toggleToc = () => {
+    if (!tocOpen) setContentsSearching(false);
+    setTocOpen(!tocOpen);
+  };
+  // The header's search: the contents panel, opened on its search. Pressed
+  // again while that search is showing, it closes the panel.
+  const toggleContentsSearch = () => {
+    if (tocOpen && contentsSearching) setTocOpen(false);
+    else {
+      setContentsSearching(true);
+      setTocOpen(true);
+    }
+  };
   const toggleNotes = () => setNotesOpen(!notesOpen);
 
   // Android back gesture: a phone full-screen sheet is a deeper layer, so back
@@ -180,6 +203,27 @@ export function ReaderShellOverlay({
     remove: removeAnnotation,
   } = useBookAnnotations(bookId);
   const { toast } = useToast();
+  const activeTocIndex = findTocIndexForHref(tocEntries, currentChapterHref);
+  const currentChapterLabel = activeTocIndex >= 0 ? (tocEntries[activeTocIndex]?.label ?? null) : null;
+
+  // The book's bookmarks live in the notes list; the contents search finds them too.
+  const { bookmarks, failed: bookmarksFailed } = useReaderBookmarks(bookId);
+  const bookmarkActions = useReaderBookmarkActions(currentChapterLabel ?? undefined);
+  const bookmarkSection: ReaderBookmarks = {
+    bookmarks,
+    failed: bookmarksFailed,
+    chapterOf: (bookmark) => {
+      const index = bookmark.target.href ? findTocIndexForHref(tocEntries, bookmark.target.href) : -1;
+      return index >= 0 ? tocEntries[index]?.label : undefined;
+    },
+    onAdd: () => void bookmarkActions.add(),
+    onOpen: (bookmark) => void bookmarkActions.open(bookmark),
+    onRename: (bookmark, name) => void bookmarkActions.rename(bookmark, name),
+    onRemove: (bookmark) => void bookmarkActions.remove(bookmark),
+  };
+  // The contents panel shows its search instead of the contents; opening the
+  // contents from their own button always shows the contents.
+  const [contentsSearching, setContentsSearching] = useState(false);
 
   // User-arranged right cluster (settings → Menus).
   const { t: tMenus } = useTranslation("settings");
@@ -204,6 +248,20 @@ export function ReaderShellOverlay({
   ]);
 
   const coreReaderNodes: Record<string, React.ReactNode | null> = {
+    "core:find": (
+      <Tooltip content={t("contentsSearchLabel")} side="bottom" className="pointer-events-auto">
+        <IconButton
+          size="sm"
+          label={t("contentsSearchLabel")}
+          aria-pressed={tocOpen && contentsSearching}
+          onClick={toggleContentsSearch}
+          className={cn(tocOpen && contentsSearching && "text-fg")}
+          icon={
+            <MagnifyingGlass size={18} weight={tocOpen && contentsSearching ? "bold" : "regular"} aria-hidden="true" />
+          }
+        />
+      </Tooltip>
+    ),
     "core:navigator":
       textUnitModeAvailable || canSelectMode ? (
         <div className="flex items-center gap-1">
@@ -253,6 +311,7 @@ export function ReaderShellOverlay({
 
   const coreReaderRun: Record<string, (() => void) | undefined> = {
     "core:toc": toggleToc,
+    "core:find": toggleContentsSearch,
     "core:notes": () => setAnnotationsOpen(true),
     "core:navigator": textUnitModeAvailable ? onToggleTextUnitMode : undefined,
     "core:chat": toggleNotes,
@@ -326,6 +385,7 @@ export function ReaderShellOverlay({
       tocEntries={tocEntries}
       onNavigate={(cfiRange) => onAnnotationSelect?.(cfiRange)}
       onDelete={removeAnnotationReporting}
+      bookmarks={bookmarkSection}
       open={annotationsOpen}
       onOpenChange={setAnnotationsOpen}
     />
@@ -407,6 +467,24 @@ export function ReaderShellOverlay({
         return canSelectMode && modeSnapshot ? (
           <ReaderModePicker key={`${id}:${bookId}`} variant="toolbar" mode={modeSnapshot} {...modeSelection} />
         ) : null;
+      case "core:find":
+        return (
+          <IconButton
+            key={id}
+            size="toolbar"
+            label={t("contentsSearchLabel")}
+            aria-pressed={tocOpen && contentsSearching}
+            onClick={toggleContentsSearch}
+            className={cn(tocOpen && contentsSearching && "text-fg")}
+            icon={
+              <MagnifyingGlass
+                size={20}
+                weight={tocOpen && contentsSearching ? "bold" : "regular"}
+                aria-hidden="true"
+              />
+            }
+          />
+        );
       case "core:appearance":
         return (
           <IconButton
@@ -479,13 +557,17 @@ export function ReaderShellOverlay({
                   setAnnotationsOpen(false);
                 }}
                 onDelete={removeAnnotationReporting}
+                bookmarks={{
+                  ...bookmarkSection,
+                  onOpen: (bookmark) => {
+                    bookmarkSection.onOpen(bookmark);
+                    setAnnotationsOpen(false);
+                  },
+                }}
               />
             </div>
           ),
         };
-
-  const activeTocIndex = findTocIndexForHref(tocEntries, currentChapterHref);
-  const currentChapterLabel = activeTocIndex >= 0 ? (tocEntries[activeTocIndex]?.label ?? null) : null;
 
   // Phone sheets close by swipe as well as from the toolbar: the iOS back
   // swipe from the left edge, or a drag toward the side each one leaves by.
@@ -713,8 +795,12 @@ export function ReaderShellOverlay({
             entries={tocEntries}
             activeIndex={activeTocIndex}
             annotations={annotations}
+            bookmarks={bookmarks ?? []}
+            searching={contentsSearching}
+            onSearchingChange={setContentsSearching}
             onChapterSelect={onChapterSelect}
             onAnnotationSelect={onAnnotationSelect}
+            onBookmarkSelect={bookmarkActions.open}
             onJumped={closeTocSheetOnPhone}
           />
           {!isPhone && (

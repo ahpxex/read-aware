@@ -9,6 +9,9 @@ const STORAGE_KEY = SHORTCUT_BINDINGS_KEY;
 const LEGACY_IDS: Record<string, ShortcutId> = {
   "navigator-next-sentence": "reader-mode-next-unit",
   "navigator-prev-sentence": "reader-mode-prev-unit",
+  // History moved from the Jumper plugin's commands into the reader.
+  "plugin:jumper:back": "history-back",
+  "plugin:jumper:forward": "history-forward",
 };
 
 function isChord(value: unknown): value is KeyChord {

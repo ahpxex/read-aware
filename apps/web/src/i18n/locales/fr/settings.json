@@ -154,6 +154,8 @@
       "prev-page": "Page précédente",
       "next-chapter": "Chapitre suivant",
       "prev-chapter": "Chapitre précédent",
+      "history-back": "Revenir à l’emplacement précédent",
+      "history-forward": "Avancer à l’emplacement suivant",
       "toggle-controls": "Afficher/masquer les commandes du lecteur",
       "zoom-in": "Zoom avant (PDF et BD)",
       "zoom-out": "Zoom arrière (PDF et BD)",

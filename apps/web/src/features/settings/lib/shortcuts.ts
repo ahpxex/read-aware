@@ -21,6 +21,8 @@ export type BuiltinShortcutId =
   | "prev-page"
   | "next-chapter"
   | "prev-chapter"
+  | "history-back"
+  | "history-forward"
   | "toggle-controls"
   | "zoom-in"
   | "zoom-out"
@@ -106,6 +108,10 @@ export const EDITABLE_SHORTCUTS: EditableShortcut[] = [
   },
   { id: "next-chapter", category: "Reading", defaultBinding: { key: "]" } },
   { id: "prev-chapter", category: "Reading", defaultBinding: { key: "[" } },
+  // Back to where a jump (chapter, search hit, link, bookmark) left from, and
+  // forward again — the browser's history chords.
+  { id: "history-back", category: "Reading", defaultBinding: { alt: true, key: "ArrowLeft" } },
+  { id: "history-forward", category: "Reading", defaultBinding: { alt: true, key: "ArrowRight" } },
   { id: "toggle-controls", category: "Reading", defaultBinding: { key: " " } },
   // Page zoom for fixed-layout books (PDF, comics): the platform's own zoom
   // chords, which the webview itself leaves unbound.

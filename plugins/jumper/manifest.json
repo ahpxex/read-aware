@@ -1,7 +1,7 @@
 {
   "id": "jumper",
   "name": "Jumper",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "schemaVersion": 1,
   "minAppVersion": "0.3.0",
   "description": "Jump to a chapter, page or passage in the open book from one search box, and keep named bookmarks.",

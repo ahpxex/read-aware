@@ -4,7 +4,7 @@ import plugin from "../src/index";
 
 type Session = Awaited<ReturnType<NonNullable<PluginContext["domains"]["reading"]>["queries"]["session"]>>;
 
-test("Jumper composes observed session readiness and history with action availability", async () => {
+test("Jumper composes observed session readiness with action availability", async () => {
   const states = new Map<string, PluginActionState>();
   let observe!: (session: Session) => Promise<void>;
   const register = (action: PluginHeaderAction | PluginCommand) => {
@@ -46,15 +46,11 @@ test("Jumper composes observed session readiness and history with action availab
   await observe(session(1, "ready", true, false));
   expect(states.get("jumper")?.enabled).toBe(true);
   expect(states.get("open")?.enabled).toBe(true);
-  expect(states.get("back")?.enabled).toBe(true);
-  expect(states.get("forward")?.enabled).toBe(false);
-  await observe(session(2, "ready", false, true));
-  expect(states.get("back")?.enabled).toBe(false);
-  expect(states.get("forward")?.enabled).toBe(true);
-  await observe(session(1, "ready", true, false));
-  expect(states.get("forward")?.enabled).toBe(true);
+  // History commands belong to the reader now; the plugin registers none.
+  expect(states.has("back")).toBe(false);
+  expect(states.has("forward")).toBe(false);
   for (const [index, status] of (["loading", "error", "idle"] as const).entries()) {
-    await observe(session(index + 3, status, true, true));
+    await observe(session(index + 2, status, true, true));
     expect(readerStates().every((state) => !state.enabled)).toBe(true);
     expect(states.get("bookmarks")?.enabled).toBe(true);
     expect([...states.values()].every((state) => state.visible)).toBe(true);

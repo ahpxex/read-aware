@@ -12,6 +12,8 @@
   "noToc": "此文件未提供可导航的目录。",
   "tocExpand": "展开 {{label}}",
   "tocCollapse": "收起 {{label}}",
+  "historyBack": "返回上一个位置",
+  "historyForward": "前进到下一个位置",
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "阅读位置",
   "notes": "笔记",

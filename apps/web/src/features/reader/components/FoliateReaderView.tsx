@@ -22,6 +22,7 @@ import {
   type SelectionOverlayRect,
 } from "../lib/selection-overlay";
 import { flattenToc, findTocIndexForHref, adjacentTocEntry } from "../lib/epub-utils";
+import { stepReadingHistory, type ReadingHistoryDirection } from "../lib/reading-history";
 import { createNativeLinkNavigator } from "../lib/native-link-navigation";
 import { attachTocFractions } from "../lib/toc-fractions";
 import { chapterProgressAt, normalizeReadingCursorText } from "../lib/reading-cursor";
@@ -922,6 +923,19 @@ export function FoliateReaderView({
     [clearSelection, describeReaderFailure, goToChapter, selectedBookId],
   );
 
+  const goThroughHistory = useCallback(
+    async (direction: ReadingHistoryDirection) => {
+      setError(null);
+      clearSelection();
+      try {
+        await stepReadingHistory(direction);
+      } catch (error) {
+        setError(describeReaderFailure(error));
+      }
+    },
+    [clearSelection, describeReaderFailure],
+  );
+
   // ----- plugin-defined text-unit mode ----------------------------------------
 
   // Fixed-layout books have no reflowable text to segment; the mode never
@@ -1436,6 +1450,11 @@ export function FoliateReaderView({
     if (shortcut === "prev-chapter") {
       event.preventDefault();
       void goToAdjacentChapter(-1);
+      return;
+    }
+    if (shortcut === "history-back" || shortcut === "history-forward") {
+      event.preventDefault();
+      void goThroughHistory(shortcut === "history-back" ? "back" : "forward");
       return;
     }
     // Toggles the reader shell (the chrome), not the page — peeking at the

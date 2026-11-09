@@ -1711,31 +1711,13 @@ var plugin = {
       presentation: "popup",
       view: (input) => bookmarksView(ctx, input.book?.id)
     });
-    const history = ["back", "forward"].map((direction) => ({
-      direction,
-      registration: ctx.contributions.commands.register({
-        id: direction,
-        title: `Jumper: ${tr(ctx.locale, direction)}`,
-        state: unavailable,
-        icon: direction === "back" ? "arrow-left" : "arrow-right",
-        defaultShortcut: { key: direction === "back" ? "ArrowLeft" : "ArrowRight", alt: true },
-        run: async () => {
-          const session = await ctx.domains.reading.queries.session();
-          await ctx.domains.reading.commands[direction]({ sessionId: session.sessionId ?? undefined });
-        }
-      })
-    }));
     ctx.domains.reading.events.observeSession(async (session, delivery) => {
       if (delivery?.reaction?.status === "cycle")
         return;
       const state = { revision: session.revision + 1, visible: true, enabled: session.status === "ready" };
       await Promise.all([
         ctx.withEvent(delivery, header).updateState(state),
-        ctx.withEvent(delivery, open).updateState(state),
-        ...history.map(({ direction, registration }) => ctx.withEvent(delivery, registration).updateState({
-          ...state,
-          enabled: state.enabled && (direction === "back" ? session.history.canGoBack : session.history.canGoForward)
-        }))
+        ctx.withEvent(delivery, open).updateState(state)
       ]);
     }, { ruleId: "reader-action-state" });
   }

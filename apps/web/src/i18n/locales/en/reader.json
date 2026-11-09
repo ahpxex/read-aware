@@ -12,6 +12,8 @@
   "noToc": "This file does not expose a navigable table of contents.",
   "tocExpand": "Expand {{label}}",
   "tocCollapse": "Collapse {{label}}",
+  "historyBack": "Back to previous location",
+  "historyForward": "Forward to next location",
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "Reading position",
   "notes": "Notes",

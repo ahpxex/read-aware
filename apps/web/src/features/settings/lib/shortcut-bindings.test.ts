@@ -31,4 +31,24 @@ describe("shortcut binding migrations", () => {
       })["reader-mode-next-unit"],
     ).toEqual({ key: "n" });
   });
+
+  test("carries Jumper's rebound history keys over to the reader's history actions", () => {
+    expect(
+      normalizeShortcutBindings({
+        "plugin:jumper:back": { mod: true, key: "[" },
+        "plugin:jumper:forward": { mod: true, key: "]" },
+        "plugin:jumper:open": { mod: true, key: "j" },
+      }),
+    ).toEqual({
+      "history-back": { mod: true, key: "[" },
+      "history-forward": { mod: true, key: "]" },
+      "plugin:jumper:open": { mod: true, key: "j" },
+    });
+    expect(
+      normalizeShortcutBindings({
+        "history-back": { key: "b" },
+        "plugin:jumper:back": { mod: true, key: "[" },
+      })["history-back"],
+    ).toEqual({ key: "b" });
+  });
 });

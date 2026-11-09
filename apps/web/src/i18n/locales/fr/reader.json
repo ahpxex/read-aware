@@ -12,6 +12,8 @@
   "noToc": "Ce fichier ne propose pas de table des matières navigable.",
   "tocExpand": "Développer {{label}}",
   "tocCollapse": "Réduire {{label}}",
+  "historyBack": "Revenir à l’emplacement précédent",
+  "historyForward": "Avancer à l’emplacement suivant",
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "Position de lecture",
   "notes": "Notes",

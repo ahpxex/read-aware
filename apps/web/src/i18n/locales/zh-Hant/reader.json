@@ -12,6 +12,8 @@
   "noToc": "此檔案未提供可導覽的目錄。",
   "tocExpand": "展開 {{label}}",
   "tocCollapse": "收起 {{label}}",
+  "historyBack": "返回上一個位置",
+  "historyForward": "前進到下一個位置",
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "閱讀位置",
   "notes": "筆記",

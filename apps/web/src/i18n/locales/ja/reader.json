@@ -12,6 +12,8 @@
   "noToc": "このファイルには操作可能な目次がありません。",
   "tocExpand": "{{label}}を展開",
   "tocCollapse": "{{label}}を折りたたむ",
+  "historyBack": "前の位置に戻る",
+  "historyForward": "次の位置に進む",
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "読書位置",
   "notes": "メモ",

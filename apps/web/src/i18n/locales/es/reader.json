@@ -12,6 +12,8 @@
   "noToc": "Este archivo no incluye un índice navegable.",
   "tocExpand": "Expandir {{label}}",
   "tocCollapse": "Contraer {{label}}",
+  "historyBack": "Volver a la ubicación anterior",
+  "historyForward": "Avanzar a la ubicación siguiente",
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "Posición de lectura",
   "notes": "Notas",

@@ -12,6 +12,8 @@
   "noToc": "Diese Datei stellt kein navigierbares Inhaltsverzeichnis bereit.",
   "tocExpand": "{{label}} aufklappen",
   "tocCollapse": "{{label}} zuklappen",
+  "historyBack": "Zurück zur vorherigen Stelle",
+  "historyForward": "Weiter zur nächsten Stelle",
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "Leseposition",
   "notes": "Notizen",

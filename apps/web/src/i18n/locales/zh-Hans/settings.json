@@ -154,6 +154,8 @@
       "prev-page": "上一页",
       "next-chapter": "下一章",
       "prev-chapter": "上一章",
+      "history-back": "返回上一个位置",
+      "history-forward": "前进到下一个位置",
       "toggle-controls": "切换阅读器控件",
       "zoom-in": "放大页面（PDF 与漫画）",
       "zoom-out": "缩小页面（PDF 与漫画）",

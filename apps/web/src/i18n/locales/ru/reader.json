@@ -12,6 +12,8 @@
   "noToc": "Этот файл не содержит навигируемого оглавления.",
   "tocExpand": "Развернуть {{label}}",
   "tocCollapse": "Свернуть {{label}}",
+  "historyBack": "Назад к предыдущему месту",
+  "historyForward": "Вперёд к следующему месту",
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "Позиция чтения",
   "notes": "Заметки",

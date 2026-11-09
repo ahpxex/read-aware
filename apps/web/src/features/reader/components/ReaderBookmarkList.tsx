@@ -58,12 +58,12 @@ export function BookmarkRow({
       </div>
     );
   return (
-    <div className="group flex items-start gap-1 rounded-md transition-colors hover:bg-fg/5">
+    <div className="group relative rounded-md transition-colors hover:bg-fg/5">
       {/* oxlint-disable-next-line react/forbid-elements -- bookmark list row that navigates to its place */}
       <button
         type="button"
         onClick={() => onOpen(bookmark)}
-        className="flex min-w-0 flex-1 gap-3 rounded-md py-2 pl-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+        className="flex w-full min-w-0 gap-3 rounded-md px-2 py-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
       >
         <BookmarkSimple size={14} weight="fill" aria-hidden="true" className="mt-[3px] shrink-0 text-fg-subtle" />
         <div className="min-w-0 flex-1 font-sans">
@@ -74,9 +74,9 @@ export function BookmarkRow({
         </div>
       </button>
       <DropdownMenu
-        // Like the notes' delete control: shown on hover or focus for a mouse,
-        // always for touch.
-        className="mt-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100"
+        // Like the notes' delete control: on the date line's right end, shown
+        // on hover or focus for a mouse and always for touch.
+        className="absolute right-1 bottom-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100"
         triggerLabel={t("bookmarkActions", { name: bookmark.name })}
         align="right"
         trigger={

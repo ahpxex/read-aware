@@ -43,9 +43,8 @@ export function ReaderNotesList({
   const failure = describeErrorCode(loadErrorCode);
 
   return (
-    // Its labels start where the contents' entries do (1.75rem: the inset
-    // plus each row's own pl-2), so switching views does not shift the text.
-    <div data-swipe-reveal-scope className="flex flex-col gap-3 px-5 py-4">
+    // A narrow inset: rows carry their own padding and hover surface.
+    <div data-swipe-reveal-scope className="flex flex-col gap-3 px-2 py-3">
       {loadFailed && (
         <div className="px-1 py-3">
           <InlineError

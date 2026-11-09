@@ -3,7 +3,7 @@ import type { BookLocationHit, BookLocationSearchPage, BookNavigationTargetEntry
 import { createLibraryDomain } from "../../../domain/library";
 import { readingRuntime } from "../../../domain/reading-runtime";
 import { createLogger } from "../../../platform/logger";
-import { isPageLabelQuery, wantsMatchCase } from "../lib/contents-search";
+import { isPageLabelQuery, sectionChapterLabels, wantsMatchCase } from "../lib/contents-search";
 
 const log = createLogger("contents-search");
 
@@ -31,6 +31,8 @@ export type ContentsSearchState = {
   /** Printed pages whose label is the query (books with a page list). */
   pages: BookNavigationTargetEntry[];
   text: TextSearchState;
+  /** The chapter a text hit's section belongs to, once the contents are read. */
+  chapterOf?: (sectionIndex: number) => string | undefined;
 };
 
 const IDLE: ContentsSearchState = { pages: [], text: { status: "idle" } };
@@ -44,6 +46,25 @@ export function useContentsSearch(bookId: string, query: string, active: boolean
   const library = useMemo(() => createLibraryDomain("user"), []);
   const [state, setState] = useState<{ key: string; value: ContentsSearchState }>({ key: "", value: IDLE });
   const trimmed = query.trim();
+
+  // Text hits name their chapter: read the book's navigation contents once.
+  const [chapters, setChapters] = useState<{ bookId: string; of: (sectionIndex: number) => string | undefined }>();
+  const chaptersBook = chapters?.bookId;
+  useEffect(() => {
+    if (!active || chaptersBook === bookId) return;
+    const controller = new AbortController();
+    library.queries.books.getNavigationToc(bookId, controller.signal).then(
+      (toc) => {
+        if (!controller.signal.aborted) setChapters({ bookId, of: sectionChapterLabels(toc.entries) });
+      },
+      (error: unknown) => {
+        // Hits still show without their chapter names.
+        if (!controller.signal.aborted) log.warn("reading the contents for search hits failed", error);
+      },
+    );
+    return () => controller.abort();
+  }, [active, bookId, chaptersBook, library]);
+  const chapterOf = chapters?.bookId === bookId ? chapters.of : undefined;
   const key = active && trimmed ? `${bookId}\u0000${trimmed}` : "";
 
   useEffect(() => {
@@ -135,5 +156,6 @@ export function useContentsSearch(bookId: string, query: string, active: boolean
     };
   }, [key, bookId, trimmed, library]);
 
-  return key && state.key === key ? state.value : IDLE;
+  const value = key && state.key === key ? state.value : IDLE;
+  return useMemo(() => ({ ...value, chapterOf }), [value, chapterOf]);
 }

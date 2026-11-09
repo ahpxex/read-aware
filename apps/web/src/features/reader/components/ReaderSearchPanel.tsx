@@ -1,6 +1,7 @@
 import { useCallback, useDeferredValue, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Bookmark, ReadingLocation } from "@read-aware/core";
 import { Button, ScrollArea, SearchField, useToast } from "@read-aware/ui";
+import { cn } from "@read-aware/ui/cn";
 import { describeError, useTranslation } from "../../../i18n";
 import { createLogger } from "../../../platform/logger";
 import type { Annotation } from "../../annotations";
@@ -11,12 +12,13 @@ import type { TocEntry } from "../lib/reader-types";
 import { ReaderContentsResults, type ContentsMatches } from "./ReaderContentsResults";
 
 const log = createLogger("reader-search");
-const SCROLL_BODY = "pb-[calc(1rem+var(--ra-safe-bottom))]";
+const SCROLL_BODY = "pb-2";
 
 /**
  * Search everything in the open book — chapters, printed pages, bookmarks,
- * highlights and notes, and the text. A view of the reader's right panel,
- * mounted only while shown, so every search starts from an empty field.
+ * highlights and notes, and the text. Shown in a popup from the header (a
+ * dialog on a phone) and mounted only while open, so every search starts
+ * from an empty field. The host bounds its height; results scroll inside.
  */
 export function ReaderSearchPanel({
   bookId,
@@ -25,6 +27,8 @@ export function ReaderSearchPanel({
   annotations,
   bookmarks,
   onClose,
+  showCancel = false,
+  className,
   onChapterSelect,
   onAnnotationSelect,
   onBookmarkSelect,
@@ -36,8 +40,11 @@ export function ReaderSearchPanel({
   entries: TocEntry[];
   annotations: Annotation[];
   bookmarks: Bookmark[];
-  /** Cancel (or Escape on an empty field) closes the search. */
+  /** Escape on an empty field (or Cancel) closes the search. */
   onClose: () => void;
+  /** A Cancel button beside the field, for hosts without another way to close. */
+  showCancel?: boolean;
+  className?: string;
   onChapterSelect?: (href: string) => void;
   onAnnotationSelect?: (cfiRange: string) => void;
   /** Resolves true once the reader has moved. */
@@ -97,10 +104,16 @@ export function ReaderSearchPanel({
   }, []);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      {/* The field's own ⊗ clears the text; Cancel (or Escape on an empty
-          field) closes the search. */}
-      <div className="flex h-12 shrink-0 items-center gap-1 pr-3 pl-7">
+    <div className={cn("flex min-h-0 flex-col", className)}>
+      {/* The field's own ⊗ clears the text; Escape on an empty field (or
+          Cancel) closes the search. Its icon lines up with the results' text. */}
+      <div
+        className={cn(
+          "flex h-12 shrink-0 items-center gap-1 pl-4",
+          showCancel ? "pr-2" : "pr-4",
+          deferredQuery && "border-b border-border/60",
+        )}
+      >
         <SearchField
           variant="plain"
           size="sm"
@@ -120,13 +133,15 @@ export function ReaderSearchPanel({
             }
           }}
         />
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          {t("cancelSearch")}
-        </Button>
+        {showCancel && (
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            {t("cancelSearch")}
+          </Button>
+        )}
       </div>
-      <ScrollArea className="min-h-0 flex-1">
-        <div className={SCROLL_BODY}>
-          {deferredQuery && (
+      {deferredQuery && (
+        <ScrollArea className="min-h-0 flex-1">
+          <div className={SCROLL_BODY}>
             <ReaderContentsResults
               query={deferredQuery}
               entries={entries}
@@ -137,9 +152,9 @@ export function ReaderSearchPanel({
               onMark={goToMark}
               onLocation={goToLocation}
             />
-          )}
-        </div>
-      </ScrollArea>
+          </div>
+        </ScrollArea>
+      )}
     </div>
   );
 }

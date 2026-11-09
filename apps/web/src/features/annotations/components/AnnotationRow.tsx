@@ -23,7 +23,7 @@ function formatTimestamp(iso: string): string {
  * is for scanning back through, and at a book's face and size it reads as a
  * stack of paragraphs instead.
  *
- * Deleting is a hover trash control for a mouse. On touch the row swipes left
+ * Deleting is a hover trash control for a mouse, at the end of the date line. On touch the row swipes left
  * to uncover a Delete action instead of showing a trash can on every row; the
  * control stays in the accessibility tree there, for a screen reader that
  * cannot swipe.
@@ -60,7 +60,7 @@ export function AnnotationRow({
       <div
         style={{ transform: reveal.offset ? `translateX(${reveal.offset}px)` : undefined }}
         className={cn(
-          "group flex items-start gap-1 rounded-md transition-colors hover:bg-fg/5",
+          "group relative rounded-md transition-colors hover:bg-fg/5",
           !reveal.dragging && "transition-[transform,background-color] duration-200 ease-out",
         )}
       >
@@ -72,7 +72,7 @@ export function AnnotationRow({
             if (reveal.offset) reveal.close();
             else if (annotation.cfiRange) onNavigate(annotation.cfiRange);
           }}
-          className="flex min-w-0 flex-1 gap-3 rounded-md py-2 pl-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+          className="flex w-full min-w-0 gap-3 rounded-md px-2 py-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
         >
           <span
             aria-hidden="true"
@@ -102,7 +102,9 @@ export function AnnotationRow({
           label={t("annotation.delete")}
           size="sm"
           onClick={() => onDelete(annotation.id)}
-          className="mt-1 shrink-0 text-fg-subtle opacity-0 hover:text-red-600 focus-visible:opacity-100 group-hover:opacity-100 pointer-coarse:sr-only"
+          // On the date line's right end: the short date never reaches it, so
+          // the passage keeps the row's full width instead of a reserved gutter.
+          className="absolute right-1 bottom-0.5 text-fg-subtle opacity-0 hover:text-red-600 focus-visible:opacity-100 group-hover:opacity-100 pointer-coarse:sr-only"
           icon={<Trash size={12} weight="regular" />}
         />
       </div>

@@ -5,7 +5,7 @@
  * (see useContentsSearch). Ported from the retired Jumper plugin's go-to box,
  * so a query that found a chapter there finds the same one here.
  */
-import type { Bookmark } from "@read-aware/core";
+import type { Bookmark, BookTocEntry } from "@read-aware/core";
 import type { Annotation } from "../../annotations";
 import type { TocEntry } from "./reader-types";
 
@@ -118,4 +118,36 @@ export function isPageLabelQuery(query: string): boolean {
 /** Capitals in the query ask for an exact-case text match. */
 export function wantsMatchCase(query: string): boolean {
   return /\p{Lu}/u.test(query);
+}
+
+/**
+ * The chapter a book section belongs to, from the navigation TOC: the first
+ * contents entry that starts in that section, else the last entry before it
+ * (a section between chapters, or a chapter split across files).
+ */
+export function sectionChapterLabels(entries: readonly BookTocEntry[]): (sectionIndex: number) => string | undefined {
+  const first = new Map<number, string>();
+  const last = new Map<number, string>();
+  const walk = (list: readonly BookTocEntry[]) => {
+    for (const entry of list) {
+      const label = entry.label.trim();
+      if (entry.sectionIndex !== null && label) {
+        if (!first.has(entry.sectionIndex)) first.set(entry.sectionIndex, label);
+        last.set(entry.sectionIndex, label);
+      }
+      walk(entry.children);
+    }
+  };
+  walk(entries);
+  const starts = [...last.keys()].sort((a, b) => a - b);
+  return (sectionIndex) => {
+    const exact = first.get(sectionIndex);
+    if (exact) return exact;
+    let before: number | undefined;
+    for (const start of starts) {
+      if (start > sectionIndex) break;
+      before = start;
+    }
+    return before === undefined ? undefined : last.get(before);
+  };
 }

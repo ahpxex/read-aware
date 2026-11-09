@@ -1,16 +1,11 @@
 import { useMemo, type ReactNode } from "react";
 import type { Bookmark, BookLocationHit, ReadingLocation } from "@read-aware/core";
 import { Body, Caption, Eyebrow, InlineError, Spinner, VirtualRows, type VirtualRow } from "@read-aware/ui";
-import { cn } from "@read-aware/ui/cn";
 import { describeError, formatNumber, useTranslation } from "../../../i18n";
 import type { Annotation } from "../../annotations";
 import type { ContentsSearchState } from "../hooks/useContentsSearch";
 import { TEXT_HIT_LIMIT } from "../hooks/useContentsSearch";
 import type { TocEntry } from "../lib/reader-types";
-
-/** The row look shared with the contents list: edge to edge, inset text. */
-const CONTENTS_ROW =
-  "w-full border-l-2 border-transparent py-1.5 pr-3 pl-7 text-left text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg";
 
 export type ContentsMatches = {
   chapters: number[];
@@ -25,55 +20,74 @@ type Handlers = {
   onLocation: (location: ReadingLocation) => void;
 };
 
-function Header({ label, count }: { label: string; count?: number }) {
+/** A result group's label: what kind of match, and how many. */
+function GroupLabel({ label, count }: { label: string; count?: number }) {
   return (
-    <Eyebrow className="px-7 pt-4 pb-1">
+    <Eyebrow className="px-4 pt-4 pb-1.5">
       {label}
       {count !== undefined && <span className="text-fg-subtle"> · {formatNumber(count)}</span>}
     </Eyebrow>
   );
 }
 
+/** A chapter heading inside the text results, above that chapter's hits. */
+function ChapterLabel({ label }: { label: string }) {
+  return (
+    <Caption as="p" className="truncate px-4 pt-2.5 pb-0.5 font-medium text-fg-subtle">
+      {label}
+    </Caption>
+  );
+}
+
+/** One result: a full-width target with the notes list's hover surface. */
 function Row({
-  title,
-  subtitle,
+  children,
+  detail,
   onClick,
   disabled,
 }: {
-  title: ReactNode;
-  subtitle?: ReactNode;
+  children: ReactNode;
+  detail?: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
 }) {
   return (
-    // oxlint-disable-next-line react/forbid-elements -- contents-panel result row: a full-width jump target styled with the contents list
-    <button type="button" onClick={onClick} disabled={disabled} className={cn(CONTENTS_ROW, "disabled:opacity-60")}>
-      <Body as="span" className="line-clamp-3 block min-w-0 break-words text-sm leading-6 text-inherit">
-        {title}
-      </Body>
-      {subtitle && (
-        <Caption as="span" className="block truncate text-fg-subtle">
-          {subtitle}
-        </Caption>
-      )}
-    </button>
+    <div className="px-2">
+      {/* oxlint-disable-next-line react/forbid-elements -- search result row: a full-width jump target */}
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className="w-full rounded-md px-2 py-1.5 text-left transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg disabled:opacity-60"
+      >
+        <Body as="span" className="line-clamp-3 block min-w-0 break-words text-sm leading-6 text-fg">
+          {children}
+        </Body>
+        {detail && (
+          <Caption as="span" className="mt-0.5 line-clamp-2 block text-fg-subtle">
+            {detail}
+          </Caption>
+        )}
+      </button>
+    </div>
   );
 }
 
-function hitTitle(hit: BookLocationHit) {
+/** The excerpt around a text hit: the match in full strength, its context muted. */
+function Excerpt({ hit }: { hit: BookLocationHit }) {
   return (
-    <>
-      {hit.excerpt.pre}
+    <span className="text-fg-muted">
+      {hit.excerpt.pre.trimStart()}
       <span className="font-semibold text-fg">{hit.excerpt.match}</span>
-      {hit.excerpt.post}
-    </>
+      {hit.excerpt.post.trimEnd()}
+    </span>
   );
 }
 
 /**
  * Everything in the open book that answers the query, in a fixed order —
  * chapters, printed pages, bookmarks, the reader's marks, then the book's
- * text (which streams in as it is searched).
+ * text, under the chapter each hit is in (it streams in as it is searched).
  */
 export function ReaderContentsResults({
   query,
@@ -93,56 +107,56 @@ export function ReaderContentsResults({
   const { t } = useTranslation("reader");
   const rows = useMemo<VirtualRow[]>(() => {
     const out: VirtualRow[] = [];
-    const header = (key: string, label: string, count?: number) =>
-      out.push({ key: `h:${key}`, size: 36, content: <Header label={label} count={count} /> });
+    const group = (key: string, label: string, count?: number) =>
+      out.push({ key: `g:${key}`, size: 40, content: <GroupLabel label={label} count={count} /> });
     if (matches.chapters.length) {
-      header("chapters", t("searchChapters"), matches.chapters.length);
+      group("chapters", t("searchChapters"), matches.chapters.length);
       for (const index of matches.chapters) {
         const entry = entries[index]!;
         out.push({
           key: `c:${entry.id}`,
-          size: 44,
-          content: <Row title={entry.label} onClick={() => onChapter(entry.href)} />,
+          size: 36,
+          content: <Row onClick={() => onChapter(entry.href)}>{entry.label}</Row>,
         });
       }
     }
     if (search.pages.length) {
-      header("pages", t("searchPages"));
+      group("pages", t("searchPages"));
       for (const page of search.pages)
         out.push({
           key: `p:${page.index}`,
-          size: 44,
+          size: 36,
           content: (
-            <Row
-              title={t("pageLabel", { label: page.label ?? String(page.index + 1) })}
-              onClick={() => onLocation(page.location!)}
-            />
+            <Row onClick={() => onLocation(page.location!)}>
+              {t("pageLabel", { label: page.label ?? String(page.index + 1) })}
+            </Row>
           ),
         });
     }
     if (matches.bookmarks.length) {
-      header("bookmarks", t("bookmarksTab"), matches.bookmarks.length);
+      group("bookmarks", t("bookmarksTab"), matches.bookmarks.length);
       for (const bookmark of matches.bookmarks)
         out.push({
           key: `b:${bookmark.id}`,
-          size: 44,
-          content: <Row title={bookmark.name} onClick={() => onBookmark(bookmark)} />,
+          size: 36,
+          content: <Row onClick={() => onBookmark(bookmark)}>{bookmark.name}</Row>,
         });
     }
     if (matches.marks.length) {
-      header("marks", t("searchMarks"), matches.marks.length);
+      group("marks", t("searchMarks"), matches.marks.length);
       for (const mark of matches.marks) {
         const note = mark.type === "note" ? mark.content : undefined;
         out.push({
           key: `m:${mark.id}`,
-          size: 64,
+          size: 56,
           content: (
             <Row
-              title={note || mark.text}
-              subtitle={note && mark.text ? mark.text : undefined}
+              detail={note && mark.text ? <>&ldquo;{mark.text}&rdquo;</> : undefined}
               disabled={!mark.cfiRange}
               onClick={mark.cfiRange ? () => onMark(mark.cfiRange!) : undefined}
-            />
+            >
+              {note || <>&ldquo;{mark.text}&rdquo;</>}
+            </Row>
           ),
         });
       }
@@ -150,15 +164,25 @@ export function ReaderContentsResults({
     const text = search.text;
     if (text.status !== "idle") {
       const hits = text.hits;
-      header("text", t("searchText"), text.status === "done" ? hits.length : undefined);
-      for (const hit of hits)
+      group("text", t("searchText"), text.status === "done" ? hits.length : undefined);
+      let chapter: string | undefined;
+      for (const hit of hits) {
+        const label = search.chapterOf?.(hit.sectionIndex);
+        if (label && label !== chapter)
+          out.push({ key: `h:${hit.id}`, size: 28, content: <ChapterLabel label={label} /> });
+        chapter = label;
         out.push({
           key: `t:${hit.id}`,
-          size: 76,
-          content: <Row title={hitTitle(hit)} onClick={() => onLocation(hit.location)} />,
+          size: 64,
+          content: (
+            <Row onClick={() => onLocation(hit.location)}>
+              <Excerpt hit={hit} />
+            </Row>
+          ),
         });
+      }
       const note = (key: string, content: ReactNode) =>
-        out.push({ key: `n:${key}`, size: 40, content: <div className="px-7 py-2">{content}</div> });
+        out.push({ key: `n:${key}`, size: 40, content: <div className="px-4 py-2">{content}</div> });
       if (text.status === "searching")
         note(
           "progress",

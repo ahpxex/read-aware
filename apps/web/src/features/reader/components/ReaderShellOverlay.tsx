@@ -14,7 +14,7 @@ import {
 } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { useReaderResponsiveLayout } from "../hooks/useReaderResponsiveLayout";
-import { Body, Dialog, IconButton, Tooltip, useToast } from "@read-aware/ui";
+import { Body, Dialog, IconButton, Popover, Tooltip, iconButtonClassName, useToast } from "@read-aware/ui";
 import { describeError, formatPercent, useLocale, useTranslation } from "../../../i18n";
 import { createLogger } from "../../../platform/logger";
 import { ChatPanel } from "../../ai/components/ChatPanel";
@@ -188,33 +188,11 @@ export function ReaderShellOverlay({
   const toggleToc = () => toggleSide("contents");
   const toggleNotesView = () => toggleSide("notes");
 
-  const [rightView, setRightView] = useState<"chat" | "search">("chat");
-  // Every opening of the chat panel (its button, Ask AI, an agent) comes with
-  // a chat focus request. Each one shows the conversation — except the one the
-  // header's search itself caused by opening the panel; a closed panel
-  // reopens on the conversation. State adjusted during render, so the right
-  // view never lags the panel it describes.
-  const [rightSeen, setRightSeen] = useState({ open: notesOpen, focus: chatFocusRequestId });
-  const [searchOpening, setSearchOpening] = useState(false);
-  if (rightSeen.open !== notesOpen || rightSeen.focus !== chatFocusRequestId) {
-    const focused = rightSeen.focus !== chatFocusRequestId;
-    setRightSeen({ open: notesOpen, focus: chatFocusRequestId });
-    if (focused && searchOpening) setSearchOpening(false);
-    else if (focused || !notesOpen) {
-      setRightView("chat");
-      setSearchOpening(false);
-    }
-  }
-  const rightShows = (view: "chat" | "search") => notesOpen && rightView === view;
-  const toggleRight = (view: "chat" | "search") => {
-    if (rightShows(view)) return setNotesOpen(false);
-    setRightView(view);
-    if (notesOpen) return;
-    setSearchOpening(view === "search");
-    setNotesOpen(true);
-  };
-  const toggleNotes = () => toggleRight("chat");
-  const toggleContentsSearch = () => toggleRight("search");
+  const toggleNotes = () => setNotesOpen(!notesOpen);
+  // The book search: a popup from the header's search button, or a dialog on
+  // a phone and when that button sits in "More". Transient, like a menu.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const toggleContentsSearch = () => setSearchOpen(!searchOpen);
 
   // Android back gesture: a phone full-screen sheet is a deeper layer, so back
   // closes it (chat first — it renders on top) instead of unwinding the whole
@@ -285,6 +263,22 @@ export function ReaderShellOverlay({
     ...readerPluginActions.map((action) => pluginMenuId(action.key)),
   ]);
 
+  const searchPanel = (showCancel = false, className = "min-h-0 flex-1") => (
+    <ReaderSearchPanel
+      bookId={bookId}
+      shown={visible && searchOpen}
+      showCancel={showCancel}
+      className={className}
+      entries={tocEntries}
+      annotations={annotations}
+      bookmarks={bookmarks ?? []}
+      onClose={() => setSearchOpen(false)}
+      onChapterSelect={onChapterSelect}
+      onAnnotationSelect={onAnnotationSelect}
+      onBookmarkSelect={bookmarkActions.open}
+      onJumped={() => setSearchOpen(false)}
+    />
+  );
   const coreReaderNodes: Record<string, React.ReactNode | null> = {
     "core:bookmark": (
       <Tooltip content={t("addBookmark")} side="bottom" className="pointer-events-auto">
@@ -297,16 +291,22 @@ export function ReaderShellOverlay({
       </Tooltip>
     ),
     "core:find": (
-      <Tooltip content={t("contentsSearchLabel")} side="bottom" className="pointer-events-auto">
-        <IconButton
-          size="sm"
-          label={t("contentsSearchLabel")}
-          aria-pressed={rightShows("search")}
-          onClick={toggleContentsSearch}
-          className={cn(rightShows("search") && "text-fg")}
-          icon={<MagnifyingGlass size={18} weight={rightShows("search") ? "bold" : "regular"} aria-hidden="true" />}
-        />
-      </Tooltip>
+      <Popover
+        key="find"
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        align="right"
+        className="pointer-events-auto"
+        triggerLabel={t("contentsSearchLabel")}
+        triggerTooltip={t("contentsSearchLabel")}
+        triggerTooltipAlign="end"
+        triggerPressed={searchOpen}
+        triggerClassName={cn(iconButtonClassName({ size: "sm" }), searchOpen && "text-fg")}
+        trigger={<MagnifyingGlass size={18} weight={searchOpen ? "bold" : "regular"} aria-hidden="true" />}
+        panelClassName="flex max-h-[min(36rem,75vh)] w-[min(28rem,calc(100vw-2rem))] flex-col overflow-hidden p-0"
+      >
+        {searchPanel()}
+      </Popover>
     ),
     "core:navigator":
       textUnitModeAvailable || canSelectMode ? (
@@ -346,10 +346,10 @@ export function ReaderShellOverlay({
         <IconButton
           size="sm"
           label={t("chat")}
-          aria-pressed={rightShows("chat")}
+          aria-pressed={notesOpen}
           onClick={toggleNotes}
-          className={cn(rightShows("chat") && "text-fg")}
-          icon={<ChatCircle size={18} weight={rightShows("chat") ? "bold" : "regular"} aria-hidden="true" />}
+          className={cn(notesOpen && "text-fg")}
+          icon={<ChatCircle size={18} weight={notesOpen ? "bold" : "regular"} aria-hidden="true" />}
         />
       </Tooltip>
     ),
@@ -513,10 +513,10 @@ export function ReaderShellOverlay({
             key={id}
             size="toolbar"
             label={t("contentsSearchLabel")}
-            aria-pressed={rightShows("search")}
+            aria-pressed={searchOpen}
             onClick={toggleContentsSearch}
-            className={cn(rightShows("search") && "text-fg")}
-            icon={<MagnifyingGlass size={20} weight={rightShows("search") ? "bold" : "regular"} aria-hidden="true" />}
+            className={cn(searchOpen && "text-fg")}
+            icon={<MagnifyingGlass size={20} weight={searchOpen ? "bold" : "regular"} aria-hidden="true" />}
           />
         );
       case "core:appearance":
@@ -538,10 +538,10 @@ export function ReaderShellOverlay({
             key={id}
             size="toolbar"
             label={t("chat")}
-            aria-pressed={rightShows("chat")}
+            aria-pressed={notesOpen}
             onClick={toggleNotes}
-            className={cn(rightShows("chat") && "text-fg")}
-            icon={<ChatCircle size={20} weight={rightShows("chat") ? "bold" : "regular"} aria-hidden="true" />}
+            className={cn(notesOpen && "text-fg")}
+            icon={<ChatCircle size={20} weight={notesOpen ? "bold" : "regular"} aria-hidden="true" />}
           />
         );
       default:
@@ -553,6 +553,9 @@ export function ReaderShellOverlay({
   // their icon is in the toolbar or in "More". The desktop header needs a
   // dialog for appearance once it is arranged into the overflow menu.
   const appearanceDialog = !isPhone && !readerLayout.visible.includes("core:appearance");
+  // A phone's search button sits in the bottom bar, where a popup would open
+  // under the keyboard; it and an overflowed header button get a dialog.
+  const searchDialog = isPhone || !readerLayout.visible.includes("core:find");
   const drawer: ReaderDrawer | null = isPhone && appearanceOpen ? "appearance" : null;
   const closeDrawer = () => setAppearanceOpen(false);
   const renderDrawer = (): ReaderBottomBarDrawer => ({
@@ -593,6 +596,16 @@ export function ReaderShellOverlay({
     // is NOT a scroll container — so focusing/scrolling a panel that's still
     // sliding in can't scroll this box sideways and drift the whole overlay.
     <div className={cn("pointer-events-none fixed inset-0 z-50 flex min-h-0 flex-col overflow-clip")}>
+      {searchDialog && (
+        <Dialog
+          open={searchOpen}
+          onClose={() => setSearchOpen(false)}
+          aria-label={t("contentsSearchLabel")}
+          className="overflow-hidden p-0"
+        >
+          {searchPanel(true, "h-[min(32rem,70dvh)]")}
+        </Dialog>
+      )}
       {appearanceDialog && (
         <Dialog
           open={appearanceOpen}
@@ -837,10 +850,10 @@ export function ReaderShellOverlay({
           )}
         </section>
 
-        {/* Right panel: the AI conversation, or the book search */}
+        {/* AI conversation (right) */}
         <section
           ref={chatSheetRef}
-          aria-label={rightView === "search" ? t("contentsSearchLabel") : t("aiChat")}
+          aria-label={t("aiChat")}
           // Hidden via transforms (still in the DOM), so without `inert` a focused
           // composer would keep receiving keystrokes off-screen; `inert` also
           // blurs it and drops the panel out of the tab order while closed.
@@ -866,35 +879,14 @@ export function ReaderShellOverlay({
               onCommit={persistPanelSizes}
             />
           )}
-          {/* The conversation stays mounted under the search, so a draft or a
-              streaming reply survives a look at the search. */}
-          <div className={cn("flex min-h-0 flex-1 flex-col", rightView === "search" && "hidden")}>
-            <ChatPanel
-              bookId={bookId}
-              bookTitle={title}
-              focusRequestId={chatFocusRequestId}
-              focusOrigin={chatFocusOrigin}
-              readingCursor={readingCursor}
-              revealed={visible && rightShows("chat")}
-            />
-          </div>
-          {rightView === "search" && (
-            <ReaderSearchPanel
-              bookId={bookId}
-              shown={visible && rightShows("search")}
-              entries={tocEntries}
-              annotations={annotations}
-              bookmarks={bookmarks ?? []}
-              onClose={() => setNotesOpen(false)}
-              onChapterSelect={onChapterSelect}
-              onAnnotationSelect={onAnnotationSelect}
-              onBookmarkSelect={bookmarkActions.open}
-              onJumped={() => {
-                // A full-screen sheet would hide the jump it just made.
-                if (isPhone) setNotesOpen(false);
-              }}
-            />
-          )}
+          <ChatPanel
+            bookId={bookId}
+            bookTitle={title}
+            focusRequestId={chatFocusRequestId}
+            focusOrigin={chatFocusOrigin}
+            readingCursor={readingCursor}
+            revealed={visible && notesOpen}
+          />
         </section>
       </div>
 

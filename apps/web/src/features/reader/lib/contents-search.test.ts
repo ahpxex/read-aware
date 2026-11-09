@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
-import type { Bookmark } from "@read-aware/core";
+import type { Bookmark, BookTocEntry } from "@read-aware/core";
 import type { Annotation } from "../../annotations/lib/annotation-types";
 import {
+  sectionChapterLabels,
   chapterNumber,
   isPageLabelQuery,
   matchAnnotations,
@@ -73,4 +74,24 @@ test("page labels are short tokens; capitals ask for exact case", () => {
   expect(isPageLabelQuery("two words")).toBe(false);
   expect(wantsMatchCase("Ye")).toBe(true);
   expect(wantsMatchCase("ye")).toBe(false);
+});
+
+test("a section's chapter is the first entry starting in it, else the last one before it", () => {
+  const entry = (label: string, sectionIndex: number | null, children: BookTocEntry[] = []): BookTocEntry => ({
+    id: label,
+    label,
+    ordinal: 0,
+    sectionIndex,
+    location: null,
+    children,
+  });
+  const chapterOf = sectionChapterLabels([
+    entry("Part One", null, [entry("Chapter 1", 2), entry("Chapter 1, part 2", 2), entry("Chapter 2", 4)]),
+    entry("Afterword", 7),
+  ]);
+  expect(chapterOf(2)).toBe("Chapter 1");
+  expect(chapterOf(3)).toBe("Chapter 1, part 2");
+  expect(chapterOf(5)).toBe("Chapter 2");
+  expect(chapterOf(7)).toBe("Afterword");
+  expect(chapterOf(0)).toBeUndefined();
 });

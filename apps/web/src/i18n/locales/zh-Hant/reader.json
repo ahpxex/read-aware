@@ -10,6 +10,8 @@
   "resizeContents": "調整目錄面板大小",
   "resizeChat": "調整聊天面板大小",
   "noToc": "此檔案未提供可導覽的目錄。",
+  "tocExpand": "展開 {{label}}",
+  "tocCollapse": "收起 {{label}}",
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "閱讀位置",
   "notes": "筆記",

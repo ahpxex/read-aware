@@ -10,6 +10,8 @@
   "resizeContents": "调整目录面板大小",
   "resizeChat": "调整对话面板大小",
   "noToc": "此文件未提供可导航的目录。",
+  "tocExpand": "展开 {{label}}",
+  "tocCollapse": "收起 {{label}}",
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "阅读位置",
   "notes": "笔记",

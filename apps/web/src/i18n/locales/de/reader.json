@@ -10,6 +10,8 @@
   "resizeContents": "Inhaltsbereich anpassen",
   "resizeChat": "Chatbereich anpassen",
   "noToc": "Diese Datei stellt kein navigierbares Inhaltsverzeichnis bereit.",
+  "tocExpand": "{{label}} aufklappen",
+  "tocCollapse": "{{label}} zuklappen",
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "Leseposition",
   "notes": "Notizen",

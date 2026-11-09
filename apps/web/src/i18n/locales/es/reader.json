@@ -10,6 +10,8 @@
   "resizeContents": "Redimensionar el panel de contenido",
   "resizeChat": "Redimensionar el panel de chat",
   "noToc": "Este archivo no incluye un índice navegable.",
+  "tocExpand": "Expandir {{label}}",
+  "tocCollapse": "Contraer {{label}}",
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "Posición de lectura",
   "notes": "Notas",

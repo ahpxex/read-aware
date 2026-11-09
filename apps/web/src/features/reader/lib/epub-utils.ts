@@ -54,23 +54,31 @@ export function adjacentTocEntry(entries: TocEntry[], href: string | null, direc
   return entries[index];
 }
 
-export function flattenToc(items: TocNavItem[], depth = 0): TocEntry[] {
+/**
+ * The navigable TOC entries in reading order. `depth` is the nesting among
+ * those entries alone, so a flat run of depths encodes the tree (see
+ * `buildTocOutline`): an entry's children are the deeper entries that follow it.
+ */
+export function flattenToc(items: TocNavItem[]): TocEntry[] {
   const flattened: Omit<TocEntry, "spineIndex">[] = [];
 
-  for (const item of items) {
-    if (item.href) {
-      flattened.push({
-        id: String(item.id ?? `${item.href}-${depth}`),
-        href: item.href,
-        label: item.label?.trim() || "Untitled chapter",
-        depth,
-      });
+  const walk = (list: TocNavItem[], depth: number) => {
+    for (const item of list) {
+      if (item.href) {
+        flattened.push({
+          id: String(item.id ?? `${item.href}-${depth}`),
+          href: item.href,
+          label: item.label?.trim() || "Untitled chapter",
+          depth,
+        });
+      }
+      // A grouping label without a target has no row of its own, so its
+      // children take its level (as in foliate's chapter map) rather than
+      // nesting under — and folding away with — whichever entry precedes them.
+      if (item.subitems?.length) walk(item.subitems, item.href ? depth + 1 : depth);
     }
-
-    if (item.subitems?.length) {
-      flattened.push(...flattenToc(item.subitems, depth + 1));
-    }
-  }
+  };
+  walk(items, 0);
 
   return flattened.map((item, spineIndex) => ({ ...item, spineIndex }));
 }

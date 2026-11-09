@@ -10,6 +10,8 @@
   "resizeContents": "Redimensionner le panneau du sommaire",
   "resizeChat": "Redimensionner le panneau de discussion",
   "noToc": "Ce fichier ne propose pas de table des matières navigable.",
+  "tocExpand": "Développer {{label}}",
+  "tocCollapse": "Réduire {{label}}",
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "Position de lecture",
   "notes": "Notes",

@@ -1,9 +1,18 @@
 import type { DomainActor } from "../../../platform/domain-actor";
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from "react";
+import {
+  useEffect,
+  useEffectEvent,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { useReaderFocusTarget } from "../hooks/useReaderFocusTarget";
 import { useAtomValue } from "jotai";
 import type { ReadingModeSnapshot } from "@read-aware/core";
-import { CaretLeft, ChatCircle, ListBullets, ListChecks, Notebook, TextAa } from "@phosphor-icons/react";
+import { CaretLeft, CaretRight, ChatCircle, ListBullets, ListChecks, Notebook, TextAa } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { useReaderResponsiveLayout } from "../hooks/useReaderResponsiveLayout";
 import {
@@ -36,6 +45,7 @@ import { findTocIndexForHref } from "../lib/epub-utils";
 import type { ReadingCursor } from "../lib/reader-types";
 import { buildProgressMarks } from "../lib/reader-progress";
 import { useReaderPanels } from "../hooks/useReaderPanels";
+import { useTocOutline } from "../hooks/useTocOutline";
 import { useReaderPanelSizes } from "../hooks/useReaderPanelSizes";
 import { useReaderModeSelection } from "../hooks/useReaderModeSelection";
 import type { TocEntry } from "../lib/reader-types";
@@ -82,6 +92,9 @@ type ReaderShellOverlayProps = {
 };
 
 const log = createLogger("reader");
+
+/** A contents row label's type; its toggle slot shares it to align with the first line. */
+const TOC_LABEL_TYPE = "text-sm leading-6";
 
 export function ReaderShellOverlay({
   visible,
@@ -524,9 +537,15 @@ export function ReaderShellOverlay({
   const tocListRef = useRef<HTMLDivElement | null>(null);
   const tocRowsRef = useRef<VirtualRowsHandle | null>(null);
   useReaderFocusTarget(bookId, "toc", tocListRef);
+  const tocOutline = useTocOutline(bookId, tocEntries, activeTocIndex);
+  // Only opening the panel or reaching another chapter recenters the list —
+  // folding a branch shifts the current row's index but must not scroll.
+  const revealCurrentTocRow = useEffectEvent(() => {
+    if (tocOutline.currentRow >= 0) tocRowsRef.current?.scrollToIndex(tocOutline.currentRow, "center");
+  });
   useEffect(() => {
     if (!visible || !tocOpen || activeTocIndex < 0) return;
-    const frame = window.requestAnimationFrame(() => tocRowsRef.current?.scrollToIndex(activeTocIndex, "center"));
+    const frame = window.requestAnimationFrame(() => revealCurrentTocRow());
     return () => window.cancelAnimationFrame(frame);
   }, [visible, tocOpen, activeTocIndex]);
   // Rows are rebuilt only when the entries or the current chapter change; the
@@ -539,42 +558,82 @@ export function ReaderShellOverlay({
       if (isPhone) setTocOpen(false);
     };
   });
+  const { rows: tocOutlineRows, currentRow: currentTocRow, toggle: toggleTocBranch } = tocOutline;
   const tocRows = useMemo<VirtualRow[]>(
     () =>
-      tocEntries.map((entry, index) => {
+      tocOutlineRows.map(({ index, entry, branch, open }, row) => {
         // A single resolved index (fragment-aware) — per-entry loose
         // matching lit up every chapter sharing the current spine file.
         const isActive = index === activeTocIndex;
+        // A folded branch holding the current chapter stands in for it.
+        const marksCurrent = row === currentTocRow;
+        const toggleLabel = t(open ? "tocCollapse" : "tocExpand", { label: entry.label });
         return {
           key: entry.id,
           // One line of text-sm/leading-6 plus the row's vertical padding.
           size: 36,
           content: (
-            // oxlint-disable-next-line react/forbid-elements -- table-of-contents entry row with depth indentation and aria-current
-            <button
-              type="button"
-              onClick={() => selectTocEntry.current(entry.href)}
-              aria-current={isActive ? "location" : undefined}
-              className={cn(
-                "w-full border-l-2 py-1.5 pr-6 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
-                isActive ? "border-fg bg-fill text-fg" : "border-transparent text-fg-muted hover:text-fg",
+            <div className="relative">
+              {branch && (
+                // Sits in the row's inset, just before the label, so folding
+                // adds no indentation and leaves every label where it was.
+                // The slot takes the label's own type (same component and
+                // classes, so the same line height) and the button's top
+                // padding: the toggle centres on the label's first line
+                // whatever that line height resolves to.
+                <Body
+                  as="span"
+                  className={cn("absolute top-1.5 z-[1] flex h-lh items-center", TOC_LABEL_TYPE)}
+                  style={{ left: `${entry.depth * 0.85}rem` }}
+                >
+                  <IconButton
+                    size="sm"
+                    label={toggleLabel}
+                    aria-expanded={open}
+                    icon={
+                      <CaretRight
+                        size={14}
+                        weight="bold"
+                        className={cn(
+                          "transition-transform duration-150 motion-reduce:transition-none",
+                          open && "rotate-90",
+                        )}
+                      />
+                    }
+                    onClick={() => toggleTocBranch(index)}
+                  />
+                </Body>
               )}
-              // The row's own inset (what the list used to pad), so the
-              // text sits where it always did while the row runs edge to
-              // edge. Nesting adds to it.
-              style={{ paddingLeft: `${1.75 + entry.depth * 0.85}rem` }}
-            >
-              <Body
-                as="span"
-                className={cn("block min-w-0 text-sm leading-6", isActive ? "font-semibold text-fg" : "text-inherit")}
+              {/* oxlint-disable-next-line react/forbid-elements -- table-of-contents entry row with depth indentation and aria-current */}
+              <button
+                type="button"
+                onClick={() => selectTocEntry.current(entry.href)}
+                aria-current={isActive ? "location" : undefined}
+                className={cn(
+                  "w-full border-l-2 py-1.5 pr-6 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
+                  marksCurrent ? "border-fg bg-fill text-fg" : "border-transparent text-fg-muted hover:text-fg",
+                )}
+                // The row's own inset (what the list used to pad), so the
+                // text sits where it always did while the row runs edge to
+                // edge. Nesting adds to it.
+                style={{ paddingLeft: `${1.75 + entry.depth * 0.85}rem` }}
               >
-                {entry.label}
-              </Body>
-            </button>
+                <Body
+                  as="span"
+                  className={cn(
+                    "block min-w-0",
+                    TOC_LABEL_TYPE,
+                    marksCurrent ? "font-semibold text-fg" : "text-inherit",
+                  )}
+                >
+                  {entry.label}
+                </Body>
+              </button>
+            </div>
           ),
         };
       }),
-    [tocEntries, activeTocIndex],
+    [tocOutlineRows, currentTocRow, toggleTocBranch, activeTocIndex, t],
   );
 
   return (

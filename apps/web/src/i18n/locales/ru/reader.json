@@ -10,6 +10,8 @@
   "resizeContents": "Изменить размер панели содержания",
   "resizeChat": "Изменить размер панели чата",
   "noToc": "Этот файл не содержит навигируемого оглавления.",
+  "tocExpand": "Развернуть {{label}}",
+  "tocCollapse": "Свернуть {{label}}",
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "Позиция чтения",
   "notes": "Заметки",

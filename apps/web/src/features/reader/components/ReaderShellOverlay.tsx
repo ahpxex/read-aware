@@ -309,11 +309,20 @@ export function ReaderShellOverlay({
       }}
     />
   );
-  const searchPanel = (showCancel = false, className = "min-h-0 flex-1") => (
+  const searchPanel = ({
+    showCancel = false,
+    className = "min-h-0 flex-1",
+    focusRestored = true,
+  }: {
+    showCancel?: boolean;
+    className?: string;
+    focusRestored?: boolean;
+  } = {}) => (
     <ReaderSearchPanel
       bookId={bookId}
       shown={visible && searchOpen}
       showCancel={showCancel}
+      focusRestored={focusRestored}
       className={className}
       entries={tocEntries}
       annotations={annotations}
@@ -623,7 +632,7 @@ export function ReaderShellOverlay({
   };
   const renderPhoneSheet = (key: PhoneSheet): ReaderSheetContent =>
     key === "search"
-      ? { title: t("contentsSearchLabel"), tall: true, body: searchPanel(true) }
+      ? { title: t("contentsSearchLabel"), tall: true, body: searchPanel({ showCancel: true, focusRestored: false }) }
       : key === "appearance"
         ? {
             title: t("readingAppearance"),
@@ -675,7 +684,7 @@ export function ReaderShellOverlay({
           aria-label={t("contentsSearchLabel")}
           className="overflow-hidden p-0"
         >
-          {searchPanel(true, "h-[min(32rem,70dvh)]")}
+          {searchPanel({ showCancel: true, className: "h-[min(32rem,70dvh)]" })}
         </Dialog>
       )}
       {appearanceDialog && (

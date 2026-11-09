@@ -1,6 +1,15 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo, type ReactNode, type Ref } from "react";
 import type { Bookmark, BookLocationHit, ReadingLocation } from "@read-aware/core";
-import { Body, Caption, Eyebrow, InlineError, Spinner, VirtualRows, type VirtualRow } from "@read-aware/ui";
+import {
+  Body,
+  Caption,
+  Eyebrow,
+  InlineError,
+  Spinner,
+  VirtualRows,
+  type VirtualRow,
+  type VirtualRowsHandle,
+} from "@read-aware/ui";
 import { describeError, formatNumber, useTranslation } from "../../../i18n";
 import type { Annotation } from "../../annotations";
 import type { ContentsSearchState } from "../hooks/useContentsSearch";
@@ -98,11 +107,14 @@ export function ReaderContentsResults({
   onBookmark,
   onMark,
   onLocation,
+  rowsRef,
 }: {
   query: string;
   entries: TocEntry[];
   matches: ContentsMatches;
   search: ContentsSearchState;
+  /** The list's handle, to find and return to a row by key. */
+  rowsRef?: Ref<VirtualRowsHandle>;
 } & Handlers) {
   const { t } = useTranslation("reader");
   const rows = useMemo<VirtualRow[]>(() => {
@@ -216,5 +228,5 @@ export function ReaderContentsResults({
     }
     return out;
   }, [entries, matches, query, search, t, onChapter, onBookmark, onMark, onLocation]);
-  return <VirtualRows rows={rows} />;
+  return <VirtualRows ref={rowsRef} rows={rows} />;
 }

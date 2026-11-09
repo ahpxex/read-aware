@@ -3,6 +3,7 @@ import type { BookLocationHit, BookLocationSearchPage, BookNavigationTargetEntry
 import { createLibraryDomain } from "../../../domain/library";
 import { readingRuntime } from "../../../domain/reading-runtime";
 import { createLogger } from "../../../platform/logger";
+import { createSearchSession } from "../lib/book-search-memory";
 import { isPageLabelQuery, sectionChapterLabels, wantsMatchCase } from "../lib/contents-search";
 
 const log = createLogger("contents-search");
@@ -38,9 +39,17 @@ export type ContentsSearchState = {
 const IDLE: ContentsSearchState = { pages: [], text: { status: "idle" } };
 
 /**
+ * Finished searches, chapter names and where each result list was left, for
+ * this run of the app (see lib/book-search-memory): reopening the search
+ * shows the last results without searching the book again.
+ */
+export const bookSearchSession = createSearchSession<Omit<ContentsSearchState, "chapterOf">>();
+
+/**
  * The asynchronous half of the contents search — printed page labels and the
  * book's full text — for a settled query. Pages of text hits stream in as
  * they arrive; a new query, a closed panel or another book abort the search.
+ * A query this run has already searched to the end answers from memory.
  */
 export function useContentsSearch(bookId: string, query: string, active: boolean): ContentsSearchState {
   const library = useMemo(() => createLibraryDomain("user"), []);
@@ -49,13 +58,17 @@ export function useContentsSearch(bookId: string, query: string, active: boolean
 
   // Text hits name their chapter: read the book's navigation contents once.
   const [chapters, setChapters] = useState<{ bookId: string; of: (sectionIndex: number) => string | undefined }>();
-  const chaptersBook = chapters?.bookId;
+  const chapterOf = chapters?.bookId === bookId ? chapters.of : bookSearchSession.chapters.get(bookId);
+  const knowsChapters = !!chapterOf;
   useEffect(() => {
-    if (!active || chaptersBook === bookId) return;
+    if (!active || knowsChapters) return;
     const controller = new AbortController();
     library.queries.books.getNavigationToc(bookId, controller.signal).then(
       (toc) => {
-        if (!controller.signal.aborted) setChapters({ bookId, of: sectionChapterLabels(toc.entries) });
+        if (controller.signal.aborted) return;
+        const of = sectionChapterLabels(toc.entries);
+        bookSearchSession.chapters.set(bookId, of);
+        setChapters({ bookId, of });
       },
       (error: unknown) => {
         // Hits still show without their chapter names.
@@ -63,18 +76,23 @@ export function useContentsSearch(bookId: string, query: string, active: boolean
       },
     );
     return () => controller.abort();
-  }, [active, bookId, chaptersBook, library]);
-  const chapterOf = chapters?.bookId === bookId ? chapters.of : undefined;
+  }, [active, bookId, knowsChapters, library]);
   const key = active && trimmed ? `${bookId}\u0000${trimmed}` : "";
+  const recalled = key ? bookSearchSession.results.get(bookId, trimmed) : undefined;
+  const isRecalled = !!recalled;
 
   useEffect(() => {
-    if (!key) return;
+    if (!key || isRecalled) return;
     const controller = new AbortController();
     const { signal } = controller;
     let value: ContentsSearchState = IDLE;
     const publish = (next: ContentsSearchState) => {
       value = next;
-      if (!signal.aborted) setState({ key, value: next });
+      if (signal.aborted) return;
+      // Remembered once the text has been searched to the end (a page label
+      // answer arriving after that updates the remembered value).
+      if (next.text.status === "done") bookSearchSession.results.set(bookId, trimmed, next);
+      setState({ key, value: next });
     };
 
     const searchPages = async () => {
@@ -154,8 +172,8 @@ export function useContentsSearch(bookId: string, query: string, active: boolean
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [key, bookId, trimmed, library]);
+  }, [key, isRecalled, bookId, trimmed, library]);
 
-  const value = key && state.key === key ? state.value : IDLE;
+  const value = !key ? IDLE : state.key === key ? state.value : (recalled ?? IDLE);
   return useMemo(() => ({ ...value, chapterOf }), [value, chapterOf]);
 }

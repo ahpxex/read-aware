@@ -1,11 +1,13 @@
 import { useCallback, useDeferredValue, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Bookmark, ReadingLocation } from "@read-aware/core";
-import { Button, ScrollArea, SearchField, useToast } from "@read-aware/ui";
+import { Button, ScrollArea, SearchField, useToast, type VirtualRowsHandle } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { describeError, useTranslation } from "../../../i18n";
 import { createLogger } from "../../../platform/logger";
 import type { Annotation } from "../../annotations";
 import { useContentsSearch } from "../hooks/useContentsSearch";
+import { useRememberedSearchQuery } from "../hooks/useRememberedSearchQuery";
+import { useSearchListPlace } from "../hooks/useSearchListPlace";
 import { matchAnnotations, matchBookmarks, matchChapters } from "../lib/contents-search";
 import { goToReadingTarget } from "../lib/reader-bookmarks";
 import type { TocEntry } from "../lib/reader-types";
@@ -17,8 +19,10 @@ const SCROLL_BODY = "pb-2";
 /**
  * Search everything in the open book — chapters, printed pages, bookmarks,
  * highlights and notes, and the text. Shown in a popup from the header (a
- * dialog on a phone) and mounted only while open, so every search starts
- * from an empty field. The host bounds its height; results scroll inside.
+ * sheet on a phone) and mounted only while open. It reopens on the last
+ * query searched in the book, with that query's results at the place the
+ * list was left (see lib/book-search-memory). The host bounds its height;
+ * results scroll inside.
  */
 export function ReaderSearchPanel({
   bookId,
@@ -28,6 +32,7 @@ export function ReaderSearchPanel({
   bookmarks,
   onClose,
   showCancel = false,
+  focusRestored = true,
   className,
   onChapterSelect,
   onAnnotationSelect,
@@ -44,6 +49,12 @@ export function ReaderSearchPanel({
   onClose: () => void;
   /** A Cancel button beside the field, for hosts without another way to close. */
   showCancel?: boolean;
+  /**
+   * Focus the field (its text selected, ready to be replaced) when it opens
+   * on a remembered query. A phone host passes false so the keyboard does
+   * not cover the remembered results; an empty field is always focused.
+   */
+  focusRestored?: boolean;
   className?: string;
   onChapterSelect?: (href: string) => void;
   onAnnotationSelect?: (cfiRange: string) => void;
@@ -54,11 +65,19 @@ export function ReaderSearchPanel({
 }) {
   const { t } = useTranslation("reader");
   const { toast } = useToast();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useRememberedSearchQuery(bookId);
+  // Decided as it opens: a remembered query is selected, or left unfocused.
+  const [opening] = useState(() => ({ restored: query.trim() !== "", focus: query.trim() === "" || focusRestored }));
+  const fieldRef = useRef<HTMLInputElement | null>(null);
+  useLayoutEffect(() => {
+    if (opening.restored && opening.focus) fieldRef.current?.select();
+  }, [opening]);
   // Matching runs on every keystroke; a deferred query keeps typing smooth in
   // a book with tens of thousands of contents entries.
   const deferredQuery = useDeferredValue(query.trim());
   const search = useContentsSearch(bookId, deferredQuery, shown);
+  const rowsRef = useRef<VirtualRowsHandle | null>(null);
+  const rememberPlace = useSearchListPlace(bookId, deferredQuery, rowsRef);
   const matches = useMemo<ContentsMatches>(
     () =>
       deferredQuery
@@ -115,9 +134,10 @@ export function ReaderSearchPanel({
         )}
       >
         <SearchField
+          ref={fieldRef}
           variant="plain"
           size="sm"
-          autoFocus
+          autoFocus={opening.focus}
           className="min-w-0 flex-1"
           label={t("contentsSearchLabel")}
           placeholder={t("contentsSearch")}
@@ -140,7 +160,7 @@ export function ReaderSearchPanel({
         )}
       </div>
       {deferredQuery && (
-        <ScrollArea className="min-h-0 flex-1">
+        <ScrollArea className="min-h-0 flex-1" onScroll={rememberPlace}>
           <div className={SCROLL_BODY}>
             <ReaderContentsResults
               query={deferredQuery}
@@ -151,6 +171,7 @@ export function ReaderSearchPanel({
               onBookmark={openBookmark}
               onMark={goToMark}
               onLocation={goToLocation}
+              rowsRef={rowsRef}
             />
           </div>
         </ScrollArea>

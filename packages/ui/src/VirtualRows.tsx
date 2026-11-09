@@ -22,6 +22,14 @@ export type VirtualRow = {
 export type VirtualRowsHandle = {
   /** Bring a row into view — mounted or not — e.g. the current chapter of a contents list. */
   scrollToIndex(index: number, align?: "start" | "center" | "end" | "auto"): void;
+  /** The key of the first row at least partly in view — where to come back to later. */
+  topRowKey(): string | null;
+  /**
+   * Bring the row with this key into view, as scrollToIndex does. A key is
+   * stable where an index is not (rows above it may have come or gone since).
+   * Returns false when no row has the key.
+   */
+  scrollToKey(key: string, align?: "start" | "center" | "end" | "auto"): boolean;
 };
 
 export const VirtualRows = forwardRef<VirtualRowsHandle, { rows: VirtualRow[] }>(function VirtualRows({ rows }, ref) {
@@ -79,8 +87,20 @@ export const VirtualRows = forwardRef<VirtualRowsHandle, { rows: VirtualRow[] }>
       scrollToIndex: (index, align = "auto") => {
         if (index >= 0 && index < rows.length) virtualizer.scrollToIndex(index, { align });
       },
+      topRowKey: () => {
+        // Row positions are in the scroller's content coordinates, as is its offset.
+        const offset = virtualizer.scrollOffset ?? 0;
+        const top = virtualizer.getVirtualItems().find((item) => item.end > offset);
+        return top ? (rows[top.index]?.key ?? null) : null;
+      },
+      scrollToKey: (key, align = "auto") => {
+        const index = rows.findIndex((row) => row.key === key);
+        if (index < 0) return false;
+        virtualizer.scrollToIndex(index, { align });
+        return true;
+      },
     }),
-    [virtualizer, rows.length],
+    [virtualizer, rows],
   );
 
   return (

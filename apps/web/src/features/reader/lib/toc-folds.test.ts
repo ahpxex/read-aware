@@ -1,11 +1,24 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, expect, test } from "bun:test";
 import { JSDOM } from "jsdom";
 import { localKV } from "../../../platform/local-store";
 import { parseTocPins, tocFoldsKey, tocFoldsStore, writeTocPins } from "./toc-folds";
 
+// localKV falls back to localStorage outside Tauri; give it a real one for
+// this file only, and hand the global back untouched for the next file.
 const dom = new JSDOM("", { url: "http://localhost/" });
-Object.defineProperty(globalThis, "localStorage", { configurable: true, value: dom.window.localStorage });
+const original = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+beforeAll(() => {
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    writable: true,
+    value: dom.window.localStorage,
+  });
+});
 afterEach(() => localStorage.clear());
+afterAll(() => {
+  if (original) Object.defineProperty(globalThis, "localStorage", original);
+  else delete (globalThis as { localStorage?: unknown }).localStorage;
+});
 
 test("pins parse tolerantly", () => {
   expect([...parseTocPins(JSON.stringify({ pinned: ["1", 2, "3"] }))]).toEqual(["1", "3"]);

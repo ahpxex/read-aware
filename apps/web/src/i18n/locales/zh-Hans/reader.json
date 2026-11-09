@@ -41,7 +41,7 @@
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "阅读位置",
   "notes": "笔记",
-  "emptyNotes": "还没有高亮或笔记。在阅读器中选中文本即可标记。",
+  "emptyNotes": "还没有书签、高亮或笔记。选中文字即可标记，也可以为页面添加书签。",
   "previousPage": "上一页",
   "nextPage": "下一页",
   "go": "跳转",

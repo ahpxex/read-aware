@@ -41,7 +41,7 @@
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "Position de lecture",
   "notes": "Notes",
-  "emptyNotes": "Aucun surlignage ni note pour l’instant. Sélectionnez du texte dans le lecteur pour le marquer.",
+  "emptyNotes": "Aucun signet, surlignage ou note pour l’instant. Sélectionnez du texte pour le marquer, ou ajoutez un signet à une page.",
   "previousPage": "Page précédente",
   "nextPage": "Page suivante",
   "go": "Aller",

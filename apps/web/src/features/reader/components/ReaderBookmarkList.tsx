@@ -1,35 +1,30 @@
 import { useState } from "react";
 import { BookmarkSimple, DotsThree } from "@phosphor-icons/react";
 import type { Bookmark } from "@read-aware/core";
-import { DropdownMenu, IconButton, InlineError, TextField, iconButtonClassName } from "@read-aware/ui";
+import { DropdownMenu, TextField, iconButtonClassName } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { formatDate, useTranslation } from "../../../i18n";
 
 export type ReaderBookmarks = {
   bookmarks: Bookmark[] | null;
   failed: boolean;
-  /** The chapter a bookmark is in, when its target says. */
-  chapterOf?: (bookmark: Bookmark) => string | undefined;
-  onAdd: () => void;
   onOpen: (bookmark: Bookmark) => void;
   onRename: (bookmark: Bookmark, name: string) => void;
   onRemove: (bookmark: Bookmark) => void;
 };
 
 /**
- * One bookmark, in the notes list's look: a marker where an annotation has
- * its color rule, the name, then chapter or date. Rename happens in place;
- * the actions sit in a menu that touch can reach too.
+ * One bookmark among the notes list's marks: a bookmark glyph where an
+ * annotation has its color rule, the name, then the date. Rename happens in
+ * place; the actions sit in a menu that touch can reach too.
  */
-function BookmarkRow({
+export function BookmarkRow({
   bookmark,
-  chapter,
   onOpen,
   onRename,
   onRemove,
 }: {
   bookmark: Bookmark;
-  chapter?: string;
 } & Pick<ReaderBookmarks, "onOpen" | "onRename" | "onRemove">) {
   const { t } = useTranslation("reader");
   const [editing, setEditing] = useState(false);
@@ -74,7 +69,7 @@ function BookmarkRow({
         <div className="min-w-0 flex-1 font-sans">
           <p className="line-clamp-2 text-[13px] leading-relaxed text-fg">{bookmark.name}</p>
           <p className="mt-1 text-[11px] text-fg-subtle">
-            {chapter ?? formatDate(new Date(bookmark.createdAt), { month: "short", day: "numeric" })}
+            {formatDate(new Date(bookmark.createdAt), { month: "short", day: "numeric" })}
           </p>
         </div>
       </button>
@@ -100,57 +95,6 @@ function BookmarkRow({
           { label: t("deleteBookmark"), destructive: true, onClick: () => onRemove(bookmark) },
         ]}
       />
-    </div>
-  );
-}
-
-/**
- * The book's bookmarks as the first group of the notes list: its label with
- * an add button, then one row per bookmark (oldest first).
- */
-export function ReaderBookmarkSection({
-  bookmarks,
-  failed,
-  chapterOf,
-  onAdd,
-  onOpen,
-  onRename,
-  onRemove,
-}: ReaderBookmarks) {
-  const { t } = useTranslation("reader");
-  return (
-    <div>
-      <div className="sticky top-0 z-[1] flex items-center justify-between bg-[var(--ra-panel-surface,var(--ra-main-surface-color))] pl-2">
-        <p className="py-1.5 font-sans text-xs font-medium text-fg-subtle">{t("bookmarksTab")}</p>
-        {/* No Tooltip here: its hidden bubble is laid out beside the button and
-            would widen the scrolling list. The button carries its own name. */}
-        <IconButton
-          size="sm"
-          label={t("addBookmark")}
-          title={t("addBookmark")}
-          onClick={onAdd}
-          className="text-fg-subtle"
-          icon={<BookmarkSimple size={14} />}
-        />
-      </div>
-      {failed ? (
-        <div className="px-2 py-1">
-          <InlineError compact>{t("bookmarksLoadFailed")}</InlineError>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-1">
-          {bookmarks?.map((bookmark) => (
-            <BookmarkRow
-              key={bookmark.id}
-              bookmark={bookmark}
-              chapter={chapterOf?.(bookmark)}
-              onOpen={onOpen}
-              onRename={onRename}
-              onRemove={onRemove}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }

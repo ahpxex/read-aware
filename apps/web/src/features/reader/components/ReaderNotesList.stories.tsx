@@ -52,8 +52,8 @@ const annotations: Annotation[] = [
 ];
 
 /**
- * The notes view of the reader's side panel: bookmarks first, then marks
- * grouped by chapter in reading order. Rendered at the panel's width.
+ * The notes view of the reader's side panel: bookmarks, highlights and notes
+ * in one list, grouped by chapter in reading order. Rendered at the panel's width.
  */
 const meta = {
   title: "Interface/Reader/ReaderNotesList",
@@ -79,13 +79,12 @@ const meta = {
           name: "Canto Two",
           kind: "location",
           target: { contentVersion: "v1", href: "poem.xhtml" },
+          chapterHref: "poem.xhtml",
           createdAt: "2026-06-22T10:00:00.000Z",
           updatedAt: "2026-06-22T10:00:00.000Z",
         },
       ],
       failed: false,
-      chapterOf: () => "Pale Fire: A Poem in Four Cantos",
-      onAdd: () => {},
       onOpen: () => {},
       onRename: () => {},
       onRemove: () => {},

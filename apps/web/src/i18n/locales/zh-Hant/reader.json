@@ -41,7 +41,7 @@
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "閱讀位置",
   "notes": "筆記",
-  "emptyNotes": "尚無螢光標示或筆記。在閱讀器中選取文字即可標記。",
+  "emptyNotes": "還沒有書籤、螢光標記或筆記。選取文字即可標記，也可以為頁面加入書籤。",
   "previousPage": "上一頁",
   "nextPage": "下一頁",
   "go": "前往",

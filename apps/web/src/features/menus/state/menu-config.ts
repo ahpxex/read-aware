@@ -32,7 +32,7 @@ export const CORE_MENU_DEFAULTS: Record<MenuSurface, string[]> = {
   primaryNav: ["core:library", "core:agent"],
   shelfHeader: ["core:search", "core:import", "core:viewControl", "core:stats", "core:settings"],
   // Right cluster only — back/TOC/notes stay fixed on the left.
-  readerHeader: ["core:find", "core:navigator", "core:appearance", "core:chat"],
+  readerHeader: ["core:bookmark", "core:find", "core:navigator", "core:appearance", "core:chat"],
   // The phone reader's bottom toolbar. Back and the overflow menu stay fixed
   // in the top bar, so every action here — contents and notes included — is
   // the user's to arrange; what doesn't fit the width joins the overflow.
@@ -50,7 +50,8 @@ export const CORE_OVERFLOW_DEFAULTS: Record<MenuSurface, string[]> = {
   // Folder imports are occasional: a menu entry, not another header icon.
   shelfHeader: ["core:importFolder"],
   readerHeader: [],
-  readerToolbar: [],
+  // A phone's bottom bar is full; bookmarking a page waits in "More".
+  readerToolbar: ["core:bookmark"],
   selection: [],
 };
 

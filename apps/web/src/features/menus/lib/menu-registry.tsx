@@ -8,6 +8,7 @@
  * self-contained instead of hunting keys across namespaces.
  */
 import {
+  BookmarkSimple,
   Books,
   ChartLineUp,
   ChatCircle,
@@ -56,6 +57,7 @@ export const CORE_MENU_ITEMS: Record<MenuSurface, CoreMenuItemMeta[]> = {
     { id: "core:settings", labelKey: "settings", Icon: GearSix },
   ],
   readerHeader: [
+    { id: "core:bookmark", labelKey: "addBookmark", Icon: BookmarkSimple },
     { id: "core:find", labelKey: "findInBook", Icon: MagnifyingGlass },
     { id: "core:navigator", labelKey: "navigator", Icon: Rows },
     { id: "core:appearance", labelKey: "appearance", Icon: TextAa },
@@ -68,6 +70,7 @@ export const CORE_MENU_ITEMS: Record<MenuSurface, CoreMenuItemMeta[]> = {
     { id: "core:navigator", labelKey: "navigator", Icon: Rows },
     { id: "core:appearance", labelKey: "appearance", Icon: TextAa },
     { id: "core:chat", labelKey: "chat", Icon: ChatCircle },
+    { id: "core:bookmark", labelKey: "addBookmark", Icon: BookmarkSimple },
   ],
   selection: [
     { id: "core:copy", labelKey: "copy", Icon: Copy },

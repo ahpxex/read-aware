@@ -3,6 +3,7 @@ import { useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } 
 import { useAtomValue } from "jotai";
 import type { ReadingModeSnapshot } from "@read-aware/core";
 import {
+  BookmarkSimple,
   CaretLeft,
   ChatCircle,
   ListBullets,
@@ -37,6 +38,7 @@ import { useReaderPanelSizes } from "../hooks/useReaderPanelSizes";
 import { useReaderModeSelection } from "../hooks/useReaderModeSelection";
 import type { TocEntry } from "../lib/reader-types";
 import { ReaderContentsPanel, type ReaderSideView } from "./ReaderContentsPanel";
+import { ReaderSearchPanel } from "./ReaderSearchPanel";
 import { type ReaderBookmarks } from "./ReaderBookmarkList";
 import { useReaderBookmarks } from "../hooks/useReaderBookmarks";
 import { useReaderBookmarkActions } from "../hooks/useReaderBookmarkActions";
@@ -155,18 +157,16 @@ export function ReaderShellOverlay({
 
   // Phone-width: the side docks become full-screen sheets (below the top bar),
   // so only one can be open at a time and resizing is meaningless.
-  // The side panel: one panel, three views. The contents and the search are
-  // the "toc" panel (docked, remembered per book); the notes view is the
-  // "annotations" panel, so agents and plugins opening the book's notes land
-  // in it. Each view's header button shows it, or hides the panel when that
-  // view is already showing.
-  const [sideSubview, setSideSubview] = useState<"contents" | "search">("contents");
+  // Left panel: the contents ("toc" panel, docked and remembered per book) or
+  // the book's notes ("annotations" panel, so agents and plugins opening the
+  // notes land there; it wins while both are open). Right panel ("chat"): the
+  // AI conversation or the book search. Each view's header button shows it,
+  // or hides its panel when that view is already showing.
   const sideOpen = tocOpen || annotationsOpen;
-  const sideView: ReaderSideView = annotationsOpen ? "notes" : sideSubview;
+  const sideView: ReaderSideView = annotationsOpen ? "notes" : "contents";
   // The panel service runs one change at a time, so a switch that touches
-  // both panels opens the target view first (the notes view wins while both
-  // are open) and only then closes the other: the panel never slides shut
-  // between the two.
+  // both left panels opens the target view first and only then closes the
+  // other: the panel never slides shut between the two.
   const closeSide = () => {
     void (annotationsOpen ? changePanel("annotations", false) : Promise.resolve(true)).then(() => {
       if (tocOpen) setTocOpen(false);
@@ -180,16 +180,41 @@ export function ReaderShellOverlay({
       });
       return;
     }
-    setSideSubview(view);
     void (tocOpen ? Promise.resolve(true) : changePanel("toc", true)).then((opened) => {
       if (opened && annotationsOpen) setAnnotationsOpen(false);
     });
   };
   const sideShows = (view: ReaderSideView) => sideOpen && sideView === view;
   const toggleToc = () => toggleSide("contents");
-  const toggleContentsSearch = () => toggleSide("search");
   const toggleNotesView = () => toggleSide("notes");
-  const toggleNotes = () => setNotesOpen(!notesOpen);
+
+  const [rightView, setRightView] = useState<"chat" | "search">("chat");
+  // Every opening of the chat panel (its button, Ask AI, an agent) comes with
+  // a chat focus request. Each one shows the conversation — except the one the
+  // header's search itself caused by opening the panel; a closed panel
+  // reopens on the conversation. State adjusted during render, so the right
+  // view never lags the panel it describes.
+  const [rightSeen, setRightSeen] = useState({ open: notesOpen, focus: chatFocusRequestId });
+  const [searchOpening, setSearchOpening] = useState(false);
+  if (rightSeen.open !== notesOpen || rightSeen.focus !== chatFocusRequestId) {
+    const focused = rightSeen.focus !== chatFocusRequestId;
+    setRightSeen({ open: notesOpen, focus: chatFocusRequestId });
+    if (focused && searchOpening) setSearchOpening(false);
+    else if (focused || !notesOpen) {
+      setRightView("chat");
+      setSearchOpening(false);
+    }
+  }
+  const rightShows = (view: "chat" | "search") => notesOpen && rightView === view;
+  const toggleRight = (view: "chat" | "search") => {
+    if (rightShows(view)) return setNotesOpen(false);
+    setRightView(view);
+    if (notesOpen) return;
+    setSearchOpening(view === "search");
+    setNotesOpen(true);
+  };
+  const toggleNotes = () => toggleRight("chat");
+  const toggleContentsSearch = () => toggleRight("search");
 
   // Android back gesture: a phone full-screen sheet is a deeper layer, so back
   // closes it (chat first — it renders on top) instead of unwinding the whole
@@ -233,11 +258,6 @@ export function ReaderShellOverlay({
   const bookmarkSection: ReaderBookmarks = {
     bookmarks,
     failed: bookmarksFailed,
-    chapterOf: (bookmark) => {
-      const index = bookmark.target.href ? findTocIndexForHref(tocEntries, bookmark.target.href) : -1;
-      return index >= 0 ? tocEntries[index]?.label : undefined;
-    },
-    onAdd: () => void bookmarkActions.add(),
     onOpen: (bookmark) => void bookmarkActions.open(bookmark),
     onRename: (bookmark, name) => void bookmarkActions.rename(bookmark, name),
     onRemove: (bookmark) => void bookmarkActions.remove(bookmark),
@@ -266,15 +286,25 @@ export function ReaderShellOverlay({
   ]);
 
   const coreReaderNodes: Record<string, React.ReactNode | null> = {
+    "core:bookmark": (
+      <Tooltip content={t("addBookmark")} side="bottom" className="pointer-events-auto">
+        <IconButton
+          size="sm"
+          label={t("addBookmark")}
+          onClick={() => void bookmarkActions.add()}
+          icon={<BookmarkSimple size={18} aria-hidden="true" />}
+        />
+      </Tooltip>
+    ),
     "core:find": (
       <Tooltip content={t("contentsSearchLabel")} side="bottom" className="pointer-events-auto">
         <IconButton
           size="sm"
           label={t("contentsSearchLabel")}
-          aria-pressed={sideShows("search")}
+          aria-pressed={rightShows("search")}
           onClick={toggleContentsSearch}
-          className={cn(sideShows("search") && "text-fg")}
-          icon={<MagnifyingGlass size={18} weight={sideShows("search") ? "bold" : "regular"} aria-hidden="true" />}
+          className={cn(rightShows("search") && "text-fg")}
+          icon={<MagnifyingGlass size={18} weight={rightShows("search") ? "bold" : "regular"} aria-hidden="true" />}
         />
       </Tooltip>
     ),
@@ -316,10 +346,10 @@ export function ReaderShellOverlay({
         <IconButton
           size="sm"
           label={t("chat")}
-          aria-pressed={notesOpen}
+          aria-pressed={rightShows("chat")}
           onClick={toggleNotes}
-          className={cn(notesOpen && "text-fg")}
-          icon={<ChatCircle size={18} weight={notesOpen ? "bold" : "regular"} aria-hidden="true" />}
+          className={cn(rightShows("chat") && "text-fg")}
+          icon={<ChatCircle size={18} weight={rightShows("chat") ? "bold" : "regular"} aria-hidden="true" />}
         />
       </Tooltip>
     ),
@@ -328,6 +358,7 @@ export function ReaderShellOverlay({
   const coreReaderRun: Record<string, (() => void) | undefined> = {
     "core:toc": toggleToc,
     "core:find": toggleContentsSearch,
+    "core:bookmark": () => void bookmarkActions.add(),
     "core:notes": toggleNotesView,
     "core:navigator": textUnitModeAvailable ? onToggleTextUnitMode : undefined,
     "core:chat": toggleNotes,
@@ -466,16 +497,26 @@ export function ReaderShellOverlay({
         return canSelectMode && modeSnapshot ? (
           <ReaderModePicker key={`${id}:${bookId}`} variant="toolbar" mode={modeSnapshot} {...modeSelection} />
         ) : null;
+      case "core:bookmark":
+        return (
+          <IconButton
+            key={id}
+            size="toolbar"
+            label={t("addBookmark")}
+            onClick={() => void bookmarkActions.add()}
+            icon={<BookmarkSimple size={20} aria-hidden="true" />}
+          />
+        );
       case "core:find":
         return (
           <IconButton
             key={id}
             size="toolbar"
             label={t("contentsSearchLabel")}
-            aria-pressed={sideShows("search")}
+            aria-pressed={rightShows("search")}
             onClick={toggleContentsSearch}
-            className={cn(sideShows("search") && "text-fg")}
-            icon={<MagnifyingGlass size={20} weight={sideShows("search") ? "bold" : "regular"} aria-hidden="true" />}
+            className={cn(rightShows("search") && "text-fg")}
+            icon={<MagnifyingGlass size={20} weight={rightShows("search") ? "bold" : "regular"} aria-hidden="true" />}
           />
         );
       case "core:appearance":
@@ -497,10 +538,10 @@ export function ReaderShellOverlay({
             key={id}
             size="toolbar"
             label={t("chat")}
-            aria-pressed={notesOpen}
+            aria-pressed={rightShows("chat")}
             onClick={toggleNotes}
-            className={cn(notesOpen && "text-fg")}
-            icon={<ChatCircle size={20} weight={notesOpen ? "bold" : "regular"} aria-hidden="true" />}
+            className={cn(rightShows("chat") && "text-fg")}
+            icon={<ChatCircle size={20} weight={rightShows("chat") ? "bold" : "regular"} aria-hidden="true" />}
           />
         );
       default:
@@ -758,7 +799,6 @@ export function ReaderShellOverlay({
             bookId={bookId}
             shown={visible && sideOpen}
             view={sideView}
-            onSearchCancel={() => setSideSubview("contents")}
             notes={{
               annotations,
               loadFailed: annotationsLoadFailed,
@@ -782,12 +822,10 @@ export function ReaderShellOverlay({
             }}
             entries={tocEntries}
             activeIndex={activeTocIndex}
-            annotations={annotations}
-            bookmarks={bookmarks ?? []}
-            onChapterSelect={onChapterSelect}
-            onAnnotationSelect={onAnnotationSelect}
-            onBookmarkSelect={bookmarkActions.open}
-            onJumped={closeTocSheetOnPhone}
+            onChapterSelect={(href) => {
+              onChapterSelect?.(href);
+              closeTocSheetOnPhone();
+            }}
           />
           {!isPhone && (
             <ReaderResizeHandle
@@ -799,10 +837,10 @@ export function ReaderShellOverlay({
           )}
         </section>
 
-        {/* AI conversation (right) */}
+        {/* Right panel: the AI conversation, or the book search */}
         <section
           ref={chatSheetRef}
-          aria-label={t("aiChat")}
+          aria-label={rightView === "search" ? t("contentsSearchLabel") : t("aiChat")}
           // Hidden via transforms (still in the DOM), so without `inert` a focused
           // composer would keep receiving keystrokes off-screen; `inert` also
           // blurs it and drops the panel out of the tab order while closed.
@@ -828,14 +866,35 @@ export function ReaderShellOverlay({
               onCommit={persistPanelSizes}
             />
           )}
-          <ChatPanel
-            bookId={bookId}
-            bookTitle={title}
-            focusRequestId={chatFocusRequestId}
-            focusOrigin={chatFocusOrigin}
-            readingCursor={readingCursor}
-            revealed={visible && notesOpen}
-          />
+          {/* The conversation stays mounted under the search, so a draft or a
+              streaming reply survives a look at the search. */}
+          <div className={cn("flex min-h-0 flex-1 flex-col", rightView === "search" && "hidden")}>
+            <ChatPanel
+              bookId={bookId}
+              bookTitle={title}
+              focusRequestId={chatFocusRequestId}
+              focusOrigin={chatFocusOrigin}
+              readingCursor={readingCursor}
+              revealed={visible && rightShows("chat")}
+            />
+          </div>
+          {rightView === "search" && (
+            <ReaderSearchPanel
+              bookId={bookId}
+              shown={visible && rightShows("search")}
+              entries={tocEntries}
+              annotations={annotations}
+              bookmarks={bookmarks ?? []}
+              onClose={() => setNotesOpen(false)}
+              onChapterSelect={onChapterSelect}
+              onAnnotationSelect={onAnnotationSelect}
+              onBookmarkSelect={bookmarkActions.open}
+              onJumped={() => {
+                // A full-screen sheet would hide the jump it just made.
+                if (isPhone) setNotesOpen(false);
+              }}
+            />
+          )}
         </section>
       </div>
 

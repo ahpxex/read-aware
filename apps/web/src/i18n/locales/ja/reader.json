@@ -41,7 +41,7 @@
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "読書位置",
   "notes": "メモ",
-  "emptyNotes": "ハイライトやメモはまだありません。リーダーでテキストを選択してマークしましょう。",
+  "emptyNotes": "ブックマーク、ハイライト、メモはまだありません。文字を選択してマークするか、ページをブックマークしてください。",
   "previousPage": "前のページ",
   "nextPage": "次のページ",
   "go": "移動",

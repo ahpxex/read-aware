@@ -41,7 +41,7 @@
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "Reading position",
   "notes": "Notes",
-  "emptyNotes": "No highlights or notes yet. Select text in the reader to mark it.",
+  "emptyNotes": "No bookmarks, highlights or notes yet. Select text to mark it, or bookmark a page.",
   "previousPage": "Previous page",
   "nextPage": "Next page",
   "go": "Go",

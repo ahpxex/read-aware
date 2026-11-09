@@ -41,7 +41,7 @@
   "progress": "{{page}} / {{total}} · {{percent}}",
   "readingPosition": "Leseposition",
   "notes": "Notizen",
-  "emptyNotes": "Noch keine Markierungen oder Notizen. Wähle Text im Reader aus, um ihn zu markieren.",
+  "emptyNotes": "Noch keine Lesezeichen, Markierungen oder Notizen. Markiere Text oder setze ein Lesezeichen für eine Seite.",
   "previousPage": "Vorherige Seite",
   "nextPage": "Nächste Seite",
   "go": "Los",

@@ -291,3 +291,28 @@ fn adopting_plugin_documents_moves_them_in_one_transaction() {
     );
     assert_eq!(docs(&conn), ["bookmarks/d3", "other/d1"]);
 }
+
+#[test]
+fn a_bookmark_keeps_its_chapter() {
+    let mut conn = conn();
+    let mut with_chapter = created(
+        "c1",
+        1,
+        "m1",
+        "b1",
+        json!({ "contentVersion": "v1", "cfi": "epubcfi(/6/4!/4/2:0)" }),
+    );
+    with_chapter.payload["chapterHref"] = json!("Text/ch1.xhtml");
+    commit_events_inner(&mut conn, &[import("i1", "b1", 0), with_chapter]).unwrap();
+    let rows = bookmarks_list_inner(&conn, Some("b1")).unwrap();
+    assert_eq!(rows[0].chapter_href.as_deref(), Some("Text/ch1.xhtml"));
+    let mut blank = created(
+        "c2",
+        2,
+        "m2",
+        "b1",
+        json!({ "contentVersion": "v1", "href": "a" }),
+    );
+    blank.payload["chapterHref"] = json!(" ");
+    assert!(commit_events_inner(&mut conn, &[blank]).is_err());
+}

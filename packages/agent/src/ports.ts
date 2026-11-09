@@ -348,6 +348,7 @@ export interface BookmarksPort {
     name: string;
     kind: import("@read-aware/core").BookmarkKind;
     target: import("@read-aware/core").BookmarkTarget;
+    chapterHref?: string;
   }): Promise<import("@read-aware/core").Bookmark>;
   rename(bookmark: { id: Id; bookId: Id }, name: string): Promise<void>;
   remove(bookmark: { id: Id; bookId: Id }): Promise<void>;

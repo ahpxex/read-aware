@@ -48,7 +48,14 @@ export function jumperBookmarkAdoption(row: PluginDocumentRow): JumperBookmarkAd
   const createdAt = Number.isNaN(Date.parse(row.updatedAt)) ? undefined : new Date(row.updatedAt).toISOString();
   return {
     documentId: row.id,
-    bookmark: { bookId: bookId as string, name, kind: doc.kind, target },
+    bookmark: {
+      bookId: bookId as string,
+      name,
+      kind: doc.kind,
+      target,
+      // A section bookmark names its chapter; a CFI or fraction one does not say.
+      ...(typeof target.href === "string" ? { chapterHref: target.href } : {}),
+    },
     ...(createdAt ? { createdAt } : {}),
   };
 }

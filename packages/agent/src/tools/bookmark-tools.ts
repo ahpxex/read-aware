@@ -99,6 +99,7 @@ export function buildBookmarkTools(scope: ThreadScope, deps: RuntimeDeps): Agent
         name: name?.trim() || fallback,
         kind,
         target,
+        ...(session.location.href ? { chapterHref: session.location.href } : {}),
       });
       return textResult({ saved: true, bookmark: summary(bookmark) });
     },

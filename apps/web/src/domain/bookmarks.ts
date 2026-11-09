@@ -36,6 +36,7 @@ export type NewBookmark = {
   name: string;
   kind: BookmarkKind;
   target: BookmarkTarget;
+  chapterHref?: string;
 };
 
 /** Validate before anything is committed; the native store re-checks. */
@@ -44,7 +45,8 @@ function prepared(input: NewBookmark): NewBookmark {
   const target = isBookmarkKind(input.kind) ? normalizeBookmarkTarget(input.target, input.kind) : null;
   if (!input.bookId || !name || !target)
     throw new AppError("bookmarks/invalid-input", "A bookmark needs a book, a name and a readable target");
-  return { bookId: input.bookId, name, kind: input.kind, target };
+  const chapterHref = input.chapterHref?.trim() ? input.chapterHref : undefined;
+  return { bookId: input.bookId, name, kind: input.kind, target, ...(chapterHref ? { chapterHref } : {}) };
 }
 
 export type CreateBookmarkOptions = {

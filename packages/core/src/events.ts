@@ -373,7 +373,15 @@ export type DomainEvent =
   // without a lookup.
   | DomainEventEnvelope<
       "bookmark.created",
-      { bookmarkId: Id; bookId: Id; name: string; kind: BookmarkKind; target: BookmarkTarget }
+      {
+        bookmarkId: Id;
+        bookId: Id;
+        name: string;
+        kind: BookmarkKind;
+        target: BookmarkTarget;
+        /** The section it was made in; optional (the notes list groups by it). */
+        chapterHref?: string;
+      }
     >
   | DomainEventEnvelope<"bookmark.renamed", { bookmarkId: Id; bookId: Id; name: string }>
   | DomainEventEnvelope<"bookmark.removed", { bookmarkId: Id; bookId: Id }>

@@ -987,6 +987,9 @@ pub const MIGRATIONS: &[(i64, &str, &str)] = &[
         updated_at TEXT NOT NULL
     );
     CREATE INDEX ix_bookmarks_book ON bookmarks (book_id, created_at, id);"),
+    // The section a bookmark was made in (`bookmark.created.chapterHref`, like
+    // an annotation's), so the notes list groups it under its chapter.
+    (59, "bookmark_chapter", "ALTER TABLE bookmarks ADD COLUMN chapter_href TEXT;"),
 ];
 
 /// Rebuild the annotation FTS index from the table. Required after any VACUUM
@@ -1005,7 +1008,7 @@ pub fn rebuild_annotations_fts(conn: &Connection) -> Result<(), CommandError> {
 /// The schema version a projection checkpoint is stamped with. Restoring one
 /// is only sound when the derived tables' shapes match exactly, so a
 /// checkpoint from a different version is ignored in favour of the log.
-pub const SCHEMA_VERSION: i64 = 58;
+pub const SCHEMA_VERSION: i64 = 59;
 
 /// The migration after which `materialize_legacy_covers` must run: the cover
 /// projection columns exist, the inline data-URL column still does.

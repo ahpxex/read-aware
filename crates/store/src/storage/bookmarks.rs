@@ -118,13 +118,18 @@ pub fn apply_created(
 ) -> Result<(), CommandError> {
     let kind = kind(payload)?;
     let target = target_json(payload, kind)?;
+    let chapter = match payload.get("chapterHref") {
+        None | Some(Value::Null) => None,
+        value => Some(non_blank(value, LOCATOR_MAX).ok_or_else(|| invalid("chapterHref"))?),
+    };
     tx.execute(
-        "INSERT INTO bookmarks (id, book_id, name, kind, target_json, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6)
+        "INSERT INTO bookmarks (id, book_id, name, kind, target_json, chapter_href, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7)
          ON CONFLICT(id) DO UPDATE SET
             book_id = excluded.book_id, name = excluded.name, kind = excluded.kind,
-            target_json = excluded.target_json, updated_at = excluded.updated_at",
-        params![id, book_id, name(payload)?, kind, target, at],
+            target_json = excluded.target_json, chapter_href = excluded.chapter_href,
+            updated_at = excluded.updated_at",
+        params![id, book_id, name(payload)?, kind, target, chapter, at],
     )?;
     Ok(())
 }
@@ -152,6 +157,8 @@ pub struct BookmarkRow {
     pub name: String,
     pub kind: String,
     pub target: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chapter_href: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -181,6 +188,7 @@ pub fn bookmarks_list_inner(
                     Box::new(error),
                 )
             })?,
+            chapter_href: row.get("chapter_href")?,
             created_at: row.get("created_at")?,
             updated_at: row.get("updated_at")?,
         })

@@ -416,7 +416,7 @@ fn upgrade_settles_the_last_observed_page_without_double_counting_or_rebuilding_
 /// so migrations v54+ run again as they would on an old library. Events are
 /// committed BEFORE this (the current `apply_event` writes tables later
 /// migrations add). Every schema-changing migration >= 54 is reverted here:
-/// v55's column, v56's font tables/triggers, v57's column, v58's bookmarks.
+/// v55's column, v56's font tables/triggers, v57's column, v58/v59's bookmarks.
 fn revert_to_v53(conn: &Connection) {
     conn.execute_batch(
         "ALTER TABLE books DROP COLUMN metadata_status;

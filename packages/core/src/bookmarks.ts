@@ -31,6 +31,9 @@ export type Bookmark = {
   name: string;
   kind: BookmarkKind;
   target: BookmarkTarget;
+  /** The section it was made in (a reading location's href), for grouping it
+   * under its chapter; absent for bookmarks recorded without one. */
+  chapterHref?: string;
   createdAt: string;
   updatedAt: string;
 };

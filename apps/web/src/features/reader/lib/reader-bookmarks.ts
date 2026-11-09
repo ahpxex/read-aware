@@ -28,6 +28,7 @@ export async function bookmarkReadingPosition(name?: string, origin: DomainActor
       name: name?.trim().slice(0, 120) || (await fallback()),
       kind: "location",
       target: bookmarkTargetFrom(location, "location"),
+      ...(location.href ? { chapterHref: location.href } : {}),
     },
     { origin },
   );

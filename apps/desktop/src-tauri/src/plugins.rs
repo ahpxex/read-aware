@@ -46,6 +46,13 @@ fn invalid_id() -> CommandError {
     CommandError::new(CODE_PLUGIN_INVALID_ARGUMENT, "invalid plugin id")
 }
 
+fn retired(id: &str) -> CommandError {
+    CommandError::new(
+        CODE_PLUGIN_BUILT_IN,
+        format!("\"{id}\" belonged to a retired built-in plugin and cannot be installed"),
+    )
+}
+
 fn built_in(id: &str, action: &str) -> CommandError {
     CommandError::new(
         CODE_PLUGIN_BUILT_IN,
@@ -87,6 +94,9 @@ fn manifest_id(manifest: &str) -> Result<String, CommandError> {
         return Err(invalid_package(
             "manifest.id must be lowercase letters, digits, and hyphens",
         ));
+    }
+    if retired_plugin_id(&id) {
+        return Err(retired(&id));
     }
     Ok(id)
 }
@@ -192,7 +202,8 @@ fn list_plugin_dirs(dir: &Path, builtin: bool, entries: &mut Vec<PluginEntry>) {
             continue;
         }
         let id = entry.file_name().to_string_lossy().to_string();
-        if !valid_plugin_id(&id) || entries.iter().any(|e| e.id == id) {
+        // A folder copied in under a retired id never loads (see RETIRED_PLUGIN_IDS).
+        if !valid_plugin_id(&id) || retired_plugin_id(&id) || entries.iter().any(|e| e.id == id) {
             continue;
         }
         let Ok(manifest) = fs::read_to_string(entry.path().join("manifest.json")) else {
@@ -206,6 +217,7 @@ fn list_plugin_dirs(dir: &Path, builtin: bool, entries: &mut Vec<PluginEntry>) {
     }
 }
 
+use read_aware_store::plugin_id::retired_plugin_id;
 pub(crate) use read_aware_store::plugin_id::valid_plugin_id;
 
 fn is_bundled(app: &tauri::AppHandle, id: &str) -> bool {
@@ -446,6 +458,10 @@ pub async fn plugins_commit_candidate(
         let (_, candidate) = candidate_at(&plugins, &token)?;
         if is_bundled(&app, &candidate.id) {
             return Err(built_in(&candidate.id, "replaced"));
+        }
+        // A candidate staged before its id was retired must not commit either.
+        if retired_plugin_id(&candidate.id) {
+            return Err(retired(&candidate.id));
         }
         let db = app.state::<crate::storage::Db>();
         let conn = db.0.lock()?;
@@ -834,6 +850,35 @@ mod tests {
         let manifest: serde_json::Value =
             serde_json::from_str(&fs::read_to_string(path.join("manifest.json")).unwrap()).unwrap();
         manifest["version"].as_str().unwrap().to_string()
+    }
+
+    #[test]
+    fn retired_ids_never_install_or_load() {
+        let temp = tempfile::tempdir().unwrap();
+        let plugins = temp.path();
+        let manifest =
+            serde_json::json!({ "id": "jumper", "name": "Impostor", "version": "9.0.0" })
+                .to_string();
+        assert_eq!(
+            manifest_id(&manifest).unwrap_err().code,
+            CODE_PLUGIN_BUILT_IN
+        );
+        // A candidate staged before the id was retired is refused too.
+        let token = uuid::Uuid::new_v4().to_string();
+        write_plugin(&candidates_dir(plugins).join(&token), "jumper", "9.0.0");
+        assert!(matches!(
+            candidate_at(plugins, &token),
+            Err(error) if error.code == CODE_PLUGIN_BUILT_IN
+        ));
+        // A folder copied in by hand is not listed (so it never runs).
+        write_plugin(&plugins.join("jumper"), "jumper", "9.0.0");
+        write_plugin(&plugins.join("sample"), "sample", "1.0.0");
+        let mut entries = Vec::new();
+        list_plugin_dirs(plugins, false, &mut entries);
+        assert_eq!(
+            entries.iter().map(|e| e.id.as_str()).collect::<Vec<_>>(),
+            ["sample"]
+        );
     }
 
     #[test]

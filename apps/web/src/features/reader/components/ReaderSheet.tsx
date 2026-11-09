@@ -1,4 +1,4 @@
-import { useRef, type CSSProperties, type ReactNode, type TransitionEvent } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type TransitionEvent } from "react";
 import { cn } from "@read-aware/ui/cn";
 import { useDrawerDragDismiss } from "../hooks/useDrawerDragDismiss";
 import { usePanelSwipeDismiss } from "../hooks/usePanelSwipeDismiss";
@@ -20,6 +20,11 @@ export type ReaderSheetContent = {
  * a time. It grows the way the bottom bar's drawer does (a grid-rows collapse
  * that keeps painting its content until the collapse ends), closes by pulling
  * it down, by swiping it away to the left, by a tap beside it or Escape.
+ *
+ * A gesture that closes it has already carried it out of view (pulled to zero
+ * height, or slid off to the left and faded), so that close skips the
+ * collapse: replaying it would bring the sheet back for a moment before it
+ * shrank away again.
  */
 export function ReaderSheet<K extends string>({
   active,
@@ -35,8 +40,19 @@ export function ReaderSheet<K extends string>({
   const content = shown !== null ? render(shown) : null;
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const growRef = useRef<HTMLDivElement | null>(null);
-  useDrawerDragDismiss(growRef, { open, onDismiss: onClose });
-  usePanelSwipeDismiss(sheetRef, { open, enabled: open, exit: "left", onDismiss: onClose });
+  // The current close came from a gesture (see above); the next open resets it.
+  const [gestureClosed, setGestureClosed] = useState(false);
+  if (open && gestureClosed) setGestureClosed(false);
+  const dismissByGesture = () => {
+    setGestureClosed(true);
+    onClose();
+  };
+  useDrawerDragDismiss(growRef, { open, onDismiss: dismissByGesture });
+  usePanelSwipeDismiss(sheetRef, { open, enabled: open, exit: "left", onDismiss: dismissByGesture });
+  // No collapse runs to report its end, so let go of the content now.
+  useLayoutEffect(() => {
+    if (!open && gestureClosed) settle();
+  }, [open, gestureClosed, settle]);
 
   const onCollapseEnd = (event: TransitionEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget && event.propertyName === "grid-template-rows") settle();
@@ -53,20 +69,26 @@ export function ReaderSheet<K extends string>({
           open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
         )}
       />
-      <div ref={sheetRef} className="pointer-events-auto absolute inset-x-0 bottom-0 z-30">
+      {/* The dialog is the element the swipe moves: the swipe only takes
+          touches whose nearest dialog is its own element. */}
+      <div
+        ref={sheetRef}
+        role="dialog"
+        aria-label={content?.title}
+        aria-hidden={!open}
+        inert={!open}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") onClose();
+        }}
+        className="pointer-events-auto absolute inset-x-0 bottom-0 z-30"
+      >
         <div
           ref={growRef}
-          role="dialog"
-          aria-label={content?.title}
-          aria-hidden={!open}
-          inert={!open}
           onTransitionEnd={onCollapseEnd}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") onClose();
-          }}
           className={cn(
             "grid transition-[grid-template-rows] duration-250 ease-out motion-reduce:transition-none",
             open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+            !open && gestureClosed && "transition-none",
           )}
         >
           <div className="min-h-0 overflow-hidden">

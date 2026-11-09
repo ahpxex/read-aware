@@ -57,20 +57,22 @@ export function useDrawerDragDismiss<T extends HTMLElement>(
 ): void {
   const dismissRef = useRef(onDismiss);
   dismissRef.current = onDismiss;
-  const awaitingClose = useRef(false);
+  // A drag closed the drawer and its zero height is held until it next
+  // opens. Only the open branch below clears this: the drag effect's cleanup
+  // runs after the layout effect on the same commit and must still see it.
+  const heldShut = useRef(false);
 
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (open) {
       // Whatever a previous drag left behind, the open class owns the size.
-      awaitingClose.current = false;
+      heldShut.current = false;
       el.style.height = "";
       el.style.transition = "";
       return;
     }
-    if (!awaitingClose.current) return;
-    awaitingClose.current = false;
+    if (!heldShut.current) return;
     // Closed: hand transitions back to the classes (the collapse the bar
     // waits on runs, unseen, under the held zero height).
     el.style.transition = "";
@@ -182,7 +184,7 @@ export function useDrawerDragDismiss<T extends HTMLElement>(
         // Hold the zero height until the closed state commits (the layout
         // effect above hands transitions back to the classes).
         el.style.transition = "none";
-        awaitingClose.current = true;
+        heldShut.current = true;
         dismissRef.current();
       });
     };
@@ -199,7 +201,7 @@ export function useDrawerDragDismiss<T extends HTMLElement>(
       stopSettling();
       // Closed some other way mid-gesture or mid-settle: let the classes
       // take over. (A drag that closed it holds its zero height instead.)
-      if (!awaitingClose.current) restore();
+      if (!heldShut.current) restore();
     };
   }, [open, ref]);
 }

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { BookmarkSimple, DotsThree } from "@phosphor-icons/react";
 import type { Bookmark } from "@read-aware/core";
-import { DropdownMenu, IconButton, InlineError, TextField, Tooltip, iconButtonClassName } from "@read-aware/ui";
+import { DropdownMenu, IconButton, InlineError, TextField, iconButtonClassName } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { formatDate, useTranslation } from "../../../i18n";
 
@@ -122,15 +122,16 @@ export function ReaderBookmarkSection({
     <div>
       <div className="sticky top-0 z-[1] flex items-center justify-between bg-[var(--ra-panel-surface,var(--ra-main-surface-color))] pl-2">
         <p className="py-1.5 font-sans text-xs font-medium text-fg-subtle">{t("bookmarksTab")}</p>
-        <Tooltip content={t("addBookmark")} side="bottom">
-          <IconButton
-            size="sm"
-            label={t("addBookmark")}
-            onClick={onAdd}
-            className="text-fg-subtle"
-            icon={<BookmarkSimple size={14} />}
-          />
-        </Tooltip>
+        {/* No Tooltip here: its hidden bubble is laid out beside the button and
+            would widen the scrolling list. The button carries its own name. */}
+        <IconButton
+          size="sm"
+          label={t("addBookmark")}
+          title={t("addBookmark")}
+          onClick={onAdd}
+          className="text-fg-subtle"
+          icon={<BookmarkSimple size={14} />}
+        />
       </div>
       {failed ? (
         <div className="px-2 py-1">

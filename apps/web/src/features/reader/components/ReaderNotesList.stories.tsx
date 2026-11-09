@@ -1,8 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { userEvent, within } from "storybook/test";
-import type { Annotation } from "../../annotations/lib/annotation-types";
+import type { Annotation } from "../../annotations";
 import type { TocEntry } from "../lib/reader-types";
-import { ReaderNotesPopover } from "./ReaderNotesPopover";
+import { ReaderNotesList } from "./ReaderNotesList";
 
 const toc: TocEntry[] = [
   { id: "t1", href: "foreword.xhtml", label: "Foreword", depth: 0, spineIndex: 0 },
@@ -53,26 +52,46 @@ const annotations: Annotation[] = [
 ];
 
 /**
- * The book's marks, opened from a header icon and grouped by chapter in reading
- * order. Stories render it open, since a closed popover is just its trigger.
- *
- * The component supports both controlled and self-managed open state — the
- * navigator bar drives it from outside, the header lets it manage itself — so
- * both paths have a story.
+ * The notes view of the reader's side panel: bookmarks first, then marks
+ * grouped by chapter in reading order. Rendered at the panel's width.
  */
 const meta = {
-  title: "Interface/Reader/ReaderNotesPopover",
-  component: ReaderNotesPopover,
+  title: "Interface/Reader/ReaderNotesList",
+  component: ReaderNotesList,
   parameters: { layout: "centered" },
+  decorators: [
+    (Story) => (
+      <div className="h-[32rem] w-72 overflow-y-auto bg-[var(--ra-main-surface-color)]">
+        <Story />
+      </div>
+    ),
+  ],
   args: {
     annotations,
     tocEntries: toc,
-    open: true,
-    onOpenChange: () => {},
     onNavigate: () => {},
     onDelete: () => {},
+    bookmarks: {
+      bookmarks: [
+        {
+          id: "b1",
+          bookId: "book-1",
+          name: "Canto Two",
+          kind: "location",
+          target: { contentVersion: "v1", href: "poem.xhtml" },
+          createdAt: "2026-06-22T10:00:00.000Z",
+          updatedAt: "2026-06-22T10:00:00.000Z",
+        },
+      ],
+      failed: false,
+      chapterOf: () => "Pale Fire: A Poem in Four Cantos",
+      onAdd: () => {},
+      onOpen: () => {},
+      onRename: () => {},
+      onRemove: () => {},
+    },
   },
-} satisfies Meta<typeof ReaderNotesPopover>;
+} satisfies Meta<typeof ReaderNotesList>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -135,14 +154,5 @@ export const LongText: Story = {
         "I was the shadow of the waxwing slain by the false azure in the windowpane; I was the smudge of ashen fluff — and I lived on, flew on, in the reflected sky.",
       ),
     ],
-  },
-};
-
-/** Self-managed open state: the trigger opens it, as in the reader header. */
-export const Uncontrolled: Story = {
-  args: { open: undefined, onOpenChange: undefined },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: "Notes" }));
   },
 };

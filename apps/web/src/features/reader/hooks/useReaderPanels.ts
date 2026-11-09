@@ -228,12 +228,28 @@ export function useReaderPanels(
     },
     [toast],
   );
-  const setPanel = useCallback(
-    (panel: ReaderPanel, open: boolean) => {
+  /** Resolves true once the change committed. The service runs one intent at
+   * a time (a newer one supersedes a pending one), so a caller changing two
+   * panels awaits the first before issuing the second. Failures are reported
+   * here and resolve false. */
+  const changePanel = useCallback(
+    (panel: ReaderPanel, open: boolean): Promise<boolean> => {
       const snapshot = readerPanels.snapshot();
-      void readerPanels.setPanel(panel, open, undefined, { bookId, sessionId: snapshot?.sessionId }).catch(report);
+      return readerPanels.setPanel(panel, open, undefined, { bookId, sessionId: snapshot?.sessionId }).then(
+        () => true,
+        (error: unknown) => {
+          report(error);
+          return false;
+        },
+      );
     },
     [bookId, report],
+  );
+  const setPanel = useCallback(
+    (panel: ReaderPanel, open: boolean) => {
+      void changePanel(panel, open);
+    },
+    [changePanel],
   );
   const panelIntent = useAtomValue(readerPanelIntentAtom);
   const askAiRequest = useAtomValue(askAiRequestAtom);
@@ -248,5 +264,11 @@ export function useReaderPanels(
   // reveal in useReaderSession would supersede this service's pending command.
   usePanelIntent(bookId, "panel", panelIntent, report);
   usePanelIntent(bookId, "ask", askPanelIntent, report);
-  return { ...selected, chatFocusRequestId: chatFocus.id, chatFocusOrigin: chatFocus.origin, setPanel };
+  return {
+    ...selected,
+    chatFocusRequestId: chatFocus.id,
+    chatFocusOrigin: chatFocus.origin,
+    setPanel,
+    changePanel,
+  };
 }

@@ -36,8 +36,7 @@ import { useReaderPanels } from "../hooks/useReaderPanels";
 import { useReaderPanelSizes } from "../hooks/useReaderPanelSizes";
 import { useReaderModeSelection } from "../hooks/useReaderModeSelection";
 import type { TocEntry } from "../lib/reader-types";
-import { ReaderNotesContent, ReaderNotesPopover } from "./ReaderNotesPopover";
-import { ReaderContentsPanel } from "./ReaderContentsPanel";
+import { ReaderContentsPanel, type ReaderSideView } from "./ReaderContentsPanel";
 import { type ReaderBookmarks } from "./ReaderBookmarkList";
 import { useReaderBookmarks } from "../hooks/useReaderBookmarks";
 import { useReaderBookmarkActions } from "../hooks/useReaderBookmarkActions";
@@ -52,7 +51,7 @@ import { usePanelSwipeDismiss } from "../hooks/usePanelSwipeDismiss";
 import { contributionText } from "../../plugins/lib/plugin-i18n";
 
 /** Panels a phone opens in the bottom bar's drawer. */
-type ReaderDrawer = "appearance" | "notes";
+type ReaderDrawer = "appearance";
 
 type ReaderShellOverlayProps = {
   visible: boolean;
@@ -144,6 +143,7 @@ export function ReaderShellOverlay({
     chatFocusRequestId,
     chatFocusOrigin,
     setPanel,
+    changePanel,
   } = useReaderPanels(bookId, visible, isPhone, visibilityOrigin, layoutOrigin);
   const setTocOpen = (open: boolean) => setPanel("toc", open);
   const setNotesOpen = (open: boolean) => setPanel("chat", open);
@@ -155,19 +155,40 @@ export function ReaderShellOverlay({
 
   // Phone-width: the side docks become full-screen sheets (below the top bar),
   // so only one can be open at a time and resizing is meaningless.
-  const toggleToc = () => {
-    if (!tocOpen) setContentsSearching(false);
-    setTocOpen(!tocOpen);
+  // The side panel: one panel, three views. The contents and the search are
+  // the "toc" panel (docked, remembered per book); the notes view is the
+  // "annotations" panel, so agents and plugins opening the book's notes land
+  // in it. Each view's header button shows it, or hides the panel when that
+  // view is already showing.
+  const [sideSubview, setSideSubview] = useState<"contents" | "search">("contents");
+  const sideOpen = tocOpen || annotationsOpen;
+  const sideView: ReaderSideView = annotationsOpen ? "notes" : sideSubview;
+  // The panel service runs one change at a time, so a switch that touches
+  // both panels opens the target view first (the notes view wins while both
+  // are open) and only then closes the other: the panel never slides shut
+  // between the two.
+  const closeSide = () => {
+    void (annotationsOpen ? changePanel("annotations", false) : Promise.resolve(true)).then(() => {
+      if (tocOpen) setTocOpen(false);
+    });
   };
-  // The header's search: the contents panel, opened on its search. Pressed
-  // again while that search is showing, it closes the panel.
-  const toggleContentsSearch = () => {
-    if (tocOpen && contentsSearching) setTocOpen(false);
-    else {
-      setContentsSearching(true);
-      setTocOpen(true);
+  const toggleSide = (view: ReaderSideView) => {
+    if (sideOpen && sideView === view) return closeSide();
+    if (view === "notes") {
+      void changePanel("annotations", true).then((opened) => {
+        if (opened && tocOpen) setTocOpen(false);
+      });
+      return;
     }
+    setSideSubview(view);
+    void (tocOpen ? Promise.resolve(true) : changePanel("toc", true)).then((opened) => {
+      if (opened && annotationsOpen) setAnnotationsOpen(false);
+    });
   };
+  const sideShows = (view: ReaderSideView) => sideOpen && sideView === view;
+  const toggleToc = () => toggleSide("contents");
+  const toggleContentsSearch = () => toggleSide("search");
+  const toggleNotesView = () => toggleSide("notes");
   const toggleNotes = () => setNotesOpen(!notesOpen);
 
   // Android back gesture: a phone full-screen sheet is a deeper layer, so back
@@ -221,9 +242,6 @@ export function ReaderShellOverlay({
     onRename: (bookmark, name) => void bookmarkActions.rename(bookmark, name),
     onRemove: (bookmark) => void bookmarkActions.remove(bookmark),
   };
-  // The contents panel shows its search instead of the contents; opening the
-  // contents from their own button always shows the contents.
-  const [contentsSearching, setContentsSearching] = useState(false);
 
   // User-arranged right cluster (settings → Menus).
   const { t: tMenus } = useTranslation("settings");
@@ -253,12 +271,10 @@ export function ReaderShellOverlay({
         <IconButton
           size="sm"
           label={t("contentsSearchLabel")}
-          aria-pressed={tocOpen && contentsSearching}
+          aria-pressed={sideShows("search")}
           onClick={toggleContentsSearch}
-          className={cn(tocOpen && contentsSearching && "text-fg")}
-          icon={
-            <MagnifyingGlass size={18} weight={tocOpen && contentsSearching ? "bold" : "regular"} aria-hidden="true" />
-          }
+          className={cn(sideShows("search") && "text-fg")}
+          icon={<MagnifyingGlass size={18} weight={sideShows("search") ? "bold" : "regular"} aria-hidden="true" />}
         />
       </Tooltip>
     ),
@@ -312,7 +328,7 @@ export function ReaderShellOverlay({
   const coreReaderRun: Record<string, (() => void) | undefined> = {
     "core:toc": toggleToc,
     "core:find": toggleContentsSearch,
-    "core:notes": () => setAnnotationsOpen(true),
+    "core:notes": toggleNotesView,
     "core:navigator": textUnitModeAvailable ? onToggleTextUnitMode : undefined,
     "core:chat": toggleNotes,
     "core:appearance": () => setAppearanceOpen(true),
@@ -374,22 +390,6 @@ export function ReaderShellOverlay({
         description: describeError(error).body,
       });
     });
-  const notesPopover = () => (
-    <ReaderNotesPopover
-      key="notes"
-      annotations={annotations}
-      loadFailed={annotationsLoadFailed}
-      loadErrorCode={annotationsLoadErrorCode}
-      isLoading={annotationsLoading}
-      onRetryLoad={() => refreshAnnotations()}
-      tocEntries={tocEntries}
-      onNavigate={(cfiRange) => onAnnotationSelect?.(cfiRange)}
-      onDelete={removeAnnotationReporting}
-      bookmarks={bookmarkSection}
-      open={annotationsOpen}
-      onOpenChange={setAnnotationsOpen}
-    />
-  );
 
   // Phone widths: the arranged toolbar items render in order while they fit
   // the width; the rest, and everything arranged into overflow, sit behind
@@ -431,10 +431,10 @@ export function ReaderShellOverlay({
             key={id}
             size="toolbar"
             label={t("tableOfContents")}
-            aria-pressed={tocOpen}
+            aria-pressed={sideShows("contents")}
             onClick={toggleToc}
-            className={cn(tocOpen && "text-fg")}
-            icon={<ListBullets size={20} weight={tocOpen ? "bold" : "regular"} aria-hidden="true" />}
+            className={cn(sideShows("contents") && "text-fg")}
+            icon={<ListBullets size={20} weight={sideShows("contents") ? "bold" : "regular"} aria-hidden="true" />}
           />
         );
       case "core:notes":
@@ -443,11 +443,10 @@ export function ReaderShellOverlay({
             key={id}
             size="toolbar"
             label={t("notes")}
-            aria-expanded={annotationsOpen}
-            aria-controls={drawerId}
-            onClick={() => setAnnotationsOpen(!annotationsOpen)}
-            className={cn(annotationsOpen && "text-fg")}
-            icon={<Notebook size={20} weight={annotationsOpen ? "bold" : "regular"} aria-hidden="true" />}
+            aria-pressed={sideShows("notes")}
+            onClick={toggleNotesView}
+            className={cn(sideShows("notes") && "text-fg")}
+            icon={<Notebook size={20} weight={sideShows("notes") ? "bold" : "regular"} aria-hidden="true" />}
           />
         );
       case "core:navigator":
@@ -473,16 +472,10 @@ export function ReaderShellOverlay({
             key={id}
             size="toolbar"
             label={t("contentsSearchLabel")}
-            aria-pressed={tocOpen && contentsSearching}
+            aria-pressed={sideShows("search")}
             onClick={toggleContentsSearch}
-            className={cn(tocOpen && contentsSearching && "text-fg")}
-            icon={
-              <MagnifyingGlass
-                size={20}
-                weight={tocOpen && contentsSearching ? "bold" : "regular"}
-                aria-hidden="true"
-              />
-            }
+            className={cn(sideShows("search") && "text-fg")}
+            icon={<MagnifyingGlass size={20} weight={sideShows("search") ? "bold" : "regular"} aria-hidden="true" />}
           />
         );
       case "core:appearance":
@@ -519,65 +512,26 @@ export function ReaderShellOverlay({
   // their icon is in the toolbar or in "More". The desktop header needs a
   // dialog for appearance once it is arranged into the overflow menu.
   const appearanceDialog = !isPhone && !readerLayout.visible.includes("core:appearance");
-  const drawer: ReaderDrawer | null = !isPhone
-    ? null
-    : appearanceOpen
-      ? "appearance"
-      : annotationsOpen
-        ? "notes"
-        : null;
-  const closeDrawer = () => {
-    if (appearanceOpen) setAppearanceOpen(false);
-    if (annotationsOpen) setAnnotationsOpen(false);
-  };
-  const renderDrawer = (key: ReaderDrawer): ReaderBottomBarDrawer =>
-    key === "appearance"
-      ? {
-          title: t("readingAppearance"),
-          body: (
-            <div className="min-h-0 overflow-y-auto px-4 pb-5 pt-1">
-              <ReaderAppearanceCompact bookId={bookId} fixedLayout={fixedLayout} />
-            </div>
-          ),
-        }
-      : {
-          title: t("notes"),
-          body: (
-            <div className="flex min-h-0 flex-col">
-              <ReaderNotesContent
-                heading={false}
-                annotations={annotations}
-                loadFailed={annotationsLoadFailed}
-                loadErrorCode={annotationsLoadErrorCode}
-                isLoading={annotationsLoading}
-                onRetryLoad={() => refreshAnnotations()}
-                tocEntries={tocEntries}
-                onNavigate={(cfiRange) => {
-                  onAnnotationSelect?.(cfiRange);
-                  setAnnotationsOpen(false);
-                }}
-                onDelete={removeAnnotationReporting}
-                bookmarks={{
-                  ...bookmarkSection,
-                  onOpen: (bookmark) => {
-                    bookmarkSection.onOpen(bookmark);
-                    setAnnotationsOpen(false);
-                  },
-                }}
-              />
-            </div>
-          ),
-        };
+  const drawer: ReaderDrawer | null = isPhone && appearanceOpen ? "appearance" : null;
+  const closeDrawer = () => setAppearanceOpen(false);
+  const renderDrawer = (): ReaderBottomBarDrawer => ({
+    title: t("readingAppearance"),
+    body: (
+      <div className="min-h-0 overflow-y-auto px-4 pb-5 pt-1">
+        <ReaderAppearanceCompact bookId={bookId} fixedLayout={fixedLayout} />
+      </div>
+    ),
+  });
 
   // Phone sheets close by swipe as well as from the toolbar: the iOS back
   // swipe from the left edge, or a drag toward the side each one leaves by.
   const tocSheetRef = useRef<HTMLElement | null>(null);
   const chatSheetRef = useRef<HTMLElement | null>(null);
   usePanelSwipeDismiss(tocSheetRef, {
-    open: tocOpen,
-    enabled: isPhone && visible && tocOpen,
+    open: sideOpen,
+    enabled: isPhone && visible && sideOpen,
     exit: "left",
-    onDismiss: () => setTocOpen(false),
+    onDismiss: closeSide,
   });
   usePanelSwipeDismiss(chatSheetRef, {
     open: notesOpen,
@@ -587,7 +541,7 @@ export function ReaderShellOverlay({
   });
   // A full-screen sheet would hide the jump it just made.
   const closeTocSheetOnPhone = () => {
-    if (isPhone) setTocOpen(false);
+    if (isPhone) closeSide();
   };
   // A phone sheet ends at the bottom toolbar, which already clears the home
   // indicator, so nothing inside it should pad for that inset again.
@@ -674,13 +628,24 @@ export function ReaderShellOverlay({
                 <IconButton
                   size="sm"
                   label={t("tableOfContents")}
-                  aria-pressed={tocOpen}
+                  aria-pressed={sideShows("contents")}
                   onClick={toggleToc}
-                  className={cn(tocOpen && "text-fg")}
-                  icon={<ListBullets size={18} weight={tocOpen ? "bold" : "regular"} aria-hidden="true" />}
+                  className={cn(sideShows("contents") && "text-fg")}
+                  icon={
+                    <ListBullets size={18} weight={sideShows("contents") ? "bold" : "regular"} aria-hidden="true" />
+                  }
                 />
               </Tooltip>
-              {notesPopover()}
+              <Tooltip content={t("notes")} side="bottom" className="pointer-events-auto">
+                <IconButton
+                  size="sm"
+                  label={t("notes")}
+                  aria-pressed={sideShows("notes")}
+                  onClick={toggleNotesView}
+                  className={cn(sideShows("notes") && "text-fg")}
+                  icon={<Notebook size={18} weight={sideShows("notes") ? "bold" : "regular"} aria-hidden="true" />}
+                />
+              </Tooltip>
             </div>
           )}
 
@@ -768,18 +733,18 @@ export function ReaderShellOverlay({
         {drawer && (
           <div aria-hidden="true" className="pointer-events-auto absolute inset-0 z-[1]" onClick={closeDrawer} />
         )}
-        {/* Table of contents (left) */}
+        {/* Side panel (left): contents, notes or search */}
         <section
           ref={tocSheetRef}
-          aria-label={t("tableOfContents")}
-          inert={!(visible && tocOpen)}
+          aria-label={sideView === "notes" ? t("notes") : t("tableOfContents")}
+          inert={!(visible && sideOpen)}
           className={cn(
             "flex min-h-0 flex-col transition-[transform,opacity] duration-200 ease-out",
             isPhone
               ? // Full-screen sheet below the top bar; no divider, no resize.
                 "absolute inset-0"
               : "relative h-full shrink-0 border-r border-border-strong/70",
-            visible && tocOpen
+            visible && sideOpen
               ? "pointer-events-auto translate-x-0 opacity-100"
               : "-translate-x-full opacity-0 pointer-events-none",
           )}
@@ -791,13 +756,34 @@ export function ReaderShellOverlay({
         >
           <ReaderContentsPanel
             bookId={bookId}
-            shown={visible && tocOpen}
+            shown={visible && sideOpen}
+            view={sideView}
+            onSearchCancel={() => setSideSubview("contents")}
+            notes={{
+              annotations,
+              loadFailed: annotationsLoadFailed,
+              loadErrorCode: annotationsLoadErrorCode,
+              isLoading: annotationsLoading,
+              onRetryLoad: () => refreshAnnotations(),
+              tocEntries,
+              onNavigate: (cfiRange) => {
+                onAnnotationSelect?.(cfiRange);
+                closeTocSheetOnPhone();
+              },
+              onDelete: removeAnnotationReporting,
+              bookmarks: {
+                ...bookmarkSection,
+                onOpen: (bookmark) => {
+                  void bookmarkActions.open(bookmark).then((moved) => {
+                    if (moved) closeTocSheetOnPhone();
+                  });
+                },
+              },
+            }}
             entries={tocEntries}
             activeIndex={activeTocIndex}
             annotations={annotations}
             bookmarks={bookmarks ?? []}
-            searching={contentsSearching}
-            onSearchingChange={setContentsSearching}
             onChapterSelect={onChapterSelect}
             onAnnotationSelect={onAnnotationSelect}
             onBookmarkSelect={bookmarkActions.open}

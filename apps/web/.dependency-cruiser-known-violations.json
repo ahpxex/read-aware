@@ -2264,35 +2264,6 @@
   },
   {
     "type": "dependency",
-    "from": "src/features/reader/components/ReaderNotesPopover.tsx",
-    "to": "src/features/annotations/components/AnnotationRow.tsx",
-    "unresolvedTo": "../../annotations/components/AnnotationRow",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/reader/components/ReaderNotesPopover.tsx",
-    "to": "src/features/annotations/lib/annotation-types.ts",
-    "unresolvedTo": "../../annotations/lib/annotation-types",
-    "dependencyTypes": [
-      "local",
-      "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
     "from": "src/features/reader/components/ReaderSelectionMenu.tsx",
     "to": "src/features/ai/hooks/useAskAiEnabled.ts",
     "unresolvedTo": "../../ai/hooks/useAskAiEnabled",

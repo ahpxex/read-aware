@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useLayoutEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import type { Bookmark, ReadingLocation } from "@read-aware/core";
 import { Button, ScrollArea, SearchField, useToast } from "@read-aware/ui";
 import { describeError, useTranslation } from "../../../i18n";
@@ -10,21 +10,27 @@ import { matchAnnotations, matchBookmarks, matchChapters } from "../lib/contents
 import { goToReadingTarget } from "../lib/reader-bookmarks";
 import type { TocEntry } from "../lib/reader-types";
 import { ReaderContentsResults, type ContentsMatches } from "./ReaderContentsResults";
+import { ReaderNotesList } from "./ReaderNotesList";
 import { ReaderTocList } from "./ReaderTocList";
 
 const log = createLogger("reader-contents");
 const SCROLL_BODY = "pb-[calc(1rem+var(--ra-safe-bottom))]";
 
+/** What the reader's side panel shows; each has its own header button. */
+export type ReaderSideView = "contents" | "notes" | "search";
+
 /**
- * The reader's left panel: the table of contents, or — opened from the
- * header's search — a search over everything in the open book: chapters,
- * printed pages, bookmarks, highlights and notes, and the text.
+ * The reader's side panel. One panel, three views chosen from the header: the
+ * table of contents; the book's bookmarks, highlights and notes; or a search
+ * over everything in the open book (chapters, printed pages, bookmarks,
+ * highlights and notes, and the text).
  */
 export function ReaderContentsPanel({
   bookId,
   shown,
-  searching,
-  onSearchingChange,
+  view,
+  onSearchCancel,
+  notes,
   entries,
   activeIndex,
   annotations,
@@ -37,9 +43,11 @@ export function ReaderContentsPanel({
   bookId: string;
   /** The panel is on screen (searches run and the current chapter is revealed only then). */
   shown: boolean;
-  /** The panel shows the search instead of the contents. */
-  searching: boolean;
-  onSearchingChange: (searching: boolean) => void;
+  view: ReaderSideView;
+  /** Leaving the search returns the panel to the contents. */
+  onSearchCancel: () => void;
+  /** The notes view's list (bookmarks, highlights, notes). */
+  notes: ComponentProps<typeof ReaderNotesList>;
   entries: TocEntry[];
   activeIndex: number;
   annotations: Annotation[];
@@ -87,7 +95,15 @@ export function ReaderContentsPanel({
     });
   }, []);
 
-  if (searching)
+  if (view === "notes")
+    return (
+      <ScrollArea className="h-full min-h-0">
+        <div className={SCROLL_BODY}>
+          <ReaderNotesList {...notes} />
+        </div>
+      </ScrollArea>
+    );
+  if (view === "search")
     return (
       <ContentsSearch
         bookId={bookId}
@@ -95,7 +111,7 @@ export function ReaderContentsPanel({
         entries={entries}
         annotations={annotations}
         bookmarks={bookmarks}
-        onCancel={() => onSearchingChange(false)}
+        onCancel={onSearchCancel}
         onChapter={goToChapter}
         onBookmark={openBookmark}
         onMark={goToMark}

@@ -1,8 +1,7 @@
 import { ArrowArcLeft, ArrowArcRight } from "@phosphor-icons/react";
 import { useMemo } from "react";
 import { useTranslation } from "../../../i18n";
-import { useReadingHistory } from "../../reader/hooks/useReadingHistory";
-import { stepReadingHistory } from "../../reader/lib/reading-history";
+import { stepReadingHistory, useReadingHistory } from "../../reader";
 import type { CommandItem } from "../lib/build-commands";
 
 /** Back / forward through the open book's jump history, while a book is open. */

@@ -16,3 +16,7 @@ export {
 
 // Settings uses the same touch motion for its mobile back navigation.
 export { usePanelSwipeDismiss } from "./hooks/usePanelSwipeDismiss";
+
+// The command palette offers back / forward through the open book's jumps.
+export { useReadingHistory } from "./hooks/useReadingHistory";
+export { stepReadingHistory } from "./lib/reading-history";

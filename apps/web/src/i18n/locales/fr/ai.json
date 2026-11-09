@@ -45,6 +45,9 @@
       "create_annotation": "Création d’une annotation",
       "edit_annotation": "Mise à jour d’une annotation",
       "delete_annotation": "Suppression d’une annotation",
+      "list_bookmarks": "Consultation des signets",
+      "save_bookmark": "Enregistrement d’un signet",
+      "manage_bookmark": "Gestion d’un signet",
       "open_book": "Ouverture du livre",
       "get_recent_turns": "Relecture des échanges récents",
       "get_settings": "Consultation des réglages",
@@ -160,6 +163,11 @@
           "question": "Supprimer cette annotation ?",
           "description": "« {{subject}} » sera définitivement retiré de votre contexte de lecture.",
           "approve": "Supprimer l’annotation"
+        },
+        "deleteBookmark": {
+          "question": "Supprimer ce signet ?",
+          "description": "« {{subject}} » sera retiré des signets de ce livre.",
+          "approve": "Supprimer le signet"
         },
         "completeOnboarding": {
           "question": "Enregistrer votre profil de lecture ?",

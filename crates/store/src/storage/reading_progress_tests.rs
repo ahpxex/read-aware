@@ -412,6 +412,25 @@ fn upgrade_settles_the_last_observed_page_without_double_counting_or_rebuilding_
     assert_eq!(saved(&conn)["currentLocation"], 200);
 }
 
+/// Turn a fully migrated database back into the v53 shape, keeping its rows,
+/// so migrations v54+ run again as they would on an old library. Events are
+/// committed BEFORE this (the current `apply_event` writes tables later
+/// migrations add). Every schema-changing migration >= 54 is reverted here:
+/// v55's column, v56's font tables/triggers, v57's column, v58's bookmarks.
+fn revert_to_v53(conn: &Connection) {
+    conn.execute_batch(
+        "ALTER TABLE books DROP COLUMN metadata_status;
+         ALTER TABLE books DROP COLUMN source_path;
+         DROP TRIGGER trg_user_font_removal_cleanup_delete;
+         DROP TRIGGER trg_user_font_removal_cleanup_restore;
+         DROP TABLE user_font_removal_cleanup;
+         DROP TABLE user_fonts;
+         DROP TABLE bookmarks;
+         DELETE FROM schema_migrations WHERE version >= 54;",
+    )
+    .unwrap();
+}
+
 #[test]
 fn upgrade_defers_incomplete_log_replay_and_ignores_old_checkpoints() {
     let (mut conn, dir) = conn_with_dir();
@@ -426,19 +445,7 @@ fn upgrade_defers_incomplete_log_replay_and_ignores_old_checkpoints() {
         .unwrap()
         .is_none());
     // Upgrade an actual incomplete v53 schema. Do not erase its checkpoint-derived books.
-    // Every schema-changing migration >= 54 must be reverted here, so v54+
-    // runs again on the v53 shape: v55's column, v56's font tables/triggers
-    // and v57's column.
-    conn.execute_batch(
-        "ALTER TABLE books DROP COLUMN metadata_status;
-         ALTER TABLE books DROP COLUMN source_path;
-         DROP TRIGGER trg_user_font_removal_cleanup_delete;
-         DROP TRIGGER trg_user_font_removal_cleanup_restore;
-         DROP TABLE user_font_removal_cleanup;
-         DROP TABLE user_fonts;
-         DELETE FROM schema_migrations WHERE version >= 54;",
-    )
-    .unwrap();
+    revert_to_v53(&conn);
     super::super::checkpoints::set_log_complete(&conn, false).unwrap();
     run_migrations(&mut conn).unwrap();
     assert!(super::super::events::projections_stale_conn(&conn).unwrap());
@@ -458,8 +465,7 @@ fn upgrade_defers_incomplete_log_replay_and_ignores_old_checkpoints() {
 
 #[test]
 fn book_merge_and_upgrade_recovery_keep_the_last_read_position_with_aliases() {
-    let mut conn = test_conn();
-    super::super::schema::run_migrations_up_to(&mut conn, 53).unwrap();
+    let mut conn = migrated_conn();
     let mut keeper = at(300);
     keeper["bookId"] = json!("b1");
     let mut merged = at(301);
@@ -490,6 +496,7 @@ fn book_merge_and_upgrade_recovery_keep_the_last_read_position_with_aliases() {
         params![at(300).to_string()],
     )
     .unwrap();
+    revert_to_v53(&conn);
     run_migrations(&mut conn).unwrap();
     assert_eq!(
         saved(&conn)["currentLocation"],

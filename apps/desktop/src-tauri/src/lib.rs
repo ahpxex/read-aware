@@ -1271,6 +1271,8 @@ pub fn run() {
             storage::library_merge_commit,
             storage::library_resolve_book,
             storage::annotations_list,
+            storage::bookmarks_list,
+            storage::bookmarks_adopt_plugin_documents,
             storage::annotations_search,
             storage::annotations_page,
             storage::annotation_inspect,

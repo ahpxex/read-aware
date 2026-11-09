@@ -22,6 +22,7 @@ import {
   getPluginMemoryCandidates,
 } from "../../../plugins/runtime/plugin-tools";
 import { createAnnotationsPort } from "./annotations-port";
+import { createBookmarksPort } from "./bookmarks-port";
 import { createBookMemoryPort } from "./book-memory-port";
 import { createBookTextPort } from "./book-text-port";
 import { createConversationPort } from "./conversation-port";
@@ -111,6 +112,7 @@ export function buildRuntimeDeps(): RuntimeDeps {
     readingContextPolicy,
     library: createLibraryPort(),
     annotations: createAnnotationsPort(),
+    bookmarks: createBookmarksPort(),
     reader: createReaderPort(),
     interactions,
     conversations: createConversationPort(),

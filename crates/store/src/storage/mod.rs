@@ -25,7 +25,11 @@ pub mod import_cleanup;
 pub use import_cleanup::*;
 pub mod annotation_range;
 pub mod annotations;
+pub mod bookmarks;
 pub use annotations::*;
+pub use bookmarks::{
+    adopt_plugin_documents_inner, bookmarks_list_inner, BookmarkAdoption, BookmarkRow,
+};
 pub mod annotation_pages;
 pub use annotation_pages::*;
 pub mod annotation_mutations;

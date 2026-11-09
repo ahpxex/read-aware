@@ -128,6 +128,8 @@
     "annotationCancelled": "标注修改已在提交前取消。",
     "annotationNotFound": "这条标注已不存在，或类型与操作不符。",
     "annotationInvalidInput": "标注请求包含无效的值。",
+    "bookmarkInvalidInput": "书签请求包含无效的值。",
+    "bookmarkNotFound": "这个书签已不存在。",
     "annotationForbidden": "只有阅读助手可以记录提问轨迹。",
     "bookEncryption": "这本书已加密或受 DRM 保护，无法打开。请使用未加密的副本。",
     "bookUnsupportedFormat": "不支持此书籍格式。",

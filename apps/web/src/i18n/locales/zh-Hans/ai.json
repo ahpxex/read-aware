@@ -47,6 +47,9 @@
       "create_annotation": "正在创建标注",
       "edit_annotation": "正在更新标注",
       "delete_annotation": "正在移除标注",
+      "list_bookmarks": "查看书签",
+      "save_bookmark": "保存书签",
+      "manage_bookmark": "管理书签",
       "open_book": "正在打开书籍",
       "get_recent_turns": "回顾最近对话",
       "get_settings": "查看设置",
@@ -181,6 +184,11 @@
           "question": "要删除这条标注吗？",
           "description": "“{{subject}}”会从你的阅读上下文中永久移除。",
           "approve": "删除标注"
+        },
+        "deleteBookmark": {
+          "question": "删除这个书签？",
+          "description": "“{{subject}}”将从这本书的书签中移除。",
+          "approve": "删除书签"
         },
         "completeOnboarding": {
           "question": "保存阅读画像？",

@@ -339,6 +339,20 @@ export interface ReaderPort {
   close(signal?: AbortSignal, guard?: import("@read-aware/core").ReadingSessionGuard): Promise<void>;
 }
 
+/** Library bookmarks: named reading targets (packages/core/src/bookmarks.ts). */
+export interface BookmarksPort {
+  /** Oldest first, for one book or (no id) the whole library. */
+  list(filter?: { bookId?: Id }): Promise<import("@read-aware/core").Bookmark[]>;
+  create(input: {
+    bookId: Id;
+    name: string;
+    kind: import("@read-aware/core").BookmarkKind;
+    target: import("@read-aware/core").BookmarkTarget;
+  }): Promise<import("@read-aware/core").Bookmark>;
+  rename(bookmark: { id: Id; bookId: Id }, name: string): Promise<void>;
+  remove(bookmark: { id: Id; bookId: Id }): Promise<void>;
+}
+
 export interface UserInteractionOption {
   /** Stable semantic id returned to the model, distinct from the display label. */
   id: string;
@@ -351,6 +365,7 @@ export type UserPermissionAction =
   | "delete-books"
   | "delete-collection"
   | "delete-annotation"
+  | "delete-bookmark"
   | "manage-memory"
   | "classify-book"
   | "generate-book-graph"
@@ -825,6 +840,7 @@ export interface RuntimeDeps {
   memoryPolicy?: import("./memory/build-policy").MemoryBuildPolicy;
   library: LibraryPort;
   annotations: AnnotationsPort;
+  bookmarks: BookmarksPort;
   reader: ReaderPort;
   interactions: UserInteractionPort;
   conversations: ConversationPort;

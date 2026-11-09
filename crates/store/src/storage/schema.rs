@@ -974,6 +974,19 @@ pub const MIGRATIONS: &[(i64, &str, &str)] = &[
     // it; NULL is a book imported before either existed (its catch-up keeps
     // the old file-name heuristic).
     (57, "book_metadata_status", "ALTER TABLE books ADD COLUMN metadata_status TEXT;"),
+    // Named reading targets (`bookmark.*` events). `target_json` is the
+    // canonical BookmarkTarget (bookmarks.rs) without a book id: `book_id`
+    // owns that, so book merges re-home a bookmark by one column.
+    (58, "bookmarks", "CREATE TABLE bookmarks (
+        id TEXT PRIMARY KEY,
+        book_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        target_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
+    CREATE INDEX ix_bookmarks_book ON bookmarks (book_id, created_at, id);"),
 ];
 
 /// Rebuild the annotation FTS index from the table. Required after any VACUUM
@@ -992,7 +1005,7 @@ pub fn rebuild_annotations_fts(conn: &Connection) -> Result<(), CommandError> {
 /// The schema version a projection checkpoint is stamped with. Restoring one
 /// is only sound when the derived tables' shapes match exactly, so a
 /// checkpoint from a different version is ignored in favour of the log.
-pub const SCHEMA_VERSION: i64 = 57;
+pub const SCHEMA_VERSION: i64 = 58;
 
 /// The migration after which `materialize_legacy_covers` must run: the cover
 /// projection columns exist, the inline data-URL column still does.

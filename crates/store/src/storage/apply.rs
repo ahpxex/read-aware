@@ -154,7 +154,10 @@ fn require(p: &Value, key: &str, event_type: &str) -> Result<String, CommandErro
 /// unknowns or decisions that leave an equivalence class unchanged), `Ok(true)` when
 /// it was handled.
 /// `merged_id → keep_id`, single hop (merge flattens chains at write time).
-fn resolve_book_alias(tx: &Transaction<'_>, id: &str) -> Result<Option<String>, CommandError> {
+pub(crate) fn resolve_book_alias(
+    tx: &Transaction<'_>,
+    id: &str,
+) -> Result<Option<String>, CommandError> {
     tx.query_row(
         "SELECT keep_id FROM book_aliases WHERE merged_id = ?1",
         params![id],
@@ -305,6 +308,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandE
             // The book's annotations go with it; their own `*.removed` events
             // are not emitted per-annotation on a book delete.
             tx.execute("DELETE FROM annotations WHERE book_id = ?1", params![id])?;
+            tx.execute("DELETE FROM bookmarks WHERE book_id = ?1", params![id])?;
             tx.execute(
                 "DELETE FROM chapter_digests WHERE book_id = ?1",
                 params![id],
@@ -335,6 +339,10 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandE
             )?;
             tx.execute(
                 "UPDATE annotations SET book_id = ?2 WHERE book_id = ?1",
+                params![merged, keep],
+            )?;
+            tx.execute(
+                "UPDATE bookmarks SET book_id = ?2 WHERE book_id = ?1",
                 params![merged, keep],
             )?;
             // Reading time is additive: same-key rows sum, then the old rows go.
@@ -644,6 +652,26 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandE
             tx.execute(
                 "DELETE FROM annotations WHERE id = ?1",
                 params![require(p, key, t)?],
+            )?;
+        }
+
+        // ── Bookmarks (named reading targets; see bookmarks.rs) ──────────────
+        "bookmark.created" => {
+            super::bookmarks::apply_created(
+                tx,
+                &require(p, "bookmarkId", t)?,
+                &require(p, "bookId", t)?,
+                p,
+                &at,
+            )?;
+        }
+        "bookmark.renamed" => {
+            super::bookmarks::apply_renamed(tx, &require(p, "bookmarkId", t)?, p, &at)?;
+        }
+        "bookmark.removed" => {
+            tx.execute(
+                "DELETE FROM bookmarks WHERE id = ?1",
+                params![require(p, "bookmarkId", t)?],
             )?;
         }
 
@@ -1208,6 +1236,7 @@ pub const DERIVED_TABLES: &[&str] = &[
     "entities",
     "user_profile",
     "annotations",
+    "bookmarks",
     "books",
     "collections",
     "ai_messages",
@@ -1260,6 +1289,11 @@ pub const DIFF_SPECS: &[DiffSpec] = &[
     },
     DiffSpec {
         table: "annotations",
+        local_columns: &[],
+        domain_rows: None,
+    },
+    DiffSpec {
+        table: "bookmarks",
         local_columns: &[],
         domain_rows: None,
     },

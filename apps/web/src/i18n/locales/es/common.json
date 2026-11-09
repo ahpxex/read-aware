@@ -128,6 +128,8 @@
     "annotationCancelled": "El cambio se canceló antes de enviarse.",
     "annotationNotFound": "Esta anotación ya no existe o es de otro tipo.",
     "annotationInvalidInput": "La solicitud de anotación contiene un valor no válido.",
+    "bookmarkInvalidInput": "La solicitud del marcador contiene un valor no válido.",
+    "bookmarkNotFound": "Este marcador ya no existe.",
     "annotationForbidden": "Solo el asistente de lectura puede registrar una pregunta.",
     "bookEncryption": "Este libro está cifrado o protegido por DRM y no se puede abrir. Usa una copia sin protección.",
     "bookUnsupportedFormat": "Este formato de libro no es compatible.",

@@ -128,6 +128,8 @@
     "annotationCancelled": "注釈の変更は送信前にキャンセルされました。",
     "annotationNotFound": "この注釈は存在しないか、操作に対応する種類ではありません。",
     "annotationInvalidInput": "注釈のリクエストに無効な値が含まれています。",
+    "bookmarkInvalidInput": "ブックマークの要求に無効な値が含まれています。",
+    "bookmarkNotFound": "このブックマークはもう存在しません。",
     "annotationForbidden": "質問の記録を作成できるのは読書アシスタントだけです。",
     "bookEncryption": "この本は暗号化されているか DRM で保護されているため開けません。保護されていないコピーを使用してください。",
     "bookUnsupportedFormat": "この書籍形式はサポートされていません。",

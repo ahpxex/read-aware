@@ -128,6 +128,8 @@
     "annotationCancelled": "The annotation change was cancelled before it was submitted.",
     "annotationNotFound": "This annotation no longer exists or is a different type.",
     "annotationInvalidInput": "The annotation request contains an invalid value.",
+    "bookmarkInvalidInput": "The bookmark request contains an invalid value.",
+    "bookmarkNotFound": "This bookmark no longer exists.",
     "annotationForbidden": "Only the reading assistant can record a question trace.",
     "bookEncryption": "This book is encrypted or DRM-protected and cannot be opened. Use an unprotected copy.",
     "bookUnsupportedFormat": "This book format is not supported.",

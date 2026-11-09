@@ -5,6 +5,7 @@ import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { buildAnnotationTools } from "./annotation-tools";
+import { buildBookmarkTools } from "./bookmark-tools";
 import { buildBookTextTools } from "./book-text-tools";
 import { buildGraphTools } from "./graph-tools";
 import { buildBookGraphTaskTool } from "./book-graph-task-tool";
@@ -111,6 +112,7 @@ export function buildAgentTools(
     ...buildThreadTools(scope, deps),
     ...buildShelfTools(scope, deps),
     ...buildAnnotationTools(scope, deps, turnState),
+    ...buildBookmarkTools(scope, deps),
     ...buildMemoryTools(scope, deps),
     ...buildContextBundleTools(scope, deps),
     ...buildConversationTools(scope, deps, turnState),

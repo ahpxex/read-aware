@@ -59,6 +59,17 @@ function seed(): InMemorySeed {
         daily: { "2026-08-09": 2_520_000, "2026-07-01": 2_907_000 },
       },
     ],
+    bookmarks: [
+      {
+        id: "bm-1",
+        bookId: BOOK_ID,
+        name: "The study door",
+        kind: "location",
+        target: { contentVersion: "v1", fraction: 0.4 },
+        createdAt: "2026-08-02T00:00:00Z",
+        updatedAt: "2026-08-02T00:00:00Z",
+      },
+    ],
     annotations: [
       {
         kind: "note",
@@ -159,6 +170,9 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   list_books: {},
   get_book_overview: { bookId: BOOK_ID },
   get_annotations: { bookId: BOOK_ID },
+  list_bookmarks: {},
+  save_bookmark: { kind: "location", name: "Here" },
+  manage_bookmark: { action: "rename", bookmarkId: "bm-1", name: "The locked study" },
   list_collections: {},
   get_reading_stats: {},
   get_reading_time: {},

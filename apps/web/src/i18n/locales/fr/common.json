@@ -128,6 +128,8 @@
     "annotationCancelled": "La modification a été annulée avant son envoi.",
     "annotationNotFound": "Cette annotation n'existe plus ou est d'un autre type.",
     "annotationInvalidInput": "La demande d'annotation contient une valeur incorrecte.",
+    "bookmarkInvalidInput": "La demande de signet contient une valeur incorrecte.",
+    "bookmarkNotFound": "Ce signet n'existe plus.",
     "annotationForbidden": "Seul l'assistant de lecture peut enregistrer une question.",
     "bookEncryption": "Ce livre est chiffré ou protégé par DRM et ne peut pas être ouvert. Utilisez une copie non protégée.",
     "bookUnsupportedFormat": "Ce format de livre n’est pas pris en charge.",

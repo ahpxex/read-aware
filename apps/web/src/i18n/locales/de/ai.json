@@ -45,6 +45,9 @@
       "create_annotation": "Erstellt eine Anmerkung",
       "edit_annotation": "Aktualisiert eine Anmerkung",
       "delete_annotation": "Entfernt eine Annotation",
+      "list_bookmarks": "Lesezeichen werden geprüft",
+      "save_bookmark": "Lesezeichen wird gespeichert",
+      "manage_bookmark": "Lesezeichen wird verwaltet",
       "open_book": "Öffnet das Buch",
       "get_recent_turns": "Prüft die letzten Gesprächsschritte",
       "get_settings": "Prüft Einstellungen",
@@ -160,6 +163,11 @@
           "question": "Diese Annotation löschen?",
           "description": "„{{subject}}“ wird dauerhaft aus deinem Lesekontext entfernt.",
           "approve": "Annotation löschen"
+        },
+        "deleteBookmark": {
+          "question": "Dieses Lesezeichen löschen?",
+          "description": "„{{subject}}“ wird aus den Lesezeichen dieses Buchs entfernt.",
+          "approve": "Lesezeichen löschen"
         },
         "completeOnboarding": {
           "question": "Leseprofil speichern?",

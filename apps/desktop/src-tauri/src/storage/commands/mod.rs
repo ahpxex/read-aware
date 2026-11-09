@@ -11,6 +11,8 @@ mod backup_reading;
 pub use backup_reading::*;
 mod blobs;
 pub use blobs::*;
+mod bookmarks;
+pub use bookmarks::*;
 mod book_classification;
 pub use book_classification::*;
 mod book_context;

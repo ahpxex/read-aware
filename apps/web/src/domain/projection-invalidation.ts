@@ -94,3 +94,7 @@ export const observeFontInvalidation = createProjectionInvalidationObserver(
   (type) => type.startsWith("userFont."),
   ["user-fonts-changed"],
 );
+export const observeBookmarkInvalidation = createProjectionInvalidationObserver(
+  (type) => type.startsWith("bookmark.") || type === "book.merged" || type === "book.removed",
+  [],
+);

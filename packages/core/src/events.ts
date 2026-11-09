@@ -1,3 +1,4 @@
+import type { BookmarkKind, BookmarkTarget } from "./bookmarks";
 import type { BookTextRange } from "./book-range";
 // Event-sourced foundation. `raw events` are the unit of sync; every higher
 // layer (core projections, working / long-term memory, context bundles, the
@@ -367,6 +368,15 @@ export type DomainEvent =
    */
   | DomainEventEnvelope<"ask.recorded", { askId: Id; bookId: Id; anchor?: string; chapterHref?: string; text: string }>
   | DomainEventEnvelope<"ask.removed", { askId: Id }>
+  // --- Bookmarks (named reading targets; see bookmarks.ts) ----------------
+  // Every event carries `bookId` so change routing and book merges reach it
+  // without a lookup.
+  | DomainEventEnvelope<
+      "bookmark.created",
+      { bookmarkId: Id; bookId: Id; name: string; kind: BookmarkKind; target: BookmarkTarget }
+    >
+  | DomainEventEnvelope<"bookmark.renamed", { bookmarkId: Id; bookId: Id; name: string }>
+  | DomainEventEnvelope<"bookmark.removed", { bookmarkId: Id; bookId: Id }>
   // --- AI conversation (book threads + user-created global threads) ------
   | DomainEventEnvelope<
       "aiConversation.started",

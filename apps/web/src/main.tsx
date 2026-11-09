@@ -80,6 +80,15 @@ void (async () => {
   mountApp();
   log.info("mounted");
 
+  // Bookmarks the retired Jumper plugin kept on this device move into the
+  // library once (idempotent; a failure retries next launch).
+  void import("./domain/bookmark-adoption")
+    .then(({ adoptRetiredJumperBookmarks }) => adoptRetiredJumperBookmarks())
+    .then((moved) => {
+      if (moved) log.info(`moved ${moved} Jumper bookmarks into the library`);
+    })
+    .catch((error) => log.error("Jumper bookmark migration failed; will retry next launch", error));
+
   void import("./platform/local-api")
     .then(({ startLocalApiBridge }) => startLocalApiBridge())
     .catch((error) => log.error("Local API initialization failed", error));

@@ -83,6 +83,7 @@ export type ChatPermissionAction =
   | "delete-books"
   | "delete-collection"
   | "delete-annotation"
+  | "delete-bookmark"
   | "manage-memory"
   | "classify-book"
   | "generate-book-graph"

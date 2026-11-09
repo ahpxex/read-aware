@@ -17,7 +17,7 @@ import { createProfileFixture } from "./user-profile";
 import { createEntityRegistryFixture } from "./entity-registry";
 import { createIdentityConsolidationFixture } from "./identity-consolidation";
 import { createContextBundleFixture } from "./context-bundles";
-import type { BookStats, CollectionSummary, Id, StatsOverview } from "@read-aware/core";
+import type { Bookmark, BookStats, CollectionSummary, Id, StatsOverview } from "@read-aware/core";
 import type {
   AnnotationItem,
   BookOverview,
@@ -65,6 +65,7 @@ export interface AskRecord {
 export interface InMemoryStores {
   books: BookOverview[];
   annotations: AnnotationItem[];
+  bookmarks: Bookmark[];
   collections: CollectionSummary[];
   bookStats: BookStats[];
   turns: Map<string, TurnRecord[]>;
@@ -86,6 +87,7 @@ export interface InMemoryStores {
 export interface InMemorySeed {
   books?: BookOverview[];
   annotations?: AnnotationItem[];
+  bookmarks?: Bookmark[];
   profile?: string;
   memories?: MemoryRecord[];
   /** threadKey → 既有转录（存量用户/旧 agent 场景：记忆管线上线前的历史对话）。 */
@@ -346,6 +348,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   const stores: InMemoryStores = {
     books,
     annotations,
+    bookmarks: structuredClone(seed.bookmarks ?? []),
     collections,
     bookStats,
     turns: new Map(Object.entries(structuredClone(seed.turns ?? {})).map(([key, list]) => [key, [...list]])),
@@ -718,6 +721,30 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         for (const book of books) {
           if (ids.has(book.id)) book.collectionId = collectionId;
         }
+      },
+    },
+    bookmarks: {
+      list: async (filter) =>
+        structuredClone(stores.bookmarks.filter((bookmark) => !filter?.bookId || bookmark.bookId === filter.bookId)),
+      create: async (input) => {
+        const at = new Date().toISOString();
+        const bookmark: Bookmark = {
+          id: `bookmark-${stores.bookmarks.length + 1}`,
+          ...input,
+          createdAt: at,
+          updatedAt: at,
+        };
+        stores.bookmarks.push(bookmark);
+        return structuredClone(bookmark);
+      },
+      rename: async ({ id }, name) => {
+        const bookmark = stores.bookmarks.find((entry) => entry.id === id);
+        if (!bookmark) throw new AppError("bookmarks/not-found", `bookmark not found: ${id}`);
+        bookmark.name = name.trim();
+      },
+      remove: async ({ id }) => {
+        const index = stores.bookmarks.findIndex((entry) => entry.id === id);
+        if (index >= 0) stores.bookmarks.splice(index, 1);
       },
     },
     annotations: {

@@ -45,6 +45,9 @@
       "create_annotation": "Creando una anotación",
       "edit_annotation": "Actualizando una anotación",
       "delete_annotation": "Eliminando una anotación",
+      "list_bookmarks": "Revisando marcadores",
+      "save_bookmark": "Guardando un marcador",
+      "manage_bookmark": "Gestionando un marcador",
       "open_book": "Abriendo el libro",
       "get_recent_turns": "Revisando los turnos recientes",
       "get_settings": "Consultando los ajustes",
@@ -160,6 +163,11 @@
           "question": "¿Eliminar esta anotación?",
           "description": "«{{subject}}» se eliminará permanentemente de tu contexto de lectura.",
           "approve": "Eliminar anotación"
+        },
+        "deleteBookmark": {
+          "question": "¿Eliminar este marcador?",
+          "description": "«{{subject}}» se quitará de los marcadores de este libro.",
+          "approve": "Eliminar marcador"
         },
         "completeOnboarding": {
           "question": "¿Guardar tu perfil de lectura?",

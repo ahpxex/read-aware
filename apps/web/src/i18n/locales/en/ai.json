@@ -49,6 +49,9 @@
       "create_annotation": "Creating an annotation",
       "edit_annotation": "Updating an annotation",
       "delete_annotation": "Removing an annotation",
+      "list_bookmarks": "Reviewing bookmarks",
+      "save_bookmark": "Saving a bookmark",
+      "manage_bookmark": "Managing a bookmark",
       "open_book": "Opening the book",
       "get_recent_turns": "Reviewing recent turns",
       "get_settings": "Reading settings",
@@ -183,6 +186,11 @@
           "question": "Delete this annotation?",
           "description": "“{{subject}}” will be permanently removed from your reading context.",
           "approve": "Delete annotation"
+        },
+        "deleteBookmark": {
+          "question": "Delete this bookmark?",
+          "description": "“{{subject}}” will be removed from this book’s bookmarks.",
+          "approve": "Delete bookmark"
         },
         "completeOnboarding": {
           "question": "Save your reading profile?",

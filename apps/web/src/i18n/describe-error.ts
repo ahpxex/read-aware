@@ -262,6 +262,8 @@ const CODE_COPY: Record<string, CopyEntry> = {
   "annotations/invalid-input": { key: "annotationInvalidInput", retryable: false },
   "annotations/invalid-cursor": { key: "annotationInvalidInput", retryable: false },
   "annotations/forbidden": { key: "annotationForbidden", retryable: false },
+  "bookmarks/invalid-input": { key: "bookmarkInvalidInput", retryable: false },
+  "bookmarks/not-found": { key: "bookmarkNotFound", retryable: false },
   "book/unsupported-encryption": { key: "bookEncryption", retryable: false },
   "book/unsupported-format": { key: "bookUnsupportedFormat", retryable: false },
   "book/parse-failed": { key: "bookParseFailed", retryable: false },

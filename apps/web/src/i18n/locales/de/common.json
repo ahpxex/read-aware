@@ -128,6 +128,8 @@
     "annotationCancelled": "Die Änderung wurde vor dem Absenden abgebrochen.",
     "annotationNotFound": "Diese Anmerkung existiert nicht mehr oder hat einen anderen Typ.",
     "annotationInvalidInput": "Die Anfrage zur Anmerkung enthält einen ungültigen Wert.",
+    "bookmarkInvalidInput": "Die Anfrage zum Lesezeichen enthält einen ungültigen Wert.",
+    "bookmarkNotFound": "Dieses Lesezeichen existiert nicht mehr.",
     "annotationForbidden": "Nur der Leseassistent kann eine Frage aufzeichnen.",
     "bookEncryption": "Dieses Buch ist verschlüsselt oder DRM-geschützt und kann nicht geöffnet werden. Verwende eine ungeschützte Kopie.",
     "bookUnsupportedFormat": "Dieses Buchformat wird nicht unterstützt.",

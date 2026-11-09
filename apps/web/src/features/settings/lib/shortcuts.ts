@@ -23,6 +23,7 @@ export type BuiltinShortcutId =
   | "prev-chapter"
   | "history-back"
   | "history-forward"
+  | "add-bookmark"
   | "toggle-controls"
   | "zoom-in"
   | "zoom-out"
@@ -112,6 +113,8 @@ export const EDITABLE_SHORTCUTS: EditableShortcut[] = [
   // forward again — the browser's history chords.
   { id: "history-back", category: "Reading", defaultBinding: { alt: true, key: "ArrowLeft" } },
   { id: "history-forward", category: "Reading", defaultBinding: { alt: true, key: "ArrowRight" } },
+  // The browsers' bookmark chord.
+  { id: "add-bookmark", category: "Reading", defaultBinding: { mod: true, key: "d" } },
   { id: "toggle-controls", category: "Reading", defaultBinding: { key: " " } },
   // Page zoom for fixed-layout books (PDF, comics): the platform's own zoom
   // chords, which the webview itself leaves unbound.

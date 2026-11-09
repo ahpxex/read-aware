@@ -23,6 +23,7 @@ import {
 } from "../lib/selection-overlay";
 import { flattenToc, findTocIndexForHref, adjacentTocEntry } from "../lib/epub-utils";
 import { stepReadingHistory, type ReadingHistoryDirection } from "../lib/reading-history";
+import { bookmarkReadingPosition } from "../lib/reader-bookmarks";
 import { createNativeLinkNavigator } from "../lib/native-link-navigation";
 import { attachTocFractions } from "../lib/toc-fractions";
 import { chapterProgressAt, normalizeReadingCursorText } from "../lib/reading-cursor";
@@ -357,6 +358,7 @@ export function FoliateReaderView({
   fractionNavigationRequest = null,
 }: FoliateReaderViewProps) {
   const { t } = useTranslation(["reader", "common"]);
+  const { toast } = useToast();
   // Resolved page-color palette (built-in or plugin-contributed).
   const readerPalette = useReaderPalette(readerSettings.theme);
   // Held in a ref so the stable, mount-once engine effects and callbacks can
@@ -923,6 +925,17 @@ export function FoliateReaderView({
     [clearSelection, describeReaderFailure, goToChapter, selectedBookId],
   );
 
+  const addBookmarkHere = useCallback(async () => {
+    const index = findTocIndexForHref(tocEntriesRef.current, currentChapterHrefRef.current);
+    try {
+      await bookmarkReadingPosition(tocEntriesRef.current[index]?.label);
+      toast({ description: t("reader:bookmarkAdded") });
+    } catch (error) {
+      log.error("adding a bookmark failed", error);
+      toast({ variant: "destructive", description: describeError(error).body });
+    }
+  }, [t, toast]);
+
   const goThroughHistory = useCallback(
     async (direction: ReadingHistoryDirection) => {
       setError(null);
@@ -1157,7 +1170,6 @@ export function FoliateReaderView({
 
   // A hidden gesture gets one introduction per device, the first time the
   // mode is entered on a touch screen.
-  const { toast } = useToast();
   useEffect(() => {
     if (!(textUnitModeEngineActive && coarsePointer)) return;
     if (localKV.getItem(HOLD_MENU_HINT_KEY)) return;
@@ -1450,6 +1462,11 @@ export function FoliateReaderView({
     if (shortcut === "prev-chapter") {
       event.preventDefault();
       void goToAdjacentChapter(-1);
+      return;
+    }
+    if (shortcut === "add-bookmark") {
+      event.preventDefault();
+      void addBookmarkHere();
       return;
     }
     if (shortcut === "history-back" || shortcut === "history-forward") {

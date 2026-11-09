@@ -169,7 +169,7 @@ ReadAware アプリ
 | `packages/core` | ドメインエンティティ、イベント、ストレージ契約 |
 | `packages/ui` | 共有デザインシステムと同居する Storybook ストーリー |
 | `packages/plugin-types` | 公開プラグイン API サーフェス |
-| `plugins/` | ファーストパーティプラグイン：辞書、読み上げボイス、テーマ、RSS、文単位リーダー、Jumper、読書目標、ワークスペースプロファイル、WebDAV 同期、そして注釈 / ライブラリ / 記憶 / テキスト / リスニング / メンテナンスの各デスク |
+| `plugins/` | ファーストパーティプラグイン：辞書、読み上げボイス、テーマ、RSS、文単位リーダー、読書目標、ワークスペースプロファイル、WebDAV 同期、そして注釈 / ライブラリ / 記憶 / テキスト / リスニング / メンテナンスの各デスク |
 
 アーキテクチャの決定と目標データ契約は
 [`docs/architecture/agent-architecture.md`](docs/architecture/agent-architecture.md) と

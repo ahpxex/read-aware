@@ -7,9 +7,7 @@ import { localKV } from "../../src/platform/local-store";
 import { pluginCommandsAtom } from "../../src/features/plugins/state/plugin-store";
 import { inspectContributions } from "../../src/features/plugins/state/contribution-registry";
 import { startPluginWorker } from "../../src/features/plugins/runtime/plugin-worker-host";
-import { runPluginContribution } from "../../src/features/plugins/lib/run-result";
 import { buildReaderTools } from "../../../../packages/agent/src/tools/reader-tools";
-import { buildNavigationTools } from "../../../../packages/agent/src/tools/navigation-tools";
 import { buildRuntimeDeps } from "../../src/features/ai/agent/ports";
 import { withProbeCleanup } from "./probe-cleanup";
 
@@ -91,95 +89,6 @@ export async function runDesktopAgentReadingProbe(bookId: string) {
   const current = await call("get_reading_session", {});
   const close = await call("navigate_reading", { action: "close" });
   return { opened, current, close, afterClose: await deps.reader.getSession() };
-}
-
-/** Calls the installed Jumper Worker, then the product Agent port against the same file. */
-export async function runDesktopJumperProbe(bookId: string) {
-  const dataDir = await assertIsolated();
-  const deps = buildRuntimeDeps();
-  const library = createLibraryDomain("user").queries.books;
-  const until = async (check: () => boolean) => {
-    const deadline = Date.now() + 8_000;
-    while (!check()) {
-      if (Date.now() > deadline) throw new Error("Jumper live view did not settle");
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    }
-  };
-  const readyCommand = async (id: string) => {
-    const current = () =>
-      getDefaultStore()
-        .get(pluginCommandsAtom)
-        .find((item) => item.pluginId === "jumper" && item.id === id);
-    await until(() => current()?.state?.enabled === true);
-    return current()!;
-  };
-  await deps.reader.goTo({ bookId, fraction: 0 });
-  const command = await readyCommand("open");
-  const root = await command.run();
-  if (!root || root.view?.kind !== "blocks") throw new Error("Jumper did not return its root view");
-  const form = root.view.blocks.find((block) => block.kind === "form");
-  if (!form || form.kind !== "form") throw new Error("Jumper search form missing");
-  const beforeMissing = await deps.reader.getSession();
-  const missing = await form.onSubmit({ mode: "ordinal", query: "99999" });
-  if (!missing?.fieldErrors?.query) throw new Error("Missing chapter did not return validation");
-  const afterMissing = await deps.reader.getSession();
-  if (beforeMissing.location?.cfi !== afterMissing.location?.cfi) throw new Error("Missing chapter moved the reader");
-  const toc = await library.getNavigationToc(bookId);
-  const search = await form.onSubmit({ mode: "text", query: "Beta paragraph 17", matchCase: true, wholeWords: false });
-  if (!search?.view) throw new Error("Expected a search view");
-  // Search now starts after its real host view subscribes. Calling onSubmit
-  // alone only returns a progress view, not the asynchronously published hits.
-  await runPluginContribution("jumper", "Jumper", async () => search, { presentation: "dialog", owner: command.run });
-  const hits = () =>
-    [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] li button')].filter((button) =>
-      button.textContent?.includes("Beta paragraph 17"),
-    );
-  await until(() => hits().length === 1);
-  const match = hits()[0]!.textContent!;
-  hits()[0]!.click();
-  await until(() => !document.querySelector('[role="dialog"]'));
-  const atMatch = await deps.reader.getSession();
-  const back = await readyCommand("back");
-  await back.run();
-  const afterBack = await deps.reader.getSession();
-  const forward = await readyCommand("forward");
-  await forward.run();
-  const afterForward = await deps.reader.getSession();
-  if (afterBack.location?.cfi === atMatch.location?.cfi || afterForward.location?.cfi !== atMatch.location?.cfi)
-    throw new Error("Jumper history did not retrace actual locations");
-  const tools = [
-    ...buildNavigationTools({ kind: "book", bookId }, deps),
-    ...buildReaderTools({ kind: "book", bookId }, deps),
-  ];
-  const run = async (name: string, params: Record<string, unknown>) => {
-    const result = await tools.find((tool) => tool.name === name)!.execute("jumper-e2e", params);
-    if (result.content[0]?.type !== "text") throw new Error("Expected Agent text result");
-    return JSON.parse(result.content[0].text);
-  };
-  const agentSearch = await run("find_book_locations", { query: "Gamma paragraph 23", matchCase: true });
-  if (agentSearch.hits.length !== 1) throw new Error("Agent precise search mismatch");
-  const agentNavigation = await run("open_book", { location: agentSearch.hits[0].location });
-  let stale: string | undefined;
-  try {
-    await deps.reader.goTo({ ...agentSearch.hits[0].location, contentVersion: "sha256:old" });
-  } catch (error) {
-    stale = (error as { code?: string }).code;
-  }
-  if (stale !== "reader/stale-location") throw new Error("Stale navigation was not rejected");
-  return {
-    dataDir,
-    toc,
-    missing,
-    beforeMissing: beforeMissing.location,
-    afterMissing: afterMissing.location,
-    match,
-    atMatch: atMatch.location,
-    afterBack: afterBack.location,
-    afterForward: afterForward.location,
-    agentSearch,
-    agentNavigation,
-    stale,
-  };
 }
 
 export async function importReadingProbePdf() {

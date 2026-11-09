@@ -167,7 +167,7 @@ The repository itself is a Bun workspace monorepo orchestrated by Turborepo.
 | `packages/core` | Domain entities, events, and storage contracts |
 | `packages/ui` | Shared design system and co-located Storybook stories |
 | `packages/plugin-types` | The public plugin API surface |
-| `plugins/` | First-party plugins: dictionary, TTS voices, themes, RSS reader, sentence reader, WebDAV sync, jumper, annotations, reading goals |
+| `plugins/` | First-party plugins: dictionary, TTS voices, themes, RSS reader, sentence reader, WebDAV sync, annotations, reading goals |
 
 Architecture decisions and target data contracts live in
 [`docs/architecture/agent-architecture.md`](docs/architecture/agent-architecture.md) and

@@ -29,7 +29,7 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
       - run: bun install --frozen-lockfile
       # turbo builds what each task needs: the foliate runtime inside the web
-      # scripts, jumper's bundle and the landing site before their tests.
+      # scripts and the landing site before their tests.
       - run: bun run typecheck
       - name: Lint (type-aware oxlint and swallowed promise rejections)
         run: bun run lint
@@ -90,7 +90,7 @@ jobs:
           fi
       - run: bun install --frozen-lockfile
       - name: Prepare embedded plugins for native compilation
-        run: bun run --filter @read-aware/plugin-dictionary --filter @read-aware/plugin-editorial-themes --filter @read-aware/plugin-rss-reader --filter @read-aware/plugin-sentence-reader --filter @read-aware/plugin-tts --filter @read-aware/plugin-jumper build
+        run: bun run --filter @read-aware/plugin-dictionary --filter @read-aware/plugin-editorial-themes --filter @read-aware/plugin-rss-reader --filter @read-aware/plugin-sentence-reader --filter @read-aware/plugin-tts build
       - name: Clippy (library and tests, warnings are errors)
         run: cargo clippy -p read-aware-store -p read-aware-desktop --lib --tests --locked -- -D warnings
       - name: Clippy for the ra CLI (binary and tests, warnings are errors)
@@ -139,7 +139,7 @@ jobs:
           cache-on-failure: true
       - run: bun install --frozen-lockfile
       - name: Prepare embedded plugins for native compilation
-        run: bun run --filter @read-aware/plugin-dictionary --filter @read-aware/plugin-editorial-themes --filter @read-aware/plugin-rss-reader --filter @read-aware/plugin-sentence-reader --filter @read-aware/plugin-tts --filter @read-aware/plugin-jumper build
+        run: bun run --filter @read-aware/plugin-dictionary --filter @read-aware/plugin-editorial-themes --filter @read-aware/plugin-rss-reader --filter @read-aware/plugin-sentence-reader --filter @read-aware/plugin-tts build
       - name: Native transactions and platform contracts (no desktop launch)
         run: cargo test --locked --lib -p read-aware-store -p read-aware-desktop
       - name: The ra CLI against a temporary library

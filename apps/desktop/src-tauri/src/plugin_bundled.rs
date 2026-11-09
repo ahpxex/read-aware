@@ -32,7 +32,6 @@ static BUNDLED_SENTENCE_READER: Dir =
 static BUNDLED_TTS: Dir = include_dir!("$CARGO_MANIFEST_DIR/../../../plugins/tts/dist");
 static BUNDLED_IMAGE_BACKGROUND: Dir =
     include_dir!("$CARGO_MANIFEST_DIR/../../../plugins/image-background/dist");
-static BUNDLED_JUMPER: Dir = include_dir!("$CARGO_MANIFEST_DIR/../../../plugins/jumper/dist");
 
 static BUNDLED: &[(&str, &Dir)] = &[
     ("dictionary", &BUNDLED_DICTIONARY),
@@ -40,7 +39,6 @@ static BUNDLED: &[(&str, &Dir)] = &[
     ("rss-reader", &BUNDLED_RSS_READER),
     ("sentence-reader", &BUNDLED_SENTENCE_READER),
     ("tts", &BUNDLED_TTS),
-    ("jumper", &BUNDLED_JUMPER),
     ("image-background", &BUNDLED_IMAGE_BACKGROUND),
 ];
 

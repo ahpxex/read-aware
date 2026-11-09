@@ -142,7 +142,7 @@ Source of truth 在本地。原始领域事件构成可同步的记录；记忆�
 | `packages/core` | 领域实体、事件与存储契约 |
 | `packages/ui` | 共享设计系统与并置的 Storybook stories |
 | `packages/plugin-types` | 公开的插件 API 面 |
-| `plugins/` | 一方插件：词典、朗读音色、主题、RSS、逐句阅读、Jumper、阅读目标、工作区配置、WebDAV 同步，以及批注 / 书库 / 记忆 / 文本 / 听读 / 维护各工作台 |
+| `plugins/` | 一方插件：词典、朗读音色、主题、RSS、逐句阅读、阅读目标、工作区配置、WebDAV 同步，以及批注 / 书库 / 记忆 / 文本 / 听读 / 维护各工作台 |
 
 架构决策与目标数据契约见
 [`docs/architecture/agent-architecture.md`](docs/architecture/agent-architecture.md) 和

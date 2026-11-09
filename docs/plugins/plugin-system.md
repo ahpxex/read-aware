@@ -34,6 +34,15 @@
 > Sections below that cite earlier versions of these plugins are historical
 > composition evidence, not current behavior.
 >
+> 2026-11-09: Jumper was retired. Its go-to box became the reader's own
+> contents-panel search (chapters, printed pages, bookmarks, highlights and
+> notes, full text), its back/forward commands became the rebindable
+> `history-back` / `history-forward` reading shortcuts, and its bookmarks became
+> native library bookmarks (`bookmark.*` events, synced) with the host Agent
+> tools `list_bookmarks`, `save_bookmark` and `manage_bookmark`. Existing Jumper
+> bookmark documents move into the library once at launch. The `bookmark-page`
+> service is gone; sections below that cite Jumper are historical evidence.
+>
 > 2026-09-19: Workspace Profiles was removed outright; its code, desktop
 > probes and evidence live only in Git history, and sections citing it are
 > historical.
@@ -384,7 +393,7 @@ host boundary. Direct reads/observers check ownership and mutations use inspecte
 versions in the native conditional commit. Unscoped private KV, secrets, assets
 and usage are available only to global services; book-service boot and storage
 broadcasts contain no global KV mirror. Providers must also validate any book
-references inside their document payloads, as Jumper's bookmark service does.
+references inside their document payloads.
 
 Service data is JSON only, at most 1 MiB, depth 16 and 16,000 values. Schemas support
 closed objects, arrays, scalar types, bounded strings/numbers and `anyOf`; executable
@@ -395,10 +404,10 @@ are refused. Cancellation, book changes, disable/update and deadlines invalidate
 late results; capacity is released after physical cleanup. Cancellation does not
 undo accepted writes or remote effects. Do not blindly retry an unknown outcome.
 
-Jumper 0.10 exports `bookmark-page` version 1.0.0. Its first-party plugin caller
-was a capability fixture retired on 2026-09-15 together with its Bun
-caller/host/provider Worker chain check; the remaining consumer is the Agent
-`call_plugin_service` path below. Tauri/SQLite acceptance remains pending. Agent `list_plugin_services` discovers the same contracts;
+Jumper 0.10 exported `bookmark-page` version 1.0.0 until Jumper was retired on
+2026-11-09 (bookmarks are now native library data); no first-party plugin
+currently exports a service, and the Agent `call_plugin_service` path below
+remains the consumer for third-party ones. Tauri/SQLite acceptance remains pending. Agent `list_plugin_services` discovers the same contracts;
 `call_plugin_service` requires per-call user approval of frozen arguments and grants.
 Book conversations cannot target other books. Approval explains full-book/unread
 content access and potentially irreversible effects. Restricted automatic reading
@@ -4687,7 +4696,7 @@ atom. This is not a second command-execution API.
 - Built-ins use `shortcuts.<id>`. Plugin commands use
   `shortcuts.plugin.<encoded-contribution-key>`: percent-encode the entire key,
   including dots and `!~*'()`, as one opaque segment. For example,
-  `shortcuts.plugin.jumper%3Aopen`. Discover the exact path rather
+  `shortcuts.plugin.dictionary%3Aopen`. Discover the exact path rather
   than interpreting a command label or decoding arbitrary input. Manifest
   path validation accepts uppercase percent escapes; grants still match exact
   paths or explicitly requested path prefixes.
@@ -6631,7 +6640,6 @@ additional source plugin in this checkout:
 | Text to Speech | voice/options providers, storage, secrets, network, settings schema |
 | Theme Schedule | Settings domain, options/commands, storage/UI, committed schedule, settings schema |
 | WebDAV Sync | sync transport, storage, secrets, network, settings schema |
-| Jumper | one go-to box (views 1.12 plugin-computed search) answering chapters, printed pages via `listNavigationTargets` and a cancellable live precise text search, shared locations with back/forward history, named bookmarks with list pagination and global bookmark tools |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs
 in their packages and registered capabilities.

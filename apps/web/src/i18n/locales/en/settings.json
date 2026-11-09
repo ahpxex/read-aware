@@ -831,6 +831,11 @@
       "notShown": "Not shown",
       "hideItem": "Hide {{item}}",
       "showItem": "Show {{item}}"
+    },
+    "toolbarPlacement": {
+      "label": "Position",
+      "bottom": "Bottom",
+      "top": "Top"
     }
   },
   "search": {

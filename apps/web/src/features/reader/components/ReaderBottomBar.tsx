@@ -1,4 +1,4 @@
-import { useRef, type CSSProperties, type ReactNode, type RefObject, type TransitionEvent } from "react";
+import { useRef, type CSSProperties, type ReactNode, type Ref, type TransitionEvent } from "react";
 import { cn } from "@read-aware/ui/cn";
 import { useDrawerDragDismiss } from "../hooks/useDrawerDragDismiss";
 import { useRetainedWhileClosing } from "../hooks/useRetainedWhileClosing";
@@ -15,7 +15,7 @@ type ReaderBottomBarProps<K extends string> = {
   /** Revealed with the rest of the reader chrome. */
   visible: boolean;
   /** Measured by useToolbarSlotCapacity; spans the bar's full width. */
-  slotRowRef: RefObject<HTMLDivElement | null>;
+  slotRowRef: Ref<HTMLDivElement>;
   /** One node per slot, in order; each fills an equal column. */
   slots: ReactNode[];
   /** The drawer's element id, for the triggers' aria-controls. */

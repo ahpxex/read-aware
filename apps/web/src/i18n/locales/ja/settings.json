@@ -740,6 +740,11 @@
       "notShown": "非表示",
       "hideItem": "{{item}}を非表示",
       "showItem": "{{item}}を表示"
+    },
+    "toolbarPlacement": {
+      "label": "位置",
+      "bottom": "下部",
+      "top": "上部"
     }
   },
   "search": {

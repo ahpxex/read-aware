@@ -740,6 +740,11 @@
       "notShown": "No mostrados",
       "hideItem": "Ocultar {{item}}",
       "showItem": "Mostrar {{item}}"
+    },
+    "toolbarPlacement": {
+      "label": "Posición",
+      "bottom": "Abajo",
+      "top": "Arriba"
     }
   },
   "search": {

@@ -39,6 +39,8 @@ import { useReaderModeSelection } from "../hooks/useReaderModeSelection";
 import type { TocEntry } from "../lib/reader-types";
 import { ReaderContentsPanel, type ReaderSideView } from "./ReaderContentsPanel";
 import { ReaderSearchPanel } from "./ReaderSearchPanel";
+import { ReaderSheet, type ReaderSheetContent } from "./ReaderSheet";
+import { readerToolbarPlacementAtom } from "../../menus";
 import { type ReaderBookmarks } from "./ReaderBookmarkList";
 import { useReaderBookmarks } from "../hooks/useReaderBookmarks";
 import { useReaderBookmarkActions } from "../hooks/useReaderBookmarkActions";
@@ -137,6 +139,10 @@ export function ReaderShellOverlay({
   // Phone-width sheets and the appearance popover are transient: they close
   // with the chrome and never come back on their own.
   const { exclusive: isPhone, origin: layoutOrigin } = useReaderResponsiveLayout();
+  // Phones put the reader's actions in a bottom toolbar, or in a row under
+  // the top bar when the reader prefers every control at the top.
+  const toolbarPlacement = useAtomValue(readerToolbarPlacementAtom);
+  const toolbarOnTop = isPhone && toolbarPlacement === "top";
   const {
     toc: tocOpen,
     chat: notesOpen,
@@ -200,6 +206,10 @@ export function ReaderShellOverlay({
   // page, so there back keeps its usual close-the-book meaning.
   useBackInterceptor(() => {
     if (!visible || !isPhone) return false;
+    if (searchOpen) {
+      setSearchOpen(false);
+      return true;
+    }
     if (appearanceOpen || annotationsOpen) {
       if (appearanceOpen) setAppearanceOpen(false);
       if (annotationsOpen) setAnnotationsOpen(false);
@@ -263,6 +273,42 @@ export function ReaderShellOverlay({
     ...readerPluginActions.map((action) => pluginMenuId(action.key)),
   ]);
 
+  // The side panel's content: docked at the left edge on wider screens, in a
+  // tall sheet on a phone.
+  const sidePanel = (view: ReaderSideView) => (
+    <ReaderContentsPanel
+      bookId={bookId}
+      shown={visible && sideOpen}
+      view={view}
+      notes={{
+        annotations,
+        loadFailed: annotationsLoadFailed,
+        loadErrorCode: annotationsLoadErrorCode,
+        isLoading: annotationsLoading,
+        onRetryLoad: () => refreshAnnotations(),
+        tocEntries,
+        onNavigate: (cfiRange) => {
+          onAnnotationSelect?.(cfiRange);
+          closeTocSheetOnPhone();
+        },
+        onDelete: removeAnnotationReporting,
+        bookmarks: {
+          ...bookmarkSection,
+          onOpen: (bookmark) => {
+            void bookmarkActions.open(bookmark).then((moved) => {
+              if (moved) closeTocSheetOnPhone();
+            });
+          },
+        },
+      }}
+      entries={tocEntries}
+      activeIndex={activeTocIndex}
+      onChapterSelect={(href) => {
+        onChapterSelect?.(href);
+        closeTocSheetOnPhone();
+      }}
+    />
+  );
   const searchPanel = (showCancel = false, className = "min-h-0 flex-1") => (
     <ReaderSearchPanel
       bookId={bookId}
@@ -553,10 +599,42 @@ export function ReaderShellOverlay({
   // their icon is in the toolbar or in "More". The desktop header needs a
   // dialog for appearance once it is arranged into the overflow menu.
   const appearanceDialog = !isPhone && !readerLayout.visible.includes("core:appearance");
-  // A phone's search button sits in the bottom bar, where a popup would open
-  // under the keyboard; it and an overflowed header button get a dialog.
-  const searchDialog = isPhone || !readerLayout.visible.includes("core:find");
-  const drawer: ReaderDrawer | null = isPhone && appearanceOpen ? "appearance" : null;
+  // An overflowed header search button has no anchor for its popup.
+  const searchDialog = !isPhone && !readerLayout.visible.includes("core:find");
+  // Phone sheets rise from the bottom edge: the contents, the notes and the
+  // book search are tall, and the reader's bars step aside for them;
+  // appearance is the bottom bar's own drawer, or a short sheet when the
+  // toolbar sits at the top.
+  type PhoneSheet = ReaderSideView | "search" | "appearance";
+  const phoneSheet: PhoneSheet | null = !isPhone
+    ? null
+    : searchOpen
+      ? "search"
+      : sideOpen
+        ? sideView
+        : toolbarOnTop && appearanceOpen
+          ? "appearance"
+          : null;
+  const barsVisible = visible && (phoneSheet === null || phoneSheet === "appearance");
+  const closePhoneSheet = () => {
+    if (searchOpen) setSearchOpen(false);
+    else if (sideOpen) closeSide();
+    else setAppearanceOpen(false);
+  };
+  const renderPhoneSheet = (key: PhoneSheet): ReaderSheetContent =>
+    key === "search"
+      ? { title: t("contentsSearchLabel"), tall: true, body: searchPanel(true) }
+      : key === "appearance"
+        ? {
+            title: t("readingAppearance"),
+            body: (
+              <div className="min-h-0 overflow-y-auto px-4 pb-5 pt-1">
+                <ReaderAppearanceCompact bookId={bookId} fixedLayout={fixedLayout} />
+              </div>
+            ),
+          }
+        : { title: key === "notes" ? t("notes") : t("tableOfContents"), tall: true, body: sidePanel(key) };
+  const drawer: ReaderDrawer | null = isPhone && !toolbarOnTop && appearanceOpen ? "appearance" : null;
   const closeDrawer = () => setAppearanceOpen(false);
   const renderDrawer = (): ReaderBottomBarDrawer => ({
     title: t("readingAppearance"),
@@ -571,12 +649,6 @@ export function ReaderShellOverlay({
   // swipe from the left edge, or a drag toward the side each one leaves by.
   const tocSheetRef = useRef<HTMLElement | null>(null);
   const chatSheetRef = useRef<HTMLElement | null>(null);
-  usePanelSwipeDismiss(tocSheetRef, {
-    open: sideOpen,
-    enabled: isPhone && visible && sideOpen,
-    exit: "left",
-    onDismiss: closeSide,
-  });
   usePanelSwipeDismiss(chatSheetRef, {
     open: notesOpen,
     enabled: isPhone && visible && notesOpen,
@@ -622,7 +694,7 @@ export function ReaderShellOverlay({
           Left padding clears the macOS traffic lights when present. */}
       <div
         data-tauri-drag-region="deep"
-        inert={!visible}
+        inert={!barsVisible}
         style={{
           // Left clears the macOS traffic lights (zero on Windows/Linux, where
           // the frameless reader keeps no window controls at all — immersive
@@ -634,7 +706,8 @@ export function ReaderShellOverlay({
           paddingLeft: "max(1.25rem, var(--ra-traffic-light-inset), var(--ra-safe-left))",
           paddingRight: "max(1.25rem, var(--ra-safe-right))",
           paddingTop: "var(--ra-safe-top)",
-          height: "var(--ra-reader-bar-height)",
+          // A phone's actions at the top add their own row under the 3rem band.
+          height: toolbarOnTop ? "calc(var(--ra-reader-bar-height) + 2.75rem)" : "var(--ra-reader-bar-height)",
         }}
         className={cn(
           // Fixed 3rem content band, matching the main AppHeader. Both bars then
@@ -647,12 +720,18 @@ export function ReaderShellOverlay({
           // button tooltips nested inside it aren't painted under the DOM-later
           // contents/chat panels. Lifting the whole band lifts them too.
           "pointer-events-auto relative z-20 shrink-0 bg-fill transition-all duration-250 ease-out",
-          visible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none",
+          barsVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none",
         )}
       >
         {/* On phones the progress scrubber takes hold of the whole header
             behind this row; lifting the row keeps its buttons' taps. */}
-        <div className={cn("pointer-events-none flex h-full items-center gap-3", isPhone && "relative z-[1]")}>
+        <div
+          className={cn(
+            "pointer-events-none flex items-center gap-3",
+            toolbarOnTop ? "h-12" : "h-full",
+            isPhone && "relative z-[1]",
+          )}
+        >
           {/* Phones keep back to the left of the title and "More" to its
               right; everything else lives in the bottom toolbar. Equal-width
               sides keep the title centered even when "More" has nothing. */}
@@ -764,6 +843,18 @@ export function ReaderShellOverlay({
           )}
         </div>
 
+        {/* The phone's actions, every control at the top: the bottom bar's
+            slots, measured the same way, in a row under the title band. */}
+        {toolbarOnTop && (
+          <div
+            ref={toolbarRowRef}
+            className="relative z-[1] -mx-3 grid"
+            style={{ gridTemplateColumns: `repeat(${Math.max(1, toolbarSlots.length)}, minmax(0, 1fr))` }}
+          >
+            {toolbarSlots}
+          </div>
+        )}
+
         {/* Reading progress, merged into the header's bottom edge — and the
             scrubber: hover it for a readout, drag it to jump. On phones a
             sideways drag anywhere across the header scrubs. */}
@@ -787,68 +878,37 @@ export function ReaderShellOverlay({
         {drawer && (
           <div aria-hidden="true" className="pointer-events-auto absolute inset-0 z-[1]" onClick={closeDrawer} />
         )}
-        {/* Side panel (left): contents, notes or search */}
-        <section
-          ref={tocSheetRef}
-          aria-label={sideView === "notes" ? t("notes") : t("tableOfContents")}
-          inert={!(visible && sideOpen)}
-          className={cn(
-            "flex min-h-0 flex-col transition-[transform,opacity] duration-200 ease-out",
-            isPhone
-              ? // Full-screen sheet below the top bar; no divider, no resize.
-                "absolute inset-0"
-              : "relative h-full shrink-0 border-r border-border-strong/70",
-            visible && sideOpen
-              ? "pointer-events-auto translate-x-0 opacity-100"
-              : "-translate-x-full opacity-0 pointer-events-none",
-          )}
-          style={{
-            width: isPhone ? undefined : sizes.toc,
-            backgroundColor: "var(--ra-main-surface-color)",
-            ...phoneSheetInsets,
-          }}
-        >
-          <ReaderContentsPanel
-            bookId={bookId}
-            shown={visible && sideOpen}
-            view={sideView}
-            notes={{
-              annotations,
-              loadFailed: annotationsLoadFailed,
-              loadErrorCode: annotationsLoadErrorCode,
-              isLoading: annotationsLoading,
-              onRetryLoad: () => refreshAnnotations(),
-              tocEntries,
-              onNavigate: (cfiRange) => {
-                onAnnotationSelect?.(cfiRange);
-                closeTocSheetOnPhone();
-              },
-              onDelete: removeAnnotationReporting,
-              bookmarks: {
-                ...bookmarkSection,
-                onOpen: (bookmark) => {
-                  void bookmarkActions.open(bookmark).then((moved) => {
-                    if (moved) closeTocSheetOnPhone();
-                  });
-                },
-              },
+        {/* Side panel (left): the contents or the notes. A phone shows them in
+            a tall sheet instead (ReaderSheet below). */}
+        {!isPhone && (
+          <section
+            ref={tocSheetRef}
+            aria-label={sideView === "notes" ? t("notes") : t("tableOfContents")}
+            inert={!(visible && sideOpen)}
+            className={cn(
+              "flex min-h-0 flex-col transition-[transform,opacity] duration-200 ease-out",
+              "relative h-full shrink-0 border-r border-border-strong/70",
+              visible && sideOpen
+                ? "pointer-events-auto translate-x-0 opacity-100"
+                : "-translate-x-full opacity-0 pointer-events-none",
+            )}
+            style={{
+              width: isPhone ? undefined : sizes.toc,
+              backgroundColor: "var(--ra-main-surface-color)",
+              ...phoneSheetInsets,
             }}
-            entries={tocEntries}
-            activeIndex={activeTocIndex}
-            onChapterSelect={(href) => {
-              onChapterSelect?.(href);
-              closeTocSheetOnPhone();
-            }}
-          />
-          {!isPhone && (
-            <ReaderResizeHandle
-              edge="right"
-              ariaLabel={t("resizeContents")}
-              onResize={(delta) => adjustPanel("toc", delta)}
-              onCommit={persistPanelSizes}
-            />
-          )}
-        </section>
+          >
+            {sidePanel(sideView)}
+            {!isPhone && (
+              <ReaderResizeHandle
+                edge="right"
+                ariaLabel={t("resizeContents")}
+                onResize={(delta) => adjustPanel("toc", delta)}
+                onCommit={persistPanelSizes}
+              />
+            )}
+          </section>
+        )}
 
         {/* AI conversation (right) */}
         <section
@@ -890,9 +950,9 @@ export function ReaderShellOverlay({
         </section>
       </div>
 
-      {isPhone && (
+      {isPhone && !toolbarOnTop && (
         <ReaderBottomBar
-          visible={visible}
+          visible={barsVisible}
           drawerId={drawerId}
           drawer={drawer}
           renderDrawer={renderDrawer}
@@ -901,6 +961,7 @@ export function ReaderShellOverlay({
           slots={toolbarSlots}
         />
       )}
+      {isPhone && <ReaderSheet active={phoneSheet} render={renderPhoneSheet} onClose={closePhoneSheet} />}
     </div>
   );
 }

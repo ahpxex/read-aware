@@ -5,7 +5,7 @@
  * (docs/plugins/plugin-system.md §7).
  */
 import { useTranslation } from "../../../i18n";
-import { HeaderFooterEditor, HeaderFooterEnabledToggle } from "../../menus";
+import { HeaderFooterEditor, HeaderFooterEnabledToggle, ReaderToolbarPlacementChoice } from "../../menus";
 import { MenuSurfaceEditor } from "../../menus/components/MenuSurfaceEditor";
 import type { MenuSurface } from "../../menus/state/menu-config";
 import { SettingsGroup } from "../components/SettingsGroup";
@@ -19,6 +19,11 @@ export function MenusPanel() {
     <SettingsPage title={t("menus.title")} description={t("menus.description")}>
       {SURFACES.map((surface) => (
         <SettingsGroup key={surface} title={t(`menus.surface.${surface}` as never)}>
+          {surface === "readerToolbar" && (
+            <div className="mb-4">
+              <ReaderToolbarPlacementChoice />
+            </div>
+          )}
           <MenuSurfaceEditor surface={surface} />
         </SettingsGroup>
       ))}

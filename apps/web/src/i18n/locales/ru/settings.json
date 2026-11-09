@@ -740,6 +740,11 @@
       "notShown": "Скрытые",
       "hideItem": "Скрыть {{item}}",
       "showItem": "Показать {{item}}"
+    },
+    "toolbarPlacement": {
+      "label": "Расположение",
+      "bottom": "Внизу",
+      "top": "Вверху"
     }
   },
   "search": {

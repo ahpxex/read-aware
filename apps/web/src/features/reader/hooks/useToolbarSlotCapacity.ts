@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 
 /**
  * Narrowest toolbar slot: the platform's minimum touch target. A 393pt phone
@@ -12,13 +12,13 @@ const MIN_SLOT_PX = 44;
  * into its own answer.
  */
 export function useToolbarSlotCapacity(active: boolean) {
-  const rowRef = useRef<HTMLDivElement | null>(null);
+  // A callback ref, so the measurement follows the row element itself: the
+  // toolbar mounts only at phone widths, possibly after this hook's first run,
+  // and moves between the bottom bar and the top bar with its placement.
+  const [row, rowRef] = useState<HTMLDivElement | null>(null);
   const [capacity, setCapacity] = useState(0);
 
-  // Keyed on `active`: the toolbar mounts only at phone widths, possibly
-  // after this hook's first run.
   useLayoutEffect(() => {
-    const row = rowRef.current;
     if (!active || !row) return;
     const measure = () => {
       // The content box: the row pads itself clear of the screen edges.
@@ -31,7 +31,7 @@ export function useToolbarSlotCapacity(active: boolean) {
     const observer = new ResizeObserver(measure);
     observer.observe(row);
     return () => observer.disconnect();
-  }, [active]);
+  }, [active, row]);
 
   return { rowRef, capacity };
 }

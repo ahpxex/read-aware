@@ -831,6 +831,11 @@
       "notShown": "未显示",
       "hideItem": "隐藏{{item}}",
       "showItem": "显示{{item}}"
+    },
+    "toolbarPlacement": {
+      "label": "位置",
+      "bottom": "底部",
+      "top": "顶部"
     }
   },
   "search": {

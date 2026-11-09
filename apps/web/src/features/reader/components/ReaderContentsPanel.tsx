@@ -1,7 +1,8 @@
 import { useCallback, useDeferredValue, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { BookmarkSimple } from "@phosphor-icons/react";
+import { BookmarkSimple, MagnifyingGlass } from "@phosphor-icons/react";
 import type { Bookmark, ReadingLocation } from "@read-aware/core";
-import { IconButton, ScrollArea, SearchField, Tabs, Tooltip, useToast } from "@read-aware/ui";
+import { Button, ChoiceGroup, IconButton, ScrollArea, SearchField, Tooltip, useToast } from "@read-aware/ui";
+import { cn } from "@read-aware/ui/cn";
 import { describeError, useTranslation } from "../../../i18n";
 import { createLogger } from "../../../platform/logger";
 import type { Annotation } from "../../annotations";
@@ -47,7 +48,8 @@ export function ReaderContentsPanel({
 }) {
   const { t } = useTranslation("reader");
   const { toast } = useToast();
-  const [tab, setTab] = useState(0);
+  const [view, setView] = useState<"contents" | "bookmarks">("contents");
+  const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState("");
   // Matching runs on every keystroke; a deferred query keeps typing smooth in
   // a book with tens of thousands of contents entries.
@@ -58,17 +60,17 @@ export function ReaderContentsPanel({
   const currentChapter = activeIndex >= 0 ? entries[activeIndex]?.label : undefined;
   const { bookmarks, failed: bookmarksFailed } = useReaderBookmarks(bookId);
   const bookmarkActions = useReaderBookmarkActions(currentChapter);
-  const search = useContentsSearch(bookId, deferredQuery, shown);
+  const search = useContentsSearch(bookId, deferredQuery, shown && searching);
   const matches = useMemo<ContentsMatches>(
     () =>
-      deferredQuery
+      searching && deferredQuery
         ? {
             chapters: matchChapters(entries, deferredQuery),
             bookmarks: matchBookmarks(bookmarks ?? [], deferredQuery),
             marks: matchAnnotations(annotations, deferredQuery),
           }
         : { chapters: [], bookmarks: [], marks: [] },
-    [annotations, bookmarks, deferredQuery, entries],
+    [annotations, bookmarks, deferredQuery, entries, searching],
   );
 
   // The overlay re-renders on every page turn; its callbacks are read through
@@ -114,29 +116,79 @@ export function ReaderContentsPanel({
     [entries],
   );
 
-  const bookmarksTab = 1;
+  const closeSearch = () => {
+    setSearching(false);
+    setQuery("");
+  };
+  const scrollBody = "pb-[calc(1rem+var(--ra-safe-bottom))]";
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 px-4 pt-4 pb-2">
-        <SearchField
-          size="sm"
-          label={t("contentsSearchLabel")}
-          placeholder={t("contentsSearch")}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onKeyDown={(event) => {
-            // Typing in the search must never turn pages or trigger reader keys.
-            event.stopPropagation();
-            if (event.key === "Escape" && query) {
-              event.preventDefault();
-              setQuery("");
-            }
-          }}
-        />
+      {/* One quiet row: the view switch and its actions, or — while searching —
+          the search field in its place. Words align with the rows' text. */}
+      <div className="flex h-12 shrink-0 items-center gap-1 pr-3 pl-7">
+        {searching ? (
+          <>
+            <SearchField
+              variant="plain"
+              size="sm"
+              autoFocus
+              className="min-w-0 flex-1"
+              label={t("contentsSearchLabel")}
+              placeholder={t("contentsSearch")}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                // Typing in the search must never turn pages or trigger reader keys.
+                event.stopPropagation();
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  if (query) setQuery("");
+                  else closeSearch();
+                }
+              }}
+            />
+            {/* The field's own ⊗ clears the text; this leaves the search. */}
+            <Button variant="ghost" size="sm" onClick={closeSearch}>
+              {t("cancelSearch")}
+            </Button>
+          </>
+        ) : (
+          <>
+            <ChoiceGroup
+              ariaLabel={t("contents")}
+              className="min-w-0 flex-1"
+              value={view}
+              onChange={setView}
+              options={[
+                { value: "contents", label: t("contents") },
+                { value: "bookmarks", label: t("bookmarksTab") },
+              ]}
+            />
+            {view === "bookmarks" && (
+              <Tooltip content={t("addBookmark")} side="bottom">
+                <IconButton
+                  size="sm"
+                  label={t("addBookmark")}
+                  icon={<BookmarkSimple size={16} />}
+                  onClick={() => void bookmarkActions.add()}
+                />
+              </Tooltip>
+            )}
+            <Tooltip content={t("contentsSearchLabel")} side="bottom">
+              <IconButton
+                size="sm"
+                label={t("contentsSearchLabel")}
+                icon={<MagnifyingGlass size={16} />}
+                onClick={() => setSearching(true)}
+              />
+            </Tooltip>
+          </>
+        )}
       </div>
-      {deferredQuery ? (
-        <ScrollArea className="min-h-0 flex-1">
-          <div className="pb-[calc(1rem+var(--ra-safe-bottom))]">
+      {/* Keyed by what it shows, so each view starts from its own scroll position. */}
+      <ScrollArea key={searching ? "search" : view} className="min-h-0 flex-1">
+        {searching && deferredQuery ? (
+          <div className={scrollBody}>
             <ReaderContentsResults
               query={deferredQuery}
               entries={entries}
@@ -148,66 +200,31 @@ export function ReaderContentsPanel({
               onLocation={goToLocation}
             />
           </div>
-        </ScrollArea>
-      ) : (
-        <Tabs
-          fill
-          className="min-h-0 flex-1"
-          tabListClassName="px-4"
-          activeIndex={tab}
-          onActiveIndexChange={setTab}
-          ariaLabel={t("contents")}
-          trailing={
-            tab === bookmarksTab ? (
-              <Tooltip content={t("addBookmark")} side="bottom">
-                <IconButton
-                  size="sm"
-                  label={t("addBookmark")}
-                  icon={<BookmarkSimple size={16} />}
-                  onClick={() => void bookmarkActions.add()}
-                />
-              </Tooltip>
-            ) : undefined
-          }
-          items={[
-            {
-              label: t("contents"),
-              content: (
-                <ScrollArea className="h-full min-h-0">
-                  {/* No horizontal padding here: the rows carry it themselves,
-                      so the current chapter's highlight reaches both edges. */}
-                  <div ref={listRef} tabIndex={-1} className="flex flex-col py-2 pb-[calc(1rem+var(--ra-safe-bottom))]">
-                    <ReaderTocList
-                      bookId={bookId}
-                      entries={entries}
-                      activeIndex={activeIndex}
-                      revealing={shown && tab === 0}
-                      onSelect={goToChapter}
-                    />
-                  </div>
-                </ScrollArea>
-              ),
-            },
-            {
-              label: t("bookmarksTab"),
-              content: (
-                <ScrollArea className="h-full min-h-0">
-                  <div className="py-2 pb-[calc(1rem+var(--ra-safe-bottom))]">
-                    <ReaderBookmarkList
-                      bookmarks={bookmarks}
-                      failed={bookmarksFailed}
-                      subtitleOf={bookmarkChapter}
-                      onOpen={openBookmark}
-                      onRename={(bookmark, name) => void bookmarkActions.rename(bookmark, name)}
-                      onRemove={(bookmark) => void bookmarkActions.remove(bookmark)}
-                    />
-                  </div>
-                </ScrollArea>
-              ),
-            },
-          ]}
-        />
-      )}
+        ) : view === "contents" ? (
+          // No horizontal padding here: the rows carry it themselves, so the
+          // current chapter's highlight reaches both edges.
+          <div ref={listRef} tabIndex={-1} className={cn("flex flex-col pb-4", scrollBody)}>
+            <ReaderTocList
+              bookId={bookId}
+              entries={entries}
+              activeIndex={activeIndex}
+              revealing={shown && !searching}
+              onSelect={goToChapter}
+            />
+          </div>
+        ) : (
+          <div className={scrollBody}>
+            <ReaderBookmarkList
+              bookmarks={bookmarks}
+              failed={bookmarksFailed}
+              subtitleOf={bookmarkChapter}
+              onOpen={openBookmark}
+              onRename={(bookmark, name) => void bookmarkActions.rename(bookmark, name)}
+              onRemove={(bookmark) => void bookmarkActions.remove(bookmark)}
+            />
+          </div>
+        )}
+      </ScrollArea>
     </div>
   );
 }

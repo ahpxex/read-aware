@@ -24,6 +24,7 @@ import { useOpenBookRequestHandler } from "./features/ai/hooks/useOpenBookReques
 import { newGlobalThreadId } from "./features/ai/lib/conversation-store";
 import { activeGlobalThreadAtom } from "./features/ai/state/global-thread";
 import { useReaderSession } from "./features/reader/hooks/useReaderSession";
+import { useReaderStandby } from "./features/reader/hooks/useReaderStandby";
 import { useGlobalShortcuts } from "./features/settings/hooks/useGlobalShortcuts";
 import { useBillingReturnDeepLink } from "./features/settings/hooks/useBillingReturnDeepLink";
 import { useSyncLoginDeepLink } from "./features/settings/hooks/useSyncLoginDeepLink";
@@ -252,6 +253,15 @@ function App() {
   useEffect(() => {
     if (shelfHandoff === "idle") setHeldShelfBooks(null);
   }, [shelfHandoff]);
+  // The reader holds a book nobody is reading: behind the shelf, out of reach.
+  const readerStanding = reader.standby && !readerExiting;
+  // The book read last is the one most often opened next: keep it ready.
+  useReaderStandby({
+    enabled: library.libraryReady && pluginsReady && !reader.selectedBook && shelfHandoff === "idle" && !readerExiting,
+    holding: reader.readerBook?.id ?? null,
+    books: library.books,
+    standbyBook: reader.standbyBook,
+  });
 
   const agentHeaderActions = useAgentHeaderActions({
     books: library.books,
@@ -422,16 +432,31 @@ function App() {
         }}
       />
 
-      {reader.selectedBook && (
-        // While closing, the reader becomes a fixed overlay dissolving over
-        // the (opaque) shelf that has already remounted underneath.
-        <div className={cn(readerExiting && "ra-motion-surface-exit pointer-events-none fixed inset-0 z-40")}>
+      {reader.readerBook && (
+        // The reader is mounted for the book it holds, read or not. While
+        // closing it is a fixed overlay dissolving over the (opaque) shelf
+        // that has already remounted underneath; then it stands by with the
+        // book: laid out at full size behind the shelf, so opening it again
+        // is only showing it, but never painted, focused or reachable.
+        <div
+          className={cn(
+            readerExiting && "ra-motion-surface-exit pointer-events-none fixed inset-0 z-40",
+            readerStanding && "pointer-events-none invisible fixed inset-0",
+          )}
+          inert={readerStanding}
+          aria-hidden={readerStanding ? true : undefined}
+        >
           {/* Fallback shows only if warmup hasn't fetched the chunk yet (rare):
             a quiet paper surface, matching the reader's own pre-render state. */}
-          <FeatureErrorBoundary surface="reader" resetKey={reader.selectedBook.id}>
+          <FeatureErrorBoundary surface="reader" resetKey={reader.readerBook.id}>
             <Suspense fallback={<div className="h-dvh w-full bg-paper" />}>
               <ReaderWorkspace
-                selectedBook={reader.selectedBook}
+                // One mount per book: everything the reader keeps is the
+                // book's, and a session that starts on a standing book keeps it.
+                key={reader.readerBook.id}
+                standby={reader.standby}
+                onStandbyFailure={reader.dropStandby}
+                selectedBook={reader.readerBook}
                 readerSource={reader.readerSource}
                 readerLoadError={reader.readerLoadError}
                 isReaderLoading={reader.isReaderLoading}

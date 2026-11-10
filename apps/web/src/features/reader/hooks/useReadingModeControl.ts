@@ -18,8 +18,15 @@ import {
   textUnitModeStateKey,
 } from "../lib/text-unit-mode-state";
 
-/** One mode owner for native controls and both external actors. */
-export function useReadingModeControl(bookId: string, supported: boolean) {
+/**
+ * One mode owner for native controls and both external actors.
+ *
+ * `reading` is false while the reader only stands by with the book: nobody is
+ * choosing a mode, so the mode is not published as the reader's, bound to the
+ * reading runtime, reconciled or written. The controller is made anew when
+ * reading starts, from what is stored then and for the session that started.
+ */
+export function useReadingModeControl(bookId: string, supported: boolean, reading = true) {
   const modes = useAtomValue(readerModesAtom);
   const locale = useLocale();
   const controller = useMemo(() => {
@@ -37,7 +44,9 @@ export function useReadingModeControl(bookId: string, supported: boolean) {
     );
     controller.requireDurability();
     return controller;
-  }, [bookId]);
+    // `reading`: a standing reader's controller is not carried into a session.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookId, reading]);
   const configurationWrites = useMemo(
     () => new ReadingModeConfigurationWrites(controller.configurationConfirmed),
     [controller],
@@ -98,6 +107,7 @@ export function useReadingModeControl(bookId: string, supported: boolean) {
     if (controller.retire()) persistRequest();
   }, [controller, persistRequest]);
   useEffect(() => {
+    if (!reading) return;
     const previous = previousEnvironment.current;
     const initial = previous?.controller !== controller;
     const origin = initial
@@ -111,8 +121,9 @@ export function useReadingModeControl(bookId: string, supported: boolean) {
         : origin;
     previousEnvironment.current = { controller, modes, key: request.modeKey, selected };
     controller.environment(descriptors, supported, origin, selectionOrigin);
-  }, [controller, descriptors, modes, request.modeKey, selected, supported]);
+  }, [controller, descriptors, modes, reading, request.modeKey, selected, supported]);
   useEffect(() => {
+    if (!reading) return;
     const publish = (origin?: DomainActor) =>
       setActiveReaderMode(controller, controller.requested().modeKey, origin ?? controller.requested().origin);
     publish();
@@ -121,32 +132,32 @@ export function useReadingModeControl(bookId: string, supported: boolean) {
       off();
       releaseActiveReaderMode(controller, actorFromEvent(readingRuntime.snapshot()));
     };
-  }, [controller]);
+  }, [controller, reading]);
 
-  useEffect(
-    () =>
-      onLocalKVCommit((commit) => {
-        const key = controller.requested().modeKey;
-        if (!key || commit.entries.some((entry) => entry.key === textUnitModeStateKey(bookId))) return;
-        // Configuration already commits the book and provider together. Only a
-        // separate durable preference edit is a new intent; optimistic mirrors
-        // and failed-write rollback must never manufacture one.
-        const entry = commit.entries.find((entry) => entry.key === pluginSettingsKey(key.slice(0, key.indexOf(":"))));
-        if (!entry) return;
-        let unitId: string | null = null;
-        try {
-          const value: unknown = entry.value ? JSON.parse(entry.value) : null;
-          if (value && typeof value === "object" && "unitId" in value && typeof value.unitId === "string")
-            unitId = value.unitId;
-        } catch {
-          /* Invalid stored values provide no unit preference. */
-        }
-        const origin = eventCause(commit) ? actorFromEvent(commit, commit.actor ?? "system") : causalActor("system");
-        void controller.reconcilePreference(() => unitId, origin);
-      }),
-    [bookId, controller],
-  );
   useEffect(() => {
+    if (!reading) return;
+    return onLocalKVCommit((commit) => {
+      const key = controller.requested().modeKey;
+      if (!key || commit.entries.some((entry) => entry.key === textUnitModeStateKey(bookId))) return;
+      // Configuration already commits the book and provider together. Only a
+      // separate durable preference edit is a new intent; optimistic mirrors
+      // and failed-write rollback must never manufacture one.
+      const entry = commit.entries.find((entry) => entry.key === pluginSettingsKey(key.slice(0, key.indexOf(":"))));
+      if (!entry) return;
+      let unitId: string | null = null;
+      try {
+        const value: unknown = entry.value ? JSON.parse(entry.value) : null;
+        if (value && typeof value === "object" && "unitId" in value && typeof value.unitId === "string")
+          unitId = value.unitId;
+      } catch {
+        /* Invalid stored values provide no unit preference. */
+      }
+      const origin = eventCause(commit) ? actorFromEvent(commit, commit.actor ?? "system") : causalActor("system");
+      void controller.reconcilePreference(() => unitId, origin);
+    });
+  }, [bookId, controller, reading]);
+  useEffect(() => {
+    if (!reading) return;
     let persisted: ReturnType<ReadingModeController["requested"]> | undefined;
     const persist = () => {
       const requested = controller.requested();
@@ -157,9 +168,10 @@ export function useReadingModeControl(bookId: string, supported: boolean) {
     // Persist the current request, never the request captured by an older render.
     persist();
     return controller.observe(persist);
-  }, [controller, persistRequest]);
+  }, [controller, persistRequest, reading]);
 
   useEffect(() => {
+    if (!reading) return;
     let sessionId: string | null = null;
     let release: ((origin?: DomainActor) => void) | undefined;
     const unobserve = readingRuntime.observe((state) => {
@@ -191,7 +203,7 @@ export function useReadingModeControl(bookId: string, supported: boolean) {
       retire();
       void afterLocalKVWrites(() => configurationWrites.release());
     };
-  }, [bookId, controller, retire, configurationWrites]);
+  }, [bookId, controller, retire, configurationWrites, reading]);
 
   const setActive = useCallback((active: boolean) => controller.choose(active), [controller]);
   const setUnit = useCallback(

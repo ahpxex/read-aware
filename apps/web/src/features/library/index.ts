@@ -9,3 +9,6 @@ export { readBookImage } from "./lib/book-images";
 // The reader leases a book's prepared content like every other consumer.
 export { acquireBookContent, BookSourceMissingError } from "./lib/book-content-source";
 export type { BookContent, BookContentLease } from "./lib/book-content-source";
+export type { LibraryBook } from "./lib/library-types";
+// A reader standing by with a book lets go of it when its content is invalidated.
+export { contentInvalidationRevision, observeContentInvalidation } from "./lib/content-invalidation";

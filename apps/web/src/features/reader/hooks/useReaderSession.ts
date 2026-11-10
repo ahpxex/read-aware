@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { describeError, useTranslation } from "../../../i18n";
 import { useLocalAtom } from "@read-aware/ui/state";
-import { acquireBookContent, BookSourceMissingError, type BookContentLease } from "../../library";
+import {
+  acquireBookContent,
+  BookSourceMissingError,
+  contentInvalidationRevision,
+  observeContentInvalidation,
+  type BookContentLease,
+} from "../../library";
+import { onAppEvent } from "../../../platform/app-events";
 import { markLibraryBookOpened, type BookFileMissingReason } from "../../library/lib/library-db";
 import { readingTraces } from "../lib/reading-trace-runtime";
 import type { ReadingTrace } from "../lib/reading-trace";
@@ -44,21 +51,44 @@ export function useReaderSession({
 }: UseReaderSessionOptions) {
   // For localizing load-failure fallbacks (describeError's shelf fallback).
   const { t } = useTranslation(["shelf", "common"]);
+  // The book being read. Null on the shelf, even while the reader stands by
+  // with a book (`surfaceBook`): everything that asks "is a book open?" asks this.
   const [selectedBook, setSelectedBook] = useState<LibraryBook | null>(null);
+  const selectedBookRef = useRef<LibraryBook | null>(null);
+  useEffect(() => {
+    selectedBookRef.current = selectedBook;
+  }, [selectedBook]);
+  /**
+   * The book the reader surface holds: the one being read, or one it stands
+   * by with — mounted behind the shelf, parsed, laid out at its saved place,
+   * with no reading session. Closing a book leaves it standing, and the shelf
+   * can ask for the likeliest next book to be made ready (`standbyBook`).
+   * Opening that book is then only a session starting on what is there.
+   */
+  const [surfaceBook, setSurfaceBook] = useState<LibraryBook | null>(null);
+  const surface = useRef<{ bookId: string; invalidation: string; ready: boolean } | null>(null);
   const [trace, setTrace] = useState<ReadingTrace | null>(null);
   const traceRef = useRef<ReadingTrace | null>(null);
   const [readerSource, setReaderSource] = useState<ReaderSource>(null);
   const [readerLoadError, setReaderLoadError] = useState<ReaderLoadError | null>(null);
+  const readerLoadErrorRef = useRef<ReaderLoadError | null>(null);
+  useEffect(() => {
+    readerLoadErrorRef.current = readerLoadError;
+  }, [readerLoadError]);
   const [isReaderLoading, setIsReaderLoading] = useState(false);
   // The engine reports parse/render failures to the reading runtime rather
   // than through this hook. The surface handoff needs them too: otherwise it
   // keeps the shelf over a reader that will never paint a page until its
   // fallback timeout, and the error surface appears seconds late.
   const [failedSessionId, setFailedSessionId] = useState<string | null>(null);
+  const failedSessionRef = useRef<string | null>(null);
   useEffect(
     () =>
       readingRuntime.observe((state) => {
-        if (state.status === "error" && state.sessionId) setFailedSessionId(state.sessionId);
+        if (state.status === "error" && state.sessionId) {
+          failedSessionRef.current = state.sessionId;
+          setFailedSessionId(state.sessionId);
+        }
       }),
     [],
   );
@@ -158,30 +188,37 @@ export function useReaderSession({
     [applyOptimisticProgress, noteProgress, trace],
   );
 
-  const openReader = useCallback(
-    (book: LibraryBook, navigationIntent?: number, options?: { resetPosition: true }) => {
-      const sessionId = readingRuntime.begin(book.id, navigationIntent, "user");
-      const openingActor = readingRuntime.openingActor(sessionId);
-      const nextTrace = readingTraces.begin(sessionId, book.id);
-      traceRef.current = nextTrace;
-      setTrace(nextTrace);
-      controlsBinding.current?.();
-      controlsBinding.current = readingRuntime.bindControls(sessionId, controls);
+  /** Let go of the book the surface holds: nothing is mounted for it and its content is given back. */
+  const unloadSurface = useCallback(() => {
+    readerLoadRequestIdRef.current += 1;
+    surface.current = null;
+    setSurfaceBook(null);
+    resetReaderState();
+    setIsReaderLoading(false);
+    releaseContent();
+  }, [releaseContent, resetReaderState]);
+
+  /**
+   * Put `book` in the reader surface. Its content is found and parsed from
+   * this moment, alongside the reader mounting and building its engine; the
+   * engine picks the result up. A failure is the reading session's when the
+   * book is being read by then, and otherwise only ends the standing.
+   */
+  const loadSurface = useCallback(
+    (book: LibraryBook, options: { resetPosition?: true; fetchMissing: boolean }): Promise<BookContentLease> => {
       const requestId = readerLoadRequestIdRef.current + 1;
       readerLoadRequestIdRef.current = requestId;
-
-      setSelectedBook(book);
-      setShellVisible(false, openingActor);
+      const held = { bookId: book.id, invalidation: contentInvalidationRevision(book.id), ready: false };
+      surface.current = held;
+      setSurfaceBook(book);
       resetReaderState();
       setIsReaderLoading(true);
 
-      // The book is found and parsed from this moment, alongside the reader
-      // mounting and building its engine; the engine picks the result up.
       const binding = book.format === "virtual" ? getVirtualBookBinding(book.id) : null;
       const lease =
         book.format === "virtual" && !binding
           ? Promise.reject<BookContentLease>(new Error("This book's plugin content source is not available."))
-          : acquireBookContent(book.id, { fetchMissing: true });
+          : acquireBookContent(book.id, { fetchMissing: options.fetchMissing });
       // The book before this one is given back only now: releasing it first
       // could push this book out of the kept ones just before it is asked for.
       releaseContent();
@@ -196,27 +233,26 @@ export function useReaderSession({
           format: book.format,
           content,
           ...(binding ? { virtual: binding } : {}),
-          resetPosition: options?.resetPosition,
+          resetPosition: options.resetPosition,
         },
       });
 
       lease.then(
         () => {
           if (readerLoadRequestIdRef.current !== requestId) return;
+          held.ready = true;
           setIsReaderLoading(false);
-          void markLibraryBookOpened(book.id, openingActor)
-            .then((nextBook) => {
-              if (!nextBook) return;
-
-              setSelectedBook((currentBook) => (currentBook?.id === nextBook.id ? nextBook : currentBook));
-              replaceBookInState(nextBook);
-            })
-            .catch((error) => {
-              reportError(error);
-            });
         },
         (error: unknown) => {
           if (readerLoadRequestIdRef.current !== requestId) return;
+          const session = readingRuntime.snapshot();
+          const sessionId = session.bookId === book.id ? session.sessionId : null;
+          if (!sessionId) {
+            // Nobody asked for this book yet: there is nothing to tell them.
+            log.warn("a book could not be made ready ahead of opening", error);
+            unloadSurface();
+            return;
+          }
           // Nothing to render: the reader gives way to the failure surface.
           setReaderSource(null);
           setIsReaderLoading(false);
@@ -235,14 +271,100 @@ export function useReaderSession({
           });
         },
       );
+      return lease;
     },
-    [controls, releaseContent, replaceBookInState, reportError, resetReaderState, setShellVisible, t],
+    [releaseContent, resetReaderState, t, unloadSurface],
   );
+
+  const openReader = useCallback(
+    (book: LibraryBook, navigationIntent?: number, options?: { resetPosition: true }) => {
+      const sessionId = readingRuntime.begin(book.id, navigationIntent, "user");
+      const openingActor = readingRuntime.openingActor(sessionId);
+      const nextTrace = readingTraces.begin(sessionId, book.id);
+      traceRef.current = nextTrace;
+      setTrace(nextTrace);
+      controlsBinding.current?.();
+      controlsBinding.current = readingRuntime.bindControls(sessionId, controls);
+
+      setSelectedBook(book);
+      setShellVisible(false, openingActor);
+      // The reader already stands by with this book, as it was left or as it
+      // was made ready: the session starts on what is there. Anything else —
+      // another book, a reload, content that changed since, a book still
+      // being made ready (which may not fetch a missing file) — is loaded.
+      const standing = surface.current;
+      const lease =
+        !options?.resetPosition &&
+        standing?.bookId === book.id &&
+        standing.ready &&
+        standing.invalidation === contentInvalidationRevision(book.id) &&
+        contentLease.current
+          ? contentLease.current
+          : loadSurface(book, { resetPosition: options?.resetPosition, fetchMissing: true });
+      // The latest record of the book: its progress may have moved since the reader stood by with it.
+      setSurfaceBook(book);
+
+      lease.then(
+        () => {
+          if (readingRuntime.snapshot().sessionId !== sessionId) return;
+          void markLibraryBookOpened(book.id, openingActor)
+            .then((nextBook) => {
+              if (!nextBook) return;
+
+              setSelectedBook((currentBook) => (currentBook?.id === nextBook.id ? nextBook : currentBook));
+              replaceBookInState(nextBook);
+            })
+            .catch((error) => {
+              reportError(error);
+            });
+        },
+        // Reported where the surface was loaded.
+        () => {},
+      );
+    },
+    [controls, loadSurface, replaceBookInState, reportError, setShellVisible],
+  );
+
+  /**
+   * Make `book` ready in the reader while the shelf is showing, so opening it
+   * is immediate. Ignored while a book is being read, for the book the reader
+   * already holds, and for plugin-provided books, whose content is resolved
+   * by each opening.
+   */
+  const standbyBook = useCallback(
+    (book: LibraryBook) => {
+      if (readingRuntime.snapshot().sessionId || surface.current?.bookId === book.id || book.format === "virtual")
+        return;
+      setReaderLoadError(null);
+      // Never from the relay: a book that is not on this device waits to be asked for.
+      void loadSurface(book, { fetchMissing: false }).catch(() => {
+        // Reported where the surface was loaded.
+      });
+    },
+    [loadSurface],
+  );
+
+  /** The standing engine failed, or what it stood on is gone: a later opening starts over. */
+  const dropStandby = useCallback(
+    (bookId?: string) => {
+      if (readingRuntime.snapshot().sessionId) return;
+      if (bookId && surface.current?.bookId !== bookId) return;
+      unloadSurface();
+    },
+    [unloadSurface],
+  );
+  useEffect(() => {
+    const offInvalidation = observeContentInvalidation((bookId) => dropStandby(bookId));
+    const offRemoval = onAppEvent("book-removed", ({ bookId }) => dropStandby(bookId));
+    return () => {
+      offInvalidation();
+      offRemoval();
+    };
+  }, [dropStandby]);
 
   const closeReader = useCallback(async () => {
     const closing = traceRef.current;
     const sessionId = readingRuntime.snapshot().sessionId;
-    readerLoadRequestIdRef.current += 1;
     try {
       await closing?.retire();
       if (readingRuntime.snapshot().sessionId !== sessionId) {
@@ -254,16 +376,20 @@ export function useReaderSession({
     } finally {
       // A late close must never clear a replacement, including the same book.
       if (readingRuntime.snapshot().sessionId === sessionId) {
+        const failed = !!readerLoadErrorRef.current || failedSessionRef.current === sessionId;
+        const left = selectedBookRef.current;
         readingRuntime.closed();
         traceRef.current = null;
         setTrace(null);
         setSelectedBook(null);
         setShellVisible(false);
-        resetReaderState();
-        releaseContent();
+        // The reader keeps the book, standing by where it was left, so that
+        // coming back to it is immediate. One that never opened is let go.
+        if (failed || !left || surface.current?.bookId !== left.id) unloadSurface();
+        else setSurfaceBook(left);
       }
     }
-  }, [releaseContent, reportError, resetReaderState, setShellVisible]);
+  }, [reportError, setShellVisible, unloadSurface]);
 
   const toggleShell = useCallback(() => {
     setShellVisible((visible) => !visible);
@@ -342,14 +468,21 @@ export function useReaderSession({
   );
 
   const overlayVisible = shellVisible;
-  const selectedEpubProgress = selectedBook?.progress ?? null;
+  // The reader shows the book it holds, read or standing.
+  const readerBook = selectedBook ?? surfaceBook;
+  const selectedEpubProgress = readerBook?.progress ?? null;
   // The engine's fraction once it has relocated; before that, the position the
   // book was left at (so the bar opens where reading stopped).
-  const readerProgress =
-    readerFraction ?? (selectedBook?.progressPercent ? selectedBook.progressPercent / 100 : undefined);
+  const readerProgress = readerFraction ?? (readerBook?.progressPercent ? readerBook.progressPercent / 100 : undefined);
 
   return {
     selectedBook,
+    /** The book in the reader surface: the one being read, or one it stands by with. */
+    readerBook,
+    /** Nobody is reading the book the reader holds. */
+    standby: !selectedBook && !!surfaceBook,
+    standbyBook,
+    dropStandby,
     readerSource,
     readerLoadError,
     readerFailed: !!readerLoadError || (!!trace && failedSessionId === trace.id),

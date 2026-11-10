@@ -67,6 +67,15 @@ type ReaderWorkspaceProps = {
   onBookReady: (book: LibraryBook, foliateBook: FoliateBook) => void;
   onChapterSelect: (href: string) => void;
   onAnnotationSelect: (cfiRange: string) => void;
+  /**
+   * The reader holds this book ready behind the shelf and nobody is reading
+   * it (see FoliateReaderView's `standby`). Only the engine is mounted: no
+   * chrome, no page strips, no reading time, no mode, and the window keeps
+   * its own controls.
+   */
+  standby?: boolean;
+  /** The standing book could not be made ready; let go of it. */
+  onStandbyFailure?: () => void;
 };
 
 export function ReaderWorkspace({
@@ -100,6 +109,8 @@ export function ReaderWorkspace({
   onBookReady,
   onChapterSelect,
   onAnnotationSelect,
+  standby = false,
+  onStandbyFailure,
 }: ReaderWorkspaceProps) {
   const { t } = useTranslation(["reader", "common"]);
   const contentFocus = useRef<HTMLDivElement | null>(null);
@@ -136,7 +147,7 @@ export function ReaderWorkspace({
   // Hide the native traffic lights only during true immersive reading (book
   // rendered, header dismissed). While the book is still loading or errored
   // there's no immersive view yet, so keep the window controls reachable.
-  useImmersiveWindowControls(overlayVisible || !readerSource);
+  useImmersiveWindowControls(standby || overlayVisible || !readerSource);
 
   // The official plugin supplies unit segmentation; the host still owns
   // the engine bridge and every control. State lives here so the shell header
@@ -148,8 +159,11 @@ export function ReaderWorkspace({
   const [isFixedLayout, setIsFixedLayout] = useState(false);
   // The open book's page count by position, for the progress bar's readout.
   const [pageLocator, setPageLocator] = useState<ReadingPageLocator | null>(null);
-  const modeControl = useReadingModeControl(selectedBook.id, !isFixedLayout);
-  const textUnitMode = modeControl.mode;
+  const modeControl = useReadingModeControl(selectedBook.id, !isFixedLayout, !standby);
+  // A standing reader shows the plain page and the mode resumes with the
+  // reading. The mode stays the book's: it is suspended (active, with nothing
+  // to run it), never switched off, which would be written as the reader's choice.
+  const textUnitMode = standby ? null : modeControl.mode;
   const { setActive: setModeActive } = modeControl;
   const textUnitModeActive = modeControl.request.active;
   const [readingCursor, setReadingCursor] = useState<ReadingCursor | null>(null);
@@ -166,7 +180,7 @@ export function ReaderWorkspace({
 
   // Track active reading time once the book is rendered. Reader relocate/page
   // callbacks bump activity so in-iframe reading isn't mistaken for idle.
-  const { recordActivity } = useReadingTimeTracker(selectedBook.id, !!readerSource);
+  const { recordActivity } = useReadingTimeTracker(selectedBook.id, !standby && !!readerSource);
   const handlePageChange = useCallback(
     (current: number, total: number) => {
       recordActivity();
@@ -226,10 +240,12 @@ export function ReaderWorkspace({
           chapterNavigationRequest={chapterNavigationRequest}
           annotationNavigationRequest={annotationNavigationRequest}
           fractionNavigationRequest={fractionNavigationRequest}
+          standby={standby}
+          onStandbyFailure={onStandbyFailure}
         />
       ) : null}
 
-      {!readerSource && (
+      {!readerSource && !standby && (
         <div className="absolute inset-0 flex items-center justify-center bg-paper px-8">
           {readerLoadError ? (
             <ReaderFailureView
@@ -249,7 +265,7 @@ export function ReaderWorkspace({
         </div>
       )}
 
-      {readerSource && (
+      {readerSource && !standby && (
         <ReaderHeaderFooter
           layout={headerFooterLayout}
           palette={readerPalette}
@@ -262,34 +278,38 @@ export function ReaderWorkspace({
         />
       )}
 
-      <ReaderShellOverlay
-        visible={headerVisible}
-        visibilityOrigin={overlayOrigin}
-        onBack={onCloseReader}
-        book={selectedBook}
-        progress={readerProgress}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        tocEntries={readerToc}
-        currentChapterHref={currentChapterHref}
-        readingCursor={
-          readingCursor ?? {
-            ...(selectedEpubProgress?.cfi ? { anchor: selectedEpubProgress.cfi } : {}),
-            ...(currentChapterHref ? { chapter: currentChapterHref } : {}),
-            ...(readerProgress !== undefined ? { bookProgress: readerProgress } : {}),
-            ...(totalPages > 0 ? { location: { current: currentPage, total: totalPages } } : {}),
+      {/* The chrome, its panels and the book's conversation belong to a
+          reading: a standing reader mounts none of them. */}
+      {!standby && (
+        <ReaderShellOverlay
+          visible={headerVisible}
+          visibilityOrigin={overlayOrigin}
+          onBack={onCloseReader}
+          book={selectedBook}
+          progress={readerProgress}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          tocEntries={readerToc}
+          currentChapterHref={currentChapterHref}
+          readingCursor={
+            readingCursor ?? {
+              ...(selectedEpubProgress?.cfi ? { anchor: selectedEpubProgress.cfi } : {}),
+              ...(currentChapterHref ? { chapter: currentChapterHref } : {}),
+              ...(readerProgress !== undefined ? { bookProgress: readerProgress } : {}),
+              ...(totalPages > 0 ? { location: { current: currentPage, total: totalPages } } : {}),
+            }
           }
-        }
-        onChapterSelect={onChapterSelect}
-        onAnnotationSelect={onAnnotationSelect}
-        onSeek={onSeek}
-        pageAt={pageLocator ?? undefined}
-        textUnitMode={textUnitMode}
-        textUnitModeActive={textUnitModeActive}
-        modeSnapshot={modeControl.snapshot}
-        onToggleTextUnitMode={toggleTextUnitMode}
-        fixedLayout={isFixedLayout}
-      />
+          onChapterSelect={onChapterSelect}
+          onAnnotationSelect={onAnnotationSelect}
+          onSeek={onSeek}
+          pageAt={pageLocator ?? undefined}
+          textUnitMode={textUnitMode}
+          textUnitModeActive={textUnitModeActive}
+          modeSnapshot={modeControl.snapshot}
+          onToggleTextUnitMode={toggleTextUnitMode}
+          fixedLayout={isFixedLayout}
+        />
+      )}
     </div>
   );
 }

@@ -75,9 +75,6 @@ export function ReaderSearchPanel({
   // Matching runs on every keystroke; a deferred query keeps typing smooth in
   // a book with tens of thousands of contents entries.
   const deferredQuery = useDeferredValue(query.trim());
-  const search = useContentsSearch(bookId, deferredQuery, shown);
-  const rowsRef = useRef<VirtualRowsHandle | null>(null);
-  const rememberPlace = useSearchListPlace(bookId, deferredQuery, rowsRef);
   const matches = useMemo<ContentsMatches>(
     () =>
       deferredQuery
@@ -89,6 +86,11 @@ export function ReaderSearchPanel({
         : { chapters: [], bookmarks: [], marks: [] },
     [annotations, bookmarks, deferredQuery, entries],
   );
+  // The chapters listed as results: their titles are not listed again as text.
+  const chapterTitles = useMemo(() => matches.chapters.map((index) => entries[index]!.label), [matches, entries]);
+  const search = useContentsSearch(bookId, deferredQuery, shown, chapterTitles);
+  const rowsRef = useRef<VirtualRowsHandle | null>(null);
+  const rememberPlace = useSearchListPlace(bookId, deferredQuery, rowsRef);
 
   // The overlay re-renders on every page turn; its callbacks are read through
   // a ref so the (possibly long) result rows are not rebuilt each time.

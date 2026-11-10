@@ -30,6 +30,14 @@ export type BookLocationHit = {
   id: string;
   sectionIndex: number;
   excerpt: { pre: string; match: string; post: string };
+  /**
+   * The whole text of the block the match is in, when that block is short (at
+   * most 200 characters): a heading, a line of a contents page, a caption, a
+   * line of dialogue. It tells a match that is a chapter's title from the same
+   * words in a paragraph. Absent for a match in running text, and for content
+   * without block structure (PDF text).
+   */
+  blockText?: string;
   location: ReadingLocation;
   /** Exact text identity usable by library.readRange without moving the reader. */
   range: BookTextRange;

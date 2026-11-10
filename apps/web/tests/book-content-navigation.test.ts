@@ -43,6 +43,37 @@ test("precise DOM search returns ranges across inline nodes and does not mutate 
     expect((await search(book, { wholeWords: true, matchCase: true })).hits).toHaveLength(0);
   }));
 
+test("a DOM hit carries the whole text of a short block it is in, and none in running text", () =>
+  withDom(async () => {
+    const running = `A needle ${"in a long paragraph of running text. ".repeat(8)}`;
+    document.body.innerHTML = [
+      '<h2 class="title"><span>Chapter 3</span>\n  The <em>Needle</em></h2>',
+      '<div class="toc"><a href="c3.xhtml">Chapter 3 The Needle</a></div>',
+      `<p>${running}</p>`,
+      "<div><p>needle one</p><p>needle two</p></div>",
+      "<p>ends with nee</p><p>dle across blocks</p>",
+    ].join("");
+    const book: Book = { sections: [{ id: "one", size: 100, load: () => "", createDocument: () => document }] };
+    const result = await search(book);
+    expect(result.hits.map((hit) => hit.blockText)).toEqual([
+      "Chapter 3 The Needle",
+      "Chapter 3 The Needle",
+      undefined,
+      "needle one",
+      "needle two",
+      undefined,
+    ]);
+    // The excerpt alone holds the matched text node only.
+    expect(result.hits[0].excerpt).toEqual({ pre: "", match: "Needle", post: "" });
+    expect("blockText" in result.hits[2]).toBe(false);
+  }));
+
+test("PDF text hits carry no block text", async () => {
+  const result = await search(pdfBook("needle"));
+  expect(result.hits).toHaveLength(1);
+  expect("blockText" in result.hits[0]).toBe(false);
+});
+
 test("PDF extraction uses a versioned page location plus disambiguating text quote", async () => {
   const result = await search(pdfBook("first needle here; second needle there"), { limit: 1 });
   expect(result.hits[0].location).toMatchObject({

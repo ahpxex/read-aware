@@ -5,7 +5,7 @@
  * (see useContentsSearch). Ported from the retired Jumper plugin's go-to box,
  * so a query that found a chapter there finds the same one here.
  */
-import type { Bookmark, BookTocEntry } from "@read-aware/core";
+import type { Bookmark, BookLocationHit, BookTocEntry } from "@read-aware/core";
 import type { Annotation } from "../../annotations";
 import type { TocEntry } from "./reader-types";
 
@@ -120,6 +120,23 @@ export function wantsMatchCase(query: string): boolean {
   return /\p{Lu}/u.test(query);
 }
 
+/** A line of the book for comparing with a chapter's title: spacing and case
+ *  differ freely between a contents label and the heading it names
+ *  ("第二章 台 球" / "第二章 台球"). */
+const lineKey = (text: string) => foldForSearch(text).replace(/\s+/gu, "");
+
+/**
+ * Tells the text hits that only repeat a listed chapter: a hit on a line that
+ * is, whole, the title of one of `chapterTitles` — that chapter's own heading,
+ * or its line on a contents page. The results list the chapter itself, so
+ * such a line is not counted again as the book's text. A title's words inside
+ * a longer line are still a text hit.
+ */
+export function chapterTitleHits(chapterTitles: readonly string[]): (hit: BookLocationHit) => boolean {
+  const keys = new Set(chapterTitles.map(lineKey).filter(Boolean));
+  return (hit) => !!hit.blockText && keys.has(lineKey(hit.blockText));
+}
+
 /**
  * The chapter a book section belongs to, from the navigation TOC: the first
  * contents entry that starts in that section, else the last entry before it
@@ -150,4 +167,27 @@ export function sectionChapterLabels(entries: readonly BookTocEntry[]): (section
     }
     return before === undefined ? undefined : last.get(before);
   };
+}
+
+/** Consecutive text hits in one chapter, in reading order. */
+export type ChapterHits = { chapter: string | undefined; hits: BookLocationHit[] };
+
+/**
+ * Text hits under the chapter each is in. Hits arrive in reading order, so a
+ * chapter's hits are one run; a hit whose section has no chapter (before the
+ * first contents entry, or before the contents are read) starts a run without
+ * a name.
+ */
+export function groupHitsByChapter(
+  hits: readonly BookLocationHit[],
+  chapterOf: ((sectionIndex: number) => string | undefined) | undefined,
+): ChapterHits[] {
+  const groups: ChapterHits[] = [];
+  for (const hit of hits) {
+    const chapter = chapterOf?.(hit.sectionIndex);
+    const last = groups.at(-1);
+    if (last && last.chapter === chapter) last.hits.push(hit);
+    else groups.push({ chapter, hits: [hit] });
+  }
+  return groups;
 }

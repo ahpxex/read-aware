@@ -181,6 +181,7 @@ export async function searchLocationsInBook(
         id: `${sectionIndex}:${ordinal}`,
         sectionIndex,
         excerpt: hit.excerpt,
+        ...(hit.blockText ? { blockText: hit.blockText } : {}),
         location: { ...range },
         range,
       });

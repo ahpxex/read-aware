@@ -1,9 +1,11 @@
 import { expect, test } from "bun:test";
-import type { Bookmark, BookTocEntry } from "@read-aware/core";
+import type { Bookmark, BookLocationHit, BookTocEntry } from "@read-aware/core";
 import type { Annotation } from "../../annotations/lib/annotation-types";
 import {
   sectionChapterLabels,
   chapterNumber,
+  chapterTitleHits,
+  groupHitsByChapter,
   isPageLabelQuery,
   matchAnnotations,
   matchBookmarks,
@@ -94,4 +96,51 @@ test("a section's chapter is the first entry starting in it, else the last one b
   expect(chapterOf(5)).toBe("Chapter 2");
   expect(chapterOf(7)).toBe("Afterword");
   expect(chapterOf(0)).toBeUndefined();
+});
+
+test("a hit on a line that is a listed chapter's whole title repeats that chapter", () => {
+  const hit = (match: string, blockText?: string): BookLocationHit => ({
+    id: match,
+    sectionIndex: 0,
+    excerpt: { pre: "", match, post: "" },
+    ...(blockText === undefined ? {} : { blockText }),
+    location: { bookId: "b", contentVersion: "v" },
+    range: { bookId: "b", contentVersion: "v", cfi: "epubcfi(/6/2)" },
+  });
+  const isTitle = chapterTitleHits(["第二章 台球", "Chapter 9: Red Coast"]);
+  // The heading, or the chapter's line on a contents page: spacing and case differ freely.
+  expect(isTitle(hit("台", "第二章 台 球"))).toBe(true);
+  expect(isTitle(hit("台", "第二章　台球"))).toBe(true);
+  expect(isTitle(hit("red", "CHAPTER 9: RED COAST"))).toBe(true);
+  // The title's words inside a longer line, or another short line, are the book's text.
+  expect(isTitle(hit("台", "他想起了第二章 台球"))).toBe(false);
+  expect(isTitle(hit("red", "Red Coast"))).toBe(false);
+  // Running text carries no block text.
+  expect(isTitle(hit("台"))).toBe(false);
+  // No chapter listed: nothing is a title, an empty line included.
+  expect(chapterTitleHits([])(hit("台", "第二章 台球"))).toBe(false);
+  expect(chapterTitleHits([""])(hit("x", ""))).toBe(false);
+});
+
+test("text hits group into runs under the chapter each is in", () => {
+  const hit = (id: string, sectionIndex: number): BookLocationHit => ({
+    id,
+    sectionIndex,
+    excerpt: { pre: "", match: id, post: "" },
+    location: { bookId: "b", contentVersion: "v" },
+    range: { bookId: "b", contentVersion: "v", cfi: "epubcfi(/6/2)" },
+  });
+  const hits = [hit("a", 0), hit("b", 1), hit("c", 2), hit("d", 2), hit("e", 3)];
+  // Sections 1 and 2 are one chapter split over two files; section 0 precedes the contents.
+  const chapterOf = (sectionIndex: number) => [undefined, "One", "One", "Two"][sectionIndex];
+  const ids = (groups: ReturnType<typeof groupHitsByChapter>) =>
+    groups.map((group) => [group.chapter, group.hits.map((item) => item.id)]);
+  expect(ids(groupHitsByChapter(hits, chapterOf))).toEqual([
+    [undefined, ["a"]],
+    ["One", ["b", "c", "d"]],
+    ["Two", ["e"]],
+  ]);
+  // Before the contents are read, every hit is in one unnamed run.
+  expect(ids(groupHitsByChapter(hits, undefined))).toEqual([[undefined, ["a", "b", "c", "d", "e"]]]);
+  expect(groupHitsByChapter([], chapterOf)).toEqual([]);
 });

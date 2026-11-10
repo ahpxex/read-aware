@@ -10,7 +10,13 @@ import { searchAsync, matcherSearchOptions, type SearchExcerpt, type SearchMatch
 import { collectTextAsync, textWalker } from "./text-walker.js";
 
 export type TextQuote = { exact: string; prefix?: string; suffix?: string };
-export type ContentMatch = { cfi: string; excerpt: SearchExcerpt; textQuote?: TextQuote };
+export type ContentMatch = {
+  cfi: string;
+  excerpt: SearchExcerpt;
+  textQuote?: TextQuote;
+  /** See shortBlockText: the whole text of the short block the match is in. */
+  blockText?: string;
+};
 export type ContentSearchItem = ContentMatch | { textLength: number };
 
 export function contentCFI(book: Book, index: number, range?: Range): string {
@@ -18,6 +24,34 @@ export function contentCFI(book: Book, index: number, range?: Range): string {
   if (!section) throw new RangeError("Invalid content section");
   const base = section.cfi ?? CFI.fake.fromIndex(index);
   return range ? CFI.joinIndir(base, CFI.fromRange(range)) : base;
+}
+
+/** The elements whose text is one line of the book, innermost first. */
+const LINE_BLOCKS = "h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote, figcaption, caption, td, th, div";
+/** Room for any heading, contents line or caption; a longer block is running
+ *  text, which a match's excerpt already describes. Bounds what a hit carries. */
+const SHORT_BLOCK_MAX_LENGTH = 200;
+
+/**
+ * Reads the whole text of the block a match is in, when that block is short:
+ * a heading, a line of a contents page, a caption, a line of dialogue. An
+ * excerpt cannot say this: it holds the matched text node only, so the same
+ * words read alike as a chapter's title and inside a paragraph. Each block is
+ * read once per document, however many matches it holds.
+ */
+function shortBlockReader(): (range: Range) => string | undefined {
+  const texts = new Map<Element, string | undefined>();
+  return (range) => {
+    const start = range.startContainer;
+    const block = (start.nodeType === 1 ? (start as Element) : start.parentElement)?.closest(LINE_BLOCKS);
+    // A match running on into the next block belongs to neither line.
+    if (!block?.contains(range.endContainer)) return undefined;
+    if (!texts.has(block)) {
+      const text = (block.textContent ?? "").replace(/\s+/g, " ").trim();
+      texts.set(block, text.length <= SHORT_BLOCK_MAX_LENGTH ? text : undefined);
+    }
+    return texts.get(block);
+  };
 }
 
 /** Search without touching View.search's highlight registry or another caller. */
@@ -38,10 +72,13 @@ export async function* searchContentSection(
     checkContentDocument(doc);
     const { strings, makeRange } = await collectTextAsync(doc, options.acceptNode, signal);
     yield { textLength: strings.join("").trim().length };
+    const shortBlockText = shortBlockReader();
     for await (const { range, excerpt } of searchAsync(strings, query, matcherSearchOptions(doc, options), signal)) {
       signal?.throwIfAborted();
       const { startIndex, startOffset, endIndex, endOffset } = range;
-      yield { cfi: contentCFI(book, index, makeRange(startIndex, startOffset, endIndex, endOffset)), excerpt };
+      const match = makeRange(startIndex, startOffset, endIndex, endOffset);
+      const blockText = shortBlockText(match);
+      yield { cfi: contentCFI(book, index, match), excerpt, ...(blockText ? { blockText } : {}) };
     }
   } else if (section.getText) {
     const text = checkContentText(await section.getText(signal));

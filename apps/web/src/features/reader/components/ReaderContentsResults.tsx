@@ -10,10 +10,12 @@ import {
   type VirtualRow,
   type VirtualRowsHandle,
 } from "@read-aware/ui";
+import { cn } from "@read-aware/ui/cn";
 import { describeError, formatNumber, useTranslation } from "../../../i18n";
 import type { Annotation } from "../../annotations";
 import type { ContentsSearchState } from "../hooks/useContentsSearch";
 import { TEXT_HIT_LIMIT } from "../hooks/useContentsSearch";
+import { groupHitsByChapter } from "../lib/contents-search";
 import type { TocEntry } from "../lib/reader-types";
 
 export type ContentsMatches = {
@@ -29,22 +31,32 @@ type Handlers = {
   onLocation: (location: ReadingLocation) => void;
 };
 
-/** A result group's label: what kind of match, and how many. */
-function GroupLabel({ label, count }: { label: string; count?: number }) {
+/**
+ * A result group's label: what kind of match, and how many. Every group after
+ * the first starts under a rule, so the kinds read as separate lists.
+ */
+function GroupLabel({ label, count, first }: { label: string; count?: number; first: boolean }) {
   return (
-    <Eyebrow className="px-4 pt-4 pb-1.5">
-      {label}
-      {count !== undefined && <span className="text-fg-subtle"> · {formatNumber(count)}</span>}
-    </Eyebrow>
+    <div className={cn("px-4", !first && "pt-2")}>
+      <Eyebrow className={cn("pt-3 pb-1.5", !first && "border-t border-border/60")}>
+        {label}
+        {count !== undefined && <span className="text-fg-subtle"> · {formatNumber(count)}</span>}
+      </Eyebrow>
+    </div>
   );
 }
 
-/** A chapter heading inside the text results, above that chapter's hits. */
-function ChapterLabel({ label }: { label: string }) {
+/**
+ * A chapter's name inside the text results, heading that chapter's hits: set
+ * at full strength so it stands over the muted excerpts indented beneath it,
+ * with how many of them there are.
+ */
+function ChapterLabel({ label, count }: { label: string; count: number }) {
   return (
-    <Caption as="p" className="truncate px-4 pt-2.5 pb-0.5 font-medium text-fg-subtle">
-      {label}
-    </Caption>
+    <p className="flex items-baseline gap-3 px-4 pt-3 pb-1 font-sans text-[13px] leading-5">
+      <span className="min-w-0 flex-1 truncate font-medium text-fg">{label}</span>
+      <span className="shrink-0 text-caption text-fg-subtle tabular-nums">{formatNumber(count)}</span>
+    </p>
   );
 }
 
@@ -82,14 +94,30 @@ function Row({
   );
 }
 
-/** The excerpt around a text hit: the match in full strength, its context muted. */
-function Excerpt({ hit }: { hit: BookLocationHit }) {
+/**
+ * One text hit: the excerpt around the match, the match in full strength and
+ * its context muted. Set smaller than a chapter's name and indented under a
+ * rule that runs down from it, so a chapter's hits read as belonging to it
+ * and are never mistaken for a title.
+ */
+function HitRow({ hit, onClick }: { hit: BookLocationHit; onClick: () => void }) {
   return (
-    <span className="text-fg-muted">
-      {hit.excerpt.pre.trimStart()}
-      <span className="font-semibold text-fg">{hit.excerpt.match}</span>
-      {hit.excerpt.post.trimEnd()}
-    </span>
+    <div className="pr-2 pl-4">
+      <div className="border-l border-border pl-1.5">
+        {/* oxlint-disable-next-line react/forbid-elements -- search result row: a full-width jump target */}
+        <button
+          type="button"
+          onClick={onClick}
+          className="w-full rounded-md px-2 py-1.5 text-left transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+        >
+          <span className="line-clamp-3 block min-w-0 font-sans text-[13px] leading-[21px] break-words text-fg-muted">
+            {hit.excerpt.pre.trimStart()}
+            <span className="font-semibold text-fg">{hit.excerpt.match}</span>
+            {hit.excerpt.post.trimEnd()}
+          </span>
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -120,7 +148,11 @@ export function ReaderContentsResults({
   const rows = useMemo<VirtualRow[]>(() => {
     const out: VirtualRow[] = [];
     const group = (key: string, label: string, count?: number) =>
-      out.push({ key: `g:${key}`, size: 40, content: <GroupLabel label={label} count={count} /> });
+      out.push({
+        key: `g:${key}`,
+        size: 40,
+        content: <GroupLabel label={label} count={count} first={out.length === 0} />,
+      });
     if (matches.chapters.length) {
       group("chapters", t("searchChapters"), matches.chapters.length);
       for (const index of matches.chapters) {
@@ -177,21 +209,19 @@ export function ReaderContentsResults({
     if (text.status !== "idle") {
       const hits = text.hits;
       group("text", t("searchText"), text.status === "done" ? hits.length : undefined);
-      let chapter: string | undefined;
-      for (const hit of hits) {
-        const label = search.chapterOf?.(hit.sectionIndex);
-        if (label && label !== chapter)
-          out.push({ key: `h:${hit.id}`, size: 28, content: <ChapterLabel label={label} /> });
-        chapter = label;
-        out.push({
-          key: `t:${hit.id}`,
-          size: 64,
-          content: (
-            <Row onClick={() => onLocation(hit.location)}>
-              <Excerpt hit={hit} />
-            </Row>
-          ),
-        });
+      for (const chapter of groupHitsByChapter(hits, search.chapterOf)) {
+        if (chapter.chapter)
+          out.push({
+            key: `h:${chapter.hits[0]!.id}`,
+            size: 36,
+            content: <ChapterLabel label={chapter.chapter} count={chapter.hits.length} />,
+          });
+        for (const hit of chapter.hits)
+          out.push({
+            key: `t:${hit.id}`,
+            size: 56,
+            content: <HitRow hit={hit} onClick={() => onLocation(hit.location)} />,
+          });
       }
       const note = (key: string, content: ReactNode) =>
         out.push({ key: `n:${key}`, size: 40, content: <div className="px-4 py-2">{content}</div> });

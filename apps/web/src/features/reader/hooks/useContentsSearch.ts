@@ -1,16 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { BookLocationHit, BookLocationSearchPage, BookNavigationTargetEntry } from "@read-aware/core";
 import { createLibraryDomain } from "../../../domain/library";
 import { readingRuntime } from "../../../domain/reading-runtime";
 import { createLogger } from "../../../platform/logger";
 import { createSearchSession } from "../lib/book-search-memory";
-import { isPageLabelQuery, sectionChapterLabels, wantsMatchCase } from "../lib/contents-search";
+import { chapterTitleHits, isPageLabelQuery, sectionChapterLabels, wantsMatchCase } from "../lib/contents-search";
 
 const log = createLogger("contents-search");
 
 /** Typing settles for this long before the book's text is searched. */
 const SETTLE_MS = 250;
-/** Text hits shown at most; the search stops paging once it has them. */
+/** Text hits shown at most; the search stops paging once it has them. Hits
+ *  that only repeat a listed chapter's title are not shown and do not count. */
 export const TEXT_HIT_LIMIT = 200;
 const PAGE_SIZE = 20;
 const PAGE_ROWS = 10;
@@ -41,7 +42,10 @@ const IDLE: ContentsSearchState = { pages: [], text: { status: "idle" } };
 /**
  * Finished searches, chapter names and where each result list was left, for
  * this run of the app (see lib/book-search-memory): reopening the search
- * shows the last results without searching the book again.
+ * shows the last results without searching the book again. A remembered
+ * search holds every hit it read, title lines included: which of them repeat
+ * a listed chapter is decided when they are shown, against the chapters
+ * listed then.
  */
 export const bookSearchSession = createSearchSession<Omit<ContentsSearchState, "chapterOf">>();
 
@@ -50,9 +54,26 @@ export const bookSearchSession = createSearchSession<Omit<ContentsSearchState, "
  * book's full text — for a settled query. Pages of text hits stream in as
  * they arrive; a new query, a closed panel or another book abort the search.
  * A query this run has already searched to the end answers from memory.
+ *
+ * `chapterTitles` are the titles of the chapters the results already list for
+ * this query. A text hit on a line that is one of those titles (the chapter's
+ * heading, its line on a contents page) is that chapter again, not the book's
+ * text, and is left out of `text.hits`.
  */
-export function useContentsSearch(bookId: string, query: string, active: boolean): ContentsSearchState {
+export function useContentsSearch(
+  bookId: string,
+  query: string,
+  active: boolean,
+  chapterTitles: readonly string[],
+): ContentsSearchState {
   const library = useMemo(() => createLibraryDomain("user"), []);
+  const isChapterTitle = useMemo(() => chapterTitleHits(chapterTitles), [chapterTitles]);
+  // The running search counts shown hits against the limit by the chapters
+  // listed now, without restarting when that list changes.
+  const latestIsChapterTitle = useRef(isChapterTitle);
+  useLayoutEffect(() => {
+    latestIsChapterTitle.current = isChapterTitle;
+  });
   const [state, setState] = useState<{ key: string; value: ContentsSearchState }>({ key: "", value: IDLE });
   const trimmed = query.trim();
 
@@ -113,6 +134,7 @@ export function useContentsSearch(bookId: string, query: string, active: boolean
 
     const searchText = async () => {
       const hits: BookLocationHit[] = [];
+      let shown = 0;
       let cursor: string | undefined;
       let contentVersion: string | undefined;
       try {
@@ -130,13 +152,15 @@ export function useContentsSearch(bookId: string, query: string, active: boolean
           );
           contentVersion = page.contentVersion;
           hits.push(...page.hits);
-          const full = hits.length >= TEXT_HIT_LIMIT;
+          const isTitle = latestIsChapterTitle.current;
+          for (const hit of page.hits) if (!isTitle(hit)) shown++;
+          const full = shown >= TEXT_HIT_LIMIT;
           const more = !!page.nextCursor && !full;
           publish({
             ...value,
             text: {
               status: more ? "searching" : "done",
-              hits: hits.slice(0, TEXT_HIT_LIMIT),
+              hits: [...hits],
               scannedSections: page.scannedSections,
               totalSections: page.totalSections,
               textStatus: page.textStatus,
@@ -149,7 +173,7 @@ export function useContentsSearch(bookId: string, query: string, active: boolean
       } catch (error) {
         if (signal.aborted) return;
         log.warn("contents text search failed", error);
-        publish({ ...value, text: { status: "error", error, hits: hits.slice(0, TEXT_HIT_LIMIT) } });
+        publish({ ...value, text: { status: "error", error, hits: [...hits] } });
       }
     };
 
@@ -175,5 +199,11 @@ export function useContentsSearch(bookId: string, query: string, active: boolean
   }, [key, isRecalled, bookId, trimmed, library]);
 
   const value = !key ? IDLE : state.key === key ? state.value : (recalled ?? IDLE);
-  return useMemo(() => ({ ...value, chapterOf }), [value, chapterOf]);
+  return useMemo(() => {
+    const text =
+      value.text.status === "idle"
+        ? value.text
+        : { ...value.text, hits: value.text.hits.filter((hit) => !isChapterTitle(hit)).slice(0, TEXT_HIT_LIMIT) };
+    return { ...value, text, chapterOf };
+  }, [value, chapterOf, isChapterTitle]);
 }

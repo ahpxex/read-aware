@@ -20,9 +20,10 @@ const makeZipLoader = async (file: BookFile) => {
     import("./inflate-stream.js"),
   ]);
   configure({ useWebWorkers: false, DecompressionStreamZlib: RawInflateStream });
-  // ZIP needs a Blob reader; PDF keeps its native random-access file below.
-  const blob = file instanceof Blob ? file : new Blob([await file.arrayBuffer()], { type: file.type });
-  const reader = new ZipReader(new BlobReader(blob));
+  // The reader asks for ranges (`slice().arrayBuffer()`), so a file kept
+  // outside the webview is read where the archive is read: its directory,
+  // then the entries wanted. Copying it into a Blob first read all of it.
+  const reader = new ZipReader(new BlobReader(file));
   const entries = await reader.getEntries();
   const map = new Map(entries.map((entry) => [entry.filename, entry]));
   return {

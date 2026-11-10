@@ -13,8 +13,15 @@ export class BlobWriter {
   constructor(type?: string);
 }
 
+/** What `BlobReader` uses of its source: its size, and a range of it as bytes. */
+export interface RangeSource {
+  readonly size: number;
+  slice(start?: number, end?: number): { arrayBuffer(): Promise<ArrayBuffer> };
+  arrayBuffer(): Promise<ArrayBuffer>;
+}
+
 export class BlobReader {
-  constructor(blob: Blob);
+  constructor(blob: RangeSource);
 }
 
 export class ZipReader {

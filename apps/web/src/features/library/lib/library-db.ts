@@ -9,7 +9,12 @@ import {
 } from "@read-aware/core";
 import { removeBookBatch, releaseRemovedBookFiles } from "./book-removal";
 import { createLogger } from "../../../platform/logger";
-import { getDesktopBlob, getDesktopBlobInfo, openDesktopBlobFile } from "../../../platform/blob-store";
+import {
+  getDesktopBlob,
+  getDesktopBlobInfo,
+  openCachedBlobFile,
+  openDesktopBlobFile,
+} from "../../../platform/blob-store";
 import { commitBoundVirtualBook, type VirtualBookBinding } from "../../plugins/lib/virtual-books";
 import { commitDomainEvents } from "../../../platform/domain-events";
 import { fetchRemoteBlob } from "../../../platform/sync/sync-scheduler";
@@ -202,12 +207,19 @@ type BookFileRef = Pick<LibraryBook, "id" | "format" | "fileName" | "mimeType">;
  * `.fbz` FictionBook are both zips), so a nameless blob would be read as an
  * EPUB — and, before that, crash on `name.endsWith`.
  */
+/** Formats whose parser reads the file by range (a ZIP archive) rather than whole. */
+const RANGE_READ_FORMATS: ReadonlySet<LibraryBook["format"]> = new Set(["epub", "cbz"]);
+
 export async function openLocalBookFile(book: BookFileRef): Promise<BookFileSource | null> {
   if (!isTauri()) return null;
   if (book.format === "pdf") {
     // File-backed so PDFs keep their random-access path.
     return openDesktopBlobFile(bookFileKey(book.id), book.fileName, book.mimeType || "application/pdf");
   }
+  // ZIP archives are read as ranges: the directory, then the entries a page
+  // needs. Reading the whole file first made every opening wait on its size.
+  if (RANGE_READ_FORMATS.has(book.format))
+    return openCachedBlobFile(bookFileKey(book.id), book.fileName, book.mimeType || "");
   const bytes = await getDesktopBlob(bookFileKey(book.id));
   if (!bytes) return null;
   return new File([bytes], book.fileName, { type: book.mimeType || "" });
@@ -221,9 +233,10 @@ export async function hasLocalBookFile(bookId: string): Promise<boolean> {
 
 /**
  * Reader source for an imported book, with the missing-file cause attached.
- * PDFs stay file-backed and random-access; the other parsers still receive a
- * whole-file blob until they expose the same structural range contract end to
- * end. Falls back to a relay fetch when the bytes are not local.
+ * PDFs and ZIP archives (EPUB, CBZ) stay file-backed and random-access; the
+ * other parsers still receive a whole-file blob until they expose the same
+ * structural range contract end to end. Falls back to a relay fetch when the
+ * bytes are not local.
  */
 export async function resolveStoredBookFile(bookOrId: BookFileRef | string): Promise<StoredBookFileResult> {
   if (!isTauri()) return { status: "missing", reason: "no-sync" };

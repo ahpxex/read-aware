@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Spinner } from "@read-aware/ui";
 import { useAtomValue } from "jotai";
 import { useTranslation } from "../../../i18n";
@@ -144,6 +144,11 @@ export function ReaderWorkspace({
   const showSourceLoader = useDelayedFlag(!readerSource && !readerLoadError, SLOW_OPEN_MS);
 
   const headerVisible = !isReaderLoading && overlayVisible;
+  // The chrome (toolbars, every panel, the book's conversation) is more to
+  // mount than the page is to open, and it starts out hidden. Opening a book
+  // commits the page; the chrome follows in a deferred render right behind
+  // it, which React slices and lets the page's own work interrupt.
+  const chromeMounted = useDeferredValue(!standby, false);
   // Hide the native traffic lights only during true immersive reading (book
   // rendered, header dismissed). While the book is still loading or errored
   // there's no immersive view yet, so keep the window controls reachable.
@@ -280,7 +285,7 @@ export function ReaderWorkspace({
 
       {/* The chrome, its panels and the book's conversation belong to a
           reading: a standing reader mounts none of them. */}
-      {!standby && (
+      {chromeMounted && !standby && (
         <ReaderShellOverlay
           visible={headerVisible}
           visibilityOrigin={overlayOrigin}

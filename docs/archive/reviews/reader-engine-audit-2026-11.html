@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReadAware · 阅读引擎体检</title>
+<style>
+  :root {
+    --paper: #faf9f7; --paper-warm: #f5f3ef; --ink: #1c1917;
+    --stone-700: #44403c; --stone-600: #57534e; --stone-500: #78716c;
+    --stone-400: #a8a29e; --stone-300: #d6d3d1; --border: #e7e5e4;
+    --accent: #7c2d12; --amber: #a16207; --good: #3f6212;
+    --serif: Charter, "Iowan Old Style", "Source Serif 4", Georgia, "Songti SC", serif;
+    --sans: Inter, -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+    --mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans);
+         font-size: 16px; line-height: 1.75; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 88px 32px 140px; }
+
+  .eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+             color: var(--stone-500); font-weight: 500; margin: 0 0 20px; }
+  h1 { font-family: var(--serif); font-weight: 400; font-size: 46px; line-height: 1.08;
+       letter-spacing: -.02em; margin: 0 0 20px; }
+  .standfirst { font-family: var(--serif); font-size: 19px; line-height: 1.65;
+                color: var(--stone-600); margin: 0 0 28px; max-width: 62ch; }
+  .masthead-meta { display: flex; flex-wrap: wrap; gap: 8px 28px; font-size: 12px;
+                   color: var(--stone-500); padding-top: 24px; border-top: 1px solid var(--border); }
+  .masthead-meta b { font-weight: 500; color: var(--stone-700); }
+
+  nav.toc { margin: 36px 0 0; font-size: 14px; }
+  nav.toc ol { padding-left: 20px; margin: 0; columns: 2; column-gap: 40px; }
+  nav.toc a { color: var(--stone-700); text-decoration: none; border-bottom: 1px solid var(--border); }
+  nav.toc a:hover { border-bottom-color: var(--stone-500); }
+
+  h2 { font-family: var(--serif); font-weight: 400; font-size: 30px; line-height: 1.2;
+       letter-spacing: -.015em; margin: 76px 0 8px; padding-top: 30px; border-top: 1px solid var(--border); }
+  h2 .num { display: block; font-family: var(--sans); font-size: 11px; letter-spacing: .14em;
+            text-transform: uppercase; color: var(--stone-400); font-weight: 500; margin-bottom: 12px; }
+  h3 { font-family: var(--sans); font-weight: 600; font-size: 16px; margin: 38px 0 10px; }
+  p { margin: 0 0 16px; max-width: 68ch; }
+  ul, ol { margin: 0 0 16px; padding-left: 22px; max-width: 70ch; }
+  li { margin-bottom: 7px; } li::marker { color: var(--stone-400); }
+  code { font-family: var(--mono); font-size: .855em; background: var(--paper-warm);
+         border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; color: var(--stone-700);
+         overflow-wrap: anywhere; }
+  pre { font-family: var(--mono); font-size: 12.5px; line-height: 1.6; background: var(--paper-warm);
+        border: 1px solid var(--border); border-radius: 4px; padding: 16px 18px; overflow-x: auto; margin: 16px 0 24px; }
+
+  .verdict { background: var(--paper-warm); border: 1px solid var(--border); border-radius: 4px;
+             padding: 28px 32px; margin: 40px 0 8px; }
+  .verdict p:last-child { margin-bottom: 0; }
+  .verdict .lede { font-family: var(--serif); font-size: 18px; line-height: 1.6; }
+
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px;
+             background: var(--border); border: 1px solid var(--border); border-radius: 4px;
+             overflow: hidden; margin: 28px 0 36px; }
+  .metric { background: var(--paper); padding: 18px 16px; }
+  .metric .v { font-family: var(--serif); font-size: 26px; line-height: 1.1; letter-spacing: -.02em; display: block; }
+  .metric .l { font-size: 11.5px; color: var(--stone-500); margin-top: 5px; display: block; line-height: 1.45; }
+  .metric.bad .v { color: var(--accent); }
+  .metric.good .v { color: var(--good); }
+
+  .item { border: 1px solid var(--border); border-radius: 4px; padding: 24px 28px; margin: 0 0 18px; background: #fff; }
+  .item > :last-child { margin-bottom: 0; }
+  .item-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .item-head h3 { margin: 0; font-size: 16.5px; }
+  .item p, .item li { font-size: 15px; }
+  .fix { font-size: 14.5px; color: var(--stone-700); border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 4px; }
+  .fix b { color: var(--good); font-weight: 600; }
+  .badge { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+           padding: 3px 8px; border-radius: 3px; white-space: nowrap; }
+  .badge.p0 { background: var(--accent); color: #fff; }
+  .badge.p1 { background: var(--amber); color: #fff; }
+  .badge.p2 { background: var(--stone-500); color: #fff; }
+  .badge.ok { background: var(--good); color: #fff; }
+  .tag { font-size: 11px; color: var(--stone-500); border: 1px solid var(--border); padding: 2px 7px; border-radius: 3px; white-space: nowrap; }
+  .tag.verified { color: var(--good); border-color: #cbd5b5; }
+
+  .tbl-wrap { overflow-x: auto; margin: 20px 0 28px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 560px; }
+  th { text-align: left; font-weight: 600; font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+       color: var(--stone-500); padding: 0 14px 9px 0; border-bottom: 1px solid var(--stone-300); white-space: nowrap; }
+  td { padding: 9px 14px 9px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+  td.mono { font-family: var(--mono); font-size: 12px; }
+  td.n { font-family: var(--serif); font-size: 16px; white-space: nowrap; }
+
+  .note { border-left: 2px solid var(--stone-400); background: var(--paper-warm); padding: 16px 20px;
+          margin: 20px 0; border-radius: 0 4px 4px 0; font-size: 14.5px; color: var(--stone-700); }
+  .note > :last-child { margin-bottom: 0; }
+  .note b { color: var(--ink); }
+  .note.correction { border-left-color: var(--accent); }
+
+  .phase { display: grid; grid-template-columns: 92px 1fr; gap: 0 24px; padding: 22px 0; border-bottom: 1px solid var(--border); }
+  .phase:first-of-type { border-top: 1px solid var(--border); }
+  .phase .k { font-family: var(--serif); font-size: 22px; color: var(--stone-500); line-height: 1.2; }
+  .phase .k small { display: block; font-family: var(--sans); font-size: 11px; letter-spacing: .08em; color: var(--stone-400); margin-top: 6px; }
+  .phase h3 { margin: 0 0 8px; }
+  .phase ul { margin-bottom: 0; }
+  .phase li { font-size: 14.5px; }
+
+  .good-list li { font-size: 15px; }
+
+  footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--border);
+           font-size: 12px; color: var(--stone-500); }
+  @media (max-width: 640px) {
+    .wrap { padding: 56px 16px 100px; } h1 { font-size: 34px; } h2 { font-size: 25px; }
+    .item { padding: 18px 16px; } .verdict { padding: 20px 18px; }
+    nav.toc ol { columns: 1; }
+    .phase { grid-template-columns: 1fr; } .phase .k { margin-bottom: 8px; }
+  }
+
+  .tag.read { color: var(--stone-700); }
+  .tag.unverified { color: var(--amber); border-color: #e8d9a8; }
+  .item .where { font-size: 12.5px; color: var(--stone-500); margin: 0 0 10px; }
+  .item .where code { font-size: 11.5px; }
+  .legend { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; font-size: 14px; margin: 16px 0 8px; align-items: baseline; }
+  .legend .tag, .legend .badge { justify-self: start; }
+  h2 + p.lead { color: var(--stone-600); margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="eyebrow">ReadAware · 工程评审</p>
+<h1>阅读引擎体检：性能、状态与竞态</h1>
+<p class="standfirst">
+对阅读引擎（自维护的 foliate，约 1.5 万行）和宿主驱动它的那一层做了一次排查，关注四类问题：
+性能、状态管理、靠零散标志位拼出来的隐性状态机、异步操作之间的竞态。
+结论是：这两天改过的排版主干是稳的，问题集中在「导航到底有没有发生」没有统一说法、若干处资源只进不出，以及 PDF 渲染器的两处硬伤。
+</p>
+<div class="masthead-meta">
+  <span><b>日期</b> 2026-11-11</span>
+  <span><b>基线</b> main @ 0aabc689</span>
+  <span><b>方法</b> 翻页器由我逐段审读并用真实书和合成场景复现；其余四块（视图与功能模块、各格式解析器、PDF/固定版式、宿主集成）各由一个子任务通读，结果由我回到代码核对</span>
+</div>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#verdict">总体判断</a></li>
+    <li><a href="#first">最该先修的六条</a></li>
+    <li><a href="#nav">导航与隐性状态机</a></li>
+    <li><a href="#mem">内存与资源</a></li>
+    <li><a href="#perf">性能</a></li>
+    <li><a href="#robust">健壮性与出错后的状态</a></li>
+    <li><a href="#sound">检查过、没有发现问题的部分</a></li>
+    <li><a href="#plan">建议的修复顺序</a></li>
+    <li><a href="#limits">这次排查的边界</a></li>
+  </ol>
+</nav>
+
+<div class="verdict" id="verdict">
+  <p class="lede">引擎没有「到处都是坑」，但有一类问题反复出现：<b>一个动作有没有真的发生，各层各说各话。</b></p>
+  <p>翻页时发起的跳转被丢弃却回报成功；跳转途中翻页，跳转完成了却回报失败；翻页的锁在加载卡住时不释放；PDF 在书末连按翻页，内部页码和屏幕对不上。这些都出自同一种写法：用几个互不知情的计数器和布尔标志来表示「正在导航」「正在翻页」「被取代了」，而不是让导航本身返回一个如实的结果。</p>
+  <p>第二类是资源只进不出：读过的章节文档、PDF 读过的页面、MOBI 读过的章节，都留到关书。第三类是几处「数量一大就成倍变慢」的写法，平时看不出来，遇到几千章的合集或很长的 AZW3 章节才暴露。</p>
+  <p>这次只排查，没有改任何代码。</p>
+</div>
+
+<div class="metrics">
+<div class="metric"><span class="v">7</span><span class="l">已复现、已测量或已验算</span></div><div class="metric"><span class="v">16</span><span class="l">读代码确认<br>我对照代码逐条核对</span></div><div class="metric"><span class="v">8</span><span class="l">未逐条核实<br>出自子任务报告，其中几条是合并项</span></div><div class="metric"><span class="v">0</span><span class="l">本次改动的代码<br>只排查，未修复</span></div>
+</div>
+
+<h3>怎么读每一条</h3>
+<div class="legend">
+  <span class="badge p0">P0</span><span>会卡死、丢失操作或持续占用内存，建议先修。</span>
+  <span class="badge p1">P1</span><span>特定条件下出错或明显变慢。</span>
+  <span class="badge p2">P2</span><span>影响小、条件少见，或只是多做了无用功。</span>
+  <span class="tag verified">已复现</span><span>我写了场景实际跑出来了；「已测量」「已验算」同理，有具体数字。</span>
+  <span class="tag read">读代码确认</span><span>没有运行，但我对照代码核对过因果链。</span>
+  <span class="tag unverified">子任务报告，未逐条核实</span><span>子任务给出了具体位置和场景，我没有回到代码逐行核对。修之前应先复现。</span>
+</div>
+
+<h2 id="first"><span class="num">01</span>最该先修的六条</h2><p class="lead">三条已经实测，三条读代码确认。前三条出在引擎，后三条分别在宿主和 PDF 渲染器。</p><div class="item"><div class="item-head"><span class="badge p0">P0</span><h3>翻页的那一小段时间里，任何跳转都会被悄悄丢掉，却回报「已到达」</h3><span class="tag verified">已复现</span></div><p class="where">引擎 · <code>paginator.ts</code> 的 <code>goTo</code> / <code>#turnPage</code>，<code>view.ts</code> 的 <code>#navigate</code></p><p>翻页时引擎会上一把锁：带翻页动画时约 300 毫秒，不带动画时约 100 毫秒。锁住期间，从目录、搜索结果、标注、Agent 工具发起的跳转会被直接忽略，但调用方拿到的结果是「成功」，引擎自带的历史记录里还会多记一笔没发生的跳转。</p><p>实测：翻页的同时请求跳到另一章，返回的是成功，阅读器仍停在原来的章节。</p><p>更严重的一种情况：翻页进入下一章时，如果下一章的内容一直读不出来（例如本地读取卡住），这把锁永远不会释放。实测结果是之后的跳转全部「成功」但不动，翻页也没反应，只能关掉重开这本书。</p><p class="fix"><b>修法</b>：翻页期间到来的跳转应当取代翻页，而不是被丢弃；跳转是否真的落到了目标位置，由翻页器如实返回，上层据此回报。章节加载要有可取消的出口，取消时释放锁。</p></div><div class="item"><div class="item-head"><span class="badge p0">P0</span><h3>读过的章节文档一直留在内存里，直到关书</h3><span class="tag verified">已复现</span></div><p class="where">引擎 · <code>view.ts</code> 的 <code>#documentCursors</code>，<code>cursor-autohider.ts</code></p><p>引擎给每个加载过的章节文档都建了一个「鼠标自动隐藏」的小对象，并一直攒着不清理。这个小对象牵着整份章节文档，所以读过的每一章都不会被回收。</p><p>实测：连续读完 40 个章节后，40 份章节文档全部还活着，而真正需要驻留的只有 1 份；关书后归零。临时去掉这个小对象再测，只剩 1 份，页面的 JS 堆也从 12MB 回到 4MB。</p><p>影响是长时间连读一本书时内存持续上涨；连续滚动模式下同一章被反复装入、移出，涨得更快。</p><p class="fix"><b>修法</b>：章节文档被移出时同时销毁它的那个小对象，不要等到关书。</p></div><div class="item"><div class="item-head"><span class="badge p0">P0</span><h3>章节很多的 EPUB 合集，开书时主线程被卡住数秒</h3><span class="tag verified">已测量</span></div><p class="where">引擎 · <code>epub.ts</code> 的 <code>resolveHref</code>；被 <code>chapter-map.ts</code> 和宿主的目录位置计算调用</p><p>把一条目录链接对应到章节时，引擎把全部章节从头扫一遍，而且每比较一个章节都重新解码一次路径。目录有几千条、章节也有几千个时，就是上千万次解码。</p><p>实测（Chrome，CPU 降速 4 倍）：《东野圭吾作品集》（3330 个章节、3203 条目录）第一次开书，阅读器准备阶段阻塞约 3.9 秒；开书后计算目录位置又阻塞约 3.7 秒，两次都是一整段不让出主线程。普通的书（27 个章节）是 22 毫秒，不受影响。</p><p>第一次准备的结果会缓存，同一次运行里再开这本书是 15 毫秒；但第二段（目录位置）每次开书都会重算。</p><p class="fix"><b>修法</b>：建一张「路径 → 章节序号」的索引表，路径只解码一次。改动只有几行。</p></div><div class="item"><div class="item-head"><span class="badge p0">P0</span><h3>开启「减少动态效果」后，书架停在上次开书那一刻的样子</h3><span class="tag read">读代码确认</span></div><p class="where">宿主 · <code>App.tsx</code> 的 <code>heldShelfBooks</code>，<code>useSurfaceHandoff.ts</code></p><p>开书时为了不让书架在转场里跳动，会先存一份书架快照，转场结束后清掉。清掉快照的逻辑只在「转场状态发生变化」时触发；而减少动效模式下转场状态从头到尾不变，所以快照永远不会被清。</p><p>结果是关书回到书架后，阅读进度、最近阅读的排序、新导入的书、删除和收藏的变化都不显示，要等到下一次开书把快照换成另一份（然后它又过期）。</p><p>这个模式在系统开启「减少动态效果」时自动生效，墨水屏设备上尤其常见。我没有在应用里实跑，结论来自代码：存快照和清快照各只有一处。</p><p class="fix"><b>修法</b>：只在转场真正开始时才存快照，或者不单独存，直接从转场状态推出「是否冻结」。</p></div><div class="item"><div class="item-head"><span class="badge p0">P0</span><h3>PDF 连续滚动时遇到一页建不出来，页面会直接卡死</h3><span class="tag read">读代码确认</span></div><p class="where">引擎 · <code>fixed-layout.ts</code> 的 <code>#drainStack</code> / <code>#ensureStackFrame</code></p><p>连续滚动模式下，引擎用一个循环依次把视口附近的页面建出来。某一页创建失败后，它被重置成「还没建」，循环下一轮又选中它，再失败，如此往复。渲染失败有「两次就放弃」的规则，创建失败没有。</p><p>对 PDF 来说，子任务读 PDF.js 源码后的判断是：它会缓存失败的那次取页请求，第二次起失败立即返回，于是这个循环不再让出主线程，页面无响应。循环本身的逻辑我核对过；PDF.js 缓存这一点我没有自己核对。对漫画等格式，表现为无休止的重试和控制台刷屏。排在这一页后面的页面在它离开视口前都建不出来。</p><p>结论来自代码，没有拿真实的坏 PDF 复现；哪些 PDF 会触发「某一页取不出来」我没有验证。</p><p class="fix"><b>修法</b>：创建失败也按次数记账，超过就放弃这一页；循环每一轮之间让出一次主线程。</p></div><div class="item"><div class="item-head"><span class="badge p0">P0</span><h3>PDF 读过的页面占用的资源从不释放</h3><span class="tag read">读代码确认</span></div><p class="where">引擎 · <code>fixed-layout.ts</code> 的 <code>#evict</code> / <code>#demoteStackFrame</code>，<code>pdf.ts</code></p><p>引擎对「同时保留几页」有上限，超出的页面元素会被移除。但移除的只是页面元素：PDF.js 为这一页保存的绘制指令和解码后的图片没有被释放，引擎从未调用它的清理接口。可重排阅读器在章节移出时会通知数据源释放，固定版式这边没有这一步。</p><p>结果是内存随「读过多少页」增长，而不是随「同时显示几页」封顶。扫描版 PDF 每页是一整张解码后的图，影响最大。</p><p>结论来自代码（在引擎和 PDF.js 里都没有找到清理调用）；实际涨多少没有测量。</p><p class="fix"><b>修法</b>：页面被移出或降级时，通知 PDF 数据源清理这一页并回收它的地址。</p></div>
+<h2 id="nav"><span class="num">02</span>导航与隐性状态机</h2><p class="lead">引擎用一组零散的标志表示导航状态：是否在翻页、是否在加载、是否暂停了滚动、是否在调整窗口、是否欠一次重排。下面是这些标志对不上的地方。</p><div class="item"><div class="item-head"><span class="badge p1">P1</span><h3>跳转途中按了一次翻页：跳转完成了，却回报失败</h3><span class="tag verified">已复现</span></div><p class="where">引擎 · <code>view.ts</code> 的 <code>next</code> / <code>prev</code> / <code>#navigate</code></p><p>这是上面第一条的镜像。跳转在等章节加载时，如果用户按了翻页，上层的计数器被改动，跳转最后被判定为「已被取代」而返回失败；但翻页器那一层并没有取消它，阅读器最终还是到了目标章节。</p><p>实测：跳到另一章并在它加载期间翻页，阅读器停在目标章节第 1 页，跳转返回的是空（失败）。宿主会因此报「找不到目标」；开书恢复阅读位置时，会多走一次按百分比的兜底跳转，位置不如原来精确。</p><p>两条问题同一个根源：上层和翻页器各有一套计数器，互不知情。</p><p class="fix"><b>修法</b>：和第一条一起修：让翻页器返回「是否落到了目标」，上层只认这个结果。</p></div><div class="item"><div class="item-head"><span class="badge p1">P1</span><h3>滑动翻页松手后的回弹动画，不会被新的跳转打断</h3><span class="tag verified">已复现</span></div><p class="where">引擎 · <code>paginator.ts</code> 的 <code>#scrollTo</code>（动画）与 <code>#settleSwipe</code></p><p>手指滑动松开后，页面有约 300 毫秒的吸附动画。这段动画没有取消机制，期间如果跳到了别的章节，动画还会继续往滚动位置里写旧的数值。</p><p>实测：吸附动画进行中跳到另一章，新章节先正确显示在第 1 页，700 毫秒后停在了第 2 页。</p><p class="fix"><b>修法</b>：动画绑定到发起它的那次导航；有新的导航就停止写入。</p></div><div class="item"><div class="item-head"><span class="badge p1">P1</span><h3>读到全书最后一页时，进度可能被换算回书的开头</h3><span class="tag verified">已验算</span></div><p class="where">引擎 · <code>progress.ts</code> 的 <code>SectionProgress.getSection</code></p><p>最后一页算出来的进度有时不是 1，而是 0.9999999999999999 这样紧贴 1 的数。「进度 → 位置」的换算对这种数找不到所属章节，返回了第 0 章开头。</p><p>验算：1592 种「页数 × 章节大小」的组合里，有 128 种（约 8%）在最后一页会算出这样的进度。受影响的是按百分比恢复位置的兜底路径，以及把进度条拖到末尾。</p><p class="fix"><b>修法</b>：找不到所属章节时取最后一个非空章节，而不是第 0 章。</p></div><div class="item"><div class="item-head"><span class="badge p1">P1</span><h3>PDF 翻到倒数第二页时连按两下「下一页」，最后一页可能永远不显示</h3><span class="tag read">读代码确认</span></div><p class="where">引擎 · <code>fixed-layout.ts</code> 的 <code>next</code> / <code>prev</code> / <code>#goToSpread</code></p><p>固定版式的翻页每次都先把导航计数加一，再判断「是不是已经到头」。第一下翻页在等最后一页加载时，第二下因为已经到头而什么都不做，但计数已经变了；等最后一页加载完，第一下发现自己「被取代」，于是不显示。</p><p>结果是内部认为已经在最后一页，屏幕上却还是倒数第二页，也没有位置上报；继续按「下一页」没有反应，要先往回翻再往前翻。书的第一页同理。我核对了这段代码的顺序，没有运行复现。</p><p class="fix"><b>修法</b>：先判断这次翻页是不是空操作，是的话不要动计数。</p></div><div class="item"><div class="item-head"><span class="badge p1">P1</span><h3>PDF 连续滚动里，「当前页」有两种算法，横向页面会对不上</h3><span class="tag unverified">子任务报告，未逐条核实</span></div><p class="where">引擎 · <code>fixed-layout.ts</code> 的 <code>#goToStack</code> / <code>#updateStackWindow</code></p><p>跳转把目标页的顶边对齐到视口顶边；而「当前是第几页」是按视口中线落在哪一页算的。页面高度不超过视口一半时（手机竖屏看横向的幻灯片），跳到第 N 页后中线已经落在第 N+1 页。</p><p>后果是恢复位置后上报的页码比请求的多一页，保存的进度可能每开一次往前爬一页；「上一页」不动，「下一页」一次跳两页。</p><p class="fix"><b>修法</b>：统一成一种算法：要么跳转后在用户滚动前都以目标页为当前页，要么当前页也按顶边算。</p></div><div class="item"><div class="item-head"><span class="badge p2">P2</span><h3>连续滚动里，相邻文件加载期间补排和位置校正都暂停</h3><span class="tag read">读代码确认</span></div><p class="where">引擎 · <code>paginator.ts</code> 的 <code>#extend</code> 与 <code>#stableViewport</code></p><p>同一章的下一个源文件在后台加载的整个过程中，「正在调整窗口」的标志一直亮着。这期间，长章节的提前补排不工作，图片、字体晚到引起的位置校正也不做，等加载结束才恢复。</p><p>平时只是几十到几百毫秒的空窗。如果这次加载一直不结束，这种降级状态会持续到离开这一章为止。</p><p class="fix"><b>修法</b>：标志只在真正改动页面的那一小段置位，不要跨越整个加载等待。</p></div><div class="item"><div class="item-head"><span class="badge p2">P2</span><h3>固定版式里「当前页」先于显示变化，其他逻辑把它当成已显示</h3><span class="tag unverified">子任务报告，未逐条核实</span></div><p class="where">引擎 · <code>fixed-layout.ts</code> 的 <code>#index</code> / <code>#displayedIndex</code></p><p>页码在新页面加载完之前就改了。加载失败时页码停在一页没显示出来的页面上；快速连翻时，保留窗口按新页码算，可能把还在显示的旧页清掉，出现一下空白。</p><p class="fix"><b>修法</b>：保留窗口和左右切换按「已显示的页」算；加载失败时把页码改回去。</p></div>
+<h2 id="mem"><span class="num">03</span>内存与资源</h2><p class="lead">除了第一节里的两条，还有这些只进不出或可能提前失效的地方。</p><div class="item"><div class="item-head"><span class="badge p1">P1</span><h3>MOBI、AZW3、FB2 的章节数据在书打开期间只增不减</h3><span class="tag unverified">子任务报告，未逐条核实</span></div><p class="where">引擎 · <code>mobi6.ts</code>、<code>kf8.ts</code>、<code>fb2.ts</code></p><p>MOBI 和 AZW3 的章节没有「卸载」这一步：读过的每一章的文档地址、解码后的文本都留到关书。FB2 在开书时就把所有章节转换好，图片以内嵌数据的形式写进每一章，原始文档也一直被引用着。</p><p>在原生读取路径上，增长量以文本大小为上限；FB2 则是整场阅读都占着文件大小的数倍，手机上值得注意。MOBI 的做法与上游一致，可能是当初有意接受的。</p><p class="fix"><b>修法</b>：给 MOBI、AZW3 的章节加上卸载（回收地址）；FB2 转换完成后放掉原始文档。</p></div><div class="item"><div class="item-head"><span class="badge p1">P1</span><h3>PDF 打开失败时，后台解析进程不会被关掉</h3><span class="tag read">读代码确认</span></div><p class="where">引擎 · <code>pdf.ts</code> 的 <code>makePDF</code></p><p>加密的或损坏的 PDF 打开失败后，为它启动的后台解析进程和传输通道没有被销毁。每失败一次（包括导入时的尝试）就多留一个，直到应用重启。打开成功之后的出错路径是会清理的，漏的只是「一开始就失败」这一条。</p><p class="fix"><b>修法</b>：失败时销毁这次加载任务。</p></div><div class="item"><div class="item-head"><span class="badge p2">P2</span><h3>同一章被重复加载、而前一次被放弃时，样式表可能失效</h3><span class="tag unverified">子任务报告，未逐条核实</span></div><p class="where">引擎 · <code>epub-loader.ts</code> 的引用计数</p><p>对同一章的两次加载重叠时（例如快速双击同一个目录项），第二次加载没有为共享的样式表登记自己的引用；第一次被放弃并释放后，样式表的地址被回收，第二次生成的页面引用的就是已失效的地址，这一章会缺样式，重新进入才恢复。出现的时间窗口取决于加载时序。</p><p class="fix"><b>修法</b>：同一章的并发加载共用同一个进行中的任务。</p></div><div class="item"><div class="item-head"><span class="badge p2">P2</span><h3>几处小的遗留</h3><span class="tag unverified">子任务报告，未逐条核实</span></div><p class="where">引擎 · <code>epub-loader.ts</code>、<code>footnotes.ts</code>；宿主 · <code>FoliateReaderView.tsx</code>、<code>useReaderSession.ts</code></p><p>EPUB 的章节加载中途失败时，已经登记的子资源不会被回收，直到这一章下次成功加载并卸载。量小、有上限。</p><p>脚注弹层的加载没有取消出口：承载它的容器不在页面上时，这次加载永远不结束，相关对象一直留着。</p><p>宿主每次把阅读会话绑到引擎上都会留下一个清理回调，引擎关闭才释放；同一本书反复开关会累积，内存影响可以忽略。正在读的书被别的设备或命令行删除后，关书时它仍会被留作「待命」。</p><p class="fix"><b>修法</b>：分别在失败路径回收、给脚注加载加取消信号、绑定时返回注销句柄、关书时检查书是否还在书库里。</p></div>
+<h2 id="perf"><span class="num">04</span>性能</h2><p class="lead">典型的书开书已经不慢，下面多数只在特定的书或特定的操作上出现。</p><div class="item"><div class="item-head"><span class="badge p1">P1</span><h3>AZW3 和旧式 MOBI 的章节文本，是「每插入一段就整段复制一次」拼出来的</h3><span class="tag read">读代码确认</span></div><p class="where">引擎 · <code>kf8.ts</code> 的 <code>loadText</code>，<code>mobi6.ts</code> 的锚点插入</p><p>AZW3 的一章由一个骨架加若干片段组成，引擎每插入一个片段就把已经拼好的内容整体复制两遍；旧式 MOBI 给每个跳转目标插入锚点时也是同样的做法。耗时随片段数成倍放大，而且结果不缓存，搜索、全文提取和显示各算各的。</p><p>实测一本大 AZW3 的最大章节，这一步在 4 倍降速下约 60 毫秒。章节越长、片段越多越严重。旧式 MOBI 如果整本书没有分页标记，全书就是一章，这一步发生在开书时。</p><p class="fix"><b>修法</b>：先算出总长度，一次分配，再按顺序写入。</p></div><div class="item"><div class="item-head"><span class="badge p1">P1</span><h3>开一本书，整个书架跟着重渲染约 8 次</h3><span class="tag read">读代码确认</span></div><p class="where">宿主 · <code>App.tsx</code>、<code>useReaderSession.ts</code>、<code>useWorkspaceShell.ts</code></p><p>阅读器的页码、进度、目录、当前章节、加载状态都放在应用最顶层。开书转场期间和有书待命时，书架是挂载着的；这些状态每变一次，顶栏、书架和每一张书卡都重渲染一遍。书架、书库、导航这几个目录里没有任何一处做渲染缓存，项目也没有启用自动缓存的编译器。</p><p>另外，工作区状态的同步逻辑在每次顶层渲染后都会复制一份阅读运行时的状态（其中可见文字最长一万两千字）。</p><p>这和我上一次在模拟器上跟踪到的结果对得上：一次典型冷开里，React 渲染约占 57 毫秒，是最大的一块。具体每次渲染多贵没有单独测，取决于书库大小。</p><p class="fix"><b>修法</b>：页码、进度、目录这类状态改为只被阅读器组件订阅；书架子树用稳定的属性做缓存。</p></div><div class="item"><div class="item-head"><span class="badge p2">P2</span><h3>特别长的章节里，每翻一页都要把全部段落过一遍</h3><span class="tag verified">已测量</span></div><p class="where">引擎 · <code>paginator-geometry.ts</code> 的 <code>getVisibleRange</code>，<code>epubcfi.ts</code> 的 <code>indexChildNodes</code></p><p>每次翻页后，引擎要找出「屏幕上是哪段文字」并算出它的位置编码。这两步都会遍历章节的全部顶层段落。</p><p>实测最大的那一章（约 2000 个段落），4 倍降速下每翻一页约 10 到 12 毫秒；常见章节约 1 毫秒。只影响特别长的章节。</p><p>顺带说明：不带动画的翻页有一把 100 毫秒的锁，它只限制连续翻页的速度，不延迟显示。</p><p class="fix"><b>修法</b>：段落的位置是按顺序排列的，可以用二分查找定位到屏幕附近再细看。</p></div><div class="item"><div class="item-head"><span class="badge p2">P2</span><h3>标注和搜索高亮是「全部重画」</h3><span class="tag read">读代码确认</span></div><p class="where">引擎 · <code>overlayer.ts</code> 的 <code>redraw</code>，<code>view.ts</code> 的 <code>addAnnotation</code>；宿主的 <code>create-overlay</code> 处理</p><p>章节尺寸每重新测量一次，这一章的所有标注就全部移除再重画一遍。长章节分批补排期间，每补一批都会触发一次。</p><p>另外，任何一个章节或 PDF 页面的标注层建好时，宿主会把全书的所有标注重新解析、重新画一遍，而不是只画属于这一页的。PDF 缩放后要重画多页，这个开销会乘上页数。标注很多的书在缩放和滚动时会卡。</p><p class="fix"><b>修法</b>：只重画位置变了的标注；标注层建好时只处理属于它的那些。</p></div><div class="item"><div class="item-head"><span class="badge p2">P2</span><h3>搜索在窗口被遮挡时会停滞</h3><span class="tag read">读代码确认</span></div><p class="where">引擎 · <code>cooperative.ts</code>；用于 <code>search.ts</code>、<code>text-walker.ts</code></p><p>搜索每工作 8 毫秒就用一个 0 毫秒定时器让出主线程。应用窗口被别的窗口挡住、切到别的桌面或在手机上退到后台时，这类定时器会被系统降到每秒只跑一次，搜索就一段一段地停住。Agent 调用搜索工具时表现为长时间没有结果。</p><p>这个平台行为我在这次排查中亲眼见到（桌面窗口被遮挡后定时器间隔变成 1 秒）。仓库里的文本存储模块已经为同样的原因改用了消息通道来让出。</p><p class="fix"><b>修法</b>：改用消息通道让出，和文本存储模块保持一致。</p></div><div class="item"><div class="item-head"><span class="badge p2">P2</span><h3>其余几处性能问题</h3><span class="tag unverified">子任务报告，未逐条核实</span></div><p class="where">引擎 · <code>pdf.ts</code>、<code>fixed-layout.ts</code>、<code>progress.ts</code>、<code>epub-loader.ts</code>；宿主 · <code>book-content-cache.ts</code></p><p>PDF 每一页第一次渲染时都会生成一张封面缩略图（缩小、读回像素、编码成图片），而只有前 5 页用得上；每页还留下一张图片直到关书。</p><p>PDF 放大后的清晰层，会被任何一页渲染完成打断并重新开始；窗口宽度变化时每一帧都重新渲染所有页面，没有像缩放那样等停下来再渲染。</p><p>「当前在目录的哪一条」每次位置上报都重新查找一遍；AZW3 用的是全文档选择器查询，单文件里有几百条目录时每次翻页都要做几百次。</p><p>EPUB 里的脚本文件仍会被加载和改写，脚本里提到的每个资源都会被连带加载，而这些脚本在正式版里根本不能执行。</p><p>待命阅读器正在准备某本书时用户点开同一本，已有的准备会被放弃并重新解析一遍，这次开书反而比没有待命更慢（代码注释说明这是有意的取舍，但它没有区分文件本来就在本机的情况）。</p><p class="fix"><b>修法</b>：分别是：只对前 5 页生成缩略图；相同请求不重启；缓存目录片段的定位结果；直接拒绝加载脚本；允许后来的请求接手进行中的准备。</p></div>
+<h2 id="robust"><span class="num">05</span>健壮性与出错后的状态</h2><p class="lead">出错之后卡住不动、状态错位，以及对不规范或恶意文件的处理。</p><div class="item"><div class="item-head"><span class="badge p1">P1</span><h3>阅读器打开失败后点「重试」没有用</h3><span class="tag read">读代码确认</span></div><p class="where">宿主 · <code>useReaderSession.ts</code> 的 <code>openReader</code> / <code>closeReader</code>，<code>FoliateReaderView.tsx</code></p><p>书的内容已经准备好、但阅读引擎打开失败时，会显示错误界面和「重试」。重试会复用已准备好的内容，而引擎只在内容、书或阅读模式变化时才重新打开，所以什么都不会发生，错误界面原样留着。</p><p>之后关书，判断「这次是否失败」比对的是旧的会话，结论是没失败，于是这个坏掉的阅读器被留作「待命」。再开这本书还是同样的错误，直到开了别的书、内容更新或重启应用。</p><p class="fix"><b>修法</b>：引擎失败时把「已准备好」的标记清掉，下一次打开走完整的加载。</p></div><div class="item"><div class="item-head"><span class="badge p1">P1</span><h3>书籍文件还在下载时，阅读器里没有返回的入口</h3><span class="tag read">读代码确认</span></div><p class="where">宿主 · <code>ReaderWorkspace.tsx</code>、<code>useReaderSession.ts</code></p><p>打开一本文件不在本机的书时，要先从同步服务下载。加载期间顶栏被隐藏，转圈的界面上没有返回按钮，桌面端按 Esc 也不会关闭阅读器。用户只能等下载完成或失败；能退出的只有命令面板和安卓的返回键。关掉之后下载也不会取消。</p><p>同步层自己的超时我没有核对。</p><p class="fix"><b>修法</b>：加载界面提供返回；把取消信号传给内容准备。</p></div><div class="item"><div class="item-head"><span class="badge p1">P1</span><h3>待命的书在别处读过之后再打开，逐句模式停在旧句子上</h3><span class="tag read">读代码确认</span></div><p class="where">宿主 · <code>FoliateReaderView.tsx</code> 的 <code>bindReadingSession</code>，<code>useTextUnitNavigator.ts</code></p><p>一本开着逐句模式的书待命期间，它的进度被别的设备或命令行改了。再打开时，页面会跳到新位置，但逐句模式的「当前句」只在引擎打开那一刻读取过一次，仍是待命时的那一句。</p><p>表现为页面在新位置，高亮和上一句、下一句却从旧句子算起；第一次位置上报会把「新位置 + 旧句子」一起写回并同步出去。不经过待命、直接打开的书没有这个问题。</p><p>我核对了关键的两处调用（当前句只在引擎打开时设置一次；绑定会话时只移动页面），没有用真实同步跑过。</p><p class="fix"><b>修法</b>：会话绑定到待命引擎且进度有变化时，先用最新进度重新设置当前句，再移动页面。</p></div><div class="item"><div class="item-head"><span class="badge p1">P1</span><h3>固定版式 EPUB 和漫画，新出现的页面上标注可能画不出来</h3><span class="tag unverified">子任务报告，未逐条核实</span></div><p class="where">引擎 · <code>fixed-layout.ts</code>（标注层在页面登记之前创建），<code>view.ts</code> 的 <code>#getOverlayer</code></p><p>这类页面的标注层在页面被登记为「可查询」之前就创建并通知了宿主。宿主收到通知后立刻去画标注，却查不到这一页的标注层，标注被悄悄丢掉。要等后面别的页面加载、触发全量重画时才补上；一批里最后建的那一页（比如往回翻到的页、最后一页）会一直没有标注。PDF 不受影响。</p><p>两个子任务分别从视图侧和固定版式侧读到了同一个顺序问题，我没有运行验证。</p><p class="fix"><b>修法</b>：页面登记之后再创建并通知标注层。</p></div><div class="item"><div class="item-head"><span class="badge p1">P1</span><h3>AZW3 只要遇到一章格式不规范，整本书之后都换一种方式解析</h3><span class="tag read">读代码确认</span></div><p class="where">引擎 · <code>kf8.ts</code> 的 <code>#loadSection</code> / <code>createDocument</code></p><p>显示某一章时如果发现它不是规范的 XHTML，引擎会把「整本书」的解析方式切到宽松模式，而且不再切回来。之后每一章的结构都取决于此前有没有读到过不规范的章节，标注、书签的定位可能因此对不上。</p><p>搜索和全文提取走的是另一个入口，那里没有这个兜底：遇到不规范的章节会直接拿到一份「解析错误」文档。EPUB 的同类入口是按章节各自判断的。</p><p class="fix"><b>修法</b>：解析方式按章节各自决定，两个入口用同一套判断，不保留全书级别的开关。</p></div><div class="item"><div class="item-head"><span class="badge p2">P2</span><h3>损坏或恶意的 MOBI 索引可以让页面卡死</h3><span class="tag read">读代码确认</span></div><p class="where">引擎 · <code>mobi-binary.ts</code> 的索引解析</p><p>索引里的一个长度字段被直接用来决定分配多少个条目，没有检查它是否超出记录本身的大小。构造一个接近四十亿的值，就会让页面陷入近十亿次分配，然后内存耗尽。打开和导入都会走到这里。原生侧的同类问题上一轮已经修过，这是 JS 这一侧的。</p><p class="fix"><b>修法</b>：长度超出记录范围或不合格式时直接报错。</p></div><div class="item"><div class="item-head"><span class="badge p2">P2</span><h3>出版商样式里的视口单位，在开书时就被换成了固定像素</h3><span class="tag read">读代码确认</span></div><p class="where">引擎 · <code>paginator.ts</code> 的 <code>open</code></p><p>样式里的 vw、vh 会按开书那一刻的窗口尺寸换算成像素写死。之后调整窗口大小、展开侧栏、旋转屏幕都不会更新，而且换算依据是整个窗口而不是阅读栏的宽度。这是上游的原有做法，用到这类单位的书不多。</p><p class="fix"><b>修法</b>：按阅读栏尺寸换算，并在尺寸变化时重新生成。</p></div><div class="item"><div class="item-head"><span class="badge p2">P2</span><h3>其余几处健壮性问题</h3><span class="tag unverified">子任务报告，未逐条核实</span></div><p class="where">引擎 · <code>epub-dom.ts</code>、<code>kf8.ts</code>、<code>mobi-binary.ts</code>、<code>fb2.ts</code>、<code>view.ts</code>、<code>fixed-layout.ts</code>、<code>comic-book.ts</code>；宿主 · <code>useReaderStandby.ts</code>、<code>useReaderSession.ts</code></p><p>EPUB 的路径被重复解码：文件名里只要有一个百分号，目录解析就会抛错，整本书的目录被放弃。</p><p>AZW3 里两段互相引用的内容被两个章节同时加载时会互相等待，两章都打不开，直到重开书；一次读取失败会让这本书在本次运行里永久退回到逐条顺序读取。</p><p>恶意文件：MOBI 的一种压缩字典可以无上限膨胀（只在 JS 解包路径上）；FB2 的封面可以指向任意网址，读取封面时应用会向那个地址发请求。</p><p>PDF 的页码列表读取失败时，会连带压住目录的补报，开书后第一页的章节名是空的，翻一页才出现。</p><p>固定版式的页面在创建途中被移出页面时，这次创建永远不结束；在应用里今天只会表现为关书时有一个不结束的等待。</p><p>显示器分辨率倍数变化（在 1 倍屏和 2 倍屏之间移动窗口）后，PDF 不会重新渲染，页面发虚。漫画压缩包里大写扩展名的图片会被丢掉，macOS 压缩时附带的隐藏文件却会被当成页面。</p><p>宿主：书库里的书文件都不在本机时，待命会把整个书库挨个试一遍；关书的同时开书会弹出一条不该有的错误提示；引擎打开流程里有一处等待之后没有检查会话是否已关闭（目前看无害）。</p><p class="fix"><b>修法</b>：逐项的修法在各子任务的原始报告里，都是局部改动。</p></div>
+
+<h2 id="sound"><span class="num">06</span>检查过、没有发现问题的部分</h2>
+<p class="lead">列出来是为了说明覆盖范围：这些机制被完整读过，没有找到问题。</p>
+<ul class="good-list"><li>视图的打开与关闭可以重入；每一次等待之后都有代次检查，被放弃的书会被销毁。</li><li>跳转叠跳转、历史回退、搜索被新搜索取代：处理正确，且有测试覆盖。</li><li>EPUB 资源的引用计数在不同章节之间是平衡的；循环引用的样式表不会无限展开。</li><li>MOBI 和 AZW3 的记录缓存有上限（2048 条）；数据库各种表的解析都以越界即抛错的方式终止，不会死循环。</li><li>固定版式的渲染记账、导航取代、预加载链、缩放沉降、定时器和监听器的释放，都检查过没有问题。</li><li>宿主的引擎打开流程里，除上面提到的一处以外，每次等待之后都检查了会话是否已关闭；绑定会话的两处等待也都有检查。</li><li>宿主的内容租约：先取后放、释放可重入、重叠请求有序号隔离；缓存的记账在放弃、失败、中途作废几种情况下都成立。</li><li>进度不会写到别的书上，待命的引擎不会写进度；位置按观察时间盖章并按顺序入队。</li><li>模块级的缓存都有上限或用的是弱引用。</li><li>这两天新加的分批排版和外壳延后挂载：我自己复查了一遍，没有发现新的问题（翻页器不在子任务的范围里，由我审读）。</li></ul>
+
+<h2 id="plan"><span class="num">07</span>建议的修复顺序</h2>
+<p class="lead">按「确定性高、改动小」到「需要一起设计」排列。做哪些、做到哪一批，由你决定。</p>
+<div class="phase"><div class="k">第一批<small>小而确定</small></div><div><h3>章节文档不释放、EPUB 目录查找建索引、最后一页进度回书首、减少动效下的书架快照、MOBI 索引长度校验、PDF 打开失败销毁任务、PDF 翻页空操作不动计数</h3><p>每一项都是几行到几十行的局部改动，行为明确，容易配上回归测试。</p></div></div><div class="phase"><div class="k">第二批<small>导航结果说真话</small></div><div><h3>翻页锁丢弃跳转、跳转途中翻页回报失败、回弹动画不可取消、加载卡住后锁不释放</h3><p>这四条是同一个设计问题：导航有没有发生，没有一个统一的、如实的返回值。需要一起改，并补上对应的回归测试。</p></div></div><div class="phase"><div class="k">第三批<small>PDF 的两处硬伤</small></div><div><h3>连续滚动坏页死循环、页面资源不释放</h3><p>需要真实的坏 PDF 和长 PDF 来验证，最好在应用里量一次内存。</p></div></div><div class="phase"><div class="k">第四批<small>宿主集成</small></div><div><h3>书架反复重渲染、打开失败后重试无效、下载期间无返回入口、待命后逐句模式停在旧句子</h3><p>第一项是目前典型开书里最大的一块耗时；后三项是具体的卡住和错位。</p></div></div><div class="phase"><div class="k">第五批<small>MOBI / AZW3</small></div><div><h3>文本拼接、解析方式按章节决定、章节卸载</h3><p>需要用语料库里的 29 本 MOBI/AZW3 逐章对照，确认改动前后内容一致。</p></div></div>
+
+<h2 id="limits"><span class="num">08</span>这次排查的边界</h2>
+<ul>
+  <li>实测都在 Chrome 里做（合成场景加语料库里的真实书）。桌面和 iOS 用的是 WebKit，这些问题在那里是否完全一致没有逐条验证；与平台无关的逻辑问题（计数器、引用、换算）不受影响。</li>
+  <li>四个子任务只读代码，没有运行任何东西。它们的发现里，我回到代码核对过的标为「读代码确认」，其余标为未逐条核实。</li>
+  <li>没有覆盖：原生端（Rust）的书籍服务、插件、同步、Agent。它们不在「阅读引擎」的范围里。</li>
+  <li>PDF 两条 P0 的实际触发频率和内存增长量没有测量，需要真实的坏 PDF 和长扫描版 PDF。</li>
+  <li>本次没有修改任何代码，也没有新增测试。上面提到的复现脚本是一次性的，没有进仓库。</li>
+</ul>
+
+<footer>ReadAware · 阅读引擎体检 · 2026-11-11 · 历史快照，不代表之后的代码状态</footer>
+</div>
+</body>
+</html>

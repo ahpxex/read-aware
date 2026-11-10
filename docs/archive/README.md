@@ -21,6 +21,7 @@
 | [插件系统审查](./reviews/plugin-system-review.html) | 2026-07-21 的插件能力和缺口快照 |
 | [错误处理审查](./reviews/error-handling-review.html) | 统一错误码、日志和用户提示前的审计依据 |
 | [架构与代码质量体检](./reviews/architecture-review-2026-09.html) | 2026-09-27 快速迭代后的分层、单体、契约与守门缺口快照及治理路线 |
+| [阅读引擎体检](./reviews/reader-engine-audit-2026-11.html) | 2026-11-11 对阅读引擎与宿主集成的性能、状态机、竞态排查：31 条发现及建议的修复顺序，排查时未改代码 |
 | [历史实施记录](./reviews/implementation-history.md) | 从根指令抽出的旧版本迁移背景 |
 | [插件能力基线](./capabilities/plugin-capability-baseline.md) / [HTML](./capabilities/plugin-capability-baseline.html) | 原 129 项、32 个场景与 GAP 的历史契约，供生成器反查；不是当前待办 |
 

@@ -14,6 +14,12 @@
   "tocCollapse": "Свернуть {{label}}",
   "historyBack": "Назад к предыдущему месту",
   "historyForward": "Вперёд к следующему месту",
+  "jumpReturn": {
+    "label": "Вернуться к месту до перехода",
+    "toPage": "Назад к странице {{page}}",
+    "back": "Назад к прежнему месту",
+    "dismiss": "Остаться здесь"
+  },
   "contentsSearch": "Поиск по книге",
   "contentsSearchLabel": "Поиск по книге",
   "cancelSearch": "Отмена",

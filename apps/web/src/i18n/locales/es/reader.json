@@ -14,6 +14,12 @@
   "tocCollapse": "Contraer {{label}}",
   "historyBack": "Volver a la ubicación anterior",
   "historyForward": "Avanzar a la ubicación siguiente",
+  "jumpReturn": {
+    "label": "Volver a donde estaba antes del salto",
+    "toPage": "Volver a la página {{page}}",
+    "back": "Volver a donde estaba",
+    "dismiss": "Quedarse aquí"
+  },
   "contentsSearch": "Buscar en este libro",
   "contentsSearchLabel": "Buscar en este libro",
   "cancelSearch": "Cancelar",

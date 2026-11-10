@@ -39,6 +39,8 @@ import { useReaderModeSelection } from "../hooks/useReaderModeSelection";
 import type { TocEntry } from "../lib/reader-types";
 import { ReaderContentsPanel, type ReaderSideView } from "./ReaderContentsPanel";
 import { ReaderSearchPanel } from "./ReaderSearchPanel";
+import { ReaderJumpReturn } from "./ReaderJumpReturn";
+import { useJumpReturn } from "../hooks/useJumpReturn";
 import { ReaderSheet, type ReaderSheetContent } from "./ReaderSheet";
 import { readerToolbarPlacementAtom } from "../../menus";
 import { type ReaderBookmarks } from "./ReaderBookmarkList";
@@ -134,6 +136,9 @@ export function ReaderShellOverlay({
       : null;
   // Chapter ticks for the progress bar, and the labels its scrub readout names.
   const progressMarks = useMemo(() => buildProgressMarks(tocEntries), [tocEntries]);
+  // After a jump (a search hit, a note, a chapter, a link, the progress bar):
+  // the way back to where the reading stopped.
+  const jumpReturn = useJumpReturn(readingCursor);
 
   // Docked TOC + chat panels persist per book (restored when the book reopens).
   // Phone-width sheets and the appearance popover are transient: they close
@@ -886,6 +891,25 @@ export function ReaderShellOverlay({
             the drawer rather than reaching the book (and toggling the chrome). */}
         {drawer && (
           <div aria-hidden="true" className="pointer-events-auto absolute inset-0 z-[1]" onClick={closeDrawer} />
+        )}
+        {/* The way back after a jump floats over the bottom of the page whether
+            or not the chrome shows; it comes first so the docked panels and
+            the phone's sheets cover it. It clears the footer strip, and the
+            unit navigator's bar where that mode puts one. A phone's bottom
+            bar already keeps this zone above the strip and the safe area. */}
+        {jumpReturn.origin && (
+          <div
+            className="absolute inset-x-0 flex justify-center px-4"
+            style={{
+              bottom: textUnitModeActive
+                ? "5rem"
+                : isPhone && !toolbarOnTop
+                  ? "0.75rem"
+                  : "calc(2.25rem + var(--ra-safe-bottom))",
+            }}
+          >
+            <ReaderJumpReturn page={jumpReturn.origin.page} onBack={jumpReturn.goBack} onDismiss={jumpReturn.dismiss} />
+          </div>
         )}
         {/* Side panel (left): the contents or the notes. A phone shows them in
             a tall sheet instead (ReaderSheet below). */}

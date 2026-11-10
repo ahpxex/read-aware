@@ -14,6 +14,12 @@
   "tocCollapse": "Réduire {{label}}",
   "historyBack": "Revenir à l’emplacement précédent",
   "historyForward": "Avancer à l’emplacement suivant",
+  "jumpReturn": {
+    "label": "Revenir à l’emplacement d’avant le saut",
+    "toPage": "Revenir à la page {{page}}",
+    "back": "Revenir où vous étiez",
+    "dismiss": "Rester ici"
+  },
   "contentsSearch": "Rechercher dans ce livre",
   "contentsSearchLabel": "Rechercher dans ce livre",
   "cancelSearch": "Annuler",

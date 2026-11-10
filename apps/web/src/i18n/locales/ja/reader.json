@@ -14,6 +14,12 @@
   "tocCollapse": "{{label}}を折りたたむ",
   "historyBack": "前の位置に戻る",
   "historyForward": "次の位置に進む",
+  "jumpReturn": {
+    "label": "ジャンプ前の位置に戻る",
+    "toPage": "{{page}} ページに戻る",
+    "back": "元の位置に戻る",
+    "dismiss": "ここにとどまる"
+  },
   "contentsSearch": "この本を検索",
   "contentsSearchLabel": "この本を検索",
   "cancelSearch": "キャンセル",

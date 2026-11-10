@@ -14,6 +14,12 @@
   "tocCollapse": "收起 {{label}}",
   "historyBack": "返回上一個位置",
   "historyForward": "前進到下一個位置",
+  "jumpReturn": {
+    "label": "返回跳轉前的位置",
+    "toPage": "回到第 {{page}} 頁",
+    "back": "回到原位置",
+    "dismiss": "留在這裡"
+  },
   "contentsSearch": "在本書中搜尋",
   "contentsSearchLabel": "在本書中搜尋",
   "cancelSearch": "取消",

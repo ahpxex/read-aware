@@ -324,6 +324,51 @@ test("back and forward traverse without branching; a new jump discards forward h
   expect((await runtime.back()).location.cfi).toBe("middle");
 });
 
+test("history observers hear each in-session jump and history step with the place it left, never page turns", async () => {
+  const f = fixture();
+  const moves: string[] = [];
+  const off = f.runtime.observeHistory((move) => {
+    expect(move.sessionId).toBe(f.id);
+    moves.push(`${move.kind}:${move.from.cfi}>${move.to.cfi}`);
+  });
+  try {
+    // The renderer reports the landing place before the jump itself commits:
+    // the place left behind is still the one the jump began from.
+    f.engine.navigate = async (target) => {
+      if (target.cfi === "missing") throw new AppError("reader/target-not-found", "Missing location");
+      f.runtime.relocate(f.id, at(`${target.cfi}-early`), "");
+      return at(target.cfi!);
+    };
+    await f.runtime.navigate({ cfi: "middle" });
+    expect(moves).toEqual(["jump:start>middle"]);
+    // Page turns are not jumps, but the next jump leaves from where they led.
+    await f.runtime.step("next");
+    await f.runtime.navigate({ cfi: "end" });
+    await f.runtime.step("next-chapter");
+    expect(moves.slice(1)).toEqual(["jump:next>end", "jump:end>next-chapter"]);
+    await f.runtime.back();
+    await f.runtime.forward();
+    expect(moves.slice(3)).toEqual(["back:next-chapter>end", "forward:end>next-chapter"]);
+    // Landing where the reader already is adds no entry and is no move; nor is a failed jump.
+    await f.runtime.navigate({ cfi: "next-chapter" });
+    await expect(f.runtime.navigate({ cfi: "missing" })).rejects.toMatchObject({ code: "reader/target-not-found" });
+    expect(moves).toHaveLength(5);
+    // A failing observer is reported and does not stop the others or the jump.
+    f.runtime.observeHistory(() => {
+      throw Error("observer failed");
+    });
+    off();
+    const seen: string[] = [];
+    f.runtime.observeHistory((move) => seen.push(move.kind));
+    expect((await f.runtime.navigate({ cfi: "after" })).location.cfi).toBe("after");
+    expect(seen).toEqual(["jump"]);
+    expect(moves).toHaveLength(5);
+    expect(f.errors).toHaveLength(1);
+  } finally {
+    f.detach();
+  }
+});
+
 test("a stale content version and out-of-range fraction fail before engine movement", async () => {
   const f = fixture();
   let moved = false;

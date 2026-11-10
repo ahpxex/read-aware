@@ -14,6 +14,12 @@
   "tocCollapse": "{{label}} zuklappen",
   "historyBack": "Zurück zur vorherigen Stelle",
   "historyForward": "Weiter zur nächsten Stelle",
+  "jumpReturn": {
+    "label": "Zur Stelle vor dem Sprung zurückkehren",
+    "toPage": "Zurück zu Seite {{page}}",
+    "back": "Zurück zur vorherigen Stelle",
+    "dismiss": "Hier bleiben"
+  },
   "contentsSearch": "Dieses Buch durchsuchen",
   "contentsSearchLabel": "Dieses Buch durchsuchen",
   "cancelSearch": "Abbrechen",

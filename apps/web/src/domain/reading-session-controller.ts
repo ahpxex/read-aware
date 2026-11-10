@@ -50,6 +50,19 @@ import { settled } from "../platform/write-settlement";
 
 type ReadingSessionChange = Omit<PublicReadingSessionChange, "origin"> & { origin: DomainActor };
 
+/**
+ * A move through one session's jump history, as it is committed: a new jump
+ * (a chapter, a search hit, a link, a scrub; page turns are not jumps), or a
+ * step back or forward through earlier ones. `from` is where the reader was
+ * when the move began, `to` where it landed.
+ */
+export type ReadingHistoryMove = {
+  sessionId: string;
+  kind: "jump" | "back" | "forward";
+  from: ReadingLocation;
+  to: ReadingLocation;
+};
+
 export type ReadingSelectionAdapter = {
   validate(range: BookTextRange, signal: AbortSignal): Promise<void>;
   select(
@@ -137,6 +150,7 @@ export class ReadingSessionController {
   private selectionAdapter: { id: string; adapter: ReadingSelectionAdapter } | undefined;
   private readonly listeners = new Set<(snapshot: ReadingSessionSnapshot) => unknown>();
   private readonly changes = new Set<() => void>();
+  private readonly historyObservers = new Set<(move: ReadingHistoryMove) => void>();
   private history: ReadingLocation[] = [];
   private cursor = -1;
   private userOpening: { id: string; before: ReadingLocation | null } | undefined;
@@ -241,6 +255,18 @@ export class ReadingSessionController {
     this.listeners.add(handler);
     this.deliver(handler);
     return () => this.listeners.delete(handler);
+  }
+
+  /**
+   * Every move through the jump history inside one reading session, in order
+   * and as it commits. Snapshots cannot answer this: an observer may skip
+   * revisions, and the renderer publishes the landing place before the move
+   * itself is published, so the place left behind is gone from them. Opening
+   * a book is not a move.
+   */
+  observeHistory(handler: (move: ReadingHistoryMove) => void): () => void {
+    this.historyObservers.add(handler);
+    return () => this.historyObservers.delete(handler);
   }
 
   bindShell(shell: Shell): () => void {
@@ -1069,14 +1095,32 @@ export class ReadingSessionController {
       check();
       if (this.session !== session || session.engine !== engine)
         throw new AppError("reader/superseded", "Reader engine was replaced");
+      let move: ReadingHistoryMove["kind"] | undefined;
       if (historyIndex !== undefined) {
+        move = historyIndex < this.cursor ? "back" : "forward";
         if (before && this.cursor >= 0) this.history[this.cursor] = before;
         this.cursor = historyIndex;
         this.history[this.cursor] = location;
       } else if (direction !== "next" && direction !== "previous" && !moveMode) {
-        this.recordJump(before, location);
+        if (this.recordJump(before, location)) move = "jump";
       }
       this.publish({ location, pagination: paginationOf(engine) }, change);
+      // A move inside the session that was reading: an opening or a reload
+      // lands in a new session and leaves no place behind in it.
+      if (move && before && session === previousSession) {
+        for (const observer of [...this.historyObservers]) {
+          try {
+            observer({
+              sessionId: session.id,
+              kind: move,
+              from: structuredClone(before),
+              to: structuredClone(location),
+            });
+          } catch (error) {
+            this.report(error);
+          }
+        }
+      }
       return { status: "completed", sessionId: session.id, location: structuredClone(location) };
     };
     const superseded = () => {
@@ -1095,20 +1139,21 @@ export class ReadingSessionController {
     return a.href === b.href && a.fraction === b.fraction;
   }
 
-  private recordJump(before: ReadingLocation | null, location: ReadingLocation): void {
+  /** Returns whether the jump added a history entry (landing where the reader already was does not). */
+  private recordJump(before: ReadingLocation | null, location: ReadingLocation): boolean {
     if (before && this.cursor < 0) {
       this.history.push(before);
       this.cursor = 0;
     } else if (before && this.cursor >= 0) this.history[this.cursor] = before;
-    if (!before || !this.sameLocation(before, location)) {
-      this.history.splice(this.cursor + 1);
-      this.history.push(location);
-      this.cursor = this.history.length - 1;
-      if (this.history.length > 100) {
-        this.history.shift();
-        this.cursor--;
-      }
+    if (before && this.sameLocation(before, location)) return false;
+    this.history.splice(this.cursor + 1);
+    this.history.push(location);
+    this.cursor = this.history.length - 1;
+    if (this.history.length > 100) {
+      this.history.shift();
+      this.cursor--;
     }
+    return true;
   }
 
   private waitReady(session: Session, check: () => void, signal?: AbortSignal): Promise<void> {

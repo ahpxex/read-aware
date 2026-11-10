@@ -8,10 +8,10 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+# Every dist directory is build output, plugin bundles included: the desktop
+# app's `prepare:plugins` builds plugins/*/dist before a native build embeds it.
 dist
 dist-ssr
-!plugins/*/dist/
-!plugins/*/dist/**
 .tanstack
 storybook-static
 # Foliate runtime is emitted from apps/web/foliate-js/src; vendor/ stays tracked.

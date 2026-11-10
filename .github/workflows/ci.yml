@@ -89,8 +89,9 @@ jobs:
             exit 1
           fi
       - run: bun install --frozen-lockfile
-      - name: Prepare embedded plugins for native compilation
-        run: bun run --filter @read-aware/plugin-dictionary --filter @read-aware/plugin-editorial-themes --filter @read-aware/plugin-rss-reader --filter @read-aware/plugin-sentence-reader --filter @read-aware/plugin-tts build
+      # plugins/*/dist is build output, not in git; the desktop crate embeds it.
+      - name: Build the plugins embedded by native compilation
+        run: bun run --filter @read-aware/desktop prepare:plugins
       - name: Clippy (library and tests, warnings are errors)
         run: cargo clippy -p read-aware-store -p read-aware-desktop --lib --tests --locked -- -D warnings
       - name: Clippy for the ra CLI (binary and tests, warnings are errors)
@@ -138,8 +139,9 @@ jobs:
           key: ci-native-${{ matrix.os }}
           cache-on-failure: true
       - run: bun install --frozen-lockfile
-      - name: Prepare embedded plugins for native compilation
-        run: bun run --filter @read-aware/plugin-dictionary --filter @read-aware/plugin-editorial-themes --filter @read-aware/plugin-rss-reader --filter @read-aware/plugin-sentence-reader --filter @read-aware/plugin-tts build
+      # plugins/*/dist is build output, not in git; the desktop crate embeds it.
+      - name: Build the plugins embedded by native compilation
+        run: bun run --filter @read-aware/desktop prepare:plugins
       - name: Native transactions and platform contracts (no desktop launch)
         run: cargo test --locked --lib -p read-aware-store -p read-aware-desktop
       - name: The ra CLI against a temporary library

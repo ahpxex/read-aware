@@ -1767,20 +1767,6 @@
   {
     "type": "dependency",
     "from": "src/features/reader/components/FoliateReaderView.tsx",
-    "to": "src/features/library/lib/book-content-source.ts",
-    "unresolvedTo": "../../library/lib/book-content-source",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/reader/components/FoliateReaderView.tsx",
     "to": "src/features/library/lib/content-invalidation.ts",
     "unresolvedTo": "../../library/lib/content-invalidation",
     "dependencyTypes": [
@@ -1827,20 +1813,6 @@
     "from": "src/features/reader/components/FoliateReaderView.tsx",
     "to": "src/features/plugins/lib/reader-mode.ts",
     "unresolvedTo": "../../plugins/lib/reader-mode",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/reader/components/FoliateReaderView.tsx",
-    "to": "src/features/plugins/lib/virtual-books.ts",
-    "unresolvedTo": "../../plugins/lib/virtual-books",
     "dependencyTypes": [
       "local",
       "import"

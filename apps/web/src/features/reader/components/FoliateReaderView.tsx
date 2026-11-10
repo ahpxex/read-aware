@@ -2,7 +2,7 @@ import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, type
 import type { TFunction } from "i18next";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Spinner, useToast } from "@read-aware/ui";
-import { AppError, type ReadingModeResume } from "@read-aware/core";
+import type { ReadingModeResume } from "@read-aware/core";
 import { cn } from "@read-aware/ui/cn";
 import { ReaderFailureView } from "./ReaderFailureView";
 import { ReaderBackgroundLayer } from "../../settings";
@@ -52,8 +52,6 @@ import {
   type FoliateView,
 } from "../lib/foliate-engine";
 import { applyHighlights, applyNotes, registerHighlightDrawing } from "../lib/highlight-renderer";
-import { parseBookFile } from "../lib/parse-book";
-import { ensureUsableToc } from "../lib/toc-synthesis";
 import { useReadAloud } from "../hooks/useReadAloud";
 import { createReaderPanelIntent, readerPanelIntentAtom, type ReaderPanelKind } from "../state/panel-intent";
 import { useTextUnitNavigator } from "../hooks/useTextUnitNavigator";
@@ -95,10 +93,7 @@ import { useReaderPalette } from "../../settings/hooks/useReaderPalette";
 import type { ReaderSettings } from "../../settings/lib/reader-settings";
 import { DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
 import { restoreReadingPosition } from "../lib/restore-reading-position";
-import { buildVirtualFoliateBook } from "../lib/virtual-book";
-import { resolveContentProvider } from "../../plugins/lib/virtual-books";
 import { readingRuntime } from "../../../domain/reading-runtime";
-import { getRepairedNavigation } from "../../../domain/library";
 import { useReferencePreview } from "../hooks/useReferencePreview";
 import { attachReadingEngine, waitForReadingPaint } from "../lib/reading-engine-adapter";
 import { readingRenderActor, readingRenderContext } from "../lib/reading-render-context";
@@ -115,17 +110,12 @@ import { createReadingSelectionAdapter } from "../lib/reading-selection-adapter"
 import { createReadingEmphasisAdapter } from "../lib/reading-emphasis-adapter";
 import { readingEmphasis } from "../../../domain/reading-emphasis";
 import {
-  fileContentVersion,
-  virtualContentVersion,
-  registerActiveBookContent,
-} from "../../library/lib/book-content-source";
-import {
   assertContentNotInvalidated,
   contentInvalidationRevision,
   virtualSourceRevision,
 } from "../../library/lib/content-invalidation";
 import type { RegisteredReaderMode } from "../../plugins/lib/plugin-types";
-import { detectBookLanguage } from "../lib/book-language";
+import { bookLanguage } from "../lib/book-language";
 import { rememberReaderBookLanguage } from "../../settings/lib/reader-languages";
 import { getReaderPreferences, readerPreferencesForLanguage } from "../../settings/lib/reader-settings";
 import { getReaderOverrides } from "../../settings/lib/reader-overrides";
@@ -2240,53 +2230,23 @@ export function FoliateReaderView({
         container.append(view);
 
         await registerHighlightDrawing(view);
-        let parsedBook: FoliateBook;
-        let contentProvider: ReturnType<typeof resolveContentProvider> | undefined;
-        let contentVersion = sessionId ? `session:${sessionId}` : "unmanaged";
-        if (initialBook.virtual) {
-          // Plugin-provided book: resolve the content provider and build a
-          // foliate-conforming object — no file, no parser.
-          const provider = resolveContentProvider(initialBook.virtual);
-          if (!provider) {
-            throw new Error("The plugin providing this book is disabled or uninstalled.");
-          }
-          const content = await provider.load(initialBook.virtual.key);
-          if (resolveContentProvider(initialBook.virtual) !== provider) {
-            throw new AppError("library/content-unavailable", "Book content provider changed while loading");
-          }
-          contentProvider = provider;
-          contentVersion = await virtualContentVersion(content);
-          if (session.closed) return;
-          parsedBook = await buildVirtualFoliateBook(content);
-        } else {
-          const source = initialBook.file;
-          if (!source) throw new Error("Missing book file.");
-          const file =
-            typeof source.name === "string"
-              ? source
-              : new File([await source.arrayBuffer()], initialBook.fileName, { type: source.type });
-          // Parse first, then repair a deficient nav BEFORE the view opens —
-          // foliate builds its TOC progress (relocate's tocItem) from book.toc
-          // at open time, so the synthesized map has to be in place already.
-          parsedBook = await parseBookFile(file);
-          retainParsedBook(parsedBook);
-          if (session.closed) return;
-          // Navigation repaired or rebuilt before is stored with the book's text; reuse it
-          // rather than parsing the book again.
-          const persisted = selectedBook
-            ? await getRepairedNavigation(selectedBook.id).catch((error: unknown) => {
-                log.warn("Stored navigation unavailable", error);
-                return null;
-              })
-            : null;
-          if (session.closed) return;
-          await ensureUsableToc(parsedBook, { persisted });
-          if (selectedBook && sessionId) contentVersion = await fileContentVersion(selectedBook.id);
-        }
-        if (!releaseBook) retainParsedBook(parsedBook);
-        if (session.closed) return;
+        // The book has been preparing since it was chosen (see LoadedBook). A
+        // book that could not be prepared is the reading session's to report:
+        // it unmounts this reader for its failure surface.
+        const content = await initialBook.content.catch(() => null);
+        if (!content || session.closed) return;
+        const parsedBook = content.book;
+        const contentProvider = content.provider;
+        // An unmanaged reader (no library book, no session) has no revision to share.
+        const contentVersion =
+          initialBook.virtual || (selectedBook && sessionId)
+            ? content.contentVersion
+            : sessionId
+              ? `session:${sessionId}`
+              : "unmanaged";
+        retainParsedBook(parsedBook);
         if (selectedBook && !isFixedLayoutBook(parsedBook)) {
-          const language = await detectBookLanguage(parsedBook);
+          const language = await bookLanguage(parsedBook);
           if (session.closed) return;
           rememberReaderBookLanguage(selectedBook.id, language, openingActor);
           // Seed the very first stylesheet before React's shared-language update
@@ -2309,17 +2269,6 @@ export function FoliateReaderView({
         // The opening stylesheet is awaited before the first page renders;
         // read its font from this device while the book finishes opening.
         prepareReaderStyles(readerSettingsRef.current);
-        if (selectedBook && sessionId)
-          defer(
-            registerActiveBookContent(
-              selectedBook.id,
-              parsedBook,
-              contentVersion,
-              contentProvider,
-              invalidation,
-              initialBook.virtual?.key,
-            ),
-          );
         const chapterStarts = readerChapterStarts(parsedBook, await chapterMapFor(parsedBook));
         if (session.closed) return;
         await view.open(parsedBook);

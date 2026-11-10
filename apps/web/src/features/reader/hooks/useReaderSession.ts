@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { describeError, useTranslation } from "../../../i18n";
 import { useLocalAtom } from "@read-aware/ui/state";
-import { markLibraryBookOpened, resolveStoredBookFile, type BookFileMissingReason } from "../../library/lib/library-db";
+import { acquireBookContent, BookSourceMissingError, type BookContentLease } from "../../library";
+import { markLibraryBookOpened, type BookFileMissingReason } from "../../library/lib/library-db";
 import { readingTraces } from "../lib/reading-trace-runtime";
 import type { ReadingTrace } from "../lib/reading-trace";
 import { createLogger } from "../../../platform/logger";
@@ -84,6 +85,21 @@ export function useReaderSession({
   // header's progress bar.
   const [readerFraction, setReaderFraction] = useLocalAtom<number | null>(null);
   const readerLoadRequestIdRef = useRef(0);
+  // The lease on the open book's prepared content, held from the moment the
+  // book is chosen until another is, or the reader closes.
+  const contentLease = useRef<Promise<BookContentLease> | null>(null);
+  const releaseContent = useCallback(() => {
+    const lease = contentLease.current;
+    contentLease.current = null;
+    lease
+      ?.then(
+        (held) => held.release(),
+        // A preparation that failed holds nothing to give back.
+        () => {},
+      )
+      .catch((error: unknown) => log.warn("releasing book content failed", error));
+  }, []);
+  useEffect(() => releaseContent, [releaseContent]);
   const resetReaderState = useCallback(() => {
     setReaderSource(null);
     setReaderLoadError(null);
@@ -159,46 +175,35 @@ export function useReaderSession({
       resetReaderState();
       setIsReaderLoading(true);
 
-      void (async () => {
-        try {
-          if (book.format === "virtual") {
-            const binding = getVirtualBookBinding(book.id);
-            if (!binding) {
-              throw new Error("This book's plugin content source is not available.");
-            }
-            if (readerLoadRequestIdRef.current !== requestId) return;
-            setReaderSource({
-              format: book.format,
-              data: {
-                fileName: book.title,
-                format: book.format,
-                virtual: binding,
-                resetPosition: options?.resetPosition,
-              },
-            });
-            setIsReaderLoading(false);
-          } else {
-            const resolved = await resolveStoredBookFile(book);
-            if (readerLoadRequestIdRef.current !== requestId) return;
-            if (resolved.status === "missing") {
-              readingRuntime.fail(sessionId, new AppError("fs/not-found", `Book source missing: ${resolved.reason}`));
-              setReaderLoadError({ kind: "file-missing", reason: resolved.reason });
-              setIsReaderLoading(false);
-              return;
-            }
+      // The book is found and parsed from this moment, alongside the reader
+      // mounting and building its engine; the engine picks the result up.
+      const binding = book.format === "virtual" ? getVirtualBookBinding(book.id) : null;
+      const lease =
+        book.format === "virtual" && !binding
+          ? Promise.reject<BookContentLease>(new Error("This book's plugin content source is not available."))
+          : acquireBookContent(book.id, { fetchMissing: true });
+      // The book before this one is given back only now: releasing it first
+      // could push this book out of the kept ones just before it is asked for.
+      releaseContent();
+      contentLease.current = lease;
+      const content = lease.then((held) => held.content);
+      // The failure is reported below; a reader that never mounts must not leave this copy of it unobserved.
+      content.catch(() => {});
+      setReaderSource({
+        format: book.format,
+        data: {
+          fileName: book.format === "virtual" ? book.title : book.fileName,
+          format: book.format,
+          content,
+          ...(binding ? { virtual: binding } : {}),
+          resetPosition: options?.resetPosition,
+        },
+      });
 
-            setReaderSource({
-              format: book.format,
-              data: {
-                fileName: book.fileName,
-                format: book.format,
-                file: resolved.file,
-                resetPosition: options?.resetPosition,
-              },
-            });
-            setIsReaderLoading(false);
-          }
-
+      lease.then(
+        () => {
+          if (readerLoadRequestIdRef.current !== requestId) return;
+          setIsReaderLoading(false);
           void markLibraryBookOpened(book.id, openingActor)
             .then((nextBook) => {
               if (!nextBook) return;
@@ -209,8 +214,17 @@ export function useReaderSession({
             .catch((error) => {
               reportError(error);
             });
-        } catch (error) {
+        },
+        (error: unknown) => {
           if (readerLoadRequestIdRef.current !== requestId) return;
+          // Nothing to render: the reader gives way to the failure surface.
+          setReaderSource(null);
+          setIsReaderLoading(false);
+          if (error instanceof BookSourceMissingError) {
+            readingRuntime.fail(sessionId, error);
+            setReaderLoadError({ kind: "file-missing", reason: error.reason });
+            return;
+          }
           log.error("opening book failed", error);
           readingRuntime.fail(sessionId, error);
           const failure = describeError(error, { fallback: t("shelf:errors.generic") });
@@ -219,11 +233,10 @@ export function useReaderSession({
             message: failure.body,
             retryable: failure.retryable,
           });
-          setIsReaderLoading(false);
-        }
-      })();
+        },
+      );
     },
-    [controls, replaceBookInState, reportError, resetReaderState, setShellVisible, t],
+    [controls, releaseContent, replaceBookInState, reportError, resetReaderState, setShellVisible, t],
   );
 
   const closeReader = useCallback(async () => {
@@ -247,9 +260,10 @@ export function useReaderSession({
         setSelectedBook(null);
         setShellVisible(false);
         resetReaderState();
+        releaseContent();
       }
     }
-  }, [reportError, resetReaderState, setShellVisible]);
+  }, [releaseContent, reportError, resetReaderState, setShellVisible]);
 
   const toggleShell = useCallback(() => {
     setShellVisible((visible) => !visible);

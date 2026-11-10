@@ -47,3 +47,19 @@ export async function detectBookLanguage(book: FoliateBook): Promise<string> {
   }
   return inferBookLanguage(sample) ?? "und";
 }
+
+const languages = new WeakMap<FoliateBook, Promise<string>>();
+
+/**
+ * The book's language, worked out once per parsed book: without publisher
+ * metadata it reads sample documents, and the same parsed book is opened
+ * again for every layout switch and every reopening.
+ */
+export function bookLanguage(book: FoliateBook): Promise<string> {
+  let language = languages.get(book);
+  if (!language) {
+    language = detectBookLanguage(book);
+    languages.set(book, language);
+  }
+  return language;
+}

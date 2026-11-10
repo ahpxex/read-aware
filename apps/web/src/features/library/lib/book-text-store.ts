@@ -8,7 +8,7 @@ import { deleteDesktopBlob, getDesktopBlob, getDesktopBlobInfo, putDesktopBlob }
 import { localKV } from "../../../platform/local-store";
 import { createLogger } from "../../../platform/logger";
 import { chapterMapFor, type FoliateBook } from "../../reader/lib/foliate-engine";
-import { withBookContent } from "./book-content-source";
+import { provideStoredNavigation, withBookContent } from "./book-content-source";
 import { getBookRecord, getStoredBookFile } from "./library-db";
 import { parseStoredNavigation } from "./book-text-record";
 import { BookTextRepository } from "./book-text-repository";
@@ -149,6 +149,8 @@ export const getDigestChapterSource = (
 ) => repository.chapter(bookId, index, version, signal, origin);
 export const getPersistedBookText = (bookId: string) => repository.persisted(bookId);
 export const getPersistedBookNavigation = (bookId: string) => repository.persistedNavigation(bookId);
+// Every preparation of a book restores the navigation stored with its text.
+provideStoredNavigation(getPersistedBookNavigation);
 // Borrow the active parser with its registered version, never attach a new hash to an old parser.
 export const ensureBookTextExtracted = (bookId: string, preopened?: FoliateBook, origin?: DomainActor) =>
   repository.ensure(bookId, !!preopened, origin);

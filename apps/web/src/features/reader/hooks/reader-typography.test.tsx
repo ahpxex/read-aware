@@ -87,7 +87,8 @@ if (process.env.READER_TYPOGRAPHY_CASE === "1") {
         } as unknown as FoliateView,
       },
       viewportRef = { current: dom.window.document.body };
-    const loadedBook = { fileName: "book.epub", format: "epub" as const };
+    // Never prepared here: this harness only needs the book's identity.
+    const loadedBook = { fileName: "book.epub", format: "epub" as const, content: new Promise<never>(() => {}) };
     const sessionId = readingRuntime.begin("book", undefined, causalActor("user"));
     let engineSource!: ReturnType<typeof useReaderEngineLoadSource>;
     const retirements: object[] = [];

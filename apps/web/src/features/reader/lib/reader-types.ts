@@ -1,5 +1,5 @@
 import type { BookFormat } from "../../library/lib/library-types";
-import type { BookFile } from "../../../../foliate-js/src/book";
+import type { Book, BookFile } from "../../../../foliate-js/src/book";
 import type { BookTextRange } from "@read-aware/core";
 
 /** Minimal Blob/File surface consumed by foliate's format sniffers and parsers. */
@@ -14,23 +14,38 @@ export type ActionTarget = {
   range?: BookTextRange | null;
 };
 
-/**
- * A book file pulled from local storage, ready to hand to the foliate engine
- * (`makeBook`). foliate auto-detects the format from the bytes, but we keep the
- * stored `format` for routing/UX. PDFs use a native random-access source so
- * PDF.js can request byte ranges; other formats currently pass a normal Blob.
- */
 export type VirtualBookRef = {
   pluginId: string;
   providerId: string;
   key: string;
 };
 
+/**
+ * A book ready to be opened by an engine: parsed, its navigation usable, its
+ * content version known. What the library's prepared content is to the
+ * reader, stated here so this module depends on no other feature.
+ */
+export type PreparedBook = {
+  book: Book;
+  contentVersion: string;
+  /** The plugin provider a virtual book's content came from. */
+  provider?: object | null;
+};
+
+/**
+ * A book being opened in the reader. Its content is prepared outside the
+ * reader's components (see the library's book-content-source) and started the
+ * moment the book was chosen, so the reader mounts and builds its engine
+ * while the book is found and parsed, not before. The reading session that
+ * made this object holds the lease on that content for as long as it is the
+ * book in the reader; an engine re-opened for another layout reuses it.
+ */
 export type LoadedBook = {
   fileName: string;
   format: BookFormat;
-  /** Absent for virtual books (content comes from a plugin provider). */
-  file?: BookFileSource;
+  /** Rejects when the book could not be prepared; the reading session reports that and unmounts the reader. */
+  content: Promise<PreparedBook>;
+  /** Set for a plugin-provided book. */
   virtual?: VirtualBookRef;
   /** Explicit reload resets file/unknown positions; virtual source-proven unchanged sections can retain a location. */
   resetPosition?: boolean;

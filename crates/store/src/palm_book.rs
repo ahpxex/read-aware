@@ -39,6 +39,19 @@ const MAX_FONT_BYTES: usize = 128 * 1024 * 1024;
 /// out how deep a crafted one goes.
 const MAX_HUFF_DEPTH: usize = 256;
 
+/// A HUFF/CDIC dictionary is a book's phrases: thousands of short strings.
+/// These bound what a crafted one can make the shell hold: the entries it
+/// declares, the bytes they point at (entries may overlap, so the sum is not
+/// bounded by the records), what one entry expands to, and what all expanded
+/// entries together are kept as.
+const MAX_HUFF_ENTRIES: usize = 1 << 20;
+const MAX_HUFF_DICTIONARY_BYTES: usize = 64 * 1024 * 1024;
+const MAX_HUFF_ENTRY_BYTES: usize = 64 * 1024;
+const MAX_HUFF_EXPANDED_BYTES: usize = 64 * 1024 * 1024;
+/// Table sets kept per open book. A book has one (a combo file's halves may
+/// differ); the request names them, so more than that is not a book asking.
+const MAX_HUFF_TABLE_SETS: usize = 2;
+
 const COMPRESSION_NONE: u32 = 1;
 const COMPRESSION_PALMDOC: u32 = 2;
 const COMPRESSION_HUFFCDIC: u32 = 17480;
@@ -85,6 +98,8 @@ struct HuffTables {
     /// Indexed by code length - 1: (lower bound, base value).
     second: Vec<(u32, u32)>,
     dictionary: Vec<HuffEntry>,
+    /// Bytes held by entries expanded since the tables were read.
+    expanded: usize,
 }
 
 pub struct PalmBook {
@@ -239,7 +254,7 @@ impl PalmBook {
                         .huff
                         .get_mut(&(coding.huffcdic, coding.huffcdic_count))
                         .ok_or_else(|| invalid("HUFF/CDIC tables are not loaded"))?;
-                    tables.decompress(body, 0)?
+                    tables.decompress(body, 0, MAX_TEXT_RECORD_BYTES)?
                 }
             };
             total += text.len();
@@ -265,8 +280,11 @@ impl PalmBook {
         let dictionaries = (1..count)
             .map(|offset| self.record(first + offset))
             .collect::<Result<Vec<_>, _>>()?;
-        self.huff
-            .insert(key, HuffTables::parse(&huff, &dictionaries)?);
+        let tables = HuffTables::parse(&huff, &dictionaries)?;
+        if self.huff.len() >= MAX_HUFF_TABLE_SETS {
+            self.huff.clear();
+        }
+        self.huff.insert(key, tables);
         Ok(())
     }
 
@@ -394,6 +412,7 @@ impl HuffTables {
             .collect::<Result<Vec<_>, CommandError>>()?;
 
         let mut dictionary = Vec::new();
+        let mut dictionary_bytes = 0usize;
         for record in dictionaries {
             let bad = || invalid("Invalid CDIC record");
             if record.get(0..4) != Some(b"CDIC") {
@@ -408,12 +427,19 @@ impl HuffTables {
                 .ok_or_else(bad)?
                 .min(entries.saturating_sub(dictionary.len()));
             let data = record.get(header..).ok_or_else(bad)?;
+            if dictionary.len() + here > MAX_HUFF_ENTRIES {
+                return Err(invalid("CDIC dictionary exceeds the entry limit"));
+            }
             for index in 0..here {
                 let offset = be_u16(data, index * 2).ok_or_else(bad)? as usize;
                 let head = be_u16(data, offset).ok_or_else(bad)?;
                 let length = (head & 0x7fff) as usize;
                 let start = (offset + 2).min(data.len());
                 let end = (offset + 2 + length).min(data.len());
+                dictionary_bytes += end - start;
+                if dictionary_bytes > MAX_HUFF_DICTIONARY_BYTES {
+                    return Err(invalid("CDIC dictionary exceeds the size limit"));
+                }
                 dictionary.push(HuffEntry {
                     value: data[start..end].to_vec(),
                     decompressed: head & 0x8000 != 0,
@@ -425,10 +451,18 @@ impl HuffTables {
             first,
             second,
             dictionary,
+            expanded: 0,
         })
     }
 
-    fn decompress(&mut self, input: &[u8], depth: usize) -> Result<Vec<u8>, CommandError> {
+    /// `limit` bounds the output: a text record at the top, one dictionary
+    /// entry below it.
+    fn decompress(
+        &mut self,
+        input: &[u8],
+        depth: usize,
+        limit: usize,
+    ) -> Result<Vec<u8>, CommandError> {
         if depth > MAX_HUFF_DEPTH {
             return Err(invalid("Invalid recursive CDIC reference"));
         }
@@ -468,14 +502,24 @@ impl HuffTables {
                 // The entry is itself compressed: expand it once and keep the result.
                 self.dictionary[code].expanding = true;
                 let packed = std::mem::take(&mut self.dictionary[code].value);
-                let expanded = self.decompress(&packed, depth + 1);
+                let expanded = self
+                    .decompress(&packed, depth + 1, MAX_HUFF_ENTRY_BYTES)
+                    // What stays held is bounded as a whole, not only entry by entry.
+                    .and_then(|value| {
+                        if self.expanded + value.len() > MAX_HUFF_EXPANDED_BYTES {
+                            return Err(invalid("CDIC dictionary expands past the size limit"));
+                        }
+                        Ok(value)
+                    });
                 let entry = &mut self.dictionary[code];
                 entry.expanding = false;
                 match expanded {
                     Ok(value) => {
+                        self.expanded += value.len();
                         entry.value = value;
                         entry.decompressed = true;
                     }
+                    // Nothing is kept of an expansion that failed.
                     Err(error) => {
                         entry.value = packed;
                         return Err(error);
@@ -483,8 +527,8 @@ impl HuffTables {
                 }
             }
             output.extend_from_slice(&self.dictionary[code].value);
-            if output.len() > MAX_TEXT_RECORD_BYTES {
-                return Err(invalid("HUFF/CDIC text record exceeds the limit"));
+            if output.len() > limit {
+                return Err(invalid("HUFF/CDIC text exceeds the size limit"));
             }
         }
         Ok(output)
@@ -818,6 +862,71 @@ mod tests {
             .err()
             .unwrap();
         assert_eq!(error.message, "Invalid recursive CDIC reference");
+    }
+
+    #[test]
+    fn a_crafted_dictionary_cannot_make_the_shell_hold_more_than_a_dictionary() {
+        // A packed entry that expands past what one entry may be: entry 1 is
+        // 30,000 codes for entry 0, a 4-byte string.
+        let packed = vec![b'A'; 30_000];
+        let mut records = vec![b"header".to_vec(), b"B".to_vec()];
+        records.extend(huff_records(
+            &[(b'A', 0), (b'B', 1)],
+            &[(b"abcd", true), (&packed, false)],
+        ));
+        let (_dir, path) = database(&records);
+        let mut book = PalmBook::open(&path).unwrap();
+        let coding = TextCoding {
+            compression: COMPRESSION_HUFFCDIC,
+            trailing_flags: 0,
+            huffcdic: 2,
+            huffcdic_count: 2,
+        };
+        let error = book.text_records(1, 1, coding).err().unwrap();
+        assert_eq!(error.code, "book/parse-failed");
+        assert_eq!(error.message, "HUFF/CDIC text exceeds the size limit");
+        // The failed expansion left nothing behind, and the entry is still what the file says.
+        let tables = book.huff.get(&(2, 2)).unwrap();
+        assert_eq!(tables.expanded, 0);
+        assert!(!tables.dictionary[1].decompressed);
+        assert_eq!(tables.dictionary[1].value.len(), packed.len());
+
+        // A dictionary that declares more entries than any book has is refused before it is built.
+        let mut cdic = b"CDIC".to_vec();
+        cdic.extend_from_slice(&16u32.to_be_bytes());
+        cdic.extend_from_slice(&u32::MAX.to_be_bytes());
+        cdic.extend_from_slice(&24u32.to_be_bytes());
+        cdic.extend_from_slice(&[0; 64]);
+        let huff = huff_records(&[], &[]).remove(0);
+        let error = HuffTables::parse(&huff, &[cdic]).err().unwrap();
+        assert_eq!(error.message, "CDIC dictionary exceeds the entry limit");
+
+        // Only a book's own table sets are kept: asking for others replaces them.
+        let mut several = vec![b"header".to_vec()];
+        for _ in 0..4 {
+            several.extend(huff_records(&[(b'A', 0)], &[(b"a", true)]));
+        }
+        let (_dir, path) = database(&several);
+        let mut book = PalmBook::open(&path).unwrap();
+        for first in [1u32, 3, 5, 7, 1] {
+            book.text_records(
+                0,
+                0,
+                TextCoding {
+                    compression: COMPRESSION_NONE,
+                    huffcdic: first,
+                    ..coding
+                },
+            )
+            .unwrap();
+            book.load_huff_tables(TextCoding {
+                huffcdic: first,
+                ..coding
+            })
+            .unwrap();
+            assert!(book.huff.len() <= MAX_HUFF_TABLE_SETS);
+            assert!(book.huff.contains_key(&(first, 2)));
+        }
     }
 
     #[test]

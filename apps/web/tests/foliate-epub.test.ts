@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { EPUB } from "../foliate-js/src/epub.js";
+import { makeBook } from "../foliate-js/src/book-loader.js";
 import { Encryption } from "../foliate-js/src/epub-resources.js";
 import * as CFI from "../foliate-js/src/epubcfi.js";
 import type { ResourceTransformDetail } from "../foliate-js/src/book.js";
@@ -120,6 +121,104 @@ test("EPUB resources preserve images, fragment identifiers and cyclic stylesheet
       await expect(fetch(image)).rejects.toThrow();
     } finally {
       book.destroy();
+    }
+  }));
+
+test("EPUB resources an archive serves by URL are referred to there; what the engine rewrites or decodes stays a Blob", () =>
+  withDom(async () => {
+    const fixture = makeEPUBFixture();
+    const opf = fixture.files.get("OPS/package.opf") as string;
+    fixture.files.set(
+      "OPS/package.opf",
+      opf.replace(
+        "</manifest>",
+        `<item id="photo" href="img/photo 1.png" media-type="image/png"/>
+        <item id="font" href="fonts/body.otf" media-type="font/otf"/>
+        <item id="locked" href="fonts/locked.otf" media-type="font/otf"/>
+        <item id="clip" href="clip.mp3" media-type="audio/mpeg"/></manifest>`,
+      ),
+    );
+    fixture.files.set(
+      "META-INF/encryption.xml",
+      '<encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container" xmlns:enc="http://www.w3.org/2001/04/xmlenc#"><enc:EncryptedData><enc:EncryptionMethod Algorithm="http://www.idpf.org/2008/embedding"/><enc:CipherData><enc:CipherReference URI="OPS/fonts/locked.otf"/></enc:CipherData></enc:EncryptedData></encryption>',
+    );
+    fixture.files.set(
+      "OPS/one.xhtml",
+      '<html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" href="style.css"/></head><body><p>Hello</p><img id="photo" src="img/photo%201.png#frag"/><img id="vector" src="image.svg"/><audio src="clip.mp3"/></body></html>',
+    );
+    fixture.files.set(
+      "OPS/style.css",
+      '@font-face { font-family: Body; src: url("fonts/body.otf"); } @font-face { font-family: Locked; src: url(fonts/locked.otf); } p { width: 50vw; }',
+    );
+    for (const name of ["OPS/img/photo 1.png", "OPS/fonts/body.otf", "OPS/fonts/locked.otf", "OPS/clip.mp3"])
+      fixture.files.set(name, new Blob([new Uint8Array(1100).fill(16)]));
+    const blobs: string[] = [];
+    const served = (href: string) => `rablob://localhost/book/id/rev/${encodeURIComponent(href)}`;
+    const book = await new EPUB({
+      ...fixture.archive,
+      loadBlob: (href) => {
+        blobs.push(href);
+        return fixture.archive.loadBlob(href);
+      },
+      resourceURL: (href) => (fixture.files.has(href) ? served(href) : null),
+      sha1: async () => new Uint8Array([1, 2]),
+    }).init();
+    // The paginator's stylesheet rewriting still sees every stylesheet.
+    book.transformTarget!.addEventListener("data", (event) => {
+      const detail = (event as CustomEvent<ResourceTransformDetail>).detail;
+      if (detail.type !== "text/css") return;
+      detail.data = Promise.resolve(detail.data).then((data) =>
+        typeof data === "string" ? data.replace("50vw", "400px") : data,
+      );
+    });
+    try {
+      const section = book.sections[0];
+      const src = await section.load();
+      if (typeof src !== "string") throw new Error("Unexpected EPUB page source");
+      const doc = new DOMParser().parseFromString(await (await fetch(src)).text(), "application/xhtml+xml");
+      // An image is named where it is served, fragment kept; nothing was unpacked for it.
+      expect(doc.querySelector("#photo")!.getAttribute("src")).toBe(`${served("OPS/img/photo 1.png")}#frag`);
+      // An SVG is a document the engine rewrites, and audio keeps a seekable Blob.
+      expect(doc.querySelector("#vector")!.getAttribute("src")).toStartWith("blob:");
+      expect(doc.querySelector("audio")!.getAttribute("src")).toStartWith("blob:");
+      const css = await (await fetch(doc.querySelector("link")!.getAttribute("href")!)).text();
+      expect(css).toContain(`url("${served("OPS/fonts/body.otf")}")`);
+      expect(css).toContain("400px");
+      // An obfuscated font is decoded here, so the stylesheet names the decoded copy.
+      const locked = css.match(/Locked; src: url\("([^"]+)"\)/)?.[1] ?? "";
+      expect(locked).toStartWith("blob:");
+      expect(new Uint8Array(await (await fetch(locked)).arrayBuffer())[0]).toBe(17);
+      expect(blobs.sort()).toEqual(["OPS/clip.mp3", "OPS/fonts/locked.otf"]);
+      // Unloading releases what was unpacked and leaves the served resources alone.
+      section.unload!();
+      await expect(fetch(src)).rejects.toThrow();
+      await expect(fetch(locked)).rejects.toThrow();
+      expect(await section.load()).not.toBe(src);
+    } finally {
+      book.destroy();
+    }
+  }));
+
+test("an archive opened outside the engine is read as the container its name or type says", () =>
+  withDom(async () => {
+    const { archive } = makeEPUBFixture();
+    const opened = {
+      ...archive,
+      entries: [{ filename: "page2.png" }, { filename: "page10.png" }],
+      loadBlob: async (name: string) => (await archive.loadBlob(name)) ?? null,
+      getSize: (name: string) => archive.getSize(name) ?? 0,
+    };
+    const epub = await makeBook({ ...opened, name: "book.epub", type: "application/epub+zip" });
+    expect(epub.metadata?.title).toBe("EPUB Engine Fixture");
+    await epub.destroy?.();
+    for (const comic of [
+      { name: "comic.cbz", type: "" },
+      { name: "stored-name", type: "application/vnd.comicbook+zip" },
+    ]) {
+      const book = await makeBook({ ...opened, ...comic });
+      expect(book.rendition?.layout).toBe("pre-paginated");
+      expect(book.sections.map((section) => section.id)).toEqual(["page2.png", "page10.png"]);
+      await book.destroy?.();
     }
   }));
 

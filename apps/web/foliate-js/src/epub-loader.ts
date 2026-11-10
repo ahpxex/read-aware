@@ -43,6 +43,13 @@ export class Loader {
   constructor(
     private readonly archive: Pick<Archive, "loadText" | "loadBlob">,
     private readonly resources: Pick<Resources, "manifest">,
+    /**
+     * READAWARE: a URL the page can load the resource from as it is, or null
+     * when it must be unpacked here (see `Archive.resourceURL`). Asked only
+     * for what a page merely displays: documents, scripts and stylesheets
+     * are rewritten here, and reach the page as Blobs.
+     */
+    private readonly directURL: (item: ManifestItem) => string | null = () => null,
   ) {}
 
   async createURL(
@@ -125,6 +132,10 @@ export class Loader {
       return cached;
     }
     if (isScript || isDocumentType(mediaType) || mediaType === MIME.CSS) return this.#loadReplaced(item, parents);
+    // READAWARE: served where it is. Nothing is held here for it, so it has
+    // no reference to count and unloading it is a no-op.
+    const direct = this.directURL(item);
+    if (direct) return direct;
     return this.createURL(
       href,
       Promise.resolve().then(() => this.archive.loadBlob(href)),

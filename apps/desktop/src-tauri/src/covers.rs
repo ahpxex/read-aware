@@ -134,6 +134,14 @@ pub fn serve_blob(
             None => not_found(),
         };
     }
+    // `book/<bookId>/<sha256>/<entry>`: one entry of a book's archive, which a
+    // page of the reader loads as its image, stylesheet, font or media.
+    if let Some(resource) = path.strip_prefix("book/") {
+        return match crate::book_archive::serve_book_resource(app, resource) {
+            Some((bytes, mime)) => respond(200, mime, bytes),
+            None => not_found(),
+        };
+    }
     // Book ids are UUIDs, so anything outside that alphabet is not a lookup key.
     let Some(book_id) = path.strip_prefix("cover/") else {
         return not_found();

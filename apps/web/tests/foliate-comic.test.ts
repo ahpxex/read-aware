@@ -27,6 +27,30 @@ test("comic pages sort numerically, share loads and release resources", async ()
   book.destroy();
 });
 
+test("a comic page served by URL is shown from there, without a copy of its bytes", async () => {
+  let reads = 0;
+  const book = makeComicBook(
+    {
+      entries: [{ filename: 'a&"b.png' }],
+      loadBlob: async () => {
+        reads++;
+        return new Blob(["image"]);
+      },
+      getSize: () => 5,
+      resourceURL: (name) => `rablob://localhost/book/id/rev/${name}`,
+    },
+    { name: "Comic" },
+  );
+  const page = await book.sections[0].load();
+  expect(await (await fetch(page)).text()).toContain('<img src="rablob://localhost/book/id/rev/a&amp;&quot;b.png">');
+  expect(reads).toBe(0);
+  book.sections[0].unload();
+  await expect(fetch(page)).rejects.toThrow();
+  // The cover and the image tools still read the bytes.
+  expect(await (await book.getCover())?.text()).toBe("image");
+  book.destroy();
+});
+
 test("failed and cancelled comic loads do not poison the cache", async () => {
   let resolve: (blob: Blob | null) => void = () => {
     throw new Error("load not started");

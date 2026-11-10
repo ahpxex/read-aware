@@ -2,7 +2,7 @@
  * Type-only contracts come from the canonical engine sources. Runtime modules
  * stay under /foliate-js/ so PDF workers and other relative assets remain static.
  */
-import type { BookFileSource } from "./reader-types";
+import type { StoredBookSource } from "./reader-types";
 import type { Book as FoliateBook, LanguageMap as FoliateLanguageMap } from "../../../../foliate-js/src/book";
 import type { View as FoliateView, Renderer as FoliateRenderer } from "../../../../foliate-js/src/view";
 import type { EngineAPI } from "../../../../foliate-js/src/engine-api";
@@ -108,7 +108,7 @@ export async function loadDrawFns(): Promise<FoliateDrawFns> {
 }
 
 /** Parse a book file into a foliate book object (auto-detects the format). */
-export async function makeFoliateBook(file: BookFileSource): Promise<FoliateBook> {
+export async function makeFoliateBook(file: StoredBookSource): Promise<FoliateBook> {
   return (await loadEngine()).makeBook(file);
 }
 

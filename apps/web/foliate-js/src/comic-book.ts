@@ -1,10 +1,17 @@
 export type ComicArchiveLoader = {
-  entries: Array<{ filename: string }>;
+  entries: ReadonlyArray<{ filename: string }>;
   loadBlob: (name: string) => Blob | null | Promise<Blob | null>;
   getSize: (name: string) => number;
+  /** READAWARE: a URL the page image can be loaded from as it is (see `Archive.resourceURL`). */
+  resourceURL?: (name: string) => string | null;
 };
 
-export const makeComicBook = ({ entries, loadBlob, getSize }: ComicArchiveLoader, file: { name?: string }) => {
+const escapeAttribute = (value: string) => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+
+export const makeComicBook = (
+  { entries, loadBlob, getSize, resourceURL }: ComicArchiveLoader,
+  file: { name?: string },
+) => {
   const cache = new Map<string, Promise<string>>();
   const urls = new Map<string, string[]>();
   const load = (name: string): Promise<string> => {
@@ -12,19 +19,25 @@ export const makeComicBook = ({ entries, loadBlob, getSize }: ComicArchiveLoader
     if (cached) return cached;
     const pending: Promise<string> = Promise.resolve()
       .then(async () => {
-        const blob = await loadBlob(name);
-        if (!blob) throw new Error(`Comic page is missing: ${name}`);
-        if (cache.get(name) !== pending) throw new Error("Comic page load was cancelled");
-        const src = URL.createObjectURL(blob);
+        // READAWARE: an image served where it is needs no copy of its bytes here.
+        let src = resourceURL?.(name) ?? null;
+        const owned: string[] = [];
+        if (!src) {
+          const blob = await loadBlob(name);
+          if (!blob) throw new Error(`Comic page is missing: ${name}`);
+          if (cache.get(name) !== pending) throw new Error("Comic page load was cancelled");
+          src = URL.createObjectURL(blob);
+          owned.push(src);
+        }
         const page = URL.createObjectURL(
           new Blob(
             [
-              `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin: 0"><img src="${src}"></body></html>`,
+              `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin: 0"><img src="${escapeAttribute(src)}"></body></html>`,
             ],
             { type: "text/html" },
           ),
         );
-        urls.set(name, [src, page]);
+        urls.set(name, [...owned, page]);
         return page;
       })
       .catch((error: unknown) => {

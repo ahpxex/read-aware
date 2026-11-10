@@ -7,6 +7,14 @@ export type Archive = {
   loadText: (href: string) => MaybePromise<string | null | undefined>;
   loadBlob: (href: string) => MaybePromise<Blob | null | undefined>;
   getSize: (href: string) => number | undefined;
+  /**
+   * READAWARE: a URL a page can load this entry from as it is, when the
+   * archive is served from somewhere the page can reach (the app's native
+   * book resources). A page then refers to its images and fonts by URL,
+   * instead of every one of them being unpacked into a Blob before the page
+   * can load. Null when the entry has no such URL.
+   */
+  resourceURL?: (href: string) => string | null;
 };
 export type ManifestItem = {
   id: string;
@@ -194,5 +202,9 @@ export class Encryption {
   }
   decode(uri: string, blob: Blob): MaybePromise<Blob> {
     return this.#decoders.get(uri)?.(blob) ?? blob;
+  }
+  /** READAWARE: whether the entry's stored bytes are obfuscated and must be decoded before use. */
+  encodes(uri: string): boolean {
+    return this.#decoders.has(uri);
   }
 }

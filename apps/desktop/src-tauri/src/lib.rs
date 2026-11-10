@@ -1,5 +1,6 @@
 mod android_update;
 mod app_environment;
+mod book_archive;
 mod book_folders;
 mod covers;
 mod desktop_preferences;
@@ -935,6 +936,7 @@ pub fn run() {
         .manage(external_open::ExternalOpenQueue::new(launch_open_paths))
         .manage(save_targets::SaveTargets::default())
         .manage(storage::BlobReadSessions::default())
+        .manage(book_archive::BookArchives::default())
         .manage(storage::BlobWriteSessions::default())
         .manage(resources::ResourceFiles::default())
         .manage(resources::directories::DirectoryGrants::default())
@@ -1231,6 +1233,8 @@ pub fn run() {
             storage::get_blob,
             storage::get_blob_info,
             storage::get_blob_range,
+            book_archive::book_archive_open,
+            book_archive::book_archive_texts,
             storage::delete_blob,
             storage::blob_read_open,
             storage::blob_read_chunk,

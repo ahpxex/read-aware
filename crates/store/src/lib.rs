@@ -6,6 +6,7 @@
 //! the desktop crate wraps these functions in IPC commands and owns every OS
 //! and webview integration.
 
+pub mod book_archive;
 pub mod book_format;
 pub mod book_metadata;
 pub mod comic_metadata;

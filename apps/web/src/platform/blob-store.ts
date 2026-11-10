@@ -26,7 +26,6 @@
  * Desktop-only — browser dev builds keep their IndexedDB paths in
  * `library-db.ts` and never call these.
  */
-import { blockCachedFile, sliceIndex } from "./block-cached-file";
 import { invoke } from "./ipc";
 import { runDomainWrite, type RunDomainWrite } from "./domain-write-gate";
 import { isMobileOS } from "./environment";
@@ -61,6 +60,14 @@ export interface DesktopBlobFile {
   readonly type: string;
   arrayBuffer(): Promise<ArrayBuffer>;
   slice(start?: number, end?: number, contentType?: string): DesktopBlobFile;
+}
+
+/** `Blob.slice` index semantics: negative counts from the end, clamped to the file. */
+function sliceIndex(value: number | undefined, size: number, fallback: number): number {
+  if (value === undefined) return fallback;
+  if (Number.isNaN(value)) return 0;
+  const integer = Number.isFinite(value) ? Math.trunc(value) : value < 0 ? -size : size;
+  return integer < 0 ? Math.max(size + integer, 0) : Math.min(integer, size);
 }
 
 class ManagedBlobSlice implements DesktopBlobFile {
@@ -101,15 +108,6 @@ class ManagedBlobSlice implements DesktopBlobFile {
     );
   }
 }
-
-/**
- * One block of a cached file read. On mobile it is the size one IPC response
- * can carry (see BLOB_CHUNK_BYTES); a desktop response has no such limit, and
- * a larger block means fewer round trips for the same bytes.
- */
-const DESKTOP_READ_BLOCK_BYTES = 1024 * 1024;
-/** Bytes of one file kept in the webview at a time; older blocks are read again when wanted. */
-const CACHED_FILE_MAX_BYTES = 48 * 1024 * 1024;
 
 async function getBlobChunked(key: string): Promise<Uint8Array | null> {
   const total = await invoke<number>("blob_read_open", { key });
@@ -189,30 +187,6 @@ export async function openDesktopBlobFile(
   const info = await invoke<BlobInfo | null>("get_blob_info", { key });
   if (!info || info.byteSize <= 0) return null;
   return new ManagedBlobSlice(key, name, info.mimeType || fallbackType, 0, info.byteSize);
-}
-
-/**
- * Open a managed blob as a lazy, Blob-compatible file whose reads are served
- * from cached blocks (see block-cached-file.ts). For formats read as scattered ranges —
- * a ZIP archive's directory and the entries a page needs — so opening a book
- * transfers what it reads, not the whole file. PDF keeps the uncached file
- * above: PDF.js runs its own range cache.
- */
-export async function openCachedBlobFile(
-  key: string,
-  name: string,
-  fallbackType = "",
-): Promise<DesktopBlobFile | null> {
-  const info = await invoke<BlobInfo | null>("get_blob_info", { key });
-  if (!info || info.byteSize <= 0) return null;
-  return blockCachedFile({
-    name,
-    type: info.mimeType || fallbackType,
-    size: info.byteSize,
-    blockBytes: isMobileOS() ? BLOB_CHUNK_BYTES : DESKTOP_READ_BLOCK_BYTES,
-    maxBytes: CACHED_FILE_MAX_BYTES,
-    readRange: (offset, length) => invoke<ArrayBuffer>("get_blob_range", { key, offset, length }),
-  });
 }
 
 /** Remove a blob (bytes + registry row). Missing keys are a no-op. */

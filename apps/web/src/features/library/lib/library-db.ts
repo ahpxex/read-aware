@@ -9,12 +9,8 @@ import {
 } from "@read-aware/core";
 import { removeBookBatch, releaseRemovedBookFiles } from "./book-removal";
 import { createLogger } from "../../../platform/logger";
-import {
-  getDesktopBlob,
-  getDesktopBlobInfo,
-  openCachedBlobFile,
-  openDesktopBlobFile,
-} from "../../../platform/blob-store";
+import { getDesktopBlob, getDesktopBlobInfo, openDesktopBlobFile } from "../../../platform/blob-store";
+import { openBookArchive } from "../../../platform/book-archive";
 import { commitBoundVirtualBook, type VirtualBookBinding } from "../../plugins/lib/virtual-books";
 import { commitDomainEvents } from "../../../platform/domain-events";
 import { fetchRemoteBlob } from "../../../platform/sync/sync-scheduler";
@@ -22,7 +18,7 @@ import type { Collection, LibraryBook, LibraryBookRow } from "./library-types";
 import { withCoverUrl } from "./book-cover-url";
 import { bookMetadataPatch } from "./book-metadata-patch";
 import { isTauri } from "../../../platform/environment";
-import type { BookFileSource } from "../../reader/lib/reader-types";
+import type { StoredBookSource } from "../../reader/lib/reader-types";
 import { emitAppEvent } from "../../../platform/app-events";
 
 /** Blob-store key for a book's original file bytes. */
@@ -165,7 +161,7 @@ export async function listLibraryBooks() {
 export type BookFileMissingReason = "no-sync" | "not-on-relay" | "unauthenticated" | "unreachable" | "undecodable";
 
 export type StoredBookFileResult =
-  | { status: "ok"; file: BookFileSource }
+  | { status: "ok"; file: StoredBookSource }
   | { status: "missing"; reason: BookFileMissingReason };
 
 /** Pull a book's bytes off the relay into the local store, mapping the typed
@@ -198,28 +194,34 @@ async function fetchBookFile(
 type BookFileRef = Pick<LibraryBook, "id" | "format" | "fileName" | "mimeType">;
 
 /**
+ * ZIP containers the shell reads where they are stored, with the media type
+ * that tells the engine which one it is when the stored name does not.
+ */
+const ARCHIVE_FORMATS: Partial<Record<LibraryBook["format"], string>> = {
+  epub: "application/epub+zip",
+  cbz: "application/vnd.comicbook+zip",
+};
+
+/**
  * The book's file from THIS device's store, or null when the bytes are not
  * here. Never touches the network — background work (the engine cover job)
  * must not drag a whole book off the relay just to paint a tile.
  *
- * The blob is always wrapped back into a named `File`: foliate's `makeBook`
- * picks the loader for ZIP containers from the file NAME (a `.cbz` comic and a
- * `.fbz` FictionBook are both zips), so a nameless blob would be read as an
- * EPUB — and, before that, crash on `name.endsWith`.
+ * A whole-file blob is always wrapped back into a named `File`: foliate's
+ * `makeBook` picks the loader for ZIP containers from the file NAME (a `.fbz`
+ * FictionBook is a zip too), so a nameless blob would be read as an EPUB —
+ * and, before that, crash on `name.endsWith`.
  */
-/** Formats whose parser reads the file by range (a ZIP archive) rather than whole. */
-const RANGE_READ_FORMATS: ReadonlySet<LibraryBook["format"]> = new Set(["epub", "cbz"]);
-
-export async function openLocalBookFile(book: BookFileRef): Promise<BookFileSource | null> {
+export async function openLocalBookFile(book: BookFileRef): Promise<StoredBookSource | null> {
   if (!isTauri()) return null;
   if (book.format === "pdf") {
     // File-backed so PDFs keep their random-access path.
     return openDesktopBlobFile(bookFileKey(book.id), book.fileName, book.mimeType || "application/pdf");
   }
-  // ZIP archives are read as ranges: the directory, then the entries a page
-  // needs. Reading the whole file first made every opening wait on its size.
-  if (RANGE_READ_FORMATS.has(book.format))
-    return openCachedBlobFile(bookFileKey(book.id), book.fileName, book.mimeType || "");
+  // The archive never enters the webview: the engine is given its directory
+  // and the documents it parses, and a page loads its images and fonts by URL.
+  const archiveType = ARCHIVE_FORMATS[book.format];
+  if (archiveType) return openBookArchive(book.id, book.fileName, archiveType);
   const bytes = await getDesktopBlob(bookFileKey(book.id));
   if (!bytes) return null;
   return new File([bytes], book.fileName, { type: book.mimeType || "" });
@@ -233,9 +235,9 @@ export async function hasLocalBookFile(bookId: string): Promise<boolean> {
 
 /**
  * Reader source for an imported book, with the missing-file cause attached.
- * PDFs and ZIP archives (EPUB, CBZ) stay file-backed and random-access; the
- * other parsers still receive a whole-file blob until they expose the same
- * structural range contract end to end. Falls back to a relay fetch when the
+ * PDFs stay file-backed and random-access and ZIP archives (EPUB, CBZ) are
+ * read by the shell; the other parsers still receive a whole-file blob until
+ * they expose the same structural range contract end to end. Falls back to a relay fetch when the
  * bytes are not local.
  */
 export async function resolveStoredBookFile(bookOrId: BookFileRef | string): Promise<StoredBookFileResult> {
@@ -253,7 +255,7 @@ export async function resolveStoredBookFile(bookOrId: BookFileRef | string): Pro
   return pulled ? { status: "ok", file: pulled } : { status: "missing", reason: "unreachable" };
 }
 
-export async function getStoredBookFile(bookOrId: BookFileRef | string): Promise<BookFileSource | null> {
+export async function getStoredBookFile(bookOrId: BookFileRef | string): Promise<StoredBookSource | null> {
   const resolved = await resolveStoredBookFile(bookOrId);
   return resolved.status === "ok" ? resolved.file : null;
 }

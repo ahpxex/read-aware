@@ -1,6 +1,18 @@
 import type { Book, BookFile } from "./book.js";
+import type { ComicArchiveLoader } from "./comic-book.js";
+import type { Archive } from "./epub-resources.js";
 
-export type BookInput = string | BookFile | FileSystemDirectoryEntry;
+/**
+ * READAWARE: a ZIP container (EPUB, CBZ) opened outside the engine — the
+ * app's native book archive, which reads the file where it is stored. The
+ * engine asks it for the documents it parses and never sees the file.
+ */
+export type BookArchive = Archive &
+  ComicArchiveLoader & {
+    readonly name?: string;
+    readonly type: string;
+  };
+export type BookInput = string | BookFile | FileSystemDirectoryEntry | BookArchive;
 export class ResponseError extends Error {}
 export class NotFoundError extends Error {}
 export class UnsupportedTypeError extends Error {
@@ -11,8 +23,10 @@ const hasSignature = async (file: BookFile, signature: number[]) => {
   const bytes = new Uint8Array(await file.slice(0, signature.length).arrayBuffer());
   return signature.every((byte, index) => bytes[index] === byte);
 };
-const hasExtension = (file: BookFile, ...extensions: string[]) =>
+const hasExtension = (file: { readonly name?: string }, ...extensions: string[]) =>
   extensions.some((extension) => file.name?.toLowerCase().endsWith(extension));
+const isComicBook = (file: { readonly name?: string; readonly type: string }) =>
+  file.type === "application/vnd.comicbook+zip" || hasExtension(file, ".cbz");
 
 const makeZipLoader = async (file: BookFile) => {
   const [{ configure, ZipReader, BlobReader, TextWriter, BlobWriter }, { RawInflateStream }] = await Promise.all([
@@ -80,10 +94,18 @@ export const makeBook = async (input: BookInput): Promise<Book> => {
     const { EPUB } = await import("./epub.js");
     return new EPUB(await makeDirectoryLoader(file)).init();
   }
+  if ("entries" in file) {
+    if (isComicBook(file)) {
+      const { makeComicBook } = await import("./comic-book.js");
+      return makeComicBook(file, file);
+    }
+    const { EPUB } = await import("./epub.js");
+    return new EPUB(file).init();
+  }
   if (!file.size) throw new NotFoundError("File not found");
   if (await hasSignature(file, [0x50, 0x4b, 0x03, 0x04])) {
     const loader = await makeZipLoader(file);
-    if (file.type === "application/vnd.comicbook+zip" || hasExtension(file, ".cbz")) {
+    if (isComicBook(file)) {
       const { makeComicBook } = await import("./comic-book.js");
       return makeComicBook(loader, file);
     }

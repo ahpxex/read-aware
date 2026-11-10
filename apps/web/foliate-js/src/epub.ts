@@ -12,6 +12,7 @@ export class EPUB implements Book {
   readonly loadText: Archive["loadText"];
   readonly loadBlob: Archive["loadBlob"];
   readonly getSize: Archive["getSize"];
+  readonly #resourceURL: Archive["resourceURL"];
   readonly parser = new DOMParser();
   sections: BookSection[] = [];
   metadata: BookMetadata = {};
@@ -28,10 +29,11 @@ export class EPUB implements Book {
   #overlays = new Set<MediaOverlay>();
   #closed = false;
 
-  constructor({ loadText, loadBlob, getSize, sha1 }: Archive & { sha1?: SHA1 }) {
+  constructor({ loadText, loadBlob, getSize, resourceURL, sha1 }: Archive & { sha1?: SHA1 }) {
     this.loadText = loadText;
     this.loadBlob = loadBlob;
     this.getSize = getSize;
+    this.#resourceURL = resourceURL;
     this.#encryption = new Encryption(sha1);
   }
   get resources(): Resources {
@@ -77,6 +79,13 @@ export class EPUB implements Book {
         },
       },
       this.resources,
+      // READAWARE: images and fonts, which are most of what a page refers
+      // to. An obfuscated entry is decoded here, so it cannot be served as
+      // it is; audio and video keep their Blob, which the webview can seek.
+      ({ href, mediaType }) =>
+        this.#encryption.encodes(href) || /^(audio|video)\//i.test(mediaType)
+          ? null
+          : (this.#resourceURL?.(href) ?? null),
     );
     this.#loader = loader;
     this.transformTarget = loader.eventTarget;

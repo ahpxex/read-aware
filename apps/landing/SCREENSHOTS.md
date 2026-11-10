@@ -24,6 +24,16 @@ captures, not browser mockups or generated images.
 Use a separate AVD. Never uninstall or overwrite a developer's existing app
 to resolve the different signing key of the release APK.
 
+The dedicated AVD is not kept between captures: it shares the development
+AVD's system image, so it takes a minute to create and only costs disk while
+idle. Create it for the session and delete it afterwards:
+
+```sh
+avdmanager create avd -n ReadAware_Site_Screenshots \
+  -k "system-images;android-36;google_apis;arm64-v8a" -d pixel_7
+avdmanager delete avd -n ReadAware_Site_Screenshots
+```
+
 On this Mac the SDK is at `/opt/homebrew/share/android-commandlinetools`.
 Launch the dedicated AVD with `-gpu host -no-snapshot`; automatic graphics
 selection can fall back to software rendering and stall under memory pressure.

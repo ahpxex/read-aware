@@ -4966,6 +4966,7 @@ dependencies = [
  "cocoa",
  "image",
  "log",
+ "miniz_oxide 0.8.9",
  "objc",
  "percent-encoding",
  "quick-xml 0.39.4",

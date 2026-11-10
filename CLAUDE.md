@@ -47,6 +47,13 @@ TanStack Router, Jotai, Tailwind CSS v4, Vite, and Tauri 2.
   modules under `apps/web/public/foliate-js`. Edit the source, never the emitted `.js`.
   Read original files without conversion or rebundling the engine; surface DRM as
   unsupported.
+- A library book's file stays in the shell. For EPUB/CBZ and MOBI/AZW3, `crates/store`
+  (`book_archive`, `palm_book`) reads it where it is stored: the engine asks for the
+  documents or records it parses, text arrives decompressed, and a page loads its
+  images and fonts from `rablob://localhost/{book,palm}/<bookId>/<sha256>/…`. The
+  engine stays the only parser of a book's structure; the native side is a codec that
+  mirrors the engine's byte for byte and must not become a second parser. Book
+  resources are untrusted: serve passive media types only.
 
 ## Reuse existing components and architecture
 

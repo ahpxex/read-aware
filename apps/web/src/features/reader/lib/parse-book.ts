@@ -16,8 +16,8 @@ const TEXT_EXTENSIONS = [".txt", ".text"];
 const HTML_EXTENSIONS = [".html", ".htm", ".xhtml"];
 
 export async function parseBookFile(file: StoredBookSource): Promise<FoliateBook> {
-  // An archive the shell opened is the engine's to read: there is no file here to sniff.
-  if ("entries" in file) return makeFoliateBook(file);
+  // A container the shell opened is the engine's to read: there is no file here to sniff.
+  if ("entries" in file || "recordLengths" in file) return makeFoliateBook(file);
   const name = (file.name ?? "").toLowerCase();
   const type = file.type;
 

@@ -9,26 +9,22 @@
  * a page — and refers to everything a page merely displays by URL, which the
  * webview fetches off the main thread, in parallel, as the page lays out.
  */
-import { AppError } from "@read-aware/core";
 import type { BookArchive } from "../../foliate-js/src/book-loader";
-import { customSchemeUrl } from "./custom-scheme";
+import { bookResourceBase, fetchBookResource, nativeBookResources, type BookResourcePort } from "./book-resource-url";
 import { invoke } from "./ipc";
 
 type OpenedArchive = { contentVersion: string; entries: { name: string; size: number }[] };
 
-export type BookArchivePort = {
+export type BookArchivePort = BookResourcePort & {
   open(bookId: string): Promise<OpenedArchive | null>;
   texts(bookId: string, contentVersion: string, names: string[]): Promise<(string | null)[]>;
-  resourceUrl(path: string): string;
-  fetch(url: string): Promise<Response>;
 };
 
 const nativePort: BookArchivePort = {
+  ...nativeBookResources,
   open: (bookId) => invoke<OpenedArchive | null>("book_archive_open", { bookId }),
   texts: (bookId, contentVersion, names) =>
     invoke<(string | null)[]>("book_archive_texts", { bookId, contentVersion, names }),
-  resourceUrl: (path) => customSchemeUrl("rablob", path),
-  fetch: (url) => fetch(url),
 };
 
 /**
@@ -39,9 +35,6 @@ const nativePort: BookArchivePort = {
 const PACKAGE_DOCUMENT = /^META-INF\/[^/]+\.xml$|\.(?:opf|ncx)$/i;
 /** Past this, a "package document" is not one worth sending ahead of being asked for. */
 const PACKAGE_DOCUMENT_MAX_BYTES = 4 * 1024 * 1024;
-
-const unavailable = (message: string, cause?: unknown) =>
-  new AppError("library/content-unavailable", message, cause === undefined ? undefined : { cause });
 
 /**
  * Open the book's archive, or null when its file is not on this device.
@@ -56,7 +49,7 @@ export async function openBookArchive(
   const opened = await port.open(bookId);
   if (!opened) return null;
   const { contentVersion } = opened;
-  const revision = contentVersion.replace(/^sha256:/, "");
+  const base = bookResourceBase("book", bookId, contentVersion);
   const sizes = new Map(opened.entries.map((entry) => [entry.name, entry.size]));
 
   const ahead = opened.entries
@@ -75,10 +68,7 @@ export async function openBookArchive(
   }
 
   // The entry name is one path segment: a webview would otherwise resolve its dot segments away.
-  const resourceURL = (entry: string) =>
-    sizes.has(entry)
-      ? port.resourceUrl(`book/${encodeURIComponent(bookId)}/${revision}/${encodeURIComponent(entry)}`)
-      : null;
+  const resourceURL = (entry: string) => (sizes.has(entry) ? port.resourceUrl(base + encodeURIComponent(entry)) : null);
 
   return {
     name,
@@ -99,15 +89,7 @@ export async function openBookArchive(
     async loadBlob(entry) {
       const url = resourceURL(entry);
       if (!url) return null;
-      let response: Response;
-      try {
-        response = await port.fetch(url);
-      } catch (error) {
-        throw unavailable(`Book resource could not be read: ${entry}`, error);
-      }
-      // The directory lists it, so a refusal is the file having changed or gone, not a missing entry.
-      if (!response.ok) throw unavailable(`Book resource could not be read (${response.status}): ${entry}`);
-      return response.blob();
+      return (await fetchBookResource(port, url, "Book resource")).blob();
     },
   };
 }

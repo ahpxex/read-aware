@@ -1,6 +1,7 @@
 import type { Book, BookFile } from "./book.js";
 import type { ComicArchiveLoader } from "./comic-book.js";
 import type { Archive } from "./epub-resources.js";
+import type { PalmRecords } from "./mobi.js";
 
 /**
  * READAWARE: a ZIP container (EPUB, CBZ) opened outside the engine — the
@@ -12,7 +13,7 @@ export type BookArchive = Archive &
     readonly name?: string;
     readonly type: string;
   };
-export type BookInput = string | BookFile | FileSystemDirectoryEntry | BookArchive;
+export type BookInput = string | BookFile | FileSystemDirectoryEntry | BookArchive | PalmRecords;
 export class ResponseError extends Error {}
 export class NotFoundError extends Error {}
 export class UnsupportedTypeError extends Error {
@@ -101,6 +102,13 @@ export const makeBook = async (input: BookInput): Promise<Book> => {
     }
     const { EPUB } = await import("./epub.js");
     return new EPUB(file).init();
+  }
+  if ("recordLengths" in file) {
+    // READAWARE: a Palm database the app reads where it is stored (MOBI, AZW3).
+    const { MOBI } = await import("./mobi.js");
+    // Fonts arrive decoded from such a source; this is only reached if one does not.
+    const unzlib = async (data: Uint8Array) => (await import("./vendor/fflate.js")).unzlibSync(data);
+    return new MOBI({ unzlib }).open(file);
   }
   if (!file.size) throw new NotFoundError("File not found");
   if (await hasSignature(file, [0x50, 0x4b, 0x03, 0x04])) {

@@ -109,6 +109,12 @@ export class KF8 implements Book {
   async init() {
     const loadRecord = this.mobi.loadRecord.bind(this.mobi);
     const kf8 = this.#header;
+    // READAWARE: everything read below — the flow table and the indexes —
+    // sits between the text and the resources.
+    this.mobi.expectRecords(
+      this.mobi.headers.palmdoc.numTextRecords + 1,
+      Math.min(kf8.resourceStart, this.mobi.recordCount) - 1,
+    );
 
     // READAWARE: 0xFFFFFFFF declares that there is no FDST record: the text
     // is a single flow, as long as the PalmDOC header says the text is.
@@ -287,9 +293,24 @@ export class KF8 implements Book {
       doc?.getElementsByTagNameNS("http://www.w3.org/2000/svg", "image")?.length ? doc.documentElement : null,
     ];
   }
+  /**
+   * READAWARE: where an embedded image or font can be loaded as it is, when
+   * the book file is served. Flows and SVG are rewritten here, and audio and
+   * video keep a Blob the webview can seek.
+   */
+  #servedURL(str: string): string | null {
+    const match = str.match(kindleResourceRegex);
+    if (match?.[1] !== "embed" || !/^[0-9a-v]+$/i.test(match[2])) return null;
+    const type = match[3] ?? "";
+    if (type === MIME.XHTML || type === MIME.HTML || type === MIME.CSS || type === MIME.SVG) return null;
+    if (/^(audio|video)\//i.test(type)) return null;
+    return this.mobi.resourceURL(parseInt(match[2], 32) - 1);
+  }
   loadResource(str: string, parents: string[] = []): Promise<string> {
     if (this.#closed) return Promise.reject(new Error("KF8 was closed"));
     if (parents.includes(str)) return Promise.resolve("");
+    const served = this.#servedURL(str);
+    if (served) return Promise.resolve(served);
     const cached = this.#resourceCache.get(str);
     if (cached) return cached;
     const pending = this.loadResourceBlob(str, parents)
@@ -391,25 +412,42 @@ export class KF8 implements Book {
     return this.#randomAccess;
   }
   async #textRecord(index: number): Promise<Uint8Array> {
-    const cached = this.#records.get(index);
-    if (cached) {
-      this.#records.delete(index);
-      this.#records.set(index, cached);
-      return cached;
+    return (await this.#textRecords(index, index))[0];
+  }
+  /** Text records `first..last`; each run of them not already held is read in one request. */
+  async #textRecords(first: number, last: number): Promise<Uint8Array[]> {
+    const records: Uint8Array[] = [];
+    for (let index = first; index <= last; ) {
+      const cached = this.#records.get(index);
+      if (cached) {
+        records.push(cached);
+        index++;
+        continue;
+      }
+      let end = index;
+      while (end < last && !this.#records.has(end + 1)) end++;
+      const loaded = await this.mobi.loadTexts(index, end);
+      if (this.#closed) throw new Error("KF8 was closed");
+      if (loaded.length !== end - index + 1) throw new Error("KF8 text records are missing");
+      records.push(...loaded);
+      index = end + 1;
     }
-    const data = await this.mobi.loadText(index);
-    if (this.#closed) throw new Error("KF8 was closed");
-    this.#records.set(index, data);
-    if (this.#records.size > MAX_CACHED_RECORDS) this.#records.delete(this.#records.keys().next().value!);
-    return data;
+    // Most recently used last; the oldest give way.
+    for (const [offset, data] of records.entries()) {
+      this.#records.delete(first + offset);
+      this.#records.set(first + offset, data);
+    }
+    while (this.#records.size > MAX_CACHED_RECORDS) this.#records.delete(this.#records.keys().next().value!);
+    return records;
   }
   async #loadRecordRange(start: number, end: number): Promise<Uint8Array<ArrayBuffer> | null> {
     const { numTextRecords, recordSize } = this.mobi.headers.palmdoc;
     const first = Math.floor(start / recordSize),
       last = Math.floor((end - 1) / recordSize);
     const out = new Uint8Array(end - start);
+    const records = await this.#textRecords(first, last);
     for (let index = first; index <= last; index++) {
-      const data = await this.#textRecord(index);
+      const data = records[index - first];
       const expected = index < numTextRecords - 1 ? recordSize : this.#fullRawLength! - index * recordSize;
       if (data.length !== expected) {
         console.warn("KF8 text records are not uniformly sized; reading text sequentially");

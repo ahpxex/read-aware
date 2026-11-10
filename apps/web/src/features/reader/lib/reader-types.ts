@@ -1,14 +1,17 @@
 import type { BookFormat } from "../../library/lib/library-types";
 import type { Book, BookFile } from "../../../../foliate-js/src/book";
 import type { BookArchive } from "../../../../foliate-js/src/book-loader";
+import type { PalmRecords } from "../../../../foliate-js/src/mobi";
 import type { BookTextRange } from "@read-aware/core";
 
 /** Minimal Blob/File surface consumed by foliate's format sniffers and parsers. */
 export type BookFileSource = BookFile;
 /** A ZIP container (EPUB, CBZ) the native shell reads where it is stored; see `platform/book-archive.ts`. */
 export type BookArchiveSource = BookArchive;
-/** What a stored book is parsed from: its file, or its natively opened archive. */
-export type StoredBookSource = BookFileSource | BookArchiveSource;
+/** A Palm database (MOBI, AZW3) the native shell reads where it is stored; see `platform/palm-records.ts`. */
+export type PalmRecordsSource = PalmRecords;
+/** What a stored book is parsed from: its file, or the container the shell opened for it. */
+export type StoredBookSource = BookFileSource | BookArchiveSource | PalmRecordsSource;
 
 /** A passage targeted by a selection, stored annotation or guided-reading action. */
 export type ActionTarget = {

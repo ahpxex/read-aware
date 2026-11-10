@@ -136,11 +136,41 @@ pub fn serve_blob(
     }
     // `book/<bookId>/<sha256>/<entry>`: one entry of a book's archive, which a
     // page of the reader loads as its image, stylesheet, font or media.
-    if let Some(resource) = path.strip_prefix("book/") {
-        return match crate::book_archive::serve_book_resource(app, resource) {
-            Some((bytes, mime)) => respond(200, mime, bytes),
-            None => not_found(),
+    // A book is untrusted content: its resources are typed as given, never
+    // sniffed, and inert if anything opens one as a document.
+    fn book_resource(resource: crate::book_files::Served) -> tauri::http::Response<Vec<u8>> {
+        let (bytes, mime) = match resource {
+            Ok(resource) => resource,
+            // Why it was not served: gone (404) or damaged (422).
+            Err(status) => {
+                return tauri::http::Response::builder()
+                    .status(status)
+                    .header("access-control-allow-origin", "*")
+                    .body(Vec::new())
+                    .unwrap_or_else(|_| tauri::http::Response::new(Vec::new()))
+            }
         };
+        tauri::http::Response::builder()
+            .status(200)
+            .header("access-control-allow-origin", "*")
+            .header("content-type", mime)
+            .header("x-content-type-options", "nosniff")
+            .header(
+                "content-security-policy",
+                read_aware_store::book_archive::RESOURCE_CONTENT_POLICY,
+            )
+            .header("cache-control", "public, max-age=31536000, immutable")
+            .body(bytes)
+            .unwrap_or_else(|_| tauri::http::Response::new(Vec::new()))
+    }
+    if let Some(resource) = path.strip_prefix("book/") {
+        return book_resource(crate::book_archive::serve_book_resource(app, resource));
+    }
+    // `palm/<bookId>/<sha256>/…`: records, decompressed text and resources of
+    // a Palm database book (MOBI, AZW3).
+    if let Some(resource) = path.strip_prefix("palm/") {
+        let query = request.uri().query().unwrap_or_default();
+        return book_resource(crate::palm_book::serve_palm_resource(app, resource, query));
     }
     // Book ids are UUIDs, so anything outside that alphabet is not a lookup key.
     let Some(book_id) = path.strip_prefix("cover/") else {

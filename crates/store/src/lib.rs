@@ -18,6 +18,7 @@ pub mod file_name;
 pub mod import;
 pub mod metadata;
 pub mod mobi_metadata;
+pub mod palm_book;
 pub mod pdf_metadata;
 pub mod plugin_id;
 pub mod secrets;

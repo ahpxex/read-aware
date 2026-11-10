@@ -48,11 +48,8 @@ export class MOBI6 implements Book {
   #type = MIME.HTML;
   constructor(readonly mobi: MOBI) {}
   async init() {
-    const recordBuffers: Uint8Array[] = [];
-    for (let i = 0; i < this.mobi.headers.palmdoc.numTextRecords; i++) {
-      const buf = await this.mobi.loadText(i);
-      recordBuffers.push(buf);
-    }
+    // READAWARE: the whole text in one request where the source decompresses it.
+    const recordBuffers = await this.mobi.loadTexts(0, this.mobi.headers.palmdoc.numTextRecords - 1);
     const totalLength = recordBuffers.reduce((sum, buf) => sum + buf.byteLength, 0);
     // load all text records in an array
     const array = new Uint8Array(totalLength);
@@ -184,15 +181,21 @@ export class MOBI6 implements Book {
     this.#resourceCache.set(index, pending);
     return pending;
   }
-  async loadRecindex(recindex: string | null) {
+  /**
+   * READAWARE: `served` names an image where the book file is served from
+   * instead of copying it into a Blob. Audio and video keep the Blob, which
+   * the webview can seek.
+   */
+  async loadRecindex(recindex: string | null, served = false) {
     if (!recindex) throw new Error("Missing MOBI resource index");
-    return this.loadResource(Number(recindex) - 1);
+    const index = Number(recindex) - 1;
+    return (served ? this.mobi.resourceURL(index) : null) ?? this.loadResource(index);
   }
   async replaceResources(doc: Document) {
     for (const img of doc.querySelectorAll("img[recindex]")) {
       const recindex = img.getAttribute("recindex");
       try {
-        img.setAttribute("src", await this.loadRecindex(recindex));
+        img.setAttribute("src", await this.loadRecindex(recindex, true));
       } catch {
         console.warn(`Failed to load image ${recindex}`);
       }
@@ -202,7 +205,7 @@ export class MOBI6 implements Book {
       const recindex = media.getAttribute("recindex");
       try {
         media.setAttribute("src", await this.loadRecindex(mediarecindex));
-        if (recindex) media.setAttribute("poster", await this.loadRecindex(recindex));
+        if (recindex) media.setAttribute("poster", await this.loadRecindex(recindex, true));
       } catch {
         console.warn(`Failed to load media ${mediarecindex}`);
       }

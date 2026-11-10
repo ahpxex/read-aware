@@ -1,6 +1,7 @@
 mod android_update;
 mod app_environment;
 mod book_archive;
+mod book_files;
 mod book_folders;
 mod covers;
 mod desktop_preferences;
@@ -17,6 +18,7 @@ mod fonts;
 mod import;
 mod local_api;
 mod native_path;
+mod palm_book;
 mod plugin_sandbox_policy;
 mod plugin_updates;
 mod plugins;
@@ -937,6 +939,7 @@ pub fn run() {
         .manage(save_targets::SaveTargets::default())
         .manage(storage::BlobReadSessions::default())
         .manage(book_archive::BookArchives::default())
+        .manage(palm_book::PalmBooks::default())
         .manage(storage::BlobWriteSessions::default())
         .manage(resources::ResourceFiles::default())
         .manage(resources::directories::DirectoryGrants::default())
@@ -1235,6 +1238,7 @@ pub fn run() {
             storage::get_blob_range,
             book_archive::book_archive_open,
             book_archive::book_archive_texts,
+            palm_book::book_records_open,
             storage::delete_blob,
             storage::blob_read_open,
             storage::blob_read_chunk,

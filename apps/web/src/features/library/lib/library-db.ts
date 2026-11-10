@@ -11,6 +11,7 @@ import { removeBookBatch, releaseRemovedBookFiles } from "./book-removal";
 import { createLogger } from "../../../platform/logger";
 import { getDesktopBlob, getDesktopBlobInfo, openDesktopBlobFile } from "../../../platform/blob-store";
 import { openBookArchive } from "../../../platform/book-archive";
+import { openPalmRecords } from "../../../platform/palm-records";
 import { commitBoundVirtualBook, type VirtualBookBinding } from "../../plugins/lib/virtual-books";
 import { commitDomainEvents } from "../../../platform/domain-events";
 import { fetchRemoteBlob } from "../../../platform/sync/sync-scheduler";
@@ -201,6 +202,8 @@ const ARCHIVE_FORMATS: Partial<Record<LibraryBook["format"], string>> = {
   epub: "application/epub+zip",
   cbz: "application/vnd.comicbook+zip",
 };
+/** Palm databases, which the shell reads the same way: records, text and resources on request. */
+const PALM_FORMATS: ReadonlySet<LibraryBook["format"]> = new Set(["mobi", "azw3"]);
 
 /**
  * The book's file from THIS device's store, or null when the bytes are not
@@ -222,6 +225,8 @@ export async function openLocalBookFile(book: BookFileRef): Promise<StoredBookSo
   // and the documents it parses, and a page loads its images and fonts by URL.
   const archiveType = ARCHIVE_FORMATS[book.format];
   if (archiveType) return openBookArchive(book.id, book.fileName, archiveType);
+  if (PALM_FORMATS.has(book.format))
+    return openPalmRecords(book.id, book.fileName, book.mimeType || "application/x-mobipocket-ebook");
   const bytes = await getDesktopBlob(bookFileKey(book.id));
   if (!bytes) return null;
   return new File([bytes], book.fileName, { type: book.mimeType || "" });
@@ -235,9 +240,9 @@ export async function hasLocalBookFile(bookId: string): Promise<boolean> {
 
 /**
  * Reader source for an imported book, with the missing-file cause attached.
- * PDFs stay file-backed and random-access and ZIP archives (EPUB, CBZ) are
- * read by the shell; the other parsers still receive a whole-file blob until
- * they expose the same structural range contract end to end. Falls back to a relay fetch when the
+ * PDFs stay file-backed and random-access; ZIP archives (EPUB, CBZ) and Palm
+ * databases (MOBI, AZW3) are read by the shell; the remaining formats (FB2,
+ * CBR, text, HTML) are single documents their parsers take whole. Falls back to a relay fetch when the
  * bytes are not local.
  */
 export async function resolveStoredBookFile(bookOrId: BookFileRef | string): Promise<StoredBookFileResult> {

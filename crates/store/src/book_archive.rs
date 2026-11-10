@@ -39,14 +39,14 @@ pub struct BookArchive {
     archive: ZipArchive<File>,
 }
 
+/// The file is there but is not what its format says: damaged, truncated or hostile.
 fn invalid(message: impl Into<String>) -> CommandError {
-    CommandError::new("library/content-unavailable", message.into())
+    CommandError::new("book/parse-failed", message.into())
 }
 
 impl BookArchive {
     pub fn open(path: &Path) -> Result<Self, CommandError> {
-        let file = File::open(path)
-            .map_err(|error| invalid(format!("Book archive could not be opened: {error}")))?;
+        let file = File::open(path)?;
         let archive = ZipArchive::new(file)
             .map_err(|error| invalid(format!("Book archive is not a readable ZIP: {error}")))?;
         Ok(Self {
@@ -138,8 +138,14 @@ pub fn entry_name_from_url_path(path: &str) -> Option<String> {
 }
 
 /// The media type a page resource is served with. The archive does not record
-/// one and the webview refuses a stylesheet or a font served as plain bytes,
+/// one and the webview refuses a font or an SVG image served as plain bytes,
 /// so it follows the entry's extension, then the bytes for images.
+///
+/// A book is untrusted content, and these responses come from the app's own
+/// resource scheme. Only what a page displays gets a type the webview acts on:
+/// an entry that could run as a document or a script (HTML, XHTML, XML,
+/// JavaScript) is served as opaque bytes, which the engine can still read but
+/// nothing can navigate to or execute. See also `RESOURCE_CONTENT_POLICY`.
 pub fn entry_media_type(name: &str, bytes: &[u8]) -> &'static str {
     let extension = name
         .rsplit_once('.')
@@ -147,12 +153,7 @@ pub fn entry_media_type(name: &str, bytes: &[u8]) -> &'static str {
         .unwrap_or_default();
     match extension.as_str() {
         "css" => "text/css",
-        "xhtml" | "xht" => "application/xhtml+xml",
-        "html" | "htm" => "text/html",
         "svg" => "image/svg+xml",
-        "js" | "mjs" => "text/javascript",
-        "json" => "application/json",
-        "xml" | "opf" | "ncx" | "smil" => "application/xml",
         "txt" => "text/plain",
         "jpg" | "jpeg" | "jpe" => "image/jpeg",
         "png" => "image/png",
@@ -176,6 +177,11 @@ pub fn entry_media_type(name: &str, bytes: &[u8]) -> &'static str {
         _ => crate::metadata::image_mime(bytes).unwrap_or("application/octet-stream"),
     }
 }
+
+/// The `Content-Security-Policy` every book resource response carries: opened
+/// as a document (an SVG is one), it runs nothing and loads nothing, whatever
+/// its bytes say. Inline styles stay, which an SVG shown as an image needs.
+pub const RESOURCE_CONTENT_POLICY: &str = "default-src 'none'; style-src 'unsafe-inline'; sandbox";
 
 #[cfg(test)]
 mod tests {
@@ -291,16 +297,16 @@ mod tests {
     }
 
     #[test]
-    fn a_file_that_is_not_an_archive_is_content_unavailable() {
+    fn a_file_that_is_not_an_archive_is_damaged_and_a_missing_one_is_not_found() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("book.epub");
         std::fs::write(&path, b"not a zip").unwrap();
         let error = BookArchive::open(&path).err().unwrap();
-        assert_eq!(error.code, "library/content-unavailable");
+        assert_eq!(error.code, "book/parse-failed");
         let missing = BookArchive::open(&dir.path().join("absent.epub"))
             .err()
             .unwrap();
-        assert_eq!(missing.code, "library/content-unavailable");
+        assert_eq!(missing.code, "fs/not-found");
     }
 
     #[test]
@@ -326,7 +332,21 @@ mod tests {
         assert_eq!(entry_media_type("fonts/a.woff2", b""), "font/woff2");
         assert_eq!(entry_media_type("fonts/a.otf", b""), "font/otf");
         assert_eq!(entry_media_type("img/photo.JPG", b""), "image/jpeg");
-        assert_eq!(entry_media_type("page.xhtml", b""), "application/xhtml+xml");
+        assert_eq!(entry_media_type("img/figure.svg", b""), "image/svg+xml");
+        // Nothing a book carries is served as a document or a script.
+        for active in [
+            "page.xhtml",
+            "page.HTML",
+            "run.js",
+            "package.opf",
+            "toc.ncx",
+            "data.xml",
+        ] {
+            assert_eq!(
+                entry_media_type(active, b"<html/>"),
+                "application/octet-stream"
+            );
+        }
         assert_eq!(entry_media_type("cover", b"\x89PNG\r\n\x1a\n"), "image/png");
         assert_eq!(
             entry_media_type("data.bin", b"plain"),

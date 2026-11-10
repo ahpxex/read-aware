@@ -29,6 +29,41 @@ type Headers = {
   exth: EXTH | null;
   kf8: Struct<typeof KF8_HEADER> | null;
 };
+/** How the headers say the text records are coded; what a `PalmRecords` source decompresses them by. */
+export type TextCoding = {
+  /** PalmDOC header `compression`: 1 stored, 2 PalmDOC, 17480 HUFF/CDIC. */
+  compression: number;
+  trailingFlags: number;
+  /** First HUFF record (absolute index) and how many records the tables span. */
+  huffcdic: number;
+  numHuffcdic: number;
+};
+
+/**
+ * READAWARE: a Palm database read outside the engine — the app's native book
+ * file, which stays where it is stored. The engine still parses the headers,
+ * the indexes and the markup; the source hands it records by index, text
+ * records already decompressed, and names images and fonts by URL. Record
+ * indexes are the file's own (absolute).
+ */
+export type PalmRecords = {
+  readonly name?: string;
+  readonly type: string;
+  /** The byte length of every record, in file order. */
+  readonly recordLengths: readonly number[];
+  /** The four-character tag a record starts with (`INDX`, `RESC`…), or "" when it has none. */
+  recordMagic(index: number): string;
+  loadRecord(index: number): Promise<ArrayBuffer>;
+  /** Records `first..last` are about to be read: they may be fetched together. */
+  expectRecords(first: number, last: number): void;
+  /** Text records `first..last`, each with its trailing entries removed and decompressed. */
+  loadTextRecords(first: number, last: number, coding: TextCoding): Promise<Uint8Array[]>;
+  /** A resource record as a page uses it: a font decoded, a media record without its header. */
+  loadResource(index: number): Promise<ArrayBuffer>;
+  /** A URL a page can load that resource from as it is, or null when the record does not exist. */
+  resourceURL(index: number): string | null;
+};
+
 export const isMOBI = async (file: BookFile) => {
   const magic = getString(await file.slice(60, 68).arrayBuffer());
   return magic === "BOOKMOBI"; // || magic === 'TEXtREAd'
@@ -36,13 +71,25 @@ export const isMOBI = async (file: BookFile) => {
 
 class PDB {
   #file: BookFile | undefined;
+  #records: PalmRecords | undefined;
   #offsets: Array<[number, number]> = [];
   #pdb: Struct<typeof PDB_HEADER> | undefined;
   get pdb() {
     if (!this.#pdb) throw new Error("Palm database is not open");
     return this.#pdb;
   }
-  async load(file: BookFile): Promise<void> {
+  /** The source reading the database outside the engine, when there is one. */
+  protected get records(): PalmRecords | undefined {
+    return this.#records;
+  }
+  get numRecords(): number {
+    return this.#records ? this.#records.recordLengths.length : this.pdb.numRecords;
+  }
+  async load(file: BookFile | PalmRecords): Promise<void> {
+    if ("recordLengths" in file) {
+      this.#records = file;
+      return;
+    }
     this.#file = file;
     const pdb = getStruct(PDB_HEADER, await file.slice(0, 78).arrayBuffer());
     this.#pdb = pdb;
@@ -58,11 +105,21 @@ class PDB {
     );
   }
   loadRecord(index: number): Promise<ArrayBuffer> {
+    if (this.#records) {
+      if (!(index >= 0 && index < this.#records.recordLengths.length))
+        throw new RangeError("Record index out of bounds");
+      return this.#records.loadRecord(index);
+    }
     const offsets = this.#offsets[index];
     if (!offsets || !this.#file) throw new RangeError("Record index out of bounds");
     return this.#file.slice(...offsets).arrayBuffer();
   }
   async loadMagic(index: number): Promise<string> {
+    if (this.#records) {
+      if (!(index >= 0 && index < this.#records.recordLengths.length))
+        throw new RangeError("Record index out of bounds");
+      return this.#records.recordMagic(index);
+    }
     const offsets = this.#offsets[index];
     if (!offsets || !this.#file) throw new RangeError("Record index out of bounds");
     const [start, end] = offsets;
@@ -80,6 +137,7 @@ export class MOBI extends PDB {
   #encoder = new TextEncoder();
   #decompress: ((bytes: Uint8Array) => Uint8Array) | undefined;
   #removeTrailingEntries: ((bytes: Uint8Array) => Uint8Array) | undefined;
+  #coding: TextCoding | undefined;
   constructor({ unzlib }: { unzlib: Unzlib }) {
     super();
     this.unzlib = unzlib;
@@ -89,9 +147,9 @@ export class MOBI extends PDB {
     return this.#headers;
   }
   get recordCount() {
-    return this.pdb.numRecords - this.#start;
+    return this.numRecords - this.#start;
   }
-  async open(file: BookFile): Promise<MOBI6 | KF8> {
+  async open(file: BookFile | PalmRecords): Promise<MOBI6 | KF8> {
     await super.load(file);
     // TODO: if (this.pdb.type === 'TEXt')
     this.#headers = this.#getHeaders(await super.loadRecord(0));
@@ -141,6 +199,23 @@ export class MOBI extends PDB {
     // we are only encoding ASCII anyway, so I think it's fine
     this.#encoder = new TextEncoder();
 
+    // READAWARE: a source that reads the file where it is stored decompresses
+    // there; it is told how, and no decompressor is built here.
+    if (this.records) {
+      const { compression } = palmdoc;
+      if (compression !== 1 && compression !== 2 && compression !== 17480)
+        throw new BookParseError("Unknown MOBI compression type");
+      const huff = compression === 17480;
+      this.#coding = {
+        compression,
+        trailingFlags: mobi.trailingFlags,
+        // Meaningful only for HUFF/CDIC text; elsewhere the header says "no record".
+        huffcdic: huff ? this.#start + mobi.huffcdic : 0,
+        numHuffcdic: huff ? mobi.numHuffcdic : 0,
+      };
+      return;
+    }
+
     // set up decompressor
     const { compression } = palmdoc;
     this.#decompress =
@@ -183,13 +258,38 @@ export class MOBI extends PDB {
     return super.loadMagic(this.#start + index);
   }
   loadText(index: number): Promise<Uint8Array> {
+    if (this.records) return this.loadTexts(index, index).then(([text]) => text);
     if (!this.#removeTrailingEntries || !this.#decompress) throw new Error("MOBI decompressor is not ready");
     return this.loadRecord(index + 1)
       .then((buf) => new Uint8Array(buf))
       .then(this.#removeTrailingEntries)
       .then(this.#decompress);
   }
+  /** READAWARE: text records `first..last` in one request where the source reads them together. */
+  async loadTexts(first: number, last: number): Promise<Uint8Array[]> {
+    if (last < first) return [];
+    if (this.records) {
+      if (!this.#coding) throw new Error("MOBI decompressor is not ready");
+      if (!Number.isSafeInteger(first) || !Number.isSafeInteger(last) || first < 0)
+        throw new RangeError("Record index out of bounds");
+      return this.records.loadTextRecords(this.#start + first + 1, this.#start + last + 1, this.#coding);
+    }
+    const texts: Uint8Array[] = [];
+    for (let index = first; index <= last; index++) texts.push(await this.loadText(index));
+    return texts;
+  }
+  /** READAWARE: records `first..last` (as `loadRecord` counts them) are about to be read. */
+  expectRecords(first: number, last: number) {
+    if (last >= first) this.records?.expectRecords(this.#start + first, this.#start + last);
+  }
+  /** READAWARE: a URL the resource can be loaded from as it is, when the source serves the file. */
+  resourceURL(index: number): string | null {
+    if (!Number.isSafeInteger(index) || index < 0) return null;
+    return this.records?.resourceURL(this.#resourceStart + index) ?? null;
+  }
   async loadResource(index: number) {
+    // Decoded where the file is read: a font arrives deobfuscated and inflated.
+    if (this.records) return this.records.loadResource(this.#resourceStart + index);
     const buf = await super.loadRecord(this.#resourceStart + index);
     const magic = getString(buf.slice(0, 4));
     if (magic === "FONT") return getFont(buf, this.unzlib);

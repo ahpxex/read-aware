@@ -69,6 +69,11 @@ test("a book whose file is not on this device has no archive; a listed entry tha
   await expect(archive.loadBlob("OEBPS/Images/a b#1.png")).rejects.toMatchObject({
     code: "library/content-unavailable",
   });
+  // The shell read the file and could not make sense of the entry: the book is damaged.
+  const damaged = fixture({ fetch: async () => new Response(null, { status: 422 }) });
+  await expect(
+    (await openBookArchive("book-1", "book.epub", "", damaged.port))!.loadBlob("OEBPS/Images/a b#1.png"),
+  ).rejects.toMatchObject({ code: "book/parse-failed" });
   const failing = fixture({
     texts: async () => {
       throw new Error("ipc down");

@@ -12,6 +12,26 @@ export function readingPagePosition(
   return { current: total > 0 ? Math.min(total, current + 1) : 0, total };
 }
 
+/** Names the page a whole-book position (0..1) falls on; null where there is none to name. */
+export type ReadingPageLocator = (fraction: number) => number | null;
+
+/**
+ * The page a position falls on, by the engine's own count, so it is the
+ * number the reader reports once it is there. Estimating it from the page
+ * total is off by one about half the time: the total is rounded up, and a
+ * page is counted from where it starts, not to the nearest.
+ */
+export function readingPageLocator(
+  view: Pick<FoliateView, "isFixedLayout" | "getProgressAtFraction">,
+): ReadingPageLocator {
+  return (fraction) => {
+    const progress = view.getProgressAtFraction(Math.min(1, Math.max(0, fraction)));
+    if (!progress) return null;
+    const { current, total } = readingPagePosition(view.isFixedLayout, progress);
+    return total > 0 ? current : null;
+  };
+}
+
 /** Read the renderer's current geometry, never estimate unrendered sections. */
 export function readingPagination(view: FoliateView): ReadingPaginationSnapshot | null {
   const renderer = view.renderer,

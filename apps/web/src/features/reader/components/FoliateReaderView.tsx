@@ -28,7 +28,7 @@ import { createNativeLinkNavigator } from "../lib/native-link-navigation";
 import { attachTocFractions } from "../lib/toc-fractions";
 import { chapterProgressAt, normalizeReadingCursorText } from "../lib/reading-cursor";
 import { readingVisibleText } from "../lib/reading-visible-text";
-import { readingPagePosition } from "../lib/reading-pagination";
+import { readingPageLocator, readingPagePosition, type ReadingPageLocator } from "../lib/reading-pagination";
 import { relocateDismissesShell } from "../lib/shell-dismissal";
 import type { LoadedBook, ReadingCursor, TocEntry } from "../lib/reader-types";
 import { retainBook } from "../lib/book-lifetime";
@@ -183,6 +183,9 @@ type FoliateReaderViewProps = {
   /** Fixed-layout books (PDF/CBZ) can't host annotations or text-unit modes;
    *  lets the shell hide the affordances that don't apply. */
   onFixedLayoutChange?: (fixedLayout: boolean) => void;
+  /** The open book's page count by position (the progress bar's readout);
+   *  null until a book is open and while another is opening. */
+  onPageLocatorChange?: (pageAt: ReadingPageLocator | null) => void;
   /** Host-rendered text-unit mode, owned by the workspace so its shell toggle
    *  and engine state stay in sync. */
   textUnitModeActive?: boolean;
@@ -345,6 +348,7 @@ export function FoliateReaderView({
   onReadingCursorChange,
   onBookReady,
   onFixedLayoutChange,
+  onPageLocatorChange,
   textUnitModeActive = false,
   textUnitMode = null,
   modeController,
@@ -532,6 +536,7 @@ export function FoliateReaderView({
   const [tocEntries, setTocEntries] = useState<TocEntry[]>([]);
   const [currentChapterHref, setCurrentChapterHref] = useState<string | null>(null);
   const [isFixedLayout, setIsFixedLayout] = useState(false);
+  const [pageLocator, setPageLocator] = useState<ReadingPageLocator | null>(null);
   const [selection, setSelection] = useState<ReaderSelectionState | null>(null);
   const selectionRender = useSelectionRender(selection, selectionRef);
   const selectionContentRef = useRef<SelectionContentIdentity | null>(null);
@@ -960,6 +965,10 @@ export function FoliateReaderView({
   useEffect(() => {
     emitFixedLayoutChange(isFixedLayout);
   }, [isFixedLayout]);
+  const emitPageLocatorChange = useEffectEvent((pageAt: ReadingPageLocator | null) => onPageLocatorChange?.(pageAt));
+  useEffect(() => {
+    emitPageLocatorChange(pageLocator);
+  }, [pageLocator]);
   const emitTextUnitModeStep = useEffectEvent(() => onTextUnitModeStep?.());
 
   // Host behavior settings (step unit, tap-to-advance, scroll-to-step, bar
@@ -2203,6 +2212,7 @@ export function FoliateReaderView({
     setTocEntries([]);
     setCurrentChapterHref(null);
     setIsFixedLayout(false);
+    setPageLocator(null);
     // Drop the previous book's position so its first relocate only sets a fresh
     // baseline instead of reading as a page turn.
     prevReadingLocationRef.current = null;
@@ -2332,6 +2342,9 @@ export function FoliateReaderView({
         const fixedLayout = book ? isFixedLayoutBook(book) : false;
         isFixedLayoutRef.current = fixedLayout;
         setIsFixedLayout(fixedLayout);
+        // A function is the value: the updater form would call it.
+        const pageAt = readingPageLocator(view);
+        setPageLocator(() => pageAt);
 
         // Apply the chosen reading mode. Both the reflowable paginator and the
         // fixed-layout PDF renderer honor these attributes. Scroll mode keeps

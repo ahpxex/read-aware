@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { readingPagePosition, readingPagination } from "./reading-pagination";
+import { readingPageLocator, readingPagePosition, readingPagination } from "./reading-pagination";
 import { SectionProgress } from "../../../../foliate-js/src/progress";
 import { attachReadingEngine, createReadingEngineAdapter } from "./reading-engine-adapter";
 import type { FoliateView } from "./foliate-engine";
@@ -121,4 +121,41 @@ test("real adapter wiring publishes layout-only relocations and rejects replaced
     replacement?.();
     readingRuntime.closed();
   }
+});
+
+test("a position's page is the engine's own count, not an estimate from the page total", () => {
+  // The engine's side of View.getProgressAtFraction.
+  const viewOver = (progress: SectionProgress | null, isFixedLayout: boolean) => ({
+    isFixedLayout,
+    getProgressAtFraction: (fraction: number) => {
+      if (!progress) return null;
+      const { section, location } = progress.getProgress(...progress.getSection(fraction));
+      return { section, location };
+    },
+  });
+  // 1884.67 locations, reported as 1885 pages: rounding to the nearest page
+  // names 512 and 1046 where the reader reports 513 and 1047, and counting
+  // against the rounded-up total names 1826 where it reports 1825.
+  const book = new SectionProgress([{ size: 400_000 }, { size: 2_427_012 }], 1500, 1600);
+  const pageAt = readingPageLocator(viewOver(book, false));
+  expect(book.getProgress(0).location.total).toBe(1885);
+  expect(pageAt(0.2718)).toBe(513);
+  expect(pageAt(0.5551)).toBe(1047);
+  expect(pageAt(0.9682)).toBe(1825);
+  // The ends of the book, and positions outside it, stay on its first and last page.
+  expect(pageAt(0)).toBe(1);
+  expect(pageAt(1)).toBe(1885);
+  expect(pageAt(-0.2)).toBe(1);
+  expect(pageAt(1.7)).toBe(1885);
+  // Fixed layout counts source pages: a position inside the third page is page 3.
+  const pages = new SectionProgress(
+    Array.from({ length: 4 }, () => ({ size: 1000 })),
+    1500,
+    1600,
+  );
+  const fixedPageAt = readingPageLocator(viewOver(pages, true));
+  expect([0, 0.24, 0.25, 0.6, 0.99, 1].map(fixedPageAt)).toEqual([1, 1, 2, 3, 4, 4]);
+  // No book open, or a book with nothing to count: no page to name.
+  expect(readingPageLocator(viewOver(null, false))(0.5)).toBeNull();
+  expect(readingPageLocator(viewOver(new SectionProgress([{ size: 0 }], 1500, 1600), false))(0.5)).toBeNull();
 });

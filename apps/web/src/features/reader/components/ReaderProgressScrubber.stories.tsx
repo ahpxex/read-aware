@@ -16,7 +16,10 @@ const meta = {
   parameters: { layout: "fullscreen" },
   args: {
     fraction: 0.37,
+    currentPage: 153,
     totalPages: 412,
+    // Stands in for the engine: a page is counted from where it starts.
+    pageAt: (fraction) => Math.min(412, Math.floor(fraction * 412) + 1),
     marks,
     onSeek: () => {},
   },

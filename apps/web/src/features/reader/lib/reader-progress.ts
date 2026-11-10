@@ -44,13 +44,3 @@ export function findMarkAt(marks: ProgressMark[], fraction: number): ProgressMar
 
   return found;
 }
-
-/**
- * The page a position lands on, for the scrub readout. The engine derives its
- * own location number the same way (size-proportional), so rounding here
- * matches what the reader will report once the jump settles.
- */
-export function pageAtFraction(fraction: number, totalPages: number): number {
-  if (totalPages <= 0) return 0;
-  return Math.min(totalPages, Math.max(1, Math.round(fraction * totalPages)));
-}

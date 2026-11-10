@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildProgressMarks, findMarkAt, pageAtFraction } from "./reader-progress";
+import { buildProgressMarks, findMarkAt } from "./reader-progress";
 import type { TocEntry } from "./reader-types";
 
 const entry = (label: string, fraction: number | undefined, depth = 0): TocEntry => ({
@@ -56,21 +56,5 @@ describe("findMarkAt", () => {
 
   test("no mark at or before the position", () => {
     expect(findMarkAt(buildProgressMarks([entry("One", 0.2)]), 0.1)).toBeNull();
-  });
-});
-
-describe("pageAtFraction", () => {
-  test("rounds to the nearest page", () => {
-    expect(pageAtFraction(0.5, 400)).toBe(200);
-    expect(pageAtFraction(0.5013, 400)).toBe(201);
-  });
-
-  test("never lands before the first page or past the last", () => {
-    expect(pageAtFraction(0, 400)).toBe(1);
-    expect(pageAtFraction(1, 400)).toBe(400);
-  });
-
-  test("a book with no reported pages has no page to name", () => {
-    expect(pageAtFraction(0.5, 0)).toBe(0);
   });
 });

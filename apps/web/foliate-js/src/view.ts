@@ -393,6 +393,17 @@ export class View extends HTMLElement {
       renderer.inputBridge?.selectionChanged(doc, context);
     }
   }
+  /**
+   * Where a whole-book fraction falls: its source section and its location,
+   * counted exactly as a relocation to that position reports them. Null
+   * before a book is open.
+   */
+  getProgressAtFraction(fraction: number) {
+    const progress = this.#sectionProgress;
+    if (!progress) return null;
+    const { section, location } = progress.getProgress(...progress.getSection(fraction));
+    return { section, location };
+  }
   getSectionFractions() {
     return (this.#sectionProgress?.sectionFractions ?? []).map((value) => value + Number.EPSILON);
   }

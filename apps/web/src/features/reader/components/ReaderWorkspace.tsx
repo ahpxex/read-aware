@@ -21,6 +21,7 @@ import { headerFooterSettingsAtom } from "../../../state/ui";
 import { isMobileOS } from "../../../platform/environment";
 import { readerRecoveryAction } from "../lib/reader-failure";
 import type { LoadedBook, ReadingCursor, TocEntry } from "../lib/reader-types";
+import type { ReadingPageLocator } from "../lib/reading-pagination";
 import type { FoliateBook } from "../lib/foliate-engine";
 import type { DomainActor } from "../../../platform/domain-actor";
 
@@ -145,6 +146,8 @@ export function ReaderWorkspace({
   // unit itself is restored by useTextUnitNavigator from the same store).
   // Fixed-layout books (PDF/CBZ) can't host it.
   const [isFixedLayout, setIsFixedLayout] = useState(false);
+  // The open book's page count by position, for the progress bar's readout.
+  const [pageLocator, setPageLocator] = useState<ReadingPageLocator | null>(null);
   const modeControl = useReadingModeControl(selectedBook.id, !isFixedLayout);
   const textUnitMode = modeControl.mode;
   const { setActive: setModeActive } = modeControl;
@@ -210,6 +213,8 @@ export function ReaderWorkspace({
           onReadingCursorChange={setReadingCursor}
           onBookReady={(foliateBook) => onBookReady(selectedBook, foliateBook)}
           onFixedLayoutChange={setIsFixedLayout}
+          // A function is the value: the updater form would call it.
+          onPageLocatorChange={(pageAt) => setPageLocator(() => pageAt)}
           textUnitModeActive={textUnitModeActive}
           textUnitMode={textUnitMode}
           modeController={modeControl.controller}
@@ -278,6 +283,7 @@ export function ReaderWorkspace({
         onChapterSelect={onChapterSelect}
         onAnnotationSelect={onAnnotationSelect}
         onSeek={onSeek}
+        pageAt={pageLocator ?? undefined}
         textUnitMode={textUnitMode}
         textUnitModeActive={textUnitModeActive}
         modeSnapshot={modeControl.snapshot}

@@ -2,13 +2,19 @@ import { useMemo } from "react";
 import { cn } from "@read-aware/ui/cn";
 import { formatPercent, useTranslation } from "../../../i18n";
 import { useProgressScrub } from "../hooks/useProgressScrub";
-import { findMarkAt, pageAtFraction, type ProgressMark } from "../lib/reader-progress";
+import { findMarkAt, type ProgressMark } from "../lib/reader-progress";
+import type { ReadingPageLocator } from "../lib/reading-pagination";
 
 type ReaderProgressScrubberProps = {
   /** Reading position, 0..1; null while unknown (nothing has relocated yet). */
   fraction: number | null;
+  /** The page the reader is on, as the header shows it. */
+  currentPage?: number;
   /** Location count reported by the engine — the "page" the readout names. */
   totalPages?: number;
+  /** The engine's own answer to which page a position falls on; without it
+   *  (or without a page count) the readout names the percentage alone. */
+  pageAt?: ReadingPageLocator;
   /** Chapter marks: ticks along the track, and the label for a scrub target. */
   marks?: ProgressMark[];
   /** Absent (or no position) leaves the bar a plain, inert hairline. */
@@ -50,7 +56,9 @@ const PAGE_STEP_FRACTION = 0.05;
  */
 export function ReaderProgressScrubber({
   fraction,
+  currentPage,
   totalPages = 0,
+  pageAt,
   marks = [],
   onSeek,
   hitArea = "edge",
@@ -73,14 +81,10 @@ export function ReaderProgressScrubber({
   const chapterTicks = useMemo(() => marks.filter((mark) => mark.fraction > 0 && mark.fraction < 1), [marks]);
   const readoutMark = readoutFraction != null ? findMarkAt(marks, readoutFraction) : null;
 
-  const describe = (value: number) => {
+  /** A position in words: its page, when one is known, and its percentage. */
+  const describe = (value: number, page: number | null | undefined) => {
     const percent = formatPercent(value * 100);
-    if (totalPages <= 0) return percent;
-    return t("progress", {
-      page: pageAtFraction(value, totalPages),
-      total: totalPages,
-      percent,
-    });
+    return totalPages > 0 && page ? t("progress", { page, total: totalPages, percent }) : percent;
   };
 
   const readoutPercent = readoutFraction != null ? readoutFraction * 100 : 0;
@@ -108,7 +112,7 @@ export function ReaderProgressScrubber({
             <span className="block truncate font-sans text-xs leading-tight text-fg">{readoutMark.label}</span>
           )}
           <span className="block truncate font-sans text-[11px] leading-tight tabular-nums text-fg-muted">
-            {describe(readoutFraction)}
+            {describe(readoutFraction, pageAt?.(readoutFraction))}
           </span>
         </div>
       )}
@@ -122,7 +126,8 @@ export function ReaderProgressScrubber({
               "aria-valuemin": 0,
               "aria-valuemax": 100,
               "aria-valuenow": Math.round((fraction ?? 0) * 100),
-              "aria-valuetext": describe(fraction ?? 0),
+              // Where the reader is: the page it reports, not one worked out again.
+              "aria-valuetext": describe(fraction ?? 0, currentPage),
               ...scrub.handleProps,
             }
           : {})}

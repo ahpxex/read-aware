@@ -32,6 +32,7 @@ import type { RegisteredReaderMode } from "../../plugins/lib/plugin-types";
 import { headerActionsAtom } from "../../plugins/state/plugin-store";
 import { findTocIndexForHref } from "../lib/epub-utils";
 import type { ReadingCursor } from "../lib/reader-types";
+import type { ReadingPageLocator } from "../lib/reading-pagination";
 import { buildProgressMarks } from "../lib/reader-progress";
 import { useReaderPanels } from "../hooks/useReaderPanels";
 import { useReaderPanelSizes } from "../hooks/useReaderPanelSizes";
@@ -74,6 +75,8 @@ type ReaderShellOverlayProps = {
   onAnnotationSelect?: (cfiRange: string) => void;
   /** Jump to a position in the book, 0..1 — the progress bar's drag target. */
   onSeek?: (fraction: number) => void;
+  /** The open book's page count by position, for the progress bar's readout. */
+  pageAt?: ReadingPageLocator;
   /** Installed text-unit mode, if a plugin contributes one. */
   textUnitMode?: RegisteredReaderMode | null;
   textUnitModeActive?: boolean;
@@ -103,6 +106,7 @@ export function ReaderShellOverlay({
   onChapterSelect,
   onAnnotationSelect,
   onSeek,
+  pageAt,
   textUnitMode = null,
   textUnitModeActive = false,
   modeSnapshot,
@@ -874,7 +878,9 @@ export function ReaderShellOverlay({
             sideways drag anywhere across the header scrubs. */}
         <ReaderProgressScrubber
           fraction={progress ?? null}
+          currentPage={currentPage}
           totalPages={totalPages}
+          pageAt={pageAt}
           marks={progressMarks}
           onSeek={onSeek}
           hitArea={isPhone ? "header" : "edge"}

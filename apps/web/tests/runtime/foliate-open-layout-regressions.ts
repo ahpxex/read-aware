@@ -347,6 +347,33 @@ export async function runOpenLayoutRegressions(ViewClass: typeof View): Promise<
       }
     });
 
+    await run("a section that ends in empty blocks is completed", async () => {
+      // Blocks without text weigh nothing; they still have to join the layout.
+      const padded = [
+        urls[0]!,
+        page(`${"<p></p>".repeat(40)}${numbered(0, 400)}${'<div class="spacer"></div>'.repeat(60)}`),
+      ];
+      const windowed = await open(flow, padded);
+      try {
+        await windowed.view.goTo(at("p200"));
+        assert(windowed.deferred() > 100, "The section was laid out whole");
+        assert(
+          windowed.doc().querySelector(`.spacer[${DEFER}]`) !== null,
+          "The empty blocks after the text are laid out already",
+        );
+        const completed = await Promise.race([
+          windowed.renderer.whenLaidOut().then(() => true),
+          new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 5000)),
+        ]);
+        assert(completed, "Completing the section never finished");
+        assert(windowed.deferred() === 0, `${windowed.deferred()} blocks were left out of the layout`);
+        assert(windowed.renderer.laidOut, "The section is still reported as incomplete");
+      } finally {
+        await close(windowed.view);
+        URL.revokeObjectURL(padded[1]!);
+      }
+    });
+
     await run("a place that is not laid out yet can be gone to", async () => {
       const windowed = await open(flow, urls);
       try {

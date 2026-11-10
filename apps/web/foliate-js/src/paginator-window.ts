@@ -142,15 +142,20 @@ export class LayoutWindow {
   get weight() {
     return this.#before[this.#chunks.length]!;
   }
-  /** The weight laid out so far, and the weight still waiting on each side. */
+  /**
+   * The weight laid out so far, and the weight still deferred before it: what
+   * progress is estimated from. Weight says nothing about whether chunks are
+   * waiting (an empty block weighs nothing); `waits` does.
+   */
   get laidOut() {
     return this.#before[this.#to]! - this.#before[this.#from]!;
   }
-  get waitingBefore() {
+  get weightBefore() {
     return this.#before[this.#from]!;
   }
-  get waitingAfter() {
-    return this.weight - this.#before[this.#to]!;
+  /** Whether any chunk is still deferred before (`dir` -1) or after (1) the laid-out run. */
+  waits(dir: -1 | 1): boolean {
+    return dir < 0 ? this.#from > 0 : this.#to < this.#chunks.length;
   }
   get complete() {
     return this.#from === 0 && this.#to === this.#chunks.length;

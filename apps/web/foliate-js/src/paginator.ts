@@ -1448,10 +1448,13 @@ export class Paginator extends HTMLElement {
       this.#entries.find(({ view }) => view === this.#view && view.windowed) ??
       this.#entries.find(({ view }) => view.windowed);
     if (!entry) return false;
+    // A batch always joins while a section is unfinished. Should one ever
+    // not, the rest is laid out at once: the callers loop until it is whole.
+    const grow = () => entry.view.grow() || entry.view.layOutAll();
     if (this.scrolled) {
       const settle = this.#stableViewport({ sameContent: true });
       try {
-        entry.view.grow();
+        grow();
         this.#updateChapterEdges();
       } finally {
         settle();
@@ -1459,7 +1462,7 @@ export class Paginator extends HTMLElement {
     } else {
       this.#windowing++;
       try {
-        entry.view.grow();
+        grow();
       } finally {
         this.#windowing--;
       }

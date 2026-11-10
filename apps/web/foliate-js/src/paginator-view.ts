@@ -236,7 +236,7 @@ export class SectionView {
     this.#layout = layout;
     // Columns fill in order: a window opened in scrolled flow may have left
     // the document's start out, and every page depends on it.
-    if (this.#column && this.#window?.waitingBefore) {
+    if (this.#column && this.#window?.waits(-1)) {
       this.#window.grow(-1, Infinity);
       if (this.#window.complete) this.#window = undefined;
     }
@@ -356,7 +356,7 @@ export class SectionView {
   }
   /** The first laid-out block while content before it is deferred: what moves when that content joins. */
   get windowStart(): Element | undefined {
-    return this.#window?.waitingBefore ? this.#window.first : undefined;
+    return this.#window?.waits(-1) ? this.#window.first : undefined;
   }
   /**
    * Lay out one more batch of the document after (`dir` 1) or before (-1)
@@ -366,7 +366,7 @@ export class SectionView {
   grow(dir?: -1 | 1): boolean {
     const window = this.#window;
     if (!window) return false;
-    const side = dir ?? (window.waitingAfter ? 1 : -1);
+    const side = dir ?? (window.waits(1) ? 1 : -1);
     const batch = this.#column
       ? Math.max(this.#screenful * WINDOW_BATCH, window.laidOut * WINDOW_BATCH_SHARE)
       : this.#screenful * WINDOW_BATCH;
@@ -382,8 +382,8 @@ export class SectionView {
     const window = this.#window;
     if (!window) return false;
     const { first, last } = window;
-    if (window.waitingAfter && last && mapRect(last.getBoundingClientRect()).right < to) return this.grow(1);
-    if (window.waitingBefore && first && mapRect(first.getBoundingClientRect()).left > from) return this.grow(-1);
+    if (window.waits(1) && last && mapRect(last.getBoundingClientRect()).right < to) return this.grow(1);
+    if (window.waits(-1) && first && mapRect(first.getBoundingClientRect()).left > from) return this.grow(-1);
     return false;
   }
   /**
@@ -407,15 +407,19 @@ export class SectionView {
         : (range.startContainer.childNodes[range.startOffset] ?? range.startContainer);
     return this.#join(window.growTo(window.indexOf(edge), this.#screenful * WINDOW_AHEAD));
   }
-  /** Lay out everything that is still deferred. */
+  /** Lay out everything that is still deferred. The view is not windowed afterwards, whatever joined. */
   layOutAll(): boolean {
-    return this.#window ? this.#join(this.#window.growToAll()) : false;
+    const window = this.#window;
+    if (!window) return false;
+    const joined = window.growToAll();
+    this.#window = undefined;
+    return this.#join(joined);
   }
   /** Content joined the layout: fit it like the rest, and measure the document again. */
   #join(joined: Element[]): boolean {
+    if (this.#window?.complete) this.#window = undefined;
     const doc = this.document;
     if (!joined.length || !doc) return false;
-    if (this.#window?.complete) this.#window = undefined;
     fitWideContent(doc, joined);
     // The observer reports this growth on the next frame; it is measured here.
     this.#measuredSinceReport = true;
@@ -494,7 +498,7 @@ export class SectionView {
   get sourceOffset() {
     const window = this.#window;
     return window?.laidOut
-      ? this.#contentOffset + (window.waitingBefore / window.laidOut) * this.#contentSize
+      ? this.#contentOffset + (window.weightBefore / window.laidOut) * this.#contentSize
       : this.#contentOffset;
   }
   get sourceSize() {

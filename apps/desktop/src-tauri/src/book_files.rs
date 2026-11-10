@@ -81,6 +81,15 @@ impl<T> OpenBooks<T> {
         expected: Option<&str>,
         open: impl FnOnce(&Path) -> Result<T, CommandError>,
     ) -> Result<Option<(Shared<T>, String)>, CommandError> {
+        // A request pinned to the content a reader is already open on needs
+        // nothing looked up: the hash names the bytes, whatever the library
+        // says by now. This is every resource a page loads, and it must not
+        // wait behind whoever holds the database.
+        if let Some(expected) = expected {
+            if let Some(reader) = self.held(book_id, expected)? {
+                return Ok(Some((reader, expected.to_owned())));
+            }
+        }
         let Some((path, sha256)) = book_file(app, book_id)? else {
             return Ok(None);
         };
@@ -90,17 +99,11 @@ impl<T> OpenBooks<T> {
                 "Book file belongs to another content revision",
             ));
         }
-        let mut books = self.0.lock()?;
-        if let Some(index) = books
-            .iter()
-            .position(|entry| entry.book_id == book_id && entry.sha256 == sha256)
-        {
-            let entry = books.remove(index);
-            let reader = entry.reader.clone();
-            books.push(entry);
+        if let Some(reader) = self.held(book_id, &sha256)? {
             return Ok(Some((reader, sha256)));
         }
         let reader = Arc::new(Mutex::new(open(&path)?));
+        let mut books = self.0.lock()?;
         books.retain(|entry| entry.book_id != book_id);
         books.push(Open {
             book_id: book_id.to_owned(),
@@ -128,6 +131,23 @@ pub fn failure_status(error: &CommandError) -> u16 {
         UNREADABLE
     } else {
         NOT_FOUND
+    }
+}
+
+impl<T> OpenBooks<T> {
+    /// The reader open on this content of the book, now the most recently used.
+    fn held(&self, book_id: &str, sha256: &str) -> Result<Option<Shared<T>>, CommandError> {
+        let mut books = self.0.lock()?;
+        let Some(index) = books
+            .iter()
+            .position(|entry| entry.book_id == book_id && entry.sha256 == sha256)
+        else {
+            return Ok(None);
+        };
+        let entry = books.remove(index);
+        let reader = entry.reader.clone();
+        books.push(entry);
+        Ok(Some(reader))
     }
 }
 

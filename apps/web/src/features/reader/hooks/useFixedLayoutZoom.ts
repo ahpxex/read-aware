@@ -67,7 +67,7 @@ export type FixedLayoutZoomInput = {
    * reader was looking, and from then on keep track of it. The returned
    * function stops tracking, remembering the latest place.
    */
-  restoreFocus: (renderer: FoliateRenderer | undefined) => () => void;
+  restoreFocus: (renderer: FoliateRenderer | undefined, following?: () => boolean) => () => void;
   /** A ctrl+wheel in the reader; true when it zoomed (the caller stops routing it). */
   handleZoomWheel: (event: WheelEvent) => boolean;
   /** Pan a zoomed paged spread by a wheel event; true when the spread moved. */
@@ -386,7 +386,8 @@ export function useFixedLayoutZoom({
   // ---- Where on the page ---------------------------------------------------
 
   const restoreFocus = useCallback(
-    (renderer: FoliateRenderer | undefined) => {
+    /** `following`: whether a move is the reader's own (false while the reader only stands by). */
+    (renderer: FoliateRenderer | undefined, following: () => boolean = () => true) => {
       if (!bookId || !renderer || !("showFocus" in renderer)) return () => {};
       const saved = storedRef.current.focus;
       if (saved) renderer.showFocus(saved);
@@ -405,6 +406,9 @@ export function useFixedLayoutZoom({
         }
       };
       const observe = () => {
+        // A standing reader re-lays itself out (a resize, a setting); that is
+        // not somewhere the book was read.
+        if (!following()) return;
         latest = renderer.viewFocus ?? latest;
         if (timer != null) window.clearTimeout(timer);
         timer = window.setTimeout(save, FOCUS_SAVE_MS);

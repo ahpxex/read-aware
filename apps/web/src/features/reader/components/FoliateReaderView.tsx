@@ -203,9 +203,30 @@ type FoliateReaderViewProps = {
     fraction: number;
     requestId: number;
   } | null;
+  /**
+   * The reader holds this book ready without anyone reading it: its engine
+   * is open, styled and laid out at the saved position, hidden behind the
+   * shelf, with no reading session. Everything that listens beyond the
+   * book's own documents — keys, volume buttons, gesture phases — is off, and
+   * nothing is recorded. Opening the book then only starts a session, which
+   * the standing engine binds to (see the reading-session effect).
+   */
+  standby?: boolean;
+  /** The standing engine failed to open; there is no session to report that to. */
+  onStandbyFailure?: () => void;
 };
 
 const log = createLogger("reader");
+
+type OpenedEngine = {
+  view: FoliateView;
+  book: FoliateBook | undefined;
+  session: ReaderEngineSession<LoadedBook, DomainActor>;
+  contentVersion: string;
+  /** What the content was made from: the provider's revision for a virtual book. */
+  sourceRevision: string;
+  invalidation: string;
+};
 
 const SELECTION_CLICK_SUPPRESSION_MS = 180;
 const SHELL_TAP_MAX_DURATION_MS = 220;
@@ -350,6 +371,8 @@ export function FoliateReaderView({
   chapterNavigationRequest = null,
   annotationNavigationRequest = null,
   fractionNavigationRequest = null,
+  standby = false,
+  onStandbyFailure,
 }: FoliateReaderViewProps) {
   const { t } = useTranslation(["reader", "common"]);
   const { toast } = useToast();
@@ -395,6 +418,45 @@ export function FoliateReaderView({
   // engine down and open the book twice.
   // Navigation follows the book's identity; a refreshed book object for the same id keeps it.
   const selectedBookId = selectedBook?.id;
+  // Read at event time by listeners that outlive the render that made them.
+  const standbyRef = useRef(standby);
+  useEffect(() => {
+    standbyRef.current = standby;
+  }, [standby]);
+  const emitStandbyFailure = useEffectEvent(() => onStandbyFailure?.());
+  /**
+   * The reading session this book is being read in, or null while the reader
+   * only stands by with it. Asked of the runtime each time: the engine can
+   * be open long before anyone reads, and through several sessions.
+   */
+  const currentReadingSession = useEffectEvent(() => {
+    const session = readingRuntime.snapshot();
+    return selectedBookId && session.bookId === selectedBookId ? session.sessionId : null;
+  });
+  const [readingSessionId, setReadingSessionId] = useState<string | null>(() => {
+    const session = readingRuntime.snapshot();
+    return selectedBookId && session.bookId === selectedBookId ? session.sessionId : null;
+  });
+  useEffect(
+    () =>
+      readingRuntime.observe((session) =>
+        setReadingSessionId(selectedBookId && session.bookId === selectedBookId ? session.sessionId : null),
+      ),
+    [selectedBookId],
+  );
+  /** The engine once it has opened, restored and painted: what a reading session binds to. */
+  const [openedEngine, setOpenedEngine] = useState<OpenedEngine | null>(null);
+  /** Outbound links go through the reading runtime while a session is bound. */
+  const nativeLinksRef = useRef<ReturnType<typeof createNativeLinkNavigator> | null>(null);
+  /**
+   * The progress target the engine's position corresponds to: the one it was
+   * restored from, then each place reported while reading. A session that
+   * starts on a standing engine compares it with the book's progress then,
+   * which may have moved (another device) since the engine stood by.
+   */
+  const syncedTargetRef = useRef<string | null>(null);
+  /** The book's recorded progress target, as the latest props state it. */
+  const progressTargetRef = useRef<string | null>(null);
   const readingMode = isFixedLayoutFormat(selectedBook?.format)
     ? readerSettings.fixedLayoutReadingMode
     : readerSettings.readingMode;
@@ -507,8 +569,9 @@ export function FoliateReaderView({
   /**
    * Whether this reading session already asked the agent to look back. Kept
    * here rather than on the completion screen because that screen unmounts when
-   * dismissed — the reader who reopens it should not be made to re-ask. This
-   * component remounts per book, so the flag resets with the session.
+   * dismissed — the reader who reopens it should not be made to re-ask. It is
+   * cleared when the reading session ends (see `endReadingSession`): the
+   * component outlives a session while its book stands by.
    */
   const [lookBackAsked, setLookBackAsked] = useState(false);
 
@@ -676,6 +739,7 @@ export function FoliateReaderView({
   }, [currentChapterHref]);
 
   useEffect(() => {
+    progressTargetRef.current = initialProgress?.cfi ?? initialProgress?.href ?? null;
     lastLocationTargetRef.current = initialProgress?.cfi ?? initialProgress?.href ?? null;
     initialFractionRef.current =
       initialProgress?.progressPercent != null ? Math.max(0, Math.min(1, initialProgress.progressPercent / 100)) : 0;
@@ -1249,10 +1313,13 @@ export function FoliateReaderView({
   // Android volume keys turn pages while the preference is on, exactly like
   // ArrowDown/ArrowUp. An active text-unit mode claims the keys for stepping
   // instead (useTextUnitNavigator), so the two never hold them at once.
-  useVolumeKeySteps(pageTurnSettings.volumeKeys && !textUnitModeEngineActive && !isLoading && !error, (step) => {
-    if (!loadedBookRef.current) return;
-    if (!fixedLayoutZoom.panByKey("y", step)) void turnPage(step);
-  });
+  useVolumeKeySteps(
+    pageTurnSettings.volumeKeys && !textUnitModeEngineActive && !isLoading && !error && !standby,
+    (step) => {
+      if (!loadedBookRef.current) return;
+      if (!fixedLayoutZoom.panByKey("y", step)) void turnPage(step);
+    },
+  );
 
   // ----- wheel / touch navigation routing -----------------------------------
 
@@ -1273,11 +1340,13 @@ export function FoliateReaderView({
   useEffect(() => {
     const gestures = wheelGesturesRef.current;
     if (!gestures) return;
+    // A standing reader is not what the fingers are on.
+    if (standby) return;
     return subscribeWheelPhaseEdges((edge) => {
       gestures.step.notifyPhase(edge);
       gestures.pageTurn.notifyPhase(edge);
     });
-  }, []);
+  }, [standby]);
 
   // One clock for the gesture machines, anchored to the main window's
   // performance.now(). `event.timeStamp` is relative to each document's own
@@ -2005,10 +2074,12 @@ export function FoliateReaderView({
   // ----- global keydown + viewport resize -----------------------------------
 
   useEffect(() => {
+    // The window's keys belong to whatever is in front of a standing reader.
+    if (standby) return;
     const onKeyDown = (event: KeyboardEvent) => handleReaderKeyDown(event);
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [standby]);
 
   // Keep the renderer's `animated` flag in sync with the motion preference at
   // runtime (the Reduce-motion toggle flips `data-motion`; the OS pref can change
@@ -2176,10 +2247,14 @@ export function FoliateReaderView({
 
     let view: FoliateView | null = null;
     let releaseBook: (() => Promise<void>) | undefined;
-    const runtimeSession = readingRuntime.snapshot();
-    const sessionId = runtimeSession.bookId === selectedBook?.id ? runtimeSession.sessionId : null;
+    // The session reading this book now, if any. A standing engine has none
+    // and may get one later, so nothing below holds on to this: listeners ask
+    // `currentReadingSession()` when they fire.
+    // oxlint-disable-next-line react-hooks/rules-of-hooks -- openEngine runs inside useReaderEngineSession's effect event
+    const openingSession = currentReadingSession();
     const openingActor =
-      engineLoadSource.current?.origin ?? (sessionId ? readingRuntime.openingActor(sessionId) : causalActor("system"));
+      engineLoadSource.current?.origin ??
+      (openingSession ? readingRuntime.openingActor(openingSession) : causalActor("system"));
     const openingContext = readingRenderContext(openingActor);
     // Bindings are undone with the retiring actor, or the opening one when
     // the retirement has no cause of its own.
@@ -2204,6 +2279,7 @@ export function FoliateReaderView({
     setCurrentChapterHref(null);
     setIsFixedLayout(false);
     setPageLocator(null);
+    setOpenedEngine(null);
     // Drop the previous book's position so its first relocate only sets a fresh
     // baseline instead of reading as a page turn.
     prevReadingLocationRef.current = null;
@@ -2237,13 +2313,10 @@ export function FoliateReaderView({
         if (!content || session.closed) return;
         const parsedBook = content.book;
         const contentProvider = content.provider;
-        // An unmanaged reader (no library book, no session) has no revision to share.
-        const contentVersion =
-          initialBook.virtual || (selectedBook && sessionId)
-            ? content.contentVersion
-            : sessionId
-              ? `session:${sessionId}`
-              : "unmanaged";
+        // The content's own version, with or without a reading session: the
+        // unit-by-unit resume is keyed on it, and a made-up one for a standing
+        // engine would overwrite the stored place.
+        const contentVersion = content.contentVersion;
         retainParsedBook(parsedBook);
         if (selectedBook && !isFixedLayoutBook(parsedBook)) {
           const language = await bookLanguage(parsedBook);
@@ -2326,6 +2399,8 @@ export function FoliateReaderView({
           // stack prerenders around a scrolling reader.
           const rendererTarget = view.renderer;
           const onRendered = (event: Event) => {
+            // oxlint-disable-next-line react-hooks/rules-of-hooks -- openEngine runs inside useReaderEngineSession's effect event
+            const sessionId = currentReadingSession();
             if (!session.closed && sessionId)
               emitAppEvent(
                 "reader-demand-activity",
@@ -2375,7 +2450,9 @@ export function FoliateReaderView({
           .catch((error) => log.warn("Could not prepare chapter marks", error));
 
         const onRelocate = (event: Event) => {
-          if (!view || session.closed || (sessionId && readingRuntime.snapshot().sessionId !== sessionId)) return;
+          if (!view || session.closed) return;
+          // oxlint-disable-next-line react-hooks/rules-of-hooks -- openEngine runs inside useReaderEngineSession's effect event
+          const sessionId = currentReadingSession();
           // Tell background pipelines (text extraction) the reader is busy —
           // the page being read must win the PDF worker and the blob channel.
           const detail = (event as CustomEvent<FoliateRelocateDetail>).detail;
@@ -2392,6 +2469,8 @@ export function FoliateReaderView({
           const chapterProgress = chapterProgressAt(entries, href, fraction);
           const visibleText = normalizeReadingCursorText(readingVisibleText(view).text);
           lastLocationTargetRef.current = cfi ?? href;
+          // Only a place reported while reading becomes the book's progress.
+          if (sessionId) syncedTargetRef.current = cfi ?? href;
           const progressPercent = Math.round(fraction * 100);
           // oxlint-disable-next-line react-hooks/rules-of-hooks -- openEngine runs inside useReaderEngineSession's effect event
           emitLocation({
@@ -2485,20 +2564,8 @@ export function FoliateReaderView({
           showAnnotation((event as CustomEvent<FoliateShowAnnotationDetail>).detail);
         };
 
-        // Footnote/endnote references open the popover; other links navigate.
-        const nativeLinks =
-          sessionId && selectedBook
-            ? createNativeLinkNavigator(
-                readingRuntime,
-                { sessionId, bookId: selectedBook.id, contentVersion },
-                (error) => setError(describeReaderFailure(error)),
-                () => {
-                  setError(null);
-                  clearSelection();
-                },
-              )
-            : null;
-        if (nativeLinks) defer(nativeLinks.dispose);
+        // Footnote/endnote references open the popover; other links navigate
+        // through the reading runtime, which a bound session provides.
         const onLink = (event: Event) => {
           const detail = (event as CustomEvent<FoliateLinkDetail>).detail;
           if (detail?.a) footnoteAnchorRectRef.current = anchorRectForElement(detail.a);
@@ -2507,7 +2574,7 @@ export function FoliateReaderView({
             void handler
               .handle(book, event as CustomEvent<FoliateLinkDetail>, beginNativeFootnote())
               ?.catch((error) => log.warn("Could not render footnote", error));
-          void nativeLinks?.handle(event as CustomEvent<FoliateLinkDetail>);
+          void nativeLinksRef.current?.handle(event as CustomEvent<FoliateLinkDetail>);
         };
 
         // Pushing past the last page — a touch swipe's snap turns pages inside
@@ -2554,6 +2621,7 @@ export function FoliateReaderView({
           }
         }
 
+        syncedTargetRef.current = lastLocationTargetRef.current;
         await restoreReadingPosition(view, {
           virtual: !!initialBook.virtual,
           reset: !!resetPosition,
@@ -2567,53 +2635,36 @@ export function FoliateReaderView({
         }
         // A zoomed fixed-layout page reopens on the passage it was read at,
         // not at its corner; the place is followed from here on.
-        if (fixedLayout) defer(fixedLayoutZoom.restoreFocus(view.renderer));
+        if (fixedLayout) defer(fixedLayoutZoom.restoreFocus(view.renderer, () => !standbyRef.current));
         // A PDF iframe can load before its raster. Public readiness and metadata
         // enrichment must wait for the displayed page, not a background render.
         await waitForReadingPaint(view);
         if (session.closed) return;
         if (selectedBook) assertContentNotInvalidated(selectedBook.id, invalidation);
         if (resetPosition) resetPositionSourceRef.current = initialBook;
-        if (sessionId && selectedBook) {
-          const emphasis = await createReadingEmphasisAdapter(view);
-          if (session.closed) {
-            emphasis.retire();
-            return;
-          }
-          defer(() => emphasis.retire());
-          assertContentNotInvalidated(selectedBook.id, invalidation);
-          const sourceRevision = contentProvider
-            ? virtualSourceRevision(selectedBook.id, contentProvider, initialBook.virtual!.key)
-            : contentVersion;
-          if (!session.closed)
-            defer(attachReadingEngine(view, sessionId, selectedBook.id, contentVersion, sourceRevision, openingActor));
-          const identity = { view, sessionId, bookId: selectedBook.id, contentVersion };
-          selectionContentRef.current = identity;
-          defer(
-            readingRuntime.bindSelection(
-              sessionId,
-              createReadingSelectionAdapter(
-                view,
-                () => selectionRef.current,
-                (doc, index, origin) => captureSelectionFromDoc(doc, index, { origin }),
-                clearSelection,
-                selectionRender,
-              ),
-              openingActor,
-            ),
-          );
-          defer(readingEmphasis.bind(sessionId, selectedBook.id, contentVersion, emphasis));
-          defer((origin) => {
-            if (selectionContentRef.current !== identity) return;
-            selectionContentRef.current = null;
-            readingRuntime.selectionChanged(sessionId, null, origin);
-          });
-        }
-        // oxlint-disable-next-line react-hooks/rules-of-hooks -- openEngine runs inside useReaderEngineSession's effect event
-        if (book && !session.closed) emitBookReady(book);
+        // Opened, restored and painted. A reading session, present already or
+        // started later, binds to it in the reading-session effect.
+        setOpenedEngine({
+          view,
+          book,
+          session,
+          contentVersion,
+          sourceRevision:
+            contentProvider && selectedBook
+              ? virtualSourceRevision(selectedBook.id, contentProvider, initialBook.virtual!.key)
+              : contentVersion,
+          invalidation,
+        });
+        session.onClose(() => setOpenedEngine((opened) => (opened?.session === session ? null : opened)));
       } catch (nextError) {
+        // oxlint-disable-next-line react-hooks/rules-of-hooks -- openEngine runs inside useReaderEngineSession's effect event
+        const sessionId = currentReadingSession();
         if (sessionId && !session.closed) readingRuntime.fail(sessionId, nextError, openingActor);
         if (!session.closed) setError(describeReaderFailure(nextError, "load"));
+        // Nobody is reading: there is no failure surface to show, and a later
+        // opening must start over rather than find this one broken.
+        // oxlint-disable-next-line react-hooks/rules-of-hooks -- openEngine runs inside useReaderEngineSession's effect event
+        if (!sessionId && !session.closed) emitStandbyFailure();
         await view?.close().catch((error) => log.warn("Could not close failed reader", error));
         await releaseBook?.().catch((error) => log.warn("Could not close failed book", error));
       } finally {
@@ -2633,6 +2684,137 @@ export function FoliateReaderView({
     open: openEngine,
     retiringOrigin: () => engineLoadSource.current?.origin,
   });
+
+  // ----- reading session ↔ engine -------------------------------------------
+
+  /**
+   * Bind a reading session to the opened engine: publish the engine to the
+   * reading runtime, and route selection, emphasis and links through it.
+   *
+   * The engine and the session have separate lives. Usually the session
+   * comes first (a book is chosen, then its engine opens); a standing engine
+   * comes first and waits for one; a layout switch replaces the engine under
+   * the same session; closing the book ends the session and leaves the
+   * engine standing. Whichever ends first undoes the bindings, in the order
+   * they were made, and an engine that is closing undoes them before its
+   * view and book are released.
+   */
+  const bindReadingSession = useEffectEvent((engine: OpenedEngine, sessionId: string): (() => void) => {
+    const bookId = selectedBook?.id;
+    if (!bookId) return () => {};
+    const { view, session, contentVersion, sourceRevision, book, invalidation } = engine;
+    let actor: DomainActor;
+    try {
+      actor = readingRuntime.openingActor(sessionId);
+    } catch {
+      // The session was replaced before this ran; its successor binds instead.
+      return () => {};
+    }
+    const teardowns: ((origin: DomainActor) => void)[] = [];
+    let undone = false;
+    const undo = (origin?: DomainActor) => {
+      if (undone) return;
+      undone = true;
+      for (const teardown of teardowns.splice(0)) {
+        try {
+          teardown(origin ?? actor);
+        } catch (error) {
+          log.warn("Could not undo a reading binding", error);
+        }
+      }
+    };
+    session.onClose(undo);
+    void (async () => {
+      const emphasis = await createReadingEmphasisAdapter(view);
+      if (undone || session.closed) {
+        emphasis.retire();
+        return;
+      }
+      teardowns.push(() => emphasis.retire());
+      assertContentNotInvalidated(bookId, invalidation);
+      // The book's progress may have moved since this engine was restored
+      // (it stood by while another device read on): show that place before
+      // the engine is published, so it is where the session starts.
+      const wanted = progressTargetRef.current;
+      if (wanted && wanted !== syncedTargetRef.current) {
+        syncedTargetRef.current = wanted;
+        await view
+          .goTo(wanted, readingRenderContext(actor))
+          .catch((error: unknown) => log.warn("Could not move the standing reader to the book's progress", error));
+        if (undone || session.closed) return;
+      }
+      teardowns.push(attachReadingEngine(view, sessionId, bookId, contentVersion, sourceRevision, actor));
+      const identity = { view, sessionId, bookId, contentVersion };
+      selectionContentRef.current = identity;
+      teardowns.push(
+        readingRuntime.bindSelection(
+          sessionId,
+          createReadingSelectionAdapter(
+            view,
+            () => selectionRef.current,
+            (doc, index, origin) => captureSelectionFromDoc(doc, index, { origin }),
+            clearSelection,
+            selectionRender,
+          ),
+          actor,
+        ),
+      );
+      teardowns.push(readingEmphasis.bind(sessionId, bookId, contentVersion, emphasis));
+      teardowns.push((origin) => {
+        if (selectionContentRef.current !== identity) return;
+        selectionContentRef.current = null;
+        readingRuntime.selectionChanged(sessionId, null, origin);
+      });
+      const links = createNativeLinkNavigator(
+        readingRuntime,
+        { sessionId, bookId, contentVersion },
+        (error) => setError(describeReaderFailure(error)),
+        () => {
+          setError(null);
+          clearSelection();
+        },
+      );
+      nativeLinksRef.current = links;
+      teardowns.push(() => {
+        links.dispose();
+        if (nativeLinksRef.current === links) nativeLinksRef.current = null;
+      });
+      // Enrichment and text extraction start with the reading, not with an
+      // engine that only stands by.
+      if (book) emitBookReady(book);
+    })().catch((error: unknown) => {
+      if (undone || session.closed) return;
+      readingRuntime.fail(sessionId, error, actor);
+      setError(describeReaderFailure(error, "load"));
+    });
+    return () => undo();
+  });
+  useEffect(() => {
+    if (!openedEngine || !readingSessionId || openedEngine.session.closed) return;
+    return bindReadingSession(openedEngine, readingSessionId);
+  }, [openedEngine, readingSessionId]);
+
+  // What one reading left open does not greet the next: the engine stays for
+  // the book, but a selection, an open mark, a note preview or the completion
+  // screen belonged to the session that ended.
+  const endReadingSession = useEffectEvent(() => {
+    clearSelection();
+    setActiveAnnotation(null);
+    setUnitMenuAnchor(null);
+    holdMenu.close();
+    setFootnote(null);
+    if (completionExitTimerRef.current != null) {
+      window.clearTimeout(completionExitTimerRef.current);
+      completionExitTimerRef.current = null;
+    }
+    setCompletionVisible(false);
+    setCompletionMounted(false);
+    setLookBackAsked(false);
+  });
+  useEffect(() => {
+    if (!readingSessionId) return;
+    return () => endReadingSession();
+  }, [readingSessionId]);
 
   useEffect(() => {
     if (!chapterNavigationRequest?.href) return;

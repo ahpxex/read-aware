@@ -21,6 +21,7 @@ import { runEPUBRegressions } from "./foliate-epub-regressions";
 import { runLayoutRegressions } from "./foliate-layout-regressions";
 import { runMediaRegressions } from "./foliate-media-regressions";
 import { runMOBIRegressions } from "./foliate-mobi-regressions";
+import { runOpenLayoutRegressions } from "./foliate-open-layout-regressions";
 import { runPaginatorRegressions } from "./foliate-paginator-regressions";
 import { runPDFRegressions } from "./foliate-pdf-regressions";
 import { runFitRegressions } from "./foliate-fit-regressions";
@@ -83,6 +84,7 @@ async function run(report: RuntimeReport): Promise<void> {
     ["document-layout", () => runDocumentLayoutRegressions(view.View)],
     ["custom-typography", () => runCustomTypographyRegressions(paginator.Paginator)],
     ["fit", () => runFitRegressions(view.View)],
+    ["open-layout", () => runOpenLayoutRegressions(view.View)],
   ];
   for (const [suite, execute] of suites) {
     setStatus(`Running ${suite}…`);

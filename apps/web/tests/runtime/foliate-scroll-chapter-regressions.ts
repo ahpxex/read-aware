@@ -397,7 +397,10 @@ export async function runScrollChapterRegressions(ViewClass: typeof View): Promi
           "Nested navigation resumed scrolling too early",
         );
         resumeNested();
-        assert(getComputedStyle(currentScroller).overflow === "auto", "Native scrolling did not resume after the swap");
+        assert(
+          getComputedStyle(currentScroller).overflowY === "scroll" && currentScroller.style.paddingInlineEnd === "",
+          "Native scrolling did not resume after the swap",
+        );
         assert(
           view.lastLocation?.range?.toString().startsWith("Chapter B") === true,
           "Momentum crossing stayed in the previous chapter",

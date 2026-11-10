@@ -108,6 +108,9 @@ export class Paginator extends HTMLElement {
   #extensionFailed: Partial<Record<-1 | 1, number>> = {};
   #maintaining: Promise<void> | undefined;
   #maintainFrame: number | undefined;
+  /** A maintenance pass waiting for the main thread to go idle: run it now, or drop it. */
+  #runIdleMaintenance: (() => void) | undefined;
+  #cancelIdleMaintenance: (() => void) | undefined;
   #maintainAgain = false;
   #windowing = 0;
   #layingOut = false;
@@ -209,14 +212,19 @@ export class Paginator extends HTMLElement {
             grid-row: 2;
             overflow: hidden;
         }
+        /* The scrollbar's track is always there (transparent, see below): a
+           section is laid out against the scroller's width, and a track that
+           appeared only once the section overflowed would narrow the column
+           and lay the whole section out again. */
         :host([flow="scrolled"]) #container {
             grid-column: 1 / -1;
             grid-row: 1 / -1;
-            overflow: auto;
+            overflow: hidden scroll;
             display: flex;
             flex-direction: column;
         }
         :host([flow="scrolled"]) #top.vertical #container {
+            overflow: scroll hidden;
             flex-direction: row;
         }
         /* ReadAware patch: the scroll-mode scroller lives in this closed shadow
@@ -544,6 +552,8 @@ export class Paginator extends HTMLElement {
     this.#entries = this.#entries.filter((item) => item !== entry);
   }
   #keepEntry(keep?: SectionEntry) {
+    this.#cancelIdleMaintenance?.();
+    this.#cancelIdleMaintenance = this.#runIdleMaintenance = undefined;
     for (const entry of this.#entries) if (entry !== keep) this.#dropEntry(entry);
     this.#chapterToken++;
     this.#chapterEdges = {};
@@ -815,6 +825,11 @@ export class Paginator extends HTMLElement {
    * resolves as soon as the target source is shown. */
   async whenChapterSettled(): Promise<void> {
     for (;;) {
+      // Whoever waits for the window does not wait for an idle moment.
+      if (this.#runIdleMaintenance) {
+        this.#cancelIdleMaintenance?.();
+        this.#runIdleMaintenance();
+      }
       // A scroll has scheduled a pass for the next frame; let it start.
       if (this.#maintainFrame !== undefined) {
         await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -834,14 +849,25 @@ export class Paginator extends HTMLElement {
    */
   suspendScroll(): () => void {
     if (!this.scrolled) return () => {};
-    this.#scrollSuspensions++;
-    this.#container.style.overflow = "hidden";
+    const container = this.#container;
+    if (this.#scrollSuspensions++ === 0) {
+      // Hiding the overflow takes the scrollbar's track away with it. Its
+      // place is padded for as long, or the surface would widen and narrow
+      // again and every resident document be laid out twice more.
+      const track = this.#vertical
+        ? container.offsetHeight - container.clientHeight
+        : container.offsetWidth - container.clientWidth;
+      container.style.overflow = "hidden";
+      container.style.setProperty(this.#vertical ? "padding-bottom" : "padding-inline-end", `${track}px`);
+    }
     let released = false;
     return () => {
       if (released) return;
       released = true;
       if (--this.#scrollSuspensions === 0) {
-        this.#container.style.removeProperty("overflow");
+        container.style.removeProperty("overflow");
+        container.style.removeProperty("padding-bottom");
+        container.style.removeProperty("padding-inline-end");
         if (this.#deferredLayout) {
           this.#deferredLayout = false;
           this.render(this.#anchorContext);
@@ -1128,7 +1154,12 @@ export class Paginator extends HTMLElement {
     const range = this.#getVisibleRange();
     if (!range) return;
     this.#lastVisibleRange = range;
-    if (this.scrolled && !this.#windowing) void this.#maintainWindow(context);
+    // A re-anchor is the layout settling under a reader who has not moved:
+    // the window around them is checked when the main thread is idle.
+    if (this.scrolled && !this.#windowing) {
+      if (reason === "anchor") this.#maintainWhenIdle(context);
+      else void this.#maintainWindow(context);
+    }
     // don't set new anchor if relocation was to scroll to anchor
     if (reason !== "selection" && reason !== "navigation" && reason !== "anchor") {
       this.#anchor = range;
@@ -1210,7 +1241,6 @@ export class Paginator extends HTMLElement {
           },
         }),
       );
-      view.refreshStyles();
       return entry;
     } catch (error) {
       this.#dropEntry(entry);
@@ -1254,6 +1284,50 @@ export class Paginator extends HTMLElement {
       })
       .catch((error: unknown) => console.warn("Chapter window maintenance failed", error));
     return run;
+  }
+  /**
+   * Fill in around a place the reader was just taken to. Sources beyond the
+   * viewport wait until the page they asked for is on screen and the main
+   * thread has nothing better to do: loading one is as much work as the
+   * navigation itself, and it must not stand between the reader and their
+   * first input. A scroll maintains the window at once (see the constructor),
+   * whatever is pending here.
+   */
+  #maintainWhenIdle(context: object) {
+    this.#cancelIdleMaintenance?.();
+    this.#cancelIdleMaintenance = this.#runIdleMaintenance = undefined;
+    if (!this.scrolled || !this.#chapterStarts.size) return;
+    // A chapter that ends inside the viewport while more of it is waiting
+    // (a heading closing one source, its text opening the next) is a page
+    // only half shown: that is the navigation's own work, not background.
+    if (this.hasPendingContent(1) && this.viewSize - this.end < 1) {
+      void this.#maintainWindow(context);
+      return;
+    }
+    const run = () => {
+      this.#cancelIdleMaintenance = undefined;
+      this.#runIdleMaintenance = undefined;
+      void this.#maintainWindow(context);
+    };
+    this.#runIdleMaintenance = run;
+    if (typeof requestIdleCallback === "function") {
+      const id = requestIdleCallback(run, { timeout: 1000 });
+      this.#cancelIdleMaintenance = () => cancelIdleCallback(id);
+      return;
+    }
+    // WebKit has no idle callback: the task after the frame that shows the
+    // page stands in for it. A hidden document renders no frames.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const frame = document.hidden
+      ? undefined
+      : requestAnimationFrame(() => {
+          timer = setTimeout(run);
+        });
+    if (frame === undefined) timer = setTimeout(run);
+    this.#cancelIdleMaintenance = () => {
+      if (frame !== undefined) cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
   }
   /** Load the chapter's next source in `dir` onto the resident edge.
    * Resolves true when a source was added. */
@@ -1377,7 +1451,7 @@ export class Paginator extends HTMLElement {
       this.#finishBuild(navigation);
       // The target source is on screen; its chapter neighbours follow
       // on demand, without holding the navigation open.
-      if (navigation === this.#navigation) void this.#maintainWindow(context);
+      if (navigation === this.#navigation) this.#maintainWhenIdle(context);
     }
   }
   async goTo(target: MaybePromise<ResolvedNavigation | null | undefined>) {
@@ -1481,7 +1555,7 @@ export class Paginator extends HTMLElement {
       } finally {
         resumeScroll();
         this.#finishBuild(navigation);
-        if (navigation === this.#navigation) void this.#maintainWindow(context);
+        if (navigation === this.#navigation) this.#maintainWhenIdle(context);
       }
       return;
     }
@@ -1543,22 +1617,16 @@ export class Paginator extends HTMLElement {
     const revision = this.#styleRevision;
     $beforeStyle.textContent = before;
     $style.textContent = after;
-
-    // NOTE: needs `requestAnimationFrame` in Chromium
+    // A section still loading is laid out with these styles in its first pass.
+    if (!view.ready) return;
+    // Once per frame, whatever the number of stylesheets set in it. The pass
+    // itself waits for any faces the new styles bring in.
     requestAnimationFrame(() => {
       if (this.#entries.some((entry) => entry.view === view) && revision === this.#styleRevision) {
         if (this.#view === view) this.#background.style.background = getBackground(doc);
         view.refreshStyles();
       }
     });
-
-    // needed because the resize observer doesn't work in Firefox
-    void doc.fonts?.ready
-      .then(() => {
-        if (this.#entries.some((entry) => entry.view === view) && revision === this.#styleRevision)
-          view.refreshStyles();
-      })
-      .catch((error: unknown) => console.warn("Could not refresh styles after fonts loaded", error));
   }
   focusView(context: object = {}) {
     const doc = this.#view?.document;

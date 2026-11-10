@@ -1,6 +1,6 @@
 import type { Overlayer } from "./overlayer.js";
 import { getDirection, getBackground, setStylesImportant } from "./paginator-geometry.js";
-import { imageBlockSpacing, isImageOnlyDocument } from "./paginator-media.js";
+import { imageBlockSpacing, isImageOnlyDocument, type BlockSpacing } from "./paginator-media.js";
 import type { Anchor, ResolvedNavigation } from "./book.js";
 import { ChapterRanges } from "./paginator-chapters.js";
 import { fitWideContent, flowBody } from "./paginator-fit.js";
@@ -40,7 +40,14 @@ export class SectionView {
   readonly container: HTMLElement;
   readonly onExpand: () => void;
 
-  #observer = new ResizeObserver(() => this.expand());
+  // An observer's first report is the size it starts from, which the layout
+  // pass has just measured: only a size that differs from it is an expansion.
+  #observed = false;
+  #observer = new ResizeObserver(() => {
+    const first = !this.#observed;
+    this.#observed = true;
+    this.expand(first);
+  });
   #element = document.createElement("div");
   #iframe = document.createElement("iframe");
   #contentRange = document.createRange();
@@ -55,6 +62,8 @@ export class SectionView {
   #chapters: ChapterRanges | undefined;
   /** The document this view finished loading; until then the iframe's may be a half-parsed one. */
   #loaded: Document | null = null;
+  /** The font batch whose arrival repeats the layout pass. */
+  #fontsAwaited: Promise<unknown> | undefined;
   // Source geometry stays independent of the visible chapter's extent.
   // contentSize excludes padding; fullSize includes the reader's margins.
   #contentSize = 0;
@@ -138,32 +147,23 @@ export class SectionView {
           if (!doc) throw new Error("Page document is inaccessible");
           if (!doc.body) throw new Error("Page document has no body");
           this.#loaded = doc;
+          // In the layout tree from here on, and revealed only once the fonts
+          // its text uses have arrived. visibility, not display: styles are
+          // computed and the page is laid out exactly once on the way there,
+          // and that layout is what starts the face loads.
+          this.#iframe.style.visibility = "hidden";
+          this.#iframe.style.display = "block";
           doc.documentElement.toggleAttribute("data-foliate-image-page", isImageOnlyDocument(doc));
           afterLoad?.(doc);
           this.#chapters = new ChapterRanges(doc, this.chapterStarts);
 
-          // It must be visible for Firefox to compute page styles.
-          this.#iframe.style.display = "block";
           const { vertical, rtl } = getDirection(doc);
           const background = getBackground(doc);
-          this.#iframe.style.display = "none";
           this.#vertical = vertical;
           this.#rtl = rtl;
           this.#contentRange.selectNodeContents(doc.body);
-          const layout = beforeRender?.({ vertical, rtl, background });
-          // Reveal only once the fonts the laid-out text uses have arrived.
-          // visibility, not display: layout runs and the loads are triggered.
-          this.#iframe.style.display = "block";
-          this.#iframe.style.visibility = "hidden";
-          this.render(layout);
+          this.render(beforeRender?.({ vertical, rtl, background }));
           this.#observer.observe(doc.body);
-          // Force layout so the face loads start now, not on first paint.
-          void doc.documentElement.getBoundingClientRect();
-
-          // Firefox's iframe resize observer can miss font-driven changes.
-          void doc.fonts.ready
-            .then(() => this.refreshStyles())
-            .catch((error: unknown) => console.warn("Could not refresh styles after fonts loaded", error));
 
           void waitForDocumentFonts(doc, FONT_REVEAL_TIMEOUT_MS).then(() => {
             // A superseded or destroyed load must not reveal or resolve.
@@ -216,9 +216,7 @@ export class SectionView {
       [vertical ? "max-height" : "max-width"]: `${columnWidth}px`,
       margin: "auto",
     });
-    this.setImageSize();
-    fitWideContent(doc);
-    this.expand();
+    this.#layOut(doc);
   }
   columnize({ width, height, gap, columnWidth }: Layout) {
     const vertical = this.#vertical;
@@ -233,7 +231,11 @@ export class SectionView {
       "column-width": `${Math.trunc(columnWidth)}px`,
       "column-gap": `${gap}px`,
       "column-fill": "auto",
-      ...(vertical ? { width: `${width}px` } : { height: `${height}px` }),
+      // Both extents, before the first layout: the frame grows to hold every
+      // page once they are counted, and a root sized by that frame would be
+      // laid out a second time for it.
+      width: `${width}px`,
+      height: `${height}px`,
       padding: vertical ? `${gap / 2}px 0` : `0 ${gap / 2}px`,
       overflow: "hidden",
       // force wrap long words
@@ -254,44 +256,76 @@ export class SectionView {
       "max-width": "none",
       margin: "0",
     });
+    this.#layOut(doc);
+  }
+  /**
+   * One pass over a document whose flow styles are set: bound its media, fit
+   * what is wider than the column, then measure. Each step reads everything
+   * it needs before it writes anything, so the document is laid out once for
+   * the fit and at most once more when the fit changed something.
+   */
+  #layOut(doc: Document) {
     this.setImageSize();
     fitWideContent(doc);
     this.expand();
+    this.#refitWhenFontsArrive(doc);
+  }
+  /** Faces still loading after a pass change the text's metrics when they
+   * arrive: the pass is repeated then, once per batch of faces. */
+  #refitWhenFontsArrive(doc: Document) {
+    const ready = doc.fonts.ready;
+    if (doc.fonts.status !== "loading" || ready === this.#fontsAwaited) return;
+    this.#fontsAwaited = ready;
+    const refit = () => {
+      if (this.#fontsAwaited !== ready) return;
+      this.#fontsAwaited = undefined;
+      if (this.document === doc) this.refreshStyles();
+    };
+    // A face that failed to load leaves fallback text, which is already laid out.
+    void ready.then(refit, refit);
   }
   setImageSize() {
     if (!this.#layout) return;
     const { width, height, margin } = this.#layout;
     const vertical = this.#vertical;
     const doc = this.document;
-    if (!doc?.defaultView) return;
+    const win = doc?.defaultView;
+    if (!doc || !win) return;
+    // Read every image's constraints, then write them: a write between two
+    // reads would have the styles recomputed for each image.
+    const spacing: BlockSpacing = new Map();
+    const sizes: [HTMLElement | SVGElement, Record<string, string>][] = [];
     for (const el of doc.body.querySelectorAll<HTMLElement | SVGElement>("img, svg, video, canvas")) {
       if (el.parentElement?.closest("svg")) continue;
       // preserve max size if they are already set
-      const { maxHeight, maxWidth } = doc.defaultView.getComputedStyle(el);
-      setStylesImportant(el, {
-        "max-height": vertical
-          ? maxHeight !== "none" && maxHeight !== "0px"
-            ? maxHeight
-            : "100%"
-          : `${Math.max(1, height - (this.#column ? imageBlockSpacing(el, doc.defaultView) : margin * 2))}px`,
-        "max-width": vertical
-          ? `${width - margin * 2}px`
-          : maxWidth !== "none" && maxWidth !== "0px"
-            ? maxWidth
-            : "100%",
-        "object-fit": "contain",
-        "page-break-inside": "avoid",
-        "break-inside": "avoid",
-        "box-sizing": "border-box",
-      });
+      const { maxHeight, maxWidth } = win.getComputedStyle(el);
+      sizes.push([
+        el,
+        {
+          "max-height": vertical
+            ? maxHeight !== "none" && maxHeight !== "0px"
+              ? maxHeight
+              : "100%"
+            : `${Math.max(1, height - (this.#column ? imageBlockSpacing(el, win, spacing) : margin * 2))}px`,
+          "max-width": vertical
+            ? `${width - margin * 2}px`
+            : maxWidth !== "none" && maxWidth !== "0px"
+              ? maxWidth
+              : "100%",
+          "object-fit": "contain",
+          "page-break-inside": "avoid",
+          "break-inside": "avoid",
+          "box-sizing": "border-box",
+        },
+      ]);
     }
+    for (const [el, styles] of sizes) setStylesImportant(el, styles);
   }
+  /** The document's styles, fonts or media changed: bound, fit and measure it again. */
   refreshStyles() {
     if (this.#destroyed) return;
-    this.setImageSize();
     const doc = this.document;
-    if (doc && this.#layout) fitWideContent(doc);
-    this.expand();
+    if (doc && this.#layout) this.#layOut(doc);
   }
   get contentOffset() {
     return this.#contentOffset;
@@ -422,10 +456,13 @@ export class SectionView {
     this.#element.style.marginBottom = this.#vertical ? "0" : `${extra}px`;
     this.#element.style.marginLeft = this.#vertical ? `${extra}px` : "0";
   }
-  expand() {
+  /** Measure the laid-out document and size the view to it. `unchangedIsSettled`:
+   * a measurement equal to the last one changes nothing and is not reported. */
+  expand(unchangedIsSettled = false) {
     // READAWARE: see render() — no document, nothing to measure.
     if (this.#destroyed || !this.document || !this.#layout) return;
     const { documentElement } = this.document;
+    const measured = this.#contentSize;
     if (this.#column) {
       const side = this.#vertical ? "height" : "width";
       const otherSide = this.#vertical ? "width" : "height";
@@ -441,6 +478,7 @@ export class SectionView {
       const contentSize = contentStart + contentRect[side];
       const pageCount = Math.ceil(contentSize / this.#size);
       const expandedSize = pageCount * this.#size;
+      if (unchangedIsSettled && expandedSize === measured) return;
       this.#contentSize = expandedSize;
       this.#fullSize = expandedSize + this.#size * 2;
       this.#element.style.padding = "0";
@@ -448,7 +486,6 @@ export class SectionView {
       this.#element.style[side] = `${expandedSize + this.#size * 2}px`;
       this.#iframe.style[otherSide] = "100%";
       this.#element.style[otherSide] = "100%";
-      documentElement.style[side] = `${this.#size}px`;
       if (this.#overlayer) {
         this.#overlayer.element.style.margin = "0";
         this.#overlayer.element.style.left = this.#vertical ? "0" : `${this.#size}px`;
@@ -461,6 +498,7 @@ export class SectionView {
       const otherSide = this.#vertical ? "height" : "width";
       const contentSize = documentElement.getBoundingClientRect()[side];
       const expandedSize = contentSize;
+      if (unchangedIsSettled && expandedSize === measured) return;
       const { margin } = this.#layout;
       this.#contentSize = expandedSize;
       this.#fullSize = expandedSize + margin * 2;

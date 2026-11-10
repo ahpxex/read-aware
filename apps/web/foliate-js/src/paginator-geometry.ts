@@ -172,7 +172,10 @@ export const makeMarginals = (length: number, part: string) =>
     return div;
   });
 
+/** Set `!important` inline styles; a value already in place is left alone, so repeating a pass invalidates nothing. */
 export const setStylesImportant = (el: HTMLElement | SVGElement, styles: Record<string, string>) => {
   const { style } = el;
-  for (const [k, v] of Object.entries(styles)) style.setProperty(k, v, "important");
+  for (const [k, v] of Object.entries(styles))
+    if (style.getPropertyValue(k) !== v || style.getPropertyPriority(k) !== "important")
+      style.setProperty(k, v, "important");
 };

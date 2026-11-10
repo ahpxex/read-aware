@@ -12,9 +12,11 @@ import { extractBookText } from "./book-text-extraction";
 import {
   parseBookTextRecord,
   snapshotFromText,
+  storedNavigationOf,
   textComplete,
   type BookTextRecord,
   type ExtractedChapter,
+  type StoredNavigation,
 } from "./book-text-record";
 
 import { BookTextScheduler } from "./book-text-scheduler";
@@ -33,6 +35,16 @@ export type BookTextDependencies = {
   read(bookId: string): Promise<unknown>;
   write(record: BookTextRecord): Promise<void>;
   remove(bookId: string): Promise<void>;
+  /**
+   * A small copy of the navigation stored with a book's complete text (see
+   * `StoredNavigation`), so opening the book does not read its whole text to
+   * learn it. `keep(bookId, null)` forgets the copy. Without this the record
+   * is read every time.
+   */
+  navigation?: {
+    kept(bookId: string): StoredNavigation | null;
+    keep(bookId: string, navigation: StoredNavigation | null): void;
+  };
   /** The parsed book with its repaired TOC, and that book's chapter map. */
   content<T>(
     bookId: string,
@@ -176,13 +188,42 @@ export class BookTextRepository {
     return record && textComplete(record) ? record.chapters : null;
   }
 
-  /** Navigation stored with the book's complete text (repaired, rebuilt or recovered), for the next opening. */
+  /**
+   * Navigation stored with the book's complete text (repaired, rebuilt or
+   * recovered), for the next opening. Answered from the kept copy when it
+   * belongs to this source; otherwise from the record, whose copy is then
+   * kept (a library from before the copy existed fills in book by book).
+   */
   async persistedNavigation(bookId: string): Promise<NonNullable<BookTextRecord["outline"]> | null> {
     const source = await this.source(bookId);
     if (!source.contentVersion) return null;
+    // A write in flight may be replacing what the copy was made from.
+    if (!this.writes.has(bookId)) {
+      const kept = this.keptNavigation(bookId);
+      if (kept?.contentVersion === source.contentVersion) return kept.outline;
+    }
     const record = await this.record(bookId, source.contentVersion);
     await this.checkSource(bookId, source.contentVersion, undefined, source.revision);
+    const navigation = record && !this.writes.has(bookId) ? storedNavigationOf(record) : null;
+    if (navigation) this.keepNavigation(bookId, navigation);
     return record && textComplete(record) ? (record.outline ?? null) : null;
+  }
+
+  private keptNavigation(bookId: string): StoredNavigation | null {
+    try {
+      return this.deps.navigation?.kept(bookId) ?? null;
+    } catch (error) {
+      this.deps.warn("Kept book navigation unavailable", error);
+      return null;
+    }
+  }
+  /** The copy is a convenience: failing to keep it costs the next opening a record read, nothing else. */
+  private keepNavigation(bookId: string, navigation: StoredNavigation | null): void {
+    try {
+      this.deps.navigation?.keep(bookId, navigation);
+    } catch (error) {
+      this.deps.warn("Keeping book navigation failed", error);
+    }
   }
 
   async ensure(bookId: string, waitForPdf = false, origin?: DomainActor): Promise<ExtractedChapter[]> {
@@ -397,6 +438,7 @@ export class BookTextRepository {
         if (options.rebuild)
           await this.queueWrite(bookId, async () => {
             await current();
+            this.keepNavigation(bookId, null);
             await this.deps.remove(bookId);
             options.onRebuildReset?.();
             await current();
@@ -432,7 +474,11 @@ export class BookTextRepository {
             save: (record) =>
               this.queueWrite(bookId, async () => {
                 await current();
+                // Forgotten before the record changes, kept again once the
+                // complete one is stored: the copy never outlives its record.
+                this.keepNavigation(bookId, null);
                 await this.deps.write(record);
+                this.keepNavigation(bookId, storedNavigationOf(record));
                 await current();
               }),
             progress: (snapshot) => {
@@ -490,7 +536,10 @@ export class BookTextRepository {
     this.jobs.delete(bookId);
     this.failures.delete(bookId);
     this.changed(bookId, actor);
-    await this.queueWrite(bookId, () => this.deps.remove(bookId));
+    await this.queueWrite(bookId, () => {
+      this.keepNavigation(bookId, null);
+      return this.deps.remove(bookId);
+    });
     this.changed(bookId, actor);
   }
 }

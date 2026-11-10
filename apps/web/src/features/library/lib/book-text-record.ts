@@ -98,6 +98,28 @@ function navigationItemsValid(value: unknown, depth: number): boolean {
     )
   );
 }
+/**
+ * The navigation stored with a book's complete text, kept beside it: what
+ * opening the book needs from the record, without the megabytes of text the
+ * record carries. `outline` is null when the book's own navigation needed no
+ * repair. It is a copy; the record stays the authority.
+ */
+export type StoredNavigation = { contentVersion: string; outline: NavigationItem[] | null };
+
+export function storedNavigationOf(record: BookTextRecord): StoredNavigation | null {
+  return textComplete(record) ? { contentVersion: record.contentVersion, outline: record.outline ?? null } : null;
+}
+
+/** A malformed copy is no copy: the caller reads the record instead. */
+export function parseStoredNavigation(value: unknown): StoredNavigation | null {
+  return object(value) &&
+    typeof value.contentVersion === "string" &&
+    value.contentVersion &&
+    (value.outline === null || navigationItemsValid(value.outline, 0))
+    ? { contentVersion: value.contentVersion, outline: value.outline as NavigationItem[] | null }
+    : null;
+}
+
 function outlineValid(value: unknown): boolean {
   return (
     object(value) &&

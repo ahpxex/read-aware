@@ -5,10 +5,12 @@ import { readingRuntime } from "../../../domain/reading-runtime";
 import { emitAppEvent, onAppEvent } from "../../../platform/app-events";
 import { actorFromEvent, type DomainActor } from "../../../platform/domain-actor";
 import { deleteDesktopBlob, getDesktopBlob, getDesktopBlobInfo, putDesktopBlob } from "../../../platform/blob-store";
+import { localKV } from "../../../platform/local-store";
 import { createLogger } from "../../../platform/logger";
 import { chapterMapFor, type FoliateBook } from "../../reader/lib/foliate-engine";
 import { withBookContent } from "./book-content-source";
 import { getBookRecord, getStoredBookFile } from "./library-db";
+import { parseStoredNavigation } from "./book-text-record";
 import { BookTextRepository } from "./book-text-repository";
 import { getVirtualTextSource, forgetVirtualTextSource } from "./virtual-text-source";
 import { BookTextTaskOwner } from "./book-text-tasks";
@@ -17,6 +19,18 @@ export type { ExtractedChapter, NavigationItem } from "./book-text-record";
 
 const log = createLogger("book-text");
 const blobKey = (bookId: string) => `booktext:${bookId}`;
+/**
+ * The navigation copy kept beside a book's text (see `StoredNavigation`):
+ * device-local, in the store that is already in memory, so reading it costs
+ * an opening nothing. It is derived from the text record and never roams.
+ */
+const navigationKey = (bookId: string) => `read-aware-book-navigation:${bookId}`;
+/**
+ * A navigation larger than this stays in the record alone. The local store
+ * is held in memory whole; a book with tens of thousands of entries reads
+ * its record at opening as before rather than living there.
+ */
+const KEPT_NAVIGATION_MAX_CHARS = 256 * 1024;
 
 // MessageChannel avoids background WebKit timer throttling between sections.
 const yieldToUi = (() => {
@@ -58,6 +72,27 @@ const repository = new BookTextRepository({
     await putDesktopBlob(blobKey(record.bookId), new TextEncoder().encode(JSON.stringify(record)), "application/json");
   },
   remove: (bookId) => deleteDesktopBlob(blobKey(bookId)),
+  navigation: {
+    kept: (bookId) => {
+      const raw = localKV.getItem(navigationKey(bookId));
+      return raw ? parseStoredNavigation(JSON.parse(raw)) : null;
+    },
+    keep: (bookId, navigation) => {
+      const key = navigationKey(bookId);
+      const value = navigation ? JSON.stringify(navigation) : null;
+      const write =
+        value && value.length <= KEPT_NAVIGATION_MAX_CHARS
+          ? localKV.getItem(key) === value
+            ? null
+            : localKV.setItemAsync(key, value, "system")
+          : localKV.getItem(key) === null
+            ? null
+            : localKV.removeItemAsync(key, "system");
+      // The local store rolls a failed write back and reports it; the copy is
+      // then simply absent and the next opening reads the record.
+      write?.catch((error: unknown) => log.warn("Keeping book navigation failed", error));
+    },
+  },
   content: (bookId, version, signal, read) =>
     withBookContent(bookId, version, signal, async ({ book }) => read(book, await chapterMapFor(book))),
   yieldToReader: async (signal, waiting) => {

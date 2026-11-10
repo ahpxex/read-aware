@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { AppError } from "@read-aware/core";
 import type { FoliateBook } from "../../reader/lib/foliate-engine";
 import { BookTextRepository, type TextSource } from "./book-text-repository";
-import { parseBookTextRecord, type BookTextRecord } from "./book-text-record";
+import { parseBookTextRecord, type BookTextRecord, type StoredNavigation } from "./book-text-record";
 import { actorCause, causalActor, reactionActor, type DomainActor } from "../../../platform/domain-actor";
 import { buildChapterMap } from "../../../../foliate-js/src/chapter-map";
 
@@ -24,6 +24,7 @@ function harness(book = makeBook([async () => prose])) {
     reads = 0;
   let sourceError: unknown, writeError: unknown;
   let beforeWrite = async () => {};
+  const navigation = new Map<string, StoredNavigation>();
   const warnings: unknown[] = [],
     sourceReads: boolean[] = [],
     signals: AbortSignal[] = [],
@@ -47,6 +48,13 @@ function harness(book = makeBook([async () => prose])) {
     remove: async () => {
       saved = null;
     },
+    navigation: {
+      kept: (bookId) => navigation.get(bookId) ?? null,
+      keep: (bookId, value) => {
+        if (value) navigation.set(bookId, structuredClone(value));
+        else navigation.delete(bookId);
+      },
+    },
     content: async (_id, _version, signal, read) => {
       parses++;
       signals.push(signal);
@@ -67,6 +75,7 @@ function harness(book = makeBook([async () => prose])) {
     signals,
     changes,
     saved: () => saved,
+    navigation,
     parses: () => parses,
     reads: () => reads,
     source: (value: TextSource) => {
@@ -784,4 +793,64 @@ test("a complete record is read once until this repository writes or removes it"
   expect(await h.repo.persisted("book")).toHaveLength(1);
   h.source({ format: "fb2", contentVersion: "sha256:b" });
   expect(await h.repo.persisted("book")).toBeNull();
+});
+
+test("opening reads a book's stored navigation from its kept copy, not from the whole text", async () => {
+  const h = harness();
+  // Extraction keeps the copy as it stores the complete record.
+  await h.repo.prepare("book");
+  expect(h.navigation.get("book")).toEqual({ contentVersion: "sha256:a", outline: null });
+  const reads = h.reads();
+  expect(await h.repo.persistedNavigation("book")).toBeNull();
+  expect(h.reads()).toBe(reads);
+
+  // A record with a repaired navigation and no copy yet (a library from
+  // before the copy existed): read once, kept from then on.
+  const outline = [{ label: "One", href: "one.xhtml" }];
+  h.seed({ ...(h.saved() as BookTextRecord), outline });
+  h.navigation.clear();
+  expect(await h.repo.persistedNavigation("book")).toEqual(outline);
+  expect(h.navigation.get("book")).toEqual({ contentVersion: "sha256:a", outline });
+  const afterFill = h.reads();
+  expect(await h.repo.persistedNavigation("book")).toEqual(outline);
+  expect(h.reads()).toBe(afterFill);
+
+  // Another source revision: the copy is not its navigation.
+  h.source({ format: "fb2", contentVersion: "sha256:b" });
+  expect(await h.repo.persistedNavigation("book")).toBeNull();
+  expect(h.reads()).toBe(afterFill + 1);
+  expect(h.navigation.get("book")?.contentVersion).toBe("sha256:a");
+  h.source({ format: "fb2", contentVersion: "sha256:a" });
+
+  // Rebuilding forgets the copy before the record goes and keeps the new one after.
+  await h.repo.prepare("book", { rebuild: true });
+  expect(h.navigation.get("book")).toEqual({ contentVersion: "sha256:a", outline: null });
+
+  // Removing the book's text forgets it.
+  await h.repo.remove("book");
+  expect(h.navigation.has("book")).toBe(false);
+  expect(await h.repo.persistedNavigation("book")).toBeNull();
+  expect(h.navigation.has("book")).toBe(false);
+});
+
+test("an unextracted or partly extracted book keeps no navigation copy", async () => {
+  const gate = deferred<string>();
+  const entered = deferred();
+  const h = harness(
+    makeBook([
+      async () => prose,
+      async () => {
+        entered.resolve();
+        return gate.promise;
+      },
+    ]),
+  );
+  expect(await h.repo.persistedNavigation("book")).toBeNull();
+  expect(h.navigation.size).toBe(0);
+  const pending = h.repo.prepare("book");
+  await entered.promise;
+  expect(h.navigation.size).toBe(0);
+  gate.resolve(prose);
+  await pending;
+  expect(h.navigation.get("book")).toEqual({ contentVersion: "sha256:a", outline: null });
 });

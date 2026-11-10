@@ -67,6 +67,11 @@ test("reflow metrics count current-section viewports, excluding engine padding a
   }
   f.view.renderer.pages = 3;
   expect(f.read()?.screen).toEqual({ index: 0, count: 1 });
+  // A section still being laid out has no page count yet; it has one once it is whole.
+  Object.assign(f.view.renderer, { laidOut: false });
+  expect(f.read()).toMatchObject({ section: { index: 1, count: 4 }, screen: null });
+  Object.assign(f.view.renderer, { laidOut: true });
+  expect(f.read()?.screen).toEqual({ index: 0, count: 1 });
 });
 
 test("fixed layout and continuous scroll expose source identity without fabricated screen counts", () => {

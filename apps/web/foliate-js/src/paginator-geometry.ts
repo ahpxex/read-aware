@@ -1,4 +1,5 @@
 import type { Anchor } from "./book.js";
+import { LayoutWindow } from "./paginator-window.js";
 
 export type RectMapper = (rect: DOMRect) => { left: number; right: number };
 
@@ -67,6 +68,8 @@ export const getVisibleRange = (doc: Document, start: number, end: number, mapRe
     // ignore all scripts, styles, and their children
     if (name === "script" || name === "style") return FILTER_REJECT;
     if (isElement(node)) {
+      // Not laid out yet: no box, so nothing of it can be on screen.
+      if (LayoutWindow.defers(node)) return FILTER_REJECT;
       const { left, right } = mapRect(node.getBoundingClientRect());
       // no need to check child nodes if it's completely out of view
       if (right < start || left > end) return FILTER_REJECT;

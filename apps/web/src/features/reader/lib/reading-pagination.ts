@@ -51,7 +51,10 @@ export function readingPagination(view: FoliateView): ReadingPaginationSnapshot 
   const layout = view.isFixedLayout ? "fixed" : "reflowable";
   const flow = renderer.scrolled ? "scrolled" : "paginated";
   let screen: ReadingPaginationSnapshot["screen"] = null;
-  if (layout === "reflowable" && flow === "paginated" && "pages" in renderer && "page" in renderer) {
+  // A long section is laid out around the reader first: until it is whole,
+  // its page count is how far the layout has come, not how long the section is.
+  const whole = !("laidOut" in renderer) || renderer.laidOut;
+  if (whole && layout === "reflowable" && flow === "paginated" && "pages" in renderer && "page" in renderer) {
     // Foliate's paginator has one leading and one trailing navigation pad.
     // A viewport may contain multiple columns; it is still one screen step.
     const pages = renderer.pages,

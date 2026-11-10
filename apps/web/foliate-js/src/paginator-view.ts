@@ -4,6 +4,8 @@ import { imageBlockSpacing, isImageOnlyDocument, type BlockSpacing } from "./pag
 import type { Anchor, ResolvedNavigation } from "./book.js";
 import { ChapterRanges } from "./paginator-chapters.js";
 import { fitWideContent, flowBody } from "./paginator-fit.js";
+import { LayoutWindow } from "./paginator-window.js";
+import type { RectMapper } from "./paginator-geometry.js";
 
 export type Layout = {
   width: number;
@@ -15,6 +17,20 @@ export type Layout = {
 };
 
 export type BeforeRender = { vertical: boolean; rtl: boolean; background?: string };
+
+// How much of a long document is laid out at once (see LayoutWindow), in
+// screenfuls of text. A screenful is weighed as glyphs half an em wide on
+// lines 1.2 em tall, which is tighter than any book is set: real text takes
+// more room, so each of these reaches further than it says.
+/** A document lighter than this is laid out whole. */
+const WINDOW_LEAST = 12;
+/** Laid out past the place the reader is taken to, and before it where the flow allows. */
+const WINDOW_AHEAD = 2;
+const WINDOW_BEHIND = 1;
+/** What joins the window at a time while the reader is elsewhere. */
+const WINDOW_BATCH = 2;
+/** In columns every batch lays the earlier pages out again, so batches grow with what is laid out. */
+const WINDOW_BATCH_SHARE = 0.25;
 
 /** A slow or broken font must not hold the page: past this, the section
     reveals in its fallback and swaps late, exactly as before. */
@@ -42,11 +58,14 @@ export class SectionView {
 
   // An observer's first report is the size it starts from, which the layout
   // pass has just measured: only a size that differs from it is an expansion.
+  // So is the report that follows the view's own growth (see #join).
   #observed = false;
+  #measuredSinceReport = false;
   #observer = new ResizeObserver(() => {
-    const first = !this.#observed;
+    const measured = !this.#observed || this.#measuredSinceReport;
     this.#observed = true;
-    this.expand(first);
+    this.#measuredSinceReport = false;
+    this.expand(measured);
   });
   #element = document.createElement("div");
   #iframe = document.createElement("iframe");
@@ -64,6 +83,12 @@ export class SectionView {
   #loaded: Document | null = null;
   /** The font batch whose arrival repeats the layout pass. */
   #fontsAwaited: Promise<unknown> | undefined;
+  /** The place this view was loaded to show; its layout window opens around it. */
+  #openingAt: Anchor | undefined;
+  /** The part of a long document that is laid out so far; undefined when that is all of it. */
+  #window: LayoutWindow | undefined;
+  /** The weight of one screenful of text, as the window counts it. */
+  #screenful = 0;
   // Source geometry stays independent of the visible chapter's extent.
   // contentSize excludes padding; fullSize includes the reader's margins.
   #contentSize = 0;
@@ -121,7 +146,18 @@ export class SectionView {
   get isScrolled() {
     return !this.#column;
   }
-  async load(src: string, afterLoad?: (doc: Document) => void, beforeRender?: (input: BeforeRender) => Layout) {
+  /**
+   * Load a section document and lay it out. `openAt` names the place the
+   * reader is being taken to: a long document is laid out around it first and
+   * completed afterwards (see `LayoutWindow`). Without it the document is
+   * laid out whole.
+   */
+  async load(
+    src: string,
+    afterLoad?: (doc: Document) => void,
+    beforeRender?: (input: BeforeRender) => Layout,
+    openAt?: (doc: Document) => Anchor | undefined,
+  ) {
     if (typeof src !== "string") throw new TypeError(`Expected a string source, got ${typeof src}`);
     if (this.#destroyed) throw new DOMException("Page view was destroyed", "AbortError");
     return new Promise<void>((resolve, reject) => {
@@ -156,6 +192,7 @@ export class SectionView {
           doc.documentElement.toggleAttribute("data-foliate-image-page", isImageOnlyDocument(doc));
           afterLoad?.(doc);
           this.#chapters = new ChapterRanges(doc, this.chapterStarts);
+          this.#openingAt = openAt?.(doc);
 
           const { vertical, rtl } = getDirection(doc);
           const background = getBackground(doc);
@@ -197,6 +234,12 @@ export class SectionView {
     if (this.#destroyed || !this.document) return;
     this.#column = layout.flow !== "scrolled";
     this.#layout = layout;
+    // Columns fill in order: a window opened in scrolled flow may have left
+    // the document's start out, and every page depends on it.
+    if (this.#column && this.#window?.waitingBefore) {
+      this.#window.grow(-1, Infinity);
+      if (this.#window.complete) this.#window = undefined;
+    }
     if (this.#column) this.columnize(layout);
     else this.scrolled(layout);
   }
@@ -265,10 +308,119 @@ export class SectionView {
    * the fit and at most once more when the fit changed something.
    */
   #layOut(doc: Document) {
+    this.#openWindow(doc);
     this.setImageSize();
     fitWideContent(doc);
     this.expand();
     this.#refitWhenFontsArrive(doc);
+  }
+  /** Before a loaded document's first layout: keep what is far from the opening place out of it. */
+  #openWindow(doc: Document) {
+    const at = this.#openingAt;
+    this.#openingAt = undefined;
+    const layout = this.#layout;
+    if (at === undefined || !layout || !doc.defaultView) return;
+    // A fraction addresses the laid-out extent, so it needs all of it; only
+    // the two ends are places in the document itself.
+    if (typeof at === "number" && at > 0 && at < 1) return;
+    const fontSize = parseFloat(doc.defaultView.getComputedStyle(doc.body).fontSize) || 16;
+    const screenful = (layout.width * layout.height) / (0.6 * fontSize * fontSize);
+    const window = LayoutWindow.over(doc, screenful * WINDOW_LEAST);
+    if (!window) return;
+    const node = typeof at === "number" ? null : "startContainer" in at ? at.startContainer : at;
+    // Entered at its end, a paginated document needs every page before the last.
+    if (this.#column && at === 1) return;
+    window.open(
+      node ? window.indexOf(node) : at === 1 ? Infinity : 0,
+      this.#column ? Infinity : at === 0 ? 0 : screenful * (at === 1 ? WINDOW_AHEAD : WINDOW_BEHIND),
+      at === 1 ? 0 : screenful * WINDOW_AHEAD,
+    );
+    if (window.complete) return;
+    this.#window = window;
+    this.#screenful = screenful;
+  }
+  /** Whether part of the document is still to be laid out. */
+  get windowed() {
+    return this.#window !== undefined;
+  }
+  /**
+   * Whether the selected chapter has content before (`dir` -1) or after (1)
+   * what is laid out. The view's edge on that side is then not the chapter's.
+   */
+  hasDeferred(dir: -1 | 1): boolean {
+    const window = this.#window;
+    if (!window) return false;
+    const starts = this.#chapters?.starts ?? [null];
+    const index = this.#chapters?.index ?? 0;
+    return dir < 0 ? window.waitsBefore(starts[index] ?? undefined) : window.waitsAfter(starts[index + 1] ?? undefined);
+  }
+  /** The first laid-out block while content before it is deferred: what moves when that content joins. */
+  get windowStart(): Element | undefined {
+    return this.#window?.waitingBefore ? this.#window.first : undefined;
+  }
+  /**
+   * Lay out one more batch of the document after (`dir` 1) or before (-1)
+   * what is laid out, or on whichever side is waiting when `dir` is omitted
+   * (the reading direction first). False when nothing was waiting there.
+   */
+  grow(dir?: -1 | 1): boolean {
+    const window = this.#window;
+    if (!window) return false;
+    const side = dir ?? (window.waitingAfter ? 1 : -1);
+    const batch = this.#column
+      ? Math.max(this.#screenful * WINDOW_BATCH, window.laidOut * WINDOW_BATCH_SHARE)
+      : this.#screenful * WINDOW_BATCH;
+    return this.#join(window.grow(side, batch));
+  }
+  /**
+   * Lay out one more batch when what is laid out ends between the flow
+   * positions `from` and `to`, as `mapRect` places the document's rects.
+   * Returns whether a batch joined: the caller asks again until none does,
+   * since a batch joining before the viewport moves the positions it asks about.
+   */
+  cover(from: number, to: number, mapRect: RectMapper): boolean {
+    const window = this.#window;
+    if (!window) return false;
+    const { first, last } = window;
+    if (window.waitingAfter && last && mapRect(last.getBoundingClientRect()).right < to) return this.grow(1);
+    if (window.waitingBefore && first && mapRect(first.getBoundingClientRect()).left > from) return this.grow(-1);
+    return false;
+  }
+  /**
+   * Lay out the place `anchor` names before it is measured: a node or range,
+   * or a fraction of the selected chapter (what `selectChapter` returns).
+   */
+  reveal(anchor: Anchor): boolean {
+    const window = this.#window;
+    if (!window) return false;
+    if (typeof anchor !== "number") {
+      const node = "startContainer" in anchor ? anchor.startContainer : anchor;
+      return this.#join(window.growTo(window.indexOf(node), this.#screenful * WINDOW_AHEAD));
+    }
+    if (anchor > 0 && anchor < 1) return this.layOutAll();
+    const range = this.#chapters?.ranges[this.#chapters.index];
+    if (!range) return this.#join(anchor >= 1 ? window.growToAll() : window.growTo(0, this.#screenful * WINDOW_AHEAD));
+    // The chapter's first node, or its last: a boundary point names the node after it.
+    const edge =
+      anchor >= 1
+        ? (range.endContainer.childNodes[range.endOffset - 1] ?? range.endContainer)
+        : (range.startContainer.childNodes[range.startOffset] ?? range.startContainer);
+    return this.#join(window.growTo(window.indexOf(edge), this.#screenful * WINDOW_AHEAD));
+  }
+  /** Lay out everything that is still deferred. */
+  layOutAll(): boolean {
+    return this.#window ? this.#join(this.#window.growToAll()) : false;
+  }
+  /** Content joined the layout: fit it like the rest, and measure the document again. */
+  #join(joined: Element[]): boolean {
+    const doc = this.document;
+    if (!joined.length || !doc) return false;
+    if (this.#window?.complete) this.#window = undefined;
+    fitWideContent(doc, joined);
+    // The observer reports this growth on the next frame; it is measured here.
+    this.#measuredSinceReport = true;
+    this.expand();
+    return true;
   }
   /** Faces still loading after a pass change the text's metrics when they
    * arrive: the pass is repeated then, once per batch of faces. */
@@ -333,6 +485,26 @@ export class SectionView {
   get fullSize() {
     return this.#fullSize;
   }
+  /**
+   * Where the selected chapter begins in the source, and the source's whole
+   * extent, in the units of `contentOffset` and `contentSize`. While part of
+   * the document is deferred they are estimated from the text laid out so
+   * far; the laid-out geometry itself is always exact.
+   */
+  get sourceOffset() {
+    const window = this.#window;
+    return window?.laidOut
+      ? this.#contentOffset + (window.waitingBefore / window.laidOut) * this.#contentSize
+      : this.#contentOffset;
+  }
+  get sourceSize() {
+    const window = this.#window;
+    return window?.laidOut ? (window.weight / window.laidOut) * this.#contentSize : this.#contentSize;
+  }
+  /** `sourceSize` with the reader's margins, as `fullSize` has them. */
+  get sourceFullSize() {
+    return this.sourceSize + this.#fullSize - this.#contentSize;
+  }
   get contentSize() {
     return this.#contentSize;
   }
@@ -367,6 +539,8 @@ export class SectionView {
   selectChapter(anchor: Anchor): Anchor {
     // Root targets mean the source start, not the body's margin/padding.
     if (anchor === this.document?.body || anchor === this.document?.documentElement) anchor = 0;
+    // A fraction is resolved against the source's whole extent.
+    if (typeof anchor === "number" && anchor > 0 && anchor < 1) this.layOutAll();
     if (!this.#chapters || this.#chapters.starts.length === 1) return anchor;
     const sourceOffset =
       typeof anchor === "number"
@@ -402,6 +576,10 @@ export class SectionView {
     const pitch = this.#size / Math.max(1, Math.round(this.#size / (this.#layout.columnWidth + this.#layout.gap)));
     this.#chapterOffsets = starts.map((element) => {
       if (!element) return 0;
+      // A chapter that starts in content not laid out yet has no place of
+      // its own: it begins where the laid-out content ends, or began before it.
+      const side = this.#window?.side(element) ?? 0;
+      if (side) return side > 0 ? this.#contentSize : 0;
       const rect = element.getClientRects()[0] ?? element.getBoundingClientRect();
       const offset = y ? rect.top : reverse ? this.#contentSize - rect.right : rect.left;
       return Math.max(0, column ? Math.floor((offset + 0.5) / pitch) * pitch : offset);
@@ -486,13 +664,6 @@ export class SectionView {
       this.#element.style[side] = `${expandedSize + this.#size * 2}px`;
       this.#iframe.style[otherSide] = "100%";
       this.#element.style[otherSide] = "100%";
-      if (this.#overlayer) {
-        this.#overlayer.element.style.margin = "0";
-        this.#overlayer.element.style.left = this.#vertical ? "0" : `${this.#size}px`;
-        this.#overlayer.element.style.top = this.#vertical ? `${this.#size}px` : "0";
-        this.#overlayer.element.style[side] = `${expandedSize}px`;
-        this.#overlayer.redraw();
-      }
     } else {
       const side = this.#vertical ? "width" : "height";
       const otherSide = this.#vertical ? "height" : "width";
@@ -508,20 +679,37 @@ export class SectionView {
       this.#element.style[side] = `${expandedSize}px`;
       this.#iframe.style[otherSide] = "100%";
       this.#element.style[otherSide] = "100%";
-      if (this.#overlayer) {
-        this.#overlayer.element.style.margin = padding;
-        this.#overlayer.element.style.left = "0";
-        this.#overlayer.element.style.top = "0";
-        this.#overlayer.element.style[side] = `${expandedSize}px`;
-        this.#overlayer.redraw();
-      }
     }
+    this.#placeOverlayer();
     this.#applyChapterWindow();
     this.onExpand();
   }
+  /** Lay the annotation layer over the measured document and draw it. */
+  #placeOverlayer() {
+    const overlayer = this.#overlayer;
+    if (!overlayer || !this.#layout) return;
+    const { style } = overlayer.element;
+    if (this.#column) {
+      style.margin = "0";
+      style.left = this.#vertical ? "0" : `${this.#size}px`;
+      style.top = this.#vertical ? `${this.#size}px` : "0";
+      style[this.#vertical ? "height" : "width"] = `${this.#contentSize}px`;
+    } else {
+      const { margin } = this.#layout;
+      style.margin = this.#vertical ? `0 ${margin}px` : `${margin}px 0`;
+      style.left = "0";
+      style.top = "0";
+      style[this.#vertical ? "width" : "height"] = `${this.#contentSize}px`;
+    }
+    overlayer.redraw();
+  }
   set overlayer(overlayer) {
     this.#overlayer = overlayer;
-    if (overlayer) this.#element.append(overlayer.element);
+    if (!overlayer) return;
+    this.#element.append(overlayer.element);
+    // The document is measured by the time its annotation layer is attached.
+    this.#placeOverlayer();
+    this.#applyChapterWindow();
   }
   get overlayer() {
     return this.#overlayer;

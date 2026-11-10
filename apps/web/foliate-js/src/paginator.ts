@@ -87,7 +87,7 @@ export class Paginator extends HTMLElement {
     () => this.inputBridge,
     () => this.#anchorContext,
     () => this.#navigation,
-    (context) => this.render(context),
+    (context) => this.#containerResized(context),
   );
   #top: HTMLElement;
   #background: HTMLElement;
@@ -111,10 +111,17 @@ export class Paginator extends HTMLElement {
   /** A maintenance pass waiting for the main thread to go idle: run it now, or drop it. */
   #runIdleMaintenance: (() => void) | undefined;
   #cancelIdleMaintenance: (() => void) | undefined;
+  // A long section is laid out around the reader first (see LayoutWindow);
+  // the rest of it joins a batch at a time while the main thread is idle.
+  #cancelIdleLayout: (() => void) | undefined;
+  /** Where the surface was scrolled when the last idle batch was considered. */
+  #idleLayoutScroll = -1;
   #maintainAgain = false;
   #windowing = 0;
   #layingOut = false;
   #deferredLayout = false;
+  /** The container size the resident sections were last laid out for. */
+  #renderedSize = { width: 0, height: 0 };
   #pendingRender: Promise<void> = Promise.resolve();
   #anchorIndex = -1;
   #touchDocs = new WeakSet<Document>();
@@ -307,7 +314,9 @@ export class Paginator extends HTMLElement {
         if (!this.scrolled || this.#windowing || this.#maintainFrame !== undefined) return;
         this.#maintainFrame = requestAnimationFrame(() => {
           this.#maintainFrame = undefined;
-          if (this.scrolled && !this.#windowing) void this.#maintainWindow(this.#anchorContext ?? {});
+          if (!this.scrolled || this.#windowing) return;
+          this.#coverViewport();
+          void this.#maintainWindow(this.#anchorContext ?? {});
         });
       },
       { passive: true },
@@ -554,6 +563,8 @@ export class Paginator extends HTMLElement {
   #keepEntry(keep?: SectionEntry) {
     this.#cancelIdleMaintenance?.();
     this.#cancelIdleMaintenance = this.#runIdleMaintenance = undefined;
+    this.#cancelIdleLayout?.();
+    this.#cancelIdleLayout = undefined;
     for (const entry of this.#entries) if (entry !== keep) this.#dropEntry(entry);
     this.#chapterToken++;
     this.#chapterEdges = {};
@@ -586,13 +597,7 @@ export class Paginator extends HTMLElement {
           this.#deferredLayout = true;
           return;
         }
-        this.#updateChapterEdges();
-        // In continuous scroll the anchor lags the reader by the relocate
-        // debounce; while they are moving, leave the scroll position alone.
-        if (this.scrolled && Math.abs(this.start - this.#anchoredScroll) > 1) return;
-        const anchor = this.#entries.find((entry) => entry.index === this.#anchorIndex);
-        if (anchor) this.#activate(anchor, this.#anchorContext);
-        void this.#scrollToAnchor(this.#anchor, "anchor", this.#anchorContext);
+        this.#reanchor();
       },
     });
     const entry = { index, view, release };
@@ -602,10 +607,22 @@ export class Paginator extends HTMLElement {
     this.#entries.sort((a, b) => a.index - b.index);
     return entry;
   }
+  /** The layout under the reader changed size: put them back where they were reading. */
+  #reanchor() {
+    this.#updateChapterEdges();
+    // In continuous scroll the anchor lags the reader by the relocate
+    // debounce; while they are moving, leave the scroll position alone.
+    if (this.scrolled && Math.abs(this.start - this.#anchoredScroll) > 1) return;
+    const anchor = this.#entries.find((entry) => entry.index === this.#anchorIndex);
+    if (anchor) this.#activate(anchor, this.#anchorContext);
+    void this.#scrollToAnchor(this.#anchor, "anchor", this.#anchorContext);
+  }
   // Reader margins belong to the chapter's outer edges only. A resident edge
   // whose neighbour is merely not loaded yet gets no margin: the seam will
   // be filled as the reader approaches it.
   #isChapterStart(entry: SectionEntry) {
+    // More of this very document is still to be laid out before its edge.
+    if (entry.view.hasDeferred(-1)) return false;
     // Without TOC chapter boundaries every source file is its own chapter.
     if (!this.#chapterStarts.size) return true;
     return (
@@ -615,6 +632,7 @@ export class Paginator extends HTMLElement {
     );
   }
   #isChapterEnd(entry: SectionEntry) {
+    if (entry.view.hasDeferred(1)) return false;
     if (!this.#chapterStarts.size) return true;
     if (entry.view.hasChapter(1) || this.#chapterEdges.last === entry.index) return true;
     const next = this.#adjacentIndex(1, entry.index);
@@ -635,13 +653,26 @@ export class Paginator extends HTMLElement {
       entry.view.setScrollExtent(0);
     }
   }
-  /** Whether the current scroll chapter has source content beyond its
-   * resident edge in `dir` that is not loaded yet. */
+  /** Whether the current scroll chapter has content beyond its resident
+   * edge in `dir` that is not on the surface yet: more of the edge's own
+   * document to lay out, or the chapter's next source file to load. */
   hasPendingContent(dir: -1 | 1): boolean {
+    if (!this.scrolled) return false;
+    const edge = dir < 0 ? this.#entries[0] : this.#entries.at(-1);
+    return (!!edge && edge.view.ready && edge.view.hasDeferred(dir)) || this.#hasPendingSource(dir);
+  }
+  /** Whether the chapter continues in a source file beyond its resident edge in `dir`. */
+  #hasPendingSource(dir: -1 | 1): boolean {
     if (!this.scrolled || !this.#chapterStarts.size) return false;
     const edge = dir < 0 ? this.#entries[0] : this.#entries.at(-1);
     // An edge still loading has no chapter knowledge yet; it is not pending.
-    return !!edge && edge.view.ready && !(dir < 0 ? this.#isChapterStart(edge) : this.#isChapterEnd(edge));
+    // Neither is one whose own document is not laid out to its end.
+    return (
+      !!edge &&
+      edge.view.ready &&
+      !edge.view.hasDeferred(dir) &&
+      !(dir < 0 ? this.#isChapterStart(edge) : this.#isChapterEnd(edge))
+    );
   }
   /** Make the part under the viewport start the active document. */
   #activateVisible(context: object = {}) {
@@ -660,7 +691,7 @@ export class Paginator extends HTMLElement {
    * position, and refreshes the reading anchor. Call it before any DOM
    * change, including a continuation's load: a part inserted before the
    * reader pushes their text down as soon as it is laid out. */
-  #stableViewport(): () => void {
+  #stableViewport({ sameContent = false }: { sameContent?: boolean } = {}): () => void {
     // Measure the part the reader is looking at: relocation is debounced,
     // so the active document may lag a fast scroll.
     this.#activateVisible(this.#anchorContext ?? {});
@@ -671,9 +702,22 @@ export class Paginator extends HTMLElement {
     const frame = this.#view?.document?.defaultView?.frameElement;
     const axis = this.#vertical ? "left" : "top";
     const sign = this.#vertical ? -1 : 1;
-    const surfaceOffset = () => (frame ? frame.getBoundingClientRect()[axis] + sign * this.start : 0);
+    // Content of the document itself may join before what is laid out (see
+    // LayoutWindow). The frame does not move for it; the first block that was
+    // already there does, and with it everything the reader is looking at.
+    const block = this.#view?.windowStart;
+    const surfaceOffset = () =>
+      frame
+        ? frame.getBoundingClientRect()[axis] +
+          (block?.isConnected ? block.getBoundingClientRect()[axis] : 0) +
+          sign * this.start
+        : 0;
     const startBefore = this.start,
       offsetBefore = surfaceOffset();
+    // Whether the reader is still where they were last anchored: their
+    // anchor then names this place better than whatever is on screen at the
+    // moment (a chapter opened at its start, above a picture still loading).
+    const anchored = Math.abs(startBefore - this.#anchoredScroll) <= 1;
     this.#windowing++;
     let ended = false;
     return () => {
@@ -689,9 +733,15 @@ export class Paginator extends HTMLElement {
         this.#container[this.scrollProp] = this.#vertical ? -start : start;
         this.#scrollFeedback = { position: this.#container[this.scrollProp], context: this.#anchorContext ?? {} };
       }
-      // What is on screen now is the reading position. Later expansions
-      // (fonts settling in a joined part) re-anchor to this, not to a
-      // range recorded before the reader last scrolled.
+      // The same content is on screen, where it was: the reading anchor
+      // still names it, however far the surface moved under it.
+      if (sameContent || anchored) {
+        this.#anchoredScroll += this.start - startBefore;
+        return;
+      }
+      // The reader has scrolled since their anchor was recorded: what is on
+      // screen now is the reading position. Later expansions (fonts settling
+      // in a joined part) re-anchor to this, not to that earlier range.
       const range = this.#getVisibleRange();
       if (range) {
         this.#lastVisibleRange = range;
@@ -718,6 +768,18 @@ export class Paginator extends HTMLElement {
     }
     return offset;
   }
+  /**
+   * The container reported a new size. The sections may be laid out for it
+   * already: an observer's first report is the size it starts from, and one
+   * that arrives while a section loads describes the size that load measured.
+   * Laying them out again would only repeat the work and re-anchor a reader
+   * who has scrolled on since.
+   */
+  #containerResized(context?: object) {
+    const { width, height } = this.#container.getBoundingClientRect();
+    if (this.#view && width === this.#renderedSize.width && height === this.#renderedSize.height) return;
+    this.render(context);
+  }
   #beforeRender({ vertical, rtl, background }: BeforeRender): Layout {
     this.#vertical = vertical;
     this.#rtl = rtl;
@@ -728,6 +790,7 @@ export class Paginator extends HTMLElement {
     if (background !== undefined) this.#background.style.background = background;
 
     const { width, height } = this.#container.getBoundingClientRect();
+    this.#renderedSize = { width, height };
     const size = vertical ? height : width;
 
     const style = getComputedStyle(this.#top);
@@ -1086,6 +1149,7 @@ export class Paginator extends HTMLElement {
     this.#anchor = anchor;
     this.#anchorIndex = this.#index;
     this.#anchorContext = context;
+    this.#reveal(anchor);
     const rects = typeof anchor !== "number" ? uncollapse(anchor)?.getClientRects() : undefined;
     // if anchor is an element or a range
     if (rects) {
@@ -1150,6 +1214,7 @@ export class Paginator extends HTMLElement {
     });
   }
   #afterScroll(reason: RelocateReason | null, context: object = {}) {
+    this.#coverViewport();
     this.#activateVisible(context);
     const range = this.#getVisibleRange();
     if (!range) return;
@@ -1170,23 +1235,28 @@ export class Paginator extends HTMLElement {
 
     const index = this.#index;
     const detail: RelocateDetail = { reason, range, index, context };
-    const offset = this.#view?.contentOffset ?? 0;
+    // Positions in the source: estimates while a long section is still being
+    // laid out, corrected by the relocation that follows its completion.
+    const offset = this.#view?.sourceOffset ?? 0;
     if (this.scrolled)
-      detail.fraction = Math.max(0, offset + this.start - this.#viewOffset()) / (this.#view?.fullSize || this.viewSize);
+      detail.fraction =
+        Math.max(0, offset + this.start - this.#viewOffset()) / (this.#view?.sourceFullSize || this.viewSize);
     else if (this.pages > 0) {
       const { page, pages } = this;
       this.#header.style.visibility = page > 1 ? "visible" : "hidden";
-      const fullContentSize = this.#view?.contentSize || (pages - 2) * this.size;
+      const fullContentSize = this.#view?.sourceSize || (pages - 2) * this.size;
       detail.fraction = (offset + (page - 1) * this.size) / fullContentSize;
       detail.size = this.size / fullContentSize;
     }
     this.dispatchEvent(new CustomEvent("relocate", { detail }));
+    this.#layOutWhenIdle();
   }
   async #loadSection(
     index: number,
     live: () => boolean,
     context: object,
     replace = false,
+    openAt?: (doc: Document) => Anchor | undefined,
   ): Promise<SectionEntry | undefined> {
     const section = this.sections[index];
     const src = await section.load();
@@ -1226,6 +1296,7 @@ export class Paginator extends HTMLElement {
         },
         (direction) =>
           this.#beforeRender(this.#view === view ? direction : { vertical: this.#vertical, rtl: this.#rtl }),
+        openAt,
       );
       if (!live()) {
         this.#dropEntry(entry);
@@ -1285,6 +1356,178 @@ export class Paginator extends HTMLElement {
       .catch((error: unknown) => console.warn("Chapter window maintenance failed", error));
     return run;
   }
+  /** Run `task` once the main thread is idle. Returns the function that cancels it. */
+  #whenIdle(task: () => void): () => void {
+    if (typeof requestIdleCallback === "function") {
+      const id = requestIdleCallback(task, { timeout: 1000 });
+      return () => cancelIdleCallback(id);
+    }
+    // WebKit has no idle callback: the task after the next frame stands in
+    // for it. A hidden document renders no frames.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const frame = document.hidden
+      ? undefined
+      : requestAnimationFrame(() => {
+          timer = setTimeout(task);
+        });
+    if (frame === undefined) timer = setTimeout(task);
+    return () => {
+      if (frame !== undefined) cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  }
+  /** Lay out the place `anchor` names, when its section is still being laid out. */
+  #reveal(anchor: Anchor) {
+    const doc =
+      typeof anchor === "number"
+        ? null
+        : "startContainer" in anchor
+          ? anchor.startContainer.ownerDocument
+          : anchor.ownerDocument;
+    const view = (doc && this.#entries.find((entry) => entry.view.document === doc)?.view) || this.#view;
+    if (!view?.windowed) return;
+    // The anchor is measured next, by the caller: nothing is re-anchored for this growth.
+    this.#windowing++;
+    try {
+      if (view.reveal(anchor)) this.#updateChapterEdges();
+    } finally {
+      this.#windowing--;
+    }
+  }
+  /**
+   * Keep a long section laid out around the viewport as the reader moves
+   * through it (see LayoutWindow). What is on screen stays where it is:
+   * content joining above it is measured and the surface scrolled by as much.
+   */
+  #coverViewport() {
+    if (this.#windowing || !this.#entries.some(({ view }) => view.windowed)) return;
+    const reach = this.size * Paginator.#PREFETCH;
+    if (!reach) return;
+    if (!this.scrolled) {
+      // Pages are laid out in order: only later ones are missing, and they move nothing.
+      const view = this.#view;
+      if (!view?.windowed) return;
+      const size = this.#rtl ? -this.size : this.size;
+      this.#windowing++;
+      try {
+        while (view.cover(this.start - size - reach, this.end - size + reach, this.#getRectMapper(view)));
+      } finally {
+        this.#windowing--;
+      }
+      return;
+    }
+    for (const { view } of [...this.#entries]) {
+      // One batch at a time: each may move the surface under the viewport.
+      for (let grown = true; grown && view.windowed; ) {
+        const settle = this.#stableViewport({ sameContent: true });
+        try {
+          grown = view.cover(this.start - reach, this.end + reach, this.#getRectMapper(view));
+          if (grown) this.#updateChapterEdges();
+        } finally {
+          settle();
+        }
+      }
+    }
+  }
+  /** Lay out one more batch at the resident edge in `dir`, when that edge's document has one waiting. */
+  #growEdge(dir: -1 | 1): boolean {
+    const edge = dir < 0 ? this.#entries[0] : this.#entries.at(-1);
+    if (!edge?.view.hasDeferred(dir)) return false;
+    const settle = this.#stableViewport({ sameContent: true });
+    try {
+      const grown = edge.view.grow(dir);
+      if (grown) this.#updateChapterEdges();
+      return grown;
+    } finally {
+      settle();
+    }
+  }
+  /** One more batch of a section that is still being laid out. False when none is. */
+  #layOutBatch(): boolean {
+    const entry =
+      this.#entries.find(({ view }) => view === this.#view && view.windowed) ??
+      this.#entries.find(({ view }) => view.windowed);
+    if (!entry) return false;
+    if (this.scrolled) {
+      const settle = this.#stableViewport({ sameContent: true });
+      try {
+        entry.view.grow();
+        this.#updateChapterEdges();
+      } finally {
+        settle();
+      }
+    } else {
+      this.#windowing++;
+      try {
+        entry.view.grow();
+      } finally {
+        this.#windowing--;
+      }
+    }
+    return true;
+  }
+  /**
+   * Complete the sections that were laid out around the reader only, a batch
+   * per idle moment. When the last one is whole, the place is reported once
+   * more: page counts and progress were estimates until then.
+   */
+  #layOutWhenIdle() {
+    if (this.#cancelIdleLayout || !this.#entries.some(({ view }) => view.windowed)) return;
+    const step = () => {
+      this.#cancelIdleLayout = undefined;
+      // A navigation lays its own target out, and schedules this again.
+      if (this.#building !== undefined) return;
+      // The surface is changing hands (a paused scroll layer, a source file
+      // joining): wait it out. So is a reader in motion, who keeps the
+      // frames; the viewport is covered as they go.
+      if (this.#scrollSuspensions || this.#windowing || (this.scrolled && this.start !== this.#idleLayoutScroll)) {
+        this.#idleLayoutScroll = this.start;
+        this.#layOutWhenIdle();
+        return;
+      }
+      if (!this.#layOutBatch()) return;
+      // Content that joined above the viewport moved the surface, not the reader.
+      this.#idleLayoutScroll = this.start;
+      if (this.#entries.some(({ view }) => view.windowed)) this.#layOutWhenIdle();
+      else this.#reportLayout();
+    };
+    this.#cancelIdleLayout = this.#whenIdle(step);
+  }
+  /**
+   * Every resident section is laid out whole: report the reader's place with
+   * exact numbers. Nothing on screen moved for it, so nothing is scrolled.
+   */
+  #reportLayout() {
+    this.#updateChapterEdges();
+    const moved = this.scrolled && Math.abs(this.start - this.#anchoredScroll) > 1;
+    this.#afterScroll(moved ? "scroll" : "anchor", this.#anchorContext ?? {});
+  }
+  /**
+   * Whether every resident section is laid out whole. While one is not, the
+   * surface's extent and page count cover only what is laid out so far.
+   */
+  get laidOut(): boolean {
+    return !this.#entries.some(({ view }) => view.windowed);
+  }
+  /**
+   * Resolves once every resident section is laid out whole, without waiting
+   * for idle moments. For callers that need the section's exact extent now.
+   */
+  async whenLaidOut(): Promise<void> {
+    await this.#pendingRender;
+    let grown = false;
+    while (this.#entries.some(({ view }) => view.windowed)) {
+      if (this.#building !== undefined || this.#scrollSuspensions) {
+        await new Promise((resolve) => setTimeout(resolve));
+        continue;
+      }
+      this.#cancelIdleLayout?.();
+      this.#cancelIdleLayout = undefined;
+      if (!this.#layOutBatch()) break;
+      grown = true;
+    }
+    if (grown) this.#reportLayout();
+  }
   /**
    * Fill in around a place the reader was just taken to. Sources beyond the
    * viewport wait until the page they asked for is on screen and the main
@@ -1310,24 +1553,7 @@ export class Paginator extends HTMLElement {
       void this.#maintainWindow(context);
     };
     this.#runIdleMaintenance = run;
-    if (typeof requestIdleCallback === "function") {
-      const id = requestIdleCallback(run, { timeout: 1000 });
-      this.#cancelIdleMaintenance = () => cancelIdleCallback(id);
-      return;
-    }
-    // WebKit has no idle callback: the task after the frame that shows the
-    // page stands in for it. A hidden document renders no frames.
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const frame = document.hidden
-      ? undefined
-      : requestAnimationFrame(() => {
-          timer = setTimeout(run);
-        });
-    if (frame === undefined) timer = setTimeout(run);
-    this.#cancelIdleMaintenance = () => {
-      if (frame !== undefined) cancelAnimationFrame(frame);
-      clearTimeout(timer);
-    };
+    this.#cancelIdleMaintenance = this.#whenIdle(run);
   }
   /** Load the chapter's next source in `dir` onto the resident edge.
    * Resolves true when a source was added. */
@@ -1338,7 +1564,7 @@ export class Paginator extends HTMLElement {
       const token = this.#chapterToken;
       const live = () => token === this.#chapterToken && this.scrolled;
       const edge = dir < 0 ? this.#entries[0] : this.#entries.at(-1);
-      if (!edge || !this.hasPendingContent(dir)) return false;
+      if (!edge || !this.#hasPendingSource(dir)) return false;
       const index = this.#adjacentIndex(dir, edge.index);
       if (index === undefined) return false;
       // The joining part enters the surface (and lays out) while it loads,
@@ -1348,7 +1574,8 @@ export class Paginator extends HTMLElement {
       try {
         let next: SectionEntry | undefined;
         try {
-          next = await this.#loadSection(index, live, context);
+          // It joins at the end that meets the resident surface.
+          next = await this.#loadSection(index, live, context, false, () => (dir < 0 ? 1 : 0));
         } catch (error) {
           // Leave the edge open for an explicit retry (next navigation
           // or page turn) instead of hammering a failing source on scroll.
@@ -1429,7 +1656,21 @@ export class Paginator extends HTMLElement {
       let entry = this.#entries.find((entry) => entry.index === index && entry.view.ready);
       if (!entry) {
         retireScrollLayer();
-        entry = await this.#loadSection(index, () => navigation === this.#navigation, context, true);
+        entry = await this.#loadSection(
+          index,
+          () => navigation === this.#navigation,
+          context,
+          true,
+          // The place to lay a long section out around. A target that cannot
+          // be resolved fails the navigation below, as it always did.
+          (doc) => {
+            try {
+              return (typeof anchor === "function" ? anchor(doc) : anchor) ?? 0;
+            } catch {
+              return undefined;
+            }
+          },
+        );
       }
       if (!entry || navigation !== this.#navigation) return;
       this.#activate(entry, context);
@@ -1469,7 +1710,8 @@ export class Paginator extends HTMLElement {
         return this.#scrollTo(Math.max(0, this.start - (distance ?? this.size)), null, true, context).then(() => false);
       // The chapter continues above but is not resident yet: bring it
       // in and keep scrolling instead of leaving the chapter.
-      if (this.hasPendingContent(-1)) {
+      if (this.#growEdge(-1)) return this.#scrollPrev(distance, context);
+      if (this.#hasPendingSource(-1)) {
         delete this.#extensionFailed[-1];
         if (await this.#extend(-1, context)) return this.#scrollPrev(distance, context);
       }
@@ -1489,13 +1731,16 @@ export class Paginator extends HTMLElement {
           true,
           context,
         ).then(() => false);
-      if (this.hasPendingContent(1)) {
+      if (this.#growEdge(1)) return this.#scrollNext(distance, context);
+      if (this.#hasPendingSource(1)) {
         delete this.#extensionFailed[1];
         if (await this.#extend(1, context)) return this.#scrollNext(distance, context);
       }
       return true;
     }
     if (this.atEnd) return;
+    // The pages after this one, when the section is still being laid out.
+    this.#coverViewport();
     const page = this.page + 1;
     const pages = this.pages;
     return this.#scrollToPage(page, "page", true, context).then(() => page >= pages - 1);
@@ -1503,7 +1748,13 @@ export class Paginator extends HTMLElement {
   get atStart() {
     if (this.scrolled) {
       const first = this.#entries[0];
-      return !!first && !first.view.hasChapter(-1) && this.#adjacentIndex(-1, first.index) == null && this.start <= 1;
+      return (
+        !!first &&
+        !first.view.hasChapter(-1) &&
+        !first.view.hasDeferred(-1) &&
+        this.#adjacentIndex(-1, first.index) == null &&
+        this.start <= 1
+      );
     }
     return !this.#view?.hasChapter(-1) && this.#adjacentIndex(-1) == null && this.page <= 1;
   }
@@ -1513,11 +1764,17 @@ export class Paginator extends HTMLElement {
       return (
         !!last &&
         !last.view.hasChapter(1) &&
+        !last.view.hasDeferred(1) &&
         this.#adjacentIndex(1, last.index) == null &&
         this.end >= this.viewSize - 2
       );
     }
-    return !this.#view?.hasChapter(1) && this.#adjacentIndex(1) == null && this.page >= this.pages - 2;
+    return (
+      !this.#view?.hasChapter(1) &&
+      !this.#view?.hasDeferred(1) &&
+      this.#adjacentIndex(1) == null &&
+      this.page >= this.pages - 2
+    );
   }
   #adjacentIndex(dir: -1 | 1, from = this.#index): number | undefined {
     for (let index = from + dir; this.#canGoToIndex(index); index += dir)
@@ -1541,6 +1798,18 @@ export class Paginator extends HTMLElement {
         ? this.#entries[0]
         : this.#entries.at(-1)
       : this.#entries.find((entry) => entry.view === this.#view);
+    // The edge is only as far as this section is laid out: lay the rest out
+    // and stay, rather than skip it for the next section.
+    if (edge?.view.hasDeferred(dir)) {
+      this.#windowing++;
+      try {
+        edge.view.layOutAll();
+      } finally {
+        this.#windowing--;
+      }
+      this.#reanchor();
+      return;
+    }
     if (edge?.view.turnChapter(dir)) {
       const navigation = ++this.#navigation;
       this.#building = navigation;

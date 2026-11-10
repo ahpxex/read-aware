@@ -17,6 +17,7 @@
 // fitted from the publisher's own layout, never from an earlier fix.
 
 import { setStylesImportant } from "./paginator-geometry.js";
+import { LayoutWindow } from "./paginator-window.js";
 
 const FIT = "data-foliate-fit";
 const SHEET_ID = "foliate-fit";
@@ -58,8 +59,31 @@ function mark(element: Element, fit: string) {
   element.setAttribute(FIT, current ? `${current} ${fit}` : fit);
 }
 
-/** Fit every element wider than the body's content box. Horizontal writing only. */
-export function fitWideContent(doc: Document): void {
+/** The elements a pass measures: the whole laid-out document, or the subtrees of `joined`. */
+function* measured(body: HTMLElement, joined: readonly Element[] | undefined): Generator<Element, void, undefined> {
+  if (joined) {
+    for (const root of joined) {
+      yield root;
+      yield* root.querySelectorAll("*");
+    }
+    return;
+  }
+  // Content the layout window still defers has no boxes to measure; it is fitted when it joins.
+  const walker = body.ownerDocument.createTreeWalker(body, NodeFilter.SHOW_ELEMENT, (node) =>
+    LayoutWindow.defers(node as Element) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+  );
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) yield node as Element;
+}
+
+/**
+ * Fit every element wider than the body's content box. Horizontal writing only.
+ *
+ * A pass over the document starts from the publisher's layout: the previous
+ * pass's markers are removed first. `joined` names content that has just
+ * joined the layout (see `LayoutWindow`): only it is measured, and what the
+ * rest of the document already carries is kept.
+ */
+export function fitWideContent(doc: Document, joined?: readonly Element[]): void {
   const win = doc.defaultView;
   const body = doc.body;
   if (!win || !body) return;
@@ -69,10 +93,11 @@ export function fitWideContent(doc: Document): void {
     sheet.textContent = SHEET;
     (doc.head ?? doc.documentElement).append(sheet);
   }
-  for (const element of doc.querySelectorAll(`[${FIT}]`)) {
-    element.removeAttribute(FIT);
-    (element as HTMLElement).style?.removeProperty("--foliate-fit-zoom");
-  }
+  if (!joined)
+    for (const element of doc.querySelectorAll(`[${FIT}]`)) {
+      element.removeAttribute(FIT);
+      (element as HTMLElement).style?.removeProperty("--foliate-fit-zoom");
+    }
   if (win.getComputedStyle(doc.documentElement).writingMode.startsWith("vertical")) return;
   const bodyStyle = win.getComputedStyle(body);
   const limit = body.clientWidth - (parseFloat(bodyStyle.paddingLeft) || 0) - (parseFloat(bodyStyle.paddingRight) || 0);
@@ -81,7 +106,7 @@ export function fitWideContent(doc: Document): void {
   // Measure first, then write: one layout for the whole pass.
   const wide: { element: Element; width: number }[] = [];
   let seen = 0;
-  for (const element of body.querySelectorAll("*")) {
+  for (const element of measured(body, joined)) {
     if (++seen > MAX_ELEMENTS) break;
     // Media are sized by the paginator itself; formulas and vector art keep their geometry.
     if (element.closest("img, svg, video, canvas, math")) continue;

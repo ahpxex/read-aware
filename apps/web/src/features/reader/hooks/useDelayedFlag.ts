@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 
 /**
+ * How long opening a book may take before the reader says it is working on
+ * it. An ordinary open is well inside this on every device, so it never
+ * flashes a spinner between the shelf and the page.
+ */
+export const SLOW_OPEN_MS = 800;
+
+/**
  * Returns `true` only once `active` has stayed `true` continuously for
  * `delayMs`, and resets immediately when `active` goes back to `false`.
  *

@@ -352,7 +352,7 @@ html[data-tauri="true"][data-os="ios"] #root {
      ONE layer may fade, or the body background flashes through the overlap.
      `forwards` holds it transparent until React unmounts it. */
   .ra-motion-surface-exit {
-    animation: ra-surface-exit 240ms var(--ra-ease-out-quart) forwards;
+    animation: ra-surface-exit 140ms var(--ra-ease-out-quart) forwards;
     will-change: opacity;
   }
 

@@ -4,7 +4,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { AppError } from "@read-aware/core";
 import type { LibraryBook } from "../features/library/lib/library-types";
-import { useSurfaceHandoff } from "./useSurfaceHandoff";
+import { CLOSE_TEARDOWN_MS, HOLD_BUDGET_MS, useSurfaceHandoff } from "./useSurfaceHandoff";
 
 test("surface close joins persistence, shares concurrent callers and cannot tear down a reopened session", async () => {
   const dom = new JSDOM("<div id='root'></div>", { url: "http://localhost" });
@@ -18,7 +18,7 @@ test("surface close joins persistence, shares concurrent callers and cannot tear
     calls = 0;
   dom.window.setTimeout = ((callback: () => void, delay: number) => {
     const id = ++counter;
-    if (delay === 260) timers.set(id, callback);
+    if (delay === CLOSE_TEARDOWN_MS) timers.set(id, callback);
     return id;
   }) as typeof dom.window.setTimeout;
   dom.window.clearTimeout = (id) => {
@@ -109,55 +109,67 @@ test("surface close joins persistence, shares concurrent callers and cannot tear
   }
 });
 
-test("an engine load failure releases the held shelf without waiting for the render-signal timeout", async () => {
+test("the shelf holds for a loading book only as long as its budget, and dissolves at once when the reader has something to show", async () => {
   const dom = new JSDOM("<div id='root'></div>", { url: "http://localhost" });
-  // Frames never arrive here, so only the failsafe timeout can end the hold.
-  const values = {
-    window: dom.window,
-    document: dom.window.document,
-    IS_REACT_ACT_ENVIRONMENT: true,
-    requestAnimationFrame: () => 0,
-    cancelAnimationFrame: () => {},
-  };
+  const values = { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true };
   const globals = new Map(Object.keys(values).map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   for (const [key, value] of Object.entries(values))
     Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
-  const delays: number[] = [];
-  dom.window.setTimeout = ((_callback: () => void, delay: number) => {
-    delays.push(delay);
-    return delays.length;
+  const timers: { delay: number; callback: () => void }[] = [];
+  dom.window.setTimeout = ((callback: () => void, delay: number) => {
+    timers.push({ delay, callback });
+    return timers.length;
   }) as typeof dom.window.setTimeout;
   dom.window.clearTimeout = () => {};
   const root = createRoot(dom.window.document.getElementById("root")!);
   let state!: ReturnType<typeof useSurfaceHandoff>;
   const book = { id: "book" } as LibraryBook;
-  const reader = (readerFailed: boolean) => ({
+  const reader = (shown: { failed?: boolean; page?: number }) => ({
     selectedBook: book,
-    readerFailed,
-    currentPage: 0,
+    readerFailed: !!shown.failed,
+    currentPage: shown.page ?? 0,
     totalPages: 0,
     openReader() {},
     closeReader: async () => {},
   });
-  function Harness({ failed }: { failed: boolean }) {
-    state = useSurfaceHandoff(reader(failed));
+  function Harness(props: { failed?: boolean; page?: number }) {
+    state = useSurfaceHandoff(reader(props));
     return null;
   }
-  try {
+  const open = async () => {
     await act(async () => {
-      root.render(<Harness failed={false} />);
+      root.render(<Harness />);
     });
     await act(async () => {
       state.openBook(book);
     });
     expect(state.shelfHandoff).toBe("holding");
-    // Still loading: held until the render signal (3 s) plus the grace period.
-    expect(delays.at(-1)).toBeGreaterThan(3000);
+  };
+  try {
+    // Still loading: held, but no longer than the budget.
+    await open();
+    const hold = timers.at(-1)!;
+    expect(hold.delay).toBeGreaterThan(0);
+    expect(hold.delay).toBeLessThanOrEqual(HOLD_BUDGET_MS);
+    // The first page arrives inside the budget: the shelf dissolves without waiting for anything else.
+    await act(async () => {
+      root.render(<Harness page={12} />);
+    });
+    expect(state.shelfHandoff).toBe("fading");
+
+    // A load failure has its error surface to show: the same.
+    await open();
     await act(async () => {
       root.render(<Harness failed />);
     });
-    // Failed: only the grace period remains before the error surface shows.
-    expect(delays.at(-1)).toBeLessThanOrEqual(800);
+    expect(state.shelfHandoff).toBe("fading");
+
+    // A slow open: the budget runs out and the shelf gives way to the reader's own page.
+    await open();
+    await act(async () => {
+      timers.at(-1)!.callback();
+    });
+    expect(state.shelfHandoff).toBe("fading");
   } finally {
     await act(async () => {
       root.unmount();

@@ -84,7 +84,7 @@ import { useTextUnitHoldActions } from "../hooks/useTextUnitHoldActions";
 import { resolveDrawnRangeTap } from "../lib/content-tap";
 import { forwardKeyDownToApp, isEditableKeyTarget } from "../../../platform/app-keydown";
 import { subscribeWheelPhaseEdges } from "../../../platform/wheel-phase";
-import { useDelayedFlag } from "../hooks/useDelayedFlag";
+import { SLOW_OPEN_MS, useDelayedFlag } from "../hooks/useDelayedFlag";
 import { useReaderTypography } from "../hooks/useReaderTypography";
 import { useFixedLayoutZoom } from "../hooks/useFixedLayoutZoom";
 import { useReaderEngineLoadSource } from "../hooks/useReaderEngineLoadSource";
@@ -530,9 +530,10 @@ export function FoliateReaderView({
     const failure = describeError(raw, { fallback: tRef.current("reader:loadError") });
     return { message: failure.body, kind, retryable: failure.retryable };
   }, []);
-  // Only surface the loader once a load is genuinely slow, so fast opens (the
-  // common case) fade straight in without a flashed indicator.
-  const showLoader = useDelayedFlag(isLoading, 250);
+  // Only surface the loader once a load is genuinely slow, so an ordinary
+  // open shows the bare page (see the shelf handoff's hold budget) and then
+  // its text, without a flashed indicator in between.
+  const showLoader = useDelayedFlag(isLoading, SLOW_OPEN_MS);
   const [tocEntries, setTocEntries] = useState<TocEntry[]>([]);
   const [currentChapterHref, setCurrentChapterHref] = useState<string | null>(null);
   const [isFixedLayout, setIsFixedLayout] = useState(false);
@@ -2728,8 +2729,10 @@ export function FoliateReaderView({
           // cutout (Dynamic Island / punch-hole) and the home indicator while
           // the reader runs immersive; env() resolves to 0 on desktop. An
           // active header/footer strip adds its height on that side.
-          "relative h-full w-full transition-opacity ease-out",
-          isCrossing ? "duration-150" : "duration-500",
+          // A short fade as the page arrives. The shelf's dissolve already
+          // carries an opening; a slower entrance here only kept a ready page
+          // faint for half a second after its book had opened.
+          "relative h-full w-full transition-opacity duration-150 ease-out",
           (isLoading || !!error || isCrossing) && "opacity-0",
         )}
         style={

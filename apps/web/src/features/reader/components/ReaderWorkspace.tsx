@@ -5,7 +5,7 @@ import { useTranslation } from "../../../i18n";
 import type { BookFormat, LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import type { ReaderLoadError } from "../hooks/useReaderSession";
 import { useReaderPalette } from "../../settings/hooks/useReaderPalette";
-import { useDelayedFlag } from "../hooks/useDelayedFlag";
+import { SLOW_OPEN_MS, useDelayedFlag } from "../hooks/useDelayedFlag";
 import { useReadingModeControl } from "../hooks/useReadingModeControl";
 import { useImmersiveWindowControls } from "../hooks/useImmersiveWindowControls";
 import { useReaderAppearance } from "../hooks/useReaderAppearance";
@@ -130,7 +130,7 @@ export function ReaderWorkspace({
           : undefined;
   // Only surface the source loader once opening is genuinely slow, so fast opens
   // show nothing (themed background) instead of a flashed line of text.
-  const showSourceLoader = useDelayedFlag(!readerSource && !readerLoadError, 250);
+  const showSourceLoader = useDelayedFlag(!readerSource && !readerLoadError, SLOW_OPEN_MS);
 
   const headerVisible = !isReaderLoading && overlayVisible;
   // Hide the native traffic lights only during true immersive reading (book

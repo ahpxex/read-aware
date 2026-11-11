@@ -1,6 +1,6 @@
 // Site-wide constants shared by the header, footer, and content pages.
 
-export const CONTACT_EMAIL = "hi@ahpx.me";
+export const CONTACT_EMAIL = "ahpxex@gmail.com";
 
 /** The sync/billing relay; overridable for local end-to-end testing. */
 export const RELAY_URL: string =

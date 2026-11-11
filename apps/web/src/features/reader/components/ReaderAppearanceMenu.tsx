@@ -10,6 +10,7 @@ import {
 import type { ReaderThemePreference } from "../../settings/lib/reader-settings";
 import { applyReaderThemeSelection } from "../../settings/lib/reader-theme";
 import { usePluginReaderThemeOptions } from "../../settings/hooks/usePluginReaderThemeOptions";
+import { useDisplayMode } from "../../settings";
 import { pluginThemesAtom } from "../../plugins/state/plugin-store";
 import { FontField } from "../../settings/components/FontField";
 import { ReaderTypographyControls } from "../../settings";
@@ -58,6 +59,7 @@ export function ReaderAppearanceFields({
   fixedLayout = false,
 }: Pick<ReaderAppearanceMenuProps, "bookId" | "fixedLayout">) {
   const { t } = useTranslation("reader");
+  const { eink } = useDisplayMode();
   const { scope, prefs, setScope, updatePrefs } = useReaderAppearance(bookId);
   const pluginThemes = useAtomValue(pluginThemesAtom);
   const pluginThemeOptions = usePluginReaderThemeOptions();
@@ -78,14 +80,20 @@ export function ReaderAppearanceFields({
 
       <Divider />
 
-      <Select
-        label={t("pageColor")}
-        value={prefs.theme}
-        options={[...pageColorOptions(t), ...pluginThemeOptions]}
-        onChange={(theme) =>
-          updatePrefs(applyReaderThemeSelection(prefs, theme as ReaderThemePreference, pluginThemes))
-        }
-      />
+      {/* E-ink mode paints every page black on white; a page-color picker
+          would only offer choices that change nothing. */}
+      {eink ? (
+        <Caption className="block text-fg-subtle">{t("pageColorEink")}</Caption>
+      ) : (
+        <Select
+          label={t("pageColor")}
+          value={prefs.theme}
+          options={[...pageColorOptions(t), ...pluginThemeOptions]}
+          onChange={(theme) =>
+            updatePrefs(applyReaderThemeSelection(prefs, theme as ReaderThemePreference, pluginThemes))
+          }
+        />
+      )}
       {/* Typography — reflowable books only. A fixed-layout book is a
             sequence of pages the publisher already typeset: the engine has no
             text to re-flow, so every control here would move a switch that

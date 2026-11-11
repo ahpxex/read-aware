@@ -9,7 +9,8 @@ import { FontField } from "../components/FontField";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
-import type { AppThemePreference } from "../lib/app-settings";
+import { isEinkActive, type AppThemePreference } from "../lib/app-settings";
+import { einkPanelDetected } from "../../../platform/display-profile";
 import { CONTENT_FONT_SIZES, type ContentFontSize } from "../lib/content-typography";
 import type { ReaderFontFamily, ReaderLineSpacing } from "../lib/reader-settings";
 import { ContentTypographyPreview } from "../components/ContentTypographyPreview";
@@ -23,6 +24,13 @@ export function AppearancePanel() {
   const [settings, setSettings] = useAtom(appSettingsAtom);
   const [content, setContent] = useAtom(contentTypographyAtom);
   const pluginThemes = useAtomValue(pluginThemesAtom);
+  // E-ink mode pins the chrome to its light high-contrast tokens and keeps
+  // motion off, so the theme and motion choices stand aside while it is on.
+  const eink = isEinkActive(settings);
+  const einkDescription =
+    settings.eink === "auto" && einkPanelDetected()
+      ? `${t("appearance.eink.description")} ${t("appearance.eink.detected")}`
+      : t("appearance.eink.description");
 
   const contentSizeOptions: { value: ContentFontSize; label: string }[] = CONTENT_FONT_SIZES.map((value) => ({
     value,
@@ -50,11 +58,30 @@ export function AppearancePanel() {
 
   return (
     <SettingsPage title={t("appearance.title")} description={t("appearance.description")}>
-      <SettingsGroup title={t("appearance.theme.title")} description={t("appearance.theme.description")}>
+      <SettingsGroup
+        title={t("appearance.theme.title")}
+        description={eink ? t("appearance.theme.einkDescription") : t("appearance.theme.description")}
+      >
         <ChoiceGroup
           value={settings.theme}
           options={themeOptions}
+          disabled={eink}
           onChange={(theme) => setSettings({ ...settings, theme })}
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title={t("appearance.eink.group")}>
+        <SettingsRow
+          borderless
+          title={t("appearance.eink.title")}
+          description={einkDescription}
+          control={
+            <Toggle
+              aria-label={t("appearance.eink.title")}
+              checked={eink}
+              onChange={(on) => setSettings({ ...settings, eink: on ? "on" : "off" })}
+            />
+          }
         />
       </SettingsGroup>
 
@@ -106,11 +133,12 @@ export function AppearancePanel() {
         <SettingsRow
           borderless
           title={t("appearance.reduceMotion.title")}
-          description={t("appearance.reduceMotion.description")}
+          description={eink ? t("appearance.reduceMotion.einkDescription") : t("appearance.reduceMotion.description")}
           control={
             <Toggle
               aria-label={t("appearance.reduceMotion.title")}
-              checked={settings.motion === "reduced"}
+              checked={eink || settings.motion === "reduced"}
+              disabled={eink}
               onChange={(reduced) => setSettings({ ...settings, motion: reduced ? "reduced" : "system" })}
             />
           }

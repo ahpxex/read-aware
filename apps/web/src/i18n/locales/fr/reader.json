@@ -63,6 +63,7 @@
   "scopeHintGlobal": "Les modifications affectent tous les livres qui suivent vos paramètres globaux.",
   "scopeHintGlobalFonts": "La police et sa graisse sont mémorisées par langue. Les autres réglages s’appliquent à tous les livres utilisant les paramètres globaux.",
   "pageColor": "Couleur de la page",
+  "pageColorEink": "En mode encre électronique, les pages sont en noir sur blanc.",
   "fontSize": "Taille de police",
   "fontWeight": "Graisse",
   "lineSpacing": "Interligne",

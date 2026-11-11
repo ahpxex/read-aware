@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { getScrollEdges, isAtEndOfBook, type FoliateView } from "../lib/foliate-engine";
 import type { ReadingMode } from "../../settings/lib/reader-settings";
+import { prefersReducedMotion } from "../../settings";
 
 /** Cross-fade timings for a lazy section swap. */
 const SECTION_CROSS_FADE_MS = 140;
@@ -124,9 +125,13 @@ export function useReaderPagination({
         // Stop the old chapter's native momentum before its scroll bounds change.
         // Hiding the content with opacity alone leaves WebKit's scrolling layer live.
         const resumeScroll = renderer && "suspendScroll" in renderer ? renderer.suspendScroll() : undefined;
-        setIsCrossing(true); // fade the current section out
+        // Reduced motion moves without the fade: hiding the page would only
+        // add a blank frame between the two sections (a whole extra refresh
+        // on an e-ink panel). The settle below still applies.
+        const fade = !prefersReducedMotion();
+        if (fade) setIsCrossing(true); // fade the current section out
         try {
-          await new Promise((resolve) => window.setTimeout(resolve, SECTION_CROSS_FADE_MS));
+          if (fade) await new Promise((resolve) => window.setTimeout(resolve, SECTION_CROSS_FADE_MS));
           for (let next: CrossingNavigation | null = navigate; next; next = takePending()) {
             try {
               await next();

@@ -58,7 +58,8 @@
     "description": "应用本身的外观——与阅读界面中的书页颜色无关。",
     "theme": {
       "title": "主题",
-      "description": "“跟随系统”会采用操作系统的浅色或深色设置。"
+      "description": "“跟随系统”会采用操作系统的浅色或深色设置。",
+      "einkDescription": "墨水屏模式使用专用的高对比浅色主题。"
     },
     "themeOptions": {
       "system": "跟随系统",
@@ -79,10 +80,17 @@
       "previewQuestion": "这一章到底在论证什么？",
       "previewAnswer": "改革始于即兴——一连串没人批准过的地方试验，因为管用才被留了下来。"
     },
+    "eink": {
+      "group": "墨水屏",
+      "title": "墨水屏模式",
+      "description": "关闭所有动画，界面与书页改为白底黑字，并去掉遮罩与阴影，尽量减少整屏刷新。",
+      "detected": "已识别为墨水屏设备，默认开启。"
+    },
     "motion": "动效",
     "reduceMotion": {
       "title": "减弱动效",
-      "description": "关闭应用中的过渡与动画效果。"
+      "description": "关闭应用中的过渡与动画效果。",
+      "einkDescription": "墨水屏模式开启时，动效始终关闭。"
     }
   },
   "reading": {
@@ -102,7 +110,8 @@
     "readingMode": "阅读模式",
     "pageColor": {
       "title": "页面颜色",
-      "description": "书页的纸张颜色。“自动”跟随应用主题，其余为固定颜色。"
+      "description": "书页的纸张颜色。“自动”跟随应用主题，其余为固定颜色。",
+      "einkDescription": "墨水屏模式（外观）下，书页固定为白底黑字。关闭后恢复你选择的页面颜色。"
     },
     "pageMargins": "页边距",
     "pageTurn": {

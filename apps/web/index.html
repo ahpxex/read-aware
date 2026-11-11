@@ -91,6 +91,13 @@
           opacity: 0.85;
         }
       }
+      /* Boot stamps data-motion before dismissing the splash (the Motion
+         setting or e-ink mode); the app-wide rule then removes the fade-in,
+         so the wordmark must already stand at its final opacity. */
+      html[data-motion="reduced"] #ra-splash span {
+        animation: none;
+        opacity: 0.85;
+      }
     </style>
   </head>
   <body>

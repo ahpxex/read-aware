@@ -75,7 +75,7 @@ export function useSurfaceHandoff(reader: ReaderSessionSlice) {
       // Same-batch as openReader's state so the shelf never unmounts between
       // renders (a one-frame flash of the raw reader).
       holdStartRef.current = performance.now();
-      setShelfHandoff(prefersReducedMotion() ? "idle" : "holding");
+      setShelfHandoff("holding");
     },
     [openReader],
   );
@@ -117,19 +117,23 @@ export function useSurfaceHandoff(reader: ReaderSessionSlice) {
   const readerHasRendered = reader.readerFailed || reader.currentPage > 0 || reader.totalPages > 0;
 
   // Holding → fading: at once when the reader has something to show, else
-  // when the hold has run its budget.
+  // when the hold has run its budget. Reduced motion holds the same way and
+  // then cuts (→ idle) instead of dissolving: on an e-ink panel that makes an
+  // ordinary open one redraw, shelf to page, rather than shelf, bare reader,
+  // page.
   useEffect(() => {
     if (shelfHandoff !== "holding") return;
     if (!reader.selectedBook) {
       setShelfHandoff("idle");
       return;
     }
+    const release = () => setShelfHandoff(prefersReducedMotion() ? "idle" : "fading");
     if (readerHasRendered) {
-      setShelfHandoff("fading");
+      release();
       return;
     }
     const remaining = Math.max(0, HOLD_BUDGET_MS - (performance.now() - holdStartRef.current));
-    const budget = window.setTimeout(() => setShelfHandoff("fading"), remaining);
+    const budget = window.setTimeout(release, remaining);
     return () => window.clearTimeout(budget);
   }, [shelfHandoff, reader.selectedBook, readerHasRendered]);
 

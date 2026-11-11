@@ -8,6 +8,7 @@ mod desktop_preferences;
 mod desktop_startup;
 mod desktop_update;
 mod diagnostics;
+mod display_profile;
 mod exit_coordination;
 mod export_file;
 #[cfg(target_os = "ios")]
@@ -1402,6 +1403,7 @@ pub fn run() {
             set_status_bar_hidden,
             sync_safe_area,
             battery_status,
+            display_profile::display_profile,
             set_volume_key_capture,
             storefront::app_store_storefront,
             move_task_to_back,

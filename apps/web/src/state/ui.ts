@@ -140,7 +140,7 @@ export const settingsSectionRequestAtom = sectionRequestState.value;
 export const syncLoginTokenAtom = atom<string | null>(null);
 
 /** Resolved app chrome theme (`light`/`dark`), kept current by `useAppearance`. */
-export const resolvedAppThemeStateAtom = atom(stampEventCause({ value: resolveAppTheme(getAppSettings().theme) }));
+export const resolvedAppThemeStateAtom = atom(stampEventCause({ value: resolveAppTheme(getAppSettings()) }));
 export const resolvedAppThemeAtom = atom(
   (get) => get(resolvedAppThemeStateAtom).value,
   (get, set, value: "light" | "dark", origin: DomainActor = "system") => {

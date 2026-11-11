@@ -13,6 +13,7 @@ import { applyReaderThemeSelection, readerThemeSwatch } from "../../settings/lib
 import { customTypographyFromPresets, READER_CUSTOM_TYPOGRAPHY_LIMITS } from "../../settings/lib/reader-settings";
 import { readerFontLabel } from "../../settings/lib/reader-font-label";
 import { usePluginReaderThemeOptions } from "../../settings/hooks/usePluginReaderThemeOptions";
+import { useDisplayMode } from "../../settings";
 import { pluginFontsAtom, pluginThemesAtom } from "../../plugins/state/plugin-store";
 import { ReaderTypographyControls, userFontsAtom } from "../../settings";
 import { FontList } from "../../settings/components/FontList";
@@ -48,6 +49,7 @@ export function ReaderAppearanceCompact({ bookId, fixedLayout = false }: ReaderA
   const pluginFonts = useAtomValue(pluginFontsAtom);
   const userFonts = useAtomValue(userFontsAtom);
   const pluginThemeOptions = usePluginReaderThemeOptions();
+  const { eink } = useDisplayMode();
   const [page, setPage] = useState<Page>("main");
 
   if (page === "font") {
@@ -123,14 +125,20 @@ export function ReaderAppearanceCompact({ bookId, fixedLayout = false }: ReaderA
             }
           />
         )}
-        <SwatchGroup
-          ariaLabel={t("pageColor")}
-          showLabels={false}
-          spread
-          value={prefs.theme}
-          options={swatches}
-          onChange={(theme) => updatePrefs(applyReaderThemeSelection(prefs, theme, pluginThemes))}
-        />
+        {/* E-ink mode paints every page black on white; a page-color row
+            would only offer choices that change nothing. */}
+        {eink ? (
+          <Caption className="block text-fg-subtle">{t("pageColorEink")}</Caption>
+        ) : (
+          <SwatchGroup
+            ariaLabel={t("pageColor")}
+            showLabels={false}
+            spread
+            value={prefs.theme}
+            options={swatches}
+            onChange={(theme) => updatePrefs(applyReaderThemeSelection(prefs, theme, pluginThemes))}
+          />
+        )}
       </div>
 
       <ItemList className="border-t border-border/60 px-2">

@@ -59,6 +59,20 @@ if (process.env.ROAMING_PREFERENCE_WRITE_PROOF === "1") {
     expect(calls.at(-1)!.args.events[0].payload).toEqual({ key: "read-aware-app-settings", value: null });
   });
 
+  test("the app settings roam without the device's e-ink mode", async () => {
+    const start = calls.length;
+    await localKV.setItemAsync("read-aware-app-settings", '{"theme":"dark","motion":"system","eink":"on"}', "user");
+    const [write] = since(start);
+    // This device keeps its own choice; the log never carries it to another.
+    expect(write!.args.entries).toEqual([
+      ["read-aware-app-settings", '{"theme":"dark","motion":"system","eink":"on"}'],
+    ]);
+    expect(write!.args.events[0].payload).toEqual({
+      key: "read-aware-app-settings",
+      value: { theme: "dark", motion: "system" },
+    });
+  });
+
   test("a failed roaming save rolls back KV, reports local-write-failed and never announces its event", async () => {
     await localKV.setItemAsync("read-aware-app-settings", '{"theme":"light"}');
     const announced = broadcasts.length,

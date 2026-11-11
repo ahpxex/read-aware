@@ -107,7 +107,7 @@ export function Dialog({
         aria-hidden="true"
         onMouseDown={onClose}
         className={cn(
-          "absolute inset-0 bg-stone-950/20 transition-opacity duration-220 ease-[var(--ra-ease-out-quart)] motion-reduce:transition-none",
+          "ra-scrim absolute inset-0 bg-stone-950/20 transition-opacity duration-220 ease-[var(--ra-ease-out-quart)] motion-reduce:transition-none",
           backdrop === "blur" && "backdrop-blur-sm",
           isVisible ? "opacity-100" : "opacity-0",
         )}

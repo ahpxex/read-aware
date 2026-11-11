@@ -6,7 +6,8 @@ import { pluginThemesAtom, pluginsReadyAtom } from "../../plugins/state/plugin-s
 import { isPluginRef } from "../../plugins/lib/plugin-theme";
 import { useRegisteredContribution } from "../../plugins/hooks/useRegisteredContribution";
 import type { RegisteredPluginTheme } from "../../plugins/lib/plugin-types";
-import { applyAppSkin, getAppSkinSnapshot } from "../lib/app-skin";
+import { applyAppSkin, getAppSkinSnapshot, suspendAppSkin } from "../lib/app-skin";
+import { applyDisplayAttributes, isEinkActive, REDUCED_MOTION_QUERY } from "../lib/app-settings";
 
 /**
  * Applies the app appearance preferences to the document root and keeps the
@@ -16,7 +17,10 @@ import { applyAppSkin, getAppSkinSnapshot } from "../lib/app-skin";
  *   hook the dark token overrides and Tailwind `dark:` variant key off. A
  *   plugin skin resolves to its polarity here and additionally stamps
  *   `data-skin` + its token stylesheet (see `applyAppSkin`).
- * - Motion: writes `data-motion="reduced"` when the user forces motion off.
+ * - Display: `data-motion="reduced"` whenever motion is off — the Motion
+ *   setting, e-ink mode or the OS preference — and `data-eink` in e-ink mode
+ *   (see `applyDisplayAttributes`). E-ink mode also pins the chrome to its
+ *   light high-contrast token set, so a plugin skin stands down meanwhile.
  *
  * The OS color-scheme media query is subscribed throughout: it decides the
  * `system` preference and the fallback while a selected skin's plugin is
@@ -30,12 +34,13 @@ export function useAppearance(): void {
   );
   const pluginsReady = useAtomValue(pluginsReadyAtom);
   const setResolvedTheme = useSetAtom(resolvedAppThemeAtom);
-  const previous = useRef<{ preference: string; theme: typeof theme; ready: boolean; origin: DomainActor } | undefined>(
-    undefined,
-  );
+  const previous = useRef<
+    { preference: string; eink: boolean; theme: typeof theme; ready: boolean; origin: DomainActor } | undefined
+  >(undefined);
   // The actor of the settings write that changed the theme; other settings never re-apply it.
   const settingsSource = useEffectEvent(() => actorFromEvent(appSettings));
   const pref = appSettings.theme;
+  const eink = isEinkActive(appSettings);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -46,7 +51,9 @@ export function useAppearance(): void {
       let skin: RegisteredPluginTheme | null = null;
       let bootPending = false;
 
-      if (isPluginRef(pref)) {
+      if (eink) {
+        resolved = "light";
+      } else if (isPluginRef(pref)) {
         skin = theme.value?.app ? theme.value : null;
         const snapshot = skin ? null : getAppSkinSnapshot();
         if (skin) {
@@ -70,31 +77,33 @@ export function useAppearance(): void {
       root.dataset.theme = resolved;
       root.style.colorScheme = resolved;
       setResolvedTheme(resolved, origin);
-      applyAppSkin(skin, bootPending, origin);
+      if (eink) suspendAppSkin();
+      else applyAppSkin(skin, bootPending, origin);
     };
 
     const before = previous.current;
     const source =
-      before?.preference !== pref
+      before?.preference !== pref || before.eink !== eink
         ? settingsSource()
         : before.theme !== theme
           ? actorFromEvent(theme)
           : before.ready !== pluginsReady
             ? causalActor("system")
             : before.origin;
-    previous.current = { preference: pref, theme, ready: pluginsReady, origin: source };
+    previous.current = { preference: pref, eink, theme, ready: pluginsReady, origin: source };
     apply(source);
     const systemChanged = () => apply(causalActor("system"));
     media.addEventListener("change", systemChanged);
     return () => media.removeEventListener("change", systemChanged);
-  }, [pref, theme, pluginsReady, setResolvedTheme]);
+  }, [pref, eink, theme, pluginsReady, setResolvedTheme]);
 
+  const { motion, eink: einkPreference } = appSettings;
   useEffect(() => {
     const root = document.documentElement;
-    if (appSettings.motion === "reduced") {
-      root.dataset.motion = "reduced";
-    } else {
-      delete root.dataset.motion;
-    }
-  }, [appSettings.motion]);
+    const media = window.matchMedia(REDUCED_MOTION_QUERY);
+    const apply = () => applyDisplayAttributes(root, { motion, eink: einkPreference });
+    apply();
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, [motion, einkPreference]);
 }

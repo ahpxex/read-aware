@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
+import { prefersReducedMotion } from "../../settings";
 import { lockSwipe, releaseVelocity, shouldDismiss, swipeOffset, type SwipeLock } from "../lib/panel-swipe";
 
 /** How long the drawer takes to close, or to settle back open, after release. */
@@ -97,6 +98,13 @@ export function useDrawerDragDismiss<T extends HTMLElement>(
 
     const settle = (to: number, done: () => void) => {
       if (el.style.height === `${to}px`) {
+        done();
+        return;
+      }
+      // Reduced motion: the drawer lands at once, and no transition will run
+      // to report a transitionend.
+      if (prefersReducedMotion()) {
+        el.style.height = `${to}px`;
         done();
         return;
       }

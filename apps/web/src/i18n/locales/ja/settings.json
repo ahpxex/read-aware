@@ -58,7 +58,8 @@
     "description": "アプリ自体の見た目 — 読書中の本のページ色とは独立しています。",
     "theme": {
       "title": "テーマ",
-      "description": "「システム」はお使いのOSのライト/ダーク設定に従います。"
+      "description": "「システム」はお使いのOSのライト/ダーク設定に従います。",
+      "einkDescription": "E Ink モードでは専用の高コントラストなライトテーマを使います。"
     },
     "themeOptions": {
       "system": "システム",
@@ -79,10 +80,17 @@
       "previewQuestion": "この章は何を論じているのですか。",
       "previewAnswer": "改革は即興から始まった——誰の許可もない地方の実験が、うまくいったから生き延びたのだ。"
     },
+    "eink": {
+      "group": "E Ink",
+      "title": "E Ink モード",
+      "description": "すべてのアニメーションを止め、画面と本のページを白地に黒で表示し、背景の暗転と影をなくして、画面の書き換えをできるだけ減らします。",
+      "detected": "この端末は E Ink ディスプレイと判定されたため、既定でオンです。"
+    },
     "motion": "モーション",
     "reduceMotion": {
       "title": "モーションを減らす",
-      "description": "アプリ全体のトランジションやアニメーション演出をオフにします。"
+      "description": "アプリ全体のトランジションやアニメーション演出をオフにします。",
+      "einkDescription": "E Ink モードがオンの間、モーションは常にオフです。"
     }
   },
   "reading": {
@@ -102,7 +110,8 @@
     "readingMode": "読書モード",
     "pageColor": {
       "title": "ページの色",
-      "description": "本の紙の色。「自動」はアプリのテーマに従い、その他は固定です。"
+      "description": "本の紙の色。「自動」はアプリのテーマに従い、その他は固定です。",
+      "einkDescription": "E Ink モード（外観）では、ページは白地に黒で表示されます。オフにすると選んだページの色に戻ります。"
     },
     "pageMargins": "余白",
     "pageTurn": {

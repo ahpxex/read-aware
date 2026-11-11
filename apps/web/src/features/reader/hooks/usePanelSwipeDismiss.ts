@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
+import { prefersReducedMotion } from "../../settings";
 import {
   EDGE_BACK_ZONE_PX,
   lockSwipe,
@@ -119,10 +120,7 @@ export function usePanelSwipeDismiss<T extends HTMLElement>(
       cancelSettle();
       // Already there (released at rest, or dragged fully out): no transition
       // would run, so no transitionend would ever arrive.
-      if (
-        el.style.transform === `translateX(${to}px)` ||
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      ) {
+      if (el.style.transform === `translateX(${to}px)` || prefersReducedMotion()) {
         done();
         return;
       }

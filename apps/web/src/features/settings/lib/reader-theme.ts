@@ -57,6 +57,22 @@ export const BUILTIN_READER_PALETTES: Record<BuiltinReaderTheme, ReaderPalette> 
   },
 };
 
+/**
+ * What every page paints with in e-ink mode, whatever page color is chosen:
+ * paper white and true black. A tinted page or a gray wash dithers on an
+ * e-paper panel and costs contrast, and a dark page refreshes worst of all.
+ * Rules and code backgrounds stay just strong enough to survive the panel's
+ * coarse gray levels.
+ */
+export const EINK_READER_PALETTE: ReaderPalette = {
+  bg: "#ffffff",
+  text: "#000000",
+  selection: "rgba(0, 0, 0, 0.2)",
+  rule: "#808080",
+  faint: "#eeeeee",
+  muted: "#333333",
+};
+
 /** The registered plugin theme behind a reader theme value, if any. */
 export function findPluginReaderTheme(
   theme: ReaderTheme | ReaderThemePreference,
@@ -67,11 +83,17 @@ export function findPluginReaderTheme(
   return entry?.reader ? entry : null;
 }
 
-/** Resolve a concrete reader theme to its palette (warm fallback for danglers). */
+/**
+ * Resolve a concrete reader theme to its palette (warm fallback for danglers).
+ * E-ink mode overrides every theme with `EINK_READER_PALETTE`; a swatch, which
+ * shows what a choice looks like, resolves without it.
+ */
 export function resolveReaderPalette(
   theme: ReaderTheme,
   pluginThemes: readonly RegisteredPluginTheme[],
+  display: { eink: boolean } = { eink: false },
 ): ReaderPalette {
+  if (display.eink) return EINK_READER_PALETTE;
   if (isPluginRef(theme)) {
     const entry = findPluginReaderTheme(theme, pluginThemes);
     return entry?.reader

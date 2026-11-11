@@ -9,7 +9,13 @@ import { hydrateAppIdentity } from "./platform/app-identity";
 import { hydrateRoamingPreferences } from "./platform/roaming-preferences";
 import { installGlobalErrorLogging } from "./platform/global-error-log";
 import { createLogger } from "./platform/logger";
-import { getAppSettings, resolveAppTheme } from "./features/settings/lib/app-settings";
+import {
+  applyDisplayAttributes,
+  getAppSettings,
+  isEinkActive,
+  resolveAppTheme,
+} from "./features/settings/lib/app-settings";
+import { hydrateDisplayProfile } from "./platform/display-profile";
 import { bootAppSkin } from "./features/settings/lib/app-skin";
 import { getGeneralSettings } from "./features/settings/lib/general-settings";
 import { detectInitialLocale } from "./i18n/detect";
@@ -61,15 +67,22 @@ void (async () => {
   await hydrateRoamingPreferences();
   log.info("roaming preferences hydrated");
 
+  // Whether this is an e-ink panel seeds the `auto` e-ink preference, which
+  // decides the theme and motion stamped below.
+  await hydrateDisplayProfile();
+
   // Stamp the resolved theme before anything renders so a dark-theme boot
   // paints dark from the first React frame (`useAppearance` takes over once
   // mounted and keeps it live). A selected plugin skin replays its cached
-  // token CSS the same way — plugins themselves start much later.
-  const themePreference = getAppSettings().theme;
-  const theme = resolveAppTheme(themePreference);
+  // token CSS the same way — plugins themselves start much later. E-ink mode
+  // and reduced motion are stamped alongside, so the first frame already
+  // holds still on an e-ink panel.
+  const appSettings = getAppSettings();
+  const theme = resolveAppTheme(appSettings);
   document.documentElement.dataset.theme = theme;
   document.documentElement.style.colorScheme = theme;
-  bootAppSkin(themePreference);
+  applyDisplayAttributes(document.documentElement, appSettings);
+  if (!isEinkActive(appSettings)) bootAppSkin(appSettings.theme);
 
   // Load the persisted (or auto-detected) locale's catalogs so the first paint
   // is already translated.

@@ -63,6 +63,7 @@
   "scopeHintGlobal": "更改会影响所有采用全局设置的书籍。",
   "scopeHintGlobalFonts": "字体和字重自动应用于同语言的书籍；其他设置应用于所有采用全局设置的书籍。",
   "pageColor": "页面颜色",
+  "pageColorEink": "墨水屏模式下，书页固定为白底黑字。",
   "fontSize": "字号",
   "fontWeight": "字重",
   "lineSpacing": "行距",

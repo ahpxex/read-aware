@@ -74,6 +74,16 @@ export function bootAppSkin(themePreference: string): void {
 }
 
 /**
+ * E-ink mode paints its own high-contrast token set, so a selected skin
+ * stands down — without clearing its snapshot, so leaving e-ink mode brings
+ * the skin back from boot on, exactly as before.
+ */
+export function suspendAppSkin(): void {
+  delete document.documentElement.dataset.skin;
+  removeSkinStyle();
+}
+
+/**
  * Runtime application, called from `useAppearance` on every resolution.
  *
  * - `theme` set: the selected skin is registered — (re)generate its CSS,

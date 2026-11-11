@@ -46,3 +46,17 @@ export const swipePageStep = (samples: readonly SwipeSample[], pageSize: number)
     return Math.sign(velocity) === direction ? direction : 0;
   return Math.abs(travel) >= pageSize * SWIPE_DRAG_TURN_RATIO ? direction : 0;
 };
+
+/** READAWARE: a discrete swipe (the renderer's `discrete-swipe` attribute,
+ * set for e-ink panels) leaves the page still under the finger, so the reader
+ * never sees a drag to judge: any deliberate horizontal travel turns. The
+ * same distance the host takes as a deliberate move rather than a tap. */
+export const SWIPE_DISCRETE_MIN_TRAVEL = 48;
+
+/** The page step a released discrete swipe turns: the direction of the
+ * finger's net travel once it is deliberate, else none. */
+export const discreteSwipeStep = (samples: readonly SwipeSample[]): -1 | 0 | 1 => {
+  const travel = samples.at(-1)?.travel ?? 0;
+  if (Math.abs(travel) < SWIPE_DISCRETE_MIN_TRAVEL) return 0;
+  return travel > 0 ? 1 : -1;
+};

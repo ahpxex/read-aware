@@ -11,7 +11,7 @@ import {
 import type { Anchor, Book, BookSection, MaybePromise, ResolvedNavigation, ResourceTransformDetail } from "./book.js";
 
 import type { Overlayer } from "./overlayer.js";
-import { swipePageStep, type SwipeSample } from "./page-swipe.js";
+import { discreteSwipeStep, swipePageStep, type SwipeSample } from "./page-swipe.js";
 import { RendererResizeObserver } from "./resize-observer.js";
 
 import type { Content, EdgeDetail, LoadDetail, RelocateDetail, RelocateReason, NativeInputBridge } from "./renderer.js";
@@ -991,9 +991,20 @@ export class Paginator extends HTMLElement {
     const max = rtl ? offset + a : offset + b;
     element[scrollProp] = Math.max(min, Math.min(max, element[scrollProp] + delta));
   }
-  /** Settle a released page drag on the page {@link swipePageStep} chooses. */
+  /** READAWARE: with `discrete-swipe` a drag does not move the page; the
+   * release turns once (see {@link discreteSwipeStep}). An e-ink panel
+   * redraws for every frame a page follows the finger, smearing ghosts; a
+   * single jump on release is one redraw. */
+  get #discreteSwipe() {
+    return this.hasAttribute("discrete-swipe");
+  }
+  /** Settle a released page drag on the page {@link swipePageStep} chooses,
+   * or turn the page a discrete swipe chose. */
   #settleSwipe(state: TouchState) {
-    const step = swipePageStep(state.samples, this.size);
+    const discrete = this.#discreteSwipe;
+    const step = discrete ? discreteSwipeStep(state.samples) : swipePageStep(state.samples, this.size);
+    // Nothing moved, so a discrete swipe that does not turn has nothing to settle.
+    if (discrete && step === 0) return;
     const [offset, a, b] = this.#scrollBounds;
     const { pages, size } = this;
     const min = Math.abs(offset) - a;
@@ -1051,7 +1062,7 @@ export class Paginator extends HTMLElement {
     state.x = touch.screenX;
     state.y = touch.screenY;
     this.#touchScrolled = true;
-    this.scrollBy(dx, dy);
+    if (!this.#discreteSwipe) this.scrollBy(dx, dy);
   }
   #onTouchEnd(e: TouchEvent) {
     // READAWARE: only a drag moved the page, so only a drag has a position to

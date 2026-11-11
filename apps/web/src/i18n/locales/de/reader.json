@@ -63,6 +63,7 @@
   "scopeHintGlobal": "Änderungen betreffen jedes Buch, das deinen globalen Einstellungen folgt.",
   "scopeHintGlobalFonts": "Schrift und Schriftstärke werden pro Buchsprache gespeichert. Andere Einstellungen gelten für alle Bücher mit globalen Einstellungen.",
   "pageColor": "Seitenfarbe",
+  "pageColorEink": "Im E-Ink-Modus sind Seiten schwarz auf weiß.",
   "fontSize": "Schriftgröße",
   "fontWeight": "Schriftstärke",
   "lineSpacing": "Zeilenabstand",

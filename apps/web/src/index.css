@@ -22,6 +22,12 @@
    is authoritative. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+/* `motion-reduce:` / `motion-safe:` follow the app's resolved motion flag
+   (setting, e-ink mode or OS — see the data-motion rule below), not the OS
+   media query alone, which an in-app choice could never reach. */
+@custom-variant motion-reduce (&:where([data-motion="reduced"], [data-motion="reduced"] *));
+@custom-variant motion-safe (&:where(:root:not([data-motion="reduced"]), :root:not([data-motion="reduced"]) *));
+
 @theme {
   /* The app canvas. It is deliberately NOT the reading page's colour: those
      live in BUILTIN_READER_PALETTES (reader-theme.ts) and belong to the
@@ -147,19 +153,70 @@ html[data-theme="dark"] body {
   background-color: #161311;
 }
 
-/* Forced reduced motion (Appearance → Motion = Reduced), independent of the OS
-   setting. Mirrors the prefers-reduced-motion reset below. */
-html[data-motion="reduced"] .ra-motion-page-enter,
-html[data-motion="reduced"] .ra-motion-tab-panel-in-forward,
-html[data-motion="reduced"] .ra-motion-tab-panel-in-backward,
-html[data-motion="reduced"] .ra-motion-page-counter,
-html[data-motion="reduced"] .ra-motion-overlay-pop,
-html[data-motion="reduced"] .ra-motion-overlay-pop-up,
-html[data-motion="reduced"] .ra-motion-fade-in,
+/* E-ink mode (`data-eink`, stamped by `applyDisplayAttributes`; the theme is
+   pinned to light alongside it). An e-paper panel has a handful of gray
+   levels and repaints in visible flashes, so the chrome becomes paper white
+   and true black: warm tints and gray washes would dither and cost contrast,
+   so fills turn white and the hairlines that separate regions get dark
+   enough to carry that job alone. Book pages get the matching palette
+   (EINK_READER_PALETTE). */
+html[data-eink] {
+  background-color: #ffffff;
+  color: #000000;
+  --color-paper: #ffffff;
+  --color-border: #8c8c8c;
+  --color-fg: #000000;
+  --color-fg-muted: #262626;
+  --color-fg-subtle: #595959;
+  --color-inverse-fg: #ffffff;
+  --color-surface: #ffffff;
+  --color-fill: #ffffff;
+  --color-fill-strong: #d9d9d9;
+  --color-border-strong: #595959;
+  --ra-main-surface-color: #ffffff;
+  --ra-scrollbar-color: #595959;
+  --ra-reader-selection-color: rgb(0 0 0 / 0.2);
+  --ra-reader-selection-highlight-color: rgb(0 0 0 / 0.28);
+  --ra-reader-selection-accent-color: #000000;
+}
+
+/* No drop shadows: a soft gray gradient is exactly what an e-paper panel
+   renders worst, and every floating surface already has a border. Clearing
+   only Tailwind's shadow layer keeps `ring-*` focus rings, which share the
+   box-shadow property. */
+html[data-eink] *,
+html[data-eink] *::before,
+html[data-eink] *::after {
+  --tw-shadow: 0 0 #0000 !important;
+  text-shadow: none !important;
+}
+
+/* Modal scrims (`ra-scrim`) neither dim nor blur the page behind: a gray wash
+   over a whole screen is a full-panel redraw on open and on close, and the
+   bordered panel above it is distinct without one. A tap on the scrim still
+   dismisses. */
+html[data-eink] .ra-scrim,
+html[data-eink] .ra-dialog::backdrop {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+}
+
+/* Reduced motion: every animation, transition and smooth scroll stops, not a
+   list of known ones. `data-motion="reduced"` is stamped by
+   `applyDisplayAttributes` whenever motion is off for any reason — the Motion
+   setting, e-ink mode (each animation frame is a panel refresh there) or the
+   OS `prefers-reduced-motion` — so this is the one switch. Code that waits on
+   `transitionend` must check `prefersReducedMotion()` instead: no transition
+   runs, so none ends. Book pages get the same rule inside their frames
+   (`buildReaderContentCss`). */
+html[data-motion="reduced"],
+html[data-motion="reduced"] *,
+html[data-motion="reduced"] *::before,
+html[data-motion="reduced"] *::after,
 html[data-motion="reduced"] .ra-dialog::backdrop {
   animation: none !important;
-  transform: none !important;
   transition: none !important;
+  scroll-behavior: auto !important;
 }
 
 /* The exit overlay covers the incoming surface at full opacity; with its fade
@@ -459,27 +516,6 @@ html[data-tauri="true"][data-os="ios"] #root {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .ra-motion-page-enter,
-  .ra-motion-tab-panel-in-forward,
-  .ra-motion-tab-panel-in-backward,
-  .ra-motion-page-counter,
-  .ra-motion-overlay-pop,
-  .ra-motion-overlay-pop-up,
-  .ra-motion-fade-in,
-  .ra-dialog::backdrop {
-    animation: none !important;
-    transform: none !important;
-    transition: none !important;
-  }
-
-  /* See the data-motion="reduced" note: the exit overlay must vanish, not sit
-     opaque over the incoming surface. */
-  .ra-motion-surface-exit {
-    display: none !important;
-  }
-}
-
 /* AI reply Markdown (Streamdown). Streamdown supplies block spacing via utility
    classes; we only set the base reading size, collapse the outer margins so the
    bubble padding stays even, and underline links for the monochrome palette. */
@@ -654,14 +690,6 @@ html[data-tauri="true"][data-os="ios"] #root {
     opacity: 0.45;
   }
 }
-html[data-motion="reduced"] .ra-chat-pulse {
-  animation: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .ra-chat-pulse {
-    animation: none;
-  }
-}
 
 /* Streaming caret trailing the assistant reply while it types. */
 .ra-chat-caret {
@@ -682,9 +710,6 @@ html[data-motion="reduced"] .ra-chat-pulse {
   100% {
     opacity: 0;
   }
-}
-html[data-motion="reduced"] .ra-chat-caret {
-  animation: none;
 }
 
 /* pdf.js text layer -- invisible text overlay for selection */

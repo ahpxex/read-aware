@@ -735,6 +735,19 @@ export function buildSettingDefinitions(draft: SettingsDraft): SettingDefinition
         state.appearance.motion = value as AppSettings["motion"];
       },
     }),
+    globalDefinition({
+      path: "appearance.eink",
+      section: "appearance",
+      label: "E-ink mode",
+      description:
+        "Device-local; never synced. on: every animation off, black-on-white chrome and book pages, no dimmed backdrops or shadows — for e-paper displays. auto: on when this device is detected as e-ink. While on, the app theme and page color choices are kept but not applied.",
+      kind: "enum",
+      options: [option("auto", "Detect"), option("on", "On"), option("off", "Off")],
+      read: (state) => state.appearance.eink,
+      write: (state, value) => {
+        state.appearance.eink = value as AppSettings["eink"];
+      },
+    }),
     readingDefinition({
       path: "reading.theme",
       label: "Page theme",

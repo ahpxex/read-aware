@@ -58,7 +58,8 @@
     "description": "L’apparence de l’application elle-même — indépendante de la couleur de page du livre dans Lecture.",
     "theme": {
       "title": "Thème",
-      "description": "Système suit le réglage clair ou sombre de votre système d’exploitation."
+      "description": "Système suit le réglage clair ou sombre de votre système d’exploitation.",
+      "einkDescription": "Le mode encre électronique utilise son propre thème clair à fort contraste."
     },
     "themeOptions": {
       "system": "Système",
@@ -79,10 +80,17 @@
       "previewQuestion": "Que cherche à démontrer ce chapitre ?",
       "previewAnswer": "Que la réforme a commencé par l’improvisation — une série d’expériences locales que personne n’avait autorisées, maintenues parce qu’elles marchaient."
     },
+    "eink": {
+      "group": "Encre électronique",
+      "title": "Mode encre électronique",
+      "description": "Désactive toutes les animations, affiche l’interface et les pages en noir sur blanc et supprime les fonds assombris et les ombres, pour que l’écran se redessine le moins possible.",
+      "detected": "Activé par défaut, car cet appareil a un écran à encre électronique."
+    },
     "motion": "Animations",
     "reduceMotion": {
       "title": "Réduire les animations",
-      "description": "Désactiver les transitions et les effets d’animation dans toute l’application."
+      "description": "Désactiver les transitions et les effets d’animation dans toute l’application.",
+      "einkDescription": "Les animations restent désactivées tant que le mode encre électronique est actif."
     }
   },
   "reading": {
@@ -102,7 +110,8 @@
     "readingMode": "Mode de lecture",
     "pageColor": {
       "title": "Couleur de la page",
-      "description": "Le papier du livre. Auto suit le thème de l’application ; les autres sont fixes."
+      "description": "Le papier du livre. Auto suit le thème de l’application ; les autres sont fixes.",
+      "einkDescription": "En mode encre électronique (Apparence), les pages sont en noir sur blanc. Votre couleur de page est conservée pour quand il sera désactivé."
     },
     "pageMargins": "Marges de page",
     "pageTurn": {

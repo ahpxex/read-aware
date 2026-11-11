@@ -63,6 +63,7 @@
   "scopeHintGlobal": "Los cambios afectan a todos los libros que siguen tus ajustes globales.",
   "scopeHintGlobalFonts": "La fuente y su grosor se recuerdan por idioma. Los demás ajustes se aplican a todos los libros que usan los ajustes globales.",
   "pageColor": "Color de página",
+  "pageColorEink": "En el modo tinta electrónica, las páginas son negras sobre blanco.",
   "fontSize": "Tamaño de letra",
   "fontWeight": "Grosor de letra",
   "lineSpacing": "Interlineado",

@@ -409,7 +409,7 @@ export function SettingsDialog({ open, onClose, workspaceToken = 0 }: SettingsDi
   return (
     <div
       className={cn(
-        "fixed inset-0 z-[60] flex items-center justify-center bg-stone-950/35 backdrop-blur-sm px-4 py-6 sm:p-8",
+        "ra-scrim fixed inset-0 z-[60] flex items-center justify-center bg-stone-950/35 backdrop-blur-sm px-4 py-6 sm:p-8",
         "transition-[opacity,backdrop-filter] duration-220 ease-[var(--ra-ease-out-quart)] motion-reduce:transition-none",
         isVisible ? "opacity-100" : "opacity-0",
       )}

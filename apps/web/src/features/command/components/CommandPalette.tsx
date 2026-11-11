@@ -111,7 +111,7 @@ export function CommandPalette({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-stone-950/35 px-4 py-[15vh] backdrop-blur-sm"
+      className="ra-scrim fixed inset-0 z-50 flex items-start justify-center bg-stone-950/35 px-4 py-[15vh] backdrop-blur-sm"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) dismiss();
       }}

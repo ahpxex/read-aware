@@ -75,7 +75,7 @@ export function Sidebar({ side = "left", open, onClose, children, width = "w-72"
     <>
       <div
         className={cn(
-          "fixed inset-0 z-40 bg-stone-950/10 backdrop-blur-sm transition-opacity duration-220 ease-[var(--ra-ease-out-quart)] motion-reduce:transition-none",
+          "ra-scrim fixed inset-0 z-40 bg-stone-950/10 backdrop-blur-sm transition-opacity duration-220 ease-[var(--ra-ease-out-quart)] motion-reduce:transition-none",
           open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
         onClick={() => {

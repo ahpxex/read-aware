@@ -58,7 +58,8 @@
     "description": "El aspecto de la propia app, independiente del color de la página del libro en Lectura.",
     "theme": {
       "title": "Tema",
-      "description": "«Sistema» sigue la configuración clara u oscura de tu sistema operativo."
+      "description": "«Sistema» sigue la configuración clara u oscura de tu sistema operativo.",
+      "einkDescription": "El modo tinta electrónica usa su propio tema claro de alto contraste."
     },
     "themeOptions": {
       "system": "Sistema",
@@ -79,10 +80,17 @@
       "previewQuestion": "¿Qué sostiene este capítulo?",
       "previewAnswer": "Que la reforma empezó como improvisación: una serie de experimentos locales que nadie había autorizado y que sobrevivieron porque funcionaban."
     },
+    "eink": {
+      "group": "Tinta electrónica",
+      "title": "Modo tinta electrónica",
+      "description": "Desactiva todas las animaciones, muestra la interfaz y las páginas en negro sobre blanco y quita los fondos oscurecidos y las sombras, para que la pantalla se redibuje lo menos posible.",
+      "detected": "Activado de forma predeterminada porque este dispositivo tiene una pantalla de tinta electrónica."
+    },
     "motion": "Movimiento",
     "reduceMotion": {
       "title": "Reducir el movimiento",
-      "description": "Desactiva las transiciones y los efectos de animación en toda la app."
+      "description": "Desactiva las transiciones y los efectos de animación en toda la app.",
+      "einkDescription": "El movimiento permanece desactivado mientras el modo tinta electrónica esté activo."
     }
   },
   "reading": {
@@ -102,7 +110,8 @@
     "readingMode": "Modo de lectura",
     "pageColor": {
       "title": "Color de página",
-      "description": "El papel del libro. «Automático» sigue el tema de la app; los demás son fijos."
+      "description": "El papel del libro. «Automático» sigue el tema de la app; los demás son fijos.",
+      "einkDescription": "En el modo tinta electrónica (Apariencia), las páginas son negras sobre blanco. Tu color de página se conserva para cuando lo desactives."
     },
     "pageMargins": "Márgenes de página",
     "pageTurn": {

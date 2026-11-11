@@ -58,7 +58,8 @@
     "description": "Wie die App selbst aussieht — unabhängig von der Seitenfarbe des Buches im Lesemodus.",
     "theme": {
       "title": "Design",
-      "description": "„System“ folgt der Hell- oder Dunkeleinstellung deines Betriebssystems."
+      "description": "„System“ folgt der Hell- oder Dunkeleinstellung deines Betriebssystems.",
+      "einkDescription": "Der E-Ink-Modus verwendet ein eigenes kontrastreiches helles Design."
     },
     "themeOptions": {
       "system": "System",
@@ -79,10 +80,17 @@
       "previewQuestion": "Worauf will dieses Kapitel hinaus?",
       "previewAnswer": "Dass die Reform als Improvisation begann — lauter lokale Experimente, die niemand genehmigt hatte und die überlebten, weil sie funktionierten."
     },
+    "eink": {
+      "group": "E-Ink",
+      "title": "E-Ink-Modus",
+      "description": "Schaltet alle Animationen ab, zeigt Oberfläche und Buchseiten schwarz auf weiß und verzichtet auf abgedunkelte Hintergründe und Schatten, damit der Bildschirm so selten wie möglich neu gezeichnet wird.",
+      "detected": "Standardmäßig an, weil dieses Gerät ein E-Ink-Display hat."
+    },
     "motion": "Bewegung",
     "reduceMotion": {
       "title": "Bewegung reduzieren",
-      "description": "Übergänge und Animationseffekte in der gesamten App deaktivieren."
+      "description": "Übergänge und Animationseffekte in der gesamten App deaktivieren.",
+      "einkDescription": "Solange der E-Ink-Modus an ist, bleibt Bewegung reduziert."
     }
   },
   "reading": {
@@ -102,7 +110,8 @@
     "readingMode": "Lesemodus",
     "pageColor": {
       "title": "Seitenfarbe",
-      "description": "Das Papier des Buches. „Auto“ folgt dem App-Design; die anderen sind fest."
+      "description": "Das Papier des Buches. „Auto“ folgt dem App-Design; die anderen sind fest.",
+      "einkDescription": "Im E-Ink-Modus (Darstellung) sind Seiten schwarz auf weiß. Deine Seitenfarbe bleibt für danach erhalten."
     },
     "pageMargins": "Seitenränder",
     "pageTurn": {

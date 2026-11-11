@@ -71,7 +71,10 @@ const ROAMING_POLICIES: Record<string, RoamingPolicy> = {
   // deliberately does NOT roam: each device's screen and posture want their
   // own type size, spacing, and page color — syncing them forces one
   // device's ergonomics onto another (the WeChat-Reading lesson).
-  "read-aware-app-settings": { deviceLocalFields: [] },
+  // E-ink mode describes this device's panel, not the user: a BOOX must
+  // not turn the desktop's animations and colors off. Never published, so a
+  // device that has not chosen yet cannot adopt another device's choice.
+  "read-aware-app-settings": { deviceLocalFields: ["eink"], stripOnPublish: ["eink"] },
   "read-aware-ai-preferences": { deviceLocalFields: [] },
   // Provider/model choices roam as plain KV; the API key roams SEPARATELY as
   // a sealed secret (below) — stripped from what we publish here, and

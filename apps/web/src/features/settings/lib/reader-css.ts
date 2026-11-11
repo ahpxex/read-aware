@@ -347,7 +347,19 @@ export type ReaderContentAssets = {
   palette: ReaderPalette;
   fontFaceCss?: string;
   pluginFont?: PluginFontStackSource | null;
+  /** Motion is off (setting, e-ink mode or OS): stop the book's own
+   *  animations, transitions and smooth scrolling, as the app stylesheet
+   *  does outside the frame. */
+  reducedMotion?: boolean;
 };
+
+const REDUCED_MOTION_CONTENT_CSS = `
+    html, *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+`;
 
 /**
  * Build the stylesheet injected into the foliate section iframe.
@@ -741,7 +753,7 @@ ${textAlignCss(settings.textAlign)}${textIndentCss(typography.textIndent)}
       padding-left: 1.25rem !important;
       border-left: 2px solid ${theme.rule} !important;
     }
-  `;
+${assets.reducedMotion ? REDUCED_MOTION_CONTENT_CSS : ""}  `;
 }
 
 /**

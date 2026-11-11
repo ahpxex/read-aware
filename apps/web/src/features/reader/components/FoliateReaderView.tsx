@@ -90,6 +90,7 @@ import { useReaderPagination } from "../hooks/useReaderPagination";
 import { useReaderTextActions } from "../hooks/useReaderTextActions";
 import { computeReaderMaxInlineSize, layoutForReadingMode, readerLayoutSpacing } from "../../settings/lib/reader-css";
 import { useReaderPalette } from "../../settings/hooks/useReaderPalette";
+import { isEinkActive, prefersReducedMotion } from "../../settings";
 import type { ReaderSettings } from "../../settings/lib/reader-settings";
 import { DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
 import { restoreReadingPosition } from "../lib/restore-reading-position";
@@ -267,22 +268,18 @@ const FIXED_SWIPE_MAX_MS = 600;
 /** Device-local flag: the hold menu's one-time introduction has been shown. */
 const HOLD_MENU_HINT_KEY = "read-aware-hold-menu-hint";
 
-/** Effective reduced-motion: the forced app setting (`data-motion="reduced"`) or
- *  the OS preference when motion is left on `system`. */
-function prefersReducedMotion(): boolean {
-  if (typeof document === "undefined") return false;
-  if (document.documentElement.dataset.motion === "reduced") return true;
-  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-}
-
-/** Foliate animates page turns / viewport scrolls (its smooth `next`/`prev`) only
- *  while the renderer carries the `animated` attribute; toggle it from the motion
- *  preference so arrow-key paging glides instead of snapping — unless motion is
- *  reduced, where the instant jump is the accessible choice. */
-function syncRendererAnimated(renderer: FoliateRenderer | undefined): void {
+/** Carry the display mode onto the renderer's own attributes:
+ *  - `animated`: Foliate animates page turns / viewport scrolls (its smooth
+ *    `next`/`prev`) only while it is set, so arrow-key paging glides instead
+ *    of snapping — unless motion is reduced, where the instant jump is the
+ *    accessible choice.
+ *  - `discrete-swipe`: in e-ink mode a paginated drag leaves the page still
+ *    and its release turns once — a page following the finger is a redraw
+ *    per frame on an e-paper panel. */
+function syncRendererDisplay(renderer: FoliateRenderer | undefined): void {
   if (!renderer) return;
-  if (prefersReducedMotion()) renderer.removeAttribute("animated");
-  else renderer.setAttribute("animated", "");
+  renderer.toggleAttribute("animated", !prefersReducedMotion());
+  renderer.toggleAttribute("discrete-swipe", isEinkActive());
 }
 
 type ShellTapIntent = {
@@ -926,10 +923,15 @@ export function FoliateReaderView({
       dismissCompletion();
       if (completionRevisitTimerRef.current != null) window.clearTimeout(completionRevisitTimerRef.current);
       // Keep the fade, but never apply an old completion card to a replacement book.
-      completionRevisitTimerRef.current = window.setTimeout(() => {
-        completionRevisitTimerRef.current = null;
-        if (viewRef.current === view && readingRuntime.snapshot().sessionId === sessionId) void goToChapter(cfiRange);
-      }, COMPLETION_FADE_MS);
+      // Without the fade (reduced motion) the card is already gone: jump at
+      // once rather than show the old page for the length of a fade.
+      completionRevisitTimerRef.current = window.setTimeout(
+        () => {
+          completionRevisitTimerRef.current = null;
+          if (viewRef.current === view && readingRuntime.snapshot().sessionId === sessionId) void goToChapter(cfiRange);
+        },
+        prefersReducedMotion() ? 0 : COMPLETION_FADE_MS,
+      );
     },
     [dismissCompletion, goToChapter],
   );
@@ -2081,22 +2083,19 @@ export function FoliateReaderView({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [standby]);
 
-  // Keep the renderer's `animated` flag in sync with the motion preference at
-  // runtime (the Reduce-motion toggle flips `data-motion`; the OS pref can change
-  // too), so smooth paging turns on/off without reopening the book.
+  // Keep the renderer's display attributes in sync at runtime, so smooth
+  // paging and discrete swipes turn on/off without reopening the book.
+  // `data-motion` / `data-eink` are the resolved flags (setting, e-ink mode
+  // and the OS preference all re-stamp them), so observing them covers every
+  // source.
   useEffect(() => {
-    const sync = () => syncRendererAnimated(viewRef.current?.renderer);
-    const media = window.matchMedia?.("(prefers-reduced-motion: reduce)");
-    media?.addEventListener?.("change", sync);
+    const sync = () => syncRendererDisplay(viewRef.current?.renderer);
     const observer = new MutationObserver(sync);
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ["data-motion"],
+      attributeFilter: ["data-motion", "data-eink"],
     });
-    return () => {
-      media?.removeEventListener?.("change", sync);
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, []);
 
   useReaderViewportResize({
@@ -2436,8 +2435,9 @@ export function FoliateReaderView({
         await injectReaderStyles(readerSettingsRef.current, view.renderer, openingActor);
         if (session.closed) return;
         // Glide page turns / arrow-key scrolls instead of snapping (unless motion
-        // is reduced). The runtime watcher effect keeps this in sync afterwards.
-        syncRendererAnimated(view.renderer);
+        // is reduced), and swipe discretely in e-ink mode. The runtime watcher
+        // effect keeps both in sync afterwards.
+        syncRendererDisplay(view.renderer);
 
         let entries = flattenToc(book?.toc ?? []);
         if (!session.closed) setTocEntries(entries);

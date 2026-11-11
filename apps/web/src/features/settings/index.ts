@@ -4,9 +4,12 @@
  * legitimately shares is exported here.
  */
 
-// Imperative motion (programmatic scrolling, deferred transitions) honors the
-// in-app Motion setting as well as the OS preference.
-export { prefersReducedMotion } from "./lib/app-settings";
+// The display mode: imperative motion (programmatic scrolling, deferred
+// transitions, gesture settles, the reader's paging) honors the Motion
+// setting, e-ink mode and the OS preference alike; e-ink mode itself decides
+// the reader's swipe behavior and which page-color controls are offered.
+export { isEinkActive, preferredScrollBehavior, prefersReducedMotion } from "./lib/app-settings";
+export { useDisplayMode } from "./hooks/useDisplayMode";
 
 // The reader's typography pipeline resolves a `user:` selection against the
 // imported-font registry and emits its @font-face; the compact appearance

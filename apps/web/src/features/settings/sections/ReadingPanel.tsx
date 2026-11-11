@@ -21,6 +21,7 @@ import type {
 import { useReaderPalette } from "../hooks/useReaderPalette";
 import { useRegisteredPluginFont } from "../hooks/usePluginFonts";
 import { usePluginReaderThemeOptions } from "../hooks/usePluginReaderThemeOptions";
+import { useDisplayMode } from "../hooks/useDisplayMode";
 import { pageColorOptions, readingModeOptions } from "../lib/reader-setting-options";
 
 export function ReadingPanel() {
@@ -33,6 +34,7 @@ export function ReadingPanel() {
   const pluginThemes = useAtomValue(pluginThemesAtom);
   const pluginThemeOptions = usePluginReaderThemeOptions();
   const previewPalette = useReaderPalette(effective.theme);
+  const { eink } = useDisplayMode();
   const previewPluginFont = useRegisteredPluginFont(effective.fontFamily);
 
   return (
@@ -75,13 +77,22 @@ export function ReadingPanel() {
 
       <PageTurnGroup />
 
-      <SettingsGroup title={t("reading.pageColor.title")} description={t("reading.pageColor.description")}>
-        <Select
-          ariaLabel={t("reading.pageColor.title")}
-          value={prefs.theme}
-          options={[...pageColorOptions(tReader), ...pluginThemeOptions]}
-          onChange={(theme) => setPrefs(applyReaderThemeSelection(prefs, theme as ReaderThemePreference, pluginThemes))}
-        />
+      {/* In e-ink mode every page is black on white whatever is chosen, so
+          the choice is kept but not offered. */}
+      <SettingsGroup
+        title={t("reading.pageColor.title")}
+        description={eink ? t("reading.pageColor.einkDescription") : t("reading.pageColor.description")}
+      >
+        {!eink && (
+          <Select
+            ariaLabel={t("reading.pageColor.title")}
+            value={prefs.theme}
+            options={[...pageColorOptions(tReader), ...pluginThemeOptions]}
+            onChange={(theme) =>
+              setPrefs(applyReaderThemeSelection(prefs, theme as ReaderThemePreference, pluginThemes))
+            }
+          />
+        )}
       </SettingsGroup>
     </SettingsPage>
   );

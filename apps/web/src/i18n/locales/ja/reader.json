@@ -63,6 +63,7 @@
   "scopeHintGlobal": "グローバル設定に従うすべての本に変更が適用されます。",
   "scopeHintGlobalFonts": "フォントと太さは同じ言語の本で共有されます。その他の設定はグローバル設定を使うすべての本に適用されます。",
   "pageColor": "ページの色",
+  "pageColorEink": "E Ink モードでは、ページは白地に黒で表示されます。",
   "fontSize": "文字サイズ",
   "fontWeight": "字の太さ",
   "lineSpacing": "行間",

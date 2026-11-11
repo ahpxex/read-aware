@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { swipePageStep, swipeReleaseVelocity, type SwipeSample } from "../foliate-js/src/page-swipe.js";
+import {
+  discreteSwipeStep,
+  SWIPE_DISCRETE_MIN_TRAVEL,
+  swipePageStep,
+  swipeReleaseVelocity,
+  type SwipeSample,
+} from "../foliate-js/src/page-swipe.js";
 
 const PAGE = 400;
 const FRAME_MS = 8; // a 120 Hz touch screen
@@ -62,5 +68,27 @@ describe("page swipe settling", () => {
   test("a tap without travel stays on the page", () => {
     expect(swipePageStep([{ t: 0, travel: 0 }], PAGE)).toBe(0);
     expect(swipePageStep([], PAGE)).toBe(0);
+  });
+});
+
+describe("discrete swipe (e-ink)", () => {
+  test("a slow, short drag that would snap back still turns: the reader never saw it move", () => {
+    const slow = drag(SWIPE_DISCRETE_MIN_TRAVEL + 2, 900, "linear", 200);
+    expect(swipePageStep(slow, PAGE)).toBe(0);
+    expect(discreteSwipeStep(slow)).toBe(1);
+    expect(discreteSwipeStep(drag(-(SWIPE_DISCRETE_MIN_TRAVEL + 2), 900, "linear"))).toBe(-1);
+  });
+
+  test("travel just short of deliberate, or none at all, turns nothing", () => {
+    expect(discreteSwipeStep(drag(SWIPE_DISCRETE_MIN_TRAVEL - 1, 60, "linear"))).toBe(0);
+    expect(discreteSwipeStep([{ t: 0, travel: 0 }])).toBe(0);
+    expect(discreteSwipeStep([])).toBe(0);
+  });
+
+  test("the net travel decides, not the release direction", () => {
+    const forward = drag(200, 200, "linear");
+    const end = forward.at(-1) ?? { t: 0, travel: 0 };
+    const flickBack = [1, 2, 3].map((i) => ({ t: end.t + i * FRAME_MS, travel: end.travel - i * 10 }));
+    expect(discreteSwipeStep([...forward, ...flickBack])).toBe(1);
   });
 });

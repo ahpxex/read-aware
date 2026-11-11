@@ -7,7 +7,7 @@
  * and the current settings, and writes to the foliate renderer — so it belongs
  * in a hook rather than among the engine, selection, and annotation effects.
  */
-import { useCallback, useEffect, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, type RefObject } from "react";
 import { getDefaultStore, useAtomValue } from "jotai";
 import {
   buildReaderContentCss,
@@ -20,6 +20,7 @@ import type { ReaderSettings, ReadingMode } from "../../settings/lib/reader-sett
 import { ensureCuratedFontFaceCss, localCuratedFontFaceCss } from "../../settings/lib/curated-font-loader";
 import { findUserFont, userFontFaceCss, userFontsAtom } from "../../settings";
 import { resolveReaderPalette } from "../../settings/lib/reader-theme";
+import { useDisplayMode } from "../../settings";
 import { pluginFontFaceCss } from "../../settings/hooks/usePluginFonts";
 import { findRegisteredByRef, isPluginRef } from "../../plugins/lib/plugin-theme";
 import { useRegisteredContribution } from "../../plugins/hooks/useRegisteredContribution";
@@ -148,12 +149,18 @@ export function useReaderTypography({
   // The registry row behind a `user:` selection — its `bytesLocal` flip is
   // what re-injects once the synced font file lands on this device.
   const userFont = findUserFont(readerSettings.fontFamily, userFonts);
+  // E-ink mode repaints every page in its palette; reduced motion stops the
+  // book's own animations inside its frames, which the app stylesheet cannot
+  // reach.
+  const { eink, reducedMotion } = useDisplayMode();
+  const display = useMemo(() => ({ eink, reducedMotion }), [eink, reducedMotion]);
   const previousInputs = useRef<
     | {
         settings: ReaderSettings;
         font: typeof font;
         theme: typeof theme;
         userFont: typeof userFont;
+        display: typeof display;
         origin: DomainActor;
       }
     | undefined
@@ -191,9 +198,17 @@ export function useReaderTypography({
       const pluginFont = isPluginFont(settings.fontFamily)
         ? findRegisteredByRef(settings.fontFamily, pluginFonts)
         : null;
-      const palette = resolveReaderPalette(settings.theme, pluginThemes);
+      const palette = resolveReaderPalette(settings.theme, pluginThemes, display);
       const apply = (fontFaceCss: string) => {
-        renderer.setStyles(buildReaderContentCss(settings, { palette, fontFaceCss, pluginFont }), context);
+        renderer.setStyles(
+          buildReaderContentCss(settings, {
+            palette,
+            fontFaceCss,
+            pluginFont,
+            reducedMotion: display.reducedMotion,
+          }),
+          context,
+        );
         // Re-evaluate fixed publisher sizes too: a readable 14px note can become
         // too small when the reader increases their body font to 24px.
         for (const { doc } of renderer.getContents()) normalizeReaderTextSizes(doc);
@@ -229,7 +244,7 @@ export function useReaderTypography({
       run().catch((error: unknown) => styled.reject(error));
       return styled.promise;
     },
-    [viewRef, pluginFonts, pluginThemes],
+    [viewRef, pluginFonts, pluginThemes, display],
   );
 
   const prepareStyles = useCallback((settings: ReaderSettings) => {
@@ -242,11 +257,11 @@ export function useReaderTypography({
     (settings: ReaderSettings, renderer = viewRef.current?.renderer, origin?: DomainActor) => {
       if (!renderer || !("setPageColors" in renderer)) return;
       renderer.setPageColors(
-        fixedLayoutPageColors(resolveReaderPalette(settings.theme, pluginThemes), settings.fixedLayoutColor),
+        fixedLayoutPageColors(resolveReaderPalette(settings.theme, pluginThemes, display), settings.fixedLayoutColor),
         readingRenderContext(origin ?? (eventCause(settings) ? actorFromEvent(settings) : "system")),
       );
     },
-    [viewRef, pluginThemes],
+    [viewRef, pluginThemes, display],
   );
 
   // Settings change -> re-inject reader CSS, refresh the text measure, and
@@ -264,9 +279,10 @@ export function useReaderTypography({
     // `bytesLocal` flipping (bytes landed from the relay) changes the CSS.
     if (previous?.settings.fontFamily === readerSettings.fontFamily && previous.userFont !== userFont)
       sources.push(stampEventCause({}));
+    if (previous && previous.display !== display) sources.push(stampEventCause({}));
     if (!sources.length && !needsStyles.current) return;
     const origin = sources.length ? actorFromEvent(mergeEventCauses(sources, {})) : previous!.origin;
-    previousInputs.current = { settings: readerSettings, font, theme, userFont, origin };
+    previousInputs.current = { settings: readerSettings, font, theme, userFont, display, origin };
     needsStyles.current = false;
     settingsRef.current = readerSettings;
     injectStyles(readerSettings, undefined, origin).catch((error: unknown) =>
@@ -274,7 +290,7 @@ export function useReaderTypography({
     );
     applyMaxInlineSize(origin);
     applyPageColors(readerSettings, undefined, origin);
-  }, [readerSettings, font, theme, userFont, applyMaxInlineSize, injectStyles, applyPageColors]);
+  }, [readerSettings, font, theme, userFont, display, applyMaxInlineSize, injectStyles, applyPageColors]);
 
   return { settingsRef, applyMaxInlineSize, injectStyles, prepareStyles, applyPageColors };
 }

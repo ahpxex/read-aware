@@ -65,7 +65,7 @@ export function ReaderSheet<K extends string>({
         aria-hidden="true"
         onClick={onClose}
         className={cn(
-          "absolute inset-0 z-30 bg-stone-950/10 transition-opacity duration-250 motion-reduce:transition-none",
+          "ra-scrim absolute inset-0 z-30 bg-stone-950/10 transition-opacity duration-250 motion-reduce:transition-none",
           open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
         )}
       />

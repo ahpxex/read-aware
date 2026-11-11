@@ -1,7 +1,7 @@
 import { useState, type ComponentProps, type MouseEvent } from "react";
 import type { ExtraProps } from "streamdown";
 import { cn } from "@read-aware/ui/cn";
-import { prefersReducedMotion } from "../../settings";
+import { preferredScrollBehavior } from "../../settings";
 import { createLogger } from "../../../platform/logger";
 import { MARKDOWN_REPLY_CLASS, fragmentTargetId, isFragmentHref } from "../lib/markdown-fragment";
 import { MarkdownLinkDialog } from "./MarkdownLinkDialog";
@@ -49,7 +49,7 @@ function FragmentLink({ href, ...props }: ComponentProps<"a"> & { href: string }
     // (its source), or the citation marker itself when returning.
     const focusable = target instanceof HTMLAnchorElement ? target : target.querySelector("a[href]");
     if (focusable instanceof HTMLElement) focusable.focus({ preventScroll: true });
-    target.scrollIntoView({ block: "center", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+    target.scrollIntoView({ block: "center", behavior: preferredScrollBehavior() });
   }
   return <a {...props} href={href} onClick={jump} />;
 }

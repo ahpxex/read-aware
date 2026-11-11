@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { useAtomValue } from "jotai";
 import { aiPreferencesAtom } from "../../../state/ui";
+import { preferredScrollBehavior } from "../../settings";
 import type { ChatAssistantPart, ChatMessage } from "../lib/chat-types";
 
 /** Breathing room between the viewport top and the pinned user message. */
@@ -128,13 +129,13 @@ export function useTranscriptAutoScroll({
     const scroller = containerRef.current;
     if (!scroller) return;
     if (follow) {
-      scroller.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" });
+      scroller.scrollTo({ top: scroller.scrollHeight, behavior: preferredScrollBehavior() });
       return;
     }
     const turn = liveTurnRef.current;
     if (!turn) return;
     const turnTop = turn.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
-    scroller.scrollTo({ top: turnTop - TURN_TOP_GAP, behavior: "smooth" });
+    scroller.scrollTo({ top: turnTop - TURN_TOP_GAP, behavior: preferredScrollBehavior() });
   }, [liveTurn, follow]);
 
   // Follow mode: track the reply as it streams, unless the user took over.
@@ -142,7 +143,7 @@ export function useTranscriptAutoScroll({
     if (!follow || !isStreaming || !engagedRef.current) return;
     const container = containerRef.current;
     if (!container) return;
-    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    container.scrollTo({ top: container.scrollHeight, behavior: preferredScrollBehavior() });
   }, [follow, isStreaming, streamingParts, messages]);
 
   // Markdown can commit its new blocks after the streaming-props effect above.
@@ -153,7 +154,7 @@ export function useTranscriptAutoScroll({
     const observer = new ResizeObserver(() => {
       const container = containerRef.current;
       if (container && engagedRef.current) {
-        container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+        container.scrollTo({ top: container.scrollHeight, behavior: preferredScrollBehavior() });
       }
     });
     observer.observe(contentRef.current);

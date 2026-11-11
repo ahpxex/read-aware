@@ -58,7 +58,8 @@
     "description": "How the app itself looks — independent of the book page color in Reading.",
     "theme": {
       "title": "Theme",
-      "description": "System follows your operating system's light or dark setting."
+      "description": "System follows your operating system's light or dark setting.",
+      "einkDescription": "E-ink mode uses its own high-contrast light theme."
     },
     "themeOptions": {
       "system": "System",
@@ -79,10 +80,17 @@
       "previewQuestion": "What is this chapter arguing?",
       "previewAnswer": "That the reform began as improvisation — a series of local experiments nobody had authorised, kept alive because they worked."
     },
+    "eink": {
+      "group": "E-ink",
+      "title": "E-ink mode",
+      "description": "Turns off every animation, shows the interface and book pages in black on white, and drops dimmed backdrops and shadows, so the screen redraws as little as possible.",
+      "detected": "On by default because this device has an e-ink display."
+    },
     "motion": "Motion",
     "reduceMotion": {
       "title": "Reduce motion",
-      "description": "Turn off transitions and animation flourishes across the app."
+      "description": "Turn off transitions and animation flourishes across the app.",
+      "einkDescription": "Motion stays off while e-ink mode is on."
     }
   },
   "reading": {
@@ -102,7 +110,8 @@
     "readingMode": "Reading Mode",
     "pageColor": {
       "title": "Page Color",
-      "description": "The book's paper. Auto follows the app theme; the others are fixed."
+      "description": "The book's paper. Auto follows the app theme; the others are fixed.",
+      "einkDescription": "Pages are black on white in e-ink mode (Appearance). Your page color is kept for when it is off."
     },
     "pageMargins": "Page margins",
     "pageTurn": {

@@ -179,6 +179,73 @@ export async function runPaginatorRegressions(PaginatorClass: typeof Paginator):
     }
   });
 
+  await check("a discrete swipe (e-ink) holds the page still and turns once on release", async () => {
+    const urls = [page("Swipe to turn ".repeat(1500))],
+      renderer = mount();
+    const frame = () =>
+      new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    const touch = (type: string, screenX: number) => {
+      const point = new Touch({
+        identifier: 1,
+        target: renderer,
+        screenX,
+        screenY: 300,
+        clientX: screenX,
+        clientY: 300,
+      });
+      const ended = type === "touchend";
+      renderer.dispatchEvent(
+        new TouchEvent(type, {
+          bubbles: true,
+          cancelable: true,
+          touches: ended ? [] : [point],
+          changedTouches: [point],
+        }),
+      );
+    };
+    // A slow drag in steps: travel without the speed of a flick.
+    const swipe = (from: number, to: number) => {
+      touch("touchstart", from);
+      const steps = 6;
+      for (let i = 1; i <= steps; i++) touch("touchmove", from + ((to - from) * i) / steps);
+      touch("touchend", to);
+    };
+    try {
+      renderer.setAttribute("flow", "paginated");
+      renderer.setAttribute("discrete-swipe", "");
+      renderer.open({ sections: [{ id: 0, size: 20000, load: () => urls[0] }] });
+      await renderer.goTo({ index: 0, context: {} });
+      await renderer.next();
+      const before = renderer.page,
+        resting = renderer.start;
+      // Short of deliberate: nothing moves during the drag or after it.
+      touch("touchstart", 500);
+      touch("touchmove", 480);
+      equal(renderer.start, resting);
+      touch("touchend", 480);
+      await frame();
+      await frame();
+      equal(renderer.page, before);
+      // A slow drag a continuous swipe would snap back from still turns, once,
+      // and the page never followed the finger.
+      touch("touchstart", 500);
+      touch("touchmove", 470);
+      touch("touchmove", 440);
+      equal(renderer.start, resting);
+      touch("touchend", 440);
+      await frame();
+      await frame();
+      equal(renderer.page, before + 1);
+      // And back.
+      swipe(300, 400);
+      await frame();
+      await frame();
+      equal(renderer.page, before);
+    } finally {
+      dispose(renderer, urls);
+    }
+  });
+
   await check("page boundaries skip non-linear sections and remain usable after a failed load", async () => {
     const urls = ["First", "Footnote", "Last"].map((text) => page(text));
     let fail = true;

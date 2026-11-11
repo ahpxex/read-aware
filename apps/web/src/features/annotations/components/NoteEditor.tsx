@@ -41,7 +41,7 @@ export function NoteEditor({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/35 backdrop-blur-sm px-4 py-6">
+    <div className="ra-scrim fixed inset-0 z-50 flex items-center justify-center bg-stone-950/35 backdrop-blur-sm px-4 py-6">
       <div
         className={cn(
           "flex w-full max-w-lg flex-col border border-border bg-[var(--ra-main-surface-color)]",

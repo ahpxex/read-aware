@@ -63,6 +63,7 @@
   "scopeHintGlobal": "Changes affect every book that follows your global settings.",
   "scopeHintGlobalFonts": "Fonts and weights are remembered for books in the same language. Other settings apply to all books using global settings.",
   "pageColor": "Page Color",
+  "pageColorEink": "Pages are black on white in e-ink mode.",
   "fontSize": "Font Size",
   "fontWeight": "Font Weight",
   "lineSpacing": "Line Spacing",

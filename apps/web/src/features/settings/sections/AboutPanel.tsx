@@ -182,7 +182,7 @@ export function AboutPanel() {
         <SettingsRow
           title={t("about.contact.title")}
           description={t("about.contact.description")}
-          control={linkValue("mailto:hi@ahpx.me", "hi@ahpx.me", openLink)}
+          control={linkValue("mailto:ahpxex@gmail.com", "ahpxex@gmail.com", openLink)}
         />
       </SettingsGroup>
       <footer className="pt-2 text-center font-sans text-caption text-fg-muted">

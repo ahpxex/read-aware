@@ -128,6 +128,6 @@ if (process.env.ROAMING_PREFERENCE_WRITE_PROOF === "1") {
     });
     const output = await new Response(child.stderr).text();
     expect(await child.exited, output).toBe(0);
-    expect(output).toContain("4 pass");
+    expect(output).toContain("5 pass");
   }, 30_000);
 }

@@ -171,6 +171,69 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.6.10",
+        "date": "2026-11-12",
+        "codename": "Cambria",
+        "summary": "Esta versión de Cambria añade un modo tinta electrónica, marcadores integrados que se sincronizan, búsqueda en todo el libro y una forma de volver tras un salto, abre los libros mucho más rápido y hace que las notas al pie vuelvan a funcionar.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Modo tinta electrónica",
+                "body": "Un interruptor en Ajustes → Tema detiene todo el movimiento, muestra la interfaz y las páginas en negro sobre blanco, elimina las sombras y hace que un deslizamiento pase exactamente una página. Está activado por defecto en los dispositivos Android de papel electrónico que la aplicación reconoce."
+              },
+              {
+                "title": "Marcadores integrados que se sincronizan",
+                "body": "Los marcadores ahora forman parte de tu biblioteca y se sincronizan con tus otros dispositivos. Aparecen en la lista de notas bajo su capítulo, y añades uno con «Añadir marcador a esta página» o Cmd/Ctrl+D. Los marcadores del plugin Jumper se trasladan automáticamente."
+              },
+              {
+                "title": "Buscar en todo el libro",
+                "body": "«Buscar en este libro» en el encabezado del lector encuentra capítulos por título o número, etiquetas de página, marcadores, tus resaltados y notas, y el texto del libro, agrupados por capítulo. Se vuelve a abrir con tu última búsqueda en cada libro."
+              },
+              {
+                "title": "Una forma de volver tras un salto",
+                "body": "Después de saltar a un resultado de búsqueda, una nota, un capítulo o un punto de la barra de progreso, «Volver a la página N» te devuelve al lugar donde estabas leyendo. Alt+Izquierda y Alt+Derecha recorren tu historial de saltos."
+              },
+              {
+                "title": "Índice plegable y hojas en el móvil",
+                "body": "Los índices de varios niveles se pliegan, con la rama del capítulo actual abierta. En el móvil, el índice, las notas y la búsqueda suben como una sola hoja que tiras hacia abajo para cerrar, y en Ajustes → Personalizar puedes mover la barra de herramientas arriba."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Los libros se abren mucho más rápido",
+                "body": "Los archivos EPUB, CBZ, MOBI y AZW3 se leen donde están almacenados en lugar de copiarse primero en el lector, las imágenes y las fuentes cargan en paralelo, y los capítulos largos se maquetan primero alrededor del punto donde estás. El último libro que leíste permanece listo, así que volver a él es inmediato."
+              },
+              {
+                "title": "Reducir el movimiento lo detiene todo",
+                "body": "El ajuste Reducir el movimiento ahora detiene toda animación, transición y desplazamiento suave en la aplicación y dentro de los libros."
+              },
+              {
+                "title": "Jumper está integrado",
+                "body": "El plugin Jumper se retira: su búsqueda para saltar a un punto, sus marcadores y sus atajos de historial ahora forman parte del lector."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Las notas al pie se abren de nuevo",
+                "body": "Pulsar un marcador de nota al pie vuelve a abrir su nota en una ventana emergente; desde la versión 0.6.0 no hacía nada en ningún libro."
+              },
+              {
+                "title": "Números de página de la barra de progreso",
+                "body": "Al pasar el cursor o arrastrar la barra de progreso se indica la página en la que realmente aterrizarás, en lugar de fallar por una."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.9",
         "date": "2026-10-28",
         "codename": "Cambria",

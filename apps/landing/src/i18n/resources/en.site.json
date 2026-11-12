@@ -171,6 +171,69 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.6.10",
+        "date": "2026-11-12",
+        "codename": "Cambria",
+        "summary": "This Cambria release adds an e-ink mode, built-in bookmarks that sync, whole-book search and a way back after a jump, opens books much faster and makes footnotes work again.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "E-ink mode",
+                "body": "A switch in Settings → Theme stops all motion, shows the interface and pages in black on white, drops shadows and makes a swipe turn exactly one page. It is on by default on Android e-paper devices the app recognizes."
+              },
+              {
+                "title": "Built-in bookmarks that sync",
+                "body": "Bookmarks are now part of your library and sync to your other devices. They sit in the notes list under their chapter, and you add one with \"Bookmark this page\" or Cmd/Ctrl+D. Bookmarks from the Jumper plugin move over automatically."
+              },
+              {
+                "title": "Search the whole book",
+                "body": "\"Search this book\" in the reader header finds chapters by title or number, page labels, bookmarks, your highlights and notes, and the book's text, grouped by chapter. It reopens on your last query for each book."
+              },
+              {
+                "title": "A way back after a jump",
+                "body": "After jumping to a search hit, a note, a chapter or a point on the progress bar, \"Back to page N\" returns you to where you were reading. Alt+Left and Alt+Right step through your jump history."
+              },
+              {
+                "title": "Foldable contents and phone sheets",
+                "body": "Multi-level tables of contents fold, with the current chapter's branch open. On phones, contents, notes and search rise as one sheet you pull down to close, and Settings → Customize can move the toolbar to the top."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Books open much faster",
+                "body": "EPUB, CBZ, MOBI and AZW3 files are read where they are stored instead of being copied into the reader first, images and fonts load in parallel, and long chapters are laid out around where you are first. The book you read last stays ready, so going back to it is immediate."
+              },
+              {
+                "title": "Reduce motion stops everything",
+                "body": "The Reduce motion setting now stops every animation, transition and smooth scroll in the app and inside books."
+              },
+              {
+                "title": "Jumper is built in",
+                "body": "The Jumper plugin is retired: its go-to search, bookmarks and history shortcuts are now part of the reader."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Footnotes open again",
+                "body": "Clicking a footnote marker opens its note in a popover again; since 0.6.0 it did nothing in every book."
+              },
+              {
+                "title": "Progress bar page numbers",
+                "body": "Hovering or dragging the progress bar names the page you will actually land on instead of one page off."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.9",
         "date": "2026-10-28",
         "codename": "Cambria",

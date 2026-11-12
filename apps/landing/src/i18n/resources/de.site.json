@@ -171,6 +171,69 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.6.10",
+        "date": "2026-11-12",
+        "codename": "Cambria",
+        "summary": "Dieses Cambria-Release fügt einen E-Ink-Modus, eingebaute, synchronisierte Lesezeichen, die Suche im ganzen Buch und einen Weg zurück nach einem Sprung hinzu, öffnet Bücher deutlich schneller und lässt Fußnoten wieder funktionieren.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "E-Ink-Modus",
+                "body": "Ein Schalter unter Einstellungen → Design stoppt jede Bewegung, stellt Oberfläche und Seiten in Schwarz auf Weiß dar, verzichtet auf Schatten und blättert mit einem Wisch genau eine Seite um. Auf Android-E-Paper-Geräten, die die App erkennt, ist er standardmäßig aktiviert."
+              },
+              {
+                "title": "Eingebaute, synchronisierte Lesezeichen",
+                "body": "Lesezeichen sind jetzt Teil deiner Bibliothek und werden mit deinen anderen Geräten synchronisiert. Sie stehen in der Notizenliste unter dem jeweiligen Kapitel, und ein Lesezeichen fügst du über „Lesezeichen für diese Seite“ oder Cmd/Ctrl+D hinzu. Lesezeichen aus dem Jumper-Plugin werden automatisch übernommen."
+              },
+              {
+                "title": "Das ganze Buch durchsuchen",
+                "body": "„Dieses Buch durchsuchen“ in der Reader-Kopfleiste findet Kapitel nach Titel oder Nummer, Seitenbezeichnungen, Lesezeichen, deine Hervorhebungen und Notizen sowie den Text des Buchs, gruppiert nach Kapiteln. Für jedes Buch öffnet sie sich wieder mit der letzten Suchanfrage."
+              },
+              {
+                "title": "Ein Weg zurück nach einem Sprung",
+                "body": "Nach einem Sprung zu einem Suchtreffer, einer Notiz, einem Kapitel oder einem Punkt auf der Fortschrittsleiste kehrst du mit „Zurück zu Seite N“ an die Stelle zurück, an der du gelesen hast. Alt+Links und Alt+Rechts gehen durch deinen Sprungverlauf."
+              },
+              {
+                "title": "Einklappbare Inhaltsverzeichnisse und Sheets auf dem Handy",
+                "body": "Mehrstufige Inhaltsverzeichnisse lassen sich einklappen, wobei der Zweig des aktuellen Kapitels offen bleibt. Auf dem Handy steigen Verzeichnis, Notizen und Suche als ein gemeinsames Sheet auf, das du zum Schließen nach unten ziehst, und Einstellungen → Anpassen kann die Symbolleiste nach oben verschieben."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Bücher öffnen deutlich schneller",
+                "body": "EPUB-, CBZ-, MOBI- und AZW3-Dateien werden dort gelesen, wo sie gespeichert sind, statt vorher in den Reader kopiert zu werden, Bilder und Schriftarten laden parallel, und lange Kapitel werden zuerst um die Stelle herum gesetzt, an der du liest. Das zuletzt gelesene Buch bleibt bereit, die Rückkehr erfolgt sofort."
+              },
+              {
+                "title": "Bewegung reduzieren stoppt alles",
+                "body": "Die Einstellung „Bewegung reduzieren“ stoppt jetzt jede Animation, jeden Übergang und jedes sanfte Scrollen in der App und in Büchern."
+              },
+              {
+                "title": "Jumper ist eingebaut",
+                "body": "Das Jumper-Plugin ist eingestellt: Seine Gehe-zu-Suche, Lesezeichen und Verlaufs-Kurzbefehle sind jetzt Teil des Readers."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Fußnoten öffnen sich wieder",
+                "body": "Ein Klick auf eine Fußnotenmarkierung öffnet die zugehörige Notiz wieder in einem Popover; seit 0.6.0 tat er in jedem Buch nichts."
+              },
+              {
+                "title": "Seitenzahlen auf der Fortschrittsleiste",
+                "body": "Beim Überfahren oder Ziehen der Fortschrittsleiste wird die Seite genannt, auf der du tatsächlich landest, statt einer daneben liegenden."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.9",
         "date": "2026-10-28",
         "codename": "Cambria",

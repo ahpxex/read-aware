@@ -171,6 +171,69 @@
     "leadIn": " : ",
     "entries": [
       {
+        "version": "0.6.10",
+        "date": "2026-11-12",
+        "codename": "Cambria",
+        "summary": "Cette version de Cambria ajoute un mode encre électronique, des signets intégrés synchronisés, la recherche dans tout le livre et un retour en arrière après un saut, ouvre les livres bien plus vite et fait de nouveau fonctionner les notes de bas de page.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Mode encre électronique",
+                "body": "Un interrupteur dans Réglages → Thème arrête toute animation, affiche l'interface et les pages en noir sur blanc, supprime les ombres et fait tourner exactement une page à chaque balayage. Il est activé par défaut sur les appareils Android à encre électronique que l'application reconnaît."
+              },
+              {
+                "title": "Signets intégrés et synchronisés",
+                "body": "Les signets font désormais partie de votre bibliothèque et se synchronisent sur vos autres appareils. Ils figurent dans la liste des notes sous leur chapitre, et vous en ajoutez un avec « Ajouter un signet à cette page » ou Cmd/Ctrl+D. Les signets du plugin Jumper sont migrés automatiquement."
+              },
+              {
+                "title": "Rechercher dans tout le livre",
+                "body": "« Rechercher dans ce livre », dans l'en-tête du lecteur, trouve les chapitres par titre ou numéro, les libellés de page, les signets, vos surlignages et notes, ainsi que le texte du livre, le tout groupé par chapitre. La recherche se rouvre sur votre dernière requête pour chaque livre."
+              },
+              {
+                "title": "Retour en arrière après un saut",
+                "body": "Après un saut vers un résultat de recherche, une note, un chapitre ou un point de la barre de progression, « Revenir à la page N » vous ramène là où vous lisiez. Alt+← et Alt+→ permettent de parcourir votre historique de sauts."
+              },
+              {
+                "title": "Table des matières repliable et panneaux sur téléphone",
+                "body": "Les tables des matières à plusieurs niveaux se replient, avec la branche du chapitre en cours dépliée. Sur téléphone, la table des matières, les notes et la recherche montent dans un panneau unique que vous tirez vers le bas pour fermer, et Réglages → Personnaliser peut déplacer la barre d'outils en haut."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Les livres s'ouvrent bien plus vite",
+                "body": "Les fichiers EPUB, CBZ, MOBI et AZW3 sont lus là où ils sont stockés au lieu d'être copiés dans le lecteur, les images et les polices se chargent en parallèle, et les longs chapitres sont mis en page autour de votre position initiale. Le dernier livre lu reste prêt, si bien que vous y revenez immédiatement."
+              },
+              {
+                "title": "Réduire les animations arrête tout",
+                "body": "Le réglage Réduire les animations arrête désormais toutes les animations, transitions et défilements fluides, dans l'application comme dans les livres."
+              },
+              {
+                "title": "Jumper est intégré",
+                "body": "Le plugin Jumper est retiré : sa recherche « aller à », ses signets et ses raccourcis d'historique font désormais partie du lecteur."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Les notes de bas de page s'ouvrent de nouveau",
+                "body": "Cliquer sur un appel de note ouvre de nouveau la note dans une fenêtre contextuelle ; depuis la version 0.6.0, cela ne faisait rien dans tous les livres."
+              },
+              {
+                "title": "Numéros de page de la barre de progression",
+                "body": "Survoler ou faire glisser la barre de progression indique la page sur laquelle vous arriverez réellement, au lieu d'une page décalée."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.9",
         "date": "2026-10-28",
         "codename": "Cambria",

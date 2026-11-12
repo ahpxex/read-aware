@@ -1,7 +1,7 @@
 {
-  "appVersion": "0.6.9",
-  "ref": "v0.6.9",
-  "commit": "45f20f06f228d3ab73af28ae6736eb68156ae22f",
+  "appVersion": "0.6.10",
+  "ref": "v0.6.10",
+  "commit": "319bae2f549fcd5b9b7e4be2b5d2f498e5d3e703",
   "permissions": [
     "library:read",
     "library:write",
@@ -357,6 +357,33 @@
       "chords": [
         {
           "key": "["
+        }
+      ]
+    },
+    {
+      "id": "history-back",
+      "chords": [
+        {
+          "alt": true,
+          "key": "ArrowLeft"
+        }
+      ]
+    },
+    {
+      "id": "history-forward",
+      "chords": [
+        {
+          "alt": true,
+          "key": "ArrowRight"
+        }
+      ]
+    },
+    {
+      "id": "add-bookmark",
+      "chords": [
+        {
+          "mod": true,
+          "key": "d"
         }
       ]
     },

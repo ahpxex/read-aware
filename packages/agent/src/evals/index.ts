@@ -16,19 +16,3 @@ export {
 export type { AgentEvalScenario } from "./agent-harness";
 export { createManualEvalSession, type ManualEvalSession } from "./manual-session";
 export type { EvalSuite, EvalRunRecord, EvalSummary } from "./types";
-export {
-  installEvalHost,
-  createInMemoryEnvironment,
-  IN_MEMORY_ENVIRONMENT,
-  type EvalEnvironment,
-  type EvalHost,
-} from "./host";
-export {
-  isRealBookId,
-  realBookFile,
-  realBookSlugs,
-  realBookSnapshotFile,
-  type RealBookSlug,
-  type RealBookSnapshot,
-} from "./book-fixtures";
-export { runEvalCli } from "./cli";

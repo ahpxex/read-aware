@@ -11,7 +11,8 @@
  * is compared with what the app extracts now; a stale snapshot stops the run.
  */
 import { writeFileSync } from "node:fs";
-import { installEvalHost, realBookSlugs, realBookSnapshotFile, runEvalCli } from "@read-aware/agent/evals";
+import { realBookSlugs, realBookSnapshotFile } from "@read-aware/agent/evals/books";
+import { installEvalHost } from "@read-aware/agent/evals/host";
 import { addEvalBooks, createAppEvalHost, extractEvalBook, readEvalBookSnapshot } from "../tests/headless/eval-host";
 import { installHeadlessShell } from "../tests/headless/shell";
 
@@ -24,7 +25,7 @@ if (args[0] === "snapshots") {
   for (const slug of realBookSlugs().filter((entry) => !only.length || only.includes(entry))) {
     const snapshot = await extractEvalBook(slug);
     writeFileSync(realBookSnapshotFile(slug), `${JSON.stringify(snapshot)}\n`);
-    const blocks = snapshot.chapters.reduce((sum, chapter) => sum + (chapter.layout?.paragraphs.length ?? 0), 0);
+    const blocks = snapshot.chapters.reduce((sum, chapter) => sum + chapter.blocks.length, 0);
     console.log(`${slug}: ${snapshot.chapters.length} chapters, ${blocks} blocks, ${snapshot.contentVersion}`);
   }
   process.exit(0);
@@ -44,7 +45,9 @@ if (stale.length) {
   process.exit(1);
 }
 
-installEvalHost(createAppEvalHost());
+installEvalHost(createAppEvalHost(shell));
+// Scenarios are built from the snapshots just verified: load them only now.
+const { runEvalCli } = await import("@read-aware/agent/evals/cli");
 // `all` is both groups in turn; everything else is the eval CLI's own argument list.
 if (args[0] === "all" && !args.includes("--help") && !args.includes("-h")) {
   await runEvalCli(["behavior", ...args.slice(1)]);

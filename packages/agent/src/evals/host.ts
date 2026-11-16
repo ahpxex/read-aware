@@ -30,6 +30,12 @@ export interface EvalEnvironment {
   environment: string;
   /** The location this environment's reader issues for a stretch of a chapter's text (its first occurrence). */
   rangeOf(bookId: string, chapterIndex: number, text: string): Promise<import("@read-aware/core").BookTextRange>;
+  /**
+   * What this environment could not provide while the scenario ran. A scenario
+   * that hit such a gap says nothing about the agent: it is recorded as a
+   * failure of the harness, not scored as tool use or an answer.
+   */
+  faults?(): string[];
   /** Present the reader's page and selection of a turn the way this environment's reader reports them. */
   locateTurn(turn: EvalTurn): EvalTurn | Promise<EvalTurn>;
 }

@@ -7,7 +7,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { blocksIn, sentenceEndAt, type Id } from "@read-aware/core";
+import { blocksIn, buildChapterLayout, sentenceEndAt, type Id } from "@read-aware/core";
 import type { ChapterDigest } from "../ports";
 import type { ChapterSeed, InMemorySeed } from "../testing/fixtures";
 import { plainTextLayout } from "../testing/plain-text-layout";
@@ -75,7 +75,7 @@ export type RealBookSlug = keyof typeof REAL_BOOKS;
 export interface RealBookFixture {
   bookId: Id;
   spec: RealBookSpec;
-  epub(): RealBookSnapshot;
+  epub(): RealBook;
   title(): string;
   /** digests fixture 是否已生成（新书先入 EPUB、后补纪要是合法中间态）。 */
   hasDigests(): boolean;
@@ -117,7 +117,48 @@ export interface RealBookSnapshot {
   author?: string;
   /** The source identity the app gives this file. */
   contentVersion: string;
+  chapters: RealBookSnapshotChapter[];
+}
+
+/**
+ * A chapter as the app cuts it: its text and where its blocks start. Sentence
+ * boundaries are not stored: they come from the platform's segmenter, which
+ * may differ between the machine that wrote the snapshot and the one that
+ * checks it, and a scenario only ever uses them to pick a passage by its text.
+ */
+export interface RealBookSnapshotChapter {
+  title?: string;
+  text: string;
+  hrefs?: string[];
+  unit: "paragraph" | "page";
+  /** Start offset of each block in `text`. */
+  blocks: number[];
+  /** Blocks that are headings, by block index. */
+  headings?: { paragraph: number; level: number }[];
+}
+
+/** A snapshot loaded for scenarios: each chapter with its reading coordinates. */
+export interface RealBook {
+  title: string;
+  author?: string;
   chapters: ChapterSeed[];
+}
+
+function loadRealBook(slug: RealBookSlug): RealBook {
+  const snapshot = JSON.parse(readFileSync(realBookSnapshotFile(slug), "utf8")) as RealBookSnapshot;
+  return {
+    title: snapshot.title,
+    ...(snapshot.author ? { author: snapshot.author } : {}),
+    chapters: snapshot.chapters.map(({ title, text, hrefs, unit, blocks, headings }) => ({
+      ...(title === undefined ? {} : { title }),
+      text,
+      ...(hrefs ? { hrefs } : {}),
+      layout: buildChapterLayout(text, blocks, {
+        unit,
+        headings: headings?.map((heading) => ({ offset: blocks[heading.paragraph]!, level: heading.level })),
+      }),
+    })),
+  };
 }
 
 export function realBookFile(slug: RealBookSlug): string {
@@ -133,16 +174,16 @@ export function isRealBookId(bookId: string): boolean {
   return Object.keys(REAL_BOOKS).some((slug) => bookId === `eval-${slug}`);
 }
 
-const epubCache = new Map<string, RealBookSnapshot>();
+const epubCache = new Map<string, RealBook>();
 const digestsCache = new Map<string, ChapterDigest[]>();
 const fixtureCache = new Map<string, RealBookFixture>();
 
 function createRealBook(spec: RealBookSpec): RealBookFixture {
   const bookId = `eval-${spec.slug}` as Id;
-  const epub = (): RealBookSnapshot => {
+  const epub = (): RealBook => {
     let cached = epubCache.get(spec.slug);
     if (!cached) {
-      cached = JSON.parse(readFileSync(realBookSnapshotFile(spec.slug as RealBookSlug), "utf8")) as RealBookSnapshot;
+      cached = loadRealBook(spec.slug as RealBookSlug);
       epubCache.set(spec.slug, cached);
     }
     return cached;

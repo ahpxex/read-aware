@@ -7,6 +7,9 @@
     ".": "./src/index.ts",
     "./spike": "./src/spike.ts",
     "./evals": "./src/evals/index.ts",
+    "./evals/books": "./src/evals/book-fixtures.ts",
+    "./evals/cli": "./src/evals/cli.ts",
+    "./evals/host": "./src/evals/host.ts",
     "./testing": "./src/testing/fixtures.ts",
     "./testing/scripted-thread": "./src/testing/scripted-thread.ts",
     "./testing/tool-refresh-probe": "./src/testing/tool-refresh-probe.ts"

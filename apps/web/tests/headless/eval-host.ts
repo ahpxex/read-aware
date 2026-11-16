@@ -14,18 +14,16 @@
  */
 import { readFileSync } from "node:fs";
 import {
-  createInMemoryEnvironment,
   isRealBookId,
   realBookFile,
   realBookSlugs,
   realBookSnapshotFile,
-  type EvalEnvironment,
-  type EvalHost,
   type RealBookSlug,
   type RealBookSnapshot,
-} from "@read-aware/agent/evals";
+} from "@read-aware/agent/evals/books";
+import { createInMemoryEnvironment, type EvalEnvironment, type EvalHost } from "@read-aware/agent/evals/host";
 import { createInMemoryDeps } from "@read-aware/agent/testing";
-import type { BookTextRange } from "@read-aware/core";
+import type { BookTextRange, ChapterLayout } from "@read-aware/core";
 import { getExtractedChapters } from "../../src/domain/library";
 import { createBookTextPort } from "../../src/features/ai/agent/ports/book-text-port";
 import { fileContentVersion, withBookContent } from "../../src/features/library/lib/book-content-source";
@@ -63,12 +61,24 @@ export async function extractEvalBook(slug: RealBookSlug): Promise<RealBookSnaps
     title,
     ...(author ? { author } : {}),
     contentVersion,
-    chapters: chapters.map(({ title: chapterTitle, text, hrefs, layout }) => ({
-      ...(chapterTitle === undefined ? {} : { title: chapterTitle }),
-      text,
-      ...(hrefs ? { hrefs } : {}),
-      layout,
-    })),
+    chapters: chapters.map(snapshotChapter),
+  };
+}
+
+/** What a snapshot keeps of an extracted chapter: its text and block table, not the platform's sentence table. */
+export function snapshotChapter(chapter: {
+  title?: string;
+  text: string;
+  hrefs?: string[];
+  layout: ChapterLayout;
+}): RealBookSnapshot["chapters"][number] {
+  return {
+    ...(chapter.title === undefined ? {} : { title: chapter.title }),
+    text: chapter.text,
+    ...(chapter.hrefs ? { hrefs: chapter.hrefs } : {}),
+    unit: chapter.layout.unit,
+    blocks: chapter.layout.paragraphs,
+    ...(chapter.layout.headings ? { headings: chapter.layout.headings } : {}),
   };
 }
 
@@ -98,7 +108,7 @@ async function readerLocation(bookId: string, chapterIndex: number, quote: strin
   return { chapter, ranges, text: wanted };
 }
 
-export function createAppEvalHost(): EvalHost {
+export function createAppEvalHost(shell: HeadlessShell): EvalHost {
   return {
     id: APP_HEADLESS_ENVIRONMENT,
     createEnvironment: (scenario): EvalEnvironment => {
@@ -111,10 +121,13 @@ export function createAppEvalHost(): EvalHost {
       // The seed's chapter text is the snapshot of what the app extracts; the port reads the book itself.
       const context = createInMemoryDeps(scenario.seed);
       context.deps.bookText = createBookTextPort("agent");
+      const reached = shell.unprovided.length;
       const { scope } = scenario;
       return {
         ...context,
         environment: APP_HEADLESS_ENVIRONMENT,
+        // A native command the shell lacks failed some call of this scenario: the host's gap, not the agent's doing.
+        faults: () => [...new Set(shell.unprovided.slice(reached))].map((command) => `native command "${command}"`),
         rangeOf: async (bookId, chapterIndex, text) => (await readerLocation(bookId, chapterIndex, text)).ranges[0]!,
         locateTurn: async (turn) => {
           if (scope.kind !== "book") return turn;

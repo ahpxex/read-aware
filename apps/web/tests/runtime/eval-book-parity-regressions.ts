@@ -5,7 +5,7 @@
  * (tests/headless), where the DOM is jsdom. A book's snapshot — what scenarios
  * are written against — is produced there. This suite parses and extracts the
  * same files with the emitted engine in a real browser and requires the same
- * chapters, titles, text and reading coordinates, so that what the headless
+ * chapters, titles, text and block tables, so that what the headless
  * host calls "the book as the app reads it" is what a webview reads too.
  */
 import type * as ViewModule from "../../foliate-js/src/view";
@@ -15,7 +15,14 @@ import type { FoliateBook } from "../../src/features/reader/lib/foliate-engine";
 import { ensureUsableToc } from "../../src/features/reader/lib/toc-synthesis";
 
 type Result = { name: string; passed: boolean; details?: string };
-type SnapshotChapter = { title?: string; text: string; hrefs?: string[]; layout: unknown };
+type SnapshotChapter = {
+  title?: string;
+  text: string;
+  hrefs?: string[];
+  unit: string;
+  blocks: number[];
+  headings?: unknown;
+};
 
 const fixtures = "../../../../packages/agent/fixtures";
 const files = import.meta.glob("../../../../packages/agent/fixtures/*.epub", {
@@ -55,11 +62,14 @@ export async function runEvalBookParityRegressions({ view }: { view: typeof View
         progress: () => {},
         warn: () => {},
       });
+      // The snapshot's own shape: text and block table. Sentence tables are the platform segmenter's and are not compared.
       const extracted: SnapshotChapter[] = record.chapters.map(({ title, text, hrefs, layout }) => ({
         ...(title === undefined ? {} : { title }),
         text,
         ...(hrefs ? { hrefs } : {}),
-        layout,
+        unit: layout.unit,
+        blocks: layout.paragraphs,
+        ...(layout.headings ? { headings: layout.headings } : {}),
       }));
       const expected = stored.chapters as SnapshotChapter[];
       const differs = (index: number) => JSON.stringify(extracted[index]) !== JSON.stringify(expected[index]);
@@ -71,7 +81,7 @@ export async function runEvalBookParityRegressions({ view }: { view: typeof View
         continue;
       }
       const [mine, theirs] = [extracted[first], expected[first]];
-      const field = (["title", "text", "hrefs", "layout"] as const).find(
+      const field = (["title", "text", "hrefs", "unit", "blocks", "headings"] as const).find(
         (key) => JSON.stringify(mine?.[key]) !== JSON.stringify(theirs?.[key]),
       );
       results.push({

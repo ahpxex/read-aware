@@ -11,9 +11,10 @@
  */
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import type { Context } from "@earendil-works/pi-ai";
-import { evalSuites, realBookSlugs, type AgentEvalScenario } from "@read-aware/agent/evals";
+import { evalSuites, type AgentEvalScenario } from "@read-aware/agent/evals";
+import { realBookSlugs } from "@read-aware/agent/evals/books";
 import { createScriptedThread } from "@read-aware/agent/testing/scripted-thread";
-import { blocksIn } from "@read-aware/core";
+import { addressAt, blocksIn } from "@read-aware/core";
 import { getExtractedChapters } from "../src/domain/library";
 import { addEvalBooks, createAppEvalHost, extractEvalBook, readEvalBookSnapshot } from "./headless/eval-host";
 import { installHeadlessShell, type HeadlessShell } from "./headless/shell";
@@ -37,7 +38,7 @@ async function scripted(
   turnIndex: number,
   calls: Parameters<typeof createScriptedThread>[2],
 ) {
-  const environment = await createAppEvalHost().createEnvironment(scenario);
+  const environment = await createAppEvalHost(shell).createEnvironment(scenario);
   const turn = await environment.locateTurn(scenario.turns[turnIndex]!);
   const requests: Context[] = [];
   const { thread, dispose } = createScriptedThread(scenario.scope, environment.deps, calls, (context) =>
@@ -118,7 +119,7 @@ test("a selection the reader holds is a real range of the book, in the chapter i
   const scenario = scenarioOf("karamazov", "karamazov-annotate-verbatim");
   const selection = scenario.turns[0]!.attachments![0]!.text;
   const chapterIndex = scenario.turns[0]!.readingCursor!.chapterIndex!;
-  const environment = await createAppEvalHost().createEnvironment(scenario);
+  const environment = await createAppEvalHost(shell).createEnvironment(scenario);
   await scenario.setup?.(environment);
   // The reader session exposes the selection as the app would: a versioned range that reads back as the passage.
   const session = await environment.deps.reader.getSession();
@@ -128,4 +129,53 @@ test("a selection the reader holds is a real range of the book, in the chapter i
   expect(range.contentVersion).toMatch(/^sha256:/);
   expect((await environment.deps.bookText.readRange({ range, limit: 12000, contextChars: 0 })).text).toBe(selection);
   expect((await environment.deps.bookText.locate!(BOOK as never, range))?.start.chapterIndex).toBe(chapterIndex);
+});
+
+test("a page that runs across two source files of one chapter is located to its real end", async () => {
+  // A chapter the publisher split over files: the reader scrolls across the seam and sees both sides.
+  // (《三体》 has such chapters; 《卡拉马佐夫兄弟》 keeps each chapter in one file.)
+  const chapters = await getExtractedChapters("eval-santi", "system");
+  const chapterIndex = chapters.findIndex(
+    (chapter) =>
+      chapter.sources.length > 1 && chapter.sources[1]!.at > 200 && chapter.text.length - chapter.sources[1]!.at > 200,
+  );
+  expect(chapterIndex).toBeGreaterThan(0);
+  const chapter = chapters[chapterIndex]!;
+  const seam = chapter.sources[1]!.at;
+  const start = chapter.layout.sentences.findLast((at) => at <= seam - 120)!;
+  const end = chapter.layout.sentences.find((at) => at >= seam + 120)!;
+  const page = chapter.text.slice(start, end).trim();
+  const scenario = {
+    ...scenarioOf("santi", "santi-passage-role-in-chapter"),
+    turns: [{ text: "这一页在讲什么？", readingCursor: { chapterIndex, visibleText: page } }],
+  } as AgentEvalScenario;
+  const { turn, prompt, results } = await scripted(scenario, 0, [
+    { name: "read_chapter", arguments: { around: "position", context: 0 } },
+  ]);
+  // The reader reports a location per file on screen; the primary one alone would stop at the seam.
+  expect(turn.readingCursor!.viewportAnchors).toHaveLength(2);
+  expect(turn.readingCursor!.anchor).toBe(turn.readingCursor!.viewportAnchors![0]);
+  const first = addressAt(chapter.layout, start);
+  const last = addressAt(chapter.layout, start + page.length - 1);
+  expect(prompt).toContain(
+    `position: paragraph ${first.paragraph} sentence ${first.sentence} through paragraph ${last.paragraph} sentence ${last.sentence}`,
+  );
+  // And the text the tool returns for that position reaches past the seam, to the end of the page.
+  const read = JSON.parse(JSON.parse(results[results.length - 1]!).content?.[0]?.text ?? results[results.length - 1]!);
+  const tail = page.slice(-30);
+  expect(chapter.text.indexOf(tail)).toBeGreaterThan(seam);
+  expect(read.text.replace(/\[\d+[^\]]*\] /g, "").replace(/\n/g, " ")).toContain(tail);
+});
+
+test("a native command the shell does not provide is the environment's fault, by name", async () => {
+  const scenario = scenarioOf("karamazov", "karamazov-passage-role-in-chapter");
+  const environment = await createAppEvalHost(shell).createEnvironment(scenario);
+  expect(environment.faults?.()).toEqual([]);
+  const { invoke } = await import("../src/platform/ipc");
+  await expect(invoke("library_delete_everything")).rejects.toThrow(
+    'native command "library_delete_everything" is not provided',
+  );
+  expect(environment.faults?.()).toEqual(['native command "library_delete_everything"']);
+  // A scenario started afterwards begins clean.
+  expect((await createAppEvalHost(shell).createEnvironment(scenario)).faults?.()).toEqual([]);
 });

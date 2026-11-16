@@ -34,6 +34,8 @@ export type HeadlessShell = {
   addBook(book: HeadlessBook): void;
   /** How many times each native command was called, for tests that count round trips. */
   calls: ReadonlyMap<string, number>;
+  /** Every call to a native command this shell does not provide, in order. Each one also failed its caller. */
+  unprovided: readonly string[];
   dispose(): void;
 };
 
@@ -79,6 +81,7 @@ export async function installHeadlessShell(): Promise<HeadlessShell> {
   const books = new Map<string, HeadlessBook & { sha: string; entries: Record<string, Uint8Array> | null }>();
   const blobs = new Map<string, Stored>();
   const calls = new Map<string, number>();
+  const unprovided: string[] = [];
   const fileOf = (key: string) => (key.startsWith("bookfile:") ? books.get(key.slice("bookfile:".length)) : undefined);
   const stored = (key: string): Stored | undefined => {
     const file = fileOf(key);
@@ -143,6 +146,7 @@ export async function installHeadlessShell(): Promise<HeadlessShell> {
         return (args.names as string[]).map((name) => (entries[name] ? new TextDecoder().decode(entries[name]) : null));
       }
       default:
+        unprovided.push(command);
         throw new Error(`headless shell: native command "${command}" is not provided`);
     }
   };
@@ -176,6 +180,7 @@ export async function installHeadlessShell(): Promise<HeadlessShell> {
 
   active = {
     calls,
+    unprovided,
     addBook: (book) => {
       // A ZIP container is read where it is stored and handed over entry by entry, as book_archive.rs does.
       const zipped = /\.(epub|cbz)$/i.test(book.fileName);

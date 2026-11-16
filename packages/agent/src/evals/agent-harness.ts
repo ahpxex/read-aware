@@ -263,6 +263,8 @@ export function createAgentEvalVariant(
           if (scenario.observeState) rawTurn.stateAfter = toJsonValue(await scenario.observeState(setupContext));
         }
         await thread.flushBackgroundWork();
+        const faults = setupContext.faults?.() ?? [];
+        if (faults.length) throw new Error(`The eval environment could not provide: ${faults.join(", ")}`);
         const state = await scenario.observeState?.(setupContext);
         const observation = buildAgentObservation({
           turns: rawTurns,

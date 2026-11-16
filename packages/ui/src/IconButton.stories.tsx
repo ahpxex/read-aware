@@ -37,7 +37,7 @@ export const CaptionSlots: Story = {
 /** Toolbar slots: each button fills an equal share of a phone bottom toolbar. */
 export const ToolbarSlots: Story = {
   args: { icon: <X size={20} weight="regular" />, label: "Close", size: "toolbar" },
-  parameters: { viewport: { defaultViewport: "mobile1" } },
+  globals: { viewport: { value: "mobile1", isRotated: false } },
   render: (args) => (
     <div className="grid w-full max-w-sm grid-cols-5 border-t border-border bg-fill px-1">
       {Array.from({ length: 5 }, (_, i) => (

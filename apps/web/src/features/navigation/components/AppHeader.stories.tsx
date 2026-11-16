@@ -208,7 +208,7 @@ export const Crowded: Story = {
 
 /** A phone-width viewport, where the cluster collapses to one overflow menu. */
 export const PhoneWidth: Story = {
-  parameters: { viewport: { defaultViewport: "mobile1" } },
+  globals: { viewport: { value: "mobile1", isRotated: false } },
   decorators: [
     (Story) => (
       <div className="w-[22rem] bg-[var(--ra-main-surface-color)]">

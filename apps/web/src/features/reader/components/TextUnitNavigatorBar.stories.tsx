@@ -94,7 +94,7 @@ export const OnUnit: Story = {};
 
 /** Narrow touch layout must keep More alongside the annotation controls. */
 export const PhoneWidth: Story = {
-  parameters: { viewport: { defaultViewport: "mobile1" } },
+  globals: { viewport: { value: "mobile1", isRotated: false } },
 };
 
 /** Nothing to return to yet: the return-to-current control is disabled. */

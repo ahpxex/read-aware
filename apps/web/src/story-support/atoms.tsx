@@ -13,8 +13,10 @@
  *
  * This is story-only support code; nothing in the product imports it.
  */
+import { useState, type ReactNode } from "react";
 import { createStore, Provider, type WritableAtom } from "jotai";
 import type { Decorator } from "@storybook/react-vite";
+import { storyDisplayKey, storyDisplaySeed, type StoryGlobals } from "./display";
 
 type JotaiStore = ReturnType<typeof createStore>;
 
@@ -32,13 +34,35 @@ export function seed<TValue>(atom: WritableAtom<unknown, [TValue], unknown>, val
   return (apply) => apply(atom, value);
 }
 
-/** A decorator that renders the story against a fresh store with `seeds` applied. */
+/**
+ * A decorator that renders the story against a fresh store with `seeds`
+ * applied over the toolbar's display settings (`story-support/display`), so a
+ * seeded story still follows the e-ink and motion toggles.
+ */
 export function withAtoms(...seeds: AtomSeed[]): Decorator {
-  return (Story) => (
-    <Provider store={buildStore(seeds)}>
+  return (Story, context) => (
+    <StoryStore key={storyDisplayKey(context.globals)} globals={context.globals} seeds={seeds}>
       <Story />
-    </Provider>
+    </StoryStore>
   );
+}
+
+/**
+ * One store per mount: a decorator re-runs whenever args change, and building
+ * the store in its body would wipe whatever the story wrote since. The caller
+ * keys it by the display globals, so a toolbar change starts a fresh store.
+ */
+export function StoryStore({
+  globals,
+  seeds = [],
+  children,
+}: {
+  globals: StoryGlobals;
+  seeds?: AtomSeed[];
+  children?: ReactNode;
+}) {
+  const [store] = useState(() => buildStore([storyDisplaySeed(globals), ...seeds]));
+  return <Provider store={store}>{children}</Provider>;
 }
 
 /**

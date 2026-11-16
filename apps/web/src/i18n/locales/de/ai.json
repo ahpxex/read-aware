@@ -250,6 +250,14 @@
       },
       "footerOpen": "↵ Öffnen"
     },
+    "welcome": {
+      "suggestions": {
+        "reading": "Wie viel habe ich diesen Monat gelesen, und welches Buch hat am meisten Zeit gekostet?",
+        "connect": "Finde Gedanken, die zwei Bücher aus meinem Regal verbinden.",
+        "organize": "Ordne die Bücher in meinem Regal nach Genre in Sammlungen.",
+        "memory": "Was weißt du noch darüber, wie ich lese?"
+      }
+    },
     "annotations": {
       "title": "Markierungen & Notizen"
     },

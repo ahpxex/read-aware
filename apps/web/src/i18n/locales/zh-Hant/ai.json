@@ -285,6 +285,14 @@
       },
       "footerOpen": "↵ 開啟"
     },
+    "welcome": {
+      "suggestions": {
+        "reading": "我這個月讀了多久？哪本書花的時間最多？",
+        "connect": "從我書架上挑兩本書，講講它們之間相通的觀點。",
+        "organize": "把我書架上的書按類型整理成收藏。",
+        "memory": "你記得我的哪些閱讀習慣？"
+      }
+    },
     "annotations": {
       "title": "高亮與筆記"
     },

@@ -250,6 +250,14 @@
       },
       "footerOpen": "↵ Abrir"
     },
+    "welcome": {
+      "suggestions": {
+        "reading": "¿Cuánto he leído este mes y qué libro me ha llevado más tiempo?",
+        "connect": "Encuentra ideas que conecten dos libros de mi estantería.",
+        "organize": "Organiza los libros de mi estantería en colecciones por género.",
+        "memory": "¿Qué recuerdas sobre cómo leo?"
+      }
+    },
     "annotations": {
       "title": "Subrayados y notas"
     },

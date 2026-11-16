@@ -24,4 +24,4 @@ export { ReaderBackgroundLayer } from "./components/ReaderBackgroundLayer";
 export { ReaderTypographyControls } from "./components/ReaderTypographyControls";
 
 // Surfaces that name a shortcut render its keys the way Settings → Shortcuts does.
-export { chordToTokens } from "./lib/shortcuts";
+export { chordToTokens, resolveBinding } from "./lib/shortcuts";

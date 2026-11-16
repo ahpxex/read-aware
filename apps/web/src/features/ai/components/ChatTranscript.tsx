@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ChatCircleDots } from "@phosphor-icons/react";
 import { Caption, EmptyState, ScrollArea, Spinner } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
@@ -14,6 +15,9 @@ type ChatTranscriptProps = {
   status: string | null;
   /** Re-run the last turn; offered only on the transcript's last message. */
   onRetry?: () => void;
+  /** What an empty conversation shows in place of the default prompt (the
+   *  Agent page's welcome). */
+  emptyState?: ReactNode;
 };
 
 /** The quiet activity row shown while the model is between visible outputs. */
@@ -41,6 +45,7 @@ export function ChatTranscript({
   streamingParts,
   status,
   onRetry,
+  emptyState,
 }: ChatTranscriptProps) {
   const { t } = useTranslation("ai");
   const { containerRef, contentRef, liveTurnRef, liveTurnId, liveTurnMinHeight } = useTranscriptAutoScroll({
@@ -61,11 +66,13 @@ export function ChatTranscript({
   if (messages.length === 0 && !isStreaming) {
     return (
       <div className="flex flex-1 items-center justify-center px-6 py-10">
-        <EmptyState
-          icon={<ChatCircleDots size={28} weight="regular" />}
-          title={t(scope === "global" ? "chat.globalEmpty.title" : "chat.empty.title")}
-          description={t(scope === "global" ? "chat.globalEmpty.description" : "chat.empty.description")}
-        />
+        {emptyState ?? (
+          <EmptyState
+            icon={<ChatCircleDots size={28} weight="regular" />}
+            title={t(scope === "global" ? "chat.globalEmpty.title" : "chat.empty.title")}
+            description={t(scope === "global" ? "chat.globalEmpty.description" : "chat.empty.description")}
+          />
+        )}
       </div>
     );
   }

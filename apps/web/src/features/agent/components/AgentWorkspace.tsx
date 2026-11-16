@@ -14,6 +14,9 @@ import { useGlobalConversation } from "../../ai/hooks/useGlobalConversation";
 import { activeGlobalThreadAtom } from "../../ai/state/global-thread";
 import { ChatTurnRequest } from "../../ai/components/ChatTurnRequest";
 import { useConversationTurnRequests } from "../../ai/hooks/useConversationTurnRequests";
+import { chordToTokens, resolveBinding } from "../../settings";
+import { shortcutBindingsAtom } from "../../../state/ui";
+import { AgentWelcome } from "./AgentWelcome";
 import { ThreadsPalette } from "./ThreadsPalette";
 
 export function AgentWorkspace() {
@@ -21,6 +24,7 @@ export function AgentWorkspace() {
   const conversation = useGlobalConversation(activeThreadId);
   const composerRef = useRef<ChatComposerHandle | null>(null);
   const turnRequests = useConversationTurnRequests({ kind: "global", id: activeThreadId }, conversation, composerRef);
+  const bindings = useAtomValue(shortcutBindingsAtom);
 
   // The page IS the chat — focus the composer on entry and on thread switch
   // (a frame later, after the surface has rendered so focus lands cleanly).
@@ -44,6 +48,13 @@ export function AgentWorkspace() {
         streamingParts={conversation.streamingParts}
         status={conversation.status}
         onRetry={conversation.retry}
+        emptyState={
+          <AgentWelcome
+            onSuggest={(prompt) => composerRef.current?.adoptDraft(prompt)}
+            searchKeys={chordToTokens(resolveBinding("search", bindings))}
+            newConversationKeys={chordToTokens(resolveBinding("new-conversation", bindings))}
+          />
+        }
       />
       <ChatTurnRequest request={turnRequests.request} onAccept={turnRequests.accept} onDismiss={turnRequests.dismiss} />
       <ChatComposer

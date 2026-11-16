@@ -250,6 +250,14 @@
       },
       "footerOpen": "↵ Ouvrir"
     },
+    "welcome": {
+      "suggestions": {
+        "reading": "Combien ai-je lu ce mois-ci, et quel livre m’a pris le plus de temps ?",
+        "connect": "Trouve des idées qui relient deux livres de mon étagère.",
+        "organize": "Range les livres de mon étagère en collections par genre.",
+        "memory": "Que retiens-tu de ma façon de lire ?"
+      }
+    },
     "annotations": {
       "title": "Surlignages et notes"
     },

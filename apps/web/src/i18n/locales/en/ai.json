@@ -287,6 +287,14 @@
       },
       "footerOpen": "↵ Open"
     },
+    "welcome": {
+      "suggestions": {
+        "reading": "How much have I read this month, and which book took the most time?",
+        "connect": "Find ideas that connect two books on my shelf.",
+        "organize": "Sort the books on my shelf into collections by genre.",
+        "memory": "What do you remember about how I read?"
+      }
+    },
     "annotations": {
       "title": "Highlights & notes"
     },

@@ -1,0 +1,76 @@
+/**
+ * What an empty Agent conversation shows: the ReadAware mark, a line on what
+ * the page is for, a few ways in, and the keys for the page's own controls.
+ * A way in fills the composer (never sends), so it can be edited first.
+ */
+import type { ReactNode } from "react";
+import { Brain, ChartLineUp, FolderSimplePlus, Graph } from "@phosphor-icons/react";
+import { EmptyState, Kbd } from "@read-aware/ui";
+import { useTranslation } from "../../../i18n";
+import readAwareMark from "../../../assets/readaware-mark.png";
+
+const SUGGESTIONS = [
+  { key: "reading", Icon: ChartLineUp },
+  { key: "connect", Icon: Graph },
+  { key: "organize", Icon: FolderSimplePlus },
+  { key: "memory", Icon: Brain },
+] as const;
+
+export type AgentWelcomeProps = {
+  /** Put a prompt in the composer. */
+  onSuggest: (prompt: string) => void;
+  /** The live keys of the search (here: the thread palette) and new-conversation shortcuts. */
+  searchKeys: string[];
+  newConversationKeys: string[];
+};
+
+export function AgentWelcome({ onSuggest, searchKeys, newConversationKeys }: AgentWelcomeProps) {
+  const { t } = useTranslation("ai");
+  return (
+    <EmptyState
+      className="w-full max-w-xl py-0"
+      icon={<img src={readAwareMark} alt="" width={48} height={48} className="h-12 w-12" draggable={false} />}
+      title={t("chat.globalEmpty.title")}
+      description={t("chat.globalEmpty.description")}
+      action={
+        <div className="flex w-full flex-col items-center gap-5">
+          <ul className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
+            {SUGGESTIONS.map(({ key, Icon }) => {
+              const prompt = t(`agent.welcome.suggestions.${key}`);
+              return (
+                <li key={key}>
+                  {/* oxlint-disable-next-line react/forbid-elements -- a prompt card: wraps two lines, unlike Button's fixed height */}
+                  <button
+                    type="button"
+                    onClick={() => onSuggest(prompt)}
+                    className="flex h-full w-full items-start gap-2.5 rounded-md border border-border px-3 py-2.5 text-left font-sans text-sm text-fg-muted transition-colors hover:bg-fg/5 hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+                  >
+                    <Icon size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-subtle" />
+                    <span>{prompt}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 font-sans text-xs text-fg-subtle">
+            <Hint keys={searchKeys}>{t("agent.threads.search")}</Hint>
+            <Hint keys={newConversationKeys}>{t("agent.threads.new")}</Hint>
+          </p>
+        </div>
+      }
+    />
+  );
+}
+
+function Hint({ keys, children }: { keys: string[]; children: ReactNode }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="flex items-center gap-0.5">
+        {keys.map((key, index) => (
+          <Kbd key={index}>{key}</Kbd>
+        ))}
+      </span>
+      {children}
+    </span>
+  );
+}

@@ -797,7 +797,7 @@
     "items": {
       "library": "Library",
       "agent": "Agent",
-      "annotations": "Highlights & notes",
+      "annotations": "Notes",
       "search": "Search",
       "import": "Import book",
       "viewControl": "Shelf view",

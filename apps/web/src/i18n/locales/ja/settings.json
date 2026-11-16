@@ -706,7 +706,7 @@
     "items": {
       "library": "ライブラリ",
       "agent": "エージェント",
-      "annotations": "ハイライトとメモ",
+      "annotations": "メモ",
       "search": "検索",
       "import": "書籍を追加",
       "viewControl": "本棚ビュー",

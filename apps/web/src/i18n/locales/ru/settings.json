@@ -706,7 +706,7 @@
     "items": {
       "library": "Библиотека",
       "agent": "Агент",
-      "annotations": "Выделения и заметки",
+      "annotations": "Заметки",
       "search": "Поиск",
       "import": "Импорт",
       "viewControl": "Вид",

@@ -797,7 +797,7 @@
     "items": {
       "library": "书架",
       "agent": "智能助理",
-      "annotations": "高亮与笔记",
+      "annotations": "笔记",
       "search": "搜索",
       "import": "导入书籍",
       "viewControl": "书架视图",

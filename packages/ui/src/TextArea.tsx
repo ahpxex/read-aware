@@ -3,13 +3,20 @@ import { cn } from "./lib/cn";
 
 type TextAreaProps = {
   label: string;
+  /** Keep the label for assistive tech only — for a field whose surface
+   *  already says what it is (a note card under its passage). */
+  hideLabel?: boolean;
   helperText?: string;
   error?: string;
-  variant?: "underline" | "outlined";
+  /** `plain` has no rule or border and no resize grip: the field is the
+   *  surface it sits on, like writing straight onto a card. */
+  variant?: "underline" | "outlined" | "plain";
+  /** `sm` sets the text in the small body size, for compact surfaces. */
+  size?: "sm" | "md";
 } & Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "id">;
 
 export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(function TextArea(
-  { label, helperText, error, variant = "underline", className, ...props },
+  { label, hideLabel = false, helperText, error, variant = "underline", size = "md", className, ...props },
   ref,
 ) {
   const id = useId();
@@ -22,6 +29,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(function 
         className={cn(
           "font-sans text-[13px] font-medium",
           hasError ? "text-red-700 dark:text-red-400" : "text-fg-muted",
+          hideLabel && "sr-only",
         )}
       >
         {label}
@@ -33,7 +41,9 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(function 
         aria-invalid={hasError || undefined}
         aria-describedby={hasError ? `${id}-error` : helperText ? `${id}-helper` : undefined}
         className={cn(
-          "resize-y bg-transparent font-sans text-base text-fg outline-none placeholder:text-fg-subtle",
+          "bg-transparent font-sans text-fg outline-none placeholder:text-fg-subtle",
+          size === "sm" ? "text-sm leading-relaxed" : "text-base",
+          variant === "plain" ? "resize-none" : "resize-y",
           variant === "underline" &&
             cn("border-b pb-2", hasError ? "border-red-400 focus:border-red-600" : "border-border focus:border-fg"),
           variant === "outlined" &&

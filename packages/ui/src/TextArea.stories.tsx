@@ -53,3 +53,8 @@ export const OutlinedWithError: Story = {
     error: "Description must be at least 20 characters",
   },
 };
+
+/** No border, rule or grip, label kept for assistive tech only: writing straight onto a card. */
+export const Plain: Story = {
+  args: { label: "Note", hideLabel: true, variant: "plain", placeholder: "Write a note…", rows: 3 },
+};

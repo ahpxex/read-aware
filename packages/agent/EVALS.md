@@ -2,8 +2,42 @@
 
 ReadAware separates deterministic runtime tests from live, model-backed behavior
 evaluations. `bun test` remains the hard correctness gate. The eval runner calls
-the real `AgentThread` with isolated in-memory domain ports and records what the
-model actually saw and did.
+the real `AgentThread` and records what the model actually saw and did.
+
+## Environment
+
+Evals run on the app's **headless host** (`apps/web/tests/headless`), started by
+`apps/web/scripts/agent-evals.ts` — every `eval:*` run command goes through it.
+
+- The books of the real-book suites are files in a headless shell's library.
+  Above the native boundary (`platform/ipc`) the code is the app's own: the
+  reader engine parses the EPUB, `extractBookText` cuts chapters and builds the
+  block and sentence tables, and the agent's `bookText` port is
+  `createBookTextPort`, the one the desktop agent uses (search, exact locations,
+  ranges, navigation, locating a reader position). The shell stands in for the
+  native side only: an in-memory library, blob store and book archive. A native
+  command it does not provide fails by name.
+- A turn's reading position is handed to the runtime as the reader reports it:
+  locations in the book (real CFIs, one per source document on screen), the
+  chapter's href and the viewport text through the app's own sampler. The
+  runtime resolves chapter and coordinates itself.
+- Scenarios are written against each book's **snapshot**
+  (`fixtures/<slug>.booktext.json`): the chapters, titles, text and coordinates
+  the app extracts. Every run first compares the snapshots with a fresh
+  extraction and stops when they differ; `bun run eval:snapshots` rewrites them.
+  `tests/agent-reading-context.test.ts` holds the same check, and the
+  `eval-book-parity` runtime suite repeats the extraction in a browser engine.
+- **Not on the host yet:** the business store. Annotations, memory,
+  conversations, settings and the reader session are the in-memory ports of
+  `src/testing`. The suites over a few seeded lines of text (`behavior`) have
+  no book file and run entirely on those ports; each run records which
+  environment it used (`app-headless` or `in-memory`).
+
+A model-free layer sits below the model runs:
+`apps/web/tests/agent-reading-context.test.ts` drives the same host with a
+scripted model and checks what a model is shown and what the reading tool
+returns for a real position in a real book. A failure there is a failure of the
+app's pipeline, whatever a model would have made of it.
 
 One deterministic layer lives below the eval runner: the tool-surface contract
 (`src/tools/tool-surface.test.ts`). Every registered tool is executed against a
@@ -60,6 +94,9 @@ cursor), `selection` (visible-text selection), `multi-turn`, `global`
 
 Book axis (open): real-book slugs from the fixture registry — `karamazov`,
 `santi`, `lebon`, `berger`, `refactoring`.
+
+`smoke` (modifier) marks the small representative set to run first after any
+agent change: `bun run eval:smoke` (about a dozen scenarios, a few minutes).
 
 Filter scenarios by tag across a suite or a whole group:
 
@@ -169,7 +206,7 @@ cursor, or an explicitly legal forward target; leak words verified beyond).
   appears #39 — beyond the fence), Russian-nickname untangling, and the
   two-position Ivan portrait.
 - `santi` (S15): second narrative real book — the full Chinese Three-Body
-  trilogy omnibus (`fixtures/santi.epub`, 61 sections / ~900k chars). What
+  trilogy omnibus (`fixtures/santi.epub`, 57 chapters / ~900k chars; the app rebuilds its navigation). What
   karamazov cannot test: maximum pretraining fame (the model knows the whole
   plot) vs an early cursor — including the famous-quote recital door (the
   internet-famous lines must not be recited un-granted); multi-volume fence
@@ -183,7 +220,7 @@ cursor, or an explicitly legal forward target; leak words verified beyond).
   suspense-suspension family (the countdown's true meaning must be HELD
   OPEN at chapter 20 — answering it with 智子 is the pretraining leak).
 - `lebon` (S08): expository real book — the full Chinese Le Bon
-  (`fixtures/lebon.epub`, 18 chapters). The counterpart surface to the
+  (`fixtures/lebon.epub`, 21 chapters). The counterpart surface to the
   narrative suites: concept-graph injection ("argument so far" instead of
   characters/relations) — both the taxonomy recital and the whole-arc
   synthesis, plus transferring the graph to a domain the book predates
@@ -195,7 +232,7 @@ cursor, or an explicitly legal forward target; leak words verified beyond).
   two-position invariance pair (prestige taxonomy answered identically at
   25% via forward retrieval and at 68% directly).
 - `berger` (S02): how-to real book — the full Chinese Berger
-  (`fixtures/berger.epub`, 10 chapters). The tool-book angle: the reader
+  (`fixtures/berger.epub`, 9 chapters). The tool-book angle: the reader
   brings a real situation and the answer must APPLY the finished chapters'
   methods to it — explaining the methods AND coaching with them (turning them
   into usable questions for the reader's actual stakes) — plus an honest
@@ -205,7 +242,7 @@ cursor, or an explicitly legal forward target; leak words verified beyond).
   creativity), the too-idealistic pushback conversation, and the
   same-intent-three-wordings invariance run.
 - `refactoring` (S14): technical real book — the full English Refactoring 2nd
-  ed (`fixtures/refactoring.epub`, 23 sections / ~730k chars, images stripped
+  ed (`fixtures/refactoring.epub`, 24 chapters / ~730k chars, images stripped
   from the fixture, text untouched). What only a technical book tests: catalog
   lookup landing on the book's own chapter numbering, the smell vocabulary
   answered from the concept graph, the inverse direction (symptom → smell →

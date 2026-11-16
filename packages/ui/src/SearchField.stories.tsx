@@ -23,3 +23,19 @@ export const Plain: Story = {
     ),
   ],
 };
+
+/**
+ * A search that can be put away: the close control stands in for the browser's
+ * clear button, and Escape closes too (without reaching an enclosing dialog).
+ */
+export const Dismissible: Story = {
+  args: {
+    label: "Search highlights and notes",
+    placeholder: "Search highlights and notes",
+    size: "sm",
+    variant: "plain",
+    defaultValue: "waxwing",
+    onDismiss: () => {},
+    dismissLabel: "Close search",
+  },
+};

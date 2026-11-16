@@ -5,7 +5,8 @@
 ## 新增场景 / 新书（纪律不可省）
 
 - 新书：EPUB 拷进 `packages/agent/fixtures/<slug>.epub`（超大文件先剥图）→
-  `book-fixtures.ts` 注册表加 spec → `eval:digests <slug>` → 写以书名为
+  `book-fixtures.ts` 注册表加 spec → `bun run eval:snapshots <slug>`（由应用自己的
+  解析与抽取生成 `<slug>.booktext.json`）→ `eval:digests <slug>` → 写以书名为
   `displayName` 的专属套件，并在 `real-book-common.ts` 加配置；公共场景会直接
   并入这本书的套件，不另建聚合套件。
 - **预期事实与断言素材必须从 fixture 文本实证**：泄漏词要双重实证（正文首现晚于读者
@@ -20,12 +21,13 @@
 - 凡"管线写入、agent 消费"的字段，产品投影链必须有直测——eval 的内存端口
   与产品端口共享实现（如 searchTurnRecords），不许让 fixture 在接缝处替产品圆谎。
 
-## 章节边界验收
+## 书是应用读出来的
 
-现有 headless EPUB fixture 保留旧套件固定的 spine 坐标，不等于宿主的目录章节。
-涉及同文件多章、跨文件续章或目录锚点映射时，使用宿主抽取测试与真实 Tauri 正文端口，
-把完整工具输出和原书目录保存在 run 工件中；不能用合成 seed 或旧 spine fixture
-单独证明真实书籍的分章正确。
+真书的章节、章名、正文和章内坐标来自应用自己的解析与抽取（无界面宿主，见
+`packages/agent/EVALS.md` 的 Environment）。场景里的章节下标、取句、泄漏词边界都以
+快照 `<slug>.booktext.json` 为准；应用的抽取结果一变，评测启动时就会停下并提示重新
+生成快照，此时要按章名和正文重新核对受影响的章节下标与纪要，不能按下标加减推算。
+章节纪要按当前管线版本生成；`eval:digests <slug> --resume` 只保留版本不落后的条目。
 
 ## 场景标准
 

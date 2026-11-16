@@ -4,7 +4,12 @@
 
 ## 跑法
 
+所有运行命令都经应用侧的无界面运行器（`apps/web/scripts/agent-evals.ts`）启动；启动时
+先核对真书快照与应用当前抽取结果一致，不一致即停。改动 Agent 后先跑冒烟档。
+
 ```sh
+bun run eval:smoke                               # 冒烟档：十来个代表场景，几分钟
+bun run eval:snapshots [slug…]                   # 应用抽取结果变了：重写真书快照（不调用模型）
 bun run eval:agent <suite>                       # 单套件一遍
 bun run eval:agent <suite> --scenario <id>       # 单场景
 bun run eval:agent <suite> --repetitions 3       # 抽样示例；重复次数按本次评测判据确定
@@ -24,6 +29,11 @@ bun run eval:agent <suite> --gate                # 要求完成语义验收；�
 Baidu/千帆优先路由（CoreWeave 次选），key 在 `~/.pi/agent/auth.json`）、thinking **medium**、
 单场景超时 **240s**。`--provider deepseek` 是旧直连路径；跨 provider/thinking
 档位的结果**不可比**（trend 会标 INCOMPARABLE）。
+
+每条未通过的运行都带 `cause=`：`timeout` / `provider` / `setup` / `harness` 是环境问题，
+不说明 Agent 行为；`answer-withheld` / `answer-rewritten` 表示回答被运行时的事后核验
+撤回或改写（先看核验是否误判，再看模型）；`tool-error` 与 `answer` 才是模型自己的工具
+使用或回答。运行结束的 `Not passed because:` 一行给出各原因的计数。
 
 默认场景采用 semantic：checks 为辅助，未经主 Agent / 人工评审保持 pending。
 纯确定性操作可显式标记 programmatic，完成输出及实际 state 检查共同决定验收；

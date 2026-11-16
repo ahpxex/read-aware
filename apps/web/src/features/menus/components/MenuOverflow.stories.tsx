@@ -9,7 +9,7 @@ import {
   Trash,
 } from "@phosphor-icons/react";
 import { Popover } from "@read-aware/ui";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { MenuOverflow, type MenuOverflowEntry } from "./MenuOverflow";
 
 const icon = (Glyph: typeof Plus) => <Glyph size={16} weight="regular" aria-hidden="true" />;
@@ -102,7 +102,8 @@ export const WithWidgetRow: Story = {
     await userEvent.tab();
     await expect(trigger).toHaveFocus();
     await userEvent.keyboard("{Enter}");
-    await expect(canvas.getByText("Grid / list, sort order…")).toBeVisible();
+    // The nested panel fades in; wait for it rather than asserting mid-animation.
+    await waitFor(() => expect(canvas.getByText("Grid / list, sort order…")).toBeVisible());
   },
 };
 

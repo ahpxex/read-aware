@@ -6,8 +6,12 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const NAVIGATOR_OVERLAY_PREFIX = "read-aware:navigator:";
 
 const navigatorOverlayKey = (cfiRange: string) => `${NAVIGATOR_OVERLAY_PREFIX}${cfiRange}`;
+const NOTE_OVERLAY_PREFIX = "read-aware:note:";
+/** A noted passage's dashed line has its own overlay layer, so it shows beside
+ *  a highlight or underline on the same range instead of giving way to it. */
+export const noteOverlayKey = (cfiRange: string) => `${NOTE_OVERLAY_PREFIX}${cfiRange}`;
 
-/** A note's marker is a neutral dashed underline — quietly distinct from marks. */
+/** A note's marks are neutral stone — quietly distinct from the mark colors. */
 const NOTE_STROKE = "#78716c";
 
 /** The text-unit mode's resting wash — monochrome stone, not a mark color,
@@ -74,24 +78,39 @@ function drawUnderline(rects: Iterable<DOMRect>, options: { color?: string } = {
   return group;
 }
 
-/** A noted passage's marker: a dashed underline, quietly set apart from marks. */
-function drawNote(rects: Iterable<DOMRect>, options: { color?: string } = {}): SVGGElement {
-  const { color = NOTE_STROKE } = options;
+/**
+ * A noted passage: a dashed line under its whole extent, on its own layer so
+ * a highlight or underline on the same words never hides it. It sits a step
+ * lower than an underline's rule (see `drawUnderline`), so an underlined and
+ * noted passage shows both lines stacked, never one over the other.
+ */
+function drawNote(rects: Iterable<DOMRect>, options: { color?: string; writingMode?: string } = {}): SVGGElement {
+  const { color = NOTE_STROKE, writingMode = "horizontal-tb" } = options;
+  const vertical = writingMode.startsWith("vertical");
   const group = document.createElementNS(SVG_NS, "g");
   group.setAttribute("fill", "none");
   group.setAttribute("stroke", color);
-  group.setAttribute("stroke-width", "2");
+  group.setAttribute("stroke-width", "1.75");
   group.setAttribute("stroke-linecap", "round");
-  group.setAttribute("stroke-dasharray", "2 3.5");
-  group.style.opacity = "0.85";
+  group.setAttribute("stroke-dasharray", "3 3.5");
   for (const rect of rects) {
-    if (rect.width < 1) continue;
-    const y = rect.bottom - Math.min(5, rect.height * 0.16);
+    if (rect.width < 1 || rect.height < 1) continue;
     const line = document.createElementNS(SVG_NS, "line");
-    line.setAttribute("x1", String(rect.left + 0.75));
-    line.setAttribute("y1", String(y));
-    line.setAttribute("x2", String(rect.right - 0.75));
-    line.setAttribute("y2", String(y));
+    if (vertical) {
+      // Vertical text: the line runs beside the column, on the side an underline takes.
+      const x = rect.right - 0.5;
+      line.setAttribute("x1", String(x));
+      line.setAttribute("y1", String(rect.top + 0.75));
+      line.setAttribute("x2", String(x));
+      line.setAttribute("y2", String(rect.bottom - 0.75));
+    } else {
+      // An underline's rule sits about four pixels up from the box's bottom; this sits at the bottom.
+      const y = rect.bottom - 0.5;
+      line.setAttribute("x1", String(rect.left + 0.75));
+      line.setAttribute("y1", String(y));
+      line.setAttribute("x2", String(rect.right - 0.75));
+      line.setAttribute("y2", String(y));
+    }
     group.append(line);
   }
   return group;
@@ -223,32 +242,31 @@ export function removeHighlight(view: FoliateView, cfiRange: string): void {
   });
 }
 
-/** Draw one note's dashed marker (no-op if its CFI is not in a loaded section). */
-export function applyNote(view: FoliateView, note: Note): void {
-  if (!note.cfiRange) return;
-  void view.addAnnotation({ value: note.cfiRange, color: NOTE_STROKE, id: note.id, style: "note" }).catch(() => {
-    // CFI may not resolve in the current layout — foliate ignores it.
-  });
+/** A note's dashed line, on its own layer beside whatever marks the same words. */
+function noteMark(note: Note): FoliateAnnotation | null {
+  if (!note.cfiRange) return null;
+  return {
+    value: note.cfiRange,
+    overlayKey: noteOverlayKey(note.cfiRange),
+    id: note.id,
+    color: NOTE_STROKE,
+    style: "note",
+  };
 }
 
-/**
- * Draw note markers, skipping any note whose range is already highlighted: the
- * highlight is the visual there, and foliate's overlayer keys by CFI so a note
- * and a mark can't share one range. (The note stays reachable from the mark's
- * menu.)
- */
+/** Draw every noted passage's dashed line (on its own layer, beside any mark). */
 export function applyNotes(view: FoliateView, notes: Note[], highlights: Highlight[]): void {
-  const highlighted = new Set(highlights.map((highlight) => highlight.cfiRange).filter(Boolean));
-  for (const note of notes) {
-    if (!note.cfiRange || highlighted.has(note.cfiRange)) continue;
-    applyNote(view, note);
-    highlighted.add(note.cfiRange);
+  for (const mark of marksFor([...highlights, ...notes]).values()) {
+    if (mark.style !== "note") continue;
+    void view.addAnnotation(mark).catch(() => {
+      // CFI may not resolve in the current layout — foliate ignores it.
+    });
   }
 }
 
-/** Reconcile only stored marks, never the separate navigator overlay namespace. */
-/** The mark each anchored range shows for a set of stored annotations. A
- *  highlight owns a shared range; notes remain reachable through its menu. */
+/** The marks each anchored range shows for a set of stored annotations, keyed
+ *  by overlay: a highlight or underline owns its range's mark, and every noted
+ *  range adds its dashed line on a layer of its own. */
 function marksFor(items: ReadonlyArray<Highlight | Note>): Map<string, FoliateAnnotation> {
   const marks = new Map<string, FoliateAnnotation>();
   for (const item of items) {
@@ -257,15 +275,20 @@ function marksFor(items: ReadonlyArray<Highlight | Note>): Map<string, FoliateAn
     if (mark && !marks.has(mark.value)) marks.set(mark.value, mark);
   }
   for (const item of items) {
-    if (item.type === "note" && item.cfiRange && !marks.has(item.cfiRange)) {
-      marks.set(item.cfiRange, { value: item.cfiRange, id: item.id, color: NOTE_STROKE, style: "note" });
-    }
+    if (item.type !== "note") continue;
+    const mark = noteMark(item);
+    if (mark && !marks.has(mark.overlayKey!)) marks.set(mark.overlayKey!, mark);
   }
   return marks;
 }
 
 const sameMark = (a: FoliateAnnotation | undefined, b: FoliateAnnotation) =>
-  !!a && a.value === b.value && a.id === b.id && a.color === b.color && a.style === b.style;
+  !!a &&
+  a.value === b.value &&
+  a.overlayKey === b.overlayKey &&
+  a.id === b.id &&
+  a.color === b.color &&
+  a.style === b.style;
 
 /** Bring the drawn marks from `previous` to `next`: remove anchors that lost
  *  their mark, paint anchors whose mark is new or changed, and leave unchanged
@@ -281,19 +304,21 @@ export async function reconcileAnnotationMarks(
 ): Promise<void> {
   const drawn = marksFor(previous),
     desired = marksFor(next);
-  for (const value of new Set(previous.map((item) => item.cfiRange).filter((value): value is string => !!value))) {
+  for (const [key, mark] of drawn) {
     if (signal.aborted) return;
-    if (!desired.has(value)) {
+    if (!desired.has(key)) {
       try {
-        await view.deleteAnnotation({ value });
+        await view.deleteAnnotation(
+          mark.overlayKey ? { value: mark.value, overlayKey: mark.overlayKey } : { value: mark.value },
+        );
       } catch (error) {
         if (!signal.aborted) report(error);
       }
     }
   }
-  for (const mark of desired.values()) {
+  for (const [key, mark] of desired) {
     if (signal.aborted) return;
-    if (sameMark(drawn.get(mark.value), mark)) continue;
+    if (sameMark(drawn.get(key), mark)) continue;
     try {
       await view.addAnnotation(mark);
     } catch (error) {

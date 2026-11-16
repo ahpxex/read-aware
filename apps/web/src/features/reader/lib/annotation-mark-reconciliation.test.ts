@@ -32,7 +32,7 @@ function fixture() {
     },
   };
 }
-test("reconciliation removes obsolete anchors, updates style and restores a note when its highlight is removed", async () => {
+test("reconciliation removes obsolete anchors, updates style and keeps a note's line when its highlight is removed", async () => {
   const f = fixture();
   await reconcileAnnotationMarks(
     f.view,
@@ -41,11 +41,9 @@ test("reconciliation removes obsolete anchors, updates style and restores a note
     new AbortController().signal,
     (error) => f.errors.push(error),
   );
-  expect(f.deleted).toEqual(["old"]);
-  expect(f.added).toEqual([
-    { value: "new", id: "new", color: "#3b82f6", style: "underline" },
-    { value: "shared", id: "n", color: "#78716c", style: "note" },
-  ]);
+  // The note's line was already drawn on its own layer beside the highlight, so it stays put.
+  expect(f.deleted).toEqual(["old", "shared"]);
+  expect(f.added).toEqual([{ value: "new", id: "new", color: "#3b82f6", style: "underline" }]);
   expect(f.errors).toEqual([]);
 });
 test("marks that did not change are not repainted; a recolor and a new mark are", async () => {
@@ -65,7 +63,7 @@ test("marks that did not change are not repainted; a recolor and a new mark are"
   expect(f.added[0]!.color).toBe("#4ade80");
   expect(f.errors).toEqual([]);
 });
-test("a shared anchor is painted once with the same first highlight the menu resolves", async () => {
+test("a shared anchor's mark is the first highlight the menu resolves; its note adds its own line", async () => {
   const f = fixture();
   await reconcileAnnotationMarks(
     f.view,
@@ -74,16 +72,27 @@ test("a shared anchor is painted once with the same first highlight the menu res
     new AbortController().signal,
     (error) => f.errors.push(error),
   );
-  expect(f.added).toHaveLength(1);
-  expect(f.added[0]!.id).toBe("first");
+  expect(f.added.map((item) => [item.id, item.style])).toEqual([
+    ["first", "highlight"],
+    ["n", "note"],
+  ]);
 });
 test("overlay recreation uses the same shared-range ownership as live reconciliation", () => {
   const f = fixture(),
     view = f.view as FoliateView;
   const highlights = [highlight("first", "shared"), highlight("second", "shared")];
   applyHighlights(view, highlights);
-  applyNotes(view, [note("hidden", "shared"), note("first-note", "note"), note("second-note", "note")], highlights);
-  expect(f.added.map((item) => item.id)).toEqual(["first", "first-note"]);
+  applyNotes(
+    view,
+    [note("shared-note", "shared"), note("first-note", "note"), note("second-note", "note")],
+    highlights,
+  );
+  expect(f.added.map((item) => [item.id, item.style])).toEqual([
+    ["first", "highlight"],
+    // Every noted range gets one line, highlighted or not; two notes on a range share it.
+    ["shared-note", "note"],
+    ["first-note", "note"],
+  ]);
 });
 test("retirement during an engine operation prevents subsequent painting; a failed anchor does not hide other marks", async () => {
   const f = fixture(),

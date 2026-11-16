@@ -249,11 +249,6 @@
         "older": "Älter"
       }
     },
-    "unknownBook": "Unbekanntes Buch",
-    "empty": {
-      "title": "Noch kein Kontext",
-      "description": "Markierungen und Notizen aus deinem Lesen erscheinen hier."
-    },
     "annotations": {
       "title": "Markierungen & Notizen"
     },

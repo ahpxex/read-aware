@@ -249,11 +249,6 @@
         "older": "Anteriores"
       }
     },
-    "unknownBook": "Libro desconocido",
-    "empty": {
-      "title": "Aún no hay contexto",
-      "description": "Aquí aparecerán los resaltados y las notas de tu lectura."
-    },
     "annotations": {
       "title": "Subrayados y notas"
     },

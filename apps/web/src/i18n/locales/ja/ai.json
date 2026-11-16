@@ -249,11 +249,6 @@
         "older": "それ以前"
       }
     },
-    "unknownBook": "不明な本",
-    "empty": {
-      "title": "まだコンテキストがありません",
-      "description": "読書中のハイライトやメモがここに表示されます。"
-    },
     "annotations": {
       "title": "ハイライトとメモ"
     },

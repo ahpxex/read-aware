@@ -249,11 +249,6 @@
         "older": "Plus ancien"
       }
     },
-    "unknownBook": "Livre inconnu",
-    "empty": {
-      "title": "Aucun contexte pour l’instant",
-      "description": "Les surlignages et notes de vos lectures apparaîtront ici."
-    },
     "annotations": {
       "title": "Surlignages et notes"
     },

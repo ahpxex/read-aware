@@ -286,11 +286,6 @@
         "older": "Older"
       }
     },
-    "unknownBook": "Unknown Book",
-    "empty": {
-      "title": "No context yet",
-      "description": "Highlights and notes from your reading will appear here."
-    },
     "annotations": {
       "title": "Highlights & notes"
     },

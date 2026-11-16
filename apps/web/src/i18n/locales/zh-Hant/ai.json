@@ -284,11 +284,6 @@
         "older": "更早"
       }
     },
-    "unknownBook": "不明書籍",
-    "empty": {
-      "title": "尚無上下文",
-      "description": "你閱讀時的螢光標示與筆記將顯示於此。"
-    },
     "annotations": {
       "title": "高亮與筆記"
     },

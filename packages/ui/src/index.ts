@@ -48,6 +48,7 @@ export { ToastProvider, useToast, type ToastOptions } from "./Toast";
 export { Tag } from "./Tag";
 export { DropdownMenu } from "./DropdownMenu";
 export { Popover } from "./Popover";
+export { Palette, PaletteGroup, PaletteOption } from "./Palette";
 export { ChoiceGroup } from "./ChoiceGroup";
 export { Stepper } from "./Stepper";
 export { Slider } from "./Slider";

@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check } from "@phosphor-icons/react";
-import { SearchField } from "@read-aware/ui";
-import { cn } from "@read-aware/ui/cn";
+import { Palette, PaletteGroup, PaletteOption } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { buildCommands, type CommandContext, type CommandItem } from "../lib/build-commands";
 import { filterCommands } from "../lib/filter-commands";
@@ -39,8 +38,6 @@ export function CommandPalette({
   const { t } = useTranslation("command");
   const [query, setQuery] = useAtom(commandQueryAtom);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
   const { run, dismiss, busy } = useCommandExecution(isOpen, onClose, executeHost);
   const readingAiCommands = useReadingAiCommands(isOpen);
   const readingHistoryCommands = useReadingHistoryCommands(isOpen);
@@ -69,145 +66,81 @@ export function CommandPalette({
   const flat = useMemo(() => groups.flatMap((group) => group.items), [groups]);
 
   useEffect(() => {
-    if (!isOpen) return;
-    setSelectedIndex(0);
-    const id = window.setTimeout(() => inputRef.current?.focus(), 40);
-    return () => window.clearTimeout(id);
+    if (isOpen) setSelectedIndex(0);
   }, [isOpen]);
 
   useEffect(() => {
     setSelectedIndex((index) => availableCommandIndex(flat, index));
   }, [flat]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        dismiss();
-      } else if (event.key === "ArrowDown") {
-        event.preventDefault();
-        setSelectedIndex((index) => nextCommandIndex(flat, index, 1));
-      } else if (event.key === "ArrowUp") {
-        event.preventDefault();
-        setSelectedIndex((index) => nextCommandIndex(flat, index, -1));
-      } else if (event.key === "Enter") {
-        event.preventDefault();
-        const item = flat[selectedIndex];
-        if (item) void run(item);
-      }
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isOpen, flat, selectedIndex, dismiss, run]);
-
-  useEffect(() => {
-    listRef.current?.querySelector(`[data-index="${selectedIndex}"]`)?.scrollIntoView({ block: "nearest" });
-  }, [selectedIndex, groups]);
-
-  if (!isOpen) return null;
-
   let runningIndex = -1;
 
   return (
-    <div
-      className="ra-scrim fixed inset-0 z-50 flex items-start justify-center bg-stone-950/35 px-4 py-[15vh] backdrop-blur-sm"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) dismiss();
-      }}
-    >
-      <WorkspaceCommit surface="search" token={workspaceToken} />
-      <div
-        aria-busy={busy}
-        className={cn(
-          "flex w-full max-w-xl flex-col border border-border bg-[var(--ra-main-surface-color)]",
-          "shadow-[0_12px_32px_rgba(28,25,23,0.15)]",
-          "animate-in fade-in slide-in-from-top-2 duration-200",
-        )}
-        onClick={(event) => event.stopPropagation()}
+    <>
+      {isOpen && <WorkspaceCommit surface="search" token={workspaceToken} />}
+      <Palette
+        open={isOpen}
+        onClose={dismiss}
+        searchLabel={t("search.placeholder")}
+        query={query}
+        onQueryChange={setQuery}
+        selectedIndex={selectedIndex}
+        onMove={(direction) => setSelectedIndex((index) => nextCommandIndex(flat, index, direction))}
+        onRun={() => {
+          const item = flat[selectedIndex];
+          if (item) void run(item);
+        }}
+        busy={busy}
+        footer={
+          <>
+            <span>{t("results", { count: flat.length })}</span>
+            <div className="flex gap-3">
+              <span>{t("footer.navigate")}</span>
+              <span>{t("footer.run")}</span>
+              <span>{t("footer.close")}</span>
+            </div>
+          </>
+        }
       >
-        <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-          <SearchField
-            ref={inputRef}
-            variant="plain"
-            label={t("search.placeholder")}
-            value={query}
-            maxLength={4096}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t("search.placeholder")}
-            className="w-full"
-          />
-        </div>
-
-        <div ref={listRef} className="max-h-[55vh] overflow-y-auto py-2">
-          {flat.length === 0 ? (
-            <div className="px-4 py-12 text-center text-sm text-fg-muted">{t("noMatches", { query })}</div>
-          ) : (
-            groups.map((group) => (
-              <div key={group.group} className="mb-1">
-                <div className="px-4 pb-1 pt-2 text-xs lowercase text-fg-subtle">{t(`groups.${group.group}`)}</div>
-                {group.items.map((item) => {
-                  runningIndex += 1;
-                  const index = runningIndex;
-                  const selected = index === selectedIndex;
-                  return (
-                    // oxlint-disable-next-line react/forbid-elements -- palette option with keyboard-driven selection state
-                    <button
-                      key={item.id}
-                      type="button"
-                      data-index={index}
-                      aria-selected={selected}
-                      disabled={item.disabled || busy}
-                      aria-pressed={item.checked}
-                      onMouseMove={() => {
-                        if (!item.disabled) setSelectedIndex(index);
-                      }}
-                      onClick={() => {
-                        void run(item);
-                      }}
-                      className={cn(
-                        "relative flex w-full items-center gap-3 px-4 py-2 text-left transition-colors",
-                        selected ? "bg-fg/[0.07]" : "hover:bg-fg/[0.04]",
-                        item.disabled && "cursor-default opacity-50",
+        {flat.length === 0 ? (
+          <div className="px-4 py-12 text-center text-sm text-fg-muted">{t("noMatches", { query })}</div>
+        ) : (
+          groups.map((group) => (
+            <PaletteGroup key={group.group} label={t(`groups.${group.group}`)}>
+              {group.items.map((item) => {
+                runningIndex += 1;
+                const index = runningIndex;
+                return (
+                  <PaletteOption
+                    key={item.id}
+                    index={index}
+                    selected={index === selectedIndex}
+                    disabled={item.disabled || busy}
+                    aria-pressed={item.checked}
+                    onHover={() => setSelectedIndex(index)}
+                    onRun={() => {
+                      void run(item);
+                    }}
+                  >
+                    <span className="flex h-9 w-7 shrink-0 items-center justify-center overflow-hidden rounded-sm">
+                      {item.kind === "book" && item.coverUrl ? (
+                        <img src={item.coverUrl} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="flex h-7 w-7 items-center justify-center text-fg-muted">{item.icon}</span>
                       )}
-                    >
-                      {selected && (
-                        <span className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-fg" aria-hidden="true" />
-                      )}
-                      <span className="flex h-9 w-7 shrink-0 items-center justify-center overflow-hidden rounded-sm">
-                        {item.kind === "book" && item.coverUrl ? (
-                          <img src={item.coverUrl} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          <span className="flex h-7 w-7 items-center justify-center text-fg-muted">{item.icon}</span>
-                        )}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium text-fg">{item.title}</span>
-                        {item.subtitle && <span className="block truncate text-xs text-fg-muted">{item.subtitle}</span>}
-                      </span>
-                      {item.checked && <Check size={16} aria-hidden="true" className="shrink-0" />}
-                      {selected && !item.disabled && (
-                        <span className="shrink-0 text-xs text-fg-subtle" aria-hidden="true">
-                          ↵
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ))
-          )}
-        </div>
-
-        <div className="flex items-center justify-between border-t border-border px-4 py-2 text-xs text-fg-subtle">
-          <span>{t("results", { count: flat.length })}</span>
-          <div className="flex gap-3">
-            <span>{t("footer.navigate")}</span>
-            <span>{t("footer.run")}</span>
-            <span>{t("footer.close")}</span>
-          </div>
-        </div>
-      </div>
-    </div>
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-fg">{item.title}</span>
+                      {item.subtitle && <span className="block truncate text-xs text-fg-muted">{item.subtitle}</span>}
+                    </span>
+                    {item.checked && <Check size={16} aria-hidden="true" className="shrink-0" />}
+                  </PaletteOption>
+                );
+              })}
+            </PaletteGroup>
+          ))
+        )}
+      </Palette>
+    </>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { Activity, useCallback, useEffect, useId, useLayoutEffect, useRef, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocalAtom } from "./lib/useLocalAtom";
 import { cn } from "./lib/cn";
@@ -49,12 +49,6 @@ export function Tabs({
   const [internalIndex, setInternalIndex] = useLocalAtom(defaultIndex);
   const isControlled = controlledIndex != null;
   const activeIndex = isControlled ? controlledIndex : internalIndex;
-  // A panel mounts the first time it is shown and stays mounted after, so a
-  // tab keeps its state when left and revisited — but panels nobody opened
-  // never render. Mounting every panel up front made a page pay for all its
-  // tabs' content (charts, lists, plugin views) to show one of them.
-  const [visited, setVisited] = useState<readonly number[]>(() => [activeIndex]);
-  if (!visited.includes(activeIndex)) setVisited([...visited, activeIndex]);
   const [transitionDirection, setTransitionDirection] = useLocalAtom<"forward" | "backward">("forward");
   const [indicatorStyle, setIndicatorStyle] = useLocalAtom({
     x: 0,
@@ -237,7 +231,13 @@ export function Tabs({
                   : "ra-motion-tab-panel-in-backward"),
             )}
           >
-            {visited.includes(i) && item.content}
+            {/* Inactive panels render through a hidden Activity: React builds
+                them at low priority after the visible panel is on screen, in
+                interruptible slices, and holds their effects until shown. The
+                page no longer pays for every tab's content (charts, lists,
+                plugin views) before it can show one — yet switching tabs only
+                reveals a panel that is already built, and keeps its state. */}
+            <Activity mode={i === activeIndex ? "visible" : "hidden"}>{item.content}</Activity>
           </div>
         );
       })}

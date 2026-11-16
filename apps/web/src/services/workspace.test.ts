@@ -122,6 +122,18 @@ test("workspace receipts require a matching fresh destination commit, not dispat
   expect((await again).status).toBe("completed");
   f.binding.dispose();
 });
+test("the highlights & notes page is a surface: its target normalizes bare and its commit completes the receipt", async () => {
+  expect(normalizeWorkspaceTarget({ surface: "annotations", query: "x" } as unknown as WorkspaceTarget)).toEqual({
+    surface: "annotations",
+  });
+  const f = fixture();
+  const result = f.service.navigate({ surface: "annotations" });
+  await tick();
+  f.ack("annotations");
+  f.publish();
+  expect((await result).snapshot.surface).toBe("annotations");
+  f.binding.dispose();
+});
 test("settings intermediary commits do not acknowledge a wrong section; search preserves its explicit query", async () => {
   const f = fixture();
   const result = f.service.navigate({ surface: "settings", section: "reading" });

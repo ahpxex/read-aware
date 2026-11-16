@@ -118,6 +118,9 @@ test("leaving a reader needs the extra grant and preserves native handoff; overl
   expect(store.get(commandSearchOpenAtom)).toBe(false);
   store.set(commandSearchOpenAtom, true);
   expect(store.get(commandQueryAtom)).toBe("");
+  await applyWorkspaceTarget(store, { surface: "annotations" }, s, true, source);
+  expect(store.get(activeTopNavAtom)).toBe("annotations");
+  expect(eventCause(store.get(workspaceSourcesAtom).surface)).toBe(actorCause(source));
 });
 test("native navigation or reopened reader during close is never overwritten", async () => {
   for (const reopen of [true, false]) {

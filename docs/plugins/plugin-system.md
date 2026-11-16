@@ -4828,7 +4828,7 @@ and disposes subscriptions. Captured methods cannot regain authority after stop.
 | Target | Accepted fields and effect |
 | --- | --- |
 | `shelf` | `collectionId?: string|null` (omitted means root), `selection?: { active: boolean, bookIds: string[] }`; omitted selection clears it |
-| `agent`, `stats` | Open the native Context or statistics surface |
+| `agent`, `stats`, `annotations` | Open the native Context, statistics, or highlights & notes surface (`annotations` since UI 1.18) |
 | `settings` | `section?`, default `general`; nine built-ins: general, appearance, reading, ai, plugins, menus, shortcuts, dataSync, about; `plugin:<id>` only for an enabled plugin declaring settings |
 | `search` | `query?`, default empty, at most 4096 UTF-16 code units; opens the existing command palette, not full-book search or a new filtered shelf |
 
@@ -4842,7 +4842,7 @@ including while the shelf is hidden. Layout/grouping/sort remain `settings`
 operations, not duplicate workspace state or a second persistence layer.
 
 [代码] Snapshots contain a monotonic process-local `revision`, the committed
-`surface` (`shelf`, `agent`, `stats`, `plugin`, `reader`), current collection,
+`surface` (`shelf`, `agent`, `stats`, `annotations`, `plugin`, `reader`), current collection,
 settings open/section, command-search open/query, and selection active/total/page.
 They contain no reader book ID, text, credentials, DOM, settings values or raw
 router/atom handles. `snapshot({ selectionAfter?, limit? })` uses ascending

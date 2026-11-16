@@ -28,7 +28,7 @@ export type ContributionPermission = Exclude<(typeof CONTRIBUTION_CATALOG)[Contr
 export const HOST_SERVICE_CATALOG = {
   storage: { version: "2.6.0", permission: null },
   secrets: { version: "1.0.0", permission: null },
-  ui: { version: "1.17.0", permission: null },
+  ui: { version: "1.18.0", permission: null },
   schedules: { version: "2.1.0", permission: null },
   jobs: { version: "1.1.0", permission: null },
   changes: { version: "1.0.0", permission: null },

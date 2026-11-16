@@ -2745,7 +2745,8 @@ export type PluginHostServices = {
         handler: PluginObservationHandler<import("@read-aware/core").WorkspaceSnapshot | null>,
         options?: { ruleId?: string },
       ): PluginDisposable;
-      /** Library write grant; leaving an active reader additionally requires reading:write. */
+      /** Library write grant; leaving an active reader additionally requires reading:write.
+       * UI 1.18: `{ surface: "annotations" }` opens the highlights & notes page, which snapshots report. */
       navigate?(
         target: import("@read-aware/core").WorkspaceTarget,
         expectedRevision?: number,

@@ -990,6 +990,10 @@ pub const MIGRATIONS: &[(i64, &str, &str)] = &[
     // The section a bookmark was made in (`bookmark.created.chapterHref`, like
     // an annotation's), so the notes list groups it under its chapter.
     (59, "bookmark_chapter", "ALTER TABLE bookmarks ADD COLUMN chapter_href TEXT;"),
+    // A global thread's short title (`aiConversation.titled`, written by the
+    // agent after the first exchange). NULL until then; the thread list falls
+    // back to the first user message. A clear resets it with the transcript.
+    (60, "ai_conversation_title", "ALTER TABLE ai_conversations ADD COLUMN title TEXT;"),
 ];
 
 /// Rebuild the annotation FTS index from the table. Required after any VACUUM
@@ -1008,7 +1012,7 @@ pub fn rebuild_annotations_fts(conn: &Connection) -> Result<(), CommandError> {
 /// The schema version a projection checkpoint is stamped with. Restoring one
 /// is only sound when the derived tables' shapes match exactly, so a
 /// checkpoint from a different version is ignored in favour of the log.
-pub const SCHEMA_VERSION: i64 = 59;
+pub const SCHEMA_VERSION: i64 = 60;
 
 /// The migration after which `materialize_legacy_covers` must run: the cover
 /// projection columns exist, the inline data-URL column still does.

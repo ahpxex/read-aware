@@ -391,3 +391,88 @@ fn a_message_after_a_clear_reactivates_the_conversation_in_the_log_itself() {
     assert_eq!(cleared, None);
     assert_replay_matches_live(&mut conn);
 }
+
+fn titled(id: &str, wall: i64, title: &str, message: &str) -> EventRow {
+    ev(
+        id,
+        wall,
+        "aiConversation.titled",
+        json!({ "conversationId": CONVERSATION, "title": title, "messageId": message }),
+    )
+}
+
+/// (title, updated_at) of the conversation row.
+fn title_and_activity(conn: &Connection) -> (Option<String>, String) {
+    conn.query_row(
+        "SELECT title, updated_at FROM ai_conversations WHERE id=?1",
+        [CONVERSATION],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )
+    .unwrap()
+}
+
+#[test]
+fn a_title_names_the_thread_without_counting_as_activity_and_replays() {
+    let mut conn = migrated_conn();
+    first_exchange(&mut conn);
+    let (_, before) = title_and_activity(&conn);
+    commit_events_inner(&mut conn, &[titled("t1", 5_000, "  The question  ", "u1")]).unwrap();
+    let (title, after) = title_and_activity(&conn);
+    assert_eq!(title.as_deref(), Some("The question"));
+    // Naming is not activity: the list's order and date groups stay put.
+    assert_eq!(after, before);
+    assert_replay_matches_live(&mut conn);
+}
+
+#[test]
+fn a_clear_forgets_the_title_and_a_late_title_for_the_cleared_history_names_nothing() {
+    let mut conn = migrated_conn();
+    first_exchange(&mut conn);
+    commit_events_inner(&mut conn, &[titled("t1", 1_005, "Old", "u1")]).unwrap();
+    commit_events_inner(
+        &mut conn,
+        &[ev(
+            "c1",
+            1_010,
+            "aiConversation.cleared",
+            json!({ "conversationId": CONVERSATION }),
+        )],
+    )
+    .unwrap();
+    assert_eq!(title_and_activity(&conn).0, None);
+    // The thread is reused, and a title computed from the cleared history lands late.
+    ai_chat_commit_inner(
+        &mut conn,
+        CONVERSATION,
+        &[appended("e5", 1_020, "u9", "user", 0, "again")],
+        &[shown("u9", 0, None)],
+        &[],
+    )
+    .unwrap();
+    commit_events_inner(&mut conn, &[titled("t2", 1_030, "Stale", "u1")]).unwrap();
+    assert_eq!(title_and_activity(&conn).0, None);
+    // A title for the new history does land.
+    commit_events_inner(&mut conn, &[titled("t3", 1_040, "Again", "u9")]).unwrap();
+    assert_eq!(title_and_activity(&conn).0.as_deref(), Some("Again"));
+    assert_replay_matches_live(&mut conn);
+}
+
+#[test]
+fn a_blank_or_overlong_title_is_rejected() {
+    let mut conn = migrated_conn();
+    first_exchange(&mut conn);
+    assert!(commit_events_inner(&mut conn, &[titled("t1", 5_000, "   ", "u1")]).is_err());
+    let long = "x".repeat(apply::MAX_CONVERSATION_TITLE_CHARS + 1);
+    assert!(commit_events_inner(&mut conn, &[titled("t2", 5_001, &long, "u1")]).is_err());
+    assert!(commit_events_inner(
+        &mut conn,
+        &[ev(
+            "t3",
+            5_002,
+            "aiConversation.titled",
+            json!({ "conversationId": CONVERSATION, "title": "No source" })
+        )]
+    )
+    .is_err());
+    assert_eq!(title_and_activity(&conn).0, None);
+}

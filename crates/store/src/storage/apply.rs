@@ -106,6 +106,10 @@ fn event_time(ev: &EventRow) -> String {
         .unwrap_or_else(|| iso_from_millis(ev.hlc.wall_ms))
 }
 
+/// The longest conversation title `aiConversation.titled` may carry, in
+/// characters (the agent writes a few words; this only bounds a bad writer).
+pub const MAX_CONVERSATION_TITLE_CHARS: usize = 120;
+
 // ─── Payload accessors ───────────────────────────────────────────────────────
 
 fn str_of(p: &Value, key: &str) -> Option<String> {
@@ -751,9 +755,33 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandE
             )?;
             // Tombstone, not a row delete — the sync semantics in
             // docs/archive/designs/sqlite-schema.sql keep the conversation with a cleared_at.
+            // The title described the cleared history: a reused thread (the
+            // default global id) earns a new one from its next exchange.
             tx.execute(
-                "UPDATE ai_conversations SET cleared_at = ?2, updated_at = ?2 WHERE id = ?1",
+                "UPDATE ai_conversations SET cleared_at = ?2, updated_at = ?2, title = NULL WHERE id = ?1",
                 params![id, at],
+            )?;
+        }
+        "aiConversation.titled" => {
+            let id = require(p, "conversationId", t)?;
+            let title = require(p, "title", t)?;
+            let title = title.trim();
+            if title.is_empty() || title.chars().count() > MAX_CONVERSATION_TITLE_CHARS {
+                return Err(CommandError::internal(format!(
+                    "event {t}: title must be 1–{MAX_CONVERSATION_TITLE_CHARS} characters"
+                )));
+            }
+            // A title names the history it was written from, identified by its
+            // first user message: once that message is gone (a clear, then a new
+            // exchange on the same thread) a late title has nothing to name.
+            let message_id = require(p, "messageId", t)?;
+            // Only the title: naming a thread is not activity, so `updated_at`
+            // (the list's order and date groups) stays where its messages put it.
+            tx.execute(
+                "UPDATE ai_conversations SET title = ?2
+                 WHERE id = ?1
+                   AND EXISTS (SELECT 1 FROM ai_messages WHERE id = ?3 AND conversation_id = ?1)",
+                params![id, title, message_id],
             )?;
         }
 

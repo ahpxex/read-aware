@@ -197,7 +197,8 @@ pub fn ai_chat_commit_inner(
 }
 
 /// One row per non-empty conversation, newest-activity first: id, activity
-/// timestamp, message count, and the first user message as a title preview.
+/// timestamp, message count, the first user message as a preview, and the
+/// generated title once the thread has one.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AiChatSummary {
@@ -205,4 +206,6 @@ pub struct AiChatSummary {
     pub updated_at: String,
     pub message_count: i64,
     pub preview: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
 }

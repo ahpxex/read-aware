@@ -116,10 +116,11 @@ pub async fn ai_chat_list(app: tauri::AppHandle) -> Result<Vec<AiChatSummary>, C
             "SELECT c.id, c.updated_at, COUNT(m.id) AS message_count,
                     (SELECT content FROM ai_messages
                      WHERE conversation_id = c.id AND role = 'user'
-                     ORDER BY seq, created_at, id LIMIT 1) AS preview
+                     ORDER BY seq, created_at, id LIMIT 1) AS preview,
+                    c.title
              FROM ai_conversations c
              LEFT JOIN ai_messages m ON m.conversation_id = c.id
-             GROUP BY c.id
+             GROUP BY c.id, c.title
              HAVING COUNT(m.id) > 0
              ORDER BY c.updated_at DESC",
         )?;
@@ -129,6 +130,7 @@ pub async fn ai_chat_list(app: tauri::AppHandle) -> Result<Vec<AiChatSummary>, C
                 updated_at: row.get(1)?,
                 message_count: row.get(2)?,
                 preview: row.get(3)?,
+                title: row.get(4)?,
             })
         })?;
         let mut out = Vec::new();

@@ -284,14 +284,20 @@ function mergeTextChapters(record: BookTextRecord, pageText: boolean, locale?: s
     const within = (slice: Slice, offset: number) => offset >= slice.start && offset < slice.end;
     const blockMarks = current.slices.flatMap((slice, index) => [
       bases[index]!,
-      ...slice.piece.blocks.filter((offset) => within(slice, offset)).map((offset) => bases[index]! + offset - slice.start),
+      ...slice.piece.blocks
+        .filter((offset) => within(slice, offset))
+        .map((offset) => bases[index]! + offset - slice.start),
     ]);
     const headingMarks = current.slices.flatMap((slice, index) =>
       (slice.piece.headings ?? [])
         .filter((heading) => within(slice, heading.offset))
         .map((heading) => ({ mark: bases[index]! + heading.offset - slice.start, level: heading.level })),
     );
-    const { text, at } = collapseText(joined, [...bases, ...blockMarks, ...headingMarks.map((heading) => heading.mark)]);
+    const { text, at } = collapseText(joined, [
+      ...bases,
+      ...blockMarks,
+      ...headingMarks.map((heading) => heading.mark),
+    ]);
     // Preserve short titled sections too: silently dropping them renumbers the TOC.
     if (text && (hasToc || text.length >= 40)) {
       const pages =

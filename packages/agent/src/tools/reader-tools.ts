@@ -192,7 +192,7 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
             ...safe,
             textAccess: privateText
               ? "Viewport text is withheld by the reader's privacy settings."
-              : 'Read the reader\'s page with read_chapter(around="position"), which stops at this turn\'s reading boundary; navigation does not grant spoiler access.',
+              : "Read the reader's page with read_chapter(around=\"position\"), which stops at this turn's reading boundary; navigation does not grant spoiler access.",
           });
         }
         return textResult(snapshot);

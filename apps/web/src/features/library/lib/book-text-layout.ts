@@ -89,7 +89,8 @@ function chapterPoint(
   const body = slice.trimStart();
   const text = body.replace(WHITESPACE, " ").trimEnd();
   // A start moves past the single space that whitespace after the text became.
-  const followsWhitespace = position >= source.end || /\s/.test(piece.text[position]!) || body.length > body.trimEnd().length;
+  const followsWhitespace =
+    position >= source.end || /\s/.test(piece.text[position]!) || body.length > body.trimEnd().length;
   const offset = source.at + text.length + (edge === "start" && text.length > 0 && followsWhitespace ? 1 : 0);
   return { chapterIndex, offset: Math.min(record.chapters[chapterIndex]!.text.length, offset) };
 }

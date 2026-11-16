@@ -207,7 +207,11 @@ function splitAtBoundary(book: NarrativeBookIndex, fence?: SpoilerFence): { safe
   const safe = book.normalizedChapters.slice(0, ceiling + 1);
   const unread = book.normalizedChapters.slice(ceiling + 1);
   const current = fence?.readerChapterIndex;
-  if (fence?.readerChapterThrough !== undefined && current === ceiling + 1 && book.chapterTexts[current] !== undefined) {
+  if (
+    fence?.readerChapterThrough !== undefined &&
+    current === ceiling + 1 &&
+    book.chapterTexts[current] !== undefined
+  ) {
     const text = book.chapterTexts[current];
     safe.push(normalizeEvidenceText(text.slice(0, fence.readerChapterThrough)));
     unread[0] = normalizeEvidenceText(text.slice(fence.readerChapterThrough));

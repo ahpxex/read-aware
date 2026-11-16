@@ -56,7 +56,10 @@ test("a chapter is read as addressed blocks, from any block or sentence", async 
     "[6] 后来的事，谁也没料到。",
   ]);
   const from = await read({ chapterIndex: 1, paragraph: 2, sentence: 1 });
-  expect(from.text.split("\n").slice(0, 2)).toEqual(["[2, from sentence 1] 东西一条。南北两条。", "[3] 爷从新街走出来。他回了学校。"]);
+  expect(from.text.split("\n").slice(0, 2)).toEqual([
+    "[2, from sentence 1] 东西一条。南北两条。",
+    "[3] 爷从新街走出来。他回了学校。",
+  ]);
   // What the model was shown is what an answer may be checked against: the text, without its addresses.
   expect(state.evidenceTexts[state.evidenceTexts.length - 1]).toStartWith("东西一条。南北两条。");
   await expect(read({ chapterIndex: 1, paragraph: 40 })).rejects.toThrow("has 7 paragraphs (0 to 6)");
@@ -125,8 +128,11 @@ test("a long chapter is read in whole sentences with the address to continue fro
   const tools = buildBookTextTools({ kind: "book", bookId: "long" }, deps, createAgentTurnState());
   const read = async (params: Record<string, unknown>) =>
     JSON.parse(
-      ((await tools.find((tool) => tool.name === "read_chapter")!.execute("call", params)).content[0] as { text: string })
-        .text,
+      (
+        (await tools.find((tool) => tool.name === "read_chapter")!.execute("call", params)).content[0] as {
+          text: string;
+        }
+      ).text,
     );
   let page = await read({ chapterIndex: 0 });
   expect(page.coverage.end - page.coverage.start).toBeLessThanOrEqual(12000);

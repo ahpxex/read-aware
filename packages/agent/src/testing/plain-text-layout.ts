@@ -80,9 +80,7 @@ export function locateFixtureTurn<
       ? {
           attachments: turn.attachments.map((attachment) => {
             const range = attachment.position ?? place(attachment.text);
-            return range && !attachment.position
-              ? { ...attachment, position: { chapterIndex, ...range } }
-              : attachment;
+            return range && !attachment.position ? { ...attachment, position: { chapterIndex, ...range } } : attachment;
           }),
         }
       : {}),

@@ -91,7 +91,11 @@ function firstAtOrAfter(table: readonly number[], value: number): number {
 export function buildChapterLayout(
   text: string,
   starts: readonly number[],
-  options: { unit?: ChapterLayout["unit"]; headings?: readonly { offset: number; level: number }[]; locale?: string } = {},
+  options: {
+    unit?: ChapterLayout["unit"];
+    headings?: readonly { offset: number; level: number }[];
+    locale?: string;
+  } = {},
 ): ChapterLayout {
   const paragraphs = [
     ...new Set([0, ...starts.filter((start) => Number.isSafeInteger(start) && start > 0 && start < text.length)]),
@@ -127,7 +131,11 @@ export function buildChapterLayout(
     paragraphs,
     sentences,
     ...(headingAt.size
-      ? { headings: [...headingAt].map(([paragraph, level]) => ({ paragraph, level })).sort((a, b) => a.paragraph - b.paragraph) }
+      ? {
+          headings: [...headingAt]
+            .map(([paragraph, level]) => ({ paragraph, level }))
+            .sort((a, b) => a.paragraph - b.paragraph),
+        }
       : {}),
   };
 }
@@ -187,7 +195,10 @@ function firstSentence(layout: ChapterLayout, paragraph: number): number {
 export function sentenceCount(layout: ChapterLayout, paragraph: number): number {
   if (paragraph < 0 || paragraph >= layout.paragraphs.length) return 0;
   const next = layout.paragraphs[paragraph + 1];
-  return (next === undefined ? layout.sentences.length : firstAtOrAfter(layout.sentences, next)) - firstSentence(layout, paragraph);
+  return (
+    (next === undefined ? layout.sentences.length : firstAtOrAfter(layout.sentences, next)) -
+    firstSentence(layout, paragraph)
+  );
 }
 
 /** The address of the sentence that holds a character offset. Offsets past the text land in the last sentence. */
@@ -254,7 +265,11 @@ export function blocksIn(
   if (end <= start) return [];
   const levels = new Map(layout.headings?.map((heading) => [heading.paragraph, heading.level]));
   const blocks: { paragraph: number; start: number; end: number; level?: number }[] = [];
-  for (let paragraph = Math.max(0, lastAtOrBefore(layout.paragraphs, start)); paragraph < layout.paragraphs.length; paragraph++) {
+  for (
+    let paragraph = Math.max(0, lastAtOrBefore(layout.paragraphs, start));
+    paragraph < layout.paragraphs.length;
+    paragraph++
+  ) {
     const blockStart = layout.paragraphs[paragraph]!;
     if (blockStart >= end) break;
     const level = levels.get(paragraph);

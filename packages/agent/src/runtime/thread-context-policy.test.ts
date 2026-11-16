@@ -140,7 +140,12 @@ test("a withheld position does not open the reader's own chapter of a narrative 
   for (const disclosed of [true, false]) {
     const f = fixture({ selection: true, surrounding: disclosed });
     const book = (await f.deps.library.getBook("b1"))!;
-    f.deps.library.getBook = async () => ({ ...book, status: "reading", narrativity: "narrative", spoilerSensitive: true });
+    f.deps.library.getBook = async () => ({
+      ...book,
+      status: "reading",
+      narrativity: "narrative",
+      spoilerSensitive: true,
+    });
     f.deps.bookText.getChapterText = async () => text;
     f.deps.bookText.locate = async () => ({
       start: { chapterIndex: 1, offset: 0 },
@@ -155,7 +160,10 @@ test("a withheld position does not open the reader's own chapter of a narrative 
       },
     ]);
     await collect(
-      hostTurn(f.stores.turns, f.thread, { text: "Typed question", readingCursor: { chapterIndex: 1, anchor: "viewport" } }),
+      hostTurn(f.stores.turns, f.thread, {
+        text: "Typed question",
+        readingCursor: { chapterIndex: 1, anchor: "viewport" },
+      }),
     );
     await f.thread.flushBackgroundWork();
     // Reading up to the reader's page would hand over the surrounding text and where the reader is.

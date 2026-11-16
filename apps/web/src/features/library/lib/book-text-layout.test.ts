@@ -125,10 +125,7 @@ test("chapters carry blocks, sentences, headings and the section slices behind t
 });
 
 test("a range across whitespace, a chapter seam or a section edge lands on text", async () => {
-  const docs = documents([
-    '<p>  alpha   beta  </p>\n\n<h1 id="two">Two</h1>\n<p>gamma delta</p>\n',
-    "<p>epsilon</p>",
-  ]);
+  const docs = documents(['<p>  alpha   beta  </p>\n\n<h1 id="two">Two</h1>\n<p>gamma delta</p>\n', "<p>epsilon</p>"]);
   const record = await extract(book(docs, [{ href: "s0.html#two", label: "Two" }]));
   expect(record.chapters.map((chapter) => chapter.text)).toEqual(["alpha beta", "Two gamma delta epsilon"]);
   const raw = docs[0]!.body.textContent!;
@@ -158,7 +155,11 @@ test("a range across whitespace, a chapter seam or a section edge lands on text"
 
 test("a paged book's blocks are its pages, split where a page has blank lines", async () => {
   expect(pageTextBlocks("one\ntwo\n\nthree\n \nfour")).toEqual([0, 9, 17]);
-  const pages = ["1 Opening\nFirst page text runs on\nover lines.\n\nA second block.", "Second page.", "2 Closing\nThird page."];
+  const pages = [
+    "1 Opening\nFirst page text runs on\nover lines.\n\nA second block.",
+    "Second page.",
+    "2 Closing\nThird page.",
+  ];
   const source = {
     toc: [],
     sections: pages.map((text, index) => ({ id: index, getText: async () => text })),

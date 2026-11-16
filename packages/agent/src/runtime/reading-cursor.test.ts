@@ -46,7 +46,10 @@ describe("reading cursor prompt context", () => {
       blocks: 130,
       span: { start: { paragraph: 37, sentence: 0 }, end: { paragraph: 41, sentence: 2 } },
     };
-    const selection = { ...viewport, span: { start: { paragraph: 39, sentence: 1 }, end: { paragraph: 39, sentence: 1 } } };
+    const selection = {
+      ...viewport,
+      span: { start: { paragraph: 39, sentence: 1 }, end: { paragraph: 39, sentence: 1 } },
+    };
     const cursor = formatReadingCursor(
       { chapterTitle: "A subsection label", chapterProgress: 0.3, visibleText: "The rain had stopped." },
       { viewport, selections: [selection, undefined, { ...selection, chapterIndex: 5 }] },

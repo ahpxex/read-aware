@@ -355,7 +355,12 @@ describe("narrative output guard", () => {
     const chapter = "红岸基地建在雷达峰上。叶文洁第一次走进主控室。\n不要回答。不要回答。不要回答。面壁计划开始。";
     const { deps, stores } = createInMemoryDeps({
       books: [{ id: BOOK_ID, title: "边界测试书", status: "reading", narrativity: "narrative" }],
-      chapters: { [BOOK_ID]: [{ title: "序", text: "序章只有风。" }, { title: "红岸", text: chapter }] },
+      chapters: {
+        [BOOK_ID]: [
+          { title: "序", text: "序章只有风。" },
+          { title: "红岸", text: chapter },
+        ],
+      },
     });
     let toolResult = "";
     let prompt = "";
@@ -400,9 +405,12 @@ describe("narrative output guard", () => {
     expect(toolResult).not.toContain("不要回答");
     // Quoting the reader's own page is grounded: the answer is published as written.
     expect(repaired).toBe(false);
-    expect(chunks.filter((chunk) => chunk.type === "text").map((chunk) => chunk.text).join("")).toBe(
-      "这一页写的是“叶文洁第一次走进主控室”。",
-    );
+    expect(
+      chunks
+        .filter((chunk) => chunk.type === "text")
+        .map((chunk) => chunk.text)
+        .join(""),
+    ).toBe("这一页写的是“叶文洁第一次走进主控室”。");
     thread.dispose();
   });
 });

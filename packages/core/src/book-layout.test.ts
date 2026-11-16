@@ -19,7 +19,15 @@ const layout = buildChapterLayout(text, starts, { headings: [{ offset: 0, level:
 test("blocks and sentences are start offsets into the unchanged text", () => {
   expect(layout.paragraphs).toEqual(starts);
   expect(layout.headings).toEqual([{ paragraph: 0, level: 2 }]);
-  expect(layout.sentences.map((at) => text.slice(at, at + 3))).toEqual(["第一章", "他来了", "她走了", "谁知道", "第二段", "Thi", "It "]);
+  expect(layout.sentences.map((at) => text.slice(at, at + 3))).toEqual([
+    "第一章",
+    "他来了",
+    "她走了",
+    "谁知道",
+    "第二段",
+    "Thi",
+    "It ",
+  ]);
   expect([0, 1, 2, 3].map((paragraph) => sentenceCount(layout, paragraph))).toEqual([1, 3, 1, 2]);
   expect(parseChapterLayout(JSON.parse(JSON.stringify(layout)), text.length)).toEqual(layout);
 });
@@ -45,7 +53,10 @@ test("a range reports the sentences it starts and ends in", () => {
     start: { paragraph: 1, sentence: 1 },
     end: { paragraph: 2, sentence: 0 },
   });
-  expect(spanAt(layout, start, start)).toEqual({ start: { paragraph: 1, sentence: 1 }, end: { paragraph: 1, sentence: 1 } });
+  expect(spanAt(layout, start, start)).toEqual({
+    start: { paragraph: 1, sentence: 1 },
+    end: { paragraph: 1, sentence: 1 },
+  });
 });
 
 test("a bounded read takes whole sentences and says where the rest begins", () => {
@@ -61,7 +72,11 @@ test("a bounded read takes whole sentences and says where the rest begins", () =
   const fenced = readWindow(layout, text.length, { from, to: ceiling, budget: 10_000 });
   expect(text.slice(fenced.start, fenced.end)).toBe("他来了。她走了！谁知道呢？ ");
   expect(fenced.next).toBeNull();
-  expect(readWindow(layout, text.length, { from: ceiling, to: ceiling, budget: 100 })).toEqual({ start: ceiling, end: ceiling, next: null });
+  expect(readWindow(layout, text.length, { from: ceiling, to: ceiling, budget: 100 })).toEqual({
+    start: ceiling,
+    end: ceiling,
+    next: null,
+  });
   const rest = readWindow(layout, text.length, { from: 0, budget: 10_000 });
   expect(rest).toEqual({ start: 0, end: text.length, next: null });
 });

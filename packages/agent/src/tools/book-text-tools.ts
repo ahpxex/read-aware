@@ -260,7 +260,10 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
         ),
         paragraph: opt(int({ minimum: 0, description: "Block to start from (default 0). Omit with around." })),
         sentence: opt(
-          int({ minimum: 0, description: "Sentence inside that block to start from (default 0); use a returned next." }),
+          int({
+            minimum: 0,
+            description: "Sentence inside that block to start from (default 0); use a returned next.",
+          }),
         ),
         around: opt(
           oneOf(["position", "selection"], {
@@ -393,7 +396,7 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
     name: "search_book_text",
     label: "Search book text",
     description:
-      'Full-text search inside the books\' actual prose. For who/what/relation/arc questions, query_book_graph first — it answers those directly and names the provenance chapters, turning this from a blind sweep into a targeted fetch; use THIS tool for exact wording, quotes, and anything the graph does not carry. Pass SEVERAL phrasings/synonyms in `queries` in this ONE call (results are merged and deduped) instead of retrying one query at a time — recall depends on wording and each retry costs a whole round trip. Exact matches come first; token-level fallback matches are marked "partial". Each hit reports the `paragraph` it falls in, so read_chapter(chapterIndex, paragraph) jumps straight to it. throughChapterIndex is an inclusive chapter ceiling, but it cannot hide unread text later inside that same chapter. When a narrative book has cursor.visible_text and the reader did not request spoilers, NEVER search the current or later chapters, even to gather or verify clues the reader has already seen; read the current chapter with read_chapter (it stops at the reader\'s position) and search only earlier chapters. bookId defaults to the current book; omit bookId in the global thread to search the whole shelf.',
+      "Full-text search inside the books' actual prose. For who/what/relation/arc questions, query_book_graph first — it answers those directly and names the provenance chapters, turning this from a blind sweep into a targeted fetch; use THIS tool for exact wording, quotes, and anything the graph does not carry. Pass SEVERAL phrasings/synonyms in `queries` in this ONE call (results are merged and deduped) instead of retrying one query at a time — recall depends on wording and each retry costs a whole round trip. Exact matches come first; token-level fallback matches are marked \"partial\". Each hit reports the `paragraph` it falls in, so read_chapter(chapterIndex, paragraph) jumps straight to it. throughChapterIndex is an inclusive chapter ceiling, but it cannot hide unread text later inside that same chapter. When a narrative book has cursor.visible_text and the reader did not request spoilers, NEVER search the current or later chapters, even to gather or verify clues the reader has already seen; read the current chapter with read_chapter (it stops at the reader's position) and search only earlier chapters. bookId defaults to the current book; omit bookId in the global thread to search the whole shelf.",
     ...spoilerParameters(
       scope,
       {

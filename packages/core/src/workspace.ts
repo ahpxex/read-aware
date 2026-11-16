@@ -14,7 +14,7 @@ export const WORKSPACE_SETTINGS_SECTIONS = [
 export type WorkspaceSettingsSection = (typeof WORKSPACE_SETTINGS_SECTIONS)[number] | `plugin:${string}`;
 export type WorkspaceTarget =
   | { surface: "shelf"; collectionId?: string | null; selection?: { active: boolean; bookIds: string[] } }
-  | { surface: "agent" | "stats" }
+  | { surface: "agent" | "stats" | "annotations" }
   | { surface: "settings"; section?: WorkspaceSettingsSection }
   | { surface: "search"; query?: string };
 export type WorkspaceQuery = { selectionAfter?: string; limit?: number };
@@ -25,7 +25,7 @@ export type WorkspaceSnapshot = {
    * Selection counts/cursors cover only this book. The revision remains a
    * conservative concurrency token and can change for hidden UI changes. */
   scope?: { bookId: string | null; withheld: ("collectionId" | "search.query")[] };
-  surface: "shelf" | "agent" | "stats" | "plugin" | "reader";
+  surface: "shelf" | "agent" | "stats" | "annotations" | "plugin" | "reader";
   collectionId: string | null;
   settings: { open: boolean; section: WorkspaceSettingsSection | null };
   search: { open: boolean; query: string };
@@ -56,6 +56,7 @@ export function normalizeWorkspaceTarget(input: WorkspaceTarget): WorkspaceTarge
   switch (input.surface) {
     case "agent":
     case "stats":
+    case "annotations":
       return { surface: input.surface };
     case "search":
       if (input.query !== undefined && (typeof input.query !== "string" || input.query.length > 4096)) return invalid();

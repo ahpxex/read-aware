@@ -73,7 +73,7 @@ import { onLocalKVChange } from "../platform/local-store";
 import { i18n, setLocale } from "../i18n";
 import { detectInitialLocale } from "../i18n/detect";
 
-export const topNavs = ["shelf", "agent", "stats"] as const;
+export const topNavs = ["shelf", "agent", "stats", "annotations"] as const;
 
 /**
  * The active top-level surface. Beyond the fixed three, a plugin page occupies
@@ -81,6 +81,15 @@ export const topNavs = ["shelf", "agent", "stats"] as const;
  * is a pushed view with the header's back affordance, not a route).
  */
 export type TopNav = (typeof topNavs)[number] | `plugin:${string}`;
+
+/**
+ * Where backing out of a surface goes (the header's back button, Escape): the
+ * highlights & notes page is entered from the Agent page and returns there;
+ * every other surface returns to the shelf.
+ */
+export function backTargetOf(topNav: TopNav): TopNav {
+  return topNav === "annotations" ? "agent" : "shelf";
+}
 
 /** Keep provenance beside ephemeral values; it never enters persistence or plugin data. */
 function workspaceValue<T>(initial: T) {

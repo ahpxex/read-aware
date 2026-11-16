@@ -49,7 +49,7 @@ export function buildWorkspaceTools(deps: RuntimeDeps): AgentTool[] {
       name: "navigate_app",
       label: "Navigate app",
       description:
-        "Open the shelf root or a collection, Context (agent), statistics, a settings section, or command search. Shelf navigation replaces selection (omission clears it); selected IDs must all exist in that collection, not hidden books. Settings/search keep the reader open; other targets close it through the normal handoff. Requires the user's navigation intent. Completion means the destination committed, not background data/time persistence or executing a search result. Optional expectedRevision rejects a stale workspace. Search is the command palette, not full-book text search. Core settings sections: general, appearance, reading, ai, plugins, menus, shortcuts, dataSync, about; enabled plugin sections: plugin:<id>.",
+        "Open the shelf root or a collection, Context (agent), statistics, the highlights & notes page (annotations), a settings section, or command search. Shelf navigation replaces selection (omission clears it); selected IDs must all exist in that collection, not hidden books. Settings/search keep the reader open; other targets close it through the normal handoff. Requires the user's navigation intent. Completion means the destination committed, not background data/time persistence or executing a search result. Optional expectedRevision rejects a stale workspace. Search is the command palette, not full-book text search. Core settings sections: general, appearance, reading, ai, plugins, menus, shortcuts, dataSync, about; enabled plugin sections: plugin:<id>.",
       parameters: obj({
         target: union([
           obj({
@@ -62,7 +62,7 @@ export function buildWorkspaceTools(deps: RuntimeDeps): AgentTool[] {
               }),
             ),
           }),
-          obj({ surface: oneOf(["agent", "stats"]) }),
+          obj({ surface: oneOf(["agent", "stats", "annotations"]) }),
           obj({ surface: lit("settings"), section: opt(str({ maxLength: 263 })) }),
           obj({ surface: lit("search"), query: opt(str({ maxLength: 4096 })) }),
         ]),

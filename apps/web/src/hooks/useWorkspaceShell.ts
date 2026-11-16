@@ -34,7 +34,11 @@ export function useWorkspaceShell(
   const [token, setToken] = useState(0);
   const binding = useRef<ReturnType<typeof workspace.bind> | null>(null);
   const view: WorkspaceView = {
-    surface: reading ? "reader" : surface.startsWith("plugin:") ? "plugin" : (surface as "shelf" | "agent" | "stats"),
+    surface: reading
+      ? "reader"
+      : surface.startsWith("plugin:")
+        ? "plugin"
+        : (surface as "shelf" | "agent" | "stats" | "annotations"),
     collectionId,
     settings: { open: settingsOpen, section: settingsOpen ? section : null },
     search: { open: searchOpen, query },

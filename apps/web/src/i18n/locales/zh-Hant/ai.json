@@ -253,15 +253,16 @@
     "localImageUnavailable": "圖片已不在這台裝置的快取中。"
   },
   "note": {
-    "addTitle": "新增筆記",
-    "editTitle": "編輯筆記",
-    "close": "關閉",
     "bodyLabel": "你的筆記",
     "placeholder": "你對這段文字有什麼想法？",
-    "delete": "刪除",
-    "cancel": "取消",
-    "save": "儲存",
-    "update": "更新"
+    "placeholderMore": "再記一條…",
+    "addAnother": "再記一條",
+    "cardLabel": "這段文字的筆記",
+    "done": "完成",
+    "doneHint": "儲存並關閉",
+    "editNote": "編輯筆記",
+    "deleteNote": "刪除筆記",
+    "edited": "已編輯"
   },
   "annotation": {
     "delete": "刪除"

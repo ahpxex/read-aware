@@ -1738,20 +1738,6 @@
   {
     "type": "dependency",
     "from": "src/features/reader/components/FoliateReaderView.tsx",
-    "to": "src/features/annotations/components/NoteEditor.tsx",
-    "unresolvedTo": "../../annotations/components/NoteEditor",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/reader/components/FoliateReaderView.tsx",
     "to": "src/features/annotations/lib/annotation-types.ts",
     "unresolvedTo": "../../annotations/lib/annotation-types",
     "dependencyTypes": [

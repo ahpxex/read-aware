@@ -70,7 +70,6 @@ import { ReaderZoomIndicator } from "./ReaderZoomIndicator";
 import { ReaderSelectionHighlight } from "./ReaderSelectionHighlight";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 import { ReaderCompletionScreen } from "./ReaderCompletionScreen";
-import { NoteEditor } from "../../annotations/components/NoteEditor";
 import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
 import type { Note, Highlight } from "../../annotations/lib/annotation-types";
 import { observeReaderAnnotations, type ReaderAnnotationMarks } from "../lib/observe-reader-annotations";
@@ -85,12 +84,14 @@ import { subscribeWheelPhaseEdges } from "../../../platform/wheel-phase";
 import { SLOW_OPEN_MS, useDelayedFlag } from "../hooks/useDelayedFlag";
 import { useReaderTypography } from "../hooks/useReaderTypography";
 import { useFixedLayoutZoom } from "../hooks/useFixedLayoutZoom";
+import { useReaderResponsiveLayout } from "../hooks/useReaderResponsiveLayout";
+import { ReaderNoteCard } from "./ReaderNoteCard";
 import { useReaderEngineLoadSource } from "../hooks/useReaderEngineLoadSource";
 import { useReaderPagination } from "../hooks/useReaderPagination";
 import { useReaderTextActions } from "../hooks/useReaderTextActions";
 import { computeReaderMaxInlineSize, layoutForReadingMode, readerLayoutSpacing } from "../../settings/lib/reader-css";
 import { useReaderPalette } from "../../settings/hooks/useReaderPalette";
-import { isEinkActive, prefersReducedMotion } from "../../settings";
+import { chordToTokens, isEinkActive, prefersReducedMotion } from "../../settings";
 import type { ReaderSettings } from "../../settings/lib/reader-settings";
 import { DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
 import { restoreReadingPosition } from "../lib/restore-reading-position";
@@ -404,6 +405,8 @@ export function FoliateReaderView({
   const pendingShellToggleTimerRef = useRef<number | null>(null);
   const highlightsRef = useRef<Highlight[]>([]);
   const notesRef = useRef<Note[]>([]);
+  // The same notes as state, for the note card's list of a passage's notes.
+  const [notes, setNotes] = useState<Note[]>([]);
   // The open session's stored marks; the reader's own saves are drawn through it.
   const annotationMarksRef = useRef<ReaderAnnotationMarks | null>(null);
   // New one-click marks use this colour; recoloring a mark updates it (persisted).
@@ -1148,10 +1151,36 @@ export function FoliateReaderView({
     setActiveAnnotation,
     textUnitNavigator,
     clearSelection,
-    notesRef,
     currentChapterHrefRef,
     onMarkSaved: (highlight) => annotationMarksRef.current?.adopt(highlight),
   });
+
+  // The note card: any dismissal saves it (an open card is a draft in progress).
+  const { isOpen: noteCardOpen, done: noteCardDone } = noteEditor;
+  // done() saves and reports its own failure (the card then stays open).
+  const closeNoteCard = useCallback(() => {
+    if (noteCardOpen) void noteCardDone();
+  }, [noteCardOpen, noteCardDone]);
+  const finishNoteCard = useEffectEvent(closeNoteCard);
+  const { exclusive: phoneLayout } = useReaderResponsiveLayout();
+  // The desktop card sits on the page, so moving the page closes it (saving).
+  // The phone sheet covers the page; there a relocate is more likely the
+  // keyboard resizing the view than a turn, and must not close the sheet.
+  const finishNoteCardOnRelocate = useEffectEvent(() => {
+    if (!phoneLayout) finishNoteCard();
+  });
+  // The open passage's notes, oldest first: the card reads them as a dated thread.
+  const passageNotes = useMemo(() => {
+    const cfi = noteEditor.target?.cfiRange;
+    if (!cfi) return [];
+    return notes.filter((note) => note.cfiRange === cfi).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }, [notes, noteEditor.target?.cfiRange]);
+  const noteDoneShortcut = useMemo(() => chordToTokens({ key: "Enter", mod: true }), []);
+  // Selecting another passage closes the card (saving), as it does the mark menu.
+  const noteCardCfi = noteEditor.target?.cfiRange ?? null;
+  useEffect(() => {
+    if (selection && selection.cfiRange !== noteCardCfi) finishNoteCard();
+  }, [selection, noteCardCfi]);
 
   // The engine's listeners outlive this render; they reach the navigator
   // (whose identity changes every render) as of the moment they fire.
@@ -1196,7 +1225,7 @@ export function FoliateReaderView({
       underline: () => {
         void handleNavigatorMark("underline");
       },
-      addNote: handleNavigatorAddNote,
+      addNote: () => handleNavigatorAddNote(),
       askAI: handleNavigatorAskAI,
       copy: () => {
         void copyTargetText(textUnitNavigator.current?.text ?? "");
@@ -1491,6 +1520,8 @@ export function FoliateReaderView({
     }
     if (!loadedBookRef.current) return;
     if (isEditableKeyTarget(event.target)) return;
+    // The note card's own controls: its keys are its own, never page turns.
+    if (event.target instanceof Element && event.target.closest("[data-reader-note-card]")) return;
 
     // Configurable reader shortcuts, checked before the modifier guard so a
     // rebinding may include modifiers. Left/right page turns are direction-aware
@@ -1648,7 +1679,8 @@ export function FoliateReaderView({
     if (isAppSurfaceShortcut(shortcut) || event.metaKey || event.ctrlKey || event.altKey) return;
 
     if (event.key === "Escape") {
-      if (selectionRef.current) clearSelection();
+      if (noteEditor.isOpen) finishNoteCard();
+      else if (selectionRef.current) clearSelection();
       else if (textUnitModeEngineActive) onExitTextUnitMode?.();
     }
     // Vertical keys map to forward/back directly, a zoomed fixed-layout page
@@ -1677,6 +1709,13 @@ export function FoliateReaderView({
     }
     if (holdMenu.isOpen()) {
       holdMenu.close();
+      cancelPendingShellOpen();
+      return;
+    }
+    // While a note card is open, a tap on the page closes it (saving) and
+    // does nothing else: no page turn, no chrome toggle.
+    if (noteEditor.isOpen) {
+      finishNoteCard();
       cancelPendingShellOpen();
       return;
     }
@@ -2201,31 +2240,32 @@ export function FoliateReaderView({
   // Tapping a mark anchors the recolor/remove menu over it; tapping a note
   // marker opens that note for reading/editing.
   const showAnnotation = useEffectEvent((detail: FoliateShowAnnotationDetail) => {
+    const range = detail.range;
+    const mapping = measureSectionToRoot(range?.startContainer?.ownerDocument, readerRootRef.current);
+    const rects =
+      range && mapping
+        ? getSelectionOverlayRects(range)
+            .map((rect) => visibleFrameRectInRoot(rect, mapping))
+            .filter((rect): rect is SelectionOverlayRect => rect != null)
+        : [];
+    const anchorRect = rects[rects.length - 1] ?? null;
     const highlight = highlightsRef.current.find((item) => item.cfiRange === detail.value);
     if (!highlight) {
+      // A note marker opens its passage's note card, beside the passage.
       const note = notesRef.current.find((item) => item.cfiRange === detail.value);
       if (note) {
-        openExistingNote(note);
+        openExistingNote(note, anchorRect);
         clearSelection();
       }
       setActiveAnnotation(null);
       return;
     }
-    const range = detail.range;
-    const mapping = measureSectionToRoot(range?.startContainer?.ownerDocument, readerRootRef.current);
-    if (!range || !mapping) {
-      setActiveAnnotation(null);
-      return;
-    }
-    const rects = getSelectionOverlayRects(range)
-      .map((rect) => visibleFrameRectInRoot(rect, mapping))
-      .filter((rect): rect is SelectionOverlayRect => rect != null);
-    if (rects.length === 0) {
+    if (!anchorRect) {
       setActiveAnnotation(null);
       return;
     }
     clearSelection();
-    setActiveAnnotation({ highlight, anchorRect: rects[rects.length - 1] });
+    setActiveAnnotation({ highlight, anchorRect });
   });
 
   // ----- open the book ------------------------------------------------------
@@ -2269,6 +2309,7 @@ export function FoliateReaderView({
     session.onRelease(() => {
       highlightsRef.current = [];
       notesRef.current = [];
+      setNotes([]);
     });
 
     clearSelection(openingActor);
@@ -2460,6 +2501,8 @@ export function FoliateReaderView({
           if (sessionId) emitAppEvent("reader-demand-activity", { sessionId, reason: "relocate" }, origin);
           clearSelection(origin);
           setActiveAnnotation(null);
+          // oxlint-disable-next-line react-hooks/rules-of-hooks -- openEngine runs inside useReaderEngineSession's effect event
+          finishNoteCardOnRelocate();
           const fraction = Math.max(0, Math.min(1, detail.fraction ?? 0));
           const { current, total } = readingPagePosition(view.isFixedLayout, detail);
           const cfi = detail.cfi ?? null;
@@ -2605,13 +2648,20 @@ export function FoliateReaderView({
         if (session.closed) return;
         if (selectedBook) {
           try {
-            const marks = observeReaderAnnotations(selectedBook.id, view, highlightsRef, notesRef, (items) => {
-              setActiveAnnotation((current) => {
-                if (!current) return null;
-                const next = items.find((item) => item.id === current.highlight.id);
-                return next && JSON.stringify(next) === JSON.stringify(current.highlight) ? current : null;
-              });
-            });
+            const marks = observeReaderAnnotations(
+              selectedBook.id,
+              view,
+              highlightsRef,
+              notesRef,
+              (items, observedNotes) => {
+                setActiveAnnotation((current) => {
+                  if (!current) return null;
+                  const next = items.find((item) => item.id === current.highlight.id);
+                  return next && JSON.stringify(next) === JSON.stringify(current.highlight) ? current : null;
+                });
+                setNotes(observedNotes);
+              },
+            );
             annotationMarksRef.current = marks;
             defer(() => {
               if (annotationMarksRef.current === marks) annotationMarksRef.current = null;
@@ -2800,6 +2850,7 @@ export function FoliateReaderView({
   // the book, but a selection, an open mark, a note preview or the completion
   // screen belonged to the session that ended.
   const endReadingSession = useEffectEvent(() => {
+    finishNoteCard();
     clearSelection();
     setActiveAnnotation(null);
     setUnitMenuAnchor(null);
@@ -2900,7 +2951,8 @@ export function FoliateReaderView({
       )}
       {isIOS() && <ReaderSelectionHighlight selection={selection} />}
       <ReaderSelectionMenu
-        selection={selection}
+        // The note card stands in for the menu while it is open on the passage.
+        selection={noteEditor.isOpen ? null : selection}
         onCopy={() => copyTargetText(selectionRef.current?.text ?? "")}
         onHighlight={() => {
           void handleHighlight();
@@ -2935,8 +2987,9 @@ export function FoliateReaderView({
             void handleNavigatorMark("underline");
           }}
           onAddNote={() => {
+            const anchor = unitMenuAnchor;
             setUnitMenuAnchor(null);
-            handleNavigatorAddNote();
+            handleNavigatorAddNote(anchor);
           }}
           onAskAI={() => {
             setUnitMenuAnchor(null);
@@ -3070,16 +3123,24 @@ export function FoliateReaderView({
         />
       )}
 
-      <NoteEditor
-        key={noteEditor.draftKey}
-        isOpen={noteEditor.isOpen}
-        isSaving={noteEditor.isSaving}
-        selectedText={noteEditor.target?.text || ""}
-        initialContent={noteEditor.current?.content || ""}
-        onSave={(content) => void noteEditor.save(content)}
-        onCancel={noteEditor.close}
-        isEditing={!!noteEditor.current}
-      />
+      <div data-reader-note-card className="contents">
+        <ReaderNoteCard
+          key={noteEditor.draftKey}
+          open={noteEditor.isOpen}
+          phone={phoneLayout}
+          anchorRect={noteEditor.anchorRect}
+          passage={noteEditor.target?.text ?? ""}
+          notes={passageNotes}
+          editingId={noteEditor.editing?.id ?? null}
+          text={noteEditor.text}
+          onTextChange={noteEditor.setText}
+          onEdit={(note) => void noteEditor.edit(note)}
+          onDelete={(note) => void noteEditor.remove(note)}
+          onDone={closeNoteCard}
+          isSaving={noteEditor.isSaving}
+          doneShortcut={noteDoneShortcut}
+        />
+      </div>
 
       {completionMounted && selectedBook ? (
         <ReaderCompletionScreen

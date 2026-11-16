@@ -218,15 +218,16 @@
     }
   },
   "note": {
-    "addTitle": "Notiz hinzufügen",
-    "editTitle": "Notiz bearbeiten",
-    "close": "Schließen",
     "bodyLabel": "Deine Notiz",
     "placeholder": "Was denkst du über diese Passage?",
-    "delete": "Löschen",
-    "cancel": "Abbrechen",
-    "save": "Speichern",
-    "update": "Aktualisieren"
+    "placeholderMore": "Weitere Notiz hinzufügen …",
+    "addAnother": "Weitere Notiz hinzufügen",
+    "cardLabel": "Notizen zu dieser Passage",
+    "done": "Fertig",
+    "doneHint": "speichert und schließt",
+    "editNote": "Notiz bearbeiten",
+    "deleteNote": "Notiz löschen",
+    "edited": "bearbeitet"
   },
   "annotation": {
     "delete": "Löschen"

@@ -218,15 +218,16 @@
     }
   },
   "note": {
-    "addTitle": "Ajouter une note",
-    "editTitle": "Modifier la note",
-    "close": "Fermer",
     "bodyLabel": "Votre note",
     "placeholder": "Que pensez-vous de ce passage ?",
-    "delete": "Supprimer",
-    "cancel": "Annuler",
-    "save": "Enregistrer",
-    "update": "Mettre à jour"
+    "placeholderMore": "Ajouter une autre note…",
+    "addAnother": "Ajouter une autre note",
+    "cardLabel": "Notes sur ce passage",
+    "done": "Terminé",
+    "doneHint": "enregistre et ferme",
+    "editNote": "Modifier la note",
+    "deleteNote": "Supprimer la note",
+    "edited": "modifiée"
   },
   "annotation": {
     "delete": "Supprimer"

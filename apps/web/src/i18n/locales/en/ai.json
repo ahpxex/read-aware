@@ -255,15 +255,16 @@
     "localImageUnavailable": "Image is no longer cached on this device."
   },
   "note": {
-    "addTitle": "Add Note",
-    "editTitle": "Edit Note",
-    "close": "Close",
     "bodyLabel": "Your note",
     "placeholder": "What are your thoughts on this passage?",
-    "delete": "Delete",
-    "cancel": "Cancel",
-    "save": "Save",
-    "update": "Update"
+    "placeholderMore": "Add another note…",
+    "addAnother": "Add another note",
+    "cardLabel": "Notes on this passage",
+    "done": "Done",
+    "doneHint": "saves and closes",
+    "editNote": "Edit note",
+    "deleteNote": "Delete note",
+    "edited": "edited"
   },
   "annotation": {
     "delete": "Delete"

@@ -45,6 +45,8 @@ type LiveSelection = {
   chapterHref: string | null;
   context?: string;
   captured?: ReadingSelectionSnapshot;
+  /** Where the selection sits in reader-root coordinates; a note card opens beside it. */
+  anchorRect?: SelectionOverlayRect | null;
 } | null;
 
 type Options = {
@@ -59,7 +61,6 @@ type Options = {
     position: ReadingModePosition | null;
   };
   clearSelection: () => void;
-  notesRef: RefObject<Note[]>;
   currentChapterHrefRef: RefObject<string | null>;
   /** Receives the stored row of a mark this reader just saved, so it is drawn
    *  without waiting for the next annotation snapshot. */
@@ -81,7 +82,6 @@ export function useReaderTextActions({
   setActiveAnnotation,
   textUnitNavigator,
   clearSelection,
-  notesRef,
   currentChapterHrefRef,
   onMarkSaved,
 }: Options) {
@@ -112,12 +112,12 @@ export function useReaderTextActions({
       (action) => action.role === "lookup" && action.state?.visible !== false && action.state?.enabled !== false,
     ) ?? null;
 
-  const reportNoteFailure = useCallback((error: unknown) => {
-    log.error("failed to save note", error);
-    failToastRef.current("annotations.noteSaveFailed", error);
+  const reportNoteFailure = useCallback((error: unknown, action: "save" | "delete") => {
+    log.error(action === "save" ? "failed to save note" : "failed to delete note", error);
+    failToastRef.current(action === "save" ? "annotations.noteSaveFailed" : "annotations.deleteFailed", error);
   }, []);
   const noteEditor = useReaderNoteEditor(selectedBook?.id, clearSelection, reportNoteFailure);
-  const openNoteEditorFor = noteEditor.open;
+  const openNoteCard = noteEditor.open;
 
   const copyTargetText = useCallback(async (text: string) => {
     if (!text) return;
@@ -128,45 +128,23 @@ export function useReaderTextActions({
     }
   }, []);
 
-  /** Open the note editor for a passage — editing the note already on it, if any. */
-  const openNoteEditorForPassage = useCallback(
-    (target: ActionTarget) => {
-      const existing = target.cfiRange
-        ? notesRef.current?.find((note) => note.cfiRange === target.cfiRange)
-        : undefined;
-      if (existing) {
-        openNoteEditorFor(
-          {
-            text: existing.text,
-            cfiRange: existing.cfiRange,
-            chapterHref: existing.chapterHref,
-          },
-          existing,
-        );
-      } else {
-        openNoteEditorFor(target);
-      }
-    },
-    [notesRef, openNoteEditorFor],
-  );
-
   /**
-   * Open a note the reader tapped in the text. Distinct from
-   * `openNoteEditorForPassage`, which has to go looking for one by anchor —
-   * here the note is already in hand.
+   * Open the note card for a passage at `anchorRect` (its rect in reader-root
+   * coordinates; null centers it): the passage's notes, and a field for
+   * another. A note tapped in the text opens its passage the same way.
    */
-  const openExistingNote = useCallback(
-    (note: Note) => {
-      openNoteEditorFor(
-        {
-          text: note.text,
-          cfiRange: note.cfiRange,
-          chapterHref: note.chapterHref,
-        },
-        note,
-      );
+  const openNotesFor = useCallback(
+    (target: ActionTarget, anchorRect: SelectionOverlayRect | null) => {
+      // Opening saves an open card first and reports its own failures; nothing to catch here.
+      void openNoteCard(target, anchorRect);
     },
-    [openNoteEditorFor],
+    [openNoteCard],
+  );
+  const openExistingNote = useCallback(
+    (note: Note, anchorRect: SelectionOverlayRect | null) => {
+      openNotesFor({ text: note.text, cfiRange: note.cfiRange, chapterHref: note.chapterHref }, anchorRect);
+    },
+    [openNotesFor],
   );
 
   const pluginInputFor = useCallback(
@@ -278,13 +256,16 @@ export function useReaderTextActions({
 
   const handleAddNote = useCallback(() => {
     if (!selection) return;
-    openNoteEditorFor({
-      text: selection.text,
-      cfiRange: selection.cfiRange,
-      chapterHref: selection.chapterHref,
-      range: selection.captured?.range,
-    });
-  }, [openNoteEditorFor, selection]);
+    openNotesFor(
+      {
+        text: selection.text,
+        cfiRange: selection.cfiRange,
+        chapterHref: selection.chapterHref,
+        range: selection.captured?.range,
+      },
+      selection.anchorRect ?? null,
+    );
+  }, [openNotesFor, selection]);
 
   const handleAskAI = useCallback(() => {
     if (!selection) return;
@@ -340,9 +321,9 @@ export function useReaderTextActions({
   const handleAddNoteForAnnotation = useCallback(() => {
     const target = activeAnnotationTarget();
     if (!target) return;
-    openNoteEditorForPassage(target);
+    openNotesFor(target, activeAnnotation?.anchorRect ?? null);
     setActiveAnnotation(null);
-  }, [activeAnnotationTarget, openNoteEditorForPassage, setActiveAnnotation]);
+  }, [activeAnnotation, activeAnnotationTarget, openNotesFor, setActiveAnnotation]);
 
   const handleAskAIAboutAnnotation = useCallback(() => {
     const target = activeAnnotationTarget();
@@ -377,11 +358,15 @@ export function useReaderTextActions({
     [navigatorTarget, saveMark],
   );
 
-  const handleNavigatorAddNote = useCallback(() => {
-    const target = navigatorTarget();
-    if (!target) return;
-    openNoteEditorForPassage(target);
-  }, [navigatorTarget, openNoteEditorForPassage]);
+  /** `anchorRect` is the menu's anchor when one opened it; a shortcut has none. */
+  const handleNavigatorAddNote = useCallback(
+    (anchorRect: SelectionOverlayRect | null = null) => {
+      const target = navigatorTarget();
+      if (!target) return;
+      openNotesFor(target, anchorRect);
+    },
+    [navigatorTarget, openNotesFor],
+  );
 
   const handleNavigatorLookUp = useCallback(() => {
     runLookupAction(pluginInputFor(navigatorTarget(), "navigator"));

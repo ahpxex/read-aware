@@ -218,15 +218,16 @@
     }
   },
   "note": {
-    "addTitle": "メモを追加",
-    "editTitle": "メモを編集",
-    "close": "閉じる",
     "bodyLabel": "あなたのメモ",
     "placeholder": "この一節についてどう思いますか？",
-    "delete": "削除",
-    "cancel": "キャンセル",
-    "save": "保存",
-    "update": "更新"
+    "placeholderMore": "メモを追加…",
+    "addAnother": "メモを追加",
+    "cardLabel": "この一節のメモ",
+    "done": "完了",
+    "doneHint": "で保存して閉じる",
+    "editNote": "メモを編集",
+    "deleteNote": "メモを削除",
+    "edited": "編集済み"
   },
   "annotation": {
     "delete": "削除"

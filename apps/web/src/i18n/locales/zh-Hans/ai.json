@@ -253,15 +253,16 @@
     "localImageUnavailable": "图片已不在这台设备的缓存中。"
   },
   "note": {
-    "addTitle": "添加笔记",
-    "editTitle": "编辑笔记",
-    "close": "关闭",
     "bodyLabel": "你的笔记",
     "placeholder": "你对这段文字有什么想法？",
-    "delete": "删除",
-    "cancel": "取消",
-    "save": "保存",
-    "update": "更新"
+    "placeholderMore": "再记一条…",
+    "addAnother": "再记一条",
+    "cardLabel": "这段文字的笔记",
+    "done": "完成",
+    "doneHint": "保存并关闭",
+    "editNote": "编辑笔记",
+    "deleteNote": "删除笔记",
+    "edited": "已编辑"
   },
   "annotation": {
     "delete": "删除"

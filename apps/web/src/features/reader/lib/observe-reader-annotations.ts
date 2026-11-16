@@ -22,14 +22,14 @@ export function createReaderAnnotationMarks(
   view: Pick<FoliateView, "addAnnotation" | "deleteAnnotation">,
   highlights: RefObject<Highlight[]>,
   notes: RefObject<Note[]>,
-  changed: (items: Highlight[]) => void,
+  changed: (highlights: Highlight[], notes: Note[]) => void,
 ) {
   const lifetime = new AbortController();
   const show = (items: Annotation[]) => {
     const previous = [...highlights.current, ...notes.current];
     highlights.current = items.filter((item): item is Highlight => item.type === "highlight");
     notes.current = items.filter((item): item is Note => item.type === "note");
-    changed(highlights.current);
+    changed(highlights.current, notes.current);
     return reconcileAnnotationMarks(
       view,
       previous,
@@ -55,7 +55,7 @@ export function observeReaderAnnotations(
   view: FoliateView,
   highlights: RefObject<Highlight[]>,
   notes: RefObject<Note[]>,
-  changed: (items: Highlight[]) => void,
+  changed: (highlights: Highlight[], notes: Note[]) => void,
 ): ReaderAnnotationMarks {
   const marks = createReaderAnnotationMarks(bookId, view, highlights, notes, changed);
   const stop = observeBookAnnotations(

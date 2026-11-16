@@ -22,3 +22,6 @@ export { ReaderBackgroundLayer } from "./components/ReaderBackgroundLayer";
 // The reader's appearance popovers embed the same typography controls as the
 // Reading settings panel.
 export { ReaderTypographyControls } from "./components/ReaderTypographyControls";
+
+// Surfaces that name a shortcut render its keys the way Settings → Shortcuts does.
+export { chordToTokens } from "./lib/shortcuts";

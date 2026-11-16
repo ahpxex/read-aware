@@ -9,3 +9,6 @@ export { isReaderMark } from "./lib/annotation-types";
 
 // The reader's notes view lists marks with the shared row.
 export { AnnotationRow } from "./components/AnnotationRow";
+
+// The reader shows a passage's notes in this card.
+export { NoteCard, type NoteCardProps } from "./components/NoteCard";

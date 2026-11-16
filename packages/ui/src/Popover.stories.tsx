@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Popover } from "./Popover";
-import { Button } from "./Button";
+import { buttonClassName } from "./Button";
 
 const meta = {
   title: "Design System/Components/Popover",
@@ -12,11 +12,8 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    trigger: (
-      <Button variant="outline" size="sm">
-        Info
-      </Button>
-    ),
+    trigger: "Info",
+    triggerClassName: buttonClassName({ variant: "outline", size: "sm" }),
     children: (
       <div className="text-sm text-fg-muted">
         <p className="mb-1 font-medium text-fg">Reading stats</p>
@@ -33,11 +30,8 @@ export const RightAligned: Story = {
     </div>
   ),
   args: {
-    trigger: (
-      <Button variant="outline" size="sm">
-        Details
-      </Button>
-    ),
+    trigger: "Details",
+    triggerClassName: buttonClassName({ variant: "outline", size: "sm" }),
     children: <p className="text-sm text-fg-muted">Additional context goes here.</p>,
     align: "right",
   },
@@ -50,11 +44,8 @@ export const CenterAligned: Story = {
     </div>
   ),
   args: {
-    trigger: (
-      <Button variant="ghost" size="sm">
-        Help
-      </Button>
-    ),
+    trigger: "Help",
+    triggerClassName: buttonClassName({ variant: "ghost", size: "sm" }),
     children: <p className="text-sm text-fg-muted">Click any item to view its details.</p>,
     align: "center",
   },
@@ -68,11 +59,8 @@ export const OpensUpward: Story = {
     </div>
   ),
   args: {
-    trigger: (
-      <Button variant="outline" size="sm">
-        Appearance
-      </Button>
-    ),
+    trigger: "Appearance",
+    triggerClassName: buttonClassName({ variant: "outline", size: "sm" }),
     children: <p className="text-sm text-fg-muted">The panel opens above its trigger.</p>,
     side: "top",
   },
@@ -89,11 +77,8 @@ export const AutoFlipsUpward: Story = {
     </div>
   ),
   args: {
-    trigger: (
-      <Button variant="outline" size="sm">
-        More
-      </Button>
-    ),
+    trigger: "More",
+    triggerClassName: buttonClassName({ variant: "outline", size: "sm" }),
     children: (
       <ul className="flex flex-col text-sm">
         {Array.from({ length: 12 }, (_, index) => (

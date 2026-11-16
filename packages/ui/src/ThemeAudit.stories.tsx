@@ -5,7 +5,7 @@ import { Alert } from "./Alert";
 import { Avatar } from "./Avatar";
 import { Badge } from "./Badge";
 import { Breadcrumb } from "./Breadcrumb";
-import { Button } from "./Button";
+import { Button, buttonClassName } from "./Button";
 import { Card } from "./Card";
 import { Checkbox } from "./Checkbox";
 import { ChoiceGroup } from "./ChoiceGroup";
@@ -164,14 +164,14 @@ export const AllControls: Story = {
           <Button variant="outline">Hover for tooltip</Button>
         </Tooltip>
         <DropdownMenu
-          trigger={<Button variant="outline">Dropdown</Button>}
+          trigger={<span className={buttonClassName({ variant: "outline" })}>Dropdown</span>}
           items={[
             { label: "Edit", onClick: () => {} },
             { label: "Duplicate", onClick: () => {} },
             { label: "Delete", onClick: () => {}, destructive: true },
           ]}
         />
-        <Popover trigger={<Button variant="outline">Popover</Button>}>
+        <Popover trigger="Popover" triggerClassName={buttonClassName({ variant: "outline" })}>
           <Body size="base">Popover body content.</Body>
         </Popover>
       </Section>

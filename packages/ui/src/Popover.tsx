@@ -14,6 +14,12 @@ import { useHorizontalViewportCollision } from "./lib/useHorizontalViewportColli
 import { Tooltip } from "./Tooltip";
 
 type PopoverProps = {
+  /**
+   * The trigger's content. The popover renders the `<button>` itself, so pass
+   * text or an icon — never a `Button` / `IconButton`, which would nest a
+   * button in a button — and style the real button through `triggerClassName`
+   * (e.g. `buttonClassName(...)`).
+   */
   trigger: ReactNode;
   /** Accessible name for the (otherwise unlabeled) trigger button. */
   triggerLabel?: string;

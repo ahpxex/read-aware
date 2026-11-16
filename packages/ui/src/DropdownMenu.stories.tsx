@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DotsThreeVertical } from "@phosphor-icons/react";
 import { DropdownMenu } from "./DropdownMenu";
-import { Button } from "./Button";
-import { IconButton } from "./IconButton";
+import { buttonClassName } from "./Button";
+import { iconButtonClassName } from "./IconButton";
 
 const meta = {
   title: "Design System/Components/DropdownMenu",
@@ -21,11 +21,7 @@ const sampleItems = [
 
 export const Default: Story = {
   args: {
-    trigger: (
-      <Button variant="outline" size="sm">
-        Actions
-      </Button>
-    ),
+    trigger: <span className={buttonClassName({ variant: "outline", size: "sm" })}>Actions</span>,
     items: sampleItems,
   },
 };
@@ -37,21 +33,18 @@ export const RightAligned: Story = {
     </div>
   ),
   args: {
-    trigger: (
-      <Button variant="outline" size="sm">
-        Actions
-      </Button>
-    ),
+    trigger: <span className={buttonClassName({ variant: "outline", size: "sm" })}>Actions</span>,
     items: sampleItems,
     align: "right",
   },
 };
 
-const MoreIcon = <DotsThreeVertical size={16} weight="bold" />;
+const MoreIcon = <DotsThreeVertical size={16} weight="bold" aria-hidden="true" />;
 
 export const WithIconTrigger: Story = {
   args: {
-    trigger: <IconButton icon={MoreIcon} label="More actions" />,
+    trigger: <span className={iconButtonClassName()}>{MoreIcon}</span>,
+    triggerLabel: "More actions",
     items: [
       { label: "Share", onClick: () => {} },
       { label: "Export", onClick: () => {} },
@@ -67,7 +60,8 @@ export const OpensUpward: Story = {
     </div>
   ),
   args: {
-    trigger: <IconButton icon={MoreIcon} label="More actions" />,
+    trigger: <span className={iconButtonClassName()}>{MoreIcon}</span>,
+    triggerLabel: "More actions",
     items: sampleItems,
     side: "top",
   },

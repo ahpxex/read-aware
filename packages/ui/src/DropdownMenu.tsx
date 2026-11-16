@@ -14,7 +14,13 @@ type DropdownItem = {
 };
 
 type DropdownMenuProps = {
-  /** Omit to run fully controlled (e.g. a long-press-opened menu). */
+  /**
+   * The trigger's visuals. The menu renders the `<button>` itself (it owns
+   * focus, `aria-expanded` and the keyboard), so pass non-interactive content
+   * — a `<span>` styled with `buttonClassName` / `iconButtonClassName`, never a
+   * `Button` or `IconButton`, which would nest a button in a button. Omit to
+   * run fully controlled (e.g. a long-press-opened menu).
+   */
   trigger?: ReactNode;
   /** Accessible name for an icon-only trigger. */
   triggerLabel?: string;

@@ -28,7 +28,7 @@ import { readingStatsAtom } from "../../../state/ui";
 import { computeBookInsights } from "../../stats/lib/reading-insights";
 import { emptyBookStats } from "../lib/reading-stats";
 import { useReaderPalette } from "../../settings/hooks/useReaderPalette";
-import type { ReaderSettings } from "../../settings/lib/reader-settings";
+import type { ReaderTheme } from "../../settings/lib/reader-settings";
 import type { LibraryBook } from "../../library/lib/library-types";
 import type { Annotation } from "../../annotations/lib/annotation-types";
 import { userDomain } from "../../../domain";
@@ -48,7 +48,7 @@ type Props = {
   /** The marks read failed — say so instead of rendering "no marks". */
   marksFailed?: boolean;
   /** Drives the palette so this screen matches the page behind it. */
-  theme: ReaderSettings["theme"];
+  theme: ReaderTheme;
   /** Drives the fade; the parent keeps this mounted until it finishes. */
   visible: boolean;
   /**

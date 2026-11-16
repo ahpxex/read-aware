@@ -77,8 +77,7 @@ test("around reads the selection or the reader's page in place, with where it si
     chapterIndex: 1,
     blocks: { first: 2, last: 4, total: 7 },
     focus: { start: { paragraph: 3, sentence: 1 }, end: { paragraph: 3, sentence: 1 } },
-    // In the reader's terms: counted from one, unlike the addresses.
-    placeInChapter: "paragraph 4 of 7 counting from one, about 49% of the way through the chapter",
+    placeInChapter: "paragraph 3 of 7 (zero-based), about 49% of the way through the chapter",
     next: null,
   });
   expect(selection.text.split("\n").map((line: string) => line.slice(0, 3))).toEqual(["[2]", "[3]", "[4]"]);

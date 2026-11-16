@@ -10,6 +10,13 @@ import type { BookAddress, ChapterLayout } from "@read-aware/core";
 export interface ReadingCursor {
   /** Host-native location used for ask-note anchoring, never shown to the model. */
   anchor?: string;
+  /**
+   * Host-native locations of every source document the viewport shows, in
+   * reading order, when it shows more than one (a continuous chapter across a
+   * file seam). The viewport then runs from the first one's start to the last
+   * one's end; `anchor` alone would stop at the seam.
+   */
+  viewportAnchors?: string[];
   /** Current TOC/spine href; also the chapter-session boundary signal. */
   chapter?: string;
   /** 当前章节的 TOC index（read_chapter 同一坐标系）；剧透围栏的边界输入。 */

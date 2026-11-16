@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { JSDOM } from "jsdom";
-import { readingVisibleText } from "./reading-visible-text";
+import { readingVisibleAnchors, readingVisibleText } from "./reading-visible-text";
 import { attachReadingEngine } from "./reading-engine-adapter";
 import { readingRuntime } from "../../../domain/reading-runtime";
 import type { FoliateView } from "./foliate-engine";
@@ -173,4 +173,24 @@ test("actual session adapter publishes PDF text/state to plugin queries and clea
     readingRuntime.closed();
     f.dom.window.close();
   }
+});
+
+test("a continuous page over several source documents reports each one's location, a single document none", () => {
+  const range = (text: string) => ({ toString: () => text }) as unknown as Range;
+  const view = (ranges: { index: number; range: Range }[], scrolled = true, fixed = false) =>
+    ({
+      isFixedLayout: fixed,
+      getCFI: (index: number, at: Range) => `cfi(${index}:${at.toString()})`,
+      renderer: { scrolled, getVisibleRanges: () => ranges },
+    }) as unknown as FoliateView;
+  const seam = [
+    { index: 3, range: range("end of one file") },
+    { index: 4, range: range("start of the next") },
+  ];
+  expect(readingVisibleAnchors(view(seam))).toEqual(["cfi(3:end of one file)", "cfi(4:start of the next)"]);
+  // The reported location already covers a page inside one document, a paginated page and a fixed layout.
+  expect(readingVisibleAnchors(view(seam.slice(0, 1)))).toEqual([]);
+  expect(readingVisibleAnchors(view(seam, false))).toEqual([]);
+  expect(readingVisibleAnchors(view(seam, true, true))).toEqual([]);
+  expect(readingVisibleAnchors({ isFixedLayout: false, renderer: null } as unknown as FoliateView)).toEqual([]);
 });

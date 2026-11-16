@@ -125,6 +125,24 @@ function read(view: FoliateView): ReadingVisibleText {
   return { text, state: { status: text.trim() ? "available" : "empty", source: "pdf-text-layer", truncated } };
 }
 
+/**
+ * The location of every source document the viewport shows, in reading order.
+ * A continuous chapter can straddle source documents while the reported
+ * location stays in one of them; these say where the page really starts and
+ * ends. Empty when the viewport is a single document (its location is enough).
+ */
+export function readingVisibleAnchors(view: FoliateView): string[] {
+  try {
+    const renderer = view.renderer;
+    if (view.isFixedLayout || !renderer || !("getVisibleRanges" in renderer) || !renderer.scrolled) return [];
+    const ranges = renderer.getVisibleRanges();
+    return ranges.length > 1 ? ranges.map(({ index, range }) => view.getCFI(index, range)) : [];
+  } catch (error) {
+    log.warn("Could not read the visible locations", error);
+    return [];
+  }
+}
+
 /** Uses only already-rendered content; never loads another section or performs OCR.
  * PDF clipping is at text-run granularity, not individual glyphs or overlay occlusion. */
 export function readingVisibleText(view: FoliateView): ReadingVisibleText {

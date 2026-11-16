@@ -35,6 +35,8 @@ export type ChatAttachment = ChatSelectionAttachment | ChatImageAttachment;
 /** Live reader viewport sampled when a book-chat message is sent. */
 export interface ChatReadingCursor {
   anchor?: string;
+  /** Locations of every source document on screen, when a continuous page shows more than one. */
+  viewportAnchors?: string[];
   chapter?: string;
   chapterTitle?: string;
   bookProgress?: number;

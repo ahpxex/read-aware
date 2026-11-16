@@ -41,7 +41,12 @@ export async function resolveReadingPosition(input: {
   bookText: Source;
   bookId: Id;
   /** The part of a reading cursor that says where the viewport is. */
-  cursor?: { anchor?: string; chapterIndex?: number; position?: { start: number; end: number } };
+  cursor?: {
+    anchor?: string;
+    viewportAnchors?: string[];
+    chapterIndex?: number;
+    position?: { start: number; end: number };
+  };
   attachments?: (TurnAttachment & { position?: ChapterRange })[];
   signal?: AbortSignal;
 }): Promise<TurnReadingPosition> {
@@ -94,12 +99,18 @@ export async function resolveReadingPosition(input: {
   if (cursor?.position && cursor.chapterIndex !== undefined)
     viewportRange = { chapterIndex: cursor.chapterIndex, ...cursor.position };
   else {
-    const located = await locate(cursor?.anchor);
-    if (located)
+    // A page over several source documents runs from the first one's start to the last one's end.
+    const anchors = cursor?.viewportAnchors?.length ? cursor.viewportAnchors : [cursor?.anchor];
+    const located = (await Promise.all(anchors.map((anchor) => locate(anchor)))).filter(
+      (location) => location !== undefined,
+    );
+    const first = located[0];
+    const last = located[located.length - 1];
+    if (first && last)
       viewportRange = {
-        chapterIndex: located.end.chapterIndex,
-        start: located.start.chapterIndex === located.end.chapterIndex ? located.start.offset : 0,
-        end: located.end.offset,
+        chapterIndex: last.end.chapterIndex,
+        start: first.start.chapterIndex === last.end.chapterIndex ? first.start.offset : 0,
+        end: last.end.offset,
       };
   }
   const viewport = viewportRange ? await describe(viewportRange) : undefined;

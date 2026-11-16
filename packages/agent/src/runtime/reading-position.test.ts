@@ -60,6 +60,24 @@ test("a page across two chapters belongs to the one it ends in; a selection to t
   expect(located.selections[0]).toMatchObject({ chapterIndex: 0, end: CHAPTERS[0]!.text.length });
 });
 
+test("a continuous page over a file seam runs from its first document's start to its last one's end", async () => {
+  // The reported location stays in the first document; the page goes on into the next.
+  const located = await resolveReadingPosition({
+    bookText: source((cfi) => (cfi === "second" ? at(1, "终也舀不干。竟是") : at(1, "他回了学校。"))),
+    bookId,
+    cursor: { anchor: "first", viewportAnchors: ["first", "second"], chapterIndex: 1 },
+  });
+  expect(describeSpan(located.viewport!)).toBe("paragraph 1 sentence 1 through paragraph 2 sentence 1");
+  expect(CHAPTERS[1]!.text.slice(0, located.viewport!.through)).toEndWith("竟是越来越旺。\n");
+  // One of them cannot be placed: the page is what the others cover.
+  const partial = await resolveReadingPosition({
+    bookText: source((cfi) => (cfi === "second" ? null : at(1, "他回了学校。"))),
+    bookId,
+    cursor: { anchor: "first", viewportAnchors: ["first", "second"] },
+  });
+  expect(describeSpan(partial.viewport!)).toBe("paragraph 1 sentence 1");
+});
+
 test("offsets a caller already holds are used as they are", async () => {
   const range = chapterRangeOf(CHAPTERS, 1, "终也舀不干。竟是越来越旺。");
   const located = await resolveReadingPosition({

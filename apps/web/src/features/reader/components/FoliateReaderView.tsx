@@ -27,7 +27,7 @@ import { bookmarkReadingPosition } from "../lib/reader-bookmarks";
 import { createNativeLinkNavigator } from "../lib/native-link-navigation";
 import { attachTocFractions } from "../lib/toc-fractions";
 import { chapterProgressAt, normalizeReadingCursorText } from "../lib/reading-cursor";
-import { readingVisibleText } from "../lib/reading-visible-text";
+import { readingVisibleAnchors, readingVisibleText } from "../lib/reading-visible-text";
 import { readingPageLocator, readingPagePosition, type ReadingPageLocator } from "../lib/reading-pagination";
 import { relocateDismissesShell } from "../lib/shell-dismissal";
 import type { LoadedBook, ReadingCursor, TocEntry } from "../lib/reader-types";
@@ -2468,6 +2468,7 @@ export function FoliateReaderView({
           const chapterTitle = detail.tocItem?.label?.trim() || entries[activeTocIndex]?.label?.trim() || undefined;
           const chapterProgress = chapterProgressAt(entries, href, fraction);
           const visibleText = normalizeReadingCursorText(readingVisibleText(view).text);
+          const viewportAnchors = readingVisibleAnchors(view);
           lastLocationTargetRef.current = cfi ?? href;
           // Only a place reported while reading becomes the book's progress.
           if (sessionId) syncedTargetRef.current = cfi ?? href;
@@ -2488,6 +2489,7 @@ export function FoliateReaderView({
             },
             cursor: {
               ...(cfi ? { anchor: cfi } : {}),
+              ...(viewportAnchors.length ? { viewportAnchors } : {}),
               ...(href ? { chapter: href } : {}),
               ...(chapterTitle ? { chapterTitle } : {}),
               bookProgress: fraction,

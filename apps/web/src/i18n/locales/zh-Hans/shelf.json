@@ -59,7 +59,13 @@
     "progress": "阅读进度",
     "highlights": "高亮",
     "notes": "笔记",
-    "annotations": "笔记与高亮"
+    "annotations": "笔记与高亮",
+    "back": "返回书籍详情",
+    "searchMarks": "搜索高亮和笔记",
+    "filterMarks": "显示",
+    "filterAll": "全部",
+    "noMatches": "没有与“{{query}}”匹配的内容。",
+    "openPassageFailed": "无法打开这段原文"
   },
   "removeBook": {
     "title": "移除书籍？",

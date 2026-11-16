@@ -59,7 +59,13 @@
     "progress": "進捗",
     "highlights": "ハイライト",
     "notes": "メモ",
-    "annotations": "メモとハイライト"
+    "annotations": "メモとハイライト",
+    "back": "本の詳細に戻る",
+    "searchMarks": "ハイライトとメモを検索",
+    "filterMarks": "表示",
+    "filterAll": "すべて",
+    "noMatches": "「{{query}}」に一致するものはありません。",
+    "openPassageFailed": "この箇所を開けませんでした"
   },
   "removeBook": {
     "title": "本を削除しますか？",

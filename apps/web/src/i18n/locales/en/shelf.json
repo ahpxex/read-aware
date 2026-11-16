@@ -61,7 +61,13 @@
     "progress": "Progress",
     "highlights": "Highlights",
     "notes": "Notes",
-    "annotations": "Notes & highlights"
+    "annotations": "Notes & highlights",
+    "back": "Back to book details",
+    "searchMarks": "Search highlights and notes",
+    "filterMarks": "Show",
+    "filterAll": "All",
+    "noMatches": "Nothing matches “{{query}}”.",
+    "openPassageFailed": "Couldn't open this passage"
   },
   "removeBook": {
     "title": "Remove book?",

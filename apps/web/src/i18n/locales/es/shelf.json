@@ -63,7 +63,13 @@
     "progress": "Progreso",
     "highlights": "Resaltados",
     "notes": "Notas",
-    "annotations": "Notas y resaltados"
+    "annotations": "Notas y resaltados",
+    "back": "Volver a los detalles del libro",
+    "searchMarks": "Buscar en resaltados y notas",
+    "filterMarks": "Mostrar",
+    "filterAll": "Todo",
+    "noMatches": "Nada coincide con «{{query}}».",
+    "openPassageFailed": "No se pudo abrir este pasaje"
   },
   "removeBook": {
     "title": "¿Quitar el libro?",

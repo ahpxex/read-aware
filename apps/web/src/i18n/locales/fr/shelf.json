@@ -63,7 +63,13 @@
     "progress": "Progression",
     "highlights": "Surlignages",
     "notes": "Notes",
-    "annotations": "Notes et surlignages"
+    "annotations": "Notes et surlignages",
+    "back": "Retour aux détails du livre",
+    "searchMarks": "Rechercher dans les surlignages et les notes",
+    "filterMarks": "Afficher",
+    "filterAll": "Tout",
+    "noMatches": "Aucun résultat pour « {{query}} ».",
+    "openPassageFailed": "Impossible d'ouvrir ce passage"
   },
   "removeBook": {
     "title": "Retirer le livre ?",

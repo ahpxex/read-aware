@@ -59,7 +59,13 @@
     "progress": "閱讀進度",
     "highlights": "螢光標示",
     "notes": "筆記",
-    "annotations": "筆記與螢光標示"
+    "annotations": "筆記與螢光標示",
+    "back": "返回書籍詳細資訊",
+    "searchMarks": "搜尋螢光標示和筆記",
+    "filterMarks": "顯示",
+    "filterAll": "全部",
+    "noMatches": "沒有與「{{query}}」相符的內容。",
+    "openPassageFailed": "無法開啟這段原文"
   },
   "removeBook": {
     "title": "移除書籍？",

@@ -61,7 +61,13 @@
     "progress": "Fortschritt",
     "highlights": "Markierungen",
     "notes": "Notizen",
-    "annotations": "Notizen & Markierungen"
+    "annotations": "Notizen & Markierungen",
+    "back": "Zurück zu den Buchdetails",
+    "searchMarks": "Markierungen und Notizen durchsuchen",
+    "filterMarks": "Anzeigen",
+    "filterAll": "Alle",
+    "noMatches": "Keine Treffer für „{{query}}“.",
+    "openPassageFailed": "Diese Stelle konnte nicht geöffnet werden"
   },
   "removeBook": {
     "title": "Buch entfernen?",

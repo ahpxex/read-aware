@@ -14,7 +14,11 @@ import {
   fenceDisciplineAssessment,
   leakAssessment,
   noFenceAssessment,
+  readInPlaceAssessment,
+  unreadWithheldAssessment,
 } from "./real-book-helpers";
+import { blocksIn } from "@read-aware/core";
+import { plainTextLayout } from "../../../testing/plain-text-layout";
 import { highlightVerbatimAssessment, observeSelectionAnnotations } from "./annotation-assessment";
 import { SPOILER_POLICY } from "../../../context/spoiler-policy";
 
@@ -181,6 +185,26 @@ function selectionCursor(book: RealBookFixture, chapterIndex: number, selection:
   };
 }
 
+/**
+ * 章节中段的一句话：读者读到一半时选中的那句。取中点之后第一段够长正文的
+ * 首句，且全章唯一（选区要能在正文里唯一定位）。
+ */
+function midChapterSentence(book: RealBookFixture, chapterIndex: number): string {
+  const text = book.epub().chapters[chapterIndex]?.text;
+  if (text === undefined) throw new Error(`${book.spec.slug} fixture has no chapter ${chapterIndex}`);
+  const layout = plainTextLayout(text);
+  for (const block of blocksIn(layout, Math.floor(text.length / 2), text.length)) {
+    if (block.level !== undefined || block.end - block.start < 60) continue;
+    const first = layout.sentences.find((at) => at >= block.start) ?? block.start;
+    const next = layout.sentences.find((at) => at > first) ?? block.end;
+    const sentence = text.slice(first, Math.min(next, block.end)).trim();
+    if (sentence.length < 15 || sentence.length > 160 || sentence.includes("\n")) continue;
+    if (text.indexOf(sentence) !== text.lastIndexOf(sentence)) continue;
+    return sentence;
+  }
+  throw new Error(`${book.spec.slug} chapter ${chapterIndex} has no usable mid-chapter sentence`);
+}
+
 /** 书型分派的红线组合：叙事书查围栏纪律，说明书查围栏必须不存在。 */
 function typeDiscipline(book: RealBookFixture, observation: AgentEvalObservation, ceiling: number): EvalAssessment {
   return book.spec.narrativity === "narrative"
@@ -315,6 +339,51 @@ function scenariosFor(config: GridBookConfig): AgentEvalScenario[] {
             }),
             highlightVerbatimAssessment(observation, chapterText, sentence, book.bookId, config.annotationChapter),
             typeDiscipline(book, observation, config.annotationChapter),
+          ),
+      }),
+    );
+  }
+
+  // ── 段落定位：读到章节中段，选中一句问它在本章里的位置与作用。游标只给坐标，
+  //    答案必须来自就地读到的本章正文；叙事书读不到读者位置之后的内容。 ──
+  {
+    const sentence = midChapterSentence(book, config.readerChapter);
+    const chapterText = book.epub().chapters[config.readerChapter]!.text;
+    const through = chapterText.indexOf(sentence) + sentence.length;
+    // 紧接读者位置之后的一段原文：叙事书里它不该出现在任何工具结果中。
+    const unread = chapterText.slice(through).trim().slice(0, 24);
+    const narrative = book.spec.narrativity === "narrative";
+    scenarios.push(
+      defineAgentEvalScenario({
+        id: `${config.slug}-passage-role-in-chapter`,
+        description: `Mid-chapter selection on ${config.slug}: place the selected passage in its chapter, from the chapter's own text.`,
+        tags: [config.slug, "selection", "cursor", "book"],
+        scope,
+        seed: baseSeed(),
+        seedSummary: book.seedSummary(config.progressPercent),
+        turns: [
+          {
+            text: "我选中的这段话，在这一章里处在什么位置、起什么作用？它前面是在讲什么，才说到这里的？",
+            attachments: [{ text: sentence }],
+            readingCursor: selectionCursor(book, config.readerChapter, sentence),
+          },
+        ],
+        expectation: { tools: { required: ["read_chapter"], noErrors: true } },
+        criteria: { readerChapter: config.readerChapter, sentence, ...(narrative ? { unread } : {}) },
+        rubric: [
+          "Places the selected passage within this chapter: what the chapter has been doing up to it and what the passage contributes at that point, drawn from the chapter's actual text rather than a generic reading of the sentence",
+          narrative
+            ? "Stays within what the reader has read: nothing from later in the chapter or the book, not even as a hint"
+            : "May use the rest of the chapter to explain where the passage leads, without spoiler hedging",
+          "Speaks about 'this paragraph' or quotes the text; does not cite internal block or sentence numbers to the reader",
+        ],
+        evaluate: (observation) =>
+          combineAssessments(
+            evaluateAgentTrace(observation, { tools: { required: ["read_chapter"], noErrors: true } }),
+            readInPlaceAssessment(observation, config.readerChapter),
+            ...(narrative && unread.length >= 12 ? [unreadWithheldAssessment(observation, unread)] : []),
+            typeDiscipline(book, observation, config.readerChapter),
+            cjkAnswerAssessment(observation),
           ),
       }),
     );

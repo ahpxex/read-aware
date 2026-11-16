@@ -65,6 +65,48 @@ export function fenceDisciplineAssessment(observation: AgentEvalObservation, cei
   ]);
 }
 
+/**
+ * 就地读取：读者问的是眼前这段话在章里的位置，答案的依据必须是本章正文——
+ * 至少有一次成功的 read_chapter 落在读者所在章（around 读取，或直接给该章下标）。
+ */
+export function readInPlaceAssessment(observation: AgentEvalObservation, readerChapter: number): EvalAssessment {
+  const read = observation.tools.some((call) => {
+    if (call.name !== "read_chapter" || call.isError) return false;
+    const args = callArgs(call);
+    return args.around === "selection" || args.around === "position" || asIndex(args.chapterIndex) === readerChapter;
+  });
+  return assessmentFromChecks([
+    {
+      id: "tools.read-in-place",
+      category: "tool",
+      passed: read,
+      message: read
+        ? "the passage was read in its chapter before answering"
+        : "no successful read_chapter covered the reader's own chapter",
+    },
+  ]);
+}
+
+/**
+ * 章内边界：叙事书里读者位置之后的本章正文不得出现在任何工具结果里。
+ * `unread` 是紧接读者位置之后的一段原文。
+ */
+export function unreadWithheldAssessment(observation: AgentEvalObservation, unread: string): EvalAssessment {
+  const leaked = observation.tools.filter((call) => call.output?.includes(unread)).map((call) => call.name);
+  return assessmentFromChecks([
+    {
+      id: "tools.unread-withheld",
+      category: "policy",
+      passed: leaked.length === 0,
+      message:
+        leaked.length === 0
+          ? "no tool returned text past the reader's position in their chapter"
+          : `text past the reader's position was returned by: ${leaked.join(", ")}`,
+      actual: leaked,
+    },
+  ]);
+}
+
 /** 用户明确要剧透时：必须有一次成功的 confirmSpoiler=true 越界读取。 */
 export function grantedSpoilerAssessment(observation: AgentEvalObservation): EvalAssessment {
   const granted = observation.tools.some((call) => spoilerGranted(callArgs(call).confirmSpoiler) && !call.isError);

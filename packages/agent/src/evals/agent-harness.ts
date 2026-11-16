@@ -13,6 +13,7 @@ import { AgentThread } from "../runtime/thread";
 import type { InMemorySeed, InMemoryStores } from "../testing/fixtures";
 import { createInMemoryDeps } from "../testing/fixtures";
 import { hostTurn } from "../testing/transcript-host";
+import { locateFixtureTurn } from "../testing/plain-text-layout";
 import type { ThreadScope } from "../thread-scope";
 import { evaluateAgentTrace, type AgentTraceExpectation } from "./assertions";
 import { reviewRubric } from "./rubric";
@@ -234,8 +235,16 @@ export function createAgentEvalVariant(
             ...(scenario.observeState ? { stateBefore: toJsonValue(await scenario.observeState(setupContext)) } : {}),
           };
           rawTurns.push(rawTurn);
-          // The harness plays the chat host: it owns the transcript (ConversationPort).
-          for await (const chunk of hostTurn(setupContext.stores.turns, thread, { ...turn, signal: context.signal })) {
+          // The harness plays the chat host: it owns the transcript (ConversationPort), and
+          // it places the reader's page and selection in the book's text as a reading host does.
+          const located =
+            scenario.scope.kind === "book"
+              ? locateFixtureTurn(turn, setupContext.stores.chapters.get(scenario.scope.bookId))
+              : turn;
+          for await (const chunk of hostTurn(setupContext.stores.turns, thread, {
+            ...located,
+            signal: context.signal,
+          })) {
             chunks.push(chunk);
           }
           if (scenario.observeState) rawTurn.stateAfter = toJsonValue(await scenario.observeState(setupContext));

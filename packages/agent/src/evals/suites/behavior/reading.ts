@@ -18,7 +18,13 @@ const narrativeChapters = [
   {
     title: "Wet Footprints",
     hrefs: ["chapter-1.xhtml"],
-    text: "Victor is found dead in a locked study. Mara notices wet footprints, a stopped brass clock, and an unopened letter. Nobody has yet been accused. Later that night, beyond the reader's current position, Mara secretly finds Rowan's silver key beneath the study window.",
+    // 读者的那一页是这段正文里的一段连续文字（PAGE_*），其后才是未读内容。
+    text: [
+      "Victor is found dead in a locked study.",
+      "Mara notices wet footprints and a stopped brass clock. The brass clock stopped at seventeen minutes past nine.",
+      "An unopened letter lies on the desk. Nobody has yet been accused.",
+      "Later that night, Mara secretly finds Rowan's silver key beneath the study window.",
+    ].join("\n"),
   },
   {
     title: "The Confession",
@@ -27,12 +33,34 @@ const narrativeChapters = [
   },
 ];
 
+/** 读者当前页：正文前三段，止于 "Nobody has yet been accused."。 */
+const PAGE_THROUGH_ACCUSED = narrativeChapters[0]!.text.slice(
+  0,
+  narrativeChapters[0]!.text.indexOf("Nobody has yet been accused.") + "Nobody has yet been accused.".length,
+);
+const PAGE_CLOCK =
+  "Mara notices wet footprints and a stopped brass clock. The brass clock stopped at seventeen minutes past nine.";
+
+const MARKER_BOOK_ID = "eval-page-markers" as Id;
+const markerChapters = [
+  {
+    title: "Markers",
+    hrefs: ["markers.xhtml"],
+    text: [
+      "The page marker is FIRST-MARKER.",
+      "The page marker is SECOND-MARKER.",
+      "The page marker is THIRD-MARKER.",
+    ].join("\n"),
+  },
+];
+
 function stableCursorContextAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const first = observation.modelRequests[0];
-  const second = observation.modelRequests[1];
-  const stable =
-    typeof first?.context.systemPrompt === "string" && first.context.systemPrompt === second?.context.systemPrompt;
+  const prompts = observation.modelRequests.map((request) => request.context.systemPrompt);
+  const stable = prompts.length > 1 && prompts.every((prompt) => typeof prompt === "string" && prompt === prompts[0]);
+  // 第二轮的首个请求：游标是坐标，必须已经指向新的一页（第 1 段）。
+  const second = observation.modelRequests.find((request) => request.turn === 2 && request.round === 1);
   const newestContext = JSON.stringify(second?.context.messages ?? []);
+  const moved = newestContext.includes("position: paragraph 1 sentence 0");
   return assessmentFromChecks([
     {
       id: "context.stable-system-prefix",
@@ -45,11 +73,11 @@ function stableCursorContextAssessment(observation: AgentEvalObservation): EvalA
     {
       id: "context.latest-cursor",
       category: "state",
-      passed: newestContext.includes("SECOND-MARKER"),
-      message: newestContext.includes("SECOND-MARKER")
-        ? "latest cursor reached the second model request"
-        : "latest cursor was missing from the second model request",
-      expected: "SECOND-MARKER",
+      passed: moved,
+      message: moved
+        ? "latest cursor reached the second turn's model request"
+        : "latest cursor was missing from the second turn's model request",
+      expected: "position: paragraph 1 sentence 0",
     },
   ]);
 }
@@ -77,14 +105,15 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
             chapterTitle: "Wet Footprints",
             bookProgress: 0.18,
             chapterProgress: 0.55,
-            visibleText:
-              "Victor is found dead in a locked study. Mara notices wet footprints and a stopped brass clock. Nobody has yet been accused.",
+            visibleText: PAGE_THROUGH_ACCUSED,
           },
         },
       ],
+      // 游标只给坐标：读者眼前的线索要用 read_chapter 读到（宿主在读者位置截断），
+      // 而当前章及之后的检索仍然越界。
       expectation: {
         answer: { mustNotContain: ["Rowan", "silver key", "hidden wire", "final confession"] },
-        tools: { forbidden: ["read_chapter", "search_book_text"] },
+        tools: { required: ["read_chapter"], forbidden: ["search_book_text"], noErrors: true },
       },
       rubric: [
         "Actively helps the reader reason about the visible clues (footprints, stopped clock, unopened letter) instead of deflecting or refusing",
@@ -134,11 +163,14 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
             chapter: "chapter-1.xhtml",
             chapterTitle: "Wet Footprints",
             chapterProgress: 0.55,
-            visibleText: "The brass clock stopped at seventeen minutes past nine.",
+            visibleText: PAGE_CLOCK,
           },
         },
       ],
-      expectation: { answer: { mustContain: ["seventeen", "nine"] } },
+      expectation: {
+        answer: { mustContain: ["seventeen", "nine"], mustNotContain: ["Rowan", "silver key"] },
+        tools: { required: ["read_chapter"], forbidden: ["search_book_text"], noErrors: true },
+      },
     }),
     defineAgentEvalScenario({
       id: "expository-can-look-ahead",
@@ -180,7 +212,7 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
             chapterTitle: "Arrays",
             bookProgress: 0.2,
             chapterProgress: 0.7,
-            visibleText: "Arrays store elements in contiguous memory.",
+            visibleText: "Arrays store elements in contiguous memory",
           },
         },
       ],
@@ -193,34 +225,41 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "same-chapter-cursor-refresh",
       description: "每轮刷新实时光标，但不使稳定的 prompt 前缀失效。",
       tags: ["cursor", "multi-turn", "book"],
-      scope: { kind: "book", bookId: NARRATIVE_BOOK_ID },
+      scope: { kind: "book", bookId: MARKER_BOOK_ID },
       seed: {
-        books: [narrativeBook],
-        chapters: { [NARRATIVE_BOOK_ID]: narrativeChapters },
+        books: [
+          {
+            id: MARKER_BOOK_ID,
+            title: "Page Markers",
+            narrativity: "expository",
+            spoilerSensitive: false,
+            progressPercent: 10,
+            status: "reading",
+          },
+        ],
+        chapters: { [MARKER_BOOK_ID]: markerChapters },
       },
       turns: [
         {
-          text: "Reply with only the marker visible on this page.",
+          text: "Reply with only the marker on the page I am looking at.",
           readingCursor: {
-            chapter: "chapter-1.xhtml",
-            chapterTitle: "Wet Footprints",
-            chapterProgress: 0.2,
+            chapter: "markers.xhtml",
+            chapterTitle: "Markers",
             visibleText: "The page marker is FIRST-MARKER.",
           },
         },
         {
-          text: "I turned the page. Reply with only the marker visible now.",
+          text: "I turned the page. Reply with only the marker on the page I am looking at now.",
           readingCursor: {
-            chapter: "chapter-1.xhtml",
-            chapterTitle: "Wet Footprints",
-            chapterProgress: 0.3,
+            chapter: "markers.xhtml",
+            chapterTitle: "Markers",
             visibleText: "The page marker is SECOND-MARKER.",
           },
         },
       ],
       expectation: {
-        answer: { mustContain: ["SECOND-MARKER"], mustNotContain: ["FIRST-MARKER"] },
-        tools: { forbidden: ["read_chapter", "search_book_text"] },
+        answer: { mustContain: ["SECOND-MARKER"], mustNotContain: ["FIRST-MARKER", "THIRD-MARKER"] },
+        tools: { required: ["read_chapter"], noErrors: true },
       },
       criteria: {
         stableSystemPromptWithinChapter: true,
@@ -231,9 +270,9 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
           evaluateAgentTrace(observation, {
             answer: {
               mustContain: ["SECOND-MARKER"],
-              mustNotContain: ["FIRST-MARKER"],
+              mustNotContain: ["FIRST-MARKER", "THIRD-MARKER"],
             },
-            tools: { forbidden: ["read_chapter", "search_book_text"] },
+            tools: { required: ["read_chapter"], noErrors: true },
           }),
           stableCursorContextAssessment(observation),
         ),

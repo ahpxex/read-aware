@@ -358,7 +358,7 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
             bookProgress: 0.75,
             chapterProgress: 0.3,
             visibleText:
-              "Around the fire, Ibra reflects on family: her brother's debt bound them tighter than any contract.",
+              "Around the fire, Ibra reflects on family: her brother's debt bound them tighter than any contract",
           },
         },
       ],

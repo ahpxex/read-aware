@@ -237,7 +237,17 @@
       "title": "Threads",
       "new": "Neue Unterhaltung",
       "untitled": "Neue Unterhaltung",
-      "delete": "Thread löschen"
+      "delete": "Thread löschen",
+      "search": "Unterhaltungen durchsuchen",
+      "noMatches": "Keine Unterhaltung passt zu „{{query}}“.",
+      "empty": "Noch keine Unterhaltungen.",
+      "groups": {
+        "today": "Heute",
+        "yesterday": "Gestern",
+        "previous7": "Letzte 7 Tage",
+        "previous30": "Letzte 30 Tage",
+        "older": "Älter"
+      }
     },
     "unknownBook": "Unbekanntes Buch",
     "empty": {

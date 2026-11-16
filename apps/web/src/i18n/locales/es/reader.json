@@ -264,5 +264,21 @@
     "pages": "{{page}} / {{total}}",
     "headerLabel": "Encabezado",
     "footerLabel": "Pie de página"
+  },
+  "marks": {
+    "title": "Subrayados y notas",
+    "allBooks": "Todos los libros",
+    "books": "Libros",
+    "removedBook": "Libro eliminado",
+    "empty": "Aún no hay subrayados ni notas. Selecciona texto mientras lees para marcarlo.",
+    "openFailed": "No se pudo abrir este pasaje",
+    "filter": "Mostrar",
+    "all": "Todo",
+    "highlights": "Resaltados",
+    "notes": "Notas",
+    "search": "Buscar en resaltados y notas",
+    "closeSearch": "Cerrar búsqueda",
+    "noMatches": "Nada coincide con «{{query}}».",
+    "nothingToShow": "No hay nada que mostrar."
   }
 }

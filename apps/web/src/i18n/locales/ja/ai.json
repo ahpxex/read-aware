@@ -237,7 +237,17 @@
       "title": "スレッド",
       "new": "新しい会話",
       "untitled": "新しい会話",
-      "delete": "スレッドを削除"
+      "delete": "スレッドを削除",
+      "search": "会話を検索",
+      "noMatches": "「{{query}}」に一致する会話はありません。",
+      "empty": "まだ会話はありません。",
+      "groups": {
+        "today": "今日",
+        "yesterday": "昨日",
+        "previous7": "過去 7 日間",
+        "previous30": "過去 30 日間",
+        "older": "それ以前"
+      }
     },
     "unknownBook": "不明な本",
     "empty": {

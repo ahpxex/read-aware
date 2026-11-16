@@ -237,7 +237,17 @@
       "title": "Fils",
       "new": "Nouvelle conversation",
       "untitled": "Nouvelle conversation",
-      "delete": "Supprimer le fil"
+      "delete": "Supprimer le fil",
+      "search": "Rechercher dans les conversations",
+      "noMatches": "Aucune conversation ne correspond à « {{query}} ».",
+      "empty": "Aucune conversation pour l’instant.",
+      "groups": {
+        "today": "Aujourd’hui",
+        "yesterday": "Hier",
+        "previous7": "7 derniers jours",
+        "previous30": "30 derniers jours",
+        "older": "Plus ancien"
+      }
     },
     "unknownBook": "Livre inconnu",
     "empty": {

@@ -25,8 +25,9 @@ export { stepReadingHistory } from "./lib/reading-history";
 // duration format.
 export { formatReadingDuration, getBookReadingStats } from "./lib/reading-stats";
 
-// A book's details list its highlights and notes the way the reader's notes
-// view does — grouped by chapter, searchable with the reader's own matcher.
+// A book's details and the highlights & notes page list marks the way the
+// reader's notes view does — grouped by chapter, filtered and searched with
+// the reader's own matcher.
 export { ReaderNotesList } from "./components/ReaderNotesList";
-export { matchAnnotations } from "./lib/contents-search";
 export { chapterAnchorsFromToc, type ChapterAnchor } from "./lib/notes-grouping";
+export { MarksBrowser, type MarksFilter } from "./components/MarksBrowser";

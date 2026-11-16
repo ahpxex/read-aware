@@ -272,7 +272,17 @@
       "title": "討論串",
       "new": "建立新對話",
       "untitled": "新對話",
-      "delete": "刪除討論串"
+      "delete": "刪除討論串",
+      "search": "搜尋對話",
+      "noMatches": "沒有與「{{query}}」相符的對話。",
+      "empty": "還沒有對話。",
+      "groups": {
+        "today": "今天",
+        "yesterday": "昨天",
+        "previous7": "過去 7 天",
+        "previous30": "過去 30 天",
+        "older": "更早"
+      }
     },
     "unknownBook": "不明書籍",
     "empty": {

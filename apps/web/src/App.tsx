@@ -77,6 +77,11 @@ const StatsWorkspace = lazy(() =>
     default: m.StatsWorkspace,
   })),
 );
+const AnnotationsWorkspace = lazy(() =>
+  import("./features/annotations/components/AnnotationsWorkspace").then((m) => ({
+    default: m.AnnotationsWorkspace,
+  })),
+);
 const SettingsDialog = lazy(() =>
   import("./features/settings/SettingsDialog").then((m) => ({
     default: m.SettingsDialog,
@@ -90,6 +95,7 @@ import {
   settingsOpenAtom,
   shelfSelectionAtom,
   shelfViewAtom,
+  backTargetOf,
   type TopNav,
 } from "./state/ui";
 
@@ -264,8 +270,7 @@ function App() {
   });
 
   const agentHeaderActions = useAgentHeaderActions({
-    books: library.books,
-    onOpenBook: handleOpenBook,
+    onOpenAnnotations: () => setActiveTopNav("annotations"),
     onNewConversation: createGlobalConversation,
   });
 
@@ -275,8 +280,8 @@ function App() {
   // Spinner feedback on the clicked cover while the shelf holds.
   const openingBookId = shelfHandoff !== "idle" ? (reader.selectedBook?.id ?? null) : null;
 
-  // Esc backs out one pushed view at a time — a standalone Context/Stats surface
-  // to the shelf, or an open collection back to the full shelf. Skipped while
+  // Esc backs out one pushed view at a time — a standalone surface to where it
+  // was entered from (backTargetOf), or an open collection back to the full shelf. Skipped while
   // reading (the engine owns Esc), while a dialog is open (it owns its own), and
   // during selection mode (whose own surfaces handle Esc).
   const inSecondary = activeTopNav !== "shelf";
@@ -287,13 +292,14 @@ function App() {
       if (event.key !== "Escape" || event.defaultPrevented) return;
       if (settingsOpen || searchModalOpen || shelfSelecting) return;
       event.preventDefault();
-      if (inSecondary) setActiveTopNav("shelf");
+      if (inSecondary) setActiveTopNav(backTargetOf(activeTopNav));
       else setActiveCollectionId(null);
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [
     reader.selectedBook,
+    activeTopNav,
     inSecondary,
     inCollection,
     settingsOpen,
@@ -330,7 +336,7 @@ function App() {
         return;
       }
       if (inSecondary) {
-        setActiveTopNav("shelf");
+        setActiveTopNav(backTargetOf(activeTopNav));
         return;
       }
       if (inCollection) {
@@ -346,6 +352,7 @@ function App() {
     searchModalOpen,
     shelfSelecting,
     reader.selectedBook,
+    activeTopNav,
     inSecondary,
     inCollection,
     closeBook,
@@ -557,6 +564,13 @@ function App() {
                 <Suspense fallback={<SurfaceFallback />}>
                   <StatsWorkspace books={library.books} onOpenBook={handleOpenBook} />
                   <WorkspaceCommit surface="stats" token={workspaceToken} />
+                </Suspense>
+              </FeatureErrorBoundary>
+            ) : activeTopNav === "annotations" ? (
+              <FeatureErrorBoundary surface="annotations" resetKey={activeTopNav}>
+                <Suspense fallback={<SurfaceFallback />}>
+                  <AnnotationsWorkspace books={library.books} />
+                  <WorkspaceCommit surface="annotations" token={workspaceToken} />
                 </Suspense>
               </FeatureErrorBoundary>
             ) : (

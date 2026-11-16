@@ -63,11 +63,6 @@
     "notes": "Notizen",
     "annotations": "Notizen & Markierungen",
     "back": "Zurück zu den Buchdetails",
-    "searchMarks": "Markierungen und Notizen durchsuchen",
-    "closeSearch": "Suche schließen",
-    "filterMarks": "Anzeigen",
-    "filterAll": "Alle",
-    "noMatches": "Keine Treffer für „{{query}}“.",
     "openPassageFailed": "Diese Stelle konnte nicht geöffnet werden"
   },
   "removeBook": {

@@ -237,7 +237,17 @@
       "title": "Hilos",
       "new": "Nueva conversación",
       "untitled": "Nueva conversación",
-      "delete": "Eliminar hilo"
+      "delete": "Eliminar hilo",
+      "search": "Buscar conversaciones",
+      "noMatches": "Ninguna conversación coincide con «{{query}}».",
+      "empty": "Aún no hay conversaciones.",
+      "groups": {
+        "today": "Hoy",
+        "yesterday": "Ayer",
+        "previous7": "Últimos 7 días",
+        "previous30": "Últimos 30 días",
+        "older": "Anteriores"
+      }
     },
     "unknownBook": "Libro desconocido",
     "empty": {

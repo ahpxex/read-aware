@@ -264,5 +264,21 @@
     "pages": "{{page}} / {{total}}",
     "headerLabel": "ヘッダー",
     "footerLabel": "フッター"
+  },
+  "marks": {
+    "title": "ハイライトとメモ",
+    "allBooks": "すべての本",
+    "books": "本",
+    "removedBook": "削除された本",
+    "empty": "まだハイライトやメモはありません。読書中にテキストを選択するとマークできます。",
+    "openFailed": "この箇所を開けませんでした",
+    "filter": "表示",
+    "all": "すべて",
+    "highlights": "ハイライト",
+    "notes": "メモ",
+    "search": "ハイライトとメモを検索",
+    "closeSearch": "検索を閉じる",
+    "noMatches": "「{{query}}」に一致するものはありません。",
+    "nothingToShow": "表示するものがありません。"
   }
 }

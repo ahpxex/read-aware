@@ -264,5 +264,21 @@
     "pages": "{{page}} / {{total}}",
     "headerLabel": "Kopfzeile",
     "footerLabel": "Fußzeile"
+  },
+  "marks": {
+    "title": "Markierungen & Notizen",
+    "allBooks": "Alle Bücher",
+    "books": "Bücher",
+    "removedBook": "Entferntes Buch",
+    "empty": "Noch keine Markierungen oder Notizen. Wähle beim Lesen Text aus, um ihn zu markieren.",
+    "openFailed": "Diese Stelle konnte nicht geöffnet werden",
+    "filter": "Anzeigen",
+    "all": "Alle",
+    "highlights": "Markierungen",
+    "notes": "Notizen",
+    "search": "Markierungen und Notizen durchsuchen",
+    "closeSearch": "Suche schließen",
+    "noMatches": "Keine Treffer für „{{query}}“.",
+    "nothingToShow": "Nichts anzuzeigen."
   }
 }

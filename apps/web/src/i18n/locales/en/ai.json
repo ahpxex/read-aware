@@ -274,7 +274,17 @@
       "title": "Threads",
       "new": "New conversation",
       "untitled": "New conversation",
-      "delete": "Delete thread"
+      "delete": "Delete thread",
+      "search": "Search conversations",
+      "noMatches": "No conversations match “{{query}}”.",
+      "empty": "No conversations yet.",
+      "groups": {
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "previous7": "Previous 7 days",
+        "previous30": "Previous 30 days",
+        "older": "Older"
+      }
     },
     "unknownBook": "Unknown Book",
     "empty": {

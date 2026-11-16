@@ -264,5 +264,21 @@
     "pages": "{{page}} / {{total}}",
     "headerLabel": "頁首",
     "footerLabel": "頁尾"
+  },
+  "marks": {
+    "title": "高亮與筆記",
+    "allBooks": "所有書籍",
+    "books": "書籍",
+    "removedBook": "已移除的書",
+    "empty": "還沒有螢光標示或筆記。閱讀時選取文字即可標註。",
+    "openFailed": "無法開啟這段原文",
+    "filter": "顯示",
+    "all": "全部",
+    "highlights": "螢光標示",
+    "notes": "筆記",
+    "search": "搜尋螢光標示和筆記",
+    "closeSearch": "關閉搜尋",
+    "noMatches": "沒有與「{{query}}」相符的內容。",
+    "nothingToShow": "沒有可顯示的內容。"
   }
 }

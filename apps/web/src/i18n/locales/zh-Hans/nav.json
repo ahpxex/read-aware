@@ -5,7 +5,8 @@
   "header": {
     "back": {
       "allBooks": "所有书籍",
-      "toShelf": "返回书架"
+      "toShelf": "返回书架",
+      "toAgent": "返回智能助理"
     },
     "search": "搜索",
     "import": "导入",

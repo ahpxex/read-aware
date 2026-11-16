@@ -61,11 +61,6 @@
     "notes": "メモ",
     "annotations": "メモとハイライト",
     "back": "本の詳細に戻る",
-    "searchMarks": "ハイライトとメモを検索",
-    "closeSearch": "検索を閉じる",
-    "filterMarks": "表示",
-    "filterAll": "すべて",
-    "noMatches": "「{{query}}」に一致するものはありません。",
     "openPassageFailed": "この箇所を開けませんでした"
   },
   "removeBook": {

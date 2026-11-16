@@ -264,5 +264,21 @@
     "pages": "{{page}} / {{total}}",
     "headerLabel": "页眉",
     "footerLabel": "页脚"
+  },
+  "marks": {
+    "title": "高亮与笔记",
+    "allBooks": "所有书籍",
+    "books": "书籍",
+    "removedBook": "已移除的书",
+    "empty": "还没有高亮或笔记。阅读时选中文字即可标注。",
+    "openFailed": "无法打开这段原文",
+    "filter": "显示",
+    "all": "全部",
+    "highlights": "高亮",
+    "notes": "笔记",
+    "search": "搜索高亮和笔记",
+    "closeSearch": "关闭搜索",
+    "noMatches": "没有与“{{query}}”匹配的内容。",
+    "nothingToShow": "暂无内容。"
   }
 }

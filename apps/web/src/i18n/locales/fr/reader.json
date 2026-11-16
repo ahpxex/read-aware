@@ -264,5 +264,21 @@
     "pages": "{{page}} / {{total}}",
     "headerLabel": "En-tête",
     "footerLabel": "Pied de page"
+  },
+  "marks": {
+    "title": "Surlignages et notes",
+    "allBooks": "Tous les livres",
+    "books": "Livres",
+    "removedBook": "Livre supprimé",
+    "empty": "Aucun surlignage ni aucune note pour l’instant. Sélectionnez du texte pendant la lecture pour le marquer.",
+    "openFailed": "Impossible d'ouvrir ce passage",
+    "filter": "Afficher",
+    "all": "Tout",
+    "highlights": "Surlignages",
+    "notes": "Notes",
+    "search": "Rechercher dans les surlignages et les notes",
+    "closeSearch": "Fermer la recherche",
+    "noMatches": "Aucun résultat pour « {{query}} ».",
+    "nothingToShow": "Rien à afficher."
   }
 }

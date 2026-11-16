@@ -7,7 +7,7 @@ import { usePhoneViewport } from "@read-aware/ui/media";
 import { useAtomValue } from "jotai";
 import { useTranslation } from "../../../i18n";
 import { desktopChromeKind, type DesktopChromeKind } from "../../../platform/environment";
-import { activeCollectionAtom, type TopNav } from "../../../state/ui";
+import { activeCollectionAtom, backTargetOf, type TopNav } from "../../../state/ui";
 import { MenuOverflow, type MenuOverflowEntry } from "../../menus/components/MenuOverflow";
 import { coreMenuMeta } from "../../menus/lib/menu-registry";
 import {
@@ -247,10 +247,15 @@ export function AppHeader({
   const showBack =
     inCollection ||
     (activeTopNav !== "shelf" && !(primaryTopNavs.includes(activeTopNav) && primaryTopNavs.includes("shelf")));
-  const backLabel = inCollection ? t("header.back.allBooks") : t("header.back.toShelf");
+  const backTarget = backTargetOf(activeTopNav);
+  const backLabel = inCollection
+    ? t("header.back.allBooks")
+    : backTarget === "agent"
+      ? t("header.back.toAgent")
+      : t("header.back.toShelf");
   const handleBack = () => {
     if (inCollection) setActiveCollectionId(null);
-    else onTopNavChange("shelf");
+    else onTopNavChange(backTarget);
   };
 
   if (isPhone) {

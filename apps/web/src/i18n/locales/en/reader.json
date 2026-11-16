@@ -264,5 +264,21 @@
     "pages": "{{page}} / {{total}}",
     "headerLabel": "Header",
     "footerLabel": "Footer"
+  },
+  "marks": {
+    "title": "Highlights & notes",
+    "allBooks": "All books",
+    "books": "Books",
+    "removedBook": "Removed book",
+    "empty": "No highlights or notes yet. Select text while reading to mark it.",
+    "openFailed": "Couldn't open this passage",
+    "filter": "Show",
+    "all": "All",
+    "highlights": "Highlights",
+    "notes": "Notes",
+    "search": "Search highlights and notes",
+    "closeSearch": "Close search",
+    "noMatches": "Nothing matches “{{query}}”.",
+    "nothingToShow": "Nothing to show."
   }
 }

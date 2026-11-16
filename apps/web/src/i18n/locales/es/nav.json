@@ -5,7 +5,8 @@
   "header": {
     "back": {
       "allBooks": "Todos los libros",
-      "toShelf": "Volver a la estantería"
+      "toShelf": "Volver a la estantería",
+      "toAgent": "Volver al agente"
     },
     "search": "Buscar",
     "import": "Importar",

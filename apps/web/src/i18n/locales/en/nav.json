@@ -5,7 +5,8 @@
   "header": {
     "back": {
       "allBooks": "All books",
-      "toShelf": "Back to shelf"
+      "toShelf": "Back to shelf",
+      "toAgent": "Back to Agent"
     },
     "search": "Search",
     "import": "Import",

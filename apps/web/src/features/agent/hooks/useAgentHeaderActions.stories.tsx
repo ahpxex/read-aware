@@ -1,42 +1,15 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { MenuOverflow } from "../../menus/components/MenuOverflow";
-import type { LibraryBook } from "../../library/lib/library-types";
 import { useAgentHeaderActions } from "./useAgentHeaderActions";
 
-const book: LibraryBook = {
-  id: "book-pale-fire",
-  title: "Pale Fire",
-  author: "Vladimir Nabokov",
-  format: "epub",
-  fileName: "pale-fire.epub",
-  mimeType: "application/epub+zip",
-  fileSize: 1_480_000,
-  coverStatus: "none",
-  coverBlobKey: null,
-  coverLocal: false,
-  coverVersion: null,
-  coverUrl: null,
-  createdAt: "2026-01-02T09:00:00.000Z",
-  updatedAt: "2026-06-28T19:00:00.000Z",
-  lastOpenedAt: "2026-06-28T19:00:00.000Z",
-  progressPercent: 62,
-  readingStatus: "reading",
-  progress: null,
-};
-
 /**
- * The Agent page's header actions: new conversation, the thread switcher, and
- * the annotations browser.
+ * The Agent page's header actions: new conversation, the thread list's toggle
+ * (docked at the page's left edge, a drawer on a phone; pressed while shown),
+ * and the highlights & notes page.
  *
  * They are *atomized* rather than one cluster, which is the point of the hook:
  * each entry carries both an inline rendering and an overflow rendering, so a
- * narrowing window can collapse them one at a time. The popovers ride into the
- * menu as `node` entries and open from its panel — they don't degrade into
- * plain menu items.
- *
- * Both renderings are shown here side by side. The lists inside the popovers
- * load over Tauri IPC, so they open empty; `ThreadsPopoverView` and
- * `AnnotationsPopoverView` carry the populated states.
+ * narrowing window can collapse them one at a time into the dots menu.
  */
 const meta = {
   title: "Interface/Agent/AgentHeaderActions",
@@ -46,10 +19,9 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-function Harness({ books }: { books: LibraryBook[] }) {
+function Harness() {
   const entries = useAgentHeaderActions({
-    books,
-    onOpenBook: () => {},
+    onOpenAnnotations: () => {},
     onNewConversation: () => {},
   });
 
@@ -75,10 +47,5 @@ function Harness({ books }: { books: LibraryBook[] }) {
 
 /** All three actions, in both renderings. */
 export const InlineAndOverflow: Story = {
-  render: () => <Harness books={[book]} />,
-};
-
-/** With an empty library, which the annotations browser has to survive. */
-export const WithoutBooks: Story = {
-  render: () => <Harness books={[]} />,
+  render: () => <Harness />,
 };

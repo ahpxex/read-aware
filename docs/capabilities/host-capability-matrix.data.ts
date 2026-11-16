@@ -299,7 +299,7 @@ export const sources: Record<string, string> = {
   NATIVEANNWRITES: "apps/web/src/features/annotations/lib/native-annotation-mutations.ts",
   NATIVEANNEDITOR: "apps/web/src/features/reader/hooks/useReaderNoteEditor.ts",
   ANNCOLLECTIONS: "apps/web/src/features/annotations/hooks/useAnnotations.ts",
-  ANNGLOBAL: "apps/web/src/features/agent/components/AnnotationsPopover.tsx",
+  ANNGLOBAL: "apps/web/src/features/annotations/components/AnnotationsWorkspace.tsx",
   STORAGEEXEC: "apps/desktop/src-tauri/src/storage/execution.rs",
   READINGTRACE: "apps/web/src/features/reader/lib/reading-trace.ts",
   READINGTRACERUNTIME: "apps/web/src/features/reader/lib/reading-trace-runtime.ts",

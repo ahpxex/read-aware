@@ -7,14 +7,15 @@ import { AgentWorkspace } from "./AgentWorkspace";
 /**
  * The Agent page: the home of the global, cross-book thread.
  *
- * The page *is* the chat — there is no sidebar. Switching and creating threads
- * happens in the header's popovers, and the active thread reaches this surface
- * through an atom; memory never splits per thread, so nothing here is
- * thread-scoped but the transcript.
+ * The thread list docks at the page's left edge (the header's toggle puts it
+ * away, and a phone shows it as a drawer); the conversation fills the rest.
+ * The active thread is an atom the header's New conversation also writes;
+ * memory never splits per thread, so nothing here is thread-scoped but the
+ * transcript.
  *
- * Messages load from the conversation store over Tauri IPC, so the transcript
- * renders empty in Storybook; `ChatTranscript` covers the populated and
- * streaming states.
+ * Threads and messages load from the conversation store over Tauri IPC, so
+ * the list and transcript render empty in Storybook; `ThreadsSidebar` and
+ * `ChatTranscript` cover the populated states.
  */
 const meta = {
   title: "Interface/Agent/AgentWorkspace",

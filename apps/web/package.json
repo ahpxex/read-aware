@@ -15,6 +15,8 @@
     "typecheck:tests": "tsc --noEmit -p tests/tsconfig.json",
     "typecheck:desktop": "tsc --noEmit -p tests/desktop/tsconfig.json",
     "test:runtime": "bun scripts/run-runtime-regressions.ts",
+    "eval": "bun scripts/agent-evals.ts",
+    "eval:snapshots": "bun scripts/agent-evals.ts snapshots",
     "test:desktop-contracts": "bun test tests/desktop-location.test.ts src/features/plugins/runtime/plugin-sandbox.integration.test.ts",
     "storybook": "bun run build:foliate && concurrently --kill-others --names foliate,storybook --passthrough-arguments \"bun run watch:foliate\" \"storybook dev -p 6006 {@}\" --",
     "build-storybook": "bun run build:foliate && storybook build",

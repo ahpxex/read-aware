@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useState } from "react";
+import { Activity, Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ScrollArea, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
@@ -517,7 +517,12 @@ function App() {
           />
 
           <ScrollArea className="h-full min-h-0 flex-1">
-            {activeTopNav === "shelf" ? (
+            {/* The shelf stays mounted while another page shows, hidden in an
+                Activity: coming back reveals the shelf already built instead
+                of rebuilding every cover. Hidden, it holds its effects
+                (shortcuts, observers, the workspace commit) and re-renders
+                only at low priority when the library changes. */}
+            <Activity mode={activeTopNav === "shelf" ? "visible" : "hidden"}>
               <FeatureErrorBoundary surface="library" resetKey={activeTopNav}>
                 <LibraryWorkspace
                   isReady={library.libraryReady}
@@ -539,7 +544,8 @@ function App() {
                 />
                 {library.libraryReady && <WorkspaceCommit surface="shelf" token={workspaceToken} />}
               </FeatureErrorBoundary>
-            ) : activeTopNav === "agent" ? (
+            </Activity>
+            {activeTopNav === "shelf" ? null : activeTopNav === "agent" ? (
               <FeatureErrorBoundary surface="agent" resetKey={activeTopNav}>
                 <Suspense fallback={<SurfaceFallback />}>
                   <AgentWorkspace />

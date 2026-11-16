@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { Books } from "@phosphor-icons/react";
 import { Body, Button, EmptyState, Skeleton } from "@read-aware/ui";
@@ -39,7 +39,13 @@ type LibraryWorkspaceProps = {
   onSetBooksCollection: (ids: string[], collectionId: string | null) => void;
 };
 
-export function LibraryWorkspace({
+/**
+ * Memoized: the app keeps the shelf mounted (hidden) while another page shows,
+ * and re-renders it on every page switch with the same props. Every prop is a
+ * stable reference (the library's callbacks are memoized), so a switch back
+ * reveals the shelf without rebuilding its covers.
+ */
+export const LibraryWorkspace = memo(function LibraryWorkspace({
   isReady,
   books,
   pendingBooks = [],
@@ -303,4 +309,4 @@ export function LibraryWorkspace({
       />
     </div>
   );
-}
+});

@@ -39,6 +39,10 @@ type AppHeaderProps = {
   onTopNavChange: (topNav: TopNav) => void;
   /** Quiet status/action rendered beside the native window controls. */
   leadingStatus?: ReactNode;
+  /** A surface's own control at the header's start, after the back button —
+   *  the Agent page's thread-list toggle, above the list it shows. Never
+   *  collapses into the dots menu. */
+  leading?: ReactNode;
   /** Optional context-specific control (e.g. the shelf view menu) shown in the cluster. */
   viewControl?: ReactNode;
   /** When set, replaces the customizable right-hand utility cluster. The
@@ -75,6 +79,7 @@ export function AppHeader({
   onOpenSearch,
   onTopNavChange,
   leadingStatus,
+  leading,
   viewControl,
   actions,
   chrome = desktopChromeKind(),
@@ -291,6 +296,7 @@ export function AppHeader({
                   icon={<CaretLeft size={18} weight="regular" aria-hidden="true" />}
                 />
               )}
+              {leading}
               {leadingStatus}
             </span>
           </div>
@@ -468,7 +474,8 @@ export function AppHeader({
               className="shrink-0"
               style={{
                 // Clear the macOS traffic lights whenever left content renders.
-                width: showBack || leadingStatus ? "max(0px, calc(var(--ra-traffic-light-inset) - 1.25rem))" : 0,
+                width:
+                  showBack || leading || leadingStatus ? "max(0px, calc(var(--ra-traffic-light-inset) - 1.25rem))" : 0,
               }}
             />
             {showBack && (
@@ -482,6 +489,7 @@ export function AppHeader({
                 />
               </Tooltip>
             )}
+            {leading}
             {leadingStatus}
           </span>
           {/* Frameless Windows/Linux: the cluster lives on the LEFT (see the

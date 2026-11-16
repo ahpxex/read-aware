@@ -3,9 +3,9 @@ import { MenuOverflow } from "../../menus/components/MenuOverflow";
 import { useAgentHeaderActions } from "./useAgentHeaderActions";
 
 /**
- * The Agent page's header actions: new conversation, the thread list's toggle
- * (docked at the page's left edge, a drawer on a phone; pressed while shown),
- * and the highlights & notes page.
+ * The Agent page's header actions: new conversation and the highlights &
+ * notes page. (The thread list's toggle sits at the header's start instead,
+ * above the list: `ThreadsSidebarToggle`.)
  *
  * They are *atomized* rather than one cluster, which is the point of the hook:
  * each entry carries both an inline rendering and an overflow rendering, so a
@@ -45,7 +45,7 @@ function Harness() {
   );
 }
 
-/** All three actions, in both renderings. */
+/** Both actions, in both renderings. */
 export const InlineAndOverflow: Story = {
   render: () => <Harness />,
 };

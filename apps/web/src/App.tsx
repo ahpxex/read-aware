@@ -16,6 +16,7 @@ import type { LibraryBook } from "./features/library/lib/library-types";
 import { AppHeader } from "./features/navigation/components/AppHeader";
 import { usePrimaryDestinations } from "./features/navigation/hooks/usePrimaryDestinations";
 import { useAgentHeaderActions } from "./features/agent/hooks/useAgentHeaderActions";
+import { ThreadsSidebarToggle } from "./features/agent/components/ThreadsSidebarToggle";
 import { UpdateIndicator } from "./features/update/components/UpdateIndicator";
 import { WhatsNewDialog } from "./features/update/components/WhatsNewDialog";
 import { useSoftwareUpdate } from "./features/update/hooks/useSoftwareUpdate";
@@ -518,6 +519,7 @@ function App() {
             onOpenSettings={() => setSettingsOpen(true)}
             onOpenSearch={() => setSearchModalOpen(true)}
             onTopNavChange={setActiveTopNav}
+            leading={activeTopNav === "agent" ? <ThreadsSidebarToggle /> : undefined}
             leadingStatus={<UpdateIndicator />}
             viewControl={activeTopNav === "shelf" ? <ShelfManagementMenu /> : undefined}
             actions={activeTopNav === "agent" ? agentHeaderActions : undefined}

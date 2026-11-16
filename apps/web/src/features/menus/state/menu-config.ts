@@ -29,7 +29,7 @@ export const CORE_MENU_DEFAULTS: Record<MenuSurface, string[]> = {
   // Destinations, not actions — the centered text switcher. Stats and plugin
   // pages are known items that default to the hidden zone (see
   // CORE_OVERFLOW_DEFAULTS).
-  primaryNav: ["core:library", "core:agent"],
+  primaryNav: ["core:library", "core:agent", "core:annotations"],
   shelfHeader: ["core:search", "core:import", "core:viewControl", "core:stats", "core:settings"],
   // Right cluster only — back/TOC/notes stay fixed on the left.
   readerHeader: ["core:bookmark", "core:find", "core:navigator", "core:appearance", "core:chat"],

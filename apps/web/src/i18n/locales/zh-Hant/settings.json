@@ -706,6 +706,7 @@
     "items": {
       "library": "書架",
       "agent": "智慧助理",
+      "annotations": "高亮與筆記",
       "search": "搜尋",
       "import": "匯入書籍",
       "viewControl": "書架檢視",

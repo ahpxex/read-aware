@@ -5,14 +5,14 @@
   "header": {
     "back": {
       "allBooks": "Все книги",
-      "toShelf": "Назад на полку",
-      "toAgent": "Назад к агенту"
+      "toShelf": "Назад на полку"
     },
     "search": "Поиск",
     "import": "Импорт",
     "importing": "Импорт...",
     "library": "Библиотека",
     "agent": "Агент",
+    "annotations": "Заметки",
     "primaryNavigation": "Основная навигация",
     "stats": "Статистика чтения",
     "settings": "Настройки",

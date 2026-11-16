@@ -15,8 +15,8 @@ import { BOOK_FILE_ACCEPT } from "./features/library/lib/pick-book-files";
 import type { LibraryBook } from "./features/library/lib/library-types";
 import { AppHeader } from "./features/navigation/components/AppHeader";
 import { usePrimaryDestinations } from "./features/navigation/hooks/usePrimaryDestinations";
-import { useAgentHeaderActions } from "./features/agent/hooks/useAgentHeaderActions";
-import { ThreadsSidebarToggle } from "./features/agent/components/ThreadsSidebarToggle";
+import { AgentThreadControls } from "./features/agent/components/AgentThreadControls";
+import { usePluginAgentHeaderEntries } from "./features/plugins/hooks/usePluginAgentHeaderEntries";
 import { UpdateIndicator } from "./features/update/components/UpdateIndicator";
 import { WhatsNewDialog } from "./features/update/components/WhatsNewDialog";
 import { useSoftwareUpdate } from "./features/update/hooks/useSoftwareUpdate";
@@ -96,7 +96,6 @@ import {
   settingsOpenAtom,
   shelfSelectionAtom,
   shelfViewAtom,
-  backTargetOf,
   type TopNav,
 } from "./state/ui";
 
@@ -270,10 +269,9 @@ function App() {
     standbyBook: reader.standbyBook,
   });
 
-  const agentHeaderActions = useAgentHeaderActions({
-    onOpenAnnotations: () => setActiveTopNav("annotations"),
-    onNewConversation: createGlobalConversation,
-  });
+  // The Agent page's own controls sit at the header's start (AgentThreadControls);
+  // its right-hand actions are the plugins' alone.
+  const agentHeaderActions = usePluginAgentHeaderEntries();
 
   // Chat book cards → open the reader (the cards dispatch via an atom).
   useOpenBookRequestHandler(library.books, handleOpenBook, reader.selectedBook?.id ?? null);
@@ -281,8 +279,8 @@ function App() {
   // Spinner feedback on the clicked cover while the shelf holds.
   const openingBookId = shelfHandoff !== "idle" ? (reader.selectedBook?.id ?? null) : null;
 
-  // Esc backs out one pushed view at a time — a standalone surface to where it
-  // was entered from (backTargetOf), or an open collection back to the full shelf. Skipped while
+  // Esc backs out one pushed view at a time — a standalone surface to the
+  // shelf, or an open collection back to the full shelf. Skipped while
   // reading (the engine owns Esc), while a dialog is open (it owns its own), and
   // during selection mode (whose own surfaces handle Esc).
   const inSecondary = activeTopNav !== "shelf";
@@ -293,14 +291,13 @@ function App() {
       if (event.key !== "Escape" || event.defaultPrevented) return;
       if (settingsOpen || searchModalOpen || shelfSelecting) return;
       event.preventDefault();
-      if (inSecondary) setActiveTopNav(backTargetOf(activeTopNav));
+      if (inSecondary) setActiveTopNav("shelf");
       else setActiveCollectionId(null);
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [
     reader.selectedBook,
-    activeTopNav,
     inSecondary,
     inCollection,
     settingsOpen,
@@ -337,7 +334,7 @@ function App() {
         return;
       }
       if (inSecondary) {
-        setActiveTopNav(backTargetOf(activeTopNav));
+        setActiveTopNav("shelf");
         return;
       }
       if (inCollection) {
@@ -353,7 +350,6 @@ function App() {
     searchModalOpen,
     shelfSelecting,
     reader.selectedBook,
-    activeTopNav,
     inSecondary,
     inCollection,
     closeBook,
@@ -519,7 +515,7 @@ function App() {
             onOpenSettings={() => setSettingsOpen(true)}
             onOpenSearch={() => setSearchModalOpen(true)}
             onTopNavChange={setActiveTopNav}
-            leading={activeTopNav === "agent" ? <ThreadsSidebarToggle /> : undefined}
+            leading={activeTopNav === "agent" ? <AgentThreadControls /> : undefined}
             leadingStatus={<UpdateIndicator />}
             viewControl={activeTopNav === "shelf" ? <ShelfManagementMenu /> : undefined}
             actions={activeTopNav === "agent" ? agentHeaderActions : undefined}

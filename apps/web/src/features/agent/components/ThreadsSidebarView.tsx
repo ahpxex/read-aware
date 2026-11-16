@@ -1,6 +1,7 @@
 /**
- * The Agent page's thread list: every global conversation, grouped by when it
- * was last active, newest first, with a search over their titles. The open
+ * The Agent page's thread list: New conversation first, then every global
+ * conversation, grouped by when it was last active, newest first, with a
+ * search over their titles. The open
  * thread is marked; deleting is a hover control at a row's end (always shown
  * on touch). A thread not yet saved — a new conversation before its first
  * turn — still heads the list, so the open thread is always in it.
@@ -10,8 +11,8 @@
  * states render on their own.
  */
 import { useMemo, useState } from "react";
-import { Trash } from "@phosphor-icons/react";
-import { Body, IconButton, InlineError, ScrollArea, SearchField, Spinner } from "@read-aware/ui";
+import { NotePencil, Trash } from "@phosphor-icons/react";
+import { Body, Button, IconButton, InlineError, ScrollArea, SearchField, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import type { ThreadSummary } from "@read-aware/core";
 import { formatDate, useTranslation, type ErrorDescription } from "../../../i18n";
@@ -25,6 +26,8 @@ export type ThreadsSidebarViewProps = {
   activeThreadId: string;
   onSelect: (threadId: string) => void;
   onDelete: (threadId: string) => void;
+  /** Start a new conversation (the list's first row). */
+  onNew: () => void;
   /** The clock the date groups are read against (stories pin it). */
   now?: number;
   className?: string;
@@ -40,6 +43,7 @@ export function ThreadsSidebarView({
   activeThreadId,
   onSelect,
   onDelete,
+  onNew,
   now,
   className,
 }: ThreadsSidebarViewProps) {
@@ -78,6 +82,12 @@ export function ThreadsSidebarView({
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col", className)}>
+      <div className="shrink-0 px-2 pt-2">
+        <Button variant="ghost" size="sm" onClick={onNew} className="w-full justify-start px-2 text-fg">
+          <NotePencil size={16} aria-hidden="true" />
+          {t("agent.threads.new")}
+        </Button>
+      </div>
       <div className="shrink-0 border-b border-border px-4 py-2.5">
         <SearchField
           size="sm"

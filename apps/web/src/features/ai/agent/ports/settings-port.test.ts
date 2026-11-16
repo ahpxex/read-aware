@@ -89,7 +89,7 @@ beforeEach(() => {
   store.set(installedPluginsAtom, []);
   store.set(menuConfigAtom, {
     primaryNav: {
-      visible: ["core:library", "core:agent"],
+      visible: ["core:library", "core:agent", "core:annotations"],
       overflow: ["core:stats"],
     },
     shelfHeader: {
@@ -443,7 +443,7 @@ describe("agent menu settings", () => {
 
     const visible = setting(snapshot.settings, "menus.primaryNav.visible");
     expect(visible.kind).toBe("id-list");
-    expect(visible.value).toEqual(["core:library", "core:agent"]);
+    expect(visible.value).toEqual(["core:library", "core:agent", "core:annotations"]);
     expect(visible.options?.map((option) => option.value)).toContain("plugin:dictionary:vocabulary");
     // Unplaced plugin destinations resolve into the overflow zone.
     const overflow = setting(snapshot.settings, "menus.primaryNav.overflow");
@@ -492,7 +492,7 @@ describe("agent menu settings", () => {
       port.updateSettings([
         {
           path: "menus.primaryNav.overflow",
-          value: ["core:library", "core:agent", "core:stats"],
+          value: ["core:library", "core:agent", "core:annotations", "core:stats"],
         },
       ]),
     ).rejects.toThrow(/fewer than 1/);

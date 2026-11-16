@@ -5,14 +5,14 @@
   "header": {
     "back": {
       "allBooks": "所有書籍",
-      "toShelf": "返回書架",
-      "toAgent": "返回智慧助理"
+      "toShelf": "返回書架"
     },
     "search": "搜尋",
     "import": "匯入",
     "importing": "匯入中...",
     "library": "書架",
     "agent": "智慧助理",
+    "annotations": "筆記",
     "primaryNavigation": "主要導覽",
     "stats": "閱讀統計",
     "settings": "設定",

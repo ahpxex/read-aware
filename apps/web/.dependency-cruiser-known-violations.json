@@ -85,35 +85,6 @@
   },
   {
     "type": "dependency",
-    "from": "src/features/agent/hooks/useAgentHeaderActions.tsx",
-    "to": "src/features/navigation/lib/header-actions.ts",
-    "unresolvedTo": "../../navigation/lib/header-actions",
-    "dependencyTypes": [
-      "local",
-      "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/agent/hooks/useAgentHeaderActions.tsx",
-    "to": "src/features/plugins/hooks/usePluginAgentHeaderEntries.tsx",
-    "unresolvedTo": "../../plugins/hooks/usePluginAgentHeaderEntries",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
     "from": "src/features/ai/agent/agent-runtime.ts",
     "to": "src/features/plugins/state/plugin-store.ts",
     "unresolvedTo": "../../plugins/state/plugin-store",

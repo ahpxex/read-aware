@@ -35,6 +35,8 @@ function Interactive(props: Partial<ThreadsSidebarViewProps>) {
         activeThreadId={active}
         onSelect={setActive}
         onDelete={(id) => setList((current) => current.filter((thread) => thread.id !== id))}
+        // A fresh thread is not stored until its first turn: it heads the list unsaved.
+        onNew={() => setActive(`thread-new-${Date.now()}`)}
       />
     </div>
   );
@@ -42,8 +44,9 @@ function Interactive(props: Partial<ThreadsSidebarViewProps>) {
 
 /**
  * The Agent page's threads, docked at its left edge (a drawer on a phone):
- * grouped by when each was last active, the open one marked, a search over
- * their titles above. Deleting is at a row's end on hover.
+ * New conversation first, then the threads grouped by when each was last
+ * active, the open one marked, a search over their titles above them.
+ * Deleting is at a row's end on hover.
  */
 const meta = {
   title: "Interface/Agent/ThreadsSidebar",

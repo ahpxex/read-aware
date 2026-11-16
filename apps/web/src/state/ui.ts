@@ -82,15 +82,6 @@ export const topNavs = ["shelf", "agent", "stats", "annotations"] as const;
  */
 export type TopNav = (typeof topNavs)[number] | `plugin:${string}`;
 
-/**
- * Where backing out of a surface goes (the header's back button, Escape): the
- * highlights & notes page is entered from the Agent page and returns there;
- * every other surface returns to the shelf.
- */
-export function backTargetOf(topNav: TopNav): TopNav {
-  return topNav === "annotations" ? "agent" : "shelf";
-}
-
 /** Keep provenance beside ephemeral values; it never enters persistence or plugin data. */
 function workspaceValue<T>(initial: T) {
   const source = atom(stampEventCause({ value: initial }, "system"));

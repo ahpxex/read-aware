@@ -5,14 +5,14 @@
   "header": {
     "back": {
       "allBooks": "All books",
-      "toShelf": "Back to shelf",
-      "toAgent": "Back to Agent"
+      "toShelf": "Back to shelf"
     },
     "search": "Search",
     "import": "Import",
     "importing": "Importing...",
     "library": "Library",
     "agent": "Agent",
+    "annotations": "Notes",
     "primaryNavigation": "Primary navigation",
     "stats": "Reading stats",
     "settings": "Settings",

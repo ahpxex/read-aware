@@ -5,14 +5,14 @@
   "header": {
     "back": {
       "allBooks": "所有书籍",
-      "toShelf": "返回书架",
-      "toAgent": "返回智能助理"
+      "toShelf": "返回书架"
     },
     "search": "搜索",
     "import": "导入",
     "importing": "导入中…",
     "library": "书架",
     "agent": "智能助理",
+    "annotations": "笔记",
     "primaryNavigation": "主导航",
     "stats": "阅读统计",
     "settings": "设置",

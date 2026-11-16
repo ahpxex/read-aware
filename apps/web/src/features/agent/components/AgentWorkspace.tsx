@@ -1,8 +1,8 @@
 /**
  * Context 页 = 全局线程的主场（docs/architecture/agent-architecture.md）：跨书对话，
- * 支持多线程 —— 线程列表停靠在页面左侧（宽屏，可收起，收起与否按设备记住），
- * 手机上是从左侧滑出的抽屉；当前线程经 activeGlobalThreadAtom 会合，记忆不随线程分裂。
- * 跨书的高亮与笔记是独立的整页（AnnotationsWorkspace），从页头图标进入；
+ * 支持多线程 —— 线程列表（含新建对话）停靠在页面左侧（宽屏，可收起，收起与否按设备
+ * 记住），手机上是从左侧滑出的抽屉；当前线程经 activeGlobalThreadAtom 会合，记忆不随线程分裂。
+ * 跨书的高亮与笔记是独立的一级页面（AnnotationsWorkspace，主导航里的「笔记」）；
  * 记忆不设 GUI，想知道 agent 记住了什么，直接问它。
  */
 import { useEffect, useRef } from "react";
@@ -49,6 +49,10 @@ export function AgentWorkspace() {
         onPicked?.();
       }}
       onDelete={threads.remove}
+      onNew={() => {
+        threads.startNew();
+        onPicked?.();
+      }}
     />
   );
 

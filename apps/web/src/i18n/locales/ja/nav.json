@@ -5,14 +5,14 @@
   "header": {
     "back": {
       "allBooks": "すべての本",
-      "toShelf": "本棚に戻る",
-      "toAgent": "エージェントに戻る"
+      "toShelf": "本棚に戻る"
     },
     "search": "検索",
     "import": "インポート",
     "importing": "インポート中...",
     "library": "ライブラリ",
     "agent": "エージェント",
+    "annotations": "メモ",
     "primaryNavigation": "メインナビゲーション",
     "stats": "読書統計",
     "settings": "設定",

@@ -706,6 +706,7 @@
     "items": {
       "library": "Biblioteca",
       "agent": "Agente",
+      "annotations": "Subrayados y notas",
       "search": "Buscar",
       "import": "Importar",
       "viewControl": "Vista",

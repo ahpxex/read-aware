@@ -42,6 +42,7 @@ export const CORE_MENU_ITEMS: Record<MenuSurface, CoreMenuItemMeta[]> = {
   primaryNav: [
     { id: "core:library", labelKey: "library", Icon: Books },
     { id: "core:agent", labelKey: "agent", Icon: ChatCircleDots },
+    { id: "core:annotations", labelKey: "annotations", Icon: Notebook },
     { id: "core:stats", labelKey: "stats", Icon: ChartLineUp },
   ],
   shelfHeader: [

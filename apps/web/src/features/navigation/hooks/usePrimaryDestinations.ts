@@ -1,6 +1,6 @@
 /**
  * Resolves the user-arranged `primaryNav` layout into renderable destinations:
- * built-in surfaces (Library, Agent, Reading stats) plus shelf plugin page
+ * built-in surfaces (Library, Agent, Highlights & notes, Reading stats) plus shelf plugin page
  * contributions. The centered switcher renders exactly this list, and the
  * header's back-button reachability guard keys off it.
  */
@@ -27,6 +27,7 @@ export type PrimaryDestination = {
 const CORE_TOP_NAV: Record<string, TopNav> = {
   "core:library": "shelf",
   "core:agent": "agent",
+  "core:annotations": "annotations",
   "core:stats": "stats",
 };
 
@@ -45,6 +46,7 @@ export function usePrimaryDestinations(): PrimaryDestination[] {
   const coreLabels: Record<string, string> = {
     "core:library": t("header.library"),
     "core:agent": t("header.agent"),
+    "core:annotations": t("header.annotations"),
     "core:stats": t("header.stats"),
   };
 

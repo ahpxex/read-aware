@@ -15,35 +15,15 @@ import {
   buildChapterLayout,
   sentenceEndAt,
   spanAt,
-  type BookAddress,
   type BookTextLocation,
   type ChapterLayout,
   type Id,
 } from "@read-aware/core";
 import type { BookTextPort, ChapterRef, TurnAttachment } from "../ports";
-import type { ReadingCursor } from "./reading-cursor";
+import type { ChapterRange, LocatedRange, TurnReadingPosition } from "./reading-cursor";
 
-/** A character range of one chapter's extracted text. */
-export type ChapterRange = { chapterIndex: number; start: number; end: number };
-
-/** A range of one chapter with the addresses it starts and ends in. */
-export type LocatedRange = ChapterRange & {
-  span: { start: BookAddress; end: BookAddress };
-  unit: ChapterLayout["unit"];
-  /** Blocks in the chapter. */
-  blocks: number;
-  chapterTitle?: string;
-};
-
-export interface TurnReadingPosition {
-  /** The viewport: what the reader's page shows. */
-  viewport?: LocatedRange & {
-    /** End (exclusive) of the last sentence the viewport shows any of: the reader's furthest text in this chapter. */
-    through: number;
-  };
-  /** One entry per attachment, in order; undefined where a selection could not be placed. */
-  selections: (LocatedRange | undefined)[];
-}
+export { describeSpan } from "./reading-cursor";
+export type { ChapterRange, LocatedRange, TurnReadingPosition } from "./reading-cursor";
 
 type Source = Pick<BookTextPort, "getToc" | "getChapterText" | "getChapterLayout" | "locate">;
 
@@ -60,7 +40,8 @@ export async function chapterLayout(
 export async function resolveReadingPosition(input: {
   bookText: Source;
   bookId: Id;
-  cursor?: ReadingCursor;
+  /** The part of a reading cursor that says where the viewport is. */
+  cursor?: { anchor?: string; chapterIndex?: number; position?: { start: number; end: number } };
   attachments?: (TurnAttachment & { position?: ChapterRange })[];
   signal?: AbortSignal;
 }): Promise<TurnReadingPosition> {
@@ -154,15 +135,4 @@ export async function resolveReadingPosition(input: {
       : {}),
     selections,
   };
-}
-
-/** "paragraph 12 sentence 0" in the unit of the chapter. */
-const address = (unit: ChapterLayout["unit"], at: BookAddress) => `${unit} ${at.paragraph} sentence ${at.sentence}`;
-
-/** One line of coordinates: a single sentence, or a start through an end. */
-export function describeSpan(range: Pick<LocatedRange, "span" | "unit">): string {
-  const { start, end } = range.span;
-  return start.paragraph === end.paragraph && start.sentence === end.sentence
-    ? address(range.unit, start)
-    : `${address(range.unit, start)} through ${address(range.unit, end)}`;
 }

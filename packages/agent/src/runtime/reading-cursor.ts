@@ -1,6 +1,6 @@
 import type { TurnAttachment } from "../ports";
 import { formatUserTurn } from "./history";
-import { describeSpan, type TurnReadingPosition } from "./reading-position";
+import type { BookAddress, ChapterLayout } from "@read-aware/core";
 
 /**
  * A host-sampled view of where the reader is when they send one message.
@@ -32,6 +32,39 @@ export interface ReadingCursor {
    * model only when the position could not be resolved into coordinates.
    */
   visibleText?: string;
+}
+
+/** A character range of one chapter's extracted text. */
+export type ChapterRange = { chapterIndex: number; start: number; end: number };
+
+/** A range of one chapter with the addresses it starts and ends in. */
+export type LocatedRange = ChapterRange & {
+  span: { start: BookAddress; end: BookAddress };
+  unit: ChapterLayout["unit"];
+  /** Blocks in the chapter. */
+  blocks: number;
+  chapterTitle?: string;
+};
+
+export interface TurnReadingPosition {
+  /** The viewport: what the reader's page shows. */
+  viewport?: LocatedRange & {
+    /** End (exclusive) of the last sentence the viewport shows any of: the reader's furthest text in this chapter. */
+    through: number;
+  };
+  /** One entry per attachment, in order; undefined where a selection could not be placed. */
+  selections: (LocatedRange | undefined)[];
+}
+
+/** "paragraph 12 sentence 0" in the unit of the chapter. */
+const address = (unit: ChapterLayout["unit"], at: BookAddress) => `${unit} ${at.paragraph} sentence ${at.sentence}`;
+
+/** One line of coordinates: a single sentence, or a start through an end. */
+export function describeSpan(range: Pick<LocatedRange, "span" | "unit">): string {
+  const { start, end } = range.span;
+  return start.paragraph === end.paragraph && start.sentence === end.sentence
+    ? address(range.unit, start)
+    : `${address(range.unit, start)} through ${address(range.unit, end)}`;
 }
 
 function clampFraction(value: number): number {

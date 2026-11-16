@@ -121,6 +121,34 @@ test("a narrative reader's own chapter is returned up to their position and neve
   await expect(read({ chapterIndex: 1 })).rejects.toThrow("beyond the reader's position or viewport boundary");
 });
 
+test("a selection past the reader's page is returned as its own text, and does not move the boundary", async () => {
+  const { read, state } = fixture();
+  const text = CHAPTERS[1]!.text;
+  const through = text.indexOf("竟是越来越旺");
+  state.readingRanges = { position: chapterRangeOf(CHAPTERS, 1, "爷从新街走出来。他回了学校。") };
+  state.spoilerFence = { throughChapterIndex: 0, readerChapterIndex: 1, readerChapterThrough: through };
+  // Selected further down the chapter, then the reader scrolled back before asking.
+  state.readingRanges.selection = chapterRangeOf(CHAPTERS, 1, "人都散");
+  const apart = await read({ around: "selection", context: 3 });
+  expect(apart.text).toBe("[5, from sentence 0] 人都散");
+  expect(apart.next).toBeNull();
+  expect(apart.readerPosition.note).toContain("returned as its own text only");
+  expect(JSON.stringify(state.evidenceTexts)).not.toContain("越来越旺");
+  // Starting within reach and running past it: the context before it, then the selection to its own end.
+  state.readingRanges.selection = chapterRangeOf(CHAPTERS, 1, "终也舀不干。竟是越");
+  const across = await read({ around: "selection", context: 1 });
+  expect(across.text.split("\n")).toEqual(["[3] 爷从新街走出来。他回了学校。", "[4] 终也舀不干。竟是越"]);
+  // The boundary itself is where the page was: the chapter still ends there.
+  expect((await read({ chapterIndex: 1 })).text).toEndWith("[4] 终也舀不干。");
+  // A selection in a chapter the reader has not reached at all.
+  state.readingRanges.selection = chapterRangeOf(CHAPTERS, 2, "以后的事");
+  const later = await read({ around: "selection" });
+  expect(later).toMatchObject({ chapterIndex: 2, text: "[1] 以后的事", next: null });
+  expect(later.note).toContain("only its own text is returned");
+  expect(later.readerPosition).toBeUndefined();
+  await expect(read({ chapterIndex: 2 })).rejects.toThrow("beyond the reader's position or viewport boundary");
+});
+
 test("a long chapter is read in whole sentences with the address to continue from", async () => {
   const sentence = "这是第几句话并不要紧。";
   const { deps } = createInMemoryDeps({

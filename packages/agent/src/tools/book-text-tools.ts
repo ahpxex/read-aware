@@ -332,13 +332,18 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
       const fence = fenceFor(target);
       assertSpoilerPermission(confirmSpoiler, turnState, target === defaultBookId);
       // The reader's own chapter is read up to where they are; chapters after it not at all.
+      // A passage the reader selected is theirs wherever it lies: past the boundary it is
+      // returned as its own text, with nothing around it. The boundary follows the page the
+      // reader is on, never the selection.
       let readerThrough: number | undefined;
+      const reachedHere = chapterIndex === fence?.readerChapterIndex && fence.readerChapterThrough !== undefined;
       if (fence && chapterIndex > fence.throughChapterIndex && !confirmSpoiler) {
-        if (chapterIndex !== fence.readerChapterIndex || fence.readerChapterThrough === undefined)
+        if (reachedHere) readerThrough = fence.readerChapterThrough;
+        else if (raw.around === "selection") readerThrough = 0;
+        else
           throw new Error(
             `chapterIndex ${chapterIndex} is beyond the reader's position or viewport boundary (reader chapter index ${fence.readerChapterIndex ?? fence.throughChapterIndex}) in this narrative book. If the reader explicitly asked for spoilers this turn, retry with confirmSpoiler: true; otherwise stay within the boundary.`,
           );
-        readerThrough = fence.readerChapterThrough;
       }
       const [text, toc] = await Promise.all([
         deps.bookText.getChapterText(target, chapterIndex),
@@ -352,6 +357,11 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
       const readable = Math.min(text.length, readerThrough ?? text.length);
       let from: number;
       let to = readable;
+      // The selection's own text past the boundary: [start, end), or null when all of it is within reach.
+      const beyond =
+        focus && raw.around === "selection" && readerThrough !== undefined && focus.end > readable
+          ? { start: Math.max(readable, focus.start), end: Math.min(text.length, focus.end) }
+          : null;
       if (focus) {
         const span = spanAt(layout, focus.start, focus.end);
         const context = Math.min(MAX_AROUND_CONTEXT_BLOCKS, asIndex(raw.context) ?? AROUND_CONTEXT_BLOCKS);
@@ -363,14 +373,24 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
           sentence: asIndex(raw.sentence) ?? 0,
         });
       }
-      if (text.length > 0 && from >= to) {
+      if (text.length > 0 && from >= to && !beyond) {
         throw new Error(
           from >= text.length
             ? `That address is past the end of chapterIndex ${chapterIndex}, which has ${layout.paragraphs.length} ${layout.unit}s (0 to ${layout.paragraphs.length - 1}).`
             : `That part of chapterIndex ${chapterIndex} is beyond the reader's position in this narrative book. If the reader explicitly asked for spoilers this turn, retry with confirmSpoiler: true; otherwise read up to their position.`,
         );
       }
-      const window = readWindow(layout, text.length, { from, to, budget: READ_BUDGET_CHARS });
+      let window: { start: number; end: number; next: number | null };
+      if (beyond && beyond.start > readable) {
+        // Not contiguous with what the reader has reached: the selected text alone, as selected.
+        window = { start: beyond.start, end: Math.min(beyond.end, beyond.start + READ_BUDGET_CHARS), next: null };
+      } else if (beyond) {
+        // It starts within reach and runs past the boundary: the context before it, then the selection to its own end.
+        const reach = readWindow(layout, text.length, { from, to: beyond.end, budget: READ_BUDGET_CHARS });
+        window = { start: reach.start, end: Math.min(reach.end, beyond.end), next: null };
+      } else {
+        window = readWindow(layout, text.length, { from, to, budget: READ_BUDGET_CHARS });
+      }
       const returnedText = text.slice(window.start, window.end);
       if (turnState) {
         turnState.evidenceTexts.push(returnedText);
@@ -393,14 +413,21 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
             }
           : {}),
         ...(outline.length ? { outline } : {}),
-        ...(readerThrough === undefined
-          ? {}
-          : {
+        ...(reachedHere && readerThrough !== undefined
+          ? {
               readerPosition: {
                 ...addressAt(layout, Math.max(0, readable - 1)),
-                note: "The reader has read this chapter up to here. Nothing after it is returned.",
+                note: beyond
+                  ? "The reader's page ends here. The selected passage lies past it and is returned as its own text only."
+                  : "The reader has read this chapter up to here. Nothing after it is returned.",
               },
-            }),
+            }
+          : {}),
+        ...(beyond && !reachedHere
+          ? {
+              note: "The selected passage lies past the reader's position in this narrative book: only its own text is returned, with nothing around or after it.",
+            }
+          : {}),
         coverage: { start: window.start, end: window.end, totalChars: text.length },
         text: renderBlocks(text, layout, window.start, window.end),
         next: window.next === null ? null : addressAt(layout, window.next),

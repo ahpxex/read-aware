@@ -196,3 +196,53 @@ describe("AgentRuntime maintenance", () => {
     expect(settled).toBe(true);
   });
 });
+
+describe("AgentRuntime thread titles", () => {
+  /** The runtime with its threads' turns replaced by `chunks` (no provider), and the title calls it makes. */
+  function withTurns(chunks: () => AsyncGenerator<never>) {
+    const { runtime } = makeRuntime();
+    const titled: unknown[] = [];
+    runtime.thread = (() => ({ sendTurn: chunks })) as unknown as typeof runtime.thread;
+    runtime.titleThreads = async (query) => {
+      titled.push(query);
+      return { titled: 0, halted: false };
+    };
+    return { runtime, titled };
+  }
+
+  test("a finished global turn asks for its thread's title; a book turn does not", async () => {
+    const { runtime, titled } = withTurns(async function* () {});
+    for await (const _ of runtime.sendTurn({ kind: "global", threadId: "thread-1" }, { text: "hi" })) {
+      // drain
+    }
+    for await (const _ of runtime.sendTurn({ kind: "book", bookId: "b1" as Id }, { text: "hi" })) {
+      // drain
+    }
+    expect(titled).toEqual([{ limit: 1, threadKey: "global:thread-1" }]);
+  });
+
+  test("a turn that fails or is abandoned asks for no title", async () => {
+    // A turn that starts streaming and then fails.
+    const failing = withTurns(async function* () {
+      yield undefined as never;
+      throw new Error("provider failed");
+    });
+    await expect(
+      (async () => {
+        for await (const _ of failing.runtime.sendTurn({ kind: "global", threadId: "thread-1" }, { text: "hi" })) {
+          // drain
+        }
+      })(),
+    ).rejects.toThrow("provider failed");
+    expect(failing.titled).toEqual([]);
+
+    const abandoned = withTurns(async function* () {
+      yield undefined as never;
+      yield undefined as never;
+    });
+    const turn = abandoned.runtime.sendTurn({ kind: "global", threadId: "thread-1" }, { text: "hi" });
+    await turn.next();
+    await turn.return(undefined);
+    expect(abandoned.titled).toEqual([]);
+  });
+});

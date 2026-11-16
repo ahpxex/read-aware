@@ -28,6 +28,7 @@ import type {
   NewMemoryInput,
   RuntimeDeps,
   TurnRecord,
+  UntitledThread,
   UserInteractionRequest,
 } from "../ports";
 import type {
@@ -76,6 +77,8 @@ export interface InMemoryStores {
   bookStats: BookStats[];
   turns: Map<string, TurnRecord[]>;
   insights: Map<string, string>;
+  /** Global threads' titles, by thread key (the product keeps them in its projection). */
+  titles: Map<string, string>;
   asks: AskRecord[];
   memories: MemoryRecord[];
   savedMemoryInputs: NewMemoryInput[];
@@ -359,6 +362,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     bookStats,
     turns: new Map(Object.entries(structuredClone(seed.turns ?? {})).map(([key, list]) => [key, [...list]])),
     insights: new Map(Object.entries(structuredClone(seed.insights ?? {}))),
+    titles: new Map(),
     asks: [],
     memories: structuredClone(seed.memories ?? []),
     savedMemoryInputs: [],
@@ -873,6 +877,30 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       },
       clearInsights: async (key) => {
         stores.insights.delete(key);
+      },
+      // The product's rule over the same transcript store: a global thread with
+      // a user message and no title, most recently active first.
+      untitledThreads: async ({ limit, threadKey }) => {
+        const out: UntitledThread[] = [];
+        const keys = [...stores.turns.keys()].filter(
+          (key) => key.startsWith("global:") && !stores.titles.has(key) && (!threadKey || key === threadKey),
+        );
+        const lastAt = (key: string) => {
+          const turns = stores.turns.get(key) ?? [];
+          return turns[turns.length - 1]?.createdAt ?? "";
+        };
+        for (const key of keys.sort((a, b) => lastAt(b).localeCompare(lastAt(a)))) {
+          if (out.length >= limit) break;
+          const turns = stores.turns.get(key) ?? [];
+          const user = turns.find((turn) => turn.role === "user" && turn.content.trim());
+          if (!user?.id) continue;
+          const assistant = turns.find((turn) => turn.role === "assistant" && turn.content.trim());
+          out.push({ threadKey: key, messageId: user.id, userText: user.content, assistantText: assistant?.content });
+        }
+        return out;
+      },
+      titleThread: async (key, title, messageId) => {
+        if (stores.turns.get(key)?.some((turn) => turn.id === messageId)) stores.titles.set(key, title);
       },
     },
     profile: createProfileFixture(stores.profile, stores.memories),

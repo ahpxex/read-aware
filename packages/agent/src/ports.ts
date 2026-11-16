@@ -504,6 +504,23 @@ export interface ConversationPort {
   putInsights(threadKey: string, summary: string): Promise<void>;
   /** Remove the rolling summary when the owning conversation is cleared. */
   clearInsights(threadKey: string): Promise<void>;
+  /**
+   * Global threads with a user message but no title yet, most recent first
+   * (`threadKey` narrows to one): what a title is written from.
+   */
+  untitledThreads(query: { limit: number; threadKey?: string }): Promise<UntitledThread[]>;
+  /** Name a global thread (`aiConversation.titled`); `messageId` is the first user message it was written from. */
+  titleThread(threadKey: string, title: string, messageId: string): Promise<void>;
+}
+
+/** A global thread awaiting its title, with the exchange to name it from. */
+export interface UntitledThread {
+  threadKey: string;
+  /** The thread's first user message with text. */
+  messageId: string;
+  userText: string;
+  /** The first reply, once saved. */
+  assistantText?: string;
 }
 
 /** Event-backed profile summary; not a versioned context bundle. Absence is undefined. */

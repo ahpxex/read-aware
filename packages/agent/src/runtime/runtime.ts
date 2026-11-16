@@ -19,6 +19,7 @@ import type { RuntimeDeps } from "../ports";
 import { askOneShot, askOneShotDetailed, type OneShotInput } from "./one-shot";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { AgentThread, type SendTurnInput } from "./thread";
+import { ThreadTitler, type ThreadTitleReport } from "./thread-titles";
 
 export interface AgentRuntimeOptions {
   deps: RuntimeDeps;
@@ -47,6 +48,7 @@ export class AgentRuntime {
   private readonly completeFns: Record<ModelRole, CompleteFn>;
   private readonly streamFns: Record<ModelRole, StreamFn>;
   private readonly threads = new Map<string, AgentThread>();
+  private readonly titler: ThreadTitler;
   private readonly consolidationCheckpoint = new ConsolidationCheckpoint();
   private consolidationWork: Promise<ConsolidationReport | null> | null = null;
 
@@ -65,6 +67,12 @@ export class AgentRuntime {
       smart: createStreamFn(registry, options.account, this.thinking.smart, options.fetch),
       fast: createStreamFn(registry, options.account, this.thinking.fast, options.fetch),
     };
+    this.titler = new ThreadTitler({
+      conversations: this.deps.conversations,
+      complete: this.completeFns.fast,
+      model: () => this.resolveModel("fast"),
+      log: this.deps.log,
+    });
   }
 
   thread(scope: ThreadScope): AgentThread {
@@ -87,8 +95,24 @@ export class AgentRuntime {
     return thread;
   }
 
-  sendTurn(scope: ThreadScope, input: SendTurnInput): AsyncGenerator<ThreadChunk> {
-    return this.thread(scope).sendTurn(input);
+  async *sendTurn(scope: ThreadScope, input: SendTurnInput): AsyncGenerator<ThreadChunk> {
+    yield* this.thread(scope).sendTurn(input);
+    // A global thread is named after its first exchange; untitled is the only
+    // condition, so a thread whose first attempt failed is tried again here.
+    if (scope.kind === "global") {
+      void this.titleThreads({ limit: 1, threadKey: threadScopeKey(scope) }).catch((error: unknown) =>
+        this.deps.log?.warn("Titling a thread after its turn failed", error),
+      );
+    }
+  }
+
+  /**
+   * Title untitled global threads (at most `limit` model calls): after a
+   * global turn for that thread, and from idle upkeep for the rest. Not gated
+   * by the memory policy — a title is presentation, not memory.
+   */
+  titleThreads(query: { limit: number; threadKey?: string; signal?: AbortSignal }): Promise<ThreadTitleReport> {
+    return this.titler.run(query);
   }
 
   /** 等待所有线程的后台管道（记忆提炼 + 滚动摘要）排空。 */

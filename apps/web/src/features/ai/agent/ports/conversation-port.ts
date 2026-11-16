@@ -3,9 +3,10 @@
  * 转录的唯一写入者是聊天界面：useBookConversation / useGlobalConversation 在
  * 一轮开始前保存用户消息（其 id 即 SendTurnInput.turnId），流结束后保存回复，
  * 经 conversation-store → ai_chat_commit 与事件同事务落库。运行时只读转录做
- * 水化与原话检索，按 turnId 区分本轮与历史；写摘要（insights）归运行时自己。
+ * 水化与原话检索，按 turnId 区分本轮与历史；写摘要（insights）与线程标题
+ * （`aiConversation.titled`）归运行时自己。
  */
-import { searchTurnRecords, type ConversationPort, type TurnRecord } from "@read-aware/agent";
+import { searchTurnRecords, type ConversationPort, type TurnRecord, type UntitledThread } from "@read-aware/agent";
 import {
   clearStoredConversationInsights,
   getStoredConversationInsights,
@@ -14,8 +15,10 @@ import {
 import {
   GLOBAL_CONVERSATION_ID,
   isGlobalThreadId,
+  listGlobalThreads,
   loadAllConversations,
   loadConversation,
+  titleConversation,
 } from "../../lib/conversation-store";
 import type { ChatMessage } from "../../lib/chat-types";
 
@@ -75,5 +78,28 @@ export function createConversationPort(): ConversationPort {
     getInsights: async (threadKey) => getStoredConversationInsights(threadKey),
     putInsights: putStoredConversationInsights,
     clearInsights: clearStoredConversationInsights,
+    untitledThreads: async ({ limit, threadKey }) => {
+      // The list comes most recently active first; only the threads taken are read in full.
+      const untitled = (await listGlobalThreads()).filter(
+        (thread) => !thread.title && (!threadKey || storeIdToThreadKey(thread.id) === threadKey),
+      );
+      const out: UntitledThread[] = [];
+      for (const thread of untitled) {
+        if (out.length >= limit) break;
+        const messages = (await loadConversation(thread.id)).filter((message) => !message.error);
+        const user = messages.find((message) => message.role === "user" && message.content.trim());
+        if (!user) continue;
+        const assistant = messages.find((message) => message.role === "assistant" && message.content.trim());
+        out.push({
+          threadKey: storeIdToThreadKey(thread.id),
+          messageId: user.id,
+          userText: user.content,
+          assistantText: assistant?.content,
+        });
+      }
+      return out;
+    },
+    titleThread: (threadKey, title, messageId) =>
+      titleConversation(threadKeyToStoreId(threadKey), title, messageId, "agent"),
   };
 }

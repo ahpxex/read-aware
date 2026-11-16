@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "./lib/cn";
 
 type SidebarProps = {
@@ -16,7 +17,10 @@ export function Sidebar({ side = "left", open, onClose, children, width = "w-72"
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      // Handled: the page underneath must not also back out on this Escape.
+      e.preventDefault();
+      onClose();
     },
     [onClose],
   );
@@ -29,14 +33,10 @@ export function Sidebar({ side = "left", open, onClose, children, width = "w-72"
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    // Focus the sidebar on open
-    const el = sidebarRef.current;
-    if (el) {
-      const focusable = el.querySelector<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      );
-      (focusable ?? el).focus();
-    }
+    // Focus the panel itself on open, as Dialog does: Tab reaches its first
+    // control. Focusing that control directly would raise a phone's keyboard
+    // whenever the panel leads with a field.
+    sidebarRef.current?.focus();
 
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
@@ -71,7 +71,10 @@ export function Sidebar({ side = "left", open, onClose, children, width = "w-72"
     return () => document.removeEventListener("keydown", trapFocus);
   }, [open]);
 
-  return (
+  // Portaled to the body like Dialog: a fixed overlay inside a transformed
+  // ancestor (a page's entrance motion) would otherwise be laid out against
+  // that ancestor instead of the viewport.
+  return createPortal(
     <>
       <div
         className={cn(
@@ -97,9 +100,12 @@ export function Sidebar({ side = "left", open, onClose, children, width = "w-72"
           className,
         )}
         aria-hidden={!open}
+        // Off-screen while closed: out of the tab order too, not just the a11y tree.
+        inert={!open}
       >
         {children}
       </aside>
-    </>
+    </>,
+    document.body,
   );
 }

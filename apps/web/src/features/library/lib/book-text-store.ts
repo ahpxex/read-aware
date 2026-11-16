@@ -1,5 +1,11 @@
 /** Native adapter for the shared, versioned derived-text repository. */
-import { AppError, type BookTextLocation, type BookTextSnapshot, type ReadingTextQuote } from "@read-aware/core";
+import {
+  AppError,
+  type BookTextLocation,
+  type BookTextRange,
+  type BookTextSnapshot,
+  type ReadingTextQuote,
+} from "@read-aware/core";
 import { createTextTaskHistory } from "./book-text-history-storage";
 import { readingRuntime } from "../../../domain/reading-runtime";
 import { emitAppEvent, onAppEvent } from "../../../platform/app-events";
@@ -7,12 +13,12 @@ import { actorFromEvent, type DomainActor } from "../../../platform/domain-actor
 import { deleteDesktopBlob, getDesktopBlob, getDesktopBlobInfo, putDesktopBlob } from "../../../platform/blob-store";
 import { localKV } from "../../../platform/local-store";
 import { createLogger } from "../../../platform/logger";
-import { chapterMapFor, type FoliateBook } from "../../reader/lib/foliate-engine";
+import { chapterMapFor, loadContentNavigation, type FoliateBook } from "../../reader/lib/foliate-engine";
 import { provideStoredNavigation, withBookContent } from "./book-content-source";
 import { getBookRecord, getStoredBookFile } from "./library-db";
 import { parseStoredNavigation } from "./book-text-record";
 import { locateBookRange } from "./book-range";
-import { locateInRecord } from "./book-text-layout";
+import { locateInRecord, sectionSpansOf, sectionTextRange } from "./book-text-layout";
 import { BookTextRepository } from "./book-text-repository";
 import { getVirtualTextSource, forgetVirtualTextSource } from "./virtual-text-source";
 import { BookTextTaskOwner } from "./book-text-tasks";
@@ -164,6 +170,44 @@ export async function locateBookText(
   if (!record) return null;
   const raw = await locateBookRange(bookId, record.contentVersion, target, signal);
   return raw ? locateInRecord(record, raw.sectionIndex, raw.start, raw.end) : null;
+}
+/**
+ * The reader locations of a range [start, end) of a chapter's extracted text:
+ * one versioned range per source document it runs through, in reading order.
+ * The inverse of `locateBookText`. Empty when the text is not ready or the
+ * range holds no text.
+ */
+export async function rangesOfBookText(
+  bookId: string,
+  range: { chapterIndex: number; start: number; end: number },
+  signal?: AbortSignal,
+  origin?: DomainActor,
+): Promise<BookTextRange[]> {
+  const record = await repository.complete(bookId, origin);
+  signal?.throwIfAborted();
+  if (!record) return [];
+  const spans = sectionSpansOf(record, range.chapterIndex, range.start, range.end);
+  if (!spans.length) return [];
+  const { contentVersion } = record;
+  return withBookContent(bookId, contentVersion, signal, async ({ book }) => {
+    const { contentCFI } = await loadContentNavigation();
+    const ranges: BookTextRange[] = [];
+    for (const span of spans) {
+      const section = book.sections?.[span.sectionIndex];
+      if (section?.createDocument) {
+        const doc = await section.createDocument();
+        signal?.throwIfAborted();
+        const found = doc.body && sectionTextRange(doc.body, span.start, span.end);
+        if (found) ranges.push({ bookId, contentVersion, cfi: contentCFI(book, span.sectionIndex, found) });
+      } else if (section?.getText) {
+        // A text section's location is its page; the quote says where on it.
+        const exact = (await section.getText(signal)).slice(span.start, span.end);
+        if (exact.trim())
+          ranges.push({ bookId, contentVersion, cfi: contentCFI(book, span.sectionIndex), textQuote: { exact } });
+      }
+    }
+    return ranges;
+  });
 }
 export const getPersistedBookText = (bookId: string) => repository.persisted(bookId);
 export const getPersistedBookNavigation = (bookId: string) => repository.persistedNavigation(bookId);

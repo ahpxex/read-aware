@@ -4,7 +4,7 @@ import { addressAt, blocksIn, type ChapterLayout } from "@read-aware/core";
 import type { FoliateBook } from "../../reader/lib/foliate-engine";
 import { readSectionBlocks } from "../../reader/lib/reader-document-layout";
 import { extractBookText } from "./book-text-extraction";
-import { collapseText, locateInRecord, pageTextBlocks } from "./book-text-layout";
+import { collapseText, locateInRecord, pageTextBlocks, sectionSpansOf } from "./book-text-layout";
 import { parseBookTextRecord, type BookTextRecord } from "./book-text-record";
 import { buildChapterMap } from "../../../../foliate-js/src/chapter-map";
 
@@ -151,6 +151,34 @@ test("a range across whitespace, a chapter seam or a section edge lands on text"
   expect(point.start).toEqual(point.end);
   expect(point.start.chapterIndex).toBe(1);
   expect(locateInRecord(record, 7, 0, 1)).toBeNull();
+});
+
+test("a range of chapter text maps back to the section text it came from, across files", async () => {
+  const docs = documents([
+    '<p>  alpha   beta  </p>\n\n<h1 id="two">Two</h1>\n<p>gamma  delta</p>\n',
+    "<p>epsilon zeta</p>\n<p>eta</p>",
+  ]);
+  const record = await extract(book(docs, [{ href: "s0.html#two", label: "Two" }]));
+  const chapter = record.chapters[1]!;
+  expect(chapter.text).toBe("Two gamma delta epsilon zeta eta");
+  const raws = docs.map((doc) => doc.body.textContent!);
+  // Every stretch of the chapter that starts and ends on text comes back as the same text.
+  for (let start = 0; start < chapter.text.length; start++)
+    for (let end = start + 1; end <= chapter.text.length; end++) {
+      const wanted = chapter.text.slice(start, end);
+      if (wanted !== wanted.trim()) continue;
+      const spans = sectionSpansOf(record, 1, start, end);
+      const back = spans.map((span) => raws[span.sectionIndex]!.slice(span.start, span.end).replace(/\s+/g, " "));
+      expect([start, end, back.join(" ")]).toEqual([start, end, wanted]);
+      // And locating those section ranges lands on the same chapter range.
+      const first = locateInRecord(record, spans[0]!.sectionIndex, spans[0]!.start, spans[0]!.end)!;
+      const last = spans[spans.length - 1]!;
+      const tail = locateInRecord(record, last.sectionIndex, last.start, last.end)!;
+      expect([first.start.offset, tail.end.offset]).toEqual([start, end]);
+    }
+  expect(sectionSpansOf(record, 1, 4, 4)).toEqual([]);
+  expect(sectionSpansOf(record, 9, 0, 4)).toEqual([]);
+  expect(sectionSpansOf(record, 1, 10, 23).map((span) => span.sectionIndex)).toEqual([0, 1]);
 });
 
 test("a paged book's blocks are its pages, split where a page has blank lines", async () => {

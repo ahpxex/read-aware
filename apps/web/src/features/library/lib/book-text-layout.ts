@@ -111,3 +111,72 @@ export function locateInRecord(
     return { start: from, end: from };
   return { start: from, end: to };
 }
+
+/**
+ * The inverse of `locateInRecord`: the raw section ranges behind a range
+ * [start, end) of a chapter's text, one per section the range runs through, in
+ * reading order. The range is taken to start and end on text; whitespace at
+ * its edges belongs to neither side.
+ */
+export function sectionSpansOf(
+  record: BookTextRecord,
+  chapterIndex: number,
+  start: number,
+  end: number,
+): { sectionIndex: number; start: number; end: number }[] {
+  const chapter = record.chapters[chapterIndex];
+  if (!chapter || end <= start) return [];
+  const pieces = new Map(record.pieces.map((piece) => [piece.sectionIndex, piece]));
+  const spans: { sectionIndex: number; start: number; end: number }[] = [];
+  for (const [index, source] of chapter.sources.entries()) {
+    const piece = pieces.get(source.sectionIndex);
+    const until = chapter.sources[index + 1]?.at ?? chapter.text.length;
+    const from = Math.max(start, source.at);
+    const to = Math.min(end, until);
+    if (!piece || to <= from) continue;
+    // The raw offset of every character the slice contributes to the chapter text.
+    const raw: number[] = [];
+    let pending = false;
+    for (let offset = source.start; offset < source.end; offset++) {
+      if (/\s/.test(piece.text[offset]!)) {
+        pending = raw.length > 0;
+        continue;
+      }
+      // Whitespace between two stretches of text became one space, standing where the run began.
+      if (pending) raw.push(-1);
+      pending = false;
+      raw.push(offset);
+    }
+    const first = raw.slice(from - source.at, to - source.at).find((offset) => offset >= 0);
+    const last = raw.slice(from - source.at, to - source.at).findLast((offset) => offset >= 0);
+    if (first === undefined || last === undefined) continue;
+    spans.push({ sectionIndex: source.sectionIndex, start: first, end: last + 1 });
+  }
+  return spans;
+}
+
+/**
+ * The DOM range of an offset range [start, end) of `body.textContent`: the
+ * inverse of measuring a range's offsets, in the offset space of a
+ * section's stored text. Null when the offsets lie outside the document's text.
+ */
+export function sectionTextRange(body: Element, start: number, end: number): Range | null {
+  const doc = body.ownerDocument;
+  const walker = doc.createTreeWalker(body, 4 | 8 /* SHOW_TEXT | SHOW_CDATA_SECTION */);
+  const range = doc.createRange();
+  let offset = 0;
+  let opened = false;
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const length = node.nodeValue?.length ?? 0;
+    if (!opened && start < offset + length) {
+      range.setStart(node, start - offset);
+      opened = true;
+    }
+    if (opened && end <= offset + length) {
+      range.setEnd(node, end - offset);
+      return range;
+    }
+    offset += length;
+  }
+  return null;
+}

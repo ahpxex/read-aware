@@ -5,7 +5,7 @@ import type { ChapterSeed } from "./fixtures";
 /** Model-tool fixture, not a replacement for Foliate's location/search tests. */
 export function createMemoryBookNavigation(
   chapters: Map<string, ChapterSeed[]>,
-): Pick<BookTextPort, "getNavigationToc" | "listNavigationTargets" | "searchLocations" | "readRange"> {
+): Pick<BookTextPort, "getNavigationToc" | "listNavigationTargets" | "searchLocations" | "readRange" | "locate"> {
   const content = async (bookId: string) => {
     const entries = chapters.get(bookId) ?? [];
     const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(entries)));
@@ -13,6 +13,15 @@ export function createMemoryBookNavigation(
     return { entries, contentVersion };
   };
   return {
+    // A fixture location names its chapter and offsets outright; anything else is not a place in this book.
+    locate: async (bookId, target) => {
+      const match = /^epubcfi\(fixture:(\d+):(\d+):(\d+)\)$/.exec(target.cfi);
+      if (!match) return null;
+      const [chapterIndex, start, end] = match.slice(1).map(Number) as [number, number, number];
+      const text = chapters.get(bookId)?.[chapterIndex]?.text;
+      if (text === undefined || end > text.length || end < start) return null;
+      return { start: { chapterIndex, offset: start }, end: { chapterIndex, offset: end } };
+    },
     listNavigationTargets: async () => {
       throw new AppError("library/content-unavailable", "Fixture has no source navigation catalog");
     },

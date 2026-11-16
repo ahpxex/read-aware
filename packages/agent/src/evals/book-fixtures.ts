@@ -7,10 +7,11 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import type { Id } from "@read-aware/core";
+import { blocksIn, sentenceEndAt, type Id } from "@read-aware/core";
 import type { ChapterDigest } from "../ports";
 import { loadEpubFixture, type EpubFixture } from "../testing/epub-fixture";
 import type { ChapterSeed, InMemorySeed } from "../testing/fixtures";
+import { plainTextLayout } from "../testing/plain-text-layout";
 import type { JsonValue } from "./types";
 
 export interface RealBookSpec {
@@ -213,22 +214,28 @@ function createRealBook(spec: RealBookSpec): RealBookFixture {
     pickSentence: (chapterIndex) => {
       const chapter = epub().chapters[chapterIndex];
       if (!chapter) throw new Error(`${spec.slug} fixture has no chapter ${chapterIndex}`);
-      // 正文以"章题\n\n"开头——先剥掉，且句子内不得含换行，否则断言片段永远匹配不上散文
-      const body = chapter.text.replace(/^[^\n]*\n+/, "");
-      // 文种感知取句：CJK 书按句号类断句（20–80 字），拉丁文书按 ". " 断句
-      // （60–180 字符，且句首大写——避开缩写误断的碎片）。
-      const cjkRatio = (body.slice(0, 2000).match(/[一-鿿]/g)?.length ?? 0) / Math.min(body.length, 2000);
-      const sentence =
-        cjkRatio > 0.2
-          ? body
-              .split(/(?<=[。！？])/)
-              .map((part) => part.trim())
-              .find((part) => part.length >= 20 && part.length <= 80 && !part.includes("\n"))
-          : body
-              .split(/(?<=[.!?])\s+/)
-              .map((part) => part.trim())
-              .find((part) => part.length >= 60 && part.length <= 180 && !part.includes("\n") && /^[A-Z“"]/.test(part));
-      return sentence ?? body.slice(0, 60).replace(/\n+/g, "");
+      const { text } = chapter;
+      const layout = chapter.layout ?? plainTextLayout(text);
+      // 标题块不是正文句子。没有标题信息的旧 fixture：首行就是章题。
+      const headings = new Set(layout.headings?.map((heading) => heading.paragraph) ?? [0]);
+      // 文种感知取句：CJK 书取 20–80 字的句子，拉丁文书取 60–180 字符且句首大写的句子
+      // （避开缩写误断的碎片）。句子边界用章节坐标里的句表，与工具读到的一致。
+      const cjkRatio = (text.slice(0, 2000).match(/[一-鿿]/g)?.length ?? 0) / Math.max(1, Math.min(text.length, 2000));
+      const fits = (sentence: string) =>
+        !sentence.includes("\n") &&
+        (cjkRatio > 0.2
+          ? sentence.length >= 20 && sentence.length <= 80 && /[。！？]["”’」』]?$/.test(sentence)
+          : sentence.length >= 60 && sentence.length <= 180 && /^[A-Z“"]/.test(sentence));
+      for (const block of blocksIn(layout, 0, text.length)) {
+        if (headings.has(block.paragraph)) continue;
+        for (let at = block.start; at < block.end; ) {
+          const end = Math.min(block.end, sentenceEndAt(layout, text.length, at));
+          const sentence = text.slice(at, end).trim();
+          if (fits(sentence)) return sentence;
+          at = Math.max(end, at + 1);
+        }
+      }
+      throw new Error(`${spec.slug} chapter ${chapterIndex} has no sentence fit to quote`);
     },
     chapterViewport: (chapterIndex, chars = 320) => {
       const chapter = epub().chapters[chapterIndex];

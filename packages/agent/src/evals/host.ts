@@ -15,7 +15,7 @@
 import type { RuntimeDeps } from "../ports";
 import type { SendTurnInput } from "../runtime/thread";
 import { createInMemoryDeps, type InMemorySeed, type InMemoryStores } from "../testing/fixtures";
-import { locateFixtureTurn } from "../testing/plain-text-layout";
+import { fixtureLocation, locateFixtureTurn } from "../testing/plain-text-layout";
 import type { ThreadScope } from "../thread-scope";
 import { isRealBookId } from "./book-fixtures";
 
@@ -28,15 +28,15 @@ export interface EvalEnvironment {
   stores: InMemoryStores;
   /** Which book pipeline this scenario ran on; recorded with the run. */
   environment: string;
+  /** The location this environment's reader issues for a stretch of a chapter's text (its first occurrence). */
+  rangeOf(bookId: string, chapterIndex: number, text: string): Promise<import("@read-aware/core").BookTextRange>;
   /** Present the reader's page and selection of a turn the way this environment's reader reports them. */
   locateTurn(turn: EvalTurn): EvalTurn | Promise<EvalTurn>;
 }
 
 export interface EvalHost {
   id: string;
-  createEnvironment(
-    scenario: EvalScenarioSource,
-  ): EvalEnvironment | Promise<EvalEnvironment>;
+  createEnvironment(scenario: EvalScenarioSource): EvalEnvironment | Promise<EvalEnvironment>;
 }
 
 export const IN_MEMORY_ENVIRONMENT = "in-memory";
@@ -48,6 +48,17 @@ export function createInMemoryEnvironment(scenario: Pick<EvalScenarioSource, "se
   return {
     ...context,
     environment: IN_MEMORY_ENVIRONMENT,
+    rangeOf: async (bookId, chapterIndex, text) => {
+      const start = context.stores.chapters.get(bookId)?.[chapterIndex]?.text.indexOf(text) ?? -1;
+      if (start < 0) throw new Error(`fixture chapter ${chapterIndex} of ${bookId} does not contain the passage`);
+      const { contentVersion } = await context.deps.bookText.getNavigationToc(bookId);
+      return {
+        bookId,
+        contentVersion,
+        cfi: fixtureLocation({ chapterIndex, start, end: start + text.length }),
+        textQuote: { exact: text },
+      };
+    },
     locateTurn: (turn) =>
       scope.kind === "book" ? locateFixtureTurn(turn, context.stores.chapters.get(scope.bookId)) : turn,
   };

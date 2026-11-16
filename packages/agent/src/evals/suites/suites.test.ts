@@ -9,7 +9,7 @@ import { evalSuites, evalSuiteGroups, suiteIdsOfGroup } from "./index";
 import type { AgentEvalScenario } from "../agent-harness";
 import type { AgentEvalObservation, EvalSuite } from "../types";
 import { invalidTags } from "../tags";
-import { createInMemoryDeps } from "../../testing/fixtures";
+import { createInMemoryEnvironment } from "../host";
 import { toJsonValue } from "../json";
 import { realBook, type RealBookSlug } from "../book-fixtures";
 import { buildSystemPrompt } from "../../context/system-prompt";
@@ -73,7 +73,7 @@ describe("behavior acceptance boundaries", () => {
 
   test("the journey fixture exposes its selected passage through the reader session", async () => {
     const scenario = evalSuites.journeys.scenarios.find((s) => s.id === "karamazov-reading-session")!;
-    const context = createInMemoryDeps(scenario.seed);
+    const context = createInMemoryEnvironment(scenario);
     await scenario.setup?.(context);
     const session = await context.deps.reader.getSession();
     const selected = scenario.turns[0]!.attachments![0]!.text;
@@ -96,7 +96,7 @@ describe("behavior acceptance boundaries", () => {
     const visible = scenario.turns[0]!.readingCursor!.visibleText!;
     expect(visible).not.toBe(selected);
     const observation = async (text: string) => {
-      const context = createInMemoryDeps(scenario.seed);
+      const context = createInMemoryEnvironment(scenario);
       await scenario.setup?.(context);
       const bookId = realBook("refactoring").bookId;
       const chapterIndex = scenario.turns[0]!.readingCursor!.chapterIndex!;
@@ -122,7 +122,7 @@ describe("behavior acceptance boundaries", () => {
   test("active annotation selections expose the complete source range matching each attachment", async () => {
     for (const suite of allSuites) {
       for (const scenario of suite.scenarios.filter((entry) => entry.id.endsWith("-annotate-verbatim"))) {
-        const context = createInMemoryDeps(scenario.seed);
+        const context = createInMemoryEnvironment(scenario);
         await scenario.setup?.(context);
         const session = await context.deps.reader.getSession();
         const selected = scenario.turns[0]!.attachments![0]!.text;

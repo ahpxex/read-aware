@@ -1,39 +1,31 @@
 import type { Id } from "@read-aware/core";
 import type { AnnotationItem, RuntimeDeps } from "../../../ports";
 import { assessmentFromChecks } from "../../assertions";
+import type { EvalEnvironment } from "../../host";
 import type { EvalAssessment } from "../../types";
+
+/** Source text and extracted text differ in whitespace, never in what they say. */
+const compact = (text: string) => text.replace(/\s+/g, "");
 
 /**
  * Seed an active selection through the same versioned range path the reader
- * exposes to the Agent.  Real-book scenarios must not describe a selection
- * only as an attachment while leaving reader.getSession().selection null.
- * The CFI shape is intentionally limited to the in-memory fixture reader.
+ * exposes to the Agent. Real-book scenarios must not describe a selection only
+ * as an attachment while leaving reader.getSession().selection null. The
+ * location comes from the environment: what its reader would issue for the passage.
  */
-export async function selectFixtureRange(input: { deps: RuntimeDeps; bookId: Id; chapterIndex: number; text: string }) {
-  const chapterText = await input.deps.bookText.getChapterText(input.bookId, input.chapterIndex);
-  if (!chapterText) {
-    throw new Error(`fixture chapter ${input.chapterIndex} has no text`);
+export async function selectEvalRange(input: {
+  context: Pick<EvalEnvironment, "deps" | "rangeOf">;
+  bookId: Id;
+  chapterIndex: number;
+  text: string;
+}) {
+  const range = await input.context.rangeOf(input.bookId, input.chapterIndex, input.text);
+  const page = await input.context.deps.bookText.readRange({ range, limit: 12000, contextChars: 0 });
+  // A reader's range carries the source's own whitespace; the passage is the same text.
+  if (compact(page.text) !== compact(input.text) || page.nextOffset !== null) {
+    throw new Error("selection source mismatch");
   }
-  const start = chapterText.indexOf(input.text);
-  if (start < 0) {
-    throw new Error(`fixture selection is not in chapter ${input.chapterIndex}`);
-  }
-  const { contentVersion } = await input.deps.bookText.getNavigationToc(input.bookId);
-  const range = {
-    bookId: input.bookId,
-    contentVersion,
-    cfi: `epubcfi(fixture:${input.chapterIndex}:${start}:${start + input.text.length})`,
-    textQuote: { exact: input.text },
-  };
-  const page = await input.deps.bookText.readRange({
-    range,
-    limit: 12000,
-    contextChars: 0,
-  });
-  if (page.text !== input.text || page.nextOffset !== null) {
-    throw new Error("fixture selection source mismatch");
-  }
-  await input.deps.reader.selectRange(page.range);
+  await input.context.deps.reader.selectRange(page.range);
   return page.range;
 }
 
@@ -41,7 +33,7 @@ export async function observeSelectionAnnotations(stores: { annotations: Annotat
   return Promise.all(
     stores.annotations.map(async (annotation) => {
       const range = "range" in annotation ? annotation.range : undefined;
-      let sourceText: string | undefined, sourceSectionIndex: number | undefined;
+      let sourceText: string | undefined, sourceChapterIndex: number | undefined;
       if (range) {
         try {
           let offset = 0;
@@ -49,13 +41,14 @@ export async function observeSelectionAnnotations(stores: { annotations: Annotat
           do {
             const page = await deps.bookText.readRange({ range, offset, limit: 12000, contextChars: 0 });
             sourceText += page.text;
-            sourceSectionIndex = page.sectionIndex;
             if (page.nextOffset === null) break;
             offset = page.nextOffset;
           } while (true);
+          // Which chapter the range lies in, as the book's own text locates it.
+          sourceChapterIndex = (await deps.bookText.locate?.(range.bookId as Id, range))?.start.chapterIndex;
         } catch {
           sourceText = undefined;
-          sourceSectionIndex = undefined;
+          sourceChapterIndex = undefined;
         }
       }
       return {
@@ -66,7 +59,7 @@ export async function observeSelectionAnnotations(stores: { annotations: Annotat
         text: annotation.kind === "highlight" ? annotation.text : annotation.kind === "note" ? annotation.body : "",
         quotedText: annotation.kind === "note" ? annotation.quotedText : undefined,
         sourceText,
-        sourceSectionIndex,
+        sourceChapterIndex,
       };
     }),
   );
@@ -90,8 +83,9 @@ export function highlightVerbatimAssessment(
     entry.bookId === bookId &&
     entry.range.bookId === bookId &&
     entry.anchor === entry.range.cfi &&
-    entry.sourceText === selectedText &&
-    entry.sourceSectionIndex === chapterIndex;
+    entry.sourceText !== undefined &&
+    compact(entry.sourceText) === compact(selectedText) &&
+    entry.sourceChapterIndex === chapterIndex;
   return assessmentFromChecks([
     {
       id: "state.highlight-selection-boundary",

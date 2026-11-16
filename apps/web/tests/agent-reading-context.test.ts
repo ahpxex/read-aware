@@ -113,3 +113,19 @@ test("a selection in the middle of a chapter: coordinates in the prompt, the pas
   expect(read.readerPosition).toBeDefined();
   expect(read.text).not.toContain(unread);
 });
+
+test("a selection the reader holds is a real range of the book, in the chapter it was made in", async () => {
+  const scenario = scenarioOf("karamazov", "karamazov-annotate-verbatim");
+  const selection = scenario.turns[0]!.attachments![0]!.text;
+  const chapterIndex = scenario.turns[0]!.readingCursor!.chapterIndex!;
+  const environment = await createAppEvalHost().createEnvironment(scenario);
+  await scenario.setup?.(environment);
+  // The reader session exposes the selection as the app would: a versioned range that reads back as the passage.
+  const session = await environment.deps.reader.getSession();
+  expect(session.selection?.text).toBe(selection);
+  const range = session.selection!.range!;
+  expect(range.cfi).toMatch(/^epubcfi\(\/6\//);
+  expect(range.contentVersion).toMatch(/^sha256:/);
+  expect((await environment.deps.bookText.readRange({ range, limit: 12000, contextChars: 0 })).text).toBe(selection);
+  expect((await environment.deps.bookText.locate!(BOOK as never, range))?.start.chapterIndex).toBe(chapterIndex);
+});

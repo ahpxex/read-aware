@@ -30,6 +30,8 @@ export function createMemoryReader(
   initialBookId: string | undefined,
   requests: ReaderRequest[],
   contentVersion: (bookId: string) => Promise<string> = async () => "fixture",
+  /** The text a range selects, as a reader showing the book would know it. */
+  selectedText?: (range: import("@read-aware/core").BookTextRange) => Promise<string>,
 ): ReaderPort {
   const playback: ReadingPlaybackSnapshot = {
     status: "unavailable",
@@ -150,7 +152,9 @@ export function createMemoryReader(
       if (range.bookId !== location!.bookId) throw new AppError("reader/out-of-scope", "Open the fixture book first");
       if (range.contentVersion !== location!.contentVersion)
         throw new AppError("reader/stale-location", "Fixture content changed");
-      const text = range.textQuote?.exact ?? "Fixture selection";
+      // A range this book cannot read back still selects: the fixture has no text to show for it.
+      const text =
+        range.textQuote?.exact ?? (await selectedText?.(range).catch(() => undefined)) ?? "Fixture selection";
       selection = { id: crypto.randomUUID(), text, textLength: text.length, range };
       location = range;
       revision++;

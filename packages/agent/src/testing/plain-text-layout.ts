@@ -37,21 +37,21 @@ export function chapterRangeOf(
   return { chapterIndex, start, end: start + visible.length };
 }
 
+/** The location a fixture reader issues for a stretch of a chapter's text. */
+export const fixtureLocation = (range: ChapterRange) =>
+  `epubcfi(fixture:${range.chapterIndex}:${range.start}:${range.end})`;
+
 /**
  * A turn as a fixture host sends it: the reader's page (`visibleText`) and the
- * selected passages are placed in the fixture chapter's text, the way a real
- * host places the reader's location in the book. Text the chapter does not
- * contain stays unplaced, and that turn runs without coordinates.
+ * selected passages are found in the fixture chapter's text and reported as
+ * locations, which the runtime resolves through the port like any host's.
+ * Text the chapter does not contain stays unplaced, and that turn runs
+ * without coordinates.
  */
 export function locateFixtureTurn<
   Turn extends {
-    readingCursor?: {
-      chapter?: string;
-      chapterIndex?: number;
-      visibleText?: string;
-      position?: { start: number; end: number };
-    };
-    attachments?: { text: string; position?: ChapterRange }[];
+    readingCursor?: { anchor?: string; chapter?: string; chapterIndex?: number; visibleText?: string };
+    attachments?: { text: string; anchor?: string }[];
   },
 >(turn: Turn, chapters: readonly { text: string; hrefs?: readonly string[] }[] | undefined): Turn {
   // A cursor that names its chapter by href is resolved the way the runtime resolves it.
@@ -69,18 +69,18 @@ export function locateFixtureTurn<
   const place = (quote: string | undefined) => {
     const exact = quote?.trim();
     const start = exact ? text.indexOf(exact) : -1;
-    return start < 0 ? undefined : { start, end: start + exact!.length };
+    return start < 0 ? undefined : fixtureLocation({ chapterIndex, start, end: start + exact!.length });
   };
   const cursor = turn.readingCursor!;
-  const page = cursor.position ?? place(cursor.visibleText);
+  const page = cursor.anchor ?? place(cursor.visibleText);
   return {
     ...turn,
-    readingCursor: page ? { ...cursor, chapterIndex, position: page } : cursor,
+    readingCursor: page ? { ...cursor, anchor: page } : cursor,
     ...(turn.attachments
       ? {
           attachments: turn.attachments.map((attachment) => {
-            const range = attachment.position ?? place(attachment.text);
-            return range && !attachment.position ? { ...attachment, position: { chapterIndex, ...range } } : attachment;
+            const anchor = attachment.anchor ?? place(attachment.text);
+            return anchor ? { ...attachment, anchor } : attachment;
           }),
         }
       : {}),

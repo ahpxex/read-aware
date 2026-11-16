@@ -6,7 +6,7 @@ import { accountCredential, accountProviderId, createModelResolver } from "../mo
 import { createCompleteFn, createStreamFn, type CompleteFn, type StreamFn } from "../models/complete";
 import type { ResolveModel } from "../models/roles";
 import { AgentThread } from "../runtime/thread";
-import { createInMemoryDeps } from "../testing/fixtures";
+import { createInMemoryEnvironment } from "./host";
 import { hostTurn } from "../testing/transcript-host";
 import { applyEvalRouting, evalProviderRegistry, resolveEvalModel } from "./model-config";
 import type { AgentEvalScenario, AgentEvalTurn } from "./agent-harness";
@@ -67,7 +67,8 @@ export async function createManualEvalSession(options: ManualEvalSessionOptions)
   const resolveModel: ResolveModel = (role) => applyEvalRouting(baseResolve(role));
   const baseStreamFn = createStreamFn(registry, resolved.account, thinkingLevel);
   const repairCompleteFn = createCompleteFn(registry, resolved.account, thinkingLevel);
-  const setupContext = createInMemoryDeps(options.scenario.seed);
+  // The viewer has no app host: a free session reads the book's snapshot through the in-memory port.
+  const setupContext = createInMemoryEnvironment(options.scenario);
   await options.scenario.setup?.(setupContext);
 
   let activeRound = 0;

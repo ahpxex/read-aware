@@ -13,7 +13,7 @@ import { cjkAnswerAssessment, fenceDisciplineAssessment, noFenceAssessment } fro
 import {
   highlightVerbatimAssessment,
   observeSelectionAnnotations,
-  selectFixtureRange,
+  selectEvalRange,
 } from "../realbook/annotation-assessment";
 
 const kara = realBook("karamazov");
@@ -173,11 +173,11 @@ export const journeysEvalSuite: EvalSuite<AgentEvalScenario> = {
         chapterDigests: kara.digestsSeed(9),
       },
       seedSummary: { ...(kara.seedSummary(10) as object), journey: "6 turns" },
-      setup: async ({ deps }) => {
+      setup: async (context) => {
         // The quoted attachment mirrors the UI payload, while the reader
         // session must also expose the exact active range for annotation.
-        await selectFixtureRange({
-          deps,
+        await selectEvalRange({
+          context,
           bookId: kara.bookId,
           chapterIndex: 9,
           text: ALYOSHA_DEFENSE,

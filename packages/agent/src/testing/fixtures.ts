@@ -827,8 +827,16 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         stores.asks.push(input);
       },
     },
-    reader: createMemoryReader(books[0]?.id, stores.readerRequests, async (bookId) =>
-      stores.chapters.has(bookId) ? (await bookNavigation.getNavigationToc(bookId)).contentVersion : "fixture",
+    // Through the port, so a host that reads the book for real gives the reader its version too.
+    reader: createMemoryReader(
+      books[0]?.id,
+      stores.readerRequests,
+      async (bookId) => {
+        // The reader asks while these ports are still being assembled: answer once they exist.
+        await Promise.resolve();
+        return stores.chapters.has(bookId) ? (await deps.bookText.getNavigationToc(bookId)).contentVersion : "fixture";
+      },
+      async (range) => (await deps.bookText.readRange({ range, limit: 12000, contextChars: 0 })).text,
     ),
     interactions: {
       request: async (request) => {

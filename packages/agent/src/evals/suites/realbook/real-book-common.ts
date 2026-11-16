@@ -19,7 +19,7 @@ import {
 } from "./real-book-helpers";
 import { blocksIn } from "@read-aware/core";
 import { plainTextLayout } from "../../../testing/plain-text-layout";
-import { highlightVerbatimAssessment, observeSelectionAnnotations } from "./annotation-assessment";
+import { highlightVerbatimAssessment, observeSelectionAnnotations, selectEvalRange } from "./annotation-assessment";
 import { SPOILER_POLICY } from "../../../context/spoiler-policy";
 
 interface GridBookConfig {
@@ -302,21 +302,14 @@ function scenariosFor(config: GridBookConfig): AgentEvalScenario[] {
         scope,
         seed: baseSeed(),
         seedSummary: book.seedSummary(config.progressPercent),
-        setup: async ({ deps }) => {
-          // This scenario starts with an active selection, not only a quoted attachment.
-          const start = chapterText.indexOf(sentence);
-          if (start < 0) throw new Error(`${config.slug} annotation selection is not in its source chapter`);
-          const { contentVersion } = await deps.bookText.getNavigationToc(book.bookId);
-          const range = {
+        // This scenario starts with an active selection, not only a quoted attachment.
+        setup: async (context) => {
+          await selectEvalRange({
+            context,
             bookId: book.bookId,
-            contentVersion,
-            cfi: `epubcfi(fixture:${config.annotationChapter}:${start}:${start + sentence.length})`,
-            textQuote: { exact: sentence },
-          };
-          const page = await deps.bookText.readRange({ range, limit: 12000, contextChars: 0 });
-          if (page.text !== sentence || page.nextOffset !== null)
-            throw new Error("Annotation selection source mismatch");
-          await deps.reader.selectRange(page.range);
+            chapterIndex: config.annotationChapter,
+            text: sentence,
+          });
         },
         turns: [
           {

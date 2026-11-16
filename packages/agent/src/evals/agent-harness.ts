@@ -7,10 +7,9 @@ import { accountCredential, accountProviderId, createModelResolver } from "../mo
 import { applyEvalRouting } from "./model-config";
 import type { ProviderRegistry } from "../models/registry";
 import type { ResolveModel } from "../models/roles";
-import type { RuntimeDeps } from "../ports";
 import type { SendTurnInput } from "../runtime/thread";
 import { AgentThread } from "../runtime/thread";
-import type { InMemorySeed, InMemoryStores } from "../testing/fixtures";
+import type { InMemorySeed } from "../testing/fixtures";
 import { hostTurn } from "../testing/transcript-host";
 import { evalHost, type EvalEnvironment } from "./host";
 import type { ThreadScope } from "../thread-scope";
@@ -24,10 +23,8 @@ import { EvalStageError } from "./types";
 
 export type AgentEvalTurn = Omit<SendTurnInput, "signal">;
 
-export interface AgentEvalSetupContext {
-  deps: RuntimeDeps;
-  stores: InMemoryStores;
-}
+/** What a scenario's setup and state observation work with: the environment it runs in. */
+export type AgentEvalSetupContext = EvalEnvironment;
 
 export interface AgentEvalScenario extends EvalScenario<AgentEvalObservation> {
   scope: ThreadScope;

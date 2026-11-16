@@ -115,6 +115,7 @@ export function createAppEvalHost(): EvalHost {
       return {
         ...context,
         environment: APP_HEADLESS_ENVIRONMENT,
+        rangeOf: async (bookId, chapterIndex, text) => (await readerLocation(bookId, chapterIndex, text)).ranges[0]!,
         locateTurn: async (turn) => {
           if (scope.kind !== "book") return turn;
           const bookId = scope.bookId;

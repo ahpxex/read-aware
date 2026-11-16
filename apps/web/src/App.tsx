@@ -16,6 +16,7 @@ import type { LibraryBook } from "./features/library/lib/library-types";
 import { AppHeader } from "./features/navigation/components/AppHeader";
 import { usePrimaryDestinations } from "./features/navigation/hooks/usePrimaryDestinations";
 import { useAgentHeaderActions } from "./features/agent/hooks/useAgentHeaderActions";
+import { threadsPaletteOpenAtom } from "./features/agent/state/threads-palette";
 import { usePluginAgentHeaderEntries } from "./features/plugins/hooks/usePluginAgentHeaderEntries";
 import { UpdateIndicator } from "./features/update/components/UpdateIndicator";
 import { WhatsNewDialog } from "./features/update/components/WhatsNewDialog";
@@ -170,6 +171,7 @@ function App() {
 
   const [activeTopNav, setActiveTopNav] = useAtom(activeTopNavAtom);
   const setActiveGlobalThreadId = useSetAtom(activeGlobalThreadAtom);
+  const setThreadsPaletteOpen = useSetAtom(threadsPaletteOpenAtom);
   const [activeCollectionId, setActiveCollectionId] = useAtom(activeCollectionAtom);
   const shelfView = useAtomValue(shelfViewAtom);
   const shelfSelecting = useAtomValue(shelfSelectionAtom).active;
@@ -208,7 +210,12 @@ function App() {
   );
 
   useGlobalShortcuts({
-    onOpenSearch: () => setSearchModalOpen(true),
+    // On the Agent page the search key looks through its threads; elsewhere
+    // it opens the command center.
+    onOpenSearch: () => {
+      if (activeTopNav === "agent" && !reader.selectedBook) setThreadsPaletteOpen(true);
+      else setSearchModalOpen(true);
+    },
     onOpenSettings: () => setSettingsOpen(true),
     onNewConversation: createGlobalConversation,
     onSelectPrimaryDestination: selectPrimaryDestination,

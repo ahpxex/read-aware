@@ -282,7 +282,8 @@
         "previous7": "过去 7 天",
         "previous30": "过去 30 天",
         "older": "更早"
-      }
+      },
+      "footerOpen": "↵ 打开"
     },
     "annotations": {
       "title": "高亮与笔记"

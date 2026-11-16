@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import type { ThreadSummary } from "@read-aware/core";
 import { describeError } from "../../../i18n";
-import { ThreadsSidebarView, type ThreadsSidebarViewProps } from "./ThreadsSidebarView";
+import { ThreadsPaletteView, type ThreadsPaletteViewProps } from "./ThreadsPaletteView";
 
 /** A fixed clock, so the date groups are stable: Monday 16 November 2026, 09:00 local. */
 const now = new Date(2026, 10, 16, 9).getTime();
@@ -20,36 +20,36 @@ const threads: ThreadSummary[] = [
   { id: "thread-7", title: "", updatedAt: daysAgo(80) },
 ];
 
-function Interactive(props: Partial<ThreadsSidebarViewProps>) {
+/** The palette as the Agent page drives it: the list and the open thread live outside. */
+function Interactive(props: Partial<ThreadsPaletteViewProps>) {
   const [list, setList] = useState(props.threads ?? threads);
   const [active, setActive] = useState(props.activeThreadId ?? "thread-1");
   return (
-    <div className="h-[36rem] w-64 border-r border-border bg-[var(--ra-main-surface-color)]">
-      <ThreadsSidebarView
-        isLoading={false}
-        loadFailure={null}
-        onRetry={() => {}}
-        now={now}
-        {...props}
-        threads={list}
-        activeThreadId={active}
-        onSelect={setActive}
-        onDelete={(id) => setList((current) => current.filter((thread) => thread.id !== id))}
-        // A fresh thread is not stored until its first turn, so it is not listed yet.
-        onNew={() => setActive(`thread-new-${Date.now()}`)}
-      />
-    </div>
+    <ThreadsPaletteView
+      open
+      onClose={() => {}}
+      isLoading={false}
+      loadFailure={null}
+      onRetry={() => {}}
+      now={now}
+      {...props}
+      threads={list}
+      activeThreadId={active}
+      onSelect={setActive}
+      onDelete={(id) => setList((current) => current.filter((thread) => thread.id !== id))}
+    />
   );
 }
 
 /**
- * The Agent page's threads, docked at its left edge (a drawer on a phone):
- * the threads grouped by when each was last active, the open one marked,
- * under one row holding a search over their titles and New conversation.
- * Deleting is at a row's end on hover.
+ * The Agent page's thread switcher, opened from the header's Threads button:
+ * the same palette as ⌘K. The search has focus, ↑/↓ move the highlight and
+ * Enter opens; threads are grouped by when each was last active, each with
+ * its time, the open one checked. Delete sits at a row's end on hover or
+ * while the row is highlighted.
  */
 const meta = {
-  title: "Interface/Agent/ThreadsSidebar",
+  title: "Interface/Agent/ThreadsPalette",
   component: Interactive,
   parameters: { layout: "fullscreen" },
 } satisfies Meta<typeof Interactive>;
@@ -60,24 +60,24 @@ type Story = StoryObj<typeof meta>;
 /** Today, yesterday, the previous week and month, then by month. An untitled thread reads "New conversation". */
 export const Grouped: Story = {};
 
-/** A new conversation before its first turn is not stored yet: it is not listed, so nothing is marked. */
-export const UnsavedNewThread: Story = {
-  args: { activeThreadId: "thread-new" },
-};
-
-/** Searching the titles. */
-export const Searching: Story = {
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await userEvent.type(canvas.getByRole("searchbox", { name: "Search conversations" }), "novels");
-    await expect(canvas.getAllByRole("button", { name: /novels/ })).toHaveLength(2);
-    await expect(canvas.queryByText("非洲长啥样")).toBeNull();
+/** Typing filters the titles; ↓ moves the highlight and Enter opens the highlighted thread. */
+export const SearchAndKeyboard: Story = {
+  play: async () => {
+    const page = within(document.body);
+    const field = await page.findByRole("searchbox", { name: "Search conversations" });
+    await waitFor(() => expect(field).toHaveFocus());
+    await userEvent.type(field, "novels");
+    await expect(page.queryByText("非洲长啥样")).toBeNull();
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+    await waitFor(() =>
+      expect(page.getByRole("button", { name: /Sort the novels/ })).toHaveAttribute("aria-current", "true"),
+    );
   },
 };
 
 /** No stored thread yet. */
 export const Empty: Story = {
-  args: { threads: [], activeThreadId: "thread-new" },
+  args: { threads: [] },
 };
 
 /** The first read. */
@@ -87,8 +87,5 @@ export const Loading: Story = {
 
 /** The list could not be read: an error with a retry, never an empty list. */
 export const Failed: Story = {
-  args: {
-    threads: [],
-    loadFailure: { ...describeError(new Error("fixture")), retryable: true },
-  },
+  args: { threads: [], loadFailure: { ...describeError(new Error("fixture")), retryable: true } },
 };

@@ -15,7 +15,7 @@ import { BOOK_FILE_ACCEPT } from "./features/library/lib/pick-book-files";
 import type { LibraryBook } from "./features/library/lib/library-types";
 import { AppHeader } from "./features/navigation/components/AppHeader";
 import { usePrimaryDestinations } from "./features/navigation/hooks/usePrimaryDestinations";
-import { AgentThreadControls } from "./features/agent/components/AgentThreadControls";
+import { useAgentHeaderActions } from "./features/agent/hooks/useAgentHeaderActions";
 import { usePluginAgentHeaderEntries } from "./features/plugins/hooks/usePluginAgentHeaderEntries";
 import { UpdateIndicator } from "./features/update/components/UpdateIndicator";
 import { WhatsNewDialog } from "./features/update/components/WhatsNewDialog";
@@ -269,9 +269,12 @@ function App() {
     standbyBook: reader.standbyBook,
   });
 
-  // The Agent page's own controls sit at the header's start (AgentThreadControls);
-  // its right-hand actions are the plugins' alone.
-  const agentHeaderActions = usePluginAgentHeaderEntries();
+  // The Agent page's header actions: its own (New conversation, the thread
+  // switcher), then the plugins'.
+  const agentHeaderActions = [
+    ...useAgentHeaderActions({ onNewConversation: createGlobalConversation }),
+    ...usePluginAgentHeaderEntries(),
+  ];
 
   // Chat book cards → open the reader (the cards dispatch via an atom).
   useOpenBookRequestHandler(library.books, handleOpenBook, reader.selectedBook?.id ?? null);
@@ -515,7 +518,6 @@ function App() {
             onOpenSettings={() => setSettingsOpen(true)}
             onOpenSearch={() => setSearchModalOpen(true)}
             onTopNavChange={setActiveTopNav}
-            leading={activeTopNav === "agent" ? <AgentThreadControls /> : undefined}
             leadingStatus={<UpdateIndicator />}
             viewControl={activeTopNav === "shelf" ? <ShelfManagementMenu /> : undefined}
             actions={activeTopNav === "agent" ? agentHeaderActions : undefined}

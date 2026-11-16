@@ -284,7 +284,8 @@
         "previous7": "Previous 7 days",
         "previous30": "Previous 30 days",
         "older": "Older"
-      }
+      },
+      "footerOpen": "↵ Open"
     },
     "annotations": {
       "title": "Highlights & notes"

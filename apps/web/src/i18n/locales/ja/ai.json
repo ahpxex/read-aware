@@ -247,7 +247,8 @@
         "previous7": "過去 7 日間",
         "previous30": "過去 30 日間",
         "older": "それ以前"
-      }
+      },
+      "footerOpen": "↵ 開く"
     },
     "annotations": {
       "title": "ハイライトとメモ"

@@ -247,7 +247,8 @@
         "previous7": "7 derniers jours",
         "previous30": "30 derniers jours",
         "older": "Plus ancien"
-      }
+      },
+      "footerOpen": "↵ Ouvrir"
     },
     "annotations": {
       "title": "Surlignages et notes"

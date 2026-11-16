@@ -17,8 +17,6 @@ export type AgentThreads = {
   retry: () => void;
   activeThreadId: string;
   select: (threadId: string) => void;
-  /** Open a fresh thread; it is stored with its first turn. */
-  startNew: () => void;
   remove: (threadId: string) => void;
 };
 
@@ -96,7 +94,6 @@ export function useAgentThreads(): AgentThreads {
     retry,
     activeThreadId,
     select: setActiveThreadId,
-    startNew: () => setActiveThreadId(newGlobalThreadId()),
     remove,
   };
 }

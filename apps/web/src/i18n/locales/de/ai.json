@@ -247,7 +247,8 @@
         "previous7": "Letzte 7 Tage",
         "previous30": "Letzte 30 Tage",
         "older": "Älter"
-      }
+      },
+      "footerOpen": "↵ Öffnen"
     },
     "annotations": {
       "title": "Markierungen & Notizen"

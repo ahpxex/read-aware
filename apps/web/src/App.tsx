@@ -527,7 +527,6 @@ function App() {
                   openingBookId={openingBookId}
                   importingCount={library.importingCount}
                   onImport={library.openImportPicker}
-                  onImportFolder={library.openFolderImportPicker}
                   onOpenBook={handleOpenBook}
                   onRemoveBook={library.handleRemoveBook}
                   onToggleStar={library.handleToggleStar}

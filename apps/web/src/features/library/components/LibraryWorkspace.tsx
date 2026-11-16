@@ -28,8 +28,6 @@ type LibraryWorkspaceProps = {
   /** Files currently in the import pipeline; also keeps an empty shelf out of its empty state. */
   importingCount?: number;
   onImport: () => void;
-  /** Import every book below a picked folder. */
-  onImportFolder: () => void;
   onOpenBook: (book: LibraryBook) => void;
   onRemoveBook: (book: LibraryBook) => void;
   onToggleStar: (book: LibraryBook) => void;
@@ -49,7 +47,6 @@ export function LibraryWorkspace({
   openingBookId,
   importingCount = 0,
   onImport,
-  onImportFolder,
   onOpenBook,
   onRemoveBook,
   onToggleStar,
@@ -217,15 +214,12 @@ export function LibraryWorkspace({
           <EmptyState
             icon={<Books className="size-12 text-fg-subtle" weight="thin" />}
             title={t("workspace.emptyTitle")}
+            // One call to action. Folder import is occasional and lives in the
+            // header's More menu, the command palette and folder drag-and-drop.
             action={
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <Button size="sm" onClick={onImport}>
-                  {t("actions.import")}
-                </Button>
-                <Button size="sm" variant="outline" onClick={onImportFolder}>
-                  {t("actions.importFolder")}
-                </Button>
-              </div>
+              <Button size="sm" onClick={onImport}>
+                {t("actions.import")}
+              </Button>
             }
           />
         </div>

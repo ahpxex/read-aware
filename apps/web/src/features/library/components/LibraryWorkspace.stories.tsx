@@ -71,7 +71,6 @@ const meta = {
     books,
     collections,
     onImport: () => {},
-    onImportFolder: () => {},
     onOpenBook: () => {},
     onRemoveBook: () => {},
     onToggleStar: () => {},

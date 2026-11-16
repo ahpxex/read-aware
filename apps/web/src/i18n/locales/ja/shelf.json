@@ -6,8 +6,7 @@
     "remove": "削除",
     "delete": "削除",
     "close": "閉じる",
-    "done": "完了",
-    "importFolder": "フォルダを読み込む"
+    "done": "完了"
   },
   "books_other": "{{count}}冊の本",
   "workspace": {

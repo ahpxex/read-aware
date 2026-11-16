@@ -6,8 +6,7 @@
     "remove": "Quitar",
     "delete": "Eliminar",
     "close": "Cerrar",
-    "done": "Listo",
-    "importFolder": "Importar carpeta"
+    "done": "Listo"
   },
   "books_one": "{{count}} libro",
   "books_many": "{{count}} libros",

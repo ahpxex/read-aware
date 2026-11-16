@@ -6,8 +6,7 @@
     "remove": "移除",
     "delete": "删除",
     "close": "关闭",
-    "done": "完成",
-    "importFolder": "导入文件夹"
+    "done": "完成"
   },
   "books_other": "{{count}} 本书",
   "workspace": {

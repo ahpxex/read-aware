@@ -6,8 +6,7 @@
     "remove": "Entfernen",
     "delete": "Löschen",
     "close": "Schließen",
-    "done": "Fertig",
-    "importFolder": "Ordner importieren"
+    "done": "Fertig"
   },
   "books_one": "{{count}} Buch",
   "books_other": "{{count}} Bücher",

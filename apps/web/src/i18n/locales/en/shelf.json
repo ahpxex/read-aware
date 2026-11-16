@@ -6,8 +6,7 @@
     "remove": "Remove",
     "delete": "Delete",
     "close": "Close",
-    "done": "Done",
-    "importFolder": "Import folder"
+    "done": "Done"
   },
   "books_one": "{{count}} book",
   "books_other": "{{count}} books",

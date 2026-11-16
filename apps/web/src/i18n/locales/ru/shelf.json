@@ -6,8 +6,7 @@
     "remove": "Удалить",
     "delete": "Удалить",
     "close": "Закрыть",
-    "done": "Готово",
-    "importFolder": "Импортировать папку"
+    "done": "Готово"
   },
   "books_one": "{{count}} книга",
   "books_few": "{{count}} книги",

@@ -135,6 +135,38 @@ test("a located position reaches the model as coordinates under the same policie
     }
 });
 
+test("a withheld position does not open the reader's own chapter of a narrative book", async () => {
+  const text = "CONTEXT BEFORE SELECTED PRIVATE VIEWPORT. UNREAD REMAINDER.";
+  for (const disclosed of [true, false]) {
+    const f = fixture({ selection: true, surrounding: disclosed });
+    const book = (await f.deps.library.getBook("b1"))!;
+    f.deps.library.getBook = async () => ({ ...book, status: "reading", narrativity: "narrative", spoilerSensitive: true });
+    f.deps.bookText.getChapterText = async () => text;
+    f.deps.bookText.locate = async () => ({
+      start: { chapterIndex: 1, offset: 0 },
+      end: { chapterIndex: 1, offset: text.indexOf(" UNREAD") },
+    });
+    let result = "";
+    f.faux.setResponses([
+      () => fauxAssistantMessage([fauxToolCall("read_chapter", { chapterIndex: 1 })], { stopReason: "toolUse" }),
+      (ctx: Context) => {
+        result = JSON.stringify(ctx.messages[ctx.messages.length - 1]);
+        return fauxAssistantMessage("A typed answer.");
+      },
+    ]);
+    await collect(
+      hostTurn(f.stores.turns, f.thread, { text: "Typed question", readingCursor: { chapterIndex: 1, anchor: "viewport" } }),
+    );
+    await f.thread.flushBackgroundWork();
+    // Reading up to the reader's page would hand over the surrounding text and where the reader is.
+    expect(result.includes("CONTEXT BEFORE")).toBe(disclosed);
+    expect(result.includes("readerPosition")).toBe(disclosed);
+    expect(result.includes("beyond the reader's position or viewport boundary")).toBe(!disclosed);
+    expect(result).not.toContain("UNREAD REMAINDER");
+    f.thread.dispose();
+  }
+});
+
 test("tightening between turns rebuilds cached context and filters hydrated selections", async () => {
   const f = fixture({ selection: true, surrounding: true });
   await collect(hostTurn(f.stores.turns, f.thread, f.input));

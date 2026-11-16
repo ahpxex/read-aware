@@ -636,15 +636,17 @@ export class AgentThread {
         narrativeUnfinished =
           !!book && (book.spoilerSensitive ?? book.narrativity === "narrative") && needsSpoilerProtection(book);
         if (narrativeUnfinished && cursor?.chapterIndex !== undefined) {
-          // 位置在章内（已定位，或宿主给了视口文本）→ 本章不整章开放；定位成功时
-          // 另记章内边界，read_chapter 可读到那里为止。
+          // 位置在章内（已定位，或宿主给了视口文本）→ 本章不整章开放：这一判断用宿主的
+          // 真实采样，围栏不随隐私设置变宽。章内边界则只在位置对模型公开时才给——
+          // 读到读者那一页为止，等于交出周边上下文和读者的确切位置；被隐私设置扣留时
+          // 本章保持整章不可读。
           this.turnState.spoilerFence = {
             throughChapterIndex:
               located.viewport || localInput.readingCursor?.visibleText?.trim()
                 ? cursor.chapterIndex - 1
                 : cursor.chapterIndex,
             readerChapterIndex: cursor.chapterIndex,
-            ...(located.viewport ? { readerChapterThrough: located.viewport.through } : {}),
+            ...(position.viewport ? { readerChapterThrough: position.viewport.through } : {}),
           };
         }
       }

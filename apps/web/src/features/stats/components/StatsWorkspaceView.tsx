@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useAtomValue } from "jotai";
 import { ChartLineUp } from "@phosphor-icons/react";
 import { Body, EmptyState, Heading, Tabs, InlineError } from "@read-aware/ui";
@@ -25,7 +25,11 @@ export type StatsWorkspaceViewProps = {
 export function StatsWorkspaceView({ books, annotations, onOpenBook }: StatsWorkspaceViewProps) {
   const { t } = useTranslation(["stats", "common"]);
   const store = useAtomValue(readingStatsAtom);
-  const now = Date.now();
+  // One clock reading per visit (the page mounts each time it is opened). A
+  // fresh Date.now() every render made `now` a new dependency each time, so
+  // the insights and every period's charts were rebuilt on any re-render —
+  // the annotation counts arriving, for one.
+  const [now] = useState(() => Date.now());
 
   const insights = useMemo(() => computeGlobalInsights(store, now), [store, now]);
 

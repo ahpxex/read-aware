@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocalAtom } from "./lib/useLocalAtom";
 import { cn } from "./lib/cn";
@@ -49,6 +49,12 @@ export function Tabs({
   const [internalIndex, setInternalIndex] = useLocalAtom(defaultIndex);
   const isControlled = controlledIndex != null;
   const activeIndex = isControlled ? controlledIndex : internalIndex;
+  // A panel mounts the first time it is shown and stays mounted after, so a
+  // tab keeps its state when left and revisited — but panels nobody opened
+  // never render. Mounting every panel up front made a page pay for all its
+  // tabs' content (charts, lists, plugin views) to show one of them.
+  const [visited, setVisited] = useState<readonly number[]>(() => [activeIndex]);
+  if (!visited.includes(activeIndex)) setVisited([...visited, activeIndex]);
   const [transitionDirection, setTransitionDirection] = useLocalAtom<"forward" | "backward">("forward");
   const [indicatorStyle, setIndicatorStyle] = useLocalAtom({
     x: 0,
@@ -231,7 +237,7 @@ export function Tabs({
                   : "ra-motion-tab-panel-in-backward"),
             )}
           >
-            {item.content}
+            {visited.includes(i) && item.content}
           </div>
         );
       })}

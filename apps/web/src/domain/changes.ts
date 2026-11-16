@@ -57,7 +57,13 @@ group(
   ["annotations"],
 );
 group(
-  ["aiConversation.started", "aiConversation.cleared", "aiMessage.appended", "aiMessage.removed"],
+  [
+    "aiConversation.started",
+    "aiConversation.cleared",
+    "aiConversation.titled",
+    "aiMessage.appended",
+    "aiMessage.removed",
+  ],
   ["conversations"],
 );
 group(

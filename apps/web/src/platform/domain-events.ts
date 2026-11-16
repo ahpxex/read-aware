@@ -94,6 +94,7 @@ const AGGREGATE_ROUTES: Record<DomainEventType, { type: string; idKey: string } 
   "aiMessage.appended": { type: "conversation", idKey: "conversationId" },
   "aiMessage.removed": { type: "conversation", idKey: "conversationId" },
   "aiConversation.cleared": { type: "conversation", idKey: "conversationId" },
+  "aiConversation.titled": { type: "conversation", idKey: "conversationId" },
   "profile.updated": null,
   "profile.onboarded": null,
   "context.bundlePublished": { type: "contextBundle", idKey: "version" },

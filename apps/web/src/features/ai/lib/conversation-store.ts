@@ -5,6 +5,7 @@ import {
   stampEventCause,
   type DomainActor,
 } from "../../../platform/domain-actor";
+import { AppError } from "@read-aware/core";
 import { runDomainWrite } from "../../../platform/domain-write-gate";
 import { invoke } from "../../../platform/ipc";
 import { isTauri } from "../../../platform/environment";
@@ -53,9 +54,14 @@ export interface ConversationSummary {
   id: string;
   updatedAt: string;
   messageCount: number;
-  /** 首条用户消息，线程列表当标题用。 */
+  /** 首条用户消息（线程还没有生成标题时，列表拿它当标题）。 */
   preview?: string;
+  /** 生成的标题（`aiConversation.titled`）；生成前缺省。 */
+  title?: string;
 }
+
+/** The longest title a thread may carry (mirrors the store's bound). */
+export const MAX_THREAD_TITLE_CHARS = 120;
 
 /** Row shape of the SQLite `ai_messages` projection (see storage.rs). */
 interface AiMessageRow {
@@ -247,6 +253,7 @@ export async function clearConversation(
   signal?.throwIfAborted();
   if (!isTauri()) {
     memoryStore.delete(conversationId);
+    memoryTitles.delete(conversationId);
     return;
   }
   // The event deletes every message (including local error stubs) and
@@ -255,6 +262,44 @@ export async function clearConversation(
   const draft: DomainEventDraft = { type: "aiConversation.cleared", payload: { conversationId }, origin };
   await commitDomainEventBatch([draft], { signal });
   knownEventIds.set(conversationId, new Set());
+}
+
+/** Preview-mode titles (the desktop store keeps them in its projection). */
+const memoryTitles = new Map<string, string>();
+
+/**
+ * Name a global thread (`aiConversation.titled`): host-internal, written by
+ * the agent after the thread's first exchange. `messageId` is the first user
+ * message the title was written from; the store drops a title whose message
+ * has left the thread (a clear and a new exchange in between).
+ */
+export async function titleConversation(
+  conversationId: string,
+  title: string,
+  messageId: string,
+  origin: DomainActor = "agent",
+  signal?: AbortSignal,
+): Promise<void> {
+  signal?.throwIfAborted();
+  const text = title.trim();
+  if (!isGlobalThreadId(conversationId))
+    throw new AppError("ui/invalid-target", "Only a global thread carries a title");
+  // Counted in code points on purpose: the store bounds the title with Rust's
+  // `chars().count()`, which counts Unicode scalar values, not graphemes.
+  // oxlint-disable-next-line no-misused-spread
+  if (!text || [...text].length > MAX_THREAD_TITLE_CHARS || !messageId)
+    throw new AppError("ui/invalid-target", "A thread title is 1–120 characters and names its first message");
+  if (!isTauri()) {
+    if (memoryStore.get(conversationId)?.some((message) => message.id === messageId))
+      memoryTitles.set(conversationId, text);
+    return;
+  }
+  const draft: DomainEventDraft = {
+    type: "aiConversation.titled",
+    payload: { conversationId, title: text, messageId },
+    origin,
+  };
+  await commitDomainEventBatch([draft], { signal });
 }
 
 /** 全局线程列表（非空会话，按最近活动排序）。 */
@@ -267,6 +312,7 @@ export async function listGlobalThreads(): Promise<ConversationSummary[]> {
         updatedAt: messages[messages.length - 1]?.createdAt ?? "",
         messageCount: messages.length,
         preview: messages.find((m) => m.role === "user")?.content,
+        title: memoryTitles.get(id),
       }))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }

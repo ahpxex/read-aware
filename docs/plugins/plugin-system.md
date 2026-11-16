@@ -357,7 +357,7 @@ The current public roster is:
 | Library | books, source files, metadata, TOC, collections, import and removal | `library:read`, `library:write` |
 | Reading | active session, navigation, location, progress, reading time | `reading:read`, `reading:write` |
 | Annotations 2.0 | highlights, notes, passive question traces, conditional edits and query observations | `annotations:read`, `annotations:write` |
-| Conversations 1.4 | threads, rolling summaries, live state, projection invalidation, thread management and host-confirmed turn requests | `conversations:read`, `conversations:write` |
+| Conversations 1.7 | threads and their titles, rolling summaries, live state, projection invalidation, thread management and host-confirmed turn requests | `conversations:read`, `conversations:write` |
 | Settings | catalog, resolved values, targets, validation, change events | exact path grants |
 | Memory | active memory search, chapter graphs and conditional feedback | `memory:read`, `memory:write` (1.1) |
 
@@ -543,6 +543,18 @@ Agent `request_conversation_turn` uses the same path, restricted to the current
 book in book scope; state queries show the last 20 scoped requests and a
 truncation flag. Streaming output remains in native chat, not a public role-write
 API. Focused checks passed; integrated plugin/Tauri acceptance is pending.
+
+### Thread Titles (Conversations 1.7)
+
+[代码] A global thread gets a short title from the agent after its first
+exchange, written as `aiConversation.titled` `{conversationId, title, messageId}`
+(1–120 characters; `messageId` is the first user message the title was written
+from). `queries.listThreads()` returns it as `title`, with the first user message
+as `preview`; a thread not yet titled keeps its first message as `title`, as
+before. A title lands only while its message is in the thread, a clear resets
+it, and naming a thread does not change its `updatedAt`. Plugins observe the
+event through `events.subscribe("aiConversation.titled", …)` under the usual
+grant check; there is no title-write API.
 
 ### Stored Conversation Summaries (Conversations 1.4)
 

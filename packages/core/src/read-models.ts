@@ -166,7 +166,10 @@ export interface ChatMessageSummary {
 
 export interface ThreadSummary {
   id: Id;
+  /** The thread's generated title, or its first user message until it has one. */
   title?: string;
+  /** The first user message, in the reader's own words (Conversations 1.7). */
+  preview?: string;
   updatedAt?: IsoDate;
 }
 

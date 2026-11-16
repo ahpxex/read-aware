@@ -418,6 +418,13 @@ export type DomainEvent =
    */
   | DomainEventEnvelope<"aiMessage.removed", { messageId: Id; conversationId: Id }>
   | DomainEventEnvelope<"aiConversation.cleared", { conversationId: Id }>
+  /**
+   * A global thread's short title, written by the agent after its first
+   * exchange. It names the history beginning with `messageId` (the first user
+   * message): it lands only while that message is in the thread, and a clear
+   * resets it. Naming a thread is not activity.
+   */
+  | DomainEventEnvelope<"aiConversation.titled", { conversationId: Id; title: string; messageId: Id }>
   // --- Profile + memory ------------------------------------------------
   | DomainEventEnvelope<"context.bundlePublished", import("./context-bundle").ContextBundle>
   | DomainEventEnvelope<"profile.onboarded", import("./onboarding").OnboardingChange>

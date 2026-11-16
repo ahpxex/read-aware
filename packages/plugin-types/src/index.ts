@@ -1528,7 +1528,9 @@ export type ConversationDomainEventType =
   | "aiConversation.started"
   | "aiMessage.appended"
   | "aiMessage.removed"
-  | "aiConversation.cleared";
+  | "aiConversation.cleared"
+  /** Conversations 1.7: a global thread was given its generated title. */
+  | "aiConversation.titled";
 
 // ─── Read models (projections as plugins see them) ───────────────────────────
 //

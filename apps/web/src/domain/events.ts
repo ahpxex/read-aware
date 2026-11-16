@@ -45,6 +45,7 @@ export const CONVERSATION_EVENTS = [
   "aiMessage.appended",
   "aiMessage.removed",
   "aiConversation.cleared",
+  "aiConversation.titled",
 ] as const;
 
 /** The imported-font registry (bytes are blobs, not events). */

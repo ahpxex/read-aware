@@ -11,7 +11,12 @@ const hoursAgo = (hours: number) => new Date(now - hours * 3_600_000).toISOStrin
 const daysAgo = (days: number) => new Date(now - days * 86_400_000).toISOString();
 
 const threads: ThreadSummary[] = [
-  { id: "thread-1", title: "我最近一个月大概读了多少时间？读得最多的是哪本书？", updatedAt: hoursAgo(1) },
+  {
+    id: "thread-1",
+    title: "近一个月的阅读时长",
+    preview: "我最近一个月大概读了多少时间？读得最多的是哪本书？",
+    updatedAt: hoursAgo(1),
+  },
   { id: "thread-2", title: "Find a photo of the Millau Viaduct and describe it in one line", updatedAt: hoursAgo(3) },
   { id: "thread-3", title: "非洲长啥样", updatedAt: daysAgo(1) },
   { id: "thread-4", title: "Which of my novels are about memory?", updatedAt: daysAgo(4) },
@@ -57,10 +62,15 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Today, yesterday, the previous week and month, then by month. An untitled thread reads "New conversation". */
+/**
+ * Today, yesterday, the previous week and month, then by month. A titled
+ * thread shows its generated title (the first one here); the rest show their
+ * first message until they have one, and a thread with neither reads "New
+ * conversation".
+ */
 export const Grouped: Story = {};
 
-/** Typing filters the titles; ↓ moves the highlight and Enter opens the highlighted thread. */
+/** Typing filters titles and first messages; ↓ moves the highlight and Enter opens the highlighted thread. */
 export const SearchAndKeyboard: Story = {
   play: async () => {
     const page = within(document.body);
@@ -72,6 +82,16 @@ export const SearchAndKeyboard: Story = {
     await waitFor(() =>
       expect(page.getByRole("button", { name: /Sort the novels/ })).toHaveAttribute("aria-current", "true"),
     );
+  },
+};
+
+/** A titled thread is still found by the reader's own first words. */
+export const SearchByFirstMessage: Story = {
+  play: async () => {
+    const page = within(document.body);
+    const field = await page.findByRole("searchbox", { name: "Search conversations" });
+    await userEvent.type(field, "读得最多");
+    await expect(page.getByRole("button", { name: /近一个月的阅读时长/ })).toBeVisible();
   },
 };
 

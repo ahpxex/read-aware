@@ -67,7 +67,8 @@ export function createConversationsDomain(origin: DomainActor, lifetime?: AbortS
       listThreads: async () =>
         (await listGlobalThreads()).map((thread) => ({
           id: thread.id,
-          title: thread.preview,
+          title: thread.title ?? thread.preview,
+          preview: thread.preview,
           updatedAt: thread.updatedAt,
         })),
       getThread: async (threadId) => toMessages(await loadConversation(String(threadId))),

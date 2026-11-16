@@ -1,6 +1,6 @@
 /**
  * The Agent page's thread switcher, as a palette: a search over the threads'
- * titles above the list, ↑/↓ to move, Enter to open, Escape to close.
+ * titles and first messages above the list, ↑/↓ to move, Enter to open, Escape to close.
  * Threads are grouped by when each was last active (today, yesterday, the
  * previous 7 and 30 days, then by month), newest first, each with its time;
  * the open one is checked. Deleting is a control at a row's end, shown on
@@ -32,7 +32,7 @@ export type ThreadsPaletteViewProps = {
   now?: number;
 };
 
-type Row = { id: string; title: string; updatedAt: string };
+type Row = { id: string; title: string; preview: string; updatedAt: string };
 
 export function ThreadsPaletteView({
   open,
@@ -56,9 +56,16 @@ export function ThreadsPaletteView({
     const rows: Row[] = threads.map((thread) => ({
       id: thread.id,
       title: thread.title?.trim() || untitled,
+      preview: thread.preview ?? "",
       updatedAt: thread.updatedAt ?? "",
     }));
-    const matching = trimmed ? rows.filter((row) => row.title.toLocaleLowerCase().includes(trimmed)) : rows;
+    // A generated title stands for the thread, but the reader may search by
+    // their own first words: match either.
+    const matching = trimmed
+      ? rows.filter(
+          (row) => row.title.toLocaleLowerCase().includes(trimmed) || row.preview.toLocaleLowerCase().includes(trimmed),
+        )
+      : rows;
     return groupThreadsByDate(matching, clock);
   }, [threads, trimmed, clock, t]);
   const flat = useMemo(() => groups.flatMap((group) => group.items), [groups]);

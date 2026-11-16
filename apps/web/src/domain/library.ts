@@ -58,6 +58,7 @@ import { observeLibraryInvalidation } from "./projection-invalidation";
 import {
   ensureBookTextExtracted,
   getPersistedBookText,
+  locateBookText,
   getBookTextSnapshot,
   createBookTextTaskOwner,
   type ExtractedChapter,
@@ -116,6 +117,14 @@ export type LibraryQueries = {
     getTextTask(bookId: string, taskId: string): Promise<BookTextTaskSnapshot>;
     listTextTasks(bookId: string): Promise<BookTextTaskSnapshot[]>;
     getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
+    /** Block and sentence offsets into the chapter's text; null for a chapter that does not exist. */
+    getChapterLayout(bookId: string, chapterIndex: number): Promise<import("@read-aware/core").ChapterLayout | null>;
+    /** Where a reader CFI lies in the extracted text; null when the text is not ready or cannot place it. */
+    locateText(
+      bookId: string,
+      target: { cfi: string; textQuote?: import("@read-aware/core").ReadingTextQuote },
+      signal?: AbortSignal,
+    ): Promise<import("@read-aware/core").BookTextLocation | null>;
     getNavigationToc(bookId: string, signal?: AbortSignal): Promise<BookNavigationToc>;
     listNavigationTargets(
       input: import("@read-aware/core").BookNavigationTargetsQuery,
@@ -271,6 +280,9 @@ export function createLibraryDomain(
         })),
       getChapterText: async (bookId, chapterIndex) =>
         (await getExtractedChapters(bookId, origin))[Number(chapterIndex)]?.text ?? null,
+      getChapterLayout: async (bookId, chapterIndex) =>
+        (await getExtractedChapters(bookId, origin))[Number(chapterIndex)]?.layout ?? null,
+      locateText: (bookId, target, signal) => locateBookText(bookId, target, signal, origin),
     },
     collections: {
       list: async () =>

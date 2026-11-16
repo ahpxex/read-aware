@@ -1,4 +1,10 @@
-import { AppError, normalizeBookRangeQuery, type BookRangePage, type BookRangeQuery } from "@read-aware/core";
+import {
+  AppError,
+  normalizeBookRangeQuery,
+  type BookRangePage,
+  type BookRangeQuery,
+  type ReadingTextQuote,
+} from "@read-aware/core";
 import { loadContentNavigation } from "../../reader/lib/foliate-engine";
 import { withBookContent } from "./book-content-source";
 import { contentSections } from "./book-content-sections";
@@ -52,5 +58,28 @@ export function readBookRange(
       nextOffset: page.nextOffset,
       context: page.context,
     };
+  });
+}
+
+/**
+ * Where a reader CFI lies in its section's extracted text, or null when this
+ * content cannot place it (a stale or foreign CFI, a section without text).
+ * Offsets only: no passage text leaves the book.
+ */
+export function locateBookRange(
+  bookId: string,
+  contentVersion: string,
+  target: { cfi: string; textQuote?: ReadingTextQuote },
+  signal?: AbortSignal,
+): Promise<{ sectionIndex: number; start: number; end: number } | null> {
+  return withBookContent(bookId, contentVersion, signal, async ({ book }) => {
+    const { locateContentRange } = await loadContentNavigation();
+    try {
+      return await locateContentRange(book, target, signal);
+    } catch (error) {
+      // The engine is a static module tree, not the bundled app's class instance.
+      if (error && typeof error === "object" && "name" in error && error.name === "ContentRangeError") return null;
+      throw error;
+    }
   });
 }

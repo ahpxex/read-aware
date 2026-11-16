@@ -85,10 +85,14 @@ function loadEngine(): Promise<EngineAPI> {
 }
 
 export async function loadContentNavigation(): Promise<
-  Pick<EngineAPI, "contentCFI" | "searchContentSection" | "resolveTextQuote" | "readContentRange">
+  Pick<
+    EngineAPI,
+    "contentCFI" | "searchContentSection" | "resolveTextQuote" | "readContentRange" | "locateContentRange"
+  >
 > {
-  const { contentCFI, searchContentSection, resolveTextQuote, readContentRange } = await loadEngine();
-  return { contentCFI, searchContentSection, resolveTextQuote, readContentRange };
+  const { contentCFI, searchContentSection, resolveTextQuote, readContentRange, locateContentRange } =
+    await loadEngine();
+  return { contentCFI, searchContentSection, resolveTextQuote, readContentRange, locateContentRange };
 }
 
 /**

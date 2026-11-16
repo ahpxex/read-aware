@@ -25,6 +25,11 @@ export type BookAddress = { paragraph: number; sentence: number };
 /** A stretch of one chapter, from the sentence it starts in through the sentence it ends in. */
 export type BookSpan = { chapterIndex: number; start: BookAddress; end: BookAddress };
 
+/** A character position in a chapter's extracted text. */
+export type ChapterPoint = { chapterIndex: number; offset: number };
+/** Where a reader range lies in extracted text. A viewport can begin in one chapter and end in the next. */
+export type BookTextLocation = { start: ChapterPoint; end: ChapterPoint };
+
 /** No addressable unit is longer than this, so a bounded read can always stop on a unit boundary. */
 export const MAX_SENTENCE_CHARS = 1200;
 

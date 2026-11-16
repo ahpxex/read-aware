@@ -535,8 +535,15 @@ export interface ProfilePort {
  * hrefs：本章覆盖的 TOC 条目 href + 各 spine section id。运行时用来把
  * 阅读位置 / 选区的 chapter href 反查到章节索引（见 text/chapter-lookup）；
  * 不进 get_toc 的工具输出 —— 对模型是纯噪音。
+ *
+ * blocks / unit：本章的块数与块的含义（段落，或分页书的一页），来自章节 layout；
+ * get_toc 据此告诉模型一章有多少段可读。
  */
-export type ChapterRef = CoreChapterRef & { hrefs?: string[] };
+export type ChapterRef = CoreChapterRef & {
+  hrefs?: string[];
+  blocks?: number;
+  unit?: import("@read-aware/core").ChapterLayout["unit"];
+};
 
 export type BookTextHit = import("@read-aware/core").BookTextHit;
 
@@ -611,6 +618,20 @@ export interface BookTextPort {
   ): Promise<import("@read-aware/core").BookLocationSearchPage>;
   getToc(bookId: Id): Promise<ChapterRef[]>;
   getChapterText(bookId: Id, chapterIndex: number): Promise<string | undefined>;
+  /**
+   * Reading coordinates of a chapter: block and sentence start offsets into its
+   * text. A host without them still reads chapters, only without addresses.
+   */
+  getChapterLayout?(bookId: Id, chapterIndex: number): Promise<import("@read-aware/core").ChapterLayout | undefined>;
+  /**
+   * Where a reader CFI (a viewport or a selection) lies in the extracted text.
+   * Null when the text is not ready or cannot place it. Returns positions, never text.
+   */
+  locate?(
+    bookId: Id,
+    target: { cfi: string; textQuote?: import("@read-aware/core").ReadingTextQuote },
+    signal?: AbortSignal,
+  ): Promise<import("@read-aware/core").BookTextLocation | null>;
   /** Host digest reads carry the prepared record identity, so an ABA source swap cannot relabel text. */
   getSourceVersion?(bookId: Id, signal?: AbortSignal): Promise<string>;
   getDigestChapter?(

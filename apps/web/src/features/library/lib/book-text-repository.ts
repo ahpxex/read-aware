@@ -246,6 +246,18 @@ export class BookTextRepository {
     return chapter;
   }
 
+  /**
+   * The complete record of the current source: every chapter with its layout,
+   * and the section text behind them. Null while the text is not ready (a PDF
+   * still extracting is not waited for).
+   */
+  async complete(bookId: string, origin?: DomainActor): Promise<BookTextRecord | null> {
+    const result = await this.request(bookId, false, { origin });
+    if (result.state.status !== "ready" || !result.state.contentVersion) return null;
+    const record = await this.record(bookId, result.state.contentVersion);
+    return record && textComplete(record) ? record : null;
+  }
+
   async prepare(bookId: string, options: TextPreparationOptions = {}): Promise<BookTextSnapshot> {
     const result = await this.request(bookId, true, options);
     if (result.state.status !== "ready")

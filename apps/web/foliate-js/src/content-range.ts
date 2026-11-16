@@ -98,6 +98,73 @@ export function captureContentRange(book: Book, index: number, range: Range): { 
     },
   };
 }
+/**
+ * Where a CFI lies in its section, as offsets into the text that extraction
+ * reads of it: `body.textContent` for a document, the page text for a text
+ * section. It returns positions only, never passage text, and accepts every
+ * CFI the reader issues (a viewport is rarely a canonical range).
+ *
+ * A CFI without a range is a point (start === end). A text section's CFI names
+ * the whole page; a quote narrows it when it resolves once there.
+ */
+export async function locateContentRange(
+  book: Book,
+  input: { cfi: string; textQuote?: TextQuote },
+  signal?: AbortSignal,
+): Promise<{ sectionIndex: number; start: number; end: number }> {
+  signal?.throwIfAborted();
+  let resolved: ResolvedNavigation;
+  try {
+    resolved = resolveContentCFI(book, input.cfi);
+  } catch {
+    throw new ContentRangeError("not-found");
+  }
+  const section = book.sections[resolved.index];
+  if (!Number.isInteger(resolved.index) || !section) throw new ContentRangeError("not-found");
+  if (section.createDocument) {
+    const doc = await section.createDocument();
+    signal?.throwIfAborted();
+    const body = doc.body;
+    if (!body) throw new ContentRangeError("unsupported");
+    let anchor: Range | Element | number | null | undefined;
+    try {
+      anchor = typeof resolved.anchor === "function" ? resolved.anchor(doc) : resolved.anchor;
+    } catch {
+      throw new ContentRangeError("not-found");
+    }
+    // No local path: the section itself, from its first character.
+    if (anchor == null || typeof anchor === "number") return { sectionIndex: resolved.index, start: 0, end: 0 };
+    const range = doc.createRange();
+    if ("startContainer" in anchor) {
+      range.setStart(anchor.startContainer, anchor.startOffset);
+      range.setEnd(anchor.endContainer, anchor.endOffset);
+    } else range.selectNodeContents(anchor);
+    if (!body.contains(range.startContainer) || !body.contains(range.endContainer))
+      throw new ContentRangeError("not-found");
+    // The same measure extraction uses for chapter anchors, so both agree on every offset.
+    const before = doc.createRange();
+    before.selectNodeContents(body);
+    before.setEnd(range.startContainer, range.startOffset);
+    const start = before.toString().length;
+    return { sectionIndex: resolved.index, start, end: start + range.toString().length };
+  }
+  if (section.getText) {
+    const source = await section.getText(signal);
+    signal?.throwIfAborted();
+    if (input.textQuote) {
+      try {
+        const [start, end] = quoteOffsets(source, input.textQuote);
+        return { sectionIndex: resolved.index, start, end };
+      } catch (error) {
+        // An absent or repeated quote still leaves the page it was captured on.
+        if (!(error instanceof ContentRangeError)) throw error;
+      }
+    }
+    return { sectionIndex: resolved.index, start: 0, end: source.length };
+  }
+  throw new ContentRangeError("unsupported");
+}
+
 const splitsPair = (text: string, offset: number) =>
   offset > 0 &&
   offset < text.length &&

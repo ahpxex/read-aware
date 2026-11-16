@@ -112,12 +112,17 @@ export function createBookTextPort(origin: DomainActor = "agent"): BookTextPort 
         title: chapter.title,
         chars: chapter.text.length,
         hrefs: chapter.hrefs,
+        blocks: chapter.layout.paragraphs.length,
+        unit: chapter.layout.unit,
       })),
     // "没字"与"没抽"要说成两回事——纯图扫描版是终局事实（get_toc 会
     // 触发一次抽取；抽完落定论后这里读到 textless），重试无益。
     getTextStatus: (bookId) => getBookTextStatus(String(bookId)),
     getChapterText: async (bookId, chapterIndex) =>
       (await getExtractedChapters(String(bookId), origin))[chapterIndex]?.text,
+    getChapterLayout: async (bookId, chapterIndex) =>
+      (await library.getChapterLayout(String(bookId), chapterIndex)) ?? undefined,
+    locate: (bookId, target, signal) => library.locateText(String(bookId), target, signal),
     searchText: library.searchText,
   };
 }

@@ -11,7 +11,7 @@ import type { EngineAPI } from "./engine-api.js";
 import { Overlayer } from "./overlayer.js";
 import { FootnoteHandler } from "./footnotes.js";
 import { contentCFI, searchContentSection, resolveTextQuote } from "./content-navigation.js";
-import { readContentRange } from "./content-range.js";
+import { locateContentRange, readContentRange } from "./content-range.js";
 
 globalThis.__readawareFoliate = {
   makeBook,
@@ -22,4 +22,5 @@ globalThis.__readawareFoliate = {
   searchContentSection,
   resolveTextQuote,
   readContentRange,
+  locateContentRange,
 } satisfies EngineAPI;

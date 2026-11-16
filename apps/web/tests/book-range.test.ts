@@ -1,7 +1,12 @@
 import { expect, test } from "bun:test";
 import type { Book } from "../foliate-js/src/book";
 import { contentCFI, searchContentSection } from "../foliate-js/src/content-navigation";
-import { captureContentRange, readContentRange, resolveContentCFI } from "../foliate-js/src/content-range";
+import {
+  captureContentRange,
+  locateContentRange,
+  readContentRange,
+  resolveContentCFI,
+} from "../foliate-js/src/content-range";
 import { searchLocationsInBook } from "../src/features/library/lib/book-location-search";
 import { contentSections } from "../src/features/library/lib/book-content-sections";
 import { withDom } from "./helpers/foliate-dom";
@@ -208,3 +213,43 @@ test("empty allowed hrefs deny all; canonical ids and resolved hrefs share searc
   expect([...(await contentSections(book, []))]).toEqual([]);
   expect([...(await contentSections(book, ["page", "alias", "missing"]))]).toEqual([0]);
 });
+
+test("a reader CFI is located as offsets into the text extraction reads, for any shape the reader issues", () =>
+  withDom(async () => {
+    document.body.innerHTML = "<h1>Title</h1>\n<p>first <em>needle</em> here</p>\n<p>second needle there</p>";
+    const book: Book = { sections: [{ id: "one", size: 100, load: () => "", createDocument: () => document }] };
+    const raw = document.body.textContent!;
+    const [first, second] = document.querySelectorAll("p");
+    // A viewport: from inside one block to the end of another, never a canonical single-node range.
+    const viewport = document.createRange();
+    viewport.setStart(first!.querySelector("em")!.firstChild!, 2);
+    viewport.setEnd(second!.firstChild!, 13);
+    const located = await locateContentRange(book, { cfi: contentCFI(book, 0, viewport) });
+    expect(located.sectionIndex).toBe(0);
+    expect(raw.slice(located.start, located.end)).toBe("edle here\nsecond needle");
+    // An element anchor is the text it contains; a spine CFI is the section's start.
+    const block = document.createRange();
+    block.selectNodeContents(second!);
+    const whole = await locateContentRange(book, { cfi: contentCFI(book, 0, block) });
+    expect(raw.slice(whole.start, whole.end)).toBe("second needle there");
+    expect(await locateContentRange(book, { cfi: contentCFI(book, 0) })).toEqual({ sectionIndex: 0, start: 0, end: 0 });
+    await expect(locateContentRange(book, { cfi: "epubcfi(/6/40!/4/2/1:0)" })).rejects.toMatchObject({
+      name: "ContentRangeError",
+    });
+    await expect(locateContentRange(book, { cfi: "not a cfi" })).rejects.toMatchObject({ name: "ContentRangeError" });
+
+    // A page of a text section: the whole page, narrowed by a quote that resolves once there.
+    const page = pdf("first needle here; second needle there");
+    const cfi = contentCFI(page, 0);
+    expect(await locateContentRange(page, { cfi })).toEqual({ sectionIndex: 0, start: 0, end: 38 });
+    const quoted = await locateContentRange(page, { cfi, textQuote: { exact: "second needle" } });
+    expect(page.sections[0].getText && (await page.sections[0].getText()).slice(quoted.start, quoted.end)).toBe(
+      "second needle",
+    );
+    // A repeated quote cannot choose between its occurrences: the page remains.
+    expect(await locateContentRange(page, { cfi, textQuote: { exact: "needle" } })).toEqual({
+      sectionIndex: 0,
+      start: 0,
+      end: 38,
+    });
+  }));

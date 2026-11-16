@@ -7,6 +7,7 @@
  * collapse here: at extraction to build each chapter's layout, and afterwards
  * to turn a position in a section into a position in a chapter.
  */
+import type { BookTextLocation, ChapterPoint } from "@read-aware/core";
 import type { BookTextRecord, ChapterSource, TextPiece } from "./book-text-record";
 
 const WHITESPACE = /\s+/g;
@@ -57,8 +58,6 @@ export function pageTextBlocks(text: string): number[] {
   return blocks;
 }
 
-export type ChapterPoint = { chapterIndex: number; offset: number };
-
 /**
  * The chapter position of a raw offset in a section. `edge` says which side of
  * whitespace the offset belongs to: a start moves forward onto the text that
@@ -101,7 +100,7 @@ export function locateInRecord(
   sectionIndex: number,
   start: number,
   end: number,
-): { start: ChapterPoint; end: ChapterPoint } | null {
+): BookTextLocation | null {
   const pieces = new Map(record.pieces.map((piece) => [piece.sectionIndex, piece]));
   const from = chapterPoint(record, pieces, sectionIndex, start, "start");
   if (!from) return null;

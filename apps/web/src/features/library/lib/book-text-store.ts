@@ -1,5 +1,5 @@
 /** Native adapter for the shared, versioned derived-text repository. */
-import { AppError, type BookTextSnapshot } from "@read-aware/core";
+import { AppError, type BookTextLocation, type BookTextSnapshot, type ReadingTextQuote } from "@read-aware/core";
 import { createTextTaskHistory } from "./book-text-history-storage";
 import { readingRuntime } from "../../../domain/reading-runtime";
 import { emitAppEvent, onAppEvent } from "../../../platform/app-events";
@@ -11,6 +11,8 @@ import { chapterMapFor, type FoliateBook } from "../../reader/lib/foliate-engine
 import { provideStoredNavigation, withBookContent } from "./book-content-source";
 import { getBookRecord, getStoredBookFile } from "./library-db";
 import { parseStoredNavigation } from "./book-text-record";
+import { locateBookRange } from "./book-range";
+import { locateInRecord } from "./book-text-layout";
 import { BookTextRepository } from "./book-text-repository";
 import { getVirtualTextSource, forgetVirtualTextSource } from "./virtual-text-source";
 import { BookTextTaskOwner } from "./book-text-tasks";
@@ -147,6 +149,22 @@ export const getDigestChapterSource = (
   signal?: AbortSignal,
   origin?: DomainActor,
 ) => repository.chapter(bookId, index, version, signal, origin);
+/**
+ * Where a reader CFI (a viewport or a selection) lies in the book's extracted
+ * text. Null when the text is not ready or this content cannot place the CFI.
+ */
+export async function locateBookText(
+  bookId: string,
+  target: { cfi: string; textQuote?: ReadingTextQuote },
+  signal?: AbortSignal,
+  origin?: DomainActor,
+): Promise<BookTextLocation | null> {
+  const record = await repository.complete(bookId, origin);
+  signal?.throwIfAborted();
+  if (!record) return null;
+  const raw = await locateBookRange(bookId, record.contentVersion, target, signal);
+  return raw ? locateInRecord(record, raw.sectionIndex, raw.start, raw.end) : null;
+}
 export const getPersistedBookText = (bookId: string) => repository.persisted(bookId);
 export const getPersistedBookNavigation = (bookId: string) => repository.persistedNavigation(bookId);
 // Every preparation of a book restores the navigation stored with its text.

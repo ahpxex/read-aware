@@ -10,6 +10,9 @@ const CHECK_INTERVAL_MS = 5 * 60_000;
 const IDLE_TIMEOUT_MS = 30_000;
 /** 每个空闲节拍最多提炼的章节数——成本按节拍分摊，绝不挤占前台。 */
 const DIGEST_CHAPTERS_PER_TICK = 2;
+/** 每个空闲节拍最多起名的全局线程数（各一次 fast 调用）：存量线程分几拍补完，
+ *  之后只剩新线程——它们在首轮结束时就已起名，这里通常是空转。 */
+const TITLES_PER_TICK = 4;
 /** 阅读会话追平的并发度（fast 档 LLM 滑动窗口，网络绑定、不占主线程）。
  *  实测（卡拉马佐夫 30 章欠账，DeepSeek fast）：串行 78s → 并发 6 约 32s；
  *  再高仍有收益但要迁就 BYO key 里配额最紧的 provider。 */
@@ -50,7 +53,7 @@ function scheduleIdle(work: () => void): () => void {
   return () => window.clearTimeout(id);
 }
 
-/** Start low-priority memory maintenance for the lifetime of the desktop app. */
+/** Start low-priority agent maintenance (thread titles, memory) for the lifetime of the desktop app. */
 export function startAgentMaintenance(): () => void {
   let stopped = false;
   let cancelIdle: (() => void) | null = null;
@@ -58,6 +61,14 @@ export function startAgentMaintenance(): () => void {
   const hidden = () => document.visibilityState === "hidden";
   const run = async () => {
     cancelIdle = null;
+    if (stopped || hidden()) return;
+    try {
+      // Thread titles are presentation, not memory: they run whatever the
+      // memory setting says. Titled threads are never offered again.
+      await getAgentRuntime()?.titleThreads({ limit: TITLES_PER_TICK });
+    } catch (error) {
+      log.warn("thread titling pass failed", error);
+    }
     if (stopped || hidden() || !memoryPolicy.enabled()) return;
     try {
       await getAgentRuntime()?.consolidateIfNeeded();

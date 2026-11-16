@@ -318,6 +318,49 @@ export function useReaderTextActions({
     setActiveAnnotation(null);
   }, [activeAnnotation, setActiveAnnotation]);
 
+  // ── Against the note card's passage ────────────────────────────────────────
+
+  /**
+   * Mark the open note card's passage: restyle or recolor its mark, or create
+   * one. The color becomes the default for new marks, as a recolor does.
+   */
+  const setPassageMark = useCallback(
+    async (
+      target: ActionTarget,
+      existing: Highlight | null,
+      style: NonNullable<Highlight["style"]>,
+      color: Highlight["color"],
+    ) => {
+      if (!existing) {
+        if (!(await saveMark(target, color, style))) return;
+        try {
+          await setDefaultMarkColor(color);
+        } catch (preferenceError) {
+          // The mark is saved; only the remembered color failed, which the next mark will retry.
+          log.warn("failed to remember the mark color", preferenceError);
+        }
+        return;
+      }
+      try {
+        await setDefaultMarkColor(color);
+        await changeObservedAnnotation(existing, { op: "recolorHighlight", color, style });
+      } catch (recolorError) {
+        log.error("failed to restyle annotation", recolorError);
+        failToastRef.current("annotations.updateFailed", recolorError);
+      }
+    },
+    [saveMark],
+  );
+
+  const removePassageMark = useCallback(async (existing: Highlight) => {
+    try {
+      await changeObservedAnnotation(existing, { op: "remove" });
+    } catch (removeError) {
+      log.error("failed to remove annotation", removeError);
+      failToastRef.current("annotations.deleteFailed", removeError);
+    }
+  }, []);
+
   const handleAddNoteForAnnotation = useCallback(() => {
     const target = activeAnnotationTarget();
     if (!target) return;
@@ -425,5 +468,7 @@ export function useReaderTextActions({
     pluginInputForSource,
     // note editor
     noteEditor,
+    setPassageMark,
+    removePassageMark,
   };
 }

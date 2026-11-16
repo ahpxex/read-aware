@@ -103,7 +103,8 @@
     "underline": "加底線",
     "addNote": "新增筆記",
     "askAi": "詢問 AI 關於此內容",
-    "remove": "移除"
+    "remove": "移除",
+    "removeMark": "移除標註"
   },
   "holdMenu": {
     "hint": "長按內文可開啟目前句子或段落的操作選單；按住滑到某項後放開即可執行。"

@@ -103,7 +103,8 @@
     "underline": "Underline",
     "addNote": "Add a note",
     "askAi": "Ask AI about this",
-    "remove": "Remove"
+    "remove": "Remove",
+    "removeMark": "Remove mark"
   },
   "holdMenu": {
     "hint": "Press and hold the page to open actions for the current sentence or paragraph. Slide onto one and lift to run it."

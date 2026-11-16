@@ -103,7 +103,8 @@
     "underline": "Souligner",
     "addNote": "Ajouter une note",
     "askAi": "Interroger l’IA à ce sujet",
-    "remove": "Supprimer"
+    "remove": "Supprimer",
+    "removeMark": "Retirer la marque"
   },
   "holdMenu": {
     "hint": "Maintenez la page appuyée pour ouvrir les actions de la phrase ou du paragraphe en cours. Glissez sur une action et relâchez pour l’exécuter."

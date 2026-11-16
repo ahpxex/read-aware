@@ -103,7 +103,8 @@
     "underline": "下划线",
     "addNote": "添加笔记",
     "askAi": "就此询问 AI",
-    "remove": "移除"
+    "remove": "移除",
+    "removeMark": "移除标注"
   },
   "holdMenu": {
     "hint": "长按正文可打开当前句或段的操作菜单；按住滑到某项后松手即可执行。"

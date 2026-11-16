@@ -169,7 +169,8 @@ export function NoteCard({
           ))}
           <span className="ml-0.5">{t("note.doneHint")}</span>
         </span>
-        <Button size="sm" onClick={onDone} disabled={isSaving} aria-busy={isSaving}>
+        {/* Quiet: closing the card any way saves, so Done is one way among several, not a commit. */}
+        <Button variant="ghost" size="sm" onClick={onDone} disabled={isSaving} aria-busy={isSaving}>
           {t("note.done")}
         </Button>
       </div>

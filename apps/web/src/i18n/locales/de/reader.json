@@ -103,7 +103,8 @@
     "underline": "Unterstreichen",
     "addNote": "Notiz hinzufügen",
     "askAi": "KI dazu fragen",
-    "remove": "Entfernen"
+    "remove": "Entfernen",
+    "removeMark": "Markierung entfernen"
   },
   "holdMenu": {
     "hint": "Halte die Seite gedrückt, um die Aktionen für den aktuellen Satz oder Absatz zu öffnen. Ziehe auf eine Aktion und lass los, um sie auszuführen."

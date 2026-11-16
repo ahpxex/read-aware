@@ -1,9 +1,10 @@
 import { useEffect } from "react";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
-import { NoteCard, type NoteCardProps } from "../../annotations";
+import { NoteCard, type Highlight, type NoteCardProps } from "../../annotations";
 import { useAnchoredMenuPosition } from "../hooks/useAnchoredMenuPosition";
 import type { SelectionOverlayRect } from "../lib/selection-overlay";
+import { ReaderPassageMarks } from "./ReaderPassageMarks";
 import { ReaderSheet } from "./ReaderSheet";
 
 type ReaderNoteCardProps = Omit<NoteCardProps, "passage" | "className"> & {
@@ -13,6 +14,13 @@ type ReaderNoteCardProps = Omit<NoteCardProps, "passage" | "className"> & {
   passage: string;
   /** Phone layout: the card rises as a sheet, which covers the page, so it quotes the passage. */
   phone: boolean;
+  /** The passage's mark controls; null where the passage cannot be marked (no anchor). */
+  marks: {
+    mark: Highlight | null;
+    defaultColor: Highlight["color"];
+    onMark: (style: NonNullable<Highlight["style"]>, color: Highlight["color"]) => void;
+    onRemove: () => void;
+  } | null;
 };
 
 /**
@@ -22,10 +30,12 @@ type ReaderNoteCardProps = Omit<NoteCardProps, "passage" | "className"> & {
  * saves and closes it (a tap on the page is handled by the reader, which owns
  * the book's frames). On a phone it is a sheet from the bottom edge.
  */
-export function ReaderNoteCard({ open, anchorRect, passage, phone, ...card }: ReaderNoteCardProps) {
+export function ReaderNoteCard({ open, anchorRect, passage, phone, marks, ...card }: ReaderNoteCardProps) {
   const { t } = useTranslation("ai");
   const { containerRef, menuRef, position } = useAnchoredMenuPosition(anchorRect, { prefer: "below" });
   const { onDone } = card;
+  // The passage's mark sits above its notes: one card for everything on these words.
+  const markRow = marks && <ReaderPassageMarks {...marks} className="mb-2 border-b border-border pb-2" />;
 
   // Pressing outside the card — the reader's own chrome, say — closes it, saving.
   useEffect(() => {
@@ -48,6 +58,7 @@ export function ReaderNoteCard({ open, anchorRect, passage, phone, ...card }: Re
           title: t("note.cardLabel"),
           body: (
             <div className="overflow-y-auto px-4 pt-1 pb-4">
+              {markRow}
               <NoteCard {...card} passage={passage} />
             </div>
           ),
@@ -68,6 +79,7 @@ export function ReaderNoteCard({ open, anchorRect, passage, phone, ...card }: Re
         )}
         style={anchorRect ? position : undefined}
       >
+        {markRow}
         <NoteCard {...card} />
       </div>
     </div>

@@ -12,3 +12,6 @@ export { AnnotationRow } from "./components/AnnotationRow";
 
 // The reader shows a passage's notes in this card.
 export { NoteCard, type NoteCardProps } from "./components/NoteCard";
+
+// A passage's mark, set from its note card, starts in the reader's remembered color.
+export { getDefaultMarkColor } from "./lib/annotation-prefs";

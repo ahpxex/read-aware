@@ -86,6 +86,7 @@ import { useReaderTypography } from "../hooks/useReaderTypography";
 import { useFixedLayoutZoom } from "../hooks/useFixedLayoutZoom";
 import { useReaderResponsiveLayout } from "../hooks/useReaderResponsiveLayout";
 import { ReaderNoteCard } from "./ReaderNoteCard";
+import { getDefaultMarkColor } from "../../annotations";
 import { useReaderEngineLoadSource } from "../hooks/useReaderEngineLoadSource";
 import { useReaderPagination } from "../hooks/useReaderPagination";
 import { useReaderTextActions } from "../hooks/useReaderTextActions";
@@ -405,8 +406,9 @@ export function FoliateReaderView({
   const pendingShellToggleTimerRef = useRef<number | null>(null);
   const highlightsRef = useRef<Highlight[]>([]);
   const notesRef = useRef<Note[]>([]);
-  // The same notes as state, for the note card's list of a passage's notes.
+  // The same notes and marks as state, for the note card (a passage's notes and its mark).
   const [notes, setNotes] = useState<Note[]>([]);
+  const [marks, setMarks] = useState<Highlight[]>([]);
   // The open session's stored marks; the reader's own saves are drawn through it.
   const annotationMarksRef = useRef<ReaderAnnotationMarks | null>(null);
   // New one-click marks use this colour; recoloring a mark updates it (persisted).
@@ -1144,6 +1146,8 @@ export function FoliateReaderView({
     openExistingNote,
     pluginInputForSource,
     noteEditor,
+    setPassageMark,
+    removePassageMark,
   } = useReaderTextActions({
     selectedBook,
     selection,
@@ -1176,6 +1180,11 @@ export function FoliateReaderView({
     return notes.filter((note) => note.cfiRange === cfi).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }, [notes, noteEditor.target?.cfiRange]);
   const noteDoneShortcut = useMemo(() => chordToTokens({ key: "Enter", mod: true }), []);
+  // The passage's mark, as the page draws it: the first mark on its range.
+  const passageMark = useMemo(() => {
+    const cfi = noteEditor.target?.cfiRange;
+    return cfi ? (marks.find((mark) => mark.cfiRange === cfi) ?? null) : null;
+  }, [marks, noteEditor.target?.cfiRange]);
   // Selecting another passage closes the card (saving), as it does the mark menu.
   const noteCardCfi = noteEditor.target?.cfiRange ?? null;
   useEffect(() => {
@@ -2249,14 +2258,17 @@ export function FoliateReaderView({
             .filter((rect): rect is SelectionOverlayRect => rect != null)
         : [];
     const anchorRect = rects[rects.length - 1] ?? null;
+    // A noted passage opens its note card — notes and mark together — even
+    // where a highlight or underline also marks it. A mark alone opens its menu.
+    const note = notesRef.current.find((item) => item.cfiRange === detail.value);
+    if (note) {
+      openExistingNote(note, anchorRect);
+      clearSelection();
+      setActiveAnnotation(null);
+      return;
+    }
     const highlight = highlightsRef.current.find((item) => item.cfiRange === detail.value);
     if (!highlight) {
-      // A note marker opens its passage's note card, beside the passage.
-      const note = notesRef.current.find((item) => item.cfiRange === detail.value);
-      if (note) {
-        openExistingNote(note, anchorRect);
-        clearSelection();
-      }
       setActiveAnnotation(null);
       return;
     }
@@ -2310,6 +2322,7 @@ export function FoliateReaderView({
       highlightsRef.current = [];
       notesRef.current = [];
       setNotes([]);
+      setMarks([]);
     });
 
     clearSelection(openingActor);
@@ -2660,6 +2673,7 @@ export function FoliateReaderView({
                   return next && JSON.stringify(next) === JSON.stringify(current.highlight) ? current : null;
                 });
                 setNotes(observedNotes);
+                setMarks(items);
               },
             );
             annotationMarksRef.current = marks;
@@ -3139,6 +3153,20 @@ export function FoliateReaderView({
           onDone={closeNoteCard}
           isSaving={noteEditor.isSaving}
           doneShortcut={noteDoneShortcut}
+          marks={
+            noteEditor.target?.cfiRange
+              ? {
+                  mark: passageMark,
+                  defaultColor: getDefaultMarkColor(),
+                  onMark: (style, color) => {
+                    if (noteEditor.target) void setPassageMark(noteEditor.target, passageMark, style, color);
+                  },
+                  onRemove: () => {
+                    if (passageMark) void removePassageMark(passageMark);
+                  },
+                }
+              : null
+          }
         />
       </div>
 

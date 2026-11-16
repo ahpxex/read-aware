@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import type { Highlight, Note } from "../../annotations/lib/annotation-types";
 import type { FoliateAnnotation, FoliateView } from "./foliate-engine";
-import { applyHighlights, applyNotes, reconcileAnnotationMarks } from "./highlight-renderer";
+import { applyAnnotationMarks, reconcileAnnotationMarks } from "./highlight-renderer";
 
 const base = { bookId: "book", chapterHref: "chapter", text: "text", createdAt: "now", updatedAt: "now" };
 const highlight = (id: string, cfiRange: string | null): Highlight => ({
@@ -81,15 +81,15 @@ test("overlay recreation uses the same shared-range ownership as live reconcilia
   const f = fixture(),
     view = f.view as FoliateView;
   const highlights = [highlight("first", "shared"), highlight("second", "shared")];
-  applyHighlights(view, highlights);
-  applyNotes(
-    view,
-    [note("shared-note", "shared"), note("first-note", "note"), note("second-note", "note")],
-    highlights,
-  );
+  applyAnnotationMarks(view, highlights, [
+    note("shared-note", "shared"),
+    note("first-note", "note"),
+    note("second-note", "note"),
+  ]);
   expect(f.added.map((item) => [item.id, item.style])).toEqual([
     ["first", "highlight"],
-    // Every noted range gets one line, highlighted or not; two notes on a range share it.
+    // A highlight's fill has no line to dash, so its notes get their own line;
+    // two notes on a range share one.
     ["shared-note", "note"],
     ["first-note", "note"],
   ]);

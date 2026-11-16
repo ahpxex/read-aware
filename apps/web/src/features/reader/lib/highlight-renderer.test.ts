@@ -116,18 +116,23 @@ describe("note marks beside highlights", () => {
     expect((await reconcile([], [note("n", "A")])).added).toEqual([`note:${noteOverlayKey("A")}`]);
   });
 
-  test("on an underlined passage the note's line is drawn too, not dropped", async () => {
+  test("on an underlined passage the underline itself turns dashed — one line, not two", async () => {
     const { added } = await reconcile([], [highlight("h", "A"), note("n", "A")]);
-    expect(added).toEqual(["underline:A", `note:${noteOverlayKey("A")}`]);
+    expect(added).toEqual(["noted-underline:A"]);
   });
 
-  test("removing the note takes only its line; removing the mark leaves the note's line", async () => {
+  test("a highlight's fill keeps its notes' own dashed line", async () => {
+    const { added } = await reconcile([], [{ ...highlight("h", "A"), style: "highlight" }, note("n", "A")]);
+    expect(added).toEqual(["highlight:A", `note:${noteOverlayKey("A")}`]);
+  });
+
+  test("removing the last note turns the underline solid again; removing the underline brings back the note's line", async () => {
     expect(await reconcile([highlight("h", "A"), note("n", "A")], [highlight("h", "A")])).toEqual({
-      added: [],
-      removed: [noteOverlayKey("A")],
+      added: ["underline:A"],
+      removed: [],
     });
     expect(await reconcile([highlight("h", "A"), note("n", "A")], [note("n", "A")])).toEqual({
-      added: [],
+      added: [`note:${noteOverlayKey("A")}`],
       removed: ["A"],
     });
   });

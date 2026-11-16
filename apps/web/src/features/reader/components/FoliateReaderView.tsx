@@ -51,7 +51,7 @@ import {
   type FoliateShowAnnotationDetail,
   type FoliateView,
 } from "../lib/foliate-engine";
-import { applyHighlights, applyNotes, registerHighlightDrawing } from "../lib/highlight-renderer";
+import { applyAnnotationMarks, registerHighlightDrawing } from "../lib/highlight-renderer";
 import { useReadAloud } from "../hooks/useReadAloud";
 import { createReaderPanelIntent, readerPanelIntentAtom, type ReaderPanelKind } from "../state/panel-intent";
 import { useTextUnitNavigator } from "../hooks/useTextUnitNavigator";
@@ -2608,8 +2608,7 @@ export function FoliateReaderView({
 
         const onCreateOverlay = () => {
           if (!view || session.closed) return;
-          applyHighlights(view, highlightsRef.current);
-          applyNotes(view, notesRef.current, highlightsRef.current);
+          applyAnnotationMarks(view, highlightsRef.current, notesRef.current);
           // oxlint-disable-next-line react-hooks/rules-of-hooks -- openEngine runs inside useReaderEngineSession's effect event
           currentTextUnitNavigator().handleOverlayReady();
         };
@@ -2696,8 +2695,7 @@ export function FoliateReaderView({
           context: openingContext,
         });
         if (view) {
-          applyHighlights(view, highlightsRef.current);
-          applyNotes(view, notesRef.current, highlightsRef.current);
+          applyAnnotationMarks(view, highlightsRef.current, notesRef.current);
         }
         // A zoomed fixed-layout page reopens on the passage it was read at,
         // not at its corner; the place is followed from here on.

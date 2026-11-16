@@ -55,13 +55,16 @@ export const UNDERLINE_STROKE: Record<Highlight["color"], string> = {
  * under the text reads as a quiet hand-drawn underline rather than a solid bar.
  * Runs in the app's document context (where the overlay SVG lives).
  */
-function drawUnderline(rects: Iterable<DOMRect>, options: { color?: string } = {}): SVGGElement {
-  const { color = UNDERLINE_STROKE.yellow } = options;
+function drawUnderline(rects: Iterable<DOMRect>, options: { color?: string; dashed?: boolean } = {}): SVGGElement {
+  const { color = UNDERLINE_STROKE.yellow, dashed = false } = options;
   const group = document.createElementNS(SVG_NS, "g");
   group.setAttribute("fill", "none");
   group.setAttribute("stroke", color);
   group.setAttribute("stroke-width", "2.5");
   group.setAttribute("stroke-linecap", "round");
+  // An underline with notes on its words is the same rule, dashed: one line
+  // that says both "marked" and "noted".
+  if (dashed) group.setAttribute("stroke-dasharray", "4 4.5");
   group.style.opacity = "0.9";
   for (const rect of rects) {
     if (rect.width < 1) continue;
@@ -218,21 +221,17 @@ function toFoliateAnnotation(highlight: Highlight): FoliateAnnotation | null {
   };
 }
 
-/** Draw one stored mark (no-op if its CFI is not in a loaded section). */
-export function applyHighlight(view: FoliateView, highlight: Highlight): void {
-  const annotation = toFoliateAnnotation(highlight);
-  if (!annotation) return;
-  void view.addAnnotation(annotation).catch(() => {
-    // CFI may not resolve in the current layout — foliate ignores it.
-  });
-}
-
-export function applyHighlights(view: FoliateView, highlights: Highlight[]): void {
-  const painted = new Set<string>();
-  for (const highlight of highlights) {
-    if (!highlight.cfiRange || painted.has(highlight.cfiRange)) continue;
-    painted.add(highlight.cfiRange);
-    applyHighlight(view, highlight);
+/**
+ * Draw a section's stored marks after its overlay is (re)created, by the same
+ * rules live reconciliation uses (`marksFor`): the first mark on a range, its
+ * underline dashed when the range has notes, a note line where no underline
+ * shows them. No-op for ranges outside loaded sections.
+ */
+export function applyAnnotationMarks(view: FoliateView, highlights: Highlight[], notes: Note[]): void {
+  for (const mark of marksFor([...highlights, ...notes]).values()) {
+    void view.addAnnotation(mark).catch(() => {
+      // CFI may not resolve in the current layout — foliate ignores it.
+    });
   }
 }
 
@@ -254,28 +253,28 @@ function noteMark(note: Note): FoliateAnnotation | null {
   };
 }
 
-/** Draw every noted passage's dashed line (on its own layer, beside any mark). */
-export function applyNotes(view: FoliateView, notes: Note[], highlights: Highlight[]): void {
-  for (const mark of marksFor([...highlights, ...notes]).values()) {
-    if (mark.style !== "note") continue;
-    void view.addAnnotation(mark).catch(() => {
-      // CFI may not resolve in the current layout — foliate ignores it.
-    });
-  }
-}
-
 /** The marks each anchored range shows for a set of stored annotations, keyed
- *  by overlay: a highlight or underline owns its range's mark, and every noted
- *  range adds its dashed line on a layer of its own. */
+ *  by overlay: a highlight or underline owns its range's mark. A noted range
+ *  shows its notes in that mark when it is an underline — the underline turns
+ *  dashed — and otherwise with a dashed line of its own, on its own layer (a
+ *  highlight's fill has no line to dash). */
 function marksFor(items: ReadonlyArray<Highlight | Note>): Map<string, FoliateAnnotation> {
+  const noted = new Set(
+    items.filter((item) => item.type === "note" && item.cfiRange).map((item) => item.cfiRange as string),
+  );
   const marks = new Map<string, FoliateAnnotation>();
   for (const item of items) {
     if (item.type !== "highlight") continue;
     const mark = toFoliateAnnotation(item);
-    if (mark && !marks.has(mark.value)) marks.set(mark.value, mark);
+    if (!mark || marks.has(mark.value)) continue;
+    marks.set(
+      mark.value,
+      mark.style === "underline" && noted.has(mark.value) ? { ...mark, style: "noted-underline" } : mark,
+    );
   }
   for (const item of items) {
-    if (item.type !== "note") continue;
+    if (item.type !== "note" || !item.cfiRange) continue;
+    if (marks.get(item.cfiRange)?.style === "noted-underline") continue;
     const mark = noteMark(item);
     if (mark && !marks.has(mark.overlayKey!)) marks.set(mark.overlayKey!, mark);
   }
@@ -366,11 +365,14 @@ export async function registerHighlightDrawing(view: FoliateView): Promise<void>
     const drawFn =
       style === "underline"
         ? drawUnderline
-        : style === "note"
-          ? drawNote
-          : style === "navigator"
-            ? drawNavigatorTarget
-            : highlight;
+        : style === "noted-underline"
+          ? (rects: Iterable<DOMRect>, options: { color?: string }) =>
+              drawUnderline(rects, { ...options, dashed: true })
+          : style === "note"
+            ? drawNote
+            : style === "navigator"
+              ? drawNavigatorTarget
+              : highlight;
     const container = detail.range.commonAncestorContainer;
     const element = container.nodeType === Node.ELEMENT_NODE ? (container as Element) : container.parentElement;
     const writingMode = element ? detail.doc.defaultView?.getComputedStyle(element).writingMode : undefined;

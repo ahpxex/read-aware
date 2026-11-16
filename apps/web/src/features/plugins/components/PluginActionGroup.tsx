@@ -53,7 +53,7 @@ export function PluginActionGroup({
           triggerLabel={t("viewer.more")}
           trigger={
             // The "More" control sits in the same row as the labeled outline
-            // buttons, so it borrows the Button look verbatim (square corners
+            // buttons, so it borrows the Button look verbatim (corners
             // included) instead of a hand-rolled bordered square.
             <span
               className={buttonClassName({

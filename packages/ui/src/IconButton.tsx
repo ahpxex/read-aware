@@ -6,10 +6,10 @@ const sizeClasses = {
   md: "h-9 w-9",
   // An equal-width slot of a phone toolbar: the whole slot is the target,
   // at least 44px tall (the platform's minimum touch target).
-  toolbar: "h-11 w-full min-w-0 rounded-md",
+  toolbar: "h-11 w-full min-w-0",
   // A frameless window's caption slot: the header's full height at the
   // 44px width Windows uses, with the hover fill of native caption buttons.
-  caption: "h-full w-11 hover:bg-fg/8 focus-visible:ring-inset",
+  caption: "h-full w-11 rounded-none hover:bg-fg/8 focus-visible:ring-inset",
 } as const;
 
 const toneClasses = {
@@ -31,7 +31,7 @@ export function iconButtonClassName({
   tone?: keyof typeof toneClasses;
 } = {}): string {
   return cn(
-    "inline-flex items-center justify-center bg-transparent transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg disabled:pointer-events-none disabled:opacity-40",
+    "inline-flex items-center justify-center rounded-md bg-transparent transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg disabled:pointer-events-none disabled:opacity-40",
     sizeClasses[size],
     toneClasses[tone],
   );

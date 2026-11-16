@@ -251,6 +251,28 @@
       "footerOpen": "↵ Öffnen"
     },
     "welcome": {
+      "greetings": {
+        "explore": {
+          "title": "Entdecke deine Bibliothek",
+          "description": "Stelle Fragen zu deinen Büchern, verbinde Gedanken aus verschiedenen Werken oder greife frühere Gespräche wieder auf."
+        },
+        "mind": {
+          "title": "Was geht dir durch den Kopf?",
+          "description": "Beginne mit einem Buch, einer Stelle oder einer Frage, die dich schon länger begleitet."
+        },
+        "across": {
+          "title": "Quer durch dein Regal",
+          "description": "Frag nach allem, was du gelesen hast – nicht nur nach dem Buch vor dir."
+        },
+        "thread": {
+          "title": "Einen Faden aufnehmen",
+          "description": "Folge einem Gedanken von einem Buch ins nächste oder frag, was deine Markierungen ergeben."
+        },
+        "think": {
+          "title": "Gründlich nachdenken",
+          "description": "Sprich über das, was du liest – deine Bücher, Notizen und dein Fortschritt sind zur Hand."
+        }
+      },
       "suggestions": {
         "readingMonth": "Wie viel habe ich diesen Monat gelesen, und welches Buch hat am meisten Zeit gekostet?",
         "unfinished": "Welche Bücher habe ich angefangen, aber nicht zu Ende gelesen?",

@@ -13,7 +13,9 @@ const meta = {
   component: AgentWelcome,
   parameters: { layout: "centered" },
   args: {
+    greeting: "explore",
     suggestions: ["readingMonth", "disagree", "organize", "reviews"],
+    promptLocale: "en",
     onSuggest: fn(),
     searchKeys: ["⌘", "K"],
     newConversationKeys: ["⌘", "N"],
@@ -31,6 +33,11 @@ export const ChoosingAWayIn: Story = {
     await userEvent.click(within(canvasElement).getByRole("button", { name: /collections by genre/ }));
     await expect(args.onSuggest).toHaveBeenCalledWith("Sort the books on my shelf into collections by genre.");
   },
+};
+
+/** A reader who asks in Chinese is offered the ways in in Chinese, under an English interface. */
+export const PromptsInTheReadersLanguage: Story = {
+  args: { greeting: "mind", promptLocale: "zh-Hans" },
 };
 
 /** On a phone the ways in stack. */

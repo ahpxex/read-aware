@@ -1,5 +1,10 @@
 import { expect, test } from "bun:test";
-import { pickWelcomeSuggestions, WELCOME_SUGGESTIONS } from "./welcome-suggestions";
+import {
+  pickWelcomeGreeting,
+  pickWelcomeSuggestions,
+  WELCOME_GREETINGS,
+  WELCOME_SUGGESTIONS,
+} from "./welcome-suggestions";
 
 const themeOf = (key: string) =>
   Object.entries(WELCOME_SUGGESTIONS).find(([, keys]) => (keys as readonly string[]).includes(key))?.[0];
@@ -31,4 +36,12 @@ test("the edges of the random source stay in range", () => {
   expect(pickWelcomeSuggestions(4, () => 0)).toHaveLength(4);
   expect(pickWelcomeSuggestions(4, () => 0.999_999)).toHaveLength(4);
   expect(pickWelcomeSuggestions(9, () => 0.5)).toHaveLength(Object.keys(WELCOME_SUGGESTIONS).length);
+});
+
+test("every greeting can be drawn, and the edges of the source stay in range", () => {
+  const seen = new Set<string>();
+  for (let seed = 1; seed <= 200; seed++) seen.add(pickWelcomeGreeting(seeded(seed)));
+  expect([...seen].sort()).toEqual([...WELCOME_GREETINGS].sort());
+  expect(WELCOME_GREETINGS).toContain(pickWelcomeGreeting(() => 0));
+  expect(WELCOME_GREETINGS).toContain(pickWelcomeGreeting(() => 0.999_999));
 });

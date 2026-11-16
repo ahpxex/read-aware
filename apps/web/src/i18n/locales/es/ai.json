@@ -251,6 +251,28 @@
       "footerOpen": "↵ Abrir"
     },
     "welcome": {
+      "greetings": {
+        "explore": {
+          "title": "Explora tu biblioteca",
+          "description": "Pregunta sobre tus libros, relaciona sus ideas o retoma conversaciones anteriores."
+        },
+        "mind": {
+          "title": "¿Qué tienes en mente?",
+          "description": "Empieza por un libro, un pasaje o una pregunta que llevas tiempo dándole vueltas."
+        },
+        "across": {
+          "title": "A lo largo de tu estantería",
+          "description": "Pregunta por todo lo que has leído, no solo por el libro que tienes delante."
+        },
+        "thread": {
+          "title": "Seguir un hilo",
+          "description": "Sigue una idea de un libro al siguiente, o pregunta qué dicen tus subrayados en conjunto."
+        },
+        "think": {
+          "title": "Piénsalo con calma",
+          "description": "Habla de lo que estás leyendo: tus libros, notas y progreso están a mano."
+        }
+      },
       "suggestions": {
         "readingMonth": "¿Cuánto he leído este mes y qué libro me ha llevado más tiempo?",
         "unfinished": "¿Qué libros empecé y no he terminado?",

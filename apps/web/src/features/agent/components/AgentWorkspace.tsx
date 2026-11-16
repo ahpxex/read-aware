@@ -6,7 +6,7 @@
  * 跨书的高亮与笔记是独立的一级页面（AnnotationsWorkspace，主导航里的「笔记」）；
  * 记忆不设 GUI，想知道 agent 记住了什么，直接问它。
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useAtomValue } from "jotai";
 import { ChatComposer, type ChatComposerHandle } from "../../ai/components/ChatComposer";
 import { ChatTranscript } from "../../ai/components/ChatTranscript";
@@ -16,7 +16,7 @@ import { ChatTurnRequest } from "../../ai/components/ChatTurnRequest";
 import { useConversationTurnRequests } from "../../ai/hooks/useConversationTurnRequests";
 import { chordToTokens, resolveBinding } from "../../settings";
 import { shortcutBindingsAtom } from "../../../state/ui";
-import { pickWelcomeSuggestions } from "../lib/welcome-suggestions";
+import { useAgentWelcome } from "../hooks/useAgentWelcome";
 import { AgentWelcome } from "./AgentWelcome";
 import { ThreadsPalette } from "./ThreadsPalette";
 
@@ -26,9 +26,7 @@ export function AgentWorkspace() {
   const composerRef = useRef<ChatComposerHandle | null>(null);
   const turnRequests = useConversationTurnRequests({ kind: "global", id: activeThreadId }, conversation, composerRef);
   const bindings = useAtomValue(shortcutBindingsAtom);
-  // A fresh mix of ways in for each conversation, held while it stays open.
-  const [welcome, setWelcome] = useState(() => ({ threadId: activeThreadId, picks: pickWelcomeSuggestions(4) }));
-  if (welcome.threadId !== activeThreadId) setWelcome({ threadId: activeThreadId, picks: pickWelcomeSuggestions(4) });
+  const welcome = useAgentWelcome(activeThreadId);
 
   // The page IS the chat — focus the composer on entry and on thread switch
   // (a frame later, after the surface has rendered so focus lands cleanly).
@@ -54,7 +52,9 @@ export function AgentWorkspace() {
         onRetry={conversation.retry}
         emptyState={
           <AgentWelcome
-            suggestions={welcome.picks}
+            greeting={welcome.greeting}
+            suggestions={welcome.suggestions}
+            promptLocale={welcome.promptLocale}
             onSuggest={(prompt) => composerRef.current?.adoptDraft(prompt)}
             searchKeys={chordToTokens(resolveBinding("search", bindings))}
             newConversationKeys={chordToTokens(resolveBinding("new-conversation", bindings))}

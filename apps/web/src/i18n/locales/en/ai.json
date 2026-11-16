@@ -288,6 +288,28 @@
       "footerOpen": "↵ Open"
     },
     "welcome": {
+      "greetings": {
+        "explore": {
+          "title": "Explore your library",
+          "description": "Ask about your books, connect ideas across them, or revisit earlier conversations."
+        },
+        "mind": {
+          "title": "What’s on your mind?",
+          "description": "Start from a book, a passage, or a question you’ve been carrying around."
+        },
+        "across": {
+          "title": "Read across your shelf",
+          "description": "Ask about everything you’ve read, not just the book in front of you."
+        },
+        "thread": {
+          "title": "Pick up a thread",
+          "description": "Follow an idea from one book into the next, or ask what your highlights add up to."
+        },
+        "think": {
+          "title": "Think it through",
+          "description": "Talk over what you’re reading — your books, notes and progress are all at hand."
+        }
+      },
       "suggestions": {
         "readingMonth": "How much have I read this month, and which book took the most time?",
         "unfinished": "Which books have I started but not finished?",

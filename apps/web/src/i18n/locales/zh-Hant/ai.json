@@ -286,6 +286,28 @@
       "footerOpen": "↵ 開啟"
     },
     "welcome": {
+      "greetings": {
+        "explore": {
+          "title": "探索你的書架",
+          "description": "聊聊你的書，連結不同書中的觀點，或回顧先前的對話。"
+        },
+        "mind": {
+          "title": "在想些什麼？",
+          "description": "從一本書、一段文字，或一直縈繞心頭的問題開始。"
+        },
+        "across": {
+          "title": "跨越整個書架",
+          "description": "讀過的一切都可以問，不只是手邊這一本。"
+        },
+        "thread": {
+          "title": "順著一條線索",
+          "description": "把一個想法從這本書追到下一本，或問問你的螢光標示匯成了什麼。"
+        },
+        "think": {
+          "title": "慢慢想清楚",
+          "description": "聊聊正在讀的書——你的書、筆記和閱讀進度都在手邊。"
+        }
+      },
       "suggestions": {
         "readingMonth": "我這個月讀了多久？哪本書花的時間最多？",
         "unfinished": "哪些書我開了頭卻還沒讀完？",

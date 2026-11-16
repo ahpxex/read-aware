@@ -28,3 +28,12 @@ export function pickWelcomeSuggestions(count: number, random: () => number = Mat
   }
   return order.slice(0, count).map((prompts) => prompts[Math.floor(random() * prompts.length)]!);
 }
+
+/** Heading and line pairs for the empty Agent page (`ai:agent.welcome.greetings.<key>.{title,description}`). */
+export const WELCOME_GREETINGS = ["explore", "mind", "across", "thread", "think"] as const;
+
+export type WelcomeGreetingKey = (typeof WELCOME_GREETINGS)[number];
+
+export function pickWelcomeGreeting(random: () => number = Math.random): WelcomeGreetingKey {
+  return WELCOME_GREETINGS[Math.floor(random() * WELCOME_GREETINGS.length)]!;
+}

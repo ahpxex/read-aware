@@ -1,22 +1,18 @@
 /**
  * What an empty Agent conversation shows: the ReadAware mark, a line on what
- * the page is for, a few ways in, and the keys for the page's own controls.
- * A way in fills the composer (never sends), so it can be edited first.
+ * the page is for, a few ways in (a different mix each conversation, see
+ * `pickWelcomeSuggestions`), and the keys for the page's own controls. A way
+ * in fills the composer (never sends), so it can be edited first.
  */
 import type { ReactNode } from "react";
-import { Brain, ChartLineUp, FolderSimplePlus, Graph } from "@phosphor-icons/react";
 import { EmptyState, Kbd } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import readAwareMark from "../../../assets/readaware-mark.png";
-
-const SUGGESTIONS = [
-  { key: "reading", Icon: ChartLineUp },
-  { key: "connect", Icon: Graph },
-  { key: "organize", Icon: FolderSimplePlus },
-  { key: "memory", Icon: Brain },
-] as const;
+import type { WelcomeSuggestionKey } from "../lib/welcome-suggestions";
 
 export type AgentWelcomeProps = {
+  /** The ways in to offer. */
+  suggestions: WelcomeSuggestionKey[];
   /** Put a prompt in the composer. */
   onSuggest: (prompt: string) => void;
   /** The live keys of the search (here: the thread palette) and new-conversation shortcuts. */
@@ -24,7 +20,7 @@ export type AgentWelcomeProps = {
   newConversationKeys: string[];
 };
 
-export function AgentWelcome({ onSuggest, searchKeys, newConversationKeys }: AgentWelcomeProps) {
+export function AgentWelcome({ suggestions, onSuggest, searchKeys, newConversationKeys }: AgentWelcomeProps) {
   const { t } = useTranslation("ai");
   return (
     <EmptyState
@@ -35,7 +31,7 @@ export function AgentWelcome({ onSuggest, searchKeys, newConversationKeys }: Age
       action={
         <div className="flex w-full flex-col items-center gap-5">
           <ul className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
-            {SUGGESTIONS.map(({ key, Icon }) => {
+            {suggestions.map((key) => {
               const prompt = t(`agent.welcome.suggestions.${key}`);
               return (
                 <li key={key}>
@@ -43,10 +39,9 @@ export function AgentWelcome({ onSuggest, searchKeys, newConversationKeys }: Age
                   <button
                     type="button"
                     onClick={() => onSuggest(prompt)}
-                    className="flex h-full w-full items-start gap-2.5 rounded-md border border-border px-3 py-2.5 text-left font-sans text-sm text-fg-muted transition-colors hover:bg-fg/5 hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+                    className="h-full w-full rounded-md border border-border px-3 py-2.5 text-left font-sans text-sm text-fg-muted transition-colors hover:bg-fg/5 hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
                   >
-                    <Icon size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-subtle" />
-                    <span>{prompt}</span>
+                    {prompt}
                   </button>
                 </li>
               );

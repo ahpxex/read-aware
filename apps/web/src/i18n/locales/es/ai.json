@@ -252,10 +252,20 @@
     },
     "welcome": {
       "suggestions": {
-        "reading": "¿Cuánto he leído este mes y qué libro me ha llevado más tiempo?",
+        "readingMonth": "¿Cuánto he leído este mes y qué libro me ha llevado más tiempo?",
+        "unfinished": "¿Qué libros empecé y no he terminado?",
+        "slowest": "¿Con qué libro avanzo más despacio y dónde me he atascado?",
         "connect": "Encuentra ideas que conecten dos libros de mi estantería.",
+        "disagree": "¿Qué dos libros de mi estantería discutirían más, y sobre qué?",
+        "highlightThemes": "¿Qué temas se repiten en mis subrayados?",
+        "notesReview": "Repasa mis notas recientes y resume en qué estaba pensando.",
         "organize": "Organiza los libros de mi estantería en colecciones por género.",
-        "memory": "¿Qué recuerdas sobre cómo leo?"
+        "nextRead": "Según lo que he leído, ¿qué libro de mi estantería debería leer después?",
+        "shelfTour": "Hazme un recorrido rápido por mi estantería: ¿qué tipo de libros hay?",
+        "memory": "¿Qué recuerdas sobre cómo leo?",
+        "curiosity": "¿Qué temas me han interesado más últimamente?",
+        "reviews": "Busca reseñas del libro que estoy leyendo y cuéntame qué opinó la crítica.",
+        "author": "Busca información sobre quien escribió el libro que estoy leyendo y háblame de sus otras obras."
       }
     },
     "annotations": {

@@ -252,10 +252,20 @@
     },
     "welcome": {
       "suggestions": {
-        "reading": "Combien ai-je lu ce mois-ci, et quel livre m’a pris le plus de temps ?",
+        "readingMonth": "Combien ai-je lu ce mois-ci, et quel livre m’a pris le plus de temps ?",
+        "unfinished": "Quels livres ai-je commencés sans les terminer ?",
+        "slowest": "Sur quel livre est-ce que j’avance le plus lentement, et où est-ce que je bloque ?",
         "connect": "Trouve des idées qui relient deux livres de mon étagère.",
+        "disagree": "Quels deux livres de mon étagère se disputeraient le plus, et à quel sujet ?",
+        "highlightThemes": "Quels thèmes reviennent dans mes surlignages ?",
+        "notesReview": "Parcours mes notes récentes et résume ce à quoi je réfléchissais.",
         "organize": "Range les livres de mon étagère en collections par genre.",
-        "memory": "Que retiens-tu de ma façon de lire ?"
+        "nextRead": "D’après ce que j’ai lu, quel livre de mon étagère lire ensuite ?",
+        "shelfTour": "Fais-moi visiter mon étagère : quels genres de livres s’y trouvent ?",
+        "memory": "Que retiens-tu de ma façon de lire ?",
+        "curiosity": "Quels sujets m’intéressent le plus ces temps-ci ?",
+        "reviews": "Trouve des critiques du livre que je lis en ce moment et dis-moi ce qu’en pense la presse.",
+        "author": "Renseigne-toi sur la personne qui a écrit le livre que je lis et parle-moi de ses autres œuvres."
       }
     },
     "annotations": {

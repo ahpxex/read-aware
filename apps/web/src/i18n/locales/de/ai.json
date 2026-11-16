@@ -252,10 +252,20 @@
     },
     "welcome": {
       "suggestions": {
-        "reading": "Wie viel habe ich diesen Monat gelesen, und welches Buch hat am meisten Zeit gekostet?",
+        "readingMonth": "Wie viel habe ich diesen Monat gelesen, und welches Buch hat am meisten Zeit gekostet?",
+        "unfinished": "Welche Bücher habe ich angefangen, aber nicht zu Ende gelesen?",
+        "slowest": "Bei welchem Buch komme ich am langsamsten voran, und wo hänge ich fest?",
         "connect": "Finde Gedanken, die zwei Bücher aus meinem Regal verbinden.",
+        "disagree": "Welche zwei Bücher in meinem Regal würden am heftigsten streiten, und worüber?",
+        "highlightThemes": "Welche Themen tauchen in meinen Markierungen immer wieder auf?",
+        "notesReview": "Geh meine letzten Notizen durch und fasse zusammen, worüber ich nachgedacht habe.",
         "organize": "Ordne die Bücher in meinem Regal nach Genre in Sammlungen.",
-        "memory": "Was weißt du noch darüber, wie ich lese?"
+        "nextRead": "Welches Buch aus meinem Regal sollte ich nach dem, was ich gelesen habe, als Nächstes lesen?",
+        "shelfTour": "Führ mich kurz durch mein Regal: Was für Bücher stehen darin?",
+        "memory": "Was weißt du noch darüber, wie ich lese?",
+        "curiosity": "Welche Themen interessieren mich in letzter Zeit am meisten?",
+        "reviews": "Such Rezensionen zu dem Buch, das ich gerade lese, und sag mir, was die Kritik davon hält.",
+        "author": "Finde etwas über die Person heraus, die mein aktuelles Buch geschrieben hat, und erzähl mir von ihren anderen Werken."
       }
     },
     "annotations": {

@@ -4,14 +4,20 @@ import { AgentWelcome } from "./AgentWelcome";
 
 /**
  * An empty Agent conversation: the ReadAware mark, what the page is for, four
- * ways in, and the keys for the thread palette and a new conversation. A way
+ * ways in (a different mix each conversation; these four are fixed for the
+ * story), and the keys for the thread palette and a new conversation. A way
  * in fills the composer and never sends, so it can be edited first.
  */
 const meta = {
   title: "Interface/Agent/AgentWelcome",
   component: AgentWelcome,
   parameters: { layout: "centered" },
-  args: { onSuggest: fn(), searchKeys: ["⌘", "K"], newConversationKeys: ["⌘", "N"] },
+  args: {
+    suggestions: ["readingMonth", "disagree", "organize", "reviews"],
+    onSuggest: fn(),
+    searchKeys: ["⌘", "K"],
+    newConversationKeys: ["⌘", "N"],
+  },
 } satisfies Meta<typeof AgentWelcome>;
 
 export default meta;

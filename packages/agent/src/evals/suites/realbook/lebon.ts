@@ -21,10 +21,10 @@ import { commonRealBookScenarios } from "./real-book-common";
 const lebon = realBook("lebon");
 
 /** 读者位置：第三卷之前——已读完领袖/说服手段章（11），概念图已成形。 */
-const READER_CHAPTER = 12;
+const READER_CHAPTER = 14;
 const READER_PROGRESS = 68;
 /** 前向检索的目标章：议会（全书最后一章，远在读者位置之后）。 */
-const PARLIAMENT_CHAPTER = 17;
+const PARLIAMENT_CHAPTER = 20;
 
 function readerCursor() {
   const epub = lebon.epub();

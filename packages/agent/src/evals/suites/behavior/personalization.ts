@@ -62,7 +62,7 @@ function personaMemories() {
 }
 
 function lebonCursor() {
-  const chapterIndex = 12;
+  const chapterIndex = 14;
   return {
     chapterIndex,
     chapterTitle: lebon.epub().chapters[chapterIndex]!.title,
@@ -124,7 +124,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
         ...lebon.seed(68),
-        chapterDigests: lebon.digestsSeed(12),
+        chapterDigests: lebon.digestsSeed(14),
         memories: personaMemories(),
       },
       seedSummary: { ...(lebon.seedSummary(68) as object), personaMemories: 5 },
@@ -150,7 +150,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
         ...lebon.seed(68),
-        chapterDigests: lebon.digestsSeed(12),
+        chapterDigests: lebon.digestsSeed(14),
       },
       seedSummary: { ...(lebon.seedSummary(68) as object), personaMemories: 0 },
       turns: [
@@ -172,7 +172,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
         ...lebon.seed(68),
-        chapterDigests: lebon.digestsSeed(12),
+        chapterDigests: lebon.digestsSeed(14),
         memories: personaMemories(),
       },
       seedSummary: { ...(lebon.seedSummary(68) as object), personaMemories: 5 },
@@ -208,7 +208,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
         ...lebon.seed(68),
-        chapterDigests: lebon.digestsSeed(12),
+        chapterDigests: lebon.digestsSeed(14),
       },
       seedSummary: { ...(lebon.seedSummary(68) as object), personaMemories: 0 },
       turns: [
@@ -241,7 +241,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
         ...lebon.seed(68),
-        chapterDigests: lebon.digestsSeed(12),
+        chapterDigests: lebon.digestsSeed(14),
         memories: personaMemories(),
       },
       seedSummary: { ...(lebon.seedSummary(68) as object), personaMemories: 5 },
@@ -316,7 +316,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
       scope: { kind: "book", bookId: fowler.bookId },
       seed: {
         ...fowler.seed(60),
-        chapterDigests: fowler.digestsSeed(15),
+        chapterDigests: fowler.digestsSeed(16),
         memories: personaMemories(),
       },
       seedSummary: { ...(fowler.seedSummary(60) as object), personaMemories: 5 },
@@ -324,11 +324,11 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
         {
           text: "Extract Function 和 Move Function 有什么区别？什么时候该用哪个？",
           readingCursor: {
-            chapterIndex: 15,
-            chapterTitle: fowler.epub().chapters[15]!.title,
+            chapterIndex: 16,
+            chapterTitle: fowler.epub().chapters[16]!.title,
             bookProgress: 0.6,
             chapterProgress: 0.25,
-            visibleText: fowler.chapterViewport(15),
+            visibleText: fowler.chapterViewport(16),
           },
         },
       ],

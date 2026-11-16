@@ -91,7 +91,7 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "narrative-no-spoiler",
       description: "尊重当前光标位置，避免拉取后续情节剧透。",
-      tags: ["spoiler", "cursor", "book"],
+      tags: ["smoke", "spoiler", "cursor", "book"],
       scope: { kind: "book", bookId: NARRATIVE_BOOK_ID },
       seed: {
         books: [narrativeBook],
@@ -150,7 +150,7 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "cursor-grounding",
       description: "根据可见的读者文本回答页面级问题。",
-      tags: ["cursor", "book"],
+      tags: ["smoke", "cursor", "book"],
       scope: { kind: "book", bookId: NARRATIVE_BOOK_ID },
       seed: {
         books: [narrativeBook],
@@ -175,7 +175,7 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "expository-can-look-ahead",
       description: "当前向查找有用且无剧透时，拉取后续材料。",
-      tags: ["retrieval", "forward", "book"],
+      tags: ["smoke", "retrieval", "forward", "book"],
       scope: { kind: "book", bookId: "eval-data-structures" as Id },
       seed: {
         books: [

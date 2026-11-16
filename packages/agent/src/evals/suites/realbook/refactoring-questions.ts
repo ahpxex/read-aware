@@ -12,7 +12,7 @@ import { realBook } from "../../book-fixtures";
 import { bookQuestion } from "./question-factories";
 
 const fowler = realBook("refactoring");
-const MID = 15;
+const MID = 16;
 
 export const refactoringQuestionScenarios: AgentEvalScenario[] = [
   bookQuestion({

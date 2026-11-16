@@ -21,13 +21,13 @@ import { commonRealBookScenarios } from "./real-book-common";
 const fowler = realBook("refactoring");
 
 /** 读者位置：Chapter 9 Organizing Data（index 15，~60%）。 */
-const READER_CHAPTER = 15;
+const READER_CHAPTER = 16;
 /** Extract Function 的正式定义章：Chapter 6 A First Set of Refactorings。 */
-const CATALOG_CHAPTER = 12;
+const CATALOG_CHAPTER = 13;
 /** Bad Smells 章（读者位置之前——概念图里已有全套坏味道名录）。 */
-const SMELLS_CHAPTER = 9;
+const SMELLS_CHAPTER = 10;
 /** 前向目标：Chapter 12 Dealing with Inheritance（读者位置之后）。 */
-const INHERITANCE_CHAPTER = 18;
+const INHERITANCE_CHAPTER = 19;
 
 function readerCursor() {
   const epub = fowler.epub();

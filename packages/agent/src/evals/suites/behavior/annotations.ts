@@ -85,7 +85,7 @@ export const annotationsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "highlight-verbatim-text",
       description: "用书籍的精确措辞高亮请求的段落。",
-      tags: ["state", "book"],
+      tags: ["smoke", "state", "book"],
       scope: { kind: "book", bookId: BOOK_ID },
       seed: seed(),
       turns: [

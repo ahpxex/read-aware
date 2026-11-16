@@ -67,6 +67,8 @@ export const EVAL_MODIFIER_TAGS = [
   "global",
   /** 书内线程。 */
   "book",
+  /** 冒烟档：每次改动 Agent 后先跑的一小组代表场景，几分钟内出结果。 */
+  "smoke",
 ] as const;
 
 export type EvalCapabilityTag = (typeof EVAL_CAPABILITY_TAGS)[number];

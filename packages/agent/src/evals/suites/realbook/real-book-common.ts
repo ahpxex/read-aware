@@ -72,16 +72,16 @@ const GRID: GridBookConfig[] = [
   },
   {
     slug: "santi",
-    readerChapter: 20,
+    readerChapter: 19,
     progressPercent: 10,
     topical: {
       question: "这套书里讲到量子力学相关的内容了吗？在哪儿讲的？",
       anyOf: ["量子"],
     },
-    selectionChapter: 8,
-    annotationChapter: 10,
+    selectionChapter: 7,
+    annotationChapter: 9,
     crossing: {
-      firstChapter: 8,
+      firstChapter: 7,
       ask: "叶文洁在这一章里经历了什么？",
       followup: "她的这些经历会怎么影响她之后的选择？",
       // 正确答案很可能通篇用"她"回指——召回的证据是 ch8 的具体内容词，
@@ -98,39 +98,39 @@ const GRID: GridBookConfig[] = [
   },
   {
     slug: "lebon",
-    readerChapter: 12,
+    readerChapter: 14,
     progressPercent: 68,
     topical: {
       question: "书里讲到陪审团了吗？在哪一章？",
       anyOf: ["陪审"],
     },
-    selectionChapter: 6,
-    annotationChapter: 10,
+    selectionChapter: 7,
+    annotationChapter: 12,
     crossing: {
-      firstChapter: 11,
+      firstChapter: 13,
       ask: "领袖说服群体的手段这一章讲了哪几种？",
       followup: "这些手段里哪一种最依赖威望？",
       recallAnyOf: ["断言", "重复", "传染"],
     },
-    quoteChapter: 6,
+    quoteChapter: 7,
   },
   {
     slug: "refactoring",
-    readerChapter: 15,
+    readerChapter: 16,
     progressPercent: 60,
     topical: {
       question: "这本书讲怎么写测试吗？在哪一章？",
       anyOf: ["Building Tests", "测试"],
     },
-    selectionChapter: 8,
-    annotationChapter: 10,
+    selectionChapter: 9,
+    annotationChapter: 11,
     crossing: {
-      firstChapter: 12,
+      firstChapter: 13,
       ask: "Extract Function 的要点是什么？",
       followup: "它和相反方向的那个手法是什么关系？",
       recallAnyOf: ["Extract Function", "Inline Function"],
     },
-    quoteChapter: 10,
+    quoteChapter: 11,
   },
   {
     slug: "berger",
@@ -186,14 +186,15 @@ function selectionCursor(book: RealBookFixture, chapterIndex: number, selection:
 }
 
 /**
- * 章节中段的一句话：读者读到一半时选中的那句。取中点之后第一段够长正文的
- * 首句，且全章唯一（选区要能在正文里唯一定位）。
+ * 章节某个位置上的一句话：读者读到那里时选中的那句。取该位置之后第一段够长
+ * 正文的首句，且全章唯一（选区要能在正文里唯一定位）。
  */
-function midChapterSentence(book: RealBookFixture, chapterIndex: number): string {
-  const text = book.epub().chapters[chapterIndex]?.text;
-  if (text === undefined) throw new Error(`${book.spec.slug} fixture has no chapter ${chapterIndex}`);
-  const layout = plainTextLayout(text);
-  for (const block of blocksIn(layout, Math.floor(text.length / 2), text.length)) {
+function sentenceAt(book: RealBookFixture, chapterIndex: number, fraction: number): string {
+  const chapter = book.epub().chapters[chapterIndex];
+  if (!chapter) throw new Error(`${book.spec.slug} fixture has no chapter ${chapterIndex}`);
+  const { text } = chapter;
+  const layout = chapter.layout ?? plainTextLayout(text);
+  for (const block of blocksIn(layout, Math.floor(text.length * fraction), text.length)) {
     if (block.level !== undefined || block.end - block.start < 60) continue;
     const first = layout.sentences.find((at) => at >= block.start) ?? block.start;
     const next = layout.sentences.find((at) => at > first) ?? block.end;
@@ -202,8 +203,44 @@ function midChapterSentence(book: RealBookFixture, chapterIndex: number): string
     if (text.indexOf(sentence) !== text.lastIndexOf(sentence)) continue;
     return sentence;
   }
-  throw new Error(`${book.spec.slug} chapter ${chapterIndex} has no usable mid-chapter sentence`);
+  throw new Error(`${book.spec.slug} chapter ${chapterIndex} has no usable sentence at ${fraction}`);
 }
+
+/**
+ * 读者对眼前一段话会问的几类问题 × 在章里的位置。每本书各生成一组：问题类型
+ * 决定答案需要什么（句子本身、所在段落、章内已读部分），断言只看结果——
+ * 答案依据的正文是否真的读到了、叙事书有没有越过读者位置——不规定调用方式。
+ */
+const PASSAGE_TASKS = [
+  {
+    id: "sentence-meaning",
+    at: 0.15,
+    ask: "我选中的这句话是什么意思？",
+    // 句子本身就在消息里：是否再读上下文由模型判断。
+    needsChapterText: false,
+    smoke: false,
+    rubric:
+      "Explains what the selected sentence says and means where it stands, using its actual context in this edition rather than a generic paraphrase",
+  },
+  {
+    id: "paragraph-gist",
+    at: 0.8,
+    ask: "我选中的这句所在的那一段，整段在讲什么？",
+    needsChapterText: true,
+    smoke: false,
+    rubric:
+      "Summarises the whole paragraph that contains the selected sentence — its real content, not only the sentence — without drifting into neighbouring paragraphs",
+  },
+  {
+    id: "passage-role-in-chapter",
+    at: 0.5,
+    ask: "我选中的这段话，在这一章里处在什么位置、起什么作用？它前面是在讲什么，才说到这里的？",
+    needsChapterText: true,
+    smoke: true,
+    rubric:
+      "Places the selected passage within this chapter: what the chapter has been doing up to it and what the passage contributes at that point, drawn from the chapter's actual text rather than a generic reading of the sentence",
+  },
+] as const;
 
 /** 书型分派的红线组合：叙事书查围栏纪律，说明书查围栏必须不存在。 */
 function typeDiscipline(book: RealBookFixture, observation: AgentEvalObservation, ceiling: number): EvalAssessment {
@@ -337,43 +374,44 @@ function scenariosFor(config: GridBookConfig): AgentEvalScenario[] {
     );
   }
 
-  // ── 段落定位：读到章节中段，选中一句问它在本章里的位置与作用。游标只给坐标，
-  //    答案必须来自就地读到的本章正文；叙事书读不到读者位置之后的内容。 ──
-  {
-    const sentence = midChapterSentence(book, config.readerChapter);
+  // ── 眼前这段话：问题类型 × 章内位置（见 PASSAGE_TASKS）。游标只给坐标，答案依据的
+  //    正文要读得到；叙事书读不到读者位置之后的内容。 ──
+  for (const task of PASSAGE_TASKS) {
+    const sentence = sentenceAt(book, config.readerChapter, task.at);
     const chapterText = book.epub().chapters[config.readerChapter]!.text;
     const through = chapterText.indexOf(sentence) + sentence.length;
     // 紧接读者位置之后的一段原文：叙事书里它不该出现在任何工具结果中。
     const unread = chapterText.slice(through).trim().slice(0, 24);
     const narrative = book.spec.narrativity === "narrative";
+    const expectation = task.needsChapterText ? { tools: { required: ["read_chapter"], noErrors: true } } : {};
     scenarios.push(
       defineAgentEvalScenario({
-        id: `${config.slug}-passage-role-in-chapter`,
-        description: `Mid-chapter selection on ${config.slug}: place the selected passage in its chapter, from the chapter's own text.`,
-        tags: [config.slug, "selection", "cursor", "book"],
+        id: `${config.slug}-${task.id}`,
+        description: `Selection at ${Math.round(task.at * 100)}% of a chapter of ${config.slug}: ${task.id}, answered from the chapter's own text.`,
+        tags: [config.slug, "selection", "cursor", "book", ...(task.smoke ? ["smoke"] : [])],
         scope,
         seed: baseSeed(),
         seedSummary: book.seedSummary(config.progressPercent),
         turns: [
           {
-            text: "我选中的这段话，在这一章里处在什么位置、起什么作用？它前面是在讲什么，才说到这里的？",
+            text: task.ask,
             attachments: [{ text: sentence }],
             readingCursor: selectionCursor(book, config.readerChapter, sentence),
           },
         ],
-        expectation: { tools: { required: ["read_chapter"], noErrors: true } },
-        criteria: { readerChapter: config.readerChapter, sentence, ...(narrative ? { unread } : {}) },
+        expectation,
+        criteria: { readerChapter: config.readerChapter, at: task.at, sentence, ...(narrative ? { unread } : {}) },
         rubric: [
-          "Places the selected passage within this chapter: what the chapter has been doing up to it and what the passage contributes at that point, drawn from the chapter's actual text rather than a generic reading of the sentence",
+          task.rubric,
           narrative
             ? "Stays within what the reader has read: nothing from later in the chapter or the book, not even as a hint"
-            : "May use the rest of the chapter to explain where the passage leads, without spoiler hedging",
-          "Speaks about 'this paragraph' or quotes the text; does not cite internal block or sentence numbers to the reader",
+            : "May use the rest of the chapter where it helps, without spoiler hedging",
+          "Speaks about 'this sentence' or 'this paragraph' or quotes the text; does not cite internal block or sentence numbers unless asked where it is",
         ],
         evaluate: (observation) =>
           combineAssessments(
-            evaluateAgentTrace(observation, { tools: { required: ["read_chapter"], noErrors: true } }),
-            readInPlaceAssessment(observation, config.readerChapter),
+            evaluateAgentTrace(observation, expectation),
+            ...(task.needsChapterText ? [readInPlaceAssessment(observation, config.readerChapter)] : []),
             ...(narrative && unread.length >= 12 ? [unreadWithheldAssessment(observation, unread)] : []),
             typeDiscipline(book, observation, config.readerChapter),
             cjkAnswerAssessment(observation),

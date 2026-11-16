@@ -12,7 +12,7 @@ import { realBook } from "../../book-fixtures";
 import { bookQuestion } from "./question-factories";
 
 const santi = realBook("santi");
-const MID = 20;
+const MID = 19;
 /** 卷I中部游标的泄漏词（与主文件 LEAK_WORDS_CH20 同源）。 */
 const CH20_LEAKS = ["面壁计划", "罗辑", "宇宙社会学", "章北海", "执剑人", "二向箔"];
 
@@ -163,7 +163,7 @@ export const santiQuestionScenarios: AgentEvalScenario[] = [
     cursorChapter: MID,
     turns: [
       { text: "三体人到底为什么盯上地球？现在书里说了吗？", cursorChapter: MID },
-      { text: "现在第一部读完了，再回答我一遍：他们为什么盯上地球？", cursorChapter: 40 },
+      { text: "现在第一部读完了，再回答我一遍：他们为什么盯上地球？", cursorChapter: 39 },
     ],
     mustContain: ["地球"],
     // 按末轮游标(#40)校准：智子(#37) 此时已合法读到；其余标记均 > #40

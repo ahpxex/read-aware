@@ -1,7 +1,7 @@
 /**
  * 真书 fixture 层：eval 场景在合成小书之外挂载真实 EPUB 全文。
  * 多书注册表——每本真书一个 spec（叙事性、正文起始章、展示书名），
- * 帮助函数全部按书实例化；与 repl 共用 loadEpubFixture，进程内缓存一次抽取。
+ * 帮助函数全部按书实例化；与 repl 共用 loadRealBookSnapshot，进程内缓存一次抽取。
  * 场景应搭配 defineAgentEvalScenario 的 seedSummary —— 几十万字的正文
  * 绝不能被 scenarioInput 原样序列化进每条 run 记录。
  */
@@ -9,7 +9,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { blocksIn, sentenceEndAt, type Id } from "@read-aware/core";
 import type { ChapterDigest } from "../ports";
-import { loadEpubFixture, type EpubFixture } from "../testing/epub-fixture";
 import type { ChapterSeed, InMemorySeed } from "../testing/fixtures";
 import { plainTextLayout } from "../testing/plain-text-layout";
 import type { JsonValue } from "./types";
@@ -49,17 +48,17 @@ const REAL_BOOKS = {
     slug: "santi",
     narrativity: "narrative",
     spoilerSensitive: true,
-    // 0-3 是目录/获奖感言/卷扉页；第一章起为正文。
-    firstContentChapter: 4,
+    // 0-2 是书前辅文/获奖感言/卷扉页；第一章起为正文。
+    firstContentChapter: 3,
     title: "三体全集",
   },
   refactoring: {
     slug: "refactoring",
     narrativity: "expository",
     spoilerSensitive: false,
-    // 0-5 是电子书说明/环衬/版权/目录/初版序；Preface 起是 Fowler 本人的实文。
+    // 0-6 是电子书说明/环衬/扉页/版权/题献/目录/初版序；Preface 起是 Fowler 本人的实文。
     // fixture 已剥离全部插图（原 36MB → 文本骨架），正文一字未动。
-    firstContentChapter: 6,
+    firstContentChapter: 7,
   },
   berger: {
     slug: "berger",
@@ -76,7 +75,7 @@ export type RealBookSlug = keyof typeof REAL_BOOKS;
 export interface RealBookFixture {
   bookId: Id;
   spec: RealBookSpec;
-  epub(): EpubFixture;
+  epub(): RealBookSnapshot;
   title(): string;
   /** digests fixture 是否已生成（新书先入 EPUB、后补纪要是合法中间态）。 */
   hasDigests(): boolean;
@@ -129,32 +128,21 @@ export function realBookSnapshotFile(slug: RealBookSlug): string {
   return fixturePath(`${slug}.booktext.json`);
 }
 
-/**
- * Whether a seeded book id is a registered real book read through the app: one
- * whose chapters come from the app's snapshot. Such a book runs only on the
- * app's headless host.
- */
+/** Whether a seeded book id is a registered real book: one that runs only on the app's headless host. */
 export function isRealBookId(bookId: string): boolean {
-  return (Object.keys(REAL_BOOKS) as RealBookSlug[]).some(
-    (slug) => bookId === `eval-${slug}` && existsSync(realBookSnapshotFile(slug)),
-  );
+  return Object.keys(REAL_BOOKS).some((slug) => bookId === `eval-${slug}`);
 }
 
-const epubCache = new Map<string, EpubFixture>();
+const epubCache = new Map<string, RealBookSnapshot>();
 const digestsCache = new Map<string, ChapterDigest[]>();
 const fixtureCache = new Map<string, RealBookFixture>();
 
 function createRealBook(spec: RealBookSpec): RealBookFixture {
   const bookId = `eval-${spec.slug}` as Id;
-  const epub = (): EpubFixture => {
+  const epub = (): RealBookSnapshot => {
     let cached = epubCache.get(spec.slug);
     if (!cached) {
-      const snapshot = realBookSnapshotFile(spec.slug as RealBookSlug);
-      // A book without a snapshot yet still reads through the fixture loader, whose chapters
-      // are not the app's. TODO(evals): remove with the last unsnapshotted book.
-      cached = existsSync(snapshot)
-        ? (JSON.parse(readFileSync(snapshot, "utf8")) as RealBookSnapshot)
-        : loadEpubFixture(fixturePath(`${spec.slug}.epub`));
+      cached = JSON.parse(readFileSync(realBookSnapshotFile(spec.slug as RealBookSlug), "utf8")) as RealBookSnapshot;
       epubCache.set(spec.slug, cached);
     }
     return cached;

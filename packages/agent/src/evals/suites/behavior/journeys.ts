@@ -259,29 +259,29 @@ export const journeysEvalSuite: EvalSuite<AgentEvalScenario> = {
       scope: { kind: "book", bookId: fowler.bookId },
       seed: {
         ...fowler.seed(60),
-        chapterDigests: fowler.digestsSeed(15),
+        chapterDigests: fowler.digestsSeed(16),
       },
       seedSummary: { ...(fowler.seedSummary(60) as object), journey: "5 turns" },
       turns: [
         {
           text: "Extract Function 的操作步骤（mechanics）帮我按书里的顺序列一下。",
-          readingCursor: fowlerCursor(12),
+          readingCursor: fowlerCursor(13),
         },
         {
           text: "我手上有个 400 行的 processOrder 函数。按刚才那些步骤，我第一步该做什么？",
-          readingCursor: fowlerCursor(12),
+          readingCursor: fowlerCursor(13),
         },
         {
           text: "书里说过什么情况下反而不该提取函数吗？",
-          readingCursor: fowlerCursor(12),
+          readingCursor: fowlerCursor(13),
         },
         {
           text: "帮我记条笔记：短函数的价值在于命名——把意图和实现分开。",
-          readingCursor: fowlerCursor(12),
+          readingCursor: fowlerCursor(13),
         },
         {
           text: "这些和第 3 章讲的坏味道是怎么接上的？哪些坏味道会指向 Extract Function？",
-          readingCursor: fowlerCursor(12),
+          readingCursor: fowlerCursor(13),
         },
       ],
       criteria: {

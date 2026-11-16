@@ -13,8 +13,8 @@ import { realBook } from "../../book-fixtures";
 import { bookQuestion } from "./question-factories";
 
 const lebon = realBook("lebon");
-const MID = 12;
-const EARLY = 6;
+const MID = 14;
+const EARLY = 7;
 
 export const lebonQuestionScenarios: AgentEvalScenario[] = [
   bookQuestion({
@@ -222,7 +222,7 @@ export const lebonQuestionScenarios: AgentEvalScenario[] = [
     cursorChapter: MID,
     turns: [
       {
-        text: `书里有这么一句："${lebon.pickSentence(10)}" 这是哪一章的？这句话在书里是什么意思？`,
+        text: `书里有这么一句："${lebon.pickSentence(12)}" 这是哪一章的？这句话在书里是什么意思？`,
       },
     ],
     retrieval: true,

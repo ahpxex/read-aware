@@ -19,6 +19,7 @@
     "repl": "bun src/repl-run.ts",
     "eval:agent": "bun ../../apps/web/scripts/agent-evals.ts",
     "eval:all": "bun ../../apps/web/scripts/agent-evals.ts all",
+    "eval:smoke": "bun ../../apps/web/scripts/agent-evals.ts all --tag smoke --concurrency 6",
     "eval:rescore": "bun src/eval-rescore-run.ts",
     "eval:review": "bun src/eval-review-run.ts",
     "eval:digests": "bun src/eval-digests-run.ts",

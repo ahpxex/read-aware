@@ -112,7 +112,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
       defineAgentEvalScenario({
         id: "selected-passage-explain",
         description: "人工审核：读者在章节中间选择关于宗教大法官自由悖论的内容，询问其含义。",
-        tags: ["selection", "karamazov", "book"],
+        tags: ["smoke", "selection", "karamazov", "book"],
         scope: { kind: "book", bookId: kara.bookId },
         seed: { ...kara.seed(33), chapterDigests: kara.digestsSeed(INQUISITOR_CHAPTER) },
         seedSummary: kara.seedSummary(33),

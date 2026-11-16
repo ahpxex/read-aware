@@ -11,7 +11,7 @@
  */
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import type { Context } from "@earendil-works/pi-ai";
-import { evalSuites, type AgentEvalScenario } from "@read-aware/agent/evals";
+import { evalSuites, realBookSlugs, type AgentEvalScenario } from "@read-aware/agent/evals";
 import { createScriptedThread } from "@read-aware/agent/testing/scripted-thread";
 import { blocksIn } from "@read-aware/core";
 import { getExtractedChapters } from "../src/domain/library";
@@ -22,7 +22,7 @@ const BOOK = "eval-karamazov";
 let shell: HeadlessShell;
 beforeAll(async () => {
   shell = await installHeadlessShell();
-  addEvalBooks(shell, ["karamazov"]);
+  addEvalBooks(shell);
 });
 afterAll(() => shell.dispose());
 
@@ -62,11 +62,11 @@ async function scripted(
 const scenarioOf = (suite: keyof typeof evalSuites, id: string) =>
   evalSuites[suite].scenarios.find((scenario) => scenario.id === id)! as AgentEvalScenario;
 
-test("the eval book's snapshot is what the app extracts from it", async () => {
-  const stored = readEvalBookSnapshot("karamazov");
+test.each(realBookSlugs())("the snapshot of %s is what the app extracts from it", async (slug) => {
+  const stored = readEvalBookSnapshot(slug);
   expect(stored).not.toBeNull();
   // Scenarios are written against the snapshot: a difference means they describe a book the app no longer produces.
-  expect(JSON.stringify(await extractEvalBook("karamazov")) === JSON.stringify(stored)).toBe(true);
+  expect(JSON.stringify(await extractEvalBook(slug)) === JSON.stringify(stored)).toBe(true);
 });
 
 test("a selection in the middle of a chapter: coordinates in the prompt, the passage and its place from the tool", async () => {

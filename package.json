@@ -28,6 +28,7 @@
     "typecheck:repo": "tsc --noEmit -p scripts",
     "eval:agent": "bun apps/web/scripts/agent-evals.ts",
     "eval:all": "bun apps/web/scripts/agent-evals.ts all",
+    "eval:smoke": "bun apps/web/scripts/agent-evals.ts all --tag smoke --concurrency 6",
     "eval:rescore": "bun packages/agent/src/eval-rescore-run.ts",
     "eval:review": "bun packages/agent/src/eval-review-run.ts",
     "eval:digests": "bun packages/agent/src/eval-digests-run.ts",

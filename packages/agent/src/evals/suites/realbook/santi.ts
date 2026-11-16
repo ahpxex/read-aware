@@ -25,49 +25,49 @@ import { commonRealBookScenarios } from "./real-book-common";
 const santi = realBook("santi");
 
 /** 读者位置：第一部中段（第十七章 三体问题）——智子/古筝行动都在前方。 */
-const READER_CHAPTER = 20;
+const READER_CHAPTER = 19;
 /** 语录定位场景的取句章：疯狂年代（读者位置之前，无剧透张力）。 */
-const QUOTE_CHAPTER = 10;
+const QUOTE_CHAPTER = 9;
 /** 显式剧透场景的目标章：古筝行动（章题对读者可见，内容不可见）。 */
-const SPOILER_CHAPTER = 35;
+const SPOILER_CHAPTER = 34;
 
 /**
- * 泄漏词表：每个词都已对 fixture 全文实证首次出现晚于读者位置（#20），
+ * 泄漏词表：每个词都已对 fixture 全文实证首次出现晚于读者位置（#19），
  * 且不出现在任何章题/卷题里。刻意不含“智子”“黑暗森林”与“面壁者”（都在目录
  * 卷题/部题里，目录对读者可见——模型拒绝剧透时提及它们是正确行为，
  * 实测模型正是这么用的）、不含“水滴”（通用词，正常行文可能误伤）；
  * 剩下的全是只在后文正文里出现的内容级标记——讲出它们才算泄漏。
  */
-const LEAK_WORDS_CH20 = [
-  "面壁计划", // 正文首现 #45；目录无（部题是“面壁者”，三个字不同）
-  "罗辑", // 正文首现 #44；目录无
-  "宇宙社会学", // 正文首现 #44；目录无
-  "章北海", // 正文首现 #45；目录无
-  "执剑人", // 正文首现 #53；目录无
-  "二向箔", // 正文首现 #56；目录无
+const LEAK_WORDS_READER = [
+  "面壁计划", // 正文首现 #43；目录无（部题是“面壁者”，三个字不同）
+  "罗辑", // 正文首现 #42；目录无
+  "宇宙社会学", // 正文首现 #42；目录无
+  "章北海", // 正文首现 #43；目录无
+  "执剑人", // 正文首现 #51；目录无
+  "二向箔", // 正文首现 #54；目录无
 ];
 
-/** 卷I读完的读者位置：后记（#40）——第二部整体在围栏之外。 */
-const VOL1_DONE_CHAPTER = 40;
-/** 卷II内容级标记（实证首现均 > #40，且不在任何章题/卷题里）。 */
+/** 卷I读完的读者位置：后记（#39）——第二部整体在围栏之外。 */
+const VOL1_DONE_CHAPTER = 39;
+/** 卷II内容级标记（实证首现均 > #39，且不在任何章题/卷题里）。 */
 const LEAK_WORDS_VOL2 = [
-  "罗辑", // #44 序章：叶文洁向罗辑传授宇宙社会学
-  "章北海", // #45
-  "面壁计划", // #45
-  "宇宙社会学", // #44
-  "大低谷", // #47
-  "云天明", // #52
+  "罗辑", // #42 序章：叶文洁向罗辑传授宇宙社会学
+  "章北海", // #43
+  "面壁计划", // #43
+  "宇宙社会学", // #42
+  "大低谷", // #45
+  "云天明", // #49
 ];
 /**
- * 名句级泄漏标记：每段引文都已实证逐字首现晚于 #20（全在正文，不在题名）。
+ * 名句级泄漏标记：每段引文都已实证逐字首现晚于 #19（全在正文，不在题名）。
  * “宇宙就是一座黑暗森林”是长句断言——单说卷题“黑暗森林”不会命中它。
  */
 const FAMOUS_QUOTE_FRAGMENTS = [
-  "不要回答", // #27 三体世界的警告
-  "宇宙就是一座黑暗森林", // #47 黑暗森林法则原句
-  "给岁月以文明", // #47
-  "失去人性", // #55
-  "藏好自己", // #56
+  "不要回答", // #26 三体世界的警告
+  "宇宙就是一座黑暗森林", // #45 黑暗森林法则原句
+  "给岁月以文明", // #45
+  "失去人性", // #53
+  "藏好自己", // #54
 ];
 
 function cursorAt(chapterIndex: number) {
@@ -112,14 +112,14 @@ export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
       ],
       criteria: {
         boundary: `reading cursor at chapter index ${READER_CHAPTER}`,
-        leakWords: LEAK_WORDS_CH20,
+        leakWords: LEAK_WORDS_READER,
       },
       rubric: [
         "Answers only from what the first twenty chapters establish (the game, the countdown, Ye Wenjie's past so far) and honestly frames the rest as not yet revealed, without listing later-book facts",
       ],
       evaluate: (observation) =>
         combineAssessments(
-          leakAgainst(observation, LEAK_WORDS_CH20),
+          leakAgainst(observation, LEAK_WORDS_READER),
           fenceDisciplineAssessment(observation, READER_CHAPTER),
           cjkAnswerAssessment(observation),
         ),
@@ -151,7 +151,7 @@ export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
             answer: { mustContain: [santi.chapterTitleKey(QUOTE_CHAPTER)] },
             tools: { required: ["search_book_text"], noErrors: true },
           }),
-          leakAgainst(observation, LEAK_WORDS_CH20),
+          leakAgainst(observation, LEAK_WORDS_READER),
           cjkAnswerAssessment(observation),
         ),
     }),
@@ -188,7 +188,7 @@ export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
             answer: { mustContain: ["黑暗森林", "死神永生"] },
             tools: { requiredAny: ["get_toc", "get_reading_progress"], noErrors: true },
           }),
-          leakAgainst(observation, LEAK_WORDS_CH20),
+          leakAgainst(observation, LEAK_WORDS_READER),
           fenceDisciplineAssessment(observation, READER_CHAPTER),
           cjkAnswerAssessment(observation),
         ),
@@ -196,7 +196,7 @@ export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "explicit-spoiler-crosses-fence",
       description: "关于可见章节标题的显式剧透请求通过 confirmSpoiler 跨越栅栏并从实际文本回答。",
-      tags: ["spoiler", "grant", "retrieval", "santi", "book"],
+      tags: ["smoke", "spoiler", "grant", "retrieval", "santi", "book"],
       scope: { kind: "book", bookId: santi.bookId },
       seed: {
         ...santi.seed(readerProgress()),
@@ -288,7 +288,7 @@ export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
         };
       },
       criteria: {
-        leakWords: [...FAMOUS_QUOTE_FRAGMENTS, ...LEAK_WORDS_CH20],
+        leakWords: [...FAMOUS_QUOTE_FRAGMENTS, ...LEAK_WORDS_READER],
         principle:
           "famous formulas/quotes are the leak's favorite door — with a safe preference stated, no verbatim recital of passages whose wording has not been retrieved from THIS text",
       },
@@ -297,7 +297,7 @@ export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
       ],
       evaluate: (observation) =>
         combineAssessments(
-          leakAgainst(observation, [...FAMOUS_QUOTE_FRAGMENTS, ...LEAK_WORDS_CH20]),
+          leakAgainst(observation, [...FAMOUS_QUOTE_FRAGMENTS, ...LEAK_WORDS_READER]),
           fenceDisciplineAssessment(observation, READER_CHAPTER),
           cjkAnswerAssessment(observation),
         ),

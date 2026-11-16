@@ -1,8 +1,9 @@
 /**
  * Agent evals on the app's headless host.
  *
- *   bun scripts/agent-evals.ts <suite> [eval options]   # from apps/web, or `bun run eval:agent` in packages/agent
- *   bun scripts/agent-evals.ts snapshots                # rewrite the eval books' snapshots from the app's extraction
+ *   bun run eval:agent <suite> [eval options]   # from the repo root or packages/agent
+ *   bun run eval:all [eval options]             # every behavior suite, then every real-book suite
+ *   bun run eval:snapshots [slug…]              # rewrite the eval books' snapshots from the app's extraction
  *
  * The books of the real-book suites are opened, parsed, extracted, searched and
  * located by the app's own code over a headless shell (tests/headless). Before
@@ -44,5 +45,9 @@ if (stale.length) {
 }
 
 installEvalHost(createAppEvalHost());
-await runEvalCli(args);
+// `all` is both groups in turn; everything else is the eval CLI's own argument list.
+if (args[0] === "all" && !args.includes("--help") && !args.includes("-h")) {
+  await runEvalCli(["behavior", ...args.slice(1)]);
+  await runEvalCli(["realbook", ...args.slice(1)]);
+} else await runEvalCli(args[0] === "all" ? ["--help"] : args);
 process.exit(process.exitCode ?? 0);

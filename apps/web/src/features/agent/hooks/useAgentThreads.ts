@@ -42,18 +42,23 @@ export function useAgentThreads(): AgentThreads {
   useEffect(() => {
     const lifetime = new AbortController();
     const conversations = userDomain.conversations;
+    // Reads can overlap (the first one and a change's re-read); only the
+    // latest one started may land, so a slow older read never overwrites it.
+    let latest = 0;
     const load = async () => {
+      const read = ++latest;
+      const current = () => !lifetime.signal.aborted && read === latest;
       try {
         const next = await conversations.queries.listThreads();
-        if (lifetime.signal.aborted) return;
+        if (!current()) return;
         setThreads(next);
         setLoadFailure(null);
       } catch (error) {
-        if (lifetime.signal.aborted) return;
+        if (!current()) return;
         log.warn("Listing conversations failed", error);
         setLoadFailure(describeError(error));
       } finally {
-        if (!lifetime.signal.aborted) setLoading(false);
+        if (current()) setLoading(false);
       }
     };
     setLoading(true);

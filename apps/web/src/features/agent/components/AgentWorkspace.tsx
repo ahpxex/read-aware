@@ -54,7 +54,6 @@ export function AgentWorkspace() {
           <AgentWelcome
             greeting={welcome.greeting}
             suggestions={welcome.suggestions}
-            promptLocale={welcome.promptLocale}
             onSuggest={(prompt) => composerRef.current?.adoptDraft(prompt)}
             searchKeys={chordToTokens(resolveBinding("search", bindings))}
             newConversationKeys={chordToTokens(resolveBinding("new-conversation", bindings))}

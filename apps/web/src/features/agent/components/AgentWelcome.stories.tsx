@@ -15,7 +15,6 @@ const meta = {
   args: {
     greeting: "explore",
     suggestions: ["readingMonth", "disagree", "organize", "reviews"],
-    promptLocale: "en",
     onSuggest: fn(),
     searchKeys: ["⌘", "K"],
     newConversationKeys: ["⌘", "N"],
@@ -35,9 +34,9 @@ export const ChoosingAWayIn: Story = {
   },
 };
 
-/** A reader who asks in Chinese is offered the ways in in Chinese, under an English interface. */
-export const PromptsInTheReadersLanguage: Story = {
-  args: { greeting: "mind", promptLocale: "zh-Hans" },
+/** Another heading and line; each new conversation draws one of five. */
+export const AnotherGreeting: Story = {
+  args: { greeting: "mind" },
 };
 
 /** On a phone the ways in stack. */

@@ -17,7 +17,7 @@ bun run eval:all --concurrency 4                 # 全量；仅在评测范围�
 bun run eval:agent <suite> --judge               # 附加 LLM 语义初评，仍需主 Agent 复核（另付 judge 模型费）
 bun run eval:agent <suite> \
   --candidate glm=zai-coding-cn:glm-5.3 \
-  --candidate ds=deepseek:deepseek-chat           # 多 provider 同 run 对比：全部变体进同一并发池
+  --candidate pro=deepseek:deepseek-v4-pro        # 多 provider 同 run 对比：全部变体进同一并发池
                                                   # 真并行；summary 出配对比较，viewer Run 页出
                                                   # 变体对比矩阵（场景 × 变体）
                                                   # provider 另含 ollama-cloud（Ollama 托管 API，
@@ -25,10 +25,15 @@ bun run eval:agent <suite> \
 bun run eval:agent <suite> --gate                # 要求完成语义验收；新样本待审时返回非零
 ```
 
-以下是原有配置说明；实际运行前以 runner 配置和 run 工件为准，不因这段说明改写用户指定的模型或路由。provider **openrouter**（模型钉 `deepseek/deepseek-v4-flash-0731`，不带日期的 slug 是 0423 旧快照，
-Baidu/千帆优先路由（CoreWeave 次选），key 在 `~/.pi/agent/auth.json`）、thinking **medium**、
-单场景超时 **240s**。`--provider deepseek` 是旧直连路径；跨 provider/thinking
-档位的结果**不可比**（trend 会标 INCOMPARABLE）。
+评测一律跑在 **DeepSeek 官方接口**上：provider `deepseek`、模型 `deepseek-flash`（官方只提供这一个
+flash id，滚动指向当前 Flash 版本），key 在 `~/.pi/agent/auth.json` 的 `deepseek` 条目，thinking
+**medium**，单场景超时 **240s**。这是 runner、`eval:digests`、`eval:classify` 共用的缺省，直接运行即可，
+不要加 `--provider`。`--provider openrouter`（钉 `deepseek/deepseek-v4-flash-0731`）只用于对照；它不是
+同一个模型版本，结果与基线**不可比**，不能并进同一份基线（trend 会标 INCOMPARABLE）。
+
+长时间运行前先查余额（`GET https://api.deepseek.com/user/balance`）。provider 余额耗尽不只是报错：事后
+核验的改写调用被拒时，运行时会回退成拒答话术，样本看起来像 Agent 行为。每跑完一个套件先看有没有
+provider 错误，再启动下一个；被撤回的样本先核对改写那一轮的 token 是否为 0。
 
 每条未通过的运行都带 `cause=`：`timeout` / `provider` / `setup` / `harness` 是环境问题，
 不说明 Agent 行为；`answer-withheld` / `answer-rewritten` 表示回答被运行时的事后核验

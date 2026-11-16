@@ -274,26 +274,36 @@ bun run eval:classify
 
 ## Running
 
-**OpenRouter is the default provider** (default model
-`deepseek/deepseek-v4-flash-0731` — the undated slug is the stale 0423
-snapshot, not a rolling alias), reading `OPENROUTER_API_KEY` or the Pi CLI
-credential in `~/.pi/agent/auth.json` (`openrouter` entry; the key itself
-lives in 1Password as "OpenRouter API Key - Deepseek"). Every eval-side
-OpenRouter request carries a routing preference — Baidu (Qianfan) first,
-CoreWeave second, fallbacks allowed (`applyEvalRouting` in
-`evals/model-config.ts`; same model snapshot and fp8 quantization, Baidu's
-catalog price carries a ~49% discount, so effective eval cost is roughly half
-the old CoreWeave-only routing) — because the official DeepSeek API got
-expensive; this preference is eval-only and
-never leaks into the product, where OpenRouter users own their account
-routing. `--provider deepseek` still works for the old direct path.
+**Evals run on DeepSeek's own API** (`EVAL_DEFAULT_PROVIDER` in
+`evals/model-config.ts`): provider `deepseek`, model `deepseek-flash`, the one
+flash id the official API serves (a rolling id; DeepSeek V4.1 Flash on
+2026-11-16). The key is `DEEPSEEK_API_KEY` or the `deepseek` entry of the Pi
+CLI credentials in `~/.pi/agent/auth.json`. The eval runner, `eval:digests`
+and `eval:classify` share this default, so a baseline and the fixtures it
+reads come from one model. Baselines are always taken on this configuration.
+
+Check the account before a long run (`GET https://api.deepseek.com/user/balance`).
+A provider that runs out of credit does more than fail runs: when the answer
+check's rewrite call is refused, the runtime falls back to its refusal line,
+and the sample looks like agent behavior. After a run, look for provider
+errors before starting the next suite.
+
+**OpenRouter** (`--provider openrouter`) remains available for comparisons:
+default model `deepseek/deepseek-v4-flash-0731` (the undated slug is the stale
+0423 snapshot, not a rolling alias), key `OPENROUTER_API_KEY` or the
+`openrouter` entry in `~/.pi/agent/auth.json`. Every eval-side OpenRouter
+request carries a routing preference — Baidu (Qianfan) first, CoreWeave
+second, fallbacks allowed (`applyEvalRouting`); this preference is eval-only
+and never leaks into the product, where OpenRouter users own their account
+routing. That snapshot is not the model `deepseek-flash` serves, so OpenRouter
+runs are a different condition from a baseline and are never merged into one.
 
 **Ollama Cloud** (`--provider ollama-cloud`) talks to ollama.com's hosted
 OpenAI-compatible API (`https://ollama.com/v1`, key `OLLAMA_API_KEY` or the
 `ollama-cloud` entry in `~/.pi/agent/auth.json`, made at
 https://ollama.com/settings/keys). Default model `deepseek-v4-flash:0731` —
-the same model/snapshot as the OpenRouter baseline on a different host, so
-cross-provider runs stay comparable. It rides the same custom
+the same model/snapshot as the one pinned for OpenRouter on a different host,
+so runs on those two hosts stay comparable with each other. It rides the same custom
 OpenAI-completions adapter as `custom`, with a curated cloud catalog from
 `/v1/models` (see `models/ollama-cloud.ts`); Ollama retires old cloud models,
 so the default may need bumping.
@@ -326,21 +336,18 @@ bun run eval:reading --scenario narrative-no-spoiler --repetitions 3
 
 # Compare two models with paired scenario/repetition runs
 bun run eval:reading \
-  --model deepseek-v4-flash \
-  --candidate-model deepseek-reasoner \
+  --candidate-model deepseek-v4-pro \
   --repetitions 5
 
 # Cross-provider comparison (paired per scenario/repetition)
 bun run eval:agent reading \
-  --provider deepseek \
   --candidate candidate-openai=openai:gpt-5.6-sol \
   --repetitions 5
 
 # Real-book suite across two providers
 bun run eval:agent karamazov \
-  --provider deepseek --model deepseek-v4-flash \
   --candidate glm=zai-coding-cn:glm-5.2 \
-  --judge --judge-provider deepseek --judge-model deepseek-v4-flash \
+  --judge \
   --repetitions 3 --concurrency 4
 ```
 

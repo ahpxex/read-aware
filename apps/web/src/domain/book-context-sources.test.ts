@@ -9,7 +9,7 @@ async function host() {
     calls: string[] = [];
   source.contentHash = "a".repeat(64);
   const record = {
-    version: 9,
+    version: 10,
     bookId: source.bookId,
     contentVersion: `sha256:${source.contentHash}`,
     extractedAt: "now",
@@ -17,14 +17,24 @@ async function host() {
     sectionCount: 2,
     required: [0, 1],
     pieces: [
-      { sectionIndex: 0, starts: [], anchors: [], text: "RAW BOOK TEXT" },
-      { sectionIndex: 1, starts: [], anchors: [], text: "SECOND RAW" },
+      { sectionIndex: 0, starts: [], anchors: [], blocks: [0], text: "RAW BOOK TEXT" },
+      { sectionIndex: 1, starts: [], anchors: [], blocks: [0], text: "SECOND RAW" },
     ],
     failures: [],
     unsupported: [],
     chapters: [
-      { text: "RAW BOOK TEXT", hrefs: ["c1.xhtml"] },
-      { text: "SECOND RAW", hrefs: ["c2.xhtml"] },
+      {
+        text: "RAW BOOK TEXT",
+        hrefs: ["c1.xhtml"],
+        layout: { unit: "paragraph", paragraphs: [0], sentences: [0] },
+        sources: [{ sectionIndex: 0, start: 0, end: 13, at: 0 }],
+      },
+      {
+        text: "SECOND RAW",
+        hrefs: ["c2.xhtml"],
+        layout: { unit: "paragraph", paragraphs: [0], sentences: [0] },
+        sources: [{ sectionIndex: 1, start: 0, end: 10, at: 0 }],
+      },
     ],
   };
   let bytes: Uint8Array | null = null;

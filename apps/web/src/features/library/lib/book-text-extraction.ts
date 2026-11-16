@@ -1,7 +1,8 @@
-import { AppError, errorCode, type BookTextSnapshot } from "@read-aware/core";
+import { AppError, buildChapterLayout, errorCode, type BookTextSnapshot } from "@read-aware/core";
 import { detectPageHeadings } from "./page-headings";
 import type { ChapterMap, FoliateBook } from "../../reader/lib/foliate-engine";
-import { readerChapterBlock } from "../../reader/lib/reader-document-layout";
+import { readerChapterBlock, readSectionBlocks } from "../../reader/lib/reader-document-layout";
+import { collapseText, pageTextBlocks } from "./book-text-layout";
 import { navigationFromOutlines, navigationState, readSectionOutline } from "../../reader";
 import { buildChapterMap } from "../../../../foliate-js/src/chapter-map";
 import type { ResolvedNavigation, TOCItem } from "../../../../foliate-js/src/book";
@@ -85,7 +86,7 @@ export async function extractBookText(book: FoliateBook, options: ExtractionOpti
     chapterTitles.delete(key);
   }
   const record = (): BookTextRecord => ({
-    version: 9,
+    version: 10,
     bookId,
     contentVersion,
     extractedAt: new Date().toISOString(),
@@ -118,12 +119,18 @@ export async function extractBookText(book: FoliateBook, options: ExtractionOpti
         text: "",
         starts: [],
         anchors: [],
+        blocks: [],
       };
       const read = async () => {
         // Keep source text offsets until all anchor ranges have been sliced.
         // Normalizing first would move every boundary after whitespace runs.
         const doc = !section.getText && section.createDocument ? await section.createDocument() : undefined;
         const raw = doc?.body?.textContent ?? (section.getText ? await section.getText(signal) : "");
+        if (doc?.body) {
+          const { blocks, headings } = readSectionBlocks(doc.body);
+          piece.blocks = blocks;
+          if (headings.length) piece.headings = headings;
+        } else piece.blocks = pageTextBlocks(raw);
         // Navigation left to this pass is rebuilt from the headings, once every section is read.
         if (doc && deferredNavigation) piece.outline = readSectionOutline(doc);
         for (const point of targets.get(index) ?? []) {
@@ -184,7 +191,8 @@ export async function extractBookText(book: FoliateBook, options: ExtractionOpti
     // Navigation the opening repaired or rebuilt is kept for the next opening.
     else if (navigation !== "source" && book.toc?.length) result.outline = navigationItems(book.toc);
     signal.throwIfAborted();
-    result.chapters = mergeTextChapters(result, pageText);
+    const language = book.metadata?.language;
+    result.chapters = mergeTextChapters(result, pageText, Array.isArray(language) ? language[0] : language);
     result.finalized = true;
   }
   await options.save(result);
@@ -255,23 +263,56 @@ function applyPageHeadings(record: BookTextRecord): void {
 }
 
 /** Logical chapters follow the chapter map's starts across spine files. A spine
- * boundary is never a chapter boundary when a navigable TOC exists. */
-function mergeTextChapters(record: BookTextRecord, pageText: boolean): ExtractedChapter[] {
+ * boundary is never a chapter boundary when a navigable TOC exists. Each chapter
+ * keeps the section slices it was built from and the layout of its text: a
+ * block begins wherever a section's block does, and wherever a slice does. */
+function mergeTextChapters(record: BookTextRecord, pageText: boolean, locale?: string): ExtractedChapter[] {
   const chapters: ExtractedChapter[] = [];
   const hasToc = record.pieces.some((piece) => piece.starts.length > 0);
-  let current: { title?: string; hrefs: string[]; texts: string[]; first: number; last: number; chars: number } | null =
+  type Slice = { piece: TextPiece; start: number; end: number };
+  let current: { title?: string; hrefs: string[]; slices: Slice[]; first: number; last: number; chars: number } | null =
     null;
   const flush = () => {
     if (!current) return;
-    const text = current.texts.join(" ").replace(/\s+/g, " ").trim();
+    // Where each slice begins in the joined text, then its blocks and headings there.
+    let joined = "";
+    const bases = current.slices.map((slice) => {
+      const base = joined.length ? joined.length + 1 : 0;
+      joined += (joined.length ? " " : "") + slice.piece.text.slice(slice.start, slice.end);
+      return base;
+    });
+    const within = (slice: Slice, offset: number) => offset >= slice.start && offset < slice.end;
+    const blockMarks = current.slices.flatMap((slice, index) => [
+      bases[index]!,
+      ...slice.piece.blocks.filter((offset) => within(slice, offset)).map((offset) => bases[index]! + offset - slice.start),
+    ]);
+    const headingMarks = current.slices.flatMap((slice, index) =>
+      (slice.piece.headings ?? [])
+        .filter((heading) => within(slice, heading.offset))
+        .map((heading) => ({ mark: bases[index]! + heading.offset - slice.start, level: heading.level })),
+    );
+    const { text, at } = collapseText(joined, [...bases, ...blockMarks, ...headingMarks.map((heading) => heading.mark)]);
     // Preserve short titled sections too: silently dropping them renumbers the TOC.
     if (text && (hasToc || text.length >= 40)) {
       const pages =
         current.first === current.last ? `Page ${current.first + 1}` : `Pages ${current.first + 1}-${current.last + 1}`;
+      const blocksFrom = bases.length;
+      const headingsFrom = blocksFrom + blockMarks.length;
       chapters.push({
         title: current.title ?? (pageText ? pages : undefined),
         text,
         hrefs: [...new Set(current.hrefs)],
+        layout: buildChapterLayout(text, at.slice(blocksFrom, headingsFrom), {
+          unit: pageText ? "page" : "paragraph",
+          headings: headingMarks.map((heading, index) => ({ offset: at[headingsFrom + index]!, level: heading.level })),
+          locale,
+        }),
+        sources: current.slices.map((slice, index) => ({
+          sectionIndex: slice.piece.sectionIndex,
+          start: slice.start,
+          end: slice.end,
+          at: at[index]!,
+        })),
       });
     }
     current = null;
@@ -287,7 +328,7 @@ function mergeTextChapters(record: BookTextRecord, pageText: boolean): Extracted
       current ??= {
         title: start?.title,
         hrefs: start ? [start.href] : [],
-        texts: [],
+        slices: [],
         first: piece.sectionIndex,
         last: piece.sectionIndex,
         chars: 0,
@@ -302,10 +343,9 @@ function mergeTextChapters(record: BookTextRecord, pageText: boolean): Extracted
           )
           .map((anchor) => anchor.href),
       );
-      const text = piece.text.slice(offset, end);
-      current.texts.push(text);
+      current.slices.push({ piece, start: offset, end });
       current.last = piece.sectionIndex;
-      current.chars += text.length;
+      current.chars += end - offset;
     }
   }
   flush();

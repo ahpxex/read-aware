@@ -1,10 +1,16 @@
-import type { BookTextSnapshot } from "@read-aware/core";
+import { parseChapterLayout, type BookTextSnapshot, type ChapterLayout } from "@read-aware/core";
 import type { SectionOutline } from "../../reader";
 
+/** One slice of a section's raw text that a chapter was built from, and the offset in the chapter's text where it lands. */
+export type ChapterSource = { sectionIndex: number; start: number; end: number; at: number };
 export interface ExtractedChapter {
   title?: string;
   text: string;
   hrefs?: string[];
+  /** Block and sentence offsets into `text` (see `ChapterLayout`). */
+  layout: ChapterLayout;
+  /** The section slices behind `text`, in order: how a position in a section becomes one in this chapter. */
+  sources: ChapterSource[];
 }
 export type TextBoundary = { offset: number; href: string; title?: string };
 export type TextPiece = {
@@ -13,6 +19,10 @@ export type TextPiece = {
   text: string;
   starts: TextBoundary[];
   anchors: { offset: number; href: string }[];
+  /** Offsets into `text` where a block can begin: block elements and line breaks of a document, blank lines of page text. */
+  blocks: number[];
+  /** The block offsets that open a heading, with its level. */
+  headings?: { offset: number; level: number }[];
   /** Headings read for navigation the opening left to extraction to rebuild. */
   outline?: SectionOutline;
 };
@@ -20,12 +30,14 @@ export type TextPiece = {
 export type NavigationItem = { label: string; href: string; subitems?: NavigationItem[] };
 export type TextFailure = { sectionIndex: number; code: string };
 
-/** v9 follows the chapter map (reading order, chapter level; see foliate-js chapter-map.ts) over
+/** v10 adds reading coordinates: each section's block offsets, and each chapter's layout (blocks and
+ * sentences) with the section slices it was built from. Chapter text and coordinates are those of v9.
+ * v9 follows the chapter map (reading order, chapter level; see foliate-js chapter-map.ts) over
  * navigation repaired or rebuilt from headings by toc-synthesis.ts — at open, or here when the book
  * was too large to rebuild then — and stores that navigation. Earlier records have incompatible
  * chapter coordinates; rebuild lazily. */
 export type BookTextRecord = {
-  version: 9;
+  version: 10;
   bookId: string;
   contentVersion: string;
   extractedAt: string;
@@ -137,11 +149,19 @@ function outlineValid(value: unknown): boolean {
   );
 }
 
+/** Ascending, unique offsets no greater than the text they index. */
+function offsetsValid(value: unknown, length: number): boolean {
+  return (
+    Array.isArray(value) &&
+    value.every((offset, index) => integer(offset) && offset <= length && (index === 0 || offset > value[index - 1]))
+  );
+}
+
 /** A malformed checkpoint must not turn a missing/failed section into a successful read. */
 export function parseBookTextRecord(value: unknown, bookId: string, contentVersion: string): BookTextRecord | null {
   if (
     !object(value) ||
-    value.version !== 9 ||
+    value.version !== 10 ||
     value.bookId !== bookId ||
     value.contentVersion !== contentVersion ||
     typeof value.extractedAt !== "string" ||
@@ -173,6 +193,16 @@ export function parseBookTextRecord(value: unknown, bookId: string, contentVersi
         (piece.href === undefined || typeof piece.href === "string") &&
         Array.isArray(piece.starts) &&
         Array.isArray(piece.anchors) &&
+        offsetsValid(piece.blocks, (piece.text as string).length) &&
+        (piece.headings === undefined ||
+          (Array.isArray(piece.headings) &&
+            piece.headings.every(
+              (heading) =>
+                object(heading) &&
+                integer(heading.offset) &&
+                heading.offset <= (piece.text as string).length &&
+                integer(heading.level),
+            ))) &&
         [...piece.starts, ...piece.anchors].every(
           (point) =>
             object(point) &&
@@ -198,7 +228,19 @@ export function parseBookTextRecord(value: unknown, bookId: string, contentVersi
         object(chapter) &&
         typeof chapter.text === "string" &&
         (chapter.title === undefined || typeof chapter.title === "string") &&
-        (chapter.hrefs === undefined || strings(chapter.hrefs)),
+        (chapter.hrefs === undefined || strings(chapter.hrefs)) &&
+        parseChapterLayout(chapter.layout, chapter.text.length) !== null &&
+        Array.isArray(chapter.sources) &&
+        chapter.sources.every(
+          (source) =>
+            object(source) &&
+            validIndex(source.sectionIndex) &&
+            integer(source.start) &&
+            integer(source.end) &&
+            source.start <= source.end &&
+            integer(source.at) &&
+            source.at <= (chapter.text as string).length,
+        ),
     )
   )
     return null;

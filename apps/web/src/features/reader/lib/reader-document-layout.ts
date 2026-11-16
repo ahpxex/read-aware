@@ -4,6 +4,91 @@ import type { ChapterMap } from "../../../../foliate-js/src/chapter-map";
 const chapterBlocks = "h1, h2, h3, h4, h5, h6, p, section, article, div";
 type ChapterStarts = ReadonlyMap<number, readonly ResolvedNavigation[]>;
 
+/** Block-level tags: each opens a new run of reading text (from foliate's tts.js). */
+export const READER_BLOCK_TAGS: ReadonlySet<string> = new Set([
+  "article",
+  "aside",
+  "audio",
+  "blockquote",
+  "caption",
+  "details",
+  "dialog",
+  "div",
+  "dl",
+  "dt",
+  "dd",
+  "figure",
+  "footer",
+  "form",
+  "figcaption",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "header",
+  "hgroup",
+  "hr",
+  "li",
+  "main",
+  "math",
+  "nav",
+  "ol",
+  "p",
+  "pre",
+  "section",
+  "tr",
+]);
+
+export type SectionBlocks = {
+  /** Offsets into `body.textContent` where a block of text can begin, ascending and unique. */
+  blocks: number[];
+  /** The offsets among them that open a heading, with its level (1-6). */
+  headings: { offset: number; level: number }[];
+};
+
+/**
+ * Where the blocks of a section document begin, as offsets into
+ * `body.textContent`, the same string text extraction stores. A block element
+ * marks an offset when it opens and when it closes (text after a nested block
+ * is a block of its own), and so does a line break. An offset that opens no
+ * text is harmless: it coincides with the next one.
+ */
+export function readSectionBlocks(body: Element): SectionBlocks {
+  const blocks = new Set<number>();
+  const headings = new Map<number, number>();
+  let offset = 0;
+  const isBlock = (node: Node) =>
+    node.nodeType === 1 && READER_BLOCK_TAGS.has((node as Element).localName.toLowerCase());
+  let node: Node | null = body.firstChild;
+  while (node) {
+    if (node.nodeType === 3 || node.nodeType === 4) offset += node.nodeValue?.length ?? 0;
+    else if (node.nodeType === 1) {
+      const name = (node as Element).localName.toLowerCase();
+      if (name === "br" || READER_BLOCK_TAGS.has(name)) blocks.add(offset);
+      const level = /^h([1-6])$/.exec(name)?.[1];
+      // The outermost heading with text at an offset names it; an empty one is only an anchor.
+      if (level && !headings.has(offset) && node.textContent?.trim()) headings.set(offset, Number(level));
+    }
+    if (node.nodeType === 1 && node.firstChild) {
+      node = node.firstChild;
+      continue;
+    }
+    // Leave every element that ends here, marking where a block closes.
+    while (node && node !== body) {
+      if (isBlock(node)) blocks.add(offset);
+      if (node.nextSibling) break;
+      node = node.parentNode;
+    }
+    node = node && node !== body ? node.nextSibling : null;
+  }
+  return {
+    blocks: [...blocks].sort((a, b) => a - b),
+    headings: [...headings].map(([at, level]) => ({ offset: at, level })).sort((a, b) => a.offset - b.offset),
+  };
+}
+
 export function readerChapterBlock(target: Node): Element | null {
   const element = target.nodeType === 1 ? (target as Element) : target.parentElement;
   return element?.closest(chapterBlocks) ?? element;

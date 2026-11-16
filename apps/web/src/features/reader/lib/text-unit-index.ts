@@ -15,46 +15,10 @@ import { AppError } from "@read-aware/core";
 import type { PluginReaderTextSegment, RegisteredReaderMode } from "../../plugins/lib/plugin-types";
 import { normalizeReaderTextSegments } from "../../plugins/lib/reader-mode";
 import { consumePluginResult } from "../../plugins/runtime/plugin-result";
+import { READER_BLOCK_TAGS } from "./reader-document-layout";
 
 /** Opaque unit id declared by the active plugin mode. */
 export type TextUnitId = string;
-
-/** Block-level tags that reset unit segmentation (from foliate's tts.js). */
-const BLOCK_TAGS = new Set([
-  "article",
-  "aside",
-  "audio",
-  "blockquote",
-  "caption",
-  "details",
-  "dialog",
-  "div",
-  "dl",
-  "dt",
-  "dd",
-  "figure",
-  "footer",
-  "form",
-  "figcaption",
-  "h1",
-  "h2",
-  "h3",
-  "h4",
-  "h5",
-  "h6",
-  "header",
-  "hgroup",
-  "hr",
-  "li",
-  "main",
-  "math",
-  "nav",
-  "ol",
-  "p",
-  "pre",
-  "section",
-  "tr",
-]);
 
 const SEGMENT_CONCURRENCY = 8;
 
@@ -124,7 +88,7 @@ function readingBlocks(doc: Document): Node[][] {
       const el = child as Element;
       if (!isRendered(el)) continue;
       const name = el.tagName.toLowerCase();
-      if (BLOCK_TAGS.has(name)) {
+      if (READER_BLOCK_TAGS.has(name)) {
         current = [];
         blocks.push(current);
       }

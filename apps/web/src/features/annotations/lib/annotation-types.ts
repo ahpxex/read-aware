@@ -50,6 +50,15 @@ export interface Ask extends BaseAnnotation {
 
 export type Annotation = Highlight | Note | Ask;
 
+/**
+ * The reader's own marks: highlights and notes. An `ask` records a question
+ * put to the agent about a passage — it is not something the reader marked,
+ * so lists and counts of a book's highlights and notes leave it out.
+ */
+export function isReaderMark(annotation: Annotation): annotation is Highlight | Note {
+  return annotation.type === "highlight" || annotation.type === "note";
+}
+
 export interface AnnotationFilters {
   bookId?: string;
   type?: AnnotationType;

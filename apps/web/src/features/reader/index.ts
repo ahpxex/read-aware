@@ -21,5 +21,12 @@ export { usePanelSwipeDismiss } from "./hooks/usePanelSwipeDismiss";
 export { useReadingHistory } from "./hooks/useReadingHistory";
 export { stepReadingHistory } from "./lib/reading-history";
 
-// The stats page reports reading time in the reader's own duration format.
-export { formatReadingDuration } from "./lib/reading-stats";
+// The stats page and a book's details report reading time in the reader's own
+// duration format.
+export { formatReadingDuration, getBookReadingStats } from "./lib/reading-stats";
+
+// A book's details list its highlights and notes the way the reader's notes
+// view does — grouped by chapter, searchable with the reader's own matcher.
+export { ReaderNotesList } from "./components/ReaderNotesList";
+export { matchAnnotations } from "./lib/contents-search";
+export { chapterAnchorsFromToc, type ChapterAnchor } from "./lib/notes-grouping";

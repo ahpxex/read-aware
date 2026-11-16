@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Annotation } from "../../annotations/lib/annotation-types";
+import { isReaderMark, type Annotation } from "../../annotations/lib/annotation-types";
 import { listAnnotations } from "../../annotations/lib/annotation-db";
 import { createLogger } from "../../../platform/logger";
 
@@ -29,7 +29,7 @@ export function useBookMarks(bookId: string): { marks: Annotation[] | null; fail
     setFailed(false);
     void listAnnotations({ bookId })
       .then((list) => {
-        if (!cancelled) setMarks(list.filter((entry) => entry.type !== "ask"));
+        if (!cancelled) setMarks(list.filter(isReaderMark));
       })
       .catch((error) => {
         log.error("listing book marks failed", error);

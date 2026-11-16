@@ -6,7 +6,7 @@
  * so a query that found a chapter there finds the same one here.
  */
 import type { Bookmark, BookLocationHit, BookTocEntry } from "@read-aware/core";
-import type { Annotation } from "../../annotations";
+import { isReaderMark, type Annotation } from "../../annotations";
 import type { TocEntry } from "./reader-types";
 
 /** Unicode-normalized, case-folded text for substring matching. */
@@ -105,7 +105,7 @@ export function matchBookmarks(bookmarks: readonly Bookmark[], query: string): B
 export function matchAnnotations(annotations: readonly Annotation[], query: string): Annotation[] {
   return annotations.filter(
     (annotation) =>
-      annotation.type !== "ask" &&
+      isReaderMark(annotation) &&
       (matchesQuery(annotation.text, query) || (annotation.type === "note" && matchesQuery(annotation.content, query))),
   );
 }

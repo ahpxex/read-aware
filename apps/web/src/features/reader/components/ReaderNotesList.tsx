@@ -2,8 +2,7 @@ import { Body, InlineError, Spinner } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { describeErrorCode } from "../../../i18n/describe-error";
 import { AnnotationRow, type Annotation } from "../../annotations";
-import { groupMarksByChapter, type Mark } from "../lib/notes-grouping";
-import type { TocEntry } from "../lib/reader-types";
+import { groupMarksByChapter, type ChapterAnchor, type Mark } from "../lib/notes-grouping";
 import { BookmarkRow, type ReaderBookmarks } from "./ReaderBookmarkList";
 
 /**
@@ -28,7 +27,7 @@ export function ReaderNotesList({
   loadErrorCode?: string;
   isLoading?: boolean;
   onRetryLoad?: () => void;
-  tocEntries: TocEntry[];
+  tocEntries: readonly ChapterAnchor[];
   onNavigate: (cfiRange: string) => void;
   onDelete: (id: string) => void;
   /** The book's bookmarks, listed among the annotations. */

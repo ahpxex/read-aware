@@ -63,6 +63,17 @@ function renderBlocks(text: string, layout: ChapterLayout, start: number, end: n
     .join("\n");
 }
 
+/**
+ * Where a focus sits in its chapter, in the words a reader would use: counted
+ * from one, with how far into the chapter it is. The addresses beside it stay
+ * zero-based for further calls.
+ */
+function placeInChapter(layout: ChapterLayout, focus: ChapterRange, length: number): string {
+  const ordinal = addressAt(layout, focus.start).paragraph + 1;
+  const through = length > 0 ? Math.round((Math.min(length, focus.start) / length) * 100) : 0;
+  return `${layout.unit} ${ordinal} of ${layout.paragraphs.length} counting from one, about ${through}% of the way through the chapter`;
+}
+
 /** The chapter's own headings up to `end`: how the chapter is divided, for placing a passage in it. */
 function chapterOutline(text: string, layout: ChapterLayout, end: number) {
   const headings = (layout.headings ?? []).filter((heading) => layout.paragraphs[heading.paragraph]! < end);
@@ -248,7 +259,7 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
     name: "read_chapter",
     label: "Read chapter",
     description:
-      'Read a chapter\'s actual text by reading coordinates: chapter → block (a paragraph; a page when unit is "page") → sentence, all zero-based. They are the coordinates reading_cursor reports and search_book_text hits carry. Each returned block is one line led by its index, e.g. "[12] …"; headings keep their level ("[0] ## …"). One call returns up to 12000 chars in whole sentences and reports next (where to continue) or null when the range is complete. Three ways to call it: (1) around="position" or around="selection" reads the reader\'s current page or the passage they selected this turn with `context` blocks on each side, and reports focus (where it is in the chapter), blocks.total and the chapter\'s outline — use this first for "what does this sentence/paragraph mean" or "what is its role in this chapter", then widen with (2); (2) chapterIndex + paragraph (+ sentence) reads from that address; (3) chapterIndex alone reads from the start. In a narrative book the reader has not finished, the reader\'s own chapter is returned only up to their position (readerPosition marks it; nothing after it is returned) and later chapters are refused unless the reader asked for spoilers. After reading, complete the reader\'s requested answer in this turn. Need several chapters or ranges? Issue the calls together in one batch — they run in parallel. bookId defaults to the current book.',
+      'Read a chapter\'s actual text by reading coordinates: chapter → block (a paragraph; a page when unit is "page") → sentence, all zero-based. They are the coordinates reading_cursor reports and search_book_text hits carry. Each returned block is one line led by its index, e.g. "[12] …"; headings keep their level ("[0] ## …"). One call returns up to 12000 chars in whole sentences and reports next (where to continue) or null when the range is complete. Three ways to call it: (1) around="position" or around="selection" reads the reader\'s current page or the passage they selected this turn with `context` blocks on each side, and reports where it sits (placeInChapter, in the reader\'s terms; focus, as addresses), blocks.total and the chapter\'s outline — use this first for "what does this sentence/paragraph mean" or "what is its role in this chapter", then widen with (2); (2) chapterIndex + paragraph (+ sentence) reads from that address; (3) chapterIndex alone reads from the start. In a narrative book the reader has not finished, the reader\'s own chapter is returned only up to their position (readerPosition marks it; nothing after it is returned) and later chapters are refused unless the reader asked for spoilers. After reading, complete the reader\'s requested answer in this turn. Need several chapters or ranges? Issue the calls together in one batch — they run in parallel. bookId defaults to the current book.',
     ...spoilerParameters(
       scope,
       {
@@ -375,7 +386,12 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
         citationLabel: chapterTitle ?? null,
         unit: layout.unit,
         blocks: { first, last, total: layout.paragraphs.length },
-        ...(focus ? { focus: spanAt(layout, focus.start, focus.end) } : {}),
+        ...(focus
+          ? {
+              focus: spanAt(layout, focus.start, focus.end),
+              placeInChapter: placeInChapter(layout, focus, text.length),
+            }
+          : {}),
         ...(outline.length ? { outline } : {}),
         ...(readerThrough === undefined
           ? {}

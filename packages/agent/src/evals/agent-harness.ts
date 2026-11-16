@@ -11,9 +11,8 @@ import type { RuntimeDeps } from "../ports";
 import type { SendTurnInput } from "../runtime/thread";
 import { AgentThread } from "../runtime/thread";
 import type { InMemorySeed, InMemoryStores } from "../testing/fixtures";
-import { createInMemoryDeps } from "../testing/fixtures";
 import { hostTurn } from "../testing/transcript-host";
-import { locateFixtureTurn } from "../testing/plain-text-layout";
+import { evalHost, type EvalEnvironment } from "./host";
 import type { ThreadScope } from "../thread-scope";
 import { evaluateAgentTrace, type AgentTraceExpectation } from "./assertions";
 import { reviewRubric } from "./rubric";
@@ -169,9 +168,9 @@ export function createAgentEvalVariant(
     },
     run: async (scenario, context) => {
       const startedAt = performance.now();
-      let setupContext: AgentEvalSetupContext;
+      let setupContext: EvalEnvironment;
       try {
-        setupContext = createInMemoryDeps(scenario.seed);
+        setupContext = await evalHost().createEnvironment(scenario);
         await scenario.setup?.(setupContext);
       } catch (error) {
         throw new EvalStageError("setup", `scenario setup failed: ${scenario.id}`, error);
@@ -220,6 +219,7 @@ export function createAgentEvalVariant(
           wallTimeMs: performance.now() - startedAt,
         });
         observation.reviewEvidence = captureReviewEvidence(scenario, originalSources, observation, initialState);
+        observation.environment = setupContext.environment;
         return { observation, telemetry: observation.telemetry };
       });
 
@@ -235,12 +235,9 @@ export function createAgentEvalVariant(
             ...(scenario.observeState ? { stateBefore: toJsonValue(await scenario.observeState(setupContext)) } : {}),
           };
           rawTurns.push(rawTurn);
-          // The harness plays the chat host: it owns the transcript (ConversationPort), and
-          // it places the reader's page and selection in the book's text as a reading host does.
-          const located =
-            scenario.scope.kind === "book"
-              ? locateFixtureTurn(turn, setupContext.stores.chapters.get(scenario.scope.bookId))
-              : turn;
+          // The harness plays the chat host: it owns the transcript (ConversationPort). Where the
+          // reader is comes from the environment, as the environment's reader would report it.
+          const located = await setupContext.locateTurn(turn);
           for await (const chunk of hostTurn(setupContext.stores.turns, thread, {
             ...located,
             signal: context.signal,
@@ -258,6 +255,7 @@ export function createAgentEvalVariant(
           state,
         });
         observation.reviewEvidence = captureReviewEvidence(scenario, originalSources, observation, initialState);
+        observation.environment = setupContext.environment;
         return { observation, telemetry: observation.telemetry };
       } catch (error) {
         throw new EvalStageError("execution", `agent execution failed: ${scenario.id}`, error);

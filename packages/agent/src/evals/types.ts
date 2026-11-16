@@ -100,6 +100,8 @@ export interface AgentEvalObservation {
   state?: JsonValue;
   /** Original fixture evidence for review, separate from what the tested model saw. */
   reviewEvidence?: JsonValue;
+  /** The book pipeline this scenario ran on: the app's headless host, or the in-memory fixtures. */
+  environment?: string;
 }
 
 export interface EvalScenario<TObservation> {

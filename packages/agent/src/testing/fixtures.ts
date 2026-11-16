@@ -54,6 +54,11 @@ export interface ChapterSeed {
   text: string;
   /** 章节覆盖的 hrefs（阅读位置反查用,同 ChapterRef.hrefs） */
   hrefs?: string[];
+  /**
+   * 章内阅读坐标。真书快照带着应用抽取出的那份；只有几行文字的合成种子没有，
+   * 由换行推出（见 plain-text-layout）。
+   */
+  layout?: import("@read-aware/core").ChapterLayout;
 }
 
 export interface AskRecord {
@@ -940,14 +945,14 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
           title: chapter.title,
           chars: chapter.text.length,
           hrefs: chapter.hrefs,
-          blocks: plainTextLayout(chapter.text).paragraphs.length,
-          unit: "paragraph",
+          blocks: (chapter.layout ?? plainTextLayout(chapter.text)).paragraphs.length,
+          unit: chapter.layout?.unit ?? "paragraph",
         }));
       },
       getChapterText: async (bookId, chapterIndex) => stores.chapters.get(bookId)?.[chapterIndex]?.text,
       getChapterLayout: async (bookId, chapterIndex) => {
-        const text = stores.chapters.get(bookId)?.[chapterIndex]?.text;
-        return text === undefined ? undefined : plainTextLayout(text);
+        const chapter = stores.chapters.get(bookId)?.[chapterIndex];
+        return chapter && (chapter.layout ?? plainTextLayout(chapter.text));
       },
       searchText: async ({ queries, bookId, throughChapterIndex, limit }) => {
         const results: BookTextHit[] = [];

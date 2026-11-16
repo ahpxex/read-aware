@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import type { Id } from "@read-aware/core";
 import type { ChapterDigest } from "../ports";
 import { loadEpubFixture, type EpubFixture } from "../testing/epub-fixture";
-import type { InMemorySeed } from "../testing/fixtures";
+import type { ChapterSeed, InMemorySeed } from "../testing/fixtures";
 import type { JsonValue } from "./types";
 
 export interface RealBookSpec {
@@ -105,6 +105,40 @@ function trimMarketingTitle(raw: string): string {
   return raw.split(/[【（(]/)[0]!.trim() || raw.trim();
 }
 
+/**
+ * A real book as the app reads it: the chapters, titles, text and reading
+ * coordinates its own parser and extraction produce from the EPUB. The app
+ * writes this file (`bun run eval:snapshots` in apps/web) and checks on every
+ * run, and in its tests, that it still equals what the app extracts — so a
+ * scenario built from it is built from the book the reader would have.
+ */
+export interface RealBookSnapshot {
+  title: string;
+  author?: string;
+  /** The source identity the app gives this file. */
+  contentVersion: string;
+  chapters: ChapterSeed[];
+}
+
+export function realBookFile(slug: RealBookSlug): string {
+  return fixturePath(`${slug}.epub`);
+}
+
+export function realBookSnapshotFile(slug: RealBookSlug): string {
+  return fixturePath(`${slug}.booktext.json`);
+}
+
+/**
+ * Whether a seeded book id is a registered real book read through the app: one
+ * whose chapters come from the app's snapshot. Such a book runs only on the
+ * app's headless host.
+ */
+export function isRealBookId(bookId: string): boolean {
+  return (Object.keys(REAL_BOOKS) as RealBookSlug[]).some(
+    (slug) => bookId === `eval-${slug}` && existsSync(realBookSnapshotFile(slug)),
+  );
+}
+
 const epubCache = new Map<string, EpubFixture>();
 const digestsCache = new Map<string, ChapterDigest[]>();
 const fixtureCache = new Map<string, RealBookFixture>();
@@ -114,7 +148,12 @@ function createRealBook(spec: RealBookSpec): RealBookFixture {
   const epub = (): EpubFixture => {
     let cached = epubCache.get(spec.slug);
     if (!cached) {
-      cached = loadEpubFixture(fixturePath(`${spec.slug}.epub`));
+      const snapshot = realBookSnapshotFile(spec.slug as RealBookSlug);
+      // A book without a snapshot yet still reads through the fixture loader, whose chapters
+      // are not the app's. TODO(evals): remove with the last unsnapshotted book.
+      cached = existsSync(snapshot)
+        ? (JSON.parse(readFileSync(snapshot, "utf8")) as RealBookSnapshot)
+        : loadEpubFixture(fixturePath(`${spec.slug}.epub`));
       epubCache.set(spec.slug, cached);
     }
     return cached;

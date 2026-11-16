@@ -102,10 +102,14 @@
      `useContentTypography` from the stored preference (which by default
      follows the reading settings); these are the values that hold when the
      preference is untouched. App chrome does NOT read them: growing the
-     reading size must never reflow the furniture around it. */
-  --ra-content-font-family: var(--font-sans);
-  --ra-content-font-size: 0.875rem;
-  --ra-content-line-height: 1.65;
+     reading size must never reflow the furniture around it. The app's own
+     values are named so a surface can return to them (`.ra-app-content-type`). */
+  --ra-app-content-font-family: var(--font-sans);
+  --ra-app-content-font-size: 0.875rem;
+  --ra-app-content-line-height: 1.65;
+  --ra-content-font-family: var(--ra-app-content-font-family);
+  --ra-content-font-size: var(--ra-app-content-font-size);
+  --ra-content-line-height: var(--ra-app-content-line-height);
 
   /* Custom window chrome. Zero by default (browser / non-mac) so the layout is
      untouched; the desktop shell opts in via the data attributes below. */
@@ -519,6 +523,14 @@ html[data-tauri="true"][data-os="ios"] #root {
 /* AI reply Markdown (Streamdown). Streamdown supplies block spacing via utility
    classes; we only set the base reading size, collapse the outer margins so the
    bubble padding stays even, and underline links for the monochrome palette. */
+/* A subtree that sets its content in the app's own type, whatever the content
+   typography setting says — the Agent page, which is not reading a book. */
+.ra-app-content-type {
+  --ra-content-font-family: var(--ra-app-content-font-family);
+  --ra-content-font-size: var(--ra-app-content-font-size);
+  --ra-content-line-height: var(--ra-app-content-line-height);
+}
+
 /* The one class every content surface wears. Everything inside sizes itself
    in `em`, so the whole block scales as a unit from this single value. */
 .ra-content-type {

@@ -68,7 +68,7 @@
     },
     "contentType": {
       "title": "Tipografía del contenido",
-      "description": "Cómo se componen las respuestas del chat, las notas y las vistas de extensiones. La página del agente conserva la fuente de la app; los controles de la interfaz conservan su tamaño.",
+      "description": "Cómo se componen las respuestas del chat, las notas y las vistas de extensiones. La página del agente y los controles de la interfaz conservan la tipografía de la app.",
       "follow": {
         "title": "Seguir los ajustes de lectura",
         "description": "Usar la fuente y el interlineado elegidos para los libros, reducidos a escala de conversación."

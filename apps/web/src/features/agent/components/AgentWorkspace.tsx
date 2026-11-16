@@ -60,10 +60,10 @@ export function AgentWorkspace() {
   }, [activeThreadId]);
 
   return (
-    // The Agent page keeps the app's own font: a book's chosen typeface is
-    // for reading it, so only the reader's chat follows it. Size and line
-    // spacing still follow the content typography setting.
-    <div className="ra-motion-page-enter flex h-full min-h-0 [--ra-content-font-family:var(--font-sans)]">
+    // The Agent page is set in the app's own type, like the rest of the app:
+    // the content typography setting (a book's face and size, by default) is
+    // for reading, so only the reader's chat follows it.
+    <div className="ra-motion-page-enter ra-app-content-type flex h-full min-h-0">
       {isPhone ? (
         <Sidebar
           open={drawerOpen}

@@ -68,7 +68,7 @@
     },
     "contentType": {
       "title": "Inhaltstypografie",
-      "description": "Wie Chatantworten, Notizen und Plugin-Ansichten gesetzt sind. Die Agent-Seite behält die Schrift der App; Bedienelemente behalten ihre eigene Größe.",
+      "description": "Wie Chatantworten, Notizen und Plugin-Ansichten gesetzt sind. Die Agent-Seite und die Bedienelemente behalten die Schrift und Größe der App.",
       "follow": {
         "title": "Leseeinstellungen folgen",
         "description": "Schrift und Zeilenabstand aus den Leseeinstellungen übernehmen, auf Gesprächsmaß verkleinert."

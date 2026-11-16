@@ -68,7 +68,7 @@
     },
     "contentType": {
       "title": "Content typography",
-      "description": "How chat replies, notes, and plugin views are set. App controls keep their own size.",
+      "description": "How chat replies, notes, and plugin views are set. The Agent page keeps the app’s font; app controls keep their own size.",
       "follow": {
         "title": "Follow the reading settings",
         "description": "Use the font and line spacing you picked for books, scaled down for conversation."

@@ -68,7 +68,7 @@
     },
     "contentType": {
       "title": "Typographie du contenu",
-      "description": "La mise en forme des réponses, des notes et des vues d’extension. Les commandes de l’interface gardent leur taille.",
+      "description": "La mise en forme des réponses, des notes et des vues d’extension. La page de l’agent garde la police de l’app ; les commandes de l’interface gardent leur taille.",
       "follow": {
         "title": "Suivre les réglages de lecture",
         "description": "Reprendre la police et l’interligne choisis pour les livres, réduits à l’échelle d’une conversation."

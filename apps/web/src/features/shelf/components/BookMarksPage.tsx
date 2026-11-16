@@ -92,7 +92,7 @@ export function BookMarksPage({
           {t("details.annotations")}
         </Body>
       </div>
-      <div className="flex min-h-8 items-center gap-3">
+      <div className="flex min-h-8 items-center gap-3 border-b border-border pb-1">
         <ChoiceGroup
           ariaLabel={t("details.filterMarks")}
           className="shrink-0"
@@ -128,7 +128,10 @@ export function BookMarksPage({
           />
         )}
       </div>
-      <div className="-mx-2 mt-2 min-h-0 flex-1 overflow-y-auto border-t border-border">
+      {/* The notes list insets its rows (for their hover surface) by two
+          steps; pulling it out by the same keeps chapter names and the
+          marks' rules on the filters' left edge. */}
+      <div className="-mx-4 min-h-0 flex-1 overflow-y-auto">
         {emptyResult ? (
           <Body className="px-4 py-4 text-sm text-fg-muted">
             {query.trim() ? t("details.noMatches", { query: query.trim() }) : t("workspace.nothingToShow")}

@@ -4,9 +4,9 @@
  * 写成 fixtures/<slug>-digests.json —— eval 场景以此获得"生产同形"的图
  * 切片，一次生成、入库为 fixture、永远确定。
  *
- * 用法（OpenRouter 为缺省 provider——Baidu/千帆优先路由，key 解析与 eval
- * runner 同源）：
- *   bun run eval:digests <slug> [--provider openrouter] [--model deepseek/deepseek-v4-flash-0731]
+ * 用法（缺省 provider 与模型同 eval runner——DeepSeek 官方接口的
+ * deepseek-flash，key 解析同源）：
+ *   bun run eval:digests <slug> [--provider p] [--model m]
  *   bun run eval:digests santi --resume     # 续跑：保留已有章节，只补缺失
  *
  * 断点续跑是刻意设计：几十章的全书跑一次要几分钟，网络抖动不该从头再来。
@@ -20,7 +20,7 @@ import { createCompleteFn } from "./models/complete";
 import { evalProviderRegistry } from "./evals/model-config";
 import type { ChapterDigest } from "./ports";
 import { realBook, realBookSlugs, type RealBookSlug } from "./evals/book-fixtures";
-import { applyEvalRouting, resolveEvalModel } from "./evals/model-config";
+import { applyEvalRouting, EVAL_DEFAULT_PROVIDER, resolveEvalModel } from "./evals/model-config";
 
 function argValue(flag: string): string | undefined {
   const index = process.argv.indexOf(flag);
@@ -35,7 +35,7 @@ if (!slugArg || !(realBookSlugs() as string[]).includes(slugArg)) {
 }
 const slug = slugArg as RealBookSlug;
 const book = realBook(slug);
-const provider = argValue("--provider") ?? "openrouter";
+const provider = argValue("--provider") ?? EVAL_DEFAULT_PROVIDER;
 const requestedModel = argValue("--model");
 const resume = process.argv.includes("--resume");
 

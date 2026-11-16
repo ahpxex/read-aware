@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { applyEvalRouting } from "./model-config";
+import { applyEvalRouting, EVAL_DEFAULT_PROVIDER, evalProviderRegistry, resolveEvalModel } from "./model-config";
 
 test("fixed OpenRouter eval snapshot fits preferred endpoint completion capacity", () => {
   const model = {
@@ -22,4 +22,20 @@ test("fixed OpenRouter eval snapshot fits preferred endpoint completion capacity
   expect(applyEvalRouting({ ...model, id: "another-model" }).maxTokens).toBe(943_718);
   const other = { ...model, provider: "deepseek" };
   expect(applyEvalRouting(other)).toBe(other);
+});
+
+test("an eval with no provider named runs DeepSeek's own flash model", () => {
+  const previous = process.env.DEEPSEEK_API_KEY;
+  process.env.DEEPSEEK_API_KEY = "test-key";
+  try {
+    const resolved = resolveEvalModel(evalProviderRegistry(), EVAL_DEFAULT_PROVIDER);
+    expect(EVAL_DEFAULT_PROVIDER).toBe("deepseek");
+    expect(resolved.modelId).toBe("deepseek-flash");
+    expect(resolved.account).toEqual({ kind: "api-key", provider: "deepseek", apiKey: "test-key" });
+    // A named model is passed through untouched.
+    expect(resolveEvalModel(evalProviderRegistry(), "deepseek", "deepseek-v4-pro").modelId).toBe("deepseek-v4-pro");
+  } finally {
+    if (previous === undefined) delete process.env.DEEPSEEK_API_KEY;
+    else process.env.DEEPSEEK_API_KEY = previous;
+  }
 });

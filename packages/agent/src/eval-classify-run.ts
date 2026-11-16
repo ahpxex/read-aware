@@ -4,7 +4,7 @@
  * 注册表里的人工标注。分类错一本，围栏与纪要口径就整本走错——这是
  * 分类管线的最小活体测试，跑一次五个调用，秒级。
  *
- *   bun run eval:classify [--provider openrouter] [--model deepseek/deepseek-v4-flash-0731]
+ *   bun run eval:classify [--provider p] [--model m]   # 缺省同 eval runner：DeepSeek 官方 deepseek-flash
  */
 import { classifyBookReadingPolicy } from "./memory/narrativity";
 import { accountCredential, createModelResolver } from "./models/accounts";
@@ -12,7 +12,7 @@ import { createCompleteFn } from "./models/complete";
 import { evalProviderRegistry } from "./evals/model-config";
 import type { ChapterRef } from "./ports";
 import { realBook, realBookSlugs } from "./evals/book-fixtures";
-import { applyEvalRouting, resolveEvalModel } from "./evals/model-config";
+import { applyEvalRouting, EVAL_DEFAULT_PROVIDER, resolveEvalModel } from "./evals/model-config";
 
 import { EvalArtifactStore } from "./evals/artifacts";
 import { runEvalSuite } from "./evals/runner";
@@ -28,7 +28,7 @@ function argValue(flag: string): string | undefined {
   return index >= 0 ? process.argv[index + 1] : undefined;
 }
 
-const provider = argValue("--provider") ?? "openrouter";
+const provider = argValue("--provider") ?? EVAL_DEFAULT_PROVIDER;
 const registry = evalProviderRegistry();
 const resolved = resolveEvalModel(registry, provider, argValue("--model"));
 const complete = createCompleteFn(registry, resolved.account, "off");

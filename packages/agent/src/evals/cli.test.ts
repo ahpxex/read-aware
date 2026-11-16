@@ -32,6 +32,11 @@ describe("eval CLI", () => {
     });
   });
 
+  test("runs on DeepSeek's own API when no provider is named", () => {
+    expect(parseEvalCliArgs(["karamazov"])).toMatchObject({ suiteId: "karamazov", provider: "deepseek" });
+    expect(parseEvalCliArgs(["karamazov"]).model).toBeUndefined();
+  });
+
   test("parses named cross-provider and same-provider candidates", () => {
     const result = parseEvalCliArgs([
       "reading",

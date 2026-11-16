@@ -7,7 +7,7 @@ import { evalProviderRegistry } from "./model-config";
 import { createAgentEvalVariant } from "./agent-harness";
 import { EvalArtifactStore } from "./artifacts";
 import { AgentEvalJudge, JUDGE_IMPLEMENTATION_VERSION, withJudge } from "./judge";
-import { resolveEvalModel, resolveJudgeCompletion } from "./model-config";
+import { EVAL_DEFAULT_PROVIDER, resolveEvalModel, resolveJudgeCompletion } from "./model-config";
 import { formatEvalReport, formatRunCauses, formatRunFailures, formatRunLine } from "./report";
 import { runEvalSuite } from "./runner";
 import {
@@ -69,8 +69,8 @@ Targets:
   realbook                     All book-title suites (each includes common scenarios)
 
 Options:
-  --provider <id>              Baseline provider (default: openrouter)
-  --model <id>                 Baseline model (default: provider reasoning model)
+  --provider <id>              Baseline provider (default: ${EVAL_DEFAULT_PROVIDER}, DeepSeek's own API)
+  --model <id>                 Baseline model (default: the provider's pinned eval model)
   --baseline-name <name>       Stable baseline variant id (default: baseline)
   --candidate-model <id>       Compare another model from the baseline provider
   --candidate <spec>           Compare name=provider:model (repeatable)
@@ -169,7 +169,7 @@ export function parseEvalCliArgs(args: string[]): EvalCliOptions {
       `unknown eval suite ${JSON.stringify(suiteInput)}; available suites: ${Object.keys(evalSuites).join(", ")}; groups: ${Object.keys(evalSuiteGroups).join(", ")}`,
     );
   }
-  const provider = parsed.values.provider ?? positionals.shift() ?? "openrouter";
+  const provider = parsed.values.provider ?? positionals.shift() ?? EVAL_DEFAULT_PROVIDER;
   const model = parsed.values.model ?? positionals.shift();
   if (positionals.length > 0) {
     throw new Error(`unexpected positional arguments: ${positionals.join(" ")}`);

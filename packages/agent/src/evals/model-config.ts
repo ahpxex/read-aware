@@ -41,23 +41,34 @@ export interface ResolvedEvalModel {
 }
 
 /**
- * provider 未指定模型时的 eval 缺省。OpenRouter 目录三百多个模型，
- * "第一个 reasoning 模型"是碰运气——显式钉住与 DeepSeek 官方档相同的
- * 模型（OpenRouter slug 形态）。
+ * Evals run on DeepSeek's own API unless a command names another provider:
+ * the eval runner, the digest generator and the classifier check share this
+ * one default, so a baseline and the fixtures it reads come from one model.
+ */
+export const EVAL_DEFAULT_PROVIDER: KnownProviderId = "deepseek";
+
+/**
+ * provider 未指定模型时的 eval 缺省。目录里"第一个 reasoning 模型"是碰运气，
+ * 所以每个会被用到的 provider 都显式钉住。
  *
- * 注意：不带日期的 `deepseek/deepseek-v4-flash` 在 OpenRouter 上是
- * 0423 旧快照（目录名 "DeepSeek V4 Flash 0423"），不是滚动别名——
- * 新快照走独立 slug，所以这里必须钉带日期的 0731。
+ * DeepSeek 官方档是 `deepseek-flash`：官方接口只提供这一个 flash id（滚动
+ * 指向当前的 Flash 版本，2026-11-16 为 V4.1 Flash）。
+ *
+ * OpenRouter 上不带日期的 `deepseek/deepseek-v4-flash` 是 0423 旧快照
+ * （目录名 "DeepSeek V4 Flash 0423"），不是滚动别名——新快照走独立 slug，
+ * 所以那里钉带日期的 0731；它与官方 `deepseek-flash` 不是同一个版本，
+ * 两边的结果不可比。
  */
 const EVAL_DEFAULT_MODELS: Partial<Record<KnownProviderId, string>> = {
+  deepseek: "deepseek-flash",
   openrouter: "deepseek/deepseek-v4-flash-0731",
   // Coding Plan 包月端点：catalog 滞后（此刻只收录到 5.2），id 会原样透传，
   // 端点实测认识 glm-5.3——不钉住会碰运气落到目录第一个 reasoning 模型。
   "zai-coding-cn": "glm-5.3",
   // Codex 订阅（pi CLI oauth）：不钉住会落到目录第一个 reasoning 模型。
   "openai-codex": "gpt-5.6-luna",
-  // Ollama Cloud：与 OpenRouter eval 基线同模型同快照（deepseek-v4-flash
-  // 0731），跨 host 结果才可比。
+  // Ollama Cloud：与 OpenRouter 上钉的快照同模型（deepseek-v4-flash 0731），
+  // 这两个 host 之间的结果才可比。
   "ollama-cloud": "deepseek-v4-flash:0731",
 };
 

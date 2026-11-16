@@ -7,8 +7,20 @@
 export interface SpoilerFence {
   /** 可安全返回全文的最后章节；viewport 位于章内时会是当前章 - 1。 */
   throughChapterIndex: number;
-  /** 仅用于面向模型的越界错误，保持读者所在章节坐标。 */
+  /** 读者所在章节：面向模型的越界错误用它报坐标；配合 readerChapterThrough 划出章内边界。 */
   readerChapterIndex?: number;
+  /**
+   * 读者所在章节正文里已到达的位置（字符偏移，不含）：视口最后一句的句末。
+   * 该章在此之前可读（read_chapter 就地截断），之后与后续章节同属未读。
+   * 只有位置被解析成坐标时才有；没有时该章整章不可读。
+   */
+  readerChapterThrough?: number;
+}
+
+/** 本轮可供 read_chapter(around=…) 解析的位置：章内字符区间。 */
+export interface TurnReadingRanges {
+  position?: import("../runtime/reading-position").ChapterRange;
+  selection?: import("../runtime/reading-position").ChapterRange;
 }
 
 export interface AgentTurnState {
@@ -23,6 +35,8 @@ export interface AgentTurnState {
   modelImageCount?: number;
   modelImageBytes?: number;
   spoilerFence?: SpoilerFence;
+  /** 本轮开始时解析出的阅读位置与选区；未知或被隐私设置扣留时为空。 */
+  readingRanges?: TurnReadingRanges;
   /** Completed-chapter memory boundary, separate from the inclusive prose fence. */
   bookMemoryBoundary?: import("../memory/book-memory-policy").BookGraphBoundary;
   /** 宿主从本轮用户原话或 ask_user 回答中确定性验证出的剧透授权。 */

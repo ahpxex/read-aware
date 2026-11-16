@@ -51,14 +51,14 @@ describe("book text tools", () => {
     }
   }
 
-  test("get_toc and windowed read_chapter reach the model", async () => {
+  test("get_toc and a bounded read_chapter reach the model", async () => {
     let tocPayload = "";
     let chapterPayload = "";
     const { thread } = setup([
       fauxAssistantMessage([fauxToolCall("get_toc", {})], { stopReason: "toolUse" }),
       (context: Context) => {
         tocPayload = JSON.stringify(context.messages[context.messages.length - 1]);
-        return fauxAssistantMessage([fauxToolCall("read_chapter", { chapterIndex: 0, part: 0 })], {
+        return fauxAssistantMessage([fauxToolCall("read_chapter", { chapterIndex: 0 })], {
           stopReason: "toolUse",
         });
       },
@@ -72,10 +72,15 @@ describe("book text tools", () => {
 
     expect(tocPayload).toContain("第一章");
     expect(chapterPayload).toContain("货币起源于债务记账");
-    expect(chapterPayload).toContain("totalParts");
     const parsed = JSON.parse(chapterPayload) as { content?: Array<{ text?: string }> };
-    const result = JSON.parse(parsed.content?.[0]?.text ?? "{}") as { totalParts?: number };
-    expect((result.totalParts ?? 0) > 1).toBe(true); // 长章节确实被分片
+    const result = JSON.parse(parsed.content?.[0]?.text ?? "{}") as {
+      coverage?: { end: number; totalChars: number };
+      next?: { paragraph: number; sentence: number } | null;
+    };
+    // 长章节确实被分片：一次读不完，并给出续读地址
+    expect(result.coverage!.end).toBeLessThan(result.coverage!.totalChars);
+    expect(result.next).toEqual({ paragraph: 0, sentence: expect.any(Number) });
+    expect(result.next!.sentence).toBeGreaterThan(0);
   });
 
   test("search_book_text finds prose with a snippet", async () => {

@@ -44,7 +44,8 @@ export function permittedReadingCursor(
   if (!cursor || (permissions.selection && permissions.surrounding)) return cursor;
   // The viewport may contain the selected passage. Withhold it as a whole,
   // rather than using approximate substring redaction as a privacy boundary.
-  const { visibleText: _text, ...location } = cursor;
+  // Its coordinates point at the same text, so they are withheld with it.
+  const { visibleText: _text, position: _position, ...location } = cursor;
   return location;
 }
 

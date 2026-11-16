@@ -24,7 +24,8 @@ describe("narrative evidence boundary", () => {
     const violations = inspectNarrativeEvidence({
       answer: "我不剧透，但原文是“不要回答”，之后还有面壁计划。",
       readerText: "讲讲眼前内容",
-      cursor: { chapterIndex: 0, visibleText: "眼前只有红岸基地。" },
+      fence: { throughChapterIndex: -1, readerChapterIndex: 0 },
+      visibleText: "眼前只有红岸基地。",
       book: indexed,
     });
     expect(violations.map((item) => item.phrase)).toContain("不要回答");
@@ -35,7 +36,8 @@ describe("narrative evidence boundary", () => {
     const violations = inspectNarrativeEvidence({
       answer: "目录里有智 子；你提到的罗辑也出现在检索片段“不要回答”里。",
       readerText: "罗辑这个名字是什么意思？",
-      cursor: { chapterIndex: 0, visibleText: "眼前只有红岸基地。" },
+      fence: { throughChapterIndex: -1, readerChapterIndex: 0 },
+      visibleText: "眼前只有红岸基地。",
       toolEvidence: ["不要回答"],
       book: indexed,
     });
@@ -46,7 +48,8 @@ describe("narrative evidence boundary", () => {
     const violations = inspectNarrativeEvidence({
       answer: "书中原文是“奇迹神秘权威”。",
       readerText: "概括这段",
-      cursor: { chapterIndex: 0, visibleText: "眼前只有红岸基地。" },
+      fence: { throughChapterIndex: -1, readerChapterIndex: 0 },
+      visibleText: "眼前只有红岸基地。",
       book: indexed,
     });
     expect(violations).toEqual([{ kind: "ungrounded-quote", phrase: "奇迹神秘权威" }]);
@@ -60,7 +63,8 @@ describe("narrative evidence boundary", () => {
     const violations = inspectNarrativeEvidence({
       answer: "全篇的核心，是教会用奇迹、神秘和权威换走人的自由。",
       readerText: "解释这一段",
-      cursor: { chapterIndex: 0, visibleText: "眼前的讨论。" },
+      fence: { throughChapterIndex: -1, readerChapterIndex: 0 },
+      visibleText: "眼前的讨论。",
       book: edition,
     });
     expect(violations).toContainEqual({
@@ -74,7 +78,8 @@ describe("narrative evidence boundary", () => {
     const violations = inspectNarrativeEvidence({
       answer: "后来案件结束，信封是用来勾引格鲁申卡的。",
       readerText: "可以剧透",
-      cursor: { chapterIndex: 0, visibleText: "读者眼前。" },
+      fence: { throughChapterIndex: -1, readerChapterIndex: 0 },
+      visibleText: "读者眼前。",
       book: edition,
       allowFuture: true,
     });
@@ -87,7 +92,8 @@ describe("narrative evidence boundary", () => {
     const violations = inspectNarrativeEvidence({
       answer: "这一家最后会围绕弑父展开。",
       readerText: "帮我梳理这家人的关系",
-      cursor: { chapterIndex: 0, visibleText: "眼前只介绍了父亲和三个儿子。" },
+      fence: { throughChapterIndex: -1, readerChapterIndex: 0 },
+      visibleText: "眼前只介绍了父亲和三个儿子。",
       book: edition,
     });
     expect(violations).toContainEqual({ kind: "future-phrase", phrase: "弑父" });
@@ -99,7 +105,8 @@ describe("narrative evidence boundary", () => {
     const violations = inspectNarrativeEvidence({
       answer: "随即说出判断；表面看起来如此；接着走下去；从这个角度说。",
       readerText: "解释这一段",
-      cursor: { chapterIndex: 0, visibleText: "眼前的讨论。" },
+      fence: { throughChapterIndex: -1, readerChapterIndex: 0 },
+      visibleText: "眼前的讨论。",
       book: edition,
     });
     expect(violations.filter((item) => item.kind === "future-name")).toEqual([]);
@@ -122,9 +129,44 @@ describe("narrative evidence boundary", () => {
     const violations = inspectNarrativeEvidence({
       answer: "后来智子说了秘密。",
       readerText: "解释这一段",
-      cursor: { chapterIndex: 0, visibleText: "眼前的讨论。" },
+      fence: { throughChapterIndex: -1, readerChapterIndex: 0 },
+      visibleText: "眼前的讨论。",
       book: edition,
     });
     expect(violations).toContainEqual({ kind: "future-name", phrase: "智子" });
+  });
+
+  test("the reader's own chapter is read up to their position and unread after it", () => {
+    const chapter = "红岸基地建在雷达峰上。叶文洁第一次走进主控室。不要回答。不要回答。不要回答。";
+    const edition = book(["序章只有风。", chapter]);
+    const through = chapter.indexOf("不要回答");
+    const fence = { throughChapterIndex: 0, readerChapterIndex: 1, readerChapterThrough: through };
+    // Text before the position is the reader's own: quoting it needs no tool evidence.
+    expect(
+      inspectNarrativeEvidence({
+        answer: "原文写的是“叶文洁第一次走进主控室”。",
+        readerText: "这段在讲什么",
+        fence,
+        book: edition,
+      }),
+    ).toEqual([]);
+    // Text after it is as unread as a later chapter.
+    expect(
+      inspectNarrativeEvidence({
+        answer: "原文接下来是“不要回答”。",
+        readerText: "这段在讲什么",
+        fence,
+        book: edition,
+      }).map((item) => item.phrase),
+    ).toEqual(["不要回答"]);
+    // Without a position inside the chapter, the whole chapter stays unread.
+    expect(
+      inspectNarrativeEvidence({
+        answer: "原文写的是“叶文洁第一次走进主控室”。",
+        readerText: "这段在讲什么",
+        fence: { throughChapterIndex: 0, readerChapterIndex: 1 },
+        book: edition,
+      }).map((item) => item.kind),
+    ).toEqual(["future-quote"]);
   });
 });

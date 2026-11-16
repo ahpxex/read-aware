@@ -1,7 +1,11 @@
 import { afterEach, expect, test } from "bun:test";
 import type { Api, Context, Model } from "@earendil-works/pi-ai";
 import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
-import { fauxAssistantMessage, type FauxProviderRegistration } from "@earendil-works/pi-ai/providers/faux";
+import {
+  fauxAssistantMessage,
+  fauxToolCall,
+  type FauxProviderRegistration,
+} from "@earendil-works/pi-ai/providers/faux";
 import { createInMemoryDeps } from "../testing/fixtures";
 import { hostTurn } from "../testing/transcript-host";
 import { memoryPolicyState } from "../testing/memory-policy";
@@ -65,11 +69,68 @@ test("all four policies constrain actual prompt assembly; the host transcript ke
       await collect(hostTurn(f.stores.turns, f.thread, f.input));
       await f.thread.flushBackgroundWork();
       expect(f.prompts[0]!.includes("SELECTED PRIVATE")).toBe(selection);
+      // This host cannot place the reader's location, so the viewport text is the only current material.
       expect(f.prompts[0]!.includes("VIEWPORT")).toBe(selection && surrounding);
-      expect(f.prompts[0]!.includes("<grounding_context>")).toBe(selection && surrounding);
-      expect(f.searches()).toBe(selection && surrounding ? 1 : 0);
+      expect(f.prompts[0]).not.toContain("position: paragraph");
+      // Nothing is retrieved on the model's behalf: book text reaches it only through its own tool calls.
+      expect(f.prompts[0]).not.toContain("<grounding_context>");
+      expect(f.searches()).toBe(0);
       expect(f.stores.turns.get("book:b1")?.[0]?.attachments?.[0]?.text).toBe("SELECTED PRIVATE");
       expect(f.policy.listeners()).toBe(0);
+      f.thread.dispose();
+    }
+});
+
+test("a located position reaches the model as coordinates under the same policies, never as text", async () => {
+  const text = "CONTEXT BEFORE SELECTED PRIVATE VIEWPORT";
+  for (const selection of [true, false])
+    for (const surrounding of [true, false]) {
+      const f = fixture({ selection, surrounding });
+      const located: string[] = [];
+      f.deps.bookText.locate = async (_bookId, target) => {
+        located.push(target.cfi);
+        const start = text.indexOf(target.cfi === "cfi" ? "SELECTED PRIVATE" : "BEFORE");
+        const end = target.cfi === "cfi" ? start + "SELECTED PRIVATE".length : text.length;
+        return { start: { chapterIndex: 1, offset: start }, end: { chapterIndex: 1, offset: end } };
+      };
+      // The model asks for the text at each coordinate; what comes back shows what it can reach.
+      const results: string[] = [];
+      const last = (ctx: Context) => JSON.stringify(ctx.messages[ctx.messages.length - 1]);
+      f.faux.setResponses([
+        (ctx: Context) => {
+          f.prompts.push(last(ctx));
+          return fauxAssistantMessage([fauxToolCall("read_chapter", { around: "selection", context: 0 })], {
+            stopReason: "toolUse",
+          });
+        },
+        (ctx: Context) => {
+          results.push(last(ctx));
+          return fauxAssistantMessage([fauxToolCall("read_chapter", { around: "position", context: 0 })], {
+            stopReason: "toolUse",
+          });
+        },
+        (ctx: Context) => {
+          results.push(last(ctx));
+          return fauxAssistantMessage("A typed answer.");
+        },
+      ]);
+      const turn = { ...f.input, readingCursor: { ...f.input.readingCursor, anchor: "viewport" } };
+      await collect(hostTurn(f.stores.turns, f.thread, turn));
+      await f.thread.flushBackgroundWork();
+      const prompt = f.prompts[0]!;
+      // The host's own sample is always located: the reading boundary does not depend on what the model may see.
+      expect(located.sort()).toEqual(["cfi", "viewport"]);
+      expect(prompt.includes("position: paragraph 0 sentence 0, of 1 paragraphs")).toBe(selection && surrounding);
+      expect(prompt.includes("selection: paragraph 0 sentence 0")).toBe(selection && surrounding);
+      expect(prompt).not.toContain("VIEWPORT");
+      expect(prompt).not.toContain("visible_text");
+      expect(prompt).not.toContain("CONTEXT BEFORE");
+      // read_chapter(around=…) reaches only what the cursor disclosed: with nearby paragraphs
+      // withheld, the selection's own words still arrive in the message, but not its surroundings.
+      expect(results[0]!.includes("SELECTED PRIVATE")).toBe(selection && surrounding);
+      expect(results[0]!.includes("withheld by the reader's privacy settings")).toBe(!(selection && surrounding));
+      expect(results[1]!.includes("CONTEXT BEFORE")).toBe(selection && surrounding);
+      expect(results[1]!.includes("withheld by the reader's privacy settings")).toBe(!(selection && surrounding));
       f.thread.dispose();
     }
 });

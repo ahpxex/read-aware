@@ -1,6 +1,6 @@
 import type { Id } from "@read-aware/core";
 import type { BookTextPort, TurnAttachment } from "../ports";
-import type { ReadingCursor } from "./reading-cursor";
+import type { SpoilerFence } from "../tools/turn-state";
 
 export interface NarrativeBookIndex {
   chapterTexts: string[];
@@ -13,7 +13,13 @@ export interface NarrativeEvidenceInput {
   answer: string;
   readerText: string;
   attachments?: TurnAttachment[];
-  cursor?: ReadingCursor;
+  /**
+   * This turn's reading boundary, the same one the text tools enforce. Without
+   * it the reader's position is unknown and the whole book counts as unread.
+   */
+  fence?: SpoilerFence;
+  /** Viewport text that was sent to the model this turn, when no coordinates could be given. */
+  visibleText?: string;
   toolEvidence?: string[];
   book: NarrativeBookIndex;
   /** A verified grant allows future facts, but never text absent from this edition. */
@@ -184,7 +190,7 @@ function quotedSpans(text: string): Array<{ phrase: string; index: number }> {
 function readerKnownText(input: NarrativeEvidenceInput): string {
   return [
     input.readerText,
-    input.cursor?.visibleText,
+    input.visibleText,
     ...(input.attachments?.map((attachment) => attachment.text) ?? []),
     ...(input.toolEvidence ?? []),
   ]
@@ -192,9 +198,21 @@ function readerKnownText(input: NarrativeEvidenceInput): string {
     .join("\n");
 }
 
-function safeChapterCeiling(cursor?: ReadingCursor): number {
-  if (cursor?.chapterIndex === undefined) return -1;
-  return cursor.visibleText?.trim() ? cursor.chapterIndex - 1 : cursor.chapterIndex;
+/**
+ * The book on each side of the boundary: every chapter through the fence's
+ * ceiling is read, and so is the reader's own chapter up to where they are.
+ */
+function splitAtBoundary(book: NarrativeBookIndex, fence?: SpoilerFence): { safe: string; unread: string } {
+  const ceiling = fence?.throughChapterIndex ?? -1;
+  const safe = book.normalizedChapters.slice(0, ceiling + 1);
+  const unread = book.normalizedChapters.slice(ceiling + 1);
+  const current = fence?.readerChapterIndex;
+  if (fence?.readerChapterThrough !== undefined && current === ceiling + 1 && book.chapterTexts[current] !== undefined) {
+    const text = book.chapterTexts[current];
+    safe.push(normalizeEvidenceText(text.slice(0, fence.readerChapterThrough)));
+    unread[0] = normalizeEvidenceText(text.slice(fence.readerChapterThrough));
+  }
+  return { safe: safe.join(""), unread: unread.join("") };
 }
 
 /**
@@ -221,9 +239,7 @@ export async function loadNarrativeBookIndex(bookText: BookTextPort, bookId: Id)
  * exact quotes, recurring phrases, and likely proper names carry the signal.
  */
 export function inspectNarrativeEvidence(input: NarrativeEvidenceInput): NarrativeEvidenceViolation[] {
-  const ceiling = safeChapterCeiling(input.cursor);
-  const safeChapters = input.book.normalizedChapters.slice(0, ceiling + 1).join("");
-  const unreadChapters = input.book.normalizedChapters.slice(ceiling + 1).join("");
+  const { safe: safeChapters, unread: unreadChapters } = splitAtBoundary(input.book, input.fence);
   const fullBook = `${safeChapters}${unreadChapters}`;
   const known = normalizeEvidenceText(readerKnownText(input));
   const allowed = `${safeChapters}${known}${input.book.normalizedToc}`;

@@ -42,6 +42,7 @@ import { pageMemoryRows } from "../memory/query-page";
 import { searchChapters, searchTurnRecords } from "../text/search";
 import { createMemoryBookNavigation } from "./book-navigation";
 import { createMemoryTextPreparation } from "./book-text-preparation";
+import { plainTextLayout } from "./plain-text-layout";
 
 /** 判别联合的可检索文本（fixtures 的 query 过滤用）。 */
 function annotationText(a: AnnotationItem): string {
@@ -939,9 +940,15 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
           title: chapter.title,
           chars: chapter.text.length,
           hrefs: chapter.hrefs,
+          blocks: plainTextLayout(chapter.text).paragraphs.length,
+          unit: "paragraph",
         }));
       },
       getChapterText: async (bookId, chapterIndex) => stores.chapters.get(bookId)?.[chapterIndex]?.text,
+      getChapterLayout: async (bookId, chapterIndex) => {
+        const text = stores.chapters.get(bookId)?.[chapterIndex]?.text;
+        return text === undefined ? undefined : plainTextLayout(text);
+      },
       searchText: async ({ queries, bookId, throughChapterIndex, limit }) => {
         const results: BookTextHit[] = [];
         for (const [id, chapters] of stores.chapters) {

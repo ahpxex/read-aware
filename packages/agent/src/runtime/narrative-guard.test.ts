@@ -348,4 +348,61 @@ describe("narrative output guard", () => {
     const persisted = stores.turns.get(`book:${BOOK_ID}`) ?? [];
     expect(persisted[persisted.length - 1]?.content).toBe(replacement);
   });
+
+  test("a reader inside a chapter: read_chapter returns that chapter up to their page, and the guard knows it", async () => {
+    faux = registerFauxProvider({ tokensPerSecond: 100_000 });
+    const model = faux.getModel() as Model<Api>;
+    const chapter = "红岸基地建在雷达峰上。叶文洁第一次走进主控室。\n不要回答。不要回答。不要回答。面壁计划开始。";
+    const { deps, stores } = createInMemoryDeps({
+      books: [{ id: BOOK_ID, title: "边界测试书", status: "reading", narrativity: "narrative" }],
+      chapters: { [BOOK_ID]: [{ title: "序", text: "序章只有风。" }, { title: "红岸", text: chapter }] },
+    });
+    let toolResult = "";
+    let prompt = "";
+    faux.setResponses([
+      (context) => {
+        prompt = messageText(context.messages[context.messages.length - 1]!);
+        return fauxAssistantMessage([fauxToolCall("read_chapter", { around: "position", context: 3 })], {
+          stopReason: "toolUse",
+        });
+      },
+      (context) => {
+        toolResult = JSON.stringify(context.messages[context.messages.length - 1]);
+        return fauxAssistantMessage("这一页写的是“叶文洁第一次走进主控室”。");
+      },
+    ]);
+    let repaired = false;
+    const thread = new AgentThread({
+      scope: { kind: "book", bookId: BOOK_ID },
+      deps,
+      resolveModel: () => model,
+      getApiKey: () => "test-key",
+      completeFn: async () => fauxAssistantMessage('{"new":[],"reinforced":[]}'),
+      repairCompleteFn: async () => {
+        repaired = true;
+        return fauxAssistantMessage("不该走到这里。");
+      },
+      streamFn: streamSimple,
+    });
+    const page = "叶文洁第一次走进主控室。";
+    const start = chapter.indexOf(page);
+    const chunks = await collect(
+      hostTurn(stores.turns, thread, {
+        text: "这一页在讲什么？",
+        // The host's viewport text is not what the model receives once the page is located.
+        readingCursor: { chapterIndex: 1, position: { start, end: start + page.length }, visibleText: page },
+      }),
+    );
+    expect(prompt).toContain("position: paragraph 0 sentence 1, of 2 paragraphs in this chapter");
+    expect(prompt).not.toContain("叶文洁");
+    expect(toolResult).toContain("叶文洁第一次走进主控室。");
+    expect(toolResult).toContain("readerPosition");
+    expect(toolResult).not.toContain("不要回答");
+    // Quoting the reader's own page is grounded: the answer is published as written.
+    expect(repaired).toBe(false);
+    expect(chunks.filter((chunk) => chunk.type === "text").map((chunk) => chunk.text).join("")).toBe(
+      "这一页写的是“叶文洁第一次走进主控室”。",
+    );
+    thread.dispose();
+  });
 });

@@ -45,7 +45,7 @@ import {
   turnRecordsToMessages,
   turnsForModel,
 } from "./history";
-import { buildGroundingContext } from "./grounding-context";
+import { resolveReadingPosition, type ChapterRange, type TurnReadingPosition } from "./reading-position";
 import { renderExtensionContext } from "./extension-context";
 import { persistExtensionMemory } from "./extension-memory";
 import {
@@ -66,7 +66,11 @@ import {
   type ReadingContextPermissions,
 } from "./reading-context-policy";
 
-export type SelectionAttachment = TurnAttachment;
+/**
+ * A selection as the host sends it. `position` is for callers that already
+ * hold chapter offsets; hosts send `anchor` and the runtime resolves it.
+ */
+export type SelectionAttachment = TurnAttachment & { position?: ChapterRange };
 
 export interface SendTurnInput {
   text: string;
@@ -135,6 +139,8 @@ const DEFAULT_WINDOW_TURNS = 12;
  * complete exchanges cover the supported recent-turns contract.
  */
 const REBUILD_HISTORY_TURNS = 6;
+/** The most of the reader's located page a safety rewrite is given as evidence. */
+const REPAIR_PAGE_CHARS = 4000;
 
 /**
  * "Never use emoji" 是产品级绝对禁令（设计系统: editorial restraint）——
@@ -292,7 +298,10 @@ export class AgentThread {
   private async repairUnsafeAnswer(input: {
     readerText: string;
     draft: string;
-    cursor?: ReadingCursor;
+    /** The text of the reader's page: what the model was sent of it, or the located viewport's own text. */
+    pageText?: string;
+    /** Viewport text the model was sent this turn (only when the position had no coordinates). */
+    visibleText?: string;
     attachments?: TurnAttachment[];
     recentTurns?: TurnRecord[];
     violations: NarrativeEvidenceViolation[];
@@ -302,7 +311,7 @@ export class AgentThread {
     const started = performance.now();
     const forbidden = input.violations.map((item) => item.phrase);
     const safeEvidence = [
-      input.cursor?.visibleText,
+      input.pageText,
       ...(input.attachments?.map((attachment) => attachment.text) ?? []),
       ...this.turnState.evidenceTexts,
     ].filter((value): value is string => !!value?.trim());
@@ -340,7 +349,8 @@ export class AgentThread {
       answer: candidate,
       readerText: input.readerText,
       attachments: input.attachments,
-      cursor: input.cursor,
+      fence: this.turnState.spoilerFence,
+      visibleText: input.visibleText,
       toolEvidence: this.turnState.evidenceTexts,
       book: input.book,
       allowFuture: this.turnState.spoilerGranted,
@@ -528,6 +538,54 @@ export class AgentThread {
           };
         }
       }
+      // 阅读坐标：视口与选区解析成章内地址（见 reading-position.ts）。位置用宿主的
+      // 真实采样解析——围栏不随隐私设置变宽；给模型的那份另按授权裁剪。
+      let located: TurnReadingPosition = { selections: [] };
+      if (this.scope.kind === "book") {
+        located = await call.wait(
+          resolveReadingPosition({
+            bookText: this.deps.bookText,
+            bookId: this.scope.bookId,
+            cursor: localInput.readingCursor && { ...localInput.readingCursor, chapterIndex: cursor?.chapterIndex },
+            attachments: localInput.attachments,
+            signal: call.signal,
+          }).catch((error): TurnReadingPosition => {
+            call.assertAllowed();
+            this.deps.log?.warn("reading position could not be located; continuing without coordinates", error);
+            return { selections: [] };
+          }),
+        );
+        // 定位到的章节比 href 反查更准（同一文件里可以有多章）。
+        if (located.viewport && cursor) {
+          cursor = {
+            ...cursor,
+            chapterIndex: located.viewport.chapterIndex,
+            chapterTitle: located.viewport.chapterTitle ?? cursor.chapterTitle,
+          };
+        }
+      }
+      // Coordinates are a pointer to the paragraphs around the reader, so they follow the rule
+      // the surrounding text itself did: disclosed only when both the selection and its context are.
+      const disclosed = call.permissions.selection && call.permissions.surrounding;
+      const position: TurnReadingPosition = {
+        ...(disclosed && located.viewport ? { viewport: located.viewport } : {}),
+        selections: disclosed ? located.selections : [],
+      };
+      const selection = position.selections.find((range) => range !== undefined);
+      this.turnState.readingRanges = {
+        ...(position.viewport
+          ? {
+              position: {
+                chapterIndex: position.viewport.chapterIndex,
+                start: position.viewport.start,
+                end: position.viewport.end,
+              },
+            }
+          : {}),
+        ...(selection
+          ? { selection: { chapterIndex: selection.chapterIndex, start: selection.start, end: selection.end } }
+          : {}),
+      };
       // 剧透围栏：叙事书 + 未读完 + 本轮游标带章节 index → 正文工具越界需 confirmSpoiler
       this.turnState.spoilerFence = undefined;
       this.turnState.bookMemoryBoundary = undefined;
@@ -578,30 +636,20 @@ export class AgentThread {
         narrativeUnfinished =
           !!book && (book.spoilerSensitive ?? book.narrativity === "narrative") && needsSpoilerProtection(book);
         if (narrativeUnfinished && cursor?.chapterIndex !== undefined) {
+          // 位置在章内（已定位，或宿主给了视口文本）→ 本章不整章开放；定位成功时
+          // 另记章内边界，read_chapter 可读到那里为止。
           this.turnState.spoilerFence = {
-            throughChapterIndex: localInput.readingCursor?.visibleText?.trim()
-              ? cursor.chapterIndex - 1
-              : cursor.chapterIndex,
+            throughChapterIndex:
+              located.viewport || localInput.readingCursor?.visibleText?.trim()
+                ? cursor.chapterIndex - 1
+                : cursor.chapterIndex,
             readerChapterIndex: cursor.chapterIndex,
+            ...(located.viewport ? { readerChapterThrough: located.viewport.through } : {}),
           };
         }
       }
       // 与远端推理并行预热；未读正文不会进入 prompt，只在回包前作负证据比对。
       const narrativeIndexPromise = narrativeUnfinished ? this.loadNarrativeIndex() : undefined;
-      // 选中提问的确定性接地：边界内原文证据随本轮注入（见 grounding-context.ts）。
-      // 装配失败静默降级；叙事书没有章节坐标时宁缺毋滥。
-      const groundingContext =
-        call.permissions.surrounding && this.scope.kind === "book" && input.attachments?.length
-          ? await call.wait(
-              buildGroundingContext({
-                bookText: this.deps.bookText,
-                bookId: this.scope.bookId,
-                attachments: input.attachments,
-                cursor,
-                narrativeFence: narrativeUnfinished,
-              }),
-            )
-          : undefined;
       const extensionContext = await call.wait(
         Promise.resolve(
           this.deps
@@ -709,7 +757,7 @@ export class AgentThread {
       agent.state.tools = buildModelTools(this.scope, this.deps, this.turnState);
 
       const userText = formatUserTurn(input.text, input.attachments);
-      const basePromptText = formatPromptTurn(input.text, input.attachments, cursor, groundingContext);
+      const basePromptText = formatPromptTurn(input.text, input.attachments, cursor, position);
       const withheldNote =
         localInput.attachments?.length && !call.permissions.selection
           ? "[host note: The selected passage is withheld by the reader's privacy settings. Do not guess its wording or automatically reconstruct that selection with tools. Ask for a self-contained question when the request depends on the missing passage.]"
@@ -949,12 +997,15 @@ export class AgentThread {
             this.deps.log?.warn("narrative evidence index failed to load", error);
             return undefined;
           });
+          // Viewport text counts as seen only when it was what the model received.
+          const visibleText = position.viewport ? undefined : cursor?.visibleText;
           const violations = bookIndex
             ? inspectNarrativeEvidence({
                 answer: visibleDraft,
                 readerText: input.text,
                 attachments: input.attachments,
-                cursor,
+                fence: this.turnState.spoilerFence,
+                visibleText,
                 toolEvidence: this.turnState.evidenceTexts,
                 book: bookIndex,
                 allowFuture: this.turnState.spoilerGranted,
@@ -964,10 +1015,17 @@ export class AgentThread {
             // Removing a whole block can silently drop the requested answer while
             // leaving its heading or dependent prose. Recompose from safe evidence
             // once, then apply the same boundary check before publication.
+            const viewport = position.viewport;
             const repaired = await this.repairUnsafeAnswer({
               readerText: input.text,
               draft: visibleDraft,
-              cursor,
+              pageText: viewport
+                ? bookIndex.chapterTexts[viewport.chapterIndex]?.slice(
+                    Math.max(viewport.start, viewport.through - REPAIR_PAGE_CHARS),
+                    viewport.through,
+                  )
+                : visibleText,
+              visibleText,
               attachments: input.attachments,
               recentTurns: await this.loadRepairSessionTurns(call, input.turnId),
               violations,

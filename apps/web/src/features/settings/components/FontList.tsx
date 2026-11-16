@@ -73,17 +73,17 @@ export function FontList({ className, ...options }: FontListProps) {
               accessories={
                 <>
                   {!font.bytesLocal && <CloudArrowDown size={16} aria-hidden="true" className="text-fg-subtle" />}
-                  <IconButton
-                    size="sm"
-                    icon={<Trash size={15} />}
-                    label={t("font.remove")}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      manager.askRemoval(font);
-                    }}
-                  />
                   {selected && <Check size={16} weight="bold" aria-hidden="true" className="text-fg" />}
                 </>
+              }
+              // Beside the row's button, not inside it: a button cannot hold another.
+              actions={
+                <IconButton
+                  size="sm"
+                  icon={<Trash size={15} />}
+                  label={t("font.remove")}
+                  onClick={() => manager.askRemoval(font)}
+                />
               }
             />
           );

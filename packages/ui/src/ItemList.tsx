@@ -14,7 +14,17 @@ type ItemListItemProps = {
   title: ReactNode;
   subtitle?: ReactNode;
   icon?: ReactNode;
+  /**
+   * Passive trailing content — tags, status icons, a spinner. It renders inside
+   * the row's button when the row is clickable, so it must not be interactive.
+   */
   accessories?: ReactNode;
+  /**
+   * Interactive trailing controls (an IconButton, a menu). They render beside
+   * the row's button rather than inside it — a button cannot hold another —
+   * and stay their own tab stops; the row keeps one hover and selected fill.
+   */
+  actions?: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
   selected?: boolean;
@@ -27,7 +37,18 @@ export function ItemList({ children, className }: ItemListProps) {
 }
 
 const ItemListItem = forwardRef<HTMLButtonElement, ItemListItemProps>(function ItemListItem(
-  { title, subtitle, icon, accessories, onClick, disabled, selected = false, disclosure = "chevron", className },
+  {
+    title,
+    subtitle,
+    icon,
+    accessories,
+    actions,
+    onClick,
+    disabled,
+    selected = false,
+    disclosure = "chevron",
+    className,
+  },
   ref,
 ) {
   const content = (
@@ -54,25 +75,42 @@ const ItemListItem = forwardRef<HTMLButtonElement, ItemListItemProps>(function I
     </>
   );
 
-  return (
-    <li className={className}>
-      {onClick ? (
-        <button
-          ref={ref}
-          type="button"
-          disabled={disabled}
-          aria-current={selected || undefined}
-          onClick={onClick}
-          className={cn(
-            "flex w-full items-center gap-3 px-2 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-fg disabled:opacity-40",
-            selected ? "bg-fill" : "hover:bg-fg/5",
-          )}
-        >
-          {content}
-        </button>
-      ) : (
-        <div className="flex w-full items-center gap-3 px-2 py-2.5">{content}</div>
+  const row = onClick ? (
+    <button
+      ref={ref}
+      type="button"
+      disabled={disabled}
+      aria-current={selected || undefined}
+      onClick={onClick}
+      className={cn(
+        "flex w-full min-w-0 items-center gap-3 py-2.5 pl-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-fg disabled:opacity-40",
+        actions ? "flex-1 pr-1" : "pr-2",
+        // With actions the fill belongs to the whole row (below), so hovering
+        // a trailing control still reads as hovering this row.
+        !actions && (selected ? "bg-fill" : "hover:bg-fg/5"),
       )}
+    >
+      {content}
+    </button>
+  ) : (
+    <div className={cn("flex w-full min-w-0 items-center gap-3 py-2.5 pl-2", actions ? "flex-1 pr-1" : "pr-2")}>
+      {content}
+    </div>
+  );
+
+  if (!actions) return <li className={className}>{row}</li>;
+  return (
+    <li
+      className={cn(
+        "flex items-center transition-colors",
+        selected ? "bg-fill" : onClick && "hover:bg-fg/5",
+        className,
+      )}
+    >
+      {row}
+      <Stack direction="horizontal" gap="sm" align="center" className="shrink-0 pr-2">
+        {actions}
+      </Stack>
     </li>
   );
 });

@@ -9,6 +9,7 @@ import type { ProviderRegistry } from "../models/registry";
 import type { ResolveModel } from "../models/roles";
 import type { SendTurnInput } from "../runtime/thread";
 import { AgentThread } from "../runtime/thread";
+import { narrativeFallbackAnswer } from "../runtime/narrative-fallback";
 import type { InMemorySeed } from "../testing/fixtures";
 import { hostTurn } from "../testing/transcript-host";
 import { evalHost, type EvalEnvironment } from "./host";
@@ -73,6 +74,19 @@ export interface AgentEvalVariantOptions {
   repairCompleteFn?: CompleteFn;
   streamFn?: StreamFn;
   transformSystemPrompt?: (prompt: string, scope: ThreadScope) => string;
+}
+
+/** Which turns' answers the runtime replaced, and how: with the fallback, or with a rewrite that passed the check. */
+function answerInterventions(
+  observation: AgentEvalObservation,
+  rewrites: ReadonlySet<number>,
+): NonNullable<AgentEvalObservation["interventions"]> {
+  type Intervention = NonNullable<AgentEvalObservation["interventions"]>[number];
+  return observation.turns.flatMap((turn): Intervention[] => {
+    const asked = typeof turn.input.text === "string" ? turn.input.text : "";
+    if (turn.answer.trim() === narrativeFallbackAnswer(asked)) return [{ turn: turn.turn, kind: "answer-withheld" }];
+    return rewrites.has(turn.turn) ? [{ turn: turn.turn, kind: "answer-rewritten" }] : [];
+  });
 }
 
 function emptyUsage(): Usage {
@@ -190,7 +204,10 @@ export function createAgentEvalVariant(
         modelRequests.push(captureModelRequest(activeTurn, activeRound, model, modelContext, streamOptions));
         return baseStreamFn(model, modelContext, streamOptions);
       };
+      // The answer check asking for a rewrite is the runtime saying the model's answer could not stand.
+      const rewrites = new Set<number>();
       const tracedRepairCompleteFn: CompleteFn = (model, modelContext, completeOptions) => {
+        rewrites.add(activeTurn);
         activeRound += 1;
         modelRequests.push(captureModelRequest(activeTurn, activeRound, model, modelContext, completeOptions));
         return baseRepairCompleteFn(model, modelContext, completeOptions);
@@ -217,6 +234,8 @@ export function createAgentEvalVariant(
         });
         observation.reviewEvidence = captureReviewEvidence(scenario, originalSources, observation, initialState);
         observation.environment = setupContext.environment;
+        const interventions = answerInterventions(observation, rewrites);
+        if (interventions.length) observation.interventions = interventions;
         return { observation, telemetry: observation.telemetry };
       });
 
@@ -253,6 +272,8 @@ export function createAgentEvalVariant(
         });
         observation.reviewEvidence = captureReviewEvidence(scenario, originalSources, observation, initialState);
         observation.environment = setupContext.environment;
+        const interventions = answerInterventions(observation, rewrites);
+        if (interventions.length) observation.interventions = interventions;
         return { observation, telemetry: observation.telemetry };
       } catch (error) {
         throw new EvalStageError("execution", `agent execution failed: ${scenario.id}`, error);

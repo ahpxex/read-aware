@@ -46,6 +46,7 @@ import {
   turnsForModel,
 } from "./history";
 import { resolveReadingPosition, type ChapterRange, type TurnReadingPosition } from "./reading-position";
+import { narrativeFallbackAnswer } from "./narrative-fallback";
 import { renderExtensionContext } from "./extension-context";
 import { persistExtensionMemory } from "./extension-memory";
 import {
@@ -256,22 +257,6 @@ export class AgentThread {
     return this.narrativeBookIndex;
   }
 
-  private fallbackForUnsafeAnswer(readerText: string): string {
-    if (/[぀-ヿ]/u.test(readerText)) {
-      return "今の読書位置を守るため、この先の内容には触れません。どこまで読んだか、またはネタバレ可だと明示してください。";
-    }
-    if (/[가-힯]/u.test(readerText)) {
-      return "현재 읽는 위치를 지키기 위해 이후 내용은 설명하지 않겠습니다. 어디까지 읽었는지 알려 주거나 스포일러를 허용한다고 명확히 말해 주세요.";
-    }
-    if (/[一-鿿]/u.test(readerText)) {
-      return "为了守住你当前的阅读进度，我先不展开这部分。请告诉我读到哪里，或者明确说明可以剧透。";
-    }
-    if (/[Ѐ-ӿ]/u.test(readerText)) {
-      return "Чтобы не раскрывать непрочитанное, я пока не буду развивать эту часть. Скажите, где вы остановились, или явно разрешите спойлеры.";
-    }
-    return "To protect your current reading position, I will not expand on that yet. Tell me where you are, or explicitly allow spoilers.";
-  }
-
   /** Load only bounded transcript context for a safety rewrite. */
   private async loadRepairSessionTurns(call: ReadingContextCall, turnId?: string): Promise<TurnRecord[]> {
     if (this.scope.kind !== "book") return [];
@@ -356,7 +341,7 @@ export class AgentThread {
       allowFuture: this.turnState.spoilerGranted,
     });
     return {
-      answer: candidate.trim() && remaining.length === 0 ? candidate : this.fallbackForUnsafeAnswer(input.readerText),
+      answer: candidate.trim() && remaining.length === 0 ? candidate : narrativeFallbackAnswer(input.readerText),
       usage: message.usage,
       elapsedMs: Math.round(performance.now() - started),
     };
@@ -990,7 +975,7 @@ export class AgentThread {
       if (narrativeUnfinished) {
         const visibleDraft = bufferedText || stripEmoji(answer);
         if (this.turnState.spoilerPermissionDenied && !this.turnState.spoilerGranted) {
-          answer = this.fallbackForUnsafeAnswer(input.text);
+          answer = narrativeFallbackAnswer(input.text);
           discardUnsafeAgent = true;
           this.deps.log?.warn("narrative answer replaced after an unauthorized spoiler-tool attempt");
           yield { type: "text", text: answer };
@@ -1036,7 +1021,7 @@ export class AgentThread {
             }).catch((error) => {
               this.deps.log?.warn("narrative answer rewrite failed; using deterministic fallback", error);
               return {
-                answer: this.fallbackForUnsafeAnswer(input.text),
+                answer: narrativeFallbackAnswer(input.text),
                 usage: undefined,
                 elapsedMs: 0,
               };

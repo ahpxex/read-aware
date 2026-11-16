@@ -118,6 +118,60 @@ export function formatEvalReport(summary: EvalSummary): string {
   return `${lines.join("\n")}\n`;
 }
 
+/**
+ * Why a run did not pass its checks, in the terms that decide what to do next:
+ * an environment failure says nothing about the agent, an answer the runtime
+ * withheld or rewrote points at the answer check, and only what is left is the
+ * model's own answer or tool use.
+ */
+export type RunCause =
+  | "timeout"
+  | "provider"
+  | "setup"
+  | "harness"
+  | "answer-withheld"
+  | "answer-rewritten"
+  | "tool-error"
+  | "answer";
+
+export function runCause(record: EvalRunRecord): RunCause | undefined {
+  if (record.error) {
+    if (record.error.stage === "timeout") return "timeout";
+    if (record.error.stage === "setup") return "setup";
+    return record.error.code?.startsWith("ai/") ? "provider" : "harness";
+  }
+  if (record.status !== "failed") return undefined;
+  const interventions = (record.output as { interventions?: { kind: string }[] } | undefined)?.interventions ?? [];
+  if (interventions.some((entry) => entry.kind === "answer-withheld")) return "answer-withheld";
+  if (interventions.some((entry) => entry.kind === "answer-rewritten")) return "answer-rewritten";
+  const failed = record.assessment?.checks.filter((check) => !check.passed) ?? [];
+  return failed.length > 0 && failed.every((check) => check.id.startsWith("tool.")) ? "tool-error" : "answer";
+}
+
+const CAUSE_LABELS: Record<RunCause, string> = {
+  timeout: "timed out",
+  provider: "model provider error",
+  setup: "scenario setup failed",
+  harness: "harness error",
+  "answer-withheld": "answer withheld by the answer check",
+  "answer-rewritten": "answer rewritten by the answer check",
+  "tool-error": "tool use",
+  answer: "the answer itself",
+};
+
+/** "3 the answer itself, 2 answer withheld by the answer check, 1 timed out", most frequent first; empty when all passed. */
+export function formatRunCauses(records: readonly EvalRunRecord[]): string {
+  const counts = new Map<RunCause, number>();
+  for (const record of records) {
+    const cause = runCause(record);
+    if (cause) counts.set(cause, (counts.get(cause) ?? 0) + 1);
+  }
+  return [...counts]
+    .sort((a, b) => b[1] - a[1])
+    .map(([cause, count]) => `${count} ${CAUSE_LABELS[cause]}`)
+    .join(", ");
+}
+
 export function formatRunLine(record: EvalRunRecord): string {
   const verdict = qualityVerdict(record);
   const label = verdict === "pending" ? "REVIEW PENDING" : verdict.toUpperCase();
@@ -126,7 +180,8 @@ export function formatRunLine(record: EvalRunRecord): string {
     ? ` diagnosticScore=${record.assessment.score.toFixed(2)} checks=${record.status}`
     : "";
   const error = record.error ? ` ${record.error.stage}: ${record.error.message}` : "";
-  return `[${label}] ${record.variantId} / ${record.scenarioId} #${record.repetition} ${duration}${score}${record.assessment?.modelReview ? ` modelOpinion=${record.assessment.modelReview.verdict}` : ""}${error}`;
+  const cause = runCause(record);
+  return `[${label}] ${record.variantId} / ${record.scenarioId} #${record.repetition} ${duration}${score}${record.assessment?.modelReview ? ` modelOpinion=${record.assessment.modelReview.verdict}` : ""}${error}${cause ? ` cause=${cause}` : ""}`;
 }
 
 export function formatRunFailures(record: EvalRunRecord): string[] {

@@ -8,7 +8,7 @@ import { createAgentEvalVariant } from "./agent-harness";
 import { EvalArtifactStore } from "./artifacts";
 import { AgentEvalJudge, JUDGE_IMPLEMENTATION_VERSION, withJudge } from "./judge";
 import { resolveEvalModel, resolveJudgeCompletion } from "./model-config";
-import { formatEvalReport, formatRunFailures, formatRunLine } from "./report";
+import { formatEvalReport, formatRunCauses, formatRunFailures, formatRunLine } from "./report";
 import { runEvalSuite } from "./runner";
 import {
   evalSuites,
@@ -376,6 +376,8 @@ async function runSuiteTarget(options: EvalCliOptions, target: EvalTarget, conte
   console.log(
     `\nQuality: ${qualitySummaryText(result.summary.quality!)}\nDiagnostics: ${result.summary.passed}/${result.summary.runs} checks passed, ${result.summary.failed} checks failed, ${result.summary.errors} errors`,
   );
+  const causes = formatRunCauses(result.records);
+  if (causes) console.log(`Not passed because: ${causes}`);
 
   // 基线趋势只接受完整套件；筛选快扫不能把未运行的场景记成“移除”。
   const registeredScenarioIds = new Set(evalSuites[target.suiteId].scenarios.map((scenario) => scenario.id));

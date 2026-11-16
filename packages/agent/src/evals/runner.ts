@@ -1,3 +1,4 @@
+import { errorCode } from "@read-aware/core";
 import { toJsonValue } from "./json";
 import { buildEvalSummary } from "./summary";
 import { fingerprintJson, fingerprintSuite } from "./fingerprint";
@@ -52,6 +53,7 @@ function errorDetails(error: unknown, stage: EvalErrorStage) {
     name: normalized.name,
     message: `${normalized.message}${causeMessage}`,
     ...(normalized.stack ? { stack: normalized.stack } : {}),
+    ...(errorCode(cause ?? normalized) ? { code: errorCode(cause ?? normalized) } : {}),
     ...(cause instanceof Error
       ? {
           cause: {

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { seed, withAtoms } from "../../../story-support/atoms";
 import type { CommandItem } from "../../command/lib/build-commands";
-import type { RegisteredHeaderAction } from "../lib/plugin-types";
+import type { RegisteredCommand, RegisteredHeaderAction } from "../lib/plugin-types";
 import { headerActionsAtom, pluginCommandsAtom } from "../state/plugin-store";
 import { usePluginCommandItems } from "./usePluginCommandItems";
 
@@ -42,7 +42,7 @@ const headerActions: RegisteredHeaderAction[] = [
   },
 ];
 
-const commands = [
+const commands: RegisteredCommand[] = [
   {
     id: "sync-now",
     title: "Refresh all feeds",
@@ -62,7 +62,7 @@ const commands = [
     pluginName: "Vocabulary",
     run: () => undefined,
   },
-] as never;
+];
 
 /**
  * Plugin contributions as command-palette entries — the unconditional fallback
@@ -124,7 +124,7 @@ export const ReaderActionsAreExcluded: Story = {
   render: () => <ItemTable />,
   decorators: [
     withAtoms(
-      seed(pluginCommandsAtom, [] as never),
+      seed(pluginCommandsAtom, []),
       seed(
         headerActionsAtom,
         headerActions.filter((a) => a.surface === "reader"),
@@ -136,5 +136,5 @@ export const ReaderActionsAreExcluded: Story = {
 /** No plugins installed. */
 export const NoPlugins: Story = {
   render: () => <ItemTable />,
-  decorators: [withAtoms(seed(pluginCommandsAtom, [] as never), seed(headerActionsAtom, []))],
+  decorators: [withAtoms(seed(pluginCommandsAtom, []), seed(headerActionsAtom, []))],
 };

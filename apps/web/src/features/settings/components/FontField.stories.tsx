@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { seed, withAtoms } from "../../../story-support/atoms";
+import { contributionKey } from "../../plugins/lib/plugin-types";
 import { pluginFontsAtom } from "../../plugins/state/plugin-store";
 import { CURATED_FONTS } from "../lib/curated-fonts";
 import {
@@ -93,14 +94,15 @@ export const PluginFont: Story = {
     withAtoms(
       seed(pluginFontsAtom, [
         {
-          key: "editorial-themes:pt-serif",
+          key: contributionKey("editorial-themes", "pt-serif"),
           pluginId: "editorial-themes",
           pluginName: "Editorial Themes",
           id: "pt-serif",
-          label: "PT Serif",
-          files: [],
+          family: "PT Serif",
+          kind: "serif",
+          files: [{ path: "fonts/PTSerif-Regular.woff2" }],
         },
-      ] as never),
+      ]),
     ),
   ],
 };

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { activeGlobalThreadAtom } from "../../ai/state/global-thread";
+import { GLOBAL_CONVERSATION_ID } from "../../ai/lib/conversation-store";
 import { seed, withAtoms } from "../../../story-support/atoms";
 import { AgentWorkspace } from "./AgentWorkspace";
 
@@ -31,9 +32,12 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** A new, empty thread — the composer takes focus on entry. */
+/**
+ * A new, empty thread — the composer takes focus on entry. A fixed id in the
+ * shape `newGlobalThreadId` mints (`thread-<uuid>`), so the story is stable.
+ */
 export const EmptyThread: Story = {
-  decorators: [withAtoms(seed(activeGlobalThreadAtom, "global-new"))],
+  decorators: [withAtoms(seed(activeGlobalThreadAtom, "thread-00000000-0000-4000-8000-000000000001"))],
 };
 
 /**
@@ -41,5 +45,5 @@ export const EmptyThread: Story = {
  * is why the thread id is the effect's dependency rather than mount alone.
  */
 export const AnotherThread: Story = {
-  decorators: [withAtoms(seed(activeGlobalThreadAtom, "global-2026-06-20"))],
+  decorators: [withAtoms(seed(activeGlobalThreadAtom, GLOBAL_CONVERSATION_ID))],
 };

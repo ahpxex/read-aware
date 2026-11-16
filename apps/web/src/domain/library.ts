@@ -90,6 +90,20 @@ export async function getExtractedChapters(bookId: string, origin?: DomainActor)
   return ensureBookTextExtracted(bookId, undefined, origin);
 }
 
+/**
+ * Where a reader CFI (a viewport or a selection) lies in the book's extracted
+ * text; null when the text is not ready or cannot place it. A host read beside
+ * `getExtractedChapters`, not part of the queries plugins are granted.
+ */
+export function locateExtractedText(
+  bookId: string,
+  target: { cfi: string; textQuote?: import("@read-aware/core").ReadingTextQuote },
+  signal?: AbortSignal,
+  origin?: DomainActor,
+): Promise<import("@read-aware/core").BookTextLocation | null> {
+  return locateBookText(bookId, target, signal, origin);
+}
+
 export async function getPersistedChapters(bookId: string): Promise<ExtractedChapter[] | null> {
   return getPersistedBookText(bookId);
 }
@@ -117,14 +131,6 @@ export type LibraryQueries = {
     getTextTask(bookId: string, taskId: string): Promise<BookTextTaskSnapshot>;
     listTextTasks(bookId: string): Promise<BookTextTaskSnapshot[]>;
     getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
-    /** Block and sentence offsets into the chapter's text; null for a chapter that does not exist. */
-    getChapterLayout(bookId: string, chapterIndex: number): Promise<import("@read-aware/core").ChapterLayout | null>;
-    /** Where a reader CFI lies in the extracted text; null when the text is not ready or cannot place it. */
-    locateText(
-      bookId: string,
-      target: { cfi: string; textQuote?: import("@read-aware/core").ReadingTextQuote },
-      signal?: AbortSignal,
-    ): Promise<import("@read-aware/core").BookTextLocation | null>;
     getNavigationToc(bookId: string, signal?: AbortSignal): Promise<BookNavigationToc>;
     listNavigationTargets(
       input: import("@read-aware/core").BookNavigationTargetsQuery,
@@ -280,9 +286,6 @@ export function createLibraryDomain(
         })),
       getChapterText: async (bookId, chapterIndex) =>
         (await getExtractedChapters(bookId, origin))[Number(chapterIndex)]?.text ?? null,
-      getChapterLayout: async (bookId, chapterIndex) =>
-        (await getExtractedChapters(bookId, origin))[Number(chapterIndex)]?.layout ?? null,
-      locateText: (bookId, target, signal) => locateBookText(bookId, target, signal, origin),
     },
     collections: {
       list: async () =>

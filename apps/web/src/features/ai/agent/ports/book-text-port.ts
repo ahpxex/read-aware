@@ -4,7 +4,7 @@ import type { DomainActor } from "../../../../platform/domain-actor";
 import { type BookTextPort, type ChapterRef } from "@read-aware/agent";
 import { getDigestContentVersion } from "../../../../domain/book-digest";
 import { getDigestChapterSource, getBookTextStatus } from "../../../library/lib/book-text-store";
-import { createLibraryDomain, getExtractedChapters } from "../../../../domain/library";
+import { createLibraryDomain, getExtractedChapters, locateExtractedText } from "../../../../domain/library";
 import { openBookImageResource } from "../../../../domain/library-book-images";
 import { agentResources } from "../../../../services/resources";
 
@@ -121,8 +121,8 @@ export function createBookTextPort(origin: DomainActor = "agent"): BookTextPort 
     getChapterText: async (bookId, chapterIndex) =>
       (await getExtractedChapters(String(bookId), origin))[chapterIndex]?.text,
     getChapterLayout: async (bookId, chapterIndex) =>
-      (await library.getChapterLayout(String(bookId), chapterIndex)) ?? undefined,
-    locate: (bookId, target, signal) => library.locateText(String(bookId), target, signal),
+      (await getExtractedChapters(String(bookId), origin))[chapterIndex]?.layout,
+    locate: (bookId, target, signal) => locateExtractedText(String(bookId), target, signal, origin),
     searchText: library.searchText,
   };
 }

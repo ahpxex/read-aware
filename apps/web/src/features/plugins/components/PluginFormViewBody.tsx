@@ -2,11 +2,15 @@ import { useEffect, useState } from "react";
 import { Button, Checkbox, ChoiceGroup, Select, Stack, TextArea, TextField, TimeField, Toggle } from "@read-aware/ui";
 import { usePluginFormDraft } from "../hooks/usePluginFormDraft";
 import { useTranslation } from "../../../i18n";
+import { describeError } from "../../../i18n/describe-error";
+import { createLogger } from "../../../platform/logger";
 import { usePluginFieldOptions } from "../hooks/usePluginFieldOptions";
 import { contributionText } from "../lib/plugin-i18n";
 import { renderPluginIcon } from "../lib/plugin-icons";
 import type { PluginFormField, PluginFormValues, PluginFormView } from "../lib/plugin-types";
 import type { PluginResultRunner } from "./plugin-view-types";
+
+const log = createLogger("plugins");
 
 type PluginFormViewBodyProps = {
   view: PluginFormView;
@@ -44,26 +48,68 @@ function PluginSecretField({ field, adapter, onChanged, error }: SecretFieldProp
   const { t } = useTranslation("plugins");
   const [configured, setConfigured] = useState(false);
   const [draft, setDraft] = useState("");
+  /** The last secret-store failure, shown on the field until an action succeeds. */
+  const [failure, setFailure] = useState<string | undefined>();
 
   useEffect(() => {
     let cancelled = false;
     if (!adapter) return;
-    void Promise.resolve(adapter.has(field.id)).then((has) => {
-      if (!cancelled) setConfigured(has);
-    });
+    // `then(() => …)` so a plugin adapter that throws synchronously lands in the
+    // same failure path as a rejected promise.
+    void Promise.resolve()
+      .then(() => adapter.has(field.id))
+      .then(
+        (has) => {
+          if (cancelled) return;
+          setConfigured(has);
+          setFailure(undefined);
+        },
+        (cause: unknown) => {
+          log.error("reading a plugin secret failed", cause);
+          // "Not configured" would be a guess: say the check failed instead.
+          if (!cancelled) setFailure(describeError(cause, { fallback: t("viewer.secretReadFailed") }).body);
+        },
+      );
     return () => {
       cancelled = true;
     };
-  }, [adapter, field.id]);
+  }, [adapter, field.id, t]);
 
   const save = () => {
     const value = draft.trim();
     if (!adapter || !value) return;
-    void Promise.resolve(adapter.set(field.id, value)).then(() => {
-      setConfigured(true);
-      setDraft("");
-      onChanged?.();
-    });
+    void Promise.resolve()
+      .then(() => adapter.set(field.id, value))
+      .then(
+        () => {
+          setConfigured(true);
+          setDraft("");
+          setFailure(undefined);
+          onChanged?.();
+        },
+        (cause: unknown) => {
+          log.error("saving a plugin secret failed", cause);
+          // The draft stays in the field so the user can retry without retyping.
+          setFailure(describeError(cause, { fallback: t("viewer.secretSaveFailed") }).body);
+        },
+      );
+  };
+
+  const clear = () => {
+    if (!adapter) return;
+    void Promise.resolve()
+      .then(() => adapter.remove(field.id))
+      .then(
+        () => {
+          setConfigured(false);
+          setFailure(undefined);
+          onChanged?.();
+        },
+        (cause: unknown) => {
+          log.error("clearing a plugin secret failed", cause);
+          setFailure(describeError(cause, { fallback: t("viewer.secretClearFailed") }).body);
+        },
+      );
   };
 
   return (
@@ -77,7 +123,8 @@ function PluginSecretField({ field, adapter, onChanged, error }: SecretFieldProp
           configured ? t("viewer.secretConfigured") : field.placeholder && contributionText(field.placeholder)
         }
         helperText={field.helperText && contributionText(field.helperText)}
-        error={error}
+        // Validation from the form wins; a secret-store failure shows otherwise.
+        error={error ?? failure}
         value={draft}
         disabled={!adapter}
         onChange={(event) => setDraft(event.target.value)}
@@ -95,12 +142,7 @@ function PluginSecretField({ field, adapter, onChanged, error }: SecretFieldProp
           variant="ghost"
           // Sit on the input's baseline row, above its helper text.
           className={field.helperText ? "mb-6" : undefined}
-          onClick={() => {
-            void Promise.resolve(adapter.remove(field.id)).then(() => {
-              setConfigured(false);
-              onChanged?.();
-            });
-          }}
+          onClick={clear}
         >
           {t("viewer.secretClear")}
         </Button>

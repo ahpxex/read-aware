@@ -49,6 +49,8 @@ export class AgentRuntime {
   private readonly streamFns: Record<ModelRole, StreamFn>;
   private readonly threads = new Map<string, AgentThread>();
   private readonly titler: ThreadTitler;
+  /** Title calls started after turns, until they settle; `flushBackgroundWork` drains them. */
+  private readonly titleWork = new Set<Promise<void>>();
   private readonly consolidationCheckpoint = new ConsolidationCheckpoint();
   private consolidationWork: Promise<ConsolidationReport | null> | null = null;
 
@@ -97,12 +99,15 @@ export class AgentRuntime {
 
   async *sendTurn(scope: ThreadScope, input: SendTurnInput): AsyncGenerator<ThreadChunk> {
     yield* this.thread(scope).sendTurn(input);
-    // A global thread is named after its first exchange; untitled is the only
-    // condition, so a thread whose first attempt failed is tried again here.
+    // A global thread is named after its first exchange (untitled is the only
+    // condition: a titled thread is never sent again).
     if (scope.kind === "global") {
-      void this.titleThreads({ limit: 1, threadKey: threadScopeKey(scope) }).catch((error: unknown) =>
-        this.deps.log?.warn("Titling a thread after its turn failed", error),
+      const work: Promise<void> = this.titleThreads({ limit: 1, threadKey: threadScopeKey(scope) }).then(
+        () => undefined,
+        (error: unknown) => this.deps.log?.warn("Titling a thread after its turn failed", error),
       );
+      this.titleWork.add(work);
+      void work.finally(() => this.titleWork.delete(work));
     }
   }
 
@@ -118,6 +123,7 @@ export class AgentRuntime {
   /** 等待所有线程的后台管道（记忆提炼 + 滚动摘要）排空。 */
   async flushBackgroundWork(): Promise<void> {
     await Promise.all([...this.threads.values()].map((thread) => thread.flushBackgroundWork()));
+    await Promise.all(this.titleWork);
   }
 
   /** Invalidate cached context sessions; tool definitions refresh without this. */

@@ -221,6 +221,31 @@ describe("AgentRuntime thread titles", () => {
     expect(titled).toEqual([{ limit: 1, threadKey: "global:thread-1" }]);
   });
 
+  test("draining background work waits for a title started after a turn", async () => {
+    const { runtime } = makeRuntime();
+    runtime.thread = (() => ({
+      sendTurn: async function* () {},
+      flushBackgroundWork: async () => {},
+    })) as unknown as typeof runtime.thread;
+    let finish!: () => void;
+    runtime.titleThreads = () =>
+      new Promise((resolve) => {
+        finish = () => resolve({ titled: 1, halted: false });
+      });
+    for await (const _ of runtime.sendTurn({ kind: "global", threadId: "thread-1" }, { text: "hi" })) {
+      // drain
+    }
+    let drained = false;
+    const draining = runtime.flushBackgroundWork().then(() => {
+      drained = true;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(drained).toBe(false);
+    finish();
+    await draining;
+    expect(drained).toBe(true);
+  });
+
   test("a turn that fails or is abandoned asks for no title", async () => {
     // A turn that starts streaming and then fails.
     const failing = withTurns(async function* () {

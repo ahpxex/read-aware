@@ -3,13 +3,14 @@
  * `aiConversation.titled` 事件（经 ConversationPort.titleThread）。
  *
  * 资格只有一条——全局线程、有带文字的用户消息、还没有标题——轮后触发
- * 与空闲回填共用，所以首次失败会在下一轮或下一个空闲节拍自然重试；
+ * 与空闲回填共用；本会话没起成的线程，下次启动后再试一次；
  * 已有标题的线程永远不再花钱。账户类失败（鉴权/配额/限流）立即停下
- * 本次扫描；模型给出不像标题的输出时，本会话内不再为该线程重试。
+ * 本次扫描；其余失败或不像标题的输出，本会话内不再为该线程重试。
  */
 import type { Api, Model } from "@earendil-works/pi-ai";
 import { ERR_AI_AUTH, ERR_AI_NOT_CONFIGURED, ERR_AI_QUOTA, ERR_AI_RATE_LIMITED, errorCode } from "@read-aware/core";
 import type { CompleteFn } from "../models/complete";
+import { classifyModelFailure } from "../models/failure";
 import type { AgentLogPort, ConversationPort } from "../ports";
 import { replyLanguageAnchor } from "./reading-cursor";
 
@@ -64,7 +65,12 @@ export interface GenerateThreadTitleInput {
   signal?: AbortSignal;
 }
 
-/** One fast-model call naming an exchange; undefined when the output is not a usable title. */
+/**
+ * One fast-model call naming an exchange; undefined when the output is not a
+ * usable title (including a reply cut off at the output cap). A failed call
+ * — which the provider reports as a message, not a throw — is thrown as its
+ * classified error, so an account failure can stop the pass.
+ */
 export async function generateThreadTitle(input: GenerateThreadTitleInput): Promise<string | undefined> {
   const exchange = input.assistantText
     ? `READER: ${input.userText.slice(0, USER_TEXT_CHARS)}\n\nASSISTANT: ${input.assistantText.slice(0, ASSISTANT_TEXT_CHARS)}`
@@ -77,6 +83,10 @@ export async function generateThreadTitle(input: GenerateThreadTitleInput): Prom
     },
     { signal: input.signal, maxTokens: TITLE_MAX_OUTPUT_TOKENS },
   );
+  if (message.stopReason === "error") throw classifyModelFailure(message.errorMessage ?? "thread title failed");
+  if (message.stopReason === "aborted") throw new DOMException("Thread titling was aborted", "AbortError");
+  // A reply cut at the cap (a thinking model spending it) may end mid-title.
+  if (message.stopReason !== "stop") return undefined;
   const text = message.content
     .filter((block): block is { type: "text"; text: string } => block.type === "text")
     .map((block) => block.text)
@@ -95,12 +105,14 @@ export interface ThreadTitleReport {
 
 /**
  * Titles untitled global threads, one fast-model call each. A thread being
- * titled is not taken again until it settles; one whose output was not a
- * title is skipped for the rest of the session.
+ * titled is not taken again until it settles; one whose call failed or whose
+ * output was not a title is skipped for the rest of the session (the reader
+ * agreed to a one-time cost, not a retry every idle tick); an account failure
+ * stops the whole pass.
  */
 export class ThreadTitler {
   private readonly inFlight = new Set<string>();
-  private readonly unusable = new Set<string>();
+  private readonly skipped = new Set<string>();
 
   constructor(
     private readonly options: {
@@ -115,7 +127,7 @@ export class ThreadTitler {
     const { conversations, complete, model, log } = this.options;
     const candidates = await conversations.untitledThreads({
       // Ask for enough to fill `limit` past threads already in flight or skipped.
-      limit: query.limit + this.inFlight.size + this.unusable.size,
+      limit: query.limit + this.inFlight.size + this.skipped.size,
       threadKey: query.threadKey,
     });
     let titled = 0;
@@ -123,7 +135,7 @@ export class ThreadTitler {
     for (const candidate of candidates) {
       if (attempted >= query.limit) break;
       if (query.signal?.aborted) break;
-      if (this.inFlight.has(candidate.threadKey) || this.unusable.has(candidate.threadKey)) continue;
+      if (this.inFlight.has(candidate.threadKey) || this.skipped.has(candidate.threadKey)) continue;
       attempted += 1;
       this.inFlight.add(candidate.threadKey);
       try {
@@ -135,19 +147,21 @@ export class ThreadTitler {
           signal: query.signal,
         });
         if (!title) {
-          this.unusable.add(candidate.threadKey);
+          this.skipped.add(candidate.threadKey);
           log?.warn("Thread title output was not a title; not retried this session");
           continue;
         }
         await conversations.titleThread(candidate.threadKey, title, candidate.messageId);
         titled += 1;
       } catch (error) {
+        if (query.signal?.aborted) break;
         const code = errorCode(error);
         if (code && ACCOUNT_FAILURES.has(code)) {
           log?.warn("Thread titling stopped: the model account cannot serve it now", error);
           return { titled, halted: true };
         }
-        log?.warn("Titling a thread failed; it is retried on a later pass", error);
+        this.skipped.add(candidate.threadKey);
+        log?.warn("Titling a thread failed; not retried this session", error);
       } finally {
         this.inFlight.delete(candidate.threadKey);
       }

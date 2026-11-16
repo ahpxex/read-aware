@@ -109,7 +109,7 @@ test("a pass is bounded, and can be narrowed to one thread", async () => {
   expect(calls).toBe(2);
 });
 
-test("an account failure stops the pass; other failures are retried on a later pass", async () => {
+test("an account failure stops the pass and leaves every thread for later; any other failure skips just that thread", async () => {
   let mode: "auth" | "network" | "ok" = "auth";
   let calls = 0;
   const { stores, titler, warnings } = titlerFixture(async () => {
@@ -120,13 +120,33 @@ test("an account failure stops the pass; other failures are retried on a later p
   });
   expect(await titler.run({ limit: 10 })).toEqual({ titled: 0, halted: true });
   expect(calls).toBe(1);
+  // The account recovers, the network fails once: that thread waits for the next session.
   mode = "network";
-  expect(await titler.run({ limit: 10 })).toEqual({ titled: 0, halted: false });
-  expect(calls).toBe(3);
+  expect(await titler.run({ limit: 1 })).toEqual({ titled: 0, halted: false });
   mode = "ok";
-  expect(await titler.run({ limit: 10 })).toEqual({ titled: 2, halted: false });
-  expect(stores.titles.size).toBe(2);
+  expect(await titler.run({ limit: 10 })).toEqual({ titled: 1, halted: false });
+  expect(await titler.run({ limit: 10 })).toEqual({ titled: 0, halted: false });
+  expect(stores.titles.size).toBe(1);
+  expect(calls).toBe(3);
   expect(warnings.length).toBeGreaterThan(0);
+});
+
+test("a provider failure reported as a message is classified, and an auth failure stops the pass", async () => {
+  let calls = 0;
+  const { titler } = titlerFixture(async () => {
+    calls += 1;
+    return fauxAssistantMessage("", { stopReason: "error", errorMessage: "401 Unauthorized: invalid api key" });
+  });
+  expect(await titler.run({ limit: 10 })).toEqual({ titled: 0, halted: true });
+  expect(calls).toBe(1);
+});
+
+test("a reply cut off at the output cap is not a title", async () => {
+  const complete: CompleteFn = async () => fauxAssistantMessage("近一个月阅读", { stopReason: "length" });
+  expect(await generateThreadTitle({ complete, model, userText: "我最近读了多少？" })).toBeUndefined();
+  const { titler, stores } = titlerFixture(complete);
+  expect(await titler.run({ limit: 10 })).toEqual({ titled: 0, halted: false });
+  expect(stores.titles.size).toBe(0);
 });
 
 test("output that is not a title skips that thread for the session, not the others", async () => {

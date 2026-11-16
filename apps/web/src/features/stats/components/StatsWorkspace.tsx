@@ -2,7 +2,7 @@
  * The stats page — the container half. It owns the annotation-count load
  * (`useAnnotationCounts`); the page itself is `StatsWorkspaceView`.
  */
-import type { LibraryBook } from "../../library/lib/library-types";
+import type { LibraryBook } from "../../library";
 import { useAnnotationCounts } from "../hooks/useAnnotationCounts";
 import { StatsWorkspaceView } from "./StatsWorkspaceView";
 

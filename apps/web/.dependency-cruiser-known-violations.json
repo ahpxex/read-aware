@@ -5267,35 +5267,6 @@
   },
   {
     "type": "dependency",
-    "from": "src/features/stats/components/StatsWorkspace.tsx",
-    "to": "src/features/library/lib/library-types.ts",
-    "unresolvedTo": "../../library/lib/library-types",
-    "dependencyTypes": [
-      "local",
-      "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/stats/components/StatsWorkspace.tsx",
-    "to": "src/features/reader/lib/reading-stats.ts",
-    "unresolvedTo": "../../reader/lib/reading-stats",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
     "from": "src/features/stats/lib/reading-insights.ts",
     "to": "src/features/reader/lib/reading-stats.ts",
     "unresolvedTo": "../../reader/lib/reading-stats",

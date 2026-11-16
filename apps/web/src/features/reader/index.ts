@@ -20,3 +20,6 @@ export { usePanelSwipeDismiss } from "./hooks/usePanelSwipeDismiss";
 // The command palette offers back / forward through the open book's jumps.
 export { useReadingHistory } from "./hooks/useReadingHistory";
 export { stepReadingHistory } from "./lib/reading-history";
+
+// The stats page reports reading time in the reader's own duration format.
+export { formatReadingDuration } from "./lib/reading-stats";

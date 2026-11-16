@@ -42,3 +42,12 @@ export const Minimal: Story = {
     title: "No results found",
   },
 };
+
+/** A whole page's empty state: the title as the page's serif heading, no icon. */
+export const Display: Story = {
+  args: {
+    size: "display",
+    title: "Explore your library",
+    description: "Ask about your books, connect ideas across them, or revisit earlier conversations.",
+  },
+};

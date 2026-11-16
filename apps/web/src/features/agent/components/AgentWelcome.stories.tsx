@@ -3,7 +3,7 @@ import { expect, fn, userEvent, within } from "storybook/test";
 import { AgentWelcome } from "./AgentWelcome";
 
 /**
- * An empty Agent conversation: the ReadAware mark, what the page is for, four
+ * An empty Agent conversation: a serif heading and what the page is for, four
  * ways in (a different mix each conversation; these four are fixed for the
  * story), and the keys for the thread palette and a new conversation. A way
  * in fills the composer and never sends, so it can be edited first.

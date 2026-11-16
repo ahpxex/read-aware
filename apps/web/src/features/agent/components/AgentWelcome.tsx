@@ -1,5 +1,5 @@
 /**
- * What an empty Agent conversation shows: the ReadAware mark, a line on what
+ * What an empty Agent conversation shows: a serif heading and a line on what
  * the page is for, a few ways in (a different mix each conversation, see
  * `pickWelcomeSuggestions`), and the keys for the page's own controls. A way
  * in fills the composer (never sends), so it can be edited first.
@@ -7,7 +7,6 @@
 import type { ReactNode } from "react";
 import { EmptyState, Kbd } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
-import readAwareMark from "../../../assets/readaware-mark.png";
 import type { WelcomeSuggestionKey } from "../lib/welcome-suggestions";
 
 export type AgentWelcomeProps = {
@@ -25,7 +24,7 @@ export function AgentWelcome({ suggestions, onSuggest, searchKeys, newConversati
   return (
     <EmptyState
       className="w-full max-w-xl py-0"
-      icon={<img src={readAwareMark} alt="" width={48} height={48} className="h-12 w-12" draggable={false} />}
+      size="display"
       title={t("chat.globalEmpty.title")}
       description={t("chat.globalEmpty.description")}
       action={

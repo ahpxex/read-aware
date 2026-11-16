@@ -31,7 +31,7 @@ async function mount(view: PluginFormView) {
     Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   const root = createRoot(dom.window.document.getElementById("root")!);
   await act(async () => {
-    root.render(<PluginFormViewBody view={view} busy={false} onResult={() => undefined} />);
+    root.render(<PluginFormViewBody view={view} busy={false} onResult={async () => undefined} />);
   });
   const settle = () => act(async () => {});
   return {

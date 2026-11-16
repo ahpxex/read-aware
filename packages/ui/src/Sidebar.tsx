@@ -58,7 +58,8 @@ export function Sidebar({ side = "left", open, onClose, children, width = "w-72"
       if (focusables.length === 0) return;
       const first = focusables[0];
       const last = focusables[focusables.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
+      // The panel itself holds focus on open; Shift+Tab from it wraps too.
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === el)) {
         e.preventDefault();
         last.focus();
       } else if (!e.shiftKey && document.activeElement === last) {

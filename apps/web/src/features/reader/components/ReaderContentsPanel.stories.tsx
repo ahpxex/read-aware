@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { ReaderContentsPanel } from "./ReaderContentsPanel";
 import NotesStories from "./ReaderNotesList.stories";
 import OverlayStories from "./ReaderShellOverlay.stories";
@@ -84,7 +84,7 @@ export const Notes: Story = {
   args: { view: "notes" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("button", { name: /^Canto Two/ })).toBeVisible();
+    await waitFor(() => expect(canvas.getByRole("button", { name: /^Canto Two/ })).toBeVisible());
     await expect(canvas.getByText("Commentary")).toBeVisible();
   },
 };
@@ -114,6 +114,6 @@ export const NotesFailed: Story = {
 export const BookmarksFailed: Story = {
   args: { view: "notes", notes: { ...notes, bookmarks: { ...notes.bookmarks, bookmarks: null, failed: true } } },
   play: async ({ canvasElement }) => {
-    await expect(await within(canvasElement).findByText("Bookmarks could not be loaded.")).toBeVisible();
+    await waitFor(() => expect(within(canvasElement).getByText("Bookmarks could not be loaded.")).toBeVisible());
   },
 };

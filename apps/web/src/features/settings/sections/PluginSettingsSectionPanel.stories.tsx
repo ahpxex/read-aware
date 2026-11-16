@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { installStoryPluginSecrets } from "../../../story-support/plugin-secrets";
 import type { PluginManifest } from "../../plugins/lib/plugin-types";
 import { PluginSettingsSectionPanel } from "./PluginSettingsSectionPanel";
@@ -76,7 +76,7 @@ export const SavedApiKey: Story = {
   beforeEach: () => installStoryPluginSecrets({ "story-dictionary": { api_key: "sk-story" } }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByPlaceholderText("Saved — enter a new value to replace")).toBeVisible();
+    await waitFor(() => expect(canvas.getByPlaceholderText("Saved — enter a new value to replace")).toBeVisible());
     await expect(canvas.getByRole("button", { name: "Clear" })).toBeVisible();
   },
 };
@@ -87,7 +87,7 @@ export const SavingApiKey: Story = {
     const canvas = within(canvasElement);
     const field = canvas.getByLabelText("API key");
     await userEvent.type(field, "sk-new{Enter}");
-    await expect(await canvas.findByPlaceholderText("Saved — enter a new value to replace")).toBeVisible();
+    await waitFor(() => expect(canvas.getByPlaceholderText("Saved — enter a new value to replace")).toBeVisible());
     await expect(field).toHaveValue("");
   },
 };

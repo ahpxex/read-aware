@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Button } from "@read-aware/ui";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { FeatureErrorBoundary } from "./FeatureErrorBoundary";
 
 /** A stand-in surface that fails to render while `broken`. */
@@ -79,7 +79,7 @@ type Story = StoryObj<typeof meta>;
 export const Fallback: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("heading", { name: "This view ran into a problem" })).toBeVisible();
+    await waitFor(() => expect(canvas.getByRole("heading", { name: "This view ran into a problem" })).toBeVisible());
     await expect(canvas.getByRole("button", { name: "Try again" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Copy details" })).toBeVisible();
   },
@@ -93,7 +93,7 @@ export const RetryRecovers: Story = {
     await canvas.findByRole("heading", { name: "This view ran into a problem" });
     await userEvent.click(canvas.getByRole("button", { name: "Repair the surface" }));
     await userEvent.click(canvas.getByRole("button", { name: "Try again" }));
-    await expect(await canvas.findByText("Reading stats rendered.")).toBeVisible();
+    await waitFor(() => expect(canvas.getByText("Reading stats rendered.")).toBeVisible());
   },
 };
 
@@ -104,6 +104,6 @@ export const ClearsOnNavigation: Story = {
     const canvas = within(canvasElement);
     await canvas.findByRole("heading", { name: "This view ran into a problem" });
     await userEvent.click(canvas.getByRole("button", { name: "Navigate to other content" }));
-    await expect(await canvas.findByText("Reading stats rendered.")).toBeVisible();
+    await waitFor(() => expect(canvas.getByText("Reading stats rendered.")).toBeVisible());
   },
 };

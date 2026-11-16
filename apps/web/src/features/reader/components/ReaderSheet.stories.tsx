@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { readerOverridesAtom, readerPreferencesAtom } from "../../../state/ui";
 import { seed, withAtoms } from "../../../story-support/atoms";
 import { DEFAULT_READER_PREFERENCES } from "../../settings/lib/reader-settings";
@@ -99,7 +99,7 @@ export const Notes: Story = {
   args: { active: "notes" },
   play: async ({ canvasElement }) => {
     const sheetDialog = await within(canvasElement).findByRole("dialog", { name: "Notes" });
-    await expect(await within(sheetDialog).findByRole("button", { name: /^Canto Two/ })).toBeVisible();
+    await waitFor(() => expect(within(sheetDialog).getByRole("button", { name: /^Canto Two/ })).toBeVisible());
   },
 };
 
@@ -116,7 +116,7 @@ export const Search: Story = {
     const field = within(sheetDialog).getByRole("searchbox", { name: "Search this book" });
     await expect(field).toHaveValue(remembered.query);
     await expect(field).not.toHaveFocus();
-    await expect(await within(sheetDialog).findByText("Chapters")).toBeVisible();
+    await waitFor(() => expect(within(sheetDialog).getByText("Chapters")).toBeVisible());
   },
 };
 

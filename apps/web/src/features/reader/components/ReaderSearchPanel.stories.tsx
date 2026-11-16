@@ -113,8 +113,8 @@ export const Remembered: Story = {
     const field = await canvas.findByRole("searchbox", { name: "Search this book" });
     await expect(field).toHaveValue(query);
     await waitFor(() => expect(field).toHaveFocus());
-    await expect(await canvas.findByText("Chapters")).toBeVisible();
-    await expect(await canvas.findByText("Text")).toBeVisible();
+    await waitFor(() => expect(canvas.getByText("Chapters")).toBeVisible());
+    await waitFor(() => expect(canvas.getByText("Text")).toBeVisible());
   },
 };
 
@@ -139,7 +139,7 @@ export const ReopensWhereItWasLeft: Story = {
 export const NoResults: Story = {
   beforeEach: () => rememberBookSearch(bookId, { query: "智子", search: noTextSearch }),
   play: async ({ canvasElement }) => {
-    await expect(await within(canvasElement).findByText("No matches for “智子” in the text.")).toBeVisible();
+    await waitFor(() => expect(within(canvasElement).getByText("No matches for “智子” in the text.")).toBeVisible());
   },
 };
 
@@ -159,8 +159,10 @@ export const TextlessBook: Story = {
     }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByText("Chapters")).toBeVisible();
-    await expect(await canvas.findByText("This book has no searchable text — its pages may be images.")).toBeVisible();
+    await waitFor(() => expect(canvas.getByText("Chapters")).toBeVisible());
+    await waitFor(() =>
+      expect(canvas.getByText("This book has no searchable text — its pages may be images.")).toBeVisible(),
+    );
   },
 };
 

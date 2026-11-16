@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import type { PluginFormField } from "../lib/plugin-types";
 import { PluginFormViewBody } from "./PluginFormViewBody";
 import { noopRunner } from "./plugin.fixtures";
@@ -247,7 +247,7 @@ export const SecretStoreUnavailable: Story = {
     },
   },
   play: async ({ canvasElement }) => {
-    await expect(await within(canvasElement).findByText("Couldn't check the saved key.")).toBeVisible();
+    await waitFor(() => expect(within(canvasElement).getByText("Couldn't check the saved key.")).toBeVisible());
   },
 };
 
@@ -270,7 +270,7 @@ export const SecretSaveFailed: Story = {
     const canvas = within(canvasElement);
     const field = canvas.getByLabelText("API key");
     await userEvent.type(field, "sk-new{Enter}");
-    await expect(await canvas.findByText("Couldn't save the key.")).toBeVisible();
+    await waitFor(() => expect(canvas.getByText("Couldn't save the key.")).toBeVisible());
     await expect(field).toHaveValue("sk-new");
   },
 };

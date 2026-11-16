@@ -362,7 +362,7 @@ export const SearchPopup: Story = {
     await userEvent.click(trigger);
     const field = await canvas.findByRole("searchbox", { name: "Search this book" });
     await expect(field).toHaveValue(searchQuery);
-    await expect(await canvas.findByText("Chapters")).toBeVisible();
+    await waitFor(() => expect(canvas.getByText("Chapters")).toBeVisible());
   },
 };
 

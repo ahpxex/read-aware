@@ -105,9 +105,9 @@ export const Expanding: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(await canvas.findByRole("button", { name: "Expand Book One: Swann's Way" }));
-    await expect(await canvas.findByRole("button", { name: "Combray" })).toBeVisible();
+    await waitFor(() => expect(canvas.getByRole("button", { name: "Combray" })).toBeVisible());
     await userEvent.click(canvas.getByRole("button", { name: "Expand Combray" }));
-    await expect(await canvas.findByRole("button", { name: "The Madeleine" })).toBeVisible();
+    await waitFor(() => expect(canvas.getByRole("button", { name: "The Madeleine" })).toBeVisible());
   },
 };
 
@@ -140,7 +140,7 @@ export const PinnedOpen: Story = {
     return clear;
   },
   play: async ({ canvasElement }) => {
-    await expect(await within(canvasElement).findByRole("button", { name: "Part Two" })).toBeVisible();
+    await waitFor(() => expect(within(canvasElement).getByRole("button", { name: "Part Two" })).toBeVisible());
   },
 };
 

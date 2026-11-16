@@ -31,6 +31,7 @@ import { runScrollChapterRegressions } from "./foliate-scroll-chapter-regression
 import { runViewRegressions } from "./foliate-view-regressions";
 import { runDocumentLayoutRegressions } from "./reader-document-layout-regressions";
 import { runCustomTypographyRegressions } from "./reader-custom-typography-regressions";
+import { runEvalBookParityRegressions } from "./eval-book-parity-regressions";
 
 export type RuntimeResult = { suite: string; name: string; passed: boolean; details?: string };
 export type RuntimeReport = { done: boolean; results: RuntimeResult[]; error?: string };
@@ -85,6 +86,7 @@ async function run(report: RuntimeReport): Promise<void> {
     ["custom-typography", () => runCustomTypographyRegressions(paginator.Paginator)],
     ["fit", () => runFitRegressions(view.View)],
     ["open-layout", () => runOpenLayoutRegressions(view.View)],
+    ["eval-book-parity", () => runEvalBookParityRegressions({ view })],
   ];
   for (const [suite, execute] of suites) {
     setStatus(`Running ${suite}…`);

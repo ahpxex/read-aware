@@ -56,7 +56,7 @@ export const ActionsMenu: Story = {
     const rename = await canvas.findByRole("menuitem", { name: "Rename" });
     // Visible once the menu has popped in.
     await waitFor(() => expect(rename).toBeVisible());
-    await expect(canvas.getByRole("menuitem", { name: "Delete" })).toBeVisible();
+    await waitFor(() => expect(canvas.getByRole("menuitem", { name: "Delete" })).toBeVisible());
   },
 };
 

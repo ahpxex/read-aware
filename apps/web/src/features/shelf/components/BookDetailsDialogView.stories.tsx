@@ -131,6 +131,7 @@ export const SearchingMarks: Story = {
     const body = page(canvasElement);
     await userEvent.click(await body.findByRole("button", { name: /Highlights/ }));
     await userEvent.click(await body.findByRole("button", { name: "All" }));
+    await userEvent.click(body.getByRole("button", { name: "Search highlights and notes" }));
     await userEvent.type(body.getByRole("searchbox", { name: "Search highlights and notes" }), "message");
     await waitFor(() => expect(body.getByText(/scribbled in the dark/)).toBeVisible());
     await expect(body.queryByText(/waxwing slain/)).toBeNull();
@@ -142,6 +143,7 @@ export const NoSearchMatches: Story = {
   play: async ({ canvasElement }) => {
     const body = page(canvasElement);
     await userEvent.click(await body.findByRole("button", { name: /Highlights/ }));
+    await userEvent.click(await body.findByRole("button", { name: "Search highlights and notes" }));
     await userEvent.type(body.getByRole("searchbox", { name: "Search highlights and notes" }), "Zembla");
     await waitFor(() => expect(body.getByText("Nothing matches “Zembla”.")).toBeVisible());
   },
@@ -165,5 +167,27 @@ export const BackToDetails: Story = {
     await userEvent.click(await body.findByRole("button", { name: /Notes/ }));
     await userEvent.click(await body.findByRole("button", { name: "Back to book details" }));
     await waitFor(() => expect(body.getByRole("button", { name: /Notes/ })).toHaveFocus());
+  },
+};
+
+/**
+ * Search is an icon at the end of the filter row; it opens a field in its
+ * place. Escape closes the search — clearing it — without closing the dialog,
+ * and focus returns to the icon.
+ */
+export const SearchOpensAndCloses: Story = {
+  play: async ({ canvasElement }) => {
+    const body = page(canvasElement);
+    await userEvent.click(await body.findByRole("button", { name: /Highlights/ }));
+    await expect(body.queryByRole("searchbox")).toBeNull();
+    await userEvent.click(await body.findByRole("button", { name: "Search highlights and notes" }));
+    const field = body.getByRole("searchbox", { name: "Search highlights and notes" });
+    await waitFor(() => expect(field).toHaveFocus());
+    await userEvent.type(field, "waxwing");
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(body.queryByRole("searchbox")).toBeNull());
+    await expect(body.getByRole("dialog", { name: "Book details" })).toBeInTheDocument();
+    await waitFor(() => expect(body.getByRole("button", { name: "Search highlights and notes" })).toHaveFocus());
+    await waitFor(() => expect(body.getByText(/flowing shade/)).toBeVisible());
   },
 };

@@ -64,6 +64,7 @@
     "annotations": "Notes & highlights",
     "back": "Back to book details",
     "searchMarks": "Search highlights and notes",
+    "closeSearch": "Close search",
     "filterMarks": "Show",
     "filterAll": "All",
     "noMatches": "Nothing matches “{{query}}”.",

@@ -1,5 +1,5 @@
-import { useMemo, type Ref } from "react";
-import { CaretLeft } from "@phosphor-icons/react";
+import { useEffect, useMemo, useRef, useState, type Ref } from "react";
+import { CaretLeft, MagnifyingGlass } from "@phosphor-icons/react";
 import { Body, ChoiceGroup, IconButton, SearchField } from "@read-aware/ui";
 import { formatNumber, useTranslation } from "../../../i18n";
 import type { Highlight, Note } from "../../annotations";
@@ -31,7 +31,9 @@ type BookMarksPageProps = {
  * (grouped by chapter, newest first within one). A row opens the book there.
  *
  * Fixed height, with only the list scrolling, so typing a search or switching
- * the filter never makes the dialog jump.
+ * the filter never makes the dialog jump. Search stays out of the way: an icon
+ * at the end of the filter row opens a quiet field in its place; closing it
+ * (its close control, or Escape) clears the query.
  */
 export function BookMarksPage({
   marks,
@@ -59,6 +61,24 @@ export function BookMarksPage({
   }, [marks, filter, query]);
   const emptyResult = !isLoading && !loadFailed && marks.length > 0 && shown.length === 0;
 
+  const [searching, setSearching] = useState(query !== "");
+  const fieldRef = useRef<HTMLInputElement | null>(null);
+  const searchButtonRef = useRef<HTMLButtonElement | null>(null);
+  /** Set when search closes, so focus returns to the icon that opened it. */
+  const refocusSearchButton = useRef(false);
+  useEffect(() => {
+    if (searching) fieldRef.current?.focus();
+    else if (refocusSearchButton.current) {
+      refocusSearchButton.current = false;
+      searchButtonRef.current?.focus();
+    }
+  }, [searching]);
+  const closeSearch = () => {
+    onQueryChange("");
+    refocusSearchButton.current = true;
+    setSearching(false);
+  };
+
   return (
     <div className="flex h-[min(34rem,70vh)] flex-col">
       <div className="-ml-2 flex items-center gap-1 pb-3">
@@ -72,23 +92,42 @@ export function BookMarksPage({
           {t("details.annotations")}
         </Body>
       </div>
-      <SearchField
-        label={t("details.searchMarks")}
-        placeholder={t("details.searchMarks")}
-        value={query}
-        onChange={(event) => onQueryChange(event.target.value)}
-      />
-      <ChoiceGroup
-        ariaLabel={t("details.filterMarks")}
-        className="pt-3"
-        value={filter}
-        onChange={onFilterChange}
-        options={[
-          { value: "all", label: t("details.filterAll") },
-          { value: "highlight", label: `${t("details.highlights")} ${formatNumber(highlightCount)}` },
-          { value: "note", label: `${t("details.notes")} ${formatNumber(noteCount)}` },
-        ]}
-      />
+      <div className="flex min-h-8 items-center gap-3">
+        <ChoiceGroup
+          ariaLabel={t("details.filterMarks")}
+          className="shrink-0"
+          value={filter}
+          onChange={onFilterChange}
+          options={[
+            { value: "all", label: t("details.filterAll") },
+            { value: "highlight", label: `${t("details.highlights")} ${formatNumber(highlightCount)}` },
+            { value: "note", label: `${t("details.notes")} ${formatNumber(noteCount)}` },
+          ]}
+        />
+        {searching ? (
+          <SearchField
+            ref={fieldRef}
+            size="sm"
+            variant="plain"
+            className="ml-auto min-w-0 flex-1"
+            label={t("details.searchMarks")}
+            placeholder={t("details.searchMarks")}
+            value={query}
+            onChange={(event) => onQueryChange(event.target.value)}
+            onDismiss={closeSearch}
+            dismissLabel={t("details.closeSearch")}
+          />
+        ) : (
+          <IconButton
+            ref={searchButtonRef}
+            size="sm"
+            className="ml-auto"
+            label={t("details.searchMarks")}
+            onClick={() => setSearching(true)}
+            icon={<MagnifyingGlass size={16} aria-hidden="true" />}
+          />
+        )}
+      </div>
       <div className="-mx-2 mt-2 min-h-0 flex-1 overflow-y-auto border-t border-border">
         {emptyResult ? (
           <Body className="px-4 py-4 text-sm text-fg-muted">

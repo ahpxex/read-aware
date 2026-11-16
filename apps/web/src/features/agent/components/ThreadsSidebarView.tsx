@@ -1,10 +1,9 @@
 /**
- * The Agent page's thread list: New conversation first, then every global
- * conversation, grouped by when it was last active, newest first, with a
- * search over their titles. The open
- * thread is marked; deleting is a hover control at a row's end (always shown
- * on touch). A thread not yet saved — a new conversation before its first
- * turn — still heads the list, so the open thread is always in it.
+ * The Agent page's thread list: every stored global conversation, grouped by
+ * when it was last active, newest first, under one row holding a search over
+ * their titles and New conversation. The open thread is marked; deleting is a
+ * hover control at a row's end (always shown on touch). A new conversation
+ * joins the list with its first turn, so until then nothing is marked.
  *
  * Pure presentation: the list's reads, deletes and selection belong to the
  * container (`useAgentThreads`), so empty, loading, failed and long-title
@@ -12,7 +11,7 @@
  */
 import { useMemo, useState } from "react";
 import { NotePencil, Trash } from "@phosphor-icons/react";
-import { Body, Button, IconButton, InlineError, ScrollArea, SearchField, Spinner } from "@read-aware/ui";
+import { Body, IconButton, InlineError, ScrollArea, SearchField, Spinner, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import type { ThreadSummary } from "@read-aware/core";
 import { formatDate, useTranslation, type ErrorDescription } from "../../../i18n";
@@ -33,7 +32,7 @@ export type ThreadsSidebarViewProps = {
   className?: string;
 };
 
-type Row = { id: string; title: string; updatedAt: string; saved: boolean };
+type Row = { id: string; title: string; updatedAt: string };
 
 export function ThreadsSidebarView({
   threads,
@@ -53,26 +52,15 @@ export function ThreadsSidebarView({
 
   const groups = useMemo(() => {
     const untitled = t("agent.threads.untitled");
+    // Stored threads only: a new conversation joins the list with its first turn.
     const rows: Row[] = threads.map((thread) => ({
       id: thread.id,
       title: thread.title?.trim() || untitled,
       updatedAt: thread.updatedAt ?? "",
-      saved: true,
     }));
-    // The open thread before its first turn is not stored yet; it is still the open one.
-    if (!rows.some((row) => row.id === activeThreadId)) {
-      rows.unshift({
-        id: activeThreadId,
-        title: untitled,
-        updatedAt: new Date(now ?? Date.now()).toISOString(),
-        saved: false,
-      });
-    }
-    const matching = trimmed
-      ? rows.filter((row) => row.saved && row.title.toLocaleLowerCase().includes(trimmed))
-      : rows;
+    const matching = trimmed ? rows.filter((row) => row.title.toLocaleLowerCase().includes(trimmed)) : rows;
     return groupThreadsByDate(matching, now ?? Date.now());
-  }, [threads, activeThreadId, trimmed, now, t]);
+  }, [threads, trimmed, now, t]);
 
   const groupLabel = (key: ThreadGroup<Row>["key"]) => {
     if (!key.startsWith("month:")) return t(`agent.threads.groups.${key as Exclude<typeof key, `month:${string}`>}`);
@@ -82,21 +70,26 @@ export function ThreadsSidebarView({
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col", className)}>
-      <div className="shrink-0 px-2 pt-2">
-        <Button variant="ghost" size="sm" onClick={onNew} className="w-full justify-start px-2 text-fg">
-          <NotePencil size={16} aria-hidden="true" />
-          {t("agent.threads.new")}
-        </Button>
-      </div>
-      <div className="shrink-0 border-b border-border px-4 py-2.5">
+      {/* One quiet row: the search, and New conversation at its end. */}
+      <div className="flex shrink-0 items-center gap-2 border-b border-border py-1.5 pr-2 pl-4">
         <SearchField
           size="sm"
           variant="plain"
+          className="min-w-0 flex-1"
           label={t("agent.threads.search")}
           placeholder={t("agent.threads.search")}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
+        <Tooltip content={t("agent.threads.new")} side="bottom" align="end">
+          <IconButton
+            size="sm"
+            label={t("agent.threads.new")}
+            onClick={onNew}
+            className="shrink-0 text-fg-muted hover:text-fg"
+            icon={<NotePencil size={16} aria-hidden="true" />}
+          />
+        </Tooltip>
       </div>
       <ScrollArea className="min-h-0 flex-1 px-2 pt-1 pb-[calc(1rem+var(--ra-safe-bottom))]">
         {isLoading && threads.length === 0 ? (
@@ -127,7 +120,7 @@ export function ThreadsSidebarView({
                     title={row.title}
                     active={row.id === activeThreadId}
                     onSelect={() => onSelect(row.id)}
-                    onDelete={row.saved ? () => onDelete(row.id) : undefined}
+                    onDelete={() => onDelete(row.id)}
                     deleteLabel={t("agent.threads.delete")}
                   />
                 ))}

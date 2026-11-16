@@ -35,7 +35,7 @@ function Interactive(props: Partial<ThreadsSidebarViewProps>) {
         activeThreadId={active}
         onSelect={setActive}
         onDelete={(id) => setList((current) => current.filter((thread) => thread.id !== id))}
-        // A fresh thread is not stored until its first turn: it heads the list unsaved.
+        // A fresh thread is not stored until its first turn, so it is not listed yet.
         onNew={() => setActive(`thread-new-${Date.now()}`)}
       />
     </div>
@@ -44,8 +44,8 @@ function Interactive(props: Partial<ThreadsSidebarViewProps>) {
 
 /**
  * The Agent page's threads, docked at its left edge (a drawer on a phone):
- * New conversation first, then the threads grouped by when each was last
- * active, the open one marked, a search over their titles above them.
+ * the threads grouped by when each was last active, the open one marked,
+ * under one row holding a search over their titles and New conversation.
  * Deleting is at a row's end on hover.
  */
 const meta = {
@@ -60,7 +60,7 @@ type Story = StoryObj<typeof meta>;
 /** Today, yesterday, the previous week and month, then by month. An untitled thread reads "New conversation". */
 export const Grouped: Story = {};
 
-/** A new conversation before its first turn is not stored yet; it still heads the list as the open thread. */
+/** A new conversation before its first turn is not stored yet: it is not listed, so nothing is marked. */
 export const UnsavedNewThread: Story = {
   args: { activeThreadId: "thread-new" },
 };
@@ -75,7 +75,7 @@ export const Searching: Story = {
   },
 };
 
-/** No thread yet but the open, unsaved one. */
+/** No stored thread yet. */
 export const Empty: Story = {
   args: { threads: [], activeThreadId: "thread-new" },
 };

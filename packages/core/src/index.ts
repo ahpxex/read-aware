@@ -51,6 +51,7 @@ export * from "./book-navigation";
 export * from "./bookmarks";
 export * from "./book-navigation-targets";
 export * from "./book-range";
+export * from "./book-layout";
 export * from "./book-references";
 export * from "./book-images";
 export * from "./reader-reference-preview";

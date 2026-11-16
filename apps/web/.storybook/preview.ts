@@ -1,12 +1,21 @@
 import { createElement, type ReactNode } from "react";
 import { ToastProvider } from "@read-aware/ui";
 import type { Preview } from "@storybook/react-vite";
+import { sb } from "storybook/test";
 import { initI18n } from "../src/i18n";
 import { StoryStore } from "../src/story-support/atoms";
 import { applyStoryDisplay, storyDisplayKey } from "../src/story-support/display";
+import { installStoryPluginSecrets } from "../src/story-support/plugin-secrets";
 import "../src/index.css";
 
+// Plugin secrets live in the desktop shell; spy mode keeps the module real and
+// lets `installStoryPluginSecrets` swap in an in-memory store per story.
+sb.mock(import("../src/platform/secret-store.ts"), { spy: true });
+
 const preview: Preview = {
+  beforeEach() {
+    installStoryPluginSecrets();
+  },
   loaders: [
     async () => {
       await initI18n("en");

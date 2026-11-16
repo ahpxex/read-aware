@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, userEvent, within } from "storybook/test";
 import type { PluginFormField } from "../lib/plugin-types";
 import { PluginFormViewBody } from "./PluginFormViewBody";
 import { noopRunner } from "./plugin.fixtures";
@@ -212,4 +213,64 @@ export const Busy: Story = {
 /** A form with no fields still renders its title and submit affordance. */
 export const NoFields: Story = {
   args: { view: { kind: "form", title: "Nothing to configure", fields: [], onSubmit: () => undefined } },
+};
+
+/** A secret field whose key is already saved: masked placeholder plus Clear. */
+export const SecretSaved: Story = {
+  args: {
+    view: {
+      kind: "form",
+      submitMode: "change",
+      fields: [{ kind: "secret", id: "api_key", label: "API key", helperText: "Stored encrypted." }],
+      onSubmit: () => undefined,
+      secrets: { has: () => true, set: () => undefined, remove: () => undefined },
+    },
+  },
+};
+
+/**
+ * The secret store could not be read (a locked keychain, say). The field says
+ * the check failed rather than presenting the key as unset.
+ */
+export const SecretStoreUnavailable: Story = {
+  args: {
+    view: {
+      kind: "form",
+      submitMode: "change",
+      fields: [{ kind: "secret", id: "api_key", label: "API key", helperText: "Stored encrypted." }],
+      onSubmit: () => undefined,
+      secrets: {
+        has: () => Promise.reject(new Error("keychain locked")),
+        set: () => undefined,
+        remove: () => undefined,
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    await expect(await within(canvasElement).findByText("Couldn't check the saved key.")).toBeVisible();
+  },
+};
+
+/** Saving the key failed: the error shows and the draft stays for a retry. */
+export const SecretSaveFailed: Story = {
+  args: {
+    view: {
+      kind: "form",
+      submitMode: "change",
+      fields: [{ kind: "secret", id: "api_key", label: "API key", helperText: "Stored encrypted." }],
+      onSubmit: () => undefined,
+      secrets: {
+        has: () => false,
+        set: () => Promise.reject(new Error("keychain locked")),
+        remove: () => undefined,
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const field = canvas.getByLabelText("API key");
+    await userEvent.type(field, "sk-new{Enter}");
+    await expect(await canvas.findByText("Couldn't save the key.")).toBeVisible();
+    await expect(field).toHaveValue("sk-new");
+  },
 };

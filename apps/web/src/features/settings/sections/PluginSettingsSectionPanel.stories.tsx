@@ -1,4 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, userEvent, within } from "storybook/test";
+import { installStoryPluginSecrets } from "../../../story-support/plugin-secrets";
 import type { PluginManifest } from "../../plugins/lib/plugin-types";
 import { PluginSettingsSectionPanel } from "./PluginSettingsSectionPanel";
 
@@ -62,8 +64,33 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** A plugin with a full settings form, including a conditional field. */
+/**
+ * A plugin with a full settings form, including a conditional field. Plugin
+ * secrets are an in-memory store in Storybook (`story-support/plugin-secrets`),
+ * so the key field starts unset and saving one works as in the app.
+ */
 export const Default: Story = {};
+
+/** A key already saved: the field says so without echoing it, and offers Clear. */
+export const SavedApiKey: Story = {
+  beforeEach: () => installStoryPluginSecrets({ "story-dictionary": { api_key: "sk-story" } }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByPlaceholderText("Saved — enter a new value to replace")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Clear" })).toBeVisible();
+  },
+};
+
+/** Saving a key: Enter stores it, the draft clears and the field shows it saved. */
+export const SavingApiKey: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const field = canvas.getByLabelText("API key");
+    await userEvent.type(field, "sk-new{Enter}");
+    await expect(await canvas.findByPlaceholderText("Saved — enter a new value to replace")).toBeVisible();
+    await expect(field).toHaveValue("");
+  },
+};
 
 /** A single setting — the panel frame still carries the name and description. */
 export const SingleSetting: Story = {

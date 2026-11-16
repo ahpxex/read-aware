@@ -21,29 +21,59 @@ function toDate(value: number | Date): Date {
   return value instanceof Date ? value : new Date(value);
 }
 
+/**
+ * Formatters are cached per locale and options. Constructing an Intl formatter
+ * costs tens of microseconds — far more than formatting with one — and lists
+ * format a value per row: a year's reading calendar alone formats hundreds of
+ * dates. The key carries the locale, so a language switch picks up a new one.
+ * Options are plain literals at every call site, so the set stays small; the
+ * cap only guards against a caller that builds options from unbounded data.
+ */
+const FORMATTER_CACHE_LIMIT = 256;
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
+const numberFormatters = new Map<string, Intl.NumberFormat>();
+
+function cached<T>(cache: Map<string, T>, locale: string, options: object | undefined, create: () => T): T {
+  const key = `${locale}\u0000${options ? JSON.stringify(options) : ""}`;
+  let formatter = cache.get(key);
+  if (!formatter) {
+    if (cache.size >= FORMATTER_CACHE_LIMIT) cache.clear();
+    formatter = create();
+    cache.set(key, formatter);
+  }
+  return formatter;
+}
+
+/** A shared `Intl.DateTimeFormat` for `locale` and `options`. */
+export function dateFormatter(locale: string, options?: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  return cached(dateFormatters, locale, options, () => new Intl.DateTimeFormat(locale, options));
+}
+
+/** A shared `Intl.NumberFormat` for `locale` and `options`. */
+export function numberFormatter(locale: string, options?: Intl.NumberFormatOptions): Intl.NumberFormat {
+  return cached(numberFormatters, locale, options, () => new Intl.NumberFormat(locale, options));
+}
+
 /** Format an absolute timestamp/date. Defaults to a `Jan 5, 2026`-style date. */
 export function formatDate(
   value: number | Date,
   options: Intl.DateTimeFormatOptions = { year: "numeric", month: "short", day: "numeric" },
 ): string {
-  return new Intl.DateTimeFormat(currentLocale(), options).format(toDate(value));
+  return dateFormatter(currentLocale(), options).format(toDate(value));
 }
 
 export function formatNumber(value: number, options?: Intl.NumberFormatOptions): string {
-  return new Intl.NumberFormat(currentLocale(), options).format(value);
+  return numberFormatter(currentLocale(), options).format(value);
 }
 
 /** Wall-clock time, hour/minute in the locale's own cycle — like a status-bar clock. */
 export function formatTime(value: number | Date): string {
-  return new Intl.DateTimeFormat(currentLocale(), {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(toDate(value));
+  return dateFormatter(currentLocale(), { hour: "2-digit", minute: "2-digit" }).format(toDate(value));
 }
 
 /** Format a `0`–`100` value as a locale-correct percentage (`42%` / `42 %`). */
 export function formatPercent(value0to100: number, fractionDigits = 0): string {
-  return new Intl.NumberFormat(currentLocale(), {
+  return numberFormatter(currentLocale(), {
     style: "percent",
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
@@ -51,11 +81,7 @@ export function formatPercent(value0to100: number, fractionDigits = 0): string {
 }
 
 function unit(value: number, name: "hour" | "minute"): string {
-  return new Intl.NumberFormat(currentLocale(), {
-    style: "unit",
-    unit: name,
-    unitDisplay: "narrow",
-  }).format(value);
+  return numberFormatter(currentLocale(), { style: "unit", unit: name, unitDisplay: "narrow" }).format(value);
 }
 
 /** Compact, locale-aware reading duration: `<1m` → `42m` → `3h` → `3h 20m`. */
@@ -79,7 +105,7 @@ export function getWeekdayNames(
   style: "long" | "short" | "narrow" = "short",
   locale: string = currentLocale(),
 ): string[] {
-  const fmt = new Intl.DateTimeFormat(locale, { weekday: style, timeZone: "UTC" });
+  const fmt = dateFormatter(locale, { weekday: style, timeZone: "UTC" });
   // 2023-01-01 is a Sunday.
   return Array.from({ length: 7 }, (_, i) => fmt.format(new Date(Date.UTC(2023, 0, 1 + i))));
 }
@@ -89,12 +115,12 @@ export function getMonthNames(
   style: "long" | "short" | "narrow" = "short",
   locale: string = currentLocale(),
 ): string[] {
-  const fmt = new Intl.DateTimeFormat(locale, { month: style, timeZone: "UTC" });
+  const fmt = dateFormatter(locale, { month: style, timeZone: "UTC" });
   return Array.from({ length: 12 }, (_, i) => fmt.format(new Date(Date.UTC(2023, i, 15))));
 }
 
 /** Format an hour-of-day (0–23) as a locale-correct clock label (`3 PM` / `15`). */
 export function formatHour(hour: number): string {
-  const fmt = new Intl.DateTimeFormat(currentLocale(), { hour: "numeric", timeZone: "UTC" });
+  const fmt = dateFormatter(currentLocale(), { hour: "numeric", timeZone: "UTC" });
   return fmt.format(new Date(Date.UTC(2023, 0, 1, hour)));
 }

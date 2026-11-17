@@ -3,7 +3,7 @@ import type { DomainActor } from "../../../../platform/domain-actor";
 /** Agent-specific chapter hrefs and spoiler bounds over shared library reads. */
 import { type BookTextPort, type ChapterRef } from "@read-aware/agent";
 import { getDigestContentVersion } from "../../../../domain/book-digest";
-import { getDigestChapterSource, getBookTextStatus } from "../../../library/lib/book-text-store";
+import { getDigestChapterSource } from "../../../library/lib/book-text-store";
 import { createLibraryDomain, getExtractedChapters, locateExtractedText } from "../../../../domain/library";
 import { openBookImageResource } from "../../../../domain/library-book-images";
 import { agentResources } from "../../../../services/resources";
@@ -117,7 +117,6 @@ export function createBookTextPort(origin: DomainActor = "agent"): BookTextPort 
       })),
     // "没字"与"没抽"要说成两回事——纯图扫描版是终局事实（get_toc 会
     // 触发一次抽取；抽完落定论后这里读到 textless），重试无益。
-    getTextStatus: (bookId) => getBookTextStatus(String(bookId)),
     getChapterText: async (bookId, chapterIndex) =>
       (await getExtractedChapters(String(bookId), origin))[chapterIndex]?.text,
     getChapterLayout: async (bookId, chapterIndex) =>

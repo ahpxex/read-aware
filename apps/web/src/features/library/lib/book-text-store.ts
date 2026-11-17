@@ -216,10 +216,6 @@ provideStoredNavigation(getPersistedBookNavigation);
 // Borrow the active parser with its registered version, never attach a new hash to an old parser.
 export const ensureBookTextExtracted = (bookId: string, preopened?: FoliateBook, origin?: DomainActor) =>
   repository.ensure(bookId, !!preopened, origin);
-export async function getBookTextStatus(bookId: string): Promise<"ok" | "unextracted" | "textless"> {
-  const state = await repository.snapshot(bookId);
-  return state.status === "ready" ? (state.text === "textless" ? "textless" : "ok") : "unextracted";
-}
 export async function deleteBookText(bookIds: string[]): Promise<void> {
   for (const bookId of bookIds) await repository.remove(bookId);
 }

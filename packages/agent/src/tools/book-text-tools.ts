@@ -93,7 +93,7 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
     name: "get_toc",
     label: "Table of contents",
     description:
-      "Read table of contents. view=navigation returns the original hierarchical TOC with versioned locations for open_book; ordinal is TOC order, never a read_chapter coordinate. Null locations are non-navigable headings. Default view=chapters returns the indexed table of contents. Each entry carries chapterIndex (an internal tool coordinate, NOT a printed chapter number) and the original title. Match the reader's chapter number/name against the title, including any part/volume; copy its chapterIndex without arithmetic. Front matter and unnumbered sections also have indices. In replies cite the title; never invent a chapter number from the index. chars = text length; blocks = how many paragraphs read_chapter can address in the chapter (pages when unit is page); one read returns up to 12000 chars. A TOC does not prove whether a topic appears in the prose: if the reader asks you to check coverage, continue with search_book_text or read_chapter in this same turn instead of offering to look later. Empty results carry textState on current hosts (legacy hosts use textStatus). Only ready plus textless proves every required section was read successfully with no extractable text; available text can have no indexed chapters. Preparing, unsupported and unavailable are not textless. Partial or failed preparation returns an error. Use get_book_text_status for a read-only check without starting extraction. bookId defaults to the current book.",
+      "Read table of contents. view=navigation returns the original hierarchical TOC with versioned locations for open_book; ordinal is TOC order, never a read_chapter coordinate. Null locations are non-navigable headings. Default view=chapters returns the indexed table of contents. Each entry carries chapterIndex (an internal tool coordinate, NOT a printed chapter number) and the original title. Match the reader's chapter number/name against the title, including any part/volume; copy its chapterIndex without arithmetic. Front matter and unnumbered sections also have indices. In replies cite the title; never invent a chapter number from the index. chars = text length; blocks = how many paragraphs read_chapter can address in the chapter (pages when unit is page); one read returns up to 12000 chars. A TOC does not prove whether a topic appears in the prose: if the reader asks you to check coverage, continue with search_book_text or read_chapter in this same turn instead of offering to look later. Empty results carry textState. Only ready plus textless proves every required section was read successfully with no extractable text; available text can have no indexed chapters. Preparing, unsupported and unavailable are not textless. Partial or failed preparation returns an error. Use get_book_text_status for a read-only check without starting extraction. bookId defaults to the current book.",
     parameters: obj({
       bookId: opt(str()),
       view: opt(
@@ -137,25 +137,6 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
                   ? "Text exists, but no chapters meet the current chapter indexing policy. Exact location search uses a separate source."
                   : "Derived text is not available. This is not evidence that the book has no text layer.",
         });
-      }
-      // 空目录要说真话：纯图扫描版（无文字层）与"还没抽取"是两种事实，
-      // 前者重试无益，模型该向读者如实解释，而不是对着空数组瞎猜。
-      if (toc.length === 0 && deps.bookText.getTextStatus) {
-        const status = await deps.bookText.getTextStatus(target);
-        if (status === "textless") {
-          return textResult({
-            chapters: [],
-            textStatus: "textless",
-            note: "This book has no extractable text layer (likely an image-only scan). Book-text tools cannot read it; be honest with the reader about this limitation instead of retrying.",
-          });
-        }
-        if (status === "unextracted") {
-          return textResult({
-            chapters: [],
-            textStatus: "unextracted",
-            note: "This book's text has not been fully extracted yet. Extraction has been started (or resumes) in the background and also runs while the book is open in the reader; for a long scanned PDF it can take a few minutes. Tell the reader, and try again later in the conversation rather than retrying immediately.",
-          });
-        }
       }
       // hrefs 是运行时的反查键（阅读位置 → 章节），对模型是纯噪音。
       // Printed chapter numbering belongs to the publisher title, never array order.

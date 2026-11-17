@@ -5,15 +5,26 @@ import { buildBookTextTools } from "./book-text-tools";
 
 const BOOK = "status-book" as Id;
 
-function getTocWith(status: "ok" | "unextracted" | "textless" | undefined) {
+type TextState = Awaited<
+  ReturnType<NonNullable<ReturnType<typeof createInMemoryDeps>["deps"]["bookText"]["getTextState"]>>
+>;
+
+function getTocWith(state: Pick<TextState, "status" | "text"> | undefined) {
   const { deps } = createInMemoryDeps({
     books: [{ id: BOOK, title: "Scanned Thing", status: "reading" }],
     chapters: { [BOOK]: [] },
   });
   const bookText = {
     ...deps.bookText,
-    getTextState: undefined,
-    ...(status ? { getTextStatus: async () => status } : {}),
+    getTextState: state
+      ? async (): Promise<TextState> => ({
+          bookId: BOOK,
+          contentVersion: "sha256:test",
+          chapterCount: 0,
+          progress: { total: 1, completed: 1, failed: 0, unsupported: 0 },
+          ...state,
+        })
+      : undefined,
   };
   const built = buildBookTextTools({ kind: "book", bookId: BOOK }, { ...deps, bookText });
   return built.find((tool) => tool.name === "get_toc")!;
@@ -23,20 +34,20 @@ function text(result: { content: Array<{ type: string; text?: string }> }): stri
   return result.content[0]?.text ?? "";
 }
 
-describe("get_toc text-status honesty", () => {
+describe("get_toc text-state honesty", () => {
   test("a textless book says so instead of returning a bare empty list", async () => {
-    const payload = JSON.parse(text(await getTocWith("textless").execute("t1", {})));
-    expect(payload.textStatus).toBe("textless");
-    expect(payload.note).toContain("image-only scan");
+    const payload = JSON.parse(text(await getTocWith({ status: "ready", text: "textless" }).execute("t1", {})));
+    expect(payload.textState.text).toBe("textless");
+    expect(payload.note).toContain("no extractable text");
   });
 
-  test("an unextracted book reports extraction in progress", async () => {
-    const payload = JSON.parse(text(await getTocWith("unextracted").execute("t2", {})));
-    expect(payload.textStatus).toBe("unextracted");
-    expect(payload.note).toContain("not been fully extracted");
+  test("a book still being prepared reports it", async () => {
+    const payload = JSON.parse(text(await getTocWith({ status: "preparing", text: "unknown" }).execute("t2", {})));
+    expect(payload.textState.status).toBe("preparing");
+    expect(payload.note).toContain("Text preparation is running");
   });
 
-  test("hosts without the optional status seam keep the bare empty list", async () => {
+  test("hosts without the text-state seam keep the bare empty list", async () => {
     const payload = JSON.parse(text(await getTocWith(undefined).execute("t3", {})));
     expect(Array.isArray(payload)).toBe(true);
     expect(payload).toHaveLength(0);
@@ -120,9 +131,8 @@ test("a status read failure is not converted into an empty TOC", async () => {
       ...deps,
       bookText: {
         ...deps.bookText,
-        getTextState: undefined,
         getToc: async () => [],
-        getTextStatus: async () => {
+        getTextState: async () => {
           throw error;
         },
       },

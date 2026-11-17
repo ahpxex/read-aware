@@ -177,6 +177,7 @@ describe("narrative reading fence in a turn", () => {
     faux = registerFauxProvider({ tokensPerSecond: 100_000 });
     const model = faux.getModel() as Model<Api>;
     const results: string[] = [];
+    let nextTurnContext = "";
     faux.setResponses([
       fauxAssistantMessage(
         [
@@ -189,7 +190,10 @@ describe("narrative reading fence in a turn", () => {
         results.push(lastToolResult(context));
         return fauxAssistantMessage("后面会出现面壁计划。");
       },
-      fauxAssistantMessage([fauxToolCall("read_chapter", { chapterIndex: 1 })], { stopReason: "toolUse" }),
+      (context) => {
+        nextTurnContext = JSON.stringify(context.messages);
+        return fauxAssistantMessage([fauxToolCall("read_chapter", { chapterIndex: 1 })], { stopReason: "toolUse" });
+      },
       (context) => {
         results.push(lastToolResult(context));
         return fauxAssistantMessage("这部分要等你读到。");
@@ -208,8 +212,11 @@ describe("narrative reading fence in a turn", () => {
     await collect(hostTurn(stores.turns, thread, { text: "可以剧透，后面发生什么？", readingCursor: cursor }));
     expect(stores.interactions).toEqual([expect.objectContaining({ action: "reveal-spoilers" })]);
     expect(results[0]).toContain("面壁计划");
-    // The next message starts behind the fence again.
+    // The next message starts behind the fence again, and the later text the approved
+    // reply read does not carry over: only the answer the reader was shown does.
     await collect(hostTurn(stores.turns, thread, { text: "再讲讲后面。", readingCursor: cursor }));
+    expect(nextTurnContext).toContain("后面会出现面壁计划。");
+    expect(nextTurnContext).not.toContain("不要回答");
     expect(results[1]).not.toContain("面壁计划");
     expect(results[1]).toContain(SPOILER_ACCESS_TOOL);
     thread.dispose();

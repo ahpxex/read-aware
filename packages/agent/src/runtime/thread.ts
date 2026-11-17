@@ -849,6 +849,11 @@ export class AgentThread {
       // （doc §10 第 6 步）
       call.assertAllowed();
       this.scheduleBackgroundPipeline(userText, answer, call.permissions, cursor?.chapter, input.turnId);
+      // The reader's spoiler approval covered this reply only. Later text its tools
+      // returned stays in the chapter session (old results are trimmed, not removed),
+      // so drop the session: the next message rebuilds from the transcript, which
+      // holds only what the reader was shown.
+      if (this.turnState.spoilersAllowed) this.discardAgent();
       turnCompleted = true;
     } finally {
       // A retry restores the saved pre-request messages, never pi's failed draft.

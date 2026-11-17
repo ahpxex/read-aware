@@ -11,6 +11,7 @@ import {
 } from "@read-aware/core";
 import { ReadingModeWrites } from "./reading-mode-writes";
 import { ReadingModePositionWrites } from "./reading-mode-position-writes";
+import { PendingIntentSlot } from "../../../platform/pending-intent";
 import { causalActor, stampEventCause, type DomainActor } from "../../../platform/domain-actor";
 
 export type ModeDescriptor = ReadingModeDescriptor & { implementation?: object };
@@ -35,13 +36,8 @@ export type ModeFeedback = {
   position?: ReadingModePosition | null;
 };
 export type ModeStepResult = { outcome: ReadingModeStepOutcome; feedback: ModeFeedback };
-type Pending = {
-  revision: number;
-  before: ModeRequest;
-  resolve(mode: ReadingModeSnapshot): void;
-  reject(error: unknown): void;
-  cleanup(): void;
-};
+/** An unfinished configuration request and the state it would revert to. */
+type Pending = { revision: number; before: ModeRequest };
 
 /** Owns requested mode state and completion. The reader reports the actual indexed state. */
 export class ReadingModeController {
@@ -56,7 +52,7 @@ export class ReadingModeController {
   private resultOrigin: DomainActor;
   private publication = 0;
   private preferenceRevision = 0;
-  private pending: Pending | undefined;
+  private readonly pending: PendingIntentSlot<Pending, ReadingModeSnapshot>;
   private confirmedRevision = -1;
   private readonly writes = new ReadingModeWrites((revision, error) => this.persistenceFailed(revision, error));
   private readonly positionWrites = new ReadingModePositionWrites();
@@ -79,6 +75,13 @@ export class ReadingModeController {
     /** A configuration the reader confirmed; the owner records lasting preferences here. */
     private readonly confirmed: (request: ModeRequest) => void = () => {},
   ) {
+    this.pending = new PendingIntentSlot({
+      deadlineMs,
+      timeout: () => new AppError("reader/timeout", "Reading mode did not settle"),
+      superseded: () => new AppError("reader/superseded", "Reading mode request was replaced"),
+      // Revert only this unfinished request. A newer UI/actor action owns its own state.
+      onExpire: ({ payload: { before } }) => this.change(before.active, before.unitId, before.modeKey),
+    });
     this.resultOrigin = causalActor(origin);
     this.request = { revision: 0, active, unitId, modeKey, origin: this.resultOrigin };
     this.result = stampEventCause(
@@ -304,7 +307,7 @@ export class ReadingModeController {
       this.emit(origin);
       return;
     }
-    const before = this.pending?.before ?? this.rollback ?? this.request;
+    const before = this.pending.current?.payload.before ?? this.rollback ?? this.request;
     this.supersede();
     const modeKey = before.modeKey ?? modes[0]?.key ?? null;
     const descriptor = modes.find((mode) => mode.key === modeKey);
@@ -323,7 +326,7 @@ export class ReadingModeController {
   /** Native UI and changes to the mode's declared settings supersede in-flight actor commands. */
   choose(active: boolean, unitId = this.request.unitId, origin: DomainActor = "user"): void {
     this.validate({ active, ...(unitId && this.descriptor ? { unitId } : {}) });
-    const before = this.pending?.before ?? this.rollback ?? this.request;
+    const before = this.pending.current?.payload.before ?? this.rollback ?? this.request;
     this.supersede();
     this.change(active, unitId, this.request.modeKey, before, origin);
   }
@@ -371,35 +374,11 @@ export class ReadingModeController {
         throw new AppError("reader/superseded", "Reading mode changed during persistence");
       return structuredClone(this.result);
     }
-    const before = this.pending?.before ?? this.rollback ?? this.request;
+    const before = this.pending.current?.payload.before ?? this.rollback ?? this.request;
     this.supersede();
-    const revision = this.request.revision + 1;
-    const work = new Promise<ReadingModeSnapshot>((resolve, reject) => {
-      const cancel = (reason: unknown) => {
-        if (this.pending?.revision !== revision) return;
-        this.supersede(reason);
-        // Revert only this unfinished request. A newer UI/actor action owns its own state.
-        this.change(before.active, before.unitId, before.modeKey);
-      };
-      const abort = () => cancel(signal?.reason);
-      const timer = setTimeout(
-        () => cancel(new AppError("reader/timeout", "Reading mode did not settle")),
-        this.deadlineMs,
-      );
-      signal?.addEventListener("abort", abort, { once: true });
-      this.pending = {
-        revision,
-        before,
-        resolve,
-        reject,
-        cleanup: () => {
-          clearTimeout(timer);
-          signal?.removeEventListener("abort", abort);
-        },
-      };
-    });
+    const { settled } = this.pending.begin({ revision: this.request.revision + 1, before }, signal);
     this.change(input.active, unitId, modeKey, before, origin);
-    return work;
+    return settled;
   }
 
   feedback(
@@ -434,7 +413,7 @@ export class ReadingModeController {
   }
 
   retire(): boolean {
-    const before = this.pending?.before;
+    const before = this.pending.current?.payload.before;
     this.supersede();
     if (!before) {
       this.positionWrites.retire();
@@ -459,10 +438,7 @@ export class ReadingModeController {
   }
 
   private supersede(reason: unknown = new AppError("reader/superseded", "Reading mode request was replaced")): void {
-    const pending = this.pending;
-    this.pending = undefined;
-    pending?.cleanup();
-    pending?.reject(reason);
+    this.pending.cancel(reason);
   }
 
   private persistenceFailed(revision: number, error: unknown): void {
@@ -491,13 +467,11 @@ export class ReadingModeController {
       this.confirmedRevision = revision;
       this.rollback = undefined;
       if (!failure && this.result.status !== "error") this.confirmed(this.request);
-      const pending = this.pending;
-      this.pending = undefined;
-      pending?.cleanup();
-      if (failure) pending?.reject(failure.error);
-      else if (this.result.status === "error")
-        pending?.reject(new AppError(this.result.errorCode ?? "reader/segmentation-failed", "Reading mode failed"));
-      else pending?.resolve(structuredClone(this.result));
+      const intent = this.pending.current;
+      if (intent && failure) this.pending.cancel(failure.error);
+      else if (intent && this.result.status === "error")
+        this.pending.cancel(new AppError(this.result.errorCode ?? "reader/segmentation-failed", "Reading mode failed"));
+      else if (intent) this.pending.confirm(intent, structuredClone(this.result));
       if (failure) this.emit(origin);
     };
     if (!this.persistenceTracked) {
